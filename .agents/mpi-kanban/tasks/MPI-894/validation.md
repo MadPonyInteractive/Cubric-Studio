@@ -31,3 +31,12 @@ docs/runpod-remote-engine.md, runpod-troubleshooting.md, bump-engine/01-smoke-ru
 mpi-bump-engine skill the same session.
 Only RTX PRO 4000 is in stock on a CUDA-13+ host in EU-RO-1 at 19:50 local, so the smoke's
 GPU_ORDER (5090/L4/3090/4090) would stop in `pickGpu` before renting - MPI-595's concern.
+
+## 2026-09-29 - hot-store 524 + Pod identity (session acd968e8)
+
+Root cause and fix: plan.md Current State. Evidence so far (no paid run yet):
+- `node --test tests/pod-identity-hot-store.test.cjs` 7/7: server records the rented card at create (CPU flag too) and forgets it on disconnect; `/remote/pod/specs` names the tracked Pod over the caller's picker; arch follows the connected Pod; stage-on-connect sends ONE `async` request (deduped), none on a CPU Pod, none on a pre-async wrapper; a gen sends `priority`, polls until its files land, and a Stop ends the wait.
+- Related suites 94/94; full `npm test` 2214 pass / 0 fail.
+- Wrapper: `python cubric-vision-pod/wrapper/test_hot_store_async.py` passes (async answers before any byte copies, worker stages, a failed file leaves `pending`, priority reorders, blocking form unchanged). mpi-ci `57a31c0`, pushed; `publish-runtime.sh dev` live, dev manifest reports wrapper 0.2.45.
+- NOT yet proven on a real Pod through RunPod's proxy; needs one paid GPU Pod with a network volume (none exists since the smoke volume was deleted).
+- Pre-existing, not ours: `wrapper/test_manifest_stamp.py` fails on committed HEAD too (expects manifest schema 1, wrapper writes 2).

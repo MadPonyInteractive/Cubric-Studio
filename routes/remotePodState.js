@@ -21,13 +21,16 @@ const { buildAuthHeaders } = require('./remoteHeaders');
 
 // --- remote-mode state (backend-owned; Settings/boot gate flips it) ----------
 
-const _mode = { active: false, podId: null, deleteOnQuit: false, noGpu: false };
+// gpuTypeId: the card the TRACKED Pod was created on — the truth for "what am I
+// connected to". The renderer's saved picker is only the card the user would rent
+// next; a Pod made over HTTP (an agent, the smoke runner) never touches it.
+const _mode = { active: false, podId: null, deleteOnQuit: false, noGpu: false, gpuTypeId: null };
 
 function getRemoteMode() {
   return { ..._mode };
 }
 
-function setRemoteMode({ active, podId, deleteOnQuit, noGpu } = {}) {
+function setRemoteMode({ active, podId, deleteOnQuit, noGpu, gpuTypeId } = {}) {
   if (podId !== undefined && podId !== null) {
     const next = String(podId);
     if (next !== _mode.podId) _clearHealthVerdict(); // MPI-90: stale verdict on Pod swap
@@ -36,6 +39,7 @@ function setRemoteMode({ active, podId, deleteOnQuit, noGpu } = {}) {
   _mode.active = !!active;
   if (deleteOnQuit !== undefined) _mode.deleteOnQuit = !!deleteOnQuit;
   if (noGpu !== undefined) _mode.noGpu = !!noGpu;
+  if (gpuTypeId !== undefined) _mode.gpuTypeId = gpuTypeId || null;
   return getRemoteMode();
 }
 

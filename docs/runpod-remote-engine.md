@@ -195,7 +195,9 @@ Non-secret pref `deleteOnQuit` in `state.runpodConfig` (default OFF; normalizer 
 `js/core/storage.js`, localStorage-mirrored via the state Proxy). Full config:
 `{ enabled, podId, datacenter, gpuType, volumeId, wasConnected, deleteOnQuit, autoRetry,
 stageOnConnect, containerDiskGb, minRamGb }` (minRamGb = optional system-RAM floor, MPI-160;
-0 = none; stageOnConnect = warm all installed models on connect, MPI-329, default off). Pushed to
+0 = none; stageOnConnect = warm all installed models on connect, MPI-329, default ON since
+MPI-802). `gpuType` is the card the user would rent NEXT, not the connected Pod's — that is
+`_mode.gpuTypeId`, set at create/reconnect (MPI-894). Pushed to
 backend `_mode` via `POST /remote/mode` on boot (`shell.js _initRemoteBoot`) and on checkbox
 toggle (`MpiRunpodSettings.js`). `main.js` stays pref-agnostic — it calls `/remote/pod/teardown`
 and the backend branches. Backend `_mode = { active, podId, deleteOnQuit }` is server-owned.
@@ -328,13 +330,23 @@ difference between hunting for a 96 GB instance and taking whatever is in stock.
   copy+sha-verify+SSE progress; **sticky** (one copy per pod lifetime) and **LRU-evicts** disk
   copies only when a NEW stage needs room. Only **volume** pods pay the tax — ephemeral pods
   (MPI-78) already root models on the disk.
+  **No request may be held open for a copy (MPI-894, wrapper 0.2.45).** RunPod's proxy cuts
+  any request at ~100 s (HTTP 524) while the copy runs on holding the one hot-store lock, so
+  every later ensure — including the user's gen — queued behind it. The app sends
+  `async: true` (the wrapper QUEUES for one background worker and answers at once) and polls
+  the lock-free `dryRun` until its files stop being `pending` (cap 3 min, then from the
+  volume; a Stop ends the wait). A gen sends `priority: true` to jump a prefetch. A file the
+  worker cannot stage drops out of `pending` (`failed`), so a poll can never wait forever.
+  The blocking form stays for older apps; `dryRun`'s `async` flag is the capability probe.
   **Two regimes (MPI-329).** A model that FITS VRAM (Krea2 13.5 / Qwen 20.5 on a 24 GB card) is
   volume-read-bound → staging = ~10× win. A single file LARGER than VRAM (LTX 42 GB bf16 on a
   24 GB card) can't stay resident → aimdo streams it per-stage regardless of source → staging
   can't help, and a 42 GB copy would hog the wrapper's one hot-store lock and stall an
   interactive gen. So `_ensureRemoteHotStore` **skips any single file > the pod's VRAM**
   (`/remote/pod/specs` → vramGb, cached per gpuType); a 96 GB card keeps staging it (fits). LTX's
-  11 GB TE still stages.
+  11 GB TE still stages. The card is the CONNECTED Pod's (`remoteEngineClient.podGpuType()`,
+  from `/remote/mode`'s `gpuTypeId`), never the saved picker: a Pod made over HTTP (an agent,
+  the smoke runner) never updates the picker (MPI-894 — every connect read "RTX 2000 Ada").
   **Thresholds.** `HOT_STORE_MIN_GB` (app) is **0.1 GB** — stage everything ≥100 MB (was 20 GB,
   which only ever caught LTX). The pod env `CUBRIC_HOT_STORE_MIN_BYTES` (=100 MB, set per-create
   in `remotePodLifecycle.js`) drops the wrapper's baked 15 GB floor to match — BOTH must be low
@@ -344,12 +356,13 @@ difference between hunting for a 96 GB instance and taking whatever is in stock.
   [100, 600], fallback 200 GB if unreadable — so the disk holds the WHOLE stageable set and the
   LRU never evicts (disk ≥ volume ≥ everything staged). The old static `CONTAINER_DISK_GB` is
   GONE; nothing to bump — the mirror auto-tracks the volume the user sized.
-  **Optional prefetch — "Stage all models on connect" (MPI-329, default OFF).** RunPod setting
-  `stageOnConnect`: when ON, shell's connect edge (after `syncModelInstalled`, so install-state
-  is the remote volume's) calls `prefetchInstalledModels()` (exported from `commandExecutor.js`)
-  to warm EVERY installed model — first gen instant. OFF = lazy on-first-use staging (copies only
-  what's used). Wired from shell.js, NOT self-tracked in commandExecutor (a phased/debounced
-  disconnect made an in-module connect-edge flag unreliable).
+  **Prefetch — "Stage all models on connect" (MPI-329; default ON since MPI-802).** RunPod
+  setting `stageOnConnect`: when ON, shell's connect edge (after `syncModelInstalled`, so
+  install-state is the remote volume's) calls `prefetchInstalledModels()` (exported from
+  `commandExecutor.js`), which queues EVERY installed model's weights in ONE `async` request
+  (deduped) — never one blocking request per model, which 524'd every ~2 min (MPI-894). OFF =
+  lazy on-first-use staging. Wired from shell.js, NOT self-tracked in commandExecutor (a
+  phased/debounced disconnect made an in-module connect-edge flag unreliable).
   **Judge staging on the WARM number, never the first touch (MPI-200).** The first staged gen
   pays the one-time volume→disk copy and looks *slower* than unstaged (24GB mxfp8: 30s
   first-staged vs 20s volume-served); the warm repeat then ran 1m04s total = fast. A

@@ -473,7 +473,7 @@ const HOT_STORE_MIN_GB = 0.1;
 // stalling an interactive gen's preflight for minutes. null = unknown → don't VRAM-filter.
 let _vramCache = { gpuType: null, vramGb: null };
 async function _remoteVramGb() {
-    const gpuTypeId = state.runpodConfig?.gpuType || null;
+    const gpuTypeId = remoteEngineClient.podGpuType();
     if (!gpuTypeId || gpuTypeId === '__cpu__') return null;
     if (_vramCache.gpuType === gpuTypeId) return _vramCache.vramGb;
     let vramGb = null;
@@ -487,34 +487,18 @@ async function _remoteVramGb() {
     return vramGb;
 }
 
-/**
- * Remote-engine gen preflight (MPI-194): stage any weight file >= HOT_STORE_MIN_GB
- * from the Pod's network volume onto its container disk so aimdo's per-stage
- * re-faults read local NVMe (~9s gap) not the 750MB/s volume (~36s gap). Sticky +
- * LRU on the Pod side; this call is idempotent (already-staged files return instantly).
- * Awaited before dispatch so the one-time ~55s first-stage shows a real progress
- * toast. Best-effort: on any failure the gen still runs from the volume — never blocks.
- */
-async function _ensureRemoteHotStore(modelId, operation, { silent = false } = {}) {
-    // MPI-539: NEVER stage onto a download-mode Pod. Its container has ~3.7 GiB of RAM
-    // and no GPU — the user is installing weights there, not generating. Staging one
-    // 469MB LoRA OOM-killed the wrapper live on 2026-08-11 (exit 137), which dropped the
-    // install SSE and stranded four in-flight deps. This guard closes a HALF-WIRE: the
-    // stage-on-connect twin (prefetchInstalledModels) has carried it since MPI-329 and
-    // this per-gen path never did. It is doubly lethal here because _remoteVramGb returns
-    // null for __cpu__, and null means "no VRAM cap" in the size filter below — so the
-    // LEAST capable box got the MOST permissive staging set.
-    if (state.runpodConfig?.gpuType === '__cpu__') return;
+// Weight files worth staging for one model, in the wrapper's ensure shape
+// (null operation → resolveDeps returns the model's FULL op universe, which is what
+// the stage-on-connect prefetch warms).
+async function _hotStoreFiles(modelId, operation) {
     const model = getModelById(modelId);
-    if (!model) return;
-    // null operation → resolveDeps returns the model's FULL op universe (used by the
-    // stage-on-connect prefetch, which warms every op of every installed model).
+    if (!model) return [];
     const selectedOps = operation ? [operation] : null;
     // MPI-200: remote path → the pod's arch selects the one balanced transformer to
     // stage (else the >=20GB filter would miss it / stage the wrong variant).
     const arch = await remoteEngineClient.arch('remote');
     const vramGb = await _remoteVramGb(); // null = unknown → skip the VRAM cap
-    const files = resolveDeps(model, selectedOps, null, 'remote', { arch })
+    return resolveDeps(model, selectedOps, null, 'remote', { arch })
         .map(id => DEPS[id])
         // Stage weights ≥100MB, but SKIP any single file larger than the pod's VRAM:
         // it can't stay resident (streams per-stage → staging can't speed it) and a huge
@@ -537,44 +521,96 @@ async function _ensureRemoteHotStore(modelId, operation, { silent = false } = {}
             };
         })
         .filter(Boolean);
-    if (!files.length) return;
+}
 
-    const post = (body) => fetch('/remote/hot-store/ensure', {
+function _postHotStore(body) {
+    return fetch('/remote/hot-store/ensure', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
     });
+}
+
+async function _hotStorePending(files) {
+    const res = await _postHotStore({ files, dryRun: true });
+    return res.ok ? res.json().catch(() => null) : null;
+}
+
+// A gen waits for ITS OWN weights to land on the Pod disk, polling the cheap dryRun.
+// ponytail: fixed 3 min cap — past it the gen runs from the volume and the copy carries
+// on in the background for the next gen. Raise it if a big model on a slow host keeps
+// running from the volume.
+const HOT_STORE_POLL_MS = 2000;
+const HOT_STORE_WAIT_MS = 180000;
+
+/**
+ * Remote-engine gen preflight (MPI-194): stage any weight file >= HOT_STORE_MIN_GB
+ * from the Pod's network volume onto its container disk so aimdo's per-stage
+ * re-faults read local NVMe (~9s gap) not the 750MB/s volume (~36s gap). Sticky +
+ * LRU on the Pod side; idempotent (already-staged files only bump their LRU).
+ *
+ * The wrapper QUEUES the copy and answers at once (`async`); this polls the dryRun
+ * until its own files are staged. It never holds one request open for a copy:
+ * RunPod's proxy cuts any request at ~100 s (HTTP 524), and the copy then kept the
+ * wrapper's one hot-store lock while the gen queued behind it (2026-09-28: 524 every
+ * ~2 min on an A100, i2v 281 s vs 33 s). `priority` puts this gen's files ahead of a
+ * stage-on-connect prefetch. Best-effort: on any failure the gen runs from the volume.
+ * @param {AbortSignal} [signal]  the job's cancel signal — a Stop ends the wait.
+ * Exported for tests/pod-identity-hot-store.test.cjs only.
+ */
+export async function _ensureRemoteHotStore(modelId, operation, signal) {
+    // MPI-539: NEVER stage onto a download-mode Pod. Its container has ~3.7 GiB of RAM
+    // and no GPU — the user is installing weights there, not generating. Staging one
+    // 469MB LoRA OOM-killed the wrapper live on 2026-08-11 (exit 137), which dropped the
+    // install SSE and stranded four in-flight deps. Server truth (the caller refreshed
+    // the mirror), never the saved picker: a Pod made over HTTP leaves the picker on a
+    // GPU, and that read staged onto a CPU Pod on 2026-09-28.
+    if (remoteEngineClient.isDownloadOnly()) return;
+    const files = await _hotStoreFiles(modelId, operation);
+    if (!files.length) return;
+
     try {
-        // Cheap dryRun first: toast ONLY when a real ~55s copy is pending (cold
-        // stage). A warm gen (everything already on disk) shows nothing — the fix
-        // for the "Preparing…" toast firing on every remote gen (MPI-194).
-        const dry = await post({ files, dryRun: true });
-        if (dry.ok && !silent) {
-            const info = await dry.json().catch(() => null);
-            if ((info?.pending || 0) > 0) {
-                Events.emit('ui:info', { message: 'Preparing the cloud engine for a faster generation…' });
-            }
+        // Toast ONLY when a real copy is pending (cold stage); a warm gen shows nothing
+        // (MPI-194).
+        const dry = await _hotStorePending(files);
+        let pending = dry?.pending || 0;
+        if (pending > 0) {
+            Events.emit('ui:info', { message: 'Preparing the cloud engine for a faster generation…' });
         }
-        // Real ensure (blocks ~55s only on a cold stage; instant when cached).
-        const res = await post({ files });
+        const res = await _postHotStore({ files, async: true, priority: true });
         if (!res.ok) {
             clientLogger.warn('commandExecutor', `hot-store ensure HTTP ${res.status} — generating from volume`);
             return;
         }
         const data = await res.json().catch(() => null);
-        const staged = (data?.results || []).filter(r => r.staged).length;
-        clientLogger.info('commandExecutor', `hot-store: ${staged}/${files.length} file(s) on Pod disk`);
+        if (!data?.async) {
+            // A pre-async wrapper blocked until every file was staged.
+            const staged = (data?.results || []).filter(r => r.staged).length;
+            clientLogger.info('commandExecutor', `hot-store: ${staged}/${files.length} file(s) on Pod disk`);
+            return;
+        }
+        const deadline = Date.now() + HOT_STORE_WAIT_MS;
+        while (pending > 0 && Date.now() < deadline && !signal?.aborted) {
+            await new Promise(r => setTimeout(r, HOT_STORE_POLL_MS));
+            const poll = await _hotStorePending(files);
+            if (!poll) break;
+            pending = poll.pending || 0;
+        }
+        if (pending > 0) {
+            clientLogger.warn('commandExecutor', `hot-store: ${pending}/${files.length} file(s) still copying — generating from volume`);
+        } else {
+            clientLogger.info('commandExecutor', `hot-store: ${files.length} file(s) on Pod disk`);
+        }
     } catch (e) {
         // Non-fatal — the volume copy still works, just slower.
         clientLogger.warn('commandExecutor', `hot-store ensure failed (${e.message}) — generating from volume`);
     }
 }
 
-// MPI-329: stage-on-connect prefetch. When the user enables "Stage all models on
-// connect" (RunPod settings), warm EVERY installed model's full weight set onto the
-// Pod's fast disk right after it connects, so even the FIRST generation is instant.
-// Default OFF — normally weights stage lazily on first gen (_ensureRemoteHotStore in
-// the run preflight), copying only what's actually used.
+// MPI-329: stage-on-connect prefetch. When "Stage all models on connect" is on
+// (RunPod settings, default ON since MPI-802), queue EVERY installed model's weight
+// set for the Pod's fast disk right after it connects, so even the FIRST generation
+// is fast. OFF = weights stage lazily on first gen (_ensureRemoteHotStore).
 //
 // DRIVEN BY shell.js's authoritative remote-connect edge (called after
 // syncModelInstalled, so state.s_installedModelIds reflects the REMOTE volume). It is
@@ -582,28 +618,40 @@ async function _ensureRemoteHotStore(modelId, operation, { silent = false } = {}
 // here: (1) commandExecutor isn't imported until first gen, so a module-level connect
 // listener wouldn't be registered on a cold auto-connect, and (2) re-deriving the edge
 // was fragile — a phased/debounced disconnect left the flag un-reset, so a fast
-// terminate→reconnect never re-armed. Best-effort + idempotent (the wrapper skips
-// already-staged files); sequential so we never fire N concurrent volume→disk copies.
-// A CPU download-mode Pod has no ComfyUI to warm.
-let _prefetchInFlight = false;  // guards against overlapping prefetch runs
-
+// terminate→reconnect never re-armed.
+//
+// ONE request for the whole set, answered at once: the wrapper copies it in the
+// background, one file at a time, and a generation's own files jump the queue. This
+// used to be one BLOCKING request per model — each past ~100 s died as a 524 while its
+// copy held the lock, and the loop ran on after the Pod was gone (2026-09-28).
 export async function prefetchInstalledModels() {
-    if (_prefetchInFlight) return;
-    const cfg = state.runpodConfig || {};
-    if (cfg.stageOnConnect !== true || cfg.gpuType === '__cpu__') return;
+    if (state.runpodConfig?.stageOnConnect !== true) return;
+    await remoteEngineClient.refresh();
+    // A CPU download-mode Pod has no ComfyUI to warm (MPI-539) — server truth, as above.
+    if (!remoteEngineClient.isRemote() || remoteEngineClient.isDownloadOnly()) return;
     const ids = (state.s_installedModelIds || []).slice();
-    if (!ids.length) return;
-    _prefetchInFlight = true;
-    Events.emit('ui:info', {
-        message: `Warming the cloud engine — staging ${ids.length} model${ids.length > 1 ? 's' : ''} to fast disk…`,
-    });
+    const byKey = new Map();
+    for (const id of ids) {
+        for (const f of await _hotStoreFiles(id, null)) byKey.set(`${f.type}/${f.filename}`, f);
+    }
+    const files = [...byKey.values()];
+    if (!files.length) return;
     try {
-        for (const id of ids) {
-            await _ensureRemoteHotStore(id, null, { silent: true });
+        // The dryRun doubles as the capability probe: a pre-async wrapper would hold
+        // this one request for the whole set, so on one stay lazy.
+        const dry = await _hotStorePending(files);
+        if (!dry?.async || !dry.pending) return;
+        const res = await _postHotStore({ files, async: true });
+        if (!res.ok) {
+            clientLogger.warn('commandExecutor', `hot-store: stage-on-connect HTTP ${res.status}`);
+            return;
         }
-        clientLogger.info('commandExecutor', `hot-store: stage-on-connect warmed ${ids.length} model(s)`);
-    } finally {
-        _prefetchInFlight = false;
+        Events.emit('ui:info', {
+            message: `Warming the cloud engine — staging ${ids.length} model${ids.length > 1 ? 's' : ''} to fast disk in the background…`,
+        });
+        clientLogger.info('commandExecutor', `hot-store: stage-on-connect queued ${dry.pending}/${files.length} file(s) for ${ids.length} model(s)`);
+    } catch (e) {
+        clientLogger.warn('commandExecutor', `hot-store: stage-on-connect failed (${e.message})`);
     }
 }
 
@@ -1637,7 +1685,7 @@ export function runCommand(payload) {
         // best-effort). Not for a force-local run (no Pod). Awaited so the one-time
         // ~55s first-stage shows a progress toast rather than a silent stall.
         if (engine === 'remote' && workingPayload.forceLocal !== true) {
-            await _ensureRemoteHotStore(workingPayload.modelId, workingPayload.operation);
+            await _ensureRemoteHotStore(workingPayload.modelId, workingPayload.operation, generationStore.getSignal(jobId));
         }
         if (await _abortedBail(tempTrimInputPaths)) return;
 

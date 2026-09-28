@@ -347,6 +347,12 @@ const POD_IMAGE_VERSION_CPU_DEV = 'v0.24.0-dev';
 //     was not full. Now `du -s --block-size=1` (allocated blocks, what the quota counts).
 //     R2-publish-only, and NOT raised to the pin below: an older wrapper still answers
 //     the same route with the same shape, just with the inflated number.
+//   0.2.45 (MPI-894) — /wrapper/hot-store/ensure takes `async: true`: it QUEUES the files
+//     for one background worker and answers at once, and the app polls dryRun. A
+//     blocking ensure past ~100 s died at RunPod's proxy as a 524 while its copy held the
+//     hot-store lock, so stage-on-connect 524'd once per model every ~2 min and the
+//     user's gen queued behind it. NOT raised to the pin: the app probes dryRun's
+//     `async` flag and stays lazy on an older wrapper.
 const WRAPPER_VERSION = '0.2.41';
 // MPI-329: a network-volume GPU Pod sizes its container disk to MIRROR the volume
 // (+ a small scratch headroom). The volume is the SOURCE of every model, so the
@@ -665,7 +671,7 @@ function _selfHealIfPodDead(podStatus, connecting) {
   if (!_isPodDead(podStatus, connecting, _lastPodAbsent)) return false;
   logger.warn('runpod', `remote Pod ${_mode.podId} is ${_lastPodAbsent ? 'gone (404)' : podStatus} while connected — self-healing to local`);
   _setStarting(false);
-  setRemoteMode({ active: false, noGpu: false });
+  setRemoteMode({ active: false, noGpu: false, gpuTypeId: null });
   if (_startedPodId && _lastPodAbsent) _startedPodId = null;
   return true;
 }
@@ -981,17 +987,17 @@ async function _createPodInternal(key, { gpuTypeId, volumeId, datacenter, contai
     return { ok: false, message: reason, gpuUnsupported: gpuEnumReject, ramFloorMissed };
   }
   logger.info('runpod', `createPod REST -> http ${created.status} ok=${created.ok} podId=${podId}`);
-  return _afterPodCreated(key, podId, token, noGpu, { wait, timeoutMs });
+  return _afterPodCreated(key, podId, token, gpuTypeId, { wait, timeoutMs });
 }
 
 // Post-create flow: token keyed to the podId, single-Pod sweep, then ready-wait (or a
 // fast {starting} kickoff when wait:false).
-async function _afterPodCreated(key, podId, token, noGpu, { wait, timeoutMs }) {
+async function _afterPodCreated(key, podId, token, gpuTypeId, { wait, timeoutMs }) {
   // Running (billing) from here. Token keyed to the new podId; _startedPodId set
   // BEFORE the ready-wait so a timeout still lets teardown stop/delete it.
   await setWrapperToken(token, podId);
   _startedPodId = podId;
-  setRemoteMode({ active: true, podId, noGpu });
+  setRemoteMode({ active: true, podId, noGpu: gpuTypeId === CPU_SENTINEL, gpuTypeId });
 
   // Reap any stranded EXITED 'cubric-vision' Pods now that the fresh one is known
   // (keeps this new podId). Non-blocking-best-effort but awaited so the ready-wait
@@ -1153,7 +1159,7 @@ router.post('/remote/pod/reconnect', async (req, res) => {
     // Track the saved Pod so a delete-fallback / teardown targets it.
     const noGpu = gpuTypeId === CPU_SENTINEL;
     _startedPodId = podId;
-    setRemoteMode({ active: true, podId, noGpu });
+    setRemoteMode({ active: true, podId, noGpu, gpuTypeId });
 
     // 1. Availability pre-check — a STOPPED Pod can only resume where its GPU type
     //    is free; if the saved GPU is gone, recreating on it would also fail. A CPU
@@ -1216,7 +1222,7 @@ router.post('/remote/pod/delete-active', async (req, res) => {
   // Disconnect/delete → use the LOCAL engine now. Flip remote mode OFF so
   // isRemoteActive() returns false and local _ms input-prep takes the local
   // copy path instead of the (gone) wrapper. See stop-active for the full why.
-  setRemoteMode({ active: false, noGpu: false });
+  setRemoteMode({ active: false, noGpu: false, gpuTypeId: null });
   try {
     const key = await getRunPodApiKey();
     if (!key) return res.json({ deleted: false, reason: 'no_api_key' });
@@ -1240,7 +1246,7 @@ router.post('/remote/pod/stop-active', async (req, res) => {
   // prepare-workflow-inputs route was deleted with the last LoadLatent, MPI-466)
   // to the now-stopped wrapper and fail with "wrapper upload 404". podId is kept
   // client-side for warm-resume; a fresh Connect re-sets active=true.
-  setRemoteMode({ active: false, noGpu: false });
+  setRemoteMode({ active: false, noGpu: false, gpuTypeId: null });
   if (!podId) return res.json({ stopped: false, reason: 'inactive' });
   try {
     const key = await getRunPodApiKey();
@@ -1301,9 +1307,13 @@ router.post('/remote/pod/teardown', async (req, res) => {
 // Badge specs for the connected Pod (Step 4.4): GPU name + VRAM (from the gpuTypes
 // catalog, the same field the picker shows) + container RAM (from getPod). VRAM is
 // always resolvable; RAM is best-effort (omitted if RunPod's Pod shape lacks it).
-// `gpuTypeId` comes from the caller (the saved runpodConfig.gpuType).
+// The card is the TRACKED Pod's own (`_mode.gpuTypeId`, set at create/reconnect).
+// The caller's `?gpuTypeId` (its saved picker) is only a fallback for when no Pod
+// is tracked: a Pod made over HTTP never updates that picker, so trusting it
+// labelled a 5090 or a CPU Pod "RTX 2000 Ada" (2026-09-28).
 router.get('/remote/pod/specs', async (req, res) => {
-  const gpuTypeId = req.query.gpuTypeId ? String(req.query.gpuTypeId) : null;
+  const gpuTypeId = (_mode.active && _mode.gpuTypeId)
+    || (req.query.gpuTypeId ? String(req.query.gpuTypeId) : null);
   const podId = _startedPodId || (_mode.active && _mode.podId) || null;
   // MPI-88: the no-GPU "download mode" Pod has no GPU to look up — label the badge
   // "No GPU (download)" instead of leaking the raw sentinel, and skip the catalog.

@@ -32,6 +32,9 @@ export const remoteEngineClient = {
     /** @type {boolean} True when the active Pod is a no-GPU "download mode" Pod (MPI-88). */
     _noGpu: false,
 
+    /** @type {string|null} The card the tracked Pod was created on (server truth, not the picker). */
+    _gpuType: null,
+
     /** @type {string|null} WSS base for the active Pod, e.g. wss://<pod>-8889.proxy.runpod.net */
     _wsBase: null,
 
@@ -49,9 +52,11 @@ export const remoteEngineClient = {
             const mode = await res.json();
             this._active = !!mode.active;
             this._noGpu = !!mode.noGpu;
+            this._gpuType = mode.gpuTypeId || null;
         } catch (_) {
             this._active = false;
             this._noGpu = false;
+            this._gpuType = null;
         }
 
         if (!this._active) {
@@ -113,7 +118,7 @@ export const remoteEngineClient = {
      */
     async arch(engine) {
         if (engine === 'remote') {
-            return gpuArch(state.runpodConfig?.gpuType || null);
+            return gpuArch(this.podGpuType());
         }
         if (this._localArch === undefined) {
             try {
@@ -138,8 +143,20 @@ export const remoteEngineClient = {
      * @returns {'blackwell'|'modern'|'legacy'|null}
      */
     archSync(engine) {
-        if (engine === 'remote') return gpuArch(state.runpodConfig?.gpuType || null);
+        if (engine === 'remote') return gpuArch(this.podGpuType());
         return this._localArch === undefined ? null : this._localArch;
+    },
+
+    /**
+     * The GPU type id of the Pod remote work runs on: the connected Pod's own card
+     * (server truth from the last refresh()), else the saved picker — the card the
+     * NEXT Pod will be rented on. Never read the picker as the connected Pod: a Pod
+     * made over HTTP (an agent, the smoke runner) never updates it, and reading it
+     * picked the wrong arch, the wrong VRAM cap and missed a CPU Pod (2026-09-28).
+     * @returns {string|null}
+     */
+    podGpuType() {
+        return (this._active && this._gpuType) || state.runpodConfig?.gpuType || null;
     },
 
     /** Populate the local-arch cache once (fire-and-forget at app boot). */

@@ -100,6 +100,38 @@ Both read `dev_configs/node_lock.json`; NEITHER writes it. A pin change is
 
 ## Current State
 
+2026-09-29 (session acd968e8) - **both FIXED, unit-proven, not yet live-proven** (Fabio:
+"fix it properly"). Identity: server `_mode.gpuTypeId` (remotePodState.js, set at
+create/reconnect, cleared on disconnect); `/remote/pod/specs` prefers it over the query;
+`remoteEngineClient.podGpuType()` feeds arch + the VRAM cap; both download-Pod guards read
+`isDownloadOnly()`. Hot-store: wrapper 0.2.45 queues on `async: true` (mpi-ci `57a31c0`,
+published to `dev`); app polls dryRun (3 min cap, Stop ends it), gen sends `priority`,
+prefetch sends ONE request. Tests: `tests/pod-identity-hot-store.test.cjs`,
+`wrapper/test_hot_store_async.py`. **Next:** a paid live run (GPU Pod + a network volume -
+none exists), then `publish-runtime.sh promote` with MPI-595's release step.
+
+Findings (2026-09-28 late, from the MPI-595 smoke). Evidence: `%APPDATA%\Cubric Studio\logs\app.log`
+19:18-20:24Z.
+- **Hot-store 524 every ~2 min.** Stage-on-connect went default ON on 2026-09-17 (MPI-802,
+  `114ede346`). On every connect `prefetchInstalledModels` (commandExecutor.js ~590) walks
+  every installed model (14) and sends one `/wrapper/hot-store/ensure` each; the wrapper
+  (`mpi-ci/cubric-vision-pod/wrapper/wrapper.py` ~1329) holds that request open for the
+  whole volume->disk copy + sha256 re-read. RunPod's proxy cuts a request at ~100 s -> 524.
+  The 5090 finished each model in 20-45 s (fine); the A100 did not, so 8 x 524 at 125 s
+  intervals. After a 524 the copy keeps running and holds `_hot_lock`, so the next request
+  queues and 524s too - and so does a USER generation's own preflight ensure, which waits
+  ~100 s then generates from the volume while the copy saturates disk (A100 i2v 281 s vs
+  33 s). The loop ignores disconnect: 6 x 409 after the Pod was deleted, then logs
+  "warmed 14 model(s)" having warmed none.
+- **Wrong Pod identity ("RTX 2000 Ada").** The badge asks `/remote/pod/specs?gpuTypeId=
+  <saved picker>` (shell.js ~1414); the route echoes the caller's id though it already
+  reads the live Pod. The VRAM filter (`_remoteVramGb`) and BOTH `__cpu__` guards read the
+  same saved pick. A Pod made over HTTP (`/remote/pod/create` - the smoke runner, or an
+  outside agent per `.claude/skills/cubric-vision-engine`) never updates it. Result on
+  19:18-19:22: prefetch staged 16-file sets onto the CPU download Pod (the MPI-539 hazard),
+  and the install SSE went silent 90 s twice. Settings-made Pods do not diverge (a GPU
+  switch there deletes the old Pod).
+
 2026-09-28 (session f3d8094a): **1b DONE + live-verified in Fabio's app, uncommitted.** The
 RunPod panel lives in the REMOTE slide-over since MPI-751 (docs said Settings; fixed).
 Card `doing`/`in-progress`, claim `f3d8094a-mpi894`. `client.gpuTypes`/`dataCenters`/
