@@ -15,3 +15,7 @@ CSS registered in `js/shell/preloadStyles.js`, props in `js/components/types.js`
   the GIF cut-out and Colour mask swatches now span the row like the Paint ones.
 
 Remaining: Fabio's look in the real app.
+
+CI run 36406914127 on fbb1888a0: success.
+Claim audit: 17 proven, 0 false. Correction to the commit message: the image Colour mask's old Pick had no icon, so MpiButton drew it as an empty box; MpiColorField gives it the eyedropper icon and label, a fix rather than a like-for-like swap.
+Fabio, 2026-09-28: "It's looking good." No gallery demo wanted. Rule update approved and landed in d7a0293c8.

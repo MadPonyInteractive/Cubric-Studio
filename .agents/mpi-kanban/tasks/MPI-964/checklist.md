@@ -2,4 +2,4 @@
 - [x] Remove Background, Paint, Paint Adjust mount it
 - [x] GIF cut-out By colour and image Colour mask mount it
 - [x] Desktop spec covers all five
-- [ ] Fabio's look in the real app
+- [x] Fabio confirmed in the real app
