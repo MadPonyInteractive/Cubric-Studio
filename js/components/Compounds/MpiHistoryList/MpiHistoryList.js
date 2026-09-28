@@ -136,9 +136,12 @@ export const MpiHistoryList = ComponentFactory.create({
             // failed to extract the thumbnail, leaving thumbPath unset). If
             // thumbPath is absent, leave src unset; the CSS background colour
             // fills the slot without a broken-image indicator.
+            // An image row prefers the thumb too (MPI-963): the row is 64x44, and the
+            // original of a 16K photo re-decoded for seconds whenever the row re-rastered,
+            // stalling the whole History open; a 32K one cannot decode at all.
             const srcPath = (item.type === 'video')
                 ? (item.thumbPath || null)
-                : item.filePath;
+                : (item.thumbPath || item.filePath);
             if (srcPath) thumb.src = _resolveUrl(srcPath);
 
             const meta = document.createElement('div');

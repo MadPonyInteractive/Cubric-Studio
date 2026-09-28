@@ -185,6 +185,7 @@ async function findRecentProjectThumbnail(mediaDir) {
                 return {
                     path: absPath,
                     ext,
+                    thumb: meta.thumbPath ? pathFromProjectFileUrl(meta.thumbPath) : null,
                     timestamp: Date.parse(meta.createdAt || '') || stats.mtimeMs,
                 };
             } catch (_) { return null; /* skip malformed sidecars */ }
@@ -210,6 +211,12 @@ async function findRecentProjectThumbnail(mediaDir) {
 
     candidates.sort((a, b) => b.timestamp - a.timestamp);
     const top = candidates[0];
+    // The card is a few hundred px: show the sidecar thumb, not the original (MPI-963). A
+    // 32K import as the newest card left it blank — Chromium cannot decode one — and a 16K
+    // PNG decoded for seconds. A thumb is always a still, so a video's is typed `image`.
+    if (top.thumb && await fs.pathExists(top.thumb)) {
+        return { recentThumbnail: projectFileUrl(top.thumb), recentThumbnailType: 'image' };
+    }
     return {
         recentThumbnail: projectFileUrl(top.path),
         recentThumbnailType: mediaTypeFromExt(top.ext),
@@ -3386,6 +3393,7 @@ router.get('/project-stats/:projectId', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.findRecentProjectThumbnail = findRecentProjectThumbnail;
 module.exports.nextSequence = nextSequence;
 module.exports.placeContentAsset = placeContentAsset;
 module.exports.materializePreviewAssets = materializePreviewAssets;

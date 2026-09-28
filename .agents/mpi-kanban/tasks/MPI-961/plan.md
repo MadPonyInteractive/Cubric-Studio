@@ -44,6 +44,11 @@
   the GPU BUSY re-measure - `ROWFIX=1 STROKE_AB=1 node perf.cjs full 16k after-busy-rowfix` from
   a scratch copy of `research/rig/` while Fabio runs a LOCAL video (no pod smoke on the lease). If
   busy wheel crossings are slow, add a per-level mip cache.
+- **2026-09-28 later:** Phase 2 committed (`47e8e796c`). MPI-963 (rows + Landing on thumbs) coded
+  and verified, card `validating` for Fabio's relaunch check - real 16K open now 6.5 s (was 37.1),
+  Paint->Prompt 2.1 s, Prompt->Mask 4.3 s (MPI-963 `validation.md`). **Next: Phase 3** (display
+  copy, canvas AND Prompt preview); what it must remove is the ~2.4-3.6 s 16K first paint per mount
+  and the Prompt preview's per-zoom-step re-decode.
 - **Headline:** (1) MPI-963's rows-load-originals is the biggest cost to OPEN and to Prompt<->tool
   swaps (16K idle open 37 s -> 5 s, 4K swaps 5 s -> 0.35 s with rows on thumbs). (2) Under GPU
   load, 16K pan/zoom/stroke fall to 2-6 fps because every tick runs a full `draw()` of the

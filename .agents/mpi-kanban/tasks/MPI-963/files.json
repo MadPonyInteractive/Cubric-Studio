@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/components/Compounds/MpiHistoryList/MpiHistoryList.js", "routes/projects.js", "tests/recent-project-thumbnail.test.cjs", "tests/desktop/history-list-thumbs.spec.js"] }
