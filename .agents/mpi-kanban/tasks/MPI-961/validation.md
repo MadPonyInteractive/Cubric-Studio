@@ -261,3 +261,114 @@ Pending: needs the GPU. At 12:40 the GPU lease was held by a pod smoke
 nor Fabio's busy (local video) run could be taken. The rig now also runs the stroke A/B
 (`STROKE_AB=1`: same strokes with only the overlay backing shrunk to 4096^2) and a CPU profile +
 long-task total per stroke rep.
+
+## Phase 3 (display copy) - 2026-09-28, session efbca418 (uncommitted on master `c4bb6a88f`)
+
+### What changed
+
+- Server: `GET /display-image?path=&edge=` (`resolveDisplayImage`, `routes/projects.js`) answers
+  `{ url, width, height }`. At or under `edge`, `url: null` (load your own URL, whose `&v=` the
+  route never sees) and nothing is written. Over it: `.meta/<id>.thumb.fit<edge>.webp` (sharp
+  `limitInputPixels: false`, `.rotate()`, fit inside), made on first request, stamped with the
+  original's mtime and re-made on any other stamp, written aside and renamed; the `.thumb.` infix
+  puts it under `DERIVATIVE_RE`, Manual Cleanup and the delete paths. Owner id from a sidecar scan
+  (big images only), remembered and re-checked. No sidecar -> the original + one `app.log` line.
+- `services/ffmpegThumb.js`: `sharp.cache({ files: 0 })`. libvips kept WebP inputs OPEN on
+  Windows (EBUSY on delete/overwrite; JPEG/PNG released) - measured with a probe
+  (`scratchpad/lockprobe2.cjs`), and it failed the unit test's re-make before the fix.
+- Renderer: `js/utils/displayImage.js` (`displayMaxEdge()` = D1, `setDisplayMaxEdge` for specs,
+  `resolveDisplayImage(url)`). `MpiCanvas`: `this.img` = the drawn pixels, `_displayImage()` =
+  the NATURAL size (`_natural`), every dimension site reads it (managers, `drawStroke` k, Place k +
+  raster, compare cover-fit); backing capped at `_backingEdge()` on both sizing twins (D5) with the
+  stack + canvas CSS boxes at natural px (they were set to the backing, wrong above
+  MAX_TEXTURE_SIZE); the mip level counts the backing stretch (`_baseDevScale`). Compare side
+  loads its copy too. `MpiMaskedImagePreview` loads the copy, stack sized to natural.
+- Found on the way, fixed here:
+  - `loadImage` mode resets moved back to CALL time (they had drifted after the new fetch await,
+    so a tool picked during the fetch was reset to none).
+  - A second load of the image already loading JOINS it (canvas and preview). The viewer loads its
+    entry twice on mount; with the fetch the two always overlapped and the first caller's chain
+    hung on a superseded load. A load of ANOTHER image still supersedes (never settles, as before).
+  - `MpiCanvasViewer` swaps run in turn (`_inTurn`). Pre-existing race: the rail does not wait,
+    `swapToPreview` awaits the persist before the preview exists, so a Mask pick in that window
+    no-op'd `swapToCanvas` and the preview mounted over a rail on Mask. Diag spec (open an entry
+    remembered in Prompt, pick Mask at once), 6 reps each: HEAD 2/6 stuck in Prompt, Phase 3
+    before the fix 5/6, with the fix 6/6 on both HEAD's renderer and Phase 3
+    (`scratchpad/headdiag.py`; diag spec deleted).
+
+### Checks (all run 2026-09-28)
+
+- Unit: `node --test tests/canvas-display-rendition.test.cjs` 3/3 (a no-copy still; a
+  32768x8200 EXIF-6 JPEG past sharp's pixel limit -> 8200x32768 natural, copy 1025x4096, swept by
+  `DERIVATIVE_RE`, cached, re-made ONCE for an original dated an hour ahead; a stray big file ->
+  the original). `npm test`: 2204 tests, 2202 pass, 0 fail. `npx eslint` on every touched file:
+  clean.
+- New `tests/desktop/canvas-display-copy.spec.js` (one 2048^2 gradient imported twice; entry A
+  worked uncapped, cap forced to 1024, entry B given the same real-pointer mask stroke, paint
+  stroke, Place and crop): canvas and preview draw `<id>.thumb.fit1024.webp`, base/overlay
+  backing 1024 in a 2048px box, same screen box, mask/paint/place PNGs 2048^2 and byte-equal,
+  crop rect equal. 6/6 (`--repeat-each=6`). **Mutation proof** (`scratchpad/mutate.py`, file
+  restored byte-equal): mask sized off the copy -> FAILS (dims); stack CSS = backing -> FAILS
+  (layout); Place raster off the copy -> FAILS (dims).
+- `canvas-downscale-quality` (MPI-957) waited for an 8192 backing, now capped by design: it
+  lifts the cap to 8192 so it keeps testing the mip over a large native backing. Pass.
+- Desktop list: history-modes, mask-colour, mask-persist-roundtrip, canvas-downscale-quality,
+  compare-native-resolution, crop-resize-output, stack-crop, gif-cutout, canvas-pan-no-repaint,
+  canvas-display-copy, stack-history, history-list-thumbs, gif-transform -> 21/21 (20 + the
+  downscale rerun).
+
+### Rig, GPU IDLE (`scratchpad/rig3`, `node perf.cjs full|zoomin <t> p3-idle*`, no ROWFIX)
+
+nvidia-smi before each run: `9-25 %, 1285-1331 MiB` (Fabio's app + ComfyUI open, no job; lease
+free). Window 1280x800 DPR 1 -> cap 4096.
+
+| step | before Phase 3 (MPI-963 `validation.md` / § Phase 2 / § Zoom IN) | Phase 3 |
+|---|---|---|
+| 16K open: pixels on screen, FIRST open (copy made, 16K sharp ~4 s server-side) | 6.5 s | 4.7 s |
+| 16K open: pixels on screen, copy cached | 6.5 s | **0.71 s** |
+| 16K open: longest main-thread block | 3.55 s | **0.19 s** |
+| 16K Crop -> Mask / Mask -> Paint | 32 / 34 ms | 40 / 55 ms |
+| 16K Paint -> Prompt | 2.1 s | **0.20 s** |
+| 16K Prompt -> Mask | 4.3 s (2.39 s block) | **0.38 s** (0.18 s block) |
+| 16K pan / wheel / stroke 3x3 s | 75 / 75,34,39 / 75 fps | 75 / 75,73,75 / 75 fps |
+| 16K canvas zoom fit -> 1x | 0.68-0.89 s, worst 293 ms | 0.53-0.55 s, worst 40 ms |
+| 16K **Prompt preview** zoom fit -> 1x | **11.6 s**, worst 2.69 s | **0.63 s**, worst 107 ms (again: 0.45 s, 13.5 ms) |
+| 16K GPU dedicated: Mask / Mask again | 3218 / 3234 MB | **367 / 500 MB** |
+| 16K GPU process private: Mask again | 3490 MB | 1045 MB |
+| 32K open | never (blank, `img.onerror`) | **opens: 2.8 s first open**, 75 fps pan/wheel/stroke, 365 MB in Mask |
+
+### Rig, GPU BUSY (Fabio's local video running; `p3-busy-video`, copy cached)
+
+nvidia-smi `100 %, 13.4-14.0 GB` at start and at every snapshot but one (`11 %, 8.9 GB` at
+`memBackToPrompt`, a lull in the job); zoomin run `100 %, 4.2-12.7 GB`. Same rig, 16K. This run also
+stands in for Phase 2's busy re-measure. Before = Phase 1 § GPU BUSY (16K as-is / rowfix).
+
+| 16K step, GPU busy | Phase 1 busy (as-is / rowfix) | Phase 3 busy |
+|---|---|---|
+| open: pixels on screen | 21.4 s / 7.4 s | **0.70 s** |
+| open: longest main-thread block | 3.6 s / 2.65 s | 0.23 s |
+| `draw()` to next frame | 322 / 189 ms | **13.4 ms** |
+| wheel zoom 3x3 s | 4.6/2.2/3.2 / 4.8/2.5/3.0 fps | **75 / 75 / 75** |
+| pan 3x3 s | 3.7/2.5/2.5 / 3.8/3.9/2.6 fps | **75 / 75 / 75** |
+| mask stroke 3x3 s | 2.7/2.5/2.9 / 5.7/2.5/4.3 fps | **74.3 / 75 / 75** (max frame 27 ms) |
+| Crop -> Mask / Mask -> Paint | 4.4 s / 1.1 s ; 69 ms / 0.9 s | 50 / 45 ms |
+| Paint -> Prompt | 15.2 s / 5.0 s | **0.21 s** |
+| Prompt -> Mask | 12.4 s / 6.6 s | **0.35 s** |
+| canvas zoom fit -> 1x | - | 0.52 s, 75 fps |
+| Prompt preview zoom fit -> 1x | (idle: 11.6 s) | 0.65 s, worst 120 ms (again 0.45 s, 75 fps) |
+| GPU dedicated: Mask / Mask again | 2217 / 1208 MB ; 3160 / 1119 MB (paged) | 350 / 504 MB |
+
+### Fabio (user-ux) - 2026-09-29, his app relaunched, local video generating
+
+"All right, it worked ... timings are much better. It's now actually workable." Screenshot: the
+32K (`imported_002`, 32768x32768) open in Mask, zoomed far in, strokes on it. Two findings:
+
+- **The 32K's prompt-box chip was a broken image** - the chip `<img>` mounted the ORIGINAL (same
+  class as MPI-963). Fixed here: `GET /project-thumb?path=` (`projectThumbFor`: the sidecar thumb,
+  the original only without one) and the chip's `thumbSrc(url)`. Unit test added (4/4);
+  `media-picker-to-history` 5/5. Not yet eye-checked.
+- **Mask edges are very soft on the 32K** ("hard to create a good mask ... it needs to be
+  sharp"). Not Phase 3: every mask layer works at `MASK_MAX_EDGE` 1536 on any image
+  (`docs/masking.md`), so one mask px = 21x21 image px on a 32K (10.7 on a 16K) - same before this
+  phase; exports are upscaled from it, so the model gets the soft edge too. Design B kept the 1536
+  cap; Fabio now wants sharp. Raised to him as a decision (below Phase 3's scope).

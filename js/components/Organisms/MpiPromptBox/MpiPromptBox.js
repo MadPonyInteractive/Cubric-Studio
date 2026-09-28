@@ -26,6 +26,7 @@ import { activeGenerations } from '../../../services/activeGenerations.js';
 import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDialog.js';
 import { attachDictation } from '../../../services/dictation.js';
+import { thumbSrc } from '../../../utils/displayImage.js';
 
 /**
  * MpiPromptBox — Prompt input Block with self-composing operation slots.
@@ -1113,7 +1114,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 chip.dataset.roleKey = _chipKey(item, idx);
                 chip.draggable = false;
                 const mediaHtml = item.mediaType === 'image'
-                    ? `<img src="${item.url}" class="mpi-prompt-box-media-strip__thumb" alt="" draggable="false">`
+                    ? `<img src="${thumbSrc(item.url)}" class="mpi-prompt-box-media-strip__thumb" alt="" draggable="false">`
                     : item.mediaType === 'video'
                         ? `<video src="${item.url}" class="mpi-prompt-box-media-strip__thumb" muted playsinline preload="metadata" draggable="false"></video>
                            <span class="mpi-prompt-box-media-strip__type">${renderIcon('video', 'xs')}</span>`

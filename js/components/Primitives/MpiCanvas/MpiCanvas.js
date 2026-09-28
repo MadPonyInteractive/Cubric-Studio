@@ -93,6 +93,7 @@ import { drawBrushRing } from './managers/brushDab.js';
 import { UndoStack }         from './managers/UndoStack.js';
 import { InputController }   from './managers/InputController.js';
 import { accentHeat, on }    from '../../../utils/dom.js';
+import { resolveDisplayImage, displayMaxEdge } from '../../../utils/displayImage.js';
 
 const getCSSColor = (varName) => getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 
@@ -115,6 +116,15 @@ const MAX_TEXTURE_SIZE = (() => {
         return gl.getParameter(gl.MAX_TEXTURE_SIZE) || 4096;
     } catch { return 4096; }
 })();
+
+/**
+ * Longest edge of an image-sized canvas's BACKING store (MPI-961). The stack keeps the
+ * image's natural size in CSS px — the frame every coordinate lives in — and a backing
+ * past this is stretched to it: a 16384^2 base + overlay were 2 GiB of GPU memory, and a
+ * full `draw()` of them ran 189-322 ms under a GPU load. Read per load, so a spec's
+ * `setDisplayMaxEdge` applies.
+ */
+const _backingEdge = () => Math.min(MAX_TEXTURE_SIZE, displayMaxEdge());
 
 /**
  * The display copy of an image-sized stack canvas while it is shown under half size (MPI-957).
@@ -300,6 +310,11 @@ class _CanvasCore {
 
         this.img = new Image();
         this.img.crossOrigin = 'anonymous';
+        // The image's NATURAL size while `this.img` may hold a smaller display copy
+        // (MPI-961) — see `_displayImage()`. Null until an image loads.
+        this._natural = null;
+        this._loadSeq = 0;
+        this._pending = null;       // { url, promise } of the load in flight
 
         // Grid state
         this.gridH = 1;
@@ -444,6 +459,7 @@ class _CanvasCore {
         this.canvas = null;
         this.ctx = null;
         this.img = null;
+        this._natural = null;
         this._processedBitmap = null;
     }
 
@@ -471,6 +487,7 @@ class _CanvasCore {
         this._teardownBeforeVideo();
         this.img = new Image();
         this.img.crossOrigin = 'anonymous';
+        this._natural = null;
         this._activeMode = 'none';
         this.mask.isMaskingMode          = false;
         this.crop.isCroppingMode         = false;
@@ -479,7 +496,22 @@ class _CanvasCore {
         if (this._onModeChange) this._onModeChange('none');
     }
 
-    async loadImage(url) {
+    /**
+     * A second call for the image already loading JOINS that load (MPI-961): the viewer
+     * loads its entry twice on mount (init + the block's `loadEntry`), and once the
+     * display-copy fetch made the two overlap every time, the first caller's chain was
+     * left waiting on a load that had been superseded.
+     */
+    loadImage(url) {
+        if (this._pending?.url === url) return this._pending.promise;
+        const promise = this._loadImageNow(url);
+        const pending = this._pending = { url, promise };
+        const done = () => { if (this._pending === pending) this._pending = null; };
+        promise.then(done, done);
+        return promise;
+    }
+
+    async _loadImageNow(url) {
         try {
             if (!this.baseCanvas) throw new Error(`loadImage called on destroyed canvas (url=${url})`);
             // Drop any prior video-before state + ensure this.img is a real Image
@@ -490,42 +522,52 @@ class _CanvasCore {
                 this.img = new Image();
                 this.img.crossOrigin = 'anonymous';
             }
+            // Reset all modes atomically before image loads — at CALL time, so a tool the
+            // user picks while the image is still coming stays picked.
+            this._activeMode = 'none';
+            this.mask.isMaskingMode          = false;
+            this.crop.isCroppingMode         = false;
+            this.comparison.isComparisonMode = false;
+            this.canvas.dataset.mediaUrl = url;
+            delete this.canvas.dataset.comparisonUrl;
+            this.canvas.dataset.sliderPos = '0.5';
+
+            // A big still draws the server's display copy (MPI-961); `natural` is the
+            // original's size, which every coordinate below keeps.
+            const seq = ++this._loadSeq;
+            const display = await resolveDisplayImage(url, _backingEdge());
+            // Once a load of ANOTHER image has started this one never settles: exactly what
+            // a load whose `onload` the newer one overwrote always did, so a caller never
+            // restores entry A's layers over entry B.
+            const superseded = () => seq !== this._loadSeq;
+            if (superseded()) return new Promise(() => {});
+            if (!this.baseCanvas) return;
             await new Promise((resolve, reject) => {
                 this.img.onload = resolve;
-                this.img.onerror = () => reject(new Error(`Image failed to load: ${url}`));
-                this.img.src = url;
-                // Reset all modes atomically before image loads
-                this._activeMode = 'none';
-                this.mask.isMaskingMode          = false;
-                this.crop.isCroppingMode         = false;
-                this.comparison.isComparisonMode = false;
-                this.canvas.dataset.mediaUrl = url;
-                delete this.canvas.dataset.comparisonUrl;
-                this.canvas.dataset.sliderPos = '0.5';
+                this.img.onerror = () => reject(new Error(`Image failed to load: ${display.src}`));
+                this.img.src = display.src;
             });
+            if (superseded()) return new Promise(() => {});
             // Bail if canvas was destroyed during async image load (navigation/teardown race)
             if (!this.img || !this.baseCanvas) return;
             if (this._onModeChange) this._onModeChange('none');
 
-            // Clamp to GPU MAX_TEXTURE_SIZE — prevents lost-context on huge images.
-            const imgW = this.img.width;
-            const imgH = this.img.height;
-            const ratio = Math.min(1, MAX_TEXTURE_SIZE / Math.max(imgW, imgH));
-            const clampedW = Math.round(imgW * ratio);
-            const clampedH = Math.round(imgH * ratio);
+            const imgW = display.width || this.img.width;
+            const imgH = display.height || this.img.height;
+            this._natural = { width: imgW, height: imgH };
+            const ratio = Math.min(1, _backingEdge() / Math.max(imgW, imgH));
+            this._sizeImageCanvases(Math.round(imgW * ratio), Math.round(imgH * ratio), imgW, imgH);
 
-            this._sizeImageCanvases(clampedW, clampedH);
-
-            this.mask.init(this.img.width, this.img.height);
-            this.paint.init(this.img.width, this.img.height);
-            this.crop.init(this.img.width, this.img.height);
-            this.shape.init(this.img.width, this.img.height);
+            this.mask.init(imgW, imgH);
+            this.paint.init(imgW, imgH);
+            this.crop.init(imgW, imgH);
+            this.shape.init(imgW, imgH);
             // MPI-373: resizes the hole to the new base and clears the CUT, which was
             // drawn for the old image's geometry. The UNDERLAY deliberately survives:
             // it mirrors what the panel's slot is showing, and dropping it here would
             // leave the slot displaying a thumbnail the canvas no longer has. Leaving
             // the tool is what drops both, through `discardPreview()`.
-            this.comp.init(this.img.width, this.img.height);
+            this.comp.init(imgW, imgH);
             // ANNOUNCE IT. Apply reloads the entry it just created, which lands here
             // and wipes the cut — and a panel that is not told keeps Apply enabled
             // over a hole that no longer exists, so the next press returns silently
@@ -555,7 +597,8 @@ class _CanvasCore {
     async loadComparisonImage(url) {
         this._stopComparePlayback();
         this._teardownAfterVideo();
-        await this.comparison.load(url);
+        // The after side draws a display copy too; only its aspect ratio positions it.
+        await this.comparison.load((await resolveDisplayImage(url, _backingEdge())).src);
         // ComparisonManager.load() sets comparison.isComparisonMode = true internally;
         // sync _activeMode so getter stays consistent, then fire modechange.
         this._activeMode = 'compare';
@@ -618,21 +661,11 @@ class _CanvasCore {
             const w = v.videoWidth;
             const h = v.videoHeight;
             this.img = { width: w, height: h }; // duck-typed for ViewManager.reset
+            this._natural = null;
 
-            const ratio = Math.min(1, MAX_TEXTURE_SIZE / Math.max(w, h));
-            const clampedW = Math.round(w * ratio);
-            const clampedH = Math.round(h * ratio);
-            this._baseDrawn = null;
-            this.baseCanvas.width  = clampedW;
-            this.baseCanvas.height = clampedH;
-            this.baseCanvas.style.width  = clampedW + 'px';
-            this.baseCanvas.style.height = clampedH + 'px';
-            this.overlayCanvas.width  = clampedW;
-            this.overlayCanvas.height = clampedH;
-            this.overlayCanvas.style.width  = clampedW + 'px';
-            this.overlayCanvas.style.height = clampedH + 'px';
-            this.stackEl.style.width  = clampedW + 'px';
-            this.stackEl.style.height = clampedH + 'px';
+            // Same cap as a still (MPI-961, D5): the frame drawn per tick is the backing.
+            const ratio = Math.min(1, _backingEdge() / Math.max(w, h));
+            this._sizeImageCanvases(Math.round(w * ratio), Math.round(h * ratio), w, h);
 
             await this.resetView();
         } catch (err) {
@@ -863,22 +896,32 @@ class _CanvasCore {
     getCompareLoop()   { return this._compareLoop; }
     isCompareVideoPair() { return this._hasAnyCompareVideo(); }
 
+    /**
+     * The image's NATURAL size: the frame the view, the stack's CSS box, crop, shapes,
+     * mask points and every manager live in. Only `this.img` — what `_baseSource()` draws —
+     * may be a smaller display copy (MPI-961), so read sizes here, never off `this.img`.
+     */
     _displayImage() {
-        return this.img;
+        return this._natural || this.img;
     }
 
-    _sizeImageCanvases(width, height) {
+    /**
+     * Backing stores at `width` x `height`; the stack and both canvases' CSS boxes at the
+     * natural `cssW` x `cssH`, which is what keeps stack px = image px when the backing is
+     * capped (MPI-961). Equal unless the image is past `_backingEdge()`.
+     */
+    _sizeImageCanvases(width, height, cssW = width, cssH = height) {
         this._baseDrawn = null;              // setting a width clears the canvas
         this.baseCanvas.width  = width;
         this.baseCanvas.height = height;
-        this.baseCanvas.style.width  = width + 'px';
-        this.baseCanvas.style.height = height + 'px';
+        this.baseCanvas.style.width  = cssW + 'px';
+        this.baseCanvas.style.height = cssH + 'px';
         this.overlayCanvas.width  = width;
         this.overlayCanvas.height = height;
-        this.overlayCanvas.style.width  = width + 'px';
-        this.overlayCanvas.style.height = height + 'px';
-        this.stackEl.style.width  = width + 'px';
-        this.stackEl.style.height = height + 'px';
+        this.overlayCanvas.style.width  = cssW + 'px';
+        this.overlayCanvas.style.height = cssH + 'px';
+        this.stackEl.style.width  = cssW + 'px';
+        this.stackEl.style.height = cssH + 'px';
     }
 
     async resetView() {
@@ -954,7 +997,7 @@ class _CanvasCore {
     drawView() {
         const display = this._displayImage();
         if (!display || !display.width || !this.baseCanvas.width) return;
-        this._baseMip.sync(this._baseSource(), (this.view.scale || 1) * (window.devicePixelRatio || 1), false);
+        this._baseMip.sync(this._baseSource(), this._baseDevScale(), false);
         this._drawComparisonLayer();
         this._renderScreenUI();
     }
@@ -974,9 +1017,10 @@ class _CanvasCore {
     drawStroke(box) {
         const W = this.overlayCanvas.width;
         const H = this.overlayCanvas.height;
-        if (!W || !this.img?.width) return;
-        // The overlay is the image clamped to MAX_TEXTURE_SIZE, so image px are scaled.
-        const k = W / this.img.width;
+        const natW = this._displayImage()?.width;
+        if (!W || !natW) return;
+        // The overlay backing is capped (`_backingEdge`), so image px are scaled.
+        const k = W / natW;
         const x0 = Math.max(0, Math.floor(box.x * k));
         const y0 = Math.max(0, Math.floor(box.y * k));
         const x1 = Math.min(W, Math.ceil((box.x + box.w) * k));
@@ -1004,6 +1048,13 @@ class _CanvasCore {
         this._applyTransform();
     }
 
+    /** Device px per base BACKING px — the backing is stretched to the natural box when
+     *  capped (MPI-961), so the view scale alone would pick too fine a mip level. */
+    _baseDevScale() {
+        const stretch = (this._displayImage()?.width || 1) / (this.baseCanvas.width || 1);
+        return (this.view.scale || 1) * (window.devicePixelRatio || 1) * stretch;
+    }
+
     _baseSource() {
         return (this._beforeKind === 'video' && this._videoBefore)
             ? this._videoBefore
@@ -1019,7 +1070,7 @@ class _CanvasCore {
      */
     _renderBase() {
         const src = this._baseSource();
-        const devScale = (this.view.scale || 1) * (window.devicePixelRatio || 1);
+        const devScale = this._baseDevScale();
         if (src === this._baseDrawn && this._beforeKind !== 'video') {
             this._baseMip.sync(src, devScale, false);
             return;
@@ -1068,10 +1119,10 @@ class _CanvasCore {
         // construction: Place never fills `underlay`, so `isActive` is false whenever this
         // one runs. Drawn here on the image-sized overlay rather than on the screen canvas
         // with the gizmo, so the placed pixels sit UNDER the handles and under the mask,
-        // which is the stacking the user is judging. `this.img.width` rather than `W`
-        // because the overlay is clamped to the GPU's max texture size on a large entry.
+        // which is the stacking the user is judging. The natural width rather than `W`
+        // because the overlay backing is capped on a large entry (`_backingEdge`).
         if (this.comp.isPlacing && this.shape.shapeMode === 'place') {
-            this.comp.drawPlaced(ctx, this.shape, W / (this.img.width || W));
+            this.comp.drawPlaced(ctx, this.shape, W / (this._displayImage()?.width || W));
         }
 
         // 1. (The comparison layer is its own canvas under this one — `_drawComparisonLayer`.)
@@ -1171,7 +1222,7 @@ class _CanvasCore {
             return;
         }
 
-        const ratio = Math.min(1, MAX_TEXTURE_SIZE / Math.max(afterW, afterH));
+        const ratio = Math.min(1, _backingEdge() / Math.max(afterW, afterH));
         const w = Math.round(afterW * ratio);
         const h = Math.round(afterH * ratio);
         if (cc.width !== w || cc.height !== h) {
@@ -1186,9 +1237,10 @@ class _CanvasCore {
             this._compareDrawn = imgAfter;
         }
 
-        // Cover-fit into the base frame, in stack px (= base canvas px).
-        const baseW = this.baseCanvas.width;
-        const baseH = this.baseCanvas.height;
+        // Cover-fit into the base frame, in stack px (= the image's natural px; the base
+        // backing may be smaller — MPI-961).
+        const baseW = this._displayImage().width;
+        const baseH = this._displayImage().height;
         const relScale = Math.max(baseW / afterW, baseH / afterH);
         const compW = afterW * relScale;
         const compH = afterH * relScale;
@@ -1556,7 +1608,8 @@ class _CanvasCore {
      * @returns {string|null}
      */
     getPlaceURL() {
-        return this.comp.rasterisePlace(this.shape, this.img?.width || 0, this.img?.height || 0);
+        const nat = this._displayImage();
+        return this.comp.rasterisePlace(this.shape, nat?.width || 0, nat?.height || 0);
     }
 
     // ── Shape gizmo API (MPI-368) ─────────────────────────────────────────────

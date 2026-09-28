@@ -51,6 +51,11 @@
   and the Prompt preview's per-zoom-step re-decode. Fabio OK'd MPI-963 ("checked, all good");
   `b7fee8b7c` went red on `stack-history.spec.js` (keyed on the original's filename in a row
   `src`), fixed in `52ee9cbc6` - MPI-963 closes once that CI run is green.
+- **Phase 3 (session efbca418, claim `state/files/efbca418-mpi961-p3.json`):** code DONE, uncommitted.
+  MPI-963 closed (CI green `52ee9cbc6`). Server display copy + renderer copy for canvas AND Prompt
+  preview; unit 2204/0 fail, new `canvas-display-copy.spec.js` 6/6 with a 3-mutation proof, desktop
+  list 21/21, rig GPU IDLE recorded (`validation.md` § Phase 3: 16K cached open 0.71 s, Prompt
+  preview zoom 11.6 s -> 0.63 s, GPU 3.2 GB -> 0.37 GB, 32K opens). GPU BUSY rig DONE (16K under Fabio's local video: pan/wheel/stroke 75 fps, was 2-6; swaps 0.2-0.35 s, was 5-15 s). **Left:** Fabio's user-ux check (running now, video on), then commit. Rig + fixture copy with cached copies: `scratchpad/rig3` (delete `.meta/*.thumb.fit*` there to time a first open).
 - **Headline:** (1) MPI-963's rows-load-originals is the biggest cost to OPEN and to Prompt<->tool
   swaps (16K idle open 37 s -> 5 s, 4K swaps 5 s -> 0.35 s with rows on thumbs). (2) Under GPU
   load, 16K pan/zoom/stroke fall to 2-6 fps because every tick runs a full `draw()` of the
@@ -141,13 +146,13 @@ inside the phase instead. MPI-959 / MPI-963 (umbrella Batch 1) are the parallel 
 
 ## Phase 3: Display copy (D1, D2 display half, D5) - user-ux checkpoint
 
-- [ ] Server rendition first (S1): sharp -> `<id>.display.webp` at `DISPLAY_MAX_EDGE`, cached beside
+- [x] Server rendition first (S1): sharp -> `<id>.display.webp` at `DISPLAY_MAX_EDGE`, cached beside
   the thumbs, made on first request, covered by the derivative GC and the delete paths. Unit test on a
   16K + a 32K fixture (sharp, `limitInputPixels: false`).
-- [ ] The History PROMPT preview (`MpiMaskedImagePreview`, both `<img>`) shows the display copy too:
+- [x] The History PROMPT preview (`MpiMaskedImagePreview`, both `<img>`) shows the display copy too:
   zooming it re-decodes the 345 MB original at every new raster scale (fit -> 1x took 11.6 s,
   10 stalls to 2.7 s; `validation.md` § Zoom IN). Same for `swapToPreview`'s image load.
-- [ ] Renderer: sweep every `this.img` / `_displayImage()` consumer and classify DIMENSIONS (keep natural
+- [x] Renderer: sweep every `this.img` / `_displayImage()` consumer and classify DIMENSIONS (keep natural
   size - managers, `k` factors, ViewManager fit, crop) vs DRAWABLE (draw the display copy). Size base +
   overlay (+ tint buffer, which follows the overlay) + compare to the display copy; both video twins.
   **Verify:** unit suites + the Phase 2 desktop list; a new spec with the cap forced to 1024 on a 2048
@@ -210,6 +215,15 @@ inside the phase instead. MPI-959 / MPI-963 (umbrella Batch 1) are the parallel 
   twice on Prompt -> Mask). Fixed here per D3 (repaint only on a source change), which forced the
   display copy to reduce from the native canvas instead of the `<img>` (a level crossing had
   started re-decoding the 16K, 2.4 s). What stays for Phase 3: one 16K first paint per mount.
+
+- 2026-09-28 (Phase 3, session efbca418): the copy is `<id>.thumb.fit<edge>.webp`, not
+  `<id>.display.webp` - the `.thumb.` infix rides `DERIVATIVE_RE`, Manual Cleanup and the delete
+  paths with no new regex. The route answers `url: null` when no copy is needed so the caller keeps
+  its own `&v=` cache-bust. Folded in (same system, and this card's spec could not pass without
+  them): `sharp.cache({ files: 0 })` (libvips held WebP inputs open on Windows); `loadImage` joins a
+  second load of the same image (the viewer's double load on mount); `MpiCanvasViewer` swaps run
+  in turn (pre-existing race, HEAD 2/6 stuck in Prompt, made 5/6 by the longer load). The busy
+  re-measure still waits on Fabio's local video.
 
 ## Verification
 

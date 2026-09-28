@@ -32,6 +32,12 @@ const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const sharp = require('sharp');
+// libvips keeps up to 20 decoded inputs OPEN in its op cache, and on Windows an open
+// WebP cannot be deleted or overwritten (EBUSY; JPEG and PNG are released). Every image
+// thumb reads its original's size through sharp, and the canvas display copy (MPI-961)
+// does on every open, so a WebP card stayed locked against delete. Process-wide on
+// purpose: the op cache itself stays, only the file handles go.
+sharp.cache({ files: 0 });
 const { ffmpegPath } = require('./ffmpegBinary');
 const logger = require('../routes/logger');
 

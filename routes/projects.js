@@ -17,6 +17,8 @@
  *   POST   /project-media/:projectId/upload
  *   POST   /project-data/:projectId/upload
  *   GET    /project-file
+ *   GET    /display-image
+ *   GET    /project-thumb
  */
 
 'use strict';
@@ -27,6 +29,7 @@ const fs     = require('fs-extra');
 const path   = require('path');
 const crypto = require('crypto');
 const util = require('util');
+const sharp = require('sharp');
 const { execFile } = require('child_process');
 const logger = require('./logger');
 const { v4: uuidv4 } = require('uuid');
@@ -152,6 +155,113 @@ async function writeAudioWaveform(inputPath, metaDir, id, metaContent) {
     const wave = await extractAudioWaveform(inputPath, base);
     metaContent.thumbPath = wave ? `/project-file?path=${encodeURIComponent(wave)}` : null;
     return metaContent;
+}
+
+/**
+ * The DISPLAY copy of a big still (MPI-961): what the History canvas and the Prompt
+ * preview draw, so the renderer never decodes a 16K original just to show it (a 2.4-3.6 s
+ * main-thread block per canvas mount, and a re-decode at every zoom step of the preview)
+ * and a 32K — which Chromium cannot decode at all — opens.
+ *
+ * `edge` is the renderer's cap (`displayMaxEdge()` in `js/utils/displayImage.js`). At or
+ * under it the answer is `url: null` — load the original you already have (its URL may
+ * carry a `&v=` cache-bust this route never sees) — and nothing is written, which is
+ * every normal generation. Over it: `<id>.thumb.fit<edge>.webp`, made on first request, remade when
+ * the original is newer. The `.thumb.` infix is what puts it under `DERIVATIVE_RE`,
+ * Manual Cleanup and the delete paths with no special case — it is pure cache, and it
+ * carries no sidecar field for a cleanup to null. `fit`, because this is a long-edge box,
+ * not the width-only ladder `<id>.thumb.<N>.webp` spells.
+ *
+ * `width`/`height` are the NATURAL size as Chromium shows it (EXIF 5-8 swap the axes; it
+ * honours orientation, and `.rotate()` bakes the same turn into the copy). Every
+ * coordinate the canvas keeps is in those px; only its backing store shrinks.
+ */
+const DISPLAY_EDGE_MIN = 256;
+const DISPLAY_EDGE_MAX = 16383;      // WebP's own limit
+const _displayIds = new Map();       // normalised original path -> sidecar id
+const _displayJobs = new Map();      // output path -> in-flight sharp job
+
+const _normPath = (p) => {
+    const r = path.resolve(p);
+    return process.platform === 'win32' ? r.toLowerCase() : r;
+};
+
+// The sidecar that owns `filePath`. Only asked for images over the cap, so the scan is
+// rare; remembered, and re-checked on each hit because a deleted card's filename can
+// come back under a new id.
+async function _sidecarIdFor(metaDir, filePath) {
+    const want = _normPath(filePath);
+    const owns = async (id) => {
+        const meta = await fs.readJson(path.join(metaDir, `${id}.json`)).catch(() => null);
+        const p = pathFromProjectFileUrl(meta?.filePath);
+        return !!p && _normPath(p) === want;
+    };
+    const known = _displayIds.get(want);
+    if (known && await owns(known)) return known;
+    for (const f of await fs.readdir(metaDir).catch(() => [])) {
+        if (!f.endsWith('.json')) continue;
+        const id = f.slice(0, -5);
+        if (await owns(id)) { _displayIds.set(want, id); return id; }
+    }
+    return null;
+}
+
+async function resolveDisplayImage(filePath, edge) {
+    const url = (p, v) => `/project-file?path=${encodeURIComponent(p)}${v ? `&v=${Math.round(v)}` : ''}`;
+    const original = { url: null, width: 0, height: 0 };
+    // A format sharp cannot read (BMP) keeps the original: the renderer decodes it, as before.
+    const meta = await sharp(filePath, { limitInputPixels: false }).metadata().catch(() => null);
+    if (!(meta?.width > 0 && meta?.height > 0)) return original;
+    const turned = meta.orientation >= 5;
+    original.width = turned ? meta.height : meta.width;
+    original.height = turned ? meta.width : meta.height;
+    if (Math.max(original.width, original.height) <= edge) return original;
+
+    const metaDir = path.join(path.dirname(filePath), '.meta');
+    const id = await _sidecarIdFor(metaDir, filePath);
+    if (!id) {
+        logger.warn('project', `display-image: no sidecar owns ${path.basename(filePath)}, serving the original`);
+        return original;
+    }
+    const out = path.join(metaDir, `${id}.thumb.fit${edge}.webp`);
+    // The copy is stamped with its original's mtime, and any other stamp means another
+    // version. `newer than` would re-make forever for an original dated in the future (a
+    // file copied in from a machine whose clock ran ahead).
+    const [src, have] = await Promise.all([fs.stat(filePath), fs.stat(out).catch(() => null)]);
+    const version = Math.floor(src.mtimeMs);
+    if (!have || Math.floor(have.mtimeMs) !== version) {
+        let job = _displayJobs.get(out);
+        if (!job) {
+            // Written aside and renamed: a crash mid-write must not leave a truncated copy
+            // under the name that is served.
+            const tmp = `${out}.tmp`;
+            job = sharp(filePath, { limitInputPixels: false })
+                .rotate()
+                .resize(edge, edge, { fit: 'inside', withoutEnlargement: true })
+                .webp({ quality: 90 })
+                .toFile(tmp)
+                .then(() => fs.utimes(tmp, new Date(), version / 1000))
+                .then(() => fs.move(tmp, out, { overwrite: true }))
+                .finally(() => _displayJobs.delete(out));
+            _displayJobs.set(out, job);
+        }
+        await job;
+    }
+    return { url: url(out, version), width: original.width, height: original.height };
+}
+
+/**
+ * A project still's small preview on disk: its sidecar thumb, the original only when none
+ * is recorded or it is gone (MPI-963's rule, for callers that hold only the original's
+ * path). The prompt-box chip mounted the ORIGINAL — a 32K never decodes (a broken chip)
+ * and a 16K decoded 345 MB for a 70 px square (MPI-961).
+ */
+async function projectThumbFor(filePath) {
+    const metaDir = path.join(path.dirname(filePath), '.meta');
+    const id = await _sidecarIdFor(metaDir, filePath);
+    const meta = id ? await fs.readJson(path.join(metaDir, `${id}.json`)).catch(() => null) : null;
+    const thumb = pathFromProjectFileUrl(meta?.thumbPath);
+    return thumb && await fs.pathExists(thumb) ? thumb : filePath;
 }
 
 function mediaTypeFromExt(ext) {
@@ -1871,6 +1981,32 @@ router.get('/project-file', async (req, res) => {
     }
 });
 
+// A still's thumb, served like `/project-file` — see `projectThumbFor`.
+router.get('/project-thumb', async (req, res) => {
+    const { path: filePath } = req.query;
+    if (!filePath) return res.status(400).send('path required');
+    if (!(await fs.pathExists(filePath))) return res.status(404).send('Not found');
+    try {
+        res.sendFile(await projectThumbFor(filePath));
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
+});
+
+// `{ url, width, height }` for a still's display copy — see `resolveDisplayImage`.
+router.get('/display-image', async (req, res) => {
+    const { path: filePath } = req.query;
+    if (!filePath) return res.status(400).json({ error: 'path required' });
+    if (!(await fs.pathExists(filePath))) return res.status(404).json({ error: 'Not found' });
+    const edge = Math.min(DISPLAY_EDGE_MAX, Math.max(DISPLAY_EDGE_MIN, Math.round(Number(req.query.edge)) || 4096));
+    try {
+        res.json(await resolveDisplayImage(filePath, edge));
+    } catch (err) {
+        logger.error('project', `display-image failed for ${path.basename(filePath)}`, err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 //  (FFmpeg Extraction Route)
 
 router.post('/project-media/:projectId/extract', async (req, res) => {
@@ -3401,4 +3537,6 @@ module.exports.computeFileSha256 = computeFileSha256;
 module.exports.migratePreviewAssetsStore = migratePreviewAssetsStore;
 module.exports.DERIVATIVE_RE = DERIVATIVE_RE;
 module.exports.removeItemThumbs = removeItemThumbs;
+module.exports.resolveDisplayImage = resolveDisplayImage;
+module.exports.projectThumbFor = projectThumbFor;
 module.exports.cleanupRebuildableAssets = cleanupRebuildableAssets;

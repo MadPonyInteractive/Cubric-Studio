@@ -112,6 +112,14 @@ test('a large image zoomed out does not alias, on the base or the compare side',
         const grating = await importStill(await gratingPng(), N, 'e2e-grating');
         const small = await importStill(await smallPng(), SMALL, 'e2e-small');
 
+        // Past the display cap (MPI-961) the canvas draws a server-made copy into a capped
+        // backing; this spec is about the mip over a LARGE native backing, so it lifts the
+        // cap to the grating's size. `canvas-display-copy.spec.js` covers the copy.
+        await window.evaluate(async (n) => {
+            const { setDisplayMaxEdge } = await import('/js/utils/displayImage.js');
+            setDisplayMaxEdge(n);
+        }, N);
+
         // ── Base canvas: History in a tool mode (PROMPT mode shows an <img> preview instead).
         await window.evaluate(async (id) => {
             const { navigate, PAGE_GROUP_HISTORY } = await import('/js/router.js');

@@ -2011,12 +2011,22 @@ export const MpiCanvasViewer = ComponentFactory.create({
         _previewWrap.style.cssText = 'position:absolute;inset:0;display:none;';
         el.appendChild(_previewWrap);
 
+        // The two swaps run one after the other, never interleaved (MPI-961). The rail
+        // does not wait for one tool before starting the next, and `swapToPreview` awaits
+        // the layer persist BEFORE the preview exists: a Mask pick landing in that window
+        // ran `swapToCanvas`, found no preview, did nothing — and the preview then mounted
+        // over a rail showing Mask. Opening an entry whose remembered tool is Prompt and
+        // picking Mask hit it 2 times in 6 (a desktop run); once a big still's display copy
+        // made the load longer, 5 in 6.
+        let _swapChain = Promise.resolve();
+        const _inTurn = (fn) => () => (_swapChain = _swapChain.then(fn, fn));
+
         /**
          * Swap to MpiMaskedImagePreview for prompt mode.
          * Destroys MpiCanvas — releases all GPU texture backing immediately.
          * Remounted on swapToCanvas.
          */
-        el.swapToPreview = async () => {
+        el.swapToPreview = _inTurn(async () => {
             if (_previewInst) return;
             _setLoadingSpinner(true);
             try {
@@ -2048,13 +2058,13 @@ export const MpiCanvasViewer = ComponentFactory.create({
             } finally {
                 _setLoadingSpinner(false);
             }
-        };
+        });
 
         /**
          * Swap back to MpiCanvas from preview mode.
          * Remounts a fresh MpiCanvas, reloads current image + mask.
          */
-        el.swapToCanvas = async () => {
+        el.swapToCanvas = _inTurn(async () => {
             if (!_previewInst) return;
             _setLoadingSpinner(true);
             try {
@@ -2096,7 +2106,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
             } finally {
                 _setLoadingSpinner(false);
             }
-        };
+        });
 
         // ── Lifecycle: destroy ───────────────────────────────────────────────
         // Right-click anywhere on the viewer surfaces a context menu (built by

@@ -24,6 +24,7 @@ import { ComponentFactory } from '../../factory.js';
 import { ViewManager }       from '../../Primitives/MpiCanvas/managers/ViewManager.js';
 import { qs }                from '../../../utils/dom.js';
 import { AUTO_PIXEL_THRESHOLD } from '../../../state.js';
+import { resolveDisplayImage } from '../../../utils/displayImage.js';
 
 export const MpiMaskedImagePreview = ComponentFactory.create({
     name: 'MpiMaskedImagePreview',
@@ -129,15 +130,39 @@ export const MpiMaskedImagePreview = ComponentFactory.create({
 
         // ── Image load ────────────────────────────────────────────────────────
 
-        el.loadImage = async (url) => {
+        let _loadSeq = 0;
+        let _pending = null;
+        // A second call for the image already loading joins it, as in MpiCanvas.loadImage:
+        // swapToPreview and the viewer's loadEntry both load the entry, and a joined call
+        // must not be left waiting on a load it superseded.
+        el.loadImage = (url) => {
+            if (_pending?.url === url) return _pending.promise;
+            const promise = _load(url);
+            const pending = _pending = { url, promise };
+            const done = () => { if (_pending === pending) _pending = null; };
+            promise.then(done, done);
+            return promise;
+        };
+
+        const _load = async (url) => {
+            // A big still shows the server's display copy (MPI-961): Chromium re-rasters a
+            // transformed <img> at each new zoom scale, and on a 16K original that meant a
+            // ~2.5 s re-decode per step (fit -> 1x: 11.6 s). The stack keeps the ORIGINAL's
+            // size, so the view and the mask overlay are unchanged.
+            const seq = ++_loadSeq;
+            const display = await resolveDisplayImage(url);
+            // Another image's load started meanwhile: never settle, like an overwritten
+            // `onload`.
+            if (seq !== _loadSeq) return new Promise(() => {});
             await new Promise((resolve, reject) => {
                 baseImg.onload  = resolve;
                 baseImg.onerror = reject;
-                baseImg.src     = url;
+                baseImg.src     = display.src;
             });
+            if (seq !== _loadSeq) return new Promise(() => {});
 
-            _imgNaturalW = baseImg.naturalWidth;
-            _imgNaturalH = baseImg.naturalHeight;
+            _imgNaturalW = display.width  || baseImg.naturalWidth;
+            _imgNaturalH = display.height || baseImg.naturalHeight;
 
             // Size stack to image native px
             stackEl.style.width  = _imgNaturalW + 'px';
@@ -150,10 +175,10 @@ export const MpiMaskedImagePreview = ComponentFactory.create({
             // Reset mask overlay
             maskedImg.style.webkitMaskImage = '';
             maskedImg.style.maskImage       = '';
-            maskedImg.src = url;
+            maskedImg.src = display.src;
             maskedImg.style.display = 'none';
 
-            await view.reset(el, baseImg);
+            await view.reset(el, { width: _imgNaturalW, height: _imgNaturalH });
             view.isManagedView = true;
             _applyTransform();
         };
