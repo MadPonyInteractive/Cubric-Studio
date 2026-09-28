@@ -5185,3 +5185,6 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "checklist.item_checked", "at": "2026-09-28T09:12:00Z", "actor": "claude", "summary": "Stack crop"}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "validation.updated", "at": "2026-09-28T09:12:00Z", "actor": "claude", "summary": "Phase 5 (Stack crop) VERIFIED by Fabio in the app; EXIF crop bug filed as MPI-959."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-949", "at": "2026-09-28T11:50:00+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Phases 1-6 shipped; Phases 2-5 verified by Fabio in the app; docs/rules 89d7b92ba, CI 36410934520 green."}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-966", "at": "2026-09-28T11:30:34+01:00", "actor": "claude", "column": "todo", "title": "Startup reveals an empty landing: keep the splash until projects + crew are ready"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-966", "at": "2026-09-28T11:32:16+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "start: startup reveal gating"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-966", "at": "2026-09-28T11:53:59+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "fix c5beec991 verified on isolated instance; awaiting Fabio's own launch"}

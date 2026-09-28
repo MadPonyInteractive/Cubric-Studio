@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-966",
+  "title": "Startup reveals an empty landing: keep the splash until projects + crew are ready",
+  "description": "Main window shows on page load, before list-projects returns and before shell:booted releases the mascot crew; hold the splash until the landing has content.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-09-28T11:30:34+01:00",
+  "updated_at": "2026-09-28T11:53:59+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
