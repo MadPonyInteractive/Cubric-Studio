@@ -100,6 +100,16 @@ Both read `dev_configs/node_lock.json`; NEITHER writes it. A pin change is
 
 ## Current State
 
+2026-09-29 (session 8feae052) - **LIVE-PROVEN** on a real RTX 5090 Pod (~$0.12): specs/badge name
+the rented card over the stale picker, wrapper 0.2.45, stage-on-connect queued ONCE, an app gen
+staged its 5 files, 0 x 524; Pod + volume deleted. Evidence: validation.md.
+**Promote HELD to the 2.0 cut** (Fabio 2026-09-29: "part of the release process"). Checked: stable
+is what EVERY released build's Pod pulls at boot (1.5.0 = image v0.23.0, no channel env); the
+stable->dev delta is exactly mpi-ci `b131c0a` + `57a31c0`; a 1.5.0/1.6.x app never sends `async`,
+so it gets the old blocking ensure unchanged and ignores the two new dryRun keys; the chatterbox
+link replaces only an EMPTY folder, never fatal. No harm, and no benefit before 2.0's app ships.
+Tracked as an MPI-595 Gate D line. This card's own phases (2-4) stay open.
+
 2026-09-29 (session acd968e8) - **both FIXED, unit-proven, not yet live-proven** (Fabio:
 "fix it properly"). Identity: server `_mode.gpuTypeId` (remotePodState.js, set at
 create/reconnect, cleared on disconnect); `/remote/pod/specs` prefers it over the query;

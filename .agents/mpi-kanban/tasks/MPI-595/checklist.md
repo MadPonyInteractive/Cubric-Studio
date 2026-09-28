@@ -16,7 +16,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   - [x] Pod runtime watchdog `_self_stop` on v2 with a status check; dev-proven on a CPU Pod, promoted 2026-09-27 on Fabio's yes
   - [ ] Live app leg on v2: create / stop / start / delete a Pod, list + grow a volume (Fabio's go)
     - [x] 2026-09-27 GPU leg (create via GraphQL RAM floor, v2 reads/start/delete) + CPU create; volume grow not run
-    - [ ] REST v2 GPU create live: the RAM-floor create now goes REST v2 (uncommitted, 2026-09-27); one Connect after an app restart proves it
+    - [x] REST v2 GPU create live — 2026-09-29 23:35Z (MPI-894 live test): app.log `RAM floor 62GB requested (v2 gpu.minRamPerGpu)` -> `createPod REST -> http 201` Pod `kpmt17d2gqe7mt` RTX 5090; also volume create + DELETE (404 after) through the app. Still not run: stop/start and volume GROW
   - [x] **GraphQL retires early 2027** — Fabio 2026-09-27: create moves in 2.0 (done, above); picker catalogue is a **2.1 blocker** (MPI-894 phase 1b), not a 2.0 gate
   - [x] Runtime `promote` — Fabio's yes 2026-09-27; stable `wrapper_sha256` = `27fcd294…` = dev, served hash verified
   - [ ] 2.0 ships by ~2026-11-01
@@ -43,21 +43,24 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
     - [x] B fix: Vision `43eab1c33` (`wrapperDepPath` maps `targetPath: models/<type>/<sub>` to a real wrapper type at status/install/uninstall; `_withRegistryDef` resolves `targetPath` + `bakedOnPod` by id for stripped callers; runner counts only its own jobs; `tests/remote-target-path-deps.test.cjs`; npm test 2190/0 fail). mpi-ci start.sh links `/opt/ComfyUI/models/chatterbox` -> volume `mpi_models/chatterbox`, published to R2 **dev** (served bytes verified = committed). mpi-ci `b131c0a` pushed 2026-09-29 with `57a31c0`. `promote` to stable at release
     - [x] run 3: `--flows all` after an app restart (routes changed); chatter-box + voice-changer PASS on the Pod is the live proof of the symlink (not testable on Windows) — chatter-box 21s + voice-changer 8s PASS on the 5090 Pod 2026-09-28
   - [ ] release Pod image PROMOTED (clean rebuild, never a renamed `-dev` tag)
+  - [x] RAM floor 80 -> 62: app default `b5b20a042`; smoke runner `MIN_RAM_GB` 62 + playbook 01 (2026-09-29, Fabio: yes; evidence = B1's H3 PASS on a 55.88 GiB 5090 host, `dev_configs/smoke-run.txt:166-167`). Runner `--self-check` OK. Saved 80 GB user floors NOT migrated (Fabio did not ask; default pick: leave them)
+  - [x] Runner fix, same session: `--plan` / `--self-check` no longer truncate the committed `dev_configs/smoke-run.txt` (both did; this session's `--install-only` + `--self-check` wiped the B1 transcript, restored from HEAD, blob `d6f247a` re-verified after a plan + self-check). `tests/smoke-*.test.cjs` 54/54
 - [x] **B2 MPI-953** Flow leg in the smoke runner — `49564ad53`: real FLOWS, stages each Flow's models + deps, volume counts only what Flows add; runs for real inside B1 with `--flows all`
 - [ ] **B3** Linux box, REMOTE-ONLY (no ComfyUI there): agent, DeepInfra, RunPod v2 (MPI-806 live leg), updater A/B through `update.sh` on a real 2.0 bundle
-- [ ] **B4** `npm test` and `npm run test:desktop` green
+- [x] **B4** `npm test` and `npm run test:desktop` green — 2026-09-29: CI run 36497353233 on `804107f52` (last code commit; later ones are board-only) unit + desktop shards 1-4 all success; local `npm test` at HEAD 2215 pass / 0 fail / 2 skip. **Re-check at the cut** (code keeps landing)
 - [x] **B5** MPI-656 Phase 1 — CLEARED by reading 2026-09-27: every YAML writer (`comfy.js:855/864/934`, `engine.js:671/678`) goes through `writeExtraModelPathsYaml` -> `setRoots`, so `model_roots.json` cannot drift from the YAML; the yaml-only seed and the both-equal rule are tested (`tests/model-roots.test.cjs:213,252`)
 - [x] **B6** MPI-710 — CLEARED by reading 2026-09-27: nothing load-bearing reads the installed top-level manifest (the applier keys its guard off package.json on purpose, `apply-update.cjs:88-100`; main, routes and updateChecker never read it). Stays a research card, not a gate
 - [ ] **B7** on the 2.0 build, Get it on Head Swap and DramaBox opens Gumroad at £0
 
 ## Gate C — decide / notes
 
-- [ ] Claim audit of `UNRELEASED.md` against **v1.5.0** (copy-review Gate 0)
+- [x] Claim audit of `UNRELEASED.md` against **v1.5.0** (copy-review Gate 0) — done 2026-09-28 11:00 in `c6937e50f` (pushed; this line was never ticked). Bullets added after it: `89d7b92ba` (stacks, MPI-949) and `e774a5895` (Fits my GPU, MPI-967) — both post-1.5.0 features, so new by definition; re-run Gate 0 only on bullets added after `e774a5895`
 - [x] Coverage sweep 2026-09-27 (`ec7b81cb3`): agent panel, Connect an agent, GIF workspace, 16K + SVG. Dictation, MCP, mascots, local-only server were already there
-- [ ] **MPI-949 close-out**: the two Cue all bullets become stacks (949 replaces Cue all). Agent image tools (MPI-941) get their line at 941 close-out
+- [x] **MPI-949 close-out**: the two Cue all bullets become stacks — done (`c6937e50f` + `89d7b92ba`; `grep -i "cue all" UNRELEASED.md` empty 2026-09-29, Stack bullet at :159)
+- [ ] Agent image tools (MPI-941) get their line at 941 close-out
 - [x] Rename section (`ec7b81cb3`), plus Vision -> Cubric Studio in four user-facing bullets
 - [ ] Known-issue lines: macOS · unsigned exe / SAC (MPI-616) · A5 if unmitigated · 1.5.0 installs lose the remote engine on 2026-11-15
-- [ ] MPI-543 / MPI-544 / MPI-569 in or out
+- [x] MPI-543 / MPI-544 / MPI-569 — OUT of 2.0 (Fabio 2026-09-29). 544 was seen once, in the 2026-08-11 download-Pod incident (bot-driven installs), never reproduced; Fabio reads it as smoke-run-only. Cards stay on the board as they are
 - [ ] Flow-list reconcile — LAST, once, at notes freeze (13 ids on 2026-09-27)
 
 ## Agent connection (MPI-593)
@@ -75,6 +78,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [ ] 1.6.0 / 1.6.1 / 1.6.2 `RELEASE_NOTES` entries + `.approved-1.6.*.json` deleted at the fold
 - [ ] MPI-708 Phase 3: dual-publish `CubricVision-*` at the cut (2.0 note done `ec7b81cb3`; 2.1 follow-up is **MPI-951**)
 - [ ] `python scripts/overtaken-cards.py`; unpushed pushed; commit by pathspec
+- [ ] `publish-runtime.sh promote` (mpi-ci `cubric-vision-pod/`): dev -> stable = wrapper 0.2.45 (MPI-894 async hot-store, live-proven 2026-09-29) + `b131c0a` chatterbox link. Fabio 2026-09-29: at the cut, not before. Harmless to 1.5.0/1.6.x (they never send `async`), useless to them until 2.0's app
 - [ ] `/mpi-version-bump` -> **2.0.0**, then `/mpi-release`
 - [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
 - [ ] After: MPI-603 R2/HF delete; MPI-612

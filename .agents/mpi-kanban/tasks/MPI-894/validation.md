@@ -40,3 +40,27 @@ Root cause and fix: plan.md Current State. Evidence so far (no paid run yet):
 - Wrapper: `python cubric-vision-pod/wrapper/test_hot_store_async.py` passes (async answers before any byte copies, worker stages, a failed file leaves `pending`, priority reorders, blocking form unchanged). mpi-ci `57a31c0`, pushed; `publish-runtime.sh dev` live, dev manifest reports wrapper 0.2.45.
 - NOT yet proven on a real Pod through RunPod's proxy; needs one paid GPU Pod with a network volume (none exists since the smoke volume was deleted).
 - Pre-existing, not ours: `wrapper/test_manifest_stamp.py` fails on committed HEAD too (expects manifest schema 1, wrapper writes 2).
+
+LIVE, 2026-09-29 (session 8feae052; Fabio approved, cap $0.60; spent ~$0.12). App on :3000 ran
+fc8a7438f (`/remote/mode` carries `gpuTypeId`); Fabio's saved picker = RTX 2000 Ada.
+- Fill: `gpu_lease.py run -- node scripts/smoke-workflows.mjs --models klein-4b --install-only` ->
+  volume `fivsivyhms` 60 GB EU-RO-1, CPU Pod `2pjo5itkq0oiwe` installed 21 deps, no failures, deleted.
+  While it was up: `/remote/pod/specs` = "No GPU (download)", `/remote/mode.gpuTypeId` = `__cpu__`,
+  and NO stage-on-connect line (the MPI-539 guard reads the real Pod now).
+- GPU leg by hand (`/remote/pod/create` RTX 5090, 62 GB floor) -> Pod `kpmt17d2gqe7mt`, $0.99/hr,
+  created 23:35:20Z, ready 23:40:08Z (cold host image pull).
+  1. Identity PASS: `/remote/pod/specs` -> RTX 5090, 32 GB VRAM, 93 GB RAM - the SAME answer when
+     asked `?gpuTypeId=NVIDIA RTX 2000 Ada Generation`. Fabio: "this time I got the correct toast
+     for an RTX 5090".
+  2. Wrapper PASS: `/remote/comfy/status` `wrapperVersion: "0.2.45"` (dev runtime channel).
+  3. Stage-on-connect PASS: after the universal-node install + ComfyUI restart (23:40:17Z), ONE
+     line `hot-store: stage-on-connect queued 5/5 file(s) for 1 model(s)` (23:40:19Z). 0 x 524 in
+     app.log for the whole run.
+  4. App generation PASS: `/connector/generate` klein-4b t2i (lease-wrapped) -> card `t2i_009`
+     "MPI-894 Pod hot-store test" in My Agent Tests, 1088x896, generationMs 7678; app.log
+     `hot-store: 5 file(s) on Pod disk` (23:41:23Z) - the gen waited on the priority stage, no 524.
+- Teardown: Pod delete -> 204 (23:41:57Z); volume DELETE -> 2xx, then a second DELETE -> 404
+  "network volume not found"; `/remote/mode` inactive.
+- Auto mode refused listing `/runpod/volumes` + `/runpod/pods` ("Production Reads"); the test ran
+  without them (the runner's own create path + the volume id from app.log).
+- `publish-runtime.sh promote` HELD to the 2.0 cut (Fabio 2026-09-29); why it is safe either way: plan.md Current State. MPI-595 Gate D carries it.
