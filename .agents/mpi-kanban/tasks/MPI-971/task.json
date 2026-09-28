@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-971",
+  "title": "Engine ops fail on 16K+ photos: MpiLoadImage hits Pillow's decompression-bomb limit (SAM3, inpaint, edit, upscale)",
+  "description": "UMBRELLA: MPI-962 (Big photos). Found 2026-09-29 by Fabio running SAM3 on the 32K in Big Photos Test: 'MpiLoadImage failed: PIL.Image.DecompressionBombError: Image size (1073741824 pixels) exceeds limit of 178956970 pixels'. load_image_from_path (ComfyUi-MpiNodes img.py ~:438) opens with Pillow's default limit, which errors past 178,956,970 px - a 16K (268 MP) fails the same way, so every engine op fed a 16K+ still dies at load: SAM3, inpaint/localised edit, i2i, upscale. Behind the limit is the real cost: the node makes a float32 tensor of the whole image - 3.2 GB at 16K, 12.9 GB at 32K (the tester has 16 GB RAM). DECISION NEEDED: (A) lift the limit in the node (Image.MAX_IMAGE_PIXELS = None) - 16K works on a big-RAM machine, 32K risks OOM; ships via /mpi-nodes-sync (commit, push, pin, Pod runtime). (B) the app never sends the engine more than it needs: SAM3 on the display copy or the on-screen region (MPI-961 mask patch), localised edits cropped around the mask server-side with sharp and stitched back (ties MPI-355 / MPI-897), whole-image ops on a pre-downscaled copy. A source-size mask export for a 32K cannot be built in the renderer either (Chromium's canvas area cap) - it has to be composed server-side. Possibly both: A as the floor, B as the fix.",
+  "column": "todo",
+  "maturity": "needs-decision",
+  "status": "active",
+  "created_at": "2026-09-29T00:11:31+01:00",
+  "updated_at": "2026-09-29T00:11:31+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

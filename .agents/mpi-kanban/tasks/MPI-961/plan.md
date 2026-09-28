@@ -55,7 +55,7 @@
   MPI-963 closed (CI green `52ee9cbc6`). Server display copy + renderer copy for canvas AND Prompt
   preview; unit 2204/0 fail, new `canvas-display-copy.spec.js` 6/6 with a 3-mutation proof, desktop
   list 21/21, rig GPU IDLE recorded (`validation.md` § Phase 3: 16K cached open 0.71 s, Prompt
-  preview zoom 11.6 s -> 0.63 s, GPU 3.2 GB -> 0.37 GB, 32K opens). GPU BUSY rig DONE (16K under Fabio's local video: pan/wheel/stroke 75 fps, was 2-6; swaps 0.2-0.35 s, was 5-15 s). **Left:** Fabio's user-ux check (running now, video on), then commit. Rig + fixture copy with cached copies: `scratchpad/rig3` (delete `.meta/*.thumb.fit*` there to time a first open).
+  preview zoom 11.6 s -> 0.63 s, GPU 3.2 GB -> 0.37 GB, 32K opens). GPU BUSY rig DONE. **Fabio verified Phase 3 (2026-09-29, "workable"); committed + pushed `f1066b21b`** (MPI-963 close `99d1a63b0` is local, behind a peer's unpushed MPI-941 commit). His check found: the 32K prompt-box chip broken (fixed in `f1066b21b`, not yet eye-checked) and **mask edges soft on huge images** - every mask layer is 1536 on any image (21 image px per mask px on a 32K). Design B kept that cap; he now wants sharp. **Where it stands (2026-09-29, end of session efbca418):** Fabio said START by trying the mask cap at 4096 (`MASK_MAX_EDGE` 1536 -> 4096, `MaskManager.js:44`). RISK found, not yet measured: `paint()` calls `_recomposite()`, which redraws the WHOLE mask canvas per mouse move (`MaskManager.js:367`) - 7x the pixels at 4096; clip it to the stroke box (MPI-787 pattern) if the rig shows the stroke falling off 75 fps. Also measure mask adjust (grow/shrink field; paint's 4096 field was 1563 ms), hole fill, and `_persistLayers` toDataURL at 4096. **Tiles - Fabio's worry:** a tile seam through an eye would stop SAM3 masking it. Answer to give him: tiles are only how the SERVER stores the photo (pyramidal tiled TIFF, measured: build 2.6 s 16K / 3.6 s 32K, region read 16-23 ms, +67 MB / +241 MB disk, `research/rig/tiledprobe.cjs`); what reaches the engine or the screen is one CONTIGUOUS rectangle libvips cuts across tiles, so no seam ever exists. **His SAM3 idea (coarse-to-fine) is the design:** SAM3 on the reduced image -> box around the result (MpiMaskBox) + margin -> cut that box at full res from the tile cache -> SAM3 again on it -> paste back sharp. Works for small things (eyes); a subject filling the frame needs a different refine (SAM3 sees ~1000 px whatever it is sent, so precision = box size / ~1000) - candidates: overlapping windows along the coarse edge, or a matting model on a trimap; open question for him. This also fixes MPI-971 for SAM3 (engine never gets the 1-gigapixel original). **Next:** (1) the 4096 mask trial + rig numbers; (2) Phase 4 on the tile cache - still needs his explicit go; (3) coarse-to-fine SAM3 (MPI-971 / Phase 5).
 - **Headline:** (1) MPI-963's rows-load-originals is the biggest cost to OPEN and to Prompt<->tool
   swaps (16K idle open 37 s -> 5 s, 4K swaps 5 s -> 0.35 s with rows on thumbs). (2) Under GPU
   load, 16K pan/zoom/stroke fall to 2-6 fps because every tick runs a full `draw()` of the
@@ -173,7 +173,16 @@ inside the phase instead. MPI-959 / MPI-963 (umbrella Batch 1) are the parallel 
   asserted; pixel mode shows hard edges above `AUTO_PIXEL_THRESHOLD`; memory after zoom-out returns to
   the Phase 3 level. **Fabio (user-ux):** zoom into the 16K - soft while moving, sharp when stopped.
 
-## Phase 5: Close
+## Phase 5: Mask detail patch - user-ux checkpoint (PROPOSED 2026-09-29, awaiting Fabio's go)
+
+- [ ] Fabio picked "sharp where you work" over raising the 1536 cap. Zoomed in past the overview
+  mask's 1:1, strokes (and SAM3) also land in a full-resolution PATCH covering the on-screen region;
+  the patch draws on the Phase 4 detail layer at screen res; undo records it like any layer; it
+  persists with the entry's temp masks; export = overview upscaled + patches over it, composed on
+  the SERVER (a 32K source-size mask cannot exist in the renderer - MPI-971 owns that half). SAM3
+  on a patch runs on the region's pixels, not the whole photo. Design detail before code.
+
+## Phase 6: Close
 
 - [ ] Final table (baseline vs after) in `validation.md`; docs: the canvas subsystem doc (route via
   `docs/README.md`) gains the display-copy + detail-layer model; ask Fabio before touching
@@ -224,6 +233,14 @@ inside the phase instead. MPI-959 / MPI-963 (umbrella Batch 1) are the parallel 
   second load of the same image (the viewer's double load on mount); `MpiCanvasViewer` swaps run
   in turn (pre-existing race, HEAD 2/6 stuck in Prompt, made 5/6 by the longer load). The busy
   re-measure still waits on Fabio's local video.
+
+- 2026-09-29 (Phase 3 check, Fabio): mask edges on the 32K are unusable (1536 overview = 21 image
+  px per mask px). He chose a PATCH ("like localised edit ... like Adobe: pixelated while zooming,
+  full res of the on-screen area when it stops") over a bigger cap -> new Phase 5. SAM3 on the 32K
+  failed in the ENGINE (Pillow bomb limit in MpiLoadImage; 16K fails too) -> MPI-971 (umbrella
+  MPI-962), needs-decision. PROPOSED, not yet approved: Phase 4's detail source moves from D2's
+  renderer decode (32K stays soft) to server REGIONS from a tiled cache per big photo (S2), so the
+  32K is sharp too and SAM3 / a patch read the same regions.
 
 ## Verification
 

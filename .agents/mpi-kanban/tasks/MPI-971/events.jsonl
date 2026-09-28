@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-971", "at": "2026-09-29T00:11:31+01:00", "actor": "efbca418-880a-446a-9cf4-a706e6397fec", "column": "todo", "title": "Engine ops fail on 16K+ photos: MpiLoadImage hits Pillow's decompression-bomb limit (SAM3, inpaint, edit, upscale)"}
