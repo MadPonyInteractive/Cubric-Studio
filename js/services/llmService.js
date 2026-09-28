@@ -198,20 +198,19 @@ export function setDescribeBackendPreference(backend) {
     } catch { /* storage disabled */ }
 }
 
-/** The user's describe model, or undefined for the endpoint default. */
+/** The user's describe model on the current connection, or undefined for its default. */
 export function describeModelPreference() {
     try {
-        return localStorage.getItem(DESCRIBE_MODEL_PREF_KEY) || undefined;
+        return Storage.getConnectionPick(DESCRIBE_MODEL_PREF_KEY);
     } catch {
         return undefined;
     }
 }
 
-/** Pin a describe model id, or pass falsy to use the endpoint default. */
+/** Pin a describe model id for the current connection, or pass falsy for its default. */
 export function setDescribeModelPreference(id) {
     try {
-        if (id) localStorage.setItem(DESCRIBE_MODEL_PREF_KEY, id);
-        else localStorage.removeItem(DESCRIBE_MODEL_PREF_KEY);
+        Storage.setConnectionPick(DESCRIBE_MODEL_PREF_KEY, id);
     } catch { /* storage disabled */ }
 }
 
@@ -278,20 +277,19 @@ export function setEnhancerModelPreference(id) {
     } catch { /* storage disabled — the choice just does not persist */ }
 }
 
-/** The user's Remote enhancer model (a raw endpoint id), or undefined. */
+/** The user's Remote enhancer model (a raw endpoint id) on the current connection, or undefined. */
 export function endpointModelPreference() {
     try {
-        return localStorage.getItem(ENDPOINT_MODEL_PREF_KEY) || undefined;
+        return Storage.getConnectionPick(ENDPOINT_MODEL_PREF_KEY);
     } catch {
         return undefined;
     }
 }
 
-/** Pin a Remote enhancer model, or pass falsy for the connection's recommended one. */
+/** Pin a Remote enhancer model for the current connection, or pass falsy for its recommended one. */
 export function setEndpointModelPreference(id) {
     try {
-        if (id) localStorage.setItem(ENDPOINT_MODEL_PREF_KEY, id);
-        else localStorage.removeItem(ENDPOINT_MODEL_PREF_KEY);
+        Storage.setConnectionPick(ENDPOINT_MODEL_PREF_KEY, id);
     } catch { /* storage disabled */ }
 }
 

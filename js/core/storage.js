@@ -167,6 +167,22 @@ function readLlmConnection() {
   return { profileId: typeof profileId === 'string' && profileId ? profileId : DEFAULT_LLM_CONNECTION.profileId };
 }
 
+// MPI-941 Phase 11: a model pick belongs to the connection it was made on (a DeepInfra id
+// means nothing to Ollama), so each is saved as `{ [profileId]: id }`. A pick saved before
+// the map (a bare string) reads as none: the connection's own default answers until re-picked.
+function connectionPick(map) {
+  const id = map && typeof map === 'object' ? map[readLlmConnection().profileId] : undefined;
+  return typeof id === 'string' && id ? id : undefined;
+}
+
+function withConnectionPick(map, id) {
+  const next = { ...(map && typeof map === 'object' ? map : {}) };
+  const { profileId } = readLlmConnection();
+  if (id) next[profileId] = id;
+  else delete next[profileId];
+  return next;
+}
+
 // Idle-watchdog floor/default in seconds (mirrors MpiSettings IDLE_FLOOR_MIN /
 // IDLE_DEFAULT_S). A missing/corrupt value heals to the default; a sub-floor
 // value clamps up so the wrapper env never gets an out-of-range timeout.
@@ -369,9 +385,19 @@ export const Storage = {
   getHeroQuoteDeck: () => get(STORAGE_KEYS.HERO_QUOTE_DECK, null),
   setHeroQuoteDeck: (v) => set(STORAGE_KEYS.HERO_QUOTE_DECK, v),
 
-  // MPI-774: { profileId, mode } for the in-app agent. Never a key.
-  getAgentPrefs: () => normalizeAgentPrefs(get(STORAGE_KEYS.AGENT_PREFS, DEFAULT_AGENT_PREFS)),
-  setAgentPrefs: (v) => set(STORAGE_KEYS.AGENT_PREFS, normalizeAgentPrefs(v)),
+  // MPI-774: { model, mode } for the in-app agent. Never a key. `model` is the CURRENT
+  // connection's pick; saved as `{ models: { [profileId]: id }, mode }` (MPI-941 Phase 11).
+  getAgentPrefs: () => {
+    const saved = get(STORAGE_KEYS.AGENT_PREFS, null);
+    return normalizeAgentPrefs({ model: connectionPick(saved?.models), mode: saved?.mode });
+  },
+  setAgentPrefs: (v) => {
+    const { model, mode } = normalizeAgentPrefs(v);
+    set(STORAGE_KEYS.AGENT_PREFS, { models: withConnectionPick(get(STORAGE_KEYS.AGENT_PREFS, null)?.models, model), mode });
+  },
+  // A raw-key model pick kept per connection (the Remote enhance and describe rows).
+  getConnectionPick: (key) => connectionPick(get(key, null)),
+  setConnectionPick: (key, id) => set(key, withConnectionPick(get(key, null), id)),
   getAgentPanelWidth: () => clampAgentPanelWidth(get(STORAGE_KEYS.AGENT_PANEL_WIDTH, AGENT_PANEL_WIDTH.default)),
   setAgentPanelWidth: (v) => set(STORAGE_KEYS.AGENT_PANEL_WIDTH, clampAgentPanelWidth(v)),
   getLlmConnection: readLlmConnection,

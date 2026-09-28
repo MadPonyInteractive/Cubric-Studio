@@ -300,7 +300,8 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 
 A profile is a CONNECTION: `{ id, name, baseURL }` + a write-only key (`main/secretsStore.js`); presets
 DeepInfra (the existing key slot), OpenRouter, OpenAI, Ollama `/v1`, custom. ONE pick,
-`Storage.getLlmConnection()`; each job keeps its model (`Storage.getAgentPrefs()` -> `{ model, mode }`).
+`Storage.getLlmConnection()`; each job keeps its model (`Storage.getAgentPrefs()` -> `{ model, mode }`),
+and each model pick is kept PER CONNECTION (`{ [profileId]: id }`, MPI-941 Phase 11): a DeepInfra id never reaches Ollama.
 Settings: the connection block tops Remote > Language Models; the Agent row is "Remote" + model + mode + tool test.
 
 - **A key is bound to the `baseURL` it was saved with**; an edited URL needs the key again.
@@ -330,9 +331,9 @@ Settings: the connection block tops Remote > Language Models; the Agent row is "
   id. `num_ctx` defaults to 8,192, so enhance and describe are untouched.
 - **`ollama` is keyless everywhere, the agent included**: `runTurn` and `probe`
   (`services/agentLoop.mjs`) skip `NO_KEY` for it exactly as the `routes/llm.js` checks do.
-  One Ollama caveat the app still does not surface: only a model whose `/api/show` capabilities
-  include `tools` can be the agent (`gemma-4-abliterated:12b` has it, `gemma3:12b` does not), and
-  the picker shows no way to tell them apart.
+  Only a model whose Ollama capabilities include `tools` can be the agent (`gemma-4-abliterated:12b`
+  has it, `gemma3:12b` does not). `listRemoteModels` reads them from Ollama's `GET /api/tags` into
+  `tools` (MPI-941 Phase 11) and the agent row hides `tools: false`; null (an older Ollama) hides nothing.
 - **A local Ollama agent never shares the card with its own render** (MPI-913): on `ollama` with a
   model that is not `-cloud`/`:cloud`, a job that is not billed (`_askSpend` answered null; a batch
   carries `billed` from its one quote) while `engineIsLocal()` (no RunPod Pod) joins `_gpuJobs` and

@@ -224,3 +224,37 @@ Desktop `options: only the latest reply offers buttons, and a click sends that c
 `_appendOptions` call removed. Full `npm test` 2178 tests, 2176 pass, 0 fail. `agent-chat.spec.js` 34 passed. Lint exit 0.
 **Live check (Fabio), pending:** ask the agent something with a real fork (e.g. after a batch, "what next?"): buttons under
 its reply; one click continues the conversation with that choice.
+
+## Phase 11 parts 2 + 3 (session ab46115b, 2026-09-28)
+**Part 2:** `listRemoteModels` reads Ollama's `GET /api/tags` `capabilities` into `tools` / `vision` (null = unknown, never
+hidden); the agent row drops `tools: false`. **Part 3:** the stale box was ONE global pick shared by every connection, and
+the Remote enhance and describe picks had the same flaw. All three are now `{ [profileId]: id }`.
+**Evidence:** `tests/llm-connection.test.cjs` "MPI-941 Phase 11: Ollama rows carry tools and vision" RED first (no `/api/tags`
+call), GREEN after; `tests/llm-service.test.cjs` `testPicksBelongToTheirConnection` (DeepInfra -> Ollama -> back keeps each pick;
+a bare pre-map string reads as none). Desktop `llm-settings-remote.spec.js` (a `tools: false` model absent from the agent row,
+present in enhance; picks saved as maps) + `agent-chat.spec.js` getAgentPrefs case: 2 passed. Full `npm test` 2179 tests,
+2177 pass, 0 fail. Lint exit 0. Fabio's Ollama probed read-only: `/api/tags` reports capabilities (ornith:9b: completion,
+tools, thinking).
+**Live check (Fabio), pending:** Settings > Remote, connection Ollama: the agent row lists no tool-less model and shows your
+Ollama pick; switch to DeepInfra: its own pick is there; back to Ollama: yours again. Old single picks reset once.
+
+**Phase 11 VERIFIED by Fabio 2026-09-28 ("1").**
+
+## Phase 7 live check FAILED (Fabio's screenshots, 2026-09-28, DeepSeek-V4-Flash on DeepInfra)
+Two genuine forks, no buttons: (1) after he declined the SDXL Realistic install, the reply offered Krea 2, Klein 9B or
+reinstalling SDXL and ended "What would you like?"; (2) three scene ideas ending "Any of these sound good?". Plain text, no
+marker stripped. The unit + desktop evidence above used a scripted model; the rule was never measured on a real one.
+Next: an agent-test case at a fork, red first on DeepSeek.
+
+## Phase 11 part 1: local scores (session ab46115b, 2026-09-28, Fabio: "GPU is free, lease it first")
+Each run under its own `gpu_lease.py run` (GPU 0 leased line seen), `node scripts/agent-test.mjs --preset ollama --model <tag>
+--runs 1`, 26-case suite, model unloaded (`keep_alive 0`) before the lease released; `/api/ps` empty and GPU 0 free after each.
+Logs: `research/ollama-agent-gemma4-12b.log`, `research/ollama-agent-ornith-9b.log`.
+- **ornith:9b 16/26** (MPI-912: 11/22). Fails: install-needed, look-refusal, new-project-brief, memory-write,
+  sheet-goes-to-reference, outpaint-grows-one-side, **adult-request**, all three second-picture cases.
+- **gemma4:12b 13/26** (MPI-912: 14/22). Fails: picks-installed-model, auto-video-medium-turbo, install-asks, look-refusal,
+  video-limit, memory-write, ranked-editor, sheet-goes-to-reference, outpaint-grows-one-side, over-boxed-head, all three
+  second-picture cases (each asked the user to paint a mask instead of generating). One turn called `write_memory` 15 times
+  identically (noticed, not built: nothing in the loop stops a repeated identical call).
+Neither is near DeepSeek's bar, so both are `jobs: []` with `agentTest` on the `ollama` table (listed with a score, never the
+default); `perChat: 0` reads "runs on your GPU". Unit (`llm-connection` 12/12) + desktop `llm-settings-remote` green, lint 0.

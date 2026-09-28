@@ -590,7 +590,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             deepinfra:  'Recommended. Runs off your machine, so it costs no VRAM.',
             openrouter: 'A gateway to many providers\' models. Needs an OpenRouter API key.',
             openai:     'OpenAI\'s own endpoint. Needs an OpenAI API key.',
-            ollama:     'Your local Ollama runtime, through its /v1 endpoint. Untested with the agent, and it needs its own VRAM beside any running generation.',
+            ollama:     'Your local Ollama runtime, through its /v1 endpoint. Local agents score well below the hosted ones, and each needs its own VRAM beside any running generation.',
             custom:     'Any OpenAI-compatible endpoint. Enter its base URL below.',
         };
 
@@ -797,7 +797,9 @@ export const MpiLlmSettings = ComponentFactory.create({
                 return;
             }
             // '' = the recommended model, resolved server-side too; shown as that model.
-            const { options, value, recommended } = _remoteModelOptions('agent', Storage.getAgentPrefs().model, null);
+            // A model that says it cannot call tools cannot be the agent (Ollama's
+            // `capabilities`, MPI-941 Phase 11). Unknown (null) stays listed.
+            const { options, value, recommended } = _remoteModelOptions('agent', Storage.getAgentPrefs().model, m => m.tools !== false);
             _agentModelInst = MpiDropdown.mount(slot, {
                 options,
                 value,
@@ -854,9 +856,9 @@ export const MpiLlmSettings = ComponentFactory.create({
         }
 
         /** "1M context" — the window the agent compacts against. */
-        /** "23/23 tests · $0.36/100 chats". */
+        /** "23/23 tests · $0.36/100 chats"; a local model (perChat 0) costs your GPU, not money. */
         function _agentTestLabel({ passed, cases, perChat }) {
-            return `${passed}/${cases} tests · $${(perChat * 100).toFixed(2)}/100 chats`;
+            return `${passed}/${cases} tests · ${perChat ? `$${(perChat * 100).toFixed(2)}/100 chats` : 'runs on your GPU'}`;
         }
 
         function _windowLabel(m) {

@@ -294,6 +294,24 @@ build (check the portable packaging's file list) and run server-side (a route st
 (d) the result: store it per connection+model and show it in the agent row the way `agentTest` scores show (Phase 11's
 display), marked as the user's own run; `--runs 1`, never presented as our certified 3-run bar. Reuse Phase 11's
 scored-row code; build 11 first.
+(e) **share, opt-in** (Fabio, 2026-09-28): after a run, a tickbox "Share this result (anonymous: model, score, GPU)",
+asked per run or once, never on by default; it POSTs one record to our endpoint (**MPI-965**: the Worker, storage and
+read side live there). Record: provider + model id, a hash of the suite (22 -> 26 cases already, so only the same suite
+compares), per-case pass/fail, runs, perChat, app version, GPU name + VRAM for a local model. Never prompts, replies,
+images, project names or paths. No GitHub token in the app. Update cubric.studio/privacy in the same job. Order:
+result -> local save -> optional share; the share ships only once MPI-965's endpoint is live.
+Packaging found 2026-09-28: `build-portable.mjs` `APP_COPY_EXCLUDES` drops `scripts/` and `tests/` whole (146, 148), so point (a)
+means moving the cases + `tests/fixtures/agent/` (56 KB) + `runChecks` (`scripts/recipe-test.mjs`) into shipped paths.
+
+### Phase 13 - the loop stops a repeated identical call (Fabio, 2026-09-28: "fold the write_memory guard into MPI-941")
+
+Found in the Phase 11 score run: gemma4:12b sent `write_memory({file: "woman_desc.md", ...})` 15 times in ONE turn. Every
+call was refused (`BAD_REQUEST`: an underscore fails the slug check) and the model resent it unchanged, burning 128K prompt
+tokens. Nothing reached disk (harness fake store; Fabio's global notes checked, untouched). Fix in `services/agentLoop.mjs`'s
+tool loop: a call identical to one already made THIS TURN (same tool, same parsed args) is not run again; its result says
+so and carries the earlier result, so the model must change the arguments or stop. Tool-result text only, no system-prompt
+bytes. Footprint: `services/agentLoop.mjs`, `tests/agent-loop.test.cjs`. **Verify:** a scripted model repeating one refused
+call gets it run ONCE (red first); a legitimate second call with different args still runs.
 
 ## Parallel Batch - Phase 9 and Phase 10
 
@@ -424,6 +442,21 @@ answered "feasible"). **NEXT session:** (1) Phase 11 parts 2+3 (no GPU), then pa
 --preset ollama --model gemma4:12b --runs 1` and `ornith:9b`, ask Fabio first that the GPU is free; (2) plan Phase 12;
 (3) his Phase 7 fork check is still owed. Phases 5, 7, 8 + the duplicate-line fix are UNCOMMITTED at handoff time
 unless the handoff commit below took them.
+2026-09-28, session ab46115b: CI green on 1c1c83574; **MPI-913 closed** (`266387788`, private index, pushed).
+**Phase 11 parts 2 + 3 built, unit + desktop green, uncommitted, claim `ab46115b-mpi941`; live check pending.**
+Part 3's root cause was wider than the agent box: ALL THREE Remote picks (agent, enhance, describe) were one global
+value, so a DeepInfra pick reached Ollama. Now `{ [profileId]: id }` (`Storage.getConnectionPick`/`setConnectionPick`,
+`getAgentPrefs` keeps its `{ model, mode }` shape). A pre-map pick reads as none (one re-pick; deliberate). Part 2:
+Ollama's `/api/tags` carries `capabilities` (no per-model `/api/show`), so `listRemoteModels` sets `tools`/`vision`.
+Same session: **part 1 scored under the GPU lease**: ornith:9b 16/26, gemma4:12b 13/26 (`--runs 1`, 26 cases), both on the
+`ollama` table as `jobs: []` + `agentTest`. Phase 12 gained point (e) share, opt-in, and **MPI-965** (the endpoint) was
+opened on Fabio's yes. **All of Phase 11 is built. NEXT:** Fabio's live check (validation.md § Phase 11: picks per
+connection, no tool-less rows, the two scores on top with "runs on your GPU"); his Phase 7 fork check; then plan Phase 12.
+Later: **Phase 11 VERIFIED by Fabio ("1")**. His screenshots also **FAILED Phase 7 live on DeepSeek**: two genuine
+three-way forks ("What would you like?" after a declined SDXL install; "Any of these sound good?" after three scene ideas),
+no buttons. Phase 7's evidence was a scripted model only; no real model was ever measured on the marker. Phase 13 (the
+repeated-call guard) folded in on his word. **NEXT:** an `agent-test.mjs` case for the Options rule, red on DeepSeek, then
+reword the rule at net-zero bytes until it passes x3; Phase 13; then plan Phase 12.
 
 **Watch-only, carried from MPI-817 (no build unless it recurs):** the agent ending an Auto-mode
 turn on a question; a note generalising from two runs; a project note RESTATING a global one

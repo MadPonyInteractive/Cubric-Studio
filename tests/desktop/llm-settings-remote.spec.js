@@ -16,6 +16,8 @@ const MODELS = [
   { id: 'acme/enhance-pick', contextWindow: 131_072,   vision: false, recommendedFor: ['enhance'] },
   { id: 'acme/see-pick',     contextWindow: 327_680,   vision: true,  recommendedFor: ['describe'] },
   { id: 'acme/alpha-vision', contextWindow: null,      vision: true,  recommendedFor: [] },
+  // MPI-941 Phase 11: Ollama says this one cannot call tools, so the agent row hides it.
+  { id: 'acme/no-tools',     contextWindow: null,      vision: false, tools: false, recommendedFor: [] },
 ];
 
 test('Remote rows list the connection models, recommended first', async ({}, testInfo) => {
@@ -77,7 +79,7 @@ test('Remote rows list the connection models, recommended first', async ({}, tes
     // Enhancement: its recommendation first, then the rest in the endpoint's order.
     await toggle('#mpiSettingsLlmEnhanceModelSlot');
     await expect(openList).toHaveText([
-      '(recommended) acme/enhance-pick', 'acme/agent-pick', 'acme/zeta-chat', 'acme/see-pick', 'acme/alpha-vision',
+      '(recommended) acme/enhance-pick', 'acme/agent-pick', 'acme/zeta-chat', 'acme/see-pick', 'acme/alpha-vision', 'acme/no-tools',
     ]);
     await toggle('#mpiSettingsLlmEnhanceModelSlot');
 
@@ -86,13 +88,14 @@ test('Remote rows list the connection models, recommended first', async ({}, tes
     await expect(openList).toHaveText(['(recommended) acme/see-pick', 'acme/alpha-vision']);
     // Picking one persists to the describe pref.
     await window.evaluate(() => document.querySelector('.mpi-dropdown__list.is-open .mpi-dropdown__option[data-value="acme/alpha-vision"]').click());
-    await expect.poll(() => window.evaluate(() => localStorage.getItem('cubric.llm.describeModel'))).toBe('acme/alpha-vision');
+    // MPI-941 Phase 11: each Remote pick is kept per connection, `{ [profileId]: id }`.
+    await expect.poll(() => window.evaluate(() => localStorage.getItem('cubric.llm.describeModel'))).toBe('{"deepinfra":"acme/alpha-vision"}');
 
     // A Remote enhance pick has its own key: the Ollama pick is left alone.
     await toggle('#mpiSettingsLlmEnhanceModelSlot');
     await window.evaluate(() => document.querySelector('.mpi-dropdown__list.is-open .mpi-dropdown__option[data-value="acme/zeta-chat"]').click());
     expect(await window.evaluate(() => [localStorage.getItem('cubric.llm.endpointModel'), localStorage.getItem('cubric.llm.enhancerModel')]))
-      .toEqual(['acme/zeta-chat', 'gemma-4-e4b']);
+      .toEqual(['{"deepinfra":"acme/zeta-chat"}', 'gemma-4-e4b']);
 
     // ComfyUI hides the describe model row: its graph loads one baked describer.
     // A fresh E2E profile may lack the Image Describer plugin, which greys the entry.

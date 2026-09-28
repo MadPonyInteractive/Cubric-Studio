@@ -433,6 +433,33 @@ function testDescribeModelPreference() {
     delete _ls['cubric.llm.describeModel'];
 }
 
+function testPicksBelongToTheirConnection() {
+    // MPI-941 Phase 11: Fabio's Ollama agent box showed a DeepInfra id. Every Remote pick
+    // (agent, enhance, describe) is kept per connection, and each connection keeps its own.
+    ['cubric.llm.describeModel', 'cubric.llm.endpointModel', 'mpi_agent_prefs'].forEach((k) => delete _ls[k]);
+    try {
+        Storage.setLlmConnection({ profileId: 'deepinfra' });
+        Storage.setAgentPrefs({ model: 'deepseek-ai/DeepSeek-V4-Flash-0731', mode: 'ask' });
+        setDescribeModelPreference('google/gemma-4-26B-A4B-it');
+        setEndpointModelPreference('google/gemma-3-12b-it');
+        Storage.setLlmConnection({ profileId: 'ollama' });
+        assert.deepStrictEqual(Storage.getAgentPrefs(), { model: '', mode: 'ask' }, 'a DeepInfra pick never reaches Ollama; the mode is not per connection');
+        assert.strictEqual(describeModelPreference(), undefined);
+        Storage.setAgentPrefs({ ...Storage.getAgentPrefs(), model: 'ornith:9b' });
+        setDescribeModelPreference('gemma4:12b');
+        assert.strictEqual(Storage.getAgentPrefs().model, 'ornith:9b');
+        Storage.setLlmConnection({ profileId: 'deepinfra' });
+        assert.strictEqual(Storage.getAgentPrefs().model, 'deepseek-ai/DeepSeek-V4-Flash-0731', 'switching back finds the old pick');
+        assert.strictEqual(describeModelPreference(), 'google/gemma-4-26B-A4B-it');
+        // A pick saved before the map (a bare string) reads as none rather than leaking.
+        _ls['cubric.llm.describeModel'] = 'google/old-pick';
+        assert.strictEqual(describeModelPreference(), undefined);
+    } finally {
+        ['cubric.llm.describeModel', 'cubric.llm.endpointModel', 'mpi_agent_prefs'].forEach((k) => delete _ls[k]);
+        Storage.setLlmConnection({ profileId: 'deepinfra' });
+    }
+}
+
 function testBuildDescribeInjectionParamsChatMlWrapping() {
     // The comfy-path question is the WHOLE turn: node 38 feeds TextGenerate directly and a
     // `<|im_start|>` prompt skips the tokenizer template, so without `<|image_pad|>` the model
@@ -643,6 +670,7 @@ const tests = [
     testBackendPreferenceReturnsEndpointDirectly,
     testDescribeBackendPreference,
     testDescribeModelPreference,
+    testPicksBelongToTheirConnection,
     testBuildDescribeInjectionParamsChatMlWrapping,
     testEnhancerModelMigrationViaModelsEndpoint,
     testEnhanceEndpointErrorIsText,

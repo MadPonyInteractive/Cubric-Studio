@@ -45,9 +45,9 @@ text jobs off the card.
 |---|---|---|
 | `cubric.llm.backend` | `comfy` (default) / `endpoint` / `ollama`. A stored `deepinfra` migrates to `endpoint` on read and is persisted. | `backendPreference()` |
 | `cubric.llm.enhancerModel` | a `MODEL_REGISTRY` id: the **Ollama** pick | `enhancerModelPreference()` |
-| `cubric.llm.endpointModel` | a raw provider id: the **Remote** enhance pick; empty = the server's recommended one | `endpointModelPreference()` |
+| `cubric.llm.endpointModel` | `{ [profileId]: raw provider id }`: the **Remote** enhance pick per connection (MPI-941); none = the server's recommended one | `endpointModelPreference()` |
 | `cubric.llm.describeBackend` | `comfy` (default) / `endpoint` | `describeBackendPreference()` |
-| `cubric.llm.describeModel` | a raw provider id; empty = the server's recommended one | `describeModelPreference()` |
+| `cubric.llm.describeModel` | `{ [profileId]: raw provider id }`, per connection; none = the server's recommended one | `describeModelPreference()` |
 
 Remote enhance has its OWN key because the shared `enhancerModel` sent a Remote id to Ollama. Both
 `enhance()` and `enhanceFlow()` resolve it through `_endpointEnhanceModel(profileId)`: the Remote
@@ -101,7 +101,8 @@ nothing. The connection itself is `Storage.getLlmConnection()` -> `{ profileId }
   (MPI-916 `validation.md` § 2f; `perChat` is USD per conversation, fixed at test time). The agent
   dropdown lists these models on top, best score first, with `23/23 tests · $0.36/100 chats` in the
   meta under the name beside the context window, and has no "(recommended)" label (Fabio 2026-09-26). An entry may carry `agentTest` with
-  `jobs: []`: tested and listed, not the default.
+  `jobs: []`: tested and listed, not the default. Ollama's `ornith:9b` (16/26) and `gemma4:12b` (13/26) carry
+  one each, `--runs 1` (MPI-941 Phase 11); `perChat: 0` reads "runs on your GPU".
 
 ## Enhance paths
 

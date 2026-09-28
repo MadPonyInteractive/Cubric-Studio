@@ -84,7 +84,7 @@ test('listRemoteModels: chat models only, recommended first, window and vision f
         const models = await listRemoteModels({ presetId: 'deepinfra', baseURL: `${DI_URL}/`, key: 'k1' });
         assert.equal(auth, 'Bearer k1');
         assert.deepEqual(models.map((m) => m.id), ['deepseek-ai/DeepSeek-V4-Flash-0731', 'alpha/vision-model', 'zeta/chat-model']);
-        assert.deepEqual(models[0], { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', contextWindow: 1048576, vision: false, recommendedFor: ['agent'], recommendedNote: null,
+        assert.deepEqual(models[0], { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', contextWindow: 1048576, vision: false, tools: null, recommendedFor: ['agent'], recommendedNote: null,
             // MPI-912: the suite score and cost per chat ride along for the agent dropdown.
             agentTest: RECOMMENDED_REMOTE_MODELS.deepinfra.find((r) => r.id === 'deepseek-ai/DeepSeek-V4-Flash-0731').agentTest });
         // `recommendedNote` says why THIS one when a job has more than one recommendation.
@@ -100,8 +100,8 @@ test('listRemoteModels: an untagged catalogue (OpenAI, OpenRouter) is kept whole
     try {
         const models = await listRemoteModels({ presetId: 'openrouter', baseURL: 'https://openrouter.ai/api/v1', key: 'k' });
         assert.deepEqual(models, [
-            { id: 'a-model', contextWindow: null, vision: null, recommendedFor: [], recommendedNote: null, agentTest: null },
-            { id: 'b-model', contextWindow: 8192, vision: null, recommendedFor: [], recommendedNote: null, agentTest: null },
+            { id: 'a-model', contextWindow: null, vision: null, tools: null, recommendedFor: [], recommendedNote: null, agentTest: null },
+            { id: 'b-model', contextWindow: 8192, vision: null, tools: null, recommendedFor: [], recommendedNote: null, agentTest: null },
         ]);
     } finally { restore(); }
 });
@@ -124,6 +124,41 @@ test('MPI-912: the Ollama connection and the Ollama enhancer dropdown flag the s
         const { models } = await (await fetch(`${base}/llm/models`)).json();
         assert.deepEqual(models.filter((m) => m.recommended).map((m) => m.id), ['gemma-4-abliterated-12b']);
     });
+});
+
+test('MPI-941 Phase 11: Ollama rows carry tools and vision from /api/tags; unknown stays null', async () => {
+    const { listRemoteModels } = await import('../services/llmEngines.mjs');
+    const urls = [];
+    const restore = stubUpstream(async (url) => {
+        urls.push(url);
+        if (url.endsWith('/api/tags')) return okJson({ models: [
+            { name: 'ornith:9b', capabilities: ['completion', 'tools', 'thinking'] },
+            { name: 'gemma4:12b', capabilities: ['completion', 'vision', 'tools'] },
+            { name: 'dolphin:latest', capabilities: ['completion'] },
+        ] });
+        return okJson({ data: [{ id: 'ornith:9b' }, { id: 'gemma4:12b' }, { id: 'dolphin:latest' }, { id: 'old:7b' }] });
+    });
+    try {
+        const models = await listRemoteModels({ presetId: 'ollama', baseURL: 'http://localhost:11434/v1/', key: null });
+        assert.ok(urls.includes('http://localhost:11434/api/tags'), urls.join(', '));
+        const by = Object.fromEntries(models.map((m) => [m.id, [m.tools, m.vision]]));
+        assert.deepEqual(by, {
+            'ornith:9b': [true, false], 'gemma4:12b': [true, true], 'dolphin:latest': [false, false],
+            // Not in /api/tags (or an Ollama too old to report capabilities): unknown, never hidden.
+            'old:7b': [null, null],
+        });
+        // The local scores ride along like DeepInfra's, and neither becomes the default agent.
+        const ornith = models.find((m) => m.id === 'ornith:9b');
+        assert.deepEqual([ornith.agentTest, ornith.recommendedFor], [{ passed: 16, cases: 26, runs: 1, perChat: 0 }, []]);
+    } finally { restore(); }
+    // /api/tags failing costs nothing but the flags.
+    const restore2 = stubUpstream(async (url) => (url.endsWith('/api/tags')
+        ? { ok: false, status: 404, statusText: 'Not Found', json: async () => ({}) }
+        : okJson({ data: [{ id: 'ornith:9b' }] })));
+    try {
+        const [m] = await listRemoteModels({ presetId: 'ollama', baseURL: 'http://localhost:11434/v1', key: null });
+        assert.equal(m.tools, null);
+    } finally { restore2(); }
 });
 
 test('GET /llm/connection/models answers the list with the connection\'s key', async () => {
@@ -193,7 +228,8 @@ test('no profileId is a 400; an unknown connection is NO_PROFILE; a keyless host
                 assert.equal(body.ok, true);
             });
         }));
-        assert.equal(upstreamCalls, 1, 'only the Ollama request reaches an upstream');
+        // Two: its /v1/models and its /api/tags (MPI-941 Phase 11: the capabilities).
+        assert.equal(upstreamCalls, 2, 'only the Ollama requests reach an upstream');
     } finally { restore(); }
 });
 

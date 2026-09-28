@@ -551,8 +551,12 @@ export const RECOMMENDED_REMOTE_MODELS = {
     ],
     // Local, so no price and no refusals to weigh: a flag here means measured on Fabio's
     // 16 GB card. Enhance is the enhancer of record (every v1 recipe is Stage 1 green on it).
+    // `agentTest` (MPI-941 Phase 11, 2026-09-28): the 26-case suite, `--runs 1`, on Fabio's 16 GB card, logs in
+    // `.agents/mpi-kanban/tasks/MPI-941/validation.md`. None reaches the bar, so none carries `agent`; listed, scored.
     ollama: [
         { id: 'huihui_ai/gemma-4-abliterated:12b', jobs: ['enhance'] },
+        { id: 'ornith:9b', jobs: [], agentTest: { passed: 16, cases: 26, runs: 1, perChat: 0 } },
+        { id: 'gemma4:12b', jobs: [], agentTest: { passed: 13, cases: 26, runs: 1, perChat: 0 } },
     ],
     openrouter: [],
     openai: [],
@@ -579,6 +583,7 @@ export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_
         throw Object.assign(new Error(`GET /models failed: ${res.status} ${res.statusText}`), { status: res.status });
     }
     const body = await res.json();
+    const caps = presetId === 'ollama' ? await _ollamaCapabilities(baseURL) : null;
     const recommended = RECOMMENDED_REMOTE_MODELS[presetId] || [];
     const models = (Array.isArray(body?.data) ? body.data : [])
         .filter((m) => typeof m?.id === 'string')
@@ -589,10 +594,13 @@ export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_
         .map((m) => {
             const rec = recommended.find((r) => r.id === m.id);
             const tags = m.metadata?.tags;
+            const cap = caps?.get(m.id);
             return {
                 id: m.id,
                 contextWindow: m.metadata?.context_length ?? m.context_length ?? rec?.contextWindow ?? null,
-                vision: Array.isArray(tags) ? tags.includes('vision') || tags.includes('vlm') : null,
+                vision: Array.isArray(tags) ? tags.includes('vision') || tags.includes('vlm') : cap ? cap.includes('vision') : null,
+                // Null = not known, and an unknown model is never hidden from the agent row.
+                tools: cap ? cap.includes('tools') : null,
                 recommendedFor: rec ? [...rec.jobs] : [],
                 // Why THIS one of the recommended models, when there is more than one.
                 // Null on every row that has nothing to add, which is most of them.
@@ -602,6 +610,23 @@ export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_
         });
     const rank = (m) => (m.recommendedFor.length ? 0 : 1);
     return models.sort((a, b) => rank(a) - rank(b) || a.id.localeCompare(b.id));
+}
+
+/**
+ * name -> Ollama's `capabilities` ('tools', 'vision', …) from its own `GET /api/tags`,
+ * which its `/v1/models` does not carry (MPI-941 Phase 11). Empty on an Ollama too old
+ * to report them or a failed call: the flags go unknown, the list still answers.
+ */
+async function _ollamaCapabilities(baseURL) {
+    try {
+        const res = await fetch(`${baseURL.replace(/\/+$/, '').replace(/\/v1$/, '')}/api/tags`, { signal: AbortSignal.timeout(5_000) });
+        const models = res.ok ? (await res.json())?.models : null;
+        return new Map((Array.isArray(models) ? models : [])
+            .filter((m) => typeof m?.name === 'string' && Array.isArray(m.capabilities))
+            .map((m) => [m.name, m.capabilities]));
+    } catch {
+        return new Map();
+    }
 }
 
 /** The first recommended model for `job` on this preset, or ''. */
