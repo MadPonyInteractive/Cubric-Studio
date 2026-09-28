@@ -10,3 +10,5 @@ GIF cut-out's.
 `npx eslint` on the three organisms: clean. `node --test tests/paint-adjust.test.cjs`: 16/16.
 
 Remaining: Fabio's look in the real app (real screen pick, workspace accent colours).
+
+Fabio, 2026-09-28: "Yeah, that works." Shipped in b10d94ef3.

@@ -2,4 +2,4 @@
 - [x] Pick button beside Paint colour
 - [x] Pick button beside Paint Adjust colour
 - [x] Verified in an isolated app (desktop spec + screenshot)
-- [ ] Fabio's look in the real app
+- [x] Fabio confirmed in the real app
