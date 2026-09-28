@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-958", "at": "2026-09-28T10:01:20+01:00", "actor": "claude", "column": "doing", "title": "Cue button shows the cloud send countdown; hold-to-loop fill visible"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-958", "at": "2026-09-28T10:07:18+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Shipped c20987f7; unit + desktop spec green. Needs Fabio's eye on a real cloud run."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-958", "at": "2026-09-28T10:33:52+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio confirmed both fixes live (2026-09-28). CI green on aa247d69 after the spec's bare-runner fixture fix."}
