@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-958", "at": "2026-09-28T10:01:20+01:00", "actor": "claude", "column": "doing", "title": "Cue button shows the cloud send countdown; hold-to-loop fill visible"}

@@ -2445,7 +2445,12 @@ export const MpiPromptBox = ComponentFactory.create({
         //   loopArmed=false, depth>0  → 'Cue xN'
         //   loopArmed=true,  depth<=1 → 'Loop'        (steady-state loop = 1 active dispatch, no real backlog)
         //   loopArmed=true,  depth>=2 → 'Loop xN'     (backlog draining before loop reaches steady-state)
+        //   cloud send window open    → 'Sending in N' (outranks all four, see below)
+        // MPI-958: the card's "Sending in N..." is hidden with card info off, so the Cue
+        // button carries it too — it sits beside Stop, and Stop is free until 0.
+        let _sendSeconds = 0;
         const _runLabel = (count = state.generationQueueCount || 0) => {
+            if (_sendSeconds > 0) return `Sending in ${_sendSeconds}`;
             const armed = !!state.loopArmed;
             const n = Math.max(0, Number(count) || 0);
             if (armed) return n >= 2 ? `Loop x${n}` : 'Loop';
@@ -2511,6 +2516,11 @@ export const MpiPromptBox = ComponentFactory.create({
             runBtn?.el?.setLabel?.(_runLabel());
             runBtn?.el?.classList.toggle('mpi-prompt-box__cue-btn--armed', !!state.loopArmed);
         }
+
+        _unsubs.push(Events.on('generation:send-countdown', ({ seconds }) => {
+            _sendSeconds = seconds;
+            _refreshRunLabel();
+        }));
 
         function _renderRunCluster() {
             if (!runSlotEl) return;

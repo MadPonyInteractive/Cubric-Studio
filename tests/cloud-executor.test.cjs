@@ -291,7 +291,7 @@ function dispatchWithWindow(ms) {
 }
 
 test('a Stop INSIDE the send window sends nothing: cancelled, nothing billed', async () => {
-    const { exec, ended, calls } = dispatchWithWindow(1200);
+    const { exec, ended, calls, ticks } = dispatchWithWindow(1200);
     await new Promise(r => setTimeout(r, 50)); // inside the window, before the POST
     assert.equal(exec.stopKeepsResult, false, 'nothing is sent yet, so a Stop must still abort');
     exec.cancel();
@@ -299,6 +299,8 @@ test('a Stop INSIDE the send window sends nothing: cancelled, nothing billed', a
     assert.equal(r.outcome, 'error');
     assert.equal(r.err.message, 'cancelled_before_dispatch');
     assert.deepEqual(calls, [], 'a Stop inside the window must never reach the provider');
+    // The window closes on 0 when stopped too, or the Cue button is left reading "Sending in 2" (MPI-958).
+    assert.deepEqual(ticks, [2, 0]);
     assert.equal(jobOf(exec).phase, PHASES.CANCELLED);
 });
 

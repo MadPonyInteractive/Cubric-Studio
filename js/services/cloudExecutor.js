@@ -296,7 +296,8 @@ export function runCloudCommand(payload) {
 
         // The send window. Every Stop before the POST aborts `controller` (exec.cancel, and
         // the store's interruptCb), so waking on it drops straight into the check below.
-        // The card counts down off `generation:send-countdown`; 0 means "sent".
+        // The card and the Cue button count down off `generation:send-countdown`; 0 means
+        // the window is over, sent OR stopped, so neither is left reading "Sending in 2".
         for (let left = sendWindow.ms; left > 0 && !controller.signal.aborted; left -= 1000) {
             Events.emit('generation:send-countdown', { id: payload.genId ?? null, seconds: Math.ceil(left / 1000) });
             await new Promise((resolve) => {
@@ -304,13 +305,13 @@ export function runCloudCommand(payload) {
                 const t = setTimeout(() => { off(); resolve(); }, Math.min(1000, left));
             });
         }
+        if (sendWindow.ms > 0) Events.emit('generation:send-countdown', { id: payload.genId ?? null, seconds: 0 });
 
         // A Stop can land between register() and the POST; the store's own signal is
         // the record of it, exactly as the local pipeline's abort boundaries read it.
         // A Stop before register() aborted the controller only: there was no job yet.
         if (generationStore.getSignal(jobId)?.aborted || controller.signal.aborted) { _settleCancelled(); return; }
 
-        if (sendWindow.ms > 0) Events.emit('generation:send-countdown', { id: payload.genId ?? null, seconds: 0 });
         generationStore.advance(jobId, PHASES.SUBMITTING);
         exec.stopKeepsResult = true;
         // The card's time clock starts on the ack. The route answers only once the provider

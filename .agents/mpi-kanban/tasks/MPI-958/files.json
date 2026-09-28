@@ -1,0 +1,11 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.css",
+    "js/services/cloudExecutor.js",
+    "js/events.js",
+    "tests/cloud-executor.test.cjs",
+    "tests/desktop/cue-send-countdown.spec.js"
+  ]
+}

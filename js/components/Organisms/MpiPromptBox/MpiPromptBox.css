@@ -892,6 +892,16 @@
     z-index: 0;
 }
 
+/* MPI-958: every non-ghost icon button fills --accent-heat on press (MpiButton.css), the
+   same colour as the sweep above, so the moment a hold began the whole button went solid
+   and the sweep had nothing to show against. Cue presses to its hover look instead. */
+.mpi-btn.mpi-ibtn.mpi-prompt-box__cue-btn:not(.mpi-prompt-box__cue-btn--armed):active:not(:disabled),
+.mpi-btn.mpi-ibtn.mpi-prompt-box__cue-btn:not(.mpi-prompt-box__cue-btn--armed).is-pressed:not(:disabled) {
+    background: var(--surface-3);
+    border-color: var(--accent-heat-hi);
+    color: var(--accent-heat-hi);
+}
+
 .mpi-prompt-box__cue-btn > :not(.mpi-prompt-box__cue-fill) {
     position: relative;
     z-index: 1;
