@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-970",
+  "title": "Routines: the agent saves a chain of operations once, the app runs it on any card in one call",
+  "description": "Fabio 2026-09-29. A user chains operations on one or more cards (upscale -> detail the face -> a style on a model -> a Flow ...). The agent saves the chain (project or global), can offer to save one after the user repeats steps, and replays it on new media. Fabio's refinement: the saved chain is a SCRIPT the app executes, so the agent makes ONE call (media + chain name) instead of reading and stepping through it turn by turn. Named \"routine\" (Fabio 2026-09-29); a routine with a model or Flow not installed does not run and the agent says which. Brainstorm first (after MPI-941 closes). See brief.md.",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-09-29T00:02:37+01:00",
+  "updated_at": "2026-09-28T23:08:00Z",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

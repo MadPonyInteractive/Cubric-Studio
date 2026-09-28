@@ -97,15 +97,15 @@ nothing. The connection itself is `Storage.getLlmConnection()` -> `{ profileId }
   `google/gemma-4-26B-A4B-it` (MPI-817's scored run). Ollama (its own `/v1/models` ids, tag
   included) enhance = `huihui_ai/gemma-4-abliterated:12b`, the enhancer of record; describe and
   agent carry none until a local model passes (MPI-912 `validation.md`).
-- **`agentTest: { passed, cases, runs, perChat }`** on an entry = it ran `scripts/agent-test.mjs`
+- **`agentTest: { passed, cases, runs, perChat, suiteHash? }`** on an entry = it ran `scripts/agent-test.mjs`
   (MPI-916 `validation.md` § 2f; `perChat` is USD per conversation, fixed at test time). The agent
   dropdown lists these models on top, best score first, with `23/23 tests · $0.36/100 chats` in the
   meta under the name beside the context window, and has no "(recommended)" label (Fabio 2026-09-26). An entry may carry `agentTest` with
   `jobs: []`: tested and listed, not the default. Ollama's `ornith:9b` (16/26) and `gemma4:12b` (13/26) carry
-  one each, `--runs 1` (MPI-941 Phase 11); `perChat: 0` reads "runs on your GPU".
-  The cases, fake tools and fixtures live in `services/agentBench.mjs` + `services/agentBench/` (they SHIP: the portable
-  build drops `scripts/` and `tests/`), so Settings can run `runSuite` on the user's model (MPI-941 Phase 12);
-  `scripts/agent-test.mjs` is the CLI over them. `tests/agent-bench.test.cjs` fails an import from either dropped folder.
+  one each, `--runs 1` (MPI-941 Phase 11); `perChat: 0` reads "runs on your GPU". The cases, fake tools and fixtures
+  SHIP in `services/agentBench.mjs` + `services/agentBench/` (the portable build drops `scripts/` and `tests/`; `agent-bench.test.cjs` fails
+  such an import); `scripts/agent-test.mjs` is the CLI. Settings' **Benchmark this model** runs `runSuite` once on the pick (MPI-941 Phase 12,
+  routes: `docs/agent-chat.md`), kept per connection+model, and REPLACES our score on the row; a score whose `suiteHash` is not today's reads `(older tests)`.
 
 ## Enhance paths
 

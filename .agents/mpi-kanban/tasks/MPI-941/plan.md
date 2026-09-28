@@ -500,6 +500,21 @@ from `_loopOptions` with the fake tools, one at a time, local: refuse while a lo
 **Anime through styles DONE on Fabio's yes** (validation.md § Anime through styles): `docs/agent/formats.md` + the two ILL notes
 in `modelPriority.js`; and the suite's fake `generate` now resolves a style label like the route does (it refused every label).
 **Handoff 2026-09-28 -> fresh session for 12b.**
+2026-09-28, session 4143bc2a: **12b, 12c, 12d BUILT and green** (validation.md § Phase 12b, § 12c + 12d): the routes
+(`GET`/`POST /agent/benchmark`, `/stop`), `AgentSessions.benchmark` (probe first, `runSuite`, one at a time, local: GPU_BUSY on a
+busy engine queue, released after), the Settings button (inline Run/Cancel over the estimate, progress + Stop), and the result
+"(your run)" beside our score on the agent row, kept by `agentService`. Uncommitted, claim `4143bc2a-mpi941`. Card `validating`.
+**NEXT:** Fabio's live run from Settings on DeepSeek (~$0.10, ~7 min), then tick Phase 12 and close MPI-941 via `mpi-end-session`
+(the share, point e, goes to MPI-965).
+Same session, Fabio's review: the user's run now REPLACES our score (reverses 12d's "beside, never replacing"); `suiteHash`
+covers the tests only; DeepSeek re-stamped 28/28; stale scores read "(older tests)"; a tool-less model stops at the probe.
+2026-09-29: gpt-oss re-scored on his yes: 19/28 ($0.054, ~15 min), stamped; the Settings estimate now 30 s a test ("~14 min").
+Qwen3.6 and the Ollama pair still read "(older tests)" (no go on those). His "workflows" idea became **MPI-970 "Routines"**
+(todo/idea, brief.md holds his decisions: name, missing model/Flow refuses to run, agent-free entry later); brainstorm it
+after MPI-941 closes. storage.js + storageKeys.js committed early (`8cd26fbc0`) and released to MPI-595 on its request.
+**Handoff 2026-09-29. NEXT:** Fabio's live benchmark run on DeepSeek (~$0.10, ~14 min; his app was restarted on the
+pre-"~14 min" code, so it may read "~12 min"), tick Phase 12, then `mpi-end-session` (ask about `.claude/rules/` for the
+new `bench:*` events and the `mpi_agent_bench` key).
 
 **Watch-only, carried from MPI-817 (no build unless it recurs):** the agent ending an Auto-mode
 turn on a question; a note generalising from two runs; a project note RESTATING a global one
@@ -603,3 +618,11 @@ the copy); Ollama's free cloud models (unconfirmed research); the `__ARG__` proj
   choices (models, ideas, routes, yes or no) ends with [options: A | B]") the ideas fork went 0/3 -> 3/3, but the
   declined-install fork stayed 1/3: the tool result said "ask what they would like instead" and the model did, in
   plain text. The four decline results (install, spend x2, batch) now say "ending on [options: A | B]": 3/3.
+- 2026-09-28 (session 4143bc2a): Phase 12b's progress rides the EXISTING `/agent/stream` (bridged to the bus by
+  `agentService`), not a POST response streaming SSE: no second reader in the renderer, and a Settings panel shut and reopened
+  mid-run picks the run up (`GET /agent/benchmark`'s `running` + the next `bench:case`). `bench:start` dropped: the POST
+  reply carries `cases`, the GET the estimate. Cost is the loop's own `spend.chatUsd` (12a's decision), not `fetchDeepInfraPrices`;
+  the live price is read only for the ESTIMATE (55K + 1.5K tokens a case). A probe runs first so a bad key never scores 0.
+  The result is saved by `agentService`, not Settings (the panel may be shut when the run ends). Footprint grew by
+  `js/services/agentService.js`, `js/core/storageKeys.js`, `js/events.js` (doc lines) and `services/agentLoop.mjs`
+  (`onLocalGpu` export, used by the loop's own check too).

@@ -16,6 +16,9 @@
  *   POST /agent/confirm   — respond to an install confirmation card
  *   POST /agent/reset?project= — clear one conversation and its staged files
  *   POST /agent/probe     — can the agent's model call a tool on the connection?
+ *   GET  /agent/benchmark?profileId=&model= — the suite's size, cost estimate, any run in progress
+ *   POST /agent/benchmark — run the agent suite on one model (MPI-941 Phase 12; bench:* on the stream)
+ *   POST /agent/benchmark/stop — end that run after the case in flight
  *
  * One conversation per project, plus one for the landing page (Phase 3c, D4-D6):
  * `services/agentSessions.mjs` keeps them. A conversation is named by the project's
@@ -350,6 +353,57 @@ router.post('/agent/probe', async (req, res) => {
     try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
 
     res.json(await sessions.probe(profileId, typeof model === 'string' ? model : ''));
+});
+
+// ---------------------------------------------------------------------------
+// GET /agent/benchmark, POST /agent/benchmark, POST /agent/benchmark/stop
+// ---------------------------------------------------------------------------
+
+// MPI-941 Phase 12 — Settings' "Benchmark this model". The run's progress goes out on
+// /agent/stream (bench:case, bench:done, bench:error), which the renderer already holds open.
+
+/** Is a render on THIS PC's card? The engine's own queue; an engine not answering runs nothing. */
+async function _localRenderRunning() {
+    if (!(await getTools()).engineIsLocal()) return false;
+    const { ComfyUIEngine } = await import('../services/llmEngines.mjs');
+    try {
+        const res = await fetch(`${new ComfyUIEngine().resolveBaseUrl()}/queue`, { signal: AbortSignal.timeout(2000) });
+        const q = await res.json();
+        return !!(q.queue_running?.length || q.queue_pending?.length);
+    } catch {
+        return false;
+    }
+}
+
+router.get('/agent/benchmark', async (req, res) => {
+    const { profileId, model } = req.query;
+    if (typeof profileId !== 'string' || !profileId) return _bad(res, 'query.profileId is required.');
+    let sessions;
+    try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
+    res.json(await sessions.benchmarkInfo(profileId, typeof model === 'string' ? model : ''));
+});
+
+router.post('/agent/benchmark', async (req, res) => {
+    const { profileId, model } = req.body || {};
+    if (typeof profileId !== 'string' || !profileId) return _bad(res, 'body.profileId is required.');
+    if (model !== undefined && typeof model !== 'string') return _bad(res, 'body.model must be a string.');
+
+    let sessions;
+    try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
+
+    // MPI-913's rule: a local model never loads beside a render still on the card.
+    const { onLocalGpu } = await import('../services/agentLoop.mjs');
+    if (onLocalGpu(profileId, model) && await _localRenderRunning()) {
+        return res.json({ ok: false, error: { code: 'GPU_BUSY', message: 'A generation is running on your GPU. Benchmark once it finishes.' } });
+    }
+    res.json(await sessions.benchmark(profileId, model || ''));
+});
+
+router.post('/agent/benchmark/stop', async (_req, res) => {
+    let sessions;
+    try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
+    sessions.stopBenchmark();
+    res.json({ ok: true });
 });
 
 module.exports = router;

@@ -43,6 +43,10 @@ export const AGENT_EVENT_NAMES = [
     'agent:session',
     'agent:drained',
     'agent:spend',
+    // MPI-941 Phase 12: Settings' "Benchmark this model" (no `session`: it belongs to no conversation).
+    'bench:case',
+    'bench:done',
+    'bench:error',
 ];
 
 // ── Shared SSE singleton ──────────────────────────────────────────────────────
@@ -87,6 +91,13 @@ export function agentInitStream() {
     // because an idle conversation with nothing pending answers `woke: false`.
     _streamUnsubs.push(Events.on('agent:drained', () => agentWake()));
     _streamUnsubs.push(Events.on('project:changed', () => agentWake()));
+
+    // MPI-941 Phase 12: a finished benchmark is kept HERE, not by Settings, because the panel may be
+    // shut by the time a 15-minute run ends. A stopped run is partial and is not kept.
+    _streamUnsubs.push(Events.on('bench:done', (d) => {
+        if (d.stopped) return;
+        Storage.setAgentBench(d.profileId, d.model, { passed: d.passed, cases: d.cases, runs: 1, perChat: d.perChat, suiteHash: d.suiteHash, at: new Date().toISOString() });
+    }));
 }
 
 /**

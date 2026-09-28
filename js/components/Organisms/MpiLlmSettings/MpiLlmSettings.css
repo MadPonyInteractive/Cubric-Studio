@@ -76,3 +76,12 @@
 .mpi-settings__hint--warn {
     color: var(--accent-warn);
 }
+
+/* ── "Benchmark this model" (MPI-941 Phase 12) ─────────────────────────────
+   The button, or Run and Cancel side by side: the confirm sits in place of the
+   button, never a modal. */
+.mpi-llm-settings__bench {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+}

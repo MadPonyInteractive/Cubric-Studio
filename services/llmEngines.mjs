@@ -529,11 +529,15 @@ export const RECOMMENDED_REMOTE_MODELS = {
         // the user chooses; no "recommended" label on the agent row. Numbers from
         // `.agents/mpi-kanban/tasks/MPI-916/validation.md` § 2f (Qwen3.6: § 4). `perChat` is USD per
         // conversation (suite cost / conversations), fixed at test time, not a live price.
+        // `suiteHash` (MPI-941 Phase 12) = `agentBench.suiteHash()` of the cases it ran; a score without one,
+        // or with another, reads "older tests" in Settings. DeepSeek: 28 cases x3, 84/84, $0.3038 (MPI-941
+        // validation.md § Phase 7 fix). The others ran 23 cases and wait on a re-score.
         { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576, reasoningEffort: 'low',
-            agentTest: { passed: 23, cases: 23, runs: 3, perChat: 0.0036 } },
+            agentTest: { passed: 28, cases: 28, runs: 3, perChat: 0.0036, suiteHash: '4891b5390518' } },
         // x3 on 2026-09-26 (MPI-912 validation.md § 6): 23/23 on one run fell to 19/23 on three.
         { id: 'Qwen/Qwen3.6-35B-A3B', jobs: [], agentTest: { passed: 19, cases: 23, runs: 3, perChat: 0.0069 } },
-        { id: 'openai/gpt-oss-120b', jobs: [], agentTest: { passed: 18, cases: 23, runs: 1, perChat: 0.0017 } },
+        // Re-scored 2026-09-29 on the 28-case suite (was 18/23): $0.0541, ~15 min (MPI-941 validation.md).
+        { id: 'openai/gpt-oss-120b', jobs: [], agentTest: { passed: 19, cases: 28, runs: 1, perChat: 0.0019, suiteHash: '4891b5390518' } },
         // Qwen3-VL-30B-A3B lost its `agent` flag on 2026-09-25 (MPI-912, Fabio): 7/22 on the
         // agent suite. It carried "less censorship" from ONE refusal test (2026-09-18) and was
         // never run through the suite. An agent flag needs the suite, whatever else a model does.

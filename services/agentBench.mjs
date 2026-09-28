@@ -751,12 +751,14 @@ const settle = () => new Promise((r) => setTimeout(r, 50));
 
 /**
  * One scripted conversation on the REAL loop with the fake tools. `loopOptions` builds the
- * loop (the CLI passes a `resolveEndpoint`; the app passes its sessions' own, so the user's
- * saved connection and key answer); `profileId` names the connection.
+ * loop (the CLI passes a `resolveEndpoint`; the app passes its sessions' own, and its
+ * `setupLoop` hands the loop the fork bridge, so the user's saved connection and key answer);
+ * `profileId` names the connection.
  */
-export async function converse(setup, { loopOptions, profileId, model }) {
+export async function converse(setup, { loopOptions, setupLoop, profileId, model }) {
     const { tools, record } = fakeTools(setup);
     const loop = new AgentLoop({ ...loopOptions, tools });
+    setupLoop?.(loop);
     const events = [];
     loop.addSubscriber({
         write(payload) {
@@ -804,9 +806,13 @@ export async function runCase(c, opts, { bite = false } = {}) {
     return { run, failures };
 }
 
-/** Which suite a score came from: only scores on the same cases compare (MPI-941 Phase 12). */
+/**
+ * Which suite a score came from: only scores on the same cases compare (MPI-941 Phase 12). The
+ * setup's `models` is left out: it is the app's catalogue (notes, ranks), which moves with every
+ * model edit while the tests stay the same.
+ */
 export function suiteHash(cases = CASES) {
-    const text = cases.map((c) => `${c.id}\n${JSON.stringify(c.setup)}\n${c.check}`).join('\n');
+    const text = cases.map((c) => `${c.id}\n${JSON.stringify({ ...c.setup, models: undefined })}\n${c.check}`).join('\n');
     return crypto.createHash('sha256').update(text).digest('hex').slice(0, 12);
 }
 
@@ -835,6 +841,15 @@ export async function runSuite({ cases = CASES, onProgress = () => {}, signal, .
         suiteHash: suiteHash(cases),
         stopped: results.length < cases.length,
     };
+}
+
+/**
+ * What one run of the suite costs on a model, in USD, from its per-million price, or null with
+ * no price. One case is ~55K prompt + 1.5K reply tokens, backed out of the measured perChat
+ * (DeepSeek-V4-Flash $0.0036 at $0.06/$0.18; Qwen3.6 $0.0069 at $0.10/$0.95 fits too).
+ */
+export function estimateUsd(price, cases = CASES.length) {
+    return price ? cases * (55_000 * price.in + 1_500 * price.out) / 1e6 : null;
 }
 
 export { CASES, MODELS, calledAll };

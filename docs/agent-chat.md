@@ -62,7 +62,7 @@ file is the contract; that one is the evidence.
 | 13 | Honest limits, in character | limits list in the system prompt; `agent:message` |
 | 14 | Memory while the app is open; per-project notes after it | a conversation per project, `GET /agent/history?project=`; `<project>/Agent/` via `read_memory` / `write_memory` |
 | 15 | Auto-compact 50% / 30% at >= 1M | `usage.prompt_tokens` trigger; `agent:compacting`; handoff entry in history |
-| - | Profiles, probe | Agent row in `MpiLlmSettings`; `POST /agent/probe`; fork-bridge message below |
+| - | Profiles, probe, benchmark | Agent row in `MpiLlmSettings`; `POST /agent/probe`, `/agent/benchmark`; fork-bridge message below |
 
 ## Tools (what the model sees)
 
@@ -182,6 +182,12 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
   installs and re-reads the models, No records "declined". Errors: `UNKNOWN_CONFIRM` (stale or answered).
 - **`POST /agent/probe { profileId, model? }`** -> `{ ok, tools, model, latencyMs, message, contextWindow }` (the window `_contextWindowFor` compacts against; Settings warns under 64K, MPI-905): one tiny call
   with one tool, **never retried without it**. Errors: `NO_PROFILE`, `NO_KEY`, `NO_MODEL`, `ENDPOINT_ERROR` (+ `status`).
+- **`GET /agent/benchmark?profileId=&model=`** -> `{ ok, cases, suiteHash, local, usd, running }`; **`POST /agent/benchmark
+  { profileId, model? }`** -> `{ ok, cases }`, then `bench:case` / `bench:done` / `bench:error` on `/agent/stream` (no `session`);
+  **`POST /agent/benchmark/stop`** ends it after the case in flight (MPI-941 Phase 12). `AgentSessions.benchmark` probes first
+  (a bad key is `bench:error`, never a 0 score), runs `agentBench.runSuite` on the pretend tools, one at a time (`BUSY`); a local
+  model is refused while the engine's `/queue` holds a job (`GPU_BUSY`) and released after. `agentService` keeps a whole run
+  (`Storage.setAgentBench`), not Settings: the panel may be shut when a 15-minute run ends.
 
 ## SSE events (`/agent/stream`)
 

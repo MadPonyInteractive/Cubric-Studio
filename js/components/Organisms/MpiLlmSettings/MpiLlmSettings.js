@@ -22,6 +22,7 @@ import {
 } from '../../../services/llmService.js';
 import { qs } from '../../../utils/dom.js';
 import { Storage } from '../../../core/storage.js';
+import { Events } from '../../../events.js';
 
 /**
  * MpiLlmSettings — the Language Models section of the Remote panel.
@@ -198,6 +199,14 @@ export const MpiLlmSettings = ComponentFactory.create({
                             <div id="mpiSettingsAgentProbeSlot"></div>
                             <span class="mpi-settings__hint" id="mpiSettingsAgentProbeResult"></span>
                         </div>
+                        <div class="mpi-settings__form-group">
+                            <div class="mpi-llm-settings__bench">
+                                <div id="mpiSettingsAgentBenchSlot"></div>
+                                <div id="mpiSettingsAgentBenchSlot2"></div>
+                            </div>
+                            <span class="mpi-settings__hint" id="mpiSettingsAgentBenchLine"></span>
+                            <span class="mpi-settings__hint" id="mpiSettingsAgentBenchHint">Runs our agent tests on this model with pretend tools: nothing is generated or saved.</span>
+                        </div>
                     </div>
 
                     <div class="mpi-settings__subgroup">
@@ -235,6 +244,21 @@ export const MpiLlmSettings = ComponentFactory.create({
          * undefined = still loading, null = the app server did not answer.
          */
         let _remote;
+        /**
+         * "Benchmark this model" (MPI-941 Phase 12): its step ('idle' | 'confirm' | 'running'), the
+         * server's `GET /agent/benchmark` reply (cases, suite hash, estimate, a run in progress) and the
+         * running totals. The run lives in the server and reports on the agent stream, so a panel opened
+         * mid-run picks it up from `info.running` and the next `bench:case`.
+         */
+        let _bench = { step: 'idle', info: null, progress: null, stopping: false };
+        const _benchInsts = [];
+        const _benchUnsubs = [
+            Events.on('bench:case', (d) => { _bench = { ..._bench, step: 'running', progress: d }; _renderBench(el); }),
+            Events.on('bench:done', (d) => _benchEnd(d.stopped
+                ? `Stopped at ${d.done} of ${d.cases} · ${d.passed} passed · not kept`
+                : `${d.passed}/${d.cases} passed${d.costUsd ? ` · $${d.costUsd.toFixed(2)}` : ''} · now shown in the agent list`)),
+            Events.on('bench:error', (d) => _benchEnd(`The benchmark could not start: ${d.message}`, true)),
+        ];
 
         // The ONE init: MpiSlideOver calls onOpen right after mount (via MpiRemote). Also
         // calling `_init` here ran two passes per open, and when their `/llm/models`
@@ -268,8 +292,9 @@ export const MpiLlmSettings = ComponentFactory.create({
 
         function _destroyControls() {
             [_backendInst, _modelInst, _ollamaInst, _describeInst, _describeModelInst,
-                _connProfileInst, _agentModelInst, _loadingSpinner, ..._connInsts].forEach(i => i?.destroy());
+                _connProfileInst, _agentModelInst, _loadingSpinner, ..._connInsts, ..._benchInsts].forEach(i => i?.destroy());
             _connInsts.length = 0;
+            _benchInsts.length = 0;
             _backendInst = _modelInst = _ollamaInst = _describeInst = _describeModelInst = null;
             _connProfileInst = _agentModelInst = _loadingSpinner = null;
         }
@@ -553,13 +578,20 @@ export const MpiLlmSettings = ComponentFactory.create({
                 // MPI-912 (Fabio 2026-09-26): no "recommended" on the agent row. Every model
                 // that ran the agent suite goes on top with its score and measured cost, best
                 // score first, and the user chooses. The pick stays the default value.
-                const tested = models.filter(m => m.agentTest)
-                    .sort((a, b) => b.agentTest.passed / b.agentTest.cases - a.agentTest.passed / a.agentTest.cases
-                        || b.agentTest.runs - a.agentTest.runs);
+                // MPI-941 Phase 12 (Fabio 2026-09-28): the user's own benchmark REPLACES our score, one number
+                // per model; ours stays only while it is on the current tests and theirs is not.
+                const mine = Storage.getAgentBench(Storage.getLlmConnection().profileId);
+                const scoreOf = m => (mine[m.id] && (_currentTests(mine[m.id]) || !_currentTests(m.agentTest)) ? mine[m.id] : m.agentTest);
+                const tested = models.filter(scoreOf)
+                    // Scores on the current tests first, then best score, then the most runs.
+                    .sort((a, b) => {
+                        const x = scoreOf(a), y = scoreOf(b);
+                        return _currentTests(y) - _currentTests(x) || y.passed / y.cases - x.passed / x.cases || y.runs - x.runs;
+                    });
                 const options = [
                     // In the meta, under the name: the stacked list lifts its 11ch cap (MpiLlmSettings.css).
-                    ...tested.map(m => ({ value: m.id, label: m.id, meta: [_agentTestLabel(m.agentTest), _windowLabel(m)].filter(Boolean).join(' · ') })),
-                    ...models.filter(m => !m.agentTest).map(m => ({ value: m.id, label: m.id, meta: _windowLabel(m) })),
+                    ...tested.map(m => ({ value: m.id, label: m.id, meta: [_agentTestLabel(scoreOf(m)), _windowLabel(m)].filter(Boolean).join(' · ') })),
+                    ...models.filter(m => !scoreOf(m)).map(m => ({ value: m.id, label: m.id, meta: _windowLabel(m) })),
                 ];
                 if (value && _remote?.ok && !options.some(o => o.value === value)) options.unshift({ value, label: value, meta: 'Not listed' });
                 return { options, value, recommended: tested.length > 0 };
@@ -636,10 +668,15 @@ export const MpiLlmSettings = ComponentFactory.create({
             const seq = ++_modelsSeq;
             _remote = undefined;
             _paintRows(root);
-            const json = await _getJson(`/llm/connection/models?profileId=${encodeURIComponent(profileId)}`);
+            const [json, bench] = await Promise.all([
+                _getJson(`/llm/connection/models?profileId=${encodeURIComponent(profileId)}`),
+                _getJson(`/agent/benchmark?profileId=${encodeURIComponent(profileId)}`),
+            ]);
             // A newer render (a provider change, a saved key) started while this one waited.
             if (seq !== _modelsSeq) return;
             _remote = json;
+            const running = bench?.running || null;
+            _bench = { step: running ? 'running' : 'idle', info: bench?.ok ? bench : null, progress: running, stopping: false };
             _paintRows(root);
         }
 
@@ -647,6 +684,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             _renderBackend(root);
             _renderDescribe(root);
             _renderAgentModel(root);
+            _renderBench(root);
         }
 
         function _renderConnProfile(root, profiles, profileId) {
@@ -809,9 +847,11 @@ export const MpiLlmSettings = ComponentFactory.create({
             });
             _agentModelInst.on('change', ({ value: model }) => {
                 Storage.setAgentPrefs({ ...Storage.getAgentPrefs(), model });
+                // An estimate on screen was for the model just replaced.
+                if (_bench.step === 'confirm') _benchCancel(root);
             });
             _setText(root, '#mpiSettingsAgentModelNote', _remote?.ok
-                ? (recommended ? 'The models on top ran our agent tests: each shows its score and what it cost us.' :'We have not tested the agent on this provider. Pick a model that can call tools, then use Test tool use.')
+                ? (recommended ? 'The models on top ran the agent tests, ours or your own benchmark: each shows its score and cost.' :'We have not tested the agent on this provider. Pick a model that can call tools, then use Test tool use and Benchmark this model.')
                 : _errorText(_remote));
         }
 
@@ -855,10 +895,96 @@ export const MpiLlmSettings = ComponentFactory.create({
             });
         }
 
+        // ── "Benchmark this model" (MPI-941 Phase 12, Fabio 2026-09-28: an inline confirm, no modal) ──
+
+        /** The control for `_bench.step`: the button, Run / Cancel under the estimate, or the progress and Stop. */
+        function _renderBench(root) {
+            _benchInsts.forEach(i => i.destroy());
+            _benchInsts.length = 0;
+            const slot = qs('#mpiSettingsAgentBenchSlot', root);
+            const slot2 = qs('#mpiSettingsAgentBenchSlot2', root);
+            if (!slot || !slot2) return;
+            const button = (target, props, onClick) => {
+                const inst = MpiButton.mount(target, { variant: 'secondary', size: 'sm', ...props });
+                inst.on('click', onClick);
+                _benchInsts.push(inst);
+            };
+            if (_bench.info) _setText(root, '#mpiSettingsAgentBenchHint', `Runs our ${_bench.info.cases} agent tests on this model with pretend tools: nothing is generated or saved.`);
+            const { step, info, progress, stopping } = _bench;
+            if (step === 'confirm') {
+                _setText(root, '#mpiSettingsAgentBenchLine', _benchEstimate(info));
+                button(slot, { text: 'Run', variant: 'primary' }, () => _benchRun(root));
+                button(slot2, { text: 'Cancel' }, () => _benchCancel(root));
+            } else if (step === 'running') {
+                _setText(root, '#mpiSettingsAgentBenchLine', `${progress.done} of ${progress.cases} · ${progress.passed} passed`);
+                button(slot, { text: stopping ? 'Stopping after this test…' : 'Stop', disabled: stopping }, () => {
+                    _bench = { ..._bench, stopping: true };
+                    _postJson('/agent/benchmark/stop', {});
+                    _renderBench(root);
+                });
+            } else {
+                button(slot, { text: 'Benchmark this model', disabled: !_remote?.ok }, () => _benchAsk(root));
+            }
+        }
+
+        /** The click: the estimate for the model picked NOW, asked in place. */
+        async function _benchAsk(root) {
+            const { profileId } = Storage.getLlmConnection();
+            const model = Storage.getAgentPrefs().model || '';
+            const info = await _getJson(`/agent/benchmark?profileId=${encodeURIComponent(profileId)}&model=${encodeURIComponent(model)}`);
+            if (!info?.ok) return _setText(root, '#mpiSettingsAgentBenchLine', _errorText(info), true);
+            _bench = { ..._bench, step: 'confirm', info };
+            _renderBench(root);
+        }
+
+        async function _benchRun(root) {
+            const { profileId } = Storage.getLlmConnection();
+            const json = await _postJson('/agent/benchmark', { profileId, model: Storage.getAgentPrefs().model || '' });
+            if (!json?.ok) {
+                _benchCancel(root);
+                return _setText(root, '#mpiSettingsAgentBenchLine', _errorText(json), true);
+            }
+            _bench = { ..._bench, step: 'running', stopping: false, progress: { done: 0, passed: 0, cases: json.cases } };
+            _renderBench(root);
+        }
+
+        function _benchCancel(root) {
+            _bench = { ..._bench, step: 'idle' };
+            _setText(root, '#mpiSettingsAgentBenchLine', '');
+            _renderBench(root);
+        }
+
+        /** The run ended: its line, and the agent row repainted with the score agentService kept. */
+        function _benchEnd(text, isWarn = false) {
+            _bench = { ..._bench, step: 'idle', progress: null, stopping: false };
+            _renderBench(el);
+            _setText(el, '#mpiSettingsAgentBenchLine', text, isWarn);
+            _renderAgentModel(el);
+        }
+
+        /** "About $0.10 on DeepInfra, ~14 min" / "Uses your GPU for 10-30 min". */
+        function _benchEstimate({ local, usd, cases }) {
+            if (local) return `Uses your GPU for 10-30 min (${cases} tests).`;
+            // ponytail: ~30 s a test on a hosted model (gpt-oss-120b: 28 tests in ~15 min, 2026-09-29); a slow provider runs longer.
+            const minutes = `~${Math.ceil(cases * 30 / 60)} min`;
+            const where = _profile?.name || 'your connection';
+            return typeof usd === 'number' ? `About $${usd.toFixed(2)} on ${where}, ${minutes}.` : `${cases} chats on ${where}, ${minutes}.`;
+        }
+
+        /** Was this score taken on the tests the app ships now? Unknown (the server did not say) counts as yes. */
+        function _currentTests(score) {
+            return !!score && (!_bench.info || score.suiteHash === _bench.info.suiteHash);
+        }
+
         /** "1M context" — the window the agent compacts against. */
-        /** "23/23 tests · $0.36/100 chats"; a local model (perChat 0) costs your GPU, not money. */
-        function _agentTestLabel({ passed, cases, perChat }) {
-            return `${passed}/${cases} tests · ${perChat ? `$${(perChat * 100).toFixed(2)}/100 chats` : 'runs on your GPU'}`;
+        /**
+         * "28/28 tests · $0.36/100 chats"; a local model (perChat 0) costs your GPU, not money; null = a
+         * provider that reports no cost. "(older tests)" when the score predates the tests the app ships.
+         */
+        function _agentTestLabel(score) {
+            const { passed, cases, perChat } = score;
+            const cost = perChat ? `$${(perChat * 100).toFixed(2)}/100 chats` : perChat === 0 ? 'runs on your GPU' : '';
+            return [`${passed}/${cases} tests${_currentTests(score) ? '' : ' (older tests)'}`, cost].filter(Boolean).join(' · ');
         }
 
         function _windowLabel(m) {
@@ -902,6 +1028,7 @@ export const MpiLlmSettings = ComponentFactory.create({
 
         el.destroy = () => {
             _destroyControls();
+            _benchUnsubs.forEach(u => u());
             el.onOpen = null;
         };
     },

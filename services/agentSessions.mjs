@@ -19,7 +19,8 @@
  */
 
 import crypto from 'crypto';
-import { AgentLoop, projectKey } from './agentLoop.mjs';
+import { AgentLoop, projectKey, onLocalGpu } from './agentLoop.mjs';
+import { OllamaEngine, fetchDeepInfraPrices, recommendedModel } from './llmEngines.mjs';
 
 export { projectKey as sessionKey };
 
@@ -39,6 +40,7 @@ export class AgentSessions {
         this._carry = null;            // a request on its way to another conversation (D5)
         this._queued = [];             // turns sent while another was running (MPI-840)
         this._probeLoop = null;
+        this._bench = null;            // the benchmark running now (MPI-941 Phase 12), or null
     }
 
     addSubscriber(res) { this._subscribers.add(res); }
@@ -150,6 +152,82 @@ export class AgentSessions {
             this._setupLoop(this._probeLoop);
         }
         return this._probeLoop.probe(profileId, model);
+    }
+
+    /**
+     * MPI-941 Phase 12 — "Benchmark this model": the agent suite, every case ONCE, on the user's
+     * own connection with pretend tools, so nothing is generated or saved. One at a time. Answers
+     * at once; each case, then the total, goes out on the agent stream as `bench:case` and
+     * `bench:done`, or `bench:error` when the connection cannot answer at all. Refusing a local
+     * model while a render holds the card is the route's (it reads the engine's queue).
+     * @returns {Promise<{ok: true, cases: number} | {ok: false, error: {code: string, message: string}}>}
+     */
+    async benchmark(profileId, model) {
+        if (this._bench) return { ok: false, error: { code: 'BUSY', message: 'A benchmark is already running.' } };
+        // Taken before the first await, so two clicks cannot both start one.
+        const bench = this._bench = { stop: new AbortController(), profileId, model, done: 0, passed: 0, cases: 0 };
+        const { CASES, runSuite } = await import('./agentBench.mjs');
+        bench.cases = CASES.length;
+        this._runBench(bench, runSuite);
+        return { ok: true, cases: CASES.length };
+    }
+
+    async _runBench(bench, runSuite) {
+        const { profileId } = bench;
+        try {
+            // "Test tool use" first. A wrong key or a dead host would otherwise "score" 0 in a few
+            // seconds, and a model that calls no tool fails nearly every case and bills for all of them.
+            const probe = await this.probe(profileId, bench.model);
+            if (!probe.ok) return this.broadcast('bench:error', { profileId, model: bench.model, message: probe.error.message });
+            bench.model = probe.model;
+            if (!probe.tools) return this.broadcast('bench:error', { profileId, model: bench.model, message: 'This model did not call a tool in the tool-use test, so it would fail almost every test.' });
+            const r = await runSuite({
+                loopOptions: this._loopOptions, setupLoop: this._setupLoop, profileId, model: bench.model, signal: bench.stop.signal,
+                onProgress: (last) => {
+                    bench.done += 1;
+                    if (last.passed) bench.passed += 1;
+                    this.broadcast('bench:case', { profileId, model: bench.model, done: bench.done, passed: bench.passed, cases: bench.cases, last });
+                },
+            });
+            // perChat 0 = this PC's card; null = a hosted provider that reports no cost (only DeepInfra does).
+            const local = onLocalGpu(profileId, bench.model);
+            this.broadcast('bench:done', {
+                profileId, model: bench.model, done: r.results.length, passed: r.passed, cases: r.cases, costUsd: r.costUsd,
+                perChat: local ? 0 : (r.costUsd && r.results.length ? r.costUsd / r.results.length : null),
+                suiteHash: r.suiteHash, stopped: r.stopped,
+            });
+        } catch (err) {
+            this.broadcast('bench:error', { profileId, model: bench.model, message: err.message });
+        } finally {
+            this._bench = null;
+            // MPI-913's rule: a local model does not sit on the card after its last answer.
+            // ponytail: a render the user starts MID-run shares the card until the run ends; Stop is the way out.
+            if (onLocalGpu(profileId, bench.model)) new OllamaEngine().releaseOwnModels().catch(() => { /* nothing held */ });
+        }
+    }
+
+    /** Ends the running benchmark after the case in flight. */
+    stopBenchmark() {
+        this._bench?.stop.abort();
+    }
+
+    /** The running benchmark's totals, or null: a Settings panel opened mid-run picks it up here. */
+    benchmarkStatus() {
+        const b = this._bench;
+        return b ? { profileId: b.profileId, model: b.model, done: b.done, passed: b.passed, cases: b.cases } : null;
+    }
+
+    /**
+     * What Settings shows before a run: the case count, the cost estimate, whether it runs on this
+     * PC's card, any run in progress, and the suite's hash (a saved result from another suite reads
+     * "older tests").
+     */
+    async benchmarkInfo(profileId, model) {
+        const { CASES, estimateUsd, suiteHash } = await import('./agentBench.mjs');
+        const id = model || recommendedModel(profileId, 'agent');
+        // DeepInfra's is the one price list we read; any other connection gets no figure.
+        const price = profileId === 'deepinfra' ? (await fetchDeepInfraPrices())?.[id] : null;
+        return { ok: true, cases: CASES.length, suiteHash: suiteHash(), local: onLocalGpu(profileId, id), usd: estimateUsd(price), running: this.benchmarkStatus() };
     }
 
     /**

@@ -2451,7 +2451,7 @@ ${knowledgeIndex}`.trim();
             // MPI-913: a local Ollama model would load beside a render of this conversation's
             // own still on the card. Wait for it here, before the opening reads the notes, so
             // this turn opens on what landed. A reset ends the wait and the message with it.
-            const onGpu = profileId === 'ollama' && !/[-:]cloud$/i.test(model);
+            const onGpu = onLocalGpu(profileId, model);
             if (onGpu && this._gpuJobs.size && !(await this._waitForGpu(turnId))) return;
 
             const handover = carried
@@ -2929,4 +2929,9 @@ export function projectKey(folderPath) {
     if (!folderPath) return '';
     const p = String(folderPath).replace(/\\/g, '/').replace(/\/+$/, '');
     return process.platform === 'win32' || process.platform === 'darwin' ? p.toLowerCase() : p;
+}
+
+/** Does this agent model run on THIS PC's card? Ollama, minus its cloud models (MPI-913). */
+export function onLocalGpu(profileId, model) {
+    return profileId === 'ollama' && !/[-:]cloud$/i.test(model || '');
 }

@@ -11,7 +11,8 @@ const { test, expect } = require('@playwright/test');
 const { launchApp, closeApp } = require('./launch');
 
 const MODELS = [
-  { id: 'acme/agent-pick',   contextWindow: 1_048_576, vision: false, recommendedFor: ['agent'], agentTest: { passed: 23, cases: 23, runs: 3, perChat: 0.0036 } },
+  // `suiteHash` 'h1' = the stubbed GET /agent/benchmark's current tests; zeta-chat's score has none, so it is older.
+  { id: 'acme/agent-pick',   contextWindow: 1_048_576, vision: false, recommendedFor: ['agent'], agentTest: { passed: 23, cases: 23, runs: 3, perChat: 0.0036, suiteHash: 'h1' } },
   { id: 'acme/zeta-chat',    contextWindow: null,      vision: false, recommendedFor: [],        agentTest: { passed: 18, cases: 23, runs: 1, perChat: 0.0017 } },
   { id: 'acme/enhance-pick', contextWindow: 131_072,   vision: false, recommendedFor: ['enhance'] },
   { id: 'acme/see-pick',     contextWindow: 327_680,   vision: true,  recommendedFor: ['describe'] },
@@ -32,6 +33,10 @@ test('Remote rows list the connection models, recommended first', async ({}, tes
         const path = String(url);
         if (path.startsWith('/llm/connection/models')) {
           return Promise.resolve({ ok: true, json: async () => ({ ok: true, profileId: 'deepinfra', models }) });
+        }
+        // Its live price read is the network's; nothing here is about the benchmark.
+        if (path.startsWith('/agent/benchmark')) {
+          return Promise.resolve({ ok: true, json: async () => ({ ok: true, cases: 28, suiteHash: 'h1', local: false, usd: 0.1, running: null }) });
         }
         if (path.startsWith('/llm/models')) window.__llmModelsCalls++;
         return realFetch(url, opts);
@@ -70,9 +75,9 @@ test('Remote rows list the connection models, recommended first', async ({}, tes
     await expect(label('#mpiSettingsAgentModelSlot')).toHaveText('acme/agent-pick');
     await toggle('#mpiSettingsAgentModelSlot');
     await expect(openList).toHaveText(['acme/agent-pick', 'acme/zeta-chat', 'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision']);
-    // Score and cost sit under the name, beside the context window.
+    // Score and cost sit under the name, beside the context window; a score from older tests says so.
     await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-meta')).toHaveText([
-      '23/23 tests · $0.36/100 chats · 1M context', '18/23 tests · $0.17/100 chats', '128K context', '320K context',
+      '23/23 tests · $0.36/100 chats · 1M context', '18/23 tests (older tests) · $0.17/100 chats', '128K context', '320K context',
     ]);
     await toggle('#mpiSettingsAgentModelSlot');
 
@@ -119,6 +124,94 @@ test('Remote rows list the connection models, recommended first', async ({}, tes
     await window.evaluate(() => document.querySelector('.mpi-dropdown__list.is-open .mpi-dropdown__option[data-value="ollama"]').click());
     await expect(window.locator('#mpiSettingsConnKeyGroup')).toBeHidden();
     await expect(window.locator('#mpiSettingsAgentBackend')).toHaveText('Remote · Ollama (local)');
+
+    expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+// MPI-941 Phase 12: "Benchmark this model". The route is stubbed and its stream events are
+// emitted on the bus, as agentService's SSE bridge would; the suite itself is unit-tested
+// (tests/agent-bench.test.cjs).
+test('Benchmark this model: estimate in place, progress and Stop, the score on the agent row', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await window.evaluate((models) => {
+      const realFetch = window.fetch.bind(window);
+      window.__benchPosts = [];
+      const reply = (body) => Promise.resolve({ ok: true, json: async () => body });
+      window.fetch = (url, opts) => {
+        const path = String(url);
+        if (path.startsWith('/llm/connection/models')) return reply({ ok: true, profileId: 'deepinfra', models });
+        if (path.startsWith('/agent/benchmark')) {
+          if (opts?.method === 'POST') {
+            window.__benchPosts.push([path, JSON.parse(opts.body)]);
+            return reply(path.endsWith('/stop') ? { ok: true } : { ok: true, cases: 28 });
+          }
+          return reply({ ok: true, cases: 28, suiteHash: 'h1', local: false, usd: 0.1, running: null });
+        }
+        return realFetch(url, opts);
+      };
+      localStorage.removeItem('mpi_agent_prefs');
+      // A score from an OLDER suite (another hash) says so.
+      localStorage.setItem('mpi_agent_bench', JSON.stringify({ deepinfra: { 'acme/zeta-chat': { passed: 20, cases: 26, perChat: 0.002, suiteHash: 'old', at: '2026-09-01T00:00:00Z' } } }));
+    }, MODELS);
+
+    await window.evaluate(async () => {
+      const [{ Events }, { MpiRemote }] = await Promise.all([
+        import('/js/events.js'),
+        import('/js/components/Blocks/MpiRemote/MpiRemote.js'),
+      ]);
+      Events.emit('slide-over:open', { title: 'Remote', component: MpiRemote });
+    });
+
+    const bench = window.locator('#mpiSettingsAgentBenchSlot .mpi-btn');
+    const line = window.locator('#mpiSettingsAgentBenchLine');
+    const emit = (name, data) => window.evaluate(async ([n, d]) => (await import('/js/events.js')).Events.emit(n, d), [name, data]);
+    // A DOM click, as above: the fresh profile's 18+ notice covers the panel.
+    const click = (sel) => window.evaluate((s) => document.querySelector(s).click(), sel);
+    const clickBench = () => click('#mpiSettingsAgentBenchSlot .mpi-btn');
+
+    await expect(window.locator('#mpiSettingsAgentBenchHint')).toHaveText('Runs our 28 agent tests on this model with pretend tools: nothing is generated or saved.', { timeout: 10000 });
+    await expect(bench).toHaveText('Benchmark this model');
+    // The confirm sits in place of the button, with the estimate: Cancel puts the button back.
+    await clickBench();
+    await expect(line).toHaveText('About $0.10 on DeepInfra, ~14 min.');
+    await expect(bench).toHaveText('Run');
+    await click('#mpiSettingsAgentBenchSlot2 .mpi-btn');
+    await expect(bench).toHaveText('Benchmark this model');
+    await expect(line).toHaveText('');
+    expect(await window.evaluate(() => window.__benchPosts)).toEqual([]);
+
+    await clickBench();
+    await expect(bench).toHaveText('Run');
+    await clickBench();
+    await expect(line).toHaveText('0 of 28 · 0 passed');
+    await emit('bench:case', { profileId: 'deepinfra', model: 'acme/agent-pick', done: 12, passed: 9, cases: 28, last: { id: 'x', title: 'x', passed: true, failures: [] } });
+    await expect(line).toHaveText('12 of 28 · 9 passed');
+    await expect(bench).toHaveText('Stop');
+    await clickBench();
+    await expect(bench).toHaveText('Stopping after this test…');
+    expect(await window.evaluate(() => window.__benchPosts)).toEqual([
+      ['/agent/benchmark', { profileId: 'deepinfra', model: '' }],
+      ['/agent/benchmark/stop', {}],
+    ]);
+
+    // The last test finished before the Stop landed: the run is whole, so it is kept.
+    await emit('bench:done', { profileId: 'deepinfra', model: 'acme/agent-pick', done: 28, passed: 21, cases: 28, costUsd: 0.09, perChat: 0.0032, suiteHash: 'h1', stopped: false });
+    await expect(line).toHaveText('21/28 passed · $0.09 · now shown in the agent list');
+    await expect(bench).toHaveText('Benchmark this model');
+    await window.evaluate(() => document.querySelector('#mpiSettingsAgentModelSlot .mpi-dropdown__trigger').click());
+    // The user's run REPLACES our score (Fabio 2026-09-28): one number per model. zeta-chat's older run
+    // still beats our older one; a score on the current tests ranks above any older one.
+    await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-label')).toHaveText(['acme/agent-pick', 'acme/zeta-chat', 'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision']);
+    await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-meta')).toHaveText([
+      '21/28 tests · $0.32/100 chats · 1M context',
+      '20/26 tests (older tests) · $0.20/100 chats',
+      '128K context', '320K context',
+    ]);
 
     expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
   } finally {

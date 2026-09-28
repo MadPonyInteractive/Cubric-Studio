@@ -316,3 +316,51 @@ route's label -> index step (`routes/connector.js`), so every style LABEL the ap
 before the fix every style call was refused and the agent fell back to no style; after, all 4 generated with a style
 (Klein 9B `Anime` x3, Krea 2 `Retro Anime` x1), no install offered, and the three-character ask kept the style for the cast.
 `agent-bench`, `model-priority`, `agent-prompt-budget` tests 22/22; lint 0.
+
+## Phase 12b: the benchmark route (session 4143bc2a, 2026-09-28)
+`AgentSessions.benchmark(profileId, model)` (one at a time, taken before the first await), `stopBenchmark`, `benchmarkStatus`,
+`benchmarkInfo` (cases, `estimateUsd` from DeepInfra's live price, `local`, any run in progress). A probe runs first, so a wrong
+key ends on `bench:error` instead of a 0 score. Progress rides the EXISTING `/agent/stream` (`bench:case {done, passed, cases,
+last}`, `bench:done {passed, cases, costUsd, perChat, suiteHash, stopped}`, `bench:error`): no second SSE reader in the renderer.
+Routes: `GET /agent/benchmark`, `POST /agent/benchmark` (GPU_BUSY for a local model while the engine's `/queue` holds a job,
+`engineIsLocal()` first), `POST /agent/benchmark/stop`. `converse` takes `setupLoop`, so the app's fork bridge supplies the
+saved key. `onLocalGpu()` exported from `agentLoop.mjs` (the loop's own check uses it). Estimate basis: 55K prompt + 1.5K reply
+tokens a case, backed out of DeepSeek's measured perChat and matching Qwen3.6's ($0.10 / $0.19 a run).
+**Evidence:** `tests/agent-bench.test.cjs` RED first (`sessions.benchmark is not a function`; the route 404'd), then 5/5: two
+calls -> second BUSY; Stop on case 2 -> `bench:case, bench:case, bench:done{stopped}`, perChat = cost / 2, free after; no
+profile -> `bench:error` only; the route -> BAD_REQUEST, and GPU_BUSY against a stub engine queue. `agent-sessions`,
+`agent-loop`, `agent-prompt-budget` 173 pass 0 fail; lint 0. Later: the app's `setupLoop` (fork bridge = the saved key) is
+asserted to reach the probe loop and every case's loop (3 for a 2-case run).
+
+## Phase 12c + 12d: the button and the result (session 4143bc2a, 2026-09-28)
+Settings > Remote, under "Test tool use": **Benchmark this model** + "Runs our 28 agent tests on this model with pretend tools:
+nothing is generated or saved." Click -> `GET /agent/benchmark` for the model picked NOW -> Run / Cancel in place of the button
+over "About $0.10 on DeepInfra, ~7 min." (local: "Uses your GPU for 10-30 min (28 tests)."; no price: "28 chats on <provider>").
+Run -> "12 of 28 · 9 passed" + Stop -> "Stopping after this test…". End: "21/28 passed · $0.09 · shown in the agent list as your
+run", or "Stopped at n of 28 · … · not kept", or "The benchmark could not start: <why>". A panel opened mid-run picks the run up
+from `running`. The result is kept by `agentService` on `bench:done` (whole runs only), `Storage.setAgentBench` under
+`mpi_agent_bench` `{ [profileId]: { [model]: { passed, cases, perChat, suiteHash, at } } }`, and the agent row's meta reads
+"23/23 tests · $0.36/100 chats · 21/28 tests (your run) · 1M context"; another suite hash adds ", older tests".
+**Evidence:** `tests/desktop/llm-settings-remote.spec.js` 2/2 (new: estimate in place, Cancel restores, Run posts
+`{ profileId, model: '' }`, progress, Stop posts, done -> the line and both "your run" metas incl. "older tests"; the first test
+now stubs `/agent/benchmark` so it never reads the network). Looked at on screenshots (confirm, running): reads right. Full
+`npm test` 2204 tests, 2202 pass, 0 fail, 2 skipped. Lint 0 on every touched file. `docs/llm.md` 200/200, `docs/agent-chat.md`
+routes row.
+**Fabio's review, same night (before the live run):** "28 tests, but the list says 23": our table scores were stale (DeepSeek,
+Qwen3.6, gpt-oss on the 23-case suite; the Ollama pair on 26). And: a user's run should REPLACE our numbers, not sit beside
+them. Done: `suiteHash` now hashes the TESTS only (turns, checks, setup minus `models`, which is the app catalogue: today's
+ILL note edit had moved it with no test changed) -> `4891b5390518`; DeepSeek's entry is 28/28 x3 (the Phase 7 fix run, 84/84,
+$0.3038) stamped with it; any score without today's hash reads "(older tests)" and ranks below current ones; the user's run
+replaces ours unless ours is current and theirs is not. Benchmark now STOPS when "Test tool use" fails (model called no tool:
+it would fail nearly every case and bill for all), and `perChat: null` = a hosted provider that reports no cost (never "runs on
+your GPU"). **Evidence:** `agent-bench` 7/7 (new: hash ignores the catalogue but not a changed turn, RED first; tool-less model
+-> `bench:error` after the probe only, RED first), desktop 2/2 (older-tests label, replace + ranking), `npm test` 2209, 0 fail;
+lint 0. **Still stale, costs money/GPU:** Qwen3.6 (~$0.58 x3), gpt-oss (~$0.07 x1), ornith:9b + gemma4:12b (GPU, 10-30 min each).
+**gpt-oss-120b re-scored (Fabio's yes, ~$0.07; spent $0.0541), 2026-09-29:** 28 cases x1 -> **19/28** (was 18/23), ~15 min
+(29 s a case). Fails: look-refusal, create-then-generate, memory-read, outpaint-grows-one-side, memory-write-unprompted,
+no-delete, second-picture-room-every-editor, second-picture-character, options-ideas. Table: `{ passed: 19, cases: 28, runs: 1,
+perChat: 0.0019, suiteHash: '4891b5390518' }`. The Settings time estimate moved from 15 s to 30 s a test ("~14 min"): the run
+measured it. `llm-connection` + `agent-bench` 19/19, desktop 2/2, lint 0. Qwen3.6 (19/23) and the Ollama pair still read
+"(older tests)" until re-scored.
+**Live check (Fabio), pending, ~$0.10:** restart the app on this code, Settings > Remote, DeepSeek picked, Benchmark this model
+-> Run; watch "n of 28" climb (~14 min); DeepSeek's row then shows your score in place of "28/28 tests".
