@@ -1,15 +1,15 @@
 {
-  "at": "2026-09-05T09:12:30.083Z",
+  "at": "2026-09-28T20:24:23.752Z",
   "engine": {
     "want": "0.34.0",
     "got": "0.34.0",
     "proven": true
   },
   "datacenter": "EU-RO-1",
-  "gpu": "NVIDIA GeForce RTX 5090",
+  "gpu": "A100 PCIe",
   "volume": {
-    "id": "uebvm3350f",
-    "size": 340
+    "id": "quzdmzsg0f",
+    "size": 400
   },
   "budget": {
     "steps": 1,
@@ -22,15 +22,15 @@
       "model": "sdxl-nsfw",
       "op": "t2i",
       "status": "PASS",
-      "secs": 13,
+      "secs": 17,
       "media": 1,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "sdxl-nsfw",
@@ -43,26 +43,12 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "sdxl-nsfw",
       "op": "control",
-      "status": "PASS",
-      "secs": 39,
-      "media": 2,
-      "budget": [
-        "Input_Seed=42",
-        "Input_Width=128",
-        "Input_Height=128"
-      ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
-    },
-    {
-      "model": "sdxl-nsfw",
-      "op": "inpaint",
       "status": "PASS",
       "secs": 21,
       "media": 2,
@@ -71,8 +57,22 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "sdxl-nsfw",
+      "op": "inpaint",
+      "status": "PASS",
+      "secs": 9,
+      "media": 2,
+      "budget": [
+        "Input_Seed=42",
+        "Input_Width=128",
+        "Input_Height=128"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "sdxl-nsfw",
@@ -85,8 +85,8 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "sdxl-nsfw",
@@ -99,8 +99,8 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "chroma-hyper",
@@ -113,50 +113,50 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "chroma-hyper",
       "op": "i2i",
       "status": "PASS",
-      "secs": 12,
+      "secs": 8,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "chroma-hyper",
       "op": "control",
       "status": "PASS",
-      "secs": 47,
+      "secs": 17,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "chroma-hyper",
       "op": "upscale",
       "status": "PASS",
-      "secs": 13,
+      "secs": 8,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "chroma-hyper",
@@ -169,8 +169,8 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "krea2-nsfw",
@@ -184,8 +184,8 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "krea2-nsfw",
@@ -199,14 +199,14 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "krea2-nsfw",
       "op": "control",
       "status": "PASS",
-      "secs": 33,
+      "secs": 21,
       "media": 2,
       "budget": [
         "Input_is_Turbo=true",
@@ -214,14 +214,14 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "krea2-nsfw",
       "op": "krea2Edit",
       "status": "PASS",
-      "secs": 68,
+      "secs": 17,
       "media": 2,
       "budget": [
         "Input_is_Turbo=true",
@@ -229,14 +229,14 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "krea2-nsfw",
       "op": "inpaint",
       "status": "PASS",
-      "secs": 77,
+      "secs": 42,
       "media": 2,
       "budget": [
         "Input_is_Turbo=true",
@@ -244,8 +244,8 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "krea2-nsfw",
@@ -259,8 +259,8 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "krea2-nsfw",
@@ -274,38 +274,52 @@
         "Input_Width=128",
         "Input_Seed=42"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "nvidia-pid",
       "op": "pid",
       "status": "PASS",
-      "secs": 46,
+      "secs": 17,
       "media": 2,
       "budget": [
         "Input_Seed=42"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "klein-4b",
       "op": "t2i",
       "status": "PASS",
-      "secs": 13,
+      "secs": 8,
       "media": 1,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "klein-4b",
       "op": "i2i",
+      "status": "PASS",
+      "secs": 9,
+      "media": 2,
+      "budget": [
+        "Input_Seed=42",
+        "Input_Width=128",
+        "Input_Height=128"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "klein-4b",
+      "op": "control",
       "status": "PASS",
       "secs": 8,
       "media": 2,
@@ -314,50 +328,36 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
-    },
-    {
-      "model": "klein-4b",
-      "op": "control",
-      "status": "PASS",
-      "secs": 13,
-      "media": 2,
-      "budget": [
-        "Input_Seed=42",
-        "Input_Width=128",
-        "Input_Height=128"
-      ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "klein-4b",
       "op": "kleinEdit",
       "status": "PASS",
-      "secs": 13,
+      "secs": 8,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "klein-4b",
       "op": "inpaint",
       "status": "PASS",
-      "secs": 12,
+      "secs": 8,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "klein-4b",
@@ -370,54 +370,54 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "klein-4b",
       "op": "upscale",
       "status": "PASS",
-      "secs": 8,
+      "secs": 4,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "boogu-edit-balanced",
       "op": "edit",
       "status": "PASS",
-      "secs": 42,
+      "secs": 13,
       "media": 2,
       "budget": [
         "Input_Seed=42"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "wan-22",
       "op": "i2v_ms",
       "status": "PASS",
-      "secs": 29,
+      "secs": 17,
       "media": 2,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "ltx-23-balanced",
       "op": "t2v_ms",
       "status": "PASS",
-      "secs": 72,
+      "secs": 25,
       "media": 1,
       "budget": [
         "Input_Duration=1",
@@ -425,14 +425,14 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "ltx-23-balanced",
       "op": "i2v_ms",
       "status": "PASS",
-      "secs": 38,
+      "secs": 17,
       "media": 2,
       "budget": [
         "Input_Duration=1",
@@ -440,14 +440,14 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "minimax-h3",
       "op": "t2v_ms",
       "status": "PASS",
-      "secs": 21,
+      "secs": 155,
       "media": 1,
       "budget": [
         "Input_is_Turbo=true",
@@ -456,14 +456,14 @@
         "Input_seed=42",
         "Input_Duration=1"
       ],
-      "run": "2026-09-05T09:12:30.083Z",
-      "gpu": "NVIDIA GeForce RTX 5090"
+      "run": "2026-09-28T20:24:23.752Z",
+      "gpu": "A100 PCIe"
     },
     {
       "model": "minimax-h3",
       "op": "i2v_ms",
       "status": "PASS",
-      "secs": 124,
+      "secs": 281,
       "media": 2,
       "budget": [
         "Input_is_Turbo=true",
@@ -472,14 +472,14 @@
         "Input_seed=42",
         "Input_Duration=1"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T20:24:23.752Z",
+      "gpu": "A100 PCIe"
     },
     {
       "model": "minimax-h3-ref2va",
       "op": "ref2v_ms",
       "status": "PASS",
-      "secs": 112,
+      "secs": 30,
       "media": 1,
       "budget": [
         "Input_is_Turbo=true",
@@ -488,22 +488,22 @@
         "Input_Height=128",
         "Input_Width=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "wan22-5b",
       "op": "t2v",
       "status": "PASS",
-      "secs": 13,
+      "secs": 8,
       "media": 1,
       "budget": [
         "Input_Seed=42",
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "wan22-5b",
@@ -516,41 +516,219 @@
         "Input_Width=128",
         "Input_Height=128"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "qwen-edit",
       "op": "qwenEdit",
       "status": "PASS",
-      "secs": 47,
+      "secs": 17,
       "media": 2,
       "budget": [
         "Input_Tier=3",
         "Input_Seed=42"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     },
     {
       "model": "qwen-edit",
       "op": "control",
       "status": "PASS",
-      "secs": 59,
+      "secs": 29,
       "media": 2,
       "budget": [
         "Input_Tier=3",
         "Input_Seed=42"
       ],
-      "run": "2026-09-05T08:57:57.201Z",
-      "gpu": "NVIDIA L4"
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flux-schnell-cloud",
+      "op": "t2i",
+      "status": "SKIP",
+      "why": "no workflow mapped",
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flow",
+      "op": "ltx-extend",
+      "status": "PASS",
+      "secs": 285,
+      "media": 1,
+      "budget": [
+        "Input_Seed=42",
+        "Input_Duration=1"
+      ],
+      "run": "2026-09-28T20:24:23.752Z",
+      "gpu": "A100 PCIe"
+    },
+    {
+      "model": "flow",
+      "op": "ltx-extend/minimax-h3",
+      "status": "PASS",
+      "secs": 159,
+      "media": 1,
+      "budget": [
+        "Input_Seed=42",
+        "Input_Duration=1"
+      ],
+      "run": "2026-09-28T20:24:23.752Z",
+      "gpu": "A100 PCIe"
+    },
+    {
+      "model": "flow",
+      "op": "ltx-foley",
+      "status": "PASS",
+      "secs": 21,
+      "media": 1,
+      "budget": [
+        "Input_Seed=42"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flow",
+      "op": "ltx-upscale",
+      "status": "PASS",
+      "secs": 8,
+      "media": 1,
+      "budget": [
+        "Input_Seed=42"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flow",
+      "op": "scribble-object",
+      "status": "PASS",
+      "secs": 8,
+      "media": 3,
+      "budget": [
+        "Input_Seed=42"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flow",
+      "op": "scribble",
+      "status": "PASS",
+      "secs": 8,
+      "media": 2,
+      "budget": [
+        "Input_Seed=42"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flow",
+      "op": "character-sheet",
+      "status": "PASS",
+      "secs": 37,
+      "media": 1,
+      "budget": [
+        "Input_Seed=42"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flow",
+      "op": "outpaint",
+      "status": "PASS",
+      "secs": 8,
+      "media": 2,
+      "budget": [
+        "Input_Seed=42"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flow",
+      "op": "voice-changer",
+      "status": "PASS",
+      "secs": 8,
+      "media": 1,
+      "budget": [
+        "Input_Seed=42"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flow",
+      "op": "chatter-box",
+      "status": "PASS",
+      "secs": 21,
+      "media": 1,
+      "budget": [
+        "Input_Seed=42"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flow",
+      "op": "stems",
+      "status": "PASS",
+      "secs": 4,
+      "media": 4,
+      "budget": [],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flow",
+      "op": "object-stamp",
+      "status": "PASS",
+      "secs": 13,
+      "media": 3,
+      "budget": [
+        "Input_Seed=42"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flow",
+      "op": "minimax-music",
+      "status": "PASS",
+      "secs": 50,
+      "media": 1,
+      "budget": [
+        "Input_Seed=42",
+        "Input_Duration=1"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "flow",
+      "op": "sound-and-music",
+      "status": "PASS",
+      "secs": 29,
+      "media": 1,
+      "budget": [
+        "Input_Duration=1",
+        "Input_Seed=42"
+      ],
+      "run": "2026-09-28T19:56:55.993Z",
+      "gpu": "RTX 5090"
     }
   ],
   "counts": {
-    "pass": 37,
-    "skip": 0,
+    "pass": 51,
+    "skip": 1,
     "fail": 0,
-    "opsPlanned": 37
+    "opsPlanned": 52
   },
   "scope": {
     "requested": "merged",
@@ -566,7 +744,8 @@
       "minimax-h3",
       "minimax-h3-ref2va",
       "wan22-5b",
-      "qwen-edit"
+      "qwen-edit",
+      "flux-schnell-cloud"
     ],
     "covers": [
       "sdxl-realistic",
@@ -577,10 +756,24 @@
       "krea2",
       "klein-9b",
       "boogu-edit-high",
-      "ltx-23"
+      "ltx-23",
+      "seedream-4-cloud",
+      "seedream-45-cloud",
+      "seedream-5-pro-cloud",
+      "flux2-dev-cloud",
+      "flux2-pro-cloud",
+      "flux2-max-cloud",
+      "nano-banana-2-lite-cloud",
+      "nano-banana-2-cloud",
+      "nano-banana-pro-cloud",
+      "seedance-15-pro-cloud",
+      "seedance-2-cloud",
+      "wan3-cloud",
+      "veo-31-fast-cloud",
+      "veo-31-cloud"
     ],
     "unproven": [],
-    "modelsInRegistry": 21
+    "modelsInRegistry": 36
   },
   "limits": [
     "Pod-green is not Windows-green: different OS, python, torch, CUDA.",
@@ -610,8 +803,7 @@
     "klein-9b-style-watercolour(260.05MB)"
   ],
   "runs": [
-    "2026-09-05T08:57:57.201Z",
-    "2026-09-05T09:12:30.083Z"
-  ],
-  "gpuNote": "rows carry their own `gpu`; this field is the most recent run only. 36 ops proven on NVIDIA L4, minimax-h3/t2v_ms re-run on RTX 5090 after it OOM-killed the L4 (54 GB) — H3 needs a high-RAM host."
+    "2026-09-28T19:56:55.993Z",
+    "2026-09-28T20:24:23.752Z"
+  ]
 }

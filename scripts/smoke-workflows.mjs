@@ -16,6 +16,9 @@
  *   node scripts/smoke-workflows.mjs --retry-failed    # re-run ONLY the ops that are not PASS
  *   node scripts/smoke-workflows.mjs --keep-volume     # skip the teardown prompt
  *   node scripts/smoke-workflows.mjs --gpu "NVIDIA L4" # force a card
+ *   node scripts/smoke-workflows.mjs --min-ram 60      # lower the host-RAM floor (see MIN_RAM_GB)
+ *   node scripts/smoke-workflows.mjs --wait 30         # sold out? poll stock every 30s, rent nothing meanwhile
+ *   node scripts/smoke-workflows.mjs --skip-install    # volume already filled + verified: no CPU Pod
  *
  * Requires the app running (drives its routes, so it exercises the path users hit and
  * writes no new RunPod API code) and a RunPod key in Settings.
@@ -40,12 +43,13 @@ const APP = `http://127.0.0.1:${process.env.CUBRIC_PORT || 3000}`;
 
 // ── Infrastructure. Decided in MPI-467; reasons in docs/playbooks/bump-engine/01-smoke-run.md
 const DATACENTER = 'EU-RO-1';          // volumes are DC-locked; the cards live here
-// Was cheapest-first by measured availability. RTX 5090 now leads because it is the only
-// entry that can satisfy MIN_RAM_GB below: L4 hosts measured 54 GB and 3090/4090 hosts 30/31,
-// so with an 80 GB floor those three can only ever be REFUSED. Left in place as the fallback
-// walk if the floor is ever lowered — selectGpu knows nothing about RAM, so leading with a
-// card that cannot meet the floor just spends three create attempts to reach this one.
-const GPU_ORDER = ['RTX 5090', 'L4', 'RTX 3090', 'RTX 4090'];
+// Only cards whose EU-RO-1 hosts can meet a floor this runner accepts. selectGpu knows
+// nothing about RAM, so a card below the floor is a refused create per try — and under
+// --wait, one per poll all night. Host RAM as the RunPod console showed it on 2026-09-28:
+// RTX 5090 placed at 80; RTX 4090 61 GB (needs --min-ram 60); A100 PCIe 92 GB, $1.59/hr.
+// DROPPED that day: L4 (54 GB, the host H3 OOM-killed) and RTX 3090 (30 GB) cannot place
+// at 60 or 80. B200-class cards stay off on price (Fabio).
+const GPU_ORDER = ['RTX 5090', 'RTX 4090', 'A100 PCIe'];
 // Weights spill to RAM on a 24GB card (footprint.js). 48 is no longer enough for H3: on
 // 2026-09-05 minimax-h3/t2v_ms OOM-killed a 54 GB L4 — `[cubric] internal ComfyUI exited
 // unexpectedly (code -9)`, the kernel's SIGKILL. It stages MiniMaxH3TEModel_ (25,140 MB) and
@@ -100,6 +104,8 @@ const argv = process.argv.slice(2);
 const flag = (n) => argv.includes(`--${n}`);
 const opt = (n) => { const i = argv.indexOf(`--${n}`); return i >= 0 ? argv[i + 1] : null; };
 const PLAN_ONLY = flag('plan');
+// --wait [secs]: wait for stock instead of dying on a sold-out data center (default 30s).
+const WAIT_S = Number(opt('wait')) || (flag('wait') ? 30 : 0);
 const RETRY_FAILED = flag('retry-failed');
 const EVIDENCE = path.join(REPO, 'dev_configs/smoke-evidence.json');
 
@@ -112,7 +118,8 @@ const EVIDENCE = path.join(REPO, 'dev_configs/smoke-evidence.json');
 // Truncated per run, like smoke-evidence.json — one file describing one matrix.
 // .txt, NOT .log: .gitignore:54 is a blanket *.log, and a transcript that cannot be
 // committed alongside the evidence it explains is the gap this exists to close.
-const RUN_LOG = path.join(REPO, 'dev_configs/smoke-run.txt');
+// Env override is for tests only: a unit test that logs must not truncate a real transcript.
+const RUN_LOG = process.env.CUBRIC_SMOKE_RUN_LOG || path.join(REPO, 'dev_configs/smoke-run.txt');
 let _runLogFd = null;
 // STAMPED in the file, bare on the console. "It failed around 19:55Z" is only useful
 // next to a line that says what the runner was doing at 19:55Z.
@@ -526,18 +533,46 @@ export function selectGpu(gpus, exclude = []) {
     return { hit: null, notes, rank: 0 };
 }
 
-async function pickGpu(volumeId, exclude = []) {
-    if (opt('gpu')) return { id: opt('gpu'), displayName: opt('gpu') };
-    const avail = await app('/runpod/gpu-availability');
-    const dc = (avail.dataCenters || []).find(d => d.id === DATACENTER);
-    const stocked = new Set(((dc && dc.gpuAvailability) || []).filter(a => a.available).map(a => a.gpuTypeId));
-    const gpus = (avail.gpuTypes || []).map(g => ({ ...g, inStock: stocked.has(g.id) }));
-    const { hit, notes, rank } = selectGpu(gpus, exclude);
-    for (const n of notes) log(n);
-    if (hit) { log(`  gpu: ${hit.displayName || hit.id} (preferred #${rank})`); return hit; }
-    die(`no preferred GPU available in ${DATACENTER}. Wanted, in order: ${GPU_ORDER.join(' → ')}. `
-        + (exclude.length ? `Already refused this run: ${exclude.join(', ')}. ` : '')
-        + `Types offered: ${gpus.map(g => `${g.displayName || g.id}${g.inStock ? '' : ' (no stock)'}`).join(', ')}`);
+/**
+ * @param {number} [waitS] --wait: poll every waitS seconds instead of dying when nothing on
+ *   GPU_ORDER is in stock. Nothing is rented while it waits. A refused create is a snapshot
+ *   too, so each new poll forgets the refusals and may try the same card again.
+ */
+export async function pickGpu(volumeId, exclude = [], waitS = WAIT_S) {
+    for (let poll = 0; ; poll++) {
+        if (poll) { exclude.length = 0; await sleep(waitS * 1000); }
+        if (opt('gpu')) {
+            if (!waitS || !exclude.length) return { id: opt('gpu'), displayName: opt('gpu') };
+            continue;
+        }
+        const avail = await app('/runpod/gpu-availability').catch((err) => {
+            if (!waitS) throw err;
+            log(`  ⚠ stock check failed (${err.message}) — retrying in ${waitS}s`);
+            return null;
+        });
+        if (!avail) continue;
+        const dc = (avail.dataCenters || []).find(d => d.id === DATACENTER);
+        const stocked = new Set(((dc && dc.gpuAvailability) || []).filter(a => a.available).map(a => a.gpuTypeId));
+        const gpus = (avail.gpuTypes || []).map(g => ({ ...g, inStock: stocked.has(g.id) }));
+        const { hit, notes, rank } = selectGpu(gpus, exclude);
+        if (hit) {
+            for (const n of notes) log(n);
+            log(`  gpu: ${hit.displayName || hit.id} (preferred #${rank})`);
+            return hit;
+        }
+        const offered = gpus.map(g => `${g.displayName || g.id}${g.inStock ? '' : ' (no stock)'}`).join(', ');
+        if (!waitS) {
+            for (const n of notes) log(n);
+            die(`no preferred GPU available in ${DATACENTER}. Wanted, in order: ${GPU_ORDER.join(' → ')}. `
+                + (exclude.length ? `Already refused this run: ${exclude.join(', ')}. ` : '')
+                + `Types offered: ${offered}`);
+        }
+        // ponytail: one line per ~5 min at the default 30s, so an all-night wait stays readable.
+        if (poll % 10 === 0) {
+            const inStock = gpus.filter(g => g.inStock).map(g => g.displayName || g.id).join(', ') || 'nothing';
+            log(`  waiting for ${GPU_ORDER.join(' / ')} in ${DATACENTER}, checking every ${waitS}s — in stock now: ${inStock}`);
+        }
+    }
 }
 
 // ── The app's own [download] warnings, surfaced inline ───────────────────────
@@ -714,7 +749,8 @@ async function createPodWithRetry(spec, label, readyMs, attempts = 3, nextGpu = 
         }
         if (made && made.error) {
             log(`  ⚠ create refused: ${made.message || made.error}`);
-            if (!nextGpu || ++refusals > GPU_ORDER.length) {
+            // --wait: nextGpu waits for stock, so refusals are uncapped — each one is free.
+            if (!nextGpu || (!WAIT_S && ++refusals > GPU_ORDER.length)) {
                 die(`${label}: ${refusals > GPU_ORDER.length ? 'every preferred card refused a create' : 'create refused'} — ${made.message || made.error}`);
             }
             const g = await nextGpu(cur.gpuTypeId);
@@ -1783,143 +1819,149 @@ async function main() {
     log(`\n── Live run ──`);
     const volume = await ensureVolume(set.totalGb + flowNeeds.gbTotal);
 
-    // The CPU Pod is not an optimisation — it is what makes the installs below REMOTE.
-    // /comfy/models/download/start branches on remoteModels.isRemoteActive()
-    // (routes/downloadManager.js), and remote mode only goes active when a Pod is
-    // created (_afterPodCreated → setRemoteMode). With no Pod up, every POST in the
-    // loop takes the LOCAL branch and lands ~300 GB on the developer's own disk.
-    // A download Pod runs the wrapper only — `ready` is the whole signal; `comfyReady`
-    // never comes (no torch, no ComfyUI in the -cpu image). Measured: a healthy one
-    // answers in ~30s, and the user's standing observation is that a CPU Pod never takes
-    // longer than 5 minutes to connect. So 5 min is the ceiling, not a guess: past it the
-    // host is bad, not busy, and waiting longer only pays for a Pod that will never work.
-    const cpuSpec = { gpuTypeId: CPU_SENTINEL, volumeId: volume.id, datacenter: DATACENTER };
-    await createPodWithRetry(cpuSpec, 'CPU download Pod', 5 * 60 * 1000);
-    const mode = await app('/remote/mode');
-    if (!mode.active || !mode.podId) await abort('remote mode is not active after the CPU Pod came up — refusing to install, the deps would download LOCALLY.');
-    log(` remote mode active on ${mode.podId}`);
+    if (flag('skip-install')) {
+        // Everything is already on the volume, and the last run verified it. A CPU Pod here only
+        // re-confirms that, and its 1-4 min is long enough to lose a card that was in stock.
+        log(`  --skip-install: no CPU Pod; trusting the volume's last verified install`);
+    } else {
+        // The CPU Pod is not an optimisation — it is what makes the installs below REMOTE.
+        // /comfy/models/download/start branches on remoteModels.isRemoteActive()
+        // (routes/downloadManager.js), and remote mode only goes active when a Pod is
+        // created (_afterPodCreated → setRemoteMode). With no Pod up, every POST in the
+        // loop takes the LOCAL branch and lands ~300 GB on the developer's own disk.
+        // A download Pod runs the wrapper only — `ready` is the whole signal; `comfyReady`
+        // never comes (no torch, no ComfyUI in the -cpu image). Measured: a healthy one
+        // answers in ~30s, and the user's standing observation is that a CPU Pod never takes
+        // longer than 5 minutes to connect. So 5 min is the ceiling, not a guess: past it the
+        // host is bad, not busy, and waiting longer only pays for a Pod that will never work.
+        const cpuSpec = { gpuTypeId: CPU_SENTINEL, volumeId: volume.id, datacenter: DATACENTER };
+        await createPodWithRetry(cpuSpec, 'CPU download Pod', 5 * 60 * 1000);
+        const mode = await app('/remote/mode');
+        if (!mode.active || !mode.podId) await abort('remote mode is not active after the CPU Pod came up — refusing to install, the deps would download LOCALLY.');
+        log(` remote mode active on ${mode.podId}`);
 
-    // MPI-483: the ONLY moment free space is knowable — a Pod is up (so the wrapper's `du`
-    // answers) and nothing has been downloaded yet. `abort` deletes the live Pod on its way
-    // out, so refusing here costs the CPU Pod's few minutes instead of a 40-minute fill.
-    const disk = await app('/remote/pod/disk').catch(() => null);
-    const fit = volumeFitVerdict({
-        usedBytes: disk?.success ? disk.used : null,
-        totalBytes: disk?.success ? disk.total : null,
-        setBytes: (set.totalGb + flowNeeds.gbTotal) * GiB,
-        headroomBytes: FIT_MARGIN_GB * RP_GB,
-    });
-    log(`  ${fit.line}`);
-    if (!fit.ok) await abort(fit.why);
+        // MPI-483: the ONLY moment free space is knowable — a Pod is up (so the wrapper's `du`
+        // answers) and nothing has been downloaded yet. `abort` deletes the live Pod on its way
+        // out, so refusing here costs the CPU Pod's few minutes instead of a 40-minute fill.
+        const disk = await app('/remote/pod/disk').catch(() => null);
+        const fit = volumeFitVerdict({
+            usedBytes: disk?.success ? disk.used : null,
+            totalBytes: disk?.success ? disk.total : null,
+            setBytes: (set.totalGb + flowNeeds.gbTotal) * GiB,
+            headroomBytes: FIT_MARGIN_GB * RP_GB,
+        });
+        log(`  ${fit.line}`);
+        if (!fit.ok) await abort(fit.why);
 
-    /**
-     * Install the models ONE AT A TIME, each fully drained before the next.
-     *
-     * Not a pacing preference — POSTing all 13 at once is a load the product never
-     * generates (the model manager installs sequentially, MPI-184) and the Pod cannot
-     * survive it. Measured 2026-08-08: 63 concurrent wrapper installs starved a cpu3c
-     * download Pod into answering 524 to every request including /health, the install
-     * SSE died every 90s, and the fill flat-lined at ~97 GB while the app's counters
-     * froze at 82.9 GB. The Pod stayed RUNNING throughout, which is what makes the
-     * failure so easy to misread as progress.
-     *
-     * @returns {Promise<string[]>} model ids with a failed dep
-     */
-    const installModels = async (entries) => {
-        // ponytail: install via the app's normal per-model route. Same queue, same SSE, same
-        // code users hit — a bespoke bulk installer would be a second path to keep correct.
-        for (const [i, e] of entries.entries()) {
-            log(`\n  [${i + 1}/${entries.length}] ${e.model.id}`);
-            await app('/comfy/models/download/start', {
-                method: 'POST',
-                body: JSON.stringify({ modelId: e.model.id, dependencies: reg.resolveDeps(e.model, null, null, ENGINE, { arch: ARCH }).map(id => reg.DEPS[id]).filter(Boolean) }),
-            });
-            const done = await waitReady(`install ${e.model.id}`, installProbe(e.model.id),
-                3 * 60 * 60 * 1000, { soft: true, watchLog: true }).catch(() => false);
-
-            if (!done) {
-                // Recycle the Pod and re-POST once. aria2 resumes from the volume, so the
-                // bytes already down are not lost — a stall costs minutes, not the fill.
-                log(`\n  ⚠ ${e.model.id} stopped progressing — recycling the download Pod and retrying`);
-                await app('/remote/pod/delete-active', { method: 'POST' }).catch(() => { });
-                await sleep(5000);
-                await createPodWithRetry(cpuSpec, 'CPU download Pod', 5 * 60 * 1000);
+        /**
+         * Install the models ONE AT A TIME, each fully drained before the next.
+         *
+         * Not a pacing preference — POSTing all 13 at once is a load the product never
+         * generates (the model manager installs sequentially, MPI-184) and the Pod cannot
+         * survive it. Measured 2026-08-08: 63 concurrent wrapper installs starved a cpu3c
+         * download Pod into answering 524 to every request including /health, the install
+         * SSE died every 90s, and the fill flat-lined at ~97 GB while the app's counters
+         * froze at 82.9 GB. The Pod stayed RUNNING throughout, which is what makes the
+         * failure so easy to misread as progress.
+         *
+         * @returns {Promise<string[]>} model ids with a failed dep
+         */
+        const installModels = async (entries) => {
+            // ponytail: install via the app's normal per-model route. Same queue, same SSE, same
+            // code users hit — a bespoke bulk installer would be a second path to keep correct.
+            for (const [i, e] of entries.entries()) {
+                log(`\n  [${i + 1}/${entries.length}] ${e.model.id}`);
                 await app('/comfy/models/download/start', {
                     method: 'POST',
                     body: JSON.stringify({ modelId: e.model.id, dependencies: reg.resolveDeps(e.model, null, null, ENGINE, { arch: ARCH }).map(id => reg.DEPS[id]).filter(Boolean) }),
                 });
-                await waitReady(`install ${e.model.id} (retry)`, installProbe(e.model.id),
-                    3 * 60 * 60 * 1000, { watchLog: true });
+                const done = await waitReady(`install ${e.model.id}`, installProbe(e.model.id),
+                    3 * 60 * 60 * 1000, { soft: true, watchLog: true }).catch(() => false);
+
+                if (!done) {
+                    // Recycle the Pod and re-POST once. aria2 resumes from the volume, so the
+                    // bytes already down are not lost — a stall costs minutes, not the fill.
+                    log(`\n  ⚠ ${e.model.id} stopped progressing — recycling the download Pod and retrying`);
+                    await app('/remote/pod/delete-active', { method: 'POST' }).catch(() => { });
+                    await sleep(5000);
+                    await createPodWithRetry(cpuSpec, 'CPU download Pod', 5 * 60 * 1000);
+                    await app('/comfy/models/download/start', {
+                        method: 'POST',
+                        body: JSON.stringify({ modelId: e.model.id, dependencies: reg.resolveDeps(e.model, null, null, ENGINE, { arch: ARCH }).map(id => reg.DEPS[id]).filter(Boolean) }),
+                    });
+                    await waitReady(`install ${e.model.id} (retry)`, installProbe(e.model.id),
+                        3 * 60 * 60 * 1000, { watchLog: true });
+                }
             }
+            // Only THIS call's models. The app keeps every job of the session, so a failed Flow
+            // job from an earlier run (2026-09-28: flow:chatter-box) aborted a later run that
+            // never asked for it.
+            const mine = new Set([...entries].map(e => e.model.id));
+            const jobs = (await app('/comfy/downloads/status')).jobs || [];
+            return jobs.filter(j => mine.has(j.modelId))
+                .filter(j => (j.deps || []).some(d => d.status === 'failed' || d.status === 'error'))
+                .map(j => j.modelId);
+        };
+
+        // Swallow whatever [download] warnings app.log already holds, so the first
+        // poll reports THIS install and not the wreckage of the run before it.
+        await drainDownloadWarnings(false);
+        log(`  installing ${set.depIds.length} deps on a CPU Pod (download mode)…`);
+        let bad = await installModels(set);
+
+        // One retry round. The wrapper's install route can still 404 after /health goes
+        // green on a cold -cpu Pod, and remoteModels.wrapperFetch only spends ~30s on that
+        // window — on the first live run (2026-08-08) LTX lost all 12 deps to it while every
+        // later model, POSTed seconds afterwards, installed fine. A re-POST is what fixed it
+        // by hand, so the runner does it instead of failing a ~300 GB fill on a boot race.
+        if (bad.length) {
+            log(`\n  ⚠ ${bad.length} model(s) had a failed dep: ${bad.join(', ')} — one retry round…`);
+            const retry = [...set].filter(e => bad.includes(e.model.id));
+            bad = await installModels(retry);
         }
-        // Only THIS call's models. The app keeps every job of the session, so a failed Flow
-        // job from an earlier run (2026-09-28: flow:chatter-box) aborted a later run that
-        // never asked for it.
-        const mine = new Set([...entries].map(e => e.model.id));
-        const jobs = (await app('/comfy/downloads/status')).jobs || [];
-        return jobs.filter(j => mine.has(j.modelId))
-            .filter(j => (j.deps || []).some(d => d.status === 'failed' || d.status === 'error'))
-            .map(j => j.modelId);
-    };
 
-    // Swallow whatever [download] warnings app.log already holds, so the first
-    // poll reports THIS install and not the wreckage of the run before it.
-    await drainDownloadWarnings(false);
-    log(`  installing ${set.depIds.length} deps on a CPU Pod (download mode)…`);
-    let bad = await installModels(set);
+        // Playbook step 4: verify BEFORE renting a GPU. A weight that failed here and is
+        // only discovered at sampling time has already cost the expensive half of the run.
+        if (bad.length) await abort(`install failed after a retry for: ${bad.join(', ')}`);
 
-    // One retry round. The wrapper's install route can still 404 after /health goes
-    // green on a cold -cpu Pod, and remoteModels.wrapperFetch only spends ~30s on that
-    // window — on the first live run (2026-08-08) LTX lost all 12 deps to it while every
-    // later model, POSTed seconds afterwards, installed fine. A re-POST is what fixed it
-    // by hand, so the runner does it instead of failing a ~300 GB fill on a boot race.
-    if (bad.length) {
-        log(`\n  ⚠ ${bad.length} model(s) had a failed dep: ${bad.join(', ')} — one retry round…`);
-        const retry = [...set].filter(e => bad.includes(e.model.id));
-        bad = await installModels(retry);
+        // ── Flow model + dep installs (CPU Pod, same download mode) ──────────────
+        // Audio flows (voice-changer, chatter-box, stems, minimax-music, sound-and-music) have
+        // NO requiredModels and GBs of their own weights in requiredDeps. outpaint and others
+        // may need model + dep weights not in the model-matrix set. Install them here, before
+        // the GPU Pod is rented.
+        const alreadyInstalledModelIds = new Set(set.map(e => e.model.id));
+        const newFlowModels = flowNeeds.models.filter(m => !alreadyInstalledModelIds.has(m.id));
+        if (newFlowModels.length) {
+            log(`\n  installing ${newFlowModels.length} flow-required model(s)…`);
+            const flowModelEntries = newFlowModels.map(m => ({ model: m }));
+            const flowModelBad = await installModels(flowModelEntries);
+            if (flowModelBad.length) await abort(`flow model install failed: ${flowModelBad.join(', ')}`);
+        }
+        for (const de of flowNeeds.depEntries) {
+            log(`\n  installing flow deps [${de.flowId}]…`);
+            await app('/comfy/models/download/start', {
+                method: 'POST',
+                body: JSON.stringify({ modelId: de.installKey, dependencies: de.deps }),
+            });
+            await waitReady(`install ${de.installKey}`, installProbe(de.installKey),
+                3 * 60 * 60 * 1000, { watchLog: true });
+        }
+        if (flowNeeds.depEntries.length) {
+            const jobs = (await app('/comfy/downloads/status')).jobs || [];
+            const flowBad = jobs
+                .filter(j => flowNeeds.depEntries.some(de => de.installKey === j.modelId))
+                .filter(j => (j.deps || []).some(d => d.status === 'failed' || d.status === 'error'))
+                .map(j => j.modelId);
+            if (flowBad.length) await abort(`flow dep install failed: ${flowBad.join(', ')}`);
+        }
+
+        log(`  installs verified: no failed deps`);
+
+        // The GPU Pod mounts the same volume, so the CPU Pod has to go first.
+        log(`\n  deleting the CPU download Pod…`);
+        await app('/remote/pod/delete-active', { method: 'POST' }).catch(() => log('  ⚠ CPU Pod delete failed — check RunPod.'));
+        _podLive = false;
     }
-
-    // Playbook step 4: verify BEFORE renting a GPU. A weight that failed here and is
-    // only discovered at sampling time has already cost the expensive half of the run.
-    if (bad.length) await abort(`install failed after a retry for: ${bad.join(', ')}`);
-
-    // ── Flow model + dep installs (CPU Pod, same download mode) ──────────────
-    // Audio flows (voice-changer, chatter-box, stems, minimax-music, sound-and-music) have
-    // NO requiredModels and GBs of their own weights in requiredDeps. outpaint and others
-    // may need model + dep weights not in the model-matrix set. Install them here, before
-    // the GPU Pod is rented.
-    const alreadyInstalledModelIds = new Set(set.map(e => e.model.id));
-    const newFlowModels = flowNeeds.models.filter(m => !alreadyInstalledModelIds.has(m.id));
-    if (newFlowModels.length) {
-        log(`\n  installing ${newFlowModels.length} flow-required model(s)…`);
-        const flowModelEntries = newFlowModels.map(m => ({ model: m }));
-        const flowModelBad = await installModels(flowModelEntries);
-        if (flowModelBad.length) await abort(`flow model install failed: ${flowModelBad.join(', ')}`);
-    }
-    for (const de of flowNeeds.depEntries) {
-        log(`\n  installing flow deps [${de.flowId}]…`);
-        await app('/comfy/models/download/start', {
-            method: 'POST',
-            body: JSON.stringify({ modelId: de.installKey, dependencies: de.deps }),
-        });
-        await waitReady(`install ${de.installKey}`, installProbe(de.installKey),
-            3 * 60 * 60 * 1000, { watchLog: true });
-    }
-    if (flowNeeds.depEntries.length) {
-        const jobs = (await app('/comfy/downloads/status')).jobs || [];
-        const flowBad = jobs
-            .filter(j => flowNeeds.depEntries.some(de => de.installKey === j.modelId))
-            .filter(j => (j.deps || []).some(d => d.status === 'failed' || d.status === 'error'))
-            .map(j => j.modelId);
-        if (flowBad.length) await abort(`flow dep install failed: ${flowBad.join(', ')}`);
-    }
-
-    log(`  installs verified: no failed deps`);
-
-    // The GPU Pod mounts the same volume, so the CPU Pod has to go first.
-    log(`\n  deleting the CPU download Pod…`);
-    await app('/remote/pod/delete-active', { method: 'POST' }).catch(() => log('  ⚠ CPU Pod delete failed — check RunPod.'));
-    _podLive = false;
 
     // The two halves have very different risk: the fill is a $0.06/hr CPU Pod, the matrix
     // is a rented GPU that bills while nobody is watching. Splitting them lets the volume
@@ -1949,8 +1991,12 @@ async function main() {
     // 24GB today, so the hot-store half would stay silently correct while it drifted.
     const refused = [];
     let activeGpu = gpu;
+    // --min-ram: a deliberate MEASUREMENT of the (54, 80] H3 range above, never a default.
+    // 2026-09-28: EU-RO-1 had no 80 GB host on any GPU_ORDER card; Fabio chose a 61 GB 4090.
+    const minRamGb = Number(opt('min-ram')) || MIN_RAM_GB;
+    log(`  RAM floor: ${minRamGb} GB${minRamGb !== MIN_RAM_GB ? ` (--min-ram; proven floor is ${MIN_RAM_GB})` : ''}`);
     await createPodWithRetry(
-        { gpuTypeId: gpu.id, volumeId: volume.id, datacenter: DATACENTER, minMemoryInGb: MIN_RAM_GB },
+        { gpuTypeId: gpu.id, volumeId: volume.id, datacenter: DATACENTER, minMemoryInGb: minRamGb },
         'GPU Pod', 20 * 60 * 1000, 2,
         async (refusedId) => {
             refused.push(refusedId);
