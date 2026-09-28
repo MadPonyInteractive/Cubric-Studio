@@ -142,6 +142,26 @@ export function tradeTable(model, engine = null, userVramGb = null, variantToken
     return { rows, totalWeights, footprint, vramFloor: floor };
 }
 
+/**
+ * Can this machine run the model at all? VRAM at or above the table's floor, and system
+ * RAM covering what spills out of THAT VRAM — the machine's own point on the curve, not
+ * the nearest table row. The Library's "Fits my GPU" filter (MPI-967).
+ *
+ * No OS reserve, same as the table: this answers "can it possibly run", and the user's
+ * GPU is the limit, never a cap. Unknown VRAM (no GPU found) fits nothing; unknown RAM
+ * is not held against the model.
+ *
+ * Both totals round to the nearest GB first: a 16GB card reports ~15.99 and a 16GB box
+ * ~15.9, and a floor of 16 must not turn those away.
+ */
+export function fitsHardware(model, engine, vramGb, ramGb, variantTokens = {}) {
+    const vram = Math.round(vramGb || 0);
+    if (vram <= 0) return false;
+    const { totalWeights, vramFloor } = tradeTable(model, engine, null, variantTokens);
+    if (vram < vramFloor) return false;
+    return !(ramGb > 0) || Math.round(ramGb) >= ramNeededGb(totalWeights, vram);
+}
+
 // ── Self-check (node: `node js/data/modelConstants/footprint.js`) ──────────────
 // Asserts the formula reproduces the known-good LTX bf16 anchor and floor logic.
 export function demo() {

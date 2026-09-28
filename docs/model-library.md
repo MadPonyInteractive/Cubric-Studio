@@ -56,6 +56,12 @@ to run below the fit: both H3 cards set 12 against a 13.3 fit. An override off t
 own leading row and the ladder resumes above it. The footnote quotes the same floor the first row
 shows — before this they could disagree (Wan's footnote said `min 8GB` over a table starting at 16).
 
+**"Fits my GPU" reads the same curve (MPI-967).** The Hardware tag in both Libraries' filter bars
+keeps a model when `footprint.js` `fitsHardware()` passes: VRAM ≥ the floor above, and RAM ≥ the spill
+at the machine's OWN VRAM (not the nearest row). No OS reserve, same as the table. It judges this PC
+(`/system/stats`, local engine + arch), never a connected Pod. A Flow fits when every `requiredModels`
+slot has one candidate that fits. Cloud models ignore it, as they ignore Tier.
+
 ## Tile flags — `featured` and `deprecated` (2026-07-11, extended MPI-514)
 
 Two editorial per-model flags in `js/data/modelConstants/models.js`, both rendered into the same top-right stack on the tile thumb, both explained by the same hover popup. Static flags with no runtime state, so they are deliberately NOT in the render signature (nothing to churn). Flip them freely; no cap.

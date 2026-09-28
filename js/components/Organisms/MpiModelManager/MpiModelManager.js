@@ -25,7 +25,7 @@ import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { openExternal } from '../../../utils/openExternal.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
-import { tradeTable, sizeToGb } from '../../../data/modelConstants/footprint.js';
+import { tradeTable, sizeToGb, fitsHardware } from '../../../data/modelConstants/footprint.js';
 // MPI-853 — a cloud model's tile shows what it COSTS where a local model shows its
 // size, because that is the same question answered in the currency that applies.
 // `modelQuote` is the one tile quote, shared with the model picker (MPI-914).
@@ -119,6 +119,14 @@ export const MpiModelManager = ComponentFactory.create({
         // ── Live search query (name / dropdownMeta) ───────────────────────────
         let _searchQuery = '';
 
+        // ── Fits my GPU (MPI-967) — footprint.js fitsHardware against THIS PC ──
+        // The user's own card and RAM from /system/stats, never a connected Pod's:
+        // the tag asks what runs on "my GPU".
+        let _fitActive = false;
+        let _userRamGb = null;                // local box RAM (GB); from /system/stats
+        const _fitsMyGpu = m => fitsHardware(m, 'local', _userVramGb, _userRamGb,
+            { arch: remoteEngineClient.archSync('local') });
+
         // Tracks whether the app is connected to a cloud (RunPod) engine. Kept in
         // sync via the remote:connection event. (MPI-140)
         let _isRemote = false;
@@ -174,12 +182,14 @@ export const MpiModelManager = ComponentFactory.create({
             groups: [
                 { key: 'media', label: 'Media', options: [{ value: 'image', label: 'Image' }, { value: 'video', label: 'Video' }] },
                 { key: 'tier', label: 'Tier', options: TIER_ORDER.map(tier => ({ value: tier, label: TIER_WORD[tier] })) },
+                { key: 'fit', label: 'Hardware', options: [{ value: 'gpu', label: 'Fits my GPU' }] },
             ],
             searchPlaceholder: 'Search models…',
         });
         filterBar.on('change', ({ active, query }) => {
             _mediaActive = active.media;
             _filterActive = active.tier;
+            _fitActive = active.fit.has('gpu');
             _searchQuery = query;
             renderList({ force: true });
         });
@@ -1117,7 +1127,7 @@ export const MpiModelManager = ComponentFactory.create({
             }).join('||')
                 // MPI-215: filter/search state is part of the visible output — a filter
                 // change with no per-model change must still force a rebuild.
-                + `##media:${[..._mediaActive].sort().join(',')}##size:${[..._filterActive].sort().join(',')}##q:${_searchQuery}`
+                + `##media:${[..._mediaActive].sort().join(',')}##size:${[..._filterActive].sort().join(',')}##fit:${_fitActive ? 1 : 0}##q:${_searchQuery}`
                 // MPI-310 — plugin install + job state. Without this the row never
                 // repaints: the sig is built from MODELS only, so installing a plugin
                 // would leave the button reading "Install" until something unrelated
@@ -1452,7 +1462,8 @@ export const MpiModelManager = ComponentFactory.create({
                 || (m.dropdownMeta || '').toLowerCase().includes(_searchQuery);
             // MPI-853 — cloud models are sectioned separately below, so they are not
             // candidates for Installed/Available here.
-            const visible = MODELS.filter(m => !_isPaid(m) && passesSize(m) && passesMedia(m) && passesSearch(m));
+            const passesFit = m => !_fitActive || _fitsMyGpu(m);
+            const visible = MODELS.filter(m => !_isPaid(m) && passesSize(m) && passesMedia(m) && passesFit(m) && passesSearch(m));
 
             // A model is "installed" for sectioning when its installed flag is set OR
             // at least one op is installed OR an arch weight AND its common deps are on
@@ -1711,6 +1722,7 @@ export const MpiModelManager = ComponentFactory.create({
                 const data = await r.json();
                 const GB = 1024 ** 3;
                 if (data?.vram?.total > 0) _userVramGb = data.vram.total / GB;
+                if (data?.ram?.total > 0) _userRamGb = data.ram.total / GB;
                 renderList({ force: true }); // refresh table user-row highlight
             } catch { /* highlight just stays off — table still computes */ }
         }

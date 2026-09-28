@@ -13,7 +13,8 @@ import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
 import { getModelById, getModelDependencies, disambiguatedName, reSyncInstalledModels } from '../../../data/modelRegistry.js';
 import { downloadService } from '../../../services/downloadService.js';
-import { sizeToGb } from '../../../data/modelConstants/footprint.js';
+import { sizeToGb, fitsHardware } from '../../../data/modelConstants/footprint.js';
+import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
 import { DEPS } from '../../../data/modelConstants/dependencies.js';
 import { PAGE_GALLERY } from '../../../router.js';
@@ -202,7 +203,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // selection survives close → reopen with no restore step. An empty group means
         // "all"; a flow shows only when it matches EVERY group that has a selection, so
         // an "Other"-media flow drops out while Media is set.
-        let _filters = { media: new Set(), type: new Set() };
+        let _filters = { media: new Set(), type: new Set(), fit: new Set() };
         let _query = '';
         const filterBar = MpiFilterBar.mount(ce('div'), {
             groups: [
@@ -214,6 +215,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
                         { value: 'enhance', label: 'Enhance' },
                     ],
                 },
+                { key: 'fit', label: 'Hardware', options: [{ value: 'gpu', label: 'Fits my GPU' }] },
             ],
             searchPlaceholder: 'Search flows…',
         });
@@ -271,9 +273,35 @@ export const MpiFlowLibrary = ComponentFactory.create({
             refreshBtn.el.removeAttribute('loading');
         }
 
+        // ── Fits my GPU (MPI-967) — the Model Library's rule, per model slot ───
+        // A Flow fits when EVERY slot has a candidate that fits this PC: the models run
+        // one after another, so the biggest one decides, never their sum. This PC's
+        // VRAM + RAM from /system/stats, read once on first open.
+        let _vramGb = null;
+        let _ramGb = null;
+        let _hwFetched = false;
+        async function _fetchHardwareOnce() {
+            if (_hwFetched) return;
+            _hwFetched = true;
+            try {
+                const data = await (await fetch('/system/stats')).json();
+                const GB = 1024 ** 3;
+                if (data?.vram?.total > 0) _vramGb = data.vram.total / GB;
+                if (data?.ram?.total > 0) _ramGb = data.ram.total / GB;
+                if (_filters.fit.size) renderList();
+            } catch (err) {
+                clientLogger.warn('MpiFlowLibrary', 'hardware read failed; Fits my GPU shows nothing', err);
+            }
+        }
+        const _fitsMyGpu = flow => flowModelSlots(flow).every(({ models }) => models.some((id) => {
+            const model = getModelById(id);
+            return !!model && fitsHardware(model, 'local', _vramGb, _ramGb, { arch: remoteEngineClient.archSync('local') });
+        }));
+
         function _matchesFilters(flow) {
             if (_filters.media.size && !_filters.media.has(flow.mediaType)) return false;
             if (_filters.type.size && !_filters.type.has(flow.type)) return false;
+            if (_filters.fit.size && !_fitsMyGpu(flow)) return false;
             return !_query || `${flow.title} ${flow.description || ''}`.toLowerCase().includes(_query);
         }
 
@@ -1151,6 +1179,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
             backBtn.el.hidden = state.currentPage !== PAGE_GALLERY;
             overlay.el.show();
             renderList();
+            _fetchHardwareOnce();
         };
         el.close = () => { overlay.el.hide(); };
         el.onOpen = el.open;

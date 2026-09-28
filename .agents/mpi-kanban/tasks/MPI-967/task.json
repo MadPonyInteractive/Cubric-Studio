@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-967",
+  "title": "Fits my GPU filter in the Model and Flow libraries",
+  "description": "A filter tag that shows only the models and Flows whose VRAM floor and RAM need fit the active GPU and system RAM.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-09-28T12:39:30+01:00",
+  "updated_at": "2026-09-28T12:49:54+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
