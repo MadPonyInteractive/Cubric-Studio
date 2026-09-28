@@ -12,6 +12,12 @@
     justify-content: center;
 }
 
+/* The swatch takes the row; the Pick button (MPI-960) keeps its own width. */
+.mpi-tool-options-paint__color {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
 /* A class carrying `display` OUTRANKS the UA sheet's `[hidden] { display: none }` —
    the trap that put three inert slider rows on screen in MPI-382. Nothing in this
    panel hides by attribute today; the rule is here so that adding one cannot

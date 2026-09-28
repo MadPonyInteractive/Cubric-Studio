@@ -43,7 +43,10 @@ export const MpiToolOptionsPaint = ComponentFactory.create({
 
     template: () => `
         <div class="mpi-tool-options-paint">
-            <div class="mpi-tool-options-paint__row" id="color-slot"></div>
+            <div class="mpi-tool-options-paint__row">
+                <div class="mpi-tool-options-paint__color" id="color-slot"></div>
+                <div id="pick-slot"></div>
+            </div>
             <div class="mpi-tool-options-paint__row" id="commit-slot"></div>
             <div id="strip-slot"></div>
         </div>
@@ -70,6 +73,22 @@ export const MpiToolOptionsPaint = ComponentFactory.create({
             Events.emit('settings:tool:update', { toolKey: 'paint', key: 'color', value: hex });
         });
         _children.push(picker);
+
+        // Chromium's native eyedropper, the GIF cut-out's Pick (MPI-960). `setHex`
+        // emits 'change', so a picked colour takes the handler above.
+        if ('EyeDropper' in window) {
+            const pickBtn = MpiButton.mount(qs('#pick-slot', el), {
+                icon: 'eyedropper', label: 'Pick', size: 'sm', variant: 'secondary',
+                info: 'Pick the paint colour from the screen',
+            });
+            pickBtn.on('click', async () => {
+                try {
+                    const { sRGBHex } = await new window.EyeDropper().open();
+                    if (sRGBHex && el.isConnected) picker.el.setHex(sRGBHex);
+                } catch { /* the user pressed Escape */ }
+            });
+            _children.push(pickBtn);
+        }
 
         // ── Apply ────────────────────────────────────────────────────────────
         // Flattened SERVER-side onto the source and appended as one new history

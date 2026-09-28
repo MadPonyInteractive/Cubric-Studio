@@ -101,7 +101,10 @@ export const MpiToolOptionsMaskAdjust = ComponentFactory.create({
             <!-- Paint only, and REMOVED rather than [hidden] on the mask: a class
                  carrying a display rule outranks the UA sheet's [hidden], which is
                  exactly how the inert slider rows once reached the screen. -->
-            <div class="mpi-tool-options-mask-adjust__row" id="color-slot"></div>
+            <div class="mpi-tool-options-mask-adjust__row" id="color-row">
+                <div class="mpi-tool-options-mask-adjust__color" id="color-slot"></div>
+                <div id="pick-slot"></div>
+            </div>
             <div class="mpi-tool-options-mask-adjust__row" id="mode-slot"></div>
 
             <div class="mpi-tool-options-mask-adjust__slider-row" id="grow-row">
@@ -216,8 +219,24 @@ export const MpiToolOptionsMaskAdjust = ComponentFactory.create({
                 _schedule();
             });
             _children.push(picker);
+
+            // Chromium's native eyedropper, the GIF cut-out's Pick (MPI-960). `setHex`
+            // emits 'change', so a picked colour takes the handler above.
+            if ('EyeDropper' in window) {
+                const pickBtn = MpiButton.mount(qs('#pick-slot', el), {
+                    icon: 'eyedropper', label: 'Pick', size: 'sm', variant: 'secondary',
+                    info: 'Pick the ring and band colour from the screen',
+                });
+                pickBtn.on('click', async () => {
+                    try {
+                        const { sRGBHex } = await new window.EyeDropper().open();
+                        if (sRGBHex && el.isConnected) picker.el.setHex(sRGBHex);
+                    } catch { /* the user pressed Escape */ }
+                });
+                _children.push(pickBtn);
+            }
         } else {
-            qs('#color-slot', el)?.remove();
+            qs('#color-row', el)?.remove();
         }
 
         const _syncLabels = () => {

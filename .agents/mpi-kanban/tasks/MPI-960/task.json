@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-960",
+  "title": "Eyedropper Pick beside the colour picker in Remove Background, Paint and Paint Adjust",
+  "description": "The GIF cut-out By colour picker has an EyeDropper Pick button beside its swatch. Add the same to the image workspace's Remove Background (Color mode), Paint brush, and Paint Adjust colour pickers.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-09-28T10:13:21+01:00",
+  "updated_at": "2026-09-28T10:17:58+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -12,6 +12,12 @@
     justify-content: center;
 }
 
+/* The swatch takes the row; the Pick button (MPI-960) keeps its own width. */
+.mpi-tool-options-mask-adjust__color {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
 .mpi-tool-options-mask-adjust__slider-row {
     display: flex;
     flex-direction: column;
