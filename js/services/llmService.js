@@ -573,7 +573,7 @@ function enhancerGraph() {
  */
 export function withRemoteSettingsHint(code, message) {
     if (!code || code === 'BAD_REQUEST' || code === 'BAD_IMAGE') return message;
-    return `${message} Check Settings > Remote > Language Models.`;
+    return `${message} Check Remote > Language Models.`;
 }
 
 /**

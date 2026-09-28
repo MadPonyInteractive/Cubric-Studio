@@ -36,8 +36,8 @@ export const MpiNewProject = ComponentFactory.create({
                     <div id="location-slot"></div>
                     <div id="browse-slot"></div>
                 </div>
-                <!-- Real on-disk path, not a display name: routes/shared.js heals Documents/Cubric Vision -> Cubric Studio only on app major >= 2. Flip this with that gate. -->
-                <div class="mpi-new-project__hint">Leave blank to use the default Documents/Cubric Vision/Projects folder.</div>
+                <!-- Names no folder on purpose: routes/shared.js _getDocumentsFolder picks Documents/Cubric Vision or Cubric Studio by app major AND what is on disk. -->
+                <div class="mpi-new-project__hint">Leave blank to use the default Projects folder in your Documents.</div>
             </div>
             <div class="mpi-new-project__actions" id="actions-slot"></div>
         </div>

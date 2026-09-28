@@ -421,7 +421,7 @@ export const HOTKEY_REGISTRY = [
         type:             KEY_TYPE.DOWN,
         category:         'radialMenu',
         scopeLabel:       'Radial Menu',
-        description:      'Hold for Gallery, Projects, Flows and your latest workspace',
+        description:      'Hold for Gallery, Models, Flows and your latest workspace',
         allowWhileTyping: false,
         when: ({ state }) =>
             (state.currentPage === 'gallery' || state.currentPage === 'group-history') &&

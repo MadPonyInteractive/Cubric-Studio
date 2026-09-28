@@ -1,0 +1,19 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/data/modelConstants/models.js",
+    "services/agentLoop.mjs",
+    "js/components/Compounds/MpiNewProject/MpiNewProject.js",
+    "js/managers/hotkeyRegistry.js",
+    "js/services/cloudExecutor.js",
+    "js/components/Organisms/MpiModelManager/MpiModelManager.js",
+    "js/services/llmService.js",
+    "routes/llm.js",
+    "tests/llm-service.test.cjs",
+    "js/components/Organisms/MpiVideoControlBar/MpiVideoControlBar.js",
+    "docs/playbooks/add-flow/README.md",
+    "js/data/flowsRegistry.js",
+    "js/services/generationService.js",
+    "docs/toasts.md"
+  ]
+}

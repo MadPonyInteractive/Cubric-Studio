@@ -195,7 +195,7 @@ export const MpiVideoControlBar = ComponentFactory.create({
         if (_showFrames) framesToggleBtn.el.classList.add('is-active');
 
         const loopBtn  = MpiButton.mount(qs('[data-mount="loop"]', el),       { icon: 'loop', size: 'sm', info: 'Loop (L)' });
-        const fsBtn    = MpiButton.mount(qs('[data-mount="fullscreen"]', el), { icon: 'fullscreen', size: 'sm', info: 'Fullscreen (F)' });
+        const fsBtn    = MpiButton.mount(qs('[data-mount="fullscreen"]', el), { icon: 'fullscreen', size: 'sm', info: 'Fullscreen' });
 
         // The same mute + vertical volume flyout MpiAudioPlayer mounts (MPI-731). It
         // owns no media: it reports gestures, volumechange reports back.

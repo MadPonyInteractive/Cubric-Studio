@@ -1,7 +1,7 @@
 /**
  * flowsRegistry.js — Source of truth for Flows (outcome flows, MPI-256).
  *
- * A Flow is an outcome-oriented workflow surfaced behind the dev-gated Flow Library
+ * A Flow is an outcome-oriented workflow surfaced in the Flow Library
  * overlay: pick a flow → open its overlay → collect inputs → Run → the job enters
  * the EXISTING generation queue and lands as a normal gallery card.
  *
@@ -15,7 +15,7 @@
  * Both gate the SAME badge and the SAME Run guard — a missing dep blocks exactly like a
  * missing model, and surfaces as one extra row in the slide-over's required list.
  *
- * Flow count is tiny (dev-gated until ≥4 flows exist), so the descriptor array lives
+ * Flow count is small (the dev-gate came off in MPI-589), so the descriptor array lives
  * inline here rather than in a separate flowConstants/ file. Split it out only if the
  * array grows large enough to warrant it.
  *

@@ -882,7 +882,7 @@ export const MpiModelManager = ComponentFactory.create({
                     </div>
                     <div class="mpi-detail__disk-split">${hasCloudKey()
                         ? 'Runs in the cloud — no GPU, no download, nothing kept on this machine but the picture.'
-                        : 'Save a DeepInfra key in Settings → Remote → Language Models to use this model.'}</div>
+                        : 'Save a DeepInfra key in Remote → Language Models to use this model.'}</div>
                 </div>` : `
                 <div id="detail-vram"></div>
                 <div class="mpi-detail__field">
@@ -1410,7 +1410,7 @@ export const MpiModelManager = ComponentFactory.create({
                 className: 'mpi-model-library__paid-note',
                 textContent: hasCloudKey()
                     ? 'These run at DeepInfra on your own key — nothing downloads, and DeepInfra bills you directly for what you use.'
-                    : 'These run at DeepInfra on your own key. Save one in Settings → Remote → Language Models to use them; DeepInfra bills you directly for what you use.',
+                    : 'These run at DeepInfra on your own key. Save one in Remote → Language Models to use them; DeepInfra bills you directly for what you use.',
             });
             bodySlot.appendChild(note);
 

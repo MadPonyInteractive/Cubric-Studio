@@ -312,7 +312,7 @@ router.post('/llm/enhance', async (req, res) => {
             const model = (typeof modelId === 'string' && modelId) || recommendedModel(profileId, 'enhance');
             if (!model) {
                 return res.json({ ok: false, error: { code: 'BAD_REQUEST',
-                    message: 'No enhancement model is picked for this connection. Pick one in Settings > Remote > Language Models.' } });
+                    message: 'No enhancement model is picked for this connection. Pick one in Remote > Language Models.' } });
             }
             try {
                 // The Ollama connection goes native, as describe does (MPI-912).
@@ -477,7 +477,7 @@ router.post('/llm/describe', async (req, res) => {
     const model = modelId || recommendedModel(profileId, 'describe');
     if (!model) {
         return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST',
-            message: 'No image-description model is picked for this connection. Pick one in Settings > Remote > Language Models.' } });
+            message: 'No image-description model is picked for this connection. Pick one in Remote > Language Models.' } });
     }
 
     // ── Read and pre-process the image ───────────────────────────────────────

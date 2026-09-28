@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-972", "at": "2026-09-29T00:25:18+01:00", "actor": "claude", "column": "todo", "title": "2.0 copy the docs contradict: six in-app strings still describe 1.x or the wrong place"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-972", "at": "2026-09-29T00:53:34+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fix the six 2.0 strings the docs rewrite flagged"}

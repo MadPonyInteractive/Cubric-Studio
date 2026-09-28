@@ -6,7 +6,7 @@
 >
 > Enforced by the `/mpi-add-flow` skill. A handoff assumes this playbook — it does not replace it.
 >
-> A Flow is an OVERLAY, not a workspace: a dev-gated **Flow Library** lists flows; opening one
+> A Flow is an OVERLAY, not a workspace: a **Flow Library** lists flows; opening one
 > shows a **Flow overlay** that collects inputs and runs a workflow through the EXISTING
 > generation queue — the result lands as normal gallery card(s). Workspaces stay
 > **Landing / Gallery / History**; never call the Flow Library or a Flow a workspace.
@@ -129,8 +129,8 @@ Flow-specific additions:
 
 - **All flow-touched input/output nodes are path-reading + self-gating.** Don't reintroduce
   input-dir `LoadImage`/`LoadAudio` — they can't self-gate and need upload-name injection.
-- Dev-gate (`APP_CONFIG.dev_mode = BUILD_HASH === 'dev'`) stays until **≥4 flows** exist (user
-  decision). A staged (non-dev) build hides both entry points automatically.
+- The Flow Library is a user route: MPI-589 lifted the old dev-gate once five flows shipped
+  with their art. A new flow is visible in every build the moment it is registered.
 
 ## Checklist (copy per flow)
 

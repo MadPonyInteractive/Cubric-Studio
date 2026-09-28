@@ -1629,7 +1629,7 @@ export class AgentLoop {
                 ? `Mode: Auto. Proceed when the goal is clear without asking about settings. For images: use turbo: true where the op offers it. For video: use qualityTier 'medium' and turbo: true where the op offers them.`
                 : `Mode: Ask first. Before any generate, ask the user which settings they want (quality, turbo, ratio, style, where the op offers them) and end your reply there; generate only after they answer. A setting a guide recommends is a suggestion to offer, not permission to skip the question.`;
 
-        return `You are Cosmo, a helpful assistant built into Cubric Vision, a desktop AI image and video tool.
+        return `You are Cosmo, a helpful assistant built into Cubric Studio, a desktop AI image and video tool.
 
 ${modeRules}
 
@@ -1657,7 +1657,7 @@ Duration rule: a clip defaults to 2 to 3 seconds: ONE continuous action fits. On
 
 Numbering rule: "picture 2", "image 2" or "2" in a message means that message's attached image 2, never an image from an earlier turn. Pass that attachment's id.
 
-Looking rule: before you comment on, judge or describe any image, call look on it. look takes only a ref the App state line lists; it cannot open a folder or a path. If the describer refuses, say so and suggest the local ComfyUI describer (Settings > Remote > Language Models).
+Looking rule: before you comment on, judge or describe any image, call look on it. look takes only a ref the App state line lists; it cannot open a folder or a path. If the describer refuses, say so and suggest the local ComfyUI describer (Remote > Language Models).
 
 Shape rule: a generation from a picture crops it to the ratio, never letterboxes. Leave ratio out and the picture's own shape is used; only when the user asks for a ratio, say in one line before you generate that part of the picture will be cropped.
 
@@ -2353,17 +2353,17 @@ ${knowledgeIndex}`.trim();
             // Resolve the shared connection, then the agent's model on it
             const { profile, key } = await this._resolveEndpoint(profileId);
             if (!profile) {
-                this._emit('agent:error', { turnId, code: 'NO_PROFILE', message: 'Connection not found. Pick one in Settings → Remote → Language Models.' });
+                this._emit('agent:error', { turnId, code: 'NO_PROFILE', message: 'Connection not found. Pick one in Remote → Language Models.' });
                 return;
             }
             // Ollama /v1 is keyless: the same exemption `routes/llm.js` makes.
             if (!key && profileId !== 'ollama') {
-                this._emit('agent:error', { turnId, code: 'NO_KEY', message: 'No API key for this connection. Add one in Settings → Remote → Language Models.' });
+                this._emit('agent:error', { turnId, code: 'NO_KEY', message: 'No API key for this connection. Add one in Remote → Language Models.' });
                 return;
             }
             const model = this._resolveModel(profileId, pickedModel);
             if (!model) {
-                this._emit('agent:error', { turnId, code: 'NO_MODEL', message: 'No agent model picked for this connection. Pick one in Settings → Remote → Language Models.' });
+                this._emit('agent:error', { turnId, code: 'NO_MODEL', message: 'No agent model picked for this connection. Pick one in Remote → Language Models.' });
                 return;
             }
             this._contextWindow = await this._contextWindowFor(profileId, model, profile, key);

@@ -59,8 +59,8 @@ export const sendWindow = { ms: 3000 };
 
 /** Provider error codes the route can return, mapped to copy a user can act on. */
 const ERROR_COPY = {
-    NO_KEY: 'No DeepInfra key is saved. Add one in Settings → Remote → Language Models, and cloud models will work everywhere in the app.',
-    NO_PROFILE: 'The DeepInfra connection is missing its address. Re-pick DeepInfra in Settings → Remote → Language Models.',
+    NO_KEY: 'No DeepInfra key is saved. Add one in Remote → Language Models, and cloud models will work everywhere in the app.',
+    NO_PROFILE: 'The DeepInfra connection is missing its address. Re-pick DeepInfra in Remote → Language Models.',
     // HTTP 402 means an empty balance OR a hit monthly limit (MPI-869, measured) — name both.
     NO_CREDIT: 'DeepInfra rejected the charge: either your balance is empty or you have reached the monthly spending limit you set. Top up or raise the limit at deepinfra.com — nothing was generated and nothing was billed.',
     CONTENT_FILTERED: 'The model refused this prompt or image. It is the provider\'s own filter, not a fault here — try another model or reword the prompt. Refused calls are not billed.',

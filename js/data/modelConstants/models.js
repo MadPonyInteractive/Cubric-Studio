@@ -1048,7 +1048,7 @@ const ALL_MODELS = [
             'klein-style-doodle.webp', 'klein-style-vintage.webp', 'klein-style-aesthetic.webp',
         ],
         gen_speed: 'fast',
-        description: 'The fastest image model in Cubric Studio, and the only one that can REMOVE things — mask an object, run Inpaint with the prompt left empty, and it is gone in about four seconds. Apache-2.0 and only 4B, so it runs where the big models will not. Generate from text, reshape an image, follow a depth reference, edit with up to three reference images, detail and upscale — all with eight style LoRAs available on every operation. Quality is modest next to Krea 2; this one is built for speed and for cleaning images up.',
+        description: 'The fastest image model in Cubric Studio, and the quickest way to REMOVE things — mask an object, run Inpaint with an instruction that names it ("remove the tattoo"), and it is gone in seconds. Apache-2.0 and only 4B, so it runs where the big models will not. Generate from text, reshape an image, follow a depth reference, edit with up to three reference images, detail and upscale — all with eight style LoRAs available on every operation. Quality is modest next to Krea 2; this one is built for speed and for cleaning images up.',
         workflows: {
             // ONE file for all seven ops — the branch is chosen by opInject above.
             t2i:           'klein_t2i.json',

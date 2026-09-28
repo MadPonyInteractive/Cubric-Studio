@@ -34,13 +34,14 @@ import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { ce } from '../utils/dom.js';
 import { collapseQueueBatches } from './generationBatch.js';
 
-// ── Cue queue (in-app, TWO-LANE dispatch) ───────────────────────────────────
-// We own the pending array. MPI-74 P6: there are now TWO dispatch lanes — a
-// 'remote' lane (cloud Pod) and a 'local' lane (local ComfyUI, the per-gen "Run
-// locally" toggle). Each lane runs AT MOST one prompt at a time (so neither
-// engine's Comfy queue grows past 1, preserving the static-filename + asset-
-// upload race protection per engine), but the two lanes run CONCURRENTLY: a
-// local gen no longer waits behind a running cloud gen. The pending `_cueQueue`
+// ── Cue queue (in-app, THREE-LANE dispatch) ─────────────────────────────────
+// We own the pending array. MPI-74 P6 split dispatch into a 'remote' lane (cloud
+// Pod) and a 'local' lane (local ComfyUI, the per-gen "Run locally" toggle);
+// MPI-851 added a third, 'cloud' (DeepInfra, no ComfyUI — see _lanes). Each
+// lane runs AT MOST one prompt at a time (so neither engine's Comfy queue grows
+// past 1, preserving the static-filename + asset-upload race protection per
+// engine), but the lanes run CONCURRENTLY: a local gen never waits behind a
+// running Pod or DeepInfra gen. The pending `_cueQueue`
 // is a single array; each job carries a lane tag and the dispatcher fills any
 // idle lane with the next pending job for that lane.
 //
