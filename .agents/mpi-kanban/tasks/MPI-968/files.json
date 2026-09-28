@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["routes/connector.js", "tests/connector-model-fit.test.cjs", ".claude/skills/cubric-vision-generate/SKILL.md"] }

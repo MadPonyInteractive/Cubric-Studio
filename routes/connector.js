@@ -83,6 +83,7 @@ const { findModelDef, resolveNamedParams, isValidSeed } = require('../js/data/ge
 const { opPriority } = require('../js/data/modelConstants/modelPriority.js');
 const { isRemoteActive } = require('./remoteModels');
 const { resolveDownloadConfig } = require('./platformEngine');
+const { gpuArch } = require('../js/data/modelConstants/gpuArch.js');
 const { checkOnline } = require('./netCheck');
 // sharp is an optional peer during testing — guard against it being absent so
 // unit tests that do not exercise image crop can still import this module.
@@ -181,6 +182,8 @@ function _nvidiaSmiVram() {
  * Fetch hardware info for the active engine.
  * Local: GPU from resolveDownloadConfig + nvidia-smi VRAM + os.totalmem.
  * Remote: pod specs via GET /remote/pod/specs on loopback.
+ * `arch` is the resolver's variant token for that GPU (MPI-200), the one the renderer's
+ * `remoteEngineClient.archSync` gives; null unions the arch variants (conservative).
  */
 async function _getHardwareInfo() {
     const port = Number(process.env.CUBRIC_PORT) || 3000;
@@ -193,6 +196,7 @@ async function _getHardwareInfo() {
                     gpuName: d.gpuName || null,
                     vramGb: typeof d.vramGb === 'number' ? d.vramGb : null,
                     ramGb: typeof d.ramGb === 'number' ? d.ramGb : Math.round(os.totalmem() / (1024 ** 3)),
+                    arch: gpuArch(d.gpuName || null),
                 };
             }
         } catch (_) { /* fall through to local */ }
@@ -205,8 +209,31 @@ async function _getHardwareInfo() {
         gpuName: cfg?.gpu?.name || null,
         vramGb,
         ramGb: Math.round(os.totalmem() / (1024 ** 3)),
+        arch: cfg?.gpu?.arch || null,
     };
 }
+
+/**
+ * A model's `fit` on this machine (MPI-968). `runs` is the Library's "Fits my GPU" rule
+ * (`fitsHardware`): VRAM at or above the floor AND RAM covering the spill at the
+ * machine's OWN VRAM. It was the table's nearest row, which is flagged whenever a VRAM is
+ * known, so every model read `runs: true` and MPI-916's best/runsHere skip never fired.
+ * A cloud model (`provider`) has no weights to fit anywhere, so it gets no fit at all,
+ * as the Library's filter ignores it; a floor of 8 would call it `runsHere: false` on a
+ * small card.
+ */
+function modelFit(fp, model, engine, hw) {
+    if (model.provider) return null;
+    const tokens = { arch: hw.arch || null };
+    const { totalWeights, vramFloor } = fp.tradeTable(model, engine, null, tokens);
+    const vram = Math.round(hw.vramGb || 0);
+    return {
+        floorVramGb: vramFloor,
+        ramGbAtYourVram: vram > 0 ? fp.ramNeededGb(totalWeights, vram) : null,
+        runs: fp.fitsHardware(model, engine, hw.vramGb, hw.ramGb, tokens),
+    };
+}
+router.modelFit = modelFit;
 
 // ── Coordinate mapping (MPI-774) ───────────────────────────────────────────────
 
@@ -835,7 +862,7 @@ router.post('/connector/jobs/:id/result', (req, res) => {
  * GET /connector/models
  *
  * Returns the full model + flow catalogue with install state (from the renderer),
- * hardware fit (from footprint.js tradeTable), and the download size of any
+ * hardware fit (`modelFit`), and the download size of any
  * missing deps. Errors: APP_UNAVAILABLE.
  */
 router.get('/connector/models', async (req, res) => {
@@ -859,32 +886,22 @@ router.get('/connector/models', async (req, res) => {
     [guideIds, registry] = await Promise.all([_getGuideIds(), _getCommandRegistry()]);
   } catch (err) { logger.warn('connector', `guide ids or media roles unavailable: ${err.message}`); }
 
-  const { tradeTable, sizeToGb } = fp || {};
-
   const models = (rawModels || []).map(m => {
     let fit = null;
     let missingDownloadGb = 0;
 
-    if (tradeTable && sizeToGb && DEPS) {
-      // Find the full ModelDef so tradeTable can read its weight sizes.
+    if (fp && DEPS) {
+      // Find the full ModelDef so the fit can read its weight sizes.
       // Dynamic import of MODELS would be cleaner but costs ~200ms; look it up by
       // matching the id from the renderer's slim entry.
       try {
         const modelDef = findModelDef(m.id);
-        if (modelDef) {
-          const table = tradeTable(modelDef, engine || null, hardware.vramGb);
-          const userRow = table.rows.find(r => r.isUserRow) || table.rows[0];
-          fit = {
-            floorVramGb: table.vramFloor,
-            ramGbAtYourVram: userRow ? userRow.ram : null,
-            runs: userRow ? userRow.isUserRow : false,
-          };
-        }
+        if (modelDef) fit = modelFit(fp, modelDef, engine || null, hardware);
       } catch (_) { /* no fit */ }
 
       missingDownloadGb = (m.missingDepIds || []).reduce((sum, id) => {
         const dep = DEPS[id];
-        return sum + (dep?.size ? sizeToGb(dep.size) : 0);
+        return sum + (dep?.size ? fp.sizeToGb(dep.size) : 0);
       }, 0);
     }
 
@@ -918,7 +935,8 @@ router.get('/connector/models', async (req, res) => {
   // reply hid them from the agent (Fabio live, 2026-09-27: the upscale still went to Krea 2).
   const tools = (listResult.output?.tools || []).map((t) => ({ ...t, ...(opPriority('', t.op) || {}) }));
 
-  res.json({ ok: true, engine: engine || 'local', hardware, models, flows: flowList, tools });
+  const { arch: _arch, ...hardwareOut } = hardware;   // arch only feeds the fit
+  res.json({ ok: true, engine: engine || 'local', hardware: hardwareOut, models, flows: flowList, tools });
 });
 
 /**

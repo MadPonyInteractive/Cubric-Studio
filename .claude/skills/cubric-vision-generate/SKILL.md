@@ -267,7 +267,7 @@ it. Use `/connector/generate`.
 
 ## Agent tool routes (MPI-774)
 
-`GET /connector/models` — `{ ok, engine, hardware: {gpuName,vramGb,ramGb}, models, flows }`. Each model has `installed`, `ops` (each with its named `params` — including `tierSizes`, `{tier: {ratio: "WxH"}}`, the real output pixels behind each `qualityTier` name, see § Resolutions — and `media`: the `media[].role` values that op takes for that model, `tag` where a prompt cites the slot), `missingDownloadGb`, `fit: {floorVramGb, ramGbAtYourVram, runs}`, and `guides` (knowledge ids of its prompting guide: read one before writing a prompt for that model). Requires a Vision window (`APP_UNAVAILABLE` otherwise).
+`GET /connector/models` — `{ ok, engine, hardware: {gpuName,vramGb,ramGb}, models, flows }`. Each model has `installed`, `ops` (each with its named `params` — including `tierSizes`, `{tier: {ratio: "WxH"}}`, the real output pixels behind each `qualityTier` name, see § Resolutions — and `media`: the `media[].role` values that op takes for that model, `tag` where a prompt cites the slot), `missingDownloadGb`, `fit: {floorVramGb, ramGbAtYourVram, runs}` (`runs`: this machine's VRAM reaches the floor AND its RAM covers the spill at that VRAM, the Model Library's "Fits my GPU" rule; unknown VRAM runs nothing; `ramGbAtYourVram` is the spill at this machine's own VRAM, null when unknown; judged against the Pod when remote; absent on a cloud model), and `guides` (knowledge ids of its prompting guide: read one before writing a prompt for that model). Requires a Vision window (`APP_UNAVAILABLE` otherwise).
 
 `GET /connector/knowledge` — corpus index `{ ok, entries: [{id,kind,title,tags}] }`. `GET /connector/knowledge/:id` — one entry with `text`. Error: `UNKNOWN_ENTRY`.
 
