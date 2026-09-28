@@ -119,13 +119,17 @@ export const MpiModelManager = ComponentFactory.create({
         // ── Live search query (name / dropdownMeta) ───────────────────────────
         let _searchQuery = '';
 
-        // ── Fits my GPU (MPI-967) — footprint.js fitsHardware against THIS PC ──
-        // The user's own card and RAM from /system/stats, never a connected Pod's:
-        // the tag asks what runs on "my GPU".
+        // ── Fits my GPU (MPI-967) — footprint.js fitsHardware on the ACTIVE GPU ──
+        // The same GPU the trade table highlights: this PC, or the connected Pod with
+        // the remote engine's weights. On a Pod it is the only way to see what the
+        // rented card runs. A Pod still connecting (or a no-GPU download Pod) has no
+        // VRAM, so nothing fits until it is live.
         let _fitActive = false;
         let _userRamGb = null;                // local box RAM (GB); from /system/stats
-        const _fitsMyGpu = m => fitsHardware(m, 'local', _userVramGb, _userRamGb,
-            { arch: remoteEngineClient.archSync('local') });
+        let _remoteRamGb = null;              // connected Pod RAM (GB); from remote:connection
+        const _activeRamGb = () => (_isRemote ? _remoteRamGb : _userRamGb);
+        const _fitsMyGpu = m => fitsHardware(m, _engine(), _activeVramGb(), _activeRamGb(),
+            { arch: remoteEngineClient.archSync(_engine()) });
 
         // Tracks whether the app is connected to a cloud (RunPod) engine. Kept in
         // sync via the remote:connection event. (MPI-140)
@@ -1520,16 +1524,20 @@ export const MpiModelManager = ComponentFactory.create({
         // visibility on active download cards (MPI-140) and the trade-table GPU
         // highlight (MPI-168). The event carries the Pod's VRAM/RAM (GB) + phase —
         // the same payload the status-bar memory monitor consumes. Re-render when ANY
-        // of connected / phase / vramGb moves (not just connected), so the highlight
-        // switches local↔Pod the moment a Pod goes live or drops.
-        _unsubs.push(Events.on('remote:connection', ({ connected = false, phase = null, vramGb = null } = {}) => {
+        // of connected / phase / vramGb / ramGb moves (not just connected), so the highlight
+        // and the Fits my GPU filter (MPI-967) switch local↔Pod the moment a Pod goes
+        // live or drops.
+        _unsubs.push(Events.on('remote:connection', ({ connected = false, phase = null, vramGb = null, ramGb = null } = {}) => {
             const nextRemote = !!connected;
             const nextPhase = phase || null;
             const nextVram = Number.isFinite(Number(vramGb)) && Number(vramGb) > 0 ? Number(vramGb) : null;
-            if (nextRemote === _isRemote && nextPhase === _remotePhase && nextVram === _remoteVramGb) return;
+            const nextRam = Number.isFinite(Number(ramGb)) && Number(ramGb) > 0 ? Number(ramGb) : null;
+            if (nextRemote === _isRemote && nextPhase === _remotePhase && nextVram === _remoteVramGb
+                && nextRam === _remoteRamGb) return;
             _isRemote = nextRemote;
             _remotePhase = nextPhase;
             _remoteVramGb = nextVram;
+            _remoteRamGb = nextRam;
             renderList({ force: true });
             // MPI-179: the remoteEngineClient mirror refreshes async on this same
             // event; the render above may still have read the old engine. Re-sync

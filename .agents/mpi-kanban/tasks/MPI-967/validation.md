@@ -23,7 +23,25 @@ With `/system/stats` stubbed to the photographer tester's box (12 GB VRAM, 15.9 
 
 The age gate on the fresh isolated profile was not clicked through; the libraries were opened from page JS behind it.
 
+## Round 2: follows the connected Pod (Fabio, 2026-09-28)
+
+Fabio: label and placement are fine; the filter must judge the connected GPU, since on a rented Pod it is the only way to see what that card runs.
+
+Model Library reuses `_activeVramGb()` plus a new `_activeRamGb()` (Pod RAM off `remote:connection`), `_engine()` and its arch. Flow Library gained its own `remote:connection` listener; the shell feed re-emits every tick, so a library first opened after the connect catches up.
+
+Live, isolated instance port 65398, local stubbed to 12 GB / 15.9 GB, then `remote:connection` emitted by hand:
+
+| active GPU | Models (of 36) | Flows (of 15) |
+|---|---|---|
+| this PC 12/16 | 28 | 12 |
+| Pod 48 GB / 62 GB RAM | 36 | - |
+| Pod 24 / 31 | 35 (LTX 2.3 hidden, matches offline) | 15 |
+| Pod 16 / 24 | - | 12 (the three LTX Flows hidden) |
+| connecting | 28 (local, same as the table) | - |
+| disconnected | 28 | 12 |
+
+Lint clean on both components; `fitsHardware` itself unchanged, so `tests/footprint-fit.test.cjs` still covers the rule.
+
 ## Open
 
-- Fabio: label and placement ("Hardware" group, "Fits my GPU" tag), and whether it should follow a connected Pod (it judges this PC only).
-- Flagged, not fixed: `routes/connector.js` `/connector/models` sets `fit.runs` from the NEAREST table row, so it is true for every model whenever VRAM is known. `services/agentLoop.mjs` `compactCatalogue` reads it for `best` and `runsHere`.
+- Handed to MPI-968 (Fabio started it 2026-09-28): `routes/connector.js` `/connector/models` sets `fit.runs` from the NEAREST table row, so it is true for every model whenever VRAM is known. `services/agentLoop.mjs` `compactCatalogue` reads it for `best` and `runsHere`.

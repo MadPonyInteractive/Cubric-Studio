@@ -58,9 +58,11 @@ shows — before this they could disagree (Wan's footnote said `min 8GB` over a 
 
 **"Fits my GPU" reads the same curve (MPI-967).** The Hardware tag in both Libraries' filter bars
 keeps a model when `footprint.js` `fitsHardware()` passes: VRAM ≥ the floor above, and RAM ≥ the spill
-at the machine's OWN VRAM (not the nearest row). No OS reserve, same as the table. It judges this PC
-(`/system/stats`, local engine + arch), never a connected Pod. A Flow fits when every `requiredModels`
-slot has one candidate that fits. Cloud models ignore it, as they ignore Tier.
+at the machine's OWN VRAM (not the nearest row). No OS reserve, same as the table. It judges the
+ACTIVE GPU, like the table's highlight: this PC (`/system/stats`), or a connected Pod (`remote:connection`
+VRAM/RAM, remote engine + arch). On a Pod it is the only way to see what the rented card runs (Fabio,
+2026-09-28). A Pod still connecting fits nothing. A Flow fits when every `requiredModels` slot has one
+candidate that fits. Cloud models ignore it, as they ignore Tier.
 
 ## Tile flags — `featured` and `deprecated` (2026-07-11, extended MPI-514)
 

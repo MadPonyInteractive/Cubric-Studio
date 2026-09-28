@@ -274,11 +274,21 @@ export const MpiFlowLibrary = ComponentFactory.create({
         }
 
         // ── Fits my GPU (MPI-967) — the Model Library's rule, per model slot ───
-        // A Flow fits when EVERY slot has a candidate that fits this PC: the models run
-        // one after another, so the biggest one decides, never their sum. This PC's
-        // VRAM + RAM from /system/stats, read once on first open.
+        // A Flow fits when EVERY slot has a candidate that fits the active GPU: the models
+        // run one after another, so the biggest one decides, never their sum. This PC's
+        // VRAM + RAM from /system/stats, read once on first open — or, while a Pod is
+        // connected, the Pod's, with the remote engine's weights (the Model Library's
+        // `_activeVramGb`). The feed re-emits every tick, so a library first opened after
+        // the connect catches up on the next one. A Pod still connecting has no VRAM.
         let _vramGb = null;
         let _ramGb = null;
+        let _pod = null;                      // { vramGb, ramGb } while a Pod is connected
+        _unsubs.push(Events.on('remote:connection', ({ connected = false, phase = null, vramGb = null, ramGb = null } = {}) => {
+            const next = connected ? { vramGb: phase ? null : vramGb, ramGb } : null;
+            if (JSON.stringify(next) === JSON.stringify(_pod)) return;
+            _pod = next;
+            if (_filters.fit.size) renderList();
+        }));
         let _hwFetched = false;
         async function _fetchHardwareOnce() {
             if (_hwFetched) return;
@@ -293,10 +303,15 @@ export const MpiFlowLibrary = ComponentFactory.create({
                 clientLogger.warn('MpiFlowLibrary', 'hardware read failed; Fits my GPU shows nothing', err);
             }
         }
-        const _fitsMyGpu = flow => flowModelSlots(flow).every(({ models }) => models.some((id) => {
-            const model = getModelById(id);
-            return !!model && fitsHardware(model, 'local', _vramGb, _ramGb, { arch: remoteEngineClient.archSync('local') });
-        }));
+        const _fitsMyGpu = (flow) => {
+            const engine = _pod ? 'remote' : 'local';
+            const [vram, ram] = _pod ? [_pod.vramGb, _pod.ramGb] : [_vramGb, _ramGb];
+            const arch = remoteEngineClient.archSync(engine);
+            return flowModelSlots(flow).every(({ models }) => models.some((id) => {
+                const model = getModelById(id);
+                return !!model && fitsHardware(model, engine, vram, ram, { arch });
+            }));
+        };
 
         function _matchesFilters(flow) {
             if (_filters.media.size && !_filters.media.has(flow.mediaType)) return false;
