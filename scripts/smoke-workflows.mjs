@@ -46,7 +46,7 @@ const DATACENTER = 'EU-RO-1';          // volumes are DC-locked; the cards live 
 // Only cards whose EU-RO-1 hosts can meet a floor this runner accepts. selectGpu knows
 // nothing about RAM, so a card below the floor is a refused create per try — and under
 // --wait, one per poll all night. Host RAM as the RunPod console showed it on 2026-09-28:
-// RTX 5090 placed at 80; RTX 4090 61 GB (needs --min-ram 60); A100 PCIe 92 GB, $1.59/hr.
+// RTX 5090 placed at 80 (and at 60 on a 55.88 GiB host); RTX 4090 61 GB (needs --min-ram 60); A100 PCIe 92 GB, $1.59/hr.
 // DROPPED that day: L4 (54 GB, the host H3 OOM-killed) and RTX 3090 (30 GB) cannot place
 // at 60 or 80. B200-class cards stay off on price (Fabio).
 const GPU_ORDER = ['RTX 5090', 'RTX 4090', 'A100 PCIe'];
@@ -83,10 +83,13 @@ const GPU_ORDER = ['RTX 5090', 'RTX 4090', 'A100 PCIe'];
 // "ramFloorMissed": true`, every attempt, on the L40. A floor has to be SATISFIABLE as well
 // as sufficient: raise it too far and users get "no host available" instead of a Pod.
 //
-// 80 is what is PROVEN: t2v_ms passed on an RTX 5090 placed against this floor (21s), having
-// OOM-killed a 54 GB L4. True demand is somewhere in (54, 80] and is still unpinned — nobody
-// has measured the peak, only the two ends. Do not lower this on a guess; measure first.
-const MIN_RAM_GB = 80;
+// 62, MEASURED (Fabio 2026-09-29, matching the app's default floor, b5b20a042): the 2.0 B1
+// smoke (2026-09-28, dev_configs/smoke-run.txt) placed an RTX 5090 at `--min-ram 60` on a
+// 55.88 GiB host and ran EVERY op on it, minimax-h3/t2v_ms (34s) and i2v_ms (33s) included.
+// So a 32 GB card needs < 56 GiB; the 54 GB OOM above was a 24 GB L4, which spills more of the
+// same weights to RAM. A 24 GB card at this floor is the untested corner — an OOM there is
+// the smoke doing its job (users get the same 62), not a reason to raise it back to 80.
+const MIN_RAM_GB = 62;
 const VOLUME_NAME = 'cubric-smoke';
 const VOLUME_HEADROOM_GB = 40;
 const CPU_SENTINEL = '__cpu__';        // download-mode Pod (MPI-88); slim -cpu image, no GPU bill
@@ -120,10 +123,14 @@ const EVIDENCE = path.join(REPO, 'dev_configs/smoke-evidence.json');
 // committed alongside the evidence it explains is the gap this exists to close.
 // Env override is for tests only: a unit test that logs must not truncate a real transcript.
 const RUN_LOG = process.env.CUBRIC_SMOKE_RUN_LOG || path.join(REPO, 'dev_configs/smoke-run.txt');
+// --plan and --self-check rent nothing, so they must not truncate the COMMITTED transcript of
+// the paid run behind smoke-evidence.json (2026-09-29: a --self-check wiped the 2.0 B1 one).
+const TRANSCRIBE = !PLAN_ONLY && !flag('self-check');
 let _runLogFd = null;
 // STAMPED in the file, bare on the console. "It failed around 19:55Z" is only useful
 // next to a line that says what the runner was doing at 19:55Z.
 function _transcribe(line) {
+    if (!TRANSCRIBE) return;
     try {
         _runLogFd ??= openSync(RUN_LOG, 'w');
         writeSync(_runLogFd, `[${new Date().toISOString()}] ${line}\n`);
@@ -1991,10 +1998,9 @@ async function main() {
     // 24GB today, so the hot-store half would stay silently correct while it drifted.
     const refused = [];
     let activeGpu = gpu;
-    // --min-ram: a deliberate MEASUREMENT of the (54, 80] H3 range above, never a default.
-    // 2026-09-28: EU-RO-1 had no 80 GB host on any GPU_ORDER card; Fabio chose a 61 GB 4090.
+    // --min-ram: a deliberate MEASUREMENT against the H3 notes above, never a default.
     const minRamGb = Number(opt('min-ram')) || MIN_RAM_GB;
-    log(`  RAM floor: ${minRamGb} GB${minRamGb !== MIN_RAM_GB ? ` (--min-ram; proven floor is ${MIN_RAM_GB})` : ''}`);
+    log(`  RAM floor: ${minRamGb} GB${minRamGb !== MIN_RAM_GB ? ` (--min-ram; default is ${MIN_RAM_GB})` : ''}`);
     await createPodWithRetry(
         { gpuTypeId: gpu.id, volumeId: volume.id, datacenter: DATACENTER, minMemoryInGb: minRamGb },
         'GPU Pod', 20 * 60 * 1000, 2,

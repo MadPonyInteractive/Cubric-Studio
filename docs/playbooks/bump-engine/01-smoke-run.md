@@ -15,8 +15,9 @@ node scripts/smoke-workflows.mjs --skip-install --wait --flows all --keep-volume
 creates only then; a refused create goes back to waiting instead of dying. Nothing is rented
 while it waits; Ctrl+C is free. `--skip-install` drops steps 3-4 (the CPU Pod) when the
 volume was already filled and verified, which is otherwise a 1-4 min detour on every attempt.
-`GPU_ORDER` is RTX 5090 → RTX 4090 → A100 PCIe (2026-09-28). A 4090 host is 61 GB, so it
-places only with `--min-ram 60`, below the proven 80: a measurement of H3, not a default.
+`GPU_ORDER` is RTX 5090 → RTX 4090 → A100 PCIe (2026-09-28). The RAM floor is 62 GB, the
+app's own default (2026-09-29): the 2.0 smoke ran every op, H3 included, on a 5090 with a
+55.88 GiB host. A 4090 host is 61 GB, so it places only with `--min-ram 60`.
 
 Requires the app running on `:3000` (`CUBRIC_PORT` if moved) and a RunPod API key saved
 in the Remote panel. The runner drives the app's own routes — `/runpod/gpu-availability`, the volume
