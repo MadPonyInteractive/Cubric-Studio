@@ -6,4 +6,4 @@ Flagged out of scope on MPI-967. `GET /connector/models` built `fit` from `trade
 - [x] Test pins the bug case: floor 16 on a 12GB card reads `runs: false`.
 - [x] `.claude/skills/cubric-vision-generate/SKILL.md` says what `runs` / `ramGbAtYourVram` mean.
 - [x] `npm test` green.
-- [ ] Fabio OKs the product effect (which op reads `best` on low-VRAM/RAM machines) before push.
+- [x] Fabio OKs the product effect (which op reads `best` on low-VRAM/RAM machines) before push.

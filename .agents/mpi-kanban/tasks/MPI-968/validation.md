@@ -29,7 +29,11 @@
 
 Nothing is capped: every op stays listed and callable, the non-fitting ones carry `runsHere: false`.
 
-## Open
+## Close
 
-- Fabio's OK on the product effect before push.
+- Fabio OK'd the product effect and the push (2026-09-28).
+- CI `Tests` run 36419464374 on `6a4fe2e7b`: success.
+
+## Left open
+
 - `docs/agent-chat.md:53` still names `tradeTable` as the fit source; the file is claimed by the MPI-941 session.
