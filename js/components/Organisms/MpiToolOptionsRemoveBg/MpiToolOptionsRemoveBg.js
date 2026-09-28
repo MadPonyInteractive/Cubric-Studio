@@ -16,7 +16,7 @@
 
 import { ComponentFactory } from '../../factory.js';
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
-import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
+import { MpiColorField } from '../../Compounds/MpiColorField/MpiColorField.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
@@ -57,10 +57,7 @@ export const MpiToolOptionsRemoveBg = ComponentFactory.create({
             </div>
             <div class="mpi-tool-options-remove-bg__section" id="color-section" hidden>
                 <div class="mpi-tool-options-remove-bg__section-label">Color</div>
-                <div class="mpi-tool-options-remove-bg__row">
-                    <div id="color-slot"></div>
-                    <div id="pick-slot"></div>
-                </div>
+                <div class="mpi-tool-options-remove-bg__row" id="color-slot"></div>
             </div>
             <div class="mpi-tool-options-remove-bg__row" id="actions-slot"></div>
         </div>
@@ -97,30 +94,15 @@ export const MpiToolOptionsRemoveBg = ComponentFactory.create({
         });
 
         // ── Color picker (shown only in Color mode) ──────────────────────────
-        const colorPicker = MpiColorPicker.mount(document.createElement('div'), {
+        const colorPicker = MpiColorField.mount(document.createElement('div'), {
             value: _color, info: 'Background color',
+            pickInfo: 'Pick the background colour from the screen',
         });
         qs('#color-slot', el).appendChild(colorPicker.el);
         colorPicker.on('change', ({ hex }) => {
             _color = hex;
             persist('color', _color);
         });
-
-        // Chromium's native eyedropper, the GIF cut-out's Pick (MPI-960). `setHex`
-        // emits 'change', so a picked colour takes the handler above.
-        let pickBtn = null;
-        if ('EyeDropper' in window) {
-            pickBtn = MpiButton.mount(qs('#pick-slot', el), {
-                icon: 'eyedropper', label: 'Pick', size: 'sm', variant: 'secondary',
-                info: 'Pick the background colour from the screen',
-            });
-            pickBtn.on('click', async () => {
-                try {
-                    const { sRGBHex } = await new window.EyeDropper().open();
-                    if (sRGBHex && el.isConnected) colorPicker.el.setHex(sRGBHex);
-                } catch { /* the user pressed Escape */ }
-            });
-        }
 
         _syncColorVisibility();
 
@@ -137,7 +119,6 @@ export const MpiToolOptionsRemoveBg = ComponentFactory.create({
             _persistTimers.clear();
             modeRadio.destroy?.();
             colorPicker.destroy?.();
-            pickBtn?.destroy?.();
             applyBtn.destroy?.();
         };
     },

@@ -11,10 +11,6 @@
     gap: var(--s-2);
 }
 
-.mpi-tool-options-gif-cutout__row--centre {
-    align-items: center;
-}
-
 /* Mask and Clear split the panel's whole width, so the two verbs read as wide as
    the scope picker sitting directly above them rather than as a pair of small
    buttons floating at the left (Fabio, 2026-09-18). `mount()` fills the slot div,

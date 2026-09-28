@@ -64,7 +64,7 @@ import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
-import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
+import { MpiColorField } from '../../Compounds/MpiColorField/MpiColorField.js';
 import { MpiVideoSurface } from '../../Compounds/MpiVideoSurface/MpiVideoSurface.js';
 import { MpiMaskStrip } from '../../Compounds/MpiMaskStrip/MpiMaskStrip.js';
 import { signedSquaredDistanceField, rangeFor, writeRange } from '../../Primitives/MpiCanvas/managers/distanceField.js';
@@ -141,10 +141,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             <p class="mpi-tool-options-gif-cutout__info" id="hint"></p>
             <div class="mpi-tool-options-gif-cutout__prompt" id="prompt-slot"></div>
             <div class="mpi-tool-options-gif-cutout__section" id="colour-section" hidden>
-                <div class="mpi-tool-options-gif-cutout__row mpi-tool-options-gif-cutout__row--centre">
-                    <div id="key-colour-slot"></div>
-                    <div id="pick-slot"></div>
-                </div>
+                <div id="key-colour-slot"></div>
                 <div class="mpi-tool-options-gif-cutout__slider-row">
                     <div class="mpi-tool-options-gif-cutout__label">
                         <span>Tolerance</span>
@@ -271,7 +268,11 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         // ── By colour ───────────────────────────────────────────────────────
 
         // Starts at the picker's own default; `_defaultKeyColour()` sets the real one.
-        const keyPicker = MpiColorPicker.mount(qs('#key-colour-slot', el), { info: 'The colour to remove. Changes are only visible once you press Mask' });
+        // A Pick lands through the same 'change' (MpiColorField), so it re-keys too.
+        const keyPicker = MpiColorField.mount(qs('#key-colour-slot', el), {
+            info: 'The colour to remove. Changes are only visible once you press Mask',
+            pickInfo: 'Pick the colour to remove from the screen',
+        });
         keyPicker.on('change', ({ hex }) => {
             if (_quietPicker) return;
             _keyColour = hex;
@@ -285,26 +286,6 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             keyPicker.el.setHex(hex);
             _quietPicker = false;
         };
-
-        // Chromium's native eyedropper: picks any pixel on screen.
-        if ('EyeDropper' in window) {
-            // `label` is an ICON-MODE prop: MpiButton's plain-text branch renders
-            // `text` and drops `label`, so this rendered as an empty grey box until
-            // the icon arrived (Fabio's screenshot, 2026-09-18).
-            const pickBtn = MpiButton.mount(qs('#pick-slot', el), {
-                icon: 'eyedropper', label: 'Pick', size: 'sm', variant: 'secondary',
-                info: 'Pick the colour to remove from the screen',
-            });
-            pickBtn.on('click', async () => {
-                try {
-                    const { sRGBHex } = await new window.EyeDropper().open();
-                    if (_destroyed || !sRGBHex) return;
-                    _setKeyColour(sRGBHex);
-                    _scheduleRekey();
-                } catch { /* the user pressed Escape */ }
-            });
-            _children.push(pickBtn);
-        }
 
         const toleranceSlider = MpiProgressBar.mount(qs('#tolerance-slot', el), {
             min: 0, max: 100, step: 1, value: _tolerance,

@@ -82,6 +82,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Compounds/MpiHistoryTools/MpiHistoryTools.css',
   'js/components/Compounds/MpiAutoMaskThumbs/MpiAutoMaskThumbs.css',
   'js/components/Compounds/MpiMaskDetectRow/MpiMaskDetectRow.css',
+  'js/components/Compounds/MpiColorField/MpiColorField.css',
   'js/components/Compounds/MpiMaskStrip/MpiMaskStrip.css',
   'js/components/Compounds/MpiHistoryList/MpiHistoryList.css',
   'js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.css',

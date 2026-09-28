@@ -1,0 +1,16 @@
+.mpi-color-field {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    width: 100%;
+}
+
+/* The swatch takes the row; Pick keeps its own width. */
+.mpi-color-field__picker {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.mpi-color-field__pick:empty {
+    display: none;
+}

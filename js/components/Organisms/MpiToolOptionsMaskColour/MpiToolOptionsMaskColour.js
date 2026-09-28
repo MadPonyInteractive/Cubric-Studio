@@ -7,8 +7,7 @@
  * single pre-picked detection — the same path Points mode uses.
  *
  * Controls:
- *   - Key colour: MpiColorPicker (seeded from the image's corner pixel)
- *   - Pick button: EyeDropper API when available (Chromium 95+ / Electron)
+ *   - Key colour + Pick: MpiColorField (seeded from the image's corner pixel)
  *   - Tolerance: MpiProgressBar (interactive, 0-100)
  *   - Only touching the edges: MpiCheckbox (switch variant)
  *   - Shared detect row (Detect / Stop + Add / Subtract)
@@ -31,10 +30,9 @@
  */
 
 import { ComponentFactory }  from '../../factory.js';
-import { MpiColorPicker }    from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
-import { MpiButton }         from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiProgressBar }    from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { MpiCheckbox }       from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
+import { MpiColorField }     from '../../Compounds/MpiColorField/MpiColorField.js';
 import { MpiMaskDetectRow }  from '../../Compounds/MpiMaskDetectRow/MpiMaskDetectRow.js';
 import { MpiMaskStrip }      from '../../Compounds/MpiMaskStrip/MpiMaskStrip.js';
 import { qs }                from '../../../utils/dom.js';
@@ -61,8 +59,7 @@ export const MpiToolOptionsMaskColour = ComponentFactory.create({
             </p>
             <div class="mpi-tool-options-mask-colour__colour-row">
                 <span class="mpi-tool-options-mask-colour__label">Colour</span>
-                <div id="colour-picker-slot"></div>
-                <div id="eyedropper-slot"></div>
+                <div class="mpi-tool-options-mask-colour__colour" id="colour-picker-slot"></div>
             </div>
             <div class="mpi-tool-options-mask-colour__slider-row">
                 <span class="mpi-tool-options-mask-colour__label">Tolerance</span>
@@ -136,8 +133,10 @@ export const MpiToolOptionsMaskColour = ComponentFactory.create({
         // No `value`: the picker's own default stands in until _seedCornerColour()
         // reads the image's corner. Never pass null: its template reads `value.r`
         // for any object, and typeof null === 'object'.
-        const colourPicker = MpiColorPicker.mount(qs('#colour-picker-slot', el), {
+        // A Pick lands through the same 'change' (MpiColorField), so it re-runs too.
+        const colourPicker = MpiColorField.mount(qs('#colour-picker-slot', el), {
             info:  'Key colour to select',
+            pickInfo: 'Pick a colour from the screen',
         });
         colourPicker.on('change', ({ hex }) => {
             _colour = hex;
@@ -145,31 +144,6 @@ export const MpiToolOptionsMaskColour = ComponentFactory.create({
             _scheduleRerun();
         });
         _children.push(colourPicker);
-
-        // ── EyeDropper (Chromium 95+ / Electron — screen colour sampler) ──────
-        // Mount only when the API exists; the button does not appear in environments
-        // that don't support it, rather than appearing disabled.
-        if ('EyeDropper' in window) {
-            const pickBtn = MpiButton.mount(qs('#eyedropper-slot', el), {
-                label: 'Pick', size: 'sm', variant: 'secondary',
-                info:  'Pick a colour from the screen',
-            });
-            pickBtn.on('click', async () => {
-                try {
-                    const dropper = new window.EyeDropper();
-                    const result = await dropper.open();
-                    if (result?.sRGBHex) {
-                        _colour = result.sRGBHex;
-                        colourPicker.el.setHex?.(_colour);
-                        _pushParams();
-                        _scheduleRerun();
-                    }
-                } catch (_err) {
-                    // AbortError from Escape — ignore; the picker state is unchanged
-                }
-            });
-            _children.push(pickBtn);
-        }
 
         // ── Tolerance slider ───────────────────────────────────────────────────
         const toleranceBar = MpiProgressBar.mount(qs('#tolerance-slot', el), {

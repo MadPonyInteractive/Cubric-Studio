@@ -101,8 +101,8 @@
  * no GPU — fed into the viewer's auto-pick preview path as one pre-picked
  * detection, the same path Points mode uses.
  *
- * Key colour (MpiColorPicker, seeded from the image's corner pixel) + a Pick
- * button (the EyeDropper API, Chromium 95+) + Tolerance (an interactive
+ * Key colour + Pick (MpiColorField, seeded from the image's corner pixel)
+ * + Tolerance (an interactive
  * MpiProgressBar, 0-100) + "Only touching the edges" + the shared
  * MpiMaskDetectRow and MpiMaskStrip.
  *
@@ -519,6 +519,20 @@
  * Requires viewer.el: getAutoMaskThumbsEl?(), runAutoMaskDetect(),
  *   bakeAutoPicks('manual'|'subtract')
  * Emits nothing.
+ */
+
+/**
+ * @typedef {Object} MpiColorFieldProps (Compound — js/components/Compounds/MpiColorField)
+ * @property {string|{r:number,g:number,b:number}} [value] - Initial colour; picker default when omitted
+ * @property {string} [info] - Info Bar text for the swatch
+ * @property {string} [pickInfo] - Info Bar text for the Pick button
+ *
+ * MpiColorPicker + a Pick button on the EyeDropper API (MPI-964) — the ONE
+ * colour control for tool panels. Pick is not mounted where the API is missing.
+ * A pick lands through the picker's setHex, so it emits the same 'change'.
+ *
+ * Instance methods (on instance.el): setHex(hex) (emits 'change'), getHex()
+ * Emits: 'change' { r, g, b, hex }
  */
 
 /**

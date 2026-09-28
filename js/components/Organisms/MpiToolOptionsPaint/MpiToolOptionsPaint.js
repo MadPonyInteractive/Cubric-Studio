@@ -27,7 +27,7 @@
 
 import { ComponentFactory } from '../../factory.js';
 import { MpiButton }        from '../../Primitives/MpiButton/MpiButton.js';
-import { MpiColorPicker }   from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
+import { MpiColorField }    from '../../Compounds/MpiColorField/MpiColorField.js';
 import { MpiMaskStrip }     from '../../Compounds/MpiMaskStrip/MpiMaskStrip.js';
 import { Events }           from '../../../events.js';
 import { state }            from '../../../state.js';
@@ -43,10 +43,7 @@ export const MpiToolOptionsPaint = ComponentFactory.create({
 
     template: () => `
         <div class="mpi-tool-options-paint">
-            <div class="mpi-tool-options-paint__row">
-                <div class="mpi-tool-options-paint__color" id="color-slot"></div>
-                <div id="pick-slot"></div>
-            </div>
+            <div class="mpi-tool-options-paint__row" id="color-slot"></div>
             <div class="mpi-tool-options-paint__row" id="commit-slot"></div>
             <div id="strip-slot"></div>
         </div>
@@ -64,31 +61,16 @@ export const MpiToolOptionsPaint = ComponentFactory.create({
 
         // ── Colour ───────────────────────────────────────────────────────────
 
-        const picker = MpiColorPicker.mount(qs('#color-slot', el), {
+        const picker = MpiColorField.mount(qs('#color-slot', el), {
             value: startColor,
             info: 'Paint colour',
+            pickInfo: 'Pick the paint colour from the screen',
         });
         picker.on('change', ({ hex }) => {
             viewer.el.setPaintColor?.(hex);
             Events.emit('settings:tool:update', { toolKey: 'paint', key: 'color', value: hex });
         });
         _children.push(picker);
-
-        // Chromium's native eyedropper, the GIF cut-out's Pick (MPI-960). `setHex`
-        // emits 'change', so a picked colour takes the handler above.
-        if ('EyeDropper' in window) {
-            const pickBtn = MpiButton.mount(qs('#pick-slot', el), {
-                icon: 'eyedropper', label: 'Pick', size: 'sm', variant: 'secondary',
-                info: 'Pick the paint colour from the screen',
-            });
-            pickBtn.on('click', async () => {
-                try {
-                    const { sRGBHex } = await new window.EyeDropper().open();
-                    if (sRGBHex && el.isConnected) picker.el.setHex(sRGBHex);
-                } catch { /* the user pressed Escape */ }
-            });
-            _children.push(pickBtn);
-        }
 
         // ── Apply ────────────────────────────────────────────────────────────
         // Flattened SERVER-side onto the source and appended as one new history

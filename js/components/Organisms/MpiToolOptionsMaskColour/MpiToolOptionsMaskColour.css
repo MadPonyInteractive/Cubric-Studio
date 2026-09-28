@@ -22,6 +22,11 @@
     gap: var(--s-2);
 }
 
+.mpi-tool-options-mask-colour__colour {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 .mpi-tool-options-mask-colour__slider-row {
     display: flex;
     align-items: center;

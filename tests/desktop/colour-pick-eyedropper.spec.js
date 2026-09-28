@@ -2,17 +2,20 @@ const { test, expect } = require('@playwright/test');
 const { launchApp, closeApp } = require('./launch');
 
 /**
- * MPI-960 — the image workspace's colour pickers carry the GIF cut-out's eyedropper
- * Pick: Remove Background (Color mode), Paint, and Paint Adjust.
+ * MPI-960 / MPI-964 — every tool panel's colour control is MpiColorField: a swatch
+ * with the eyedropper Pick beside it. Remove Background (Color mode), Paint, Paint
+ * Adjust, the GIF cut-out's By colour and the image Colour mask.
  *
  * Each panel is mounted on its own against a stub viewer, and `window.EyeDropper` is
  * replaced so the pick resolves without a human click on the screen. What is proven:
  * the button exists beside the swatch, a pick lands in the swatch, and it reaches the
- * panel's own 'change' path (Paint/Adjust hand it to `viewer.el.setPaintColor`).
+ * panel's own 'change' path (Paint/Adjust hand it to `viewer.el.setPaintColor`, the
+ * Colour mask to `viewer.el.setMaskColourParams`).
  */
 test.setTimeout(120000);
 
 const PICKED = '#123456';
+const PANELS = ['removebg', 'paint', 'adjust', 'gifcutout', 'maskcolour'];
 
 async function clearBootModals(window) {
     const backdrops = () => window.evaluate(
@@ -25,7 +28,7 @@ async function clearBootModals(window) {
     }
 }
 
-test('Pick sits beside the colour picker and lands the picked colour', async ({}, testInfo) => {
+test('Pick sits beside every tool colour picker and lands the picked colour', async ({}, testInfo) => {
     let app, window, pageErrors;
     try {
         ({ app, window, pageErrors } = await launchApp(testInfo));
@@ -35,21 +38,30 @@ test('Pick sits beside the colour picker and lands the picked colour', async ({}
         await window.evaluate(async ({ picked }) => {
             window.EyeDropper = class { open() { return Promise.resolve({ sRGBHex: picked }); } };
             window.__paintColours = [];
-            // Every viewer method is a no-op, except the one this spec reads back.
+            window.__maskColours = [];
+            // Every viewer method is a no-op, except the ones this spec reads back and
+            // the GIF viewer's frame list, which the cut-out panel iterates.
+            const calls = {
+                setPaintColor: (hex) => window.__paintColours.push(hex),
+                setMaskColourParams: (p) => window.__maskColours.push(p?.colour),
+                getFrames: () => [],
+                getFrameIndex: () => 0,
+            };
             const viewerEl = new Proxy({}, {
-                get: (_, key) => (key === 'setPaintColor'
-                    ? (hex) => window.__paintColours.push(hex)
-                    : (key === 'then' ? undefined : () => undefined)),
+                get: (_, key) => calls[key] || (key === 'then' ? undefined : () => undefined),
             });
             const viewer = { el: viewerEl, on: () => () => {} };
             const host = document.createElement('div');
-            host.id = 'mpi960-host';
-            host.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;display:flex;gap:16px;padding:16px;background:var(--surface-1)';
+            host.id = 'mpi964-host';
+            host.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;display:flex;flex-wrap:wrap;gap:16px;padding:16px;width:1000px;background:var(--surface-1)';
             document.body.appendChild(host);
+            const O = '/js/components/Organisms';
             const panels = [
-                ['removebg', '/js/components/Organisms/MpiToolOptionsRemoveBg/MpiToolOptionsRemoveBg.js', 'MpiToolOptionsRemoveBg', {}],
-                ['paint', '/js/components/Organisms/MpiToolOptionsPaint/MpiToolOptionsPaint.js', 'MpiToolOptionsPaint', {}],
-                ['adjust', '/js/components/Organisms/MpiToolOptionsMaskAdjust/MpiToolOptionsMaskAdjust.js', 'MpiToolOptionsMaskAdjust', { mode: 'paintAdjust' }],
+                ['removebg', `${O}/MpiToolOptionsRemoveBg/MpiToolOptionsRemoveBg.js`, 'MpiToolOptionsRemoveBg', {}],
+                ['paint', `${O}/MpiToolOptionsPaint/MpiToolOptionsPaint.js`, 'MpiToolOptionsPaint', {}],
+                ['adjust', `${O}/MpiToolOptionsMaskAdjust/MpiToolOptionsMaskAdjust.js`, 'MpiToolOptionsMaskAdjust', { mode: 'paintAdjust' }],
+                ['gifcutout', `${O}/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.js`, 'MpiToolOptionsGifCutout', {}],
+                ['maskcolour', `${O}/MpiToolOptionsMaskColour/MpiToolOptionsMaskColour.js`, 'MpiToolOptionsMaskColour', {}],
             ];
             for (const [id, path, name, extra] of panels) {
                 const slot = document.createElement('div');
@@ -61,22 +73,25 @@ test('Pick sits beside the colour picker and lands the picked colour', async ({}
             }
         }, { picked: PICKED });
 
-        // Remove Background shows its picker only in Color mode.
+        // Remove Background shows its picker only in Color mode, the cut-out only By colour.
         await window.locator('[data-panel="removebg"] .mpi-radio-group__btn[data-value="color"]').click();
-        await window.locator('#mpi960-host').screenshot({ path: testInfo.outputPath('before-pick.png') });
+        await window.locator('[data-panel="gifcutout"] .mpi-radio-group__btn[data-value="colour"]').click();
+        await window.locator('#mpi964-host').screenshot({ path: testInfo.outputPath('before-pick.png') });
 
-        for (const id of ['removebg', 'paint', 'adjust']) {
-            const panel = window.locator(`[data-panel="${id}"]`);
-            const pick = panel.locator('#pick-slot button');
+        for (const id of PANELS) {
+            const field = window.locator(`[data-panel="${id}"] .mpi-color-field`);
+            await expect(field, `${id}: one colour field`).toHaveCount(1);
+            const pick = field.locator('.mpi-color-field__pick button');
             await expect(pick, `${id}: Pick button present`).toBeVisible();
             await pick.click();
-            await expect(panel.locator('.mpi-color-picker__hex'), `${id}: picked colour in the swatch`).toHaveText(PICKED);
+            await expect(field.locator('.mpi-color-picker__hex'), `${id}: picked colour in the swatch`).toHaveText(PICKED);
         }
-        await window.locator('#mpi960-host').screenshot({ path: testInfo.outputPath('after-pick.png') });
+        await window.locator('#mpi964-host').screenshot({ path: testInfo.outputPath('after-pick.png') });
 
-        const colours = await window.evaluate(() => window.__paintColours);
+        const { paint, mask } = await window.evaluate(() => ({ paint: window.__paintColours, mask: window.__maskColours }));
         // Paint and Adjust each seed the viewer once on mount, then once per pick.
-        expect(colours.filter(c => c === PICKED), 'both paint panels handed the pick to the viewer').toHaveLength(2);
+        expect(paint.filter(c => c === PICKED), 'both paint panels handed the pick to the viewer').toHaveLength(2);
+        expect(mask, 'the Colour mask handed the pick to the viewer').toContain(PICKED);
         expect(pageErrors).toEqual([]);
     } finally {
         if (app) await closeApp(app);

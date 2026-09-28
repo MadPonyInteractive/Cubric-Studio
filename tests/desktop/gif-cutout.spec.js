@@ -242,7 +242,7 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
     await pickMethod(window, 'colour');
     const layout = await window.evaluate(() => {
       const panel = document.querySelector('.mpi-tool-options-gif-cutout');
-      const pick = panel.querySelector('#pick-slot button');
+      const pick = panel.querySelector('.mpi-color-field__pick button');
       const row = panel.querySelector('#track-slot');
       const [mask, clear] = [...row.querySelectorAll('button')];
       return {
