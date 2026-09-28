@@ -31,8 +31,17 @@
 - **MPI-957** (doing/validating) landed `_DisplayMip` (zoomed-out mip siblings) in the same draw path; it
   stays and applies to the display copy. Its last gate is Fabio's eyes on a real 8K/16K zoomed out -
   the Big Photos Test 16K card serves both cards.
-- **Where it stands (handoff 2026-09-28):** plan complete, every decision settled (D2 = S1 by
-  Fabio). Card still in `todo`; no code touched. Next: Phase 0 pickup, then Phase 1 measurement.
+- **Where it stands (2026-09-28, session 48110acd):** Phases 0 + 1 DONE (card `doing`, claim
+  `state/files/48110acd-mpi961.json`). Baseline GPU IDLE + GPU BUSY (Fabio's H3 video), the D2
+  experiment and the MPI-963 rowfix control are all in `validation.md` (rig in `research/rig/`;
+  run a scratch copy of it). **Next: Phase 2 (D3)** - see Plan Drift for its re-scoped target.
+- **Headline:** (1) MPI-963's rows-load-originals is the biggest cost to OPEN and to Prompt<->tool
+  swaps (16K idle open 37 s -> 5 s, 4K swaps 5 s -> 0.35 s with rows on thumbs). (2) Under GPU
+  load, 16K pan/zoom/stroke fall to 2-6 fps because every tick runs a full `draw()` of the
+  16384^2 canvases (189-322 ms to next frame vs 13.4 ms transform-only); 4K stays 75 fps under the
+  same load. At idle both are 75 fps. (3) The 16K canvas's own open/swap cost: a 2.5-2.7 s block on
+  first paint of the 16384^2 canvases, 1.4-2.2 s `toDataURL` in `swapToPreview`, 3.2-4.6 GB GPU
+  memory (VRAM near full under load -> paging). (4) 32K fails in 0.6 s, blank.
 - **Live claims:** none on `js/components/Primitives/MpiCanvas/**` or `MpiCanvasViewer.js` (checked
   2026-09-28); MPI-949's stack-crop edits there are committed (`f6119d0fe`).
 
@@ -64,6 +73,7 @@
 ## Completed
 
 - [x] Brainstorm + design approval; fixtures made; four read-only investigations (`research/`).
+- [x] Phase 0 pickup; Phase 1 baseline (idle + busy + rowfix control + D2) in `validation.md` (2026-09-28).
 
 ## Remaining Work
 
@@ -74,7 +84,7 @@ inside the phase instead. MPI-959 / MPI-963 (umbrella Batch 1) are the parallel 
 
 ## Phase 0: Pickup
 
-- [ ] Re-read this plan, `brief.md`, MPI-957's `validation.md`; `git log -3 --` the two canvas files;
+- [x] Re-read this plan, `brief.md`, MPI-957's `validation.md`; `git log -3 --` the two canvas files;
   check `state/index.json` claims. Move MPI-961 `todo -> doing` with `files.json`
   (`js/components/Primitives/MpiCanvas/MpiCanvas.js`, `.../managers/InputController.js`,
   `js/components/Organisms/MpiCanvasViewer/MpiCanvasViewer.js`, the S1 server rendition files - the
@@ -83,7 +93,7 @@ inside the phase instead. MPI-959 / MPI-963 (umbrella Batch 1) are the parallel 
 
 ## Phase 1: Measure the baseline (research - no product code)
 
-- [ ] Launch `npm run app:isolated` (GPU on; NEVER the desktop harness - it runs `--disable-gpu`). Copy
+- [x] Launch `npm run app:isolated` (GPU on; NEVER the desktop harness - it runs `--disable-gpu`). Copy
   "Big Photos Test" into a scratch projects root; open it on the isolated port only. Record, on the 16K
   entry AND on the 4K entry of the same card (the 4K is the CONTROL: it predicts what a display copy
   buys before building it - feedback `a_control_sizes_a_gap`):
@@ -146,7 +156,21 @@ inside the phase instead. MPI-959 / MPI-963 (umbrella Batch 1) are the parallel 
 
 ## Plan Drift
 
-- None yet.
+- 2026-09-28 (Phase 1): the instrument is a Playwright GPU-ON Electron rig, not a literal
+  `npm run app:isolated` - that instance has no CDP port. Same isolation (own port, userData,
+  APP_DOCUMENTS, empty engine root). With no engine there is no model, so History opens in
+  Transform/Crop and Prompt is reached through the rail's `setMode`.
+- 2026-09-28 (Phase 1): D3 is idle-invisible but load-critical. At GPU idle 16K pan/wheel run at
+  vsync; under a local video generation they fall to 2-6 fps with a 189-322 ms `draw()` frame vs a
+  13.4 ms transform-only frame. **Phase 2 stays, re-scoped:** its target is the GPU-BUSY 16K pan /
+  wheel / stroke numbers, and its Verify re-measures them busy (Fabio runs a video again). Its
+  "tool switch" half is re-scoped too: the multi-second swaps are MPI-963 (rows) plus the 16K
+  canvases' first paint (`clearRect` / `_renderBase` 2.4-3.3 s) and `swapToPreview`'s `toDataURL`
+  (1.4-4.6 s) - the first two are MPI-963's and Phase 3's; Phase 2 looks only at `toDataURL`.
+  The mask stroke under load goes through `drawStroke` (clipped, MPI-787), yet still collapses at
+  16K - so the clip alone does not save it; find why in Phase 2 (profile a busy stroke).
+- 2026-09-28 (Phase 1): MPI-963 (umbrella member) should land BEFORE Phase 3 is measured - its
+  rows cost dominates every 4K/16K number and would mask the display copy's effect.
 
 ## Verification
 
