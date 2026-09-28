@@ -39,7 +39,19 @@ Rows: three 512 px `.thumb.webp`, all loaded 153 ms after History opened.
 (Part of the gain is MPI-961 Phase 2, `47e8e796c`; the rows share is MPI-961 validation.md
 § Control: open 37.1 -> 5.0 s with rows alone.)
 
-### Pending
+### CI
+
+- `b7fee8b7c` RED (run 36422084457, desktop shard 4 only): `stack-history.spec.js:148` (MPI-949)
+  identified member 3's History list by the first row's `src` containing the ORIGINAL's filename
+  (`e2e-m2_`) - the exact behaviour this card removes (`Received ...\Media\.meta\<id>.thumb.webp`).
+  Spec fixed to expect that entry's thumb (`<itemId>.thumb`; `importStill` now returns `itemId`);
+  passes locally (2/2). Product unchanged.
+
+### Fabio (user-ux) - 2026-09-28: "checked, all good"
+
+Relaunched; Landing card shows a picture, 16K rows no longer paint top-down, 32K row shows its thumb.
+
+### Pending (superseded)
 
 - Fabio (user-ux): full quit + relaunch; Landing card for Big Photos Test shows a picture; the 16K
   card's rows no longer paint top-down; the 32K row shows its thumbnail.

@@ -52,7 +52,7 @@ async function importStill(window, project, { r, g, b, prefix }) {
                 proxyPath: null, pixelDimensions: { w: 64, h: 48 }, mediaType: 'image',
             });
         });
-        return { groupId, url, filePath: data.filePath };
+        return { groupId, url, filePath: data.filePath, itemId };
     }, { project, itemId, base64: buf.toString('base64'), prefix });
 }
 
@@ -144,10 +144,11 @@ test('Stack History: switch members, step every version, batch Apply on all or p
         await expect(window.locator('.mpi-thumb-strip__thumb.is-current')).toHaveAttribute('data-index', '2');
         const route = await window.evaluate(async () => (await import('/js/state.js')).state.currentParams?.groupId);
         expect(route, 'the route keeps the STACK; only the member on screen changed').toBe(stackId);
-        // The history list is member 3's: its first entry is the `e2e-m2` import.
+        // The history list is member 3's: its first entry is the `e2e-m2` import, whose row
+        // shows that entry's sidecar thumb (MPI-963), named by its item id.
         await expect.poll(() => window.evaluate(() =>
             decodeURIComponent(document.querySelector('.mpi-history-list__card img')?.getAttribute('src') || '')))
-            .toContain('e2e-m2_');
+            .toContain(`${members[2].itemId}.thumb`);
 
         // ── 3. ◀ Version: every member one back, persisted; ▶ puts them back ────────
         await window.locator('.mpi-group-history-block__version-back button').click();
