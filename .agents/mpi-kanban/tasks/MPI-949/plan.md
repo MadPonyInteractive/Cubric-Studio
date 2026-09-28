@@ -166,8 +166,8 @@
 
 ## Remaining Work
 
-**Next action:** `.claude/rules/` maps (Fabio's permission asked 2026-09-28), then `mpi-end-session`.
-The EXIF crop bug is filed as MPI-959 (not this card).
+**None - card closed 2026-09-28** (89d7b92ba, CI green). Rules maps refreshed with Fabio's OK. Open follow-ups
+live on other cards: MPI-950 (agent `list_cards` stack awareness), MPI-959 (EXIF crop).
 
 ## Phase 1: Stack data foundation (auto) - DONE, see Completed
 

@@ -11,3 +11,4 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "validation.updated", "at": "2026-09-27T16:53:05Z", "actor": "claude", "summary": "Phase 4 (Stack History workspace) VERIFIED by Fabio in the app."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "checklist.item_checked", "at": "2026-09-28T09:12:00Z", "actor": "claude", "summary": "Stack crop"}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "validation.updated", "at": "2026-09-28T09:12:00Z", "actor": "claude", "summary": "Phase 5 (Stack crop) VERIFIED by Fabio in the app; EXIF crop bug filed as MPI-959."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-949", "at": "2026-09-28T11:50:00+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Phases 1-6 shipped; Phases 2-5 verified by Fabio in the app; docs/rules 89d7b92ba, CI 36410934520 green."}

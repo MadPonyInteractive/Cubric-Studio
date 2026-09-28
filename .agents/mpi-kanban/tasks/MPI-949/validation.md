@@ -163,4 +163,10 @@ Four workers; every report re-checked against the files by the orchestrator (dif
 - Desktop, 9 specs (crop-resize-output, gallery-stack-run, gallery-stack, history-modes,
   history-prompt-model, media-picker-to-history, stack-crop, stack-history, thumb-strip) -> 15/15 passed.
 - UNRELEASED.md held by live peer a447ff60 (its rewrite already swaps Cue all for Stack); message 77e907be.
-- .claude/rules/ edits: asked Fabio 2026-09-28, awaiting answer.
+- .claude/rules/ edits: Fabio chose (b) 2026-09-28 - component-maps agent refreshed mounts + events (blocks,
+  organisms, primitives); four wrong details it wrote (strip API names, dialog title, strip/stepper slots) fixed
+  against the code; dos_and_donts.md Cue all -> Stack. component-state.md unchanged (no stack state key).
+- UNRELEASED.md Stack bullet extended after the peer committed (c6937e50f) and released it. Claim auditor:
+  33 PROVEN, 1 OVERSTATED (crop / remove BG are image-only) -> qualified before commit.
+- Commit 89d7b92ba pushed; CI run 36410934520 -> success (unit + desktop 1-4).
+- CLOSED 2026-09-28 on this evidence; Phases 2-5 were verified by Fabio in the app.

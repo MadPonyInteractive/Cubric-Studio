@@ -7,4 +7,4 @@
 - [x] Shared thumbnail strip (MpiThumbStrip)
 - [x] Stack History workspace
 - [x] Stack crop
-- [ ] Docs, rules, close-out
+- [x] Docs, rules, close-out
