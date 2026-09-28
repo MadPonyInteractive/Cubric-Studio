@@ -40,6 +40,7 @@ Topic-to-files map. Match the topic closest to the current task and read the lis
 ### Gallery
 
 - **Read first:** `docs/gallery.md` (cards, thumbnails, selection, drag-drop, hover media)
+- **Stacks:** `docs/stacks.md` (one card holding N cards: data model, the Gallery run into a new stack, the batch queue row, the Stack History workspace, stack crop)
 - **Rules:** `.claude/rules/component-mounts.md`, `.claude/rules/component-events.md`
 - **Memory:** none
 
