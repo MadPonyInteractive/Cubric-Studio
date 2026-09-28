@@ -146,11 +146,23 @@
   `_generationFromPromptPayload(payload, member)`, mask dropped, Loop refused. Header = whole-stack
   stats (`stackStatsGroup`). PromptBox `setRunCount(n)` makes a paid model's tag quote xN.
 
+- [x] **Phase 5: Stack crop** (2026-09-28, session c72df5c7) - **VERIFIED by Fabio 2026-09-28**
+  (validation.md § Phase 5). Rail: `crop` in `IMAGE_STACK_TOOLS`' Transform group (video stacks
+  still none; an image stack with no prompt now opens on Crop). Panel `stackMode`: family forced RATIO,
+  family row hidden, never persisted (D7); `settings.ratio`; `ratio-change {ratio}` on a user pick only.
+  Viewer: `getCropRect` / `setCropRect`, and `cropItem(item, rect, {fill,outW,outH})` - the ONE
+  `/project/crop-media` call, `_runCrop` goes through it too. Block: `_cropRects` (Map item id -> MOVED
+  box only) + `_cropSeed`; `_saveStackCrop` on member switch (`_showMember`), tool switch (`mountOptions`)
+  and Apply; `_restoreStackCrop` on `entry-loaded` and crop-panel mount; ratio change clears the Map (D3);
+  strip dot = `decorateThumb` -> `mpi-group-history-block__member--crop-moved`. Apply = `_runStackCrop`:
+  probe sizes -> pure `stackCropRects` (stackJobs.js) -> sequential `cropItem` -> fresh group ->
+  `appendToHistory` -> `await updateGroup`; StatusBar progress; the member on screen re-shown.
+
 ## Remaining Work
 
-**Next action:** Phase 5 (Stack crop). Phases 1, A, 2, 3b, 3 and 4 are verified. Then 6. Phase 5 adds
-`crop` to `IMAGE_STACK_TOOLS` (`MpiHistoryTools.js`) and branches `_handleApply`'s crop for `_stackId`;
-member switches go through `_showMember` (save/restore the per-member crop rect there).
+**Next action:** Phase 6 (auto): `docs/stacks.md`, `docs/gallery-selection.md`, `docs/gallery.md:281-283`,
+`UNRELEASED.md`, stale Cue-all comments; ASK Fabio before touching `.claude/rules/`. Phases 1-5 verified.
+The EXIF crop bug is filed as MPI-959 (not this card).
 
 ## Phase 1: Stack data foundation (auto) - DONE, see Completed
 
@@ -376,6 +388,20 @@ centre marker, drag scrubs), approved.
   does not touch `MpiGalleryGrid.js`. Test it by opening a stack built by the Phase 1 unit fixtures.
 
 ## Plan Drift
+
+- 2026-09-28 (Phase 5): **the box is saved on LEAVE, not on drag** (no drag-end callback): member switch,
+  tool switch, Apply. Only MOVED boxes are stored; everything else is recomputed from the probe at Apply,
+  so a 350-member stack never loads its members to crop them. Switching versions inside one member's
+  history list drops that member's moved box (keyed by item id) - accepted.
+- 2026-09-28 (Phase 5): a rounded-down box shrinks about its CENTRE (not from the right/bottom as the
+  single-card round-up grows), so every box stays inside its picture.
+- 2026-09-28 (Phase 5): Apply is NOT a queue batch - `/project/crop-media` is a direct sharp call, looped
+  sequentially with a StatusBar progress fill; no Cancel all. Ownership grew: `js/components/types.js`,
+  `MpiGroupHistoryBlock.css` (dot), `js/data/stackJobs.js` + its test (`stackCropRects`).
+- 2026-09-28 (Phase 5): **EXIF crop bug confirmed, pre-existing, not patched** - `cropExtended` ignores
+  orientation (validation.md § Phase 5). Root fix is in `services/imageCrop.js` (auto-orient before the
+  plan). Filed as **MPI-959** (Fabio, 2026-09-28), with `imageComposite.js` (Paint/Place flatten) as a
+  suspected second site.
 
 - 2026-09-27 (Phase 4): **`toolRun` is NOT reused.** It maps the AGENT's fields (`upscaler`, `factor`)
   to params; the rail's panels already build params in `_handleApply`. Stack Apply keeps the rail's

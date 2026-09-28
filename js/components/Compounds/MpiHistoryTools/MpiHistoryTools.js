@@ -250,11 +250,17 @@ const GIF_TOOLS = [
 
 // MPI-949 Phase 4: a stack's rail. Only tools that run the same way on every member —
 // the canvas families (Mask, Paint, Composite) edit ONE picture by hand and are absent,
-// not dimmed. Crop joins in Phase 5 (a per-member box); the video GIF Maker makes a new
-// card, not a version.
+// not dimmed. Image Crop is a ratio box per member (Phase 5); video crop is not batched.
+// The video GIF Maker makes a new card, not a version.
 const IMAGE_STACK_TOOLS = [
     IMAGE_TOOLS[0],
-    { mode: 'transform', label: 'Transform', group: [{ mode: 'resize', icon: 'resize_stroke', info: 'Resize' }] },
+    {
+        mode: 'transform', label: 'Transform',
+        group: [
+            { mode: 'crop', icon: 'crop', info: 'Crop', desc: 'Crop: one ratio for every member, a box per member' },
+            { mode: 'resize', icon: 'resize_stroke', info: 'Resize' },
+        ],
+    },
     IMAGE_TOOLS[2],
 ];
 const VIDEO_STACK_TOOLS = [

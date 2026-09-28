@@ -48,7 +48,8 @@ import { getModelsByType, isModelUsable, installedOpsForContext } from '../../..
 import { canonicalModelId } from '../../../data/modelConstants/resolveModelDeps.js';
 import { getAvailableCommands, getCommandMediaInputs, getCommandAccent, isTextOnlyOp, getCommand, buildCueAllJobItems } from '../../../data/commandRegistry.js';
 import { isStack, expandStacks, stackStatsGroup } from '../../../data/stackModel.js';
-import { stackTargets, stackToolJobs } from '../../../data/stackJobs.js';
+import { stackTargets, stackToolJobs, stackCropRects } from '../../../data/stackJobs.js';
+import { StatusBar } from '../../../shell/statusBar.js';
 import { enqueueGeneration, clearPendingQueue, refreshQueueDepth, cancelRunningCueJob } from '../../../services/generationService.js';
 import { generationStore } from '../../../services/generationStore.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
@@ -243,6 +244,13 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         if (_stackId) _group = _stackMembers()[0];
         /** Strip picks (indices into `_stackMembers()`): what Apply runs on; none = all. */
         let _picked = [];
+        /**
+         * Stack crop (Phase 5): the boxes the user MOVED, keyed by the member's current item
+         * id. A member absent here is cut with its centred box. `_cropSeed` = the box the
+         * canvas seeded on the member on screen, null while Crop is not the tool.
+         */
+        const _cropRects = new Map();
+        let _cropSeed = null;
 
         // Copied mask (MPI-311): { layers: {manual, subtract}, dims }. Block-scoped
         // and deliberately NOT the OS clipboard — the mask is a pair of layers plus
@@ -516,7 +524,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         function _syncQueueBlockedTools() {
             // A stack's Resize runs no preview (MpiToolOptionsResize stackMode), which is
-            // what this lock protects, and the stack rail has no Crop to fall back to.
+            // what this lock protects, and a video stack's rail has no Crop to fall back to.
             if (_stackId) return;
             // Count only REAL user Cue jobs, not tool-internal preview runs. The resize
             // tool fires its own `previewOnly` resize gen on mount; counting it here made
@@ -562,6 +570,11 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 controlsMount.appendChild(_videoBarHost);
             }
             memberStrip = MpiThumbStrip.mount(stripWrap, {
+                decorateThumb: (thumbEl, index) => {
+                    const m = state.currentProject?.itemGroups?.find(g => g.id === _stripIds[index]);
+                    const item = m?.history?.[m.selectedIndex ?? 0];
+                    thumbEl.classList.toggle('mpi-group-history-block__member--crop-moved', !!item && _cropRects.has(item.id));
+                },
                 menuItems: (index, selection) => {
                     const n = selection.includes(index) ? selection.length : 1;
                     return [
@@ -1089,6 +1102,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // unchanged mode, so this only ever runs on a real switch.
             viewer.el?.discardPreview?.();
 
+            // Leaving a stack's Crop: keep the moved box before the panel exits crop mode.
+            _saveStackCrop();
+            _cropSeed = null;
+
             _options?.destroy?.();
             _options = null;
 
@@ -1189,6 +1206,17 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // Options compounds emit 'apply'; mediator routes to _handleApply.
             _options.on?.('apply', (payload) => _handleApply(mode, payload));
 
+            // Stack crop (MPI-949): a new ratio re-seeds every member (D3); the member on
+            // screen already shows its new box, so that box is the new seed.
+            if (mode === 'crop' && _stackId && !isVideo) {
+                _options.on('ratio-change', () => {
+                    _cropRects.clear();
+                    _cropSeed = viewer.el.getCropRect();
+                    memberStrip?.el.repaintThumbs();
+                });
+                _restoreStackCrop();
+            }
+
             // Composite has its OWN commit event (MPI-373) rather than 'apply': it is
             // not a generation, it is the same full-res server blend the retired
             // MPI-362 modal ran. Kept distinct so `_handleApply`'s canvas-tool guard
@@ -1207,7 +1235,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         function _handleApply(mode, payload = {}) {
             if (mode === 'crop') {
                 if (historyKind === 'gif')               return payload.kind === 'image' ? _handleGifCrop(payload.settings) : undefined;
-                if (payload.kind === 'image')            return viewer.el.runCrop?.(payload.settings);
+                if (payload.kind === 'image')            return _stackId ? _runStackCrop(payload.settings) : viewer.el.runCrop?.(payload.settings);
                 if (payload.kind === 'video-snapshot')   return _handleCropSnapshot();
                 if (payload.kind === 'video-save')       return _handleCropSaveVideo(payload.settings);
                 return;
@@ -1663,6 +1691,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         /** Put `member` (a fresh object from `state`) on screen. */
         function _showMember(member) {
             const switching = member.id !== _group.id;
+            // The outgoing member's box, keyed by the item it was drawn on; `entry-loaded`
+            // restores the incoming one's (`_restoreStackCrop`).
+            if (switching) _saveStackCrop();
             if (_currentSelectionIndices.length > 0) {
                 historyList.el.exitSelectMode();
                 _onHistorySelectionExited();
@@ -1807,6 +1838,79 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             const { jobs, skipped } = stackToolJobs(targets, { operation, mediaType, injectionParams, inputs, dims, resolveUrl: resolveMediaUrl });
             _enqueueBatch(jobs, TOOL_LABELS[operation] || getCommand(operation)?.label || operation);
             if (skipped) _showToast(`${skipped} member(s) skipped: their size could not be read`, 'warning');
+        }
+
+        // ── Stack crop (MPI-949 Phase 5) ───────────────────────────────────────
+        // One ratio, one box per member. The canvas holds only the box on screen, so a
+        // member's box is saved when the view leaves it (member switch, tool switch, Apply)
+        // and put back on `entry-loaded`. Only MOVED boxes are kept: the rest are
+        // recomputed at Apply from each member's own size, never loaded one by one.
+
+        function _stackCropOn() {
+            return !!_stackId && !isVideo && historyTools.el.getActiveMode?.() === 'crop';
+        }
+
+        /** Keep the box on screen if the user moved it off its seed; forget it if not. */
+        function _saveStackCrop() {
+            if (!_stackId || !_cropSeed) return;
+            const key = _group.history[_currentIdx]?.id;
+            const rect = viewer.el.getCropRect?.();
+            if (!key || !(rect?.w > 0)) return;
+            const moved = ['x', 'y', 'w', 'h'].some(k => rect[k] !== _cropSeed[k]);
+            if (moved) _cropRects.set(key, rect);
+            else _cropRects.delete(key);
+            memberStrip?.el.repaintThumbs();
+        }
+
+        /** The canvas just seeded its centred box: note it, then put a moved box back. */
+        function _restoreStackCrop() {
+            if (!_stackCropOn()) return;
+            const seed = viewer.el.getCropRect?.();
+            _cropSeed = seed?.w > 0 ? seed : null;
+            const saved = _cropRects.get(_group.history[_currentIdx]?.id);
+            if (_cropSeed && saved) viewer.el.setCropRect(saved);
+        }
+
+        /**
+         * Crop Apply on a stack: each target member (picks, or all) cut to its moved box or
+         * its centred box, as that member's next version. A direct server loop, not a queue
+         * batch — `/project/crop-media` is a quick sharp job. Sizes come from the probe
+         * (plan fact 9); `stackCropRects` rounds them DOWN (D2).
+         */
+        async function _runStackCrop(settings) {
+            _saveStackCrop();
+            const targets = stackTargets(_stackMembers(), _picked);
+            if (!targets.length) return;
+            const dims = await _memberDims(targets, 'image');
+            const { crops, skipped } = stackCropRects(targets, {
+                ratio: settings.ratio, divisibleBy: settings.divisible_by, saved: _cropRects, dims,
+            });
+            const onScreen = _group.id;
+            let done = 0;
+            StatusBar.progress.start(`Cropping ${crops.length} members`);
+            for (const { member, item, rect } of crops) {
+                try {
+                    const next = await viewer.el.cropItem(item, rect, { fill: settings.fill_color });
+                    // Re-read: the member may have changed while its crop ran (a run landing).
+                    const fresh = state.currentProject?.itemGroups?.find(g => g.id === member.id);
+                    if (!fresh) continue;
+                    await updateGroup(appendToHistory(fresh, next));
+                    _cropRects.delete(item.id);
+                    done++;
+                    StatusBar.progress.update(done / crops.length);
+                } catch (err) {
+                    clientLogger.warn('MpiGroupHistoryBlock', `stack crop failed on ${member.id}: ${err?.message || err}`);
+                }
+            }
+            if (done) Events.emit('media:updated', { projectId: state.currentProject?.id });
+            if (done) StatusBar.progress.complete(`Cropped ${done} of ${crops.length + skipped}`);
+            else      StatusBar.progress.cancel();
+            const missed = crops.length - done + skipped;
+            if (missed) _showToast(`${missed} member(s) not cropped`, 'warning');
+            // The member on screen shows its new version; the others reach the strip
+            // through `project:group-updated` (`_syncStack`).
+            const shown = _stackMembers().find(m => m.id === onScreen);
+            if (shown && _group.id === onScreen) _showMember(shown);
         }
 
         /**
@@ -2440,9 +2544,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         // Initial tool: prompt if available (including frame-drop unlock), else crop.
         // A GIF opens with no tool: its Crop (MPI-773) would cover the frames.
-        // A stack's rail has no Crop yet (MPI-949): its first transform is Resize.
+        // A VIDEO stack's rail has no Crop (MPI-949): its first transform is Resize.
         if (_shouldShowPromptBox())      historyTools.el.setMode('prompt');
-        else if (_stackId)               historyTools.el.setMode(isVideo ? 'resizeVideo' : 'resize');
+        else if (_stackId && isVideo)    historyTools.el.setMode('resizeVideo');
         else if (historyKind !== 'gif')  historyTools.el.setMode('crop');
 
         // Nav'd into history while a job for this group is already running:
@@ -3546,6 +3650,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
             viewer.on('entry-loaded', ({ idx, hasMask }) => {
                 _setCurrentIdx(idx);
+                _restoreStackCrop();
                 _canvasHasMask = hasMask;
                 _pb?.el?.updateContext({
                     ..._baseCtx,

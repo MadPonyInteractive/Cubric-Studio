@@ -9,3 +9,5 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "validation.updated", "at": "2026-09-27T16:27:14Z", "actor": "claude", "summary": "Phase 4 (Stack History workspace) automated checks green: stack-jobs 6/6, npm test 2172/0 fail, stack-history.spec 2/2, 12/12 regression specs; awaiting Fabio."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "checklist.item_checked", "at": "2026-09-27T16:53:05Z", "actor": "claude", "summary": "Stack History workspace"}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "validation.updated", "at": "2026-09-27T16:53:05Z", "actor": "claude", "summary": "Phase 4 (Stack History workspace) VERIFIED by Fabio in the app."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "checklist.item_checked", "at": "2026-09-28T09:12:00Z", "actor": "claude", "summary": "Stack crop"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "validation.updated", "at": "2026-09-28T09:12:00Z", "actor": "claude", "summary": "Phase 5 (Stack crop) VERIFIED by Fabio in the app; EXIF crop bug filed as MPI-959."}

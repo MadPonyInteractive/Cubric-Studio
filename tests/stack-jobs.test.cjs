@@ -87,3 +87,20 @@ test('a plugin\'s declared inputs reach every job', () => {
     const { jobs } = J.stackToolJobs(three(), { operation: 'pluginUp', mediaType: 'image', inputs: { positive: 'sharp' } });
     assert.ok(jobs.every(j => j.config.positive === 'sharp'));
 });
+
+test('crop: a dragged box is kept, the rest get the centred box, sizes round DOWN inside the picture', () => {
+    const dims = { a: { w: 4000, h: 3000 }, b: { w: 1080, h: 1920 } };
+    // b-v1 is b's current version; a-v1 is NOT a's current (a-v2 is), so its box is ignored.
+    const saved = new Map([['b-v1', { x: 0, y: 100, w: 540, h: 960 }], ['a-v1', { x: 0, y: 0, w: 16, h: 16 }]]);
+    const { crops, skipped } = J.stackCropRects(three(), { ratio: 9 / 16, divisibleBy: 16, saved, dims });
+    assert.strictEqual(skipped, 1, 'c has no size and no dragged box');
+    assert.deepStrictEqual(crops.map(c => [c.member.id, c.item.id, c.rect]), [
+        ['a', 'a-v2', { x: 1160, y: 4, w: 1680, h: 2992 }],
+        ['b', 'b-v1', { x: 6, y: 100, w: 528, h: 960 }],
+    ]);
+    for (const { member, rect } of crops) {
+        const d = dims[member.id];
+        assert.ok(rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= d.w && rect.y + rect.h <= d.h, `${member.id} inside`);
+        assert.ok(rect.w % 16 === 0 && rect.h % 16 === 0);
+    }
+});

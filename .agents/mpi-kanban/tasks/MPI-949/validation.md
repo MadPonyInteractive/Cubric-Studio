@@ -125,3 +125,30 @@ Four workers; every report re-checked against the files by the orchestrator (dif
   versions; a Prompt run on a stack; Delete card from the strip; deleting a member's last version; the
   paid-cloud price tag quoting xN in a stack; a video stack with real clips.
 - Fabio, 2026-09-27: checked in the app -> "1" (verified).
+
+## Phase 5 - Stack crop (user-ux) - VERIFIED by Fabio 2026-09-28
+
+- Unit: `tests/stack-jobs.test.cjs` +1 -> 7/7 (`stackCropRects`: a dragged box keyed by the member's
+  CURRENT item id is kept and one keyed by an old version ignored; the rest get the largest centred 9:16
+  box on their probed size; w/h round DOWN to 16 about the centre -> every rect inside its picture; a
+  member with no size and no box is skipped).
+- NEW `tests/desktop/stack-crop.spec.js` 1/1, real files + the real `/project/crop-media`: stack of 400x300
+  / 300x400 / 256x256 ramps -> Crop on the stack rail, family row hidden (RATIO only); 9:16 -> member 1
+  box = its centred 116,0 169x300; box moved to 20,0 -> member 2 shows ITS centred box, strip thumb 1
+  carries `--crop-moved`, back to member 1 -> the moved box is restored; Apply -> each member +1 `crop`
+  version, selected; files measured 160x288 / 224x400 / 144x256 (all 9:16 within rounding); member 1 cut
+  from x 24 (ramp red < 30, centred would be ~76), square cut centred (red ~55); dot gone; project.json
+  lists 2 versions each; 0 page errors. **Mutation-checked:** with `_restoreStackCrop()` disabled the spec
+  fails at "the moved box is back".
+- `npm test` -> 2178 tests, 2176 pass, 0 fail. eslint on every touched file + `npm run lint:components`
+  -> clean.
+- Regression, 8 specs (crop-resize-output, gallery-stack-run, gallery-stack, history-modes,
+  history-prompt-model, media-picker-to-history, stack-crop, stack-history) -> 14/14 passed.
+- **EXIF check (plan item):** `cropExtended` (`services/imageCrop.js:78`) crops the RAW pixel grid while the
+  canvas and `/image-import/probe` are upright. Reproduced in Node: a 40x20 JPEG with orientation 6, upright
+  crop 0,0 20x10 -> output differs from `sharp(src).rotate().extract(same)` by up to 223 per channel. Imports
+  under the reduce limit are copied untouched (EXIF kept), so a phone photo shot portrait crops the wrong
+  region in single-card Crop AND stack crop. Pre-existing; NOT patched here - filed as MPI-959.
+- NOT covered by a spec (Fabio's check): the box feel with real photos, a ratio change re-seeding every
+  member (D3), Ctrl-picked members only, a 16K member.
+- Fabio, 2026-09-28: checked in the app -> "1" (verified); asked for the EXIF card (MPI-959).

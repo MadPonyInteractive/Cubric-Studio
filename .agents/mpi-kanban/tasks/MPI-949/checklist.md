@@ -6,5 +6,5 @@
 - [x] Gallery run into a new stack
 - [x] Shared thumbnail strip (MpiThumbStrip)
 - [x] Stack History workspace
-- [ ] Stack crop
+- [x] Stack crop
 - [ ] Docs, rules, close-out

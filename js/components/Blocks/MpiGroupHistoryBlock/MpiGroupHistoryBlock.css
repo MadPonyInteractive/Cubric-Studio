@@ -135,6 +135,21 @@
     border-top: 1px solid var(--line-soft);
 }
 
+/* Stack crop (MPI-949 Phase 5): a member whose box was moved off its centred seed.
+ * Set on the strip's thumb by the Block's `decorateThumb`; the GIF strip's edited dot. */
+.mpi-group-history-block__member--crop-moved::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-ok);
+    box-shadow: 0 0 0 1px var(--surface-canvas);
+    pointer-events: none;
+}
+
 /* Stack mode (MPI-949): ◀ Version ▶ above the member's history list. */
 .mpi-group-history-block__version-step {
     display: flex;

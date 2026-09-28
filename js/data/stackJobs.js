@@ -13,6 +13,8 @@
  */
 
 import { deriveResizeDims } from '../utils/ratios.js';
+import { largestCentredRect } from '../utils/cropSnap.js';
+import { roundDownToDivisible } from '../utils/cropRounding.js';
 
 const _current = (m) => m?.history?.[m.selectedIndex ?? 0] || null;
 
@@ -89,4 +91,33 @@ export function stackToolJobs(members = [], { operation, mediaType, injectionPar
         });
     }
     return { jobs, skipped };
+}
+
+/**
+ * Stack crop (Phase 5): the box each target member is cut with. A member keeps the box
+ * the user dragged on it (`saved`, keyed by its CURRENT item id), else it gets the largest
+ * centred box at `ratio` on its upright size (`dims`, from `/image-import/probe`). Width
+ * and height round DOWN to `divisibleBy` (D2) and the box shrinks about its centre, so a
+ * box inside the picture stays inside it: no Fill strip, and N members keep one ratio.
+ * @param {Array<Object>} members - the targets (`stackTargets`)
+ * @param {{ ratio: number|null, divisibleBy?: number, saved?: Map<string, {x,y,w,h}>, dims?: Object<string, {w,h}> }} opts
+ * @returns {{ crops: Array<{ member: Object, item: Object, rect: {x,y,w,h} }>, skipped: number }}
+ */
+export function stackCropRects(members = [], { ratio = null, divisibleBy = 1, saved = new Map(), dims = {} } = {}) {
+    const crops = [];
+    let skipped = 0;
+    for (const m of members) {
+        const item = _current(m);
+        const d = dims[m.id];
+        const box = saved.get(item?.id) || (d && largestCentredRect(d.w, d.h, ratio));
+        if (!item?.filePath || !box) { skipped++; continue; }
+        const w = roundDownToDivisible(box.w, divisibleBy);
+        const h = roundDownToDivisible(box.h, divisibleBy);
+        crops.push({
+            member: m,
+            item,
+            rect: { x: Math.floor(box.x + (box.w - w) / 2), y: Math.floor(box.y + (box.h - h) / 2), w, h },
+        });
+    }
+    return { crops, skipped };
 }

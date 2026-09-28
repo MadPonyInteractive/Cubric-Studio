@@ -22,6 +22,8 @@
  *   el.bakeAutoPicks('manual'|'subtract') — Add / Subtract the detected mask
  *   el.applyPaint()                   — flatten the paint layer into a new entry
  *   el.applyPlace()                   — flatten the PLACED image into a new entry (MPI-454)
+ *   el.getCropRect() / el.setCropRect({x,y,w,h}) — the crop box in image px (a stack's per-member box)
+ *   el.cropItem(item, rect, {fill, outW, outH}) — crop ANY item to a new version file; resolves the item
  *
  * Emits:
  *   'mode-changed'    { mode }        — tool mode changed (from any source)
@@ -1052,42 +1054,49 @@ export const MpiCanvasViewer = ComponentFactory.create({
 
             StatusBar.progress.start('Cropping...');
 
-            const itemId = crypto.randomUUID();
-
             try {
-                const res = await fetch('/project/crop-media', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        folderPath: state.currentProject.folderPath,
-                        itemId,
-                        sourceFilePath: _resolveUrl(_currentItem.filePath),
-                        x: rect.x, y: rect.y, w, h,
-                        fill: settings.fill_color,
-                        // RESOLUTION is the only family that resamples.
-                        outW: isExact ? settings.res_w : null,
-                        outH: isExact ? settings.res_h : null,
-                    }),
+                const newItem = await _cropItem(_currentItem, { x: rect.x, y: rect.y, w, h }, {
+                    fill: settings.fill_color,
+                    // RESOLUTION is the only family that resamples.
+                    outW: isExact ? settings.res_w : null,
+                    outH: isExact ? settings.res_h : null,
                 });
-                if (!res.ok) throw new Error(`crop-media ${res.status}`);
-                const data = await res.json();
-                if (!data.success) throw new Error(data.error || 'Crop failed');
-
-                // Use server-returned itemId (matches the .meta/<uuid>.json written by the route)
-                const newItem = createImageItem({
-                    id: data.itemId,
-                    filePath: `/project-file?path=${encodeURIComponent(data.filePath)}`,
-                    operation: 'crop',
-                    displayName: data.displayName || data.filename.replace(/\.[^.]+$/, ''),
-                    pixelDimensions: data.pixelDimensions || { w, h },
-                });
-
                 emit('crop-applied', { item: newItem });
                 StatusBar.progress.complete('Crop saved!');
             } catch (err) {
                 console.error('[MpiCanvasViewer] Crop failed:', err);
                 StatusBar.progress.cancel();
             }
+        }
+
+        /**
+         * Cut `rect` (source px, already rounded) out of `item`'s file into a new version
+         * file; resolves the new HistoryItem. No UI: `_runCrop` and a stack crop (MPI-949,
+         * one call per member — most not on screen) both go through here.
+         */
+        async function _cropItem(item, { x, y, w, h }, { fill, outW = null, outH = null } = {}) {
+            const res = await fetch('/project/crop-media', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    folderPath: state.currentProject.folderPath,
+                    itemId: crypto.randomUUID(),
+                    sourceFilePath: _resolveUrl(item.filePath),
+                    x, y, w, h, fill, outW, outH,
+                }),
+            });
+            if (!res.ok) throw new Error(`crop-media ${res.status}`);
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Crop failed');
+
+            // Use server-returned itemId (matches the .meta/<uuid>.json written by the route)
+            return createImageItem({
+                id: data.itemId,
+                filePath: `/project-file?path=${encodeURIComponent(data.filePath)}`,
+                operation: 'crop',
+                displayName: data.displayName || data.filename.replace(/\.[^.]+$/, ''),
+                pixelDimensions: data.pixelDimensions || { w, h },
+            });
         }
 
         // ── Instance API ──────────────────────────────────────────────────────
@@ -1381,6 +1390,12 @@ export const MpiCanvasViewer = ComponentFactory.create({
 
         /** Promote _runCrop so MpiToolOptionsCrop can trigger it via onApply. */
         el.runCrop = (settings) => _runCrop(settings);
+        /** Crop any item, not only the one on screen (a stack member). Resolves the new item. */
+        el.cropItem = (item, rect, opts) => _cropItem(item, rect, opts);
+
+        /** The box on screen, in image px — a stack saves it per member (MPI-949). */
+        el.getCropRect = () => canvas.getCropRect();
+        el.setCropRect = (rect) => canvas.setCropRect(rect);
 
         /** Forward crop ratio selection from MpiToolOptionsCrop to the canvas. */
         el.setCropRatio = (ratio) => {

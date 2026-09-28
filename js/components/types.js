@@ -78,6 +78,7 @@
  * @typedef {Object} MpiToolOptionsCropProps (Organism — js/components/Organisms/MpiToolOptionsCrop)
  * @property {Object} viewer - MpiCanvasViewer OR MpiVideoViewer instance
  * @property {'image'|'video'} kind
+ * @property {boolean} [stackMode=false] - Stack crop (MPI-949, image only): RATIO only, the family row hidden and never persisted; `settings` adds the numeric `ratio`, and a ratio/orientation pick emits 'ratio-change' { ratio }.
  *
  * Three resolution types: ratio, free, and resolution (exact W×H, the only one
  * that resamples — MPI-383). Image kind also gets the fill colour used for
@@ -86,8 +87,9 @@
  * for images, setCropSize(w, h).
  *
  * Emits: 'apply' { kind: 'image' | 'video-save' | 'video-snapshot',
- *                  settings?: { family, res_w, res_h, divisible_by, fill_color } }
- *        (`settings` on 'image' and 'video-save' only)
+ *                  settings?: { family, res_w, res_h, divisible_by, fill_color, ratio? } }
+ *        (`settings` on 'image' and 'video-save' only; `ratio` in stackMode only)
+ *        'ratio-change' { ratio } (stackMode only, never at mount)
  */
 
 /**

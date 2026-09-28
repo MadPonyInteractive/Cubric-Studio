@@ -26,13 +26,18 @@
  * Props:
  * @param {object} viewer - MpiCanvasViewer OR MpiVideoViewer instance
  * @param {'image'|'video'} kind - Determines which viewer API to call
+ * @param {boolean} [stackMode] - MPI-949: a stack's crop. RATIO only (the family row is
+ *   hidden and the project's family is neither read nor written, D7), and `settings`
+ *   carries the numeric `ratio` the Block seeds every member's box with.
  *
  * Emits:
  *   'apply' { kind: 'image' | 'video-save' | 'video-snapshot',
- *             settings?: { family, res_w, res_h, divisible_by, fill_color } }
+ *             settings?: { family, res_w, res_h, divisible_by, fill_color, ratio? } }
  *     `settings` rides on 'image' and 'video-save' only: what the panel SHOWS,
  *     read at click time (MPI-795). Never
  *     re-read the project for it: the persisted copy trails by two debounces.
+ *   'ratio-change' { ratio } — stackMode only: the user picked another ratio or
+ *     orientation (every member's box re-seeds, D3). Not fired at mount.
  */
 
 import { ComponentFactory } from '../../factory.js';
@@ -149,6 +154,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
     setup: (el, props, emit) => {
         const { viewer, kind } = props;
         const isVideo = kind === 'video';
+        const stackMode = !!props.stackMode && !isVideo;
 
         const _initial = coerceSettings(
             getToolSettings(state.currentProject || {}, 'crop', DEFAULTS)
@@ -164,6 +170,9 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
         // Video crop cannot extend past the frame (ffmpeg crops, it does not
         // pad), so the exact-size family and the fill colour are image-only.
         if (isVideo && _family === 'resolution') _family = DEFAULTS.family;
+        // A stack crops N pictures to ONE shape; free / exact size have no meaning across
+        // members of different sizes. The saved family stays for the single-card Crop.
+        if (stackMode) _family = 'ratio';
 
         const _persistTimers = new Map();
         const persist = (key, value) => {
@@ -198,6 +207,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
         });
         familySlot.appendChild(familyRadio.el);
         _children.push(familyRadio);
+        familySlot.parentElement.hidden = stackMode;
 
         // Orientation radio (only for ratio family)
         let orientRadio = null;
@@ -229,6 +239,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
                 persist('label', _label);
                 _mountRatios();
                 _pushShape();
+                _emitRatio();
             });
         };
 
@@ -252,7 +263,13 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
                 _label = value;
                 persist('label', _label);
                 _pushShape();
+                _emitRatio();
             });
+        };
+
+        /** After `_pushShape`, so the member on screen already shows the new box. */
+        const _emitRatio = () => {
+            if (stackMode) emit('ratio-change', { ratio: _resolveRatio(_family, _orientation, _label) });
         };
 
         /**
@@ -353,6 +370,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
         const _settings = () => ({
             family: _family, res_w: _res_w, res_h: _res_h,
             divisible_by: _divisible_by, fill_color: _fill_color,
+            ...(stackMode ? { ratio: _resolveRatio(_family, _orientation, _label) } : {}),
         });
 
         if (isVideo) {
