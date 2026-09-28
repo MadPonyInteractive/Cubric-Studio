@@ -494,9 +494,16 @@ function createWindow() {
   // not the trigger — revealing on it alone swaps the splash for a blank window.
   // Hence: navigated (real response) + finished loading + first paint. All three
   // orderings measured on the same slow boot, 2026-08-05.
+  //
+  // MPI-966: and a fourth — the renderer saying the LANDING has content. A loaded page
+  // is not a filled one: the project list and the mascot clips arrive after it, so the
+  // window used to open on a spinner and name labels over an empty stage (measured:
+  // reveal with 0 rows, rows 0.6s later). `_revealWhenLandingReady` in js/shell.js
+  // decides what "has content" means.
   let paintReady = false;
   let navigated = false;
   let appLoaded = false;
+  let landingReady = false;
   let revealed = false;
   const revealMainWindow = () => {
     if (revealed || !mainWindow || mainWindow.isDestroyed()) return;
@@ -529,9 +536,10 @@ function createWindow() {
   };
 
   const revealWhenReady = () => {
-    if (paintReady && navigated && appLoaded) revealMainWindow();
+    if (paintReady && navigated && appLoaded && landingReady) revealMainWindow();
   };
   mainWindow.once('ready-to-show', () => { paintReady = true; revealWhenReady(); });
+  mainWindow.webContents.ipc.once('shell:landing-ready', () => { landingReady = true; revealWhenReady(); });
   mainWindow.webContents.on('did-navigate', (_event, _url, httpResponseCode) => {
     // Any real response counts, not only 200 — a 500 from our own Express is still
     // the app answering, and hiding the window on it would be the black-window bug
@@ -549,9 +557,10 @@ function createWindow() {
     appLoaded = true;
     revealWhenReady();
   });
-  // Backstop: nothing above can fire if a load hangs without ever failing, and a
-  // permanently hidden window is worse than a wrong-looking one. 30s matches the
-  // retry ladder's own ceiling (60 × 500ms).
+  // Backstop: nothing above can fire if a load hangs without ever failing (or a
+  // renderer never reports its landing, MPI-966), and a permanently hidden window
+  // is worse than a wrong-looking one. 30s matches the retry ladder's own ceiling
+  // (60 × 500ms).
   setTimeout(() => {
     if (!revealed) {
       logger.warn('main', 'Main window never reported a completed load — revealing it anyway.');

@@ -80,8 +80,9 @@ Boot opens TWO windows: a frameless splash (`splash/splash.html`, loaded instant
 by `main.js`) and then the shell on `127.0.0.1:3000`; the splash is destroyed once the
 shell window has both painted AND loaded a real HTTP response (MPI-410 — `ready-to-show`
 alone fires on Chromium's error page, so on a slow start it used to close the splash
-before the server was up). What that means for a desktop spec (never
-`app.firstWindow()`) is in [testing.md](testing.md).
+before the server was up) AND the renderer sent `shell:landing-ready` — project rows, crew
+clips, boot past the gate (MPI-966, `_revealWhenLandingReady` in `js/shell.js`; 30s backstop).
+What that means for a desktop spec (never `app.firstWindow()`) is in [testing.md](testing.md).
 
 ## Project Shape
 

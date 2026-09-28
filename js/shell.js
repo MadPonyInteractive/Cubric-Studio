@@ -40,10 +40,11 @@ import { bindWindowControls, quitApp } from './shell/windowControls.js';
 import { initFloatLatentBridge } from './shell/floatLatentBridge.js';
 import { initAgentDispatch } from './shell/agentDispatch.js';
 import { initAgentPanel } from './shell/agentPanel.js';
-import { initProjectUI, loadProjectGrid } from './shell/projectUI.js';
+import { initProjectUI, loadProjectGrid, firstGridSettled } from './shell/projectUI.js';
 import { initHeroStats } from './shell/heroStats.js';
 import { initHeroQuote } from './shell/heroQuote.js';
-import { initHeroCrew } from './shell/heroCrew.js';
+import { initHeroCrew, crewLoaded } from './shell/heroCrew.js';
+import { Overlays } from './managers/overlayManager.js';
 import { initScreenClearService } from './shell/screenClearService.js';
 import { start as startProjectStats } from './services/projectStatsService.js';
 import { start as startMediaImport } from './services/mediaImportService.js';
@@ -198,6 +199,7 @@ export async function initShell() {
   initHeroQuote();   // MPI-696 — one draw per boot, never per navigation
   initScreenClearService();  // MPI-766 — state.screenClear: booted, and nothing covers the screen
   initHeroCrew();    // MPI-766 — mounts with the landing page, destroyed when it leaves
+  _revealWhenLandingReady();  // MPI-966 — main.js holds the splash until this says so
   startProjectStats();
   startMediaImport();  // MPI-723 - the media:imported -> ItemGroup build, app-lifetime
   StatusBar.init();
@@ -243,6 +245,36 @@ export async function initShell() {
 
   // 8. Boot/Restore Logic
   _bootApp();
+}
+
+// MPI-966: settles when boot stops holding the landing back — see _revealWhenLandingReady.
+let _landingGatePassed;
+const _landingGate = new Promise((resolve) => { _landingGatePassed = resolve; });
+
+/**
+ * MPI-966: main.js holds the splash until the landing has something on it. Revealing on
+ * page load showed a spinner for a picker and name labels over an empty stage for as long
+ * as the list and the clips took (measured: reveal with 0 rows and no clip decoded, rows
+ * 0.6s later). Ready = the first project list has rendered, boot is past the engine gate
+ * (so the crew's entrance runs on the first visible frame), and every mascot's first clip
+ * has a frame. A gate waiting on the user (any modal) or on a pod counts as passed: that
+ * is the content, and it can wait for minutes. main.js keeps a 30s backstop. Browser dev
+ * has no Electron and no splash, so nothing to tell.
+ */
+function _revealWhenLandingReady() {
+  let ipcRenderer = null;
+  try {
+    if (typeof window.require === 'function') ipcRenderer = window.require('electron').ipcRenderer;
+  } catch { /* browser mode */ }
+  if (!ipcRenderer) return;
+  Events.once('shell:booted', _landingGatePassed);
+  const offDepth = Overlays.onDepthChange((depth) => { if (depth > 0) _landingGatePassed(); });
+  Promise.all([firstGridSettled, _landingGate])
+    .then(crewLoaded)
+    .then(() => {
+      offDepth();
+      ipcRenderer.send('shell:landing-ready');
+    });
 }
 
 // MPI-446: a desktop E2E profile is a fresh `CUBRIC_E2E_USER_DATA` dir on a machine
@@ -301,6 +333,7 @@ async function _bootApp() {
   }
 
   if (runpodCfg.autoConnectOnStart) {
+    _landingGatePassed();  // MPI-966: the connecting band is the landing now, and a pod takes minutes
     await _initRemoteBoot(runpodCfg);
   } else if (runpodCfg.skipLocalEngine || _isE2E()) {
     clientLogger.info('shell', `Local engine gate skipped — ${runpodCfg.skipLocalEngine

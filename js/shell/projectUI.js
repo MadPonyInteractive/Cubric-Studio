@@ -38,6 +38,10 @@ let projectGrid = null;
 // stops the thumbnail queue and releases every preview <video> (see _buildProjectRow).
 let _statsBatchAC = null;
 
+/** MPI-966: settles once the FIRST list has rendered (rows, empty state or error) — the splash waits on it. */
+let _settleFirstGrid;
+export const firstGridSettled = new Promise((resolve) => { _settleFirstGrid = resolve; });
+
 // MpiNewProject is NOT a singleton — fresh mount per open.
 // factory.on() accumulates listeners with no unsub, so reusing would stack handlers.
 
@@ -236,6 +240,8 @@ export async function loadProjectGrid() {
         <strong>No projects yet</strong>
         <p>Click "+ New project" to create your first AI project.</p>
       </div>`;
+  } finally {
+    _settleFirstGrid();
   }
 }
 

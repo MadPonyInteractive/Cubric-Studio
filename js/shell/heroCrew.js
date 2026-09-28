@@ -460,6 +460,22 @@ function _destroy() {
     _crew = null;
 }
 
+/**
+ * MPI-966: resolves once every member's pending clip has a frame to show, so the splash can
+ * wait for mascots instead of revealing name labels over an empty stage. An error or a torn
+ * down crew (`emptied`) settles it too — the splash must never wait on a clip that cannot come.
+ */
+export function crewLoaded() {
+    if (!_crew) return Promise.resolve();
+    return Promise.all(_crew.members.map((m) => {
+        const v = [m.a, m.b].find(x => x.getAttribute('src'));
+        if (!v || v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return null;
+        return new Promise((resolve) => {
+            for (const evt of ['loadeddata', 'error', 'emptied']) on(v, evt, resolve, { once: true });
+        });
+    }));
+}
+
 /** Called once at boot. The crew follows the landing page for the app's lifetime. */
 export function initHeroCrew() {
     const sync = (page) => (page === PAGE_LANDING ? _mount() : _destroy());
