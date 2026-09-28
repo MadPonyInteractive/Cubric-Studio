@@ -46,6 +46,7 @@ Rows: three 512 px `.thumb.webp`, all loaded 153 ms after History opened.
   (`e2e-m2_`) - the exact behaviour this card removes (`Received ...\Media\.meta\<id>.thumb.webp`).
   Spec fixed to expect that entry's thumb (`<itemId>.thumb`; `importStill` now returns `itemId`);
   passes locally (2/2). Product unchanged.
+- `52ee9cbc6` GREEN (run 36423690732: unit + desktop 1-4 success, 2026-09-28).
 
 ### Fabio (user-ux) - 2026-09-28: "checked, all good"
 
