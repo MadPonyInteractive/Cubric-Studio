@@ -1,16 +1,16 @@
 ---
 schema: mpi-kanban/project-knowledge-index/v1
 profile: .agents/mpi-kanban/project-profile.md
-last_refresh: 2026-09-22
-last_refresh_notes: 'Refresh on 1.5.0 (2026-09-22). Pointer sweep found 0 dead targets - all 104 resolved against disk, the first fully clean sweep in three refreshes. Two topics ADDED for subsystems that had grown docs and live cards with no entry: the in-app agent and the mascot crew. The agent topic exists mainly to separate two things the near-identical names hide - `docs/agent-*.md` at the docs root is the DEVELOPER contract, while `docs/agent/` is the running agent''s own CORPUS, so editing one changes what the shipped agent knows and editing the other does not. Nothing else changed; every existing topic still resolves.'
-prior_refresh_notes: 'Three dead `**Memory:**` targets repointed, all deleted by the MPI-574 memory reorg (2026-08-17) four days after the previous sweep - `tool_litegraph_to_api_converter.md` to `docs/workflow-authoring/converters.md`, `tool_read_download_state_without_console.md` into `docs/download-manager.md`, and `tool_website_image_converter.md` dropped in favour of the command line the profile already carries. One topic added: the GPU lease, now enforced. Every other pointer resolved against disk.'
+last_refresh: 2026-09-28
+last_refresh_notes: 'Refresh on 1.6.0 (2026-09-28). The no-topic fallback in How To Use now follows 1.6.0: a bounded search for the task''s key terms first, a pointer from the user only if that finds nothing. Pointer sweep: 127 pointers, 0 dead (bare filenames resolve inside their topic; `wrapper.py` lives in the mpi-ci repo its topic names). No topic added or removed.'
+prior_refresh_notes: 'Refresh on 1.5.0 (2026-09-22). Pointer sweep found 0 dead targets - all 104 resolved against disk, the first fully clean sweep in three refreshes. Two topics ADDED for subsystems that had grown docs and live cards with no entry: the in-app agent and the mascot crew. The agent topic exists mainly to separate two things the near-identical names hide - `docs/agent-*.md` at the docs root is the DEVELOPER contract, while `docs/agent/` is the running agent''s own CORPUS, so editing one changes what the shipped agent knows and editing the other does not. Nothing else changed; every existing topic still resolves.'
 ---
 
 # Project Knowledge Index
 
 ## How To Use
 
-Topic-to-files map. Match the topic closest to the current task and read the listed files first. If no topic matches, read the profile and ask the user for a pointer rather than scanning the repo.
+Topic-to-files map. Match the topic closest to the current task and read the listed files first. If no topic matches, run a bounded search for the task's key terms (a few targeted `rg` queries, not a repo scan) and say what was read. Ask the user for a pointer only if that search finds nothing.
 
 **Memory layering:** the authoritative "how the system works" lives in `docs/` and `.claude/rules/`. The `**Memory:**` files below are companions — they capture the *why a fix exists*, breadcrumbs, gotchas, and process feedback that don't belong in the docs. Read the doc/rule first, then the memory for the war-story context.
 

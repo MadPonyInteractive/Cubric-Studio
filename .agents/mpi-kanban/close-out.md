@@ -4,9 +4,9 @@ Run by `mpi-end-session` § 7 (project extension point) — after the shared pas
 before the commit. These are the release mechanics the generic pack does not know
 about.
 
-Pointers, not auto-edits: surface a one-line proposal per affected file and wait
-for explicit per-file approval, same discipline as the rest of close-out. If
-nothing drifted, say so in one line.
+Pointers, not auto-edits: print one `Your call:` line per affected file, write
+it only on a yes, and do not wait - same discipline as the rest of close-out
+since pack 1.6.0. If nothing drifted, say so in one line.
 
 > Was `.claude/skills/mpi-end/SKILL.md` until 2026-08-09. That wrapper's other
 > halves — the coordination scope gate, the knowledge-healing pass, and the
@@ -77,7 +77,7 @@ Did this session add a user-facing change (new feature, fixed bug, behaviour
 change) that belongs in the next release notes? OR does an EXISTING entry now
 contradict what shipped — a feature reverted, renamed, replaced, or descoped? If
 either, propose the edit to `UNRELEASED.md` (right section: `importantChanges` /
-`whatIsNew` / `fixes`) and wait for approval. Stale changelog notes ship silently
+`whatIsNew` / `fixes`) as a `Your call:` line and write it only on a yes. Stale changelog notes ship silently
 — this step exists because a reverted "Wan 2.2 model split" note nearly shipped
 after the model was merged back to one.
 
