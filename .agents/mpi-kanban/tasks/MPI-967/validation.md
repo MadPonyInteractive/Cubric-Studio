@@ -45,3 +45,7 @@ Lint clean on both components; `fitsHardware` itself unchanged, so `tests/footpr
 ## Open
 
 - Handed to MPI-968 (Fabio started it 2026-09-28): `routes/connector.js` `/connector/models` sets `fit.runs` from the NEAREST table row, so it is true for every model whenever VRAM is known. `services/agentLoop.mjs` `compactCatalogue` reads it for `best` and `runsHere`.
+
+## Closed
+
+CI green on `ba3ed554a` (Tests run 36419523373) and on `c2fd63b2b`. MPI-968 landed the connector `fit.runs` fix on the same rule (`6a4fe2e7b`).
