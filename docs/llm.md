@@ -103,6 +103,9 @@ nothing. The connection itself is `Storage.getLlmConnection()` -> `{ profileId }
   meta under the name beside the context window, and has no "(recommended)" label (Fabio 2026-09-26). An entry may carry `agentTest` with
   `jobs: []`: tested and listed, not the default. Ollama's `ornith:9b` (16/26) and `gemma4:12b` (13/26) carry
   one each, `--runs 1` (MPI-941 Phase 11); `perChat: 0` reads "runs on your GPU".
+  The cases, fake tools and fixtures live in `services/agentBench.mjs` + `services/agentBench/` (they SHIP: the portable
+  build drops `scripts/` and `tests/`), so Settings can run `runSuite` on the user's model (MPI-941 Phase 12);
+  `scripts/agent-test.mjs` is the CLI over them. `tests/agent-bench.test.cjs` fails an import from either dropped folder.
 
 ## Enhance paths
 

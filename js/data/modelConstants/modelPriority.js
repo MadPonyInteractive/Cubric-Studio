@@ -110,8 +110,9 @@ const NOTES = {
     'chroma-flash': 'candid, real-life, influencer-style photography',
     'chroma-hyper': 'candid, real-life photography, on the faster tier',
     'sdxl-realistic': 'realistic by an older standard: today it sits below Klein 9B',
-    'ill-anime': 'anime and stylised art, not photography',
-    'ill-anime-beauty': 'anime and stylised art, not photography',
+    // Fabio 2026-09-28: the anime picks stay these two; other models reach anime through a style (app:formats).
+    'ill-anime': 'anime and stylised art, not photography; Chroma, Klein and Krea 2 do anime too with their anime style',
+    'ill-anime-beauty': 'anime and stylised art, not photography; Chroma, Klein and Krea 2 do anime too with their anime style',
     'pony-mix': 'stylised character art, not photography',
 };
 

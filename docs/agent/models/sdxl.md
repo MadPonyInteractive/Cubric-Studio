@@ -35,7 +35,7 @@ use this guide:
 ## Settings
 
 Auto mode has little to pick for this family: no quality tiers, no turbo toggle and no style
-rack are offered on any op (`tests/fixtures/agent/connector-models.json` lists empty
+rack are offered on any op (`services/agentBench/connector-models.json` lists empty
 `qualityTiers`/`styles` and `turbo: false` throughout), so the only real choice is the ratio.
 `t2i`, `i2i` and `inpaint` offer the full ratio set (`1:1, 3:4, 4:5, 5:8, 9:16, 4:3, 5:4, 8:5,
 16:9`); `control`, `upscale` and `detail` follow the source image's own size instead and show

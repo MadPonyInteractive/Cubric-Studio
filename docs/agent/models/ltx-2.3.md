@@ -66,5 +66,5 @@ A medium close-up frames the barista's hands from a slightly high angle as they 
 - LTX-2.3's own rewriter (the Gemma 3 line), `Lightricks/LTX-2` at `.../gemma/encoders/prompts/gemma3_t2v_system_prompt.txt`. Not the `gemma4_*` files in the same folder, which belong to LTX-2.5 (the version trap is recorded in `docs/recipes/playbook/08-vendor-prompt-skills.md`; the claim-by-claim read-out is in `docs/recipes/research/ltx-2.3/sources.md`).
 - The enhancer recipe `js/data/recipes/ltx-2.3.recipe.js`.
 - `docs/models/ltx/prompt-contract.md` (audio behaviour), `strategy.md` (quality and NSFW positioning), `tiers.md` (ratios and resolution), `audio-input.md` (the two audio modes), `black-bars-and-nag.md` (the t2v letterbox quirk).
-- `tests/fixtures/agent/connector-models.json` and `js/data/commandRegistry.js`, for the ops, params and media roles as the app actually exposes them.
+- `services/agentBench/connector-models.json` and `js/data/commandRegistry.js`, for the ops, params and media roles as the app actually exposes them.
 - Field evidence: `MadPony-Identity/production/cubric-western/findings/h3-prompting.md`, the "LTX is installed, and it is a different tool, not a better H3" note (2026-08-14); it corroborates the i2v-first usage pattern and the supplied-audio-overrides-the-prompt finding.

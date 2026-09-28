@@ -258,3 +258,61 @@ Logs: `research/ollama-agent-gemma4-12b.log`, `research/ollama-agent-ornith-9b.l
   identically (noticed, not built: nothing in the loop stops a repeated identical call).
 Neither is near DeepSeek's bar, so both are `jobs: []` with `agentTest` on the `ollama` table (listed with a score, never the
 default); `perChat: 0` reads "runs on your GPU". Unit (`llm-connection` 12/12) + desktop `llm-settings-remote` green, lint 0.
+
+## Phase 7 fix + Phase 13 (session 7fe5b9b0, 2026-09-28, DeepSeek-V4-Flash-0731 on DeepInfra)
+**Phase 7, measured on a real model at last.** New agent-test cases from Fabio's two live forks: `options-after-decline`
+(Ask first, SDXL Realistic not installed, install card answered No) and `options-ideas` (three opening-shot ideas, Ask
+first). Grade: the last reply carries `options` (the loop cut a 2-4 choice marker). The runner now records `options` per turn.
+- RED on the old rule: decline 1/3, ideas 0/3 (plain "Which would you like?" / "Want me to render it with that instead?").
+- Rule reworded as a trigger, 165 -> 161 bytes ("a reply that offers choices (models, ideas, routes, yes or no) ends with
+  [options: A | B], at most three, recommended first"): ideas 3/3, decline 1/3 in Ask (2/3 in Auto, where one run went on
+  with Krea 2 unasked, so there was no fork to mark: the case moved to Ask first).
+- The four decline results (install No, spend No x2, batch No) said "ask what they would like instead", and the model did,
+  as text. Now "..., ending on [options: A | B]" (tool-result bytes only): decline 3/3, ideas 3/3.
+- `--bite`: both flips fail as they must (decline: SDXL installed in Auto; ideas: a plain make-an-image in Auto).
+- **Full suite, 28 cases x3: 84/84 pass, $0.3038.** No regression in the 26 older cases.
+- Budget: system prompt 10,084 / 10,150 (net -4), tool schemas 17,158 unchanged.
+**Phase 13:** `(h) a refused call resent unchanged is not run again; other args, or a call in between, still run` RED first
+(the refused `write_memory` ran 4 times), GREEN after: runs once, the resends answer `REPEATED_CALL` with `earlier`, a
+`read_memory` in between lets the same call run again, the fixed file name runs. Narrowed from the plan on purpose (Plan Drift).
+**Both:** `agent-loop.test.cjs` + `agent-prompt-budget.test.cjs` 153 pass 0 fail; full `npm test` 2180 tests, 2178 pass,
+0 fail; lint exit 0 on the three files.
+**Live check (Fabio), pending:** on DeepSeek, "make an image with SDXL" (SDXL not installed) and decline the install:
+buttons under the reply; one click continues. Or ask for three ideas for something.
+
+**Phase 7 VERIFIED by Fabio 2026-09-28 (screenshots, DeepSeek, app restarted on this code):** "Can you do a picture of a
+horse on SDXL?" -> install card -> No -> reply offering models, with three buttons "Klein 9B (realistic) | ILL Anime |
+Chroma Hyper (candid photo)" and no marker in the text. He clicked ILL Anime: it went out as his message, the three buttons
+greyed out, and the turn went on ("Reading ill-anime's settings"). Fabio: "it worked nicely". The same turn is Phase 13's
+live counter-check: "Generation not started" (the guide gate) -> "Reading: guide:illustrious" -> "Starting generation" ->
+t2i_008 landed. A refused generate re-sent after a read still runs; the repeat guard did not block the gate's resend.
+**Watch: `options-ideas` is 13/15 on DeepSeek over the day** (3/3, 3/3, 3/3 in the suite, then 0/1 and 4/5 after the
+Phase 12a split, which does not touch the prompt). The two misses listed three ideas and ended with no marker. The decline
+fork, where the tool result names the marker, never missed (7/7). About one ideas list in seven comes without buttons;
+typing still answers it. Not chased: a fix means rule bytes (Fabio: tokens flat) or a nudge on a text-only reply.
+
+## Phase 12a: the suite ships (session 7fe5b9b0, 2026-09-28, Fabio: "go, inline confirm, share later")
+`scripts/agent-test.mjs` split by a checked script (line anchors asserted) into `services/agentBench.mjs` (fixture assembly,
+`fakeTools`, the 28 `CASES`, `converse`, new `runCase`, `runSuite`, `suiteHash`) and the CLI (201 lines: flags, engine usage
+patch, pricing, `--samples` with `runChecks`, `--bite`). Fixtures `git mv`'d to `services/agentBench/`. `converse` now takes
+`{ loopOptions, profileId, model }` and returns `costUsd` = the loop's own `spend.chatUsd` (DeepInfra's `estimated_cost`), so
+the app needs no engine patch or price lookup. Four agent model guides cited the old fixture path: fixed (one line each).
+**Evidence:** module loads (28 cases, 21 models, hash `a6485b3aadc8`). CLI live on DeepSeek after the split:
+`picks-installed-model` pass, `options-ideas` fail detected (the flake above), `--bite options-after-decline` bites.
+`tests/agent-bench.test.cjs` 2/2: no import under `scripts/`/`tests/` (the scan sees all 15 specifiers incl. the
+`createRequire(...)('../routes/connector.js')` form, and flags `'../scripts/recipe-test.mjs'` when fed one), fixtures beside
+the module; `runSuite` on a scripted engine: one progress per case in order, cost = summed `estimated_cost`, a different case
+set hashes differently, Stop after the first case ends with 1 result and `stopped: true`. Full `npm test` 2201 tests, 2199 pass,
+0 fail. Lint exit 0 (module, CLI, test).
+
+## Anime through styles (Fabio's yes, 2026-09-28)
+Fabio: keep ILL Anime / ILL Anime Beauty as the anime picks; with neither installed, the other models do anime by prompt or a
+style, and a style LoRA keeps one look across several characters. `docs/agent/formats.md` § Styles: Klein 4B (`Anime`, `Chibi`,
+`Jojo`) and 9B (`Anime`, `Chibi`, `Comic`) added, plus one paragraph (anime needs no anime model; offer those rather than an
+install; a style for a cast). `modelPriority.js`: both ILL notes gain "Chroma, Klein and Krea 2 do anime too with their anime
+style". **Found and fixed on the way (the suite's own fidelity):** the fake `generate` validated `styleSelect` without the
+route's label -> index step (`routes/connector.js`), so every style LABEL the app accepts was refused in the suite.
+**Evidence, live probe on DeepSeek with both ILL models uninstalled (4 runs, scratch script over `agentBench.converse`):**
+before the fix every style call was refused and the agent fell back to no style; after, all 4 generated with a style
+(Klein 9B `Anime` x3, Krea 2 `Retro Anime` x1), no install offered, and the three-character ask kept the style for the cast.
+`agent-bench`, `model-priority`, `agent-prompt-budget` tests 22/22; lint 0.

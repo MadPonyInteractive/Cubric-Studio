@@ -291,6 +291,9 @@ describe('(a) install gate', () => {
         await turnPromise;
 
         assert.equal(tools.calls.installModel.length, 0, 'installModel must never fire after No');
+        // MPI-941 Phase 7: a No is a fork. "Ask what they would like" alone went out as plain text.
+        const result = JSON.parse(loop._messages.find((m) => m.role === 'tool').content);
+        assert.match(result.message, /ending on \[options: A \| B\]/);
     });
 
     test('an id list_models does not know gets UNKNOWN_MODEL, and no card', async () => {
@@ -582,9 +585,11 @@ test('Route: one question, three answers, at most three routes, always recommend
 // MPI-941 Phase 7 (Fabio, 2026-09-27): the agent's choices are buttons, not typed answers. The
 // "at most three, always recommend one" limit moved here from the Route rule, for every fork.
 test('Options: a fork ends on a marker the app turns into buttons, and the model keeps it', async () => {
+    // Measured on DeepSeek (agent-test options-*): "only at a genuine fork" with one worked
+    // example read as a restriction, and three offered ideas went out as plain text.
     const r = rule('Options');
-    assert.match(r, /only at a genuine fork, at most three, always recommend one/);
-    assert.match(r, /\[options: Rename them \| Leave them\]/);
+    assert.match(r, /a reply that offers choices \(models, ideas, routes, yes or no\) ends with \[options: A \| B\]/);
+    assert.match(r, /at most three, recommended first/);
 
     const { loop, fakeRes } = await makeLoop({ engineResponses: [{ text: 'All six are upscaled. Want them renamed?\n[options: Rename them | Leave them]' }] });
     await loop.runTurn('upscale them', [], { folderPath: '/p', name: 'P' }, 'auto', 'deepinfra', 'turn-options');
@@ -1614,6 +1619,35 @@ describe('(h) notes, results, names, guides', () => {
         assert.deepEqual(tools.calls.generate.map((b) => b.positive), ['A fox, adapted'], 'only the call after the read reached the app');
         // MPI-916: the read that unlocks the refused call says so; gpt-oss-120b stopped there.
         assert.match(toolResults(loop)[1].next, /has NOT run\. Send it again now/);
+    });
+
+    // MPI-941 Phase 13: gemma4:12b resent one refused write_memory 15 times in a turn. A refused
+    // call sent again unchanged, straight after, gets the earlier answer instead of a rerun. A call
+    // in between may have changed the answer (NO_PROJECT -> create_project -> the same generate),
+    // so the same call after it runs; so does the same tool with other arguments.
+    test('a refused call resent unchanged is not run again; other args, or a call in between, still run', async () => {
+        const bad = { file: 'woman_desc.md', title: 'Woman', text: 'Red coat.' };
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('w1', 'write_memory', bad),
+            call('w2', 'write_memory', bad),
+            call('w3', 'write_memory', bad),
+            call('r1', 'read_memory', {}),
+            call('w4', 'write_memory', bad),
+            call('w5', 'write_memory', { ...bad, file: 'woman-desc.md' }),
+            { text: 'Noted.' },
+        ] });
+        withMemory(tools);
+        tools.writeMemory = async (_folder, note) => {
+            tools.calls.writeMemory.push(note.file);
+            return note.file.includes('_')
+                ? { ok: false, error: { code: 'BAD_REQUEST', message: 'file must be a lowercase slug ending in .md' } }
+                : { ok: true, file: note.file, created: true };
+        };
+        await loop.runTurn('Remember her', [], project, 'auto', 'deepinfra', 't-repeat');
+        assert.deepEqual(tools.calls.writeMemory, ['woman_desc.md', 'woman_desc.md', 'woman-desc.md']);
+        const r = toolResults(loop);
+        assert.deepEqual(r.map((x) => x.error?.code), ['BAD_REQUEST', 'REPEATED_CALL', 'REPEATED_CALL', undefined, 'BAD_REQUEST', undefined]);
+        assert.equal(r[1].earlier.error.code, 'BAD_REQUEST', 'the earlier answer comes back with it');
     });
 
     test('a Flow, or a model with no guide, is not held back', async () => {
@@ -2745,6 +2779,7 @@ describe('(m) the spend gate', () => {
         assert.equal(out.declined, true);
         assert.equal(out.code, 'SPEND_DECLINED');
         assert.doesNotMatch(out.message, /install/i, 'the install path\'s decline copy must not leak into a spend card');
+        assert.match(out.message, /ending on \[options: A \| B\]/);
         assert.equal(tools.calls.generate.length, 0);
     });
 

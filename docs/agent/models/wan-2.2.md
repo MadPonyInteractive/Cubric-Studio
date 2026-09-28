@@ -65,5 +65,5 @@ Exactly one golden retriever, alone in frame, no other people or animals present
 - Alibaba's own Wan 2.2 prompt rewriter, `Wan-Video/Wan2.2` at `wan/utils/system_prompt.py` and `prompt_extend.py` (read 2026-08-17; claim-by-claim read-out in `docs/recipes/research/wan-2.2/sources.md`).
 - The enhancer recipe `js/data/recipes/wan-2.2.recipe.js`.
 - `docs/models/wan/tiers.md` (ratios, tiers, frame rate) and `docs/models/wan/two-stage-sigmas.md` (the distilled schedule, and why there is no turbo switch).
-- `tests/fixtures/agent/connector-models.json` and `js/data/commandRegistry.js`, for the ops, params and media roles as the app actually exposes them.
+- `services/agentBench/connector-models.json` and `js/data/commandRegistry.js`, for the ops, params and media roles as the app actually exposes them.
 - No field-evidence production has used Wan 2.2; none found under `MadPony-Identity/production/*/findings/`.

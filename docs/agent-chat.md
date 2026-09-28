@@ -243,6 +243,10 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   several, the op label and a count — never every id) and the `toolCallId` `cancel_generation` takes.
   Fixed a live queue-behind: a wake re-sent `krea2Edit` on its own and "try Klein 9B" landed behind it,
   because nothing told the model its own job was still running. Zero bytes on every other turn.
+- **Repeat guard** (MPI-941 Phase 13): a call refused (`ok: false`) and sent again unchanged with nothing run in
+  between is not run; it answers `REPEATED_CALL` carrying the `earlier` result (gemma4:12b resent one refused
+  `write_memory` 15 times in a turn). Any call in between clears it, so NO_PROJECT -> `create_project` -> the same
+  `generate` still runs.
 - **Gates** (a rule alone did not do it; a compaction clears them): a model op's `generate` answers `GUIDE_NOT_READ` until this context
   read its router guide, the first of its `guides` (a guide names the mode of any default: a bare one skipped Ask first), and the
   `read_knowledge` that unlocks a refused call says in `next` that the call has NOT run (MPI-916: a model read the guide and ended
@@ -396,8 +400,11 @@ with no tool call: the stance came from each model's training. The `-nsfw` varia
 (never `best`) but carry a note that an explicit adult request takes one when installed. Harness
 case `adult-request`.
 
-**Clickable options (MPI-941 Phase 7).** The Options rule has the model end a reply at a genuine fork
-(at most three choices, one recommended) with `[options: A | B]`. `_takeOptions` cuts it from what the
+**Clickable options (MPI-941 Phase 7).** The Options rule has the model end a reply that offers choices
+(models, ideas, routes, yes or no; at most three, recommended first) with `[options: A | B]`. Worded as a
+restriction ("only at a genuine fork") DeepSeek skipped it on real forks; agent-test `options-ideas` and
+`options-after-decline` measure it. A declined install, spend or batch result tells the model to ask
+"ending on `[options: A | B]`": at that moment the rule alone lost 2 of 3. `_takeOptions` cuts it from the
 user reads, as `[declined]` is; two to four distinct choices ride on `agent:message` and the history
 entry as `options`, and the model's context keeps its own marker. The chat draws them as buttons under
 the reply (`_appendOptions`); a click sends that choice as the user's message, and any send disables the

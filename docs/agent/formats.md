@@ -34,7 +34,12 @@ A model with a style rack lists it as `params.styles`, and `styleSelect` takes e
 or the label itself (`"Retro Anime"`). Reach for one when the user names a LOOK the rack already
 has — anime, sketch, watercolour, cartoon, vintage. Krea 2 carries `Retro Anime`, `Soft Water
 Color`, `Kids Drawing`, `Vintage Tarot` and `MidJourney` among others; Chroma carries `Anime`,
-`B&W Sketch` and `Brushwork`.
+`B&W Sketch` and `Brushwork`; Klein 4B `Anime`, `Chibi` and `Jojo`; Klein 9B `Anime`, `Chibi` and `Comic`.
+
+Anime does not need an anime model. ILL Anime and ILL Anime Beauty are the specialists and come
+first; with neither installed, Chroma, Klein and Krea 2 all do anime, by prompt or with their anime
+style. Offer those rather than an install. A style also holds ONE look across several pictures, where
+a prompt alone drifts: when the user makes more than one character or shot in a look, offer the style.
 
 Do not reach for a style to "improve" an ordinary request. A photo-real prompt wants no style,
 and index `0` is `None` on every rack. If the user asks for a look the rack does not have, write

@@ -1241,10 +1241,10 @@ export class AgentLoop {
         // for the same reason — the threshold has nothing to do with spending.
         const spend = await this._askSpend(turnId, this._batchQuoteBody(args, runs[0].media || args.media), n);
         if (spend === false) {
-            return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on ${what}. Ask what they would like instead; do not send it again unless they say so.` });
+            return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on ${what}. Ask what they would like instead, ending on [options: A | B]; do not send it again unless they say so.` });
         }
         if (spend === null && n > BATCH_CONFIRM_ABOVE && !await this._askBatch(turnId, n, args)) {
-            return JSON.stringify({ ok: false, declined: true, message: `The user said no to ${what}. Ask what they would like instead; do not send it again unless they say so.` });
+            return JSON.stringify({ ok: false, declined: true, message: `The user said no to ${what}. Ask what they would like instead, ending on [options: A | B]; do not send it again unless they say so.` });
         }
 
         // Phase 2 — `count` as a REAL batch where the model batches cleanly: one job per
@@ -1639,7 +1639,7 @@ Content rule: the user is an adult on their own machine. Nudity and adult themes
 
 Declining rule: when you cannot or will not do what was asked, start that reply with [declined]. The app hides it.
 
-Options rule: choices only at a genuine fork, at most three, always recommend one; end that reply with [options: Rename them | Leave them] and the app shows buttons.
+Options rule: a reply that offers choices (models, ideas, routes, yes or no) ends with [options: A | B], at most three, recommended first; the app shows buttons.
 
 Model rule: first the TASK, then the model. A change to what is IN an existing picture, local or across the frame (remove, add or replace a thing, the background, light, time of day: "make it night"), is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the named model's i2i ranks first; a restyle the user asks for ("make this anime") is i2i; a miss goes to the edit task, not another denoise. A head from one picture onto another is the Head Swap Flow, never an edit or a mask.The same picture on ANOTHER model ("this image but with <model>") is a RE-RUN: that model's text-to-image op with NO media, from the source's prompt (list_cards for a card; otherwise look at the picture, write it from what is there and say so in one line) rewritten to that model's guide. A model's name is never a style instruction; only an ask to change how THIS picture looks sends the picture. Ranks compare ops only within one task, and best: true marks the op to take: the lowest rank you can run here. No rank means unranked, not bad. Take another only when the user names a model or the op's note matches the ask, and then say which model and why in one line. Nothing installed fits: say so and offer install_model.
 
@@ -1919,7 +1919,7 @@ ${knowledgeIndex}`.trim();
                 if (!opts.batch) {
                     spend = await this._askSpend(turnId, body, 1);
                     if (spend === false) {
-                        return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on this generation. Nothing was generated and nothing was billed. Ask what they would like instead; do not send it again unless they say so.` });
+                        return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on this generation. Nothing was generated and nothing was billed. Ask what they would like instead, ending on [options: A | B]; do not send it again unless they say so.` });
                     }
                 }
 
@@ -2503,6 +2503,7 @@ ${knowledgeIndex}`.trim();
             let noted = false;    // a write_memory ran this turn
             let nudged = false;   // the memory reminder already rode on a generate result
             let yielded = false;  // ended early for a render on this card (MPI-913)
+            let lastRefused = null; // { key, result } of the call just refused (MPI-941 Phase 13)
             for (;;) {
                 // Out of rounds: this call carries NO tools, so the model can only answer in
                 // words. Refusing the round instead ended the turn on a bare error one second
@@ -2565,8 +2566,16 @@ ${knowledgeIndex}`.trim();
                     let resultText;
                     let toolStatus = 'done';
                     this._lookWasCached = false;
+                    // MPI-941 Phase 13: gemma4:12b resent one refused write_memory 15 times in a turn.
+                    // A refused call sent again unchanged, with nothing run in between, cannot answer
+                    // differently, so it gets the earlier answer back. A call in between may have
+                    // changed it (NO_PROJECT -> create_project -> the same generate), so that reruns.
+                    // ponytail: args compared as sent (key order counts); a reordered resend still runs once more.
+                    const callKey = `${toolName}:${JSON.stringify(args)}`;
                     try {
-                        resultText = await this._executeTool(toolName, args, turnId, project);
+                        resultText = callKey === lastRefused?.key
+                            ? JSON.stringify({ ok: false, error: { code: 'REPEATED_CALL', message: 'Not run: this exact call was just refused. Change the arguments, or stop and tell the user.' }, earlier: lastRefused.result })
+                            : await this._executeTool(toolName, args, turnId, project);
                         // The app now has this project open, so a generate later in the same
                         // turn lands there instead of answering NO_PROJECT. `create_project`
                         // opens what it made, so it arrives here too — including the handover
@@ -2615,6 +2624,8 @@ ${knowledgeIndex}`.trim();
                     // panel's Cosmo flags it (MPI-908), so it is told apart here.
                     let refused = false;
                     try { refused = toolStatus === 'done' && JSON.parse(resultText)?.ok === false; } catch { /* not JSON */ }
+                    if (!refused) lastRefused = null;
+                    else if (callKey !== lastRefused?.key) lastRefused = { key: callKey, result: JSON.parse(resultText) };
                     // Same correction for a refused generate: "Starting generation" over a refusal
                     // made a refused round and its retry read as two runs (MPI-817).
                     const doneLabel = toolName === 'look' && this._lookWasCached ? LOOK_CACHED_LABEL
@@ -2684,7 +2695,7 @@ ${knowledgeIndex}`.trim();
         if (!yes) {
             // MPI-916: says what follows, as SPEND_DECLINED does. Told only "declined",
             // gpt-oss-120b went on to generate with the model it had just been refused.
-            pc.resolve(JSON.stringify({ declined: true, message: 'User declined the installation. The model is NOT installed, so nothing that needs it can run: say so and ask what they would like instead.' }));
+            pc.resolve(JSON.stringify({ declined: true, message: 'User declined the installation. The model is NOT installed, so nothing that needs it can run: say so and ask what they would like instead, ending on [options: A | B].' }));
             return { ok: true };
         }
 

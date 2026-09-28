@@ -27,7 +27,7 @@ even though they share an architecture.
 ## Settings
 
 No quality tiers, no turbo toggle and no style rack on any op
-(`tests/fixtures/agent/connector-models.json`). `t2i`, `i2i` and `inpaint` offer the full
+(`services/agentBench/connector-models.json`). `t2i`, `i2i` and `inpaint` offer the full
 ratio set (`1:1, 3:4, 4:5, 5:8, 9:16, 4:3, 5:4, 8:5, 16:9`); `control`, `upscale` and `detail`
 follow the source image's size instead.
 

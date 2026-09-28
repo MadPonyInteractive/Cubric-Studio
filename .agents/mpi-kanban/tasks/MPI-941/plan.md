@@ -301,7 +301,36 @@ compares), per-case pass/fail, runs, perChat, app version, GPU name + VRAM for a
 images, project names or paths. No GitHub token in the app. Update cubric.studio/privacy in the same job. Order:
 result -> local save -> optional share; the share ships only once MPI-965's endpoint is live.
 Packaging found 2026-09-28: `build-portable.mjs` `APP_COPY_EXCLUDES` drops `scripts/` and `tests/` whole (146, 148), so point (a)
-means moving the cases + `tests/fixtures/agent/` (56 KB) + `runChecks` (`scripts/recipe-test.mjs`) into shipped paths.
+means moving the cases + `tests/fixtures/agent/` (56 KB) into shipped paths. `runChecks` stays put: only `--samples` uses it.
+
+**Build plan (session 7fe5b9b0, 2026-09-28; awaiting Fabio's go).** Zero agent prompt bytes: the benchmark is outside the
+agent's prompt. The share (e) is NOT built here: it ships once MPI-965's endpoint is live (a later phase or MPI-965 itself).
+- **12a - the harness ships.** New `services/agentBench.mjs`: the fixture assembly, `fakeTools`, `CASES`, `converse`, and
+  `runSuite({ loopOptions, profileId, model, onProgress, signal })` (every case once, `--runs 1`; returns per-case pass/fail,
+  usage, `suiteHash` = a hash of the case ids + check sources). Fixtures move `tests/fixtures/agent/` -> `services/agentBench/`.
+  `scripts/agent-test.mjs` becomes the CLI over it (flags, 3 runs, `--bite`, `--samples`, `--preset`, pricing unchanged).
+  **Verify:** `npm run agent:test -- --case options-ideas --runs 1` still passes (~$0.001); a unit test that
+  `agentBench.mjs` imports nothing under `scripts/` or `tests/` (what the portable copy drops).
+- **12b - the route.** `POST /agent/benchmark { profileId, model }` streams SSE: `bench:start { cases, estimate }`, one
+  `bench:case { id, title, passed, failures }` per case, `bench:done { passed, cases, costUsd, perChat, suiteHash }` or
+  `bench:error`; `POST /agent/benchmark/stop` aborts. One at a time. `AgentSessions.benchmark()` builds the loop from the
+  sessions' own `_loopOptions` (the user's saved connection and key) with the FAKE tools. Cost = provider usage x DeepInfra's
+  live price (`fetchDeepInfraPrices`); a provider with no price reports tokens only. A local model: refused while a local
+  generation runs (the GPU is busy), and released after (`releaseOwnModels`, Phase 5's rule).
+  **Verify:** `tests/agent-bench.test.cjs` with a scripted engine: events in order, stop aborts mid-suite, one-at-a-time.
+- **12c - the button.** Settings > Remote, under "Test tool use": "Benchmark this model" + one hint line ("Runs our 28 agent
+  tests on this model with pretend tools: nothing is generated or saved."). Click -> an inline confirm in place of the button:
+  "About $0.10 on DeepInfra, ~7 min" / "Uses your GPU for 10-30 min" with Run / Cancel (no modal). Running -> a progress line
+  "12 of 28 · 9 passed" and a Stop. Estimate = measured per-case tokens (DeepSeek, this suite) x the live price, labelled "about".
+- **12d - the result.** `Storage` keeps `{ [profileId]: { [model]: { passed, cases, perChat, suiteHash, at } } }` (the
+  `getConnectionPick` pattern). The agent row shows it like Phase 11's scores, marked "your run": "21/28 tests (your run)". A
+  model we scored keeps our 3-run score; the user's own sits beside it, never replacing it. A result from an older suite
+  (hash differs) reads "older tests".
+Footprint: `services/agentBench.mjs` + `services/agentBench/` (new), `tests/fixtures/agent/` (moved out), `scripts/agent-test.mjs`,
+`services/agentSessions.mjs`, `routes/agent.js`, `js/core/storage.js`, `MpiLlmSettings.js` (+ `.css`), `tests/agent-bench.test.cjs`
+(new), `tests/desktop/llm-settings-remote.spec.js`, `docs/llm.md`, `docs/agent-chat.md`.
+**Verify:** 12a-b as above; desktop spec: button -> confirm -> progress -> score in the agent row (route stubbed); `npm test`;
+then Fabio live: one DeepSeek run from Settings (~$0.10), the score appears on the row.
 
 ### Phase 13 - the loop stops a repeated identical call (Fabio, 2026-09-28: "fold the write_memory guard into MPI-941")
 
@@ -457,6 +486,20 @@ three-way forks ("What would you like?" after a declined SDXL install; "Any of t
 no buttons. Phase 7's evidence was a scripted model only; no real model was ever measured on the marker. Phase 13 (the
 repeated-call guard) folded in on his word. **NEXT:** an `agent-test.mjs` case for the Options rule, red on DeepSeek, then
 reword the rule at net-zero bytes until it passes x3; Phase 13; then plan Phase 12.
+2026-09-28, session 7fe5b9b0: CI green on 88abc7e58 (contains 31282263b, which had no run of its own). **Phase 7 fix built
+and measured on DeepSeek:** new agent-test cases `options-after-decline` + `options-ideas` RED first (1/3, 0/3), GREEN 3/3
+after the rule reword (net -4 bytes) AND the four decline tool results naming the marker; full suite 28 x3 84/84, $0.30.
+**Phase 13 built** (a refused call resent unchanged, nothing between, answers `REPEATED_CALL`; narrowed on purpose, Plan
+Drift). Unit, full `npm test` (0 fail), lint green. All UNCOMMITTED, claim `7fe5b9b0-mpi941`. **Phase 7 VERIFIED by Fabio
+live** (decline -> three buttons, one click continued; the same turn showed the guide gate's resend still runs under the
+Phase 13 guard). Phase 12's build plan written (§ Phase 12) and approved: "go, inline confirm, share later".
+**12a BUILT and green** (validation.md § Phase 12a): `services/agentBench.mjs` + `services/agentBench/` fixtures, the CLI over
+it, `tests/agent-bench.test.cjs`. **NEXT: 12b** (the `POST /agent/benchmark` SSE route + stop, `AgentSessions.benchmark()`
+from `_loopOptions` with the fake tools, one at a time, local: refuse while a local generation runs, release after), then 12c
+(button, inline Run/Cancel confirm, progress + Stop), 12d (result per connection+model, "(your run)" on the agent row).
+**Anime through styles DONE on Fabio's yes** (validation.md § Anime through styles): `docs/agent/formats.md` + the two ILL notes
+in `modelPriority.js`; and the suite's fake `generate` now resolves a style label like the route does (it refused every label).
+**Handoff 2026-09-28 -> fresh session for 12b.**
 
 **Watch-only, carried from MPI-817 (no build unless it recurs):** the agent ending an Auto-mode
 turn on a question; a note generalising from two runs; a project note RESTATING a global one
@@ -499,6 +542,10 @@ the copy); Ollama's free cloud models (unconfirmed research); the `__ARG__` proj
 - **Phase 7 code (2026-09-28, session 2f2883e4), uncommitted until handoff/close:** Options rule + `_takeOptions`
   (`services/agentLoop.mjs`), `_appendOptions` / `_optionBtns` (`MpiAgentChat.js` + `.css`), `docs/agent-chat.md`.
   Tests: `Options:` in `agent-loop.test.cjs` (Route's limit assertion moved there), desktop `options:` in `agent-chat.spec.js`.
+- **Phase 7 fix + Phase 13 (2026-09-28, session 7fe5b9b0), uncommitted until handoff/close:** Options rule reworded
+  (165 -> 161 bytes, system prompt 10,084) and the four decline results in `services/agentLoop.mjs`; `lastRefused` +
+  `REPEATED_CALL` in the tool loop; `agent-test.mjs` cases `options-after-decline` + `options-ideas`, and `options` per
+  turn; `agent-loop.test.cjs` (Options wording, install + spend decline markers, the repeat test); `docs/agent-chat.md`.
 
 ## Plan Drift
 
@@ -548,3 +595,11 @@ the copy); Ollama's free cloud models (unconfirmed research); the `__ARG__` proj
   `generate` row now names all four tools. Phase 6 is NOT agentLoop-free as written: the "Test tool
   use" probe is `AgentLoop.probe()`, so its `contextWindow` field is two lines there. The batch kept
   ownership disjoint by leaving that edit to the orchestrator, after the Phase 4 worker finishes.
+- 2026-09-28 (session 7fe5b9b0): Phase 13 narrowed from "any identical call this turn" to "a REFUSED call resent
+  unchanged with nothing run in between". The literal version breaks the gates that tell the model to resend the SAME
+  call (NO_PROJECT -> create_project -> the same generate; GUIDE_NOT_READ -> read -> resend) and two identical
+  generates meant as variations. It still stops gemma4:12b's 15 back-to-back write_memory resends.
+- 2026-09-28 (session 7fe5b9b0): Phase 7's fix needed more than the rule. Reworded as a trigger ("a reply that offers
+  choices (models, ideas, routes, yes or no) ends with [options: A | B]") the ideas fork went 0/3 -> 3/3, but the
+  declined-install fork stayed 1/3: the tool result said "ask what they would like instead" and the model did, in
+  plain text. The four decline results (install, spend x2, batch) now say "ending on [options: A | B]": 3/3.
