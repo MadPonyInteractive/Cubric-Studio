@@ -13,7 +13,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 ## Gate A — must fix
 
 - [x] **A1 MPI-806** RunPod REST v2 — app client + tests + watchdog source: Vision `97f729c5e`, mpi-ci `e62a9aa`
-  - [ ] Pod runtime watchdog `_self_stop` on v2 with a status check; `publish-runtime.sh dev` -> restart a Pod -> see it stop -> `promote` (Fabio's go; NEVER `stable`)
+  - [x] Pod runtime watchdog `_self_stop` on v2 with a status check; dev-proven on a CPU Pod, promoted 2026-09-27 on Fabio's yes
   - [ ] Live app leg on v2: create / stop / start / delete a Pod, list + grow a volume (Fabio's go)
     - [x] 2026-09-27 GPU leg (create via GraphQL RAM floor, v2 reads/start/delete) + CPU create; volume grow not run
     - [ ] REST v2 GPU create live: the RAM-floor create now goes REST v2 (uncommitted, 2026-09-27); one Connect after an app restart proves it
@@ -22,12 +22,12 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   - [ ] 2.0 ships by ~2026-11-01
 - [x] **A2 MPI-516** vanished-prompt detector, with the re-read guard: `c3a0f839d`, CI green
 - [x] **A3 MPI-736** colour — Fabio 2026-09-27: all good, closed
-- [ ] **A4 MPI-780** chain
+- [x] **A4 MPI-780** chain, done 2026-09-27
   - [x] packages exist (MPI-781) · [x] app advertises them (MPI-831)
-  - [ ] Gumroad products drafted, codes created (MadPony-Identity MPI-81, Fabio) — published ON release day
-  - [ ] **MPI-872** redirects resolve — verified in a browser, landing on Gumroad with the discount
+  - [x] Gumroad products LIVE at £4, 100-use codes applied automatically (MadPony-Identity MPI-81)
+  - [x] ~~**MPI-872** redirects~~ rejected: Get it opens the plain Gumroad pages (`fe68f620d`). Build check is B7
 - [x] **A5 MPI-954** 1.x -> 2.0 launcher hop — `37e5eca77`; PROVEN on the Linux box 2026-09-27 (control exit 127, fixed exit 0 on both paths, boot heal in 2 s). macOS not run (no Mac)
-- [ ] **A6 MPI-591** H3 in Extend Video — IN 2.0, Fabio finishes it in its own session, BEFORE B1 (watch: FL2VA needs a core newer than v0.34)
+- [x] **A6 MPI-591** H3 in Extend Video — closed 2026-09-27 (`8975ff6d6`); B1 is unblocked on A6
 - [x] **A7 MPI-952** SplatKit out of 2.0 (`b3c25a678`); Mickmumpitz stays for Outpaint
 - [x] Cleared: MPI-507/515 (rejected, MPI-734), MPI-575, MPI-522/523/527, MPI-873, MPI-708's gates 532/774/809/810/777
 - [ ] Every A item that did not clear has its known-issue bullet
@@ -45,6 +45,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [ ] **B4** `npm test` and `npm run test:desktop` green
 - [x] **B5** MPI-656 Phase 1 — CLEARED by reading 2026-09-27: every YAML writer (`comfy.js:855/864/934`, `engine.js:671/678`) goes through `writeExtraModelPathsYaml` -> `setRoots`, so `model_roots.json` cannot drift from the YAML; the yaml-only seed and the both-equal rule are tested (`tests/model-roots.test.cjs:213,252`)
 - [x] **B6** MPI-710 — CLEARED by reading 2026-09-27: nothing load-bearing reads the installed top-level manifest (the applier keys its guard off package.json on purpose, `apply-update.cjs:88-100`; main, routes and updateChecker never read it). Stays a research card, not a gate
+- [ ] **B7** on the 2.0 build, Get it on Head Swap and DramaBox opens Gumroad at £0
 
 ## Gate C — decide / notes
 
@@ -72,5 +73,5 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [ ] MPI-708 Phase 3: dual-publish `CubricVision-*` at the cut (2.0 note done `ec7b81cb3`; 2.1 follow-up is **MPI-951**)
 - [ ] `python scripts/overtaken-cards.py`; unpushed pushed; commit by pathspec
 - [ ] `/mpi-version-bump` -> **2.0.0**, then `/mpi-release`
-- [ ] Release day: Gumroad live; Claude Desktop directory submission
+- [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
 - [ ] After: MPI-603 R2/HF delete; MPI-612

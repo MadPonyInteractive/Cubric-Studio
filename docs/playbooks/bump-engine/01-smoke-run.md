@@ -159,7 +159,7 @@ so a new Flow is covered the day it lands. Each Flow brings its own installs: it
 `byModel` arm) go through the same per-model install as the matrix, and its `requiredDeps`
 install as the app does it, under `flow:<id>`. `--plan` prints both, and the GB the Flows add
 to the volume counts only weights the model matrix does not already install. One Flow, `ltx-extend`, has a `byModel` arm for
-`minimax-h3-ref2va` that uses a different graph (`flow_h3_extend.json`). That arm is
+`minimax-h3` (the fl2va DiT) that uses a different graph (`flow_h3_extend.json`). That arm is
 expanded at resolve time, so `--flows all` produces **14 entries**, not 13.
 `--flows ltx-extend` likewise produces 2.
 
@@ -183,7 +183,7 @@ Flow results sit alongside model results in `smoke-evidence.json`:
 
 ```json
 { "model": "flow", "op": "ltx-extend", "status": "PASS", ... }
-{ "model": "flow", "op": "ltx-extend/minimax-h3-ref2va", "status": "PASS", ... }
+{ "model": "flow", "op": "ltx-extend/minimax-h3", "status": "PASS", ... }
 ```
 
 The merge key is `flow/<op>`. `release:check` **does not gate on Flow coverage** — it
