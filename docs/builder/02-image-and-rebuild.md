@@ -158,7 +158,7 @@ cu126-r550-driver-floor carve-out) are GONE. MPI-187 live-proved the `+cu130` CU
 build is the ~10x LTX fault-in fix (108-127s → ~11s), and torch 2.10+cu130 carries BOTH
 Ada sm_89 (4090) and Blackwell sm_120 (5090/PRO 6000/B200) in one wheel — so ONE image
 serves every card. Driver floor is now uniform r580, enforced app-side by
-`allowedCudaVersions:["13.0"]` (MPI-188). `podImageForCard` returns a single `-cu130` tag
+`minCudaVersion:"13.0"` (MPI-188; never the exact-match `allowedCudaVersions` on REST v2). `podImageForCard` returns a single `-cu130` tag
 (no per-card suffix → the enum-desync/wrong-profile bug class of MPI-135/MPI-70 is gone).
 aimdo 0.4.10 is unchanged (the proven Pod ran the same aimdo; its gate is torch ≥ 2.8, no
 cuda check → 2.10 passes). The vram-flag rules above (drop `--normalvram`, let aimdo manage)

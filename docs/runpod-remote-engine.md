@@ -47,19 +47,20 @@ Community Cloud is unsupported (unstable/limited for this use case).
     refusal returns `ramFloorMissed` only when the card is in stock in that DC
     (`_isGpuAvailable`); then the UI shows "no ≥N GB host" + respects the auto-retry/wait
     toggle, otherwise the normal out-of-stock copy.
-  - Every GPU create carries **`allowedCudaVersions`** — a hard driver-floor placement
-    filter (MPI-188). RunPod lands the Pod ONLY on a host whose driver supports one of the
-    listed CUDA versions; without it, placement is driver-roulette and a host with a driver
-    too old for the image's CUDA/torch build crashes ComfyUI on boot ("RuntimeError: The
-    NVIDIA driver on your system is too old"). The floor is a property of the IMAGE, so it's
-    derived from the card→image suffix (`podCudaFloor` in `remotePodLifecycle.js`, NOT user
-    input): cu124→`['12.4']`, cu128→`['12.8']`, cu130→`['13.0']`. N/A for CPU download mode.
-    Threaded into both create paths (REST forwards the whole spec; GraphQL mirrors the
-    `minMemoryInGb` thread). **Live-proven both APIs accept it (2026-07-04):** GraphQL applies
-    it as a placement filter (impossible value → SUPPLY_CONSTRAINT, same shape as the RAM-floor
-    proof); **REST validates it against a strict ENUM** — valid values are `13.0, 12.9, 12.8,
-    12.7, 12.6, 12.5, 12.4, 12.3, 12.2, 12.1, 12.0, 11.8` (an off-enum value → schema-400). All
-    three floor values are in the enum; any future floor MUST be an enum member.
+  - Every GPU create carries **`gpu.minCudaVersion`** — a hard driver-floor placement
+    filter (MPI-188). RunPod lands the Pod ONLY on a host whose driver supports at least that
+    CUDA version; without it, placement is driver-roulette and a host with a driver too old
+    for the image's CUDA/torch build crashes ComfyUI on boot ("RuntimeError: The NVIDIA
+    driver on your system is too old"). The floor is a property of the IMAGE (`podCudaFloor`
+    in `remotePodLifecycle.js`, NOT user input): the single cu130 image → `'13.0'`. N/A for
+    CPU download mode.
+    **Never `allowedCudaVersions`.** On REST v2 that list matches EXACTLY ("a version no
+    machine reports yields a capacity error rather than a fallback"). MPI-806 carried v1's
+    `['13.0']` across 1:1, so from 2026-09-27 every GPU create was confined to hosts reporting
+    exactly 13.0 — every 13.1–13.4 host was shut out, and RunPod answered with the SAME "no
+    longer any instances available" text as a stock-out while the console listed the cards
+    (MPI-595 B1, 2026-09-28). Valid values per card: `GET /v2/catalog/gpus?include=AVAILABILITY`
+    → `cudaVersions`.
 - Telemetry: `GET /remote/pod/stats` (RAM+VRAM, wrapper-first), `GET /remote/pod/disk`
   (volume USED bytes via wrapper `du`, wrapper-first, NO REST fallback — see §5; MPI-169),
   `GET /remote/pod/ls` (read-only passthrough of wrapper `/wrapper/ls` + an `accounting`
@@ -399,8 +400,9 @@ difference between hunting for a 96 GB instance and taking whatever is in stock.
   `nvidia/cuda:13.0.3-runtime-ubuntu24.04` (a `-runtime` base: no torch to discard, no CUDA
   `-dev` toolkit — that shrink is structural, MPI-186) + explicit
   `torch 2.12.0+cu130 / torchvision 0.27.0 / torchaudio 2.11.0`. One tag runs Ampere → Ada →
-  Blackwell. Host-driver floor is a flat `allowedCudaVersions: ['13.0']` (r580) for every
-  card — RunPod treats it as a minimum, so newer drivers still land; without it, placement is
+  Blackwell. Host-driver floor is a flat `minCudaVersion: '13.0'` (r580) for every
+  card — a minimum, so newer drivers still land (v2's `allowedCudaVersions` is an exact
+  match and must not be used for this); without it, placement is
   driver-roulette and a too-old host crashes ComfyUI at boot (MPI-188). Bakes **ffmpeg + git**.
   Accelerator = **PyTorch SDPA only**: flash-attn dropped (ABI-fragile, ~7% slower than SDPA
   for diffusion) and **sageattention deferred on cu130** — the source build silently degrades

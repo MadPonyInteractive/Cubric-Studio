@@ -100,15 +100,18 @@ test('createPod: CPU download-mode Pod sends cpu {id, vcpuCount} and no gpu', as
   assert.equal(req.body.cpuFlavorIds, undefined);
 });
 
-test('createPod: CUDA driver floor goes under gpu.allowedCudaVersions', async () => {
+// A FLOOR, never allowedCudaVersions: v2 matches that list exactly, so ['13.0'] refused
+// every 13.1+ host with the stock text (MPI-595 B1, 2026-09-28).
+test('createPod: CUDA driver floor goes under gpu.minCudaVersion, never the exact list', async () => {
   const spec = {
     name: 'cubric-vision', imageName: 'img', containerDiskInGb: 40,
-    gpuTypeIds: ['NVIDIA GeForce RTX 5090'], gpuCount: 1, allowedCudaVersions: ['13.0'],
+    gpuTypeIds: ['NVIDIA GeForce RTX 5090'], gpuCount: 1, minCudaVersion: '13.0',
     ports: ['8889/http'], env: { CUBRIC_TOKEN: 't' }, dataCenterIds: ['EU-RO-1'],
   };
   const req = await captureRequest(() => client.createPod('key', spec));
-  assert.deepEqual(req.body.gpu, { id: 'NVIDIA GeForce RTX 5090', count: 1, allowedCudaVersions: ['13.0'] });
-  assert.equal(req.body.allowedCudaVersions, undefined);
+  assert.deepEqual(req.body.gpu, { id: 'NVIDIA GeForce RTX 5090', count: 1, minCudaVersion: '13.0' });
+  assert.equal(req.body.gpu.allowedCudaVersions, undefined);
+  assert.equal(req.body.minCudaVersion, undefined);
   assert.deepEqual(req.body.ports, ['8889/http']);
   assert.deepEqual(req.body.env, { CUBRIC_TOKEN: 't' });
   assert.deepEqual(req.body.dataCenterIds, ['EU-RO-1']);

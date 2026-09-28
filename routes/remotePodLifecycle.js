@@ -50,7 +50,7 @@ const _devMode = (() => {
 // on a nvidia/cuda:13.0.3-runtime base carries BOTH Ada sm_89 (4090) and Blackwell
 // sm_120 (5090/PRO 6000/B200) in one wheel, so one image runs every card. This is
 // the MPI-187 ~11s-fault-in stack (the +cu130 CUDA-13 build is the ~10x lever).
-// Driver floor r580 enforced by allowedCudaVersions=['13.0'] (MPI-188). Registry
+// Driver floor r580 enforced by minCudaVersion='13.0' (MPI-188). Registry
 // moved GHCR -> Docker Hub for the GPU image (cold-start pull test, MPI-186).
 // sageattention is DEFERRED on cu130 (SDPA fallback — the cu130 win holds without
 // it; see docs/builder/02-image-and-rebuild.md). The -cpu image is unchanged (GHCR).
@@ -464,19 +464,22 @@ function podImageForCard(gpuTypeId) {
   return `${POD_IMAGE_BASE}:${v}-cu130`;
 }
 
-// MPI-188: hard driver-floor placement filter. RunPod's `allowedCudaVersions`
-// lands the Pod ONLY on a host whose driver supports one of the listed CUDA
-// versions — without it, placement is driver-roulette and a host with a driver
-// too old for the image's CUDA/torch build crashes ComfyUI on boot
-// ("RuntimeError: The NVIDIA driver on your system is too old", seen live on a
-// cu13.0 image landing a 12.8-max host during MPI-187). The floor is a property
-// of the IMAGE. MPI-189 collapsed to a SINGLE cu130 image, so the floor is a flat
-// ['13.0'] for every GPU card (the r580-driver floor cu130 needs). RunPod treats
-// the listed version as a minimum, so newer drivers still land.
+// MPI-188: hard driver-floor placement filter. RunPod's `minCudaVersion` lands
+// the Pod ONLY on a host whose driver supports at least this CUDA version —
+// without it, placement is driver-roulette and a host with a driver too old for
+// the image's CUDA/torch build crashes ComfyUI on boot ("RuntimeError: The
+// NVIDIA driver on your system is too old", seen live on a cu13.0 image landing
+// a 12.8-max host during MPI-187). The floor is a property of the IMAGE. MPI-189
+// collapsed to a SINGLE cu130 image, so the floor is a flat '13.0' for every GPU
+// card (the r580-driver floor cu130 needs).
+// A FLOOR, never `allowedCudaVersions`: REST v2 matches that list EXACTLY ("a
+// version no machine reports yields a capacity error rather than a fallback"),
+// so ['13.0'] shut out every 13.1+ host and answered "no longer any instances
+// available" while the console listed the cards (MPI-595 B1, 2026-09-28).
 // N/A for CPU download mode (no CUDA on a CPU Pod).
 function podCudaFloor(gpuTypeId) {
   if (gpuTypeId === CPU_SENTINEL) return null;
-  return ['13.0'];
+  return '13.0';
 }
 
 // --- lifecycle-private state --------------------------------------------------
@@ -909,8 +912,8 @@ async function _createPodInternal(key, { gpuTypeId, volumeId, datacenter, contai
   // input; GPU Pods only (podCudaFloor returns null for CPU download mode).
   const cudaFloor = podCudaFloor(gpuTypeId);
   if (cudaFloor) {
-    spec.allowedCudaVersions = cudaFloor;
-    logger.info('runpod', `CUDA driver floor for ${gpuTypeId}: ${cudaFloor.join(',')}`);
+    spec.minCudaVersion = cudaFloor;
+    logger.info('runpod', `CUDA driver floor for ${gpuTypeId}: >=${cudaFloor}`);
   }
 
   // Pre-create sweep (single-Pod invariant): kill any stray 'cubric-vision' Pod

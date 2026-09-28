@@ -41,6 +41,33 @@ touches a `/runpod/*` call is cheaper written once against v2 than twice.
    `createPodGraphql` and the dormant MPI-159 enum fallback. **Verify:** `grep -n graphql
    routes/` is empty, and the Settings picker shows the same cards, prices, RAM and stock
    for EU-RO-1 as before.
+   **Pulled forward, Fabio 2026-09-28: 1b runs BEFORE the 2.0 B1 smoke (MPI-595).** Design
+   agreed in the MPI-595 session: `client.gpuTypes` -> `GET /v2/catalog/gpus?include=
+   AVAILABILITY&product=POD&cloud=SECURE&minCudaVersion=13.0` (availability scoped by the
+   SAME CUDA floor the create sends); `client.dataCenters` -> `GET /v2/catalog/datacenters`
+   with each DC's `gpuAvailability` built from the gpus call's per-DC `dataCenters[]`;
+   translate at the boundary into the shape the renderer already reads (`displayName`,
+   `memoryInGb`, `securePrice`, `available`, `stockStatus` HIGH->High/MEDIUM->Medium/
+   LOW->Low, `storageSupport` = networkVolumeTypes non-empty) so no renderer file changes;
+   delete `_graphql`, `createPodGraphql`, the MPI-159 enum fallback in `_createPodInternal`;
+   fix the smoke runner's `selectGpu` (its "in stock" is a GLOBAL cheapest-offering RAM
+   figure, not EU-RO-1 availability). **v2's catalogue has NO system RAM or vCPU** (checked
+   the live openapi 2026-09-28): the picker's RAM badge goes (it self-hides on null); the
+   create's `minRamPerGpu` floor still guarantees RAM. Fabio said go on that plan.
+1c. **GPU picker becomes an OVERLAY that mimics RunPod's deploy page** (Fabio 2026-09-28,
+   screenshot in the MPI-595 session). The dropdown becomes a button that opens an overlay
+   like the model-selector and Flow-selector overlays. One tile per card: name, $/hr, VRAM,
+   RAM + vCPU, `max`, and the three-bar availability meter (v2 `availability` NONE/LOW/
+   MEDIUM/HIGH). RunPod's "Available | All" tabs are replaced by our **auto-retry switch:
+   ON shows all cards, OFF shows only available ones**. Plus an **Image / Video filter**
+   that shows only the cards that suit that kind of work. **Open, decide before building:**
+   (a) RAM + vCPU on the tiles have no v2 source (see 1b); keep one GraphQL read until
+   RunPod adds it (GraphQL retires early 2027), or ship tiles without RAM. (b) What "good for
+   video / good for image" means has to be written down: the only rule today is the
+   picker's `< 64 GB RAM ⚠ video`, which needs RAM; a VRAM-only rule, or the footprint of
+   the models the user has installed, are the candidates. (c) 2.0 or 2.1: not stated.
+   Frontend: EVERY UI element is a component (`ComponentFactory.create`), BEM, CSS vars;
+   read `.claude/rules/components.md` + the existing model-selector overlay first.
 2. **MPI-668 + MPI-183 together.** Both are engine-parity: MPI-668 adds the missing check
    of the Pod's ComfyUI core against `node_lock.json`, MPI-183 bumps the Builder image to
    the version that check would demand. **Verify:** a deliberately stale image is REJECTED
@@ -70,3 +97,23 @@ Both read `dev_configs/node_lock.json`; NEITHER writes it. A pin change is
 - Size a volume in **decimal** GB.
 - `guard-runpod-create.py` gates pod creation, and as of this refresh it finally binds the
   PowerShell tool too.
+
+## Current State
+
+2026-09-28 (MPI-595 session 909b66b4): phase 1b NOT started; card still `todo`. Next session:
+`beginImplementation` MPI-894 (todo -> doing, write `files.json`), then 1b per the design
+above, then the MPI-595 B1 smoke (its handoff chain carries the smoke procedure).
+
+Already landed from that session, as the first slice of the v2 work: the **CUDA floor fix**.
+MPI-806 mapped v1's `allowedCudaVersions: ['13.0']` 1:1 onto v2, where that list matches
+EXACTLY (openapi: "a version no machine reports yields a capacity error rather than a
+fallback"), so every GPU create since 2026-09-27 was confined to hosts reporting exactly
+13.0 and 13.1-13.4 hosts were shut out with the stock-out text. Now `podCudaFloor` returns
+`'13.0'`, the spec carries `minCudaVersion`, v2 sends `gpu.minCudaVersion`. Tests 95/95 on
+the RunPod files; **not yet proven live** (needs an app restart + a GPU create). The
+GraphQL `createPodGraphql` was deliberately NOT updated for it: 1b deletes it.
+
+## Plan Drift
+
+- 2026-09-28: 1b pulled forward from 2.1 to before the 2.0 smoke; 1c added (picker overlay +
+  image/video filter). Both Fabio's calls, same session.

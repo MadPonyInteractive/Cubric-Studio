@@ -115,7 +115,7 @@ async function _graphql(apiKey, query, variables) {
 //   containerDiskInGb    → disk
 //   gpuTypeIds:[id]      → gpu.id
 //   gpuCount             → gpu.count
-//   allowedCudaVersions  → gpu.allowedCudaVersions
+//   minCudaVersion       → gpu.minCudaVersion  (a floor; v2's allowedCudaVersions is EXACT)
 //   minMemoryInGb        → gpu.minRamPerGpu
 //   computeType:'CPU' +
 //   cpuFlavorIds:[id]    → cpu.id
@@ -135,9 +135,7 @@ function _toV2PodSpec(spec) {
   if (Array.isArray(spec.gpuTypeIds) && spec.gpuTypeIds.length) {
     body.gpu = { id: spec.gpuTypeIds[0] };
     if (spec.gpuCount !== undefined) body.gpu.count = spec.gpuCount;
-    if (Array.isArray(spec.allowedCudaVersions) && spec.allowedCudaVersions.length) {
-      body.gpu.allowedCudaVersions = spec.allowedCudaVersions;
-    }
+    if (spec.minCudaVersion) body.gpu.minCudaVersion = spec.minCudaVersion;
     if (typeof spec.minMemoryInGb === 'number') body.gpu.minRamPerGpu = spec.minMemoryInGb;
   }
 
