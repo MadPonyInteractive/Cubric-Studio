@@ -1851,8 +1851,13 @@ async function main() {
                     3 * 60 * 60 * 1000, { watchLog: true });
             }
         }
+        // Only THIS call's models. The app keeps every job of the session, so a failed Flow
+        // job from an earlier run (2026-09-28: flow:chatter-box) aborted a later run that
+        // never asked for it.
+        const mine = new Set([...entries].map(e => e.model.id));
         const jobs = (await app('/comfy/downloads/status')).jobs || [];
-        return jobs.filter(j => (j.deps || []).some(d => d.status === 'failed' || d.status === 'error'))
+        return jobs.filter(j => mine.has(j.modelId))
+            .filter(j => (j.deps || []).some(d => d.status === 'failed' || d.status === 'error'))
             .map(j => j.modelId);
     };
 

@@ -80,6 +80,35 @@ function splitDepFilename(depFilename) {
 }
 
 /**
+ * A dep with the two registry fields the remote path keys on, looked up by id. Most
+ * callers hand remoteModelsCheck a stripped `{ id, type, filename }`, which drops
+ * `bakedOnPod` (so a baked weight read as missing) and `targetPath` (so a chatterbox
+ * weight reached the wrapper with an empty type). Resolved here once instead of trusting
+ * every caller to pass the whole object.
+ */
+function _withRegistryDef(dep) {
+  const def = dep && _require('../js/data/modelConstants/dependencies.js').DEPS[dep.id];
+  if (!def) return dep;
+  return { ...dep, targetPath: dep.targetPath ?? def.targetPath, bakedOnPod: dep.bakedOnPod ?? def.bakedOnPod };
+}
+
+/**
+ * The wrapper `{ type, filename }` for a weight dep. Normally the dep filename carries the
+ * type ('loras/x.safetensors'). A `targetPath: models/<type>/<sub>` weight (chatterbox,
+ * MPI-607) has a BARE filename, so its type and subfolder come from targetPath and the
+ * wrapper lands it at <volume>/mpi_models/<type>/<sub>/<file>; start.sh points the node's
+ * fixed `ComfyUI/models/<type>` at that folder. A targetPath outside `models/` (RIFE, in a
+ * node folder) is image-resident and never reaches the wrapper.
+ */
+function wrapperDepPath(dep) {
+  const d = _withRegistryDef(dep) || {};
+  const tp = String(d.targetPath || '').replace(/\\/g, '/').replace(/\/+$/, '');
+  const m = /^models\/([A-Za-z0-9_-]+)(?:\/(.+))?$/.exec(tp);
+  if (!m) return splitDepFilename(d.filename);
+  return { type: m[1], filename: m[2] ? `${m[2]}/${d.filename}` : d.filename };
+}
+
+/**
  * The RunPod proxy returns a TRANSIENT gateway status while the wrapper is briefly
  * unreachable — 404 for a few seconds right after a Pod restart even when /health is
  * green, and 502/503/504 when the proxy has the Pod but the wrapper upstream is still
@@ -236,11 +265,9 @@ function _isImageResident(dep) {
   // explicit flag makes them fall through and report MISSING, which fails CLOSED: a
   // badge saying "get it" is recoverable, a Run that dies in the engine is not.
   //
-  // Note the volume path still cannot install a targetPath weight (bare filename →
-  // empty type → wrapper reject) — that limitation is what the blanket rule was hiding.
-  // Supporting chatterbox on remote means either baking it into the image or teaching
-  // the wrapper a targetPath destination; until one of those lands, honest-missing is
-  // the correct answer.
+  // A non-baked `models/...` targetPath weight is a VOLUME install: wrapperDepPath maps it
+  // to a real wrapper type (it used to reach the wrapper with an empty one and fail as
+  // `invalid model type`, which kept Chatter Box and Voice Changer local-only until 2.0).
   if (dep.targetPath && dep.bakedOnPod) return true;
   // MPI-380: an `engineAsset` WEIGHT baked into the image by the Dockerfile `dl`
   // block (upscalers, yolo nano, sam_vit_b, birefnet). The wrapper only sees the
@@ -364,7 +391,8 @@ async function remoteModelsCheck(models) {
   const split = (models || []).map((m) => {
     const residentIds = [];
     const volumeDeps = [];
-    for (const d of (m.deps || [])) {
+    for (const raw of (m.deps || [])) {
+      const d = _withRegistryDef(raw);
       if (_isImageResident(d)) {
         // BAKED node — never volume-checked. Drift here = a stale Pod IMAGE.
         const pinned = getPinnedNodeCommit(d.id);
@@ -390,7 +418,7 @@ async function remoteModelsCheck(models) {
         volumeDeps.push({ ...d, type: 'custom_nodes', filename: d.filename });
         continue;
       }
-      const { type, filename } = splitDepFilename(d.filename);
+      const { type, filename } = wrapperDepPath(d);
       volumeDeps.push({ ...d, type: type || d.type || '', filename });
     }
     imageResidentByModel[m.id] = residentIds;
@@ -446,7 +474,7 @@ async function remoteInstallDep(dep, { sizeBytes = 0, force = false } = {}) {
     // for an already-present custom_node in an install request)
     if (dep.requirementsOnly) body.requirements_only = true;
   } else {
-    const { type, filename } = splitDepFilename(dep.filename);
+    const { type, filename } = wrapperDepPath(dep);
     body = {
       id: dep.id,
       type,
@@ -486,7 +514,7 @@ async function remoteUninstallDep(dep) {
   if (dep.type === 'custom_nodes') {
     body = { id: dep.id, type: 'custom_nodes', filename: dep.filename };
   } else {
-    const { type, filename } = splitDepFilename(dep.filename);
+    const { type, filename } = wrapperDepPath(dep);
     body = { id: dep.id, type, filename };
   }
 
@@ -961,6 +989,7 @@ async function ensureUniversalNodesOnVolume() {
 module.exports = {
   isRemoteActive,
   splitDepFilename,
+  wrapperDepPath, // exported for tests (MPI-595 B1: chatterbox on remote)
   ensureUniversalNodesOnVolume,
   _universalVolumeNodeDeps, // exported for tests (MPI-438)
   wrapperFetch,
