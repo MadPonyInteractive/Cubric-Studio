@@ -12,7 +12,13 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const express = require('express');
+const sharp = require('sharp');
+const { ffmpegPath } = require('../services/ffmpegBinary');
 
 const connectorRoutes = require('../routes/connector');
 
@@ -448,6 +454,86 @@ test('a video ref in a picture slot is refused, not sent to decode as an image (
   // A picture, a GIF and a name that says nothing still pass as before.
   for (const url of ['/project-file?path=' + encodeURIComponent('C:\\p\\Media\\t2i_001.png'), '/a.gif', '/project-file?path=noext']) {
     assert.equal(resolveAgentMedia('edit', nano, [{ role: 'inputImage', url }]).ok, true, url);
+  }
+});
+
+// ── a clip in a picture slot goes as its first frame (MPI-980) ───────────────
+
+const fileUrl = (p) => `/project-file?path=${encodeURIComponent(p)}`;
+
+/** A project folder with an empty `Media/.meta`; removed by the caller. */
+function tempProject() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cubric-first-frame-'));
+  fs.mkdirSync(path.join(dir, 'Media', '.meta'), { recursive: true });
+  return { dir, media: path.join(dir, 'Media') };
+}
+
+test('a clip whose sidecar names a start frame goes as that picture', async () => {
+  const { dir, media } = tempProject();
+  const clip = path.join(media, 'i2v_001.mp4');
+  const still = path.join(media, 't2i_001.png');
+  fs.writeFileSync(clip, 'never decoded: the sidecar answers first');
+  fs.writeFileSync(still, 'the picture the clip was made from');
+  fs.writeFileSync(path.join(media, '.meta', 'item-1.json'), JSON.stringify({
+    filePath: fileUrl(clip),
+    generationSettings: { mediaItems: [{ role: 'startFrame', url: fileUrl(still) }] },
+  }));
+  const { base, stop } = await startServer();
+  const renderer = await fakeRenderer(base);
+  try {
+    const pending = postJson(`${base}/connector/generate`, {
+      modelId: 'nano-banana-2-lite-cloud', operation: 'edit', positive: 'make it night',
+      media: [{ role: 'inputImage', url: fileUrl(clip) }],
+    });
+    const frame = await renderer.readFrame();
+    assert.deepEqual(frame.data.input.media, [{ role: 'inputImage', url: fileUrl(still) }]);
+    await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, { ok: true, output: {} });
+    await pending;
+  } finally {
+    renderer.close();
+    await stop();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('a clip with no start frame goes as frame 0, full size, staged in its own project', async () => {
+  const { dir, media } = tempProject();
+  const clip = path.join(media, 't2v_001.mp4');
+  execFileSync(ffmpegPath, ['-v', 'error', '-f', 'lavfi', '-i', 'color=c=red:s=64x48:d=0.2:r=24',
+    '-pix_fmt', 'yuv420p', clip], { windowsHide: true });
+  // The real store is routes/projects.js; this stands in for it on the loopback the route calls.
+  const staged = [];
+  const app = express();
+  app.use(express.json());
+  app.post('/project-media/:id/place-preview-asset', (req, res) => {
+    staged.push({ folderPath: req.query.folderPath, ext: req.body.ext, bytes: fs.readFileSync(req.body.dataUrl) });
+    res.json({ success: true, filePath: '/project-file?path=staged.png' });
+  });
+  app.use(connectorRoutes);
+  const server = await new Promise((resolve) => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const port = process.env.CUBRIC_PORT;
+  process.env.CUBRIC_PORT = String(server.address().port);
+  const renderer = await fakeRenderer(base);
+  try {
+    const pending = postJson(`${base}/connector/generate`, {
+      modelId: 'nano-banana-2-lite-cloud', operation: 'edit', positive: 'make it night',
+      media: [{ role: 'inputImage', url: fileUrl(clip) }],
+    });
+    const frame = await renderer.readFrame();
+    assert.deepEqual(frame.data.input.media, [{ role: 'inputImage', url: '/project-file?path=staged.png' }]);
+    await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, { ok: true, output: {} });
+    await pending;
+    assert.equal(staged.length, 1);
+    assert.equal(staged[0].folderPath, dir);
+    assert.equal(staged[0].ext, '.png');
+    const { format, width, height } = await sharp(staged[0].bytes).metadata();
+    assert.deepEqual([format, width, height], ['png', 64, 48]);
+  } finally {
+    renderer.close();
+    if (port === undefined) delete process.env.CUBRIC_PORT; else process.env.CUBRIC_PORT = port;
+    await new Promise((resolve) => server.close(resolve));
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });
 

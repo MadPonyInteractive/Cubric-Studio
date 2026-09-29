@@ -46,6 +46,7 @@ on every tool that writes.
 - **Reference images.** `media: [{ role, path }]`: a path on the user's disk is staged into the
   project `folderPath` names, else the one `GET /connector/current-project` names. An image
   pasted into the user's chat never reaches us as a file, so an input is a card or a disk path.
+  A video in a picture role goes as its first frame (`/connector/generate`, MPI-980).
 - **Results** carry the disk path plus the gallery's 512px thumb as MCP `image` content, so a
   vision model sees what it made. `view_card` (`services/cardView.js`) shows a still, or a video
   or GIF as ONE contact sheet (frames picked by index, GIF delays from sharp).

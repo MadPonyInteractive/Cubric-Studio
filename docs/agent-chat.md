@@ -117,6 +117,11 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
   off disk (the engine may be a remote Pod). An attachment is copied into the project with `POST
   /project-media/:id/place-preview-asset?folderPath=` **only when a generate uses it**; a result goes
   as `/project-file?path=`. `crop` and `box` are in ORIGINAL pixels. `generate` with no project: `NO_PROJECT`.
+  A video ref in a picture slot goes as its FIRST frame (MPI-980): `/connector/generate` and
+  `/connector/quote` swap it (`_firstFrames`) for the sidecar's `startFrame` picture
+  (`agentCards.startFrameOf`), else frame 0 staged through `place-preview-asset`. Model ops and
+  tools only; a Flow's slot, or a clip that cannot be read, reaches `resolveAgentMedia`, which
+  refuses a ref whose file type is not the slot's (MPI-979) and names Create snapshot.
 
 ## Connector routes (W1, `routes/connector.js`)
 

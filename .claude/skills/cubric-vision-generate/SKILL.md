@@ -176,7 +176,7 @@ Failure returns `{"ok": false, "error": {"code": ..., "message": ...}}`:
 | `OP_UNAVAILABLE` | The model does not support that operation, or its weights are not installed. |
 | `MEDIA_REQUIRED` | A required media slot is empty. Names the slot. |
 | `MASK_UNSUPPORTED` | The operation needs a painted mask (`inpaint`, `detail`) and none is painted. Ask the user to paint one in History, then send the same call again. |
-| `BAD_REQUEST` | A media role the operation does not have (the message lists its roles), a media entry with no `url`, or one role given twice. |
+| `BAD_REQUEST` | A media role the operation does not have (the message lists its roles), a media entry with no `url`, one role given twice, or a file whose type is not the slot's (a video in a Flow's picture slot, a sound in a picture slot). |
 | `CANCELLED` | Cancelled, or produced no output. |
 | `WINDOW_CLOSED` | The app window closed or reloaded before the job finished. It may not land: check the gallery, and send it again if it is missing. There is no time limit: a job otherwise ends only with its own result. |
 | `INVALID_RATIO` | `ratio` is not a label this model/operation offers. |
@@ -227,6 +227,11 @@ the vocabulary.
   the `inputImage` being edited. Optional slots may be left off.
 - **Klein Edit follows the SOURCE image size.** `ratio` is refused on it; size the
   image you stage.
+- **A video in a picture slot is its FIRST frame.** The route swaps it before anything
+  queues: the picture the clip was made from when its sidecar names one (an `i2v`
+  `startFrame`, full size), else frame 0, staged into the same project. Any other
+  frame is the user's to pick: they open the video, right-click the frame and choose
+  **Create snapshot**, which lands it as a picture card. A Flow's slots are not swapped.
 
 ### Masks
 

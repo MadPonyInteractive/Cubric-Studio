@@ -401,7 +401,7 @@ const TOOLS = {
                     description: 'The pictures, clips or sounds the op starts from: an edit, image-to-image, image-to-video, a reference. describe_model lists each op\'s roles.',
                     items: obj({
                         role: { type: 'string', description: 'A media role describe_model lists for this op.' },
-                        path: { type: 'string', description: 'A file on disk: a card\'s path from list_cards or a generate result, or any image, video or audio file the user named.' },
+                        path: { type: 'string', description: 'A file on disk: a card\'s path from list_cards or a generate result, or any image, video or audio file the user named. A video in a picture role is its first frame; any other frame is the user\'s right-click Create snapshot in the app.' },
                     }, ['role', 'path']),
                 },
                 fields: { type: 'object', description: 'A Flow\'s field values, as describe_model lists them.' },

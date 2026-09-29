@@ -590,11 +590,14 @@ export function resolveAgentMedia(operation, model, media = []) {
         if (!m.url) return _err('BAD_REQUEST', `Media role "${m.role}" has no url.`);
         // The slot names the type, so a ref that contradicts it must stop here: a video
         // card sent as an edit's picture reached the cloud route as "an image", failed to
-        // decode, and the user saw only "the provider could not complete" (MPI-979).
+        // decode, and the user saw only "the provider could not complete" (MPI-979). A clip
+        // in a picture slot normally arrives here as its first frame already (the connector
+        // route, MPI-980); one that still reads as a video is a Flow's slot or a clip that
+        // could not be read.
         const actual = _refMediaType(m.url);
         if (actual && actual !== slot.mediaType) {
             return _err('BAD_REQUEST', actual === 'video' && slot.mediaType === 'image'
-                ? `Nothing was generated: media role "${m.role}" takes a picture, and that is a video. No tool takes a frame out of a clip: ask the user to open the video, pause on the frame they want, right-click it and choose "Create snapshot". The frame lands in the gallery as a picture card; use that card.`
+                ? `Nothing was generated: media role "${m.role}" takes a picture, and that is a video. Ask the user to open the video, pause on the frame they want, right-click it and choose "Create snapshot". The frame lands in the gallery as a picture card; use that card.`
                 : `Nothing was generated: media role "${m.role}" takes ${slot.mediaType}, and that is ${actual}.`);
         }
         if (mediaItems.some(item => item.role === slot.key)) {

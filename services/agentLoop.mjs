@@ -243,7 +243,7 @@ export const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'list_cards',
-            description: 'What the open project ALREADY holds, read from its gallery cards and their sidecars: everything made before this conversation, by anyone. No groupId: the newest cards, one short row each (name, ref, kind, the model or flow and operation that made it, size, a clip\'s real length, the start of its prompt). A groupId: that one card in full, with the whole prompt, the settings that ran, and madeFrom, the refs it was made from. Every ref it returns can be passed to look, and to generate as media, a video included.',
+            description: 'What the open project ALREADY holds, read from its gallery cards and their sidecars: everything made before this conversation, by anyone. No groupId: the newest cards, one short row each (name, ref, kind, the model or flow and operation that made it, size, a clip\'s real length, the start of its prompt). A groupId: that one card in full, with the whole prompt, the settings that ran, and madeFrom, the refs it was made from. Every ref it returns can be passed to look, and to generate as media, a video included (as a picture, its first frame; any other frame is the user\'s right-click Create snapshot).',
             parameters: {
                 type: 'object',
                 properties: {

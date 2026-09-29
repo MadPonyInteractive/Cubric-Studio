@@ -450,6 +450,53 @@ router.get('/connector/jobs/stream', (req, res) => {
 const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration', 'denoise', 'batch'];
 
 /**
+ * A video sent where the op takes a picture stands for its FIRST frame (MPI-980): the
+ * picture the clip was made from when its sidecar names one (`agentCards.startFrameOf`, full
+ * size), else frame 0, put in the project's content-addressed store like any staged input.
+ * Any other frame is the user's to pick (the video viewer's Create snapshot): nothing here
+ * can know which one is meant. A clip this cannot read goes on unchanged, and the renderer
+ * refuses it by name (`resolveAgentMedia`) instead of sending an mp4 as a picture (MPI-979).
+ */
+async function _firstFrames(media, operation, model) {
+  if (!Array.isArray(media) || !media.length) return media;
+  const pictures = new Set(mediaRolesFor(await _getCommandRegistry(), operation, model)
+    .filter((r) => r.type === 'image').map((r) => r.role));
+  const { isVideoFile } = require('../js/utils/file.js');
+  return Promise.all(media.map(async (m) => {
+    let file = null;
+    try { file = new URL(String(m?.url), 'http://127.0.0.1').searchParams.get('path'); } catch (_) { /* not a project file */ }
+    if (!file || !path.isAbsolute(file) || !isVideoFile(file) || !pictures.has(m.role)) return m;
+    try {
+      const start = await (await _cards()).startFrameOf(file);
+      return { ...m, url: start ? `/project-file?path=${encodeURIComponent(start)}` : await _frameZero(file) };
+    } catch (err) {
+      logger.warn('connector', `first frame of ${path.basename(file)} failed: ${err.message}`);
+      return m;
+    }
+  }));
+}
+
+/** Frame 0 of a project's clip, full size, as a staged input of that same project. */
+async function _frameZero(file) {
+  const parts = path.resolve(file).split(path.sep);
+  const media = parts.lastIndexOf('Media');
+  if (media < 1) throw new Error('not in a project\'s Media folder');
+  const folder = parts.slice(0, media).join(path.sep);
+  const tmp = path.join(os.tmpdir(), `cubric-frame-${randomUUID()}.png`);
+  try {
+    const { ffmpegPath } = require('../services/ffmpegBinary');
+    await require('node:util').promisify(execFile)(ffmpegPath,
+      ['-v', 'error', '-i', file, '-frames:v', '1', '-y', tmp], { windowsHide: true, timeout: 60_000 });
+    const placed = await _appPost(`/project-media/agent/place-preview-asset?folderPath=${encodeURIComponent(folder)}`,
+      { dataUrl: tmp, ext: '.png' });
+    if (!placed?.success || !placed.filePath) throw new Error(placed?.error || 'the frame could not be staged');
+    return placed.filePath;
+  } finally {
+    await fs.remove(tmp).catch(() => {});
+  }
+}
+
+/**
  * POST /connector/generate
  * Body, EITHER a model op:  { modelId, operation, positive, negative?, injectionParams?,
  *                              ratio?, qualityTier?, turbo?, styleSelect?, stylization?,
@@ -609,6 +656,13 @@ router.post('/connector/generate', async (req, res) => {
     input.folderPath = String(match.folderPath).replace(/\\/g, '/');
   }
 
+  // MPI-980: a clip in a picture slot goes as its first frame, for a model op and a tool alike.
+  if (!flowId && input.media) {
+    input.media = await _firstFrames(input.media,
+      tool ? (await import('../js/shell/agentToolOps.js')).toolOperation(input.operation) : input.operation,
+      tool ? null : findModelDef(modelId));
+  }
+
   const result = await _dispatchToRenderer('generation.submit', input, requestId !== undefined ? String(requestId) : undefined);
 
   if (!result.ok) {
@@ -641,11 +695,13 @@ router.post('/connector/quote', async (req, res) => {
   if (!flowId && (!modelId || !operation)) {
     return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.flowId, or body.modelId and body.operation, are required.' } });
   }
+  // Priced with the picture the run will send (MPI-980): a clip refused here would price no reference.
+  const sent = flowId ? media : await _firstFrames(media, String(operation), findModelDef(modelId));
   const input = flowId ? { flowId: String(flowId) } : {
     modelId: String(modelId),
     operation: String(operation),
     injectionParams: injectionParams || {},
-    ...(Array.isArray(media) && media.length ? { media } : {}),
+    ...(Array.isArray(sent) && sent.length ? { media: sent } : {}),
     ...Object.fromEntries(NAMED_PARAM_KEYS
       .filter((k) => req.body[k] !== undefined)
       .map((k) => [k, req.body[k]])),

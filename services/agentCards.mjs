@@ -185,3 +185,26 @@ export async function readCard(folderPath, groupId) {
         files,
     };
 }
+
+/**
+ * The picture a clip was made FROM, when its sidecar records one the project still has: an
+ * image-to-video run's `startFrame`, full size and usually a gallery card already (MPI-980).
+ * Null otherwise. A clip arrives by path, not by card, so its sidecar is found by the file it
+ * names: one read per sidecar in `.meta`, and only when a video is sent as a picture.
+ */
+export async function startFrameOf(file) {
+    const media = path.dirname(path.resolve(file));
+    if (path.basename(media) !== 'Media') return null;
+    const want = path.resolve(file).toLowerCase();
+    const metaDir = path.join(media, '.meta');
+    for (const name of await fs.readdir(metaDir).catch(() => [])) {
+        if (!name.endsWith('.json')) continue;
+        const meta = await _readJson(path.join(metaDir, name));
+        const own = _decode(meta?.filePath);
+        if (!own || path.resolve(own).toLowerCase() !== want) continue;
+        const start = (meta.generationSettings?.mediaItems || []).find((m) => m?.role === 'startFrame');
+        const picture = start && _ownedMedia(path.dirname(media), start.url || start.filePath);
+        return picture ? fs.access(picture).then(() => picture, () => null) : null;
+    }
+    return null;
+}
