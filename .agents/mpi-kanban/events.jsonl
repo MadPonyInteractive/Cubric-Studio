@@ -5304,3 +5304,7 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-990", "at": "2026-09-29T14:35:58+01:00", "actor": "claude", "column": "todo", "title": "Overhang crop re-encodes a JPEG: extract the in-bounds part, then extend, in one pipeline"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-990", "at": "2026-09-29T14:36:13+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-990", "at": "2026-09-29T14:58:29+01:00", "actor": "claude", "from": "doing", "to": "done"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-991", "at": "2026-09-29T14:41:50+01:00", "actor": "462bcb02-b87f-42eb-b783-ee053b6884d1", "column": "todo", "title": "Agent sends a user already on the card to the gallery to reach the Mask tool"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-991", "at": "2026-09-29T14:42:11+01:00", "actor": "462bcb02-b87f-42eb-b783-ee053b6884d1", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-991", "at": "2026-09-29T14:47:23+01:00", "actor": "462bcb02-b87f-42eb-b783-ee053b6884d1", "from": "doing", "to": "doing", "reason": "shipped 8474e9b69; Fabio re-tests live after a restart"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-991", "at": "2026-09-29T15:18:59+01:00", "actor": "462bcb02-b87f-42eb-b783-ee053b6884d1", "from": "doing", "to": "done", "reason": "verified live by Fabio"}

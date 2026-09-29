@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-991",
+  "title": "Agent sends a user already on the card to the gallery to reach the Mask tool",
+  "description": "Live 2026-09-29: on the open card, asked to remove glasses, the agent said 'click the card in the gallery to open it (you're already looking at it)'. The Masking rule's 'skip the first half' conditional lost; the on-card App state line now carries the exact words.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-29T14:41:50+01:00",
+  "updated_at": "2026-09-29T15:18:59+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
