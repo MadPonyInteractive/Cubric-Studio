@@ -498,3 +498,5 @@ Rig 16K idle (`f4096-soft`): stroke 71.6 / 75 / 75, Adjust first move 332 ms, dr
 **Fabio verified round 3 (2026-09-29, his app restarted):** "All passed, and mask adjust is much
 faster now" - SAM3 points + text on the 16K and 32K run (no Pillow error), soft Adjust edge, Adjust
 speed.
+
+**Close (2026-09-29):** code commit `49c4b4884` pushed; CI Tests run 36509145573 **success** (unit + desktop 1-4). Phase 4 skipped by Fabio (revisit only on user slowness reports); claim auditor: 43 claims proven, 1 overstated doc number fixed before commit (drag 74 -> 70 fps in `docs/masking-adjust.md`).
