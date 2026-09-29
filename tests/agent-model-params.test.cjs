@@ -94,6 +94,20 @@ test("the project's saved ratio is injected only on an op that takes a ratio", (
     assert.ok(sized > 0 && ratioed > 0, 'both kinds of op are in the registry');
 });
 
+// MPI-987 live, 2026-09-29: a masked agent inpaint on a 1920x1080 picture came back 1344x768.
+// The PromptBox mounts the picker only on an op whose components list `ratio`, so a Cue-press
+// inpaint sends no size and keeps the source's; the agent path took one anyway.
+test('an op takes a ratio only where the PromptBox would show the picker', () => {
+    const { modelShowsRatio, getCommandComponents } = require('../js/data/commandRegistry.js');
+    for (const [m, op] of PAIRS) {
+        if (modelShowsRatio(m, op)) assert.ok(getCommandComponents(op).includes('ratio'), `${m.id}/${op} takes a ratio the UI never offers`);
+    }
+    const klein = MODELS.find((m) => m.id === 'klein-9b');
+    assert.equal(resolveNamedParams(null, klein, 'inpaint', { ratio: '16:9' }).code, 'INVALID_RATIO');
+    assert.equal(resolveNamedParams(null, klein, 'inpaint', {}).injectionParams.Width, undefined);
+    assert.ok(resolveNamedParams(null, klein, 'i2i', { ratio: '16:9' }).injectionParams.Width, 'i2i still takes one');
+});
+
 /*
  * The skill doc PUBLISHES tier pixels, because a tier is a name and an agent that maps
  * "1K" onto one by how it sounds gets it wrong (fd13dae7: "1K" -> `high`, 1664x960).

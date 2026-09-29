@@ -1529,8 +1529,14 @@ export function modelShowsStyleRack(model, operation) {
  * and edit derive their size, while Krea2/SDXL depth generates at our dimensions. So a
  * model names its own image-sized ops and everything else is unaffected — the default is
  * an empty list, i.e. exactly today's behaviour for every pre-Klein model.
+ *
+ * The op must also carry the picker at all (MPI-988): the PromptBox mounts it only from
+ * the op's `components`, so a Cue-press inpaint/detail sends no size and keeps the
+ * source's. This function alone said yes to them, and an agent's masked inpaint on a
+ * 1920x1080 picture came back at the 16:9 working size, 1344x768.
  */
 export function modelShowsRatio(model, operation) {
+    if (!getCommandComponents(operation).includes('ratio')) return false;
     const imageSized = Array.isArray(model?.imageSizedOps) ? model.imageSizedOps : [];
     return !imageSized.includes(operation);
 }

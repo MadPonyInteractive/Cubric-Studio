@@ -73,8 +73,9 @@ which is why **the output is always the size of the input image**, never `Input_
 gated. Deliberately absent, each for a graph reason:
 
 - **no `ratio`** — the output is input-sized (see above). This is also why `inpaint` is not
-  in anyone's `imageSizedOps`: that list only ever gates the `ratio` control, and the op
-  never mounts it.
+  in anyone's `imageSizedOps`: `modelShowsRatio` says no first to an op whose `components`
+  lack `ratio`. It did not until MPI-988, and the agent path, which mounts nothing, injected
+  `Width`/`Height`: a masked inpaint on a 1920x1080 picture came back 1344x768.
 - **no `batch`** — `Input_Batch_Size` reaches `EmptyLatentImage` alone in every graph we
   ship, and this branch samples a VAE-encoded crop.
 - **no `denoise`** — SDXL bakes its hi-res pass at 0.4, Krea 2 has none to expose.

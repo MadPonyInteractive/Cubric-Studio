@@ -169,7 +169,7 @@ model that stays silent behaves exactly as it did before the field existed.
 | field | hides / sets | gate fn |
 |---|---|---|
 | `styleOps` | the style picker + Stylization slider | `modelShowsStyleRack` |
-| `imageSizedOps` | the ratio picker | `modelShowsRatio` |
+| `imageSizedOps` | the ratio picker (only on an op whose `components` list `ratio`) | `modelShowsRatio` |
 | `batchOps` | the batch control | `modelShowsBatch` |
 | `controlDefaults` | a control's STARTING value, per model | `_resolveDefault` |
 
