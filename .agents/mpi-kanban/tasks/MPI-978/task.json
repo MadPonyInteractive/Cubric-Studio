@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-978",
+  "title": "Gallery filter ignores a mark change: an unmarked card stays in a Dots-only view",
+  "description": "Changing a card's mark (card button or agent mark_card) with a marks filter on leaves the card visible; grid refreshGroup never re-runs the filter.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-29T12:19:21+01:00",
+  "updated_at": "2026-09-29T12:20:03+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

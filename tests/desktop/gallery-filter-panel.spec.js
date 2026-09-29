@@ -284,6 +284,14 @@ test('kind chips, the FILTER panel and the gallery toolbar in the project bar', 
       await expect.poll(() => cards(window)).toEqual(['vid2']);
     });
 
+    await test.step('un-marking a card under a mark filter drops it from the gallery', async () => {
+      // MPI-978: the card button repainted the card in place and never re-ran the filter,
+      // so an un-marked card stayed in a Squares-only gallery.
+      await window.locator('.mpi-gallery-grid__row-wrap[data-group-id="vid2"] .mpi-group-card__fav-wrap .mpi-btn').click();
+      await expect.poll(() => savedMark(project.folderPath, 'vid2')).toBe(false);
+      await expect.poll(() => cards(window)).toEqual([]);
+    });
+
     await test.step('leaving the panel closes it, and no portal is left behind', async () => {
       await window.mouse.move(4, 600);
       await expect(panel).toHaveCount(0, { timeout: 3000 });

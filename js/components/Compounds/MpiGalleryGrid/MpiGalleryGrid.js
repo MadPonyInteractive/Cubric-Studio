@@ -2144,6 +2144,11 @@ export const MpiGalleryGrid = ComponentFactory.create({
             return shown.length === 1 ? shown[0].accent : 'studio';
         }
 
+        /** Does this card show under `sort`? The render and refreshGroup share it (MPI-978). */
+        function _passesFilter(g, sort) {
+            return matchesGallerySort(g, g.history?.[g.selectedIndex] ?? { type: g.type }, sort);
+        }
+
         function _rerenderJustified(reason = 'manual') {
             _pendingRenderReasons.add(reason);
             if (_renderTimeout) clearTimeout(_renderTimeout);
@@ -2160,7 +2165,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // Previews and sort all keep working inside the archive. Kind is read off the
                 // SELECTED item, the same call the card's kind chip makes (MPI-749); a
                 // generating placeholder has no item yet, so its group type stands in.
-                let display = _groups.filter(g => matchesGallerySort(g, g.history?.[g.selectedIndex] ?? { type: g.type }, sort));
+                let display = _groups.filter(g => _passesFilter(g, sort));
 
                 display.sort(byGalleryOrder(order));
 
@@ -2581,6 +2586,11 @@ export const MpiGalleryGrid = ComponentFactory.create({
             if (entry) {
                 entry.card?.el?.refreshGroup?.(newGroup);
                 entry.renderKey = _getGroupRenderKey(newGroup);
+            }
+            // MPI-978: a mark, archive or selected-item change can move the card across
+            // the filter, and repainting it in place never re-runs the filter. Re-pack then.
+            if (idx !== -1 && _renderedOrder.some(g => g.id === newGroup.id) !== _passesFilter(newGroup, state.gallerySort)) {
+                _rerenderJustified('refresh');
             }
             // MPI-949: a hidden member has no card of its own — its stack shows it.
             const stack = newGroup.stackId && _groups.find(g => g.id === newGroup.stackId);
