@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-985", "at": "2026-09-29T13:34:52+01:00", "actor": "umbrella-sweep 2a15cea4", "column": "todo", "title": "Cloud models on DeepInfra (umbrella): reference inputs, DeepInfra inside Flows, the no-engine user"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-985", "at": "2026-09-29T13:40:06+01:00", "actor": "umbrella-sweep 2a15cea4", "fields": ["plan"], "note": "plan.md written: umbrella over MPI-910, MPI-923, MPI-918, MPI-856 (Fabio's yes 2026-09-29)."}

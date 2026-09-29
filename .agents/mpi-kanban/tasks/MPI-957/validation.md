@@ -46,3 +46,8 @@ native canvases keep their pixels; overlay/mask/paint coordinate spaces untouche
 ## Remaining
 
 Human eyes: a real 8K/16K photo in History (a tool mode) and in Compare, zoomed out.
+
+## Closed
+
+2026-09-29: Fabio closed the card ("You can close 957") in the umbrella-sweep session, which
+covers the human-eyes item above. CI green on the fix commit `59d20b1b6` (recorded above).

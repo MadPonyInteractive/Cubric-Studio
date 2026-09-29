@@ -14,6 +14,7 @@
 | MPI-477 | H3 refiner: the PIXEL-space route, after latent upscaling was disproven | `todo` / `research` |
 | MPI-478 | The local engine still passes --lowvram; the Pod dropped it on measurement (inert today under aimdo) | `todo` / `research` |
 | MPI-343 | Model upgrade evaluation queue - PiD 1.5 upscaler, NSFW LTX 2.3 | `todo` / `research` |
+| MPI-688 | Video Upscale: add H3 alongside LTX | `todo` / `planned` (added 2026-09-29, umbrella sweep, Fabio's yes) |
 
 ## Why these belong together
 
@@ -44,6 +45,15 @@ in this batch.
 - **MPI-578** - LTX 2.5 latent upscalers (BLOCKED on the ComfyUI bump; do not unblock it here).
 - **MPI-477** - the H3 PIXEL-space refiner route.
 - **MPI-478** - whether the local engine's `--lowvram` still costs anything (inert today).
+
+## The one BUILD member: MPI-688
+
+MPI-688 is not an evaluation - it adds H3 to the shipped Upscale Video Flow (`ltx-upscale`,
+MPI-584) with H3's own latent upscaler (`MinimaxH3LatentUpscaler3D`) in the upsampler slot. It
+does not wait for the harness; it follows `docs/playbooks/add-flow/` and its own brief. Its
+output is a finished-frame route, so once it ships it is one more row the harness measures.
+Ownership: `comfy_workflows/ltx_video_upscale.json`, the `ltx-upscale` entry in
+`js/data/flowsRegistry.js`, plus the H3 flows sweep its card describes.
 
 ## Traps already known
 

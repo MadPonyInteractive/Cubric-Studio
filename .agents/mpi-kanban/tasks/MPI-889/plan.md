@@ -16,6 +16,13 @@ Carries no code of its own. Closes when its last member does.
 | MPI-890 | 1 | The agent reads the open workspace, so "this image" is the entry in front of the user — **done 2026-09-22** |
 | MPI-891 | 2 | The agent moves the view to where its work will render |
 | MPI-892 | 3 | The agent fills a Flow and hands it over instead of running it blind |
+| MPI-950 | 4 | Agents see stacks as stacks: the in-app agent and MCP read, create and return a Gallery stack (MPI-949) as a stack, not as its loose members. Added 2026-09-29 (umbrella sweep, Fabio's yes) |
+
+**MPI-950 and the others:** it needs neither phase 2 nor 3 - it is the same idea (the agent
+sees what the user sees) applied to stacks - but it edits `services/agentLoop.mjs` and
+`routes/agent.js`, the files MPI-892 touches, so it runs after 892 or in a session that claims
+both. It was blocked on MPI-941's claim on those files; 941 closed 2026-09-29, and on the same
+day MPI-984 (another live session) claimed them. Check `active_file_claims` before starting.
 
 ## Current State
 

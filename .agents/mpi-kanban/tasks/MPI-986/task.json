@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-986",
+  "title": "Mix and audio (umbrella): the Mix workspace, its fader, reference-aware delete, a song model",
+  "description": "Four loose todo cards that are one audio system, all post-2.0. Grouped by the umbrella sweep 2026-09-29, approved by Fabio. Members: MPI-917 (Mix workspace), MPI-740 (MpiFader wheel, the mixer's fader), MPI-920 (delete warns when a card is used by reference, e.g. by a Mix), MPI-775 (YuE2 song model brainstorm, DAW widgets). Phases and parallel batches in plan.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-29T13:35:00+01:00",
+  "updated_at": "2026-09-29T13:35:00+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

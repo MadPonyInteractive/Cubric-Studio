@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-895", "at": "2026-09-22T11:13:05+01:00", "actor": "mpi-project-refresh (MPI-893)", "column": "todo", "title": "Upscale and refine evaluation (umbrella): what actually improves a finished frame"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-895", "at": "2026-09-29T13:40:06+01:00", "actor": "umbrella-sweep 2a15cea4", "fields": ["plan"], "note": "plan.md: MPI-688 added as the one build member (umbrella sweep, Fabio's yes 2026-09-29)."}

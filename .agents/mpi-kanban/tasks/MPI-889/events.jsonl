@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-889", "at": "2026-09-22T09:04:15Z", "actor": "session-6b5a38e3", "column": "todo", "title": "The agent works INSIDE the app, not beside it: it reads the workspace, moves the view, and hands a Flow over"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-889", "at": "2026-09-29T13:40:06+01:00", "actor": "umbrella-sweep 2a15cea4", "fields": ["plan"], "note": "plan.md: MPI-950 added as phase 4 (umbrella sweep, Fabio's yes 2026-09-29)."}

@@ -12,6 +12,7 @@
 | MPI-602 | LanPaint: real mask-conditioned inpainting across every supported model | `todo` / `planned` |
 | MPI-355 | 4K/8K localized-edit Flow - mask a small region of a huge scene (crop-stitch wiring already shipped) | `todo` / `planned` |
 | MPI-557 | Video face detailer | `todo` / `planned` |
+| MPI-715 | Video masking needs an adjust step - a reusable mask gizmo over the clip, and the mask-clip transport | `todo` / `planned` (added 2026-09-29, umbrella sweep, Fabio's yes) |
 
 ## Why these belong together
 
@@ -38,8 +39,12 @@ Phase 2 only.
 - **MPI-355** - the 4K/8K localised-edit Flow. Crop-stitch wiring already shipped; this is
   the Flow around it. Follows `docs/playbooks/add-flow/`, art included.
 - **MPI-557** - video face detailer.
+- **MPI-715** - the video mask adjust step (play the clip with the mask overlaid, grow / fill
+  holes / re-detect for the whole clip, brush-fix) and the mask-clip transport. It is the step
+  between SAM3 detect and generate that every video route here needs, so it lands before or
+  with MPI-557. Owns `MpiVideoViewer.js` and `stepKinds.js` changes per its own plan.
 
-Both go through `MpiBaseFlow.js`, which is a known collision point - claim before the first
+MPI-355 and MPI-557 both go through `MpiBaseFlow.js`, which is a known collision point - claim before the first
 write and message the other before touching it.
 
 ## Traps already known

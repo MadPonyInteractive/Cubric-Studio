@@ -272,6 +272,10 @@
 - **Masking a large picture no longer lags or draws jagged strokes.** The brush redraws only
   the area it touched. The Paint and Composite brushes get the same fix.
 
+- **Big photos no longer shimmer when zoomed out.** Fine detail used to break into moiré
+  patterns when a large image was fitted to the screen, in History and in Compare. It is now
+  scaled down smoothly.
+
 - **Copying cards into another project keeps their names.** A renamed card used to arrive
   under its generated name (like `t2i_004`); it now keeps the name you gave it.
 

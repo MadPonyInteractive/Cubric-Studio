@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-986", "at": "2026-09-29T13:35:00+01:00", "actor": "umbrella-sweep 2a15cea4", "column": "todo", "title": "Mix and audio (umbrella): the Mix workspace, its fader, reference-aware delete, a song model"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-986", "at": "2026-09-29T13:40:06+01:00", "actor": "umbrella-sweep 2a15cea4", "fields": ["plan"], "note": "plan.md written: umbrella over MPI-917, MPI-740, MPI-920, MPI-775 (Fabio's yes 2026-09-29)."}

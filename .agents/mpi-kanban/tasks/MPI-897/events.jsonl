@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-897", "at": "2026-09-22T11:13:07+01:00", "actor": "mpi-project-refresh (MPI-893)", "column": "todo", "title": "Localised editing (umbrella): mask a region and have every model respect it"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-897", "at": "2026-09-29T13:40:06+01:00", "actor": "umbrella-sweep 2a15cea4", "fields": ["plan"], "note": "plan.md: MPI-715 added as a member (umbrella sweep, Fabio's yes 2026-09-29)."}

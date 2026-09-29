@@ -39,6 +39,8 @@ member when the phase covering it lands, and say so in its card.
 | MPI-872 | The `cubric.studio/flows/<id>` redirects — MPI-780 phase 3. **REJECTED 2026-09-27**: Get it opens the plain Gumroad pages (`fe68f620d`), no redirect needed | 8 |
 | MPI-743 | A refused licence gate is a silent no-op — the tile just falls back to Install. Reaches a PAID buyer: Head Swap pulls the Klein 9B gate on first install | 8 |
 | MPI-828 | No licence attribution row in the Flow drawer — H3 §III.3.a / §IV.2 owe it on the surface where the model is PRESENTED, and a Flow user may never open the Model Library | 8 |
+| MPI-742 | See the H3 licence chip and Review licence footer on Extend Video in a running app — split out of MPI-666 with MPI-743, same Flow licence surface; needs an isolated app on an empty models root. Added 2026-09-29 (umbrella sweep, Fabio's yes) | 8 |
+| MPI-586 | Prop Sheet Flow — animals and props, SEPARATE from the Character Sheet (MPI-504) by Fabio's call 2026-08-20; same family and machinery. **Bench**. Added 2026-09-29 (umbrella sweep, Fabio's yes) | 4 |
 
 **Adopted 2026-09-21 on Fabio's go** (MPI-595 Gate D asked for exactly this): MPI-780, MPI-743 and MPI-828 were loose Flow cards with no umbrella. 743 and 828 are the two that sit in a PAYING user's path — a silent no-op after a refused licence gate, and a missing attribution row — so they are release-shaped, not polish. Gate D also names **586, 591, 557, 355** as survivors still to adopt or to exempt; they were NOT swept here, because Fabio's go covered the cards in play, not the whole list.
 
@@ -282,6 +284,12 @@ any other phase rather than in sequence with it. Inside the phase, MPI-504 prece
 by construction. Do not hand phase 4 to a worker sub-agent.
 
 ## Plan Drift
+
+**2026-09-29 — two members adopted (umbrella sweep, Fabio's yes).** MPI-742 joins phase 8
+beside MPI-743 and MPI-828: all three are the Flow licence surface, and 742 is the live check
+that 743's split never got. MPI-586 (Prop Sheet) joins phase 4 beside MPI-504: a bench sheet
+Flow, so the phase-4 boundary applies to it too. This settles Gate D's 586; 591 is done, 557
+and 355 went to MPI-897. No member card was closed or altered in scope.
 
 **2026-09-20 — phase 8 added, and it is a GAP, not new scope.** Phase 6 promised the
 registry would be "advertising only"; phase 7 built only the submission side. Nothing in
