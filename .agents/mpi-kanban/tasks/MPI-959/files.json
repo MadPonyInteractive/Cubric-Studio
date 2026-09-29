@@ -1,0 +1,16 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": [
+  "services/imageCrop.js",
+  "services/imageComposite.js",
+  "routes/imageImport.js",
+  "routes/projects.js",
+  "routes/connector.js",
+  "routes/llm.js",
+  "services/cardView.js",
+  "routes/gifMake.js",
+  "services/agentLoop.mjs",
+  "tests/image-orientation.test.cjs",
+  "tests/desktop/crop-resize-output.spec.js",
+  "docs/crop.md",
+  "docs/gallery.md",
+  "docs/stacks.md"
+] }

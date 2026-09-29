@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-959", "at": "2026-09-28T10:08:57+01:00", "actor": "c72df5c7", "column": "todo", "title": "Crop cuts the wrong region on EXIF-rotated photos"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-959", "at": "2026-09-29T14:04:00+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Starting: bake EXIF orientation on import + auto-orient every server consumer (Fabio's decision 2026-09-28)"}
