@@ -86,6 +86,12 @@ export async function refreshCloudKey() {
     return has;
 }
 
+// Saving, clearing or re-pointing a key (secretsClient.js) is the edge that changes the
+// answer. The disk-check edge below does not cover it: a machine with no engine and no
+// Pod never reaches that edge, so a saved key left every cloud model locked until restart.
+// eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener (registry module singleton)
+Events.on('secrets:endpoint-changed', () => { refreshCloudKey(); });
+
 // Baked Pod-image nodes whose stale-image warning has already fired this session,
 // so the connect-edge sync (which runs on every connect/disconnect) doesn't spam
 // the same "rebuild needed" toast. Keyed by node folder name. (MPI-222)

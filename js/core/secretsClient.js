@@ -11,6 +11,15 @@
  */
 
 import { clientLogger } from '../services/clientLogger.js';
+import { Events } from '../events.js';
+
+// An endpoint key or profile changed. Anything mirroring "is a key saved" (the cloud
+// models' `installed`, modelRegistry.js) must re-read: this client is the only door
+// to these channels, so announcing here covers every screen that saves a key.
+function _endpointChanged(res, profileId) {
+    if (res?.ok) Events.emit('secrets:endpoint-changed', { profileId });
+    return res;
+}
 
 function _ipc() {
     try {
@@ -130,7 +139,7 @@ export const secretsClient = {
         const ipc = _ipc();
         if (!ipc) return { ok: false, error: 'ipc_unavailable' };
         try {
-            return await ipc.invoke('secrets:save-endpoint-profile', profile);
+            return _endpointChanged(await ipc.invoke('secrets:save-endpoint-profile', profile), profile?.id);
         } catch (err) {
             clientLogger.error('settings', '[secretsClient] save-endpoint-profile failed', err);
             return { ok: false, error: 'ipc_error' };
@@ -146,7 +155,7 @@ export const secretsClient = {
         const ipc = _ipc();
         if (!ipc) return { ok: false };
         try {
-            return await ipc.invoke('secrets:delete-endpoint-profile', { profileId });
+            return _endpointChanged(await ipc.invoke('secrets:delete-endpoint-profile', { profileId }), profileId);
         } catch (err) {
             clientLogger.error('settings', '[secretsClient] delete-endpoint-profile failed', err);
             return { ok: false };
@@ -163,7 +172,7 @@ export const secretsClient = {
         const ipc = _ipc();
         if (!ipc) return { ok: false, error: 'ipc_unavailable' };
         try {
-            return await ipc.invoke('secrets:set-endpoint-key', { profileId, key });
+            return _endpointChanged(await ipc.invoke('secrets:set-endpoint-key', { profileId, key }), profileId);
         } catch (err) {
             clientLogger.error('settings', '[secretsClient] set-endpoint-key failed', err);
             return { ok: false, error: 'ipc_error' };
@@ -194,7 +203,7 @@ export const secretsClient = {
         const ipc = _ipc();
         if (!ipc) return { ok: false };
         try {
-            return await ipc.invoke('secrets:clear-endpoint-key', { profileId });
+            return _endpointChanged(await ipc.invoke('secrets:clear-endpoint-key', { profileId }), profileId);
         } catch (err) {
             clientLogger.error('settings', '[secretsClient] clear-endpoint-key failed', err);
             return { ok: false };
