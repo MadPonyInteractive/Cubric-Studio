@@ -37,7 +37,7 @@ const {
     sweepGifFrames,
 } = require('../services/gifFrames');
 const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
-const { nextSequence } = require('./projects');
+const { nextSequence, itemsInFlight } = require('./projects');
 
 function projectFileUrl(filePath) {
     return `/project-file?path=${encodeURIComponent(filePath)}`;
@@ -134,6 +134,7 @@ router.post('/gif/ensure-frames', async (req, res) => {
  */
 router.post('/gif/entry', async (req, res) => {
     let outputPath = '';
+    let inFlightId = null;
     try {
         const { folderPath, mode, itemId, frames, loop, output, sourceItemId, sourceGroupId } = req.body || {};
         if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
@@ -166,6 +167,8 @@ router.post('/gif/entry', async (req, res) => {
 
         if (mode === 'update') {
             if (!itemId) return res.status(400).json({ success: false, error: 'itemId required for update' });
+            // Same-id rewrite: keep save-generation's GC off this sidecar (MPI-976).
+            itemsInFlight.add(inFlightId = itemId);
             const metaPath = path.join(metaDir, `${itemId}.json`);
             if (!(await fs.pathExists(metaPath))) {
                 return res.status(404).json({ success: false, error: `sidecar not found: ${itemId}` });
@@ -236,6 +239,8 @@ router.post('/gif/entry', async (req, res) => {
         logger.error('project', 'gif entry failed', err);
         if (outputPath) { try { await fs.remove(outputPath); } catch {} }
         res.status(500).json({ success: false, error: err.message });
+    } finally {
+        itemsInFlight.delete(inFlightId);
     }
 });
 

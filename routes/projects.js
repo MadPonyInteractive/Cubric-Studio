@@ -2101,7 +2101,15 @@ router.post('/project-media/:projectId/extract', async (req, res) => {
  *   { success, itemId, filename, relativePath, filePath }
  *   relativePath is relative to folderPath, e.g. "Media/t2i_001.png"
  */
+// Item ids whose sidecar a request is writing right now (MPI-976). A same-id rewrite
+// (a preview->final replace here, a GIF update in routes/gif.js) writes the new sidecar,
+// then deletes the old media: a GC that read the OLD sidecar before that and checks its
+// media after found it gone and deleted the NEW sidecar with every thumb. The GC below
+// never deletes an id in this set. Per process, which is every writer of a project.
+const itemsInFlight = new Set();
+
 router.post('/project/save-generation', async (req, res) => {
+    let inFlightId = null;
     try {
         const { folderPath, comfyViewUrl, audioViewUrl, splatViewUrl = null, mixViewUrls = null, itemId, operation = 'generated', filePrefix = null, meta = {}, generationMs, pixelDimensions, mediaType, stage, frozenParams, loraSnapshot, previewAssets, replaceItemId, flowId = null, flowInputs = null } = req.body;
         if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
@@ -2121,6 +2129,7 @@ router.post('/project/save-generation', async (req, res) => {
         // is reused. The old media file + thumb are deleted after the new file
         // lands successfully.
         const id = replaceItemId || itemId || uuidv4();
+        itemsInFlight.add(inFlightId = id);
 
         const mediaDir = path.join(normalizedFolderPath, 'Media');
         const metaDir  = path.join(mediaDir, '.meta');
@@ -2441,8 +2450,10 @@ router.post('/project/save-generation', async (req, res) => {
                     mediaPath = path.join(mediaDir, baseName);
                 }
 
-                // Only delete if the referenced media file doesn't exist
-                if (!(await fs.pathExists(mediaPath))) {
+                // Only delete if the referenced media file doesn't exist. The in-flight
+                // check comes AFTER the await: that is the moment a rewrite may have
+                // deleted the media this read pointed at (MPI-976).
+                if (!(await fs.pathExists(mediaPath)) && !itemsInFlight.has(baseName)) {
                     await fs.remove(metaFilePath);
                     removeItemThumbs(metaDir, baseName);
                 }
@@ -2477,6 +2488,8 @@ router.post('/project/save-generation', async (req, res) => {
     } catch (err) {
         logger.error('project', 'save-generation error', err);
         res.status(500).json({ success: false, error: err.message });
+    } finally {
+        itemsInFlight.delete(inFlightId);
     }
 });
 
@@ -3523,6 +3536,7 @@ module.exports.computeFileSha256 = computeFileSha256;
 module.exports.migratePreviewAssetsStore = migratePreviewAssetsStore;
 module.exports.DERIVATIVE_RE = DERIVATIVE_RE;
 module.exports.removeItemThumbs = removeItemThumbs;
+module.exports.itemsInFlight = itemsInFlight;
 module.exports.resolveDisplayImage = resolveDisplayImage;
 module.exports.projectThumbFor = projectThumbFor;
 module.exports.cleanupRebuildableAssets = cleanupRebuildableAssets;

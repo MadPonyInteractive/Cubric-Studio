@@ -268,6 +268,8 @@ If a user deletes a file manually (outside the app), the next project open runs 
 
 **The per-save GC in `/project/save-generation` never sweeps a derivative for lacking a sidecar (MPI-975).** Saves run concurrently (a stack batch lands N at once) and every writer lays `<id>.thumb.*` BEFORE `<id>.json`, so that sweep deleted another save's fresh 512 thumb: a broken card, never healed, since the backfill gates on the sidecar field, not the disk. It drops only a sidecar whose media is gone, with that item's derivatives.
 
+**Nor an id in `itemsInFlight` (MPI-976).** A same-id rewrite (save-generation `replaceItemId`, `/gif/entry` update) writes the new sidecar, THEN deletes the old media; a GC that read the old sidecar first found that media gone and deleted the new card. A new same-id rewrite must add its id to that set (`routes/projects.js`) and drop it in `finally`.
+
 **Critical:** When reading the meta file to check if media exists, ALWAYS read the `filePath` field from the `.meta/` JSON — do NOT assume the UUID is the media filename. The UUID might be `6e409682-...` but the actual file could be `t2i_001.png` or `my_custom_name.png`.
 
 **Every sidecar path parse must stop at `&`.** Outputs carry a `&v=<mtime>` cache-bust
