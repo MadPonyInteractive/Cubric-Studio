@@ -88,6 +88,8 @@ AFTER 2.0 is live, because reviewers test the released app.
 - `python scripts/overtaken-cards.py`; push; commit by pathspec; `/mpi-version-bump` 2.0.0,
   `/mpi-release`.
 - Release day, outside the repo: Claude Desktop directory submission. (The Gumroad products went live 2026-09-27, A4.)
+- Release day, the hour the GitHub release is published: **MPI-983**, publish cubric.studio and
+  docs.cubric.studio (both held back until then; Fabio says "release the websites").
 - After the release: MPI-603's R2/HF delete, MPI-612 (old Klein style LoRAs).
 
 ## Noticed

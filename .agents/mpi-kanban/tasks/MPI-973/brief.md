@@ -49,3 +49,9 @@ published (it is public).
 
 The revamped site is live on cubric.studio with the three sections and the `.mcpb` download
 working, `/privacy/` unchanged in address, and Fabio has signed off the look and the copy.
+
+## Noticed
+
+- 2026-09-29: `docs/releases/github-release-checklist.md` § Scope Guard still says release copy
+  must not claim "assistant" features; 2.0's headline is the in-app agent, so the rule is stale
+  and will block the 2.0 release notes as written.
