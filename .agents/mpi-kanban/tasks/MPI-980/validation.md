@@ -44,6 +44,11 @@ a matching picture when the sidecar has none was rejected as overkill.
   had also read the card, so whether it sent the video (swapped) or madeFrom's ref is not visible;
   both land on the same file. The frame-0 path is covered by the tests and the real-store check.
 
+- LIVE frame 0, Fabio, 2026-09-29: imported imported_002.webm (no start frame), asked the agent for
+  an edit of its first frame. edit_014.png (nano-banana-2-cloud edit) names
+  .preview-assets/e66912f2...77ba7.png as its inputImage: 1920x1080, pixel-identical to the
+  WebM's frame 0. No card for the frame, as decided below.
+
 ## Decided (Fabio, 2026-09-29)
 
 Frame 0 stays HIDDEN in `Media/.preview-assets`: no gallery card of its own. The result card's
