@@ -66,9 +66,11 @@
 
 ## Phase 3: Engine ops on 16K+ photos (MPI-971)
 
-- [ ] Fabio picks A, B or both (card description). Then inpaint / localised edit, i2i and upscale
-  each reach the engine at a size it can load. Ownership set by MPI-971's own plan; A goes through
-  `/mpi-nodes-sync` (ComfyUi-MpiNodes `img.py`), B through the server routes that stage the input.
+- [ ] **Fabio chose B (2026-09-29), no node-limit lift:** inpaint / localised edit, i2i and upscale
+  each reach the engine at a size it can load - localised edits cropped around the mask server-side
+  and stitched back, whole-image ops on a loadable copy. MPI-971 needs its own plan first (upscale
+  on a 16K source is the open design question). Ownership set by that plan: the server routes that
+  stage the input.
   **Verify:** each of the three ops runs on the 16K in Big Photos Test (and the 32K for B) on a
   16 GB-RAM budget.
 
