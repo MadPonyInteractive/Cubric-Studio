@@ -171,6 +171,15 @@ not the name (`gemma-3-4b-it` and `Mistral-Small-3.2` carry no hint in theirs), 
 not sufficient — `Qwen/Qwen3.5-9B` is tagged multimodal and returned an EMPTY string while
 billing 1388 input tokens. Probe before trusting either signal.
 
+### A misheard word beat a painted mask (2026-09-29, live; BUILT, MPI-987)
+
+He painted a mask on the original and dictated "try with the mask now, I painted it already";
+dictation (Wispr Flow, his accent) wrote "mosque". Told a mask was painted, the agent still read
+a building to add and sent him to repaint on the edited card. Nothing said the user may dictate,
+or that the painted entry IS the choice. Fix on the masked App state line (0 system bytes): run
+on the painted entry, never send them to repaint; a sound-alike of "mask" is the mask. Unit-pinned;
+no harness case (the bench has no `workspace` plumbing).
+
 ## What worked, and should be copied
 
 - **Item ids without a second id space.** The model knows `ref`; routes take item ids. The

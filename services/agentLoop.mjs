@@ -964,7 +964,9 @@ export class AgentLoop {
         const standing = workspace?.activeEntry?.filePath
             ? ` The user is looking at the card "${workspace.card?.name || 'untitled'}", and the entry open in front of them is ${workspace.activeEntry.filePath}. "This image", "it" and "this one" mean that entry.`
                 // MPI-891 live read 2: the mask reached the dispatch, never the prompt writer.
-                + (workspace.masked ? ' They have a MASK painted on it: a masked op on that entry changes only the masked area, so pick the op by the job and write the prompt for the masked area (Masking rule), and tell them you are using their mask. A change to the whole picture needs them to clear the mask first.' : '')
+                // MPI-987: dictation wrote "mask" as "mosque"; the agent read a building to add
+                // and sent the user to repaint on another card instead of running on the mask.
+                + (workspace.masked ? ' They have a MASK painted on it: a masked op on that entry changes only the masked area, so pick the op by the job and write the prompt for the masked area (Masking rule), and tell them you are using their mask. Painting it chose this entry: run on it, never ask them to paint again on another picture. Whatever they say they painted is this mask; they may be dictating, so a word that sounds like "mask" (mosque, mass) means the mask. A change to the whole picture needs them to clear the mask first.' : '')
                 // MPI-984: a video's playhead. Sent as a picture, a clip is its FIRST frame
                 // (MPI-980), so "this frame" anywhere else is the user's Create snapshot.
                 + (workspace.frame ? _frameOnScreen(workspace.frame) : '')

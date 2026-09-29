@@ -3193,6 +3193,10 @@ describe('(e) the open workspace reaches the agent', () => {
         // Live read 4: several areas are NOT one run on edit/inpaint (one crop box, the adds
         // land outside the paint and are discarded). The line must not promise it.
         assert.doesNotMatch(loop._appStateLine(project, masked), /several separate areas/);
+        // MPI-987: dictated "mask" arrived as "mosque", and the agent sent the user to
+        // repaint on another card. The painted entry is the choice; a sound-alike is the mask.
+        assert.match(loop._appStateLine(project, masked), /never ask them to paint again on another picture/);
+        assert.match(loop._appStateLine(project, masked), /sounds like "mask" \(mosque, mass\) means the mask/);
         assert.doesNotMatch(loop._appStateLine(project, workspace()), /MASK/);
     });
 
