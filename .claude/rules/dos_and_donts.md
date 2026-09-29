@@ -178,9 +178,11 @@ Related: write through `state.<key>`, never `Storage.set*` directly, when the va
 
 ---
 
-## 🖼️ Decoding a user image — `limitInputPixels: false`, on EVERY input
+## 🖼️ Decoding a user image — `limitInputPixels: false` on EVERY input, and read it upright
 
 Photographers load 16384x16384 stills (268,435,456 px), just past sharp's default `limitInputPixels` (268,402,689). Any sharp call that can receive a user image passes `{ limitInputPixels: false }`, and not only the constructor: the limit also fires on `metadata()`, on a raw input `sharp(buf, { raw })`, on `joinChannel(buf, { raw })` and on `composite([{ input }])`, and each takes its own option. Measure with `metadata()`, never a decode (a 16K photo is 805 MB as raw RGB). Bound whatever leaves the machine (`_readReference` in `routes/deepinfra.js`, 1 MP in `/llm/describe`). **ffmpeg cannot take a 16K still at all**: its limit is compiled in (`Picture size 16384x16384 is invalid`), so shrink the image before ffmpeg sees it (Make GIF caps frames at 4096; `extractImageThumb` sends a past-limit image through sharp, MPI-926). Test with a real 16K file, as `tests/sharp-16k-inputs.test.cjs` does (MPI-925).
+
+**Read it UPRIGHT, too.** A portrait phone photo is stored landscape with EXIF orientation 6 or 8. Chromium (so every canvas rect, mask and paint layer) and the engine's `MpiLoadImage` show it turned; sharp reads the stored grid unless told. So any sharp read of a user image that takes coordinates or reports a size passes `autoOrient: true` and reads `metadata().autoOrient.{width,height}`, never `metadata().width` (`metadata()` reads the header, so even `sharp(f).rotate().metadata()` returns the stored size). Imports are baked upright (`bakeOrientation`, `routes/imageImport.js`), but files already in projects are not. Test on a RAMP fixture turned against its upright twin, as `tests/image-orientation.test.cjs` does: a solid image matches a wrong region by luck (MPI-959).
 
 ---
 
