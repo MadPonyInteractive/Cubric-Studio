@@ -92,6 +92,7 @@ import { MpiReusePromptDialog } from '../../Compounds/MpiReusePromptDialog/MpiRe
 import { getPlugin, pluginAvailability } from '../../../data/pluginsRegistry.js';
 import { splitDeclaredValues } from '../../../utils/declaredFields.js';
 import { setMaskReader, clearMaskReader } from '../../../shell/activeMask.js';
+import { setFrameReader, clearFrameReader } from '../../../shell/activeFrame.js';
 
 /**
  * Registry mapping MpiHistoryTools `activate { mode }` keys to the compound
@@ -4094,11 +4095,15 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             return url ? { dataUrl, url, groupId: _group.id } : null;
         };
         setMaskReader(_readMaskForAgent);
+        // MPI-984: and the frame of a video on screen, so "this frame" is not read as frame 0.
+        const _readFrameForAgent = () => videoControlBar?.el.getFrame?.() ?? null;
+        setFrameReader(_readFrameForAgent);
 
         // ── Cleanup ───────────────────────────────────────────────────────────
 
         el.destroy = async () => {
             clearMaskReader(_readMaskForAgent);
+            clearFrameReader(_readFrameForAgent);
             _mascotHide(0);
             _previewPlayer.stop();
             _options?.destroy?.();

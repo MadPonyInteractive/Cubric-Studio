@@ -965,6 +965,9 @@ export class AgentLoop {
             ? ` The user is looking at the card "${workspace.card?.name || 'untitled'}", and the entry open in front of them is ${workspace.activeEntry.filePath}. "This image", "it" and "this one" mean that entry.`
                 // MPI-891 live read 2: the mask reached the dispatch, never the prompt writer.
                 + (workspace.masked ? ' They have a MASK painted on it: a masked op on that entry changes only the masked area, so pick the op by the job and write the prompt for the masked area (Masking rule), and tell them you are using their mask. A change to the whole picture needs them to clear the mask first.' : '')
+                // MPI-984: a video's playhead. Sent as a picture, a clip is its FIRST frame
+                // (MPI-980), so "this frame" anywhere else is the user's Create snapshot.
+                + (workspace.frame ? _frameOnScreen(workspace.frame) : '')
             : '';
         return `[App state: ${where}${standing} Images you can look at: ${refs.length ? refs.join(', ') : 'none'}.${more} A ref with no "made by" was not made here, so you do not know what made it — say so rather than guessing, and never assume it came from the model selected now.]`;
     }
@@ -2804,6 +2807,17 @@ function _sentNote(body) {
     if (!body.modelId) return '';
     const sent = _SENT_KEYS.filter((k) => body[k] !== undefined).map((k) => `${k} ${body[k]}`);
     return ` Settings you sent: ${sent.length ? sent.join(', ') : 'none'}. Every other setting runs at its default. Tell the user only settings listed here; to change one, send it.`;
+}
+
+/**
+ * The App state line's half-sentence for an open video's playhead (MPI-984). Frame numbers
+ * are the viewer's own counter (from 0), so they match what the user reads off the screen.
+ */
+function _frameOnScreen({ index, count, paused }) {
+    const where = `${paused ? 'paused on' : 'playing, now at'} frame ${index} of ${count} (the first is frame 0)`;
+    return index === 0
+        ? ` It is a video, ${where}. "This frame" means that first frame: sending the video as a picture gives exactly it.`
+        : ` It is a video, ${where}. "This frame" means frame ${index}, NOT the first: a video sent as a picture is its first frame, so do not send it. Ask the user to right-click that frame in the video and choose Create snapshot, then use the new picture card (newest in list_cards).`;
 }
 
 /** A clip card's 512 poster, for the chat bubble: an <img> cannot paint the mp4 (MPI-867). */

@@ -509,6 +509,16 @@ export const MpiVideoControlBar = ComponentFactory.create({
         el.setVolume = (v) => _surface?._setVolume(v);
         el.setMuted  = (m) => _surface?._setMuted(m);
 
+        // The frame the counter shows, as numbers, for the agent (MPI-984): the same
+        // `_formatFrame` the user reads, so "frame 103" means the same frame to both.
+        el.getFrame = () => {
+            const v = _surface?.getVideoElement();
+            if (!v) return null;
+            const index = Number(_formatFrame(v.currentTime || 0));
+            const count = Number(_formatFrame(v.duration || 0, true));
+            return count > 0 ? { index, count, paused: v.paused } : null;
+        };
+
         el.setFrameCount = (n) => {
             _frameCount = Number.isFinite(+n) && +n > 0 ? +n : null;
             trim?.el.setFrameCount(_frameCount);

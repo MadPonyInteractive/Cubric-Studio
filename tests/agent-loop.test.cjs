@@ -3196,6 +3196,27 @@ describe('(e) the open workspace reaches the agent', () => {
         assert.doesNotMatch(loop._appStateLine(project, workspace()), /MASK/);
     });
 
+    // MPI-984: paused on frame 103, "edit this frame" sent the clip, and a clip sent as a
+    // picture is its FIRST frame (MPI-980). The line says which frame is on screen.
+    test('an open video names the frame on screen; only frame 0 may go as the video', async () => {
+        const AgentLoop = await loadAgentLoop();
+        const loop = new AgentLoop();
+        const project = { name: 'Demons', folderPath: PROJECT };
+        const video = (index, paused = true) => ({ ...workspace(), card: { name: 'Court', type: 'video' }, frame: { index, count: 192, paused } });
+
+        const mid = loop._appStateLine(project, video(103));
+        assert.match(mid, /paused on frame 103 of 192/);
+        assert.match(mid, /"This frame" means frame 103, NOT the first/);
+        assert.match(mid, /Create snapshot/);
+
+        const first = loop._appStateLine(project, video(0));
+        assert.match(first, /"This frame" means that first frame/);
+        assert.doesNotMatch(first, /Create snapshot/);
+
+        assert.match(loop._appStateLine(project, video(40, false)), /playing, now at frame 40/);
+        assert.doesNotMatch(loop._appStateLine(project, workspace()), /frame/i, 'a still says nothing about frames');
+    });
+
     test('no card open: the line says nothing about standing anywhere', async () => {
         const AgentLoop = await loadAgentLoop();
         const loop = new AgentLoop();
@@ -3246,6 +3267,15 @@ describe('(e) the open workspace reaches the agent', () => {
 
             assert.equal(clean.activeEntry, null, 'a path outside Media/ must not become a ref');
             assert.equal(clean.page, 'group-history', 'losing the entry costs the shortcut, never the turn');
+        });
+
+        test('a video frame survives as whole numbers; anything else is dropped (MPI-984)', async () => {
+            const ws = (frame) => ({ page: 'group-history', groupId: 'g1', card: null, activeEntry: null, frame });
+            assert.deepEqual((await _sanitiseWorkspace(ws({ index: 103, count: 192, paused: true }), project)).frame,
+                { index: 103, count: 192, paused: true });
+            for (const bad of [null, { index: -1, count: 192 }, { index: 1.5, count: 192 }, { index: 3, count: 0 }, { index: '3', count: 9 }]) {
+                assert.equal((await _sanitiseWorkspace(ws(bad), project)).frame, null, JSON.stringify(bad));
+            }
         });
 
         test('masked passes only as a real true', async () => {

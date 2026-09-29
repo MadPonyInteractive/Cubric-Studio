@@ -92,6 +92,11 @@ async function _sanitiseWorkspace(workspace, project) {
         card: workspace.card && typeof workspace.card.name === 'string' ? workspace.card : null,
         activeEntry: null,
         masked: workspace.masked === true,
+        // MPI-984: the video frame on screen, whole numbers or nothing.
+        frame: Number.isInteger(workspace.frame?.index) && Number.isInteger(workspace.frame?.count)
+            && workspace.frame.index >= 0 && workspace.frame.count > 0
+            ? { index: workspace.frame.index, count: workspace.frame.count, paused: workspace.frame.paused === true }
+            : null,
     };
     if (!entry || typeof entry.filePath !== 'string' || !project?.folderPath) return clean;
 

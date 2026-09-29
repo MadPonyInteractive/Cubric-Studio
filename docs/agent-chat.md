@@ -515,10 +515,15 @@ the gallery space to drag an image and send it to the agent."* He could not — 
 surface, so with a card open the agent's only honest moves were `list_cards` or asking for an
 attachment.
 
-- **Shape:** `{ page, groupId, card: { name, type }, activeEntry: { itemId, filePath, modelId }, masked }`.
+- **Shape:** `{ page, groupId, card: { name, type }, activeEntry: { itemId, filePath, modelId }, masked, frame }`.
   Only the group-history page fills the rest; everywhere else it is page-only. `masked` (MPI-891)
   is `activeMask()?.groupId === groupId`; `routes/agent.js` passes only a real `true`, and the App
   state line then tells the agent a mask is painted on that entry.
+- **`frame`** (MPI-984) is `{ index, count, paused }` for an open video, null on a still:
+  `js/shell/activeFrame.js`, published by `MpiGroupHistoryBlock` from `MpiVideoControlBar.getFrame()`,
+  the same numbers the counter shows (from 0). The App state line (`_frameOnScreen`) says which frame
+  is on screen: at frame 0 the clip may go as a picture (it IS its first frame, MPI-980); anywhere
+  else "this frame" is the user's right-click Create snapshot, never the clip.
 - **The live selection needs no new plumbing.** `MpiGroupHistoryBlock` promotes and persists
   `group.selectedIndex` on every `entry-selected`, so `state.currentProject` already holds which
   entry is in front of the user.

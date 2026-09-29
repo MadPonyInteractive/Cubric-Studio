@@ -29,6 +29,7 @@ import { state } from '../state.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { pinnedModel } from '../shell/agentDispatch.js';
 import { activeMask } from '../shell/activeMask.js';
+import { activeFrame } from '../shell/activeFrame.js';
 import { PAGE_GROUP_HISTORY } from '../router.js';
 import { isOperationInstalled } from '../data/modelRegistry.js';
 
@@ -190,7 +191,8 @@ function _pinnedForTurn() {
  * for "people playing, sitting in the chairs"; the prompt described the whole scene ("keep
  * the girl in front") and Klein, seeing only the crop, drew a second girl in it.
  * @returns {{page:string, groupId:?string, card:?{name:string,type:string},
- *            activeEntry:?{itemId:string, filePath:string, modelId:?string}, masked:boolean}}
+ *            activeEntry:?{itemId:string, filePath:string, modelId:?string}, masked:boolean,
+ *            frame:?{index:number, count:number, paused:boolean}}}
  */
 function _workspaceForTurn() {
     const page = state.currentPage;
@@ -210,6 +212,8 @@ function _workspaceForTurn() {
             ? { itemId: item.id, filePath: item.filePath, modelId: item.modelId || null }
             : null,
         masked: activeMask()?.groupId === groupId,
+        // MPI-984: on a video, the frame on screen. Null on a still.
+        frame: activeFrame(),
     };
 }
 
