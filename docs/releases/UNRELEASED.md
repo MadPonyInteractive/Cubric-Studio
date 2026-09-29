@@ -199,6 +199,9 @@
 - **Big photos just work.** 16K images import, thumbnail and edit, and anything over 4K offers
   to shrink to a size every tool handles quickly. SVGs import as pictures too.
 
+- **Sharper masks on large images.** Masks now work at up to 4096 pixels instead of 1536, so on
+  a 4K photo a mask edge lands on the exact pixel, and Grow and Shrink draw a smooth edge.
+
 - **The video player's controls sit below the prompt box now**, so they are always in reach,
   and volume opens from the speaker button.
 
@@ -229,6 +232,10 @@
 
 > **A fix to a FLOW does not belong here for this release** — flows debut in this version, so
 > no released build ever had the bug and no user can have met it. The fix is part of the feature.
+
+- **Mask Adjust keeps working when you switch versions.** Grow, Shrink and Edge stopped
+  responding after you picked another version of the image in History, until you left History
+  and came back.
 
 - **Web pages open in your browser can no longer reach Cubric Studio or its engine.** The
   app's local server and the image engine behind it used to answer any web page, so a site you
