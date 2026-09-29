@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-987",
+  "title": "Agent: a painted mask plus a misheard word sent the user to repaint",
+  "description": "Live 2026-09-29: dictation turned 'mask' into 'mosque'; with a mask painted, the agent read it literally and told the user to repaint on another card instead of running on their mask.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-29T13:42:59+01:00",
+  "updated_at": "2026-09-29T13:57:01+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -1,0 +1,4 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-987", "at": "2026-09-29T13:42:59+01:00", "actor": "462bcb02-b87f-42eb-b783-ee053b6884d1", "column": "todo", "title": "Agent: a painted mask plus a misheard word sent the user to repaint"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-987", "at": "2026-09-29T13:43:32+01:00", "actor": "462bcb02-b87f-42eb-b783-ee053b6884d1", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-987", "at": "2026-09-29T13:45:25+01:00", "actor": "462bcb02-b87f-42eb-b783-ee053b6884d1", "from": "doing", "to": "doing", "reason": "fix shipped 48611f4d8; live check needs Fabio's app restarted"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-987", "at": "2026-09-29T13:57:01+01:00", "actor": "462bcb02-b87f-42eb-b783-ee053b6884d1", "from": "doing", "to": "done"}
