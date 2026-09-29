@@ -157,7 +157,9 @@ test('a coded provider refusal settles the lane and reports actionable copy', as
     assert.equal(err.message, 'NO_KEY');
     assert.equal(jobOf(exec).phase, PHASES.ERROR);
     // "Something went wrong" is not a fix. The copy has to say where the key goes.
-    assert.match(cloudErrorMessage('NO_KEY'), /Settings/);
+    // Remote is its own panel beside Settings (MPI-972), not a section inside it.
+    assert.match(cloudErrorMessage('NO_KEY'), /Remote → Language Models/);
+    assert.doesNotMatch(cloudErrorMessage('NO_KEY'), /Settings/);
 });
 
 // MPI-869: a run refused for credit carries the route's figures to whoever asked. A person

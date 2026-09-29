@@ -8,4 +8,4 @@
 - [x] 6. Video fullscreen tooltip drops "(F)" (MpiVideoControlBar.js)
 - [x] Internal: add-flow README + flowsRegistry header, generationService lanes
 - [x] Verify: grep clean, llm-service test passes
-- [ ] Tell the docs session (Cubric Studio (Docs), card MPI-19)
+- [x] Tell the docs session (Cubric Studio (Docs), card MPI-19)

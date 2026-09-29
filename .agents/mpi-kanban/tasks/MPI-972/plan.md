@@ -25,4 +25,4 @@ Out of scope, owed at the 2.0 cut: which 1.x versions update in place (MPI-708 D
 
 ## Current State
 
-In progress.
+All six fixed and pushed in fdb8bedf8; docs session messaged (Docs repo state/messages/94f68bc9). Closes on a green CI run of fdb8bedf8.

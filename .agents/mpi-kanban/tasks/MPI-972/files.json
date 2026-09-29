@@ -14,6 +14,7 @@
     "docs/playbooks/add-flow/README.md",
     "js/data/flowsRegistry.js",
     "js/services/generationService.js",
-    "docs/toasts.md"
+    "docs/toasts.md",
+    "tests/cloud-executor.test.cjs"
   ]
 }
