@@ -17,7 +17,7 @@ import { sizeToGb, fitsHardware } from '../../../data/modelConstants/footprint.j
 import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
 import { DEPS } from '../../../data/modelConstants/dependencies.js';
-import { PAGE_GALLERY } from '../../../router.js';
+import { PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../../../router.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { openExternal } from '../../../utils/openExternal.js';
@@ -89,6 +89,18 @@ const PAID_FLOWS = [
 // page charges full price, so nothing here changes when the offer ends.
 
 /**
+ * Can a flow open from here? A flow lands as a card in the OPEN project, so the answer is
+ * "inside a project" — the Gallery OR a card's History workspace — and never Landing,
+ * where `flow:open` lands nowhere. MPI-992: this was `=== PAGE_GALLERY` from Apps v1,
+ * before the Tab ring and the bar's Flows button reached the Library from History; there
+ * an installed flow stopped at the install drawer with its Open button disabled.
+ * @returns {boolean}
+ */
+function _inProject() {
+    return state.currentPage === PAGE_GALLERY || state.currentPage === PAGE_GROUP_HISTORY;
+}
+
+/**
  * MpiFlowLibrary — the Flow Library overlay (MPI-256).
  *
  * A clone of the Model Library skeleton (MpiModelManager), stripped to
@@ -110,8 +122,8 @@ const PAID_FLOWS = [
  * (Create/Edit/Enhance) and a search over title + description. Filters and search
  * narrow the grid only; the count, the badge patches and the detail drawer ignore them.
  *
- * `canOpen = (state.currentPage === PAGE_GALLERY)`: flows land as gallery cards in
- * the current project, so Open is only meaningful inside a project's Gallery. On
+ * `canOpen = _inProject()`: flows land as gallery cards in the current project, so
+ * Open is only meaningful inside a project (its Gallery or a card's History). On
  * Landing the Open button is disabled and a click surfaces a `ui:info` toast.
  *
  * Lifecycle: el.open() shows the overlay + renders; the overlay X / Escape /
@@ -800,7 +812,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
                 cancel.on('click', () => { _cancelInstall(flow); });
                 detailActions.appendChild(cancel.el); _detailBtns.push(cancel);
             } else if (available) {
-                const canOpen = state.currentPage === PAGE_GALLERY;
+                const canOpen = _inProject();
                 const open = MpiButton.mount(ce('div'), {
                     text: 'Open', variant: 'primary', size: 'md', disabled: !canOpen,
                 });
@@ -868,15 +880,15 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // The drawer still opens for everything else, and both cases are load-bearing:
         //   - NOT available → Install, the aggregated progress bar and Cancel-all live there,
         //     and so does the model picker, which is where a user chooses what to DOWNLOAD.
-        //   - available but not in the Gallery → `flow:open` would go nowhere. Flows land as
+        //   - available but not in a project → `flow:open` would go nowhere. Flows land as
         //     gallery cards in the current project, so the drawer's disabled Open + its toast
-        //     stay the honest answer on Landing.
+        //     stay the honest answer on Landing (`_inProject`, MPI-992).
         // `#flow-back` inside the frame reopens this library, so nothing becomes unreachable.
         function _pick(flow) {
             // A paid tile has nothing to open and nothing to install: the drawer IS the
             // whole interaction, on Landing and in the Gallery alike.
             if (flow.paid) { _openPaidDetail(flow); return; }
-            if (flowAvailability(flow).available && state.currentPage === PAGE_GALLERY) {
+            if (flowAvailability(flow).available && _inProject()) {
                 el.close();
                 Events.emit('flow:open', { flowId: flow.id });
                 return;

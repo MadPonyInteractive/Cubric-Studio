@@ -56,7 +56,7 @@ test('a Ready flow tile opens the frame; an unready one still opens the drawer',
         '/js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
       const { Events } = await import('/js/events.js');
       const { state } = await import('/js/state.js');
-      const { PAGE_GALLERY, PAGE_LANDING } = await import('/js/router.js');
+      const { PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_LANDING } = await import('/js/router.js');
       const { getFlowById, setFlowDepStatus } = await import('/js/data/flowsRegistry.js');
 
       // Draw It In's requiredDeps, marked present. Without this the flow is never
@@ -92,6 +92,9 @@ test('a Ready flow tile opens the frame; an unready one still opens the drawer',
       return {
         ready: await press(['klein-9b'], PAGE_GALLERY),
         notInstalled: await press([], PAGE_GALLERY),
+        // MPI-992: a card's History workspace is inside the project too, and the Tab ring
+        // and the bar's Flows button both reach the Library from there.
+        fromHistory: await press(['klein-9b'], PAGE_GROUP_HISTORY),
         // Available, but a flow lands as a card in the CURRENT project — from Landing
         // there is none, so `flow:open` would go nowhere and the drawer's disabled Open
         // plus its toast stay the honest answer.
@@ -104,6 +107,9 @@ test('a Ready flow tile opens the frame; an unready one still opens the drawer',
 
     expect(result.notInstalled.opened, 'an unready flow must not mount a frame it cannot run').toEqual([]);
     expect(result.notInstalled.drawer, 'it needs the drawer — Install lives there').toBe(true);
+
+    expect(result.fromHistory.opened, 'History is inside a project — the flow must open').toEqual(['scribble-object']);
+    expect(result.fromHistory.drawer, 'not stop at the install drawer with Open disabled').toBe(false);
 
     expect(result.onLanding.opened, 'flow:open from Landing would land nowhere').toEqual([]);
     expect(result.onLanding.drawer, 'so the drawer answers instead').toBe(true);

@@ -554,17 +554,21 @@ test('an INSTALLED flow opens straight into its frame, skipping the drawer (MPI-
     //
     // Both surviving branches are load-bearing, and each is one condition:
     //   not available  → Install / the aggregated bar / Cancel-all / the download picker
-    //   not in Gallery → `flow:open` would land nowhere; flows become cards in the
-    //                    current project, so the disabled Open + its toast stay honest.
+    //   not in a project → `flow:open` would land nowhere; flows become cards in the
+    //                      current project, so the disabled Open + its toast stay honest.
     const src = read('js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
     assert.match(src, /sheet\.on\('select', \(\{ item \}\) => _pick\(item\.source\)\)/,
         'a tile press must route through _pick, not straight into openDetail');
     assert.match(
         src,
-        /if \(flowAvailability\(flow\)\.available && state\.currentPage === PAGE_GALLERY\) \{/,
+        /if \(flowAvailability\(flow\)\.available && _inProject\(\)\) \{/,
         'both conditions gate the direct open — availability alone would emit flow:open '
         + 'from Landing, where it lands nowhere',
     );
+    // MPI-992: "in a project" is the Gallery AND a card's History workspace. Gallery alone
+    // sent an installed flow picked from History to the install drawer, Open disabled.
+    assert.match(src, /state\.currentPage === PAGE_GALLERY \|\| state\.currentPage === PAGE_GROUP_HISTORY/,
+        'History is inside a project too — the Tab ring and the Flows button reach the Library from there');
     assert.match(src, /Events\.emit\('flow:open', \{ flowId: flow\.id \}\);\s*return;\s*\}\s*openDetail\(flow\);/,
         'everything else must still open the drawer, or an uninstalled flow becomes '
         + 'uninstallable');
