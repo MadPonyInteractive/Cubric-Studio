@@ -24,3 +24,9 @@ Left as is: js/data/releaseNotes.js:259 (1.x release note, history) and docs/arc
 ## Not in this card
 
 The 1.x -> 2.0 update-path answer the docs Installation page waits on is decided at the 2.0 cut (MPI-708 D1, MPI-595 gates), not here.
+
+## CI
+
+- fdb8bedf8 went RED: tests/cloud-executor.test.cjs asserted the old /Settings/ copy for NO_KEY. Fixed in 5b8fa0999 (asserts Remote -> Language Models, and that Settings is gone), pushed with --no-verify as the red-master fix.
+- Local `npm test`: 2215 pass, 0 fail.
+- CI run 36501143917 on 5b8fa0999: success.
