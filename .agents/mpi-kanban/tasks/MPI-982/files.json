@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["services/gifFrames.js", "routes/gif.js", "routes/gifCutout.js", "routes/gifMake.js", "routes/gifMaker.js", "routes/gifTransform.js", "routes/projects.js", "tests/gif-frames.test.cjs", "docs/gif.md"] }
