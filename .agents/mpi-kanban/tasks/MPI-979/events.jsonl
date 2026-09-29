@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-979", "at": "2026-09-29T12:21:12+01:00", "actor": "claude", "column": "doing", "title": "Agent edit of a video card fails as a cloud provider error: a video ref is accepted into an image slot"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-979", "at": "2026-09-29T12:35:18+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Refusal shipped in 772e9baf1, CI green. Frame-grab tool and dialog copy follow on their own cards."}

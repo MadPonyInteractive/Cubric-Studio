@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-981", "at": "2026-09-29T12:35:29+01:00", "actor": "claude", "column": "doing", "title": "Cloud error dialog shows the route's own reason, not the fixed 'provider could not complete' copy"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-981", "at": "2026-09-29T12:59:52+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Route reason shown for PROVIDER_ERROR; shipped d61edd2ad, CI green."}

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-981",
+  "title": "Cloud error dialog shows the route's own reason, not the fixed 'provider could not complete' copy",
+  "description": "Follow-up to MPI-979 (Fabio, 2026-09-29). cloudExecutor.cloudErrorMessage maps PROVIDER_ERROR to one fixed sentence and drops the route's message, so a reference the app itself could not read ('The reference image could not be read.', nothing sent, nothing billed) was shown as the provider's failure.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-29T12:35:29+01:00",
+  "updated_at": "2026-09-29T12:59:52+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

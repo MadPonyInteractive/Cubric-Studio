@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/services/cloudExecutor.js", "routes/deepinfra.js", "tests/cloud-executor.test.cjs", ".agents/mpi-kanban/tasks/MPI-981/"]}

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-979",
+  "title": "Agent edit of a video card fails as a cloud provider error: a video ref is accepted into an image slot",
+  "description": "Live 2026-09-29: asked the in-app agent to edit the first frame of a video with Nano Banana 2 Lite. The agent passed the video card itself as inputImage. resolveAgentMedia (js/data/generationControls.js) stamps the SLOT's mediaType on every ref and never checks what the ref is, so the mp4 went to routes/deepinfra.js as an image; sharp threw 'Input buffer contains unsupported image format' in _readReference and the user saw the generic 'The provider could not complete this generation' dialog (log: 'The reference image could not be read.'). Nothing was sent to DeepInfra, nothing billed. Fix: refuse a ref whose file type contradicts its slot, at the one resolver every agent path (in-app agent, MCP, HTTP connector) goes through, and tell the agent the user can make a picture card from a frame with the video viewer's right-click Create snapshot.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-29T12:21:12+01:00",
+  "updated_at": "2026-09-29T12:35:18+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
