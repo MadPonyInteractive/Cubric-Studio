@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-982", "at": "2026-09-29T12:41:50+01:00", "actor": "8fdd99a4-ca3b-469c-9b99-ba2de47c02b6", "column": "todo", "title": "GIF frame sweep can delete the frames of a GIF another request is writing"}

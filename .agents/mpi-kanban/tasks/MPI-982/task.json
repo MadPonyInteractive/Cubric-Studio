@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-982",
+  "title": "GIF frame sweep can delete the frames of a GIF another request is writing",
+  "description": "sweepGifFrames keeps only frames a readable sidecar references: frames written before their sidecar lands, or a sidecar read mid-write, look unreferenced and are deleted. Found in MPI-977; not observed live.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-29T12:41:50+01:00",
+  "updated_at": "2026-09-29T12:41:50+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
