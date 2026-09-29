@@ -426,7 +426,6 @@
           "name": "frames",
           "type": "INT",
           "links": [
-            97,
             116
           ]
         },
@@ -1851,7 +1850,7 @@
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 132
+          "link": null
         },
         {
           "name": "c",
@@ -1869,17 +1868,17 @@
           ]
         }
       ],
-      "title": "Splice Start (re-take start - frames)",
+      "title": "Splice Start (source frames - 24)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
         "ver": "ccc25d12b8f8ef19c991a2ac407d77cb3ef08a61",
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
-        "b - a"
+        "a - 24"
       ],
       "widgets_values_named": {
-        "math_expression": "b - a"
+        "math_expression": "a - 24"
       }
     },
     {
@@ -2234,7 +2233,8 @@
           "type": "INT",
           "links": [
             133,
-            135
+            135,
+            97
           ]
         },
         {
@@ -2786,8 +2786,7 @@
           "name": "result",
           "type": "*",
           "links": [
-            131,
-            132
+            131
           ]
         }
       ],
@@ -3455,8 +3454,8 @@
     ],
     [
       97,
-      213,
-      0,
+      331,
+      3,
       953,
       0,
       "INT"
@@ -3698,14 +3697,6 @@
       974,
       0,
       951,
-      1,
-      "*"
-    ],
-    [
-      132,
-      974,
-      0,
-      953,
       1,
       "*"
     ],
