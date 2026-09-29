@@ -24,6 +24,11 @@ link to #974 dropped. Synced with `COMFY_URL=http://127.0.0.1:48188 node scripts
 - `tests/flow-model-choice.test.cjs` MPI-974 test: fails on the old graph (#953 reads 213:0),
   passes on the new. `npm test`: 2246 pass, 0 fail, 2 skipped.
 
-## Open
+## Live run (Fabio, 2026-09-29) - VERIFIED
 
-Fabio's rerun of an 8 s H3 extend (~22 min on his GPU). Not run by the agent: his GPU, his app.
+6 s added to a 199-frame (8.3 s) clip with 44.1 kHz audio, H3 turbo, local engine, dispatched by
+the in-app agent. The old graph raised at every context for 6 s. Completed in 363 s with no
+exception (log: `Resampling audio2 from 32000Hz to 44100Hz for merging`, then `Prompt executed`).
+`MpiVideo_Extend_00001.mp4`: video 335 frames / 13.958333 s, audio 13.958005 s (0.3 ms apart);
+335 - 199 = 136 new frames as predicted. Fabio: "it worked, the join sounds clean".
+CI green on 406818b0f (carries the fix commit d8f23a421).
