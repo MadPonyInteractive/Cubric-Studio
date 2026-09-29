@@ -2,6 +2,40 @@
 
 ## Current State
 
+**2026-09-29 ~11:15, HANDOFF (session 4a2a917e):** everything but the benchmarks is shipped. Fabio approved the
+copy (validation.md) and PUSHED the privacy page himself (Website `0df6b76` on origin; the agent's push was
+refused as a production deploy). Worker in mpi-ci `ba4c5b3`. App code committed + pushed to master by this
+handoff. LEFT on this card: the four Ollama benchmarks with Share (recipe below; only when Fabio says his
+generations are done), stamp the scores into `RECOMMENDED_REMOTE_MODELS.ollama`, check the page lists them,
+then close-out. Fabio's NEXT priorities are other cards: MPI-894 Phase 1c (GPU picker overlay), then MPI-970
+(agent routines brainstorm).
+
+**2026-09-29 10:40:** Phase 3 run is ON HOLD until Fabio says his generations are done (a local model
+shares his card; he quit Ollama). How to run it without his app: `node scripts/launch-instance.mjs`
+(background; READY url in its output), then `gpu_lease.py run node scratchpad/bench965.mjs <url> <model>`
+(drives GET/POST `/agent/benchmark` with `share: true` and reads `bench:done` off `/agent/stream`). Close
+the instance by its root pid (listener's PARENT), never :3000's. Ollama must be started first (he quit it);
+never check it with the `ollama` CLI (it relaunches). A granite4.1:8b run was stopped at case 2 on his ask:
+`bench:done` said `stopped, errored, shared:false, "a stopped run is not shared"` (stop path proven live).
+
+**2026-09-29 ~10:45, session 4a2a917e:** PHASE 2 DONE: the Worker is LIVE at https://bench.cubric.studio
+(workers.dev off), D1 empty, SALT set, `wrangler.jsonc` carries the real database_id + the custom-domain
+route (uncommitted in mpi-ci). **Next: Phase 3** - Fabio restarts his app on the working tree, ticks Share,
+benchmarks `qwen3.6:35b` on Ollama (pulled, plus `granite4.1:8b`; his picks = ours: qwen3.6:35b, re-run
+ornith:9b + gemma4:12b, then granite4.1:8b). Then stamp those scores into `RECOMMENDED_REMOTE_MODELS.ollama`
+(`services/llmEngines.mjs:522`, NOT in the claim yet: extend it first) with the suiteHash. Virgin Media DNS
+cached bench's NXDOMAIN at ~10:20: a share before ~10:50 reads "could not reach".
+
+**2026-09-29 10:05, session 4a2a917e (tab "Agent 63"):** Parallel Batch DONE and verified (validation.md):
+A1 Worker in `mpi-ci/cubric-bench/` (uncommitted, 44/44), A2 app in Vision (uncommitted, 38/38 + desktop
+2/2 + eslint 0), A3 privacy commit `0df6b76` in the Website repo (local, NOT pushed). End to end: A2's
+`benchCommunity.mjs` against A1 under `wrangler dev --local` 11/11 (scratchpad `e2e965.mjs`). All under ONE
+claim record `state/files/4a2a917e-mpi965.json` (`scratchpad/claim965.py` re-registers it). Peer message
+ec93cbba resolved (events.js:187). **Next: Phase 2 with Fabio at the keyboard** (wrangler login, free-plan
+check, d1 create, deploy, smoke with `node scripts/smoke.mjs <url>` without `--full`, his yes for the domain).
+Nothing is committed yet: commit Vision + mpi-ci at handoff/close-out (mpi-ci is a separate repo; cubric-bench
+is a new folder there, `.dev.vars` / `.wrangler/` / `node_modules/` ignored).
+
 2026-09-29, session 8d7c61a8. Design approved by Fabio in brainstorm: `brief.md` (scope C, page on the service,
 tickbox before the run, one number per model with community third). Investigation: `research/findings.md`.
 Project mode `scalable-foundation`: every decision below is settled; the only open items are Fabio's gates
@@ -37,7 +71,7 @@ would be false. The agent is unreleased (2.0), so no release-notes entry is owed
 
 `POST /v1/runs` JSON: `{ v: 1, preset, model, suite, results: [{ id, pass }], perChat, app, secPerCase,
 gpu?: { name, vramGb } }` -- `model` 1-200 printable chars; `suite` `/^[0-9a-f]{12}$/`; `results` 1-100, `id`
-`/^[a-z0-9-]{1,64}$/`, unique; `perChat` number 0..1 or null; `app` semver-ish <= 32; `secPerCase` 0..3600;
+`/^[a-z0-9-]{1,64}$/`, unique; `perChat` number 0..10 or null (USD per test chat; was 0..1, see Drift); `app` semver-ish <= 32; `secPerCase` 0..3600;
 `gpu` only for `ollama`, `name` <= 80, `vramGb` 0..512. Server computes `passed`/`cases`. Answers `201 {ok:true}`,
 `400 {ok:false,error}`, `429 {ok:false,error:'RATE_LIMIT'}`, `413` over 16 KB.
 `GET /v1/scores?suite=<hash>` -> `{ suite, models: [{ preset, model, runs, passed, cases, perChat }] }`, runs >= 3,
@@ -53,7 +87,7 @@ gpu?: { name, vramGb } }` -- `model` 1-200 printable chars; `suite` `/^[0-9a-f]{
 
 Run through `mpi-execute-parallel`: the three tasks share no file and build against the contract above.
 
-- [ ] **A1 Worker.** `cubric-bench/`: `package.json` (devDep `wrangler`, pinned), `wrangler.jsonc` (D1 binding
+- [x] **A1 Worker.** `cubric-bench/`: `package.json` (devDep `wrangler`, pinned), `wrangler.jsonc` (D1 binding
   `DB`), `schema.sql` (`runs`: id, at, preset, model, suite, cases, passed, results JSON, per_chat, app,
   sec_per_case, gpu, vram_gb, index (suite, preset, model); `rate`: day, ip, n, PK (day, ip)), `src/logic.js`
   PURE (validate, lower median, aggregate by (preset, model), most-failed tests, `renderPage` with escaping),
@@ -64,7 +98,7 @@ Run through `mpi-execute-parallel`: the three tasks share no file and build agai
   Snapshot's no-secrets line. **Verify:** `node --test test/` green (validation rejects each bad field, median,
   aggregation >= 3, an `<script>` model id renders escaped); `npx wrangler dev --local` with the schema applied
   answers a valid POST 201, a bad one 400, the 11th POST 429, `GET /v1/scores` the aggregate, `GET /` the page.
-- [ ] **A2 App.** New `services/benchCommunity.mjs` (`shareRun`, `communityScores`, base URL + `off`);
+- [x] **A2 App.** New `services/benchCommunity.mjs` (`shareRun`, `communityScores`, base URL + `off`);
   `services/agentSessions.mjs` (`benchmark(profileId, model, { share })`, per-case seconds, clean-run check,
   upload before `bench:done`, which gains `shared`, `shareError`, `errored`); export `getVramStats` from
   `routes/system.js`; `routes/agent.js` (read `share`); `routes/llm.js` (merge `communityTest` in the models GET);
@@ -83,7 +117,7 @@ Run through `mpi-execute-parallel`: the three tasks share no file and build agai
   `llm-connection`, `bench-community` green with global fetch stubbed (no real network); desktop spec 2/2
   (checkbox hidden for custom, remembered, body carries `share`, "(community, 3 runs)" label and ranking,
   link calls openExternal); `npm test` 0 fail; eslint 0; `docs/llm.md` <= 200 lines.
-- [ ] **A3 Privacy draft.** `C:/AI/Mpi/Cubric Studio (Website)/privacy/index.html`: two `<h3>` entries after
+- [x] **A3 Privacy draft.** `C:/AI/Mpi/Cubric Studio (Website)/privacy/index.html`: two `<h3>` entries after
   "The assistant and prompt tools" ("Agent benchmark sharing (only if you tick Share)", "Community benchmark
   scores"); reword L11 meta + L69 "no telemetry", L77 "only goes online...", L120 "the only personal data"
   (hashed IP, rate limit, 2 days, legitimate interests, Cloudflare); bump "Last updated" + the audit comment.
@@ -93,14 +127,14 @@ Run through `mpi-execute-parallel`: the three tasks share no file and build agai
 
 ## Phase 2: go live (Fabio at the keyboard for the gates)
 
-- [ ] `npm install` in `cubric-bench/`; Fabio runs `npx wrangler login` (browser). Confirm the account is on the
+- [x] `npm install` in `cubric-bench/`; Fabio runs `npx wrangler login` (browser). Confirm the account is on the
   Workers FREE plan: this phase must cost $0; any paid prompt = stop and ask.
-- [ ] `wrangler d1 create cubric-bench`, id into `wrangler.jsonc`, apply `schema.sql` remote, `wrangler secret
+- [x] `wrangler d1 create cubric-bench`, id into `wrangler.jsonc`, apply `schema.sql` remote, `wrangler secret
   put SALT` (random, never printed), `wrangler deploy` to `*.workers.dev`.
-- [ ] Smoke from Node `fetch` (the app's client, NOT Git Bash curl): POST a record for model `smoke-test`,
+- [x] Smoke from Node `fetch` (the app's client, NOT Git Bash curl): POST a record for model `smoke-test`,
   GET scores, GET `/`; then DELETE the smoke rows (`wrangler d1 execute`). A 403 = the zone's bot protection:
   stop and brief Fabio.
-- [ ] **Fabio's yes** -> attach custom domain `bench.cubric.studio` to the Worker; re-run the smoke on it.
+- [x] **Fabio's yes** -> attach custom domain `bench.cubric.studio` to the Worker; re-run the smoke on it.
   **Verify:** all three answers from the custom domain; D1 holds no smoke rows.
 
 ## Phase 3: live check + publish (verify mode user-ux)
@@ -113,7 +147,21 @@ Run through `mpi-execute-parallel`: the three tasks share no file and build agai
 
 ## Plan Drift
 
-- None yet.
+- 2026-09-29 10:50, Fabio: the GPU is busy with his generations, so the Ollama benchmark runs (the live
+  shared run + the four scores to stamp) move to the LAST step, whenever the card is free. Before that, with no
+  GPU: his copy look, the privacy push, and committing the Worker (mpi-ci) and the app (Vision). The live
+  page's lede now lists everything a run sends (app version and seconds per test were missing; redeployed).
+
+- 2026-09-29 batch: `perChat` cap 1 -> 10 USD (an Opus-class chat can pass $1; the Worker would 400 its
+  share). A `vramGb` of 0 = unknown to the app (Mac, AMD, no nvidia-smi): the page shows the GPU name alone.
+- The clean-run regex spares `agent:error STEP_LIMIT:` (the model looping to the loop's cap is ITS score,
+  not a connection failure): `/^(?:agent:error (?!STEP_LIMIT:)|crashed:)/`. Any one errored case marks the
+  whole run errored (neither shared nor kept).
+- Worker test script is `node --test "test/*.test.mjs"` (Node 24 reads `test/` as a module). SALT is put
+  AFTER the first deploy (the Worker must exist); POST fails closed with 500 until then. A 400/413 also
+  spends one of the IP's 10 daily POSTs. The page shows models with 1-2 runs faded ("not enough runs yet"),
+  at most 3 suites, 2000 rows a suite. `observability.enabled: false` explicit (the privacy page promises no
+  IP logging).
 
 ## Verification
 

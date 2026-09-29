@@ -12,8 +12,13 @@ const { launchApp, closeApp } = require('./launch');
 
 const MODELS = [
   // `suiteHash` 'h1' = the stubbed GET /agent/benchmark's current tests; zeta-chat's score has none, so it is older.
-  { id: 'acme/agent-pick',   contextWindow: 1_048_576, vision: false, recommendedFor: ['agent'], agentTest: { passed: 23, cases: 23, runs: 3, perChat: 0.0036, suiteHash: 'h1' } },
+  // MPI-965: `communityTest` = the median of everyone's shared runs on the current tests. agent-pick has ours AND the
+  // community's (ours wins: the third tier only fills in where nothing better exists), community-pick has only the
+  // community's (it joins the scored group), omega-chat has an OLDER score of ours and a current community one (the community wins).
+  { id: 'acme/agent-pick',   contextWindow: 1_048_576, vision: false, recommendedFor: ['agent'], agentTest: { passed: 23, cases: 23, runs: 3, perChat: 0.0036, suiteHash: 'h1' }, communityTest: { passed: 20, cases: 28, runs: 9, perChat: 0.004, suiteHash: 'h1' } },
   { id: 'acme/zeta-chat',    contextWindow: null,      vision: false, recommendedFor: [],        agentTest: { passed: 18, cases: 23, runs: 1, perChat: 0.0017 } },
+  { id: 'acme/community-pick', contextWindow: 65_536, vision: false, recommendedFor: [],        communityTest: { passed: 26, cases: 28, runs: 3, perChat: 0.002, suiteHash: 'h1' } },
+  { id: 'acme/omega-chat',   contextWindow: null,      vision: false, recommendedFor: [],        agentTest: { passed: 10, cases: 23, runs: 1, perChat: 0.0009 }, communityTest: { passed: 24, cases: 28, runs: 5, perChat: 0.0012, suiteHash: 'h1' } },
   { id: 'acme/enhance-pick', contextWindow: 131_072,   vision: false, recommendedFor: ['enhance'] },
   { id: 'acme/see-pick',     contextWindow: 327_680,   vision: true,  recommendedFor: ['describe'] },
   { id: 'acme/alpha-vision', contextWindow: null,      vision: true,  recommendedFor: [] },
@@ -74,17 +79,24 @@ test('Remote rows list the connection models, recommended first', async ({}, tes
     // each with its score and cost; the pick is still the default.
     await expect(label('#mpiSettingsAgentModelSlot')).toHaveText('acme/agent-pick');
     await toggle('#mpiSettingsAgentModelSlot');
-    await expect(openList).toHaveText(['acme/agent-pick', 'acme/zeta-chat', 'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision']);
-    // Score and cost sit under the name, beside the context window; a score from older tests says so.
+    // MPI-965: scores on the current tests first, best first: ours, then the two only the community has scored; the
+    // model whose only score is older comes after them.
+    await expect(openList).toHaveText(['acme/agent-pick', 'acme/community-pick', 'acme/omega-chat', 'acme/zeta-chat', 'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision']);
+    // Score and cost sit under the name, beside the context window; a score from older tests says so, and the
+    // community's says how many runs stand behind it. Ours beats the community's where both exist (agent-pick).
     await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-meta')).toHaveText([
-      '23/23 tests · $0.36/100 chats · 1M context', '18/23 tests (older tests) · $0.17/100 chats', '128K context', '320K context',
+      '23/23 tests · $0.36/100 chats · 1M context',
+      '26/28 tests (community, 3 runs) · $0.20/100 chats · 64K context',
+      '24/28 tests (community, 5 runs) · $0.12/100 chats',
+      '18/23 tests (older tests) · $0.17/100 chats',
+      '128K context', '320K context',
     ]);
     await toggle('#mpiSettingsAgentModelSlot');
 
     // Enhancement: its recommendation first, then the rest in the endpoint's order.
     await toggle('#mpiSettingsLlmEnhanceModelSlot');
     await expect(openList).toHaveText([
-      '(recommended) acme/enhance-pick', 'acme/agent-pick', 'acme/zeta-chat', 'acme/see-pick', 'acme/alpha-vision', 'acme/no-tools',
+      '(recommended) acme/enhance-pick', 'acme/agent-pick', 'acme/zeta-chat', 'acme/community-pick', 'acme/omega-chat', 'acme/see-pick', 'acme/alpha-vision', 'acme/no-tools',
     ]);
     await toggle('#mpiSettingsLlmEnhanceModelSlot');
 
@@ -150,11 +162,18 @@ test('Benchmark this model: estimate in place, progress and Stop, the score on t
             window.__benchPosts.push([path, JSON.parse(opts.body)]);
             return reply(path.endsWith('/stop') ? { ok: true } : { ok: true, cases: 28 });
           }
-          return reply({ ok: true, cases: 28, suiteHash: 'h1', local: false, usd: 0.1, running: null });
+          // MPI-965: the server says whether the Share tickbox shows (never for Custom) and where the public page is.
+          return reply({ ok: true, cases: 28, suiteHash: 'h1', local: false, usd: 0.1, running: null, canShare: !/profileId=custom/.test(path), communityUrl: 'https://bench.example' });
         }
         return realFetch(url, opts);
       };
+      // The public page opens in the user's browser through the main process: record it instead.
+      window.__opened = [];
+      const { ipcRenderer } = require('electron');
+      const invoke = ipcRenderer.invoke.bind(ipcRenderer);
+      ipcRenderer.invoke = (channel, ...args) => (channel === 'open-external' ? (window.__opened.push(args[0]), Promise.resolve(true)) : invoke(channel, ...args));
       localStorage.removeItem('mpi_agent_prefs');
+      localStorage.removeItem('mpi_agent_bench_share');
       // A score from an OLDER suite (another hash) says so.
       localStorage.setItem('mpi_agent_bench', JSON.stringify({ deepinfra: { 'acme/zeta-chat': { passed: 20, cases: 26, perChat: 0.002, suiteHash: 'old', at: '2026-09-01T00:00:00Z' } } }));
     }, MODELS);
@@ -174,19 +193,39 @@ test('Benchmark this model: estimate in place, progress and Stop, the score on t
     const click = (sel) => window.evaluate((s) => document.querySelector(s).click(), sel);
     const clickBench = () => click('#mpiSettingsAgentBenchSlot .mpi-btn');
 
-    await expect(window.locator('#mpiSettingsAgentBenchHint')).toHaveText('Runs our 28 agent tests on this model with pretend tools: nothing is generated or saved.', { timeout: 10000 });
+    await expect(window.locator('#mpiSettingsAgentBenchHint')).toHaveText('Runs our 28 agent tests on this model with pretend tools: nothing is generated or added to your projects.', { timeout: 10000 });
     await expect(bench).toHaveText('Benchmark this model');
+    // MPI-965: the public page, under the hint, opens in the user's browser.
+    const link = window.locator('#mpiSettingsAgentBenchLinkSlot .mpi-btn');
+    await expect(link).toHaveText('See everyone\'s results');
+    await click('#mpiSettingsAgentBenchLinkSlot .mpi-btn');
+    expect(await window.evaluate(() => window.__opened)).toEqual(['https://bench.example/']);
+    // The Share tickbox belongs to the confirm step: not on screen before it.
+    const shareSlot = window.locator('#mpiSettingsAgentBenchShareSlot');
+    const shareInput = window.locator('#mpiSettingsAgentBenchShareSlot .mpi-checkbox__input');
+    await expect(shareSlot).toBeHidden();
     // The confirm sits in place of the button, with the estimate: Cancel puts the button back.
     await clickBench();
     await expect(line).toHaveText('About $0.10 on DeepInfra, ~14 min.');
     await expect(bench).toHaveText('Run');
+    // MPI-965: the tickbox and what it sends; unticked the first time.
+    await expect(shareSlot).toBeVisible();
+    await expect(shareSlot).toContainText('Share the result anonymously');
+    await expect(window.locator('#mpiSettingsAgentBenchShareHint')).toHaveText('Sends the model, its scores, cost and your GPU. Never prompts or keys. Shown at bench.cubric.studio.');
+    await expect(shareInput).not.toBeChecked();
+    await click('#mpiSettingsAgentBenchShareSlot .mpi-checkbox');
+    await expect(shareInput).toBeChecked();
+    expect(await window.evaluate(() => localStorage.getItem('mpi_agent_bench_share'))).toBe('true');
     await click('#mpiSettingsAgentBenchSlot2 .mpi-btn');
     await expect(bench).toHaveText('Benchmark this model');
     await expect(line).toHaveText('');
+    await expect(shareSlot).toBeHidden();
     expect(await window.evaluate(() => window.__benchPosts)).toEqual([]);
 
+    // The tick is remembered: the next confirm shows it ticked, and the run posts `share`.
     await clickBench();
     await expect(bench).toHaveText('Run');
+    await expect(shareInput).toBeChecked();
     await clickBench();
     await expect(line).toHaveText('0 of 28 · 0 passed');
     const steps = window.locator('#mpiSettingsAgentBenchBar .mpi-progress__step');
@@ -202,27 +241,40 @@ test('Benchmark this model: estimate in place, progress and Stop, the score on t
     await clickBench();
     await expect(bench).toHaveText('Stopping after this test…');
     expect(await window.evaluate(() => window.__benchPosts)).toEqual([
-      ['/agent/benchmark', { profileId: 'deepinfra', model: '' }],
+      ['/agent/benchmark', { profileId: 'deepinfra', model: '', share: true }],
       ['/agent/benchmark/stop', {}],
     ]);
 
-    // The last test finished before the Stop landed: the run is whole, so it is kept.
-    await emit('bench:done', { profileId: 'deepinfra', model: 'acme/agent-pick', done: 28, passed: 21, cases: 28, costUsd: 0.09, perChat: 0.0032, suiteHash: 'h1', stopped: false });
-    await expect(line).toHaveText('21/28 passed · $0.09 · now shown in the agent list');
+    // The last test finished before the Stop landed: the run is whole, so it is kept (and, ticked, shared: MPI-965).
+    await emit('bench:done', { profileId: 'deepinfra', model: 'acme/agent-pick', done: 28, passed: 21, cases: 28, costUsd: 0.09, perChat: 0.0032, suiteHash: 'h1', stopped: false, errored: false, shared: true, shareError: null });
+    await expect(line).toHaveText('21/28 passed · $0.09 · now shown in the agent list · shared');
     await expect(bench).toHaveText('Benchmark this model');
     // Its steps stay under the line once it ends (Fabio 2026-09-29: "the progress bar ran away").
     await expect(steps).toHaveCount(28);
     await expect(window.locator('#mpiSettingsAgentBenchBar .mpi-progress__step--danger')).toHaveCount(3);
     // A toast says it ended wherever the user is (Fabio 2026-09-29: a 14-minute run is not watched).
     const toast = (text) => window.locator('.mpi-toast__msg', { hasText: text });
-    await expect(toast('Benchmark of acme/agent-pick finished: 21/28 passed · $0.09.')).toHaveCount(1);
+    await expect(toast('Benchmark of acme/agent-pick finished: 21/28 passed · $0.09 · shared.')).toHaveCount(1);
+    // A share the service did not take says why; a run nobody asked to share says nothing of it.
+    await emit('bench:done', { profileId: 'deepinfra', model: 'acme/agent-pick', done: 28, passed: 21, cases: 28, costUsd: 0.09, perChat: 0.0032, suiteHash: 'h1', stopped: false, errored: false, shared: false, shareError: 'could not reach bench.example' });
+    await expect(line).toHaveText('21/28 passed · $0.09 · now shown in the agent list · not shared: could not reach bench.example');
+    await expect(toast('finished: 21/28 passed · $0.09 · not shared: could not reach bench.example.')).toHaveCount(1);
+    await emit('bench:done', { profileId: 'deepinfra', model: 'acme/agent-pick', done: 28, passed: 21, cases: 28, costUsd: 0.09, perChat: 0.0032, suiteHash: 'h1', stopped: false, errored: false, shared: false, shareError: null });
+    await expect(line).toHaveText('21/28 passed · $0.09 · now shown in the agent list');
+    // MPI-965: a run the CONNECTION failed is neither kept nor shared (2/28 and a dearer cost would show below if it were kept).
+    await emit('bench:done', { profileId: 'deepinfra', model: 'acme/agent-pick', done: 28, passed: 2, cases: 28, costUsd: 0.5, perChat: 0.02, suiteHash: 'h1', stopped: false, errored: true, shared: false, shareError: 'the connection failed during the run' });
+    await expect(line).toHaveText('The connection failed during the run · not kept · not shared');
+    await expect(toast('Benchmark of acme/agent-pick hit connection errors: not kept, not shared.')).toHaveCount(1);
     await emit('bench:error', { profileId: 'deepinfra', model: 'acme/agent-pick', message: 'fetch failed' });
     await expect(toast('Benchmark of acme/agent-pick stopped: fetch failed')).toHaveCount(1);
     await window.evaluate(() => document.querySelector('#mpiSettingsAgentModelSlot .mpi-dropdown__trigger').click());
     // The user's run REPLACES our score (Fabio 2026-09-28): one number per model. zeta-chat's older run
-    // still beats our older one; a score on the current tests ranks above any older one.
-    await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-label')).toHaveText(['acme/agent-pick', 'acme/zeta-chat', 'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision']);
+    // still beats our older one; a score on the current tests ranks above any older one. MPI-965: the community's
+    // scores sit among the current ones by score, and rank above the older ones.
+    await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-label')).toHaveText(['acme/community-pick', 'acme/omega-chat', 'acme/agent-pick', 'acme/zeta-chat', 'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision']);
     await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-meta')).toHaveText([
+      '26/28 tests (community, 3 runs) · $0.20/100 chats · 64K context',
+      '24/28 tests (community, 5 runs) · $0.12/100 chats',
       '21/28 tests · $0.32/100 chats · 1M context',
       '20/26 tests (older tests) · $0.20/100 chats',
       '128K context', '320K context',
@@ -231,6 +283,24 @@ test('Benchmark this model: estimate in place, progress and Stop, the score on t
     await clickBench();
     await expect(bench).toHaveText('Run');
     await expect(window.locator('#mpiSettingsAgentBenchBar')).toBeEmpty();
+
+    // MPI-965: no tickbox for Custom (the server says canShare: false), however the remembered tick stands, and
+    // the run posts share: false; the public page is still there to read.
+    await click('#mpiSettingsAgentBenchSlot2 .mpi-btn');
+    await window.evaluate(() => document.querySelector('#mpiSettingsConnProfileSlot .mpi-dropdown__trigger').click());
+    await window.evaluate(() => document.querySelector('.mpi-dropdown__list.is-open .mpi-dropdown__option[data-value="custom"]').click());
+    await expect(window.locator('#mpiSettingsConnUrlGroup')).toBeVisible();
+    await expect(bench).toHaveText('Benchmark this model');
+    await clickBench();
+    await expect(bench).toHaveText('Run');
+    await expect(shareSlot).toBeHidden();
+    await expect(window.locator('#mpiSettingsAgentBenchShareHint')).toBeHidden();
+    await expect(window.locator('#mpiSettingsAgentBenchShareSlot .mpi-checkbox')).toHaveCount(0);
+    await expect(link).toHaveText('See everyone\'s results');
+    expect(await window.evaluate(() => localStorage.getItem('mpi_agent_bench_share'))).toBe('true');
+    await clickBench();
+    await expect(line).toHaveText('0 of 28 · 0 passed');
+    expect((await window.evaluate(() => window.__benchPosts)).at(-1)).toEqual(['/agent/benchmark', { profileId: 'custom', model: '', share: false }]);
 
     expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
   } finally {

@@ -151,7 +151,10 @@ export const Events = new EventBus();
  *                      "Agent", MPI-941 Phase 8), and its cloud cards' cost.usd
  * 'bench:case'       { profileId, model, done, passed, cases, results: boolean[], last: { id, title, passed, failures } } — one
  *                      test of Settings' "Benchmark this model" finished (MPI-941 Phase 12; no `session`)
- * 'bench:done'       { profileId, model, done, passed, cases, costUsd, perChat, suiteHash, stopped } — the run ended
+ * 'bench:done'       { profileId, model, done, passed, cases, costUsd, perChat, suiteHash, stopped, errored, shared, shareError } - the run
+ *                      ended. `errored`: the CONNECTION failed during it (agentService keeps a run only when neither `stopped` nor
+ *                      `errored`). `shared`: the server uploaded it anonymously (MPI-965); `shareError`: why not, and only when the
+ *                      user ticked Share (null otherwise)
  * 'bench:error'      { profileId, model, message }         — the connection could not answer; nothing scored
  * 'gallery:open-card' { itemId, groupId }                  — a chat result card was clicked; the shell
  *                      (agentPanel.js) opens that card's history when the open project holds it
@@ -181,6 +184,7 @@ export const Events = new EventBus();
  * 'engine:gate-release'   —                                        — user chose to enter the app past a FAILED dependency repair (MPI-427). Releases the boot gate only; the engine is NOT ready, so engine:ready consumers must not be told otherwise, and unlike engine:install-skipped it does NOT mean "skip the local engine"
  * 'models:open'           —                                        — open the Models slide-over (shell re-emits as slide-over:open)
  * 'models:checked'        { installedModelIds: string[] }          — model install state synced
+ * 'secrets:endpoint-changed' { profileId: string } - an endpoint key or profile was saved, cleared or deleted (secretsClient.js); modelRegistry re-reads the cloud key
  *
  * Slide-over events:
  * 'slide-over:open'       { title, component, extraClasses?, panelId? }  - open a right slide-over panel

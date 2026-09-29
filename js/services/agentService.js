@@ -94,12 +94,17 @@ export function agentInitStream() {
     _streamUnsubs.push(Events.on('project:changed', () => agentWake()));
 
     // MPI-941 Phase 12: a finished benchmark is kept HERE, not by Settings, because the panel may be
-    // shut by the time a 15-minute run ends. A stopped run is partial and is not kept.
+    // shut by the time a 15-minute run ends. A stopped run is partial and is not kept; nor is an ERRORED one
+    // (MPI-965: the connection died mid-run, so its "score" is a run of fails the model never earned, and
+    // keeping it replaced the row's real score with a bogus low one).
     _streamUnsubs.push(Events.on('bench:done', (d) => {
         if (d.stopped) return;
+        if (d.errored) return _toast(`Benchmark of ${d.model} hit connection errors: not kept, not shared.`, 'danger');
         Storage.setAgentBench(d.profileId, d.model, { passed: d.passed, cases: d.cases, runs: 1, perChat: d.perChat, suiteHash: d.suiteHash, at: new Date().toISOString() });
         // The user has gone off to work while it ran (Fabio 2026-09-29): say it ended, wherever they are.
-        _toast(`Benchmark of ${d.model} finished: ${d.passed}/${d.cases} passed${d.costUsd ? ` · $${d.costUsd.toFixed(2)}` : ''}.`, 'success');
+        // `shareError` is set only when they ticked Share, so a run nobody asked to share says nothing about it.
+        const shared = d.shared ? ' · shared' : d.shareError ? ` · not shared: ${d.shareError}` : '';
+        _toast(`Benchmark of ${d.model} finished: ${d.passed}/${d.cases} passed${d.costUsd ? ` · $${d.costUsd.toFixed(2)}` : ''}${shared}.`, 'success');
     }));
     _streamUnsubs.push(Events.on('bench:error', (d) => _toast(`Benchmark of ${d.model || 'the agent model'} stopped: ${d.message}`, 'danger')));
 }

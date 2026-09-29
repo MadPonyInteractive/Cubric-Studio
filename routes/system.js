@@ -412,3 +412,5 @@ router.get('/system/platform-config', (req, res) => {
 });
 
 module.exports = router;
+// MPI-965: the local benchmark's share record carries the card's VRAM (services/benchCommunity.mjs).
+module.exports.getVramStats = getVramStats;

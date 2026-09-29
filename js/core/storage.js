@@ -401,6 +401,9 @@ export const Storage = {
     const all = get(STORAGE_KEYS.AGENT_BENCH, null) || {};
     set(STORAGE_KEYS.AGENT_BENCH, { ...all, [profileId]: { ...(all[profileId] || {}), [model]: result } });
   },
+  // MPI-965: does "Benchmark this model" share its result? Off until the user ticks it.
+  getAgentBenchShare: () => get(STORAGE_KEYS.AGENT_BENCH_SHARE, false) === true,
+  setAgentBenchShare: (v) => set(STORAGE_KEYS.AGENT_BENCH_SHARE, v === true),
   // A raw-key model pick kept per connection (the Remote enhance and describe rows).
   getConnectionPick: (key) => connectionPick(get(key, null)),
   setConnectionPick: (key, id) => set(key, withConnectionPick(get(key, null), id)),

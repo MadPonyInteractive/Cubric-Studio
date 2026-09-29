@@ -17,7 +17,8 @@
  *   POST /agent/reset?project= — clear one conversation and its staged files
  *   POST /agent/probe     — can the agent's model call a tool on the connection?
  *   GET  /agent/benchmark?profileId=&model= — the suite's size, cost estimate, any run in progress
- *   POST /agent/benchmark — run the agent suite on one model (MPI-941 Phase 12; bench:* on the stream)
+ *   POST /agent/benchmark — run the agent suite on one model (MPI-941 Phase 12; bench:* on the stream).
+ *                           body { profileId, model?, share? }: share uploads a whole, clean run anonymously (MPI-965)
  *   POST /agent/benchmark/stop — end that run after the case in flight
  *
  * One conversation per project, plus one for the landing page (Phase 3c, D4-D6):
@@ -384,9 +385,10 @@ router.get('/agent/benchmark', async (req, res) => {
 });
 
 router.post('/agent/benchmark', async (req, res) => {
-    const { profileId, model } = req.body || {};
+    const { profileId, model, share } = req.body || {};
     if (typeof profileId !== 'string' || !profileId) return _bad(res, 'body.profileId is required.');
     if (model !== undefined && typeof model !== 'string') return _bad(res, 'body.model must be a string.');
+    if (share !== undefined && typeof share !== 'boolean') return _bad(res, 'body.share must be a boolean.');
 
     let sessions;
     try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
@@ -396,7 +398,7 @@ router.post('/agent/benchmark', async (req, res) => {
     if (onLocalGpu(profileId, model) && await _localRenderRunning()) {
         return res.json({ ok: false, error: { code: 'GPU_BUSY', message: 'A generation is running on your GPU. Benchmark once it finishes.' } });
     }
-    res.json(await sessions.benchmark(profileId, model || ''));
+    res.json(await sessions.benchmark(profileId, model || '', { share: share === true }));
 });
 
 router.post('/agent/benchmark/stop', async (_req, res) => {

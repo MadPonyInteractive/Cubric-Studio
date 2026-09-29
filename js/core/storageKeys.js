@@ -107,6 +107,10 @@ export const STORAGE_KEYS = {
   // { [profileId]: { [model]: { passed, cases, runs: 1, perChat, suiteHash, at } } }. Shown on the agent row in place of our score.
   AGENT_BENCH: 'mpi_agent_bench',
 
+  // MPI-965: the "Share the result anonymously" tickbox of "Benchmark this model": a boolean, off until
+  // the user ticks it, then remembered. Its OWN key: AGENT_PREFS' normaliser keeps only { model, mode }.
+  AGENT_BENCH_SHARE: 'mpi_agent_bench_share',
+
   // MPI-797: the agent panel's width in px, set by dragging its edge.
   AGENT_PANEL_WIDTH: 'mpi_agent_panel_width',
 

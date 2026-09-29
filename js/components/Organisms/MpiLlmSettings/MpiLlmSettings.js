@@ -1,6 +1,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
+import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
@@ -22,6 +23,7 @@ import {
     enhancerModels,
 } from '../../../services/llmService.js';
 import { qs } from '../../../utils/dom.js';
+import { openExternal } from '../../../utils/openExternal.js';
 import { Storage } from '../../../core/storage.js';
 import { Events } from '../../../events.js';
 
@@ -207,7 +209,10 @@ export const MpiLlmSettings = ComponentFactory.create({
                             </div>
                             <div class="mpi-llm-settings__bench-bar" id="mpiSettingsAgentBenchBar"></div>
                             <span class="mpi-settings__hint" id="mpiSettingsAgentBenchLine"></span>
-                            <span class="mpi-settings__hint" id="mpiSettingsAgentBenchHint">Runs our agent tests on this model with pretend tools: nothing is generated or saved.</span>
+                            <div id="mpiSettingsAgentBenchShareSlot" hidden></div>
+                            <span class="mpi-settings__hint" id="mpiSettingsAgentBenchShareHint" hidden>Sends the model, its scores, cost and your GPU. Never prompts or keys. Shown at bench.cubric.studio.</span>
+                            <span class="mpi-settings__hint" id="mpiSettingsAgentBenchHint">Runs our agent tests on this model with pretend tools: nothing is generated or added to your projects.</span>
+                            <div class="mpi-llm-settings__bench-link" id="mpiSettingsAgentBenchLinkSlot"></div>
                         </div>
                     </div>
 
@@ -257,9 +262,15 @@ export const MpiLlmSettings = ComponentFactory.create({
         const _benchInsts = [];
         const _benchUnsubs = [
             Events.on('bench:case', (d) => { _bench = { ..._bench, step: 'running', progress: d }; _renderBench(el); }),
-            Events.on('bench:done', (d) => _benchEnd(d.stopped
-                ? `Stopped at ${d.done} of ${d.cases} · ${d.passed} passed · not kept`
-                : `${d.passed}/${d.cases} passed${d.costUsd ? ` · $${d.costUsd.toFixed(2)}` : ''} · now shown in the agent list`)),
+            Events.on('bench:done', (d) => {
+                // `shareError` is set only when the user ticked Share (MPI-965): a run nobody asked to share says nothing of it.
+                const shared = d.shared ? ' · shared' : d.shareError ? ` · not shared: ${d.shareError}` : '';
+                // An errored run is not kept (agentService): the connection failed, so its fails were never the model's.
+                if (d.errored) return _benchEnd(`The connection failed during the run · not kept${d.shareError ? ' · not shared' : ''}`, true);
+                _benchEnd(d.stopped
+                    ? `Stopped at ${d.done} of ${d.cases} · ${d.passed} passed · not kept${shared}`
+                    : `${d.passed}/${d.cases} passed${d.costUsd ? ` · $${d.costUsd.toFixed(2)}` : ''} · now shown in the agent list${shared}`);
+            }),
             Events.on('bench:error', (d) => _benchEnd(`The benchmark could not start: ${d.message}`, true)),
         ];
 
@@ -583,8 +594,16 @@ export const MpiLlmSettings = ComponentFactory.create({
                 // score first, and the user chooses. The pick stays the default value.
                 // MPI-941 Phase 12 (Fabio 2026-09-28): the user's own benchmark REPLACES our score, one number
                 // per model; ours stays only while it is on the current tests and theirs is not.
+                // MPI-965: a THIRD tier, the community's (>= 3 shared runs, the median, always on the current
+                // tests): your run > ours (current tests) > community. Any score on older tests counts only when
+                // no current one exists, yours before ours as before.
                 const mine = Storage.getAgentBench(Storage.getLlmConnection().profileId);
-                const scoreOf = m => (mine[m.id] && (_currentTests(mine[m.id]) || !_currentTests(m.agentTest)) ? mine[m.id] : m.agentTest);
+                const scoreOf = m => {
+                    if (_currentTests(mine[m.id])) return mine[m.id];
+                    if (_currentTests(m.agentTest)) return m.agentTest;
+                    return m.communityTest || mine[m.id] || m.agentTest;
+                };
+                // A model only the community has scored joins the scored group like any other.
                 const tested = models.filter(scoreOf)
                     // Scores on the current tests first, then best score, then the most runs.
                     .sort((a, b) => {
@@ -593,7 +612,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                     });
                 const options = [
                     // In the meta, under the name: the stacked list lifts its 11ch cap (MpiLlmSettings.css).
-                    ...tested.map(m => ({ value: m.id, label: m.id, meta: [_agentTestLabel(scoreOf(m)), _windowLabel(m)].filter(Boolean).join(' · ') })),
+                    ...tested.map(m => ({ value: m.id, label: m.id, meta: [_agentTestLabel(scoreOf(m), scoreOf(m) === m.communityTest), _windowLabel(m)].filter(Boolean).join(' · ') })),
                     ...models.filter(m => !scoreOf(m)).map(m => ({ value: m.id, label: m.id, meta: _windowLabel(m) })),
                 ];
                 if (value && _remote?.ok && !options.some(o => o.value === value)) options.unshift({ value, label: value, meta: 'Not listed' });
@@ -912,8 +931,27 @@ export const MpiLlmSettings = ComponentFactory.create({
                 inst.on('click', onClick);
                 _benchInsts.push(inst);
             };
-            if (_bench.info) _setText(root, '#mpiSettingsAgentBenchHint', `Runs our ${_bench.info.cases} agent tests on this model with pretend tools: nothing is generated or saved.`);
+            if (_bench.info) _setText(root, '#mpiSettingsAgentBenchHint', `Runs our ${_bench.info.cases} agent tests on this model with pretend tools: nothing is generated or added to your projects.`);
             const { step, info, progress, stopping } = _bench;
+            // MPI-965: the Share tickbox belongs to the confirm step, and only where the server says a run can
+            // be shared (one of the four presets; never Custom). Unticked the first time, then remembered.
+            const shareSlot = qs('#mpiSettingsAgentBenchShareSlot', root);
+            const shareHint = qs('#mpiSettingsAgentBenchShareHint', root);
+            const offerShare = step === 'confirm' && info?.canShare === true;
+            if (shareSlot) shareSlot.hidden = !offerShare;
+            if (shareHint) shareHint.hidden = !offerShare;
+            if (shareSlot && offerShare) {
+                const box = MpiCheckbox.mount(shareSlot, { checked: Storage.getAgentBenchShare(), label: 'Share the result anonymously', name: 'agent-bench-share' });
+                box.on('change', ({ checked }) => Storage.setAgentBenchShare(checked));
+                _benchInsts.push(box);
+            }
+            // The public page, whenever the server has one (it is null with sharing switched off).
+            const linkSlot = qs('#mpiSettingsAgentBenchLinkSlot', root);
+            if (linkSlot && info?.communityUrl) {
+                const link = MpiButton.mount(linkSlot, { text: 'See everyone\'s results', variant: 'ghost', size: 'sm' });
+                link.on('click', () => openExternal(info.communityUrl));
+                _benchInsts.push(link);
+            }
             // One step per test, green on a pass, red on a fail, track until it runs (Fabio 2026-09-29). The
             // steps of a run that ended stay under its line until the next Benchmark click.
             const bar = step === 'running' ? progress : step === 'idle' ? _bench.ran : null;
@@ -954,7 +992,9 @@ export const MpiLlmSettings = ComponentFactory.create({
 
         async function _benchRun(root) {
             const { profileId } = Storage.getLlmConnection();
-            const json = await _postJson('/agent/benchmark', { profileId, model: Storage.getAgentPrefs().model || '' });
+            // `share` only where the tickbox was offered: a remembered tick never rides along to Custom.
+            const share = _bench.info?.canShare === true && Storage.getAgentBenchShare();
+            const json = await _postJson('/agent/benchmark', { profileId, model: Storage.getAgentPrefs().model || '', share });
             if (!json?.ok) {
                 _benchCancel(root);
                 return _setText(root, '#mpiSettingsAgentBenchLine', _errorText(json), true);
@@ -995,12 +1035,14 @@ export const MpiLlmSettings = ComponentFactory.create({
         /** "1M context" — the window the agent compacts against. */
         /**
          * "28/28 tests · $0.36/100 chats"; a local model (perChat 0) costs your GPU, not money; null = a
-         * provider that reports no cost. "(older tests)" when the score predates the tests the app ships.
+         * provider that reports no cost. "(older tests)" when the score predates the tests the app ships;
+         * "(community, 9 runs)" when it is the median of everyone's shared runs (MPI-965).
          */
-        function _agentTestLabel(score) {
-            const { passed, cases, perChat } = score;
+        function _agentTestLabel(score, community = false) {
+            const { passed, cases, perChat, runs } = score;
             const cost = perChat ? `$${(perChat * 100).toFixed(2)}/100 chats` : perChat === 0 ? 'runs on your GPU' : '';
-            return [`${passed}/${cases} tests${_currentTests(score) ? '' : ' (older tests)'}`, cost].filter(Boolean).join(' · ');
+            const source = community ? ` (community, ${runs} runs)` : '';
+            return [`${passed}/${cases} tests${source}${_currentTests(score) ? '' : ' (older tests)'}`, cost].filter(Boolean).join(' · ');
         }
 
         function _windowLabel(m) {

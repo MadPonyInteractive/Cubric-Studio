@@ -21,6 +21,7 @@
 import crypto from 'crypto';
 import { AgentLoop, projectKey, onLocalGpu } from './agentLoop.mjs';
 import { OllamaEngine, fetchDeepInfraPrices, recommendedModel } from './llmEngines.mjs';
+import { SHARE_PRESETS, benchBase, buildRecord, localGpu, medianSeconds, runErrored, shareRun } from './benchCommunity.mjs';
 
 export { projectKey as sessionKey };
 
@@ -160,12 +161,16 @@ export class AgentSessions {
      * at once; each case, then the total, goes out on the agent stream as `bench:case` and
      * `bench:done`, or `bench:error` when the connection cannot answer at all. Refusing a local
      * model while a render holds the card is the route's (it reads the engine's queue).
+     *
+     * MPI-965: `share` (the tickbox) uploads the finished run anonymously, from HERE and before `bench:done`,
+     * so it goes even with Settings shut. `bench:done` then carries `shared`, `shareError` (why not, when it
+     * was asked for) and `errored` (the CONNECTION failed during the run: not shared, and not kept either).
      * @returns {Promise<{ok: true, cases: number} | {ok: false, error: {code: string, message: string}}>}
      */
-    async benchmark(profileId, model) {
+    async benchmark(profileId, model, { share = false } = {}) {
         if (this._bench) return { ok: false, error: { code: 'BUSY', message: 'A benchmark is already running.' } };
         // Taken before the first await, so two clicks cannot both start one.
-        const bench = this._bench = { stop: new AbortController(), profileId, model, done: 0, passed: 0, cases: 0, results: [] };
+        const bench = this._bench = { stop: new AbortController(), profileId, model, share: share === true, done: 0, passed: 0, cases: 0, results: [], seconds: [], lastAt: 0 };
         const { CASES, runSuite } = await import('./agentBench.mjs');
         bench.cases = CASES.length;
         this._runBench(bench, runSuite);
@@ -181,11 +186,16 @@ export class AgentSessions {
             if (!probe.ok) return this.broadcast('bench:error', { profileId, model: bench.model, message: probe.error.message });
             bench.model = probe.model;
             if (!probe.tools) return this.broadcast('bench:error', { profileId, model: bench.model, message: 'This model did not call a tool in the tool-use test, so it would fail almost every test.' });
+            bench.lastAt = Date.now();
             const r = await runSuite({
                 loopOptions: this._loopOptions, setupLoop: this._setupLoop, profileId, model: bench.model, signal: bench.stop.signal,
                 onProgress: (last) => {
                     bench.done += 1;
                     if (last.passed) bench.passed += 1;
+                    // What a test takes, for the shared record (a local model's speed on this card).
+                    const now = Date.now();
+                    bench.seconds.push((now - bench.lastAt) / 1000);
+                    bench.lastAt = now;
                     // Every result so far, in order: Settings paints one step per test (Fabio 2026-09-29).
                     bench.results.push(!!last.passed);
                     this.broadcast('bench:case', { profileId, model: bench.model, done: bench.done, passed: bench.passed, cases: bench.cases, results: [...bench.results], last });
@@ -193,10 +203,14 @@ export class AgentSessions {
             });
             // perChat 0 = this PC's card; null = a hosted provider that reports no cost (only DeepInfra does).
             const local = onLocalGpu(profileId, bench.model);
+            const perChat = local ? 0 : (r.costUsd && r.results.length ? r.costUsd / r.results.length : null);
+            // A dead connection reads as a whole run of fails (runCase turns each crash into a failure line).
+            // Such a run is neither shared nor kept: it is the connection's score, not the model's.
+            const errored = runErrored(r.results);
+            const share = await this._share(bench, r, { local, perChat, errored });
             this.broadcast('bench:done', {
                 profileId, model: bench.model, done: r.results.length, passed: r.passed, cases: r.cases, costUsd: r.costUsd,
-                perChat: local ? 0 : (r.costUsd && r.results.length ? r.costUsd / r.results.length : null),
-                suiteHash: r.suiteHash, stopped: r.stopped,
+                perChat, suiteHash: r.suiteHash, stopped: r.stopped, errored, shared: share.shared, shareError: share.error,
             });
         } catch (err) {
             this.broadcast('bench:error', { profileId, model: bench.model, message: err.message });
@@ -206,6 +220,27 @@ export class AgentSessions {
             // ponytail: a render the user starts MID-run shares the card until the run ends; Stop is the way out.
             if (onLocalGpu(profileId, bench.model)) new OllamaEngine().releaseOwnModels().catch(() => { /* nothing held */ });
         }
+    }
+
+    /**
+     * MPI-965: upload a finished run when the user ticked Share. `error` is why it did NOT go, only when it
+     * was asked for (a run nobody asked to share owes no reason). A run is shared when it is whole AND clean
+     * (not stopped, no connection failure) and on one of the four presets; never throws, never retries.
+     * @returns {Promise<{shared: boolean, error: ?string}>}
+     */
+    async _share(bench, r, { local, perChat, errored }) {
+        if (!bench.share) return { shared: false, error: null };
+        const no = (error) => ({ shared: false, error });
+        if (!SHARE_PRESETS.includes(bench.profileId)) return no('sharing is not offered for this provider');
+        if (!benchBase()) return no('sharing is switched off');
+        if (r.stopped) return no('a stopped run is not shared');
+        if (errored) return no('the connection failed during the run');
+        const record = buildRecord({
+            preset: bench.profileId, model: bench.model, suite: r.suiteHash, results: r.results, perChat,
+            secPerCase: medianSeconds(bench.seconds), gpu: local ? await localGpu() : null,
+        });
+        const sent = await shareRun(record);
+        return sent.ok ? { shared: true, error: null } : no(sent.error);
     }
 
     /** Ends the running benchmark after the case in flight. */
@@ -223,13 +258,20 @@ export class AgentSessions {
      * What Settings shows before a run: the case count, the cost estimate, whether it runs on this
      * PC's card, any run in progress, and the suite's hash (a saved result from another suite reads
      * "older tests").
+     *
+     * MPI-965: `canShare` = the Share tickbox shows (one of the four presets, service not switched off);
+     * `communityUrl` = the public results page, or null when off. The renderer holds no copy of either.
      */
     async benchmarkInfo(profileId, model) {
         const { CASES, estimateUsd, suiteHash } = await import('./agentBench.mjs');
         const id = model || recommendedModel(profileId, 'agent');
         // DeepInfra's is the one price list we read; any other connection gets no figure.
         const price = profileId === 'deepinfra' ? (await fetchDeepInfraPrices())?.[id] : null;
-        return { ok: true, cases: CASES.length, suiteHash: suiteHash(), local: onLocalGpu(profileId, id), usd: estimateUsd(price), running: this.benchmarkStatus() };
+        const communityUrl = benchBase();
+        return {
+            ok: true, cases: CASES.length, suiteHash: suiteHash(), local: onLocalGpu(profileId, id), usd: estimateUsd(price), running: this.benchmarkStatus(),
+            canShare: !!communityUrl && SHARE_PRESETS.includes(profileId), communityUrl,
+        };
     }
 
     /**

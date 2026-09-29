@@ -53,6 +53,9 @@
     overflow: visible;
     text-overflow: clip;
     justify-self: start;
+    /* A score that names its source, "26/28 TESTS (COMMUNITY, 3 RUNS) · $0.20/100 CHATS · 64K CONTEXT" (MPI-965),
+       is wider than the panel: it wraps rather than scroll the list sideways. */
+    white-space: normal;
 }
 
 /* ── A fixed value in a box ────────────────────────────────────────────────
@@ -89,4 +92,13 @@
 /* The run's bar, mounted only while it runs: empty, it takes no row in the group's gap. */
 .mpi-llm-settings__bench-bar:empty {
     display: none;
+}
+
+/* "See everyone's results" (MPI-965): mounted only when the server has a public page, so empty it takes no row. */
+.mpi-llm-settings__bench-link:empty {
+    display: none;
+}
+
+.mpi-llm-settings__bench-link {
+    align-self: flex-start;
 }

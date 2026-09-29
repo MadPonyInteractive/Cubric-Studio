@@ -21,6 +21,10 @@ process.env.APP_USER_DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'llm-conn-'));
 
 const llmRouter = require('../routes/llm');
 
+// MPI-965: the models route also asks the community service for scores. No test here is about that
+// (the one that is switches it on for its own duration), and an unstubbed GET would reach the real one.
+process.env.CUBRIC_BENCH_URL = 'off';
+
 const DI_URL = 'https://api.deepinfra.com/v1/openai';
 
 // A DeepInfra-shaped catalogue: tagged entries, an image model among them.
@@ -174,6 +178,61 @@ test('GET /llm/connection/models answers the list with the connection\'s key', a
         }));
         assert.equal(auth, 'Bearer env-key');
     } finally { restore(); }
+});
+
+test('MPI-965: GET /llm/connection/models merges the community score by preset and model id; the probe does not ask', async () => {
+    const { resetCommunityCache } = await import('../services/benchCommunity.mjs');
+    const { suiteHash } = await import('../services/agentBench.mjs');
+    const suite = suiteHash();
+    const BENCH = 'https://bench.example';
+    const asked = [];
+    const restore = stubUpstream(async (url) => {
+        if (url.startsWith(BENCH)) {
+            asked.push(url);
+            return okJson({ suite, models: [
+                { preset: 'deepinfra', model: 'zeta/chat-model', runs: 5, passed: 20, cases: 28, perChat: 0.002 },
+                { preset: 'openai', model: 'alpha/vision-model', runs: 9, passed: 28, cases: 28, perChat: null },
+            ] });
+        }
+        return okJson(CATALOGUE);
+    });
+    const prev = process.env.CUBRIC_BENCH_URL;
+    process.env.CUBRIC_BENCH_URL = BENCH;
+    resetCommunityCache();
+    try {
+        await withEnvKey('env-key', () => withServer(async (base) => {
+            const probe = await (await fetch(`${base}/llm/connection/probe`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profileId: 'deepinfra' }),
+            })).json();
+            assert.equal(probe.ok, true);
+            assert.deepEqual(asked, [], 'the probe route never asks the community');
+
+            const body = await (await fetch(`${base}/llm/connection/models?profileId=deepinfra`)).json();
+            const by = Object.fromEntries(body.models.map((m) => [m.id, m.communityTest]));
+            assert.deepEqual(by['zeta/chat-model'], { passed: 20, cases: 28, runs: 5, perChat: 0.002, suiteHash: suite });
+            assert.equal(by['alpha/vision-model'], undefined, 'another preset\'s score for the same id is not this row\'s');
+            assert.equal(by['deepseek-ai/DeepSeek-V4-Flash-0731'], undefined);
+            assert.deepEqual(asked, [`${BENCH}/v1/scores?suite=${suite}`]);
+            // Read again: the service is asked once a day, not once a panel.
+            await (await fetch(`${base}/llm/connection/models?profileId=deepinfra`)).json();
+            assert.equal(asked.length, 1);
+        }));
+        // The service down or off: today's rows, no communityTest key, and the answer does not fail.
+        resetCommunityCache();
+        const down = stubUpstream(async (url) => { if (url.startsWith(BENCH)) throw new TypeError('fetch failed'); return okJson(CATALOGUE); });
+        try {
+            await withEnvKey('env-key', () => withServer(async (base) => {
+                const body = await (await fetch(`${base}/llm/connection/models?profileId=deepinfra`)).json();
+                assert.equal(body.ok, true);
+                assert.equal(body.models.length, 3);
+                assert.ok(body.models.every((m) => !('communityTest' in m)));
+            }));
+        } finally { down(); }
+    } finally {
+        restore();
+        process.env.CUBRIC_BENCH_URL = prev;
+        resetCommunityCache();
+    }
 });
 
 test('POST /llm/connection/probe reports reachability and the model count', async () => {

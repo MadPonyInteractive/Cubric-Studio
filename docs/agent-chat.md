@@ -182,12 +182,24 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
   installs and re-reads the models, No records "declined". Errors: `UNKNOWN_CONFIRM` (stale or answered).
 - **`POST /agent/probe { profileId, model? }`** -> `{ ok, tools, model, latencyMs, message, contextWindow }` (the window `_contextWindowFor` compacts against; Settings warns under 64K, MPI-905): one tiny call
   with one tool, **never retried without it**. Errors: `NO_PROFILE`, `NO_KEY`, `NO_MODEL`, `ENDPOINT_ERROR` (+ `status`).
-- **`GET /agent/benchmark?profileId=&model=`** -> `{ ok, cases, suiteHash, local, usd, running }`; **`POST /agent/benchmark
-  { profileId, model? }`** -> `{ ok, cases }`, then `bench:case` / `bench:done` / `bench:error` on `/agent/stream` (no `session`);
+- **`GET /agent/benchmark?profileId=&model=`** -> `{ ok, cases, suiteHash, local, usd, running, canShare, communityUrl }`; **`POST /agent/benchmark
+  { profileId, model?, share? }`** -> `{ ok, cases }`, then `bench:case` / `bench:done` / `bench:error` on `/agent/stream` (no `session`);
   **`POST /agent/benchmark/stop`** ends it after the case in flight (MPI-941 Phase 12). `AgentSessions.benchmark` probes first
   (a bad key is `bench:error`, never a 0 score), runs `agentBench.runSuite` on the pretend tools, one at a time (`BUSY`); a local
   model is refused while the engine's `/queue` holds a job (`GPU_BUSY`) and released after. `agentService` keeps a whole run
-  (`Storage.setAgentBench`), not Settings: the panel may be shut when a 15-minute run ends.
+  (`Storage.setAgentBench`), not Settings: the panel may be shut when a 15-minute run ends. A run the CONNECTION failed
+  (`errored`: a case failed `agent:error` / `crashed:`, which is how a 402 or a dead host reads as a whole run of fails; a model looping to
+  `STEP_LIMIT` is its own score) is not kept either (MPI-965; it used to replace the row's real score with a bogus low one).
+- **Community benchmark (MPI-965).** `share: true` uploads a whole, clean run from `AgentSessions._share` (SERVER side: it outlives the panel and needs no
+  CORS) BEFORE `bench:done`, which carries `shared`, `shareError` (why not, only when Share was ticked) and `errored`. `services/benchCommunity.mjs` owns it:
+  `POST {base}/v1/runs` with `{ v: 1, preset, model, suite, results: [{ id, pass }], perChat, app, secPerCase, gpu? }` (contract v1, the Worker in
+  `mpi-ci/cubric-bench` builds against the same), and `GET {base}/v1/scores?suite=` for `communityTest` (`docs/llm.md`); 3 s, 24 h cache per suite, a failure
+  kept 10 min, `null` on any failure. Base `https://bench.cubric.studio`, env `CUBRIC_BENCH_URL` overrides, `off` = no network (tests set it). Only `deepinfra` /
+  `openrouter` / `openai` / `ollama` are shared (an ALLOW list: custom profile ids exist); `gpu` (name, VRAM) only for `ollama`. The tickbox is
+  `mpi_agent_bench_share` (its own Storage key), unticked the first time, shown only when `canShare`; `communityUrl` is the "See everyone's results" link.
+- **Privacy:** a shared run sends the model id, per-test pass/fail, cost per chat, app version, seconds a test and (Ollama) the GPU name and VRAM. NEVER a
+  prompt, a reply, a key, a path, a project or the `failures` text (the model chooses it). The Worker hashes the IP with a daily salt for a 10-a-day limit.
+  It, and the daily score read, must stay named on https://cubric.studio/privacy/ (Website repo `privacy/index.html`); a change to what is sent makes that page false.
 
 ## SSE events (`/agent/stream`)
 

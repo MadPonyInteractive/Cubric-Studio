@@ -139,14 +139,25 @@ router.post('/llm/connection/probe', async (req, res) => {
 
 /**
  * GET /llm/connection/models?profileId= -> { ok, profileId, models: [{ id,
- * contextWindow, vision, recommendedFor, recommendedNote, agentTest }] }, recommended first. Each job row
- * filters `recommendedFor` for its own job ('agent' | 'enhance' | 'describe').
+ * contextWindow, vision, recommendedFor, recommendedNote, agentTest, communityTest? }] }, recommended first.
+ * Each job row filters `recommendedFor` for its own job ('agent' | 'enhance' | 'describe').
+ *
+ * `communityTest` (MPI-965) is what everyone's shared benchmark runs came to for that preset and exact model
+ * id on this app's tests. It is merged HERE and nowhere else: the probe route and agentLoop also list the
+ * models, and neither has any use for a score or a wait on the community service. Offline, off, or a service
+ * that is down: the rows as they were, after at most the service's 3 s timeout (read once a day, not a panel).
  */
 router.get('/llm/connection/models', async (req, res) => {
     const profileId = req.query.profileId;
     const models = await _connectionModels(res, profileId);
     if (!models) return;
-    res.json({ ok: true, profileId, models });
+    let merged = models;
+    try {
+        merged = await (await import('../services/benchCommunity.mjs')).withCommunity(profileId, models);
+    } catch (err) {
+        logger.warn('system', `community scores not merged (${profileId}): ${err && err.message}`);
+    }
+    res.json({ ok: true, profileId, models: merged });
 });
 
 /**

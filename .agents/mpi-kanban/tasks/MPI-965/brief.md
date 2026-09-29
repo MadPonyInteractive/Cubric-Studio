@@ -41,3 +41,15 @@ them all, and the community feels involved. Built properly it needs no maintenan
 Service live first (Cloudflare set up WITH Fabio), then the app, then `cubric.studio/privacy` in the
 same job (it lists every outbound service; the daily GET and the upload make it false otherwise). The
 app must not ship with the tickbox before the service exists.
+
+## Noticed
+
+- 2026-09-29 (A1): a POST flood from many IPs spends the D1 free-plan daily write quota (every POST upserts a
+  `rate` row), after which real shares fail with 500 until the quota resets. Not a launch blocker at our
+  volume; the answer if it happens is a Cloudflare rate-limiting rule in front of `/v1/runs`.
+- 2026-09-29 (A2): `docs/agent-chat.md` is 562 lines, far over the 200-line doc cap, before and after this
+  card (pre-existing; a split is its own job).
+- 2026-09-29 (A2): the agent-model note ("ours or your own benchmark") does not mention the community tier;
+  copy for Fabio's Phase 3 look.
+- 2026-09-29 (A2): a preset profile id could in principle carry a URL override via `secretsStore`; the UI
+  only allows that for Custom, so the share allow-list by profile id is not guarded against it.

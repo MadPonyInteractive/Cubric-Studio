@@ -173,6 +173,227 @@ test('AgentSessions.benchmark: a model that fails "Test tool use" is not run (it
     }
 });
 
+// ---------------------------------------------------------------------------
+// MPI-965 - sharing the result, and the clean-run check
+// ---------------------------------------------------------------------------
+
+const BENCH_URL = 'https://bench.example';
+
+/**
+ * Run `fn` with the community service at BENCH_URL and global fetch stubbed: `reply(url, init)` answers the
+ * bench service, and any OTHER url is a failure (the benchmark itself reaches the model through the engine
+ * stub, never fetch), so a test can never leave the machine. `log` collects 'POST' as it lands.
+ */
+async function withBench(reply, fn) {
+    const prevUrl = process.env.CUBRIC_BENCH_URL;
+    const real = global.fetch;
+    const posts = [];
+    const order = [];
+    process.env.CUBRIC_BENCH_URL = BENCH_URL;
+    global.fetch = async (url, init) => {
+        if (!String(url).startsWith(BENCH_URL)) throw new Error(`unexpected network call: ${url}`);
+        posts.push({ url: String(url), init });
+        order.push('POST');
+        return reply(String(url), init);
+    };
+    try { await fn({ posts, order }); } finally {
+        global.fetch = real;
+        if (prevUrl === undefined) delete process.env.CUBRIC_BENCH_URL; else process.env.CUBRIC_BENCH_URL = prevUrl;
+    }
+}
+
+const created = () => ({ ok: true, status: 201, json: async () => ({ ok: true }) });
+
+/** A whole run on the scripted model, share as asked; resolves with the bench events and the sessions. */
+async function shareRunOf(share, { chat = probeThenWords, endpoint = ENDPOINT, order = [] } = {}) {
+    const { DeepInfraEngine } = await import('../services/llmEngines.mjs');
+    const realChat = DeepInfraEngine.prototype.chat;
+    DeepInfraEngine.prototype.chat = chat;
+    try {
+        const { sessions, events, until } = await benchSessions(endpoint, (e) => { if (e.event === 'bench:done') order.push('bench:done'); });
+        assert.equal((await sessions.benchmark('deepinfra', 'test-model', { share })).ok, true);
+        await until((ev) => ev.some((e) => e.event === 'bench:done' || e.event === 'bench:error'));
+        return { sessions, events, done: events.find((e) => e.event === 'bench:done')?.data };
+    } finally {
+        DeepInfraEngine.prototype.chat = realChat;
+    }
+}
+
+test('MPI-965: a clean whole run, share on, POSTs exactly the contract record BEFORE bench:done', async () => {
+    const { CASES } = await import('../services/agentBench.mjs');
+    const { APP_VERSION } = await import('../js/core/appVersion.js');
+    await withBench(created, async ({ posts, order }) => {
+        const { done, events } = await shareRunOf(true, { order });
+        assert.equal(posts.length, 1);
+        assert.deepEqual(order.filter((x) => x === 'POST' || x === 'bench:done'), ['POST', 'bench:done'], 'uploaded first, then the stream says so');
+        assert.equal(posts[0].url, `${BENCH_URL}/v1/runs`);
+        assert.equal(posts[0].init.method, 'POST');
+        const body = JSON.parse(posts[0].init.body);
+        assert.deepEqual(Object.keys(body).sort(), ['app', 'model', 'perChat', 'preset', 'results', 'secPerCase', 'suite', 'v'], 'no key the service does not know');
+        assert.equal(body.v, 1);
+        assert.equal(body.preset, 'deepinfra');
+        assert.equal(body.model, 'test-model');
+        assert.equal(body.suite, done.suiteHash);
+        assert.equal(body.app, APP_VERSION);
+        assert.deepEqual(body.results.map((r) => r.id), CASES.map((c) => c.id));
+        for (const r of body.results) assert.deepEqual(Object.keys(r).sort(), ['id', 'pass']);
+        assert.equal(body.results.filter((r) => r.pass).length, done.passed);
+        assert.equal(body.perChat, done.perChat);
+        assert.equal(typeof body.secPerCase, 'number');
+        assert.ok(body.secPerCase >= 0 && body.secPerCase <= 3600);
+        assert.equal('gpu' in body, false, 'a hosted model has no gpu');
+        assert.ok(!posts[0].init.body.includes('failures'), 'the failure text never leaves the machine');
+        // The scripted model fails cases in words the bench wrote: none of it may be in the upload either.
+        const failureText = events.filter((e) => e.event === 'bench:case').flatMap((e) => e.data.last.failures).filter(Boolean);
+        assert.ok(failureText.length > 0, 'the run did have failure lines');
+        for (const line of failureText) assert.ok(!posts[0].init.body.includes(line));
+        assert.equal(done.shared, true);
+        assert.equal(done.shareError, null);
+        assert.equal(done.errored, false);
+        assert.equal(done.stopped, false);
+    });
+});
+
+test('MPI-965: share off (the default), or a share the service refuses, still ends a kept run', async () => {
+    await withBench(created, async ({ posts }) => {
+        const off = (await shareRunOf(false)).done;
+        assert.equal(posts.length, 0, 'nothing is sent unless the tickbox was ticked');
+        assert.deepEqual([off.shared, off.shareError, off.errored], [false, null, false]);
+    });
+    await withBench(async () => { throw new TypeError('fetch failed'); }, async ({ posts }) => {
+        const down = (await shareRunOf(true)).done;
+        assert.equal(posts.length, 1);
+        assert.equal(down.shared, false);
+        assert.match(down.shareError, /reach bench\.example/);
+        assert.equal(down.errored, false, 'the RUN was clean: only the upload failed, so it is still kept');
+        assert.equal(down.stopped, false);
+    });
+    await withBench(async () => ({ ok: false, status: 429, json: async () => ({ ok: false, error: 'RATE_LIMIT' }) }), async () => {
+        const limited = (await shareRunOf(true)).done;
+        assert.equal(limited.shared, false);
+        assert.match(limited.shareError, /limit/i);
+    });
+});
+
+test('MPI-965: an errored run (a dead connection reads as a whole run of fails) is neither shared nor kept', async () => {
+    // Every chat after the probe fails, as a 402 or a host that went away does: runCase turns each into a failure line.
+    const dies = async (req) => {
+        if (req.tools?.length === 1) return probeThenWords(req);
+        throw Object.assign(new Error('HTTP 402 payment required'), { status: 402 });
+    };
+    await withBench(created, async ({ posts }) => {
+        const { done, events } = await shareRunOf(true, { chat: dies });
+        const lines = events.filter((e) => e.event === 'bench:case').map((e) => e.data.last.failures.join('\n'));
+        assert.equal(lines.length, done.cases, 'a whole run of fails, which is what it looks like');
+        assert.ok(lines.every((l) => /^agent:error|^crashed:/m.test(l)), 'each is the connection, not the model');
+        assert.equal(done.errored, true);
+        assert.equal(done.stopped, false, 'it ran to the end: errored is its own flag, and agentService keeps a run only when neither is set');
+        assert.equal(done.shared, false);
+        assert.match(done.shareError, /connection/i);
+        assert.equal(posts.length, 0, 'never uploaded');
+    });
+    // Not asked to share: still errored (so it is not kept locally), and no reason is owed for a share nobody asked for.
+    await withBench(created, async ({ posts }) => {
+        const { done } = await shareRunOf(false, { chat: dies });
+        assert.deepEqual([done.errored, done.shared, done.shareError], [true, false, null]);
+        assert.equal(posts.length, 0);
+    });
+});
+
+test('MPI-965: a stopped run is never shared, and says why', async () => {
+    await withBench(created, async ({ posts }) => {
+        const { DeepInfraEngine } = await import('../services/llmEngines.mjs');
+        const realChat = DeepInfraEngine.prototype.chat;
+        DeepInfraEngine.prototype.chat = probeThenWords;
+        try {
+            const { sessions, events, until } = await benchSessions(ENDPOINT, (e, s) => { if (e.event === 'bench:case' && e.data.done === 2) s.stopBenchmark(); });
+            await sessions.benchmark('deepinfra', 'test-model', { share: true });
+            await until((ev) => ev.some((e) => e.event === 'bench:done'));
+            const done = events.find((e) => e.event === 'bench:done').data;
+            assert.equal(done.stopped, true);
+            assert.equal(done.shared, false);
+            assert.match(done.shareError, /stopped/i);
+            assert.equal(done.errored, false);
+            assert.equal(posts.length, 0);
+        } finally {
+            DeepInfraEngine.prototype.chat = realChat;
+        }
+    });
+});
+
+test('MPI-965: a connection that is not one of the four presets is never shared; CUBRIC_BENCH_URL=off shares nothing', async () => {
+    await withBench(created, async ({ posts }) => {
+        const custom = async () => ({ profile: { id: 'my-gateway', name: 'My gateway', baseURL: 'https://gateway.example/v1' }, key: 'fake-key' });
+        const { DeepInfraEngine } = await import('../services/llmEngines.mjs');
+        const realChat = DeepInfraEngine.prototype.chat;
+        DeepInfraEngine.prototype.chat = probeThenWords;
+        try {
+            const { sessions, events, until } = await benchSessions(custom);
+            await sessions.benchmark('my-gateway', 'test-model', { share: true });
+            await until((ev) => ev.some((e) => e.event === 'bench:done' || e.event === 'bench:error'));
+            const done = events.find((e) => e.event === 'bench:done').data;
+            assert.equal(done.shared, false);
+            assert.match(done.shareError, /provider/i);
+            assert.equal(posts.length, 0);
+        } finally {
+            DeepInfraEngine.prototype.chat = realChat;
+        }
+    });
+    const prev = process.env.CUBRIC_BENCH_URL;
+    process.env.CUBRIC_BENCH_URL = 'off';
+    try {
+        const { done } = await shareRunOf(true);
+        assert.equal(done.shared, false);
+        assert.match(done.shareError, /off/i);
+    } finally {
+        if (prev === undefined) delete process.env.CUBRIC_BENCH_URL; else process.env.CUBRIC_BENCH_URL = prev;
+    }
+});
+
+test('MPI-965: benchmarkInfo says whether the tickbox shows and where the public page is', async () => {
+    const { AgentSessions } = await import('../services/agentSessions.mjs');
+    const sessions = new AgentSessions({ loopOptions: {} });
+    const prev = process.env.CUBRIC_BENCH_URL;
+    process.env.CUBRIC_BENCH_URL = BENCH_URL;
+    try {
+        // openrouter and custom carry no price fetch, so nothing here reaches the network.
+        const or = await sessions.benchmarkInfo('openrouter', 'x');
+        assert.deepEqual([or.canShare, or.communityUrl], [true, BENCH_URL]);
+        const custom = await sessions.benchmarkInfo('custom', 'x');
+        assert.deepEqual([custom.canShare, custom.communityUrl], [false, BENCH_URL], 'no tickbox for Custom, but the page is still there to read');
+        process.env.CUBRIC_BENCH_URL = 'off';
+        const off = await sessions.benchmarkInfo('openrouter', 'x');
+        assert.deepEqual([off.canShare, off.communityUrl], [false, null]);
+    } finally {
+        if (prev === undefined) delete process.env.CUBRIC_BENCH_URL; else process.env.CUBRIC_BENCH_URL = prev;
+    }
+});
+
+test('POST /agent/benchmark hands `share` on, and refuses one that is not a boolean', async () => {
+    const express = require('express');
+    const { AgentSessions } = await import('../services/agentSessions.mjs');
+    const realBenchmark = AgentSessions.prototype.benchmark;
+    const seen = [];
+    AgentSessions.prototype.benchmark = async (...args) => { seen.push(args); return { ok: true, cases: 1 }; };
+    const app = express();
+    app.use(express.json());
+    app.use(require('../routes/agent'));
+    const server = await new Promise((r) => { const s = app.listen(0, '127.0.0.1', () => r(s)); });
+    const post = (body) => fetch(`http://127.0.0.1:${server.address().port}/agent/benchmark`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }).then((r) => r.json());
+    try {
+        assert.equal((await post({ profileId: 'deepinfra', model: 'm', share: true })).ok, true);
+        assert.equal((await post({ profileId: 'deepinfra', model: 'm' })).ok, true);
+        assert.deepEqual(seen, [['deepinfra', 'm', { share: true }], ['deepinfra', 'm', { share: false }]], 'absent means not shared');
+        assert.equal((await post({ profileId: 'deepinfra', model: 'm', share: 'yes' })).error?.code, 'BAD_REQUEST');
+        assert.equal(seen.length, 2, 'the refused one never started');
+    } finally {
+        AgentSessions.prototype.benchmark = realBenchmark;
+        server.close();
+    }
+});
+
 test('POST /agent/benchmark refuses a local model while a render holds this PC\'s GPU', async () => {
     const http = require('node:http');
     const express = require('express');
