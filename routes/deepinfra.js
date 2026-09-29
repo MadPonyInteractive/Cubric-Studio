@@ -275,14 +275,14 @@ router.post('/deepinfra/generate', async (req, res) => {
 
     const model = MODELS.find(m => m.id === modelId);
     if (!model?.provider || !model.cloud?.endpointId) {
-        return _fail(res, 'PROVIDER_ERROR', 'That model does not run in the cloud.', 400);
+        return _fail(res, 'PROVIDER_ERROR', 'That model does not run in the cloud. Nothing was sent, so nothing was billed.', 400);
     }
     // An op that needs a picture and arrives without one must not run: the endpoint
     // takes the image as OPTIONAL, so it would bill a text-to-image from the prompt alone
     // and hand it back as the "edit". Measured 2026-09-25: five paid edits that never
     // saw their reference, with no error anywhere.
     if ((getCommand(operation)?.requiresImages || 0) > refs.length) {
-        return _fail(res, 'PROVIDER_ERROR', 'This edit needs a reference image, and none arrived.', 400);
+        return _fail(res, 'PROVIDER_ERROR', 'This edit needs a reference image, and none arrived. Nothing was sent, so nothing was billed.', 400);
     }
 
     const { resolveConnection } = await engines();
@@ -314,7 +314,7 @@ router.post('/deepinfra/generate', async (req, res) => {
         try {
             sheet = await buildCollage(refs);
         } catch (err) {
-            return _fail(res, 'PROVIDER_ERROR', 'The reference images could not be read.');
+            return _fail(res, 'PROVIDER_ERROR', 'The reference images could not be read. Nothing was sent, so nothing was billed.');
         }
         body.prompt = sheet.preamble + prompt;
     }
@@ -353,7 +353,7 @@ router.post('/deepinfra/generate', async (req, res) => {
                 placeImage(await _readReference(refs[i], model.cloud.inputMaxPixels), fields[i]);
             }
         } catch (err) {
-            return _fail(res, 'PROVIDER_ERROR', 'The reference image could not be read.');
+            return _fail(res, 'PROVIDER_ERROR', 'The reference image could not be read. Nothing was sent, so nothing was billed.');
         }
     }
 
@@ -369,7 +369,7 @@ router.post('/deepinfra/generate', async (req, res) => {
         // Rebuilt deliberately: an upstream error object can carry the request, and the
         // request carries the key.
         logger.warn('system', `deepinfra generate: transport failure for ${model.id}`);
-        return _fail(res, 'PROVIDER_ERROR', 'DeepInfra could not be reached.');
+        return _fail(res, 'PROVIDER_ERROR', 'DeepInfra could not be reached, so nothing was billed.');
     }
 
     let json = null;

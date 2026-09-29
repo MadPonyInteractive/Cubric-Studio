@@ -452,6 +452,16 @@ test('every failure message names a non-billing cause where one is true', () => 
     assert.match(cloudErrorMessage('NO_CREDIT'), /nothing was billed/);
 });
 
+test('a provider error the route explained shows its reason, not the blanket copy (MPI-981)', () => {
+    // Live 2026-09-29: a clip sent as a picture failed to decode before anything was sent,
+    // and the dialog said the provider could not complete it.
+    const reason = 'The reference image could not be read. Nothing was sent, so nothing was billed.';
+    assert.equal(cloudErrorMessage('PROVIDER_ERROR', reason), reason);
+    // A bare provider failure is still the provider's, and every other code keeps its copy.
+    assert.match(cloudErrorMessage('PROVIDER_ERROR', null), /provider could not complete/);
+    assert.match(cloudErrorMessage('NO_KEY', 'No DeepInfra key is saved.'), /Remote → Language Models/);
+});
+
 test('an unknown code still returns copy rather than undefined', () => {
     assert.ok(cloudErrorMessage('SOMETHING_NEW').length > 0);
     assert.ok(cloudErrorMessage(undefined, 'a passed-through message').length > 0);

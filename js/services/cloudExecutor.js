@@ -67,8 +67,14 @@ const ERROR_COPY = {
     PROVIDER_ERROR: 'The provider could not complete this generation. Failed calls are not billed.',
 };
 
-/** @returns {string} actionable copy for a coded provider failure. */
+/**
+ * @returns {string} actionable copy for a coded provider failure. A PROVIDER_ERROR the route
+ * gave a reason for shows that reason: most are the app's own failures before anything was
+ * sent ("The reference image could not be read."), and the fixed sentence blamed the provider
+ * for them (MPI-981). The route says itself whether it billed. Only a bare one is the provider's.
+ */
 export function cloudErrorMessage(code, fallback) {
+    if (code === 'PROVIDER_ERROR' && fallback) return fallback;
     return ERROR_COPY[code] || fallback || ERROR_COPY.PROVIDER_ERROR;
 }
 
