@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["routes/projects.js", "tests/save-generation-replace-gc.test.cjs", "docs/project-integrity.md", ".agents/mpi-kanban/tasks/MPI-977/"]}
