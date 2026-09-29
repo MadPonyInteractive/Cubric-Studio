@@ -42,8 +42,10 @@ committed, so the grant travels. If the siblings reappear in the workspace, this
    Cubric-Vision.
 4. **Sibling git repos are separate.** Never run `git` from Cubric-Vision against sibling
    paths — use `git -C <path>` or `cd` first.
-5. **Design source of truth for the Website/Docs sites:** `c:\AI\Mpi\CubricStudio_Redesign\`
-   (edit freely as playground; apply final design to the Website/Docs repos).
+5. **Design source of truth for the Website/Docs sites:** the Website follows THIS repo's
+   `PRODUCT.md` + `DESIGN.md` (the 2.0 cubric.studio was built from them, MPI-973, 2026-09-29);
+   the Docs site follows its own repo's `PRODUCT.md` + `DESIGN.md`.
+   `c:\AI\Mpi\CubricStudio_Redesign\` is the April 2026 playground: history, not direction.
 6. **DOCS WEBSITE PUSH BLOCK (hard rule):** never run `git push` (or any equivalent) in
    `c:\AI\Mpi\Cubric Studio (Docs)`. **The block still stands — but its original reason no
    longer holds, so do not repeat that reason.** Production now serves the REAL Vision docs

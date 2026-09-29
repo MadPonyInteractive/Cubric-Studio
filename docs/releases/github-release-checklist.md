@@ -232,9 +232,10 @@ This is the only working first-launch path for un-notarized builds.
 
 ## Scope Guard
 
-Release copy should describe Cubric Studio as a local image and video
-generation app. Do not add claims about bundled language-model, assistant, or
-prompt-intelligence features; those are outside Vision release scope.
+Release copy should describe Cubric Studio as a local image, video and sound
+generation app, and claim only what the release ships. The in-app agent and the
+MCP connection for outside agents ship in 2.0 and are fair to name. (Until
+2026-09-29 this section banned "assistant" claims; that predates the agent.)
 
 ## Where to get a test machine (surveyed 2026-07-30)
 
