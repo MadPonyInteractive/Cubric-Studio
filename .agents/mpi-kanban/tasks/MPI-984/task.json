@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-984",
+  "title": "Agent knows the video frame on screen: 'edit this frame' in a video card means the paused frame",
+  "description": "Follow-up to MPI-980 (Fabio, 2026-09-29). With a video card open, the agent's App state line named the clip but not the playhead, so 'edit this frame' while paused on frame 103 would send the clip and the app would use frame 0. The history workspace now publishes the frame its counter shows (activeMask pattern), the turn's workspace carries it, and the App state line says which frame is on screen: frame 0 goes as the video, any other frame is the user's right-click Create snapshot (Fabio's MPI-980 rule).",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-29T13:17:32+01:00",
+  "updated_at": "2026-09-29T13:36:18+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

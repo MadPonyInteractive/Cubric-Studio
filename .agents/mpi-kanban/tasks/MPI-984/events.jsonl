@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-984", "at": "2026-09-29T13:17:32+01:00", "actor": "claude", "column": "doing", "title": "Agent knows the video frame on screen: 'edit this frame' in a video card means the paused frame"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-984", "at": "2026-09-29T13:21:41+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Shipped cb91e95ad; waiting on CI and Fabio's live check."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-984", "at": "2026-09-29T13:36:18+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Shipped cb91e95ad + maps be5d3d4dd, CI green, verified live by Fabio (frame 105 -> Create snapshot)."}
