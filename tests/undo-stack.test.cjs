@@ -5,18 +5,23 @@
 // and a broken swap makes redo replay the undo.
 //
 // The canvas is stubbed rather than jsdom'd: UndoStack only ever calls
-// createElement('canvas'), width/height, getContext, clearRect and drawImage.
+// createElement('canvas'), width/height, getContext, clearRect, drawImage and
+// (commitChanged) getImageData.
 
 const assert = require('node:assert');
 const test = require('node:test');
+const fs = require('node:fs');
+const path = require('node:path');
 
-/** Minimal HTMLCanvasElement stand-in that records the 2D ops performed on it. */
+/** Minimal HTMLCanvasElement stand-in that records the 2D ops performed on it.
+ *  `c.px` (RGBA bytes) is what getImageData reads; the fake drawImage copies nothing. */
 function fakeCanvas(w = 0, h = 0) {
     const c = { width: w, height: h, ops: [] };
     c.getContext = () => ({
         canvas: c,
         clearRect: (x, y, cw, ch) => c.ops.push(['clearRect', x, y, cw, ch]),
         drawImage: (...args) => c.ops.push(['drawImage', ...args.slice(1)]),
+        getImageData: (x, y, gw, gh) => ({ data: c.px || new Uint8ClampedArray(gw * gh * 4) }),
     });
     return c;
 }
@@ -146,4 +151,45 @@ test('clear() drops history and the pending capture', async () => {
     assert.strictEqual(s.canRedo(), false);
     s.commit(null);
     assert.strictEqual(s.depth, 0, 'a pending capture must not survive clear()');
+});
+
+test('commitChanged() keeps only the box that changed, over both layers; no change, no entry (MPI-961)', async () => {
+    // A whole two-layer 4096^2 entry is 128 MB, over the budget on its own, so a Fill
+    // stored that way evicted every stroke before it.
+    const s = await makeStack();
+    const ls = layers();
+    const blank = () => new Uint8ClampedArray(100 * 50 * 4);
+    s.begin(ls);
+    s.pendingLayer(0).px = blank();
+    s.pendingLayer(1).px = blank();
+    ls[0].canvas.px = blank();
+    ls[1].canvas.px = blank();
+    ls[0].canvas.px[(10 * 100 + 20) * 4 + 3] = 255; // layer 0 changed at (20, 10)
+    ls[1].canvas.px[(30 * 100 + 60) * 4 + 3] = 255; // layer 1 changed at (60, 30)
+    s.commitChanged();
+    assert.strictEqual(s.depth, 1);
+    assert.strictEqual(s.bytes, 41 * 21 * 4 * 2, 'the union box (20..60 x 10..30), once per layer');
+
+    s.begin(ls);
+    s.pendingLayer(0).px = ls[0].canvas.px.slice();
+    s.pendingLayer(1).px = ls[1].canvas.px.slice();
+    s.commitChanged();
+    assert.strictEqual(s.depth, 1, 'an edit that changed nothing must not push an entry');
+});
+
+test('every one-shot capture a manager opens is closed by _commitUndo() (MPI-961)', () => {
+    // `_recordUndo()` opens a begin() capture now. A method that opens one and never
+    // commits it leaves the edit with NO undo entry — the silent Ctrl+Z hole the
+    // MaskManager header warns about — and the next capture overwrites it unseen.
+    for (const f of ['MaskManager.js', 'PaintManager.js']) {
+        const src = fs.readFileSync(path.join(__dirname, '..', 'js/components/Primitives/MpiCanvas/managers', f), 'utf8');
+        const bodies = [...src.matchAll(/\n {4}(\w+)\(([^)]*)\)\s*\{([\s\S]*?)\n {4}\}/g)]
+            .filter(m => m[1] !== '_recordUndo' && m[3].includes('this._recordUndo();'));
+        assert.ok(bodies.length >= 5, `${f}: expected its one-shots, found ${bodies.length}`);
+        for (const [, name, , body] of bodies) {
+            const open = body.indexOf('this._recordUndo();');
+            const close = body.indexOf('this._commitUndo();', open);
+            assert.ok(close > open, `${f} ${name}() opens an undo capture and never commits it`);
+        }
+    }
 });

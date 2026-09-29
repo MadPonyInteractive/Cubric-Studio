@@ -23,8 +23,9 @@
  * Everything stays in SQUARED integer distances on purpose. `d > r` and
  * `d² >= r² + 1` are the same statement when both are integers, so dilate and erode
  * are both INCLUSIVE range tests and no epsilon is needed to keep erode strict —
- * see `rangeFor()`. Max d² at the 1536 working size is 1536²+1536² ≈ 4.7M, well
- * inside Float32's exact-integer range (16.7M).
+ * see `rangeFor()`. Max d² at the 4096 working size is 4096²+4096² ≈ 33.5M, past
+ * Float32's exact-integer range (16.7M) — harmless: above it Float32 rounds by at most
+ * a few units, and every threshold a slider can ask for is under 140², far below it.
  */
 
 /** Stand-in for "no seed found". Finite, not Infinity: `edt1d` subtracts two of
@@ -249,5 +250,45 @@ export function writeRange(field, out32, lo, hi) {
     for (let i = 0; i < field.length; i++) {
         const d = field[i];
         out32[i] = (d >= lo && d <= hi) ? 0xFFFFFFFF : 0;
+    }
+}
+
+/**
+ * `writeRange()` with a one-pixel SOFT edge, for the mask (MPI-961). At the 4096 working
+ * size a hard yes/no edge reads as stair steps one image px wide — Fabio: "pixelated" —
+ * next to the brush's antialiased dab. Paint keeps `writeRange()`: its hard cut is the
+ * MPI-440 ruling.
+ *
+ * Same `[lo, hi]` as `writeRange()`; coverage by exact distance, a sqrt only on the edge:
+ * - grow / band: every pixel `writeRange()` sets stays opaque, and a one-pixel fringe is
+ *   added just past `hi` (and, for a band, past `lo`) at alpha = o + 1 - d;
+ * - shrink: the kept region's rim goes soft, alpha = d - e, which is > 0 for exactly the
+ *   pixels `writeRange()` keeps (d² is an integer), so its alpha > 0 IS the hard result.
+ * @param {Float32Array} field
+ * @param {Uint32Array} out32
+ * @param {number} lo
+ * @param {number} hi
+ */
+export function writeRangeSoft(field, out32, lo, hi) {
+    const px = (a) => (a >= 1 ? 0xFFFFFFFF : a <= 0 ? 0 : ((Math.round(a * 255) << 24) | 0xFFFFFF));
+    if (hi < 0) { // shrink: keep -f >= e² + 1
+        const e = Math.sqrt(-hi - 1);
+        const full = (e + 1) * (e + 1);
+        for (let i = 0; i < field.length; i++) {
+            const f = field[i];
+            out32[i] = f >= 0 ? 0 : -f >= full ? 0xFFFFFFFF : px(Math.sqrt(-f) - e);
+        }
+        return;
+    }
+    const o = Math.sqrt(hi);
+    const oOut = (o + 1) * (o + 1);
+    const inner = lo !== -Infinity;
+    const r = inner ? Math.sqrt(-lo) : 0;
+    const rOut = (r + 1) * (r + 1);
+    for (let i = 0; i < field.length; i++) {
+        const f = field[i];
+        if (f >= lo && f <= hi) out32[i] = 0xFFFFFFFF;
+        else if (f > 0) out32[i] = f >= oOut ? 0 : px(o + 1 - Math.sqrt(f));
+        else out32[i] = -f >= rOut ? 0 : px(r + 1 - Math.sqrt(-f));
     }
 }

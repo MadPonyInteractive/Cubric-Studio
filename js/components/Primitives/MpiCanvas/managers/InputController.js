@@ -89,7 +89,7 @@ export class InputController {
         this.managers.mask.isDrawingMask = false;
         // Close the undo capture opened at mousedown (MPI-376). The box is the
         // only reason a stroke costs kilobytes: without it every stroke would
-        // retain two full 1536² layers. A stroke that painted nothing aborts.
+        // retain two full 4096² layers (128 MB). A stroke that painted nothing aborts.
         const box = this.managers.mask.takeStrokeBox();
         if (box) this.managers.undo?.commit(box);
         else     this.managers.undo?.abort();

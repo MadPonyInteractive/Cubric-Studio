@@ -170,3 +170,27 @@ test('every button in the commit row is WIRED (MPI-446)', () => {
     // destinations a Fill, so it is mounted unconditionally and wired like the rest.
     assert.match(panel, /fillBtn\.on\('click'/, 'fillBtn is mounted but never wired — a dead button');
 });
+
+test('an open Adjust session survives a new image, and a layer load re-snapshots it (MPI-961)', () => {
+    // The canvas is reused across History entries and the panel begins its session once,
+    // at mount. init() ending it for good left Grow / Shrink / Edge dead after an entry
+    // switch until the user left History (tests/desktop/mask-adjust-entry-switch.spec.js).
+    const init = methodBody('init');
+    const end = init.indexOf('this.endAdjust()');
+    const begin = init.indexOf('this.beginAdjust()', end);
+    assert.ok(end !== -1 && begin > end, 'init() ends the Adjust session and never re-opens it');
+    assert.match(init, /_adjustPristine/, 'init() re-opens the session whether or not one was open');
+    for (const load of ['setManualFromDataURL', 'setSubtractFromDataURL', 'setBaseFromDataURL']) {
+        const body = SRC.match(new RegExp(`\\n    async ${load}\\(([^)]*)\\)\\s*\\{([\\s\\S]*?)\\n    \\}`))?.[2];
+        assert.ok(body, `${load}() not found on MaskManager`);
+        assert.match(body, /_reloadAdjust\(\)/, `${load}() leaves an open session on the pixels it replaced`);
+    }
+});
+
+test('the mask previews with the SOFT write; paint keeps the hard cut (MPI-961 / MPI-440)', () => {
+    assert.match(methodBody('previewAdjust'), /writeRangeSoft\(/,
+        'mask Adjust lost its soft edge — a 4096 grow reads as one-image-px stair steps');
+    const paint = fs.readFileSync(
+        path.join(__dirname, '..', 'js/components/Primitives/MpiCanvas/managers/PaintManager.js'), 'utf8');
+    assert.doesNotMatch(paint, /writeRangeSoft/, 'paint went soft — its hard boundary is the MPI-440 ruling');
+});

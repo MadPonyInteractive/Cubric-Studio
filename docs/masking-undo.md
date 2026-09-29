@@ -58,7 +58,7 @@ If you write code that mutates `manualCanvas`, `subtractCanvas` or the RGBA `pai
 
 | Your mutation | What to call |
 |---|---|
-| **Layer-wide, one shot** — a bake, a Clear, a grow/shrink release | `this._recordUndo()` **before** mutating, and **after** any early-return guard so a no-op cannot push an empty entry |
+| **Layer-wide, one shot** — a bake, a Clear, a grow/shrink release | `this._recordUndo()` **before** mutating, and **after** any early-return guard so a no-op cannot push an empty entry; `this._commitUndo()` once the layers are written — it keeps only the box that changed (MPI-961), and a method that opens without closing has no undo entry at all (`tests/undo-stack.test.cjs` guards the pairing) |
 | **A gesture** — a stroke, a drag with a start and an end | `undo.begin(mgr.undoLayers())` at the start · accumulate the dirty box · `undo.commit(mgr.takeStrokeBox())` at the end · `undo.abort()` if it produced nothing |
 | **A LOAD that replaces the layers** — `setManual/Subtract/PaintFromDataURL`, `init` | record **nothing**, and clear the stack. A load is not an edit the user could have undone |
 | **The BASE layer** — `setBaseFromDataURL` / `clearBase` (MPI-771, a GIF frame's track) | record **nothing**: it is never on the stack. That is why `clear()` over a base erases (fills subtract) instead of wiping it — one undo entry brings the base back |
@@ -93,8 +93,10 @@ consequence this stack was built around.
   leaves the stroke behind.
 - **A stroke stores its dirty rect, not the layer.** `begin()` parks a full copy in a reused
   scratch buffer at mousedown, `MaskManager` accumulates the box across dabs, `commit(box)`
-  keeps only that box. `abort()` drops a gesture that painted nothing. Layer-wide ops call
-  `record()` and pay the full rect.
+  keeps only that box. `abort()` drops a gesture that painted nothing. Layer-wide ops in
+  `MaskManager` / `PaintManager` open the same capture and close it with `commitChanged()`, which
+  diffs the parked copy against the layer and keeps the changed box (a 4096² Fill went 246 -> 414 ms with the scan, no
+  entry when nothing changed). `record()` still pays the full rect (`CompositeManager`, 1536).
 - **Bounded by a byte budget (96MB), not a count** — cheap strokes go deep, full-layer bakes
   do not. The last entry is never evicted, or a single big op would be silently un-undoable.
 - **`bytes` is the RETAINED set (undo + redo)**, since an undone entry still holds its
@@ -112,8 +114,9 @@ On a 912×1140 mask layer, read live through `el.getUndoStats()`:
 | layer-wide op (Clear, bake) | **7.93 MB** (`w × h × 4 × 2`) |
 
 A stroke is under **1%** of a full snapshot — the entire justification for the dirty rect.
-At the `MASK_MAX_EDGE` (1536) bound a full-layer entry is **18.9MB**, so the budget holds
-about five of those, or thousands of strokes.
+At the `MASK_MAX_EDGE` 4096 bound (MPI-961) a full two-layer entry is **128MB** — over the
+budget by itself, so storing one-shots whole made one Fill evict every stroke before it. Hence
+`commitChanged()`: a Fill on a face-sized mask at 4096 stores **~16MB** (measured; depth kept).
 
 ---
 

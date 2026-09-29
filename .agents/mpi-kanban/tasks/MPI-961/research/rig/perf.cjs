@@ -3,7 +3,9 @@
  * own APP_DOCUMENTS, empty engine root. One launch per measured config.
  *
  *   node perf.cjs <mode> <target> <tag>
- *     mode   discover | full | decode
+ *     mode   discover | full | zoomin | mask | decode   (mask = MPI-961 mask cap trial: stroke, hole fill,
+ *            Adjust, undo, persist round trip; a page.route override of MaskManager.js CRASHES the
+ *            renderer, so the cap under test is whatever the working tree holds)
  *     target 1k | 4k | 16k | 32k | phone
  *     tag    free label, e.g. idle / busy-llm / busy-video
  */
@@ -467,6 +469,17 @@ const PAGE_HELPERS = () => {
             return;
         }
 
+        // Mask working size + coverage (alpha > 0 px of the baked mask), for the persist check.
+        const maskState = () => win.evaluate(() => {
+            const c = document.querySelector('.mpi-canvas'); const m = c.mask;
+            const w = m.maskCanvas.width, h = m.maskCanvas.height;
+            const d = m.maskCtx.getImageData(0, 0, w, h).data;
+            let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) n++;
+            return { mask: [w, h], scale: +m._scale.toFixed(5), coverage: +(n / (w * h)).toFixed(5), img: [c.img.width, c.img.height] };
+        });
+        if (mode === 'mask') { R.steps.maskDims = await maskState(); save(); }
+
+        if (mode !== 'mask') {
         // ── (b) one draw() in isolation
         R.steps.draw = await win.evaluate(async () => {
             const P = window.__perf; const c = document.querySelector('.mpi-canvas');
@@ -537,6 +550,7 @@ const PAGE_HELPERS = () => {
         await win.evaluate(() => document.querySelector('.mpi-canvas').resetView());
         await sleep(1000);
         save();
+        } // mode !== 'mask'
 
         // ── (d) mask stroke, 3 x 3 s, one move per frame, a circle of r=120 screen px.
         // Each rep also carries its long-task total and a CPU profile's top self time, so
@@ -567,6 +581,41 @@ const PAGE_HELPERS = () => {
         }
         R.steps.stroke = await strokeReps();
         save();
+
+        // ── MPI-961 mask cap trial: hole fill, Adjust (field build + slider drag + Apply),
+        // undo of the Apply, all through MpiCanvas's own API (what the tool buttons call).
+        if (mode === 'mask') {
+            R.steps.holeFill = await win.evaluate(async () => {
+                const P = window.__perf; const c = document.querySelector('.mpi-canvas'); const U = () => { const u = c.getUndoStats(); return { undoMB: +(u.bytes / 1048576).toFixed(1), undoDepth: u.depth, lastEntryMB: +((u.lastEntryBytes || 0) / 1048576).toFixed(1) }; };
+                await P.raf();
+                const t0 = performance.now(); const ok = c.fillMaskHoles(); const t1 = performance.now();
+                await P.raf(); await P.raf(); const t2 = performance.now();
+                return { ok, jsMs: Math.round(t1 - t0), toFrameMs: Math.round(t2 - t0), ...P.window(t0, t2), ...U() };
+            });
+            save();
+            R.steps.adjust = await win.evaluate(async () => {
+                const P = window.__perf; const c = document.querySelector('.mpi-canvas'); const U = () => { const u = c.getUndoStats(); return { undoMB: +(u.bytes / 1048576).toFixed(1), undoDepth: u.depth, lastEntryMB: +((u.lastEntryBytes || 0) / 1048576).toFixed(1) }; };
+                await P.raf();
+                const a = performance.now(); c.beginMaskAdjust(); const b = performance.now();
+                c.previewMaskAdjust({ grow: 5 }); const d = performance.now(); // first preview builds the field
+                await P.raf(); await P.raf(); const e = performance.now();
+                const drag = await P.drive(3000, (i) => c.previewMaskAdjust({ grow: ((i % 40) - 20) || 1 }));
+                c.previewMaskAdjust({ grow: 3 });
+                await P.raf();
+                const f = performance.now(); const ok = c.applyMaskAdjust(); const g = performance.now();
+                await P.raf(); const h = performance.now();
+                const afterApply = U();
+                c.endMaskAdjust();
+                const u0 = performance.now(); const undone = c.undoMask(); const u1 = performance.now();
+                return {
+                    beginMs: Math.round(b - a), firstPreviewMs: Math.round(d - b), firstFrameMs: Math.round(e - a),
+                    firstWindow: P.window(a, e), drag, applyOk: ok, applyMs: Math.round(g - f), applyToFrameMs: Math.round(h - f),
+                    afterApply, undone, undoMs: Math.round(u1 - u0), afterUndo: U(),
+                };
+            });
+            R.steps.maskBeforePrompt = await maskState();
+            save();
+        }
 
         // ── (d2) MPI-961 stroke A/B: the SAME strokes with only the overlay's backing store
         // shrunk to 4096^2 (its CSS box, the mask layers and every manager unchanged;
@@ -599,6 +648,7 @@ const PAGE_HELPERS = () => {
         R.steps.switchPromptToMask = await timeSwitch('maskBrush', 'mask');
         await sleep(2000);
         R.steps.memMask2 = await memSnapshot(app, 'Mask again after Prompt');
+        if (mode === 'mask') R.steps.maskAfterRoundTrip = await maskState();
         save();
     } catch (e) {
         R.error = String(e && e.stack || e);

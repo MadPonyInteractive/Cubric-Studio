@@ -18,16 +18,18 @@
  * it displaced as the new snapshot, so the same entry drives undo and redo and
  * costs half the memory of a before/after pair.
  *
- * MEMORY IS THE CONSTRAINT. A full 1536² layer is ~9.4MB, so a naive full-layer
- * snapshot per stroke would blow past 100MB in a dozen strokes. Strokes therefore
- * store only their DIRTY RECT: begin() parks a full copy in a reused scratch
- * buffer, commit(rect) keeps just the box the stroke touched. Layer-wide ops
- * (Clear, a bake, a grow) use record() and pay the full rect — they are rare.
+ * MEMORY IS THE CONSTRAINT. A full 4096² layer is 64MB, so a naive full-layer
+ * snapshot per stroke would blow past the budget on the second stroke. Strokes
+ * therefore store only their DIRTY RECT: begin() parks a full copy in a reused
+ * scratch buffer, commit(rect) keeps just the box the stroke touched. Layer-wide
+ * ops (Clear, a bake, a grow) do the same through commitChanged(), which keeps
+ * the box that actually changed — a whole two-layer 4096² entry (128MB) is over
+ * the budget by itself (MPI-961). record() still pays the full rect.
  * A byte budget evicts the oldest entries, so depth is bounded by MEMORY rather
  * than by an arbitrary count: cheap strokes go deep, expensive bakes do not.
  */
 
-/** ~96MB of retained pixels ≈ 10 full-layer 1536² ops, or hundreds of strokes. */
+/** ~96MB of retained pixels: hundreds of strokes, or one whole 4096² layer and change. */
 const DEFAULT_MAX_BYTES = 96 * 1024 * 1024;
 
 /** @typedef {{ canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D }} UndoLayer */
@@ -39,6 +41,33 @@ function _copyRect(ctx, x, y, w, h) {
     out.height = h;
     out.getContext('2d').drawImage(ctx.canvas, x, y, w, h, 0, 0, w, h);
     return out;
+}
+
+/**
+ * Bounding box of the pixels that differ between a parked copy and a layer, or null.
+ * One pass over two 32-bit views; each row is trimmed from both ends, so a row that
+ * changed in a few px costs a few compares past its first difference.
+ */
+function _diffBox(parked, ctx) {
+    const w = ctx.canvas.width;
+    const h = ctx.canvas.height;
+    if (!w || !h) return null;
+    const a = new Uint32Array(parked.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data.buffer);
+    const b = new Uint32Array(ctx.getImageData(0, 0, w, h).data.buffer);
+    let x0 = w, x1 = -1, y0 = -1, y1 = -1;
+    for (let y = 0; y < h; y++) {
+        const row = y * w;
+        let l = 0;
+        while (l < w && a[row + l] === b[row + l]) l++;
+        if (l === w) continue;
+        let r = w - 1;
+        while (a[row + r] === b[row + r]) r--;
+        if (y0 < 0) y0 = y;
+        y1 = y;
+        if (l < x0) x0 = l;
+        if (r > x1) x1 = r;
+    }
+    return y0 < 0 ? null : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
 }
 
 export class UndoStack {
@@ -79,7 +108,8 @@ export class UndoStack {
                 s.width = l.canvas.width;
                 s.height = l.canvas.height;
             }
-            const sctx = s.getContext('2d');
+            // CPU-backed: commitChanged() reads it back, and the layers it copies are too.
+            const sctx = s.getContext('2d', { willReadFrequently: true });
             sctx.clearRect(0, 0, s.width, s.height);
             sctx.drawImage(l.canvas, 0, 0);
             this._pending.scratch.push(s);
@@ -107,6 +137,30 @@ export class UndoStack {
             });
         });
         this._push(patches);
+    }
+
+    /**
+     * Close an open begin() keeping only the box where the layers now DIFFER from the
+     * copies it parked — for a one-shot whose extent the caller cannot name (a Fill, an
+     * Apply, a Clear). MPI-961: a whole 4096^2 mask entry is 128 MB, over the budget
+     * on its own, so `record()` of the full layers evicted every stroke before it.
+     * Nothing changed = nothing stored.
+     */
+    commitChanged() {
+        const p = this._pending;
+        if (!p) return;
+        let box = null;
+        p.layers.forEach((l, i) => {
+            const b = _diffBox(p.scratch[i], l.ctx);
+            if (!b) return;
+            box = !box ? b : {
+                x: Math.min(box.x, b.x), y: Math.min(box.y, b.y),
+                w: Math.max(box.x + box.w, b.x + b.w) - Math.min(box.x, b.x),
+                h: Math.max(box.y + box.h, b.y + b.h) - Math.min(box.y, b.y),
+            };
+        });
+        if (box) this.commit(box);
+        else this.abort();
     }
 
     /** Drop an open begin() — the gesture produced no edit. */

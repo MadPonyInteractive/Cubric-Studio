@@ -56,6 +56,22 @@
   preview; unit 2204/0 fail, new `canvas-display-copy.spec.js` 6/6 with a 3-mutation proof, desktop
   list 21/21, rig GPU IDLE recorded (`validation.md` § Phase 3: 16K cached open 0.71 s, Prompt
   preview zoom 11.6 s -> 0.63 s, GPU 3.2 GB -> 0.37 GB, 32K opens). GPU BUSY rig DONE. **Fabio verified Phase 3 (2026-09-29, "workable"); committed + pushed `f1066b21b`** (MPI-963 close `99d1a63b0` is local, behind a peer's unpushed MPI-941 commit). His check found: the 32K prompt-box chip broken (fixed in `f1066b21b`, not yet eye-checked) and **mask edges soft on huge images** - every mask layer is 1536 on any image (21 image px per mask px on a 32K). Design B kept that cap; he now wants sharp. **Where it stands (2026-09-29, end of session efbca418):** Fabio said START by trying the mask cap at 4096 (`MASK_MAX_EDGE` 1536 -> 4096, `MaskManager.js:44`). RISK found, not yet measured: `paint()` calls `_recomposite()`, which redraws the WHOLE mask canvas per mouse move (`MaskManager.js:367`) - 7x the pixels at 4096; clip it to the stroke box (MPI-787 pattern) if the rig shows the stroke falling off 75 fps. Also measure mask adjust (grow/shrink field; paint's 4096 field was 1563 ms), hole fill, and `_persistLayers` toDataURL at 4096. **Tiles - Fabio's worry:** a tile seam through an eye would stop SAM3 masking it. Answer to give him: tiles are only how the SERVER stores the photo (pyramidal tiled TIFF, measured: build 2.6 s 16K / 3.6 s 32K, region read 16-23 ms, +67 MB / +241 MB disk, `research/rig/tiledprobe.cjs`); what reaches the engine or the screen is one CONTIGUOUS rectangle libvips cuts across tiles, so no seam ever exists. **His SAM3 idea (coarse-to-fine) is the design:** SAM3 on the reduced image -> box around the result (MpiMaskBox) + margin -> cut that box at full res from the tile cache -> SAM3 again on it -> paste back sharp. Works for small things (eyes); a subject filling the frame needs a different refine (SAM3 sees ~1000 px whatever it is sent, so precision = box size / ~1000) - candidates: overlapping windows along the coarse edge, or a matting model on a trimap; open question for him. This also fixes MPI-971 for SAM3 (engine never gets the 1-gigapixel original). **Next:** (1) the 4096 mask trial + rig numbers; (2) Phase 4 on the tile cache - still needs his explicit go; (3) coarse-to-fine SAM3 (MPI-971 / Phase 5).
+- **Mask cap trial (2026-09-29, session d8530578, claim `state/files/d8530578-mpi961-mask4096.json`):**
+  Fabio told the tile answer + coarse-to-fine SAM3 is the design (frame-filling subject: my pick
+  overlapping windows along the edge; MPI-971 my pick region-only, both his call). On disk,
+  uncommitted: `MASK_MAX_EDGE = 4096` + `_recomposite(rect)` (a dab rebuilds only its box; 16K
+  stroke 28 -> 75 fps). Rig numbers in `validation.md` § Mask cap trial. **Fabio: precision is
+  enough, 4096 STAYS.** Round 2 (all uncommitted, claim extended): Adjust session survives an entry
+  switch (his bug; both twins; new desktop spec red->green), mask Adjust field over the mask's box
+  (first move 1.73 -> 0.33 s, drag 27 -> 74 fps), mask slider max 133, one-shot undo keeps only the
+  diff box (`UndoStack.commitChanged`; depth kept), stale 1536 comments + masking docs fixed.
+  **Fabio verified round 2 and said go on both picks.** Round 3 (uncommitted): soft mask Adjust
+  edge (`writeRangeSoft`) + every auto-mask on a >4096 source goes as the 4096 copy with scaled
+  points (`runAutoMask`, MPI-971's SAM3 half - MPI-971 stays open for inpaint/i2i/upscale on 16K+).
+  **Fabio verified round 3 (2026-09-29): all passed.** NEXT: commit by pathspec at handoff /
+  close (peers' files are dirty; the claim file lists every path), CI, then MPI-971's card: SAM3
+  half done here, inpaint/i2i/upscale on 16K+ still die in MpiLoadImage. Phase 4 (detail layer)
+  still needs his explicit go - with the 4096 mask he may not need it; ask.
 - **Headline:** (1) MPI-963's rows-load-originals is the biggest cost to OPEN and to Prompt<->tool
   swaps (16K idle open 37 s -> 5 s, 4K swaps 5 s -> 0.35 s with rows on thumbs). (2) Under GPU
   load, 16K pan/zoom/stroke fall to 2-6 fps because every tick runs a full `draw()` of the
@@ -95,6 +111,9 @@
 
 - [x] Brainstorm + design approval; fixtures made; four read-only investigations (`research/`).
 - [x] Phase 0 pickup; Phase 1 baseline (idle + busy + rowfix control + D2) in `validation.md` (2026-09-28).
+- [x] Phases 2-3 (display copy, `f1066b21b`). Mask cap 4096 + dab-box recomposite, Adjust session
+  across entry switch, boxed mask field, diff-box one-shot undo, soft mask Adjust edge, auto-mask on
+  the 4096 copy (MPI-971's SAM3 half) - Fabio verified 2026-09-29, uncommitted (session d8530578).
 
 ## Remaining Work
 
@@ -241,6 +260,10 @@ inside the phase instead. MPI-959 / MPI-963 (umbrella Batch 1) are the parallel 
   MPI-962), needs-decision. PROPOSED, not yet approved: Phase 4's detail source moves from D2's
   renderer decode (32K stays soft) to server REGIONS from a tiled cache per big photo (S2), so the
   32K is sharp too and SAM3 / a patch read the same regions.
+
+- 2026-09-29 (mask cap trial): a mask cap A/B cannot be injected per instance - a Playwright
+  `context.route` rewrite of a renderer module crashes the Electron renderer at boot, even a no-op
+  rewrite. The cap under test is whatever the working tree holds.
 
 ## Verification
 

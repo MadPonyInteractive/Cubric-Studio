@@ -15,7 +15,7 @@
  * where a commit lands".
  *
  * COORDINATES ARE IMAGE-SPACE PIXELS, like `CropManager`. The destination layers
- * are capped at different working sizes (1536 for the mask, 4096 for paint), so
+ * each own their working-size cap (both 4096 since MPI-961; 1536 / 4096 before), so
  * image-px → layer-px is done at commit time with the owning manager's `_scale`.
  * Storing layer-px here would make the same shape mean two different things.
  *

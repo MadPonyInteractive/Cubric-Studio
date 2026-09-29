@@ -13,8 +13,9 @@
  * Brush at P → manualCanvas[P]=white, subtractCanvas[P]=black (clears erased).
  * Eraser at P → manualCanvas[P]=black (clears painted), subtractCanvas[P]=white.
  *
- * Working resolution is capped at MASK_MAX_EDGE (masks don't need high precision —
- * a 4K image recomposited full-frame per brush dab is unusably laggy). Paint
+ * Working resolution is capped at MASK_MAX_EDGE, 4096 since MPI-961 (1536 made a mask
+ * edge 21 image px wide on a 32K photo). A brush dab rebuilds only its own box
+ * (`_recomposite(rect)`), which is what keeps a 4096^2 mask at 75 fps. Paint
  * coords arrive in image-px and are scaled by `_scale` into mask-px. Display/export
  * upscale back automatically (overlay drawImage + ComfyUI's own mask resize).
  *
@@ -22,7 +23,8 @@
  * These two layers are the only persistent mask state, and `MpiCanvas` owns a shared
  * UndoStack that restores them. If you add a method that writes either canvas:
  *   - layer-wide, one shot (a bake, a Clear, a grow) → call `this._recordUndo()` FIRST,
- *     after any early-return guard so a no-op cannot push an empty entry;
+ *     after any early-return guard so a no-op cannot push an empty entry, and
+ *     `this._commitUndo()` once the layers are written (it keeps the changed box);
  *   - a gesture with a start and an end (a stroke, a drag) → `undo.begin(undoLayers())`
  *     at the start, accumulate the dirty box, `undo.commit(takeStrokeBox())` at the end;
  *   - a LOAD that replaces the layers (setManual/SubtractFromDataURL, init) → record
@@ -38,10 +40,14 @@
 
 import { alphaStencil } from '../../../../utils/maskUtils.js';
 import { stampDab, strokeDabs, strokeBox, dabExtent, DEFAULT_BRUSH_PRESET } from './brushDab.js';
-import { signedSquaredDistanceField, rangeFor, writeRange } from './distanceField.js';
+import { fieldOverContent, rangeFor, writeRangeSoft } from './distanceField.js';
 import { holeFlood, regionCanvas } from './holeFlood.js';
 
-const MASK_MAX_EDGE = 1536;
+const MASK_MAX_EDGE = 4096;
+
+/** Field padding, mask px: the Adjust slider's end (MpiToolOptionsMaskAdjust DEST.maskAdjust.maxR,
+ *  133) + 2, so no radius the slider can ask for rebuilds the field mid-drag. */
+const ADJUST_PAD = 135;
 
 /**
  * Hit radius in SOURCE-image px for picking a dot back off the canvas. Display
@@ -173,9 +179,20 @@ export class MaskManager {
         // A new image means a new history. Undo must never reach across two
         // entries, and the wipe below is a load, not an edit the user can undo.
         this.undo?.clear();
-        // A preview must not outlive the pixels it previewed either.
+        // A preview must not outlive the pixels it previewed either - but the Adjust
+        // SESSION must outlive them: the canvas is reused across History entries and the
+        // panel begins its session once, at mount, so ending it here left Grow and Edge
+        // dead after an entry switch (MPI-961). The layer loads that follow re-snapshot.
+        const adjusting = !!this._adjustPristine;
         this.endAdjust();
         this.clear(false);
+        if (adjusting) this.beginAdjust();
+    }
+
+    /** A LOAD replaced layer pixels: an open Adjust session re-snapshots, so the next
+     *  preview derives from what is on screen now, never from what the load replaced. */
+    _reloadAdjust() {
+        if (this._adjustPristine) this.beginAdjust();
     }
 
     // ── Undo (MPI-376) ───────────────────────────────────────────────────────
@@ -194,10 +211,17 @@ export class MaskManager {
         ];
     }
 
-    /** Snapshot both layers before a layer-wide mutation. */
+    /** Open a capture of both layers before a layer-wide mutation; `_commitUndo()`
+     *  closes it once the mutation is done. */
     _recordUndo() {
         const layers = this.undoLayers();
-        if (layers.length) this.undo?.record(layers);
+        if (layers.length) this.undo?.begin(layers);
+    }
+
+    /** Keep only the box the one-shot changed (MPI-961): both layers whole at 4096^2
+     *  are 128 MB, over the stack's budget, so one Fill evicted every stroke before it. */
+    _commitUndo() {
+        this.undo?.commitChanged();
     }
 
     /** Re-derive maskCanvas + autoCanvas after an undo/redo swapped the source layers. */
@@ -252,6 +276,7 @@ export class MaskManager {
         this.selectedAutoPicks.clear();
         this.points = [];
         this._recomposite();
+        if (record) this._commitUndo();
     }
 
     // ── Point prompts (MPI-361, rebuilt onto SAM3 in MPI-380) ────────────────
@@ -332,7 +357,7 @@ export class MaskManager {
         const from = this._lastDab;
         strokeDabs(from, to, r, stamp, preset);
         this._lastDab = to;
-        this._recomposite();
+        this._recomposite(strokeBox(from, to, reach, 1));
         // The image-px box this move touched — all MpiCanvas repaints for it (MPI-787).
         return strokeBox(from, to, reach, s);
     }
@@ -364,25 +389,35 @@ export class MaskManager {
      * `bakeAutoPicksInto()`, which un-erases as it adds so a pick is not vetoed
      * by an erase that predates it.
      */
-    _recomposite() {
+    _recomposite(rect = null) {
         if (!this.maskCtx || !this.maskCanvas) return;
         const w = this.maskCanvas.width;
         const h = this.maskCanvas.height;
         if (!w || !h) return;
 
+        // A dab passes its own mask-px box (MPI-961): the whole-canvas pass per mouse
+        // move held a 4096^2 mask to 28 fps. The auto layer never reads the brush
+        // layers, so a dab leaves it alone.
+        const x = rect ? Math.max(0, Math.floor(rect.x)) : 0;
+        const y = rect ? Math.max(0, Math.floor(rect.y)) : 0;
+        const bw = (rect ? Math.min(w, Math.ceil(rect.x + rect.w)) : w) - x;
+        const bh = (rect ? Math.min(h, Math.ceil(rect.y + rect.h)) : h) - y;
+        if (bw <= 0 || bh <= 0) return;
+        const draw = (src) => this.maskCtx.drawImage(src, x, y, bw, bh, x, y, bw, bh);
+
         this.maskCtx.save();
-        this.maskCtx.clearRect(0, 0, w, h);
+        this.maskCtx.clearRect(x, y, bw, bh);
 
         // (base OR manual) AND NOT subtract — destination-out punches subtract holes
         this.maskCtx.globalCompositeOperation = 'source-over';
-        if (this.hasBase) this.maskCtx.drawImage(this.baseCanvas, 0, 0);
-        this.maskCtx.drawImage(this.manualCanvas, 0, 0);
+        if (this.hasBase) draw(this.baseCanvas);
+        draw(this.manualCanvas);
         this.maskCtx.globalCompositeOperation = 'destination-out';
-        this.maskCtx.drawImage(this.subtractCanvas, 0, 0);
+        draw(this.subtractCanvas);
 
         this.maskCtx.restore();
 
-        this._recompositeAuto(w, h);
+        if (!rect) this._recompositeAuto(w, h);
     }
 
     /**
@@ -449,6 +484,7 @@ export class MaskManager {
                 this.manualCtx.clearRect(0, 0, this.manualCanvas.width, this.manualCanvas.height);
                 this.manualCtx.drawImage(img, 0, 0, this.manualCanvas.width, this.manualCanvas.height);
                 this._recomposite();
+                this._reloadAdjust();
                 resolve();
             };
             img.onerror = (err) => reject(err);
@@ -465,6 +501,7 @@ export class MaskManager {
                 this.subtractCtx.clearRect(0, 0, this.subtractCanvas.width, this.subtractCanvas.height);
                 this.subtractCtx.drawImage(img, 0, 0, this.subtractCanvas.width, this.subtractCanvas.height);
                 this._recomposite();
+                this._reloadAdjust();
                 resolve();
             };
             img.onerror = (err) => reject(err);
@@ -501,12 +538,14 @@ export class MaskManager {
         this.baseCtx.putImageData(px, 0, 0);
         this.hasBase = true;
         this._recomposite();
+        this._reloadAdjust();
     }
 
     clearBase() {
         if (this.baseCtx) this.baseCtx.clearRect(0, 0, this.baseCanvas.width, this.baseCanvas.height);
         this.hasBase = false;
         this._recomposite();
+        this._reloadAdjust();
     }
 
     setAutoPickMasks(map) {
@@ -563,6 +602,7 @@ export class MaskManager {
         this.autoPickMasks.clear();
         this.selectedAutoPicks.clear();
         this._recomposite();
+        this._commitUndo();
         return true;
     }
 
@@ -572,8 +612,8 @@ export class MaskManager {
      * only reconstructible while the two stay exact mirrors of each other.
      *
      * The caller passes a PATH BUILDER rather than a path, so the shape is scaled
-     * by THIS layer's `_scale` — the mask works at 1536 and the paint layer at
-     * 4096, and a path built for one is silently wrong on the other.
+     * by THIS layer's `_scale` — each layer owns its cap (both 4096 since MPI-961,
+     * 1536 and 4096 before), and a path built for one is silently wrong on the other.
      *
      * Layer-wide ONE SHOT, so it records a single full-rect undo entry after the
      * no-op guard (`docs/masking-undo.md`).
@@ -604,6 +644,7 @@ export class MaskManager {
         othCtx.restore();
 
         this._recomposite();
+        this._commitUndo();
         return true;
     }
 
@@ -618,9 +659,9 @@ export class MaskManager {
      * region added to manual while subtract still holds it is erased right back by
      * the composite. `commitShape()` draws that same line.
      *
-     * The paint layer runs at 4096 and this one at 1536, so it is downscaled FIRST
-     * and cut after: the threshold pass then runs over 2.4M px instead of 16.7M, and
-     * the browser's own filtering supplies the coverage average.
+     * It is drawn to this layer's size FIRST and cut after, so the threshold pass runs
+     * at the mask's size and the browser's filtering supplies the coverage average.
+     * Both layers run at 4096 since MPI-961, so today that draw is 1:1.
      *
      * @param {HTMLCanvasElement} paintCanvas
      * @returns {boolean} false when the paint layer had no shape to convert
@@ -646,6 +687,7 @@ export class MaskManager {
         this.subtractCtx.restore();
 
         this._recomposite();
+        this._commitUndo();
         return true;
     }
 
@@ -660,8 +702,8 @@ export class MaskManager {
      * this tool, so `maskCanvas === manual AND NOT subtract` here and Apply writes
      * the result straight back as the new manual layer.
      *
-     * The distance field is INVALIDATED here, not built (MPI-441). It costs 125 ms at
-     * the working size and describes this snapshot, so building it eagerly would
+     * The distance field is INVALIDATED here, not built (MPI-441). It costs up to 1.7 s at
+     * the 4096 working size and describes this snapshot, so building it eagerly would
      * charge that to entering the tool AND to every Apply — including the user who
      * only came in to press Fill, or who never moves a slider at all. The first
      * `previewAdjust()` that actually needs it builds it; see `_ensureAdjustField()`.
@@ -679,6 +721,8 @@ export class MaskManager {
             .drawImage(this.maskCanvas, 0, 0);
         this._adjustField = null;
         this._adjustImg = null;
+        this._adjustBox = null;
+        this._adjustPad = 0;
 
         if (!this.adjustCanvas) {
             this.adjustCanvas = document.createElement('canvas');
@@ -696,18 +740,30 @@ export class MaskManager {
      * would compound frame over frame like the MPI-351 double-scale bug.
      *
      * The `ImageData` is cached alongside it because a fresh one per slider tick is a
-     * 9 MB allocation at the working size — GC churn during a drag for nothing.
+     * 64 MB allocation at the working size — GC churn during a drag for nothing.
+     *
+     * Built over the MASK's bounding box padded by the largest radius asked for, not the
+     * whole layer — `PaintManager._ensureAdjustField()`'s MPI-445 box, exact for the same
+     * reason. At the 4096 working size (MPI-961) a whole-layer field is 16.7 M px: 1.7 s
+     * before the first slider move shows anything, then 27 fps. A subject that fills the
+     * frame still pays that; an eye or a face pays its box.
+     * @param {number} maxR the largest radius this preview asks for, in mask px
      * @returns {boolean} false when there is nothing to build from
      */
-    _ensureAdjustField() {
-        if (this._adjustField && this._adjustImg) return true;
+    _ensureAdjustField(maxR = 0) {
+        const pad = Math.max(ADJUST_PAD, Math.ceil(maxR) + 2);
+        if (this._adjustField && this._adjustImg && this._adjustPad >= pad) return true;
         const src = this._adjustPristine;
         if (!src?.width || !src?.height || !this.adjustCtx) return false;
         const w = src.width;
         const h = src.height;
         const data = src.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, w, h).data;
-        this._adjustField = signedSquaredDistanceField(data, w, h);
-        this._adjustImg = this.adjustCtx.createImageData(w, h);
+        const built = fieldOverContent(data, w, h, pad);
+        if (!built) return false; // no mask — nothing to grow or shrink
+        this._adjustField = built.field;
+        this._adjustBox = built.box;
+        this._adjustPad = pad;
+        this._adjustImg = this.adjustCtx.createImageData(built.box.w, built.box.h);
         return true;
     }
 
@@ -735,16 +791,18 @@ export class MaskManager {
         const h = src.height;
 
         const range = rangeFor(opts);
-        if (!range) {
+        const maxR = Math.max(Math.abs(opts.grow || 0), Math.abs(opts.outward || 0), Math.abs(opts.inward || 0));
+        if (!range || !this._ensureAdjustField(maxR)) {
             this.adjustCtx.clearRect(0, 0, w, h);
             this.hasAdjustPreview = false;
             return false;
         }
-        if (!this._ensureAdjustField()) return false;
 
-        // putImageData replaces the buffer outright, so there is nothing to clear.
-        writeRange(this._adjustField, new Uint32Array(this._adjustImg.data.buffer), range.lo, range.hi);
-        this.adjustCtx.putImageData(this._adjustImg, 0, 0);
+        // putImageData replaces the box outright, and the box holds every pixel any of
+        // the three results can reach — outside it the canvas stays clear.
+        const box = this._adjustBox;
+        writeRangeSoft(this._adjustField, new Uint32Array(this._adjustImg.data.buffer), range.lo, range.hi);
+        this.adjustCtx.putImageData(this._adjustImg, box.x, box.y);
 
         this.hasAdjustPreview = true;
         return true;
@@ -767,6 +825,7 @@ export class MaskManager {
         this.manualCtx.drawImage(this.adjustCanvas, 0, 0, this.manualCanvas.width, this.manualCanvas.height);
         this.subtractCtx.clearRect(0, 0, this.subtractCanvas.width, this.subtractCanvas.height);
         this._recomposite();
+        this._commitUndo();
 
         // Still inside the tool: re-snapshot so the next adjustment starts from
         // what was just baked instead of from the pre-Apply mask.
@@ -822,6 +881,7 @@ export class MaskManager {
         this.manualCtx.drawImage(buf, 0, 0, this.manualCanvas.width, this.manualCanvas.height);
         this.subtractCtx.clearRect(0, 0, this.subtractCanvas.width, this.subtractCanvas.height);
         this._recomposite();
+        this._commitUndo();
 
         // The preview (if any) is now baked, so drop it and re-snapshot — otherwise the
         // next slider move would recompute from a pristine copy that predates the fill.
@@ -846,6 +906,8 @@ export class MaskManager {
         this._adjustPristine = null;
         this._adjustField = null;
         this._adjustImg = null;
+        this._adjustBox = null;
+        this._adjustPad = 0;
         return had;
     }
 

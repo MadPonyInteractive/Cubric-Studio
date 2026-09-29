@@ -49,8 +49,6 @@ import { state }            from '../../../state.js';
 import { getToolSettings }  from '../../../data/projectModel.js';
 import { qs }               from '../../../utils/dom.js';
 
-/** Slider bound in layer px — mask-px at MASK_MAX_EDGE, image-px for paint. */
-const MAX_R = 50;
 
 // eslint-disable-next-line mpi/no-hardcoded-hex-color -- color picker default value
 const DEFAULT_PAINT_COLOR = '#e0446b';
@@ -78,6 +76,9 @@ const DEST = {
         fill:    (v)    => v.el.fillMaskHoles?.(),
         fillInfo: 'Close enclosed holes in the mask (undoable)',
         color: false,
+        // Slider bound in MASK px. 133 at the 4096 working size reaches as far into the
+        // image as 50 did at the old 1536 (MPI-961); MaskManager pads its field to it.
+        maxR: 133,
     },
     paintAdjust: {
         viewerMode: 'paint',
@@ -89,6 +90,7 @@ const DEST = {
         fill:    (v)    => v.el.fillPaintHoles?.(),
         fillInfo: 'Fill enclosed holes with the current colour (undoable)',
         color: true,
+        maxR: 50,   // image px; PaintManager scales it to the layer
     },
 };
 
@@ -227,9 +229,9 @@ export const MpiToolOptionsMaskAdjust = ComponentFactory.create({
             qs('#in-val', el).textContent   = `${Math.abs(vals.in)} px`;
         };
 
-        const growSlider = mkSlider('#grow-slot', 'grow', -MAX_R, MAX_R);
-        const outSlider  = mkSlider('#out-slot',  'out',  0,      MAX_R);
-        const inSlider   = mkSlider('#in-slot',   'in',   -MAX_R, 0);
+        const growSlider = mkSlider('#grow-slot', 'grow', -dest.maxR, dest.maxR);
+        const outSlider  = mkSlider('#out-slot',  'out',  0,           dest.maxR);
+        const inSlider   = mkSlider('#in-slot',   'in',   -dest.maxR,  0);
 
         const _reset = () => {
             vals.grow = 0; vals.out = 0; vals.in = 0;

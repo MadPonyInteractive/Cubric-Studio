@@ -944,6 +944,10 @@ function _buildParams(payload) {
     return canonicalizeInjectionKeys(params);
 }
 
+/** Largest edge an auto-mask input reaches the engine at: the mask's own working cap
+ *  (`MASK_MAX_EDGE`, MaskManager.js) — SAM3 itself sees ~1008 px whatever it is sent. */
+const AUTOMASK_MAX_EDGE = 4096;
+
 /**
  * Executes the auto-mask workflow (img_auto_mask.json).
  *
@@ -1039,16 +1043,30 @@ export function runAutoMask(payload) {
         // `_parse_prompts`). The UI owns the count, so it owns the stamping.
         const pointsMode = payload.pointsMode === true;
         const textMode   = payload.textMode === true;
+
+        // MPI-961 / MPI-971: MpiLoadImage opens its input whole (Pillow's 179 MP bomb
+        // limit, then a float32 tensor), so every detect on a 16K+ photo died there.
+        // Detection needs no more pixels than the mask it feeds, so a big source goes as
+        // the server's copy at the mask's 4096 cap (the one the canvas draws), with the
+        // click points scaled onto it. Masks come back at the copy's size and the mask
+        // layer scales every pick to its own. Imported here, not at the top: node tests
+        // load this module, and displayImage.js reads `window` as it loads.
+        const { resolveDisplayImage } = await import('../utils/displayImage.js');
+        const input = await resolveDisplayImage(payload.imageUrl, AUTOMASK_MAX_EDGE);
+        const k = input.width ? Math.min(1, AUTOMASK_MAX_EDGE / Math.max(input.width, input.height)) : 1;
+        const onInput = (json) => (k === 1 || !json) ? json
+            : JSON.stringify(JSON.parse(json).map(p => ({ x: Math.round(p.x * k), y: Math.round(p.y * k) })));
+
         const params = {
-            Input_Image:                 payload.imageUrl,
+            Input_Image:                 input.src,
             sams:                        payload.detectorModel,
             Input_Box:                   payload.useBox === true,
             Input_Points_Mode:           pointsMode,
             // Always emit BOTH lists. SAM3 takes bare JSON coords, so an emptied
             // negative list has to reach the graph as '[]' — omitting the key would
             // leave the previous run's value sitting on the node.
-            Input_Points_Positive:       pointsMode ? (payload.pointsPositive || '[]') : '',
-            Input_Points_Negative:       pointsMode ? (payload.pointsNegative || '[]') : '',
+            Input_Points_Positive:       pointsMode ? (onInput(payload.pointsPositive) || '[]') : '',
+            Input_Points_Negative:       pointsMode ? (onInput(payload.pointsNegative) || '[]') : '',
             Input_Text_Mode:             textMode,
             // Dotted key (MPI-359) = ONE named widget on the titled node. The prompt
             // rides CLIPTextEncode's own `text` widget, so nothing here goes near

@@ -7,9 +7,12 @@ title-keyed injection) · [component-contracts.md](component-contracts.md) ·
 
 ## The layer model — `MaskManager`
 
-Four canvases, three derived. All at a working resolution capped by `MASK_MAX_EDGE` (1536): masks
-need no high precision, and recompositing a 4K image full-frame per brush dab is unusably laggy.
-Paint coords arrive in image-px, scaled by `_scale`.
+Four canvases, three derived. All at a working resolution capped by `MASK_MAX_EDGE`, **4096
+since MPI-961** (at 1536 one mask px was 21 image px on a 32K photo and every edge came out soft).
+What keeps a 4096^2 mask at 75 fps is that a brush dab rebuilds only its own box —
+`_recomposite(rect)`; every other caller still rebuilds the whole layer. Paint coords arrive in
+image-px, scaled by `_scale`. A mask is 4096^2 on ANY image at or over 4096 px, so a plain 4K photo
+pays exactly what a 32K does (measured in MPI-961 `validation.md` § Mask cap trial).
 
 **The cap is INTERNAL — both exports scale back to SOURCE resolution** (`getURL()` via
 `_toSourceScale()`, `_buildCompositeFromTemp()` via `item.pixelDimensions`; change them together).

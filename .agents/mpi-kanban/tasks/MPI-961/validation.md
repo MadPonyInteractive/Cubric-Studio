@@ -372,3 +372,129 @@ stands in for Phase 2's busy re-measure. Before = Phase 1 § GPU BUSY (16K as-is
   (`docs/masking.md`), so one mask px = 21x21 image px on a 32K (10.7 on a 16K) - same before this
   phase; exports are upscaled from it, so the model gets the soft edge too. Design B kept the 1536
   cap; Fabio now wants sharp. Raised to him as a decision (below Phase 3's scope).
+
+## Mask cap trial: `MASK_MAX_EDGE` 1536 -> 4096 - 2026-09-29, session d8530578 (uncommitted on `08a1ccab1`)
+
+Fabio: "try the 4096 approach ... if the mask is good enough, we are sorted" (the 4K image already
+runs smooth). Rig: `research/rig/perf.cjs mask <16k|32k> <tag>` (new mode: open -> Mask -> 3x3 s
+circle strokes -> `fillMaskHoles()` -> Adjust `beginMaskAdjust` / first `previewMaskAdjust` / 3 s
+slider drag / `applyMaskAdjust` / `undoMask` -> Paint -> Prompt -> Mask, mask coverage read before
+Prompt and after the round trip), `msum.py <run>` summarises. Scratch copy, `gpu_lease.py run`,
+GPU IDLE (nvidia-smi `3-29 %, 1.3-1.5 GB` at start; Fabio's app open, no job; a pod smoke had just
+disconnected). Mask cap A/B had to be ON DISK: a Playwright `context.route` rewrite of
+MaskManager.js crashed the renderer at boot even as a no-op (control run), so run 1 is HEAD.
+
+Change: `MASK_MAX_EDGE = 4096` and `paint()` passes its dab's mask-px box to `_recomposite(rect)`,
+which rebuilds only that box and skips the auto layer (it never reads the brush layers). Every other
+caller still passes nothing = the full pass.
+
+| 16K, GPU idle | 1536 (HEAD) | 4096 as-is | 4096 + dab-box recomposite |
+|---|---|---|---|
+| mask working size | 1536^2 (10.7 image px / mask px) | 4096^2 (4) | 4096^2 (4) |
+| stroke 3x3 s | 74.6 / 75 / 75 fps | **27.5 / 27.4 / 29** (`restore` 1.7 s + `drawImage` 1.3 s self per rep) | **71 / 75 / 75** (one 147 ms first frame) |
+| hole fill (`fillMaskHoles`) | 91 ms | void (the 28 fps circle never closed: no hole) | 246 ms |
+| Adjust: first slider move (distance field build) | 190 ms | 1708 ms | **1730 ms, one block** |
+| Adjust: slider drag 3 s | 75 fps | 25.7 fps | **27.5 fps** (40 ms frames) |
+| Adjust Apply / undo of it | 21 / 24 ms | 97 / 217 ms | 65 / 91 ms |
+| undo after Fill or Apply: MB / depth | ~18 MB an entry (not read) | 128 MB / **1** | 128 MB / **1** |
+| Paint -> Prompt (ready) | 158 ms | 720 ms | 580 ms (`toDataURL` 206 ms) |
+| Prompt -> Mask (ready) | 254 ms | 486 ms | 428 ms (one 257 ms block) |
+| mask coverage before Prompt = after round trip | 0.10032 = 0.10032 | 0.00275 = 0.00275 | 0.10003 = 0.10003 |
+| renderer private / GPU dedicated, Mask | 264 / 362 MB | 428 / 477 MB | 426 / 478 MB |
+
+32K + dab-box recomposite (mask 4096^2 = 8 image px / mask px, was 21): stroke 70.3 / 75 / 75 fps,
+hole fill 303 ms, Adjust first move 1879 ms, drag 27 fps, Apply 74 ms, undo 128 MB / depth 1,
+Paint -> Prompt 650 ms, Prompt -> Mask 488 ms, round trip coverage equal, renderer 427 MB.
+
+What it says:
+- Strokes: 4096 is fine ONLY with the dab-box recomposite (28 -> 75 fps). The mask is 4096^2 on any
+  image at or over 4096, so a plain 4K photo pays exactly this too.
+- **Undo regression:** one Fill / Adjust Apply / Clear / Add at 4096 is two full 4096^2 RGBA
+  layers = 128 MB, over `UndoStack`'s 96 MB budget, and eviction keeps only the newest entry - so
+  that one op wipes every stroke before it from Ctrl+Z (1536: ~18 MB, about 5 such ops fit).
+- **Adjust:** the first slider move freezes ~1.7-1.9 s (distance field over 16.7 M px) and the drag
+  runs ~27 fps (full range pass + 64 MB `putImageData` per tick). Paint's Adjust already costs this
+  at its 4096 cap.
+- The Grow/Shrink slider max is 50 mask px (`MpiToolOptionsMaskAdjust` `MAX_R`), so its reach in
+  image px shrinks by 4096/1536: 16K 533 -> 200 px, 4K 133 -> 50 px.
+- `distanceField.js`'s "well inside Float32's exact-integer range" note is false at 4096 (max d^2
+  33.5 M > 16.7 M) but harmless: every threshold is <= 50^2 + 1, far below where Float32 rounds.
+
+Checks: unit (the 10 suites importing MpiCanvas / MaskManager / UndoStack) 141/141; `npx eslint`
+MaskManager.js clean; desktop mask-colour, mask-persist-roundtrip, mask-temp-ipc,
+canvas-display-copy, canvas-pan-no-repaint, history-modes, colour-pick-eyedropper, gif-cutout,
+gif-workspace (brush over a GIF base layer) 26/26.
+
+### Fabio's check 1 (2026-09-29) and round 2
+
+Fabio (his app, 4096 + dab-box): "enough precision for the mask" - **4096 stays**. Found:
+(1) **Grow / Shrink / Edge dead after switching History entry** (with a preview pending) until he
+left History and came back; (2) the first slider move "takes quite a while"; (3) Grow looks
+"pixelated" (screenshot: the 4K entry at ~4x zoom - the green preview's steps are exactly one
+image px, the same blocks as the image under it; the grow result is binary, the brush dab is
+antialiased; at 1536 the same edge was a 2.7x-upscaled blur); (4) SAM3 on the 16K fails in
+MpiLoadImage (Pillow bomb limit) = MPI-971, already filed.
+
+Root cause of (1): History reuses ONE canvas across entries; `loadImage()` -> `MaskManager.init()`
+-> `endAdjust()` dropped the Adjust session, but the Adjust panel stays mounted and calls
+`begin` only at mount, so `previewAdjust()` found no pristine snapshot and returned false forever.
+Same shape as MPI-454's Place bug. `PaintManager.init()` had the twin.
+
+Round 2 changes: `init()` re-opens an open session and every layer load re-snapshots it (both
+twins); mask Adjust field over the mask's box (`fieldOverContent`, paint's MPI-445 method), padded
+to the slider's end; mask slider max 50 -> 133 mask px (same image reach as 50 at 1536; paint
+stays 50 image px); layer-wide one-shots in Mask/Paint open a capture (`_recordUndo()` ->
+`undo.begin`) and close it with `_commitUndo()` -> `UndoStack.commitChanged()`, which keeps only
+the diff box (none = no entry); UndoStack scratch canvases are CPU-backed (read back by the diff).
+
+| GPU idle, 4096 | 16K round 1 | 16K round 2 | 32K round 2 |
+|---|---|---|---|
+| stroke 3x3 s | 71 / 75 / 75 (147 ms first frame) | **75 / 75 / 75** (max 13.6 ms) | 70.3 / 75 / 75 |
+| hole fill | 246 ms | 414 ms (diff scan) | 481 ms |
+| undo after Fill: MB / depth / entry | 128 / **1** / 128 MB | **64 / 4 / 15.7 MB** | 64 / 4 / 15.8 MB |
+| Adjust first slider move | 1730 ms | **330 ms** | 316 ms |
+| Adjust drag 3 s | 27.5 fps | **74.3 fps** | 73 fps |
+| Apply / undo of it | 65 / 91 ms | 256 / 93 ms | 257 / 89 ms |
+| undo after Apply: depth / entry | 1 / 128 MB | **5 / 16.3 MB** | 5 / 16.2 MB |
+| Paint -> Prompt / Prompt -> Mask | 580 / 428 ms | 464 / 418 ms | 483 / 428 ms |
+| round trip coverage | equal | equal (0.10003) | equal (0.09938) |
+
+(The rig's mask is a filled ring about a third of the frame across; a frame-filling mask still
+pays the whole-layer field, ~1.7 s then ~27 fps.)
+
+Checks: `tests/desktop/mask-adjust-entry-switch.spec.js` (new: two entries in one card, Mask
+Adjust with a Grow preview pending, switch entry, nudge the real slider, preview must come up,
+switch back, Apply) **FAILS on the round-1 tree at the post-switch preview, passes after**. Unit:
+the 10 suites 145/145 (new: `commitChanged` box + no-change, every `_recordUndo()` closed by
+`_commitUndo()` in both managers - mutation-proved: dropping `PaintManager.clear`'s commit fails
+it, file restored byte-equal - and the init/load re-snapshot guard on both twins). eslint clean.
+Desktop: the 9 specs above + the new one, 27/27.
+
+**Fabio verified round 2 (2026-09-29): "1, go with both your picks"** - (a) a soft Grow / Shrink /
+Edge edge on the mask, (b) SAM3 on the 4096 copy with scaled points (MPI-971's SAM3 half).
+
+### Round 3: soft Adjust edge + auto-mask on the 4096 copy
+
+- `distanceField.writeRangeSoft()`: grow / band keep every hard pixel opaque and add a 1 px fringe
+  (alpha = o + 1 - d); shrink softens the kept rim (alpha = d - e) so alpha > 0 is EXACTLY the hard
+  result. Mask `previewAdjust` uses it; paint keeps `writeRange` (MPI-440 hard cut). Export (any
+  alpha = masked) grows by at most the 1 px fringe on grow / band, like a brush dab's AA.
+- `runAutoMask` (all three branches: points, text, detector) sends `resolveDisplayImage(url, 4096)`
+  - the server's `.thumb.fit4096.webp`, the same copy the canvas draws on a 1080p/1440p screen - and
+  scales the click points by 4096 / long edge. A source <= 4096 goes exactly as before. The masks
+  come back at the copy's size; the mask layer (4096) scales picks to its own size.
+
+Checks: new `tests/auto-mask-display-copy.test.cjs` (real `runAutoMask`, `/display-image` + engine
+stubbed): 32K -> copy URL + points (16384,8192)->(2048,1024) etc.; 4096 -> original + points
+untouched; 16K text run -> copy. **On HEAD's commandExecutor.js: 2 of 3 FAIL** (the big-photo
+cases), the <= 4096 control passes; with the change 3/3 (`scratchpad/head_ce.py`, restored
+byte-equal). New `writeRangeSoft` unit test (grow 5, shrink 4, band 3/2, band 4/0 on a disc: hard
+pixels opaque, fringe < 255 and white, shrink alpha>0 == hard, fringe within r+1) + a source guard
+(mask previews soft, paint never). Unit: 14 suites 184/184 + the guard file 11/11. Desktop 27/27.
+Rig 16K idle (`f4096-soft`): stroke 71.6 / 75 / 75, Adjust first move 332 ms, drag **70 fps**
+(74.3 before the soft write), Fill 417 ms, Apply 254 ms, undo depth kept.
+**Not verifiable here:** SAM3 actually running on the copy needs an engine with SAM3 - Fabio's check.
+
+**Fabio verified round 3 (2026-09-29, his app restarted):** "All passed, and mask adjust is much
+faster now" - SAM3 points + text on the 16K and 32K run (no Pillow error), soft Adjust edge, Adjust
+speed.

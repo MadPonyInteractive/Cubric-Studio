@@ -48,11 +48,18 @@ correctly removes the 14px arm. Squared integers throughout, which is what lets 
 `d² >= e²+1` and keeps erode strict with no epsilon.
 
 **Cost moved, and moved the right way.** The field describes the pristine shape, not the radius, so
-it is built **once per snapshot** — **125 ms** at 1536² — and each slider frame is then **3.5 ms**
+it is built **once per snapshot** — **125 ms** at 1536² (the mask's cap until MPI-961) — and each slider frame is then **3.5 ms**
 including `putImageData`, flat in r. The old primitive was free to enter and 8.7 ms per frame,
 17.4 ms for a band, so any real drag is now cheaper; what it buys is a one-time hitch. Live preview
 was kept on those numbers. `this._adjustImg` is reused across frames — a fresh `ImageData` per tick
 is a 9 MB allocation.
+
+**At 4096 (MPI-961) the mask field is bounded to the mask's box, like paint's (MPI-445, below)** —
+`fieldOverContent()` padded to the slider's end (133 mask px, which reaches as far into the image
+as 50 did at 1536). A face-sized mask on a 16K/32K: first slider move 0.33 s, drag 70 fps. A mask
+that fills the frame still pays the whole 16.7M px: ~1.7 s, then ~27 fps. The Adjust SESSION also
+survives an entry switch now — the canvas is reused across History entries and the panel begins
+once, so `init()` re-opens it and every layer load re-snapshots it (both twins).
 
 **Built LAZILY, not on tool entry.** `beginAdjust()` snapshots and *invalidates*; the first
 `previewAdjust()` that passes the no-op guard calls `_ensureAdjustField()`. Eager building charged
@@ -101,9 +108,9 @@ Only the FILL differs per direction, and this is the whole of what paint adds:
 | Edge | the band | flat in the paint colour | the outline, and **the scribble is replaced** — Adjust is a method over the layer, like mask Edge |
 
 Radii arrive in **image px** and are scaled by `_scale` — the contract `paint()` and
-`commitShape()` already follow, and the reason it matters here is that this layer runs at 4096
-against the mask's 1536. Apply is the same layer-wide one shot (`_recordUndo()` after the no-op
-guard) and does **not** call `onMaskStrokeEnd`: an adjustment to paint is not a mask change, and
+`commitShape()` already follow, and the reason it matters here is that the mask's slider is in
+MASK px and this one in image px. Apply is the same layer-wide one shot (`_recordUndo()` after the no-op
+guard, `_commitUndo()` after the write) and does **not** call `onMaskStrokeEnd`: an adjustment to paint is not a mask change, and
 publishing it would misreport what the op strip is gated on. The preview extends `discardPreview()`
 — the paint LAYER never did, because a stroke is committed pixels ([painting.md](painting.md)).
 
@@ -149,7 +156,7 @@ node or a template default.
 
 `holeFlood()` in `managers/holeFlood.js` **floods the background inward from the border**; whatever
 the flood never reaches is enclosed, and that is the definition of a hole — no contour tracing.
-Iterative on a typed-array stack, because 1536² blows recursion. The alpha cut is `>= 128`,
+Iterative on a typed-array stack, because 4096² blows recursion. The alpha cut is `>= 128`,
 deliberately not `> 0`: edges are antialiased, and a strict test walls the flood out of a hole it
 should enter.
 

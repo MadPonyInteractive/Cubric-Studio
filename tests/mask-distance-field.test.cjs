@@ -270,3 +270,38 @@ const blurThreshold = (rgba, w, h, r, t) => {
     for (let p = 0; p < 3; p++) plane = boxPass(plane, w, h, br);
     return (x, y) => plane[y * w + x] >= t;
 };
+
+test('the SOFT write keeps every hard pixel opaque and adds only a 1px fringe (MPI-961)', async () => {
+    // At 4096 a hard grow edge reads as one-image-px stair steps next to the brush's
+    // antialiased dab (Fabio: "pixelated"). The mask previews and applies the soft
+    // write; it must never LOSE a pixel the hard write set, and a shrink's alpha > 0
+    // must be exactly the hard result, or an export (any alpha = masked) would change.
+    const { signedSquaredDistanceField, rangeFor, writeRange, writeRangeSoft } =
+        await import('../js/components/Primitives/MpiCanvas/managers/distanceField.js');
+    const w = 64, h = 64;
+    const disc = shape(w, h, (x, y) => (x - 31.5) ** 2 + (y - 30) ** 2 <= 14 ** 2);
+    const field = signedSquaredDistanceField(disc, w, h);
+    for (const opts of [{ grow: 5 }, { grow: -4 }, { edge: true, outward: 3, inward: 2 }, { edge: true, outward: 4, inward: 0 }]) {
+        const { lo, hi } = rangeFor(opts);
+        const hard = new Uint32Array(w * h);
+        const soft = new Uint32Array(w * h);
+        writeRange(field, hard, lo, hi);
+        writeRangeSoft(field, soft, lo, hi);
+        const shrink = opts.grow < 0;
+        let partial = 0;
+        for (let i = 0; i < hard.length; i++) {
+            const a = soft[i] >>> 24;
+            if (a && a < 255) partial++;
+            if (a) assert.strictEqual(soft[i] & 0xFFFFFF, 0xFFFFFF, 'a soft pixel must stay white');
+            if (shrink) assert.strictEqual(a > 0, hard[i] !== 0, `shrink: alpha > 0 must BE the hard result (px ${i})`);
+            else if (hard[i]) assert.strictEqual(soft[i], 0xFFFFFFFF, `${JSON.stringify(opts)}: a hard pixel went soft at ${i}`);
+            else assert.ok(a < 255, `${JSON.stringify(opts)}: a pixel outside the hard region is fully opaque`);
+        }
+        assert.ok(partial > 0, `${JSON.stringify(opts)}: no soft edge was written`);
+    }
+    // The fringe is ONE pixel: nothing past r + 1 from the shape.
+    const { lo, hi } = rangeFor({ grow: 5 });
+    const soft = new Uint32Array(w * h);
+    writeRangeSoft(field, soft, lo, hi);
+    for (let i = 0; i < soft.length; i++) if (soft[i]) assert.ok(field[i] < 36, `soft pixel at d^2 ${field[i]}, past r + 1`);
+});

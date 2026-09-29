@@ -29,7 +29,7 @@ import { fieldOverContent, rangeFor, writeRange } from './distanceField.js';
 import { holeFlood, regionCanvas } from './holeFlood.js';
 
 /**
- * Paint is capped far higher than the mask's 1536 because it becomes REAL PIXELS
+ * Paint is capped at 4096 (the mask too, since MPI-961) because it becomes REAL PIXELS
  * in a new history entry rather than being consumed as a mask — downscaling and
  * then upscaling on flatten would visibly soften every stroke. 4096 bounds the
  * worst case at ~64MB for a square layer; a source larger than that is resampled
@@ -131,11 +131,15 @@ export class PaintManager {
         this._scale = Math.min(1, PAINT_MAX_EDGE / Math.max(width, height));
         this.paintCanvas.width = Math.max(1, Math.round(width * this._scale));
         this.paintCanvas.height = Math.max(1, Math.round(height * this._scale));
-        // A preview must not outlive the pixels it previewed (MPI-436).
+        // A preview must not outlive the pixels it previewed (MPI-436) - but an open
+        // Adjust session must: the canvas is reused across History entries and the panel
+        // begins once, at mount (MPI-961, MaskManager.init is the twin).
+        const adjusting = !!this._adjustPristine;
         this.endAdjust();
         // Setting width/height already blanks the canvas; clear(false) is about the
         // stroke state, and records nothing because a load is not an undoable edit.
         this.clear(false);
+        if (adjusting) this.beginAdjust();
     }
 
     /** @returns {Array<{canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D}>} */
@@ -144,10 +148,17 @@ export class PaintManager {
         return [{ canvas: this.paintCanvas, ctx: this.paintCtx }];
     }
 
-    /** Snapshot the layer before a layer-wide mutation. */
+    /** Open a capture of the layer before a layer-wide mutation; `_commitUndo()`
+     *  closes it once the mutation is done. */
     _recordUndo() {
         const layers = this.undoLayers();
-        if (layers.length) this.undo?.record(layers);
+        if (layers.length) this.undo?.begin(layers);
+    }
+
+    /** Keep only the box the one-shot changed (MPI-961): a whole 4096^2 layer is 64 MB,
+     *  two thirds of the stack's budget, so one Fill evicted most strokes before it. */
+    _commitUndo() {
+        this.undo?.commitChanged();
     }
 
     /**
@@ -213,8 +224,8 @@ export class PaintManager {
      * punches it out, exactly as the brush and its eraser do here.
      *
      * The caller passes a PATH BUILDER rather than a path, so the geometry is
-     * scaled by THIS layer's `_scale`: the mask works at 1536 and this layer at
-     * 4096, and a path built for one is silently wrong on the other.
+     * scaled by THIS layer's `_scale`: each layer owns its cap (both 4096 since MPI-961),
+     * and a path built for one is silently wrong on the other.
      *
      * Layer-wide ONE SHOT, so a single full-rect undo entry after the no-op guard
      * (`docs/masking-undo.md`).
@@ -235,6 +246,7 @@ export class PaintManager {
         this.paintCtx.fillStyle = this.color;
         this.paintCtx.fill(path);
         this.paintCtx.restore();
+        this._commitUndo();
         return true;
     }
 
@@ -305,8 +317,8 @@ export class PaintManager {
      *
      * ponytail: what is left is the box's own worst case — paint covering the WHOLE
      * 4096 layer is still 1.6 s to enter and 65 ms a frame, because that field really
-     * is 16.7M px. The remaining lever is capping the field's resolution at the mask's
-     * 1536 and upscaling the region, which costs the radius precision MPI-441 bought
+     * is 16.7M px. The remaining lever is capping the field's resolution at 1536
+     * and upscaling the region, which costs the radius precision MPI-441 bought
      * (~2.7 layer px of quantisation) — a deliberate trade, not a tidy-up. A scribble,
      * which is what the report was, now costs 70 ms then 0.4 ms.
      *
@@ -333,8 +345,8 @@ export class PaintManager {
 
     /**
      * Recompute the preview from the pristine copy. Radii arrive in IMAGE px, like
-     * every other coordinate here, and are scaled to layer px — the mask works at
-     * 1536 and this layer at 4096, so a radius meant for one is wrong in the other.
+     * every other coordinate here, and are scaled to layer px — the mask's slider is in
+     * MASK px and this one in image px, so a radius meant for one is wrong in the other.
      *
      * The region is one range test over the field (identical to the mask's); the
      * three fills are where the layers diverge:
@@ -431,6 +443,7 @@ export class PaintManager {
 
         this.paintCtx.clearRect(0, 0, this.paintCanvas.width, this.paintCanvas.height);
         this.paintCtx.drawImage(this.adjustCanvas, 0, 0);
+        this._commitUndo();
 
         // Still inside the tool: re-snapshot so the next adjustment starts from what
         // was just baked instead of from the pre-Apply layer.
@@ -493,6 +506,7 @@ export class PaintManager {
 
         this.paintCtx.clearRect(0, 0, this.paintCanvas.width, this.paintCanvas.height);
         this.paintCtx.drawImage(buf, 0, 0);
+        this._commitUndo();
 
         // The preview (if any) is now baked, so drop it and re-snapshot — otherwise the
         // next slider move would recompute from a pristine copy that predates the fill.
@@ -546,6 +560,7 @@ export class PaintManager {
 
         this._recordUndo();
         this.paintCtx.drawImage(stencil, 0, 0, this.paintCanvas.width, this.paintCanvas.height);
+        this._commitUndo();
         return true;
     }
 
@@ -564,6 +579,7 @@ export class PaintManager {
             this._recordUndo();
         }
         this.paintCtx.clearRect(0, 0, this.paintCanvas.width, this.paintCanvas.height);
+        if (record) this._commitUndo();
         return true;
     }
 
@@ -605,6 +621,8 @@ export class PaintManager {
                 this.paintCtx.drawImage(img, 0, 0, this.paintCanvas.width, this.paintCanvas.height);
                 this._strokeBox = null;
                 this._lastDab = null;
+                // A load: an open Adjust session re-snapshots (MPI-961).
+                if (this._adjustPristine) this.beginAdjust();
                 resolve();
             };
             img.onerror = () => resolve();

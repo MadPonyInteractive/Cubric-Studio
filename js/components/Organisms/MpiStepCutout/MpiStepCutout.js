@@ -316,13 +316,13 @@ export const MpiStepCutout = ComponentFactory.create({
         /**
          * The two mask layers as PNG data URLs, MEMOISED.
          *
-         * `getManualURL()`/`getSubtractURL()` scan and re-encode both 1536-capped
+         * `getManualURL()`/`getSubtractURL()` scan and re-encode both 4096-capped
          * layers; a wheel tick or a pan moves no mask pixel, so re-encoding on every
          * report would charge that to gestures that changed nothing. Each returns
          * NULL for an unpainted layer, which is what makes `_untouched` exact.
          *
          * ponytail: two base64 layers in the run snapshot. A cut-up mask is mostly
-         * transparent and 1536-capped, so the realistic bill is tens of KB — the same
+         * transparent and 4096-capped, so the realistic bill is tens of KB — the same
          * trade `MpiStepPaint` documents. The upgrade is to place them in the
          * preview-asset store on stroke end and persist their paths instead; do it
          * when a measured snapshot is actually too big.

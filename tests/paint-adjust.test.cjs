@@ -300,3 +300,16 @@ test('EVERY method the panel reaches for is forwarded by the viewer', () => {
         );
     }
 });
+
+test('an open Adjust session survives a new image, and a layer load re-snapshots it (MPI-961)', () => {
+    // The canvas is reused across History entries and the panel begins its session once,
+    // at mount. init() ending it for good left Grow / Shrink / Edge dead after an entry
+    // switch until the user left History (tests/desktop/mask-adjust-entry-switch.spec.js).
+    const init = methodBody('init');
+    const end = init.indexOf('this.endAdjust()');
+    const begin = init.indexOf('this.beginAdjust()', end);
+    assert.ok(end !== -1 && begin > end, 'init() ends the Adjust session and never re-opens it');
+    assert.match(init, /_adjustPristine/, 'init() re-opens the session whether or not one was open');
+    assert.match(methodBody('setFromDataURL'), /beginAdjust\(\)|_reloadAdjust\(\)/,
+        'setFromDataURL() leaves an open session on the pixels it replaced');
+});

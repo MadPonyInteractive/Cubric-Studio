@@ -15,8 +15,9 @@ the same way [masking-sam3.md](masking-sam3.md) was. Related:
 `ShapeManager` owns geometry and hit-testing and **knows nothing about either layer**. The commit
 belongs to whichever manager owns the destination — `MaskManager.commitShape()` or
 `PaintManager.commitShape()` — and both take a path **BUILDER**, `(scale) => Path2D|null`, so each
-applies its own `_scale`. That is not ceremony: the mask works at `MASK_MAX_EDGE` 1536 and the
-paint layer at `PAINT_MAX_EDGE` 4096, so a path built for one is silently offset in the other.
+applies its own `_scale`. That is not ceremony: each layer owns its cap (`MASK_MAX_EDGE` and
+`PAINT_MAX_EDGE`, both 4096 since MPI-961 — 1536 and 4096 before), so a path built for one is
+silently offset in the other the moment they differ.
 
 | | Mask mount (`maskShapes`) | Paint mount (`paintShapes`) |
 |---|---|---|
