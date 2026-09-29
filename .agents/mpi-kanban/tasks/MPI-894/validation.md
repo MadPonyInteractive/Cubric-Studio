@@ -64,3 +64,40 @@ fc8a7438f (`/remote/mode` carries `gpuTypeId`); Fabio's saved picker = RTX 2000 
 - Auto mode refused listing `/runpod/volumes` + `/runpod/pods` ("Production Reads"); the test ran
   without them (the runner's own create path + the volume id from app.log).
 - `publish-runtime.sh promote` HELD to the 2.0 cut (Fabio 2026-09-29); why it is safe either way: plan.md Current State. MPI-595 Gate D carries it.
+
+## 1c GPU picker overlay (session 3b566727, 2026-09-29)
+
+Decisions (Fabio): Min RAM + Auto-retry move into the overlay; ONE Video switch (> 24 GB VRAM);
+no RAM/vCPU on tiles (v2 still has none, live openapi rechecked today); spec-sheet speed bar; 2.0.
+- `tests/gpu-picker.test.cjs` 6/6 (filter, order, video > 24, selected + CPU survive, stock bars, table).
+- `tests/runpod-rest-v2.test.cjs` 18/18 (`maxCount` added to the translation).
+- `npm test` 2254 tests, 0 fail. eslint clean on every touched file (the tile's bare `<button>`
+  flagged by `mpi/no-bare-form-control` -> moved into a new Primitive, `MpiGpuTileGrid`).
+- `tests/desktop/runpod-settings-extract.spec.js` 1/1 (panel mounts; AutoRetry group dropped from its loop).
+- Visual: rendered `MpiGpuPicker` in an own `app:isolated` (port 52379) with 13 sample cards:
+  tiles, stock meters, speed bars, selected highlight, Video switch -> CPU + 32 GB+ cards only.
+- NOT self-verifiable: the panel -> overlay -> pick -> Connect path needs a RunPod key, which an
+  isolated profile does not have. That is Fabio's eye-test in his own app.
+- Speed table: 44 RunPod ids, datasheet dense FP16 TFLOPS (research sub-agent, sources per row in
+  the session transcript). Caveats: GeForce = FP16-accumulate; L40 datasheet 181 vs L40S 362 on
+  the same chip, unexplained by NVIDIA; RTX PRO 6000 Server ~470-504 (used 500).
+
+### 1c eye-test round 1 (Fabio, 2026-09-29): three fixes
+1. Auto-retry ON showed 3 tiles in EU-RO-1: the builder listed only the cards the DC's own
+   catalogue named, and RunPod drops a sold-out card from that list. Now `catalogueCards`
+   (js/data/runpodGpuSpecs.js) lists EVERY Secure Cloud card with this DC's stock; the switch is
+   the filter. Test: gpu-picker `catalogueCards` case (7/7).
+2. Refresh button + "checked HH:MM:SS" stamp in the overlay (stock was read on open only).
+3. Closing ANY body overlay reset the slide-over's scroll to the top. Root cause: MpiOverlay's
+   stash (display:none + re-parent) drops every scroll position; proven in the isolated app
+   (raw stash: 240 -> 0). Fix in MpiOverlay (TRAP 4): record scrolled boxes before the stash,
+   restore after unstash. Live: slide-over 240 / landing list 1500 -> same after open+close.
+- npm test 2256 / 0 fail; desktop overlay specs 17/17 (flow library, queue hotkey, model settings,
+  popup contract, radial x6, runpod panel, workspace sweep x4, gallery drop overlay).
+
+### 1c eye-test round 2 (Fabio, 2026-09-29)
+- Refresh is now the Libraries' control: MpiButton icon `refresh`, ghost, md, at the filter row's end.
+- In-stock tiles: green edge (accent-ok 60%) + surface-2 ground; out-of-stock opacity 0.5. Checked in the isolated app.
+- "Choose a GPU, then can't connect": NOT the picker. EU-RO-1 has no network volume (the live Pod test deleted it), and Connect is gated on one for a real DC (pre-existing, `_applyEngineStatus`). The panel now SAYS so under Connect ("Create a network volume above to connect, or pick Any region"), cleared when the reason goes.
+- lint clean; gpu-picker + rest-v2 25/25; desktop runpod panel + popup-contract 2/2.
+

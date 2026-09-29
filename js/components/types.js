@@ -2445,6 +2445,43 @@
  *   'settings' { model } — LoRA & Upscale clicked; the opener owns MpiModelSettings
  */
 
+/**
+ * @typedef {Object} MpiGpuPickerProps (Compound — js/components/Compounds/MpiGpuPicker)
+ * No props at mount time — the opener passes its cards to open().
+ *
+ * The RunPod GPU overlay (MPI-894 1c), after RunPod's deploy page: one tile per card
+ * (name, $/hr, VRAM, max, three-bar stock meter, spec-sheet speed bar), an Auto-retry
+ * switch (on = every card, off = in stock only), a Video switch (> 24 GB VRAM) and the
+ * system-RAM floor. Filtering + order: `visibleGpuCards` in js/data/runpodGpuSpecs.js.
+ *
+ * Instance methods (on instance.el):
+ *   open({ cards, selectedId?, autoRetry?, minRamGb?, showMinRam?, scope? })
+ *     — cards: [{ id, name, vramGb, price, stock, inStock, maxCount, cpu?, note? }]
+ *   setCards(cards) — re-render with fresh stock while open
+ *   close()
+ *
+ * Emits:
+ *   'select'     { id } — tile clicked; the overlay has already closed
+ *   'auto-retry' { on } — the opener persists runpodConfig.autoRetry
+ *   'min-ram'    { gb } — the opener persists runpodConfig.minRamGb
+ */
+
+/**
+ * @typedef {Object} MpiGpuTileGridProps (Primitive — js/components/Primitives/MpiGpuTileGrid)
+ * No props at mount time — items arrive through setItems().
+ *
+ * The GPU tile grid inside MpiGpuPicker (MPI-894 1c): compact text cards, state-dumb.
+ * Item: { id, name, price?, specs?, bars? (0-3 stock meter), speed? (0-1 fill),
+ *         speedText?, state?, selected?, available? (green edge), out? (dimmed) }
+ *
+ * Instance methods (on instance.el):
+ *   setItems(items) — full rebuild
+ *   getTile(id)     — the tile element, or null
+ *
+ * Emits:
+ *   'select' { id } — tile clicked
+ */
+
 
 
 /**

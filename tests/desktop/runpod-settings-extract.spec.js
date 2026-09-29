@@ -65,7 +65,8 @@ test('remote slide-over renders the extracted RunPod section', async ({}, testIn
     // "Skip the local engine install" is exempt on purpose: it is a LOCAL-engine
     // control and the only way back out of the MPI-390 escape hatch.
     await expect(window.locator('#mpiSettingsRunpodKeyStatus')).toHaveText('No API key saved.');
-    for (const id of ['AutoConnect', 'AutoRetry', 'StageOnConnect']) {
+    // Auto-retry left this panel for the GPU overlay (MPI-894 1c), which the locked body hides.
+    for (const id of ['AutoConnect', 'StageOnConnect']) {
       await expect(window.locator(`#mpiSettingsRunpod${id}Group`)).not.toBeVisible();
     }
     await expect(window.locator('#mpiSettingsRunpodSkipEngineGroup')).toBeVisible();

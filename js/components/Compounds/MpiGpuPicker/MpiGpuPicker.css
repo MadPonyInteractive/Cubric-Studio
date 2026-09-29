@@ -1,0 +1,106 @@
+/* ══════════════════════════════════════════════════════════════
+   MpiGpuPicker — RunPod GPU overlay (MPI-894 1c)
+
+   Same full-bleed shell as MpiModelPicker. The tiles are MpiGpuTileGrid.
+════════════════════════════════════════════════════════════════ */
+
+.mpi-overlay--body:has(.mpi-gpu-picker) {
+    padding: 0;
+    align-items: stretch;
+}
+.mpi-overlay--body:has(.mpi-gpu-picker) .mpi-overlay__container {
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    gap: 0;
+}
+/* Full-bleed content paints over the overlay's X; lift it (MpiModelPicker does the same). */
+.mpi-overlay--body:has(.mpi-gpu-picker) .mpi-overlay__close {
+    z-index: 35;
+}
+
+.mpi-gpu-picker {
+    position: relative;
+    height: 100%;
+    background: var(--surface-canvas);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+    color: var(--ink-1);
+}
+
+.mpi-gpu-picker__head {
+    padding: var(--s-5) var(--s-6) var(--s-4);
+    border-bottom: 1px solid var(--line);
+    flex: none;
+}
+
+.mpi-gpu-picker__title {
+    font-size: var(--t-xl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin: 0 0 var(--s-2);
+}
+
+.mpi-gpu-picker__subrow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    margin: 0 0 var(--s-4);
+}
+
+.mpi-gpu-picker__sub {
+    font-size: var(--t-sm);
+    color: var(--ink-3);
+    margin: 0;
+}
+
+.mpi-gpu-picker__stamp {
+    font-size: var(--t-xs);
+    color: var(--ink-4);
+}
+
+.mpi-gpu-picker__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s-3) var(--s-5);
+}
+
+.mpi-gpu-picker__ram {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    font-size: var(--t-sm);
+    color: var(--ink-2);
+}
+.mpi-gpu-picker__ram--hidden { display: none; }
+/* Refresh sits at the row's trailing edge, like the Libraries' filter bar. */
+.mpi-gpu-picker__refresh { margin-left: auto; }
+/* Hug the field (MpiInput --sm is ~6ch) so "GB" sits right beside it. */
+.mpi-gpu-picker__ram-input { display: flex; flex-shrink: 0; }
+.mpi-gpu-picker__ram-unit { color: var(--ink-3); }
+
+.mpi-gpu-picker__note {
+    font-size: var(--t-xs);
+    color: var(--ink-4);
+    margin: var(--s-3) 0 0;
+    max-width: 90ch;
+}
+
+.mpi-gpu-picker__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--s-4) var(--s-6) var(--s-6);
+}
+
+.mpi-gpu-picker__empty {
+    display: none;
+    font-size: var(--t-sm);
+    color: var(--ink-3);
+    margin: var(--s-4) 0 0;
+}
+.mpi-gpu-picker__empty--on { display: block; }

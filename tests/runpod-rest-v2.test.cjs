@@ -195,7 +195,7 @@ test('updateVolume: PATCH /network-volumes/{id} with size', async () => {
 
 const V2_GPUS = [
   { id: 'NVIDIA GeForce RTX 5090', name: 'RTX 5090', memory: 32, secure: true, community: true,
-    price: { secure: 0.89, community: 0.69 }, availability: 'LOW',
+    price: { secure: 0.89, community: 0.69 }, maxCount: { secure: 8, community: 4 }, availability: 'LOW',
     dataCenters: [{ id: 'EU-RO-1', name: 'EU Romania 1', availability: 'HIGH' },
       { id: 'US-TX-3', name: 'US Texas 3', availability: 'LOW' }] },
   // Offered in EU-RO-1 (the DC call lists it) but absent from the CUDA-scoped call there.
@@ -235,7 +235,7 @@ test('gpuTypes: GET /catalog/gpus scoped like a create, translated to the picker
   assert.equal(u.searchParams.get('minCudaVersion'), '13.0', 'stock must be scoped by the create\'s CUDA floor');
   assert.deepEqual(result[0], {
     id: 'NVIDIA GeForce RTX 5090', displayName: 'RTX 5090', memoryInGb: 32,
-    secureCloud: true, communityCloud: true, securePrice: 0.89,
+    secureCloud: true, communityCloud: true, securePrice: 0.89, maxCount: 8,
   });
 });
 

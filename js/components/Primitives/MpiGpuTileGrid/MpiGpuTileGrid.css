@@ -1,0 +1,112 @@
+/* ══════════════════════════════════════════════════════════════
+   MpiGpuTileGrid — GPU tiles for MpiGpuPicker (MPI-894 1c)
+
+   Compact text cards after RunPod's deploy page.
+════════════════════════════════════════════════════════════════ */
+
+.mpi-gpu-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--s-3);
+    align-items: stretch;
+}
+
+.mpi-gpu-tiles__tile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    padding: var(--s-3);
+    background: var(--surface-bar);
+    border: 1px solid var(--line);
+    border-radius: var(--r-1);
+    text-align: left;
+    font-family: inherit;
+    color: inherit;
+    cursor: pointer;
+    transition: border-color var(--t-base) var(--ease), background var(--t-base) var(--ease);
+}
+.mpi-gpu-tiles__tile:hover { background: var(--surface-2); border-color: var(--ink-4); }
+/* In stock reads at a glance (Fabio 2026-09-29: the old contrast was too low): a green
+   edge and a lifted ground. Before --selected, which keeps its own heat edge. */
+.mpi-gpu-tiles__tile--available {
+    background: var(--surface-2);
+    border-color: color-mix(in oklch, var(--accent-ok) 60%, transparent);
+}
+.mpi-gpu-tiles__tile--available:hover { background: var(--surface-3); border-color: var(--accent-ok); }
+.mpi-gpu-tiles__tile--selected,
+.mpi-gpu-tiles__tile--selected:hover {   /* beats --available:hover */
+    border-color: var(--accent-heat);
+    box-shadow: inset 0 0 0 1px var(--accent-heat);
+}
+.mpi-gpu-tiles__tile--out { opacity: 0.5; }
+.mpi-gpu-tiles__tile--out:hover { opacity: 0.8; }
+
+.mpi-gpu-tiles__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--s-2);
+}
+
+.mpi-gpu-tiles__name {
+    font-size: var(--t-md);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.mpi-gpu-tiles__price {
+    font-size: var(--t-lg);
+    font-weight: 700;
+    color: var(--ink-1);
+}
+
+.mpi-gpu-tiles__specs,
+.mpi-gpu-tiles__state {
+    font-size: var(--t-xs);
+    color: var(--ink-3);
+}
+.mpi-gpu-tiles__state {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: var(--t-2xs);
+}
+
+/* RunPod's three ascending availability bars. --N lights N of them. */
+.mpi-gpu-tiles__stock {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 14px;
+    flex: none;
+}
+.mpi-gpu-tiles__stock i {
+    display: block;
+    width: 4px;
+    background: var(--ink-4);
+}
+.mpi-gpu-tiles__stock i:nth-child(1) { height: 5px; }
+.mpi-gpu-tiles__stock i:nth-child(2) { height: 9px; }
+.mpi-gpu-tiles__stock i:nth-child(3) { height: 14px; }
+.mpi-gpu-tiles__stock--1 i:nth-child(-n+1) { background: var(--accent-warn); }
+.mpi-gpu-tiles__stock--2 i:nth-child(-n+2) { background: var(--accent-ok); }
+.mpi-gpu-tiles__stock--3 i:nth-child(-n+3) { background: var(--accent-ok); }
+
+/* Speed: a thin bar the consumer scales (0-1) against the fastest card. */
+.mpi-gpu-tiles__speed {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    font-size: var(--t-2xs);
+    color: var(--ink-3);
+}
+.mpi-gpu-tiles__speed-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--surface-2);
+}
+.mpi-gpu-tiles__speed-bar > span {
+    display: block;
+    height: 100%;
+    width: calc(var(--fill, 0) * 100%);
+    background: var(--accent-frost);
+}

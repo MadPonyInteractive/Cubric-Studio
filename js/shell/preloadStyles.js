@@ -50,6 +50,8 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Compounds/MpiMemoryMonitor/MpiMemoryMonitor.css',
   'js/components/Compounds/MpiModelSettings/MpiModelSettings.css',
   'js/components/Compounds/MpiModelPicker/MpiModelPicker.css',
+  'js/components/Compounds/MpiGpuPicker/MpiGpuPicker.css',
+  'js/components/Primitives/MpiGpuTileGrid/MpiGpuTileGrid.css',
   'js/components/Compounds/MpiProjectName/MpiProjectName.css',
   'js/components/Compounds/MpiGalleryToolbar/MpiGalleryToolbar.css',
   'js/components/Compounds/MpiNewProject/MpiNewProject.css',

@@ -87,7 +87,7 @@ component kept its old name, so "Settings" in a file name or an older card means
 - **GPU catalogue** (`GET /runpod/gpu-availability`, MPI-894): `GET /v2/catalog/gpus?include=
   AVAILABILITY&product=POD&cloud=SECURE&minCudaVersion=13.0` + `GET /v2/catalog/datacenters?
   include=GPU_AVAILABILITY`, translated in `runpodRemote.js` into the shape the renderer has
-  always read (`gpuTypes[]{id,displayName,memoryInGb,securePrice,secureCloud}`,
+  always read (`gpuTypes[]{id,displayName,memoryInGb,securePrice,secureCloud,maxCount}`,
   `dataCenters[]{id,name,storageSupport,gpuAvailability[]{gpuTypeId,available,stockStatus}}`,
   v2 `HIGH/MEDIUM/LOW` → `High/Medium/Low`, `NONE` → unavailable). Per-DC stock comes from the
   GPUS call's `dataCenters[]`, scoped like a create; the DC call only says which cards a DC
@@ -96,6 +96,14 @@ component kept its old name, so "Settings" in a file name or an older card means
   RAM or vCPU in the catalogue**, so the picker's RAM badge is gone (the create's
   `gpu.minRamPerGpu` floor still guarantees RAM); the renderer's `?dataCenterId` is ignored.
   A refused catalogue read throws → the route answers 502.
+  **The picker is an overlay (MPI-894 1c)**, `MpiGpuPicker` opened by **Choose GPU** in the
+  Remote panel, after RunPod's deploy page: tiles show $/hr, VRAM, `maxCount`, a three-bar stock
+  meter and a spec-sheet speed bar (`GPU_TFLOPS` in `js/data/runpodGpuSpecs.js`, a hand-kept
+  table: a new RunPod card shows no bar until a row lands). **Auto-retry** (= RunPod's All tab)
+  and the **Min RAM** floor live in the overlay, not the panel; **Video** keeps cards over 24 GB.
+  Tiles = the WHOLE Secure Cloud catalogue with this DC's stock (`catalogueCards`; the DC's own
+  list drops a sold-out card), filtered by `visibleGpuCards` (tests/gpu-picker.test.cjs). Stock is
+  read on open and on the overlay's Refresh, never polled.
 
 ## 2. Pod lifecycle (create-on-Connect + STOP-on-quit, delete-fallback)
 

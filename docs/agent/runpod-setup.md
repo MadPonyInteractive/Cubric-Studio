@@ -23,10 +23,11 @@ paste it.
    again.
 3. **Network Volume** — stores ComfyUI and the user's models so they survive between
    Pods, one volume per data center. Connect refuses to start without one.
-4. **GPU** — the Pod's card. Stock is a live hint that drifts; the RunPod console is
-   the truth.
-5. **Min System RAM** — optional, 0 means any host. Heavy video models run better with
-   more, because ComfyUI offloads weights to system RAM.
+4. **GPU** — **Choose GPU** opens an overlay of every card: price, VRAM, stock bars and a
+   spec-sheet speed bar. Stock is a live hint that drifts; the RunPod console is the truth.
+   **Video** keeps the cards with more than 24 GB VRAM.
+5. **Min RAM** — in the same overlay. Optional, 0 means any host. Heavy video models run
+   better with more, because ComfyUI offloads weights to system RAM.
 6. **Connect** — starts the remote engine. Models install to, and generate on, the Pod.
    **Open in RunPod console** shows the Pod's real state, logs and spend.
 
@@ -35,7 +36,7 @@ paste it.
 | Setting | Default | What it costs |
 |---|---|---|
 | **Automatically connect on app start** | off | On: a Pod connects, and bills, at every launch |
-| **Auto-retry connection** | — | Waits for an out-of-stock GPU, then connects and bills when one frees up. The user can keep working locally meanwhile |
+| **Auto-retry** (GPU overlay) | on | Waits for an out-of-stock GPU, then connects and bills when one frees up. The user can keep working locally meanwhile |
 | **Delete Pod on quit** | — | On: quitting deletes the Pod, freeing GPU and container disk; the volume and models are kept. Off: the Pod stays warm |
 
 A **stopped Pod still bills volume storage** until the volume is deleted. A volume

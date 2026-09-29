@@ -68,6 +68,15 @@ touches a `/runpod/*` call is cheaper written once against v2 than twice.
    the models the user has installed, are the candidates. (c) 2.0 or 2.1: not stated.
    Frontend: EVERY UI element is a component (`ComponentFactory.create`), BEM, CSS vars;
    read `.claude/rules/components.md` + the existing model-selector overlay first.
+   **DECIDED (Fabio 2026-09-29, session 3b566727):** (a) no RAM/vCPU on tiles (v2 still has
+   neither, rechecked live); the **Min RAM floor and the Auto-retry switch MOVE into the
+   overlay** and leave the Remote panel. RAM cannot hide tiles (no per-card RAM), it stays
+   the create's `minRamPerGpu`. (b) ONE **Video** switch: on = cards with **> 24 GB VRAM**,
+   off = all (no Image chip). (c) **2.0.** Plus a **spec-sheet speed bar** (dense FP16
+   tensor TFLOPS, labelled "spec sheet, not measured"; no bar for a card not in the table).
+   Measured per-card speed = record the Pod's card on each generation, a later card.
+   Build: new Compound `MpiGpuPicker` (overlay), table `js/data/runpodGpuSpecs.js`,
+   `_toPickerGpu` adds `maxCount` (secure). Verify mode: **user-ux** (Fabio eye-test).
 2. **MPI-668 + MPI-183 together.** Both are engine-parity: MPI-668 adds the missing check
    of the Pod's ComfyUI core against `node_lock.json`, MPI-183 bumps the Builder image to
    the version that check would demand. **Verify:** a deliberately stale image is REJECTED
@@ -99,6 +108,25 @@ Both read `dev_configs/node_lock.json`; NEITHER writes it. A pin change is
   PowerShell tool too.
 
 ## Current State
+
+2026-09-29 (session 3b566727) - **1c BUILT, self-verified, awaiting Fabio's eye-test** (verify
+mode user-ux). New: `js/components/Compounds/MpiGpuPicker/` (overlay: Auto-retry, Video, Min RAM,
+tiles), `js/components/Primitives/MpiGpuTileGrid/` (the tiles; a Primitive because a tile is a
+button), `js/data/runpodGpuSpecs.js` (`GPU_TFLOPS`, `visibleGpuCards`, `stockBars`),
+`tests/gpu-picker.test.cjs`. `MpiRunpodSettings`: GPU dropdown -> summary line + **Choose GPU**;
+Auto-retry plate and Min RAM row removed from the panel; the old dropdown `change` body is now
+`_onGpuPicked` (same four branches), `_buildGpuOptions` -> `_buildGpuCards` (all cards, the overlay
+filters). `_toPickerGpu` adds `maxCount`. Docs: runpod-remote-engine.md, docs/agent/runpod-setup.md.
+Next: Fabio restarts his app, eye-tests, then close 1c (commit via handoff/end-session).
+Eye-test round 1 fixed (same day): Auto-retry ON now lists the WHOLE Secure Cloud catalogue
+(`catalogueCards`; the DC's own list drops sold-out cards), a Refresh button + checked stamp, and
+MpiOverlay keeps the scroll of everything it stashes (TRAP 4 - every body overlay had the bug).
+Eye-test round 2 fixed: Refresh is the Libraries' icon button (ghost, `refresh`) at the filter row's end; in-stock
+tiles green-edged + lifted, out-of-stock 0.5; Connect now SAYS why it is off (Fabio's EU-RO-1 has no volume - the
+live Pod test deleted it - so Connect was gated, pre-existing). **Next: Fabio's final look (restart his app), then
+close 1c** (tick checklist, close-out asks about `.claude/rules/components.md` TRAP 4 line). Then MPI-970.
+Open for Fabio: speed bar is LINEAR vs the fastest card listed (B200 2250), so 16-24 GB cards
+draw short bars; the TFLOPS number sits beside it. Gallery demo for the two new components: not added.
 
 2026-09-29 (session 8feae052) - **LIVE-PROVEN** on a real RTX 5090 Pod (~$0.12): specs/badge name
 the rented card over the stale picker, wrapper 0.2.45, stage-on-connect queued ONCE, an app gen

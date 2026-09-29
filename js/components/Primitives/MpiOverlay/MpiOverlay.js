@@ -79,7 +79,24 @@ export const MpiOverlay = ComponentFactory.create({
         let _isShown = false;   // Guard against re-entrant show() during Overlays.request
         let _overlayEntry = null;
         let _zIndex = null;
+        let _scrolls = [];      // [el, scrollTop, scrollLeft] of every scrolled box stashed
         const _overlayId = Math.random().toString(36).slice(2, 9);
+
+        // TRAP 4: stashing drops every scroll position underneath — display:none removes
+        // the boxes and a re-parented box comes back at 0. A slide-over scrolled to its
+        // foot reopened at the top after ANY overlay closed over it (MPI-894: the GPU
+        // picker, opened from the bottom of the Remote panel). Record each scrolled box
+        // before the stash (all reads before any move, so layout is read once); hide()
+        // puts them back.
+        const _saveScrolls = (roots) => {
+            _scrolls = [];
+            for (const root of roots) {
+                const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+                for (let n = root; n; n = walker.nextNode()) {
+                    if (n.scrollTop || n.scrollLeft) _scrolls.push([n, n.scrollTop, n.scrollLeft]);
+                }
+            }
+        };
 
         const _doShow = () => {
             _target = mountTarget === 'body'
@@ -133,8 +150,7 @@ export const MpiOverlay = ComponentFactory.create({
             // spares it there. It is `position: fixed` at z 19000 (over every overlay,
             // under the toast stack), so sparing it costs the overlay no layout.
             const radialMount = mountTarget === 'body' ? gid('radial-mount') : null;
-            const children = Array.from(_target.children);
-            children.forEach(child => {
+            const stashed = Array.from(_target.children).filter(child => {
                 // Keep the toast stack live + on top: stashing it (like the titlebar)
                 // would detach every in-flight toast — and a toast fired WHILE the
                 // overlay is open (e.g. a disk-full warning from an Install click in
@@ -143,9 +159,11 @@ export const MpiOverlay = ComponentFactory.create({
                 // regardless of DOM order. (Its MutationObserver also stops
                 // false-dismissing toasts that a stash would have yanked from the DOM.)
                 const isToastStack = child.classList && child.classList.contains('mpi-toast-stack');
-                if (child !== _backdrop && child !== titlebar && child !== infoBar
-                    && child !== radialMount && !isToastStack) _stash.appendChild(child);
+                return child !== _backdrop && child !== titlebar && child !== infoBar
+                    && child !== radialMount && !isToastStack;
             });
+            _saveScrolls(stashed);   // TRAP 4
+            stashed.forEach(child => _stash.appendChild(child));
 
             // Insert the stash at the FRONT (before any spared sibling like
             // #shell-info-bar / #titlebar), NOT appended. Appending lands the stash —
@@ -224,6 +242,14 @@ export const MpiOverlay = ComponentFactory.create({
             }
             _stashedClasses = [];
             _stashedStyle = '';
+
+            // TRAP 4: after the classes/styles are back, since they decide what scrolls.
+            // A box whose content shrank meanwhile clamps to its new end.
+            for (const [n, top, left] of _scrolls) {
+                n.scrollTop = top;
+                n.scrollLeft = left;
+            }
+            _scrolls = [];
 
             _target = null;
             _isShown = false;

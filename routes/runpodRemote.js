@@ -169,6 +169,7 @@ function _toPickerGpu(g) {
     secureCloud: g.secure,
     communityCloud: g.community,
     securePrice: g.price ? g.price.secure : null,
+    maxCount: g.maxCount ? g.maxCount.secure : null, // GPUs per Pod, a ceiling not stock (1c tile)
   };
 }
 

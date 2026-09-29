@@ -3,6 +3,8 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
+import { MpiGpuPicker } from '../../Compounds/MpiGpuPicker/MpiGpuPicker.js';
+import { catalogueCards } from '../../../data/runpodGpuSpecs.js';
 import { mountPodDiskBar } from '../../../services/podDiskBar.js';
 import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
 import { MpiModal } from '../../Primitives/MpiModal/MpiModal.js';
@@ -76,14 +78,6 @@ export const MpiRunpodSettings = ComponentFactory.create({
                         <div class="mpi-settings__plate-ctrl" id="mpiSettingsRunpodSkipEngineSlot"></div>
                     </div>
 
-                    <div class="mpi-settings__plate" id="mpiSettingsRunpodAutoRetryGroup">
-                        <div class="mpi-settings__plate-main">
-                            <span class="mpi-settings__plate-label">Auto-retry connection</span>
-                            <span class="mpi-settings__plate-desc">Pick a GPU even if it's out of stock — Connect keeps checking until it frees, then connects. You can keep working locally while it waits.</span>
-                        </div>
-                        <div class="mpi-settings__plate-ctrl" id="mpiSettingsRunpodAutoRetrySlot"></div>
-                    </div>
-
                     <div class="mpi-settings__plate" id="mpiSettingsRunpodStageOnConnectGroup">
                         <div class="mpi-settings__plate-main">
                             <span class="mpi-settings__plate-label">Stage all models on connect</span>
@@ -112,8 +106,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                             <div class="mpi-settings__form-group">
                                 <label class="mpi-settings__field-label">GPU</label>
                                 <div id="mpiSettingsRunpodGpuSlot"></div>
-                                <span class="mpi-settings__hint">Secure Cloud only (Community Cloud unsupported). Stock is a live hint — availability drifts; the RunPod console is ground truth.</span>
-                                <div id="mpiSettingsRunpodMinRamSlot"></div>
+                                <span class="mpi-settings__hint">Secure Cloud only (Community Cloud unsupported). Stock is a live hint — availability drifts; the RunPod console is ground truth. Auto-retry and the minimum system RAM are set in the GPU overlay.</span>
                             </div>
                         </div>
 
@@ -152,6 +145,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
 
         let _runpodAvailability = null; // { gpuTypes, dataCenters } cache per panel open
         let _runpodVolumes = null;      // network volumes from the user's account, or null
+        let _gpuPicker = null;          // MPI-894 1c: MpiGpuPicker overlay, mounted on first open
         let _engineConnectInst = null;  // Connect/Disconnect MpiButton instance
         let _engineStatusTimer = null;  // setInterval id for the status poll
         let _podDiskBar = null;         // MPI-237: shared Pod disk-usage bar (volume OR ephemeral)
@@ -359,6 +353,16 @@ export const MpiRunpodSettings = ComponentFactory.create({
                     && /Waiting for|checking every|connect the moment/i.test(hintEl.textContent || '')) {
                     _setEngineHint(root, '');
                 }
+                // Say WHY Connect is off: a greyed button alone read as broken (Fabio
+                // 2026-09-29 - a GPU picked, the volume deleted by a test, no clue). Never
+                // over a warning; cleared again once the reason is gone.
+                const why = !cfg.gpuType ? 'Choose a GPU to connect.'
+                    : (needsVolume && !cfg.volumeId) ? 'Create a network volume above to connect, or pick Any region (no volume) as the data center.'
+                    : '';
+                if (hintEl && !hintEl.classList.contains('mpi-settings__hint--warn')
+                    && (why || /^(Choose a GPU to connect|Create a network volume above)/.test(hintEl.textContent || ''))) {
+                    _setEngineHint(root, why);
+                }
             }
         }
 
@@ -553,7 +557,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                             Events.emit('ui:info', { message: `Waiting for a host with ≥${floor} GB RAM…` });
                             return;
                         }
-                        _setEngineHint(root, `No host with ≥${floor} GB system RAM for ${card} in ${dcName} right now. Lower the floor, pick another data center, or enable auto-retry to wait.`, true);
+                        _setEngineHint(root, `No host with ≥${floor} GB system RAM for ${card} in ${dcName} right now. In Choose GPU, lower Min RAM or turn on Auto-retry to wait, or pick another data center.`, true);
                         _setEngineStatusText(root, 'stopped');
                         _engineBtnLabelSet('Connect');
                         Events.emit('ui:warning', { message: `No ≥${floor} GB host available — adjust the RAM floor or wait.` });
@@ -999,8 +1003,6 @@ export const MpiRunpodSettings = ComponentFactory.create({
             }, 5000);
         }
 
-        const _stockRank = { High: 3, Medium: 2, Low: 1 };
-
         // MPI-78: sentinel datacenter value for the no-volume "Any region" ephemeral
         // mode. Picking it clears the volume, lets RunPod auto-place the Pod, lists
         // GPUs DC-unbound, and exposes a container-disk size input. Distinct from a
@@ -1090,212 +1092,148 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 }));
                 return;
             }
-            const gpuOptions = _buildGpuOptions(anyRegion ? ANY_REGION : dc.id);
-            const gpuInst = MpiDropdown.mount(gpuSlot, {
-                options: gpuOptions,
-                value: cfg.gpuType || '',
-                placeholder: 'Select GPU...',
-                extraClasses: 'mpi-dropdown--runpod',
-                // Opens upward — the GPU picker sits low in the panel and the long
-                // option list was clipped at the viewport bottom when opening down.
-                direction: 'up',
-            });
-            gpuInst.on('change', async ({ value }) => {
-                const prev = _runpodCfg();
-                // MPI-110: switching GPU while an auto-retry WAIT is live → switch the
-                // wait to the new card. Stop the shell loop (no Pod exists yet — nothing
-                // to tear down), adopt the new GPU, and if it's also out of stock start
-                // a fresh wait for it; if it's in stock, leave Connect ready so the user
-                // connects immediately. Without this the wait kept polling the OLD GPU.
-                if (_isWaiting() && value && value !== prev.gpuType) {
-                    Events.emit('remote:wait-cancel');
-                    state.runpodConfig = { ...prev, gpuType: value };
-                    if (value !== '__cpu__' && !_isPickedGpuInStock(_runpodCfg())) {
-                        _startWait(root);
-                    } else {
-                        _setEngineHint(root, 'Switched GPU — it’s available now. Connect to create a Pod on the new card.');
-                        _refreshEngineConnect(root);
-                    }
-                    return;
-                }
-                // MPI-86: switching GPU while a connect is IN FLIGHT auto-cancels it —
-                // the in-flight Pod is pinned to the old card, so kill it (stops
-                // billing) before adopting the new GPU. This is the out-of-stock /
-                // bad-host pivot (MPI-64 L1): bail and immediately Connect another.
-                if (_engineBusy && value && value !== prev.gpuType) {
-                    await _cancelConnect(root);
-                    state.runpodConfig = { ..._runpodCfg(), gpuType: value };
-                    _setEngineHint(root, 'Switched GPU — the in-flight connection was cancelled. Connect to create a Pod on the new card.');
-                    _refreshEngineConnect(root);
-                    return;
-                }
-                // Switching GPU while a (stopped/saved) Pod exists: that Pod is
-                // pinned to the old card, so delete it — the next Connect creates
-                // fresh on the new GPU (Step 4.3 GPU-switch path).
-                if (prev.podId && value && value !== prev.gpuType) {
-                    try { await fetch('/remote/pod/delete-active', { method: 'POST' }); } catch (_) { /* best-effort */ }
-                    state.runpodConfig = { ...prev, gpuType: value, podId: null, wasConnected: false };
-                    _setEngineHint(root, 'Switched GPU — your previous Pod was deleted. Connect to create one on the new card.');
-                } else {
-                    state.runpodConfig = { ...prev, gpuType: value };
-                }
-                // MPI-160: the min-RAM input shows for a real GPU but not the CPU download
-                // Pod — re-render the pickers when the pick crosses that boundary so the
-                // input appears/disappears. (Only on the boundary → no needless re-mount.)
-                const wasCpu = prev.gpuType === '__cpu__';
-                const nowCpu = value === '__cpu__';
-                if (wasCpu !== nowCpu) _renderRunpodPickers(root);
-                // Connect is gated on a picked GPU (Step 4.2) — refresh its state.
-                _refreshEngineConnect(root);
-            });
-            // Re-fetch live stock whenever the picker opens — RunPod availability
-            // drifts, and a stale "LOW" hint made users keep trying out-of-stock
-            // cards. Re-list the GPU options in place (keeps the panel open).
-            gpuInst.on('open', async () => {
-                const dcId = _runpodCfg().datacenter;
-                if (!dcId) return;
-                try {
-                    const res = await fetch(_availabilityUrl());
-                    if (res.ok) _runpodAvailability = await res.json();
-                } catch (_) { /* keep the last options on a failed refresh */ }
-                gpuInst.el.setOptions(_buildGpuOptions(dcId), _runpodCfg().gpuType || '');
-            });
-
-            // MPI-160: optional minimum system-RAM floor. RunPod honors minMemoryInGb as
-            // a hard placement filter, so a user whose model needs a high-RAM host sets a
-            // floor and RunPod only lands a host with >= that much system RAM. Hidden for
-            // the CPU download Pod and Any-region (RunPod ignores the floor there). 0 = no
-            // floor. Shown whenever a real DC is selected and the pick isn't the CPU Pod —
-            // a floor is a pre-set that applies to whichever GPU is chosen.
-            const minRamSlot = qs('#mpiSettingsRunpodMinRamSlot', root);
-            if (minRamSlot) {
-                minRamSlot.innerHTML = '';
-                const pickedCpu = cfg.gpuType === '__cpu__';
-                if (!anyRegion && !pickedCpu) {
-                    // Inline row: "Min System RAM [ 90 ] GB"
-                    const row = ce('div', { className: 'mpi-settings__minram-row' });
-                    const label = ce('span', {
-                        className: 'mpi-settings__minram-label',
-                        textContent: 'Min System RAM',
-                    });
-                    const inputHost = ce('div', { className: 'mpi-settings__minram-input' });
-                    const unit = ce('span', { className: 'mpi-settings__minram-unit', textContent: 'GB' });
-                    row.appendChild(label);
-                    row.appendChild(inputHost);
-                    row.appendChild(unit);
-                    minRamSlot.appendChild(row);
-                    const ramHint = ce('span', {
-                        className: 'mpi-settings__hint',
-                        textContent: 'Optional. RunPod only places on a host with at least this much system RAM. Leave 0 for any. Heavy video models perform better with high RAM (ComfyUI offloads weights to system RAM). If no matching host is free, connect will say so.',
-                    });
-                    minRamSlot.appendChild(ramHint);
-                    const ramInst = MpiInput.mount(inputHost, {
-                        type: 'number',
-                        min: 0,
-                        max: 2000,
-                        step: 10,
-                        value: Number(cfg.minRamGb) > 0 ? Number(cfg.minRamGb) : 0,
-                        size: 'sm',
-                    });
-                    ramInst.on('change', ({ value }) => {
-                        const gb = Math.max(0, Math.min(2000, Math.round(Number(value) || 0)));
-                        state.runpodConfig = { ..._runpodCfg(), minRamGb: gb };
-                    });
-                }
-            }
+            // MPI-894 1c: the GPU is chosen in an overlay after RunPod's deploy page
+            // (MpiGpuPicker). The panel keeps a one-line summary of the pick and the
+            // button that opens it; Auto-retry and the RAM floor moved in with it.
+            const pick = cfg.gpuType
+                ? _buildGpuCards(anyRegion ? ANY_REGION : dc.id).find(c => c.id === cfg.gpuType)
+                : null;
+            const row = ce('div', { className: 'mpi-settings__gpu-row' });
+            const btnHost = ce('div');
+            row.append(ce('span', { className: 'mpi-settings__gpu-pick', textContent: _gpuSummary(pick, cfg) }), btnHost);
+            gpuSlot.appendChild(row);
+            const chooseBtn = MpiButton.mount(btnHost, { text: 'Choose GPU', variant: 'secondary', size: 'sm' });
+            chooseBtn.on('click', () => _openGpuPicker(root));
         }
 
-        // Build the GPU picker options for a data center from the current
-        // _runpodAvailability snapshot (stock-led meta, $/hr, ranked High→Low).
-        function _buildGpuOptions(dcId) {
-            const dcs = _runpodAvailability?.dataCenters || [];
-            const gpus = _runpodAvailability?.gpuTypes || [];
-            const anyRegion = dcId === ANY_REGION;
-            // MPI-110: with auto-retry on, also surface out-of-stock GPUs so the user
-            // can pick the exact card to WAIT for. `unavailSet` holds GPU type ids
-            // that exist in the scope but have no available stock right now.
-            const autoRetry = _runpodCfg().autoRetry === true;
-            // MPI-78: "Any region" aggregates availability across EVERY DC (best stock
-            // wins per GPU) so the user sees the full Secure-Cloud catalogue like the
-            // RunPod console; a real DC scopes to that DC's gpuAvailability only.
-            let availMap;
-            const unavailSet = new Set();
-            if (anyRegion) {
-                availMap = new Map();
-                for (const d of dcs) {
-                    for (const g of (d.gpuAvailability || [])) {
-                        if (!g.available) { if (!availMap.has(g.gpuTypeId)) unavailSet.add(g.gpuTypeId); continue; }
-                        unavailSet.delete(g.gpuTypeId);
-                        const cur = availMap.get(g.gpuTypeId);
-                        if (!cur || (_stockRank[g.stockStatus] || 0) > (_stockRank[cur] || 0)) {
-                            availMap.set(g.gpuTypeId, g.stockStatus);
-                        }
-                    }
-                }
-            } else {
-                const dc = dcs.find(d => d.id === dcId);
-                if (!dc) return [];
-                availMap = new Map(
-                    (dc.gpuAvailability || [])
-                        .filter(g => g.available)
-                        .map(g => [g.gpuTypeId, g.stockStatus])
-                );
-                for (const g of (dc.gpuAvailability || [])) {
-                    if (!g.available && !availMap.has(g.gpuTypeId)) unavailSet.add(g.gpuTypeId);
-                }
-            }
-            // MPI-88: first option is the no-GPU "download mode" Pod. Picking it sets
-            // gpuType to the CPU sentinel, which satisfies the Connect guard and
-            // creates a CPU-only Pod (computeType:'CPU') — install models to the
-            // volume with no GPU billing, then switch to a real card to generate.
-            // It needs a volume to download onto, so it is hidden in Any-region mode.
-            const cpuOption = {
-                value: '__cpu__',
-                label: 'No GPU — download only',
-                meta: 'CPU instance · install models to the volume, no GPU billing',
-            };
-            // Stock leads the meta so it survives truncation in narrow panels.
-            // N/A mirrors the RunPod console's label for unrated stock.
-            const gpuOptions = gpus
-                .filter(g => g.secureCloud && (availMap.has(g.id) || (autoRetry && unavailSet.has(g.id))))
-                .map(g => {
-                    const inStock = availMap.has(g.id);
-                    const stock = availMap.get(g.id);
-                    const price = (typeof g.securePrice === 'number')
-                        ? ` · $${g.securePrice.toFixed(2)}/hr`
-                        : '';
-                    // System RAM (lowest-tier offering floor). Wan video needs
-                    // ≥64GB — flag low-RAM cards so the user knows video may OOM
-                    // (image gen is fine on less). No hard block.
-                    const ram = (typeof g.minMemory === 'number' && g.minMemory > 0)
-                        ? ` · ${g.minMemory}GB RAM${g.minMemory < 64 ? ' ⚠ video' : ''}`
-                        : '';
-                    // MPI-110: out-of-stock card shown only because auto-retry is on —
-                    // label it so the user knows Connect will wait for it. Ranked below
-                    // every in-stock card.
-                    const stockLabel = inStock ? (stock || 'N/A') : 'Unavailable — will wait';
-                    return {
-                        value: g.id,
-                        label: g.displayName || g.id,
-                        meta: `${stockLabel} · ${g.memoryInGb}GB VRAM${ram}${price}`,
-                        _rank: inStock ? (_stockRank[stock] || 0) : -1,
-                    };
-                })
-                .sort((a, b) => b._rank - a._rank);
-            // MPI-180: always include the currently-selected card, even when its
-            // stock just flipped unavailable (and auto-retry is off). Without this
-            // the dropdown re-renders to the "Select GPU..." placeholder while a
-            // Pod may be RUNNING on that very card — the selection looks lost.
-            const selected = _runpodCfg().gpuType;
-            if (selected && selected !== '__cpu__' && !gpuOptions.some(o => o.value === selected)) {
-                const g = gpus.find(x => x.id === selected);
-                gpuOptions.push({
-                    value: selected,
-                    label: g?.displayName || selected,
-                    meta: 'Unavailable right now · selected card',
+        function _gpuSummary(pick, cfg) {
+            if (!cfg.gpuType) return 'No GPU picked yet.';
+            if (!pick) return cfg.gpuType;
+            if (pick.cpu) return pick.name;
+            const price = typeof pick.price === 'number' ? ` · $${pick.price.toFixed(2)}/hr` : '';
+            const stock = pick.inStock ? `${pick.stock || 'N/A'} stock` : 'out of stock';
+            return `${pick.name} · ${pick.vramGb} GB VRAM${price} · ${stock}`;
+        }
+
+        function _pickerDcId() {
+            const cfg = _runpodCfg();
+            return _isAnyRegion(cfg) ? ANY_REGION : cfg.datacenter;
+        }
+
+        // Re-read live stock (on open and on the overlay's Refresh) - RunPod availability
+        // drifts, and a stale "LOW" hint made users keep trying out-of-stock cards.
+        async function _refreshGpuPicker() {
+            let ok = false;
+            try {
+                const res = await fetch(_availabilityUrl());
+                if (res.ok) { _runpodAvailability = await res.json(); ok = true; }
+            } catch (_) { /* keep the last snapshot; the overlay says the check failed */ }
+            _gpuPicker?.el.setCards(_buildGpuCards(_pickerDcId()), ok);
+        }
+
+        async function _openGpuPicker(root) {
+            const cfg = _runpodCfg();
+            const anyRegion = _isAnyRegion(cfg);
+            const dcId = _pickerDcId();
+            if (!dcId) return;
+            if (!_gpuPicker) {
+                _gpuPicker = MpiGpuPicker.mount(document.createElement('div'));
+                _gpuPicker.on('select', ({ id }) => _onGpuPicked(root, id));
+                _gpuPicker.on('refresh', () => _refreshGpuPicker());
+                // MPI-110: Auto-retry lists out-of-stock cards too, and Connect becomes a
+                // background poll that waits for the picked card to free, WITHOUT the
+                // blocking "connecting" state. Persist-only; boot reads it via Storage.
+                _gpuPicker.on('auto-retry', ({ on }) => {
+                    state.runpodConfig = { ..._runpodCfg(), autoRetry: on };
+                });
+                // MPI-160: RunPod honours the floor as a hard placement filter
+                // (gpu.minRamPerGpu) - a Pod requirement, not a tile filter. 0 = any host.
+                _gpuPicker.on('min-ram', ({ gb }) => {
+                    state.runpodConfig = { ..._runpodCfg(), minRamGb: gb };
                 });
             }
-            return anyRegion ? gpuOptions : [cpuOption, ...gpuOptions];
+            const dcName = anyRegion ? 'Any region'
+                : ((_runpodAvailability?.dataCenters || []).find(d => d.id === dcId)?.name || dcId);
+            _gpuPicker.el.open({
+                cards: _buildGpuCards(dcId),
+                selectedId: cfg.gpuType || null,
+                autoRetry: cfg.autoRetry === true,
+                minRamGb: cfg.minRamGb,
+                showMinRam: !anyRegion,   // RunPod ignores the floor in Any region
+                scope: `${dcName} · Secure Cloud · live stock`,
+            });
+            await _refreshGpuPicker();
+        }
+
+        async function _onGpuPicked(root, value) {
+            const prev = _runpodCfg();
+            // MPI-110: switching GPU while an auto-retry WAIT is live → switch the
+            // wait to the new card. Stop the shell loop (no Pod exists yet — nothing
+            // to tear down), adopt the new GPU, and if it's also out of stock start
+            // a fresh wait for it; if it's in stock, leave Connect ready so the user
+            // connects immediately. Without this the wait kept polling the OLD GPU.
+            if (_isWaiting() && value && value !== prev.gpuType) {
+                Events.emit('remote:wait-cancel');
+                state.runpodConfig = { ...prev, gpuType: value };
+                _renderRunpodPickers(root);
+                if (value !== '__cpu__' && !_isPickedGpuInStock(_runpodCfg())) {
+                    _startWait(root);
+                } else {
+                    _setEngineHint(root, 'Switched GPU — it’s available now. Connect to create a Pod on the new card.');
+                    _refreshEngineConnect(root);
+                }
+                return;
+            }
+            // MPI-86: switching GPU while a connect is IN FLIGHT auto-cancels it —
+            // the in-flight Pod is pinned to the old card, so kill it (stops
+            // billing) before adopting the new GPU. This is the out-of-stock /
+            // bad-host pivot (MPI-64 L1): bail and immediately Connect another.
+            if (_engineBusy && value && value !== prev.gpuType) {
+                await _cancelConnect(root);
+                state.runpodConfig = { ..._runpodCfg(), gpuType: value };
+                _renderRunpodPickers(root);
+                _setEngineHint(root, 'Switched GPU — the in-flight connection was cancelled. Connect to create a Pod on the new card.');
+                _refreshEngineConnect(root);
+                return;
+            }
+            // Switching GPU while a (stopped/saved) Pod exists: that Pod is
+            // pinned to the old card, so delete it — the next Connect creates
+            // fresh on the new GPU (Step 4.3 GPU-switch path).
+            if (prev.podId && value && value !== prev.gpuType) {
+                try { await fetch('/remote/pod/delete-active', { method: 'POST' }); } catch (_) { /* best-effort */ }
+                state.runpodConfig = { ...prev, gpuType: value, podId: null, wasConnected: false };
+                _setEngineHint(root, 'Switched GPU — your previous Pod was deleted. Connect to create one on the new card.');
+            } else {
+                state.runpodConfig = { ...prev, gpuType: value };
+            }
+            _renderRunpodPickers(root);   // the summary names the new pick
+            // Connect is gated on a picked GPU (Step 4.2) — refresh its state.
+            _refreshEngineConnect(root);
+        }
+
+        // The overlay's cards: the whole Secure Cloud catalogue with this DC's stock
+        // (`catalogueCards`, js/data/runpodGpuSpecs.js - why not the DC's own list lives
+        // there). MpiGpuPicker's Auto-retry switch is the filter: on = all, off = in stock.
+        function _buildGpuCards(dcId) {
+            const anyRegion = dcId === ANY_REGION;
+            const cards = catalogueCards(_runpodAvailability, anyRegion ? null : dcId);
+            // MPI-88: the no-GPU "download mode" Pod. Picking it sets gpuType to the CPU
+            // sentinel, which satisfies the Connect guard and creates a CPU-only Pod
+            // (computeType:'CPU') — install models to the volume with no GPU billing,
+            // then switch to a real card to generate. It needs a volume to download
+            // onto, so it is left out in Any-region mode.
+            const cpuCard = {
+                id: '__cpu__', cpu: true, inStock: true,
+                name: 'No GPU — download only',
+                note: 'CPU instance · install models to the volume, no GPU billing',
+            };
+            // MPI-180: always include the currently-selected card, even when it left the
+            // catalogue, so the pick never reads as lost while a Pod may be RUNNING on it.
+            const selected = _runpodCfg().gpuType;
+            if (selected && selected !== '__cpu__' && !cards.some(c => c.id === selected)) {
+                cards.push({ id: selected, name: selected, vramGb: 0, price: null, stock: null, inStock: false });
+            }
+            return anyRegion ? cards : [cpuCard, ...cards];
         }
 
         // Availability URL, scoped to the selected DC so GPU RAM (lowestPrice) is
@@ -1638,7 +1576,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
 
         // The RunPod controls are gated on a saved API key (the Enable toggle was
         // dropped — a key IS the opt-in). `enabled` here mirrors ONLY "a key is
-        // saved": it shows/hides the body + auto-connect/retry plates and persists
+        // saved": it shows/hides the body + the auto-connect plate and persists
         // so the drop-recovery guard (shell.js) knows RunPod is in use.
         //
         // It does NOT push remote-mode {active:true}. Remote mode = "route
@@ -1649,7 +1587,6 @@ export const MpiRunpodSettings = ComponentFactory.create({
         function _applyEnabled(root, enabled) {
             const body = qs('#mpiSettingsRunpodBody', root);
             const autoConnectGroup = qs('#mpiSettingsRunpodAutoConnectGroup', root);
-            const autoRetryGroup = qs('#mpiSettingsRunpodAutoRetryGroup', root);
             // MPI-404 (absorbed MPI-405): stage-on-connect is a Pod-connect behaviour,
             // so it belongs behind the key like the other two — the panel said the
             // controls were locked until a key is saved while this switch stayed live.
@@ -1659,7 +1596,6 @@ export const MpiRunpodSettings = ComponentFactory.create({
             const stageOnConnectGroup = qs('#mpiSettingsRunpodStageOnConnectGroup', root);
             body?.classList.toggle('mpi-settings__runpod-body--hidden', !enabled);
             autoConnectGroup?.classList.toggle('mpi-settings__runpod-body--hidden', !enabled);
-            autoRetryGroup?.classList.toggle('mpi-settings__runpod-body--hidden', !enabled);
             stageOnConnectGroup?.classList.toggle('mpi-settings__runpod-body--hidden', !enabled);
             if (_runpodCfg().enabled !== enabled) {
                 state.runpodConfig = { ..._runpodCfg(), enabled };
@@ -1747,29 +1683,6 @@ export const MpiRunpodSettings = ComponentFactory.create({
                         seInst.el.setDisabled?.(true);
                     })
                     .catch(() => { /* fail open — a hiccuped check must not lock the switch */ });
-            }
-
-            // ── Auto-retry connection (MPI-110) ──────────────────────────────
-            // When ON: the GPU picker also lists out-of-stock cards, and Connect
-            // becomes a background availability poll that waits for the picked GPU
-            // to free, then hands off to the normal create path — WITHOUT entering
-            // the blocking "connecting" state (local generation stays usable).
-            // Persist-only; boot reads it via Storage.getRunpodConfig().
-            const autoRetrySlot = qs('#mpiSettingsRunpodAutoRetrySlot', root);
-            if (autoRetrySlot) {
-                autoRetrySlot.innerHTML = '';
-                const arPlate = autoRetrySlot.closest('.mpi-settings__plate');
-                arPlate?.classList.toggle('mpi-settings__plate--on', cfg.autoRetry === true);
-                const arInst = MpiCheckbox.mount(autoRetrySlot, {
-                    checked: cfg.autoRetry === true,
-                    variant: 'switch',
-                });
-                arInst.on('change', ({ checked }) => {
-                    state.runpodConfig = { ..._runpodCfg(), autoRetry: checked === true };
-                    arPlate?.classList.toggle('mpi-settings__plate--on', checked === true);
-                    // Re-list GPUs so out-of-stock cards appear/disappear immediately.
-                    _renderRunpodPickers(root);
-                });
             }
 
             // ── Stage all models on connect (MPI-329) ────────────────────────
@@ -1924,6 +1837,8 @@ export const MpiRunpodSettings = ComponentFactory.create({
                                     // _connectEngine finally emit local · offline (shell owns the connect).
             _engineConnectInst?.destroy?.();
             _engineConnectInst = null;
+            _gpuPicker?.el.destroy?.();
+            _gpuPicker = null;
         };
     },
 });

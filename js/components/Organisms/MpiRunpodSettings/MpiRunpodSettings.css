@@ -64,36 +64,24 @@
     min-width: 0;
 }
 
-/* MPI-160: optional system-RAM floor input, inline: Min System RAM [ 90 ] GB */
-.mpi-settings__minram-row {
-    margin-top: var(--s-2);
+/* MPI-894 1c: the picked GPU, one line, beside the button that opens the overlay. */
+.mpi-settings__gpu-row {
     display: flex;
     align-items: center;
-    gap: var(--s-2);
+    gap: var(--s-3);
+}
+.mpi-settings__gpu-pick {
+    flex: 1;
+    min-width: 0;
     font-size: var(--t-sm);
-    line-height: 1.5;
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
 }
-.mpi-settings__minram-label {
-    flex-shrink: 0;
-}
-/* Hug the field (MpiInput --sm is ~6ch wide) so the GB unit sits right beside
-   it — a fixed host width would leave dead space between the box and "GB". */
-.mpi-settings__minram-input {
-    width: auto;
-    flex-shrink: 0;
-    display: flex;
-}
-.mpi-settings__minram-unit {
-    flex-shrink: 0;
-    color: var(--ink-3);
-}
-/* The floor hint is created via ce() as a sibling of the row. `body` sets
-   line-height:1.6 and, depending on sheet load order, can beat the shared
-   .mpi-settings__hint 1.5 rule for hints rendered by THIS component — so pin it
-   here, at higher specificity, scoped to the RunPod body. display:block keeps
+/* Hints created via ce() in the RunPod body. `body` sets line-height:1.6 and,
+   depending on sheet load order, can beat the shared .mpi-settings__hint 1.5 rule
+   for hints rendered by THIS component — so pin it here, at higher specificity. display:block keeps
    the inline span from taking the body's line metrics. */
-.mpi-settings__runpod-body span.mpi-settings__hint,
-.mpi-settings__minram-row + .mpi-settings__hint {
+.mpi-settings__runpod-body span.mpi-settings__hint {
     display: block;
     line-height: 1.5;
 }
