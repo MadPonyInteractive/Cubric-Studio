@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["services/imageCrop.js", "tests/crop-extend.test.cjs", "tests/image-orientation.test.cjs", "tests/sharp-16k-inputs.test.cjs", "docs/crop.md", "routes/gifTransform.js", "tests/gif-transform.test.cjs"] }

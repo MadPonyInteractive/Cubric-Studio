@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-990", "at": "2026-09-29T14:35:58+01:00", "actor": "claude", "column": "todo", "title": "Overhang crop re-encodes a JPEG: extract the in-bounds part, then extend, in one pipeline"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-990", "at": "2026-09-29T14:36:13+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-990", "at": "2026-09-29T14:58:29+01:00", "actor": "claude", "from": "doing", "to": "done"}
