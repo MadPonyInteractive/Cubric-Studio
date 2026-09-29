@@ -25,8 +25,9 @@
  *           frame; unparseable/omitted falls back to opaque black, the same
  *           default `services/imageCrop.js`'s `parseFill()` already uses.
  * The math itself is `services/imageCrop.js`'s `planExtendedCrop()` +
- * `parseFill()` (pad-then-extract, because Sharp's `.extract` throws on an
- * out-of-bounds rect) — reused here, not reimplemented, applied per frame
+ * `cropPipeline()` (extract the in-bounds part, then extend, because Sharp's
+ * `.extract` throws on an out-of-bounds rect) — reused here, not
+ * reimplemented, applied per frame
  * BUFFER instead of per file since frames live in the content-addressed
  * store, not as loose files a route can `.toFile()` over.
  *
@@ -71,7 +72,7 @@ const {
     buildGif,
     builtGifDimensions,
 } = require('../services/gifFrames');
-const { planExtendedCrop, parseFill } = require('../services/imageCrop');
+const { planExtendedCrop, cropPipeline } = require('../services/imageCrop');
 const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
 const { nextSequence } = require('./projects');
 
@@ -94,30 +95,16 @@ function projectFileUrl(filePath) {
 const TRANSFORM_MIN_MAX_EDGE = 2048;
 
 /**
- * Pad (if the rect leaves the frame) then extract, on a Buffer — the same
- * two-pass `services/imageCrop.js`'s `cropExtended()` runs on disk, adapted
- * to operate in memory since a GIF frame is content-addressed, not a loose
- * file this route owns the name of. `ensureAlpha()` on the way out keeps the
- * result a 4-channel RGBA PNG, matching every other frame in the store.
+ * Extract the in-bounds part, resample (RESOLUTION family), pad with the fill —
+ * the same one pipeline `services/imageCrop.js`'s `cropExtended()` runs on disk,
+ * on a Buffer since a GIF frame is content-addressed, not a loose file this
+ * route owns the name of. `ensureAlpha()` on the way out keeps the result a
+ * 4-channel RGBA PNG, matching every other frame in the store.
  */
 async function _cropFrameBuffer(buffer, { x, y, w, h, fill, outW, outH }) {
     const meta = await sharp(buffer).metadata();
-    const plan = planExtendedCrop({ srcW: meta.width, srcH: meta.height, x, y, w, h });
-
-    let pipeline;
-    if (plan.extends) {
-        const padded = await sharp(buffer)
-            .ensureAlpha()
-            .extend({ ...plan.extend, background: parseFill(fill) })
-            .toBuffer();
-        pipeline = sharp(padded).extract(plan.extract);
-    } else {
-        pipeline = sharp(buffer).extract(plan.extract);
-    }
-    // RESOLUTION crop family (docs/crop.md): the only one that resamples,
-    // chained the way `cropExtended()` does it.
-    if (outW) pipeline = pipeline.resize(outW, outH, { fit: 'fill' });
-    return pipeline.ensureAlpha().png().toBuffer();
+    const plan = planExtendedCrop({ srcW: meta.width, srcH: meta.height, x, y, w, h, outW, outH });
+    return cropPipeline(sharp(buffer), plan, fill, 4).ensureAlpha().png().toBuffer();
 }
 
 /**

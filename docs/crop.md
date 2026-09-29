@@ -65,28 +65,37 @@ sub-8px border is the thing the feature exists to prevent.
   a bound; the smallest correction inside the radius wins. Sign 0 (edge handles,
   shift-from-centre) means both edges move, and it snaps symmetrically.
 
-## Server: pad first, then extract
+## Server: extract the part on the image, then extend
 
-`services/imageCrop.js`. Sharp's `.extract` **throws** on an out-of-bounds rect, so the overhang
-has to exist before the extract:
+`services/imageCrop.js`. Sharp's `.extract` **throws** on an out-of-bounds rect, so the crop is
+split into the part ON the image and the fill around it — ONE pipeline (MPI-990):
 
-1. `planExtendedCrop()` — pure maths, returns the pad per side (`max(0, -x)` etc.) and the extract
-   rect shifted by the left/top pad.
-2. `.extend({...pad, background: fill})` → **`.toBuffer()`** → `sharp(buffer).extract(...)`.
-3. optional `.resize(outW, outH, { fit: 'fill' })` for the `resolution` family.
+1. `planExtendedCrop()` — pure maths: `extract` = rect ∩ image in source pixels (`null` when they
+   miss: the output is a solid fill, `sharp({ create })`), `extend` = the overhang per side,
+   `resize` for the `resolution` family, `width`/`height` = the output size.
+2. `cropPipeline()` — `.extract(intersection)` → optional `.resize(..., { fit: 'fill' })` →
+   `.extend({...overhang, background: fill})`. Shared with `POST /gif/crop`
+   (`routes/gifTransform.js`).
 
-**The two-pass is not optional.** Sharp applies `extend` *after* extraction regardless of call
-order, so chaining them extracts from the unpadded image and dies with
-`extract_area: bad extract area`. Materialising the padded image is the only way round it.
+**Sharp applies `extend` after extract and resize, whatever the call order** — which is exactly
+this order, so there is no intermediate image. It used to be the other way round: pad the WHOLE
+image to a `.toBuffer()` (in the INPUT's format, so a JPEG took an extra q80 encode, up to 96 per
+channel off), then extract. On a 16K photo that pass took 3 s and ~2 GB peak for a 4000x3000
+crop; the one pipeline takes 0.35 s and 250 MB.
+
+**A resample pads in OUTPUT pixels.** Resize runs before extend, so `planExtendedCrop` scales the
+overhang (`scaleSpan`: rounded, never shrinking the image below 1px) and resizes only the
+in-bounds part. The image/fill edge is crisp (the old pass blended fill into the photo's edge) and
+can sit up to half an output pixel from where exact scaling would put it.
 
 **The rect is in UPRIGHT pixels (MPI-959).** Chromium shows an EXIF-rotated photo turned, so the
 box is drawn on the turned picture; sharp reads the stored grid unless told. Every input passes
 `autoOrient: true` and the plan reads `metadata().autoOrient`, never `metadata().width`. Without
 it a portrait phone photo (stored landscape, orientation 6) was cut in the wrong place and written
 sideways. New imports are baked upright anyway (`docs/gallery.md` § Import); this covers files
-already on disk. Test: `tests/image-orientation.test.cjs`, desktop `crop-resize-output.spec.js`.
-The padded intermediate keeps the INPUT's format, so an overhanging crop of a JPEG passes through
-one extra JPEG encode.
+already on disk. Test: `tests/image-orientation.test.cjs` (every case on a JPEG, compared exactly),
+desktop `crop-resize-output.spec.js`. `autoOrient` turns the image BEFORE the extract, so the
+intersection is in upright pixels too.
 
 `roundToDivisible()` still floors when rounding up overshoots its `max` — the crop viewer now
 passes `Infinity` because an overshoot is filled rather than clipped, but the bound stays in the

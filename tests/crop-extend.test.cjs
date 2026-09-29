@@ -1,8 +1,8 @@
 // MPI-383. The crop rect may now leave the image, and two bits of pure maths
 // decide whether that works:
-//   1. planExtendedCrop — how much to pad and where the extract lands inside
-//      the padded image. Get it wrong and Sharp either throws (out of bounds)
-//      or silently returns the wrong pixels.
+//   1. planExtendedCrop — the part of the rect on the image (extract) and the
+//      fill around it (extend). Get it wrong and Sharp either throws (out of
+//      bounds) or silently returns the wrong pixels.
 //   2. cropSnap — an edge inside the snap radius must land EXACTLY on the image
 //      bound (the whole point: no accidental 1–2px border), and in ratio mode
 //      the snap must move the scale, never break the ratio.
@@ -50,35 +50,73 @@ test('a rect inside the image needs no pad', () => {
     assert.strictEqual(p.extends, false);
     assert.deepStrictEqual(p.extend, { top: 0, bottom: 0, left: 0, right: 0 });
     assert.deepStrictEqual(p.extract, { left: 10, top: 20, width: 100, height: 200 });
+    assert.strictEqual(p.resize, null);
+    assert.deepStrictEqual([p.width, p.height], [100, 200]);
 });
 
-test('overhang left/top pads by the overhang and shifts the extract onto it', () => {
+// MPI-990: the extract is the part ON the image, in source pixels, and the
+// overhang is added after it — one sharp pipeline, no padded intermediate.
+test('overhang left/top extracts the in-bounds part and pads the near side', () => {
     const p = planExtendedCrop({ ...SRC, x: -100, y: -50, w: 500, h: 400 });
+    assert.deepStrictEqual(p.extract, { left: 0, top: 0, width: 400, height: 350 });
     assert.deepStrictEqual(p.extend, { top: 50, bottom: 0, left: 100, right: 0 });
-    // The source moved right/down by the pad, so the rect starts at the pad's origin.
-    assert.deepStrictEqual(p.extract, { left: 0, top: 0, width: 500, height: 400 });
+    assert.deepStrictEqual([p.width, p.height], [500, 400]);
 });
 
 test('overhang right/bottom pads the far side only', () => {
     const p = planExtendedCrop({ ...SRC, x: 700, y: 900, w: 500, h: 300 });
+    assert.deepStrictEqual(p.extract, { left: 700, top: 900, width: 84, height: 80 });
     assert.deepStrictEqual(p.extend, { top: 0, bottom: 220, left: 0, right: 416 });
-    assert.deepStrictEqual(p.extract, { left: 700, top: 900, width: 500, height: 300 });
 });
 
-test('the extract always lands inside the padded image', () => {
-    const rects = [
+test('a rect that misses the image is all fill', () => {
+    for (const r of [
         { x: -500, y: -500, w: 100, h: 100 },   // entirely off the top-left
         { x: 1200, y: 1400, w: 100, h: 100 },   // entirely off the bottom-right
-        { x: -300, y: 100, w: 1920, h: 1080 },  // wider than the source both ways
-    ];
-    for (const r of rects) {
+        { x: 784, y: 0, w: 10, h: 10 },         // touching the right edge, not on it
+    ]) {
         const p = planExtendedCrop({ ...SRC, ...r });
-        const paddedW = SRC.srcW + p.extend.left + p.extend.right;
-        const paddedH = SRC.srcH + p.extend.top + p.extend.bottom;
-        assert.ok(p.extract.left >= 0 && p.extract.top >= 0, `negative origin for ${JSON.stringify(r)}`);
-        assert.ok(p.extract.left + p.extract.width <= paddedW, `overflows width for ${JSON.stringify(r)}`);
-        assert.ok(p.extract.top + p.extract.height <= paddedH, `overflows height for ${JSON.stringify(r)}`);
+        assert.strictEqual(p.extract, null, JSON.stringify(r));
+        assert.deepStrictEqual([p.width, p.height], [r.w, r.h]);
     }
+    const resampled = planExtendedCrop({ ...SRC, x: -500, y: -500, w: 100, h: 100, outW: 50, outH: 50 });
+    assert.deepStrictEqual([resampled.width, resampled.height], [50, 50]);
+});
+
+/** The extract sits inside the source, and extract (or its resize) + pads rebuild the output exactly. */
+function assertPlanFits(p, r) {
+    const label = JSON.stringify(r);
+    const e = p.extract;
+    assert.ok(e.left >= 0 && e.top >= 0, `negative origin for ${label}`);
+    assert.ok(e.left + e.width <= SRC.srcW && e.top + e.height <= SRC.srcH, `leaves the source for ${label}`);
+    const inner = p.resize || e;
+    assert.ok(inner.width >= 1 && inner.height >= 1, `image vanished for ${label}`);
+    assert.strictEqual(p.extend.left + inner.width + p.extend.right, p.width, `width for ${label}`);
+    assert.strictEqual(p.extend.top + inner.height + p.extend.bottom, p.height, `height for ${label}`);
+}
+
+test('the extract always lands inside the source and the pads make up the rest', () => {
+    for (const r of [
+        { x: -300, y: 100, w: 1920, h: 1080 },  // wider than the source both ways
+        { x: -10, y: -10, w: 11, h: 11 },       // a 1px corner of image
+        { x: 783, y: 979, w: 400, h: 400 },
+        { x: -300, y: 100, w: 1920, h: 1080, outW: 960, outH: 540 },
+        { x: -999, y: 0, w: 1000, h: 100, outW: 100, outH: 10 },  // a 1px sliver, downscaled 10x
+        { x: 783, y: 0, w: 1000, h: 100, outW: 100, outH: 10 },   // the same on the far side
+        { x: -7, y: -3, w: 333, h: 333, outW: 1000, outH: 1000 }, // upscaled
+    ]) {
+        assertPlanFits(planExtendedCrop({ ...SRC, ...r }), r);
+    }
+});
+
+test('a resampled overhang pads in OUTPUT pixels, scaled with the rest', () => {
+    // Half size: sharp resizes before it extends, so the pad halves too.
+    const p = planExtendedCrop({ ...SRC, x: -100, y: -50, w: 500, h: 400, outW: 250, outH: 200 });
+    assert.deepStrictEqual(p.extract, { left: 0, top: 0, width: 400, height: 350 });
+    assert.deepStrictEqual(p.resize, { width: 200, height: 175 });
+    assert.deepStrictEqual(p.extend, { top: 25, bottom: 0, left: 50, right: 0 });
+    // Same size asked for = no resample.
+    assert.strictEqual(planExtendedCrop({ ...SRC, x: -100, y: -50, w: 500, h: 400, outW: 500, outH: 400 }).resize, null);
 });
 
 test('fill parses hex, objects and garbage (garbage = black, never a throw)', () => {

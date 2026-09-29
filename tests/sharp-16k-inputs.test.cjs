@@ -96,13 +96,14 @@ test('cropExtended: a crop inside a 16K image', async () => {
     assert.equal((await sharp(out).metadata()).width, 1000);
 });
 
-test('cropExtended: a crop that extends past a 16K image (the padded pass)', async () => {
+test('cropExtended: a crop that extends past a 16K image (extract, then extend)', async () => {
     const { cropExtended } = require('../services/imageCrop.js');
     const { dir, red } = await fixtures();
     const out = path.join(dir, 'crop-extend.jpg');
     const size = await cropExtended(red, out, { x: -100, y: -100, w: 1000, h: 1000, fill: '#000000' });
     assert.deepEqual(size, { width: 1000, height: 1000 });
     near(await pixel(out, 500, 500), { r: 220, g: 30, b: 30 }, 'inside the source');
+    near(await pixel(out, 40, 40), { r: 0, g: 0, b: 0 }, 'the fill');
 });
 
 // ── services/imageComposite.js ───────────────────────────────────────────────

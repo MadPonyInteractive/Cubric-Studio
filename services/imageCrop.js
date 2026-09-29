@@ -1,12 +1,14 @@
 /**
  * imageCrop.js — crop an image to a rect that may fall OUTSIDE it (MPI-383).
  *
- * Sharp's `.extract` throws on an out-of-bounds rect, so anything the crop box
- * selects beyond the source has to exist first: pad the image by exactly the
- * overhang with the fill colour, then extract from the padded image with the
- * rect shifted by the left/top pad. RESOLUTION-family crops resample after.
+ * Sharp's `.extract` throws on an out-of-bounds rect, so the crop is split in
+ * two: extract the part of the rect that lies ON the image, then extend it by
+ * the overhang with the fill colour. Sharp applies extend after extract (and
+ * after resize) whatever the call order — exactly the order wanted, so it is
+ * ONE pipeline with no intermediate image (MPI-990). RESOLUTION-family crops
+ * resample the in-bounds part and pad by the overhang in output pixels.
  *
- * Used by POST /project/crop-media.
+ * Used by POST /project/crop-media and POST /gif/crop.
  */
 
 const sharp = require('sharp');
@@ -40,27 +42,71 @@ function parseFill(value) {
 }
 
 /**
- * Work out the pad + extract pair for a (possibly out-of-bounds) crop rect.
- * Pure maths — no Sharp, no IO.
- *
- * @param {{srcW:number,srcH:number,x:number,y:number,w:number,h:number}} r
- * @returns {{extend:{top:number,bottom:number,left:number,right:number},
- *            extract:{left:number,top:number,width:number,height:number},
- *            extends:boolean}}
+ * Where the image span [a, b) of a `size`-long rect edge lands in an `out`-long
+ * output: [padBefore, padAfter]. Exact when out === size; rounded when resampling,
+ * but never below 1px, so a sliver of image cannot vanish into the fill.
  */
-function planExtendedCrop({ srcW, srcH, x, y, w, h }) {
-    const left   = Math.max(0, -x);
-    const top    = Math.max(0, -y);
-    const right  = Math.max(0, (x + w) - srcW);
-    const bottom = Math.max(0, (y + h) - srcH);
+function scaleSpan(a, b, size, out) {
+    let lo = Math.round(a * out / size);
+    let hi = Math.round(b * out / size);
+    if (hi <= lo) {
+        if (hi < out) hi = lo + 1;
+        else lo = hi - 1;
+    }
+    return [lo, out - hi];
+}
 
+/**
+ * Split a (possibly out-of-bounds) crop rect into the part ON the image and
+ * the fill around it. Pure maths — no Sharp, no IO.
+ *
+ * - `extract`: the rect ∩ image in SOURCE pixels, or null when they do not meet
+ *   (the output is then all fill).
+ * - `resize`: the size the extract resamples to (RESOLUTION family), or null.
+ * - `extend`: the fill per side, in OUTPUT pixels — sharp extends after resize.
+ * - `width`/`height`: the output size.
+ *
+ * @param {{srcW:number,srcH:number,x:number,y:number,w:number,h:number,outW?:number,outH?:number}} r
+ */
+function planExtendedCrop({ srcW, srcH, x, y, w, h, outW, outH }) {
+    const resample = outW > 0 && outH > 0 && (outW !== w || outH !== h);
+    const width = resample ? outW : w;
+    const height = resample ? outH : h;
+
+    const x0 = Math.max(0, x);
+    const y0 = Math.max(0, y);
+    const x1 = Math.min(srcW, x + w);
+    const y1 = Math.min(srcH, y + h);
+    if (x1 <= x0 || y1 <= y0) {
+        return { extract: null, resize: null, extend: null, extends: false, width, height };
+    }
+
+    const [left, right] = scaleSpan(x0 - x, x1 - x, w, width);
+    const [top, bottom] = scaleSpan(y0 - y, y1 - y, h, height);
     return {
+        extract: { left: x0, top: y0, width: x1 - x0, height: y1 - y0 },
+        resize: resample ? { width: width - left - right, height: height - top - bottom } : null,
         extend: { top, bottom, left, right },
-        // Coordinates inside the PADDED image: the pad pushed the source right
-        // and down by left/top, so the rect moves with it.
-        extract: { left: x + left, top: y + top, width: w, height: h },
         extends: (top + bottom + left + right) > 0,
+        width,
+        height,
     };
+}
+
+/**
+ * The sharp pipeline for a plan, on `source` (a sharp instance of the image).
+ * One pipeline, no intermediate: extract, resample, then pad. A rect that
+ * misses the image is a solid fill with `channels` channels.
+ */
+function cropPipeline(source, plan, fill, channels = 3) {
+    const background = parseFill(fill);
+    if (!plan.extract) {
+        return sharp({ create: { width: plan.width, height: plan.height, channels, background } });
+    }
+    let pipeline = source.extract(plan.extract);
+    if (plan.resize) pipeline = pipeline.resize(plan.resize.width, plan.resize.height, { fit: 'fill' });
+    if (plan.extends) pipeline = pipeline.extend({ ...plan.extend, background });
+    return pipeline;
 }
 
 /**
@@ -79,7 +125,7 @@ function planExtendedCrop({ srcW, srcH, x, y, w, h }) {
  * @returns {Promise<{width:number,height:number}>} written pixel size
  */
 async function cropExtended(inputPath, outPath, { x, y, w, h, fill, outW, outH }) {
-    const { autoOrient: upright } = await sharp(inputPath, INPUT).metadata();
+    const { autoOrient: upright, hasAlpha } = await sharp(inputPath, INPUT).metadata();
     const plan = planExtendedCrop({
         srcW: upright.width,
         srcH: upright.height,
@@ -87,33 +133,12 @@ async function cropExtended(inputPath, outPath, { x, y, w, h, fill, outW, outH }
         y: Math.round(y),
         w: Math.round(w),
         h: Math.round(h),
+        outW: Math.round(outW),
+        outH: Math.round(outH),
     });
 
-    // TWO passes, deliberately. Sharp applies `extend` AFTER extraction no
-    // matter what order they are called in, so chaining them extracts from the
-    // unpadded image and throws "extract_area: bad extract area". Materialising
-    // the padded image first is the only way round it.
-    let pipeline;
-    if (plan.extends) {
-        const padded = await sharp(inputPath, INPUT)
-            .extend({ ...plan.extend, background: parseFill(fill) })
-            .toBuffer();
-        pipeline = sharp(padded, INPUT).extract(plan.extract);
-    } else {
-        pipeline = sharp(inputPath, INPUT).extract(plan.extract);
-    }
-
-    const resample = outW > 0 && outH > 0
-        && (Math.round(outW) !== plan.extract.width || Math.round(outH) !== plan.extract.height);
-    if (resample) {
-        pipeline = pipeline.resize(Math.round(outW), Math.round(outH), { fit: 'fill' });
-    }
-
-    await pipeline.toFile(outPath);
-
-    return resample
-        ? { width: Math.round(outW), height: Math.round(outH) }
-        : { width: plan.extract.width, height: plan.extract.height };
+    await cropPipeline(sharp(inputPath, INPUT), plan, fill, hasAlpha ? 4 : 3).toFile(outPath);
+    return { width: plan.width, height: plan.height };
 }
 
-module.exports = { cropExtended, planExtendedCrop, parseFill };
+module.exports = { cropExtended, cropPipeline, planExtendedCrop, parseFill };

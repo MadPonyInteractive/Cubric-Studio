@@ -102,16 +102,17 @@ const postJson = (url, body) => fetch(url, {
 for (const orientation of [6, 8, 5]) {
     test(`crop: orientation ${orientation} cuts the rect the canvas showed`, async () => {
         const dir = await scratchDir('orient-crop-');
-        // The overhang pads through an intermediate in the INPUT's format (a JPEG
-        // re-encode for a JPEG), so it runs on a PNG, where the comparison is exact.
-        const jpeg = await fixture(dir, orientation);
-        const png = await fixture(dir, orientation, '', 'png');
+        // All on the JPEG, exact: the overhang is one pipeline, with no intermediate
+        // re-encode in the input's format to blur it (MPI-990).
+        const { rotated, upright } = await fixture(dir, orientation);
         const rects = {
-            inside: [jpeg, { x: 2, y: 5, w: 12, h: 20 }],
-            resampled: [jpeg, { x: 0, y: 0, w: 20, h: 40, outW: 10, outH: 20 }],
-            overhang: [png, { x: -4, y: 30, w: 20, h: 16, fill: '#00ff00' }],
+            inside: { x: 2, y: 5, w: 12, h: 20 },
+            resampled: { x: 0, y: 0, w: 20, h: 40, outW: 10, outH: 20 },
+            overhang: { x: -4, y: 30, w: 20, h: 16, fill: '#00ff00' },
+            overhangResampled: { x: -4, y: 30, w: 20, h: 16, outW: 10, outH: 8, fill: '#00ff00' },
+            miss: { x: 30, y: -20, w: 8, h: 6, fill: '#00ff00' },
         };
-        for (const [name, [{ rotated, upright }, rect]] of Object.entries(rects)) {
+        for (const [name, rect] of Object.entries(rects)) {
             const got = path.join(dir, `${name}-got.png`);
             const want = path.join(dir, `${name}-want.png`);
             const size = await cropExtended(rotated, got, rect);
