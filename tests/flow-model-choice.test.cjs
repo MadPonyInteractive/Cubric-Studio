@@ -723,6 +723,20 @@ test('the Extend Video pick selects the GRAPH, not just params (MPI-591)', async
     );
 });
 
+test('the H3 extend re-takes its audio from the JOIN, never from the end (MPI-974)', () => {
+    // H3 decodes round(frames * 40 / 24) audio steps, so its track runs 1/3 step (267 samples
+    // at 32 kHz) longer or shorter than the picture whenever the frame count is not a multiple
+    // of 3. Counting the splice back from the END of that track raised "runs 267 samples past
+    // the end" at 6, 8 and 10 s added, and landed 8 ms early at most other lengths. The join
+    // (the source's own frame count) is where picture and sound line up by construction.
+    const g = readJson('comfy_workflows/flow_h3_extend.json');
+    const splice = Object.values(g).find(n => n.class_type === 'MpiAudioSplice');
+    const start = g[splice.inputs.start[0]];
+    const video = Object.keys(g).find(id => g[id]._meta?.title === 'Input_Video');
+    assert.deepEqual(start.inputs.a, [video, 3], 'the splice start must read Input_Video frame_count');
+    assert.equal(start.inputs.math_expression, 'a - 24', '24 frames before the join, as #974 re-takes');
+});
+
 test('the Draw It In arm matches the weights, and the encoder moves with it (MPI-567)', async () => {
     // WAS two independent slots — an SDXL checkpoint for a render phase and a Klein model
     // for a blend phase. MPI-621 deleted the render phase outright, so there is ONE slot

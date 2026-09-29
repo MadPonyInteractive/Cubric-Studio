@@ -583,19 +583,15 @@
   },
   "953": {
     "inputs": {
-      "math_expression": "b - a",
+      "math_expression": "a - 24",
       "a": [
-        "213",
-        0
-      ],
-      "b": [
-        "974",
-        0
+        "331",
+        3
       ]
     },
     "class_type": "MpiMath",
     "_meta": {
-      "title": "Splice Start (re-take start - frames)"
+      "title": "Splice Start (source frames - 24)"
     }
   },
   "954": {

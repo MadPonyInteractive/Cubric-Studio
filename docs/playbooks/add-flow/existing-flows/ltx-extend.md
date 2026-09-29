@@ -104,7 +104,8 @@ context (#941); the stitch is the WHOLE source plus those frames (#979). Audio: 
 trimmed to its exact frame count (#950), joined to the generated audio after the context (#907),
 then a 24-frame re-take window spliced back with a crossfade (#951-#953). **Every offset reads the
 node's own snapped `context_frames` (#972 output 1), never a literal:** #941 and #942 directly,
-#951 and #953 through #974 (`context - 24`). The old literal 16 re-took 74 frames at context 90.
+#951 through #974 (`context - 24`). The old literal 16 re-took 74 frames at context 90. #953
+places that re-take at `source frames - 24` (MPI-974) — the join, not the end; see the fourth trap.
 Needs MpiNodes at `bc92a1b` or later (below).
 
 **Three traps, all paid for in a real run, none visible on the bench:**
@@ -128,6 +129,16 @@ Needs MpiNodes at `bc92a1b` or later (below).
   `A 229688-sample patch ... runs 875 samples past the end`. Fixed in the node (MpiNodes
   `bc92a1b`): a negative index counts back from the LAST SAMPLE, and the splice drops an overhang
   of up to 1 ms (two rounded half-sample offsets) while still raising on anything a frame wide.
+- **H3's audio is not the picture's length, so never count back from its END.** Core sizes the
+  audio latent `round(frames * 40 / 24)` steps of 800 samples at 32 kHz: exact only when the
+  frame count divides by 3. Otherwise the track is 267 samples longer (frames % 3 == 1) or
+  shorter (== 2). #953 used to be `(context - 24) - length`, counted from the end, and raised
+  `A 281600-sample patch ... runs 267 samples past the end` on Fabio's 8 s run (2026-09-29,
+  MPI-974); an offline replay of the real nodes over 10 durations x 3 contexts x 4 source
+  lengths x 2 source rates failed or misplaced 192 of 240, clean only at 2 s / 4 s added.
+  The verified runs were 4 s. Anchored at the join (`Input_Video frame_count - 24`) all 240
+  land within 2 samples. Pinned by `tests/flow-model-choice.test.cjs` § MPI-974. The output
+  track can still end up to 8 ms off the last frame; harmless, not trimmed.
 
 **Known, not fixed:** a source whose audio is SHORTER than its picture (clip 062, by 881 samples)
 joins the new audio ~20 ms early. The fix is silence padding up to the frame count, not a trim.

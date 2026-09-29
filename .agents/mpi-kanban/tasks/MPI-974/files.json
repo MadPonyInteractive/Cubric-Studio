@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["comfy_workflows/raw/flow_h3_extend.json", "comfy_workflows/flow_h3_extend.json", "comfy_workflows/scripts/workflow_generation/flow_h3_extend.json", "docs/playbooks/add-flow/existing-flows/ltx-extend.md", "tests/flow-model-choice.test.cjs", ".agents/mpi-kanban/tasks/MPI-974/"]}
