@@ -21,7 +21,7 @@
 - **Related, not a member:** MPI-957 (Canvas aliases large images when zoomed out) - closed
   2026-09-29 on Fabio's eye-test.
 - **Status 2026-09-29:** MPI-961 and MPI-963 closed, Fabio verified; the detail layer was deferred by
-  Fabio (MPI-961 closed without it). Open: MPI-959 (no code yet) and MPI-971.
+  Fabio (MPI-961 closed without it). MPI-959 closed (`28547517d`, Fabio verified). Open: MPI-971.
 - **2.0 gate (Fabio 2026-09-29):** MPI-959 and MPI-971 both land before 2.0 - UNRELEASED.md already
   says "Big photos just work ... import, thumbnail and edit", which is false until they do.
 - **Fallback that exists today:** the Resize tool's `rotation` lets a user rotate by hand - the answer
@@ -29,7 +29,7 @@
 
 ## Parallel Batch 1: EXIF fix + 16K measurement (disjoint)
 
-- [ ] **MPI-959 EXIF orientation (auto).** Auto-orient before planning in `cropExtended` and in
+- [x] (closed `28547517d`, Fabio verified) **MPI-959 EXIF orientation (auto).** Auto-orient before planning in `cropExtended` and in
   `imageComposite.js` (`compositeThroughMask`, `compositeOverlay`); bake orientation on import in the
   upload route. Grep every other `sharp(` consumer that takes canvas coordinates or a canvas-sized
   overlay. Check the four "why it fails" cases from the brief on real files.
