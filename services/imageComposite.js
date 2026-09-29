@@ -15,6 +15,9 @@
 const sharp = require('sharp');
 // Every input passes limitInputPixels: false: photographers load 16K images (268 MP),
 // past sharp's default limit, and the limit fires on metadata() too (MPI-925).
+// autoOrient on every FILE input: the mask and paint layer are drawn on the canvas, which
+// shows an EXIF-rotated photo upright; sharp reads the stored grid unless told to (MPI-959).
+const FILE_INPUT = { limitInputPixels: false, autoOrient: true };
 
 /** Feather sigma when the caller doesn't pick one: ~2.5px at 1024px. */
 function defaultFeather(width, height) {
@@ -83,7 +86,7 @@ function fillMaskHoles(data, width, height, threshold = 128) {
  * @returns {Promise<{width: number, height: number}>} the written image's dimensions
  */
 async function compositeThroughMask({ basePath, overlayPath, maskBuffer, outPath, feather, fillHoles }) {
-    const { width, height } = await sharp(basePath, { limitInputPixels: false }).metadata();
+    const { width, height } = (await sharp(basePath, FILE_INPUT).metadata()).autoOrient;
     if (!width || !height) throw new Error('Could not read base image dimensions');
 
     const sigma = Number.isFinite(feather) ? feather : defaultFeather(width, height);
@@ -138,7 +141,7 @@ async function compositeThroughMask({ basePath, overlayPath, maskBuffer, outPath
     // measured 2026-08-04 as exactly 4x1136 = 4544 transparent pixels. It could not
     // happen while this was `fit: 'fill'` (no crop, so the sizes always matched), which
     // is why MPI-373's cover change is what introduced it.
-    const overlayRgb = await sharp(overlayPath, { limitInputPixels: false })
+    const overlayRgb = await sharp(overlayPath, FILE_INPUT)
         .resize(width, height, { fit: 'cover', position: 'centre' })
         .flatten({ background: '#000000' })
         .toColourspace('srgb')
@@ -150,7 +153,7 @@ async function compositeThroughMask({ basePath, overlayPath, maskBuffer, outPath
         .png()
         .toBuffer();
 
-    await sharp(basePath, { limitInputPixels: false }).composite([{ input: overlay, limitInputPixels: false }]).toFile(outPath);
+    await sharp(basePath, FILE_INPUT).composite([{ input: overlay, limitInputPixels: false }]).toFile(outPath);
     return { width, height };
 }
 
@@ -170,7 +173,7 @@ async function compositeThroughMask({ basePath, overlayPath, maskBuffer, outPath
  * @returns {Promise<{width: number, height: number}>} the written image's dimensions
  */
 async function compositeOverlay({ basePath, overlayBuffer, outPath, opacity = 1 }) {
-    const { width, height } = await sharp(basePath, { limitInputPixels: false }).metadata();
+    const { width, height } = (await sharp(basePath, FILE_INPUT).metadata()).autoOrient;
     if (!width || !height) throw new Error('Could not read base image dimensions');
 
     let overlay = await sharp(overlayBuffer, { limitInputPixels: false })
@@ -197,7 +200,7 @@ async function compositeOverlay({ basePath, overlayBuffer, outPath, opacity = 1 
             .toBuffer();
     }
 
-    await sharp(basePath, { limitInputPixels: false }).composite([{ input: overlay, limitInputPixels: false }]).toFile(outPath);
+    await sharp(basePath, FILE_INPUT).composite([{ input: overlay, limitInputPixels: false }]).toFile(outPath);
     return { width, height };
 }
 

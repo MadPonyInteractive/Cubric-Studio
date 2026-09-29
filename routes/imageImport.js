@@ -62,6 +62,28 @@ async function reduceImage(src, maxPixels) {
     return { path: dest, w: info.width, h: info.height };
 }
 
+/**
+ * Turn a file that just entered a project upright, in place (MPI-959). Chromium and the
+ * engine's loader honour EXIF orientation and sharp reads the stored grid, so a tag left
+ * on disk makes every server reader cut the wrong pixels. After this there is nothing
+ * left to turn. Only formats written back as themselves; anything else, and a file with
+ * nothing to turn, is left byte for byte. EXIF (orientation reset) and ICC are kept.
+ * Chromium ignores a WebP's tag, so a renderer that measured one sent the stored size:
+ * the caller takes the size from here for a file this turned.
+ * @returns {Promise<{w:number,h:number}|null>} the new size, null when untouched
+ */
+async function bakeOrientation(file) {
+    const m = await sharp(file, { limitInputPixels: false }).metadata().catch(() => null);
+    const out = OUTPUT[m?.format];
+    if (!out || !(m.orientation > 1)) return null;
+    const img = sharp(file, { limitInputPixels: false }).autoOrient().keepExif().keepIccProfile();
+    const { data, info } = await out.apply(img).toBuffer({ resolveWithObject: true });
+    // Overwriting a file sharp just read needs `sharp.cache({ files: 0 })` (services/ffmpegThumb.js):
+    // libvips otherwise keeps a WebP open on Windows and this write fails EBUSY.
+    await fs.writeFile(file, data);
+    return { w: info.width, h: info.height };
+}
+
 /** Temp copies are consumed by the upload that follows; sweep anything left behind. */
 async function _sweepTmp() {
     const names = await fs.readdir(TMP_DIR).catch(() => []);
@@ -100,4 +122,4 @@ router.post('/image-import/reduce', async (req, res) => {
     }
 });
 
-module.exports = { router, imageSize, reduceImage };
+module.exports = { router, imageSize, reduceImage, bakeOrientation };

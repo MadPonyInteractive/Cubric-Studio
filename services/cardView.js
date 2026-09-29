@@ -39,8 +39,9 @@ async function viewFile(file, { frames = 6 } = {}) {
     const ext = path.extname(file).toLowerCase();
     if (!MOVING.has(ext)) {
         // limitInputPixels off + rotate(): the same 16K-still and EXIF rules as the gallery thumbs.
+        // metadata() reads the header, not the pipeline: the upright size is its autoOrient (MPI-959).
         const img = sharp(file, { limitInputPixels: false }).rotate();
-        const { width, height } = await img.metadata();
+        const { width, height } = (await img.metadata()).autoOrient;
         const data = await img.resize({ width: VIEW_PX, height: VIEW_PX, fit: 'inside', withoutEnlargement: true }).webp({ quality: 85 }).toBuffer();
         return { kind: 'image', data, mimeType: 'image/webp', width, height };
     }

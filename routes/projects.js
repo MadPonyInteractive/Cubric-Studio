@@ -41,6 +41,7 @@ const { ffmpegPath, ffprobePath, quote } = require('../services/ffmpegBinary');
 const { muxAudioIntoVideo, mixAudioFiles } = require('../services/ffmpegMux');
 const { extractFramesFromGif, copyGifFrames, holdFrames, sweepGifFrames } = require('../services/gifFrames');
 const { SCHEMA_VERSION } = require('../js/migrations/projectMigrations');
+const { bakeOrientation } = require('./imageImport');
 
 const projectJsonQueues = new Map();
 const itemMetaQueues = new Map();
@@ -529,6 +530,8 @@ async function placeContentAsset(sourceUrl, ext, mediaDir, projectRoot) {
             await fs.writeFile(tmpPath, (await rasterizeSvg(await fs.readFile(tmpPath))).data);
             ext = '.png';
         }
+        // ...and an EXIF-rotated photo upright, as an import is (MPI-959).
+        await bakeOrientation(tmpPath);
         const sha256 = await computeFileSha256(tmpPath);
         const absPath = path.join(storeDir, `${sha256}${ext}`);
         if (await fs.pathExists(absPath)) {
@@ -1566,6 +1569,8 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
             const base64Content = base64Data.replace(/^data:[^;]+;base64,/, '');
             await fs.writeFile(filePath, Buffer.from(base64Content, 'base64'));
         }
+        // A phone photo shot portrait lands upright, its EXIF turn baked in (MPI-959).
+        const bakedSize = mediaType !== 'video' && mediaType !== 'audio' ? await bakeOrientation(filePath) : null;
 
         // Write UUID-keyed sidecar to Media/.meta/<uuid>.json (same pattern as save-generation)
         const id = itemId || uuidv4();
@@ -1587,8 +1592,9 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
             uploaded:       true,
             flowId:          null,   // Flow provenance parity (MPI-256) — imports are never Flow gens
             flowInputs:      null,
-            // An SVG's renderer-side size is its declared one, not the PNG's.
-            pixelDimensions: svgSize || { w: req.body.width || 0, h: req.body.height || 0 },
+            // An SVG's renderer-side size is its declared one, not the PNG's; a turned
+            // WebP's is its stored one (Chromium ignores a WebP's tag).
+            pixelDimensions: svgSize || bakedSize || { w: req.body.width || 0, h: req.body.height || 0 },
             generationMs:   null,
         };
         if (mediaType === 'video') {
@@ -2309,7 +2315,8 @@ router.post('/project/save-generation', async (req, res) => {
             try {
                 const sharp = require('sharp');
                 // A 16K photo (268 MP) is past sharp's default limit, metadata() included (MPI-925).
-                const probed = await sharp(filePath, { limitInputPixels: false }).metadata();
+                // autoOrient: the size the canvas shows an EXIF-rotated file at (MPI-959).
+                const probed = (await sharp(filePath, { limitInputPixels: false }).metadata()).autoOrient;
                 if (probed.width && probed.height) {
                     resolvedDims = { w: probed.width, h: probed.height };
                 }

@@ -166,8 +166,8 @@ RATIO, family row hidden, never persisted (D7, so the single-card Crop keeps the
   it loops `viewer.el.cropItem(item, rect, opts)` sequentially (the ONE crop call; `_runCrop` uses it
   too) with a StatusBar progress fill, re-reading each member from `state` before `appendToHistory`
   → `updateGroup`. No Cancel all.
-- EXIF-rotated photos crop in the wrong place: that is `cropExtended` ignoring orientation, a
-  pre-existing single-card bug filed as MPI-959, not a stack bug.
+- EXIF-rotated photos crop where the box is drawn since MPI-959 (`cropExtended` reads upright
+  pixels, `docs/crop.md`); it was a single-card bug, never a stack one.
 
 ## Not done here
 

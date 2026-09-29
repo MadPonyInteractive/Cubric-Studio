@@ -12,6 +12,9 @@
 const sharp = require('sharp');
 // Every input passes limitInputPixels: false: photographers load 16K images (268 MP),
 // past sharp's default limit, and the limit fires on metadata() too (MPI-925).
+// autoOrient: the crop rect is in the pixels the canvas SHOWS, and Chromium honours EXIF
+// orientation; sharp reads the stored grid unless told to (MPI-959).
+const INPUT = { limitInputPixels: false, autoOrient: true };
 
 const HEX_RE = /^#?([a-f0-9]{6})$/i;
 
@@ -76,10 +79,10 @@ function planExtendedCrop({ srcW, srcH, x, y, w, h }) {
  * @returns {Promise<{width:number,height:number}>} written pixel size
  */
 async function cropExtended(inputPath, outPath, { x, y, w, h, fill, outW, outH }) {
-    const meta = await sharp(inputPath, { limitInputPixels: false }).metadata();
+    const { autoOrient: upright } = await sharp(inputPath, INPUT).metadata();
     const plan = planExtendedCrop({
-        srcW: meta.width,
-        srcH: meta.height,
+        srcW: upright.width,
+        srcH: upright.height,
         x: Math.round(x),
         y: Math.round(y),
         w: Math.round(w),
@@ -92,12 +95,12 @@ async function cropExtended(inputPath, outPath, { x, y, w, h, fill, outW, outH }
     // the padded image first is the only way round it.
     let pipeline;
     if (plan.extends) {
-        const padded = await sharp(inputPath, { limitInputPixels: false })
+        const padded = await sharp(inputPath, INPUT)
             .extend({ ...plan.extend, background: parseFill(fill) })
             .toBuffer();
-        pipeline = sharp(padded, { limitInputPixels: false }).extract(plan.extract);
+        pipeline = sharp(padded, INPUT).extract(plan.extract);
     } else {
-        pipeline = sharp(inputPath, { limitInputPixels: false }).extract(plan.extract);
+        pipeline = sharp(inputPath, INPUT).extract(plan.extract);
     }
 
     const resample = outW > 0 && outH > 0

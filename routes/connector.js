@@ -92,6 +92,9 @@ function _getSharp() {
     if (!_sharp) _sharp = require('sharp');
     return _sharp;
 }
+// A 16K photo is past sharp's pixel limit (MPI-925); autoOrient reads an EXIF-rotated
+// photo upright, as the canvas and the engine do (MPI-959).
+const UPRIGHT = { limitInputPixels: false, autoOrient: true };
 
 // ESM modules cached after first import (dynamic import() is fine in CJS on Node 12+).
 let _footprintMod = null;
@@ -1220,8 +1223,9 @@ router.post('/connector/describe', async (req, res) => {
       const outPath = path.join(cropsDir, `${randomUUID()}.jpg`);
       const sharp = _getSharp();
 
-      // Get source dimensions for out-of-bounds check.
-      const meta = await sharp(imagePath, { limitInputPixels: false }).metadata();
+      // Get source dimensions for out-of-bounds check. Upright (EXIF applied): the agent's
+      // rects are in the pixels the canvas and the engine see (MPI-959).
+      const meta = (await sharp(imagePath, UPRIGHT).metadata()).autoOrient;
       const srcW = meta.width || 0;
       const srcH = meta.height || 0;
       const { x, y, width, height } = crop;
@@ -1231,7 +1235,7 @@ router.post('/connector/describe', async (req, res) => {
           message: `crop (${x},${y},${width},${height}) extends outside image (${srcW}×${srcH}).` } });
       }
 
-      await sharp(imagePath, { limitInputPixels: false })
+      await sharp(imagePath, UPRIGHT)
         .extract({ left: Math.round(x), top: Math.round(y), width: Math.round(width), height: Math.round(height) })
         .jpeg({ quality: 92 })
         .toFile(outPath);
@@ -1255,7 +1259,7 @@ router.post('/connector/describe', async (req, res) => {
     let found = null;
     let imageSize = null;
     try {
-      const meta = await _getSharp()(imagePath, { limitInputPixels: false }).metadata();
+      const meta = (await _getSharp()(imagePath, UPRIGHT).metadata()).autoOrient;
       imageSize = { w: meta.width, h: meta.height };
       found = boxFromDescribeAnswer(result.output?.text, { crop, origWidth: meta.width, origHeight: meta.height });
     } catch (err) {
@@ -1292,7 +1296,7 @@ router.post('/connector/describe', async (req, res) => {
   // loses the field rather than failing the look.
   let imageSize = null;
   try {
-    const meta = await _getSharp()(imagePath, { limitInputPixels: false }).metadata();
+    const meta = (await _getSharp()(imagePath, UPRIGHT).metadata()).autoOrient;
     if (meta.width && meta.height) imageSize = { w: meta.width, h: meta.height };
   } catch (err) {
     logger.warn('connector', `describe: could not read the size of ${imagePath}: ${err.message}`);

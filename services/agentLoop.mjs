@@ -2841,11 +2841,14 @@ function _decodeProjectFileUrl(ref) {
     } catch { return ref; }
 }
 
-/** `WxH` of an image file, or '' when it cannot be read (the line then just omits it). */
+/**
+ * `WxH` of an image file, or '' when it cannot be read (the line then just omits it).
+ * Upright (EXIF applied): the size the describe route reports and the canvas shows (MPI-959).
+ */
 async function _imageSize(filePath) {
     try {
         const { default: sharp } = await import('sharp');
-        const { width, height } = await sharp(filePath).metadata();
+        const { width, height } = (await sharp(filePath, { limitInputPixels: false }).metadata()).autoOrient;
         return width && height ? `${width}x${height}` : '';
     } catch { return ''; }
 }

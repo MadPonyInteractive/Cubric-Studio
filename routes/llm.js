@@ -506,11 +506,13 @@ router.post('/llm/describe', async (req, res) => {
     try {
         const sharp = _getSharp();
         // Photographers load 16K stills (268 MP), past sharp's default pixel limit.
-        let pipeline = sharp(srcPath, { limitInputPixels: false });
+        // autoOrient: the describer sees the photo upright, as the canvas and the engine do,
+        // and a crop is a rect in those pixels (MPI-959).
+        let pipeline = sharp(srcPath, { limitInputPixels: false, autoOrient: true });
 
         // Size from the header, never a decode: the raw() round trip this replaced
         // held a 16K photo as 805 MB of pixels just to learn its width.
-        const meta = await pipeline.metadata();
+        const meta = (await pipeline.metadata()).autoOrient;
         let srcW = meta.width || 0;
         let srcH = meta.height || 0;
 

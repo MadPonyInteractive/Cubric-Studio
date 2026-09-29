@@ -21,12 +21,12 @@ test.setTimeout(90000);
 const SRC_W = 400;
 const SRC_H = 300;
 
-async function makeProject(testInfo) {
+async function makeProject(testInfo, { file = 'src.png', bytes = null, w = SRC_W, h = SRC_H } = {}) {
   const folder = testInfo.outputPath('project');
   const media = path.join(folder, 'Media');
   fs.mkdirSync(media, { recursive: true });
-  const src = path.join(media, 'src.png');
-  const png = await sharp({ create: { width: SRC_W, height: SRC_H, channels: 3, background: { r: 200, g: 40, b: 40 } } })
+  const src = path.join(media, file);
+  const png = bytes || await sharp({ create: { width: SRC_W, height: SRC_H, channels: 3, background: { r: 200, g: 40, b: 40 } } })
     .png().toBuffer();
   fs.writeFileSync(src, png);
 
@@ -39,14 +39,14 @@ async function makeProject(testInfo) {
       history: [{
         id: 'iDims', type: 'image', displayName: 'src',
         filePath: `/project-file?path=${encodeURIComponent(src)}`,
-        pixelDimensions: { w: SRC_W, h: SRC_H },
+        pixelDimensions: { w, h },
       }],
     }],
   };
   // On disk a group lists history ids; the settings save and the crop append write here.
   fs.writeFileSync(path.join(folder, 'project.json'),
     JSON.stringify({ ...project, itemGroups: [{ ...group, history: ['iDims'] }] }, null, 2));
-  return { media, project };
+  return { media, project, src };
 }
 
 async function openGroup(window, project) {
@@ -59,7 +59,7 @@ async function openGroup(window, project) {
   await expect(window.locator('.mpi-history-tools')).toBeVisible();
 }
 
-async function setTool(window, mode, panelSelector) {
+async function setTool(window, mode, panelSelector, naturalWidth = SRC_W) {
   await window.evaluate((m) => document.querySelector('.mpi-history-tools').setMode(m), mode);
   const panel = window.locator(panelSelector);
   await expect(panel).toBeVisible();
@@ -67,15 +67,15 @@ async function setTool(window, mode, panelSelector) {
   // (and the source image a tool reads) exists again once another tool is up.
   await expect.poll(() => window.evaluate(() =>
     document.querySelector('.mpi-canvas-viewer').getSourceElement()?.naturalWidth ?? 0,
-  )).toBe(SRC_W);
+  )).toBe(naturalWidth);
   return panel;
 }
 
-/** Wait for the next PNG the app writes into Media/ and return its size. */
-async function nextOutputSize(media, seen) {
+/** Wait for the next file (PNG unless `ext`) the app writes into Media/ and return its size. */
+async function nextOutputSize(media, seen, ext = '.png') {
   let file = null;
   await expect.poll(() => {
-    file = fs.readdirSync(media).find(f => f.endsWith('.png') && !seen.has(f)) ?? null;
+    file = fs.readdirSync(media).find(f => f.endsWith(ext) && !seen.has(f)) ?? null;
     return file;
   }, { timeout: 15000 }).not.toBeNull();
   seen.add(file);
@@ -83,7 +83,7 @@ async function nextOutputSize(media, seen) {
   let size = null;
   await expect.poll(async () => {
     size = await sharp(fs.readFileSync(path.join(media, file))).metadata()
-      .then(({ width, height }) => ({ width, height }))
+      .then(({ width, height }) => ({ width, height, file: path.join(media, file) }))
       .catch(() => null);
     return size;
   }).not.toBeNull();
@@ -109,7 +109,7 @@ test('a RESOLUTION crop writes the typed size, whatever the box covers', async (
     await window.evaluate(() => document.querySelector('.mpi-canvas-viewer').setCropSize(100, 540));
     await window.waitForTimeout(1000); // every settings save has landed
     await apply.click();
-    expect(await nextOutputSize(media, seen)).toEqual({ width: 200, height: 1080 });
+    expect(await nextOutputSize(media, seen)).toMatchObject({ width: 200, height: 1080 });
 
     // Height saved as 150, then edited to 120 and applied straight from the field.
     // The saved copy still says 150 at that moment.
@@ -119,7 +119,7 @@ test('a RESOLUTION crop writes the typed size, whatever the box covers', async (
     await window.waitForTimeout(1000);
     await height.fill('120');
     await apply.click();
-    expect(await nextOutputSize(media, seen)).toEqual({ width: 200, height: 120 });
+    expect(await nextOutputSize(media, seen)).toMatchObject({ width: 200, height: 120 });
 
     expect(pageErrors).toEqual([]);
   } finally {
@@ -166,6 +166,48 @@ test('Resize MP and SCALE derive the size from the source and keep its proportio
     await expect(panel.locator('#resize-derived-pair')).toBeHidden();
     expect(Number(await panel.locator('#resize-width-slot input').inputValue())).toBe(want.width);
     expect(Number(await panel.locator('#resize-height-slot input').inputValue())).toBe(want.height);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+// MPI-959: a phone photo shot portrait is stored landscape with EXIF orientation 6.
+// Chromium shows it upright, so the crop box is in upright pixels; the server used to
+// cut the same numbers out of the stored grid and write the result sideways.
+test('a crop of an EXIF-rotated photo cuts the box the canvas shows', async ({}, testInfo) => {
+  const RAW_W = 400;
+  const RAW_H = 300;
+  // A ramp both ways, so a wrong region cannot match by luck.
+  const raw = Buffer.alloc(RAW_W * RAW_H * 3);
+  for (let y = 0; y < RAW_H; y++) {
+    for (let x = 0; x < RAW_W; x++) raw.set([Math.floor(x * 255 / RAW_W), Math.floor(y * 255 / RAW_H), 128], (y * RAW_W + x) * 3);
+  }
+  const bytes = await sharp(raw, { raw: { width: RAW_W, height: RAW_H, channels: 3 } })
+    .jpeg({ quality: 100, chromaSubsampling: '4:4:4' }).withMetadata({ orientation: 6 }).toBuffer();
+  const { media, project, src } = await makeProject(testInfo, { file: 'src.jpg', bytes, w: RAW_H, h: RAW_W });
+  const seen = new Set(['src.jpg']);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await openGroup(window, project);
+    const panel = await setTool(window, 'crop', '.mpi-tool-options-crop', RAW_H); // upright: 300 wide
+    await panel.locator('.mpi-tool-options-crop__family').getByText('FREE', { exact: true }).click();
+    // Low in the portrait frame: y + h = 352 is past the stored grid's 300 rows.
+    // Sizes are multiples of 16, so Apply's Divisible-by rounding leaves them alone.
+    const rect = { x: 16, y: 240, w: 208, h: 112 };
+    await window.evaluate((r) => document.querySelector('.mpi-canvas-viewer').setCropRect(r), rect);
+    await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-canvas-viewer').getCropRect())).toEqual(rect);
+    await panel.getByRole('button', { name: 'Apply' }).click();
+
+    const out = await nextOutputSize(media, seen, '.jpg');
+    expect(out).toMatchObject({ width: rect.w, height: rect.h });
+    const got = await sharp(fs.readFileSync(out.file)).raw().toBuffer();
+    const want = await sharp(fs.readFileSync(src)).autoOrient()
+      .extract({ left: rect.x, top: rect.y, width: rect.w, height: rect.h }).raw().toBuffer();
+    let sum = 0;
+    for (let i = 0; i < got.length; i++) sum += Math.abs(got[i] - want[i]);
+    expect(sum / got.length, 'mean difference from the upright crop (JPEG re-encode only)').toBeLessThan(4);
+
+    expect(pageErrors).toEqual([]);
   } finally {
     await closeApp(app);
   }

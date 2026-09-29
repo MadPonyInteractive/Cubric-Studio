@@ -117,7 +117,8 @@ router.post('/gif/make', async (req, res) => {
         }
 
         // limitInputPixels: false — photographers load 16K stills, past sharp's 268 MP default.
-        const firstMeta = await sharp(sources[0], { limitInputPixels: false }).metadata();
+        // autoOrient: an EXIF-rotated still makes an upright frame, as its card shows it (MPI-959).
+        const firstMeta = (await sharp(sources[0], { limitInputPixels: false, autoOrient: true }).metadata()).autoOrient;
         const scale = Math.min(1, FRAME_MAX_EDGE / Math.max(firstMeta.width || 0, firstMeta.height || 0));
         const targetW = Math.round(firstMeta.width * scale);
         const targetH = Math.round(firstMeta.height * scale);
@@ -127,7 +128,7 @@ router.post('/gif/make', async (req, res) => {
 
         const frames = [];
         for (const abs of sources) {
-            const buf = await sharp(abs, { limitInputPixels: false })
+            const buf = await sharp(abs, { limitInputPixels: false, autoOrient: true })
                 .resize(targetW, targetH, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
                 .ensureAlpha()
                 .png()

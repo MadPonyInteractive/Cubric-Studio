@@ -79,6 +79,15 @@ has to exist before the extract:
 order, so chaining them extracts from the unpadded image and dies with
 `extract_area: bad extract area`. Materialising the padded image is the only way round it.
 
+**The rect is in UPRIGHT pixels (MPI-959).** Chromium shows an EXIF-rotated photo turned, so the
+box is drawn on the turned picture; sharp reads the stored grid unless told. Every input passes
+`autoOrient: true` and the plan reads `metadata().autoOrient`, never `metadata().width`. Without
+it a portrait phone photo (stored landscape, orientation 6) was cut in the wrong place and written
+sideways. New imports are baked upright anyway (`docs/gallery.md` § Import); this covers files
+already on disk. Test: `tests/image-orientation.test.cjs`, desktop `crop-resize-output.spec.js`.
+The padded intermediate keeps the INPUT's format, so an overhanging crop of a JPEG passes through
+one extra JPEG encode.
+
 `roundToDivisible()` still floors when rounding up overshoots its `max` — the crop viewer now
 passes `Infinity` because an overshoot is filled rather than clipped, but the bound stays in the
 helper for the callers that cannot pad.
