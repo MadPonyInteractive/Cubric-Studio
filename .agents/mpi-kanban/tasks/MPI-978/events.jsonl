@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-978", "at": "2026-09-29T12:19:21+01:00", "actor": "claude", "column": "todo", "title": "Gallery filter ignores a mark change: an unmarked card stays in a Dots-only view"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-978", "at": "2026-09-29T12:20:03+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Root cause found: grid refreshGroup never re-runs the filter"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-978", "at": "2026-09-29T12:36:56+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified live; f1f35317d CI green (run 36561697863)"}
