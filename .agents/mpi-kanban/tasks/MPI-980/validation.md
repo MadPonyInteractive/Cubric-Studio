@@ -43,3 +43,8 @@ a matching picture when the sidecar has none was rejected as overkill.
   sidecar names edit_001.jpg as its startFrame: the full-size original, not a frame grab. The agent
   had also read the card, so whether it sent the video (swapped) or madeFrom's ref is not visible;
   both land on the same file. The frame-0 path is covered by the tests and the real-store check.
+
+## Decided (Fabio, 2026-09-29)
+
+Frame 0 stays HIDDEN in `Media/.preview-assets`: no gallery card of its own. The result card's
+history already shows what it was made from.
