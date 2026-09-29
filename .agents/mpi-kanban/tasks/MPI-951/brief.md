@@ -24,3 +24,9 @@ before 2.0 is public**: every step here assumes the installed fleet has taken th
 
 A 2.0 -> 2.1 update, full bundle AND delta, leaves no `CubricVision.exe`; the 2.1 release lists
 no `CubricVision-*` file; mpi-ci builds with the old slug removed.
+
+## 2026-09-29: no legacy names at 2.0 (MPI-972)
+
+Fabio chose NOT to publish a `CubricVision-*` set at 2.0.0; installs older than 1.5.0 download
+2.0.0 fresh. So "the 2.1 release lists no `CubricVision-*` file" is met by default. The old exe
+and the mpi-ci old slug above still stand.

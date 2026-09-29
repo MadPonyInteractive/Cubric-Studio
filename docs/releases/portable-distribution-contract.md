@@ -167,10 +167,11 @@ Expected public asset names:
 | Linux x64 | `CubricStudio-linux-x64-v<version>.tar.gz` |
 | macOS arm64 | `CubricStudio-macos-arm64-v<version>.zip` |
 
-**2.0.0 only:** also publish all six full + update assets under the legacy
-`CubricVision-*` names (same content, MPI-708 D1) — installs older than 1.5.0
-(the widened-updater bridge, below) still match only the old pattern. Drop the legacy set at
-2.1; every other release ships the `CubricStudio-*` names above only.
+Every release, 2.0.0 included, ships the `CubricStudio-*` names above only. **No legacy
+`CubricVision-*` set is published** (Fabio 2026-09-29, MPI-972):
+1.5.0 is where the fleet is, and its updater already matches both
+names (below). An install older than 1.5.0 finds no update it recognises and downloads
+2.0.0 fresh; its projects carry over through the Documents rename.
 
 > **The Windows full zip carries NO inner root folder (MPI-387).** Linux
 > (`.tar.gz`, which always has one) and macOS (`ditto --keepParent`) keep theirs;
@@ -209,8 +210,8 @@ Do not implement binary deltas for MPI-8.
 > **by glob** — `update.bat`, `update.sh`, `update.command` — and those scripts
 > ship inside the user's copy, not the release. From 1.5.0 on, all three match
 > `^Cubric(Vision|Studio)-<platform>-update-v.*\.zip$`; anything older still
-> only matches the narrower `CubricVision-*` pattern, which is
-> exactly why 2.0.0 dual-publishes both names above. Renaming the asset again
+> only matches the narrower `CubricVision-*` pattern, so those installs cannot
+> update in place to 2.0.0 and download it fresh instead. Renaming the asset again
 > in the future needs the same shape: widen the pattern the installed fleet
 > already carries first, and only rename once that widened updater has shipped
 > and rolled over.

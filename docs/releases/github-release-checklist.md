@@ -26,10 +26,10 @@ an app release.
 
 - `cubric-studio.mcpb`
 
-**2.0.0 only:** also publish all six assets above under the legacy
-`CubricVision-*` names (same content, MPI-708 D1) — installs older than 1.5.0
-(the release that widened the updater) match only the old pattern. Drop the legacy set at 2.1; every
-other release ships the six `CubricStudio-*` assets above plus `cubric-studio.mcpb`, nothing else.
+Every release, 2.0.0 included, ships the six `CubricStudio-*` assets above plus
+`cubric-studio.mcpb`, nothing else. **Do not publish a legacy `CubricVision-*` set at 2.0.0**
+(Fabio 2026-09-29, MPI-972): installs older than 1.5.0 download 2.0.0
+fresh.
 
 ## Draft first — the tag is not created until you publish
 

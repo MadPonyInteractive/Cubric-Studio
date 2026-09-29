@@ -30,3 +30,12 @@ The 1.x -> 2.0 update-path answer the docs Installation page waits on is decided
 - fdb8bedf8 went RED: tests/cloud-executor.test.cjs asserted the old /Settings/ copy for NO_KEY. Fixed in 5b8fa0999 (asserts Remote -> Language Models, and that Settings is gone), pushed with --no-verify as the red-master fix.
 - Local `npm test`: 2215 pass, 0 fail.
 - CI run 36501143917 on 5b8fa0999: success.
+
+## Reopened 2026-09-29: the owed update-path question
+
+Fabio: 2.0 updates in place from 1.5.0 (124 full + 43 in-app-update downloads on v1.5.0; the re-cut 1.5.0 carries the widened updater, checked on the tag: `win-update.cjs` ASSET_PATTERN and `linux/update.sh` match `Cubric(Vision|Studio)`, `apply-update.cjs` accepts `cubric.studio`). No legacy `CubricVision-*` set at 2.0 (option B); pre-1.5.0 installs download 2.0 fresh.
+
+- The build already names only `CubricStudio-*` (`scripts/build-portable.mjs` updateArchiveName), so no code change.
+- `docs/releases/portable-distribution-contract.md` + `github-release-checklist.md` rewritten to say so.
+- MPI-951 brief: legacy-name drop is moot; old exe + mpi-ci slug remain.
+- Messages: Docs MPI-19 (Installation TODO answered), MPI-595 owner (drop its dual-publish checklist item; its folder is a live peer claim).
