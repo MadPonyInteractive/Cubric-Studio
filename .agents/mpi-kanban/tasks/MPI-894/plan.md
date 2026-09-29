@@ -125,6 +125,10 @@ Eye-test round 2 fixed: Refresh is the Libraries' icon button (ghost, `refresh`)
 tiles green-edged + lifted, out-of-stock 0.5; Connect now SAYS why it is off (Fabio's EU-RO-1 has no volume - the
 live Pod test deleted it - so Connect was gated, pre-existing). **Next: Fabio's final look (restart his app), then
 close 1c** (tick checklist, close-out asks about `.claude/rules/components.md` TRAP 4 line). Then MPI-970.
+2026-09-29 (session 726c00ac): **1c CLOSED** on Fabio's look (colours + Refresh okay). Follow-up folded in:
+a real DC with no volume now connects as an ephemeral Pod after a confirm popup (CPU download Pod still
+needs the volume); built, lint + npm test + live dialog check green. Fabio "1" on the popup; components.md TRAP 4 line
+added on his yes. Next: MPI-970 brainstorm. MPI-894 stays in doing (phases 2-4).
 Open for Fabio: speed bar is LINEAR vs the fastest card listed (B200 2250), so 16-24 GB cards
 draw short bars; the TFLOPS number sits beside it. Gallery demo for the two new components: not added.
 

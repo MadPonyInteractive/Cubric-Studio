@@ -68,6 +68,7 @@ Stage redesign (PORTING.md phases 0–10.2) **merged to master**. Tokens, type s
 - **Floating UI (dropdowns/popups):** No Overlays registration. Self-close on `ui:close-all-popups`. Use `MutationObserver` to clean up body portals when anchor is removed.
 - **Hotkeys:** `Hotkeys.bind(id, fn)` to bind (id from `hotkeyRegistry.js`), store returned unbind fn in `_unsubs`, call in `destroy()`. Never use raw `window.addEventListener('keydown')`.
 - **`ResizeObserver`: bail on a 0×0 rect** — `if (!rect.width || !rect.height) return;`. Every overlay in this app hides the workspace under `display:none` (`MpiOverlay`'s Stash Pattern), which fires your observer with an empty rect. Hidden is not resized; treating those zeros as a size corrupts anything meant to survive the round trip (MPI-597).
+- **Scroll survives an overlay** — the same stash drops every scroll position under it, so `MpiOverlay` records each scrolled box before stashing and restores it on hide (TRAP 4, MPI-894). Never save/restore scroll yourself around an overlay; a lost scroll there is an `MpiOverlay` bug.
 - **All state management, hotkeys, and overlay mounting MUST happen inside `setup()`.** Callers must never import `overlayManager`, `hotkeyManager`, or `Events` to manage a component.
 
 ## CRITICAL "NEVER FORGET" RULES

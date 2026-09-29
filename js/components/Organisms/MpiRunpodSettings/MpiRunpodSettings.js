@@ -337,13 +337,14 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 _engineBtnLabelSet('Disconnect');
                 _engineBtnDisabled(false);
             } else {
-                // No Pod yet — Connect creates one once a GPU is picked. A volume-backed
-                // Pod also needs its volume (DC-locked, persists models); an "Any region"
-                // ephemeral Pod (MPI-78) needs only the GPU — the disk size has a default.
+                // No Pod yet — Connect creates one once a GPU is picked. A data center with
+                // no volume makes an ephemeral Pod there, after a confirm (_connectEngine),
+                // as "Any region" (MPI-78) does without one. Only the CPU download Pod
+                // needs the volume: what it downloads lands nowhere else.
                 _setEngineStatusText(root, 'stopped');
                 _engineBtnLabelSet('Connect');
-                const needsVolume = !_isAnyRegion(cfg);
-                _engineBtnDisabled(!cfg.gpuType || (needsVolume && !cfg.volumeId));
+                const cpuNoVolume = cfg.gpuType === '__cpu__' && !_isAnyRegion(cfg) && !cfg.volumeId;
+                _engineBtnDisabled(!cfg.gpuType || cpuNoVolume);
                 // MPI-110: clear a stale "Waiting for…/connecting…" hint left behind when
                 // a shell wait ended (won→sniped, or stopped) — otherwise the hint
                 // disagrees with the "stopped"+Connect state the user sees. Only clears
@@ -357,10 +358,10 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 // 2026-09-29 - a GPU picked, the volume deleted by a test, no clue). Never
                 // over a warning; cleared again once the reason is gone.
                 const why = !cfg.gpuType ? 'Choose a GPU to connect.'
-                    : (needsVolume && !cfg.volumeId) ? 'Create a network volume above to connect, or pick Any region (no volume) as the data center.'
+                    : cpuNoVolume ? 'Download mode needs a network volume: create one above.'
                     : '';
                 if (hintEl && !hintEl.classList.contains('mpi-settings__hint--warn')
-                    && (why || /^(Choose a GPU to connect|Create a network volume above)/.test(hintEl.textContent || ''))) {
+                    && (why || /^(Choose a GPU to connect|Download mode needs a network volume)/.test(hintEl.textContent || ''))) {
                     _setEngineHint(root, why);
                 }
             }
@@ -442,18 +443,33 @@ export const MpiRunpodSettings = ComponentFactory.create({
             return false;
         }
 
-        async function _connectEngine(root) {
+        async function _connectEngine(root, { ephemeralOk = false } = {}) {
             const cfg = _runpodCfg();
             if (!cfg.enabled || _engineBusy) return;
             if (!cfg.gpuType) {
                 _setEngineHint(root, 'Pick a GPU first.', true);
                 return;
             }
-            // A volume-backed Pod needs its volume; an "Any region" ephemeral Pod
-            // (MPI-78) does not — models download to the sized container disk instead.
+            // A data center with no volume: the CPU download Pod cannot run (its
+            // downloads would land nowhere); a GPU Pod runs ephemeral there once the
+            // user confirms, as "Any region" (MPI-78) does. A warm podId is a resume.
             if (!_isAnyRegion(cfg) && !cfg.volumeId) {
-                _setEngineHint(root, 'Create or select a network volume first — it stores ComfyUI and your models.', true);
-                return;
+                if (cfg.gpuType === '__cpu__') {
+                    _setEngineHint(root, 'Download mode needs a network volume: create one above.', true);
+                    return;
+                }
+                if (!ephemeralOk && !cfg.podId) {
+                    const dialog = MpiOkCancel.mount(ce('div'), {
+                        title: 'No network volume',
+                        text: `${cfg.datacenter} has no network volume, so Connect creates a temporary Pod. `
+                            + 'Models download each session and are deleted when you stop or delete the Pod. '
+                            + 'No storage bill between sessions. To keep your models, create a volume first.',
+                        okLabel: 'Connect',
+                    });
+                    dialog.on('ok', () => _connectEngine(root, { ephemeralOk: true }));
+                    dialog.el.show();
+                    return;
+                }
             }
             // MPI-110: auto-retry on + the picked GPU is out of stock right now → don't
             // attempt a doomed create. Ask the shell to wait (non-blocking, survives
@@ -491,11 +507,12 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 const endpoint = warm ? '/remote/pod/reconnect' : '/remote/pod/create';
                 // MPI-78: "Any region" is a UI sentinel, not a real DC — send a null
                 // datacenter so the backend auto-places, and carry the chosen ephemeral
-                // container-disk size. A real DC sends its id and ignores containerDiskGb.
+                // container-disk size. A real DC sends its id; the disk size rides every
+                // volume-less Pod, so a DC with no volume is sized like "Any region".
                 const anyRegion = _isAnyRegion(cfg);
                 const datacenter = anyRegion ? null : (cfg.datacenter || null);
                 const volumeId = anyRegion ? null : (cfg.volumeId || null);
-                const containerDiskGb = anyRegion ? _diskGbFromCfg(cfg) : undefined;
+                const containerDiskGb = !volumeId ? _diskGbFromCfg(cfg) : undefined;
                 // MPI-160: optional system-RAM floor (0/empty = no floor). Not for the
                 // CPU download Pod (RunPod ignores it there).
                 const minMemoryInGb = (cfg.gpuType && cfg.gpuType !== '__cpu__' && Number(cfg.minRamGb) > 0)

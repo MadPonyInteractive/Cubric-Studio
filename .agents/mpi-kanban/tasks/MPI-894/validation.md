@@ -101,3 +101,22 @@ no RAM/vCPU on tiles (v2 still has none, live openapi rechecked today); spec-she
 - "Choose a GPU, then can't connect": NOT the picker. EU-RO-1 has no network volume (the live Pod test deleted it), and Connect is gated on one for a real DC (pre-existing, `_applyEngineStatus`). The panel now SAYS so under Connect ("Create a network volume above to connect, or pick Any region"), cleared when the reason goes.
 - lint clean; gpu-picker + rest-v2 25/25; desktop runpod panel + popup-contract 2/2.
 
+
+### 1c closed + ephemeral-in-a-DC (session 726c00ac, 2026-09-29)
+- Fabio's final look: overlay colours and the Refresh button okay. 1c ticked.
+- He then asked why a DC with no volume cannot connect ephemeral. It was a UI gate only: the server
+  already builds a DC-pinned volume-less Pod (`_createPodInternal`: ephemeral = no volume,
+  `dataCenterIds` still set; MPI-135's any-region steering already used it). Fix (his call: confirm
+  popup): Connect enabled with a GPU; a fresh create in a DC with no volume asks first (MpiOkCancel
+  "No network volume", OK = Connect); a warm podId resumes without asking; the CPU download Pod still
+  refuses ("Download mode needs a network volume: create one above."). `containerDiskGb` now rides every
+  volume-less create, twin in `js/shell.js` (boot auto-connect + auto-retry wait).
+- eslint clean; RunPod unit tests 31/31; npm test 2258 pass / 0 fail.
+- Live, own instance (CUBRIC_PORT free port, fresh profile, no RunPod key; state set by hand):
+  EU-RO-1 + RTX 4090 + no volume -> Connect enabled, no hint; click -> the dialog text above, Cancel/Connect;
+  CPU -> Connect disabled + the download-mode hint. Cancelled, no Pod made.
+- NOT self-verifiable: OK -> a real Pod in EU-RO-1 (needs his key, and bills).
+- Fabio 2026-09-29, his own app after restart: the "No network volume" popup over EU-RO-1 (screenshot), "1".
+  Whether he pressed Connect was not reported: the DC-pinned volume-less create itself is the pre-existing
+  server path (MPI-135 steering), not new code.
+- `.claude/rules/components.md`: one line, "Scroll survives an overlay" (TRAP 4), on Fabio's explicit yes.

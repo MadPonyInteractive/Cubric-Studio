@@ -287,6 +287,9 @@ difference between hunting for a 96 GB instance and taking whatever is in stock.
   disk mirror — so volume-less is a config path, not a rewrite; the cost is a re-download per
   session (time only, RunPod does not bill bandwidth). Unmeasured: cold-boot-to-first-gen
   ephemeral vs volume. Do NOT build a "claim a refund" affordance — no credits are coming.
+  **A real DC with no volume is ephemeral too (MPI-894, 2026-09-29):** Connect confirms, then
+  creates a DC-pinned volume-less Pod (`dataCenterIds` set, `containerDiskGb` sent). Only the
+  CPU download Pod still refuses without a volume.
 - **"Deploy when available" is CONSOLE-ONLY (GA 2026-06-18, re-checked 2026-07-25, MPI-349).**
   REST `POST /pods` has no queue / schedule / wait-for-capacity / subscription field, and we
   create via REST only — nothing to hook. Our

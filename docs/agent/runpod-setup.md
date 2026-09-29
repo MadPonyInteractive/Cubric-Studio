@@ -22,7 +22,8 @@ paste it.
    data center; switching later means deleting the volume and downloading the models
    again.
 3. **Network Volume** — stores ComfyUI and the user's models so they survive between
-   Pods, one volume per data center. Connect refuses to start without one.
+   Pods, one volume per data center. Without one, Connect asks, then makes a temporary
+   Pod whose models are gone when it stops. Download mode (CPU) needs the volume.
 4. **GPU** — **Choose GPU** opens an overlay of every card: price, VRAM, stock bars and a
    spec-sheet speed bar. Stock is a live hint that drifts; the RunPod console is the truth.
    **Video** keeps the cards with more than 24 GB VRAM.

@@ -967,11 +967,12 @@ async function _runRemoteBoot(runpod) {
     const endpoint = warm ? '/remote/pod/reconnect' : '/remote/pod/create';
     // MPI-78: "__any__" is the UI sentinel for the no-volume "Any region" ephemeral
     // mode — translate it to a null datacenter (backend auto-places) and carry the
-    // saved container-disk size. A real DC sends its id; containerDiskGb is ignored.
+    // saved container-disk size. A real DC sends its id; the disk size rides every
+    // volume-less Pod (a DC with no volume runs ephemeral too, MPI-894).
     const anyRegion = runpod.datacenter === '__any__';
     const datacenter = anyRegion ? null : (runpod.datacenter || null);
     const volumeId = anyRegion ? null : (runpod.volumeId || null);
-    const containerDiskGb = anyRegion ? (runpod.containerDiskGb || 100) : undefined;
+    const containerDiskGb = !volumeId ? (runpod.containerDiskGb || 100) : undefined;
     // MPI-160: the system-RAM floor, as Settings Connect sends it. This path is boot
     // auto-connect AND the auto-retry wait; without it every retry placed with no floor.
     const minMemoryInGb = (runpod.gpuType && runpod.gpuType !== '__cpu__' && Number(runpod.minRamGb) > 0)
