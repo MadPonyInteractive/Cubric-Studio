@@ -4,10 +4,10 @@
   "title": "Crop cuts the wrong region on EXIF-rotated photos",
   "description": "cropExtended (services/imageCrop.js) crops the RAW pixel grid while the canvas and /image-import/probe show the photo upright. A phone photo shot portrait (EXIF orientation 5-8), imported under the reduce limit (copied untouched), is cut in the wrong place and written sideways. Hits single-card Crop and stack crop (MPI-949). Found in MPI-949 Phase 5; repro and fix sketch in brief.md.",
   "column": "doing",
-  "maturity": "in-progress",
+  "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-28T10:08:57+01:00",
-  "updated_at": "2026-09-29T14:04:00+01:00",
+  "updated_at": "2026-09-29T14:30:44+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
