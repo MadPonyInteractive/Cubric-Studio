@@ -3,6 +3,7 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
+import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { MpiOllamaSetup } from '../../Compounds/LandingPages/MpiOllamaSetup/MpiOllamaSetup.js';
 import { secretsClient } from '../../../core/secretsClient.js';
 import { clientLogger } from '../../../services/clientLogger.js';
@@ -204,6 +205,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                                 <div id="mpiSettingsAgentBenchSlot"></div>
                                 <div id="mpiSettingsAgentBenchSlot2"></div>
                             </div>
+                            <div class="mpi-llm-settings__bench-bar" id="mpiSettingsAgentBenchBar"></div>
                             <span class="mpi-settings__hint" id="mpiSettingsAgentBenchLine"></span>
                             <span class="mpi-settings__hint" id="mpiSettingsAgentBenchHint">Runs our agent tests on this model with pretend tools: nothing is generated or saved.</span>
                         </div>
@@ -247,10 +249,11 @@ export const MpiLlmSettings = ComponentFactory.create({
         /**
          * "Benchmark this model" (MPI-941 Phase 12): its step ('idle' | 'confirm' | 'running'), the
          * server's `GET /agent/benchmark` reply (cases, suite hash, estimate, a run in progress) and the
-         * running totals. The run lives in the server and reports on the agent stream, so a panel opened
-         * mid-run picks it up from `info.running` and the next `bench:case`.
+         * running totals, then `ran`, the ended run's totals its steps stay drawn from. The run lives in the
+         * server and reports on the agent stream, so a panel opened mid-run picks it up from `info.running`
+         * and the next `bench:case`.
          */
-        let _bench = { step: 'idle', info: null, progress: null, stopping: false };
+        let _bench = { step: 'idle', info: null, progress: null, stopping: false, ran: null };
         const _benchInsts = [];
         const _benchUnsubs = [
             Events.on('bench:case', (d) => { _bench = { ..._bench, step: 'running', progress: d }; _renderBench(el); }),
@@ -911,6 +914,14 @@ export const MpiLlmSettings = ComponentFactory.create({
             };
             if (_bench.info) _setText(root, '#mpiSettingsAgentBenchHint', `Runs our ${_bench.info.cases} agent tests on this model with pretend tools: nothing is generated or saved.`);
             const { step, info, progress, stopping } = _bench;
+            // One step per test, green on a pass, red on a fail, track until it runs (Fabio 2026-09-29). The
+            // steps of a run that ended stay under its line until the next Benchmark click.
+            const bar = step === 'running' ? progress : step === 'idle' ? _bench.ran : null;
+            if (bar) {
+                const results = bar.results || [];
+                const steps = Array.from({ length: bar.cases }, (_, i) => (i < results.length ? (results[i] ? 'success' : 'danger') : null));
+                _benchInsts.push(MpiProgressBar.mount(qs('#mpiSettingsAgentBenchBar', root), { steps }));
+            }
             if (step === 'confirm') {
                 _setText(root, '#mpiSettingsAgentBenchLine', _benchEstimate(info));
                 button(slot, { text: 'Run', variant: 'primary' }, () => _benchRun(root));
@@ -932,8 +943,12 @@ export const MpiLlmSettings = ComponentFactory.create({
             const { profileId } = Storage.getLlmConnection();
             const model = Storage.getAgentPrefs().model || '';
             const info = await _getJson(`/agent/benchmark?profileId=${encodeURIComponent(profileId)}&model=${encodeURIComponent(model)}`);
-            if (!info?.ok) return _setText(root, '#mpiSettingsAgentBenchLine', _errorText(info), true);
-            _bench = { ..._bench, step: 'confirm', info };
+            if (!info?.ok) {
+                _bench = { ..._bench, ran: null };
+                _renderBench(root);
+                return _setText(root, '#mpiSettingsAgentBenchLine', _errorText(info), true);
+            }
+            _bench = { ..._bench, step: 'confirm', info, ran: null };
             _renderBench(root);
         }
 
@@ -956,7 +971,8 @@ export const MpiLlmSettings = ComponentFactory.create({
 
         /** The run ended: its line, and the agent row repainted with the score agentService kept. */
         function _benchEnd(text, isWarn = false) {
-            _bench = { ..._bench, step: 'idle', progress: null, stopping: false };
+            const ran = _bench.progress?.results?.length ? _bench.progress : null;
+            _bench = { ..._bench, step: 'idle', progress: null, stopping: false, ran };
             _renderBench(el);
             _setText(el, '#mpiSettingsAgentBenchLine', text, isWarn);
             _renderAgentModel(el);

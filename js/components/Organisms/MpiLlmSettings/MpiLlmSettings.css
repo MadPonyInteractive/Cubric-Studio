@@ -85,3 +85,8 @@
     align-items: center;
     gap: var(--s-2);
 }
+
+/* The run's bar, mounted only while it runs: empty, it takes no row in the group's gap. */
+.mpi-llm-settings__bench-bar:empty {
+    display: none;
+}

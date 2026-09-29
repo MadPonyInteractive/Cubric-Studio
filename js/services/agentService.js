@@ -24,8 +24,9 @@
 import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
 import { Events } from '../events.js';
-import { on } from '../utils/dom.js';
+import { on, ce } from '../utils/dom.js';
 import { state } from '../state.js';
+import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { pinnedModel } from '../shell/agentDispatch.js';
 import { activeMask } from '../shell/activeMask.js';
 import { PAGE_GROUP_HISTORY } from '../router.js';
@@ -97,7 +98,16 @@ export function agentInitStream() {
     _streamUnsubs.push(Events.on('bench:done', (d) => {
         if (d.stopped) return;
         Storage.setAgentBench(d.profileId, d.model, { passed: d.passed, cases: d.cases, runs: 1, perChat: d.perChat, suiteHash: d.suiteHash, at: new Date().toISOString() });
+        // The user has gone off to work while it ran (Fabio 2026-09-29): say it ended, wherever they are.
+        _toast(`Benchmark of ${d.model} finished: ${d.passed}/${d.cases} passed${d.costUsd ? ` · $${d.costUsd.toFixed(2)}` : ''}.`, 'success');
     }));
+    _streamUnsubs.push(Events.on('bench:error', (d) => _toast(`Benchmark of ${d.model || 'the agent model'} stopped: ${d.message}`, 'danger')));
+}
+
+function _toast(message, variant) {
+    const wrap = ce('div');
+    document.body.appendChild(wrap);
+    MpiToast.mount(wrap, { message, variant }).on('close', () => wrap.remove());
 }
 
 /**

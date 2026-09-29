@@ -149,7 +149,7 @@ export const Events = new EventBus();
  * 'agent:spend'      { chatUsd, genUsd }                   — what this conversation spent on the user's key
  *                      (MPI-855): chat replies' and looks' usage.estimated_cost (chatUsd, shown as
  *                      "Agent", MPI-941 Phase 8), and its cloud cards' cost.usd
- * 'bench:case'       { profileId, model, done, passed, cases, last: { id, title, passed, failures } } — one
+ * 'bench:case'       { profileId, model, done, passed, cases, results: boolean[], last: { id, title, passed, failures } } — one
  *                      test of Settings' "Benchmark this model" finished (MPI-941 Phase 12; no `session`)
  * 'bench:done'       { profileId, model, done, passed, cases, costUsd, perChat, suiteHash, stopped } — the run ended
  * 'bench:error'      { profileId, model, message }         — the connection could not answer; nothing scored

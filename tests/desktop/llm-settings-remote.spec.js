@@ -189,8 +189,15 @@ test('Benchmark this model: estimate in place, progress and Stop, the score on t
     await expect(bench).toHaveText('Run');
     await clickBench();
     await expect(line).toHaveText('0 of 28 · 0 passed');
-    await emit('bench:case', { profileId: 'deepinfra', model: 'acme/agent-pick', done: 12, passed: 9, cases: 28, last: { id: 'x', title: 'x', passed: true, failures: [] } });
+    const steps = window.locator('#mpiSettingsAgentBenchBar .mpi-progress__step');
+    await expect(steps).toHaveCount(28);
+    const results = [true, true, false, true, true, true, false, true, true, false, true, true];
+    await emit('bench:case', { profileId: 'deepinfra', model: 'acme/agent-pick', done: 12, passed: 9, cases: 28, results, last: { id: 'x', title: 'x', passed: true, failures: [] } });
     await expect(line).toHaveText('12 of 28 · 9 passed');
+    // The bar (Fabio 2026-09-29): one step per test, green for a pass, red for a fail, in order; the rest still track.
+    await expect(window.locator('#mpiSettingsAgentBenchBar .mpi-progress__step--success')).toHaveCount(9);
+    await expect(steps.nth(2)).toHaveClass(/mpi-progress__step--danger/);
+    await expect(window.locator('#mpiSettingsAgentBenchBar .mpi-progress__step--danger')).toHaveCount(3);
     await expect(bench).toHaveText('Stop');
     await clickBench();
     await expect(bench).toHaveText('Stopping after this test…');
@@ -203,6 +210,14 @@ test('Benchmark this model: estimate in place, progress and Stop, the score on t
     await emit('bench:done', { profileId: 'deepinfra', model: 'acme/agent-pick', done: 28, passed: 21, cases: 28, costUsd: 0.09, perChat: 0.0032, suiteHash: 'h1', stopped: false });
     await expect(line).toHaveText('21/28 passed · $0.09 · now shown in the agent list');
     await expect(bench).toHaveText('Benchmark this model');
+    // Its steps stay under the line once it ends (Fabio 2026-09-29: "the progress bar ran away").
+    await expect(steps).toHaveCount(28);
+    await expect(window.locator('#mpiSettingsAgentBenchBar .mpi-progress__step--danger')).toHaveCount(3);
+    // A toast says it ended wherever the user is (Fabio 2026-09-29: a 14-minute run is not watched).
+    const toast = (text) => window.locator('.mpi-toast__msg', { hasText: text });
+    await expect(toast('Benchmark of acme/agent-pick finished: 21/28 passed · $0.09.')).toHaveCount(1);
+    await emit('bench:error', { profileId: 'deepinfra', model: 'acme/agent-pick', message: 'fetch failed' });
+    await expect(toast('Benchmark of acme/agent-pick stopped: fetch failed')).toHaveCount(1);
     await window.evaluate(() => document.querySelector('#mpiSettingsAgentModelSlot .mpi-dropdown__trigger').click());
     // The user's run REPLACES our score (Fabio 2026-09-28): one number per model. zeta-chat's older run
     // still beats our older one; a score on the current tests ranks above any older one.
@@ -212,6 +227,10 @@ test('Benchmark this model: estimate in place, progress and Stop, the score on t
       '20/26 tests (older tests) · $0.20/100 chats',
       '128K context', '320K context',
     ]);
+    // The next Benchmark click clears the old run's steps.
+    await clickBench();
+    await expect(bench).toHaveText('Run');
+    await expect(window.locator('#mpiSettingsAgentBenchBar')).toBeEmpty();
 
     expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
   } finally {

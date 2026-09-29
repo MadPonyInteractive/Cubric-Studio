@@ -515,6 +515,12 @@ after MPI-941 closes. storage.js + storageKeys.js committed early (`8cd26fbc0`) 
 **Handoff 2026-09-29. NEXT:** Fabio's live benchmark run on DeepSeek (~$0.10, ~14 min; his app was restarted on the
 pre-"~14 min" code, so it may read "~12 min"), tick Phase 12, then `mpi-end-session` (ask about `.claude/rules/` for the
 new `bench:*` events and the `mpi_agent_bench` key).
+2026-09-29, session 8d7c61a8: Fabio ran Qwen3.6 instead (DeepSeek is current), stopped it at 3 of 28: confirm, progress and
+Stop verified live. On his ask, a STEPPED bar under Stop while running (`MpiProgressBar` `steps`, one per test, green/red; `results` on `bench:case`);
+desktop 2/2, lint 0, uncommitted, claim `27adbbeb`. **NEXT:** he restarts, runs Qwen3.6 to the end (~$0.19, ~14 min),
+sends the end line + Qwen's row meta; stamp `{ passed, cases: 28, runs: 1, perChat, suiteHash: '4891b5390518' }` on
+Qwen in `services/llmEngines.mjs`, tick Phase 12, `mpi-end-session`. **Then (Fabio 2026-09-29): brainstorm MPI-965** (community
+benchmark share) before MPI-970 Routines; `bench:case` `results` is its per-case pass/fail field.
 
 **Watch-only, carried from MPI-817 (no build unless it recurs):** the agent ending an Auto-mode
 turn on a question; a note generalising from two runs; a project note RESTATING a global one

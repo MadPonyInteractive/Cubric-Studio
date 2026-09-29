@@ -20,12 +20,19 @@ import { qs } from '../../../utils/dom.js';
  * @param {'horizontal'|'vertical'} [orientation='horizontal'] - Travel direction. Vertical
  *   fills from the BOTTOM and is what a hover-out volume flyout mounts (MPI-731); the
  *   native control does the pointer maths either way — see the CSS.
+ * @param {Array<'success'|'danger'|null>} [steps] - Static bar of one segment per step instead of a
+ *   fill: each painted in its variant's colour, or left as track while null (MPI-941: a benchmark's
+ *   tests, green for a pass, red for a fail). Every other prop is ignored.
  */
 export const MpiProgressBar = ComponentFactory.create({
     name: 'MpiProgressBar',
     css: ['js/components/Primitives/MpiProgressBar/MpiProgressBar.css'],
 
     template: (props) => {
+        if (Array.isArray(props.steps)) {
+            const steps = props.steps.map(s => `<span class="mpi-progress__step${s ? ` mpi-progress__step--${s}` : ''}"></span>`).join('');
+            return `<div class="mpi-progress mpi-progress--steps mpi-progress--disabled">${steps}</div>`;
+        }
         const min = props.min !== undefined ? props.min : 0;
         const max = props.max !== undefined ? props.max : 100;
         const step = props.step !== undefined ? props.step : 1;
@@ -71,6 +78,7 @@ export const MpiProgressBar = ComponentFactory.create({
     },
 
     setup: (el, props, emit) => {
+        if (Array.isArray(props.steps)) return; // static: nothing to drag, nothing to wire
         const input = qs('.mpi-progress__input', el);
         const trackFill = qs('.mpi-progress__track-fill', el);
         const handleEl = qs('.mpi-progress__handle', el);

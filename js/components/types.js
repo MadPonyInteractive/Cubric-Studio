@@ -998,6 +998,8 @@
  * @property {'primary'|'secondary'|'success'|'danger'} [variant='primary'] - Color variant
  * @property {'horizontal'|'vertical'} [orientation='horizontal'] - Travel direction. Vertical
  *   fills from the BOTTOM; it is what MpiVolumeControl's flyout mounts (MPI-731)
+ * @property {Array<'success'|'danger'|null>} [steps] - Static segments, one per step, each in its variant's
+ *   colour or track while null; every other prop is ignored (MPI-941: a benchmark's pass/fail per test)
 */
 
 /**

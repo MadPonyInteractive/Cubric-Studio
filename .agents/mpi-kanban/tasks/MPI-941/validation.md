@@ -364,3 +364,18 @@ measured it. `llm-connection` + `agent-bench` 19/19, desktop 2/2, lint 0. Qwen3.
 "(older tests)" until re-scored.
 **Live check (Fabio), pending, ~$0.10:** restart the app on this code, Settings > Remote, DeepSeek picked, Benchmark this model
 -> Run; watch "n of 28" climb (~14 min); DeepSeek's row then shows your score in place of "28/28 tests".
+
+**Live, 2026-09-29 (session 8d7c61a8), Fabio on Qwen/Qwen3.6-35B-A3B** (DeepSeek already current; Qwen was the stale one):
+confirm read "About $0.19 on DeepInfra, ~14 min."; Run -> "0 of 28 · 0 passed"; Stop -> "Stopping after this test…" (disabled)
+-> "Stopped at 3 of 28 · 3 passed · not kept". Confirm, progress and Stop verified live. **Fabio asked for a progress bar:**
+then, his second ask, ONE STEP PER TEST: `MpiProgressBar` gained `steps: ('success'|'danger'|null)[]` (segments, green pass / red fail / track until run); `bench:case` and `benchmarkStatus()` now carry `results: boolean[]` in order, so a panel reopened mid-run repaints every step. Under Stop while running, gone when idle (`:empty` hides the slot). `agent-bench` 7/7 (RED first).
+Desktop spec extended (28 steps; 12 results -> 9 green, 3 red, third red; slot empty after done): 2/2; screenshot looked at;
+`npm test` 2217, 2215 pass, 0 fail; lint 0.
+Third ask, same run: a TOAST when it ends (`agentService`, beside the keep, so it fires with Settings shut): "Benchmark of <model> finished: 21/28 passed · $0.09." (success), `bench:error` -> "Benchmark of <model> stopped: <why>" (danger); a Stop by the user toasts nothing. Desktop 2/2 (both toasts), `agent-service-bus` 2/2, lint 0. The agent chat is NOT gated by a run (`_bench` only refuses a second benchmark): remote runs side by side and both bill; a local model shares Ollama and the card.
+**Fabio's full run, same day, on the stepped bar:** Qwen/Qwen3.6-35B-A3B **25/28 passed · $0.20**; the agent row read
+"25/28 tests · $0.71/100 chats · 256K context", second under DeepSeek (his run replaced our 19/23: verified live). One flaw: the
+bar vanished at the end ("the progress bar ran away"). Fixed: the ended run's steps stay under its line (`_bench.ran`) until the
+next Benchmark click; desktop 2/2 (steps kept after done, cleared on the next click). **Stamped** in `RECOMMENDED_REMOTE_MODELS`:
+`{ passed: 25, cases: 28, runs: 1, perChat: 0.0071, suiteHash: '4891b5390518' }` (perChat from his row, $0.20/28 agrees).
+Every DeepInfra agent score is now on the current tests. `npm test` 2217, 2215 pass, 0 fail; lint 0. The toast and the kept bar
+reach his app on the next restart (his renderer predates them); both are covered by the desktop spec.

@@ -120,13 +120,16 @@ test('AgentSessions.benchmark: one at a time, each case on the agent stream in o
         assert.equal(second.error?.code, 'BUSY', 'a second run is refused while one runs');
 
         await until((ev) => ev.some((e) => e.event === 'bench:done'));
-        assert.deepEqual(status, { profileId: 'deepinfra', model: 'test-model', done: 2, passed: status.passed, cases: CASES.length },
+        assert.deepEqual(status, { profileId: 'deepinfra', model: 'test-model', done: 2, passed: status.passed, cases: CASES.length, results: status.results },
             'the running totals are readable for a remounted Settings');
+        assert.equal(status.results.length, 2, 'and each test\'s pass or fail, in order, for the bar\'s steps');
+        assert.equal(status.results.filter(Boolean).length, status.passed);
 
         const bench = events.filter((e) => e.event.startsWith('bench:'));
         assert.deepEqual(bench.map((e) => e.event), ['bench:case', 'bench:case', 'bench:done'], 'Stop ends it after the case in flight');
         assert.deepEqual(bench.map((e) => e.data.done), [1, 2, 2]);
         assert.deepEqual(bench[0].data.last.id, CASES[0].id);
+        assert.deepEqual(bench[1].data.results, [bench[0].data.last.passed, bench[1].data.last.passed], 'each case carries every result so far');
         const done = bench[2].data;
         assert.equal(done.stopped, true);
         assert.equal(done.cases, CASES.length);

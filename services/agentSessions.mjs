@@ -165,7 +165,7 @@ export class AgentSessions {
     async benchmark(profileId, model) {
         if (this._bench) return { ok: false, error: { code: 'BUSY', message: 'A benchmark is already running.' } };
         // Taken before the first await, so two clicks cannot both start one.
-        const bench = this._bench = { stop: new AbortController(), profileId, model, done: 0, passed: 0, cases: 0 };
+        const bench = this._bench = { stop: new AbortController(), profileId, model, done: 0, passed: 0, cases: 0, results: [] };
         const { CASES, runSuite } = await import('./agentBench.mjs');
         bench.cases = CASES.length;
         this._runBench(bench, runSuite);
@@ -186,7 +186,9 @@ export class AgentSessions {
                 onProgress: (last) => {
                     bench.done += 1;
                     if (last.passed) bench.passed += 1;
-                    this.broadcast('bench:case', { profileId, model: bench.model, done: bench.done, passed: bench.passed, cases: bench.cases, last });
+                    // Every result so far, in order: Settings paints one step per test (Fabio 2026-09-29).
+                    bench.results.push(!!last.passed);
+                    this.broadcast('bench:case', { profileId, model: bench.model, done: bench.done, passed: bench.passed, cases: bench.cases, results: [...bench.results], last });
                 },
             });
             // perChat 0 = this PC's card; null = a hosted provider that reports no cost (only DeepInfra does).
@@ -214,7 +216,7 @@ export class AgentSessions {
     /** The running benchmark's totals, or null: a Settings panel opened mid-run picks it up here. */
     benchmarkStatus() {
         const b = this._bench;
-        return b ? { profileId: b.profileId, model: b.model, done: b.done, passed: b.passed, cases: b.cases } : null;
+        return b ? { profileId: b.profileId, model: b.model, done: b.done, passed: b.passed, cases: b.cases, results: [...b.results] } : null;
     }
 
     /**

@@ -50,6 +50,27 @@
     background: var(--accent-err);
 }
 
+/* ── Steps: one segment per step, each its own colour (MPI-941) ───────────── */
+
+.mpi-progress--steps {
+    gap: 2px;
+}
+
+.mpi-progress__step {
+    flex: 1;
+    height: 6px;
+    background: var(--surface-3);
+    border-radius: 999px;
+}
+
+.mpi-progress__step--success {
+    background: var(--accent-ok);
+}
+
+.mpi-progress__step--danger {
+    background: var(--accent-err);
+}
+
 .mpi-progress__input {
     -webkit-appearance: none;
     appearance: none;
