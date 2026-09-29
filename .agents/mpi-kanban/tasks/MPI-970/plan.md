@@ -2,7 +2,9 @@
 
 ## Current State
 
-2026-09-29 (session 726c00ac) - **planned, nothing built.** Project mode: scalable-foundation.
+2026-09-29 (session 726c00ac) - **planned, nothing built. Fabio approved the plan and D1-D8 as written**
+("go ahead", same day). **Next: Phase 1 spike S1** in a fresh session (card still `todo`/`planned`:
+`mpi-continue` moves it to `doing` and writes `files.json` before the first edit). Project mode: scalable-foundation.
 Design approved by Fabio in the brainstorm: `brief.md` § "Brainstorm decisions". Verified code facts (two
 investigator claims corrected): `research/findings.md`. Read both before any phase.
 
