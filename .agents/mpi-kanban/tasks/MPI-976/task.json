@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-976",
+  "title": "save-generation GC can delete a replaced card's NEW sidecar when another save's GC overlaps a preview-to-final replace",
+  "description": "Pass 1 reads a sidecar, then checks its media; a replaceItemId save rewriting that sidecar and deleting the old media in between makes the GC drop the fresh sidecar and thumbs. Found in MPI-975; not observed live.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-29T11:53:31+01:00",
+  "updated_at": "2026-09-29T11:53:31+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

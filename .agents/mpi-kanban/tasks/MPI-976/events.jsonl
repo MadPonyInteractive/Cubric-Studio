@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-976", "at": "2026-09-29T11:53:31+01:00", "actor": "12063eec-a8a2-44aa-87a6-a56fd1b9310b", "column": "todo", "title": "save-generation GC can delete a replaced card's NEW sidecar when another save's GC overlaps a preview-to-final replace"}

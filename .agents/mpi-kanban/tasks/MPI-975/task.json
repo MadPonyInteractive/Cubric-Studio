@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-975",
+  "title": "Stack Remove BG: one result's gallery thumb is broken - a concurrent save's orphan GC deletes a fresh 512 thumb",
+  "description": "save-generation's per-save .meta GC (Pass 2) deletes derivatives of an in-flight save whose sidecar is not written yet; a stack batch saves 4 at once.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-29T11:42:14+01:00",
+  "updated_at": "2026-09-29T11:46:52+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
