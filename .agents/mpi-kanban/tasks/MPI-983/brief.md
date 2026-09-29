@@ -16,7 +16,7 @@ release. Wired into the cut as a line in MPI-595 § Gate D.
 | Local repo | `C:\AI\Mpi\Cubric Studio (Website)` | `C:\AI\Mpi\Cubric Studio (Docs)` |
 | GitHub | `MadPonyInteractive/Cubric-Studio-Website` (private) | `MadPonyInteractive/Cubric-Studio-Docs` (private) |
 | Serves | GitHub Pages from `main`, `cubric.studio` | GitHub Pages from `main`, `docs.cubric.studio` |
-| The 2.0 work | local branch `site-2.0` (MPI-973, signed off by Fabio 2026-09-29), ALSO sitting uncommitted in the working tree on `main` | branch `docs-2.0`, owned by the docs session and its own board (`.agents/mpi-kanban` in that repo, card MPI-19) |
+| The 2.0 work | local branch `site-2.0` (MPI-973, signed off by Fabio 2026-09-29), ALSO sitting uncommitted in the working tree on `main` | branch `docs-2.0`, owned by the docs session and its own board (`.agents/mpi-kanban` in that repo, card MPI-19); release steps in that card's `release.md` |
 | Push rule | pushing `main` publishes; do it only on Fabio's word | **hard no-push rule** (`.claude/rules/sibling-repos.md` rule 6): Fabio must confirm `docs-2.0` is the intended deploy, in the same conversation |
 
 "Release the websites" from Fabio is the yes for the marketing site. The docs site still needs
