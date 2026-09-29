@@ -37,6 +37,28 @@
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
 
+## Known issues (GitHub release page ONLY, draft for Fabio)
+
+> **Do NOT fold these into `releaseNotes.js`.** 1.5.0's update prompt shows no notes, so the
+> in-app changelog only reaches people already on 2.0. Each line goes into the release body
+> section named in bold (1.5.0's body is the template). Rules for the Windows line:
+> `docs/releases/github-release-checklist.md` § "The third outcome". MPI-595 Gate C.
+
+- **Updating? section:** **Use rented GPUs? Update to 2.0 before 15 November 2026.** That day
+  RunPod switches off the connection every version before 2.0 uses to rent GPUs. 2.0 uses the
+  new one.
+
+- **First launch, Windows:** If double-clicking `CubricStudio.exe` does nothing, with no
+  message at all, Windows' Smart App Control may have blocked it. It cannot make an exception
+  for one app, and the builds are not code-signed yet, so there is nothing to click. Signing is
+  the fix, and it is not in place yet.
+
+- **First launch, macOS:** Setting up the local engine on a Mac needs Apple's Command Line
+  Tools. If setup stops and asks for them, open Terminal, run `xcode-select --install`, let
+  Apple's download finish, then press **Retry**.
+
+- **Platform support, macOS:** Not tested on this version, including updating from 1.5.0.
+
 ## Important changes
 
 - **Cubric Vision is now Cubric Studio.** The separate apps we planned became one app, so it

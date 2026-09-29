@@ -69,3 +69,12 @@ The bundle and its handover note are on disk. What remains is outside this repo:
 the zip, the reporter runs `update-from-zip.bat`, and his `app.log` comes back with the four
 greps. That is the verification MPI-716/718/719 cannot get on this machine, and it arrives on
 his schedule, not ours.
+
+## Verified 2026-09-29 (Fabio)
+
+The reporter ran the fixed build (the 1.6.x deltas over 1.5.0) and downloaded models at
+normal speed afterwards. Fabio, 2026-09-29: "720 was reported fixed. The user tried to
+download models after the fix, and they were downloading at normal speed." That is the
+real-machine evidence MPI-716/718/719 could not get here. Closed done; the fixes ship to
+everyone in 2.0. The 1.6.0 `RELEASE_NOTES` entry + `.approved-1.6.0.json` go at the 2.0
+fold (MPI-595 Gate D).

@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-973", "at": "2026-09-29T09:50:00+01:00", "actor": "897d2196-6d01-4615-ac33-6a20f14bc257", "column": "todo", "title": "cubric.studio revamp for 2.0: the landing page shows what Cubric Studio is (MCP, in-app agent, paid cloud models)"}

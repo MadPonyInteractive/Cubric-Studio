@@ -3,11 +3,11 @@
   "id": "MPI-720",
   "title": "Build a 1.5.0 -> master update delta so the reporter can verify the download fixes - no 1.5.1, the fix ships to everyone in 2.0",
   "description": "MPI-717's three download fixes (MPI-716 telemetry, MPI-718 retry budget, MPI-719 scan race) can only be verified on the reporter's own machine: no link here sustains 20-40 KB/s and nothing here reproduces real mid-transfer blips. Fabio 2026-09-11: NO 1.5.1 - the 1.5.x line is already set up so its next update is 2.0, and a patch release there is the whole release loop for one verification. He gets MASTER as an update-only delta over his 1.5.0 install; the fix then ships to everyone in 2.0 with his run as the evidence. Measured: SCHEMA_VERSION is 4 both sides so his projects are safe, engine core pin is identical but master adds 5 custom nodes, and master's APP_VERSION 1.4.2 is LOWER than his 1.5.0 - so the build must be stamped ahead with --version or the update checker offers him 1.5.0 and reverts it. Procedure and every trap: tasks/MPI-720/brief.md.",
-  "column": "doing",
-  "maturity": "validating",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
   "created_at": "2026-09-11T01:29:02+01:00",
-  "updated_at": "2026-09-11T03:02:55+01:00",
+  "updated_at": "2026-09-29T01:36:27+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -19,8 +19,8 @@
     "research": "research/"
   },
   "attention": {
-    "state": "required",
-    "reason": "Fabio owns the next move: send the 15.5 MB delta + READ-ME-FIRST from D:/CubricStudio/Vision/Builds, then bring back the reporter app.log. Card stays validating until that lands. If the crawl is still there, the next hand-delivered build is 1.6.1 (mpi-release SKILL.md, Preconditions).",
-    "updated_at": "2026-09-11T03:02:55+01:00"
+    "state": "cleared",
+    "reason": "Closed 2026-09-29: Fabio confirmed the reporter downloads at normal speed on the fixed build.",
+    "updated_at": "2026-09-29T01:36:51+01:00"
   }
 }

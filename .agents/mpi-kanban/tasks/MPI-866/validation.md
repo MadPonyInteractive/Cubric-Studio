@@ -74,3 +74,8 @@ than pretended away.
    a `workflow_dispatch` run while red. `NTFY_TOPIC` is the same secret
    `notify-new-issue.yml` already uses, so no new secret was added.
 3. The issue it opens is labelled `red-master` and closes itself on green.
+
+## Off the 2.0 gate (Fabio 2026-09-29)
+
+MPI-595 asked whether this card gates 2.0. Fabio: no. It is CI tooling, not anything a user
+runs, so it stays `validating` and is verified the next time master goes red on its own.

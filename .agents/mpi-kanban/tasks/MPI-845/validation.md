@@ -189,3 +189,8 @@ deleting the floor would make the first case pass vacuously.
 reported earlier in this session is gone — the peer extended their own allowlist
 (`tests/agent-no-delete.test.cjs` is dirty too now, and carries `/connector/cancel`). Nothing
 on this card touched it.
+
+## Verified 2026-09-29 (Fabio)
+
+Fabio checked the three chrome fixes in the app (titlebar mark, the GALLERY/PROJECTS
+chip hover, the reference-chip X) and said: "845 looks good." Closed done.

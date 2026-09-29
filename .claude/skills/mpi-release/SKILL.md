@@ -209,24 +209,19 @@ With the user's authorization, create the release on the existing tag and attach
 all 6 artifacts (full builds **and** update bundles — the update bundles are how
 existing users patch in place via the online `update.*` script; without them
 every update is a full re-download):
-First pack the Claude Desktop extension (MPI-593) from the release commit. The name has NO
-version on purpose: `releases/latest/download/cubric-studio.mcpb` is the permanent link the
-Settings page and the MCP Registry use.
-```bash
-npx -y @anthropic-ai/mcpb@2.1.2 pack mcp/cubric-studio D:/CubricStudio/Vision/Builds/v<ver>/cubric-studio.mcpb
-```
 ```bash
 gh release create v<ver> --repo MadPonyInteractive/Cubric-Studio \
   --title "v<ver>" --notes-file <body.md> --latest \
   D:/CubricStudio/Vision/Builds/v<ver>/CubricStudio-*-v<ver>.zip \
   D:/CubricStudio/Vision/Builds/v<ver>/CubricStudio-*-v<ver>.tar.gz \
-  D:/CubricStudio/Vision/Builds/v<ver>/CubricStudio-*-update-v<ver>.zip \
-  D:/CubricStudio/Vision/Builds/v<ver>/cubric-studio.mcpb
+  D:/CubricStudio/Vision/Builds/v<ver>/CubricStudio-*-update-v<ver>.zip
 ```
-Use the canonical asset names from `docs/releases/github-release-checklist.md`.
-**2.0.0 also attaches legacy `CubricVision-*` copies of these six alongside them**
-(D1, MPI-708 Phase 3 — not yet built; an install older than 1.5.0, whose updater
-only matches `CubricVision-*`, can still update) — 2.1 drops the legacy names.
+Use the canonical asset names from `docs/releases/github-release-checklist.md`: the six
+`CubricStudio-*` assets and nothing else. **No legacy `CubricVision-*` set at 2.0.0**
+(Fabio 2026-09-29, MPI-972): 2.0 updates in place from 1.5.0, and older installs download it
+fresh. **No `.mcpb` either** (Fabio 2026-09-29): the Claude Desktop extension's one home is
+the `cubric-studio-agents` release (`docs/mcp-server.md`), which the Settings page
+(`routes/agentConnect.js` `MCPB_URL`), the agents README and the MCP Registry all read.
 
 > **Title = the bare tag.** Every published release is named `v1.2.0` / `v1.1.0` /
 > `v1.0.1` — name equals tag. Corrected 2026-08-01 (this step used to say

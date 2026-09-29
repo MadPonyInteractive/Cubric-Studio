@@ -3,6 +3,18 @@
 Refreshed 2026-09-27 (the 2026-09-26 list is in git history). Reasoning per item: `brief.md`.
 Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet**.
 
+## WAITING ON (Fabio 2026-09-29) — the cut starts when these land
+
+"We are almost ready." Every gate that needs no one else is clear; what is left:
+
+- [ ] **Website revamp — MPI-973** (landing page = what the app is; sections for MCP with the
+  `.mcpb` download, the in-app agent, the paid cloud models). Biggest blocker
+- [ ] **Docs website** — Fabio has an agent on it
+- [ ] **In-app agent** — Fabio has an agent on what is left. MPI-941 (umbrella 2) itself closed 2026-09-29 (`f622892db`): check its UNRELEASED line landed (Gate C) and which card holds the rest
+- [ ] **Big photos — MPI-962** (umbrella, `todo`) — "practically finished"; MPI-961 closed 2026-09-29 (`bbe115e93`)
+- [ ] Then **the cut**: Gate D below, top to bottom. Costs ~nothing (CI + R2); it needs Fabio's yes
+  because it is public and one-way (promote reaches every released Pod; the release reaches every updater)
+
 ## ON PICKUP (measure, never read counts from prose)
 
 - [ ] `git rev-list --count v1.4.2..HEAD`, `git status --short`, `git log --oneline @{u}..HEAD`
@@ -14,7 +26,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 
 - [x] **A1 MPI-806** RunPod REST v2 — app client + tests + watchdog source: Vision `97f729c5e`, mpi-ci `e62a9aa`
   - [x] Pod runtime watchdog `_self_stop` on v2 with a status check; dev-proven on a CPU Pod, promoted 2026-09-27 on Fabio's yes
-  - [ ] Live app leg on v2: create / stop / start / delete a Pod, list + grow a volume (Fabio's go)
+  - [x] Live app leg on v2: create / stop / start / delete a Pod, list + grow a volume (Fabio's go) — DONE 2026-09-29 on the Linux box (B3), through the app's own `/runpod/*` routes: volume `jqsme9kzz5` create 200 -> PATCH grow 10->11 200 -> CPU Pod `mwz9urn3vk2mph` (cpu3c x2, $0.06/hr, EU-RO-1, volume mounted) create 200 RUNNING -> stop 200 EXITED -> start 200 RUNNING -> delete 200, GET 404 -> volume delete 200. v2 reports `status`, not `desiredStatus`; the app reads both (`remotePodLifecycle.js:633`). Transcript `~/b3/runpod2.out` on the box
     - [x] 2026-09-27 GPU leg (create via GraphQL RAM floor, v2 reads/start/delete) + CPU create; volume grow not run
     - [x] REST v2 GPU create live — 2026-09-29 23:35Z (MPI-894 live test): app.log `RAM floor 62GB requested (v2 gpu.minRamPerGpu)` -> `createPod REST -> http 201` Pod `kpmt17d2gqe7mt` RTX 5090; also volume create + DELETE (404 after) through the app. Still not run: stop/start and volume GROW
   - [x] **GraphQL retires early 2027** — Fabio 2026-09-27: create moves in 2.0 (done, above); picker catalogue is a **2.1 blocker** (MPI-894 phase 1b), not a 2.0 gate
@@ -47,6 +59,16 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   - [x] Runner fix, same session: `--plan` / `--self-check` no longer truncate the committed `dev_configs/smoke-run.txt` (both did; this session's `--install-only` + `--self-check` wiped the B1 transcript, restored from HEAD, blob `d6f247a` re-verified after a plan + self-check). `tests/smoke-*.test.cjs` 54/54
 - [x] **B2 MPI-953** Flow leg in the smoke runner — `49564ad53`: real FLOWS, stages each Flow's models + deps, volume counts only what Flows add; runs for real inside B1 with `--flows all`
 - [ ] **B3** Linux box, REMOTE-ONLY (no ComfyUI there): agent, DeepInfra, RunPod v2 (MPI-806 live leg), updater A/B through `update.sh` on a real 2.0 bundle
+  - 2026-09-29 started (Fabio: yes, paid legs capped at **$0.25**). Box is now `192.168.0.210` (router restart; same host key on .199/.210; `~/.ssh/config` updated). Build: master `f74855990` -> mpi-ci run `36504709115`. Plan: fresh v1.5.0 extract in `~/b3/` -> in-app `update.sh` with `~/mpi954/fetch-release-stub.cjs` pointed at the CI Linux update zip -> that updated install runs the legs. **Fabio pastes the DeepInfra + RunPod keys into Settings on the box himself** (agents never type real keys). Legs: FLUX Schnell 1 image (~$0.0005), 1 agent turn, RunPod create/stop/start/delete + volume create/grow/delete (~$0.10-0.20). The real-2.0-bundle updater run stays a cut step
+    - [x] Update rehearsal PASSED 2026-09-29 00:56Z (dash): CI artifact `CubricStudio-linux-x64-update-v1.6.2.zip` (sha256 `ca056d6b…`, full bundle, `fromVersion: null`, launchers under `update/pending-launchers/`) through the INSTALLED 1.5.0 `update.sh` (only `fetch-release.cjs` stubbed; kit `~/b3/b3-inapp.sh`): exit 0, 1.5.0 -> 1.6.2, relaunch served :3000 200, boot heal installed all 4 launchers (app.log 00:57:34Z), update check "up to date". 1.5.0 was booted once first so real `user-data/` rode the update
+    - [x] DeepInfra leg PASSED 2026-09-29 01:09Z: `flux2-dev-cloud` t2i via connector generate into project "B3 Linux test", 11.5 s, card landed, image checked by eye, **$0.018** (app-reported `costUsd`). (`flux-schnell-cloud` is `devOnly`: UNKNOWN_MODEL in a packaged build, correct)
+    - [x] Agent leg PASSED 01:12Z: `/agent/message` on profile `deepinfra`, answered correctly (named the installed cloud models, offered to install local ones)
+    - [x] **BREAKER FOUND + FIXED (uncommitted):** saving the DeepInfra key in Remote -> Language Models never re-read the cloud-key mirror (`modelRegistry.js refreshCloudKey` ran only on the model disk-check edge, which a no-engine/no-Pod machine never reaches), so every cloud model stayed `installed:false` until restart. Proven live: key saved -> `/connector/models` all 14 cloud `false`; restart, nothing else changed -> all `true`. Fix: `secretsClient.js` emits `secrets:endpoint-changed` after any ok endpoint key/profile change; `modelRegistry.js` re-reads on it. `tests/cloud-key-refresh.test.cjs` 2/2, proven RED without the listener ("models:checked never fired"); eslint clean; `npm test` 2226 pass / 0 fail / 2 skip. NOT live-verified on the box (would mean clearing Fabio's real key there). **Committed + pushed `621f90c48`** (Fabio: commit now). Event doc: Fabio said add the line; its home is `MpiEventMap` in `js/events.js:183` (runtime source of truth, `.claude/rules/events.md` points there), which live peer `8d7c61a8` (MPI-941) claims -> asked it by message `ec93cbba`. Open until that lands
+    - [x] Keyring notice ("no OS secure key store") is a LAUNCH artifact, not a bug: A/B probe with the box's Electron — over SSH `available=false backend=basic_text`; with the desktop's `XDG_CURRENT_DESKTOP=ubuntu:GNOME` `available=true backend=gnome_libsecret`. Recorded on MPI-856 too
+    - [x] RunPod leg PASSED 01:3xZ (see A1 above). An earlier run polled v1's `desiredStatus`, was interrupted, and its `finally` deleted Pod + volume (404 / 200)
+    - Spend: DeepInfra $0.018 image + one agent turn (<$0.01); RunPod two CPU Pods ~3.5 min total at $0.06/hr (~$0.004) + two 10-11 GB volumes for minutes. **Total ~$0.03 of the $0.25 cap**
+    - The box keeps the updated test install at `~/b3/` with Fabio's two keys in its `user-data/` (app-level encrypted); reuse it for the cut-time run
+    - [ ] At the cut, on the REAL 2.0 bundle: also check `~/Documents/Cubric Vision` -> `Cubric Studio` rename. It did NOT happen on the rehearsal and must not: it runs only at app major >= 2 (`routes/shared.js:132`), and the rehearsal build is 1.6.2
 - [x] **B4** `npm test` and `npm run test:desktop` green — 2026-09-29: CI run 36497353233 on `804107f52` (last code commit; later ones are board-only) unit + desktop shards 1-4 all success; local `npm test` at HEAD 2215 pass / 0 fail / 2 skip. **Re-check at the cut** (code keeps landing)
 - [x] **B5** MPI-656 Phase 1 — CLEARED by reading 2026-09-27: every YAML writer (`comfy.js:855/864/934`, `engine.js:671/678`) goes through `writeExtraModelPathsYaml` -> `setRoots`, so `model_roots.json` cannot drift from the YAML; the yaml-only seed and the both-equal rule are tested (`tests/model-roots.test.cjs:213,252`)
 - [x] **B6** MPI-710 — CLEARED by reading 2026-09-27: nothing load-bearing reads the installed top-level manifest (the applier keys its guard off package.json on purpose, `apply-update.cjs:88-100`; main, routes and updateChecker never read it). Stays a research card, not a gate
@@ -59,7 +81,9 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [x] **MPI-949 close-out**: the two Cue all bullets become stacks — done (`c6937e50f` + `89d7b92ba`; `grep -i "cue all" UNRELEASED.md` empty 2026-09-29, Stack bullet at :159)
 - [ ] Agent image tools (MPI-941) get their line at 941 close-out
 - [x] Rename section (`ec7b81cb3`), plus Vision -> Cubric Studio in four user-facing bullets
-- [ ] Known-issue lines: macOS · unsigned exe / SAC (MPI-616) · A5 if unmitigated · 1.5.0 installs lose the remote engine on 2026-11-15
+- [x] Known-issue lines: macOS · unsigned exe / SAC (MPI-616) · A5 if unmitigated · 1.5.0 installs lose the remote engine on 2026-11-15
+  - [x] DRAFTED 2026-09-29 in `UNRELEASED.md` § "Known issues (GitHub release page ONLY)": RunPod cutoff (Updating?), SAC (First launch, Windows), xcode-select (First launch, macOS), macOS untested (Platform support). A5 needs no line (MPI-954 fixed). They are release-BODY lines, not in-app: 1.5.0's update prompt shows no notes (`git show v1.5.0:js/services/updateChecker.js`, OK/Cancel only)
+  - [x] Fabio reviewed the four lines 2026-09-29: "lines are good". Copy them into the release body at Gate 2 as written
 - [x] MPI-543 / MPI-544 / MPI-569 — OUT of 2.0 (Fabio 2026-09-29). 544 was seen once, in the 2026-08-11 download-Pod incident (bot-driven installs), never reproduced; Fabio reads it as smoke-run-only. Cards stay on the board as they are
 - [ ] Flow-list reconcile — LAST, once, at notes freeze (13 ids on 2026-09-27)
 
@@ -67,18 +91,23 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 
 - [x] App `README.md` "Use it from your AI agent" section (`ec7b81cb3`, says it needs 2.0)
 - [x] `UNRELEASED.md` bullet — now points at Settings > Connect an agent
-- [ ] `.mcpb` home: agents-repo release only, or also `mpi-release` step 6
+- [x] `.mcpb` home: agents-repo release ONLY (Fabio 2026-09-29). Every link already read it (`routes/agentConnect.js` `MCPB_URL`, agents README, MCP Registry `server.json`); the app-release copy is gone from `mpi-release` SKILL step 6 and `github-release-checklist.md`. The website gets a download button for it (MPI-973)
 - [ ] Claude Desktop directory submission AFTER 2.0 is live
 - [x] MPI-873 done
 
 ## Gate D — hygiene at the cut
 
-- [ ] `validating` resolved: MPI-845, MPI-827, MPI-866, MPI-720
-- [ ] MPI-623 / 711 / 591 / 656 out of `doing`, or scoped into 2.0 explicitly
+- [x] `validating` resolved: ~~MPI-845~~, ~~MPI-827~~, ~~MPI-866~~, ~~MPI-720~~
+  - MPI-866 taken OFF the 2.0 gate (Fabio 2026-09-29): CI tooling, not user-facing; it stays `validating` until master next goes red on its own
+  - [x] MPI-827 DONE 2026-09-29: Fabio "We can see the latents in the gallery" (agent-run Flow)
+  - [x] MPI-845 DONE 2026-09-29: Fabio "845 looks good" (titlebar mark, chip hover, reference-chip X)
+  - [x] MPI-720 DONE 2026-09-29: Fabio confirmed the reporter downloads at normal speed on the fixed build (evidence in its `validation.md`)
+- [x] MPI-623 / 711 / 591 / 656 out of `doing`, or scoped into 2.0 explicitly — 2026-09-29 Fabio: 623/711/656 post-2.0 -> `todo`/`deferred`; 591 was already done (A6)
 - [ ] 1.6.0 / 1.6.1 / 1.6.2 `RELEASE_NOTES` entries + `.approved-1.6.*.json` deleted at the fold
-- [ ] MPI-708 Phase 3: dual-publish `CubricVision-*` at the cut (2.0 note done `ec7b81cb3`; 2.1 follow-up is **MPI-951**)
+- [x] ~~MPI-708 Phase 3: dual-publish `CubricVision-*` at the cut~~ DROPPED: Fabio 2026-09-29 (MPI-972, `f74855990`) no legacy set at 2.0; 2.0 updates in place from 1.5.0. The `mpi-release` SKILL still said "also attaches legacy copies" — fixed this session
 - [ ] `python scripts/overtaken-cards.py`; unpushed pushed; commit by pathspec
 - [ ] `publish-runtime.sh promote` (mpi-ci `cubric-vision-pod/`): dev -> stable = wrapper 0.2.45 (MPI-894 async hot-store, live-proven 2026-09-29) + `b131c0a` chatterbox link. Fabio 2026-09-29: at the cut, not before. Harmless to 1.5.0/1.6.x (they never send `async`), useless to them until 2.0's app
 - [ ] `/mpi-version-bump` -> **2.0.0**, then `/mpi-release`
 - [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
+- [ ] Ask Fabio again, near the release: a Discord/Patreon post warning 1.5.0 users about the 2026-11-15 RunPod cutoff (Fabio 2026-09-29: "no to the post right now, maybe closer to the release")
 - [ ] After: MPI-603 R2/HF delete; MPI-612

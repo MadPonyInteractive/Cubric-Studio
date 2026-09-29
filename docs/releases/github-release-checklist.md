@@ -19,17 +19,12 @@ online `update.*` script; GitHub is the only update source):
 - `CubricStudio-linux-x64-update-v<version>.zip`
 - `CubricStudio-macos-arm64-update-v<version>.zip`
 
-Claude Desktop extension (MPI-593), packed per the release skill step 6. This is a COPY: the
-one the Settings page, the agents README and the MCP Registry read is the
-`cubric-studio-agents` release (`docs/mcp-server.md` § The Claude Desktop bundle), and it does not change with
-an app release.
-
-- `cubric-studio.mcpb`
-
-Every release, 2.0.0 included, ships the six `CubricStudio-*` assets above plus
-`cubric-studio.mcpb`, nothing else. **Do not publish a legacy `CubricVision-*` set at 2.0.0**
-(Fabio 2026-09-29, MPI-972): installs older than 1.5.0 download 2.0.0
-fresh.
+Every release, 2.0.0 included, ships the six `CubricStudio-*` assets above, nothing else.
+**Do not publish a legacy `CubricVision-*` set at 2.0.0** (Fabio 2026-09-29, MPI-972):
+installs older than 1.5.0 download 2.0.0 fresh. **Do not attach `cubric-studio.mcpb`**
+(Fabio 2026-09-29): the Claude Desktop extension's one home is the `cubric-studio-agents`
+release (`docs/mcp-server.md` § The Claude Desktop bundle), which the Settings page, the
+agents README and the MCP Registry all read.
 
 ## Draft first — the tag is not created until you publish
 
@@ -43,7 +38,7 @@ created at that moment, on the `--target` SHA.
 ```sh
 gh release create v<ver> -R MadPonyInteractive/Cubric-Studio \
   --target <sha> --draft --title "v<ver>" \
-  --notes-file <body.md> <6 assets> cubric-studio.mcpb
+  --notes-file <body.md> <6 assets>
 gh release edit <id> --draft=false --latest   # publishes; uses the tag, or creates it
 git fetch origin --tags && git rev-parse "v<ver>^{}"   # must equal <sha>
 ```

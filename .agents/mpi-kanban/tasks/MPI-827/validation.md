@@ -42,3 +42,7 @@ id from the media commit, never the tempId), not by running it.
 Stand in the Gallery, ask the agent to run a flow, and watch: a `Generating...` card
 appears and its latents paint on it. Then the same from the flow frame — the card
 appears in the gallery too, and the flow's own pane still paints its copy.
+
+## Verified 2026-09-29 (Fabio)
+
+Fabio ran a Flow from the agent while in the Gallery: "We can see the latents in the gallery." That is the one check this card was waiting on. Closed done.

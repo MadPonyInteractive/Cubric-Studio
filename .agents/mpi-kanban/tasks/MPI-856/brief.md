@@ -56,3 +56,17 @@ A user with no ComfyUI installed and a DeepInfra key saved can create a project,
 generate with a paid cloud model, and is told clearly and specifically — never by a failure —
 why each local capability is unavailable. Every existing user with an engine sees no change
 whatsoever.
+
+## Evidence 2026-09-29 (MPI-595 B3, Linux box, NO engine and NO Pod)
+
+Fabio asked for this card again on seeing B3 need an agent to reach DeepInfra. The server
+side already works with no engine: over HTTP on master `f74855990` (built 1.6.2) the box ran
+`POST /create-project`, a connector generate of `flux2-dev-cloud` t2i (card landed, 11.5 s,
+$0.018), then an `/agent/message` turn on the `deepinfra` profile that answered correctly.
+Only the renderer gate (`blockedByNoEngine()`) stands between that user and a project. Two
+more things this audit must cover, found the same run:
+
+- Saving the DeepInfra key never refreshed the cloud models' `installed` flag (fixed under
+  MPI-595, see its checklist): on a no-engine machine nothing else ever re-checks models.
+- Launched without `XDG_CURRENT_DESKTOP` (SSH, some launchers), Electron picks `basic_text`
+  and the RunPod key falls to app-level encryption; a desktop launch gets `gnome_libsecret`.
