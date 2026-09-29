@@ -248,8 +248,9 @@ export function runCloudCommand(payload) {
 
         const _settleError = (code, message) => {
             generationStore.settle(jobId, PHASES.ERROR, { error: code });
-            // The route's own message too: the dialog shows fixed copy per code, so without
-            // it here a refusal ("none arrived") and a provider fault read the same in the log.
+            // The route's own message too: the dialog shows fixed copy for every code but a
+            // PROVIDER_ERROR with a reason (MPI-981), so without it here a refusal ("none
+            // arrived") and a provider fault read the same in the log.
             clientLogger.error('cloudExecutor',
                 `Cloud generation failed (${payload.operation} / ${payload.modelId}): ${code}${message ? ` - ${message}` : ''}`);
             // A run refused for credit (MPI-869) is a toast, not the error dialog: nothing
