@@ -55,6 +55,14 @@ async function harness() {
     return { root, mediaDir, metaDir, png, post, viewUrl, close };
 }
 
+const plainSave = (h) => h.post('/project/save-generation', {
+    folderPath: h.root,
+    comfyViewUrl: h.viewUrl('removeBackground_001.png'),
+    itemId: 'bbbbbbbb-0000-0000-0000-000000000976',
+    operation: 'removeBackground',
+    mediaType: 'image',
+});
+
 /**
  * Run a plain save whose GC meets `prevMedia` mid-rewrite: its check of that file starts
  * `rewrite()`, waits until the rewrite has deleted it, and only then answers. The rewrite
@@ -85,13 +93,7 @@ async function saveDuringRewrite(h, prevMedia, rewrite) {
         return out;
     };
     try {
-        saveDone = h.post('/project/save-generation', {
-            folderPath: h.root,
-            comfyViewUrl: h.viewUrl('removeBackground_001.png'),
-            itemId: 'bbbbbbbb-0000-0000-0000-000000000976',
-            operation: 'removeBackground',
-            mediaType: 'image',
-        });
+        saveDone = plainSave(h);
         const saved = await saveDone;
         assert.equal(saved.success, true, JSON.stringify(saved));
         assert.ok(raced, 'interleave not forced: the GC never checked the rewritten item\'s old media');
@@ -166,6 +168,26 @@ test('a GIF update survives another save\'s GC', { timeout: 60000 }, async () =>
 
         await assertCardIntact(h, id);
         assert.equal(await fs.pathExists(oldGif), false, 'the previous .gif should be gone');
+    } finally {
+        await h.close();
+    }
+});
+
+// MPI-977 — every sidecar write truncates the file, then writes it, so a GC read in between
+// sees an empty file. The GC used to call an unreadable sidecar orphaned and delete it; every
+// route outside save-generation (a new GIF, a crop, an upload) was exposed.
+test('a sidecar caught mid-write survives another save\'s GC', { timeout: 60000 }, async () => {
+    const h = await harness();
+    try {
+        const id = 'dddddddd-0000-0000-0000-000000000977';
+        await fs.writeFile(path.join(h.metaDir, `${id}.thumb.webp`), 'x');
+        await fs.writeFile(path.join(h.metaDir, `${id}.json`), '');
+
+        const saved = await plainSave(h);
+        assert.equal(saved.success, true, JSON.stringify(saved));
+
+        assert.ok(await fs.pathExists(path.join(h.metaDir, `${id}.json`)), 'a sidecar mid-write was deleted as an orphan');
+        assert.ok(await fs.pathExists(path.join(h.metaDir, `${id}.thumb.webp`)), 'its thumb was deleted');
     } finally {
         await h.close();
     }

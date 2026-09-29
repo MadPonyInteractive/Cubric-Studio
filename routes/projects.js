@@ -2442,7 +2442,10 @@ router.post('/project/save-generation', async (req, res) => {
                     const metaContent = await fs.readJson(metaFilePath);
                     if (metaContent.filePath) mediaPath = pathFromProjectFileUrl(metaContent.filePath);
                 } catch (_) {
-                    // If we can't read the meta file, treat it as orphaned
+                    // Unreadable is NOT orphaned (MPI-977): every writer truncates, then
+                    // writes, so this is usually a sidecar caught mid-write by another
+                    // route. Project open and Manual Cleanup skip one too.
+                    continue;
                 }
 
                 // If we couldn't determine the media path from meta, assume filename-based

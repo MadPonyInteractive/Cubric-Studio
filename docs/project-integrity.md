@@ -270,6 +270,8 @@ If a user deletes a file manually (outside the app), the next project open runs 
 
 **Nor an id in `itemsInFlight` (MPI-976).** A same-id rewrite (save-generation `replaceItemId`, `/gif/entry` update) writes the new sidecar, THEN deletes the old media; a GC that read the old sidecar first found that media gone and deleted the new card. A new same-id rewrite must add its id to that set (`routes/projects.js`) and drop it in `finally`.
 
+**Nor a sidecar it cannot parse (MPI-977).** `writeJson` truncates, then writes, so a GC read in between sees an empty file; calling that orphaned deleted cards any other route (new GIF, crop, upload) was writing. Project open (`/load-meta-batch`) and Manual Cleanup already skip an unreadable sidecar, and so does the GC now.
+
 **Critical:** When reading the meta file to check if media exists, ALWAYS read the `filePath` field from the `.meta/` JSON — do NOT assume the UUID is the media filename. The UUID might be `6e409682-...` but the actual file could be `t2i_001.png` or `my_custom_name.png`.
 
 **Every sidecar path parse must stop at `&`.** Outputs carry a `&v=<mtime>` cache-bust
