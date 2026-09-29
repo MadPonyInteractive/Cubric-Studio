@@ -166,6 +166,7 @@ EMITS:   `tool:running`       `{ tool: 'groupHistory', type: string }` — fired
 NOTE:    Reads `state.currentProject`; writes `state.currentProject`
          On mount: rehydrates from `activeGenerations.listFor('groupHistory', _group.id)` — canvas shows cached preview immediately
          `destroy()` unsubscribes all events but does NOT cancel exec — generation continues across navigation
+         Publishes two agent readers on mount, withdrawn in `destroy()`: the painted mask (`js/shell/activeMask.js` `setMaskReader`, MPI-877) and, on a video, the frame on screen (`js/shell/activeFrame.js` `setFrameReader` over `videoControlBar.el.getFrame()`, MPI-984). `agentDispatch` / `agentService` read them; never query the viewer from outside.
          StatusBar listens to tool:running, tool:loading-model, tool:sampling-start, tool:idle, tool:cancelled and updates progress label/variant
          commandExecutor emits tool:loading-model and tool:sampling-start (see component-events-lifecycle.md)
          Window-level drag listeners (`dragenter`/`dragleave`/`dragover`/`drop`) managed here; removed in `destroy()`
