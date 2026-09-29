@@ -34,6 +34,7 @@ const {
     builtGifDimensions,
     frameAbsPath,
     frameThumbAbsPath,
+    holdFrames,
     sweepGifFrames,
 } = require('../services/gifFrames');
 const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
@@ -79,6 +80,7 @@ function withFrameUrls(mediaDir, gifField) {
  * once the sidecar already carries `gif.frames`.
  */
 router.post('/gif/ensure-frames', async (req, res) => {
+    const hold = holdFrames();
     try {
         const { folderPath, itemId } = req.body || {};
         if (!folderPath || !itemId) {
@@ -100,7 +102,7 @@ router.post('/gif/ensure-frames', async (req, res) => {
             return res.status(404).json({ success: false, error: `gif media file not found for ${itemId}` });
         }
 
-        const gifField = await extractFramesFromGif(gifAbsPath, mediaDir);
+        const gifField = await extractFramesFromGif(gifAbsPath, mediaDir, hold);
         meta.gif = gifField;
         await fs.writeJson(metaPath, meta, { spaces: 2 });
 
@@ -108,6 +110,8 @@ router.post('/gif/ensure-frames', async (req, res) => {
     } catch (err) {
         logger.error('project', 'gif ensure-frames failed', err);
         res.status(500).json({ success: false, error: err.message });
+    } finally {
+        hold.release();
     }
 });
 
@@ -135,6 +139,7 @@ router.post('/gif/ensure-frames', async (req, res) => {
 router.post('/gif/entry', async (req, res) => {
     let outputPath = '';
     let inFlightId = null;
+    const hold = holdFrames();
     try {
         const { folderPath, mode, itemId, frames, loop, output, sourceItemId, sourceGroupId } = req.body || {};
         if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
@@ -150,6 +155,8 @@ router.post('/gif/entry', async (req, res) => {
         await fs.ensureDir(metaDir);
 
         for (const f of frames) {
+            // Held before the check: nothing may name these until our sidecar lands (MPI-982).
+            if (f?.hash) await hold.add(f.hash);
             if (!f?.hash || !(await frameExists(mediaDir, f.hash))) {
                 return res.status(400).json({ success: false, error: `unknown frame hash: ${f?.hash}` });
             }
@@ -241,6 +248,7 @@ router.post('/gif/entry', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     } finally {
         itemsInFlight.delete(inFlightId);
+        hold.release();
     }
 });
 

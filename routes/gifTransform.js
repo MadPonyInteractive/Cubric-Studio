@@ -66,6 +66,7 @@ const logger = require('./logger');
 const {
     frameAbsPath,
     frameExists,
+    holdFrames,
     writeFrame,
     buildGif,
     builtGifDimensions,
@@ -124,12 +125,12 @@ async function _cropFrameBuffer(buffer, { x, y, w, h, fill, outW, outH }) {
  * each stored frame buffer, preserving each frame's own `delay` 1:1 by index
  * — crop/resize never changes frame count or timing, only pixels.
  */
-async function _transformFrames(mediaDir, frames, transformOne) {
+async function _transformFrames(mediaDir, frames, transformOne, hold) {
     const out = [];
     for (const f of frames) {
         const buf = await fs.readFile(frameAbsPath(mediaDir, f.hash));
         const transformed = await transformOne(buf);
-        const { hash } = await writeFrame(mediaDir, transformed);
+        const { hash } = await writeFrame(mediaDir, transformed, hold);
         out.push({ hash, delay: Number(f.delay) || 10 });
     }
     return out;
@@ -197,6 +198,7 @@ async function _writeNewGifCard({ folderPath, mediaDir, metaDir, newFrames, loop
 
 router.post('/gif/crop', async (req, res) => {
     let outputPath = '';
+    const hold = holdFrames();
     try {
         const { folderPath, frames, loop, output, x, y, w, h, fill, outW, outH, sourceItemId, sourceGroupId } = req.body || {};
         if (!folderPath || typeof folderPath !== 'string') {
@@ -233,7 +235,7 @@ router.post('/gif/crop', async (req, res) => {
             _cropFrameBuffer(buf, {
                 x: rectX, y: rectY, w: rectW, h: rectH, fill,
                 outW: resample ? targetW : null, outH: resample ? targetH : null,
-            }));
+            }), hold);
 
         const result = await _writeNewGifCard({
             folderPath, mediaDir, metaDir, newFrames, loop, output,
@@ -246,11 +248,14 @@ router.post('/gif/crop', async (req, res) => {
         logger.error('project', 'gif crop failed', err);
         if (outputPath) { try { await fs.remove(outputPath); } catch { /* best-effort */ } }
         res.status(500).json({ success: false, error: err.message });
+    } finally {
+        hold.release();
     }
 });
 
 router.post('/gif/resize', async (req, res) => {
     let outputPath = '';
+    const hold = holdFrames();
     try {
         const { folderPath, frames, loop, output, width, height, sourceItemId, sourceGroupId } = req.body || {};
         if (!folderPath || typeof folderPath !== 'string') {
@@ -276,7 +281,7 @@ router.post('/gif/resize', async (req, res) => {
         }
 
         const newFrames = await _transformFrames(mediaDir, frames, (buf) =>
-            sharp(buf).resize(targetW, targetH, { fit: 'fill' }).ensureAlpha().png().toBuffer());
+            sharp(buf).resize(targetW, targetH, { fit: 'fill' }).ensureAlpha().png().toBuffer(), hold);
 
         const result = await _writeNewGifCard({
             folderPath, mediaDir, metaDir, newFrames, loop, output,
@@ -289,6 +294,8 @@ router.post('/gif/resize', async (req, res) => {
         logger.error('project', 'gif resize failed', err);
         if (outputPath) { try { await fs.remove(outputPath); } catch { /* best-effort */ } }
         res.status(500).json({ success: false, error: err.message });
+    } finally {
+        hold.release();
     }
 });
 

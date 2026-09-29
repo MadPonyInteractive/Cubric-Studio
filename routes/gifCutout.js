@@ -85,6 +85,7 @@ const {
     frameAbsPath,
     frameExists,
     builtGifDimensions,
+    holdFrames,
     writeFrame,
     buildGif,
 } = require('../services/gifFrames');
@@ -329,6 +330,7 @@ function cutoutRecord(settings, adjust, invert) {
 
 router.post('/gif-cutout/apply', async (req, res) => {
     let outputPath = '';
+    const hold = holdFrames();
     try {
         const { folderPath, frames, loop, output, masks, adjust, invert, settings, sourceItemId, sourceGroupId } = req.body || {};
         if (!folderPath || typeof folderPath !== 'string') {
@@ -364,7 +366,7 @@ router.post('/gif-cutout/apply', async (req, res) => {
                 // fails is a clear warning, not a truncation).
                 throw new Error(`cut-out failed at frame ${i + 1}/${frames.length}: ${frameErr.message}`);
             }
-            const { hash } = await writeFrame(mediaDir, cutBuffer);
+            const { hash } = await writeFrame(mediaDir, cutBuffer, hold);
             newFrames.push({ hash, delay: Number(frames[i].delay) || 10 });
         }
 
@@ -423,6 +425,8 @@ router.post('/gif-cutout/apply', async (req, res) => {
         logger.error('project', 'gif cutout apply failed', err);
         if (outputPath) { try { await fs.remove(outputPath); } catch { /* best-effort */ } }
         res.status(500).json({ success: false, error: err.message });
+    } finally {
+        hold.release();
     }
 });
 

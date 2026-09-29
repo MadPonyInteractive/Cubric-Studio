@@ -69,7 +69,7 @@ const { promisify } = require('util');
 const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
 const logger = require('./logger');
-const { writeFrame, buildGif, builtGifDimensions, MIN_DELAY_HUNDREDTHS } = require('../services/gifFrames');
+const { holdFrames, writeFrame, buildGif, builtGifDimensions, MIN_DELAY_HUNDREDTHS } = require('../services/gifFrames');
 const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
 const { ffmpegPath } = require('../services/ffmpegBinary');
 const { nextSequence } = require('./projects');
@@ -139,7 +139,7 @@ function _maxEdgeForPreset(sizePreset, frameW, frameH) {
  * fine for GIF)"), so GIF Maker's trim behaves identically to the preview
  * encoder's.
  */
-async function _extractFramesAtFps(mediaDir, sourceAbsPath, fps, trim) {
+async function _extractFramesAtFps(mediaDir, sourceAbsPath, fps, trim, hold) {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gif-maker-extract-'));
     try {
         const pattern = path.join(tmpDir, 'f_%05d.png');
@@ -159,7 +159,7 @@ async function _extractFramesAtFps(mediaDir, sourceAbsPath, fps, trim) {
         const frames = [];
         for (const f of files) {
             const buf = await fs.readFile(path.join(tmpDir, f));
-            const { hash } = await writeFrame(mediaDir, buf);
+            const { hash } = await writeFrame(mediaDir, buf, hold);
             frames.push({ hash, delay });
         }
         const firstMeta = await sharp(path.join(tmpDir, files[0])).metadata();
@@ -171,6 +171,7 @@ async function _extractFramesAtFps(mediaDir, sourceAbsPath, fps, trim) {
 
 router.post('/gif/maker', async (req, res) => {
     let outputPath = '';
+    const hold = holdFrames();
     try {
         const { folderPath, sourcePath, sizePreset: rawSizePreset, loop: rawLoop, trimIn: rawTrimIn, trimOut: rawTrimOut } = req.body || {};
 
@@ -219,7 +220,7 @@ router.post('/gif/maker', async (req, res) => {
             return res.status(404).json({ success: false, error: '.meta directory missing' });
         }
 
-        const { frames, width, height } = await _extractFramesAtFps(mediaDir, inputPath, fps, trim);
+        const { frames, width, height } = await _extractFramesAtFps(mediaDir, inputPath, fps, trim, hold);
 
         const gifEntry = {
             frames,
@@ -260,6 +261,8 @@ router.post('/gif/maker', async (req, res) => {
         logger.error('project', 'gif/maker failed', err);
         if (outputPath) { try { await fs.remove(outputPath); } catch {} }
         res.status(500).json({ success: false, error: err.message });
+    } finally {
+        hold.release();
     }
 });
 

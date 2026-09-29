@@ -103,15 +103,57 @@ function frameExists(mediaDir, hash) {
     return fs.pathExists(frameAbsPath(mediaDir, hash));
 }
 
+/*
+ * Frames a request will name in a sidecar it has not written yet (MPI-982). Every GIF
+ * writer stores its frames first and its sidecar last, so in between nothing on disk
+ * names them and `sweepGifFrames` took them: the card landed naming frames that were
+ * gone. Same shape as `itemsInFlight` (routes/projects.js, MPI-976). Refcounted, since
+ * two requests can hold one hash; per process, which is every writer of a project.
+ * ponytail: keyed by hash alone, so a hold in one project also keeps that frame in
+ * another until the next sweep there. It also covers the SOURCE store of a copy.
+ */
+const framesInFlight = new Map();
+let sweepTail = Promise.resolve();
+
+/**
+ * Take one per request that writes a GIF sidecar, pass it to every frame write, and
+ * release it in a `finally` once the sidecar is on disk.
+ */
+function holdFrames() {
+    const held = [];
+    return {
+        /**
+         * Hold `hash`, then wait out any sweep already running: one that checked this
+         * hash before the hold may still be deleting it, and a writer that looked now
+         * would find the file and skip writing a frame about to vanish.
+         */
+        async add(hash) {
+            framesInFlight.set(hash, (framesInFlight.get(hash) || 0) + 1);
+            held.push(hash);
+            await sweepTail;
+        },
+        release() {
+            for (const hash of held.splice(0)) {
+                const n = framesInFlight.get(hash) - 1;
+                if (n > 0) framesInFlight.set(hash, n);
+                else framesInFlight.delete(hash);
+            }
+        },
+    };
+}
+
 /**
  * Write one frame into the content-addressed store. A no-op (besides the hash)
  * when the content already exists — this is what makes "identical frames
  * written once" true for a reorder/retime edit that touches no pixels.
+ * `hold` (from `holdFrames`) keeps the frame from the sweep until the caller's
+ * sidecar lands; every route that writes a GIF card passes one.
  */
-async function writeFrame(mediaDir, buffer) {
+async function writeFrame(mediaDir, buffer, hold) {
     const dir = framesDir(mediaDir);
     await fs.ensureDir(dir);
     const hash = hashBuffer(buffer);
+    if (hold) await hold.add(hash);
     const abs = frameAbsPath(mediaDir, hash);
     if (!(await fs.pathExists(abs))) {
         const tmp = `${abs}.${process.pid}.${uuidv4()}.tmp`;
@@ -130,7 +172,7 @@ async function writeFrame(mediaDir, buffer) {
  * share this; the caller decides WHEN to call it, this has no policy about that.
  * ------------------------------------------------------------------------ */
 
-async function extractFramesFromGif(gifAbsPath, mediaDir) {
+async function extractFramesFromGif(gifAbsPath, mediaDir, hold) {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gif-extract-'));
     try {
         const pattern = path.join(tmpDir, 'f_%05d.png');
@@ -156,7 +198,7 @@ async function extractFramesFromGif(gifAbsPath, mediaDir) {
         const frames = [];
         for (let i = 0; i < files.length; i++) {
             const buf = await fs.readFile(path.join(tmpDir, files[i]));
-            const { hash } = await writeFrame(mediaDir, buf);
+            const { hash } = await writeFrame(mediaDir, buf, hold);
             const delay = Math.max(MIN_DELAY_HUNDREDTHS, Math.round((delaysMs[i] ?? 100) / 10));
             frames.push({ hash, delay });
         }
@@ -386,7 +428,7 @@ async function buildGif(entry, mediaDir, outAbsPath) {
  * the destination is left alone — this is the `splatPath`-copy precedent
  * (routes/projects.js add-from-cards) applied to a store instead of one file.
  */
-async function copyGifFrames(srcMediaDir, destMediaDir, gifField) {
+async function copyGifFrames(srcMediaDir, destMediaDir, gifField, hold) {
     const frames = gifField?.frames;
     if (!Array.isArray(frames) || !frames.length) return;
     await fs.ensureDir(framesDir(destMediaDir));
@@ -395,6 +437,7 @@ async function copyGifFrames(srcMediaDir, destMediaDir, gifField) {
         const hash = f?.hash;
         if (!hash || seen.has(hash)) continue;
         seen.add(hash);
+        if (hold) await hold.add(hash);
         const srcPng = frameAbsPath(srcMediaDir, hash);
         const destPng = frameAbsPath(destMediaDir, hash);
         if (await fs.pathExists(srcPng) && !(await fs.pathExists(destPng))) {
@@ -419,8 +462,21 @@ async function copyGifFrames(srcMediaDir, destMediaDir, gifField) {
  * on disk (docs/gallery.md § Retention), so an archived reference survives this
  * exactly like a visible one. Cheap no-op for a project that never had a GIF:
  * bails before listing a single sidecar.
+ *
+ * Keeps a frame a writer holds (`holdFrames`), and deletes NOTHING while any
+ * sidecar is unreadable (MPI-982): every sidecar write truncates, then writes,
+ * so one read in between may name any frame. Sweeps run one at a time, so a
+ * hold can wait out the one in progress.
+ * ponytail: a sidecar that STAYS unreadable holds the whole store until it is
+ * repaired: leaked disk, never a lost frame.
  */
-async function sweepGifFrames(mediaDir) {
+function sweepGifFrames(mediaDir) {
+    const run = sweepTail.then(() => sweepOnce(mediaDir));
+    sweepTail = run.catch(() => {});
+    return run;
+}
+
+async function sweepOnce(mediaDir) {
     const dir = framesDir(mediaDir);
     if (!(await fs.pathExists(dir))) return { removed: 0 };
 
@@ -430,7 +486,10 @@ async function sweepGifFrames(mediaDir) {
         const files = (await fs.readdir(metaDir)).filter(f => f.endsWith('.json'));
         for (const f of files) {
             let meta;
-            try { meta = await fs.readJson(path.join(metaDir, f)); } catch { continue; }
+            try { meta = await fs.readJson(path.join(metaDir, f)); } catch (err) {
+                if (err.code === 'ENOENT') continue; // deleted since the listing: names nothing
+                return { removed: 0 };
+            }
             const frames = meta?.gif?.frames;
             if (Array.isArray(frames)) {
                 for (const fr of frames) if (fr?.hash) referenced.add(fr.hash);
@@ -443,7 +502,7 @@ async function sweepGifFrames(mediaDir) {
     for (const name of entries) {
         const m = /^([0-9a-f]{64})\.(png|thumb\.jpg|thumb\.webp|thumb\.\d+\.webp)$/i.exec(name);
         if (!m) continue;
-        if (referenced.has(m[1])) continue;
+        if (referenced.has(m[1]) || framesInFlight.has(m[1])) continue;
         try { await fs.remove(path.join(dir, name)); removed++; } catch (_) { /* best-effort GC */ }
     }
     return { removed };
@@ -461,6 +520,7 @@ module.exports = {
     totalPlaysToRawLoop,
     frameExists,
     builtGifDimensions,
+    holdFrames,
     writeFrame,
     extractFramesFromGif,
     buildGif,

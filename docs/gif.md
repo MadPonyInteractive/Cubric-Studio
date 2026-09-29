@@ -102,6 +102,13 @@ that never had a GIF (bails before listing a single sidecar).
 (an update can drop frames the previous list referenced; `mode: 'new'` never
 removes a reference, so it does not sweep).
 
+**Every GIF writer HOLDS its frames until its sidecar lands (MPI-982)** — frames land
+first, so a sweep in between deleted them and the card named missing frames. A route
+writing a GIF card takes `holdFrames()`, passes it to `writeFrame` /
+`extractFramesFromGif` / `copyGifFrames`, releases it in `finally`; a NEW writer must too.
+**An unreadable sidecar makes the sweep delete nothing** (a torn read may name any
+frame). No grace window: GIF Maker and cut-out builds have no upper bound to set one by.
+
 ## Build — two-pass palette, then patch every delay
 
 `buildGif(entry, mediaDir, outAbsPath)` in `services/gifFrames.js`. **Why not

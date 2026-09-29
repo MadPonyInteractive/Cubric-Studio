@@ -39,7 +39,7 @@ const { probeVideo, probeAudio } = require('../services/ffprobeVideo');
 const { extractImageThumb, extractVideoThumb, extractVideoProxy, extractAudioWaveform, extractVideoWaveform, writeVideoDerivatives, imageThumbPath, videoProxyPath, IMAGE_RENDITION_PX, VIDEO_PROXY_HEIGHT } = require('../services/ffmpegThumb');
 const { ffmpegPath, ffprobePath, quote } = require('../services/ffmpegBinary');
 const { muxAudioIntoVideo, mixAudioFiles } = require('../services/ffmpegMux');
-const { extractFramesFromGif, copyGifFrames, sweepGifFrames } = require('../services/gifFrames');
+const { extractFramesFromGif, copyGifFrames, holdFrames, sweepGifFrames } = require('../services/gifFrames');
 const { SCHEMA_VERSION } = require('../js/migrations/projectMigrations');
 
 const projectJsonQueues = new Map();
@@ -1525,6 +1525,7 @@ async function rasterizeSvg(svgBytes) {
 }
 
 router.post('/project-media/:projectId/upload', async (req, res) => {
+    const gifHold = holdFrames();
     try {
         const { folderPath } = req.query;
         const { filename, base64Data, sourcePath, promptContext, seed, autoSequence, itemId, mediaType } = req.body;
@@ -1626,7 +1627,7 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
             // without a frames store until the workspace opens it once.
             if (/\.gif$/i.test(finalFileName)) {
                 try {
-                    metaContent.gif = await extractFramesFromGif(filePath, mediaDir);
+                    metaContent.gif = await extractFramesFromGif(filePath, mediaDir, gifHold);
                 } catch (gifErr) {
                     logger.warn('project', `gif frame extraction failed for ${finalFileName}: ${gifErr.message}`);
                 }
@@ -1654,6 +1655,8 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
+    } finally {
+        gifHold.release();
     }
 });
 
@@ -2590,11 +2593,17 @@ async function copyItemIntoProject({ item, mediaDir, metaDir, type, name }) {
     // above carries the field wholesale, but without copying the actual
     // frame files (+ thumbs) the copy would 404 the moment the source
     // project is deleted, same class of bug splatPath has above.
-    if (meta.gif && Array.isArray(meta.gif.frames) && meta.gif.frames.length) {
-        await copyGifFrames(path.dirname(srcMedia), mediaDir, meta.gif);
-    }
+    // Held until the sidecar naming them lands, or a sweep in between takes them (MPI-982).
+    const gifHold = holdFrames();
+    try {
+        if (meta.gif && Array.isArray(meta.gif.frames) && meta.gif.frames.length) {
+            await copyGifFrames(path.dirname(srcMedia), mediaDir, meta.gif, gifHold);
+        }
 
-    await fs.writeJson(path.join(metaDir, `${id}.json`), meta, { spaces: 2 });
+        await fs.writeJson(path.join(metaDir, `${id}.json`), meta, { spaces: 2 });
+    } finally {
+        gifHold.release();
+    }
 
     return { id, meta, destMedia };
 }

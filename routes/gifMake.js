@@ -45,7 +45,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
 const logger = require('./logger');
-const { writeFrame, buildGif, builtGifDimensions } = require('../services/gifFrames');
+const { holdFrames, writeFrame, buildGif, builtGifDimensions } = require('../services/gifFrames');
 const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
 const { nextSequence } = require('./projects');
 
@@ -83,6 +83,7 @@ function _isEligibleStillImage(sidecar) {
 
 router.post('/gif/make', async (req, res) => {
     let outputPath = '';
+    const hold = holdFrames();
     try {
         const { folderPath, itemIds } = req.body || {};
         if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
@@ -131,7 +132,7 @@ router.post('/gif/make', async (req, res) => {
                 .ensureAlpha()
                 .png()
                 .toBuffer();
-            const { hash } = await writeFrame(mediaDir, buf);
+            const { hash } = await writeFrame(mediaDir, buf, hold);
             frames.push({ hash, delay: DELAY_HUNDREDTHS });
         }
 
@@ -174,6 +175,8 @@ router.post('/gif/make', async (req, res) => {
         logger.error('project', 'gif/make failed', err);
         if (outputPath) { try { await fs.remove(outputPath); } catch {} }
         res.status(500).json({ success: false, error: err.message });
+    } finally {
+        hold.release();
     }
 });
 

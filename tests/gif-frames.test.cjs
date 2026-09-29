@@ -520,3 +520,180 @@ test('add-from-cards copies a GIF item\'s frames into the destination project', 
         await fs.remove(dstRoot);
     }
 });
+
+/* ── the sweep vs a GIF another request is writing (MPI-982) ─────────────── */
+
+/** Every frame any sidecar in the project names, and the ones the store lacks. */
+async function frameReferences(mediaDir) {
+    const metaDir = path.join(mediaDir, '.meta');
+    const named = [];
+    const missing = [];
+    for (const f of (await fs.readdir(metaDir)).filter(n => n.endsWith('.json'))) {
+        for (const fr of (await fs.readJson(path.join(metaDir, f))).gif?.frames || []) {
+            named.push(fr.hash);
+            if (!(await gifFrames.frameExists(mediaDir, fr.hash))) missing.push(`${f} -> ${fr.hash.slice(0, 12)}`);
+        }
+    }
+    return { named, missing };
+}
+
+async function ffmpegGif(outPath) {
+    const dir = await scratchDir('sweep-race-src-');
+    for (const [i, c] of ['red', 'green'].entries()) {
+        await execFileP(ffmpegPath, ['-y', '-f', 'lavfi', '-i', `color=c=${c}:s=16x16`, '-frames:v', '1', path.join(dir, `f${i}.png`)]);
+    }
+    await fs.writeFile(path.join(dir, 'list.txt'), "file 'f0.png'\nfile 'f1.png'\n");
+    await execFileP(ffmpegPath, ['-y', '-r', '10', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'list.txt'),
+        '-filter_complex', '[0:v] split [a][b];[a] palettegen [p];[b][p] paletteuse', '-loop', '0', outPath], { cwd: dir });
+    await fs.remove(dir);
+}
+
+test('sweep deletes nothing while a sidecar cannot be read (a write caught mid-way, MPI-982)', async () => {
+    const { root, mediaDir } = await tmpProject();
+    const { hash: named } = await gifFrames.writeFrame(mediaDir, await solidPng('red'));
+    const { hash: orphan } = await gifFrames.writeFrame(mediaDir, await solidPng('blue'));
+    // writeJson truncates, then writes: this is the sidecar naming `named`, read in between.
+    const torn = path.join(mediaDir, '.meta', 'torn.json');
+    await fs.writeFile(torn, '');
+
+    assert.deepEqual(await gifFrames.sweepGifFrames(mediaDir), { removed: 0 },
+        'an unreadable sidecar may name any frame: the pass must keep them all, never read it as naming none');
+    assert.equal(await gifFrames.frameExists(mediaDir, named), true);
+
+    await fs.writeJson(torn, { id: 'torn', type: 'image', gif: { frames: [{ hash: named, delay: 10 }], loop: 0, output: {} } });
+    assert.deepEqual(await gifFrames.sweepGifFrames(mediaDir), { removed: 2 }, 'once it reads, the orphan goes');
+    assert.equal(await gifFrames.frameExists(mediaDir, named), true);
+    assert.equal(await gifFrames.frameExists(mediaDir, orphan), false);
+    await fs.remove(root);
+});
+
+/**
+ * Every GIF writer stores its frames first and its sidecar last. This runs a real sweep in
+ * that gap — on the writer's own sidecar write — for every route that writes a GIF card, then
+ * checks no sidecar in the project names a frame the store lost.
+ */
+test('a sweep between a writer\'s frames and its sidecar keeps the frames, on every GIF writer (MPI-982)', async (t) => {
+    const express = require('express');
+    const app = express();
+    app.use(express.json({ limit: '10mb' }));
+    for (const r of ['projects', 'gif', 'gifMake', 'gifMaker', 'gifTransform', 'gifCutout']) app.use(require(`../routes/${r}.js`));
+    const server = await new Promise(r => { const s = app.listen(0, '127.0.0.1', () => r(s)); });
+    const post = (route, body) => fetch(`http://127.0.0.1:${server.address().port}${route}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }).then(r => r.json());
+
+    /** A source GIF card whose frames the transform routes read. */
+    async function sourceGif(mediaDir) {
+        const frames = [];
+        for (const c of ['red', 'green']) frames.push({ hash: (await gifFrames.writeFrame(mediaDir, await solidPng(c))).hash, delay: 10 });
+        await fs.writeJson(path.join(mediaDir, '.meta', 'source.json'), { id: 'source', type: 'image', gif: { frames, loop: 0, output: {} } });
+        return frames;
+    }
+
+    const cases = {
+        '/gif/make': async ({ root, mediaDir }) => {
+            const ids = [];
+            for (const c of ['red', 'green']) {
+                const abs = path.join(mediaDir, `${c}.png`);
+                await fs.writeFile(abs, await solidPng(c));
+                await fs.writeJson(path.join(mediaDir, '.meta', `${c}.json`), { id: c, type: 'image', filePath: url(abs), pixelDimensions: { w: 32, h: 24 } });
+                ids.push(c);
+            }
+            return ['/gif/make', { folderPath: root, itemIds: ids }];
+        },
+        '/gif/maker': async ({ root, mediaDir }) => {
+            const clip = path.join(mediaDir, 'clip.mp4');
+            await execFileP(ffmpegPath, ['-y', '-f', 'lavfi', '-i', 'color=c=red:s=32x32:d=1', '-pix_fmt', 'yuv420p', clip]);
+            return ['/gif/maker', { folderPath: root, sourcePath: url(clip), fps: 4, sizePreset: '320xauto' }];
+        },
+        '/gif/ensure-frames': async ({ root, mediaDir }) => {
+            const gif = path.join(mediaDir, 'legacy.gif');
+            await ffmpegGif(gif);
+            await fs.writeJson(path.join(mediaDir, '.meta', 'legacy.json'), { id: 'legacy', type: 'image', filePath: url(gif) });
+            return ['/gif/ensure-frames', { folderPath: root, itemId: 'legacy' }];
+        },
+        '/gif/entry (new)': async ({ root, mediaDir }) => {
+            // Frames no sidecar names yet — the source card was deleted while this was applied.
+            const { hash } = await gifFrames.writeFrame(mediaDir, await solidPng('red'));
+            return ['/gif/entry', { folderPath: root, mode: 'new', frames: [{ hash, delay: 10 }], loop: 0, output: {} }];
+        },
+        '/gif/crop': async ({ root, mediaDir }) =>
+            ['/gif/crop', { folderPath: root, frames: await sourceGif(mediaDir), x: 0, y: 0, w: 16, h: 16 }],
+        '/gif/resize': async ({ root, mediaDir }) =>
+            ['/gif/resize', { folderPath: root, frames: await sourceGif(mediaDir), width: 16, height: 12 }],
+        '/gif-cutout/apply': async ({ root, mediaDir }) => {
+            const mask = `data:image/png;base64,${(await sharp({ create: { width: 32, height: 24, channels: 3, background: '#ffffff' } }).png().toBuffer()).toString('base64')}`;
+            return ['/gif-cutout/apply', { folderPath: root, frames: await sourceGif(mediaDir), masks: [mask, mask] }];
+        },
+        '.gif upload': async ({ root }) => {
+            const gif = scratchPath(`upload-${Date.now()}.gif`);
+            await ffmpegGif(gif);
+            return [`/project-media/p/upload?folderPath=${encodeURIComponent(root)}`, { filename: 'imported.gif', sourcePath: gif }];
+        },
+        'add-from-cards': async ({ root }) => {
+            const src = await tmpProject('sweep-race-copy-src-');
+            const frames = await sourceGif(src.mediaDir);
+            const gif = path.join(src.mediaDir, 'gif_001.gif');
+            await gifFrames.buildGif({ frames, loop: 0, output: {} }, src.mediaDir, gif);
+            await fs.writeJson(path.join(src.mediaDir, '.meta', 'source.json'), { id: 'source', type: 'image', filePath: url(gif), gif: { frames, loop: 0, output: {} } });
+            return ['/project-media/p/add-from-cards', { folderPath: root, cards: [{ type: 'image', name: 'GIF', item: { id: 'source', filePath: url(gif) } }] }];
+        },
+    };
+
+    const writeJson = fs.writeJson;
+    try {
+        for (const [name, setup] of Object.entries(cases)) {
+            await t.test(name, async () => {
+                const project = await tmpProject('sweep-race-');
+                const [route, body] = await setup(project);
+                const metaDir = path.join(project.mediaDir, '.meta') + path.sep;
+                fs.writeJson = async function (file, ...rest) {
+                    if (String(file).startsWith(metaDir)) await gifFrames.sweepGifFrames(project.mediaDir);
+                    return writeJson.call(this, file, ...rest);
+                };
+                let res;
+                try { res = await post(route, body); } finally { fs.writeJson = writeJson; }
+                assert.equal(res.success, true, `${name} failed: ${res.error}`);
+                const { named, missing } = await frameReferences(project.mediaDir);
+                assert.ok(named.length > 0, 'sanity: the writer produced a sidecar naming frames');
+                assert.deepEqual(missing, [], 'a sweep in the gap deleted frames the new sidecar names');
+                await fs.remove(project.root);
+            });
+        }
+    } finally {
+        fs.writeJson = writeJson;
+        await new Promise(r => server.close(r));
+    }
+});
+
+test('a hold taken while a sweep is deleting that frame waits for it, so the writer writes it again (MPI-982)', async () => {
+    const { root, mediaDir } = await tmpProject();
+    const buf = await solidPng('purple');
+    const { hash, path: png } = await gifFrames.writeFrame(mediaDir, buf); // an orphan: no sidecar names it
+
+    const remove = fs.remove;
+    let entered; const deleting = new Promise(r => { entered = r; });
+    let open; const gate = new Promise(r => { open = r; });
+    fs.remove = async function (p, ...rest) {
+        if (p === png) { entered(); await gate; }
+        return remove.call(this, p, ...rest);
+    };
+    try {
+        const sweep = gifFrames.sweepGifFrames(mediaDir);
+        await deleting; // past its check, mid-delete
+        const hold = gifFrames.holdFrames();
+        const added = hold.add(hash);
+        const first = await Promise.race([added.then(() => 'held'), new Promise(r => setImmediate(() => r('waiting')))]);
+        assert.equal(first, 'waiting', 'writeFrame would find the file still there and skip writing a frame about to vanish');
+        open();
+        await sweep;
+        await added;
+        await gifFrames.writeFrame(mediaDir, buf, hold);
+        hold.release();
+        assert.equal(await gifFrames.frameExists(mediaDir, hash), true);
+    } finally {
+        open();
+        fs.remove = remove;
+        await fs.remove(root);
+    }
+});
