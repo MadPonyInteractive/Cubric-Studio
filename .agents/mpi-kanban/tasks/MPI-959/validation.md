@@ -54,8 +54,8 @@ grid (`metadata().width`, no `autoOrient`). Fabio's decision (2026-09-28): both 
 4. **Something reads a copy made before the turn:** the bake runs before `writeImageRenditions`
    and before the sidecar is written, so thumbs and `pixelDimensions` come from the upright file.
 
-## Left
+## Verified
 
-- Fabio crops a real portrait phone photo (Big Photos Test `imported_001.jpg`), single card and a
-  stack. That file is still stored sideways on disk (imported before this fix), so it exercises
-  the reader half; a fresh import of any portrait phone photo exercises the bake.
+- Fabio, 2026-09-29, in his own app after a restart: cropped Big Photos Test `imported_001.jpg`
+  (stored 4096x3072, orientation 6, imported before this fix) as a single card and in a stack.
+  Both came out upright.

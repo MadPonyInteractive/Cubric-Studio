@@ -8,4 +8,4 @@ Derived from the MPI-962 plan, Parallel Batch 1 (2026-09-29, session 1afba052).
 - [x] The four "why it fails" cases checked (validation.md)
 - [x] crop-resize-output.spec.js gains an orientation-6 source; it and stack-crop.spec.js green on an isolated app
 - [x] CI green on the code commit (28547517d, run 36574135426: unit + desktop 1-4)
-- [ ] Fabio crops Big Photos Test Media/imported_001.jpg (single card + stack)
+- [x] Fabio crops Big Photos Test Media/imported_001.jpg (single card + stack) - both upright, 2026-09-29
