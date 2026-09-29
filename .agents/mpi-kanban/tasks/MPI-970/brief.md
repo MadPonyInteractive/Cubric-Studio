@@ -38,7 +38,25 @@ model, then a Flow, and so on. The in-app agent is the way in:
 - **No agent-free entry point in this card.** Running a routine from the app without the agent comes later, and NOT as
   gallery clutter: a separate overlay or similar, to be designed then.
 
+## Brainstorm decisions (Fabio, 2026-09-29, session 726c00ac)
+- **Storage: its own file per routine, two scopes, project or global** (like the agent notes' two homes, but NOT a note:
+  notes are free text the agent tidies, merges and deletes under 50 / 4 KB, and a tidy could break a routine). Structured
+  step list, every step validated at save.
+- **Several cards run like a STACK run** (`docs/stacks.md`): each card runs the whole chain on its own; the finished cards
+  land as ONE new stack (one card in -> one new card out). **Earlier steps stay as older History versions of each result
+  card** (scroll back to the upscale-only version). Not one stack per step, not finals-only. The plan must prove a MODEL
+  step can land as a new version of a routine-made card (stack History tools already version members).
+- **Agent surface: a dedicated `routine` tool, actions `list` / `save` / `run` / `delete`.** Run goes through this tool
+  too, not `generate`, so a weak model learns one rule: routine things = the `routine` tool. Fabio's reason: users will ask
+  what routines exist and to delete or create one, and less capable models fail when it is not straightforward.
+  - **Steps are `generate` args** (the args the agent already knows); no new step language.
+  - **Tool description very short and straightforward** (Fabio). Target ~350 bytes (a 585-byte draft measured; the
+    "read the guide before save" rule moves out of the description into a refusal, as model guides gate today). The
+    tool budget in `tests/agent-prompt-budget.test.cjs` rises by that much (~90 tokens a turn); system prompt unchanged.
+  - **Save is the only expensive action** (guide read + writing the steps). Run / list / delete are one small call each:
+    "run my X routine on these" = one `routine run`, the app does the rest, like a generation.
+  - Detail in an `app:routines` knowledge guide, read on demand (0 bytes on a normal turn).
+- Agent suite: 4 new cases (list, save from a plain description, run on several cards as one call, delete).
+
 ## Order
-Brainstorm with Fabio first, after MPI-941 closes. Still open: where a routine lives (a project note, a global note, or its
-own file); a routine across several cards that must stay together (a set) versus one routine per card; how it rides the
-full agent budget (a `generate` field, or a raised budget).
+Brainstorm done 2026-09-29; next is the plan.
