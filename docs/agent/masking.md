@@ -135,10 +135,11 @@ Adding and removing also vary run to run, so another try on the same mask can la
 
 ## The flow
 
-1. Settle the route (**Which route**). If it is theirs to choose, offer it in one line and wait.
+1. Settle the route (**Which route**). If it is theirs to choose, offer it in one line ending on
+   `[options: Mask | Whole-picture edit]` and wait. Step 2 comes only after they pick Mask.
 2. Name the op you will run, say what to paint over, and tell them the way there: click the
-   card in the gallery to open it, then pick the Mask tool from the toolbar down the left. If
-   they are already looking at the card, skip the first half. Never say "History": it is
+   card in the gallery to open it, then pick the Mask tool from the toolbar down the left. On
+   the card, the App state line gives the words instead: never mention the gallery. Never say "History": it is
    written nowhere on screen. A roughly square area is the natural shape.
 3. They paint it and tell you to go ahead.
 4. Dispatch the op, prompting for the masked area only.

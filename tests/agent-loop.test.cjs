@@ -577,7 +577,8 @@ test('Route: one question, three answers, at most three routes, always recommend
     assert.match(r, /several asks in one message are ONE edit, never split/);
     assert.match(r, /Not one area: run ONE whole-picture edit, ask nothing/);
     assert.match(r, /words that protect the rest.*ask for the mask, offer nothing else/);
-    assert.match(r, /recommend one, and wait/);
+    // MPI-991: the fork is buttons, and painting directions wait for the Mask pick.
+    assert.match(r, /recommend one, end on \[options: Mask \| Whole-picture edit\] and wait; how to paint comes only after they pick Mask/);
     assert.match(r, /never add adjectives/);
     assert.match(r, /keeps the source's size/);
 });
@@ -615,7 +616,7 @@ test('Masking: the user paints, in the app\'s own words, and the prompt shape is
     const r = rule('Masking');
     assert.match(r, /click the card in the gallery to open it/);
     assert.match(r, /toolbar down the left/);
-    assert.match(r, /already looking at the card, skip the first half/);
+    assert.match(r, /on the card, the App state line gives the words instead/);
     assert.match(r, /Never say "History"/);
     assert.match(r, /generate refuses a masked op until you have read app:masking/);
     const honest = RULES.split('\n').filter((l) => l.includes('I cannot paint masks'));
@@ -3157,6 +3158,9 @@ describe('(e) the open workspace reaches the agent', () => {
         assert.match(line, /The user is looking at the card "Demon boy"/);
         assert.ok(line.includes(ENTRY), 'the line must name the entry, not just the card');
         assert.match(line, /"This image", "it" and "this one" mean that entry/);
+        // MPI-991: on the card, the way to a mask is the Mask tool alone, never the gallery.
+        assert.match(line, /only pick the Mask tool from the toolbar down the left: they are on the card, so never send them to the gallery/);
+        assert.doesNotMatch(loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, null), /Mask tool/);
     });
 
     /**
