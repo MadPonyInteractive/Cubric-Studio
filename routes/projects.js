@@ -2403,24 +2403,22 @@ router.post('/project/save-generation', async (req, res) => {
             }
         }
 
-        // Garbage-collect orphaned sidecars + companion thumbs.
-        // Pass 1: drop sidecars whose media file is gone (also drop their
-        // companion `<id>.thumb.jpg`). Pass 2: drop any leftover thumb files
-        // whose sidecar no longer exists (covers thumbs leaked by older
-        // delete paths before the cleanup fix).
+        // Garbage-collect orphaned sidecars + companion thumbs: drop sidecars whose
+        // media file is gone, and their derivatives with them.
+        // NEVER sweep a derivative for having no sidecar (MPI-975). Every writer lays
+        // an item's thumbs BEFORE its sidecar, so a save landing mid-way through
+        // another one (a stack batch saves N at once) deleted that item's fresh
+        // `.thumb.webp` and left its card a broken image. The delete paths already
+        // take an item's derivatives with it; Manual Cleanup sweeps the rest.
         try {
             const entries = await fs.readdir(metaDir);
-            const survivingIds = new Set();
 
             for (const sc of entries) {
                 if (!sc.endsWith('.json')) continue;
                 const baseName = sc.slice(0, -5); // strip .json
 
                 // Skip the meta file we just created
-                if (baseName === id) {
-                    survivingIds.add(baseName);
-                    continue;
-                }
+                if (baseName === id) continue;
 
                 const metaFilePath = path.join(metaDir, sc);
                 let mediaPath = null;
@@ -2447,19 +2445,7 @@ router.post('/project/save-generation', async (req, res) => {
                 if (!(await fs.pathExists(mediaPath))) {
                     await fs.remove(metaFilePath);
                     removeItemThumbs(metaDir, baseName);
-                } else {
-                    survivingIds.add(baseName);
                 }
-            }
-
-            // Pass 2: orphan derivatives with no surviving sidecar. One shared regex,
-            // not `(jpg|webp)` — `<id>.thumb.1280.webp` and `<id>.proxy.mp4` both fail
-            // that alternation and would outlive their asset (MPI-633).
-            for (const f of entries) {
-                const m = f.match(DERIVATIVE_RE);
-                if (!m) continue;
-                if (survivingIds.has(m[1])) continue;
-                try { await fs.remove(path.join(metaDir, f)); } catch (_) {}
             }
         } catch (_) { /* GC failure is non-fatal */ }
 
