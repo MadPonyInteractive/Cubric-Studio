@@ -38,6 +38,7 @@ import {
 import { PROMPT_CONTROL_DEFAULTS } from './promptControlDefaults.js';
 import { MODELS } from './modelConstants/models.js';
 import { canonicalModelId } from './modelConstants/resolveModelDeps.js';
+import { getExtension, isImageFile, isVideoFile, isAudioFile } from '../utils/file.js';
 
 function _mediaTypeOf(model) {
     return model?.mediaType === 'video' ? 'video' : 'image';
@@ -544,6 +545,18 @@ export function resolveNamedParams(project, model, operation, named = {}) {
 // ── media (agent path) ───────────────────────────────────────────────────────
 
 /**
+ * What a media ref really is, read off its file name (a `/project-file?path=` URL or a
+ * bare path). Null when the name does not say, and for a GIF, which is a picture to some
+ * slots and a clip to others.
+ */
+function _refMediaType(url) {
+    let p = String(url);
+    try { p = new URL(p, 'file:///').searchParams.get('path') || p; } catch (_) { /* a bare path */ }
+    if (getExtension(p) === 'gif') return null;
+    return isVideoFile(p) ? 'video' : isAudioFile(p) ? 'audio' : isImageFile(p) ? 'image' : null;
+}
+
+/**
  * Turn an agent's `media: [{ role, url }]` into the `mediaItems` a dispatch takes,
  * resolved through the op's own declared slots (MPI-765). One implementation for
  * both branches of `agentDispatch.js` — the model op and the Flow.
@@ -575,6 +588,15 @@ export function resolveAgentMedia(operation, model, media = []) {
                 `"${operation}" has no media role "${m?.role}". Roles: ${slots.map(s => s.key).join(', ') || 'none'}.`);
         }
         if (!m.url) return _err('BAD_REQUEST', `Media role "${m.role}" has no url.`);
+        // The slot names the type, so a ref that contradicts it must stop here: a video
+        // card sent as an edit's picture reached the cloud route as "an image", failed to
+        // decode, and the user saw only "the provider could not complete" (MPI-979).
+        const actual = _refMediaType(m.url);
+        if (actual && actual !== slot.mediaType) {
+            return _err('BAD_REQUEST', actual === 'video' && slot.mediaType === 'image'
+                ? `Nothing was generated: media role "${m.role}" takes a picture, and that is a video. No tool takes a frame out of a clip: ask the user to open the video, pause on the frame they want, right-click it and choose "Create snapshot". The frame lands in the gallery as a picture card; use that card.`
+                : `Nothing was generated: media role "${m.role}" takes ${slot.mediaType}, and that is ${actual}.`);
+        }
         if (mediaItems.some(item => item.role === slot.key)) {
             return _err('BAD_REQUEST', `Media role "${m.role}" was given twice.`);
         }

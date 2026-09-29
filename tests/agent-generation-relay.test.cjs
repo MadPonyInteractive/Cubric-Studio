@@ -435,6 +435,22 @@ test('a bad media entry is a named BAD_REQUEST, never a silent drop', () => {
   assert.equal(twice.code, 'BAD_REQUEST');
 });
 
+test('a video ref in a picture slot is refused, not sent to decode as an image (MPI-979)', () => {
+  // Live 2026-09-29: "edit the first frame of this video" sent the mp4 as a Nano Banana
+  // edit's picture; the cloud route failed to decode it and said only "provider error".
+  const nano = findModelDef('nano-banana-2-lite-cloud');
+  const clip = '/project-file?path=' + encodeURIComponent('C:\\p\\Media\\i2v_001.mp4');
+  const video = resolveAgentMedia('edit', nano, [{ role: 'inputImage', url: clip }]);
+  assert.equal(video.code, 'BAD_REQUEST');
+  assert.match(video.message, /Create snapshot/);
+  assert.equal(resolveAgentMedia('edit', nano, [{ role: 'inputImage', url: 'C:\\p\\a.wav' }]).code, 'BAD_REQUEST');
+
+  // A picture, a GIF and a name that says nothing still pass as before.
+  for (const url of ['/project-file?path=' + encodeURIComponent('C:\\p\\Media\\t2i_001.png'), '/a.gif', '/project-file?path=noext']) {
+    assert.equal(resolveAgentMedia('edit', nano, [{ role: 'inputImage', url }]).ok, true, url);
+  }
+});
+
 // ── look reports the image's SHAPE (MPI-774 Phase 7) ─────────────────────────
 
 test('every look carries imageSize, not just a boxed one', async () => {
