@@ -36,3 +36,7 @@ and the body `cloudExecutor` sends was POSTed to the route directly.
 Spent: $0.845 in all ($0.595 + $0.25): $0.50 approved first, then $0.25 more on a fresh yes.
 Not seen live: the prompt-box path to a gallery card (the isolated renderer has no saved key);
 covered by the `cloudRunFields` unit test.
+
+## CI
+
+- `6079c2d88` (code + card to doing): run 36780340082 Tests completed success.

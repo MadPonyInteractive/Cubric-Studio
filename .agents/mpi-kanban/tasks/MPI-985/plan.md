@@ -19,8 +19,10 @@
     sites, two of them project create/open. Audit first; never lift one gate alone (brief § Do not).
 - **Rules that bind every phase:** DeepInfra only, no second provider (Fabio 2026-09-25). Every
   live run costs money: state price and run count, get Fabio's yes, report the spend.
-- **2026-09-30 (Agent 77):** MPI-923 in `doing` (own `plan.md`), built sequentially. Fabio's yes
-  covers TWO Wan live runs, 480p 5 s, $0.25 each ($0.50). MPI-910 research next, then Phase 2.
+- **2026-09-30 (Agent 77):** MPI-923 built, both live runs passed ($0.845 spent on Fabio's yeses),
+  committed `6079c2d88`; done move waits on its CI. MPI-910 hosting answered
+  (`tasks/MPI-910/research.md`), card `needs-decision`: Fabio picks the reference-VIDEO option
+  (my pick: images + audio only, no hosting) and yes/no on a $0.37 data-URL proof run.
 
 ## Plan Drift
 

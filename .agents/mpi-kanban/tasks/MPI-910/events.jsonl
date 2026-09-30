@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-910", "at": "2026-09-24T14:53:05+01:00", "actor": "claude", "column": "todo", "title": "Seedance 2.0 reference-to-video: wire the reference images, videos and audio"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-910", "at": "2026-09-30T22:37:26+01:00", "actor": "agent:74f93ae5", "from": "todo", "to": "todo", "reason": "Hosting answered (research.md): images+audio as data URLs, reference VIDEOS need a public URL; Fabio picks the video option"}
