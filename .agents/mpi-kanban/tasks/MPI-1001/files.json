@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/services/comfyController.js", "tests/remote-ws-wedge.test.cjs"] }

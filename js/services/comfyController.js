@@ -30,6 +30,10 @@ import { findRejectedFile, rejectedBasename, MODEL_FILE_INPUTS } from '../utils/
 // the server was still coming up. Polling is 1s/iteration, so this is seconds.
 const COMFY_READY_TIMEOUT_S = 240;
 
+// A preview-WS handshake still CONNECTING after this is stuck, not slow: through RunPod's proxy
+// a healthy one opens in ~0.2 s (MPI-1001, measured 2026-09-30).
+const WS_HANDSHAKE_MS = 10000;
+
 // MPI-673: what a user is told when the local engine came up degraded — its curated
 // Python packages are not installed, so several custom node packs failed to import.
 // The engine still STARTS on that failure (deliberate — refusing to boot over an
@@ -279,6 +283,9 @@ function createEngine({ engine, alwaysLocal }) {
     /** @type {boolean} True only while the binary-preview WS is OPEN. Wrapper-health `ready` (ComfyUI up) is NOT the same as the preview WS being connected — accepting a generation before the WS is open hangs the job in STARTING with no prompt_id (MPI-73 Bug 1). */
     _wsReady: false,
 
+    /** @type {number} When the current socket was created, to tell a stuck handshake from a slow one (MPI-1001). */
+    _wsOpenedAt: 0,
+
     /** @type {Map<string, ReturnType<typeof setInterval>>} Per-prompt /history+/queue poll backstop. Runs on both engines (MPI-516). Remote: recovers missed terminal WS events (RunPod edge proxy reaps idle sockets). Both: detects vanished prompts — absent from history AND queue while engine is answering (engine restart, queue wipe, worker OOM-kill). */
     _historyPollTimers: new Map(),
 
@@ -329,18 +336,44 @@ function createEngine({ engine, alwaysLocal }) {
         // up on that first failure and the caller shows a false "almost ready" even
         // though the WS comes up a few seconds later (MPI-73). Re-`connect()`
         // whenever the socket is missing/closed; `onopen` sets `_wsReady`.
+        //
+        // MPI-1001: nor may it WAIT on a socket that can never turn ready. An OPEN socket
+        // with the flag down has already fired its onopen (the Pod-restart path at
+        // _ensureRemoteReady drops the flag), and a handshake stuck in CONNECTING never
+        // finishes; both wedged every remote generation on "Still connecting" until the app
+        // restarted. connect() replaces the first; the second is closed here.
         while (Date.now() - start < timeoutMs) {
             const st = this._ws?.readyState;
-            const connecting = st === WebSocket.CONNECTING;
-            const open = st === WebSocket.OPEN;
-            if (!open && !connecting && Date.now() - lastAttempt >= retryMs) {
+            const stuck = st === WebSocket.CONNECTING && Date.now() - this._wsOpenedAt > WS_HANDSHAKE_MS;
+            if (stuck || (st === WebSocket.OPEN && !this._wsReady)) {
+                clientLogger.warn('comfy', `Preview WS ${stuck ? `handshake stuck ${WS_HANDSHAKE_MS} ms` : 'open but never ready'} — replacing it`);
+                if (stuck) this._dropWs();
+            }
+            const waiting = this._ws?.readyState === WebSocket.CONNECTING;
+            if (!waiting && !this.isWsReady() && Date.now() - lastAttempt >= retryMs) {
                 lastAttempt = Date.now();
                 this.connect();
             }
             await new Promise(r => setTimeout(r, 250));
             if (this.isWsReady()) return true;
         }
+        // What the socket was doing, so a timeout names its case in app.log (never the URL:
+        // it carries the wrapper token).
+        clientLogger.warn('comfy', `Preview WS not ready after ${timeoutMs} ms: readyState ${this._ws?.readyState ?? 'none'}, `
+            + `ready flag ${this._wsReady}, bound to ${this._engine || 'nothing'}, remote channel ${remoteEngineClient.wsUrl(this.clientId) ? 'known' : 'unknown'}`);
         return false;
+    },
+
+    /** Close the preview socket without its handlers running, and forget it. */
+    _dropWs() {
+        if (!this._ws) return;
+        this._ws.onopen = null;
+        this._ws.onmessage = null;
+        this._ws.onerror = null;
+        this._ws.onclose = null;
+        this._ws.close();
+        this._ws = null;
+        this._wsReady = false;
     },
 
     /**
@@ -1067,9 +1100,11 @@ function createEngine({ engine, alwaysLocal }) {
         // already fired, so `_wsReady` never re-flips and `isWsReady()` stays false,
         // wedging every remote generation on the "Still connecting" guard. Only reuse
         // when the bound engine matches; otherwise fall through and re-open below.
+        // An OPEN socket is live only with the ready flag up: dropped (a Pod ComfyUI restart),
+        // it can never rise again, since its onopen has fired — re-open it below (MPI-1001).
         if (this._ws
             && this._engine === _intendedEngine
-            && (this._ws.readyState === WebSocket.OPEN || this._ws.readyState === WebSocket.CONNECTING)) {
+            && ((this._ws.readyState === WebSocket.OPEN && this._wsReady) || this._ws.readyState === WebSocket.CONNECTING)) {
             this._ws.onmessage = (event) => {
                 if (event.data instanceof ArrayBuffer) {
                     const jpeg = _stripPreviewHeader(event.data);
@@ -1102,6 +1137,7 @@ function createEngine({ engine, alwaysLocal }) {
         // instances and the local fallback are 'local'; the proxy WSS is 'remote'.
         this._engine = remoteWsUrl ? 'remote' : 'local';
         this._ws = new WebSocket(wsUrl);
+        this._wsOpenedAt = Date.now();
         this._ws.binaryType = "arraybuffer";
         this._ws.onmessage = (event) => {
             if (event.data instanceof ArrayBuffer) {
