@@ -45,6 +45,13 @@ async function shellWindow(app, timeoutMs = 30000) {
         null,
         { timeout: Math.max(1, deadline - Date.now()) }
       );
+      // MPI-995: a profile with no stored UI size opens at 0.9 (uiZoom.js ZOOM_DEFAULT),
+      // and every spec's profile is fresh. Specs measure pixels and heights at 1.0, so pin
+      // it here the way the port is pinned: set it live, and store it for a relaunch.
+      await win.evaluate(() => {
+        localStorage.setItem('mpi_ui_zoom_factor', '1');
+        window.require('electron').webFrame.setZoomFactor(1);
+      });
       return win;
     }
     await new Promise(r => setTimeout(r, 250));
