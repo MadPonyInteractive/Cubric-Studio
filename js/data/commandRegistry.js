@@ -110,12 +110,15 @@ const I2V_HELP = {
  *                                              cannot open (MPI-971, commandExecutor._capLargeImageInputs).
  *                                              VERIFY IN THE GRAPH. Never on an op whose OUTPUT is source-sized
  *                                              (inpaint's stitch, Detail, upscale, remove background).
- * @property {boolean}         [cropsToMask] - Every graph's MASKED branch is InpaintCropImproved -> sample ->
- *                                              InpaintStitchImproved, so it only ever samples a window round
- *                                              the mask. A masked run on a photo over ENGINE_MAX_EDGE sends the
+ * @property {boolean}         [cropsToMask] - Every graph's MASKED branch crops round the mask and pastes back
+ *                                              (InpaintCropImproved -> sample -> InpaintStitchImproved, or
+ *                                              Detail's MaskDetailerPipe at crop_factor <= 1.8), so it only ever
+ *                                              samples a window round the mask. A masked run on a photo over
+ *                                              ENGINE_MAX_EDGE sends the
  *                                              photo CUT round the mask and pastes the result back (MPI-971,
  *                                              commandExecutor._fitMaskedInputs). VERIFY IN THE GRAPH: a new
- *                                              model on this op must keep the crop/stitch pair.
+ *                                              model on this op must keep the crop/stitch pair (the cut's
+ *                                              reach is engineMask.CONTEXT_REACH).
  * @property {boolean}         [promptRequired] - Whether a text prompt is mandatory
  * @property {boolean}         [universal]    - Not model-tied; uses universalWorkflows in modelRegistry
  * @property {boolean}         [stub]         - Not yet implemented; registered but disabled in UI
@@ -612,6 +615,10 @@ export const commands = {
             { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
         ],
         requiresMask: true,
+        // Every shipped detail graph feeds Input_Image + Input_Mask straight into
+        // MaskDetailerPipe (crop_factor 1.8, bbox_fill off), which samples round the mask
+        // and pastes back through it (MPI-971).
+        cropsToMask: true,
         // FALSE since MPI-367: an empty prompt is a first-class way to run this op
         // (several masks, low denoise, refine in place) and the help now teaches it.
         // The flag is metadata only — nothing in the UI gates on it — but leaving it

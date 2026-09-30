@@ -13,7 +13,8 @@ const path = require('node:path');
 const os = require('node:os');
 const sharp = require('sharp');
 
-const { prepareMaskedInput, stitchMaskCrop, planMaskCrop, CONTEXT_PAD } = require('../services/engineMask.js');
+const { pathToFileURL } = require('node:url');
+const { prepareMaskedInput, stitchMaskCrop, planMaskCrop, CONTEXT_PAD, CONTEXT_REACH } = require('../services/engineMask.js');
 
 sharp.cache({ files: 0 });
 
@@ -57,6 +58,17 @@ test('the cut is a square round the mask, slid inside the photo, scaled to the c
     // A mask spanning the frame clamps to the photo and scales to the cap.
     r = planMaskCrop({ box: { x0: 0, y0: 0, x1: 499, y1: 399 }, maskW: 500, maskH: 400, srcW: 1000, srcH: 800, cap: 500 });
     assert.deepEqual(r, { left: 0, top: 0, width: 1000, height: 800, outW: 500, outH: 400 });
+    // A big box keeps 0.45 of its long side each way: Detail samples box x 1.8 round it.
+    r = planMaskCrop({ box: { x0: 1000, y0: 1000, x1: 1999, y1: 1499 }, maskW: 4000, maskH: 4000, srcW: 8000, srcH: 8000, cap: 4096 });
+    assert.equal(r.width, 2000 + 2 * Math.ceil(CONTEXT_REACH * 2000));
+    assert.ok(r.left <= 2000 - 0.4 * 2000 && r.left + r.width >= 4000 + 0.4 * 2000, 'the 1.8x window fits inside the cut');
+});
+
+test('the cut is offered only to ops whose graphs crop round the mask', async () => {
+    const { commands } = await import(pathToFileURL(path.join(__dirname, '..', 'js', 'data', 'commandRegistry.js')).href);
+    const flagged = Object.keys(commands).filter(k => commands[k].cropsToMask).sort();
+    // Changing this list means re-reading every graph that runs the op (VERIFY IN THE GRAPH).
+    assert.deepEqual(flagged, ['detail', 'edit', 'inpaint', 'kleinEdit', 'krea2Edit', 'qwenEdit']);
 });
 
 test('a photo within the cap is left alone', async () => {

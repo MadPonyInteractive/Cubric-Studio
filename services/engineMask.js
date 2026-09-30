@@ -5,9 +5,10 @@
  * it over at that size; the server fits it to the job, where sharp can hold a 32K:
  *
  * - An op whose graph crops around the mask and stitches back (`InpaintCropImproved` →
- *   sample → `InpaintStitchImproved`, the `cropsToMask` ops) gets the SOURCE CUT AROUND
- *   THE MASK, downscaled to the cap if the cut is still bigger. The graph discards
- *   everything outside its context window anyway, so the model sees what it always saw.
+ *   sample → `InpaintStitchImproved`, or Detail's `MaskDetailerPipe`; the `cropsToMask`
+ *   ops) gets the SOURCE CUT AROUND THE MASK, downscaled to the cap if the cut is still
+ *   bigger. The graph discards everything outside its context window anyway, so the model
+ *   sees what it always saw.
  *   The engine's result is then pasted back into the original through the mask
  *   (`stitchMaskCrop`), so the card stays the source's size and every pixel away from the
  *   mask stays the original's.
@@ -25,14 +26,17 @@ const sharp = require('sharp');
 const FILE_INPUT = { limitInputPixels: false, autoOrient: true };
 const BUFFER_INPUT = { limitInputPixels: false };
 
-// Room kept round the mask's box, in source px each side. The shipped graphs grow the mask
-// by mask_expand + mask_blend (6 + 32 px, SDXL 0 + 16) and square the context window to
-// the 1024^2 target on a 32 px grid; a cut this much wider holds that whole window, so the
-// engine meets the cut's edge only where it would have met the photo's.
-// ponytail: fixed in source px. A cut downscaled to the cap (a mask spanning most of a
-// 32K) shrinks this below the node's reach; the node then pads at the cut's edge, and the
-// stitch below still keeps every pixel away from the mask the original's.
+// Room kept round the mask's box, in source px each side: the larger of the two below. The
+// inpaint graphs grow the mask by mask_expand + mask_blend (6 + 32 px, SDXL 0 + 16) and
+// square the context window to the 1024^2 target on a 32 px grid; Detail's
+// MaskDetailerPipe samples each masked area's box x crop_factor 1.8, i.e. 0.4 of the box
+// past each side. A cut this much wider holds either window, so the engine meets the
+// cut's edge only where it would have met the photo's.
+// ponytail: a cut downscaled to the cap (a mask spanning most of a 32K) shrinks the
+// fixed pad below the node's reach; the node then pads at the cut's edge, and the stitch
+// below still keeps every pixel away from the mask the original's.
 const CONTEXT_PAD = 128;
+const CONTEXT_REACH = 0.45;
 // How far past the mask the engine may have changed pixels, in ENGINE px: the node's
 // expand + blend band plus slack for the square context's blur. The stitch takes the
 // engine's pixels this far out, then feathers.
@@ -88,14 +92,15 @@ function maskBox(data, width, height) {
  * @returns {{left:number, top:number, width:number, height:number, outW:number, outH:number}}
  *   `outW`/`outH` the size the engine gets (the rect's own when it fits the cap)
  */
-function planMaskCrop({ box, maskW, maskH, srcW, srcH, cap, pad = CONTEXT_PAD }) {
+function planMaskCrop({ box, maskW, maskH, srcW, srcH, cap }) {
     const sx = srcW / maskW;
     const sy = srcH / maskH;
     const x0 = Math.floor(box.x0 * sx);
     const y0 = Math.floor(box.y0 * sy);
     const x1 = Math.min(srcW, Math.ceil((box.x1 + 1) * sx));
     const y1 = Math.min(srcH, Math.ceil((box.y1 + 1) * sy));
-    const side = Math.max(x1 - x0, y1 - y0) + 2 * pad;
+    const long = Math.max(x1 - x0, y1 - y0);
+    const side = long + 2 * Math.max(CONTEXT_PAD, Math.ceil(CONTEXT_REACH * long));
     const span = (lo, hi, size) => {
         const len = Math.min(size, side);
         return [Math.max(0, Math.min(size - len, Math.round((lo + hi - len) / 2))), len];
@@ -240,4 +245,4 @@ async function stitchMaskCrop({ sourcePath, resultPath, maskPath, rect, outPath 
     return { width: srcW, height: srcH };
 }
 
-module.exports = { prepareMaskedInput, stitchMaskCrop, planMaskCrop, maskBox, CONTEXT_PAD, BLEND_BAND };
+module.exports = { prepareMaskedInput, stitchMaskCrop, planMaskCrop, maskBox, CONTEXT_PAD, CONTEXT_REACH, BLEND_BAND };

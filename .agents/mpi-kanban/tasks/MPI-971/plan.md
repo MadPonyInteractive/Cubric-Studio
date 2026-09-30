@@ -5,6 +5,25 @@
 
 ## Current State
 
+**2026-09-30 (session e348519e): Phase 2 + Detail VERIFIED BY FABIO** in his app (Detail,
+masked Klein Edit, masked Inpaint on his 16K all landed 16K cards). UNCOMMITTED at time of
+writing. A 1K Klein Edit on the way was an unmasked run (whole-image edit at ~1 MP, by design).
+**Next: the Pod run — Fabio said YES 2026-09-30 to ONE run (~$0.20-0.40); ask again before a
+second — then Phase 3 rest (remove background on
+the copy + alpha onto the original; upscale guard P-A).** How Detail landed:
+**Detail JOINED cut-and-stitch — built, unit-green, live-verified on a small mask.** `cropsToMask: true` on `detail` (`commandRegistry.js`, typedef
+reworded), and `planMaskCrop` keeps `max(CONTEXT_PAD, ceil(CONTEXT_REACH 0.45 x box long side))`
+each side for EVERY crop op (`services/engineMask.js`). `tests/engine-mask.test.cjs` 8/8 (a
+reach case + the `cropsToMask` op list pinned), `npm test` 2394/0. Live 16K Klein 9B detail,
+400^2 working mask: cut 3040^2 at 1:1, engine log `force inpaint ... crop region (2885, 2885)`
+(inside the cut, so the reach holds), 16K card, 0 bytes differ outside, apple in the mask.
+**Big mask (12000^2 of a 16K) OOMs in MaskDetailerPipe**: `force inpaint` samples the crop
+region at its NATIVE size, 4096^2 here. Detail's own ceiling, not the cut: control on a plain
+4096 photo with the same mask — see validation.md. Next: Fabio's look (restart his app; Detail
+AND Klein Edit / Inpaint on 'Big Photos Test'), then the Pod run if he okays the cost, then
+Phase 3 rest (remove background, upscale guard). P-B's capped-copy + difference-mask plan is
+REPLACED by this (Phase 3 Detail item is done by it).
+
 **2026-09-30 (session 8fdc58f8): Phase 2 BUILT, unit-green, live check pending.** `npm test`
 2392/0, eslint clean. What landed (uncommitted): `services/engineMask.js` (prepareMaskedInput /
 stitchMaskCrop / planMaskCrop), `POST /engine-mask` + `POST /engine-stitch` (`routes/projects.js`,
@@ -145,7 +164,7 @@ would put two workers in one function.
 
 ## Phase 2: localised edits keep full resolution (crop, engine, stitch back)
 
-- [ ] Big-source mask export: for a source over the cap, `MaskManager` (both twins if the mask code
+- [x] Big-source mask export: for a source over the cap, `MaskManager` (both twins if the mask code
   has two) sends the mask at its working size plus the scale, never a source-size PNG.
   Server: mask bbox in source px + context padding (match `InpaintCropImproved`'s context factor and
   padding) → crop rect → `cropExtended` the source; scale the mask region to the crop; downscale
@@ -169,8 +188,8 @@ would put two workers in one function.
   `_runImageTool`, and the model `upscale` op's factor control), plus the same check server-side so an
   agent or the connector cannot bypass the UI. **Verify:** a 12K source offers no ×2+, a 16K offers
   none and names why; a unit test on the rule; a ≤ cap source is unchanged.
-- [ ] Detail per P-B. **Verify:** 16K face-detail card is source-size; outside the changed region
-  pixels equal the original's.
+- [x] Detail — DONE by Phase 2's cut-and-stitch instead of P-B (2026-09-30, session e348519e):
+  16K detail card is source-size, 0 bytes differ outside the mask.
 
 ## Phase 4: Flows with source-coordinate inputs
 
@@ -196,6 +215,11 @@ would put two workers in one function.
   behaviour, moved off the canvas). The stitch is built at ENGINE size and stretched once through
   a libvips `.v` temp, so a 32K cut never becomes a JS buffer. sharp runs ops in a FIXED order (a
   threshold chained after a blur runs BEFORE it): every mask step is its own pipeline.
+- 2026-09-30: Detail joined the cut-and-stitch path (every shipped detail graph is
+  `MaskDetailerPipe` fed Input_Image + Input_Mask directly, crop_factor 1.8, bbox_fill off),
+  replacing P-B's capped copy + difference mask. The cut's pad grew to 0.45 x the box's long
+  side for every crop op; inpaint graphs (context_from_mask_extend_factor 1) sample ~1024
+  whatever the window, so the only effect there is scaling to 4096 sooner on a big mask.
 - 2026-09-30: a 16384 x 10240 fixture (167.8 MP) is UNDER Pillow's limit and does not reproduce
   the failure; the live check uses 16384 x 16384 (268 MP).
 

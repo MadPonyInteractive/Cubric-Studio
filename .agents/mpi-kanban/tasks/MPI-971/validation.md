@@ -44,3 +44,32 @@ Verify mode: user-ux for Phases 2 and 3 (Fabio looks at a 16K result); Phases 1 
   then `engine-stitch: ... 16384x16384 <- 4096x4096 at 2064,2064`.
 - Looked at: an apple inside the small square, red tulips filling the big one, clean edges.
 - NOT run: the Pod path (costs money — asked). Fabio's look in his own app (user-ux).
+
+## Detail joins cut-and-stitch — automated checks PASSED 2026-09-30 (session e348519e); AWAITING Fabio's look
+
+- Fabio's first look (Detail, Klein 9B, eyes masked, 16384^2 'Big Photos Test') failed with
+  `DecompressionBombError`: `detail` was not a `cropsToMask` op, so the 16K went whole.
+- Fix: `cropsToMask: true` on `detail` (all 11 shipped detail graphs: `MaskDetailerPipe` fed
+  Input_Image + Input_Mask directly, crop_factor 1.8, bbox_fill off) and the cut keeps
+  0.45 x the box's long side each way (`CONTEXT_REACH`), so the detailer's 1.8x window fits.
+- `node --test tests/engine-mask.test.cjs tests/engine-input-cap.test.cjs` 12/12 (new: reach
+  case, `cropsToMask` op list pinned). `npm test` 2394 pass, 0 fail. ESLint clean.
+- Live, own Electron (8aad9989 scratch profile, own port, engine 48188 under a GPU lease,
+  :3000 untouched), Klein 9B `detail`, denoise 0.8, 16384^2 fixture:
+  - 400^2 working mask (1600 px): cut 3040^2 at 1:1; engine log `Detailer: force inpaint ...
+    crop region (2885, 2885)` (inside the cut); 16384^2 card in 67 s; corner / far corner /
+    600 px beside the mask 0 bytes differ; mask centre mean diff 99.6; looked at: an apple.
+  - 3000^2 working mask (12000 px): cut 16384^2 -> 4096^2, then `MaskDetailerPipe failed:
+    torch.OutOfMemoryError` (crop region 4096^2 sampled at native size, `force inpaint`).
+    CONTROL: the same mask on a plain 4096^2 photo (no cut, no engine-mask call) OOMs the
+    same way. Detail's own ceiling on a 16 GB card, not this change.
+
+## Phase 2 + Detail — VERIFIED BY FABIO 2026-09-30 (user-ux)
+
+- In his own app on 'Big Photos Test' (16384^2): Detail (Klein 9B, eyes), then masked Klein Edit
+  and masked Inpaint all landed 16K cards. His app log: `engine-mask: edit_002.png cut
+  {..."width":7966,..."outW":4096}` then `engine-stitch: edit_002.png 16384x16384 <- 4096x4096`.
+- A 1K Klein Edit card on the way was an UNMASKED run (engine `/history`: `Input_Mask` empty,
+  app log `engine-image ... 4096 copy`), i.e. a whole-image edit at the model's ~1 MP, as on
+  any photo; a 1K Inpaint was run on that 1K card. Both expected; re-run masked = 16K.
+- Still NOT run: the Pod path (~$0.20-0.40, one run; asked, no answer yet).
