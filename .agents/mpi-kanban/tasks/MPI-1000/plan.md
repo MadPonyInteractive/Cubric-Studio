@@ -85,6 +85,11 @@ Each member closes on its own evidence; the umbrella closes when all three have.
 
 ## Current State
 
+2026-10-01 (session 9c1e6f07): phase 3 MPI-997 CLOSED. The mirrored sheet was a prompt fix (the
+left/right order stated in each recipe's first sentence; bench + Fabio's app run), and leg 2 now
+frees SAM3 (`MpiClearVram` before Output_Image). CI green on 6f342280c. Left in this umbrella:
+MPI-998/999/1002 validating (Fabio's look / ear test / live-matrix yes), MPI-1004 needs-decision.
+
 2026-09-30 (session 123a6c39, handoff): MPI-1003 CLOSED (CI green on 6f86d4d5e). Phase 3 MPI-997 BUILT,
 live-verified and committed (evidence `tasks/MPI-997/validation.md`, unit 2582/0); Fabio LOOKED: the
 button works, but his first sheet came out MIRRORED (portrait left) and the head removal cut the

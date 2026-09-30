@@ -93,6 +93,7 @@ His own app run: the cyborg prompt, Anime, 1K, Turbo, Headless on. Sheet laid ou
 [front | back | portrait], front head removed, result-pane "Headless front body" toggle shown:
 "Looking good". The VRAM node added after needs no second look (his call: only a clear node).
 
-## Left
+## Closed (2026-10-01, session 9c1e6f07)
 
-- CI green on the commit carrying this, then the close.
+- CI run 36789204279 on 6f342280c (recipe clause + leg-2 VRAM clear): unit + desktop 1-4 all
+  `success`. The split itself: run 36783170717 on 09f49a278, all `success`.
