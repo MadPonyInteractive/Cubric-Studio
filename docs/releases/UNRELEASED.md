@@ -257,6 +257,9 @@
 > **A fix to a FLOW does not belong here for this release** — flows debut in this version, so
 > no released build ever had the bug and no user can have met it. The fix is part of the feature.
 
+- **Pod runs no longer hang on "Still connecting to the remote engine".** After new nodes
+  installed on a Pod, the next run could wait forever. The app now reconnects on its own.
+
 - **Mask Adjust keeps working when you switch versions.** Grow, Shrink and Edge stopped
   responding after you picked another version of the image in History, until you left History
   and came back.
