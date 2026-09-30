@@ -1,0 +1,17 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": [
+  "services/agentCards.mjs",
+  "services/agentLoop.mjs",
+  "routes/mcp.js",
+  "routes/connector.js",
+  "js/shell/agentDispatch.js",
+  "js/shell/activeStackMember.js",
+  "js/services/agentService.js",
+  "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+  "tests/agent-cards.test.cjs",
+  "tests/agent-loop.test.cjs",
+  "tests/agent-prompt-budget.test.cjs",
+  "tests/agent-stacks.test.cjs",
+  "docs/stacks.md",
+  "docs/agent-chat.md",
+  "docs/mcp-server.md"
+] }

@@ -43,6 +43,9 @@ on every tool that writes.
   reads it over `/get-project` and `generationService` registers the card through
   `/project-groups`. Without `folderPath` a run lands in whatever is open when it runs. The GIF
   tools still work on the open project only.
+- **Stacks** (MPI-950). `list_cards` shows a stack as ONE row with `stack: N` and no path; its
+  groupId reads back `members`, each with its own path. `routes/mcp.js` strips the service's
+  `sets` (the in-app loop's allowlist half). [stacks.md](stacks.md) § Agents.
 - **Reference images.** `media: [{ role, path }]`: a path on the user's disk is staged into the
   project `folderPath` names, else the one `GET /connector/current-project` names. An image
   pasted into the user's chat never reaches us as a file, so an input is a card or a disk path.

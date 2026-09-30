@@ -175,6 +175,54 @@ test('list_cards makes the project`s refs usable, and keeps the paths from the m
     assert.equal(closed.error.code, 'NO_PROJECT');
 });
 
+/** MPI-950: a stack of two stills (in click order b, a) beside one loose still. */
+function makeStackProject(t) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-cards-stack-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const media = path.join(root, 'Media');
+    fs.mkdirSync(path.join(media, '.meta'), { recursive: true });
+    for (const n of ['a', 'b', 'c']) {
+        fs.writeFileSync(path.join(media, '.meta', `item-${n}.json`), JSON.stringify({ filePath: url(path.join(media, `t2i_${n}.png`)), prompt: n, modelId: 'krea2', operation: 't2i' }));
+    }
+    fs.writeFileSync(path.join(root, 'project.json'), JSON.stringify({ itemGroups: [
+        { id: 'g-a', type: 'image', name: 't2i_a', createdAt: '2026-09-30T10:00:00Z', selectedIndex: 0, history: ['item-a'], stackId: 's1' },
+        { id: 'g-b', type: 'image', name: 't2i_b', createdAt: '2026-09-30T11:00:00Z', selectedIndex: 0, history: ['item-b'], stackId: 's1' },
+        { id: 'g-c', type: 'image', name: 't2i_c', createdAt: '2026-09-30T12:00:00Z', selectedIndex: 0, history: ['item-c'] },
+        { id: 's1', type: 'stack', kind: 'image', name: 'Scenes', createdAt: '2026-09-30T11:00:00Z', history: [], members: ['g-b', 'g-a'] },
+    ] }));
+    return root;
+}
+
+test('a stack is ONE row, its cards are not listed loose, and it reads as its members (MPI-950)', async (t) => {
+    const { listCards, readCard } = await esm('services/agentCards.mjs');
+    const root = makeStackProject(t);
+
+    const { cards, total, files, sets } = await listCards(root);
+    assert.deepEqual(cards.map((c) => c.groupId), ['g-c', 's1'], 'the gallery hides stacked cards, so the listing does');
+    assert.equal(total, 2);
+    assert.deepEqual(cards[1], { groupId: 's1', name: 'Scenes', kind: 'image', createdAt: '2026-09-30T11:00:00Z', stack: 2, ref: 'set:s1' });
+    assert.deepEqual(sets, { 'set:s1': ['t2i_b.png', 't2i_a.png'] }, 'members in stack order');
+    assert.equal(files['t2i_a.png'].groupId, 'g-a', 'a member`s file is reachable, and knows its card');
+
+    const { card } = await readCard(root, 's1');
+    assert.deepEqual(card.members.map((m) => [m.groupId, m.ref]), [['g-b', 't2i_b.png'], ['g-a', 't2i_a.png']]);
+    assert.equal((await readCard(root, 'g-a')).card.prompt, 'a', 'a member still reads in full by its own groupId');
+});
+
+test('list_cards registers a stack as a set the fan-out expands', async (t) => {
+    const { AgentLoop } = await esm('services/agentLoop.mjs');
+    const cards = await esm('services/agentCards.mjs');
+    const root = makeStackProject(t);
+    const loop = new AgentLoop({ tools: {
+        listCards: async (folderPath, groupId) => ({ ok: true, ...(groupId ? await cards.readCard(folderPath, groupId) : await cards.listCards(folderPath)) }),
+    } });
+    const seen = await loop._executeTool('list_cards', {}, 't1', { folderPath: root, name: 'Stacks' });
+    assert.ok(!seen.includes('"sets"'), 'the member list is the allowlist`s, not the model`s');
+    assert.deepEqual(loop._sets.get('s1'), ['t2i_b.png', 't2i_a.png']);
+    assert.equal(loop._images.get('t2i_a.png').groupId, 'g-a', 'a routine names the card, not the file');
+    assert.ok(loop._groups.has('s1'));
+});
+
 // MPI-817 Phase E. The GIF routes name a card by ITEM id; the model only ever says `ref`.
 test('the GIF tools turn a ref into the item id the card is SHOWING, and a chain feeds itself', async (t) => {
     const { AgentLoop } = await esm('services/agentLoop.mjs');

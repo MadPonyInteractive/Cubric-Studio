@@ -327,7 +327,7 @@ const TOOLS = {
     },
     list_cards: {
         title: 'List cards',
-        description: 'What a project already holds: the one folderPath names, else the open one. No groupId: the newest cards, one short row each (name, kind, model, size, the start of its prompt, and its file path on disk). A groupId: that card in full, with the whole prompt, the settings that ran and madeFrom. A card\'s path is what generate takes as media; its itemId is what the GIF tools take (GIF tools work in the open project only).',
+        description: 'What a project already holds: the one folderPath names, else the open one. No groupId: the newest cards, one short row each (name, kind, model, size, the start of its prompt, and its file path on disk). A row with stack: N is a stack of N cards; its groupId lists them. A groupId: that card in full, with the whole prompt, the settings that ran and madeFrom. A card\'s path is what generate takes as media; its itemId is what the GIF tools take (GIF tools work in the open project only).',
         inputSchema: obj({
             folderPath: { type: 'string', description: 'From list_projects or create_project. Omit for the project the app has open.' },
             groupId: { type: 'string', description: 'One card, from a row here or a generate result.' },
@@ -341,9 +341,9 @@ const TOOLS = {
             if (open.error) return open.error;
             const r = await t.listCards(open.folder, groupId, limit, mark);
             if (!r?.ok) return r;
-            const { files, cards, card, ...rest } = r;
+            const { files, sets: _sets, cards, card, ...rest } = r;
             return card
-                ? { ...rest, card: { ...withPath(files, card), madeFrom: (card.madeFrom || []).map((m) => withPath(files, m)) } }
+                ? { ...rest, card: { ...withPath(files, card), madeFrom: (card.madeFrom || []).map((m) => withPath(files, m)), ...(card.members ? { members: card.members.map((m) => withPath(files, m)) } : {}) } }
                 : { ...rest, cards: (cards || []).map((c) => withPath(files, c)) };
         },
     },

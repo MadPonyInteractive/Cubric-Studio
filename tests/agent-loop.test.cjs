@@ -2383,6 +2383,30 @@ describe('(l) one ask, many cards', () => {
             'and everything else is shared, exactly as asked once');
     });
 
+    // MPI-950: N cards in, one new stack out, where the app lands them as NEW cards.
+    test('a fan-out names ONE result stack on every card, and its note names the stack', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withOps(tools);
+        const gen = tools.generate;
+        // The app echoes the stack a card landed in (agentDispatch `_reportDone`).
+        tools.generate = async (body) => {
+            const r = await gen(body);
+            return { ...r, output: { ...r.output, ...(body.resultStack ? { stackId: body.resultStack.id } : {}) } };
+        };
+        await loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: seeCards(loop, 3) }, 'turn-stack', project);
+
+        const stacks = tools.calls.generate.map((b) => b.resultStack);
+        assert.equal(new Set(stacks.map((s) => s?.id)).size, 1, 'one stack for the whole fan-out');
+        assert.equal(stacks[0].total, 3);
+        assert.ok(await waitForEvent(fakeRes, (e) => e.event === 'agent:drained'), 'the batch never drained');
+        assert.match(loop._notes[0], new RegExp(`3 landed in the new stack ${stacks[0].id}`));
+        assert.ok(loop._groups.has(stacks[0].id), 'the agent may name the stack it made');
+
+        tools.calls.generate.length = 0;
+        await loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: seeCards(loop, 1) }, 'turn-one', project);
+        assert.equal(tools.calls.generate[0].resultStack, undefined, 'one card is one card, never a stack of one');
+    });
+
     test('no auto-look on batch items: fifty cards must not cost fifty vision calls', async () => {
         const { loop, tools } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
         withOps(tools);
@@ -3181,6 +3205,21 @@ describe('(e) the open workspace reaches the agent', () => {
         // MPI-991: on the card, the way to a mask is the Mask tool alone, never the gallery.
         assert.match(line, /only pick the Mask tool from the toolbar down the left: they are on the card, so never send them to the gallery/);
         assert.doesNotMatch(loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, null), /Mask tool/);
+    });
+
+    // MPI-950: a stack owns no media, so the line names the stack AND the member on screen.
+    test('an open stack names itself, its card on screen, and the way to all of them', async () => {
+        const AgentLoop = await loadAgentLoop();
+        const loop = new AgentLoop();
+        const ws = { ...workspace(), card: { name: 'Demon boy', type: 'image', stack: { groupId: 's1', name: 'Scenes', count: 4 } } };
+        loop._registerWorkspaceEntry(ws);
+        const line = loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, ws);
+
+        assert.match(line, /stack "Scenes" \(4 cards\) open/);
+        assert.match(line, /list_cards with groupId s1/);
+        assert.match(line, /The card on screen is "Demon boy"/);
+        assert.ok(line.includes(ENTRY));
+        assert.doesNotMatch(line, /Mask tool/, 'a stack has no Mask tool');
     });
 
     /**

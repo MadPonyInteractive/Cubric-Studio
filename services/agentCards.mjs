@@ -19,6 +19,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { MemoryError } from './agentMemory.mjs';
 import { CARD_MARKS, markOf } from '../js/utils/galleryFilter.js';
+import { isStack } from '../js/data/stackModel.js';
 
 export const DEFAULT_LIMIT = 12;
 export const MAX_LIMIT = 30;
@@ -112,19 +113,56 @@ function _row(folderPath, group, meta) {
     };
 }
 
+const _all = (project) => (Array.isArray(project.itemGroups) ? project.itemGroups : []);
+
 function _groups(project) {
-    return (Array.isArray(project.itemGroups) ? project.itemGroups : [])
+    return _all(project)
         .filter((g) => g && typeof g.id === 'string' && g.archived !== true);
 }
 
-/** `_file` and `_itemId` are for the caller's allowlist and never part of what the model reads. */
+/** Every card inside a stack (MPI-949). The gallery shows none of them on their own, so neither does a listing. */
+function _stacked(project) {
+    return new Set(_all(project).filter(isStack).flatMap((s) => s.members || []));
+}
+
+/**
+ * One row for a card; a stack is ONE row, as the gallery shows it (MPI-950). Its `ref` is a
+ * set, `set:<stackId>`, which `generate` takes as `cards` to run over every member; `_members`
+ * are the members' own rows, in stack order, for the allowlist and for `readCard`.
+ */
+async function _rowOf(folderPath, group, byId) {
+    if (!isStack(group)) return _row(folderPath, group, await _selected(folderPath, group));
+    const members = await Promise.all((group.members || []).map((id) => byId.get(id)).filter(Boolean)
+        .map(async (m) => _row(folderPath, m, await _selected(folderPath, m))));
+    return {
+        groupId: group.id,
+        name: group.customName || group.name,
+        kind: group.kind,
+        createdAt: group.createdAt,
+        stack: members.length,
+        ...(markOf(group) ? { mark: markOf(group) } : {}),
+        ref: `set:${group.id}`,
+        _members: members,
+    };
+}
+
+/**
+ * `_file`, `_itemId` and `_members` are for the caller's allowlist and never part of what the
+ * model reads. `sets` maps each stack's `set:` ref to its members' refs.
+ */
 function _split(rows) {
     const files = {};
-    const cards = rows.map(({ _file, _itemId, ...row }) => {
-        if (_file && row.ref) files[row.ref] = { path: _file, modelId: row.modelId || null, itemId: _itemId };
+    const sets = {};
+    const cards = rows.map(({ _file, _itemId, _members, ...row }) => {
+        if (_file && row.ref) files[row.ref] = { path: _file, modelId: row.modelId || null, itemId: _itemId, groupId: row.groupId };
+        if (_members) {
+            const inner = _split(_members);
+            Object.assign(files, inner.files);
+            sets[row.ref] = inner.cards.map((c) => c.ref).filter(Boolean);
+        }
         return row;
     });
-    return { cards, files };
+    return { cards, files, sets };
 }
 
 /**
@@ -137,11 +175,12 @@ export async function listCards(folderPath, { limit = DEFAULT_LIMIT, mark } = {}
     if (mark && !CARD_MARKS.some((m) => m.id === mark)) {
         throw new MemoryError('BAD_REQUEST', `mark must be one of: ${CARD_MARKS.map((m) => m.id).join(', ')}.`);
     }
+    const stacked = _stacked(project);
+    const byId = new Map(_all(project).map((g) => [g?.id, g]));
     const groups = _groups(project)
-        .filter((g) => !mark || markOf(g) === mark)
+        .filter((g) => !stacked.has(g.id) && (!mark || markOf(g) === mark))
         .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-    const rows = await Promise.all(groups.slice(0, n)
-        .map(async (g) => _row(folderPath, g, await _selected(folderPath, g))));
+    const rows = await Promise.all(groups.slice(0, n).map((g) => _rowOf(folderPath, g, byId)));
     return { ..._split(rows), total: groups.length };
 }
 
@@ -155,16 +194,26 @@ export async function cardsByIds(folderPath, ids, { limit = MAX_LIMIT } = {}) {
     const byId = new Map((Array.isArray(project.itemGroups) ? project.itemGroups : []).map((g) => [g?.id, g]));
     const groups = (Array.isArray(ids) ? ids : []).map((id) => byId.get(id)).filter(Boolean);
     const n = Math.min(Math.max(Number(limit) || MAX_LIMIT, 1), MAX_LIMIT);
-    const rows = await Promise.all(groups.slice(0, n)
-        .map(async (g) => _row(folderPath, g, await _selected(folderPath, g))));
+    const rows = await Promise.all(groups.slice(0, n).map((g) => _rowOf(folderPath, g, byId)));
     return { ..._split(rows), total: groups.length };
 }
 
-/** One card in full: the whole prompt, what ran, and what it was made from. */
+/** One card in full: the whole prompt, what ran, and what it was made from. A stack: its members. */
 export async function readCard(folderPath, groupId) {
     const project = await _project(folderPath);
     const group = _groups(project).find((g) => g.id === groupId);
     if (!group) throw new MemoryError('UNKNOWN_CARD', `No card "${groupId}" in this project. Use a groupId from list_cards.`);
+    if (isStack(group)) {
+        const row = await _rowOf(folderPath, group, new Map(_all(project).map((g) => [g?.id, g])));
+        const { cards, files, sets } = _split([row]);
+        // ponytail: members capped at MAX_LIMIT rows (the set ref still reaches all of them); page if a client needs every path.
+        const members = _split(row._members).cards;
+        return {
+            card: { ...cards[0], members: members.slice(0, MAX_LIMIT), ...(members.length > MAX_LIMIT ? { membersTotal: members.length } : {}) },
+            files,
+            sets,
+        };
+    }
     const meta = await _selected(folderPath, group);
     const { cards, files } = _split([_row(folderPath, group, meta)]);
     const inputs = meta ? _inputs(folderPath, meta) : [];

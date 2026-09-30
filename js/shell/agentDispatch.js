@@ -43,7 +43,10 @@
 
 import { enqueueGeneration, findMissingMediaSlot, cancelPendingCueJob, cancelRunningCueJob } from '../services/generationService.js';
 import { submitFlowGeneration } from '../services/flowService.js';
-import { openProject, renameGroup, markGroup, serializeGroup } from '../services/projectService.js';
+import { openProject, renameGroup, markGroup, serializeGroup, addGroup } from '../services/projectService.js';
+import { createItemGroup } from '../data/projectModel.js';
+import { STACK_TYPE, resultStackFields } from '../data/stackModel.js';
+import { truncateCardName } from '../utils/displayHelpers.js';
 import { CARD_MARKS, markOf, matchesGallerySort, byGalleryOrder, describeGalleryFilter, isGalleryFiltered } from '../utils/galleryFilter.js';
 import { navigate, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../router.js';
 import { on } from '../utils/dom.js';
@@ -124,7 +127,7 @@ function _logNamedParamProvenance(model, operation, provenance) {
  * The gallery path awaits `addGroup` before it calls `onComplete`, so the card is
  * already in the project here.
  */
-async function _reportDone(jobId, { item, group, items }, cardName, duration = null, modelId = null, closedProject = null) {
+async function _reportDone(jobId, { item, group, items }, cardName, duration = null, modelId = null, closedProject = null, stackId = null) {
     // A batch lands as ONE report carrying every card, each with its SHARE of the one bill.
     const costUsd = (items || [item]).reduce((sum, it) => sum + (Number(it?.generationSettings?.cost?.usd) || 0), 0);
     const named = cardName !== undefined && group?.id ? await nameCard(group, cardName, closedProject) : null;
@@ -150,6 +153,8 @@ async function _reportDone(jobId, { item, group, items }, cardName, duration = n
             // that repeats the ask tells the user a number the file does not have.
             ...(duration ? { durationSeconds: duration.seconds, ...(duration.frames ? { frames: duration.frames } : {}) } : {}),
             ...(named ? { cardName: named.customName } : {}),
+            // MPI-950: the new stack this card landed in (an agent fan-out).
+            ...(stackId ? { stackId } : {}),
             // MPI-855: what this generation billed, for the chat's session spend.
             ...(costUsd > 0 ? { costUsd } : {}),
         },
@@ -761,6 +766,20 @@ export function galleryPlaceholder(type, width = 0, height = 0) {
  * The half of an agent submit that is the same for a model op and a tool: the gallery
  * placeholder, following the work, the enqueue and its reports.
  */
+/**
+ * MPI-950 — the stack an agent fan-out item lands in: `{ id, total, kind }`, or null. Only a
+ * NEW card joins one; an edit is its own card's next version (`historyOpts`) and stays put.
+ * A stack holds pictures or videos. ponytail: open project only; a closed one's cards land loose.
+ */
+export function agentResultStack(input, model, historyOpts, target) {
+    const kind = model?.mediaType || 'image';
+    if (!input?.resultStack || historyOpts || !target?.open || !['image', 'video'].includes(kind)) return null;
+    return { ...input.resultStack, kind };
+}
+
+/** Result stacks already added, by id: a fan-out's items arrive faster than `addGroup` lands. ponytail: never pruned, one uuid per fan-out. */
+const _agentStacks = new Set();
+
 function _enqueueAgentRun(jobId, input, config, target, historyOpts, { width = 0, height = 0, batchSize = 1, duration = null } = {}) {
     const { model } = config;
     // A gallery gen MUST carry a tempId + placeholderGroup or the run is invisible
@@ -777,12 +796,14 @@ function _enqueueAgentRun(jobId, input, config, target, historyOpts, { width = 0
     const extraTempIds = Array.from({ length: Math.max(1, batchSize) - 1 }, () => crypto.randomUUID());
     const extraPlaceholders = extraTempIds.map((id) => ({ ...placeholderGroup, id, history: [] }));
 
+    const stack = agentResultStack(input, model, historyOpts, target);
+
     // Following a run into a project the user does not have open would open it for them.
     if (target.open) _followWork(input, historyOpts);
     const queued = enqueueGeneration(config, {
         // A card name names a NEW card. Added to the user's own card, it would rename theirs.
         onComplete: (done) => _reportDone(jobId, done, historyOpts ? undefined : input.cardName, duration, model.id,
-            target.open ? null : target.project),
+            target.open ? null : target.project, stack?.id),
         // An `outputKind: 'text'` op produces a caption and no item (MPI-310).
         onText: (text) => _report(jobId, { ok: true, output: { text } }),
         // A cloud failure names itself (MPI-869: e.g. LOW_BALANCE with the cost and what
@@ -791,13 +812,18 @@ function _enqueueAgentRun(jobId, input, config, target, historyOpts, { width = 0
             err?.userMessage || 'The generation failed. See the app log for the cause.'),
         onCancel: () => _fail(jobId, 'CANCELLED',
             'The generation was cancelled or produced no output.'),
-    }, historyOpts || { scope: 'gallery', tempId, placeholderGroup, extraTempIds, extraPlaceholders });
+    }, historyOpts || { scope: 'gallery', tempId, placeholderGroup, extraTempIds, extraPlaceholders, ...(stack ? { stackId: stack.id } : {}) });
 
     // A guard inside enqueueGeneration rejects by returning null — it fires
     // onCancel on its way out, so the report is already in flight. Belt and braces
     // for a future guard that returns null silently.
     if (!queued) {
         return _fail(jobId, 'REJECTED', 'Vision rejected the job before it entered the queue.');
+    }
+    // The job FIRST, the stack after: the settle drops a filling stack with no live job.
+    if (stack && !_agentStacks.has(stack.id)) {
+        _agentStacks.add(stack.id);
+        addGroup({ ...createItemGroup(STACK_TYPE, resultStackFields({ kind: stack.kind, name: truncateCardName(getCommand(input.operation)?.label || input.operation), expected: stack.total })), id: stack.id });
     }
     if (!_settled.has(jobId)) _queueJobs.set(jobId, queued.queueJobId);
     return null;

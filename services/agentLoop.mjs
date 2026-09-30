@@ -244,7 +244,7 @@ export const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'list_cards',
-            description: 'What the open project ALREADY holds, read from its gallery cards and their sidecars: everything made before this conversation, by anyone. No groupId: the newest cards, one short row each (name, ref, kind, the model or flow and operation that made it, size, a clip\'s real length, the start of its prompt). A groupId: that one card in full, with the whole prompt, the settings that ran, and madeFrom, the refs it was made from. Every ref it returns can be passed to look, and to generate as media, a video included (as a picture, its first frame; any other frame is the user\'s right-click Create snapshot).',
+            description: 'What the open project ALREADY holds, read from its gallery cards and their sidecars: everything made before this conversation, by anyone. No groupId: the newest cards, one short row each (name, ref, kind, the model or flow and operation that made it, size, a clip\'s real length, the start of its prompt). A row with stack: N is a stack of N cards: pass its ref as cards; its groupId lists them. A groupId: that one card in full, with the whole prompt, the settings that ran, and madeFrom, the refs it was made from. Every ref it returns can be passed to look, and to generate as media, a video included (as a picture, its first frame; any other frame is the user\'s right-click Create snapshot).',
             parameters: {
                 type: 'object',
                 properties: {
@@ -989,10 +989,14 @@ export class AgentLoop {
         // MPI-890: where the user is STANDING. With a card open they are looking at one
         // entry and there is no drag surface in that view, so "this image" means that entry
         // and nothing else — it is registered above, so the ref named here resolves.
+        const stack = workspace?.card?.stack;
         const standing = workspace?.activeEntry?.filePath
+            // MPI-950: an open stack shows one member at a time, and has no Mask tool.
+            ? (stack
+                ? ` The user has the stack "${stack.name}" (${stack.count} cards) open, and "all of them" means its cards: list_cards with groupId ${stack.groupId} gives the ref to pass as cards. The card on screen is "${workspace.card.name || 'untitled'}", and the entry open in front of them is ${workspace.activeEntry.filePath}. "This image", "it" and "this one" mean that entry.`
             // MPI-991: the Masking rule's "skip the first half" lost live ("click the card in the
             // gallery to open it (you're already looking at it)"), so the line carries the words.
-            ? ` The user is looking at the card "${workspace.card?.name || 'untitled'}", and the entry open in front of them is ${workspace.activeEntry.filePath}. "This image", "it" and "this one" mean that entry. To paint a mask they only pick the Mask tool from the toolbar down the left: they are on the card, so never send them to the gallery.`
+                : ` The user is looking at the card "${workspace.card?.name || 'untitled'}", and the entry open in front of them is ${workspace.activeEntry.filePath}. "This image", "it" and "this one" mean that entry. To paint a mask they only pick the Mask tool from the toolbar down the left: they are on the card, so never send them to the gallery.`)
                 // MPI-891 live read 2: the mask reached the dispatch, never the prompt writer.
                 // MPI-987: dictation wrote "mask" as "mosque"; the agent read a building to add
                 // and sent the user to repaint on another card instead of running on the mask.
@@ -1062,15 +1066,19 @@ export class AgentLoop {
      */
     _seeCards(r) {
         if (!r?.ok) return JSON.stringify(r);
-        const { files = {}, ...seen } = r;
+        const { files = {}, sets = {}, ...seen } = r;
         // A card the app LISTED is one `rename_card` may name. The gate used to be "only what
         // this conversation generated", from before the agent could see the project at all;
         // live, 2026-09-20, Fabio asked it to name his unnamed square and triangle cards and
         // it refused all four and told him to do it by hand. A made-up id still reaches nothing.
-        for (const c of seen.cards || (seen.card ? [seen.card] : [])) if (c?.groupId) this._groups.add(c.groupId);
-        for (const [ref, f] of Object.entries(files)) {
-            this._images.set(ref, { path: f.path, kind: 'result', modelId: f.modelId || null, itemId: f.itemId || null });
+        for (const c of [...(seen.cards || (seen.card ? [seen.card] : [])), ...(seen.card?.members || [])]) {
+            if (c?.groupId) this._groups.add(c.groupId);
         }
+        for (const [ref, f] of Object.entries(files)) {
+            this._images.set(ref, { path: f.path, kind: 'result', modelId: f.modelId || null, itemId: f.itemId || null, groupId: f.groupId || null });
+        }
+        // MPI-950: a stack's row ref is `set:<stackId>`, run over like a dropped selection.
+        for (const [ref, refs] of Object.entries(sets)) this._sets.set(ref.slice(4), refs);
         return JSON.stringify(seen);
     }
 
@@ -1297,6 +1305,9 @@ export class AgentLoop {
         const started = [];
         const refused = [];
         const batch = this._newBatch(turnId, args, currentProject, cards ? 'card' : 'run', spend !== null);
+        // MPI-950: N cards in, one new stack out, where the results are NEW cards (the app
+        // decides: an edit is its card's next version). A tool always lands as a version.
+        const resultStack = cards && n > 1 && !_isTool(args) ? { id: crypto.randomUUID(), total: n } : null;
         for (const [i, run] of runs.entries()) {
             // `wait` is dropped: awaiting each one would run fifty renders end to end inside a
             // single turn, and the fan-out exists precisely so the chat stays free meanwhile.
@@ -1304,7 +1315,7 @@ export class AgentLoop {
             const label = cards ? cards[i] : i + 1;
             let res;
             try {
-                res = JSON.parse(await this._executeTool('generate', one, turnId, currentProject, { batch, label }));
+                res = JSON.parse(await this._executeTool('generate', one, turnId, currentProject, { batch, label, resultStack }));
             } catch (err) {
                 res = { ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } };
             }
@@ -1353,6 +1364,7 @@ export class AgentLoop {
         let cancelled = 0;
         let open = true;
         let entry = null;
+        let stackId = null;  // MPI-950: the new stack its cards landed in, when they did
         const line = (status) => {
             const label = `${what}: ${landed + failed.length + cancelled} of ${started} done${failed.length ? `, ${failed.length} failed` : ''}`;
             entry ||= this._historyEntry('tool', { id, tool: 'batch', args: {}, status, label });
@@ -1368,7 +1380,7 @@ export class AgentLoop {
                 groups.set(k, [...(groups.get(k) || []), f.label]);
             }
             const why = [...groups].map(([k, labels]) => `${k} (${labels.slice(0, 5).join(', ')}${labels.length > 5 ? `, ${labels.length - 5} more` : ''})`).join('; ');
-            this._notes.push(`[Batch finished: ${what}, ${started} ${unit}s: ${landed} landed${failed.length ? `, ${failed.length} failed: ${why}` : ''}${cancelled ? `, ${cancelled} cancelled` : ''}.${unit === 'card' && _isTool(args) ? ` Each landed as the ${LANDS_ON_CARDS}.` : ''} They are in the gallery for the user to judge: report it in one sentence and look at none of them.${samples.length ? ` Asked how they came out, look at 3 at most, e.g. ${samples.join(', ')}.` : ''}]`);
+            this._notes.push(`[Batch finished: ${what}, ${started} ${unit}s: ${landed} landed${stackId ? ` in the new stack ${stackId}` : ''}${failed.length ? `, ${failed.length} failed: ${why}` : ''}${cancelled ? `, ${cancelled} cancelled` : ''}.${unit === 'card' && _isTool(args) ? ` Each landed as the ${LANDS_ON_CARDS}.` : ''} They are in the gallery for the user to judge: report it in one sentence and look at none of them.${samples.length ? ` Asked how they came out, look at 3 at most, e.g. ${samples.join(', ')}.` : ''}]`);
             const fails = failed.map((f) => f.label);
             this._trackUnfinished(project, unit === 'card' ? { ...args, cards: fails } : { ...args, count: fails.length },
                 failed.length ? [...new Set(failed.map((f) => f.code))].join(', ') : null);
@@ -1385,6 +1397,10 @@ export class AgentLoop {
             settle: (label, r, wasCancelled, size = 1) => {
                 if (r?.ok) {
                     landed += size;
+                    if (r.output?.stackId && !stackId) {
+                        stackId = r.output.stackId;
+                        this._groups.add(stackId);
+                    }
                     if (samples.length < 3 && r.output?.filePath) samples.push(r.output.filePath);
                 } else if (wasCancelled) cancelled += size;
                 else for (let i = 0; i < size; i++) failed.push({ label, code: r?.error?.code || 'ERROR', message: r?.error?.message || 'no reason given' });
@@ -2012,6 +2028,7 @@ ${knowledgeIndex}`.trim();
                 Object.assign(body, _generateFields(args));
                 // Set only by `_fanOut`, never by the model: the tool has no `batch` field.
                 if (!args.flowId && opts.batchSize > 1) body.batch = opts.batchSize;
+                if (opts.resultStack) body.resultStack = opts.resultStack;
                 // Resolve media references. An attachment is copied into the project
                 // here — only now that a generation uses it — and a result is passed
                 // back by its project-file url (contract § Tools).

@@ -169,12 +169,25 @@ RATIO, family row hidden, never persisted (D7, so the single-card Crop keeps the
 - EXIF-rotated photos crop where the box is drawn since MPI-959 (`cropExtended` reads upright
   pixels, `docs/crop.md`); it was a single-card bug, never a stack one.
 
+## Agents (MPI-950)
+
+- **Listing** (`services/agentCards.mjs`, in-app `list_cards` and MCP alike): a stack is ONE row,
+  `stack: N` and `ref: "set:<stackId>"`; its members are not listed and not in `total` (the gallery
+  hides them). `readCard(stackId)` returns `members` (at most 30 rows, `membersTotal` past that). The
+  hidden `sets` map fills the loop's `_sets`, so `generate cards: ["set:<id>"]` runs every member.
+- **Open stack:** History publishes the member on screen (`js/shell/activeStackMember.js`);
+  `agentService._workspaceForTurn` sends it as the entry plus `card.stack`, and the App state line
+  names the stack and drops the Mask sentence (no Mask tool in a stack).
+- **Fan-out:** `_fanOut` over 2+ cards sends ONE `resultStack { id, total }`; `agentResultStack`
+  stacks only NEW image/video cards in the open project. An edit is its card's next version and
+  stays in its stack. The stack is added after its first job is queued, once (`_agentStacks`).
+  Edge: a job that lands before the next is queued settles the stack early (the first item waits
+  the 1 s refusal window; the rest queue back to back).
+
 ## Not done here
 
 - A routine run (MPI-970) makes its own result stack, one new card per input card with every step
   as History versions: [routines.md](routines.md) § The run.
-- Agent listing: `services/agentCards.mjs` `_groups` lists hidden members plus a `versions: 0` stack
-  row; `list_cards` / `readCard` need stack awareness (MPI-950).
 - `MpiOkCancel` still clips any three-button set whose labels outgrow the dialog.
 
 ## Tests

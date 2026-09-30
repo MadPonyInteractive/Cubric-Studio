@@ -508,6 +508,8 @@ async function _frameZero(file) {
  *       OR a tool (MPI-904): { operation, fields?, media } with NO modelId: imageUpscale,
  *                              removeBackground, crop or downscale (js/shell/agentToolOps.js)
  *       plus, on any:        { folderPath?, cardName?, requestId? }
+ *       plus, a model op:    { resultStack?: { id, total } } (MPI-950: an agent fan-out
+ *                              whose results are NEW cards lands them in one new stack)
  *
  * The two are not variants of one shape. A Flow has no model — it dispatches with
  * `model.id: null` — so `modelId` can never name one, and its controls are DECLARED
@@ -628,6 +630,11 @@ router.post('/connector/generate', async (req, res) => {
   // MPI-891: the in-app agent's "take the user to where this renders". Only `true` counts,
   // so a CLI agent that never sends it never moves the user's view.
   if (req.body?.follow === true) input.follow = true;
+  // MPI-950: one id for every item of an agent fan-out, so its new cards land as ONE stack.
+  const rs = req.body?.resultStack;
+  if (!flowId && !tool && rs && /^[\w-]{8,64}$/.test(String(rs.id)) && Number.isInteger(rs.total) && rs.total > 1) {
+    input.resultStack = { id: String(rs.id), total: rs.total };
+  }
 
   // `requestId` — the caller's own name for this submit, so it can cancel it later
   // (`POST /connector/cancel`). This route holds its response for the whole render, so

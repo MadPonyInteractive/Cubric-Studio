@@ -94,6 +94,7 @@ import { getPlugin, pluginAvailability } from '../../../data/pluginsRegistry.js'
 import { splitDeclaredValues } from '../../../utils/declaredFields.js';
 import { setMaskReader, clearMaskReader } from '../../../shell/activeMask.js';
 import { setFrameReader, clearFrameReader } from '../../../shell/activeFrame.js';
+import { setStackMemberReader, clearStackMemberReader } from '../../../shell/activeStackMember.js';
 
 /**
  * Registry mapping MpiHistoryTools `activate { mode }` keys to the compound
@@ -4116,12 +4117,16 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // MPI-984: and the frame of a video on screen, so "this frame" is not read as frame 0.
         const _readFrameForAgent = () => videoControlBar?.el.getFrame?.() ?? null;
         setFrameReader(_readFrameForAgent);
+        // MPI-950: and in a stack, which member that is: the route names only the stack.
+        const _readStackMemberForAgent = () => (_stackId ? _group.id : null);
+        setStackMemberReader(_readStackMemberForAgent);
 
         // ── Cleanup ───────────────────────────────────────────────────────────
 
         el.destroy = async () => {
             clearMaskReader(_readMaskForAgent);
             clearFrameReader(_readFrameForAgent);
+            clearStackMemberReader(_readStackMemberForAgent);
             _mascotHide(0);
             _previewPlayer.stop();
             _options?.destroy?.();

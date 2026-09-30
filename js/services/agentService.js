@@ -30,6 +30,8 @@ import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { pinnedModel } from '../shell/agentDispatch.js';
 import { activeMask } from '../shell/activeMask.js';
 import { activeFrame } from '../shell/activeFrame.js';
+import { activeStackMember } from '../shell/activeStackMember.js';
+import { isStack, expandStacks } from '../data/stackModel.js';
 import { PAGE_GROUP_HISTORY } from '../router.js';
 import { isOperationInstalled } from '../data/modelRegistry.js';
 
@@ -200,18 +202,27 @@ function _workspaceForTurn() {
     const base = { page, groupId: null, card: null, activeEntry: null };
     if (page !== PAGE_GROUP_HISTORY || !groupId) return base;
 
-    const group = (state.currentProject?.itemGroups || []).find((g) => g.id === groupId);
+    const groups = state.currentProject?.itemGroups || [];
+    const route = groups.find((g) => g.id === groupId);
+    // MPI-950: a stack owns no media. The entry is the member its workspace shows.
+    const group = isStack(route)
+        ? groups.find((g) => g.id === activeStackMember()) || expandStacks([route], groups)[0]
+        : route;
     if (!group) return base;
 
     const item = group.history?.[group.selectedIndex ?? 0] || null;
     return {
         page,
-        groupId,
-        card: { name: group.customName || group.name, type: group.type },
+        groupId: group.id,
+        card: {
+            name: group.customName || group.name,
+            type: group.type,
+            ...(isStack(route) ? { stack: { groupId: route.id, name: route.customName || route.name, count: (route.members || []).length } } : {}),
+        },
         activeEntry: item?.filePath
             ? { itemId: item.id, filePath: item.filePath, modelId: item.modelId || null }
             : null,
-        masked: activeMask()?.groupId === groupId,
+        masked: activeMask()?.groupId === group.id,
         // MPI-984: on a video, the frame on screen. Null on a still.
         frame: activeFrame(),
     };
