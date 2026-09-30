@@ -48,3 +48,11 @@ fill.
 Wake turns shipped with MPI-870 (`agent:drained` -> `/agent/wake`, `canWake`, capped at
 `MAX_WAKES_IN_A_ROW`). The Duration rule's "you never speak first, and a result reaches you only
 when the user writes again" predates them. The rule's sentence goes; the wake stays.
+
+## Noticed
+
+- 2026-09-30, Fabio's run (Kaiju project, edit_009 -> 011): Cosmo redid a two-reference Klein
+  edit twice on its own, because the describer read edit_009's lizard (rising behind the bow) as
+  "sits on the bow". The Chaining rule's "look at it and redo it if it came back wrong" has no cap
+  and trusts one text description; Fabio liked edit_009 best. Fabio's call whether a redo on a
+  single-step ask should ask first.

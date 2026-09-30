@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1003", "at": "2026-09-30T19:10:21+01:00", "actor": "agent-74", "column": "todo", "title": "Add-flow and add-model playbooks: the steps that make a new Flow or model known to the in-app agent"}

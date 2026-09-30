@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1003",
+  "title": "Add-flow and add-model playbooks: the steps that make a new Flow or model known to the in-app agent",
+  "description": "Fabio 2026-09-30: a new Flow or model is unknown to Cosmo unless the playbooks carry the agent steps (what it reads, when to use it, how to prompt it), and the skills that enforce them check those steps. Brief: brief.md. Umbrella MPI-1000.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-30T19:10:21+01:00",
+  "updated_at": "2026-09-30T19:10:21+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

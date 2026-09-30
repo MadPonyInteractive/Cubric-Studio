@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1002", "at": "2026-09-30T19:10:19+01:00", "actor": "agent-74", "column": "todo", "title": "Every Flow enhancement uses the enhancer picked in Remote, on the agent's runs too"}

@@ -497,14 +497,19 @@
     display: block;
 }
 
-/* The file did not load — a stopped generation, or one whose media never landed. No
-   media to size it, so it keeps the old fixed box. */
+/* No picture to size the card: an audio result, or a file that did not load (a stopped
+   generation, or one whose media never landed). Both keep the old fixed box; only the
+   one that failed is dashed. */
+.mpi-agent-chat__result-card--audio,
 .mpi-agent-chat__result-card--unavailable {
     width: 120px;
     height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.mpi-agent-chat__result-card--unavailable {
     border-style: dashed;
 }
 

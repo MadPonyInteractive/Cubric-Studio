@@ -579,8 +579,10 @@ it, and the user presses Generate. Per Flow, not one box on every run (Fabio sor
 `tasks/MPI-892/brief.md`).
 
 - **`agentOpens` on the FlowDef** (`flowsRegistry.js`) is where it opens: a middle step's `kind`,
-  or `'run'`. Draw It In and Scribble `paint`, Object Stamp `cutout`, Song `run`. Absent = the
-  agent runs it. `list_models` carries it (`opens`; the short catalogue says `opensForUser`).
+  or `'run'`. Draw It In and Scribble `paint`, Object Stamp `cutout`. Absent = the agent runs it;
+  Song has none because the agent asks first (app:flows: "Review lyrics | Just do it"). An open
+  with no `agentOpens` and nothing missing lands on the first step after Inputs (Song: "Write the
+  song"), Generate only when there is none. `list_models` carries it (`opens`; the short catalogue says `opensForUser`).
 - **The loop** (`AgentLoop._openFlow`, before the box gate): a `generate` naming an `agentOpens` Flow, or
   sending `open: true`, calls `POST /connector/open-flow`, never `/connector/generate`. No box
   gate, no spend card, nothing in flight. Refused with `NOT_NOW` off a typed turn (`_follow`).

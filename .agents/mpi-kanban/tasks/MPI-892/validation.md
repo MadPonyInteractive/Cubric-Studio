@@ -25,6 +25,67 @@ Found live and fixed: Scribble reported its drawing slot as "still needed" (the 
 step); the answer now mirrors the frame's `_stepDerivesOwnMedia`. A missing required input now
 opens on Inputs even for an `agentOpens` Flow (Draw It In with no photo).
 
+## A parked Flow does not block an open (2026-09-30, Agent 74)
+
+Question: with a Flow parked by the Tab ring, does `openFlow` answer VIEW_BUSY? No. Parking is
+`el.suspend()` -> `el.close()` -> `overlay.el.hide()`, and `hide()` always ends in
+`Overlays.release(_overlayEntry)` (`js/components/Primitives/MpiOverlay/MpiOverlay.js`), so the
+depth `followBlocker` reads drops to 0. `navigation.js` `_leaveOverlaySurfaces` already relies on
+the same release. An open then replaces the parked Flow through `shell.js`'s `flow:open`, the
+same as the user opening one from the Library. Nothing to fix.
+
+## Found in Fabio's look: an audio result read "Did not finish" (2026-09-30, Agent 74)
+
+A finished Sound & Music track showed a dashed "Did not finish" tile in the chat.
+`MpiAgentChat._appendResult` put every non-video result in an `<img>`; a `.flac` can only error
+there, and the error handler is the Stopped-job fallback. An audio result now gets an "Audio"
+tile, and its `<audio preload="metadata">` still errors into the same fallback when the file
+never landed.
+
+- `tests/desktop/agent-chat.spec.js` "an audio result is an Audio tile; a missing one still says
+  it did not finish": passes; against HEAD's chat file it FAILS (mutation-checked).
+- `npm test`: 2415, 2413 pass, 0 fail, 2 skipped. eslint clean on the three files.
+
+## Fabio's look, round 2 (2026-09-30, Agent 74)
+
+- Checks 1 (scribble ask -> two buttons -> Scribble at "Draw it") and 2 (Object Stamp on "Cut it
+  out") PASS.
+- Lizard redo: Cosmo judged the RIGHT file (edit_009, describer gemma-4-26B-A4B on DeepInfra,
+  ~1 MP); the general caption misplaced the lizard ("sits on the bow"). Fabio keeps retries; the
+  fix is the read. The auto-look note now says the caption is general and to check the doubted
+  point with `look` + a question (a fresh, focused read) before any redo. `tests/agent-loop` asserts
+  it. Not proven live: needs one question-look on his DeepInfra key.
+- Song, Fabio's new shape: no `agentOpens`; Cosmo asks `[options: Review lyrics | Just do it]`
+  (app:flows). Review -> `open: true` -> opens on "Write the song" (an open with nothing missing
+  now lands on the first step after Inputs, `flow.steps[0].kind`); Just do it -> it runs.
+  `tests/agent-flow-handover.test.cjs` 9/9 incl. the Song open.
+- Docs site agent page (`Cubric Studio (Docs)` pages/agent.html + regenerated agent/index.html,
+  NOT pushed): models only are installed, a missing Flow is added from the Flow Library; the
+  three open-for-you Flows and Song's ask. Website "Picks the right model and installs it": true.
+- `npm test` 2416: 2414 pass, 0 fail, 2 skipped. eslint clean.
+- OPEN: his Song run (opened by Cosmo at 17:22:51Z, Cue pressed) sat on "Starting" with nothing
+  logged after the open: it never reached ComfyUI. Cause unknown from the log alone. Ruled out:
+  the arch-weight confirm (a Flow run carries no modelId). He restarted; retry pending.
+- After his restart, a FRESH chat ("a song about two Disney characters...") got "[declined] I
+  can't make songs or any audio: I work with images and video only", no tool call. Cause: the
+  prompt's first line, "a desktop AI image and video tool", older than the audio Flows; the
+  Kaiju chat worked only because list_models was already in its context. Now "image, video and
+  sound tool" (+8 bytes, SYSTEM still under 10,460). Not proven live.
+- Live after the restart (Fabio's screenshots): the same fresh ask now reads app:flows and
+  minimax-music's settings, writes the duet, asks `[Review lyrics | Just do it]`; "Just do it" ran
+  it ("Starting generation", Vinyl composing, COMPOSING 1%). Check 3 PASS on the run path.
+- Fabio: "I just tested review lyrics, and it works" (open on "Write the song", then his Cue ran).
+  The earlier stuck "Starting" did not come back. Check 3 PASS on both paths.
+- Found in the song's sidecar, filed as MPI-1002 (umbrella MPI-1000): Cosmo's Song run skips the
+  enhancer and fills the caption blocks blind (Vocal empty, one "Duet" voice).
+- Check 4 attempt ("give me a voice saying 'My name is Jimmy Jones...'"): Cosmo read Text to
+  Speech (not installed), ignored the INSTALLED DramaBox (a package Flow: the catalogue carried
+  only its title), and offered "[Install TTS flow | Skip it]", which it cannot do. Fixed: each Flow
+  in list_models carries `does` (`flowDoes`: first clause of its description; DramaBox "Text to
+  speech you direct in words"); `install_model` on a Flow id answers `IS_A_FLOW` (add it from the
+  Flow Library); app:flows "Picking one, and one that is not installed". Tests: agent-loop +
+  handover + budget + no-delete 177/0, eslint clean. Not proven live: needs his restart and the same ask.
+
 ## Fabio's look (Verify mode user-ux)
 
 - 2026-09-30, check 1 ("make a scribble of a cat on a fence"): my test line was the wrong

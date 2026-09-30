@@ -14,7 +14,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const { getFlowById, listFlows } = require('../js/data/flowsRegistry.js');
-const { openFlow } = require('../js/shell/agentDispatch.js');
+const { openFlow, flowDoes } = require('../js/shell/agentDispatch.js');
 const { state } = require('../js/state.js');
 const { Events } = require('../js/events.js');
 
@@ -43,8 +43,8 @@ test.beforeEach(() => {
 });
 
 test.describe('which Flows open for the user (Fabio\'s sort)', () => {
-    test('the four he named open, at a step each one actually has', () => {
-        const want = { 'scribble-object': 'paint', scribble: 'paint', 'object-stamp': 'cutout', 'minimax-music': 'run' };
+    test('the three he named open, at a step each one actually has', () => {
+        const want = { 'scribble-object': 'paint', scribble: 'paint', 'object-stamp': 'cutout' };
         for (const [id, at] of Object.entries(want)) {
             const flow = getFlowById(id);
             assert.equal(flow.agentOpens, at, id);
@@ -54,10 +54,18 @@ test.describe('which Flows open for the user (Fabio\'s sort)', () => {
 
     test('every other Flow is the agent\'s to run', () => {
         const runs = listFlows().filter((f) => !f.agentOpens).map((f) => f.id);
-        for (const id of ['character-sheet', 'outpaint', 'ltx-extend', 'ltx-foley', 'ltx-upscale', 'stems', 'sound-and-music', 'chatter-box', 'voice-changer']) {
+        // Song too: the agent asks "Review lyrics | Just do it" first (Fabio, round 2).
+        for (const id of ['character-sheet', 'outpaint', 'ltx-extend', 'ltx-foley', 'ltx-upscale', 'stems', 'sound-and-music', 'chatter-box', 'voice-changer', 'minimax-music']) {
             assert.ok(runs.includes(id), `${id} should run`);
         }
     });
+});
+
+test('flowDoes: one clause of the description, for the agent\'s catalogue', () => {
+    assert.equal(flowDoes('Text to speech you direct in words. Describe the speaker.'), 'Text to speech you direct in words');
+    assert.equal(flowDoes('Take an object out of one photo and put it into another — a mug on your desk.'), 'Take an object out of one photo and put it into another');
+    assert.equal(flowDoes('Describe a character and get a reference sheet back: a large portrait.'), 'Describe a character and get a reference sheet back');
+    assert.equal(flowDoes(undefined), '');
 });
 
 test.describe('openFlow — filled, on screen, and nothing runs', () => {
@@ -94,11 +102,22 @@ test.describe('openFlow — filled, on screen, and nothing runs', () => {
         assert.match(report.output.empty, /audio in the "audio1" slot/);
     });
 
-    test('...and on Generate once everything it needs is there', async () => {
+    test('...and past Inputs once everything it needs is there', async () => {
         const voice = `/project-file?path=${encodeURIComponent('C:\\Projects\\Test\\Media\\voice.wav')}`;
         const { opened, report } = await run({ flowId: 'chatter-box', fields: { positive: 'Hello.' }, media: [{ role: 'audio1', url: voice }], follow: true });
-        assert.equal(opened[0].openAt, 'run');
+        const flow = getFlowById('chatter-box');
+        assert.equal(opened[0].openAt, flow.steps?.[0]?.kind || 'run');
         assert.equal(report.output.empty, undefined);
+    });
+
+    test('Song\'s "Review lyrics" opens on Write the song with the lyrics in, not on Generate', async () => {
+        const flow = getFlowById('minimax-music');
+        const lyricsField = flow.steps[0].fields.find((f) => /lyric/i.test(f.id) || /lyric/i.test(f.label || ''));
+        assert.ok(lyricsField, 'Song declares a lyrics field on its first step');
+        const { report, opened } = await run({ flowId: 'minimax-music', fields: { [lyricsField.id]: 'La la la' }, follow: true });
+        assert.equal(report.ok, true, JSON.stringify(report));
+        assert.deepEqual(opened, [{ flowId: 'minimax-music', openAt: 'fields' }]);
+        assert.equal(report.output.at, 'Write the song');
     });
 
     test('never without a typed turn, never over the user\'s work, never with a field it lacks', async () => {

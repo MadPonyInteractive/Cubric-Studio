@@ -1196,9 +1196,9 @@ function _hintText(hint) {
  * `flow.open` (MPI-892) — the agent hands a Flow over instead of running it. The Flow opens on
  * the user's screen with what the agent filled, at the step the user works in, and NOTHING
  * runs until they press Generate. Fabio, 2026-09-30: the three Flows that need the user's hands
- * (Draw It In, Scribble, Object Stamp) and Song, whose lyrics the user reads first, declare
- * `agentOpens`; any other Flow opens this way when the agent is asked to, or lacks an input
- * only the user has (a voice sample).
+ * (Draw It In, Scribble, Object Stamp) declare `agentOpens`; any other Flow opens this way when
+ * the agent is asked to (Song's "Review lyrics"), or lacks an input only the user has (a voice
+ * sample).
  *
  * Its own capability and route (`POST /connector/open-flow`), never a flag on a submit: the
  * `/connector/quote` rule — a dropped flag must fall towards not running.
@@ -1235,8 +1235,10 @@ export async function openFlow(jobId, input = {}) {
     // A step that CREATES its picture fills the slot at run time (Scribble's blank canvas), so
     // an empty one is not missing — MpiBaseFlow's `_stepDerivesOwnMedia`, the same question.
     const empty = (flow.steps || []).some(s => s?.composite) ? null : findMissingMediaSlot(flow.operation, mediaItems);
-    // A missing input comes first: its step is where the user adds it.
-    const openAt = empty ? 'inputs' : (flow.agentOpens || 'run');
+    // A missing input comes first: its step is where the user adds it. Else the Flow's own step,
+    // else the first after Inputs: an open with everything filled is the user reviewing it (Song's
+    // lyrics, Fabio), so Generate only for a Flow with no middle step.
+    const openAt = empty ? 'inputs' : (flow.agentOpens || flow.steps?.[0]?.kind || 'run');
     state.s_flowInputs = {
         ...state.s_flowInputs,
         [flow.id]: { ...inputs, mediaItems, ...(Object.keys(injectionParams).length ? { injectionParams } : {}) },
@@ -1466,6 +1468,12 @@ export function validateBoxParams(flow, params) {
  * `agent.list-models` — build the full model/flow list with current install state.
  * Called by GET /connector/models; the route adds hardware fit + download sizes.
  */
+/** A Flow's description cut to one clause: its first sentence, up to a dash or a colon. */
+export function flowDoes(description) {
+    const first = String(description || '').split(/(?<=[.!?])\s/)[0];
+    return first.split(/\s[—–]\s|:\s/)[0].replace(/[.!?]$/, '').trim();
+}
+
 function _listModels(jobId) {
     const engine = remoteEngineClient.effectiveEngine();
 
@@ -1509,6 +1517,10 @@ function _listModels(jobId) {
         return {
             id: flow.id,
             title: flow.title,
+            // What it does, in its own words: "DramaBox" says nothing a title like "Text to
+            // Speech" says, so a voice with no sample went to the uninstalled Text to Speech
+            // over the installed DramaBox (Fabio, 2026-09-30). A package Flow brings its own.
+            does: flowDoes(flow.description),
             operation: flow.operation,
             installed: avail.available,
             // The label is what a field MEANS: a bare `positive` read as "the prompt" and got an

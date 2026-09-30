@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-998", "at": "2026-09-30T18:11:00+01:00", "actor": "agent-74", "column": "todo", "title": "Object Stamp: flip the object before placing it"}

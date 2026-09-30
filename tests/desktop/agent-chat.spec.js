@@ -574,6 +574,33 @@ test('a result in the real shape loads; a carried request draws once; list marke
   }
 });
 
+// Fabio, 2026-09-30: a finished song showed "Did not finish" - an <img> of a .flac can only error.
+test('an audio result is an Audio tile; a missing one still says it did not finish', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  const wav = require('path').resolve(__dirname, '../../assets/sounds/notify.wav').replace(/\\/g, '/');
+  try {
+    await installStubs(window);
+    await bootAndMountChat(window, true);
+
+    await window.evaluate((abs) => {
+      for (const [id, filePath] of [['song', `/project-file?path=${encodeURIComponent(abs)}`], ['gone', '/tmp/gone.flac']]) {
+        window.__fireSse('agent:result', { toolCallId: id, ok: true, output: { itemId: id, groupId: id, type: 'audio', filePath } });
+      }
+    }, wav);
+
+    const song = window.locator('#e2e-agent-host [data-result-id="song"]');
+    const gone = window.locator('#e2e-agent-host [data-result-id="gone"]');
+    await expect(gone).toContainText('Did not finish');
+    await expect(song).toContainText('Audio');
+    await expect(song).not.toHaveClass(/--unavailable/);
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 test('a result card opens its card history, only for a card the open project holds', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);

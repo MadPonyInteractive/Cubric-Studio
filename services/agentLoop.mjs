@@ -557,6 +557,7 @@ export function compactCatalogue(list) {
         flows: (list.flows || []).map((f) => ({
             id: f.id,
             title: f.title,
+            ...(f.does ? { does: f.does } : {}),
             installed: f.installed,
             // MPI-892: said up front, so the agent offers to open it rather than saying it cannot draw.
             ...(f.opens ? { opensForUser: true } : {}),
@@ -1809,7 +1810,7 @@ export class AgentLoop {
                 ? `Mode: Auto. Proceed when the goal is clear without asking about settings. For images: use turbo: true where the op offers it. For video: use qualityTier 'medium' and turbo: true where the op offers them.`
                 : `Mode: Ask first. Before any generate, ask the user which settings they want (quality, turbo, ratio, style, where the op offers them) and end your reply there; generate only after they answer. A setting a guide recommends is a suggestion to offer, not permission to skip the question.`;
 
-        return `You are Cosmo, a helpful assistant built into Cubric Studio, a desktop AI image and video tool.
+        return `You are Cosmo, a helpful assistant built into Cubric Studio, a desktop AI image, video and sound tool.
 
 ${modeRules}
 
@@ -1913,10 +1914,18 @@ ${knowledgeIndex}`.trim();
                 // Step 1: the model must be one list_models knows; the card shows its name and size.
                 // A guessed id ("ltx-2.3" for ltx-23-balanced, agent-test 2026-09-17) got a card too.
                 let m;
+                let list;
                 try {
-                    m = (await this._tools.listModels())?.models?.find((x) => x.id === args.modelId);
+                    list = await this._tools.listModels();
+                    m = list?.models?.find((x) => x.id === args.modelId);
                 } catch (err) {
                     return JSON.stringify({ ok: false, error: { code: 'RUNTIME_ERROR', message: `Could not read the model list: ${err.message}` } });
+                }
+                // A Flow installs from the Flow Library, never from here (Fabio, 2026-09-30:
+                // Cosmo offered "Install TTS flow" and could not have done it).
+                const flow = !m && list?.flows?.find((f) => f.id === args.modelId);
+                if (flow) {
+                    return JSON.stringify({ ok: false, error: { code: 'IS_A_FLOW', message: `"${flow.title}" is a Flow, and you cannot install a Flow. Tell the user to add it from the Flow Library (its tile says Get models), then ask again.` } });
                 }
                 if (!m) {
                     return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_MODEL', message: `No model "${args.modelId}". Use a model id exactly as list_models gives it.` } });
@@ -2170,7 +2179,11 @@ ${knowledgeIndex}`.trim();
                                     tool: 'look', args: { image: r.output.filePath }, status: 'done', label: 'Looked at result',
                                     output: lr.output,
                                 });
-                                this._notes.push(`[You looked at it: ${lr.output?.text || ''}]`);
+                                // The caption is general, and a redo trusted it: live 2026-09-30 it read a
+                                // lizard rising behind a warship's bow as "sits on the bow", and the agent
+                                // redid the edit twice; Fabio liked the first best. A question about the
+                                // one doubted point is a fresh, focused read (it skips the saved caption).
+                                this._notes.push(`[You looked at it: ${lr.output?.text || ''} This is a general description and can misplace things: if it seems to miss the ask, check that point with look and a question before any redo.]`);
                             }
                         } catch { /* look failure is non-fatal */ }
                     }

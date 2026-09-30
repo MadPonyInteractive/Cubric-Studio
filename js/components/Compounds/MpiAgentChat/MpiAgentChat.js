@@ -807,15 +807,20 @@ export const MpiAgentChat = ComponentFactory.create({
             _scrollBottom();
         }
 
-        /** The tile a result falls back to when its file will not load (stopped, or gone). */
-        function _fallbackTile(card, type) {
+        /** An icon over a caption, in place of a picture the card cannot paint. */
+        function _iconTile(card, type, caption) {
             card.innerHTML = '';
-            card.classList.add('mpi-agent-chat__result-card--unavailable');
             const label = document.createElement('span');
             label.className = 'mpi-agent-chat__result-fallback';
-            label.innerHTML = renderIcon(type === 'video' ? 'video' : 'image', 'sm');
-            label.appendChild(document.createTextNode('Did not finish'));
+            label.innerHTML = renderIcon(type === 'video' || type === 'audio' ? type : 'image', 'sm');
+            label.appendChild(document.createTextNode(caption));
             card.appendChild(label);
+        }
+
+        /** The tile a result falls back to when its file will not load (stopped, or gone). */
+        function _fallbackTile(card, type) {
+            _iconTile(card, type, 'Did not finish');
+            card.classList.add('mpi-agent-chat__result-card--unavailable');
         }
 
         /** Result card — thumbnail + click opens gallery card. */
@@ -840,8 +845,15 @@ export const MpiAgentChat = ComponentFactory.create({
             // A video result cannot paint in an <img> — it used to render as a broken
             // tile captioned "video". Same tile for a file that never arrived (a
             // generation the user Stopped): both swap to a readable fallback on `error`.
-            const media = document.createElement(type === 'video' ? 'video' : 'img');
-            if (type === 'video') {
+            // Audio has no picture: in an <img> a finished song errored into "Did not finish"
+            // (Fabio, 2026-09-30). Its <audio> draws nothing; it is kept only so a file that
+            // never landed still reaches the same fallback.
+            const media = document.createElement(type === 'video' || type === 'audio' ? type : 'img');
+            if (type === 'audio') {
+                _iconTile(card, type, 'Audio');
+                card.classList.add('mpi-agent-chat__result-card--audio');
+                media.preload = 'metadata';
+            } else if (type === 'video') {
                 media.muted = true;
                 media.playsInline = true;
                 media.preload = 'metadata';

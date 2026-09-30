@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1000", "at": "2026-09-30T18:11:19+01:00", "actor": "agent-74", "column": "todo", "title": "Small Flow and media fixes (umbrella): Character Sheet split, Object Stamp flip, recording silence strip"}

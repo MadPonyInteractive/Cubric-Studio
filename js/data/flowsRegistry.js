@@ -2069,7 +2069,8 @@ export const FLOWS = [
         ],
         operation: 'flowTextToMusic',
         workflow: 'flow_minimax_music.json',
-        agentOpens: 'run', // the agent writes it; the user reads the lyrics and presses Generate (MPI-892)
+        // No `agentOpens`: the agent asks first, "Review lyrics | Just do it" (app:flows); a review
+        // opens on "Write the song" with the lyrics in, a yes runs it (Fabio, MPI-892).
         mediaType: 'audio',
         type: 'create',
         // No `inputSchema` at all, and no `result.compare` — there is no BEFORE.

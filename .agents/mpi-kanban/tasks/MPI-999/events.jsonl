@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-999", "at": "2026-09-30T18:11:04+01:00", "actor": "agent-74", "column": "todo", "title": "Recordings: strip the silence from the user's audio recordings"}

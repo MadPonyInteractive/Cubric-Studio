@@ -115,9 +115,16 @@ test('agent:send is gone from every side: emit, listener and the event catalogue
 
 test('a video result is a <video>, not an <img> that can never paint', () => {
     const js = read(CHAT_JS);
-    assert.match(js, /createElement\(type === 'video' \? 'video' : 'img'\)/);
+    assert.match(js, /createElement\(type === 'video' \|\| type === 'audio' \? type : 'img'\)/);
     assert.match(js, /preload = 'metadata'/);
     assert.match(read(CHAT_CSS), /\.mpi-agent-chat__result-card :is\(img, video\)/);
+});
+
+test('an audio result is an Audio tile, not an <img> that errors into "Did not finish"', () => {
+    const js = read(CHAT_JS);
+    assert.match(js, /if \(type === 'audio'\) \{\s*_iconTile\(card, type, 'Audio'\);/);
+    assert.match(js, /mpi-agent-chat__result-card--audio/);
+    assert.match(read(CHAT_CSS), /\.mpi-agent-chat__result-card--audio/);
 });
 
 test('a result whose file will not load falls back to a readable tile', () => {

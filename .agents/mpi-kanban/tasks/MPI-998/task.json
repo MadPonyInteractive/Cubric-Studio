@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-998",
+  "title": "Object Stamp: flip the object before placing it",
+  "description": "Fabio 2026-09-30, testing MPI-892: the Place it step moves, scales and rotates the object but can never mirror it, so an object facing the wrong way cannot be fixed. Add a flip on the Place it step that reaches the run in both Auto and Manual. Brief: brief.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-30T18:11:00+01:00",
+  "updated_at": "2026-09-30T18:11:00+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

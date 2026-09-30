@@ -73,10 +73,27 @@ at its drawing step; "I've drawn it" -> "go to the last step and press Generate"
 and the Flow rule now reads app:flows before an ANSWER about a Flow (SYSTEM 10,423 / 10,460).
 npm test 2407/0. Fabio still to redo checks 1-5 after a restart.
 
-OPEN, unchecked: a Flow covers the Cosmo panel (Fabio: fine, the Tab ring parks it). Does a
-PARKED Flow (`flow:suspend`, `MpiOverlay.suspend`) still count in `Overlays.onDepthChange`
-(agentDispatch.js ~1677)? If yes, `openFlow` answers VIEW_BUSY while the user talks to Cosmo with
-a Flow parked. Read MpiOverlay suspend + overlayManager depth before closing.
+2026-09-30 (Agent 74): the parked-Flow question is answered, no fix: `suspend` -> `hide` ->
+`Overlays.release`, so a parked Flow leaves the depth and `openFlow` is not refused (validation.md).
+26b63204f is pushed (origin/master at 6e0342e4a). Only Fabio's checks 1-5 remain, then close.
+Fabio: checks 1 and 2 PASS. Found in his look and fixed (uncommitted): an audio result's chat tile
+read "Did not finish" (MpiAgentChat .js/.css + two tests, validation.md). At close-out also: the
+Docs site agent page (`Cubric Studio (Docs)/agent/index.html` + `pages/agent.html`, local commit,
+NEVER push) says "the right model or Flow ... offers to install it" (it installs models only; a
+missing Flow it tells the user to add) and does not mention the four Flows Cosmo now opens.
+The website's "Picks the right model and installs it" is true: no change. New cards MPI-998,
+MPI-999 and umbrella MPI-1000 (with MPI-997) created in todo at Fabio's ask; commit their folders.
+Round 2 done (uncommitted, validation.md): the look note before a redo, Song asks Review lyrics |
+Just do it, prompt line "image, video and sound tool", Flows carry `does` + IS_A_FLOW refusal, the
+Docs page EDITED (commit it in the Docs repo, never push). Checks 1, 2, 3 (both paths) PASS; the
+Song "Starting" stall did not recur. Cards MPI-1002 (Flow enhancement follows the Remote pick) and
+MPI-1003 (playbook agent steps) added to umbrella MPI-1000.
+NEXT: Fabio restarts, redoes check 4 (a voice line, no sample: expect DramaBox considered, no
+install offer; Text to Speech -> offer to open on Inputs) and check 5 (Outpaint / Head Swap run).
+His idea, not built, ask whether to card it: for a voice with no sample, Cosmo offers
+[Pick from the voice library | You pick one]: the first opens the Flow on Inputs (voice picker),
+the second has Cosmo choose from `js/data/voiceLibrary.js` (register, kind, accent) to match
+"an old man", "a documentary voice", "a girl". On his yes: mpi-end-session.
 
 ## Plan Drift
 

@@ -1565,7 +1565,9 @@ describe('(h) notes, results, names, guides', () => {
         await loop.runTurn('How did it go?', [], project, 'auto', 'deepinfra', 't-next');
         const last = userMessages(loop).at(-1);
         assert.match(last, /\[Generation finished: card group-1, image \/path\/result\.png\]/);
-        assert.match(last, /\[You looked at it: A generated image showing a fox\.\]/);
+        assert.match(last, /\[You looked at it: A generated image showing a fox\. /);
+        // A redo checks the doubted point with a question first: the caption misread a placement live.
+        assert.match(last, /check that point with look and a question before any redo\.\]/);
         assert.match(last, /How did it go\?$/);
     });
 
@@ -3485,5 +3487,24 @@ describe('MPI-892 — handing a Flow over', () => {
         const short = compactCatalogue({ ok: true, models: [], flows: [{ id: 'scribble', title: 'Scribble', installed: true, opens: 'paint' }, { id: 'stems', title: 'Stems', installed: true }] });
         assert.equal(short.flows[0].opensForUser, true);
         assert.equal(short.flows[1].opensForUser, undefined);
+    });
+
+    // Fabio, 2026-09-30: DramaBox installed, Text to Speech not; the agent went by titles.
+    test('the short catalogue says what each Flow does', async () => {
+        const { compactCatalogue } = await import('../services/agentLoop.mjs');
+        const short = compactCatalogue({ ok: true, models: [], flows: [{ id: 'drama-box', title: 'DramaBox', does: 'Text to speech you direct in words', installed: true }] });
+        assert.equal(short.flows[0].does, 'Text to speech you direct in words');
+    });
+
+    test('installing a Flow is refused by name, never a card', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('i1', 'install_model', { modelId: 'chatter-box' }),
+            { text: 'Add it from the Flow Library.' },
+        ] });
+        const realList = tools.listModels;
+        tools.listModels = async () => ({ ...(await realList()), flows: [{ id: 'chatter-box', title: 'Text to Speech', installed: false }] });
+        await loop.runTurn('Install text to speech', [], project, 'auto', 'deepinfra', 't-flowinstall');
+        assert.equal(toolResults(loop)[0].error.code, 'IS_A_FLOW');
+        assert.match(toolResults(loop)[0].error.message, /Flow Library/);
     });
 });

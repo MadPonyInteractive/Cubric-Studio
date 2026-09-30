@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1000",
+  "title": "Small Flow and media fixes (umbrella): Character Sheet split, Object Stamp flip, recording silence strip",
+  "description": "Fabio 2026-09-30: three small jobs to pick up together in one separate session. Members MPI-997, MPI-998, MPI-999; phases and file ownership in plan.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-30T18:11:19+01:00",
+  "updated_at": "2026-09-30T18:11:19+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
