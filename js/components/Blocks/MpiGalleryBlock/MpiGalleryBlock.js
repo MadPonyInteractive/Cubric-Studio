@@ -1984,9 +1984,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // counts as its cards and a card as its shown item, as the run takes them.
         let _savedRoutines = [];
         grid.on('selection-start', async () => {
-            const folderPath = state.currentProject?.folderPath;
-            if (!folderPath) return;
-            _savedRoutines = await readSavedRoutines(folderPath);
+            _savedRoutines = await readSavedRoutines();
             grid.el.setRoutineMenu(_savedRoutines.length
                 ? (g) => routineMenu(_savedRoutines, expandStacks(g, state.currentProject?.itemGroups || []).map(m => getSelectedItem(m)?.type || m.type))
                 : null);

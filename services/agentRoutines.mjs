@@ -2,9 +2,9 @@
  * services/agentRoutines.mjs — saved operation chains ("routines") for the agent (MPI-970).
  *
  * A routine is a named list of `generate` args (`{ schema, name, summary, steps[], created_at }`)
- * the agent saves once and the app runs later on any card.  Two scopes: project
- * (`<project>/Agent/routines/`) and global (`<APP_USER_DATA>/agent/routines/`),
- * matching the two-scope pattern of agentMemory.mjs.
+ * the agent saves once and the app runs later on any card.  One folder for every project,
+ * `<APP_USER_DATA>/agent/routines/`: projects are thrown away, routines are kept (Fabio,
+ * 2026-09-30).  A run still lands in whichever project it names.
  *
  * File name = slug + `.json`; slug = `^[a-z0-9][a-z0-9-]{0,60}$`.  The store takes an
  * already-validated routine (full validation is Phase 3 / W1); it only checks structural
@@ -12,16 +12,15 @@
  *
  * D5 delete: moves the file to `routines/deleted/`.  A name that already sits in
  * `deleted/` has the older copy renamed with a ms-timestamp suffix before the new one
- * lands, so no prior copy is lost.  D6 cap: 50 routines per scope; `deleted/` does not
- * count; overwriting an existing name is always allowed, even at the cap.
+ * lands, so no prior copy is lost.  D6 cap: 50 routines; `deleted/` does not count;
+ * overwriting an existing name is always allowed, even at the cap.
  *
- * Only `routes/connector.js` will call this (Phase 3 wiring, a later card).
+ * Only `routes/connector.js` calls this.
  */
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-export const ROUTINES_DIR = 'Agent/routines';
 export const MAX_ROUTINES = 50;
 const DELETED_DIR = 'deleted';
 
@@ -34,21 +33,8 @@ export class RoutineError extends Error {
     }
 }
 
-/** The project's routines folder.  The folder must be a Cubric Vision project. */
-async function routinesDir(folderPath) {
-    if (typeof folderPath !== 'string' || !path.isAbsolute(folderPath)) {
-        throw new RoutineError('BAD_REQUEST', 'folderPath must be an absolute path.');
-    }
-    try {
-        await fs.access(path.join(folderPath, 'project.json'));
-    } catch {
-        throw new RoutineError('NOT_A_PROJECT', `No Cubric Vision project at ${folderPath}.`);
-    }
-    return path.join(folderPath, ROUTINES_DIR);
-}
-
-/** The global routines folder, in app data beside the agent memory folder. */
-function globalRoutinesDir() {
+/** The routines folder, in app data beside the agent memory folder. */
+function routinesDir() {
     const base = process.env.APP_USER_DATA
         ? path.join(process.env.APP_USER_DATA, 'agent')
         : path.join(os.tmpdir(), 'cubric-agent');
@@ -86,9 +72,9 @@ async function _countRoutines(dir) {
 /** Whether a file exists. */
 const _exists = (p) => fs.access(p).then(() => true, () => false);
 
-// ── internals ────────────────────────────────────────────────────────────────
-
-async function _listIn(dir) {
+/** `{ routines: [{ name, summary, steps, inputs }] }`, empty before the first routine. */
+export async function listRoutines() {
+    const dir = routinesDir();
     let entries = [];
     try {
         entries = await fs.readdir(dir);
@@ -109,15 +95,22 @@ async function _listIn(dir) {
     return { routines };
 }
 
-async function _readIn(dir, name) {
-    const routine = await _tryRead(path.join(dir, `${name}.json`));
+/** `{ name, routine }` of one routine. */
+export async function readRoutine(name) {
+    checkName(name);
+    const routine = await _tryRead(path.join(routinesDir(), `${name}.json`));
     if (routine === null) {
         throw new RoutineError('ROUTINE_NOT_FOUND', `No routine "${name}" found.`);
     }
     return { name, routine };
 }
 
-async function _writeIn(dir, routine) {
+/**
+ * Create a routine, or replace the one with the same name.
+ * @param {object} routine — plain object with a `name` slug; must be JSON-serialisable.
+ * @returns {Promise<{name: string, created: boolean}>}
+ */
+export async function writeRoutine(routine = {}) {
     if (!routine || typeof routine !== 'object' || Array.isArray(routine)) {
         throw new RoutineError('BAD_REQUEST', 'routine must be a plain object.');
     }
@@ -129,13 +122,14 @@ async function _writeIn(dir, routine) {
     } catch {
         throw new RoutineError('BAD_REQUEST', 'routine could not be serialised to JSON.');
     }
+    const dir = routinesDir();
     const filePath = path.join(dir, `${name}.json`);
     const exists = await _exists(filePath);
     if (!exists) {
         const count = await _countRoutines(dir);
         if (count >= MAX_ROUTINES) {
             throw new RoutineError('ROUTINES_FULL',
-                `There are already ${MAX_ROUTINES} routines here. Delete a stale one, then save this.`);
+                `There are already ${MAX_ROUTINES} routines. Delete a stale one, then save this.`);
         }
     }
     await fs.mkdir(dir, { recursive: true });
@@ -146,7 +140,10 @@ async function _writeIn(dir, routine) {
     return { name, created: !exists };
 }
 
-async function _deleteIn(dir, name) {
+/** Move the routine to `routines/deleted/`, keeping any prior deleted copy. */
+export async function deleteRoutine(name) {
+    checkName(name);
+    const dir = routinesDir();
     const filePath = path.join(dir, `${name}.json`);
     if (!await _exists(filePath)) {
         throw new RoutineError('ROUTINE_NOT_FOUND', `No routine "${name}" to delete.`);
@@ -166,10 +163,12 @@ async function _deleteIn(dir, name) {
  * Give a routine a new name, in place: the file moves and its `name` follows. A save under
  * the new name plus a delete made the agent retype every step from memory (`list` shows a
  * step count), and one that could not delete left the old copy (Fabio, 2026-09-30).
+ * Refused `NAME_TAKEN` rather than overwrite one.
  */
-async function _renameIn(dir, name, newName) {
+export async function renameRoutine(name, newName) {
     checkName(name);
     checkName(newName);
+    const dir = routinesDir();
     const from = path.join(dir, `${name}.json`);
     const routine = await _tryRead(from);
     if (!routine) throw new RoutineError('ROUTINE_NOT_FOUND', `No routine "${name}" to rename.`);
@@ -180,93 +179,4 @@ async function _renameIn(dir, name, newName) {
     await fs.rename(from, to);
     await fs.writeFile(to, JSON.stringify({ ...routine, name: newName }, null, 2), 'utf8');
     return { name: newName, renamed: name };
-}
-
-/**
- * Move a routine to the other scope, steps untouched: written there first (the cap and a
- * taken name refuse before anything moves), then the source goes to `deleted/` as a delete
- * does. Not an `fs.rename`: a project and app data can sit on different drives.
- */
-async function _moveIn(fromDir, toDir, name, to) {
-    checkName(name);
-    const routine = await _tryRead(path.join(fromDir, `${name}.json`));
-    if (!routine) throw new RoutineError('ROUTINE_NOT_FOUND', `No routine "${name}" to move.`);
-    if (await _exists(path.join(toDir, `${name}.json`))) {
-        throw new RoutineError('NAME_TAKEN', `The ${to} routines already hold one named "${name}". Rename one of them first.`);
-    }
-    await _writeIn(toDir, routine);
-    await _deleteIn(fromDir, name);
-    return { name, moved: to };
-}
-
-// ── project scope ─────────────────────────────────────────────────────────────
-
-/** `{ routines: [{ name, summary, steps, inputs }] }`, empty before the first routine. */
-export async function listRoutines(folderPath) {
-    return _listIn(await routinesDir(folderPath));
-}
-
-/** `{ name, routine }` of one routine. */
-export async function readRoutine(folderPath, name) {
-    checkName(name);
-    return _readIn(await routinesDir(folderPath), name);
-}
-
-/**
- * Create a routine, or replace the one with the same name.
- * @param {string} folderPath — absolute path to a Cubric Vision project.
- * @param {object} routine — plain object with a `name` slug; must be JSON-serialisable.
- * @returns {Promise<{name: string, created: boolean}>}
- */
-export async function writeRoutine(folderPath, routine = {}) {
-    return _writeIn(await routinesDir(folderPath), routine);
-}
-
-/** Move the routine to `routines/deleted/`, keeping any prior deleted copy. */
-export async function deleteRoutine(folderPath, name) {
-    checkName(name);
-    return _deleteIn(await routinesDir(folderPath), name);
-}
-
-/** `{ name: newName, renamed: name }`; refused `NAME_TAKEN` rather than overwrite one. */
-export async function renameRoutine(folderPath, name, newName) {
-    return _renameIn(await routinesDir(folderPath), name, newName);
-}
-
-// ── global scope ──────────────────────────────────────────────────────────────
-
-/** The global routines: the same five calls, on app data instead of a project. */
-export async function listGlobalRoutines() {
-    return _listIn(globalRoutinesDir());
-}
-
-export async function readGlobalRoutine(name) {
-    checkName(name);
-    return _readIn(globalRoutinesDir(), name);
-}
-
-export async function writeGlobalRoutine(routine = {}) {
-    return _writeIn(globalRoutinesDir(), routine);
-}
-
-export async function deleteGlobalRoutine(name) {
-    checkName(name);
-    return _deleteIn(globalRoutinesDir(), name);
-}
-
-export async function renameGlobalRoutine(name, newName) {
-    return _renameIn(globalRoutinesDir(), name, newName);
-}
-
-// ── between the scopes ────────────────────────────────────────────────────────
-
-/**
- * Move a routine OUT of `from` ('project' | 'global') into the other scope:
- * `{ name, moved: 'global' | 'project' }`, the scope it is in now.
- */
-export async function moveRoutine(folderPath, from, name) {
-    const project = await routinesDir(folderPath);
-    return from === 'global'
-        ? _moveIn(globalRoutinesDir(), project, name, 'project')
-        : _moveIn(project, globalRoutinesDir(), name, 'global');
 }

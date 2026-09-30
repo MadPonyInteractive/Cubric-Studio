@@ -1097,55 +1097,48 @@ async function _routineReply(res, work) {
   }
 }
 
-const _readRoutine = (store, name, { scope, folderPath }) => (scope === 'global'
-  ? store.readGlobalRoutine(name) : store.readRoutine(folderPath, name));
-
 /**
- * The agent's saved routines (MPI-970), `<project>/Agent/routines/` (`services/agentRoutines.mjs`):
- *   GET  /connector/routines?folderPath=         -> { ok, routines: [{ name, summary, steps, inputs }] }
- *   GET  /connector/routines/:name?folderPath=   -> { ok, name, routine }
- *   POST /connector/routines { folderPath, routine }            -> { ok, name, created, summary }
- *   POST /connector/routines { folderPath, name, delete: true } -> { ok, name, deleted }
- *   POST /connector/routines { folderPath, name, rename }       -> { ok, name: rename, renamed: name }
- *   POST /connector/routines { folderPath, scope?, name, move: true } -> { ok, name, moved: 'global'|'project' },
- *        out of `scope` into the other one; the source goes to `deleted/`
+ * The agent's saved routines (MPI-970), one set for every project in app data
+ * (`services/agentRoutines.mjs`):
+ *   GET  /connector/routines                  -> { ok, routines: [{ name, summary, steps, inputs }] }
+ *   GET  /connector/routines/:name            -> { ok, name, routine }
+ *   POST /connector/routines { routine }            -> { ok, name, created, summary }
+ *   POST /connector/routines { name, delete: true } -> { ok, name, deleted }
+ *   POST /connector/routines { name, rename }       -> { ok, name: rename, renamed: name }
  *   POST /connector/routines/:name/quote { folderPath, cards, inputs? }
  *        -> { ok, output: { missing, billed, count, usd, display } }, dispatching nothing
  *   POST /connector/routines/:name/run { folderPath, cards, inputs? }
  *        -> held until every card's chain has ended: { ok, output: { runId, stackId, cards } }
- * `scope=global` (query, or `scope: 'global'` in a body) names the GLOBAL routines in app
- * data; a quote or run of one still runs in `folderPath`, or the open project without it.
+ * A quote or run lands in `folderPath`, or the open project without it.
  * A save is checked by the app first (its catalogues hold the package Flows) and stored as
  * that check returns it. A delete rides the POST, as a forgotten note does; the file moves
  * to `deleted/`. `cards` may name a stack: it runs on the stack's cards.
- * Errors: BAD_REQUEST (400), NOT_A_PROJECT, INVALID_NAME, ROUTINE_NOT_FOUND, ROUTINES_FULL, NAME_TAKEN,
+ * Errors: BAD_REQUEST (400), INVALID_NAME, ROUTINE_NOT_FOUND, ROUTINES_FULL, NAME_TAKEN,
  * APP_UNAVAILABLE, and the routine's own refusals (routineModel.js / routineRunner.js).
  */
 router.get('/connector/routines', (req, res) =>
-  _routineReply(res, (s) => (req.query.scope === 'global' ? s.listGlobalRoutines() : s.listRoutines(req.query.folderPath))));
+  _routineReply(res, (s) => s.listRoutines()));
 
 router.get('/connector/routines/:name', (req, res) =>
-  _routineReply(res, (s) => _readRoutine(s, req.params.name, req.query)));
+  _routineReply(res, (s) => s.readRoutine(req.params.name)));
 
 router.post('/connector/routines', (req, res) => {
-  const { folderPath, scope, name, routine } = req.body || {};
-  const global = scope === 'global';
+  const { name, routine } = req.body || {};
   return _routineReply(res, async (s) => {
-    if (req.body?.delete === true) return global ? s.deleteGlobalRoutine(name) : s.deleteRoutine(folderPath, name);
+    if (req.body?.delete === true) return s.deleteRoutine(name);
     const rename = req.body?.rename;
-    if (rename !== undefined) return global ? s.renameGlobalRoutine(name, rename) : s.renameRoutine(folderPath, name, rename);
-    if (req.body?.move === true) return s.moveRoutine(folderPath, global ? 'global' : 'project', name);
+    if (rename !== undefined) return s.renameRoutine(name, rename);
     const checked = await _dispatchToRenderer('routine.validate', { routine });
     if (!checked.ok) return checked;
-    const saved = await (global ? s.writeGlobalRoutine(checked.output.routine) : s.writeRoutine(folderPath, checked.output.routine));
+    const saved = await s.writeRoutine(checked.output.routine);
     return { ...saved, summary: checked.output.summary };
   });
 });
 
 for (const verb of ['quote', 'run']) {
   router.post(`/connector/routines/:name/${verb}`, (req, res) => _routineReply(res, async (s) => {
-    const { folderPath, scope, cards, inputs } = req.body || {};
-    const { routine } = await _readRoutine(s, req.params.name, { scope, folderPath });
+    const { folderPath, cards, inputs } = req.body || {};
+    const { routine } = await s.readRoutine(req.params.name);
     return _dispatchToRenderer(`routine.${verb}`, { routine, cards, inputs, ...(folderPath ? { folderPath } : {}) });
   }));
 }

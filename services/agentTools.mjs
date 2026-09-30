@@ -288,29 +288,24 @@ export async function writeMemory(folderPath, note) {
 }
 
 /**
- * The saved routines (MPI-970), `routes/connector.js` § routines. `scope: 'global'` names the
- * ones kept for every project; a quote or run of one still runs in `folderPath`.
+ * The saved routines (MPI-970), `routes/connector.js` § routines: one set for every project;
+ * a quote or run lands in `body.folderPath`.
  */
-export async function listRoutines(folderPath, scope) {
-    return _get(scope === 'global' ? '/connector/routines?scope=global' : `/connector/routines?folderPath=${encodeURIComponent(String(folderPath ?? ''))}`);
+export async function listRoutines() {
+    return _get('/connector/routines');
 }
 
 /** Checked by the app first (its catalogues hold the package Flows), then stored. */
-export async function saveRoutine(folderPath, scope, routine) {
-    return _post('/connector/routines', { folderPath, scope, routine }, 30_000);
+export async function saveRoutine(routine) {
+    return _post('/connector/routines', { routine }, 30_000);
 }
 
-export async function deleteRoutine(folderPath, scope, name) {
-    return _post('/connector/routines', { folderPath, scope, name, delete: true }, 10_000);
+export async function deleteRoutine(name) {
+    return _post('/connector/routines', { name, delete: true }, 10_000);
 }
 
-export async function renameRoutine(folderPath, scope, name, newName) {
-    return _post('/connector/routines', { folderPath, scope, name, rename: newName }, 10_000);
-}
-
-/** Out of `scope` into the other one. */
-export async function moveRoutine(folderPath, scope, name) {
-    return _post('/connector/routines', { folderPath, scope, name, move: true }, 10_000);
+export async function renameRoutine(name, newName) {
+    return _post('/connector/routines', { name, rename: newName }, 10_000);
 }
 
 /** `/connector/routines/<name>/<verb>`; the loop never calls one without a name. */

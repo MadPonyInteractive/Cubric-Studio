@@ -16,7 +16,7 @@ this file.
 | Layer | File | Owns |
 |---|---|---|
 | Schema + validator | `js/data/routineModel.js` | `normalizeRoutine`, `validateRoutine(routine, { models, flows })`, `routineSummary`, `ROUTINE_PLACEHOLDER`. Pure: imports in plain Node |
-| Store | `services/agentRoutines.mjs` | the files, project and global, caps, delete-as-move, rename-in-place; throws `RoutineError{code}` |
+| Store | `services/agentRoutines.mjs` | the files (one set for every project, in app data), caps, delete-as-move, rename-in-place; throws `RoutineError{code}` |
 | Runner | `js/services/routineRunner.js` | `quoteRoutine`, `runRoutine`, `routineChoice` (the gallery menu's yes/why-not): order, landing, skip and failure rules. Pure: every app touch is `deps` |
 | Renderer deps + relay | `js/shell/routineDispatch.js` | `routineDeps` (check, price, readProject, submit, addStack), `ROUTINE_HANDLERS`, and the gallery menu's `readSavedRoutines` / `routineMenu` / `runSavedRoutine` |
 | Gallery menu (D13) | `MpiGalleryGrid/selectionBar.js`, `MpiGalleryGrid.js`, `MpiGalleryBlock.js` | the Routines dropdown on the selection bar |
@@ -26,11 +26,13 @@ this file.
 ## Storage and schema
 
 `cubric/routine/v1` `{ schema, name, summary, inputs[], steps[], created_at }`, one JSON file per
-routine: `<project>/Agent/routines/<name>.json`, or global in `<APP_USER_DATA>/agent/routines/`.
-Name slug `^[a-z0-9][a-z0-9-]{0,60}$`; saving an existing name replaces it. Caps (D6): 50 per scope
+routine in `<APP_USER_DATA>/agent/routines/<name>.json`: ONE set for every project. Projects are
+thrown away, routines are kept (Fabio, 2026-09-30; a project scope and a `move` between the two were
+built and removed that day). A run still lands in the project it names.
+Name slug `^[a-z0-9][a-z0-9-]{0,60}$`; saving an existing name replaces it. Caps (D6): 50 routines
 (`ROUTINES_FULL`), 10 steps (`TOO_MANY_STEPS`). Delete MOVES the file to `routines/deleted/` (D5),
 as a forgotten note moves; a second delete of one name keeps both copies (the older gets a
-`-<ms>` suffix). A project folder with no `project.json` is `NOT_A_PROJECT`.
+`-<ms>` suffix).
 
 A step is exactly one of: a model op `{ modelId, operation, positive?, negative?, ratio?, ... }`,
 a Flow `{ flowId, fields?, params? }`, or a tool `{ operation, fields }` (`AGENT_TOOL_OPS`:
@@ -95,34 +97,29 @@ inputs?, folderPath? }`; a stack id in `cards` expands to its members (`expandSt
 
 | Route | Does |
 |---|---|
-| `GET /connector/routines[?scope=global]` | the list: `{ name, summary, steps: <count>, inputs }` |
+| `GET /connector/routines` | the list: `{ name, summary, steps: <count>, inputs }` |
 | `GET /connector/routines/:name` | one routine whole |
-| `POST /connector/routines { folderPath, scope?, routine }` | relays `routine.validate` (only the renderer's `FLOWS` holds package Flows), stores what the check returns; answers `{ name, created, summary }` |
-| `POST /connector/routines { folderPath, scope?, name, delete: true }` | the delete (no DELETE route, as memory's forget) |
-| `POST /connector/routines { folderPath, scope?, name, rename }` | renames in place: `{ name: rename, renamed }`, `NAME_TAKEN` rather than overwrite |
-| `POST /connector/routines { folderPath, scope?, name, move: true }` | out of `scope` into the other: `{ name, moved }`; written there first (cap, `NAME_TAKEN`), then the source goes to `deleted/` (not `fs.rename`: two drives) |
+| `POST /connector/routines { routine }` | relays `routine.validate` (only the renderer's `FLOWS` holds package Flows), stores what the check returns; answers `{ name, created, summary }` |
+| `POST /connector/routines { name, delete: true }` | the delete (no DELETE route, as memory's forget) |
+| `POST /connector/routines { name, rename }` | renames in place: `{ name: rename, renamed }`, `NAME_TAKEN` rather than overwrite |
 | `POST /connector/routines/:name/quote` | `{ missing, billed, count, usd, display }` |
 | `POST /connector/routines/:name/run` | HELD until every card's chain has ended (no clock): the `finished` summary |
 
-`scope: 'global'` names where the routine is KEPT; a quote or run still lands in `folderPath`, or
-the open project without one. Tests: `tests/connector-routines.test.cjs`.
+A quote or run lands in `folderPath`, or the open project without one. Tests: `tests/connector-routines.test.cjs`.
 
 ## The agent tool
 
-`routine { action: list|save|run|rename|move|delete, name, newName, summary, steps, inputs, cards, values, scope }`
+`routine { action: list|save|run|rename|delete, name, newName, summary, steps, inputs, cards, values }`
 (`services/agentLoop.mjs` `_routine`; loopbacks `listRoutines`, `saveRoutine`, `deleteRoutine`,
 `quoteRoutine`, `runRoutine` in `services/agentTools.mjs`, allowlisted in
 `tests/agent-no-delete.test.cjs`). Its description carries D7 (offer to save repeated steps). D12
 (routines are in the answer to "what can you do") is the system prompt's Routines rule: said only in
 the tool description, DeepSeek left routines out 0/3 in the B1 suite.
 
-- **list** reads both scopes at once: `{ project, global }` (no project open: global only).
+- **list** answers `{ routines }`. list, save, rename and delete need no open project; only a run does (`NO_PROJECT`).
 - **rename** (`newName`) moves the file and its `name` (store `renameRoutine`). Save-new-then-delete made the agent
   retype every step from `list`'s step COUNT, and Fabio's agent, reading "I never delete" as covering routines, left
   the old copy (F2). The system prompt's limits line now names routines as the one thing it deletes.
-- **move** takes NO direction: the loop moves it out of the project if it is there, else out of the global ones
-  (`ROUTINE_NOT_FOUND` falls through). Asked to "make it global", a model puts the destination in `scope`, where
-  every other action puts the source, so `move` never reads `scope`.
 - **save** is refused `KNOWLEDGE_NOT_READ` until `app:routines` is read (`_gateWaiting`, so the read
   answers "the call that waited has NOT run"). Each step goes through `_generateFields`, the SAME
   mapping `generate` builds its body with: `prompt` -> `positive`, a tool's own field names into
@@ -130,8 +127,7 @@ the tool description, DeepSeek left routines out 0/3 in the B1 suite.
   list (`positive`) saves the same.
 - **run**: `cards` are groupIds; a dragged card's ref or a `set:` ref maps to groupIds through the
   `groupId` kept on those `_images` entries. A `values` ref resolves like `generate` media (an
-  attachment is placed into the project first). Then quote (a missing scope falls back to global on
-  `ROUTINE_NOT_FOUND`) -> `NOT_INSTALLED` refusal by name, no card -> ONE spend card for every
+  attachment is placed into the project first). Then quote -> `NOT_INSTALLED` refusal by name, no card -> ONE spend card for every
   billed step of every card (`_confirmSpend`, the card `_askSpend` raises) -> the held run with the
   1 s refusal race -> `started`. The finish pushes ONE `[Routine finished]` note (`_routineNote`:
   new cards, the stack, per step which cards skipped or failed, grouped, 5 names a group) and joins
@@ -146,9 +142,8 @@ generations" with N = cards, though the price covers every billed step.
 
 The user runs a saved routine without the agent: a **Routines** dropdown beside Stack on the
 selection bar ([gallery-selection.md](gallery-selection.md)). Only the agent creates or deletes
-routines (a UI for that is 2.1). The block reads both scopes on every `selection-start`
-(`readSavedRoutines`: the list route gives a step COUNT, so each routine is read by name; the
-project's shadows a global of the same name) and hands the grid `setRoutineMenu(groups => options)`;
+routines (a UI for that is 2.1). The block reads the routines on every `selection-start`
+(`readSavedRoutines`: the list route gives a step COUNT, so each routine is read by name) and hands the grid `setRoutineMenu(groups => options)`;
 none saved = no dropdown. Each option comes from `routineChoice` on the selection's kinds (a stack
 counted as its cards): the summary in the status bar and a paid run's whole price as the meta
 (`×4 · $0.12`, the pick is the yes, as CUE's price tag), or greyed with the reason: needs a run

@@ -426,7 +426,7 @@ export const TOOL_DEFS = [
             parameters: {
                 type: 'object',
                 properties: {
-                    action: { type: 'string', enum: ['list', 'save', 'run', 'rename', 'move', 'delete'] },
+                    action: { type: 'string', enum: ['list', 'save', 'run', 'rename', 'delete'] },
                     name: { type: 'string', description: 'A lowercase slug.' },
                     newName: { type: 'string', description: 'rename: the new slug.' },
                     summary: { type: 'string', description: 'save: one plain line.' },
@@ -434,7 +434,6 @@ export const TOOL_DEFS = [
                     inputs: { type: 'array', items: { type: 'object' }, description: 'save: what a run takes besides the cards.' },
                     cards: { type: 'array', items: { type: 'string' }, description: 'run: groupIds or a set ref.' },
                     values: { type: 'object', description: 'run: { input id: value }' },
-                    scope: { type: 'string', enum: ['project', 'global'] },
                 },
                 required: ['action'],
                 additionalProperties: false,
@@ -1525,14 +1524,7 @@ export class AgentLoop {
      */
     async _routine(args, turnId, currentProject) {
         const folderPath = currentProject?.folderPath || null;
-        const scope = args.scope === 'global' ? 'global' : 'project';
-        const noProject = JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open. Call create_project (it opens what it makes) and then call this again, or use scope "global" to save or list routines for every project.' } });
-        if (args.action === 'list') {
-            const [mine, all] = await Promise.all([folderPath ? this._tools.listRoutines(folderPath) : null, this._tools.listRoutines(null, 'global')]);
-            if (mine && !mine.ok) return JSON.stringify(mine);
-            if (!all?.ok) return JSON.stringify(all);
-            return JSON.stringify({ ok: true, ...(mine ? { project: mine.routines } : {}), global: all.routines });
-        }
+        if (args.action === 'list') return JSON.stringify(await this._tools.listRoutines());
         if (!args.name) {
             return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: `${args.action || 'This'} needs the routine's name: call routine with action "list" for the names.` } });
         }
@@ -1541,7 +1533,6 @@ export class AgentLoop {
                 this._gateWaiting = 'app:routines';
                 return JSON.stringify({ ok: false, error: { code: 'KNOWLEDGE_NOT_READ', message: 'Nothing was saved: read read_knowledge "app:routines" first, then send this save again written the way it says.' } });
             }
-            if (scope === 'project' && !folderPath) return noProject;
             // A step is a generate call's args, kept in the connector's words, so its prompt is
             // not dropped as an unknown key; a step copied off `list` (already `positive`) too.
             const steps = Array.isArray(args.steps)
@@ -1549,27 +1540,17 @@ export class AgentLoop {
                     ? { ..._generateFields({ ...s, prompt: s.prompt ?? s.positive }), ...(s.media !== undefined ? { media: s.media } : {}) }
                     : s))
                 : args.steps;
-            return JSON.stringify(await this._tools.saveRoutine(folderPath, scope, { name: args.name, summary: args.summary, steps, inputs: args.inputs }));
+            return JSON.stringify(await this._tools.saveRoutine({ name: args.name, summary: args.summary, steps, inputs: args.inputs }));
         }
-        if (args.action === 'move') {
-            // To whichever scope it is NOT in, so the model never names a direction: asked to
-            // "make it global", it would put the destination in `scope`, where every other
-            // action puts the source.
-            if (!folderPath) return noProject;
-            const out = await this._tools.moveRoutine(folderPath, 'project', args.name);
-            return JSON.stringify(out?.error?.code === 'ROUTINE_NOT_FOUND' ? await this._tools.moveRoutine(folderPath, 'global', args.name) : out);
-        }
-        if (args.action === 'delete' || args.action === 'rename') {
-            if (scope === 'project' && !folderPath) return noProject;
-            return JSON.stringify(await (args.action === 'delete'
-                ? this._tools.deleteRoutine(folderPath, scope, args.name)
-                : this._tools.renameRoutine(folderPath, scope, args.name, args.newName)));
-        }
+        if (args.action === 'delete') return JSON.stringify(await this._tools.deleteRoutine(args.name));
+        if (args.action === 'rename') return JSON.stringify(await this._tools.renameRoutine(args.name, args.newName));
         if (args.action !== 'run') {
-            return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: 'action is list, save, run, rename, move or delete.' } });
+            return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: 'action is list, save, run, rename or delete.' } });
         }
-        // A run always lands in the open project, whichever scope holds the routine.
-        if (!folderPath) return noProject;
+        // Routines are kept for every project (Fabio, 2026-09-30); a run lands in the open one.
+        if (!folderPath) {
+            return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open. Call create_project (it opens what it makes) and then call this again.' } });
+        }
 
         // A card the user dragged in, or a dropped set, is named by its ref: run takes groupIds.
         const cards = (Array.isArray(args.cards) ? args.cards : []).flatMap((c) => {
@@ -1589,13 +1570,8 @@ export class AgentLoop {
             } else values[id] = ref ? (ref.groupId || _projectFileUrl(ref.path)) : v;
         }
 
-        const body = { folderPath, scope, cards, inputs: values };
-        let quote = await this._tools.quoteRoutine(args.name, body);
-        // Found wherever it is kept: the model often leaves scope out for one saved globally.
-        if (!args.scope && quote?.error?.code === 'ROUTINE_NOT_FOUND') {
-            body.scope = 'global';
-            quote = await this._tools.quoteRoutine(args.name, body);
-        }
+        const body = { folderPath, cards, inputs: values };
+        const quote = await this._tools.quoteRoutine(args.name, body);
         if (!quote?.ok) return JSON.stringify(quote);
         const { missing = [], billed, count, display } = quote.output || {};
         if (missing.length) {
@@ -1831,7 +1807,7 @@ Routines rule: asked what you can do, name routines: steps saved once, run on an
 Docs rule: for a question about the app itself that you cannot answer, say so and link [the documentation](https://docs.cubric.studio); never guess how the app works. Image and video advice is yours to give.
 
 Honest limits (I'm still a baby — this is my first version):
-- I never delete cards, media, notes or projects, and never look for a way. My own routines are the exception: I rename, move and delete those. You can: a card from the gallery (right-click it, Delete, which removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
+- I never delete cards, media, notes or projects, and never look for a way. My own routines are the exception: I rename and delete those. You can: a card from the gallery (right-click it, Delete, which removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
 - I hear no audio, and see a clip only as sampled frames, never the motion between them.
 - I cannot paint masks, or use the mask, paint, composite and transform tools myself. I can USE a mask you have painted: ask me for a change to one area and I will tell you what to paint.
 - I cannot move your view myself. The app opens where a result renders, unless you are mid-edit with a canvas tool or have a window open; then the result card in this chat takes you there.
@@ -2965,6 +2941,14 @@ function _generateFields(args) {
 }
 
 function _sentNote(body) {
+    // A tool names the value of EVERY setting it runs with, defaults included: told nothing,
+    // the agent called a default x2 upscale the x1.5 the user asked for (Fabio, MPI-970).
+    const tool = body.modelId || body.flowId ? null : agentToolOp(String(body.operation || ''));
+    if (tool) {
+        const sent = body.fields || {};
+        const run = Object.entries(tool.fields).map(([k, f]) => (sent[k] !== undefined ? `${k} ${sent[k]}` : `${k} ${f.default} (default)`));
+        return ` It runs with: ${run.join(', ')}. Tell the user only these; to change one, send it in fields.`;
+    }
     if (!body.modelId) return '';
     const sent = _SENT_KEYS.filter((k) => body[k] !== undefined).map((k) => `${k} ${body[k]}`);
     return ` Settings you sent: ${sent.length ? sent.join(', ') : 'none'}. Every other setting runs at its default. Tell the user only settings listed here; to change one, send it.`;
@@ -3115,7 +3099,7 @@ function _toolLabel(toolName, args) {
             if (args.delete === true) return `${args.scope === 'global' ? 'Forgot the global note' : 'Forgot'}: ${args.file || ''}`;
             return `${args.scope === 'global' ? 'Noted for every project' : 'Noted'}: ${args.title || args.file || ''}`;
         case 'routine':
-            return { list: 'Checking your routines', save: `Saving routine: ${args.name || ''}`, run: `Running routine: ${args.name || ''}`, rename: `Renaming routine: ${args.name || ''}`, move: `Moving routine: ${args.name || ''}`, delete: `Deleting routine: ${args.name || ''}` }[args.action] || 'Routines';
+            return { list: 'Checking your routines', save: `Saving routine: ${args.name || ''}`, run: `Running routine: ${args.name || ''}`, rename: `Renaming routine: ${args.name || ''}`, delete: `Deleting routine: ${args.name || ''}` }[args.action] || 'Routines';
         default:               return toolName;
     }
 }

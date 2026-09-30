@@ -132,7 +132,7 @@ const PARK_LOOKS = {
 
 function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes = [], projects = PROJECTS, memoryFull = false, routines = [] }) {
     const record = { installs: [], generates: [], looks: [], opens: [], writes: [], renames: [], creates: [], routines: [] };
-    // MPI-970: this project's routines, answered the way /connector/routines does; a save is
+    // MPI-970: the saved routines (one set for every project), answered the way /connector/routines does; a save is
     // checked by the app's own validator, so the model gets the refusal it would get there.
     const kept = new Map(routines.map((r) => [r.name, r]));
     const noRoutine = (name) => ({ ok: false, error: { code: 'ROUTINE_NOT_FOUND', message: `No routine "${name}".` } });
@@ -229,34 +229,27 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
                 : { ok: false, error: { code: 'NO_SUCH_PROJECT', message: `Could not open "${folderPath}": not a Cubric project.` } };
         },
         placeAsset: async () => ({ success: true, filePath: `/project-file?path=${encodeURIComponent(`${PROJECT.folderPath}/Media/.preview-assets/fox.png`)}` }),
-        listRoutines: async (folderPath, scope) => ({ ok: true, routines: scope === 'global' ? []
-            : [...kept.values()].map(({ name, summary, steps, inputs }) => ({ name, summary, steps: steps.length, inputs })) }),
-        saveRoutine: async (folderPath, scope, routine) => {
+        listRoutines: async () => ({ ok: true,
+            routines: [...kept.values()].map(({ name, summary, steps, inputs }) => ({ name, summary, steps: steps.length, inputs })) }),
+        saveRoutine: async (routine) => {
             const v = validateRoutine(normalizeRoutine(routine), { models: MODEL_DEFS, flows: FLOWS });
             if (!v.ok) return { ok: false, error: { code: v.code, message: v.message } };
-            record.routines.push({ action: 'save', scope, routine: v.routine });
+            record.routines.push({ action: 'save', routine: v.routine });
             kept.set(v.routine.name, v.routine);
             return { ok: true, name: v.routine.name, created: true, summary: routineSummary(v.routine) };
         },
-        deleteRoutine: async (folderPath, scope, name) => {
-            record.routines.push({ action: 'delete', scope, name });
+        deleteRoutine: async (name) => {
+            record.routines.push({ action: 'delete', name });
             return kept.delete(name) ? { ok: true, name, deleted: true } : noRoutine(name);
         },
-        renameRoutine: async (folderPath, scope, name, newName) => {
-            record.routines.push({ action: 'rename', scope, name, newName });
+        renameRoutine: async (name, newName) => {
+            record.routines.push({ action: 'rename', name, newName });
             if (!kept.has(name)) return noRoutine(name);
             kept.set(newName, { ...kept.get(name), name: newName });
             kept.delete(name);
             return { ok: true, name: newName, renamed: name };
         },
-        // Every routine here is the project's, so a move makes it global.
-        moveRoutine: async (folderPath, scope, name) => {
-            record.routines.push({ action: 'move', scope, name });
-            if (scope !== 'project' || !kept.has(name)) return noRoutine(name);
-            kept.delete(name);
-            return { ok: true, name, moved: 'global' };
-        },
-        quoteRoutine: async (name, body) => (kept.has(name) && body.scope !== 'global'
+        quoteRoutine: async (name, body) => (kept.has(name)
             ? { ok: true, output: { missing: [], billed: false, count: body.cards.length, usd: 0, display: null } } : noRoutine(name)),
         runRoutine: async (name, body) => {
             record.routines.push({ action: 'run', name, cards: body.cards, inputs: body.inputs });
@@ -866,21 +859,6 @@ const CASES = [
             if (!names.some((r) => r.action === 'rename' && r.name === 'product-shot' && r.newName === 'square-and-upscale')) f.push('never renamed product-shot to square-and-upscale');
             if (names.some((r) => r.action === 'save')) f.push('saved a copy instead of renaming');
             if (names.some((r) => r.action === 'delete' && r.name !== 'product-shot')) f.push('deleted another routine');
-            return f;
-        },
-    },
-    {
-        // Fabio, 2026-09-30: a routine moves between this project and every project, steps untouched.
-        id: 'routine-move',
-        title: '"make it global" is ONE move, never a copy saved in the other scope',
-        setup: { routines: [PRODUCT_SHOT, SQUARE_ONLY], turns: ['Make my product-shot routine available in all my projects.'] },
-        flip: { turns: ['Which routines have I saved?'] },
-        check(run) {
-            const calls = run.record.routines;
-            const f = [];
-            if (!calls.some((r) => r.action === 'move' && r.name === 'product-shot')) f.push('never moved product-shot');
-            if (calls.some((r) => r.action === 'save')) f.push('saved a copy instead of moving');
-            if (calls.some((r) => r.action === 'delete')) f.push('deleted a routine');
             return f;
         },
     },

@@ -24,15 +24,15 @@ function fakeTools(over = {}) {
         readKnowledge: async (id) => (id ? { ok: true, id, title: id, text: 'How to write a routine.' } : { ok: true, entries: [] }),
         listModels: async () => ({ ok: true, models: [], flows: [] }),
         placeAsset: async () => ({ success: true, filePath: '/project-file?path=%2Fproject%2FMedia%2Fstyle.png' }),
-        listRoutines: async (folderPath, scope) => {
-            calls.list.push({ folderPath, scope });
-            return { ok: true, routines: [{ name: scope === 'global' ? 'everywhere' : 'here', summary: 's', steps: [], inputs: [] }] };
+        listRoutines: async () => {
+            calls.list.push({});
+            return { ok: true, routines: [{ name: 'everywhere', summary: 's', steps: 0, inputs: [] }] };
         },
-        saveRoutine: async (folderPath, scope, routine) => {
-            calls.save.push({ folderPath, scope, routine });
+        saveRoutine: async (routine) => {
+            calls.save.push({ routine });
             return { ok: true, name: routine.name, created: true, summary: 'square-up — Square it' };
         },
-        deleteRoutine: async (folderPath, scope, name) => { calls.del.push({ folderPath, scope, name }); return { ok: true, name, deleted: true }; },
+        deleteRoutine: async (name) => { calls.del.push({ name }); return { ok: true, name, deleted: true }; },
         quoteRoutine: async (name, body) => {
             calls.quote.push({ name, body: structuredClone(body) });
             return { ok: true, output: { missing: [], billed: false, count: body.cards.length, usd: 0, display: null } };
@@ -45,7 +45,7 @@ function fakeTools(over = {}) {
     };
 }
 
-async function makeLoop(responses, tools) {
+async function makeLoop(responses, tools, open = project) {
     const { AgentLoop } = await import('../services/agentLoop.mjs');
     const { DeepInfraEngine } = await import('../services/llmEngines.mjs');
     let i = 0;
@@ -65,7 +65,7 @@ async function makeLoop(responses, tools) {
             const r = responses[i++] || { text: 'done' };
             return { text: r.text || '', toolCalls: r.toolCalls, usage: null };
         };
-        try { await loop.runTurn(text, [], project, 'auto', 'deepinfra', 't1'); } finally { DeepInfraEngine.prototype.chat = orig; }
+        try { await loop.runTurn(text, [], open, 'auto', 'deepinfra', 't1'); } finally { DeepInfraEngine.prototype.chat = orig; }
     };
     const results = () => loop._messages.filter((m) => m.role === 'tool').map((m) => JSON.parse(m.content));
     return { loop, events, turn, results };
@@ -98,9 +98,7 @@ test('save waits on app:routines, then saves each step in the connector\'s words
     assert.equal(refused.error.code, 'KNOWLEDGE_NOT_READ');
     assert.match(readRes.next, /has NOT run\. Send it again now/);
     assert.equal(tools.calls.save.length, 1, 'only the save after the read reached the app');
-    const { folderPath, scope, routine } = tools.calls.save[0];
-    assert.equal(folderPath, '/project');
-    assert.equal(scope, 'project');
+    const { routine } = tools.calls.save[0];
     // crop's `ratio` is its own field; the model step's prompt is `positive`; `wait` is dropped.
     assert.deepEqual(routine.steps, [
         { operation: 'crop', fields: { ratio: '1:1' } },
@@ -181,24 +179,28 @@ test('a No on the price runs nothing', async () => {
     assert.equal(tools.calls.run.length, 0);
 });
 
-test('a run finds a global routine when the model leaves scope out', async () => {
+test('routines are kept for every project: list, save and delete need no open project; a run does', async () => {
     const tools = fakeTools();
-    const base = tools.quoteRoutine;
-    tools.quoteRoutine = async (name, body) => (body.scope === 'global'
-        ? base(name, body)
-        : (tools.calls.quote.push({ name, body: structuredClone(body) }), { ok: false, error: { code: 'ROUTINE_NOT_FOUND', message: 'no' } }));
-    const { turn } = await makeLoop([call('r1', { action: 'run', name: 'everywhere', cards: ['g1'] }), { text: 'Ok.' }], tools);
-    await turn('Run everywhere');
-    assert.deepEqual(tools.calls.quote.map((q) => q.body.scope), ['project', 'global']);
-    assert.equal(tools.calls.run[0].body.scope, 'global');
+    const { turn, results } = await makeLoop([
+        call('l1', { action: 'list' }), read('k1', 'app:routines'), call('s1', SAVE),
+        call('d1', { action: 'delete', name: 'everywhere' }), call('r1', { action: 'run', name: 'everywhere', cards: ['g1'] }),
+        { text: 'Ok.' },
+    ], tools, null);
+    await turn('Tidy my routines');
+    const [list, , saved, deleted, run] = results();
+    assert.deepEqual(list, { ok: true, routines: [{ name: 'everywhere', summary: 's', steps: 0, inputs: [] }] });
+    assert.equal(saved.ok, true);
+    assert.equal(deleted.ok, true);
+    assert.equal(run.error.code, 'NO_PROJECT', 'a run lands in a project');
+    assert.equal(tools.calls.quote.length, 0, 'nothing quoted with no project open');
 });
 
-test('list gives this project\'s routines and the global ones', async () => {
+test('a run lands in the open project, with no scope in its body', async () => {
     const tools = fakeTools();
-    const { turn, results } = await makeLoop([call('l1', { action: 'list' }), { text: 'Two.' }], tools);
-    await turn('What routines do I have?');
-    assert.deepEqual(results()[0].project.map((r) => r.name), ['here']);
-    assert.deepEqual(results()[0].global.map((r) => r.name), ['everywhere']);
+    const { turn } = await makeLoop([call('r1', { action: 'run', name: 'everywhere', cards: ['g1'], scope: 'global' }), { text: 'Ok.' }], tools);
+    await turn('Run everywhere');
+    assert.deepEqual(tools.calls.quote.map((q) => q.body), [{ folderPath: '/project', cards: ['g1'], inputs: {} }]);
+    assert.equal(tools.calls.run[0].body.folderPath, '/project');
 });
 
 test('the tool says when to offer a routine (D7); the system prompt puts routines in "what can you do" (D12)', async () => {
@@ -213,33 +215,15 @@ test('the tool says when to offer a routine (D7); the system prompt puts routine
     // sent him there to DELETE one: the menu only runs them.
     assert.match(system, /run on any cards by you or from Routines on the gallery selection bar, which only runs them\./);
     // F2: "I never delete ..." read as "I cannot delete a routine", so a rename left the old copy.
-    assert.match(system, /I never delete cards, media, notes or projects, and never look for a way\. My own routines are the exception: I rename, move and delete those\./);
-});
-
-test('move takes no direction: out of the project if it is there, else out of the global ones', async () => {
-    const moves = [];
-    const at = { here: 'project', everywhere: 'global' };
-    const moveRoutine = async (folderPath, scope, name) => {
-        moves.push({ folderPath, scope, name });
-        return at[name] === scope ? { ok: true, name, moved: scope === 'global' ? 'project' : 'global' }
-            : { ok: false, error: { code: 'ROUTINE_NOT_FOUND', message: `No routine "${name}" to move.` } };
-    };
-    for (const [name, want, tried] of [['here', 'global', ['project']], ['everywhere', 'project', ['project', 'global']]]) {
-        moves.length = 0;
-        // The model puts the DESTINATION in scope; move must not read it.
-        const { turn, results } = await makeLoop([call('m1', { action: 'move', name, scope: 'global' }), { text: 'Moved.' }], fakeTools({ moveRoutine }));
-        await turn(`Move ${name}`);
-        assert.deepEqual(moves.map((m) => m.scope), tried);
-        assert.deepEqual(results()[0], { ok: true, name, moved: want });
-    }
+    assert.match(system, /I never delete cards, media, notes or projects, and never look for a way\. My own routines are the exception: I rename and delete those\./);
 });
 
 test('rename renames in place through the store, never a save of a copy', async () => {
     const renamed = [];
-    const tools = fakeTools({ renameRoutine: async (folderPath, scope, name, newName) => { renamed.push({ folderPath, scope, name, newName }); return { ok: true, name: newName, renamed: name }; } });
+    const tools = fakeTools({ renameRoutine: async (name, newName) => { renamed.push({ name, newName }); return { ok: true, name: newName, renamed: name }; } });
     const { turn, results } = await makeLoop([call('n1', { action: 'rename', name: 'crop-to-916-and-upscale-2x', newName: '9-16-crop-and-upscale' }), { text: 'Renamed.' }], tools);
     await turn('Rename it to 9-16-crop-and-upscale');
-    assert.deepEqual(renamed, [{ folderPath: '/project', scope: 'project', name: 'crop-to-916-and-upscale-2x', newName: '9-16-crop-and-upscale' }]);
+    assert.deepEqual(renamed, [{ name: 'crop-to-916-and-upscale-2x', newName: '9-16-crop-and-upscale' }]);
     assert.deepEqual(results()[0], { ok: true, name: '9-16-crop-and-upscale', renamed: 'crop-to-916-and-upscale-2x' });
     assert.equal(tools.calls.save.length, 0);
 });

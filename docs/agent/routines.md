@@ -40,8 +40,8 @@ to run it: from Routines on the selection bar, or by asking you.
 - `steps`: the args of one `generate` call per step, in order, each WITHOUT the card. The card,
   or the previous step's result, goes in on its own.
 - `inputs`: only when a run needs something besides the cards (see "Inputs" below).
-- `scope`: leave it out (this project). `"global"` only when the user asks to keep it for every
-  project.
+
+A saved routine is there in every project, so none needs moving or copying between projects.
 
 A step is one of three shapes, exactly as `generate` takes them:
 
@@ -145,20 +145,15 @@ is ONE picture.
 - A chain that starts from nothing, or that needs several earlier results at once, is not a
   routine: do it with generate.
 
-## Listing, renaming, moving and deleting
+## Listing, renaming and deleting
 
 Routines are yours to tidy: "I never delete" does not cover them. The Routines menu in the
-gallery only runs them; saving, renaming, moving and deleting are yours alone.
+gallery only runs them; saving, renaming and deleting are yours alone.
 
-- `action: "list"` gives every routine: this project's under `project`, the ones kept for every
-  project under `global`, each with its summary, how many steps it has, and the inputs a run
-  needs.
+- `action: "list"` gives every routine, each with its summary, how many steps it has, and the
+  inputs a run needs.
 - `action: "rename"` with `name` and `newName` renames it in place, steps untouched. Never save a
   copy under the new name instead: the old one stays in the list. A name is a slug
   (`9-16-crop-and-upscale`); the words the user chose go in the summary.
-- `action: "move"` with `name` moves it between this project and every project (global), steps
-  untouched: a project routine becomes global, a global one becomes this project's. Send no
-  `scope`; the answer's `moved` says where it is now. Never save a copy in the other place instead.
-- `action: "delete"` with `name` (and `scope: "global"` for a global one) removes it from the
-  list. Delete only when the user asks; two routines that do the same thing are worth offering.
+- `action: "delete"` with `name` removes it from the list. Delete only when the user asks; two routines that do the same thing are worth offering.
 - To change one, save it again under the same name with the new steps.

@@ -205,24 +205,20 @@ export const ROUTINE_HANDLERS = {
 // ── The gallery's Routines menu (D13): the user runs a saved routine, the agent made it ──
 
 /**
- * Every saved routine as `{ name, routine }`: the project's, then each global one no
- * project routine shadows. The list route gives a step COUNT, so each is read by name.
+ * Every saved routine as `{ name, routine }` (one set for every project). The list route
+ * gives a step COUNT, so each is read by name.
  * ponytail: one read per routine; a batch read if lists grow near the 50 cap.
  */
-export async function readSavedRoutines(folderPath) {
+export async function readSavedRoutines() {
     const get = async (url) => (await fetch(url)).json();
-    const out = [];
     try {
-        for (const q of [`folderPath=${encodeURIComponent(folderPath)}`, 'scope=global']) {
-            const names = ((await get(`/connector/routines?${q}`)).routines || [])
-                .map(r => r.name).filter(n => !out.some(o => o.name === n));
-            const read = await Promise.all(names.map(n => get(`/connector/routines/${encodeURIComponent(n)}?${q}`)));
-            read.forEach((r, i) => { if (r.ok && r.routine) out.push({ name: names[i], routine: r.routine }); });
-        }
+        const names = ((await get('/connector/routines')).routines || []).map(r => r.name);
+        const read = await Promise.all(names.map(n => get(`/connector/routines/${encodeURIComponent(n)}`)));
+        return read.flatMap((r, i) => (r.ok && r.routine ? [{ name: names[i], routine: r.routine }] : []));
     } catch (err) {
-        clientLogger.warn('routine', 'could not read the saved routines', { folderPath, error: err.message });
+        clientLogger.warn('routine', 'could not read the saved routines', { error: err.message });
+        return [];
     }
-    return out;
 }
 
 /**

@@ -2631,6 +2631,22 @@ describe('(l) one ask, many cards', () => {
         assert.equal(tools.calls.look.length, 0, 'no look');
     });
 
+    // MPI-970 (Fabio live, 2026-09-30): asked for x1.5, the agent sent no factor, the tool ran its
+    // default x2, and the agent called the result "the 1.5x boost". A tool's result now names the
+    // value of every setting it ran with, defaults marked, so the claim has something to contradict.
+    test('a tool result names every setting it runs with, a default marked as one', async () => {
+        const { loop, tools } = await makeLoop();
+        withTools(tools);
+        const [ref] = seeCards(loop, 1);
+        const run = async (extra) => JSON.parse(await loop._executeTool('generate',
+            { operation: 'imageUpscale', media: [{ role: 'inputImage', image: ref }], wait: true, ...extra }, 'turn-tool-note', project));
+        const bare = await run({});
+        assert.equal(bare.ok, true, JSON.stringify(bare));
+        assert.match(bare.message, /It runs with: upscaler 4x-NMKD-Siax \(default\), factor 2 \(default\)\./);
+        const asked = await run({ fields: { factor: 1.5 } });
+        assert.match(asked.message, /It runs with: upscaler 4x-NMKD-Siax \(default\), factor 1\.5\./);
+    });
+
     // Fabio live, 2026-09-27: with the tools listed apart from the ranking, Krea 2's upscale still
     // carried best: true, and the Model rule says best: true is the op to take.
     test('a ranked tool competes for best: the plain upscale takes it from a model upscale', async () => {
