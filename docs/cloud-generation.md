@@ -42,8 +42,18 @@ model is a `ModelDef` in `js/data/modelConstants/models.js` with `provider: 'dee
   - `cloud.imageField`: image 1 as a data URL naming the sniffed type;
   - `cloud.imageFields`: reference N in the Nth field (MPI-919);
   - `capabilities.referenceCollage`: up to four collaged into one (`routes/deepinfraCollage.js`);
-  - `cloud.imageMediaType` (Wan): a typed list `[{ type, url }]`;
-  - `cloud.imageBareBase64` (FLUX-2 pro/max): bare base64, no data URL.
+  - `cloud.imageBareBase64` (FLUX-2 pro/max): bare base64, no data URL;
+  - `cloud.mediaList` (Wan 3.0, MPI-923): EVERY input in one typed list `media: [{ type, url }]`,
+    built from `media` (each staged item with its type and slot role, `cloudRunFields`) by
+    `_wanMediaPlan`. `i2v`: `first_frame` + optional `last_frame` (the `endFrame` slot, shown only to
+    a model declaring `capabilities.endFrame`). `ref2v`: every item a `reference_image` / `_video` /
+    `_audio`, strip order. Video (MP4/MOV, 100 MB) and audio (WAV/MP3, 15 MB) go as data URLs; any
+    other type or size is refused before sending.
+- **`ref2v`** is the cloud twin of H3's two-stage `ref2v_ms`: same 9/3/3 wells, but tagged with
+  the names the cloud model reads (Wan: `Image n` / `Video n`, counted per type). Wan bills a
+  reference VIDEO's seconds as well as the clip's (measured 2026-09-30: 6.9 s ref + 5 s clip billed
+  11.9 s); images and audio are free. The length is unknown before the run, so `estimateRunCost`
+  quotes the ceiling, "up to", at 15 s a video and 30 s in all (the provider's own limits).
 - **A picture op with no picture is refused**, never sent (`requiresImages`): the endpoint would
   bill a text-to-image and hand it back as the "edit".
 
@@ -107,4 +117,4 @@ reaches `_readReference` as "an image".
 
 `tests/cloud-executor.test.cjs` (lane invariant, copy), `cloud-price-tag`, `cloud-duration-bounds`,
 `cloud-key-refresh`, `model-picker-cloud`, and `deepinfra-*` (account, catalogue, collage, credit
-gate, multiref, output retention, pricing, transcribe).
+gate, multiref, output retention, pricing, transcribe, wan-media).

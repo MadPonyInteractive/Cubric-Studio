@@ -190,10 +190,10 @@ for (const task of IMAGE_TASKS) {
  * the same snapshot the picker quotes, never typed here, because a hand-written price
  * drifts silently while the snapshot fails `sync-deepinfra-prices.mjs --check` loudly.
  *
- * The four tasks below are every task a cloud model declares an op for. Roster order
+ * The tasks below are every task a cloud model declares an op for. Roster order
  * decides the order among them; the price is in each note, so nothing is hidden by it.
  */
-const CLOUD_TASKS = ['t2i', 'edit', 't2v', 'i2v'];
+const CLOUD_TASKS = ['t2i', 'edit', 't2v', 'i2v', 'ref2v'];
 
 /** What this model charges, in the terms the agent should repeat to the user. */
 function _cloudNote(model) {

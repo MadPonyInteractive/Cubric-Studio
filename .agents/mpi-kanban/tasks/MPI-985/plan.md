@@ -19,14 +19,29 @@
     sites, two of them project create/open. Audit first; never lift one gate alone (brief § Do not).
 - **Rules that bind every phase:** DeepInfra only, no second provider (Fabio 2026-09-25). Every
   live run costs money: state price and run count, get Fabio's yes, report the spend.
+- **2026-09-30 (Agent 77):** MPI-923 in `doing` (own `plan.md`), built sequentially. Fabio's yes
+  covers TWO Wan live runs, 480p 5 s, $0.25 each ($0.50). MPI-910 research next, then Phase 2.
 
-## Parallel Batch 1: answers before code (disjoint)
+## Plan Drift
+
+- 2026-09-30: MPI-856 shipped and closed as a 2.0 gate (session 0e08597e, `d5a783ce7`). Batch 1's
+  audit and Phase 3 are gone.
+- 2026-09-30: Batch 1 is no longer a parallel batch. MPI-923's declared ownership was too narrow: a
+  cloud model has no single-stage reference op (`ref2v_ms` is H3's two-stage graph op), so it also
+  needs `commandRegistry.js`, both op registries and `cloudExecutor.js`. Run sequentially.
+- 2026-09-30, DeepInfra keyless schema (`api.deepinfra.com/models/<id>`): Wan 3.0 `media[].url`
+  takes base64; prompt names refs `Image n` / `Video n` (images and videos counted separately);
+  a reference video + output must total <= 30 s. The page says per output second, but a
+  REFERENCE VIDEO's seconds bill too (live 2026-09-30: 6.9 s ref + 5 s clip = $0.595 at 480p). Seedance 2.0
+  `reference_*` are URLs or `asset://` ids only, so MPI-910's hosting question stands.
+
+## Batch 1: answers before code (sequential since 2026-09-30, see Plan Drift)
 
 - [ ] **MPI-910 hosting research.** Does DeepInfra take an asset upload, or how does the app serve a
   staged file to the provider? Ownership: `.agents/mpi-kanban/tasks/MPI-910/` only. No code.
   **Verify:** a written answer with the endpoint or the serving route, read off DeepInfra's docs or
   a keyless schema call.
-- [ ] **MPI-856 audit.** Enumerate every surface that assumes a running engine (brief § "The shape of
+- [x] ~~**MPI-856 audit.**~~ Shipped 2026-09-30 by another session (see Plan Drift). Enumerate every surface that assumes a running engine (brief § "The shape of
   the work", step 1; start from `tasks/MPI-849/research/findings.md` § A). Ownership:
   `.agents/mpi-kanban/tasks/MPI-856/` only. No code. **Verify:** the list names file:line for each
   gate, plus the two product questions for Fabio (project lifecycle, what the libraries show).
@@ -44,7 +59,7 @@
 
 ## Phase 3: The no-engine user (MPI-856)
 
-- [ ] Build from the audit and Fabio's two decisions. Ownership set by MPI-856's own plan
+- [x] DONE 2026-09-30 (MPI-856 closed). Build from the audit and Fabio's two decisions. Ownership set by MPI-856's own plan
   (`js/services/engineGate.js`, `js/shell.js`, `js/shell/projectUI.js` at least).
 
 ## Verification

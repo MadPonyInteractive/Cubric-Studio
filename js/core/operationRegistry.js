@@ -50,7 +50,9 @@ export const OPERATION_REGISTRY = {
     // write it, so no deprecated predecessor is owed. Stamped 1.4.0 to match `control`,
     // which is likewise ahead of APP_VERSION until the release bump lands.
     ref2v_ms:     { latestVersion: '1.0', appVersionIntroduced: '1.4.0' },
-    extend:       { latestVersion: '1.0', appVersionIntroduced: '0.0.1' },
+    // Cloud reference-to-video (MPI-923). A new KEY, stamped ahead of the release bump.
+    ref2v:        { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
+    extend:      { latestVersion: '1.0', appVersionIntroduced: '0.0.1' },
     // Universal operations (not model-tied)
     interpolate:  { latestVersion: '1.1', appVersionIntroduced: '0.0.1' },
     videoUpscale: { latestVersion: '1.1', appVersionIntroduced: '0.0.1' },

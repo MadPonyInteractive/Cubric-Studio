@@ -67,12 +67,19 @@ test('the caret is what counts, not the end of the value', () => {
     assert.strictEqual(matchRefTagQuery(value, value.length, TAGS), null);
 });
 
-test('ref2v_ms is the only tagged op, and its tags count WITHIN a type', () => {
+test('the reference ops are the only tagged ops, and their tags count WITHIN a type', () => {
     const tagged = Object.entries(commands)
         .filter(([, cmd]) => (cmd.mediaInputs || []).some(s => s.tag))
-        .map(([key]) => key);
-    assert.deepStrictEqual(tagged, ['ref2v_ms'],
-        'a second tagged op needs the chip badge + picker re-checked, not just a slot list');
+        .map(([key]) => key)
+        .sort();
+    // ref2v (cloud, MPI-923) re-checked: badge and picker read `slot.tag` per active op.
+    assert.deepStrictEqual(tagged, ['ref2v', 'ref2v_ms'],
+        'another tagged op needs the chip badge + picker re-checked, not just a slot list');
+
+    // ref2v wears the names the CLOUD model reads (Wan 3.0: "Image n" / "Video n").
+    const cloud = commands.ref2v.mediaInputs.map(s => s.tag);
+    assert.deepStrictEqual([cloud[0], cloud[8], cloud[9], cloud[12]], ['Image 1', 'Image 9', 'Video 1', 'Audio 1']);
+    assert.strictEqual(new Set(cloud).size, 15);
 
     const slots = commands.ref2v_ms.mediaInputs;
     const tags = slots.map(s => s.tag);

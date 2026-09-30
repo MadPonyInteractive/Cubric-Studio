@@ -268,9 +268,49 @@ async function _readReference(file, maxPixels = REF_MAX_PIXELS) {
         .jpeg({ quality: 92 }).toBuffer();
 }
 
+// Wan 3.0's published input limits (DeepInfra schema, 2026-09-30). Images go through
+// `_readReference` like every other reference; these bound the files sent as they are.
+const MEDIA_MIME = { '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.wav': 'audio/wav', '.mp3': 'audio/mpeg' };
+const MEDIA_MAX_BYTES = { video: 100 * 1024 * 1024, audio: 15 * 1024 * 1024 };
+
+/**
+ * Staged media -> Wan's typed `media` list entries `{ type, item }` (MPI-923). `ref2v`
+ * sends every item as a reference, in strip order (images and videos are numbered apart,
+ * so "Image 2" is the second IMAGE). `i2v` sends a first frame and an optional last one:
+ * a slot role wins, else strip order. Anything else sends none.
+ */
+function _wanMediaPlan(operation, media) {
+    if (operation === 'ref2v') return media.map(item => ({ type: `reference_${item.mediaType}`, item }));
+    if (operation !== 'i2v') return [];
+    const images = media.filter(m => m.mediaType === 'image');
+    const start = images.find(m => m.role === 'startFrame') || images.find(m => m.role !== 'endFrame');
+    const end = images.find(m => m.role === 'endFrame') || images.find(m => m !== start && m.role !== 'startFrame');
+    return [
+        ...(start ? [{ type: 'first_frame', item: start }] : []),
+        ...(end ? [{ type: 'last_frame', item: end }] : []),
+    ];
+}
+
+/** One media entry as `{ url }` (a data URL), or `{ refusal }`. Nothing is sent on a refusal. */
+async function _wanMediaUrl({ mediaType, path: file }) {
+    if (mediaType === 'image') {
+        const bytes = await _readReference(file);
+        return { url: `data:${IMAGE_MIME[_extOf(bytes)] || 'image/png'};base64,${bytes.toString('base64')}` };
+    }
+    const mime = MEDIA_MIME[path.extname(file).toLowerCase()];
+    if (!mime || !mime.startsWith(mediaType)) {
+        return { refusal: `Wan 3.0 takes ${mediaType === 'video' ? 'MP4 or MOV video' : 'WAV or MP3 audio'} as a reference. Nothing was sent, so nothing was billed.` };
+    }
+    const bytes = await fs.readFile(file);
+    if (bytes.length > MEDIA_MAX_BYTES[mediaType]) {
+        return { refusal: `A reference ${mediaType} is over Wan 3.0's ${MEDIA_MAX_BYTES[mediaType] / 1024 / 1024} MB limit. Nothing was sent, so nothing was billed.` };
+    }
+    return { url: `data:${mime};base64,${bytes.toString('base64')}` };
+}
+
 router.post('/deepinfra/generate', async (req, res) => {
     const { modelId, operation = '', prompt = '', seed = null, width = 0, height = 0, imagePaths = [], batch = 1,
-        ratioLabel = '', qualityTier = '', duration = 0, estimateUsd = 0 } = req.body || {};
+        ratioLabel = '', qualityTier = '', duration = 0, estimateUsd = 0, media = [] } = req.body || {};
     const refs = (Array.isArray(imagePaths) ? imagePaths : []).filter(p => typeof p === 'string' && p);
 
     const model = MODELS.find(m => m.id === modelId);
@@ -330,22 +370,33 @@ router.post('/deepinfra/generate', async (req, res) => {
     Object.assign(body, buildSizeFields(model.cloud.endpointId, sheet
         ? { width: sheet.width, height: sheet.height, qualityTier, duration, batch }
         : { width, height, ratioLabel, qualityTier, duration, batch }));
-    // Most endpoints take the picture as a data URL. Wan 3.0 takes a LIST of typed
-    // media (`[{ type: 'first_frame', url }]`), named by `cloud.imageMediaType`; a bare
-    // string there is a 422 (measured 2026-09-25), so Wan's i2v never ran before this.
-    // FLUX-2 pro/max take bare base64 (`cloud.imageBareBase64`): BFL cannot decode a data
-    // URL and answers a 500. The data URL names the file's REAL type, sniffed from its bytes.
+    // Most endpoints take the picture as a data URL. FLUX-2 pro/max take bare base64
+    // (`cloud.imageBareBase64`): BFL cannot decode a data URL and answers a 500. The data
+    // URL names the file's REAL type, sniffed from its bytes.
     const placeImage = (bytes, field = model.cloud.imageField) => {
         const b64 = bytes.toString('base64');
-        const value = model.cloud.imageBareBase64 ? b64 : `data:${IMAGE_MIME[_extOf(bytes)] || 'image/png'};base64,${b64}`;
-        body[field] = model.cloud.imageMediaType
-            ? [{ type: model.cloud.imageMediaType, url: value }]
-            : value;
+        body[field] = model.cloud.imageBareBase64 ? b64 : `data:${IMAGE_MIME[_extOf(bytes)] || 'image/png'};base64,${b64}`;
     };
     // Native multi-reference (MPI-919): reference N in the endpoint's Nth numbered field,
     // in strip order. Any other model sends image 1 alone, exactly as before.
     const fields = model.cloud.imageFields || (model.cloud.imageField ? [model.cloud.imageField] : []);
-    if (sheet) {
+    if (model.cloud.mediaList) {
+        // Wan 3.0: every input in ONE typed list (a bare string there is a 422, measured
+        // 2026-09-25), frames on i2v and references on ref2v (MPI-923).
+        const staged = (Array.isArray(media) ? media : []).filter(m =>
+            m && typeof m.path === 'string' && m.path && ['image', 'video', 'audio'].includes(m.mediaType));
+        const list = [];
+        try {
+            for (const { type, item } of _wanMediaPlan(operation, staged)) {
+                const { url, refusal } = await _wanMediaUrl(item);
+                if (refusal) return _fail(res, 'PROVIDER_ERROR', refusal, 400);
+                list.push({ type, url });
+            }
+        } catch (err) {
+            return _fail(res, 'PROVIDER_ERROR', 'A reference file could not be read. Nothing was sent, so nothing was billed.');
+        }
+        if (list.length) body.media = list;
+    } else if (sheet) {
         placeImage(sheet.jpeg);
     } else {
         try {
@@ -565,5 +616,7 @@ module.exports._bytesOf = _bytesOf;
 module.exports._extOf = _extOf;
 module.exports._sweepOutputs = _sweepOutputs;
 module.exports._readReference = _readReference;
+module.exports._wanMediaPlan = _wanMediaPlan;
+module.exports._wanMediaUrl = _wanMediaUrl;
 module.exports._codeForStatus = _codeForStatus;
 module.exports._transcribe = _transcribe;

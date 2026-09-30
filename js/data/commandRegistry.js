@@ -753,15 +753,48 @@ export const commands = {
         requiresImages: 1,
         modelSizedInputs: true,
         mediaInputs: [
-            // NO endFrame here. `i2v` (single-stage) has exactly one consumer — Wan 2.2
-            // 5B — and `wan5b_i2v.json` carries no `Input_End_Frame` node, so the slot
-            // was undeliverable: injection silently skips a title matching nothing, and
-            // the UI would have offered a last-frame affordance that does nothing.
-            // The end-frame models (LTX, Wan 2.2, MiniMax H3) are all on `i2v_ms`.
             { key: 'startFrame', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Start_Frame', required: true },
+            // Capability-gated: Wan 2.2 5B's `wan5b_i2v.json` has no `Input_End_Frame`
+            // node, so it must never see the slot (injection skips a title matching
+            // nothing, silently). Wan 3.0 cloud takes it as `last_frame` (MPI-923).
+            { key: 'endFrame', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_End_Frame', required: false, requiresCapability: 'endFrame' },
         ],
         promptRequired: false,
         components: ['qualityTier', 'duration', 'motionIntensity', 'ratio'],
+    },
+    // Single-stage twin of `ref2v_ms` for cloud models (MPI-923): `ref2v_ms` is H3's
+    // two-stage graph op, and a cloud call has no stage 2. Same 9/3/3 slot surface, but
+    // the tags are the names the CLOUD model reads — Wan 3.0 addresses "Image n" /
+    // "Video n", images and videos counted separately (DeepInfra schema, 2026-09-30).
+    ref2v: {
+        label: 'Reference to Video',
+        short: 'ref2v',
+        info: 'Reference to Video — generate a clip that follows reference images, videos and audio',
+        help: {
+            body: [
+                'Give it references — a character sheet, a face, a location, a clip whose motion you want, a voice — and it generates a NEW video that keeps them consistent.',
+                'References are not frames: none of them appears in the output as-is. Address one in the prompt by its tag; each chip shows the tag it became.',
+                'A reference video plus the clip you ask for must come to 30 seconds or less, and the reference video\'s seconds are billed too.',
+            ],
+            examples: [
+                { prompt: 'the woman from <Image 1> walking through the market in <Image 2>, handheld', note: 'Names which reference does what.' },
+                { prompt: 'a woman in a market', bad: true, note: 'References staged but never addressed — the model has to guess what they are for.' },
+            ],
+        },
+        icon: 'layers',
+        mediaType: MEDIA_TYPE.VIDEO,
+        // 0 for the reasons on ref2v_ms: a video-only or audio-only reference is legal.
+        requiresImages: 0,
+        // No `modelSizedInputs`: there is no graph, and the cloud route bounds every
+        // image itself (`_readReference`, routes/deepinfra.js).
+        mediaInputs: [
+            ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => ({ key: n === 1 ? 'inputImage' : `inputImage${n}`, mediaType: MEDIA_TYPE.IMAGE, title: n === 1 ? 'Input_Image' : `Input_Image_${n}`, required: false, ordinal: true, tag: `Image ${n}` })),
+            ...[1, 2, 3].map(n => ({ key: n === 1 ? 'inputVideo' : `inputVideo${n}`, mediaType: MEDIA_TYPE.VIDEO, title: n === 1 ? 'Input_Video' : `Input_Video_${n}`, required: false, ordinal: true, tag: `Video ${n}` })),
+            // ponytail: Wan publishes no audio name; slot-numbered like H3's until one does.
+            ...[1, 2, 3].map(n => ({ key: n === 1 ? 'inputAudio' : `inputAudio${n}`, mediaType: 'audio', title: n === 1 ? 'Input_Audio' : `Input_Audio_${n}`, required: false, ordinal: true, tag: `Audio ${n}` })),
+        ],
+        promptRequired: true,
+        components: ['qualityTier', 'duration', 'ratio'],
     },
     t2v_ms: {
         label: 'Text to Video',

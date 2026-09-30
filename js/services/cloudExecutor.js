@@ -90,7 +90,8 @@ export function cloudErrorMessage(code, fallback) {
  * @param {object} params - `injectionParams` from the run payload
  * @param {Array} [mediaItems] - staged media, for the reference image(s)
  * @returns {{batch:number, calls:number, width:number, height:number, ratioLabel:string,
- *   qualityTier:string, duration:number, imagePaths:string[]}}
+ *   qualityTier:string, duration:number, imagePaths:string[],
+ *   media:Array<{mediaType:string, role:string|null, path:string}>}}
  */
 export function cloudRunFields(model, params = {}, mediaItems = []) {
     // The batch control's own node title, capped at the control's own 1..4.
@@ -140,6 +141,9 @@ export function cloudRunFields(model, params = {}, mediaItems = []) {
         // collages up to four into one for a model declaring `referenceCollage`, or sends
         // image 1 alone in `imageField` (MPI-919).
         imagePaths: _imagePaths(mediaItems),
+        // Every staged item with its type and slot role, in strip order, for an endpoint
+        // that takes video, audio or a named frame too (`cloud.mediaList`, MPI-923).
+        media: _mediaRefs(mediaItems),
     };
 }
 
@@ -167,8 +171,13 @@ export function estimateRunCost(model, params = {}, mediaItems = []) {
     // Seedream's shape is one 'WIDTHxHEIGHT' string; the FLUX models send a pair; the
     // Gemini family sends neither and is priced off token counts, so 0 is correct there.
     const [sizeW, sizeH] = String(sent.size || '').split('x').map(Number);
+    // Wan 3.0 bills a reference VIDEO's seconds on top of the clip's (MPI-923, measured
+    // 2026-09-30: a 6.9 s reference + a 5 s clip at 480p billed 11.9 s, $0.595). Its length
+    // is unknown here, so quote the ceiling the provider allows: 15 s a video, 30 s in all.
+    const refVideos = model.cloud.mediaList ? want.media.filter(m => m.mediaType === 'video').length : 0;
+    const clip = sent.duration || want.duration || 0;
 
-    return estimateCost(endpointId, {
+    const est = estimateCost(endpointId, {
         width:  sent.width  || sizeW || 0,
         height: sent.height || sizeH || 0,
         // Only the video models carry a resolution tier. Every image ratio we ship is a
@@ -176,13 +185,15 @@ export function estimateRunCost(model, params = {}, mediaItems = []) {
         resolution: sent.resolution || '1k',
         // Veo publishes no duration field at all, so `sent` carries none and the pricing
         // module falls back to that model's own fixed clip length.
-        duration: sent.duration || want.duration || 0,
+        duration: refVideos ? Math.min(30, clip + 15 * refVideos) : clip,
         // What the route actually SENDS: one per numbered field, or one image (a Nano
         // Banana collage is one picture) for everything else.
         references: Math.min(want.imagePaths.length, model.cloud.imageFields?.length || 1),
         // Every image is priced, whether one call carries them or N calls do.
         batch: want.batch * want.calls,
     });
+    if (est && refVideos) est.display = est.display.replace(/^about /, 'up to ');
+    return est;
 }
 
 /**
@@ -415,9 +426,13 @@ export function runCloudCommand(payload) {
 // `url` first: a prompt-box chip carries ONLY `url` (MpiPromptBox `_tryAddMedia`), and
 // reading filePath alone sent every in-app edit with no reference at all.
 function _imagePaths(mediaItems) {
+    return _mediaRefs(mediaItems).filter(m => m.mediaType === 'image').map(m => m.path);
+}
+
+/** Staged image/video/audio items as `{ mediaType, role, path }`, disk paths as above. */
+function _mediaRefs(mediaItems) {
     return (mediaItems || [])
-        .filter(m => m && (m.mediaType === 'image' || m.type === 'image'))
-        .map(m => m.url || m.filePath || m.path)
-        .filter(Boolean)
-        .map(p => extractAbsPath(p) || p);
+        .map(m => ({ mediaType: m?.mediaType || m?.type, role: m?.role || null, path: m?.url || m?.filePath || m?.path }))
+        .filter(m => ['image', 'video', 'audio'].includes(m.mediaType) && m.path)
+        .map(m => ({ ...m, path: extractAbsPath(m.path) || m.path }));
 }
