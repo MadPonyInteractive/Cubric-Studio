@@ -165,15 +165,16 @@ test('MPI-941 Phase 11: Ollama rows carry tools and vision from /api/tags; unkno
     } finally { restore2(); }
 });
 
-test('MPI-993: a recommended model the user\'s Ollama lacks is still listed, installed:false; a hosted list never is', async () => {
+test('MPI-993: a recommended model the user\'s Ollama lacks is still listed, installed:false', async () => {
     const { listRemoteModels, RECOMMENDED_REMOTE_MODELS } = await import('../services/llmEngines.mjs');
     const restore = stubUpstream(async (url) => (url.endsWith('/api/tags')
         ? okJson({ models: [] })
         : okJson({ data: [{ id: 'huihui_ai/gemma-4-abliterated:12b' }, { id: 'qwen3.5:latest' }] })));
     try {
-        const models = await listRemoteModels({ presetId: 'ollama', baseURL: 'http://localhost:11434/v1', key: null });
+        const models = await listRemoteModels({ presetId: 'ollama', baseURL: 'http://localhost:11434/v1', key: null, vramGb: 16 });
         const absent = models.filter((m) => m.installed === false).map((m) => m.id).sort();
-        const expected = RECOMMENDED_REMOTE_MODELS.ollama.map((r) => r.id).filter((id) => id !== 'huihui_ai/gemma-4-abliterated:12b').sort();
+        const expected = RECOMMENDED_REMOTE_MODELS.ollama.filter((r) => !r.minVramGb || r.minVramGb <= 16)
+            .map((r) => r.id).filter((id) => id !== 'huihui_ai/gemma-4-abliterated:12b').sort();
         assert.deepEqual(absent, expected);
         // An installed row carries no flag at all, so every other preset's rows are unchanged.
         assert.equal('installed' in models.find((m) => m.id === 'huihui_ai/gemma-4-abliterated:12b'), false);
@@ -183,7 +184,47 @@ test('MPI-993: a recommended model the user\'s Ollama lacks is still listed, ins
         // Recommended first, installed or not.
         assert.equal(models.at(-1).id, 'qwen3.5:latest');
     } finally { restore(); }
-    // DeepInfra's catalogue IS the whole offer: nothing is appended to it.
+});
+
+test('MPI-993: a minVramGb recommendation only on a card that holds it; below, a plain row if installed', async () => {
+    const { listRemoteModels } = await import('../services/llmEngines.mjs');
+    const list = (data) => stubUpstream(async (url) => (url.endsWith('/api/tags') ? okJson({ models: [] }) : okJson({ data })));
+    let restore = list([{ id: 'huihui_ai/gemma-4-abliterated:12b' }]);
+    try {
+        const at = async (vramGb) => listRemoteModels({ presetId: 'ollama', baseURL: 'http://localhost:11434/v1', key: null, vramGb });
+        assert.equal((await at(16)).some((m) => m.id === 'gemma4:26b'), false, 'offered to a 16 GB card');
+        assert.equal((await at(null)).some((m) => m.id === 'gemma4:26b'), false, 'offered when the card is unknown');
+        // A 4090: offered, flagged for both jobs, and saying why.
+        const big = (await at(24)).find((m) => m.id === 'gemma4:26b');
+        assert.deepEqual([big.installed, big.recommendedFor, big.recommendedNote], [false, ['enhance', 'describe'], 'for 24 GB cards']);
+        // Table order is preference: the 12B stays the enhance default on a big card too.
+        assert.equal((await at(24)).find((m) => m.recommendedFor.includes('enhance')).id, 'huihui_ai/gemma-4-abliterated:12b');
+    } finally { restore(); }
+    // Installed on a small card anyway: listed, never flagged.
+    restore = list([{ id: 'gemma4:26b' }]);
+    try {
+        const m = (await listRemoteModels({ presetId: 'ollama', baseURL: 'http://localhost:11434/v1', key: null, vramGb: 16 })).find((x) => x.id === 'gemma4:26b');
+        assert.deepEqual([m.installed, m.recommendedFor], [undefined, []]);
+    } finally { restore(); }
+});
+
+test('MPI-993: a job\'s first recommended row is the model the server runs for an empty pick', async () => {
+    const { listRemoteModels, RECOMMENDED_REMOTE_MODELS, recommendedModel } = await import('../services/llmEngines.mjs');
+    // Every DeepInfra recommendation listed, in reverse id order to prove the id sort is gone.
+    const data = RECOMMENDED_REMOTE_MODELS.deepinfra.map((r) => ({ id: r.id, metadata: { tags: ['chat'] } })).reverse();
+    const restore = stubUpstream(async () => okJson({ data }));
+    try {
+        const models = await listRemoteModels({ presetId: 'deepinfra', baseURL: DI_URL, key: 'k' });
+        for (const job of ['enhance', 'describe', 'agent']) {
+            const first = models.find((m) => m.recommendedFor.includes(job))?.id || '';
+            assert.equal(first, recommendedModel('deepinfra', job), `${job}: the row shows one model and the server runs another`);
+        }
+    } finally { restore(); }
+});
+
+test('MPI-993: a hosted list is never appended to', async () => {
+    const { listRemoteModels } = await import('../services/llmEngines.mjs');
+    // DeepInfra's catalogue IS the whole offer.
     const restore2 = stubUpstream(async () => okJson({ data: [{ id: 'zeta/chat-model', metadata: { tags: ['chat'] } }] }));
     try {
         const models = await listRemoteModels({ presetId: 'deepinfra', baseURL: DI_URL, key: 'k' });

@@ -562,9 +562,15 @@ export const RECOMMENDED_REMOTE_MODELS = {
     // (`qwen3vl-abliterated-clip`), which he rates on real use. MPI-912's one-picture bench:
     // 7/10 facts, nothing wrong. It is under the DeepInfra bar; the flag is his call, not a score.
     // A listed model the user's Ollama lacks is still offered, `installed: false` (listRemoteModels).
+    // `minVramGb`: recommended (flagged AND offered to download) only on a card that holds it
+    // whole; below it the model is a plain row if the user has it (MPI-993, Fabio 2026-09-30).
+    // gemma4:26b is Ollama's Q4 of DeepInfra's enhance + describe pick, 18.7 GB with projector
+    // and draft model, plus context: a 4090's 24 GB, not a 16 GB card. It sits AFTER the defaults:
+    // table order is preference, and `recommendedModel` takes the first per job.
     ollama: [
         { id: 'huihui_ai/gemma-4-abliterated:12b', jobs: ['enhance'] },
         { id: 'huihui_ai/qwen3-vl-abliterated:4b', jobs: ['describe'] },
+        { id: 'gemma4:26b', jobs: ['enhance', 'describe'], minVramGb: 24, note: 'for 24 GB cards' },
         { id: 'ornith:9b', jobs: [], agentTest: { passed: 16, cases: 26, runs: 1, perChat: 0 } },
         { id: 'gemma4:12b', jobs: [], agentTest: { passed: 13, cases: 26, runs: 1, perChat: 0 } },
     ],
@@ -583,8 +589,9 @@ export const FALLBACK_CONTEXT_WINDOW = 32_768;
  * is filtered to chat models; an untagged one (OpenAI) is kept whole.
  * `contextWindow` is `metadata.context_length` (DeepInfra) or `context_length`
  * (OpenRouter), else our table, else null. Throws `ENDPOINT_ERROR` with `status`.
+ * `vramGb` is this PC's card: a `minVramGb` entry above it is not recommended (MPI-993).
  */
-export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_000 }) {
+export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_000, vramGb = null }) {
     const res = await fetch(`${baseURL.replace(/\/+$/, '')}/models`, {
         headers: key ? { Authorization: `Bearer ${key}` } : {},
         signal: AbortSignal.timeout(timeoutMs),
@@ -594,7 +601,7 @@ export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_
     }
     const body = await res.json();
     const caps = presetId === 'ollama' ? await _ollamaCapabilities(baseURL) : null;
-    const recommended = RECOMMENDED_REMOTE_MODELS[presetId] || [];
+    const recommended = (RECOMMENDED_REMOTE_MODELS[presetId] || []).filter((r) => !r.minVramGb || (vramGb || 0) >= r.minVramGb);
     const listed = (Array.isArray(body?.data) ? body.data : []).filter((m) => typeof m?.id === 'string');
     // Ollama is the one preset the user installs into (MPI-993): a recommended model it
     // lacks is still listed, `installed: false`, so Settings can offer to download it.
@@ -624,7 +631,10 @@ export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_
                 ...(m.installed === false && { installed: false }),
             };
         });
-    const rank = (m) => (m.recommendedFor.length ? 0 : 1);
+    // Recommended rows in TABLE order, which is preference: a row's first recommendation for a
+    // job must be `recommendedModel`'s, the one the server runs for an empty pick. Sorted by id
+    // they were not (MPI-993): DeepInfra's enhance row showed gemma-3-12b and ran gemma-4-26B.
+    const rank = (m) => (m.recommendedFor.length ? recommended.findIndex((r) => r.id === m.id) : recommended.length);
     return models.sort((a, b) => rank(a) - rank(b) || a.id.localeCompare(b.id));
 }
 

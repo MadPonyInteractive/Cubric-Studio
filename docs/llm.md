@@ -95,7 +95,7 @@ nothing elsewhere), else nothing. The connection itself is `Storage.getLlmConnec
   result: DeepInfra enhance = `google/gemma-4-26B-A4B-it`, `google/gemma-3-12b-it`; describe =
   `google/gemma-4-26B-A4B-it` (MPI-817's scored run). Ollama (its own `/v1/models` ids, tag
   included) enhance = `huihui_ai/gemma-4-abliterated:12b`, the enhancer of record; describe = `huihui_ai/qwen3-vl-abliterated:4b`, the Image
-  Describer plugin's own model, by Fabio's call (MPI-993; 7/10 on MPI-912's bench); agent none. Ollama only: a recommended model it lacks is still listed, `installed: false`.
+  Describer plugin's own model, by Fabio's call (MPI-993; 7/10 on MPI-912's bench); agent none. Ollama only: a recommended model it lacks is still listed, `installed: false`; `minVramGb` (gemma4:26b, 24) recommends only on a card that holds it, from the route's nvidia-smi read. **Table order is preference**: the list sorts recommended rows by it, so a row's first recommendation is `recommendedModel`'s, the one the server runs for an empty pick (sorted by id, DeepInfra enhance showed gemma-3-12b and ran gemma-4-26B).
 - **`agentTest: { passed, cases, runs, perChat, suiteHash? }`** on an entry = it ran `scripts/agent-test.mjs` (MPI-916 `validation.md` § 2f;
   `perChat` is USD per conversation, fixed at test time). The agent dropdown lists these models on top, best score first,
   `28/28 tests · $0.36/100 chats` in the meta beside the context window, no "(recommended)" label (Fabio 2026-09-26); `agentTest` with

@@ -13,3 +13,5 @@ Scope (Fabio 2026-09-30): card description, plus the toast action button (same s
 - [x] Tests: listRemoteModels append, pull allowlist, pick check pure logic, toast action desktop spec, Settings Download row + project-open toast desktop specs
 - [x] Docs: `docs/llm.md`, `docs/toasts.md`, `docs/component-contracts.md` § MpiToast
 - [x] Eye check in an isolated instance (toast + Download row screenshots)
+- [x] Round 2 (Fabio): `gemma4:26b` recommended for enhance + describe on 24 GB+ cards only (`minVramGb`); recommended rows sorted in table order (fixes the row showing one default while the server ran another)
+- [x] LIVE, no stubs (2026-09-30): moved the qwen3-vl-abliterated:4b manifest out of H:/OllamaModels -> toast fired, Open Remote opened the panel, row read "about 3.3GB", gemma4:26b absent on the 16 GB card, real pull 1.9 s, row gone; manifest back byte-identical (sha256 6138791…)

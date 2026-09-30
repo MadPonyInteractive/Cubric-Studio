@@ -48,6 +48,7 @@ const router = express.Router();
 const logger = require('./logger');
 const { ask } = require('./forkBridge');
 const ollamaLifecycle = require('../services/ollamaLifecycle');
+const { getVramStats } = require('./system');
 
 // sharp is a project dependency; loaded lazily so test runs that do not exercise
 // image operations can still import this router without a native binary around.
@@ -120,7 +121,9 @@ async function _connectionModels(res, profileId) {
     // Ollama's /v1 answers without a key; every hosted preset needs one.
     if (!key && profileId !== 'ollama') return void _connectionError(res, 'NO_KEY', 'No API key saved for this connection.');
     try {
-        return await listRemoteModels({ presetId: profileId, baseURL: profile.baseURL, key });
+        // Only Ollama runs on this card, so only its recommendations depend on it (`minVramGb`, MPI-993).
+        const vramGb = profileId === 'ollama' ? Math.round((await getVramStats()).total / 1024) : null;
+        return await listRemoteModels({ presetId: profileId, baseURL: profile.baseURL, key, vramGb });
     } catch (err) {
         logger.warn('system', `llm connection models failed (${profileId}): ${err && err.message}`);
         return void _connectionError(res, 'ENDPOINT_ERROR', err.message, err.status);
