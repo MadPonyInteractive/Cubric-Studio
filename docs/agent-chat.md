@@ -253,9 +253,15 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   from `describe_model`, `skill:*` entries stay for outside agents on `GET /connector/knowledge`).
   **MPI-903: rules route, docs teach.** A fact gets ONE home, in this order: a gate in a tool
   result, a 1-3 sentence rule, a gated `docs/agent/*.md`, a catalogue entry. No dates, names or
-  incident stories in agent-facing text; docs carry right/wrong pairs. `tests/agent-prompt-budget.test.cjs`
-  pins the floor (system 10,250 bytes, 48 to spare after MPI-996, so run it on ANY rule edit;
-  tools 17.2 KB of JSON; 43 KB before), the story ban, no price in
+  incident stories in agent-facing text ("we found that...", "because it once..."): say what to do
+  and when, never why it was added; docs carry right/wrong pairs.
+  **Remove before you add** (Fabio, 2026-09-30). Every byte of the prompt and the tool schemas is
+  paid on every request, so the budget only goes up when nothing can come out. An agent misstep is
+  fixed by finding the sentence it acted on and deleting or softening it (MPI-892: cutting Qwen
+  Edit's "the only one that leaves everything outside untouched" stopped it being the only editor
+  picked); a new clause pays for itself by cutting an old one where it can. `tests/agent-prompt-budget.test.cjs`
+  pins the floor (the budgets and their history are in that file; run it on ANY rule or tool
+  edit, and lower a budget to the measured size when a change shrinks it), the story ban, no price in
   any agent doc, and 200 lines per doc: a model that needs more is `docs/agent/models/<id>/<topic>.md`
   sub-skills behind its router guide (`guide:<id>/<topic>`, only the router is gated).
 - **Opening lines** of every user message: the app state (the open project by NAME; "Images you can look
