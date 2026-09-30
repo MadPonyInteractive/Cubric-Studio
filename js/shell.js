@@ -549,7 +549,7 @@ async function _bootApp() {
   // One live Flow at a time — destroy the prior instance before mounting the next.
   let _activeFlow = null;
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
-  Events.on('flow:open', async ({ flowId }) => {
+  Events.on('flow:open', async ({ flowId, openAt }) => {
     const flow = getFlowById(flowId);
     if (!flow) return;
     // MPI-856: every Flow is a ComfyUI graph. The Flow Library door is gated above, but
@@ -558,7 +558,7 @@ async function _bootApp() {
     // Reuse's toast is emitted right after this event and must land over the Flow.
     if ((state.runpodConfig || {}).skipLocalEngine && await blockedByNoEngine()) return;
     if (_activeFlow) { _activeFlow.el.destroy(); _activeFlow = null; }
-    _activeFlow = MpiBaseFlow.mount(document.createElement('div'), { flow });
+    _activeFlow = MpiBaseFlow.mount(document.createElement('div'), { flow, openAt });
     // Closing a Flow DESTROYS it (MPI-345). Every open remounts a fresh instance, so
     // a closed one is pure garbage that still holds live listeners — the global
     // `generation.run` hotkey among them, which is what queued a phantom Flow job on

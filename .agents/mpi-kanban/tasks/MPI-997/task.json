@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-997",
+  "title": "Character Sheet splits into two workflows: the head removal becomes its own fast run",
+  "description": "Fabio 2026-09-30: the Headless front body toggle becomes a button that runs ONLY the head-removal workflow on the sheet (press again = back to the original); a full Flow run chains the second workflow after the first. Same graph as MPI-603 (still validating) - land after it. Brief: brief.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-30T17:08:15+01:00",
+  "updated_at": "2026-09-30T17:08:15+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

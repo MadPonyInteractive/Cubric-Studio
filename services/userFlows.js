@@ -36,7 +36,7 @@ const ABS_PATH_RE = /^(?:[A-Za-z]:[\\/]|\\\\|\/(?:home|Users|mnt|root|workspace|
 // The keys built-in Flows use. The app sets `id`, `operation` and `workflow` itself.
 const FLOW_KEYS = new Set(['title', 'preview', 'video', 'description', 'requiredModels',
     'requiredDeps', 'requiredPlugins', 'modelParams', 'mediaType', 'type', 'inputSchema',
-    'result', 'steps', 'fields', 'derived', 'enhance', 'chain']);
+    'result', 'steps', 'fields', 'derived', 'enhance', 'chain', 'agentOpens']);
 const OP_KEYS = new Set(['label', 'progressLabel', 'mediaType', 'requiresImages',
     'requiresVideo', 'mediaInputs', 'promptRequired', 'injector', 'filePrefix']);
 const MEDIA_TYPES = ['image', 'video', 'audio'];

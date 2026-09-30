@@ -88,6 +88,10 @@ cargo-cult install-sync machinery from modelRegistry).
   type,           // 'create' | 'edit' | 'enhance' — creates new / edits existing / enhances
                   //   existing (always required).
   inputSchema,    // { positive?: 'string', media?: [ ...slot groups ] }
+  agentOpens,     // optional (MPI-892) — the in-app agent OPENS this flow for the user at this
+                  //   step (a middle step's kind, or 'run') instead of running it. Set it when the
+                  //   user's hands are needed (a drawing, a placement) or a result is theirs to read
+                  //   first; omit and the agent runs it. docs/agent-chat.md § Handing a Flow over.
 }
 ```
 

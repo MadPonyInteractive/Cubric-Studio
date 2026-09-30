@@ -139,6 +139,14 @@ export async function quoteGeneration(body) {
 }
 
 /**
+ * POST /connector/open-flow — open a Flow on the user's screen, filled, without running it
+ * (MPI-892). Answers at once: nothing is queued.
+ */
+export async function openFlow(body) {
+    return _post('/connector/open-flow', body);
+}
+
+/**
  * MPI-913 — does a ComfyUI job run on THIS PC's card, rather than on a RunPod Pod? Read in
  * process, not over loopback: the loop asks per dispatch. Required lazily so importing this
  * module (every agent-loop test does) never loads the remote stack.

@@ -131,6 +131,15 @@
  *                                       the frame renders them from inputSchema + the flow's
  *                                       fields. Omit or `[]` for a 2-step carousel. A flow writes
  *                                       NO layout code: MpiBaseFlow renders every declared step.
+ * @property {string}   [agentOpens]   - How the in-app agent uses this flow (MPI-892, Fabio
+ *                                       2026-09-30). OMIT and the agent runs it. Set, the agent
+ *                                       never runs it: it fills what it can and OPENS the flow on
+ *                                       the user's screen at this step — a middle step's `kind`
+ *                                       (`'paint'`: the user draws), or `'run'` for the Generate
+ *                                       step (filled for the user to check and press). For a flow
+ *                                       that needs the user's hands, or a result the user should
+ *                                       read before the GPU spends. A required input the agent
+ *                                       lacks still opens it on the inputs step instead.
  *
  * @typedef {Object} FlowStep
  * @property {string}  kind    - STEP_KINDS registry key (MpiBaseFlow/stepKinds.js), e.g. 'box'.
@@ -852,6 +861,7 @@ export const FLOWS = [
         },
         operation: 'flowScribObj',
         workflow: 'flow_draw_it_in.json',
+        agentOpens: 'paint', // the user draws; the agent never does (MPI-892)
         mediaType: 'image',
         type: 'edit',
         inputSchema: {
@@ -1049,6 +1059,7 @@ export const FLOWS = [
         },
         operation: 'flowScribble',
         workflow: 'flow_scribble.json',
+        agentOpens: 'paint', // the user draws; the agent never does (MPI-892)
         mediaType: 'image',
         type: 'create',
         inputSchema: {
@@ -1829,6 +1840,9 @@ export const FLOWS = [
         },
         operation: 'flowObjectStamp',
         workflow: 'flow_object_stamp.json',
+        // The agent loads both pictures; the user cleans the object up and places it. Opens on
+        // the clean-up step, whose hint already says to skip it for a cut-out (MPI-892).
+        agentOpens: 'cutout',
         mediaType: 'image',
         type: 'edit',
         inputSchema: {
@@ -2055,6 +2069,7 @@ export const FLOWS = [
         ],
         operation: 'flowTextToMusic',
         workflow: 'flow_minimax_music.json',
+        agentOpens: 'run', // the agent writes it; the user reads the lyrics and presses Generate (MPI-892)
         mediaType: 'audio',
         type: 'create',
         // No `inputSchema` at all, and no `result.compare` — there is no BEFORE.

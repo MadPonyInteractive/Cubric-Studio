@@ -3774,6 +3774,10 @@ export const MpiBaseFlow = ComponentFactory.create({
         };
 
         // ── Boot ────────────────────────────────────────────────────────────────
+        // MPI-892: the agent hands a Flow over at the step the user works in — a middle
+        // step's kind, or 'run' for Generate. Anything else (or none) opens on the inputs.
+        if (props.openAt === 'run') _current = _lastIndex();
+        else if (props.openAt) _current = _visibleSteps().findIndex(s => s.kind === props.openAt) + 1;
         _buildTicker();
         _renderSlide();
     },

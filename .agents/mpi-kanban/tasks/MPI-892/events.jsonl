@@ -1,1 +1,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-892", "at": "2026-09-22T09:04:15Z", "actor": "session-6b5a38e3", "column": "todo", "title": "The agent fills a Flow and hands it over instead of running it blind"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-892", "at": "2026-09-30T17:16:22+01:00", "actor": "8a36810a", "from": "todo", "to": "doing", "reason": "Implementation started: per-Flow agentOpens + open-a-Flow-filled (Fabio 2026-09-30 reshape)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-892", "at": "2026-09-30T17:16:52+01:00", "actor": "8a36810a", "fields": ["activeSessionTitle", "description", "links", "status"]}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-892", "at": "2026-09-30T17:35:31+01:00", "actor": "8a36810a", "fields": ["maturity", "status"]}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-892", "at": "2026-09-30T17:35:31+01:00", "actor": "8a36810a", "summary": "npm test 2407/0, lint clean, live opens on an isolated app; left: Fabio look"}

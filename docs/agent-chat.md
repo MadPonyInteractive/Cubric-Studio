@@ -571,3 +571,31 @@ they see it arrive. **An app behaviour, never a tool** — the model only calls 
   Audio always goes to the gallery.
 - **"This image, but with model X"** is a RE-RUN (Model rule): the named model's text-to-image
   from the source's prompt, no media — never an i2i restyle. Harness case `rerun-on-named-model`.
+
+## Handing a Flow over (MPI-892, Fabio 2026-09-30)
+
+Phase 3 of the umbrella: the agent opens a Flow on the user's screen, FILLED, instead of running
+it, and the user presses Generate. Per Flow, not one box on every run (Fabio sorted them:
+`tasks/MPI-892/brief.md`).
+
+- **`agentOpens` on the FlowDef** (`flowsRegistry.js`) is where it opens: a middle step's `kind`,
+  or `'run'`. Draw It In and Scribble `paint`, Object Stamp `cutout`, Song `run`. Absent = the
+  agent runs it. `list_models` carries it (`opens`; the short catalogue says `opensForUser`).
+- **The loop** (`AgentLoop._openFlow`, before the box gate): a `generate` naming an `agentOpens` Flow, or
+  sending `open: true`, calls `POST /connector/open-flow`, never `/connector/generate`. No box
+  gate, no spend card, nothing in flight. Refused with `NOT_NOW` off a typed turn (`_follow`).
+  A Flow's `MEDIA_REQUIRED` refusal offers `open: true` (the missing voice sample).
+- **Its own route and capability** (`flow.open` -> `agentDispatch.openFlow`), the
+  `/connector/quote` rule: a dropped flag must fall towards running nothing. `follow` must be a
+  literal `true`, so a CLI agent never opens one. Refused by the same `followBlocker` as the view
+  moving (`VIEW_BUSY`), and only in the open project.
+- **Filled through Reuse's store:** `s_flowInputs[flowId]`, seeded before `flow:open`, which now
+  carries `openAt` to `MpiBaseFlow` (a kind -> its slide, `run` -> the last, else the inputs).
+  Media and fields resolve as a run's do; empty slots, boxes and frames are the user's to fill.
+  Where it opens: `inputs` while a required slot is empty (a step that creates its own picture,
+  Scribble's blank canvas, does not count, as in the frame's `_stepDerivesOwnMedia`), else
+  `agentOpens`, else `run`.
+- **The answer** names the step (`at`), its `hint` and any `empty` required slot; the model says
+  what is left in one line and explains the step only when asked (app:flows).
+- **Settled first: the Duration rule's "you never speak first" was stale** (wake turns, MPI-870).
+  It now says the app wakes the agent when the job finishes.

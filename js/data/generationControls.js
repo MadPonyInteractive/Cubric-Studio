@@ -576,9 +576,11 @@ function _refMediaType(url) {
  * @param {string} operation
  * @param {object|null} model
  * @param {Array<{role:string, url:string}>} media
+ * @param {{allowEmpty?: boolean}} [opts] - `allowEmpty`: an empty required slot is not an
+ *   error. A Flow the agent OPENS for the user (MPI-892) leaves it for them to fill.
  * @returns {{ok:true, mediaItems:Array}|{ok:false, code:string, message:string}}
  */
-export function resolveAgentMedia(operation, model, media = []) {
+export function resolveAgentMedia(operation, model, media = [], { allowEmpty = false } = {}) {
     const slots = filterMediaInputsForModel(getCommandMediaInputs(operation), model);
     const mediaItems = [];
     for (const m of (Array.isArray(media) ? media : [])) {
@@ -609,7 +611,7 @@ export function resolveAgentMedia(operation, model, media = []) {
     // `findMissingMediaSlot` also accepts any item of the slot's type, which suits an
     // unroled PromptBox chip; on this path it let a lone `inputImage2` through, and
     // ordinal injection then made the REFERENCE the picture being edited (caught live).
-    const missing = slots.find(s => s.required !== false && !mediaItems.some(item => item.role === s.key));
+    const missing = !allowEmpty && slots.find(s => s.required !== false && !mediaItems.some(item => item.role === s.key));
     if (missing) {
         return _err('MEDIA_REQUIRED', `"${operation}" needs ${missing.mediaType} in its "${missing.key}" slot.`);
     }

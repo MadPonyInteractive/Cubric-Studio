@@ -69,6 +69,7 @@ import { formatPrice } from '../data/modelConstants/deepinfraPricing.js';
 import { downloadService } from '../services/downloadService.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
 import { state } from '../state.js';
+import { Events } from '../events.js';
 import { runGifJob, GIF_HANDLERS } from './gifJobs.js';
 import { ROUTINE_HANDLERS } from './routineDispatch.js';
 import { AGENT_TOOL_OPS, TOOLS_NEEDING_SIZE, agentToolOp, toolOperation, toolRun } from './agentToolOps.js';
@@ -1179,6 +1180,79 @@ export async function buildFlow(input, project) {
     };
 }
 
+/** What `followBlocker` found, in words the agent can pass on. */
+const BUSY_WORDS = {
+    'pointer-held': 'in the middle of a click or drag',
+    'overlay-open': 'using something open over the app (a Flow or a window)',
+};
+
+/** A step's hint as one line: a string, lines, or per-mode lines (the first mode). */
+function _hintText(hint) {
+    const lines = hint && typeof hint === 'object' && !Array.isArray(hint) ? Object.values(hint)[0] : hint;
+    return [].concat(lines || []).join(' ');
+}
+
+/**
+ * `flow.open` (MPI-892) — the agent hands a Flow over instead of running it. The Flow opens on
+ * the user's screen with what the agent filled, at the step the user works in, and NOTHING
+ * runs until they press Generate. Fabio, 2026-09-30: the three Flows that need the user's hands
+ * (Draw It In, Scribble, Object Stamp) and Song, whose lyrics the user reads first, declare
+ * `agentOpens`; any other Flow opens this way when the agent is asked to, or lacks an input
+ * only the user has (a voice sample).
+ *
+ * Its own capability and route (`POST /connector/open-flow`), never a flag on a submit: the
+ * `/connector/quote` rule — a dropped flag must fall towards not running.
+ *
+ * Filled through the store Reuse restores through (`openFlowFromReuse`): `s_flowInputs`,
+ * seeded before `flow:open` and read by MpiBaseFlow on mount. Media and declared fields
+ * resolve exactly as a run's do; an empty slot, a box or a frame is the user's to fill there,
+ * so the run's refusals for those do not apply. Only on `follow` (a turn the user typed), and
+ * never over something the user is doing: the same guard as the view moving (MPI-891).
+ */
+export async function openFlow(jobId, input = {}) {
+    if (!input.follow) {
+        return _fail(jobId, 'NOT_NOW', 'A Flow opens on the user\'s screen only in reply to something they typed.');
+    }
+    if (!state.currentProject) {
+        return _fail(jobId, 'NO_PROJECT', 'No project is open, and a Flow opens in the open project.');
+    }
+    const flow = getFlowById(input.flowId);
+    if (!flow) return _fail(jobId, 'UNKNOWN_FLOW', `No flow with id "${input.flowId}".`);
+    const blocked = followBlocker();
+    if (blocked) {
+        return _fail(jobId, 'VIEW_BUSY', `Nothing was opened: the user is ${BUSY_WORDS[blocked] || 'working on the picture'}. Tell them you will open ${flow.title} once they are done, and send it again when they say so.`);
+    }
+    const resolved = resolveAgentMedia(flow.operation, null, Array.isArray(input.media) ? input.media : [], { allowEmpty: true });
+    if (!resolved.ok) return _fail(jobId, resolved.code, resolved.message);
+    const { mediaItems } = resolved;
+    const { inputs, injectionParams, unknown } = resolveFlowFieldValues(flow, input.fields || {});
+    if (unknown.length) {
+        const known = flowDeclaredFields(flow).map(f => f.id).join(', ');
+        return _fail(jobId, 'BAD_REQUEST',
+            `${flow.title} declares no field ${unknown.map(k => `"${k}"`).join(', ')}. Fields: ${known || 'none'}.`);
+    }
+
+    // A step that CREATES its picture fills the slot at run time (Scribble's blank canvas), so
+    // an empty one is not missing — MpiBaseFlow's `_stepDerivesOwnMedia`, the same question.
+    const empty = (flow.steps || []).some(s => s?.composite) ? null : findMissingMediaSlot(flow.operation, mediaItems);
+    // A missing input comes first: its step is where the user adds it.
+    const openAt = empty ? 'inputs' : (flow.agentOpens || 'run');
+    state.s_flowInputs = {
+        ...state.s_flowInputs,
+        [flow.id]: { ...inputs, mediaItems, ...(Object.keys(injectionParams).length ? { injectionParams } : {}) },
+    };
+    Events.emit('flow:open', { flowId: flow.id, openAt });
+
+    const step = (flow.steps || []).find(s => s.kind === openAt);
+    const hint = _hintText(step?.hint);
+    return _report(jobId, { ok: true, output: {
+        opened: flow.title,
+        at: step?.title || (openAt === 'run' ? 'Generate' : 'Inputs'),
+        ...(hint ? { hint } : {}),
+        ...(empty ? { empty: `${empty.mediaType} in the "${empty.key}" slot` } : {}),
+    } });
+}
+
 /**
  * Run one `project.open` job — the same pair of calls every project row in
  * `projectUI.js` makes, because opening a project IS `openProject` + navigate.
@@ -1458,6 +1532,8 @@ function _listModels(jobId) {
             // A crop step has no `param` by design — its value becomes a PADDED PICTURE,
             // not a widget — so it cannot ride in `boxParams` and gets its own key.
             ...(cropStep ? { frame: { param: 'frame', role: cropStep.role, ratios: CROP_RATIO_LABELS, grow: FRAME_GROW_SIDES } } : {}),
+            // MPI-892: the agent never runs this one; it opens it for the user at this step.
+            ...(flow.agentOpens ? { opens: flow.agentOpens } : {}),
         };
     });
 
@@ -1561,6 +1637,7 @@ const _HANDLERS = {
     'generation.submit': _submitGeneration,
     'generation.quote': _quoteGeneration,
     'generation.cancel': _cancelGeneration,
+    'flow.open': openFlow,
     'project.open': _openProject,
     'project.current': _currentProject,
     'card.rename': _renameCard,

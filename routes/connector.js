@@ -714,6 +714,29 @@ router.post('/connector/quote', async (req, res) => {
 });
 
 /**
+ * POST /connector/open-flow { flowId, fields?, media?, follow } — open a Flow on the user's
+ * screen, filled, WITHOUT running it (MPI-892): the in-app agent hands over a Flow the user
+ * has to finish (a drawing, an object to place) or should read before the GPU spends. The
+ * user presses Generate. Deliberately not a flag on `/connector/generate`, for the reason
+ * `/connector/quote` is not: a dropped or mistyped flag must fall towards running nothing.
+ * `follow` must be a literal `true` (a turn the user typed), as it must to move the view.
+ * -> `{ ok: true, output: { opened, at, hint?, empty? } }`.
+ * Errors: BAD_REQUEST, NOT_NOW, NO_PROJECT, UNKNOWN_FLOW, VIEW_BUSY, APP_UNAVAILABLE.
+ */
+router.post('/connector/open-flow', async (req, res) => {
+  const { flowId, fields, media } = req.body || {};
+  if (typeof flowId !== 'string' || !flowId) {
+    return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.flowId is required.' } });
+  }
+  res.json(await _dispatchToRenderer('flow.open', {
+    flowId,
+    fields: fields && typeof fields === 'object' ? fields : {},
+    media: Array.isArray(media) ? media : [],
+    follow: req.body.follow === true,
+  }));
+});
+
+/**
  * POST /connector/cancel { requestId } — stop a generation this caller submitted with that
  * `requestId`, whether it is rendering or still waiting in the queue. Nothing else is touched:
  * not the user's own runs, not another caller's. The cancelled submit's own held response

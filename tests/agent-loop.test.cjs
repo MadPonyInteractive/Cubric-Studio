@@ -528,12 +528,14 @@ test('Cards: recency is the list order, never a note; an open card is "this one"
     assert.match(r, /do not call list_cards to find it, never ask them to attach it/);
 });
 
-test('Duration: 2-3 s default, a sequence earns more, never promise to report back', () => {
+test('Duration: 2-3 s default, a sequence earns more, the wake reports it', () => {
     const r = rule('Duration');
     assert.match(r, /defaults to 2 to 3 seconds: ONE continuous action fits/);
     assert.match(r, /Only a SEQUENCE/);
     assert.match(r, /The user naming a length always wins/);
-    assert.match(r, /Never promise to report back: you never speak first.*only when the user writes again/);
+    // MPI-892: wake turns shipped with MPI-870, so "you never speak first" was stale.
+    assert.match(r, /When it finishes the app wakes you, and you report it then/);
+    assert.doesNotMatch(r, /never speak first/);
     assert.ok(r.length <= 1212, `the Duration rule is ${r.length} chars`);
 });
 
@@ -3397,5 +3399,91 @@ describe('session spend (MPI-855)', () => {
         assert.ok(Math.abs(spend.chatUsd - 0.0004) < 1e-12, `both looks count, got ${spend.chatUsd}`);
         assert.equal(spend.genUsd, 0);
         assert.equal(fakeRes.events.filter((e) => e.event === 'agent:spend').pop().data.chatUsd, spend.chatUsd);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// MPI-892 (Fabio, 2026-09-30): a Flow the user finishes is OPENED for them, never run
+// ---------------------------------------------------------------------------
+
+describe('MPI-892 — handing a Flow over', () => {
+    const call = (id, name, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
+    const project = { folderPath: '/project', name: 'Test' };
+    const toolResults = (loop) => loop._messages.filter((m) => m.role === 'tool').map((m) => JSON.parse(m.content));
+
+    function withOpen(tools, flows) {
+        tools.calls.openFlow = [];
+        tools.openFlow = async (body) => {
+            tools.calls.openFlow.push(body);
+            return { ok: true, output: { opened: 'Draw It In', at: 'Draw what you want to add', hint: 'Paint where it goes.' } };
+        };
+        tools.listModels = async () => ({ ok: true, models: [], flows });
+    }
+
+    test('a Flow that declares where it opens is opened, never run, and its box is the user\'s', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { flowId: 'scribble-object', fields: { positive: 'a red balloon' }, media: [{ role: 'image1', image: 'att_1' }] }),
+            { text: 'Opened.' },
+        ] });
+        withOpen(tools, [{ id: 'scribble-object', opens: 'paint', boxParams: [{ param: 'box1', role: 'image1' }] }]);
+        loop._images.set('att_1', { path: '/tmp/att_1.png', kind: 'attachment' });
+        await loop.runTurn('Add a balloon to this photo', [], project, 'auto', 'deepinfra', 't-open');
+        const [r] = toolResults(loop);
+        assert.equal(r.ok, true, JSON.stringify(r));
+        assert.match(r.message, /Nothing ran\. Draw It In is open on the user's screen/);
+        assert.match(r.message, /only if they ask/);
+        assert.equal(tools.calls.generate.length, 0, 'nothing reached the queue');
+        assert.equal(tools.calls.openFlow.length, 1);
+        const sent = tools.calls.openFlow[0];
+        assert.equal(sent.follow, true);
+        assert.deepEqual(sent.fields, { positive: 'a red balloon' });
+        assert.equal(sent.media[0].role, 'image1');
+        assert.match(sent.media[0].url, /preview-assets/, 'an attachment is placed in the project first');
+    });
+
+    test('open: true opens any Flow; the same call without it runs', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { flowId: 'chatter-box', fields: { positive: 'Hi.' }, open: true }),
+            call('g2', 'generate', { flowId: 'chatter-box', fields: { positive: 'Hi.' } }),
+            { text: 'Done.' },
+        ] });
+        withOpen(tools, [{ id: 'chatter-box' }]);
+        await loop.runTurn('Say hi', [], project, 'auto', 'deepinfra', 't-open2');
+        assert.equal(tools.calls.openFlow.length, 1);
+        assert.equal(tools.calls.generate.length, 1);
+    });
+
+    test('a wake turn never opens one: it takes the user\'s screen', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { flowId: 'scribble', fields: { positive: 'a cat' } }),
+            { text: 'Ready when you are.' },
+        ] });
+        withOpen(tools, [{ id: 'scribble', opens: 'paint' }]);
+        loop._notes.push('[Generation finished: card g, image /p/x.png]');
+        await loop.runTurn('', [], project, 'auto', 'deepinfra', 't-wake-open', { wake: true });
+        assert.equal(toolResults(loop)[0].error.code, 'NOT_NOW');
+        assert.equal(tools.calls.openFlow.length, 0);
+        assert.equal(tools.calls.generate.length, 0);
+    });
+
+    test('a Flow refused for missing media is told it can offer to open it', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { flowId: 'chatter-box', fields: { positive: 'Hi.' } }),
+            { text: 'No voice.' },
+        ] });
+        withOpen(tools, [{ id: 'chatter-box' }]);
+        tools.generate = async (body) => {
+            tools.calls.generate.push(body);
+            return { ok: false, error: { code: 'MEDIA_REQUIRED', message: 'Text to Speech needs audio in its "audio1" slot.' } };
+        };
+        await loop.runTurn('Say hi in my voice', [], project, 'auto', 'deepinfra', 't-novoice');
+        assert.match(toolResults(loop)[0].error.message, /offer to open the Flow for them to add it: this same call with open: true/);
+    });
+
+    test('the short catalogue says which Flows open for the user', async () => {
+        const { compactCatalogue } = await import('../services/agentLoop.mjs');
+        const short = compactCatalogue({ ok: true, models: [], flows: [{ id: 'scribble', title: 'Scribble', installed: true, opens: 'paint' }, { id: 'stems', title: 'Stems', installed: true }] });
+        assert.equal(short.flows[0].opensForUser, true);
+        assert.equal(short.flows[1].opensForUser, undefined);
     });
 });

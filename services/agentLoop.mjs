@@ -123,6 +123,7 @@ export const TOOL_DEFS = [
                     wait: { type: 'boolean', description: 'Wait for this generation to finish and return its result, instead of starting it and moving on. Use it when a LATER step in the same request needs this output — the result carries the filePath you then pass as media. Leave it off for the last step, so the chat stays free while it runs.' },
                     fields: { type: 'object', description: 'Flow field values.' },
                     params: { type: 'object', description: 'Flow step params: a measured box, e.g. { box1: { x, y, width, height } }, or the frame an outpaint grows to, e.g. { frame: { ratio: "4:5", grow: "up" } }. app:flows says how to pick both.' },
+                    open: { type: 'boolean', description: 'A Flow only: open it on the user\'s screen, filled, for them to finish and run, instead of running it: when they ask, or it needs what only they have.' },
                     media: {
                         type: 'array',
                         items: {
@@ -557,6 +558,8 @@ export function compactCatalogue(list) {
             id: f.id,
             title: f.title,
             installed: f.installed,
+            // MPI-892: said up front, so the agent offers to open it rather than saying it cannot draw.
+            ...(f.opens ? { opensForUser: true } : {}),
         })),
         // MPI-904: the image tools with no model (upscale, background removal, crop).
         tools: (list.tools || []).map((t) => ({
@@ -661,6 +664,7 @@ export class AgentLoop {
         this._readIds = new Set(); // knowledge ids read in this context (the guide gate)
         this._guides = new Map();  // modelId -> guide ids, from list_models
         this._boxSteps = new Map(); // flowId -> its box steps [{param, role}], from list_models
+        this._opens = new Map();    // flowId -> the step it opens at instead of running (MPI-892), or null
         this._ops = new Map();     // "modelId\nop" -> that op's entry (media slots, params), from list_models
         this._boxed = new Set();   // image paths a `look` with box: true measured (the box gate)
         this._overBoxed = new Map(); // image path -> measures whose square was too big for a head
@@ -1193,7 +1197,10 @@ export class AgentLoop {
             this._guides.set(m.id, Array.isArray(m.guides) ? m.guides : []);
             for (const o of m.ops || []) this._ops.set(`${m.id}\n${o.op}`, o);
         }
-        for (const f of list?.flows || []) this._boxSteps.set(f.id, Array.isArray(f.boxParams) ? f.boxParams : []);
+        for (const f of list?.flows || []) {
+            this._boxSteps.set(f.id, Array.isArray(f.boxParams) ? f.boxParams : []);
+            this._opens.set(f.id, f.opens || null);
+        }
         // A tool has no model: its op is keyed with an empty model id.
         for (const t of list?.tools || []) this._ops.set(`\n${t.op}`, t);
     }
@@ -1619,6 +1626,50 @@ export class AgentLoop {
         return yes === true;
     }
 
+    /** MPI-892 — the step a Flow opens at instead of running (its `agentOpens`), or null to run it. */
+    async _flowOpens(flowId) {
+        if (!this._opens.has(flowId)) {
+            try { this._rememberGuides(await this._tools.listModels()); } catch { /* the app still validates the call */ }
+        }
+        return this._opens.get(flowId) || null;
+    }
+
+    /**
+     * MPI-892 — hand a Flow over instead of running it (Fabio, 2026-09-30): it opens on the user's
+     * screen with what this call filled, and nothing runs until they press Generate. A Flow that
+     * declares `agentOpens` always comes here (the user draws, places or reads first); any other
+     * when the model sends `open: true`. No box gate, no spend card, nothing in flight: nothing is
+     * queued. Only in reply to the user (`_follow`), never a wake or a carry: it takes their screen.
+     */
+    async _openFlow(args, currentProject) {
+        if (!this._follow) {
+            return JSON.stringify({ ok: false, error: { code: 'NOT_NOW', message: `Nothing was opened: a Flow opens on the user's screen only in reply to them. Tell them ${args.flowId} is ready to open and ask.` } });
+        }
+        // ponytail: the same ref resolution as generate's media loop, minus what only a run reads.
+        const media = [];
+        for (const m of Array.isArray(args.media) ? args.media : []) {
+            const ref = this._resolveImage(m.image);
+            if (!ref) {
+                return JSON.stringify({ ok: false, error: { code: 'IMAGE_NOT_FOUND', message: `Image reference not found: ${m.image}. Use an attachment id from this conversation, or the filePath of something you generated.` } });
+            }
+            if (ref.kind !== 'attachment') { media.push({ role: m.role, url: _projectFileUrl(ref.path) }); continue; }
+            const placed = await this._tools.placeAsset(currentProject.folderPath, ref.path);
+            if (!placed?.success || !placed.filePath) {
+                return JSON.stringify({ ok: false, error: { code: 'RUNTIME_ERROR', message: `Could not place the attachment in the project: ${placed?.error || 'unknown error'}` } });
+            }
+            media.push({ role: m.role, url: placed.filePath });
+        }
+        const r = await this._tools.openFlow({ flowId: String(args.flowId), fields: args.fields || {}, media, follow: true });
+        if (!r?.ok) {
+            return JSON.stringify({ ok: false, error: { ...r?.error, message: `Nothing was opened: ${r?.error?.message || 'the app refused it.'}` } });
+        }
+        const o = r.output || {};
+        return JSON.stringify({
+            ok: true, opened: o.opened, at: o.at, ...(o.empty ? { empty: o.empty } : {}), ...(o.hint ? { hint: o.hint } : {}),
+            message: `Nothing ran. ${o.opened} is open on the user's screen at "${o.at}", filled with what you sent${o.empty ? `; it still needs ${o.empty}` : ''}. They finish it there and press Generate, and the result lands in the gallery. Tell them so in one line. Say how to do that step (the hint) only if they ask.`,
+        });
+    }
+
     /**
      * The first Flow box param whose image no `look` with `box: true` measured, or null. Structural,
      * like the guide gate: live (Phase 4) the model guessed Head Swap boxes at {0,0,512,512} with the
@@ -1782,7 +1833,7 @@ Settings rule: list_models carries no settings. Once you have picked a model or 
 
 Guide rule: adapt what the user asked for to the model's guide (its structure, length and vocabulary) and keep their intent. Never send a guide's example as the prompt.
 
-Duration rule: a clip defaults to 2 to 3 seconds: ONE continuous action fits. Only a SEQUENCE of beats, or a spoken line too long for 3 seconds, earns more, and budget less than your first instinct. The user naming a length always wins. Say the durationSeconds the result reports; until then say "I asked for N seconds". Never promise to report back: you never speak first, and a result reaches you only when the user writes again.
+Duration rule: a clip defaults to 2 to 3 seconds: ONE continuous action fits. Only a SEQUENCE of beats, or a spoken line too long for 3 seconds, earns more, and budget less than your first instinct. The user naming a length always wins. Say the durationSeconds the result reports; until then say "I asked for N seconds". When it finishes the app wakes you, and you report it then.
 
 Numbering rule: "picture 2", "image 2" or "2" in a message means that message's attached image 2, never an image from an earlier turn. Pass that attachment's id.
 
@@ -1790,7 +1841,7 @@ Looking rule: before you comment on, judge or describe any image, call look on i
 
 Shape rule: a generation from a picture crops it to the ratio, never letterboxes. Leave ratio out and the picture's own shape is used; only when the user asks for a ratio, say in one line before you generate that part of the picture will be cropped.
 
-Flow rule: before your first Flow run, read app:flows.
+Flow rule: before your first Flow run or answer about one, read app:flows.
 
 Chaining rule: when the second half of a request needs the first ("make it 9:16, then animate it"), generate the first with wait: true; its result carries the filePath the next step takes. Do both halves. When the first step's output is something they will judge (a new shape, style or face), look at it and redo it if it came back wrong. Never end a turn with half done without saying which half is missing and why.
 
@@ -1928,6 +1979,11 @@ ${knowledgeIndex}`.trim();
                 if (Number(args.count) > 1) {
                     return this._fanOut(args, turnId, currentProject);
                 }
+                // MPI-892 — handed over, never run: before the box gate, because a box on a Flow
+                // the user finishes is theirs to draw.
+                if (args.flowId && (args.open === true || await this._flowOpens(args.flowId))) {
+                    return this._openFlow(args, currentProject);
+                }
                 if (args.flowId) {
                     const miss = await this._unmeasuredBox(args);
                     if (miss) {
@@ -2037,9 +2093,12 @@ ${knowledgeIndex}`.trim();
                     // the model has this in-turn and can fix the call and send it again.
                     const miss = /^(INVALID_|UNKNOWN_PARAM|MEDIA_REQUIRED)/.test(early.error?.code || '');
                     const where = args.flowId || args.modelId;
+                    // MPI-892 (Fabio): "You didn't provide the voice sample. I can open the flow for you."
+                    const offer = args.flowId && early.error?.code === 'MEDIA_REQUIRED'
+                        ? ' If only the user has it (a voice sample, their own photo), offer to open the Flow for them to add it: this same call with open: true.' : '';
                     return JSON.stringify({ ok: false, error: {
                         ...early.error,
-                        message: `Nothing was generated: ${early.error?.message || 'the generation was refused.'}${miss && where ? ` Call describe_model with "${where}" for the values it accepts, then send it again.` : ''}`,
+                        message: `Nothing was generated: ${early.error?.message || 'the generation was refused.'}${miss && where ? ` Call describe_model with "${where}" for the values it accepts, then send it again.` : ''}${offer}`,
                     } });
                 }
                 // It is queued. Until it lands, this is the only trace of what was asked for.

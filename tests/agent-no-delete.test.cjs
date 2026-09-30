@@ -42,6 +42,8 @@ const ALLOWED_REQUESTS = new Set([
     // delete: it stops a render the agent ITSELF started, named by its own requestId, and a
     // cancelled generation never made a card or a file. It cannot reach the user's own runs.
     'POST /connector/cancel',
+    // MPI-892: opens a Flow on the user's screen, filled, and runs nothing. Removes nothing either.
+    'POST /connector/open-flow',
     // MPI-817 Phase E: the GIF verbs. None removes anything: make and to-video land a NEW card,
     // edit and cutout add an ENTRY to the card's history and leave the source entry on it.
     'POST /connector/gif/make',

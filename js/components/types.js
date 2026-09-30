@@ -1250,6 +1250,8 @@
  * @property {import('../data/flowsRegistry.js').FlowDef} flow - The flow descriptor.
  * @property {Object} [initialInputs] - Optional seed inputs (overridden by
  *   state.s_flowInputs[flow.id] when present).
+ * @property {string} [openAt] - The step to open on (MPI-892): a middle step's `kind`, or
+ *   'run' for Generate. Omitted, or a kind the flow does not show, opens on the inputs.
  *
  * THE flow frame: a STEP CAROUSEL (MPI-306 Phase 1; was a flat form in MPI-256).
  * COMPOSITION: mounts a `main-area` MpiOverlay (covers #tool-container + prompt
