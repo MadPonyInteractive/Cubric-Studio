@@ -74,12 +74,16 @@ the master checklist, and a routing table (§ → section file). Then state, in 
    `commonDeps` + `operations{}`; single- vs multi-stage.
 2. Whether a **new `model.type`** is introduced (⇒ `03-model-registry.md` consumer sweep).
 3. Whether a **new op** is introduced (⇒ two registry mirrors, `04-ops-and-controls.md`).
+4. Which **enhancer recipe** it resolves to (`enhanceRecipe ?? type`) and whether that recipe's
+   agent guide (`docs/agent/models/<recipe id>.md`) will NAME this model: the in-app agent Cosmo
+   prompts from that guide, and a reused recipe is a shared guide (`07-agent-knowledge.md` § 2).
 
-If you cannot answer all three from the hub + the workflow JSON, stop and ask.
+If you cannot answer all four from the hub + the workflow JSON, stop and ask.
 
-**Then read section files ON DEMAND — do NOT slurp all six up front.** The hub's routing
+**Then read section files ON DEMAND — do NOT slurp all seven up front.** The hub's routing
 table tells you which section each checklist step lives in. Open a section when you reach
-its step (authoring the graph → `01`; deps/R2 → `02`; etc.). Reading `05-prompt-and-styles`
+its step (authoring the graph → `01`; deps/R2 → `02`; making the model known to Cosmo → `07`;
+etc.). Reading `05-prompt-and-styles`
 for a model with no style rack is wasted context. Read what the model in front of you needs.
 
 **Do not skip Step 0 because the user pasted a handoff.** The handoff assumes the
@@ -129,6 +133,7 @@ an order, and do not pre-read sections you haven't reached.
 | Injection **silently skips** a param whose `Input_*` title matches no node (hid `Input_Is_i2i` + `Input_Batch` for 4 sessions) | 04 |
 | Style-LoRA set ⇒ assert `len(MpiPromptList.options) == number of style LoRAs`. A missing trigger line is a silent half-application | 05 |
 | Style rack ⇒ ship `styleLoraImages` (index-aligned with `styleLoraLabels`, index 0 = no-style baseline) — one gen per style from the SAME prompt. Misalignment shows the wrong picture for the style the user gets | 05 |
+| **A model that works in the Prompt Box is invisible to Cosmo.** It picks by rank and `name` (`description` is never sent; tier siblings share one name), prompts from the guide of the model's ENHANCER RECIPE (a reused recipe = a shared guide that may never mention it), and knows a new op by name only where `MASKED_OPS` / `ONE_AREA_OPS` list it. Nothing fails | 07 |
 | Models are **NOT** version-bumped | README |
 
 ## Hard rules
@@ -149,4 +154,10 @@ an order, and do not pre-read sections you haven't reached.
 - [ ] `sha256: null` remains nowhere
 - [ ] Parse cross-ref passes (§7.1)
 - [ ] One generation per op, in the real app
+- [ ] **In-app agent** (README lines `Agent name + note`, `Agent guide`, `New OP or TASK?`,
+      `Agent must-say`, `New media KIND?`, `Agent verify`; all in `07-agent-knowledge.md`): ranked with
+      a note that says what the model is FOR; the guide names this model; new-op lists
+      (`MASKED_OPS`, `ONE_AREA_OPS`, `masking.md`) updated; the read-back printed (rank, params, guide
+      ids); the three agent tests green; the live ask in words handed to the user. Ticked or waived
+      with a reason, never skipped
 - [ ] Anything learned that the playbook lacked → **written back into the playbook**

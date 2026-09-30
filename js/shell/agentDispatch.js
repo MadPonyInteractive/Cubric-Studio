@@ -57,7 +57,8 @@ import { DEPS } from '../data/modelConstants/dependencies.js';
 import { resolveFullUniverse } from '../data/modelConstants/resolveModelDeps.js';
 import { sizeToGb } from '../data/modelConstants/footprint.js';
 import { getFlowById, listFlows, flowAvailability } from '../data/flowsRegistry.js';
-import { resolveFlowFieldValues, flowDeclaredFields, agentFieldSpecs } from '../utils/declaredFields.js';
+import { resolveFlowFieldValues, agentFieldSpecs } from '../utils/declaredFields.js';
+import { enhanceFlowRun } from '../services/flowEnhance.js';
 import { getCommand } from '../data/commandRegistry.js';
 import { resolveNamedParams, isValidSeed, resolveAgentMedia, namedParamsFor } from '../data/generationControls.js';
 import { resolveActiveModel } from '../utils/modelHelpers.js';
@@ -1168,10 +1169,17 @@ export async function buildFlow(input, project) {
 
     const { inputs, injectionParams: fieldInjection, unknown } = resolveFlowFieldValues(flow, fields);
     if (unknown.length) {
-        const known = flowDeclaredFields(flow).map(f => f.id).join(', ');
+        // The fields the agent was SHOWN: a hidden one (Song's caption blocks) is the Flow's own.
+        const known = agentFieldSpecs(flow).map(f => f.id).join(', ');
         return _refuse('BAD_REQUEST',
             `${flow.title} declares no field ${unknown.map(k => `"${k}"`).join(', ')}. Fields: ${known || 'none'}.`);
     }
+
+    // The Flow's own enhance pass (MPI-1002), on the enhancer picked in Remote, exactly as a
+    // hand run's Generate does it — the agent and routines reach a Flow only through here.
+    // It writes only blank targets, and a failed enhancer submits nothing.
+    const enhanced = await enhanceFlowRun(flow, { inputs, injectionParams: fieldInjection });
+    if (!enhanced.ok) return _refuse(enhanced.code, enhanced.message);
 
     // Merge box params into injectionParams: each box key becomes its Input_ title
     // exactly as the workflow expects (agentDispatch._buildParams does the rename,
@@ -1191,13 +1199,14 @@ export async function buildFlow(input, project) {
         }
     }
 
-    const injectionParams = { ...fieldInjection, ...boxInjection };
+    const injectionParams = { ...fieldInjection, ...enhanced.injectionParams, ...boxInjection };
 
     return {
         ok: true,
         flow,
         inputs: {
             ...inputs,
+            ...enhanced.inputs,
             mediaItems,
             ...(Object.keys(injectionParams).length ? { injectionParams } : {}),
             ...(passPlan ? { runNextPass: _nextPassFor(passPlan, mediaItems, cropSource, project) } : {}),
@@ -1253,7 +1262,7 @@ export async function openFlow(jobId, input = {}) {
     const { mediaItems } = resolved;
     const { inputs, injectionParams, unknown } = resolveFlowFieldValues(flow, input.fields || {});
     if (unknown.length) {
-        const known = flowDeclaredFields(flow).map(f => f.id).join(', ');
+        const known = agentFieldSpecs(flow).map(f => f.id).join(', ');
         return _fail(jobId, 'BAD_REQUEST',
             `${flow.title} declares no field ${unknown.map(k => `"${k}"`).join(', ')}. Fields: ${known || 'none'}.`);
     }

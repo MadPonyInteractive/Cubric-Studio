@@ -17,3 +17,7 @@
    and **no `sha256: null`** remains.
 4. **Launch the app**, confirm the model card appears, the quality tiers are the
    right set, and (best) run one gen per op.
+5. **In-app agent (Cosmo):** read back rank, note, params and guide ids, run the three agent
+   tests, and give the user the live ask in words that should pick the model and read its
+   guide: [07-agent-knowledge.md](07-agent-knowledge.md) § 5. A model Cosmo cannot pick or
+   prompt is not done.

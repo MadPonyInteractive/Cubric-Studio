@@ -98,8 +98,14 @@ function testTheControlHasNoPerModelBranch() {
 
 function testOnlyLlmServiceDispatchesTheEnhancerOp() {
     const flow = SRC('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
-    assert.ok(flow.includes('enhanceFlow('),
+    // MPI-1002: the frame reaches `enhanceFlow` through `runEnhanceDecl`, the ONE Flow-path
+    // caller — the agent's Flow run goes through the same function, so both follow the pick.
+    assert.ok(flow.includes('runEnhanceDecl('),
         'MpiBaseFlow must route its enhance through the shared dispatch');
+    assert.ok(!flow.includes('enhanceFlow('),
+        'MpiBaseFlow calls enhanceFlow itself — that is what flowEnhance.runEnhanceDecl is for');
+    assert.ok(SRC('js/services/flowEnhance.js').includes('await enhanceFlow('),
+        'runEnhanceDecl must dispatch through enhanceFlow, which honours the Language Models pick');
     assert.ok(!flow.includes('runComfyEnhance'),
         'MpiBaseFlow calls the ComfyUI enhancer directly — flows must follow the Language Models pick');
     assert.ok(!/operation:\s*d\.op/.test(flow),

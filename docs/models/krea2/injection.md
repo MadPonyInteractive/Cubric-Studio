@@ -244,9 +244,20 @@ maps `cubric_models.loras: loras/` under `base_path: G:/CubricModels`.)
 ## Prompt enhancement — LIVE, and the system prompt MUST be a real chat turn
 
 The graph runs an LLM prompt-expander (`TextGenerate` on the `qwen3vl_4b` encoder), gated by
-`Input_enhance_prompt` (bakes FALSE — the app toggle drives it). An earlier note here said it
-was cut on 2026-07-09; that was reverted and the enhancer is load-bearing. It is the app's
-only enhancer.
+`Input_enhance_prompt` (bakes FALSE, and **nothing in the app sets it** — the toggle went in
+MPI-677; the prompt box's Enhance control is the app's enhancer and runs on the backend picked in
+Remote > Language Models). An earlier note here said the node was cut on 2026-07-09; that was
+reverted and it is load-bearing for the graph itself.
+
+**Who drives it (MPI-1002).** The one way to switch it on is a raw `injectionParams` body on
+`POST /connector/generate`. `settleInGraphEnhance` (`js/services/llmService.js`, called once in
+`commandExecutor.runCommand` just before the engine params are built, so the local engine and the
+Pod both pass it) then follows the pick: ComfyUI picked leaves the node on, so the graph's own
+`TextGenerate` runs; Ollama or a Remote endpoint picked runs `enhance()` on THAT backend with the
+`krea-2` recipe, writes the result as the prompt and switches the node off. ComfyUI never enhances
+behind a non-ComfyUI pick. An edit op (`krea2Edit`) is exempt: the flag is forced off. A failed
+enhancer stops the job with its message and a Remote > Language Models hint, never an un-enhanced
+render. Pinned by `tests/in-graph-enhance.test.cjs`.
 
 **The trap (2026-07-19).** `TextGenerate` wraps its whole `prompt` string in ONE
 `<|im_start|>user` block. Concatenating a system prompt in front of the user's text therefore

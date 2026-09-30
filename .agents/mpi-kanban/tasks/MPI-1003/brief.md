@@ -47,3 +47,15 @@ filled them blind (MPI-1002).
 `docs/playbooks/add-flow/` (README checklist, 01, 05-verify), `docs/playbooks/add-model/`
 (README checklist, 03, 06-verify), the two skills' definitions, `docs/agent-chat.md` if a
 pointer is needed. Docs and skills only; no app code unless the audit finds a missing hook.
+
+## Noticed
+
+- `services/agentBench/connector-models.json` `flows[]` is stale (bare-string `fields`, no `does`, no `opens`,
+  pre MPI-816/892); `withFrame` in `services/agentBench.mjs` patches only crop Flows. Derive Flow entries
+  from the registry the way models already are.
+- `MASKED_OPS` (`services/agentLoop.mjs`) and `ONE_AREA_OPS` (`js/shell/agentDispatch.js`) are hand-kept op
+  lists; a new edit-family op must be added to each and nothing fails if it is not.
+- Adding an agent tool op (`AGENT_TOOL_OPS`, `js/shell/agentToolOps.js`) is in neither playbook.
+- Ask-first (Song) has no declarative hook: prose in `docs/agent/flows.md` only; `agentOpens` names live in
+  three hand-kept places (flows.md, the Docs site agent page, the handover test).
+- The brief's `js/data/modelPriority.js` is really `js/data/modelConstants/modelPriority.js`.

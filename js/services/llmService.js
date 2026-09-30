@@ -812,6 +812,114 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
 }
 
 /**
+ * Every spelling of the in-graph enhancer's switch that can reach its node (MPI-1002).
+ *
+ * The graphs carry `Input_enhance_prompt`, an `MpiIfElse` that gates a `TextGenerate`
+ * node, and titles are matched case-insensitively at injection. `canonicalizeInjectionKeys`
+ * also RENAMES a bare `enhance_prompt` to `Input_enhance_prompt`, and a `Title.widget` key
+ * addresses the node's `boolean` widget directly — so all of these flip the same node.
+ * Matching only the canonical spelling would leave a door open.
+ */
+const IN_GRAPH_ENHANCE_KEY = /^(?:input_)?enhance_prompt(?:\..+)?$/i;
+
+/** How `comfyController` reads a boolean widget value: `true` or the string `'true'`. */
+const _flagTrue = (v) => v === true || v === 'true';
+
+/**
+ * THE IN-GRAPH ENHANCER OBEYS THE REMOTE PICK (MPI-1002, Fabio 2026-09-30): with anything
+ * but ComfyUI picked in Language Models, ComfyUI must never do the enhancing.
+ *
+ * Four graphs (`klein_t2i`, `klein_9b_t2i`, `krea2_t2i_sfw`, `krea2_t2i_nsfw`) carry a
+ * `TextGenerate` behind `Input_enhance_prompt`. They bake it FALSE and nothing in the app
+ * sets it any more (the toggle went with MPI-677 step 1b), so the one door left is a raw
+ * `injectionParams` body on `POST /connector/generate`. This is the guard on that door,
+ * called ONCE by `commandExecutor.runCommand` just before it builds the engine params —
+ * the one point the local engine and the RunPod Pod share.
+ *
+ *   - no TRUE flag                        -> the same payload back, no I/O at all
+ *   - flag true, op is enhance-exempt     -> flag forced off, nothing enhanced
+ *   - flag true, nothing to enhance       -> flag forced off (an empty prompt has nothing to rewrite)
+ *   - flag true, pick is ComfyUI          -> untouched: the graph's own enhancer runs
+ *   - flag true, pick is Ollama/endpoint  -> `enhance()` on THAT backend with the model's own
+ *                                            recipe; the result replaces the prompt, the flag
+ *                                            goes false
+ *
+ * NEVER `runComfyEnhance` here. It enqueues a job behind the one this job is already
+ * occupying, and waits for it: a deadlock. The server branch passes `backend` explicitly so
+ * `enhance()` cannot resolve to ComfyUI even if the stored pick moves meanwhile.
+ *
+ * A failed enhancer THROWS `{ code: 'ENHANCE_FAILED', userMessage }` and generates nothing
+ * (Fabio's pick, recorded in MPI-1002): running un-enhanced would hand the user a picture
+ * from a prompt they asked to have rewritten, and would never say so.
+ *
+ * @param {object} payload   the `runCommand` payload: `{ operation, modelId, positive, negative, injectionParams }`
+ * @param {object} [deps]    test seams: `opAllowsEnhance`, `resolveBackend`, `getModel`, `enhance`, `log`
+ * @returns {Promise<object>} the payload to build params from: the SAME object when nothing changed
+ * @throws {Error} `.code === 'ENHANCE_FAILED'`, `.userMessage` the text to show the user and the agent
+ */
+export async function settleInGraphEnhance(payload, deps = {}) {
+    const injection = payload?.injectionParams;
+    if (!injection || typeof injection !== 'object') return payload;
+    const flags = Object.keys(injection).filter((k) => IN_GRAPH_ENHANCE_KEY.test(k) && _flagTrue(injection[k]));
+    if (!flags.length) return payload;
+
+    const log = deps.log ?? ((line) => clientLogger.info('prompt', line));
+    const opName = payload.operation;
+    const withFlagsOff = (extra = {}) => ({
+        ...payload,
+        ...extra,
+        injectionParams: { ...injection, ...(extra.injectionParams || {}), ...Object.fromEntries(flags.map((k) => [k, false])) },
+    });
+
+    const opAllowsEnhance = deps.opAllowsEnhance ?? (await import('../data/commandRegistry.js')).opAllowsEnhance;
+    if (!opAllowsEnhance(opName)) {
+        log(`[in-graph-enhance] ${opName} takes no enhancement: the graph's enhancer is off`);
+        return withFlagsOff();
+    }
+
+    // The prompt the graph will actually receive: `Object.assign(params, injectionParams)`
+    // lets an exact `Input_Positive` / `Input_Negative` key override the payload's own.
+    const posKey = typeof injection.Input_Positive === 'string' ? 'Input_Positive' : null;
+    const negKey = typeof injection.Input_Negative === 'string' ? 'Input_Negative' : null;
+    const prompt = String(posKey ? injection[posKey] : payload.positive || '').trim();
+    if (!prompt) {
+        log(`[in-graph-enhance] ${opName} has no prompt to enhance: the graph's enhancer is off`);
+        return withFlagsOff();
+    }
+
+    const backend = await (deps.resolveBackend ?? (() => runnableBackend(backendPreference())))();
+    if (backend === 'comfy') return payload;
+
+    const model = await (deps.getModel ?? (async (id) => (await import('../data/modelRegistry.js')).getModelById(id)))(payload.modelId);
+    const result = await (deps.enhance ?? enhance)({ prompt, model, backend });
+    const text = result?.ok ? String(result.text || '').trim() : '';
+    if (!text) {
+        const why = String(result?.error || 'The enhancer returned no text.').trim();
+        const userMessage = [
+            `Prompt enhancement failed on ${backend === 'ollama' ? 'Ollama' : 'the Remote endpoint'}: ${/[.!?]$/.test(why) ? why : `${why}.`}`,
+            /Language Models/.test(why) ? '' : 'Check Remote > Language Models.',
+            'Nothing was generated.',
+        ].filter(Boolean).join(' ');
+        throw Object.assign(new Error(userMessage), { code: 'ENHANCE_FAILED', userMessage });
+    }
+
+    // `negativeText` exists only for a `separate-field` recipe whose reply parsed, and
+    // only fills an EMPTY negative: a negative the caller wrote is the caller's.
+    const negative = String((negKey ? injection[negKey] : payload.negative) || '').trim();
+    const negativeText = result.negativeText && !negative ? String(result.negativeText).trim() : '';
+    log(`[in-graph-enhance] ${opName} on ${model?.id || payload.modelId || 'no model'}: enhanced by ${result.backend || backend}`
+        + `${result.model ? ` (${result.model})` : ''}; the graph's enhancer is off`);
+    return withFlagsOff({
+        positive: text,
+        ...(negativeText ? { negative: negativeText } : {}),
+        injectionParams: {
+            ...(posKey ? { [posKey]: text } : {}),
+            ...(negKey && negativeText ? { [negKey]: negativeText } : {}),
+        },
+    });
+}
+
+/**
  * Build the `injectionParams` for a ComfyUI image description with an optional question.
  *
  * `Input_Describe_Prompt` (node 38) feeds `TextGenerate` DIRECTLY — nothing is

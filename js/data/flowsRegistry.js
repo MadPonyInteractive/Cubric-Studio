@@ -1900,7 +1900,8 @@ export const FLOWS = [
                 // In MANUAL this derives NOTHING: the clean object is already `image2`,
                 // put there by the cutout stage, so deriving would hand the run a second
                 // copy of a picture it has. Manual contributes only the region and the
-                // mode.
+                // mode — unless the object is FLIPPED, when it derives the object
+                // mirrored and `mediaRole` puts that over `image2` (MPI-998).
                 kind: 'place', role: 'image1', sourceRole: 'image2', mediaRole: 'image2',
                 // An OBJECT `param`, not a string — this kind feeds two nodes. `region`
                 // goes to `Input_Box` through the box injector (an MpiBox carries four

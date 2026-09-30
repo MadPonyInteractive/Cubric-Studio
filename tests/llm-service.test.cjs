@@ -51,6 +51,7 @@ const {
     describeImage,
     enhance,
     enhanceFlow,
+    settleInGraphEnhance,
     setEnhancerModelPreference,
     setEndpointModelPreference,
     withRemoteSettingsHint,
@@ -579,6 +580,42 @@ function testFlowEnhanceSendsTheRemotePick() {
     });
 }
 
+async function testInGraphEnhancerFollowsTheRemotePick() {
+    // MPI-1002: the in-graph enhancer (`Input_enhance_prompt`) is reachable only through a raw
+    // injectionParams body. The full matrix lives in tests/in-graph-enhance.test.cjs; this pins
+    // the contract beside the other backend-routing tests: no TRUE flag is no I/O, ComfyUI picked
+    // leaves the graph alone, and a server pick is ONE /llm/enhance and the flag goes off.
+    const realFetch = global.fetch;
+    const urls = [];
+    global.fetch = (url) => {
+        urls.push(url);
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, text: 'a lit cat', backend: 'ollama', model: 'm' }) });
+    };
+    const payload = (inj) => ({ operation: 't2i', modelId: 'krea2', positive: 'a cat', negative: '', injectionParams: inj });
+    try {
+        setBackendPreference('ollama');
+        for (const inj of [{}, { Input_enhance_prompt: false }]) {
+            const p = payload(inj);
+            assert.strictEqual(await settleInGraphEnhance(p), p, 'no true flag -> the same payload');
+        }
+        assert.strictEqual(urls.length, 0, 'no true flag -> no I/O');
+
+        setBackendPreference('comfy');
+        const onComfy = payload({ Input_enhance_prompt: true });
+        assert.strictEqual(await settleInGraphEnhance(onComfy, { log: () => {} }), onComfy, 'ComfyUI picked -> the graph\'s enhancer stays on');
+        assert.strictEqual(urls.length, 0, 'and nothing is enhanced here');
+
+        setBackendPreference('ollama');
+        const out = await settleInGraphEnhance(payload({ INPUT_ENHANCE_PROMPT: true }), { log: () => {} });
+        assert.deepStrictEqual(urls, ['/llm/enhance'], 'Ollama picked -> exactly one server enhance, no ComfyUI job');
+        assert.strictEqual(out.positive, 'a lit cat');
+        assert.strictEqual(out.injectionParams.INPUT_ENHANCE_PROMPT, false, 'the flag goes off under its own spelling');
+    } finally {
+        delete _ls['cubric.llm.backend'];
+        global.fetch = realFetch;
+    }
+}
+
 function testDescribeImageEndpointBranch() {
     // Endpoint: POST body carries profileId + imagePath; no enqueueGeneration call.
     const realFetch = global.fetch;
@@ -675,6 +712,7 @@ const tests = [
     testEnhancerModelMigrationViaModelsEndpoint,
     testEnhanceEndpointErrorIsText,
     testFlowEnhanceSendsTheRemotePick,
+    testInGraphEnhancerFollowsTheRemotePick,
     testDescribeImageEndpointBranch,
     testDescribeImageEndpointErrorNoFallback,
     testDescribeImageComfyPluginMissing,

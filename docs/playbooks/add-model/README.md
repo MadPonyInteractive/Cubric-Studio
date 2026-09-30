@@ -37,6 +37,7 @@ style-LoRA + shared-graph + `Output_prompt` sections.
 | [04-ops-and-controls.md](04-ops-and-controls.md) | New-op runtime selector (PiD); one graph → many ops via baked booleans (Krea2) | §8, §11 |
 | [05-prompt-and-styles.md](05-prompt-and-styles.md) | **§9** style-LoRA system; **§10** `Output_prompt` (workflow owns the saved prompt) | §9, §10 |
 | [06-verify.md](06-verify.md) | Definition of Done — parse cross-ref, loader paths, upload HEAD, app launch | §7 |
+| [07-agent-knowledge.md](07-agent-knowledge.md) | **Making the model known to the in-app agent (Cosmo)** — what `list_models` / `describe_model` carry, rank and note, the prompting guide (it comes through the ENHANCER RECIPE, and a reused recipe is a shared guide), a new op or task, cost and licence, the read-back and the live ask | (new) |
 
 Model-specific research (LTX tiers, Krea2 samplers, PiD facts) lives in
 `docs/models/<model>/`, NOT here — this playbook is the model-agnostic *how*.
@@ -112,6 +113,7 @@ Two structural forks decide everything downstream:
 | Injection **silently skips** a param whose `Input_*` title matches no node (hid `Input_Is_i2i` + `Input_Batch` for 4 sessions) | [04](04-ops-and-controls.md) |
 | Same silent skip on the OTHER injection source: a `mediaInputs` slot whose `title` matches no node gives the user a chip well that accepts a file, uploads it, and drops it on the floor. Untested until MPI-475 wrote the sweep (`tests/inject-params-titles.test.cjs`), so a model predating it may still carry one. Run `npm test` after declaring slots | [04](04-ops-and-controls.md) |
 | Style-LoRA set ⇒ assert `len(MpiPromptList.options) == number of style LoRAs`. A missing trigger line is a silent half-application | [05](05-prompt-and-styles.md) |
+| **A model works in the Prompt Box and is invisible to Cosmo.** It picks by rank and `name` only (`description` is never sent), writes prompts from the guide of the model's ENHANCER RECIPE (a reused recipe = a shared guide that may never mention you), and knows a new op by name only where `MASKED_OPS` / `ONE_AREA_OPS` list it. Nothing fails | [07](07-agent-knowledge.md) |
 | A model that BREAKS A SHIPPED CONVENTION — a new node class, a missing twin file, a different filename shape — must have that convention **grepped for in the app before testing**. The app ENCODES conventions in shared resolvers, and each one is a silent half-wire | this file |
 | Models are **NOT** version-bumped | this file |
 
@@ -164,6 +166,12 @@ Model-specific additions:
 - [ ] Runtime in-workflow selector? Add a `PROMPT_BOX_CONTROLS` entry + `commandRegistry` component + `promptControlDefaults` — [04](04-ops-and-controls.md); `nodeTitle` == switch title; MpiAnySwitch needs `select` in the injector + 1-indexed values
 - [ ] Model with no upscale-model/LoRA config? `showSettings: false` on the ModelDef — [04](04-ops-and-controls.md)
 - [ ] Shared VAE/encoder deps? RESOURCE-named ids (`vae-*`), not model-scoped — [04](04-ops-and-controls.md)
+- [ ] **Agent name + note:** `name` is what a user would type, and tier siblings share one, so the rank note says which tier; `description` is never sent, so what the model is FOR goes in the note; a cloud model and an `-nsfw` id rank themselves; a new `mediaInputs` key is named for what it holds (the agent never sees a slot label) — [07](07-agent-knowledge.md) § 1
+- [ ] **Agent guide:** `enhanceRecipe ?? type` resolves to a recipe whose `docs/agent/models/<recipe id>.md` NAMES this model (a reused recipe is a shared guide: edit it; a new grammar is `/create-enhancer-recipe` first). No guide ids = no `GUIDE_NOT_READ` gate = the agent prompts blind — [07](07-agent-knowledge.md) § 2
+- [ ] **New OP or TASK?** `MASKED_OPS` (`services/agentLoop.mjs`), `ONE_AREA_OPS` (`js/shell/agentDispatch.js`), the op tables in `docs/agent/masking.md`, a `_rank` list — [07](07-agent-knowledge.md) § 3
+- [ ] **Agent must-say:** batch (`capabilities.batch: false` when images 2+ artefact), cloud price (price snapshot + `sync-deepinfra-prices.mjs --check`), a licence fact only when it changes the pick — [07](07-agent-knowledge.md) § 1, § 4
+- [ ] **New media KIND?** the prompt's opening line, the Docs rule's scope, `generate`'s description, the chat result tile, the MCP header — [add-flow 07](../add-flow/07-agent-knowledge.md) § 5
+- [ ] **Agent verify:** read back what Cosmo reads (rank, note, params, guide ids), `node --test` the three agent tests, give the user the live ask in words. The bench only when a rank changes what an existing case should take — [07](07-agent-knowledge.md) § 5
 - [ ] Verify: parse cross-ref, loader paths, upload HEAD, app launch — [06](06-verify.md)
 - [ ] NO app version bump (adding a model/op ≠ version bump)
 

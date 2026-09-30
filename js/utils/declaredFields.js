@@ -110,7 +110,15 @@ export function mapDeclaredValue(f, v) {
     // string. Serialising HERE rather than inside the widget keeps the one-field-one-
     // param law intact AND puts the agent connector (`resolveFlowFieldValues`) on the
     // same path as the widget — the duplication this module exists to prevent.
-    if (f?.type === 'voices') return serialiseVoices(v);
+    //
+    // A cast may also arrive as TEXT (an agent or a routine step sending the string the
+    // graph reads, or a value restored before the widget mounted). `serialiseVoices` only
+    // reads rows and returned '' for a string, so the cast was dropped with no error and
+    // the run took the graph's baked voice. Text is parsed against the field's own
+    // declared options and re-serialised, the way the widget's restore path reads it.
+    if (f?.type === 'voices') {
+        return serialiseVoices(typeof v === 'string' ? deserialiseVoices(v, f.options || []) : v);
+    }
     if (f?.type === 'number' || f?.type === 'slider') v = fieldNumber(v, f);
     if (!Array.isArray(f?.mapTo) || f.mapTo.length !== 2) return v;
     const n = Number(v);
@@ -176,6 +184,11 @@ export function serialiseVoices(rows) {
  * restores as one Female row exactly like `Voice 1 (Female)` does. A line with no
  * declared type in brackets — `Ana`, or `Ana (live)` — takes the catch-all.
  *
+ * One line per voice, but a `, ` or `; ` between two generated labels also ends a voice
+ * (`Voice 1 (Male), Voice 2 (Female)`): text typed on one line by a caller reads as two
+ * singers, not as one Female row. Only a separator followed by `Voice N` counts, so a
+ * comma inside a typed name still belongs to that name.
+ *
  * @param {string|Array} text   the serialised roster, or rows already (passed through)
  * @param {Array<{v: string}>} [options]  the field's declared voice types
  * @returns {Array<{type: string}>}
@@ -187,7 +200,7 @@ export function deserialiseVoices(text, options = []) {
     const declared = options.map(o => String(o?.v ?? '')).filter(Boolean);
     const catchAll = declared.find(v => v.toLowerCase() === 'any') ?? declared[0] ?? '';
 
-    return text.split('\n')
+    return text.split(/\n|(?<=\))\s*[,;]\s*(?=Voice\s+\d+\b)/i)
         .map(line => line.trim())
         .filter(Boolean)
         .map((line) => {
@@ -487,6 +500,11 @@ export function flowDeclaredFields(flow) {
  * already the largest thing the agent reads — ~9.5k tokens against a 16.4k compaction
  * trigger (MPI-774 Phase 4) — and the option labels alone add ~1.3k.
  *
+ * A `hidden: true` field is OMITTED, not flagged: the Flow writes it itself (Song's
+ * Mood / Vocal / Arrangement, filled by the enhancer picked in Remote), and listed as
+ * an empty text box it was filled blind by the agent. `resolveFlowFieldValues` ignores
+ * a value sent for one anyway, so a caller that names it gets no error and no effect.
+ *
  * Lives here rather than at the call site because this module is where the declared-
  * field dialect is interpreted (the duplication MPI-580 extracted it to stop), and
  * because `agentDispatch.js` cannot be loaded outside a renderer to test.
@@ -495,7 +513,7 @@ export function flowDeclaredFields(flow) {
  * @returns {Object[]}   `{id, label, type?, default?, options?, min?, max?}`
  */
 export function agentFieldSpecs(flow) {
-    return flowDeclaredFields(flow).map(f => ({
+    return flowDeclaredFields(flow).filter(f => !f.hidden).map(f => ({
         id: f.id,
         label: f.label || f.id,
         ...(f.type ? { type: f.type } : {}),
@@ -529,26 +547,45 @@ export function agentFieldSpecs(flow) {
  * graph as `MpiInt` inputs and ComfyUI refused the whole prompt. Only null and
  * undefined; `0` and `''` are values the caller chose.
  *
+ * A `hidden: true` id is the third case: declared, so never `unknown`, but the caller does
+ * not own it. The Flow writes it itself (the enhancer fills Song's three caption blocks),
+ * so a value sent for one is IGNORED: the field keeps its declared default, and one warning
+ * names what was dropped. An error here would only make an agent retry the same call, and
+ * `agentFieldSpecs` no longer lists the field, so the only callers that reach this are
+ * ones working from an older list or a saved routine step.
+ *
+ * `resolved` is the same map BEFORE `mapTo` and voice serialisation, keyed by declared id
+ * (defaults, then the caller's values, then `derived`): what the UI would hold. The enhance
+ * step reads its sources from it.
+ *
  * @param {Object} flow    a FlowDef
  * @param {Object} values  caller values keyed by declared field id
- * @returns {{inputs: Object, injectionParams: Object, unknown: string[]}}
+ * @returns {{inputs: Object, injectionParams: Object, unknown: string[], resolved: Object}}
  */
 export function resolveFlowFieldValues(flow, values = {}) {
     const decls = flowDeclaredFields(flow);
     const declared = new Set(decls.map(f => f.id));
+    const hidden = new Set(decls.filter(f => f.hidden).map(f => f.id));
     const unknown = Object.keys(values || {}).filter(k => !declared.has(k));
 
     const resolved = {};
+    const ignored = [];
     decls.forEach((f) => { if (f.default !== undefined) resolved[f.id] = f.default; });
     Object.entries(values || {}).forEach(([k, v]) => {
-        if (declared.has(k) && v !== null && v !== undefined) resolved[k] = v;
+        if (!declared.has(k) || v === null || v === undefined) return;
+        if (hidden.has(k)) { ignored.push(k); return; }
+        resolved[k] = v;
     });
+    if (ignored.length) {
+        clientLogger.warn('declaredFields',
+            `${flow?.id || 'flow'}: ignored a caller value for hidden field(s) ${ignored.join(', ')} - the Flow writes those itself`);
+    }
     (flow?.derived || []).forEach((d) => {
         if (!d?.id || !d.from) return;
         resolved[d.id] = String(resolved[d.from]) === String(d.equals) ? d.then : d.else;
     });
 
-    return { ...splitDeclaredValues(decls, resolved), unknown };
+    return { ...splitDeclaredValues(decls, resolved), unknown, resolved };
 }
 
 /**

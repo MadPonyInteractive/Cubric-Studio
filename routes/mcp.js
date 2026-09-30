@@ -244,7 +244,7 @@ async function waitForJob(jobId, rpcKey, ms = WAIT_MS) {
 }
 
 const INSTRUCTIONS = [
-    'Cubric Studio is a desktop app for making images and video on this computer. These tools drive the copy the user has open.',
+    'Cubric Studio is a desktop app for making images, video and audio on this computer. These tools drive the copy the user has open.',
     'Name the project every generate runs in: pass folderPath from list_projects or create_project. The project does not have to be open, and the user\'s view stays where it is. Without folderPath a generation lands in whatever project the app has open, which the user can change at any moment. Call open_project only when the user wants to see the project in the app.',
     'Pick a model with list_models (the op marked best:true is the recommended one for its task), then call describe_model for that id: it lists the ops and the only values each param accepts.',
     'Before you write the first prompt for a model, call read_knowledge with each guide id describe_model lists for it: the guide says how that model wants to be prompted.',
@@ -378,7 +378,7 @@ const TOOLS = {
     },
     generate: {
         title: 'Generate',
-        description: 'Generate an image or video with a model op, or run a Flow, in the project folderPath names (open or not), else in the project the app has open. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the file path on disk plus a picture of the result. A video or Flow, or an image slower than 45 s, returns { running: true, jobId } instead: tell the user and end your turn, then call wait_generation when asked, never generate again. A paid model first answers CONFIRM_COST with its price and generates nothing.',
+        description: 'Generate an image, video or audio with a model op, or run a Flow, in the project folderPath names (open or not), else in the project the app has open. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the file path on disk plus a picture of the result. A video or Flow, or an image slower than 45 s, returns { running: true, jobId } instead: tell the user and end your turn, then call wait_generation when asked, never generate again. A paid model first answers CONFIRM_COST with its price and generates nothing.',
         inputSchema: {
             type: 'object',
             properties: {

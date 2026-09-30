@@ -171,7 +171,9 @@ EVERY Flow was unreachable from an agent, including both text-to-speech surfaces
 Flows and not models. `flowId` resolves the FlowDef, pre-flights `flowAvailability` (which
 otherwise reports through a toast and returns a bare `null`), and reads the caller's `fields`
 through `resolveFlowFieldValues` — the same declared-field dialect the flow frame renders from,
-so `derived` is computed after the caller's overrides exactly as it is under a click. The
+so `derived` is computed after the caller's overrides exactly as it is under a click. A
+`hidden: true` field is the Flow's own (Song's caption blocks, written by its enhancer): the agent
+is never shown one and a caller value for it is ignored with a warn (MPI-1002). The
 producer count does not change: it still hands off to `flowService.submitFlowGeneration`.
 
 **Named params on the model path — ratio/qualityTier/turbo/styleSelect/stylization/seed

@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/components/Organisms/MpiStepPlace/MpiStepPlace.js", "js/components/Organisms/MpiStepPlace/MpiStepPlace.css", "js/components/Blocks/MpiBaseFlow/stepKinds.js", "tests/object-stamp-flip.test.cjs"]}

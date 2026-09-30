@@ -1472,7 +1472,9 @@
  *                                   skipped, which previews the object's own rectangle.
  * @property {Object}   step       - The FlowStep declaration.
  * @property {Object|null} [value] - Restored value ({mode, sourceUrl,
- *                                   place:{cx,cy,halfW,halfH,rot}, size, objectSize}).
+ *                                   place:{cx,cy,halfW,halfH,rot,flipX,flipY}, size,
+ *                                   objectSize}). A value saved before MPI-998 has no
+ *                                   flip keys and reads as not flipped (`placeFlips`).
  * @property {Function} onChange   - (value) => void; on drag end and any control change.
  *
  * The `place` STEP KIND (MPI-596) — the PLACEMENT gizmo, and the first kind to read
@@ -1483,7 +1485,10 @@
  * stamped into the scene frame. `manual` uses only the REGION, so the canvas shows an
  * empty SQUARE box with no rotation — the box is where the model looks, and a rotation
  * handle would be a lie — and the run receives the clean object at its own full frame,
- * which is simply `sourceRole`'s media, so this kind derives NO file in Manual.
+ * which is simply `sourceRole`'s media, so this kind derives NO file in Manual —
+ * unless the object is FLIPPED (MPI-998): then `composePlacedObject` derives the
+ * source object mirrored, at its own frame, and the frame delivers it to `mediaRole`.
+ * One `flipObject` draws the mirror for the preview, the Auto stamp and that copy.
  *
  * Mounts two History engines whole, the relationship MpiStepPaint has with
  * PaintManager: `ShapeManager` armed `'place'` (MPI-454's gizmo — handles, shape-local
@@ -1625,7 +1630,7 @@
  */
 
 /**
- * @typedef {Object} MpiAudioRecorderProps (Compound — js/components/Compounds/MpiAudioRecorder)
+ * @typedef {Object} MpiAudioRecorderProps (Block — js/components/Blocks/MpiAudioRecorder)
  *
  * No props. The input device and gain come from Settings (Storage.getAudioInputDevice /
  * getAudioInputGain), not from the caller — a recorder that took them as props would let
@@ -1637,6 +1642,10 @@
  * The result is a 16-bit WAV, re-muxed from MediaRecorder's WebM: `.webm` is classified
  * as VIDEO by extension in five places on the server, so keeping the native container
  * would make the first project reload silently re-type the card to video.
+ *
+ * The take is TRIMMED before review (MPI-999, `trimRecording` + `utils/trimSilence.js`):
+ * the silence before the first sound cut, a short pad kept, the rest as recorded. The review
+ * plays that WAV and Accept returns the same File.
  *
  * Instance methods (on instance.el):
  *   show() — Self-portals a backdrop + centred dialog to document.body (via MpiModal).

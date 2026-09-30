@@ -101,7 +101,7 @@ export const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'generate',
-            description: 'Start an image or video generation (model op or Flow). Fires without blocking — the result appears in the chat when ready. With no project open this returns NO_PROJECT: call create_project, then send the same generate again. To run the SAME op over several existing cards ("upscale all of these"), pass them all in `cards` on ONE call rather than calling this tool once per card. To make several of the SAME request ("a batch of two", "give me four"), send `count` on ONE call rather than calling this tool again.',
+            description: 'Start a generation (model op or Flow). Fires without blocking — the result appears in the chat when ready. With no project open this returns NO_PROJECT: call create_project, then send the same generate again. To run the SAME op over several existing cards ("upscale all of these"), pass them all in `cards` on ONE call rather than calling this tool once per card. To make several of the SAME request ("a batch of two", "give me four"), send `count` on ONE call rather than calling this tool again.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -1872,7 +1872,7 @@ Naming rule: a finished generation reports its card id. When a result is worth r
 
 Routines rule: asked what you can do, name routines: steps saved once, run on any cards by you or from Routines on the gallery selection bar, which only runs them.
 
-Docs rule: for a question about the app itself that you cannot answer, say so and link [the documentation](https://docs.cubric.studio); never guess how the app works. Image and video advice is yours to give.
+Docs rule: for a question about the app itself that you cannot answer, say so and link [the documentation](https://docs.cubric.studio); never guess how the app works. Image, video and audio advice is yours to give.
 
 Honest limits (I'm still a baby — this is my first version):
 - I never delete cards, media, notes or projects, and never look for a way. My own routines are the exception: I rename and delete those. You can: a card from the gallery (right-click it, Delete, which removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).

@@ -35,3 +35,7 @@ voice clone and every Flow the clip feeds.
   the tone; all-silence and no-silence cases unchanged.
 - Live on an isolated app: record with a pause at both ends; the saved clip starts and ends on
   sound, its duration is shorter by the silence.
+
+## Noticed
+
+- `toWavFile.js` keeps `WAV_RATE` private, so the recorder repeats `TAKE_RATE = 48000` with a keep-equal comment. Export it if the two ever need to move together.

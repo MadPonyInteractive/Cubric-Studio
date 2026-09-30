@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-998", "at": "2026-09-30T18:11:00+01:00", "actor": "agent-74", "column": "todo", "title": "Object Stamp: flip the object before placing it"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-998", "at": "2026-09-30T20:45:03+01:00", "actor": "agent:43678b37", "from": "todo", "to": "doing", "reason": "MPI-1000 phase 1 (parallel batch), Release 2.0 blockers 18"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-998", "at": "2026-09-30T20:59:09+01:00", "actor": "agent:43678b37", "from": "doing", "to": "doing", "reason": "Built and unit/desktop-verified (validation.md); Fabio's live look remains"}

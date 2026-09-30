@@ -27,7 +27,10 @@ import { getStepKind, stepValueToParam, stepValueToMedia, isFrameKind } from './
 import { planCropPasses, composeNextPass } from '../../Organisms/MpiStepCrop/MpiStepCrop.js';
 import { enqueueGeneration, findMissingMediaSlot } from '../../../services/generationService.js';
 import { getCommand } from '../../../data/commandRegistry.js';
-import { enhanceFlow } from '../../../services/llmService.js';
+import {
+    flowEnhanceDecls, enhanceTargets, enhanceSources, enhanceSourceText, enhancedWrites,
+    runEnhanceDecl, adoptHiddenTargets,
+} from '../../../services/flowEnhance.js';
 import { flowModelSlots, flowModelIds, setFlowModel } from '../../../data/flowsRegistry.js';
 import { disambiguatedName } from '../../../data/modelRegistry.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
@@ -1085,20 +1088,12 @@ export const MpiBaseFlow = ComponentFactory.create({
          * can never disagree the way three separate flags would.
          * @type {Array<Object>}
          */
-        const _enhanceDecls = [
-            ...(_fields || []),
-            ...(flow.steps || []).flatMap(st => st?.fields || []),
-            // A FLOW-LEVEL enhance declaration (MPI-664), which is the same object
-            // WITHOUT a button. Music Maker enhances inside Generate and shows no
-            // control for it at all (Fabio, 2026-09-02), so there is no field to hang
-            // the declaration on — and hanging it on a hidden button would put a dead
-            // `<button>` in the DOM to carry data. The synthetic `id` is what
-            // `_enhancing` and `_paintEnhance` key on; nothing ever renders it, so
-            // `_liveFields` misses and the painter skips it, which is correct.
-            // `action` and `auto` are implicit: a declaration with no button cannot be
-            // pressed, so automatic is the only thing it can mean.
-            ...(flow.enhance ? [{ id: 'enhance:auto', action: 'enhance', auto: true, ...flow.enhance }] : []),
-        ].filter(f => f?.action === 'enhance' && f.from && f.to);
+        // Assembled in `services/flowEnhance.js`, the one reader of a Flow's enhance
+        // declarations: the agent's run reads them through the same function. That
+        // includes the FLOW-LEVEL declaration (MPI-664) with no button — Song's — whose
+        // synthetic `id` is what `_enhancing` and `_paintEnhance` key on; nothing ever
+        // renders it, so `_liveFields` misses and the painter skips it, which is correct.
+        const _enhanceDecls = flowEnhanceDecls(flow);
 
         /**
          * Every field this flow declares, flow-level and step-level together.
@@ -1159,91 +1154,15 @@ export const MpiBaseFlow = ComponentFactory.create({
          * The button is an MpiButton, so its state is the primitive's own API and
          * its own variants — no bespoke `--stale` class, no restated colours.
          */
-        /**
-         * Every field an enhance declaration writes into.
-         *
-         * `to` is ONE id, or a MARKER → id map when the enhancer's answer is several
-         * blocks (MPI-664). Music Maker asks for three — mood, vocal and arrangement —
-         * because one 12-row box holding all three read as nothing at all: *"as much as
-         * I read it, I still don't know what it is or how to use it"* (Fabio,
-         * 2026-09-02). Three labelled boxes filling at once is the same text saying what
-         * it is, and it is what makes the button's effect visible.
-         */
-        const _enhanceTargets = d => (typeof d.to === 'string' ? [d.to] : Object.values(d.to || {}));
+        // The pure enhance helpers live in `services/flowEnhance.js` (MPI-1002): the
+        // agent's Flow run reads a declaration through the SAME functions, so what a
+        // hand run sends the enhancer and what an agent run sends it cannot drift. The
+        // two aliases keep the frame's call sites reading as they always did.
+        const _enhanceTargets = enhanceTargets;
+        const _enhanceSources = enhanceSources;
 
-        /**
-         * The ids that FEED one enhance action.
-         *
-         * `from` is ONE id, or a LIST of them (MPI-664). Music Maker sends three: the
-         * brief, the style phrase and the Instrumental flag. Style has to go because
-         * the enhancer writes an arrangement and cannot write one without knowing the
-         * genre; Instrumental has to go because otherwise it writes vocal prose for a
-         * track that has been told to have no vocals — the same self-contradicting
-         * caption the graph's own Instrumental clause used to build.
-         *
-         * ONE list, not `from` plus a second `context` key, because the list is also
-         * the CACHE KEY: these are exactly the fields whose change makes the previous
-         * answer stale (see `_setFlowField`). Two keys would be two lists to keep in
-         * step, and the day they disagreed the enhancer would either re-run for
-         * nothing or serve a stale answer for a brief that had moved on.
-         */
-        const _enhanceSources = d => (Array.isArray(d.from) ? d.from : [d.from]).filter(Boolean);
-
-        /**
-         * The enhancer's INPUT TEXT, built from every source the declaration names.
-         *
-         * One source → its text verbatim, which is what every flow before Music Maker
-         * sends and what those recipes were written against. Several → one labelled
-         * line each, using the field's own on-screen label so the prose the user reads
-         * and the prose the model reads name the same things.
-         *
-         * Empty values are DROPPED rather than sent as an empty label: `Style: ` on its
-         * own line is an instruction to write nothing about style, which is the
-         * opposite of what a blank Custom box means. A `false` toggle is dropped for
-         * the same reason — "Instrumental: no" spends tokens telling a music model that
-         * a song has singing in it.
-         *
-         * 🔴 A HIDDEN SOURCE IS DROPPED TOO (MPI-664, 2026-09-03). A field hidden by
-         * `hiddenWhen` keeps its value on purpose — the graph re-checks the flag itself
-         * rather than trusting the UI — but that value is no longer part of what the
-         * user is ASKING FOR, and the enhancer's input is exactly that. Music Maker
-         * proved it on the first vocal run ever attempted: `Input_Structure` is
-         * instrumental-only on screen, and switching Instrumental OFF left the previous
-         * instrumental plan sitting in it. The enhancer still received
-         * `Song structure: Intro: single orchestral drum...`, so a ballad brief came
-         * back with a horror trailer's arrangement — orchestral drum, viola section,
-         * the lot — and the box that would have let the user clear it was hidden.
-         * What the user cannot see is not what they are asking for.
-         */
-        function _enhanceSourceText(d) {
-            const ids = _enhanceSources(d).filter(id => !_hiddenNow().has(id));
-            const byId = new Map(_allDecls.map(f => [f.id, f]));
-            const bare = ids.length === 1;
-            return ids.map(id => _enhanceSourceLine(byId.get(id), id, bare))
-                .filter(Boolean).join('\n');
-        }
-
-        /**
-         * ONE enhance source → the line the model reads for it.
-         *
-         * 🔴 THE DECLARATION'S OWN SERIALISER, NEVER `String(v)` (MPI-664, 2026-09-11).
-         * A `voices` roster's UI value is ROWS — it is held that way so Reuse can rebuild
-         * the control — and `String(rows)` is `[object Object],[object Object]`. Sending
-         * the cast as a source without this is worse than not sending it: the enhancer
-         * reads noise where the singers should be. `mapDeclaredValue` is the very call
-         * the graph payload makes, so the cast the rewriter reads and the cast the
-         * caption states are ONE string built in ONE place, which is what that helper
-         * exists for. Every field type added later arrives serialised for free.
-         */
-        function _enhanceSourceLine(f, id, bare) {
-            const v = mapDeclaredValue(f, _fieldValues[id]);
-            if (v === false || v === null || v === undefined) return '';
-            const label = f?.label || id;
-            if (v === true) return label;
-            const text = String(v).trim();
-            if (!text) return '';
-            return bare ? text : `${label}: ${text}`;
-        }
+        /** The enhancer's INPUT TEXT for one declaration, from the live values (see `enhanceSourceText`). */
+        const _enhanceSourceText = d => enhanceSourceText(d, _allDecls, _fieldValues, _hiddenNow());
 
         /**
          * Target ids whose current text ENHANCE wrote, rather than the user.
@@ -1275,7 +1194,8 @@ export const MpiBaseFlow = ComponentFactory.create({
          *
          * An older sidecar has no `enhanceWrote` and seeds empty, which is exactly the
          * old behaviour: ownership cannot be inferred after the fact, and guessing it
-         * would wipe prose the user really did type.
+         * would wipe prose the user really did type. The one exception is a box the user
+         * CANNOT type in — see `adoptHiddenTargets` below.
          */
         const _enhanceWrote = new Set(
             Array.isArray(seeded.enhanceWrote) ? seeded.enhanceWrote : [],
@@ -1289,6 +1209,16 @@ export const MpiBaseFlow = ComponentFactory.create({
             delete _fieldValues[id];
             (_stepRolesById.get(id) || []).forEach((role) => { delete _stepValues[role]?.fields?.[id]; });
         });
+
+        // A target that is `hidden: true` is machine output by construction (MPI-1002): the
+        // user has no box to type in. An agent-opened Song arrives with Cosmo's text in the
+        // three caption blocks and no `enhanceWrote`, and without this the frame would treat
+        // that text as the user's — filling only the blanks at Cue (a mixed caption), or
+        // never running at all — and a changed brief would not clear it. Adopted, it is
+        // refreshed like any enhancer text, and an unchanged brief runs no second pass.
+        // AFTER the echo drop above, so a fallback echo is dropped rather than adopted.
+        adoptHiddenTargets(_enhanceDecls, _allDecls, _fieldValues, _enhanceWrote)
+            .forEach(id => _enhanceWrote.add(id));
 
         function _paintEnhance() {
             _enhanceDecls.forEach((d) => {
@@ -1341,36 +1271,17 @@ export const MpiBaseFlow = ComponentFactory.create({
         /**
          * Land the enhancer's answer in the declaration's target(s).
          *
-         * ONE target takes the whole string. SEVERAL take one MARKED BLOCK each: the
-         * recipe answers `[MOOD] … [VOCAL] … [ARRANGEMENT] …` on a single line — the
-         * graph's `StringReplace` flattens it and that is deliberate, the blocks are
-         * delimited by their markers and never by newlines — so each box claims the run
-         * of text from its own marker to whichever marker comes next.
-         *
-         * An UNMARKED answer is NOT an error, and must not land as three empty boxes. A
-         * model that ignored the format still wrote usable prose, so it all goes into
-         * the first box where the user can see it and move it. That is also the shape
-         * the graph already tolerates on the caption side.
+         * WHAT lands where (one target takes the whole string, several take one marked
+         * block each, an unmarked answer goes in the first box, hand-typed boxes are left
+         * alone) is decided by `enhancedWrites` in `services/flowEnhance.js`, the same
+         * function the agent's run uses; this only applies the writes to the frame's
+         * stores and records that ENHANCE owns the text now.
          *
          * @param {Object} d     the enhance field declaration
          * @param {string} text  the op's answer, trimmed
          */
         function _writeEnhanced(d, text) {
-            if (typeof d.to === 'string') {
-                if (_mayEnhanceWrite(d.to)) _setEnhanced(d.to, text);
-                return;
-            }
-            const blocks = Object.entries(d.to || {}).map(([marker, id]) => [
-                id,
-                (text.match(new RegExp(`\\[${marker}\\]([\\s\\S]*?)(?=\\[[A-Z_]+\\]|$)`, 'i'))?.[1] || '').trim(),
-            ]);
-            if (!blocks.length) return;
-            // Hand-typed boxes are not targets. Filtered BEFORE the unmarked fallback so
-            // an unmarked answer cannot land on top of the user's first box either.
-            const open = blocks.filter(([id]) => _mayEnhanceWrite(id));
-            if (!open.length) return;
-            if (blocks.every(([, v]) => !v)) { _setEnhanced(open[0][0], text); return; }
-            open.forEach(([id, v]) => { if (v) _setEnhanced(id, v); });
+            enhancedWrites(d, text, _mayEnhanceWrite).forEach(([id, v]) => _setEnhanced(id, v));
         }
 
         /**
@@ -1427,11 +1338,10 @@ export const MpiBaseFlow = ComponentFactory.create({
             // Ollama it reads the graph's baked recipe and replays its Replace Text /
             // Scrub Negation / Tidy nodes on the reply, so a flow tuned on the graph
             // gets the same shape of text back. Same arguments, same result shape.
-            enhanceFlow({
-                prompt: source,
-                injectionParams: d.injectionParams,
-                modelId: d.model || null,
-            }).then((result) => {
+            // Reached through `runEnhanceDecl` (MPI-1002), the ONE Flow-path caller of
+            // `enhanceFlow`, which also logs the backend that ran; the agent's run goes
+            // through the same function.
+            runEnhanceDecl(d, source, { flowId: flow.id }).then((result) => {
                 if (result.ok && result.text) _writeEnhanced(d, result.text);
                 else if (!result.ok && !result.cancelled) {
                     clientLogger.error('MpiBaseFlow', 'prompt enhance failed', result.error);

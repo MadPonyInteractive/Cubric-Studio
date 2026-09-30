@@ -7,6 +7,8 @@ import { qs, on } from '../../../utils/dom.js';
 import { Storage } from '../../../core/storage.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { toWavFile } from '../../../utils/toWavFile.js';
+import { encodeWav } from '../../../utils/wavEncoder.js';
+import { trimSilence } from '../../../utils/trimSilence.js';
 import { uploadMediaFile } from '../../../services/mediaUploadService.js';
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
@@ -17,6 +19,12 @@ import { Events } from '../../../events.js';
  * ONE 21:9 picture on purpose (MPI-730) — it is stretched to whatever box mounts it.
  */
 const WAVE_PX = { w: 1260, h: 540 };
+
+/**
+ * The rate a recording is saved at. Kept equal to `WAV_RATE` in `utils/toWavFile.js`
+ * (not exported) so a take and a voice-library pick reach a Flow as the same kind of file.
+ */
+const TAKE_RATE = 48000;
 
 /**
  * Paint a waveform mask for a clip that does not exist on disk yet.
@@ -86,6 +94,55 @@ export async function bakeWaveMask(blob) {
 }
 
 /**
+ * Turn a finished take into the WAV that is both previewed and saved, with the dead air
+ * in front of the first sound cut off (MPI-999). The end is kept as recorded.
+ *
+ * WHERE THE TRIM GOES. This is the one point the take exists as samples before anything
+ * downstream has made a file of it: the review player and its waveform read the File
+ * returned here, and Accept hands over that same File, so what the user hears is what is
+ * saved. It is deliberately NOT inside `toWavFile()`, which the voice library shares —
+ * trimming there would cut a voice file the user uploaded. The decode below is the same
+ * one (48 kHz, downmixed to mono) and the file is the same 16-bit WAV `toWavFile` writes;
+ * only the range differs. See `utils/trimSilence.js` for what counts as silence.
+ *
+ * Exported for tests/desktop/recording-trim.spec.js, which drives it with a synthetic
+ * stereo clip in the real renderer - no mic, no dialog.
+ *
+ * @param {Blob} blob The MediaRecorder output.
+ * @returns {Promise<{file:File, seconds:number, trimmedSeconds:number}|null>}
+ *          `seconds` is the saved clip's length, `trimmedSeconds` what was cut (0 when the
+ *          take had no silence to cut, or was all silence and is kept as it is).
+ *          null if the take would not decode.
+ */
+export async function trimRecording(blob) {
+    try {
+        const decoded = await new OfflineAudioContext(1, 1, TAKE_RATE)
+            .decodeAudioData(await blob.arrayBuffer());
+
+        // Mono mixdown by averaging — what the Web Audio mono downmix does to stereo.
+        const pcm = new Float32Array(decoded.length);
+        for (let c = 0; c < decoded.numberOfChannels; c++) {
+            const data = decoded.getChannelData(c);
+            for (let i = 0; i < pcm.length; i++) pcm[i] += data[i] / decoded.numberOfChannels;
+        }
+
+        const kept = trimSilence(pcm, TAKE_RATE).samples;
+        const wav = encodeWav({
+            numberOfChannels: 1, length: kept.length, sampleRate: TAKE_RATE,
+            getChannelData: () => kept,
+        });
+        return {
+            file: new File([wav], 'recording.wav', { type: 'audio/wav' }),
+            seconds: kept.length / TAKE_RATE,
+            trimmedSeconds: (pcm.length - kept.length) / TAKE_RATE,
+        };
+    } catch (err) {
+        clientLogger.warn('audio-recorder', `take trim failed: ${err?.message || err}`);
+        return null;
+    }
+}
+
+/**
  * MpiAudioRecorder — record the user's microphone into a project audio file (Block, MPI-573)
  *
  * Vision has always treated audio as first-class on the way IN — audio gallery cards,
@@ -95,10 +152,15 @@ export async function bakeWaveMask(blob) {
  * voice-clone Flows that follow all need reference audio, and a voice clone needs the
  * user's own voice specifically.
  *
- * Three states, one button changing meaning:
- *   idle      — a big mic. Click to arm the stream and start.
- *   recording — elapsed time + a live level meter. Click to stop.
- *   review    — playback, then Accept / Re-record / Discard.
+ * Three states, one button changing meaning (plus a brief `processing` between the last two):
+ *   idle       — a big mic. Click to arm the stream and start.
+ *   recording  — elapsed time + a live level meter. Click to stop.
+ *   processing — the take is decoded and the silence at its start cut (MPI-999).
+ *   review     — playback, then Accept / Re-record / Discard.
+ *
+ * WHAT YOU HEAR IS WHAT IS SAVED. The silence before the first word is stripped when the
+ * take ends, BEFORE review, by `trimRecording()`: the player plays the trimmed WAV and
+ * Accept hands over that same File. Everything after the first word stays as recorded.
  *
  * WHY IT ENCODES TO WAV. MediaRecorder on Chromium hands back a WebM container, and
  * `.webm` is classified as VIDEO by extension in five places on the server (the
@@ -149,11 +211,14 @@ export const MpiAudioRecorder = ComponentFactory.create({
         let _chunks = [];
         let _tick = 0;
         let _startedAt = 0;
-        let _blob = null;
+        let _blob = null;      // what review plays: the trimmed WAV, or the raw take if trimming failed
+        let _wav = null;       // the trimmed WAV File that Accept hands over; null = trimming failed
         let _player = null;
         let _playbackUrl = null;
         let _recordedSecs = 0;
-        let _state = 'idle';   // idle | recording | review
+        let _trimmedSecs = 0;
+        let _destroyed = false;
+        let _state = 'idle';   // idle | recording | processing | review
 
         // backdropClose stays ON here (unlike the licence gate): a click outside a
         // recorder is unambiguously "not now", and _release() runs on teardown either
@@ -207,7 +272,9 @@ export const MpiAudioRecorder = ComponentFactory.create({
             if (!_blob) return;
             acceptBtn.el.setDisabled(true);
             hintSlot.textContent = 'Encoding…';
-            const file = await toWavFile(_blob);
+            // `_wav` is the very file the review played. Only if trimming failed is the raw
+            // take re-decoded here, untrimmed, exactly as before MPI-999.
+            const file = _wav || await toWavFile(_blob);
             if (!file) {
                 hintSlot.textContent = 'That recording could not be encoded. Try again.';
                 acceptBtn.el.setDisabled(false);
@@ -263,16 +330,31 @@ export const MpiAudioRecorder = ComponentFactory.create({
             _chunks = [];
             _recorder = new MediaRecorder(dest.stream);
             _recorder.ondataavailable = (e) => { if (e.data.size) _chunks.push(e.data); };
-            _recorder.onstop = () => {
-                _blob = new Blob(_chunks, { type: _recorder.mimeType || 'audio/webm' });
+            _recorder.onstop = async () => {
+                const raw = new Blob(_chunks, { type: _recorder.mimeType || 'audio/webm' });
                 // The take's length, off the same clock the elapsed readout used. The
-                // player needs it: Chromium reports `Infinity` for a MediaRecorder WebM
-                // blob until it is seeked, so metadata alone would paint no duration.
-                _recordedSecs = (Date.now() - _startedAt) / 1000;
+                // player needs it when the trim failed and it is handed the raw WebM:
+                // Chromium reports `Infinity` for a MediaRecorder WebM blob until it is
+                // seeked, so metadata alone would paint no duration.
+                const clockSecs = (Date.now() - _startedAt) / 1000;
                 // Release HERE, not in _stop(). MediaRecorder delivers its last chunk
                 // and then onstop as queued tasks; tearing the graph down on a timer
                 // beside them races that queue and can clip the tail off the take.
                 _releaseCapture();
+                _state = 'processing';
+                _render();
+
+                // Trim BEFORE review (MPI-999): the player and Accept both get the trimmed
+                // WAV, so what the user hears is what is saved. If the take would not
+                // decode, review falls back to the raw blob and Accept's own toWavFile
+                // call reports the failure, as it always did.
+                const trimmed = await trimRecording(raw);
+                // Discard, Escape or a backdrop click while it decoded: nothing to show.
+                if (_destroyed || _state !== 'processing') return;
+                _wav = trimmed?.file ?? null;
+                _blob = _wav ?? raw;
+                _recordedSecs = trimmed ? trimmed.seconds : clockSecs;
+                _trimmedSecs = trimmed ? trimmed.trimmedSeconds : 0;
                 _state = 'review';
                 _buildPlayback();
                 _render();
@@ -340,7 +422,9 @@ export const MpiAudioRecorder = ComponentFactory.create({
             _releaseCapture();
             _dropPlayback();
             _recordedSecs = 0;
+            _trimmedSecs = 0;
             _blob = null;
+            _wav = null;
             _chunks = [];
             _state = 'idle';
             timeSlot.textContent = '0:00';
@@ -350,24 +434,30 @@ export const MpiAudioRecorder = ComponentFactory.create({
 
         function _render() {
             const recording = _state === 'recording';
+            const processing = _state === 'processing';
             const review = _state === 'review';
 
             el.classList.toggle('mpi-audio-recorder--recording', recording);
             el.classList.toggle('mpi-audio-recorder--review', review);
 
-            micBtn.style.display = review ? 'none' : '';
+            micBtn.style.display = (review || processing) ? 'none' : '';
             micBtn.title = recording ? 'Stop recording' : 'Start recording';
             micBtn.setIcon(recording ? 'stop' : 'mic');
 
             redoBtn.el.style.display = review ? '' : 'none';
             acceptBtn.el.setDisabled(!review);
 
-            if (!review) {
+            if (processing) {
+                hintSlot.textContent = 'Trimming the silence…';
+            } else if (!review) {
                 hintSlot.textContent = recording
                     ? 'Recording — click to stop'
                     : 'Click the microphone to start';
             } else {
-                hintSlot.textContent = 'Accept saves the clip to this project.';
+                // Say so when the clip is shorter than the user's take, or the gap looks like a bug.
+                const cut = _trimmedSecs >= 0.1
+                    ? `Trimmed ${_trimmedSecs.toFixed(1)} s of silence off the start. ` : '';
+                hintSlot.textContent = `${cut}Accept saves the clip to this project.`;
             }
         }
 
@@ -385,6 +475,7 @@ export const MpiAudioRecorder = ComponentFactory.create({
         }
 
         el.destroy = () => {
+            _destroyed = true;
             _releaseCapture();
             _dropPlayback();
             _unsubs.forEach(fn => fn());

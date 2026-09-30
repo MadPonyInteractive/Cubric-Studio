@@ -282,3 +282,150 @@ test('a button never reaches the op as a value', async () => {
   assert.equal(inputs.enhance, undefined);
   assert.deepEqual(unknown, ['enhance']);
 });
+
+// ── A field the Flow writes itself (MPI-1002) ───────────────────────────────
+//
+// Song's Mood / Vocal / Arrangement are `hidden: true`: the Flow's enhancer fills them on
+// the enhancer picked in Remote. Listed to the agent as empty text boxes they were filled
+// blind (one of the three left empty), so the agent now never sees them and a value it
+// sends anyway is ignored rather than injected.
+
+const SONG_BLOCKS = ['Input_Mood', 'Input_Vocal', 'Input_Arrangement'];
+
+/** Run `fn` with console.warn (what clientLogger.warn mirrors to) and fetch stubbed. */
+function captureWarns(fn) {
+  const warns = [];
+  const realWarn = console.warn;
+  const realFetch = globalThis.fetch;
+  console.warn = (...args) => { warns.push(args.join(' ')); };
+  globalThis.fetch = async () => ({ ok: true });
+  try {
+    return { result: fn(), warns };
+  } finally {
+    console.warn = realWarn;
+    globalThis.fetch = realFetch;
+  }
+}
+
+test('agentFieldSpecs omits a hidden field and keeps the rest of Song', async () => {
+  const { agentFieldSpecs } = await fields();
+  const song = await flow('minimax-music');
+  const specs = agentFieldSpecs(song);
+  const ids = specs.map(f => f.id);
+
+  SONG_BLOCKS.forEach(id => assert.ok(!ids.includes(id), `${id} must not reach the agent`));
+
+  // The cast and its notes are the agent's to fill, with the options it needs to choose.
+  const voices = specs.find(f => f.id === 'Input_Voices');
+  assert.equal(voices.type, 'voices');
+  assert.deepEqual(voices.default, [{ type: 'Any' }]);
+  assert.deepEqual(voices.options.map(o => o.v), ['Any', 'Female', 'Male', 'Child', 'Duet', 'Choir']);
+  assert.equal(specs.find(f => f.id === 'Input_Voice_Notes').type, 'text');
+
+  // Only the hidden ones left: every other declared field of the Flow is still listed.
+  const listed = (song.fields || []).concat((song.steps || []).flatMap(s => s.fields || []))
+    .filter(f => f?.id && f.type !== 'button' && !SONG_BLOCKS.includes(f.id)).map(f => f.id);
+  assert.deepEqual(ids, listed, 'nothing but the hidden fields is dropped');
+
+  // A step-level hidden field is omitted the same way.
+  const stepped = agentFieldSpecs({
+    fields: [{ id: 'positive', type: 'text' }],
+    steps: [{ fields: [{ id: 'Input_Secret', type: 'text', default: '', hidden: true }, { id: 'Input_Open', type: 'text' }] }],
+  });
+  assert.deepEqual(stepped.map(f => f.id), ['positive', 'Input_Open']);
+});
+
+test('a caller value for a hidden field is ignored: default kept, one warning, not unknown', async () => {
+  const { resolveFlowFieldValues } = await fields();
+  const song = await flow('minimax-music');
+
+  // The default seeds the field, which is what keeps the graph off its baked bench caption.
+  const { result: quiet, warns: none } = captureWarns(() => resolveFlowFieldValues(song, { positive: 'a lullaby' }));
+  SONG_BLOCKS.forEach(id => assert.equal(quiet.injectionParams[id], '', `${id} keeps its default`));
+  assert.deepEqual(none, [], 'no caller value, nothing to warn about');
+
+  const { result, warns } = captureWarns(() => resolveFlowFieldValues(song, { positive: 'a lullaby', Input_Mood: 'x' }));
+  assert.equal(result.injectionParams.Input_Mood, '', 'the caller value must not reach the graph');
+  assert.equal(result.resolved.Input_Mood, '');
+  assert.deepEqual(result.unknown, [], 'a hidden id is declared, so never an unknown field');
+  assert.equal(warns.length, 1, 'one warning');
+  assert.match(warns[0], /Input_Mood/);
+  assert.equal(result.inputs.positive, 'a lullaby', 'the rest of the call is untouched');
+
+  // All three in one call: still one warning, naming every ignored id.
+  const all = captureWarns(() => resolveFlowFieldValues(song, {
+    Input_Mood: 'a', Input_Vocal: 'b', Input_Arrangement: 'c',
+  }));
+  SONG_BLOCKS.forEach(id => assert.equal(all.result.injectionParams[id], ''));
+  assert.deepEqual(all.result.unknown, []);
+  assert.equal(all.warns.length, 1);
+  SONG_BLOCKS.forEach(id => assert.match(all.warns[0], new RegExp(id)));
+
+  // null / undefined is an omission, not a value: nothing ignored, nothing to report.
+  const nulled = captureWarns(() => resolveFlowFieldValues(song, { Input_Mood: null, Input_Vocal: undefined }));
+  assert.deepEqual(nulled.warns, []);
+  assert.deepEqual(nulled.result.unknown, []);
+
+  // A typo is still an unknown field, and only it: a hidden id beside it is not one.
+  const typo = captureWarns(() => resolveFlowFieldValues(song, { Input_Mood: 'x', Input_Moood: 'y' }));
+  assert.deepEqual(typo.result.unknown, ['Input_Moood']);
+});
+
+test('resolved hands back the UI-side values, before mapTo and voice serialisation', async () => {
+  const { resolveFlowFieldValues } = await fields();
+  const song = await flow('minimax-music');
+  const cast = [{ type: 'Male' }, { type: 'Female' }];
+  const { injectionParams, resolved } = resolveFlowFieldValues(song, { positive: 'x', Input_Voices: cast });
+  assert.deepEqual(resolved.Input_Voices, cast, 'rows, as the widget holds them');
+  assert.equal(injectionParams.Input_Voices, 'Voice 1 (Male)\nVoice 2 (Female)', 'the graph string');
+  assert.equal(resolved.positive, 'x');
+});
+
+test('a voices cast sent as text is kept, and a canonical roster is byte-identical (MPI-1002)', async () => {
+  const { mapDeclaredValue, serialiseVoices, resolveFlowFieldValues } = await fields();
+  const song = await flow('minimax-music');
+  const decl = (song.fields || []).concat((song.steps || []).flatMap(s => s.fields || []))
+    .find(f => f.id === 'Input_Voices');
+  assert.ok(decl, 'Song must still declare Input_Voices');
+
+  // Canonical rows: the output is what serialiseVoices gives, exactly as before.
+  const rosters = [
+    [{ type: 'Male' }, { type: 'Choir' }],
+    [{ type: 'Any' }],
+    [{ type: 'Female' }, { type: 'Female' }],
+    [{ type: 'Duet' }],
+    [],
+  ];
+  rosters.forEach(rows => assert.equal(mapDeclaredValue(decl, rows), serialiseVoices(rows)));
+  assert.equal(mapDeclaredValue(decl, [{ type: 'Male' }, { type: 'Choir' }]), 'Voice 1 (Male)\nVoice 2 (Choir)');
+
+  // The serialised form comes back as itself: rows -> string -> map -> same string.
+  rosters.forEach((rows) => {
+    const text = serialiseVoices(rows);
+    assert.equal(mapDeclaredValue(decl, text), text, `${JSON.stringify(text)} must round-trip`);
+  });
+
+  // A cast sent as text is no longer dropped to ''.
+  assert.equal(mapDeclaredValue(decl, 'Voice 1 (Male)\nVoice 2 (Female)'), 'Voice 1 (Male)\nVoice 2 (Female)');
+  assert.equal(mapDeclaredValue(decl, 'Voice 1 (Duet)'), 'Voice 1 (Duet)');
+  // One line, comma-separated: two singers, not one Female row.
+  assert.equal(mapDeclaredValue(decl, 'Voice 1 (Male), Voice 2 (Female)'), 'Voice 1 (Male)\nVoice 2 (Female)');
+  assert.equal(mapDeclaredValue(decl, 'Voice 1 (Male); Voice 2 (Female)'), 'Voice 1 (Male)\nVoice 2 (Female)');
+  // The type is resolved against the declared options; the label is regenerated by position.
+  assert.equal(mapDeclaredValue(decl, 'voice 1 (male)'), 'Voice 1 (Male)', 'case-insensitive');
+  assert.equal(mapDeclaredValue(decl, 'Singer A (Male)\nThe Choir (Choir)'), 'Voice 1 (Male)\nVoice 2 (Choir)');
+  assert.equal(mapDeclaredValue(decl, 'Ana (live)'), 'Voice 1', 'an undeclared bracket is the catch-all');
+  assert.equal(mapDeclaredValue(decl, 'Ana, Bob (Male)'), 'Voice 1 (Male)', 'a comma inside a name stays in it');
+  // Nothing in, nothing out.
+  ['', '   ', null, undefined, 42].forEach((v) => {
+    assert.equal(mapDeclaredValue(decl, v), '', `${String(v)} yields no cast`);
+  });
+
+  // Through the agent path: a string and the same cast as rows land on the same graph value.
+  const asText = resolveFlowFieldValues(song, { Input_Voices: 'Voice 1 (Male)\nVoice 2 (Female)' });
+  const asRows = resolveFlowFieldValues(song, { Input_Voices: [{ type: 'Male' }, { type: 'Female' }] });
+  assert.equal(asText.injectionParams.Input_Voices, asRows.injectionParams.Input_Voices);
+  assert.deepEqual(asText.unknown, []);
+  // And the declared default still seeds it when the caller says nothing.
+  assert.equal(resolveFlowFieldValues(song, {}).injectionParams.Input_Voices, 'Voice 1');
+});

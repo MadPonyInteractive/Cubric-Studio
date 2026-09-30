@@ -52,7 +52,7 @@ The three behaviours come off the ONE `action` declaration, so they cannot disag
 
 | Rule | Where it lives |
 |---|---|
-| **Enhance is the only writer of `to`** (besides the user typing in it). Generate never enhances. | `_runEnhance` is the only caller that writes `to` |
+| **Enhance is the only writer of `to`** (besides the user typing in it). Generate never enhances. | `_runEnhance` (the frame) and `enhanceFlowRun` (agent and routine runs, MPI-1002) are the only writers of `to`; both go through `runEnhanceDecl` in `js/services/flowEnhance.js` |
 | **Editing `from` CLEARS `to`.** The enhanced text was written for the old wording. | `_setFlowField` — visible immediately where `to` is shown |
 | **The button reports which of those is true.** Heat = the current prompt is not enhanced. | `_paintEnhance` — the only readable signal on a surface that hides `to` |
 | **No Enhance pressed → the RAW prompt runs**, on a one-to-one declaration. | `withEnhanceFallback` (`js/utils/declaredFields.js`) fills an empty `to` from `from` in `runInputs`, which `submitFlowGeneration` strips before `flowInputs` like `runMediaItems`. **Never in the snapshot** (MPI-677): saved there, the brief came back as an unowned phrase on reopen/Reuse and Enhance refused it forever. String `from`/`to` only; a marker map has no single destination for the brief |
@@ -79,7 +79,7 @@ own targets when any of them changes and leaves them alone otherwise. **There is
 a full target set means the answer on file still matches its inputs, an empty one means re-run.
 Press Generate twice on an unchanged brief and the music graph runs twice, the enhancer once.
 
-**A source is serialised by its own declaration, not by `String(value)`** (`_enhanceSourceLine` →
+**A source is serialised by its own declaration, not by `String(value)`** (`enhanceSourceLine` in `js/services/flowEnhance.js` →
 `mapDeclaredValue`, the same call the graph payload makes). It matters the moment you put a
 non-scalar field in `from`: a `voices` roster's UI value is ROWS, so the blind `String()` this
 used to do would have sent the cast as `Voices: [object Object],[object Object]` — and silently,
@@ -117,7 +117,7 @@ to: { MOOD: 'Input_Mood', VOCAL: 'Input_Vocal', ARRANGEMENT: 'Input_Arrangement'
 ```
 
 The op still answers in ONE string, marked `[MOOD] … [VOCAL] … [ARRANGEMENT] …`. The frame
-splits it (`_writeEnhanced`): each box claims the run of text from its own marker to whichever
+splits it (`_writeEnhanced` → `enhancedWrites` in `js/services/flowEnhance.js`, shared with the agent path): each box claims the run of text from its own marker to whichever
 marker comes next. Every rule above holds unchanged — editing `from` clears **all** the targets,
 and the button is stale while **any** of them is empty, because a half-filled set is not enhanced.
 
@@ -194,5 +194,11 @@ should split into two steps.
 - **The per-model `enhancePrompt` toggle is GONE** (MPI-677 step 1b). It used to be a third thing
   named "enhance": a boolean control injecting `Input_Enhance_Prompt` so the workflow rewrote the
   prompt inside the graph. Enhancement stopped being a property of the workflow, all four graphs
-  that carry the node bake it `false`, and nothing injects the key. Do not re-add it — with the
-  box's control in front of it, an approved enhancement would be enhanced twice.
+  that carry the node bake it `false`, and nothing in the app injects the key. Do not re-add it —
+  with the box's control in front of it, an approved enhancement would be enhanced twice. The one
+  door left is a raw `injectionParams` body on `POST /connector/generate`, and it follows the same
+  Language Models pick as everything else: `settleInGraphEnhance` (`llmService.js`, called once in
+  `commandExecutor.runCommand`, so local and Pod alike) leaves the graph's own enhancer on when
+  ComfyUI is picked, and otherwise enhances on the picked backend and switches the node off. A
+  flow never reaches it (no flow graph carries the node), but a flow that ever does must not
+  enhance on ComfyUI behind a non-ComfyUI pick.

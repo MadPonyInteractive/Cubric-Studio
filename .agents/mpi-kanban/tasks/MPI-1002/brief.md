@@ -49,3 +49,15 @@ Anything else (Ollama, DeepInfra, another endpoint): that one, never the ComfyUI
 Each backend (ComfyUI, Ollama, DeepInfra) x each site (Song by hand, Song by Cosmo, Character
 Sheet Enhance, a model op with the in-graph enhancer): the log names the backend that ran, and
 with a non-ComfyUI pick no ComfyUI `TextGenerate` executes.
+
+## Decision (Fabio, 2026-09-30)
+
+Gap 1: option A. The agent's Flow run calls the same `enhanceFlow` as a hand run, so it uses the enhancer picked in Remote. Fabio: "that is the whole point": a Flow on DeepInfra enhances fast without stopping the generation for a ComfyUI pass, and with a non-ComfyUI enhancer picked in Remote, ComfyUI must never do the enhancing (gap 2 is the same rule inside the graphs).
+
+## Folded in from MPI-1003's audit (2026-09-30)
+
+- `agentFieldSpecs` (`js/utils/declaredFields.js`) emits no `hidden` flag and no agent-facing description,
+  so Song's hidden caption blocks (`Input_Mood`, `Input_Vocal`, `Input_Arrangement`) reach Cosmo as plain
+  empty text fields and `Input_Voices` as a bare `type: 'voices'`. With option A the enhancer fills the
+  blocks, so the agent must be told NOT to fill them itself (a `hidden` flag is the cheap signal;
+  `tests/connector-flow-dispatch.test.cjs` pins the dropped keys and needs updating with it).

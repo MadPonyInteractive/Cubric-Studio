@@ -76,7 +76,8 @@ cargo-cult install-sync machinery from modelRegistry).
   id,             // unique
   title,          // card + slide-over
   preview,        // filename under comfy_workflows/display/ — its OWN 4/5 webp, see 06
-  description,    // slide-over copy
+  description,    // slide-over copy. Its FIRST sentence (to the first dash or colon) is also what
+                  //   the in-app agent picks the flow by ("does") — write it as the ask, see 07
   requiredModels, // MODEL SLOTS (NOT dep ids) — [] for a no-model flow; a { label, models }
                   //   entry is a slot the user picks a model for (see below)
   modelParams,    // optional — per-model injection params for a choosable slot (see below)
@@ -91,7 +92,8 @@ cargo-cult install-sync machinery from modelRegistry).
   agentOpens,     // optional (MPI-892) — the in-app agent OPENS this flow for the user at this
                   //   step (a middle step's kind, or 'run') instead of running it. Set it when the
                   //   user's hands are needed (a drawing, a placement) or a result is theirs to read
-                  //   first; omit and the agent runs it. docs/agent-chat.md § Handing a Flow over.
+                  //   first; omit and the agent runs it. docs/agent-chat.md § Handing a Flow over;
+                  //   everything else the agent needs to know about a flow is 07.
 }
 ```
 

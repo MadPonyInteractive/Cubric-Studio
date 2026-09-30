@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/components/Blocks/MpiAudioRecorder/MpiAudioRecorder.js", "js/utils/trimSilence.js", "tests/trim-silence.test.cjs"]}

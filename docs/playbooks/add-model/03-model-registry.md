@@ -20,7 +20,7 @@ Key fields, with the 5B choices:
     capabilities: { multiStage: false, audio: false },  // omit branchingContinue → Finish-only; omit motion → no motionIntensity control
     type: 'wan5b',                // a new type needs a consumer sweep (below)
     loraStrengths: ['model'],     // Wan/LTX read strength_model only
-    enhanceRecipe: 'wan',         // reuse an existing Cubric Prompt recipe (no 'wan5b' recipe exists)
+    enhanceRecipe: 'wan',         // reuse an existing Cubric Prompt recipe (no 'wan5b' recipe exists); it ALSO picks the agent's prompting guide, see 07 § 2
     supportedOps: ['t2v', 'i2v'],   // single-stage → NOT t2v_ms/i2v_ms (see shape decision in README)
     gen_speed: 'fast',
     description: '...',
@@ -57,6 +57,10 @@ be picked at all: only a ranked op carries a note, which is why `ref2v` is ranke
 task list is registered with `_rank(pairs, '<task>')`; the task name is what the agent's
 `best` flag groups by, so two lists for one task must share it. `tests/model-priority.test.cjs`
 fails on an entry naming a model or an op that `models.js` does not have.
+
+A rank is one of several things the agent reads about a model: its `name`, its guide, its params
+and its media roles are the rest, and `description` is not among them. The whole list, and what to
+do for each, is [07-agent-knowledge.md](07-agent-knowledge.md).
 
 ## Multi-tier models — N sibling cards, one per tier (LTX-2.3 / Boogu-Edit pattern)
 

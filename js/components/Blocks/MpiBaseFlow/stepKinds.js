@@ -231,6 +231,13 @@ const STEP_MEDIA = {
     // object it wants is already sitting in `sourceRole`, so deriving here would
     // hand the run a second copy of a picture it has. Manual contributes the region
     // rect through STEP_PARAMS instead.
+    //
+    // THE ONE EXCEPTION IS A FLIP (MPI-998), read off `value.place.flipX/flipY`: the
+    // run takes `sourceRole`'s media as it finds it, so a mirrored object has to BE
+    // that media. Manual then returns the source object mirrored and unstamped, and
+    // `_deriveRunMedia` delivers it to `mediaRole`, replacing the unflipped copy. A
+    // flip is a change to the PICTURE, never a graph widget, so it has no STEP_PARAMS
+    // entry: adding one would feed a node no graph declares.
     place: (value, media, step, source) => composePlacedObject(value, source),
 };
 

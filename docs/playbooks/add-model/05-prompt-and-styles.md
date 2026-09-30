@@ -104,6 +104,15 @@ the graph expands, rewrites, or decorates the prompt.
 **The prompt enhancer (the reason the node exists).**
 - `Input_Enhance_Prompt` (`MpiIfElse`, `inputs.boolean`) switches between the raw prompt
   and a `TextGenerate` expansion. Bake it `false`.
+- **Nothing in the app turns it on** (the toggle went in MPI-677): the prompt box's Enhance control
+  is the app's enhancer and runs on the backend picked in Remote > Language Models, using the
+  model's recipe. The one way in is a raw `injectionParams` body on `POST /connector/generate`, and
+  `settleInGraphEnhance` (`llmService.js`, called once in `commandExecutor.runCommand`, so local and
+  Pod alike) settles it by the pick: ComfyUI picked leaves the node on; Ollama / Remote picked
+  enhances on THAT backend with the model's recipe, writes the prompt and switches the node off;
+  an edit op (`ENHANCE_EXEMPT_OPS`) is forced off. ComfyUI never enhances behind a non-ComfyUI
+  pick. A new graph with this node must keep the title `Input_enhance_prompt` (any case): that is
+  the key the guard looks for.
 - `TextGenerate` runs the **LM head of the text encoder the workflow already loaded** —
   no second model, no extra VRAM, no new dep, no image rebuild.
 - ⚠ **Eligibility is a hard capability limit, not a policy choice.** It works iff the
@@ -127,9 +136,10 @@ the graph expands, rewrites, or decorates the prompt.
   `outputInfo.promptText || _positiveFromBox` — one read path, no branch. All six
   sidecar/history writes inherit it. A workflow with no such node yields `null` and the
   prompt-box text is used, exactly as before.
-- **Progress bars.** The enhancer emits its own tqdm bar, but only when the toggle is on,
-  so the static `progressStages` table cannot express it. `stagesFor(file, mode, extraBars)`
-  takes a per-run delta; `commandExecutor` passes `1` when `Input_Enhance_Prompt` is true.
+- **Progress bars.** The enhancer emits its own tqdm bar, but only when the flag is true
+  (today only a raw connector request with ComfyUI picked), so the static `progressStages`
+  table cannot express it. `stagesFor(file, mode, extraBars)` takes a per-run delta;
+  `commandExecutor` passes `1` when `Input_Enhance_Prompt` is true.
   Omit this and an enhanced run shows `3/2` — the counter climbs past its own total, which
   reads as a hang precisely when the run is genuinely slower. An *unrecorded* workflow
   stays `0`; a delta on top of "unknown" is still unknown.
@@ -138,8 +148,8 @@ the graph expands, rewrites, or decorates the prompt.
   enhancement is its own control beside the prompt box now, on every model and every op
   except the edit family, and `capabilities.promptEnhance` declares ComfyUI-backend
   eligibility rather than gating any UI)
-  **and** on `capabilities.promptEnhance` (defaults **false** — a model opts in). Add the
-  toggle only to ops whose graph actually has the nodes.
+  **and** on `capabilities.promptEnhance` (defaults **false** — a model opts in). Do not
+  re-add a per-op toggle for the in-graph node: nothing drives it by design.
 
 **Traps:**
 - The saved prompt is now the graph's, even with the enhancer **off** (the `MpiIfElse`
@@ -150,7 +160,8 @@ the graph expands, rewrites, or decorates the prompt.
 - The text must never join the image/gif/video `target` array. It has no file dict; every
   downstream media consumer would choke on a bare string.
 - Latency is real and user-visible (up to `max_length` autoregressive steps through a 4B
-  model). The toggle's `info` string must name the cost; keep it opt-in.
+  model). Keep it opt-in: the graph bakes it off, and the prompt box's Enhance button is where
+  the user asks for it and sees the cost.
 
 Guard: `tests/output-prompt-capture.test.cjs`. Style rack guards:
 `tests/inject-params-titles.test.cjs` (selector title + widget names vs the dotted keys)

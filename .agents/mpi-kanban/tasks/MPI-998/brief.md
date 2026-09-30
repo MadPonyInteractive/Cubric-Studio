@@ -34,3 +34,8 @@ object facing the wrong way for the scene cannot be fixed without leaving the ap
 - Unit: the step value carries the flip and the Auto stamp file comes out mirrored.
 - Live on an isolated app: Object Stamp, flip, Generate; the result shows the object mirrored,
   in Auto and in Manual.
+
+## Noticed
+
+- `_deriveRunMedia` (MpiBaseFlow.js) reads a null from a step kind as "nothing changed", so a flip (or an Auto stamp) that fails to derive, e.g. the object will not load, runs silently unflipped/unstamped. Root fix: separate "failed" from "unchanged" in the `stepValueToMedia` contract.
+- Importing `stepKinds.js` in bare Node pulls `concatProgress.js`, which opens an `EventSource` at import time (a caught ReferenceError in tests; the flip test stubs it).

@@ -400,6 +400,9 @@ not chosen: three real head boxes square to at most 0.52, the two bad ones start
 
 ## Model ranking (Phase 5, `modelConstants/modelPriority.js`)
 
+Adding a model or a Flow? What Cosmo reads about it, and the steps that make it known, are
+`docs/playbooks/add-model/07-agent-knowledge.md` and `docs/playbooks/add-flow/07-agent-knowledge.md`.
+
 Every op in `GET /connector/models` carries a `rank` for its task (1 = the best we have) and,
 where it changes the pick, a one-line `note` — the half a ranking cannot hold ("takes exactly one
 image", "re-renders the whole picture rather than editing in place"). One image order filtered by

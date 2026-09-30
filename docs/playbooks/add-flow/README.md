@@ -44,6 +44,7 @@ model, image-in→image-out) are the other worked examples.
 | [ui/result-pane.md](ui/result-pane.md) | The result pane: `result.compare`, the video player every single-video result gets, and surviving close -> reopen |
 | [05-verify.md](05-verify.md) | Definition of Done — inject test, node --check, live run (video/audio/multi-output), reuse |
 | [06-preview-image.md](06-preview-image.md) | The flow's graphics — the 4/5 tile still + the wide autoplaying hero clip; which device to use for which kind of change; the ffmpeg/`sharp` recipes and their silent traps. **Run `/mpi-flow-graphics`**, which enforces it |
+| [07-agent-knowledge.md](07-agent-knowledge.md) | **Making the Flow known to the in-app agent (Cosmo)** — the three things it reads about a Flow, run / open / ask first (`agentOpens`), `description` → the catalogue's `does`, hidden and structured fields it sees as bare names, `docs/agent/flows.md`, a new media KIND's scope strings, the read-back and the live ask |
 
 Two folders sit alongside the numbered sections:
 
@@ -120,6 +121,7 @@ Flow-specific notes:
 | **A value a flow does not DECLARE must not carry its `Input_*` title.** `_buildParams` emits **`Input_Positive`, `Input_Negative` and `Input_Negative_Audio`** on every run (`Input_Negative: negative \|\| ''`, etc.) whatever the flow declares, so any of those three titles on a node the flow leaves undeclared is silently overwritten with an empty string. Head Swap and Outpaint bake their instruction and leave the prompt node untitled; Scribble bakes its negative and titles that node `negative prompt`. **Draw It In shipped the negative half of this bug** — node 19 held a baked negative, the FlowDef declared no `negative` field, and every render it ever made ran with an empty negative, with nothing failing and nothing logged (found MPI-620). Do NOT instead teach the app to skip an empty value — nearly every other graph relies on that empty string to wipe a leftover authoring prompt | [existing-flows/outpaint.md](existing-flows/outpaint.md) |
 | `operation_registry.json` is a hand-maintained superset — **never regenerate** (strips `universal` flags) | [01](01-descriptor-and-ops.md) |
 | `preview` is **ONE field feeding THREE placements** — tile and detail thumb crop it `4/5 cover`, the in-flow hero shows it at natural aspect. Art composed for the hero gets centre-cropped in the grid with no warning | [06](06-preview-image.md) |
+| **A Flow works for the user and is invisible to Cosmo.** The agent picks a Flow by `does` (the first sentence of `description`) and fills it from `id`/`label`/`type`/`default`/`options` only: a `hidden` field, a `voices` roster and anything explained in a `note`/`hint` reach it as a bare name and get filled blind. Nothing fails | [07](07-agent-knowledge.md) |
 
 ## Hard rules
 
@@ -146,6 +148,12 @@ Flow-specific additions:
 - [ ] Add a case to `tests/inject-params-titles.test.cjs` (assert every `Input_*`/`Output_*` title exists) — [05](05-verify.md)
 - [ ] Verify: inject test green, `node --check`, live run (each media type + multi-output), reuse across restart — [05](05-verify.md)
 - [ ] `preview` image: its OWN 4/5 webp under `comfy_workflows/display/`, named for the flow — never a reused model preview, never shared with another flow — [06](06-preview-image.md)
+- [ ] **Agent role:** does Cosmo RUN it (the default), OPEN it for the user (`agentOpens`), or ASK first (prose in `docs/agent/flows.md`, like Song)? Pin the id in `tests/agent-flow-handover.test.cjs` (`want` for an opening Flow, `runs` for a running one), and name an opening Flow in `flows.md` § Flows the user finishes — [07](07-agent-knowledge.md) § 1
+- [ ] **Agent catalogue line:** the FIRST sentence of the `FlowDef` `description` reads as what a user would ask for (verb first, no brand) — it is the catalogue's `does`, the only thing Cosmo picks a Flow by — [07](07-agent-knowledge.md) § 2
+- [ ] **Agent field meaning:** every `hidden: true` field, `voices` roster, or field whose meaning sits in a `note`/`info`/`hint`/`placeholder` is explained in `docs/agent/flows.md` (Cosmo sees only id, label, type, default, options, min, max); media slot KEYS named for what they hold — [07](07-agent-knowledge.md) § 3
+- [ ] **Agent doc:** `docs/agent/flows.md` says when to reach for it (vs a model or another Flow), only where the Flow needs a paragraph — information only, under 200 lines, NOTHING in the system prompt or a new `docs/agent/*.md` (byte budgets) — [07](07-agent-knowledge.md) § 4
+- [ ] **New media KIND?** (audio was one) the prompt's opening line, the Docs rule's scope, `generate`'s description, the chat result tile, the MCP header — [07](07-agent-knowledge.md) § 5
+- [ ] **Agent verify:** read back what Cosmo reads (`does` + `agentFieldSpecs`), `node --test` the four agent tests, and give the user the live ask in words — [07](07-agent-knowledge.md) § 6
 - [ ] NO app version bump for the Flow itself; a NEW op sets `appVersionIntroduced` in both op registries
 - [ ] **Announce it: add the flow to BOTH the roster list and its own entry in `docs/releases/UNRELEASED.md`.** The roster enumerates the Library, so a missing name makes an existing entry WRONG. This is the closing agent's debt, not the next session's — `.agents/mpi-kanban/close-out.md` § A NEW FLOW (Scribble shipped with neither, and the notes still said seven flows)
 

@@ -25,13 +25,16 @@ checklist, and a routing table. Then state, in one line each:
 2. Whether it declares **media slots** (⇒ `02-media-io.md` — path-reading nodes, injection
    routing, the audio-slot traps) or is media-free.
 3. Whether it needs a **uiComponent** (custom controls) or is media-only (omit uiComponent).
+4. Its **agent role** (README § Agent role): the in-app agent Cosmo RUNS it, OPENS it for the
+   user (`agentOpens`), or ASKS first (prose in `docs/agent/flows.md`) — and the one sentence
+   that will be its catalogue `does` (the first sentence of `description`).
 
-If you cannot answer all three from the hub + the workflow JSON, stop and ask.
+If you cannot answer all four from the hub + the workflow JSON, stop and ask.
 
-**Then read section files ON DEMAND — do NOT slurp all five up front.** Open a section when
+**Then read section files ON DEMAND — do NOT slurp all of them up front.** Open a section when
 you reach its step (descriptor/ops → `01`; media slots/injection → `02`; storage/reuse →
-`03`; overlay/shell → `04`; verify → `05`). A media-free flow never needs `02`'s slot
-machinery.
+`03`; overlay/shell → `04`; verify → `05`; **making the Flow known to Cosmo → `07`**). A
+media-free flow never needs `02`'s slot machinery.
 
 **Do not skip Step 0 because the user pasted a handoff.** The handoff assumes the playbook.
 
@@ -71,6 +74,7 @@ file the moment you reach a step that needs it, and only that section.
 | Injection **silently skips** a param whose `Input_*` title matches no node — run `tests/inject-params-titles.test.cjs` | 05 |
 | An flow-vs-browser divergence is ALWAYS a flow-side injection/routing bug, never the workflow | 02 |
 | uiComponent is OPTIONAL — omit for a media-only flow (BaseFlow renders slots) | 01/04 |
+| **A Flow that works by hand is invisible to Cosmo.** It picks by `does` (the first sentence of `description`) and fills from id/label/type/default/options/min/max only: a `hidden` field, a `voices` roster or a note-carried meaning arrives as a bare name and is filled blind. No gate makes it read `flows.md`, and the system prompt has almost no byte budget left for a per-Flow rule | 07 |
 
 ## Hard rules
 
@@ -88,3 +92,15 @@ Follow `docs/playbooks/add-flow/05-verify.md`: inject test green, `node --check`
 user-driven live run (each media type injects — ESPECIALLY audio — multi-output, storage in
 `.preview-assets`, status bar, Ctrl+Enter, reuse across restart). Real gens are the user's to
 run; you verify render + code + automated checks.
+
+**The in-app agent is part of Definition of Done.** These README checklist lines are checked like
+any other — a skipped one fails the checklist, not the user. Quote them back ticked or waived
+with a reason:
+
+- **Agent role** — run / open (`agentOpens`) / ask first, pinned in `tests/agent-flow-handover.test.cjs`
+- **Agent catalogue line** — the first sentence of `description` reads as the ask
+- **Agent field meaning** — hidden / `voices` / note-carried fields explained in `docs/agent/flows.md`; slot keys named for what they hold
+- **Agent doc** — `flows.md` paragraph only where needed; nothing in the system prompt (byte budget)
+- **New media KIND?** — opening line, Docs rule, `generate` description, chat tile, MCP header
+- **Agent verify** — `07-agent-knowledge.md` § 6: read back `does` + `agentFieldSpecs`, the four agent
+  tests, and the live ask in words handed to the user

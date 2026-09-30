@@ -50,6 +50,13 @@ the user drives the end-to-end live run. Confirm each:
 - [ ] **Install** (model flow): from a clean state, the detail footer drives each model's download
       with a visible aggregate % bar; badge flips Get-models → Ready → Open.
 
+## In-app agent (Cosmo)
+
+- [ ] **Read back** what the agent reads for this Flow (`does`, `agentFieldSpecs`), run the four agent
+      tests, and hand the user the one live ask that should pick it — all in
+      [07-agent-knowledge.md](07-agent-knowledge.md) § 6. A Flow the user can run by hand and Cosmo
+      cannot find or fill is not done.
+
 ## Both-engine note
 
 Gen-core edits (the `comfyController` media-kind sweep + inject) touch the SHARED path all media

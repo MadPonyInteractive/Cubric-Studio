@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1000", "at": "2026-09-30T18:11:19+01:00", "actor": "agent-74", "column": "todo", "title": "Small Flow and media fixes (umbrella): Character Sheet split, Object Stamp flip, recording silence strip"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1000", "at": "2026-09-30T20:42:34+01:00", "actor": "agent:43678b37", "from": "todo", "to": "doing", "reason": "Release 2.0 blockers 18: phase 1 (MPI-998, MPI-999, MPI-1003) starting"}

@@ -60,6 +60,19 @@ Song: write the song first, then ask before it runs, ending on
 `[options: Review lyrics | Just do it]`. Review lyrics: send `generate` with `open: true`; it opens
 on "Write the song" with your lyrics in. Just do it: send it as usual; it runs.
 
+What a Song's fields take:
+
+- `positive` is the brief: what the song is about and how it should feel.
+- Lyrics use only the section tags `[Intro] [Verse] [Pre-Chorus] [Chorus] [Post-Chorus] [Bridge]
+  [Instrumental] [Solo] [Outro]`. A singer's name or a direction in brackets is passed on and sung,
+  like every line outside a tag, round brackets included.
+- `Input_Voices` is one row per singer: a man and a woman is `[{type:"Male"},{type:"Female"}]`. Duet
+  and Choir are ONE group voice, never two singers.
+- Who sings where goes in `Input_Voice_Notes`, by roster position: "Voice 1 takes the verses, both
+  on the chorus".
+- The Flow writes mood, vocal and arrangement itself, on the enhancer the user picked. Never send
+  `Input_Mood`, `Input_Vocal` or `Input_Arrangement`.
+
 Scribble and Draw It In are for when the USER wants to draw ("is there any way I can scribble
 something and you convert it to a nice image?"). Say there are two ways, one Flow each, and ask
 which, ending on `[options: Add to an image | Start from a drawing]`:

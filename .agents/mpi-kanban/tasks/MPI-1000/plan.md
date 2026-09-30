@@ -13,7 +13,7 @@ Character Sheet split waits on MPI-603.
 | MPI-999 | Recordings: strip the silence from the user's audio recordings | `tasks/MPI-999/brief.md` |
 | MPI-1002 | Every Flow enhancement uses the enhancer picked in Remote, on the agent's runs too | `tasks/MPI-1002/brief.md` |
 | MPI-1003 | Add-flow and add-model playbooks: the steps that make a new Flow or model known to the in-app agent | `tasks/MPI-1003/brief.md` |
-| MPI-1004 | Cosmo picks a library voice itself when a voice line has no sample | `tasks/MPI-1004/task.json` |
+| MPI-1004 | Cosmo picks a library voice itself when a voice line has no sample | `tasks/MPI-1004/brief.md`, `plan.md` |
 
 (MPI-1001 is a peer's RunPod card, not a member.)
 
@@ -22,6 +22,8 @@ Character Sheet split waits on MPI-603.
 1. MPI-998, MPI-999 and MPI-1003 in parallel (below).
 2. MPI-1002 (its gap 1 needs Fabio's call first: the agent run calls the selected enhancer, or
    Cosmo writes Song's three blocks itself).
+2b. MPI-1004 after MPI-1002 (both edit `js/shell/agentDispatch.js` and `docs/agent/flows.md`);
+   its own `plan.md`.
 3. MPI-997, once MPI-603 (same graph, head-removal branch on LanPaint) is closed. Run it through
    `/mpi-add-flow` (a second workflow for a Flow) and the `docs/models/klein/` graph rules.
    Check MPI-603's column first; if it is still `validating`, build on top of it, never beside it.
@@ -29,20 +31,25 @@ Character Sheet split waits on MPI-603.
 
 ## Parallel Batch - phase 1
 
-- **MPI-998 Object Stamp flip**
+- [x] **MPI-998 Object Stamp flip** (built + unit-verified 2026-09-30; Fabio's live look left)
   Ownership: js/components/Organisms/MpiStepPlace/MpiStepPlace.js,
   js/components/Organisms/MpiStepPlace/MpiStepPlace.css,
-  js/components/Primitives/MpiCanvas/managers/ShapeManager.js (only if the preview draw lives there)
+  js/components/Blocks/MpiBaseFlow/stepKinds.js (the `place` kind's value/media mapping),
+  tests/object-stamp-flip.test.cjs (new). Only if needed: js/components/Primitives/MpiCanvas/
+  managers/ShapeManager.js, CompositeManager.js, MpiCanvas.js (preview draw),
+  js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js and the `object-stamp` entry of
+  js/data/flowsRegistry.js (Manual's flipped object reaching the run).
   **Verify:** a unit test that the step value carries the flip and the Auto stamp is mirrored;
   live on an isolated app, Object Stamp result mirrored in Auto and in Manual.
-- **MPI-999 Recording silence strip**
+- [x] **MPI-999 Recording silence strip** (built, unit + desktop spec 2026-09-30; Fabio's ear test left)
   Ownership: js/components/Blocks/MpiAudioRecorder/MpiAudioRecorder.js, a new import-free helper
   under js/utils/ (NOT js/utils/toWavFile.js: the voice library shares it), its test under tests/
   **Verify:** bare-Node unit test (silence/tone/silence, all-silence, no-silence); live on an
   isolated app, a take with pauses at both ends saves without them.
-- **MPI-1003 Playbook agent steps**
+- [x] **MPI-1003 Playbook agent steps** (playbooks + skills done 2026-09-30; scope strings + agent-chat.md pointer wait on MPI-950's claim)
   Ownership: docs/playbooks/add-flow/, docs/playbooks/add-model/, the /mpi-add-flow and
-  /mpi-add-model skill definitions
+  /mpi-add-model skill definitions (.claude/skills/mpi-add-flow/, .claude/skills/mpi-add-model/),
+  docs/agent-chat.md (a pointer only), tasks/MPI-1003/validation.md
   **Verify:** the audit list (what the agent reads) is in the card's validation.md, every item maps
   to a checklist line in a playbook README, and each skill's checklist names the new lines.
 
@@ -68,7 +75,24 @@ generate call.
 
 Each member closes on its own evidence; the umbrella closes when all three have.
 
+## Plan Drift
+
+- 2026-09-30 (session 43678b37): MPI-603 is release-gated, not graph-gated: its Character Sheet
+  graph work is on master and only the 2.0 cut + an R2/HF weight delete remain. So phase 3 builds
+  on the current graph; it does not wait for MPI-603 to close.
+- 2026-09-30: MPI-1004 planned (phase 2b). Chatterbox REQUIRES a sample (refuses), DramaBox does
+  not (runs on its own voice): the brief records both.
+
 ## Current State
+
+2026-09-30 (session 43678b37, end): phases 1 and 2 BUILT and verified by tests (npm test 2572/0).
+`validating`: MPI-998 (Fabio's look), MPI-999 (START-only trim per Fabio; ear test), MPI-1002 (live
+matrix left: needs Fabio's local ComfyUI + a few DeepInfra calls, ask the price first), MPI-1003
+(docs; closes on a green commit). MPI-950 closed and released agentDispatch/agentLoop/mcp, so step 6
+and MPI-1003's scope strings landed. MPI-1004 `needs-decision` (offer shape A/B/C; pick A). Open picks
+for Fabio on MPI-1002: failed enhancer stops the agent run (built that way); Character Sheet agent run
+does not auto-enhance. Next: phase 3 MPI-997 (Character Sheet split) via /mpi-add-flow; it no longer
+waits on MPI-603 (release-gated only).
 
 2026-09-30 (Agent 74): created; MPI-1002 and MPI-1003 added the same day at Fabio's ask. Nothing
 started. Member cards stay open until their work lands (Fabio's pick). Next: phase 1 with

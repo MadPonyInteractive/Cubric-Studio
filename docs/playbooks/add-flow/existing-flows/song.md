@@ -98,10 +98,11 @@ Which is why two option lists carry caption WORDS rather than indices:
 Fabio, 2026-09-02: *"the enhancer runs silently, but it only runs if the user has changed the
 prompt."* It is declared as `flow.enhance`, not on a `button` field — with the button gone, a
 hidden control would be a dead `<button>` in the DOM purely holding data; the frame reads
-`action` and `auto` as implied. `from: ['positive', 'Input_Style', 'Input_Style_Custom']` **is
-the cache key** — exactly the fields whose change makes the previous answer stale. Tempo is not
-in it (the graph states the BPM verbatim); lyrics and the roster reach the caption on their own
-wires, never through the rewriter.
+`action` and `auto` as implied. `from: ['positive', 'Input_Style', 'Input_Style_Custom',
+'Input_Voices', 'Input_Voice_Notes']` **is the cache key** — exactly the fields whose change makes
+the previous answer stale. The cast is in it so the rewriter writes `[VOCAL]` for the voices
+actually cast. Tempo is not (the graph states the BPM verbatim), and the lyrics reach the caption
+on their own wire, never through the rewriter.
 
 🔴 **That is why `qwen3vl-abliterated-clip` is a `requiredDep`.** While Enhance was a button, an
 install without it lost a button that warned. Now it loses Generate. The weight also arrives via
@@ -126,7 +127,9 @@ and the prose **between** them is a lyric line the model sings.
 | 1 | bare tags, prose underneath | a man sang the stage directions |
 | 2 | directions folded INSIDE the brackets, Suno-style | sung too — `_LYRIC_TAG_RE` is `\[[^\]]+\]`, so any bracketed run is a legal tag |
 
-The step's `hint` exists for exactly this; nothing on screen implies it.
+The step's `hint` exists for exactly this; nothing on screen implies it. The in-app agent's copy of
+this grammar (tags only, one `Input_Voices` row per singer, placement in `Input_Voice_Notes`, the
+three caption blocks never sent) is `docs/agent/flows.md` § Flows the user finishes; edit both together.
 
 ## 🔴 The cast is a BIAS, and the lyrics cannot address a voice
 

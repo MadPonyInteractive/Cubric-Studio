@@ -40,6 +40,7 @@ import { buildComfyViewUrl, collectComfyOutputUrls, readComfyOutputText, splatVi
 import { canonicalizeInjectionKeys } from '../utils/injectionKeys.js';
 import { imageSize, upscaleRefusal, loadRefusal } from '../utils/upscaleLimit.js';
 import { generationStore, PHASES } from './generationStore.js';
+import { settleInGraphEnhance } from './llmService.js';
 
 // Adapters over the shared js/utils/comfyOutputUrls.js (MPI-176). MPI-74: a
 // force-local run's output lives on LOCAL ComfyUI — build the /view URL against
@@ -1789,6 +1790,21 @@ export function runCommand(payload) {
         }
         if (await _abortedBail(tempTrimInputPaths)) return;
         workingPayload = await _capLargeImageInputs(workingPayload);
+        if (await _abortedBail(tempTrimInputPaths)) return;
+
+        // MPI-1002: an in-graph enhancer (`Input_enhance_prompt`) runs on the enhancer picked in
+        // Remote > Language Models, never on ComfyUI behind Remote's back. ONE call, here, because
+        // this is the single point the local engine and the Pod both pass (`_buildParams` below,
+        // then `getEngine(...).runWorkflow` for either). A failed enhancer stops the job.
+        try {
+            workingPayload = await settleInGraphEnhance(workingPayload);
+        } catch (err) {
+            await _cleanupTrimmedVideoInputs(tempTrimInputPaths);
+            const reported = err?.code === 'ENHANCE_FAILED';
+            if (reported && !payload.byAgent) Events.emit('ui:warning', { message: err.userMessage });
+            _failBail(err, { reported });
+            return;
+        }
         if (await _abortedBail(tempTrimInputPaths)) return;
 
         const params = _buildParams(workingPayload);

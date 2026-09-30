@@ -83,23 +83,35 @@ test('invalidation still refuses to clear text the enhancer does not own', () =>
 
 test('an enhance source is serialised by its own declaration, never String(v)', () => {
     const src = frame();
+    // The source-line builder moved to `services/flowEnhance.js` (MPI-1002) so the agent's
+    // run builds the prompt with the same function; the rule it pins did not move.
+    const shared = fs.readFileSync(repo('js/services/flowEnhance.js'), 'utf8');
 
     // THE BUG THIS PINS: a `voices` roster's UI value is ROWS, and `String(rows)` is
     // "[object Object],[object Object]". The moment the cast became a source, a blind
     // `String()` stopped being a cosmetic shortcut and started feeding the rewriter
     // noise where the singers are. `mapDeclaredValue` is the same call the graph
-    // payload makes, so both read one string built once.
+    // payload makes, so both read one string built once. (`graphValues` is the agent's
+    // path, whose values `resolveFlowFieldValues` has already mapped.)
     assert.match(
-        src,
-        /function _enhanceSourceLine\([^)]*\)\s*\{\s*\n\s*const v = mapDeclaredValue\(f, _fieldValues\[id\]\);/,
-        '_enhanceSourceLine must serialise through mapDeclaredValue',
+        shared,
+        /function enhanceSourceLine\([^)]*\)\s*\{\s*\n\s*const v = graphValues \? raw : mapDeclaredValue\(f, raw\);/,
+        'enhanceSourceLine must serialise through mapDeclaredValue',
     );
+    assert.ok(!/function _enhanceSourceLine/.test(src),
+        'the frame must not grow a second copy of the source-line builder');
+    assert.match(src, /const _enhanceSourceText = d => enhanceSourceText\(d, _allDecls, _fieldValues, _hiddenNow\(\)\);/,
+        'the frame must build the enhancer\'s input through the shared function, from its LIVE values');
 
     // And the old shortcut must not survive anywhere on the source path — the single-
     // source branch had its own copy, which is exactly how one of two branches rots.
     assert.ok(
         !/_enhanceSources\(d\)[\s\S]{0,400}?String\(_fieldValues\[/.test(src),
         'no enhance source may be read with a bare String(_fieldValues[...])',
+    );
+    assert.ok(
+        !/enhanceSources\(d\)[\s\S]{0,400}?String\(values/.test(shared),
+        'no enhance source may be read with a bare String(values[...])',
     );
 });
 
@@ -152,9 +164,12 @@ test('Enhance refuses before dispatching, and says why, when every target is the
     const guard = body.search(/_enhanceTargets\(d\);\r?\n/);
     assert.ok(guard > 0 && /if \(!targets\.some\(_mayEnhanceWrite\)\)/.test(body),
         '_runEnhance must check its targets are writable');
-    assert.ok(guard < body.indexOf('enhanceFlow('), 'the check must come BEFORE the dispatch');
+    assert.ok(guard < body.indexOf('runEnhanceDecl('), 'the check must come BEFORE the dispatch');
     assert.match(body, /is'\} your own text\. Clear/, 'the refusal must tell the user what to do');
-    assert.ok(/_mayEnhanceWrite\(d\.to\)/.test(src), '_writeEnhanced keeps its check for text typed mid-run');
+    // The per-target check moved into `enhancedWrites` (MPI-1002) and is handed the frame's
+    // own `_mayEnhanceWrite`, which is read when the answer LANDS — that is what protects text
+    // typed while the run was in flight.
+    assert.ok(/enhancedWrites\(d, text, _mayEnhanceWrite\)/.test(src), '_writeEnhanced keeps its check for text typed mid-run');
 });
 
 test('an unpressed Enhance runs the raw prompt, and the snapshot does not grow it', async () => {
@@ -199,4 +214,34 @@ test('the snapshot and the run are separated at both ends', () => {
     assert.match(service, /positive: run\.positive \|\| ''/);
     assert.match(service, /\.\.\.\(run\.injectionParams \|\| \{\}\)/);
     assert.match(service, /flowInputs: snapshot,/);
+});
+
+// ── the frame keeps UI state only; the enhance rules live in services/flowEnhance.js ─────────
+// (MPI-1002) The agent's Flow run reads a declaration through the same module, so what a hand
+// run does and what an agent run does are one function each, not two that drift.
+
+test('the frame reads declarations, writes and dispatch from flowEnhance.js, not its own copies', () => {
+    const src = frame();
+    assert.match(src, /from '\.\.\/\.\.\/\.\.\/services\/flowEnhance\.js'/);
+    assert.match(src, /const _enhanceDecls = flowEnhanceDecls\(flow\);/);
+    assert.match(src, /enhancedWrites\(d, text, _mayEnhanceWrite\)\.forEach\(\(\[id, v\]\) => _setEnhanced\(id, v\)\);/,
+        '_writeEnhanced must decide what lands where through the shared function and only APPLY it');
+    assert.ok(!src.includes('[A-Z_]+'), 'the marker-splitting regex moved to flowEnhance.splitEnhanced');
+    assert.ok(!src.includes("id: 'enhance:auto'"), 'the synthetic declaration moved to flowEnhance.autoEnhanceDecl');
+    // Hand-run UI state stays here.
+    assert.match(src, /const _mayEnhanceWrite = id =>/);
+    assert.match(src, /function _setEnhanced\(id, v\)/);
+});
+
+test('the seed adopts hidden caption blocks as the enhancer\'s, AFTER the fallback-echo drop', () => {
+    const src = frame();
+    const echo = src.indexOf('enhanceEchoTargets(_enhanceDecls, _fieldValues, _enhanceWrote)');
+    const adopt = src.search(
+        /adoptHiddenTargets\(_enhanceDecls, _allDecls, _fieldValues, _enhanceWrote\)\s*\.forEach\(id => _enhanceWrote\.add\(id\)\);/,
+    );
+    assert.ok(echo > 0, 'the echo drop must still be there');
+    assert.ok(adopt > echo,
+        'adoption must come AFTER the echo drop, or an adopted echo would be protected from it');
+    // The Set it adds to is the one the snapshot carries out, so the adoption survives a Reuse.
+    assert.ok(src.indexOf('const _enhanceWrote = new Set(') < echo, 'the Set must exist before it is adopted into');
 });
