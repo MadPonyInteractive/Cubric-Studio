@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-989", "at": "2026-09-29T13:56:24+01:00", "actor": "claude", "column": "doing", "title": "Cloud generation doc: how a paid cloud run travels, fails and bills (cloudExecutor + routes/deepinfra)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-989", "at": "2026-09-30T07:06:51+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Doc + router row shipped f10b2ad80; CI green on b3a4ebd97 and later."}
