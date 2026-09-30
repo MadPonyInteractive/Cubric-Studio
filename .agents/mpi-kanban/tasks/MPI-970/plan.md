@@ -2,8 +2,56 @@
 
 ## Current State
 
+2026-09-30 later (26163994, Agent 67) - **R1 core DONE, R1 wiring NOT started.** Uncommitted, `npm test` (Git Bash)
+2347 pass / 0 fail. Landed:
+- `js/services/routineRunner.js`: `quoteRoutine(routine, cardCount, deps)` -> `{ ok, missing[], billed, usd|null }`;
+  `runRoutine(routine, cardIds, { projectFolder }, deps)` -> refusal, or `{ ok, runId, stackId, finished }` once every
+  step 1 is queued (`finished` = `{ ok, runId, stackId, cards: [{ inputGroupId, groupId, steps, failedAt?, error? }] }`).
+  Pure: ALL app access is `deps` (`lookups, check, price, readProject, submit, addStack, newId`, typedef at the top).
+  `submit(step, {url, mediaType}, landing, project)` must resolve once ENQUEUED to `{ ok, done }`; `landing` = the
+  run's `{ batchId, batchLabel, batchTotal, stackId? }` plus `existingGroup` on a later step. Refusal codes:
+  `NOT_INSTALLED` (+`missing`), `NO_CARDS`, `PROJECT_NOT_FOUND`, `CARD_NOT_FOUND`, `WRONG_MEDIA_TYPE`, T1's codes.
+  `tests/routine-runner.test.cjs` (9): order, D2 new card, versions, stack after all step 1s + stackId on every step,
+  D3 fail/cancel, step-1 refusal, CARD_GONE, up-front refusals, quote, and the flowService passthrough.
+- T1 `validateRoutine` also returns `outputKind` (last step's): the result stack's `kind`.
+- `js/services/flowService.js`: run-only `runLanding` (stripped from the sidecar snapshot, forwarded to leg 2 via
+  `inputs` and to every `runNextPass` pass); `existingGroup` -> groupHistory opts, else gallery opts + the landing.
+  Two pinning tests updated for the new run-only key (`agent-target-project`, `flow-enhance-ownership`).
+- BREAKER FIXED on the way (generationService.js, MPI-839 regression): a History completion re-read its card from the
+  ENQUEUE-time project snapshot, so a second History job queued on one card dropped the first job's version (and a
+  pick/rename made meanwhile was undone). Now `_originLive()` = live project while the origin is open. Test
+  `tests/history-completion-live-card.test.cjs`. Closed origins still read the frozen copy (ponytail in the code).
+**Next: D9 first (run-time inputs, see Decisions), BEFORE the wiring** - T1 `STEP_HAS_MEDIA` becomes "media only as
+`{ role: <reference slot>, input: <declared id> }`", plus `inputs[]` validation and `{id}` prompt placeholders; the
+runner takes `opts.inputs`, refuses `INPUT_MISSING`, and hands each step its resolved extra media/prompt through
+`submit`; tests for both. Then **R1 wiring:** (1) split `agentDispatch.js` `_submitGeneration`/`_submitTool`/`_submitFlow` into exported
+BUILD halves (no pin, no mask, no follow for a routine; project null for named params) + their enqueue; (2)
+`js/shell/routineDispatch.js` = the renderer `deps`: `check` (isOperationInstalled / hasCloudKey / flowAvailability,
+names), `price` (estimateRunCost), `readProject` (open -> `state.currentProject`, closed -> `/get-project`),
+`submit` (build + enqueue with `_originProject` = the passed project and the landing: gallery placeholder for step 1,
+Flow via `runLanding`), `addStack` (`createItemGroup(STACK_TYPE, resultStackFields(...))` with the runner's id;
+closed project -> server-side); (3) the live 2-card x 3-step run in an own isolated app (rig in § Phase 1 notes above).
+**Your call pending (Fabio):** an image->video routine lands the clip as a video VERSION inside the image result card
+(the open-card History rule of MPI-890 allows it) and the stack kind follows the LAST step; say if a kind change
+should start a new card instead.
+
+2026-09-30 (session 26163994, Agent 67) - **Foundations batch DONE** (T1 + T2, uncommitted, claims `complete`).
+`node --test tests/routine-model.test.cjs tests/agent-routines-store.test.cjs` 44/44; `npm test` (Git Bash)
+2336 pass / 0 fail / 2 skipped. **Next: R1 `js/services/routineRunner.js`** with the Phase 1 findings below as its
+spec. What R1/W1 need from the batch:
+- T1 `js/data/routineModel.js`: `normalizeRoutine(raw)`, `validateRoutine(routine, { models: MODELS, flows: FLOWS })`
+  -> `{ ok, routine, inputKind }` | `{ ok:false, code, message }` (codes: `INVALID_ROUTINE`, `TOO_MANY_STEPS`,
+  `STEP_HAS_MEDIA`, `UNKNOWN_MODEL`, `UNKNOWN_OPERATION`, `UNKNOWN_FLOW`, `INVALID_FIELD`, the `resolveNamedParams`
+  codes, `NOT_BATCHABLE`, `MEDIA_KIND_BREAK`), `routineSummary(routine)`. Tools come from `AGENT_TOOL_OPS` directly,
+  not `lookups`. Imports cleanly in plain Node. `inputKind` = step 1's one required kind (R1 checks input cards).
+- T2 `services/agentRoutines.mjs` (agentMemory's shape, throws `RoutineError{code}`): `listRoutines/readRoutine/
+  writeRoutine/deleteRoutine(folderPath, ...)` + `listGlobalRoutines/readGlobalRoutine/writeGlobalRoutine/
+  deleteGlobalRoutine`; dirs `<project>/Agent/routines/`, `<APP_USER_DATA>/agent/routines/`; codes `INVALID_NAME`,
+  `BAD_REQUEST`, `NOT_A_PROJECT`, `ROUTINE_NOT_FOUND`, `ROUTINES_FULL`. A second delete of one name keeps both
+  copies (older one gets a `-<ms>` suffix).
+
 2026-09-29 (session c4eb2969, Agent 66) - card in `doing`, `files.json` written. **Phase 1 DONE: S1, S2, S3
-all passed live** (below). **Next: Parallel Batch Foundations (T1, T2) via `mpi-execute-parallel`**, then R1 with
+all passed live** (below). Next was the Parallel Batch Foundations (done 2026-09-30, above), then R1 with
 the findings below as its spec. Spike rig (scratchpad, not repo): own Electron with own
 profile/port/APP_DOCUMENTS under `%TEMP%/c970` plus `--remote-debugging-port=9370`, driven by
 `playwright-core connectOverCDP` + `page.evaluate`; real engine root (pins checked clean), jobs under
@@ -78,6 +126,28 @@ relayed like `generation.submit` (`_dispatchToRenderer`).
 - D7 "Offer to save after the user repeats steps" is one short clause in the tool description (bytes counted),
   not a system-prompt rule.
 - D8 Not in this card: MCP (outside agents), the agent-free entry point, fixed extra media (D1).
+- **D9 (Fabio, 2026-09-30) - routines take INPUTS besides the card; this reverses D1's "no extra media" and D8's
+  "fixed extra media" exclusion.** His case: "restyle these cards to match this image", as a stack run does it today
+  (`buildCueAllJobItems`: the varied card in the op's one required slot, every other staged picture fixed). Shape (my
+  pick, not yet confirmed in detail): the routine declares `inputs: [{ id, kind: image|video|audio|text, label }]`;
+  a step references one - a media input by `media: [{ role: <an OPTIONAL/reference slot>, input: <id> }]` (the
+  required slot stays the chained card/result), a text input by a `{id}` placeholder in the step's prompt; `run`
+  takes `inputs: { <id>: <card id or file | text> }`, and a missing one refuses up front (`INPUT_MISSING`, named) so
+  the agent asks. Validation at save: every referenced id declared, a media input only on a non-required slot of a
+  matching kind. Saved default values (the "always this logo" case) are a later additive field. Scene RECIPES
+  (steps from nothing, several earlier results by name) stay OUT of this card - a follow-up on the same file format.
+  Fabio's worked example: "place a character in different scenarios" - the scenes come as a STACK (the varied cards,
+  each into Klein Edit's required edited-picture slot), the character is the run input in its reference slot; result
+  = one new stack, one card per scene. So `run` must accept a STACK id and expand it to its members
+  (`expandStacks`, as `_runStack` does) - R2/W2. Open: a routine that must vary the REFERENCE slot instead (one
+  subject, a stack of styles) needs a step to name the slot the card goes into (`card: <role>`); add if asked.
+  **Limits (Fabio, 2026-09-30: "the whole point is chaining actions on an image or video - don't complicate it"):**
+  ONE set of cards varies per run (a selection or a stack); every input is FIXED for the whole run, and a picture
+  input is ONE picture. Two stacks in one run (e.g. 3 characters x N scenes) is refused, and the guide (W3) has the
+  agent say so and offer the way that works: one run per character, or one character sheet holding all three as the
+  single picture (Klein Edit has 2 reference slots beside the edited picture). No multi-picture inputs, no cross
+  products. The agent reads routines through `list` (name, summary, steps AND the inputs each needs) and the guide
+  explains what a routine can and cannot do.
 
 ## Completed
 
@@ -107,7 +177,7 @@ Phase 1 is sequential (one live app, one set of findings). It may rewrite Phase 
 
 ## Parallel Batch: Foundations (after Phase 1; the two share no file)
 
-- [ ] T1 Pure routine model + validator. Ownership: `js/data/routineModel.js`, `tests/routine-model.test.cjs`.
+- [x] T1 Pure routine model + validator. Ownership: `js/data/routineModel.js`, `tests/routine-model.test.cjs`.
   Briefings: `dos_and_donts`, `root-cause`. Schema `cubric/routine/v1` `{ schema, name, summary, steps[],
   created_at }`; `normalizeRoutine`, `validateRoutine(routine, lookups)` where `lookups` injects the model,
   Flow and tool catalogues (no renderer state), checking per step: modelId+operation XOR flowId XOR a tool op
@@ -117,7 +187,7 @@ Phase 1 is sequential (one live app, one set of findings). It may rewrite Phase 
   Also `routineSummary(routine)` = the plain-words line `list` shows. **Verify:** `node --test
   tests/routine-model.test.cjs` covers a legal 3-step chain, each refusal code, and an image->video->image kind
   break.
-- [ ] T2 Routine file store. Ownership: `services/agentRoutines.mjs`, `tests/agent-routines-store.test.cjs`.
+- [x] T2 Routine file store. Ownership: `services/agentRoutines.mjs`, `tests/agent-routines-store.test.cjs`.
   Briefings: `dos_and_donts`, `root-cause`. Modelled on `services/agentMemory.mjs`: `listRoutines(folderPath |
   global)`, `readRoutine`, `writeRoutine` (atomic write, slug `^[a-z0-9][a-z0-9-]{0,60}$`, overwrite = same
   name), `deleteRoutine` (D5 move); project dir `<project>/Agent/routines/` refuses a folder with no
@@ -181,6 +251,14 @@ Run this batch with `mpi-execute-parallel` (disjoint files, per-task verify, no 
 - 2026-09-29 (c4eb2969): Phase 1 answered S2 the good way (closed projects work), so no `PROJECT_NOT_OPEN`
   refusal; Flows as a later step need a `flowService.js` passthrough (added to `files.json`), every Flow at
   any step. Details: `## Current State` § Phase 1 findings.
+- 2026-09-30 (26163994): T1 integration fix - the worker let a step with NO required input (t2i) through at any
+  position; D1 / `selectCueAllTargets` need exactly one, so it is now `NOT_BATCHABLE` (first or later step) and
+  `inputKind` is never null. Save-time checks stop at named params, tool fields and Flow field ids: a Flow's box /
+  frame `params` (outpaint's `params.frame.ratio`) are checked only at run, by the shared build half R1 reuses from
+  `_submitFlow`. R1: T1 validates `denoise` on a model step, but `resolveSettingsOwner` never forwards it, so align
+  the two when splitting build from enqueue.
+- 2026-09-30 (26163994): Fabio asked for routines that take inputs besides the card (D9) -> T1 and the runner grow
+  `inputs`; W2's tool gains an `inputs` param and W3's guide a section. Scene recipes explicitly deferred.
 
 ## Verification
 

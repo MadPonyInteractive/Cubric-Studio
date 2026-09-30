@@ -981,6 +981,15 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
     // whether the renderer may write the card itself (it owns `itemGroups` only for
     // the open one) or has to register it server-side.
     const _originIsOpen = () => state.currentProject?.folderPath === _originProject?.folderPath;
+    // The project a completion reads the card it VERSIONS from (MPI-970): the live one while
+    // the origin is still open, else the frozen copy. Reading the card off the frozen copy
+    // froze the card too: a History job queued behind another on the same card appended to
+    // the card as it stood at enqueue, and `updateGroup` wrote that back, so the first job's
+    // version vanished and a version picked or a rename made meanwhile was undone.
+    // ponytail: a CLOSED origin still reads the frozen copy; re-read `/get-project` here if
+    // two jobs on one card of a closed project ever queue together (the routine runner
+    // re-reads before each step instead).
+    const _originLive = () => (_originIsOpen() ? state.currentProject : _originProject);
 
     // MPI-337: dispatch-time net for the mask guard — covers loop re-fire / stage-2
     // paths that skip enqueueGeneration, same as the media-slot net above.
@@ -1632,7 +1641,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         if (_replaceItemId) {
             // Replacement run (preview → final): swap the matching history slot
             // in the owning group; do NOT add a new group.
-            const targetGroup = (_originProject?.itemGroups || [])
+            const targetGroup = (_originLive()?.itemGroups || [])
                 .find(g => g.history?.some(h => h.id === _replaceItemId));
             const newItem = builtItems[0];
             if (targetGroup && newItem) {
@@ -1657,7 +1666,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         } else if (opts.existingGroup) {
             // GroupHistory mode: use the latest state snapshot; deletes can land
             // while this job runs.
-            const latestGroup = (_originProject?.itemGroups || [])
+            const latestGroup = (_originLive()?.itemGroups || [])
                 .find(g => g.id === opts.existingGroup.id);
             if (!latestGroup) {
                 clientLogger.warn('generationService', 'groupHistory completion ignored because group no longer exists', {

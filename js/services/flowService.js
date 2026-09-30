@@ -167,7 +167,9 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // `runNextPass` is run-only too (MPI-900): a function, and a plan for THIS press.
     // `runOriginProject` is the project an agent's submit named (MPI-873), open or not; a
     // project record, so it must never ride into the sidecar's `flowInputs`.
-    const { runMediaItems, runInputs, runNextPass, runOriginProject, ...snapshot } = inputs;
+    // `runLanding` is where a routine step lands (MPI-970): queue opts, run-only for the same
+    // reason. It rides every leg and every pass, so each part is one more History version.
+    const { runMediaItems, runInputs, runNextPass, runOriginProject, runLanding, ...snapshot } = inputs;
     const run = runInputs || snapshot;
     // ponytail: the chained leg takes NO media. Its graph reads what leg 1 wrote to
     // disk, addressed by name (`Input_Name`), so re-sending the source image would only
@@ -263,6 +265,13 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
         placeholderGroup,
     };
     if (state.engineOverride === 'local') opts.forceLocal = true;
+    // A routine step (MPI-970) lands where the routine says: a later step is the next
+    // version of its result card (no gallery card at all), step 1 a gallery card that also
+    // joins the run's result stack.
+    const landing = !runLanding ? opts
+        : runLanding.existingGroup
+            ? { ...runLanding, scope: 'groupHistory', groupId: runLanding.existingGroup.id, forceLocal: opts.forceLocal }
+            : { ...opts, ...runLanding };
 
     // Leg 2 never chains again — one chain, two legs.
     const legCallbacks = _leg.operation ? callbacks : chainCallbacks(flow, callbacks,
@@ -272,10 +281,10 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     const runCallbacks = runNextPass
         ? nextPassCallbacks(runNextPass, callbacks,
             (media, last) => submitFlowGeneration(flow,
-                { ...snapshot, runInputs, runMediaItems: media, runOriginProject, ...(last ? {} : { runNextPass }) }, callbacks, { tempId }))
+                { ...snapshot, runInputs, runMediaItems: media, runOriginProject, runLanding, ...(last ? {} : { runNextPass }) }, callbacks, { tempId }))
         : legCallbacks;
 
-    const res = enqueueGeneration(config, runCallbacks, opts);
+    const res = enqueueGeneration(config, runCallbacks, landing);
     // Return the tempId so the caller (MpiBaseFlow) can match this job's live latent
     // previews (preview:frame → activeGenerations.byPromptId → entry.tempId; MPI-271).
     return res ? { ...res, tempId } : null;

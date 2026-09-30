@@ -179,7 +179,7 @@ test('/connector/generate dispatches folderPath in the project list\'s spelling,
 
 test('a Flow carries its project as a RUN-only input: never into the sidecar, and on to every pass', () => {
     const src = fs.readFileSync(path.join(repoRoot, 'js/services/flowService.js'), 'utf8');
-    assert.match(src, /const \{ runMediaItems, runInputs, runNextPass, runOriginProject, \.\.\.snapshot \} = inputs;/);
+    assert.match(src, /const \{ runMediaItems, runInputs, runNextPass, runOriginProject, runLanding, \.\.\.snapshot \} = inputs;/);
     assert.match(src, /runOriginProject \? \{ _originProject: runOriginProject \}/);
     assert.match(src, /runMediaItems: media, runOriginProject,/);
 });
