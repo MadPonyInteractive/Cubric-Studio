@@ -64,7 +64,7 @@ let _modeOwner = null;
  *   setMaskOpacity(opacity)
  *   clearMask()
  *   getMaskDataURL(bg, fg, soft)
- *   getMaskCanvas(bg, fg, soft) — {canvas, w, h}: that mask at its working size + the source px
+ *   getMaskCanvas(bg, fg, soft) — that mask flattened, at its working size
  *   setPointsMode(bool)       — point-prompt mode: clicks place SAM dots, not paint
  *   clearMaskPoints() / getMaskPointCount() / getPointsJSON()
  *   bakeAutoPicksInto('manual'|'subtract') — Add / Subtract the detected mask

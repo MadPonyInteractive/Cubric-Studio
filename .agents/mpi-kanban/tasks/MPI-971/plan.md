@@ -5,6 +5,37 @@
 
 ## Current State
 
+**2026-09-30 (session 8fdc58f8): Phase 2 BUILT, unit-green, live check pending.** `npm test`
+2392/0, eslint clean. What landed (uncommitted): `services/engineMask.js` (prepareMaskedInput /
+stitchMaskCrop / planMaskCrop), `POST /engine-mask` + `POST /engine-stitch` (`routes/projects.js`,
+scratch `os.tmpdir()/cubric-engine-inputs/<uuid>.*`, swept at 24 h), `_fitMaskedInputs` after
+`_buildParams` + `_stitchOutputs` in `_finishGeneration` (`commandExecutor.js`), registry flag
+`cropsToMask` (inpaint, kleinEdit, edit, krea2Edit, qwenEdit), and the mask export now leaves
+the canvas at WORKING size (both twins: `MaskManager.getURL`, viewer `_previewMaskCache` is a
+plain data URL; `_toSourceScale` / `_heldMask` deleted). Non-crop masked ops (Detail, a stray
+mask) on a >4096 photo get the mask stretched to the photo server-side = today's behaviour.
+LIVE-VERIFIED 2026-09-30: 16K and 32K, small mask (cut at 1:1) and huge mask (cut scaled to
+4096): source-size cards, 0 bytes differ outside the mask, engine history shows only the cut
+(validation.md table). Next: Fabio's look (user-ux), then the Pod run if he okays the cost, then
+Phase 3.
+
+**Fabio's first look FAILED, on DETAIL, not a Phase 2 op** (2026-09-30, "Big Photos Test",
+16384^2 `imageUpscale_002`, Klein 9B `detail`, eyes masked): `MpiLoadImage ...
+DecompressionBombError`. Expected: `detail` is not `cropsToMask`, so it took the non-crop path
+(mask stretched, 16K photo sent). **Next action: fold Detail into the cut-and-stitch path**
+(replaces P-B's "capped copy + difference mask" with the same outcome, better quality; tell Fabio
+in one line). Evidence, every shipped `MaskDetailerPipe` (klein, klein_9b, krea2 sfw/nsfw, chroma,
+chroma_hyper, 5 SDXL): `image` <- `Input_Image` and `mask` <- `Input_Mask` DIRECTLY, crop_factor
+1.8, guide_size 512, max_size 1024, feather 5, noise_mask_feather 20, contour_fill off — it only
+samples a window of bbox x 1.8 round each mask area and pastes back. So: add `cropsToMask: true`
+to `detail` (commandRegistry.js; update the typedef wording: "crops round the mask", not only
+InpaintCrop), and widen the cut for it: pad >= 0.4 x the box's long side each side (crop_factor
+1.8), e.g. `pad = max(CONTEXT_PAD, ceil(0.45 * long))` in `planMaskCrop` (fine for every op: the
+graphs sample at ~1024 whatever the window). Unit test + live 16K detail run, then re-ask Fabio
+to look (Klein Edit / Inpaint AND Detail). Caveat to state: several far-apart areas = one cut
+round all of them, scaled to 4096 when bigger. Uncommitted at time of writing. Live-check scripts: session 8fdc58f8 scratchpad
+`live_p2.cjs` (Playwright-launched Electron on the 8aad9989 profile) + `verify_p2.cjs`.
+
 **2026-09-30 (session 8aad9989): Phase 1 DONE and live-verified, uncommitted at the time of
 writing** (`routes/projects.js`, `js/services/commandExecutor.js`, `js/data/commandRegistry.js`,
 `tests/engine-input-cap.test.cjs`; committed `4b2e03823`). **Next: Phase 2** (localised edits
@@ -159,6 +190,12 @@ would put two workers in one function.
   resize, accepted: Chroma's i2i MpiCrop takes a native W x H centre window (a >4096 source now
   crops from the 4096 copy, a wider window; noted in brief.md), and H3's `max` reference mode
   keeps a 2048 short edge, so a >2:1 panorama over 4096 reaches it smaller than before.
+- 2026-09-30 (Phase 2): the fit runs on the BUILT params (after `_buildParams`), not the media
+  items, so it cuts exactly what reaches `Input_Image`; references get Phase 1's copy there.
+  Non-crop masked ops on a >4096 photo get the mask stretched to the photo by the server (today's
+  behaviour, moved off the canvas). The stitch is built at ENGINE size and stretched once through
+  a libvips `.v` temp, so a 32K cut never becomes a JS buffer. sharp runs ops in a FIXED order (a
+  threshold chained after a blur runs BEFORE it): every mask step is its own pipeline.
 - 2026-09-30: a 16384 x 10240 fixture (167.8 MP) is UNDER Pillow's limit and does not reproduce
   the failure; the live check uses 16384 x 16384 (268 MP).
 

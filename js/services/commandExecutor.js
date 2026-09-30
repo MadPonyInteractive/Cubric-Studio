@@ -219,22 +219,78 @@ async function _capLargeImageInputs(payload) {
     const items = Array.isArray(payload.mediaItems) ? payload.mediaItems : [];
     let changed = false;
     const next = await Promise.all(items.map(async (item) => {
-        // A `/project-file` URL or a bare path (an agent's media), as comfyController reads them.
-        const filePath = item?.mediaType === 'image' ? _decodeProjectFileUrl(item.url) : null;
-        if (!filePath || /^(data|blob|http)/.test(filePath)) return item;
-        try {
-            const res = await fetch(`/engine-image?path=${encodeURIComponent(filePath)}`);
-            const copy = res.ok ? await res.json() : null;
-            if (!copy?.url) return item;
-            changed = true;
-            return { ...item, url: copy.url, filePath: copy.url };
-        } catch (err) {
-            // Fail open: a fault here must not block a run the original can still serve.
-            clientLogger.warn('commandExecutor', `engine-image failed for ${filePath}, sending the original`, err);
-            return item;
-        }
+        if (item?.mediaType !== 'image') return item;
+        const url = await _engineCopyUrl(item.url);
+        if (url === item.url) return item;
+        changed = true;
+        return { ...item, url, filePath: url };
     }));
     return changed ? { ...payload, mediaItems: next } : payload;
+}
+
+/** The engine copy's URL for an image input, or `url` itself when it is within the cap. */
+async function _engineCopyUrl(url) {
+    // A `/project-file` URL or a bare path (an agent's media), as comfyController reads them.
+    const filePath = _decodeProjectFileUrl(url);
+    if (!filePath || /^(data|blob|http)/.test(filePath)) return url;
+    try {
+        const res = await fetch(`/engine-image?path=${encodeURIComponent(filePath)}`);
+        const copy = res.ok ? await res.json() : null;
+        return copy?.url || url;
+    } catch (err) {
+        // Fail open: a fault here must not block a run the original can still serve.
+        clientLogger.warn('commandExecutor', `engine-image failed for ${filePath}, sending the original`, err);
+        return url;
+    }
+}
+
+// MPI-971 Phase 2: a MASKED run. The canvas hands its mask over at the size it was painted
+// (at most 4096), so on a bigger photo the server fits it to the job: an op whose graph
+// crops round the mask and stitches back (`cropsToMask`) gets the photo CUT round the mask
+// — the graph only ever samples inside that window — and returns the stitch that pastes
+// the result back (`_stitchOutputs`); any other op gets the mask at the photo's size, as
+// the canvas used to send it. Runs on the built params, so it cuts exactly the image the
+// graph's `Input_Image` receives. Fails CLOSED: the photo with an unfitted mask is a size
+// mismatch the crop node asserts on.
+async function _fitMaskedInputs(params, operation) {
+    const image = params.Input_Mask && params.Input_Image ? _decodeProjectFileUrl(params.Input_Image) : null;
+    if (!image || /^(data|blob|http)/.test(image)) return null;
+    const crop = !!COMMANDS[operation]?.cropsToMask;
+    const res = await fetch('/engine-mask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image, mask: params.Input_Mask, crop }),
+    });
+    const out = await res.json().catch(() => null);
+    if (!res.ok || !out) throw new Error(out?.error || `engine-mask returned ${res.status}`);
+    if (!out.mask) return null;
+    params.Input_Mask = out.mask;
+    if (!out.stitch) return null;
+    params.Input_Image = out.image;
+    // The references ride along at model size, as an unmasked edit's do (Phase 1).
+    for (const slot of getCommandMediaInputs(operation)) {
+        if (slot.mediaType === 'image' && slot.title !== 'Input_Image' && params[slot.title]) {
+            params[slot.title] = await _engineCopyUrl(params[slot.title]);
+        }
+    }
+    return out.stitch;
+}
+
+/** Each output of a cut run, pasted back into the photo — a URL save-generation streams. */
+async function _stitchOutputs(urls, stitch) {
+    const out = [];
+    // One at a time: each holds a full-size photo in sharp.
+    for (const viewUrl of urls) {
+        const res = await fetch('/engine-stitch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viewUrl, ...stitch }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.url) throw new Error(data?.error || `engine-stitch returned ${res.status}`);
+        out.push(data.url);
+    }
+    return out;
 }
 
 /**
@@ -1671,6 +1727,15 @@ export function runCommand(payload) {
 
         const params = _buildParams(workingPayload);
         exec.seed = params.Input_Seed ?? null;
+        let maskStitch = null;
+        try {
+            maskStitch = await _fitMaskedInputs(params, workingPayload.operation);
+        } catch (err) {
+            await _cleanupTrimmedVideoInputs(tempTrimInputPaths);
+            _failBail(err);
+            return;
+        }
+        if (await _abortedBail(tempTrimInputPaths)) return;
 
         // Guard: block submission if a selected LoRA/upscale model is not in any
         // of the configured model folders — the loader would fail with a cryptic
@@ -2209,9 +2274,24 @@ export function runCommand(payload) {
         // message (0.26.0+) — and in mixed cases potentially both. Guard so
         // onComplete + the aggregator finish fire exactly once (MPI-152).
         let _generationFinished = false;
-        const _finishGeneration = () => {
+        const _finishGeneration = async () => {
             if (_generationFinished) return;
             _generationFinished = true;
+            // MPI-971: a cut run's outputs are the CUT. Each is pasted back into the photo
+            // before anything settles, so the card saves at full size — and a failed paste
+            // fails the run instead of saving a crop as a version of the photo.
+            if (maskStitch && outputUrls.length) {
+                try {
+                    outputUrls.splice(0, outputUrls.length, ...await _stitchOutputs(outputUrls, maskStitch));
+                } catch (err) {
+                    clientLogger.error('commandExecutor', `Could not paste the edit back into the photo (${workingPayload.operation})`, err);
+                    generationStore.settle(jobId, PHASES.ERROR, { error: err.message });
+                    closeComfyEventSource();
+                    Events.emit('ui:error', { title: 'The edit could not be put back into the photo', message: err.message });
+                    exec.onError?.(err);
+                    return;
+                }
+            }
             // Settle the store job to done. R09 late-settle: a job that got a Stop
             // (cancelling overlay) but whose real output still arrived advances to
             // done here — the output SAVES. If the store already reached the

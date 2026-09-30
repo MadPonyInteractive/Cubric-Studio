@@ -133,8 +133,6 @@ export class MaskManager {
         /** @type {Array<{x:number,y:number,positive:boolean}>} */
         this.points = [];
         this.pointsMode = false;
-        this._srcWidth = 0;
-        this._srcHeight = 0;
 
         this.isMaskingMode = false;
         this.isDrawingMask = false;
@@ -159,8 +157,6 @@ export class MaskManager {
     }
 
     init(width, height) {
-        this._srcWidth = width;
-        this._srcHeight = height;
         this._scale = Math.min(1, MASK_MAX_EDGE / Math.max(width, height));
         const w = Math.max(1, Math.round(width * this._scale));
         const h = Math.max(1, Math.round(height * this._scale));
@@ -963,16 +959,17 @@ export class MaskManager {
     }
 
     /**
-     * Flatten composite display to B/W PNG, AT THE SOURCE IMAGE'S RESOLUTION.
+     * Flatten composite display to B/W PNG, AT THE WORKING SIZE — the source's own size
+     * up to MASK_MAX_EDGE, which is also the engine's cap (MPI-971).
      *
-     * The working layers are MASK_MAX_EDGE-capped, but the export is not allowed to
-     * be: `InpaintCropImproved` (every master template's masked-edit branch —
-     * klein/krea2/qwen) ASSERTS `mask.shape == image.shape` and dies on a mismatch,
-     * so a >1536px source produced a 2/3-size mask and a hard AssertionError. The
-     * older mask consumers (SetLatentNoiseMask & co) resized silently, which is why
-     * the cap went unnoticed until MPI-365 wired masks into the crop branch.
-     * Upscaling here keeps the cap where it belongs — on the paint loop, not on the
-     * contract with the graph.
+     * `InpaintCropImproved` (every master template's masked-edit branch —
+     * klein/krea2/qwen) ASSERTS `mask.shape == image.shape`, so a mask over a bigger
+     * photo must still reach the graph at the photo's size. The server does that
+     * (`POST /engine-mask`: the photo cut round the mask for a crop op, the mask
+     * stretched to the photo for the rest), not this export: a canvas cannot hold a 32K,
+     * and at 16K the scale was a 1.4-4.6 s PNG encode on every dispatch. Every other
+     * reader already stretches a mask to its target (the composite hole, the server's
+     * composite route).
      *
      * `soft` (MPI-835): write COVERAGE, not a binary cut — each pixel is `bg`
      * mixed toward `fg` by its alpha. Image mode's export is binary on purpose
@@ -985,18 +982,12 @@ export class MaskManager {
      */
     getURL(bg = null, fg = null, soft = false) {
         if (!this.maskCanvas) return null;
-        if (!bg && !fg) {
-            return this._toSourceScale(this.maskCanvas);
-        }
-        return this._toSourceScale(this.getFlat(bg, fg, soft).canvas);
+        return (!bg && !fg ? this.maskCanvas : this.getFlat(bg, fg, soft)).toDataURL('image/png');
     }
 
     /**
-     * `getURL`'s flattened `bg`/`fg` canvas at the WORKING size, with the source px
-     * `_toSourceScale` would take it to. At 16K that scale is a 16384^2 PNG encode
-     * (1.4-4.6 s), so a caller that only shows the mask, or may never dispatch it, holds
-     * this and scales on demand (MPI-961).
-     * @returns {{canvas: HTMLCanvasElement, w: number, h: number}|null}
+     * `getURL`'s flattened `bg`/`fg` canvas at the WORKING size.
+     * @returns {HTMLCanvasElement|null}
      */
     getFlat(bg, fg, soft = false) {
         if (!this.maskCanvas) return null;
@@ -1037,23 +1028,6 @@ export class MaskManager {
         }
 
         tempCtx.putImageData(out, 0, 0);
-        return { canvas: tempCanvas, w: this._srcWidth || w, h: this._srcHeight || h };
-    }
-
-    /**
-     * PNG data URL of `canvas` at the SOURCE image's pixel size. No-op (and no
-     * extra canvas) when the working layers were never capped.
-     * @param {HTMLCanvasElement} canvas
-     * @returns {string}
-     */
-    _toSourceScale(canvas) {
-        const w = this._srcWidth  || canvas.width;
-        const h = this._srcHeight || canvas.height;
-        if (w === canvas.width && h === canvas.height) return canvas.toDataURL('image/png');
-        const scaled = document.createElement('canvas');
-        scaled.width = w;
-        scaled.height = h;
-        scaled.getContext('2d').drawImage(canvas, 0, 0, w, h);
-        return scaled.toDataURL('image/png');
+        return tempCanvas;
     }
 }

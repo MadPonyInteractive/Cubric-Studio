@@ -19,6 +19,8 @@
  *   GET    /project-file
  *   GET    /display-image
  *   GET    /engine-image
+ *   POST   /engine-mask
+ *   POST   /engine-stitch
  *   GET    /project-thumb
  */
 
@@ -44,6 +46,7 @@ const { muxAudioIntoVideo, mixAudioFiles } = require('../services/ffmpegMux');
 const { extractFramesFromGif, copyGifFrames, holdFrames, sweepGifFrames } = require('../services/gifFrames');
 const { SCHEMA_VERSION } = require('../js/migrations/projectMigrations');
 const { bakeOrientation } = require('./imageImport');
+const { prepareMaskedInput, stitchMaskCrop } = require('../services/engineMask');
 
 const projectJsonQueues = new Map();
 const itemMetaQueues = new Map();
@@ -2048,6 +2051,73 @@ router.get('/engine-image', async (req, res) => {
     } catch (err) {
         logger.error('project', `engine-image failed for ${path.basename(filePath)}`, err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// A MASKED op on a photo over ENGINE_MAX_EDGE (MPI-971 Phase 2, services/engineMask.js). The
+// canvas sends its mask at the painted size; `crop` ops get the photo cut round it plus the
+// `stitch` to paste the result back with, any other op the mask at the photo's size. `{}`
+// means send the image and mask as they are. Scratch lives beside Phase 1's engine copies,
+// named by a uuid so the sweep never touches those. A cut and its mask wait out the engine
+// (a Pod can take many minutes), so they keep for a day; a stitched photo (`<uuid>.png`,
+// 270 MB at 16K) is streamed into the project seconds after it is written, so an hour.
+const ENGINE_SCRATCH = path.join(os.tmpdir(), 'cubric-engine-inputs');
+const ENGINE_SCRATCH_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.png$)?/;
+async function _sweepEngineScratch(now = Date.now()) {
+    for (const name of await fs.readdir(ENGINE_SCRATCH).catch(() => [])) {
+        const m = ENGINE_SCRATCH_RE.exec(name);
+        if (!m) continue;
+        const file = path.join(ENGINE_SCRATCH, name);
+        const stat = await fs.stat(file).catch(() => null);
+        const keep = m[1] ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+        if (stat && now - stat.mtimeMs > keep) await fs.remove(file).catch(() => {});
+    }
+}
+
+router.post('/engine-mask', async (req, res) => {
+    const { image, mask, crop = false } = req.body || {};
+    if (!image || !mask) return res.status(400).json({ error: 'image and mask required' });
+    if (!(await fs.pathExists(image))) return res.status(404).json({ error: 'Not found' });
+    try {
+        await fs.ensureDir(ENGINE_SCRATCH);
+        _sweepEngineScratch().catch(() => {});
+        const id = crypto.randomUUID();
+        const out = await prepareMaskedInput({
+            imagePath: image, mask, crop: !!crop, cap: ENGINE_MAX_EDGE,
+            outPath: (name) => path.join(ENGINE_SCRATCH, `${id}.${name}`),
+        });
+        if (!out.mask) return res.json({});
+        logger.info('project', out.stitch
+            ? `engine-mask: ${path.basename(image)} cut ${JSON.stringify(out.stitch.rect)}`
+            : `engine-mask: ${path.basename(image)} mask stretched to the photo`);
+        const url = (p) => p && `/project-file?path=${encodeURIComponent(p)}`;
+        res.json({ image: url(out.image), mask: url(out.mask), stitch: out.stitch && { ...out.stitch, source: image } });
+    } catch (err) {
+        logger.error('project', `engine-mask failed for ${path.basename(image)}`, err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// The engine's result for a cut, pasted back into the photo: `{ url }` for save-generation
+// to stream, exactly as it streams the engine's own /view.
+router.post('/engine-stitch', async (req, res) => {
+    const { viewUrl, source, mask, rect } = req.body || {};
+    if (!viewUrl || !source || !mask || !rect) return res.status(400).json({ error: 'viewUrl, source, mask and rect required' });
+    const id = crypto.randomUUID();
+    const result = path.join(ENGINE_SCRATCH, `${id}.result.png`);
+    const out = path.join(ENGINE_SCRATCH, `${id}.png`);
+    try {
+        await fs.ensureDir(ENGINE_SCRATCH);
+        _sweepEngineScratch().catch(() => {});
+        await streamDownload(viewUrl, result);
+        const size = await stitchMaskCrop({ sourcePath: source, resultPath: result, maskPath: mask, rect, outPath: out });
+        logger.info('project', `engine-stitch: ${path.basename(source)} ${size.width}x${size.height} <- ${rect.outW}x${rect.outH} at ${rect.left},${rect.top}`);
+        res.json({ url: `${req.protocol}://${req.get('host')}/project-file?path=${encodeURIComponent(out)}&filename=${id}.png` });
+    } catch (err) {
+        logger.error('project', `engine-stitch failed for ${path.basename(source)}`, err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        await fs.remove(result).catch(() => {});
     }
 });
 

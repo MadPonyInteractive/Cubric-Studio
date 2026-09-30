@@ -110,6 +110,12 @@ const I2V_HELP = {
  *                                              cannot open (MPI-971, commandExecutor._capLargeImageInputs).
  *                                              VERIFY IN THE GRAPH. Never on an op whose OUTPUT is source-sized
  *                                              (inpaint's stitch, Detail, upscale, remove background).
+ * @property {boolean}         [cropsToMask] - Every graph's MASKED branch is InpaintCropImproved -> sample ->
+ *                                              InpaintStitchImproved, so it only ever samples a window round
+ *                                              the mask. A masked run on a photo over ENGINE_MAX_EDGE sends the
+ *                                              photo CUT round the mask and pastes the result back (MPI-971,
+ *                                              commandExecutor._fitMaskedInputs). VERIFY IN THE GRAPH: a new
+ *                                              model on this op must keep the crop/stitch pair.
  * @property {boolean}         [promptRequired] - Whether a text prompt is mandatory
  * @property {boolean}         [universal]    - Not model-tied; uses universalWorkflows in modelRegistry
  * @property {boolean}         [stub]         - Not yet implemented; registered but disabled in UI
@@ -384,6 +390,7 @@ export const commands = {
         progressLabel: 'Editing',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        cropsToMask: true,
         modelSizedInputs: true,
         mediaInputs: [
             { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true },
@@ -445,6 +452,7 @@ export const commands = {
         progressLabel: 'Editing',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        cropsToMask: true,
         modelSizedInputs: true,
         // Slots 2-4 exist only for a model declaring `multiReference`, 5-8 for
         // `multiReference8` (MPI-919). Seedream 5 Pro and FLUX-2 fill their numbered
@@ -487,6 +495,7 @@ export const commands = {
         progressLabel: 'Editing',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        cropsToMask: true,
         modelSizedInputs: true,
         mediaInputs: [
             { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true },
@@ -543,6 +552,7 @@ export const commands = {
         progressLabel: 'Editing',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        cropsToMask: true,
         modelSizedInputs: true,
         // THREE image slots (MPI-300). Qwen-Image-Edit-2511 takes up to three
         // references natively (TextEncodeQwenImageEditPlus image1..3). Slots 2 and 3
@@ -650,6 +660,7 @@ export const commands = {
         progressLabel: 'Inpainting',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        cropsToMask: true,
         mediaInputs: [
             { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
         ],
