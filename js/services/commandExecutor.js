@@ -208,6 +208,35 @@ async function _cleanupTrimmedVideoInputs(paths = []) {
     }
 }
 
+// MPI-971: a model-resolution op's graph shrinks every image input to model size right
+// after load, so a 16K original buys MpiLoadImage a 3.2 GB tensor (Pillow refuses it
+// outright) for pixels the graph throws away. Hand the engine the server's engine copy
+// instead — local and Pod alike, since both stage from these URLs. A masked run keeps its
+// originals: its mask is source-sized, and a localised edit is full-resolution work.
+// Cached server-side, so there is nothing to clean up.
+async function _capLargeImageInputs(payload) {
+    if (!COMMANDS[payload.operation]?.modelSizedInputs || payload.maskDataUrl) return payload;
+    const items = Array.isArray(payload.mediaItems) ? payload.mediaItems : [];
+    let changed = false;
+    const next = await Promise.all(items.map(async (item) => {
+        // A `/project-file` URL or a bare path (an agent's media), as comfyController reads them.
+        const filePath = item?.mediaType === 'image' ? _decodeProjectFileUrl(item.url) : null;
+        if (!filePath || /^(data|blob|http)/.test(filePath)) return item;
+        try {
+            const res = await fetch(`/engine-image?path=${encodeURIComponent(filePath)}`);
+            const copy = res.ok ? await res.json() : null;
+            if (!copy?.url) return item;
+            changed = true;
+            return { ...item, url: copy.url, filePath: copy.url };
+        } catch (err) {
+            // Fail open: a fault here must not block a run the original can still serve.
+            clientLogger.warn('commandExecutor', `engine-image failed for ${filePath}, sending the original`, err);
+            return item;
+        }
+    }));
+    return changed ? { ...payload, mediaItems: next } : payload;
+}
+
 /**
  * @typedef {Object} RunPayload
  * @property {string}   operation    - Command key (e.g. 't2i', 'upscale')
@@ -1636,6 +1665,8 @@ export function runCommand(payload) {
             _failBail(err);
             return;
         }
+        if (await _abortedBail(tempTrimInputPaths)) return;
+        workingPayload = await _capLargeImageInputs(workingPayload);
         if (await _abortedBail(tempTrimInputPaths)) return;
 
         const params = _buildParams(workingPayload);

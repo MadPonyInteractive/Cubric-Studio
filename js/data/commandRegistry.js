@@ -102,6 +102,14 @@ const I2V_HELP = {
  * @property {number}          requiresImages - Min number of input images needed (0 = none)
  * @property {number}          [requiresVideo]- Min number of input videos needed (0 = none)
  * @property {boolean}         [requiresMask] - Requires an active mask from the Mask Tool
+ * @property {boolean}         [modelSizedInputs] - Every graph running this op shrinks its IMAGE inputs to model
+ *                                              size right after load (ImageScaleToTotalPixels, ImageResizeKJv2,
+ *                                              a cover-crop to the output), so the pixels past ENGINE_MAX_EDGE
+ *                                              are thrown away anyway: an unmasked run hands the engine the
+ *                                              server's capped copy instead of a 16K original that MpiLoadImage
+ *                                              cannot open (MPI-971, commandExecutor._capLargeImageInputs).
+ *                                              VERIFY IN THE GRAPH. Never on an op whose OUTPUT is source-sized
+ *                                              (inpaint's stitch, Detail, upscale, remove background).
  * @property {boolean}         [promptRequired] - Whether a text prompt is mandatory
  * @property {boolean}         [universal]    - Not model-tied; uses universalWorkflows in modelRegistry
  * @property {boolean}         [stub]         - Not yet implemented; registered but disabled in UI
@@ -238,6 +246,7 @@ export const commands = {
         },
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        modelSizedInputs: true,
         mediaInputs: [
             { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
         ],
@@ -315,6 +324,7 @@ export const commands = {
         progressLabel: 'Generating',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        modelSizedInputs: true,
         mediaInputs: [
             { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
             // MPI-354/MPI-365: OPTIONAL subject slots — image 1 supplies the control map,
@@ -374,6 +384,7 @@ export const commands = {
         progressLabel: 'Editing',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        modelSizedInputs: true,
         mediaInputs: [
             { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true },
             { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true },
@@ -434,6 +445,7 @@ export const commands = {
         progressLabel: 'Editing',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        modelSizedInputs: true,
         // Slots 2-4 exist only for a model declaring `multiReference`, 5-8 for
         // `multiReference8` (MPI-919). Seedream 5 Pro and FLUX-2 fill their numbered
         // fields natively (`cloud.imageFields`); the Nano Banana family's endpoint takes ONE
@@ -475,6 +487,7 @@ export const commands = {
         progressLabel: 'Editing',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        modelSizedInputs: true,
         mediaInputs: [
             { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true },
             // 2nd reference image (MPI-292): optional. Empty → Input_Image_2's
@@ -530,6 +543,7 @@ export const commands = {
         progressLabel: 'Editing',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        modelSizedInputs: true,
         // THREE image slots (MPI-300). Qwen-Image-Edit-2511 takes up to three
         // references natively (TextEncodeQwenImageEditPlus image1..3). Slots 2 and 3
         // are optional: an empty path makes Input_Image_2/_3's MpiLoadImageFromPath
@@ -677,6 +691,7 @@ export const commands = {
         progressLabel: 'Upscaling',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        modelSizedInputs: true,
         mediaInputs: [
             { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
         ],
@@ -704,6 +719,7 @@ export const commands = {
         help: I2V_HELP,
         mediaType: MEDIA_TYPE.VIDEO,
         requiresImages: 1,
+        modelSizedInputs: true,
         mediaInputs: [
             // NO endFrame here. `i2v` (single-stage) has exactly one consumer — Wan 2.2
             // 5B — and `wan5b_i2v.json` carries no `Input_End_Frame` node, so the slot
@@ -755,6 +771,7 @@ export const commands = {
         icon: 'image',
         mediaType: MEDIA_TYPE.VIDEO,
         requiresImages: 1,
+        modelSizedInputs: true,
         // Audio slot is model-capability-gated (see t2v_ms note). WAN gets only
         // the two image frame slots; LTX additionally accepts the audio slot.
         mediaInputs: [
@@ -805,6 +822,7 @@ export const commands = {
         // 0: a reference-less run is legal (it degrades to plain text-to-video+audio), and
         // requiring an IMAGE specifically would block a video-only or audio-only reference.
         requiresImages: 0,
+        modelSizedInputs: true,
         // Nine images, three videos, three audio — the node's full surface. ALL ordinal:
         // strip order IS the tag order, so a removed chip must not strand a role on the
         // survivors (MPI-330). None required, for the same reason requiresImages is 0.
@@ -946,6 +964,7 @@ export const commands = {
         progressLabel: 'Describing',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        modelSizedInputs: true,
         mediaInputs: [
             { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
         ],

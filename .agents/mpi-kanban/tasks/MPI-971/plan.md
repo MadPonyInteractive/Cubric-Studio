@@ -5,6 +5,22 @@
 
 ## Current State
 
+**2026-09-30 (session 8aad9989): Phase 1 DONE and live-verified, uncommitted at the time of
+writing** (`routes/projects.js`, `js/services/commandExecutor.js`, `js/data/commandRegistry.js`,
+`tests/engine-input-cap.test.cjs`). **Next: Phase 2** (localised edits crop/stitch). P-A / P-B were
+put to Fabio this session; his answer gates Phase 3 only. How Phase 1 landed:
+- Server: `resolveDisplayImage(file, ENGINE_MAX_EDGE, { engine: true })` + `GET /engine-image`
+  (`routes/projects.js`). A sidecar-owned file's copy is `<Media>/.meta/<id>.thumb.engine4096.png`
+  (swept with the card); a file NO sidecar owns (Flow `.preview-assets`, an agent's own path) goes
+  to `os.tmpdir()/cubric-engine-inputs/<sha1(path)>.engine4096.png` — never a `.meta` written
+  beside a folder we do not own (the first cut did that to an agent's scratch dir).
+- Renderer: `_capLargeImageInputs` in `commandExecutor.js`, called after the trim pre-pass, before
+  `_buildParams`. Runs only when `COMMANDS[op].modelSizedInputs` and NO mask. Accepts a
+  `/project-file` URL OR a bare path (the connector hands bare paths; the first cut missed them).
+  Fails open (warn, original) on a route fault.
+- `modelSizedInputs: true` on i2i, control, kleinEdit, edit, krea2Edit, qwenEdit, pid, i2v, i2v_ms,
+  ref2v_ms, imageDescribe — each graph traced to a resize right after load (2026-09-30).
+
 Project mode: scalable-foundation. Investigation 2026-09-30 (session dd0e0b12, one read-only sweep,
 spot-checked): `research/findings.md`.
 
@@ -71,6 +87,7 @@ Picks awaiting Fabio's word (the phase that needs each one stops on it):
 ## Completed
 
 - [x] Investigation: every place an image reaches the engine, mapped and spot-checked (research/findings.md).
+- [x] Phase 1 (2026-09-30, session 8aad9989): engine copy + model-resolution pre-pass; evidence in validation.md.
 
 ## Remaining Work
 
@@ -80,7 +97,7 @@ would put two workers in one function.
 
 ## Phase 1: the pre-pass and the capped copy (model-resolution ops)
 
-- [ ] New server module + route (e.g. `services/engineInput.js`, `POST /engine-input/prepare`):
+- [x] New server module + route (e.g. `services/engineInput.js`, `POST /engine-input/prepare`):
   given a `/project-file` path and a class, return the original when its upright long edge ≤ 4096,
   else a capped copy. Unlike `resolveDisplayImage` it must work for sidecar-less files
   (`.preview-assets`), write LOSSLESS PNG (an engine input, not a display thumb), respect EXIF
@@ -134,7 +151,15 @@ would put two workers in one function.
 
 ## Plan Drift
 
-- None yet.
+- 2026-09-30: Phase 1 reused `resolveDisplayImage` (an `engine` option) instead of a new
+  `services/engineInput.js` + POST route — same cache, EXIF turn and 32K handling, already proven
+  by MPI-961. Route is `GET /engine-image`, edge fixed server-side. Cached, so no temp clean-up.
+- 2026-09-30: op class = a registry flag `modelSizedInputs` (per op). Two graphs are not a pure
+  resize, accepted: Chroma's i2i MpiCrop takes a native W x H centre window (a >4096 source now
+  crops from the 4096 copy, a wider window; noted in brief.md), and H3's `max` reference mode
+  keeps a 2048 short edge, so a >2:1 panorama over 4096 reaches it smaller than before.
+- 2026-09-30: a 16384 x 10240 fixture (167.8 MP) is UNDER Pillow's limit and does not reproduce
+  the failure; the live check uses 16384 x 16384 (268 MP).
 
 ## Verification
 

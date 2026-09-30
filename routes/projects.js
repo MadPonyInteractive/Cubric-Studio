@@ -18,6 +18,7 @@
  *   POST   /project-data/:projectId/upload
  *   GET    /project-file
  *   GET    /display-image
+ *   GET    /engine-image
  *   GET    /project-thumb
  */
 
@@ -27,6 +28,7 @@ const express = require('express');
 const router = express.Router();
 const fs     = require('fs-extra');
 const path   = require('path');
+const os     = require('os');
 const crypto = require('crypto');
 const util = require('util');
 const sharp = require('sharp');
@@ -179,6 +181,10 @@ async function writeAudioWaveform(inputPath, metaDir, id, metaContent) {
  */
 const DISPLAY_EDGE_MIN = 256;
 const DISPLAY_EDGE_MAX = 16383;      // WebP's own limit
+// The engine never gets more than this on the long edge (MPI-971): past it, a model-
+// resolution op is handed `resolveDisplayImage(..., { engine: true })` instead of the
+// original. The same number as the mask working size and the auto-mask input (MPI-961).
+const ENGINE_MAX_EDGE = 4096;
 const _displayIds = new Map();       // normalised original path -> sidecar id
 const _displayJobs = new Map();      // output path -> in-flight sharp job
 
@@ -207,7 +213,14 @@ async function _sidecarIdFor(metaDir, filePath) {
     return null;
 }
 
-async function resolveDisplayImage(filePath, edge) {
+/**
+ * `engine: true` is the ENGINE copy (MPI-971) — what a model-resolution op hands ComfyUI
+ * instead of a 16K original that `MpiLoadImage` cannot open. Same rule, cache and EXIF
+ * turn, but lossless PNG (an input, not a picture to look at), and it cannot fall back to
+ * the original when no sidecar owns the file (a Flow's `.preview-assets` input, an agent's
+ * own file): that copy goes to the temp cache, never a `.meta` beside a folder we do not own.
+ */
+async function resolveDisplayImage(filePath, edge, { engine = false } = {}) {
     const url = (p, v) => `/project-file?path=${encodeURIComponent(p)}${v ? `&v=${Math.round(v)}` : ''}`;
     const original = { url: null, width: 0, height: 0 };
     // A format sharp cannot read (BMP) keeps the original: the renderer decodes it, as before.
@@ -220,11 +233,14 @@ async function resolveDisplayImage(filePath, edge) {
 
     const metaDir = path.join(path.dirname(filePath), '.meta');
     const id = await _sidecarIdFor(metaDir, filePath);
-    if (!id) {
+    if (!id && !engine) {
         logger.warn('project', `display-image: no sidecar owns ${path.basename(filePath)}, serving the original`);
         return original;
     }
-    const out = path.join(metaDir, `${id}.thumb.fit${edge}.webp`);
+    const out = !id
+        ? path.join(os.tmpdir(), 'cubric-engine-inputs',
+            `${crypto.createHash('sha1').update(_normPath(filePath)).digest('hex')}.engine${edge}.png`)
+        : path.join(metaDir, engine ? `${id}.thumb.engine${edge}.png` : `${id}.thumb.fit${edge}.webp`);
     // The copy is stamped with its original's mtime, and any other stamp means another
     // version. `newer than` would re-make forever for an original dated in the future (a
     // file copied in from a machine whose clock ran ahead).
@@ -236,11 +252,11 @@ async function resolveDisplayImage(filePath, edge) {
             // Written aside and renamed: a crash mid-write must not leave a truncated copy
             // under the name that is served.
             const tmp = `${out}.tmp`;
-            job = sharp(filePath, { limitInputPixels: false })
+            const fit = sharp(filePath, { limitInputPixels: false })
                 .rotate()
-                .resize(edge, edge, { fit: 'inside', withoutEnlargement: true })
-                .webp({ quality: 90 })
-                .toFile(tmp)
+                .resize(edge, edge, { fit: 'inside', withoutEnlargement: true });
+            job = fs.ensureDir(path.dirname(out))
+                .then(() => (engine ? fit.png() : fit.webp({ quality: 90 })).toFile(tmp))
                 .then(() => fs.utimes(tmp, new Date(), version / 1000))
                 .then(() => fs.move(tmp, out, { overwrite: true }))
                 .finally(() => _displayJobs.delete(out));
@@ -2012,6 +2028,25 @@ router.get('/display-image', async (req, res) => {
         res.json(await resolveDisplayImage(filePath, edge));
     } catch (err) {
         logger.error('project', `display-image failed for ${path.basename(filePath)}`, err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// `{ url, width, height }` for the engine copy of a still (MPI-971); `url: null` means send
+// the original — every image at or under ENGINE_MAX_EDGE. The edge is the server's, never
+// the caller's.
+router.get('/engine-image', async (req, res) => {
+    const { path: filePath } = req.query;
+    if (!filePath) return res.status(400).json({ error: 'path required' });
+    if (!(await fs.pathExists(filePath))) return res.status(404).json({ error: 'Not found' });
+    try {
+        const copy = await resolveDisplayImage(filePath, ENGINE_MAX_EDGE, { engine: true });
+        if (copy.url) {
+            logger.info('project', `engine-image: ${path.basename(filePath)} ${copy.width}x${copy.height} -> ${ENGINE_MAX_EDGE} copy`);
+        }
+        res.json(copy);
+    } catch (err) {
+        logger.error('project', `engine-image failed for ${path.basename(filePath)}`, err);
         res.status(500).json({ error: err.message });
     }
 });

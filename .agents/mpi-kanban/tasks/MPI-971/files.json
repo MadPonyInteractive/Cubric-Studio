@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["routes/projects.js", "js/services/commandExecutor.js", "js/data/commandRegistry.js", "tests/engine-input-cap.test.cjs"] }
