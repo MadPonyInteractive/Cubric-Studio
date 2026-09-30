@@ -404,13 +404,10 @@ test('MPI-993: opening a project warns once about a missing Ollama model, with a
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
     await stubOllamaConnection(window);
+    // No start() here: shell.js starts the check at boot, and that wiring is what is proven.
     await window.evaluate(async () => {
-      const [{ Events }, { start }] = await Promise.all([
-        import('/js/events.js'),
-        import('/js/shell/llmPickCheck.js'),
-      ]);
+      const { Events } = await import('/js/events.js');
       Events.emit('engine:install-skipped');
-      start();
       Events.emit('project:changed', { project: {} });
     });
     const toast = window.locator('.mpi-toast-stack .mpi-toast', { hasText: 'not downloaded in Ollama' });

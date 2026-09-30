@@ -13,6 +13,7 @@ import { Events } from '../events.js';
 import { Storage } from '../core/storage.js';
 import {
     backendPreference,
+    runnableBackend,
     endpointModelPreference,
     describeBackendPreference,
     describeModelPreference,
@@ -51,11 +52,12 @@ export function missingPicksMessage(missing) {
 }
 
 /** `{ [job]: saved id or '' }` for each job that runs on the connection right now. */
-function _picks() {
-    // The agent runs only on the connection; the other two only when their backend is Remote.
+async function _picks() {
+    // The agent runs only on the connection; the other two when their backend RUNS there,
+    // which with no engine includes a ComfyUI pick (`runnableBackend`, MPI-856).
     const picks = { agent: Storage.getAgentPrefs().model || '' };
-    if (backendPreference() === 'endpoint') picks.enhance = endpointModelPreference() || '';
-    if (describeBackendPreference() === 'endpoint') picks.describe = describeModelPreference() || '';
+    if (await runnableBackend(backendPreference()) === 'endpoint') picks.enhance = endpointModelPreference() || '';
+    if (await runnableBackend(describeBackendPreference()) === 'endpoint') picks.describe = describeModelPreference() || '';
     return picks;
 }
 
@@ -64,7 +66,7 @@ async function _check() {
     let json = null;
     try { json = await (await fetch('/llm/connection/models?profileId=ollama')).json(); } catch { return; }
     if (!json?.ok) return;
-    const missing = missingOllamaPicks(json.models || [], _picks());
+    const missing = missingOllamaPicks(json.models || [], await _picks());
     if (!missing.length || _shown) return;
     _shown = true;
     // Loaded here, not at the top: the two pure helpers above stay importable under node.

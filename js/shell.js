@@ -48,6 +48,7 @@ import { Overlays } from './managers/overlayManager.js';
 import { initScreenClearService } from './shell/screenClearService.js';
 import { start as startProjectStats } from './services/projectStatsService.js';
 import { start as startMediaImport } from './services/mediaImportService.js';
+import { start as startLlmPickCheck } from './shell/llmPickCheck.js';
 import { triggerMemoryRelease, bindMemoryHotkeys } from './shell/memoryOps.js';
 import { StatusBar } from './shell/statusBar.js';
 import { initNavigation, handleNavigation, updateTitlebarProject } from './shell/navigation.js';
@@ -202,6 +203,7 @@ export async function initShell() {
   _revealWhenLandingReady();  // MPI-966 — main.js holds the splash until this says so
   startProjectStats();
   startMediaImport();  // MPI-723 - the media:imported -> ItemGroup build, app-lifetime
+  startLlmPickCheck();  // MPI-993 - project open: warn once about an Ollama pick not downloaded
   StatusBar.init();
   StatusBar.listen();
   bindWindowControls();
