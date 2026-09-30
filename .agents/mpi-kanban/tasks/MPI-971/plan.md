@@ -5,6 +5,15 @@
 
 ## Current State
 
+**2026-09-30 (session cae496e5): DONE — closing.** Pod path verified (validation.md § Pod path:
+Pod `gj0tfzcctbdywj`, masked Klein Edit on the 16K uploaded the 2144^2 cut, 16K card, Fabio "This
+test passed"). Preservation written: `docs/big-photos.md` (+ docs map row), add-model note in
+`01-workflow-split.md`, MPI-962 plan (every member now done); UNRELEASED owes no new line (its
+unreleased "Big photos just work ... edit" entry is now true). Fabio
+2026-09-30: **MPI-1000 IS a 2.0 blocker** — next after this card. Still unanswered, both left as
+built: model-upscale x4 intermediate on a >4096 photo (brief § Noticed; my pick: 4096 copy + rescaled
+factor, not built); Outpaint on a big photo refuses (built; alternative: run on the 4096 copy).
+
 **2026-09-30 (session a0ada438): Phase 3 VERIFIED BY FABIO ("All tests passed"); Phase 4 BUILT,
 unit + live green (validation.md § Phase 4); the agent's upscale refusal now carries `code:
 TOO_BIG` + `userMessage`.** Phase 4: `cropsToBox` (Draw It In, Object Stamp) cuts the photo AND

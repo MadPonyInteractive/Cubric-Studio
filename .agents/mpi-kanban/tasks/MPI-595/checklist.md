@@ -52,11 +52,12 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   (checked 2026-09-30): Docs-repo card MPI-19 is `doing`, branch `docs-2.0` last commit 2026-09-29;
   3 items left — re-audit the rewritten pages, a Routines page (waits on MPI-970), Slice 7 claim audit
 - [ ] **In-app agent** — Fabio has an agent on what is left. MPI-941 (umbrella 2) itself closed 2026-09-29 (`f622892db`): check its UNRELEASED line landed (Gate C) and which card holds the rest
-- [ ] **Big photos — MPI-962** (umbrella) — MPI-959 closed 2026-09-29; **MPI-971** (16K engine ops, Fabio chose B: app-side sizing) is the last open member
+- [x] **Big photos — MPI-962** (umbrella) — closed 2026-09-30 with its last member **MPI-971** (16K engine ops, app-side sizing; Fabio verified locally + on a Pod, CI green `e752180c3`; `docs/big-photos.md`). MPI-1001 (Pod WS wedge) closed the same day
 - [ ] **MPI-1000 small Flow + media fixes** (umbrella by Agent 74: MPI-997 Character Sheet split,
   MPI-998 Object Stamp flip, MPI-999 recording silence strip) — **folded into THIS umbrella by
   Fabio 2026-09-30, picked up AFTER MPI-971 closes.** Plan `tasks/MPI-1000/plan.md`: 998 + 999 in
-  parallel, 997 waits on MPI-603 (`validating` on 2026-09-30). Gate status not stated yet
+  parallel, 997 waits on MPI-603 (`validating` on 2026-09-30). **A 2.0 gate — Fabio 2026-09-30.**
+  NEXT, now that MPI-971 is closed
 - [ ] Then **the cut**: Gate D below, top to bottom. Costs ~nothing (CI + R2); it needs Fabio's yes
   because it is public and one-way (promote reaches every released Pod; the release reaches every updater)
 

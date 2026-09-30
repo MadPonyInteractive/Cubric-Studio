@@ -108,6 +108,7 @@ NOT mechanically split these):
 | **Latent previews** (`preview:frame` bus, engine-tagged, broken-frame gate, last-latent hold, blob ownership — and `previewClipPlayer`, the ONE consumer every surface must use: never paint the bus directly, never write a second ring) | [preview-bus.md](preview-bus.md) |
 | Latent-preview DECODERS (which model uses which, why a missing one silently downgrades to a colour blob, the node-read H3/LTX pair, the `lighttaew*` landmine — read before adding any `vae_approx/` dep) | [preview-decoders.md](preview-decoders.md) |
 | **Workflow authoring + injection contract** (MpiNodes pack, injector target list, generator/tier patterns) — model/flow-agnostic | [workflow-authoring/README.md](workflow-authoring/README.md) |
+| **Big photos on the engine** (the engine never gets more than 4096 of a photo: the engine copy, the cut round a mask or a box + the stitch back, the matte put-back, the upscale limit, the load backstop; which registry flag a new op needs) | [big-photos.md](big-photos.md) |
 | Models-path / YAML / extra-folders | [models-path.md](models-path.md) |
 | Download manager (resumable, NDH) | [download-manager.md](download-manager.md) |
 | Language models (prompt enhance, image descriptions: ComfyUI / Remote / Ollama) | [llm.md](llm.md) |

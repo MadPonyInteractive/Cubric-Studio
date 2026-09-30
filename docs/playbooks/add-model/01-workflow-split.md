@@ -47,6 +47,15 @@ model-specific divergences below:
 - When exporting the template, remember the media-input `input/` trap (below) — the
   exported JSON carries whatever test file was open.
 
+### Masked graphs keep the crop/stitch pair (big photos)
+
+A photo over 4096 reaches a masked op as a CUT round the mask, and the app pastes the result back
+(`docs/big-photos.md`). That only works because every masked graph samples a window round the mask:
+keep `InpaintCropImproved` -> sample -> `InpaintStitchImproved` (or MaskDetailer) in a new model's
+inpaint / masked-edit graph, and give the op `cropsToMask` in `commandRegistry.js`. A graph that
+samples the whole masked image breaks the cut. An edit graph that resizes right after load gets
+`modelSizedInputs`; an unflagged op fed a big photo is refused by the load backstop.
+
 ### Detailer / refiner sampler settings ≠ the base-gen settings
 
 A MaskDetailer / FaceDetailer (Impact Pack) node does NOT inherit good behavior from the

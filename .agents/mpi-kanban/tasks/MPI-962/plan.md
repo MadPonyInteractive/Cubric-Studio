@@ -22,6 +22,9 @@
   2026-09-29 on Fabio's eye-test.
 - **Status 2026-09-29:** MPI-961 and MPI-963 closed, Fabio verified; the detail layer was deferred by
   Fabio (MPI-961 closed without it). MPI-959 closed (`28547517d`, Fabio verified). Open: MPI-971.
+- **Status 2026-09-30: MPI-971 closes — every member is done.** Option B shipped in four phases
+  (`4b2e03823` .. `e752180c3`), verified by Fabio locally and on a Pod; the rule and the flags live in
+  `docs/big-photos.md`. Nothing left on this umbrella but closing it.
 - **2.0 gate (Fabio 2026-09-29):** MPI-959 and MPI-971 both land before 2.0 - UNRELEASED.md already
   says "Big photos just work ... import, thumbnail and edit", which is false until they do.
 - **Fallback that exists today:** the Resize tool's `rotation` lets a user rotate by hand - the answer
@@ -66,7 +69,8 @@
 
 ## Phase 3: Engine ops on 16K+ photos (MPI-971)
 
-- [ ] **Fabio chose B (2026-09-29), no node-limit lift:** inpaint / localised edit, i2i and upscale
+- [x] (2026-09-30, MPI-971: engine copy, mask cut + stitch, matte put-back, box cut for Flows,
+  upscale limit, load backstop — `docs/big-photos.md`) **Fabio chose B (2026-09-29), no node-limit lift:** inpaint / localised edit, i2i and upscale
   each reach the engine at a size it can load - localised edits cropped around the mask server-side
   and stitched back, whole-image ops on a loadable copy. MPI-971 needs its own plan first (upscale
   on a 16K source is the open design question). Ownership set by that plan: the server routes that

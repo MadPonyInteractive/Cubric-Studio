@@ -131,3 +131,16 @@ Verify mode: user-ux for Phases 2 and 3 (Fabio looks at a 16K result); Phases 1 
 - NOT run live: Object Stamp (same code path as Draw It In; Manual unit-covered), the UI Outpaint
   toast (the step throws the reason; MpiBaseFlow shows `userMessage`), Scribble through its paint step
   (composePaintComposite now caps at 4096).
+
+## Pod path — PASSED 2026-09-30 (session cae496e5)
+
+- Fabio's app (restarted after 82f0dd612 + e752180c3), Pod `gj0tfzcctbdywj` (NVIDIA L4, EU-RO-1,
+  dev channel), 'Big Photos Test' `imageUpscale_002` (16384^2), eyes masked, FLUX.2 Klein 4B `edit`.
+- app.log: `engine-mask: imageUpscale_002.png cut {left 7356, top 3006, 2144x2144, out 2144x2144}`
+  (19:06:12Z), then `engine-stitch: imageUpscale_002.png 16384x16384 <- 2144x2144 at 7356,3006`
+  (19:10:35Z).
+- Pod `/history` (read-only, dev_mode 8188): prompt `4e64243a…` status `success`; `Input_Image` =
+  `/workspace/comfyui/input/141ff6f8-….crop.png`, `Input_Mask` = the same uuid's `.mask.png`;
+  `InpaintCropImproved` `output_resize_to_target_size: true`, `output_target 1024x1024` — the model
+  samples at 1 MP; the 2144 cut is only the upload.
+- Fabio looked at the card: "This test passed". One run, within the okayed ~$0.20-0.40.

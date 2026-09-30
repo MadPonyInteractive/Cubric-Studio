@@ -27,6 +27,14 @@ component kept its old name, so "Settings" in a file name or an older card means
 - **One renderer-direct exception:** `GET /remote/ws-token` returns the WSS base + token
   over loopback so the renderer opens the **binary-preview WebSocket** straight against the
   RunPod proxy (binary latent frames can't tunnel cleanly through Express).
+  **A socket counts only while it is READY** (MPI-1001): the Pod-restart path drops `_wsReady`
+  and relies on `connect()` replacing the socket, so `connect()` reuses an OPEN socket on the same
+  engine only while ready, and `ensureWsConnected` replaces one that can never turn ready (OPEN
+  with the flag down, or a handshake stuck past 10 s). Before this every run after a Pod ComfyUI
+  restart could wedge on "Still connecting to the remote engine". The `Preview WS …` log lines name
+  which case fired. That restart path fires only when a custom node LANDS on the volume
+  (`needs_comfy_restart`); every node is universal now (image-resident or installed at connect),
+  so no model install reproduces it on demand — a node pin bump or a volume missing a node does.
 - `routes/remoteProxy.js` MUST stay mounted **before** `routes/comfy.js` in `server.js` —
   the `/comfy/events/stream` SSE intercept falls through with `next()` when remote mode is
   inactive, so local mode stays byte-identical.
