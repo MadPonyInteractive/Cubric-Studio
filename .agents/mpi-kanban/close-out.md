@@ -34,8 +34,11 @@ Mpi-Kanban plugin. Both had been sitting in `todo` with the work already finishe
 ## The run on this session's last CODE commit is green (do NOT skip)
 
 ```bash
-gh run list --branch master --limit 5 --json headSha,status,conclusion,url
+gh run list --branch master --workflow tests.yml --limit 5 --json headSha,status,conclusion,url
 ```
+
+`--workflow tests.yml` is required: without it the list fills with the scheduled
+"Red master watch" runs and your commit's run is not in the top five (2026-09-29).
 
 Find the run for your last pushed code commit. `in_progress` → `gh run watch <id>`
 (~13 min of wall time, zero tokens). `failure` → it is yours now, whichever spec it

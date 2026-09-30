@@ -282,6 +282,9 @@
 - **The Crop tool's RESOLUTION mode keeps the width and height you typed**, and Ratio and Free
   crops keep the Divisible-by rounding the panel shows.
 
+- **Cropping past the edge of a JPEG no longer softens the photo**, and it is much faster on very
+  large pictures.
+
 - **The Upscale tool finds its upscalers when you picked your own models folder.** It now
   looks in both folders, and a Pod's built-in upscalers appear in the list too.
 
