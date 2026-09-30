@@ -21,8 +21,10 @@
   live run costs money: state price and run count, get Fabio's yes, report the spend.
 - **2026-09-30 (Agent 77):** MPI-923 built, both live runs passed ($0.845 spent on Fabio's yeses),
   committed `6079c2d88`; done move waits on its CI. MPI-910 hosting answered
-  (`tasks/MPI-910/research.md`), card `needs-decision`: Fabio picks the reference-VIDEO option
-  (my pick: images + audio only, no hosting) and yes/no on a $0.37 data-URL proof run.
+  (`tasks/MPI-910/research.md`). Fabio picked (b), host reference videos ourselves; data-URL image
+  ref proven live ($0.39). MPI-910 `planned` with `plan.md` (relay Worker -> privacy page -> app ->
+  live run). **Next: MPI-910 todo -> doing, build the relay Worker in `mpi-ci/cubric-relay/` and
+  test it locally only (Fabio's go 2026-09-30: no deploy, no cost).** Session spend: $1.235.
 
 ## Plan Drift
 

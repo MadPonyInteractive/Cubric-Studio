@@ -24,13 +24,18 @@ so how does the app hand a local file to the provider?
 - OpenRouter's Seedance route answers a `data:video/mp4` reference with HTTP 400 "Only HTTPS URLs are
   allowed" (github.com/Reid-Surmeier/Image-generation-pipline issue 101): same upstream rule.
 
+## Proven live (2026-09-30, Fabio's yes, 1 run)
+
+DeepInfra `ByteDance/Seedance-2.0`, `reference_images: ['data:image/png;base64,...']`, 480p 5 s
+16:9: **accepted**. Output 5.06 s, 864x496, audio track, the Vision mascot from `Image 1` in every
+frame. Billed $0.390 (`inference_status.cost`) against the snapshot quote of $0.37.
+
 ## So
 
-1. **Images + audio: data URLs should work** (upstream takes base64; DeepInfra passes strings). Not
-   yet proven through DeepInfra: one paid run settles it (480p 5 s, about $0.37 by the snapshot).
+1. **Images: data URLs work** (proven above). Audio: upstream takes base64 too; not yet run.
 2. **Reference videos need a public HTTPS URL.** The app has none. Options, each Fabio's call:
    (a) ship Seedance `ref2v` with image + audio wells only, videos off (no hosting);
    (b) host the clip ourselves (e.g. a short-lived presigned R2 URL) - a new outbound service,
    so the privacy policy changes, plus storage cost and user media on our bucket;
    (c) a third-party temp host - same privacy change, and a dependency we do not control.
-   Recommendation: (a) now; revisit (b) only if users ask for video references on Seedance.
+   Recommendation was (a). **Fabio picked (b), 2026-09-30.** Plan: `plan.md`.
