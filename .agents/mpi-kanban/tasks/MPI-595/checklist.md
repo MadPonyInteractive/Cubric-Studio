@@ -7,11 +7,16 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 
 "We are almost ready." Every gate that needs no one else is clear; what is left:
 
-- [ ] **Website revamp — MPI-973** (landing page = what the app is; sections for MCP with the
-  `.mcpb` download, the in-app agent, the paid cloud models). Biggest blocker
-- [ ] **Docs website** — Fabio has an agent on it
+- [ ] **NEW 2026-09-30 (Fabio):** an umbrella-organising agent found MORE work that must land
+  before 2.0. Not yet named here: next session, find it (recent `umbrella sweep` commits, e.g.
+  `2ac923582` MPI-985/986; the new umbrellas MPI-985 cloud models, MPI-986 Mix and audio; any card
+  whose brief says 2.0), list it for Fabio, and add each 2.0 item below
+- [x] **Website revamp — MPI-973** DONE 2026-09-29 (built, Fabio signed off, `a34d787ad`). Held
+  unpublished: **MPI-983** publishes cubric.studio AND docs.cubric.studio the moment 2.0 is
+  released (docs first, `e526d10fa`) — a CUT step now
+- [ ] **Docs website** — built by Fabio's agent; publishes with MPI-983 at the cut. Confirm it is finished
 - [ ] **In-app agent** — Fabio has an agent on what is left. MPI-941 (umbrella 2) itself closed 2026-09-29 (`f622892db`): check its UNRELEASED line landed (Gate C) and which card holds the rest
-- [ ] **Big photos — MPI-962** (umbrella, `todo`) — "practically finished"; MPI-961 closed 2026-09-29 (`bbe115e93`)
+- [ ] **Big photos — MPI-962** (umbrella) — MPI-959 closed 2026-09-29; **MPI-971** (16K engine ops, Fabio chose B: app-side sizing) is the last open member
 - [ ] Then **the cut**: Gate D below, top to bottom. Costs ~nothing (CI + R2); it needs Fabio's yes
   because it is public and one-way (promote reaches every released Pod; the release reaches every updater)
 
@@ -109,5 +114,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [ ] `publish-runtime.sh promote` (mpi-ci `cubric-vision-pod/`): dev -> stable = wrapper 0.2.45 (MPI-894 async hot-store, live-proven 2026-09-29) + `b131c0a` chatterbox link. Fabio 2026-09-29: at the cut, not before. Harmless to 1.5.0/1.6.x (they never send `async`), useless to them until 2.0's app
 - [ ] `/mpi-version-bump` -> **2.0.0**, then `/mpi-release`
 - [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
+- [ ] Release day: **MPI-983** publish docs.cubric.studio, then cubric.studio (both built and held)
+- [ ] Before the notes are written: `github-release-checklist.md` § Scope Guard may still forbid "assistant" claims while 2.0's headline is the in-app agent (noticed on MPI-973; `0f6d75f09` "release copy may name the agent" may have fixed it — check)
 - [ ] Ask Fabio again, near the release: a Discord/Patreon post warning 1.5.0 users about the 2026-11-15 RunPod cutoff (Fabio 2026-09-29: "no to the post right now, maybe closer to the release")
 - [ ] After: MPI-603 R2/HF delete; MPI-612
