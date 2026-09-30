@@ -2,7 +2,7 @@
 
 Seedance 2.0 ships as one Vision card, `seedance-2-cloud`. It is a **cloud** card: no weights, no ComfyUI graph, no engine. It runs at DeepInfra on the user's own API key. "Installed" means a key is saved. The cost of a run is on the estimate card; show the user that before a run, never a figure from memory.
 
-Two ops, `t2v` and `i2v`, and the recipe has a mode for each. The model makes picture and sound together.
+Three ops, `t2v`, `i2v` and `ref2v`; the recipe has a mode for the first two only (write `ref2v` prompts from the section below). The model makes picture and sound together.
 
 This file is the router. Five sub-skills hold the detail; the table near the end says which one a request needs. Read it with `read_knowledge` and its id before writing that part of the prompt.
 
@@ -19,7 +19,8 @@ This file is the router. Five sub-skills hold the detail; the table near the end
 - The app sets the duration, the ratio and the tier. **Never write any of them into the prompt**, and never a resolution word such as "4K".
 - No batch: one clip per call.
 - **No negative prompt field.** Constraints go into the prompt as short locks.
-- `i2v` sends one image, as the clip's **first frame**. Nothing else is sent: no reference images, no reference video, no reference audio. The model's `@Image` / `@Video` / `@Audio` tags therefore name nothing in this app; never write them, and never promise more than one image.
+- `i2v` sends the clip's **first frame**, plus an optional **last frame** (the `endFrame` slot): the clip starts on one picture and ends on the other. No references go with it, so @ tags (`@image1`, `@video1`, `@audio1`) name nothing in `t2v` or `i2v`; never write them there.
+- `ref2v` sends **references**, not frames: up to 9 images, 3 videos and 3 audio clips, none of which appears in the output as-is. Videos and audio must be 2 to 15 seconds each and 15 seconds in all, per type; audio only alongside an image or a video. The app refuses anything else before sending, so nothing is billed. A reference video raises the price: the estimate quotes the most it can cost ("up to").
 
 ## The prompt shape, both ops
 
@@ -48,12 +49,26 @@ The image is frame one. It already fixes the face, the clothes, the colours, the
 
 A cut leaves the first frame behind, so in `i2v` cut only when asked, and say what each new shot shows.
 
+With a last frame too, write the motion that gets from one picture to the other; do not describe either picture.
+
+## ref2v
+
+The prompt shape above still holds; the references only replace description. From a production prompt-writing skill built on real Seedance work, which outranks the blog research behind the rest of this page (MPI-911), and ByteDance's own guide:
+
+- Name each reference with an @ tag by load order, counted per type: `@image1`, `@image2`, `@video1`, `@audio1`. Load order is the order the user staged them in the prompt box, which is the order the app sends them. If the user named a tag, use theirs. **Never in angle brackets**: `<...>` is Seedance's sound-effect mark, even though the prompt box's reference picker writes `<Image 1>`. ByteDance's own examples write `@Image 1`; same reference, either form.
+- Open with the active references: one short anchor line per tag (age, build, current state, the few visible marks that matter for this shot), ending with a lock that it matches the reference exactly. The picture carries the look; a long description fights it. State small text, logos and exact colours in words anyway: the model can drop them.
+- Give every reference a job: "the street in @image2", "the dance moves of @video1", "the voice of @audio1". A reference staged but never named leaves the model guessing.
+- Reuse the same tag on every mention. Tag a reference only in a shot where it appears: a tag in a shot forces its subject into frame.
+- A location reference gives the place, not the camera: still write the shot size, lens and move.
+- Editing a clip rather than referencing one: call it `@video1` and say it is the master for camera, framing, motion, timing and light, state the one change, and lock everything else to it. Match the clip length to it.
+- Four or five references work best. More than four reference people is unstable. Per character, a headshot plus a full-body photo, never a multi-view sheet.
+
 ## Sound
 
 - `{I'm not going back.}` A spoken line, only when the user gave one or wants the character to speak: never invent dialogue, and never put anything but spoken words inside the braces. Only those words are spoken. Name who says it, and keep one language per clip; a less common language is named ("says in Portuguese {...}").
 - `<a car door slams>` A sound effect. Specific, physical, tied to something on screen.
 - `(slow piano)` Music, only when asked for. Unrequested music is a common failure: say so in a lock when the scene is quiet.
-- Describe a voice in words (age, weight, pace) when it matters: the model cannot be handed a voice sample here.
+- Describe a voice in words (age, weight, pace) when it matters. Only `ref2v` can be handed a voice sample ("speaks in the voice of @audio1").
 
 ## Constraints
 
@@ -104,7 +119,7 @@ Adapt the shape; never send an example as it stands.
 
 ## Status
 
-The recipe is `draft`: its shape follows ByteDance's published guide and a serving platform's production skill, and it passes the text checks, but no render has confirmed it yet. Treat the shape as sound and a surprising result as evidence worth reporting.
+The recipe is `draft`: its shape follows ByteDance's published guide and a serving platform's production skill, and it passes the text checks, but no render has confirmed it yet. Treat the shape as sound and a surprising result as evidence worth reporting. `ref2v` has no recipe mode yet and no in-app render behind it (MPI-910): the section above rests on the production skill and ByteDance's guide, not on our own renders.
 
 ## Sources
 

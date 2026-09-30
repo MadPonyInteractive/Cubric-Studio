@@ -49,11 +49,25 @@ model is a `ModelDef` in `js/data/modelConstants/models.js` with `provider: 'dee
     a model declaring `capabilities.endFrame`). `ref2v`: every item a `reference_image` / `_video` /
     `_audio`, strip order. Video (MP4/MOV, 100 MB) and audio (WAV/MP3, 15 MB) go as data URLs; any
     other type or size is refused before sending.
+  - `cloud.mediaFields` (Seedance 2.0, MPI-910): the same `_wanMediaPlan`, each entry in its own
+    named field (`_seedanceFields`): `first_frame_image` / `last_frame_image` on i2v,
+    `reference_images` / `_videos` / `_audios` on ref2v. Images and audio go inline. **A reference
+    VIDEO goes by public URL only** (the provider takes no base64 video), so the route remuxes it
+    `-c copy -movflags +faststart` and PUTs it on **our relay, `https://relay.cubric.studio`**
+    (a Cloudflare Worker, contract in `c:/AI/Mpi/mpi-ci/cubric-relay/README.md`), sends that URL,
+    and DELETEs every clip in the upstream fetch's `finally`: success or not, as
+    cubric.studio/privacy/ promises. The relay's 55-minute life is the backstop. Every check runs
+    before any upload: 2-15 s a clip and 15 s in all per type (ffprobe), audio only with an image
+    or video, a 64 MB body. A relay refusal (429 after 10 uploads a minute) is a pre-send refusal.
 - **`ref2v`** is the cloud twin of H3's two-stage `ref2v_ms`: same 9/3/3 wells, but tagged with
   the names the cloud model reads (Wan: `Image n` / `Video n`, counted per type). Wan bills a
   reference VIDEO's seconds as well as the clip's (measured 2026-09-30: 6.9 s ref + 5 s clip billed
   11.9 s); images and audio are free. The length is unknown before the run, so `estimateRunCost`
   quotes the ceiling, "up to", at 15 s a video and 30 s in all (the provider's own limits).
+  Seedance 2.0 with a reference video bills its cheaper "with video" token band over input plus
+  output seconds (BytePlus; UNMEASURED, no paid run yet), quoted "up to" with 15 s of reference
+  (`referenceVideoSeconds`, `deepinfraPricing.js`). A reference image does not change its band
+  (measured: $0.39 for 5 s at 480p, the plain band).
 - **A picture op with no picture is refused**, never sent (`requiresImages`): the endpoint would
   bill a text-to-image and hand it back as the "edit".
 
@@ -117,4 +131,4 @@ reaches `_readReference` as "an image".
 
 `tests/cloud-executor.test.cjs` (lane invariant, copy), `cloud-price-tag`, `cloud-duration-bounds`,
 `cloud-key-refresh`, `model-picker-cloud`, and `deepinfra-*` (account, catalogue, collage, credit
-gate, multiref, output retention, pricing, transcribe, wan-media).
+gate, multiref, output retention, pricing, seedance-refs, transcribe, wan-media).

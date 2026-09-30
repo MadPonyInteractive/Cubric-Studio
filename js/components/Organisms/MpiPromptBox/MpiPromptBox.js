@@ -6,7 +6,7 @@ import { MpiPopup } from '../../Primitives/MpiPopup/MpiPopup.js';
 import { MpiToast } from '../../Primitives/MpiToast/MpiToast.js';
 import { Events } from '../../../events.js';
 import { renderIcon } from '../../../utils/icons.js';
-import { commands, getAvailableCommands, getCommandComponents, getCommandMediaInputs, filterMediaInputsForModel, matchRefTagQuery, stripOrdinalMediaRoles, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, modelControlTypes, getOpHelp, isTextOnlyOp, pickTextOnlyOp, opAllowsEnhance, selectCueAllTargets } from '../../../data/commandRegistry.js';
+import { commands, getAvailableCommands, getCommandComponents, getCommandMediaInputs, filterMediaInputsForModel, matchRefTagQuery, refTagHandle, stripOrdinalMediaRoles, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, modelControlTypes, getOpHelp, isTextOnlyOp, pickTextOnlyOp, opAllowsEnhance, selectCueAllTargets } from '../../../data/commandRegistry.js';
 import { MpiOpHelpDialog } from '../../Compounds/MpiOpHelpDialog/MpiOpHelpDialog.js';
 import { MpiMediaPicker } from '../../Compounds/MpiMediaPicker/MpiMediaPicker.js';
 import { MpiLoraRack } from '../../Compounds/MpiLoraRack/MpiLoraRack.js';
@@ -1593,8 +1593,9 @@ export const MpiPromptBox = ComponentFactory.create({
             if (!entry) return;
             const caret = textareaEl.selectionStart;
             const value = textareaEl.value;
-            const next = `${value.slice(0, _refAt)}<${entry.tag}> ${value.slice(caret)}`;
-            const at = _refAt + entry.tag.length + 3;   // past "<tag> "
+            const handle = refTagHandle(entry.tag, model);
+            const next = `${value.slice(0, _refAt)}${handle} ${value.slice(caret)}`;
+            const at = _refAt + handle.length + 1;   // past the handle and its space
             _closeRefPicker();
             textareaEl.value = next;
             textareaEl.setSelectionRange(at, at);

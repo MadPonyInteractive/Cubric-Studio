@@ -142,7 +142,8 @@ export function cloudRunFields(model, params = {}, mediaItems = []) {
         // image 1 alone in `imageField` (MPI-919).
         imagePaths: _imagePaths(mediaItems),
         // Every staged item with its type and slot role, in strip order, for an endpoint
-        // that takes video, audio or a named frame too (`cloud.mediaList`, MPI-923).
+        // that takes video, audio or a named frame too (`cloud.mediaList`, MPI-923;
+        // `cloud.mediaFields`, MPI-910).
         media: _mediaRefs(mediaItems),
     };
 }
@@ -174,7 +175,9 @@ export function estimateRunCost(model, params = {}, mediaItems = []) {
     // Wan 3.0 bills a reference VIDEO's seconds on top of the clip's (MPI-923, measured
     // 2026-09-30: a 6.9 s reference + a 5 s clip at 480p billed 11.9 s, $0.595). Its length
     // is unknown here, so quote the ceiling the provider allows: 15 s a video, 30 s in all.
-    const refVideos = model.cloud.mediaList ? want.media.filter(m => m.mediaType === 'video').length : 0;
+    // Seedance 2.0 (`cloud.mediaFields`, MPI-910) allows 15 s of reference video in all.
+    const refVideos = (model.cloud.mediaList || model.cloud.mediaFields)
+        ? want.media.filter(m => m.mediaType === 'video').length : 0;
     const clip = sent.duration || want.duration || 0;
 
     const est = estimateCost(endpointId, {
@@ -185,7 +188,8 @@ export function estimateRunCost(model, params = {}, mediaItems = []) {
         resolution: sent.resolution || '1k',
         // Veo publishes no duration field at all, so `sent` carries none and the pricing
         // module falls back to that model's own fixed clip length.
-        duration: refVideos ? Math.min(30, clip + 15 * refVideos) : clip,
+        duration: refVideos && model.cloud.mediaList ? Math.min(30, clip + 15 * refVideos) : clip,
+        referenceVideoSeconds: refVideos && model.cloud.mediaFields ? 15 : 0,
         // What the route actually SENDS: one per numbered field, or one image (a Nano
         // Banana collage is one picture) for everything else.
         references: Math.min(want.imagePaths.length, model.cloud.imageFields?.length || 1),

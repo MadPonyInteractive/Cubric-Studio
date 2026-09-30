@@ -38,7 +38,8 @@ test('wan3-cloud shows ref2v\'s image/video/audio wells and i2v\'s end frame; Wa
     assert.deepEqual(['image', 'video', 'audio'].map(t => ref.filter(s => s.mediaType === t).length), [9, 3, 3]);
     assert.equal(ref.find(s => s.key === 'inputVideo2').tag, 'Video 2', 'tags are the names Wan reads');
     assert.deepEqual(keys('i2v', wan3), ['startFrame', 'endFrame']);
-    for (const m of MODELS.filter(m => m.supportedOps?.includes('i2v') && m.id !== 'wan3-cloud')) {
+    // Seedance 2.0 takes a last frame too (MPI-910): tests/deepinfra-seedance-refs.test.cjs.
+    for (const m of MODELS.filter(m => m.supportedOps?.includes('i2v') && !['wan3-cloud', 'seedance-2-cloud'].includes(m.id))) {
         assert.deepEqual(keys('i2v', m), ['startFrame'], `${m.id} has no end frame to take`);
     }
 });

@@ -36,3 +36,22 @@ Code: `C:/AI/Mpi/mpi-ci/cubric-relay/` (uncommitted at time of writing). Nothing
 
 Not verified locally, only at deploy (superseded above except the last): the Free plan accepting the `ratelimits` binding; CPU time per upload on
 the real edge; the zone's bot protection letting a provider fetch the clip.
+
+## Phase 3 - app wiring (2026-10-01, Agent 79, session c149d6ff)
+
+- `node --test tests/deepinfra-seedance-refs.test.cjs` **8/8**: seedance-2-cloud shows ref2v 9/3/3 and i2v
+  start+end; i2v sends `first_frame_image` + `last_frame_image` data URLs and touches no relay; ref2v sends image
+  and WAV inline and the video via a relay PUT whose bytes have `moov` before `mdat` (the raw ffmpeg clip had
+  `moov` at 25828, `mdat` at 40, so the remux is proven), then DELETE with `Bearer <token>`; refusals (audio alone,
+  1 s clip, 8+8 s videos, `.webm`) upload nothing; a relay 429 parks nothing; **the real route DELETEs the clip on
+  an upstream 500 AND on success** (DeepInfra and relay stubbed, `DEEPINFRA_API_KEY` env); quote = tokens over
+  5+15 s at $4.70/M, "up to", vs 5 s at $7.70/M plain.
+- `npm test` **2590 pass, 0 fail** (2592 tests). `npx eslint` on every changed file: clean.
+- Live, FREE (no DeepInfra call): the route's own `_seedanceFields` + `_dropClips` against
+  `https://relay.cubric.studio`: upload 201 (URL shape right), GET 200 `video/mp4` faststart, Range 206, DELETE
+  then GET 404, list emptied.
+- Not verified (Phase 4, paid, deferred by Fabio 2026-10-01): DeepInfra's own fetch of a relay URL (the zone's bot
+  protection), Seedance's real "with video" billing, and a reference audio accepted as a data URL.
+- `@` picker (Fabio's yes): `refTagHandle` test in `deepinfra-seedance-refs` (Seedance `@image1`/`@video2`/
+  `@audio3`, Wan and untagged-model `<...>`, only seedance-2-cloud declares `atRefTags`); that file + mention-picker
+  21/21; `npm test` **2591 pass, 0 fail**; eslint clean. Not eye-tested in the running app.

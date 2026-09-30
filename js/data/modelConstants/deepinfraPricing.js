@@ -93,10 +93,15 @@ GEMINI_IMAGE['google/gemini-3-pro-image'] = GEMINI_IMAGE['google/nano-banana-pro
  * the cheaper one — but that band applies only when a `reference_videos` input is supplied.
  * A measured plain text-to-video call billed at the DEARER band, so that is what is quoted
  * by default. Seedance 1.5's constant agrees with the feed; 2.0's deliberately does not.
+ *
+ * USD per million tokens as [plain, with a reference video], by resolution label. 2.0's
+ * `full` text: "$4.7/M with video, $7.7/M without for 480p and 780p; $5.1/M with video,
+ * $8.4/M without for 1080p". Only 480p plain is MEASURED; the rest are the feed's own words
+ * (a flat 7.70 under-quoted every 1080p run by 8% until MPI-910).
  */
 const SEEDANCE_RATE_PER_M = {
-    'ByteDance/Seedance-1.5-Pro': 1.20,
-    'ByteDance/Seedance-2.0': 7.70,
+    'ByteDance/Seedance-1.5-Pro': { default: [1.20] },
+    'ByteDance/Seedance-2.0': { default: [7.70, 4.70], '1080p': [8.40, 5.10] },
 };
 
 /**
@@ -208,12 +213,18 @@ function priceTokenVideo(modelId, pricing, opts) {
     const height = opts.height || px?.height;
     if (!width || !height) return null;
 
-    // The measured band wins over the feed's; see SEEDANCE_RATE_PER_M.
-    const ratePerM = SEEDANCE_RATE_PER_M[modelId]
-        ?? (Number.isFinite(pricing.cents_per_input_token) ? pricing.cents_per_input_token * 1e4 : null);
+    // The measured band wins over the feed's; see SEEDANCE_RATE_PER_M. A reference video
+    // moves Seedance 2.0 to the cheaper band AND bills that video's seconds as input
+    // (BytePlus: tokens over input + output duration). UNMEASURED at MPI-910: the caller
+    // passes a ceiling, so the quote errs high, never low.
+    const refSeconds = opts.referenceVideoSeconds || 0;
+    const bands = SEEDANCE_RATE_PER_M[modelId];
+    const pair = bands && (bands[label] || bands.default);
+    const ratePerM = pair ? ((refSeconds && pair[1]) || pair[0])
+        : (Number.isFinite(pricing.cents_per_input_token) ? pricing.cents_per_input_token * 1e4 : null);
     if (ratePerM === null) return null;
 
-    return videoTokens(width, height, videoFrames(seconds)) * ratePerM / 1e6;
+    return videoTokens(width, height, videoFrames(seconds + refSeconds)) * ratePerM / 1e6;
 }
 
 function priceOutputLength(modelId, pricing, opts) {
@@ -254,9 +265,10 @@ export function priceFromEntry(modelId, entry, opts = {}) {
  *
  * @param {string} modelId  DeepInfra id, e.g. 'google/nano-banana-pro'.
  * @param {{width?:number, height?:number, steps?:number, references?:number, batch?:number,
- *          resolution?:string, duration?:number}} [opts]
+ *          resolution?:string, duration?:number, referenceVideoSeconds?:number}} [opts]
  *   `resolution` is a bucket label — '1k'/'2k'/'4k' for images, '480p'/'720p'/'1080p' for
  *   video. `references` counts reference images. `duration` is in seconds.
+ *   `referenceVideoSeconds` (Seedance only) is the reference videos' length, in seconds.
  * @returns {{usd:number, unit:number, batch:number, display:string, checkedOn:string}|null}
  *   null when the model is unknown or its price is not knowable before the run.
  */

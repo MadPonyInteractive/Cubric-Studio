@@ -52,7 +52,11 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const sharp = require('sharp');
+const { execFile } = require('child_process');
+const { promisify } = require('util');
+const { ffmpegPath, ffprobePath } = require('../services/ffmpegBinary');
 const router = express.Router();
+const execFileP = promisify(execFile);
 const logger = require('./logger');
 const { ask } = require('./forkBridge');
 const { MODELS } = require('../js/data/modelConstants/models.js');
@@ -292,20 +296,159 @@ function _wanMediaPlan(operation, media) {
 }
 
 /** One media entry as `{ url }` (a data URL), or `{ refusal }`. Nothing is sent on a refusal. */
-async function _wanMediaUrl({ mediaType, path: file }) {
+async function _wanMediaUrl({ mediaType, path: file }, name = 'Wan 3.0') {
     if (mediaType === 'image') {
         const bytes = await _readReference(file);
         return { url: `data:${IMAGE_MIME[_extOf(bytes)] || 'image/png'};base64,${bytes.toString('base64')}` };
     }
     const mime = MEDIA_MIME[path.extname(file).toLowerCase()];
     if (!mime || !mime.startsWith(mediaType)) {
-        return { refusal: `Wan 3.0 takes ${mediaType === 'video' ? 'MP4 or MOV video' : 'WAV or MP3 audio'} as a reference. Nothing was sent, so nothing was billed.` };
+        return { refusal: `${name} takes ${mediaType === 'video' ? 'MP4 or MOV video' : 'WAV or MP3 audio'} as a reference. Nothing was sent, so nothing was billed.` };
     }
     const bytes = await fs.readFile(file);
     if (bytes.length > MEDIA_MAX_BYTES[mediaType]) {
-        return { refusal: `A reference ${mediaType} is over Wan 3.0's ${MEDIA_MAX_BYTES[mediaType] / 1024 / 1024} MB limit. Nothing was sent, so nothing was billed.` };
+        return { refusal: `A reference ${mediaType} is over the ${MEDIA_MAX_BYTES[mediaType] / 1024 / 1024} MB limit. Nothing was sent, so nothing was billed.` };
     }
     return { url: `data:${mime};base64,${bytes.toString('base64')}` };
+}
+
+// ── Seedance 2.0 (`cloud.mediaFields`, MPI-910) ─────────────────────────────────────────
+// Images and audio go inline as data URLs. Reference VIDEOS go by public HTTPS URL only
+// (BytePlus takes no base64 video), so each is parked on our relay for the length of the
+// call and DELETED when it ends, success or not: cubric.studio/privacy/ promises exactly
+// that. Contract: mpi-ci/cubric-relay/README.md. The relay's 55-minute life is the backstop.
+const RELAY_BASE = 'https://relay.cubric.studio';
+const RELAY_MAX_BYTES = 100000000;
+const RELAY_TIMEOUT_MS = 120000;
+// Seedance's own limits (BytePlus ModelArk, "Omni reference input", 2026-09-29): video and
+// audio 2-15 s each and 15 s in all, per type; the whole request body at most 64 MB.
+const SEEDANCE_CLIP_S = { min: 2, max: 15, total: 15 };
+const SEEDANCE_BODY_MAX = 64 * 1024 * 1024;
+const NOT_BILLED = 'Nothing was sent, so nothing was billed.';
+
+/** A media file's length in seconds, from its container. Throws when ffprobe cannot read it. */
+async function _mediaSeconds(file) {
+    const { stdout } = await execFileP(ffprobePath,
+        ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file], { windowsHide: true });
+    const s = Number(String(stdout).trim());
+    if (!Number.isFinite(s)) throw new Error('no duration');
+    return s;
+}
+
+/**
+ * The clip rewritten with its `moov` box first (lossless `-c copy`): the relay reads the
+ * length from the first 64 KB and refuses anything else (422 MOOV_NOT_AT_START).
+ * @returns {Promise<string>} a temp file the caller removes.
+ */
+async function _faststart(file) {
+    const out = path.join(os.tmpdir(), `cubric-relay-${crypto.randomUUID()}${path.extname(file).toLowerCase()}`);
+    await execFileP(ffmpegPath, ['-v', 'error', '-y', '-i', file, '-c', 'copy', '-movflags', '+faststart', out],
+        { windowsHide: true });
+    return out;
+}
+
+const RELAY_REFUSAL = {
+    413: 'A reference video is over the 100 MB upload limit.',
+    415: 'Seedance 2.0 takes MP4 or MOV video as a reference.',
+    429: 'Too many reference videos were uploaded in the last minute. Wait a minute and try again.',
+};
+
+/** PUT one clip on the relay -> `{ clip: { url, deleteToken } }` or `{ refusal }`. */
+async function _relayPut(file) {
+    const bytes = await fs.readFile(file);
+    if (bytes.length > RELAY_MAX_BYTES) return { refusal: `${RELAY_REFUSAL[413]} ${NOT_BILLED}` };
+    let r;
+    try {
+        r = await fetch(`${RELAY_BASE}/v1/clip`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            body: bytes,
+            signal: AbortSignal.timeout(RELAY_TIMEOUT_MS),
+        });
+    } catch (_) {
+        return { refusal: `The reference video could not be uploaded to relay.cubric.studio. Check your connection. ${NOT_BILLED}` };
+    }
+    const json = await r.json().catch(() => null);
+    if (r.status === 201 && json?.url && json?.deleteToken) return { clip: { url: json.url, deleteToken: json.deleteToken } };
+    // Status only, as for DeepInfra: no response body reaches a log.
+    logger.warn('system', `deepinfra generate: relay upload answered HTTP ${r.status}`);
+    return { refusal: `${RELAY_REFUSAL[r.status] || 'The reference video upload was refused.'} ${NOT_BILLED}` };
+}
+
+/** DELETE every parked clip, and empty the list. Never throws; the relay expires what this misses. */
+async function _dropClips(clips) {
+    const results = await Promise.allSettled(clips.splice(0).map(c => fetch(c.url, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${c.deleteToken}` },
+        signal: AbortSignal.timeout(10000),
+    })));
+    // 404 = already gone. Never log the URL: it is the clip's only key.
+    const failed = results.filter(r => r.status === 'rejected' || (!r.value.ok && r.value.status !== 404)).length;
+    if (failed) logger.warn('system', `deepinfra generate: ${failed} reference clip delete(s) failed; the relay expires them within the hour`);
+}
+
+/**
+ * Staged media -> Seedance's named fields (MPI-910): `first_frame_image` /
+ * `last_frame_image` on i2v, `reference_images` / `_videos` / `_audios` on ref2v, in strip
+ * order (the same plan as Wan's, so "Video 2" is the second VIDEO). Every check runs BEFORE
+ * any upload; each clip parked on the relay is pushed onto `clips` as it lands, so the
+ * caller can delete them whatever happens next.
+ * @returns {Promise<{fields:object}|{refusal:string}>}
+ */
+async function _seedanceFields(operation, media, clips) {
+    const plan = _wanMediaPlan(operation, media);
+    const types = new Set(plan.map(e => e.type));
+    if (types.has('reference_audio') && !types.has('reference_image') && !types.has('reference_video')) {
+        return { refusal: `Seedance 2.0 takes a reference audio only alongside a reference image or video. ${NOT_BILLED}` };
+    }
+    const total = { video: 0, audio: 0 };
+    for (const { item } of plan) {
+        if (item.mediaType === 'image') continue;
+        const mime = MEDIA_MIME[path.extname(item.path).toLowerCase()];
+        if (!mime || !mime.startsWith(item.mediaType)) {
+            return { refusal: `Seedance 2.0 takes ${item.mediaType === 'video' ? 'MP4 or MOV video' : 'WAV or MP3 audio'} as a reference. ${NOT_BILLED}` };
+        }
+        const s = await _mediaSeconds(item.path);
+        // 0.05 s of slack: a "2 s" clip is often 1.98 s in its container.
+        if (s < SEEDANCE_CLIP_S.min - 0.05 || s > SEEDANCE_CLIP_S.max + 0.05) {
+            return { refusal: `Each reference ${item.mediaType} for Seedance 2.0 must be 2 to 15 seconds long; one is ${s.toFixed(1)} s. ${NOT_BILLED}` };
+        }
+        total[item.mediaType] += s;
+    }
+    for (const kind of ['video', 'audio']) {
+        if (total[kind] > SEEDANCE_CLIP_S.total + 0.05) {
+            return { refusal: `Seedance 2.0 takes at most 15 seconds of reference ${kind} in all; these come to ${total[kind].toFixed(1)} s. ${NOT_BILLED}` };
+        }
+    }
+
+    const fields = {};
+    const place = (type, url) => {
+        if (type.startsWith('reference_')) (fields[`${type}s`] ||= []).push(url);
+        else fields[`${type}_image`] = url;
+    };
+    const videos = [];
+    for (const { type, item } of plan) {
+        if (item.mediaType === 'video') { videos.push({ type, item }); continue; }
+        const { url, refusal } = await _wanMediaUrl(item, 'Seedance 2.0');
+        if (refusal) return { refusal };
+        place(type, url);
+    }
+    if (JSON.stringify(fields).length > SEEDANCE_BODY_MAX) {
+        return { refusal: `The reference images and audio come to more than Seedance 2.0's 64 MB request limit. Use fewer or smaller files. ${NOT_BILLED}` };
+    }
+    // Uploads last, so a refusal above never parks a clip.
+    for (const { type, item } of videos) {
+        const tmp = await _faststart(item.path);
+        try {
+            const { clip, refusal } = await _relayPut(tmp);
+            if (refusal) return { refusal };
+            clips.push(clip);
+            place(type, clip.url);
+        } finally {
+            await fs.remove(tmp).catch(() => {});
+        }
+    }
+    return { fields };
 }
 
 router.post('/deepinfra/generate', async (req, res) => {
@@ -380,11 +523,26 @@ router.post('/deepinfra/generate', async (req, res) => {
     // Native multi-reference (MPI-919): reference N in the endpoint's Nth numbered field,
     // in strip order. Any other model sends image 1 alone, exactly as before.
     const fields = model.cloud.imageFields || (model.cloud.imageField ? [model.cloud.imageField] : []);
-    if (model.cloud.mediaList) {
+    const staged = (Array.isArray(media) ? media : []).filter(m =>
+        m && typeof m.path === 'string' && m.path && ['image', 'video', 'audio'].includes(m.mediaType));
+    // Reference videos parked on the relay for THIS call (MPI-910), deleted when it ends.
+    const clips = [];
+    if (model.cloud.mediaFields) {
+        // Seedance 2.0: frames and references each in their own named field (MPI-910).
+        let out;
+        try {
+            out = await _seedanceFields(operation, staged, clips);
+        } catch (err) {
+            out = { refusal: 'A reference file could not be read. Nothing was sent, so nothing was billed.' };
+        }
+        if (out.refusal) {
+            await _dropClips(clips);
+            return _fail(res, 'PROVIDER_ERROR', out.refusal, 400);
+        }
+        Object.assign(body, out.fields);
+    } else if (model.cloud.mediaList) {
         // Wan 3.0: every input in ONE typed list (a bare string there is a 422, measured
         // 2026-09-25), frames on i2v and references on ref2v (MPI-923).
-        const staged = (Array.isArray(media) ? media : []).filter(m =>
-            m && typeof m.path === 'string' && m.path && ['image', 'video', 'audio'].includes(m.mediaType));
         const list = [];
         try {
             for (const { type, item } of _wanMediaPlan(operation, staged)) {
@@ -421,6 +579,10 @@ router.post('/deepinfra/generate', async (req, res) => {
         // request carries the key.
         logger.warn('system', `deepinfra generate: transport failure for ${model.id}`);
         return _fail(res, 'PROVIDER_ERROR', 'DeepInfra could not be reached, so nothing was billed.');
+    } finally {
+        // The call has ended: the provider fetched every clip it was going to. Success or
+        // not, they go now (the privacy page's promise, MPI-910).
+        await _dropClips(clips);
     }
 
     let json = null;
@@ -618,5 +780,7 @@ module.exports._sweepOutputs = _sweepOutputs;
 module.exports._readReference = _readReference;
 module.exports._wanMediaPlan = _wanMediaPlan;
 module.exports._wanMediaUrl = _wanMediaUrl;
+module.exports._seedanceFields = _seedanceFields;
+module.exports._dropClips = _dropClips;
 module.exports._codeForStatus = _codeForStatus;
 module.exports._transcribe = _transcribe;

@@ -764,8 +764,9 @@ export const commands = {
     },
     // Single-stage twin of `ref2v_ms` for cloud models (MPI-923): `ref2v_ms` is H3's
     // two-stage graph op, and a cloud call has no stage 2. Same 9/3/3 slot surface, but
-    // the tags are the names the CLOUD model reads — Wan 3.0 addresses "Image n" /
-    // "Video n", images and videos counted separately (DeepInfra schema, 2026-09-30).
+    // the tags are the names the CLOUD model reads — Wan 3.0 and Seedance 2.0 (MPI-910)
+    // address "Image n" / "Video n", images and videos counted separately (DeepInfra
+    // schema, 2026-09-30; BytePlus adds "Audio n").
     ref2v: {
         label: 'Reference to Video',
         short: 'ref2v',
@@ -774,7 +775,7 @@ export const commands = {
             body: [
                 'Give it references — a character sheet, a face, a location, a clip whose motion you want, a voice — and it generates a NEW video that keeps them consistent.',
                 'References are not frames: none of them appears in the output as-is. Address one in the prompt by its tag; each chip shows the tag it became.',
-                'A reference video plus the clip you ask for must come to 30 seconds or less, and the reference video\'s seconds are billed too.',
+                'Reference videos have length limits that depend on the model (Wan 3.0: reference plus clip 30 seconds at most; Seedance 2.0: 2 to 15 seconds each, 15 in all), and their seconds add to the price.',
             ],
             examples: [
                 { prompt: 'the woman from <Image 1> walking through the market in <Image 2>, handheld', note: 'Names which reference does what.' },
@@ -1904,6 +1905,19 @@ export function matchRefTagQuery(value, caret, tags) {
     const matches = tags.filter(t => t.tag.toLowerCase().replace(/\s+/g, '').startsWith(needle));
     if (!matches.length) return null;
     return { at: caret - match[2].length - 1, matches };
+}
+
+/**
+ * The text the `@` picker inserts for a reference tag. `<Image 1>` for every tagged model
+ * but one: Seedance 2.0 (`capabilities.atRefTags`, MPI-910) names references by load
+ * order as `@image1` / `@video1` / `@audio1` (the Higgsfield prompt skill; ByteDance writes
+ * `@Image 1`), and reads `<...>` as a SOUND EFFECT.
+ * @param {string} tag  a slot tag, e.g. 'Image 1'
+ * @param {object|null} [model]
+ * @returns {string}
+ */
+export function refTagHandle(tag, model = null) {
+    return model?.capabilities?.atRefTags ? `@${tag.replace(/\s+/g, '').toLowerCase()}` : `<${tag}>`;
 }
 
 /**

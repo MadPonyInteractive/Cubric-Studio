@@ -34,10 +34,23 @@ host reference videos ourselves.**
   word; 1-day backstop left unnamed). **Publish it WITH the Phase 3 app release, not before** (it
   describes a feature users do not have yet). Its promises bind Phase 3: images + audio go inline
   to DeepInfra, the route DELETEs every clip when the call ends (success or not), clips <= 30 s.
-- **Next action: Phase 3** (app wiring, below), against `https://relay.cubric.studio`. The app must
+- (Done 2026-10-01, next bullet.) Phase 3 (app wiring, below), against `https://relay.cubric.studio`. The app must
   remux each reference video `-c copy -movflags +faststart` before upload (the relay refuses a clip
   whose `moov` is after the media, 422 `MOOV_NOT_AT_START`) and enforce Seedance's own 2-15 s a
   clip / 15 s in all. Relay contract: `C:/AI/Mpi/mpi-ci/cubric-relay/README.md`.
+- 2026-10-01 (Agent 79, session c149d6ff): **Phase 3 DONE, uncommitted.** `seedance-2-cloud` has
+  `cloud.mediaFields` + ops `t2v/i2v/ref2v` + `audio`/`endFrame`; `routes/deepinfra.js`
+  `_seedanceFields` (checks, inline images/audio, faststart + relay PUT) and `_dropClips` in the
+  upstream fetch's `finally`; price tag "with video" band + 15 s ceiling; 1080p band 8.40 (was a
+  flat 7.70). Tests + free live relay round trip green (`validation.md`). **Fabio 2026-10-01: no
+  paid Seedance/Veo/Wan runs** - Phase 4 deferred unless he asks. **Next action:** commit (handoff
+  or end-session), then Phase 2 publish (privacy page, Website repo, his yes) WITH the release that
+  ships this. MPI-918 after.
+- 2026-10-01 later (Agent 79): reference notation settled from the Higgsfield skills, no render
+  needed: load-order `@image1`/`@video1`/`@audio1` (prompt-builder-2-5), anchor line per tag, tag
+  only what is in the shot. Agent guide rewritten to it. **On Fabio's yes, the prompt box `@`
+  picker now writes `@image1` for Seedance** (`capabilities.atRefTags`, `refTagHandle` in
+  commandRegistry.js), `<Image 1>` for everyone else. Not eye-tested in the app yet.
 - Gotchas found: workerd's R2 `range` object carries `suffix: undefined`, so `'suffix' in range`
   lies (fixed, tested); Local Explorer is the only local cron route honouring a scheduled time and
   needs `--test-scheduled`; a force-killed dev server leaves a stale registry entry that makes the
@@ -46,6 +59,7 @@ host reference videos ourselves.**
 ## Completed
 
 - Phase 1 code + local tests (2026-09-30, Agent 78). Evidence: `validation.md`.
+- Phase 3 app wiring (2026-10-01, Agent 79). Evidence: `validation.md`.
 
 ## Plan Drift
 
@@ -58,6 +72,11 @@ host reference videos ourselves.**
   fetchers.
 - Open for the Phase 4 live run: if the cubric.studio zone's bot protection challenges DeepInfra's
   fetch of `relay.cubric.studio`, Seedance fails; README step 7 says stop and tell Fabio.
+- 2026-10-01 (Agent 79): Seedance takes frames as `first_frame_image`/`last_frame_image` too, so
+  i2v moved off `imageField` onto `mediaFields` with ref2v (one path). The prompt box's reference
+  picker writes `<Image 1>`, but `<...>` is Seedance's SOUND-EFFECT mark and ByteDance writes
+  `@Image 1`: the agent guide says so; the picker is unchanged (MpiPromptBox.js, not this card).
+  Enhance on a ref2v op falls back to the recipe's t2v mode (no ref2v mode), as on Wan 3.0.
 
 ## Design (the relay)
 

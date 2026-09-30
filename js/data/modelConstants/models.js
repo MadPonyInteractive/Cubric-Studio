@@ -2163,13 +2163,19 @@ const ALL_MODELS = [
         name: 'Seedance 2.0',
         dropdownMeta: 'CLOUD',
         provider: 'deepinfra',
-        cloud: { endpointId: 'ByteDance/Seedance-2.0', body: {}, imageField: 'first_frame_image' },
+        // Every input in its own named field (`cloud.mediaFields`, MPI-910): first/last frame
+        // on i2v, `reference_images` / `_videos` / `_audios` on ref2v. Reference videos go
+        // by URL only, through our relay (routes/deepinfra.js).
+        cloud: { endpointId: 'ByteDance/Seedance-2.0', body: {}, mediaFields: true },
         video: 'seedance-2-cloud.mp4',
         mediaType: 'video',
         type: 'seedance',
-        supportedOps: ['t2v', 'i2v'],
+        supportedOps: ['t2v', 'i2v', 'ref2v'],
         enhanceRecipe: 'seedance-2.0',
-        capabilities: { negativePrompt: false, batch: false },
+        // audio keeps ref2v's voice wells; endFrame shows i2v's optional last frame. As on
+        // Wan 3.0, negativePrompt: false keeps the audio-negative stop off. atRefTags: the
+        // `@` picker writes `@image1`, never `<Image 1>` (Seedance's sound-effect mark).
+        capabilities: { negativePrompt: false, batch: false, audio: true, endFrame: true, atRefTags: true },
         // Its own feed publishes the CHEAP "with reference video" token band, which a
         // plain call does not get; deepinfraPricing.js overrides it with the measured
         // dear band. That override is why this description can quote $2.07 honestly.
