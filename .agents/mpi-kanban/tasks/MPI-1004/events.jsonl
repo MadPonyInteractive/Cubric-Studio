@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1004", "at": "2026-09-30T20:35:59+01:00", "actor": "claude:737e7f06", "column": "todo", "title": "Cosmo picks a library voice itself when a voice line has no sample"}

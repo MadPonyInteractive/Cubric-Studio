@@ -26,6 +26,12 @@ day MPI-984 (another live session) claimed them. Check `active_file_claims` befo
 
 ## Current State
 
+2026-09-30 (Agent 75): phases 1-3 are done. MPI-892 (phase 3) closed on Fabio's checks 1-5:
+Cosmo opens Draw It In, Scribble and Object Stamp filled in, asks before a Song, and routes round
+a Flow that is not installed. MPI-950 is the last member and nothing blocks it now (MPI-941 and
+MPI-984 are done; no live claim on `services/agentLoop.mjs` or `routes/agent.js`). This umbrella
+closes when 950 does.
+
 Phase 1 (MPI-890) closed 2026-09-22 on Fabio's live read 3: an agent edit of the open card's
 entry lands as that card's next entry and keeps its name. MPI-888 closed with it. Next is
 phase 2 (MPI-891). Carried from the closing handoff, for phases 2-3:

@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-950", "at": "2026-09-27T09:53:36+01:00", "actor": "claude", "column": "todo", "title": "Agents see stacks as stacks"}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-950", "type": "task.updated", "at": "2026-09-27T08:54:19Z", "actor": "claude", "summary": "Description names MPI-949."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-950", "type": "task.updated", "at": "2026-09-30T19:28:35Z", "actor": "claude:737e7f06", "summary": "Unblocked: MPI-941 and MPI-984 are done and no live claim holds agentLoop.mjs or routes/agent.js; maturity blocked -> planned."}

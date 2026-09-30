@@ -13,6 +13,7 @@ Character Sheet split waits on MPI-603.
 | MPI-999 | Recordings: strip the silence from the user's audio recordings | `tasks/MPI-999/brief.md` |
 | MPI-1002 | Every Flow enhancement uses the enhancer picked in Remote, on the agent's runs too | `tasks/MPI-1002/brief.md` |
 | MPI-1003 | Add-flow and add-model playbooks: the steps that make a new Flow or model known to the in-app agent | `tasks/MPI-1003/brief.md` |
+| MPI-1004 | Cosmo picks a library voice itself when a voice line has no sample | `tasks/MPI-1004/task.json` |
 
 (MPI-1001 is a peer's RunPod card, not a member.)
 
