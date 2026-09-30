@@ -84,7 +84,8 @@ not (a peer pass had rewritten them all).
 the user writes again. Fix: one sentence in the Duration rule. The real fix is a wake on drain,
 designed and NOT built (`MPI-817/plan.md` § Phase C): the loop broadcasts a drained
 conversation, the RENDERER posts the wake only if that project is open, because a dispatch
-lands in whatever project is OPEN and only the renderer knows which that is.
+lands in whatever project is OPEN and only the renderer knows which that is. Asked 2026-09-30
+"can you access the internet?", it said yes: it has no web tool, no limit said so (MPI-996).
 
 ### What never landed leaves no trace (2026-09-20)
 

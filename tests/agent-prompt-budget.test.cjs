@@ -17,7 +17,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
-const SYSTEM_BUDGET = 10_150;  // bytes, measured 9,490 with the app:* index (MPI-903); 9,880 with the Declining rule (MPI-908); 10,098 with the Content rule (MPI-916: without it the recommended model declined adult requests)
+const SYSTEM_BUDGET = 10_250;  // bytes, measured 9,490 with the app:* index (MPI-903); 9,880 with the Declining rule (MPI-908); 10,098 with the Content rule (MPI-916: without it the recommended model declined adult requests); 10,202 with the no-internet limit (MPI-996: without it the agent claimed it could search the web)
 const TOOLS_BUDGET = 17_300;   // bytes of JSON, measured 16,947 (MPI-903); 17,249 with list_cards saying what a video ref is as a picture (MPI-980)
 const DOC_LINES = 200;
 

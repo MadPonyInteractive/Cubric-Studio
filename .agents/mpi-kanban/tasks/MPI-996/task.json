@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-996",
+  "title": "Cosmo claimed it can browse the internet: add the no-internet honest limit",
+  "description": "The agent told a user it can search and browse the web. It has no web tool; the honest-limits list never said so. Add the line, no web tool built.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-30T09:30:46+01:00",
+  "updated_at": "2026-09-30T09:31:39+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-996", "at": "2026-09-30T09:30:46+01:00", "actor": "claude", "column": "todo", "title": "Cosmo claimed it can browse the internet: add the no-internet honest limit"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-996", "at": "2026-09-30T09:31:39+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio asked for the honest no-internet answer, 2026-09-30"}
