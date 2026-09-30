@@ -17,6 +17,7 @@
   "tests/agent-pinned-settings.test.cjs",
   "routes/connector.js",
   "services/agentTools.mjs",
+  "tests/connector-routines.test.cjs",
   "services/agentLoop.mjs",
   "tests/agent-prompt-budget.test.cjs",
   "docs/agent/routines.md",

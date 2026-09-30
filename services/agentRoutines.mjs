@@ -102,6 +102,8 @@ async function _listIn(dir) {
             name: entry.slice(0, -5), // strip .json
             summary: typeof routine.summary === 'string' ? routine.summary : '',
             steps: Array.isArray(routine.steps) ? routine.steps.length : 0,
+            // What a run must be given (D9), so the agent can ask before it runs.
+            inputs: Array.isArray(routine.inputs) ? routine.inputs : [],
         });
     }
     return { routines };
@@ -162,7 +164,7 @@ async function _deleteIn(dir, name) {
 
 // ── project scope ─────────────────────────────────────────────────────────────
 
-/** `{ routines: [{ name, summary, steps }] }`, empty before the first routine. */
+/** `{ routines: [{ name, summary, steps, inputs }] }`, empty before the first routine. */
 export async function listRoutines(folderPath) {
     return _listIn(await routinesDir(folderPath));
 }

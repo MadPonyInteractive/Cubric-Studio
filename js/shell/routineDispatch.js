@@ -12,15 +12,22 @@
  * placeholder, later steps `groupHistory` on the result card; a Flow gets the same through
  * `runLanding`. The result stack goes in through `addGroup` when the project is open, and
  * through `/project-groups` when it is closed, which joins each result to it as it lands.
+ *
+ * The relay (R2): `ROUTINE_HANDLERS` answers the `routine.quote` / `routine.run` jobs the
+ * server pushes, in the connector envelope; agentDispatch.js reports them like its own.
  */
 
+import { quoteRoutine, runRoutine } from '../services/routineRunner.js';
+import { normalizeRoutine, validateRoutine, routineSummary } from '../data/routineModel.js';
 import { enqueueGeneration } from '../services/generationService.js';
 import { submitFlowGeneration } from '../services/flowService.js';
 import { addGroup, serializeGroup } from '../services/projectService.js';
+import { reconcileAndHydrate } from '../managers/projectReconciler.js';
 import { estimateRunCost } from '../services/cloudExecutor.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { createItemGroup } from '../data/projectModel.js';
-import { STACK_TYPE, resultStackFields } from '../data/stackModel.js';
+import { STACK_TYPE, resultStackFields, expandStacks } from '../data/stackModel.js';
+import { formatPrice } from '../data/modelConstants/deepinfraPricing.js';
 import { MODELS, getModelById, isOperationInstalled } from '../data/modelRegistry.js';
 import { FLOWS, getFlowById, flowAvailability } from '../data/flowsRegistry.js';
 import { getCommandMediaInputs, filterMediaInputsForModel } from '../data/commandRegistry.js';
@@ -88,7 +95,11 @@ export const routineDeps = {
 
     async readProject(folderPath) {
         const target = await targetProject({ folderPath });
-        return target.error ? null : target.project;
+        if (target.error || !target.project) return null;
+        // A closed project comes off disk with each history as item ids, and the runner
+        // reads files: hydrate it as opening does (an imported card has no sidecar, and
+        // only the reconciler rebuilds it). Its orphan-sidecar cleanup is the same an open does.
+        return target.open ? target.project : (await reconcileAndHydrate(target.project)).project;
     },
 
     async submit(step, input, landing, project) {
@@ -133,4 +144,59 @@ export const routineDeps = {
     },
 
     newId: () => crypto.randomUUID(),
+};
+
+/** A runner refusal in the connector envelope; `missing` and the like ride along. */
+const _refusal = ({ ok: _ok, code, message, ...extra }) => ({ ok: false, error: { code, message, ...extra } });
+
+/**
+ * The project a routine job names (open or closed, as a submit's `folderPath`), and the
+ * card ids to run on: a stack stands for its cards (D9: "put her in these scenes" names
+ * the scenes' stack). An unknown id is kept, so the runner refuses it by name.
+ */
+async function _runTarget(input) {
+    const target = await targetProject(input);
+    if (target.error) return _refusal(target.error);
+    if (!target.project) {
+        return _refusal({ code: 'NO_PROJECT', message: 'No project is open in Vision and the request named none. Send folderPath, or create or open a project, then send this request again.' });
+    }
+    const groups = target.project.itemGroups || [];
+    const picked = (Array.isArray(input.cards) ? input.cards : []).map(id => groups.find(g => g.id === id) || { id });
+    return { ok: true, project: target.project, cardIds: expandStacks(picked, groups).map(g => g.id) };
+}
+
+/**
+ * Relay capabilities: `input` = `{ routine, cards, inputs?, folderPath? }`, the routine
+ * as saved (the server reads the file). Each resolves to the job's one report.
+ */
+export const ROUTINE_HANDLERS = {
+    /**
+     * The save-time check, HERE because a package Flow exists only in this window's
+     * `FLOWS`: the routine as it should be stored, or the refusal the agent fixes it by.
+     */
+    async 'routine.validate'(input = {}) {
+        const v = validateRoutine(normalizeRoutine(input.routine), routineDeps.lookups);
+        return v.ok ? { ok: true, output: { routine: v.routine, summary: routineSummary(v.routine) } } : _refusal(v);
+    },
+
+    /** What the run needs and costs, dispatching nothing. */
+    async 'routine.quote'(input = {}) {
+        const t = await _runTarget(input);
+        if (!t.ok) return t;
+        const q = quoteRoutine(input.routine, t.cardIds.length, routineDeps, input.inputs);
+        if (!q.ok) return _refusal(q);
+        return { ok: true, output: {
+            missing: q.missing, billed: q.billed, count: t.cardIds.length, usd: q.usd,
+            display: q.billed && q.usd !== null ? formatPrice(q.usd) : null,
+        } };
+    },
+
+    /** Runs it, answering once every card's chain has ended: the run's summary. */
+    async 'routine.run'(input = {}) {
+        const t = await _runTarget(input);
+        if (!t.ok) return t;
+        const run = await runRoutine(input.routine, t.cardIds, { projectFolder: t.project.folderPath, inputs: input.inputs }, routineDeps);
+        if (!run.ok) return _refusal(run);
+        return { ok: true, output: await run.finished };
+    },
 };

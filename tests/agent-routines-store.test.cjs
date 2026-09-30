@@ -74,7 +74,8 @@ describe('store — project scope', () => {
         const r = await rtn();
         const p = makeProject();
         await r.writeRoutine(p, makeRoutine('alpha'));
-        await r.writeRoutine(p, makeRoutine('beta', { summary: 'Beta routine', steps: [{ op: 'a' }, { op: 'b' }, { op: 'c' }] }));
+        const look = [{ id: 'look', kind: 'image', label: 'the style picture' }];
+        await r.writeRoutine(p, makeRoutine('beta', { summary: 'Beta routine', inputs: look, steps: [{ op: 'a' }, { op: 'b' }, { op: 'c' }] }));
 
         const { routines } = await r.listRoutines(p);
         assert.equal(routines.length, 2);
@@ -83,6 +84,8 @@ describe('store — project scope', () => {
         const beta = routines.find((r) => r.name === 'beta');
         assert.equal(beta.summary, 'Beta routine');
         assert.equal(beta.steps, 3);
+        assert.deepEqual(beta.inputs, look, 'the run inputs it needs (D9)');
+        assert.deepEqual(routines.find((r) => r.name === 'alpha').inputs, []);
     });
 
     test('readRoutine returns the parsed object', async () => {

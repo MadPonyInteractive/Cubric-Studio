@@ -244,3 +244,43 @@ test('D9: a missing or wrong run input refuses before anything is queued, and th
     assert.strictEqual(quoteRoutine(PLACE, 2, app.deps).code, 'INPUT_MISSING', 'never ask to pay for a run that cannot start');
     assert.strictEqual(quoteRoutine(PLACE, 2, app.deps, { character: 'B', mood: 'warm' }).ok, true);
 });
+
+// D10: a downscale of a picture already small enough answers ALREADY_SMALLER before the queue.
+const SMALL = { ok: false, code: 'ALREADY_SMALLER', message: 'already small' };
+const DOWN = { operation: 'downscale', fields: { megapixels: 0.5 } };
+
+test('D10: step 1 with nothing to do on a card is skipped; the next step makes its new card', async () => {
+    const app = fakeApp({ fail: (c, phase) => (phase === 'submit' && c.step === 'downscale' && c.input === 'C:/p/b.png' ? SMALL : null) });
+    const run = await runRoutine(routine([DOWN, THREE[1], THREE[2]]), ['A', 'B'], { projectFolder: 'C:/p' }, app.deps);
+    const [a, b] = (await run.finished).cards;
+
+    const bCalls = app.calls.filter(c => c.input === 'C:/p/b.png' || c.into === b.groupId);
+    assert.deepStrictEqual(bCalls.map(c => [c.step, c.into]), [['downscale', null], ['klein-4b/i2i', null], ['removeBackground', b.groupId]],
+        'the skipped step is not retried; the edit lands as a NEW card (D2), the cut-out versions it');
+    assert.strictEqual(bCalls[1].landing.stackId, run.stackId, 'the new card still joins the result stack');
+    assert.deepStrictEqual(app.log.map(l => [l.stack.expected, l.afterCalls]), [[2, 3]], 'the stack counts B, added after its first real step queued');
+    assert.deepStrictEqual([b.steps, b.skipped, b.failedAt], [2, [1], undefined]);
+    assert.strictEqual(app.groupOf(b.groupId).history.length, 2);
+    assert.deepStrictEqual([a.steps, a.skipped], [3, undefined]);
+    assert.strictEqual(app.groupOf('B').history.length, 1, 'the input card is never versioned');
+});
+
+test('D10: a later step with nothing to do makes no version; the next runs on the same picture', async () => {
+    const app = fakeApp({ fail: (c, phase) => (phase === 'submit' && c.step === 'downscale' ? SMALL : null) });
+    const run = await runRoutine(routine([THREE[0], DOWN, THREE[2]]), ['A'], { projectFolder: 'C:/p' }, app.deps);
+    const summary = await run.finished;
+    const [a] = summary.cards;
+
+    assert.deepStrictEqual(app.calls.map(c => [c.step, c.input]), [['imageUpscale', 'C:/p/a.png'], ['downscale', 'C:/p/out0.png'], ['removeBackground', 'C:/p/out0.png']]);
+    assert.deepStrictEqual([a.steps, a.skipped, a.failedAt], [2, [2], undefined]);
+    assert.strictEqual(app.groupOf(a.groupId).history.length, 2);
+    assert.strictEqual(summary.ok, true, 'a skip is not a failure');
+});
+
+test('D10: a routine with nothing to do on any card refuses, queueing nothing', async () => {
+    const app = fakeApp({ fail: (c, phase) => (phase === 'submit' ? SMALL : null) });
+    const run = await runRoutine(routine([DOWN]), ['A', 'B'], { projectFolder: 'C:/p' }, app.deps);
+    assert.deepStrictEqual([run.ok, run.code], [false, 'ALREADY_SMALLER']);
+    assert.match(run.message, /^Nothing was run: no step had anything to do\./);
+    assert.strictEqual(app.log.length, 0, 'no stack');
+});

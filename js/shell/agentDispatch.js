@@ -70,6 +70,7 @@ import { downloadService } from '../services/downloadService.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
 import { state } from '../state.js';
 import { runGifJob, GIF_HANDLERS } from './gifJobs.js';
+import { ROUTINE_HANDLERS } from './routineDispatch.js';
 import { AGENT_TOOL_OPS, TOOLS_NEEDING_SIZE, agentToolOp, toolOperation, toolRun } from './agentToolOps.js';
 import { clientLogger } from '../services/clientLogger.js';
 
@@ -1574,6 +1575,10 @@ const _HANDLERS = {
     // connector envelope, so reporting is all that happens here.
     ...Object.fromEntries(Object.keys(GIF_HANDLERS).map(cap =>
         [cap, (jobId, input) => runGifJob(cap, input).then(payload => _report(jobId, payload))])),
+    // MPI-970: routines, the same way. Looked up at CALL time: routineDispatch.js imports
+    // this file's build halves, so the two modules are a cycle.
+    ...Object.fromEntries(['routine.validate', 'routine.quote', 'routine.run'].map(cap =>
+        [cap, (jobId, input) => ROUTINE_HANDLERS[cap](input).then(payload => _report(jobId, payload))])),
 };
 
 /**

@@ -2,6 +2,25 @@
 
 ## Current State
 
+2026-09-30 (bd66b68e, Agent 69) - **D10 built, R2 DONE, W1 routes DONE (loopbacks moved to W2).** Uncommitted,
+`npm test` 2375 / 0. Landed:
+- D10 in `routineRunner.js`: `_nothingToDo(sub)` (`ALREADY_SMALLER` only, ponytail) from `submit` = skip. Step 1 skipped
+  -> the next step is submitted with gallery landing (makes the new card, joins the stack; `expected` counts it); a
+  later skip -> no version, next step on the same file. Row gains `skipped: [stepNumbers]` (absent when none); `steps`
+  = versions that landed; summary `ok` = some card made a result without failing. Nothing to do on every card ->
+  refusal with the skip's code, "no step had anything to do".
+- R2 `routineDispatch.js` `ROUTINE_HANDLERS`: `routine.validate` (save-time check HERE: package Flows exist only in the
+  renderer's `FLOWS`), `routine.quote` -> `{ missing, billed, count, usd, display }`, `routine.run` -> answers once
+  `finished` settles with the summary. Input `{ routine, cards, inputs?, folderPath? }`; a stack id in `cards` expands
+  to its members (`expandStacks`). Registered in agentDispatch `_HANDLERS`, looked up at call time (import cycle).
+  **Fixed:** `readProject` hydrates a CLOSED project (`reconcileAndHydrate`) - raw `/get-project` history is item ids.
+- W1 `routes/connector.js`: `GET /connector/routines[/:name]`, `POST /connector/routines` (relay validate, store AS
+  CHECKED, answers `summary`; `delete: true` rides the POST like memory), `POST /connector/routines/:name/quote|run`
+  (read the stored routine, relay). `scope=global`. Store list now has `inputs`. Test `tests/connector-routines.test.cjs`.
+**Next: W2** - loopbacks in `services/agentTools.mjs` (none written yet: shape them to W2's calls), the `routine` tool
+in `agentLoop.mjs` (quote -> `_askSpend` once -> run held like a slow generate -> `[Routine finished]` note naming
+skipped/failed steps per card), then W3 guide + D12 capability line.
+
 2026-09-30 (d46a8d69, Agent 68) - **D9 built, R1 DONE (wiring + live run).** Uncommitted. Landed:
 - T1 `routineModel.js`: `inputs: [{ id, kind: image|video|audio|text, label? }]`; a step's `media` may only be
   `[{ role, input }]` naming a declared input in a NON-required slot of its kind (a `url`/`path` = `STEP_HAS_MEDIA`);
@@ -244,14 +263,14 @@ Run this batch with `mpi-execute-parallel` (disjoint files, per-task verify, no 
   update can make a saved setting illegal). Phase 1's findings decide the exact opts. **Verify:** unit test with a
   stubbed `enqueueGeneration` (order, versioning opts, stack membership, a mid-chain failure, a cancel) +
   one live 2-card x 3-step run in an own isolated app.
-- [ ] R2 Relay capabilities in the renderer: `routine.quote` and `routine.run` beside `generation.submit`
+- [x] R2 (2026-09-30, + D10, live over the connector: § Current State) Relay capabilities in the renderer: `routine.quote` and `routine.run` beside `generation.submit`
   (`js/shell/agentDispatch.js` or a new `js/shell/routineDispatch.js` if agentDispatch is claimed); the run's
   completion posts back like a slow generate (`POST /connector/jobs/:id/result`). **Verify:** a connector call
   from a scratch script to the own isolated app runs a saved routine and gets the result back.
 
 ## Phase 3: Agent wiring (server)
 
-- [ ] W1 Routes in `routes/connector.js`: `GET /connector/routines[?scope=global]`, `GET /connector/routines/:name`,
+- [ ] W1 (routes DONE 2026-09-30, bd66b68e; loopbacks moved to W2) Routes in `routes/connector.js`: `GET /connector/routines[?scope=global]`, `GET /connector/routines/:name`,
   `POST /connector/routines` (validate with T1, store with T2), `DELETE /connector/routines/:name`,
   `POST /connector/routines/:name/run` (relays `routine.quote`, then `routine.run`). Loopbacks in
   `services/agentTools.mjs`. **Verify:** route tests beside the existing connector tests.
@@ -298,6 +317,11 @@ Run this batch with `mpi-execute-parallel` (disjoint files, per-task verify, no 
 - 2026-09-30 (d46a8d69): the denoise drift noted above was a live agent bug, not only a routine one - fixed in
   `resolveSettingsOwner`. `lookups.flows` is the live `FLOWS` array; a tool step has no up-front install check (a
   missing upscaler/BiRefNet weight fails that card's step, ponytail in `routineDispatch.js`).
+- 2026-09-30 (bd66b68e): W1 built with R2 (R2's verify needed a route). Route shape changed from the plan: a separate
+  `/quote` route (the loop asks the price before it runs) instead of `run` relaying both; no DELETE route - a delete
+  rides `POST /connector/routines { delete: true }` as a forgotten note does; the save check is RELAYED to the renderer
+  (`routine.validate`) because the server's `FLOWS` import has no package Flows. W1's loopbacks deferred to W2, which
+  owns their call shape. A closed project needed hydrating in `readProject` (R1 live ran only in an OPEN project).
 
 ## Verification
 

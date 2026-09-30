@@ -8,8 +8,8 @@
  * picture in a reference slot, or the same words in a `{id}`, for every card and every
  * step of the run. A step that fails or is cancelled stops
  * THAT card's chain; its card keeps the versions already made and the other cards carry
- * on (D3). Each card's chain is sequential; cards run side by side through the normal
- * lanes (D4).
+ * on (D3); a step with nothing to do on a card is skipped for it (D10). Each card's chain
+ * is sequential; cards run side by side through the normal lanes (D4).
  *
  * The run shape is the Phase 1 spike's (`tasks/MPI-970/plan.md` § Phase 1 findings):
  * every card's step 1 is enqueued first and the result stack added after, because the
@@ -43,6 +43,11 @@ import { validateRoutine, ROUTINE_PLACEHOLDER } from '../data/routineModel.js';
 import { isImageFile, isVideoFile, isAudioFile } from '../utils/file.js';
 
 const _fail = (code, message, extra = {}) => ({ ok: false, code, message, ...extra });
+
+// D10: a refusal meaning "nothing to do on THIS card" (a downscale of a picture already
+// small enough) is not a D3 failure: the step is skipped and the chain goes on with the
+// same picture. ponytail: one such code today; add the next when a tool gains one.
+const _nothingToDo = (sub) => sub.code === 'ALREADY_SMALLER';
 
 const _A_KIND = { image: 'a picture', video: 'a video', audio: 'a sound', text: 'words' };
 
@@ -135,7 +140,9 @@ export function quoteRoutine(routine, cardCount, deps, inputs = {}) {
 /**
  * Start a routine on cards of one project. Resolves once every card's step 1 is queued:
  * `{ ok: true, runId, stackId, finished }`, where `finished` resolves with the run's one
- * summary `{ ok, runId, stackId, cards: [{ inputGroupId, groupId, steps, failedAt?, error? }] }`.
+ * summary `{ ok, runId, stackId, cards: [{ inputGroupId, groupId, steps, skipped?, failedAt?, error? }] }`:
+ * `steps` = the versions that landed, `skipped` = the step numbers that had nothing to do
+ * on that card (D10).
  * Nothing is queued when the routine is illegal, needs something missing, or names a card
  * it cannot run on: those come back as `{ ok: false, code, message }`.
  *
@@ -183,29 +190,42 @@ export async function runRoutine(routine, cardIds, { projectFolder, inputs: give
     // a job live for the stack settle until the last step of the last card.
     const shared = { batchId: runId, batchLabel: routine.name, batchTotal: ids.length, ...(stackId ? { stackId } : {}) };
 
-    // Step 1 of every card FIRST, the stack after.
+    // The first step of every card FIRST, the stack after. The first step is step 1 unless
+    // step 1 has nothing to do on that card (D10): then the next one makes the new card (D2).
     const firsts = [];
     for (const { id, input } of inputs) {
-        firsts.push({ id, sub: await deps.submit(steps[0], input, { ...shared }, project) });
+        const skipped = [];
+        let at = 0;
+        let sub = await deps.submit(steps[0], input, { ...shared }, project);
+        while (_nothingToDo(sub)) {
+            skipped.push(at + 1);
+            if (++at === steps.length) break;
+            sub = await deps.submit(steps[at], input, { ...shared }, project);
+        }
+        firsts.push({ id, at, sub, skipped });
     }
     const queued = firsts.filter(f => f.sub.ok).length;
     if (!queued) {
-        const why = firsts[0].sub;
-        return _fail(why.code, `Nothing was run: step 1 was refused. ${why.message}`);
+        const why = firsts.find(f => f.at < steps.length);
+        return why
+            ? _fail(why.sub.code, `Nothing was run: step ${why.at + 1} was refused. ${why.sub.message}`)
+            : _fail(firsts[0].sub.code, `Nothing was run: no step had anything to do. ${firsts[0].sub.message}`);
     }
     if (stackId) {
         await deps.addStack({ id: stackId, name: routine.name, kind: v.outputKind, expected: queued }, project);
     }
 
-    const chain = async ({ id, sub }) => {
+    const chain = async ({ id, at, sub, skipped }) => {
         const row = { inputGroupId: id, groupId: null, steps: 0 };
-        const stop = (n, err) => ({ ...row, failedAt: n, error: { code: err.code, message: err.message } });
-        if (!sub.ok) return stop(1, sub);
+        const out = (extra) => ({ ...row, ...(skipped.length ? { skipped } : {}), ...extra });
+        const stop = (n, err) => out({ failedAt: n, error: { code: err.code, message: err.message } });
+        if (at === steps.length) return out();
+        if (!sub.ok) return stop(at + 1, sub);
         let res = await sub.done;
-        if (!res.ok) return stop(1, res);
+        if (!res.ok) return stop(at + 1, res);
         row.groupId = res.group.id;
         row.steps = 1;
-        for (let i = 1; i < steps.length; i++) {
+        for (let i = at + 1; i < steps.length; i++) {
             // As it stands NOW: a closed project's earlier snapshot has no result card, and
             // an open one may have moved on while the last step ran.
             project = await deps.readProject(projectFolder);
@@ -213,16 +233,17 @@ export async function runRoutine(routine, cardIds, { projectFolder, inputs: give
             if (!card) return stop(i + 1, { code: 'CARD_GONE', message: 'The result card was deleted while the routine ran.' });
             const input = { url: res.item.filePath, mediaType: res.item.type || card.type };
             const next = await deps.submit(steps[i], input, { ...shared, existingGroup: card }, project);
+            if (_nothingToDo(next)) { skipped.push(i + 1); continue; }
             if (!next.ok) return stop(i + 1, next);
             res = await next.done;
             if (!res.ok) return stop(i + 1, res);
-            row.steps = i + 1;
+            row.steps++;
         }
-        return row;
+        return out();
     };
 
     const finished = Promise.all(firsts.map(chain)).then(cards => ({
-        ok: cards.some(c => c.steps === steps.length),
+        ok: cards.some(c => c.groupId && !c.failedAt),
         runId,
         stackId,
         cards,

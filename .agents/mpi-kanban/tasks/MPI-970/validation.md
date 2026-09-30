@@ -29,3 +29,17 @@ Verify mode: user-ux for Phase 5 F2 only; Phases 1-4 auto (plan.md § Verificati
   `/get-project` on disk == live, input cards untouched, 71 s; the edit's sidecar holds the filled prompt ("warm
   golden-hour") and the character as `inputImage2`. A first run stopped one card at step 1 with `ALREADY_SMALLER`
   (D3 as designed), stack of 1.
+- 2026-09-30 D10 + R2 + W1 routes (bd66b68e): `node --test tests/routine-runner.test.cjs` 14/14 (3 new D10: step 1
+  skipped -> next step makes the new card and it still joins the stack; a later skip makes no version; nothing to do
+  anywhere refuses, no stack); `tests/connector-routines.test.cjs` 5/5 (save checked by the app and stored AS
+  CHECKED, refused save stores nothing, quote/run carry the STORED routine + cards + inputs + folderPath, global scope,
+  400 without folderPath); store list carries `inputs`. `npm test` (Git Bash) 2375 pass / 0 fail / 2 skipped; ESLint
+  clean on the 7 files. LIVE, own isolated app (port 62823, never :3000) on the :48188 engine under gpu_lease, queue
+  empty, project CLOSED, driven by a scratch script over the connector only: save (+ an UNKNOWN_FLOW save refused by
+  the app's check), list, quote (`count: 3` = a stack of 2 expanded + 1 card), run `shrink-and-square` (downscale
+  0.5 MP -> crop 1:1) = one new stack of 3, 2 versions each, 1.3 s. First try exposed a real bug (fixed): a closed
+  project's `/get-project` history is item ids, so the runner answered CARD_NOT_FOUND - `routineDeps.readProject` now
+  hydrates a closed project via `reconcileAndHydrate` (an imported card has no sidecar). D10 live: the same routine on
+  that result stack (squares now under 0.5 MP) -> every card `skipped: [1]`, crop made each new card, stack of 3. Both
+  closed-project stacks read `expected` until the project opened, then settled on open (by design, `project:changed`);
+  screenshot `shot-r2-gallery.png` (scratchpad bd66b68e).

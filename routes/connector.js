@@ -1073,6 +1073,77 @@ router.post('/connector/memory', (req, res) => {
   return _memoryReply(res, (m) => (scope === 'global' ? m.writeGlobalNote(note) : m.writeNote(folderPath, note)));
 });
 
+let _routinesMod = null;
+async function _routines() {
+    if (!_routinesMod) _routinesMod = await import('../services/agentRoutines.mjs');
+    return _routinesMod;
+}
+
+/**
+ * One routine call in the connector envelope, as `_memoryReply` answers for notes. A relayed
+ * job's own `ok` wins over the `ok: true` spread first, so a refusal from the app passes as is.
+ */
+async function _routineReply(res, work) {
+  const store = await _routines();
+  try {
+    res.json({ ok: true, ...(await work(store)) });
+  } catch (err) {
+    if (!(err instanceof store.RoutineError)) {
+      logger.error('connector', 'agent routines failed', err);
+      return res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
+    }
+    res.status(err.code === 'BAD_REQUEST' ? 400 : 200)
+      .json({ ok: false, error: { code: err.code, message: err.message } });
+  }
+}
+
+const _readRoutine = (store, name, { scope, folderPath }) => (scope === 'global'
+  ? store.readGlobalRoutine(name) : store.readRoutine(folderPath, name));
+
+/**
+ * The agent's saved routines (MPI-970), `<project>/Agent/routines/` (`services/agentRoutines.mjs`):
+ *   GET  /connector/routines?folderPath=         -> { ok, routines: [{ name, summary, steps, inputs }] }
+ *   GET  /connector/routines/:name?folderPath=   -> { ok, name, routine }
+ *   POST /connector/routines { folderPath, routine }            -> { ok, name, created, summary }
+ *   POST /connector/routines { folderPath, name, delete: true } -> { ok, name, deleted }
+ *   POST /connector/routines/:name/quote { folderPath, cards, inputs? }
+ *        -> { ok, output: { missing, billed, count, usd, display } }, dispatching nothing
+ *   POST /connector/routines/:name/run { folderPath, cards, inputs? }
+ *        -> held until every card's chain has ended: { ok, output: { runId, stackId, cards } }
+ * `scope=global` (query, or `scope: 'global'` in a body) names the GLOBAL routines in app
+ * data; a quote or run of one still runs in `folderPath`, or the open project without it.
+ * A save is checked by the app first (its catalogues hold the package Flows) and stored as
+ * that check returns it. A delete rides the POST, as a forgotten note does; the file moves
+ * to `deleted/`. `cards` may name a stack: it runs on the stack's cards.
+ * Errors: BAD_REQUEST (400), NOT_A_PROJECT, INVALID_NAME, ROUTINE_NOT_FOUND, ROUTINES_FULL,
+ * APP_UNAVAILABLE, and the routine's own refusals (routineModel.js / routineRunner.js).
+ */
+router.get('/connector/routines', (req, res) =>
+  _routineReply(res, (s) => (req.query.scope === 'global' ? s.listGlobalRoutines() : s.listRoutines(req.query.folderPath))));
+
+router.get('/connector/routines/:name', (req, res) =>
+  _routineReply(res, (s) => _readRoutine(s, req.params.name, req.query)));
+
+router.post('/connector/routines', (req, res) => {
+  const { folderPath, scope, name, routine } = req.body || {};
+  const global = scope === 'global';
+  return _routineReply(res, async (s) => {
+    if (req.body?.delete === true) return global ? s.deleteGlobalRoutine(name) : s.deleteRoutine(folderPath, name);
+    const checked = await _dispatchToRenderer('routine.validate', { routine });
+    if (!checked.ok) return checked;
+    const saved = await (global ? s.writeGlobalRoutine(checked.output.routine) : s.writeRoutine(folderPath, checked.output.routine));
+    return { ...saved, summary: checked.output.summary };
+  });
+});
+
+for (const verb of ['quote', 'run']) {
+  router.post(`/connector/routines/:name/${verb}`, (req, res) => _routineReply(res, async (s) => {
+    const { folderPath, scope, cards, inputs } = req.body || {};
+    const { routine } = await _readRoutine(s, req.params.name, { scope, folderPath });
+    return _dispatchToRenderer(`routine.${verb}`, { routine, cards, inputs, ...(folderPath ? { folderPath } : {}) });
+  }));
+}
+
 let _cardsMod = null;
 async function _cards() {
     if (!_cardsMod) _cardsMod = await import('../services/agentCards.mjs');
