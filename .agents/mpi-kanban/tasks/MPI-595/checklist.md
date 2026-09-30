@@ -14,9 +14,13 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   - [x] **MPI-856 the cloud-only user — 2.0 GATE (Fabio 2026-09-30).** DONE 2026-09-30:
     `d5a783ce7`, CI green (run 36685592716), Fabio "1" after a cloud image + cloud video in an
     isolated no-engine app. Projects open with no engine; one refusal for every engine action
+  - [ ] **MPI-743 + MPI-828 + MPI-742, the Flow licence surface — 2.0 GATE (Fabio 2026-09-30),
+    his picks: no message on Cancel, one only when an install fails.** 828's row had shipped in
+    MPI-666 (doc fixed); 743 = decision recorded + the drawer pick now repaints the tile; all seen
+    in isolated `:51518` (MPI-742 validation.md). Fabio "looks good" 2026-09-30; the three close
+    once CI judges the code commit
   - Still to put to him, one at a time: Routines MPI-970 in 2.0?; MPI-965 Ollama benchmark scores;
-    MPI-743 paid-Flow silent Cancel; MPI-828 Flow-drawer licence attribution; MPI-742 H3 licence
-    tile eye-check; MPI-841 registry browsing; MPI-708 mascots
+    MPI-841 registry browsing; MPI-708 mascots
   - Housekeeping found: `secrets:endpoint-changed` landed (`js/events.js:187`), message
     `ec93cbba` already resolved by its peer; MPI-951 (2.1) still assumes 2.0 dual-publishes CubricVision-* (dropped
     2026-09-29, MPI-972) and needs rewording before 2.1

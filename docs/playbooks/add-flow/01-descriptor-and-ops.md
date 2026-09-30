@@ -185,29 +185,27 @@ changes only the badge is the failure mode this was built against.
 → **[any-of-models.md](any-of-models.md)** — the resolver helpers, `modelParams`, why the picker
 offers uninstalled candidates, and why `modelFamily` is the wrong field.
 
-### A GATED model in `requiredModels` brings obligations the Flow Library does not carry yet
+### A GATED model in `requiredModels` — both obligations are carried for you
 
 Some model licences oblige us to bind the end user before the weights arrive, and to show an
 attribution wherever the model is presented. `js/data/modelConstants/licences.js` keys those by
-model id (MiniMax H3 is the first). **Check it before you put a model in `requiredModels`.**
+model id (MiniMax H3 is the first), or by `flow:<id>` for a flow's own weights. **Check it
+before you put a model in `requiredModels`** — then there is nothing flow-side to write:
 
-Half of this is already free, half is not:
+- **The acceptance gate.** It sits in `downloadService.start()`, which every install path
+  funnels through, so a flow's Install button shows `MpiLicenceGate` with no flow-side work.
+  Receipts are keyed by LICENCE id, so a user who already accepted while installing the model
+  directly is not re-prompted by the flow. A Cancel is silent by design (MPI-743): the tile
+  going back to Install / `Licence required` is the answer.
+- **The standing licence row.** `buildLicenceRows()` in
+  [flowLicences.js](../../../js/utils/flowLicences.js) (MPI-666) renders the licence name, the
+  required `poweredBy` attribution, and the licence / authorization / report-misuse links —
+  the same block as `MpiModelManager`'s `#detail-licence-row`. Both the Flow Library drawer
+  (before install) and `MpiBaseFlow` step 0 (after) mount it; an ungated flow gets no field.
 
-- **Free — the acceptance gate.** It sits in `downloadService.start()`, which every install
-  path funnels through, so a flow's Install button shows `MpiLicenceGate` with no flow-side
-  work. Receipts are keyed by LICENCE id, so a user who already accepted while installing
-  the model directly is not re-prompted by the flow.
-- **NOT free — the standing licence row.** `MpiModelManager`'s detail drawer renders the
-  licence name, the required `poweredBy` attribution, and the licence / authorization /
-  report-misuse links ([MpiModelManager.js](../../../js/components/Organisms/MpiModelManager/MpiModelManager.js), `#detail-licence-row`).
-  **`MpiFlowLibrary`'s drawer has no equivalent** — it reuses the same `.mpi-detail__*`
-  classes, so the markup ports directly, but nobody has needed it yet.
-
-So: a flow built on a gated model must add that row to its own slide-over. Attribution
-(H3 §III.3.a/§IV.2) is owed on the surface where the model is *presented*, and for a flow
-user that surface is the Flow Library drawer — they may never open the Model Library at all.
-The licence copy itself is already bundled under `licences/<id>/` and reachable through the
-same `licenceUrl`, so only the render site is missing. See [docs/models/h3/README.md](../../models/h3/README.md) § Licence.
+Attribution (H3 §III.3.a/§IV.2) is owed on the surface where the model is *presented*, and for
+a flow user that is the Flow Library drawer — they may never open the Model Library at all.
+See [docs/models/h3/README.md](../../models/h3/README.md) § Licence.
 
 ### Flow-only extra weights — `requiredDeps` (MPI-304, SHIPPED)
 

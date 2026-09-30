@@ -530,15 +530,13 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // the shared model install flow; exactly the Model Library's _install), plus the
         // flow's own deps as ONE more job. The Flow Library owns no dep resolution of its
         // own: getModelDependencies() / getFlowDependencies() resolve, the service starts.
-        // MPI-666, DELIBERATELY NOT FIXED HERE — a refused gate still has no outcome at this
-        // call site, and it cannot get one honestly from `MpiFlowLibrary`. `start()` resolves
-        // `undefined` on refusal, but on SUCCESS it resolves `this._installChain`, which ends
-        // `.then(settle, settle)` and so resolves `undefined` too. The two are the same value.
-        // Inferring a refusal from "no job appeared" instead would be a symptom patch on a
-        // race, and awaiting the chain would fire the message when the download FINISHED.
-        // The fix is one line in `downloadService.start()` (refuse → a distinguishable value);
-        // that file is MPI-500's, so it is filed as a message, not taken. Every other caller
-        // awaits and discards, so the change is safe whenever 500 lands it.
+        // A refused licence gate has no outcome here, ON PURPOSE (MPI-743, Fabio 2026-09-30:
+        // "no message on a deliberate Cancel; a message only when the install fails"). The
+        // tile going back to Install / Licence required IS the answer to a Cancel. Both
+        // failures already speak for themselves: a failed `verify` probe keeps MpiLicenceGate
+        // open with its error, and a failed download reaches the user via `download:failed`.
+        // So `start()` still resolves `undefined` for refusal and success alike — do not add
+        // a distinguishable value unless something here needs to act on it.
         function _installMissing(flow, missing) {
             for (const modelId of missing) {
                 const deps = getModelDependencies(modelId);
@@ -679,8 +677,11 @@ export const MpiFlowLibrary = ComponentFactory.create({
                     setFlowModel(flow.id, value);
                     // Re-render: the resolved id feeds the required-models rows, the install
                     // keys and the footer, so a pick that only moved the dropdown label would
-                    // leave the panel describing the other model.
-                    openDetail(flow);
+                    // leave the panel describing the other model. The TILE too (MPI-743): the
+                    // pick moves availability, and a chip left on `Ready` after picking an
+                    // uninstalled H3 held until the library reopened. _patchTile repaints
+                    // the chip and thumb, then reopens this drawer.
+                    _patchTile(flow.id);
                 });
                 _detailBtns.push(dd);
 

@@ -542,6 +542,10 @@ test('the Flow Library renders the picker and reads RESOLVED ids', () => {
         'the recommendation must be visible in the list, not just be the default value');
     assert.ok(!/disabled: !installed/.test(src),
         'an uninstalled candidate is pickable ON PURPOSE — disabling it removes the whole point');
+    // MPI-743: the pick moves availability, so the grid tile has to follow it, not only the
+    // drawer. openDetail alone left Extend Video's chip on `Ready` after picking H3.
+    assert.match(src, /setFlowModel\(flow\.id, value\);[\s\S]{0,600}?_patchTile\(flow\.id\);/,
+        'a drawer pick must repaint the tile too (_patchTile), not only reopen the drawer');
 });
 
 test('an INSTALLED flow opens straight into its frame, skipping the drawer (MPI-638)', () => {
