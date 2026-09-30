@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-828", "at": "2026-09-19T19:34:02+01:00", "actor": "claude", "column": "todo", "title": "Flow Library drawer: no licence attribution row for gated models"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-828", "at": "2026-09-30T09:17:13+01:00", "actor": "claude:dd0e0b12", "from": "todo", "to": "doing", "reason": "Fabio 2026-09-30: 2.0 gate (MPI-595), go with the picks"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-828", "at": "2026-09-30T09:25:16+01:00", "actor": "claude:dd0e0b12", "from": "doing", "to": "doing", "reason": "Built and seen in isolated app; waiting on Fabio's eyes"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-828", "at": "2026-09-30T09:54:34+01:00", "actor": "claude:dd0e0b12", "from": "doing", "to": "done", "reason": "Fabio looked 2026-09-30; CI green on 4b4b8960b (contains 850a823b6)"}

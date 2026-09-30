@@ -14,13 +14,21 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   - [x] **MPI-856 the cloud-only user — 2.0 GATE (Fabio 2026-09-30).** DONE 2026-09-30:
     `d5a783ce7`, CI green (run 36685592716), Fabio "1" after a cloud image + cloud video in an
     isolated no-engine app. Projects open with no engine; one refusal for every engine action
-  - [ ] **MPI-743 + MPI-828 + MPI-742, the Flow licence surface — 2.0 GATE (Fabio 2026-09-30),
+  - [x] **MPI-743 + MPI-828 + MPI-742, the Flow licence surface — 2.0 GATE (Fabio 2026-09-30),
     his picks: no message on Cancel, one only when an install fails.** 828's row had shipped in
     MPI-666 (doc fixed); 743 = decision recorded + the drawer pick now repaints the tile; all seen
-    in isolated `:51518` (MPI-742 validation.md). Fabio "looks good" 2026-09-30; the three close
-    once CI judges the code commit
-  - Still to put to him, one at a time: Routines MPI-970 in 2.0?; MPI-965 Ollama benchmark scores;
-    MPI-841 registry browsing; MPI-708 mascots
+    in isolated `:51518` (MPI-742 validation.md). Fabio "looks good" 2026-09-30; code `850a823b6`,
+    CI green (run 36691311222), all three closed
+  - [ ] **MPI-970 Routines — 2.0 GATE (Fabio 2026-09-30).** Built by its own session (runner live
+    2026-09-30; left: W2 `routine` tool, B1 paid agent suite on his yes, docs + his look). The docs
+    site's Routines page rides on it
+  - [ ] **MPI-965 community benchmark — 2.0 GATE (Fabio 2026-09-30).** App half already on master
+    (`fe90d30f0`), service live; left: his shared Ollama run + copy look, privacy page push on his
+    yes, stamp the Ollama scores
+  - **Split of work (Fabio 2026-09-30):** the session titled **"Agent 70"** owns the in-app agent and
+    everything around it (MPI-965, MPI-970, the Ollama/agent-chat cards). THIS umbrella takes
+    everything else; relieve Agent 70 only when nothing else is left
+  - Still to put to him, one at a time: MPI-841 registry browsing; MPI-708 mascots
   - Housekeeping found: `secrets:endpoint-changed` landed (`js/events.js:187`), message
     `ec93cbba` already resolved by its peer; MPI-951 (2.1) still assumes 2.0 dual-publishes CubricVision-* (dropped
     2026-09-29, MPI-972) and needs rewording before 2.1

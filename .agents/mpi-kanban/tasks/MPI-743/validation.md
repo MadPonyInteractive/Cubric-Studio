@@ -13,3 +13,7 @@ Fabio 2026-09-30: no message on a deliberate Cancel; a message only when the ins
 - Running app (see `tasks/MPI-742/validation.md`): pick H3 → tile `LICENCE REQUIRED` at once;
   Cancel on the gate → no toast, no job, tile unchanged.
 - [x] Fabio's eyes, 2026-09-30: "Yeah, it looks good." He also opened the H3 gate himself in the pane; the instance was stopped before any install
+
+## CI
+
+Tests run 36691311222 on `4b4b8960b` (contains `850a823b6`): success, unit + desktop 1-4. Closed 2026-09-30.

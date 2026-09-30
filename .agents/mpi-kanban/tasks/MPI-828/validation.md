@@ -9,3 +9,7 @@
   Report misuse. Same fields as the Model Library's `#detail-licence-row`.
 - `tests/flow-licence-surface.test.cjs` passes (in the 42/42 run).
 - [x] Fabio's eyes, 2026-09-30: "Yeah, it looks good." He also opened the H3 gate himself in the pane; the instance was stopped before any install
+
+## CI
+
+Tests run 36691311222 on `4b4b8960b` (contains `850a823b6`): success, unit + desktop 1-4. Closed 2026-09-30.
