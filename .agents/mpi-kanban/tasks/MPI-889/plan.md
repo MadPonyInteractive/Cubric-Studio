@@ -26,6 +26,9 @@ day MPI-984 (another live session) claimed them. Check `active_file_claims` befo
 
 ## Current State
 
+2026-09-30 (Agent 76): CLOSED. MPI-950 (phase 4) shipped: a stack lists as one row, an open
+stack names its card on screen, and a fan-out's new cards land as one stack. Every member is done.
+
 2026-09-30 (Agent 75): phases 1-3 are done. MPI-892 (phase 3) closed on Fabio's checks 1-5:
 Cosmo opens Draw It In, Scribble and Object Stamp filled in, asks before a Song, and routes round
 a Flow that is not installed. MPI-950 is the last member and nothing blocks it now (MPI-941 and
