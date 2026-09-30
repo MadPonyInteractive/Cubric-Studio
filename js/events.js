@@ -105,9 +105,11 @@ export const Events = new EventBus();
  *
  * 'ui:error'         { title: string, message: string } — show error dialog (shell listens)
  * 'ui:context-menu'  { x, y, items, onSelect }         — show MpiContextMenu at the cursor (shell listens)
- * 'ui:success'       { message: string }              — success toast via StatusBar.notify()
- * 'ui:warning'       { message: string }              — warning toast via StatusBar.notify()
- * 'ui:info'          { message: string }              — info toast via StatusBar.notify()
+ * 'ui:success'       { message: string, sound?, action? } — success toast via StatusBar.notify()
+ * 'ui:warning'       { message: string, sound?, action? } — warning toast via StatusBar.notify()
+ * 'ui:info'          { message: string, sound?, action? } — info toast via StatusBar.notify()
+ *                    `action` { text, onClick } = one button on the toast (MPI-993): it runs
+ *                    onClick, then the toast closes. Same on 'ui:danger'.
  * 'media:updated'    { projectId: string }           — any tool saving to library
  * 'media:import-started' { tempId: string, filename: string, mediaType: string }
  *                    — a file has begun importing. Emitted by `uploadMediaFile`, so it

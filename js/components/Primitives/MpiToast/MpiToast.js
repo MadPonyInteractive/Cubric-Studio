@@ -16,6 +16,9 @@ import { Storage } from '../../../core/storage.js';
  * @param {number} [duration=3000] - Lifespan in ms (set to 0 for persistent)
  * @param {boolean} [sound=true] - Play the notification chime (once per burst).
  *        Pass false for the immediate feedback of a user action (Connect, Install, Cue).
+ * @param {{text: string, onClick: Function}} [action] - One button under the message that takes
+ *        the user where the toast points (MPI-993). Pressing it runs `onClick`, then the toast
+ *        closes like any other click on it.
  */
 
 // Max toasts shown at once. Everything else waits its turn inside the same
@@ -170,6 +173,7 @@ export const MpiToast = ComponentFactory.create({
                     <span class="mpi-toast__label">${label}</span>
                 </div>
                 <p class="mpi-toast__msg">${message}</p>
+                ${props.action?.text ? `<button type="button" class="mpi-toast__action">${props.action.text}</button>` : ''}
             </div>
             <div class="mpi-toast__progress"></div>
         </div>`;
@@ -221,6 +225,11 @@ export const MpiToast = ComponentFactory.create({
         // Click anywhere on the toast = dismiss now. Listener is on the toast's own
         // node, so it dies with it — no teardown to run.
         on(el, 'click', dismiss);
+        // The action button (MPI-993) runs first, being the target, and its click then
+        // bubbles on to the dismiss above: ONE close path, never a stopPropagation. A
+        // throwing action does not stop that listener, so the toast still closes.
+        const actionBtn = qs('.mpi-toast__action', el);
+        if (actionBtn) on(actionBtn, 'click', () => props.action.onClick?.());
 
         const container = _getStackContainer();
         // Burst-start chime: toasts ring by DEFAULT (props.sound !== false). The

@@ -558,8 +558,13 @@ export const RECOMMENDED_REMOTE_MODELS = {
     // 16 GB card. Enhance is the enhancer of record (every v1 recipe is Stage 1 green on it).
     // `agentTest` (MPI-941 Phase 11, 2026-09-28): the 26-case suite, `--runs 1`, on Fabio's 16 GB card, logs in
     // `.agents/mpi-kanban/tasks/MPI-941/validation.md`. None reaches the bar, so none carries `agent`; listed, scored.
+    // `describe` (MPI-993, Fabio 2026-09-30): the Image Describer plugin's own model
+    // (`qwen3vl-abliterated-clip`), which he rates on real use. MPI-912's one-picture bench:
+    // 7/10 facts, nothing wrong. It is under the DeepInfra bar; the flag is his call, not a score.
+    // A listed model the user's Ollama lacks is still offered, `installed: false` (listRemoteModels).
     ollama: [
         { id: 'huihui_ai/gemma-4-abliterated:12b', jobs: ['enhance'] },
+        { id: 'huihui_ai/qwen3-vl-abliterated:4b', jobs: ['describe'] },
         { id: 'ornith:9b', jobs: [], agentTest: { passed: 16, cases: 26, runs: 1, perChat: 0 } },
         { id: 'gemma4:12b', jobs: [], agentTest: { passed: 13, cases: 26, runs: 1, perChat: 0 } },
     ],
@@ -590,8 +595,13 @@ export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_
     const body = await res.json();
     const caps = presetId === 'ollama' ? await _ollamaCapabilities(baseURL) : null;
     const recommended = RECOMMENDED_REMOTE_MODELS[presetId] || [];
-    const models = (Array.isArray(body?.data) ? body.data : [])
-        .filter((m) => typeof m?.id === 'string')
+    const listed = (Array.isArray(body?.data) ? body.data : []).filter((m) => typeof m?.id === 'string');
+    // Ollama is the one preset the user installs into (MPI-993): a recommended model it
+    // lacks is still listed, `installed: false`, so Settings can offer to download it.
+    const absent = presetId === 'ollama'
+        ? recommended.filter((r) => !listed.some((m) => m.id === r.id)).map((r) => ({ id: r.id, installed: false }))
+        : [];
+    const models = [...listed, ...absent]
         .filter((m) => {
             const tags = m.metadata?.tags;
             return !Array.isArray(tags) || tags.length === 0 || tags.includes('chat');
@@ -611,6 +621,7 @@ export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_
                 // Null on every row that has nothing to add, which is most of them.
                 recommendedNote: rec?.note ?? null,
                 agentTest: rec?.agentTest ? { ...rec.agentTest } : null,
+                ...(m.installed === false && { installed: false }),
             };
         });
     const rank = (m) => (m.recommendedFor.length ? 0 : 1);

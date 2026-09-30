@@ -59,10 +59,10 @@ nothing elsewhere), else nothing. The connection itself is `Storage.getLlmConnec
 | Route | Does |
 |---|---|
 | `GET /llm/models` | The `MODEL_REGISTRY` catalogue for the Ollama picker (+ `deepInfraId` for the legacy mapping, + `recommended` from `RECOMMENDED_REMOTE_MODELS.ollama`'s enhance entries). |
-| `GET /llm/ollama` | Read-only Ollama state: running, per-model downloaded/size/pull progress. |
+| `GET /llm/ollama` | Read-only Ollama state: running, per-model downloaded/size/pull progress, keyed by registry id AND by each recommended Ollama id (`_pullable`, MPI-993). |
 | `POST /llm/ollama/start` | Starts an installed, stopped Ollama. Never installs. |
 | `POST /llm/ollama/install` | Silent winget install, Windows only, reached only from the user's own click. |
-| `POST /llm/ollama/pull` | Starts a model download; progress comes back over `GET /llm/ollama`. |
+| `POST /llm/ollama/pull` | Starts a download of a `_pullable` model only (registry + `RECOMMENDED_REMOTE_MODELS.ollama`), never a renderer-made name; progress comes back over `GET /llm/ollama`. |
 | `POST /llm/connection/probe`, `GET /llm/connection/models` | The shared connection (MPI-774; [agent-chat.md](agent-chat.md)). |
 | `POST /llm/enhance` | One completion. Body `{ prompt, system?, backend, modelId?, maxTokens?, profileId? }`, `backend` **required**, `endpoint` or `ollama`: there is no server-side default. Replies `{ ok, text, backend, model }`, naming what actually answered. |
 | `POST /llm/describe` | One image description on the connection. Below. |
@@ -94,8 +94,8 @@ nothing elsewhere), else nothing. The connection itself is `Storage.getLlmConnec
 - **`RECOMMENDED_REMOTE_MODELS`** carries exact ids per preset, and a flag only on a measured
   result: DeepInfra enhance = `google/gemma-4-26B-A4B-it`, `google/gemma-3-12b-it`; describe =
   `google/gemma-4-26B-A4B-it` (MPI-817's scored run). Ollama (its own `/v1/models` ids, tag
-  included) enhance = `huihui_ai/gemma-4-abliterated:12b`, the enhancer of record; describe and
-  agent carry none until a local model passes (MPI-912 `validation.md`).
+  included) enhance = `huihui_ai/gemma-4-abliterated:12b`, the enhancer of record; describe = `huihui_ai/qwen3-vl-abliterated:4b`, the Image
+  Describer plugin's own model, by Fabio's call (MPI-993; 7/10 on MPI-912's bench); agent none. Ollama only: a recommended model it lacks is still listed, `installed: false`.
 - **`agentTest: { passed, cases, runs, perChat, suiteHash? }`** on an entry = it ran `scripts/agent-test.mjs` (MPI-916 `validation.md` § 2f;
   `perChat` is USD per conversation, fixed at test time). The agent dropdown lists these models on top, best score first,
   `28/28 tests · $0.36/100 chats` in the meta beside the context window, no "(recommended)" label (Fabio 2026-09-26); `agentTest` with
@@ -165,7 +165,7 @@ recommended-for-that-job first, labelled "(recommended)", except the agent row, 
 your run > `agentTest` on today's tests > `communityTest`). Remote is greyed only on `NO_KEY` / `NO_PROFILE` (`_remoteBlocked`); an unreachable
 endpoint stays pickable and shows its error under the model list. The describe list keeps the models the endpoint flags `vision` (plus the describe
 recommendation), and shows the whole list with a "this provider does not say which models can see" note when it reports no flags. The Ollama-model
-dropdown comes from `GET /llm/models`. The DeepInfra sign-up box tops the connection block; the key group hides for the keyless Ollama preset.
+dropdown comes from `GET /llm/models`. The DeepInfra sign-up box tops the connection block; the key group hides for the keyless Ollama preset. **MPI-993:** an `installed: false` pick reads "Not downloaded" and mounts `MpiOllamaSetup` under its row (`_renderInstall`); a download SEEN landing re-reads the list. `js/shell/llmPickCheck.js` warns on project open, once per session, when a pick on the Ollama connection is not downloaded (a toast with an Open Remote button); it never starts Ollama to ask.
 
 ## Secrets
 

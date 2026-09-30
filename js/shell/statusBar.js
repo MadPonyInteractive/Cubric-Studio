@@ -502,11 +502,13 @@ export const StatusBar = {
      *        pass `{ sound: false }` for toasts fired as the IMMEDIATE feedback
      *        of a user action (Connect, Install, Cue…) so a click never rings.
      *        mascot: whose still (MpiToast `mascot`); omitted = Studio.
+     *        action: `{ text, onClick }`, one button that takes the user where the toast
+     *        points (MpiToast `action`, MPI-993); pressing it also closes the toast.
      */
     notify(message, variant = 'info', duration = 6000, opts = {}) {
         const wrapper = document.createElement('div');
         document.body.appendChild(wrapper);
-        const t = MpiToast.mount(wrapper, { message, variant, duration, sound: opts.sound !== false, mascot: opts.mascot });
+        const t = MpiToast.mount(wrapper, { message, variant, duration, sound: opts.sound !== false, mascot: opts.mascot, action: opts.action });
         t.on('close', () => { t.destroy(); wrapper.remove(); });
     },
 
@@ -585,14 +587,15 @@ export const StatusBar = {
         }));
         // `sound` defaults on; an emitter passes `sound:false` for a toast that
         // is the immediate feedback of a user action (Connect, Install, Cue…).
-        _listenUnsubs.push(Events.on('ui:success', ({ message, sound }) => StatusBar.notify(message, 'success', 6000, { sound })));
-        _listenUnsubs.push(Events.on('ui:warning', ({ message, sound }) => StatusBar.notify(message, 'warning', 6000, { sound })));
-        _listenUnsubs.push(Events.on('ui:info',    ({ message, sound }) => StatusBar.notify(message, 'info', 6000, { sound })));
+        // `action` (MPI-993) is the toast's one button, `{ text, onClick }`.
+        _listenUnsubs.push(Events.on('ui:success', ({ message, sound, action }) => StatusBar.notify(message, 'success', 6000, { sound, action })));
+        _listenUnsubs.push(Events.on('ui:warning', ({ message, sound, action }) => StatusBar.notify(message, 'warning', 6000, { sound, action })));
+        _listenUnsubs.push(Events.on('ui:info',    ({ message, sound, action }) => StatusBar.notify(message, 'info', 6000, { sound, action })));
         // `ui:danger` is the ERROR-LEVEL TOAST. `ui:error` is a different surface — it
         // opens the blocking MpiErrorDialog (shell.js) — so a failure the user can act on
         // without leaving what they are doing belongs here (MPI-620: a reused flow whose
         // model is gone stays open with the drawing intact, and says so in a toast).
-        _listenUnsubs.push(Events.on('ui:danger',  ({ message, sound }) => StatusBar.notify(message, 'danger', 6000, { sound })));
+        _listenUnsubs.push(Events.on('ui:danger',  ({ message, sound, action }) => StatusBar.notify(message, 'danger', 6000, { sound, action })));
         // MPI-64 4.4: idle label scope tracks the remote engine connection.
         // MPI-73: `phase` ('connecting'|'disconnecting') overrides the steady
         // Local/Remote scope while a transition is in progress.

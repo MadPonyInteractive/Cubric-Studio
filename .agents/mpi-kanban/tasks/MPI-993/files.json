@@ -1,0 +1,23 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-993/",
+    "services/llmEngines.mjs",
+    "routes/llm.js",
+    "js/components/Organisms/MpiLlmSettings/MpiLlmSettings.js",
+    "js/components/Organisms/MpiLlmSettings/MpiLlmSettings.css",
+    "js/shell/llmPickCheck.js",
+    "js/shell/statusBar.js",
+    "js/components/Primitives/MpiToast/MpiToast.js",
+    "js/components/Primitives/MpiToast/MpiToast.css",
+    "js/components/types.js",
+    "js/events.js",
+    "tests/llm-connection.test.cjs",
+    "tests/llm-pick-check.test.cjs",
+    "tests/desktop/toast-click-dismiss.spec.js",
+    "tests/desktop/llm-settings-remote.spec.js",
+    "docs/llm.md",
+    "docs/toasts.md",
+    "docs/component-contracts.md"
+  ]
+}

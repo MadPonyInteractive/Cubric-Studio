@@ -16,6 +16,10 @@ Three entry paths, one renderer (`MpiToast` in a shared `.mpi-toast-stack`, cap 
    `statusBar.js listen()` relays each to `StatusBar.notify(message, variant, 6000, { sound })`.
    There is also a **`ui:error`** channel — it has NO handler in `statusBar.js`, so it renders a
    **dialog, not a toast** (routed elsewhere). Not counted below.
+   **An action button (MPI-993):** `opts.action` / the event's `action`, `{ text, onClick }`, adds ONE
+   button that takes the user where the toast points. Pressing it runs `onClick`, then the click
+   bubbles to the toast's own dismiss, so it closes like any other click; a click anywhere else only
+   dismisses. Never make the whole toast navigate: a click on it already means "go away".
 3. **`notificationService`** — the lifecycle bridge. Listens for `generation:complete` (coalesced),
    `download:complete`, `remote:connection`. Each either fires an **OS notification** (window
    unfocused + pref on) OR an in-app `StatusBar.notify` — never both (split on `document.hasFocus()`).
@@ -234,6 +238,7 @@ rather than trusting them.
 | `shell/projectUI.js:56` | Same download-only guard (projectUI copy) | This is a download-only Pod (no GPU)… | warning | eligible |
 | `shell/projectUI.js:297` | Clean up cached assets — success | Removed ${n} cached asset(s). | success | eligible |
 | `shell/projectUI.js:300` | Clean up cached assets — failed | ${err.message} | warning | eligible |
+| `shell/llmPickCheck.js` | Project open, once per session: a pick on the Ollama connection is not downloaded (MPI-993) | Your ${job} model, ${model}, is not downloaded in Ollama yet. Download it from the Remote tab… + **Open Remote** button | warning | eligible |
 | `utils/describeAction.js:35` | Describe on item with no filePath | No source image to describe. | warning | eligible |
 | `utils/describeAction.js:41` | Describe on a video | Describing video frames is not supported yet. | warning | eligible |
 | `utils/describeAction.js:52` | Describe succeeded, caption injected | Description added to the prompt. | success | eligible |

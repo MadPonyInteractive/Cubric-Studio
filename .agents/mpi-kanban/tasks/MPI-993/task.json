@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-993",
+  "title": "Ollama connection: list recommended LLMs even when not downloaded, Install button, toast on project open",
+  "description": "Problem: on Remote > Language Models with the Ollama connection, every model dropdown lists only what the user's Ollama has installed (llmEngines.mjs listRemoteModels reads /v1/models). A recommended model that is not downloaded is invisible, and nothing in our UI can install it. Worse, with nothing picked, enhance falls back server-side to huihui_ai/gemma-4-abliterated:12b (routes/llm.js recommendedModel) and fails with Ollama's \"model '...' not found\", while the dropdown shows \"Select a model\" and the note wrongly says we have not tested enhancement on this provider. The only install UI today is the managed Ollama enhance backend (MpiOllamaSetup): 4 MODEL_REGISTRY models, no vision model, no agent-scored model.\n\nDesign (Fabio 2026-09-30):\n1. Ollama connection: every RECOMMENDED_REMOTE_MODELS.ollama entry appears in its job's dropdown, installed or not; a missing one reads \"Not downloaded\".\n2. Selecting a missing model shows an Install button under that dropdown. It pulls into the user's Ollama with progress (reuse ollamaLifecycle.startPull / pullState; /llm/ollama/pull takes MODEL_REGISTRY ids only today, so allowlist the recommended ids too).\n3. On project open, if any selected LLM model (the effective pick per job, the recommended default included) is not installed, toast something like \"One of your selected LLM models is not installed\", pointing at Remote > Language Models.\n\nAgent picks (change if wrong): the toast names the model and fires once per app session, not every project open; it stays silent when Ollama is not running (never start Ollama just to check); it counts only jobs routed to local Ollama.\n\nOpen: flag huihui_ai/qwen3-vl-abliterated:4b for describe on Ollama? It is the Image Describer plugin's own model (assetDeps.js qwen3vl-abliterated-clip, Huihui-Qwen3-VL-4B-Instruct-abliterated fp8_scaled, which Krea2 also uses). MPI-912 bench on Ollama: 7/10, nothing wrong, 1 run; stock qwen3-vl:4b 8/10.\n\nOverlap: MPI-965 (doing) owns routes/llm.js and MpiLlmSettings.js/.css. Wait for it or coordinate with mpi-message first.\n\nEvidence: MPI-912 validation.md section 2; llmEngines.mjs listRemoteModels; MpiLlmSettings.js _remoteModelOptions; routes/llm.js /llm/enhance endpoint branch.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-30T07:57:09+01:00",
+  "updated_at": "2026-09-30T08:12:18+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

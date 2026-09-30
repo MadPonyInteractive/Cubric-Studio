@@ -18,6 +18,7 @@
  *                                body { profileId, modelId?, imagePath, question?, crop? } (MPI-737)
  *   GET  /llm/ollama          -> { running, platform, install, defaultModelId,
  *                                  models: { <id>: { name, downloaded, size, pull } } }
+ *                                <id> = a registry id, or a recommended Ollama id (MPI-993)
  *   POST /llm/ollama/start    -> { status: 'running'|'started'|'missing'|'failed' }
  *   POST /llm/ollama/install  -> { ok }   ok:false = no silent install here, open the download page
  *   POST /llm/ollama/pull     -> { ok } | { ok:false, error }   body { modelId }
@@ -173,6 +174,19 @@ async function ollamaSize(name) {
 }
 
 /**
+ * Every model the app will download into the user's Ollama, `{ key, ollamaName, name }`:
+ * the Ollama enhancer's registry models by registry id, and the Remote rows' recommended
+ * Ollama models by their own Ollama id (MPI-993). The pull route downloads nothing else,
+ * so no name the renderer invents reaches `ollama pull`.
+ */
+function _pullable({ MODEL_REGISTRY, RECOMMENDED_REMOTE_MODELS, modelName }) {
+    return [
+        ...MODEL_REGISTRY.filter((m) => m.ollamaName).map((m) => ({ key: m.id, ollamaName: m.ollamaName, name: modelName(m, 'ollama') })),
+        ...RECOMMENDED_REMOTE_MODELS.ollama.map((r) => ({ key: r.id, ollamaName: r.id, name: r.id })),
+    ];
+}
+
+/**
  * GET /llm/ollama — Ollama's state, for the settings row (MPI-728 phase 3).
  *
  * READ-ONLY: it never starts, installs or downloads anything, so polling it during a
@@ -183,17 +197,18 @@ async function ollamaSize(name) {
  */
 router.get('/llm/ollama', async (_req, res) => {
     try {
-        const { OllamaEngine, MODEL_REGISTRY, DEFAULT_MODEL_ID, ollamaTagged, modelName } = await engines();
+        const eng = await engines();
+        const { OllamaEngine, DEFAULT_MODEL_ID, ollamaTagged } = eng;
         const engine = new OllamaEngine();
         const running = await engine.isRunning();
         const installed = running ? new Set(await engine.listModels()) : null;
-        const entries = await Promise.all(MODEL_REGISTRY.filter((m) => m.ollamaName).map(async (m) => {
-            const downloaded = installed ? installed.has(ollamaTagged(m.ollamaName)) : null;
-            return [m.id, {
-                name: modelName(m, 'ollama'),
+        const entries = await Promise.all(_pullable(eng).map(async ({ key, ollamaName, name }) => {
+            const downloaded = installed ? installed.has(ollamaTagged(ollamaName)) : null;
+            return [key, {
+                name,
                 downloaded,
-                size: downloaded === false ? await ollamaSize(m.ollamaName) : null,
-                pull: ollamaLifecycle.pullState(m.ollamaName),
+                size: downloaded === false ? await ollamaSize(ollamaName) : null,
+                pull: ollamaLifecycle.pullState(ollamaName),
             }];
         }));
         res.json({
@@ -253,16 +268,16 @@ router.post('/llm/ollama/install', (_req, res) => {
 });
 
 /**
- * POST /llm/ollama/pull — download one registry model into the user's own Ollama.
+ * POST /llm/ollama/pull — download one `_pullable` model into the user's own Ollama.
  * Reached only from the user's click on Download. Returns once the download has
  * started; its progress is on `GET /llm/ollama`.
  */
 router.post('/llm/ollama/pull', async (req, res) => {
     try {
-        const { getModel, DEFAULT_MODEL_ID } = await engines();
-        const asked = req.body && req.body.modelId;
-        const entry = getModel(asked || DEFAULT_MODEL_ID);
-        if (!entry || !entry.ollamaName) {
+        const eng = await engines();
+        const asked = (req.body && req.body.modelId) || eng.DEFAULT_MODEL_ID;
+        const entry = _pullable(eng).find((p) => p.key === asked);
+        if (!entry) {
             return res.json({ ok: false, error: `No Ollama model for id: ${asked}` });
         }
         // A download needs a server to talk to; starting one is not a download.

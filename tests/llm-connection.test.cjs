@@ -119,7 +119,7 @@ test('MPI-912: the Ollama connection and the Ollama enhancer dropdown flag the s
     ] }));
     try {
         const models = await listRemoteModels({ presetId: 'ollama', baseURL: 'http://localhost:11434/v1', key: null });
-        assert.deepEqual(models.map((m) => [m.id, m.recommendedFor]), [
+        assert.deepEqual(models.filter((m) => m.installed !== false).map((m) => [m.id, m.recommendedFor]), [
             ['huihui_ai/gemma-4-abliterated:12b', ['enhance']],
             ['huihui_ai/dolphin3-abliterated:latest', []],
         ]);
@@ -145,7 +145,7 @@ test('MPI-941 Phase 11: Ollama rows carry tools and vision from /api/tags; unkno
     try {
         const models = await listRemoteModels({ presetId: 'ollama', baseURL: 'http://localhost:11434/v1/', key: null });
         assert.ok(urls.includes('http://localhost:11434/api/tags'), urls.join(', '));
-        const by = Object.fromEntries(models.map((m) => [m.id, [m.tools, m.vision]]));
+        const by = Object.fromEntries(models.filter((m) => m.installed !== false).map((m) => [m.id, [m.tools, m.vision]]));
         assert.deepEqual(by, {
             'ornith:9b': [true, false], 'gemma4:12b': [true, true], 'dolphin:latest': [false, false],
             // Not in /api/tags (or an Ollama too old to report capabilities): unknown, never hidden.
@@ -160,8 +160,34 @@ test('MPI-941 Phase 11: Ollama rows carry tools and vision from /api/tags; unkno
         ? { ok: false, status: 404, statusText: 'Not Found', json: async () => ({}) }
         : okJson({ data: [{ id: 'ornith:9b' }] })));
     try {
-        const [m] = await listRemoteModels({ presetId: 'ollama', baseURL: 'http://localhost:11434/v1', key: null });
-        assert.equal(m.tools, null);
+        const models = await listRemoteModels({ presetId: 'ollama', baseURL: 'http://localhost:11434/v1', key: null });
+        assert.equal(models.find((m) => m.id === 'ornith:9b').tools, null);
+    } finally { restore2(); }
+});
+
+test('MPI-993: a recommended model the user\'s Ollama lacks is still listed, installed:false; a hosted list never is', async () => {
+    const { listRemoteModels, RECOMMENDED_REMOTE_MODELS } = await import('../services/llmEngines.mjs');
+    const restore = stubUpstream(async (url) => (url.endsWith('/api/tags')
+        ? okJson({ models: [] })
+        : okJson({ data: [{ id: 'huihui_ai/gemma-4-abliterated:12b' }, { id: 'qwen3.5:latest' }] })));
+    try {
+        const models = await listRemoteModels({ presetId: 'ollama', baseURL: 'http://localhost:11434/v1', key: null });
+        const absent = models.filter((m) => m.installed === false).map((m) => m.id).sort();
+        const expected = RECOMMENDED_REMOTE_MODELS.ollama.map((r) => r.id).filter((id) => id !== 'huihui_ai/gemma-4-abliterated:12b').sort();
+        assert.deepEqual(absent, expected);
+        // An installed row carries no flag at all, so every other preset's rows are unchanged.
+        assert.equal('installed' in models.find((m) => m.id === 'huihui_ai/gemma-4-abliterated:12b'), false);
+        // The describe recommendation is the Image Describer plugin's own model, offered to download.
+        const vl = models.find((m) => m.id === 'huihui_ai/qwen3-vl-abliterated:4b');
+        assert.deepEqual([vl.installed, vl.recommendedFor, vl.vision], [false, ['describe'], null]);
+        // Recommended first, installed or not.
+        assert.equal(models.at(-1).id, 'qwen3.5:latest');
+    } finally { restore(); }
+    // DeepInfra's catalogue IS the whole offer: nothing is appended to it.
+    const restore2 = stubUpstream(async () => okJson({ data: [{ id: 'zeta/chat-model', metadata: { tags: ['chat'] } }] }));
+    try {
+        const models = await listRemoteModels({ presetId: 'deepinfra', baseURL: DI_URL, key: 'k' });
+        assert.deepEqual(models.map((m) => m.id), ['zeta/chat-model']);
     } finally { restore2(); }
 });
 
@@ -312,6 +338,30 @@ test('POST /llm/ollama/unload frees every loaded model, and never errors', async
         // `keep_alive: 0` on an empty chat is how Ollama evicts — there is no unload endpoint.
         const evicted = calls.filter(c => c.body?.keep_alive === 0).map(c => c.body.model);
         assert.deepEqual(evicted.sort(), ['gemma-4-abliterated:12b', 'qwen3-vl:4b']);
+    } finally { restore(); }
+});
+
+test('MPI-993: GET /llm/ollama reports the recommended Ollama models; the pull route downloads nothing off the list', async () => {
+    const restore = stubUpstream(async (url) => {
+        if (url.endsWith('/api/tags')) return okJson({ models: [{ name: 'huihui_ai/gemma-4-abliterated:12b' }] });
+        if (url.includes('registry.ollama.ai')) return okJson({ layers: [{ size: 3000 }, { size: 500 }] });
+        return okJson({});
+    });
+    try {
+        await withServer(async (base) => {
+            const state = await (await fetch(`${base}/llm/ollama`)).json();
+            // Keyed by the Remote row's own id, so MpiOllamaSetup finds the model the row shows.
+            assert.deepEqual(state.models['huihui_ai/qwen3-vl-abliterated:4b'],
+                { name: 'huihui_ai/qwen3-vl-abliterated:4b', downloaded: false, size: 3500, pull: null });
+            assert.equal(state.models['huihui_ai/gemma-4-abliterated:12b'].downloaded, true);
+            // The registry entries keep their keys: the Ollama enhancer row still reads them.
+            assert.equal(state.models['gemma-4-abliterated-12b'].downloaded, true);
+            // A name that is on no list never reaches `ollama pull` (refused before Ollama is started).
+            const refused = await (await fetch(`${base}/llm/ollama/pull`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelId: 'someone/else:7b' }),
+            })).json();
+            assert.deepEqual(refused, { ok: false, error: 'No Ollama model for id: someone/else:7b' });
+        });
     } finally { restore(); }
 });
 

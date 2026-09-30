@@ -127,6 +127,31 @@
     overflow-wrap: anywhere;
 }
 
+/* The action button (MPI-993). The toast draws its OWN <button>, as MpiFilterBar
+   does: a Primitive imports nothing, so this is the secondary small-button chrome
+   held here rather than an MpiButton. */
+.mpi-toast__action {
+    margin-top: var(--s-2);
+    padding: 6px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: var(--t-2xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--ink-1);
+    background: var(--surface-2);
+    border: 1px solid var(--ink-3);
+    border-radius: var(--r-1);
+    cursor: pointer;
+    transition: background var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+}
+
+.mpi-toast__action:hover {
+    background: var(--surface-3);
+    border-color: var(--ink-2);
+}
+
 .mpi-toast__progress {
     position: absolute;
     bottom: 0;

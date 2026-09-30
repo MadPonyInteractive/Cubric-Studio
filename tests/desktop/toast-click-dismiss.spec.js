@@ -80,3 +80,54 @@ test('clicking a toast dismisses it immediately and promotes the queued one', as
     await closeApp(app);
   }
 });
+
+// MPI-993: a toast can carry ONE action button. Pressing it runs the action and closes the
+// toast; a click anywhere else on the toast still only dismisses it (MPI-784 above).
+test('a toast action button runs once and closes the toast; the rest of the toast only dismisses', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, consoleErrors, pageErrors } = await launchApp(testInfo);
+
+  try {
+    await window.evaluate(async () => {
+      const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+      const [{ Events }, { StatusBar }] = await Promise.all([
+        import('/js/events.js'),
+        import('/js/shell/statusBar.js'),
+      ]);
+      Events.emit('engine:install-skipped');
+      await sleep(300);
+      window.__actions = [];
+      // Through StatusBar.notify, the path every caller takes.
+      StatusBar.notify('actionme pressed', 'warning', 60000, { sound: false, action: { text: 'Go there', onClick: () => window.__actions.push('pressed') } });
+      StatusBar.notify('actionme body', 'info', 60000, { sound: false, action: { text: 'Go there', onClick: () => window.__actions.push('body') } });
+    });
+
+    const toast = (name) => window.locator('.mpi-toast-stack .mpi-toast', { hasText: `actionme ${name}` });
+    await expect(toast('pressed')).toHaveClass(/mpi-toast--open/);
+    await expect(toast('body')).toHaveClass(/mpi-toast--open/);
+
+    await toast('pressed').locator('.mpi-toast__action').click();
+    await expect(toast('pressed'), 'pressing the action left the toast up').toHaveCount(0, { timeout: 1000 });
+
+    // The message, not the button: dismisses, never navigates.
+    await toast('body').locator('.mpi-toast__msg').click();
+    await expect(toast('body')).toHaveCount(0, { timeout: 1000 });
+    expect(await window.evaluate(() => window.__actions), 'the action ran twice, or on a click that missed it').toEqual(['pressed']);
+
+    // A throwing action must not strand the toast on screen.
+    await window.evaluate(async () => {
+      const { StatusBar } = await import('/js/shell/statusBar.js');
+      StatusBar.notify('actionme throws', 'info', 60000, { sound: false, action: { text: 'Boom', onClick: () => { throw new Error('boom'); } } });
+    });
+    await toast('throws').locator('.mpi-toast__action').click();
+    await expect(toast('throws'), 'a throwing action stranded the toast').toHaveCount(0, { timeout: 1000 });
+
+    // The throw surfaces as a page error, and it is the only one.
+    expect(pageErrors).toHaveLength(1);
+    expect(pageErrors[0]).toContain('boom');
+    // clientLogger reports the same uncaught throw to the console; nothing else may appear.
+    expect(consoleErrors.filter(e => !e.includes('boom'))).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});

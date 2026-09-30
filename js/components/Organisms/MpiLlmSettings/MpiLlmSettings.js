@@ -87,6 +87,13 @@ const BACKENDS  = [
 ];
 const DESCRIBERS = [REMOTE, COMFY];
 
+/** Where each Remote row's Download row mounts (MPI-993, `_renderInstall`). */
+const INSTALL_SLOTS = {
+    enhance: '#mpiSettingsLlmEnhanceInstallSlot',
+    describe: '#mpiSettingsLlmDescribeInstallSlot',
+    agent: '#mpiSettingsAgentInstallSlot',
+};
+
 /**
  * The agent's local floor (MPI-905). Mirrors `OLLAMA_AGENT_CONTEXT` in
  * services/llmEngines.mjs — not imported, because renderer code cannot import a
@@ -170,6 +177,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                             <div id="mpiSettingsLlmEnhanceModelSlot"></div>
                         </div>
                         <span class="mpi-settings__hint" id="mpiSettingsLlmEnhanceModelNote"></span>
+                        <div id="mpiSettingsLlmEnhanceInstallSlot"></div>
                         <div id="mpiSettingsLlmOllamaSlot"></div>
 
                         <div class="mpi-settings__form-group">
@@ -183,6 +191,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                             <div id="mpiSettingsLlmDescribeModelSlot"></div>
                         </div>
                         <span class="mpi-settings__hint" id="mpiSettingsLlmDescribeModelNote"></span>
+                        <div id="mpiSettingsLlmDescribeInstallSlot"></div>
 
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Agent</label>
@@ -192,6 +201,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                             <label class="mpi-settings__field-label">Agent model</label>
                             <div id="mpiSettingsAgentModelSlot"></div>
                             <span class="mpi-settings__hint" id="mpiSettingsAgentModelNote"></span>
+                            <div id="mpiSettingsAgentInstallSlot"></div>
                         </div>
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Agent mode</label>
@@ -240,6 +250,8 @@ export const MpiLlmSettings = ComponentFactory.create({
         let _connProfileInst = null;
         const _connInsts = [];
         let _agentModelInst = null;
+        /** Each Remote row's Download row (`_renderInstall`), by job. */
+        const _installInsts = {};
         /** The spinner shown while the section reads its state (MPI-774). */
         let _loadingSpinner = null;
         let _detailsSeq = 0;
@@ -306,9 +318,11 @@ export const MpiLlmSettings = ComponentFactory.create({
 
         function _destroyControls() {
             [_backendInst, _modelInst, _ollamaInst, _describeInst, _describeModelInst,
-                _connProfileInst, _agentModelInst, _loadingSpinner, ..._connInsts, ..._benchInsts].forEach(i => i?.destroy());
+                _connProfileInst, _agentModelInst, _loadingSpinner, ..._connInsts, ..._benchInsts,
+                ...Object.values(_installInsts)].forEach(i => i?.destroy());
             _connInsts.length = 0;
             _benchInsts.length = 0;
+            for (const job of Object.keys(_installInsts)) delete _installInsts[job];
             _backendInst = _modelInst = _ollamaInst = _describeInst = _describeModelInst = null;
             _connProfileInst = _agentModelInst = _loadingSpinner = null;
         }
@@ -404,6 +418,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             if (!group || !slot) return;
             _modelInst?.destroy();
             _modelInst = null;
+            _renderInstall('enhance', null);
 
             if (backend === 'endpoint') {
                 _modelInst = _renderRemoteModel({
@@ -531,6 +546,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             if (!group || !slot) return;
             _describeModelInst?.destroy();
             _describeModelInst = null;
+            _renderInstall('describe', null);
             if (backend !== 'endpoint') {
                 // The ComfyUI graph loads one baked describer: nothing to pick.
                 group.hidden = true;
@@ -567,6 +583,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             const say = (text) => { if (note) { note.textContent = text; note.hidden = !text; } };
             if (_remote === undefined) {
                 say('Loading the connection\'s models…');
+                _renderInstall(job, null);
                 return null;
             }
             const { options, value, recommended } = _remoteModelOptions(job, saved, filter);
@@ -577,9 +594,35 @@ export const MpiLlmSettings = ComponentFactory.create({
                 disabled: !_remote?.ok,
                 extraClasses: STACKED,
             });
-            inst.on('change', ({ value: id }) => onPick(id));
+            inst.on('change', ({ value: id }) => { onPick(id); _renderInstall(job, id); });
             say(_remote?.ok ? (recommended ? notes.tested : notes.untested) : _errorText(_remote));
+            _renderInstall(job, value);
             return inst;
+        }
+
+        /**
+         * MPI-993: the Download row under `job`'s dropdown while its pick is a model the Ollama
+         * connection recommends but has not downloaded (`installed: false`); cleared for any
+         * other pick. It is MpiOllamaSetup, the Ollama enhancer's own row, so starting Ollama,
+         * the size, the progress and a failed download read the same in both places. The
+         * connection's list is re-read once the download lands, which drops the row.
+         */
+        function _renderInstall(job, id) {
+            _installInsts[job]?.destroy();
+            _installInsts[job] = null;
+            const slot = qs(INSTALL_SLOTS[job], el);
+            const m = id && _remote?.ok ? _remote.models.find(x => x.id === id) : null;
+            if (!slot || m?.installed !== false) return;
+            const inst = MpiOllamaSetup.mount(slot, { modelId: id });
+            // Only a download SEEN finishing refreshes: a list and an Ollama that disagree
+            // about the same model would otherwise re-read the list forever.
+            let missing = false;
+            inst.on('state', (state) => {
+                const downloaded = state.models?.[id]?.downloaded;
+                if (downloaded === false) missing = true;
+                else if (downloaded && missing) _refreshModels(el, Storage.getLlmConnection().profileId);
+            });
+            _installInsts[job] = inst;
         }
 
         /** `{ options, value, recommended }` for `job` from the connection list. */
@@ -612,8 +655,8 @@ export const MpiLlmSettings = ComponentFactory.create({
                     });
                 const options = [
                     // In the meta, under the name: the stacked list lifts its 11ch cap (MpiLlmSettings.css).
-                    ...tested.map(m => ({ value: m.id, label: m.id, meta: [_agentTestLabel(scoreOf(m), scoreOf(m) === m.communityTest), _windowLabel(m)].filter(Boolean).join(' · ') })),
-                    ...models.filter(m => !scoreOf(m)).map(m => ({ value: m.id, label: m.id, meta: _windowLabel(m) })),
+                    ...tested.map(m => ({ value: m.id, label: m.id, meta: _modelMeta(m, _agentTestLabel(scoreOf(m), scoreOf(m) === m.communityTest)) })),
+                    ...models.filter(m => !scoreOf(m)).map(m => ({ value: m.id, label: m.id, meta: _modelMeta(m) })),
                 ];
                 if (value && _remote?.ok && !options.some(o => o.value === value)) options.unshift({ value, label: value, meta: 'Not listed' });
                 return { options, value, recommended: tested.length > 0 };
@@ -625,9 +668,9 @@ export const MpiLlmSettings = ComponentFactory.create({
                 ...rec.map(m => ({
                     value: m.id,
                     label: `(recommended${m.recommendedNote ? ` - ${m.recommendedNote}` : ''}) ${m.id}`,
-                    meta: _windowLabel(m),
+                    meta: _modelMeta(m),
                 })),
-                ...models.filter(m => !isRec(m)).map(m => ({ value: m.id, label: m.id, meta: _windowLabel(m) })),
+                ...models.filter(m => !isRec(m)).map(m => ({ value: m.id, label: m.id, meta: _modelMeta(m) })),
             ];
             // A pick the endpoint no longer lists stays visible rather than silently changing.
             if (value && _remote?.ok && !options.some(o => o.value === value)) options.unshift({ value, label: value, meta: 'Not listed' });
@@ -852,6 +895,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             if (!slot) return;
             _agentModelInst?.destroy();
             _agentModelInst = null;
+            _renderInstall('agent', null);
             if (_remote === undefined) {
                 _setText(root, '#mpiSettingsAgentModelNote', 'Loading the connection\'s models…');
                 return;
@@ -867,8 +911,10 @@ export const MpiLlmSettings = ComponentFactory.create({
                 disabled: !_remote?.ok,
                 extraClasses: STACKED,
             });
+            _renderInstall('agent', value);
             _agentModelInst.on('change', ({ value: model }) => {
                 Storage.setAgentPrefs({ ...Storage.getAgentPrefs(), model });
+                _renderInstall('agent', model);
                 // An estimate on screen was for the model just replaced.
                 if (_bench.step === 'confirm') _benchCancel(root);
             });
@@ -1043,6 +1089,12 @@ export const MpiLlmSettings = ComponentFactory.create({
             const cost = perChat ? `$${(perChat * 100).toFixed(2)}/100 chats` : perChat === 0 ? 'runs on your GPU' : '';
             const source = community ? ` (community, ${runs} runs)` : '';
             return [`${passed}/${cases} tests${source}${_currentTests(score) ? '' : ' (older tests)'}`, cost].filter(Boolean).join(' · ');
+        }
+
+        /** An option's meta line: `lead` first, then the context window, then "Not downloaded"
+         *  for a recommended Ollama model the user's Ollama lacks (MPI-993). */
+        function _modelMeta(m, ...lead) {
+            return [...lead, _windowLabel(m), m.installed === false && 'Not downloaded'].filter(Boolean).join(' · ');
         }
 
         function _windowLabel(m) {

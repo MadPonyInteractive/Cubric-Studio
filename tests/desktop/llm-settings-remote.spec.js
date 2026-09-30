@@ -307,3 +307,130 @@ test('Benchmark this model: estimate in place, progress and Stop, the score on t
     await closeApp(app);
   }
 });
+
+// MPI-993: on the Ollama connection a recommended model the user's Ollama lacks is still
+// listed ("Not downloaded"), and picking it shows the Download row under that dropdown.
+// The download landing re-reads the list, which drops the row. Everything the renderer
+// fetches is stubbed in-page, so nothing downloads.
+const VL = 'huihui_ai/qwen3-vl-abliterated:4b';
+
+/** In-page stubs for the Ollama connection: `window.__downloaded` flips the VL model to installed. */
+function stubOllamaConnection(window) {
+  return window.evaluate((vl) => {
+    const realFetch = window.fetch.bind(window);
+    window.__downloaded = false;
+    window.__pulls = [];
+    const models = () => [
+      { id: 'huihui_ai/gemma-4-abliterated:12b', contextWindow: null, vision: true, tools: true, recommendedFor: ['enhance'] },
+      window.__downloaded
+        ? { id: vl, contextWindow: null, vision: true, tools: true, recommendedFor: ['describe'] }
+        : { id: vl, contextWindow: null, vision: null, tools: null, recommendedFor: ['describe'], installed: false },
+      { id: 'qwen3-vl:4b', contextWindow: null, vision: true, tools: true, recommendedFor: [] },
+    ];
+    const json = (body) => Promise.resolve({ ok: true, json: async () => body });
+    window.fetch = (url, opts) => {
+      const path = String(url);
+      if (path.startsWith('/llm/connection/models')) return json({ ok: true, profileId: 'ollama', models: models() });
+      if (path.startsWith('/agent/benchmark')) return json({ ok: true, cases: 28, suiteHash: 'h1', local: true, usd: 0, running: null });
+      if (path === '/llm/ollama') {
+        return json({ running: true, platform: 'win32', install: null, defaultModelId: 'gemma-4-e4b',
+          models: { [vl]: { name: vl, downloaded: window.__downloaded, size: 3_300_000_000, pull: null } } });
+      }
+      if (path === '/llm/ollama/pull') {
+        window.__pulls.push(JSON.parse(opts.body).modelId);
+        window.__downloaded = true;
+        return json({ ok: true });
+      }
+      return realFetch(url, opts);
+    };
+    localStorage.setItem('mpi_llm_connection', JSON.stringify({ profileId: 'ollama' }));
+    localStorage.setItem('cubric.llm.backend', 'endpoint');
+    localStorage.setItem('cubric.llm.describeBackend', 'endpoint');
+    localStorage.removeItem('cubric.llm.endpointModel');
+    localStorage.removeItem('cubric.llm.describeModel');
+    localStorage.removeItem('mpi_agent_prefs');
+  }, VL);
+}
+
+test('MPI-993: a recommended Ollama model not downloaded is listed, and its row offers the download', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await stubOllamaConnection(window);
+    await window.evaluate(async () => {
+      const [{ Events }, { MpiRemote }] = await Promise.all([
+        import('/js/events.js'),
+        import('/js/components/Blocks/MpiRemote/MpiRemote.js'),
+      ]);
+      Events.emit('slide-over:open', { title: 'Remote', component: MpiRemote });
+    });
+    const label = (slot) => window.locator(`${slot} .mpi-dropdown__label`);
+    const toggle = (slot) => window.evaluate((sel) => document.querySelector(sel).click(), `${slot} .mpi-dropdown__trigger`);
+    const describeRow = window.locator('#mpiSettingsLlmDescribeInstallSlot .mpi-ollama-setup');
+
+    // Nothing picked: the recommended model is the pick, and Ollama lacks it.
+    await expect(label('#mpiSettingsLlmDescribeModelSlot')).toHaveText(`(recommended) ${VL}`, { timeout: 10000 });
+    await toggle('#mpiSettingsLlmDescribeModelSlot');
+    await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-meta')).toHaveText(['Not downloaded']);
+    await toggle('#mpiSettingsLlmDescribeModelSlot');
+    await expect(describeRow).toContainText(`${VL} is not in your Ollama yet`);
+    // The enhancer of record is downloaded: no row under it.
+    await expect(window.locator('#mpiSettingsLlmEnhanceInstallSlot .mpi-ollama-setup')).toHaveCount(0);
+
+    // Picking a downloaded model clears the row; picking the missing one brings it back.
+    await toggle('#mpiSettingsLlmDescribeModelSlot');
+    await window.evaluate(() => document.querySelector('.mpi-dropdown__list.is-open .mpi-dropdown__option[data-value="qwen3-vl:4b"]').click());
+    await expect(describeRow).toHaveCount(0);
+    await toggle('#mpiSettingsLlmDescribeModelSlot');
+    await window.evaluate((vl) => document.querySelector(`.mpi-dropdown__list.is-open .mpi-dropdown__option[data-value="${vl}"]`).click(), VL);
+    await expect(describeRow).toContainText('Nothing downloads until you press Download');
+
+    // Download: the pull names the row's model, and once it lands the list is re-read and the row goes.
+    // An evaluate click, as `toggle` does: the first-run consent modal overlays a fresh profile.
+    await window.evaluate(() => document.querySelector('#mpiSettingsLlmDescribeInstallSlot .mpi-ollama-setup .mpi-btn').click());
+    await expect.poll(() => window.evaluate(() => window.__pulls)).toEqual([VL]);
+    await expect(describeRow, 'the row outlived the download').toHaveCount(0, { timeout: 10000 });
+    await toggle('#mpiSettingsLlmDescribeModelSlot');
+    await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-meta')).toHaveCount(0);
+
+    expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('MPI-993: opening a project warns once about a missing Ollama model, with a button to the Remote tab', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await stubOllamaConnection(window);
+    await window.evaluate(async () => {
+      const [{ Events }, { start }] = await Promise.all([
+        import('/js/events.js'),
+        import('/js/shell/llmPickCheck.js'),
+      ]);
+      Events.emit('engine:install-skipped');
+      start();
+      Events.emit('project:changed', { project: {} });
+    });
+    const toast = window.locator('.mpi-toast-stack .mpi-toast', { hasText: 'not downloaded in Ollama' });
+    await expect(toast).toContainText(`Your image description model, ${VL}, is not downloaded in Ollama yet.`, { timeout: 10000 });
+    await expect(toast).toContainText('Remote tab on the home screen, under Language Models');
+
+    await toast.locator('.mpi-toast__action').click();
+    await expect(toast).toHaveCount(0, { timeout: 2000 });
+    await expect(window.locator('.mpi-remote #mpiSettingsLlmDescribeModelSlot')).toBeVisible({ timeout: 10000 });
+
+    // Once per app session: the next project open says nothing.
+    await window.evaluate(async () => {
+      const { Events } = await import('/js/events.js');
+      Events.emit('project:changed', { project: {} });
+    });
+    await window.waitForTimeout(1500);
+    await expect(window.locator('.mpi-toast-stack .mpi-toast', { hasText: 'not downloaded in Ollama' })).toHaveCount(0);
+
+    expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
+  } finally {
+    await closeApp(app);
+  }
+});
