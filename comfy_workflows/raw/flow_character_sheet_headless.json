@@ -1,8 +1,8 @@
 {
   "id": "b6243b17-39af-41f2-81f1-343b40e73231",
   "revision": 0,
-  "last_node_id": 900,
-  "last_link_id": 1793,
+  "last_node_id": 901,
+  "last_link_id": 1794,
   "nodes": [
     {
       "id": 900,
@@ -860,13 +860,13 @@
       "flags": {
         "collapsed": false
       },
-      "order": 86,
+      "order": 87,
       "mode": 0,
       "inputs": [
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 1793
+          "link": 1794
         }
       ],
       "outputs": [
@@ -896,6 +896,42 @@
       },
       "color": "#432",
       "bgcolor": "#653"
+    },
+    {
+      "id": 901,
+      "type": "MpiClearVram",
+      "pos": [
+        -4670.600535766388,
+        8234.0818101504
+      ],
+      "size": [
+        186.9140625,
+        26
+      ],
+      "flags": {},
+      "order": 86,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "passthrough",
+          "shape": 7,
+          "type": "*",
+          "link": 1793
+        }
+      ],
+      "outputs": [
+        {
+          "name": "passthrough",
+          "type": "*",
+          "links": [
+            1794
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiClearVram"
+      }
     }
   ],
   "links": [
@@ -1078,6 +1114,14 @@
     [
       1793,
       883,
+      0,
+      901,
+      0,
+      "*"
+    ],
+    [
+      1794,
+      901,
       0,
       882,
       0,

@@ -36,7 +36,15 @@ Umbrella: MPI-1000 (phase 3). Brief: `brief.md` (Fabio's shape, his words).
 7. Docs: `existing-flows/character-sheet.md`, `01-descriptor-and-ops.md` + `docs/flow-packages.md`
    (chain keys), `docs/agent/flows.md` only if Cosmo needs it, UNRELEASED.
 
-## Open: a MIRRORED sheet (Fabio's look, 2026-09-30)
+## Current State (2026-09-30, session 9c1e6f07)
+
+Mirrored sheet FIXED by prompt (route 1): one clause in all four `Recipe_*` texts, right after
+"unbroken frame": ", the two full-body views on the left and the portrait on the right". Bench
+evidence in validation.md § Mirrored sheet. No flip built. Fabio saw a fixed sheet in the app
+("looking good"). Then leg 2 gained `#901 MpiClearVram` before Output_Image (SAM3 was never
+released). All uncommitted. Left: Fabio's look at the toggle, then commit + CI + close.
+
+## Resolved: a MIRRORED sheet (Fabio's look, 2026-09-30)
 
 Fabio's first live run (Anime, Turbo, 1K) came out mirrored: portrait LEFT, then front, then back
 (`My Agent Tests/Media/flowCharacterSheet_004.png`, leg 1, before any head removal). Leg 2 then cut the

@@ -9,4 +9,6 @@
 - [x] Docs: existing-flows/character-sheet.md, 01-descriptor-and-ops.md, ui/result-pane.md
 - [x] UNRELEASED line
 - [x] Live: connector run into a closed project (found + fixed the dropped leg 2), toggle run in Electron
-- [ ] Fabio's look
+- [x] Mirrored sheet: layout clause up front in all four recipes (prompt route; no flip); bench-proven
+- [x] Fabio's look (2026-10-01: toggle + fixed sheet in the app, "Looking good")
+- [x] Leg 2 frees VRAM (`#901 MpiClearVram` before Output_Image)

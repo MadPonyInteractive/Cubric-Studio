@@ -145,7 +145,7 @@
   "882": {
     "inputs": {
       "images": [
-        "883",
+        "901",
         0
       ]
     },
@@ -239,6 +239,18 @@
     "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image"
+    }
+  },
+  "901": {
+    "inputs": {
+      "passthrough": [
+        "883",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "Mpi Clear Vram"
     }
   }
 }

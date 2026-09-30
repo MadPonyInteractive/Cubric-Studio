@@ -6,8 +6,7 @@
 
 **Head removal does not GENERATE anything.** It is pure compositing — two masks and a grey
 plate. If you are reading a doc, a card or a comment that says this flow inpaints, samples,
-or runs `LanPaint_KSampler`, that doc is out of date; see § History below before acting on
-it.
+or runs `LanPaint_KSampler`, that doc is out of date; see § History below before acting on it.
 
 **Two graphs since MPI-997.** `flow_character_sheet.json` draws the sheet only;
 `flow_character_sheet_headless.json` (op `flowCharacterSheetHeadless`, no model, no FlowDef) is
@@ -22,10 +21,11 @@ NEXT VERSION, the untouched sheet one step back in its history. Bench: 6 s with 
 Every recipe (`Recipe_Photoreal` #666 / `Recipe_3D` #667 / `Recipe_Anime` #668 /
 `Recipe_Cartoon` #669) asks for the same frame:
 
-> *"…three views of the same character arranged side by side in one unbroken frame… The
-> right half of the image is filled by a head and shoulders portrait… The left half holds
-> two narrow full-body standing views of equal width, one seen from the front and one from
-> directly behind… Plain smooth eighteen percent grey card seamless studio background."*
+> *"…three views of the same character arranged side by side in one unbroken frame, the two
+> full-body views on the left and the portrait on the right… The right half of the image is
+> filled by a head and shoulders portrait… The left half holds two narrow full-body standing
+> views of equal width, one seen from the front and one from directly behind… Plain smooth
+> eighteen percent grey card seamless studio background."*
 
 So the sheet divides into quarters:
 
@@ -37,6 +37,13 @@ So the sheet divides into quarters:
 
 One thing in the graph is wired to that promise and breaks silently if a recipe is ever
 reworded: the head mask's crop (below).
+
+**The left/right order lives in the FIRST sentence and must stay there** (MPI-997). Without that
+clause some characters mirrored the sheet (a cyborg: portrait LEFT on every seed, Anime 4/4, Cartoon
+2/2, turbo) and the head removal cut the portrait's face; with it, 8/8 right, Photoreal/3D unchanged.
+Order words in the left-half sentence did not fix it; listing all three panels up front did, but
+dropped a wizard's hat from the portrait on half the seeds. Flipping is no fix: [portrait|front|back]
+flipped is [back|front|portrait], so the head removal cuts the back view.
 
 **There is no longer a grey plate constant, and there must never be one again.** Until
 2026-08-28 the head hole was filled with `EmptyImage` `8421504` (`0x808080`), documented
@@ -97,7 +104,8 @@ strip needs a maths node for `W/4 − 12` and buys 10 levels.
 ```
 the FlowDef's chain, when: Input_Remove_Head
         on   -> leg 2: #883 ImageCompositeMasked(destination = #900 the sheet, source = the
-                sample, mask = #854 the grown HEAD mask) -> #882 Output_Image, a new version
+                sample, mask = #854 the grown HEAD mask) -> #901 MpiClearVram (frees SAM3,
+                ~1.9 GB, which nothing released before 2026-09-30) -> #882 Output_Image
         off  -> leg 1 only: the sheet graph's Output_Image is the sheet, UNTOUCHED
 ```
 
@@ -112,14 +120,11 @@ The gate was an `MpiIfElse` in one graph until MPI-997; `tests/flow-chain.test.c
 
 ## THE LESSON: matte what you THROW AWAY, not what you KEEP
 
-> **History as of 2026-08-28 — there is no subject matte in this flow any more.** The
-> reasoning below is kept because it is correct and reusable, and because the two failed
-> designs it describes are the ones most likely to be reinvented. It no longer describes
-> the shipped graph.
+> **History as of 2026-08-28: no subject matte in this flow any more.** Kept because it is
+> correct and reusable, and its two failed designs are the likeliest to be reinvented.
 
-The subject matte came from BiRefNet (`RemoveBackground` + `LoadBackgroundRemovalModel`)
-between 2026-08-27 and 2026-08-28, and it **shipped a defect**: a wizard's staff vanished
-from the sheet, and it read as "head removal is removing the staff".
+The subject matte (BiRefNet, 2026-08-27 to 08-28) **shipped a defect**: a wizard's staff
+vanished from the sheet, and it read as "head removal is removing the staff".
 
 It was not the head branch. BiRefNet is a **single-salient-subject** segmenter and it was
 handed a three-panel sheet; it locked onto the large right-half portrait and under-segmented
@@ -128,10 +133,8 @@ mask and `#851` painted `0x808080` over it — the same grey as the backdrop, so
 staff did not look dropped, it looked deleted on purpose.
 
 **Segmenting the subject is open-world.** "Keep the person" has to name every object that
-should survive — a staff, a cape, a satchel — and that list is different for every character,
-so it can never be a fixed widget. The first repair attempt (`person:3`) hit exactly this: it
-selected three people correctly and still dropped all three staffs, because a staff is not a
-person.
+should survive — a staff, a cape, a satchel — different for every character, so never a fixed
+widget. The first repair (`person:3`) selected three people and dropped all three staffs.
 
 **Segmenting the background is closed-world.** "Throw away the backdrop, keep the rest" needs
 no vocabulary for props at all — anything the model fails to recognise as background survives
@@ -141,8 +144,7 @@ much*, which is both visible and harmless on a flat grey card.
 Reach for this shape whenever a mask decides what SURVIVES rather than what is edited.
 
 **Diagnosing today:** with Remove Head *off* nothing is modified, so anything wrong there came
-out of the sampler, not this flow. (Toggling it off used to exonerate the head branch while an
-ungated matte kept running; that shortcut died with the gate.)
+out of the sampler, not this flow (true only since the gate; an ungated matte once kept running).
 
 ## THE OTHER LESSON: the recipes, not the graph
 
@@ -163,8 +165,7 @@ severity exactly:
 Rewriting Anime and Cartoon to use `flat` zero times, grouping the background into its own
 sentence, and asking explicitly for tonal separation from the card took Cartoon from 21.2%
 to **7.8%**. Krea 2's own research names this failure mode — *style-adjective stacking
-muddies output* — in `Cubric-Prompt/dev-docs/recipe-research/krea-2/research.md` Q4. Two
-corollaries worth keeping:
+muddies output* — in `Cubric-Prompt/dev-docs/recipe-research/krea-2/research.md` Q4. Corollaries:
 - **A photometric numeral in a prompt is not a colour control.** `eighteen percent grey`
   binds only at high step counts and leaks onto the wardrobe when it does — changing it to
   `80 percent` left the card 13 levels *lighter* and turned the robes dark.
@@ -185,9 +186,8 @@ corollaries worth keeping:
 | 2026-08-28 | **Whole-sheet matte removed entirely.** The composite is gated on `Input_Remove_Head` and fills only the head hole, with a colour **sampled from the sheet**. Backdrop is never repainted. Anime and Cartoon recipes rewritten (see § THE OTHER LESSON). |
 | **2026-09-30, MPI-997 (current)** | Same nodes, split out: the head branch is its own graph, run as the flow's chained leg 2 and landing as the card's next version. |
 
-Two rows mislead. **LanPaint** is still called current in older card records: it worked, and
-it is gone. **The SAM3 `background:3` matte** was not wrong but unnecessary: the card is
-already flat (std 2.8), so repainting it bought nothing and made every masking error visible.
+Two rows mislead. **LanPaint** is called current in older card records: it worked, and it is
+gone. **The SAM3 `background:3` matte** was unnecessary: the card is already flat (std 2.8).
 
 **`birefnet` is still a live dep — do not remove it.** `comfy_workflows/remove_background.json`
 is a separate op that uses it; leaving this graph cost one *node*, not a model on disk.

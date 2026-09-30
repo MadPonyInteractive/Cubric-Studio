@@ -53,6 +53,46 @@
 - `node --test tests/*.test.cjs`: 2582 pass, 0 fail. Lint clean. Desktop flow specs 11/12, the one red
   (`flow-enhance-writes-textarea` #1) passed 2/2 alone: a boot-timing flake.
 
+## Mirrored sheet (2026-09-30, session 9c1e6f07, G:\ComfyUi bench :8189, turbo, 1K)
+
+Fabio's case (enhanced cyborg prompt, Anime, seed 360955969) reproduced byte-for-byte on the bench:
+portrait LEFT. Same prompt, "layout right" = [front | back | portrait]:
+
+| recipe text | cyborg Anime | cyborg Cartoon | wizard Anime (hat in portrait) | Photoreal / 3D |
+|---|---|---|---|---|
+| shipped before | 0/4 | 0/2 | 4/4 (4/4) | 1/1, 1/1 |
+| V1 panels listed up front + half-sentences swapped | 7/7 | 2/2 | 2/2 (0/2) | 1/1, 1/1 |
+| V2 panels listed up front | 3/3 | - | 4/4 (2/4) | - |
+| V3 = V2 without "large" | 2/2 | - | 2/2 (0/2) | - |
+| V4 order inside the left-half sentence only | 0/2 | - | 2/2 (2/2) | - |
+| **V5 (shipped)** ", the two full-body views on the left and the portrait on the right" | **6/6** | **2/2** | **4/4 (4/4)** | 1/1, 1/1 |
+
+Seeds paired across arms (360955969, 1001-6006). Every image looked at. Then:
+- The committed graph file itself (no override) on 360955969: right layout. Leg 2 on that sheet: the
+  front body's head filled, portrait untouched (the complaint that opened this).
+- Edit is text-only: the clause inserted 4x in `flow_character_sheet.json`, 8x in raw (each text is
+  stored twice there, `widgets_values` + `widgets_values_named`); a script asserted each node's text
+  equals the tested V5 file. `validate-injection-rules.mjs` (COMFY_URL :8189): conforms.
+  `node --test` flow-model-choice, inject-params-titles, flow-chain, smoke-flows: 85 pass, 0 fail.
+- Flip fallback not built: not needed, and [portrait|front|back] flipped puts the BACK in quarter 1.
+- 55 bench generations, ~31 min of Fabio's GPU (told first); bench stopped after.
+
+## VRAM release on leg 2 (2026-09-30, Fabio: "does it have an MPI VRAM release node?")
+
+It did not, and neither did the pre-split graph: its one `MpiClearVram` (#493) ran BEFORE the
+head branch, so SAM3 was always left resident. Added `#901 MpiClearVram` between `#883` and
+`#882 Output_Image` (the pass-through, upstream of the capture title, per
+`docs/workflow-authoring/bench-editing.md`): raw by script, API by `workflow-to-api.mjs` on the
+:8189 bench + shipUploadSlots; the API diff is exactly those two nodes. Validator conforms;
+flow tests 85/85. Bench, used VRAM after one head removal: HEAD graph 1147 -> 3013 MB (SAM3
+held), new graph 1312 MB after (released). Output checked: front head filled, rest untouched.
+
+## Fabio's look (2026-10-01)
+
+His own app run: the cyborg prompt, Anime, 1K, Turbo, Headless on. Sheet laid out
+[front | back | portrait], front head removed, result-pane "Headless front body" toggle shown:
+"Looking good". The VRAM node added after needs no second look (his call: only a clear node).
+
 ## Left
 
-- Fabio's look at the toggle (shape was his call; mine was taken, see the ask in the session).
+- CI green on the commit carrying this, then the close.
