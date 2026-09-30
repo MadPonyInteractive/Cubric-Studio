@@ -19,3 +19,13 @@ Verify mode: user-ux for Phase 5 F2 only; Phases 1-4 auto (plan.md § Verificati
 - 2026-09-30 R1 core (26163994): `node --test tests/routine-runner.test.cjs tests/routine-model.test.cjs
   tests/history-completion-live-card.test.cjs` green; `npm test` (Git Bash) 2347 pass / 0 fail / 2 skipped. Not yet
   live: the runner has no renderer `deps` until the agentDispatch split + routineDispatch.js land.
+- 2026-09-30 D9 + R1 wiring (d46a8d69): `node --test tests/routine-model.test.cjs tests/routine-runner.test.cjs
+  tests/agent-pinned-settings.test.cjs tests/agent-mask-dispatch.test.cjs` 79 pass / 0 fail (D9: a legal reference +
+  `{text}` routine, 13 save refusals, a Flow-field placeholder; runner: inputs filled identically on every card with
+  the card still in the required slot, a card-id input, `INPUT_MISSING` / `INVALID_INPUT` before any queueing, quote
+  refusal; denoise forwarded). `npm test` (Git Bash) 2366 pass / 0 fail / 2 skipped. ESLint clean on the four files.
+  LIVE, own isolated app on the :48188 engine under gpu_lease (queue empty before): downscale -> klein-4b kleinEdit
+  (character card as `inputImage2`, `{mood}`) -> Scribble Flow on 2 cards = one settled stack of 2, 3 versions each,
+  `/get-project` on disk == live, input cards untouched, 71 s; the edit's sidecar holds the filled prompt ("warm
+  golden-hour") and the character as `inputImage2`. A first run stopped one card at step 1 with `ALREADY_SMALLER`
+  (D3 as designed), stack of 1.

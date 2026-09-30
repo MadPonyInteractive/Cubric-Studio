@@ -56,8 +56,10 @@ test('the placeholder matches the shape agentDispatch already builds', () => {
     // One shape, two producers. A field the grid needs that only one of them sets is
     // exactly the bug MPI-827 fixed, in the other direction. Either spelling counts —
     // agentDispatch writes `width,` shorthand off locals, flowService writes `width:`.
-    const block = (src) => src.slice(src.indexOf('placeholderGroup = {'),
-        src.indexOf('isGenerating: true,', src.indexOf('placeholderGroup = {')));
+    // agentDispatch builds it in `galleryPlaceholder`, shared with routine steps (MPI-970).
+    const start = (src) => (src.includes('export function galleryPlaceholder')
+        ? src.indexOf('export function galleryPlaceholder') : src.indexOf('placeholderGroup = {'));
+    const block = (src) => src.slice(start(src), src.indexOf('isGenerating: true,', start(src)));
     for (const key of ['id', 'type', 'name', 'history', 'selectedIndex', 'width', 'height']) {
         const has = new RegExp(`\\b${key}\\s*[:,]`);
         assert.match(block(flow), has, `flowService placeholder is missing ${key}`);

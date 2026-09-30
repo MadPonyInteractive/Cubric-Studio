@@ -255,12 +255,14 @@ export function pinnedModel() {
  * @returns {{model:object|null, project:object|null, named:object, injectionParams:object, error?:{code:string,message:string}}}
  */
 export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
-    const { modelId, ratio, qualityTier, turbo, styleSelect, stylization, duration, batch, injectionParams } = input;
+    const { modelId, ratio, qualityTier, turbo, styleSelect, stylization, duration, denoise, batch, injectionParams } = input;
     if (!pinned) {
         return {
             model: getModelById(modelId),
             project: null,
-            named: { ratio, qualityTier, turbo, styleSelect, stylization, duration, batch },
+            // `denoise` too: the connector validates it (NAMED_PARAM_KEYS), so dropping it
+            // here ran the op default while the agent said it chose a low one.
+            named: { ratio, qualityTier, turbo, styleSelect, stylization, duration, denoise, batch },
             injectionParams: injectionParams || {},
         };
     }
@@ -534,28 +536,67 @@ async function _submitGeneration(jobId, input = {}) {
     // No model and no Flow: one of the agent's image tools (MPI-904).
     if (!input.modelId) return _submitTool(jobId, input);
 
-    const {
-        modelId, operation, positive = '', negative = '', media = [], seed,
-    } = input;
-
     const target = await targetProject(input);
     if (target.error) return _fail(jobId, target.error.code, target.error.message);
     if (!target.project) {
         return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision and the request named none. Send folderPath, or create or open a project, then send this request again.');
     }
 
+    // A mask is painted on a card of the OPEN project; a run sent to another project
+    // cannot be editing that card.
+    const built = await buildGeneration(input, target.project, {
+        pinned: state.agentSettingsPinned === true,
+        painted: target.open ? activeMask() : null,
+    });
+    if (!built.ok) return _fail(jobId, built.code, built.message);
+    const { config } = built;
+
+    // A masked submit is a new version of the card the mask is painted on, and goes
+    // where a Cue press in that workspace goes — no gallery placeholder, because a
+    // `groupHistory` gen owns its own frames (MpiGroupHistoryBlock's `scope !==
+    // 'groupHistory'` guard is what draws them). Both read the OPEN project's cards, so
+    // a run sent to a closed one is always a new card.
+    const historyOpts = target.open
+        ? maskedGenerationOpts(built.maskGroupId) || workspaceGenerationOpts(config.mediaItems, config.model.mediaType || 'image')
+        : null;
+
+    return _enqueueAgentRun(jobId, input, config, target, historyOpts, built.run);
+}
+
+const _refuse = (code, message) => ({ ok: false, code, message });
+
+/**
+ * The BUILD half of a model submit (MPI-970): who owns the model and settings, whether
+ * the op is installed, the mask, the media, the seed and the named params, resolved into
+ * the config `enqueueGeneration` takes. Enqueues nothing, so a routine step builds through
+ * the same checks as the agent's submit; a routine passes no pin and no mask, and runs on
+ * the model and settings it saved.
+ *
+ * @param {object} input - the `generation.submit` body, or a filled routine step + its media
+ * @param {object} project - where the card lands (`_originProject`): the LIVE open project,
+ *   or a closed one's record
+ * @param {{pinned?: boolean, painted?: object|null}} [ctx] - the settings pin, and the mask
+ *   painted on the open project right now
+ * @returns {Promise<{ok: true, config: object, maskGroupId: string|null,
+ *   run: {width: number, height: number, batchSize: number, duration: object|null}}
+ *   |{ok: false, code: string, message: string}>}
+ */
+export async function buildGeneration(input, project, { pinned = false, painted = null } = {}) {
+    const {
+        modelId, operation, positive = '', negative = '', media = [], seed,
+    } = input;
+
     // Who owns the model and the settings — see resolveSettingsOwner. `owner.project` is
     // NOT always state.currentProject: unpinned it is null on purpose, so the resolve
     // below lands on model defaults instead of the project's saved bucket.
-    const pinned = state.agentSettingsPinned === true;
     const owner = resolveSettingsOwner(input, pinned, state.currentProject, pinned ? pinnedModel() : null);
     if (owner.error) {
-        return _fail(jobId, owner.error.code, owner.error.message);
+        return _refuse(owner.error.code, owner.error.message);
     }
 
     const model = owner.model;
     if (!model) {
-        return _fail(jobId, 'UNKNOWN_MODEL', `No model with id "${modelId}".`);
+        return _refuse('UNKNOWN_MODEL', `No model with id "${modelId}".`);
     }
 
     // Covers BOTH halves in one call: the op must be in supportedOps and its
@@ -565,30 +606,27 @@ async function _submitGeneration(jobId, input = {}) {
         // While pinned the agent cannot answer this by switching models, so the refusal
         // says what it CAN do instead: tell the user (Fabio's own example — "that makes
         // video, it doesn't make images, you need to select another model").
-        return _fail(jobId, 'OP_UNAVAILABLE', pinned
+        return _refuse('OP_UNAVAILABLE', pinned
             ? `"${operation}" is not available on ${model.name || model.id} — unsupported, or its weights are not installed. The user has the settings panel open, so that model is theirs and you cannot change it: tell them this model cannot do it and ask them to select one that can - or to close the settings panel, and you will pick the model.`
             : `"${operation}" is not available on ${model.name || modelId} — unsupported, or its weights are not installed.`);
     }
 
-    // A mask is painted on a card of the OPEN project; a run sent to another project
-    // cannot be editing that card.
-    const painted = target.open ? activeMask() : null;
     const areas = painted && ONE_AREA_OPS.has(operation) ? await _maskAreas(painted.dataUrl) : null;
     const mask = resolveMask(operation, painted, areas);
     if (mask.error) {
-        return _fail(jobId, mask.error.code, mask.error.message);
+        return _refuse(mask.error.code, mask.error.message);
     }
 
     // MPI-765: media by reference, resolved exactly as the Flow branch resolves it.
     // Checked here for the same reason as the op: the enqueue guard's refusal is a toast.
     const resolvedMedia = resolveAgentMedia(operation, model, media);
     if (!resolvedMedia.ok) {
-        return _fail(jobId, resolvedMedia.code, resolvedMedia.message);
+        return _refuse(resolvedMedia.code, resolvedMedia.message);
     }
     const mediaItems = bindMaskedSource(resolvedMedia.mediaItems, mask.maskUrl);
 
     if (seed !== undefined && !isValidSeed(seed)) {
-        return _fail(jobId, 'INVALID_SEED', 'seed must be an integer between 0 and 4294967295.');
+        return _refuse('INVALID_SEED', 'seed must be an integer between 0 and 4294967295.');
     }
 
     // MPI-547 — the v1 named params (ratio/qualityTier/turbo/styleSelect/stylization/
@@ -602,7 +640,7 @@ async function _submitGeneration(jobId, input = {}) {
     // whole point rather than a detail.
     const named = resolveNamedParams(owner.project, model, operation, owner.named);
     if (!named.ok) {
-        return _fail(jobId, named.code, named.message);
+        return _refuse(named.code, named.message);
     }
     _logNamedParamProvenance(model, operation, named.provenance);
 
@@ -626,21 +664,15 @@ async function _submitGeneration(jobId, input = {}) {
         byAgent: true,
         // MPI-873: where the card lands. The open project is the object enqueue would
         // freeze anyway; a closed one gets its card registered server-side.
-        _originProject: target.project,
+        _originProject: project,
     };
 
-    // A masked submit is a new version of the card the mask is painted on, and goes
-    // where a Cue press in that workspace goes — no gallery placeholder, because a
-    // `groupHistory` gen owns its own frames (MpiGroupHistoryBlock's `scope !==
-    // 'groupHistory'` guard is what draws them). Both read the OPEN project's cards, so
-    // a run sent to a closed one is always a new card.
-    const historyOpts = target.open
-        ? maskedGenerationOpts(mask.maskGroupId) || workspaceGenerationOpts(mediaItems, model.mediaType || 'image')
-        : null;
-
-    return _enqueueAgentRun(jobId, input, config, target, historyOpts, {
-        width, height, batchSize: Number(mergedInjection.Input_Batch_Size) || 1, duration: named.duration,
-    });
+    return {
+        ok: true,
+        config,
+        maskGroupId: mask.maskGroupId,
+        run: { width, height, batchSize: Number(mergedInjection.Input_Batch_Size) || 1, duration: named.duration },
+    };
 }
 
 /**
@@ -650,18 +682,36 @@ async function _submitGeneration(jobId, input = {}) {
  * card entry gets the result as its next entry, exactly as a model edit does.
  */
 async function _submitTool(jobId, input = {}) {
-    const { operation, fields = {}, media = [] } = input;
-    if (!agentToolOp(operation)) {
-        return _fail(jobId, 'UNKNOWN_OPERATION', `"${operation}" needs a modelId. With no model, operation must be one of: ${AGENT_TOOL_OPS.map(t => t.op).join(', ')}.`);
+    if (!agentToolOp(input.operation)) {
+        return _fail(jobId, 'UNKNOWN_OPERATION', `"${input.operation}" needs a modelId. With no model, operation must be one of: ${AGENT_TOOL_OPS.map(t => t.op).join(', ')}.`);
     }
     const target = await targetProject(input);
     if (target.error) return _fail(jobId, target.error.code, target.error.message);
     if (!target.project) {
         return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision and the request named none. Send folderPath, or create or open a project, then send this request again.');
     }
+    const built = await buildTool(input, target.project);
+    if (!built.ok) return _fail(jobId, built.code, built.message);
+    const historyOpts = target.open ? workspaceGenerationOpts(built.config.mediaItems, 'image') : null;
+    return _enqueueAgentRun(jobId, input, built.config, target, historyOpts);
+}
+
+/**
+ * The BUILD half of a tool submit (MPI-970), shared with a routine's tool step: the
+ * universal op and its params, resolved into an `enqueueGeneration` config.
+ *
+ * @param {{operation: string, fields?: object, media?: Array}} input
+ * @param {object} project - where the card lands (`_originProject`)
+ * @returns {Promise<{ok: true, config: object}|{ok: false, code: string, message: string}>}
+ */
+export async function buildTool(input, project) {
+    const { operation, fields = {}, media = [] } = input;
+    if (!agentToolOp(operation)) {
+        return _refuse('UNKNOWN_OPERATION', `"${operation}" is not one of: ${AGENT_TOOL_OPS.map(t => t.op).join(', ')}.`);
+    }
     const model = { id: null, mediaType: 'image' };
     const resolved = resolveAgentMedia(toolOperation(operation), model, media);
-    if (!resolved.ok) return _fail(jobId, resolved.code, resolved.message);
+    if (!resolved.ok) return _refuse(resolved.code, resolved.message);
 
     // ponytail: decodes the picture for its size (crop, downscale); read the entry's
     // pixelDimensions instead if one over hundreds of 16K photos proves slow.
@@ -670,20 +720,39 @@ async function _submitTool(jobId, input = {}) {
         try { natural = await _naturalSize(resolved.mediaItems[0].url); } catch { /* toolRun refuses it */ }
     }
     const run = toolRun(operation, fields, natural);
-    if (!run.ok) return _fail(jobId, run.code, run.message);
+    if (!run.ok) return _refuse(run.code, run.message);
 
-    const config = {
-        operation: run.operation,
-        model,
-        positive: '',
-        negative: '',
-        mediaItems: resolved.mediaItems,
-        injectionParams: run.injectionParams,
-        byAgent: true,
-        _originProject: target.project,
+    return {
+        ok: true,
+        config: {
+            operation: run.operation,
+            model,
+            positive: '',
+            negative: '',
+            mediaItems: resolved.mediaItems,
+            injectionParams: run.injectionParams,
+            byAgent: true,
+            _originProject: project,
+        },
     };
-    const historyOpts = target.open ? workspaceGenerationOpts(resolved.mediaItems, 'image') : null;
-    return _enqueueAgentRun(jobId, input, config, target, historyOpts);
+}
+
+/**
+ * The in-progress card a gallery gen draws until its result lands; its id is the gen's
+ * `tempId`. Same shape the Cue path builds; `Generating...` is the name the grid renders
+ * while `isGenerating` is true.
+ */
+export function galleryPlaceholder(type, width = 0, height = 0) {
+    return {
+        id: crypto.randomUUID(),
+        type,
+        name: 'Generating...',
+        history: [],
+        selectedIndex: 0,
+        width,
+        height,
+        isGenerating: true,
+    };
 }
 
 /**
@@ -698,19 +767,9 @@ function _enqueueAgentRun(jobId, input, config, target, historyOpts, { width = 0
     // tempId (preview:frame -> activeGenerations.byPromptId -> entry.tempId).
     // Without them an agent submit ran for its full duration behind an empty
     // gallery, then the card appeared at the end — the Cue panel was the only
-    // sign anything was happening. Same shape the Cue path builds; `Generating...`
-    // is the name the grid renders while `isGenerating` is true.
-    const tempId = crypto.randomUUID();
-    const placeholderGroup = {
-        id: tempId,
-        type: model.mediaType || 'image',
-        name: 'Generating...',
-        history: [],
-        selectedIndex: 0,
-        width,
-        height,
-        isGenerating: true,
-    };
+    // sign anything was happening.
+    const placeholderGroup = galleryPlaceholder(model.mediaType || 'image', width, height);
+    const tempId = placeholderGroup.id;
     // A batch draws one card per image up front (MPI-876), the same shape the gallery's
     // own Cue builds (MpiGalleryBlock `_galleryGenerationOptions`).
     const extraTempIds = Array.from({ length: Math.max(1, batchSize) - 1 }, () => crypto.randomUUID());
@@ -926,17 +985,53 @@ function _nextPassFor(plan, mediaItems, source, project) {
 }
 
 async function _submitFlow(jobId, input = {}) {
-    const { flowId, fields = {}, media = [], params = {} } = input;
-
     const target = await targetProject(input);
     if (target.error) return _fail(jobId, target.error.code, target.error.message);
     if (!target.project) {
         return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision and the request named none. Send folderPath, or create or open a project, then send this request again.');
     }
+    const built = await buildFlow(input, target.project);
+    if (!built.ok) return _fail(jobId, built.code, built.message);
+
+    // A Flow always lands in the gallery (Fabio, 2026-09-22), so that is where it is watched,
+    // unless it lands in a project the user does not have open.
+    if (target.open) _followWork(input, null);
+    const queued = submitFlowGeneration(built.flow, built.inputs, {
+        onComplete: (done) => _reportDone(jobId, done, input.cardName, null, null, target.open ? null : target.project),
+        onText: (text) => _report(jobId, { ok: true, output: { text } }),
+        // A cloud failure names itself (MPI-869: e.g. LOW_BALANCE with the cost and what
+        // is left), so the agent can tell the user why; anything else stays generic.
+        onError: (err) => _fail(jobId, err?.code || 'RUNTIME_ERROR',
+            err?.userMessage || 'The generation failed. See the app log for the cause.'),
+        onCancel: () => _fail(jobId, 'CANCELLED',
+            'The generation was cancelled or produced no output.'),
+    });
+
+    if (!queued) {
+        return _fail(jobId, 'REJECTED', 'Vision rejected the job before it entered the queue.');
+    }
+    // ponytail: a two-leg flow's second leg enqueues under a NEW queue id, so a cancel that
+    // arrives during leg 2 answers NOT_IN_FLIGHT. Thread the leg's id back if that bites.
+    if (!_settled.has(jobId)) _queueJobs.set(jobId, queued.queueJobId);
+    return null;
+}
+
+/**
+ * The BUILD half of a Flow submit (MPI-970), shared with a routine's Flow step: the Flow,
+ * its installed check, media, box params, the frame and the declared fields, resolved into
+ * the inputs `submitFlowGeneration` takes. Enqueues nothing; a frame's padded picture IS
+ * stored in the project here, since the run needs it as a file.
+ *
+ * @param {{flowId: string, fields?: object, media?: Array, params?: object}} input
+ * @param {object} project - where the card lands (`runOriginProject`)
+ * @returns {Promise<{ok: true, flow: object, inputs: object}|{ok: false, code: string, message: string}>}
+ */
+export async function buildFlow(input, project) {
+    const { flowId, fields = {}, media = [], params = {} } = input;
 
     const flow = getFlowById(flowId);
     if (!flow) {
-        return _fail(jobId, 'UNKNOWN_FLOW', `No flow with id "${flowId}".`);
+        return _refuse('UNKNOWN_FLOW', `No flow with id "${flowId}".`);
     }
 
     // submitFlowGeneration pre-flights this itself, but it reports through a TOAST
@@ -945,7 +1040,7 @@ async function _submitFlow(jobId, input = {}) {
     const availability = flowAvailability(flow);
     if (!availability.available) {
         const absent = [...(availability.missing || []), ...(availability.missingDeps || [])];
-        return _fail(jobId, 'OP_UNAVAILABLE',
+        return _refuse('OP_UNAVAILABLE',
             `${flow.title} is not installed — missing: ${absent.join(', ') || 'required files'}.`);
     }
 
@@ -953,7 +1048,7 @@ async function _submitFlow(jobId, input = {}) {
     // branches (generationControls.js § resolveAgentMedia).
     const resolvedMedia = resolveAgentMedia(flow.operation, null, media);
     if (!resolvedMedia.ok) {
-        return _fail(jobId, resolvedMedia.code, resolvedMedia.message);
+        return _refuse(resolvedMedia.code, resolvedMedia.message);
     }
     const { mediaItems } = resolvedMedia;
 
@@ -964,7 +1059,7 @@ async function _submitFlow(jobId, input = {}) {
     // back a SUCCESS with no output.
     const missingSlot = findMissingMediaSlot(flow.operation, mediaItems);
     if (missingSlot) {
-        return _fail(jobId, 'MEDIA_REQUIRED',
+        return _refuse('MEDIA_REQUIRED',
             `${flow.title} needs ${missingSlot.mediaType} in its "${missingSlot.key}" slot.`);
     }
 
@@ -974,7 +1069,7 @@ async function _submitFlow(jobId, input = {}) {
     // step declares `overflow: 'allow'` or image dimensions are unavailable.
     const boxParamValidation = validateBoxParams(flow, params);
     if (!boxParamValidation.ok) {
-        return _fail(jobId, boxParamValidation.code, boxParamValidation.message);
+        return _refuse(boxParamValidation.code, boxParamValidation.message);
     }
 
     // ── The frame (MPI-817) ───────────────────────────────────────────────────
@@ -997,14 +1092,14 @@ async function _submitFlow(jobId, input = {}) {
         const label = params.frame?.ratio;
         const ratio = _cropRatioValue(label);
         if (!ratio) {
-            return _fail(jobId, 'FRAME_REQUIRED',
+            return _refuse('FRAME_REQUIRED',
                 `Nothing was generated: ${flow.title} grows a picture past its edges, so it needs the shape you want it to become — ${label ? `"${label}" is not one it offers` : 'your call passed none'}. Send it again with params: { frame: { ratio: "<one of these>" } }, plus grow: "up", "down", "left" or "right" when the new room goes on one side only: ${CROP_RATIO_LABELS.join(', ')}.`);
         }
 
         const grow = params.frame?.grow; // a side, or absent: validateBoxParams checked it
         const source = mediaItems.find(m => m?.role === cropStep.role);
         if (!source?.url) {
-            return _fail(jobId, 'MEDIA_REQUIRED',
+            return _refuse('MEDIA_REQUIRED',
                 `${flow.title} needs an image in its "${cropStep.role}" slot to grow.`);
         }
 
@@ -1014,7 +1109,7 @@ async function _submitFlow(jobId, input = {}) {
             const rect = frameRectForRatio(natural, ratio, grow);
             if (!rect) {
                 const taller = ratio < natural.w / natural.h;
-                return _fail(jobId, 'FRAME_DIRECTION',
+                return _refuse('FRAME_DIRECTION',
                     `Nothing was generated: ${label} makes this ${natural.w}x${natural.h} picture ${taller ? 'TALLER, so it grows up or down' : 'WIDER, so it grows left or right'}, never ${grow}. Pick a ${taller ? 'wider' : 'taller'} shape to grow ${grow}, or grow ${taller ? '"up" or "down"' : '"left" or "right"'}.`);
             }
             // More than one pass holds (MPI-900): pass 1 runs at the first capped frame and
@@ -1025,16 +1120,16 @@ async function _submitFlow(jobId, input = {}) {
             // to hand back a re-render of what the user already has.
             const file = await stepValueToMedia(cropStep.kind, { crop: passPlan ? passPlan[0] : rect }, source, cropStep, null);
             if (!file) {
-                return _fail(jobId, 'FRAME_UNCHANGED',
+                return _refuse('FRAME_UNCHANGED',
                     `Nothing was generated: that picture is already ${label} (${natural.w}x${natural.h}), so there is nothing to grow. Pick a different shape, or tell the user it is already the one they asked for.`);
             }
-            padded = await _placePreviewAsset(file, target.project);
+            padded = await _placePreviewAsset(file, project);
         } catch (err) {
             clientLogger.error('connector', 'agent frame derivation failed', err);
-            return _fail(jobId, 'RUNTIME_ERROR', `The frame could not be built: ${err.message}`);
+            return _refuse('RUNTIME_ERROR', `The frame could not be built: ${err.message}`);
         }
         if (!padded) {
-            return _fail(jobId, 'RUNTIME_ERROR', 'The framed image could not be stored in the project.');
+            return _refuse('RUNTIME_ERROR', 'The framed image could not be stored in the project.');
         }
         // A padded picture REPLACES the picture it padded (stepKinds.js § STEP_MEDIA);
         // `crop` is deliberately not one of the kinds that delivers to a second role.
@@ -1046,7 +1141,7 @@ async function _submitFlow(jobId, input = {}) {
     const { inputs, injectionParams: fieldInjection, unknown } = resolveFlowFieldValues(flow, fields);
     if (unknown.length) {
         const known = flowDeclaredFields(flow).map(f => f.id).join(', ');
-        return _fail(jobId, 'BAD_REQUEST',
+        return _refuse('BAD_REQUEST',
             `${flow.title} declares no field ${unknown.map(k => `"${k}"`).join(', ')}. Fields: ${known || 'none'}.`);
     }
 
@@ -1070,33 +1165,17 @@ async function _submitFlow(jobId, input = {}) {
 
     const injectionParams = { ...fieldInjection, ...boxInjection };
 
-    // A Flow always lands in the gallery (Fabio, 2026-09-22), so that is where it is watched,
-    // unless it lands in a project the user does not have open.
-    if (target.open) _followWork(input, null);
-    const queued = submitFlowGeneration(flow, {
-        ...inputs,
-        mediaItems,
-        ...(Object.keys(injectionParams).length ? { injectionParams } : {}),
-        ...(passPlan ? { runNextPass: _nextPassFor(passPlan, mediaItems, cropSource, target.project) } : {}),
-        runOriginProject: target.project,
-    }, {
-        onComplete: (done) => _reportDone(jobId, done, input.cardName, null, null, target.open ? null : target.project),
-        onText: (text) => _report(jobId, { ok: true, output: { text } }),
-        // A cloud failure names itself (MPI-869: e.g. LOW_BALANCE with the cost and what
-        // is left), so the agent can tell the user why; anything else stays generic.
-        onError: (err) => _fail(jobId, err?.code || 'RUNTIME_ERROR',
-            err?.userMessage || 'The generation failed. See the app log for the cause.'),
-        onCancel: () => _fail(jobId, 'CANCELLED',
-            'The generation was cancelled or produced no output.'),
-    });
-
-    if (!queued) {
-        return _fail(jobId, 'REJECTED', 'Vision rejected the job before it entered the queue.');
-    }
-    // ponytail: a two-leg flow's second leg enqueues under a NEW queue id, so a cancel that
-    // arrives during leg 2 answers NOT_IN_FLIGHT. Thread the leg's id back if that bites.
-    if (!_settled.has(jobId)) _queueJobs.set(jobId, queued.queueJobId);
-    return null;
+    return {
+        ok: true,
+        flow,
+        inputs: {
+            ...inputs,
+            mediaItems,
+            ...(Object.keys(injectionParams).length ? { injectionParams } : {}),
+            ...(passPlan ? { runNextPass: _nextPassFor(passPlan, mediaItems, cropSource, project) } : {}),
+            runOriginProject: project,
+        },
+    };
 }
 
 /**

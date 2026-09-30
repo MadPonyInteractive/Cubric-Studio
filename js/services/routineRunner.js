@@ -4,7 +4,9 @@
  * Each input card runs the whole chain on its own: step 1 makes a NEW card (the input card
  * is never versioned, D2), every later step lands as that card's next History version,
  * and N cards finish as ONE new stack (one card in -> one new card out, no stack). Every
- * step runs on the previous step's result (D1). A step that fails or is cancelled stops
+ * step runs on the previous step's result (D1), plus the run's inputs (D9): the same
+ * picture in a reference slot, or the same words in a `{id}`, for every card and every
+ * step of the run. A step that fails or is cancelled stops
  * THAT card's chain; its card keeps the versions already made and the other cards carry
  * on (D3). Each card's chain is sequential; cards run side by side through the normal
  * lanes (D4).
@@ -28,21 +30,76 @@
  * @property {function(Object, {url: string, mediaType: string}, Object, Object):
  *   Promise<{ok: true, done: Promise<Object>}|{ok: false, code: string, message: string}>} submit -
  *   builds and ENQUEUES one step on one input; `ok` once queued, `done` settles with
- *   `{ ok: true, item, group }` or `{ ok: false, code, message }`. The landing (3rd arg) is
- *   the run's shared queue opts, plus `existingGroup` for a later step.
+ *   `{ ok: true, item, group }` or `{ ok: false, code, message }`. The step arrives with its
+ *   run inputs filled: `{id}` replaced in its texts, and `media` = `[{ role, url }]`, the
+ *   reference slots only; the input (2nd arg) goes in the op's one required slot. The
+ *   landing (3rd arg) is the run's shared queue opts, plus `existingGroup` for a later step.
  * @property {function(Object, Object): Promise<void>} addStack - adds the result stack
  *   `{ id, name, kind, expected }` to the project
  * @property {function(): string} newId
  */
 
-import { validateRoutine } from '../data/routineModel.js';
+import { validateRoutine, ROUTINE_PLACEHOLDER } from '../data/routineModel.js';
+import { isImageFile, isVideoFile, isAudioFile } from '../utils/file.js';
 
 const _fail = (code, message, extra = {}) => ({ ok: false, code, message, ...extra });
+
+const _A_KIND = { image: 'a picture', video: 'a video', audio: 'a sound', text: 'words' };
 
 /** The file a card feeds step 1: its selected version, as a stack run feeds it. */
 function _cardInput(group) {
     const item = group?.history?.[group.selectedIndex ?? 0];
     return item?.filePath ? { url: item.filePath, mediaType: item.type || group.type } : null;
+}
+
+/** The run inputs the caller left out, as refusal-ready `{ id, kind, label }`s. */
+function _inputsMissing(routine, given) {
+    return (routine.inputs || []).filter(i => {
+        const v = given?.[i.id];
+        return v === undefined || v === null || (typeof v === 'string' && !v.trim());
+    });
+}
+
+function _refuseMissing(missing) {
+    const names = missing.map(i => `"${i.id}" (${i.label || _A_KIND[i.kind]})`).join(', ');
+    return _fail('INPUT_MISSING', `Nothing was run: this routine needs ${names} for this run. Ask the user, then run it again with inputs.`,
+        { missing: missing.map(i => i.id) });
+}
+
+/**
+ * Every run input resolved ONCE for the whole run (D9): text as given, a media input as
+ * one card of this project (its selected version) or one file, of the input's kind.
+ */
+function _resolveInputs(routine, given, project) {
+    const missing = _inputsMissing(routine, given);
+    if (missing.length) return _refuseMissing(missing);
+    const values = {};
+    for (const inp of routine.inputs || []) {
+        const v = given[inp.id];
+        if (typeof v !== 'string') {
+            return _fail('INVALID_INPUT', `Nothing was run: input "${inp.id}" takes ${_A_KIND[inp.kind]}, given as ${inp.kind === 'text' ? 'text' : 'ONE card id or file path'}.`);
+        }
+        if (inp.kind === 'text') { values[inp.id] = v; continue; }
+        const group = (project.itemGroups || []).find(g => g.id === v);
+        const media = group
+            ? _cardInput(group)
+            : { url: v, mediaType: isVideoFile(v) ? 'video' : isAudioFile(v) ? 'audio' : isImageFile(v) ? 'image' : null };
+        if (media?.mediaType !== inp.kind) {
+            return _fail('INVALID_INPUT', `Nothing was run: input "${inp.id}" takes ${_A_KIND[inp.kind]}, and "${v}" is not ${_A_KIND[inp.kind]} card of this project or ${_A_KIND[inp.kind]} file.`);
+        }
+        values[inp.id] = media;
+    }
+    return { ok: true, values };
+}
+
+/** A step with the run's inputs filled in, as `submit` takes it. */
+function _fillStep(step, values) {
+    const fill = s => (typeof s === 'string' ? s.replace(ROUTINE_PLACEHOLDER, (_, id) => values[id]) : s);
+    const out = { ...step };
+    for (const k of ['positive', 'negative']) if (k in out) out[k] = fill(out[k]);
+    if (out.fields) out.fields = Object.fromEntries(Object.entries(out.fields).map(([k, v]) => [k, fill(v)]));
+    if (out.media) out.media = out.media.map(m => ({ role: m.role, url: values[m.input].url }));
+    return out;
 }
 
 /** Every missing model or Flow the routine names, once each. */
@@ -53,13 +110,16 @@ function _missing(routine, deps) {
 /**
  * What running the routine on `cardCount` cards needs and costs, dispatching nothing.
  * `usd` is null when a billed step cannot be priced — still `billed`, so the spend is
- * asked about in words rather than skipped.
+ * asked about in words rather than skipped. A run input left out of `inputs` refuses
+ * here (`INPUT_MISSING`), so the user is never asked to pay for a run that cannot start.
  *
  * @returns {{ok: true, missing: string[], billed: boolean, usd: number|null}|{ok: false, code: string, message: string}}
  */
-export function quoteRoutine(routine, cardCount, deps) {
+export function quoteRoutine(routine, cardCount, deps, inputs = {}) {
     const v = validateRoutine(routine, deps.lookups);
     if (!v.ok) return v;
+    const missingInputs = _inputsMissing(v.routine, inputs);
+    if (missingInputs.length) return _refuseMissing(missingInputs);
     const runs = Math.max(1, Math.round(Number(cardCount) || 1));
     let billed = false;
     let usd = 0;
@@ -81,14 +141,14 @@ export function quoteRoutine(routine, cardCount, deps) {
  *
  * @param {Object} routine - a saved routine (`cubric/routine/v1`)
  * @param {string[]} cardIds - input card ids, in the order the results should stack
- * @param {{projectFolder: string}} opts
+ * @param {{projectFolder: string, inputs?: Object<string, string>}} opts - `inputs` fills
+ *   the routine's declared inputs: `{ <id>: <card id or file path> | <text> }`
  * @param {RoutineDeps} deps
  */
-export async function runRoutine(routine, cardIds, { projectFolder }, deps) {
+export async function runRoutine(routine, cardIds, { projectFolder, inputs: given = {} }, deps) {
     // Re-validated here, not only at save: a model update can make a saved setting illegal.
     const v = validateRoutine(routine, deps.lookups);
     if (!v.ok) return v;
-    const { steps } = v.routine;
 
     const missing = _missing(v.routine, deps);
     if (missing.length) {
@@ -99,6 +159,10 @@ export async function runRoutine(routine, cardIds, { projectFolder }, deps) {
 
     let project = await deps.readProject(projectFolder);
     if (!project) return _fail('PROJECT_NOT_FOUND', `Nothing was run: no project at "${projectFolder}".`);
+
+    const resolved = _resolveInputs(v.routine, given, project);
+    if (!resolved.ok) return resolved;
+    const steps = v.routine.steps.map(s => _fillStep(s, resolved.values));
 
     // Every card is checked before anything runs, so a bad card never leaves half a run.
     const inputs = [];
@@ -113,7 +177,8 @@ export async function runRoutine(routine, cardIds, { projectFolder }, deps) {
     }
 
     const runId = deps.newId();
-    const stackId = ids.length > 1 ? deps.newId() : null;
+    // A stack holds pictures or videos (stackModel's STACKABLE_KINDS): sound results stay loose.
+    const stackId = ids.length > 1 && (v.outputKind === 'image' || v.outputKind === 'video') ? deps.newId() : null;
     // On every step, not only step 1: it groups the run in the queue, and `stackId` keeps
     // a job live for the stack settle until the last step of the last card.
     const shared = { batchId: runId, batchLabel: routine.name, batchTotal: ids.length, ...(stackId ? { stackId } : {}) };

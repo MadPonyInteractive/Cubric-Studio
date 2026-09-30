@@ -37,7 +37,7 @@ test('the registry still carries the models these tests name', () => {
 // ── Cog shut: the agent drives, from MODEL DEFAULTS ───────────────────────────
 
 test('unpinned: the agent keeps its model and its params, and the project is dropped', () => {
-    const input = { modelId: KREA.id, ratio: '16:9', qualityTier: '1k', turbo: true };
+    const input = { modelId: KREA.id, ratio: '16:9', qualityTier: '1k', turbo: true, denoise: 0.35 };
     const owner = resolveSettingsOwner(input, false, PROJECT, null);
     assert.equal(owner.error, undefined);
     assert.equal(owner.model.id, KREA.id);
@@ -46,6 +46,9 @@ test('unpinned: the agent keeps its model and its params, and the project is dro
     assert.equal(owner.named.ratio, '16:9');
     assert.equal(owner.named.qualityTier, '1k');
     assert.equal(owner.named.turbo, true);
+    // MPI-970: the connector accepts denoise, so the gate must pass it on, or the op
+    // default runs while the agent reports the value it chose.
+    assert.equal(owner.named.denoise, 0.35);
 });
 
 // ── Cog open: the user drives ─────────────────────────────────────────────────

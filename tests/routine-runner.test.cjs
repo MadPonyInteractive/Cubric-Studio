@@ -49,7 +49,7 @@ function fakeApp({ fail = () => null, check = () => null, price = () => ({ bille
         readProject: async () => project,
         addStack: async (stack) => { log.push({ stack, afterCalls: calls.length }); },
         submit: async (step, input, landing) => {
-            const call = { i: calls.length, step: label(step), input: input.url, landing, into: landing.existingGroup?.id ?? null };
+            const call = { i: calls.length, step: label(step), sent: step, input: input.url, landing, into: landing.existingGroup?.id ?? null };
             calls.push(call);
             const refused = fail(call, 'submit');
             if (refused) return refused;
@@ -193,4 +193,54 @@ test('quoteRoutine: the price is steps x cards, unknowable stays billed, missing
     const unknown = fakeApp({ price: (s) => (s.modelId ? { billed: true, usd: null } : { billed: false, usd: null }) });
     assert.deepStrictEqual(quoteRoutine(routine(THREE), 2, unknown.deps), { ok: true, missing: [], billed: true, usd: null });
     assert.deepStrictEqual(quoteRoutine(routine(THREE), 2, fakeApp().deps), { ok: true, missing: [], billed: false, usd: 0 });
+});
+
+// ── Run inputs (D9) ───────────────────────────────────────────────────────────
+
+/** "Place this character in each scene": the scene card is edited, the character is the reference. */
+const PLACE = {
+    ...routine([
+        { operation: 'imageUpscale' },
+        { modelId: 'klein-4b', operation: 'kleinEdit', positive: 'the person from picture 2 here, {mood} light',
+            media: [{ role: 'inputImage2', input: 'character' }] },
+    ]),
+    inputs: [{ id: 'character', kind: 'image', label: 'the person to place' }, { id: 'mood', kind: 'text' }],
+};
+
+test('D9: the run inputs reach every card\'s step, filled the same, the card still in the required slot', async () => {
+    const app = fakeApp();
+    const run = await runRoutine(PLACE, ['A', 'B'], { projectFolder: 'C:/p', inputs: { character: 'C:/p/hero.png', mood: 'warm' } }, app.deps);
+    assert.strictEqual(run.ok, true, run.message);
+    await run.finished;
+    const edits = app.calls.filter(c => c.step === 'klein-4b/kleinEdit');
+    assert.strictEqual(edits.length, 2);
+    for (const c of edits) {
+        assert.deepStrictEqual(c.sent.media, [{ role: 'inputImage2', url: 'C:/p/hero.png' }], 'the reference is the run input, as a url');
+        assert.strictEqual(c.sent.positive, 'the person from picture 2 here, warm light');
+        assert.match(c.input, /^C:\/p\/out\d\.png$/, 'the chained result is still the input');
+    }
+    assert.strictEqual(PLACE.steps[1].positive.includes('{mood}'), true, 'the saved routine is never rewritten');
+
+    const byCard = fakeApp();
+    const r2 = await runRoutine(PLACE, ['A'], { projectFolder: 'C:/p', inputs: { character: 'B', mood: 'cold' } }, byCard.deps);
+    await r2.finished;
+    assert.deepStrictEqual(byCard.calls[1].sent.media, [{ role: 'inputImage2', url: 'C:/p/b.png' }], 'a card id resolves to its selected file');
+});
+
+test('D9: a missing or wrong run input refuses before anything is queued, and the quote refuses too', async () => {
+    const app = fakeApp();
+    const none = await runRoutine(PLACE, ['A'], { projectFolder: 'C:/p' }, app.deps);
+    assert.deepStrictEqual([none.code, none.missing], ['INPUT_MISSING', ['character', 'mood']]);
+    assert.match(none.message, /the person to place/);
+    const blank = await runRoutine(PLACE, ['A'], { projectFolder: 'C:/p', inputs: { character: 'B', mood: '  ' } }, app.deps);
+    assert.deepStrictEqual(blank.missing, ['mood']);
+
+    for (const character of ['V', ['A', 'B'], 'nope', 'C:/p/voice.wav']) {
+        const r = await runRoutine(PLACE, ['A'], { projectFolder: 'C:/p', inputs: { character, mood: 'warm' } }, app.deps);
+        assert.strictEqual(r.code, 'INVALID_INPUT', `${JSON.stringify(character)} is not one picture`);
+    }
+    assert.strictEqual(app.calls.length, 0, 'nothing may be queued');
+
+    assert.strictEqual(quoteRoutine(PLACE, 2, app.deps).code, 'INPUT_MISSING', 'never ask to pay for a run that cannot start');
+    assert.strictEqual(quoteRoutine(PLACE, 2, app.deps, { character: 'B', mood: 'warm' }).ok, true);
 });

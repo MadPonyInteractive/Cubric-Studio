@@ -195,8 +195,8 @@ test('10 steps is the maximum and must be accepted', async () => {
     assert.strictEqual(v.ok, true, `exactly 10 steps must be valid; got ${v.code}: ${v.message}`);
 });
 
-test('STEP_HAS_MEDIA — step with media field', async () => {
-    const r = normalizeRoutine(raw([{ operation: 'imageUpscale', media: [] }]));
+test('STEP_HAS_MEDIA — step with a fixed file in media', async () => {
+    const r = normalizeRoutine(raw([{ modelId: 'klein-4b', operation: 'kleinEdit', media: [{ role: 'inputImage2', url: 'C:/p/ref.png' }] }]));
     const v = validateRoutine(r, lookups);
     assert.strictEqual(v.ok, false);
     assert.strictEqual(v.code, 'STEP_HAS_MEDIA');
@@ -314,4 +314,56 @@ test('routineSummary works on a flow step', async () => {
     const r = normalizeRoutine(raw([flowStep('scribble')]));
     const s = routineSummary(r);
     assert.ok(s.includes('scribble'), 'must include flow id');
+});
+
+// ── Run inputs (D9) ───────────────────────────────────────────────────────────
+
+/** Klein Edit with the card in its edited-picture slot and a run input as the reference. */
+const placeStep = (extra = {}) => modelStep('klein-4b', 'kleinEdit', {
+    positive: 'the person from the second picture in this scene, {mood} light',
+    media: [{ role: 'inputImage2', input: 'character' }],
+    ...extra,
+});
+const INPUTS = [{ id: 'character', kind: 'image', label: 'the person to place' }, { id: 'mood', kind: 'text' }];
+
+test('D9: a reference-slot picture input and a {text} input validate, and list shows what run needs', async () => {
+    const r = normalizeRoutine(raw([toolStep('imageUpscale'), placeStep()], { inputs: INPUTS }));
+    const v = validateRoutine(r, lookups);
+    assert.strictEqual(v.ok, true, v.message);
+    assert.deepStrictEqual(v.routine.inputs, INPUTS);
+    assert.strictEqual(v.inputKind, 'image', 'the card still goes in the one required slot');
+    assert.match(routineSummary(v.routine), /; needs character \(image, the person to place\), mood \(text\)$/);
+    assert.deepStrictEqual(normalizeRoutine(raw([toolStep()])).inputs, [], 'no inputs = an empty list');
+});
+
+test('D9: every wrong input reference is refused at save', async () => {
+    const cases = [
+        ['an undeclared media input', [placeStep({ media: [{ role: 'inputImage2', input: 'nobody' }] })], INPUTS, 'INVALID_INPUT'],
+        ['the required slot', [placeStep({ media: [{ role: 'inputImage', input: 'character' }] })], INPUTS, 'INVALID_INPUT'],
+        ['a role the op lacks', [placeStep({ media: [{ role: 'inputVideo', input: 'character' }] })], INPUTS, 'INVALID_INPUT'],
+        ['a sound in a picture slot', [placeStep({ positive: 'x', media: [{ role: 'inputImage2', input: 'voice' }] })],
+            [{ id: 'voice', kind: 'audio' }], 'INVALID_INPUT'],
+        ['one role twice', [placeStep({ media: [{ role: 'inputImage2', input: 'character' }, { role: 'inputImage2', input: 'character' }] })], INPUTS, 'INVALID_INPUT'],
+        ['media on a tool step', [{ operation: 'imageUpscale', media: [{ role: 'inputImage2', input: 'character' }] }, placeStep()], INPUTS, 'INVALID_INPUT'],
+        ['an undeclared {word}', [placeStep({ positive: '{mood} under {weather}' })], INPUTS, 'INVALID_INPUT'],
+        ['a picture input in the text', [placeStep({ positive: 'put {character} here, {mood}' })], INPUTS, 'INVALID_INPUT'],
+        ['a declared input no step uses', [placeStep()], [...INPUTS, { id: 'logo', kind: 'image' }], 'INVALID_INPUT'],
+        ['a bad id', [placeStep()], [...INPUTS, { id: 'Bad Id', kind: 'text' }], 'INVALID_INPUT'],
+        ['a bad kind', [placeStep()], [INPUTS[0], { id: 'mood', kind: 'number' }], 'INVALID_INPUT'],
+        ['an id twice', [placeStep()], [...INPUTS, INPUTS[1]], 'INVALID_INPUT'],
+        ['media that is not a list', [placeStep({ media: { role: 'inputImage2', input: 'character' } })], INPUTS, 'STEP_HAS_MEDIA'],
+    ];
+    for (const [why, steps, inputs, code] of cases) {
+        const v = validateRoutine(normalizeRoutine(raw(steps, { inputs })), lookups);
+        assert.strictEqual(v.ok, false, `${why}: must be refused`);
+        assert.strictEqual(v.code, code, `${why}: ${v.message}`);
+    }
+    const notList = validateRoutine({ ...normalizeRoutine(raw([toolStep()])), inputs: { mood: 'text' } }, lookups);
+    assert.strictEqual(notList.code, 'INVALID_ROUTINE');
+});
+
+test('D9: a text input fills a Flow field too', async () => {
+    const v = validateRoutine(normalizeRoutine(raw([flowStep('outpaint', { positive: 'a {mood} sky' })],
+        { inputs: [{ id: 'mood', kind: 'text' }] })), lookups);
+    assert.strictEqual(v.ok, true, v.message);
 });

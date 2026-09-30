@@ -278,7 +278,7 @@ test.describe('workspaceGenerationOpts', () => {
 
     test('the submit routes by it, and never renames the card it adds to', () => {
         const src = fs.readFileSync(path.join(repoRoot, 'js', 'shell', 'agentDispatch.js'), 'utf8');
-        assert.match(src, /maskedGenerationOpts\(mask\.maskGroupId\) \|\| workspaceGenerationOpts\(mediaItems, model\.mediaType/);
+        assert.match(src, /maskedGenerationOpts\(built\.maskGroupId\) \|\| workspaceGenerationOpts\(config\.mediaItems, config\.model\.mediaType/);
         // Live read 2 named its result "Dawn sky with red eyes": routed into the open card,
         // that name would have replaced "Boy fishing flat cartoon".
         assert.match(src, /_reportDone\(jobId, done, historyOpts \? undefined : input\.cardName/);

@@ -2,6 +2,31 @@
 
 ## Current State
 
+2026-09-30 (d46a8d69, Agent 68) - **D9 built, R1 DONE (wiring + live run).** Uncommitted. Landed:
+- T1 `routineModel.js`: `inputs: [{ id, kind: image|video|audio|text, label? }]`; a step's `media` may only be
+  `[{ role, input }]` naming a declared input in a NON-required slot of its kind (a `url`/`path` = `STEP_HAS_MEDIA`);
+  `{id}` in `positive`/`negative`/Flow field strings must be a declared TEXT input; an unused input is refused. One new
+  code `INVALID_INPUT`. `routineSummary` ends `; needs <id> (<kind>, <label>)`. Exported `ROUTINE_PLACEHOLDER`.
+- Runner: `runRoutine(..., { projectFolder, inputs })` resolves inputs ONCE (card id -> its selected file, else a
+  path by extension; text as given), refuses `INPUT_MISSING` (`missing: [ids]`) / `INVALID_INPUT` before queueing,
+  hands `submit` a FILLED step (`media: [{ role, url }]`, placeholders replaced). `quoteRoutine(r, n, deps, inputs)`
+  refuses `INPUT_MISSING` too (never ask to pay for a run that cannot start). No stack for an audio result.
+- `agentDispatch.js` split: exported `buildGeneration(input, project, { pinned, painted })`, `buildTool(input,
+  project)`, `buildFlow(input, project)` (refusals `{ ok:false, code, message }`), plus `galleryPlaceholder()`;
+  the agent submits are thin wrappers (pin, mask, follow stay agent-only). **Breaker fixed:** `resolveSettingsOwner`
+  dropped `denoise`, so an agent's denoise silently ran the op default; now forwarded (test in
+  `agent-pinned-settings`). Source-pinned tests repointed: `agent-mask-dispatch`, `flow-gallery-placeholder`.
+- `js/shell/routineDispatch.js`: `routineDeps` (check / price / readProject / submit / addStack / newId). Closed
+  project: stack POSTed to `/project-groups`, whose upsert joins each landing result to `members`.
+- LIVE (own isolated app, :48188 engine under gpu_lease, queue empty): routine downscale(0.2 MP) -> klein-4b
+  kleinEdit (character card in `inputImage2`, `{mood}`) -> Scribble Flow on 2 cards = 1 settled stack of 2, each card
+  3 versions (resize, edit, flowScribble), disk == live, inputs untouched, 71 s; the edit sidecar shows the filled
+  prompt and the character as `inputImage2`. A first run at 0.5 MP stopped card B at step 1 (`ALREADY_SMALLER`,
+  512x640) = D3 working; the stack then held 1.
+**Next: R2** - relay `routine.quote` / `routine.run` capabilities in `routineDispatch.js` (register beside
+`generation.submit` in `initAgentDispatch`'s switch, or its own listener), then W1 routes. The run's `stackId` input
+(D9 "scenes as a STACK") is R2/W2's `expandStacks`. **Decided by Fabio 2026-09-30 (took my picks):** see D10-D12.
+
 2026-09-30 later (26163994, Agent 67) - **R1 core DONE, R1 wiring NOT started.** Uncommitted, `npm test` (Git Bash)
 2347 pass / 0 fail. Landed:
 - `js/services/routineRunner.js`: `quoteRoutine(routine, cardCount, deps)` -> `{ ok, missing[], billed, usd|null }`;
@@ -148,6 +173,17 @@ relayed like `generation.submit` (`_dispatchToRenderer`).
   single picture (Klein Edit has 2 reference slots beside the edited picture). No multi-picture inputs, no cross
   products. The agent reads routines through `list` (name, summary, steps AND the inputs each needs) and the guide
   explains what a routine can and cannot do.
+- **D10 (Fabio, 2026-09-30):** a step that has nothing to do on a card (`downscale` on a card already under the
+  target -> `ALREADY_SMALLER`) is SKIPPED for that card and the chain carries on with the same picture; it is not a
+  D3 failure. NOT BUILT YET (R2 batch): in `routineRunner.js`, treat that refusal from `submit` as a pass-through -
+  step 1 skipped means the NEXT step makes the new card (D2 still holds), a later step skipped means no version;
+  the finish note lists skipped steps per card. Test it in `routine-runner.test.cjs`.
+- **D11 (Fabio, 2026-09-30):** an image->video routine lands the clip as a video VERSION inside the image result
+  card, and the stack kind follows the LAST step (as built). No change.
+- **D12 (Fabio, 2026-09-30):** when the user asks the agent "what can you do for me", routines MUST be in the answer
+  (save a chain once, run it on any cards). W2/W3: wherever the agent's capability summary lives (system prompt
+  capability line / the corpus entry it reads for that question - find it first, `services/agentLoop.mjs` +
+  `docs/agent/`), add routines there, bytes counted against the budget test.
 
 ## Completed
 
@@ -199,7 +235,7 @@ Run this batch with `mpi-execute-parallel` (disjoint files, per-task verify, no 
 
 ## Phase 2: The runner (renderer)
 
-- [ ] R1 `js/services/routineRunner.js`: `quoteRoutine(routine, cards)` -> `{ missing[], usd, display }`
+- [x] R1 (2026-09-30, D9 + wiring + live run: § Current State) `js/services/routineRunner.js`: `quoteRoutine(routine, cards)` -> `{ missing[], usd, display }`
   (installed checks per step: model installed / cloud key / `flowAvailability`; price = sum of
   `estimateRunCost` x cards); `runRoutine(routine, cards, { projectFolder })` -> starts, returns `{ runId }`,
   per card runs the steps in order awaiting each job's `onComplete`, step 1 new card (into the result stack when
@@ -259,6 +295,9 @@ Run this batch with `mpi-execute-parallel` (disjoint files, per-task verify, no 
   the two when splitting build from enqueue.
 - 2026-09-30 (26163994): Fabio asked for routines that take inputs besides the card (D9) -> T1 and the runner grow
   `inputs`; W2's tool gains an `inputs` param and W3's guide a section. Scene recipes explicitly deferred.
+- 2026-09-30 (d46a8d69): the denoise drift noted above was a live agent bug, not only a routine one - fixed in
+  `resolveSettingsOwner`. `lookups.flows` is the live `FLOWS` array; a tool step has no up-front install check (a
+  missing upscaler/BiRefNet weight fails that card's step, ponytail in `routineDispatch.js`).
 
 ## Verification
 

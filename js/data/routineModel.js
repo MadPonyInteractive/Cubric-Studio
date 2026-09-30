@@ -1,11 +1,16 @@
 /**
  * routineModel.js — pure routine schema, normaliser and validator (MPI-970 T1).
  *
- * Schema cubric/routine/v1 { schema, name, summary, steps[], created_at }.
+ * Schema cubric/routine/v1 { schema, name, summary, inputs[], steps[], created_at }.
  * Each step is exactly one of:
  *   - model step: { modelId, operation, ratio?, qualityTier?, turbo?, … }
  *   - flow step:  { flowId, fields? }
  *   - tool step:  { operation: "imageUpscale"|…, fields? }  (no modelId, no flowId)
+ *
+ * Run inputs (D9): `inputs: [{ id, kind: image|video|audio|text, label? }]`, filled per
+ * run and FIXED for the whole run. A media input goes in a step's REFERENCE slot as
+ * `media: [{ role, input: <id> }]` (the required slot is always the card or the previous
+ * result); a text input goes in a prompt or a Flow field as `{id}`.
  *
  * Pure: no DOM, no state.js. The server imports this via dynamic import from
  * routes/connector.js to validate a save.
@@ -31,7 +36,78 @@ const _MODEL_NAMED_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'styl
 
 const _bad = (code, message) => ({ ok: false, code, message });
 
+/** What a run input may be (D9). A picture/video/sound input is ONE of it. */
+const _INPUT_KINDS = ['image', 'video', 'audio', 'text'];
+const _INPUT_ID = /^[a-z][a-z0-9_]{0,30}$/;
+
+/**
+ * A text input's placeholder in a step's prompt or Flow field: `{mood}`.
+ * ponytail: every `{word}` is taken as a placeholder, so a prompt cannot carry literal
+ * `{word}` text; `{a|b}` and other non-word braces pass through. Escape syntax if asked.
+ */
+export const ROUTINE_PLACEHOLDER = /\{([a-z][a-z0-9_]{0,30})\}/g;
+
+/** The strings of a step that may carry `{id}`: its prompts and its field values. */
+const _stepTexts = (step) => [step.positive, step.negative, ...Object.values(step.fields ?? {})]
+    .filter(v => typeof v === 'string');
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Check a step's run-input references (D9): each `media` entry names a declared input of
+ * the slot's kind in a REFERENCE slot, and each `{id}` names a declared text input.
+ * `slots` = the step op's media slots. Marks every input it meets in `used`.
+ */
+function _checkStepInputs(step, n, slots, declared, used) {
+    const refRoles = slots.filter(s => !s.required).map(s => s.key).join(', ') || 'none';
+    if (step.media !== undefined) {
+        if (!Array.isArray(step.media)) {
+            return _bad('STEP_HAS_MEDIA', `Step ${n}: media must be a list of { role, input }.`);
+        }
+        const roles = new Set();
+        for (const m of step.media) {
+            if (!m || typeof m !== 'object' || 'url' in m || 'path' in m || !m.input) {
+                return _bad('STEP_HAS_MEDIA',
+                    `Step ${n}: a step's media may only name a run input, as { role, input } — the card comes from the run, and a fixed file cannot be saved in a routine.`);
+            }
+            const inp = declared.get(m.input);
+            if (!inp) {
+                return _bad('INVALID_INPUT', `Step ${n}: media names input "${m.input}", which the routine's inputs do not declare.`);
+            }
+            const slot = slots.find(s => s.key === m.role);
+            if (!slot) {
+                return _bad('INVALID_INPUT', `Step ${n}: no media role "${m.role}" here. Roles a run input can fill: ${refRoles}.`);
+            }
+            if (slot.required) {
+                return _bad('INVALID_INPUT',
+                    `Step ${n}: "${m.role}" is where the card (or the previous step's result) goes. Roles a run input can fill: ${refRoles}.`);
+            }
+            if (slot.mediaType !== inp.kind) {
+                return _bad('INVALID_INPUT', `Step ${n}: role "${m.role}" takes ${slot.mediaType}, and input "${m.input}" is ${inp.kind}.`);
+            }
+            if (roles.has(m.role)) {
+                return _bad('INVALID_INPUT', `Step ${n}: role "${m.role}" is given twice.`);
+            }
+            roles.add(m.role);
+            used.add(m.input);
+        }
+    }
+    for (const text of _stepTexts(step)) {
+        for (const [, id] of text.matchAll(ROUTINE_PLACEHOLDER)) {
+            const inp = declared.get(id);
+            if (!inp) {
+                return _bad('INVALID_INPUT',
+                    `Step ${n}: {${id}} is not one of the routine's inputs. Declare it as { id: "${id}", kind: "text" }, or write the words out.`);
+            }
+            if (inp.kind !== 'text') {
+                return _bad('INVALID_INPUT',
+                    `Step ${n}: {${id}} is a ${{ image: 'picture', video: 'video', audio: 'sound' }[inp.kind]} input; it goes in a media role, not in the text.`);
+            }
+            used.add(id);
+        }
+    }
+    return null;
+}
 
 /**
  * Compute the input/output media kinds for a tagged step.
@@ -94,6 +170,7 @@ export function normalizeRoutine(raw) {
         schema: ROUTINE_SCHEMA,
         name: String(r.name ?? '').trim(),
         summary: String(r.summary ?? '').trim(),
+        inputs: Array.isArray(r.inputs) ? r.inputs.map(i => ({ ...(i ?? {}) })) : [],
         steps: Array.isArray(r.steps) ? r.steps.map(s => ({ ...(s ?? {}) })) : [],
         created_at: typeof r.created_at === 'string' ? r.created_at : new Date().toISOString(),
     };
@@ -133,6 +210,29 @@ export function validateRoutine(routine, lookups) {
             `A routine may have at most ${MAX_STEPS} steps (got ${routine.steps.length}).`);
     }
 
+    // ── Run inputs (D9) ───────────────────────────────────────────────────────
+    const inputs = routine.inputs ?? [];
+    if (!Array.isArray(inputs)) {
+        return _bad('INVALID_ROUTINE', 'inputs must be a list of { id, kind, label }.');
+    }
+    const declared = new Map();
+    for (const inp of inputs) {
+        if (!inp || typeof inp !== 'object' || !_INPUT_ID.test(String(inp.id ?? ''))) {
+            return _bad('INVALID_INPUT', `Each input needs an id of lowercase letters, digits and _ (got "${inp?.id}").`);
+        }
+        if (!_INPUT_KINDS.includes(inp.kind)) {
+            return _bad('INVALID_INPUT', `Input "${inp.id}": kind must be one of ${_INPUT_KINDS.join(', ')}.`);
+        }
+        if (inp.label !== undefined && typeof inp.label !== 'string') {
+            return _bad('INVALID_INPUT', `Input "${inp.id}": label must be words.`);
+        }
+        if (declared.has(inp.id)) {
+            return _bad('INVALID_INPUT', `Input "${inp.id}" is declared twice.`);
+        }
+        declared.set(inp.id, inp);
+    }
+    const used = new Set();
+
     const models = lookups?.models ?? [];
     const flows = lookups?.flows ?? [];
 
@@ -149,8 +249,8 @@ export function validateRoutine(routine, lookups) {
             return _bad('INVALID_ROUTINE', `Step ${n} must be an object.`);
         }
 
-        // Forbidden fields
-        for (const key of ['media', 'cards', 'count']) {
+        // Forbidden fields. `media` is checked per op below: it may name run inputs (D9).
+        for (const key of ['cards', 'count']) {
             if (key in step) {
                 return _bad('STEP_HAS_MEDIA',
                     `Step ${n}: "${key}" is not allowed inside a step — the runner supplies the input.`);
@@ -190,6 +290,9 @@ export function validateRoutine(routine, lookups) {
             const np = resolveNamedParams(null, model, step.operation, namedIn);
             if (!np.ok) return _bad(np.code, `Step ${n}: ${np.message}`);
 
+            const bad = _checkStepInputs(step, n,
+                filterMediaInputsForModel(getCommandMediaInputs(step.operation), model), declared, used);
+            if (bad) return bad;
             taggedSteps.push({ ...step, _kind: 'model' });
 
         } else if (hasFlowId) {
@@ -206,6 +309,8 @@ export function validateRoutine(routine, lookups) {
                     `Step ${n}: unknown field(s) for ${flow.title || step.flowId}: ${fv.unknown.join(', ')}.`);
             }
 
+            const bad = _checkStepInputs(step, n, getCommandMediaInputs(flow.operation), declared, used);
+            if (bad) return bad;
             taggedSteps.push({ ...step, _kind: 'flow' });
 
         } else {
@@ -216,8 +321,16 @@ export function validateRoutine(routine, lookups) {
             if (!run.ok && run.code !== 'IMAGE_NOT_FOUND') {
                 return _bad(run.code, `Step ${n}: ${run.message}`);
             }
+            // A tool takes the card and nothing else: no role a run input could fill.
+            const bad = _checkStepInputs(step, n, [], declared, used);
+            if (bad) return bad;
             taggedSteps.push({ ...step, _kind: 'tool' });
         }
+    }
+
+    const unused = inputs.find(i => !used.has(i.id));
+    if (unused) {
+        return _bad('INVALID_INPUT', `Input "${unused.id}" is declared but no step uses it.`);
     }
 
     // ── Media-kind chain (stack-run rule) ─────────────────────────────────────
@@ -247,7 +360,7 @@ export function validateRoutine(routine, lookups) {
 
     return {
         ok: true,
-        routine: { ...routine, steps: cleanSteps },
+        routine: { ...routine, inputs, steps: cleanSteps },
         inputKind: ios[0].inputKind,
         // What each result card ends on: its newest version is the last step's output, and
         // a stack reads a member's kind off that selected version (`stackableKind`).
@@ -257,7 +370,8 @@ export function validateRoutine(routine, lookups) {
 
 /**
  * The one plain-words line the agent's `list` shows:
- * "<name> — <summary> (<step1> → <step2> → …)"
+ * "<name> — <summary> (<step1> → <step2> → …); needs <id> (<kind>, <label>), …"
+ * The "needs" tail lists the run inputs `run` must be given (D9).
  *
  * Each step is identified by its shortest meaningful label:
  *   tool step  → op name (e.g. "imageUpscale")
@@ -273,5 +387,6 @@ export function routineSummary(routine) {
         if (s.modelId) return `${s.modelId}/${s.operation}`;
         return s.operation ?? '?';
     }).join(' → ');
-    return `${routine.name} — ${routine.summary}${chain ? ` (${chain})` : ''}`;
+    const needs = (routine.inputs ?? []).map(i => `${i.id} (${i.kind}${i.label ? `, ${i.label}` : ''})`).join(', ');
+    return `${routine.name} — ${routine.summary}${chain ? ` (${chain})` : ''}${needs ? `; needs ${needs}` : ''}`;
 }
