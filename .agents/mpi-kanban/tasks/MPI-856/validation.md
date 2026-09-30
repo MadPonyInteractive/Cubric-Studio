@@ -38,6 +38,10 @@
   `runpod-secrets.json`, never the user's) puts cloud ids into `s_installedModelIds` with no
   restart. 1 passed.
 
+## CI (closes the card)
+
+Tests run 36685592716 on `d5a783ce7` (the code commit): **success** - unit, desktop shards 1-4.
+
 ## Fabio's verdict (2026-09-30): "1"
 
 In the isolated no-engine copy, with his key: the in-app agent ran FLUX Schnell (Cloud) t2i
