@@ -249,9 +249,12 @@ async function runCuts({ cuts, segment }) {
     // emit 'error' on a socket that dies mid-body, so the sweep is what actually routes a
     // dead stream into the error path (the same reason the case above calls forceStall()
     // by hand). forceStall() no-ops while `_downloader` is null, and `_rearm()` restarts
-    // `_lastByteTs`, so a retry backoff is never mistaken for a stall.
+    // `_lastByteTs`, so a retry backoff is never mistaken for a stall. It waits for the
+    // server to see the first request: a starved CI runner can take longer than 250ms to
+    // connect (the real window is 60s), and a stall fired before the socket exists leaves
+    // zero requests behind (master red, run 36739088834).
     const sweep = setInterval(() => {
-        if (Date.now() - dl._lastByteTs >= 250) dl.forceStall().catch(() => {});
+        if (requests.length && Date.now() - dl._lastByteTs >= 250) dl.forceStall().catch(() => {});
     }, 50);
 
     try {
