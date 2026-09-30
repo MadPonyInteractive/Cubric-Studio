@@ -38,6 +38,7 @@ import { stagesFor, postTileBarsFor } from '../data/progressStages.js';
 import { INJECTORS } from './workflowInjectors/index.js';
 import { buildComfyViewUrl, collectComfyOutputUrls, readComfyOutputText, splatViewFileInfo } from '../utils/comfyOutputUrls.js';
 import { canonicalizeInjectionKeys } from '../utils/injectionKeys.js';
+import { imageSize, upscaleRefusal } from '../utils/upscaleLimit.js';
 import { generationStore, PHASES } from './generationStore.js';
 
 // Adapters over the shared js/utils/comfyOutputUrls.js (MPI-176). MPI-74: a
@@ -274,6 +275,32 @@ async function _fitMaskedInputs(params, operation) {
         }
     }
     return out.stitch;
+}
+
+// MPI-971 Phase 3: an op that cuts its input out (`returnsMatte`) on a photo over the cap
+// runs on the engine copy, and the matte it returns goes onto the ORIGINAL
+// (`_stitchOutputs`), so the card keeps the photo's size and pixels. A colour background
+// is laid there too: the engine returns the transparent cut-out, which is the matte.
+async function _fitMatteInputs(params, operation) {
+    if (!COMMANDS[operation]?.returnsMatte || !params.Input_Image) return null;
+    const copy = await _engineCopyUrl(params.Input_Image);
+    if (copy === params.Input_Image) return null;
+    const color = params.Input_Bg_Use_Color ? Number(params.Input_Bg_Color) || 0 : null;
+    const source = _decodeProjectFileUrl(params.Input_Image);
+    params.Input_Image = copy;
+    params.Input_Bg_Use_Color = false;
+    return { source, matte: { color } };
+}
+
+// MPI-971 Phase 3 (P-A): an upscale past UPSCALE_MAX_EDGE is refused before the engine
+// sees it. The rail greys those factors; this is the same rule for every producer. Fails
+// open on an unreadable size: the engine then answers as it always did.
+async function _upscaleRefusal(params, operation) {
+    const factor = COMMANDS[operation]?.enlarges ? Number(params.Input_Upscale_Factor) : 0;
+    const image = factor > 1 ? _decodeProjectFileUrl(params.Input_Image) : null;
+    if (!image || /^(data|blob|http)/.test(image)) return null;
+    const size = await imageSize(image);
+    return size ? upscaleRefusal(size.width, size.height, factor) : null;
 }
 
 /** Each output of a cut run, pasted back into the photo — a URL save-generation streams. */
@@ -1727,9 +1754,17 @@ export function runCommand(payload) {
 
         const params = _buildParams(workingPayload);
         exec.seed = params.Input_Seed ?? null;
+        const tooBig = await _upscaleRefusal(params, workingPayload.operation);
+        if (tooBig) {
+            await _cleanupTrimmedVideoInputs(tempTrimInputPaths);
+            Events.emit('ui:warning', { message: tooBig });
+            _failBail(new Error(tooBig), { reported: true });
+            return;
+        }
         let maskStitch = null;
         try {
-            maskStitch = await _fitMaskedInputs(params, workingPayload.operation);
+            maskStitch = await _fitMaskedInputs(params, workingPayload.operation)
+                || await _fitMatteInputs(params, workingPayload.operation);
         } catch (err) {
             await _cleanupTrimmedVideoInputs(tempTrimInputPaths);
             _failBail(err);

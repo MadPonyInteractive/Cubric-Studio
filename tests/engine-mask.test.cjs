@@ -14,7 +14,7 @@ const os = require('node:os');
 const sharp = require('sharp');
 
 const { pathToFileURL } = require('node:url');
-const { prepareMaskedInput, stitchMaskCrop, planMaskCrop, CONTEXT_PAD, CONTEXT_REACH } = require('../services/engineMask.js');
+const { prepareMaskedInput, stitchMaskCrop, applyMatte, planMaskCrop, CONTEXT_PAD, CONTEXT_REACH } = require('../services/engineMask.js');
 
 sharp.cache({ files: 0 });
 
@@ -175,3 +175,55 @@ test('an EXIF-rotated photo is cut in upright px', async () => {
         assert.ok(out.data[i] > 200 && out.data[i + 1] < 60, 'the edit lands where it was painted');
     } finally { await fs.remove(dir); }
 });
+
+// Phase 3 — Remove Background runs on the engine copy; its matte goes onto the original.
+
+test('only a cut-out op puts its matte on the original', async () => {
+    const { commands } = await import(pathToFileURL(path.join(__dirname, '..', 'js', 'data', 'commandRegistry.js')).href);
+    const flagged = Object.keys(commands).filter(k => commands[k].returnsMatte);
+    assert.deepEqual(flagged, ['removeBackground']);
+});
+
+/** Pretend to be the engine: the copy, alpha 255 on its left half and 0 on the right. */
+async function fakeCutout(width, height, outPath) {
+    const alpha = Buffer.alloc(width * height);
+    for (let y = 0; y < height; y++) alpha.fill(255, y * width, y * width + width / 2);
+    await noise(width, height).joinChannel(alpha, { raw: { width, height, channels: 1 } }).png().toFile(outPath);
+}
+
+const rgba = async (input) => sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+
+for (const [label, make] of [
+    // Stored 600x1000, orientation 6: upright 1000x600, the matte's shape.
+    ['an EXIF-rotated JPEG', (p) => noise(600, 1000).withMetadata({ orientation: 6 }).jpeg().toFile(p)],
+    // A 16-bit PNG with its own alpha: the matte must replace it, at 8 bits.
+    ['a 16-bit RGBA PNG', (p) => noise(1000, 600).ensureAlpha(0.5).toColourspace('rgb16').png().toFile(p)],
+]) {
+    test(`the matte goes onto the original, ${label}`, async () => {
+        const { dir, outPath } = await tmp();
+        try {
+            const src = outPath(label.endsWith('JPEG') ? 'src.jpg' : 'src.png');
+            await make(src);
+            const result = outPath('result.png');
+            await fakeCutout(250, 150, result);
+            const original = await sharp(src, { autoOrient: true }).removeAlpha().toColourspace('srgb').raw().toBuffer();
+
+            const cut = outPath('cut.png');
+            assert.deepEqual(await applyMatte({ sourcePath: src, resultPath: result, color: null, outPath: cut }), { width: 1000, height: 600 });
+            const out = await rgba(cut);
+            assert.deepEqual([out.info.width, out.info.height, out.info.channels], [1000, 600, 4]);
+            const kept = (300 * 1000 + 100) * 4, gone = (300 * 1000 + 900) * 4;
+            assert.equal(out.data[kept + 3], 255, 'kept where the engine kept');
+            assert.equal(out.data[gone + 3], 0, 'cut where the engine cut');
+            for (const p of [kept, (10 * 1000 + 480) * 4]) {
+                assert.deepEqual([...out.data.subarray(p, p + 3)], [...original.subarray(p / 4 * 3, p / 4 * 3 + 3)], "the original's own pixels, not the copy's");
+            }
+
+            const laid = outPath('laid.png');
+            await applyMatte({ sourcePath: src, resultPath: result, color: 0x00ff00, outPath: laid });
+            const flat = await pixels(laid);
+            assert.deepEqual([...flat.data.subarray(gone / 4 * 3, gone / 4 * 3 + 3)], [0, 255, 0], 'the colour where it was cut');
+            assert.deepEqual([...flat.data.subarray(kept / 4 * 3, kept / 4 * 3 + 3)], [...original.subarray(kept / 4 * 3, kept / 4 * 3 + 3)]);
+        } finally { await fs.remove(dir); }
+    });
+}

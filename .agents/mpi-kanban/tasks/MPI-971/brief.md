@@ -16,3 +16,8 @@ The card description and `plan.md` carry the job. This file holds what was notic
   rule (masked = leave alone) is unchanged; the fix is knowing which ops read Input_Mask.
 - 2026-09-30 (Phase 2): the mask export now leaves the canvas at its working size (<= 4096), so
   "download mask" on a 16K photo saves a 4096 mask (it was an upscaled copy of the same pixels).
+- 2026-09-30 (Phase 3): Image Upscale WITH a model runs the model's own x4 FIRST, on the whole
+  photo (`image_upscale.json`: ImageUpscaleWithModel, then ImageScaleBy factor/4). So an 8K photo
+  (a 45 MP camera) at x1.5 builds a ~33K intermediate, ~8.7 GB as float32, before shrinking to
+  12K: likely an OOM on the tester's 16 GB. P-A bounds the OUTPUT only. Pre-existing, not this
+  card's decision; asked Fabio.

@@ -36,6 +36,8 @@ import { getToolSettings } from '../../../data/projectModel.js';
 import { loadAll as loadAssets } from '../../../services/assetService.js';
 import { qs } from '../../../utils/dom.js';
 import { buildField } from '../../../utils/declaredFields.js';
+import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { imageSize, upscaleRefusal } from '../../../utils/upscaleLimit.js';
 import {
     upscalePluginsFor, upscalePluginOption, pluginFromDepKey,
 } from '../../../data/pluginsRegistry.js';
@@ -199,17 +201,41 @@ export const MpiToolOptionsUpscale = ComponentFactory.create({
         else loadAssets().then(() => _mountModelDd());
 
         // ── Factor radio group ──────────────────────────────────────────────
-        const factorRadio = MpiRadioGroup.mount(document.createElement('div'), {
-            options: FACTOR_OPTIONS,
-            value:   _factor,
-            name:    `upscale-factor-${kind}`,
-            info:    'Upscale factor',
-        });
-        qs('#factor-slot', el).appendChild(factorRadio.el);
-        factorRadio.on('select', ({ value }) => {
-            _factor = value;
-            persist('factor', _factor);
-        });
+        // MPI-971 (P-A): a factor that would take the picture past UPSCALE_MAX_EDGE is
+        // greyed and says why (Run with it is refused at dispatch too). The group renders
+        // its options once, so it is re-mounted when the picture's size arrives.
+        const factorSlot = qs('#factor-slot', el);
+        let factorRadio = null;
+        const _mountFactors = (size) => {
+            factorRadio?.destroy?.();
+            factorSlot.innerHTML = '';
+            factorRadio = MpiRadioGroup.mount(document.createElement('div'), {
+                options: FACTOR_OPTIONS.map((o) => {
+                    const why = size && upscaleRefusal(size.width, size.height, parseFloat(o.value.slice(1)));
+                    return why ? { ...o, disabled: true, info: why } : o;
+                }),
+                value:   _factor,
+                name:    `upscale-factor-${kind}`,
+                info:    'Upscale factor',
+            });
+            factorSlot.appendChild(factorRadio.el);
+            factorRadio.on('select', ({ value }) => {
+                _factor = value;
+                persist('factor', _factor);
+            });
+        };
+        _mountFactors(null);
+
+        let _sizeSeq = 0;
+        const _readSize = async (item) => {
+            if (kind !== 'image' || !item?.filePath) return;
+            const seq = ++_sizeSeq;
+            const filePath = new URL(resolveMediaUrl(item.filePath), location.href).searchParams.get('path');
+            const size = filePath ? await imageSize(filePath) : null;
+            if (seq === _sizeSeq && factorRadio) _mountFactors(size);
+        };
+        _readSize(props.currentItem);
+        el.setCurrentItem = (item) => { _readSize(item); };
 
         // ── Run ─────────────────────────────────────────────────────────────
         const runBtn = MpiButton.mount(document.createElement('div'), {
@@ -235,7 +261,8 @@ export const MpiToolOptionsUpscale = ComponentFactory.create({
             _persistTimers.forEach(t => clearTimeout(t));
             _persistTimers.clear();
             _teardownFields();
-            factorRadio.destroy?.();
+            factorRadio?.destroy?.();
+            factorRadio = null;
             modelDd?.destroy?.();
             runBtn.destroy?.();
         };

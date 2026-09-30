@@ -14,6 +14,8 @@
  *   mask stays the original's.
  * - Any other masked op gets the mask stretched to the source's size, which is what the
  *   canvas used to send.
+ * - Remove Background (Phase 3) runs on the engine copy, and the matte it returns goes onto
+ *   the ORIGINAL (`applyMatte`).
  *
  * Every input passes limitInputPixels: false (a 16K photo is 268 MP, past sharp's default)
  * and autoOrient: the canvas draws an EXIF-rotated photo upright, and so does MpiLoadImage
@@ -245,4 +247,49 @@ async function stitchMaskCrop({ sourcePath, resultPath, maskPath, rect, outPath 
     return { width: srcW, height: srcH };
 }
 
-module.exports = { prepareMaskedInput, stitchMaskCrop, planMaskCrop, maskBox, CONTEXT_PAD, CONTEXT_REACH, BLEND_BAND };
+/**
+ * Remove Background on a photo over the cap: the engine cut out the ENGINE copy, so the
+ * alpha of its result is the matte at <= the cap. Stretched to the photo, it goes onto the
+ * original's own pixels, or lays them over `color` — what the graph's JoinImageWithAlpha /
+ * ImageCompositeMasked pair does at engine size — so the card is the photo's size and
+ * every kept pixel is the original's.
+ *
+ * @param {object} o
+ * @param {string} o.sourcePath - the original photo
+ * @param {string} o.resultPath - the engine's RGBA cut-out of the engine copy
+ * @param {number|null} o.color - 0xRRGGBB background, or null for transparent
+ * @param {string} o.outPath - PNG to write
+ * @returns {Promise<{width: number, height: number}>} the written image's size
+ */
+async function applyMatte({ sourcePath, resultPath, color, outPath }) {
+    const { width, height } = await uprightSize(sourcePath);
+    const { data, info } = await sharp(resultPath, BUFFER_INPUT).raw().toBuffer({ resolveWithObject: true });
+    if (info.channels !== 4) throw new Error('The engine returned no cut-out');
+    const alpha = Buffer.alloc(info.width * info.height);
+    for (let i = 0; i < alpha.length; i++) alpha[i] = data[i * 4 + 3];
+
+    // Every step its own pipeline, through libvips' uncompressed format: sharp runs ops in
+    // a FIXED order, and a removeAlpha or flatten chained with joinChannel runs on the
+    // wrong side of the join (the joined matte dropped, or never used).
+    const tmp = (name) => `${outPath}.${name}.v`;
+    try {
+        await sharp(alpha, { raw: { width: info.width, height: info.height, channels: 1 }, limitInputPixels: false })
+            .resize(width, height, { fit: 'fill' })
+            .toColourspace('b-w')
+            .toFile(tmp('matte'));
+        await sharp(sourcePath, FILE_INPUT).removeAlpha().toColourspace('srgb').toFile(tmp('rgb'));
+        const cut = sharp(tmp('rgb'), BUFFER_INPUT).joinChannel(tmp('matte'), BUFFER_INPUT);
+        if (color == null) {
+            await cut.png().toFile(outPath);
+        } else {
+            await cut.toFile(tmp('rgba'));
+            const background = `#${(Number(color) & 0xffffff).toString(16).padStart(6, '0')}`;
+            await sharp(tmp('rgba'), BUFFER_INPUT).flatten({ background }).png().toFile(outPath);
+        }
+    } finally {
+        await Promise.all(['matte', 'rgb', 'rgba'].map((n) => fs.remove(tmp(n)).catch(() => {})));
+    }
+    return { width, height };
+}
+
+module.exports = { prepareMaskedInput, stitchMaskCrop, applyMatte, planMaskCrop, maskBox, uprightSize, CONTEXT_PAD, CONTEXT_REACH, BLEND_BAND };

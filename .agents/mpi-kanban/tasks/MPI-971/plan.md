@@ -5,6 +5,30 @@
 
 ## Current State
 
+**2026-09-30 (session 0caa9d47): Phase 3 BUILT, unit + live green, UNCOMMITTED; awaiting
+Fabio's look (user-ux).** Remove Background on a photo over the cap runs on the Phase 1 engine
+copy with the background forced transparent, and `applyMatte` (`services/engineMask.js`, via
+`/engine-stitch` with `matte: {color}`) stretches the returned alpha to the photo and joins it
+onto the ORIGINAL's RGB (or flattens over the colour). Hook: `_fitMatteInputs` in
+`commandExecutor.js`, registry flag `returnsMatte`. Upscale guard P-A: `js/utils/upscaleLimit.js`
+(16384 rule + `imageSize` over the new `GET /image-size`), refused in the executor before dispatch
+for ops flagged `enlarges` (imageUpscale, upscale: both carry `Input_Upscale_Factor` after
+`_buildParams`), and the Upscale rail re-mounts its factor group greyed (`setCurrentItem`).
+Evidence: validation.md § Phase 3. **Pod run NOT done: it needs Fabio's app** (the RunPod key
+lives only in his profile; `app:isolated` carries none by design, and copying
+`runpod-secrets.json` into a test profile is banned — the orphan sweep reaps his Pods). Asked him
+how he wants it run. **Next: Fabio's look at Phase 3, the Pod run his way, then Phase 4.**
+**After MPI-971 closes: MPI-1000** (Fabio 2026-09-30, "fold that into our work"; three small
+Flow/media fixes, plan by Agent 74, logged in MPI-595's checklist).
+Fabio's FIRST Phase 3 try (17:16Z) failed `DecompressionBombError` on Remove Background: NOT the
+code — his app started 16:53Z, the Phase 3 files landed 17:01-17:02Z, no restart since, and his
+log has no `engine-image` line (the new path always writes one). He will restart after his
+MiniMax Music download, then look. Open questions to him: MPI-1000 a 2.0 gate? (my pick: no);
+Image Upscale WITH a model on a >4096 photo (brief.md § Noticed, x4 intermediate): feed the 4096
+copy and rescale the factor? (my pick: yes). Phase 4 research sweep (Explore agent: every
+image-taking Flow, its dispatch path, coordinates, graph handling) was running at handoff; its
+result did not carry over — re-run it at Phase 4 start.
+
 **2026-09-30 (session e348519e): Phase 2 + Detail VERIFIED BY FABIO** in his app (Detail,
 masked Klein Edit, masked Inpaint on his 16K all landed 16K cards). UNCOMMITTED at time of
 writing. A 1K Klein Edit on the way was an unmasked run (whole-image edit at ~1 MP, by design).
@@ -180,11 +204,11 @@ would put two workers in one function.
 
 ## Phase 3: whole-image full-resolution ops
 
-- [ ] Remove background on a big source: run on the capped copy, upscale the returned alpha to the
+- [x] Remove background on a big source: run on the capped copy, upscale the returned alpha to the
   source size, `joinChannel` it onto the ORIGINAL (the sharp mask-through-alpha recipe and its traps:
   memory `tools/sharp.md`). **Verify:** 16K cutout card is source-size and its RGB outside the matte
   equals the original's.
-- [ ] Upscale guard per P-A (both the universal tool `MpiToolOptionsUpscale` / History
+- [x] Upscale guard per P-A (both the universal tool `MpiToolOptionsUpscale` / History
   `_runImageTool`, and the model `upscale` op's factor control), plus the same check server-side so an
   agent or the connector cannot bypass the UI. **Verify:** a 12K source offers no ×2+, a 16K offers
   none and names why; a unit test on the rule; a ≤ cap source is unchanged.
@@ -222,6 +246,14 @@ would put two workers in one function.
   whatever the window, so the only effect there is scaling to 4096 sooner on a big mask.
 - 2026-09-30: a 16384 x 10240 fixture (167.8 MP) is UNDER Pillow's limit and does not reproduce
   the failure; the live check uses 16384 x 16384 (268 MP).
+- 2026-09-30 (Phase 3): "the same check server-side" became the one dispatch chokepoint every
+  producer passes (`commandExecutor`: UI, agent tool ops and `/connector/generate` all go through
+  `enqueueGeneration`), with the server supplying the size (`GET /image-size`). The PROMPT BOX's
+  Upscale factor (model `upscale` op) is NOT greyed: its controls get no media to size, so it is
+  refused at Run with the same message instead.
+- 2026-09-30 (Phase 3): a colour background is laid server-side (the engine is always asked for
+  the transparent cut-out, which is the matte), so both background modes keep the original's pixels.
+- 2026-09-30: the Pod run cannot come from an agent instance — see Current State.
 
 ## Verification
 

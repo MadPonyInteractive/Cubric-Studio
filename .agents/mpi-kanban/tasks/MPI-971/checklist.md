@@ -10,5 +10,7 @@ Derived from `plan.md` (2026-09-30). The plan holds the detail; this is the tick
   - [x] Fabio looks at a 16K localised edit in his app (2026-09-30: Detail, masked Klein Edit, masked Inpaint all 16K)
   - [ ] Pod path: one run proves the upload carries the cut (costs money, ask first)
 - [ ] Phase 3: remove background on the capped copy + alpha onto the original; upscale guard (P-A) (user-ux) — Detail done by Phase 2's cut
+  - [x] built + automated verify (engine-mask 10/10, upscale-limit 2/2, npm test 2412/0; live 16K cut-outs clear + green = 16384^2 cards, original RGB exact; 16K upscale refused before dispatch; rail greys all four factors on the 16K, none on the 2K)
+  - [ ] Fabio looks at a 16K Remove Background + the Upscale rail on a 16K in his app
 - [ ] Phase 4: Flows with source-coordinate inputs work on a 16K or refuse with a reason
 - [ ] Preservation: docs rule "the engine never gets more than ENGINE_MAX_EDGE"; add-model playbook note; MPI-962 plan + UNRELEASED line

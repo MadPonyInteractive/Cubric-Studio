@@ -119,6 +119,13 @@ const I2V_HELP = {
  *                                              commandExecutor._fitMaskedInputs). VERIFY IN THE GRAPH: a new
  *                                              model on this op must keep the crop/stitch pair (the cut's
  *                                              reach is engineMask.CONTEXT_REACH).
+ * @property {boolean}         [enlarges]     - The output is `Input_Image` times `Input_Upscale_Factor` (ImageScaleBy,
+ *                                              UltimateSDUpscale upscale_by), so one past UPSCALE_MAX_EDGE is
+ *                                              refused before dispatch (MPI-971, js/utils/upscaleLimit.js).
+ * @property {boolean}         [returnsMatte] - The graph returns its `Input_Image` cut out, RGBA (or laid over a
+ *                                              colour when `Input_Bg_Use_Color`). On a photo over ENGINE_MAX_EDGE
+ *                                              it runs on the engine copy and the matte goes onto the original
+ *                                              (MPI-971, commandExecutor._fitMatteInputs).
  * @property {boolean}         [promptRequired] - Whether a text prompt is mandatory
  * @property {boolean}         [universal]    - Not model-tied; uses universalWorkflows in modelRegistry
  * @property {boolean}         [stub]         - Not yet implemented; registered but disabled in UI
@@ -429,6 +436,7 @@ export const commands = {
         progressLabel: 'Upscaling',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        enlarges: true,
         mediaInputs: [
             { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
         ],
@@ -967,6 +975,7 @@ export const commands = {
         progressLabel: 'Upscaling',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        enlarges: true,
         mediaInputs: [
             { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
         ],
@@ -995,6 +1004,7 @@ export const commands = {
         progressLabel: 'Removing background',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        returnsMatte: true,
         mediaInputs: [
             { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
         ],

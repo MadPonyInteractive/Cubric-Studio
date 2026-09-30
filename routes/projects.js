@@ -18,6 +18,7 @@
  *   POST   /project-data/:projectId/upload
  *   GET    /project-file
  *   GET    /display-image
+ *   GET    /image-size
  *   GET    /engine-image
  *   POST   /engine-mask
  *   POST   /engine-stitch
@@ -46,7 +47,7 @@ const { muxAudioIntoVideo, mixAudioFiles } = require('../services/ffmpegMux');
 const { extractFramesFromGif, copyGifFrames, holdFrames, sweepGifFrames } = require('../services/gifFrames');
 const { SCHEMA_VERSION } = require('../js/migrations/projectMigrations');
 const { bakeOrientation } = require('./imageImport');
-const { prepareMaskedInput, stitchMaskCrop } = require('../services/engineMask');
+const { prepareMaskedInput, stitchMaskCrop, applyMatte, uprightSize } = require('../services/engineMask');
 
 const projectJsonQueues = new Map();
 const itemMetaQueues = new Map();
@@ -2035,6 +2036,18 @@ router.get('/display-image', async (req, res) => {
     }
 });
 
+// `{ width, height }` of a still, upright — a header read, no copy made (MPI-971: the
+// upscale limit, `js/utils/upscaleLimit.js`).
+router.get('/image-size', async (req, res) => {
+    const { path: filePath } = req.query;
+    if (!filePath) return res.status(400).json({ error: 'path required' });
+    try {
+        res.json(await uprightSize(filePath));
+    } catch (err) {
+        res.status(404).json({ error: err.message });
+    }
+});
+
 // `{ url, width, height }` for the engine copy of a still (MPI-971); `url: null` means send
 // the original — every image at or under ENGINE_MAX_EDGE. The edge is the server's, never
 // the caller's.
@@ -2098,11 +2111,12 @@ router.post('/engine-mask', async (req, res) => {
     }
 });
 
-// The engine's result for a cut, pasted back into the photo: `{ url }` for save-generation
-// to stream, exactly as it streams the engine's own /view.
+// The engine's result for a cut, pasted back into the photo — or, with `matte` (Remove
+// Background run on the engine copy, Phase 3), the cut-out's matte put on the photo:
+// `{ url }` for save-generation to stream, exactly as it streams the engine's own /view.
 router.post('/engine-stitch', async (req, res) => {
-    const { viewUrl, source, mask, rect } = req.body || {};
-    if (!viewUrl || !source || !mask || !rect) return res.status(400).json({ error: 'viewUrl, source, mask and rect required' });
+    const { viewUrl, source, mask, rect, matte } = req.body || {};
+    if (!viewUrl || !source || (!matte && (!mask || !rect))) return res.status(400).json({ error: 'viewUrl, source, and mask and rect or matte required' });
     const id = crypto.randomUUID();
     const result = path.join(ENGINE_SCRATCH, `${id}.result.png`);
     const out = path.join(ENGINE_SCRATCH, `${id}.png`);
@@ -2110,8 +2124,13 @@ router.post('/engine-stitch', async (req, res) => {
         await fs.ensureDir(ENGINE_SCRATCH);
         _sweepEngineScratch().catch(() => {});
         await streamDownload(viewUrl, result);
-        const size = await stitchMaskCrop({ sourcePath: source, resultPath: result, maskPath: mask, rect, outPath: out });
-        logger.info('project', `engine-stitch: ${path.basename(source)} ${size.width}x${size.height} <- ${rect.outW}x${rect.outH} at ${rect.left},${rect.top}`);
+        if (matte) {
+            const size = await applyMatte({ sourcePath: source, resultPath: result, color: matte.color ?? null, outPath: out });
+            logger.info('project', `engine-stitch: ${path.basename(source)} ${size.width}x${size.height} <- matte`);
+        } else {
+            const size = await stitchMaskCrop({ sourcePath: source, resultPath: result, maskPath: mask, rect, outPath: out });
+            logger.info('project', `engine-stitch: ${path.basename(source)} ${size.width}x${size.height} <- ${rect.outW}x${rect.outH} at ${rect.left},${rect.top}`);
+        }
         res.json({ url: `${req.protocol}://${req.get('host')}/project-file?path=${encodeURIComponent(out)}&filename=${id}.png` });
     } catch (err) {
         logger.error('project', `engine-stitch failed for ${path.basename(source)}`, err);

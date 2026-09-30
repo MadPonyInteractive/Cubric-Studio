@@ -73,3 +73,32 @@ Verify mode: user-ux for Phases 2 and 3 (Fabio looks at a 16K result); Phases 1 
   app log `engine-image ... 4096 copy`), i.e. a whole-image edit at the model's ~1 MP, as on
   any photo; a 1K Inpaint was run on that 1K card. Both expected; re-run masked = 16K.
 - Still NOT run: the Pod path (~$0.20-0.40, one run; asked, no answer yet).
+
+## Phase 3 (remove background + upscale guard) — automated checks PASSED 2026-09-30 (session 0caa9d47); AWAITING Fabio's look
+
+- `node --test tests/engine-mask.test.cjs tests/upscale-limit.test.cjs tests/engine-input-cap.test.cjs`
+  17/17. New: `applyMatte` on an EXIF-6 JPEG and a 16-bit RGBA PNG (card = upright source size,
+  4 channels, alpha 255/0 where the engine kept/cut, RGB = the original's own pixels; over #00ff00
+  the cut is exactly green), the `returnsMatte` op list pinned, the upscale rule (4096 all factors,
+  10922 x1.5 only, 12K and 16K none, portrait long edge), the `enlarges` op list pinned.
+  `npm test` 2412 pass, 0 fail, 2 skipped. ESLint clean.
+- Probed first: sharp runs `removeAlpha` / `flatten` chained with `joinChannel` on the wrong side of
+  the join (the joined matte dropped, or never used), so each step is its own pipeline.
+- Live, own Electron (8aad9989 scratch profile, own port, shared engine 48188 under a GPU lease,
+  :3000 untouched), real `enqueueGeneration` path:
+  | job | result |
+  |---|---|
+  | Upscale rail on the 16384^2 | all four factors `aria-disabled`, hover text `Too big to upscale: 16384x16384 at x2 would be 32768 px ...` |
+  | same panel, `setCurrentItem` to the 2048x1280 | none disabled |
+  | Image Upscale x2 on the 16K | refused in 0 s with that message, nothing dispatched |
+  | Image Upscale x1.5 on the 2K | 3072x1920 card |
+  | Remove Background on the 16K, transparent | 16384^2 RGBA card, 7 s; app log `engine-image: fix16k.jpg 16384x16384 -> 4096 copy` then `engine-stitch: fix16k.jpg 16384x16384 <- matte` |
+  | Remove Background on the 16K, #00ff00 | 16384^2 RGB card, 4 s |
+  | Remove Background on the 2K (control) | 2048x1280, no engine-image / stitch line |
+- Pixels, 256 tiles of 64^2 across the 16K cards: 0 RGB bytes differ from the original; every
+  alpha-0 sample is exactly #00ff00 in the colour card; kept samples equal the original there too.
+  Looked at both (on magenta / on green): disc and bar cut clean. The matte is soft over the objects
+  (38% partial alpha); the 2K control, which never touches this code, is as soft (28%): BiRefNet's
+  reading of this flat synthetic fixture.
+- NOT covered: greying on the PROMPT BOX's Upscale factor (model `upscale` op) — its controls get
+  no media to size; that op is refused at Run with the same message instead (plan drift).
