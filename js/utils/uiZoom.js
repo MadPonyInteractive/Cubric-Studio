@@ -16,6 +16,9 @@ import { Storage } from '../core/storage.js';
 export const ZOOM_MIN = 0.5;
 export const ZOOM_MAX = 3.0;
 export const ZOOM_STEP = 0.1;
+// MPI-995: a fresh install opens one step down. At 1.0 the UI reads too big, and a
+// first-time user does not know Ctrl+- yet. A stored size (1.0 included) still wins.
+export const ZOOM_DEFAULT = 0.9;
 
 const _webFrame = (() => {
     try { return window.require?.('electron')?.webFrame ?? null; } catch { return null; }
@@ -23,14 +26,15 @@ const _webFrame = (() => {
 
 /**
  * Coerce any stored/incoming value to a usable factor.
- * A corrupt or out-of-range value falls back to 1.0 rather than wedging the UI
- * at an unreadable size the user then cannot see the controls to fix.
+ * A missing, corrupt or out-of-range value falls back to ZOOM_DEFAULT rather than
+ * wedging the UI at an unreadable size the user then cannot see the controls to fix.
  * @param {*} v
  * @returns {number}
  */
 export function normalizeZoomFactor(v) {
+    if (v === null || v === undefined) return ZOOM_DEFAULT;   // Number(null) is 0, not NaN
     const n = Number(v);
-    if (!Number.isFinite(n) || n < ZOOM_MIN || n > ZOOM_MAX) return 1;
+    if (!Number.isFinite(n) || n < ZOOM_MIN || n > ZOOM_MAX) return ZOOM_DEFAULT;
     return Number(n.toFixed(2));
 }
 
@@ -56,5 +60,5 @@ export function applyUiZoom(dir) {
 export function restoreUiZoom() {
     if (!_webFrame) return;   // Browser Mode: no webFrame, nothing to restore
     const factor = normalizeZoomFactor(Storage.getUiZoomFactor());
-    if (factor !== 1) _webFrame.setZoomFactor(factor);
+    if (factor !== _webFrame.getZoomFactor()) _webFrame.setZoomFactor(factor);
 }

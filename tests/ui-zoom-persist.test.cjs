@@ -51,26 +51,42 @@ test('a UI-size step is persisted, and a fresh boot re-applies it', async () => 
     assert.deepStrictEqual(stubs.calls, [1.1], 'boot re-applies the stored factor');
 });
 
-test('a corrupt or out-of-range stored factor falls back to 1.0', async () => {
-    const { normalizeZoomFactor, ZOOM_MIN, ZOOM_MAX } = await load();
+test('a corrupt or out-of-range stored factor falls back to the default', async () => {
+    const { normalizeZoomFactor, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT } = await load();
 
     assert.strictEqual(normalizeZoomFactor(1.4), 1.4);
+    assert.strictEqual(normalizeZoomFactor(1), 1);
     assert.strictEqual(normalizeZoomFactor(ZOOM_MIN), ZOOM_MIN);
     assert.strictEqual(normalizeZoomFactor(ZOOM_MAX), ZOOM_MAX);
 
     // Out of range would wedge the UI at a size whose controls cannot be read.
-    assert.strictEqual(normalizeZoomFactor(ZOOM_MAX + 1), 1);
-    assert.strictEqual(normalizeZoomFactor(ZOOM_MIN - 0.1), 1);
-    assert.strictEqual(normalizeZoomFactor(0), 1);
-    assert.strictEqual(normalizeZoomFactor(-2), 1);
+    assert.strictEqual(normalizeZoomFactor(ZOOM_MAX + 1), ZOOM_DEFAULT);
+    assert.strictEqual(normalizeZoomFactor(ZOOM_MIN - 0.1), ZOOM_DEFAULT);
+    assert.strictEqual(normalizeZoomFactor(0), ZOOM_DEFAULT);
+    assert.strictEqual(normalizeZoomFactor(-2), ZOOM_DEFAULT);
 
     // Corrupt values, i.e. anything a hand-edited localStorage can hold.
-    assert.strictEqual(normalizeZoomFactor(null), 1);
-    assert.strictEqual(normalizeZoomFactor(undefined), 1);
-    assert.strictEqual(normalizeZoomFactor('huge'), 1);
-    assert.strictEqual(normalizeZoomFactor(NaN), 1);
-    assert.strictEqual(normalizeZoomFactor(Infinity), 1);
-    assert.strictEqual(normalizeZoomFactor({}), 1);
+    assert.strictEqual(normalizeZoomFactor(null), ZOOM_DEFAULT);
+    assert.strictEqual(normalizeZoomFactor(undefined), ZOOM_DEFAULT);
+    assert.strictEqual(normalizeZoomFactor('huge'), ZOOM_DEFAULT);
+    assert.strictEqual(normalizeZoomFactor(NaN), ZOOM_DEFAULT);
+    assert.strictEqual(normalizeZoomFactor(Infinity), ZOOM_DEFAULT);
+    assert.strictEqual(normalizeZoomFactor({}), ZOOM_DEFAULT);
+});
+
+// MPI-995: 1.0 read too big on a first open, and a new user does not know Ctrl+- yet.
+test('a fresh install boots at 0.9; a stored 1.0 is still honoured', async () => {
+    stubs.store.clear();
+    const fresh = await load('first-open');
+    stubs.reset();
+    fresh.restoreUiZoom();
+    assert.deepStrictEqual(stubs.calls, [0.9], 'nothing stored: boot applies 0.9');
+
+    stubs.store.set('mpi_ui_zoom_factor', '1');
+    const again = await load('stored-1');
+    stubs.reset();
+    again.restoreUiZoom();
+    assert.deepStrictEqual(stubs.calls, [], 'a user who chose 1.0 keeps 1.0');
 });
 
 test('Browser Mode has no webFrame: restore no-ops instead of throwing', async () => {

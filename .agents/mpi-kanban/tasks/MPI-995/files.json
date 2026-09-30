@@ -1,0 +1,8 @@
+{
+  "files": [
+    "js/utils/uiZoom.js",
+    "js/core/storage.js",
+    "tests/ui-zoom-persist.test.cjs",
+    "styles/shell/landing.css"
+  ]
+}

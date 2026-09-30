@@ -544,7 +544,8 @@
   top: anchor(top);
   right: var(--s-6);
   bottom: calc(160px + 360px * var(--crew-k, var(--hero-k)) + var(--s-5));
-  width: clamp(260px, 36%, 420px);
+  /* 42%/480px, not 36%/420px: answers read cramped at the old width (Fabio, MPI-995). */
+  width: clamp(260px, 42%, 480px);
   display: flex;
   flex-direction: column;
   pointer-events: none;
