@@ -83,6 +83,9 @@ import { qs, on, accentHeat } from '../../../utils/dom.js';
 /** Layer opacity is pinned at 1: what is drawn is exactly what is exported. */
 const OPACITY = 1;
 
+/** The long edge the engine is ever sent (routes/projects.js ENGINE_MAX_EDGE). */
+const ENGINE_MAX_EDGE = 4096;
+
 /** Brush size in IMAGE px — `PaintManager`'s own default, so the two surfaces match. */
 const DEFAULT_BRUSH = 40;
 const MIN_BRUSH = 2;
@@ -197,8 +200,12 @@ export async function composePaintLayer(value) {
  * @returns {Promise<File|null>}
  */
 export async function composePaintComposite(value, media) {
-    const w = Math.round(value?.size?.w || 0);
-    const h = Math.round(value?.size?.h || 0);
+    // Never past the engine cap (routes/projects.js ENGINE_MAX_EDGE, MPI-971): Scribble's graph
+    // scales this to 1 MP first, and a 16K photo would make a canvas at Chromium's limit and a
+    // PNG past the upload's 100 MB.
+    const fit = Math.min(1, ENGINE_MAX_EDGE / Math.max(value?.size?.w || 0, value?.size?.h || 0));
+    const w = Math.round((value?.size?.w || 0) * fit);
+    const h = Math.round((value?.size?.h || 0) * fit);
     if (!(w > 0) || !(h > 0)) return null;
 
     const srcUrl = media?.url ? resolveMediaUrl(media.url) : '';

@@ -102,7 +102,7 @@ test('the capped copy is offered only to ops whose graphs shrink their inputs', 
     const { commands } = await import(pathToFileURL(path.join(__dirname, '..', 'js', 'data', 'commandRegistry.js')).href);
     const flagged = Object.keys(commands).filter(k => commands[k].modelSizedInputs).sort();
     // Changing this list means re-reading every graph that runs the op (VERIFY IN THE GRAPH).
-    assert.deepEqual(flagged, ['control', 'edit', 'i2i', 'i2v', 'i2v_ms', 'imageDescribe',
+    assert.deepEqual(flagged, ['control', 'edit', 'flowScribble', 'i2i', 'i2v', 'i2v_ms', 'imageDescribe',
         'kleinEdit', 'krea2Edit', 'pid', 'qwenEdit', 'ref2v_ms']);
     // Source-sized output: a capped copy would come back small.
     for (const op of ['upscale', 'detail', 'inpaint', 'imageUpscale', 'removeBackground', 'resize']) {

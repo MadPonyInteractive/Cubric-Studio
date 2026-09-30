@@ -21,3 +21,16 @@ The card description and `plan.md` carry the job. This file holds what was notic
   (a 45 MP camera) at x1.5 builds a ~33K intermediate, ~8.7 GB as float32, before shrinking to
   12K: likely an OOM on the tester's 16 GB. P-A bounds the OUTPUT only. Pre-existing, not this
   card's decision; asked Fabio.
+- 2026-09-30 (Phase 4): a STRAY-mask case of the same kind: the load backstop now REFUSES (with the size)
+  any image over Pillow's line that no fit shrank, e.g. an unmasked Detail or a stray-masked i2v on a 16K,
+  where it used to die in MpiLoadImage. Honest, but a fit would be better for those ops.
+- 2026-09-30 (Phase 4): Outpaint's padded frame goes up as base64 JSON under the server's 100 MB body
+  limit (server.js), so a 24-45 MP camera photo with bars likely fails today as "could not prepare its
+  image" long before the new 16384 / 179 MP refusal. Unmeasured; pre-existing.
+- 2026-09-30 (Phase 4): Draw It In / Object Stamp still build their layer at the photo's full size in the
+  renderer (composePaintLayer, composePlacedObject): 16384^2 is Chromium's canvas area limit, so a 32K
+  photo fails there. The server now takes a layer of ANY size by ratio, so capping those two at 4096 is
+  the fix, but a package Flow with a paint step on an older app would then get a misfit layer.
+- 2026-09-30 (Phase 4): the in-app agent's Outpaint builds its frame in agentDispatch.js (peer-claimed
+  by MPI-892); composePaddedImage now throws TOO_BIG there, and what the agent says depends on that catch.
+- 2026-09-30: the user:head-swap package can now opt into cropsToBox (OP_KEYS); its manifest does not yet.

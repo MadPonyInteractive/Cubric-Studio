@@ -119,6 +119,12 @@ const I2V_HELP = {
  *                                              commandExecutor._fitMaskedInputs). VERIFY IN THE GRAPH: a new
  *                                              model on this op must keep the crop/stitch pair (the cut's
  *                                              reach is engineMask.CONTEXT_REACH).
+ * @property {boolean}         [cropsToBox]   - A Flow whose graph crops round `box1` and stitches back
+ *                                              (MpiBoxMask -> InpaintCropImproved -> InpaintStitchImproved). On a
+ *                                              photo over ENGINE_MAX_EDGE it sends the photo, and an `Input_Paint`
+ *                                              LAYER, cut round the box, with the box moved into the cut, and pastes
+ *                                              the result back (MPI-971, commandExecutor._fitBoxedInputs). VERIFY IN
+ *                                              THE GRAPH, and widen engineMask's reach if its window outgrows it.
  * @property {boolean}         [enlarges]     - The output is `Input_Image` times `Input_Upscale_Factor` (ImageScaleBy,
  *                                              UltimateSDUpscale upscale_by), so one past UPSCALE_MAX_EDGE is
  *                                              refused before dispatch (MPI-971, js/utils/upscaleLimit.js).
@@ -1185,6 +1191,7 @@ export const commands = {
         // and silently write nothing, so `box1` -> `Input_Box` goes through this injector.
         // The name is historical; the mapping is generic.
         injector: 'headSwap',
+        cropsToBox: true,
     },
     // MPI-620 — "Scribble". The SDXL + ControlNet render half that MPI-621 deleted from
     // Draw It In, rehoused as a flow in its own right: a drawing goes in, an image comes
@@ -1213,6 +1220,8 @@ export const commands = {
         // return an arbitrary portrait rather than an error (proven on the bench 2026-08-26).
         promptRequired: true,
         universal: true,
+        // Input_Image goes straight into ImageScaleToTotalPixels at 1 MP (MPI-971).
+        modelSizedInputs: true,
     },
 
     // MPI-596 — "Object Stamp". Take an object out of one photo and put it into
@@ -1254,6 +1263,7 @@ export const commands = {
         // the generic title injector would match and silently not write. The name is
         // historical; the mapping is generic.
         injector: 'headSwap',
+        cropsToBox: true,
     },
 
     // MPI-607. The FIRST audio-only op: two clips in, one clip out, nothing visual

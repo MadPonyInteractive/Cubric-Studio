@@ -3584,19 +3584,22 @@ export const MpiBaseFlow = ComponentFactory.create({
             // plus the rect that produced this one.
             let runMediaItems;
             let passes = null;
+            let prepError = null;
             try {
                 passes = await _planPasses(mediaItems);
                 runMediaItems = await _deriveRunMedia(mediaItems, passes?.values);
             } catch (err) {
                 clientLogger.error('MpiBaseFlow', `step media derivation failed: ${err?.message || err}`);
                 runMediaItems = null;
+                prepError = err;
             }
             if (!runMediaItems) {
                 _runs.delete(run);
                 _syncRunning();
                 if (!_runs.size) _setStatus('');
+                // A step that refuses on purpose says why (MPI-971: a frame too big to make).
                 Events.emit('ui:warning', {
-                    message: `${flow.title} could not prepare its image — nothing was generated.`,
+                    message: prepError?.userMessage || `${flow.title} could not prepare its image — nothing was generated.`,
                 });
                 return;
             }

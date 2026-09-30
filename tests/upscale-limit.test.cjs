@@ -29,6 +29,23 @@ test('a factor is refused only when the output passes 16384', async () => {
     assert.deepEqual(allowed(3000, 6000), [1.5, 2]);
 });
 
+test('the engine opens up to Pillow\'s line and no further (MPI-971 Phase 4)', async () => {
+    const { loadRefusal, ENGINE_LOAD_MAX_PIXELS } = await load('js/utils/upscaleLimit.js');
+    assert.equal(ENGINE_LOAD_MAX_PIXELS, 178956970);
+    // Measured: a 16384 x 10240 (168 MP) loads, a 16384^2 (268 MP) dies in MpiLoadImage.
+    assert.equal(loadRefusal(16384, 10240), null);
+    assert.match(loadRefusal(16384, 16384), /16384x16384 is 268 MP, and it opens at most 179 MP/);
+    assert.equal(loadRefusal(4096, 4096), null);
+});
+
+test('an Outpaint frame is refused past 16384 on the long edge or Pillow\'s line', async () => {
+    const { outpaintRefusal } = await load('js/utils/upscaleLimit.js');
+    assert.equal(outpaintRefusal(6000, 4000), null);
+    assert.equal(outpaintRefusal(16384, 9000), null);
+    assert.match(outpaintRefusal(16385, 100), /new frame would be 16385x100/);
+    assert.match(outpaintRefusal(13500, 13500), /182 MP/);
+});
+
 test('the guard covers every op whose output is its input times the factor', async () => {
     const { commands } = await load('js/data/commandRegistry.js');
     const flagged = Object.keys(commands).filter(k => commands[k].enlarges).sort();

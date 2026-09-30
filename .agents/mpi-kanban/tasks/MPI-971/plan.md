@@ -5,6 +5,24 @@
 
 ## Current State
 
+**2026-09-30 (session a0ada438): Phase 3 VERIFIED BY FABIO ("All tests passed"); Phase 4 BUILT,
+unit + live green (validation.md § Phase 4); the agent's upscale refusal now carries `code:
+TOO_BIG` + `userMessage`.** Phase 4: `cropsToBox` (Draw It In, Object Stamp) cuts the photo AND
+its paint layer round `box1` server-side (`engineMask.prepareBoxedInput`, `POST /engine-box`,
+`commandExecutor._fitBoxedInputs`; the injector gets the moved box; Object Stamp Manual,
+`Input_Mode` 2, keeps its cut-out as a reference at the engine copy), stitched back through the box
+grown 0.3; Scribble is `modelSizedInputs` and its composite caps at 4096 in the renderer;
+Outpaint refuses a frame past 16384 / 179 MP in the crop step (`outpaintRefusal`, shown by
+MpiBaseFlow via `userMessage`); and a load BACKSTOP (`_loadRefusal`, `loadRefusal`) refuses any
+image input still over Pillow's line after every fit, for every op and producer. Package Flows can
+opt in (`OP_KEYS` += modelSizedInputs, cropsToBox). **Still open on this card:** the ONE Pod run
+(Fabio's first try hit MPI-1001's WS wedge, not this card; his run was also UNMASKED, log
+`engine-image ... 4096 copy`, so re-run WITH a mask), then preservation (docs rule, add-model
+note, MPI-962 plan + UNRELEASED line), then close. Open questions to Fabio still unanswered:
+MPI-1000 a 2.0 gate? (my pick: no); model-upscale x4 intermediate (my pick: feed the 4096 copy +
+rescale the factor). New from this session: Outpaint on a big photo refuses; alternative is to
+run it on the 4096 copy with a smaller card (his call; my pick: refuse, as the plan said).
+
 **2026-09-30 (session 0caa9d47): Phase 3 BUILT, unit + live green, UNCOMMITTED; awaiting
 Fabio's look (user-ux).** Remove Background on a photo over the cap runs on the Phase 1 engine
 copy with the background forced transparent, and `applyMatte` (`services/engineMask.js`, via
@@ -221,7 +239,7 @@ would put two workers in one function.
 
 ## Phase 4: Flows with source-coordinate inputs
 
-- [ ] Draw It In / Object Stamp (boxes via `headSwapInjector`), Outpaint, `Input_Paint` layers, and
+- [x] Draw It In / Object Stamp (boxes via `headSwapInjector`), Outpaint, `Input_Paint` layers, and
   the Head Swap package: the boxes / paint define the crop region exactly as the mask does in Phase 2
   (translate coordinates into the crop, stitch back). Any Flow this cannot cover refuses a big
   source with a named reason instead of dying in `MpiLoadImage`. **Verify:** Draw It In on a 16K lands
@@ -258,6 +276,14 @@ would put two workers in one function.
 - 2026-09-30 (Phase 3): a colour background is laid server-side (the engine is always asked for
   the transparent cut-out, which is the matte), so both background modes keep the original's pixels.
 - 2026-09-30: the Pod run cannot come from an agent instance — see Current State.
+- 2026-09-30 (Phase 4): the box cut is its own server function (`prepareBoxedInput`), reusing
+  `planMaskCrop` (new `minSide`) and `stitchMaskCrop` through a box mask; Draw It In's window is
+  4.267 x the drawing's side (read off the layer's alpha at <= 2048), applied to Object Stamp too
+  (a wider cut, harmless). Head Swap's package is NOT covered by a manifest yet (it CAN opt in).
+- 2026-09-30 (Phase 4): "refuses with a reason" became a generic backstop at the executor
+  (`_loadRefusal`, Pillow's 178,956,970 px) rather than per-Flow refusals, plus the Outpaint
+  frame check in the crop step (the renderer builds the frame before the executor sees it).
+  No `flowSizeRefusal` in flowsRegistry.js (peer-claimed, and not needed).
 
 ## Verification
 

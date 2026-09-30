@@ -102,3 +102,32 @@ Verify mode: user-ux for Phases 2 and 3 (Fabio looks at a 16K result); Phases 1 
   reading of this flat synthetic fixture.
 - NOT covered: greying on the PROMPT BOX's Upscale factor (model `upscale` op) — its controls get
   no media to size; that op is refused at Run with the same message instead (plan drift).
+
+## Phase 3 — VERIFIED BY FABIO 2026-09-30 (user-ux)
+
+- Restarted his app 17:28Z (after b66b032fa), then in his own app on 'Big Photos Test' (16384^2):
+  Remove Background transparent and on a colour both 16K cards; Upscale rail greys all four
+  factors on the 16K with the reason on hover, a normal photo keeps all four. His words: "All tests passed".
+- Pod run: in progress on his side (one run, okayed).
+
+## Phase 4 (Flows on a big photo) + agent refusal message — PASSED 2026-09-30 (session a0ada438)
+
+- Unit: `node --test tests/engine-mask.test.cjs tests/upscale-limit.test.cjs tests/engine-input-cap.test.cjs`
+  green. New: `prepareBoxedInput` cuts a 2000x1200 photo AND a half-size layer to one window (Draw It In
+  reach 4.267 x the drawing, 683^2 scaled to a 512 cap), the box moved by the same factor, the layer's
+  drawing lands where the photo's does, the stitch keeps the original outside the box; Manual (no layer)
+  cuts at the box reach; within the cap untouched; `cropsToBox` op list pinned; `loadRefusal` (168 MP
+  loads, 268 MP refused), `outpaintRefusal` (16385 long edge / 182 MP refused). `npm test` 2425 pass, 0 fail.
+- Live, own Electron (8aad9989 scratch profile, own port, local engine 48188 under a GPU lease, :3000
+  untouched), real `enqueueGeneration`, 16384^2 fixture:
+  | job | result |
+  |---|---|
+  | Draw It In, 16K photo + 16K layer (600 px disc), box 1000^2 | 16384^2 card in 23 s; `engine-box: cut 2987^2 at 1:1, box 993,993`, `engine-stitch ... <- 2987x2987`; 6 tiles outside the window 0 bytes differ; box centre mean diff 72; looked at: an apple in the box |
+  | Scribble fed the 16K directly (connector shape) | `engine-image ... 4096 copy`, 1024^2 card in 27 s |
+  | Image Upscale x2 on the 16K, byAgent | refused in 0 s, `code: TOO_BIG`, `userMessage` = the reason (the agent now says it) |
+  | composePaddedImage, 16K + bars (17384x16384) | throws TOO_BIG with the reason before any canvas |
+  | flowOutpaint handed the 16K straight to the executor | load backstop: `Too big for the engine: 16384x16384 is 268 MP ...` |
+  | Remove Background on the 2K (control, after the MPI-1001 WS change) | 2048x1280 card |
+- NOT run live: Object Stamp (same code path as Draw It In; Manual unit-covered), the UI Outpaint
+  toast (the step throws the reason; MpiBaseFlow shows `userMessage`), Scribble through its paint step
+  (composePaintComposite now caps at 4096).

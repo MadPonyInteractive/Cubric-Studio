@@ -38,7 +38,7 @@ import { stagesFor, postTileBarsFor } from '../data/progressStages.js';
 import { INJECTORS } from './workflowInjectors/index.js';
 import { buildComfyViewUrl, collectComfyOutputUrls, readComfyOutputText, splatViewFileInfo } from '../utils/comfyOutputUrls.js';
 import { canonicalizeInjectionKeys } from '../utils/injectionKeys.js';
-import { imageSize, upscaleRefusal } from '../utils/upscaleLimit.js';
+import { imageSize, upscaleRefusal, loadRefusal } from '../utils/upscaleLimit.js';
 import { generationStore, PHASES } from './generationStore.js';
 
 // Adapters over the shared js/utils/comfyOutputUrls.js (MPI-176). MPI-74: a
@@ -290,6 +290,45 @@ async function _fitMatteInputs(params, operation) {
     params.Input_Image = copy;
     params.Input_Bg_Use_Color = false;
     return { source, matte: { color } };
+}
+
+// MPI-971 Phase 4: a box Flow (`cropsToBox`: Draw It In, Object Stamp) on a photo over the
+// cap gets the photo — and its paint LAYER — cut round `box1`, with the box moved into the
+// cut; the graph crops round the box inside that window anyway, and `_stitchOutputs` pastes
+// the result back. Object Stamp's Manual mode (`Input_Mode` 2) sends the clean cut-out as a
+// REFERENCE rather than a layer, so that one rides at model size like any reference. Returns
+// the stitch and the moved box, which the injector writes. Fails CLOSED, as the mask fit does.
+async function _fitBoxedInputs(params, operation, injectionParams) {
+    const box = injectionParams?.box1;
+    const image = COMMANDS[operation]?.cropsToBox && box ? _decodeProjectFileUrl(params.Input_Image) : null;
+    if (!image || /^(data|blob|http)/.test(image)) return null;
+    const paint = Number(params.Input_Mode) !== 2 ? _decodeProjectFileUrl(params.Input_Paint) : null;
+    const res = await fetch('/engine-box', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image, box, paint: paint && !/^(data|blob|http)/.test(paint) ? paint : null }),
+    });
+    const out = await res.json().catch(() => null);
+    if (!res.ok || !out) throw new Error(out?.error || `engine-box returned ${res.status}`);
+    if (!out.stitch) return null;
+    params.Input_Image = out.image;
+    if (out.paint) params.Input_Paint = out.paint;
+    else if (params.Input_Paint) params.Input_Paint = await _engineCopyUrl(params.Input_Paint);
+    return { stitch: out.stitch, box1: out.box };
+}
+
+// MPI-971 Phase 4, the backstop: after every fit above, an image the engine still cannot open
+// is refused with its size, for every op and producer — a package Flow included, which cannot
+// opt into the fits — instead of dying in MpiLoadImage. Fails open on an unreadable size.
+async function _loadRefusal(params, operation) {
+    for (const slot of getCommandMediaInputs(operation)) {
+        const file = slot.mediaType === 'image' ? _decodeProjectFileUrl(params[slot.title]) : null;
+        if (!file || /^(data|blob|http)/.test(file)) continue;
+        const size = await imageSize(file);
+        const why = size && loadRefusal(size.width, size.height);
+        if (why) return why;
+    }
+    return null;
 }
 
 // MPI-971 Phase 3 (P-A): an upscale past UPSCALE_MAX_EDGE is refused before the engine
@@ -1754,16 +1793,25 @@ export function runCommand(payload) {
 
         const params = _buildParams(workingPayload);
         exec.seed = params.Input_Seed ?? null;
+        // A picture too big to make or to open (MPI-971) is refused before dispatch. An
+        // agent's run gets no toast: the agent is told the reason and says it in the chat
+        // (the cloud LOW_BALANCE shape, cloudExecutor.js).
+        const _tooBigBail = async (why) => {
+            await _cleanupTrimmedVideoInputs(tempTrimInputPaths);
+            if (!payload.byAgent) Events.emit('ui:warning', { message: why });
+            _failBail(Object.assign(new Error(why), { code: 'TOO_BIG', userMessage: why }), { reported: true });
+        };
         const tooBig = await _upscaleRefusal(params, workingPayload.operation);
         if (tooBig) {
-            await _cleanupTrimmedVideoInputs(tempTrimInputPaths);
-            Events.emit('ui:warning', { message: tooBig });
-            _failBail(new Error(tooBig), { reported: true });
+            await _tooBigBail(tooBig);
             return;
         }
         let maskStitch = null;
+        let boxFit = null;
         try {
-            maskStitch = await _fitMaskedInputs(params, workingPayload.operation)
+            boxFit = await _fitBoxedInputs(params, workingPayload.operation, workingPayload.injectionParams);
+            maskStitch = boxFit?.stitch
+                || await _fitMaskedInputs(params, workingPayload.operation)
                 || await _fitMatteInputs(params, workingPayload.operation);
         } catch (err) {
             await _cleanupTrimmedVideoInputs(tempTrimInputPaths);
@@ -1771,6 +1819,11 @@ export function runCommand(payload) {
             return;
         }
         if (await _abortedBail(tempTrimInputPaths)) return;
+        const cannotLoad = await _loadRefusal(params, workingPayload.operation);
+        if (cannotLoad) {
+            await _tooBigBail(cannotLoad);
+            return;
+        }
 
         // Guard: block submission if a selected LoRA/upscale model is not in any
         // of the configured model folders — the loader would fail with a cryptic
@@ -1898,7 +1951,10 @@ export function runCommand(payload) {
                 clientLogger.error('commandExecutor', `Missing injector "${opDef.injector}" for op ${workingPayload.operation}`);
             } else {
                 try {
-                    injector.inject(workflow, workingPayload.injectionParams || {});
+                    // A box Flow cut round its box (MPI-971) injects the box moved into the cut.
+                    injector.inject(workflow, boxFit
+                        ? { ...workingPayload.injectionParams, box1: boxFit.box1 }
+                        : workingPayload.injectionParams || {});
                     // Params the injector CONSUMED are already written into the
                     // workflow. Remove those — BOTH the bare key AND its Input_ alias
                     // (added by the canonicalization pass) — so the generic title

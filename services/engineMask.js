@@ -93,8 +93,10 @@ function maskBox(data, width, height) {
  *
  * @returns {{left:number, top:number, width:number, height:number, outW:number, outH:number}}
  *   `outW`/`outH` the size the engine gets (the rect's own when it fits the cap)
+ * `minSide` widens the square for a graph whose window is not a multiple of the box
+ * (Draw It In sizes its window off the drawing, `prepareBoxedInput`).
  */
-function planMaskCrop({ box, maskW, maskH, srcW, srcH, cap }) {
+function planMaskCrop({ box, maskW, maskH, srcW, srcH, cap, minSide = 0 }) {
     const sx = srcW / maskW;
     const sy = srcH / maskH;
     const x0 = Math.floor(box.x0 * sx);
@@ -102,7 +104,7 @@ function planMaskCrop({ box, maskW, maskH, srcW, srcH, cap }) {
     const x1 = Math.min(srcW, Math.ceil((box.x1 + 1) * sx));
     const y1 = Math.min(srcH, Math.ceil((box.y1 + 1) * sy));
     const long = Math.max(x1 - x0, y1 - y0);
-    const side = long + 2 * Math.max(CONTEXT_PAD, Math.ceil(CONTEXT_REACH * long));
+    const side = Math.max(minSide, long + 2 * Math.max(CONTEXT_PAD, Math.ceil(CONTEXT_REACH * long)));
     const span = (lo, hi, size) => {
         const len = Math.min(size, side);
         return [Math.max(0, Math.min(size - len, Math.round((lo + hi - len) / 2))), len];
@@ -178,6 +180,126 @@ async function prepareMaskedInput({ imagePath, mask, crop, cap, outPath }) {
         .toFile(maskOut);
 
     return { image: imageOut, mask: maskOut, stitch: { rect, mask: maskOut } };
+}
+
+// Phase 4: the Flows that place a BOX on the photo (Draw It In, Object Stamp) crop round it
+// and stitch back inside their own graphs, so they get the same cut. Their windows:
+// Draw It In's is the drawing's square side x 4.267 round the box (flow_draw_it_in.json
+// node 183), Object Stamp's the box grown by 0.3 of its side (node 225) — the mask reach
+// already holds that one.
+// ponytail: the drawing reach applies to Object Stamp's placed object too, a wider cut than
+// its graph needs; it only shows when the cut is over the cap, and then as a window scaled
+// sooner towards the 1024 the graph samples at anyway.
+const DRAWING_REACH = 4.267;
+// How far past the box the graph may repaint: Object Stamp grows it by 0.3 of its side
+// before its blend band (Draw It In by 6 px); the stitch then adds BLEND_BAND.
+const BOX_GROW = 0.3;
+
+/** Box of the drawn (alpha > 0) pixels of a layer, in its own px, or null when it is empty. */
+async function paintBox(paintPath) {
+    const meta = await sharp(paintPath, BUFFER_INPUT).metadata();
+    // Read small: a 16K layer is 268 MB of alpha. A stroke averaged down still reads > 0.
+    // The alpha is picked out here, not by extractChannel: sharp runs ops in a fixed order.
+    const { data, info } = await sharp(paintPath, BUFFER_INPUT)
+        .resize(2048, 2048, { fit: 'inside', withoutEnlargement: true })
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+    const alpha = Buffer.alloc(info.width * info.height);
+    for (let i = 0; i < alpha.length; i++) alpha[i] = data[i * info.channels + info.channels - 1] ? 255 : 0;
+    const b = maskBox(alpha, info.width, info.height);
+    if (!b) return null;
+    const sx = meta.width / info.width;
+    const sy = meta.height / info.height;
+    return {
+        width: meta.width, height: meta.height,
+        x0: Math.floor(b.x0 * sx), y0: Math.floor(b.y0 * sy),
+        x1: Math.ceil((b.x1 + 1) * sx) - 1, y1: Math.ceil((b.y1 + 1) * sy) - 1,
+    };
+}
+
+/**
+ * Fit a box Flow's photo, paint layer and box to what the engine can load: the photo and the
+ * layer cut to one window round the box, the box moved into that window, and the stitch that
+ * pastes the result back through the box.
+ *
+ * @param {object} o
+ * @param {string} o.imagePath - the Flow's `Input_Image`, a file
+ * @param {{x:number, y:number, width:number, height:number}} o.box - `box1`, upright source
+ *   px; may hang off an edge (MPI-325)
+ * @param {string|null} o.paintPath - `Input_Paint` when it is a LAYER over the photo (same
+ *   aspect, any size: it is stretched to the photo), null when it is not one
+ * @param {number} o.cap - the engine's long-edge cap
+ * @param {(name: string) => string} o.outPath - where to write a named output
+ * @returns {Promise<{image?: string, paint?: string, box?: object, stitch?: object}>} empty
+ *   when the photo is within the cap
+ */
+async function prepareBoxedInput({ imagePath, box, paintPath, cap, outPath }) {
+    const { width: srcW, height: srcH } = await uprightSize(imagePath);
+    if (Math.max(srcW, srcH) <= cap) return {};
+
+    const clampX = (v) => Math.max(0, Math.min(srcW - 1, v));
+    const clampY = (v) => Math.max(0, Math.min(srcH - 1, v));
+    const onPhoto = {
+        x0: clampX(Math.round(box.x)), y0: clampY(Math.round(box.y)),
+        x1: clampX(Math.round(box.x + box.width) - 1), y1: clampY(Math.round(box.y + box.height) - 1),
+    };
+    const drawn = paintPath ? await paintBox(paintPath) : null;
+    const drawLong = drawn
+        ? Math.max((drawn.x1 - drawn.x0 + 1) * srcW / drawn.width, (drawn.y1 - drawn.y0 + 1) * srcH / drawn.height)
+        : 0;
+    const rect = planMaskCrop({
+        box: onPhoto, maskW: srcW, maskH: srcH, srcW, srcH, cap,
+        minSide: drawLong ? Math.ceil(DRAWING_REACH * drawLong) + 2 * CONTEXT_PAD : 0,
+    });
+    const { left, top, width, height, outW, outH } = rect;
+    const kx = outW / width;
+    const ky = outH / height;
+
+    const imageOut = outPath('crop.png');
+    await sharp(imagePath, FILE_INPUT).extract({ left, top, width, height })
+        .resize(outW, outH, { fit: 'fill' }).png().toFile(imageOut);
+
+    // The layer's own grid maps onto the photo by ratio (the paint step may hand it over at
+    // its working size), so the same window is cut from it and brought to the engine's size.
+    let paintOut;
+    if (paintPath) {
+        const { width: pw, height: ph } = await sharp(paintPath, BUFFER_INPUT).metadata();
+        const pl = Math.min(pw - 1, Math.round(left * pw / srcW));
+        const pt = Math.min(ph - 1, Math.round(top * ph / srcH));
+        paintOut = outPath('paint.png');
+        await sharp(paintPath, BUFFER_INPUT)
+            .ensureAlpha()
+            .extract({
+                left: pl, top: pt,
+                width: Math.max(1, Math.min(pw - pl, Math.round(width * pw / srcW))),
+                height: Math.max(1, Math.min(ph - pt, Math.round(height * ph / srcH))),
+            })
+            .resize(outW, outH, { fit: 'fill' })
+            .png()
+            .toFile(paintOut);
+    }
+
+    const moved = {
+        x: Math.round((box.x - left) * kx),
+        y: Math.round((box.y - top) * ky),
+        width: Math.max(1, Math.round(box.width * kx)),
+        height: Math.max(1, Math.round(box.height * ky)),
+    };
+
+    // What the stitch pastes through: the box as the graph may repaint it, on the engine grid.
+    const grow = Math.ceil(BOX_GROW * Math.max(moved.width, moved.height));
+    const mask = Buffer.alloc(outW * outH);
+    const mx0 = Math.max(0, moved.x - grow);
+    const my0 = Math.max(0, moved.y - grow);
+    const mx1 = Math.min(outW, moved.x + moved.width + grow);
+    const my1 = Math.min(outH, moved.y + moved.height + grow);
+    for (let y = my0; y < my1; y++) mask.fill(255, y * outW + mx0, y * outW + mx1);
+    const maskOut = outPath('mask.png');
+    await sharp(mask, { raw: { width: outW, height: outH, channels: 1 }, limitInputPixels: false })
+        .toColourspace('b-w').png().toFile(maskOut);
+
+    return { image: imageOut, paint: paintOut, box: moved, stitch: { rect, mask: maskOut } };
 }
 
 /**
@@ -292,4 +414,4 @@ async function applyMatte({ sourcePath, resultPath, color, outPath }) {
     return { width, height };
 }
 
-module.exports = { prepareMaskedInput, stitchMaskCrop, applyMatte, planMaskCrop, maskBox, uprightSize, CONTEXT_PAD, CONTEXT_REACH, BLEND_BAND };
+module.exports = { prepareMaskedInput, prepareBoxedInput, stitchMaskCrop, applyMatte, planMaskCrop, maskBox, uprightSize, CONTEXT_PAD, CONTEXT_REACH, BLEND_BAND };

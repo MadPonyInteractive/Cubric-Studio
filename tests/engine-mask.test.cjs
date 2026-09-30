@@ -14,7 +14,7 @@ const os = require('node:os');
 const sharp = require('sharp');
 
 const { pathToFileURL } = require('node:url');
-const { prepareMaskedInput, stitchMaskCrop, applyMatte, planMaskCrop, CONTEXT_PAD, CONTEXT_REACH } = require('../services/engineMask.js');
+const { prepareMaskedInput, prepareBoxedInput, stitchMaskCrop, applyMatte, planMaskCrop, CONTEXT_PAD, CONTEXT_REACH } = require('../services/engineMask.js');
 
 sharp.cache({ files: 0 });
 
@@ -227,3 +227,93 @@ for (const [label, make] of [
         } finally { await fs.remove(dir); }
     });
 }
+
+// MPI-971 Phase 4 — the box Flows (Draw It In, Object Stamp): the photo and its paint layer are
+// cut to one window round the box, the box moves into the cut, and the result is pasted back
+// through the box.
+
+/** A transparent layer, `w` x `h`, opaque red inside `r` (inclusive). */
+async function layer(w, h, r, file) {
+    const data = Buffer.alloc(w * h * 4);
+    for (let y = r.y0; y <= r.y1; y++) {
+        for (let x = r.x0; x <= r.x1; x++) data.set([255, 0, 0, 255], (y * w + x) * 4);
+    }
+    await sharp(data, { raw: { width: w, height: h, channels: 4 } }).png().toFile(file);
+}
+
+test('a box Flow is cut round its box and its drawing, the layer with it, and stitched back', async () => {
+    const { dir, outPath } = await tmp();
+    try {
+        const src = outPath('src.png');
+        await noise(2000, 1200).png().toFile(src);
+        // The paint step's layer at HALF the photo's size: the drawing is 100x60 photo px.
+        const paint = outPath('paint-in.png');
+        await layer(1000, 600, { x0: 400, y0: 250, x1: 449, y1: 279 }, paint);
+        const box = { x: 780, y: 480, width: 140, height: 100 };
+
+        const out = await prepareBoxedInput({ imagePath: src, box, paintPath: paint, cap: 512, outPath });
+        // Draw It In's window is 4.267 x the drawing's side: 427 + 2 x 128 = 683, round the box's
+        // centre, over the cap so scaled to 512.
+        assert.deepEqual(out.stitch.rect, { left: 509, top: 189, width: 683, height: 683, outW: 512, outH: 512 });
+        const k = 512 / 683;
+        assert.deepEqual(out.box, {
+            x: Math.round((780 - 509) * k), y: Math.round((480 - 189) * k),
+            width: Math.round(140 * k), height: Math.round(100 * k),
+        });
+        assert.deepEqual([(await sharp(out.image).metadata()).width, (await sharp(out.image).metadata()).height], [512, 512]);
+
+        // The layer is cut from the same window: the drawing's centre (850, 530) lands where
+        // the photo's does, and the corner stays clear.
+        const p = await rgba(out.paint);
+        assert.deepEqual([p.info.width, p.info.height], [512, 512]);
+        const at = (x, y) => p.data[(y * 512 + x) * 4 + 3];
+        assert.equal(at(Math.round((850 - 509) * k), Math.round((530 - 189) * k)), 255);
+        assert.equal(at(5, 5), 0);
+
+        // Pretend to be the engine: red inside the moved box. The card is the photo's size, red
+        // in the box, the original's own pixels well away from it.
+        const result = outPath('result.png');
+        const red = await sharp({ create: { width: out.box.width, height: out.box.height, channels: 3, background: '#ff0000' } }).png().toBuffer();
+        await sharp(out.image).composite([{ input: red, left: out.box.x, top: out.box.y }]).png().toFile(result);
+        const card = outPath('card.png');
+        assert.deepEqual(await stitchMaskCrop({ sourcePath: src, resultPath: result, maskPath: out.stitch.mask, rect: out.stitch.rect, outPath: card }),
+            { width: 2000, height: 1200 });
+        const got = await pixels(card);
+        const orig = await pixels(src);
+        const px = (img, x, y) => [...img.data.subarray((y * 2000 + x) * 3, (y * 2000 + x) * 3 + 3)];
+        const [r, g] = px(got, 850, 530);
+        assert.ok(r > 200 && g < 60, `the box is the engine's (${r},${g})`);
+        for (const [x, y] of [[100, 100], [1150, 530], [850, 1100]]) {
+            assert.deepEqual(px(got, x, y), px(orig, x, y), `(${x},${y}) is the original's`);
+        }
+    } finally { await fs.remove(dir); }
+});
+
+test('with no layer (Object Stamp Manual) only the photo is cut, at the box reach', async () => {
+    const { dir, outPath } = await tmp();
+    try {
+        const src = outPath('src.png');
+        await noise(2000, 1200).png().toFile(src);
+        const out = await prepareBoxedInput({ imagePath: src, box: { x: 780, y: 480, width: 140, height: 100 }, paintPath: null, cap: 512, outPath });
+        assert.equal(out.paint, undefined);
+        // 140 + 2 x 128 = 396, under the cap: 1:1.
+        assert.deepEqual(out.stitch.rect, { left: 652, top: 332, width: 396, height: 396, outW: 396, outH: 396 });
+        assert.deepEqual(out.box, { x: 128, y: 148, width: 140, height: 100 });
+    } finally { await fs.remove(dir); }
+});
+
+test('a box Flow on a photo within the cap is left alone', async () => {
+    const { dir, outPath } = await tmp();
+    try {
+        const src = outPath('src.png');
+        await noise(400, 300).png().toFile(src);
+        assert.deepEqual(await prepareBoxedInput({ imagePath: src, box: { x: 10, y: 10, width: 50, height: 50 }, paintPath: null, cap: 400, outPath }), {});
+    } finally { await fs.remove(dir); }
+});
+
+test('the box cut is offered only to Flows whose graphs crop round box1', async () => {
+    const { commands } = await import(pathToFileURL(path.join(__dirname, '..', 'js', 'data', 'commandRegistry.js')).href);
+    const flagged = Object.keys(commands).filter(k => commands[k].cropsToBox).sort();
+    // Changing this list means reading the graph: MpiBoxMask -> InpaintCropImproved -> Stitch.
+    assert.deepEqual(flagged, ['flowObjectStamp', 'flowScribObj']);
+});

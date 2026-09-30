@@ -37,8 +37,11 @@ const ABS_PATH_RE = /^(?:[A-Za-z]:[\\/]|\\\\|\/(?:home|Users|mnt|root|workspace|
 const FLOW_KEYS = new Set(['title', 'preview', 'video', 'description', 'requiredModels',
     'requiredDeps', 'requiredPlugins', 'modelParams', 'mediaType', 'type', 'inputSchema',
     'result', 'steps', 'fields', 'derived', 'enhance', 'chain', 'agentOpens']);
+// The two big-photo flags a Flow graph can earn (MPI-971; commandRegistry.js says what each
+// promises about the graph): a package opts in the same way a built-in Flow does.
 const OP_KEYS = new Set(['label', 'progressLabel', 'mediaType', 'requiresImages',
-    'requiresVideo', 'mediaInputs', 'promptRequired', 'injector', 'filePrefix']);
+    'requiresVideo', 'mediaInputs', 'promptRequired', 'injector', 'filePrefix',
+    'modelSizedInputs', 'cropsToBox']);
 const MEDIA_TYPES = ['image', 'video', 'audio'];
 const FLOW_TYPES = ['create', 'edit', 'enhance'];
 
@@ -165,6 +168,9 @@ function validatePackage(manifest, graph, files, known = loadKnown()) {
         if (!FLOW_KEYS.has(k)) errors.push(`flow.${k} is not a Flow field${['id', 'operation', 'workflow'].includes(k) ? ' — the app sets it' : ''}.`);
     }
     for (const k of Object.keys(op)) if (!OP_KEYS.has(k)) errors.push(`op.${k} is not an op field.`);
+    for (const k of ['modelSizedInputs', 'cropsToBox']) {
+        if (op[k] !== undefined && typeof op[k] !== 'boolean') errors.push(`op.${k} must be true or false.`);
+    }
     for (const k of ['title', 'description']) {
         if (typeof flow[k] !== 'string' || !flow[k].trim()) errors.push(`flow.${k} is required.`);
     }

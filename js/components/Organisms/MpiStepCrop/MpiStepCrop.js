@@ -4,6 +4,7 @@ import { CropManager } from '../../Primitives/MpiCanvas/managers/CropManager.js'
 import { CROP_RATIOS } from '../../../utils/ratios.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { planOutpaintPasses, nextPassRect } from '../../../utils/outpaintPasses.js';
+import { outpaintRefusal } from '../../../utils/upscaleLimit.js';
 import { qs, on } from '../../../utils/dom.js';
 
 /**
@@ -128,7 +129,17 @@ export async function composePaddedImage(media, value) {
     const nw = img.naturalWidth || img.width;
     const nh = img.naturalHeight || img.height;
     if (rect.x === 0 && rect.y === 0 && rect.w === nw && rect.h === nh) return null;
+    _refuseTooBig(rect);
     return _padTo(img, rect);
+}
+
+/**
+ * A frame the app cannot make is refused with its reason (MPI-971) before a canvas that size
+ * is attempted: the run's catch shows `userMessage` instead of "could not prepare its image".
+ */
+function _refuseTooBig(rect) {
+    const why = outpaintRefusal(rect.w, rect.h);
+    if (why) throw Object.assign(new Error(why), { code: 'TOO_BIG', userMessage: why });
 }
 
 /** @param {string} url @returns {Promise<HTMLImageElement>} */
@@ -151,6 +162,8 @@ function _loadImage(url) {
  */
 export async function planCropPasses(media, rect, maxGrow) {
     if (!rect || !media?.url || !(maxGrow > 0)) return null;
+    // The FINISHED frame, before pass 1 is paid for.
+    _refuseTooBig(rect);
     const img = await _loadImage(resolveMediaUrl(media.url));
     return planOutpaintPasses({ w: img.naturalWidth || img.width, h: img.naturalHeight || img.height }, rect, maxGrow);
 }

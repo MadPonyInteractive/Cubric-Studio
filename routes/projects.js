@@ -47,7 +47,7 @@ const { muxAudioIntoVideo, mixAudioFiles } = require('../services/ffmpegMux');
 const { extractFramesFromGif, copyGifFrames, holdFrames, sweepGifFrames } = require('../services/gifFrames');
 const { SCHEMA_VERSION } = require('../js/migrations/projectMigrations');
 const { bakeOrientation } = require('./imageImport');
-const { prepareMaskedInput, stitchMaskCrop, applyMatte, uprightSize } = require('../services/engineMask');
+const { prepareMaskedInput, prepareBoxedInput, stitchMaskCrop, applyMatte, uprightSize } = require('../services/engineMask');
 
 const projectJsonQueues = new Map();
 const itemMetaQueues = new Map();
@@ -2107,6 +2107,31 @@ router.post('/engine-mask', async (req, res) => {
         res.json({ image: url(out.image), mask: url(out.mask), stitch: out.stitch && { ...out.stitch, source: image } });
     } catch (err) {
         logger.error('project', `engine-mask failed for ${path.basename(image)}`, err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// A BOX Flow (Draw It In, Object Stamp) on a photo over ENGINE_MAX_EDGE (MPI-971 Phase 4):
+// the photo and its paint layer cut round the box, the box moved into the cut, and the
+// `stitch` for /engine-stitch. `{}` means send everything as it is.
+router.post('/engine-box', async (req, res) => {
+    const { image, box, paint = null } = req.body || {};
+    if (!image || !box) return res.status(400).json({ error: 'image and box required' });
+    if (!(await fs.pathExists(image))) return res.status(404).json({ error: 'Not found' });
+    try {
+        await fs.ensureDir(ENGINE_SCRATCH);
+        _sweepEngineScratch().catch(() => {});
+        const id = crypto.randomUUID();
+        const out = await prepareBoxedInput({
+            imagePath: image, box, paintPath: paint, cap: ENGINE_MAX_EDGE,
+            outPath: (name) => path.join(ENGINE_SCRATCH, `${id}.${name}`),
+        });
+        if (!out.stitch) return res.json({});
+        logger.info('project', `engine-box: ${path.basename(image)} cut ${JSON.stringify(out.stitch.rect)}, box ${JSON.stringify(out.box)}`);
+        const url = (p) => p && `/project-file?path=${encodeURIComponent(p)}`;
+        res.json({ image: url(out.image), paint: url(out.paint), box: out.box, stitch: { ...out.stitch, source: image } });
+    } catch (err) {
+        logger.error('project', `engine-box failed for ${path.basename(image)}`, err);
         res.status(500).json({ error: err.message });
     }
 });
