@@ -99,3 +99,40 @@ never landed.
   the Flow rule now reads app:flows before an ANSWER about a Flow too (SYSTEM 10,423 / 10,460).
 
 Not run through a real model: the loop's routing is unit-tested with a scripted model.
+
+## Fabio's look, round 3 (2026-09-30, Agent 75)
+
+- Check 4 PASS (screenshot): "audio of an elderly man saying '...'" with no sample: Cosmo read
+  app:flows and DramaBox's settings, ran DramaBox (8 s, `flowDramaBox_001.flac`), Audio tile in the
+  chat. No install offer.
+- Check 5 attempt, Head Swap ("swap the head of the cyber girl with the girl with red eyes"):
+  Head Swap is NOT installed on his machine (a paid Flow; `%APPDATA%/Cubric Studio/user_flows/`
+  holds only drama-box), so "not installed" was right. Two wrong things in the answer, both text
+  this card wrote: "its tile says Get models" (a paid tile says Get it) and "I can open the Flow
+  Library for you" (no tool does). Fixed in app:flows (`docs/agent/flows.md`) and the Docs site
+  agent page.
+- Then "try an edit model": Cosmo offered to install Qwen Image Edit (31.8 GB); on "Try Klein9b"
+  it said no editor here could take the head from the second picture, BEFORE reading Klein's
+  settings (Klein edits take up to three references). Causes: the Model rule "A head from one
+  picture onto another is the Head Swap Flow, never an edit or a mask", and Qwen's note "the only
+  one that leaves everything outside the edit area untouched". Fabio's pick: remove the claim, add
+  no tokens. The rule now ends "never a mask." (SYSTEM 10 bytes smaller); Qwen's note is "the
+  slowest of these"; `tests/model-priority.test.cjs` asserts it no longer says "only one".
+- Agent + model-priority + handover suites: 344, 343 pass, 0 fail. eslint clean.
+- Fabio: the Klein 9B try (before these fixes) came out right. Cosmo looked, saw the wrong
+  background, re-edited with the original one: two good results to pick from.
+- His app restarted at 18:57:31Z, after these edits (18:53:53-58Z), with no restart since: the
+  running app has them. Not proven live yet: the same head-swap ask.
+- Live after the restart ("change the head of the girl holding the flowers to the head of the
+  cyborg girl", edit_002 attached): no Get models, no Flow Library offer; Cosmo went to Klein 9B
+  kleinEdit with both pictures (edit_004). Fabio: fine, it did what it could without Head Swap.
+- edit_004 came back with a robot mask: Cosmo's prompt said "metallic cybernetic face", and
+  edit_002's head is human (the metal is on the arms and torso). Fabio asked again; edit_005, same
+  model, same two pictures, prompt "a natural human face ... Do not make her a robot", came back
+  right. The words decided it. `docs/agent/models/flux-2.md` now says to describe a reference
+  only as `look` saw it in that picture. Budget + loop suites 163/0.
+- Memory: nothing about Head Swap saved (global memory empty; the project's character-notes.md
+  holds one note). That note repeats the misread ("metallic cybernetic face plates"); it is
+  Fabio's project data, left for him.
+- Check 5 (a Flow that is not opened for the user still RUNS): DramaBox ran straight through in
+  check 4, as did Song on "Just do it" in round 2. PASS. Fabio: "All is good."

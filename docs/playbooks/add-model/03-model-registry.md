@@ -47,7 +47,7 @@ A model that is not in that table is invisible to the agent's preference: it wil
 reach for it over something ranked, which reads to the user as the agent ignoring the model
 they just installed. Put each of its ops in its task's list, at the position it deserves —
 best first — and give it a `note` ONLY where the strength is what a rank cannot say
-("takes exactly one image", "leaves everything outside the edit area untouched", "anime and
+("takes exactly one image", "re-renders the whole picture rather than editing in place", "anime and
 stylised art"). The image tasks share one order filtered by `supportedOps`, so an image
 model is one id in `IMAGE_ORDER`, not six entries.
 

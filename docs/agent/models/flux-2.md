@@ -86,6 +86,9 @@ image that should change (an instruction to edit image 1 to match image 2 edited
 inside the sentence instead ("the fox from Image 2 sits beside her"), never bare
 numbers alone. Boogu needs no addressing at all: there is only ever one image.
 
+Describe what you take from a reference only as `look` saw it in THAT picture: Klein draws
+your words over it, and a feature the picture lacks lands anyway.
+
 ## Adapting what the user asked for
 
 Translate a described effect into its real technical name rather than listing its

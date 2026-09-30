@@ -60,7 +60,9 @@ test('the plain upscale tool ranks first for upscale; a model upscale says it re
 });
 
 test('the notes carry what a rank cannot, on the entries where they change the pick', () => {
-    assert.match(opPriority('qwen-edit', 'qwenEdit').note, /outside the edit area/);
+    // MPI-892: "the only one that leaves everything outside the edit area untouched" read as
+    // "only Qwen can move a head", and the agent said no installed editor could (Klein can).
+    assert.doesNotMatch(opPriority('qwen-edit', 'qwenEdit').note, /only one/);
     assert.match(opPriority('boogu-edit-high', 'edit').note, /one image/);
     assert.match(opPriority('ill-anime', 't2i').note, /anime/);
 });

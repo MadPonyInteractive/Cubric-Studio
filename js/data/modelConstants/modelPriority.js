@@ -13,9 +13,9 @@
  * rather than one featured model, because "best" depends on the task and on what is
  * installed.
  *
- * NOTES are the half a ranking cannot hold: Qwen Edit is last on speed and first on "do
- * not touch the rest of the picture", which is the whole request for some edits. One short
- * line, in the user's terms, for the entries where it changes the pick.
+ * NOTES are the half a ranking cannot hold: Krea 2's edit re-renders the whole picture,
+ * which is the whole request for some edits and wrong for others. One short line, in the
+ * user's terms, for the entries where it changes the pick.
  *
  * NOT RANKED, on purpose: the `-nsfw` variants (an agent must not drift to one on its own;
  * with only those installed the rule falls back to any op that does the task), and the
@@ -98,7 +98,10 @@ const NOTES = {
     'klein-9b:kleinEdit': 'the native editor: it follows the instruction and keeps the likeness, but it tends to cover a bare subject unless the instruction says to keep it as it is',
     'klein-4b:kleinEdit': 'the small native editor — lighter, and weaker on realism',
     'krea2:krea2Edit': 'not a native editor: it re-renders the whole picture rather than editing in place, so the surroundings shift too, but that same re-render holds an anime or stylised look through the edit better than kleinEdit does',
-    'qwen-edit:qwenEdit': 'the slowest of these, and the only one that leaves everything outside the edit area untouched',
+    // "the only one that leaves everything outside the edit area untouched" went (MPI-892,
+    // Fabio 2026-09-30): with Head Swap not installed, it read as "only Qwen can move a head",
+    // and the agent told him no installed editor could, with Klein 9B taking references.
+    'qwen-edit:qwenEdit': 'the slowest of these',
     'minimax-h3-ref2va:ref2v_ms': 'the identity route: a character sheet, a turnaround or several views of one subject go in as references, and the clip is made new around them',
     // MPI-941 Phase 9 (Fabio, corrected after a live Krea test): rank is untouched either way.
     'krea2:detail': KREA2_SKIN,

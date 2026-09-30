@@ -396,7 +396,7 @@ not chosen: three real head boxes square to at most 0.52, the two bad ones start
 
 Every op in `GET /connector/models` carries a `rank` for its task (1 = the best we have) and,
 where it changes the pick, a one-line `note` — the half a ranking cannot hold ("takes exactly one
-image", "leaves everything outside the edit area untouched"). One image order filtered by
+image", "re-renders the whole picture rather than editing in place"). One image order filtered by
 `supportedOps` covers all six image tasks; edit and the video tasks are explicit `{modelId, op}`
 lists, because those op ids are per model. `-nsfw` variants and single-candidate tasks are unranked
 on purpose, except `ref2v`: a list of one, ranked only so its note (a character sheet or several

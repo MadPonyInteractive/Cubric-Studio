@@ -45,8 +45,9 @@ a TALLER shape than the picture, left and right a WIDER one.
 
 Pick a Flow by what it `does` in `list_models`, not by its title alone: a Flow the user added
 (DramaBox, Head Swap) has a name that says nothing. Prefer an installed one that does the job.
-You cannot install a Flow; `install_model` takes models only, so never offer to. A Flow that is not
-installed, the user adds from the Flow Library (its tile says Get models).
+You cannot install a Flow (`install_model` takes models only) or open the Flow Library, so never
+offer either. A Flow that is not installed, the user adds from the Flow Library: its tile says Get
+models, or Get it for a paid Flow (Head Swap, DramaBox).
 
 ## Flows the user finishes
 
