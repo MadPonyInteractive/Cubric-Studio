@@ -25,9 +25,13 @@ code — his app started 16:53Z, the Phase 3 files landed 17:01-17:02Z, no resta
 log has no `engine-image` line (the new path always writes one). He will restart after his
 MiniMax Music download, then look. Open questions to him: MPI-1000 a 2.0 gate? (my pick: no);
 Image Upscale WITH a model on a >4096 photo (brief.md § Noticed, x4 intermediate): feed the 4096
-copy and rescale the factor? (my pick: yes). Phase 4 research sweep (Explore agent: every
-image-taking Flow, its dispatch path, coordinates, graph handling) was running at handoff; its
-result did not carry over — re-run it at Phase 4 start.
+copy and rescale the factor? (my pick: yes). **Phase 4 research DONE:
+`research/phase4-flows.md`** (4 image Flows: Scribble = modelSizedInputs + renderer cap; Draw It In
++ Object Stamp = cut photo AND Input_Paint + shift the box (injector reads injectionParams, not
+params); Outpaint = refuse over the cap, early, before the padded frame is built; package Flows
+cannot opt in: OP_KEYS whitelist). **Small fix owed from Phase 3:** the upscale refusal's
+`_failBail(new Error(msg))` carries no `userMessage`/`code`, so the in-app agent reports only
+"The generation failed" (agentDispatch.js ~1006); set them (and reuse for Phase 4's refusal).
 
 **2026-09-30 (session e348519e): Phase 2 + Detail VERIFIED BY FABIO** in his app (Detail,
 masked Klein Edit, masked Inpaint on his 16K all landed 16K cards). UNCOMMITTED at time of
