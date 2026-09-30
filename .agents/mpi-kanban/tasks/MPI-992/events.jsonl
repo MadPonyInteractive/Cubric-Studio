@@ -1,2 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-992", "at": "2026-09-29T14:51:39+01:00", "actor": "claude", "column": "todo", "title": "Flows from the History workspace opens the install drawer, not the flow"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-992", "at": "2026-09-29T14:52:04+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "fixing now"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-992", "at": "2026-09-29T14:54:34+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "pushed a4cd4580e; waiting on CI for that commit before done"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-992", "at": "2026-09-30T07:02:03+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on a4cd4580e; spec covers History"}

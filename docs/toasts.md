@@ -95,7 +95,7 @@ Sites that pass it:
 | `MpiModelSettings.js:312`, `MpiSettings.js:536` | "Imported ${filename}." (drop-import confirmation) |
 | `MpiModelManager.js:1467-1498` (5 branches) | "${model} updated." / "files kept…" (uninstall confirmation) |
 | `MpiBaseFlow.js:1785` | "You need to add inputs to this flow." (flow step gate) |
-| `MpiFlowLibrary.js:272` | "Open flows from the Gallery…" |
+| `MpiFlowLibrary.js:821` | "Open flows from the Gallery…" |
 | `MpiGalleryBlock.js:356` | "${n} cards added to …" |
 | `MpiGalleryBlock.js:564`, `:745` | "Switched to … — continuing/finishing preview." |
 
@@ -288,7 +288,7 @@ are eligible.
 | `MpiModelSettings.js:312` | LoRA/upscale drop-import success | Imported ${filename}. | success | **silent** |
 | `MpiSettings.js:536` | Settings folder drop-import success | Imported ${filename}. | success | **silent** |
 | `MpiModelManager.js:1467-1498` | `download:uninstalled` (5 branches) | ${model} updated. / files kept variants | success/info | **silent** |
-| `MpiFlowLibrary.js:272` | Open Flow card off the Gallery page | Open flows from the Gallery, inside a project. | info | **silent** |
+| `MpiFlowLibrary.js:821` | Open Flow card with no project open (Landing; Gallery and History both open it, MPI-992) | Open flows from the Gallery, inside a project. | info | **silent** |
 | `MpiFolderDrop.js:85` | Import POST not ok | Import failed: ${reason} | warning | eligible |
 | `MpiFolderDrop.js:118` | Dropped a non-model extension | "…" is not a model file (.safetensors/.ckpt/…) | warning | eligible |
 | `MpiFolderDrop.js:125` | Import threw | Import failed: ${err.message} | warning | eligible |
