@@ -34,7 +34,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   - [ ] **MPI-971 has no owner** — a 2.0 gate nobody had picked up; this umbrella takes it
     (Fabio 2026-09-30: "go plan MPI-971"). PLANNED 2026-09-30: `tasks/MPI-971/plan.md`, 4 phases,
     two picks for Fabio (P-A upscale refuses an output over 16384; P-B Detail composites back),
-    ASKED 2026-09-30 (session 8aad9989, answer pending; gates Phase 3 only). **Phase 1 DONE
+    Fabio 2026-09-30: YES to both. **Phase 1 DONE
     2026-09-30** (`doing`): model-resolution ops on a 16K send the engine a 4096 copy, live-proven
     (Klein Edit + H3 i2v). Next: Phase 2, localised edits crop/stitch (Fabio's look ends it)
   - [ ] **Registry PR #2** (cubric-flows-registry, Head Swap + DramaBox paid entries): check

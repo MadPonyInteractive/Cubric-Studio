@@ -7,8 +7,9 @@
 
 **2026-09-30 (session 8aad9989): Phase 1 DONE and live-verified, uncommitted at the time of
 writing** (`routes/projects.js`, `js/services/commandExecutor.js`, `js/data/commandRegistry.js`,
-`tests/engine-input-cap.test.cjs`). **Next: Phase 2** (localised edits crop/stitch). P-A / P-B were
-put to Fabio this session; his answer gates Phase 3 only. How Phase 1 landed:
+`tests/engine-input-cap.test.cjs`; committed `4b2e03823`). **Next: Phase 2** (localised edits
+crop/stitch). P-A and P-B both answered YES by Fabio (§ Decisions), so Phase 3 is unblocked. How
+Phase 1 landed:
 - Server: `resolveDisplayImage(file, ENGINE_MAX_EDGE, { engine: true })` + `GET /engine-image`
   (`routes/projects.js`). A sidecar-owned file's copy is `<Media>/.meta/<id>.thumb.engine4096.png`
   (swept with the card); a file NO sidecar owns (Flow `.preview-assets`, an agent's own path) goes
@@ -75,7 +76,7 @@ Settled:
 - **Server-side, never renderer-side:** every copy / crop / stitch runs in sharp on the server
   (`limitInputPixels:false`), the one place that can hold a 32K.
 
-Picks awaiting Fabio's word (the phase that needs each one stops on it):
+Picks — **both DECIDED by Fabio 2026-09-30: "yes / yes"** (P-A as written; P-B the composite):
 - **P-A Upscale on a big source (Phase 3):** refuse when the OUTPUT long edge would exceed 16384
   (sharp's and ffmpeg's ceiling, and the app's display clamp at 16383), with a plain message, and
   grey the factor choices that would cross it. Anything that passes is also under Pillow's load limit
