@@ -34,6 +34,8 @@
 
 ## Left: the live matrix (step 7) - needs Fabio's local ComfyUI and a few DeepInfra calls (cents)
 
+Fabio 2026-10-01: YES, ~$0.02, cap $0.05 (ask again before passing it).
+
 1. Remote on DeepInfra. Ask Cosmo for a duet. The log says `[flow-enhance] Song enhanced on endpoint`; no `promptEnhance` job.
 2. Same on Ollama, then on ComfyUI (a `promptEnhance` job runs first).
 3. Song by hand on DeepInfra: the three blocks fill, no ComfyUI enhance job.

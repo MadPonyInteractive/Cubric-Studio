@@ -130,5 +130,11 @@ Each task's **Verify:** is its step's line above.
 
 ## Current State
 
+2026-10-01 (session 9c1e6f07, handoff): steps 1-6 BUILT and verified by tests (validation.md § Built,
+npm test 2572/0). Only step 7, the live matrix, is left. **Fabio said YES on 2026-10-01: about 4
+DeepInfra enhancer calls, ~$0.02, cap $0.05.** Ask again before going past $0.05; report what was
+spent. The ComfyUI legs run on his local engine (48188): one line to him before each. Steps: validation.md
+§ Left. Card in doing/validating; closes on the matrix + his look (user-ux).
+
 2026-09-30: planned. Not started. Steps 1-5 are a parallel batch with no peer-held file; step 6
 waits on MPI-950's claim on `agentDispatch.js`.
