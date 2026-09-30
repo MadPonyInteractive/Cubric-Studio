@@ -5,9 +5,59 @@ host reference videos ourselves.**
 
 ## Current State
 
-- 2026-09-30 (Agent 77): research done, data-URL image reference proven live ($0.39). Nothing
-  built. Order below is deliberate: the relay lands BEFORE Seedance shows any reference wells, so
-  no video well ever ships that cannot deliver.
+- 2026-09-30 (Agent 77): research done, data-URL image reference proven live ($0.39). Order below
+  is deliberate: the relay lands BEFORE Seedance shows any reference wells, so no video well ever
+  ships that cannot deliver.
+- 2026-09-30 (Agent 78, session 0697c571): **Phase 1 built and verified locally, NOT deployed, NOT
+  committed** (mpi-ci has the folder untracked). `C:/AI/Mpi/mpi-ci/cubric-relay/`: `src/index.js`,
+  `src/logic.js`, `test/relay.test.mjs` (12/12), `scripts/smoke.mjs` (full local e2e green, plus a
+  60 MB byte-exact round trip), README with the contract and the go-live steps. **Next action:**
+  commit it in mpi-ci, then Fabio's go for the README "Go live" steps 2-7 (public), then Phase 2
+  privacy wording with him the same day. Phase 3 (app) can be built before the deploy against a
+  local `npm run dev` relay, but must not ship until the relay is live.
+- 2026-09-30 later (Agent 78): committed + pushed in mpi-ci (`718c452`, `41b0bc6`). Fabio added a
+  **30-second cap** (relay reads `moov/mvhd` from the first 64 KB, so clips must be faststart; the
+  app remuxes `-c copy -movflags +faststart` before upload, and still checks Seedance's own 15 s).
+  **Deployed on Fabio's go**: R2 bucket `cubric-relay` + lifecycle `expire-1d` (1 day is R2's
+  minimum; the 5-min sweep is the real delete), Worker live at
+  `https://cubric-relay.cubric-bench.workers.dev`, live smoke + 60 MB round trip green. The Free
+  plan accepted the `ratelimits` binding. **`relay.cubric.studio` NOT live**: the DNS step was
+  refused by the auto-mode guard; the route sits UNCOMMITTED in `cubric-relay/wrangler.jsonc` and
+  Fabio runs `npx wrangler deploy` there, then smoke it and commit `wrangler.jsonc`. Next after
+  that: Phase 2 privacy wording (no app version sends to the relay yet, so the policy is not
+  false today; it must be before Phase 3 ships).
+- 2026-09-30 (Agent 78): **Phase 1 DONE. Relay live at `https://relay.cubric.studio`** (Fabio ran
+  the domain deploy, version 6fc88bdb; live smoke green; workers.dev + preview URLs off; mpi-ci
+  `a4b6ce9`). **Next action: Phase 2**, privacy wording for Fabio's sign-off (must be live before
+  any app version sends clips), then Phase 3 app wiring against `relay.cubric.studio`.
+- 2026-09-30 (Agent 78): Phase 2 wording in `privacy-draft.md` **SIGNED OFF by Fabio** (word for
+  word; 1-day backstop left unnamed). **Publish it WITH the Phase 3 app release, not before** (it
+  describes a feature users do not have yet). Its promises bind Phase 3: images + audio go inline
+  to DeepInfra, the route DELETEs every clip when the call ends (success or not), clips <= 30 s.
+- **Next action: Phase 3** (app wiring, below), against `https://relay.cubric.studio`. The app must
+  remux each reference video `-c copy -movflags +faststart` before upload (the relay refuses a clip
+  whose `moov` is after the media, 422 `MOOV_NOT_AT_START`) and enforce Seedance's own 2-15 s a
+  clip / 15 s in all. Relay contract: `C:/AI/Mpi/mpi-ci/cubric-relay/README.md`.
+- Gotchas found: workerd's R2 `range` object carries `suffix: undefined`, so `'suffix' in range`
+  lies (fixed, tested); Local Explorer is the only local cron route honouring a scheduled time and
+  needs `--test-scheduled`; a force-killed dev server leaves a stale registry entry that makes the
+  explorer 502 (README § Develop).
+
+## Completed
+
+- Phase 1 code + local tests (2026-09-30, Agent 78). Evidence: `validation.md`.
+
+## Plan Drift
+
+- 2026-09-30 (Agent 78): rate limit is Cloudflare's `ratelimits` binding (10 uploads / 60 s per
+  sender per location, in memory, nothing stored), not bench's salted-hash D1 counter: no D1, no
+  SALT secret. Ceiling: no daily cap; D1 fallback if abused or if the Free plan refuses the binding
+  at deploy (docs do not say which plans have it).
+- 2026-09-30 (Agent 78): clip life is 55 min + a 5-min sweep, so "deleted within the hour" is
+  literally true. URLs end `.mp4`/`.mov` (sniffed brand). `HEAD` and `Range` supported for video
+  fetchers.
+- Open for the Phase 4 live run: if the cubric.studio zone's bot protection challenges DeepInfra's
+  fetch of `relay.cubric.studio`, Seedance fails; README step 7 says stop and tell Fabio.
 
 ## Design (the relay)
 
@@ -40,6 +90,8 @@ host reference videos ourselves.**
 4. **Live**: one paid Seedance run with image + video + audio references (price stated first).
 
 ## Verification
+
+Phase 1: `npm test` + `node scripts/smoke.mjs <local> --full` in `mpi-ci/cubric-relay/` (README § Develop).
 
 **Verify mode:** auto for the Worker and the route shapes; user-ux for the privacy copy; each paid
 run on Fabio's yes.
