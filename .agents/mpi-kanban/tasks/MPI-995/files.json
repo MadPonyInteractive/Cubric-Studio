@@ -3,6 +3,7 @@
     "js/utils/uiZoom.js",
     "js/core/storage.js",
     "tests/ui-zoom-persist.test.cjs",
-    "styles/shell/landing.css"
+    "styles/shell/landing.css",
+    "tests/desktop/shellWindow.js"
   ]
 }
