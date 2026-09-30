@@ -36,5 +36,6 @@
   "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.css",
   "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
   "docs/gallery-selection.md",
-  "tests/desktop/gallery-stack.spec.js"
+  "tests/desktop/gallery-stack.spec.js",
+  "tests/agent-loop.test.cjs"
 ] }

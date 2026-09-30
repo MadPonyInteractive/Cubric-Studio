@@ -60,3 +60,6 @@ model, then a Flow, and so on. The in-app agent is the way in:
 
 ## Order
 Brainstorm done 2026-09-29; next is the plan.
+
+## Noticed
+- 2026-09-30 (b08f2626): a crop result is named `resize_00N` (the crop runs on the universal `resize` op), so Fabio read a correct crop as a resize. Name tool results after the tool (`crop_`), outside this card.

@@ -2,6 +2,20 @@
 
 ## Current State
 
+2026-09-30 (b08f2626, Agent 72) - **Fabio: routines are GLOBAL ONLY** ("projects are easily discardable"). The
+project scope and `move` are GONE: one folder `<APP_USER_DATA>/agent/routines/`; store `listRoutines()` /
+`readRoutine(name)` / `writeRoutine(routine)` / `deleteRoutine(name)` / `renameRoutine(name, newName)`; routes take
+no `scope`/`folderPath` except a quote/run's landing project; tool has no `scope` and no `move`; list, save, rename
+and delete need no open project (only a run: `NO_PROJECT`); the bar's dropdown reads one list. Bench `routine-move`
+removed. SYSTEM 10,454 / 10,460, TOOLS 18,178 / 18,190 (both lowered). `npm test` 2392 / 0; live in an own isolated
+app (validation.md). Uncommitted. A routine saved in a project before this is no longer seen: Fabio has one,
+`My Agent Tests/Agent/routines/crop-to-916-and-upscale-2x.json` (never released, so no migration code).
+**VERIFIED by Fabio (U4 done):** Cosmo saved `crop-9x16-upscale-15` (DeepSeek), it is listed and ran from Routines in
+another project (Kaiju Giant Bowl): 2 cards, crops 432x768 / 648x1152, upscales 648x1152 / 972x1728 = exactly x1.5.
+His "x2" was the earlier DIRECT run, where the agent sent no factor (default 2) and called it x1.5: tool results
+now name every setting they run with, defaults marked (`_sentNote`, test in agent-loop.test.cjs). `npm test` 2393 / 0.
+**CLOSED 2026-09-30** (code 9f565390f; claim audit 0 false). Follow-ups in brief.md § Noticed; the paid bench was never run.
+
 2026-09-30 (7026c025, Agent 71) - **Fabio said yes to the dropdown with every pick: D13, Phase 6.** Card back to
 in-progress. **U1-U3 DONE, uncommitted**, `npm test` 2383 / 0, live in an own isolated app (validation.md).
 - U1 `routineChoice` (runner, pure) -> greyed reasons: needs an input / wrong kind / "Not ready here: needs X" (not
@@ -376,8 +390,8 @@ Run this batch with `mpi-execute-parallel` (disjoint files, per-task verify, no 
 
 **D13 (Fabio, 2026-09-30, took every pick):** the user runs a saved routine from the gallery selection bar; only
 the agent creates them (a create/delete UI is 2.1, not this card). Reverses D8's "agent-free entry point".
-- A "Routines" dropdown right after Stack; absent when no routine is saved. Project + global in one list, the
-  project's wins a name clash.
+- A "Routines" dropdown right after Stack; absent when no routine is saved. (Was project + global in one list;
+  routines are global only since b08f2626.)
 - A paid routine shows the whole run's price in the option (`×4 · $0.12`); the pick is the yes, as CUE's price tag.
 - Greyed with a status-bar reason: needs a run input (D9) -> "ask the agent to run it"; a model/Flow missing ->
   named; wrong kind (starts on pictures, a video is selected).
@@ -392,8 +406,9 @@ the agent creates them (a create/delete UI is 2.1, not this card). Reverses D8's
   own isolated app: list, greyed reason, run on 2 cards -> one stack.
 - [x] U3 (2026-09-30, 7026c025: system prompt 10,370 / 10,390) Wording: system-prompt Routines rule, tool description, `docs/agent/routines.md`, bench `routine-save`
   check; `docs/routines.md` + `docs/gallery-selection.md`. **Verify:** budget test green.
-- [ ] U4 Fabio's look (with F2). Round 1 fixes (width, rename, delete) verified by him 2026-09-30; `move` added on
-  his ask, his look at it pending.
+- [x] U4 (2026-09-30, b08f2626: Fabio ran the global routine in another project, x1.5 measured) Fabio's look (with F2). Round 1 fixes (width, rename, delete) verified by him 2026-09-30; `move` added on
+  his ask, then REMOVED with the project scope the same day (routines global only, b08f2626); his look at the
+  global-only build pending.
 
 ## Plan Drift
 
@@ -427,6 +442,10 @@ the agent creates them (a create/delete UI is 2.1, not this card). Reverses D8's
 - 2026-09-30 (7026c025): D13 reverses D8's agent-free entry (run only). Fabio's U4 round 1 added a `rename` action
   to the tool: rename-as-save-then-delete (the old guide) made the agent retype steps from a step COUNT, and the
   "I never delete" limit stopped the delete half. SYSTEM_BUDGET 10,460 and TOOLS_BUDGET 18,240 raised for it.
+- 2026-09-30 (b08f2626): Fabio reversed the two scopes (brief.md "Storage: ... two scopes, project or global"):
+  routines are GLOBAL ONLY, because projects are thrown away and routines are kept. The project scope, `move`, the
+  tool's `scope` and the route's `scope`/`folderPath` for storage went; D6's cap is 50 routines in all. No migration
+  (never released).
 
 ## Verification
 

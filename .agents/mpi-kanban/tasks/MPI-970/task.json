@@ -3,11 +3,11 @@
   "id": "MPI-970",
   "title": "Routines: the agent saves a chain of operations once, the app runs it on any card in one call",
   "description": "Fabio 2026-09-29. The agent saves a chain of operations (upscale -> face detail -> a style -> a Flow ...) as a routine file, project or global, through one short `routine` tool (list/save/run/delete); the RENDERER runs it: each card runs the chain, step 1 makes a new card, later steps are its History versions, N cards land as one new stack. Missing model/Flow = nothing runs; a paid step asks once. Plan: plan.md; decisions: brief.md; facts: research/findings.md.",
-  "column": "doing",
-  "maturity": "validating",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
   "created_at": "2026-09-29T00:02:37+01:00",
-  "updated_at": "2026-09-30T12:15:00+01:00",
+  "updated_at": "2026-09-30T16:18:48+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -17,5 +17,6 @@
     "events": "events.jsonl",
     "handoffs": "handoffs/",
     "research": "research/"
-  }
+  },
+  "activeSessionTitle": "Agent 72: routines global only (Fabio 2026-09-30)"
 }

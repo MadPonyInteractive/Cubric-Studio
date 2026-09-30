@@ -96,3 +96,26 @@ Verify mode: user-ux for Phase 5 F2 only; Phases 1-4 auto (plan.md § Verificati
   route + store: project -> global (with `scope: 'global'` sent, as a model would) -> project; a global one down and
   back up; unknown `ROUTINE_NOT_FOUND`; the lists end as they began; both sources in `deleted/`. Not run: the paid
   bench (Fabio's yes needed: routine-rename/-move/-delete/-save). Left: Fabio's look at move, in a fresh session.
+- 2026-09-30 GLOBAL ONLY (b08f2626, Fabio: "routines should always be global ... we just keep globals"): the project
+  scope, `move` and the two-scope reads removed (store, routes, loopbacks, tool, bench fakes, the bar's
+  `readSavedRoutines`, docs). `node --test` store 12/12, connector-routines 4/4, agent-routine-tool 8/8 (new: list,
+  save and delete with NO project open, a run refused `NO_PROJECT` with nothing quoted; a run's body carries no
+  `scope` even when the model sends one), budget 5/5 (SYSTEM 10,454 / 10,460, TOOLS 18,178 / 18,190, both lowered).
+  `npm test` (Git Bash) 2392 pass / 0 fail / 2 skipped; ESLint clean on the 7 changed JS files. Bench dry run FREE
+  (scripted model): routine-list/-delete/-rename/-save/-run right answers pass; delete-both, rename-as-copy,
+  invented menu, generate-per-card fail; the list flip passes only because a scripted reply names the routine (a
+  real model cannot). LIVE, own isolated app (:54345, never :3000): 2 saves with no folderPath -> in app data, NOT
+  in the project; the list = the 3 global routines, the 3 project files left from D13 not listed; the selection bar
+  on 2 cards lists exactly those 3, the input one greyed with its reason in the status bar (screenshot
+  `g-hover.png`, scratchpad b08f2626). Not run: the paid bench. Left: Fabio's look.
+- 2026-09-30 U4 VERIFIED (Fabio, his app, DeepSeek; b08f2626): asked to save "this process" (crop 9:16, upscale 1.5x), Cosmo
+  saved `crop-9x16-upscale-15` in app data (`agent/routines/`: steps `crop {ratio 9:16}`, `imageUpscale {factor 1.5}`);
+  it is listed under Routines in ANOTHER project (Kaiju Giant Bowl) and ran on 2 cards there. Measured on disk: crops
+  432x768 and 648x1152, upscales 648x1152 and 972x1728 (exactly x1.5; sidecars `Upscale_Factor: 1.5`). His "x2" was the
+  earlier DIRECT generate in My Agent Tests (sidecar `Upscale_Factor: 2`, the default: the agent sent no factor), which
+  the agent then reported as "the 1.5x boost": nothing told it what a tool ran with. Fixed: a tool's generate result
+  names every setting it runs with, defaults marked ("It runs with: upscaler 4x-NMKD-Siax (default), factor 2
+  (default)."); `tests/agent-loop.test.cjs` "a tool result names every setting it runs with" (fails without the fix:
+  the old note was empty for a tool). `npm test` 2393 pass / 0 fail; ESLint clean. His "resize, not crop" is the card
+  NAME only (the crop runs on the `resize` op, `keep_proportion: crop`): brief.md § Noticed. Ornith (Ollama 9B) failing
+  the same request is the model (free replay: invented a model, never used the crop tool); no app change.
