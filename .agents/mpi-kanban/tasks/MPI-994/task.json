@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-994",
+  "title": "Agent chat: long answers scroll sideways on the landing page",
+  "description": "A code block or long URL in an agent reply widened the whole message past the transcript (align-items: flex-start sizes it to min-content), so every line scrolled sideways; list numbers also clipped at the left edge.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-30T08:52:01+01:00",
+  "updated_at": "2026-09-30T08:53:55+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

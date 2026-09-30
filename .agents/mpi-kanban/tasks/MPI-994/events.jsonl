@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-994", "at": "2026-09-30T08:52:01+01:00", "actor": "479599e2-c125-4be7-9e43-e4453e542848", "column": "todo", "title": "Agent chat: long answers scroll sideways on the landing page"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-994", "at": "2026-09-30T08:52:41+01:00", "actor": "479599e2-c125-4be7-9e43-e4453e542848", "from": "todo", "to": "doing", "reason": "fixing now"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-994", "at": "2026-09-30T08:53:55+01:00", "actor": "479599e2-c125-4be7-9e43-e4453e542848", "from": "doing", "to": "done", "reason": "verified in repro with the real CSS; tests pass"}

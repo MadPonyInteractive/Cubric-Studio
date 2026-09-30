@@ -370,9 +370,24 @@
     align-items: flex-start;
 }
 
+/* `flex-start` sizes the reply to its content, floored at its MIN-content — and a code
+   block or a long URL has a min-content as wide as its longest line, so one of them
+   widened the whole reply past the transcript and every paragraph scrolled sideways
+   (MPI-994). Capped, the reply wraps and `pre`/`table` scroll inside themselves. */
+.mpi-agent-chat__entry--message > .mpi-md {
+    max-width: 100%;
+}
+
 /* The shared markdown marker (--ink-4) is as light as the panel's surface: numbers vanished. */
 .mpi-agent-chat__entry--message .mpi-md li::marker {
     color: var(--ink-2);
+}
+
+/* The shared indent (--s-4, 22px) is narrower than "1. " in this monospace type, and the
+   landing transcript has no left gutter, so its scroll box clipped the numbers. 4ch fits
+   two digits. */
+.mpi-agent-chat__entry--message .mpi-md ol {
+    padding-left: 4ch;
 }
 
 /* Tool status line */
