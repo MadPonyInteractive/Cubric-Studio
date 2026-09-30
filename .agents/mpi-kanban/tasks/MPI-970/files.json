@@ -1,0 +1,22 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": [
+  "js/data/routineModel.js",
+  "tests/routine-model.test.cjs",
+  "services/agentRoutines.mjs",
+  "tests/agent-routines-store.test.cjs",
+  "js/services/routineRunner.js",
+  "tests/routine-runner.test.cjs",
+  "js/shell/routineDispatch.js",
+  "js/services/flowService.js",
+  "js/shell/agentDispatch.js",
+  "routes/connector.js",
+  "services/agentTools.mjs",
+  "services/agentLoop.mjs",
+  "tests/agent-prompt-budget.test.cjs",
+  "docs/agent/routines.md",
+  "services/agentBench.mjs",
+  "docs/routines.md",
+  "docs/README.md",
+  "docs/agent-chat.md",
+  "docs/stacks.md",
+  ".agents/mpi-kanban/project-knowledge-index.md"
+] }

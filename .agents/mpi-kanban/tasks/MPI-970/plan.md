@@ -2,9 +2,51 @@
 
 ## Current State
 
-2026-09-29 (session 726c00ac) - **planned, nothing built. Fabio approved the plan and D1-D8 as written**
-("go ahead", same day). **Next: Phase 1 spike S1** in a fresh session (card still `todo`/`planned`:
-`mpi-continue` moves it to `doing` and writes `files.json` before the first edit). Project mode: scalable-foundation.
+2026-09-29 (session c4eb2969, Agent 66) - card in `doing`, `files.json` written. **Phase 1 DONE: S1, S2, S3
+all passed live** (below). **Next: Parallel Batch Foundations (T1, T2) via `mpi-execute-parallel`**, then R1 with
+the findings below as its spec. Spike rig (scratchpad, not repo): own Electron with own
+profile/port/APP_DOCUMENTS under `%TEMP%/c970` plus `--remote-debugging-port=9370`, driven by
+`playwright-core connectOverCDP` + `page.evaluate`; real engine root (pins checked clean), jobs under
+`gpu_lease.py run`, on Fabio's :48188 engine (queue checked empty before each run, no cancels).
+
+### Phase 1 findings
+- **S1 (2026-09-29):** step 1 = `enqueueGeneration(config, cb, { scope:'gallery', tempId, placeholderGroup })`
+  on card A made NEW card B, A untouched. Each later step = input B's newest file +
+  `{ scope:'groupHistory', existingGroup: B, groupId }` landed as B's next version, `selectedIndex` on it,
+  `project.json` agreeing: resize(downscale) -> resize(crop) -> imageUpscale -> klein-4b i2i -> Scribble
+  Flow = 5 versions (screenshot `shot-s1-history.png`, scratchpad). Every op kind can be step 1 AND a later step.
+- **Correction:** `crop`/`downscale` are NOT engine-free: every agent tool op is a ComfyUI universal op
+  (`resize`, `imageUpscale`, `removeBackground`). Each costs well under a second, still on the engine.
+- **A Flow cannot be a later step today:** `submitFlowGeneration` (`js/services/flowService.js` ~261) hard-codes
+  gallery opts. Proven with an in-page patched copy (disk untouched): passing `existingGroup` through its one
+  `enqueueGeneration` call made the Scribble result B's version 5. R1 adds that passthrough as a run-only input
+  (like `runOriginProject`; flowService.js joins this card's files). **Every Flow may be any step** (Fabio
+  confirmed 2026-09-30: some of our own Flows become multi-part after 2.0): a two-leg (`flow.chain`) or multi-pass (`runNextPass`) Flow forwards the same input to each
+  leg/pass, so each lands as one more History version. No shipped Flow chains or multi-passes today (Outpaint
+  fills in one pass since MPI-900); a package Flow could.
+- **A model step with no `ratio` takes the model's default ratio, not the input's:** klein-4b i2i on a 1:1
+  input came out 1088x896 (5:4). Same as today's agent `generate`; the guide (W3) must tell the agent to carry
+  `ratio` in each step. Decided (Fabio, 2026-09-30): the guide, no runner magic.
+- **Opts to use:** the runner calls `enqueueGeneration` itself with explicit opts; it must NOT reuse
+  `_enqueueAgentRun`'s `workspaceGenerationOpts` (that versions whichever open card owns the input, so step 1
+  would version A, breaking D2). Config building (named params, media, installed checks) should be shared with
+  `agentDispatch._submitGeneration`/`_submitTool`/`_submitFlow` by splitting their build half from their enqueue half.
+- **S2 - a closed project WORKS, no `PROJECT_NOT_OPEN` needed:** with `config._originProject` = the closed
+  project's `/get-project` record, step 1 registered a new card there (`_addGroupsToClosedProject`) and step 2
+  (`existingGroup` from a FRESH `/get-project` read) versioned it through `/project-groups`' upsert-by-id; the
+  open project was untouched, and opening the closed one showed the card with both versions (reconciler kept
+  it). Rule for R1: re-read the closed project before EVERY later step (the step-1 snapshot has no result card).
+  `/get-project` history is item-id strings; `serializeGroup` accepts them.
+- **S3 - result stack WORKS:** prepare every card's step-1 config, enqueue them all with `stackId`, THEN
+  `addGroup(resultStack, expected: N)` (jobs first, as `_runStack`: the settle drops a filling stack with no live
+  job). Carry `stackId` (+ `batchId`/`batchLabel`/`batchTotal`) on EVERY step, not only step 1: the
+  `existingGroup` branch ignores it for membership, but it keeps the job live for `_settleResultStacks`, so the
+  stack reads "filling" (`expected: 2`) until the last step of the last card, then settles itself; no explicit
+  `settleResultStack` call needed. 2 cards x 3 steps: one stack of 2, members keep `stackId`, 3 versions each,
+  disk agrees, inputs untouched (screenshots `shot-s3-gallery.png`, `shot-s3-stack.png`).
+
+2026-09-29 (session 726c00ac) - planned. Fabio approved the plan and D1-D8 as written ("go ahead", same day).
+Project mode: scalable-foundation.
 Design approved by Fabio in the brainstorm: `brief.md` § "Brainstorm decisions". Verified code facts (two
 investigator claims corrected): `research/findings.md`. Read both before any phase.
 
@@ -46,18 +88,18 @@ relayed like `generation.submit` (`_dispatchToRenderer`).
 
 ## Phase 1: Prove the run shape (spike, no product code kept unless it passes)
 
-- [ ] S1 In an own `npm run app:isolated` (never :3000), drive `enqueueGeneration` from the devtools console:
+- [x] S1 In an own `npm run app:isolated` (never :3000), drive `enqueueGeneration` from the devtools console:
   a tool op (`imageUpscale`) on card A with GALLERY opts -> does it make a NEW card B (D2)? Then a model op
   (a cheap local image op, or a tool) whose input is B's newest file with `{ existingGroup: B }` -> does it land
   as B's version 2? Then a Flow step the same way. Record which op kinds can be step 1 (new card) and which can
   be a later step (version). The agent profile may have no engine or models: `crop` / `downscale` run without
   ComfyUI, so prove the mechanics with them first and a model op only if the profile can run one.
   **Verify:** B's `history.length` grows per step in `project.json`; screenshots.
-- [ ] S2 A project that is NOT open: can the runner version a card there (`_originProject` for a closed project;
+- [x] S2 A project that is NOT open: can the runner version a card there (`_originProject` for a closed project;
   MPI-873 closed-project submits)? If not, the rule is "a routine runs in the open project" and `run` refuses
   otherwise with `PROJECT_NOT_OPEN` naming the project. **Verify:** the answer written into this plan's
   Current State with the evidence line.
-- [ ] S3 Stack of results: with 2 input cards, create the result stack up front (`expected: 2`), step-1 cards
+- [x] S3 Stack of results: with 2 input cards, create the result stack up front (`expected: 2`), step-1 cards
   join it (`addGroupsToStack`), later steps version members (members keep their `stackId`), `settleResultStack`
   on the end. **Verify:** one stack card in the gallery holding 2 cards, each with N versions.
 
@@ -136,7 +178,9 @@ Run this batch with `mpi-execute-parallel` (disjoint files, per-task verify, no 
 
 ## Plan Drift
 
-- None yet.
+- 2026-09-29 (c4eb2969): Phase 1 answered S2 the good way (closed projects work), so no `PROJECT_NOT_OPEN`
+  refusal; Flows as a later step need a `flowService.js` passthrough (added to `files.json`), every Flow at
+  any step. Details: `## Current State` § Phase 1 findings.
 
 ## Verification
 
