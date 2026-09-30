@@ -1,5 +1,12 @@
 # MPI-841 — The Flow Library browses the community registry
 
+> **2.1 RELEASE BLOCKER (Fabio 2026-09-30, via MPI-595).** Not a 2.0 gate: the registry held no
+> Flows when 2.0 was scoped. Until this ships, a Flow accepted into the registry shows nowhere in
+> the app, whatever the app version; once it ships, an accepted Flow appears on the next Library
+> open or Refresh with no app update. The registry's first entries are Head Swap and DramaBox
+> (paid lane, registry PR #2) — they already show in-app through MPI-831's hard-coded tiles, so
+> Phase 3 must not list them twice.
+
 **Umbrella:** MPI-560 phase 8. **Sibling:** MPI-831, which builds the same Third-party Flows
 section for INSTALLED packages plus the two paid tiles. The two ship independently; MPI-831
 does not wait on this card, and this card renders into the section MPI-831 creates.

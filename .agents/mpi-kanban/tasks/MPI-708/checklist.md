@@ -18,7 +18,9 @@
         folders (userData is pinned by app.setName; Documents heals only on major >= 2), both commented
   - [x] Phase 2b: Fabio's own check — titlebar, About, landing kicker (verified 2026-09-18, Option 1);
         taskbar/pinned icon excluded on purpose — it is MPI-807, not a Phase 2b defect
-  - [ ] Mascots: PARKED until the action animations land (plan drift, top)
+  - [x] Mascots: CLOSED, not built (Fabio 2026-09-30, via MPI-595): the animations landed through
+        MPI-777 (landing crew, prompt-box ledge); the still `Studio-Logo.png` stays in the titlebar
+        and About for 2.0 — no animated logo
 - [x] Parallel Batch: Non-renderer sweep
   - [x] Heal the Documents folder (version-gated to 2.x; routes/shared.js + tests/documents-heal.test.cjs)
   - [x] Build identity (exe, artifact names, productName, updater default repo, PRESERVE)

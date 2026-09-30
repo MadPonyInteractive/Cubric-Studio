@@ -28,7 +28,18 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   - **Split of work (Fabio 2026-09-30):** the session titled **"Agent 70"** owns the in-app agent and
     everything around it (MPI-965, MPI-970, the Ollama/agent-chat cards). THIS umbrella takes
     everything else; relieve Agent 70 only when nothing else is left
-  - Still to put to him, one at a time: MPI-841 registry browsing; MPI-708 mascots
+  - [x] **MPI-841 registry browsing — NOT 2.0; a 2.1 BLOCKER (Fabio 2026-09-30)**, noted atop its
+    plan.md. Same talk: Head Swap + DramaBox listed in the public registry as paid-lane entries
+    (entry files only, Gumroad links, zip sha256) — registry PR #2, on his yes
+  - [ ] **MPI-971 has no owner** — a 2.0 gate nobody had picked up; this umbrella takes it
+    (Fabio 2026-09-30: "go plan MPI-971"). PLANNED 2026-09-30: `tasks/MPI-971/plan.md`, 4 phases,
+    two picks for Fabio (P-A upscale refuses an output over 16384; P-B Detail composites back);
+    card still `todo` — the next session starts it through mpi-continue
+  - [ ] **Registry PR #2** (cubric-flows-registry, Head Swap + DramaBox paid entries): check
+    green, merge BLOCKED for agents by the permission check ("Merge Without Review") — Fabio
+    merges it himself
+  - [x] **MPI-708 mascots — NOT a 2.0 gate (Fabio 2026-09-30):** the still logo stays; the
+    animated crew already shipped (MPI-777). The candidate list is now EMPTY
   - Housekeeping found: `secrets:endpoint-changed` landed (`js/events.js:187`), message
     `ec93cbba` already resolved by its peer; MPI-951 (2.1) still assumes 2.0 dual-publishes CubricVision-* (dropped
     2026-09-29, MPI-972) and needs rewording before 2.1
