@@ -100,6 +100,12 @@ test('a save is checked by the app and stored AS CHECKED; list, read and delete 
         const one = await fetch(`${base}/connector/routines/shrink-and-cut${q}`).then((r) => r.json());
         assert.deepEqual(one, { ok: true, name: 'shrink-and-cut', routine: CHECKED }, 'stored as the app returned it, not as sent');
 
+        const moved = await postJson(`${base}/connector/routines`, { folderPath: p, name: 'shrink-and-cut', rename: 'cut-small' });
+        assert.deepEqual(moved.json, { ok: true, name: 'cut-small', renamed: 'shrink-and-cut' });
+        assert.deepEqual((await fetch(`${base}/connector/routines${q}`).then((r) => r.json())).routines.map((r) => r.name), ['cut-small']);
+        const back = await postJson(`${base}/connector/routines`, { folderPath: p, name: 'cut-small', rename: 'shrink-and-cut' });
+        assert.equal(back.json.ok, true);
+
         const gone = await postJson(`${base}/connector/routines`, { folderPath: p, name: 'shrink-and-cut', delete: true });
         assert.deepEqual(gone.json, { ok: true, name: 'shrink-and-cut', deleted: true });
         assert.deepEqual((await fetch(`${base}/connector/routines${q}`).then((r) => r.json())).routines, []);
@@ -136,7 +142,7 @@ test('a global routine runs in the open project when no folderPath is given; an 
     process.env.APP_USER_DATA = scratchDirSync('connector-routines-global-');
     made.push(process.env.APP_USER_DATA);
     try {
-        await withApp(okAnswer, async ({ base, jobs }) => {
+        await withApp(okAnswer, async ({ base, jobs, p }) => {
             await postJson(`${base}/connector/routines`, { scope: 'global', routine: RAW });
             await postJson(`${base}/connector/routines/shrink-and-cut/run`, { scope: 'global', cards: ['A'] });
             assert.deepEqual(jobs[1].input, { routine: CHECKED, cards: ['A'] }, 'no folderPath: the app runs it in the open project');
@@ -144,6 +150,15 @@ test('a global routine runs in the open project when no folderPath is given; an 
             const miss = await postJson(`${base}/connector/routines/nope/run`, { scope: 'global', cards: ['A'] });
             assert.equal(miss.json.error.code, 'ROUTINE_NOT_FOUND');
             assert.equal(jobs.length, 2, 'nothing reaches the app for a routine that is not there');
+
+            // move: out of `scope` into the other one, stored as it was.
+            const down = await postJson(`${base}/connector/routines`, { folderPath: p, scope: 'global', name: 'shrink-and-cut', move: true });
+            assert.deepEqual(down.json, { ok: true, name: 'shrink-and-cut', moved: 'project' });
+            const one = await fetch(`${base}/connector/routines/shrink-and-cut?folderPath=${encodeURIComponent(p)}`).then((r) => r.json());
+            assert.deepEqual(one.routine, CHECKED);
+            assert.deepEqual((await fetch(`${base}/connector/routines?scope=global`).then((r) => r.json())).routines, []);
+            const up = await postJson(`${base}/connector/routines`, { folderPath: p, name: 'shrink-and-cut', move: true });
+            assert.deepEqual(up.json, { ok: true, name: 'shrink-and-cut', moved: 'global' });
         });
     } finally {
         if (prev === undefined) delete process.env.APP_USER_DATA; else process.env.APP_USER_DATA = prev;

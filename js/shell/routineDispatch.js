@@ -17,7 +17,7 @@
  * server pushes, in the connector envelope; agentDispatch.js reports them like its own.
  */
 
-import { quoteRoutine, runRoutine } from '../services/routineRunner.js';
+import { quoteRoutine, runRoutine, routineChoice } from '../services/routineRunner.js';
 import { normalizeRoutine, validateRoutine, routineSummary } from '../data/routineModel.js';
 import { enqueueGeneration } from '../services/generationService.js';
 import { submitFlowGeneration } from '../services/flowService.js';
@@ -25,6 +25,7 @@ import { addGroup, serializeGroup } from '../services/projectService.js';
 import { reconcileAndHydrate } from '../managers/projectReconciler.js';
 import { estimateRunCost } from '../services/cloudExecutor.js';
 import { clientLogger } from '../services/clientLogger.js';
+import { StatusBar } from './statusBar.js';
 import { createItemGroup } from '../data/projectModel.js';
 import { STACK_TYPE, resultStackFields, expandStacks } from '../data/stackModel.js';
 import { formatPrice } from '../data/modelConstants/deepinfraPricing.js';
@@ -200,3 +201,58 @@ export const ROUTINE_HANDLERS = {
         return { ok: true, output: await run.finished };
     },
 };
+
+// ── The gallery's Routines menu (D13): the user runs a saved routine, the agent made it ──
+
+/**
+ * Every saved routine as `{ name, routine }`: the project's, then each global one no
+ * project routine shadows. The list route gives a step COUNT, so each is read by name.
+ * ponytail: one read per routine; a batch read if lists grow near the 50 cap.
+ */
+export async function readSavedRoutines(folderPath) {
+    const get = async (url) => (await fetch(url)).json();
+    const out = [];
+    try {
+        for (const q of [`folderPath=${encodeURIComponent(folderPath)}`, 'scope=global']) {
+            const names = ((await get(`/connector/routines?${q}`)).routines || [])
+                .map(r => r.name).filter(n => !out.some(o => o.name === n));
+            const read = await Promise.all(names.map(n => get(`/connector/routines/${encodeURIComponent(n)}?${q}`)));
+            read.forEach((r, i) => { if (r.ok && r.routine) out.push({ name: names[i], routine: r.routine }); });
+        }
+    } catch (err) {
+        clientLogger.warn('routine', 'could not read the saved routines', { folderPath, error: err.message });
+    }
+    return out;
+}
+
+/**
+ * One dropdown option per routine for cards of these `kinds` (a stack counted as its
+ * cards): its summary in the status bar and a paid run's whole price as the meta, or
+ * greyed with the reason (`routineChoice`).
+ */
+export function routineMenu(routines, kinds) {
+    return routines.map(({ name, routine }) => {
+        const c = routineChoice(routine, kinds, routineDeps);
+        if (!c.ok) return { value: name, label: name, disabled: true, info: c.info };
+        const price = !c.billed ? '' : c.usd === null ? 'paid'
+            : `${kinds.length > 1 ? `×${kinds.length} · ` : ''}${formatPrice(c.usd)}`;
+        return { value: name, label: name, meta: price, info: routine.summary || `Run ${name} on the selected cards` };
+    });
+}
+
+/**
+ * Run a saved routine on gallery cards (a stack stands for its cards). The run lands like
+ * the agent's; the one word back is a status-bar notice, only when it refused or fell short.
+ */
+export async function runSavedRoutine(name, routine, cards) {
+    const res = await ROUTINE_HANDLERS['routine.run']({ routine, cards, folderPath: state.currentProject?.folderPath });
+    if (!res.ok) return StatusBar.notify(`Routine ${name}: ${res.error.message}`, 'warning');
+    const rows = res.output.cards;
+    const failed = rows.filter(r => r.failedAt);
+    const skipped = rows.filter(r => r.skipped?.length).length;
+    const parts = [
+        failed.length && `${failed.length} of ${rows.length} cards stopped at step ${failed[0].failedAt}: ${failed[0].error?.message || 'see the app log'}`,
+        skipped && `${skipped} ${skipped === 1 ? 'card' : 'cards'} skipped a step with nothing to do`,
+    ].filter(Boolean);
+    if (parts.length) StatusBar.notify(`Routine ${name}: ${parts.join('. ')}`, failed.length ? 'warning' : 'info');
+}

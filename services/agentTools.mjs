@@ -304,6 +304,15 @@ export async function deleteRoutine(folderPath, scope, name) {
     return _post('/connector/routines', { folderPath, scope, name, delete: true }, 10_000);
 }
 
+export async function renameRoutine(folderPath, scope, name, newName) {
+    return _post('/connector/routines', { folderPath, scope, name, rename: newName }, 10_000);
+}
+
+/** Out of `scope` into the other one. */
+export async function moveRoutine(folderPath, scope, name) {
+    return _post('/connector/routines', { folderPath, scope, name, move: true }, 10_000);
+}
+
 /** `/connector/routines/<name>/<verb>`; the loop never calls one without a name. */
 function _routinePath(name, verb) {
     if (!name) throw new Error(`routine ${verb}: no name`);

@@ -7,7 +7,7 @@ as ONE new stack (one card in -> one new card, no stack). The in-app agent reach
 `routine` tool; the RENDERER runs it, because generation, stacks, History versions, the installed
 checks and the price are all renderer-owned.
 
-Decisions D1-D12 and why: `.agents/mpi-kanban/tasks/MPI-970/plan.md` (§ Decisions) and
+Decisions D1-D13 and why: `.agents/mpi-kanban/tasks/MPI-970/plan.md` (§ Decisions) and
 `brief.md`. The agent's own guide (what the running agent reads) is `docs/agent/routines.md`, not
 this file.
 
@@ -16,9 +16,10 @@ this file.
 | Layer | File | Owns |
 |---|---|---|
 | Schema + validator | `js/data/routineModel.js` | `normalizeRoutine`, `validateRoutine(routine, { models, flows })`, `routineSummary`, `ROUTINE_PLACEHOLDER`. Pure: imports in plain Node |
-| Store | `services/agentRoutines.mjs` | the files, project and global, caps, delete-as-move; throws `RoutineError{code}` |
-| Runner | `js/services/routineRunner.js` | `quoteRoutine`, `runRoutine`: order, landing, skip and failure rules. Pure: every app touch is `deps` |
-| Renderer deps + relay | `js/shell/routineDispatch.js` | `routineDeps` (check, price, readProject, submit, addStack) and `ROUTINE_HANDLERS` |
+| Store | `services/agentRoutines.mjs` | the files, project and global, caps, delete-as-move, rename-in-place; throws `RoutineError{code}` |
+| Runner | `js/services/routineRunner.js` | `quoteRoutine`, `runRoutine`, `routineChoice` (the gallery menu's yes/why-not): order, landing, skip and failure rules. Pure: every app touch is `deps` |
+| Renderer deps + relay | `js/shell/routineDispatch.js` | `routineDeps` (check, price, readProject, submit, addStack), `ROUTINE_HANDLERS`, and the gallery menu's `readSavedRoutines` / `routineMenu` / `runSavedRoutine` |
+| Gallery menu (D13) | `MpiGalleryGrid/selectionBar.js`, `MpiGalleryGrid.js`, `MpiGalleryBlock.js` | the Routines dropdown on the selection bar |
 | Routes | `routes/connector.js` § routines | `/connector/routines*`: store, relay the check / quote / run |
 | Agent tool | `services/agentLoop.mjs` `_routine` + `services/agentTools.mjs` loopbacks | the gates: guide, quote, one spend card, held run, one note |
 
@@ -98,6 +99,8 @@ inputs?, folderPath? }`; a stack id in `cards` expands to its members (`expandSt
 | `GET /connector/routines/:name` | one routine whole |
 | `POST /connector/routines { folderPath, scope?, routine }` | relays `routine.validate` (only the renderer's `FLOWS` holds package Flows), stores what the check returns; answers `{ name, created, summary }` |
 | `POST /connector/routines { folderPath, scope?, name, delete: true }` | the delete (no DELETE route, as memory's forget) |
+| `POST /connector/routines { folderPath, scope?, name, rename }` | renames in place: `{ name: rename, renamed }`, `NAME_TAKEN` rather than overwrite |
+| `POST /connector/routines { folderPath, scope?, name, move: true }` | out of `scope` into the other: `{ name, moved }`; written there first (cap, `NAME_TAKEN`), then the source goes to `deleted/` (not `fs.rename`: two drives) |
 | `POST /connector/routines/:name/quote` | `{ missing, billed, count, usd, display }` |
 | `POST /connector/routines/:name/run` | HELD until every card's chain has ended (no clock): the `finished` summary |
 
@@ -106,7 +109,7 @@ the open project without one. Tests: `tests/connector-routines.test.cjs`.
 
 ## The agent tool
 
-`routine { action: list|save|run|delete, name, summary, steps, inputs, cards, values, scope }`
+`routine { action: list|save|run|rename|move|delete, name, newName, summary, steps, inputs, cards, values, scope }`
 (`services/agentLoop.mjs` `_routine`; loopbacks `listRoutines`, `saveRoutine`, `deleteRoutine`,
 `quoteRoutine`, `runRoutine` in `services/agentTools.mjs`, allowlisted in
 `tests/agent-no-delete.test.cjs`). Its description carries D7 (offer to save repeated steps). D12
@@ -114,6 +117,12 @@ the open project without one. Tests: `tests/connector-routines.test.cjs`.
 the tool description, DeepSeek left routines out 0/3 in the B1 suite.
 
 - **list** reads both scopes at once: `{ project, global }` (no project open: global only).
+- **rename** (`newName`) moves the file and its `name` (store `renameRoutine`). Save-new-then-delete made the agent
+  retype every step from `list`'s step COUNT, and Fabio's agent, reading "I never delete" as covering routines, left
+  the old copy (F2). The system prompt's limits line now names routines as the one thing it deletes.
+- **move** takes NO direction: the loop moves it out of the project if it is there, else out of the global ones
+  (`ROUTINE_NOT_FOUND` falls through). Asked to "make it global", a model puts the destination in `scope`, where
+  every other action puts the source, so `move` never reads `scope`.
 - **save** is refused `KNOWLEDGE_NOT_READ` until `app:routines` is read (`_gateWaiting`, so the read
   answers "the call that waited has NOT run"). Each step goes through `_generateFields`, the SAME
   mapping `generate` builds its body with: `prompt` -> `positive`, a tool's own field names into
@@ -133,9 +142,24 @@ cannot reach it (the user's Stop can); every routine counts as a local GPU job w
 local, so an all-cloud routine still makes a local agent wait; the spend card says "for N
 generations" with N = cards, though the price covers every billed step.
 
+## The gallery's Routines menu (D13)
+
+The user runs a saved routine without the agent: a **Routines** dropdown beside Stack on the
+selection bar ([gallery-selection.md](gallery-selection.md)). Only the agent creates or deletes
+routines (a UI for that is 2.1). The block reads both scopes on every `selection-start`
+(`readSavedRoutines`: the list route gives a step COUNT, so each routine is read by name; the
+project's shadows a global of the same name) and hands the grid `setRoutineMenu(groups => options)`;
+none saved = no dropdown. Each option comes from `routineChoice` on the selection's kinds (a stack
+counted as its cards): the summary in the status bar and a paid run's whole price as the meta
+(`×4 · $0.12`, the pick is the yes, as CUE's price tag), or greyed with the reason: needs a run
+input (the menu fills none: ask the agent), a model or Flow not installed, the wrong kind. A pick
+emits `routine { name, groups }`; `runSavedRoutine` calls the SAME `routine.run` handler the relay
+does, and the only word back is a status-bar notice when it refused, a card failed, or a step was
+skipped.
+
 ## Not in this card (D8)
 
-MCP exposure for outside agents, an agent-free entry point in the UI, scene recipes (steps from
+MCP exposure for outside agents, a UI to create or delete routines (2.1), scene recipes (steps from
 nothing, several earlier results by name), two varying sets in one run, saved default input values.
 
 ## Tests

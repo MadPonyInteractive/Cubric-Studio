@@ -208,6 +208,38 @@ test('the tool says when to offer a routine (D7); the system prompt puts routine
     const { loop } = await makeLoop([], fakeTools());
     const system = await loop._buildSystemPrompt('auto');
     assert.match(system, /Routines rule: asked what you can do, name routines/);
-    // F2 (Fabio, 2026-09-30): told "the app runs one", his agent said to run it himself.
-    assert.match(system, /YOU run on any cards\. The app has no routine button; never tell the user to run one\./);
+    // D13 (Fabio, 2026-09-30): the user runs one from the gallery selection bar too, so the
+    // agent points there rather than inventing a menu (F2: it once told him one existed), and
+    // sent him there to DELETE one: the menu only runs them.
+    assert.match(system, /run on any cards by you or from Routines on the gallery selection bar, which only runs them\./);
+    // F2: "I never delete ..." read as "I cannot delete a routine", so a rename left the old copy.
+    assert.match(system, /I never delete cards, media, notes or projects, and never look for a way\. My own routines are the exception: I rename, move and delete those\./);
+});
+
+test('move takes no direction: out of the project if it is there, else out of the global ones', async () => {
+    const moves = [];
+    const at = { here: 'project', everywhere: 'global' };
+    const moveRoutine = async (folderPath, scope, name) => {
+        moves.push({ folderPath, scope, name });
+        return at[name] === scope ? { ok: true, name, moved: scope === 'global' ? 'project' : 'global' }
+            : { ok: false, error: { code: 'ROUTINE_NOT_FOUND', message: `No routine "${name}" to move.` } };
+    };
+    for (const [name, want, tried] of [['here', 'global', ['project']], ['everywhere', 'project', ['project', 'global']]]) {
+        moves.length = 0;
+        // The model puts the DESTINATION in scope; move must not read it.
+        const { turn, results } = await makeLoop([call('m1', { action: 'move', name, scope: 'global' }), { text: 'Moved.' }], fakeTools({ moveRoutine }));
+        await turn(`Move ${name}`);
+        assert.deepEqual(moves.map((m) => m.scope), tried);
+        assert.deepEqual(results()[0], { ok: true, name, moved: want });
+    }
+});
+
+test('rename renames in place through the store, never a save of a copy', async () => {
+    const renamed = [];
+    const tools = fakeTools({ renameRoutine: async (folderPath, scope, name, newName) => { renamed.push({ folderPath, scope, name, newName }); return { ok: true, name: newName, renamed: name }; } });
+    const { turn, results } = await makeLoop([call('n1', { action: 'rename', name: 'crop-to-916-and-upscale-2x', newName: '9-16-crop-and-upscale' }), { text: 'Renamed.' }], tools);
+    await turn('Rename it to 9-16-crop-and-upscale');
+    assert.deepEqual(renamed, [{ folderPath: '/project', scope: 'project', name: 'crop-to-916-and-upscale-2x', newName: '9-16-crop-and-upscale' }]);
+    assert.deepEqual(results()[0], { ok: true, name: '9-16-crop-and-upscale', renamed: 'crop-to-916-and-upscale-2x' });
+    assert.equal(tools.calls.save.length, 0);
 });

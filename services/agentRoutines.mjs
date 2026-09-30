@@ -162,6 +162,43 @@ async function _deleteIn(dir, name) {
     return { name, deleted: true };
 }
 
+/**
+ * Give a routine a new name, in place: the file moves and its `name` follows. A save under
+ * the new name plus a delete made the agent retype every step from memory (`list` shows a
+ * step count), and one that could not delete left the old copy (Fabio, 2026-09-30).
+ */
+async function _renameIn(dir, name, newName) {
+    checkName(name);
+    checkName(newName);
+    const from = path.join(dir, `${name}.json`);
+    const routine = await _tryRead(from);
+    if (!routine) throw new RoutineError('ROUTINE_NOT_FOUND', `No routine "${name}" to rename.`);
+    const to = path.join(dir, `${newName}.json`);
+    if (await _exists(to)) {
+        throw new RoutineError('NAME_TAKEN', `A routine "${newName}" already exists. Pick another name, or delete that one first.`);
+    }
+    await fs.rename(from, to);
+    await fs.writeFile(to, JSON.stringify({ ...routine, name: newName }, null, 2), 'utf8');
+    return { name: newName, renamed: name };
+}
+
+/**
+ * Move a routine to the other scope, steps untouched: written there first (the cap and a
+ * taken name refuse before anything moves), then the source goes to `deleted/` as a delete
+ * does. Not an `fs.rename`: a project and app data can sit on different drives.
+ */
+async function _moveIn(fromDir, toDir, name, to) {
+    checkName(name);
+    const routine = await _tryRead(path.join(fromDir, `${name}.json`));
+    if (!routine) throw new RoutineError('ROUTINE_NOT_FOUND', `No routine "${name}" to move.`);
+    if (await _exists(path.join(toDir, `${name}.json`))) {
+        throw new RoutineError('NAME_TAKEN', `The ${to} routines already hold one named "${name}". Rename one of them first.`);
+    }
+    await _writeIn(toDir, routine);
+    await _deleteIn(fromDir, name);
+    return { name, moved: to };
+}
+
 // ── project scope ─────────────────────────────────────────────────────────────
 
 /** `{ routines: [{ name, summary, steps, inputs }] }`, empty before the first routine. */
@@ -191,9 +228,14 @@ export async function deleteRoutine(folderPath, name) {
     return _deleteIn(await routinesDir(folderPath), name);
 }
 
+/** `{ name: newName, renamed: name }`; refused `NAME_TAKEN` rather than overwrite one. */
+export async function renameRoutine(folderPath, name, newName) {
+    return _renameIn(await routinesDir(folderPath), name, newName);
+}
+
 // ── global scope ──────────────────────────────────────────────────────────────
 
-/** The global routines: the same four calls, on app data instead of a project. */
+/** The global routines: the same five calls, on app data instead of a project. */
 export async function listGlobalRoutines() {
     return _listIn(globalRoutinesDir());
 }
@@ -210,4 +252,21 @@ export async function writeGlobalRoutine(routine = {}) {
 export async function deleteGlobalRoutine(name) {
     checkName(name);
     return _deleteIn(globalRoutinesDir(), name);
+}
+
+export async function renameGlobalRoutine(name, newName) {
+    return _renameIn(globalRoutinesDir(), name, newName);
+}
+
+// ── between the scopes ────────────────────────────────────────────────────────
+
+/**
+ * Move a routine OUT of `from` ('project' | 'global') into the other scope:
+ * `{ name, moved: 'global' | 'project' }`, the scope it is in now.
+ */
+export async function moveRoutine(folderPath, from, name) {
+    const project = await routinesDir(folderPath);
+    return from === 'global'
+        ? _moveIn(globalRoutinesDir(), project, name, 'project')
+        : _moveIn(project, globalRoutinesDir(), name, 'global');
 }

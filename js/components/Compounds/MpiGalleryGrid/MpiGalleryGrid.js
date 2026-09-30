@@ -137,6 +137,8 @@ function _addDownloadUrl(e, item) {
  *   setSendCountdown(tempId, seconds)    — cloud send window: "Sending in N..." (0 = sent, MPI-940)
  *   setSelectionMode(val)                — set selection mode externally
  *   getGroup(groupId)                    — the group last handed to setGroups, or null
+ *   setRoutineMenu(fn)                   — `(groups) => options` for the selection bar's
+ *                                          Routines dropdown; null hides it (MPI-970)
  *
  * Emits:
  *   'open-group'  { group }              — user opened a group (navigate to history)
@@ -153,6 +155,7 @@ function _addDownloadUrl(e, item) {
  *   'preview:pop-continue'{ group, item } — Pop clicked while card is queued for Finish
  *   'archive'     { groups: [...] }      — groups had `archived` flipped; persist to disk
  *   'stack'       { groups }             — stack the selected cards into one, in click order
+ *   'routine'     { name, groups }       — run the saved routine `name` on the selected cards
  *   'unstack'     { groups }             — dissolve these stacks; their cards come back
  *   'cancel-shown' { groupId }           — an `isCancelled` placeholder's mascot finished its
  *                                          `cancelled` clip; the block removes the card (MPI-908)
@@ -388,14 +391,25 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         : 'Put these cards away. Nothing is deleted and Reuse keeps working' },
                     delete: { info: 'Permanently delete these cards and their media files' },
                 },
+                routines: _routineMenu ? _routineMenu(groups) : [],
             });
         }
+        /** MPI-970 D13: `(groups) => dropdown options`, from the block; null = none saved. */
+        let _routineMenu = null;
+        el.setRoutineMenu = (fn) => {
+            _routineMenu = fn;
+            if (_selectionMode) _syncSelectionBar();
+        };
         const _selBar = mountSelectionBar(el, {
             // Every action but a mark ends the selection, as a menu pick always did.
             onAction: (key) => {
                 const groups = _selectedGroups();
                 if (['stack', 'compare', 'combine', 'make-gif', 'download', 'delete'].includes(key)) emit(key, { groups });
                 if (key === 'archive') _archive(groups, !groups[0]?.archived);
+                _exitSelectionMode();
+            },
+            onRoutine: (name) => {
+                emit('routine', { name, groups: _selectedGroups() });
                 _exitSelectionMode();
             },
             // Same persistence as the card's own mark button: `favourite` → updateGroup.

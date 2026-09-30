@@ -2,6 +2,28 @@
 
 ## Current State
 
+2026-09-30 (7026c025, Agent 71) - **Fabio said yes to the dropdown with every pick: D13, Phase 6.** Card back to
+in-progress. **U1-U3 DONE, uncommitted**, `npm test` 2383 / 0, live in an own isolated app (validation.md).
+- U1 `routineChoice` (runner, pure) -> greyed reasons: needs an input / wrong kind / "Not ready here: needs X" (not
+  "not installed": a cloud model's check reads "X (no cloud key set)").
+- U2 `routineDispatch.js` `readSavedRoutines` / `routineMenu` / `runSavedRoutine`; the bar's `MpiDropdown` (options
+  rebuilt only on change, the sync runs every render); grid `setRoutineMenu` + `routine` event; the block reads the
+  lists on `selection-start`. Tool description kept ("you run one" is still true).
+- U3 Routines rule now "run on any cards by you or from Routines on the gallery selection bar"; guide says the bar is
+  the only place and greys input routines; bench `routine-save` now fails a reply naming a right-click / card menu.
+- U4 round 1 (Fabio): dropdown too wide on 1920 px; rename left a copy; agent "cannot delete routines". All three
+  FIXED, uncommitted, `npm test` 2390 / 0 (details: validation.md, Plan Drift). New: tool `rename` action.
+- U4 round 2 VERIFIED by Fabio ("Okay, this works": his agent deleted the duplicate; the dropdown is label-sized).
+- MOVE built (Fabio's yes): tool `move` takes no direction (out of the project if there, else out of the global ones;
+  `scope` ignored, a model puts the destination there), store `moveRoutine` writes the other scope first then sends
+  the source to `deleted/`. Uncommitted until the handoff; `npm test` 2392 / 0; live in an own isolated app
+  (validation.md). SYSTEM 10,460 / 10,470, TOOLS 18,239 / 18,250.
+**Next (fresh session):** Fabio's look at move in his app (restart it; "make <routine> available in all my projects",
+then back; Routines on the selection bar lists it either way). Rename not yet seen in his app. Optional paid bench
+routine-rename/-move/-delete/-save (DeepSeek, 4 cases x (3 + flip) = 16 conversations, about 3 cents) on his yes; his
+agent runs on Ollama (model unknown: ask for a free `--preset ollama` run). Then close-out (`mpi-end-session`). Noticed: a refusal shown to
+the user can carry agent words (the downscale one ends "Enlarging is imageUpscale.").
+
 2026-09-30 (8cbb0199, Agent 70) - **W2, W3, D12 and F1 DONE.** Uncommitted, `npm test` (Git Bash) 2382 / 0. Landed:
 - W2 `services/agentLoop.mjs` `routine` tool + `_routine`: list (both scopes), save (gated on `app:routines`), run
   (quote -> `NOT_INSTALLED` by name -> ONE `_confirmSpend` card -> held run, 1 s refusal race -> ONE `[Routine
@@ -350,6 +372,29 @@ Run this batch with `mpi-execute-parallel` (disjoint files, per-task verify, no 
 - [ ] F2 Fabio, in his app: ask the agent to save a 3-step routine, list it, run it on 2 cards, look at the result
   stack and scroll a card's History, delete it. **Verify:** his yes.
 
+## Phase 6: Routines on the gallery selection bar (D13, verify mode user-ux)
+
+**D13 (Fabio, 2026-09-30, took every pick):** the user runs a saved routine from the gallery selection bar; only
+the agent creates them (a create/delete UI is 2.1, not this card). Reverses D8's "agent-free entry point".
+- A "Routines" dropdown right after Stack; absent when no routine is saved. Project + global in one list, the
+  project's wins a name clash.
+- A paid routine shows the whole run's price in the option (`×4 · $0.12`); the pick is the yes, as CUE's price tag.
+- Greyed with a status-bar reason: needs a run input (D9) -> "ask the agent to run it"; a model/Flow missing ->
+  named; wrong kind (starts on pictures, a video is selected).
+- The result stack lands like any run; a status-bar notice only when a card failed or a step was skipped.
+- Agent wording: "the app has no routine button" -> the user can also run one from Routines on the selection bar.
+
+- [x] U1 (2026-09-30, 7026c025: 6 cases in routine-runner.test.cjs) `routineRunner.js` pure `routineChoice(routine, kinds, deps)` -> `{ ok, billed, usd }` | `{ ok: false, info }`
+  (validate, inputs, kind, missing, price). **Verify:** cases in `tests/routine-runner.test.cjs`.
+- [x] U2 (2026-09-30, 7026c025: live in an own isolated app, see validation.md) Wiring: `routineDispatch.js` `routineMenu` (options) + `runSavedRoutine` (the `routine.run` handler + one
+  notice); selection bar dropdown; grid `setRoutineMenu(fn)` + `routine` event; the block reads both lists on
+  `selection-start` (list gives a step COUNT, so each routine is read by name). **Verify:** `npm test`; live in an
+  own isolated app: list, greyed reason, run on 2 cards -> one stack.
+- [x] U3 (2026-09-30, 7026c025: system prompt 10,370 / 10,390) Wording: system-prompt Routines rule, tool description, `docs/agent/routines.md`, bench `routine-save`
+  check; `docs/routines.md` + `docs/gallery-selection.md`. **Verify:** budget test green.
+- [ ] U4 Fabio's look (with F2). Round 1 fixes (width, rename, delete) verified by him 2026-09-30; `move` added on
+  his ask, his look at it pending.
+
 ## Plan Drift
 
 - 2026-09-29 (c4eb2969): Phase 1 answered S2 the good way (closed projects work), so no `PROJECT_NOT_OPEN`
@@ -379,6 +424,10 @@ Run this batch with `mpi-execute-parallel` (disjoint files, per-task verify, no 
 - 2026-09-30 (8cbb0199, after B1): D12 in the tool description failed 0/3 live, so it moved to a system-prompt
   line after all and SYSTEM_BUDGET rose (+140); the Verification line "only TOOLS_BUDGET raised" no longer holds.
 
+- 2026-09-30 (7026c025): D13 reverses D8's agent-free entry (run only). Fabio's U4 round 1 added a `rename` action
+  to the tool: rename-as-save-then-delete (the old guide) made the agent retype steps from a step COUNT, and the
+  "I never delete" limit stopped the delete half. SYSTEM_BUDGET 10,460 and TOOLS_BUDGET 18,240 raised for it.
+
 ## Verification
 
 **Verify mode:** user-ux (Phase 5 F2 only; Phases 1-4 are auto).
@@ -394,4 +443,5 @@ only `TOOLS_BUDGET` raised; the four suite cases pass; Fabio's look.
   first, the dev doc is `docs/routines.md`.
 - Raising `TOOLS_BUDGET` is a decision in the diff: say why in the constant's comment.
 - `routes/connector.js` and `services/agentLoop.mjs` are hot shared files: claim before editing, check peers.
-- MCP exposure and the agent-free overlay are separate future cards (D8); do not grow this one.
+- MCP exposure is a separate future card (D8); do not grow this one. The agent-free RUN entry is D13 (Phase 6);
+  a create/delete UI is 2.1.

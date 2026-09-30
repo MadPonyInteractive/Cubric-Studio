@@ -30,5 +30,11 @@
   "docs/README.md",
   "docs/agent-chat.md",
   "docs/stacks.md",
-  ".agents/mpi-kanban/project-knowledge-index.md"
+  ".agents/mpi-kanban/project-knowledge-index.md",
+  "js/components/Compounds/MpiGalleryGrid/selectionBar.js",
+  "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+  "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.css",
+  "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
+  "docs/gallery-selection.md",
+  "tests/desktop/gallery-stack.spec.js"
 ] }

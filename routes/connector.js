@@ -1106,6 +1106,9 @@ const _readRoutine = (store, name, { scope, folderPath }) => (scope === 'global'
  *   GET  /connector/routines/:name?folderPath=   -> { ok, name, routine }
  *   POST /connector/routines { folderPath, routine }            -> { ok, name, created, summary }
  *   POST /connector/routines { folderPath, name, delete: true } -> { ok, name, deleted }
+ *   POST /connector/routines { folderPath, name, rename }       -> { ok, name: rename, renamed: name }
+ *   POST /connector/routines { folderPath, scope?, name, move: true } -> { ok, name, moved: 'global'|'project' },
+ *        out of `scope` into the other one; the source goes to `deleted/`
  *   POST /connector/routines/:name/quote { folderPath, cards, inputs? }
  *        -> { ok, output: { missing, billed, count, usd, display } }, dispatching nothing
  *   POST /connector/routines/:name/run { folderPath, cards, inputs? }
@@ -1115,7 +1118,7 @@ const _readRoutine = (store, name, { scope, folderPath }) => (scope === 'global'
  * A save is checked by the app first (its catalogues hold the package Flows) and stored as
  * that check returns it. A delete rides the POST, as a forgotten note does; the file moves
  * to `deleted/`. `cards` may name a stack: it runs on the stack's cards.
- * Errors: BAD_REQUEST (400), NOT_A_PROJECT, INVALID_NAME, ROUTINE_NOT_FOUND, ROUTINES_FULL,
+ * Errors: BAD_REQUEST (400), NOT_A_PROJECT, INVALID_NAME, ROUTINE_NOT_FOUND, ROUTINES_FULL, NAME_TAKEN,
  * APP_UNAVAILABLE, and the routine's own refusals (routineModel.js / routineRunner.js).
  */
 router.get('/connector/routines', (req, res) =>
@@ -1129,6 +1132,9 @@ router.post('/connector/routines', (req, res) => {
   const global = scope === 'global';
   return _routineReply(res, async (s) => {
     if (req.body?.delete === true) return global ? s.deleteGlobalRoutine(name) : s.deleteRoutine(folderPath, name);
+    const rename = req.body?.rename;
+    if (rename !== undefined) return global ? s.renameGlobalRoutine(name, rename) : s.renameRoutine(folderPath, name, rename);
+    if (req.body?.move === true) return s.moveRoutine(folderPath, global ? 'global' : 'project', name);
     const checked = await _dispatchToRenderer('routine.validate', { routine });
     if (!checked.ok) return checked;
     const saved = await (global ? s.writeGlobalRoutine(checked.output.routine) : s.writeRoutine(folderPath, checked.output.routine));

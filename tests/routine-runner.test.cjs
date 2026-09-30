@@ -13,10 +13,10 @@ const path = require('node:path');
 
 const esm = (p) => import('file:///' + path.join(__dirname, '..', p).replace(/\\/g, '/'));
 
-let quoteRoutine, runRoutine, lookups;
+let quoteRoutine, runRoutine, routineChoice, lookups;
 
 test.before(async () => {
-    ({ quoteRoutine, runRoutine } = await esm('js/services/routineRunner.js'));
+    ({ quoteRoutine, runRoutine, routineChoice } = await esm('js/services/routineRunner.js'));
     const { MODELS } = await esm('js/data/modelConstants/models.js');
     const { FLOWS } = await esm('js/data/flowsRegistry.js');
     lookups = { models: MODELS, flows: FLOWS };
@@ -193,6 +193,24 @@ test('quoteRoutine: the price is steps x cards, unknowable stays billed, missing
     const unknown = fakeApp({ price: (s) => (s.modelId ? { billed: true, usd: null } : { billed: false, usd: null }) });
     assert.deepStrictEqual(quoteRoutine(routine(THREE), 2, unknown.deps), { ok: true, missing: [], billed: true, usd: null });
     assert.deepStrictEqual(quoteRoutine(routine(THREE), 2, fakeApp().deps), { ok: true, missing: [], billed: false, usd: 0 });
+});
+
+test('routineChoice (D13): the menu runs it, or greys it with the reason', async () => {
+    const free = fakeApp().deps;
+    assert.deepStrictEqual(routineChoice(routine(THREE), ['image', 'image'], free), { ok: true, billed: false, usd: 0 });
+
+    const priced = fakeApp({ price: (s) => (s.modelId ? { billed: true, usd: 0.02 } : { billed: false, usd: null }) }).deps;
+    const p = routineChoice(routine(THREE), ['image', 'image', 'image'], priced);
+    assert.ok(p.ok && p.billed && Math.abs(p.usd - 0.06) < 1e-9, 'the price is the whole run');
+
+    const kind = routineChoice(routine(THREE), ['image', 'video'], free);
+    assert.deepStrictEqual(kind, { ok: false, info: 'Starts on a picture, and the selection holds a video' });
+    const missing = routineChoice(routine(THREE), ['image'], fakeApp({ check: (s) => (s.modelId ? 'Klein 4B' : null) }).deps);
+    assert.deepStrictEqual(missing, { ok: false, info: 'Not ready here: needs Klein 4B' });
+    const inputs = routineChoice(PLACE, ['image'], free);
+    assert.strictEqual(inputs.ok, false);
+    assert.match(inputs.info, /a picture \(the person to place\) and some text each run\. Ask the agent/);
+    assert.strictEqual(routineChoice(routine([]), ['image'], free).ok, false, 'an illegal routine is greyed, not run');
 });
 
 // ── Run inputs (D9) ───────────────────────────────────────────────────────────

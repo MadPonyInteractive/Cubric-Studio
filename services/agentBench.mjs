@@ -242,6 +242,20 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
             record.routines.push({ action: 'delete', scope, name });
             return kept.delete(name) ? { ok: true, name, deleted: true } : noRoutine(name);
         },
+        renameRoutine: async (folderPath, scope, name, newName) => {
+            record.routines.push({ action: 'rename', scope, name, newName });
+            if (!kept.has(name)) return noRoutine(name);
+            kept.set(newName, { ...kept.get(name), name: newName });
+            kept.delete(name);
+            return { ok: true, name: newName, renamed: name };
+        },
+        // Every routine here is the project's, so a move makes it global.
+        moveRoutine: async (folderPath, scope, name) => {
+            record.routines.push({ action: 'move', scope, name });
+            if (scope !== 'project' || !kept.has(name)) return noRoutine(name);
+            kept.delete(name);
+            return { ok: true, name, moved: 'global' };
+        },
         quoteRoutine: async (name, body) => (kept.has(name) && body.scope !== 'global'
             ? { ok: true, output: { missing: [], billed: false, count: body.cards.length, usd: 0, display: null } } : noRoutine(name)),
         runRoutine: async (name, body) => {
@@ -804,9 +818,9 @@ const CASES = [
             if (steps[0]?.operation !== 'crop' || steps[0]?.fields?.ratio !== '1:1') f.push(`step 1 is ${JSON.stringify(steps[0])}, not a 1:1 crop`);
             if (steps[1]?.operation !== 'imageUpscale' || Number(steps[1]?.fields?.factor) !== 2) f.push(`step 2 is ${JSON.stringify(steps[1])}, not a 2x upscale`);
             if (calledAll(run, 'generate').length) f.push('ran a generation instead of only saving');
-            // F2 (Fabio, 2026-09-30): "To use it, just select any image card in your gallery and run
-            // the routine". Only the agent runs one; the app has no button for it.
-            if (/(select|pick|choose|click)\b[^.]{0,80}\band run\b|\brun (it|them|the routine) yourself\b/i.test(run.lastReply)) f.push('told the user to run the routine themselves');
+            // D13: the user runs one from Routines on the gallery selection bar, the only place;
+            // F2 (Fabio, 2026-09-30) saw an agent describe a place that did not exist.
+            if (/right[- ]click|context menu|card menu/i.test(run.lastReply)) f.push('sent the user to a menu that has no routines');
             return f;
         },
     },
@@ -836,6 +850,37 @@ const CASES = [
             if (!gone.includes('product-shot')) f.push('never deleted product-shot');
             const others = gone.filter((n) => n !== 'product-shot');
             if (others.length) f.push(`also deleted ${others.join(', ')}`);
+            return f;
+        },
+    },
+    {
+        // F2 (Fabio, 2026-09-30): asked to rename, his agent saved a copy under the new name and
+        // left the old one, then said it could not delete a routine at all.
+        id: 'routine-rename',
+        title: 'a rename renames in place: no copy, no old name left',
+        setup: { routines: [PRODUCT_SHOT, SQUARE_ONLY], turns: ['Rename my product-shot routine to square-and-upscale.'] },
+        flip: { turns: ['Which routines have I saved?'] },
+        check(run) {
+            const names = run.record.routines;
+            const f = [];
+            if (!names.some((r) => r.action === 'rename' && r.name === 'product-shot' && r.newName === 'square-and-upscale')) f.push('never renamed product-shot to square-and-upscale');
+            if (names.some((r) => r.action === 'save')) f.push('saved a copy instead of renaming');
+            if (names.some((r) => r.action === 'delete' && r.name !== 'product-shot')) f.push('deleted another routine');
+            return f;
+        },
+    },
+    {
+        // Fabio, 2026-09-30: a routine moves between this project and every project, steps untouched.
+        id: 'routine-move',
+        title: '"make it global" is ONE move, never a copy saved in the other scope',
+        setup: { routines: [PRODUCT_SHOT, SQUARE_ONLY], turns: ['Make my product-shot routine available in all my projects.'] },
+        flip: { turns: ['Which routines have I saved?'] },
+        check(run) {
+            const calls = run.record.routines;
+            const f = [];
+            if (!calls.some((r) => r.action === 'move' && r.name === 'product-shot')) f.push('never moved product-shot');
+            if (calls.some((r) => r.action === 'save')) f.push('saved a copy instead of moving');
+            if (calls.some((r) => r.action === 'delete')) f.push('deleted a routine');
             return f;
         },
     },

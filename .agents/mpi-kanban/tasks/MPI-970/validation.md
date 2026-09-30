@@ -63,3 +63,36 @@ Verify mode: user-ux for Phase 5 F2 only; Phases 1-4 auto (plan.md § Verificati
   `--bite`: all 5 flips fail as they must. Spent $0.0199 + $0.0160 = $0.0359. `npm test` after the move
   2382 pass / 0 fail. Re-run of routine-in-capabilities after the move (Fabio's second yes): 3/3, $0.0015. B1 total
   $0.0374, 23 conversations. Left: F2, Fabio's look in his own app.
+- 2026-09-30 D13 (7026c025, Fabio's yes to the Routines dropdown with every pick): `npm test` (Git Bash) 2383 pass /
+  0 fail; `tests/routine-runner.test.cjs` 15/15 incl. `routineChoice` (runs / whole-run price / wrong kind / not
+  ready / needs an input / illegal); ESLint clean on the 7 changed JS files; system prompt 10,370 / 10,390. LIVE, own
+  isolated app (:55374, never :3000) on the :48188 engine under gpu_lease, queue empty: select 2 cards -> "Routines"
+  beside Stack at the same 34 px height; options = the project's 3 then the global one; the input routine greyed,
+  hovering it puts "Needs a picture (the character) each run. Ask the agent to run this one" in the status bar, a
+  click on it does nothing; pick `d13-square-shrink` -> selection ends, trigger reads "Routines" again, a new stack
+  "d13-square-shrink" of 2 cards, 2 versions each, in 3 s. Pick `d13-global-shrink` on that stack (already 0.1 MP) ->
+  nothing queued, the refusal as a status-bar "HEADS UP". Left: U4, Fabio's look.
+- 2026-09-30 U4 round 1 (Fabio, his app, 1920 px): the dropdown ran the full bar width; asked to rename, his agent saved
+  a copy (`9-16-crop-and-upscale` beside `crop-to-916-and-upscale-2x`), then said it cannot delete routines and sent
+  him to delete one from the selection bar. Fixed (7026c025): the bar's dropdown `width: auto; flex: none` (the
+  primitive is `width: 100%`); a `rename` action (store `renameRoutine` moves the file + its name, `NAME_TAKEN`
+  refuses, route `POST /connector/routines { rename }`, loopback, tool `newName`); the limits line "My own routines
+  are the exception: I rename and delete those."; the Routines rule "... which only runs them"; guide section
+  "Listing, renaming and deleting". SYSTEM 10,454 / 10,460, TOOLS 18,232 / 18,240 (both raised, reasons in the
+  constants). `npm test` 2390 pass / 0 fail; ESLint clean. Bench `routine-rename` (new) and `routine-save` (menu check)
+  dry-run FREE with a scripted model: right behaviour passes, Fabio's copy-and-refuse fails, flip fails. LIVE, own
+  isolated app (:56516, never :3000): rename through the REAL loop + loopbacks + route + store -> renamed, a taken
+  name `NAME_TAKEN`, list shows one copy; at 1920 px the dropdown is 96 px (Stack 63), its list 178 px. Not run: the
+  paid bench (needs Fabio's yes). Left: his look again.
+- 2026-09-30 U4 round 2 (Fabio, his app on Ollama): "Okay, this works." Asked to delete `9-16-crop-and-upscale`, the
+  agent listed, deleted it, and said so; the Routines dropdown is label-sized beside Stack and lists the one left. His
+  screenshot does not show a rename. He then asked whether routines can move between the global and project scopes.
+- 2026-09-30 MOVE (7026c025, Fabio: "yes, build move"): tool `move` (no direction: out of the project if there, else
+  out of the global ones; `scope` ignored), store `moveRoutine` (write to the other scope first: cap + `NAME_TAKEN`
+  refuse before anything moves; source to `deleted/`; not `fs.rename`, two drives), route `move: true`, loopback,
+  limits line "I rename, move and delete those", guide bullet, bench `routine-move`. SYSTEM 10,460 / 10,470, TOOLS
+  18,239 / 18,250. `npm test` 2392 pass / 0 fail; ESLint clean. Bench dry run FREE (scripted model): right passes,
+  a save-a-copy-then-delete fails, flip fails. LIVE, own isolated app (:65325, never :3000), REAL loop + loopbacks +
+  route + store: project -> global (with `scope: 'global'` sent, as a model would) -> project; a global one down and
+  back up; unknown `ROUTINE_NOT_FOUND`; the lists end as they began; both sources in `deleted/`. Not run: the paid
+  bench (Fabio's yes needed: routine-rename/-move/-delete/-save). Left: Fabio's look at move, in a fresh session.

@@ -4,27 +4,30 @@
  * Selection mode hides the PromptBox (the block's `selection-start`), so what acts on a
  * whole selection sits in the strip it leaves. Shown only under
  * `.mpi-gallery-grid--selecting` (CSS). Same order as the card menu, coarse → fine →
- * irreversible: count · Stack · Compare, Combine, Make GIF · marks · Download, Archive,
- * Delete · close. Stack, Compare, Combine and Make GIF live ONLY here; Download, Archive
- * and Delete are on the card menu too (Fabio, 2026-09-27). Stack took Cue all's slot
- * (MPI-949).
+ * irreversible: count · Stack, Routines · Compare, Combine, Make GIF · marks · Download,
+ * Archive, Delete · close. Stack, Routines, Compare, Combine and Make GIF live ONLY here;
+ * Download, Archive and Delete are on the card menu too (Fabio, 2026-09-27). Stack took
+ * Cue all's slot (MPI-949); Routines is MPI-970 D13.
  *
  * The bar is dumb: the grid owns the selection, hands each action its disabled state and
  * status-bar reason through `update`, and gets every click back as `onAction(key)`.
  */
 
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
+import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { ce, on } from '../../../utils/dom.js';
 import { CARD_MARKS } from '../../../utils/galleryFilter.js';
 
 /**
  * @param {HTMLElement} host - the grid root; the bar is appended as its last child.
- * @param {{ onAction: (key: string) => void, onMark: (id: string|null) => void }} handlers
+ * @param {{ onAction: (key: string) => void, onMark: (id: string|null) => void,
+ *     onRoutine: (name: string) => void }} handlers
  * @returns {{ update: (s: { count: number, mark: string|null,
- *     actions: Object<string, { disabled?: boolean, info: string, label?: string }> }) => void,
+ *     actions: Object<string, { disabled?: boolean, info: string, label?: string }>,
+ *     routines: Array<Object> }) => void,
  *     destroy: () => void }}
  */
-export function mountSelectionBar(host, { onAction, onMark }) {
+export function mountSelectionBar(host, { onAction, onMark, onRoutine }) {
     const btn = (props) => MpiButton.mount(ce('div'), { size: 'sm', ...props }).el;
     const sep = () => ce('span', { className: 'mpi-gallery-grid__selection-sep' });
     const action = (key, icon, variant = 'ghost') => {
@@ -57,9 +60,24 @@ export function mountSelectionBar(host, { onAction, onMark }) {
     marks.forEach(m => { m.el.dataset.mark = m.id; });
     unmark.dataset.mark = 'none';
 
+    // MPI-970 D13: the saved routines, run on the selection. Only the agent makes them, so
+    // with none saved the dropdown is not there at all. Options come whole from the grid
+    // (`setRoutineMenu`), greyed ones carrying their reason.
+    const routines = MpiDropdown.mount(ce('div'), {
+        options: [], placeholder: 'Routines', direction: 'up',
+        info: 'Run a routine the agent saved on the selected cards',
+        extraClasses: 'mpi-gallery-grid__selection-routines',
+    });
+    let routineList = [];
+    let routineKey = '';
+    routines.on('change', ({ value }) => {
+        routines.el.setOptions(routineList, '');   // the trigger reads "Routines" again next time
+        onRoutine(value);
+    });
+
     const bar = ce('div', { className: 'mpi-gallery-grid__selection-bar' }, [
         count, sep(),
-        actions.stack, sep(),
+        actions.stack, routines.el, sep(),
         actions.compare, actions.combine, actions['make-gif'], sep(),
         ...marks.map(m => m.el), unmark, sep(),
         actions.download, actions.archive, actions.delete, sep(),
@@ -74,8 +92,17 @@ export function mountSelectionBar(host, { onAction, onMark }) {
     ];
 
     return {
-        update({ count: n, mark, actions: states }) {
+        update({ count: n, mark, actions: states, routines: list = [] }) {
             count.textContent = `${n} selected`;
+            routines.el.classList.toggle('hide', !list.length);
+            // Only on a change: this runs on every grid render, and a rebuilt list would
+            // repaint under a menu the user has open.
+            const key = JSON.stringify(list);
+            if (key !== routineKey) {
+                routineKey = key;
+                routineList = list;
+                routines.el.setOptions(list, '');
+            }
             for (const [key, s] of Object.entries(states)) {
                 const el = actions[key];
                 el.setDisabled(!!s.disabled);
@@ -89,6 +116,7 @@ export function mountSelectionBar(host, { onAction, onMark }) {
         },
         destroy() {
             unsubs.forEach(fn => fn());
+            routines.el.destroy();   // its option list is portalled to <body>
             bar.remove();
         },
     };

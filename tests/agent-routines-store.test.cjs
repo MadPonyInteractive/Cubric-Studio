@@ -126,6 +126,54 @@ describe('store — project scope', () => {
         assert.equal(routines.length, 0, 'deleted/ files do not appear in the list');
     });
 
+    test('renameRoutine renames in place: one copy, steps kept, a taken name refused', async () => {
+        const r = await rtn();
+        const p = makeProject();
+        await r.writeRoutine(p, makeRoutine('crop-to-916-and-upscale-2x'));
+        await r.writeRoutine(p, makeRoutine('taken'));
+        assert.deepEqual(await r.renameRoutine(p, 'crop-to-916-and-upscale-2x', '9-16-crop-and-upscale'),
+            { name: '9-16-crop-and-upscale', renamed: 'crop-to-916-and-upscale-2x' });
+
+        const { routines } = await r.listRoutines(p);
+        assert.deepEqual(routines.map((x) => x.name).sort(), ['9-16-crop-and-upscale', 'taken'], 'no copy left under the old name');
+        const { routine } = await r.readRoutine(p, '9-16-crop-and-upscale');
+        assert.equal(routine.name, '9-16-crop-and-upscale', 'the name inside the file follows');
+        assert.deepEqual(routine.steps, makeRoutine('x').steps);
+
+        await assert.rejects(r.renameRoutine(p, '9-16-crop-and-upscale', 'taken'), { code: 'NAME_TAKEN' });
+        await assert.rejects(r.renameRoutine(p, 'nope', 'fresh'), { code: 'ROUTINE_NOT_FOUND' });
+        await assert.rejects(r.renameRoutine(p, 'taken', 'Bad Name'), { code: 'INVALID_NAME' });
+        assert.equal((await r.readRoutine(p, 'taken')).routine.summary, 'Summary for taken', 'a refused rename changes nothing');
+    });
+
+    test('moveRoutine moves between the project and the global routines, steps kept, source to deleted/', async () => {
+        const r = await rtn();
+        const p = makeProject();
+        const prev = process.env.APP_USER_DATA;
+        process.env.APP_USER_DATA = tempDir('agent-routines-move-');
+        try {
+            await r.writeRoutine(p, makeRoutine('travels'));
+            assert.deepEqual(await r.moveRoutine(p, 'project', 'travels'), { name: 'travels', moved: 'global' });
+            assert.deepEqual((await r.listRoutines(p)).routines, [], 'gone from the project');
+            assert.deepEqual((await r.readGlobalRoutine('travels')).routine.steps, makeRoutine('x').steps, 'global now, steps kept');
+            assert.ok(fs.existsSync(path.join(p, 'Agent', 'routines', 'deleted', 'travels.json')), 'the source is recoverable');
+
+            assert.deepEqual(await r.moveRoutine(p, 'global', 'travels'), { name: 'travels', moved: 'project' });
+            assert.equal((await r.readRoutine(p, 'travels')).routine.name, 'travels');
+            await assert.rejects(r.readGlobalRoutine('travels'), { code: 'ROUTINE_NOT_FOUND' });
+
+            await r.writeGlobalRoutine(makeRoutine('travels', { summary: 'the global one' }));
+            await assert.rejects(r.moveRoutine(p, 'project', 'travels'), { code: 'NAME_TAKEN' });
+            assert.equal((await r.readGlobalRoutine('travels')).routine.summary, 'the global one', 'a refused move overwrites nothing');
+            assert.equal((await r.readRoutine(p, 'travels')).routine.summary, 'Summary for travels', 'and leaves the source');
+            await r.deleteGlobalRoutine('travels');
+            await assert.rejects(r.moveRoutine(p, 'project', 'nope'), { code: 'ROUTINE_NOT_FOUND' });
+        } finally {
+            if (prev === undefined) delete process.env.APP_USER_DATA;
+            else process.env.APP_USER_DATA = prev;
+        }
+    });
+
     test('a second delete of the same name keeps both copies in deleted/', async () => {
         const r = await rtn();
         const p = makeProject();

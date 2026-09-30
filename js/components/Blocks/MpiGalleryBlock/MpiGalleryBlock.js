@@ -40,6 +40,7 @@ import { getAvailableCommands, getCommand, buildCueAllJobItems, selectCueAllTarg
 import { isStack, expandStacks, stackableKind, resultStackFields, STACK_TYPE } from '../../../data/stackModel.js';
 import { startGeneration, enqueueGeneration, clearPendingQueue, refreshQueueDepth, removeCueJob, peekCueQueue, cancelRunningCueJob } from '../../../services/generationService.js';
 import { StatusBar } from '../../../shell/statusBar.js';
+import { readSavedRoutines, routineMenu, runSavedRoutine } from '../../../shell/routineDispatch.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { uploadMediaFile, prepareImageImport } from '../../../services/mediaUploadService.js';
@@ -1977,6 +1978,25 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // ── Selection mode: show/hide PromptBox ────────────────────────────────
         grid.on('selection-start', () => _pb?.el?.hide());
         grid.on('selection-end',   () => _pb?.el?.show());
+
+        // ── Routines on the selection bar (MPI-970 D13) ─────────────────────────
+        // Read afresh on every selection: the agent may have saved one since. A stack
+        // counts as its cards and a card as its shown item, as the run takes them.
+        let _savedRoutines = [];
+        grid.on('selection-start', async () => {
+            const folderPath = state.currentProject?.folderPath;
+            if (!folderPath) return;
+            _savedRoutines = await readSavedRoutines(folderPath);
+            grid.el.setRoutineMenu(_savedRoutines.length
+                ? (g) => routineMenu(_savedRoutines, expandStacks(g, state.currentProject?.itemGroups || []).map(m => getSelectedItem(m)?.type || m.type))
+                : null);
+        });
+        grid.on('routine', ({ name, groups: g }) => {
+            const saved = _savedRoutines.find(r => r.name === name);
+            if (!saved) return;
+            runSavedRoutine(name, saved.routine, g.map(group => group.id))
+                .catch(err => clientLogger.error('routine', 'gallery routine run failed', { name, error: err.message }));
+        });
 
         // ── Radial → operation sync ─────────────────────────────────────────────
         _unsubs.push(Events.on('workspace:set-operation', ({ operation }) => {

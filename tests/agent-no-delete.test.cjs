@@ -58,7 +58,8 @@ const ALLOWED_REQUESTS = new Set([
     // MPI-970: the agent's own saved routines. list and quote are reads; run makes NEW cards
     // and History versions, never touching the input card. A routine's delete rides the
     // POST and MOVES its file to `routines/deleted/` (D5, recoverable), as a forgotten note
-    // does: no card, media, note or project goes.
+    // does; a rename moves it to its new name, a move to the other scope (its source to
+    // `deleted/` too): no card, media, note or project goes.
     'GET /connector/routines',
     'POST /connector/routines',
     'POST /connector/routines/:id/quote',

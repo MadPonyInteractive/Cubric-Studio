@@ -160,6 +160,20 @@
     background: var(--line);
 }
 
+/* The Routines dropdown (MPI-970 D13), at the height of the bar's sm buttons. The
+   primitive is `width: 100%`, which in this centred flex row swallowed every spare pixel
+   on a wide window (Fabio, 1920 px): size it to its label like the buttons beside it. */
+.mpi-gallery-grid__selection-bar .mpi-gallery-grid__selection-routines {
+    width: auto;
+    flex: none;
+}
+
+.mpi-gallery-grid__selection-routines .mpi-dropdown__trigger {
+    min-height: var(--control-h-sm);
+    padding: 4px 12px;
+    font-size: var(--t-2xs);
+}
+
 /* ── Card wrapper ────────────────────────────────────────────────────────── */
 
 .mpi-gallery-grid__card-wrap {

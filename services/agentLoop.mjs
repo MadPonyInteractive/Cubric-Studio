@@ -426,8 +426,9 @@ export const TOOL_DEFS = [
             parameters: {
                 type: 'object',
                 properties: {
-                    action: { type: 'string', enum: ['list', 'save', 'run', 'delete'] },
+                    action: { type: 'string', enum: ['list', 'save', 'run', 'rename', 'move', 'delete'] },
                     name: { type: 'string', description: 'A lowercase slug.' },
+                    newName: { type: 'string', description: 'rename: the new slug.' },
                     summary: { type: 'string', description: 'save: one plain line.' },
                     steps: { type: 'array', items: { type: 'object' }, description: 'save: generate args in order; see app:routines.' },
                     inputs: { type: 'array', items: { type: 'object' }, description: 'save: what a run takes besides the cards.' },
@@ -1550,12 +1551,22 @@ export class AgentLoop {
                 : args.steps;
             return JSON.stringify(await this._tools.saveRoutine(folderPath, scope, { name: args.name, summary: args.summary, steps, inputs: args.inputs }));
         }
-        if (args.action === 'delete') {
+        if (args.action === 'move') {
+            // To whichever scope it is NOT in, so the model never names a direction: asked to
+            // "make it global", it would put the destination in `scope`, where every other
+            // action puts the source.
+            if (!folderPath) return noProject;
+            const out = await this._tools.moveRoutine(folderPath, 'project', args.name);
+            return JSON.stringify(out?.error?.code === 'ROUTINE_NOT_FOUND' ? await this._tools.moveRoutine(folderPath, 'global', args.name) : out);
+        }
+        if (args.action === 'delete' || args.action === 'rename') {
             if (scope === 'project' && !folderPath) return noProject;
-            return JSON.stringify(await this._tools.deleteRoutine(folderPath, scope, args.name));
+            return JSON.stringify(await (args.action === 'delete'
+                ? this._tools.deleteRoutine(folderPath, scope, args.name)
+                : this._tools.renameRoutine(folderPath, scope, args.name, args.newName)));
         }
         if (args.action !== 'run') {
-            return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: 'action is list, save, run or delete.' } });
+            return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: 'action is list, save, run, rename, move or delete.' } });
         }
         // A run always lands in the open project, whichever scope holds the routine.
         if (!folderPath) return noProject;
@@ -1815,12 +1826,12 @@ Memory rule: your notes survive a restart, per project and global (all projects,
 
 Naming rule: a finished generation reports its card id. When a result is worth referring to later, name its card with rename_card, or pass cardName with generate.
 
-Routines rule: asked what you can do, name routines: steps saved once that YOU run on any cards. The app has no routine button; never tell the user to run one.
+Routines rule: asked what you can do, name routines: steps saved once, run on any cards by you or from Routines on the gallery selection bar, which only runs them.
 
 Docs rule: for a question about the app itself that you cannot answer, say so and link [the documentation](https://docs.cubric.studio); never guess how the app works. Image and video advice is yours to give.
 
 Honest limits (I'm still a baby — this is my first version):
-- I never delete cards, media, notes or projects, and never look for a way. You can: a card from the gallery (right-click it, Delete, which removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
+- I never delete cards, media, notes or projects, and never look for a way. My own routines are the exception: I rename, move and delete those. You can: a card from the gallery (right-click it, Delete, which removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
 - I hear no audio, and see a clip only as sampled frames, never the motion between them.
 - I cannot paint masks, or use the mask, paint, composite and transform tools myself. I can USE a mask you have painted: ask me for a change to one area and I will tell you what to paint.
 - I cannot move your view myself. The app opens where a result renders, unless you are mid-edit with a canvas tool or have a window open; then the result card in this chat takes you there.
@@ -3104,7 +3115,7 @@ function _toolLabel(toolName, args) {
             if (args.delete === true) return `${args.scope === 'global' ? 'Forgot the global note' : 'Forgot'}: ${args.file || ''}`;
             return `${args.scope === 'global' ? 'Noted for every project' : 'Noted'}: ${args.title || args.file || ''}`;
         case 'routine':
-            return { list: 'Checking your routines', save: `Saving routine: ${args.name || ''}`, run: `Running routine: ${args.name || ''}`, delete: `Deleting routine: ${args.name || ''}` }[args.action] || 'Routines';
+            return { list: 'Checking your routines', save: `Saving routine: ${args.name || ''}`, run: `Running routine: ${args.name || ''}`, rename: `Renaming routine: ${args.name || ''}`, move: `Moving routine: ${args.name || ''}`, delete: `Deleting routine: ${args.name || ''}` }[args.action] || 'Routines';
         default:               return toolName;
     }
 }

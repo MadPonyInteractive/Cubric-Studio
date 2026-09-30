@@ -137,6 +137,31 @@ export function quoteRoutine(routine, cardCount, deps, inputs = {}) {
     return { ok: true, missing: _missing(v.routine, deps), billed, usd: billed ? usd : 0 };
 }
 
+const _A = { image: 'a picture', video: 'a video', audio: 'a sound', text: 'some text' };
+
+/**
+ * Can the gallery's Routines menu (D13) run `routine` on cards of these kinds, and at what
+ * price: `{ ok: true, billed, usd }`, or `{ ok: false, info }`, the status-bar reason its
+ * greyed option gives. The menu fills no run input, so a routine that needs one is the agent's.
+ *
+ * @param {string[]} kinds - each card's media kind, a stack counted as its cards
+ */
+export function routineChoice(routine, kinds, deps) {
+    const v = validateRoutine(routine, deps.lookups);
+    if (!v.ok) return { ok: false, info: v.message };
+    if (v.routine.inputs?.length) {
+        const needs = v.routine.inputs.map(i => `${_A[i.kind] || i.kind}${i.label ? ` (${i.label})` : ''}`).join(' and ');
+        return { ok: false, info: `Needs ${needs} each run. Ask the agent to run this one` };
+    }
+    const wrong = kinds.find(k => k !== v.inputKind);
+    if (wrong) return { ok: false, info: `Starts on ${_A[v.inputKind]}, and the selection holds ${_A[wrong] || wrong}` };
+    const q = quoteRoutine(v.routine, kinds.length, deps);
+    if (!q.ok) return { ok: false, info: q.message };
+    // "Not ready", not "not installed": a cloud model's entry reads "X (no cloud key set)".
+    if (q.missing.length) return { ok: false, info: `Not ready here: needs ${q.missing.join(', ')}` };
+    return { ok: true, billed: q.billed, usd: q.usd };
+}
+
 /**
  * Start a routine on cards of one project. Resolves once every card's step 1 is queued:
  * `{ ok: true, runId, stackId, finished }`, where `finished` resolves with the run's one

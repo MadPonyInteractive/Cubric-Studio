@@ -7,4 +7,5 @@ Derived from plan.md phases (2026-09-29, session c4eb2969).
 - [x] The runner (renderer: R1 routineRunner.js, R2 relay) - R1 + D9 + D10 + R2 done and live-run 2026-09-30
 - [x] Agent wiring (server: W1 routes, W2 `routine` tool, W3 guide) - W1 routes, W2 tool + loopbacks, W3 guide, D12 done 2026-09-30; W2 live through the real loop
 - [x] Agent suite (B1) - 5 cases incl. D12, all 3/3 on DeepSeek, every flip bites, $0.0374 (2026-09-30)
-- [ ] Docs + Fabio's look (F1 dev doc, F2 his look) - F1 done 2026-09-30; F2 waits on B1
+- [ ] Docs + Fabio's look (F1 dev doc, F2 his look) - F1 done 2026-09-30; F2 round 1 done, round 2 with U4
+- [ ] Routines on the gallery selection bar (D13: U1 routineChoice, U2 wiring, U3 wording, U4 his look) - U1-U3 done + live 2026-09-30; U4 waits on Fabio
