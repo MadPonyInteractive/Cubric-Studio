@@ -106,3 +106,8 @@ gained a fourth Step 0 question and a trap-table row.
   new wording. Messages 863b228e and aeef17aa resolved.
 - `node --test tests/agent-prompt-budget.test.cjs tests/agent-loop.test.cjs tests/mcp-server.test.cjs`:
   165 pass, 0 fail. `npm test`: 2572 pass, 0 fail.
+
+## Closed (2026-09-30, session 123a6c39)
+
+- CI run 36775744861 on 6f86d4d5e (the commit carrying this card): unit + desktop 1-4 all `success`.
+- The live ask and the bench stay unrun by design (the user's key and GPU); the card is docs + strings, pinned by the tests above.
