@@ -130,6 +130,7 @@ clientLogger.error('comfy', 'Description of error', err);
 
 - **`ui:error` → MpiErrorDialog** (GitHub-report dialog) — reserve for genuine reportable bugs, never expected transient states.
 - **`ui:warning` / `ui:info` / `ui:success` → toast.**
+- **A toast that points somewhere carries an `action` button** (`{ text, onClick }`, MPI-993), e.g. "Open Remote". The button navigates; the rest of the toast only dismisses.
 - **No toast on user-initiated actions** (e.g. Stop) — user actions are self-evident; toasts are for NON-user events only.
 
 ---
