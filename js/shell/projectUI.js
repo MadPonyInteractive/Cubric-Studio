@@ -11,7 +11,6 @@ import { navigate, PAGE_GALLERY } from '../router.js';
 import { Events } from '../events.js';
 import { state } from '../state.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
-import { blockedByNoEngine } from '../services/engineGate.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { formatBytes } from '../utils/formatBytes.js';
 import { gid, on } from '../utils/dom.js';
@@ -265,7 +264,7 @@ function _openNewProjectDialog() {
   newProjectDialog.on('create', async ({ name, location }) => {
     try {
       if (await _blockedByDownloadMode()) return;
-      if (await blockedByNoEngine()) return;
+      // No engine gate (MPI-856): a project needs none, and cloud models run in it.
       const project = await createProject(name || 'Untitled Project', location);
       await openProject(project);
       navigate(PAGE_GALLERY);
@@ -561,7 +560,7 @@ function _buildProjectRow(project) {
     // preview videos hold a connection each until they decode, so leaving them
     // running put the open's own requests behind them for the whole wait.
     _statsBatchAC?.abort();
-    if (await _blockedByDownloadMode() || await blockedByNoEngine()) {
+    if (await _blockedByDownloadMode()) {
       loadProjectGrid();   // not going anywhere — put the rows we just cancelled back
       return;
     }

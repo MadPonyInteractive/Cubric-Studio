@@ -42,6 +42,7 @@ import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe } from '../data/recipes/re
 import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
+import { hasNoEngine } from './engineGate.js';
 
 /** The mode every image recipe declares, and the base mode of the video ones. */
 const DEFAULT_MODE = 't2v';
@@ -174,6 +175,15 @@ export function backendPreference() {
     } catch {
         return DEFAULT_BACKEND;   // private window / storage disabled
     }
+}
+
+/**
+ * MPI-856: the backend that can actually run. `comfy` needs the engine, so with none
+ * installed (and no Pod) it falls to `endpoint` — the user's DeepInfra connection unless
+ * they picked another. The stored pick is left alone: installing the engine restores it.
+ */
+export async function runnableBackend(backend) {
+    return backend === 'comfy' && await hasNoEngine() ? 'endpoint' : backend;
 }
 
 /** Which describe backend is valid (comfy | endpoint). */
@@ -704,7 +714,7 @@ export async function runComfyEnhance({ prompt, system, injectionParams, modelId
  * @returns {Promise<{ok:boolean, text?:string, backend?:string, model?:string, error?:string, cancelled?:boolean}>}
  */
 export async function enhanceFlow({ prompt, injectionParams, modelId = null } = {}) {
-    const backend = backendPreference();
+    const backend = await runnableBackend(backendPreference());
     if (backend === 'comfy') return runComfyEnhance({ prompt, injectionParams, modelId });
 
     let params;
@@ -759,7 +769,7 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
     // `styleVocabulary` is byte-identical whatever style is asked for.
     const system = composeSystemPrompt(modeRecipe);
 
-    const chosen = chooseBackend({ override: backend ?? backendPreference() });
+    const chosen = chooseBackend({ override: backend ?? await runnableBackend(backendPreference()) });
 
     const { profileId } = Storage.getLlmConnection();
     const resolvedModelId = chosen === 'endpoint' ? await _endpointEnhanceModel(profileId) : enhancerModelPreference();
@@ -857,7 +867,7 @@ export function buildDescribeInjectionParams(question) {
  *          backend that ran, so a caller can point at the right place to fix it.
  */
 export async function describeImage({ imagePath, question, crop, scope, group } = {}) {
-    const backend = describeBackendPreference();
+    const backend = await runnableBackend(describeBackendPreference());
 
     if (backend === 'endpoint') {
         const { profileId } = Storage.getLlmConnection();

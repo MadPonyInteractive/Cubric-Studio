@@ -1,0 +1,22 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/services/engineGate.js",
+    "js/services/comfyController.js",
+    "js/services/commandExecutor.js",
+    "js/services/llmService.js",
+    "js/shell/projectUI.js",
+    "js/shell.js",
+    "js/shell/navigation.js",
+    "js/components/Organisms/MpiModelManager/MpiModelManager.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
+    "js/components/Compounds/MpiEngineInstall/MpiEngineInstall.js",
+    "tests/no-engine-gate.test.cjs",
+    "tests/desktop/no-engine-user.spec.js",
+    "docs/cloud-generation.md",
+    "docs/shell.md",
+    "docs/agent/runpod-setup.md",
+    "docs/releases/UNRELEASED.md"
+  ]
+}

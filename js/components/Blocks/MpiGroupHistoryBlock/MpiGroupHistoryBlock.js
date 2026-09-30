@@ -56,6 +56,7 @@ import { activeGenerations } from '../../../services/activeGenerations.js';
 import { createPreviewClipPlayer } from '../../../services/previewClipPlayer.js';
 import { openFlowFromReuse } from '../../../services/flowService.js';
 import { clientLogger } from '../../../services/clientLogger.js';
+import { hasNoEngine } from '../../../services/engineGate.js';
 import { qs, gid } from '../../../utils/dom.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { loadAll as loadAssets } from '../../../services/assetService.js';
@@ -522,6 +523,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // upward strips (media, ops, ref picker) painted over its buttons ─────
         let videoControlBar = null;
         const RESIZE_QUEUE_DISABLED_REASON = 'Resize is disabled while Cue has running or queued jobs';
+        const NO_ENGINE_TOOL_REASON = 'Needs the ComfyUI engine, which is not installed. Cloud models still work.';
+        const ENGINE_RAIL_TOOLS = new Set(['resize', 'resizeVideo', 'imageUpscale', 'videoUpscale', 'removeBackground', 'interpolate']);
+        let _noEngine = false;   // MPI-856: set once, below
 
         function _syncQueueBlockedTools() {
             // A stack's Resize runs no preview (MpiToolOptionsResize stackMode), which is
@@ -534,25 +538,39 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             const snap = generationStore.getSnapshot();
             const isReal = (j) => j?.display?.previewKind !== 'preview';
             const cueBusy = snap.running.some(isReal) || snap.pending.some(isReal);
-            historyTools.el.setDisabled?.({
-                resize: {
-                    disabled: cueBusy,
-                    reason: cueBusy ? RESIZE_QUEUE_DISABLED_REASON : '',
-                },
-                resizeVideo: {
-                    disabled: cueBusy,
-                    reason: cueBusy ? RESIZE_QUEUE_DISABLED_REASON : '',
-                },
-            });
+            const resizeState = _noEngine
+                ? { disabled: true, reason: NO_ENGINE_TOOL_REASON }
+                : { disabled: cueBusy, reason: cueBusy ? RESIZE_QUEUE_DISABLED_REASON : '' };
+            historyTools.el.setDisabled?.({ resize: resizeState, resizeVideo: resizeState });
 
             const activeTool = historyTools.el.getActiveMode?.();
-            if (cueBusy && (activeTool === 'resize' || activeTool === 'resizeVideo')) {
+            if (resizeState.disabled && (activeTool === 'resize' || activeTool === 'resizeVideo')) {
                 historyTools.el.setMode('crop');
             }
         }
 
         _unsubs.push(Events.onState('generationQueueCount', _syncQueueBlockedTools));
         _syncQueueBlockedTools();
+
+        // MPI-856: with no engine (install skipped, no Pod) the rail tools that run a
+        // ComfyUI graph are dimmed with the reason, not left to fail on click; Resize would
+        // fail on OPEN, its preview runs on mount. Cloud edit / i2v in the PromptBox, and
+        // every sharp/ffmpeg tool (crop, paint, composite, place, GIF), stay live. Detect
+        // (SAM3) and a GIF cut-out by name sit inside panels that also hold engine-free
+        // modes, so those reach the one refusal in comfyController instead.
+        let _engineCheckLive = true;
+        _unsubs.push(() => { _engineCheckLive = false; });
+        hasNoEngine().then((none) => {
+            if (!none || !_engineCheckLive) return;
+            _noEngine = true;
+            const off = { disabled: true, reason: NO_ENGINE_TOOL_REASON };
+            historyTools.el.setDisabled?.({
+                imageUpscale: off, videoUpscale: off, removeBackground: off, interpolate: off,
+                resize: off, resizeVideo: off,
+            });
+            const activeTool = historyTools.el.getActiveMode?.();
+            if (!_stackId && ENGINE_RAIL_TOOLS.has(activeTool)) historyTools.el.setMode('crop');
+        });
 
         // ── Stack member strip (MPI-949 Phase 4) — `#controls-mount`, above the video
         // bar. Own wrappers for the same reason the GIF strip has them below: a mount

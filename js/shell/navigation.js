@@ -34,6 +34,7 @@ import { remoteEngineClient } from '../services/remoteEngineClient.js';
 import { recordAudioIntoProject } from '../components/Blocks/MpiAudioRecorder/MpiAudioRecorder.js';
 import { MpiGalleryToolbar } from '../components/Compounds/MpiGalleryToolbar/MpiGalleryToolbar.js';
 import { getEngine } from '../services/comfyController.js';
+import { blockedByNoEngine } from '../services/engineGate.js';
 
 // ── Module-scoped refs ──────────────────────────────────────────────────────
 
@@ -377,6 +378,8 @@ Events.on('state:changed', ({ key, value }) => {
 // optional. See js/utils/describeAction.js.
 
 async function _restartEngine() {
+    // MPI-856: no engine and no Pod = nothing to restart; say so instead of "Restart failed".
+    if (await blockedByNoEngine()) return;
     const remote = remoteEngineClient.isRemote();
     const engine = getEngine(!remote);
     // MPI-501: a restart terminates ComfyUI — on a running queue that destroys the

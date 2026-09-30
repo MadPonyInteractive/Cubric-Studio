@@ -8,13 +8,24 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 "We are almost ready." Every gate that needs no one else is clear; what is left:
 
 - [ ] **NEW 2026-09-30 (Fabio):** an umbrella-organising agent found MORE work that must land
-  before 2.0. Not yet named here: next session, find it (recent `umbrella sweep` commits, e.g.
-  `2ac923582` MPI-985/986; the new umbrellas MPI-985 cloud models, MPI-986 Mix and audio; any card
-  whose brief says 2.0), list it for Fabio, and add each 2.0 item below
+  before 2.0. Reviewed 2026-09-30 (session 0e08597e): the sweep itself (MPI-985/986) names no new
+  2.0 gate (986 is post-2.0 by its own card); the candidates came from open cards naming 2.0 and
+  were put to Fabio. He takes them ONE AT A TIME. Decided so far:
+  - [ ] **MPI-856 the cloud-only user — 2.0 GATE (Fabio 2026-09-30).** The 2.0 site says cloud
+    models need "no graphics card, no download"; the app refused project create/open with no
+    engine. In `doing`, plan in its `plan.md`
+  - Still to put to him, one at a time: Routines MPI-970 in 2.0?; MPI-965 Ollama benchmark scores;
+    MPI-743 paid-Flow silent Cancel; MPI-828 Flow-drawer licence attribution; MPI-742 H3 licence
+    tile eye-check; MPI-841 registry browsing; MPI-708 mascots
+  - Housekeeping found: `secrets:endpoint-changed` landed (`js/events.js:187`), so message
+    `ec93cbba` can close; MPI-951 (2.1) still assumes 2.0 dual-publishes CubricVision-* (dropped
+    2026-09-29, MPI-972) and needs rewording before 2.1
 - [x] **Website revamp — MPI-973** DONE 2026-09-29 (built, Fabio signed off, `a34d787ad`). Held
   unpublished: **MPI-983** publishes cubric.studio AND docs.cubric.studio the moment 2.0 is
   released (docs first, `e526d10fa`) — a CUT step now
-- [ ] **Docs website** — built by Fabio's agent; publishes with MPI-983 at the cut. Confirm it is finished
+- [ ] **Docs website** — built by Fabio's agent; publishes with MPI-983 at the cut. NOT finished
+  (checked 2026-09-30): Docs-repo card MPI-19 is `doing`, branch `docs-2.0` last commit 2026-09-29;
+  3 items left — re-audit the rewritten pages, a Routines page (waits on MPI-970), Slice 7 claim audit
 - [ ] **In-app agent** — Fabio has an agent on what is left. MPI-941 (umbrella 2) itself closed 2026-09-29 (`f622892db`): check its UNRELEASED line landed (Gate C) and which card holds the rest
 - [ ] **Big photos — MPI-962** (umbrella) — MPI-959 closed 2026-09-29; **MPI-971** (16K engine ops, Fabio chose B: app-side sizing) is the last open member
 - [ ] Then **the cut**: Gate D below, top to bottom. Costs ~nothing (CI + R2); it needs Fabio's yes

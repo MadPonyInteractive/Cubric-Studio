@@ -18,6 +18,7 @@ import {
 } from '../../../data/modelConstants/resolveModelDeps.js';
 import { downloadService } from '../../../services/downloadService.js';
 import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
+import { blockedByNoEngine } from '../../../services/engineGate.js';
 import { mountPodDiskBar } from '../../../services/podDiskBar.js';
 import { getModelLicence, hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
 import { qs, qsa, ce, on } from '../../../utils/dom.js';
@@ -412,6 +413,9 @@ export const MpiModelManager = ComponentFactory.create({
             // (MPI-163 — engine-aware resolution, replaces the old post-filter)
             const dependencies = _draftDepIds(model).map(id => DEPS[id]).filter(Boolean);
             if (!dependencies.length) return;
+            // MPI-856: the library opens with no engine (for its cloud models); a local
+            // install there would land gigabytes with nothing to run them.
+            if (await blockedByNoEngine()) return;
             // start() synchronously emits download:started → the download:started handler
             // patches this tile + flips the open detail footer to Cancel. No renderList()
             // here — a full rebuild was the third start-of-download flash. The model stays
@@ -1340,6 +1344,7 @@ export const MpiModelManager = ComponentFactory.create({
         }
 
         async function _installPlugin(plugin) {
+            if (await blockedByNoEngine()) return;   // MPI-856: same reason as _install
             // A required MODEL installs through the shared model flow — the plugin owns
             // no dep resolution of its own. Exactly MpiFlowLibrary's `_installMissing`.
             for (const modelId of pluginAvailability(plugin).missingModels) {

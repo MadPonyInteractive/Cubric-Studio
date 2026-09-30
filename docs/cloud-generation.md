@@ -84,6 +84,18 @@ The dialog copy is `cloudErrorMessage` (`ERROR_COPY` in `cloudExecutor.js`):
 The log keeps the route's reason either way:
 `[cloudExecutor] Cloud generation failed (<op> / <model>): <CODE> - <message>`. Grep that first.
 
+## The cloud-only user (no engine, no Pod) - MPI-856
+
+"Skip the local engine install" on with no Pod connected is a supported state: projects create
+and open, and cloud models run, because nothing on that path touches ComfyUI. Every ENGINE action
+is refused in one place, `ComfyUIController.ensureServerRunning` (local branch): `hasNoEngine()`
+(`js/services/engineGate.js`) -> one `ui:warning` naming cloud models as what still works, then a
+throw with `NO_ENGINE_CODE` that the `runWorkflow` callers settle on without the bug dialog. A
+new tool needs no gate of its own. Soft layers on top: the History rail dims Resize / Upscale /
+Remove Background / Interpolate; Enhance and Describe run on the endpoint backend
+(`runnableBackend`); the Flow Library, `flow:open`, a Model Library install and Restart engine
+refuse up front. For a user with an engine, `hasNoEngine()` returns before any request.
+
 ## Agent paths
 
 A video ref sent in a picture slot becomes its first frame in `/connector/generate` and

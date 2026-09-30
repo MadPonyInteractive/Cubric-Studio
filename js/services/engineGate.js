@@ -7,16 +7,13 @@
  * graph op dies on the engine guard in routes/comfy.js with "Provision engine
  * first" — the opposite of the advice a deliberate skipper needs.
  *
- * Gated at the THREE doors out of the landing page — opening a project, the
- * Model Library, and the App Library — rather than at each thing that would
- * fail inside them. The fine-grained alternative was counted and rejected: it
- * needs a guard on Gallery card open, App Generate, PromptBox Run, right-click
- * Describe, and one more for every tool added later. Five and growing, each one
- * a chance to miss one. Three doors cannot be forgotten.
- *
- * This costs the user nothing, because "Open in file system" lives on the
- * landing-page project right-click: every image and video stays reachable
- * without opening a project at all.
+ * MPI-856: that user is the one paid cloud models are for, so projects OPEN
+ * with no engine and the refusal moved to the one place every engine action
+ * funnels through: `ComfyUIController.ensureServerRunning`, which throws
+ * `NO_ENGINE_CODE` after the warning. That keeps MPI-390's point — one guard,
+ * not one per tool, so a tool added later cannot forget it. The doors that stay
+ * gated are the ones whose whole purpose is the engine: the Flow Library (every
+ * Flow is a ComfyUI graph) and a local model install.
  *
  * The ladder is cheapest-first so the common path does no I/O at all.
  */
@@ -27,8 +24,12 @@ import { remoteEngineClient } from './remoteEngineClient.js';
 import { clientLogger } from './clientLogger.js';
 
 const NO_ENGINE_MESSAGE =
-    'No engine to generate with. Connect a Pod in Settings → RunPod, or turn off '
+    'This needs the ComfyUI engine, which is not installed. Cloud models still work. '
+    + 'To use it, connect a Pod in Settings → RunPod, or turn off '
     + '"Skip the local engine install" there to install ComfyUI locally.';
+
+/** `err.code` of the refusal `ensureServerRunning` throws; callers settle quietly on it. */
+export const NO_ENGINE_CODE = 'no_engine';
 
 /**
  * True when there is no engine available to dispatch to.

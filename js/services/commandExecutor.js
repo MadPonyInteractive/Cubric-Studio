@@ -20,6 +20,7 @@
 'use strict';
 
 import { ComfyUIController, getEngine } from './comfyController.js';
+import { NO_ENGINE_CODE } from './engineGate.js';
 import { getUniversalWorkflow, getModelById, getModelDepStatus, isOperationInstalled, syncModelInstalled } from '../data/modelRegistry.js';
 import { remoteEngineClient } from './remoteEngineClient.js';
 import { resolveDeps, resolveWorkflowFile, variantDepsOf, archVariantOptions } from '../data/modelConstants/resolveModelDeps.js';
@@ -1110,8 +1111,11 @@ export function runAutoMask(payload) {
             // so listeners can show "Nothing detected".
             if (!_detectedFired) exec.onDetected?.([]);
         } catch (err) {
-            clientLogger.error('comfy', `autoMask workflow failed`, err);
-            Events.emit('ui:error', { title: 'Auto-mask failed', message: err.message });
+            // MPI-856: a no-engine refusal already warned the user — no bug dialog on top.
+            if (err?.code !== NO_ENGINE_CODE) {
+                clientLogger.error('comfy', `autoMask workflow failed`, err);
+                Events.emit('ui:error', { title: 'Auto-mask failed', message: err.message });
+            }
             exec.onError?.(err);
         } finally {
             _settled = true;
@@ -1242,8 +1246,11 @@ export function runGifCutoutTrack(payload) {
             await getEngine(payload.forceLocal === true).runWorkflow(workflow, params, onMessage);
             _settled = true;
         } catch (err) {
-            clientLogger.error('comfy', 'gif cutout track workflow failed', err);
-            Events.emit('ui:error', { title: 'Cut-out failed', message: err.message });
+            // MPI-856: a no-engine refusal already warned the user — no bug dialog on top.
+            if (err?.code !== NO_ENGINE_CODE) {
+                clientLogger.error('comfy', 'gif cutout track workflow failed', err);
+                Events.emit('ui:error', { title: 'Cut-out failed', message: err.message });
+            }
             exec.onError?.(err);
         } finally {
             _settled = true;
@@ -2561,11 +2568,11 @@ export function runCommand(payload) {
                 return;
             }
             // A remote connect/disconnect transition refused the dispatch
-            // (comfyController). Expected UX, not a crash: comfyController already
-            // surfaced the plain info toast telling the user to wait, so here we just
-            // settle the job and return WITHOUT the bug-reporter dialog.
-            if (err?.code === 'remote_transition') {
-                clientLogger.warn('comfy', `Remote engine transition — generation deferred: ${err.message}`);
+            // (comfyController), or there is no engine at all (MPI-856). Expected UX,
+            // not a crash: comfyController already surfaced the toast saying why, so
+            // here we just settle the job and return WITHOUT the bug-reporter dialog.
+            if (err?.code === 'remote_transition' || err?.code === NO_ENGINE_CODE) {
+                clientLogger.warn('comfy', `Engine refused (${err.code}) — generation not run: ${err.message}`);
                 exec.onError?.(err);
                 return;
             }

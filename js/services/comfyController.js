@@ -20,6 +20,7 @@ import { state } from '../state.js';
 import { clientLogger } from './clientLogger.js';
 import { Events } from '../events.js';
 import { remoteEngineClient } from './remoteEngineClient.js';
+import { hasNoEngine, blockedByNoEngine, NO_ENGINE_CODE } from './engineGate.js';
 import { buildComfyViewUrl, collectComfyOutputUrls } from '../utils/comfyOutputUrls.js';
 import { findRejectedFile, rejectedBasename, MODEL_FILE_INPUTS } from '../utils/comfyValidationError.js';
 
@@ -402,6 +403,17 @@ function createEngine({ engine, alwaysLocal }) {
         // Pod is connected.
         if (!this._alwaysLocal && remoteEngineClient.isRemote()) return await this._ensureRemoteReady(opts);
 
+        // MPI-856: the cloud-only user (engine install skipped, no Pod). Every engine
+        // action reaches this line, so this is the ONE refusal for all of them: a named
+        // warning instead of "ComfyUI failed to start" below, and a coded error the
+        // callers settle on quietly. Outside the try so the catch cannot add ui:error.
+        // A boot auto-start (background) refuses silently.
+        if (await (opts.background ? hasNoEngine() : blockedByNoEngine())) {
+            const err = new Error('The ComfyUI engine is not installed.');
+            err.code = NO_ENGINE_CODE;
+            throw err;
+        }
+
         try {
             const statusRes = await fetch('/comfy/status');
             const status = await statusRes.json();
@@ -737,7 +749,9 @@ function createEngine({ engine, alwaysLocal }) {
         // Resolve the engine feed to LOCAL (hero/status bar) and trigger the
         // disconnect-edge model re-check so the picker drops to local-only models.
         Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
-        if (!_localFallbackNoticeShown) {
+        // MPI-856: with no local engine there is nothing to run locally on — the local
+        // branch below refuses with its own warning, so this notice would be false.
+        if (!_localFallbackNoticeShown && !(await hasNoEngine())) {
             _localFallbackNoticeShown = true;
             Events.emit('ui:info', {
                 message: 'No Pod connected — running locally. Connect in Settings → RunPod for cloud generation.',

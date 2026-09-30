@@ -15,6 +15,8 @@ import { MpiGalleryGrid } from '../../Compounds/MpiGalleryGrid/MpiGalleryGrid.js
 import { MpiMediaDropOverlay } from '../../Primitives/MpiMediaDropOverlay/MpiMediaDropOverlay.js';
 import { MpiCompareOverlay } from '../../Organisms/MpiCompareOverlay/MpiCompareOverlay.js';
 import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
+import { MpiRemote } from '../MpiRemote/MpiRemote.js';
+import { hasNoEngine } from '../../../services/engineGate.js';
 import { MpiModelSettings } from '../../Compounds/MpiModelSettings/MpiModelSettings.js';
 import { MpiModelPicker } from '../../Compounds/MpiModelPicker/MpiModelPicker.js';
 import { MpiQueuePanel } from '../../Compounds/MpiQueuePanel/MpiQueuePanel.js';
@@ -1997,9 +1999,26 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // both the mount-time check and the watcher re-firing the popup.
         const _projectHasMedia = groups.length > 0;
         let _noModelsPromptShown = false;
-        const _promptInstallModels = () => {
+        const _promptInstallModels = async () => {
             if (_noModelsPromptShown) return;
             _noModelsPromptShown = true;
+            // MPI-856: with no engine, "install one" is the one thing this user cannot do.
+            // Their models are the cloud ones, which appear the moment a DeepInfra key is
+            // saved (models:checked -> the watcher below mounts the PromptBox), so stay in
+            // the project and open the panel that holds the key.
+            if (await hasNoEngine()) {
+                const cloud = MpiOkCancel.mount(document.createElement('div'), {
+                    title:       'No models yet',
+                    text:        'Cloud models run on your own DeepInfra key, with nothing to install. '
+                        + 'Add your key in Remote, Language Models, and they appear here.',
+                    okLabel:     'Add a DeepInfra key',
+                    cancelLabel: 'Go to Projects',
+                });
+                cloud.on('ok', () => Events.emit('slide-over:open', { title: 'Remote', component: MpiRemote }));
+                cloud.on('cancel', () => navigate(PAGE_LANDING));
+                cloud.el.show();
+                return;
+            }
             const dialog = MpiOkCancel.mount(document.createElement('div'), {
                 title:      'No models installed',
                 text:       'This project needs a model before you can generate. Go back to the Projects page to install one.',

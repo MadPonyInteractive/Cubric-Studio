@@ -50,6 +50,9 @@ the models on it.
   downloads, and the app runs on any machine.
 - It is reversible: turn off **Skip the local engine install** in the RunPod settings
   and the local engine install is offered on the next launch.
+- With no engine and no Pod, projects still open and cloud models (a DeepInfra key) still
+  generate. Flows and the local tools (Resize, Upscale, Remove Background, Interpolate,
+  Detect) say they need the engine.
 
 ## For the agent
 

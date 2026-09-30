@@ -512,11 +512,9 @@ async function _bootApp() {
 
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
   Events.on('models:open', async () => {
-    // MPI-390: installing models with no engine to run them on is a dead end —
-    // and on the remote path the install targets the Pod, so it needs one
-    // connected anyway. Gated on the LISTENER, not the landing-nav emitter, so
-    // the Gallery radial's emitter is covered by the same check.
-    if (await blockedByNoEngine()) return;
+    // MPI-856: opens with no engine too — it lists the cloud models a cloud-only user
+    // CAN run. Installing a local one is the dead end, so MpiModelManager's install
+    // actions carry the engine gate instead (MPI-390 gated this whole door).
     if (!_modelLibrary) _modelLibrary = MpiModelManager.mount(document.createElement('div'));
     _modelLibrary.el.open();
   });
@@ -549,9 +547,14 @@ async function _bootApp() {
   // One live Flow at a time — destroy the prior instance before mounting the next.
   let _activeFlow = null;
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
-  Events.on('flow:open', ({ flowId }) => {
+  Events.on('flow:open', async ({ flowId }) => {
     const flow = getFlowById(flowId);
     if (!flow) return;
+    // MPI-856: every Flow is a ComfyUI graph. The Flow Library door is gated above, but
+    // Reuse on a Flow card emits this event directly (flowService), past that door.
+    // The skip check first keeps the mount synchronous for everyone with an engine:
+    // Reuse's toast is emitted right after this event and must land over the Flow.
+    if ((state.runpodConfig || {}).skipLocalEngine && await blockedByNoEngine()) return;
     if (_activeFlow) { _activeFlow.el.destroy(); _activeFlow = null; }
     _activeFlow = MpiBaseFlow.mount(document.createElement('div'), { flow });
     // Closing a Flow DESTROYS it (MPI-345). Every open remounts a fresh instance, so

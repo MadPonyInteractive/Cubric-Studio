@@ -48,6 +48,7 @@ const CHOICE_REMOTE_FACE = `
         <span>Nothing to install — straight into the app</span>
         <span>Runs on any machine, GPU or not</span>
         <span>Needs a RunPod account, billed while a Pod runs</span>
+        <span>Or use cloud models on your own DeepInfra key, paid per run</span>
     </span>
     <span class="mpi-engine-install__choice-go">
         Set up RunPod ${renderIcon('chevronRight', 'sm')}
