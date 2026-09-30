@@ -2,6 +2,55 @@
 
 ## Current State
 
+2026-09-30 (8cbb0199, Agent 70) - **W2, W3, D12 and F1 DONE.** Uncommitted, `npm test` (Git Bash) 2382 / 0. Landed:
+- W2 `services/agentLoop.mjs` `routine` tool + `_routine`: list (both scopes), save (gated on `app:routines`), run
+  (quote -> `NOT_INSTALLED` by name -> ONE `_confirmSpend` card -> held run, 1 s refusal race -> ONE `[Routine
+  finished]` note via `_routineNote`; `_routineRuns` holds the drain; local engine = GPU job), delete. `_askSpend`
+  split: `_confirmSpend` is the card. Loopbacks `listRoutines/saveRoutine/deleteRoutine/quoteRoutine/runRoutine` in
+  `agentTools.mjs`, allowlisted in `agent-no-delete`. **Root-cause fix:** saved steps are in the CONNECTOR's words
+  (`positive`), the agent writes generate's (`prompt`) -> an unknown key silently dropped. generate's body mapping is
+  now `_generateFields`, used by both (`agent-denoise` / `agent-duration` source pins repointed). `TOOLS_BUDGET`
+  17,300 -> 18,250 (measured 18,198, +949). Test `tests/agent-routine-tool.test.cjs` (7, gate mutation goes red).
+- W3 `docs/agent/routines.md` (145 lines) -> `- app:routines: Routines` in the system prompt, 10,227 / 10,250.
+- D12: no capability summary exists anywhere (the agent answers "what can you do" from its rules). First put in the
+  tool description: B1 failed it 0/3. Now the system prompt's `Routines rule` (+114 bytes, SYSTEM_BUDGET 10,250 ->
+  10,390, reason in the comment); the tool clause removed (TOOLS_BUDGET 18,210, measured 18,162).
+- LIVE (own isolated app :56034, never :3000; :48188 engine under gpu_lease, queue empty): the REAL loop + REAL
+  loopbacks, no LLM (scratchpad `w2-live.mjs`): list, save refused then saved through the renderer's check, run on 2
+  cards -> note "2 new cards in the new stack ..." + `agent:drained`, delete, list clean; disk: stack of 2, 2
+  versions each.
+- F1 `docs/routines.md` (146 lines) + rows in `docs/README.md`, `docs/agent-chat.md`, `docs/stacks.md`, the knowledge
+  index; every path it names exists.
+- B1 BUILT, NOT RUN: `services/agentBench.mjs` fake routine tools (a save goes through the REAL `validateRoutine`)
+  + 5 cases `routine-list`, `routine-save`, `routine-run` (a dropped set of 3 -> ONE run over all 3, no generate),
+  `routine-delete` (only the one asked), `routine-in-capabilities` (D12). Free dry run with a SCRIPTED model
+  (scratchpad `b1-dry.mjs`): all 5 pass on correct behaviour, the run flip fails. Suite hash changes, so stored
+  scores read "(older tests)".
+- B1 RUN (Fabio's yes, 20 conversations, DeepSeek-V4-Flash-0731, $0.0359): routine-list / -save / -run / -delete
+  3/3 each; routine-in-capabilities 0/3 with D12 in the tool description -> moved to the system prompt (above);
+  `--bite` all 5 flips fail as they must. Re-run after the move (Fabio's second yes): routine-in-capabilities 3/3,
+  $0.0015. B1 total $0.0374 for 23 conversations.
+- F2 round 1 (Fabio, 2026-09-30, his app on Ollama): save (gate -> read -> save), rename, run on a stack of 4 -> 4 new
+  cards + one finished note all WORKED. Two faults: (1) the agent told him "select any image card in your gallery and
+  run the routine" - no such UI exists; (2) "rename" saved a copy, the old `crop-to-916-and-upscale-2x` still exists.
+  Uncommitted fix made before he redirected: Routines rule now "steps saved once that YOU run on any cards. The app has
+  no routine button; never tell the user to run one." (SYSTEM 10,388 / 10,390), tool description "you run one", guide
+  says only the agent runs one + rename = save new then delete old; bench `routine-save` fails a reply telling the user
+  to run it themselves. `npm test` 2382 / 0. NOT re-verified live.
+- **Fabio's proposal (2026-09-30, answer it FIRST next session):** a dropdown in the gallery SELECTION toolbar (the
+  bar that replaces the prompt box on multi-select, `docs/gallery-selection.md`) listing the saved routines; pick one
+  = run it on the selected cards. Only the agent creates routines for now. Everything needed exists: the renderer
+  runs routines (`ROUTINE_HANDLERS` / `runRoutine`), the list is `GET /connector/routines`. It reverses D8's
+  "agent-free entry point is a separate card". Give him an opinion (my lean: yes - small, the run path is done; open
+  points: a paid routine needs the same one-price confirm as the agent's spend card, inputs (D9) need a way to be
+  filled or such routines are hidden from the dropdown, project + global lists merged). If he says yes, the "no
+  routine button" wording above must change to point at the dropdown (or go). Fabio, same exchange: a UI for the user
+  to CREATE / delete routines is for 2.1, perhaps - not this card.
+- Noticed (not this card): in "what can you do" the agent claimed "composite and transform tools", which its Honest
+  limits say it cannot use. Pre-existing.
+**Next:** answer the dropdown proposal; then either build it (UI: user-ux) or keep the wording fix; then F2 again. Open ceilings (ponytail, in the code): a routine run is not cancellable from the chat;
+an all-cloud routine still waits a local agent; `list` gives a step COUNT, so "change routine X" re-saves from scratch.
+
 2026-09-30 (bd66b68e, Agent 69) - **D10 built, R2 DONE, W1 routes DONE (loopbacks moved to W2).** Uncommitted,
 `npm test` 2375 / 0. Landed:
 - D10 in `routineRunner.js`: `_nothingToDo(sub)` (`ALREADY_SMALLER` only, ponytail) from `submit` = skip. Step 1 skipped
@@ -270,11 +319,11 @@ Run this batch with `mpi-execute-parallel` (disjoint files, per-task verify, no 
 
 ## Phase 3: Agent wiring (server)
 
-- [ ] W1 (routes DONE 2026-09-30, bd66b68e; loopbacks moved to W2) Routes in `routes/connector.js`: `GET /connector/routines[?scope=global]`, `GET /connector/routines/:name`,
+- [x] W1 (routes DONE 2026-09-30, bd66b68e; loopbacks done in W2, 8cbb0199) Routes in `routes/connector.js`: `GET /connector/routines[?scope=global]`, `GET /connector/routines/:name`,
   `POST /connector/routines` (validate with T1, store with T2), `DELETE /connector/routines/:name`,
   `POST /connector/routines/:name/run` (relays `routine.quote`, then `routine.run`). Loopbacks in
   `services/agentTools.mjs`. **Verify:** route tests beside the existing connector tests.
-- [ ] W2 `routine` tool in `TOOL_DEFS` (`services/agentLoop.mjs`): `{ action: list|save|run|delete, name,
+- [x] W2 (2026-09-30, 8cbb0199, + live through the real loop: § Current State) `routine` tool in `TOOL_DEFS` (`services/agentLoop.mjs`): `{ action: list|save|run|delete, name,
   scope, summary, steps, cards }`; description SHORT and plain (Fabio), target ~350 bytes including D7's clause;
   `save` refused with `KNOWLEDGE_NOT_READ` until `app:routines` is read (`_readIds` / `_gateWaiting`); `run`
   answers the missing list as a refusal naming each model/Flow, asks `_askSpend` ONCE when the quote has a price,
@@ -282,20 +331,20 @@ Run this batch with `mpi-execute-parallel` (disjoint files, per-task verify, no 
   `TOOLS_BUDGET` by the measured amount only, with the reason in the constant's comment. **Verify:**
   `node --test tests/agent-prompt-budget.test.cjs` + a loop unit test for the gate, the missing refusal, the one
   spend ask.
-- [ ] W3 Guide `docs/agent/routines.md` (the agent's CORPUS, not the dev doc): what a routine is, how to save one
+- [x] W3 (2026-09-30, 8cbb0199) Guide `docs/agent/routines.md` (the agent's CORPUS, not the dev doc): what a routine is, how to save one
   from a plain description (steps = generate args, in order), run, list, delete, the missing-model answer, the
   price ask; right/wrong pairs; <= 200 lines, no stories or prices. Adds `- app:routines: <title>` to the system
   prompt (~27 of 52 spare bytes). **Verify:** budget test green (SYSTEM_BUDGET unchanged).
 
 ## Phase 4: Agent suite (costs money: ask Fabio first)
 
-- [ ] B1 Four cases in `services/agentBench.mjs`: list; save from a plain description (steps in order, guide
+- [x] B1 (2026-09-30, 8cbb0199: five cases incl. D12, all 3/3, flips bite, $0.0374) Four cases in `services/agentBench.mjs`: list; save from a plain description (steps in order, guide
   read first); "run X on these" = ONE `routine run` with the cards; delete. Every stored score then reads
   "(older tests)". **Verify:** one DeepSeek run (~$0.10, Fabio's yes first) passes the four; report the spend.
 
 ## Phase 5: Docs + Fabio's look (verify mode user-ux)
 
-- [ ] F1 Dev doc `docs/routines.md` (<= 200 lines: storage, schema, runner, relay, tool, gates), a row in
+- [x] F1 (2026-09-30, 8cbb0199) Dev doc `docs/routines.md` (<= 200 lines: storage, schema, runner, relay, tool, gates), a row in
   `docs/README.md`, the `docs/agent-chat.md` tool table row, a cross-link from `docs/stacks.md`, a topic line in
   `.agents/mpi-kanban/project-knowledge-index.md`. **Verify:** every path named in the new doc exists.
 - [ ] F2 Fabio, in his app: ask the agent to save a 3-step routine, list it, run it on 2 cards, look at the result
@@ -322,6 +371,13 @@ Run this batch with `mpi-execute-parallel` (disjoint files, per-task verify, no 
   rides `POST /connector/routines { delete: true }` as a forgotten note does; the save check is RELAYED to the renderer
   (`routine.validate`) because the server's `FLOWS` import has no package Flows. W1's loopbacks deferred to W2, which
   owns their call shape. A closed project needed hydrating in `readProject` (R1 live ran only in an OPEN project).
+- 2026-09-30 (8cbb0199): W2's tool takes run values as `values` (an object), not `inputs` (save's declarations, an
+  array): one name with two shapes needs a type-less schema some providers reject. D12 lives in the tool description,
+  not a system-prompt line: no capability summary exists to add it to, and SYSTEM_BUDGET had 23 bytes left after the
+  guide's index line. generate's body mapping moved into `_generateFields` (shared with routine steps). F1 done in
+  the same session (auto), ahead of B1 which waits on Fabio's yes.
+- 2026-09-30 (8cbb0199, after B1): D12 in the tool description failed 0/3 live, so it moved to a system-prompt
+  line after all and SYSTEM_BUDGET rose (+140); the Verification line "only TOOLS_BUDGET raised" no longer holds.
 
 ## Verification
 

@@ -189,6 +189,7 @@ Topic-to-files map. Match the topic closest to the current task and read the lis
 - **Read first:** `docs/agent-chat.md` (the contract — the Agent button / `A` opens a panel driven by a **server-side** loop, not a renderer one)
 - **Also:** `docs/agent-corpus.md` (the shape the agent reads), `docs/agent-findings.md` (what it was SEEN to do in Fabio's own app and where each fix lives)
 - **Code:** `services/agentLoop.mjs`, `agentTools.mjs`, `agentCorpus.mjs`, `agentCards.mjs`, `agentMemory.mjs`, `agentSessions.mjs`; UI in `js/components/Compounds/MpiAgentChat/`
+- **Routines** (MPI-970, the agent saves a chain once and the app runs it on any cards): `docs/routines.md`; corpus guide `docs/agent/routines.md`
 - **Notes:** `docs/agent/` and `docs/agent-*.md` are **two different things** and the near-identical names hide it. `docs/agent-*.md` at the `docs/` root is the DEVELOPER contract. `docs/agent/` is the agent's own CORPUS — user-facing prose the running agent reads at runtime (`masking.md`, `gallery.md`, `formats.md`, `models/`, `prompt-enhancement.md`, `runpod-setup.md`). Editing a corpus file changes what the shipped agent knows; editing a contract file does not. Live cards: MPI-774 (slice A), MPI-817 (reliability umbrella), MPI-889 (the agent works INSIDE the app — reads the workspace, moves the view), MPI-888. Do not confuse any of this with the **connector** (an outside agent driving the app over HTTP) — that is its own topic above.
 
 ### Mascots (the crew, clips, placement, state machine)

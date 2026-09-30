@@ -171,6 +171,8 @@ RATIO, family row hidden, never persisted (D7, so the single-card Crop keeps the
 
 ## Not done here
 
+- A routine run (MPI-970) makes its own result stack, one new card per input card with every step
+  as History versions: [routines.md](routines.md) § The run.
 - Agent listing: `services/agentCards.mjs` `_groups` lists hidden members plus a `versions: 0` stack
   row; `list_cards` / `readCard` need stack awareness (MPI-950).
 - `MpiOkCancel` still clips any three-button set whose labels outgrow the dialog.

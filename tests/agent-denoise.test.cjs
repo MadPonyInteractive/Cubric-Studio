@@ -75,5 +75,6 @@ test('the route carries it and the tool offers it, with the meaning in the descr
     assert.match(read('routes', 'connector.js'), /const NAMED_PARAM_KEYS = \[[^\]]*'denoise'/);
     const loop = read('services', 'agentLoop.mjs');
     assert.match(loop, /denoise: \{ type: 'number', description: '[^']*more[^']*changes/i, 'Fabio`s meaning, in the tool description, not a prompt line');
-    assert.match(loop, /if \(args\.denoise !== undefined\) body\.denoise = args\.denoise;/);
+    // Forwarded by the one copy loop `_generateFields` runs over `_SENT_KEYS` (MPI-970).
+    assert.match(loop, /const _SENT_KEYS = \[[^\]]*'denoise'/);
 });

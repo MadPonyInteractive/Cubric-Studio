@@ -173,6 +173,12 @@ test('every named param the connector accepts is declared AND forwarded by the a
     const to = loop.indexOf("name: 'look'", from);
     assert.ok(from > 0 && to > from, 'the generate / look tool blocks were not found in agentLoop.mjs');
     const schema = loop.slice(from, to);
+    // The body is built by `_generateFields` (MPI-970: generate and routine steps share it),
+    // which copies every key in `_SENT_KEYS` in one loop.
+    const sentSrc = /const _SENT_KEYS = \[([^\]]+)\]/.exec(loop);
+    assert.ok(sentSrc, '_SENT_KEYS not found in agentLoop.mjs — it was renamed or moved');
+    const sent = new Set([...sentSrc[1].matchAll(/'([^']+)'/g)].map((m) => m[1]));
+    assert.match(loop, /for \(const k of _SENT_KEYS\) if \(named\[k\] !== undefined\) body\[k\] = named\[k\];/, 'the copy loop over _SENT_KEYS is gone');
 
     for (const key of keys) {
         // `batch` is the loop's, not the model's: the model sends `count`, and `_fanOut`
@@ -183,7 +189,7 @@ test('every named param the connector accepts is declared AND forwarded by the a
         }
         assert.match(schema, new RegExp(`\\b${key}:\\s*\\{`),
             `'${key}' is accepted by the connector but not declared on the agent's generate tool — with additionalProperties:false the model cannot send it at all`);
-        assert.match(loop, new RegExp(`body\\.${key} = `),
+        assert.ok(sent.has(key),
             `'${key}' is declared on the agent's generate tool but never forwarded into the connector body`);
     }
 });

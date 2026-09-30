@@ -17,8 +17,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
-const SYSTEM_BUDGET = 10_250;  // bytes, measured 9,490 with the app:* index (MPI-903); 9,880 with the Declining rule (MPI-908); 10,098 with the Content rule (MPI-916: without it the recommended model declined adult requests); 10,202 with the no-internet limit (MPI-996: without it the agent claimed it could search the web)
-const TOOLS_BUDGET = 17_300;   // bytes of JSON, measured 16,947 (MPI-903); 17,249 with list_cards saying what a video ref is as a picture (MPI-980)
+const SYSTEM_BUDGET = 10_390;  // bytes, measured 9,490 with the app:* index (MPI-903); 9,880 with the Declining rule (MPI-908); 10,098 with the Content rule (MPI-916: without it the recommended model declined adult requests); 10,202 with the no-internet limit (MPI-996: without it the agent claimed it could search the web); 10,388 with the app:routines index line and the Routines rule (MPI-970 D12: said only in the tool description, DeepSeek left routines out of "what can you do" 0/3; and "the app has no routine button", since Fabio's agent told him to run one himself)
+const TOOLS_BUDGET = 18_210;   // bytes of JSON, measured 16,947 (MPI-903); 17,249 with list_cards saying what a video ref is as a picture (MPI-980); 18,157 with the routine tool (MPI-970: +908, one tool for list/save/run/delete, its guide gated behind app:routines)
 const DOC_LINES = 200;
 
 async function floor() {

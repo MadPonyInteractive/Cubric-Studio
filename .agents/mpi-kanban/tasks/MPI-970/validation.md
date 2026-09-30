@@ -43,3 +43,23 @@ Verify mode: user-ux for Phase 5 F2 only; Phases 1-4 auto (plan.md § Verificati
   that result stack (squares now under 0.5 MP) -> every card `skipped: [1]`, crop made each new card, stack of 3. Both
   closed-project stacks read `expected` until the project opened, then settled on open (by design, `project:changed`);
   screenshot `shot-r2-gallery.png` (scratchpad bd66b68e).
+- 2026-09-30 W2 + W3 + D12 + F1 (8cbb0199): master CI run 36691311222 (on 4b4b8960b) confirmed green first.
+  `node --test tests/agent-routine-tool.test.cjs` 7/7 (save gated on app:routines and saved in the connector's
+  words; missing model refused by name with no card; ONE spend card for 3 cards, set ref + attachment value
+  resolved, held run, one `[Routine finished]` note naming the skipped and failed step per card, `agent:drained`;
+  a No runs nothing; global fallback; list both scopes; D7/D12 in the description). Mutation: the save gate off ->
+  the gate test red. `tests/agent-prompt-budget.test.cjs` green: system 10,227 / 10,250 (unchanged budget), tools
+  18,198 / 18,250 (raised by the tool's measured +949). `npm test` (Git Bash) 2382 pass / 0 fail / 2 skipped;
+  ESLint clean on the 6 changed files. LIVE, own isolated app (:56034, never :3000) on the :48188 engine under
+  gpu_lease, queue empty: the REAL AgentLoop + REAL agentTools, no LLM - list, save refused then saved (the app's
+  check answered the chain summary), run crop -> downscale on 2 cards = note "2 new cards in the new stack 4b5c1622"
+  + `agent:drained`, delete, list clean; `/get-project`: the stack holds 2 members, 2 versions each. F1: every path
+  `docs/routines.md` names exists.
+- 2026-09-30 B1 (8cbb0199, Fabio's yes: 20 conversations): `node scripts/agent-test.mjs --case routine-*` on
+  DeepSeek-V4-Flash-0731: routine-list 3/3, routine-save 3/3 (read the guide after the gate, 2 steps in order, the
+  real validator accepted them), routine-run 3/3 (ONE run over the dropped set of 3, no generate), routine-delete 3/3
+  (only the one asked); routine-in-capabilities 0/3 with D12 only in the tool description -> moved to the system
+  prompt's Routines rule (SYSTEM_BUDGET 10,390, measured 10,341; TOOLS_BUDGET 18,210, measured 18,162).
+  `--bite`: all 5 flips fail as they must. Spent $0.0199 + $0.0160 = $0.0359. `npm test` after the move
+  2382 pass / 0 fail. Re-run of routine-in-capabilities after the move (Fabio's second yes): 3/3, $0.0015. B1 total
+  $0.0374, 23 conversations. Left: F2, Fabio's look in his own app.

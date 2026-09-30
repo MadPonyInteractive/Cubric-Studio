@@ -55,6 +55,14 @@ const ALLOWED_REQUESTS = new Set([
     // MPI-593: which project the app window has open, so an outside agent's reference image
     // is staged into the project its render lands in. A read.
     'GET /connector/current-project',
+    // MPI-970: the agent's own saved routines. list and quote are reads; run makes NEW cards
+    // and History versions, never touching the input card. A routine's delete rides the
+    // POST and MOVES its file to `routines/deleted/` (D5, recoverable), as a forgotten note
+    // does: no card, media, note or project goes.
+    'GET /connector/routines',
+    'POST /connector/routines',
+    'POST /connector/routines/:id/quote',
+    'POST /connector/routines/:id/run',
     // MPI-876: what a generate body WOULD cost, so the agent can ask before it spends the
     // user's own money. A read — the renderer resolves the run and prices it, queues nothing,
     // writes nothing and bills nothing. It is the opposite of a delete: it exists so that

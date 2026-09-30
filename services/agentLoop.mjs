@@ -418,6 +418,28 @@ export const TOOL_DEFS = [
             },
         },
     },
+    {
+        type: 'function',
+        function: {
+            name: 'routine',
+            description: 'Chains of steps saved once; you run one on any cards in one call. Offer to save one when the user repeats steps.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    action: { type: 'string', enum: ['list', 'save', 'run', 'delete'] },
+                    name: { type: 'string', description: 'A lowercase slug.' },
+                    summary: { type: 'string', description: 'save: one plain line.' },
+                    steps: { type: 'array', items: { type: 'object' }, description: 'save: generate args in order; see app:routines.' },
+                    inputs: { type: 'array', items: { type: 'object' }, description: 'save: what a run takes besides the cards.' },
+                    cards: { type: 'array', items: { type: 'string' }, description: 'run: groupIds or a set ref.' },
+                    values: { type: 'object', description: 'run: { input id: value }' },
+                    scope: { type: 'string', enum: ['project', 'global'] },
+                },
+                required: ['action'],
+                additionalProperties: false,
+            },
+        },
+    },
 ];
 
 // MPI-870 — what a WAKE turn may call. A wake was not asked for: the user did not type,
@@ -621,6 +643,7 @@ export class AgentLoop {
         // toolCallId -> a short label. What `cancel_generation` can reach — and NOT reset with
         // the conversation: a clip still rendering after a clear is still this session's.
         this._inflight = new Map();
+        this._routineRuns = new Set(); // routine runs not yet finished (MPI-970): the drain waits on them too
         this._askedCancel = new Set(); // toolCallIds the USER took back, so settling is not a failure
         // MPI-913: the in-flight jobs on THIS PC's GPU, and what waits for them to drain.
         this._gpuJobs = new Set();
@@ -706,7 +729,7 @@ export class AgentLoop {
      */
     _maybeDrained() {
         if (!this._gpuJobs.size) this._gpuDrained(true);
-        if (this._inflight.size) return;
+        if (this._inflight.size || this._routineRuns.size) return;
         this._emit('agent:drained', {});
     }
 
@@ -1468,20 +1491,132 @@ export class AgentLoop {
             // below fails the same way and spends nothing. Never a reason to raise a card.
         }
         if (!quote) return null;
+        return this._confirmSpend(turnId, { modelName: quote.modelName, count: quote.count || count, price: quote.display || null }, 'generate', body);
+    }
 
+    /**
+     * The spend card itself, for any quote: `_askSpend`'s, or a routine's (MPI-970), which
+     * prices every billed step of every card in one figure. Resolves `yes === true` only.
+     */
+    async _confirmSpend(turnId, { modelName, count, price }, tool, args) {
         const confirmId = crypto.randomUUID();
         // `price` is `estimateCost().display` verbatim — it carries its own "about", never
         // renders "$0.00", and drops to one significant figure below a cent on purpose.
         // Null when the model bills but its price is not knowable before the run: the card
         // still asks, and says so. A price tag may stay silent; a spend gate may not.
-        const card = { kind: 'spend', modelName: quote.modelName, count: quote.count || count, price: quote.display || null };
+        const card = { kind: 'spend', modelName, count, price };
         this._emit('agent:confirm', { turnId, confirmId, ...card });
-        this._historyEntry('confirm', { tool: 'generate', args: body, confirmId, ...card });
+        this._historyEntry('confirm', { tool, args, confirmId, ...card });
         const yes = await new Promise((resolve) => {
             this._pendingConfirm = { confirmId, ...card, resolve, turnId };
         });
         this._pendingConfirm = null;
         return yes === true;
+    }
+
+    /**
+     * MPI-970 — the saved routines: a chain of steps saved once, run by the APP on any cards in
+     * one call (`js/services/routineRunner.js`: step 1 a new card, later steps its History
+     * versions, N cards one new stack). This is only the gates around it: a save waits on
+     * app:routines; a run is quoted first (a missing input or model refuses before anyone is
+     * asked to pay), asks the price ONCE for every billed step of every card, then is held like
+     * a slow generate and reports in ONE `[Routine finished]` note.
+     */
+    async _routine(args, turnId, currentProject) {
+        const folderPath = currentProject?.folderPath || null;
+        const scope = args.scope === 'global' ? 'global' : 'project';
+        const noProject = JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open. Call create_project (it opens what it makes) and then call this again, or use scope "global" to save or list routines for every project.' } });
+        if (args.action === 'list') {
+            const [mine, all] = await Promise.all([folderPath ? this._tools.listRoutines(folderPath) : null, this._tools.listRoutines(null, 'global')]);
+            if (mine && !mine.ok) return JSON.stringify(mine);
+            if (!all?.ok) return JSON.stringify(all);
+            return JSON.stringify({ ok: true, ...(mine ? { project: mine.routines } : {}), global: all.routines });
+        }
+        if (!args.name) {
+            return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: `${args.action || 'This'} needs the routine's name: call routine with action "list" for the names.` } });
+        }
+        if (args.action === 'save') {
+            if (!this._readIds.has('app:routines')) {
+                this._gateWaiting = 'app:routines';
+                return JSON.stringify({ ok: false, error: { code: 'KNOWLEDGE_NOT_READ', message: 'Nothing was saved: read read_knowledge "app:routines" first, then send this save again written the way it says.' } });
+            }
+            if (scope === 'project' && !folderPath) return noProject;
+            // A step is a generate call's args, kept in the connector's words, so its prompt is
+            // not dropped as an unknown key; a step copied off `list` (already `positive`) too.
+            const steps = Array.isArray(args.steps)
+                ? args.steps.map((s) => (s && typeof s === 'object'
+                    ? { ..._generateFields({ ...s, prompt: s.prompt ?? s.positive }), ...(s.media !== undefined ? { media: s.media } : {}) }
+                    : s))
+                : args.steps;
+            return JSON.stringify(await this._tools.saveRoutine(folderPath, scope, { name: args.name, summary: args.summary, steps, inputs: args.inputs }));
+        }
+        if (args.action === 'delete') {
+            if (scope === 'project' && !folderPath) return noProject;
+            return JSON.stringify(await this._tools.deleteRoutine(folderPath, scope, args.name));
+        }
+        if (args.action !== 'run') {
+            return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: 'action is list, save, run or delete.' } });
+        }
+        // A run always lands in the open project, whichever scope holds the routine.
+        if (!folderPath) return noProject;
+
+        // A card the user dragged in, or a dropped set, is named by its ref: run takes groupIds.
+        const cards = (Array.isArray(args.cards) ? args.cards : []).flatMap((c) => {
+            const set = String(c).startsWith('set:') && this._sets.get(String(c).slice(4));
+            return (set || [String(c)]).map((ref) => this._images.get(ref)?.groupId || ref);
+        });
+        // A picture value is placed the way generate places one; a card id or words pass as given.
+        const values = {};
+        for (const [id, v] of Object.entries(args.values && typeof args.values === 'object' ? args.values : {})) {
+            const ref = typeof v === 'string' ? this._resolveImage(v) : null;
+            if (ref?.kind === 'attachment') {
+                const placed = await this._tools.placeAsset(folderPath, ref.path);
+                if (!placed?.success || !placed.filePath) {
+                    return JSON.stringify({ ok: false, error: { code: 'RUNTIME_ERROR', message: `Could not place the attachment in the project: ${placed?.error || 'unknown error'}` } });
+                }
+                values[id] = placed.filePath;
+            } else values[id] = ref ? (ref.groupId || _projectFileUrl(ref.path)) : v;
+        }
+
+        const body = { folderPath, scope, cards, inputs: values };
+        let quote = await this._tools.quoteRoutine(args.name, body);
+        // Found wherever it is kept: the model often leaves scope out for one saved globally.
+        if (!args.scope && quote?.error?.code === 'ROUTINE_NOT_FOUND') {
+            body.scope = 'global';
+            quote = await this._tools.quoteRoutine(args.name, body);
+        }
+        if (!quote?.ok) return JSON.stringify(quote);
+        const { missing = [], billed, count, display } = quote.output || {};
+        if (missing.length) {
+            return JSON.stringify({ ok: false, error: { code: 'NOT_INSTALLED', missing, message: `Nothing was run: this routine needs ${missing.join(', ')}, not installed. Tell the user, and offer install_model for a local model.` } });
+        }
+        if (billed && !await this._confirmSpend(turnId, { modelName: `the routine "${args.name}"`, count, price: display || null }, 'routine', args)) {
+            return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on the routine "${args.name}". Nothing was run. Ask what they would like instead, ending on [options: A | B]; do not run it again unless they say so.` });
+        }
+
+        const pending = this._tools.runRoutine(args.name, body)
+            .catch((err) => ({ ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } }));
+        // A refusal (a card of the wrong kind, a step the app turned down) answers at once.
+        const early = await Promise.race([pending, new Promise((resolve) => { setTimeout(() => resolve(null), EARLY_REFUSAL_MS); })]);
+        if (early && !early.ok) return JSON.stringify(early);
+
+        const id = crypto.randomUUID();
+        this._routineRuns.add(id);
+        // MPI-913: its steps run on this PC's ComfyUI. ponytail: an all-cloud routine waits a local
+        // agent too; tell them apart when the quote says which steps run where.
+        if (this._tools.engineIsLocal?.() === true) {
+            this._gpuJobs.add(id);
+            this._releaseLlm();
+        }
+        pending.then((r) => {
+            this._routineRuns.delete(id);
+            this._gpuJobs.delete(id);
+            for (const c of r?.output?.cards || []) if (c.groupId) this._groups.add(c.groupId);
+            if (r?.output?.stackId) this._groups.add(r.output.stackId);
+            this._notes.push(_routineNote(args.name, r));
+            this._maybeDrained();
+        });
+        return JSON.stringify({ ok: true, started: true, message: `Routine "${args.name}" started on ${count} card${count === 1 ? '' : 's'}. One note comes when every card has finished; the user judges the results in the gallery.` });
     }
 
     /** The yes/no card above the batch threshold. Resolves false if the conversation is reset. */
@@ -1680,6 +1815,8 @@ Memory rule: your notes survive a restart, per project and global (all projects,
 
 Naming rule: a finished generation reports its card id. When a result is worth referring to later, name its card with rename_card, or pass cardName with generate.
 
+Routines rule: asked what you can do, name routines: steps saved once that YOU run on any cards. The app has no routine button; never tell the user to run one.
+
 Docs rule: for a question about the app itself that you cannot answer, say so and link [the documentation](https://docs.cubric.studio); never guess how the app works. Image and video advice is yours to give.
 
 Honest limits (I'm still a baby — this is my first version):
@@ -1730,7 +1867,7 @@ ${knowledgeIndex}`.trim();
                 // it was generating, and ended the turn with nothing sent.
                 if (r?.ok && args?.id && String(args.id) === this._gateWaiting) {
                     this._gateWaiting = null;
-                    return JSON.stringify({ ...r, next: 'The generate that waited on this has NOT run. Send it again now, written the way this says.' });
+                    return JSON.stringify({ ...r, next: 'The call that waited on this has NOT run. Send it again now, written the way this says.' });
                 }
                 return JSON.stringify(r);
             }
@@ -1820,45 +1957,9 @@ ${knowledgeIndex}`.trim();
                 // the user watches, and the batch's one progress line is in the chat anyway.
                 if (this._follow && !opts.batch) body.follow = true;
                 if (args.cardName) body.cardName = String(args.cardName);
-                if (args.flowId) {
-                    body.flowId = String(args.flowId);
-                    if (args.fields) body.fields = args.fields;
-                    if (args.params) body.params = args.params;
-                } else {
-                    if (args.modelId) body.modelId = String(args.modelId);
-                    if (args.operation) body.operation = String(args.operation);
-                    // MPI-904: a tool (no model) takes its settings in `fields`, as a Flow does.
-                    // MPI-941 Phase 9: crop's own `ratio` shares its name with a model's `ratio`,
-                    // and the model reached for the name it already knew — "Generation not
-                    // started" twice before it read crop's own fields. A top-level name that is
-                    // one of THIS tool's own fields is moved into `fields` and cleared HERE, so
-                    // every named-param line below it never sees it: the route refuses a named
-                    // param on a tool outright, never drops one.
-                    const toolFields = _isTool(args) ? agentToolOp(String(args.operation || ''))?.fields : null;
-                    if (toolFields) {
-                        const fields = { ...(args.fields || {}) };
-                        for (const key of Object.keys(toolFields)) {
-                            if (args[key] === undefined) continue;
-                            fields[key] = args[key];
-                            delete args[key];
-                        }
-                        if (Object.keys(fields).length) body.fields = fields;
-                    } else if (!args.modelId && args.fields) {
-                        body.fields = args.fields;
-                    }
-                    if (args.prompt) body.positive = String(args.prompt);
-                    if (args.negative) body.negative = String(args.negative);
-                    if (args.ratio !== undefined) body.ratio = args.ratio;
-                    if (args.qualityTier !== undefined) body.qualityTier = args.qualityTier;
-                    if (args.turbo !== undefined) body.turbo = args.turbo;
-                    if (args.duration !== undefined) body.duration = args.duration;
-                    if (args.denoise !== undefined) body.denoise = args.denoise;
-                    if (args.styleSelect !== undefined) body.styleSelect = args.styleSelect;
-                    if (args.stylization !== undefined) body.stylization = args.stylization;
-                    if (args.seed !== undefined) body.seed = args.seed;
-                    // Set only by `_fanOut`, never by the model: the tool has no `batch` field.
-                    if (opts.batchSize > 1) body.batch = opts.batchSize;
-                }
+                Object.assign(body, _generateFields(args));
+                // Set only by `_fanOut`, never by the model: the tool has no `batch` field.
+                if (!args.flowId && opts.batchSize > 1) body.batch = opts.batchSize;
                 // Resolve media references. An attachment is copied into the project
                 // here — only now that a generation uses it — and a result is passed
                 // back by its project-file url (contract § Tools).
@@ -2228,6 +2329,8 @@ ${knowledgeIndex}`.trim();
                     : await this._tools.writeMemory(currentProject.folderPath, { file: args.file, title: args.title, hook: args.hook, text: args.text, ...forget });
                 return JSON.stringify(r);
             }
+            case 'routine':
+                return this._routine(args, turnId, currentProject);
             default:
                 return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_TOOL', message: `Unknown tool: ${toolName}` } });
         }
@@ -2404,7 +2507,7 @@ ${knowledgeIndex}`.trim();
                 // instruction rides in this line because the tool-schema budget is full.
                 if (Array.isArray(att.set)) {
                     for (const c of att.set) {
-                        this._images.set(c.id, { path: c.filePath, kind: 'result', modelId: null, itemId: c.itemId || null, reference: true });
+                        this._images.set(c.id, { path: c.filePath, kind: 'result', modelId: null, itemId: c.itemId || null, groupId: c.groupId || null, reference: true });
                         if (c.groupId) this._groups.add(c.groupId);
                     }
                     this._sets.set(att.id, att.set.map((c) => c.id));
@@ -2417,7 +2520,7 @@ ${knowledgeIndex}`.trim();
                 // same ref, and NOT as an attachment — `generate` places an attachment as a
                 // picture, and a reset deletes one. No thumb in the chat: nothing was staged.
                 if (att.reference && att.filePath) {
-                    this._images.set(att.id, { path: att.filePath, kind: 'result', modelId: null, itemId: att.itemId || null, reference: true });
+                    this._images.set(att.id, { path: att.filePath, kind: 'result', modelId: null, itemId: att.itemId || null, groupId: att.groupId || null, reference: true });
                     // MPI-886: a dragged gallery CARD. Registered as the card's own file, so a
                     // `look` reads its sidecar, `generate` sends it by path and the edit lands as
                     // that card's next version (agentDispatch.workspaceGenerationOpts), and the
@@ -2808,10 +2911,71 @@ function _projectFileUrl(absPath) {
  * only said "started", so nothing it read could contradict the claim.
  */
 const _SENT_KEYS = ['ratio', 'qualityTier', 'turbo', 'duration', 'denoise', 'styleSelect', 'stylization', 'seed'];
+
+/**
+ * A generate call's own fields in the connector's words: `prompt` goes as `positive`, and a
+ * tool's settings go in `fields`. Shared by `generate` and a routine's saved steps (MPI-970),
+ * which are generate args the app runs later, so a step cannot mean something a generate
+ * does not. No media, no card name: each caller adds its own.
+ */
+function _generateFields(args) {
+    const body = {};
+    if (args.flowId) {
+        body.flowId = String(args.flowId);
+        if (args.fields) body.fields = args.fields;
+        if (args.params) body.params = args.params;
+        return body;
+    }
+    if (args.modelId) body.modelId = String(args.modelId);
+    if (args.operation) body.operation = String(args.operation);
+    const named = { ...args };
+    // MPI-904: a tool (no model) takes its settings in `fields`, as a Flow does.
+    // MPI-941 Phase 9: crop's own `ratio` shares its name with a model's `ratio`, and the
+    // model reached for the name it already knew — "Generation not started" twice before it
+    // read crop's own fields. A top-level name that is one of THIS tool's own fields is moved
+    // into `fields` and cleared HERE, so the named-param line below never sees it: the route
+    // refuses a named param on a tool outright, never drops one.
+    const toolFields = _isTool(args) ? agentToolOp(String(args.operation || ''))?.fields : null;
+    if (toolFields) {
+        const fields = { ...(args.fields || {}) };
+        for (const key of Object.keys(toolFields)) {
+            if (named[key] === undefined) continue;
+            fields[key] = named[key];
+            delete named[key];
+        }
+        if (Object.keys(fields).length) body.fields = fields;
+    } else if (!args.modelId && args.fields) {
+        body.fields = args.fields;
+    }
+    if (named.prompt) body.positive = String(named.prompt);
+    if (named.negative) body.negative = String(named.negative);
+    for (const k of _SENT_KEYS) if (named[k] !== undefined) body[k] = named[k];
+    return body;
+}
+
 function _sentNote(body) {
     if (!body.modelId) return '';
     const sent = _SENT_KEYS.filter((k) => body[k] !== undefined).map((k) => `${k} ${body[k]}`);
     return ` Settings you sent: ${sent.length ? sent.join(', ') : 'none'}. Every other setting runs at its default. Tell the user only settings listed here; to change one, send it.`;
+}
+
+/**
+ * The one note a routine run leaves (MPI-970): how many new cards, where, and per step which
+ * cards it skipped (nothing to do) or stopped on, grouped as a batch's failures are.
+ */
+function _routineNote(name, r) {
+    if (!r?.ok) return `[Routine failed: "${name}": ${r?.error?.code || 'ERROR'}: ${r?.error?.message || 'no reason given'}]`;
+    const { cards = [], stackId } = r.output || {};
+    const made = cards.filter((c) => c.groupId);
+    const groups = new Map();
+    const add = (k, id) => groups.set(k, [...(groups.get(k) || []), id]);
+    for (const c of cards) {
+        for (const n of c.skipped || []) add(`step ${n} had nothing to do, skipped`, c.inputGroupId);
+        if (c.failedAt) add(`step ${c.failedAt} failed, ${c.error?.code || 'ERROR'}: ${c.error?.message || 'no reason given'}`, c.inputGroupId);
+    }
+    const why = [...groups].map(([k, ids]) => ` ${k}, on card ${ids.slice(0, 5).join(', ')}${ids.length > 5 ? ` and ${ids.length - 5} more` : ''}.`).join('');
+    const where = stackId ? ` in the new stack ${stackId}` : made.length === 1 ? `: card ${made[0].groupId}` : '';
+    return `[Routine finished: "${name}" on ${cards.length} card${cards.length === 1 ? '' : 's'}, ${made.length} new card${made.length === 1 ? '' : 's'}${where}.${why} They are in the gallery for the user to judge: report it in one sentence and look at none of them.]`;
 }
 
 /**
@@ -2939,6 +3103,8 @@ function _toolLabel(toolName, args) {
             if (_isUnfinishedFile(args.file)) return 'Checking unfinished generations';
             if (args.delete === true) return `${args.scope === 'global' ? 'Forgot the global note' : 'Forgot'}: ${args.file || ''}`;
             return `${args.scope === 'global' ? 'Noted for every project' : 'Noted'}: ${args.title || args.file || ''}`;
+        case 'routine':
+            return { list: 'Checking your routines', save: `Saving routine: ${args.name || ''}`, run: `Running routine: ${args.name || ''}`, delete: `Deleting routine: ${args.name || ''}` }[args.action] || 'Routines';
         default:               return toolName;
     }
 }

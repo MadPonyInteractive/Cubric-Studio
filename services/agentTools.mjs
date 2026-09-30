@@ -287,6 +287,39 @@ export async function writeMemory(folderPath, note) {
     return _post('/connector/memory', { ...note, folderPath }, 10_000);
 }
 
+/**
+ * The saved routines (MPI-970), `routes/connector.js` § routines. `scope: 'global'` names the
+ * ones kept for every project; a quote or run of one still runs in `folderPath`.
+ */
+export async function listRoutines(folderPath, scope) {
+    return _get(scope === 'global' ? '/connector/routines?scope=global' : `/connector/routines?folderPath=${encodeURIComponent(String(folderPath ?? ''))}`);
+}
+
+/** Checked by the app first (its catalogues hold the package Flows), then stored. */
+export async function saveRoutine(folderPath, scope, routine) {
+    return _post('/connector/routines', { folderPath, scope, routine }, 30_000);
+}
+
+export async function deleteRoutine(folderPath, scope, name) {
+    return _post('/connector/routines', { folderPath, scope, name, delete: true }, 10_000);
+}
+
+/** `/connector/routines/<name>/<verb>`; the loop never calls one without a name. */
+function _routinePath(name, verb) {
+    if (!name) throw new Error(`routine ${verb}: no name`);
+    return `/connector/routines/${encodeURIComponent(String(name))}/${verb}`;
+}
+
+/** A read: what a run on `body.cards` needs and costs. A closed project is read off disk first. */
+export async function quoteRoutine(name, body) {
+    return _post(_routinePath(name, 'quote'), body, 60_000);
+}
+
+/** Held until every card's chain has ended, so no clock, as `generate`. */
+export async function runRoutine(name, body) {
+    return _post(_routinePath(name, 'run'), body);
+}
+
 // ---------------------------------------------------------------------------
 // Attachment directory
 // ---------------------------------------------------------------------------

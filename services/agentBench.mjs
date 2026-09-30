@@ -24,8 +24,9 @@ import { resolveNamedParams } from '../js/data/generationControls.js';
 import { MODELS as MODEL_DEFS } from '../js/data/modelConstants/models.js';
 import { opPriority } from '../js/data/modelConstants/modelPriority.js';
 import { CROP_RATIOS } from '../js/utils/ratios.js';
-import { getFlowById } from '../js/data/flowsRegistry.js';
+import { FLOWS, getFlowById } from '../js/data/flowsRegistry.js';
 import { agentFieldSpecs } from '../js/utils/declaredFields.js';
+import { normalizeRoutine, validateRoutine, routineSummary } from '../js/data/routineModel.js';
 
 const { mediaRolesFor } = createRequire(import.meta.url)('../routes/connector.js');
 
@@ -83,6 +84,13 @@ const ROOM_EMPTY = { id: 'att_room_b', name: 'IMG_4415.JPG', filePath: 'C:/Temp/
 const PARK_FULL = { id: 'att_park_a', name: 'IMG_5120.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_park_a.jpg' };
 const PARK_EMPTY = { id: 'att_park_b', name: 'IMG_5133.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_park_b.jpg' };
 const FURNISH = 'These are two photos of the same living room from different angles. The first has the furniture, the second is empty. Put the same furniture in the second photo, where it would be seen from that angle.';
+// MPI-970: saved routines, stored the way the app keeps them (the connector's words), and a
+// dropped selection of three gallery cards (MPI-948's `set`).
+const PRODUCT_SHOT = { schema: 'cubric/routine/v1', name: 'product-shot', summary: 'Square it, then upscale it 2x', inputs: [],
+    steps: [{ operation: 'crop', fields: { ratio: '1:1' } }, { operation: 'imageUpscale', fields: { factor: 2 } }] };
+const SQUARE_ONLY = { ...PRODUCT_SHOT, name: 'square-only', summary: 'Crop it square', steps: [PRODUCT_SHOT.steps[0]] };
+const SHOTS = { id: 'sel_shots', name: '3 cards', set: [1, 2, 3].map((n) => ({
+    id: `shot${n}.png`, filePath: `${PROJECT.folderPath}/Media/shot${n}.png`, itemId: `item_s${n}`, groupId: `grp_s${n}` })) };
 
 // ── Fixture edits ─────────────────────────────────────────────────────────────
 
@@ -122,8 +130,12 @@ const PARK_LOOKS = {
 
 // ── Fake tools (the agentTools.mjs surface) ───────────────────────────────────
 
-function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes = [], projects = PROJECTS, memoryFull = false }) {
-    const record = { installs: [], generates: [], looks: [], opens: [], writes: [], renames: [], creates: [] };
+function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes = [], projects = PROJECTS, memoryFull = false, routines = [] }) {
+    const record = { installs: [], generates: [], looks: [], opens: [], writes: [], renames: [], creates: [], routines: [] };
+    // MPI-970: this project's routines, answered the way /connector/routines does; a save is
+    // checked by the app's own validator, so the model gets the refusal it would get there.
+    const kept = new Map(routines.map((r) => [r.name, r]));
+    const noRoutine = (name) => ({ ok: false, error: { code: 'ROUTINE_NOT_FOUND', message: `No routine "${name}".` } });
     const known = [...projects];
     // --bite for the guide case: no model has a guide, and the index offers none to read.
     const served = noGuides
@@ -217,6 +229,26 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
                 : { ok: false, error: { code: 'NO_SUCH_PROJECT', message: `Could not open "${folderPath}": not a Cubric project.` } };
         },
         placeAsset: async () => ({ success: true, filePath: `/project-file?path=${encodeURIComponent(`${PROJECT.folderPath}/Media/.preview-assets/fox.png`)}` }),
+        listRoutines: async (folderPath, scope) => ({ ok: true, routines: scope === 'global' ? []
+            : [...kept.values()].map(({ name, summary, steps, inputs }) => ({ name, summary, steps: steps.length, inputs })) }),
+        saveRoutine: async (folderPath, scope, routine) => {
+            const v = validateRoutine(normalizeRoutine(routine), { models: MODEL_DEFS, flows: FLOWS });
+            if (!v.ok) return { ok: false, error: { code: v.code, message: v.message } };
+            record.routines.push({ action: 'save', scope, routine: v.routine });
+            kept.set(v.routine.name, v.routine);
+            return { ok: true, name: v.routine.name, created: true, summary: routineSummary(v.routine) };
+        },
+        deleteRoutine: async (folderPath, scope, name) => {
+            record.routines.push({ action: 'delete', scope, name });
+            return kept.delete(name) ? { ok: true, name, deleted: true } : noRoutine(name);
+        },
+        quoteRoutine: async (name, body) => (kept.has(name) && body.scope !== 'global'
+            ? { ok: true, output: { missing: [], billed: false, count: body.cards.length, usd: 0, display: null } } : noRoutine(name)),
+        runRoutine: async (name, body) => {
+            record.routines.push({ action: 'run', name, cards: body.cards, inputs: body.inputs });
+            return { ok: true, output: { ok: true, runId: 'run_1', stackId: body.cards.length > 1 ? 'stk_1' : null,
+                cards: body.cards.map((c, i) => ({ inputGroupId: c, groupId: `grp_r${i}`, steps: 2 })) } };
+        },
         saveAttachment: async () => { throw new Error('the harness stages attachments itself'); },
         initAttachmentDir: async () => {},
         attachmentDir: () => 'C:/Temp/cubric-agent/attachments',
@@ -742,6 +774,78 @@ const CASES = [
         setup: { mode: 'ask', turns: ['I am making a short film about a lighthouse keeper. Give me three ideas for the opening shot.'] },
         flip: { mode: 'auto', turns: ['Make an image of a lighthouse keeper at dawn.'] },
         check: (run) => (run.turns.at(-1).options ? [] : ['the ideas reply has no [options: ...] marker']),
+    },
+    // ── MPI-970 B1: routines ──────────────────────────────────────────────────
+    {
+        id: 'routine-list',
+        title: 'lists the saved routines when asked, by name',
+        setup: { routines: [PRODUCT_SHOT], turns: ['Which routines have I saved?'] },
+        flip: { routines: [] },
+        check(run) {
+            const f = [];
+            if (!calledAll(run, 'routine').some((c) => c.args.action === 'list' && c.result?.ok)) f.push('never listed the routines');
+            if (!/product-shot/i.test(run.lastReply)) f.push('the reply does not name product-shot');
+            return f;
+        },
+    },
+    {
+        // The guide gate is the loop's: a save before app:routines is refused, then must be resent.
+        id: 'routine-save',
+        title: 'a plain description is saved as a routine, its steps in order',
+        setup: { turns: ['Save a routine called product-shot: crop the picture square, then upscale it 2x. I will run it on my product photos later.'] },
+        flip: { turns: ['Crop the picture square, then upscale it 2x.'] },
+        check(run) {
+            const saved = run.record.routines.filter((r) => r.action === 'save');
+            if (!saved.length) return ['never saved a routine the app accepted'];
+            const { name, steps } = saved.at(-1).routine;
+            const f = [];
+            if (name !== 'product-shot') f.push(`saved as "${name}", not product-shot`);
+            if (steps.length !== 2) f.push(`saved ${steps.length} steps, not 2`);
+            if (steps[0]?.operation !== 'crop' || steps[0]?.fields?.ratio !== '1:1') f.push(`step 1 is ${JSON.stringify(steps[0])}, not a 1:1 crop`);
+            if (steps[1]?.operation !== 'imageUpscale' || Number(steps[1]?.fields?.factor) !== 2) f.push(`step 2 is ${JSON.stringify(steps[1])}, not a 2x upscale`);
+            if (calledAll(run, 'generate').length) f.push('ran a generation instead of only saving');
+            // F2 (Fabio, 2026-09-30): "To use it, just select any image card in your gallery and run
+            // the routine". Only the agent runs one; the app has no button for it.
+            if (/(select|pick|choose|click)\b[^.]{0,80}\band run\b|\brun (it|them|the routine) yourself\b/i.test(run.lastReply)) f.push('told the user to run the routine themselves');
+            return f;
+        },
+    },
+    {
+        id: 'routine-run',
+        title: '"run it on these" is ONE routine run over every card, never a generate per card',
+        setup: { routines: [PRODUCT_SHOT], attachments: [SHOTS], turns: ['Run my product-shot routine on these three.'] },
+        flip: { routines: [] },
+        check(run) {
+            const f = [];
+            const ok = calledAll(run, 'routine').filter((c) => c.args.action === 'run' && c.result?.ok);
+            if (ok.length !== 1) f.push(`${ok.length} routine runs started, not 1`);
+            const cards = new Set(run.record.routines.filter((r) => r.action === 'run').flatMap((r) => r.cards));
+            for (const c of SHOTS.set) if (!cards.has(c.groupId)) f.push(`card ${c.groupId} was not in the run`);
+            if (calledAll(run, 'generate').length) f.push('called generate instead of the routine');
+            return f;
+        },
+    },
+    {
+        id: 'routine-delete',
+        title: 'deletes the routine asked for, and only that one',
+        setup: { routines: [PRODUCT_SHOT, SQUARE_ONLY], turns: ['Delete my product-shot routine, I do not need it any more.'] },
+        flip: { turns: ['Which routines have I saved?'] },
+        check(run) {
+            const gone = run.record.routines.filter((r) => r.action === 'delete').map((r) => r.name);
+            const f = [];
+            if (!gone.includes('product-shot')) f.push('never deleted product-shot');
+            const others = gone.filter((n) => n !== 'product-shot');
+            if (others.length) f.push(`also deleted ${others.join(', ')}`);
+            return f;
+        },
+    },
+    {
+        // D12 (Fabio, 2026-09-30): routines are part of "what can you do".
+        id: 'routine-in-capabilities',
+        title: 'asked what it can do, the answer includes routines',
+        setup: { turns: ['What can you do for me?'] },
+        flip: { turns: ['Make an image of a red fox in the snow.'] },
+        check: (run) => (/\broutines?\b/i.test(run.lastReply) ? [] : ['the answer does not mention routines']),
     },
 ];
 
