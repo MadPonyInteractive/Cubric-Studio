@@ -117,6 +117,21 @@ every `output_image_*` is its own gallery card. A MODEL generator (`generate_*.p
 must add it there or lose it silently; Flow raw graphs convert through `workflow-to-api.mjs`,
 which keeps it. Pinned by `tests/flow-output-display.test.cjs`.
 
+## The result pane: the chain toggle (MPI-997)
+
+A Flow whose `chain` has both `when` and `input` (Character Sheet's Headless front body) gets
+its `when` toggle ON THE RESULT too, bottom-left (`_mountChainToggle`). Nothing to declare: the
+chain is the declaration, and the button is that field's own icon + label.
+
+- **Pressed = the leg-2 version is showing.** Leg 2 always lands as the version right AFTER
+  leg 1 on the same card, so the partner is the neighbouring history entry, matched by op.
+- **Press with a partner:** swap to it in the pane AND on the card (`promoteHistoryEntry` +
+  `updateGroup`), so the gallery, a video model and the agent read what the pane shows.
+- **Press on a leg-1 result with no partner:** runs leg 2 alone on it (`submitChainLeg`),
+  through the same run token, status and callbacks as Generate (`_runCallbacks`/`_track`).
+- The group is re-found at click time: the project's mutation queue replaces group objects.
+  Pinned by `tests/desktop/flow-chain-toggle.spec.js` (mutation-checked on the card swap).
+
 ## The result pane survives close→reopen (MPI-587)
 
 **A finished result is session state, not instance state.** The shell destroys the

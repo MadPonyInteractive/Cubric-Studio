@@ -14,7 +14,9 @@ import { MpiAudioPlayer } from '../../Organisms/MpiAudioPlayer/MpiAudioPlayer.js
 import { Events } from '../../../events.js';
 import { state, AUTO_PIXEL_THRESHOLD } from '../../../state.js';
 import { ViewManager } from '../../Primitives/MpiCanvas/managers/ViewManager.js';
-import { submitFlowGeneration } from '../../../services/flowService.js';
+import { submitFlowGeneration, submitChainLeg } from '../../../services/flowService.js';
+import { updateGroup } from '../../../services/projectService.js';
+import { promoteHistoryEntry } from '../../../data/projectModel.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
 import { createPreviewClipPlayer } from '../../../services/previewClipPlayer.js';
@@ -579,6 +581,10 @@ export const MpiBaseFlow = ComponentFactory.create({
         /** @type {?{it: Object, path: string}} */
         let _resultSingle = null;
         let _surfaceToggle = null;
+        /** The chain toggle on the result (MPI-997) and its host; `_chainBusy` = a leg 2 it started is running. */
+        let _chainToggle = null;
+        let _chainToggleHost = null;
+        let _chainBusy = false;
         /**
          * The surface the user last CHOSE with the toggle. Persisted beside
          * `_lastResults` (MPI-587) — a restored result comes back on the surface the
@@ -2833,6 +2839,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 _resultMode = 'plain';
             }
             _mountSurfaceToggle(it);
+            _mountChainToggle(it);
             _syncResultEmpty();
         }
 
@@ -3028,6 +3035,62 @@ export const MpiBaseFlow = ComponentFactory.create({
             });
         }
 
+        /**
+         * The chain toggle (MPI-997, Character Sheet's Headless front body): on a flow whose
+         * `chain` edits leg 1's picture behind a `when` toggle, the result carries that
+         * toggle. Pressed = the leg-2 version is showing. Pressing it on a leg-1 result with
+         * no leg-2 version runs leg 2 alone on it (the card's next version); otherwise it
+         * swaps to the partner version, and the CARD swaps with it (`selectedIndex`), so what
+         * the pane shows is what the gallery, a video model and the agent get from the card.
+         * The partner is the NEIGHBOURING version: leg 2 always lands right after leg 1.
+         * @param {Object} it the result item
+         */
+        function _mountChainToggle(it) {
+            const chain = flow.chain;
+            if (!_resultFrameEl || !chain?.input || !chain.when || !it?.id) return;
+            if (it.operation !== flow.operation && it.operation !== chain.operation) return;
+            const isLeg2 = it.operation === chain.operation;
+            // Resolved on mount AND on click: the project's mutation queue can replace the
+            // group object between the two (projectService § updateGroup).
+            const locate = () => {
+                const group = (state.currentProject?.itemGroups || []).find(g => g.history?.some(h => h.id === it.id));
+                if (!group) return null;
+                const at = group.history.findIndex(h => h.id === it.id) + (isLeg2 ? -1 : 1);
+                const partner = group.history[at]?.operation === (isLeg2 ? flow.operation : chain.operation) ? at : -1;
+                return { group, partner };
+            };
+            if (!locate()) return;
+            const field = (flow.fields || []).find(f => f.id === chain.when);
+
+            _chainToggleHost = ce('div', { className: 'mpi-base-flow__result-chain' });
+            _resultFrameEl.appendChild(_chainToggleHost);
+            _chainToggle = MpiButton.mount(_chainToggleHost, {
+                icon: field?.icon || 'check', label: field?.label || '', size: 'sm',
+                toggleable: true, active: isLeg2, disabled: _chainBusy,
+            });
+            _chainToggle.on('click', async () => {
+                const found = !_chainBusy && locate();
+                if (!found) return;
+                const { group, partner } = found;
+                if (partner >= 0) {
+                    await updateGroup(promoteHistoryEntry(group, partner));
+                    _showResults(group.history[partner]);
+                    return;
+                }
+                const run = { tempId: null };
+                _runs.add(run);
+                _syncRunning();
+                _setStatus(`${getCommand(chain.operation)?.progressLabel || 'Generating'}…`);
+                _chainBusy = true;
+                const callbacks = _runCallbacks(run);
+                const done = (fn) => (...args) => { _chainBusy = false; fn?.(...args); };
+                _track(run, submitChainLeg(flow, it.flowInputs || _collectInputs(), { item: it, group }, {
+                    onComplete: done(callbacks.onComplete), onError: done(callbacks.onError), onCancel: done(callbacks.onCancel),
+                }));
+                if (!run.tempId) _chainBusy = false;
+            });
+        }
+
         /** Drop the compare surface and hand the frame back to the media layer. */
         function _teardownCompare() {
             if (_compareView) {
@@ -3063,6 +3126,10 @@ export const MpiBaseFlow = ComponentFactory.create({
             _plainAudioPlayers.length = 0;
             _surfaceToggle?.destroy?.();
             _surfaceToggle = null;
+            _chainToggle?.destroy?.();
+            _chainToggle = null;
+            _chainToggleHost?.remove();
+            _chainToggleHost = null;
             _resultMode = 'plain';
             _resultSingle = null;
         }
@@ -3520,7 +3587,17 @@ export const MpiBaseFlow = ComponentFactory.create({
             const res = submitFlowGeneration(flow, {
                 ...inputs, runMediaItems, runInputs,
                 ...(passes ? { runNextPass: passes.next } : {}),
-            }, {
+            }, _runCallbacks(run));
+            _track(run, res);
+        };
+
+        /**
+         * What a run reports back into the frame. Shared by Generate and the result pane's
+         * chain toggle (MPI-997), which runs a flow's second leg alone.
+         * @param {{tempId: ?string}} run
+         */
+        function _runCallbacks(run) {
+            return {
                 onComplete: ({ item, items, displayUrls } = {}) => {
                     _settle(run, 'Done — saved to your gallery.');
                     // Full only when the frame has actually gone idle; back to zero for
@@ -3543,8 +3620,16 @@ export const MpiBaseFlow = ComponentFactory.create({
                     _setGauge(0);
                     _dropLatentPreview();
                 },
-            });
-            // Guard aborted before enqueue (missing model / no media) → reset immediately.
+            };
+        }
+
+        /**
+         * Bind a submitted run to its queue job, or drop its token when the submit's guard
+         * aborted before enqueue (missing model / no media).
+         * @param {{tempId: ?string}} run
+         * @param {?{tempId?: string}} res - what the submit returned
+         */
+        function _track(run, res) {
             if (!res) {
                 _runs.delete(run);
                 _syncRunning();
@@ -3559,7 +3644,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 const last = entry && activeGenerations.getLastPreview(entry.id);
                 if (last?.url) _paintResult(last.url, { blurring: true });
             }
-        };
+        }
 
         /**
          * One run reached an end (complete / error / cancel). Drop its token, repaint

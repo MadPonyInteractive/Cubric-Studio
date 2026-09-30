@@ -1446,6 +1446,24 @@ export const commands = {
         universal: true,
     },
 
+    // MPI-997. Character Sheet's chained leg 2 (the FlowDef's `chain`): a finished sheet in,
+    // the front body's head removed by SAM3 and filled from the sheet's own backdrop. No
+    // model and no FlowDef of its own; it lands as the sheet card's next version.
+    flowCharacterSheetHeadless: {
+        // Filed as the Flow it is a version of: the key would be cut to 24 characters on
+        // disk (`flowCharacterSheetHeadle_001.png`, seen live).
+        label: 'Flow: Character Sheet',
+        filePrefix: 'flowCharacterSheet',
+        progressLabel: 'Removing the head',
+        mediaType: MEDIA_TYPE.IMAGE,        // OUTPUT type
+        requiresImages: 0,
+        mediaInputs: [
+            { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
+        ],
+        promptRequired: false,
+        universal: true,
+    },
+
     // MPI-504. The text-only prompt enhancer, `qwen3vl_4b_prompt_enhancer.json` — text
     // in, a rewritten phrase out via the Output_prompt contract, so `outputKind: 'text'`
     // exactly like `imageDescribe`. It saves no file and takes no media.

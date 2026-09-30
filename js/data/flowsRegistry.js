@@ -140,6 +140,12 @@
  *                                       that needs the user's hands, or a result the user should
  *                                       read before the GPU spends. A required input the agent
  *                                       lacks still opens it on the inputs step instead.
+ * @property {{operation: string, when?: string, input?: string}} [chain] - A SECOND job run on
+ *                                       leg 1's completion (flowService.js § TWO-LEG FLOWS):
+ *                                       `operation` picks leg 2's graph. `when` names a declared
+ *                                       field; off, the run is leg 1 alone (MPI-997). `input` is
+ *                                       the media role leg 2 receives leg 1's picture on, and it
+ *                                       makes leg 2 land as the next version of leg 1's card.
  *
  * @typedef {Object} FlowStep
  * @property {string}  kind    - STEP_KINDS registry key (MpiBaseFlow/stepKinds.js), e.g. 'box'.
@@ -747,8 +753,9 @@ export const FLOWS = [
     // "make it look like this person" as a second pass on the finished sheet.
     //
     // The FRONT BODY IS HEADLESS on purpose, and it is a MASK op, not a prompt: SAM3
-    // text-selects hair+face+hat as one union, the box is squared and grown, and Klein
-    // 4B inpaints the head away. On a wide shot the model otherwise sources the face
+    // text-selects face+hat in the front-body quarter and the hole is filled from the
+    // sheet's own backdrop, in its own graph since MPI-997 (`chain` below; the full
+    // recipe: docs/playbooks/add-flow/existing-flows/character-sheet.md). On a wide shot the model otherwise sources the face
     // from the tiny blurry full-body figure; remove that head and it has exactly one
     // place to take a face from. Toggleable, on by default.
     //
@@ -1227,6 +1234,12 @@ export const FLOWS = [
         },
         operation: 'flowCharacterSheet',
         workflow: 'flow_character_sheet.json',
+        // THE HEAD REMOVAL IS ITS OWN RUN (MPI-997, Fabio 2026-09-30). The sheet graph draws
+        // the sheet and nothing else; with Headless front body on, the few-second head
+        // removal runs on the finished sheet and lands as the card's NEXT VERSION, so the
+        // untouched sheet stays one step back in its history. One run still, for the user
+        // and for the in-app agent's single `generate` call.
+        chain: { operation: 'flowCharacterSheetHeadless', when: 'Input_Remove_Head', input: 'image1' },
         mediaType: 'image',
         type: 'create',
         // No `inputSchema` at all: this flow collects no media, so step 0 renders its
@@ -1346,6 +1359,7 @@ export const FLOWS = [
                 icon: 'eraser', default: true,
                 // ON by default — it is the whole reason this layout works as a video
                 // reference. Off is for inspecting the sheet the model actually drew.
+                // Read by `chain.when` (flowService), not by either graph (MPI-997).
             },
             // The `loras` action button that used to sit here is GONE (MPI-608). It opened
             // the rack for the flow's one `settingsModel`, which cannot express a flow with

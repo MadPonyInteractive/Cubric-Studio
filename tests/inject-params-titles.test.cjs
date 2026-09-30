@@ -279,11 +279,14 @@ test('the Character Sheet Flow carries its I/O and declared control titles (MPI-
     // that removed the head. MPI-628 replaced that pass with a mask subtraction, so both
     // titles are pinned as ABSENT below: a surviving one would take injections the
     // descriptor no longer declares, and injection skips a miss in silence either way.
+    //
+    // `input_remove_head` is pinned ABSENT since MPI-997: the head removal is its own graph
+    // (below), run as the flow's chained leg 2, and the toggle is read by `chain.when`.
     const file = 'flow_character_sheet.json';
     const have = titlesOf(file);
     for (const title of [
         'input_positive', 'input_negative', 'input_seed',
-        'input_recipe', 'input_quality', 'input_is_turbo', 'input_remove_head',
+        'input_recipe', 'input_quality', 'input_is_turbo',
         'input_base_model',
     ]) {
         assert.ok(have.has(title), `${file} must carry a node titled "${title}"`);
@@ -292,7 +295,14 @@ test('the Character Sheet Flow carries its I/O and declared control titles (MPI-
         assert.ok(!have.has(title),
             `${file} still carries "${title}" — the Klein blend pass went in MPI-628`);
     }
+    assert.ok(!have.has('input_remove_head'), `${file} still carries Input_Remove_Head — the head removal is its own graph (MPI-997)`);
     assert.ok(have.has('output_image'), `${file} must carry a capture node titled "output_image"`);
+
+    // The chained leg (MPI-997): ONE media slot, `image1` -> `input_image`, the sheet leg 1 made.
+    const headless = titlesOf('flow_character_sheet_headless.json');
+    for (const title of ['input_image', 'output_image']) {
+        assert.ok(headless.has(title), `flow_character_sheet_headless.json must carry a node titled "${title}"`);
+    }
 
     // ONE LoRA rack, phase-titled (MPI-610). The flat `Input_Lora_N` form must be GONE:
     // commandExecutor still emits `Lora_N` beside `Lora_Phase1_N` for graphs that predate
@@ -1021,7 +1031,10 @@ test('every FlowDef field and enhance recipe addresses a real node (MPI-664)', a
             // be DOTTED itself (`Input_Language.language`), addressing one widget on a
             // node that carries several, exactly like an injectionParams key.
             const [fieldTitle, fieldWidget] = String(d.id).split('.');
-            if (/^input_/i.test(fieldTitle) && !INJECTOR_DERIVED.has(`${flow.id}:${d.id}`)) {
+            // A chain's `when` field is read by flowService to decide whether leg 2 runs
+            // (MPI-997), never by a graph — so no node carries it.
+            if (/^input_/i.test(fieldTitle) && !INJECTOR_DERIVED.has(`${flow.id}:${d.id}`)
+                && d.id !== flow.chain?.when) {
                 const node = findNode(fieldTitle);
                 if (!node) {
                     problems.push(`${flow.id}: field "${d.id}" names no node in `

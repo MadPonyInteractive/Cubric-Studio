@@ -85,6 +85,14 @@ Each member closes on its own evidence; the umbrella closes when all three have.
 
 ## Current State
 
+2026-09-30 (session 123a6c39, handoff): MPI-1003 CLOSED (CI green on 6f86d4d5e). Phase 3 MPI-997 BUILT,
+live-verified and committed (evidence `tasks/MPI-997/validation.md`, unit 2582/0); Fabio LOOKED: the
+button works, but his first sheet came out MIRRORED (portrait left) and the head removal cut the
+portrait. NEXT: `tasks/MPI-997/plan.md` § Open: a MIRRORED sheet - his direction is prompt first
+(Recipe_* templates), then detect-big-face-left-and-flip. Still unanswered by Fabio: MPI-998/999 look,
+MPI-1002 live matrix ($0.02, cap $0.05), MPI-1004 A/B/C. Agent 77's MPI-923 hunks sit uncommitted in
+commandRegistry.js / operationRegistry.js / operation_registry.json: never restore those from HEAD.
+
 2026-09-30 (session 43678b37, end): phases 1 and 2 BUILT and verified by tests (npm test 2572/0).
 `validating`: MPI-998 (Fabio's look), MPI-999 (START-only trim per Fabio; ear test), MPI-1002 (live
 matrix left: needs Fabio's local ComfyUI + a few DeepInfra calls, ask the price first), MPI-1003

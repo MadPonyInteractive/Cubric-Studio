@@ -65,19 +65,86 @@ function _missingLabel({ missing, missingDeps }) {
  * `submitLeg2` is passed in rather than closed over so this branch is reachable from a
  * test — importing flowService is cheap, but reaching `enqueueGeneration` is not.
  *
+ * A chain may be OPTIONAL (MPI-997, Character Sheet's head removal): `when` names a
+ * declared field, and with that field off the run is leg 1 alone.
+ *
  * @param {import('../data/flowsRegistry.js').FlowDef} flow
  * @param {Object} callbacks - the CALLER's callbacks.
- * @param {function():(Object|null)} submitLeg2 - dispatches the second leg.
+ * @param {function(Object):(Object|null)} submitLeg2 - dispatches the second leg, handed leg 1's result.
+ * @param {Object} [run] - the inputs this run carries, read for `chain.when`.
  * @returns {Object} callbacks to hand enqueueGeneration for leg 1.
  */
-export function chainCallbacks(flow, callbacks, submitLeg2) {
-    if (!flow.chain?.operation) return callbacks;
+export function chainCallbacks(flow, callbacks, submitLeg2, run = {}) {
+    if (!flow.chain?.operation || !chainWanted(flow, run)) return callbacks;
     return {
         ...callbacks,
         onComplete: (result) => {
-            if (!submitLeg2()) callbacks.onComplete?.(result);
+            if (!submitLeg2(result)) callbacks.onComplete?.(result);
         },
     };
+}
+
+/**
+ * Whether this run takes its second leg. No `when`: always. Otherwise the named field's
+ * value, read where declared fields file it (an `Input_*` id in `injectionParams`, any
+ * other at the root), falling back to the field's own default when the run carries none.
+ * @param {import('../data/flowsRegistry.js').FlowDef} flow
+ * @param {Object} run
+ * @returns {boolean}
+ */
+function chainWanted(flow, run) {
+    const { when } = flow.chain;
+    if (!when) return true;
+    const value = /^input_/i.test(when) ? run.injectionParams?.[when] : run[when];
+    return (value ?? flow.fields?.find(f => f.id === when)?.default) === true;
+}
+
+/**
+ * Leg 2's inputs. MPI-623's shape reads leg 1's output off disk by name, so it gets the
+ * inputs unchanged. A chain with an `input` role (MPI-997) instead EDITS leg 1's picture:
+ * that picture goes in as the role's media, and leg 2 lands as the NEXT VERSION of leg 1's
+ * card, through the same `runLanding` door a routine's later step uses (MPI-970). So the
+ * card shows the edit and keeps the original one step back in its history.
+ * @param {import('../data/flowsRegistry.js').FlowDef} flow
+ * @param {Object} inputs - leg 1's inputs
+ * @param {{item?: Object, group?: Object}} result - leg 1's completion
+ * @returns {Object}
+ */
+export function chainLegInputs(flow, inputs, result) {
+    if (!flow.chain?.input) return inputs;
+    const item = result?.item;
+    const group = result?.group;
+    // A project the app does NOT have open is versioned off the frozen copy the run was
+    // dispatched with (generationService § `_originLive`), and leg 1's copy predates leg 1's
+    // card, so leg 2 found no card, dropped its output and reported CANCELLED (live, an agent
+    // run into a closed project). Leg 2 gets that copy WITH the card leg 1 just registered:
+    // the routine runner's re-read before each step, for the one card this leg touches.
+    const origin = inputs.runOriginProject;
+    return {
+        ...inputs,
+        runMediaItems: item?.filePath
+            ? [{ role: flow.chain.input, mediaType: flow.mediaType || 'image', url: item.filePath, filePath: item.filePath }]
+            : [],
+        ...(group ? { runLanding: { ...(inputs.runLanding || {}), existingGroup: group } } : {}),
+        ...(group && origin ? {
+            runOriginProject: { ...origin, itemGroups: [...(origin.itemGroups || []).filter(g => g.id !== group.id), group] },
+        } : {}),
+    };
+}
+
+/**
+ * Leg 2 ALONE, on a leg-1 result the user already has (MPI-997: the result pane's chain
+ * toggle, "remove the head from this sheet"). The same leg and landing a chained run
+ * takes, so it too becomes the card's next version.
+ * @param {import('../data/flowsRegistry.js').FlowDef} flow
+ * @param {Object} inputs - the inputs leg 1 ran with (its item's `flowInputs`)
+ * @param {{item: Object, group: Object}} result - the leg-1 card version to edit
+ * @param {Object} [callbacks]
+ * @returns {?{queueJobId: string, tempId: string}}
+ */
+export function submitChainLeg(flow, inputs, result, callbacks = {}) {
+    if (!flow?.chain?.input) return null;
+    return submitFlowGeneration(flow, chainLegInputs(flow, inputs, result), callbacks, { operation: flow.chain.operation });
 }
 
 /**
@@ -173,9 +240,9 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     const run = runInputs || snapshot;
     // ponytail: the chained leg takes NO media. Its graph reads what leg 1 wrote to
     // disk, addressed by name (`Input_Name`), so re-sending the source image would only
-    // stage a file nothing loads. One rule, no per-flow knob — a chained leg that DID
-    // want media would be a different feature.
-    const mediaItems = _leg.operation ? []
+    // stage a file nothing loads. The one exception is a chain with an `input` role
+    // (MPI-997), whose leg 2 is handed leg 1's picture by `chainLegInputs`.
+    const mediaItems = _leg.operation && !flow.chain?.input ? []
         : Array.isArray(runMediaItems) ? runMediaItems
         : Array.isArray(snapshot.mediaItems) ? snapshot.mediaItems : [];
     const config = {
@@ -268,14 +335,17 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // A routine step (MPI-970) lands where the routine says: a later step is the next
     // version of its result card (no gallery card at all), step 1 a gallery card that also
     // joins the run's result stack.
+    // `tempId` rides a version landing too: a chained leg 2 lands on leg 1's card, and the
+    // flow pane finds that leg's live latents and Stop by it.
     const landing = !runLanding ? opts
         : runLanding.existingGroup
-            ? { ...runLanding, scope: 'groupHistory', groupId: runLanding.existingGroup.id, forceLocal: opts.forceLocal }
+            ? { ...runLanding, scope: 'groupHistory', groupId: runLanding.existingGroup.id, forceLocal: opts.forceLocal, tempId }
             : { ...opts, ...runLanding };
 
     // Leg 2 never chains again — one chain, two legs.
     const legCallbacks = _leg.operation ? callbacks : chainCallbacks(flow, callbacks,
-        () => submitFlowGeneration(flow, inputs, callbacks, { operation: flow.chain.operation, tempId }));
+        (result) => submitFlowGeneration(flow, chainLegInputs(flow, inputs, result), callbacks, { operation: flow.chain.operation, tempId }),
+        run);
     // Every pass but the last carries `runNextPass` on; the last gets none, so it ends
     // there. Each keeps the tempId for the same reason leg 2 does.
     const runCallbacks = runNextPass

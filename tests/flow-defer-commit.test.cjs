@@ -67,7 +67,9 @@ test('the Apply affordance is fully gone from the flow frame', () => {
     assert.ok(!/_pendingGroups/.test(src), '_pendingGroups must be gone');
     assert.ok(!/_applyRow/.test(src), '_applyRow must be gone');
     assert.ok(!/function _apply\b/.test(src), '_apply must be gone');
-    assert.ok(!/from '\.\.\/\.\.\/\.\.\/services\/projectService\.js'/.test(src),
+    // `addGroup` specifically: the chain toggle (MPI-997) imports `updateGroup` from the
+    // same module to swap a card's version, which is not Apply coming back.
+    assert.ok(!/import \{[^}]*\baddGroup\b[^}]*\} from '\.\.\/\.\.\/\.\.\/services\/projectService\.js'/.test(src),
         'the addGroup import was only for Apply');
     assert.match(src, /Saved to your gallery/, 'the pane must report the save');
 });

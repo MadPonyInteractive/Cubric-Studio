@@ -113,7 +113,8 @@
   - **Draw It In** — draw something into a photo you already have
   - **Scribble** — draw on a blank canvas and have it rendered
   - **Object Stamp** — take an object out of one photo and put it in another
-  - **Character Sheet** — turn a description into a character reference sheet
+  - **Character Sheet** — turn a description into a character reference sheet, with the front
+    view's head removed for video models or kept (one press on the result swaps them)
   - **Outpaint** — extend a picture past its edges
   - **Extend Video** — carry on past the last frame, sound and all
   - **Add Foley** — give a silent clip its soundtrack

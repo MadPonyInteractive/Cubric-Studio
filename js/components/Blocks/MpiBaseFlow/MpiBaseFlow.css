@@ -1051,6 +1051,14 @@
     z-index: 2;
     line-height: normal;
 }
+/* MPI-997: the chain toggle (Character Sheet's Headless front body), opposite the surface toggle. */
+.mpi-base-flow__result-chain {
+    position: absolute;
+    bottom: var(--s-2);
+    left: var(--s-2);
+    z-index: 2;
+    line-height: normal;
+}
 /* ViewManager emits absolute offsets, so the origin must be the frame's corner. */
 .mpi-base-flow__result-media {
     position: absolute;

@@ -355,3 +355,8 @@ applied when the two were the same string; they are not any more, and the old lo
   injection on `payload.modelId`, and flow gens pass `model.id === null`), **no `getNextGeneration`**.
 - ONE `placeholderGroup` "Generating…" card while the job runs; the real 1..N cards land on
   `generation:complete` (multi-output — see [02](02-media-io.md)).
+- **A second graph after the first is `chain: { operation, when?, input? }`** (MPI-623, MPI-997),
+  never a second `workflow` field: leg 2 is its own op (4 files, no FlowDef), dispatched on leg 1's
+  completion; the caller hears ONE completion. `when` = a declared toggle that turns leg 2 off;
+  `input` = the role leg 2 gets leg 1's picture on, and leg 2 then lands as the card's next
+  VERSION. Worked example: [existing-flows/character-sheet.md](existing-flows/character-sheet.md).

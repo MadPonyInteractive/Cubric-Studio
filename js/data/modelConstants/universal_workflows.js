@@ -153,11 +153,14 @@ export const UNIVERSAL_WORKFLOWS = {
     flowSoundAndMusic: {
         workflow: 'flow_stable_audio.json',
     },
-    // MPI-504 — Krea2 t2i, plus a SAM3 + Klein 4B pass that removes the head from the
-    // front body panel. Both run on models the flow declares in `requiredModels`, so
-    // this op adds no download of its own beyond the `face-yolov8n` dep.
+    // MPI-504 — Krea2 t2i: the sheet alone since MPI-997.
     flowCharacterSheet: {
         workflow: 'flow_character_sheet.json',
+    },
+    // MPI-997 — Character Sheet's chained leg 2: SAM3 removes the front body's head from
+    // a finished sheet (no model; SAM3 installs with the engine).
+    flowCharacterSheetHeadless: {
+        workflow: 'flow_character_sheet_headless.json',
     },
     // MPI-504 — text-only, like imageDescribe. Its encoder weight is
     // `qwen3vl-abliterated-clip`, already shipped for krea2 and the image-describer

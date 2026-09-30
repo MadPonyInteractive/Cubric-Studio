@@ -31,3 +31,7 @@ Read as:
   keep one `generate` call enough for the agent.
 - Flow wiring: `/mpi-add-flow` playbook (`docs/playbooks/add-flow/`); graph authoring rules
   in `docs/models/klein/`.
+
+## Noticed
+
+- 2026-09-30 (MPI-997 live run): `_deleteSavedItems` (js/services/generationService.js) reads `state.currentProject`, so a dropped or cancelled output in a CLOSED origin project (an agent run, MPI-873) is never deleted: media + sidecar stay as an orphan (`My Agent Tests/Media/flowCharacterSheetHeadle_001.png`, sidecar 225974a7). Fix: take the frozen `_originProject` at every call site.

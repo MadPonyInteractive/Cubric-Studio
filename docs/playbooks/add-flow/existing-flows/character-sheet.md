@@ -9,6 +9,12 @@ plate. If you are reading a doc, a card or a comment that says this flow inpaint
 or runs `LanPaint_KSampler`, that doc is out of date; see § History below before acting on
 it.
 
+**Two graphs since MPI-997.** `flow_character_sheet.json` draws the sheet only;
+`flow_character_sheet_headless.json` (op `flowCharacterSheetHeadless`, no model, no FlowDef) is
+the head branch below, loading the finished sheet on `Input_Image`. The FlowDef's `chain`
+(`when: 'Input_Remove_Head'`, `input: 'image1'`) runs it as leg 2, landing as the sheet card's
+NEXT VERSION, the untouched sheet one step back in its history. Bench: 6 s with a cold SAM3.
+
 ---
 
 ## The sheet layout is a prompt promise, and the graph depends on it
@@ -46,9 +52,12 @@ that can track a backdrop the model chooses per run.
 
 ### The head mask — deliberately confined to quarter 1
 
+All ids below are in `flow_character_sheet_headless.json`; `#900` is its `Input_Image`
+loader (the sheet), whose width/height outputs are `W`/`H`.
+
 ```
-#774 MpiMath "a // 4" (Get_W)  ->  #752 MpiBox(width W//4, height H, x 0, y 0)
-#759 MpiBlocker (gated on Input_Remove_Head)  ->  #758 MpiBoxCrop
+#774 MpiMath "a // 4" (W)  ->  #752 MpiBox(width W//4, height H, x 0, y 0)
+#900 the sheet  ->  #758 MpiBoxCrop
     ->  #755 SAM3_Detect  "face, hat, moustache"  (threshold 0.5, individual_masks false)
     ->  #757 MaskComposite(add) onto #756 SolidMask(W x H) at (0,0)
     ->  #854 GrowMask(expand 6, tapered)
@@ -57,14 +66,13 @@ that can track a backdrop the model chooses per run.
 SAM3 only ever sees the left quarter, and the result is pasted back at `(0,0)`. **The head
 mask cannot reach quarters 2–4 by construction.** Keep that in mind when something looks
 "removed" elsewhere on the sheet — it is not this branch, and chasing it here wastes a run.
-
-`MpiBlocker` #759 gates the crop on `Input_Remove_Head`, so SAM3 does not run when the
-toggle is off.
+One known catch inside quarter 1: "face" can take a round brooch or clasp on the chest
+(seen on the MPI-997 bench run), which gets filled with backdrop like the head.
 
 ### The fill — sampled from the sheet, never a constant
 
 ```
-#730 the sheet  ->  #887 ImageCrop(x 0, y 0, 32x32)   <- top-left corner: backdrop
+#900 the sheet  ->  #887 ImageCrop(x 0, y 0, 32x32)   <- top-left corner: backdrop
                 ->  #889 ImageScale(nearest-exact, W x H)
                 ->  #883 ImageCompositeMasked.source
 ```
@@ -87,18 +95,18 @@ strip needs a maths node for `W/4 − 12` and buys 10 levels.
 ### The switch
 
 ```
-#742 MpiIfElse(Input_Remove_Head)
-        true  <- #883 ImageCompositeMasked(destination = the sheet, source = the sample,
-                                           mask = #854 the grown HEAD mask)
-        false <- #730 the sheet, UNTOUCHED
-    ->  #882 Output_Image
+the FlowDef's chain, when: Input_Remove_Head
+        on   -> leg 2: #883 ImageCompositeMasked(destination = #900 the sheet, source = the
+                sample, mask = #854 the grown HEAD mask) -> #882 Output_Image, a new version
+        off  -> leg 1 only: the sheet graph's Output_Image is the sheet, UNTOUCHED
 ```
 
-**The composite IS gated on `Input_Remove_Head`, and nothing else in the flow modifies the
-sheet.** With the toggle off the generated image is emitted exactly as sampled. This is the
+**The composite runs only when `Input_Remove_Head` is on, and nothing else in the flow modifies
+the sheet.** With the toggle off the generated image is emitted exactly as sampled. This is the
 opposite of what this file said before 2026-08-28, when an ungated composite repainted the
 whole backdrop on every run — do not reintroduce that; `tests/flow-model-choice.test.cjs`
 pins all three properties (head-only mask, sampled source, the gate) and is mutation-checked.
+The gate was an `MpiIfElse` in one graph until MPI-997; `tests/flow-chain.test.cjs` pins it now.
 
 ---
 
@@ -132,13 +140,9 @@ much*, which is both visible and harmless on a flat grey card.
 
 Reach for this shape whenever a mask decides what SURVIVES rather than what is edited.
 
-### The diagnostic that settled it — and why it no longer works
-
-While the composite was ungated, bypassing Remove Head did *not* bypass the matte, so
-turning the toggle off and watching the staff still vanish exonerated the head branch with
-no generation spent. **That shortcut is gone**: the composite is now gated, so with the
-toggle off nothing is modified at all. Today the equivalent check is the opposite one — if
-anything looks wrong with Remove Head *off*, it came out of the sampler, not this flow.
+**Diagnosing today:** with Remove Head *off* nothing is modified, so anything wrong there came
+out of the sampler, not this flow. (Toggling it off used to exonerate the head branch while an
+ungated matte kept running; that shortcut died with the gate.)
 
 ## THE OTHER LESSON: the recipes, not the graph
 
@@ -159,10 +163,8 @@ severity exactly:
 Rewriting Anime and Cartoon to use `flat` zero times, grouping the background into its own
 sentence, and asking explicitly for tonal separation from the card took Cartoon from 21.2%
 to **7.8%**. Krea 2's own research names this failure mode — *style-adjective stacking
-muddies output* — in `Cubric-Prompt/dev-docs/recipe-research/krea-2/research.md` Q4.
-
-Two corollaries worth keeping:
-
+muddies output* — in `Cubric-Prompt/dev-docs/recipe-research/krea-2/research.md` Q4. Two
+corollaries worth keeping:
 - **A photometric numeral in a prompt is not a colour control.** `eighteen percent grey`
   binds only at high step counts and leaks onto the wardrobe when it does — changing it to
   `80 percent` left the card 13 levels *lighter* and turned the robes dark.
@@ -180,17 +182,15 @@ Two corollaries worth keeping:
 | 2026-08-23, MPI-603 (`08dbde02`) | `LanPaint_KSampler` + `SetLatentNoiseMask` + `InpaintCropImproved`/`StitchImproved`. Live-confirmed working. |
 | 2026-08-27 (`19ec571c`) | The sampler pass deleted entirely; replaced by a BiRefNet subject matte + grey plate. **Shipped the dropped-staff defect.** |
 | 2026-08-28 (morning) | BiRefNet replaced by a SAM3 `background:3` matte. One fewer model in the graph — and the dropped-staff defect fixed — but the backdrop was still repainted with the constant plate. |
-| **2026-08-28 (current)** | **Whole-sheet matte removed entirely.** The composite is gated on `Input_Remove_Head` and fills only the head hole, with a colour **sampled from the sheet**. Backdrop is never repainted. Anime and Cartoon recipes rewritten (see § THE OTHER LESSON). |
+| 2026-08-28 | **Whole-sheet matte removed entirely.** The composite is gated on `Input_Remove_Head` and fills only the head hole, with a colour **sampled from the sheet**. Backdrop is never repainted. Anime and Cartoon recipes rewritten (see § THE OTHER LESSON). |
+| **2026-09-30, MPI-997 (current)** | Same nodes, split out: the head branch is its own graph, run as the flow's chained leg 2 and landing as the card's next version. |
 
-Two rows are likely to mislead. **LanPaint** is still described as current in older card
-records — it was real, it worked, and it is gone. **The SAM3 `background:3` matte** lasted
-one day and is described in detail above under a history banner; it was not wrong, it was
-unnecessary. The card the model generates is already flat (std 2.8 measured), so repainting
-it bought nothing and made every masking error visible.
+Two rows mislead. **LanPaint** is still called current in older card records: it worked, and
+it is gone. **The SAM3 `background:3` matte** was not wrong but unnecessary: the card is
+already flat (std 2.8), so repainting it bought nothing and made every masking error visible.
 
 **`birefnet` is still a live dep — do not remove it.** `comfy_workflows/remove_background.json`
-is a separate op that uses it. Leaving this graph cost one *node*, not one model on a user's
-disk.
+is a separate op that uses it; leaving this graph cost one *node*, not a model on disk.
 
 ## Related
 

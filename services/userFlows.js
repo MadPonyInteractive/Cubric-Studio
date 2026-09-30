@@ -211,7 +211,8 @@ function validatePackage(manifest, graph, files, known = loadKnown()) {
         needTitle(slot.title, `op.mediaInputs "${slot.key}"`);
     }
     const fields = [...(flow.fields || []), ...(flow.steps || []).flatMap(s => s?.fields || [])];
-    for (const f of fields) if (/^Input_/i.test(f?.id || '')) needTitle(f.id, `field "${f.id}"`);
+    // A chain's `when` field decides whether leg 2 runs (flowService, MPI-997); no graph reads it.
+    for (const f of fields) if (/^Input_/i.test(f?.id || '') && f.id !== flow.chain?.when) needTitle(f.id, `field "${f.id}"`);
     for (const params of Object.values(flow.modelParams || {})) {
         for (const key of Object.keys(params || {})) if (/^Input_/i.test(key)) needTitle(key, `modelParams "${key}"`);
     }

@@ -177,8 +177,10 @@ test('flowService: runLanding is run-only and rides every leg and pass', () => {
     assert.match(src, /const \{ runMediaItems, runInputs, runNextPass, runOriginProject, runLanding, \.\.\.snapshot \} = inputs;/,
         'runLanding must stay out of the flowInputs snapshot');
     assert.match(src, /runMediaItems: media, runOriginProject, runLanding,/, 'each next pass must land where the routine said');
-    assert.match(src, /submitFlowGeneration\(flow, inputs, callbacks, \{ operation: flow\.chain\.operation, tempId \}\)/,
+    assert.match(src, /submitFlowGeneration\(flow, chainLegInputs\(flow, inputs, result\), callbacks, \{ operation: flow\.chain\.operation, tempId \}\)/,
         'leg 2 must get the same inputs, runLanding included');
+    assert.match(src, /runLanding: \{ \.\.\.\(inputs\.runLanding \|\| \{\}\), existingGroup: group \}/,
+        'a leg that versions leg 1\'s card keeps the routine\'s landing around it');
     assert.match(src, /\? \{ \.\.\.runLanding, scope: 'groupHistory', groupId: runLanding\.existingGroup\.id,/,
         'a later step lands as the card\'s next version');
     assert.match(src, /enqueueGeneration\(config, runCallbacks, landing\)/, 'the routine landing is what gets enqueued');
