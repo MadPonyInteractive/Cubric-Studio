@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1010",
+  "title": "Build the 1.6.3 hand-delivered Windows delta (1.6.2 -> master), never published",
+  "description": "Stamp master 1.6.3 and build a Windows update-only delta over the tester's 1.6.2 install from the detached worktree D:/tmp/cv-720. Carries the landing big-photo freeze fix (MPI-963) and cloud-only project open (MPI-856), both found in 1.6.2 on 2026-10-01. No tag, no GitHub Release, no manifest publish. Same shape as MPI-938.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-01T15:10:37+01:00",
+  "updated_at": "2026-10-01T15:11:00+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

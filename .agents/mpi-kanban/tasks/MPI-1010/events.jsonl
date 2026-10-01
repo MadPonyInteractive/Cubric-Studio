@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1010", "at": "2026-10-01T15:10:37+01:00", "actor": "claude", "column": "todo", "title": "Build the 1.6.3 hand-delivered Windows delta (1.6.2 -> master), never published"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1010", "at": "2026-10-01T15:11:00+01:00", "actor": "claude", "from": "todo", "to": "doing"}
