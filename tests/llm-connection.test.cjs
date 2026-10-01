@@ -131,7 +131,7 @@ test('MPI-912: the Ollama connection and the Ollama enhancer dropdown flag the s
 });
 
 test('MPI-941 Phase 11: Ollama rows carry tools and vision from /api/tags; unknown stays null', async () => {
-    const { listRemoteModels } = await import('../services/llmEngines.mjs');
+    const { listRemoteModels, RECOMMENDED_REMOTE_MODELS } = await import('../services/llmEngines.mjs');
     const urls = [];
     const restore = stubUpstream(async (url) => {
         urls.push(url);
@@ -153,7 +153,9 @@ test('MPI-941 Phase 11: Ollama rows carry tools and vision from /api/tags; unkno
         });
         // The local scores ride along like DeepInfra's, and neither becomes the default agent.
         const ornith = models.find((m) => m.id === 'ornith:9b');
-        assert.deepEqual([ornith.agentTest, ornith.recommendedFor], [{ passed: 16, cases: 26, runs: 1, perChat: 0 }, []]);
+        const stamped = RECOMMENDED_REMOTE_MODELS.ollama.find((r) => r.id === 'ornith:9b').agentTest;
+        assert.ok(stamped, 'ornith:9b carries a score in the table');
+        assert.deepEqual([ornith.agentTest, ornith.recommendedFor], [stamped, []]);
     } finally { restore(); }
     // /api/tags failing costs nothing but the flags.
     const restore2 = stubUpstream(async (url) => (url.endsWith('/api/tags')

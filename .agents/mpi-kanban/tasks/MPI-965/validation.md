@@ -14,6 +14,13 @@ Verify mode: user-ux for Phase 3 only; the Parallel Batch and Phase 2 self-verif
   `0c126f62b69a`, app 1.6.1. Worker (mpi-ci 77ae463, 0751542, 9a9deb3): lede says some runs are ours and drops
   the hard-coded 28; newer suites (by app version) replace a model's older runs, Ollama only on the same GPU;
   one table per provider with its most-failed tests underneath. Worker tests 46/46. Deploys are Fabio's.
+- 2026-10-01 later: local re-runs on Fabio's RTX 4060 Ti under the GPU lease, `--preset ollama --runs 1`, 34 cases:
+  ornith:9b 23/34 (was 16/26), gemma4:12b 18/34 (was 13/26); with his granite4.1:8b 14/34 all three stamped into
+  `RECOMMENDED_REMOTE_MODELS.ollama` with the suite hash (granite newly listed, his yes). `tests/llm-connection`
+  now reads ornith's stamp from the table instead of pinning the number. Both posted (10 of the day's 10).
+  Worker redesign (mpi-ci 7e5ac7b, BenchLM-style ranked table in DESIGN.md mauve + Studio cream, time per test
+  from `sec_per_case`) - FABIO'S LOOK PASSED ("I like the look ... we can push this"); deployed on his yes,
+  version `5c814fe5`. Live page read back: 3 DeepInfra + 3 Ollama rows, all on 34 tests, the 22-test rows replaced.
 
 - 2026-09-29 ~11:00 FABIO'S LOOK: in his own app (restarted on the batch code) Settings > Remote > Benchmark
   this model confirm step on DeepInfra (not run): tickbox, its hint, the bench hint and "See everyone's results"

@@ -555,8 +555,9 @@ export const RECOMMENDED_REMOTE_MODELS = {
     ],
     // Local, so no price and no refusals to weigh: a flag here means measured on Fabio's
     // 16 GB card. Enhance is the enhancer of record (every v1 recipe is Stage 1 green on it).
-    // `agentTest` (MPI-941 Phase 11, 2026-09-28): the 26-case suite, `--runs 1`, on Fabio's 16 GB card, logs in
-    // `.agents/mpi-kanban/tasks/MPI-941/validation.md`. None reaches the bar, so none carries `agent`; listed, scored.
+    // `agentTest` (MPI-941 Phase 11; re-scored 2026-10-01 on the 34-case suite, MPI-965 validation.md): `--runs 1`
+    // on Fabio's 16 GB card (granite4.1:8b by his own in-app run). None reaches the bar, so none carries `agent`;
+    // listed, scored.
     // `describe` (MPI-993, Fabio 2026-09-30): the Image Describer plugin's own model
     // (`qwen3vl-abliterated-clip`), which he rates on real use. MPI-912's one-picture bench:
     // 7/10 facts, nothing wrong. It is under the DeepInfra bar; the flag is his call, not a score.
@@ -570,8 +571,9 @@ export const RECOMMENDED_REMOTE_MODELS = {
         { id: 'huihui_ai/gemma-4-abliterated:12b', jobs: ['enhance'] },
         { id: 'huihui_ai/qwen3-vl-abliterated:4b', jobs: ['describe'] },
         { id: 'gemma4:26b', jobs: ['enhance', 'describe'], minVramGb: 24, note: 'for 24 GB cards' },
-        { id: 'ornith:9b', jobs: [], agentTest: { passed: 16, cases: 26, runs: 1, perChat: 0 } },
-        { id: 'gemma4:12b', jobs: [], agentTest: { passed: 13, cases: 26, runs: 1, perChat: 0 } },
+        { id: 'ornith:9b', jobs: [], agentTest: { passed: 23, cases: 34, runs: 1, perChat: 0, suiteHash: '38728db81118' } },
+        { id: 'gemma4:12b', jobs: [], agentTest: { passed: 18, cases: 34, runs: 1, perChat: 0, suiteHash: '38728db81118' } },
+        { id: 'granite4.1:8b', jobs: [], agentTest: { passed: 14, cases: 34, runs: 1, perChat: 0, suiteHash: '38728db81118' } },
     ],
     openrouter: [],
     openai: [],
