@@ -38,7 +38,7 @@
  * Nothing here ever sees it.
  */
 
-import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe } from '../data/recipes/registry.js';
+import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences } from '../data/recipes/registry.js';
 import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
@@ -339,6 +339,17 @@ export function resolveMode(recipeId, asked) {
     if (asked && modes[asked]) return asked;
     if (modes[DEFAULT_MODE]) return DEFAULT_MODE;
     return Object.keys(modes)[0];
+}
+
+/**
+ * The recipe mode an op asks for (MPI-1006). Until this existed the Enhance dialog sent no
+ * mode, so every op ran `t2v`: Seedance's and Kling's `i2v` and H3's `i2v`/`r2v` had never
+ * once been reachable from the button. `_ms` twins share their base op's mode.
+ */
+export function recipeModeForOp(op) {
+    if (/^ref2v/.test(op || '')) return 'r2v';
+    if (/^i2v/.test(op || '')) return 'i2v';
+    return DEFAULT_MODE;
 }
 
 /**
@@ -742,7 +753,9 @@ export async function enhanceFlow({ prompt, injectionParams, modelId = null } = 
  * @param {string}  a.prompt        the user's short prompt
  * @param {object}  a.model         the model card being generated with
  * @param {string} [a.recipeKey]    defaults to `model.enhanceRecipe ?? model.type`
- * @param {string} [a.mode]         recipe mode; defaults to `t2v`
+ * @param {string} [a.mode]         recipe mode; defaults to the op's (`recipeModeForOp`)
+ * @param {string} [a.operation]    the op being generated, which picks the mode
+ * @param {string[]} [a.references] staged reference tags (`@image1`), sent on an r2v run only
  * @param {string} [a.backend]      explicit override; defaults to the preference, then ComfyUI
  * @returns {Promise<{ok:boolean, text?:string, negativeText?:string, backend?:string,
  *                    model?:string, recipeId?:string, fellBack?:boolean, note?:string,
@@ -751,13 +764,13 @@ export async function enhanceFlow({ prompt, injectionParams, modelId = null } = 
  *          parsed. `text` is then the positive half alone — the caller must not
  *          re-split it.
  */
-export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) {
+export async function enhance({ prompt, model, recipeKey, mode, operation, references, backend } = {}) {
     const idea = String(prompt || '').trim();
     if (!idea) return { ok: false, error: 'Write a prompt first, then Enhance.' };
 
     const { recipeId, fellBack } = resolveRecipeId(recipeKey ?? model?.enhanceRecipe ?? model?.type);
     const recipe = getRecipe(recipeId);
-    const resolvedMode = resolveMode(recipeId, mode);
+    const resolvedMode = resolveMode(recipeId, mode ?? recipeModeForOp(operation));
     const modeRecipe = recipe?.modes?.[resolvedMode];
     if (!modeRecipe) {
         return { ok: false, error: `No enhancer recipe for "${recipeId}" (mode "${resolvedMode}").` };
@@ -768,6 +781,8 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
     // the register axis is v1.1 (MPI-19/MPI-24); a recipe without
     // `styleVocabulary` is byte-identical whatever style is asked for.
     const system = composeSystemPrompt(modeRecipe);
+    // MPI-1006: only an r2v mode is told what is staged; it cites those tags and no others.
+    const userText = resolvedMode === 'r2v' ? withReferences(idea, references ?? []) : idea;
 
     const chosen = chooseBackend({ override: backend ?? await runnableBackend(backendPreference()) });
 
@@ -776,11 +791,11 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
 
     const result = chosen === 'comfy'
         ? await runComfyEnhance({
-            prompt: idea,
+            prompt: userText,
             injectionParams: { ...buildComfyInjectionParams(system), ...(await borrowedClipParams(model)) },
         })
         : await runServerBackend({
-            prompt: idea,
+            prompt: userText,
             system,
             backend: chosen,
             modelId: resolvedModelId,

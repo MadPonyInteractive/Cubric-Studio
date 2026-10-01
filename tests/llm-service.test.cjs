@@ -36,6 +36,7 @@ const {
     buildComfyInjectionParams,
     resolveRecipeId,
     resolveMode,
+    recipeModeForOp,
     COMFY_ENHANCE_OVERRIDES,
     enhancerGraphDefaults,
     postProcessLikeGraph,
@@ -58,7 +59,7 @@ const {
 } = require('../js/services/llmService.js');
 const { Storage } = require('../js/core/storage.js');
 const { canonicalizeInjectionKeys } = require('../js/utils/injectionKeys.js');
-const { FALLBACK_RECIPE_ID } = require('../js/data/recipes/registry.js');
+const { FALLBACK_RECIPE_ID, selectSystemPrompt } = require('../js/data/recipes/registry.js');
 
 const WORKFLOW = (file) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'comfy_workflows', file), 'utf8'));
 
@@ -270,6 +271,53 @@ function testModeResolution() {
     assert.strictEqual(resolveMode('krea-2'), 't2v');
     assert.strictEqual(resolveMode('krea-2', 'r2v'), 't2v', 'an unsupported mode falls back, never returns undefined');
     assert.strictEqual(resolveMode('minimax-h3', 'r2v'), 'r2v');
+    assert.strictEqual(recipeModeForOp('ref2v'), 'r2v');
+    assert.strictEqual(recipeModeForOp('ref2v_ms'), 'r2v');
+    assert.strictEqual(recipeModeForOp('i2v_ms'), 'i2v');
+    assert.strictEqual(recipeModeForOp('t2v_ms'), 't2v');
+    assert.strictEqual(recipeModeForOp(undefined), 't2v');
+}
+
+async function testEnhanceRunsTheOpsMode() {
+    // MPI-1006: the Enhance dialog sent no mode, so every op ran `t2v` and the i2v/r2v
+    // modes were unreachable. The op now picks the mode; a recipe without it falls to t2v.
+    const realFetch = global.fetch;
+    const systems = [];
+    const prompts = [];
+    global.fetch = (url, init) => {
+        if (url === '/llm/enhance') {
+            systems.push(JSON.parse(init.body).system);
+            prompts.push(JSON.parse(init.body).prompt);
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, text: 'x', backend: 'b', model: 'm', models: [] }) });
+    };
+    setBackendPreference('ollama');
+    const cases = [
+        [{ enhanceRecipe: 'seedance-2.0' }, 'ref2v', 'seedance-2.0', 'r2v'],
+        [{ enhanceRecipe: 'seedance-2.0' }, 'i2v', 'seedance-2.0', 'i2v'],
+        [{ type: 'h3' }, 'ref2v_ms', 'minimax-h3', 'r2v'],
+        [{ type: 'h3' }, 'i2v_ms', 'minimax-h3', 'i2v'],
+        [{ enhanceRecipe: 'kling-3.0' }, 'i2v', 'kling-3.0', 'i2v'],
+        [{ enhanceRecipe: 'wan-2.2' }, 'ref2v', 'wan-2.2', 't2v'],
+    ];
+    try {
+        for (const [model, operation, recipeId, mode] of cases) {
+            const res = await enhance({ prompt: 'a cat', model, operation });
+            assert.strictEqual(res.ok, true, JSON.stringify(res));
+            assert.strictEqual(systems.at(-1), selectSystemPrompt(recipeId, mode), `${recipeId} on ${operation} must run ${mode}`);
+        }
+        // Only an r2v run is told what is staged: it cannot see the chips.
+        const seedance = { enhanceRecipe: 'seedance-2.0' };
+        await enhance({ prompt: 'a cat', model: seedance, operation: 'ref2v', references: ['@image1', '@audio1'] });
+        assert.strictEqual(prompts.at(-1), 'a cat\n\nAttached references, in load order: @image1, @audio1.');
+        await enhance({ prompt: 'a cat', model: seedance, operation: 'i2v', references: ['@image1'] });
+        assert.strictEqual(prompts.at(-1), 'a cat', 'an i2v run sends the idea alone');
+        await enhance({ prompt: 'a cat', model: seedance, operation: 'ref2v', references: [] });
+        assert.strictEqual(prompts.at(-1), 'a cat\n\nAttached references, in load order: none.', 'nothing staged is said out loud');
+    } finally {
+        delete _ls['cubric.llm.backend'];
+        global.fetch = realFetch;
+    }
 }
 
 // ── The DeepInfra key never reaches the renderer ─────────────────────────────
@@ -697,6 +745,7 @@ const tests = [
     testEnginesForwardTheTokenCap,
     testRecipeResolutionAndFallback,
     testModeResolution,
+    testEnhanceRunsTheOpsMode,
     testSecretsStoreDeepInfraSlot,
     testForkBridgeAnswersDeepInfraRequests,
     testModelNamesSayWhichSizeRuns,

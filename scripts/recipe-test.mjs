@@ -7,6 +7,7 @@
  *   node scripts/recipe-test.mjs <recipeId> [options]
  *
  *   --mode t2v|i2v|r2v  recipe mode (default t2v)
+ *   --ref-tiers         the job tiers as an r2v run sends them, staged @ tags attached (REF_INPUTS)
  *   --backend B         where the ENHANCER runs: ollama (default) | comfy | deepinfra
  *   --engine <id|name>  the enhancer LLM: a registry id, a raw Ollama name, or
  *                       (with --backend comfy) a CLIPLoader clip_name
@@ -38,7 +39,7 @@
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getRecipe } from '../js/data/recipes/registry.js';
+import { getRecipe, withReferences } from '../js/data/recipes/registry.js';
 import {
     avoidedTerms,
     composeSystemPrompt,
@@ -122,6 +123,22 @@ const TIERS = [
         input: 'a woman drinking coffee by a window',
     },
 ];
+
+/** `--ref-tiers` (MPI-1006): the four job tiers as an `r2v` run sends them, the staged
+ *  references appended by the app's own `withReferences`. Two tiers tag nothing in the text
+ *  (the mode must cite what is attached), two tag it (kept verbatim). The deterministic tag
+ *  check reads the whole input, so it demands every attached tag and forbids any other. */
+const REF_INPUTS = {
+    bare: withReferences('cat', ['@image1']),
+    medium: withReferences('The man from @image1 sitting on a rocking chair in @image2 with two cats at his feet by the fireplace, cosy warm atmosphere', ['@image1', '@image2']),
+    directed: withReferences(TIERS.find((t) => t.name === 'directed').input, ['@image1', '@video1']),
+    overlong: withReferences(`${TIERS.find((t) => t.name === 'overlong').input
+        .replace('a lone samurai warrior', 'the samurai warrior from @image1')
+        .replace('the edge of a cliff', 'the edge of the cliff in @image2')} He speaks in the voice of @audio1.`, ['@image1', '@image2', '@audio1']),
+};
+
+/** An `@image1` / `@Image 1` reference tag, as Seedance reads them. */
+const AT_TAG = /@(image|video|audio)\s?\d+/gi;
 
 const FILLER =
     /^\s*(here('s| is| are)|sure|certainly|okay|of course|absolutely|i've|i have|below is|this is|prompt:|enhanced prompt:|optimized prompt:)/i;
@@ -216,6 +233,22 @@ export function runChecks(tier, input, out, mode, style, isRegisterTier) {
             name: `forbidden: ${why}`,
             ok: !hit,
             detail: hit ? `FOUND: ${hit[0]}` : 'absent',
+        });
+    }
+
+    // MPI-1006: a tag is how a reference reaches the model, so it survives byte for byte
+    // and none is invented. Silent on inputs and outputs that carry no tag.
+    const tagsIn = new Set(input.match(AT_TAG) ?? []);
+    const tagsOut = out.match(AT_TAG) ?? [];
+    if (tagsIn.size || tagsOut.length) {
+        const missing = [...tagsIn].filter((t) => !tagsOut.includes(t));
+        const added = [...new Set(tagsOut)].filter((t) => !tagsIn.has(t));
+        checks.push({
+            name: 'reference tags kept verbatim',
+            ok: !missing.length && !added.length,
+            detail: missing.length || added.length
+                ? `missing: ${missing.join(' ') || '-'}  added: ${added.join(' ') || '-'}`
+                : [...tagsIn].join(' '),
         });
     }
 
@@ -403,10 +436,16 @@ async function main() {
     const only = arg('--tier');
     // A recipe without `styleVocabulary` has no register to test — running the
     // register tiers on it would fail four tiers for not having opted in yet.
-    const eligible = mode.styleVocabulary
-        ? TIERS
-        : TIERS.filter((t) => styleOf(t) === DEFAULT_STYLE);
-    const tiers = only ? eligible.filter((t) => t.name === only) : eligible;
+    const eligible = process.argv.includes('--ref-tiers')
+        ? TIERS.filter((t) => REF_INPUTS[t.name]).map((t) => ({ ...t, input: REF_INPUTS[t.name] }))
+        : mode.styleVocabulary
+            ? TIERS
+            : TIERS.filter((t) => styleOf(t) === DEFAULT_STYLE);
+    // An r2v run always carries the staged-references line, "none" included (llmService.enhance).
+    const sent = modeKey === 'r2v' && !process.argv.includes('--ref-tiers')
+        ? eligible.map((t) => ({ ...t, input: withReferences(t.input, []) }))
+        : eligible;
+    const tiers = only ? sent.filter((t) => t.name === only) : sent;
     if (!tiers.length) {
         console.error(
             `No tier "${only}" for this recipe. Eligible: ${eligible.map((t) => t.name).join(', ')}`,

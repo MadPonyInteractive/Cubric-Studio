@@ -112,6 +112,8 @@ export const RECIPE_ALIASES = {
     // green, its own `r2v` mode) had never once been reachable from the caller it
     // was written for. Measured 2026-08-10 by resolving every model key through
     // `resolveRecipe`; do not assume a recipe is reachable because it exists.
+    // The alias fixed the RECIPE only: its i2v/r2v MODES stayed unreachable until MPI-1006,
+    // because the Enhance dialog sent no mode (`recipeModeForOp`, llmService.js).
     h3: 'minimax-h3',
     // `chroma` needs no alias — it matches a recipe id exactly.
 };
@@ -141,6 +143,17 @@ export function getRecipe(modelId) {
 export function resolveRecipe(key) {
     const aliased = RECIPE_ALIASES[key];
     return getRecipe(key) ?? (aliased ? getRecipe(aliased) : undefined);
+}
+
+/**
+ * The enhancer's user message on an `r2v` run (MPI-1006): the idea, then the references the
+ * user staged, by the tag the target model reads. The enhancer cannot see a reference, so this
+ * line is the only way it knows which tags are real. Shared with `scripts/recipe-test.mjs`, so a
+ * sweep tests the exact text the app sends. "none" is said out loud: with no line at all the
+ * 12B enhancer invented `@image1` in 15 of 15 runs (MPI-1006 sweep s5).
+ */
+export function withReferences(idea, references = []) {
+    return `${idea}\n\nAttached references, in load order: ${references.length ? references.join(', ') : 'none'}.`;
 }
 
 /** All recipes, for the target picker. */

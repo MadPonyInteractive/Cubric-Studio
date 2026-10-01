@@ -40,3 +40,7 @@ verbatim): `CINEDANCE HIGGSFIELD SKILL.md` (byte-identical to the copy Fabio re-
 
 - Future movie system (Fabio 2026-10-01, "plan for future releases"): ACTING SKILL's per-character
   master acting profile + one locked voice prompt, rewritten per scene. No card made.
+- Wan 3.0 `ref2v` (`wan3-cloud`) enhances with `wan-2.2`, which has only a `t2v` mode, so Enhance
+  may drop its `<Image 1>` tags the same way. Not this card's recipe.
+- The shared `ref2v` op help (`commandRegistry.js` ~:780) shows `<Image 1>` examples, which on
+  Seedance is the sound-effect mark; the help is shared with Wan 3.0.

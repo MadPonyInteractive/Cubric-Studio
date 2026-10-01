@@ -88,6 +88,27 @@ What the reference op will need, from rows 11 and 12, so its planner does not re
 - DeepInfra's `ByteDance/Seedance-2.0` takes `reference_images`, `reference_videos`,
   `reference_audios` and `last_frame_image` as URLs; its page carries no prompting guidance.
 
+### The `r2v` mode, MPI-1006 (2026-10-01): built from the notes above, Stage 1 only
+
+Sources: rows 11-13 and the notes above, no new reading; the CINEDANCE rules it uses (active
+tags only, anchor lines ending in a match lock, a location gives the place, not the framing; an
+acting line leads with its tag, states not transitions) are paraphrased in the recipe header.
+
+In-house measurement (Stage 1, text only; gemma-4-abliterated-12b, judge gemma-3-12b, 3 runs per
+tier; the full table is in the card's `validation.md`):
+
+- **The enhancer must be told which tags exist.** Told nothing, a 12B in a reference mode cites
+  `@image1` anyway: 15/15 runs with no rule, 3/15 after four rule passes, and it stopped moving.
+  The app now appends `Attached references, in load order: @image1, @audio1.` (`withReferences`,
+  `js/data/recipes/registry.js`); with that line, 24/24 across two sweeps, tagged and untagged text.
+- **"none" is said out loud.** With no line at all, 15/15 invented a tag; with `...: none.`, 9/15
+  clean. Known limitation: pressing Enhance before staging anything can still add a tag.
+- The condense tier lands 201-233 words with three anchor lines; the ceiling is t2v's 240.
+- The judge passes outputs that keep a tagged subject's looks, name an emotion or write
+  "masterpiece"; only the deterministic checks catch tags, millimetres and length. Read outputs,
+  not the count.
+- Stage 2 (a paid render) not run.
+
 ## Status
 
 Sources captured. Research complete — 7 standard questions + i2v follow-up

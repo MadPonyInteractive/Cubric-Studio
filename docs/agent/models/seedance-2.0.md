@@ -2,7 +2,7 @@
 
 Seedance 2.0 ships as one Vision card, `seedance-2-cloud`. It is a **cloud** card: no weights, no ComfyUI graph, no engine. It runs at DeepInfra on the user's own API key. "Installed" means a key is saved. The cost of a run is on the estimate card; show the user that before a run, never a figure from memory.
 
-Three ops, `t2v`, `i2v` and `ref2v`; the recipe has a mode for the first two only (write `ref2v` prompts from the section below). The model makes picture and sound together.
+Three ops, `t2v`, `i2v` and `ref2v`, and the recipe has a mode for each (`ref2v` is its `r2v` mode). The model makes picture and sound together.
 
 This file is the router. Five sub-skills hold the detail; the table near the end says which one a request needs. Read it with `read_knowledge` and its id before writing that part of the prompt.
 
@@ -55,7 +55,7 @@ With a last frame too, write the motion that gets from one picture to the other;
 
 The prompt shape above still holds; the references only replace description. From a production prompt-writing skill built on real Seedance work, which outranks the blog research behind the rest of this page (MPI-911), and ByteDance's own guide:
 
-- Name each reference with an @ tag by load order, counted per type: `@image1`, `@image2`, `@video1`, `@audio1`. Load order is the order the user staged them in the prompt box, which is the order the app sends them. If the user named a tag, use theirs. **Never in angle brackets**: `<...>` is Seedance's sound-effect mark, even though the prompt box's reference picker writes `<Image 1>`. ByteDance's own examples write `@Image 1`; same reference, either form.
+- Name each reference with an @ tag by load order, counted per type: `@image1`, `@image2`, `@video1`, `@audio1`. Load order is the order the user staged them in the prompt box, which is the order the app sends them. If the user named a tag, use theirs. **Never in angle brackets**: `<...>` is Seedance's sound-effect mark. The prompt box's `@` picker writes `@image1` on this model. ByteDance's own examples write `@Image 1`; same reference, either form. Keep whatever form the user wrote, and never add a tag the user did not stage.
 - Open with the active references: one short anchor line per tag (age, build, current state, the few visible marks that matter for this shot), ending with a lock that it matches the reference exactly. The picture carries the look; a long description fights it. State small text, logos and exact colours in words anyway: the model can drop them.
 - Give every reference a job: "the street in @image2", "the dance moves of @video1", "the voice of @audio1". A reference staged but never named leaves the model guessing.
 - Reuse the same tag on every mention. Tag a reference only in a shot where it appears: a tag in a shot forces its subject into frame.
@@ -119,7 +119,7 @@ Adapt the shape; never send an example as it stands.
 
 ## Status
 
-The recipe is `draft`: its shape follows ByteDance's published guide and a serving platform's production skill, and it passes the text checks, but no render has confirmed it yet. Treat the shape as sound and a surprising result as evidence worth reporting. `ref2v` has no recipe mode yet and no in-app render behind it (MPI-910): the section above rests on the production skill and ByteDance's guide, not on our own renders.
+The recipe is `draft`: its shape follows ByteDance's published guide and a serving platform's production skill, and it passes the text checks, but no render has confirmed it yet. Treat the shape as sound and a surprising result as evidence worth reporting. `ref2v` has one in-app render behind it (MPI-910) and a text-checked recipe mode (MPI-1006); the section above still rests mainly on the production skill and ByteDance's guide.
 
 ## Sources
 

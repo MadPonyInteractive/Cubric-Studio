@@ -55,6 +55,8 @@ import { qs } from '../../../utils/dom.js';
  * Props:
  * @param {string}  [prompt='']     the user's short prompt, pre-filled into the upper box
  * @param {object}  [model]         the model card — picks the recipe and the backend
+ * @param {string}  [operation]     the selected op — picks the recipe's mode (i2v, r2v)
+ * @param {string[]} [references]   the staged reference tags (`@image1`), for an r2v mode
  * @param {{positive?: string, negative?: string, note?: {text: string, kind: string}}} [enhanced]
  *                                  an existing enhancement to reopen on, restored into
  *                                  the lower boxes so OK / Cancel are non-destructive.
@@ -170,7 +172,7 @@ export const MpiEnhanceDialog = ComponentFactory.create({
             runBtn.el.setLabel?.('Enhancing…');
             _note('');
             try {
-                const result = await enhanceLocally({ prompt: shortText, model: props.model });
+                const result = await enhanceLocally({ prompt: shortText, model: props.model, operation: props.operation, references: props.references });
                 if (!result.ok) {
                     _note(result.error || 'Enhance failed.', 'warn');
                     return;

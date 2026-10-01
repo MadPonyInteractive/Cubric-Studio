@@ -2323,6 +2323,9 @@ export const MpiPromptBox = ComponentFactory.create({
             _enhanceDialog = MpiEnhanceDialog.mount(document.createElement('div'), {
                 prompt: positiveValue,
                 model,
+                operation: activeOperation,
+                // MPI-1006: an r2v recipe cannot see the chips, so it is told their tags.
+                references: _stagedRefTags().map(entry => refTagHandle(entry.tag, model)),
                 // Reopening on an existing enhancement, so Cancel is non-destructive and
                 // OK is not the only way to keep what is already approved. `note` rides
                 // along because it is the only surface the FALLBACK WARNING has: without
