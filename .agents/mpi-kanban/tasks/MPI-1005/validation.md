@@ -7,7 +7,8 @@
   New: `tests/agent-loop.test.cjs` § "MPI-1005 — the review card" (10 tests): card emitted with the
   field's text and nothing run; Review opens, Just do it runs once, each with ONE model call total;
   a refused run goes back to the model; a typed reply / reset runs nothing; a boolean on a review
-  card and 'run' on an install card are both `BAD_CHOICE`; `open: true` and a Flow without a review
+  card is refused (`ok: false`, card still pending; the code is `BAD_CHOICE` in `confirm()`, not
+  asserted) and 'run' on an install card is asserted `BAD_CHOICE`; `open: true` and a Flow without a review
   raise no card; a queued (non-wake) message answers a review card as 'replied', never a spend card.
   `tests/agent-flow-handover.test.cjs`: Song declares `agentReview: 'Input_Lyrics'`, a real field.
 - `npx playwright test --config=playwright.desktop.config.js tests/desktop/agent-chat.spec.js -g "review card"`

@@ -30,7 +30,8 @@ right must be in one of the three rows, and the system prompt is not a fourth** 
 Any Flow can also be opened with `open: true` when the user wants to adjust it or it lacks something
 only they have (a voice sample): nothing to declare. Ask-first was prose in `flows.md` until
 MPI-1005, and the model skipped it once: declare `agentReview`, never an `[options]` paragraph.
-The card's button reads "Review lyrics" (Song's words); a second reviewing Flow names its own.
+The card's button reads "Review lyrics" (Song's words), HARD-CODED in `MpiAgentChat._appendReview`:
+a second reviewing Flow must first make the card name its own field.
 
 Pin the decision in `tests/agent-flow-handover.test.cjs`: an opening Flow goes in the `want` map
 (id → the step kind, which must exist in its `steps`), a running Flow in the `runs` list. Two more
