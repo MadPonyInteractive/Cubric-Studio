@@ -136,3 +136,50 @@ advantage.
 - **MPI-344** - Vast.ai as a second option to runpod. Original card text: `tasks/MPI-344/task.json`.
 
 Why one card: Both are watch/research on the same question - how the app gets a GPU when RunPod cannot give it one. Deploy-when-available, the network-volume availability crunch and a second provider are three answers to that question and get decided together, not one at a time.
+
+---
+
+## Part 4 - RunPod global volumes (beta since 15 Sep 2026) - WATCH until GA
+
+Added 2026-10-01. **No decision while it is beta (Fabio, 2026-10-01).** Come back when RunPod
+announces general availability.
+
+### What shipped
+
+"Elastic, region-independent storage you can attach to any Pod from any Runpod data center"
+(release notes, 15 Sep 2026). A Pod takes at most one global volume plus one network volume.
+Beta: "Features and behavior may change before general availability."
+
+### Why it matters to us
+
+Our remote engine pins the model library to ONE network volume locked to ONE data center
+(`docs/runpod-remote-engine.md` § 5), so Connect needs a GPU in that DC. A volume that
+attaches from any DC would remove the dry-DC problem Part 2 is about, and would weaken the
+case for ephemeral-first (Part 2) and for Vast.ai (Part 3) further.
+
+**Product angle - a cheap Community tier (Fabio, 2026-10-01).** Network volumes are Secure
+Cloud only ("Network volumes are only available for Pods in the Secure Cloud" -
+docs.runpod.io/storage/network-volumes), which is half of why the app is Secure-only
+(`docs/runpod-remote-engine.md:15`). If global volumes attach to **Community Cloud** Pods,
+we could offer an opt-in "cheaper, less stable" Community option to price-sensitive users who
+keep their model library. Not for everyone - some users would take it.
+
+### Unknown as of 2026-10-01 (docs checked, not the console)
+
+- Works on Community Cloud Pods, or Secure only? Docs are silent.
+- Price per GB/month vs a network volume. Not published on the beta page.
+- Model load speed vs a network volume (the LTX transformer alone is 41 GB).
+- API: `POST /pods` has no global-volume field (only `networkVolumeId`, `volumeInGb`), so
+  the app cannot attach one yet.
+
+### Re-open condition
+
+GA announced AND a REST or GraphQL field to attach a global volume at Pod create. Then, in
+order: (1) does it attach to a Community Pod, (2) price, (3) cold-start to first generation
+vs the DC-locked volume. Those three decide whether it replaces the DC-locked volume and
+whether a Community tier is worth building.
+
+Sources: https://docs.runpod.io/release-notes ,
+https://docs.runpod.io/storage/globalvolume/globalvolume-pods ,
+https://docs.runpod.io/storage/network-volumes ,
+https://docs.runpod.io/api-reference/pods/POST/pods (all checked 2026-10-01).
