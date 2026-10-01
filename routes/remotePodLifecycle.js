@@ -629,9 +629,7 @@ async function _podRuntimeStatus(podId) {
     // route can self-heal _mode.active. A network throw (caught below) is NOT
     // absence, so this flag only flips on a real HTTP response.
     _lastPodAbsent = (r && r.status === 404);
-    // REST shape varies; v2 uses `status`, v1 used `desiredStatus`. Normalise to uppercase.
-    const raw = p.desiredStatus || p.currentStatus || p.status || null;
-    _lastPodStatus = raw ? String(raw).toUpperCase() : null;
+    _lastPodStatus = _podStatusOf(p);
     // MPI-135 (C): grab maintenance off the machine object from this same call.
     // A maintenanceStart (with no past maintenanceEnd) means the host is draining —
     // bail early instead of waiting out the watchdog on a doomed host.
@@ -674,6 +672,12 @@ function _isPodDead(podStatus, connecting, absent) {
 function _isPodImageStale(pod, wantImage) {
   const image = pod && (pod.image || pod.imageName);
   return !!image && image !== wantImage;
+}
+
+// REST shape varies; v2 uses `status`, v1 used `desiredStatus`. Normalised to uppercase.
+function _podStatusOf(pod) {
+  const raw = pod && (pod.desiredStatus || pod.currentStatus || pod.status);
+  return raw ? String(raw).toUpperCase() : null;
 }
 
 function _selfHealIfPodDead(podStatus, connecting) {
@@ -1170,6 +1174,18 @@ router.post('/remote/pod/reconnect', async (req, res) => {
     _startedPodId = podId;
     setRemoteMode({ active: true, podId, noGpu, gpuTypeId });
 
+    // 0. Read the saved Pod once. Its IMAGE decides resume vs recreate (2a), and its
+    //    STATUS says whether it is already up: v2 answers `start` on a RUNNING Pod with
+    //    an error that is not v1's 400 (`action "start" is not valid for status
+    //    "RUNNING"`), so a Pod left running by a crash or force-quit was deleted and
+    //    recreated on the next launch, hot store and warm image thrown away (seen live
+    //    2026-10-01, Linux box). An unreadable Pod fails open to the old path.
+    const wantImage = podImageForCard(gpuTypeId);
+    const pod = await client.getPod(key, podId).catch(() => null);
+    const podJson = pod && pod.ok ? pod.json : null;
+    const stale = _isPodImageStale(podJson, wantImage);
+    const running = !stale && _podStatusOf(podJson) === 'RUNNING';
+
     // 1. Availability pre-check — a STOPPED Pod can only resume where its GPU type
     //    is free; if the saved GPU is gone, recreating on it would also fail. A CPU
     //    "download mode" Pod (MPI-88) has no GPU type to check, so the gate is skipped
@@ -1181,7 +1197,9 @@ router.post('/remote/pod/reconnect', async (req, res) => {
     //    An ephemeral no-volume Pod (MPI-78) has no datacenter to scope the check to
     //    (it was auto-placed); skip the gate and let startPod try — if the host is
     //    full, the start-fail path below deletes + recreates fresh (auto-placed again).
-    const skipAvailCheck = noGpu || !datacenter;
+    //    A RUNNING Pod holds its own card, so the gate could read "unavailable" and
+    //    delete the very Pod the user is connecting to: skipped for it too.
+    const skipAvailCheck = noGpu || !datacenter || running;
     const available = skipAvailCheck || await _isGpuAvailable(key, gpuTypeId, datacenter);
     if (!available) {
       await _deleteTrackedPod(key);
@@ -1192,15 +1210,13 @@ router.post('/remote/pod/reconnect', async (req, res) => {
     //    is fast; the boot/ready wait is long, so on a successful start return
     //    `starting` and let the renderer poll /remote/comfy/status (no 504).
     // 2a. MPI-668: a Pod on another image than this app creates with is recreated,
-    //     never resumed. An unreadable Pod fails open (resume as before).
-    const wantImage = podImageForCard(gpuTypeId);
-    const pod = await client.getPod(key, podId).catch(() => null);
-    const stale = !!(pod && pod.ok && _isPodImageStale(pod.json, wantImage));
+    //     never resumed.
     if (stale) {
-      logger.warn('runpod', `Pod ${podId} runs ${pod.json.image || pod.json.imageName}, this app needs ${wantImage}; recreating it`);
+      logger.warn('runpod', `Pod ${podId} runs ${podJson.image || podJson.imageName}, this app needs ${wantImage}; recreating it`);
     } else {
-      const started = await client.startPod(key, podId);
-      const startOk = started.ok || started.status === 400; // 400 ~ already running
+      // A RUNNING Pod is attached as it is; `start` is only for a stopped one.
+      const started = running ? { ok: true } : await client.startPod(key, podId);
+      const startOk = started.ok || started.status === 400; // 400 ~ already running (v1)
       if (startOk) {
         logger.info('runpod', `Pod resume kicked off: ${podId}; renderer will poll for ready`);
         kicked = true;
@@ -1797,4 +1813,4 @@ router.post('/remote/pod/cleanup-orphans', async (req, res) => {
   }
 });
 
-module.exports = { router, remoteVolumeFreeBytes, resolveDiskTotalBytes, _isPodDead, _isPodImageStale, _clampVolumeDisk, compareVolumeAccounting, _createPodInternal, CPU_FLAVORS };
+module.exports = { router, remoteVolumeFreeBytes, resolveDiskTotalBytes, _isPodDead, _isPodImageStale, _podStatusOf, _clampVolumeDisk, compareVolumeAccounting, _createPodInternal, CPU_FLAVORS };

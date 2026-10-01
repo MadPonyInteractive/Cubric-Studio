@@ -200,6 +200,7 @@ test('remoteProxy reconnect returns unavailable when the saved GPU is no longer 
         },
         client: {
             dataCenters: async () => [{ id: 'eu-1', gpuAvailability: [] }],
+            getPod: async () => ({ ok: true, status: 200, json: { status: 'EXITED' } }),
             deletePod: async (_key, podId) => {
                 deleted.push(podId);
                 return { ok: true, status: 200, json: {} };
@@ -315,6 +316,69 @@ test('remoteProxy reconnect recreates a pod on an old image instead of resuming 
             assert.equal(createCalls.length, 1);
             assert.notEqual(createCalls[0].imageName, 'docker.io/madponyinteractive/cubric-vision-pod:v0.1.0-cu130');
             assert.equal(createCalls[0].networkVolumeId, 'vol-1', 'the volume (and its models) is kept');
+        });
+    } finally {
+        harness.cleanup();
+    }
+});
+
+// v2 answers `start` on a RUNNING Pod with `action "start" is not valid for status
+// "RUNNING"` (not v1's 400), so a Pod left running by a crash was deleted and recreated on
+// the next launch (live 2026-10-01). A RUNNING Pod is attached as it is - no start, no
+// delete, no create - even when the availability gate would read its own card as taken.
+function reconnectHarness(podJson, calls) {
+    return loadRemoteProxyHarness({
+        remoteEngine: {
+            getRunPodApiKey: async () => 'rpa_fake_key',
+            getWrapperToken: async () => 'wrapper-token',
+            setWrapperToken: async () => {},
+            clearWrapperToken: async () => {},
+            generateWrapperToken: () => 'generated-token',
+            waitForWrapperReady: async () => ({ ready: true, health: { ready: true } }),
+            proxyUrl: (podId) => `https://${podId}.proxy.test`,
+        },
+        client: {
+            dataCenters: async () => [{ id: 'eu-1', gpuAvailability: [] }], // card reads as taken
+            getPod: async () => ({ ok: true, status: 200, json: podJson }),
+            startPod: async (_key, podId) => { calls.start.push(podId); return { ok: true, status: 200, json: {} }; },
+            deletePod: async (_key, podId) => { calls.del.push(podId); return { ok: true, status: 200, json: {} }; },
+            createPod: async (_key, spec) => { calls.create.push(spec); return { ok: true, status: 200, json: { id: 'pod-new' } }; },
+            listPods: async () => ({ ok: true, status: 200, json: [] }),
+        },
+    });
+}
+
+async function postReconnect(baseUrl) {
+    const res = await fetch(`${baseUrl}/remote/pod/reconnect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ podId: 'pod-old', gpuTypeId: 'gpu-x', datacenter: 'eu-1', volumeId: 'vol-1' }),
+    });
+    assert.equal(res.status, 200);
+    return res.json();
+}
+
+test('remoteProxy reconnect attaches a RUNNING pod as it is (no start, delete or create)', { concurrency: false }, async () => {
+    const calls = { start: [], del: [], create: [] };
+    const harness = reconnectHarness({ status: 'RUNNING' }, calls);
+    try {
+        await withServer(harness.remoteProxy.router, async (baseUrl) => {
+            assert.deepEqual(await postReconnect(baseUrl), { starting: true, ready: false, podId: 'pod-old', recreated: false });
+            assert.deepEqual(calls, { start: [], del: [], create: [] });
+        });
+    } finally {
+        harness.cleanup();
+    }
+});
+
+test('remoteProxy reconnect still gates and starts a STOPPED pod', { concurrency: false }, async () => {
+    const calls = { start: [], del: [], create: [] };
+    const harness = reconnectHarness({ desiredStatus: 'EXITED' }, calls);
+    try {
+        await withServer(harness.remoteProxy.router, async (baseUrl) => {
+            // Its card is taken: the gate still applies to a stopped Pod.
+            assert.deepEqual(await postReconnect(baseUrl), { unavailable: true, gpuTypeId: 'gpu-x' });
+            assert.deepEqual(calls.start, []);
         });
     } finally {
         harness.cleanup();
