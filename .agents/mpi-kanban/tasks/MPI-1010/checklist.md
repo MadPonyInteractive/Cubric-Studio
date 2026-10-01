@@ -28,4 +28,4 @@ card was a 16K PNG (the card loaded the 369 MB original; MPI-963 shows the thumb
       tree matches the 1.6.3 full stage (7213 / 0 missing / 0 wrong)
 - [x] Boot the patched install off-screen: serves 1.6.3, no new error in `app.log`
 - [x] Save the 1.6.3 baseline manifest + handover note beside the zip
-- [ ] CI green on the pushed stamp commit, then close
+- [x] CI green on the pushed commits: `Tests` #1442 success on `28833e5a2` (stamp `8e93f72ae` under it)
