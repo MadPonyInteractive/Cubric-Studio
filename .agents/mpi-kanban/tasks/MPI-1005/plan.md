@@ -87,4 +87,9 @@ before editing; line numbers drift.
 2026-10-01: ALL STEPS DONE. Built and green (agent + connector + flow node tests, the full
 agent-chat desktop spec); Fabio's look "1"; cut-off default 360 on his yes. Docs:
 `docs/agent-chat.md` § Handing a Flow over, add-flow playbook 01 / 07 / README / existing-flows
-song.md. Next: close-out (commit, push, card to done).
+song.md. Code PUSHED as `2eb6bea46` (scratch-index commit: the root `events.jsonl` carries a
+peer's whole-file re-EOL/reorder, NOT committed; only MPI-1005's two lines went in). Card left in
+`doing`/validating: close-out.md forbids the done move until CI judges `2eb6bea46`, and the done
+move must be its OWN commit. Next: `gh run list --branch master --workflow tests.yml --limit 5`,
+green -> `task_ops move MPI-1005 --to done` + commit the board/card files the same way
+(`blobs1005.py done` recipe: HEAD + only this card's lines).
