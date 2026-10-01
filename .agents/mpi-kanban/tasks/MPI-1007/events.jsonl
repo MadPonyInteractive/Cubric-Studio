@@ -2,3 +2,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1007", "at": "2026-10-01T08:55:35+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting: Klein 9B measured table, green bar"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1007", "at": "2026-10-01T09:01:00+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped e4101ec96; waits on Fabio's eye test of the green Gen speed bar"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1007", "at": "2026-10-01T09:04:33+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Fabio's look passed; adding fastest-first tile order"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1007", "at": "2026-10-01T09:05:34+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "fe47d6f8c pushed; closes when its CI run is green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1007", "at": "2026-10-01T09:18:14+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on fe47d6f8c and e4101ec96; Fabio's look passed"}

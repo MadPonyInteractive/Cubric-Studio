@@ -32,3 +32,10 @@
   move a tile.
 - `node --test tests/gpu-picker.test.cjs`: 8/8 pass, incl. the new order test (PRO 6000 SE,
   5090, 4090, then the unbenchmarked L4; CPU first). Existing VRAM/price order tests unchanged.
+- Fabio saw the sorted picker in his app (2026-10-01): "the way it's set up and sorted is very good".
+
+## Close
+- CI green on both commits: e4101ec96 and fe47d6f8c (run 36834177035).
+- Follow-up lives outside the board: the weekly Desktop scheduled task
+  `runpod-ltx-benchmarks-check` (Mondays 09:03) reports when RunPod publishes per-card LTX-2.3
+  times; then a video bar, or one merged image+video bar, is a new card.
