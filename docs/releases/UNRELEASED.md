@@ -48,6 +48,10 @@
   RunPod switches off the connection every version before 2.0 uses to rent GPUs. 2.0 uses the
   new one.
 
+- **Updating? section:** **Your first Connect after updating sets up a fresh Pod.** A Pod keeps
+  the version it was made with, so 2.0 replaces the one an older version made instead of
+  reusing it. The models on your network volume stay; only that first Connect takes longer.
+
 - **First launch, Windows:** If double-clicking `CubricStudio.exe` does nothing, with no
   message at all, Windows' Smart App Control may have blocked it. It cannot make an exception
   for one app, and the builds are not code-signed yet, so there is nothing to click. Signing is
