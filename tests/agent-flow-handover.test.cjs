@@ -54,10 +54,21 @@ test.describe('which Flows open for the user (Fabio\'s sort)', () => {
 
     test('every other Flow is the agent\'s to run', () => {
         const runs = listFlows().filter((f) => !f.agentOpens).map((f) => f.id);
-        // Song too: the agent asks "Review lyrics | Just do it" first (Fabio, round 2).
+        // Song too: the app asks "Review lyrics | Just do it" first, on a card (MPI-1005).
         for (const id of ['character-sheet', 'outpaint', 'ltx-extend', 'ltx-foley', 'ltx-upscale', 'stems', 'sound-and-music', 'chatter-box', 'voice-changer', 'minimax-music']) {
             assert.ok(runs.includes(id), `${id} should run`);
         }
+    });
+
+    test('Song\'s review card shows a field it really has (MPI-1005)', () => {
+        const flow = getFlowById('minimax-music');
+        assert.equal(flow.agentReview, 'Input_Lyrics');
+        assert.ok(flow.steps.some((s) => s.fields?.some((f) => f.id === flow.agentReview)));
+    });
+
+    test('Song\'s cut-off defaults to its maximum (Fabio, MPI-1005)', () => {
+        const cut = getFlowById('minimax-music').fields.find((f) => f.id === 'Input_Duration');
+        assert.equal(cut.default, cut.max);
     });
 });
 

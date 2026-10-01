@@ -70,7 +70,21 @@ before editing; line numbers drift.
 - The spend card must still appear for a paid Song run after `run` (Song is local, but keep the
   path shared).
 
+## Plan Drift
+
+- 2026-10-01 (session 585dd02b): a click ENDS THE TURN with no model call (`_reviewEnd`, the
+  carriedTo pattern), for review, run and replied alike; a run the app refuses goes back to the
+  model. The plan only said "resume"; resuming would still cost a model round to narrate the click.
+- `confirm()` now refuses a choice on a yes/no card too (`BAD_CHOICE`): 'run' is truthy and the
+  install branch read `if (!yes)`, so a choice posted to an install card would have installed.
+- `_historyEntry` lets a card's `kind` overwrite the entry kind (pre-existing: batch/spend entries
+  are 'batch'/'spend'), so the review entry is kind `review`; the chat redraws it answered from that.
+- Extra files: `js/services/agentService.js` (posts `choice`), `tests/desktop/agent-chat.spec.js`,
+  `tests/agent-flow-handover.test.cjs`, and the docs below.
+
 ## Current State
 
-2026-10-01: created and planned from MPI-1002's look. Not started. Next: claim, move to doing,
-step 1.
+2026-10-01: ALL STEPS DONE. Built and green (agent + connector + flow node tests, the full
+agent-chat desktop spec); Fabio's look "1"; cut-off default 360 on his yes. Docs:
+`docs/agent-chat.md` § Handing a Flow over, add-flow playbook 01 / 07 / README / existing-flows
+song.md. Next: close-out (commit, push, card to done).

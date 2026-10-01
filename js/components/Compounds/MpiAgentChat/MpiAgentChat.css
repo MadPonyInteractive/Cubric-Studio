@@ -467,6 +467,19 @@
     margin-top: var(--s-1);
 }
 
+/* MPI-1005: the review card carries a whole song's lyrics, so it takes the reply's width,
+   and the box wraps and scrolls inside itself rather than running the card off the panel. */
+.mpi-agent-chat__confirm-card--review {
+    max-width: 100%;
+}
+
+.mpi-agent-chat__confirm-text pre {
+    margin: 0;
+    max-height: 320px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
 /* The agent's choices under its reply (MPI-941 Phase 7) */
 .mpi-agent-chat__options {
     display: flex;

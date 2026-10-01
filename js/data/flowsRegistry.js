@@ -140,6 +140,10 @@
  *                                       that needs the user's hands, or a result the user should
  *                                       read before the GPU spends. A required input the agent
  *                                       lacks still opens it on the inputs step instead.
+ * @property {string}   [agentReview]  - A field id (MPI-1005). The agent's run of this flow
+ *                                       first raises a card in the chat showing that field's
+ *                                       text, with Review (opens the flow, as `agentOpens`) and
+ *                                       Just do it (runs it). The click acts; no agent turn.
  * @property {{operation: string, when?: string, input?: string}} [chain] - A SECOND job run on
  *                                       leg 1's completion (flowService.js § TWO-LEG FLOWS):
  *                                       `operation` picks leg 2's graph. `when` names a declared
@@ -2084,8 +2088,9 @@ export const FLOWS = [
         ],
         operation: 'flowTextToMusic',
         workflow: 'flow_minimax_music.json',
-        // No `agentOpens`: the agent asks first, "Review lyrics | Just do it" (app:flows); a review
-        // opens on "Write the song" with the lyrics in, a yes runs it (Fabio, MPI-892).
+        // No `agentOpens`: the APP asks first, on a card showing the lyrics (MPI-1005); Review
+        // lyrics opens on "Write the song" with them in, Just do it runs it (Fabio, MPI-892).
+        agentReview: 'Input_Lyrics',
         mediaType: 'audio',
         type: 'create',
         // No `inputSchema` at all, and no `result.compare` — there is no BEFORE.
@@ -2411,11 +2416,11 @@ export const FLOWS = [
                 // Full table: `.agents/mpi-kanban/tasks/MPI-664/plan.md` § 3.
                 //
                 // So the honest control is a CEILING set high enough to never fire by
-                // accident. 300s default against a measured 33-90s of real output means
-                // the cut is reachable and effectively never reached. 360 is the MODEL'S
-                // OWN ceiling, not a round number: `MAX_AUDIO_FRAMES / FRAMES_PER_SECOND`
-                // = 9000 / 25 (`comfy/ldm/minimax_music/ar.py:21`), and the node clamps
-                // to it anyway.
+                // accident, and the default IS that ceiling (Fabio, 2026-10-01, MPI-1005:
+                // a song cut at 3 min after a ~10 min render; "leave the cut-off at its
+                // maximum"). It was 300. 360 is the MODEL'S OWN ceiling, not a round
+                // number: `MAX_AUDIO_FRAMES / FRAMES_PER_SECOND` = 9000 / 25
+                // (`comfy/ldm/minimax_music/ar.py:21`), and the node clamps to it anyway.
                 //
                 // No fade yet: nothing observed has reached the cap, so a fade would be
                 // machinery for an event that has not happened.
@@ -2427,7 +2432,7 @@ export const FLOWS = [
                 // `format: 'duration'` reads `m:ss` — the long "2 minutes 30 seconds"
                 // ran over the slider in this 236px column (Fabio, 2026-09-02).
                 id: 'Input_Duration', type: 'slider', label: 'Cut off at',
-                min: 30, max: 360, step: 5, default: 300, format: 'duration',
+                min: 30, max: 360, step: 5, default: 360, format: 'duration',
             },
             {
                 // A SET-ONCE MACHINE FACT (Fabio, 2026-09-02: "move Low VRAM off the

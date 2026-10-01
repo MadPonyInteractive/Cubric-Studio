@@ -180,7 +180,8 @@ Nor is it steerable by asking — naming a duration in the prose produced no ord
 median sparse vs ~55 s dense), which the enhancer now does as a side effect of writing an
 arrangement, but it is a nudge and cannot be sold as a length control. Table:
 `.agents/mpi-kanban/tasks/MPI-664/plan.md` § 3. So the honest control is a ceiling high enough
-never to fire by accident: **default 300 s against a measured 33–90 s of real output**.
+never to fire by accident: **the default is the ceiling, 360 s** (300 s until MPI-1005, Fabio
+2026-10-01: a song Cosmo cut at 3 min, after a ~10 min render, ended mid-song).
 `max: 360` is the MODEL'S own ceiling — `MAX_AUDIO_FRAMES / FRAMES_PER_SECOND` = 9000 / 25
 (`comfy/ldm/minimax_music/ar.py:21`) — and the node clamps to it anyway.
 

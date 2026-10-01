@@ -84,6 +84,11 @@ export class AgentSessions {
      */
     queue(turn) {
         this._queued.push(turn);
+        // MPI-1005: typing instead of clicking answers a review card ("change verse 2"). Left
+        // up, the card would hold the turn, and this message behind it, until a click.
+        const loop = !turn.wake && this._loops.get(projectKey(turn.project?.folderPath));
+        const pc = loop?._pendingConfirm;
+        if (pc?.kind === 'review') loop.confirm(pc.confirmId, 'replied');
     }
 
     /**

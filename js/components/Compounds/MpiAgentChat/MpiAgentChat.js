@@ -718,6 +718,7 @@ export const MpiAgentChat = ComponentFactory.create({
          */
         function _appendConfirm(data) {
             const { confirmId, kind, modelName, downloadGb, count, what, price } = data || {};
+            if (kind === 'review') return _appendReview(data, true);
             if (!confirmId || qs(`[data-confirm-id="${CSS.escape(confirmId)}"]`, transcript)) return;
             const isBatch = kind === 'batch';
             const isSpend = kind === 'spend';
@@ -802,6 +803,84 @@ export const MpiAgentChat = ComponentFactory.create({
             actionsEl.appendChild(yesBtn.el);
             actionsEl.appendChild(noBtn.el);
             card.appendChild(actionsEl);
+            div.appendChild(card);
+            transcript.appendChild(div);
+            _scrollBottom();
+        }
+
+        /** What a review card says once answered (MPI-1005). */
+        const REVIEW_PICKED = {
+            review: 'Opened for you to review.',
+            run: 'Started.',
+            replied: 'You wrote back instead.',
+        };
+
+        /**
+         * MPI-1005 — the review card (Fabio, 2026-10-01: "Buttons like this should just be
+         * commands that run as soon as we click them"). What the Flow is about to run on (Song's
+         * lyrics, as they will be sung) in the box the chat's code blocks use, and two buttons
+         * that act at once, with no agent turn. Typing instead answers it too: the server reads
+         * the message as the reply, so a send retires the buttons like the agent's own choices.
+         * `live` false draws it from history, read-only, saying what was picked.
+         *
+         * @param {{confirmId:string, flow?:string, text?:string, choice?:string}} data
+         * @param {boolean} live
+         */
+        function _appendReview({ confirmId, flow, text, choice } = {}, live) {
+            if (!confirmId || qs(`[data-confirm-id="${CSS.escape(confirmId)}"]`, transcript)) return;
+            const div = document.createElement('div');
+            div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--confirm';
+            div.dataset.confirmId = confirmId;
+            const card = document.createElement('div');
+            card.className = 'mpi-agent-chat__confirm-card mpi-agent-chat__confirm-card--review';
+
+            const titleEl = document.createElement('div');
+            titleEl.className = 'mpi-agent-chat__confirm-title';
+            titleEl.textContent = `Make this ${String(flow || 'Flow').toLowerCase()}?`;
+            card.appendChild(titleEl);
+
+            if (text) {
+                const box = document.createElement('div');
+                box.className = 'mpi-md mpi-agent-chat__confirm-text';
+                const pre = document.createElement('pre');
+                const code = document.createElement('code');
+                code.textContent = text;
+                pre.appendChild(code);
+                box.appendChild(pre);
+                card.appendChild(box);
+            }
+
+            const pickedEl = document.createElement('div');
+            pickedEl.className = 'mpi-agent-chat__confirm-size';
+            const _picked = (c) => { pickedEl.textContent = REVIEW_PICKED[c] || ''; };
+
+            if (live) {
+                const actionsEl = document.createElement('div');
+                actionsEl.className = 'mpi-agent-chat__confirm-actions';
+                // ponytail: Song is the one Flow with a review; name the field when a second one comes.
+                const reviewBtn = MpiButton.mount(document.createElement('div'), { text: 'Review lyrics', variant: 'secondary', size: 'sm' });
+                const runBtn = MpiButton.mount(document.createElement('div'), { text: 'Just do it', variant: 'primary', size: 'sm' });
+                const btns = [reviewBtn, runBtn];
+                _buttons.push(...btns);
+                _optionBtns.push(...btns);
+                const _respond = async (c) => {
+                    btns.forEach((b) => b.el.setDisabled?.(true));
+                    try {
+                        await agentPostConfirm(confirmId, c);
+                        _picked(c);
+                    } catch (err) {
+                        clientLogger.error('MpiAgentChat', 'review choice failed', err);
+                        btns.forEach((b) => b.el.setDisabled?.(false));
+                    }
+                };
+                reviewBtn.on('click', () => _respond('review'));
+                runBtn.on('click', () => _respond('run'));
+                actionsEl.append(reviewBtn.el, runBtn.el);
+                card.appendChild(actionsEl);
+            } else {
+                _picked(choice);
+            }
+            card.appendChild(pickedEl);
             div.appendChild(card);
             transcript.appendChild(div);
             _scrollBottom();
@@ -1057,6 +1136,10 @@ export const MpiAgentChat = ComponentFactory.create({
                     } else if (entry.kind === 'result') {
                         if (entry.ok && entry.output) _appendResult(entry.output, entry.toolCallId);
                         else if (!entry.ok && entry.error) _appendError(entry.error.code, entry.error.message);
+                    } else if (entry.kind === 'review' && entry.confirmId !== history.pendingConfirm?.confirmId) {
+                        // MPI-1005: an answered review card keeps its box, read-only. Its entry is
+                        // named by the card's `kind` ('review'), not 'confirm'.
+                        _appendReview(entry, false);
                     } else if (entry.kind === 'confirm') {
                         // Only render if this is the pending confirm (rendered below).
                         // Answered confirms are skipped — user already acted.

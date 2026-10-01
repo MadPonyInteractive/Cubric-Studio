@@ -94,6 +94,8 @@ cargo-cult install-sync machinery from modelRegistry).
                   //   user's hands are needed (a drawing, a placement) or a result is theirs to read
                   //   first; omit and the agent runs it. docs/agent-chat.md § Handing a Flow over;
                   //   everything else the agent needs to know about a flow is 07.
+  agentReview,    // optional (MPI-1005) — a field id: the agent's run first raises a card showing
+                  //   that field, Review (opens) / Just do it (runs), acted on with no agent turn.
 }
 ```
 

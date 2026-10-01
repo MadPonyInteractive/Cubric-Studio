@@ -1581,6 +1581,8 @@ function _listModels(jobId) {
             ...(cropStep ? { frame: { param: 'frame', role: cropStep.role, ratios: CROP_RATIO_LABELS, grow: FRAME_GROW_SIDES } } : {}),
             // MPI-892: the agent never runs this one; it opens it for the user at this step.
             ...(flow.agentOpens ? { opens: flow.agentOpens } : {}),
+            // MPI-1005: the app asks before running this one, showing this field.
+            ...(flow.agentReview ? { review: flow.agentReview } : {}),
         };
     });
 

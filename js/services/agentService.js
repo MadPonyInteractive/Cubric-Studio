@@ -312,14 +312,14 @@ export async function agentReset(folderPath) {
 /**
  * POST /agent/confirm
  * @param {string}  confirmId
- * @param {boolean} yes
+ * @param {boolean|'review'|'run'} yes  a review card's choice (MPI-1005), else a yes/no
  * @returns {Promise<{ok:boolean}>}
  */
 export async function agentPostConfirm(confirmId, yes) {
     const res = await window.fetch('/agent/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ confirmId, yes }),
+        body: JSON.stringify(typeof yes === 'boolean' ? { confirmId, yes } : { confirmId, choice: yes }),
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: { code: 'HTTP_ERROR' } }));

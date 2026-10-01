@@ -351,6 +351,52 @@ test('confirm card Yes button calls POST /agent/confirm', async ({}, testInfo) =
   }
 });
 
+// MPI-1005: Song asks with a real card. The lyrics sit in the code-block box, a click posts
+// the choice (never a yes), and typing instead retires the buttons like the agent's choices.
+test('review card: the lyrics in a box, a click posts the choice, typing retires it', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await window.evaluate(() => {
+      window.__histories[''] = [
+        { kind: 'review', confirmId: 'old', flow: 'Song', text: 'Earlier song', choice: 'run' },
+      ];
+    });
+    await bootAndMountChat(window, true);
+
+    const old = window.locator('#e2e-agent-host [data-confirm-id="old"]');
+    await expect(old.locator('pre')).toHaveText('Earlier song');
+    await expect(old).toContainText('Started.');
+    await expect(old.locator('button')).toHaveCount(0);
+
+    const fire = (id) => window.evaluate((cid) => window.__fireSse('agent:confirm', {
+      turnId: 't1', confirmId: cid, kind: 'review', flow: 'Song', text: '[Verse]\nLa la la',
+    }), id);
+    await fire('r1');
+    const card = window.locator('#e2e-agent-host [data-confirm-id="r1"]');
+    await expect(card.locator('.mpi-agent-chat__confirm-title')).toHaveText('Make this song?');
+    await expect(card.locator('pre')).toHaveText('[Verse]\nLa la la');
+    await expect(card.locator('button')).toHaveText(['Review lyrics', 'Just do it']);
+
+    await card.locator('button').first().click();
+    await expect(card).toContainText('Opened for you to review.');
+    const posted = (await window.evaluate(() => window.__fetchCalls)).filter(c => c.url === '/agent/confirm');
+    expect(posted.map(c => c.body)).toEqual([{ confirmId: 'r1', choice: 'review' }]);
+
+    await fire('r2');
+    const second = window.locator('#e2e-agent-host [data-confirm-id="r2"] button');
+    await window.locator('#e2e-agent-host textarea').first().fill('change verse 2');
+    await window.locator('#e2e-agent-host textarea').first().press('Enter');
+    await expect(second.first()).toBeDisabled();
+    await expect(second.last()).toBeDisabled();
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 // MPI-941 Phase 7: the agent's choices are buttons; a click is the user's reply.
 test('options: only the latest reply offers buttons, and a click sends that choice once', async ({}, testInfo) => {
   test.setTimeout(90000);

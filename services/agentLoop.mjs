@@ -666,7 +666,9 @@ export class AgentLoop {
         this._guides = new Map();  // modelId -> guide ids, from list_models
         this._boxSteps = new Map(); // flowId -> its box steps [{param, role}], from list_models
         this._opens = new Map();    // flowId -> the step it opens at instead of running (MPI-892), or null
-        this._ops = new Map();     // "modelId\nop" -> that op's entry (media slots, params), from list_models
+        this._reviews = new Map();  // flowId -> { field, title } the app asks about first (MPI-1005), or null
+        this._reviewEnd = null;     // a review card answered this round: the turn's last context line
+        this._ops = new Map();    // "modelId\nop" -> that op's entry (media slots, params), from list_models
         this._boxed = new Set();   // image paths a `look` with box: true measured (the box gate)
         this._overBoxed = new Map(); // image path -> measures whose square was too big for a head
         this._gateWaiting = null;  // knowledge id a refused generate waits on this turn (MPI-916)
@@ -833,6 +835,8 @@ export class AgentLoop {
                     count: this._pendingConfirm.count,
                     what: this._pendingConfirm.what,
                     price: this._pendingConfirm.price,
+                    flow: this._pendingConfirm.flow,
+                    text: this._pendingConfirm.text,
                 }
                 : null,
             usage,
@@ -852,9 +856,11 @@ export class AgentLoop {
         // that path this is the SECOND defence and not the one that bites: `_askSpend`
         // answers `yes === true`, so no string of any kind can read as a yes. Kept because
         // it is the money path, and because the next kind added here may not be so strict.
-        if (this._pendingConfirm) {
-            const boolean = this._pendingConfirm.kind === 'batch' || this._pendingConfirm.kind === 'spend';
-            this._pendingConfirm.resolve(boolean ? false : 'declined');
+        // A review card (MPI-1005) waits on a choice, and 'replied' is the one that runs nothing.
+        const pc = this._pendingConfirm;
+        if (pc) {
+            const boolean = pc.kind === 'batch' || pc.kind === 'spend';
+            pc.resolve(boolean ? false : pc.kind === 'review' ? 'replied' : 'declined');
         }
         // MPI-913: a message waiting on the GPU belonged to the old conversation. Its lines go
         // without a `done` frame, which would draw them into the cleared chat.
@@ -1209,6 +1215,7 @@ export class AgentLoop {
         for (const f of list?.flows || []) {
             this._boxSteps.set(f.id, Array.isArray(f.boxParams) ? f.boxParams : []);
             this._opens.set(f.id, f.opens || null);
+            this._reviews.set(f.id, f.review ? { field: f.review, title: f.title || f.id } : null);
         }
         // A tool has no model: its op is keyed with an empty model id.
         for (const t of list?.tools || []) this._ops.set(`\n${t.op}`, t);
@@ -1651,15 +1658,46 @@ export class AgentLoop {
         return this._opens.get(flowId) || null;
     }
 
+    /** MPI-1005 — the `{ field, title }` a Flow's run asks about first (its `agentReview`), or null. */
+    async _flowReview(flowId) {
+        if (!this._reviews.has(flowId)) {
+            try { this._rememberGuides(await this._tools.listModels()); } catch { /* runs unasked, as before */ }
+        }
+        return this._reviews.get(flowId) || null;
+    }
+
+    /**
+     * MPI-1005 — the review card (Fabio, 2026-10-01: "Buttons like this should just be commands
+     * that run as soon as we click them"). Song's Review lyrics / Just do it were text chips: a
+     * click was a user message and a whole agent turn, and the ask happened only if the model
+     * obeyed its guide. The app asks now, showing the field's text (what will be sung). Resolves
+     * 'review' | 'run' | 'replied' — its own vocabulary, never a boolean (MPI-870); 'replied' (a
+     * message typed instead, or a reset) runs nothing.
+     */
+    async _askReview(turnId, { field, title }, args) {
+        const confirmId = crypto.randomUUID();
+        const card = { kind: 'review', flow: title, text: String(args.fields?.[field] ?? '') };
+        this._emit('agent:confirm', { turnId, confirmId, ...card });
+        // `card.kind` names the entry 'review'; the chat redraws it answered, box and choice.
+        const entry = this._historyEntry('confirm', { tool: 'generate', args, confirmId, ...card });
+        const choice = await new Promise((resolve) => {
+            this._pendingConfirm = { confirmId, ...card, resolve, turnId };
+        });
+        this._pendingConfirm = null;
+        entry.choice = choice;
+        return choice;
+    }
+
     /**
      * MPI-892 — hand a Flow over instead of running it (Fabio, 2026-09-30): it opens on the user's
      * screen with what this call filled, and nothing runs until they press Generate. A Flow that
      * declares `agentOpens` always comes here (the user draws, places or reads first); any other
      * when the model sends `open: true`. No box gate, no spend card, nothing in flight: nothing is
      * queued. Only in reply to the user (`_follow`), never a wake or a carry: it takes their screen.
+     * A click on a review card is the user replying, whatever turn raised it (MPI-1005).
      */
-    async _openFlow(args, currentProject) {
-        if (!this._follow) {
+    async _openFlow(args, currentProject, clicked = false) {
+        if (!this._follow && !clicked) {
             return JSON.stringify({ ok: false, error: { code: 'NOT_NOW', message: `Nothing was opened: a Flow opens on the user's screen only in reply to them. Tell them ${args.flowId} is ready to open and ask.` } });
         }
         // ponytail: the same ref resolution as generate's media loop, minus what only a run reads.
@@ -2008,6 +2046,21 @@ ${knowledgeIndex}`.trim();
                 // the user finishes is theirs to draw.
                 if (args.flowId && (args.open === true || await this._flowOpens(args.flowId))) {
                     return this._openFlow(args, currentProject);
+                }
+                // MPI-1005 — the app asks, and the click does the job: the turn ends after this
+                // round (`_reviewEnd`), with no model call to narrate what the user just did.
+                const review = args.flowId && !opts.batch ? await this._flowReview(args.flowId) : null;
+                if (review) {
+                    const choice = await this._askReview(turnId, review, args);
+                    if (choice === 'review') {
+                        this._reviewEnd = `Opened ${review.title} for the user to review, as they chose. Nothing ran.`;
+                        return this._openFlow(args, currentProject, true);
+                    }
+                    if (choice !== 'run') {
+                        this._reviewEnd = 'The user wrote back instead of choosing. Nothing ran.';
+                        return JSON.stringify({ ok: true, replied: true, message: `Nothing ran: the user answered the ${review.title} card in words instead. Their message comes next.` });
+                    }
+                    this._reviewEnd = `Started ${review.title}, as the user chose.`;
                 }
                 if (args.flowId) {
                     const miss = await this._unmeasuredBox(args);
@@ -2691,6 +2744,7 @@ ${knowledgeIndex}`.trim();
             let nudged = false;   // the memory reminder already rode on a generate result
             let yielded = false;  // ended early for a render on this card (MPI-913)
             let lastRefused = null; // { key, result } of the call just refused (MPI-941 Phase 13)
+            this._reviewEnd = null; // a GPU yield may have ended the last turn before it was read
             for (;;) {
                 // Out of rounds: this call carries NO tools, so the model can only answer in
                 // words. Refusing the round instead ended the turn on a bare error one second
@@ -2811,19 +2865,23 @@ ${knowledgeIndex}`.trim();
                     // panel's Cosmo flags it (MPI-908), so it is told apart here.
                     let refused = false;
                     let opened = null;
+                    let replied = false; // a review card answered in words: nothing started (MPI-1005)
                     try {
                         const parsed = JSON.parse(resultText);
                         refused = toolStatus === 'done' && parsed?.ok === false;
                         opened = toolName === 'generate' && parsed?.ok && typeof parsed.opened === 'string' ? parsed.opened : null;
+                        replied = toolName === 'generate' && parsed?.replied === true;
                     } catch { /* not JSON */ }
                     if (!refused) lastRefused = null;
                     else if (callKey !== lastRefused?.key) lastRefused = { key: callKey, result: JSON.parse(resultText) };
+                    // A click the app then refused (a field missing) is the model's to fix (MPI-1005).
+                    if (refused || toolStatus !== 'done') this._reviewEnd = null;
                     // Same correction for a refused generate: "Starting generation" over a refusal
                     // made a refused round and its retry read as two runs (MPI-817). An OPENED Flow
                     // ran nothing, so it says so: Fabio read "Starting generation" over a Song's
                     // Review lyrics and asked whether it had run (MPI-1002).
                     const doneLabel = toolName === 'look' && this._lookWasCached ? LOOK_CACHED_LABEL
-                        : toolName === 'generate' && refused ? GENERATE_REFUSED_LABEL
+                        : toolName === 'generate' && (refused || replied) ? GENERATE_REFUSED_LABEL
                         : opened ? `Opened ${opened}`
                         : label;
 
@@ -2851,6 +2909,13 @@ ${knowledgeIndex}`.trim();
                     this._messages.push({ role: 'assistant', content: GPU_YIELD });
                     this._gpuWaitLine(turnId, true);
                     yielded = true;
+                    break;
+                }
+
+                // MPI-1005: a review card answered. The click did the job, and a typed reply is
+                // the next turn; another round would only narrate it. The card shows the choice.
+                if (this._reviewEnd) {
+                    this._messages.push({ role: 'assistant', content: this._reviewEnd });
                     break;
                 }
 
@@ -2882,6 +2947,18 @@ ${knowledgeIndex}`.trim();
         // shape — the generate is suspended mid-call, waiting on this (MPI-876). Anything
         // else is an install, including a card left pending across an upgrade, which is
         // what the missing `kind` on an older one means.
+        // A review card (MPI-1005) takes a CHOICE in `yes`, and a boolean is never one; every
+        // other card a boolean, and a choice is never one: 'run' is truthy, so it would install.
+        if (pc.kind === 'review') {
+            if (!['review', 'run', 'replied'].includes(yes)) {
+                return { ok: false, error: { code: 'BAD_CHOICE', message: 'A review card answers review, run or replied.' } };
+            }
+            pc.resolve(yes);
+            return { ok: true };
+        }
+        if (typeof yes !== 'boolean') {
+            return { ok: false, error: { code: 'BAD_CHOICE', message: 'This card answers yes or no.' } };
+        }
         if (pc.kind === 'batch' || pc.kind === 'spend') {
             pc.resolve(yes === true);
             return { ok: true };

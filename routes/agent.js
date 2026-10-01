@@ -322,9 +322,13 @@ router.get('/agent/attachment/:id', async (req, res) => {
 // ---------------------------------------------------------------------------
 
 router.post('/agent/confirm', async (req, res) => {
-    const { confirmId, yes } = req.body || {};
+    const { confirmId, yes, choice } = req.body || {};
     if (!confirmId) return _bad(res, 'body.confirmId is required.');
-    if (typeof yes !== 'boolean') return _bad(res, 'body.yes must be a boolean.');
+    // MPI-1005: a review card answers with a choice; every other card with yes. The loop
+    // refuses the wrong one for its card, so a boolean can never read as a choice.
+    if (choice !== undefined ? choice !== 'review' && choice !== 'run' : typeof yes !== 'boolean') {
+        return _bad(res, "body.yes must be a boolean, or body.choice 'review' or 'run'.");
+    }
 
     let sessions;
     try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
@@ -333,7 +337,7 @@ router.post('/agent/confirm', async (req, res) => {
     if (!loop) {
         return res.json({ ok: false, error: { code: 'UNKNOWN_CONFIRM', message: 'Unknown or already-answered confirmId.' } });
     }
-    res.json(await loop.confirm(confirmId, yes));
+    res.json(await loop.confirm(confirmId, choice ?? yes));
 });
 
 // ---------------------------------------------------------------------------

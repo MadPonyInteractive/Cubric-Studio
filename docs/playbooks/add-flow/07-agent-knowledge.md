@@ -25,11 +25,12 @@ right must be in one of the three rows, and the system prompt is not a fourth** 
 |---|---|---|
 | Needs nothing only the user has | nothing | `generate { flowId, fields, media }` runs it |
 | Needs the user's hands (a drawing, a placement), or a result they must read before the GPU spends | `agentOpens: '<a middle step kind>'` (or `'run'`) on the `FlowDef` | never runs it: fills what it can, opens the Flow at that step, the user presses Generate (Draw It In, Scribble `paint`; Object Stamp `cutout`) |
-| The user should approve what the agent wrote first (Song's lyrics) | no `agentOpens`; a paragraph in `flows.md` naming the `[options: A \| B]` | asks, then `open: true` or a run |
+| The user should approve what the agent wrote first (Song's lyrics) | `agentReview: '<field id>'` on the `FlowDef` (MPI-1005) | sends `generate` as usual; the APP shows that field on a card with Review / Just do it, and the click opens or runs it with no agent turn |
 
 Any Flow can also be opened with `open: true` when the user wants to adjust it or it lacks something
-only they have (a voice sample): nothing to declare. **Ask-first has no declarative hook**: it is
-prose in `flows.md`, so a new ask-first Flow is a `flows.md` edit and nothing else.
+only they have (a voice sample): nothing to declare. Ask-first was prose in `flows.md` until
+MPI-1005, and the model skipped it once: declare `agentReview`, never an `[options]` paragraph.
+The card's button reads "Review lyrics" (Song's words); a second reviewing Flow names its own.
 
 Pin the decision in `tests/agent-flow-handover.test.cjs`: an opening Flow goes in the `want` map
 (id → the step kind, which must exist in its `steps`), a running Flow in the `runs` list. Two more

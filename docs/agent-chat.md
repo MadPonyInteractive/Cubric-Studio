@@ -185,7 +185,9 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
   **`POST /agent/reset?project=`** -> `{ ok }`, that conversation only. **`GET /agent/attachment/:id`** ->
   the staged file of any conversation's attachment id, else 404. **`GET /agent/stream`**: SSE, below.
 - **`POST /agent/confirm { confirmId, yes }`** -> `{ ok }` in the conversation showing the card: Yes
-  installs and re-reads the models, No records "declined". Errors: `UNKNOWN_CONFIRM` (stale or answered).
+  installs and re-reads the models, No records "declined". A `review` card takes `{ confirmId, choice:
+  'review' | 'run' }` instead (MPI-1005), and each kind refuses the other's answer (`BAD_CHOICE`): 'run'
+  is truthy and would install. Errors: `UNKNOWN_CONFIRM` (stale or answered).
 - **`POST /agent/probe { profileId, model? }`** -> `{ ok, tools, model, latencyMs, message, contextWindow }` (the window `_contextWindowFor` compacts against; Settings warns under 64K, MPI-905): one tiny call
   with one tool, **never retried without it**. Errors: `NO_PROFILE`, `NO_KEY`, `NO_MODEL`, `ENDPOINT_ERROR` (+ `status`).
 - **`GET /agent/benchmark?profileId=&model=`** -> `{ ok, cases, suiteHash, local, usd, running, canShare, communityUrl }`; **`POST /agent/benchmark
@@ -589,7 +591,7 @@ it, and the user presses Generate. Per Flow, not one box on every run (Fabio sor
 
 - **`agentOpens` on the FlowDef** (`flowsRegistry.js`) is where it opens: a middle step's `kind`,
   or `'run'`. Draw It In and Scribble `paint`, Object Stamp `cutout`. Absent = the agent runs it;
-  Song has none because the agent asks first (app:flows: "Review lyrics | Just do it"). An open
+  Song has none because the APP asks first (`agentReview`, below). An open
   with no `agentOpens` and nothing missing lands on the first step after Inputs (Song: "Write the
   song"), Generate only when there is none. `list_models` carries it (`opens`; the short catalogue says `opensForUser`).
 - **The loop** (`AgentLoop._openFlow`, before the box gate): a `generate` naming an `agentOpens` Flow, or
@@ -608,5 +610,14 @@ it, and the user presses Generate. Per Flow, not one box on every run (Fabio sor
   `agentOpens`, else `run`.
 - **The answer** names the step (`at`), its `hint` and any `empty` required slot; the model says
   what is left in one line and explains the step only when asked (app:flows).
+- **`agentReview: '<field id>'` (MPI-1005, Fabio 2026-10-01): the app asks, the click acts.** Song's
+  Review lyrics / Just do it were `[options]` chips, so a click was a whole agent turn, and the ask
+  happened only if the model obeyed `flows.md`. Now a `generate` for that Flow (no `open: true`, not
+  a batch item) raises a `review` card (`_askReview`): `agent:confirm { kind: 'review', flow, text }`,
+  `text` the field's value, shown in the chat's code-block box. `review` -> `_openFlow`, `run` -> the
+  normal path (spend card and all), `replied` -> nothing runs. Any of the three ends the turn after
+  that round (`_reviewEnd`) with NO model call; a run the app refuses goes back to the model. A message
+  typed while it is up is the reply (`AgentSessions.queue`), as is a reset. History keeps it as kind
+  `review` with its `choice`; the chat redraws it answered, read-only. `list_models` carries `review`.
 - **Settled first: the Duration rule's "you never speak first" was stale** (wake turns, MPI-870).
   It now says the app wakes the agent when the job finishes.

@@ -3552,3 +3552,145 @@ describe('MPI-892 — handing a Flow over', () => {
         assert.match(toolResults(loop)[0].error.message, /Flow Library/);
     });
 });
+
+// ---------------------------------------------------------------------------
+// MPI-1005 (Fabio, 2026-10-01): Song asks with a real card. "Review lyrics" and "Just do it"
+// were text chips, so each click cost a whole agent turn, and the ask happened only if the
+// model obeyed its guide. The APP asks now, and a click does the job with no model call.
+// ---------------------------------------------------------------------------
+
+describe('MPI-1005 — the review card', () => {
+    const call = (id, name, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
+    const project = { folderPath: '/project', name: 'Test' };
+    const toolResults = (loop) => loop._messages.filter((m) => m.role === 'tool').map((m) => JSON.parse(m.content));
+    const SONG = { flowId: 'minimax-music', fields: { Input_Lyrics: '[Verse]\nLa la la', positive: 'a duet' } };
+
+    function withSong(tools) {
+        tools.calls.openFlow = [];
+        tools.openFlow = async (body) => {
+            tools.calls.openFlow.push(body);
+            return { ok: true, output: { opened: 'Song', at: 'Write the song' } };
+        };
+        tools.listModels = async () => ({ ok: true, models: [], flows: [{ id: 'minimax-music', title: 'Song', review: 'Input_Lyrics' }] });
+    }
+
+    /** A turn whose one generate raises the card; resolves once the card is up. */
+    async function asked(engineResponses = [call('g1', 'generate', SONG), { text: 'should never be asked' }]) {
+        const made = await makeLoop({ engineResponses });
+        withSong(made.tools);
+        const turn = made.loop.runTurn('Make me a duet', [], project, 'auto', 'deepinfra', 't-review');
+        const card = await waitForEvent(made.fakeRes, (e) => e.event === 'agent:confirm');
+        return { ...made, turn, card };
+    }
+
+    test('the app asks: the card carries the field the Flow declares, and nothing runs yet', async () => {
+        const { loop, tools, engine, turn, card } = await asked();
+        assert.equal(card.data.kind, 'review');
+        assert.equal(card.data.flow, 'Song');
+        assert.equal(card.data.text, '[Verse]\nLa la la', 'what will be sung, from the field');
+        assert.equal(tools.calls.generate.length + tools.calls.openFlow.length, 0);
+        assert.equal(loop.getHistory().pendingConfirm.text, '[Verse]\nLa la la', 'a remount repaints the box');
+        await loop.confirm(card.data.confirmId, 'run');
+        await turn;
+        assert.equal(engine.calls.length, 1);
+    });
+
+    test('Review lyrics opens the Song and ends the turn with no model call', async () => {
+        const { loop, tools, engine, turn, card } = await asked();
+        assert.deepEqual(await loop.confirm(card.data.confirmId, 'review'), { ok: true });
+        await turn;
+        assert.equal(tools.calls.openFlow.length, 1);
+        assert.deepEqual(tools.calls.openFlow[0].fields, SONG.fields);
+        assert.equal(tools.calls.generate.length, 0);
+        assert.equal(engine.calls.length, 1, 'the click did the job: no round after it');
+        assert.equal(toolResults(loop)[0].opened, 'Song');
+        assert.equal(loop._messages.at(-1).role, 'assistant', 'the context still reads as a finished turn');
+        const entry = loop.getHistory().entries.find((e) => e.kind === 'review');
+        assert.deepEqual([entry.text, entry.choice], ['[Verse]\nLa la la', 'review'], 'a remount redraws it answered');
+    });
+
+    test('Just do it runs it once and ends the turn with no model call', async () => {
+        const { loop, tools, engine, turn, card } = await asked();
+        await loop.confirm(card.data.confirmId, 'run');
+        await turn;
+        assert.equal(tools.calls.generate.length, 1);
+        assert.equal(tools.calls.generate[0].flowId, 'minimax-music');
+        assert.equal(tools.calls.openFlow.length, 0);
+        assert.equal(engine.calls.length, 1);
+    });
+
+    test('a run the app refuses goes back to the model to fix', async () => {
+        const { loop, tools, engine, turn, card } = await asked([call('g1', 'generate', SONG), { text: 'Fixed it.' }]);
+        tools.generate = async (body) => {
+            tools.calls.generate.push(body);
+            return { ok: false, error: { code: 'BAD_REQUEST', message: 'Input_Style is required.' } };
+        };
+        await loop.confirm(card.data.confirmId, 'run');
+        await turn;
+        assert.equal(engine.calls.length, 2);
+    });
+
+    test('a typed reply answers the card: nothing runs, and the turn ends for it', async () => {
+        const { loop, tools, engine, turn, card } = await asked();
+        await loop.confirm(card.data.confirmId, 'replied');
+        await turn;
+        assert.equal(tools.calls.generate.length + tools.calls.openFlow.length, 0);
+        assert.equal(engine.calls.length, 1, 'the typed message is the next turn, not this one');
+        assert.equal(toolResults(loop)[0].replied, true);
+    });
+
+    test('a yes/no is never a choice on this card', async () => {
+        const { loop, tools, turn, card } = await asked();
+        const r = await loop.confirm(card.data.confirmId, true);
+        assert.equal(r.ok, false);
+        assert.equal(loop._pendingConfirm.confirmId, card.data.confirmId, 'still waiting');
+        await loop.confirm(card.data.confirmId, 'run');
+        await turn;
+        assert.equal(tools.calls.generate.length, 1);
+    });
+
+    test('...and a choice is never a yes: "run" posted to an install card installs nothing', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [call('i1', 'install_model', { modelId: 'test-model' }), { text: 'ok' }] });
+        const turn = loop.runTurn('Install it', [], project, 'auto', 'deepinfra', 't-install-choice');
+        const card = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.equal((await loop.confirm(card.data.confirmId, 'run')).error.code, 'BAD_CHOICE');
+        assert.equal(tools.calls.installModel.length, 0);
+        await loop.confirm(card.data.confirmId, false);
+        await turn;
+    });
+
+    test('a reset while it is up runs nothing', async () => {
+        const { loop, tools, turn } = await asked();
+        await loop.reset();
+        await turn;
+        assert.equal(tools.calls.generate.length + tools.calls.openFlow.length, 0);
+    });
+
+    test('open: true skips the card, and a Flow with no review never raises one', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { ...SONG, open: true }),
+            call('g2', 'generate', { flowId: 'stems', fields: {} }),
+            { text: 'Done.' },
+        ] });
+        withSong(tools);
+        await loop.runTurn('Open it, then split one', [], project, 'auto', 'deepinfra', 't-noreview');
+        assert.equal(fakeRes.events.some((e) => e.event === 'agent:confirm'), false);
+        assert.equal(tools.calls.openFlow.length, 1);
+        assert.equal(tools.calls.generate.length, 1);
+    });
+
+    test('a message typed while the card is up answers it as a reply', async () => {
+        const { AgentSessions } = await import('../services/agentSessions.mjs');
+        const sessions = new AgentSessions();
+        const answers = [];
+        const fake = { _pendingConfirm: { confirmId: 'c1', kind: 'review' }, confirm: async (id, choice) => { answers.push([id, choice]); } };
+        sessions._loops.set(sessions.keyOf(project.folderPath), fake);
+        sessions.queue({ text: 'wake', wake: true, project });
+        assert.deepEqual(answers, [], 'a wake is not the user answering');
+        sessions.queue({ text: 'change verse 2', project });
+        assert.deepEqual(answers, [['c1', 'replied']]);
+        fake._pendingConfirm.kind = 'spend';
+        sessions.queue({ text: 'hello', project });
+        assert.equal(answers.length, 1, 'only the review card is answered by typing');
+    });
+});
