@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/downloadManager.js",
+    "routes/install/installStore.js",
+    "routes/install/reconciler.js",
+    "js/services/downloadService.js",
+    "docs/download-manager.md",
+    "tests/install-store.test.cjs",
+    "tests/install-reconciler.test.cjs"
+  ]
+}

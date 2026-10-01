@@ -40,16 +40,16 @@ left `/downloads/status` at 132 s with nothing else running). Evidence: `validat
 Split proposed to "Release 2.0 blockers 27" (msg 37c4a3e4): they take MPI-918 (+ close MPI-985),
 MPI-894 (Fabio's in/out on 668/183/541/349), then the MPI-595 cut, smoke LAST. This session owns:
 
-- [ ] MPI-513: commit R1/R2; Pod remote-resume test (Fabio's pick: Linux box or fold into cut);
+- [ ] MPI-513: R1/R2 committed `9c593af5f` (CI pending); Pod remote-resume test (Fabio's pick: Linux box or fold into cut);
   close MPI-497 as fixed; MPI-397 = Fabio's product call (park after 2.0 is my pick); MPI-320's
   deferred follow-ups (stall-watchdog into reconciler, G6 adapter split) named for his in/out;
   MPI-544 already OUT of 2.0 (Fabio 2026-09-29).
-- [ ] MPI-866 close (watcher opened + closed red-master issues #3, #4; Fabio got the pushes).
-- [ ] MPI-593 close: tick stale boxes, `llms.txt` decided, directory submission stays on MPI-595.
-- [ ] MPI-708 close: stale boxes ticked, the cut itself stays on MPI-595.
-- [ ] MPI-603 stays parked to AFTER 2.0 (v1.5.0 `models.js:1043` still installs the LoRA);
+- [x] MPI-866 close (done, `ee6e94d97`) (watcher opened + closed red-master issues #3, #4; Fabio got the pushes).
+- [x] MPI-593 close (done, `ee6e94d97`): tick stale boxes, `llms.txt` decided, directory submission stays on MPI-595.
+- [x] MPI-708 close (done, `ee6e94d97`): stale boxes ticked, the cut itself stays on MPI-595.
+- [x] MPI-603 stays parked (handoff resolved, why-open noted, `ee6e94d97`) to AFTER 2.0 (v1.5.0 `models.js:1043` still installs the LoRA);
   resolve its stale handoff 779c959c.
-- [ ] `docs/releases/UNRELEASED.md`: MPI-1007 GPU picker Gen speed bullet (missing).
+- [x] `docs/releases/UNRELEASED.md`: MPI-1007 + MPI-894 picker bullet added (`ee6e94d97`); was GPU picker Gen speed bullet (missing).
 
 2026-10-01 (Agent 84): **Phase 1 (D1-D5) is BUILT and verified** (one commit:
 the pure modules are only correct together with the downloadManager wiring).
