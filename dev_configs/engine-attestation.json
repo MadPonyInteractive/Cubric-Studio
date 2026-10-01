@@ -35,5 +35,15 @@
   },
   "deliberately_not_attested": {
     "MpiClearVramEnd": "New node, and no runtime graph loads it — it exists only in comfy_workflows/raw/ and scripts/workflow_generation/ templates, which are authoring inputs and are never dispatched. It needs no attestation: the gate finds zero graphs for it on its own. Left here as the worked example of the narrowing doing its job."
+  },
+  "packs": {
+    "ComfyUI-MelodramaBox": {
+      "from": "9ebb44be49f7848d31a6cc168732e003ec14b097",
+      "to": "529c4be4c5406d375f2b962e31c05efd762cf260",
+      "attested_at": "2026-10-01",
+      "attested_by": "Fabio (MadPonyInteractive)",
+      "card": "MPI-1008",
+      "reason": "No shipped graph loads this pack. Every class it registers is named DramaBox* (17, NODE_CLASS_MAPPINGS in __init__.py at 529c4be) and none appears anywhere under comfy_workflows/, raw/ and scripts/ included: DramaBox ships as a paid package Flow since MPI-781, so its graph is not in this repo and the 2026-09-28 smoke never ran it. The hop itself is one fix (dramabox_nodes/model/patcher.py: always fully load, MPI-1008) plus NOTICE. Fabio 2026-10-01: no re-smoke for this move."
+    }
   }
 }

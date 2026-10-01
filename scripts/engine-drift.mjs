@@ -128,6 +128,8 @@ export function changedClasses(from, to, repo = MPINODES_REPO) {
     return changed;
 }
 
+const short = (c) => String(c || '').slice(0, 12);
+
 /**
  * Classes a human has signed off for exactly this pin move.
  *
@@ -144,11 +146,35 @@ export function attestedClasses(file, from, to) {
         return new Set();
     }
     if (doc?.pack !== PACK) return new Set();
-    const short = (c) => String(c || '').slice(0, 12);
     if (short(doc.from) !== short(from) || short(doc.to) !== short(to)) return new Set();
     return new Set(Object.entries(doc.classes || {})
         .filter(([, v]) => v && typeof v.reason === 'string' && v.reason.trim().length > 0)
         .map(([k]) => k));
+}
+
+/**
+ * Third-party packs a human has signed off for exactly this pin hop (`packs` in the same file).
+ *
+ * These packs are not checked out here, so no class can be diffed: the sign-off is the whole
+ * answer, and its reason must say why no shipped graph can reach the pack. Same expiry as
+ * attestedClasses — either end moving voids it. A pack added or removed (no commit at one end)
+ * never matches. MPI-1008 is the case: DramaBox ships as a package Flow, so its pin move
+ * cannot touch a graph in comfy_workflows/.
+ */
+export function attestedPacks(file, thenNodes, nowNodes) {
+    if (!file || !existsSync(file)) return new Set();
+    let doc;
+    try {
+        doc = JSON.parse(readFileSync(file, 'utf8'));
+    } catch {
+        return new Set();
+    }
+    return new Set(Object.entries(doc?.packs || {})
+        .filter(([name, a]) => a && typeof a.reason === 'string' && a.reason.trim().length > 0
+            && a.from && a.to && thenNodes[name]?.commit && nowNodes[name]?.commit
+            && short(a.from) === short(thenNodes[name].commit)
+            && short(a.to) === short(nowNodes[name].commit))
+        .map(([name]) => name));
 }
 
 /** Runtime graph -> the changed classes it loads. `raw/` and `scripts/` are templates, not dispatched. */
@@ -196,8 +222,17 @@ export function assessPinMove({ repo, wfDir, evidenceAt, pinMovedAt, attestation
     if (coreOf(thenLock) !== coreOf(nowLock)) return blunt(`the ComfyUI core tag moved ${coreOf(thenLock)} -> ${coreOf(nowLock)}`);
 
     // Any pin other than MpiNodes moving is out of reach: those packs are not checked out here.
-    const others = (s) => { try { const n = JSON.parse(s)?.nodes || {}; return JSON.stringify(Object.fromEntries(Object.entries(n).filter(([k]) => k !== PACK).sort())); } catch { return null; } };
-    if (others(thenLock) !== others(nowLock)) return blunt('a third-party node pin moved, and those packs are not checked out here to diff');
+    // Only a human sign-off for that exact hop (attestedPacks) lets one through.
+    const nodesOf = (s) => { try { return JSON.parse(s)?.nodes || {}; } catch { return null; } };
+    const thenNodes = nodesOf(thenLock);
+    const nowNodes = nodesOf(nowLock);
+    if (!thenNodes || !nowNodes) return blunt('cannot parse node_lock.json');
+    const movedPacks = [...new Set([...Object.keys(thenNodes), ...Object.keys(nowNodes)])]
+        .filter(k => k !== PACK && JSON.stringify(thenNodes[k]) !== JSON.stringify(nowNodes[k]))
+        .sort();
+    const okPacks = attestedPacks(attestationFile, thenNodes, nowNodes);
+    const unattested = movedPacks.filter(k => !okPacks.has(k));
+    if (unattested.length) return blunt(`third-party node pin(s) moved and are not checked out here to diff: ${unattested.join(', ')} (attest the hop under "packs" if no shipped graph loads them)`);
 
     const from = packPinOf(thenLock);
     const to = packPinOf(nowLock);
@@ -216,6 +251,7 @@ export function assessPinMove({ repo, wfDir, evidenceAt, pinMovedAt, attestation
         graphs,
         changed,
         attested,
+        attestedPacks: movedPacks,
         from,
         to,
     };

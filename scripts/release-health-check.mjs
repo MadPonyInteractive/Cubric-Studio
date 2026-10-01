@@ -542,10 +542,11 @@ async function checkSmokeEvidence() {
     const detail = drift.graphs?.size
       ? ` Changed and unattested: ${[...drift.classes].sort().join(', ')} — reaching ${[...drift.graphs.keys()].slice(0, 6).join(', ')}${drift.graphs.size > 6 ? ` +${drift.graphs.size - 6} more` : ''}.`
       : ` ${drift.reason}.`;
-    fail(`${bumpNote} smoke-evidence.json is STALE — recorded ${evidence.at}, but node_lock.json last changed ${pinMovedAt}.${detail} Re-run the smoke, or attest the classes in dev_configs/engine-attestation.json if a human has established they cannot affect a shipped graph.`);
-  } else if (drift.changed?.size) {
+    fail(`${bumpNote} smoke-evidence.json is STALE — recorded ${evidence.at}, but node_lock.json last changed ${pinMovedAt}.${detail} Re-run the smoke, or attest the classes (or a third-party pack's hop, under "packs") in dev_configs/engine-attestation.json if a human has established they cannot affect a shipped graph.`);
+  } else if (drift.changed?.size || drift.attestedPacks?.length) {
     console.warn(`Engine pin moved, but no shipped graph is affected: ${drift.reason}`
-      + (drift.attested?.size ? ` (attested: ${[...drift.attested].sort().join(', ')})` : ''));
+      + (drift.attested?.size ? ` (attested: ${[...drift.attested].sort().join(', ')})` : '')
+      + (drift.attestedPacks?.length ? ` (attested packs: ${drift.attestedPacks.join(', ')})` : ''));
   }
 
   // Coverage is REPORTED, never gated — scoping a run is a legitimate call and the cost

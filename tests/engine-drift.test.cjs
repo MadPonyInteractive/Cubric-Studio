@@ -49,6 +49,67 @@ test('attestation applies only to the exact pin hop it names', async () => {
         'a missing file attests nothing');
 });
 
+test('a third-party pack attestation applies only to the exact hop it names', async () => {
+    const { attestedPacks } = await load();
+    const A = '9ebb44be49f7848d31a6cc168732e003ec14b097';
+    const B = '529c4be4c5406d375f2b962e31c05efd762cf260';
+    const then = { Pack: { commit: A } };
+    const now = { Pack: { commit: B } };
+    const doc = (a) => ({ packs: { Pack: { from: A, to: B, reason: 'no graph loads it', ...a } } });
+
+    assert.deepStrictEqual([...attestedPacks(tmpJson('p1.json', doc()), then, now)], ['Pack']);
+    assert.strictEqual(attestedPacks(tmpJson('p2.json', doc()), then, { Pack: { commit: 'deadbeefdeadbeef' } }).size, 0,
+        'the pin moved on again — the attestation must expire');
+    assert.strictEqual(attestedPacks(tmpJson('p3.json', doc({ reason: ' ' })), then, now).size, 0,
+        'a blank reason is a rubber stamp');
+    assert.strictEqual(attestedPacks(tmpJson('p4.json', doc()), {}, now).size, 0,
+        'a pack ADDED since the evidence has no from-commit and never matches');
+    assert.strictEqual(attestedPacks(tmpJson('p5.json', doc()), { Other: { commit: A } }, { Other: { commit: B } }).size, 0,
+        'an attestation names one pack, not any pack on the same commits');
+});
+
+// End to end through a throwaway git repo: node_lock.json at the evidence vs now, with
+// MpiNodes unmoved so only the third-party rule decides.
+test('assessPinMove: a third-party pin move is stale unless that exact hop is attested', async () => {
+    const { assessPinMove } = await load();
+    const { execFileSync } = require('node:child_process');
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'drift-repo-'));
+    const wfDir = path.join(repo, 'comfy_workflows');
+    fs.mkdirSync(path.join(repo, 'dev_configs'));
+    fs.mkdirSync(wfDir);
+    fs.writeFileSync(path.join(wfDir, 'g.json'), JSON.stringify({ 1: { class_type: 'KSampler' } }));
+    const lock = (drama, other) => JSON.stringify({
+        comfyui: { core: { tag: 'v0.34.0' } },
+        nodes: { 'ComfyUI-MpiNodes': { commit: TO }, 'ComfyUI-MelodramaBox': { commit: drama }, Other: { commit: other } },
+    });
+    const commit = (body, date) => {
+        fs.writeFileSync(path.join(repo, 'dev_configs/node_lock.json'), body);
+        const env = { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date };
+        const g = (...a) => execFileSync('git', ['-C', repo, '-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { env, stdio: 'ignore' });
+        g('add', '-A');
+        g('commit', '-q', '-m', date);
+    };
+    execFileSync('git', ['init', '-q', repo]);
+    commit(lock('aaaaaaaaaaaa1', 'ccccccccccccc'), '2026-09-01T00:00:00Z');
+    commit(lock('bbbbbbbbbbbb2', 'ccccccccccccc'), '2026-10-01T00:00:00Z');
+    const base = { repo, wfDir, evidenceAt: '2026-09-15T00:00:00Z', pinMovedAt: '2026-10-01T00:00:00Z' };
+    const att = (packs) => tmpJson('att.json', { pack: 'ComfyUI-MpiNodes', packs });
+    const drama = { from: 'aaaaaaaaaaaa1', to: 'bbbbbbbbbbbb2', reason: 'no shipped graph loads DramaBox' };
+
+    const none = assessPinMove({ ...base, attestationFile: att({}) });
+    assert.strictEqual(none.stale, true, 'an unattested third-party move is still the blunt refusal');
+    assert.match(none.reason, /ComfyUI-MelodramaBox/);
+
+    const ok = assessPinMove({ ...base, attestationFile: att({ 'ComfyUI-MelodramaBox': drama }) });
+    assert.strictEqual(ok.stale, false, 'the attested hop lets the evidence stand');
+    assert.deepStrictEqual(ok.attestedPacks, ['ComfyUI-MelodramaBox']);
+
+    commit(lock('bbbbbbbbbbbb2', 'ddddddddddddd'), '2026-10-02T00:00:00Z');
+    const two = assessPinMove({ ...base, pinMovedAt: '2026-10-02T00:00:00Z', attestationFile: att({ 'ComfyUI-MelodramaBox': drama }) });
+    assert.strictEqual(two.stale, true, 'a second, unattested pack moving is not covered by the first one\'s sign-off');
+    assert.match(two.reason, /: Other \(/, 'only the unattested pack is named');
+});
+
 test('graphsLoading finds only graphs that name a changed class', async () => {
     const { graphsLoading } = await load();
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wf-'));

@@ -19,10 +19,12 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
     MPI-666 (doc fixed); 743 = decision recorded + the drawer pick now repaints the tile; all seen
     in isolated `:51518` (MPI-742 validation.md). Fabio "looks good" 2026-09-30; code `850a823b6`,
     CI green (run 36691311222), all three closed
-  - [ ] **MPI-970 Routines — 2.0 GATE (Fabio 2026-09-30).** Built by its own session (runner live
+  - [x] **MPI-970 Routines — 2.0 GATE (Fabio 2026-09-30).** DONE (board `done`, read 2026-10-01).
+    Built by its own session (runner live
     2026-09-30; left: W2 `routine` tool, B1 paid agent suite on his yes, docs + his look). The docs
     site's Routines page rides on it
-  - [ ] **MPI-965 community benchmark — 2.0 GATE (Fabio 2026-09-30).** App half already on master
+  - [x] **MPI-965 community benchmark — 2.0 GATE (Fabio 2026-09-30).** DONE `026fef227` (CI green
+    on `961b8599e`, Fabio's look passed). App half already on master
     (`fe90d30f0`), service live; left: his shared Ollama run + copy look, privacy page push on his
     yes, stamp the Ollama scores
   - **Split of work (Fabio 2026-09-30):** the session titled **"Agent 70"** owns the in-app agent and
@@ -93,7 +95,15 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 ## Gate B — must verify
 
 - [ ] **B1 smoke** (after A6 + A7):
-  - [ ] **REOPENED 2026-10-01 by MPI-1008** (`bff32c628`): `node_lock.json` repinned ComfyUI-MelodramaBox `9ebb44be` -> `529c4be` (DramaBox device-mismatch fix). A third-party pin move is the blunt verdict in `scripts/engine-drift.mjs` `assessPinMove`, so the 09-28 evidence reads STALE (proven) and a scoped run cannot merge into it. Owed before the cut: sync `node_lock.json` into `mpi-ci/cubric-vision-pod` (still `9ebb44be`; the Pod image BAKES MelodramaBox, so until a rebuild a 2.0 app on a Pod toasts "Pod image is stale - rebuild needed") - folds into the release image build below, no extra build. **A re-smoke is NOT needed for this move (Fabio asked 2026-10-01):** no `comfy_workflows/*.json` loads a DramaBox class (DramaBox is a package Flow since MPI-781), so the pin cannot reach a smoked graph; the gate is blunt only because it cannot diff third-party packs. Fix the GATE instead (attest a third-party pack no shipped graph loads, or narrow by class_type), so `release:check` stops reading the 09-28 evidence as stale. Image publish: Fabio's go
+  - [x] **GATE FIXED 2026-10-01 (Fabio: "go ahead, B1"):** `assessPinMove` now lets a third-party
+    pin move through only when `dev_configs/engine-attestation.json` `packs.<name>` signs off that
+    exact from/to hop (expires when either end moves; any unattested pack is still the blunt
+    refusal). MelodramaBox `9ebb44be` -> `529c4be` attested (17 `DramaBox*` classes, none under
+    `comfy_workflows/`). `npm run release:check`: smoke line clear ("attested packs:
+    ComfyUI-MelodramaBox"); only the 1.6.x archival notes (Gate D) remain. `tests/engine-drift.test.cjs`
+    6/6, the 2 new ones proven RED on the old gate. STILL OWED: the `node_lock.json` sync into
+    `mpi-ci/cubric-vision-pod`, folded into the release image build (Fabio's go)
+  - [x] ~~**REOPENED 2026-10-01 by MPI-1008**~~ (`bff32c628`): `node_lock.json` repinned ComfyUI-MelodramaBox `9ebb44be` -> `529c4be` (DramaBox device-mismatch fix). A third-party pin move is the blunt verdict in `scripts/engine-drift.mjs` `assessPinMove`, so the 09-28 evidence reads STALE (proven) and a scoped run cannot merge into it. Owed before the cut: sync `node_lock.json` into `mpi-ci/cubric-vision-pod` (still `9ebb44be`; the Pod image BAKES MelodramaBox, so until a rebuild a 2.0 app on a Pod toasts "Pod image is stale - rebuild needed") - folds into the release image build below, no extra build. **A re-smoke is NOT needed for this move (Fabio asked 2026-10-01):** no `comfy_workflows/*.json` loads a DramaBox class (DramaBox is a package Flow since MPI-781), so the pin cannot reach a smoked graph; the gate is blunt only because it cannot diff third-party packs. Fix the GATE instead (attest a third-party pack no shipped graph loads, or narrow by class_type), so `release:check` stops reading the 09-28 evidence as stale. Image publish: Fabio's go
   - [x] sync `node_lock.json` AND `python_deps.txt` into `c:\AI\Mpi\mpi-ci\cubric-vision-pod\`, re-measure the drift, commit there — 2026-09-28 mpi-ci `5ba9eb8` (MpiNodes cff4c3b -> bc92a1b, SplatKit out, core v0.34.0 unchanged); byte-identical to Vision. pushed 2026-09-29 with mpi-ci `57a31c0` (MPI-894)
   - [x] `node scripts/smoke-workflows.mjs --plan --flows all` 2026-09-28, shown to Fabio: 13 models / 38 ops / 290.5 GB + 14 Flows (+64.1 GB) = **400 GB volume**; lock in sync; MpiNodes + required-inputs sweeps clean; 1 SKIP `flux-schnell-cloud/t2i` (cloud, no workflow). **Re-run right before the real smoke** (sync LAST rule)
   - [x] DEV Pod image rebuilt at the lock (`/build-pod-image`), app restarted, Pod reports the pinned core — `v0.24.0-dev` (cu130 Docker Hub + cpu GHCR), CI run 36408333772, both pull-verified; `POD_IMAGE_VERSION_DEV`/`_CPU_DEV` in `6311ce8b9`; Fabio restarted the app (boot 11:16:51Z). Local cpu boot smoke not run (Docker daemon down). Pod-reports-core is asserted by the runner's gate 7 in the live run

@@ -9,3 +9,4 @@
 {"schema":"mpi-kanban/event/v1","type":"checklist.updated","id":"MPI-595","at":"2026-09-28T20:25:38Z","actor":"claude","summary":"B1 smoke GREEN 2026-09-28: PASS 51 / SKIP 1 / FAIL 0 across 52 ops (37 model ops + 14 Flows), engine 0.34.0 proven; runner gained --wait/--skip-install/--min-ram; probe clip 48 frames. Three findings under brief.md ## Noticed."}
 
 {"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-595", "at": "2026-09-30T18:40:00+01:00", "actor": "claude:0caa9d47", "summary": "Fabio folded MPI-1000 (Agent 74's umbrella: MPI-997/998/999) into this umbrella; picked up after MPI-971 closes"}
+{"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-595", "at": "2026-10-01T13:00:00+01:00", "actor": "claude:0656f8c0", "summary": "B1 gate fixed: third-party pin moves pass only with a per-hop packs attestation; MelodramaBox 9ebb44be->529c4be attested, release:check smoke line clear. MPI-970 and MPI-965 ticked (done)"}
