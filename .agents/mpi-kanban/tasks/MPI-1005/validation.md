@@ -27,3 +27,12 @@
   After it: `node --test tests/agent-*.test.cjs tests/connector-*.test.cjs (agent-tools, flow-dispatch)
   tests/llm-agent-context.test.cjs tests/flow-*.test.cjs` -> 661 tests, 0 fail once the new pin read
   the run step's `fields` (the field is not on a middle step).
+
+## CI (2026-10-01, session 314c5ced)
+
+- Run 36828363130 on the code commit 2eb6bea46: RED. `tests/user-flows.test.cjs:149` "every shipped
+  Flow, expressed as a package, validates": `minimax-music: flow.agentReview is not a Flow field.`
+  The user-package key allowlist (`services/userFlows.js` FLOW_KEYS) never got the new key; the
+  local runs above covered `agent-*`/`flow-*`, not `user-flows`. The desktop job was skipped.
+- Fix 79e7e7006 (key added to FLOW_KEYS + `docs/flow-packages.md`). Local `npm test`: 2605 tests,
+  0 fail. Run 36829690433: success, unit + desktop 4/4 (the first CI judgement of the desktop specs).

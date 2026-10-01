@@ -400,7 +400,7 @@ LISTENS: `agent:working`    `{ turnId, working }` — flips the working dot (pan
          `generation:started` `{ id, operation }` — **panel mode only**, crew ledge: the NEWEST running generation (any source, not just the agent's) takes the guest slot, mascot by `getCommandAccent(operation)`
          `generation:complete` / `generation:cancelled` / `generation:error` `{ id }` — **panel mode only**: that job's guest plays `happy-1` / `cancelled` / `failed` and leaves (or the next-newest running job takes over); `complete` while not working also cheers Cosmo (`happy`)
          state `currentPage` (both modes) + `agentMode` (panel) via `Events.onState` → `_syncPlay`: clips play only while the chat is SEEN; Cosmo's clip queue exists only then and is destroyed when hidden
-         `agent:confirm`   `{ turnId, confirmId, kind, modelId, modelName, downloadGb }` — appends an install-confirm card (Yes/No `MpiButton`s → `agentPostConfirm(confirmId, yes)`)
+         `agent:confirm`   `{ turnId, confirmId, kind, ... }` — appends a confirm card by `kind`: `install` `{ modelId, modelName, downloadGb }`, `batch` `{ count, what }`, `spend` `{ modelName, count, price }` — each Yes/No `MpiButton`s → `agentPostConfirm(confirmId, yes)`; `review` `{ flow, text }` (MPI-1005) — shows the Flow field's text with Review lyrics / Just do it → `agentPostConfirm(confirmId, 'review'|'run')`, and the click acts with no agent turn
          `agent:result`    `{ toolCallId, ok, output?, error? }` — appends a result thumbnail card on `ok`, an error line on `!ok`
          `agent:compacting` `{ turnId, on }` — appends a "Compacting conversation…" marker when `on`
          `agent:error`     `{ turnId, code, message }` — appends an error line, forces `working` false
