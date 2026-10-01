@@ -55,3 +55,34 @@ the real edge; the zone's bot protection letting a provider fetch the clip.
 - `@` picker (Fabio's yes): `refTagHandle` test in `deepinfra-seedance-refs` (Seedance `@image1`/`@video2`/
   `@audio3`, Wan and untagged-model `<...>`, only seedance-2-cloud declares `atRefTags`); that file + mention-picker
   21/21; `npm test` **2591 pass, 0 fail**; eslint clean. Not eye-tested in the running app.
+- `@` picker eye-test (2026-10-01, Agent 80, session d66bfdc7): `APP_DOCUMENTS=<scratch> node
+  scripts/launch-instance.mjs` (port 52816, scratch project `picker-test`, nothing generated, nothing paid),
+  then `playwright-cli -s=a80 open http://127.0.0.1:52816/`. The page has no key store, so cloud models are
+  hidden and the op chips disabled: model + op set through the prompt box's own `setModel` / `setOperation`,
+  refs through `injectMedia` (a mascot PNG + a flow-preview MP4); typing was real keystrokes. Seedance ref2v:
+  chips badge `Image 1` / `Video 1`, `@` opens the picker with both, Enter -> `The robot from @image1 `, `@v`
+  filters to Video 1 only, Enter -> `... moving like @video1 `, picker closes. Wan 3.0 ref2v, same refs:
+  `@` + Enter -> `Wan: <Image 1> `. Switching model clears the staged refs, so the picker stays shut.
+
+## Phase 4 - one paid live run (2026-10-01, Agent 80, Fabio's yes: one run, cap $0.47)
+
+- Setup: `export DEEPINFRA_API_KEY=...` (from the key file, env only) + `APP_DOCUMENTS=<scratch> node
+  scripts/launch-instance.mjs` (port 62812); refs made with ffmpeg: `robot.png` (assets/mascot/happy.png), `move.mp4`
+  (greet.png sliding side to side, 864x496, 24 fps, 2.000 s, faststart), `hum.wav` (440+660 Hz, 2.000 s). Then
+  `curl -X POST --data-binary @run.json http://127.0.0.1:62812/deepinfra/generate` with `modelId seedance-2-cloud`,
+  `operation ref2v`, 480p 16:9 4 s, media [image, video, audio] in that order, prompt anchoring `@image1` /
+  `@video1` / `@audio1`.
+- **HTTP 200 in 206 s, billed $0.3324122** (`inference_status.cost`). So: DeepInfra/BytePlus **fetched the
+  `relay.cubric.studio` URL** (no bot challenge), a **WAV data URL is accepted** as reference audio, and the call
+  billed at the **with-video band**: 0.3324122 / $4.70 per M = 70,726 tokens exactly (at $7.70 it is not an
+  integer). 70,726 = floor(864 x 496 x 169 / 1024), i.e. 169 frames = 7 s of billed video: the 4 s output plus
+  3 s of the 4 s of reference media (2 s video + 2 s audio). The 3-of-4 split is ONE sample, unexplained. The
+  app's "up to" quote (4 + 15 s at $4.70/M = $0.90) held as a ceiling.
+- Output: 864x496, 97 frames, 4.04 s, AAC audio (mean -22.6 dB). Frames 5/48/92: the happy-eyed robot from
+  `@image1`, waving, shifting left to right across the clip on the reference video's dark ground.
+- Clip delete: ABSENCE only - no `reference clip delete(s) failed` line in the instance's stdout or its profile
+  `app.log` (`%TEMP%/cubric-agent-profile/logs/app.log`); the route logs nothing on success, so this cannot prove
+  the DELETE ran. The DELETE path itself is proven by the Phase 3 free live check above. Key: 0 occurrences in the instance log and response.
+- Found alongside: Fabio's own app (started 2026-09-30 23:52 per Win32_Process `CreationDate` of the :3000
+  listener's parent, read live) predates the Phase 3 commit (00:31), so it showed
+  Seedance t2v/i2v only and toasted "does not support" on a video. Not a bug: a full quit + relaunch loads it.

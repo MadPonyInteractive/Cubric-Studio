@@ -64,10 +64,13 @@ model is a `ModelDef` in `js/data/modelConstants/models.js` with `provider: 'dee
   reference VIDEO's seconds as well as the clip's (measured 2026-09-30: 6.9 s ref + 5 s clip billed
   11.9 s); images and audio are free. The length is unknown before the run, so `estimateRunCost`
   quotes the ceiling, "up to", at 15 s a video and 30 s in all (the provider's own limits).
-  Seedance 2.0 with a reference video bills its cheaper "with video" token band over input plus
-  output seconds (BytePlus; UNMEASURED, no paid run yet), quoted "up to" with 15 s of reference
-  (`referenceVideoSeconds`, `deepinfraPricing.js`). A reference image does not change its band
-  (measured: $0.39 for 5 s at 480p, the plain band).
+  Seedance 2.0 with a reference video bills its cheaper "with video" token band ($4.70/M) over the
+  clip's seconds plus reference seconds, quoted "up to" with 15 s of reference
+  (`referenceVideoSeconds`, `deepinfraPricing.js`). Measured once, 2026-10-01: a 4 s 480p clip with
+  a 2 s reference video and 2 s reference audio billed $0.332 = 70,726 tokens = 7 s of video, so
+  3 of the 4 reference seconds counted (the split is unexplained, one sample). The same run proved
+  DeepInfra fetches a relay URL and takes a WAV data URL. A reference image does not change the
+  band (measured: $0.39 for 5 s at 480p, the plain band).
 - **A picture op with no picture is refused**, never sent (`requiresImages`): the endpoint would
   bill a text-to-image and hand it back as the "edit".
 

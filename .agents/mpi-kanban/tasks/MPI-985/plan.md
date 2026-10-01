@@ -25,6 +25,9 @@
   ref proven live ($0.39). MPI-910 `planned` with `plan.md` (relay Worker -> privacy page -> app ->
   live run). **Next: MPI-910 todo -> doing, build the relay Worker in `mpi-ci/cubric-relay/` and
   test it locally only (Fabio's go 2026-09-30: no deploy, no cost).** Session spend: $1.235.
+- **2026-10-01 (Agent 80): MPI-910 CLOSED.** Relay live, privacy page live (`afb9258`), Seedance
+  ref2v + end frame shipped (`8f4eb0cbc`, CI green), one paid live run ($0.332) proved the relay
+  fetch. **Next on this umbrella: MPI-918.**
 
 ## Plan Drift
 
@@ -41,7 +44,7 @@
 
 ## Batch 1: answers before code (sequential since 2026-09-30, see Plan Drift)
 
-- [ ] **MPI-910 hosting research.** Does DeepInfra take an asset upload, or how does the app serve a
+- [x] **MPI-910 hosting research.** Answered 2026-09-30 (`tasks/MPI-910/research.md`): our own relay. Does DeepInfra take an asset upload, or how does the app serve a
   staged file to the provider? Ownership: `.agents/mpi-kanban/tasks/MPI-910/` only. No code.
   **Verify:** a written answer with the endpoint or the serving route, read off DeepInfra's docs or
   a keyless schema call.
@@ -56,7 +59,7 @@
 
 ## Phase 2: Seedance references, then Flows (sequential - same files as MPI-923)
 
-- [ ] **MPI-910 build**, on the hosting answer from Batch 1 and MPI-923's op shape. Ownership: the
+- [x] **MPI-910 build** (closed 2026-10-01), on the hosting answer from Batch 1 and MPI-923's op shape. Ownership: the
   `seedance-2-cloud` entry in `models.js`, the Seedance builder in `routes/deepinfra.js`, tests.
 - [ ] **MPI-918**: Klein 9B cloud ModelDef + price snapshot, the MpiNodes node (`/mpi-nodes-sync`:
   committed -> pushed -> pinned), then each Flow's model-slot candidates. Its own plan comes first.

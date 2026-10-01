@@ -51,6 +51,25 @@ host reference videos ourselves.**
   only what is in the shot. Agent guide rewritten to it. **On Fabio's yes, the prompt box `@`
   picker now writes `@image1` for Seedance** (`capabilities.atRefTags`, `refTagHandle` in
   commandRegistry.js), `<Image 1>` for everyone else. Not eye-tested in the app yet.
+- 2026-10-01 (Agent 80, session d66bfdc7): **picker eye-tested in an isolated app** - Seedance writes
+  `@image1` / `@video1`, Wan 3.0 still `<Image 1>` (`validation.md`). Phase 3 has nothing left to
+  check for free.
+- 2026-10-01 later (Agent 80): **Phase 4 DONE on Fabio's yes** - one paid run, $0.332: DeepInfra
+  fetched the relay URL, WAV audio accepted, with-video band confirmed ($4.70/M, 7 s billed: the
+  4 s clip + 3 of the 4 s of refs). Clip used all three refs. **Next:** Fabio's call - close now (privacy
+  page publish then needs a home on the release checklist) or hold until the release publishes
+  it. Optional: quote the real reference length instead of the 15 s ceiling (one sample so far).
+- 2026-10-01 later (Agent 80): **Fabio: publish the privacy page NOW, not with the release.**
+  `privacy-draft.md` applied to `C:/AI/Mpi/Cubric Studio (Website)/privacy/index.html` (working tree
+  of `main`, +13/-9, LF, dated 1 October 2026), plus "images, audio or videos" in the DeepInfra
+  paragraph (Seedance and Wan 3.0 send audio; Wan sends video inline). The auto-mode guard refused
+  both the commit and the push in the Website repo: **Fabio commits + pushes** (GitHub Pages
+  deploys `main`). `site-2.0` needs nothing: its privacy file equals main's old one, so a merge
+  keeps the new text. After his push: curl https://cubric.studio/privacy/ for `relay.cubric.studio`,
+  release claim fc15730c, then close MPI-910.
+- 2026-10-01 (Agent 80): **Fabio pushed `afb9258`; live page verified** (new date, relay section,
+  "images, audio or videos"). All four phases done: **MPI-910 CLOSED.** Next on the umbrella:
+  MPI-918. Open follow-up only if billing data grows: quote the real reference length.
 - Gotchas found: workerd's R2 `range` object carries `suffix: undefined`, so `'suffix' in range`
   lies (fixed, tested); Local Explorer is the only local cron route honouring a scheduled time and
   needs `--test-scheduled`; a force-killed dev server leaves a stale registry entry that makes the
@@ -60,6 +79,7 @@ host reference videos ourselves.**
 
 - Phase 1 code + local tests (2026-09-30, Agent 78). Evidence: `validation.md`.
 - Phase 3 app wiring (2026-10-01, Agent 79). Evidence: `validation.md`.
+- Phase 4 live run, $0.332 (2026-10-01, Agent 80). Evidence: `validation.md`.
 
 ## Plan Drift
 
