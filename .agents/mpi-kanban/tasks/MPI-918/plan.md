@@ -110,7 +110,17 @@ Phases 3-4.
 
 ## Current State
 
-2026-10-01 (later): Phase 2 DONE and live-proven (validation.md), plus Fabio's added scope
+2026-10-01 (latest): Phase 3 HANDED to the session "Agent 86" (message e0dee39e): it owns
+flowsRegistry.js (the three FlowDefs), cloudEditGraph.js, flowService.js, commandExecutor.js
+(tap collection only) and the two cloud-edit tests; this session released them from its claim.
+Object Stamp needs ref 2 keyed by mode and taps collected BY TITLE (research/phase3-graph-map.md).
+Phase 4 docs started here (`5579ab88d`): cloud-generation.md § Inside a Flow, playbook
+`add-flow/cloud-edit.md`, UNRELEASED.md (Klein in the cloud list + a Scribble bullet: extend it to
+the three Flows when Phase 3 lands, and add a pointer line to each existing-flows page). Phase 4
+paid runs after Phase 3: Draw It In + Outpaint x (Klein, Nano Banana), Object Stamp x Klein in
+Auto and Manual, one with the Pod connected: ~6 runs, ~$0.15, price and count to Fabio first.
+
+Phase 2 (same day): DONE and live-proven (validation.md), plus Fabio's added scope
 (auto-pick with nothing local + Cosmo's spend gate on cloud Flows). LIVE RIG that worked: a
 Playwright `_electron.launch` script (scratchpad `scribble-live.cjs`, pattern in memory
 `tool_drive_electron_outside_the_spec_runner`): env = the isolated launcher's + `CUBRIC_PORT`
