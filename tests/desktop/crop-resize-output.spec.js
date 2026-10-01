@@ -71,7 +71,7 @@ async function setTool(window, mode, panelSelector, naturalWidth = SRC_W) {
   return panel;
 }
 
-// The CI runner's race, provoked (testing-desktop-specs.md trap 5). With no weights the group
+// The CI runner, provoked (testing-desktop-specs.md trap 5). With no weights the group
 // opens on Crop, not Prompt, so Resize mounts with no canvas swap to wait on — while the
 // entry is still loading. A dev box has weights, and its Prompt -> canvas swap loads the
 // image first, so the race never shows there. The slow display-image check widens it.
@@ -90,6 +90,16 @@ async function provokeRunner(window) {
       return orig(...args);
     };
     await syncModelInstalled();
+  });
+}
+
+// The runner has no engine, and Resize's live preview would try to start one: the failed
+// start leaves its overlay over the panel (CI run 36848159783). These specs read params,
+// not the preview, so the engine here never answers and every preview just waits.
+async function idleEngine(window) {
+  await window.evaluate(async () => {
+    const { remoteEngine, localEngine } = await import('/js/services/comfyController.js');
+    remoteEngine.ensureServerRunning = localEngine.ensureServerRunning = () => new Promise(() => {});
   });
 }
 
@@ -154,6 +164,7 @@ test('Resize MP and SCALE derive the size from the source and keep its proportio
   const { app, window } = await launchApp(testInfo);
   try {
     await provokeRunner(window);
+    await idleEngine(window);
     await openGroup(window, project);
     const panel = await setTool(window, 'resize', '.mpi-tool-options-resize');
     const family = (label) => panel.locator('#resize-family-slot').getByText(label, { exact: true }).click();
@@ -209,6 +220,7 @@ test('Resize SCALE sizes the original, not the display copy a big still is drawn
       const { setDisplayMaxEdge } = await import('/js/utils/displayImage.js');
       setDisplayMaxEdge(256);
     });
+    await idleEngine(window);
     await openGroup(window, project);
     const panel = await setTool(window, 'resize', '.mpi-tool-options-resize', 256);
     await panel.locator('#resize-family-slot').getByText('SCALE', { exact: true }).click();
