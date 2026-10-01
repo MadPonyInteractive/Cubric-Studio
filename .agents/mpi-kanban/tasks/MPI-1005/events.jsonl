@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1005", "at": "2026-10-01T01:31:38+01:00", "actor": "agent:f60f51ad", "column": "todo", "title": "Song asks with a real card: Review lyrics / Just do it act on click, no agent turn"}

@@ -14,6 +14,7 @@ Character Sheet split waits on MPI-603.
 | MPI-1002 | Every Flow enhancement uses the enhancer picked in Remote, on the agent's runs too | `tasks/MPI-1002/brief.md` |
 | MPI-1003 | Add-flow and add-model playbooks: the steps that make a new Flow or model known to the in-app agent | `tasks/MPI-1003/brief.md` |
 | MPI-1004 | Cosmo picks a library voice itself when a voice line has no sample | `tasks/MPI-1004/brief.md`, `plan.md` |
+| MPI-1005 | Song asks with a real card: Review lyrics / Just do it act on click, no agent turn | `tasks/MPI-1005/brief.md`, `plan.md` |
 
 (MPI-1001 is a peer's RunPod card, not a member.)
 
@@ -84,6 +85,13 @@ Each member closes on its own evidence; the umbrella closes when all three have.
   not (runs on its own voice): the brief records both.
 
 ## Current State
+
+2026-10-01 (session f60f51ad): MPI-1002 live matrix PASSED and Fabio said yes to close; code
+`fb506e1fb` (voices cast as text, Song asks before it opens, Generate->Cue, "Opened <Flow>" label).
+NEW member MPI-1005 (Fabio's ask during that look): Review lyrics / Just do it become a confirm card
+that acts on click, no agent turn; brief + plan written, not started. It edits `agentLoop.mjs`,
+`flows.md` and `MpiAgentChat.js`, so it runs after MPI-1004 or coordinates with it (both touch
+`docs/agent/flows.md`). Still owed by Fabio: MPI-998 look, MPI-999 ear test, MPI-1004 A/B/C.
 
 2026-10-01 (session 9c1e6f07): phase 3 MPI-997 CLOSED. The mirrored sheet was a prompt fix (the
 left/right order stated in each recipe's first sentence; bench + Fabio's app run), and leg 2 now

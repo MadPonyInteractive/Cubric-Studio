@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1005",
+  "title": "Song asks with a real card: Review lyrics / Just do it act on click, no agent turn",
+  "description": "Fabio 2026-10-01 (MPI-1002 look): the Review lyrics / Just do it options are text replies, so each click costs an agent turn, and the ask only happens if Cosmo follows his guide (it failed once). Make it a confirm card like spend/batch/install: Cosmo sends generate for Song, the app shows the lyrics box with the two buttons, a click opens or runs at once. Brief: brief.md. Umbrella MPI-1000.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-01T01:31:38+01:00",
+  "updated_at": "2026-10-01T01:31:38+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
