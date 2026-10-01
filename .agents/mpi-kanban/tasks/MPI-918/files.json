@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-918/**",
+    "js/data/modelConstants/models.js",
+    "dev_configs/deepinfra-prices.json",
+    "scripts/sync-deepinfra-prices.mjs",
+    "js/data/flowsRegistry.js",
+    "js/services/flowService.js",
+    "js/services/cloudExecutor.js",
+    "js/services/generationService.js",
+    "comfy_workflows/flow_scribble.json",
+    "comfy_workflows/flow_draw_it_in.json",
+    "comfy_workflows/flow_outpaint.json",
+    "comfy_workflows/flow_object_stamp.json",
+    "docs/cloud-generation.md",
+    "docs/playbooks/add-flow/any-of-models.md",
+    "docs/playbooks/add-flow/existing-flows/",
+    "docs/releases/UNRELEASED.md"
+  ]
+}

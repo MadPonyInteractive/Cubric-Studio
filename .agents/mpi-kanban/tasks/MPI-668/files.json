@@ -3,6 +3,7 @@
   "files": [
     ".agents/mpi-kanban/tasks/MPI-668/**",
     "routes/remotePodLifecycle.js",
-    "js/services/comfyController.js"
+    "tests/runpod-remote-hardening.test.cjs",
+    "docs/runpod-remote-engine.md"
   ]
 }

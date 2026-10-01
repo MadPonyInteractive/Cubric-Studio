@@ -15,6 +15,13 @@
 | MPI-349 | Remote GPU capacity watch - RunPod deploy-when-available, network volumes, Vast.ai | `todo` / `research` |
 | MPI-183 | Bump Builder image ComfyUI v0.25.1 -> v0.27.0 (parity with app+Pod) | `todo` / `deferred` |
 
+**2.0 scope, Fabio 2026-10-01 (MPI-595 split):** MPI-806 done. **MPI-668 IN** — reshaped to
+"reconnect recreates a saved Pod on an old image" (a 1.5.0 user's saved Pod would resume the
+1.5.0 image under 2.0's graphs); built 2026-10-01, live leg pending. **OUT of 2.0:** MPI-541
+(not reproduced: the 2026-09-28 B1 CPU fill installed all 13 models incl. MiniMax H3 without an
+OOM), MPI-183 (Builder is authoring-only, no user runs it), MPI-349 (research; deploy-when-
+available is console-only). The three stay on this umbrella for after 2.0.
+
 ## Why these belong together
 
 All five live on the same seam: the app talking to a GPU that is not this box. They share

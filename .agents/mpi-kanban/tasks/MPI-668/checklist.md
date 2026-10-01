@@ -1,37 +1,23 @@
 # MPI-668 - checklist
 
-Connect-time assert: compare the Pod's ComfyUI core against `node_lock.json`.
+**RESHAPED 2026-10-01 (Fabio: yes, IN for 2.0, under MPI-894 / MPI-595).** The real hole for a
+released user is not "core vs node_lock" but the SAVED Pod: `/remote/pod/reconnect` warm-resumes
+the Pod the user created under the OLD app (`startPod(savedPodId)`), and a Pod keeps the image it
+was created on. A 1.5.0 user who updates to 2.0 and presses Connect gets the 1.5.0 image back, and
+2.0's graphs reject mid-generation. The only warning today ("Pod image is stale - rebuild needed",
+MPI-222 baked-node drift) names a fix a user cannot do.
 
-## The mechanism already exists - do not go looking for one
+The fix: on reconnect, read the Pod's image from RunPod (`getPod` -> v2 `image`, v1 `imageName`)
+and compare it to `podImageForCard(gpuTypeId)` - the exact tag this app would create with. Differs
+-> skip the warm resume, delete + create fresh on the current image (the existing failed-resume
+path; the network volume keeps the models). Unreadable -> resume as before (fail OPEN). This
+covers dev builds too (the 2026-08-31 incident was a dev Pod on an old dev tag).
 
-MPI-669 proved the read on a live Pod (2026-08-31), so this card is wiring, not research:
+The original design notes (core version via `/system_stats`, `dev_mode`-only 8188) are in git
+history; the image tag is the same signal without a Pod round trip, and it has no false positive.
 
-    GET https://<podId>-8188.proxy.runpod.net/system_stats  ->  .system.comfyui_version
-
-Compare that to `dev_configs/node_lock.json` `comfyui.core.tag` (strip the leading `v`).
-On the Pod that unblocked MPI-669 it read `0.34.0` against a pin of `v0.34.0`.
-
-Caveats found while proving it:
-
-- Raw ComfyUI on 8188 is exposed by **`dev_mode` only** (`remotePodLifecycle` logs
-  `dev_mode: exposing raw ComfyUI on 8188 (no auth)` at create). A released user's Pod does
-  NOT expose it, so the assert has to run through the wrapper or an app route, not this URL.
-  That is the one real design question on this card.
-- `/system_stats` returned 000 on an older image and works on v0.22.0-dev - treat a single
-  failure as inconclusive, not as a version mismatch. Failing the assert OPEN is mandatory:
-  a false "your Pod is stale" is worse than the silence this card is fixing.
-- `/object_info/<NodeName>` (single class, `{}` when absent) is the second-line check if a
-  version string ever proves unreliable. `python_module: comfy_extras.*` in the response
-  means CORE - no custom-node install can supply it.
-
-## Why the card exists
-
-The DEV Pod image sat on ComfyUI 0.31.0 for three weeks while `node_lock` said v0.34.0.
-Nothing anywhere compared them, so the drift surfaced as four workflows rejecting mid-job on
-a rented GPU with an error blaming a custom node. The whole gap is one string comparison at
-connect time.
-
-- [ ] Decide the transport (wrapper endpoint vs app route) - `dev_mode` URL is dev-only.
-- [ ] Compare `comfyui_version` to `node_lock.json` `comfyui.core.tag` at connect.
-- [ ] Fail OPEN on an unreadable version; warn, never block, on a mismatch.
-- [ ] Surface it where the user already looks - the Settings remote-engine panel.
+- [x] `_isPodImageStale(pod, want)` pure + route test in `tests/runpod-remote-hardening.test.cjs`
+- [x] reconnect: stale image -> delete + create fresh; unreadable -> warm resume (fail open)
+- [x] `docs/runpod-remote-engine.md` line on the reconnect rule
+- [ ] Live leg: folded into MPI-595 B3 at the cut (a real 1.5.0 Pod, then the 2.0 update, then Connect); pennies, Fabio's yes there;
+  confirms v2 GET `/pods/{id}` returns `image`

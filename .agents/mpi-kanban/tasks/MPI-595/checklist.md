@@ -64,6 +64,66 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [ ] Then **the cut**: Gate D below, top to bottom. Costs ~nothing (CI + R2); it needs Fabio's yes
   because it is public and one-way (promote reaches every released Pod; the release reaches every updater)
 
+## EVERY CARD IN `doing` IS FOLDED HERE (Fabio 2026-10-01 — no card left on the side)
+
+Fabio 2026-10-01: two sessions own everything until the smoke and the release, by handoffs —
+THIS umbrella and the session titled **"Agent 85"** (MPI-513). Split proposed by Agent 85 and
+accepted 2026-10-01. A card nobody is named on is NOT out of 2.0 — only Fabio takes one out.
+**Order: every card below lands, THEN the smoke (B1 re-run if the lock moved), THEN the release.**
+
+THIS umbrella:
+- [ ] **MPI-918** cloud edit models inside image Flows (Klein 9B on DeepInfra + Nano Banana slot
+  candidates) — never started, no plan; last open member of **MPI-985** (910/923/1006/856 done),
+  so 985 closes with it. Needs a new MpiNodes node calling `/deepinfra/generate` -> pin moves
+  `node_lock.json` -> the smoke and the release Pod image come AFTER it. Its description's "Nano
+  Banana takes ONE reference" is stale: MPI-919 (`c90e6effd`) shipped up to four. Paid live runs
+  on Fabio's yes. THE LONG POLE
+- [ ] **MPI-894** remote GPU umbrella — v2 + 1b + 1c done. **Fabio 2026-10-01: MPI-668 IN**,
+  MPI-541 / MPI-183 / MPI-349 OUT of 2.0 (reasons in MPI-894 plan.md). `publish-runtime.sh
+  promote` stays a cut step
+  - [ ] **MPI-668** (`doing`): reconnect recreates a saved Pod on an old image (a 1.5.0 user's
+    saved Pod would resume the 1.5.0 image under 2.0). Code + test DONE 2026-10-01 (proven RED
+    without, `npm test` 2633/0); left: the live leg on a CPU Pod (pennies, Fabio's yes)
+- [ ] **NEW BREAKER 2026-10-01: release-line fixes missing from master.** 1.4.3/1.4.4/1.5.0 were
+  cut from branch `1.5.0`; 34 of its commits are not on master as-is. Confirmed one: `18a9b9215`
+  set released Pods to image `v0.23.0` (core 0.34.0); master still pins `v0.21.0`
+  (`routes/remotePodLifecycle.js:157,191`), so 2.0 as-is would send users to an OLDER image than
+  1.5.0. **Audited 2026-10-01** (all 34): 2 user-facing missing, 4 internal, rest PRESENT /
+  SUPERSEDED / N/A. **Ported in `ecd112ad1`:** `43b22c407` applier (UNKNOWN busy code + skip
+  sha-identical files — else a 2.x Windows install dies on its next FULL bundle after evicting
+  the exe; test RED on master's applier) + its update-evidence gate + install-test playbook;
+  smoke runner `4ba6241c8` (delete Pod before the volume prompt) + `3d1126f94` (CPU refusal
+  waits); `5b6074186`'s guard test. NOT ported: `a9c4906d0` (master keeps python_deps
+  byte-identical to the Pod repo). `18a9b9215` stays the cut's release-image step, now
+  ENFORCED: `release:check` fails while `POD_IMAGE_VERSION(_CPU)` is older than the last public
+  tag's (red today: v0.21.0 < v0.23.0) — the cut builds a clean stable image at the lock
+  (`v0.24.0`+, baking ChatterBox/MelodramaBox/Mickmumpitz, no SplatKit) and pins it here
+- [ ] **NEW BREAKER 2026-10-01 (Agent 85, live on the Linux box):** reconnect deleted a Pod left
+  RUNNING by a crash (v2 answers `start` on RUNNING with a non-400 error). Fixed in this
+  umbrella (MPI-894 lane): a RUNNING Pod attaches without `startPod` and skips the availability
+  gate; tests RED-proven. Pushed `ec18c1086`; CI on it to confirm before close
+- [ ] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step
+
+Agent 85:
+- [ ] **MPI-513** install state that lies to the user (umbrella: 497/397/320) — Fabio 2026-10-01:
+  "we might pick that up". Fixes done + tested, commit next; left: Pod remote-resume test (Fabio's
+  pick), close 497, MPI-397 product call, MPI-320 follow-ups in/out
+- [x] **MPI-866, MPI-593, MPI-708** CLOSED by Agent 85 (`ee6e94d97`, pushed 2026-10-01). Left
+  here: 593's Claude Desktop directory submission (release-day line) + `llms.txt` (under MPI-983);
+  708's `~/Documents/Cubric Vision` rename check on the real bundle (B3 line)
+- [ ] **MPI-603** (`validating`) — stale handoff `779c959c` resolved; card stays OPEN until 2.0
+  ships: v1.5.0 Klein 4B still lists `klein-lora-outpaint`, so the R2/HF delete (bottom "After"
+  line) breaks 1.5.0 installs if done before the release
+- [x] **MPI-1007** + MPI-894 overlay: GPU picker bullet added to `UNRELEASED.md` by Agent 85
+  (2026-10-01). UNRELEASED.md is back with THIS umbrella
+
+Not 2.0 (checked 2026-10-01): MPI-841 (2.1 blocker, Fabio 2026-09-30); MPI-560's description
+calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
+- [ ] **MPI-1010** 1.6.3 hand-delivered build — its own session. Its stamp `8e93f72ae` (unpushed
+  2026-10-01) makes the Gate D fold 1.6.0-**1.6.3**, and it CLAIMS `appVersion.js` /
+  `package.json` / `package-lock.json` / `releaseNotes.js`: the 2.0 bump cannot start until it
+  releases them
+
 ## ON PICKUP (measure, never read counts from prose)
 
 - [ ] `git rev-list --count v1.4.2..HEAD`, `git status --short`, `git log --oneline @{u}..HEAD`
@@ -127,6 +187,9 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
     - [x] RunPod leg PASSED 01:3xZ (see A1 above). An earlier run polled v1's `desiredStatus`, was interrupted, and its `finally` deleted Pod + volume (404 / 200)
     - Spend: DeepInfra $0.018 image + one agent turn (<$0.01); RunPod two CPU Pods ~3.5 min total at $0.06/hr (~$0.004) + two 10-11 GB volumes for minutes. **Total ~$0.03 of the $0.25 cap**
     - The box keeps the updated test install at `~/b3/` with Fabio's two keys in its `user-data/` (app-level encrypted); reuse it for the cut-time run
+    - [ ] **Reconnect live leg at the cut (MPI-668 + `ec18c1086`), pennies:** a CPU Pod created
+      and left by the box's 1.5.0 install, update to 2.0, Connect -> recreated on the 2.0 image;
+      then kill the app with that Pod RUNNING, relaunch, Connect -> attached, not deleted
     - [ ] At the cut, on the REAL 2.0 bundle: also check `~/Documents/Cubric Vision` -> `Cubric Studio` rename. It did NOT happen on the rehearsal and must not: it runs only at app major >= 2 (`routes/shared.js:132`), and the rehearsal build is 1.6.2
 - [x] **B4** `npm test` and `npm run test:desktop` green — 2026-09-29: CI run 36497353233 on `804107f52` (last code commit; later ones are board-only) unit + desktop shards 1-4 all success; local `npm test` at HEAD 2215 pass / 0 fail / 2 skip. **Re-check at the cut** (code keeps landing)
 - [x] **B5** MPI-656 Phase 1 — CLEARED by reading 2026-09-27: every YAML writer (`comfy.js:855/864/934`, `engine.js:671/678`) goes through `writeExtraModelPathsYaml` -> `setRoots`, so `model_roots.json` cannot drift from the YAML; the yaml-only seed and the both-equal rule are tested (`tests/model-roots.test.cjs:213,252`)
@@ -165,7 +228,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   - [x] MPI-845 DONE 2026-09-29: Fabio "845 looks good" (titlebar mark, chip hover, reference-chip X)
   - [x] MPI-720 DONE 2026-09-29: Fabio confirmed the reporter downloads at normal speed on the fixed build (evidence in its `validation.md`)
 - [x] MPI-623 / 711 / 591 / 656 out of `doing`, or scoped into 2.0 explicitly — 2026-09-29 Fabio: 623/711/656 post-2.0 -> `todo`/`deferred`; 591 was already done (A6)
-- [ ] 1.6.0 / 1.6.1 / 1.6.2 `RELEASE_NOTES` entries + `.approved-1.6.*.json` deleted at the fold
+- [ ] 1.6.0 / 1.6.1 / 1.6.2 / **1.6.3** (MPI-1010, 2026-10-01) `RELEASE_NOTES` entries + `.approved-1.6.*.json` deleted at the fold — `release:check` 2026-10-01 names all four, nothing else
 - [x] ~~MPI-708 Phase 3: dual-publish `CubricVision-*` at the cut~~ DROPPED: Fabio 2026-09-29 (MPI-972, `f74855990`) no legacy set at 2.0; 2.0 updates in place from 1.5.0. The `mpi-release` SKILL still said "also attaches legacy copies" — fixed this session
 - [ ] `python scripts/overtaken-cards.py`; unpushed pushed; commit by pathspec — overtaken run
   2026-10-01: 3 candidates, none overtaken (MPI-775 board-save commit, MPI-560 live Flow
@@ -174,6 +237,9 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [ ] `/mpi-version-bump` -> **2.0.0**, then `/mpi-release`
 - [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
 - [ ] Release day: **MPI-983** publish docs.cubric.studio, then cubric.studio (both built and held)
+  - [ ] **`llms.txt` for docs.cubric.studio** rides with it (from MPI-593, handed over by Agent 85
+    2026-10-01). Docs repo = Fabio's no-push repo with its own live session: ask THAT session (or
+    Fabio) to add it, never write there. The pages exist on `docs-2.0`: `agent/`, `settings/`
 - [x] Before the notes are written: `github-release-checklist.md` § Scope Guard may still forbid "assistant" claims — CHECKED 2026-10-01: fixed by `0f6d75f09` (the section now says the agent and MCP are fair to name)
 - [ ] Ask Fabio again, near the release: a Discord/Patreon post warning 1.5.0 users about the 2026-11-15 RunPod cutoff (Fabio 2026-09-29: "no to the post right now, maybe closer to the release")
 - [ ] After: MPI-603 R2/HF delete; MPI-612
