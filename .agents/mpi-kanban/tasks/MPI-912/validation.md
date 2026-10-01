@@ -148,6 +148,13 @@ Logs `research/agent-deepinfra-<slug>.log`. Price = DeepInfra list $/1M in / out
 | openai/gpt-oss-20b | 10/22 | $0.024 | 0.03 / 0.14, 14 GB on Ollama | 12, "never generated" x5 |
 | nvidia/Nemotron-3-Nano-30B-A3B | 10/22 | $0.096 | 0.05 / 0.20, on Ollama | 12 |
 | Qwen/Qwen3-VL-30B-A3B-Instruct | 7/22 | $0.225 | 0.15 / 0.60 | 15, called a nonexistent `delete_project` |
+| inclusionAI/Ling-3.0-flash (2026-10-01, 34-case suite) | 22/28 old + 6/6 routines | $0.164 (34) | 0.06 / 0.18 (0.012) | video-limit (17-call loop, tool call leaked as text), text-in-picture, sheet, outpaint-grows-one-side, memory-write-unprompted, second-picture-room |
+
+**Ling-3.0-flash, added 2026-10-01 (Fabio's yes, spent $0.164):** `--runs 1` on the 34-case suite
+(hash `38728db81118`, the 28 DeepSeek cases + 6 routine cases). Same list price as the pick, cheaper
+cache, but on the 28 shared cases it took 6.0 calls / 88K in per chat (pick ~4.7 / ~55K), so
+$0.0055 vs $0.0036 per chat at fresh-input prices, and 6.8 s per call vs 3.4 s. Loses on score,
+cost and speed: no flag, do not re-test. Log `research/agent-deepinfra-inclusionAI_Ling-3.0-flash.log`.
 
 **Qwen3-VL-30B lost its agent flag** (Fabio, 2026-09-25): it had carried "less censorship"
 since MPI-774 on one refusal test, never the suite. `services/llmEngines.mjs` entry removed;
