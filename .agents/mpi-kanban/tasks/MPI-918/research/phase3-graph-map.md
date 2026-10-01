@@ -28,3 +28,12 @@ Spec shape: `cloudEdit: { input, prompt, output }` (`js/utils/cloudEditGraph.js`
 - output `168` VAEDecode; tail as Draw It In (192 -> 169 -> 170 -> 146).
 - decode size = 106 = 211 (1024x1024 in practice); Manual's 201 does NOT match.
 - `6` (ImageCompositeMasked of 1 + 2) feeds 161's box mask in both modes: Input_Paint is still loaded in pass 2.
+
+## Trap for Object Stamp's second reference (Agent 86, 2026-10-01)
+
+`runCloudEdit` takes the picture AND the pass-2 fit size from `displayUrls[0]`, and
+`commandExecutor` fills `displayOutputUrls` in the order ComfyUI's `executed` events ARRIVE
+(execution order, not node id or title). With two `Output_Display` taps, index 0 is whichever ran
+first: in Manual, ref 2 (201) is the object at its own aspect, so it could go to the cloud as
+image one AND set the fit size, misaligning the stitch. Fix: distinct titles per tap and collect
+by title/node, never by index. The fit size is always ref 1's (= the decode size).

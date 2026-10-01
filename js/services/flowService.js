@@ -396,6 +396,31 @@ async function _blobOf(url) {
     return res.blob();
 }
 
+/**
+ * What one run of this Flow bills, for the agent's spend gate and its catalogue: the cloud
+ * edit at the 1 MP every `cloudEdit` graph scales its edit input to. null for a local run.
+ * @param {import('../data/flowsRegistry.js').FlowDef} flow
+ * @returns {?{model: Object, usd: ?number, display: ?string}}
+ */
+export function cloudEditQuote(flow) {
+    const model = cloudEditModel(flow);
+    if (!model) return null;
+    const quote = cloudEditPrice(model.id);
+    return { model, usd: quote?.usd ?? null, display: quote?.display ?? null };
+}
+
+/**
+ * One Flow run's price on a cloud slot candidate, as its slot label shows it; null for a
+ * local one, or one whose price cannot be known before it runs.
+ * @param {string} modelId
+ * @returns {?{usd: number, display: string}}
+ */
+export function cloudEditPrice(modelId) {
+    const model = getModelById(modelId);
+    if (!model?.provider) return null;
+    return estimateRunCost(model, { Width: 1024, Height: 1024 }, [{ mediaType: 'image', url: 'reference' }]) || null;
+}
+
 /** A picture as a data URL: what the engine staging route and a run param both take. */
 function _dataUrlOf(blob) {
     return new Promise((resolve, reject) => {

@@ -49,6 +49,10 @@ You cannot install a Flow (`install_model` takes models only) or open the Flow L
 offer either. A Flow that is not installed, the user adds from the Flow Library: its tile says Get
 models, or Get it for a paid Flow (Head Swap, DramaBox).
 
+A Flow marked `cloud` in `list_models` runs its edit on a cloud model and charges the user's own
+DeepInfra account on EVERY run, which is not the same as a Flow bought once. Say the price when
+you offer it; the app shows the user a Yes card with that price before each run.
+
 ## Flows the user finishes
 
 `list_models` marks some Flows `opensForUser`: Draw It In and Scribble need the user's drawing,

@@ -14,7 +14,7 @@ import { MpiAudioPlayer } from '../../Organisms/MpiAudioPlayer/MpiAudioPlayer.js
 import { Events } from '../../../events.js';
 import { state, AUTO_PIXEL_THRESHOLD } from '../../../state.js';
 import { ViewManager } from '../../Primitives/MpiCanvas/managers/ViewManager.js';
-import { submitFlowGeneration, submitChainLeg } from '../../../services/flowService.js';
+import { submitFlowGeneration, submitChainLeg, cloudEditPrice } from '../../../services/flowService.js';
 import { updateGroup } from '../../../services/projectService.js';
 import { promoteHistoryEntry } from '../../../data/projectModel.js';
 import { clientLogger } from '../../../services/clientLogger.js';
@@ -1594,7 +1594,12 @@ export const MpiBaseFlow = ComponentFactory.create({
                 // the dropdown with a value none of its options carry.
                 const runningId = choices.includes(resolved[i]) ? resolved[i] : choices[0];
                 if (!runningId) return;
-                const name = disambiguatedName(runningId, slot.models);
+                // A cloud candidate bills each run (MPI-918), so its label says how much.
+                const labelOf = (id) => {
+                    const price = cloudEditPrice(id)?.display;
+                    return price ? `${disambiguatedName(id, slot.models)} · ${price}` : disambiguatedName(id, slot.models);
+                };
+                const name = labelOf(runningId);
                 // A cloud pick loads no LoRA (MPI-918), so it has no rack to open.
                 const cogShown = showCog && !isCloudCandidate(runningId);
 
@@ -1613,7 +1618,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                     const dd = MpiDropdown.mount(host, {
                         options: choices.map(id => ({
                             value: id,
-                            label: disambiguatedName(id, slot.models),
+                            label: labelOf(id),
                         })),
                         value: runningId,
                     });

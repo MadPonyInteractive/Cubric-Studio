@@ -67,8 +67,13 @@ None of the four graphs has an `MpiIfElse` today.
 - [x] (code) Slot: Scribble lists `klein-9b-cloud` + `nano-banana-2-lite-cloud`; `flowModelIds`
   never resolves a cloud id unpicked; `flowModelChoices` hides one without a key; no LoRA phase
   and no cog for a cloud pick. `cloudEdit` joins `services/userFlows.js` FLOW_KEYS.
-- [ ] **Verify:** unit tests (`cloud-edit-graph`, `flow-cloud-edit`), eslint, `npm test` DONE;
-  live Scribble run (Klein ~$0.015, Nano Banana 2 Lite ~$0.034) on Fabio's yes - LEFT.
+- [x] **Verify:** unit tests, eslint, `npm test` 2649/0; live Scribble run PASSED 2026-10-01
+  (Klein $0.015, Nano Banana 2 Lite $0.034; validation.md).
+- [x] (added, Fabio 2026-10-01: "Cosmo needs to know about flows containing paid models") a cloud
+  candidate runs UNPICKED when nothing local is installed (local always wins); `generation.quote`
+  prices such a Flow, so the in-app Yes card and MCP CONFIRM_COST ask first; the catalogue's Flow
+  entry carries `cloud` (NOT `paid`: app:flows already uses "paid Flow" for Gumroad); `app:flows`
+  says it; the slot label reads "<name> · about $0.02".
 
 ## Phase 3: Draw It In, Outpaint, Object Stamp
 
@@ -101,16 +106,18 @@ None of the four graphs has an `MpiIfElse` today.
 
 ## Remaining Work
 
-Phase 2's live run, then Phases 3-4.
+Phases 3-4.
 
 ## Current State
 
-2026-10-01 (later): Phase 2 CODE DONE, offline-verified (`npm test` green, see Completed);
-NOT yet run live. Next: the live Scribble run, which needs Fabio's yes (money + his engine on
-48188, shared with an isolated app). Route for it: `app:isolated` with the env key, then a
-playwright-cli page in THAT instance: add the cloud id to `state.s_installedModelIds` (the
-renderer reads no env key), `setFlowModel('scribble', ...)`, `submitFlowGeneration` with a
-drawing; check the card lands with `generationSettings.cost` and the drawing was rendered.
+2026-10-01 (later): Phase 2 DONE and live-proven (validation.md), plus Fabio's added scope
+(auto-pick with nothing local + Cosmo's spend gate on cloud Flows). LIVE RIG that worked: a
+Playwright `_electron.launch` script (scratchpad `scribble-live.cjs`, pattern in memory
+`tool_drive_electron_outside_the_spec_runner`): env = the isolated launcher's + `CUBRIC_PORT`
+set BEFORE requiring shellWindow + `APP_DOCUMENTS` scratch + `DEEPINFRA_API_KEY` from
+`~/.secrets/di.txt`; in-page: createProject/openProject, push the cloud id into
+`state.s_installedModelIds` (the renderer reads no env key), setFlowModel, submitFlowGeneration.
+A playwright-cli PAGE cannot do it: since MPI-922 it gets 403 from ComfyUI.
 Phase 3 starts from `research/phase3-graph-map.md` (Agent 86's map; Object Stamp needs a second
 input keyed by mode, 106 Auto / 201 Manual).
 

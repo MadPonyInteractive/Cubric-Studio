@@ -25,18 +25,29 @@ const load = async () => ({
 
 const CLOUD = 'klein-9b-cloud';
 
-test('a cloud candidate runs only when picked, is offered only with a key, and has no rack', async () => {
+test('a local candidate always wins, a cloud one runs only with nothing local, a key, and no rack', async () => {
     const { state, registry } = await load();
     const scribble = registry.getFlowById('scribble');
+    const { cloudEditQuote } = await import(url('js/services/flowService.js'));
     assert.ok(registry.isCloudCandidate(CLOUD));
     assert.ok(!registry.isCloudCandidate('klein-9b'));
 
-    // Key saved, no local Klein: the slot still resolves LOCAL, so nothing bills unasked.
-    state.s_installedModelIds = [CLOUD, 'nano-banana-2-lite-cloud'];
-    assert.equal(registry.flowModelIds(scribble)[0], 'klein-9b');
-    assert.equal(registry.flowAvailability(scribble).available, false);
+    // Key saved AND a local Klein: local runs, and the run is free.
+    state.s_installedModelIds = ['klein-4b', CLOUD, 'nano-banana-2-lite-cloud'];
+    assert.equal(registry.flowModelIds(scribble)[0], 'klein-4b');
+    assert.equal(cloudEditQuote(scribble), null);
 
-    // Picked: it runs, the Flow is available, and the rack is gone.
+    // Key saved, nothing local (Fabio, 2026-10-01): the first cloud candidate runs, and it is
+    // priced, which is what raises the agent's spend card.
+    state.s_installedModelIds = [CLOUD, 'nano-banana-2-lite-cloud'];
+    assert.equal(registry.flowModelIds(scribble)[0], CLOUD);
+    assert.equal(registry.flowAvailability(scribble).available, true);
+    const quote = cloudEditQuote(scribble);
+    assert.equal(quote.model.id, CLOUD);
+    assert.equal(quote.display, 'about $0.02');
+
+    // Picked: it runs over an installed local one, and the rack is gone.
+    state.s_installedModelIds = ['klein-9b', CLOUD];
     registry.setFlowModel('scribble', CLOUD);
     assert.equal(registry.flowModelIds(scribble)[0], CLOUD);
     assert.deepEqual(registry.flowLoraPhases(scribble), []);
@@ -125,6 +136,16 @@ test('the cloud edit sends pass 1\'s picture and prompt, and pass 2 carries the 
     assert.match(pass2.cloudEdit.image, /^data:image\//);
     assert.equal(pass2.cloudEdit.width, 896);
     assert.deepEqual(pass2.cloudEdit.cost, { usd: 0.015 });
+});
+
+test('the agent\'s catalogue keeps a Flow\'s cloud line, so Cosmo knows the run bills', async () => {
+    const { compactCatalogue } = await import(url('services/agentLoop.mjs'));
+    const out = compactCatalogue({ ok: true, models: [], tools: [], flows: [
+        { id: 'scribble', title: 'Scribble', installed: true, cloud: 'its edit runs on X at DeepInfra' },
+        { id: 'outpaint', title: 'Outpaint', installed: true },
+    ] });
+    assert.equal(out.flows[0].cloud, 'its edit runs on X at DeepInfra');
+    assert.equal('cloud' in out.flows[1], false);
 });
 
 test('a refused cloud call reaches the caller with its code and queues nothing', async () => {

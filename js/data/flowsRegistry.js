@@ -1041,7 +1041,8 @@ export const FLOWS = [
         // rather than a flow-level `settingsModel` so the rack follows the card the user
         // picked.
         // The two cloud ids (MPI-918) run the SAME graph's edit stage at DeepInfra: offered
-        // only with a key saved, run only when picked, no LoRA rack. Nano Banana fits here
+        // only with a key saved, run unpicked only when no local one is installed, no LoRA
+        // rack (`flowModelIds`). Nano Banana fits here
         // because this edit takes ONE reference.
         requiredModels: [
             {
@@ -2768,11 +2769,13 @@ export function flowModelIds(flowOrId) {
     if (!flow) return [];
     const installed = state.s_installedModelIds || [];
     const picks = _modelChoice.get(flow.id) || [];
-    // A cloud candidate (MPI-918) runs ONLY when picked: it bills the user, so it is never
-    // what an install happens to resolve to.
+    // A cloud candidate (MPI-918) bills the user, so an installed LOCAL one always wins, and
+    // a cloud one runs unpicked only when nothing local is installed (Fabio, 2026-10-01). The
+    // agent's spend card and the slot's price label say so before anything is sent.
     return flowModelSlots(flow).map(({ models }) =>
         models.find(id => picks.includes(id))
         || models.find(id => installed.includes(id) && !isCloudCandidate(id))
+        || models.find(id => installed.includes(id))
         || models.find(id => !isCloudCandidate(id))
         || models[0]);
 }

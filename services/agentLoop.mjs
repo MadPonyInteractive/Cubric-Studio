@@ -565,6 +565,8 @@ export function compactCatalogue(list) {
             installed: f.installed,
             // MPI-892: said up front, so the agent offers to open it rather than saying it cannot draw.
             ...(f.opens ? { opensForUser: true } : {}),
+            // MPI-918: a cloud model in its edit slot; the spend card asks before each run.
+            ...(f.cloud ? { cloud: f.cloud } : {}),
         })),
         // MPI-904: the image tools with no model (upscale, background removal, crop).
         tools: (list.tools || []).map((t) => ({
@@ -1531,7 +1533,8 @@ export class AgentLoop {
      * @param {object} body  the connector body about to be sent, priced as it stands.
      * @param {number} count how many generations this one card is about to agree to.
      * @returns {Promise<true|false|null>} null when nothing about this run can be billed,
-     *   which is every local model and every Flow — those raise no card at all.
+     *   which is every local model and every Flow that runs locally — those raise no card
+     *   at all. A Flow whose edit slot runs on a cloud model bills (MPI-918) and does.
      */
     async _askSpend(turnId, body, count) {
         let quote = null;

@@ -42,7 +42,7 @@
  */
 
 import { enqueueGeneration, findMissingMediaSlot, cancelPendingCueJob, cancelRunningCueJob } from '../services/generationService.js';
-import { submitFlowGeneration } from '../services/flowService.js';
+import { submitFlowGeneration, cloudEditQuote } from '../services/flowService.js';
 import { openProject, renameGroup, markGroup, serializeGroup, addGroup } from '../services/projectService.js';
 import { createItemGroup } from '../data/projectModel.js';
 import { STACK_TYPE, resultStackFields } from '../data/stackModel.js';
@@ -856,9 +856,22 @@ function _enqueueAgentRun(jobId, input, config, target, historyOpts, { width = 0
  * @param {object} input - the `generation.submit` body, plus `count` for a fan-out.
  */
 function _quoteGeneration(jobId, input = {}) {
-    // A Flow carries no model id (`model.id: null`), so nothing behind one is a cloud
-    // model and there is nothing here to price.
-    if (input.flowId) return _report(jobId, { ok: true, output: { billed: false } });
+    const count = Math.max(1, Math.round(Number(input.count) || 1));
+    // A Flow carries no model id (`model.id: null`), but its edit slot can resolve to a
+    // cloud model (MPI-918), and then every run bills like one.
+    if (input.flowId) {
+        const flow = getFlowById(String(input.flowId));
+        const quote = flow ? cloudEditQuote(flow) : null;
+        if (!quote) return _report(jobId, { ok: true, output: { billed: false } });
+        const usd = quote.usd === null ? null : quote.usd * count;
+        return _report(jobId, { ok: true, output: {
+            billed: true,
+            modelName: `${flow.title} on ${quote.model.name}`,
+            count,
+            usd,
+            display: usd === null ? null : formatPrice(usd),
+        } });
+    }
 
     const pinned = state.agentSettingsPinned === true;
     const owner = resolveSettingsOwner(input, pinned, state.currentProject, pinned ? pinnedModel() : null);
@@ -879,7 +892,6 @@ function _quoteGeneration(jobId, input = {}) {
     // unit times the count — multiplied as a NUMBER and formatted once. `display` itself
     // can never be multiplied: below a cent it carries one significant figure, so six
     // lots of "about $0.0005" cannot be read back out of the string.
-    const count = Math.max(1, Math.round(Number(input.count) || 1));
     const usd = quote ? quote.usd * count : null;
 
     return _report(jobId, { ok: true, output: {
@@ -1631,6 +1643,8 @@ async function _listModels(jobId) {
         const boxSteps = (flow.steps || []).filter(s => s.kind === 'box' && s.param);
         const cropStep = (flow.steps || []).find(s => s.kind === 'crop' && s.role);
         const voices = slotVoices(flow, voiceLib);
+        // MPI-918: its edit slot resolved to a cloud model, so every run bills the user.
+        const cloud = cloudEditQuote(flow);
         return {
             id: flow.id,
             title: flow.title,
@@ -1668,6 +1682,7 @@ async function _listModels(jobId) {
             // MPI-1004: role -> the library voices that slot takes; the route folds each list
             // into its slot's `media` row.
             ...(voices ? { voices } : {}),
+            ...(cloud ? { cloud: `its edit runs on ${cloud.model.name} at DeepInfra and charges the user's own account ${cloud.display || 'an amount known only after the run'} a run. The app asks the user before each run.` } : {}),
         };
     });
 
