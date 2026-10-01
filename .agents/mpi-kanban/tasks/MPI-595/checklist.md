@@ -192,8 +192,14 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     - Spend: DeepInfra $0.018 image + one agent turn (<$0.01); RunPod two CPU Pods ~3.5 min total at $0.06/hr (~$0.004) + two 10-11 GB volumes for minutes. **Total ~$0.03 of the $0.25 cap**
     - The box keeps the updated test install at `~/b3/` with Fabio's two keys in its `user-data/` (app-level encrypted); reuse it for the cut-time run
     - [x] Reconnect recreate leg (MPI-668): DONE 2026-10-01 by Agent 86 on a master build (above)
-    - [ ] **RUNNING-attach leg (`ec18c1086`), pennies, offered to Agent 86 2026-10-01:** kill the
-      app with a Pod RUNNING, relaunch, Connect -> attached, not deleted
+    - [x] **RUNNING-attach leg (`ec18c1086`) - PASS 2026-10-01, Agent 86, Linux box** (Fabio's
+      yes): `~/m668` master build (mpi-ci 36920031079 at `a1552ef08`) made CPU Pod
+      `0uqv9pv5uuh6km` (v0.21.0-cpu, EU-RO-1, 10 GB volume), RUNNING; app SIGKILLed with it
+      RUNNING, relaunched; `POST /remote/pod/reconnect` -> `{"recreated":false,"podId":
+      "0uqv9pv5uuh6km"}`, ready at once; app.log only `Pod reconnect requested` -> `Pod resume
+      kicked off`, no `resume failed`, no `Pod delete`; v2 `startedAt` identical before and after
+      (no `start` sent). Torn down, < $0.01. Side proof: a stray second connect made a 2nd Pod and
+      the create path's `orphan sweep deleted 1 stray Pod(s)` cleaned it
     - [ ] At the cut, on the REAL 2.0 bundle: also check `~/Documents/Cubric Vision` -> `Cubric Studio` rename. It did NOT happen on the rehearsal and must not: it runs only at app major >= 2 (`routes/shared.js:132`), and the rehearsal build is 1.6.2
 - [x] **B4** `npm test` and `npm run test:desktop` green — 2026-09-29: CI run 36497353233 on `804107f52` (last code commit; later ones are board-only) unit + desktop shards 1-4 all success; local `npm test` at HEAD 2215 pass / 0 fail / 2 skip. **Re-check at the cut** (code keeps landing)
 - [x] **B5** MPI-656 Phase 1 — CLEARED by reading 2026-09-27: every YAML writer (`comfy.js:855/864/934`, `engine.js:671/678`) goes through `writeExtraModelPathsYaml` -> `setRoots`, so `model_roots.json` cannot drift from the YAML; the yaml-only seed and the both-equal rule are tested (`tests/model-roots.test.cjs:213,252`)
