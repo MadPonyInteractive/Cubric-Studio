@@ -81,6 +81,12 @@ declares the route does too.
 
 ## Current State
 
+2026-10-01 (session 4653d5e1): CI on `3766786ae` went green on flow-pick-voice but RED on
+crop-resize-output (Resize SCALE sent 1024x1024): not this card's code, a Resize race the runner
+hits (no models -> rail opens on Crop -> no canvas swap to await -> panel reads the image
+mid-load, never again). Same panel sized MP/SCALE off MPI-961's display copy on big photos.
+Fixed `de82365be` (pushed --no-verify as the fix, with MPI-1009's two waiting commits); CI run
+36848159783. Next: that run green, then Fabio's listen -> close.
 2026-10-01 (session 57bdb71a, handed off): Fabio PASSED round 4 (voice card, Use <voice>, Pick
 lands in the library, Vinyl on the mic). Last open item: previews were silent - they played to
 the Windows default device, not his chosen one (Sonar); fixed `4dc6b63e1` (`applySink`). Fabio

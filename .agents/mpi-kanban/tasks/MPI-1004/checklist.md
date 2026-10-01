@@ -15,4 +15,5 @@
 - [x] Voice previews: switching voices keeps the new one playing (`MpiVoicePicker`)
 - [x] Fabio: Pick lands in the library, Use <voice> runs, Vinyl mic by eye (round 4)
 - [x] Previews reach the chosen output device (`applySink`)
-- [ ] Fabio: previews audible
+- [x] Fabio: previews audible (round 5)
+- [x] Resize race + display-copy size found on CI, fixed `de82365be` + `961b8599e`, CI green

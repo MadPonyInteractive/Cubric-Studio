@@ -95,6 +95,28 @@
   Fixture, not product: `3766786ae` pins one model and provokes the empty sync (red-master cause
   1); VIEW_BUSY reproduced locally without the pin, green with it.
 
-## Left: Fabio's look and listen (user-ux)
+- CI on `3766786ae` (run 36845031285): flow-pick-voice GREEN (the fixture fix held); shard 2 RED
+  on `crop-resize-output.spec` "Resize MP and SCALE" only, 3/3 attempts: sent 1024x1024, the
+  defaults. Not this card's code (green on `408e03f80`'s run): a race. No weights -> the group
+  opens on Crop, so `mountOptions` has no canvas swap to await and Resize mounted while
+  `loadEntry` was still loading; it read the source once and never again. Reproduced locally
+  only with the runner provoked (no weights + 1.5 s `/display-image`): exact 1024x1024.
+  Same panel, user-facing: past the display cap it sized MP/SCALE/FREE off the smaller copy
+  (MPI-961) - SCALE /2 of 400x300 under a 256 cap = 128x96. Fix `de82365be`: viewer
+  `whenSourceLoaded()` + `getSourceSize()`, Resize awaits/uses them. Spec: provoked race red
+  without the fix, green with it; new display-copy test red at 128x96 without
+  `getSourceSize`, green with it; crop-resize 8/8 (x2), 9 related desktop specs 15/15
+  (display-copy spec needs a short `--output` path: MAX_PATH), `npm test` 2628/0, lint clean.
 
-Needs the app restarted (server code changed) and the agent model on his DeepInfra key.
+- CI on `de82365be` (run 36848159783): the race fix held (shard 2 green), but the provoked
+  test timed out clicking SCALE in shard 1: with the image read, Resize's live preview ran,
+  the runner has no engine, and the failed start left "Starting ComfyUI Engine..." over the
+  panel. Reproduced locally by stubbing a failed start. Fix `961b8599e`: `idleEngine()` (the
+  engine never answers, previews wait) in both Resize tests; 12/12 green, still red at
+  1024x1024 with `whenSourceLoaded` removed. Pushed with MPI-965's waiting `cf86af6f1`
+  (its llm-connection test 18/0, eslint clean). CI run 36850358494.
+
+## Fabio's listen, round 5 (2026-10-01)
+
+- PASSED by Fabio ("1"): after a restart, voice library previews are audible on his chosen
+  output device (SteelSeries Sonar). Every round-4 item now passed; nothing left for his eyes.

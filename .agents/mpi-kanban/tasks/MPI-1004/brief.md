@@ -42,6 +42,8 @@ Cosmo offers `[Pick from the voice library | You pick one]`.
 
 ## Noticed
 
+- 2026-10-01: a failed engine start (`ComfyUI Python not found`, a broken install with "skip local engine" off) leaves the "Starting ComfyUI Engine..." overlay up with the error and no way to close it (`MpiStartingComfy.setError` keeps it visible, `shell.js` comfy:error); a Resize live preview is enough to raise it. Seen on CI run 36848159783.
+
 ## Finding (2026-09-30, after Fabio asked "did it pick a library voice or the DramaBox voice?")
 
 Cosmo's last DramaBox run (My Agent Tests, sidecar `c0fc6dff...json`, 19:44) had `mediaItems: []`: NO library voice. Cosmo wrote the voice into the prompt ("An elderly man speaks, gravelly and tired: \"...\"") and DramaBox built it from the words, which is DramaBox's own documented use (`Cubric-Flows/drama-box/flow.json:14`: describe the speaker in the line; a sample is optional). So the library pick only matters where a sample is REQUIRED: Text to Speech. The two-button offer is on hold until Fabio decides (Fabio 2026-09-30: check this first, before any decision on the buttons).
