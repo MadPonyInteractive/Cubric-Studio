@@ -212,7 +212,8 @@
 - **An agent inside the app.** Press Agent in the top bar (or A) and ask in plain words: it
   picks and installs models, runs generations and Flows, and looks at what it made. It asks
   before anything costs money. Runs on your own DeepInfra, OpenRouter or OpenAI key, or free
-  on Ollama. Its panel is resizable, and it can use a mask you painted, outpaint, and make GIFs.
+  on Ollama. Its panel is resizable. It can use a mask you painted, outpaint, make GIFs, upscale,
+  crop or remove the background of many cards in one go, and look at your videos and GIFs.
 
 - **Routines: save a chain of steps once, run it on any cards.** Ask the agent to save one
   ("square it, upscale it, white background"), then select cards and pick it from Routines on

@@ -101,8 +101,9 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
     refusal). MelodramaBox `9ebb44be` -> `529c4be` attested (17 `DramaBox*` classes, none under
     `comfy_workflows/`). `npm run release:check`: smoke line clear ("attested packs:
     ComfyUI-MelodramaBox"); only the 1.6.x archival notes (Gate D) remain. `tests/engine-drift.test.cjs`
-    6/6, the 2 new ones proven RED on the old gate. STILL OWED: the `node_lock.json` sync into
-    `mpi-ci/cubric-vision-pod`, folded into the release image build (Fabio's go)
+    6/6, the 2 new ones proven RED on the old gate. STILL OWED, AT THE CUT (not a question
+    before then; Fabio 2026-10-01): sync `node_lock.json` into `mpi-ci/cubric-vision-pod`, then
+    the clean release image build at that lock (the "release Pod image PROMOTED" line below)
   - [x] ~~**REOPENED 2026-10-01 by MPI-1008**~~ (`bff32c628`): `node_lock.json` repinned ComfyUI-MelodramaBox `9ebb44be` -> `529c4be` (DramaBox device-mismatch fix). A third-party pin move is the blunt verdict in `scripts/engine-drift.mjs` `assessPinMove`, so the 09-28 evidence reads STALE (proven) and a scoped run cannot merge into it. Owed before the cut: sync `node_lock.json` into `mpi-ci/cubric-vision-pod` (still `9ebb44be`; the Pod image BAKES MelodramaBox, so until a rebuild a 2.0 app on a Pod toasts "Pod image is stale - rebuild needed") - folds into the release image build below, no extra build. **A re-smoke is NOT needed for this move (Fabio asked 2026-10-01):** no `comfy_workflows/*.json` loads a DramaBox class (DramaBox is a package Flow since MPI-781), so the pin cannot reach a smoked graph; the gate is blunt only because it cannot diff third-party packs. Fix the GATE instead (attest a third-party pack no shipped graph loads, or narrow by class_type), so `release:check` stops reading the 09-28 evidence as stale. Image publish: Fabio's go
   - [x] sync `node_lock.json` AND `python_deps.txt` into `c:\AI\Mpi\mpi-ci\cubric-vision-pod\`, re-measure the drift, commit there — 2026-09-28 mpi-ci `5ba9eb8` (MpiNodes cff4c3b -> bc92a1b, SplatKit out, core v0.34.0 unchanged); byte-identical to Vision. pushed 2026-09-29 with mpi-ci `57a31c0` (MPI-894)
   - [x] `node scripts/smoke-workflows.mjs --plan --flows all` 2026-09-28, shown to Fabio: 13 models / 38 ops / 290.5 GB + 14 Flows (+64.1 GB) = **400 GB volume**; lock in sync; MpiNodes + required-inputs sweeps clean; 1 SKIP `flux-schnell-cloud/t2i` (cloud, no workflow). **Re-run right before the real smoke** (sync LAST rule)
@@ -136,7 +137,10 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [x] Claim audit of `UNRELEASED.md` against **v1.5.0** (copy-review Gate 0) — done 2026-09-28 11:00 in `c6937e50f` (pushed; this line was never ticked). Bullets added after it: `89d7b92ba` (stacks, MPI-949) and `e774a5895` (Fits my GPU, MPI-967) — both post-1.5.0 features, so new by definition; re-run Gate 0 only on bullets added after `e774a5895`
 - [x] Coverage sweep 2026-09-27 (`ec7b81cb3`): agent panel, Connect an agent, GIF workspace, 16K + SVG. Dictation, MCP, mascots, local-only server were already there
 - [x] **MPI-949 close-out**: the two Cue all bullets become stacks — done (`c6937e50f` + `89d7b92ba`; `grep -i "cue all" UNRELEASED.md` empty 2026-09-29, Stack bullet at :159)
-- [ ] Agent image tools (MPI-941) get their line at 941 close-out
+- [x] Agent image tools (MPI-941) get their line at 941 close-out — 2026-10-01: the agent bullet
+  now names upscale / crop / remove background over many cards and looking at videos and GIFs
+  (checked at HEAD: `js/shell/agentToolOps.js` ops, `agentLoop.mjs` clip contact sheet). Says
+  "in one go", never "no model": those tools still run on the engine (MPI-941 validation.md:195)
 - [x] Rename section (`ec7b81cb3`), plus Vision -> Cubric Studio in four user-facing bullets
 - [x] Known-issue lines: macOS · unsigned exe / SAC (MPI-616) · A5 if unmitigated · 1.5.0 installs lose the remote engine on 2026-11-15
   - [x] DRAFTED 2026-09-29 in `UNRELEASED.md` § "Known issues (GitHub release page ONLY)": RunPod cutoff (Updating?), SAC (First launch, Windows), xcode-select (First launch, macOS), macOS untested (Platform support). A5 needs no line (MPI-954 fixed). They are release-BODY lines, not in-app: 1.5.0's update prompt shows no notes (`git show v1.5.0:js/services/updateChecker.js`, OK/Cancel only)
@@ -162,11 +166,13 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [x] MPI-623 / 711 / 591 / 656 out of `doing`, or scoped into 2.0 explicitly — 2026-09-29 Fabio: 623/711/656 post-2.0 -> `todo`/`deferred`; 591 was already done (A6)
 - [ ] 1.6.0 / 1.6.1 / 1.6.2 `RELEASE_NOTES` entries + `.approved-1.6.*.json` deleted at the fold
 - [x] ~~MPI-708 Phase 3: dual-publish `CubricVision-*` at the cut~~ DROPPED: Fabio 2026-09-29 (MPI-972, `f74855990`) no legacy set at 2.0; 2.0 updates in place from 1.5.0. The `mpi-release` SKILL still said "also attaches legacy copies" — fixed this session
-- [ ] `python scripts/overtaken-cards.py`; unpushed pushed; commit by pathspec
+- [ ] `python scripts/overtaken-cards.py`; unpushed pushed; commit by pathspec — overtaken run
+  2026-10-01: 3 candidates, none overtaken (MPI-775 board-save commit, MPI-560 live Flow
+  umbrella, MPI-249 a question answered). Re-run at the cut
 - [ ] `publish-runtime.sh promote` (mpi-ci `cubric-vision-pod/`): dev -> stable = wrapper 0.2.45 (MPI-894 async hot-store, live-proven 2026-09-29) + `b131c0a` chatterbox link. Fabio 2026-09-29: at the cut, not before. Harmless to 1.5.0/1.6.x (they never send `async`), useless to them until 2.0's app
 - [ ] `/mpi-version-bump` -> **2.0.0**, then `/mpi-release`
 - [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
 - [ ] Release day: **MPI-983** publish docs.cubric.studio, then cubric.studio (both built and held)
-- [ ] Before the notes are written: `github-release-checklist.md` § Scope Guard may still forbid "assistant" claims while 2.0's headline is the in-app agent (noticed on MPI-973; `0f6d75f09` "release copy may name the agent" may have fixed it — check)
+- [x] Before the notes are written: `github-release-checklist.md` § Scope Guard may still forbid "assistant" claims — CHECKED 2026-10-01: fixed by `0f6d75f09` (the section now says the agent and MCP are fair to name)
 - [ ] Ask Fabio again, near the release: a Discord/Patreon post warning 1.5.0 users about the 2026-11-15 RunPod cutoff (Fabio 2026-09-29: "no to the post right now, maybe closer to the release")
 - [ ] After: MPI-603 R2/HF delete; MPI-612
