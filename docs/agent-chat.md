@@ -632,8 +632,10 @@ it, and the user presses Generate. Per Flow, not one box on every run (Fabio sor
   picker's own decode. An id the slot's library lacks, or a slot with no library: `INVALID_VOICE`.
   **The voice card:** a Flow run carrying a voice the catalogue knows raises `agent:confirm
   { kind: 'voice', flow, voice }` (`_pickedVoice`), `voice` the performer's name: Pick from the
-  voice library -> `_openFlow` with the voice dropped, Use <voice> -> the normal path, ending the
-  turn like a review. Cosmo picks a voice only for a line with no sample and no DramaBox
+  voice library -> `_openFlow` with the voice dropped and `pickVoice: <role>`, which opens the
+  Flow on its Inputs with that slot's media picker already in the library (`openVoiceLibrary`,
+  on MpiBaseFlow's first `el.open` so it stacks above the Flow); Use <voice> -> the normal path,
+  ending the turn like a review. Cosmo picks a voice only for a line with no sample and no DramaBox
   (`flows.md` § Spoken lines: DramaBox builds a voice from the words and performs laughs and
   coughs; Chatterbox cannot), so the card is that case's ask.
 - **Settled first: the Duration rule's "you never speak first" was stale** (wake turns, MPI-870).

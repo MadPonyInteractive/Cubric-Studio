@@ -356,6 +356,25 @@ test('the mic and voice cards render only when the slot hands their components i
       return !!document.querySelector('.mpi-media-picker__voice .mpi-voice-picker');
     });
     expect(mounted).toBe(true);
+
+    // Switching voices keeps the NEW one playing (MPI-1004, Fabio live 2026-10-01). Stopping
+    // the old clip blanks its src, which fires `error` on it; its handler cleared the new
+    // clip's playing state and logged "Audition load failed" for a voice that had played.
+    const played = await window.evaluate(async () => {
+      const cards = () => document.querySelectorAll('.mpi-media-picker__voice .mpi-voice-picker__card');
+      const playing = () => document.querySelector('.mpi-voice-picker__audition-btn--playing')
+        ?.closest('.mpi-voice-picker__card')?.dataset.voiceId || null;
+      const wait = () => new Promise(r => setTimeout(r, 1200));
+      cards()[0].click();
+      await wait();
+      const first = playing();
+      const second = cards()[3].dataset.voiceId;
+      cards()[3].click();
+      await wait();
+      return { first, firstId: cards()[0].dataset.voiceId, now: playing(), second };
+    });
+    expect(played.first).toBe(played.firstId);
+    expect(played.now).toBe(played.second);
   } finally {
     await closeApp(app);
   }

@@ -1755,7 +1755,7 @@ export class AgentLoop {
      * queued. Only in reply to the user (`_follow`), never a wake or a carry: it takes their screen.
      * A click on a review card is the user replying, whatever turn raised it (MPI-1005).
      */
-    async _openFlow(args, currentProject, clicked = false) {
+    async _openFlow(args, currentProject, clicked = false, pickVoice = null) {
         if (!this._follow && !clicked) {
             return JSON.stringify({ ok: false, error: { code: 'NOT_NOW', message: `Nothing was opened: a Flow opens on the user's screen only in reply to them. Tell them ${args.flowId} is ready to open and ask.` } });
         }
@@ -1774,7 +1774,7 @@ export class AgentLoop {
             }
             media.push({ role: m.role, url: placed.filePath });
         }
-        const r = await this._tools.openFlow({ flowId: String(args.flowId), fields: args.fields || {}, media, follow: true });
+        const r = await this._tools.openFlow({ flowId: String(args.flowId), fields: args.fields || {}, media, follow: true, ...(pickVoice ? { pickVoice } : {}) });
         if (!r?.ok) {
             return JSON.stringify({ ok: false, error: { ...r?.error, message: `Nothing was opened: ${r?.error?.message || 'the app refused it.'}` } });
         }
@@ -2130,7 +2130,9 @@ ${knowledgeIndex}`.trim();
                     const choice = await this._askChoice(turnId, { kind: 'voice', flow: picked.title, voice: picked.name }, args);
                     if (choice === 'library') {
                         this._reviewEnd = `Opened ${picked.title} for the user to pick a voice from the library, as they chose. Nothing ran.`;
-                        return this._openFlow({ ...args, media: args.media.filter((m) => !m?.voice) }, currentProject, true);
+                        // Opened on the voice slot's picker, already in the library (Fabio, 2026-10-01).
+                        const pickVoice = args.media.find((m) => m?.voice)?.role;
+                        return this._openFlow({ ...args, media: args.media.filter((m) => !m?.voice) }, currentProject, true, pickVoice);
                     }
                     if (choice !== 'use') {
                         this._reviewEnd = 'The user wrote back instead of choosing. Nothing ran.';

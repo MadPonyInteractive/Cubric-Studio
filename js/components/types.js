@@ -1252,6 +1252,8 @@
  *   state.s_flowInputs[flow.id] when present).
  * @property {string} [openAt] - The step to open on (MPI-892): a middle step's `kind`, or
  *   'run' for Generate. Omitted, or a kind the flow does not show, opens on the inputs.
+ * @property {string} [pickVoice] - A voice slot's role (MPI-1004): open on the inputs with
+ *   that slot's media picker already in the voice library.
  *
  * THE flow frame: a STEP CAROUSEL (MPI-306 Phase 1; was a flat form in MPI-256).
  * COMPOSITION: mounts a `main-area` MpiOverlay (covers #tool-container + prompt
@@ -1690,6 +1692,8 @@
  *                                 decoded to WAV and handed to `onImport` as a File, so it
  *                                 becomes an ordinary content-addressed project asset by the
  *                                 same path an upload takes.
+ * @property {boolean} [openVoiceLibrary=false] - Open straight into the voice library instead
+ *                                 of the grid (MPI-1004). Ignored where `voiceRoute` is unset.
  *
  * Two sources, one surface (settled with the user 2026-08-16): the project's own
  * media AND the filesystem. Still not a file manager — no cross-project browsing.

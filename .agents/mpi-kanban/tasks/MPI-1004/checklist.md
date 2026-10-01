@@ -11,4 +11,6 @@
 - [x] Look step 1 (DramaBox voice line with a cough) passed
 - [x] Look step 2 failure fixed: packaged Flows' media reach the catalogue (`routes/connector.js`)
 - [x] Vinyl sings speech on his mic, DJs music (`MpiAgentChat.js`, spec step)
-- [ ] Fabio: steps 2 + 3 again, and the Vinyl mic by eye
+- [x] Pick from the voice library opens on Inputs with the library open (`pickVoice`)
+- [x] Voice previews: switching voices keeps the new one playing (`MpiVoicePicker`)
+- [ ] Fabio: Pick lands in the library, previews play, Use <voice> runs, Vinyl mic by eye

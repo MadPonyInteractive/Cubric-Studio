@@ -158,21 +158,24 @@ export const MpiVoicePicker = ComponentFactory.create({
                 clientLogger.info('voice-picker', `No audition for voice ${voice.id}`);
                 return;
             }
-            _audio = new Audio(url);
-            _audio.addEventListener('ended', () => {
+            // Every handler first checks the clip is still THE clip. `_stopAudio` blanks a
+            // dropped clip's src, which fires `error` on it and rejects its pending play(); a
+            // handler that did not check cleared the NEW clip's playing state and logged a load
+            // failure for a voice that had played fine (MPI-1004, Fabio live 2026-10-01).
+            const a = new Audio(url);
+            _audio = a;
+            const done = () => {
+                if (_audio !== a) return;
                 _playingId = null;
                 _renderList();
-            });
-            _audio.addEventListener('error', () => {
-                clientLogger.info('voice-picker', `Audition load failed for ${voice.id}`);
-                _playingId = null;
-                _renderList();
+            };
+            on(a, 'ended', done);
+            on(a, 'error', () => {
+                if (_audio === a) clientLogger.info('voice-picker', `Audition load failed for ${voice.id}`);
+                done();
             });
             _playingId = voice.id;
-            _audio.play().catch(() => {
-                _playingId = null;
-                _renderList();
-            });
+            a.play().catch(done);
             emit('audition-start', { voice });
         }
 

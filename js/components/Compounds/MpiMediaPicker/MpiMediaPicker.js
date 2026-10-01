@@ -687,7 +687,14 @@ export const MpiMediaPicker = ComponentFactory.create({
         });
         cancel.on('click', () => { emit('cancel', {}); modal.el.hide(); });
 
-        el.show = () => modal.el.show();
+        // MPI-1004: opened FOR a library voice ("Pick from the voice library" on Cosmo's card),
+        // it lands in the library rather than on the grid, one click short of the voices.
+        el.show = () => {
+            modal.el.show();
+            if (props.openVoiceLibrary && slotType === 'audio' && props.voiceRoute && props.onImport && props.voicePicker) {
+                _openVoiceLibrary();
+            }
+        };
         el.hide = () => { _closePreview(); _closeVoiceLibrary(); modal.el.hide(); };
 
         el.destroy = () => {

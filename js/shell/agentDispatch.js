@@ -1343,15 +1343,18 @@ export async function openFlow(jobId, input = {}) {
     // A step that CREATES its picture fills the slot at run time (Scribble's blank canvas), so
     // an empty one is not missing — MpiBaseFlow's `_stepDerivesOwnMedia`, the same question.
     const empty = (flow.steps || []).some(s => s?.composite) ? null : findMissingMediaSlot(flow.operation, mediaItems);
+    // MPI-1004: the user chose to pick the voice themselves, so the Flow opens on its inputs with
+    // that slot's picker already in the library. Only a slot that HAS a library.
+    const pickVoice = _voiceRoutes(flow)[input.pickVoice] ? input.pickVoice : null;
     // A missing input comes first: its step is where the user adds it. Else the Flow's own step,
     // else the first after Inputs: an open with everything filled is the user reviewing it (Song's
     // lyrics, Fabio), so Generate only for a Flow with no middle step.
-    const openAt = empty ? 'inputs' : (flow.agentOpens || flow.steps?.[0]?.kind || 'run');
+    const openAt = empty || pickVoice ? 'inputs' : (flow.agentOpens || flow.steps?.[0]?.kind || 'run');
     state.s_flowInputs = {
         ...state.s_flowInputs,
         [flow.id]: { ...inputs, mediaItems, ...(Object.keys(injectionParams).length ? { injectionParams } : {}) },
     };
-    Events.emit('flow:open', { flowId: flow.id, openAt });
+    Events.emit('flow:open', { flowId: flow.id, openAt, ...(pickVoice ? { pickVoice } : {}) });
 
     const step = (flow.steps || []).find(s => s.kind === openAt);
     const hint = _hintText(step?.hint);

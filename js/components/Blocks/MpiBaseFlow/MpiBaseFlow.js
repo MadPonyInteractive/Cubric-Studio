@@ -911,9 +911,10 @@ export const MpiBaseFlow = ComponentFactory.create({
          * @param {number} idx       slot index within the group
          * @param {Function} onDirty re-render callback
          */
-        function _openMediaPicker(entry, idx, onDirty) {
+        function _openMediaPicker(entry, idx, onDirty, { openVoiceLibrary = false } = {}) {
             const picker = MpiMediaPicker.mount(document.createElement('div'), {
                 mediaType: entry.group.type,
+                openVoiceLibrary,
                 // The voice library as a third source, opted into PER SLOT and
                 // index-aligned with `roles`/`labels` exactly as they are. Voice Changer
                 // declares [null, 'character']: the library belongs on "Target voice" and
@@ -3734,7 +3735,20 @@ export const MpiBaseFlow = ComponentFactory.create({
         const _unbindKeys = () => { _keyBinds.forEach(fn => fn?.()); _keyBinds = []; };
         _unsubs.push(_unbindKeys);
 
-        el.open  = () => { overlay.el.show(); _bindKeys(); };
+        // MPI-1004: "Pick from the voice library" on Cosmo's card lands on that slot's picker,
+        // already in the library (Fabio, 2026-10-01). On the FIRST open only, and after the
+        // overlay shows, or the Flow would stack over its own picker. The inputs slide's onDirty.
+        let _voicePick = props.pickVoice || null;
+        const _openVoicePick = () => {
+            const role = _voicePick;
+            _voicePick = null;
+            const entry = role && _mediaGroups.find(e => e.group.roles?.includes(role));
+            const idx = entry ? entry.group.roles.indexOf(role) : -1;
+            if (entry?.group.voiceLibrary?.[idx]) {
+                _openMediaPicker(entry, idx, () => { _persistInputs(); _renderSlide(); }, { openVoiceLibrary: true });
+            }
+        };
+        el.open  = () => { overlay.el.show(); _bindKeys(); _openVoicePick(); };
         el.close = () => { _unbindKeys(); overlay.el.hide(); };
         el.onOpen = el.open;
 

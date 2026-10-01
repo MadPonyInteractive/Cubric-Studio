@@ -3755,6 +3755,7 @@ describe('MPI-1004 — the voice card', () => {
         await turn;
         assert.equal(tools.calls.openFlow.length, 1);
         assert.deepEqual(tools.calls.openFlow[0].media, [], 'the slot is the user\'s to fill');
+        assert.equal(tools.calls.openFlow[0].pickVoice, 'audio1', 'opened on that slot\'s voice library (Fabio, 2026-10-01)');
         assert.deepEqual(tools.calls.openFlow[0].fields, TTS.fields);
         assert.equal(tools.calls.generate.length, 0);
         assert.equal(engine.calls.length, 1);

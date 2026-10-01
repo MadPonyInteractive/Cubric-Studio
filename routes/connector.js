@@ -753,6 +753,8 @@ router.post('/connector/open-flow', async (req, res) => {
     fields: fields && typeof fields === 'object' ? fields : {},
     media: Array.isArray(media) ? media : [],
     follow: req.body.follow === true,
+    // MPI-1004: a voice slot's role; the Flow opens with that slot's voice library showing.
+    ...(typeof req.body.pickVoice === 'string' ? { pickVoice: req.body.pickVoice } : {}),
   }));
 });
 

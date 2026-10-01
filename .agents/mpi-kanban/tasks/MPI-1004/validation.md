@@ -57,6 +57,24 @@
   music keeps the decks (`working`). Speech = a Flow with a `voiceLibrary` slot (Text to Speech,
   Voice Changer, the DramaBox package). `agent-chat.spec` 37/37 incl. the new ledge step.
 
+## Fabio's look, round 3 (2026-10-01)
+
+- Step 2 now reaches the card (round-2 fix live): "I'd use the Villain Male voice", both buttons.
+- Pick from the voice library opened DramaBox on Generate. Fabio: open on Inputs with the voice
+  library already open. Built: `pickVoice: <role>` from the loop's library choice through
+  `/connector/open-flow` -> `agentDispatch.openFlow` (`openAt: 'inputs'`, only for a slot with a
+  library) -> `flow:open` -> MpiBaseFlow opens that slot's picker on its first `el.open` (after
+  the overlay shows, so it stacks on top) -> MpiMediaPicker `openVoiceLibrary`.
+  `tests/desktop/flow-pick-voice.spec.js` 1/1 (real route; Inputs tick current, library visible,
+  `elementFromPoint` at its centre inside it); loop test asserts `pickVoice: 'audio1'`.
+- BREAKER found + fixed: voice previews. Switching voices blanked the old clip's src, whose
+  `error` handler (still live) cleared the NEW clip's playing state and logged "Audition load
+  failed" for the OLD voice (Fabio's app.log 09:10). Reproduced in an isolated Electron: second
+  voice played but showed stopped. `MpiVoicePicker._playAudition` handlers now act only for the
+  current clip. Spec step in `media-picker-cards.spec.js` (4/4).
+- `npm test` 2621 pass / 0 fail / 2 skip (flow-frame's `el.open` shape updated); flow-*.spec +
+  media-picker-cards 37/37; eslint + lint:components clean.
+
 ## Left: Fabio's look and listen (user-ux)
 
 Needs the app restarted (server code changed) and the agent model on his DeepInfra key.

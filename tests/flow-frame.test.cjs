@@ -256,7 +256,8 @@ test('suspend hides without the outward close, and the hotkeys are per-show', ()
     // the INSTANCE lifetime would leave them live while it is off screen — an
     // invisible carousel stepping, and a phantom flow run queued from the gallery
     // (MPI-345, in the shape a hidden-but-alive flow brings back).
-    assert.match(src, /el\.open {2}= \(\) => \{ overlay\.el\.show\(\); _bindKeys\(\); \};/);
+    // `_openVoicePick` is one-shot (MPI-1004): the voice library opens on the FIRST show only.
+    assert.match(src, /el\.open {2}= \(\) => \{ overlay\.el\.show\(\); _bindKeys\(\); _openVoicePick\(\); \};/);
     assert.match(src, /el\.close = \(\) => \{ _unbindKeys\(\); overlay\.el\.hide\(\); \};/);
     assert.match(src, /Hotkeys\.bind\('generation\.run', _run\),/,
         'the run hotkey belongs INSIDE _bindKeys, not at setup scope');

@@ -81,10 +81,11 @@ declares the route does too.
 
 ## Current State
 
-2026-10-01 (session 57bdb71a): look step 1 passed; step 2 failed because packaged Flows listed no
-media to the agent (server registry lacked package ops) - fixed in `routes/connector.js`. Vinyl's
-mic clip for speech folded in (Fabio asked). Next: Fabio restarts the app, re-runs steps 2 + 3 and
-watches Vinyl; then CI on the fix commit and close in its own commit.
+2026-10-01 (session 57bdb71a): look step 1 passed; step 2's card now shows (packaged Flows' media
+fixed in `routes/connector.js`). Round 3: Pick opens on Inputs with the voice library open
+(`pickVoice`), and voice previews fixed (`MpiVoicePicker`). Vinyl's mic clip folded in. Next:
+Fabio restarts the app (server code), checks Pick + previews + Use <voice> + Vinyl; CI on the
+fix commits; close in its own commit.
 2026-10-01 (session 314c5ced): BUILT, all automated checks green (validation.md), committed and
 pushed at handoff. Was BLOCKED on MPI-1008: Fabio has no Text to Speech, so the look runs on
 DramaBox (library voice by request), and DramaBox's text encode fails with a device mismatch on
