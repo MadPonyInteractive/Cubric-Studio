@@ -116,6 +116,11 @@ Both read `dev_configs/node_lock.json`; NEITHER writes it. A pin change is
 
 ## Current State
 
+2026-10-02 (session b487ee6b) - **2.0 SCOPE DONE; card parked `todo`/`deferred` until after 2.0.**
+MPI-806 and MPI-668 closed; hot-store + Pod identity live-proven 2026-09-29; RAM floor auto for
+fresh profiles, saved floors kept (Fabio 2026-10-02). Left on this umbrella, all post-2.0:
+MPI-541, MPI-183, MPI-349. `publish-runtime.sh promote` is an MPI-595 Gate D cut step, not here.
+
 2026-09-29 (session 3b566727) - **1c BUILT, self-verified, awaiting Fabio's eye-test** (verify
 mode user-ux). New: `js/components/Compounds/MpiGpuPicker/` (overlay: Auto-retry, Video, Min RAM,
 tiles), `js/components/Primitives/MpiGpuTileGrid/` (the tiles; a Primitive because a tile is a

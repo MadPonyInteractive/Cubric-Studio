@@ -72,7 +72,10 @@ accepted 2026-10-01. A card nobody is named on is NOT out of 2.0 — only Fabio 
 **Order: every card below lands, THEN the smoke (B1 re-run if the lock moved), THEN the release.**
 
 THIS umbrella:
-- [ ] **MPI-918** cloud edit models inside image Flows (Klein 9B on DeepInfra + Nano Banana slot
+- [x] **MPI-918** CLOSED 2026-10-02 (`7f2d91ff7`, CI green on `5dd3e2c2b`), **MPI-985 closed with
+  it.** Final cloud slots: Scribble Klein cloud + Nano Banana, Draw It In + Outpaint Klein cloud,
+  Object Stamp none. No `comfy_workflows/` file changed (the cloud stage is built at run time).
+  Was: cloud edit models inside image Flows (Klein 9B on DeepInfra + Nano Banana slot
   candidates) — last open member of **MPI-985** (910/923/1006/856 done), so 985 closes with it.
   **Fabio 2026-10-01: TWO-PASS, no new MpiNodes node, so NO pin move** (plan.md); Head Swap out.
   Phase 1 DONE 2026-10-01 (`klein-9b-cloud` ModelDef + price + guide; also fixed `formatPrice`
@@ -81,14 +84,16 @@ THIS umbrella:
   live runs on Fabio's yes. THE LONG POLE
 - [x] **MPI-668 live leg handed to Agent 86** (2026-10-01, via Agent 85's handoff); CI green on
   `922ce37a1` / `ecd112ad1` (inside green `747341588`) and `ec18c1086`
-- [ ] **MPI-894** remote GPU umbrella — v2 + 1b + 1c done. **Fabio 2026-10-01: MPI-668 IN**,
+- [x] **MPI-894** 2.0 SCOPE DONE 2026-10-02, card parked `todo`/`deferred` (541/183/349 after
+  2.0). Saved RAM floors stay as set (Fabio 2026-10-02). Was: remote GPU umbrella — v2 + 1b + 1c done. **Fabio 2026-10-01: MPI-668 IN**,
   MPI-541 / MPI-183 / MPI-349 OUT of 2.0 (reasons in MPI-894 plan.md). `publish-runtime.sh
   promote` stays a cut step
   - [x] **MPI-668** CLOSED 2026-10-01 by Agent 86 (`d6bfdf2f4`): live leg passed on the Linux box
     (1.5.0 Pod on v0.23.0-cpu -> in-place update to master -> Connect logged "recreating it",
     delete 204, new Pod on the same volume ready in 28 s; v2 GET `/pods/{id}` carries `image`,
     no `imageName`; < $0.01)
-- [ ] **NEW BREAKER 2026-10-01: release-line fixes missing from master.** 1.4.3/1.4.4/1.5.0 were
+- [x] **NEW BREAKER 2026-10-01: release-line fixes missing from master.** Resolved: ported +
+  CI green; the release image pin is the Gate D step `release:check` enforces. 1.4.3/1.4.4/1.5.0 were
   cut from branch `1.5.0`; 34 of its commits are not on master as-is. Confirmed one: `18a9b9215`
   set released Pods to image `v0.23.0` (core 0.34.0); master still pins `v0.21.0`
   (`routes/remotePodLifecycle.js:157,191`), so 2.0 as-is would send users to an OLDER image than
@@ -102,14 +107,15 @@ THIS umbrella:
   ENFORCED: `release:check` fails while `POD_IMAGE_VERSION(_CPU)` is older than the last public
   tag's (red today: v0.21.0 < v0.23.0) — the cut builds a clean stable image at the lock
   (`v0.24.0`+, baking ChatterBox/MelodramaBox/Mickmumpitz, no SplatKit) and pins it here
-- [ ] **NEW BREAKER 2026-10-01 (Agent 85, live on the Linux box):** reconnect deleted a Pod left
+- [x] **NEW BREAKER 2026-10-01 (Agent 85, live on the Linux box)** — CI green on `ec18c1086`, live
+  RUNNING-attach leg PASSED (B3 line below). Was: reconnect deleted a Pod left
   RUNNING by a crash (v2 answers `start` on RUNNING with a non-400 error). Fixed in this
   umbrella (MPI-894 lane): a RUNNING Pod attaches without `startPod` and skips the availability
   gate; tests RED-proven. Pushed `ec18c1086`; CI on it to confirm before close
 - [ ] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step
 
 Agent 85:
-- [ ] **MPI-513** install state that lies to the user (umbrella: 497/397/320) — Fabio 2026-10-01:
+- [x] **MPI-513** CLOSED by Agent 85 (`a1552ef08`, members folded). Was: install state that lies to the user (umbrella: 497/397/320) — Fabio 2026-10-01:
   "we might pick that up". Fixes done + tested, commit next; left: Pod remote-resume test (Fabio's
   pick), close 497, MPI-397 product call, MPI-320 follow-ups in/out
 - [x] **MPI-866, MPI-593, MPI-708** CLOSED by Agent 85 (`ee6e94d97`, pushed 2026-10-01). Left
@@ -123,7 +129,8 @@ Agent 85:
 
 Not 2.0 (checked 2026-10-01): MPI-841 (2.1 blocker, Fabio 2026-09-30); MPI-560's description
 calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
-- [ ] **MPI-1010** 1.6.3 hand-delivered build — its own session. Its stamp `8e93f72ae` (unpushed
+- [x] **MPI-1010** `done`, stamp `8e93f72ae` on origin/master, no claim left on the version files
+  (checked 2026-10-02). Was: 1.6.3 hand-delivered build — its own session. Its stamp `8e93f72ae` (unpushed
   2026-10-01) makes the Gate D fold 1.6.0-**1.6.3**, and it CLAIMS `appVersion.js` /
   `package.json` / `package-lock.json` / `releaseNotes.js`: the 2.0 bump cannot start until it
   releases them
@@ -178,6 +185,15 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     - [x] B fix: Vision `43eab1c33` (`wrapperDepPath` maps `targetPath: models/<type>/<sub>` to a real wrapper type at status/install/uninstall; `_withRegistryDef` resolves `targetPath` + `bakedOnPod` by id for stripped callers; runner counts only its own jobs; `tests/remote-target-path-deps.test.cjs`; npm test 2190/0 fail). mpi-ci start.sh links `/opt/ComfyUI/models/chatterbox` -> volume `mpi_models/chatterbox`, published to R2 **dev** (served bytes verified = committed). mpi-ci `b131c0a` pushed 2026-09-29 with `57a31c0`. `promote` to stable at release
     - [x] run 3: `--flows all` after an app restart (routes changed); chatter-box + voice-changer PASS on the Pod is the live proof of the symlink (not testable on Windows) — chatter-box 21s + voice-changer 8s PASS on the 5090 Pod 2026-09-28
   - [ ] release Pod image PROMOTED (clean rebuild, never a renamed `-dev` tag)
+  - [ ] **Scoped re-smoke at the cut (found 2026-10-02):** two shipped Flow graphs changed AFTER
+    the 09-28 run — `flow_h3_extend.json` (MPI-974, `d8f23a421`; Flow `ltx-extend/minimax-h3`) and
+    `flow_character_sheet.json` (MPI-997 split, `09f49a278` + `6f342280c`; Flow `character-sheet`).
+    `release:check` still reads the smoke line clear (it dedupes by MODEL class_type, not by Flow
+    graph), so nothing gates this. Plan, free: `--plan --models minimax-h3 --flows
+    ltx-extend,character-sheet` = 3 Flow legs + ~63 GB of Flow models, all resolve. The runner
+    REFUSES to rent today: "POD LOCK IS BEHIND — ComfyUI-MelodramaBox" — so it rides AFTER the lock
+    sync + image build above. Never smoked: `flow_character_sheet_headless.json` (MPI-997's chained
+    SAM3 leg 2; the runner smokes only FLOWS entries, and leg 2 is an op, not a Flow)
   - [x] RAM floor 80 -> 62: app default `b5b20a042`; smoke runner `MIN_RAM_GB` 62 + playbook 01 (2026-09-29, Fabio: yes; evidence = B1's H3 PASS on a 55.88 GiB 5090 host, `dev_configs/smoke-run.txt:166-167`). Runner `--self-check` OK. Saved 80 GB user floors NOT migrated (Fabio did not ask; default pick: leave them)
   - [x] Runner fix, same session: `--plan` / `--self-check` no longer truncate the committed `dev_configs/smoke-run.txt` (both did; this session's `--install-only` + `--self-check` wiped the B1 transcript, restored from HEAD, blob `d6f247a` re-verified after a plan + self-check). `tests/smoke-*.test.cjs` 54/54
 - [x] **B2 MPI-953** Flow leg in the smoke runner — `49564ad53`: real FLOWS, stages each Flow's models + deps, volume counts only what Flows add; runs for real inside B1 with `--flows all`
