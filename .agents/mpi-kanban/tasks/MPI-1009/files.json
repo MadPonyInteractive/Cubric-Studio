@@ -1,0 +1,14 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/mcp.js",
+    "services/agentTools.mjs",
+    "js/data/routineModel.js",
+    "tests/mcp.test.cjs",
+    "tests/routine-model.test.cjs",
+    "tests/agent-no-delete.test.cjs",
+    "docs/mcp-server.md",
+    "docs/releases/UNRELEASED.md",
+    ".claude/skills/mpi-release/SKILL.md"
+  ]
+}

@@ -91,6 +91,15 @@ mandatory user-facing copy gates). The version file edits belong to
   runtime work is deliberately not shipping in this release. **Never auto-promote** — it
   is a live op affecting released users, same class as `git push`. (A dev-only Pod IMAGE
   tag needs no action: released builds resolve the frozen `POD_IMAGE_VERSION` pins.)
+- **The Claude Desktop bundle lists the tools this release ships (MPI-1009).** The bridge
+  passes the app's live `tools/list` through, so clients work regardless, but the `.mcpb`
+  manifest's declared `tools` is what the extension directory shows. Compare the `TOOLS`
+  names in `routes/mcp.js` with `mcp/cubric-studio/manifest.json` `tools`. They differ →
+  refresh the manifest, bump ITS `version`, and cut a new bundle on the
+  `cubric-studio-agents` repo + `server.json` + Registry publish, per `docs/mcp-server.md`
+  § The Claude Desktop bundle. Deferred to here on purpose (Fabio, 2026-10-01): tools keep
+  arriving while the agent is tested, and one refresh per release beats one per tool. It is
+  public, so it waits for the user's go like the publish itself.
 - **A bumped engine has smoke evidence (MPI-467).** If `dev_configs/node_lock.json`'s
   `comfyui.core.tag` moved since the last `v*` tag, `npm run release:check` **refuses the
   release** unless `dev_configs/smoke-evidence.json` proves a workflow actually RAN on the

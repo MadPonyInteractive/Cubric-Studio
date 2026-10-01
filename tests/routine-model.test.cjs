@@ -367,3 +367,16 @@ test('D9: a text input fills a Flow field too', async () => {
         { inputs: [{ id: 'mood', kind: 'text' }] })), lookups);
     assert.strictEqual(v.ok, true, v.message);
 });
+
+test('MPI-1009: a key a step would silently drop is refused, as /connector/generate refuses it', async () => {
+    const check = (step) => validateRoutine(normalizeRoutine(raw([step])), lookups);
+    const prompt = check(modelStep('klein-4b', 'i2i', { ratio: '1:1', prompt: 'snowy evening' }));
+    assert.strictEqual(prompt.code, 'INVALID_FIELD');
+    assert.match(prompt.message, /positive/);
+    const loose = check({ operation: 'crop', ratio: '1:1' });
+    assert.strictEqual(loose.code, 'INVALID_FIELD');
+    assert.match(loose.message, /ratio goes in fields for crop/);
+    // The same values where the step reads them still pass.
+    assert.strictEqual(check(modelStep('klein-4b', 'i2i', { ratio: '1:1', positive: 'snowy evening' })).ok, true);
+    assert.strictEqual(check({ operation: 'crop', fields: { ratio: '1:1' } }).ok, true);
+});

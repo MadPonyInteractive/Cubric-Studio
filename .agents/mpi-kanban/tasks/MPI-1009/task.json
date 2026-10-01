@@ -3,11 +3,11 @@
   "id": "MPI-1009",
   "title": "Routines over MCP: outside agents (Claude, Codex, Antigravity) can list, save and run routines",
   "description": "",
-  "column": "todo",
-  "maturity": "research",
+  "column": "doing",
+  "maturity": "validating",
   "status": "active",
   "created_at": "2026-10-01T10:15:15+01:00",
-  "updated_at": "2026-10-01T10:15:34+01:00",
+  "updated_at": "2026-10-01T11:02:20+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -17,5 +17,6 @@
     "events": "events.jsonl",
     "handoffs": "handoffs/",
     "research": "research/"
-  }
+  },
+  "activeSessionTitle": "Agent 82"
 }

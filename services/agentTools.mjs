@@ -303,6 +303,12 @@ export async function listRoutines() {
     return _get('/connector/routines');
 }
 
+/** One routine with its steps, so an outside agent can change one step (MPI-1009). */
+export async function readRoutine(name) {
+    if (!name) throw new Error('routine read: no name');
+    return _get(`/connector/routines/${encodeURIComponent(String(name))}`);
+}
+
 /** Checked by the app first (its catalogues hold the package Flows), then stored. */
 export async function saveRoutine(routine) {
     return _post('/connector/routines', { routine }, 30_000);

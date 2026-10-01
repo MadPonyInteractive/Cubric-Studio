@@ -62,6 +62,8 @@ const ALLOWED_REQUESTS = new Set([
     // POST and MOVES its file to `routines/deleted/` (D5, recoverable), as a forgotten note
     // does; a rename moves it to its new name: no card, media, note or project goes.
     'GET /connector/routines',
+    // MPI-1009: one routine with its steps, for an outside agent changing one step. A read.
+    'GET /connector/routines/:id',
     'POST /connector/routines',
     'POST /connector/routines/:id/quote',
     'POST /connector/routines/:id/run',

@@ -217,7 +217,8 @@
 - **Routines: save a chain of steps once, run it on any cards.** Ask the agent to save one
   ("square it, upscale it, white background"), then select cards and pick it from Routines on
   the selection bar. Your cards are never changed: each gets a new card with every step in its
-  History. A routine is there in every project.
+  History. A routine is there in every project. Claude, Codex and Antigravity can save and run
+  routines too.
 
 - **Claude, Codex and Google Antigravity can drive Cubric Studio.** Ask for an image, a video
   or a GIF and it lands in your project. Settings > Connect an agent sets it up in one click.

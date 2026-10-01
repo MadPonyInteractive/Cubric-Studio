@@ -13,7 +13,8 @@
  * (`routes/connector.js` header). The catalogue is shrunk by the same `compactCatalogue`
  * the in-app agent reads, because the raw list is ~9.5k tokens.
  *
- * MPI-593 phase 2: seventeen tools, none that deletes or installs. The in-app agent's gates live in `agentLoop._executeTool`, not
+ * MPI-593 phase 2: twenty-two tools, none that installs, and one that deletes: `delete_routine`
+ * (MPI-1009), which moves the agent-made routine to `routines/deleted/`. The in-app agent's gates live in `agentLoop._executeTool`, not
  * in the routes, so this file carries its own spend gate (`spendGate`). The guide gate is only
  * an instruction here (read_knowledge); the mask gate does not apply.
  *
@@ -57,9 +58,9 @@ const _seen = new Map(); // clientInfo.name -> { name, version, at }
  * APP was the only way out. So the job is submitted under its own jobId as the connector's
  * `requestId`, which is what `/connector/cancel` names.
  */
-function startJob(send) {
+function startJob(send, routine = false) {
     const jobId = crypto.randomUUID();
-    const job = { stoppedBy: null };
+    const job = { stoppedBy: null, routine };
     job.done = send(jobId)
         .catch((err) => ({ ok: false, error: { code: 'FAILED', message: err.message } }))
         .then((r) => present(r, job));
@@ -119,6 +120,9 @@ async function thumbnail(file, itemId, type) {
 async function stopJob(jobId, by) {
     const job = _jobs.get(jobId);
     if (!job) return { ok: false, error: { code: 'UNKNOWN_JOB', message: `No generation "${jobId}" here. Its card may already be in the gallery.` } };
+    // The runner submits a routine's steps under no requestId, so /connector/cancel cannot
+    // name them; it would only answer NOT_IN_FLIGHT, which reads as "it already finished".
+    if (job.routine) return { ok: false, error: { code: 'CANNOT_CANCEL', message: ROUTINE_STOP } };
     job.stoppedBy ??= by;
     const r = await (await tools()).cancelGeneration(jobId);
     if (r?.ok) return { ok: true, cancelled: true, message: 'Cancelled. Nothing was made.' };
@@ -144,17 +148,24 @@ async function spendGate(t, body, confirmCost) {
         // An app that cannot quote cannot generate either: the submit fails the same way.
     }
     if (!quote) return null;
-    // `display` carries its own "about"; null means the model bills but its price is unknowable.
-    const price = quote.display || 'price unknown';
+    const refused = askPrice(quote.display, confirmCost, `Nothing was generated. ${quote.modelName} is a paid model`, 'generate');
+    return refused && { ...refused, modelName: quote.modelName };
+}
+
+/**
+ * CONFIRM_COST for a billed quote unless the call repeats its price, else null. `display`
+ * carries its own "about"; null means it bills but the price is unknowable until it runs.
+ */
+function askPrice(display, confirmCost, what, tool) {
+    const price = display || 'price unknown';
     if (confirmCost === price) return null;
     return {
         ok: false,
         error: {
             code: 'CONFIRM_COST',
-            message: `${confirmCost ? 'confirmCost does not match the current price. ' : ''}Nothing was generated. ${quote.modelName} is a paid model: this run costs ${quote.display || 'an amount it cannot know until it runs'}. Tell the user that price and ask. Only if they say yes, send the same generate again with confirmCost: "${price}".`,
+            message: `${confirmCost ? 'confirmCost does not match the current price. ' : ''}${what}: this run costs ${display || 'an amount it cannot know until it runs'}. Tell the user that price and ask. Only if they say yes, send the same ${tool} again with confirmCost: "${price}".`,
         },
         price,
-        modelName: quote.modelName,
     };
 }
 
@@ -226,6 +237,8 @@ const gifJob = (verb) => async (args, rpcKey) => {
 };
 
 const RUNNING = 'Do NOT call generate again: that makes a second one. cancel_generation stops it.';
+const ROUTINE_STOP = 'A routine run cannot be stopped from here. The user can stop its renders in the Cubric Studio app\'s queue; a stopped card ends at that step and the other cards carry on.';
+const ROUTINE_RUNNING = `Do NOT call run_routine again: that runs it a second time. ${ROUTINE_STOP}`;
 
 /** Up to `ms` for the answer, else `running`. `rpcKey` lets Stop in the chat find the job. */
 async function waitForJob(jobId, rpcKey, ms = WAIT_MS) {
@@ -237,7 +250,7 @@ async function waitForJob(jobId, rpcKey, ms = WAIT_MS) {
     try {
         return (await Promise.race([job.done, late])) ?? {
             ok: true, running: true, jobId,
-            message: `Still running. Tell the user, and call wait_generation with this jobId when they ask or you need the result. ${RUNNING}`,
+            message: `Still running. Tell the user, and call wait_generation with this jobId when they ask or you need the result. ${job.routine ? ROUTINE_RUNNING : RUNNING}`,
         };
     } finally {
         clearTimeout(timer);
@@ -255,6 +268,7 @@ const INSTRUCTIONS = [
     'A video result carries only its first frame. To see a whole clip, a GIF, or any card larger, call view_card with its path.',
     'Paid cloud models cost the user real money. generate answers CONFIRM_COST with the price and makes nothing: tell the user the price and ask. Only if they say yes, resend with confirmCost. Never confirm on their behalf.',
     'When you show the user a prompt, hand it back whole and pasteable, never as fragments.',
+    'Routines are chains of steps saved once in the app and run on any cards in one call: list_routines shows them, run_routine runs one under generate\'s price and running rules, and save_routine saves one when the user asks or agrees. Offer one when the user repeats the same steps on another card.',
 ].join('\n');
 
 let _tools = null;
@@ -505,6 +519,92 @@ const TOOLS = {
         inputSchema: obj({ itemId: { type: 'string' }, background: { type: 'string' } }, ['itemId']),
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
         run: gifJob('gifToVideo'),
+    },
+    // MPI-1009: the in-app agent's routines (MPI-970, `docs/agent/routines.md`), one verb a
+    // tool so only the delete is marked destructive.
+    list_routines: {
+        title: 'List routines',
+        description: 'The routines saved in the app, kept for every project: chains of steps run on any cards with run_routine. Each with its summary, how many steps, and the inputs a run needs. With name: that routine in full, its steps as save_routine takes them.',
+        inputSchema: obj({ name: { type: 'string', description: 'One routine, exactly as listed.' } }),
+        annotations: READ,
+        run: async ({ name }) => {
+            const t = await tools();
+            return name ? t.readRoutine(name) : t.listRoutines();
+        },
+    },
+    save_routine: {
+        title: 'Save routine',
+        description: 'Save a chain of steps under a name, to run later on any cards with run_routine; saving a name again replaces it. Only when the user asks or agrees. Before the first save, read read_knowledge "app:routines": it says what a step may be (each takes the card or the previous result, so never text-to-image; put the ratio in every model step). It is written for the in-app agent, so two things differ here: a step is a generate call\'s args exactly as generate takes them, the prompt in positive (never prompt) and a tool\'s settings in fields; and a paid run answers CONFIRM_COST, not a Yes card.',
+        inputSchema: obj({
+            name: { type: 'string', description: 'A lowercase slug: letters, digits and hyphens.' },
+            summary: { type: 'string', description: 'One plain line on what it does, in the user\'s words.' },
+            steps: { type: 'array', items: { type: 'object' }, description: 'One generate call\'s args per step, in order, without the card, folderPath or cardName. A step\'s media names run inputs only: [{ role, input: <input id> }].' },
+            inputs: {
+                type: 'array',
+                description: 'Only when a run needs something besides the cards. A picture, video or sound input goes in a step\'s reference role; a text input goes in a prompt or field as {id}.',
+                items: obj({
+                    id: { type: 'string', description: 'Lowercase letters, digits and _.' },
+                    kind: { type: 'string', enum: ['image', 'video', 'audio', 'text'] },
+                    label: { type: 'string', description: 'A few words the user will recognise.' },
+                }, ['id', 'kind']),
+            },
+        }, ['name', 'summary', 'steps']),
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        run: async ({ name, summary, steps, inputs }) => (await tools()).saveRoutine({ name, summary, steps, inputs }),
+    },
+    rename_routine: {
+        title: 'Rename routine',
+        description: 'Rename a routine in place, its steps untouched. Never save a copy under the new name instead: the old one would stay in the list.',
+        inputSchema: obj({ name: { type: 'string' }, newName: { type: 'string', description: 'A lowercase slug; the user\'s own words go in the summary.' } }, ['name', 'newName']),
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        run: async ({ name, newName }) => (await tools()).renameRoutine(name, newName),
+    },
+    delete_routine: {
+        title: 'Delete routine',
+        description: 'Remove a saved routine from the list. Only when the user asks. No card, picture or project is touched.',
+        inputSchema: obj({ name: { type: 'string' } }, ['name']),
+        annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+        run: async ({ name }) => (await tools()).deleteRoutine(name),
+    },
+    run_routine: {
+        title: 'Run routine',
+        description: 'Run a saved routine on cards in the project folderPath names (open or not), else the open one. Each card goes through every step: step 1 makes a NEW card (the user\'s card is never changed), later steps land as versions in its History, and several cards arrive as one new stack. It answers { running: true, jobId } within seconds: tell the user it started and end your turn; wait_generation finishes it with the new cards\' groupIds and stackId, and list_cards with one gives the paths. Paid steps first answer CONFIRM_COST with the price of the whole run and run nothing. A run cannot be cancelled from here.',
+        inputSchema: obj({
+            name: { type: 'string', description: 'Exactly as list_routines gives it.' },
+            folderPath: { type: 'string', description: 'The project the cards are in and the results land in, from list_projects or create_project. Omit only to use whatever project the app has open.' },
+            cards: { type: 'array', items: { type: 'string' }, description: 'groupIds from list_cards. A stack\'s groupId runs on every card in it.' },
+            values: { type: 'object', description: 'One value per input list_routines names, by id: for a picture, video or sound input a card\'s groupId or a file on disk (copied into the project); for a text input the words.' },
+            confirmCost: { type: 'string', description: 'Only after the user agreed to the price a CONFIRM_COST answer named: that price, exactly as given.' },
+        }, ['name', 'cards']),
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+        run: async ({ name, folderPath, cards, values, confirmCost }, rpcKey) => {
+            const t = await tools();
+            const open = await openFolder(t, folderPath);
+            if (open.error) return open.error;
+            const inputs = {};
+            for (const [id, v] of Object.entries(values && typeof values === 'object' ? values : {})) {
+                if (typeof v !== 'string' || !MEDIA_EXT.has(path.extname(v).toLowerCase())) { inputs[id] = v; continue; }
+                const staged = await stageMedia(t, [{ role: id, path: v }], folderPath);
+                if (staged.error) return staged.error;
+                inputs[id] = staged.media[0].url;
+            }
+            // The resolved folder goes to both, so a project switch in between cannot move the run.
+            const body = { folderPath: open.folder, cards, inputs };
+            const quote = await t.quoteRoutine(name, body);
+            if (!quote?.ok) return quote;
+            const { missing = [], billed, count, display } = quote.output || {};
+            if (missing.length) {
+                return { ok: false, error: { code: 'NOT_INSTALLED', missing, message: `Nothing was run: this routine needs ${missing.join(', ')}, not installed. Tell the user: a local model installs from the app, a cloud model needs its key in Settings.` } };
+            }
+            const refused = billed && askPrice(display, confirmCost, `Nothing was run. The routine "${name}" has paid steps`, 'run_routine');
+            if (refused) return refused;
+            const jobId = startJob(() => t.runRoutine(name, body), true);
+            // A few seconds still catch a refusal (a card of the wrong kind, an unknown card).
+            const r = await waitForJob(jobId, rpcKey, Math.min(WAIT_MS, 3_000));
+            return r.running
+                ? { ok: true, running: true, jobId, message: `Started on ${count} card${count === 1 ? '' : 's'}. Tell the user it is running in Cubric Studio, then end your turn so they can keep talking. Call wait_generation with this jobId when they ask whether it is done. ${ROUTINE_RUNNING}` }
+                : r;
+        },
     },
 };
 

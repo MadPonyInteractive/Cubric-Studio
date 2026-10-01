@@ -18,7 +18,7 @@
  * @see plan.md § Parallel Batch: Foundations, T1
  */
 
-import { AGENT_TOOL_OPS, toolRun } from '../shell/agentToolOps.js';
+import { AGENT_TOOL_OPS, agentToolOp, toolRun } from '../shell/agentToolOps.js';
 import { getCommandMediaInputs, filterMediaInputsForModel } from './commandRegistry.js';
 import { resolveNamedParams } from './generationControls.js';
 import { resolveFlowFieldValues } from '../utils/declaredFields.js';
@@ -256,6 +256,11 @@ export function validateRoutine(routine, lookups) {
                     `Step ${n}: "${key}" is not allowed inside a step — the runner supplies the input.`);
             }
         }
+        // A step is generate's args, and generate reads `positive`: a `prompt` key was stored and
+        // then never sent, so the step ran with no prompt (MPI-1009, an outside agent's save).
+        if ('prompt' in step) {
+            return _bad('INVALID_FIELD', `Step ${n}: the prompt goes in "positive", as generate takes it.`);
+        }
 
         const hasModelId = Boolean(step.modelId);
         const hasFlowId = Boolean(step.flowId);
@@ -315,6 +320,13 @@ export function validateRoutine(routine, lookups) {
 
         } else {
             // ── Tool step ─────────────────────────────────────────────────────
+            // A tool reads only `fields`: a top-level `ratio` on a crop ran the default instead,
+            // where /connector/generate refuses it (MPI-1009).
+            const loose = Object.keys(agentToolOp(step.operation).fields).filter(k => k in step);
+            if (loose.length) {
+                return _bad('INVALID_FIELD',
+                    `Step ${n}: ${loose.join(', ')} goes in fields for ${step.operation}: { operation: "${step.operation}", fields: { ${loose[0]}: ... } }.`);
+            }
             // toolRun returns IMAGE_NOT_FOUND for crop/downscale when natural=null
             // (pixel size unknown at validate time) — treat that as fields legal.
             const run = toolRun(step.operation, step.fields ?? {}, null);

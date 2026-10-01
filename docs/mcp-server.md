@@ -17,15 +17,17 @@ different thing: [agent-chat.md](agent-chat.md). Both call the same `/connector/
   no Origin and pass on Host alone. The HTTP API behind it is unauthenticated: a shell-capable
   agent that cannot see the tools will scrape it instead (Codex did, 2026-09-26).
 
-## The 17 tools
+## The 22 tools
 
 `status`, `list_models`, `describe_model`, `list_projects`, `create_project`, `open_project`,
 `list_cards`, `view_card`, `rename_card`, `generate`, `wait_generation`, `cancel_generation`,
-`read_knowledge`, `make_gif`, `edit_gif`, `cutout_gif`, `gif_to_video`. Every one has a
-`title` and annotations (the Claude Desktop directory requires them). **None deletes or
-installs**: every request goes through `agentTools.mjs`, whose route allowlist
-`tests/agent-no-delete.test.cjs` pins, and `tests/mcp.test.cjs` asserts `destructiveHint: false`
-on every tool that writes.
+`read_knowledge`, `make_gif`, `edit_gif`, `cutout_gif`, `gif_to_video`, `list_routines`,
+`save_routine`, `rename_routine`, `delete_routine`, `run_routine`. Every one has a `title` and
+annotations (the Claude Desktop directory requires them). **None installs, and none deletes a
+card, media, note or project**: every request goes through `agentTools.mjs`, whose route
+allowlist `tests/agent-no-delete.test.cjs` pins. The one delete is `delete_routine` (MPI-1009),
+which moves an agent-made routine to `routines/deleted/`; `tests/mcp.test.cjs` asserts it is the
+only tool with `destructiveHint: true`.
 
 - **Waits.** Most clients give a tool call 60 s. `generate` answers within `WAIT_MS` (45 s,
   `CUBRIC_MCP_WAIT_MS`); a slower job returns `{ running: true, jobId }`, and each
@@ -53,6 +55,19 @@ on every tool that writes.
 - **Results** carry the disk path plus the gallery's 512px thumb as MCP `image` content, so a
   vision model sees what it made. `view_card` (`services/cardView.js`) shows a still, or a video
   or GIF as ONE contact sheet (frames picked by index, GIF delays from sharp).
+- **Routines** (MPI-1009; the feature is [agent/routines.md](agent/routines.md), MPI-970). One
+  verb a tool, so only the delete is destructive. `list_routines` with a `name` reads one with
+  its steps. `run_routine` resolves the project once and sends that folder to BOTH
+  `/connector/routines/:name/quote` and `/run`; a `values` entry that is a media file on disk is
+  staged like a reference image, anything else (a groupId, words) passes as is. The quote's
+  `missing` answers NOT_INSTALLED, a billed quote CONFIRM_COST (`askPrice`, shared with
+  `spendGate`), then the held run answers like a Flow: `running` after 3 s, finished by
+  `wait_generation`. **A routine job cannot be cancelled**: the runner submits its steps with no
+  `requestId`, so `cancel_generation` answers CANNOT_CANCEL rather than reach
+  `/connector/cancel`. `app:routines` is written for the in-app agent, so `save_routine`'s
+  description names the two differences (`positive`, not `prompt`; CONFIRM_COST, not a Yes card),
+  and `routineModel.validateRoutine` refuses a `prompt` key or a tool setting outside `fields`,
+  which it used to store and then never send.
 
 ## The Claude Desktop bundle (`mcp/cubric-studio/`)
 

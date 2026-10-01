@@ -37,6 +37,7 @@ fs.writeFileSync(cardFile, 'card');
 const outside = path.join(media, 'photo.jpg');
 fs.writeFileSync(outside, 'photo');
 const placed = [];
+const routineCalls = [];
 
 test.before(async () => {
     const app = express();
@@ -87,6 +88,26 @@ test.before(async () => {
     app.get('/connector/cards/:groupId', (_q, r) => r.json({ ok: true, card: { groupId: 'g1', ref: 'card.png', madeFrom: [{ role: 'inputImage', ref: 'src.png' }] }, files: { 'card.png': { path: cardFile, itemId: 'it9' }, 'src.png': { path: outside } } }));
     app.post('/connector/rename-card', (q, r) => r.json({ ok: true, output: q.body }));
     app.post('/connector/gif/cutout', (q, r) => setTimeout(() => r.json(DONE), 700));
+    // MPI-1009: the routine routes. `paid` bills, `needs-model` lacks a model, `odd` refuses at
+    // once; any other run answers after 700 ms, past the 300 ms early-refusal window.
+    app.get('/connector/routines', (_q, r) => r.json({ ok: true, routines: [{ name: 'square-up', summary: 'Square it', steps: 2, inputs: [] }] }));
+    app.get('/connector/routines/:name', (q, r) => r.json({ ok: true, name: q.params.name, routine: { steps: [{ operation: 'crop', fields: { ratio: '1:1' } }] } }));
+    app.post('/connector/routines', (q, r) => {
+        routineCalls.push({ verb: 'save', ...q.body });
+        r.json({ ok: true, name: q.body.routine?.name ?? q.body.name });
+    });
+    app.post('/connector/routines/:name/quote', (q, r) => {
+        routineCalls.push({ verb: 'quote', name: q.params.name, ...q.body });
+        const n = q.params.name;
+        r.json({ ok: true, output: n === 'paid' ? { missing: [], billed: true, count: 2, usd: 0.08, display: 'about $0.08' }
+            : n === 'needs-model' ? { missing: ['Krea 2'], billed: false, count: 1 }
+                : { missing: [], billed: false, count: (q.body.cards || []).length } });
+    });
+    app.post('/connector/routines/:name/run', (q, r) => {
+        routineCalls.push({ verb: 'run', name: q.params.name, ...q.body });
+        if (q.params.name === 'odd') return r.json({ ok: false, error: { code: 'WRONG_MEDIA_TYPE', message: 'Card g2 is a video.' } });
+        setTimeout(() => r.json({ ok: true, output: { runId: 'run1', stackId: 'stk1', cards: [{ inputGroupId: 'g1', groupId: 'g7' }] } }), 700);
+    });
     process.env.CUBRIC_MCP_WAIT_MS = '300';
     app.use(require('../routes/mcp'));
     await new Promise((resolve) => { server = app.listen(0, '127.0.0.1', resolve); });
@@ -128,12 +149,14 @@ test('a notification is answered 202 with no body', async () => {
 test('tools/list names every tool, each with a title, annotations and an object schema', async () => {
     const { result } = await (await rpc('tools/list')).json();
     const names = result.tools.map((t) => t.name);
-    assert.deepEqual(names, ['status', 'list_models', 'describe_model', 'list_projects', 'create_project', 'open_project', 'list_cards', 'view_card', 'rename_card', 'generate', 'wait_generation', 'cancel_generation', 'read_knowledge', 'make_gif', 'edit_gif', 'cutout_gif', 'gif_to_video']);
+    assert.deepEqual(names, ['status', 'list_models', 'describe_model', 'list_projects', 'create_project', 'open_project', 'list_cards', 'view_card', 'rename_card', 'generate', 'wait_generation', 'cancel_generation', 'read_knowledge', 'make_gif', 'edit_gif', 'cutout_gif', 'gif_to_video',
+        'list_routines', 'save_routine', 'rename_routine', 'delete_routine', 'run_routine']);
     for (const t of result.tools) {
         assert.equal(t.inputSchema.type, 'object');
         assert.ok(t.title && t.annotations.title === t.title, `${t.name} has a title`);
         assert.equal(typeof t.annotations.readOnlyHint, 'boolean', `${t.name} says whether it writes`);
-        if (!t.annotations.readOnlyHint) assert.equal(t.annotations.destructiveHint, false, `${t.name} deletes nothing`);
+        // MPI-1009: removing one of the agent's own routines is the one delete, and says so.
+        if (!t.annotations.readOnlyHint) assert.equal(t.annotations.destructiveHint, t.name === 'delete_routine', `${t.name} is destructive only if it deletes`);
     }
 });
 
@@ -397,6 +420,79 @@ test('the bridge answers for a closed app, then announces the real tools once it
         bridge.kill();
         app?.close();
     }
+});
+
+// MPI-1009: routines over MCP, with generate's money and running rules.
+const answer = async (name, args) => JSON.parse((await call(name, args)).content[0].text);
+const routineVerbs = () => routineCalls.map((c) => `${c.verb} ${c.name ?? ''}`.trim());
+
+test('list_routines lists them, and with a name reads one with its steps', async () => {
+    assert.equal((await answer('list_routines')).routines[0].name, 'square-up');
+    assert.deepEqual((await answer('list_routines', { name: 'square-up' })).routine.steps, [{ operation: 'crop', fields: { ratio: '1:1' } }]);
+});
+
+test('save, rename and delete reach the routine route as the in-app agent sends them', async () => {
+    routineCalls.length = 0;
+    const steps = [{ operation: 'crop', fields: { ratio: '1:1' } }, { modelId: 'krea2', operation: 'i2i', positive: 'snowy', ratio: '1:1' }];
+    await call('save_routine', { name: 'square-up', summary: 'Square it', steps });
+    await call('rename_routine', { name: 'square-up', newName: 'square-and-snow' });
+    await call('delete_routine', { name: 'square-and-snow' });
+    assert.deepEqual(routineCalls, [
+        { verb: 'save', routine: { name: 'square-up', summary: 'Square it', steps } },
+        { verb: 'save', name: 'square-up', rename: 'square-and-snow' },
+        { verb: 'save', name: 'square-and-snow', delete: true },
+    ]);
+});
+
+test('run_routine answers running, and wait_generation delivers it with ONE run; a picture value on disk is staged', async () => {
+    await call('open_project', { folderPath: project });
+    routineCalls.length = 0;
+    const first = await answer('run_routine', { name: 'square-up', cards: ['g1'], values: { style: outside, scene: 'g2', mood: 'stormy' } });
+    assert.equal(first.running, true);
+    assert.match(first.message, /end your turn.*Do NOT call run_routine again/);
+    let r = first;
+    while (r.running) r = await answer('wait_generation', { jobId: first.jobId });
+    assert.equal(r.output.stackId, 'stk1');
+    assert.deepEqual(routineVerbs(), ['quote square-up', 'run square-up']);
+    const sent = { folderPath: project, cards: ['g1'], inputs: { style: '/project-file?path=PLACED', scene: 'g2', mood: 'stormy' } };
+    assert.deepEqual(routineCalls[0], { verb: 'quote', name: 'square-up', ...sent }, 'the quote names the resolved project');
+    assert.deepEqual(routineCalls[1], { verb: 'run', name: 'square-up', ...sent }, 'and the run the same one');
+    assert.equal(placed.at(-1).dataUrl, outside, 'the outside picture was copied into the project');
+});
+
+test('a routine run cannot be cancelled from here, and says so instead of "already finished"', async () => {
+    const { jobId } = await answer('run_routine', { name: 'square-up', cards: ['g1'] });
+    const no = await answer('cancel_generation', { jobId });
+    assert.equal(no.error.code, 'CANNOT_CANCEL');
+    assert.match(no.error.message, /queue/);
+    let r = { running: true };
+    while (r.running) r = await answer('wait_generation', { jobId });
+    assert.equal(r.ok, true, 'the run carried on');
+});
+
+test('a paid routine runs nothing until the call repeats the quoted price of the whole run', async () => {
+    routineCalls.length = 0;
+    const ask = { name: 'paid', cards: ['g1', 'g2'] };
+    const why = await answer('run_routine', ask);
+    assert.equal(why.error.code, 'CONFIRM_COST');
+    assert.equal(why.price, 'about $0.08');
+    assert.match(why.error.message, /Nothing was run.*about \$0\.08.*run_routine again/);
+    assert.equal((await answer('run_routine', { ...ask, confirmCost: 'about $0.01' })).error.code, 'CONFIRM_COST');
+    assert.deepEqual(routineVerbs(), ['quote paid', 'quote paid'], 'nothing reached the run route');
+    let ran = await answer('run_routine', { ...ask, confirmCost: 'about $0.08' });
+    assert.equal(ran.running, true);
+    assert.equal(routineVerbs().at(-1), 'run paid');
+    while (ran.running) ran = await answer('wait_generation', { jobId: ran.jobId });
+});
+
+test('a routine needing a missing model, or refused by the app, runs nothing and answers at once', async () => {
+    routineCalls.length = 0;
+    const missing = await answer('run_routine', { name: 'needs-model', cards: ['g1'] });
+    assert.equal(missing.error.code, 'NOT_INSTALLED');
+    assert.deepEqual(missing.error.missing, ['Krea 2']);
+    assert.deepEqual(routineVerbs(), ['quote needs-model']);
+    const odd = await answer('run_routine', { name: 'odd', cards: ['g2'] });
+    assert.equal(odd.error.code, 'WRONG_MEDIA_TYPE', 'a refusal inside the early window comes back as is, not as running');
 });
 
 test('an unknown tool and an unknown method are errors, GET is 405', async () => {
