@@ -51,6 +51,9 @@ remoteModels._isImageResident = () => false;
 test.after(() => {
     dm._remoteInstallQueue.length = 0;
     dm._remoteDepIds.clear();
+    // A regressed local pump leaves a dead downloader here, and its stall watchdog (a
+    // 15s interval that idles only once this map drains) would hang the run, not fail it.
+    dm._activeDownloaders.clear();
     dm._teardownRemoteEventStreamIfIdle();
 });
 
