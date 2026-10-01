@@ -130,6 +130,12 @@ Each task's **Verify:** is its step's line above.
 
 ## Current State
 
+2026-10-01 (session f60f51ad): step 7 live matrix PASSED (validation.md § Live matrix), ~$0.003
+spent. One fix folded in: `deserialiseVoices` parses a cast sent as a rows string (test first;
+uncommitted in `js/utils/declaredFields.js` + `tests/flow-field-constraints.test.cjs`). Fabio's look round 1:
+Cosmo opened Song before asking; flows.md Song rule rewritten as two numbered steps + Generate->Cue
+(validation.md). Left: his retest of the Song ask, then close via mpi-end-session. Do not start the 2.0 cut.
+
 2026-10-01 (session 9c1e6f07, handoff): steps 1-6 BUILT and verified by tests (validation.md § Built,
 npm test 2572/0). Only step 7, the live matrix, is left. **Fabio said YES on 2026-10-01: about 4
 DeepInfra enhancer calls, ~$0.02, cap $0.05.** Ask again before going past $0.05; report what was

@@ -370,6 +370,20 @@ test('a serialised roster parses back into rows — the inverse the restore path
     // Rows pass straight through: the live path must not be touched by any of this.
     assert.deepStrictEqual(deserialiseVoices(cast, OPTS), cast);
 
+    // 🔴 MPI-1002 live matrix, 2026-10-01: Cosmo sent the ROWS as a string, in the exact
+    // notation docs/agent/flows.md shows it, and the line parser read the whole thing as
+    // one catch-all voice: a duet asked for, one "Voice 1" in the graph, no error.
+    assert.deepStrictEqual(
+        deserialiseVoices('[{type:"Male"},{type:"Female"}]', OPTS),
+        [{ type: 'Male' }, { type: 'Female' }],
+        'the documented rows, sent as text, are the same cast',
+    );
+    assert.deepStrictEqual(
+        deserialiseVoices(' [{"type": "female"}, {"type": "Robot"}] ', OPTS),
+        [{ type: 'Female' }, { type: 'Any' }],
+        'JSON rows resolve against the declared types; an undeclared one takes the catch-all',
+    );
+
     // Nothing in, nothing out — never a row typed "undefined".
     [undefined, null, '', '   ', 42].forEach((v) => {
         assert.deepStrictEqual(deserialiseVoices(v, OPTS), [], `${String(v)} must yield no rows`);

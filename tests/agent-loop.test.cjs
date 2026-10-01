@@ -3462,7 +3462,7 @@ describe('MPI-892 — handing a Flow over', () => {
     }
 
     test('a Flow that declares where it opens is opened, never run, and its box is the user\'s', async () => {
-        const { loop, tools } = await makeLoop({ engineResponses: [
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [
             call('g1', 'generate', { flowId: 'scribble-object', fields: { positive: 'a red balloon' }, media: [{ role: 'image1', image: 'att_1' }] }),
             { text: 'Opened.' },
         ] });
@@ -3480,6 +3480,11 @@ describe('MPI-892 — handing a Flow over', () => {
         assert.deepEqual(sent.fields, { positive: 'a red balloon' });
         assert.equal(sent.media[0].role, 'image1');
         assert.match(sent.media[0].url, /preview-assets/, 'an attachment is placed in the project first');
+        // MPI-1002 (Fabio, live 2026-10-01): the step line read "Starting generation" over an open,
+        // so he asked whether Review lyrics had started a run. The done frame says what happened.
+        const done = fakeRes.events.find((e) => e.event === 'agent:tool' && e.data.tool === 'generate' && e.data.status === 'done');
+        assert.equal(done.data.label, 'Opened Draw It In');
+        assert.equal(loop._history.find((h) => h.tool === 'generate').label, 'Opened Draw It In', 'a remount redraws it too');
     });
 
     test('open: true opens any Flow; the same call without it runs', async () => {

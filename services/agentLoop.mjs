@@ -1683,7 +1683,7 @@ export class AgentLoop {
         const o = r.output || {};
         return JSON.stringify({
             ok: true, opened: o.opened, at: o.at, ...(o.empty ? { empty: o.empty } : {}), ...(o.hint ? { hint: o.hint } : {}),
-            message: `Nothing ran. ${o.opened} is open on the user's screen at "${o.at}", filled with what you sent${o.empty ? `; it still needs ${o.empty}` : ''}. They finish it there and press Generate, and the result lands in the gallery. Tell them so in one line. Say how to do that step (the hint) only if they ask.`,
+            message: `Nothing ran. ${o.opened} is open on the user's screen at "${o.at}", filled with what you sent${o.empty ? `; it still needs ${o.empty}` : ''}. They finish it there and press Cue, and the result lands in the gallery. Tell them so in one line. Say how to do that step (the hint) only if they ask.`,
         });
     }
 
@@ -2810,13 +2810,21 @@ ${knowledgeIndex}`.trim();
                     // A tool that ran but said no (NO_PROJECT, a refused param) is still `done`; the
                     // panel's Cosmo flags it (MPI-908), so it is told apart here.
                     let refused = false;
-                    try { refused = toolStatus === 'done' && JSON.parse(resultText)?.ok === false; } catch { /* not JSON */ }
+                    let opened = null;
+                    try {
+                        const parsed = JSON.parse(resultText);
+                        refused = toolStatus === 'done' && parsed?.ok === false;
+                        opened = toolName === 'generate' && parsed?.ok && typeof parsed.opened === 'string' ? parsed.opened : null;
+                    } catch { /* not JSON */ }
                     if (!refused) lastRefused = null;
                     else if (callKey !== lastRefused?.key) lastRefused = { key: callKey, result: JSON.parse(resultText) };
                     // Same correction for a refused generate: "Starting generation" over a refusal
-                    // made a refused round and its retry read as two runs (MPI-817).
+                    // made a refused round and its retry read as two runs (MPI-817). An OPENED Flow
+                    // ran nothing, so it says so: Fabio read "Starting generation" over a Song's
+                    // Review lyrics and asked whether it had run (MPI-1002).
                     const doneLabel = toolName === 'look' && this._lookWasCached ? LOOK_CACHED_LABEL
                         : toolName === 'generate' && refused ? GENERATE_REFUSED_LABEL
+                        : opened ? `Opened ${opened}`
                         : label;
 
                     // Update history entry status

@@ -61,3 +61,11 @@ Gap 1: option A. The agent's Flow run calls the same `enhanceFlow` as a hand run
   empty text fields and `Input_Voices` as a bare `type: 'voices'`. With option A the enhancer fills the
   blocks, so the agent must be told NOT to fill them itself (a `hidden` flag is the cheap signal;
   `tests/connector-flow-dispatch.test.cjs` pins the dropped keys and needs updating with it).
+
+## Noticed
+
+- `_deleteSavedItems` (generationService) reads `state.currentProject`, so a dropped output in a CLOSED project is never deleted (from the MPI-997 brief, 2026-09-30).
+- Agent `generate` with a `flowId` silently drops top-level `prompt` / `duration` (`_generateFields`, `services/agentLoop.mjs`): a weak model (ornith:9b) ran Song on an EMPTY brief. A tool refuses such a named param; a Flow should too (2026-10-01 live matrix).
+- `VIEW_BUSY` reads "Nothing was opened: Nothing was opened: ..." (prefix doubled between `agentDispatch.openFlow` and its caller).
+- A krea2 run sent with `Input_enhance_prompt: true` keeps `true` in its sidecar though the graph ran `false` (Reuse does not replay it, so the record is only wrong, not harmful).
+- Fabio's Ollama lists `deepseek-v4-flash:0731-cloud`, which now answers `410 Gone`; Cosmo on it fails with only "Ollama chat failed: 410 Gone".

@@ -199,6 +199,17 @@ export function deserialiseVoices(text, options = []) {
 
     const declared = options.map(o => String(o?.v ?? '')).filter(Boolean);
     const catchAll = declared.find(v => v.toLowerCase() === 'any') ?? declared[0] ?? '';
+    const resolve = t => declared.find(v => v.toLowerCase() === String(t ?? '').trim().toLowerCase()) || catchAll;
+
+    // The ROWS sent as text (MPI-1002): an agent stringifies `[{type:"Male"},...]`, often
+    // in the unquoted-key notation docs/agent/flows.md shows it in. A caption never starts
+    // with `[`, so this cannot catch one; read as caption lines, it was ONE catch-all voice.
+    if (text.trim().startsWith('[')) {
+        try {
+            const rows = JSON.parse(text.replace(/([{,]\s*)([A-Za-z_]\w*)\s*:/g, '$1"$2":'));
+            if (Array.isArray(rows)) return rows.map(r => ({ type: resolve(r?.type) }));
+        } catch { /* not rows after all: read it as caption lines below */ }
+    }
 
     return text.split(/\n|(?<=\))\s*[,;]\s*(?=Voice\s+\d+\b)/i)
         .map(line => line.trim())
