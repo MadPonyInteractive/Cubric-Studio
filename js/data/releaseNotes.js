@@ -46,6 +46,38 @@ export const RELEASE_NOTES = {
   // build does read it. It is NOT the 2.0 changelog: docs/releases/UNRELEASED.md
   // still owns that. Once APP_VERSION passes 1.6.0 this entry is inert (lookup is
   // by exact key) and can be deleted with the matching .approved-1.6.0.json token.
+  '1.6.3': {
+    version: '1.6.3',
+    whatIsNew: [
+      'Stacks: select cards and press Stack to keep them together. Drop a stack on the prompt box to run the current operation on every card in it, or open it to upscale, resize or crop them all at once.',
+      'Selecting cards brings up a selection bar where the prompt box was, with Stack, Compare, Combine, Make GIF, marks, Download, Archive and Delete.',
+      'Routines: ask the agent to save a chain of steps once, such as "square it, upscale it, white background", then run it on any selected cards from the selection bar.',
+      'Dictate instead of typing: click the mic on the prompt box or the Agent panel, or hold Ctrl+Space. It uses your DeepInfra key, about $0.0002 a minute.',
+      'Big photos are much quicker to work on. Images over 4K offer to shrink on import, masks work at up to 4096 pixels, and masked edits and Detail work on just the masked area and stitch it back.',
+      'Seedance 2.0 can make a video from reference images, and Wan 3.0 can take reference images and an end frame.',
+      'The Model and Flow libraries can show only what fits your GPU, or the RunPod GPU you rented, and the RunPod GPU picker lists cards fastest first.',
+      'Settings > Connect an agent sets up Claude, Codex or Antigravity in one click, and Settings can benchmark the model behind the in-app agent.',
+      'A colour picker beside the Remove Background, Paint and Paint Adjust colours.',
+    ],
+    breakingChanges: [],
+    importantChanges: [
+      'This is another preview build of the development line, not a public release. It is numbered 1.6.3 so it sits above 1.6.2, and you will still be offered the real 2.0 update when it ships.',
+      'Rented GPUs now use RunPod\'s new connection, which keeps working after RunPod switches the old one off on 15 November 2026.',
+    ],
+    fixes: [
+      'The landing page no longer freezes for seconds when a project\'s newest picture is a very large photo.',
+      'With Remote only and no Pod connected, projects open and cloud models generate, and the tools that need the engine say so.',
+      'Saving a DeepInfra key unlocks the cloud models straight away, with no restart.',
+      'Pod runs no longer hang on "Still connecting to the remote engine" after new nodes install.',
+      'Large pictures no longer shimmer when zoomed out, and Compare keeps each side at full resolution.',
+      'Photos rotated by the camera crop, edit and import upright, and cropping past the edge of a JPEG no longer softens it.',
+      'A card copied into another project keeps its name.',
+      'A generation the engine lost now fails instead of waiting forever.',
+    ],
+    engineNotes: [
+      'The ComfyUI engine is unchanged from 1.6.2. The Cubric and MelodramaBox custom-node packs move to newer versions, which the app installs on first launch.',
+    ],
+  },
   '1.6.2': {
     version: '1.6.2',
     whatIsNew: [
