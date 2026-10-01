@@ -73,11 +73,14 @@ accepted 2026-10-01. A card nobody is named on is NOT out of 2.0 — only Fabio 
 
 THIS umbrella:
 - [ ] **MPI-918** cloud edit models inside image Flows (Klein 9B on DeepInfra + Nano Banana slot
-  candidates) — never started, no plan; last open member of **MPI-985** (910/923/1006/856 done),
-  so 985 closes with it. Needs a new MpiNodes node calling `/deepinfra/generate` -> pin moves
-  `node_lock.json` -> the smoke and the release Pod image come AFTER it. Its description's "Nano
-  Banana takes ONE reference" is stale: MPI-919 (`c90e6effd`) shipped up to four. Paid live runs
-  on Fabio's yes. THE LONG POLE
+  candidates) — last open member of **MPI-985** (910/923/1006/856 done), so 985 closes with it.
+  **Fabio 2026-10-01: TWO-PASS, no new MpiNodes node, so NO pin move** (plan.md); Head Swap out.
+  Phase 1 DONE 2026-10-01 (`klein-9b-cloud` ModelDef + price + guide; also fixed `formatPrice`
+  quoting $0.015 as "$0.01"; live edit on Fabio's yes billed $0.015 = the quote).
+  Phases 2-4 next (the seam edits the four Flow graphs, so the smoke still runs after it). Paid
+  live runs on Fabio's yes. THE LONG POLE
+- [x] **MPI-668 live leg handed to Agent 86** (2026-10-01, via Agent 85's handoff); CI green on
+  `922ce37a1` / `ecd112ad1` (inside green `747341588`) and `ec18c1086`
 - [ ] **MPI-894** remote GPU umbrella — v2 + 1b + 1c done. **Fabio 2026-10-01: MPI-668 IN**,
   MPI-541 / MPI-183 / MPI-349 OUT of 2.0 (reasons in MPI-894 plan.md). `publish-runtime.sh
   promote` stays a cut step

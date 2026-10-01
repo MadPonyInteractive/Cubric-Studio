@@ -28,7 +28,7 @@ const slotsFor = async (id) => {
 
 test('edit slots match each model\'s reference fields', async () => {
     const cases = {
-        'seedream-5-pro-cloud': 4, 'flux2-dev-cloud': 4, 'flux2-pro-cloud': 4, 'flux2-max-cloud': 8,
+        'seedream-5-pro-cloud': 4, 'flux2-dev-cloud': 4, 'klein-9b-cloud': 4, 'flux2-pro-cloud': 4, 'flux2-max-cloud': 8,
         'nano-banana-2-cloud': 4, 'seedream-4-cloud': 1,
     };
     for (const [id, n] of Object.entries(cases)) assert.equal(await slotsFor(id), n, id);

@@ -1,12 +1,15 @@
 # FLUX.2 Klein: how to prompt it
 
-Five Vision cards resolve to this recipe through the `flux` alias, and they do
+Six Vision cards resolve to this recipe through the `flux` alias, and they do
 different jobs:
 
 - `klein-4b`, `klein-9b` (FLUX.2 Klein, two sizes, one graph): a generator (`t2i`,
   `i2i`), a structure copier (`control`), an instruction editor (`kleinEdit`), and two
   masked ops (`inpaint`, `detail`) that run on a mask the user paints. Ask for one,
   then dispatch (`app:masking`).
+- `klein-9b-cloud` (FLUX.2 Klein 9B (Cloud)): the same 9B model at DeepInfra on the
+  user's own key, billed per image. Two ops only, `t2i` and `edit`; no style rack, no
+  masked ops, no `control`.
 - `boogu-edit-high`, `boogu-edit-balanced` (Boogu Image Edit): an instruction editor
   only, one op, `edit`.
 - `qwen-edit` (Qwen Image Edit): an instruction editor, `qwenEdit`, plus a structure
@@ -29,6 +32,10 @@ different jobs:
   ignored. Send that to Boogu or `kleinEdit` instead.
 - Copying pose or composition off a reference: `control`. Klein and Qwen both offer
   depth; Qwen alone also offers pose (OpenPose).
+- Klein is wanted but cannot run here (no GPU for it, not installed) and the user
+  asked for the cloud or for this model by name: `klein-9b-cloud`. Same prompts as the
+  local 9B, so a prompt that worked locally carries over unchanged. It costs real
+  money on every run: quote first.
 - Removing an object or a head cleanly: suggest Klein's `inpaint`, but only as
   something the user runs (see Settings). Production measured Qwen unable to remove a
   head and leave the clothing behind; Klein does, reliably.
@@ -48,7 +55,10 @@ different jobs:
   `4:3`, `5:4`, `8:5`, `16:9`). `control` and `kleinEdit` offer none: both keep the
   input image's shape. Boogu's `edit` lists the same nine labels too, but production
   measured its actual output as a fixed 1360x768 regardless, so treat the ratio as
-  unproven and plan on an upscale afterward if the source resolution mattered. Qwen's
+  unproven and plan on an upscale afterward if the source resolution mattered.
+  `klein-9b-cloud`'s `t2i` offers seven (`1:1`, `3:4`, `4:5`, `9:16`, `4:3`, `5:4`,
+  `16:9`) and its `edit` none: the output keeps the input's shape. Its price rises
+  with pixels, so a bigger picture costs more. Qwen's
   `qwenEdit` and `control` offer no ratio at all; output follows the source.
 - 4B and 9B do not share a style rack. 4B: `None` plus Muppets, Cartoon, Jojo, Anime,
   Chibi, Doodle, Vintage, Aesthetic. 9B: `None` plus Storybook, Comic, Anime, Chibi,
@@ -65,7 +75,8 @@ different jobs:
   optional images. `kleinEdit`: `inputImage` plus up to two more optional references,
   chainable, proven compositing two subjects at correct scale and lighting. `qwenEdit`:
   the same three-image shape. Boogu's `edit`: `inputImage` only, so no reference
-  addressing ever applies.
+  addressing ever applies. `klein-9b-cloud`'s `edit`: up to four images, the first
+  the one being changed.
 
 ## The prompt shape
 
@@ -84,7 +95,7 @@ picture already is. Qwen alone understands numbered addressing: point the verb a
 image that should change (an instruction to edit image 1 to match image 2 edited image
 1; aiming the verb at image 2 instead edited image 2). Klein's edit names a reference
 inside the sentence instead ("the fox from Image 2 sits beside her"), never bare
-numbers alone. Boogu needs no addressing at all: there is only ever one image.
+numbers alone; `klein-9b-cloud`'s `edit` is the same model, so write it the same way. Boogu needs no addressing at all: there is only ever one image.
 
 Describe what you take from a reference only as `look` saw it in THAT picture: Klein draws
 your words over it, and a feature the picture lacks lands anyway.

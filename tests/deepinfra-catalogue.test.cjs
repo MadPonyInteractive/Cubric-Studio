@@ -56,8 +56,8 @@ function everyRatioRow(model) {
 
 // ── The catalogue is complete and priced ─────────────────────────────────────
 
-test('ships Fabio\'s fourteen models plus the schnell test model', () => {
-    assert.equal(CLOUD.length, 15, 'the fourteen catalogue models plus flux-schnell-cloud');
+test('ships Fabio\'s fourteen models, Klein 9B cloud (MPI-918) and the schnell test model', () => {
+    assert.equal(CLOUD.length, 16, 'the fourteen, klein-9b-cloud, and flux-schnell-cloud');
     assert.ok(CLOUD.some(m => m.id === 'flux-schnell-cloud'));
     // Ids are unique, and so are the endpoints they point at.
     assert.equal(new Set(CLOUD.map(m => m.id)).size, CLOUD.length);
@@ -67,7 +67,7 @@ test('ships Fabio\'s fourteen models plus the schnell test model', () => {
 // MPI-851: the schnell test model must never reach a user. A release build stamps a real
 // hash into buildInfo.js, so stage exactly that: models.js and its one import chain under a
 // temp root with a non-dev BUILD_HASH, and read MODELS the way a shipped app would.
-test('a release build lists the fourteen, never the devOnly schnell test model', () => {
+test('a release build lists the fifteen, never the devOnly schnell test model', () => {
     const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'mpi851-'));
     const stage = (rel, text) => {
         fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
@@ -79,7 +79,7 @@ test('a release build lists the fourteen, never the devOnly schnell test model',
     try {
         const shipped = require(path.join(root, 'js/data/modelConstants/models.js')).MODELS;
         assert.ok(!shipped.some(m => m.devOnly), 'no devOnly model in a release build');
-        assert.equal(shipped.filter(m => m.provider === 'deepinfra').length, 14);
+        assert.equal(shipped.filter(m => m.provider === 'deepinfra').length, 15);
         assert.equal(shipped.length, MODELS.length - 1, 'only the test model drops out');
     } finally {
         fs.rmSync(root, { recursive: true, force: true });

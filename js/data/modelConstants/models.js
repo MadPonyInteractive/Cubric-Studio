@@ -2010,6 +2010,31 @@ const ALL_MODELS = [
         description: 'FLUX 2 Dev in the cloud on your own DeepInfra key. The open FLUX 2 weights without the download: about $0.02 an image at this size. Price rises with pixels on this one, so a larger ratio costs more.',
         workflows: {},
     },
+    // MPI-918: the local `klein-9b` weights at DeepInfra, so a Flow tuned on Klein can run its
+    // edit stage in the cloud. NOT `type: 'klein'`: local-Klein consumers (the style-LoRA rack,
+    // the op strip's kleinEdit) key on it, and none of them applies to a cloud call. Shares
+    // `flux2` with Dev instead: the same 128-1920 box and input_image_1..4, so it reads Dev's
+    // ratio table rather than a second copy of it (live contract read 2026-10-01).
+    {
+        id: 'klein-9b-cloud',
+        // "(Cloud)", unlike the rest of the catalogue: this one has a local twin with the same
+        // name, and the agent and a Flow's slot both pick a model by what it is called.
+        name: 'FLUX.2 Klein 9B (Cloud)',
+        dropdownMeta: 'CLOUD',
+        provider: 'deepinfra',
+        cloud: { endpointId: 'black-forest-labs/FLUX-2-klein-9b', body: {}, imageField: 'input_image_1',
+            imageFields: ['input_image_1', 'input_image_2', 'input_image_3', 'input_image_4'] },
+        image: 'klein-9b.webp',
+        mediaType: 'image',
+        type: 'flux2',
+        supportedOps: ['t2i', 'edit'],
+        imageSizedOps: ['edit'],
+        // Klein's own recipe, as on the local card: every Flow prompt was tuned on it.
+        enhanceRecipe: 'flux',
+        capabilities: { negativePrompt: false, batch: false, multiReference: true },
+        description: 'FLUX.2 Klein 9B in the cloud on your own DeepInfra key: the same model as the local Klein 9B, with no GPU and no download. About $0.015 an image at this size, and the price rises with pixels, so a larger picture costs more.',
+        workflows: {},
+    },
     {
         id: 'flux2-pro-cloud',
         name: 'FLUX 2 Pro',

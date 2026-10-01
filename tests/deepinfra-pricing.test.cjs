@@ -84,6 +84,16 @@ test('FLUX-2 dev is priced at the 50 steps it runs, not the 28 its price assumes
     near(estimateCost('black-forest-labs/FLUX-2-dev', { width: 1024, height: 1024 }).usd, 0.01785, 1e-5, 'dev 1 MP');
 });
 
+// MPI-918: default_iterations 0 = no step term, so no step count can move a Klein quote.
+test('FLUX-2 Klein 9B bills per megapixel only, whatever the step count', () => {
+    const klein = 'black-forest-labs/FLUX-2-klein-9b';
+    near(estimateCost(klein, { width: 1024, height: 1024 }).usd, 0.015, 1e-9, 'klein 1 MP');
+    near(estimateCost(klein, { width: 1024, height: 1024, steps: 50 }).usd, 0.015, 1e-9, 'steps ignored');
+    near(estimateCost(klein, { width: 1024, height: 512 }).usd, 0.0075, 1e-9, 'half the area');
+    // 0.015 is 0.01499... in binary: bare toFixed(2) quoted a third under the bill.
+    assert.equal(estimateCost(klein, { width: 1024, height: 1024 }).display, 'about $0.02');
+});
+
 test('Seedream 5.0 Pro bills for every input image after the first', () => {
     const one = estimateCost('ByteDance/Seedream-5.0-Pro', { references: 1 }).usd;
     const three = estimateCost('ByteDance/Seedream-5.0-Pro', { references: 3 }).usd;

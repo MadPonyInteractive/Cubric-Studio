@@ -322,5 +322,7 @@ export function formatPrice(usd) {
     // and it cannot mislead: the models whose price carries ~2% of text-token uncertainty
     // are all dearer than 3 cents, so no sub-cent quote is ever one of those. (MPI-853)
     if (usd < 0.01) return `about $${Number(usd.toPrecision(1))}`;
-    return `about $${usd.toFixed(2)}`;
+    // Half a cent rounds UP. Bare toFixed(2) rounds the binary value, and 0.015 is stored as
+    // 0.01499..., so Klein 9B quoted "$0.01" against a $0.015 bill (MPI-918). Over, never under.
+    return `about $${(Math.round(usd * 100 + 1e-9) / 100).toFixed(2)}`;
 }

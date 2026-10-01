@@ -42,7 +42,7 @@ None of the four graphs has an `MpiIfElse` today.
 
 ## Phase 1: Klein 9B cloud model
 
-- [ ] `klein-9b-cloud` ModelDef in `js/data/modelConstants/models.js` (shape of `flux2-dev-cloud`
+- [x] `klein-9b-cloud` ModelDef in `js/data/modelConstants/models.js` (shape of `flux2-dev-cloud`
   :1989: `provider:'deepinfra'`, `input_image_1..4`, `_cloudRatios`, ops t2i + edit,
   `multiReference`); `scripts/sync-deepinfra-prices.mjs` SHIPPED list + snapshot
   (`dev_configs/deepinfra-prices.json`, 1.5 c/MP, read 2026-10-01); agent knowledge per
@@ -83,23 +83,31 @@ None of the four graphs has an `MpiIfElse` today.
 
 **Verify mode:** user-ux (Phase 4: Fabio's look at the stitched results); Phases 1-3 auto.
 
+## Completed
+
+- 2026-10-01 (session 329cecad) Phase 1 code: `klein-9b-cloud` ModelDef after `flux2-dev-cloud`
+  (name `FLUX.2 Klein 9B (Cloud)` - the local twin shares the bare name; `type:'flux2'` so it
+  reads Dev's ratio table, same 128-1920 box; `enhanceRecipe:'flux'` -> guide `flux-2`); SHIPPED
+  + snapshot (only the Klein entry changed); guide `docs/agent/models/flux-2.md` names it; tests:
+  catalogue counts 16/15, multiref 4 slots, a Klein no-step-term price test. **Fixed a quote
+  under-bill found on the way:** `formatPrice` used bare `toFixed(2)`, and 0.015 is 0.01499... in
+  binary, so Klein quoted "$0.01" on the tile, the agent note and the confirm; now half a cent
+  rounds up (`deepinfraPricing.js:325`, RED-proven). `npm test` 2641/0, eslint clean,
+  `--check` clean. Cosmo read-back: t2i rank 15 / edit rank 11, paid, guide `flux-2`.
+
 ## Remaining Work
 
-Phases 1-4.
+Phases 2-4.
 
 ## Current State
 
-2026-10-01: planned; Fabio approved two-pass + Head Swap out in chat. Card moved to `doing`.
-Phase 1 NOT started (no code written). Read so far: the template is `flux2-dev-cloud`
-(`models.js` ~1989: `provider`, `cloud.endpointId/imageField/imageFields`, `_cloudRatios(...,
-1024, {min:128,max:1920})`, `imageSizedOps:['edit']`, `capabilities.multiReference`); local
-`klein-9b` (~1120) is `type:'klein'`, `enhanceRecipe:'flux'`, `image:'klein-9b.webp'`. Picks to
-make in Phase 1: `type:'flux2'` like the other FLUX 2 cloud defs (NOT `'klein'` - local-Klein
-consumers like the style-LoRA system key on it), `enhanceRecipe:'flux'` (Klein's own prompts),
-reuse `klein-9b.webp` as the preview. Price read live 2026-10-01: `api.deepinfra.com/models/
-black-forest-labs/FLUX-2-klein-9b` -> `image_units`, 1.5 c/unit, default 1024x1024,
-`usage_from_cost:false`. `scripts/sync-deepinfra-prices.mjs` `SHIPPED` (:61) is hand-kept: add
-the endpoint there, then run the sync (it writes `dev_configs/deepinfra-prices.json`).
+2026-10-01: Phase 1 DONE, live run passed ($0.015 billed = quote; validation.md). How it ran:
+`npm run app:isolated` with `DEEPINFRA_API_KEY` exported in the same shell call (the route's
+`resolveConnection` falls back to it; the RENDERER still reads no key, so cloud models show
+uninstalled there and the connector would refuse) + a POST to the isolated server's
+`/deepinfra/generate` with the `cloudExecutor.js:350` body. Reuse that for Phase 2-4 route-level
+checks; a Flow run through the UI needs a key SAVED in the isolated profile. Next: Phase 2 step
+1, the scratch pass.
 
 ## Plan Drift
 

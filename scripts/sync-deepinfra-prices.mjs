@@ -65,6 +65,8 @@ const SHIPPED = [
     'black-forest-labs/FLUX-2-dev',
     'black-forest-labs/FLUX-2-pro',
     'black-forest-labs/FLUX-2-max',
+    // MPI-918: the cloud twin of the local Klein 9B, for the edit stage inside image Flows.
+    'black-forest-labs/FLUX-2-klein-9b',
     'black-forest-labs/FLUX-1-schnell',
     'google/nano-banana-2-lite',
     'google/nano-banana-2',
