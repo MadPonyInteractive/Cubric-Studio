@@ -157,7 +157,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
   (`Fanvue_2b752074` beside `fanvue`, MPI-774 Phase 7). The UI's own create path is untouched.
   Errors: `BAD_REQUEST` (400), `RUNTIME_ERROR`.
 - **`POST /connector/install { modelId }`** -> `{ ok, modelId, downloadGb, started: true }`; progress is
-  `GET /comfy/downloads/status`. No gate here: a CLI agent's user is its own gate. Errors: `BAD_REQUEST`,
+  `GET /comfy/downloads/status` (a finished job reads `done`, then drops out: absent after seen = finished). No gate here: a CLI agent's user is its own gate. Errors: `BAD_REQUEST`,
   `UNKNOWN_MODEL`, `ALREADY_INSTALLED`, `OFFLINE`, `APP_UNAVAILABLE`.
 - **`POST /connector/describe { imagePath, question?, crop?, box? }`** -> `{ ok, output: { text, box? } }`.
   `imagePath` absolute; a `crop` is cut with `sharp` to the agent dir first; no `question` = the caption

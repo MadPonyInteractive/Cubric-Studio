@@ -113,7 +113,9 @@ test('dropModel refuses a live job — a mid-download uninstall is the in-flight
 });
 
 test('BOTH uninstall legs settle the store — remote returns early and cannot borrow the local one', async () => {
-    const code = stripComments(await fs.readFile(DL_ROUTE, 'utf8'));
+    const full = stripComments(await fs.readFile(DL_ROUTE, 'utf8'));
+    // Scope to the uninstall route: cancel drops its cancelled job too (MPI-513).
+    const code = full.slice(full.indexOf("router.post('/comfy/models/uninstall'"));
 
     // The remote leg is identified by its own broadcast (remote: true); the local leg by
     // the plain one. Both must be preceded by a dropModel settle.

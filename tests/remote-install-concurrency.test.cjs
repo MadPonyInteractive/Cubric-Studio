@@ -118,7 +118,7 @@ test('queued deps are not abandoned when the remote target goes away', async () 
     assert.equal(dm._remoteInstallQueue.length, 0, 'the queue must be drained, not stranded');
     assert.equal(dm._remoteDepIds.size, 0);
     for (const dep of deps) {
-        assert.equal(dm._depJobs.get(dep.id).status, 'failed', `${dep.id} must reach a terminal state`);
+        assert.equal(dm._installStore.depJob(dep.id).status, 'failed', `${dep.id} must reach a terminal state`);
     }
 });
 

@@ -106,11 +106,12 @@ test('the abandon path terminates the owning MODEL job, not just its deps', () =
     // produces one — which every other terminal path calls and this one did not.
     const dm = require('../routes/downloadManager.js');
 
-    const depJob = { id: 'mpi539-dep-c', modelId: 'mpi539-model', status: 'downloading' };
-    dm._depJobs.set(depJob.id, depJob);
-    dm._modelJobs.set('mpi539-model', {
-        modelId: 'mpi539-model', status: 'downloading', progress: 0.56, deps: [depJob],
-    });
+    const store = dm._installStore;
+    const job = store.registerModelJob({ modelId: 'mpi539-model', engine: 'remote', deps: [{ depId: 'mpi539-dep-c', type: 'checkpoints' }] });
+    store.transitionModel('mpi539-model', 'downloading', 'test');
+    store.transitionDep('mpi539-dep-c', 'downloading', 'test');
+    job.progress = 0.56;
+    const depJob = store.depJob('mpi539-dep-c');
     dm._remoteDepIds.add(depJob.id);
 
     dm._failOutstandingRemoteDeps('unit-test');
@@ -123,14 +124,13 @@ test('the abandon path terminates the owning MODEL job, not just its deps', () =
         + 'a stream of bogus issues',
     );
     assert.equal(
-        dm._modelJobs.get('mpi539-model').status, 'failed',
+        job.status, 'failed',
         'REGRESSION: the model job stayed \'downloading\' after its deps were abandoned — '
         + 'the snapshot keeps serving its last Pod progress and the card is frozen at 56% '
         + 'over whatever the local disk actually holds',
     );
 
-    dm._depJobs.delete(depJob.id);
-    dm._modelJobs.delete('mpi539-model');
+    store.dropModel('mpi539-model');
 });
 
 test('a queued install is dropped, never retargeted, when the engine changes', () => {

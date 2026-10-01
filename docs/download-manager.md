@@ -42,36 +42,28 @@ impossible by construction. A monotonic `version` bumps on every mutation.
 
 **Reconciler — `routes/install/reconciler.js` (G11).** One pass, both engines,
 driven from disk/volume truth (`localModelsCheck` / wrapper `/models/status`):
-settles wedged deps (all bytes in + truth says installed → force terminal via
-legal transitions), FAILS orphans (no progress, nothing on disk, >60s grace),
-NEVER resurrects terminals, then prunes + broadcasts the snapshot. Runs on SSE
-connect, a 15s poll while any job is non-terminal, and after uninstall. Tests:
+settles wedged DEPS no transport holds (all bytes in, or truth says installed →
+`complete` via legal transitions), fails orphan jobs' deps WITH a reason (no
+progress, nothing on disk, no transport holding any dep, >60s grace), NEVER
+resurrects terminals, then prunes + broadcasts the snapshot. **It never moves a
+MODEL (MPI-513 D4):** after a pass that moved a dep it calls the injected
+`onSettled` = `_checkModelJobsComplete`, the ONE model-level terminal writer, so an
+orphan reaches the user as a real `download:failed` and an `installing` job (nodes
+extracting) is never rolled to done mid-extract (MPI-317 F4's root). A dep the
+transport still holds (`_isDepTransportLive`: an active local downloader, queued for a
+local slot, or on the remote driver) settles only through the transport — a local file
+is byte-complete while its sha256 is still being checked. Runs on SSE connect, a 15s
+poll while any job is non-terminal, and after uninstall. Tests:
 `tests/install-reconciler.test.cjs`.
 
-> **Shadow-SOT caveat (as of MPI-276 Phase 4).** The store drives the
-> `download:snapshot` BROADCAST (the FE mirror consumes it, progress-complete via
-> `store.syncProgress`). The PULL endpoints (`/downloads/status`, `/active`,
-> `_serializeModelJob`) are still MAP-backed, and the runtime maps
-> (`_modelJobs`/`_depJobs`) stay write-authoritative + carry transport detail
-> (url/localPath/sha256). The old remote stall-watchdog still reads the
-> maps. The full read-flip (delete map status-writes, flip pull reads onto
-> `store.snapshot()`, retire the watchdog into the reconciler) is **MPI-320**,
-> done with the G6 adapter split.
->
-> **Resume divergence guards (MPI-317 F4/F5, die with MPI-320).** A RESUMED
-> download breaks the map↔store lockstep: `download()` presets
-> `depJob.downloadedBytes` and the reconciler settles + prunes the store job
-> from disk truth while the map walk is still in its custom-node tail. Two
-> guards hold the shadow stage together until the flip: (1) `_setModelStatus`
-> skips STORE writes once the store job is terminal — the map keeps driving its
-> real trailing work (node re-verify + the model-level `download:complete`
-> broadcast) without earning rejected-transition warns; (2) the FE snapshot
-> keep-set (`downloadService.js`) preserves client jobs in `installing` exactly
-> like `downloading`, so a reconciler prune can't strand the completion toast
-> with no job to anchor on. Known benign residue: the DEP-level twin of (1) —
-> cancel pushes `cancelled` onto already-complete store deps (3 warn lines per
-> cancel); left for MPI-320. Guard test:
-> `tests/download-completion.test.cjs` `testMapWalkDoesNotFightSettledStore`.
+> **One record set (MPI-513, retired MPI-320's shadow stage).** The store's records
+> ARE the job objects: `FileDownloader` holds a store dep record, the remote driver
+> looks deps up with `store.depJob`, and transport detail (url, localPath,
+> sha256Expected, mirrorUrl, error flags) rides on the record as plain data. The
+> pull endpoints serialize the store directly, so they carry live bytes. The old
+> MPI-317 F5 guard died with the second writer. Still deferred: retiring the remote
+> stall-watchdog into the reconciler (it is transport recovery, not a status writer)
+> and the G6 local/remote adapter split.
 
 ## Frontend — `js/services/downloadService.js`
 Singleton that owns the frontend download mirror (MPI-276: a mirror of the
@@ -412,7 +404,7 @@ three restarts, and the reverse would have destroyed it each time.
 **Endpoints:**
 - `POST /comfy/models/download/start` — register the model job in the store BEFORE responding (register-before-respond, G8); the response body carries the `job` snapshot + store `version`.
 - `POST /comfy/models/download/cancel` — stop + scrub a model's active/queued download. **Idempotent**: an unknown job returns 200 (+ `download:cancelled` broadcast), NOT 404 (MPI-258). On the remote engine it ALSO deletes the dep off the Pod volume — see the ordering rule above.
-- `GET /comfy/downloads/status` — full queue snapshot (still map-backed; carries `version`).
+- `GET /comfy/downloads/status` — the store's jobs + `version`. A finished job stays listed as `done` until a reconciler pass prunes it (passes run only while some job is active, on SSE connect and after an uninstall; disk-confirmed `done` prunes at once, else the 120s / 30s TTL belts), and cancel and uninstall drop it at once. So a poller reads "absent after seen" as finished and confirms with check-local.
 - `GET /comfy/downloads/active` — active model downloads plus the engine-JOB flag (`engine`, any install/upgrade/repair/first-start pip pass — MPI-792) for Electron quit warnings
 - `GET /comfy/downloads/stream` — SSE broadcast channel; on connect: reconcile pass → `download:snapshot`.
 - `POST /comfy/models/uninstall` — uninstall a model (engine-filtered, store-guarded — see below).
@@ -498,16 +490,16 @@ Two consequences worth knowing:
   place both engines land. Guards: `tests/remote-uninstall-reporting.test.cjs` (route,
   wrapper stubbed) + a live browser probe of the toast branches.
 
-**Job storage (runtime maps — write-authoritative, transport carriers):**
-- `_depJobs Map<depId, DepJob>` — individual dependency jobs (URL, bytes, status, sha256). **No `refCount` field — DELETED MPI-276.**
-- `_modelJobs Map<modelId, DownloadJob>` — model-level aggregate job (totalBytes, downloadedBytes, speed, progress, deps[])
+**Job storage — `installStore` is the ONLY record set (MPI-513):**
+- `store.modelJob(id)` / `store.allModelJobs()` — model jobs (totalBytes, downloadedBytes, speed, progress, deps[]). Success status is `done` (the FE maps it to `complete`).
+- `store.depJob(id)` / `store.allDepJobs()` — dep records, SHARED: two models on one weight hold the same object, so one transition settles it for both. A terminal record is replaced by a fresh one on the next register (that is how a retry restarts a dep — never a resurrection). **No `refCount` field — DELETED MPI-276.**
 - `_activeDownloaders Map<depId, FileDownloader>` — actively downloading
 - `_sseClients Set<res>` — SSE subscribers
 
-Every runtime status write goes through `_setModelStatus`/`_setDepStatus`, which set the map field AND drive the store's legal transition (a runtime→store string map; model `complete`→`done`). Live progress is mirrored to the store via `_syncStoreProgress` so the snapshot broadcast carries real bytes.
+`_registerJob` is the only way in: every start path (local, remote, UW) resolves paths and disk/volume state FIRST, runs the disk-full gate (which refuses without registering — there is no `idle`), then registers and gets THE job object back. A re-POST of a live model unions deps onto the same object. Every status write goes through `_setModelStatus`/`_setDepStatus`, which only call the store's transition table; a write on a record the store has since replaced is ignored (a late event must not move the new attempt).
 
 **RefCount was DELETED (MPI-276) — never reintroduce it.** It tracked "how many model jobs reference this dep" but LEAKED upward (a successful download never decremented it, only uninstall/rollback/cancel did), so it sat ≥1 after any install and lied. Liveness is now a STORE query:
-- **Shared-dep uninstall protection** gates on `store`-derived in-flight (`_inFlightDepIds` = deps held by a non-terminal model job other than the one being uninstalled), not a refCount and not the old `_depJobs.status` map read.
+- **Shared-dep uninstall protection** gates on `store`-derived in-flight (`_inFlightDepIds` = deps held by a non-terminal model job other than the one being uninstalled), not a refCount and not the old dep-map status read.
 - **Cancel** gates on `_otherActiveModelUsesDep` (another ACTIVE model job references the dep). Unknown-job cancel returns an **idempotent 200** (+ `download:cancelled` broadcast), never 404.
 
 **Uninstall on Windows — Recycle Bin has a QUOTA (MPI-258).** `windows-trash.exe` exits **255** (uninstall silently no-ops, `removed:0`, misleading "all files shared" toast) when a weight exceeds the drive's *Recycle Bin* budget — this is the bin cap, NOT disk free space (a 6.9GB file failed with 37GB free on the drive). Since uninstall exists to free space (parking a 25GB weight in the bin wouldn't free it anyway), the uninstall loop falls back to permanent `fs.remove` on any trash failure.

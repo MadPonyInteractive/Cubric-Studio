@@ -13,6 +13,12 @@
     "tests/download-mode-pod-guards.test.cjs",
     "tests/remote-disk-gate-unknown-state.test.cjs",
     "tests/remote-restart-reissue.test.cjs",
-    "tests/remote-install-concurrency.test.cjs"
+    "tests/remote-install-concurrency.test.cjs",
+    "tests/download-retry.test.cjs",
+    "tests/transport-error-message.test.cjs",
+    "tests/uninstall-store-settle.test.cjs",
+    ".claude/skills/cubric-vision-generate/SKILL.md",
+    "docs/agent-chat.md",
+    "tests/install-start-settles.test.cjs"
   ]
 }

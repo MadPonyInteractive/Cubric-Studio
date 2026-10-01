@@ -28,6 +28,17 @@ const {
     _setRetryTuningForTests,
     _writeProbe,
 } = require('../routes/downloadManager.js');
+const dm = require('../routes/downloadManager.js');
+
+// A FileDownloader works on the install store's dep record (MPI-513 D1) — a bare object
+// the store never registered is not the dep's record, and its status writes are ignored.
+function storeDep(mod, { id, modelId = 'test-model', ...transport }) {
+    const store = mod._installStore;
+    store.registerModelJob({ modelId, engine: 'local', deps: [{ depId: id, type: 'checkpoints', transport }] });
+    store.transitionModel(modelId, 'downloading', 'test');
+    store.transitionDep(id, 'downloading', 'test');
+    return store.depJob(id);
+}
 
 const BODY = crypto.randomBytes(200 * 1024);
 const BODY_SHA = crypto.createHash('sha256').update(BODY).digest('hex');
@@ -148,7 +159,7 @@ async function testSlowStreamWarn() {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'mpi-716-'));
     const localPath = path.join(dir, 'slow.safetensors');
 
-    const depJob = {
+    const depJob = storeDep(dm, {
         id: 'test-slow-dep',
         modelId: 'test-model',
         url: `http://127.0.0.1:${port}/slow.bin`,
@@ -157,7 +168,7 @@ async function testSlowStreamWarn() {
         status: 'downloading',
         downloadedBytes: 0,
         totalBytes: 0,
-    };
+    });
 
     const dl = new FileDownloader(depJob, localPath);
     try {
@@ -227,7 +238,7 @@ async function runCuts({ cuts, segment }) {
     const port = server.address().port;
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'mpi-718-'));
     const localPath = path.join(dir, 'weight.safetensors');
-    const depJob = {
+    const depJob = storeDep(dm, {
         id: 'test-budget-dep',
         modelId: 'test-model',
         url: `http://127.0.0.1:${port}/file.bin`,
@@ -236,7 +247,7 @@ async function runCuts({ cuts, segment }) {
         status: 'downloading',
         downloadedBytes: 0,
         totalBytes: 0,
-    };
+    });
     const dl = new FileDownloader(depJob, localPath);
 
     // The retry WARN is the claim this card is judged on — "would the 17:32 blip have read
@@ -367,7 +378,7 @@ async function main() {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'mpi-460-'));
     const localPath = path.join(dir, 'weight.safetensors');
 
-    const depJob = {
+    const depJob = storeDep(dm, {
         id: 'test-retry-dep',
         modelId: 'test-model',
         url: `http://127.0.0.1:${port}/file.bin`,
@@ -376,7 +387,7 @@ async function main() {
         status: 'downloading',
         downloadedBytes: 0,
         totalBytes: 0,
-    };
+    });
 
     const dl = new FileDownloader(depJob, localPath);
     // The live trigger, exactly: NDH does NOT emit 'error' on a socket that dies

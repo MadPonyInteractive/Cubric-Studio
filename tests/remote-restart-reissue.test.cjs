@@ -156,11 +156,11 @@ test('installs that will not restart reach a TERMINAL state, not silence', async
     assert.equal(dm._remoteDepIds.size, 0, 'nothing may stay outstanding forever');
     assert.equal(dm._remoteInstallQueue.length, 0);
     for (const dep of deps) {
-        const depJob = dm._depJobs.get(dep.id);
+        const depJob = dm._installStore.depJob(dep.id);
         assert.equal(depJob.status, 'failed', `${dep.id} must be terminal`);
         assert.equal(depJob.toast, true, 'a toast, never the Report-on-GitHub dialog');
         assert.match(depJob.error, /disconnected before the install finished/);
     }
-    assert.equal(dm._modelJobs.get(modelId).status, 'failed',
+    assert.equal(dm._installStore.modelJob(modelId).status, 'failed',
         'the MODEL job must fail too — a dep-level failure alone is invisible to the user (MPI-539)');
 });

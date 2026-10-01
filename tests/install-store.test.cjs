@@ -38,8 +38,13 @@ function registerBasic(store, modelId = 'ill-anime', engine = 'local') {
 }
 
 let passed = 0;
+let failed = 0;
 function test(name, fn) {
-    fn();
+    try { fn(); } catch (err) {
+        failed += 1;
+        console.log(`  FAIL  ${name}\n        ${err.message.split('\n')[0]}`);
+        return;
+    }
     passed += 1;
     console.log(`  ok  ${name}`);
 }
@@ -357,4 +362,85 @@ test('the transition TABLE still refuses failed -> queued (reconciler cannot res
     assert.ok(warnings.some(m => m.includes('Illegal transition')), 'table path still warns');
 });
 
-console.log(`\ninstall-store: ${passed} passed`);
+// ── Shared dep records (MPI-513 D2) ─────────────────────────────────────────────
+// One weight, two models (MPI-97 attach): the transport shares ONE dep object across
+// every model job that uses it, so the store must too. Replacing the record left the
+// first model's job holding a copy no transition ever reached again — its snapshot dep
+// sat `downloading` forever.
+
+test('a second live model on a dep ATTACHES to the live record, never replaces it', () => {
+    const { store } = makeStore();
+    store.registerModelJob({ modelId: 'A', engine: 'local', deps: [
+        { depId: 'shared', type: 'model', size: '1 GB' },
+        { depId: 'onlyA', type: 'model', size: '1 GB' },
+    ] });
+    store.transitionModel('A', MODEL_STATES.DOWNLOADING, 't');
+    store.transitionDep('shared', DEP_STATES.DOWNLOADING, 't');
+    store.syncProgress('A', { deps: [{ id: 'shared', downloadedBytes: 500, totalBytes: 1000 }] });
+
+    store.registerModelJob({ modelId: 'B', engine: 'local', deps: [
+        { depId: 'shared', type: 'model', size: '1 GB' },
+    ] });
+
+    const fromA = store.modelJob('A').deps.find(d => d.id === 'shared');
+    const fromB = store.modelJob('B').deps.find(d => d.id === 'shared');
+    assert.equal(fromA, fromB, 'both model jobs hold the same dep object');
+    assert.equal(store.depJob('shared'), fromA, 'the store index points at that object too');
+    assert.equal(fromA.status, DEP_STATES.DOWNLOADING, 'attaching does not reset the in-flight dep');
+    assert.equal(fromA.downloadedBytes, 500, 'attaching keeps the bytes already in');
+});
+
+test('a shared dep settling is seen by BOTH model jobs in the snapshot', () => {
+    const { store } = makeStore();
+    store.registerModelJob({ modelId: 'A', engine: 'local', deps: [{ depId: 'shared', type: 'model' }] });
+    store.transitionModel('A', MODEL_STATES.DOWNLOADING, 't');
+    store.transitionDep('shared', DEP_STATES.DOWNLOADING, 't');
+    store.registerModelJob({ modelId: 'B', engine: 'local', deps: [{ depId: 'shared', type: 'model' }] });
+    store.transitionModel('B', MODEL_STATES.DOWNLOADING, 't');
+
+    store.transitionDep('shared', DEP_STATES.COMPLETE, 'landed');
+
+    const snap = store.snapshot();
+    for (const id of ['A', 'B']) {
+        const dep = snap.jobs.find(j => j.id === id).deps.find(d => d.id === 'shared');
+        assert.equal(dep.status, DEP_STATES.COMPLETE, `model ${id} sees the shared dep settle`);
+    }
+});
+
+test('a re-POST of a LIVE model unions deps onto the SAME job, dropping none', () => {
+    // Today's transport behaviour: the model job only grows. A node-drift heal POSTs one
+    // node for a model whose job already holds an in-flight weight; replacing the job
+    // dropped that weight from the store while its downloader kept running.
+    const { store } = makeStore();
+    const first = store.registerModelJob({ modelId: 'A', engine: 'local', deps: [{ depId: 'weight', type: 'model' }] });
+    store.transitionModel('A', MODEL_STATES.DOWNLOADING, 't');
+    store.transitionDep('weight', DEP_STATES.DOWNLOADING, 't');
+
+    const second = store.registerModelJob({ modelId: 'A', engine: 'local', deps: [{ depId: 'node', type: 'custom_nodes' }] });
+
+    assert.equal(second, first, 'same job object — closures holding it keep working');
+    assert.equal(store.modelJob('A'), first);
+    assert.deepEqual(first.deps.map(d => d.id).sort(), ['node', 'weight']);
+    assert.equal(store.depJob('weight').status, DEP_STATES.DOWNLOADING, 'in-flight dep untouched');
+    assert.equal(first.status, MODEL_STATES.DOWNLOADING, 'live status untouched');
+    assert.equal(first.installCustomNodes, true, 'the new node dep flips the flag');
+});
+
+test('a re-POST of a TERMINAL model registers a fresh job with fresh dep records', () => {
+    // The retry path: a failed job and its failed dep are not resurrected in place
+    // (invariant #3) — the new attempt is a new record.
+    const { store } = makeStore();
+    const old = store.registerModelJob({ modelId: 'A', engine: 'local', deps: [{ depId: 'x', type: 'model' }] });
+    store.transitionDep('x', DEP_STATES.FAILED, 'boom');
+    store.transitionModel('A', MODEL_STATES.FAILED, 'boom');
+
+    const fresh = store.registerModelJob({ modelId: 'A', engine: 'local', deps: [{ depId: 'x', type: 'model' }] });
+
+    assert.notEqual(fresh, old);
+    assert.equal(fresh.status, MODEL_STATES.QUEUED);
+    assert.equal(store.depJob('x').status, DEP_STATES.QUEUED);
+    assert.equal(fresh.deps[0], store.depJob('x'));
+});
+
+console.log(`\ninstall-store: ${passed} passed, ${failed} failed`);
+if (failed) process.exit(1);

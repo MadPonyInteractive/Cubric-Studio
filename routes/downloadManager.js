@@ -340,7 +340,6 @@ async function _sweepOrphanedDeps(managedModelsRoot, defaultModelsRoot, customRo
             await _removeManagedFile(localPath, useRecycleBin, 'sweep');
             await cleanEmptyDirs(localPath, managedModelsRoot);
             await clearDownloadMarker(localPath).catch(() => {});
-            _depJobs.delete(depId);
             swept.push({ depId, depName: d.name || depId });
         } catch (err) {
             logger.error('download', `sweep: failed to trash ${localPath}`, err);
@@ -582,7 +581,6 @@ async function _sweepOrphanedDepsRemote() {
             // sweep, not an error and not a per-dep retry — stop asking.
             if (res && res.status === 'unsupported') break;
             logger.info('download', `remote sweep: deleted ${d.id} (${dep.filename}) from the volume`);
-            _depJobs.delete(d.id);
             swept.push({ depId: d.id, depName: dep.name || d.id });
         } catch (err) {
             logger.error('download', `remote sweep: failed to delete ${d.id}: ${err.message}`);
@@ -630,8 +628,6 @@ function _uninstallAllowedRoot(dep, { managedModelsRoot, defaultCustomNodesRoot 
 }
 
 // ── Job Storage ────────────────────────────────────────────────────────────────
-const _depJobs = new Map();       // depId → DepJob
-const _modelJobs = new Map();     // modelId → DownloadJob
 const _activeDownloaders = new Map(); // depId → FileDownloader (actively downloading)
 // 3 parallel deps. Was 1 (commit 47e924a) only because parallel HF/Xet streams
 // fought over throttled bandwidth and made each other worse. Now that all MPI
@@ -650,34 +646,6 @@ const LOCAL_DOWNLOAD_CONCURRENCY = 3;
 // local cap for the same reason: one R2 stream already saturates the link, so 3
 // overlaps small deps with large ones without thrashing.
 const REMOTE_DOWNLOAD_CONCURRENCY = 3;
-
-function _createDepJob(dep) {
-    return {
-        id: dep.id,
-        url: dep.url,
-        type: dep.type || null,
-        filename: dep.filename || null,
-        localPath: null,
-        status: 'queued',
-        downloadedBytes: 0,
-        totalBytes: 0,
-        // MPI-95 — registry-size floor for the aggregate denominator. The wrapper
-        // reports each dep's REAL `total` only once its install emits a first tick;
-        // until then totalBytes can be 0. Summing only arrived totals shrinks the
-        // denominator so the bar hits 100% while other deps are still pending
-        // ("sits at 100%"). seedBytes keeps every dep counted at its best-known
-        // size from the moment the job is created.
-        seedBytes: _parseSizeToBytes(dep.size),
-        error: null,
-        sha256Expected: dep.sha256 || null,
-        // MPI-429 — explicit second origin for deps whose byte-identical copy lives in a
-        // third-party repo under a different path AND filename, so no rewrite can reach
-        // it. Generated from the classification sweep; absent for everything the generic
-        // prefix rewrite already covers. See _mirrorUrlsFor.
-        mirrorUrl: dep.mirrorUrl || null,
-        noMirror: dep.noMirror || false,
-    };
-}
 
 // MPI-95 — a dep's best-known total for the aggregate denominator: the wrapper's
 // real total once it has arrived, else the registry seed, so a not-yet-emitting
@@ -706,20 +674,6 @@ function _byteRatioExcludingNodes(deps, active = 'local') {
         total += active === 'remote' ? _depDenominator(d) : (d.totalBytes || d.seedBytes || 0);
     }
     return { downloaded, total };
-}
-
-function _createModelJob(modelId, deps) {
-    return {
-        id: modelId,
-        modelId,
-        status: 'queued',
-        totalBytes: 0,
-        downloadedBytes: 0,
-        speed: '',
-        deps: [],
-        progress: 0,
-        installCustomNodes: deps.some(d => d.type === 'custom_nodes'),
-    };
 }
 
 // ── FileDownloader (node-downloader-helper wrapper) ──────────────────────────
@@ -894,8 +848,7 @@ class FileDownloader {
                 // check; custom_nodes are work-not-bytes (excluded, same as remote).
                 if (this.depJob.sha256Expected) {
                     this.depJob.downloadedBytes = this.depJob.totalBytes || this.depJob.downloadedBytes;
-                    for (const modelJob of _modelJobs.values()) {
-                        if (!modelJob.deps.some(d => d.id === this.depJob.id)) continue;
+                    for (const modelJob of _liveJobsHolding(this.depJob)) {
                         const allBytesDone = modelJob.deps.every(d =>
                             d.id === this.depJob.id
                             || d.status === 'complete'
@@ -1557,107 +1510,109 @@ function _broadcast(event, data) {
 }
 
 // ── installStore SOT (MPI-276 Phase 2b.3) ────────────────────────────────────
-// The store owns lifecycle state + progress + the monotonic snapshot version.
-// SHADOW STAGE: populated alongside _modelJobs/_depJobs and used for the READ
-// paths (status endpoint, snapshot); the maps stay write-authoritative until the
-// write-flip commit. The maps remain the transport carriers (url, localPath,
-// sha256Expected — fields the pure store deliberately omits). `broadcast` is
-// late-bound so it is defined by call time.
+// The store is the ONE record set for install state (MPI-513 / MPI-320): its model
+// and dep records ARE the job objects the transport works on — FileDownloader holds
+// a store dep record, the remote driver looks deps up in the store, and the
+// transport detail (url, localPath, sha256Expected, error flags) rides on the record
+// as plain data. Status moves only through the store's transition table, via the two
+// helpers below. `broadcast` is late-bound so it is defined by call time.
 const store = createInstallStore({
     broadcast: (event, data) => _broadcast(event, data),
     logger,
     now: Date.now,
 });
 
-// Runtime→store status translation. The runtime maps use a few strings the pure
-// store doesn't model: a model's terminal success is 'complete' here but 'done' in
-// the store, and 'idle' (disk-full / rejected pre-register) has no store state.
-const _MODEL_STATUS_TO_STORE = {
-    queued: 'queued', downloading: 'downloading', verifying: 'verifying',
-    installing: 'installing', complete: 'done', done: 'done',
-    failed: 'failed', cancelled: 'cancelled',
-    // idle: intentionally absent — the model is never registered in the store on
-    // that path (it 400s before register), so there is nothing to transition.
-};
-const _DEP_STATUS_TO_STORE = {
-    queued: 'queued', downloading: 'downloading', verifying: 'verifying',
-    complete: 'complete', failed: 'failed', cancelled: 'cancelled',
-};
-
-// Write the runtime map field (unchanged behavior) AND drive the store in lockstep
-// (MPI-276 2b.3). SHADOW STAGE: both writes happen; the map is still authoritative.
-// A status with no store equivalent (e.g. 'idle') updates the map only. transition*
-// no-ops safely if the store has no such job yet (register happens at start).
+// The only model-status writer path. Store vocabulary: success is 'done'.
 function _setModelStatus(modelJob, status, reason) {
-    modelJob.status = status;
-    const to = _MODEL_STATUS_TO_STORE[status];
-    const sj = store.modelJob(modelJob.modelId);
-    // MPI-317 F5: on a RESUMED install the reconciler can settle the store job to a
-    // terminal state from disk truth (invariant #3) while this legacy map is still
-    // walking its downloading→installing→complete tail — the map drives real trailing
-    // work (node requirements re-verify + the model-level download:complete broadcast),
-    // so the walk must continue. But pushing its trailing statuses into an
-    // already-settled store just gets a (correct) 'Illegal transition … rejected' warn
-    // per resumed install. Terminal is terminal: once the store has settled, the map
-    // finishes its walk without writing to the store. Dies with the MPI-318 write-flip
-    // (map status-writes deleted).
-    if (sj && store.MODEL_TERMINAL.has(sj.status)) return;
-    if (to && sj) store.transitionModel(modelJob.modelId, to, reason);
+    store.transitionModel(modelJob.modelId, status, reason);
 }
+
+// The only dep-status writer path. 'queued' on an existing dep is always an explicit
+// retry requeue (MPI-427) — the transition table refuses terminal→queued by design.
+// A record the store has since REPLACED (a terminal dep re-registered fresh) no longer
+// owns the dep's status: a late transport event for it must not move the new attempt.
 function _setDepStatus(depJob, status, reason) {
-    depJob.status = status;
-    const to = _DEP_STATUS_TO_STORE[status];
-    // MPI-427 — 'queued' on an existing dep is always an explicit retry requeue (all
-    // four callers: local reset, remote node, remote, uw). A terminal dep cannot reach
-    // 'queued' through the transition table by design, so route it to the store's
-    // dedicated requeue instead of taking a rejected-transition warn on every retry.
-    if (to === 'queued' && store.depJob(depJob.id)) {
-        store.requeueDep(depJob.id, reason);
-    } else if (to && store.depJob(depJob.id)) {
-        store.transitionDep(depJob.id, to, reason);
+    if (store.depJob(depJob.id) !== depJob) {
+        logger.info('download', `dep ${depJob.id}: ${status} (${reason}) on a replaced record — ignored`);
+        return;
     }
-    // Stamp last-activity on the store model job so the reconciler's orphan-fail
-    // gate (G11) measures staleness from real progress, not registration alone.
-    const sj = store.modelJob(depJob.modelId);
-    if (sj) sj.lastTickAt = Date.now();
+    if (status === 'queued') store.requeueDep(depJob.id, reason);
+    else store.transitionDep(depJob.id, status, reason);
+    // Stamp last-activity on every live model sharing the dep so the reconciler's
+    // orphan-fail gate (G11) measures staleness from real progress.
+    const t = Date.now();
+    for (const modelId of store.activeModelsForDep(depJob.id)) store.modelJob(modelId).lastTickAt = t;
 }
 
-// Mirror a map modelJob's freshly-recomputed progress/bytes into the store (4c) so
-// snapshot()/the download:snapshot broadcast reflect live progress, not just
-// lifecycle. Called right after each map-side progress recompute. Status stays owned
-// by _setModelStatus/_setDepStatus; this touches numbers only.
+// Progress is written straight onto the records; bump the snapshot version so the
+// next download:snapshot is ordered after it (G9).
 function _syncStoreProgress(modelJob) {
-    if (!store.modelJob(modelJob.modelId)) return;
-    store.syncProgress(modelJob.modelId, {
-        progress: modelJob.progress,
-        totalBytes: modelJob.totalBytes,
-        downloadedBytes: modelJob.downloadedBytes,
-        speed: modelJob.speed,
-        deps: modelJob.deps.map(d => ({ id: d.id, downloadedBytes: d.downloadedBytes, totalBytes: d.totalBytes })),
-    });
+    store.syncProgress(modelJob.modelId);
 }
 
-// Register (or REPLACE) the store record for a runtime modelJob, translating its
-// deps into the store's spec. Called once per start on both engines. The store
-// holds lifecycle+progress+version; the runtime maps keep the transport fields.
-function _registerModelInStore(modelJob, engine) {
-    store.registerModelJob({
-        modelId: modelJob.modelId,
+// Live model jobs holding this exact dep record (D2: one record per weight, shared).
+function _liveJobsHolding(depJob) {
+    return store.allModelJobs().filter(j => !store.MODEL_TERMINAL.has(j.status) && j.deps.includes(depJob));
+}
+
+// Transport detail carried on a dep record (D1). Never read by the store.
+function _depTransport(dep, localPath) {
+    return {
+        url: dep.url,
+        filename: dep.filename || null,
+        localPath: localPath || null,
+        error: null,
+        sha256Expected: dep.sha256 || null,
+        // MPI-429 — explicit second origin for deps whose byte-identical copy lives in a
+        // third-party repo under a different path AND filename, so no rewrite can reach
+        // it. Generated from the classification sweep; absent for everything the generic
+        // prefix rewrite already covers. See _mirrorUrlsFor.
+        mirrorUrl: dep.mirrorUrl || null,
+        noMirror: dep.noMirror || false,
+    };
+}
+
+// Register a model's job in the store and return THE job object (D1). A live job is
+// unioned in place, a live dep record attached to (D2); a terminal one is replaced
+// by a fresh record, which is how a retry restarts a dep. Each entry is
+// { dep, localPath, installed, downloadedBytes?, totalBytes? }.
+// MPI-95 — seedBytes is the registry-size floor for the aggregate denominator: the
+// real total arrives with the first byte tick, and summing only arrived totals let
+// the bar reach 100% while other deps were still pending.
+function _registerJob(modelId, engine, entries) {
+    const job = store.registerModelJob({
+        modelId,
         engine,
-        deps: modelJob.deps.map(d => ({
-            depId: d.id,
-            type: d.type || 'model',
-            size: d.size || '',
-            seedBytes: d.seedBytes || 0,
-            totalBytes: d.totalBytes || 0,
-            downloadedBytes: d.downloadedBytes || 0,
-            alreadyInstalled: d.status === 'complete',
+        deps: entries.map(({ dep, localPath, installed, downloadedBytes, totalBytes }) => ({
+            depId: dep.id,
+            type: dep.type,
+            size: dep.size || '',
+            seedBytes: _parseSizeToBytes(dep.size),
+            totalBytes: totalBytes || 0,
+            downloadedBytes: downloadedBytes || 0,
+            alreadyInstalled: installed,
+            transport: _depTransport(dep, localPath),
         })),
     });
+    // Disk truth wins over an attached live record too.
+    for (const { dep, installed } of entries) {
+        const d = store.depJob(dep.id);
+        if (!installed || d.status === 'complete') continue;
+        _setDepStatus(d, 'complete', `${engine} already-installed`);
+        d.downloadedBytes = d.totalBytes = _parseSizeToBytes(dep.size);
+    }
     // Stamp the grace-window anchor for the reconciler's orphan-fail gate (G11).
-    const sj = store.modelJob(modelJob.modelId);
-    if (sj) { sj.registeredAt = Date.now(); sj.lastTickAt = Date.now(); }
+    job.registeredAt = job.lastTickAt = Date.now();
     reconciler.start(); // idempotent; self-idles when no jobs are active
+    return job;
+}
+
+// True while the transport holds the dep: downloading locally, queued for a local
+// slot under a downloading model, or queued/installing on the remote driver.
+function _isDepTransportLive(depId) {
+    if (_activeDownloaders.has(depId) || _remoteDepSpecs.has(depId)) return true;
+    const d = store.depJob(depId);
+    return Boolean(d && d.status === 'queued' && _depHasActiveDownloadConsumer(depId));
 }
 
 // ── Reconciler SOT-driver (MPI-276 Phase 3, G11) ─────────────────────────────
@@ -1706,6 +1661,10 @@ async function _reconcilerCheckInstalled(jobs) {
 const reconciler = createReconciler({
     store,
     checkInstalled: _reconcilerCheckInstalled,
+    // D4: the reconciler settles deps only; the one model-level rollup decides the
+    // model and broadcasts it — the same path every transport settle takes.
+    onSettled: () => _checkModelJobsComplete(),
+    isTransportLive: _isDepTransportLive,
     now: Date.now,
     logger,
 });
@@ -1731,16 +1690,10 @@ router.get('/comfy/downloads/stream', (req, res) => {
 
 // Serialize one model job for the wire — the shape the FE mirror consumes from
 // both GET /downloads/status and the register-before-respond /download/start body
-// (MPI-276 G8). Single serializer so the two never drift.
-//
-// MPI-276 4c NOTE: sourced from the runtime MAP job, NOT store.snapshot(). Live
-// progress/bytes are recomputed onto the map job at ~15 tick sites and are NOT yet
-// mirrored into the store (the store tracks lifecycle+status, mirrored in lockstep;
-// progress-mirror is the remaining gap). So a pull-read off store.snapshot() would
-// report 0% mid-download. The store-sourced SOT path is the `download:snapshot`
-// BROADCAST (reconciler, P3) + the FE snapshot consumer (4a); this pull endpoint
-// stays map-backed until progress is mirrored. Map `status` vocabulary is already
-// correct ('complete'); the FE mirror handles both it and the store's 'done'.
+// (MPI-276 G8). Single serializer so the two never drift. Reads the store record,
+// which carries live bytes because the transport writes them onto it (MPI-513 D5).
+// A finished job can be pruned by the next reconciler pass, so a poller reads
+// "absent after seen" as finished and confirms with check-local.
 function _serializeModelJob(job) {
     return {
         id: job.id,
@@ -1761,14 +1714,14 @@ function _serializeModelJob(job) {
 }
 
 router.get('/comfy/downloads/status', (req, res) => {
-    const jobs = Array.from(_modelJobs.values()).map(_serializeModelJob);
+    const jobs = store.allModelJobs().map(_serializeModelJob);
     // G9: monotonic snapshot version from the store (the FE version-gates deltas
-    // against it). Jobs stay map-sourced for live progress (see _serializeModelJob).
+    // against it).
     res.json({ success: true, version: store.version(), jobs });
 });
 
 router.get('/comfy/downloads/active', (req, res) => {
-    const models = Array.from(_modelJobs.values())
+    const models = store.allModelJobs()
         .filter(job => ['queued', 'downloading', 'paused', 'installing'].includes(job.status))
         .filter(job => job.modelId !== '__universal_workflow__')
         .map(job => ({
@@ -1822,19 +1775,15 @@ router.post('/comfy/models/download/start', async (req, res) => {
     // MPI-179 — union the local extraDeps back in so a stale-engine request heals)
     const localDeps = _withEngineExtraDeps(modelId, _filterDepsForEngine(modelId, dependencies, 'local'), 'local');
 
-    let modelJob = _modelJobs.get(modelId);
-    if (!modelJob) {
-        modelJob = _createModelJob(modelId, localDeps);
-        _modelJobs.set(modelId, modelJob);
-    }
-
     const customRoot = await getCustomRoot();
     const defaultModelsRoot = getDefaultModelsRoot();
     const defaultCustomNodesRoot = getComfyPath(ENGINE_ROOT, 'custom_nodes');
 
-    // totalBytes is computed AFTER the dep loop, from modelJob.deps — see the note
+    // Resolve every dep's path and on-disk state BEFORE registering anything, so the
+    // disk-full gate refuses without leaving a job behind (MPI-513 D3 — no 'idle').
+    // totalBytes is computed after registering, from modelJob.deps — see the note
     // beside the recalculation below for why it cannot be pre-summed from localDeps.
-
+    const entries = [];
     for (const dep of localDeps) {
         let localPath;
         let installedCheckPath;
@@ -1861,38 +1810,57 @@ router.post('/comfy/models/download/start', async (req, res) => {
         // MPI-387 F1: type-aware — a custom_nodes folder can be a weight-only shell.
         // Bare pathExists here marked the dep `complete`, then the node download moved
         // it to `downloading` → installStore logged an illegal complete→downloading.
-        const isInstalled = await isDepInstalledOnDisk(dep, installedCheckPath);
+        const installed = await isDepInstalledOnDisk(dep, installedCheckPath);
 
-        let depJob = _depJobs.get(dep.id);
-        if (!depJob) {
-            depJob = _createDepJob(dep);
-            depJob.localPath = localPath;
-            _depJobs.set(dep.id, depJob);
-        }
+        // An installed dep is credited at full size; a fresh record for a missing one
+        // starts from its KEPT partial (MPI-427): removeOnFail:false leaves the bytes on
+        // disk and download() resumes them from the marker, so zeroing made the bar fall
+        // backwards on every retry — a user watching a flaky ISP kill his transfer
+        // reported it as "it got 20% ... and it jumped back down to 8". getPartialBytes
+        // returns 0 unless the partial is marker-blessed and resumable. MPI-756: the same
+        // partial is already on the disk statfs measures, so the gate below skips it.
+        entries.push({ dep, localPath, installed, downloadedBytes: installed ? 0 : await getPartialBytes(localPath) });
+    }
 
-        if (!modelJob.deps.find(d => d.id === dep.id)) {
-            modelJob.deps.push(depJob);
-        }
-
-        // Mark installed deps as complete immediately (they contribute to progress but not to active downloads)
-        if (isInstalled) {
-            _setDepStatus(depJob, 'complete', 'local already-installed');
-            depJob.downloadedBytes = _parseSizeToBytes(dep.size);
-            depJob.totalBytes = _parseSizeToBytes(dep.size);
-        } else if (depJob.status !== 'queued' && depJob.status !== 'downloading') {
-            // Reset any terminal state (complete, failed, cancelled) back to queued.
-            // MPI-427: credit the KEPT partial instead of zeroing. removeOnFail:false
-            // leaves the bytes on disk and download() resumes them from the marker, so
-            // zeroing made the bar fall backwards on every retry — a user watching a
-            // flaky ISP kill his transfer reported it as "it got 20% ... and it jumped
-            // back down to 8", i.e. as lost progress. getPartialBytes returns 0 unless
-            // the partial is genuinely marker-blessed and resumable, so a non-resumable
-            // leftover still reads as 0 and nothing is over-reported.
-            _setDepStatus(depJob, 'queued', 'local reset requeue');
-            depJob.downloadedBytes = await getPartialBytes(localPath);
-            depJob.error = null;
+    // ── Disk-full pre-flight gate (MPI-99) ──────────────────────────────────
+    // Refuse a local install that won't fit on the target drive instead of
+    // starting a doomed download that fails partway with a cryptic write error.
+    // Only deps not on disk and not already downloading need new space;
+    // a 5% margin covers temp/.part overhead. A failed statfs is non-fatal — we
+    // skip the gate rather than block a legitimate install.
+    // Use the declared size (known NOW), NOT a real Content-Length, which is still 0
+    // at install-start. Summing that made neededBytes 0, the gate never fired, and the
+    // first write to a full disk crashed the server with an unhandled ENOSPC. (MPI-140)
+    let neededBytes = 0;
+    for (const { dep, installed, downloadedBytes } of entries) {
+        if (installed) continue;
+        const live = store.depJob(dep.id);
+        const attached = live && !store.DEP_TERMINAL.has(live.status) ? live : null;
+        if (attached && attached.status !== 'queued') continue;
+        const total = (attached && attached.totalBytes) || _parseSizeToBytes(dep.size);
+        neededBytes += Math.max(0, total - downloadedBytes);
+    }
+    if (neededBytes > 0) {
+        const targetDir = customRoot || defaultModelsRoot;
+        const freeBytes = await _freeDiskBytes(targetDir);
+        // MPI-542 — the message must print the number the GATE used, margin included.
+        // It printed the un-margined need, so a block at 29.4 GB free read as
+        // "need 29.3 GB free, have 29.4 GB" — a correct decision that looked broken.
+        const requiredBytes = neededBytes * 1.05;
+        if (freeBytes !== null && freeBytes < requiredBytes) {
+            logger.warn('download', `install blocked — disk full: need ${_fmtGb(requiredBytes)} free, have ${_fmtGb(freeBytes)} at ${targetDir}`);
+            return res.status(400).json({
+                // toast:true — the client shows this verbatim (MPI-539's cause-agnostic
+                // verdict). This message names the real drive and the real numbers; the
+                // client's generic "free up space" fallback names neither.
+                toast: true,
+                error: `Not enough disk space to install this model — ${_fmtGb(requiredBytes)} needed (5% working margin included), ${_fmtGb(freeBytes)} free at ${targetDir}.`,
+            });
         }
     }
+
+    // Register now that the gate has passed: the store job IS the job from here on.
+    const modelJob = _registerJob(modelId, 'local', entries);
 
     // Recalculate progress from completed deps before broadcasting.
     //
@@ -1913,53 +1881,6 @@ router.post('/comfy/models/download/start', async (req, res) => {
     modelJob.totalBytes = startRatio.total;
     modelJob.progress = modelJob.totalBytes > 0 ? modelJob.downloadedBytes / modelJob.totalBytes : 0;
 
-    // ── Disk-full pre-flight gate (MPI-99) ──────────────────────────────────
-    // Refuse a local install that won't fit on the target drive instead of
-    // starting a doomed download that fails partway with a cryptic write error.
-    // Only the deps still queued (not already complete-on-disk) need new space;
-    // a 5% margin covers temp/.part overhead. A failed statfs is non-fatal — we
-    // skip the gate rather than block a legitimate install.
-    // Use seedBytes (declared size, known NOW), NOT totalBytes — totalBytes is the
-    // real Content-Length which is still 0 at install-start (it only arrives mid-
-    // download). Summing totalBytes made neededBytes 0, the gate never fired, the
-    // download started anyway, and the first write to a full disk crashed the
-    // server with an unhandled ENOSPC. (MPI-140; was the MPI-99 gate's blind spot.)
-    // MPI-756: a queued dep's resumable partial is already on the disk statfs measures, and
-    // download() either resumes it in place or removes it before starting clean
-    // (override:true, never a " (1)" sibling), so it is not new space. Read it here rather
-    // than trusting downloadedBytes: a dep job created after a restart never passed the
-    // reset branch above that credits it. getPartialBytes is 0 unless marker-blessed.
-    let neededBytes = 0;
-    for (const d of modelJob.deps.filter(d => d.status === 'queued')) {
-        const partial = d.localPath ? await getPartialBytes(d.localPath) : 0;
-        neededBytes += Math.max(0, (d.totalBytes || d.seedBytes || 0) - partial);
-    }
-    if (neededBytes > 0) {
-        const targetDir = customRoot || defaultModelsRoot;
-        const freeBytes = await _freeDiskBytes(targetDir);
-        // MPI-542 — the message must print the number the GATE used, margin included.
-        // It printed the un-margined need, so a block at 29.4 GB free read as
-        // "need 29.3 GB free, have 29.4 GB" — a correct decision that looked broken.
-        const requiredBytes = neededBytes * 1.05;
-        if (freeBytes !== null && freeBytes < requiredBytes) {
-            _setModelStatus(modelJob, 'idle', 'disk-full idle');
-            logger.warn('download', `install blocked — disk full: need ${_fmtGb(requiredBytes)} free, have ${_fmtGb(freeBytes)} at ${targetDir}`);
-            return res.status(400).json({
-                // toast:true — the client shows this verbatim (MPI-539's cause-agnostic
-                // verdict). This message names the real drive and the real numbers; the
-                // client's generic "free up space" fallback names neither.
-                toast: true,
-                error: `Not enough disk space to install this model — ${_fmtGb(requiredBytes)} needed (5% working margin included), ${_fmtGb(freeBytes)} free at ${targetDir}.`,
-            });
-        }
-    }
-
-    // Register in the store now that the disk-full gate has passed (MPI-276 2b.3).
-    // registerModelJob REPLACES on a re-POST (kills totalBytes accumulation) and
-    // credits already-installed deps at full size. Done before the status flip so the
-    // transition below lands on a live store job.
-    _registerModelInStore(modelJob, 'local');
-
     _setModelStatus(modelJob, 'downloading', 'download start');
     _resetModelSpeed(modelJob);
     _broadcast('download:started', { modelId, status: 'downloading', progress: modelJob.progress });
@@ -1971,10 +1892,14 @@ router.post('/comfy/models/download/start', async (req, res) => {
 
     _startPendingDeps();
 
-    // Register-before-respond (MPI-276 G8): the job is fully in _modelJobs before we
+    // Register-before-respond (MPI-276 G8): the job is fully in the store before we
     // reply, and the reply carries its snapshot — the FE mirror renders the card from
     // the response, never racing the SSE stream open (the MPI-241 race class).
     res.json({ success: true, jobId: modelId, version: store.version(), job: _serializeModelJob(modelJob) });
+    // Every dep may already be on disk (a re-install, a restart after the download
+    // finished): no transport event will ever come, so settle it now — the remote
+    // twin does the same. The old reconciler rolled such a job to done on its own.
+    _checkModelJobsComplete();
 });
 
 // Free AND total bytes on the filesystem holding `dir`, from ONE statfs. Returns
@@ -2089,7 +2014,7 @@ async function logBootDiskSpace() {
 // ── Pending Deps Launcher ──────────────────────────────────────────────────────
 
 async function _startPendingDeps() {
-    const pending = Array.from(_depJobs.values()).filter(d =>
+    const pending = store.allDepJobs().filter(d =>
         d.status === 'queued'
         && _depHasActiveDownloadConsumer(d.id)
     );
@@ -2120,11 +2045,9 @@ async function _startPendingDeps() {
 
 function _wireProgress(depJob, downloader) {
     downloader.onProgress = (downloadedBytes, totalBytes) => {
-        for (const modelJob of _modelJobs.values()) {
-            const myDep = modelJob.deps.find(d => d.id === depJob.id);
-            if (!myDep) continue;
-            myDep.downloadedBytes = downloadedBytes;
-            myDep.totalBytes = totalBytes;
+        depJob.downloadedBytes = downloadedBytes;
+        depJob.totalBytes = totalBytes;
+        for (const modelJob of _liveJobsHolding(depJob)) {
             // MPI-231 — custom_nodes are WORK, not bytes: a GitHub `/archive/` zip is
             // served with no Content-Length (totalBytes stays 0 → denominator falls
             // back to the tiny registry seed) while the numerator counts real streamed
@@ -2177,7 +2100,7 @@ function _wireProgress(depJob, downloader) {
 }
 
 function _depHasActiveDownloadConsumer(depId) {
-    for (const modelJob of _modelJobs.values()) {
+    for (const modelJob of store.allModelJobs()) {
         if (modelJob.status !== 'downloading') continue;
         if (modelJob.deps.some(d => d.id === depId)) return true;
     }
@@ -2188,7 +2111,7 @@ function _depHasActiveDownloadConsumer(depId) {
 // dep right now — the real "don't stop the downloader" test for cancel (MPI-258 Bug
 // B). refCount can't be trusted here (it leaks up on successful installs).
 function _otherActiveModelUsesDep(depId, excludeModelId) {
-    for (const modelJob of _modelJobs.values()) {
+    for (const modelJob of store.allModelJobs()) {
         if (modelJob.modelId === excludeModelId) continue;
         if (modelJob.status !== 'downloading' && modelJob.status !== 'queued' && modelJob.status !== 'installing') continue;
         if (modelJob.deps.some(d => d.id === depId)) return true;
@@ -2199,7 +2122,7 @@ function _otherActiveModelUsesDep(depId, excludeModelId) {
 // ── Remote (RunPod wrapper) install driver ──────────────────────────────────
 //
 // In remote mode the wrapper streams installs onto the Pod volume. We reuse the
-// same _modelJobs/_depJobs maps and _broadcast events so the renderer's download
+// same store records and _broadcast events so the renderer's download
 // UI works unchanged. One wrapper SSE stream serves all active remote installs;
 // it is torn down when no remote installs remain. There is no local .part file,
 // so pause/resume are not supported remotely (see the pause/resume routes).
@@ -2217,7 +2140,7 @@ let _remoteReconnectAttempt = 0;     // MPI-97 — backoff counter (reset on a c
 const _remoteInstallQueue = [];      // dep objects awaiting an install slot
 // MPI-691 — the dep object we sent, kept while the dep is outstanding. A re-issue
 // after a wrapper restart needs the whole thing (url, type, filename, sha256,
-// requirementsOnly, forceReinstall), not the id; `_depJobs` drops some of it.
+// requirementsOnly, forceReinstall), not the id; a store dep record drops some of it.
 const _remoteDepSpecs = new Map();   // depId -> dep object
 
 /** True while any remote dep is installing OR waiting for a slot (MPI-690). */
@@ -2238,7 +2161,7 @@ function _pumpRemoteInstalls() {
  * bar (the MPI-539 lesson: silence reading as progress).
  */
 function _enqueueRemoteInstall(dep) {
-    const depJob = _depJobs.get(dep.id);
+    const depJob = store.depJob(dep.id);
     if (depJob) _setDepStatus(depJob, 'queued', 'remote dep queued');
     _remoteDepSpecs.set(dep.id, dep);
     _remoteInstallQueue.push(dep);
@@ -2246,7 +2169,7 @@ function _enqueueRemoteInstall(dep) {
 
 /** Fire one /wrapper/models/install and wire its settle paths back to the pump. */
 function _issueRemoteInstall(dep) {
-    const depJob = _depJobs.get(dep.id);
+    const depJob = store.depJob(dep.id);
     if (depJob) _setDepStatus(depJob, 'downloading', 'remote dep start');
     _remoteDepIds.add(dep.id);
     _remoteDepSpecs.set(dep.id, dep);
@@ -2258,7 +2181,7 @@ function _issueRemoteInstall(dep) {
         .then((out) => {
             // already_installed: the SSE will not fire — settle here.
             if (out && out.status === 'already_installed') {
-                const dj = _depJobs.get(dep.id);
+                const dj = store.depJob(dep.id);
                 if (dj) {
                     _setDepStatus(dj, 'complete', 'remote uw dep complete');
                     dj.downloadedBytes = dj.totalBytes || _parseSizeToBytes(dep.size);
@@ -2270,7 +2193,7 @@ function _issueRemoteInstall(dep) {
             }
         })
         .catch((err) => {
-            const dj = _depJobs.get(dep.id);
+            const dj = store.depJob(dep.id);
             // MPI-480 — stash the transient verdict alongside the message. The dep-level
             // broadcast below is silent client-side (no modelId, MPI-97); the reason and
             // its classification only reach the user via _checkModelJobsComplete, which
@@ -2335,7 +2258,7 @@ function _startRemoteStallWatchdog() {
         // installed:true, so an in-flight download is never force-completed.
         let allBytesInButUnsettled = false;
         for (const depId of _remoteDepIds) {
-            const dj = _depJobs.get(depId);
+            const dj = store.depJob(depId);
             if (dj && dj.status === 'downloading' && dj.totalBytes > 0
                 && (dj.downloadedBytes || 0) >= dj.totalBytes) { allBytesInButUnsettled = true; break; }
         }
@@ -2390,7 +2313,7 @@ function _onRemoteStreamClosed(reason) {
     _remoteEventStream = null;
     if (!_remoteWorkOutstanding()) { _stopRemoteStallWatchdog(); return; } // clean close
     // MPI-539 — remote mode went inactive with installs STILL OUTSTANDING. This used to
-    // `return` and the deps were simply abandoned: they stayed in _depJobs as
+    // `return` and the deps were simply abandoned: they stayed in the job maps as
     // 'downloading' forever, so GET /comfy/downloads/status kept serving the Pod's last
     // snapshot and the Model Library painted a frozen "424.7 MB/s · 4.2 / 49.4 GB · ~2
     // min left" (with a live Cancel) over a model the LOCAL disk already had — remote
@@ -2496,7 +2419,7 @@ function _failOutstandingRemoteDeps(reason) {
     // the target is gone.
     logger.warn('download', `remote deps unrecoverable (${reason}); failing ${outstanding.length} outstanding dep(s)`);
     for (const depId of outstanding) {
-        const depJob = _depJobs.get(depId);
+        const depJob = store.depJob(depId);
         if (depJob) {
             depJob.error = _REMOTE_ABANDON_MSG;
             // A TOAST, never the Report-on-GitHub dialog. The user stopping their own
@@ -2550,7 +2473,7 @@ async function _reconcileOutstandingRemoteDeps() {
     for (const depId of outstanding) {
         const entry = byId[depId];
         if (entry && entry.installed === true) {
-            const depJob = _depJobs.get(depId);
+            const depJob = store.depJob(depId);
             if (depJob) {
                 _setDepStatus(depJob, 'complete', 'local complete');
                 depJob.downloadedBytes = depJob.totalBytes || depJob.downloadedBytes;
@@ -2582,7 +2505,7 @@ function _onRemoteInstallEvent(evt) {
     const data = evt.data || {};
     const depId = data.id;
     if (!depId) return;
-    const depJob = _depJobs.get(depId);
+    const depJob = store.depJob(depId);
     if (!depJob) return;
 
     if (evt.type === 'models:install-progress') {
@@ -2596,9 +2519,7 @@ function _onRemoteInstallEvent(evt) {
         // fresh start) rebuild the depJob, so this never wedges a stale high.
         depJob.downloadedBytes = Math.max(depJob.downloadedBytes || 0, downloaded);
         if (total) depJob.totalBytes = total;
-        for (const modelJob of _modelJobs.values()) {
-            const myDep = modelJob.deps.find(d => d.id === depId);
-            if (!myDep) continue;
+        for (const modelJob of _liveJobsHolding(depJob)) {
             // MPI-95 fix: re-derive BOTH sides of the ratio from the per-dep jobs
             // every tick. The wrapper's _resolve_total corrects each dep's real
             // `total` (line above); we sum the per-dep DENOMINATOR (real total when
@@ -2642,9 +2563,7 @@ function _onRemoteInstallEvent(evt) {
         const total = Number(data.total) || depJob.totalBytes || 0;
         if (total) depJob.totalBytes = total;
         depJob.downloadedBytes = total || depJob.downloadedBytes;
-        for (const modelJob of _modelJobs.values()) {
-            const myDep = modelJob.deps.find(d => d.id === depId);
-            if (!myDep) continue;
+        for (const modelJob of _liveJobsHolding(depJob)) {
             modelJob.totalBytes = modelJob.deps.reduce((s, d) => s + _depDenominator(d), 0);
             modelJob.downloadedBytes = modelJob.deps.reduce((s, d) => s + (d.downloadedBytes || 0), 0);
             modelJob.progress = modelJob.totalBytes > 0 ? modelJob.downloadedBytes / modelJob.totalBytes : 0;
@@ -2716,16 +2635,6 @@ async function _startRemoteDownload(modelId, dependencies, res) {
     //  MPI-179 — union the remote extraDeps back in so a stale-engine request heals)
     dependencies = _withEngineExtraDeps(modelId, _filterDepsForEngine(modelId, dependencies, 'remote'), 'remote');
 
-    let modelJob = _modelJobs.get(modelId);
-    if (!modelJob) {
-        modelJob = _createModelJob(modelId, dependencies);
-        _modelJobs.set(modelId, modelJob);
-    }
-    // Remote installs never run local custom-node extraction — custom_nodes are
-    // image-resident on the Pod, so completion must not route through
-    // _runCustomNodeInstall (which extracts a local zip that does not exist).
-    modelJob.installCustomNodes = false;
-
     // Resolve which deps are already installed on the volume up-front so the
     // progress bar starts at the right place (matches the local path's behavior).
     let statusResults = {};
@@ -2767,15 +2676,16 @@ async function _startRemoteDownload(modelId, dependencies, res) {
     // totalBytes is computed AFTER the dep loop, from modelJob.deps — the remote twin
     // of the local rule; see the note beside the recalculation below.
 
+    // Decide every dep BEFORE registering, so the disk-full gate refuses without
+    // leaving a job behind (MPI-513 D3). `installed` deps register complete; `requeue`
+    // ones are sent back to queued (a live record attached to) after registering.
     const toInstall = [];
+    const entries = [];
+    const requeue = [];
     for (const dep of dependencies) {
-        let depJob = _depJobs.get(dep.id);
-        if (!depJob) {
-            depJob = _createDepJob(dep);
-            depJob.totalBytes = _parseSizeToBytes(dep.size);
-            _depJobs.set(dep.id, depJob);
-        }
-        if (!modelJob.deps.find(d => d.id === dep.id)) modelJob.deps.push(depJob);
+        const depJob = store.depJob(dep.id); // the last record for this weight, any state
+        const entry = { dep, installed: false, totalBytes: _parseSizeToBytes(dep.size) };
+        entries.push(entry);
 
         // MPI-97 — shared-dep ATTACH. When this dep is already installing for
         // ANOTHER model (its wrapper install is in flight: `_remoteDepIds` holds
@@ -2783,14 +2693,14 @@ async function _startRemoteDownload(modelId, dependencies, res) {
         // must NOT fire a second `/wrapper/models/install` — the wrapper rejects a
         // duplicate ("this model is already downloading") and B's whole install
         // was failing with a Download-Failed + Report-on-GitHub dialog. Instead B
-        // ATTACHES: the dep stays in B's
-        // modelJob.deps, and the shared install SSE (_onRemoteInstallEvent loops
-        // EVERY modelJob owning this dep id) fills B's bar from A's stream. B
-        // settles via _checkModelJobsComplete when the shared dep lands. We do not
-        // touch the dep's live status/bytes here and we do NOT add it to toInstall.
+        // ATTACHES: the store hands B the same live dep record (D2), and the shared
+        // install SSE (_onRemoteInstallEvent loops EVERY live job holding it) fills
+        // B's bar from A's stream. B settles via _checkModelJobsComplete when the
+        // shared dep lands. We do not touch the dep's live status/bytes here and we
+        // do NOT add it to toInstall.
         // MPI-100 — a cached `complete` is only trustworthy if the volume STILL
-        // has the file. After an uninstall (deleteFiles), the module-level
-        // _depJobs entry keeps its stale 'complete' from a prior install; without
+        // has the file. After an uninstall (deleteFiles), the store's last record
+        // for the dep keeps its stale 'complete' from a prior install; without
         // this, the ATTACH guard below short-circuits the re-install, toInstall
         // ends empty, no /wrapper/models/install fires, and the card flips to a
         // FALSE green INSTALLED while the weight is gone. The up-front
@@ -2803,9 +2713,9 @@ async function _startRemoteDownload(modelId, dependencies, res) {
         // must still own this install. Anything it disowns is a corpse and falls
         // through to a real install below.
         const freshStatus = statusResults[dep.id];
-        const reallyComplete = depJob.status === 'complete'
+        const reallyComplete = depJob?.status === 'complete'
             && (freshStatus ? freshStatus.installed === true : true);
-        const cachedInFlight = _remoteDepIds.has(dep.id) || depJob.status === 'downloading';
+        const cachedInFlight = _remoteDepIds.has(dep.id) || depJob?.status === 'downloading';
         const reallyInFlight = cachedInFlight
             && (wrapperInFlight ? wrapperInFlight.has(dep.id) : true);
         if (cachedInFlight && !reallyInFlight) {
@@ -2816,7 +2726,9 @@ async function _startRemoteDownload(modelId, dependencies, res) {
             logger.warn('download', `stale in-flight record for ${dep.id} — the wrapper has no such install; reinstalling`);
         }
         if (reallyInFlight || reallyComplete) {
-            // Attach only — leave the shared dep's live state alone.
+            // Attach only — leave the shared dep's live state alone. A settled record
+            // re-registers complete (a terminal record is never attached to).
+            entry.installed = reallyComplete;
             continue;
         }
 
@@ -2843,9 +2755,7 @@ async function _startRemoteDownload(modelId, dependencies, res) {
         // with the Errno-2 above because there is no volume folder to cd into. A baked
         // node is present + its pip deps ran at build time: settle complete either way.
         if (dep.type === 'custom_nodes' && remoteModels._isImageResident(dep)) {
-            _setDepStatus(depJob, 'complete', 'remote baked complete');
-            depJob.downloadedBytes = _parseSizeToBytes(dep.size);
-            depJob.totalBytes = _parseSizeToBytes(dep.size);
+            entry.installed = true;
         } else if (alreadyInstalled && dep.type === 'custom_nodes') {
             // A custom_node folder present on the volume does NOT prove its pip
             // requirements ran (a prior install may have landed the folder but
@@ -2856,18 +2766,12 @@ async function _startRemoteDownload(modelId, dependencies, res) {
             // wrapper re-runs (idempotent) pip -r requirements.txt WITHOUT
             // re-downloading or removing the folder. Self-heals the recurring
             // "node present, dep missing" class. Weights (non-node) trust the flag.
-            _setDepStatus(depJob, 'queued', 'remote node requeue');
-            depJob.downloadedBytes = 0;
-            depJob.error = null;
+            requeue.push(dep.id);
             toInstall.push({ ...dep, requirementsOnly: true });
         } else if (alreadyInstalled) {
-            _setDepStatus(depJob, 'complete', 'remote already-installed');
-            depJob.downloadedBytes = _parseSizeToBytes(dep.size);
-            depJob.totalBytes = _parseSizeToBytes(dep.size);
+            entry.installed = true;
         } else {
-            _setDepStatus(depJob, 'queued', 'remote requeue');
-            depJob.downloadedBytes = 0;
-            depJob.error = null;
+            requeue.push(dep.id);
             // MPI-222: a DRIFTED volume node's folder is still present (wrong commit),
             // so the wrapper would answer `already_installed` and never re-fetch. Carry
             // the drift flag → remoteInstallDep sends force:true → wrapper rmtree's the
@@ -2931,7 +2835,6 @@ async function _startRemoteDownload(modelId, dependencies, res) {
       const remoteRequiredBytes = remoteNeededBytes * 1.05;
       if (freeInfo && Number.isFinite(freeInfo.freeBytes)
           && freeInfo.freeBytes < remoteRequiredBytes) {
-        _setModelStatus(modelJob, 'idle', 'remote disk-full idle');
         logger.warn('download', `remote install blocked — volume full: need ${_fmtGb(remoteRequiredBytes)}, have ${_fmtGb(freeInfo.freeBytes)} free of ${_fmtGb(freeInfo.totalBytes)}`);
         return res.status(400).json({
           // toast:true — shown verbatim. The old text led with `[Errno 28]`, which the
@@ -2944,13 +2847,24 @@ async function _startRemoteDownload(modelId, dependencies, res) {
       }
     }
 
+    const modelJob = _registerJob(modelId, 'remote', entries);
+    // Remote installs never run local custom-node extraction — custom_nodes are
+    // image-resident on the Pod, so completion must not route through
+    // _runCustomNodeInstall (which extracts a local zip that does not exist).
+    modelJob.installCustomNodes = false;
+    for (const depId of requeue) {
+        const depJob = store.depJob(depId);
+        if (depJob.status !== 'queued') _setDepStatus(depJob, 'queued', 'remote requeue');
+        depJob.downloadedBytes = 0;
+        depJob.error = null;
+    }
+
     // Both sides from modelJob.deps, via the same helper the remote progress tick uses
     // — the remote twin of the local fix; the full reasoning is beside that one.
     const startRatio = _byteRatioExcludingNodes(modelJob.deps, 'remote');
     modelJob.downloadedBytes = startRatio.downloaded;
     modelJob.totalBytes = startRatio.total;
     modelJob.progress = modelJob.totalBytes > 0 ? modelJob.downloadedBytes / modelJob.totalBytes : 0;
-    _registerModelInStore(modelJob, 'remote');
     _setModelStatus(modelJob, 'downloading', 'remote download start');
     _resetModelSpeed(modelJob);
 
@@ -2999,7 +2913,7 @@ function _downloadJobEventPayload(modelJob) {
 }
 
 function _checkModelJobsComplete() {
-    for (const modelJob of _modelJobs.values()) {
+    for (const modelJob of store.allModelJobs()) {
         if (modelJob.status !== 'downloading') continue;
         const anyFailed = modelJob.deps.some(d => d.status === 'failed');
         const allComplete = modelJob.deps.every(d => d.status === 'complete');
@@ -3042,7 +2956,7 @@ function _checkModelJobsComplete() {
                     _broadcast('download:failed', { modelId: modelJob.modelId, error: err.message });
                 });
             } else {
-                _setModelStatus(modelJob, 'complete', 'uw done');
+                _setModelStatus(modelJob, 'done', 'uw done');
                 _broadcast('download:complete', { modelId: modelJob.modelId });
             }
         }
@@ -3059,7 +2973,7 @@ async function _runCustomNodeInstall(modelJob, onNode = null) {
     );
     if (!customDeps.length) {
         logger.info('download', `_runCustomNodeInstall: no custom_nodes deps found for model ${modelJob.modelId}`);
-        _setModelStatus(modelJob, 'complete', 'uw done');
+        _setModelStatus(modelJob, 'done', 'uw done');
         _broadcast('download:complete', { modelId: modelJob.modelId });
         return;
     }
@@ -3242,7 +3156,7 @@ async function _runCustomNodeInstall(modelJob, onNode = null) {
         throw new Error(message);
     }
 
-    _setModelStatus(modelJob, 'complete', 'local done');
+    _setModelStatus(modelJob, 'done', 'local done');
     _broadcast('download:complete', { modelId: modelJob.modelId });
     // A custom node was installed. The frontend gets `comfy:needs-restart` (→
     // state.comfyNeedsRestart) and the gen gate restarts ComfyUI. But that flag is
@@ -3268,7 +3182,7 @@ async function _runCustomNodeInstall(modelJob, onNode = null) {
 
 router.post('/comfy/models/download/cancel', async (req, res) => {
     const { modelId } = req.body;
-    const job = _modelJobs.get(modelId);
+    const job = store.modelJob(modelId);
     // Cancel is idempotent: a job the backend already lost (restart mid-install, a
     // double Cancel press, an already-completed download) is not an error — nothing
     // to stop. Return 200 so the client isn't spammed with 404s in the console.
@@ -3282,7 +3196,7 @@ router.post('/comfy/models/download/cancel', async (req, res) => {
         // second install of the same model stacked it to 2 and cancel then saw 1 > 0,
         // skipped dl.cancel(), deleted _modelJobs, and left the download streaming
         // invisibly while every re-press 404'd. (MPI-258 Bug B; refCount DELETED
-        // MPI-276.) _otherActiveModelUsesDep excludes THIS model (still in _modelJobs).
+        // MPI-276.) _otherActiveModelUsesDep excludes THIS model (still in the store).
         if (!_otherActiveModelUsesDep(dep.id, modelId)) {
             // MPI-690 — a dep can now be QUEUED rather than in flight: no wrapper
             // install exists yet, so there is nothing to cancel, but leaving it in
@@ -3308,17 +3222,15 @@ router.post('/comfy/models/download/cancel', async (req, res) => {
                 _activeDownloaders.delete(dep.id);
             }
             if (dep.localPath) clearDownloadMarker(dep.localPath).catch(() => {});
-            _setDepStatus(dep, 'cancelled', 'cancel');
-            _depJobs.delete(dep.id);
+            if (!store.DEP_TERMINAL.has(dep.status)) _setDepStatus(dep, 'cancelled', 'cancel');
         }
     }
 
     _teardownRemoteEventStreamIfIdle();
-    // Drive the store to the terminal state (it holds the cancelled job on its own
-    // short TTL — the final SOT; the map hard-delete below is the legacy path the
-    // write-flip step removes).
-    if (store.modelJob(modelId)) _setModelStatus(job, 'cancelled', 'user cancel');
-    _modelJobs.delete(modelId);
+    // Settle the job, then drop it: the pull endpoints read the store, and a cancelled
+    // job must not linger there for the 30s TTL after the user was told it is gone.
+    if (!store.MODEL_TERMINAL.has(job.status)) _setModelStatus(job, 'cancelled', 'user cancel');
+    store.dropModel(modelId);
     _broadcast('download:cancelled', { modelId });
     _startPendingDeps();
     res.json({ success: true });
@@ -3462,10 +3374,8 @@ router.post('/comfy/models/uninstall', async (req, res) => {
         }
 
         logger.info('download', `remote uninstall ${modelId}: removed ${removed.length}, kept ${keptUniversal.length} universal, ${keptShared.length} shared, ${keptModelFiles.length} model files, swept ${sweptOrphans.length} orphaned (deleteFiles=${deleteFiles})`);
-        _modelJobs.delete(modelId);
-        // MPI-396: the line above clears the legacy runtime map — NOT the SOT store,
-        // which keeps serving the model's terminal `done` job to the status endpoint
-        // and every snapshot. Drop it BEFORE the uninstalled broadcast so the FE never
+        // MPI-396: the store keeps serving the model's terminal `done` job to the
+        // status endpoint and every snapshot until it is dropped. Drop it BEFORE the uninstalled broadcast so the FE never
         // re-renders against a job for a model it has just been told is gone.
         if (store.dropModel(modelId)) store.broadcastSnapshot();
         _broadcast('download:uninstalled', { modelId, removed, keptUniversal, keptShared, keptModelFiles, keptPipInstalls: [], sweptOrphans, remote: true });
@@ -3583,7 +3493,6 @@ router.post('/comfy/models/uninstall', async (req, res) => {
             // The shared-dep guard upstream already excluded deps another installed
             // model needs, so a dep that reaches this delete loop is unshared — drop
             // its job. A re-install re-creates it. (refCount gate DELETED MPI-276.)
-            _depJobs.delete(dep.id);
         } catch (err) {
             logger.error('download', `uninstall: failed to trash ${localPath}`, err);
         }
@@ -3604,7 +3513,6 @@ router.post('/comfy/models/uninstall', async (req, res) => {
     }
 
     logger.info('download', `uninstall ${modelId}: removed ${removed.length}, kept ${keptUniversal.length} universal, ${keptShared.length} shared, ${keptModelFiles.length} model files, ${keptPipInstalls.length} pip-installs, swept ${sweptOrphans.length} orphaned`);
-    _modelJobs.delete(modelId);
     // MPI-396: same store settle as the remote leg above. The reconcileOnce() below
     // is NOT a substitute — its pruneTerminal cannot express "confirmed uninstalled"
     // (the model is never in `confirmedInstalled`), so without this the job survives
@@ -3630,12 +3538,13 @@ function cancelAllDownloads() {
         stops.push(downloader.stopKeep().catch(() => {}));
     }
     _activeDownloaders.clear();
-    for (const [, job] of _modelJobs) {
-        job.deps.forEach(d => { _setDepStatus(d, 'cancelled', 'cancel all'); });
+    // Stamp cancelled on the live records first: a downloader's backoff timer reads
+    // its record's status and must not restart after teardown.
+    for (const job of store.allModelJobs()) {
+        if (store.MODEL_TERMINAL.has(job.status)) continue;
+        job.deps.forEach(d => { if (!store.DEP_TERMINAL.has(d.status)) _setDepStatus(d, 'cancelled', 'cancel all'); });
         _setModelStatus(job, 'cancelled', 'cancel all');
     }
-    _modelJobs.clear();
-    _depJobs.clear();
     store.clear();
     reconciler.stop();
     _broadcast('download:cancelled', { all: true });
@@ -3676,16 +3585,8 @@ async function startUniversalWorkflowInstall(depIds, broadcastProgress = true, s
         broadcastEngineEvent('engine:uw-installing', { status: 'Installing dependencies...' });
     }
 
-    const modelJob = {
-        modelId: '__universal_workflow__',
-        status: 'downloading',
-        deps: [],
-        totalBytes: 0,
-        downloadedBytes: 0,
-        speed: '',
-        progress: 0,
-    };
-
+    const entries = [];
+    let uwTotalBytes = 0;
     for (const depId of depIds) {
         const dep = DEPS[depId];
         if (!dep) {
@@ -3693,7 +3594,7 @@ async function startUniversalWorkflowInstall(depIds, broadcastProgress = true, s
             continue;
         }
 
-        modelJob.totalBytes += _parseSizeToBytes(dep.size);
+        uwTotalBytes += _parseSizeToBytes(dep.size);
 
         let localPath;
         let installedCheckPath; // path to check for "already installed" (folder for custom_nodes, file otherwise)
@@ -3722,41 +3623,25 @@ async function startUniversalWorkflowInstall(depIds, broadcastProgress = true, s
         const isInstalled = await isDepInstalledOnDisk(dep, installedCheckPath);
         logger.info('download', `startUniversalWorkflowInstall: dep ${depId} resolved to ${localPath}, installedCheck=${installedCheckPath}, exists=${isInstalled}`);
 
-        let depJob = _depJobs.get(depId);
-        if (!depJob) {
-            depJob = _createDepJob(dep);
-            _depJobs.set(depId, depJob);
-        }
-        depJob.localPath = localPath;
-
-        if (!modelJob.deps.find(d => d.id === depId)) {
-            modelJob.deps.push(depJob);
-        }
-
-        // Mark already-installed deps as complete without downloading
+        // Already-installed deps register complete without downloading. A terminal
+        // record (zip missing after a failed extraction, a failed download on retry)
+        // is replaced by a fresh queued one, so _startPendingDeps re-downloads it.
+        // MPI-427 — credit the resumable partial; see the sibling in
+        // startModelDownload for why zeroing made the bar run backwards.
+        const prev = store.depJob(depId);
         if (isInstalled) {
-            _setDepStatus(depJob, 'complete', 'uw already-installed');
-            depJob.downloadedBytes = _parseSizeToBytes(dep.size);
-            depJob.totalBytes = _parseSizeToBytes(dep.size);
             logger.info('download', `startUniversalWorkflowInstall: skipping already installed: ${depId} -> ${installedCheckPath}`);
-        } else if (depJob.status !== 'queued' && depJob.status !== 'downloading') {
-            // Reset any terminal state (complete, failed, cancelled) back to queued
-            // so _startPendingDeps will re-download. Covers: zip missing after failed
-            // extraction (was complete), and previously failed downloads on retry.
-            const prevStatus = depJob.status;
-            _setDepStatus(depJob, 'queued', 'uw requeue');
-            // MPI-427 — credit the resumable partial; see the sibling in
-            // startModelDownload for why zeroing made the bar run backwards.
-            depJob.downloadedBytes = await getPartialBytes(localPath);
-            depJob.error = null;
-            logger.info('download', `startUniversalWorkflowInstall: resetting ${depId} (was ${prevStatus}) for re-download`);
+        } else if (prev && store.DEP_TERMINAL.has(prev.status)) {
+            logger.info('download', `startUniversalWorkflowInstall: resetting ${depId} (was ${prev.status}) for re-download`);
         }
+        entries.push({ dep, localPath, installed: isInstalled, downloadedBytes: isInstalled ? 0 : await getPartialBytes(localPath) });
     }
 
-    _modelJobs.set(modelJob.modelId, modelJob);
-    _registerModelInStore(modelJob, 'local');
-    // UW job is born 'downloading' (literal above); mirror that onto the fresh
-    // store record, which registers every model as 'queued'.
+    const modelJob = _registerJob('__universal_workflow__', 'local', entries);
+    modelJob.totalBytes = uwTotalBytes;
+    // This function runs the node install itself (below, or finishCustomNodeInstall
+    // after engine extraction) — the rollup must settle the job, never extract too.
+    modelJob.installCustomNodes = false;
     _setModelStatus(modelJob, 'downloading', 'uw install start');
 
     // Log download URLs before starting so we know which URL fails
@@ -3767,6 +3652,7 @@ async function startUniversalWorkflowInstall(depIds, broadcastProgress = true, s
     }
 
     _startPendingDeps();
+    _checkModelJobsComplete(); // all deps already on disk → settle now (see the model start route)
 
     // Wait for all UW deps to reach a terminal state (with 30-minute timeout to prevent infinite hangs).
     //
@@ -3931,8 +3817,6 @@ module.exports = {
     _onRemoteStreamClosed, // MPI-691 — exported for unit test (restart recovery)
     _recoverOrphanedRemoteInstalls, // MPI-691 — exported for unit test (re-issue bound)
     _failOutstandingRemoteDeps, // MPI-539 — exported for unit test (abandon-loudly path)
-    _modelJobs, // MPI-539 — exported for unit test only; never mutate outside tests
-    _depJobs, // MPI-539 — exported for unit test only; never mutate outside tests
     _teardownRemoteEventStreamIfIdle, // MPI-481 — exported so a unit test can disarm the stall watchdog
     _setModelStatus, // MPI-317 F5 — exported for unit test (store-terminal guard)
     _installStore: store, // MPI-317 F5 — exported for unit test only; never mutate outside tests

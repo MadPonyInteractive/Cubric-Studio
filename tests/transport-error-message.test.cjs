@@ -10,6 +10,16 @@ const {
     _describeTransportError, _mirrorUrlsFor, _isSameObjectUrl, _shouldResumePartial,
 } = require('../routes/downloadManager.js');
 
+// A FileDownloader works on the install store's dep record (MPI-513 D1) — a bare object
+// the store never registered is not the dep's record, and its status writes are ignored.
+function storeDep(mod, { id, modelId = 'test-model', ...transport }) {
+    const store = mod._installStore;
+    store.registerModelJob({ modelId, engine: 'local', deps: [{ depId: id, type: 'checkpoints', transport }] });
+    store.transitionModel(modelId, 'downloading', 'test');
+    store.transitionDep(id, 'downloading', 'test');
+    return store.depJob(id);
+}
+
 let passed = 0;
 function test(name, fn) {
     fn();
@@ -194,7 +204,7 @@ test('a transport error walks EVERY mirror once, then fails — and never revisi
     process.env.CUBRIC_MODEL_MIRRORS = 'https://m1.example.net, https://m2.example.net';
     const fresh = require('../routes/downloadManager.js');
 
-    const depJob = { id: 'test-dep', url: R2_URL, status: 'downloading' };
+    const depJob = storeDep(fresh, { id: 'test-dep', url: R2_URL });
     const inst = new fresh.FileDownloader(depJob, 'C:/nowhere/LTX23_audio_vae_bf16.safetensors');
 
     // The handler re-enters via this.download(); stub it so nothing touches disk or net.
@@ -237,7 +247,7 @@ test('a mirror that 404s does not COST the blocked user his readable remedy', ()
     process.env.CUBRIC_MODEL_MIRRORS = 'https://m1.example.net';
     const fresh = require('../routes/downloadManager.js');
 
-    const depJob = { id: 'test-dep', url: R2_URL, status: 'downloading' };
+    const depJob = storeDep(fresh, { id: 'test-dep', url: R2_URL });
     const inst = new fresh.FileDownloader(depJob, 'C:/nowhere/LTX23_audio_vae_bf16.safetensors');
     inst.download = async () => {};
 

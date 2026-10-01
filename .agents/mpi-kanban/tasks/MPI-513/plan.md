@@ -19,16 +19,33 @@ members turn out to be the better unit, delete this umbrella instead.
 
 ## Current State
 
-2026-10-01 (Agent 83): card in `doing`, Phase 0 investigation done (findings below).
-**Fabio approved the Phase 1 design (D1-D5) on 2026-10-01**, to be built in a fresh session,
-tests first. No code changed yet. Next: write failing tests for D2 (two models on one dep —
-both store jobs see the shared dep settle) and D4 (reconciler never moves an `installing`
-job; its orphan-fail broadcasts `download:failed`), then start the flip with
-`installStore.registerModelJob` reuse semantics. Re-read the source before trusting a line
-number here: line refs are HEAD 6213881ce.
-MPI-544 is the only member that is not a standing defect: it was seen once during the
-2026-08-11 download-Pod incident and has never reproduced, so it is carded rather than fixed
-— **no evidence, no speculative patch.**
+2026-10-01 (Agent 84): **Phase 1 (D1-D5) is BUILT and verified, UNCOMMITTED** (one commit:
+the pure modules are only correct together with the downloadManager wiring).
+
+- `routes/downloadManager.js`: `_modelJobs`/`_depJobs` deleted. `_registerJob` is the only
+  way in (local, remote, UW): resolve paths + disk/volume state first, run the disk-full gate
+  (refuses BEFORE registering — no `idle`), then register and use THE store job object.
+  `_setModelStatus`/`_setDepStatus` only call the store table; a write on a record the store
+  replaced is ignored (logged). Model success is `done`. Reconciler wired with
+  `onSettled: _checkModelJobsComplete` + `isTransportLive: _isDepTransportLive`. Pull
+  endpoints read the store. Cancel drops its job (`dropModel`). Start paths run the rollup
+  after responding, so an all-on-disk start settles (found live, see drift).
+- Tests: `npm test` 2633 / 0 fail. New: 4 D2 store tests, D4 reconciler contract (7 new or
+  rewritten), `tests/install-start-settles.test.cjs` (red without the fix, green with it).
+  Harness fixes: FileDownloader tests register their dep in the store; the F5 guard test is
+  replaced by a D3 one; the uninstall source-scan is scoped to the uninstall route.
+- Live, isolated instance with BOTH `CUBRIC_ENGINE_ROOT` and `CUBRIC_MODELS_ROOT` in scratch:
+  shared-dep attach (B's start shows the shared weight `downloading`, both settle `done`),
+  cancel mid-flight (44 MB in → job gone; restart starts clean, as cancel deletes the
+  partial), re-install of an on-disk model → `done` at once. app.log: zero illegal
+  transitions, zero ignored-record lines.
+- Docs: `docs/download-manager.md` (reconciler, one-record-set note, job storage, status
+  endpoint), agent docs (`cubric-vision-generate` SKILL.md, `docs/agent-chat.md`) learn
+  "absent after seen = finished". MPI-894's owner messaged about `installProbe`
+  (message 1b701cfc).
+
+**Next:** commit (handoff or end-session), then the live REMOTE resume on a Pod (costs
+money — quote the price to Fabio first), then Phase 2 (re-test MPI-497 / MPI-397 in the app).
 
 ## Phase 0 findings (2026-10-01, read of HEAD 6213881ce)
 
@@ -135,4 +152,30 @@ on it.
 
 ## Plan Drift
 
-(none yet)
+- 2026-10-01 (Agent 84): D4 needed a transport-liveness hook the design did not name. The
+  orphan rule ("no bytes, no disk, 60s since last tick") also matches a model whose deps
+  wait `queued` behind `LOCAL_DOWNLOAD_CONCURRENCY = 3` — `lastTickAt` only moves on a
+  dep status change. Today that fails the STORE job only (no broadcast, transport carries
+  on), so the snapshot can say `failed` for a download that is merely queued. Routed through
+  the real terminal path it would be a user-visible false failure, so the reconciler now
+  skips a job holding any `isTransportLive` dep.
+- 2026-10-01 (Agent 84): `_setDepStatus` stamps `lastTickAt` on `depJob.modelId` only —
+  with shared dep records (D2) that is the FIRST registrant. Stamp every model in
+  `store.activeModelsForDep(depId)` when D3 rewrites it. (Done.)
+- 2026-10-01 (Agent 84): the reconciler must NOT settle a dep the transport still holds: a
+  local file is byte-complete while its sha256 is checked, and with one record set the old
+  all-bytes-in heal would have announced the install before verify. `isTransportLive` gates
+  step 2 too.
+- 2026-10-01 (Agent 84): found LIVE — a start whose every dep is already on disk sat
+  `downloading` forever. The old reconciler step 3 rolled such a store job to done; with D4
+  nothing did. Root fix: the local and UW start paths run `_checkModelJobsComplete` (the
+  remote path already did). Pinned by `tests/install-start-settles.test.cjs`.
+- 2026-10-01 (Agent 84): the store's records are kept until a reconciler pass prunes them,
+  and passes run only while a job is active / on SSE connect / after uninstall — so a
+  finished `done` job usually stays listed (the store already behaved so; it is now also
+  what `/downloads/status` shows). Cancel and uninstall drop at once.
+- 2026-10-01 (Agent 84): the agent profile's custom models root is `G:/CubricModels`
+  (`model_roots.json` in the repo's dev ENGINE root), which beats `CUBRIC_MODELS_ROOT`. The
+  first live run therefore downloaded one real dep into it
+  (`G:/CubricModels/vae/taeltx2_3.safetensors`, 22 MB, an LTX preview VAE); nothing was
+  deleted. A live download test must set `CUBRIC_ENGINE_ROOT` to scratch as well.

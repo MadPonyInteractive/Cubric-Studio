@@ -157,22 +157,38 @@ function createInstallStore({ broadcast, logger, now } = {}) {
     // ── Registration ─────────────────────────────────────────────────────────────
 
     /**
-     * Register (or REPLACE) a model job and its dep jobs. Register-before-respond
-     * (G8): the router calls this before returning the /download/start response, so
-     * the SSE-open race class (MPI-241) cannot form. A re-POST REPLACES the job —
-     * totalBytes is SET from deps, never accumulated (invariant #7, the MPI totalBytes+= bug).
+     * Register a model job and its dep jobs. Register-before-respond (G8): the router
+     * calls this before returning the /download/start response, so the SSE-open race
+     * class (MPI-241) cannot form.
+     *
+     * Dep records are SHARED (MPI-513 D2): a dep whose record is still live is attached
+     * to, never replaced — two models on one weight hold the same object, so one
+     * transition settles it for both. A terminal dep record is replaced by a fresh one
+     * (a retry is a new attempt, never a resurrection — invariant #3).
+     *
+     * A re-POST of a LIVE model unions its deps onto the same job object (the transport
+     * holds that object; a subset POST such as a node-drift heal must not drop an
+     * in-flight weight). A re-POST of a terminal model registers a fresh job.
+     * totalBytes is never accumulated here (invariant #7): the caller recomputes it
+     * from the deduped deps.
      *
      * @param {object} spec
      * @param {string} spec.modelId
      * @param {string} spec.engine    - 'local' | 'remote'
      * @param {Array}  spec.deps      - [{ depId, type, size, seedBytes?, totalBytes?,
-     *                                      downloadedBytes?, alreadyInstalled? }]
-     * @returns {object} the created ModelJob (also mirrored into _depJobs)
+     *                                      downloadedBytes?, alreadyInstalled?, transport? }]
+     * @returns {object} the live ModelJob (also mirrored into _depJobs)
      */
     function registerModelJob({ modelId, engine, deps = [] }) {
         const depJobs = deps.map(d => {
+            const live = _depJobs.get(d.depId);
+            if (live && !DEP_TERMINAL.has(live.status)) return live;
             const seedBytes = d.seedBytes ?? 0;
             const dep = {
+                // Transport detail (url, localPath, sha256Expected, …) rides along as plain
+                // data: the record IS the transport's job object (MPI-513 D1). The store
+                // never reads it; its own fields below win on any clash.
+                ...d.transport,
                 id: d.depId,
                 depId: d.depId,
                 modelId,
@@ -191,6 +207,17 @@ function createInstallStore({ broadcast, logger, now } = {}) {
             _depJobs.set(dep.id, dep);
             return dep;
         });
+
+        const existing = _modelJobs.get(modelId);
+        if (existing && !MODEL_TERMINAL.has(existing.status)) {
+            for (const dep of depJobs) {
+                const i = existing.deps.findIndex(x => x.id === dep.id);
+                if (i === -1) existing.deps.push(dep); else existing.deps[i] = dep;
+            }
+            existing.installCustomNodes = existing.deps.some(d => d.type === 'custom_nodes');
+            _bump();
+            return existing;
+        }
 
         const job = {
             id: modelId,

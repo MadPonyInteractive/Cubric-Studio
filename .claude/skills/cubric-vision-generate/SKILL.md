@@ -276,6 +276,6 @@ it. Use `/connector/generate`.
 
 `GET /connector/knowledge` — corpus index `{ ok, entries: [{id,kind,title,tags}] }`. `GET /connector/knowledge/:id` — one entry with `text`. Error: `UNKNOWN_ENTRY`.
 
-`POST /connector/install { modelId }` — starts downloading missing deps. Returns `{ ok, modelId, downloadGb, started: true }`. Non-blocking; track via `GET /comfy/downloads/status`. Errors: `BAD_REQUEST`, `UNKNOWN_MODEL`, `ALREADY_INSTALLED`, `OFFLINE`, `APP_UNAVAILABLE`.
+`POST /connector/install { modelId }` — starts downloading missing deps. Returns `{ ok, modelId, downloadGb, started: true }`. Non-blocking; track via `GET /comfy/downloads/status`: the job reads `done` when it finishes, then drops out of the list, so a job that was there and is gone has FINISHED (confirm with check-local) - never wait for it to reappear. Errors: `BAD_REQUEST`, `UNKNOWN_MODEL`, `ALREADY_INSTALLED`, `OFFLINE`, `APP_UNAVAILABLE`.
 
 `POST /connector/describe { imagePath, question?, crop? }` — runs the image describer. `crop` = `{x,y,width,height}` in original pixels; the route crops with sharp first. `question` injects a ChatML string into `Input_Describe_Prompt`. Returns `{ ok, output: { text } }`. Errors: `BAD_REQUEST`, `IMAGE_NOT_FOUND`, `CROP_OUT_OF_BOUNDS`, `DESCRIBER_MISSING`, `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `WINDOW_CLOSED`.

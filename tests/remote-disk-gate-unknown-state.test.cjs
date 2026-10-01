@@ -58,7 +58,7 @@ const makeRes = () => {
     return r;
 };
 
-// Unique ids per scenario: _depJobs is module-level and a cached status would leak.
+// Unique ids per scenario: the install store is module-level and a cached status would leak.
 let n = 0;
 const h3RefShape = () => {
     const p = `mpi752-${++n}`;
