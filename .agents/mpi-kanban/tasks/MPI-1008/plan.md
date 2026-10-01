@@ -36,8 +36,8 @@ OOM (Windows spills to shared memory) instead of a wrong-device crash.
 
 ## Current State
 
-Steps 1-3 done (validation.md). Fork `529c4be` pushed and pinned. Next: CI green on the repin
-commit, then Fabio's MPI-1004 look is the live DramaBox run; close on both.
+CLOSED 2026-10-01: repro, CI green on `bff32c628`, live DramaBox run on the new node passed
+(validation.md). The pre-2.0 Pod/smoke follow-up lives on MPI-595 B1.
 
 ## Completed
 
@@ -47,6 +47,8 @@ commit, then Fabio's MPI-1004 look is the live DramaBox run; close on both.
 
 - CI on the repin commit; the live run via MPI-1004's look.
 - Fabio's call: the 2.0 smoke-evidence gate now needs a full-matrix re-run (validation.md).
+- Before 2.0: Pod image rebuild from the synced node_lock (it bakes MelodramaBox), else remote
+  users on 2.0 get a "Pod image is stale" toast and the old node. Needs Fabio's yes (a publish).
 
 ## Plan Drift
 
