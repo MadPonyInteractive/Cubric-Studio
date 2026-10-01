@@ -90,6 +90,11 @@
   device reaches the audition's `setSinkId` - RED with the call removed, green with it.
   `docs/component-contracts.md` § (4) now names every detached player.
 
+- CI RED on `408e03f80` (run 36842775178): `flow-pick-voice.spec` only - the runner's bare disk
+  put "No models installed" over the gallery, so open-flow answered VIEW_BUSY (test-failed-1.png).
+  Fixture, not product: `3766786ae` pins one model and provokes the empty sync (red-master cause
+  1); VIEW_BUSY reproduced locally without the pin, green with it.
+
 ## Left: Fabio's look and listen (user-ux)
 
 Needs the app restarted (server code changed) and the agent model on his DeepInfra key.

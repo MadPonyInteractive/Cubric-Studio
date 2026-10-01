@@ -81,11 +81,12 @@ declares the route does too.
 
 ## Current State
 
-2026-10-01 (session 57bdb71a): look step 1 passed; step 2's card now shows (packaged Flows' media
-fixed in `routes/connector.js`). Round 3: Pick opens on Inputs with the voice library open
-(`pickVoice`), and voice previews fixed (`MpiVoicePicker`). Vinyl's mic clip folded in. Next:
-Fabio restarts the app (server code), checks Pick + previews + Use <voice> + Vinyl; CI on the
-fix commits; close in its own commit.
+2026-10-01 (session 57bdb71a, handed off): Fabio PASSED round 4 (voice card, Use <voice>, Pick
+lands in the library, Vinyl on the mic). Last open item: previews were silent - they played to
+the Windows default device, not his chosen one (Sonar); fixed `4dc6b63e1` (`applySink`). Fabio
+has NOT restarted the app to hear it (busy benchmarking). CI was red on `408e03f80` (fixture,
+"No models installed" on the runner) -> fixed `3766786ae`; watch that run. Next: CI green on
+`3766786ae`, then Fabio hears a preview after a restart -> close in its own commit.
 2026-10-01 (session 314c5ced): BUILT, all automated checks green (validation.md), committed and
 pushed at handoff. Was BLOCKED on MPI-1008: Fabio has no Text to Speech, so the look runs on
 DramaBox (library voice by request), and DramaBox's text encode fails with a device mismatch on
