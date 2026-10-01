@@ -25,3 +25,24 @@ Verify mode: user-ux at Phase 4 (Fabio's look at stitched results); Phases 1-3 a
   and MCP CONFIRM_COST both read it); the catalogue's Flow entry carries `cloud`; `app:flows`
   says what it means; a cloud candidate now runs UNPICKED when nothing local is installed; the
   slot label shows its price. `npm test` 2649 / 0 fail, eslint clean.
+- 2026-10-01 Phase 3 (Agent 86, `abb5dcbbf`): reviewed (taps read by node id, unmapped mode
+  throws, fit = image one); 44/44 in the four cloud-edit + model-choice + output-display files;
+  CI Tests green.
+- 2026-10-01 Phase 4 LIVE (Fabio's yes: 6 runs, ~$0.15; session c1337688), same rig as Phase 2
+  (scratchpad `flows-live.cjs`: inputs built the way the frame builds them, Outpaint through the
+  agent's `buildFlow`). Beach scene 1024x1024. Billed = quote every run, cost on every card:
+  Draw It In Klein $0.015 (5.4 s), NB $0.0339 (10.5 s); Outpaint 16:9 Klein $0.0151 (6.3 s),
+  NB $0.0339 (23.5 s), both 1820x1024 with the original region intact; Object Stamp Auto
+  $0.015, Manual $0.015. Spent: $0.128. Montage: `research/phase4-live-2026-10-01.jpg`.
+  - Draw It In, both models: sandcastle where drawn, lit by the scene, no seam.
+  - Object Stamp MANUAL inserted nothing. ROOT CAUSE: pass 1 read `Input_Mode` off the graph,
+    which still holds its baked 1 when the transform runs (runWorkflow injects `Input_*` by
+    title later), so the image-two tap read 106 and was byte-identical to image one. Fixed in
+    `3665e6645` (pass 1 reads the run's params by the mode node's title), RED test first;
+    `npm test` 2658 / 0 fail. NOT yet re-run live.
+  - Object Stamp AUTO: my rig sent no `box1` (the frame always sends the placement rect), so the
+    crop was the default box and the object was not in it. Rig error, not product; re-run needed.
+  - Outpaint: a +3..+8 RGB LEVEL step at the original's edge on the bright sky. Not the cloud:
+    offline with the real node classes the step is unchanged when the fill is shifted 0..+24 RGB;
+    it is HarmonizeBoundary counting black-blended edge pixels as known. Any model, bright edges.
+    Card MPI-1011 (fix: GrowMask on the harmonizer's mask only).

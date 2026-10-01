@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1011", "at": "2026-10-01T22:48:17+01:00", "actor": "c1337688", "column": "todo", "title": "Outpaint leaves a seam on bright edges - the harmonizer counts black-blended pixels as original"}

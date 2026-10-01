@@ -110,7 +110,19 @@ Phases 3-4.
 
 ## Current State
 
-2026-10-01 (latest): Phase 3 HANDED to the session "Agent 86" (message e0dee39e): it owns
+2026-10-01 (latest, session c1337688): Phase 3 LANDED (`abb5dcbbf`, Agent 86, CI green) and
+Phase 4 docs done. 6 paid live runs ($0.128, validation.md): Draw It In both models good;
+Object Stamp Manual was broken (pass 1 read the baked mode) -> fixed `3665e6645`, not yet
+re-run; Auto run was a rig error (no `box1`) -> re-run; Outpaint's border step is a
+pre-existing harmonizer bias on bright edges, card MPI-1011, not a blocker for this card.
+FABIO SAID YES (2026-10-01, "go + pod"): 2 re-runs (Object Stamp Auto with `box1`
+{x:810,y:770,w:180,h:180}, Manual; $0.03) AND the Pod-connected run (read the cheapest Secure
+Cloud $/hr off the catalogue first; Pod + one Klein run; CAP $0.25 total for both, delete the Pod
+after). Rig: session c1337688's scratchpad `flows-live.cjs` (Auto already sends `box1`); copy it
+to the new scratchpad and fix its SCRATCH path. Then Fabio's look, close MPI-918, then MPI-985.
+Agent 86 ended its session (2026-10-01); everything left is this line's.
+
+Earlier the same day: Phase 3 HANDED to the session "Agent 86" (message e0dee39e): it owns
 flowsRegistry.js (the three FlowDefs), cloudEditGraph.js, flowService.js, commandExecutor.js
 (tap collection only) and the two cloud-edit tests; this session released them from its claim.
 Object Stamp needs ref 2 keyed by mode and taps collected BY TITLE (research/phase3-graph-map.md).
