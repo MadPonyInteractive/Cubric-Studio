@@ -33,3 +33,8 @@ the start only, not the rest." The end of a take is kept as recorded; `TRIM.padT
 1. Record: stay silent 3 s, say a sentence, stop.
 2. See "Trimmed ... s of silence off the start." Play: it starts at your first word.
 3. Accept: the gallery waveform has no flat line at the start.
+
+## Fabio's ear test (2026-10-01)
+
+- PASSED by Fabio ("I just tested the recording audio, and it looks good."). Code `6f86d4d5e`, CI
+  green (run 36775744861).

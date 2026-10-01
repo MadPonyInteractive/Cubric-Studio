@@ -29,3 +29,8 @@
 1. Object Stamp, Auto: flip, Alt-rotate, Generate. The result is mirrored, same place and angle.
 2. Manual: flip, Generate. The result is mirrored.
 3. Reuse the result: the flip buttons come back pressed.
+
+## Fabio's look (2026-10-01)
+
+- PASSED by Fabio ("I also checked out the stamp flips. Looks good."). Code `6f86d4d5e`, CI green
+  (run 36775744861).

@@ -6,4 +6,4 @@ Umbrella: MPI-1000 (phase 1). Derived from `tasks/MPI-1000/plan.md` and this car
 - [x] Recorder trims the take BEFORE the review/Accept preview
 - [x] All-silence take saved as-is, never emptied
 - [x] Bare-Node unit test: silence/tone/silence, all-silence, no-silence
-- [ ] Live on an isolated app: a take with silence at the start saves without it
+- [x] Live: a take with silence at the start saves without it (Fabio, 2026-10-01)

@@ -7,4 +7,4 @@ Umbrella: MPI-1000 (phase 1). Derived from `tasks/MPI-1000/plan.md` and this car
 - [x] Manual: the flipped object reaches the run, not just the preview
 - [x] Undo, Reuse and the persisted step value keep the flip
 - [x] Unit test: step value carries the flip, Auto stamp mirrored
-- [ ] Live on an isolated app: Object Stamp mirrored in Auto and in Manual
+- [x] Live: Object Stamp mirrored in Auto and in Manual (Fabio, 2026-10-01)

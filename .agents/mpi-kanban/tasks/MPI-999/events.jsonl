@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-999", "at": "2026-09-30T18:11:04+01:00", "actor": "agent-74", "column": "todo", "title": "Recordings: strip the silence from the user's audio recordings"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-999", "at": "2026-09-30T20:45:04+01:00", "actor": "agent:43678b37", "from": "todo", "to": "doing", "reason": "MPI-1000 phase 1 (parallel batch), Release 2.0 blockers 18"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-999", "at": "2026-09-30T20:59:11+01:00", "actor": "agent:43678b37", "from": "doing", "to": "doing", "reason": "Built and unit/desktop-verified (validation.md); Fabio's live look remains"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-999", "at": "2026-10-01T12:21:39+01:00", "actor": "4653d5e1", "from": "doing", "to": "done", "reason": "Fabio passed the ear test 2026-10-01; CI green on 6f86d4d5e"}
