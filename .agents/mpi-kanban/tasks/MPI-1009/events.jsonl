@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1009", "at": "2026-10-01T10:15:15+01:00", "actor": "Agent 81", "column": "todo", "title": "Routines over MCP: outside agents (Claude, Codex, Antigravity) can list, save and run routines"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1009", "at": "2026-10-01T10:15:34+01:00", "actor": "Agent 81", "from": "todo", "to": "todo", "reason": "Brief written; needs a plan (tool shape, cost confirm, long-run) before build."}
