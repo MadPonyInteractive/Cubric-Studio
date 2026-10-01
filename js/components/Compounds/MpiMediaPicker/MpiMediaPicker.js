@@ -7,7 +7,7 @@ import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { renderIcon } from '../../../utils/icons.js';
-import { toWavFile } from '../../../utils/toWavFile.js';
+import { voiceWavFile } from '../../../utils/toWavFile.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import {
     DEFAULT_GALLERY_SORT, matchesGallerySort, listedKinds, isGalleryFiltered,
@@ -499,10 +499,7 @@ export const MpiMediaPicker = ComponentFactory.create({
          */
         async function _pickVoice(voice) {
             try {
-                const res = await fetch(`/voices/${voice.sample}`);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const file = await toWavFile(await res.blob(), `${voice.id}.wav`);
-                if (!file) throw new Error('decode returned null');
+                const file = await voiceWavFile(voice);
                 props.onImport([file]);
                 emit('import', { files: [file] });
                 el.hide();

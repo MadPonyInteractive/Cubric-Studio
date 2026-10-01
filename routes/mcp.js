@@ -197,6 +197,8 @@ async function stageMedia(t, media, folderPath) {
         const file = typeof m?.path === 'string' ? path.resolve(m.path) : '';
         const fail = (code, message) => ({ error: { ok: false, error: { code, message: `Nothing was generated: ${message}` } } });
         if (!m?.role) return fail('BAD_REQUEST', 'every media item needs a role, from describe_model.');
+        // MPI-1004: a library voice is an id; the app turns it into the file the picker makes.
+        if (m.voice) { out.push({ role: m.role, voice: String(m.voice) }); continue; }
         if (!MEDIA_EXT.has(path.extname(file).toLowerCase())) return fail('UNSUPPORTED_FILE', `"${m.path}" is not an image, video or audio file.`);
         if (!fs.existsSync(file)) return fail('FILE_NOT_FOUND', `no file at "${m.path}". Use a path from list_cards, from a generate result, or one the user gave.`);
         if (path.dirname(file) === own) {
@@ -402,7 +404,8 @@ const TOOLS = {
                     items: obj({
                         role: { type: 'string', description: 'A media role describe_model lists for this op.' },
                         path: { type: 'string', description: 'A file on disk: a card\'s path from list_cards or a generate result, or any image, video or audio file the user named. A video in a picture role is its first frame; any other frame is the user\'s right-click Create snapshot in the app.' },
-                    }, ['role', 'path']),
+                        voice: { type: 'string', description: 'In place of path, on a role describe_model lists voices for: a library voice id from there, for a voice line with no sample.' },
+                    }, ['role']),
                 },
                 fields: { type: 'object', description: 'A Flow\'s field values, as describe_model lists them.' },
                 params: { type: 'object', description: 'A Flow\'s step params, as describe_model lists them.' },

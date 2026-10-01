@@ -3512,7 +3512,7 @@ describe('MPI-892 — handing a Flow over', () => {
         assert.equal(tools.calls.generate.length, 0);
     });
 
-    test('a Flow refused for missing media is told it can offer to open it', async () => {
+    test('a Flow refused for missing media is told to send a library voice, or offer to open it', async () => {
         const { loop, tools } = await makeLoop({ engineResponses: [
             call('g1', 'generate', { flowId: 'chatter-box', fields: { positive: 'Hi.' } }),
             { text: 'No voice.' },
@@ -3523,7 +3523,10 @@ describe('MPI-892 — handing a Flow over', () => {
             return { ok: false, error: { code: 'MEDIA_REQUIRED', message: 'Text to Speech needs audio in its "audio1" slot.' } };
         };
         await loop.runTurn('Say hi in my voice', [], project, 'auto', 'deepinfra', 't-novoice');
-        assert.match(toolResults(loop)[0].error.message, /offer to open the Flow for them to add it: this same call with open: true/);
+        const { message } = toolResults(loop)[0].error;
+        // MPI-1004: a voice slot no longer means "open it for the user to add a sample".
+        assert.match(message, /A voice slot takes a library voice instead: .* media: \[\{ role, voice: "<id>" \}\]; the app shows the user your pick/);
+        assert.match(message, /offer to open the Flow for them to add it, this same call with open: true/);
     });
 
     test('the short catalogue says which Flows open for the user', async () => {
@@ -3692,5 +3695,144 @@ describe('MPI-1005 — the review card', () => {
         fake._pendingConfirm.kind = 'spend';
         sessions.queue({ text: 'hello', project });
         assert.equal(answers.length, 1, 'only the review card is answered by typing');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// MPI-1004 (Fabio, 2026-10-01): a voice line with no sample and no DramaBox goes to Text to
+// Speech with a library voice Cosmo picked, and the APP shows the pick: "Pick from the voice
+// library" opens the Flow for the user's own pick, "Use <voice>" runs it. A click is no turn.
+// ---------------------------------------------------------------------------
+
+describe('MPI-1004 — the voice card', () => {
+    const call = (id, name, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
+    const project = { folderPath: '/project', name: 'Test' };
+    const toolResults = (loop) => loop._messages.filter((m) => m.role === 'tool').map((m) => JSON.parse(m.content));
+    const TTS = { flowId: 'chatter-box', fields: { positive: 'The storm is coming.' }, media: [{ role: 'audio1', voice: 'elderly_male_1' }] };
+
+    function withVoices(tools) {
+        tools.calls.openFlow = [];
+        tools.openFlow = async (body) => {
+            tools.calls.openFlow.push(body);
+            return { ok: true, output: { opened: 'Text to Speech', at: 'Inputs', empty: 'audio in "audio1"' } };
+        };
+        tools.listModels = async () => ({ ok: true, models: [], flows: [{
+            id: 'chatter-box', title: 'Text to Speech',
+            media: [{ role: 'audio1', type: 'audio', required: true, voices: [{ name: 'Elderly Male', gender: 'male', age: 'elderly', ids: ['elderly_male_1', 'elderly_male_2'] }] }],
+        }] });
+    }
+
+    async function asked(engineResponses = [call('g1', 'generate', TTS), { text: 'should never be asked' }]) {
+        const made = await makeLoop({ engineResponses });
+        withVoices(made.tools);
+        const turn = made.loop.runTurn('An old man says "the storm is coming"', [], project, 'auto', 'deepinfra', 't-voice');
+        const card = await waitForEvent(made.fakeRes, (e) => e.event === 'agent:confirm');
+        return { ...made, turn, card };
+    }
+
+    test('the app shows the pick by its performer\'s name, and nothing runs yet', async () => {
+        const { loop, tools, turn, card } = await asked();
+        assert.deepEqual([card.data.kind, card.data.flow, card.data.voice], ['voice', 'Text to Speech', 'Elderly Male']);
+        assert.equal(tools.calls.generate.length + tools.calls.openFlow.length, 0);
+        assert.equal(loop.getHistory().pendingConfirm.voice, 'Elderly Male', 'a remount repaints the card');
+        await loop.confirm(card.data.confirmId, 'use');
+        await turn;
+    });
+
+    test('Use <voice> runs it once, the voice id passed through for the app to resolve, no model call after', async () => {
+        const { loop, tools, engine, turn, card } = await asked();
+        assert.deepEqual(await loop.confirm(card.data.confirmId, 'use'), { ok: true });
+        await turn;
+        assert.equal(tools.calls.generate.length, 1);
+        assert.deepEqual(tools.calls.generate[0].media, [{ role: 'audio1', voice: 'elderly_male_1' }]);
+        assert.equal(tools.calls.openFlow.length, 0);
+        assert.equal(engine.calls.length, 1, 'the click did the job');
+    });
+
+    test('Pick from the voice library opens the Flow with the line and NO voice, no model call after', async () => {
+        const { loop, tools, engine, turn, card } = await asked();
+        await loop.confirm(card.data.confirmId, 'library');
+        await turn;
+        assert.equal(tools.calls.openFlow.length, 1);
+        assert.deepEqual(tools.calls.openFlow[0].media, [], 'the slot is the user\'s to fill');
+        assert.deepEqual(tools.calls.openFlow[0].fields, TTS.fields);
+        assert.equal(tools.calls.generate.length, 0);
+        assert.equal(engine.calls.length, 1);
+        const entry = loop.getHistory().entries.find((e) => e.kind === 'voice');
+        assert.deepEqual([entry.voice, entry.choice], ['Elderly Male', 'library'], 'a remount redraws it answered');
+    });
+
+    test('a typed reply runs nothing; a yes/no or a review choice is not an answer here', async () => {
+        const { loop, tools, turn, card } = await asked();
+        assert.equal((await loop.confirm(card.data.confirmId, true)).error.code, 'BAD_CHOICE');
+        assert.equal((await loop.confirm(card.data.confirmId, 'run')).error.code, 'BAD_CHOICE');
+        await loop.confirm(card.data.confirmId, 'replied');
+        await turn;
+        assert.equal(tools.calls.generate.length + tools.calls.openFlow.length, 0);
+        assert.equal(toolResults(loop)[0].replied, true);
+    });
+
+    test('a voice id the catalogue does not list raises no card: the app refuses it by name', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { ...TTS, media: [{ role: 'audio1', voice: 'no_such_voice' }] }),
+            { text: 'Fixed.' },
+        ] });
+        withVoices(tools);
+        await loop.runTurn('Say it', [], project, 'auto', 'deepinfra', 't-badvoice');
+        assert.equal(fakeRes.events.some((e) => e.event === 'agent:confirm'), false);
+        assert.equal(tools.calls.generate.length, 1);
+    });
+
+    test('open: true with a voice opens it with the voice, never a card', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [call('g1', 'generate', { ...TTS, open: true }), { text: 'Open.' }] });
+        withVoices(tools);
+        await loop.runTurn('Open it with that voice', [], project, 'auto', 'deepinfra', 't-openvoice');
+        assert.equal(fakeRes.events.some((e) => e.event === 'agent:confirm'), false);
+        assert.deepEqual(tools.calls.openFlow[0].media, [{ role: 'audio1', voice: 'elderly_male_1' }]);
+    });
+
+    test('a Flow that is not installed raises no card (the app refuses it by name), and a fresh install is read again', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', TTS), { text: 'Not installed.' },
+            call('g2', 'generate', TTS), { text: 'should never be asked' },
+        ] });
+        withVoices(tools);
+        const listed = tools.listModels;
+        let installed = false;
+        tools.listModels = async () => {
+            const r = await listed();
+            r.flows[0].installed = installed;
+            return r;
+        };
+        await loop.runTurn('Say it', [], project, 'auto', 'deepinfra', 't-missing');
+        assert.equal(fakeRes.events.some((e) => e.event === 'agent:confirm'), false, 'no card for a run that cannot happen');
+        assert.equal(tools.calls.generate.length, 1);
+
+        installed = true; // the user added it from the Flow Library
+        const turn = loop.runTurn('Now say it', [], project, 'auto', 'deepinfra', 't-added');
+        const card = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.equal(card.data.kind, 'voice', 'a stale "missing" never skips the ask');
+        await loop.confirm(card.data.confirmId, 'replied');
+        await turn;
+    });
+
+    test('...and the same holds for Song\'s review card', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { flowId: 'minimax-music', fields: { Input_Lyrics: 'La' } }), { text: 'Not installed.' },
+        ] });
+        tools.listModels = async () => ({ ok: true, models: [], flows: [{ id: 'minimax-music', title: 'Song', review: 'Input_Lyrics', installed: false }] });
+        await loop.runTurn('A song', [], project, 'auto', 'deepinfra', 't-nosong');
+        assert.equal(fakeRes.events.some((e) => e.event === 'agent:confirm'), false);
+        assert.equal(tools.calls.generate.length, 1);
+    });
+
+    test('a message typed while it is up answers it as a reply', async () => {
+        const { AgentSessions } = await import('../services/agentSessions.mjs');
+        const sessions = new AgentSessions();
+        const answers = [];
+        const fake = { _pendingConfirm: { confirmId: 'c1', kind: 'voice' }, confirm: async (id, choice) => { answers.push([id, choice]); } };
+        sessions._loops.set(sessions.keyOf(project.folderPath), fake);
+        sessions.queue({ text: 'make him younger', project });
+        assert.deepEqual(answers, [['c1', 'replied']]);
     });
 });

@@ -463,6 +463,7 @@
 
 .mpi-agent-chat__confirm-actions {
     display: flex;
+    flex-wrap: wrap; /* MPI-1004: "Pick from the voice library" + "Use <voice>" can outgrow 360px */
     gap: var(--s-2);
     margin-top: var(--s-1);
 }

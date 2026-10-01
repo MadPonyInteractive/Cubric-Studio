@@ -718,7 +718,7 @@ export const MpiAgentChat = ComponentFactory.create({
          */
         function _appendConfirm(data) {
             const { confirmId, kind, modelName, downloadGb, count, what, price } = data || {};
-            if (kind === 'review') return _appendReview(data, true);
+            if (CHOICE_CARDS[kind]) return _appendChoice(data, true);
             if (!confirmId || qs(`[data-confirm-id="${CSS.escape(confirmId)}"]`, transcript)) return;
             const isBatch = kind === 'batch';
             const isSpend = kind === 'spend';
@@ -808,36 +808,58 @@ export const MpiAgentChat = ComponentFactory.create({
             _scrollBottom();
         }
 
-        /** What a review card says once answered (MPI-1005). */
-        const REVIEW_PICKED = {
-            review: 'Opened for you to review.',
-            run: 'Started.',
-            replied: 'You wrote back instead.',
+        /**
+         * The cards that answer with a choice (`CHOICE_CARDS`, services/agentLoop.mjs): per
+         * kind, its title, a line under it, its two buttons (secondary, then primary: the one
+         * that runs) and what each pick says once made.
+         */
+        const CHOICE_CARDS = {
+            // MPI-1005: Song's lyrics, as they will be sung, in the box below the title.
+            // ponytail: Song is the one Flow with a review; name the field when a second one comes.
+            review: {
+                title: ({ flow }) => `Make this ${String(flow || 'Flow').toLowerCase()}?`,
+                buttons: () => [['review', 'Review lyrics'], ['run', 'Just do it']],
+                picked: { review: 'Opened for you to review.', run: 'Started.' },
+            },
+            // MPI-1004: the library voice Cosmo picked for a line with no sample (Fabio's labels).
+            voice: {
+                title: ({ voice }) => `I'd use the ${voice || 'library'} voice.`,
+                sub: ({ flow }) => `${flow || 'This Flow'} needs a voice to speak in, and there is no sample.`,
+                buttons: ({ voice }) => [['library', 'Pick from the voice library'], ['use', `Use ${voice || 'this voice'}`]],
+                picked: { library: 'Opened for you to pick a voice.', use: 'Started.' },
+            },
         };
 
         /**
-         * MPI-1005 — the review card (Fabio, 2026-10-01: "Buttons like this should just be
-         * commands that run as soon as we click them"). What the Flow is about to run on (Song's
-         * lyrics, as they will be sung) in the box the chat's code blocks use, and two buttons
-         * that act at once, with no agent turn. Typing instead answers it too: the server reads
-         * the message as the reply, so a send retires the buttons like the agent's own choices.
-         * `live` false draws it from history, read-only, saying what was picked.
+         * A choice card (Fabio, 2026-10-01: "Buttons like this should just be commands that run
+         * as soon as we click them"): two buttons that act at once, with no agent turn. Typing
+         * instead answers it too: the server reads the message as the reply, so a send retires
+         * the buttons like the agent's own choices. `live` false draws it from history,
+         * read-only, saying what was picked.
          *
-         * @param {{confirmId:string, flow?:string, text?:string, choice?:string}} data
+         * @param {{confirmId:string, kind:string, flow?:string, text?:string, voice?:string, choice?:string}} data
          * @param {boolean} live
          */
-        function _appendReview({ confirmId, flow, text, choice } = {}, live) {
-            if (!confirmId || qs(`[data-confirm-id="${CSS.escape(confirmId)}"]`, transcript)) return;
+        function _appendChoice(data = {}, live) {
+            const { confirmId, kind, text, choice } = data;
+            const spec = CHOICE_CARDS[kind];
+            if (!spec || !confirmId || qs(`[data-confirm-id="${CSS.escape(confirmId)}"]`, transcript)) return;
             const div = document.createElement('div');
             div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--confirm';
             div.dataset.confirmId = confirmId;
             const card = document.createElement('div');
-            card.className = 'mpi-agent-chat__confirm-card mpi-agent-chat__confirm-card--review';
+            card.className = `mpi-agent-chat__confirm-card mpi-agent-chat__confirm-card--${kind}`;
 
             const titleEl = document.createElement('div');
             titleEl.className = 'mpi-agent-chat__confirm-title';
-            titleEl.textContent = `Make this ${String(flow || 'Flow').toLowerCase()}?`;
+            titleEl.textContent = spec.title(data);
             card.appendChild(titleEl);
+            if (spec.sub) {
+                const subEl = document.createElement('div');
+                subEl.className = 'mpi-agent-chat__confirm-size';
+                subEl.textContent = spec.sub(data);
+                card.appendChild(subEl);
+            }
 
             if (text) {
                 const box = document.createElement('div');
@@ -852,15 +874,17 @@ export const MpiAgentChat = ComponentFactory.create({
 
             const pickedEl = document.createElement('div');
             pickedEl.className = 'mpi-agent-chat__confirm-size';
-            const _picked = (c) => { pickedEl.textContent = REVIEW_PICKED[c] || ''; };
+            const _picked = (c) => {
+                pickedEl.textContent = c === 'replied' ? 'You wrote back instead.' : (spec.picked[c] || '');
+            };
 
             if (live) {
                 const actionsEl = document.createElement('div');
                 actionsEl.className = 'mpi-agent-chat__confirm-actions';
-                // ponytail: Song is the one Flow with a review; name the field when a second one comes.
-                const reviewBtn = MpiButton.mount(document.createElement('div'), { text: 'Review lyrics', variant: 'secondary', size: 'sm' });
-                const runBtn = MpiButton.mount(document.createElement('div'), { text: 'Just do it', variant: 'primary', size: 'sm' });
-                const btns = [reviewBtn, runBtn];
+                const choices = spec.buttons(data);
+                const btns = choices.map(([, label], i) => MpiButton.mount(document.createElement('div'), {
+                    text: label, variant: i === choices.length - 1 ? 'primary' : 'secondary', size: 'sm',
+                }));
                 _buttons.push(...btns);
                 _optionBtns.push(...btns);
                 const _respond = async (c) => {
@@ -869,13 +893,12 @@ export const MpiAgentChat = ComponentFactory.create({
                         await agentPostConfirm(confirmId, c);
                         _picked(c);
                     } catch (err) {
-                        clientLogger.error('MpiAgentChat', 'review choice failed', err);
+                        clientLogger.error('MpiAgentChat', `${kind} choice failed`, err);
                         btns.forEach((b) => b.el.setDisabled?.(false));
                     }
                 };
-                reviewBtn.on('click', () => _respond('review'));
-                runBtn.on('click', () => _respond('run'));
-                actionsEl.append(reviewBtn.el, runBtn.el);
+                choices.forEach(([c], i) => btns[i].on('click', () => _respond(c)));
+                actionsEl.append(...btns.map((b) => b.el));
                 card.appendChild(actionsEl);
             } else {
                 _picked(choice);
@@ -1136,10 +1159,10 @@ export const MpiAgentChat = ComponentFactory.create({
                     } else if (entry.kind === 'result') {
                         if (entry.ok && entry.output) _appendResult(entry.output, entry.toolCallId);
                         else if (!entry.ok && entry.error) _appendError(entry.error.code, entry.error.message);
-                    } else if (entry.kind === 'review' && entry.confirmId !== history.pendingConfirm?.confirmId) {
-                        // MPI-1005: an answered review card keeps its box, read-only. Its entry is
-                        // named by the card's `kind` ('review'), not 'confirm'.
-                        _appendReview(entry, false);
+                    } else if (CHOICE_CARDS[entry.kind] && entry.confirmId !== history.pendingConfirm?.confirmId) {
+                        // MPI-1005: an answered choice card is redrawn read-only, saying what was
+                        // picked. Its entry is named by the card's `kind` ('review', 'voice').
+                        _appendChoice(entry, false);
                     } else if (entry.kind === 'confirm') {
                         // Only render if this is the pending confirm (rendered below).
                         // Answered confirms are skipped — user already acted.

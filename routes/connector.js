@@ -1015,9 +1015,12 @@ router.get('/connector/models', async (req, res) => {
   // so the agent guessed the role and learned the real one only from a refused submit —
   // live (Fabio, 2026-09-19): `"flowOutpaint" has no media role "inputImage". Roles: image1.`
   // A Flow has no model, and `mediaRolesFor` takes that null for exactly this case.
-  const flowList = (flows || []).map((f) => ({
+  // MPI-1004: a voice slot carries the library voices it takes, so a caller with no sample
+  // can pass one by id (`{ role, voice }`) instead of guessing that a library exists.
+  const flowList = (flows || []).map(({ voices, ...f }) => ({
     ...f,
-    media: registry ? mediaRolesFor(registry, f.operation, null) : [],
+    media: registry ? mediaRolesFor(registry, f.operation, null)
+      .map((r) => (voices?.[r.role] ? { ...r, voices: voices[r.role] } : r)) : [],
   }));
 
   // MPI-904: the image tools with no model, ranked like any op. Rebuilt without them, this

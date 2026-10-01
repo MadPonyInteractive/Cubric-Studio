@@ -158,6 +158,12 @@ test('reference images: none before a project is open, then a card passes as is 
     const txt = JSON.parse((await call('generate', { ...ask, media: [{ role: 'inputImage', path: __filename }] })).content[0].text);
     assert.equal(txt.error.code, 'UNSUPPORTED_FILE');
     assert.equal(seen.length, before + 1, 'a refused reference submits nothing');
+
+    // MPI-1004: a library voice is an id the app resolves, never a file to stage.
+    const voiced = await call('generate', { flowId: 'chatter-box', fields: { positive: 'Hi.' }, media: [{ role: 'audio1', voice: 'elderly_male_1' }] });
+    assert.equal(voiced.isError, false);
+    assert.deepEqual(seen.at(-1).media, [{ role: 'audio1', voice: 'elderly_male_1' }]);
+    assert.equal(placed.length, 1, 'nothing copied in for a voice');
 });
 
 test('list_cards gives each card its disk path and item id in place of the in-app ref', async () => {

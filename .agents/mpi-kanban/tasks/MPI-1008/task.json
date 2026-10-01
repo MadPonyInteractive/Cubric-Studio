@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1008",
+  "title": "DramaBox: a run can fail 'tensors on the same device' when VRAM is tight (4-bit Gemma loads outside ComfyUI)",
+  "description": "Breaks users (paid DramaBox Flow). Seen live 2026-10-01 on Fabio's RTX 4060 Ti 16 GB: DramaBoxTextEncode RuntimeError, mat1 on cuda:0 vs weights on cpu. The 4-bit Gemma loads to the GPU outside ComfyUI's view; ComfyUI then finds 0 MB free and leaves the embeddings processor on the CPU, whose plain nn.Linear cannot run split. Fix in MadPonyInteractive/ComfyUI-MelodramaBox, then repin node_lock.json. Diagnosis in brief.md.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-01T09:10:11+01:00",
+  "updated_at": "2026-10-01T09:10:51+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

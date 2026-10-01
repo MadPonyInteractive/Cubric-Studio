@@ -57,3 +57,20 @@ export async function toWavFile(blob, name = 'recording.wav') {
         return null;
     }
 }
+
+/**
+ * A library voice's sample as the WAV File a Flow slot takes. The ONE path from a voice to
+ * a file: the picker's pick (MpiMediaPicker) and the agent's `{ role, voice }` ref
+ * (agentDispatch, MPI-1004) both come through here, so the two can never hand a slot
+ * different bytes for the same voice.
+ *
+ * @param {{id: string, sample: string}} voice - a manifest voice (`voiceLibrary.getVoice`)
+ * @returns {Promise<File>} throws when the sample cannot be fetched or decoded
+ */
+export async function voiceWavFile(voice) {
+    const res = await fetch(`/voices/${voice.sample}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const file = await toWavFile(await res.blob(), `${voice.id}.wav`);
+    if (!file) throw new Error('decode returned null');
+    return file;
+}

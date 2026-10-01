@@ -312,7 +312,8 @@ export async function agentReset(folderPath) {
 /**
  * POST /agent/confirm
  * @param {string}  confirmId
- * @param {boolean|'review'|'run'} yes  a review card's choice (MPI-1005), else a yes/no
+ * @param {boolean|'review'|'run'|'library'|'use'} yes  a choice card's choice (review MPI-1005,
+ *   voice MPI-1004), else a yes/no
  * @returns {Promise<{ok:boolean}>}
  */
 export async function agentPostConfirm(confirmId, yes) {

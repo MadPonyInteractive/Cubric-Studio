@@ -597,7 +597,8 @@ it, and the user presses Generate. Per Flow, not one box on every run (Fabio sor
 - **The loop** (`AgentLoop._openFlow`, before the box gate): a `generate` naming an `agentOpens` Flow, or
   sending `open: true`, calls `POST /connector/open-flow`, never `/connector/generate`. No box
   gate, no spend card, nothing in flight. Refused with `NOT_NOW` off a typed turn (`_follow`).
-  A Flow's `MEDIA_REQUIRED` refusal offers `open: true` (the missing voice sample).
+  A Flow's `MEDIA_REQUIRED` refusal offers a library voice for a voice slot (MPI-1004, below),
+  else `open: true` (the user's own photo).
 - **Its own route and capability** (`flow.open` -> `agentDispatch.openFlow`), the
   `/connector/quote` rule: a dropped flag must fall towards running nothing. `follow` must be a
   literal `true`, so a CLI agent never opens one. Refused by the same `followBlocker` as the view
@@ -619,5 +620,21 @@ it, and the user presses Generate. Per Flow, not one box on every run (Fabio sor
   that round (`_reviewEnd`) with NO model call; a run the app refuses goes back to the model. A message
   typed while it is up is the reply (`AgentSessions.queue`), as is a reset. History keeps it as kind
   `review` with its `choice`; the chat redraws it answered, read-only. `list_models` carries `review`.
+  Every card that answers with a choice is in `CHOICE_CARDS` (`agentLoop.mjs`): the loop's
+  `confirm()`, `reset()` and `AgentSessions.queue` read it, the chat keeps a twin (titles, labels),
+  and `routes/agent.js` `_CHOICES` mirrors its choices (CJS, so it cannot import the ESM).
+- **Library voices (MPI-1004, Fabio 2026-10-01): `{ role, voice: '<id>' }`.** A slot that declares
+  `inputSchema.media[].voiceLibrary` takes a shipped voice by id beside a file. The catalogue lists
+  them on the slot (`media[].voices`: one row per section, a performer, with its variation ids;
+  `agentDispatch.slotVoices`, folded into the media row by `/connector/models`). The loop and MCP
+  pass the ref through; the renderer's `resolveVoices` (in `buildFlow`, so routines too, and
+  `openFlow`) turns it into a placed WAV through `voiceWavFile` (`toWavFile.js`), the media
+  picker's own decode. An id the slot's library lacks, or a slot with no library: `INVALID_VOICE`.
+  **The voice card:** a Flow run carrying a voice the catalogue knows raises `agent:confirm
+  { kind: 'voice', flow, voice }` (`_pickedVoice`), `voice` the performer's name: Pick from the
+  voice library -> `_openFlow` with the voice dropped, Use <voice> -> the normal path, ending the
+  turn like a review. Cosmo picks a voice only for a line with no sample and no DramaBox
+  (`flows.md` § Spoken lines: DramaBox builds a voice from the words and performs laughs and
+  coughs; Chatterbox cannot), so the card is that case's ask.
 - **Settled first: the Duration rule's "you never speak first" was stale** (wake turns, MPI-870).
   It now says the app wakes the agent when the job finishes.

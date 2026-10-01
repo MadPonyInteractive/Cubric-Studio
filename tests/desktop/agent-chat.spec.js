@@ -397,6 +397,42 @@ test('review card: the lyrics in a box, a click posts the choice, typing retires
   }
 });
 
+// MPI-1004: a library voice Cosmo picked is shown before it runs; the buttons are Fabio's labels.
+test('voice card: names the pick, a click posts library or use, an answered one redraws read-only', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await window.evaluate(() => {
+      window.__histories[''] = [
+        { kind: 'voice', confirmId: 'old', flow: 'Text to Speech', voice: 'Child', choice: 'library' },
+      ];
+    });
+    await bootAndMountChat(window, true);
+
+    const old = window.locator('#e2e-agent-host [data-confirm-id="old"]');
+    await expect(old).toContainText('Opened for you to pick a voice.');
+    await expect(old.locator('button')).toHaveCount(0);
+
+    await window.evaluate(() => window.__fireSse('agent:confirm', {
+      turnId: 't1', confirmId: 'v1', kind: 'voice', flow: 'Text to Speech', voice: 'Elderly Male',
+    }));
+    const card = window.locator('#e2e-agent-host [data-confirm-id="v1"]');
+    await expect(card.locator('.mpi-agent-chat__confirm-title')).toHaveText("I'd use the Elderly Male voice.");
+    await expect(card).toContainText('Text to Speech needs a voice to speak in, and there is no sample.');
+    await expect(card.locator('button')).toHaveText(['Pick from the voice library', 'Use Elderly Male']);
+
+    await card.locator('button').last().click();
+    await expect(card).toContainText('Started.');
+    const posted = (await window.evaluate(() => window.__fetchCalls)).filter(c => c.url === '/agent/confirm');
+    expect(posted.map(c => c.body)).toEqual([{ confirmId: 'v1', choice: 'use' }]);
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 // MPI-941 Phase 7: the agent's choices are buttons; a click is the user's reply.
 test('options: only the latest reply offers buttons, and a click sends that choice once', async ({}, testInfo) => {
   test.setTimeout(90000);

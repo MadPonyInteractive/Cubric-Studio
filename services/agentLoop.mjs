@@ -128,8 +128,12 @@ export const TOOL_DEFS = [
                         type: 'array',
                         items: {
                             type: 'object',
-                            properties: { role: { type: 'string' }, image: { type: 'string', description: 'One of the refs the App state line lists as images you can look at.' } },
-                            required: ['role', 'image'],
+                            properties: {
+                                role: { type: 'string' },
+                                image: { type: 'string', description: 'One of the refs the App state line lists as images you can look at.' },
+                                voice: { type: 'string', description: 'In place of image: a library voice id describe_model lists.' },
+                            },
+                            required: ['role'],
                         },
                     },
                     cards: {
@@ -598,6 +602,14 @@ export function catalogueEntry(list, id) {
     return tool ? { tool } : null;
 }
 
+/**
+ * The confirm cards that answer with a CHOICE, never a boolean (MPI-870: a string handed to a
+ * yes/no card reads as yes): kind -> its choices. Each also takes 'replied', a message typed
+ * instead or a reset, which runs nothing. Review: Song's lyrics (MPI-1005). Voice: a library
+ * voice Cosmo picked for a line with no sample (MPI-1004).
+ */
+export const CHOICE_CARDS = Object.freeze({ review: ['review', 'run'], voice: ['library', 'use'] });
+
 // ---------------------------------------------------------------------------
 // AgentLoop class — injectable for tests
 // ---------------------------------------------------------------------------
@@ -667,6 +679,9 @@ export class AgentLoop {
         this._boxSteps = new Map(); // flowId -> its box steps [{param, role}], from list_models
         this._opens = new Map();    // flowId -> the step it opens at instead of running (MPI-892), or null
         this._reviews = new Map();  // flowId -> { field, title } the app asks about first (MPI-1005), or null
+        this._flowTitles = new Map(); // flowId -> its title, for a card that names it (MPI-1004)
+        this._flowMissing = new Set(); // flowIds not installed: no card asks about a run that cannot happen
+        this._voiceNames = new Map(); // library voice id -> its performer's name, "Elderly Male" (MPI-1004)
         this._reviewEnd = null;     // a review card answered this round: the turn's last context line
         this._ops = new Map();    // "modelId\nop" -> that op's entry (media slots, params), from list_models
         this._boxed = new Set();   // image paths a `look` with box: true measured (the box gate)
@@ -837,6 +852,7 @@ export class AgentLoop {
                     price: this._pendingConfirm.price,
                     flow: this._pendingConfirm.flow,
                     text: this._pendingConfirm.text,
+                    voice: this._pendingConfirm.voice,
                 }
                 : null,
             usage,
@@ -856,11 +872,11 @@ export class AgentLoop {
         // that path this is the SECOND defence and not the one that bites: `_askSpend`
         // answers `yes === true`, so no string of any kind can read as a yes. Kept because
         // it is the money path, and because the next kind added here may not be so strict.
-        // A review card (MPI-1005) waits on a choice, and 'replied' is the one that runs nothing.
+        // A choice card (`CHOICE_CARDS`) waits on a choice, and 'replied' is the one that runs nothing.
         const pc = this._pendingConfirm;
         if (pc) {
             const boolean = pc.kind === 'batch' || pc.kind === 'spend';
-            pc.resolve(boolean ? false : pc.kind === 'review' ? 'replied' : 'declined');
+            pc.resolve(boolean ? false : CHOICE_CARDS[pc.kind] ? 'replied' : 'declined');
         }
         // MPI-913: a message waiting on the GPU belonged to the old conversation. Its lines go
         // without a `done` frame, which would draw them into the cleared chat.
@@ -1216,6 +1232,11 @@ export class AgentLoop {
             this._boxSteps.set(f.id, Array.isArray(f.boxParams) ? f.boxParams : []);
             this._opens.set(f.id, f.opens || null);
             this._reviews.set(f.id, f.review ? { field: f.review, title: f.title || f.id } : null);
+            this._flowTitles.set(f.id, f.title || f.id);
+            if (f.installed === false) this._flowMissing.add(f.id); else this._flowMissing.delete(f.id);
+            for (const slot of f.media || []) {
+                for (const v of slot.voices || []) for (const id of v.ids || []) this._voiceNames.set(id, v.name);
+            }
         }
         // A tool has no model: its op is keyed with an empty model id.
         for (const t of list?.tools || []) this._ops.set(`\n${t.op}`, t);
@@ -1663,7 +1684,21 @@ export class AgentLoop {
         if (!this._reviews.has(flowId)) {
             try { this._rememberGuides(await this._tools.listModels()); } catch { /* runs unasked, as before */ }
         }
-        return this._reviews.get(flowId) || null;
+        const review = this._reviews.get(flowId) || null;
+        return review && await this._flowRunnable(flowId) ? review : null;
+    }
+
+    /**
+     * MPI-1004 — false when the Flow is not installed, so no card asks about a run the app will
+     * only refuse (the user clicked Use, then read "not installed"). The refusal names it
+     * instead. "Missing" is read again before it is trusted: a stale one would skip the ask
+     * for a Flow the user has since added, and run it unasked.
+     */
+    async _flowRunnable(flowId) {
+        if (this._flowMissing.has(flowId)) {
+            try { this._rememberGuides(await this._tools.listModels()); } catch { /* the app still refuses it */ }
+        }
+        return !this._flowMissing.has(flowId);
     }
 
     /**
@@ -1675,10 +1710,34 @@ export class AgentLoop {
      * message typed instead, or a reset) runs nothing.
      */
     async _askReview(turnId, { field, title }, args) {
+        return this._askChoice(turnId, { kind: 'review', flow: title, text: String(args.fields?.[field] ?? '') }, args);
+    }
+
+    /**
+     * MPI-1004 — the library voice this Flow run carries, named for its card, or null. Cosmo
+     * picks one only for a line with no sample (app:flows § Spoken lines), so the user sees
+     * the pick before the GPU spends. An id the catalogue does not know raises no card: the
+     * app refuses it by name, and the model fixes the call.
+     */
+    async _pickedVoice(args) {
+        const id = (Array.isArray(args.media) ? args.media : []).find((m) => m?.voice)?.voice;
+        if (!id) return null;
+        if (!this._voiceNames.has(String(id))) {
+            try { this._rememberGuides(await this._tools.listModels()); } catch { return null; }
+        }
+        const name = this._voiceNames.get(String(id));
+        return name && await this._flowRunnable(args.flowId) ? { name, title: this._flowTitles.get(args.flowId) || args.flowId } : null;
+    }
+
+    /**
+     * A card that answers with a CHOICE (`CHOICE_CARDS`): Song's review (MPI-1005), a picked
+     * library voice (MPI-1004). Resolves one of the card's choices, or 'replied' (a message
+     * typed instead, or a reset), which runs nothing.
+     */
+    async _askChoice(turnId, card, args) {
         const confirmId = crypto.randomUUID();
-        const card = { kind: 'review', flow: title, text: String(args.fields?.[field] ?? '') };
         this._emit('agent:confirm', { turnId, confirmId, ...card });
-        // `card.kind` names the entry 'review'; the chat redraws it answered, box and choice.
+        // `card.kind` names the entry ('review', 'voice'); the chat redraws it answered.
         const entry = this._historyEntry('confirm', { tool: 'generate', args, confirmId, ...card });
         const choice = await new Promise((resolve) => {
             this._pendingConfirm = { confirmId, ...card, resolve, turnId };
@@ -1703,6 +1762,7 @@ export class AgentLoop {
         // ponytail: the same ref resolution as generate's media loop, minus what only a run reads.
         const media = [];
         for (const m of Array.isArray(args.media) ? args.media : []) {
+            if (m?.voice) { media.push({ role: m.role, voice: String(m.voice) }); continue; } // MPI-1004
             const ref = this._resolveImage(m.image);
             if (!ref) {
                 return JSON.stringify({ ok: false, error: { code: 'IMAGE_NOT_FOUND', message: `Image reference not found: ${m.image}. Use an attachment id from this conversation, or the filePath of something you generated.` } });
@@ -2062,6 +2122,22 @@ ${knowledgeIndex}`.trim();
                     }
                     this._reviewEnd = `Started ${review.title}, as the user chose.`;
                 }
+                // MPI-1004 — the same shape for a library voice Cosmo picked (Fabio, 2026-10-01):
+                // "Pick from the voice library" opens the Flow with that slot empty for the user's
+                // own pick; "Use <voice>" runs it as sent.
+                const picked = args.flowId && !opts.batch ? await this._pickedVoice(args) : null;
+                if (picked) {
+                    const choice = await this._askChoice(turnId, { kind: 'voice', flow: picked.title, voice: picked.name }, args);
+                    if (choice === 'library') {
+                        this._reviewEnd = `Opened ${picked.title} for the user to pick a voice from the library, as they chose. Nothing ran.`;
+                        return this._openFlow({ ...args, media: args.media.filter((m) => !m?.voice) }, currentProject, true);
+                    }
+                    if (choice !== 'use') {
+                        this._reviewEnd = 'The user wrote back instead of choosing. Nothing ran.';
+                        return JSON.stringify({ ok: true, replied: true, message: 'Nothing ran: the user answered the voice card in words instead. Their message comes next.' });
+                    }
+                    this._reviewEnd = `Started ${picked.title} with the ${picked.name} voice, as the user chose.`;
+                }
                 if (args.flowId) {
                     const miss = await this._unmeasuredBox(args);
                     if (miss) {
@@ -2090,6 +2166,8 @@ ${knowledgeIndex}`.trim();
                 if (Array.isArray(args.media) && args.media.length) {
                     const resolved = [];
                     for (const m of args.media) {
+                        // MPI-1004: a library voice is an id, not a file; the app turns it into one.
+                        if (m?.voice) { resolved.push({ role: m.role, voice: String(m.voice) }); continue; }
                         const ref = this._resolveImage(m.image);
                         if (!sourcePath && ref) { sourcePath = ref.path; sourceIsCard = !!ref.itemId; }
                         if (!ref) {
@@ -2173,8 +2251,9 @@ ${knowledgeIndex}`.trim();
                     const miss = /^(INVALID_|UNKNOWN_PARAM|MEDIA_REQUIRED)/.test(early.error?.code || '');
                     const where = args.flowId || args.modelId;
                     // MPI-892 (Fabio): "You didn't provide the voice sample. I can open the flow for you."
+                    // MPI-1004: a voice slot takes a library voice, and the app shows the pick first.
                     const offer = args.flowId && early.error?.code === 'MEDIA_REQUIRED'
-                        ? ' If only the user has it (a voice sample, their own photo), offer to open the Flow for them to add it: this same call with open: true.' : '';
+                        ? ' A voice slot takes a library voice instead: pick the one describe_model lists for that role that fits the speaker and send this again with media: [{ role, voice: "<id>" }]; the app shows the user your pick before anything runs. Anything else only the user has (their own photo): offer to open the Flow for them to add it, this same call with open: true.' : '';
                     return JSON.stringify({ ok: false, error: {
                         ...early.error,
                         message: `Nothing was generated: ${early.error?.message || 'the generation was refused.'}${miss && where ? ` Call describe_model with "${where}" for the values it accepts, then send it again.` : ''}${offer}`,
@@ -2947,11 +3026,12 @@ ${knowledgeIndex}`.trim();
         // shape — the generate is suspended mid-call, waiting on this (MPI-876). Anything
         // else is an install, including a card left pending across an upgrade, which is
         // what the missing `kind` on an older one means.
-        // A review card (MPI-1005) takes a CHOICE in `yes`, and a boolean is never one; every
+        // A choice card (`CHOICE_CARDS`) takes a CHOICE in `yes`, and a boolean is never one; every
         // other card a boolean, and a choice is never one: 'run' is truthy, so it would install.
-        if (pc.kind === 'review') {
-            if (!['review', 'run', 'replied'].includes(yes)) {
-                return { ok: false, error: { code: 'BAD_CHOICE', message: 'A review card answers review, run or replied.' } };
+        const choices = CHOICE_CARDS[pc.kind];
+        if (choices) {
+            if (![...choices, 'replied'].includes(yes)) {
+                return { ok: false, error: { code: 'BAD_CHOICE', message: `A ${pc.kind} card answers ${choices.join(', ')} or replied.` } };
             }
             pc.resolve(yes);
             return { ok: true };

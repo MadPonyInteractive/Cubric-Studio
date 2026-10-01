@@ -321,13 +321,17 @@ router.get('/agent/attachment/:id', async (req, res) => {
 // POST /agent/confirm
 // ---------------------------------------------------------------------------
 
+// Every choice a CHOICE_CARDS card takes (services/agentLoop.mjs, ESM; this file is CJS).
+const _CHOICES = ['review', 'run', 'library', 'use'];
+
 router.post('/agent/confirm', async (req, res) => {
     const { confirmId, yes, choice } = req.body || {};
     if (!confirmId) return _bad(res, 'body.confirmId is required.');
-    // MPI-1005: a review card answers with a choice; every other card with yes. The loop
-    // refuses the wrong one for its card, so a boolean can never read as a choice.
-    if (choice !== undefined ? choice !== 'review' && choice !== 'run' : typeof yes !== 'boolean') {
-        return _bad(res, "body.yes must be a boolean, or body.choice 'review' or 'run'.");
+    // MPI-1005: a choice card answers with a choice (review/run; a voice card library/use,
+    // MPI-1004); every other card with yes. The loop refuses the wrong one for its card
+    // (`CHOICE_CARDS`), so a boolean can never read as a choice.
+    if (choice !== undefined ? !_CHOICES.includes(choice) : typeof yes !== 'boolean') {
+        return _bad(res, `body.yes must be a boolean, or body.choice one of ${_CHOICES.join(', ')}.`);
     }
 
     let sessions;

@@ -67,6 +67,8 @@ import { resolveMediaUrl, extractAbsPath } from '../utils/mediaActions.js';
 import { stepValueToMedia } from '../components/Blocks/MpiBaseFlow/stepKinds.js';
 import { composeNextPass } from '../components/Organisms/MpiStepCrop/MpiStepCrop.js';
 import { planOutpaintPasses } from '../utils/outpaintPasses.js';
+import { loadVoiceLibrary } from '../data/voiceLibrary.js';
+import { voiceWavFile } from '../utils/toWavFile.js';
 import { describeImage } from '../services/llmService.js';
 import { estimateRunCost } from '../services/cloudExecutor.js';
 import { formatPrice } from '../data/modelConstants/deepinfraPricing.js';
@@ -974,7 +976,7 @@ function _naturalSize(url) {
  * rather than lifted — that file is a Flow-frame hot spot with live work on it, and this is
  * a dozen lines. Lift both into a util the day a third caller appears.
  */
-async function _placePreviewAsset(file, project) {
+async function _placePreviewAsset(file, project, ext = '.png') {
     const dataUrl = await new Promise((resolve, reject) => {
         const r = new FileReader();
         r.onload = () => resolve(/** @type {string} */ (r.result));
@@ -983,7 +985,7 @@ async function _placePreviewAsset(file, project) {
     });
     const res = await fetch(
         `/project-media/${project.id}/place-preview-asset?folderPath=${encodeURIComponent(project.folderPath)}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataUrl, ext: '.png' }) },
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataUrl, ext }) },
     );
     if (!res.ok) throw new Error(`place failed: ${res.status}`);
     const data = await res.json();
@@ -1045,6 +1047,72 @@ async function _submitFlow(jobId, input = {}) {
     return null;
 }
 
+// ── Library voices (MPI-1004) ────────────────────────────────────────────────────────────
+//
+// A voice slot (`inputSchema.media[].voiceLibrary`, index-aligned with `roles`) takes a
+// shipped library voice by id as well as a file: `{ role, voice }`. The catalogue lists the
+// voices on the slot; a submit or an open turns the id into the same file the picker makes.
+
+let _voiceLibLoad = null;
+/** The shipped voice library, fetched once. A failed fetch is tried again next time. */
+function _voiceLib() {
+    _voiceLibLoad ??= loadVoiceLibrary().catch((err) => { _voiceLibLoad = null; throw err; });
+    return _voiceLibLoad;
+}
+
+/** role -> the library route that slot offers ('character' / 'narration'), for one Flow. */
+function _voiceRoutes(flow) {
+    const routes = {};
+    for (const g of flow?.inputSchema?.media || []) {
+        (g.roles || []).forEach((role, i) => { if (g.voiceLibrary?.[i]) routes[role] = g.voiceLibrary[i]; });
+    }
+    return routes;
+}
+
+/**
+ * The voices each voice slot offers, for the catalogue: one row per SECTION, its variation
+ * ids beside it. The library is fifteen performers, not fifty-six voices (voiceLibrary.js
+ * § listSections), and fifteen rows is what an agent can match "an old man" against.
+ * @returns {Object<string, Array<{name:string, gender?:string, age?:string, ids:string[]}>>|null}
+ */
+export function slotVoices(flow, lib) {
+    const routes = Object.entries(_voiceRoutes(flow));
+    if (!lib || !routes.length) return null;
+    return Object.fromEntries(routes.map(([role, kind]) => [role, lib.listSections({ kind }).map((s) => {
+        const { gender, age } = s.voices[0];
+        return { name: s.label, ...(gender ? { gender } : {}), ...(age ? { age } : {}), ids: s.voices.map(v => v.id) };
+    })]));
+}
+
+/**
+ * `{ role, voice }` refs become the `{ role, url }` every other ref is: the sample through
+ * the picker's own decode (`voiceWavFile`), placed in the project's store. An id the slot's
+ * library lacks, or a slot with no library, is refused by name (INVALID_ so the caller's
+ * "call describe_model" hint fires).
+ * @returns {Promise<{ok:true, media:Array}|{ok:false, code:string, message:string}>}
+ */
+export async function resolveVoices(flow, media, project) {
+    const list = Array.isArray(media) ? media : [];
+    if (!list.some(m => m?.voice)) return { ok: true, media: list };
+    const routes = _voiceRoutes(flow);
+    try {
+        const lib = await _voiceLib();
+        const out = [];
+        for (const m of list) {
+            if (!m?.voice) { out.push(m); continue; }
+            if (!routes[m.role]) return { ok: false, code: 'INVALID_VOICE', message: `${flow.title}'s "${m.role}" slot takes no library voice.` };
+            const voice = lib.listVoices({ kind: routes[m.role] }).find(v => v.id === String(m.voice));
+            if (!voice) return { ok: false, code: 'INVALID_VOICE', message: `No library voice "${m.voice}" for ${flow.title}'s "${m.role}" slot.` };
+            const url = await _placePreviewAsset(await voiceWavFile(voice), project, '.wav');
+            if (!url) throw new Error('the project would not take the file');
+            out.push({ role: m.role, url });
+        }
+        return { ok: true, media: out };
+    } catch (err) {
+        return { ok: false, code: 'RUNTIME_ERROR', message: `The library voice could not be loaded: ${err?.message || err}` };
+    }
+}
+
 /**
  * The BUILD half of a Flow submit (MPI-970), shared with a routine's Flow step: the Flow,
  * its installed check, media, box params, the frame and the declared fields, resolved into
@@ -1073,9 +1141,12 @@ export async function buildFlow(input, project) {
             `${flow.title} is not installed — missing: ${absent.join(', ') || 'required files'}.`);
     }
 
+    const voiced = await resolveVoices(flow, media, project);
+    if (!voiced.ok) return _refuse(voiced.code, voiced.message);
+
     // The op owns the slot vocabulary; the caller names a role. One resolver for both
     // branches (generationControls.js § resolveAgentMedia).
-    const resolvedMedia = resolveAgentMedia(flow.operation, null, media);
+    const resolvedMedia = resolveAgentMedia(flow.operation, null, voiced.media);
     if (!resolvedMedia.ok) {
         return _refuse(resolvedMedia.code, resolvedMedia.message);
     }
@@ -1257,7 +1328,9 @@ export async function openFlow(jobId, input = {}) {
     if (blocked) {
         return _fail(jobId, 'VIEW_BUSY', `Nothing was opened: the user is ${BUSY_WORDS[blocked] || 'working on the picture'}. Tell them you will open ${flow.title} once they are done, and send it again when they say so.`);
     }
-    const resolved = resolveAgentMedia(flow.operation, null, Array.isArray(input.media) ? input.media : [], { allowEmpty: true });
+    const voiced = await resolveVoices(flow, input.media, state.currentProject);
+    if (!voiced.ok) return _fail(jobId, voiced.code, voiced.message);
+    const resolved = resolveAgentMedia(flow.operation, null, voiced.media, { allowEmpty: true });
     if (!resolved.ok) return _fail(jobId, resolved.code, resolved.message);
     const { mediaItems } = resolved;
     const { inputs, injectionParams, unknown } = resolveFlowFieldValues(flow, input.fields || {});
@@ -1509,8 +1582,13 @@ export function flowDoes(description) {
     return first.split(/\s[—–]\s|:\s/)[0].replace(/[.!?]$/, '').trim();
 }
 
-function _listModels(jobId) {
+async function _listModels(jobId) {
     const engine = remoteEngineClient.effectiveEngine();
+    // MPI-1004: no voice list beats no catalogue at all.
+    const voiceLib = await _voiceLib().catch((err) => {
+        clientLogger.warn('connector', `voice library not loaded for the catalogue: ${err?.message || err}`);
+        return null;
+    });
 
     const models = MODELS.map(model => {
         // `params`: what the agent may set on this op, so it never guesses a turbo
@@ -1549,6 +1627,7 @@ function _listModels(jobId) {
         const avail = flowAvailability(flow);
         const boxSteps = (flow.steps || []).filter(s => s.kind === 'box' && s.param);
         const cropStep = (flow.steps || []).find(s => s.kind === 'crop' && s.role);
+        const voices = slotVoices(flow, voiceLib);
         return {
             id: flow.id,
             title: flow.title,
@@ -1583,6 +1662,9 @@ function _listModels(jobId) {
             ...(flow.agentOpens ? { opens: flow.agentOpens } : {}),
             // MPI-1005: the app asks before running this one, showing this field.
             ...(flow.agentReview ? { review: flow.agentReview } : {}),
+            // MPI-1004: role -> the library voices that slot takes; the route folds each list
+            // into its slot's `media` row.
+            ...(voices ? { voices } : {}),
         };
     });
 

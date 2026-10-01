@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1008", "at": "2026-10-01T09:10:11+01:00", "actor": "314c5ced", "column": "todo", "title": "DramaBox: a run can fail 'tensors on the same device' when VRAM is tight (4-bit Gemma loads outside ComfyUI)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1008", "at": "2026-10-01T09:10:51+01:00", "actor": "314c5ced", "from": "todo", "to": "todo", "reason": "Needs a reproduction before a plan; diagnosis in brief.md"}

@@ -19,7 +19,7 @@
  */
 
 import crypto from 'crypto';
-import { AgentLoop, projectKey, onLocalGpu } from './agentLoop.mjs';
+import { AgentLoop, projectKey, onLocalGpu, CHOICE_CARDS } from './agentLoop.mjs';
 import { OllamaEngine, fetchDeepInfraPrices, recommendedModel } from './llmEngines.mjs';
 import { SHARE_PRESETS, benchBase, buildRecord, localGpu, medianSeconds, runErrored, shareRun } from './benchCommunity.mjs';
 
@@ -88,7 +88,7 @@ export class AgentSessions {
         // up, the card would hold the turn, and this message behind it, until a click.
         const loop = !turn.wake && this._loops.get(projectKey(turn.project?.folderPath));
         const pc = loop?._pendingConfirm;
-        if (pc?.kind === 'review') loop.confirm(pc.confirmId, 'replied');
+        if (CHOICE_CARDS[pc?.kind]) loop.confirm(pc.confirmId, 'replied');
     }
 
     /**
