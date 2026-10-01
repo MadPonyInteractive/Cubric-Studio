@@ -51,3 +51,37 @@ Isolated instance `:54072`, `CUBRIC_ENGINE_ROOT` + `CUBRIC_MODELS_ROOT` in scrat
   `taeh3-decoder` -> `download:complete {"modelId":...}` (toasts); re-install with it on disk ->
   `{"modelId":...,"alreadyInstalled":true}` (silent). The `done` job left `/comfy/downloads/status`
   at 14:38:17Z, 132 s after it settled, with no SSE connect and no other job.
+
+## Live REMOTE test on a Pod — 2026-10-01, Agent 85 (Fabio's yes, cap $0.10)
+
+Linux box, its B3 test install updated 1.6.2 -> 1.6.3 built from master `f03d26905` (mpi-ci run
+36912841222; the bundle's `installStore.js`/`reconciler.js` checked for both fixes). Download-only
+CPU Pod `cov1jclzypfz6j`, EU-RO-1, 10 GB volume `wibuwj892h`, driven through the app's own routes
+(`~/b3/podtest.py`). Ready in 39 s.
+
+- **Shared-dep attach:** A [taeh3, vae-sdxl] then B [vae-sdxl, ltx23-preview]: B's start showed
+  vae-sdxl `downloading` at 267 MB (attached to A's record), both `done`, one plain model-level
+  `download:complete` each (real downloads: toast is right).
+- **Cancel + restart:** C [sam3-multiplex] attached to the connect heal (`engine:assets`) already
+  fetching it; cancel dropped C (ABSENT), the heal's download carried on, restart credited the full
+  1.75 GB and settled `done`.
+- **App crash mid-install:** D [stable-audio-3-small-sfx 2.1 GB] at 422 MB, SIGKILL, relaunch,
+  reconnect, re-POST: the Pod had finished it -> `{"alreadyInstalled":true}`, silent. R1 on remote.
+- **Re-install of A on the Pod:** `{"alreadyInstalled":true}`. Every finished job (engine:assets, D,
+  A) left the snapshot in turn; store empty 120 s after. R2 on remote.
+- Teardown: Pod 404, volume deleted, account shows 0 Pods / 0 volumes. Two CPU Pods (the reconnect
+  recreated one, below), 8.3 min total at ~$0.06/hr: **~$0.01 spent.**
+
+**Two bugs found by this run:**
+1. **Cancel starts a dead LOCAL downloader on a queued Pod dep (fixed here).** The cancel route runs
+   the local pump `_startPendingDeps` unconditionally; with one record set the Pod deps queued
+   behind the remote cap are `queued` records with no localPath. Live: `downloader.download()
+   caught error for taef2-decoder: The "path" argument must be of type string. Received null`,
+   then `stall watchdog: taef2-decoder ... forcing failure` every 15 s - on a big queued Pod dep that
+   force-fails the install after 60 s. Pre-existing (1.6.2 makes the same call on the same queued,
+   null-localPath records), not a Phase 1 regression. Fix: the pump skips `engine === 'remote'`
+   records. `tests/remote-install-concurrency.test.cjs` new case red without it, green with it.
+2. **Pod reconnect deletes a RUNNING Pod (MPI-894's lane, handed over).** v2 answers `start` on a
+   running Pod with `action "start" is not valid for status "RUNNING"`, not the v1 400 the code
+   treated as "already running" -> delete + recreate (`cov1jclzypfz6j` -> `4mrf5i8wamsz7g`).
+   Session "Release 2.0 blockers 27" holds `routes/remotePodLifecycle.js` and is fixing it.

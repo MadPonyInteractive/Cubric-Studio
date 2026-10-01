@@ -496,8 +496,14 @@ Two consequences worth knowing:
 **Job storage — `installStore` is the ONLY record set (MPI-513):**
 - `store.modelJob(id)` / `store.allModelJobs()` — model jobs (totalBytes, downloadedBytes, speed, progress, deps[]). Success status is `done` (the FE maps it to `complete`).
 - `store.depJob(id)` / `store.allDepJobs()` — dep records, SHARED: two models on one weight hold the same object, so one transition settles it for both. A terminal record is replaced by a fresh one on the next register (that is how a retry restarts a dep — never a resurrection). **No `refCount` field — DELETED MPI-276.**
-- `_activeDownloaders Map<depId, FileDownloader>` — actively downloading
+- `_activeDownloaders Map<depId, FileDownloader>` — actively downloading (LOCAL only)
 - `_sseClients Set<res>` — SSE subscribers
+
+Both engines' records share the store, so a Pod dep waiting behind the remote cap is a
+`queued` record too — with no `localPath`. The local pump `_startPendingDeps` skips
+`engine === 'remote'` records; the cancel route calls it unconditionally, and before that
+filter a Pod cancel started a dead `FileDownloader` ("path ... Received null") whose stall
+watchdog then force-failed the Pod dep (live on a CPU Pod, 2026-10-01).
 
 `_registerJob` is the only way in: every start path (local, remote, UW) resolves paths and disk/volume state FIRST, runs the disk-full gate (which refuses without registering — there is no `idle`), then registers and gets THE job object back. A re-POST of a live model unions deps onto the same object. Every status write goes through `_setModelStatus`/`_setDepStatus`, which only call the store's transition table; a write on a record the store has since replaced is ignored (a late event must not move the new attempt).
 

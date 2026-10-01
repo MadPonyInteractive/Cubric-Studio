@@ -122,6 +122,23 @@ test('queued deps are not abandoned when the remote target goes away', async () 
     }
 });
 
+test('the LOCAL pump never starts a downloader on a queued Pod dep (MPI-513)', async () => {
+    // Cancel runs the local pump unconditionally. Pod deps waiting behind the cap are
+    // `queued` records in the same store with no localPath, so the pump started a
+    // FileDownloader on one ("path ... Received null", live on the Linux box
+    // 2026-10-01), whose stall watchdog then force-failed the dep every 60s.
+    const { modelId, deps } = scenario(10);
+    await dm._startRemoteDownload(modelId, deps, makeRes());
+    assert.equal(dm._remoteInstallQueue.length, 7);
+
+    await dm._startPendingDeps();
+
+    assert.equal(dm._activeDownloaders.size, 0, 'no local downloader for a Pod dep');
+    for (const dep of deps.slice(3)) {
+        assert.equal(dm._installStore.depJob(dep.id).status, 'queued', `${dep.id} stays queued for the Pod`);
+    }
+});
+
 test('a model with fewer deps than the cap still installs them all at once', async () => {
     // The cap must not slow the ordinary case — a 2-dep model is the norm.
     const { modelId, deps } = scenario(2);

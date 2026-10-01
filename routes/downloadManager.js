@@ -2014,8 +2014,13 @@ async function logBootDiskSpace() {
 // ── Pending Deps Launcher ──────────────────────────────────────────────────────
 
 async function _startPendingDeps() {
+    // LOCAL deps only. Since one store holds both engines' records (MPI-513 D1), a Pod
+    // dep waiting behind the remote cap is a `queued` record here too, with no
+    // localPath; the remote driver owns it (_pumpRemoteInstalls). Pumping it started a
+    // dead FileDownloader whose stall watchdog then force-failed the Pod dep.
     const pending = store.allDepJobs().filter(d =>
         d.status === 'queued'
+        && d.engine !== 'remote'
         && _depHasActiveDownloadConsumer(d.id)
     );
     const slots = Math.max(0, LOCAL_DOWNLOAD_CONCURRENCY - _activeDownloaders.size);
@@ -3824,6 +3829,8 @@ module.exports = {
     _remoteDepIds, // MPI-481 — exported for unit test only; never mutate outside tests
     _remoteInstallQueue, // MPI-690 — exported for unit test only; never mutate outside tests
     _pumpRemoteInstalls, // MPI-690 — exported for unit test (concurrency cap refill)
+    _startPendingDeps, // MPI-513 — exported for unit test (local pump skips Pod records)
+    _activeDownloaders, // MPI-513 — exported for unit test only; never mutate outside tests
     _onRemoteStreamClosed, // MPI-691 — exported for unit test (restart recovery)
     _recoverOrphanedRemoteInstalls, // MPI-691 — exported for unit test (re-issue bound)
     _failOutstandingRemoteDeps, // MPI-539 — exported for unit test (abandon-loudly path)
