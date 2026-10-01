@@ -530,15 +530,14 @@ export const RECOMMENDED_REMOTE_MODELS = {
         // `.agents/mpi-kanban/tasks/MPI-916/validation.md` § 2f (Qwen3.6: § 4). `perChat` is USD per
         // conversation (suite cost / conversations), fixed at test time, not a live price.
         // `suiteHash` (MPI-941 Phase 12) = `agentBench.suiteHash()` of the cases it ran; a score without one,
-        // or with another, reads "older tests" in Settings. DeepSeek: 28 cases x3, 84/84, $0.3038 (MPI-941
-        // validation.md § Phase 7 fix).
+        // or with another, reads "older tests" in Settings. Re-scored 2026-10-01 on the 34-case suite (MPI-965
+        // validation.md): DeepSeek x3 = 30/34 strict (passes 33, 32, 33; was 28/28 x3 on 28 cases), $0.3538.
         { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576, reasoningEffort: 'low',
-            agentTest: { passed: 28, cases: 28, runs: 3, perChat: 0.0036, suiteHash: '4891b5390518' } },
-        // Re-scored 2026-09-29 on the 28-case suite by Fabio's own "Benchmark this model" run: 25/28, $0.20
-        // (MPI-941 validation.md). Was 19/23 x3 (MPI-912 § 6), where 23/23 on one run fell to 19/23 on three.
-        { id: 'Qwen/Qwen3.6-35B-A3B', jobs: [], agentTest: { passed: 25, cases: 28, runs: 1, perChat: 0.0071, suiteHash: '4891b5390518' } },
-        // Re-scored 2026-09-29 on the 28-case suite (was 18/23): $0.0541, ~15 min (MPI-941 validation.md).
-        { id: 'openai/gpt-oss-120b', jobs: [], agentTest: { passed: 19, cases: 28, runs: 1, perChat: 0.0019, suiteHash: '4891b5390518' } },
+            agentTest: { passed: 30, cases: 34, runs: 3, perChat: 0.0035, suiteHash: '38728db81118' } },
+        // 31/34 x1, $0.2165 (was 25/28 on 2026-09-29, 19/23 x3 on MPI-912 § 6).
+        { id: 'Qwen/Qwen3.6-35B-A3B', jobs: [], agentTest: { passed: 31, cases: 34, runs: 1, perChat: 0.0064, suiteHash: '38728db81118' } },
+        // 31/34 x1, $0.0730 (was 19/28 on 2026-09-29).
+        { id: 'openai/gpt-oss-120b', jobs: [], agentTest: { passed: 31, cases: 34, runs: 1, perChat: 0.0021, suiteHash: '38728db81118' } },
         // Qwen3-VL-30B-A3B lost its `agent` flag on 2026-09-25 (MPI-912, Fabio): 7/22 on the
         // agent suite. It carried "less censorship" from ONE refusal test (2026-09-18) and was
         // never run through the suite. An agent flag needs the suite, whatever else a model does.

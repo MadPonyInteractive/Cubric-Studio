@@ -4,6 +4,17 @@ Verify mode: user-ux for Phase 3 only; the Parallel Batch and Phase 2 self-verif
 
 ## Evidence
 
+- 2026-10-01 (session c524b7af) FABIO'S LIVE CHECK PASSED: his granite4.1:8b in-app share (14/34, RTX 4060 Ti)
+  showed on bench.cubric.studio. Our DeepInfra runs re-scored on the 34-case suite (`38728db81118`, his yes,
+  $0.64 of a $0.80 cap): DeepSeek-V4-Flash-0731 x3 = 30/34 strict (passes 33/32/33; 1-of-3 misses on ask-first,
+  look-refusal, options-ideas, routine-in-capabilities), Qwen3.6-35B-A3B 31/34, gpt-oss-120b 31/34. Stamped into
+  `RECOMMENDED_REMOTE_MODELS.deepinfra` (`node --test tests/llm-connection tests/bench-community
+  tests/agent-bench` 43/43, eslint clean). The five runs were posted through `POST /v1/runs` with the app's own
+  `buildRecord`, plus the 2026-09-25 22-case gemma4:12b and ornith:9b logs (MPI-912 research) under label
+  `0c126f62b69a`, app 1.6.1. Worker (mpi-ci 77ae463, 0751542, 9a9deb3): lede says some runs are ours and drops
+  the hard-coded 28; newer suites (by app version) replace a model's older runs, Ollama only on the same GPU;
+  one table per provider with its most-failed tests underneath. Worker tests 46/46. Deploys are Fabio's.
+
 - 2026-09-29 ~11:00 FABIO'S LOOK: in his own app (restarted on the batch code) Settings > Remote > Benchmark
   this model confirm step on DeepInfra (not run): tickbox, its hint, the bench hint and "See everyone's results"
   - "1. Yeah, it looks good" (screenshots in session 4a2a917e), plus the agent-model dropdown (scores + cost).
