@@ -50,7 +50,8 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [x] **Website revamp — MPI-973** DONE 2026-09-29 (built, Fabio signed off, `a34d787ad`). Held
   unpublished: **MPI-983** publishes cubric.studio AND docs.cubric.studio the moment 2.0 is
   released (docs first, `e526d10fa`) — a CUT step now
-- [ ] **Docs website** — built by Fabio's agent; publishes with MPI-983 at the cut. NOT finished
+- [ ] **Docs website** — built by Fabio's agent; publishes with MPI-983 at the cut. **Fabio
+  2026-10-01: its session is almost finished, small adjustments only.** NOT finished
   (checked 2026-09-30): Docs-repo card MPI-19 is `doing`, branch `docs-2.0` last commit 2026-09-29;
   3 items left — re-audit the rewritten pages, a Routines page (waits on MPI-970), Slice 7 claim audit
 - [ ] **In-app agent** — Fabio has an agent on what is left. MPI-941 (umbrella 2) itself closed 2026-09-29 (`f622892db`): check its UNRELEASED line landed (Gate C) and which card holds the rest
