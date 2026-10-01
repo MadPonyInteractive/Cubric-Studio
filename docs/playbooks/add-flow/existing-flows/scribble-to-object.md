@@ -179,6 +179,9 @@ shape more closely and integrates worse, which is the same axis the deleted "Fol
 drawing" slider rode, reappearing as a model choice; its failure mode is the worst one
 available. Cost accepted: a 4B-only user downloads 9B, offset by dropping SDXL entirely.
 
+The slot also lists `klein-9b-cloud` and `nano-banana-2-lite-cloud` (MPI-918): they run the
+edit stage at DeepInfra and do not reopen this arm. See [../cloud-edit.md](../cloud-edit.md).
+
 ## The prompt
 
 Built as `MpiText(prefix) + Input_Positive + MpiText(guardrails)` through two

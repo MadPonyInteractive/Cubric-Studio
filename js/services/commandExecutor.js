@@ -2006,7 +2006,7 @@ export function runCommand(payload) {
         if (cloudEdit?.pass === 1 || cloudEdit?.pass === 2) {
             try {
                 if (cloudEdit.pass === 1) {
-                    workflow = cloudEditPass1(workflow, cloudEdit.spec);
+                    workflow = cloudEditPass1(workflow, cloudEdit.spec, params);
                 } else {
                     workflow = cloudEditPass2(workflow, cloudEdit.spec, cloudEdit);
                     params[CLOUD_RESULT_TITLE] = cloudEdit.image;

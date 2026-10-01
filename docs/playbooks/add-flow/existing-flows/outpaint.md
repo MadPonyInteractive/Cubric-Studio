@@ -8,7 +8,7 @@ user added, and the original pixels come back untouched. The portable half — t
 |---|---|
 | id / op | `outpaint` / `flowOutpaint` |
 | graph | `comfy_workflows/flow_outpaint.json` (raw: `raw/flow_outpaint.json`) |
-| models | `[['klein-9b']]` — baked, nothing injected |
+| models | `[['klein-9b', 'klein-9b-cloud', 'nano-banana-2-lite-cloud']]` — 9B baked, nothing injected; the cloud ids swap the edit stage ([../cloud-edit.md](../cloud-edit.md), MPI-918) |
 | deps | `ComfyUI-Mickmumpitz-Nodes` (ComposeColorMatch) |
 | steps | 01 Inputs · 02 Frame (`kind: 'crop'`) · 03 Generate |
 | controls | one optional prompt, `Input_Positive` |

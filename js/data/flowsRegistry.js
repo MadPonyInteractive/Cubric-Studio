@@ -1421,7 +1421,8 @@ export const FLOWS = [
         video: 'flow-outpaint.mp4',
         description: 'Extend an image past its edges. Choose the shape you want, drag the frame out '
             + 'over the sides you want filled, and say what should appear there if you like. Your '
-            + 'own pixels are kept exactly as they were. Runs on FLUX.2 Klein 9B.',
+            + 'own pixels are kept exactly as they were. Runs on FLUX.2 Klein 9B, or on a cloud '
+            + 'model with your DeepInfra key.',
         // The graph bakes 9B's transformer + encoder, so there is nothing to inject. The two
         // cloud ids (MPI-918) run its edit stage at DeepInfra instead, as on Scribble; Nano
         // Banana fits because this edit takes ONE reference.

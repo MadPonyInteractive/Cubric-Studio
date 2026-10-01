@@ -51,7 +51,7 @@ test('pass 2 swaps the decode for the fitted cloud picture and drops the local b
 });
 
 // Object Stamp: two references, the second chosen by `Input_Mode` (220) as the graph's own
-// `Ref2_Select` chooses it. The pass reads the mode the graph was INJECTED with.
+// `Ref2_Select` chooses it. The pass reads the mode the run SENDS (its params), else the graph's.
 const STAMP = require(path.join(__dirname, '..', 'comfy_workflows', 'flow_object_stamp.json'));
 const STAMP_SPEC = { input: '211', input2: { mode: '220', 1: '106', 2: '201' }, prompt: '185', output: '168' };
 const stampIn = (mode) => ({ ...STAMP, 220: { ...STAMP['220'], inputs: { ...STAMP['220'].inputs, int: mode } } });
@@ -70,6 +70,17 @@ for (const [mode, ref2, name] of [[1, '106', 'Auto: the stamped crop'], [2, '201
         for (const id of ['1', '2', '185', '220', '223', ref2]) assert.ok(g[id], `node ${id} kept`);
     });
 }
+
+// The REAL run: the graph still carries its baked `int: 1` when pass 1 is built, because
+// `Input_*` params are injected later, by title, inside runWorkflow. The run's params decide.
+test('Object Stamp pass 1 reads the mode from the run\'s params, not the baked graph', async () => {
+    const { cloudEditPass1, CLOUD_TAPS } = await load();
+    assert.equal(STAMP['220'].inputs.int, 1, 'the graph bakes Auto');
+    const g = cloudEditPass1(STAMP, STAMP_SPEC, { input_mode: 2 });
+    assert.deepEqual(g[CLOUD_TAPS.input2].inputs.images, ['201', 0], 'Manual sends the clean object');
+    assert.deepEqual(cloudEditPass1(STAMP, STAMP_SPEC, {})[CLOUD_TAPS.input2].inputs.images, ['106', 0],
+        'no mode param: the baked mode');
+});
 
 test('Object Stamp pass 1 refuses a mode it has no image two for', async () => {
     const { cloudEditPass1 } = await load();

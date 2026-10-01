@@ -64,10 +64,17 @@ function _assertSpec(workflow, spec, keys) {
     }
 }
 
-/** The node `input2` names in THIS run: a mode-keyed one reads the mode the graph was injected with. */
-function _input2(workflow, ref) {
+/**
+ * The node `input2` names in THIS run. A mode-keyed one reads the run's `params` by the mode
+ * node's title, the match runWorkflow injects with: the graph still holds its BAKED value when
+ * the passes are built, so reading the graph alone always picks the baked mode.
+ */
+function _input2(workflow, ref, params) {
     if (ref == null || typeof ref !== 'object') return ref == null ? null : String(ref);
-    const mode = workflow[String(ref.mode)]?.inputs?.int;
+    const node = workflow[String(ref.mode)];
+    const title = (node?._meta?.title || '').toLowerCase();
+    const key = Object.keys(params).find(k => k.toLowerCase() === title);
+    const mode = key !== undefined ? params[key] : node?.inputs?.int;
     const id = ref[String(mode)];
     if (!id) throw new Error(`cloudEdit.input2 has no node for mode ${mode} of node ${ref.mode}`);
     return String(id);
@@ -78,13 +85,14 @@ const _show = (id) => ({ class_type: 'PreviewImage', inputs: { images: [id, 0] }
 /**
  * Pass 1: the graph up to the edit stage, tapped. Every original output is gone, so nothing
  * this pass makes can land as a card.
- * @param {Object} workflow - API-format graph, already injected
+ * @param {Object} workflow - API-format graph, its op injector applied
  * @param {{input: string, prompt: string, input2?: (string|Object)}} spec
+ * @param {Object} [params] - the run's title-keyed params, still to be injected
  * @returns {Object} a new graph
  */
-export function cloudEditPass1(workflow, spec) {
+export function cloudEditPass1(workflow, spec, params = {}) {
     _assertSpec(workflow, spec, ['input', 'prompt']);
-    const input2 = _input2(workflow, spec.input2);
+    const input2 = _input2(workflow, spec.input2, params);
     if (input2 && !workflow[input2]) throw new Error(`cloudEdit.input2 names node ${input2}, which this graph does not have`);
     const out = _only(workflow, _ancestors(workflow, [spec.input, spec.prompt, ...(input2 ? [input2] : [])]));
     out[CLOUD_TAPS.input] = _show(String(spec.input));
