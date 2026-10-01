@@ -718,6 +718,11 @@ function installProbe(modelId, o = {}) {
     };
 }
 
+// A create REFUSAL rents nothing, so a spec with no alternative card (the CPU download
+// Pod) waits it out on its own clock instead of dying: ~10 minutes of patience.
+const CPU_REFUSAL_LIMIT = 10;
+const CPU_REFUSAL_BACKOFF_MS = 60 * 1000;
+
 /**
  * Create a Pod and REPLACE IT if its wrapper never answers.
  *
@@ -756,9 +761,21 @@ async function createPodWithRetry(spec, label, readyMs, attempts = 3, nextGpu = 
         }
         if (made && made.error) {
             log(`  ⚠ create refused: ${made.message || made.error}`);
+            // No alternative card (the CPU Pod passes no `nextGpu`): dying on the FIRST
+            // refusal aborted a whole 37-op smoke on a transient EU-RO-1 CPU stock-out,
+            // 2026-09-07, before a byte was rented. Wait and re-ask (ported from the 1.5.0
+            // release line, 3d1126f94).
+            if (!nextGpu) {
+                if (++refusals > CPU_REFUSAL_LIMIT) {
+                    die(`${label}: refused ${refusals} times over ~${Math.round(CPU_REFUSAL_LIMIT * CPU_REFUSAL_BACKOFF_MS / 60000)} min — ${DATACENTER} has no capacity for this spec right now. Nothing was rented.`);
+                }
+                log(`  no other card exists for this spec — waiting ${CPU_REFUSAL_BACKOFF_MS / 1000}s for capacity (refusal ${refusals}/${CPU_REFUSAL_LIMIT}; nothing rented, no attempt spent)`);
+                await sleep(CPU_REFUSAL_BACKOFF_MS);
+                continue;
+            }
             // --wait: nextGpu waits for stock, so refusals are uncapped — each one is free.
-            if (!nextGpu || (!WAIT_S && ++refusals > GPU_ORDER.length)) {
-                die(`${label}: ${refusals > GPU_ORDER.length ? 'every preferred card refused a create' : 'create refused'} — ${made.message || made.error}`);
+            if (!WAIT_S && ++refusals > GPU_ORDER.length) {
+                die(`${label}: every preferred card refused a create — ${made.message || made.error}`);
             }
             const g = await nextGpu(cur.gpuTypeId);
             if (!g) die(`${label}: create refused and no other preferred card is available — ${made.message || made.error}`);
@@ -2082,16 +2099,35 @@ async function main() {
             + ` now PASS ${final.counts.pass} · SKIP ${final.counts.skip} · FAIL ${final.counts.fail} across ${final.results.length} ops.`);
     }
 
-    if (!flag('keep-volume')) {
-        log(`\nVolume ${volume.id} (${volume.size} GB): keep ≈ $20/month · delete = ~${set.totalGb.toFixed(0)} GB re-downloaded next run (hours, pennies).`);
-        const rl = createInterface({ input: process.stdin, output: process.stdout });
-        const ans = (await rl.question('Delete the volume? [y/N] ')).trim().toLowerCase();
-        rl.close();
-        if (ans === 'y') { await app(`/runpod/volumes/${volume.id}`, { method: 'DELETE' }); log('  deleted.'); }
-        else log('  kept.');
-    }
+    // THE POD DIES FIRST, BEFORE ANY PROMPT. It used to be the other way round, and that
+    // ordering leaked two GPU Pods on 2026-09-07: run the smoke as a background/headless
+    // job — which is the documented way to run it, because guard-gpu wants it wrapped in
+    // gpu_lease and waiting should cost no tokens — and `rl.question` below never returns,
+    // so execution simply stopped at the prompt and the delete never ran. The process
+    // still exited 0, so nothing anywhere said a rental had been left billing.
+    //
+    // The Pod is pure cost with no keep-case, so it needs no question and must not sit
+    // behind one. The volume is the only real decision here, and a decision is allowed to
+    // block; a rented GPU is not.
     await app('/remote/pod/delete-active', { method: 'POST' }).catch(() => log('  ⚠ could not delete the Pod — check RunPod.'));
     _podLive = false;
+
+    if (!flag('keep-volume')) {
+        // Non-interactive is the NORMAL case, not the exception. Without a TTY there is
+        // nobody to answer, so keep the volume and say so rather than hanging on a
+        // question no one will read.
+        if (!process.stdin.isTTY) {
+            log(`\nVolume ${volume.id} (${volume.size} GB) kept — no TTY to ask on.`);
+            log(`  Delete it yourself if you want it gone, or re-run with --keep-volume to silence this.`);
+        } else {
+            log(`\nVolume ${volume.id} (${volume.size} GB): keep ≈ $20/month · delete = ~${set.totalGb.toFixed(0)} GB re-downloaded next run.`);
+            const rl = createInterface({ input: process.stdin, output: process.stdout });
+            const ans = (await rl.question('Delete the volume? [y/N] ')).trim().toLowerCase();
+            rl.close();
+            if (ans === 'y') { await app(`/runpod/volumes/${volume.id}`, { method: 'DELETE' }); log('  deleted.'); }
+            else log('  kept.');
+        }
+    }
 
     // The MERGED counts, not this run's: the exit code answers "is the recorded matrix
     // green?", which is the same question release:check asks of the file just written.

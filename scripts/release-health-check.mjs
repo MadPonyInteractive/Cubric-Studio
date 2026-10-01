@@ -605,13 +605,30 @@ async function checkUpdateEvidence(appVersion) {
     fail(`update-evidence.json records toVersion ${to || '(missing)'}, but this release is ${appVersion} - that run tested a different build.`);
   }
 
+  // The source install has to be the OLDEST install this bundle claims to serve, which
+  // depends on what the bundle is. A FULL bundle (manifest fromVersion null) claims every
+  // install, so a one-behind test proves nothing and it must span a gap. A DELTA claims
+  // exactly one install - its own fromVersion - so that IS the whole of what it promises,
+  // and demanding a two-behind test of it asks for a run that cannot legitimately pass.
+  // Recorded from the bundle's own manifest, not inferred, so the evidence says which
+  // shape it tested (MPI-709, 2026-09-08).
+  const hasBundleFrom = Object.prototype.hasOwnProperty.call(evidence, 'bundleFromVersion');
+  const bundleFrom = evidence.bundleFromVersion == null
+    ? null
+    : String(evidence.bundleFromVersion).replace(/^v/, '');
   const from = String(evidence.fromVersion || '').replace(/^v/, '');
+
+  if (!hasBundleFrom) {
+    fail("update-evidence.json does not record bundleFromVersion - the fromVersion field of the bundle's own update-manifest.json (null for a FULL bundle, a version for a delta). Without it the check cannot tell which installs the bundle claims to serve, and so cannot tell what a fair test of it is.");
+  }
   if (!from) {
-    fail('update-evidence.json does not record fromVersion - the version of the install that was updated - so it cannot prove the update spanned a gap.');
+    fail('update-evidence.json does not record fromVersion - the version of the install that was updated.');
   } else if (!prior.includes(from)) {
     fail(`update-evidence.json says the source install was ${from}, which is not a published version. Test from a release users actually hold: ${prior.join(', ')}.`);
-  } else if (compareVersions(from, oneBehind) >= 0) {
-    fail(`update-evidence.json tested an update from ${from}, only ONE release behind ${appVersion}. A one-behind update passes even when the applier is broken - a delta's fromVersion IS that install, the single case it fits. Re-run from ${twoBehind} or older (MPI-709).`);
+  } else if (hasBundleFrom && bundleFrom === null && compareVersions(from, oneBehind) >= 0) {
+    fail(`update-evidence.json tested a FULL bundle from ${from}, only ONE release behind ${appVersion}. A one-behind update passes even when the applier is broken, and a FULL bundle claims to serve every older install too. Re-run from ${twoBehind} or older (MPI-709).`);
+  } else if (hasBundleFrom && bundleFrom !== null && from !== bundleFrom) {
+    fail(`update-evidence.json tested from ${from}, but this is a DELTA bundle whose manifest fromVersion is ${bundleFrom} - the only install it can be applied to. Test it from ${bundleFrom}. Every older install is NOT served by this release and must be told so in the release body, because their installed applier predates the fromVersion guard and will apply this delta silently (MPI-709).`);
   }
 
   if (evidence.generation?.ok !== true || !String(evidence.generation?.artifact || '').trim()) {
@@ -623,9 +640,30 @@ async function checkUpdateEvidence(appVersion) {
   }
 }
 
+// The released Pod image pin must never go BACKWARDS from the last public release. 1.5.0
+// was cut on its own branch and set v0.23.0 there while master kept v0.21.0, so a release
+// cut from master would have sent every user's Pod to an OLDER ComfyUI (MPI-595, 2026-10-01).
+async function checkPodImagePin() {
+  const latest = (git(['tag', '--list', 'v*']) || '').split('\n').map((t) => t.trim())
+    .filter((t) => /^v\d+\.\d+\.\d+$/.test(t)).sort(compareVersions).pop();
+  if (!latest) return;
+  const file = 'routes/remotePodLifecycle.js';
+  const shippedSrc = git(['show', `${latest}:${file}`]) || '';
+  const ourSrc = await fs.readFile(rel(file), 'utf8');
+  for (const name of ['POD_IMAGE_VERSION', 'POD_IMAGE_VERSION_CPU']) {
+    const pin = (src) => (new RegExp(`const ${name} = '([^']+)'`).exec(src) || [])[1];
+    const shipped = pin(shippedSrc);
+    const ours = pin(ourSrc);
+    if (shipped && ours && compareVersions(ours, shipped) < 0) {
+      fail(`${file} ${name} is ${ours}, older than the ${shipped} that ${latest} shipped. Released users would get an older Pod image - build the release image at the current lock and pin it here.`);
+    }
+  }
+}
+
 async function main() {
   try {
     const { appVersion, schemaVersion } = await checkVersions();
+    await checkPodImagePin();
     await checkReleaseNotes(appVersion);
     await checkSchema(schemaVersion);
     await checkOperations();
