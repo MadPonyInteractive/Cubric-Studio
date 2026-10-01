@@ -100,3 +100,5 @@ Verify mode: user-ux at Phase 4 (Fabio's look at stitched results); Phases 1-3 a
   slots: Scribble Klein + Nano Banana, Draw It In Klein, Outpaint Klein, Object Stamp none;
   pinned by one test. `npm test` 2662 / 0 fail; eslint clean. ALL LOOKS DONE ("we got our
   answers"). Left: commit, CI, done move, MPI-985.
+- 2026-10-02 CI Tests run 36937756046 on `5dd3e2c2b` (the final code commit): success, unit + 4 desktop
+  shards. Closes the card.

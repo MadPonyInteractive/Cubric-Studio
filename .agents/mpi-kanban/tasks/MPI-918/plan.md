@@ -110,7 +110,9 @@ Phases 3-4.
 
 ## Current State
 
-2026-10-01 (latest, session ff52b7be, at handoff): EVERY LOOK DONE. Final cloud slots (Fabio):
+2026-10-01 (session b487ee6b): CLOSED on CI green for `5dd3e2c2b`; MPI-985 closed with it.
+
+2026-10-01 (session ff52b7be, at handoff): EVERY LOOK DONE. Final cloud slots (Fabio):
 Scribble Klein cloud + Nano Banana; Draw It In Klein cloud; Outpaint Klein cloud; Object Stamp
 none. NEXT: confirm CI green on this session's commit, then the done move in its own board
 commit, then close MPI-985 (umbrella: check its other members are done first). Then MPI-595.

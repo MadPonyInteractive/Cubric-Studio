@@ -31,6 +31,8 @@
 - **2026-10-01 (Agent 80): MPI-910 CLOSED.** Relay live, privacy page live (`afb9258`), Seedance
   ref2v + end frame shipped (`8f4eb0cbc`, CI green), one paid live run ($0.332) proved the relay
   fetch. **Next on this umbrella: MPI-1006** (Fabio's pick 2026-10-01), then MPI-918.
+- **2026-10-01 (session b487ee6b): UMBRELLA CLOSED.** MPI-1006 closed (`24643e703`), MPI-918
+  closed on CI green for `5dd3e2c2b`. Every member done; `validation.md` lists each closing commit.
 
 ## Plan Drift
 
