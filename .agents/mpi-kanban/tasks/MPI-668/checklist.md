@@ -19,5 +19,5 @@ history; the image tag is the same signal without a Pod round trip, and it has n
 - [x] `_isPodImageStale(pod, want)` pure + route test in `tests/runpod-remote-hardening.test.cjs`
 - [x] reconnect: stale image -> delete + create fresh; unreadable -> warm resume (fail open)
 - [x] `docs/runpod-remote-engine.md` line on the reconnect rule
-- [ ] Live leg: folded into MPI-595 B3 at the cut (a real 1.5.0 Pod, then the 2.0 update, then Connect); pennies, Fabio's yes there;
-  confirms v2 GET `/pods/{id}` returns `image`
+- [x] Live leg (2026-10-01, Agent 86, not MPI-595 B3 after all): a real 1.5.0 Pod, then the update to a master
+  build, then Connect -> recreated on the current image, same volume; v2 GET `/pods/{id}` returns `image`. See validation.md
