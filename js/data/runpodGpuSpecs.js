@@ -93,7 +93,8 @@ export function stockBars(card) {
  * filtered; the SELECTED card always shows (MPI-180: a Pod may be running on it even
  * when its stock just flipped). Everything else needs stock unless auto-retry is on
  * (then Connect waits for it, MPI-110), and more than VIDEO_MIN_VRAM_GB with Video on.
- * Sorted by VRAM, then price, so a tile never jumps when its stock changes.
+ * Sorted fastest first by measured Gen speed (Fabio 2026-10-01), unbenchmarked cards after,
+ * then by VRAM, then price. Nothing here reads stock, so a tile never jumps when it changes.
  *
  * @param {Array<{id:string, vramGb?:number, price?:number|null, inStock?:boolean, cpu?:boolean}>} cards
  * @param {{autoRetry?:boolean, video?:boolean, selectedId?:string|null}} opts
@@ -101,7 +102,9 @@ export function stockBars(card) {
 export function visibleGpuCards(cards, { autoRetry = false, video = false, selectedId = null } = {}) {
     const keep = (c) => c.cpu || c.id === selectedId
         || ((autoRetry || c.inStock) && (!video || (c.vramGb || 0) > VIDEO_MIN_VRAM_GB));
+    const secs = (c) => gpuGenSecs(c.id) ?? 1e9;   // not benchmarked: after every measured card
     const order = (a, b) => (b.cpu ? 1 : 0) - (a.cpu ? 1 : 0)
+        || secs(a) - secs(b)
         || (a.vramGb || 0) - (b.vramGb || 0)
         || (a.price ?? Infinity) - (b.price ?? Infinity);
     return (cards || []).filter(keep).sort(order);

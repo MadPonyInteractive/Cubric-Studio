@@ -17,6 +17,24 @@ test('in-stock only by default; CPU first, then VRAM, then price', async () => {
     assert.deepEqual(ids, ['__cpu__', 'small-cheap', 'small-low', 'mid-high']);
 });
 
+test('fastest first by measured Gen speed; unbenchmarked cards after, CPU still leads', async () => {
+    const { visibleGpuCards } = await import('../js/data/runpodGpuSpecs.js');
+    const cards = [
+        { id: 'NVIDIA L4', vramGb: 24, price: 0.49, inStock: true },
+        { id: 'NVIDIA GeForce RTX 4090', vramGb: 24, price: 0.74, inStock: true },
+        { id: 'NVIDIA RTX PRO 6000 Blackwell Server Edition', vramGb: 96, price: 2.09, inStock: true },
+        { id: '__cpu__', cpu: true, inStock: true },
+        { id: 'NVIDIA GeForce RTX 5090', vramGb: 32, price: 0.99, inStock: true },
+    ];
+    assert.deepEqual(visibleGpuCards(cards).map(c => c.id), [
+        '__cpu__',
+        'NVIDIA RTX PRO 6000 Blackwell Server Edition',
+        'NVIDIA GeForce RTX 5090',
+        'NVIDIA GeForce RTX 4090',
+        'NVIDIA L4',
+    ]);
+});
+
 test('auto-retry adds the out-of-stock cards (Connect waits for them)', async () => {
     const { visibleGpuCards } = await import('../js/data/runpodGpuSpecs.js');
     assert.ok(visibleGpuCards(CARDS, { autoRetry: true }).some(c => c.id === 'big-out'));

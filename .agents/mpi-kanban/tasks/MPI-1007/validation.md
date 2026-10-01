@@ -22,5 +22,13 @@
   (no app, no engine): bars green (`--accent-ok`), labelled "Gen speed", H100 SXM full bar,
   L4 and A100 PCIe show no bar, overlay note names the source.
 
-## Remaining
-- Fabio's eye test of the green bar and label in his app.
+## Eye test
+- 2026-10-01: Fabio opened the picker in his app with e4101ec96 loaded; the green Gen speed
+  bars rendered and read right ("RTX Pro 6000 is crazy"). He asked for fastest-first order.
+
+## Fastest-first order (follow-up, same card)
+- `visibleGpuCards` sorts by measured Gen speed after the CPU tile, unbenchmarked cards
+  after every measured one, then VRAM, then price. Static keys only, so stock changes never
+  move a tile.
+- `node --test tests/gpu-picker.test.cjs`: 8/8 pass, incl. the new order test (PRO 6000 SE,
+  5090, 4090, then the unbenchmarked L4; CPU first). Existing VRAM/price order tests unchanged.

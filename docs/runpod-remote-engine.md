@@ -115,7 +115,8 @@ component kept its old name, so "Settings" in a file name or an older card means
   RunPod's LTX-2.3 numbers. **Auto-retry** (= RunPod's All tab)
   and the **Min RAM** floor live in the overlay, not the panel; **Video** keeps cards over 24 GB.
   Tiles = the WHOLE Secure Cloud catalogue with this DC's stock (`catalogueCards`; the DC's own
-  list drops a sold-out card), filtered by `visibleGpuCards` (tests/gpu-picker.test.cjs). Stock is
+  list drops a sold-out card), filtered by `visibleGpuCards` and ordered fastest Gen speed first
+  (unbenchmarked cards after; CPU tile always leads) (tests/gpu-picker.test.cjs). Stock is
   read on open and on the overlay's Refresh, never polled.
 
 ## 2. Pod lifecycle (create-on-Connect + STOP-on-quit, delete-fallback)
