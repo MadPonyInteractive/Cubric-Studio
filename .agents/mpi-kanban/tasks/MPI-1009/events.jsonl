@@ -7,3 +7,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-1009", "at": "2026-10-01T11:02:20+01:00", "actor": "Agent 82", "reason": "Implementation item checked."}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1009", "at": "2026-10-01T11:02:20+01:00", "actor": "Agent 82", "reason": "107 tests green, eslint clean, live isolated-instance run: save/list/run/rename/delete over /mcp, new card on disk, seed untouched."}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1009", "at": "2026-10-01T11:02:20+01:00", "actor": "Agent 82", "changes": {"maturity": ["in-progress", "validating"]}, "reason": "Self-verified; awaiting commit + CI at close-out."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1009", "at": "2026-10-01T11:52:53+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 961b8599e (run 36850358494), claim audit 15/15 proven"}

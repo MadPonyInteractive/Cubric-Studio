@@ -19,9 +19,68 @@ members turn out to be the better unit, delete this umbrella instead.
 
 ## Current State
 
-Not started. MPI-544 is the only one that is not a standing defect: it was seen once during
-the 2026-08-11 download-Pod incident and has never reproduced, so it is carded rather than
-fixed — **no evidence, no speculative patch.**
+2026-10-01 (Agent 83): card in `doing`, Phase 0 investigation done (findings below), design
+briefed to Fabio — **no code changed yet; waiting on his go for the Phase 1 design.**
+MPI-544 is the only member that is not a standing defect: it was seen once during the
+2026-08-11 download-Pod incident and has never reproduced, so it is carded rather than fixed
+— **no evidence, no speculative patch.**
+
+## Phase 0 findings (2026-10-01, read of HEAD 6213881ce)
+
+The two writers are worse than "map vs store", and three of the gaps are new since MPI-320
+was written:
+
+1. **Three model-level writers, not two.** `_checkModelJobsComplete` (map) settles a model;
+   the reconciler's step 3 ALSO rolls a model to `done` and step 4 fails "orphans" — both
+   store-only, with no `download:complete`/`download:failed` broadcast and no word to the
+   transport. Concretely: a local model in `installing` (zips down, nodes extracting) has
+   every node dep `complete`, so the reconciler moves it `installing -> done` mid-extract.
+   That is MPI-317 F4's real root, and its F5 guard (`_setModelStatus` skips store writes
+   once terminal) only hides it.
+2. **The store's dep records are not shared.** `registerModelJob` REPLACES `_depJobs[depId]`
+   with a fresh record, but the map shares ONE dep object across every model job that uses
+   it (remote ATTACH, MPI-97). Two models on one weight: model A's store job keeps the old
+   record, which no transition ever reaches again — its snapshot dep sits `downloading`
+   forever. `transitionDep(depId)` only ever moves the newest record.
+3. **Map status vocabulary the store cannot hold:** model `complete` (store `done`) and
+   `idle` (disk-full refusal, set on a map job that is never registered and never deleted).
+4. **Pull readers depend on map retention.** `/comfy/downloads/status` is map-backed and the
+   map keeps finished jobs until cancel/uninstall. `scripts/smoke-workflows.mjs`
+   `installProbe` returns "not done" for an ABSENT job, so on the store (which prunes a done
+   job the moment disk truth confirms it) the smoke runner would wait out its 3 h budget.
+   The agent skill docs also say "track via /comfy/downloads/status".
+5. Scale: 53 map refs + ~38 status reads in `routes/downloadManager.js` (3,939 lines), both
+   engines; 36 test files exercise the module, 4 poke `_modelJobs`/`_depJobs` directly.
+
+## Phase 1 design (proposed, awaiting Fabio's go)
+
+- **D1 One record set.** The module-level maps go. The store's records ARE the job objects;
+  they carry the transport fields (url, localPath, sha256Expected, filename, error flags)
+  as plain data — the store stays I/O-free. `FileDownloader` keeps its `depJob` reference.
+- **D2 Shared dep records.** `registerModelJob` reuses a live dep record for the same depId
+  (attach) instead of replacing it; a model job's `deps[]` holds the shared objects. A
+  re-POST of a live model unions deps (today's map behaviour), never drops an in-flight one.
+- **D3 Status only through the store.** Every `x.status =` write goes; `_setModelStatus` /
+  `_setDepStatus` become thin store calls. `complete` -> `done` for models (the FE already
+  maps both). `idle` dies: the disk-full gates refuse BEFORE registering.
+- **D4 One model-level rollup.** `_checkModelJobsComplete` (reading store deps) is the only
+  thing that moves a model to a terminal state and broadcasts it. The reconciler settles
+  DEPS from truth and then calls an injected `onSettled` (that rollup) instead of
+  transitioning models itself; its orphan-fail goes through the same terminal path so the
+  user gets a real `download:failed` with a reason.
+- **D5 Pull endpoints** serialize the store (live bytes included, since it is one object).
+  Finished jobs: the smoke runner and agent docs learn "absent after seen = finished,
+  confirm with check-local". `scripts/smoke-workflows.mjs` is MPI-894's file — message its
+  owner, do not edit.
+- **Deferred, named:** retiring the remote stall-watchdog into the reconciler and the G6
+  local/remote adapter split. The watchdog is transport recovery (SSE reconnect, orphan
+  re-issue, remote-inactive fail), not a status writer once D3 lands; folding it in is a
+  separate refactor with its own risk. MPI-320 keeps both as follow-ups.
+
+**Verify:** the 36 module tests + `install-store` / `install-reconciler` green; new tests for
+D2 (two models on one dep, both settle) and D4 (reconciler never rolls an `installing` job);
+live LOCAL install / cancel / resume / shared-dep install on an isolated instance; live
+REMOTE resume on a Pod (costs money: price first).
 
 ## Why one card and not three
 

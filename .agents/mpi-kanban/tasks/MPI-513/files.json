@@ -1,0 +1,18 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/downloadManager.js",
+    "routes/install/installStore.js",
+    "routes/install/reconciler.js",
+    "routes/downloadCompletion.js",
+    "js/services/downloadService.js",
+    "docs/download-manager.md",
+    "tests/download-completion.test.cjs",
+    "tests/install-store.test.cjs",
+    "tests/install-reconciler.test.cjs",
+    "tests/download-mode-pod-guards.test.cjs",
+    "tests/remote-disk-gate-unknown-state.test.cjs",
+    "tests/remote-restart-reissue.test.cjs",
+    "tests/remote-install-concurrency.test.cjs"
+  ]
+}

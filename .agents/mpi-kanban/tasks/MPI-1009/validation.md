@@ -32,3 +32,10 @@ profile; ComfyUI 48188 queue empty before; Fabio's :3000 never driven), over its
 none, and Fabio's app is off limits) - covered by the unit test, through the same `askPrice`
 `generate` uses. The live run finished inside the 3 s early window, so the `running` ->
 `wait_generation` leg and CANNOT_CANCEL were proven by unit test only.
+
+## 2026-10-01, Agent 83: CI green
+
+`04918aeb4` + `ec94754a8` reached origin inside a peer's push. Their own run (36848159783 on
+`de82365be`) failed only on `crop-resize-output.spec.js` (MPI-1004's spec, peer-owned); unit
+job green there. Master run **36850358494 on `961b8599e` is green** (unit + desktop 1-4), and
+both MPI-1009 commits are ancestors of it (`git merge-base --is-ancestor`).
