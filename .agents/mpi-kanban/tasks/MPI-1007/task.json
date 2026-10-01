@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1007",
+  "title": "GPU picker: a measured Gen speed bar replaces the spec-sheet TFLOPS bar",
+  "description": "The picker's speed bar is vendor spec-sheet FP16 TFLOPS, which misranks cards for ComfyUI (H100 SXM at 990 TFLOPS loses SDXL to a 5090 at 419; A100 at 312 is slower than a PRO 4500 at 203). RunPod publishes measured ComfyUI seconds per image per card (runpod.io/gpu-compare, Secure Cloud, Jul-Sep 2026); neither REST v2 nor GraphQL carries any speed field. Krea2 is not benchmarked; FLUX.2 Klein 9B bf16 is the closest proxy (similar size, Flux lineage, fits 24 GB like our fp8 Krea2), so the bar ranks cards by it. Fabio 2026-10-01: option A, green bar (was --accent-frost, which reads as the Audio mascot's colour), labelled Gen speed. A Video bar from RunPod's LTX-2.3 numbers follows when they publish (Coming Soon on 2026-10-01). Cards RunPod did not benchmark show no bar.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-01T08:54:54+01:00",
+  "updated_at": "2026-10-01T08:55:35+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

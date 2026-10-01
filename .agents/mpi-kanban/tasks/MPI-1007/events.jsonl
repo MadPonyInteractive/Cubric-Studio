@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1007", "at": "2026-10-01T08:54:54+01:00", "actor": "claude", "column": "todo", "title": "GPU picker: a measured Gen speed bar replaces the spec-sheet TFLOPS bar"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1007", "at": "2026-10-01T08:55:35+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting: Klein 9B measured table, green bar"}

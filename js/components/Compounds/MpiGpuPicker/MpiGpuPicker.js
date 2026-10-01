@@ -6,7 +6,7 @@ import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiGpuTileGrid } from '../../Primitives/MpiGpuTileGrid/MpiGpuTileGrid.js';
 import { qs } from '../../../utils/dom.js';
 import {
-    VIDEO_MIN_VRAM_GB, gpuTflops, stockBars, visibleGpuCards,
+    VIDEO_MIN_VRAM_GB, gpuGenSecs, stockBars, visibleGpuCards,
 } from '../../../data/runpodGpuSpecs.js';
 
 const STOCK_WORD = ['Out of stock', 'Low stock', 'Medium stock', 'High stock'];
@@ -15,8 +15,9 @@ const STOCK_WORD = ['Out of stock', 'Low stock', 'Medium stock', 'High stock'];
  * MpiGpuPicker — the RunPod GPU overlay (MPI-894 1c), after RunPod's own deploy page.
  *
  * One tile per card: name, $/hr, VRAM, max GPUs per Pod, RunPod's three-bar stock
- * meter, and a spec-sheet speed bar. RunPod's "Available | All" tabs are our Auto-retry
- * switch (on = every card, Connect waits for an out-of-stock one), and a Video switch
+ * meter, and a Gen speed bar from RunPod's measured image times. RunPod's
+ * "Available | All" tabs are our Auto-retry switch (on = every card, Connect waits for an
+ * out-of-stock one), and a Video switch
  * keeps the cards with more than 24 GB VRAM. The system-RAM floor lives here too: it is
  * a Pod requirement, not a tile filter, because RunPod gives no per-card RAM.
  *
@@ -57,7 +58,7 @@ export const MpiGpuPicker = ComponentFactory.create({
                     </div>
                     <div class="mpi-gpu-picker__refresh" id="gpu-refresh"></div>
                 </div>
-                <p class="mpi-gpu-picker__note">Auto-retry: pick an out-of-stock card and Connect waits until it frees. Min RAM: every GPU Pod gets at least this much system RAM (0 = any host). Speed is spec-sheet FP16 compute, not measured.</p>
+                <p class="mpi-gpu-picker__note">Auto-retry: pick an out-of-stock card and Connect waits until it frees. Min RAM: every GPU Pod gets at least this much system RAM (0 = any host). Gen speed: RunPod's measured image times on each card (FLUX.2 Klein 9B, Sept 2026); no bar = not benchmarked.</p>
             </div>
             <div class="mpi-gpu-picker__body">
                 <div id="gpu-grid"></div>
@@ -125,20 +126,20 @@ export const MpiGpuPicker = ComponentFactory.create({
             emit('select', { id });
         });
 
-        function _item(card, maxTflops) {
+        function _item(card, bestSecs) {
             const selected = card.id === _selectedId;
             if (card.cpu) return { id: card.id, name: card.name, specs: card.note, selected };
             const bars = stockBars(card);
             const out = !card.inStock;
-            const tflops = gpuTflops(card.id);
+            const secs = gpuGenSecs(card.id);
             return {
                 id: card.id,
                 name: card.name || card.id,
                 price: typeof card.price === 'number' ? `$${card.price.toFixed(2)}/hr` : 'price unknown',
                 specs: `${card.vramGb} GB VRAM${card.maxCount ? ` · max ${card.maxCount}` : ''}`,
                 bars,
-                speed: tflops != null && maxTflops > 0 ? tflops / maxTflops : undefined,
-                speedText: tflops != null ? `${Math.round(tflops)} TFLOPS` : '',
+                speed: secs != null ? bestSecs / secs : undefined,   // fastest card = full bar
+                speedText: secs != null ? 'Gen speed' : '',
                 state: out ? 'Out of stock · Connect waits' : STOCK_WORD[bars],
                 selected,
                 available: !out,
@@ -149,9 +150,9 @@ export const MpiGpuPicker = ComponentFactory.create({
         function _render() {
             // Bars scale against every card passed in, not just the visible ones, so a
             // tile's bar does not grow when a filter hides the faster cards.
-            const maxTflops = Math.max(0, ..._cards.map(c => gpuTflops(c.id) || 0));
+            const bestSecs = Math.min(..._cards.map(c => gpuGenSecs(c.id) ?? Infinity));
             const shown = visibleGpuCards(_cards, { autoRetry: _autoRetry, video: _video, selectedId: _selectedId });
-            grid.el.setItems(shown.map(c => _item(c, maxTflops)));
+            grid.el.setItems(shown.map(c => _item(c, bestSecs)));
             emptyEl.classList.toggle('mpi-gpu-picker__empty--on', !shown.some(c => !c.cpu));
         }
 

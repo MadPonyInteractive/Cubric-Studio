@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/data/runpodGpuSpecs.js", "js/components/Compounds/MpiGpuPicker/MpiGpuPicker.js", "js/components/Primitives/MpiGpuTileGrid/MpiGpuTileGrid.css", "tests/gpu-picker.test.cjs", "docs/runpod-remote-engine.md"] }

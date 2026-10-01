@@ -63,10 +63,12 @@ test('stock meter: out of stock is 0 bars whatever the level says', async () => 
     assert.equal(stockBars({ inStock: false, stock: 'High' }), 0);
 });
 
-test('speed table: finite numbers only, and a card with no row has no speed', async () => {
-    const { GPU_TFLOPS, gpuTflops } = await import('../js/data/runpodGpuSpecs.js');
-    for (const [id, v] of Object.entries(GPU_TFLOPS)) {
+test('gen speed table: finite seconds only, and a card RunPod did not benchmark has none', async () => {
+    const { GPU_GEN_SECS, gpuGenSecs } = await import('../js/data/runpodGpuSpecs.js');
+    for (const [id, v] of Object.entries(GPU_GEN_SECS)) {
         assert.ok(Number.isFinite(v) && v > 0, `${id}: ${v}`);
     }
-    assert.equal(gpuTflops('not a real card'), null);
+    assert.equal(gpuGenSecs('NVIDIA L4'), null);
+    // Measured order, not spec-sheet order: a PRO 6000 (500 TFLOPS) beats a B300 (2250).
+    assert.ok(gpuGenSecs('NVIDIA RTX PRO 6000 Blackwell Server Edition') < gpuGenSecs('NVIDIA B300 SXM6 AC'));
 });

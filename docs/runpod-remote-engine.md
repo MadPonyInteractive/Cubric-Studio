@@ -106,8 +106,13 @@ component kept its old name, so "Settings" in a file name or an older card means
   A refused catalogue read throws → the route answers 502.
   **The picker is an overlay (MPI-894 1c)**, `MpiGpuPicker` opened by **Choose GPU** in the
   Remote panel, after RunPod's deploy page: tiles show $/hr, VRAM, `maxCount`, a three-bar stock
-  meter and a spec-sheet speed bar (`GPU_TFLOPS` in `js/data/runpodGpuSpecs.js`, a hand-kept
-  table: a new RunPod card shows no bar until a row lands). **Auto-retry** (= RunPod's All tab)
+  meter and a green **Gen speed** bar (MPI-1007): `GPU_GEN_SECS` in `js/data/runpodGpuSpecs.js`,
+  RunPod's MEASURED FLUX.2 Klein 9B seconds per image (runpod.io/gpu-compare, Sept 2026), the
+  fastest card = a full bar. Neither RunPod API has a speed field, so it is hand-copied; a card
+  RunPod did not benchmark shows no bar. Klein stands in for Krea2 (not benchmarked; same size
+  class, fits 24 GB), so only the ranking carries over. Spec-sheet TFLOPS, the bar before it,
+  misranked cards (H100 SXM 990 TFLOPS lost SDXL to a 5090 at 419). A video bar waits on
+  RunPod's LTX-2.3 numbers. **Auto-retry** (= RunPod's All tab)
   and the **Min RAM** floor live in the overlay, not the panel; **Video** keeps cards over 24 GB.
   Tiles = the WHOLE Secure Cloud catalogue with this DC's stock (`catalogueCards`; the DC's own
   list drops a sold-out card), filtered by `visibleGpuCards` (tests/gpu-picker.test.cjs). Stock is

@@ -108,5 +108,5 @@
     display: block;
     height: 100%;
     width: calc(var(--fill, 0) * 100%);
-    background: var(--accent-frost);
+    background: var(--accent-ok);
 }
