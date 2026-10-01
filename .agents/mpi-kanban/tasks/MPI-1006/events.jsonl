@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1006", "at": "2026-10-01T07:22:24+01:00", "actor": "claude", "column": "todo", "title": "Seedance 2.0 Enhance: a ref2v recipe mode that keeps the @ reference tags"}

@@ -15,6 +15,9 @@
   - **MPI-918** - Cloud edit models inside image Flows. A new MpiNodes node calls the app's
     `/deepinfra/generate` behind the lazy `if_else` switch. Decided (Fabio 2026-09-25): Klein 9B
     cloud (new ModelDef) + Nano Banana on the one-reference Flows only. Local engine only.
+  - **MPI-1006** - Seedance 2.0 Enhance gains a `ref2v` recipe mode that keeps the `@` tags
+    (added 2026-10-01, NEW SCOPE after MPI-910: Enhance on ref2v fell back to t2v, which bans
+    them). Recipe + Cosmo's Seedance guide only; no paid render.
   - **MPI-856** - Run Cubric Studio with no local engine. `blockedByNoEngine()` gates six call
     sites, two of them project create/open. Audit first; never lift one gate alone (brief § Do not).
 - **Rules that bind every phase:** DeepInfra only, no second provider (Fabio 2026-09-25). Every
@@ -27,7 +30,7 @@
   test it locally only (Fabio's go 2026-09-30: no deploy, no cost).** Session spend: $1.235.
 - **2026-10-01 (Agent 80): MPI-910 CLOSED.** Relay live, privacy page live (`afb9258`), Seedance
   ref2v + end frame shipped (`8f4eb0cbc`, CI green), one paid live run ($0.332) proved the relay
-  fetch. **Next on this umbrella: MPI-918.**
+  fetch. **Next on this umbrella: MPI-1006** (Fabio's pick 2026-10-01), then MPI-918.
 
 ## Plan Drift
 
