@@ -84,9 +84,10 @@ THIS umbrella:
 - [ ] **MPI-894** remote GPU umbrella — v2 + 1b + 1c done. **Fabio 2026-10-01: MPI-668 IN**,
   MPI-541 / MPI-183 / MPI-349 OUT of 2.0 (reasons in MPI-894 plan.md). `publish-runtime.sh
   promote` stays a cut step
-  - [ ] **MPI-668** (`doing`): reconnect recreates a saved Pod on an old image (a 1.5.0 user's
-    saved Pod would resume the 1.5.0 image under 2.0). Code + test DONE 2026-10-01 (proven RED
-    without, `npm test` 2633/0); left: the live leg on a CPU Pod (pennies, Fabio's yes)
+  - [x] **MPI-668** CLOSED 2026-10-01 by Agent 86 (`d6bfdf2f4`): live leg passed on the Linux box
+    (1.5.0 Pod on v0.23.0-cpu -> in-place update to master -> Connect logged "recreating it",
+    delete 204, new Pod on the same volume ready in 28 s; v2 GET `/pods/{id}` carries `image`,
+    no `imageName`; < $0.01)
 - [ ] **NEW BREAKER 2026-10-01: release-line fixes missing from master.** 1.4.3/1.4.4/1.5.0 were
   cut from branch `1.5.0`; 34 of its commits are not on master as-is. Confirmed one: `18a9b9215`
   set released Pods to image `v0.23.0` (core 0.34.0); master still pins `v0.21.0`
@@ -190,9 +191,9 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     - [x] RunPod leg PASSED 01:3xZ (see A1 above). An earlier run polled v1's `desiredStatus`, was interrupted, and its `finally` deleted Pod + volume (404 / 200)
     - Spend: DeepInfra $0.018 image + one agent turn (<$0.01); RunPod two CPU Pods ~3.5 min total at $0.06/hr (~$0.004) + two 10-11 GB volumes for minutes. **Total ~$0.03 of the $0.25 cap**
     - The box keeps the updated test install at `~/b3/` with Fabio's two keys in its `user-data/` (app-level encrypted); reuse it for the cut-time run
-    - [ ] **Reconnect live leg at the cut (MPI-668 + `ec18c1086`), pennies:** a CPU Pod created
-      and left by the box's 1.5.0 install, update to 2.0, Connect -> recreated on the 2.0 image;
-      then kill the app with that Pod RUNNING, relaunch, Connect -> attached, not deleted
+    - [x] Reconnect recreate leg (MPI-668): DONE 2026-10-01 by Agent 86 on a master build (above)
+    - [ ] **RUNNING-attach leg (`ec18c1086`), pennies, offered to Agent 86 2026-10-01:** kill the
+      app with a Pod RUNNING, relaunch, Connect -> attached, not deleted
     - [ ] At the cut, on the REAL 2.0 bundle: also check `~/Documents/Cubric Vision` -> `Cubric Studio` rename. It did NOT happen on the rehearsal and must not: it runs only at app major >= 2 (`routes/shared.js:132`), and the rehearsal build is 1.6.2
 - [x] **B4** `npm test` and `npm run test:desktop` green — 2026-09-29: CI run 36497353233 on `804107f52` (last code commit; later ones are board-only) unit + desktop shards 1-4 all success; local `npm test` at HEAD 2215 pass / 0 fail / 2 skip. **Re-check at the cut** (code keeps landing)
 - [x] **B5** MPI-656 Phase 1 — CLEARED by reading 2026-09-27: every YAML writer (`comfy.js:855/864/934`, `engine.js:671/678`) goes through `writeExtraModelPathsYaml` -> `setRoots`, so `model_roots.json` cannot drift from the YAML; the yaml-only seed and the both-equal rule are tested (`tests/model-roots.test.cjs:213,252`)
