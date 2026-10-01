@@ -49,7 +49,8 @@ user_flows/<id>/          the folder name MUST equal the manifest id
 `requiredDeps`, `requiredPlugins`, `modelParams`, `mediaType` (`image|video|audio`, the
 OUTPUT), `type` (`create|edit|enhance`), `inputSchema`, `result`, `steps`, `fields`,
 `derived`, `enhance`, `chain`, `agentOpens` (MPI-892: the in-app agent opens it for the user
-at that step instead of running it). Their meaning is the built-in Flow's: the `FlowDef` typedef
+at that step instead of running it), `agentReview` (MPI-1005: a field id the app shows on a
+Review / Just do it card before the agent's run). Their meaning is the built-in Flow's: the `FlowDef` typedef
 in `js/data/flowsRegistry.js`, and [playbooks/add-flow/01-descriptor-and-ops.md](playbooks/add-flow/01-descriptor-and-ops.md).
 
 **`op` fields** (anything else is an error): `label` and `mediaType` (required),
