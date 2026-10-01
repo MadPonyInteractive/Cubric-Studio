@@ -264,6 +264,10 @@
 
 - **The Model Library can show only the models your GPU can run, or the RunPod GPU you rented.**
 
+- **Choosing a RunPod GPU is a proper picker now.** Choose GPU opens one tile per card with its
+  price, VRAM, how much stock is left, and a Gen speed bar from RunPod's own measured image
+  times, so the fastest cards come first. Cards RunPod has not timed show no bar.
+
 ## Fixes
 
 > **A fix to a FLOW does not belong here for this release** — flows debut in this version, so

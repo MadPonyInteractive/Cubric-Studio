@@ -79,3 +79,10 @@ than pretended away.
 
 MPI-595 asked whether this card gates 2.0. Fabio: no. It is CI tooling, not anything a user
 runs, so it stays `validating` and is verified the next time master goes red on its own.
+
+## Verified - 2026-10-01 (Fabio)
+
+Master went red on its own twice and the watcher did its job both times: issue #3
+`master is red at 9d6ef53d` (opened 2026-09-26, closed itself on green) and issue #4
+`master is red at a2212501` (2026-09-30, same). Fabio, 2026-10-01: "866 can be closed. I got
+notifications already." The ntfy push is confirmed; nothing else was open.

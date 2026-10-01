@@ -9,7 +9,7 @@
   - [x] build-portable.yml dispatches the new slug; a real dispatch passes checkout on all three legs
   - [x] Cross-repo pointer sweep (mpi-ci, hub, MadPony-Identity, ComfyUi-MpiNodes, Vision tool docs + kanban rule)
   - [x] README: "formerly Cubric-Vision" note; mascot removed (Fabio, 2026-09-17)
-- [ ] Renderer — mascots and display strings
+- [x] Renderer — mascots and display strings
   - [x] Phase 2b: non-mascot display strings (appName.js + .cjs, index.html, MpiAbout, updateChecker,
         projectUI, MpiAudioRecorder, pages/components.js, models.js, illustrious/pony recipe headers)
   - [x] Phase 2b: Studio logo (assets/mascot/studio/logo.png) in the titlebar + About, and the
@@ -30,4 +30,4 @@
   - [x] Agent tooling and CI text (except .claude/skills/cubric-vision-generate/SKILL.md, held by MPI-774)
   - [x] Held-file pass: docs/agent-chat.md:90 and docs/playbooks/add-flow/README.md:3 done 2026-09-18 once
         MPI-774 and MPI-532 released their claims; cubric-vision-generate/SKILL.md was already done
-- [ ] The 2.0 release
+- [x] The 2.0 release *(FOLDED into MPI-595: the cut itself, owner "Release 2.0 blockers 27")*

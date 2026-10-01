@@ -428,3 +428,16 @@ names the three agent routes (`capabilities`, `generate`, `open-project`) and sa
 - No cold agent was asked to find something through the router.
 - The app was not driven; nothing here is runtime.
 - `CLAUDE.md:32` was left alone: it names the router path, which is unchanged.
+
+## Closed - 2026-10-01 (Fabio: "593 seems to need to be closed down")
+
+Every build box had shipped; the unticked ones were stale:
+- Phase 2: all seven children ticked and verified above.
+- Settings > Connect an agent: shipped as MPI-947 (`efb7453cf`, done).
+- Phase 4: shipped as MPI-873 (`c016e500e`, done) - a submit names its project, open or closed.
+- Docs-site page: the docs-2.0 branch's `agent/` and `settings/` pages cover MCP and Connect an agent.
+
+Two items are not done and are folded into the 2.0 umbrella MPI-595 (owner: session "Release 2.0
+blockers 27"), not dropped:
+- Claude Desktop directory submission: a release-day step (reviewers test the released app).
+- `llms.txt` for docs.cubric.studio: with MPI-983, the docs publish at the release.

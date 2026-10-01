@@ -280,3 +280,12 @@ Ship a build without `klein-lora-outpaint` in Klein 4B's deps (dropped from `mod
 `7d72f0b6`), **then** delete the weight from R2 and Hugging Face. Reversing the order turns
 every released 1.4.0 install into a 404 instead of a clean skip. The `loraDeps.js` `DEPS`
 entry must survive either way — `_orphanedDepIds` reads `DEPS`.
+
+## Why still open - 2026-10-01 (Fabio asked)
+
+No 1.5.0 GRAPH uses the outpaint LoRA, but v1.5.0's `js/data/modelConstants/models.js:1043` still
+lists `klein-lora-outpaint` in Klein 4B's deps, so every 1.5.0 Klein 4B install downloads it, and in
+1.5.0 a 4xx dep is permanent and fails the whole model job. Deleting it from R2/HF now breaks Klein
+4B installs for every 1.5.0 user. Master dropped it (`models.js:1066`). The card waits for 2.0 to
+ship; the delete is folded into MPI-595 as a post-release step. Stale handoff 779c959c resolved
+(overtaken by the SAM3 Character Sheet rework and MPI-997).

@@ -10,7 +10,7 @@
   - [x] Fabio: `.mcpb` in Claude Desktop against his own app *(2026-09-25, one card)*
   - [x] Codex in VS Code *(2026-09-25, one card, slow start: see validation.md)*
 - [x] Brief questions answered *(2026-09-25: price first, write a privacy policy, one public repo)*
-- [ ] Phase 2: safe for users (`plan.md`)
+- [x] Phase 2: safe for users (`plan.md`)
   - [x] 1. Cost check: `CONFIRM_COST` until the price is repeated *(live: Veo refused at about $3.20)*
   - [x] 1b. A render does not gag the chat: running at once, cancel_generation, Stop in the chat *(built 2026-09-25; pre-register cancel defect is renderer-side, see validation.md)*
   - [x] 1c. read_knowledge + read-the-guide instruction
@@ -24,18 +24,18 @@
   - [x] 7. Cold tests: Claude Code PASSED; Claude Desktop PASSED *(Fabio, 2026-09-26: video described, one edit landed)*; Codex PASSED with a skill + approve flag *(2026-09-26, 74 s, one card)*
 - [x] Privacy policy on cubric.studio *(2026-09-25, live at https://cubric.studio/privacy/, Website 801aa0c)*
   - [x] `privacy_policies` in the manifest + README Privacy Policy section (message 90fd9914) *(0bcac13c, mcpb validate passes)*
-- [ ] Phase 3: ship and list (`plan.md`)
+- [x] Phase 3: ship and list (`plan.md`)
   - [x] 1. `cubric-studio.mcpb` packed and attached at release *(mpi-release step 6)*
-  - [ ] 2. Settings > Connect an agent *(own card, only if Fabio asks)*
-  - [ ] 3. Listings
+  - [x] 2. Settings > Connect an agent *(shipped as MPI-947, `efb7453cf`)*
+  - [x] 3. Listings
     - [x] `mcp/listing/` plugin folder, cold-tested in Claude Code, Codex and Antigravity *(2026-09-26, one card each, MCP only)*
     - [x] Gemini CLI dropped: Google stopped serving personal logins 2026-06-18 *(IneligibleTierError, validation.md)*
     - [x] Public listings repo `MadPonyInteractive/cubric-studio-agents` *(2026-09-26, install from GitHub proven in Claude Code + Codex; `mcp/listing/` moved out)*
     - [x] MCP Registry (`server.json`, `mcp-publisher`) *(2026-09-26, `io.github.MadPonyInteractive/cubric-studio` 0.2.0 live, `active`; UNRELEASED.md bullet added)*
-    - [ ] Claude Desktop directory submission *(ask first)*
-  - [ ] 4. Docs-site page + `llms.txt` *(hard no-push repo, Fabio commits)*
+    - [x] Claude Desktop directory submission *(FOLDED into MPI-595: a release-day step, reviewers test the released app)*
+  - [x] 4. Docs-site page + `llms.txt` *(page: the docs-2.0 `agent/` + `settings/` pages cover MCP and Connect an agent; `llms.txt` FOLDED into MPI-595 with MPI-983, the docs publish)*
   - [x] 5. `docs/mcp-server.md` + README row + contract note
-- [ ] Phase 4: a submit names its own project (member card MPI-873, `plan.md`)
-  - [ ] Decide: named project must be open, or write a closed one via `updateProjectJson()`
-  - [ ] Optional `folderPath` on `/connector/generate`, passed through MCP `generate` and the GIF tools
-  - [ ] Verify: submit naming B while the app switches A -> C lands in B only
+- [x] Phase 4: a submit names its own project (member card MPI-873, `plan.md`)
+  - [x] Decide: named project must be open, or write a closed one via `updateProjectJson()`
+  - [x] Optional `folderPath` on `/connector/generate`, passed through MCP `generate` and the GIF tools
+  - [x] Verify: submit naming B while the app switches A -> C lands in B only

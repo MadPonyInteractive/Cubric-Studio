@@ -217,3 +217,16 @@ Verify mode is `user-ux`, so this phase is not closed until Fabio has looked at 
 - Neither file has any remaining "Cubric Vision" prose. `node --test tests/agent-ui-surfaces.test.cjs`
   (the only test naming `agent-chat`) 5/5 — it asserts chat UI, not doc text, so it is a
   no-regression check rather than proof of this edit.
+
+## Closed - 2026-10-01 (Fabio asked why it was still open)
+
+Nothing left that this card can do before the cut. Phase 3's three items:
+- Release-note section: written, `docs/releases/UNRELEASED.md` § Important changes ("Cubric Vision
+  is now Cubric Studio": projects folder renamed for you, re-pin to `CubricStudio.exe`, the old exe
+  goes in 2.1).
+- Cut with legacy dual-publish: dual-publish DROPPED (Fabio 2026-09-29, MPI-972 `f74855990`). The
+  cut itself is MPI-595's, owner session "Release 2.0 blockers 27"; MPI-595 also holds the real-bundle
+  check that `~/Documents/Cubric Vision` renames at major 2 (B3).
+- 2.1 follow-up card: MPI-951 (todo/planned). MPI-595 notes it still assumes dual-publish and needs
+  rewording before 2.1.
+Mascots closed 2026-09-30 (MPI-777 landed the crew; the still logo stays for 2.0).
