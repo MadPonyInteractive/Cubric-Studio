@@ -220,6 +220,10 @@
   History. A routine is there in every project. Claude, Codex and Antigravity can save and run
   routines too.
 
+- **See which model drives the agent best.** The agent's model list shows each tested model's
+  score and cost per chat. Benchmark this model runs our tests on yours, and you can share the
+  result anonymously: everyone's results are at bench.cubric.studio.
+
 - **Claude, Codex and Google Antigravity can drive Cubric Studio.** Ask for an image, a video
   or a GIF and it lands in your project. Settings > Connect an agent sets it up in one click.
 
