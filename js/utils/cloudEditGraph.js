@@ -19,15 +19,20 @@
  *
  * A FlowDef opts in with `cloudEdit: { input, prompt, output }`, three node ids of its graph:
  * the picture the edit stage takes, the prompt it encodes, and the node whose IMAGE output
- * (slot 0) is the edited picture.
+ * (slot 0) is the edited picture. An edit taking a second reference adds `input2`: a node id,
+ * or `{ mode, 1: id, 2: id }` when a mode switch picks it (`mode` is the MpiInt whose
+ * injected value chooses). Reference order is the prompt's "image one / image two", and the
+ * fit size is always `input`'s.
  */
 
 'use strict';
 
 /** Ids for the nodes the passes add. Far above any id a shipped graph uses. */
 const LOAD_ID = '918001';
-const SHOW_ID = '918002';
 const TEXT_ID = '918003';
+
+/** Pass 1's picture taps. Read back BY ID: the order a run reports them in is execution order. */
+export const CLOUD_TAPS = { input: '918002', input2: '918004' };
 
 /** The `Input_*` title pass 2's loader carries; the app stages the cloud picture into it. */
 export const CLOUD_RESULT_TITLE = 'Input_Cloud_Result';
@@ -59,17 +64,31 @@ function _assertSpec(workflow, spec, keys) {
     }
 }
 
+/** The node `input2` names in THIS run: a mode-keyed one reads the mode the graph was injected with. */
+function _input2(workflow, ref) {
+    if (ref == null || typeof ref !== 'object') return ref == null ? null : String(ref);
+    const mode = workflow[String(ref.mode)]?.inputs?.int;
+    const id = ref[String(mode)];
+    if (!id) throw new Error(`cloudEdit.input2 has no node for mode ${mode} of node ${ref.mode}`);
+    return String(id);
+}
+
+const _show = (id) => ({ class_type: 'PreviewImage', inputs: { images: [id, 0] }, _meta: { title: 'Output_Display' } });
+
 /**
  * Pass 1: the graph up to the edit stage, tapped. Every original output is gone, so nothing
  * this pass makes can land as a card.
  * @param {Object} workflow - API-format graph, already injected
- * @param {{input: string, prompt: string}} spec
+ * @param {{input: string, prompt: string, input2?: (string|Object)}} spec
  * @returns {Object} a new graph
  */
 export function cloudEditPass1(workflow, spec) {
     _assertSpec(workflow, spec, ['input', 'prompt']);
-    const out = _only(workflow, _ancestors(workflow, [spec.input, spec.prompt]));
-    out[SHOW_ID] = { class_type: 'PreviewImage', inputs: { images: [String(spec.input), 0] }, _meta: { title: 'Output_Display' } };
+    const input2 = _input2(workflow, spec.input2);
+    if (input2 && !workflow[input2]) throw new Error(`cloudEdit.input2 names node ${input2}, which this graph does not have`);
+    const out = _only(workflow, _ancestors(workflow, [spec.input, spec.prompt, ...(input2 ? [input2] : [])]));
+    out[CLOUD_TAPS.input] = _show(String(spec.input));
+    if (input2) out[CLOUD_TAPS.input2] = _show(input2);
     out[TEXT_ID] = { class_type: 'PreviewAny', inputs: { source: [String(spec.prompt), 0] }, _meta: { title: 'Output_prompt' } };
     return out;
 }

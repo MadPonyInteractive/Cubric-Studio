@@ -397,7 +397,7 @@ async function _stitchOutputs(urls, stitch) {
  * @typedef {Object} Execution
  * @property {function(string):void}   onPreview  - Called with each latent preview URL
  * @property {function(number):void}   onProgress - Called with 0–1 progress value from ComfyUI
- * @property {function(string[], {latents?: object[], audioUrl?: string|null, promptText?: string|null, splatUrl?: string|null, displayUrls?: string[]}):void} onComplete - Called with final output URLs and side outputs on success. `promptText` is the string an `Output_prompt` node encoded (null when the workflow has none). `splatUrl` is the `/view` URL of the `.ply` an `Output_Splat` node reported (MPI-623; null when the workflow has none, and null when its path had no `splats/` segment to build a URL from). `displayUrls` are the `/view` URLs an `Output_Display` node wrote (MPI-747) — what a Flow shows INSTEAD of the output, never saved; empty when the workflow has none.
+ * @property {function(string[], {latents?: object[], audioUrl?: string|null, promptText?: string|null, splatUrl?: string|null, displayUrls?: string[], displayUrlsByNode?: Object<string, string[]>}):void} onComplete - Called with final output URLs and side outputs on success. `promptText` is the string an `Output_prompt` node encoded (null when the workflow has none). `splatUrl` is the `/view` URL of the `.ply` an `Output_Splat` node reported (MPI-623; null when the workflow has none, and null when its path had no `splats/` segment to build a URL from). `displayUrls` are the `/view` URLs an `Output_Display` node wrote (MPI-747) — what a Flow shows INSTEAD of the output, never saved; empty when the workflow has none. `displayUrlsByNode` holds the same URLs keyed by node id, for a caller with several taps (MPI-918).
  * @property {function(Error):void}    onError    - Called on failure
  * @property {function():void}         cancel     - Interrupt the running generation
  */
@@ -2219,6 +2219,9 @@ export function runCommand(payload) {
         // distinguishable from the ordinary image card it otherwise is (MPI-623).
         let splatOutputUrl = null;
         const displayOutputUrls = [];
+        // The same URLs keyed by the node that wrote them: `displayOutputUrls` is in the order
+        // the nodes EXECUTED, which a graph with two taps cannot rely on (MPI-918, two refs).
+        const displayUrlsByNode = {};
         let _samplingStartFired = false;
         // MPI-208 Phase 2: model-load state is now the store job's phase, not a
         // private closure. `_modelInitializing` is DERIVED — the job sits in
@@ -2432,7 +2435,7 @@ export function runCommand(payload) {
             // is belt-and-suspenders for the fill. Only when stdout drove (local).
             if (_stdoutDriving) { stageProgress.finish(); emitProgress(stageProgress.percent()); }
             closeComfyEventSource();
-            exec.onComplete?.(outputUrls, { latents: latentOutputs, audioUrl: audioOutputUrl, promptText: promptTextOutput, splatUrl: splatOutputUrl, displayUrls: displayOutputUrls });
+            exec.onComplete?.(outputUrls, { latents: latentOutputs, audioUrl: audioOutputUrl, promptText: promptTextOutput, splatUrl: splatOutputUrl, displayUrlsByNode, displayUrls: displayOutputUrls });
         };
 
         const onMessage = (msg) => {
@@ -2616,6 +2619,8 @@ export function runCommand(payload) {
                 }
                 if (outputDisplayNodeIds.has(nodeId)) {
                     _collectComfyOutputUrls(nodeOutput, displayOutputUrls, workingPayload.forceLocal === true);
+                    displayUrlsByNode[nodeId] = [];
+                    _collectComfyOutputUrls(nodeOutput, displayUrlsByNode[nodeId], workingPayload.forceLocal === true);
                 }
             }
         };

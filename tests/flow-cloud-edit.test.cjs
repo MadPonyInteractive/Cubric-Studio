@@ -66,12 +66,22 @@ test('every cloudEdit spec still names its graph\'s edit stage', async () => {
     assert.ok(flows.length >= 1);
     for (const flow of flows) {
         const g = require(path.join(ROOT, 'comfy_workflows', flow.workflow));
-        const { input, prompt, output } = flow.cloudEdit;
+        const { input, input2, prompt, output } = flow.cloudEdit;
         const feeds = (id, cls) => Object.values(g).some(n => n.class_type === cls
             && Object.values(n.inputs || {}).some(v => Array.isArray(v) && String(v[0]) === id));
         assert.ok(feeds(input, 'VAEEncode'), `${flow.id}: ${input} feeds no VAEEncode`);
         assert.ok(feeds(prompt, 'CLIPTextEncode'), `${flow.id}: ${prompt} feeds no CLIPTextEncode`);
         assert.equal(g[output]?.class_type, 'VAEDecode', `${flow.id}: ${output} is not the decode`);
+        // Image two is a second reference, so every node it can name is encoded too, and a
+        // mode-keyed one reads an MpiInt the run injects.
+        if (input2 && typeof input2 === 'object') {
+            assert.equal(g[input2.mode]?.class_type, 'MpiInt', `${flow.id}: input2.mode ${input2.mode} is not an MpiInt`);
+            for (const [k, id] of Object.entries(input2)) {
+                if (k !== 'mode') assert.ok(feeds(String(id), 'VAEEncode'), `${flow.id}: input2[${k}] ${id} feeds no VAEEncode`);
+            }
+        } else if (input2) {
+            assert.ok(feeds(String(input2), 'VAEEncode'), `${flow.id}: input2 ${input2} feeds no VAEEncode`);
+        }
         // A cloud candidate only ever sits in a Flow that can swap its edit stage.
         for (const f of registry.FLOWS.filter(x => !x.cloudEdit)) {
             for (const slot of registry.flowModelSlots(f)) {
@@ -81,12 +91,54 @@ test('every cloudEdit spec still names its graph\'s edit stage', async () => {
     }
 });
 
+test('no cloud Flow\'s two passes reach a local model, in any mode it has', async () => {
+    const { registry } = await load();
+    const { cloudEditPass1, cloudEditPass2 } = await import(url('js/utils/cloudEditGraph.js'));
+    const LOCAL = ['UNETLoader', 'CLIPLoader', 'VAELoader', 'MpiLoraModel', 'SamplerCustomAdvanced', 'VAEDecode'];
+    const flows = registry.FLOWS.filter(f => f.cloudEdit);
+    assert.deepEqual(flows.map(f => f.id).sort(), ['object-stamp', 'outpaint', 'scribble', 'scribble-object']);
+    for (const flow of flows) {
+        const g = require(path.join(ROOT, 'comfy_workflows', flow.workflow));
+        const { input2 } = flow.cloudEdit;
+        const modes = input2 && typeof input2 === 'object' ? Object.keys(input2).filter(k => k !== 'mode') : [null];
+        for (const mode of modes) {
+            const run = mode === null ? g : { ...g, [input2.mode]: { ...g[input2.mode], inputs: { ...g[input2.mode].inputs, int: Number(mode) } } };
+            for (const [pass, graph] of [[1, cloudEditPass1(run, flow.cloudEdit)], [2, cloudEditPass2(run, flow.cloudEdit, { width: 1024, height: 1024 })]]) {
+                const local = Object.values(graph).map(n => n.class_type).filter(c => LOCAL.includes(c));
+                assert.deepEqual(local, [], `${flow.id} mode ${mode} pass ${pass} keeps ${local}`);
+            }
+        }
+    }
+});
+
+test('Nano Banana stays off Object Stamp, whose edit takes two references', async () => {
+    const { registry } = await load();
+    const models = registry.flowModelSlots(registry.getFlowById('object-stamp')).flatMap(s => s.models);
+    assert.ok(models.includes(CLOUD));
+    assert.ok(!models.includes('nano-banana-2-lite-cloud'));
+});
+
+test('pass 1\'s pictures are read by tap id, so image two reporting first cannot swap them', async () => {
+    const { pass1Shown } = await import(url('js/services/flowService.js'));
+    const { CLOUD_TAPS } = await import(url('js/utils/cloudEditGraph.js'));
+    const stamp = { input: '211', input2: { mode: '220', 1: '106', 2: '201' } };
+    // Image two's tap executed first, so it is first in execution order.
+    const info = { displayUrlsByNode: { [CLOUD_TAPS.input2]: ['/view?obj'], [CLOUD_TAPS.input]: ['/view?scene'] }, promptText: 'p' };
+    assert.deepEqual(pass1Shown(stamp, info), { url: '/view?scene', url2: '/view?obj', prompt: 'p' });
+    // A two-reference edit missing image two sends nothing rather than a one-image edit.
+    assert.equal(pass1Shown(stamp, { displayUrlsByNode: { [CLOUD_TAPS.input]: ['/view?scene'] }, promptText: 'p' }), null);
+    assert.deepEqual(pass1Shown({ input: '106' }, { displayUrlsByNode: { [CLOUD_TAPS.input]: ['/view?a'] }, promptText: 'p' }),
+        { url: '/view?a', url2: null, prompt: 'p' });
+});
+
 // Bare-Node stand-ins for the three browser APIs the orchestration touches.
 function stubBrowser(routes) {
     const sent = [];
     global.fetch = async (u, opts = {}) => {
-        sent.push({ url: String(u), body: opts.body ? JSON.parse(opts.body) : null });
-        const answer = routes[String(u)];
+        const body = opts.body ? JSON.parse(opts.body) : null;
+        sent.push({ url: String(u), body });
+        const raw = routes[String(u)];
+        const answer = typeof raw === 'function' ? raw(body) : raw;
         if (!answer) throw new Error(`unexpected fetch ${u}`);
         return answer instanceof Blob ? new Response(answer) : new Response(JSON.stringify(answer), { status: answer.ok === false ? 402 : 200 });
     };
@@ -136,6 +188,40 @@ test('the cloud edit sends pass 1\'s picture and prompt, and pass 2 carries the 
     assert.match(pass2.cloudEdit.image, /^data:image\//);
     assert.equal(pass2.cloudEdit.width, 896);
     assert.deepEqual(pass2.cloudEdit.cost, { usd: 0.015 });
+});
+
+test('a two-reference edit sends image one then image two, and fits to image one', async () => {
+    const { registry } = await load();
+    const flow = registry.getFlowById('object-stamp');
+    const { MODELS } = await import(url('js/data/modelConstants/models.js'));
+    const { runCloudEdit } = await import(url('js/services/flowService.js'));
+    const SCENE = new Blob([Buffer.from('scene')], { type: 'image/png' });
+    const OBJECT = new Blob([Buffer.from('object')], { type: 'image/png' });
+    const sent = stubBrowser({
+        '/view?scene': SCENE,
+        '/view?object': OBJECT,
+        // The staged path names which picture it was handed.
+        '/comfy/stage-media-data-url': ({ dataUrl }) => ({ success: true,
+            path: Buffer.from(dataUrl.split(',')[1], 'base64').toString() === 'scene' ? 'C:\\s\\scene.png' : 'C:\\s\\object.png' }),
+        '/deepinfra/generate': { ok: true, viewUrls: ['http://127.0.0.1:3000/deepinfra/output/b.jpg'], cost: { usd: 0.015 } },
+        'http://127.0.0.1:3000/deepinfra/output/b.jpg': PIXEL,
+    });
+    // Manual's object keeps its own aspect; only the scene crop is the decode's size.
+    global.createImageBitmap = async (b) => ({ ...((await b.text()) === 'scene' ? { width: 1024, height: 1024 } : { width: 768, height: 1152 }), close() {} });
+    let pass2 = null;
+    const errors = [];
+    await runCloudEdit(flow, MODELS.find(m => m.id === CLOUD), { operation: 'flowObjectStamp' },
+        { onError: (e) => errors.push(e) },
+        { enqueue: (cfg) => { pass2 = cfg; return { queueJobId: 'q' }; },
+            pass1: async () => ({ url: '/view?scene', url2: '/view?object', prompt: 'Place the object from image two' }) });
+
+    assert.deepEqual(errors, []);
+    const gen = sent.find(s => s.url === '/deepinfra/generate').body;
+    assert.deepEqual(gen.imagePaths, ['C:\\s\\scene.png', 'C:\\s\\object.png'], 'reference order is image one, image two');
+    assert.equal(gen.width, 1024);
+    assert.equal(gen.height, 1024);
+    assert.equal(pass2.cloudEdit.width, 1024, 'pass 2 fits to image one, the decode\'s size');
+    assert.equal(pass2.cloudEdit.height, 1024);
 });
 
 test('the agent\'s catalogue keeps a Flow\'s cloud line, so Cosmo knows the run bills', async () => {

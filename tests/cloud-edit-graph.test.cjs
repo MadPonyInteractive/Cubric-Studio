@@ -24,8 +24,9 @@ test('pass 1 keeps only what the edit stage is fed, and taps the picture and the
     const g = cloudEditPass1(SCRIBBLE, SPEC);
     for (const c of LOCAL_ONLY) assert.ok(!classes(g).includes(c), `${c} must not be in pass 1`);
     assert.equal(byTitle(g, 'Output_Image').length, 0, 'no card-making output survives');
-    const [[, show]] = byTitle(g, 'Output_Display');
+    const [[showId, show]] = byTitle(g, 'Output_Display');
     assert.deepEqual(show.inputs.images, ['106', 0]);
+    assert.equal(showId, (await load()).CLOUD_TAPS.input, 'the tap is read back by this id');
     const [[, text]] = byTitle(g, 'Output_prompt');
     assert.deepEqual(text.inputs.source, ['185', 0]);
     // The drawing loader and every string the prompt is joined from are still there.
@@ -47,6 +48,44 @@ test('pass 2 swaps the decode for the fitted cloud picture and drops the local b
     assert.deepEqual(g['170'].inputs.passthrough, ['168', 0]);
     assert.equal(byTitle(g, 'Output_Image').length, 1);
     assert.equal(SCRIBBLE['168'].class_type, 'VAEDecode', 'the source graph itself is untouched');
+});
+
+// Object Stamp: two references, the second chosen by `Input_Mode` (220) as the graph's own
+// `Ref2_Select` chooses it. The pass reads the mode the graph was INJECTED with.
+const STAMP = require(path.join(__dirname, '..', 'comfy_workflows', 'flow_object_stamp.json'));
+const STAMP_SPEC = { input: '211', input2: { mode: '220', 1: '106', 2: '201' }, prompt: '185', output: '168' };
+const stampIn = (mode) => ({ ...STAMP, 220: { ...STAMP['220'], inputs: { ...STAMP['220'].inputs, int: mode } } });
+
+for (const [mode, ref2, name] of [[1, '106', 'Auto: the stamped crop'], [2, '201', 'Manual: the clean object']]) {
+    test(`Object Stamp pass 1, ${name}: image one is the clean crop, image two follows the mode`, async () => {
+        const { cloudEditPass1, CLOUD_TAPS } = await load();
+        const g = cloudEditPass1(stampIn(mode), STAMP_SPEC);
+        for (const c of LOCAL_ONLY) assert.ok(!classes(g).includes(c), `${c} must not be in pass 1`);
+        assert.equal(byTitle(g, 'Output_Image').length, 0, 'no card-making output survives');
+        assert.deepEqual(g[CLOUD_TAPS.input].inputs.images, ['211', 0]);
+        assert.deepEqual(g[CLOUD_TAPS.input2].inputs.images, [ref2, 0]);
+        assert.equal(byTitle(g, 'Output_Display').length, 2, 'both taps are display nodes, never cards');
+        assert.deepEqual(byTitle(g, 'Output_prompt')[0][1].inputs.source, ['185', 0]);
+        // Both scene and object loaders, and the mode-switched prompt, are still fed.
+        for (const id of ['1', '2', '185', '220', '223', ref2]) assert.ok(g[id], `node ${id} kept`);
+    });
+}
+
+test('Object Stamp pass 1 refuses a mode it has no image two for', async () => {
+    const { cloudEditPass1 } = await load();
+    assert.throws(() => cloudEditPass1(stampIn(3), STAMP_SPEC), /cloudEdit\.input2/);
+});
+
+test('Object Stamp pass 2 stitches the cloud picture back through the mode\'s own crop', async () => {
+    const { cloudEditPass2, CLOUD_RESULT_TITLE } = await load();
+    const g = cloudEditPass2(stampIn(2), STAMP_SPEC, { width: 1024, height: 1024 });
+    for (const c of LOCAL_ONLY) assert.ok(!classes(g).includes(c), `${c} must not be in pass 2`);
+    assert.equal(g['168'].class_type, 'ImageScale');
+    assert.deepEqual(g['168'].inputs.image, [byTitle(g, CLOUD_RESULT_TITLE)[0][0], 0]);
+    assert.deepEqual(g['192'].inputs.image_target, ['168', 0], 'colour match reads the cloud picture');
+    // The crop the stitch undoes is still the one Input_Mode chose.
+    for (const id of ['163', '169', '221', '220']) assert.ok(g[id], `node ${id} kept`);
+    assert.equal(byTitle(g, 'Output_Image').length, 1);
 });
 
 test('a spec naming a node the graph lacks refuses instead of running a wrong graph', async () => {

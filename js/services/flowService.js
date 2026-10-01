@@ -16,6 +16,7 @@
 import { enqueueGeneration } from './generationService.js';
 import { runCommand } from './commandExecutor.js';
 import { cloudRunFields, estimateRunCost, cloudErrorMessage } from './cloudExecutor.js';
+import { CLOUD_TAPS } from '../utils/cloudEditGraph.js';
 import { getFlowById, flowAvailability, flowModelParams, flowLoraPhases, flowModelIds } from '../data/flowsRegistry.js';
 import { getModelById } from '../data/modelRegistry.js';
 import { state } from '../state.js';
@@ -446,11 +447,26 @@ function _runPass1(flow, config) {
             suppressLifecycleEvents: true,
             forceLocal: state.engineOverride === 'local',
         });
-        exec.onComplete = (_urls, { displayUrls = [], promptText = null } = {}) => (displayUrls[0] && promptText
-            ? resolve({ url: displayUrls[0], prompt: promptText })
-            : reject(new Error('The edit stage handed back no picture to send.')));
+        exec.onComplete = (_urls, info) => {
+            const shown = pass1Shown(flow.cloudEdit, info);
+            if (shown) resolve(shown);
+            else reject(new Error('The edit stage handed back no picture to send.'));
+        };
         exec.onError = reject;
     });
+}
+
+/**
+ * What pass 1 handed back, read BY TAP ID: a run reports its taps in the order they executed,
+ * so with two references "the first display" can be image two. null when anything is missing.
+ * @param {{input2?: *}} spec - the FlowDef's `cloudEdit`
+ * @param {{displayUrlsByNode?: Object<string, string[]>, promptText?: ?string}} info - runCommand's completion
+ * @returns {?{url: string, url2: ?string, prompt: string}}
+ */
+export function pass1Shown(spec, { displayUrlsByNode = {}, promptText = null } = {}) {
+    const url = displayUrlsByNode[CLOUD_TAPS.input]?.[0];
+    const url2 = spec.input2 ? displayUrlsByNode[CLOUD_TAPS.input2]?.[0] : null;
+    return url && promptText && (url2 || !spec.input2) ? { url, url2: url2 || null, prompt: promptText } : null;
 }
 
 /**
@@ -473,21 +489,26 @@ export async function runCloudEdit(flow, model, config, callbacks, { enqueue, pa
     try {
         const shown = await pass1(flow, config);
         const picture = await _blobOf(shown.url);
-        const dataUrl = await _dataUrlOf(picture);
+        // The fit size is image one's, whatever image two is (Object Stamp's Manual object
+        // keeps its own aspect): the local decode is the size of image one's latent.
         const bitmap = await createImageBitmap(picture);
         const size = { width: bitmap.width, height: bitmap.height };
         bitmap.close();
-        const stageRes = await fetch('/comfy/stage-media-data-url', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ dataUrl }),
-        });
-        const staged = await stageRes.json().catch(() => null);
-        if (!stageRes.ok || !staged?.path) throw new Error(staged?.error || `staging failed (HTTP ${stageRes.status})`);
+        const stage = async (blob) => {
+            const stageRes = await fetch('/comfy/stage-media-data-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dataUrl: await _dataUrlOf(blob) }),
+            });
+            const staged = await stageRes.json().catch(() => null);
+            if (!stageRes.ok || !staged?.path) throw new Error(staged?.error || `staging failed (HTTP ${stageRes.status})`);
+            return { mediaType: 'image', role: 'inputImage', url: staged.path };
+        };
 
         // The request cloudExecutor builds for an edit, so the credit gate and the bill are
         // the ones every cloud run gets. The size is pass 1's picture: the edit keeps it.
-        const media = [{ mediaType: 'image', role: 'inputImage', url: staged.path }];
+        // Strip order is reference order, so image two follows image one.
+        const media = [await stage(picture), ...(shown.url2 ? [await stage(await _blobOf(shown.url2))] : [])];
         const params = { Width: size.width, Height: size.height };
         const res = await fetch('/deepinfra/generate', {
             method: 'POST',

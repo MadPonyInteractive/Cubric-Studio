@@ -490,7 +490,8 @@ test('Outpaint is Klein 9B only, and its baked weights are the ones 9B ships (MP
     // model downloads — the gate goes green and the run dies inside ComfyUI.
     const { registry } = await load();
     const flow = registry.getFlowById('outpaint');
-    assert.deepEqual(flow.requiredModels.map(s => s.models), [['klein-9b']]);
+    // Cloud ids (MPI-918) swap the edit stage; the LOCAL candidate stays 9B only.
+    assert.deepEqual(flow.requiredModels.map(s => s.models.filter(id => !registry.isCloudCandidate(id))), [['klein-9b']]);
     assert.equal(flow.modelParams, undefined, 'one model, nothing to switch');
 
     const { DEPS } = await import('../js/data/modelConstants/dependencies.js');
@@ -773,7 +774,8 @@ test('the Draw It In arm matches the weights, and the encoder moves with it (MPI
 
     state.s_installedModelIds = ['klein-4b', 'klein-9b'];
 
-    assert.deepEqual(flow.requiredModels.map(s => s.models), [['klein-9b']],
+    // Cloud ids (MPI-918) swap the edit stage; the LOCAL candidate stays 9B only.
+    assert.deepEqual(flow.requiredModels.map(s => s.models.filter(id => !registry.isCloudCandidate(id))), [['klein-9b']],
         'ONE slot, 9B only — a second candidate here would reintroduce the ink-survival arm');
     assert.ok(!byTitle('Input_Base_Model'),
         'the SDXL render phase is deleted; a checkpoint loader left behind would be dead weight '
