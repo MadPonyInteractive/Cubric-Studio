@@ -47,7 +47,9 @@ recipe"): it owns the research -> draft -> test loop and the evidence folder
   `npm test` 2619/0. Guide + `sources.md` updated. **Next action:** Fabio reads the two prompts
   in the session report; on his yes, `mpi-end-session` (commit by pathspec; peer hunks in
   board.json/events.jsonl; MpiEnhanceDialog.css is a peer's, not ours). Message 28809bcb to
-  MPI-1005 can be resolved: they landed 79e7e7006. **If tag-less still invents: escalate to Fabio** -
+  MPI-1005 can be resolved: they landed 79e7e7006.
+- 2026-10-01 (Agent 81): **DONE.** Fabio read the two prompts ("1, close it"); code a33a41b35,
+  CI run 36840547687 green. Follow-on: MPI-1009 (routines over MCP, Fabio's ask). **If tag-less still invents: escalate to Fabio** -
   options are (a) pass the staged handles so the enhancer cites only real ones (reverses the Q2
   pick), (b) route a tag-less ref2v prompt to a no-tag path in code, (c) accept invention.
 

@@ -37,4 +37,8 @@ Known limitations (read outputs, not the count):
 - The condense tier can keep a tagged subject's looks, name an emotion, or write "masterpiece";
   the judge passes them. Seen in s6 overlong run 1.
 
-Left before close: Fabio reads two Enhanced ref2v prompts (in the session report).
+## Close - 2026-10-01
+
+- Fabio read the two Enhanced ref2v prompts (untagged cat, tagged samurai with its known looks leak): "1, close it".
+- Claim audit: 9/9 claims proven, no findings.
+- Code commit a33a41b35: CI run 36840547687 (tests.yml) **success**.
