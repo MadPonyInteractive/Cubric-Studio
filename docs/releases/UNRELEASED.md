@@ -196,12 +196,17 @@
 
 - **Paid cloud models, on your own DeepInfra key.** No download and no GPU needed, billed to
   your DeepInfra account: Seedream 4, Seedream 4.5, Seedream 5.0 Pro, FLUX 2 Dev, FLUX 2 Pro,
-  FLUX 2 Max, Nano Banana 2 Lite, Nano Banana 2, Nano Banana Pro, Seedance 1.5 Pro,
+  FLUX 2 Max, FLUX.2 Klein 9B, Nano Banana 2 Lite, Nano Banana 2, Nano Banana Pro, Seedance 1.5 Pro,
   Seedance 2.0, Wan 3.0, Veo 3.1 Fast and Veo 3.1. Choose Remote only at first launch and
   skip the engine entirely: projects open, cloud models generate, and the tools that need the
   local engine (Flows, Resize, Upscale, Remove Background) tell you so instead of failing.
 
 - **Nano Banana edits take up to four reference images.**
+
+- **Scribble can render on a cloud model.** Pick FLUX.2 Klein 9B (Cloud) or Nano Banana 2 Lite
+  as its edit model and the drawing renders on your DeepInfra key, with the price shown beside
+  the model and the cost saved on the card. Without a local Klein installed, Scribble uses the
+  cloud model on its own, and the in-app agent asks you before each paid run.
 
 - **The prompt box shows what a paid run costs before you press Cue.**
 

@@ -123,6 +123,30 @@ Remove Background / Interpolate; Enhance and Describe run on the endpoint backen
 (`runnableBackend`); the Flow Library, `flow:open`, a Model Library install and Restart engine
 refuse up front. For a user with an engine, `hasNoEngine()` returns before any request.
 
+## Inside a Flow: the edit stage on a cloud model - MPI-918
+
+A Flow runs its edit model as ONE stage of a ComfyUI graph (crop, edit, stitch), so the swap
+above cannot reach it. A FlowDef with `cloudEdit: { input, prompt, output }` (three node ids of
+its graph) lets a cloud candidate in its edit slot run that stage, in two passes around the
+call (`js/utils/cloudEditGraph.js`, orchestrated by `runCloudEdit` in `js/services/flowService.js`):
+
+- **Pass 1** is a DIRECT `runCommand` (no queue, no card): the graph pruned to the ancestors of
+  `input` + `prompt`, tapped by `Output_Display` + `Output_prompt`. Its picture is staged through
+  `/comfy/stage-media-data-url` and sent to `/deepinfra/generate` as an `edit`, with the
+  `cloudRunFields` + `estimateRunCost` body every cloud run sends (credit gate, billed cost).
+- **Pass 2** is the queued job: `output` (the decode) is REPLACED, same id, by an `ImageScale` of an
+  `MpiLoadImage` titled `Input_Cloud_Result`, fitted to pass 1's size (Nano Banana answers its own
+  size); then the graph is pruned to what `Output_*` reaches. It lands the card with the billed
+  `cost` (`config.cloudEdit.cost` -> `generationSettings.cost`).
+- **Pruned, never switched.** ComfyUI validates every node an output reaches before it runs any,
+  so a local loader left behind a lazy `MpiIfElse` refuses the prompt for a user without that
+  model, the very user a cloud pick serves.
+- **Who runs it:** an installed LOCAL candidate always wins; a cloud one runs unpicked only when
+  nothing local is installed (Fabio, 2026-10-01), is offered only with a key, and has no LoRA
+  rack. The slot label shows its price. The agent's quote (`generation.quote` on a `flowId`)
+  prices it, so the Yes card and MCP's `CONFIRM_COST` ask first; the catalogue entry says `cloud`.
+- The graphs still run on ComfyUI (local or Pod), so the no-engine user above gets no Flows.
+
 ## Agent paths
 
 A video ref sent in a picture slot becomes its first frame in `/connector/generate` and
@@ -134,4 +158,6 @@ reaches `_readReference` as "an image".
 
 `tests/cloud-executor.test.cjs` (lane invariant, copy), `cloud-price-tag`, `cloud-duration-bounds`,
 `cloud-key-refresh`, `model-picker-cloud`, and `deepinfra-*` (account, catalogue, collage, credit
-gate, multiref, output retention, pricing, seedance-refs, transcribe, wan-media).
+gate, multiref, output retention, pricing, seedance-refs, transcribe, wan-media). Inside a Flow:
+`cloud-edit-graph` (the two passes) and `flow-cloud-edit` (who runs, the spec names its graph's
+edit stage, the orchestration, the agent's `cloud` line).
