@@ -29,3 +29,11 @@ dropped - but a replayed TERMINAL event is not a delta.
 
 Unreproduced is not the same as ignored: with no evidence, any fix here is a guess
 at a mechanism nobody has observed.
+
+## Noticed - 2026-10-01 (Agent 85, MPI-513)
+
+Still OUT of 2.0 (Fabio 2026-09-29), still unreproduced. One mechanism is now closed: a burst of
+"installed" toasts for work that did not happen is exactly what a re-verify of a full volume did
+(MPI-497 - bot-driven installs over present deps). Since `9c593af5f` such a job completes with
+`alreadyInstalled: true` and is silent. If a burst is seen again, capture as above and check
+whether the events carried `alreadyInstalled`.

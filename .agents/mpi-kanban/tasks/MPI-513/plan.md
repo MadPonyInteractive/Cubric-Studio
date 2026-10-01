@@ -19,6 +19,14 @@ members turn out to be the better unit, delete this umbrella instead.
 
 ## Current State
 
+2026-10-01 (Agent 85): **CLOSED.** Single writer (`5a8dc2d2a`), MPI-497's two roots (`9c593af5f`),
+and the cancel/local-pump bug the Pod run found (`a3db21e04`) are shipped; local + remote live
+tests passed (validation.md). Members: MPI-497 done; MPI-320 todo/deferred (stall-watchdog fold,
+G6 split, after 2.0); MPI-397 todo/deferred (after 2.0); MPI-544 still OUT of 2.0, watch-only.
+Handed to MPI-894: reconnect deletes a RUNNING Pod (v2 `start` answer), being fixed by
+"Release 2.0 blockers 27".
+
+
 2026-10-01 (Agent 85): **Phase 2 re-test DONE — neither MPI-497 symptom was the two writers;
 both survive Phase 1** (evidence: `validation.md` § Phase 2). Phase 1 is committed + pushed
 (`5a8dc2d2a`). MPI-397 is untouched by construction (its residual is the `/comfy/models/check`
@@ -41,7 +49,7 @@ Split proposed to "Release 2.0 blockers 27" (msg 37c4a3e4): they take MPI-918 (+
 MPI-894 (Fabio's in/out on 668/183/541/349), then the MPI-595 cut, smoke LAST. This session owns:
 
 - [x] Pod remote test DONE 2026-10-01 (Linux box, CPU Pod, ~$0.01; validation.md): attach, cancel, crash+resume, R1+R2 all pass on remote. It found (a) cancel starting a dead LOCAL downloader on a queued Pod dep - FIXED here (local pump skips remote records), (b) reconnect deleting a RUNNING Pod - handed to "Release 2.0 blockers 27" (holds remotePodLifecycle.js).
-- [ ] MPI-513: R1/R2 committed `9c593af5f` (CI green); MPI-497 closed `f03d26905`; Pod remote-resume test (Fabio's pick: Linux box or fold into cut);
+- [x] MPI-513: R1/R2 committed `9c593af5f` (CI green); MPI-497 closed `f03d26905`; Pod remote-resume test (Fabio's pick: Linux box or fold into cut);
   close MPI-497 as fixed; MPI-397 = Fabio's product call (park after 2.0 is my pick); MPI-320's
   deferred follow-ups (stall-watchdog into reconciler, G6 adapter split) named for his in/out;
   MPI-544 already OUT of 2.0 (Fabio 2026-09-29).

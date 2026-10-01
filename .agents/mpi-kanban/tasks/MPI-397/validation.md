@@ -24,3 +24,10 @@ UNCACHED — install-state feeds the whole download UI). Closing it needs the op
 install-state flip, which relaxes the install-state-IS-files-on-disk invariant — a product
 decision, the user's call, not a bug fix. Card stays parked with these numbers. Do NOT "fix"
 it by caching models/status.
+
+## After 2.0 - 2026-10-01 (Agent 85)
+
+MPI-513 Phase 1 does not touch this path: the residual ~3 s uninstall move is the
+`/comfy/models/check` -> wrapper `models/status` round trip, not the install store. Closing it
+still needs the optimistic flip against the disk-truth invariant. Agent 85's pick, put to Fabio
+2026-10-01 with no objection: after 2.0, the truthful 3 s stands for the release.
