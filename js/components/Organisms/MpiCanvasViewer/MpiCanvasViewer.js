@@ -11,8 +11,11 @@
  * Instance API (on el):
  *   el.loadEntry(item, idx, {groupId}?) — save current mask, load item's image, restore idx's mask;
  *                                        `groupId` re-keys the mask store to another card (a stack member)
+ *   el.whenSourceLoaded()              — resolves once the latest loadEntry has drawn its image
+ *   el.getSourceSize()                 — the ORIGINAL's {width, height} (null until loaded); not
+ *                                        getSourceElement()'s, a smaller display copy past the cap
  *   el.loadCompare(itemA, itemB)       — load two images in compare mode
- *   el.enterMode(mode)                — enter 'crop'|'mask'|'paint'|'composite'|'automask' (or 'none' to exit all)
+ *   el.enterMode(mode)              — enter 'crop'|'mask'|'paint'|'composite'|'automask' (or 'none' to exit all)
  *   el.exitMode()                     — exit any active tool mode
  *   el.getCurrentMaskDataURL()         — returns current mask as data URL, or null
  *   el.hasMask()                      — returns boolean
@@ -1098,7 +1101,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
         /** @type {import('../../../data/projectModel.js').HistoryItem|null} */
         let _currentItem = initialItem;
 
-        el.loadEntry = async (item, idx, { groupId } = {}) => {
+        const _loadEntry = async (item, idx, { groupId } = {}) => {
             const sameEntry = !!(
                 item?.id
                 && _currentItem?.id
@@ -1190,6 +1193,13 @@ export const MpiCanvasViewer = ComponentFactory.create({
             }
         };
 
+        // The entry load in flight: a tool mounted over it (Resize) reads the image only
+        // once it is drawn. Kept at CALL time, so a caller that asks right after
+        // `loadEntry()` waits for the new entry, never reads the outgoing one.
+        let _sourceLoad = Promise.resolve();
+        el.loadEntry = (...args) => (_sourceLoad = _loadEntry(...args));
+        el.whenSourceLoaded = () => _sourceLoad.then(() => {}, () => {});
+
         el.loadCompare = async (itemA, itemB) => {
             await _showCompare(itemA, itemB);
         };
@@ -1213,6 +1223,8 @@ export const MpiCanvasViewer = ComponentFactory.create({
         // Returns the underlying HTMLImageElement so external tools (e.g.
         // resize) can sample the source for thumbnail extraction.
         el.getSourceElement = () => _cv.el?.img || null;
+        // The ORIGINAL's size: past the display cap `img` is a smaller copy (MPI-961).
+        el.getSourceSize = () => _cv.el?.getImageSize?.() || null;
 
         el.getCurrentMaskDataURL = () => {
             // Preview mode: live canvas is destroyed. Return cached composite.

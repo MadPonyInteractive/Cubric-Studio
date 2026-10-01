@@ -71,6 +71,28 @@ async function setTool(window, mode, panelSelector, naturalWidth = SRC_W) {
   return panel;
 }
 
+// The CI runner's race, provoked (testing-desktop-specs.md trap 5). With no weights the group
+// opens on Crop, not Prompt, so Resize mounts with no canvas swap to wait on — while the
+// entry is still loading. A dev box has weights, and its Prompt -> canvas swap loads the
+// image first, so the race never shows there. The slow display-image check widens it.
+async function provokeRunner(window) {
+  await window.evaluate(async () => {
+    const { MODELS, syncModelInstalled } = await import('/js/data/modelRegistry.js');
+    const results = Object.fromEntries(MODELS.map(m => [m.id, { installed: false, deps: [] }]));
+    const orig = window.fetch.bind(window);
+    window.fetch = (...args) => {
+      const url = String(args[0] || '');
+      if (url.includes('/comfy/models/check')) {
+        return Promise.resolve(new Response(JSON.stringify({ results }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      }
+      if (url.includes('/display-image')) return new Promise(r => setTimeout(r, 1500)).then(() => orig(...args));
+      return orig(...args);
+    };
+    await syncModelInstalled();
+  });
+}
+
 /** Wait for the next file (PNG unless `ext`) the app writes into Media/ and return its size. */
 async function nextOutputSize(media, seen, ext = '.png') {
   let file = null;
@@ -131,6 +153,7 @@ test('Resize MP and SCALE derive the size from the source and keep its proportio
   const { project } = await makeProject(testInfo);
   const { app, window } = await launchApp(testInfo);
   try {
+    await provokeRunner(window);
     await openGroup(window, project);
     const panel = await setTool(window, 'resize', '.mpi-tool-options-resize');
     const family = (label) => panel.locator('#resize-family-slot').getByText(label, { exact: true }).click();
@@ -166,6 +189,33 @@ test('Resize MP and SCALE derive the size from the source and keep its proportio
     await expect(panel.locator('#resize-derived-pair')).toBeHidden();
     expect(Number(await panel.locator('#resize-width-slot input').inputValue())).toBe(want.width);
     expect(Number(await panel.locator('#resize-height-slot input').inputValue())).toBe(want.height);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+// MPI-961: past the display cap the canvas draws a smaller copy. Resize sizes the ORIGINAL,
+// so SCALE ÷2 of a 400x300 is 200x150 even while a 256px copy is on screen (it was 128x96).
+test('Resize SCALE sizes the original, not the display copy a big still is drawn from', async ({}, testInfo) => {
+  const { project, src } = await makeProject(testInfo);
+  // The copy is made only for a file a sidecar owns.
+  const metaDir = path.join(path.dirname(src), '.meta');
+  fs.mkdirSync(metaDir, { recursive: true });
+  fs.writeFileSync(path.join(metaDir, 'iDims.json'),
+    JSON.stringify({ id: 'iDims', filePath: project.itemGroups[0].history[0].filePath }));
+  const { app, window } = await launchApp(testInfo);
+  try {
+    await window.evaluate(async () => {
+      const { setDisplayMaxEdge } = await import('/js/utils/displayImage.js');
+      setDisplayMaxEdge(256);
+    });
+    await openGroup(window, project);
+    const panel = await setTool(window, 'resize', '.mpi-tool-options-resize', 256);
+    await panel.locator('#resize-family-slot').getByText('SCALE', { exact: true }).click();
+    await expect.poll(() => window.evaluate(() => {
+      const { width, height } = document.querySelector('.mpi-tool-options-resize').getParams();
+      return { width, height };
+    })).toEqual({ width: 200, height: 150 });
   } finally {
     await closeApp(app);
   }

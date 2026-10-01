@@ -655,6 +655,10 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         }
 
         async function _refreshThumbnail({ awaitNextLoad = false, syncDims = false } = {}) {
+            // The panel can open while the viewer is still loading the entry (the rail
+            // opens on Crop, with no canvas swap to wait on): read the image once it is drawn.
+            await viewer?.el?.whenSourceLoaded?.();
+            if (_destroyed) return;
             const sourceEl = viewer?.el?.getSourceElement?.();
             if (!sourceEl) { _thumbDataUrl = null; return; }
             if (sourceEl instanceof HTMLVideoElement) {
@@ -665,8 +669,10 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             _thumbDataUrl = thumb.dataUrl;
             _thumbW = thumb.width;
             _thumbH = thumb.height;
-            _sourceW = thumb.sourceWidth;
-            _sourceH = thumb.sourceHeight;
+            // A big still draws a smaller display copy (MPI-961); Apply resizes the original.
+            const natural = viewer?.el?.getSourceSize?.();
+            _sourceW = natural?.width || thumb.sourceWidth;
+            _sourceH = natural?.height || thumb.sourceHeight;
             // Only seed dim inputs from source when in FREE mode — preset
             // families compute dims from ratio × multiplier.
             if (syncDims && settings.family === 'free' && _sourceW > 0 && _sourceH > 0) {

@@ -97,7 +97,11 @@ Resize live preview (image AND video workspaces) calls `runCommand` directly wit
 512px-longest-edge thumbnail from the source via `viewer.el.getSourceElement()`
 (HTMLImageElement on the canvas viewer, HTMLVideoElement first frame on the
 video viewer) and submits it through the **image** `resize` workflow with
-`width`/`height`/`divisible_by` proportionally scaled to thumbnail space. The
+`width`/`height`/`divisible_by` proportionally scaled to thumbnail space. On the canvas
+viewer it first awaits `whenSourceLoaded()` (the panel can open mid-load: no models means
+the rail opens on Crop, with no canvas swap to wait on) and takes the size MP / SCALE / FREE
+derive from `getSourceSize()`, the ORIGINAL's, since past the display cap the element is a
+smaller copy (MPI-961). Spec: `tests/desktop/crop-resize-output.spec.js`. The
 result paints into an inline `<img>` slot inside the resize tool panel — viewer
 canvas / video stays untouched. `previewOnly` is the existing client-side
 "do not save" hint; `suppressLifecycleEvents: true` suppresses

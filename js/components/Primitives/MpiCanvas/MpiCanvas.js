@@ -905,6 +905,11 @@ class _CanvasCore {
         return this._natural || this.img;
     }
 
+    /** The loaded image's NATURAL size, or null — for a tool that sizes an output off it. */
+    getImageSize() {
+        return this._natural ? { ...this._natural } : null;
+    }
+
     /**
      * Backing stores at `width` x `height`; the stack and both canvases' CSS boxes at the
      * natural `cssW` x `cssH`, which is what keeps stack px = image px when the backing is
@@ -1854,7 +1859,7 @@ export const MpiCanvas = ComponentFactory.create({
             'loadVideo','loadComparisonVideo',
             'playCompare','pauseCompare','togglePlayCompare','frameStepCompare',
             'setCompareLoop','getCompareLoop','isCompareVideoPair',
-            'resetView','setGrid','resize','draw',
+            'resetView','setGrid','resize','draw','getImageSize',
             'setMaskingMode','setBrushSize','setBrushType','setBrushPreset','flipMaskColor',
             'setMaskInverted','isMaskInverted',
             'setMaskBwView','isMaskBwView','setMaskPaintEnabled',
