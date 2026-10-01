@@ -41,6 +41,7 @@ import { canonicalizeInjectionKeys } from '../utils/injectionKeys.js';
 import { imageSize, upscaleRefusal, loadRefusal } from '../utils/upscaleLimit.js';
 import { generationStore, PHASES } from './generationStore.js';
 import { settleInGraphEnhance } from './llmService.js';
+import { cloudEditPass1, cloudEditPass2, CLOUD_RESULT_TITLE } from '../utils/cloudEditGraph.js';
 
 // Adapters over the shared js/utils/comfyOutputUrls.js (MPI-176). MPI-74: a
 // force-local run's output lives on LOCAL ComfyUI — build the /view URL against
@@ -1995,6 +1996,25 @@ export function runCommand(payload) {
                     _failBail(err);
                     return;
                 }
+            }
+        }
+
+        // MPI-918: a Flow whose edit stage runs in the cloud runs its graph twice around the
+        // cloud call (utils/cloudEditGraph.js). The cloud picture rides as a run param and
+        // never in injectionParams, so it stays out of the sidecar.
+        const cloudEdit = payload.cloudEdit;
+        if (cloudEdit?.pass === 1 || cloudEdit?.pass === 2) {
+            try {
+                if (cloudEdit.pass === 1) {
+                    workflow = cloudEditPass1(workflow, cloudEdit.spec);
+                } else {
+                    workflow = cloudEditPass2(workflow, cloudEdit.spec, cloudEdit);
+                    params[CLOUD_RESULT_TITLE] = cloudEdit.image;
+                }
+            } catch (err) {
+                await _cleanupTrimmedVideoInputs(tempTrimInputPaths);
+                _failBail(err);
+                return;
             }
         }
 

@@ -36,7 +36,9 @@ const ABS_PATH_RE = /^(?:[A-Za-z]:[\\/]|\\\\|\/(?:home|Users|mnt|root|workspace|
 // The keys built-in Flows use. The app sets `id`, `operation` and `workflow` itself.
 const FLOW_KEYS = new Set(['title', 'preview', 'video', 'description', 'requiredModels',
     'requiredDeps', 'requiredPlugins', 'modelParams', 'mediaType', 'type', 'inputSchema',
-    'result', 'steps', 'fields', 'derived', 'enhance', 'chain', 'agentOpens', 'agentReview']);
+    'result', 'steps', 'fields', 'derived', 'enhance', 'chain', 'agentOpens', 'agentReview',
+    // MPI-918: three node ids of the package's own graph; a wrong one refuses at run time.
+    'cloudEdit']);
 // The two big-photo flags a Flow graph can earn (MPI-971; commandRegistry.js says what each
 // promises about the graph): a package opts in the same way a built-in Flow does.
 const OP_KEYS = new Set(['label', 'progressLabel', 'mediaType', 'requiresImages',

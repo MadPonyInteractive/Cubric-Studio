@@ -33,7 +33,7 @@ import {
     flowEnhanceDecls, enhanceTargets, enhanceSources, enhanceSourceText, enhancedWrites,
     runEnhanceDecl, adoptHiddenTargets,
 } from '../../../services/flowEnhance.js';
-import { flowModelSlots, flowModelIds, setFlowModel } from '../../../data/flowsRegistry.js';
+import { flowModelSlots, flowModelIds, setFlowModel, isCloudCandidate } from '../../../data/flowsRegistry.js';
 import { disambiguatedName } from '../../../data/modelRegistry.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { buildField, mapDeclaredValue, isInjectionParam, disabledFieldIds, hiddenFieldIds, withEnhanceFallback, enhanceEchoTargets } from '../../../utils/declaredFields.js';
@@ -1595,6 +1595,8 @@ export const MpiBaseFlow = ComponentFactory.create({
                 const runningId = choices.includes(resolved[i]) ? resolved[i] : choices[0];
                 if (!runningId) return;
                 const name = disambiguatedName(runningId, slot.models);
+                // A cloud pick loads no LoRA (MPI-918), so it has no rack to open.
+                const cogShown = showCog && !isCloudCandidate(runningId);
 
                 const field = ce('div', { className: 'mpi-base-flow__model-slot' });
                 if (multi) {
@@ -1633,7 +1635,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                     pick.appendChild(label);
                 }
 
-                if (showCog) {
+                if (cogShown) {
                     const cogHost = ce('div', { className: 'mpi-base-flow__model-cog-host' });
                     pick.appendChild(cogHost);
                     const cog = MpiButton.mount(cogHost, {

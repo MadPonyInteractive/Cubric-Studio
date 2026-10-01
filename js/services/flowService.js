@@ -14,6 +14,8 @@
 'use strict';
 
 import { enqueueGeneration } from './generationService.js';
+import { runCommand } from './commandExecutor.js';
+import { cloudRunFields, estimateRunCost, cloudErrorMessage } from './cloudExecutor.js';
 import { getFlowById, flowAvailability, flowModelParams, flowLoraPhases, flowModelIds } from '../data/flowsRegistry.js';
 import { getModelById } from '../data/modelRegistry.js';
 import { state } from '../state.js';
@@ -354,10 +356,141 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
                 { ...snapshot, runInputs, runMediaItems: media, runOriginProject, runLanding, ...(last ? {} : { runNextPass }) }, callbacks, { tempId }))
         : legCallbacks;
 
+    // A cloud model in the edit slot (MPI-918): pass 1 and the cloud call run first, and
+    // pass 2 enters the queue when the picture is back. So there is no queue id yet.
+    // ponytail: an agent's cancel before pass 2 enqueues answers NOT_IN_FLIGHT, like leg 2 of a chain.
+    const cloudModel = _leg.operation ? null : cloudEditModel(flow);
+    if (cloudModel) {
+        runCloudEdit(flow, cloudModel, config, runCallbacks, { enqueue: (cfg) => enqueueGeneration(cfg, runCallbacks, landing) });
+        return { queueJobId: null, tempId };
+    }
+
     const res = enqueueGeneration(config, runCallbacks, landing);
     // Return the tempId so the caller (MpiBaseFlow) can match this job's live latent
     // previews (preview:frame → activeGenerations.byPromptId → entry.tempId; MPI-271).
     return res ? { ...res, tempId } : null;
+}
+
+// ── Cloud edit stage (MPI-918) ───────────────────────────────────────────────────────────
+//
+// A Flow declaring `cloudEdit` can run its edit stage on a cloud model picked into its edit
+// slot. The graph runs TWICE around the cloud call (utils/cloudEditGraph.js): pass 1 hands
+// back the picture and the prompt the local edit model would have received, the cloud
+// model edits that picture through the same route a cloud generation uses (key, credit
+// gate, billed cost), and pass 2 runs the rest of the graph on the result. Only pass 2 is a
+// queued job and only pass 2 lands a card, carrying the cost.
+
+/**
+ * The cloud model this run's edit slot resolved to, or null for a local run.
+ * @param {import('../data/flowsRegistry.js').FlowDef} flow
+ * @returns {?Object} the ModelDef
+ */
+export function cloudEditModel(flow) {
+    if (!flow?.cloudEdit) return null;
+    return flowModelIds(flow).map(id => getModelById(id)).find(m => m?.provider) || null;
+}
+
+async function _blobOf(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`could not read ${url} (HTTP ${res.status})`);
+    return res.blob();
+}
+
+/** A picture as a data URL: what the engine staging route and a run param both take. */
+function _dataUrlOf(blob) {
+    return new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(/** @type {string} */ (r.result));
+        r.onerror = () => reject(r.error);
+        r.readAsDataURL(blob);
+    });
+}
+
+/** Pass 1 as a direct run: outside the queue and never a card (MpiToolOptionsResize's shape). */
+function _runPass1(flow, config) {
+    return new Promise((resolve, reject) => {
+        const exec = runCommand({
+            operation: config.operation,
+            modelId: null,
+            positive: config.positive,
+            negative: config.negative,
+            mediaItems: config.mediaItems,
+            injectionParams: config.injectionParams,
+            flowModelIds: config.flowModelIds,
+            cloudEdit: { pass: 1, spec: flow.cloudEdit },
+            suppressLifecycleEvents: true,
+            forceLocal: state.engineOverride === 'local',
+        });
+        exec.onComplete = (_urls, { displayUrls = [], promptText = null } = {}) => (displayUrls[0] && promptText
+            ? resolve({ url: displayUrls[0], prompt: promptText })
+            : reject(new Error('The edit stage handed back no picture to send.')));
+        exec.onError = reject;
+    });
+}
+
+/**
+ * Pass 1 -> the cloud edit -> pass 2. A failure before pass 2 reaches the caller's onError
+ * with the cloud route's own code (LOW_BALANCE, NO_KEY...), so an agent can say why.
+ * @param {Object} flow
+ * @param {Object} model - the cloud ModelDef in the edit slot
+ * @param {Object} config - the run's config, as a local run would enqueue it
+ * @param {Object} callbacks
+ * @param {{enqueue: function(Object):(Object|null), pass1?: function}} io - pass 2's enqueue, and pass 1;
+ *        both passed in so a test can run this without the queue or the engine
+ * @returns {Promise<void>}
+ */
+export async function runCloudEdit(flow, model, config, callbacks, { enqueue, pass1 = _runPass1 }) {
+    const fail = (code, message) => {
+        const userMessage = cloudErrorMessage(code, message);
+        Events.emit('ui:warning', { message: `${flow.title}: ${userMessage}` });
+        callbacks.onError?.(Object.assign(new Error(userMessage), { code, userMessage }));
+    };
+    try {
+        const shown = await pass1(flow, config);
+        const picture = await _blobOf(shown.url);
+        const dataUrl = await _dataUrlOf(picture);
+        const bitmap = await createImageBitmap(picture);
+        const size = { width: bitmap.width, height: bitmap.height };
+        bitmap.close();
+        const stageRes = await fetch('/comfy/stage-media-data-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dataUrl }),
+        });
+        const staged = await stageRes.json().catch(() => null);
+        if (!stageRes.ok || !staged?.path) throw new Error(staged?.error || `staging failed (HTTP ${stageRes.status})`);
+
+        // The request cloudExecutor builds for an edit, so the credit gate and the bill are
+        // the ones every cloud run gets. The size is pass 1's picture: the edit keeps it.
+        const media = [{ mediaType: 'image', role: 'inputImage', url: staged.path }];
+        const params = { Width: size.width, Height: size.height };
+        const res = await fetch('/deepinfra/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                modelId: model.id,
+                operation: 'edit',
+                prompt: shown.prompt,
+                seed: null,
+                ...cloudRunFields(model, params, media),
+                estimateUsd: estimateRunCost(model, params, media)?.usd || 0,
+            }),
+        });
+        const body = await res.json().catch(() => null);
+        if (!res.ok || !body?.ok || !body.viewUrls?.[0]) {
+            fail(body?.error?.code || 'PROVIDER_ERROR', body?.error?.message);
+            return;
+        }
+        const image = await _dataUrlOf(await _blobOf(body.viewUrls[0]));
+        const queued = enqueue({
+            ...config,
+            cloudEdit: { pass: 2, spec: flow.cloudEdit, image, ...size, cost: body.cost },
+        });
+        if (!queued) callbacks.onError?.(new Error('The edited picture could not be finished.'));
+    } catch (err) {
+        clientLogger.error('flowService', `${flow.id} cloud edit failed: ${err?.message || err}`);
+        fail('PROVIDER_ERROR', null);
+    }
 }
 
 /**

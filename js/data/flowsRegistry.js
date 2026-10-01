@@ -296,6 +296,7 @@
 import { state } from '../state.js';
 import { DEPS } from './modelConstants/dependencies.js';
 import { getPlugin } from './pluginsRegistry.js';
+import { MODELS } from './modelConstants/models.js';
 
 /**
  * The download-queue / dep-status key for a flow's own deps. Namespaced so it can
@@ -1039,13 +1040,19 @@ export const FLOWS = [
         // select: a LoRA already does it better than a dropdown would. It rides on the SLOT
         // rather than a flow-level `settingsModel` so the rack follows the card the user
         // picked.
+        // The two cloud ids (MPI-918) run the SAME graph's edit stage at DeepInfra: offered
+        // only with a key saved, run only when picked, no LoRA rack. Nano Banana fits here
+        // because this edit takes ONE reference.
         requiredModels: [
             {
                 label: 'Edit model',
-                models: ['klein-9b', 'klein-4b'],
+                models: ['klein-9b', 'klein-4b', 'klein-9b-cloud', 'nano-banana-2-lite-cloud'],
                 loras: true,
             },
         ],
+        // The edit stage a cloud pick replaces (utils/cloudEditGraph.js): 106 is the drawing
+        // at 1 MP as the local edit encodes it, 185 the joined instruction, 168 the decode.
+        cloudEdit: { input: '106', prompt: '185', output: '168' },
         // What differs between the tiers, and it is the ONLY thing that does.
         //
         // THE CLIP ARM IS NOT OPTIONAL TRIM: 9B needs `qwen_3_8b_int8_convrot` and 4B
@@ -2761,10 +2768,24 @@ export function flowModelIds(flowOrId) {
     if (!flow) return [];
     const installed = state.s_installedModelIds || [];
     const picks = _modelChoice.get(flow.id) || [];
+    // A cloud candidate (MPI-918) runs ONLY when picked: it bills the user, so it is never
+    // what an install happens to resolve to.
     return flowModelSlots(flow).map(({ models }) =>
         models.find(id => picks.includes(id))
-        || models.find(id => installed.includes(id))
+        || models.find(id => installed.includes(id) && !isCloudCandidate(id))
+        || models.find(id => !isCloudCandidate(id))
         || models[0]);
+}
+
+/**
+ * True for a slot candidate that runs at a cloud provider (MPI-918): it is offered only
+ * with a key saved, carries no LoRA rack, and runs the Flow's edit stage through
+ * `cloudEdit` (flowService.js).
+ * @param {string} modelId
+ * @returns {boolean}
+ */
+export function isCloudCandidate(modelId) {
+    return !!MODELS.find(m => m.id === modelId)?.provider;
 }
 
 /**
@@ -2786,8 +2807,12 @@ export function flowModelChoices(flowOrId) {
     // and the PHASE number is that original index — a cogwheel or a rack keyed off the
     // filtered index would address the wrong phase the moment a single-candidate slot
     // sits before a multi-candidate one (MPI-608).
+    // A cloud candidate with no key saved is not offered: its "install" is the key, which
+    // the Library's install button cannot fetch (MPI-918).
+    const installed = state.s_installedModelIds || [];
     return flowModelSlots(flow)
         .map((slot, index) => ({ ...slot, index }))
+        .map(slot => ({ ...slot, models: slot.models.filter(id => !isCloudCandidate(id) || installed.includes(id)) }))
         .filter(slot => slot.models.length > 1)
         .map(slot => ({ ...slot, recommended: slot.models[0] }));
 }
@@ -2815,7 +2840,8 @@ export function flowLoraPhases(flowOrId) {
     const resolved = flowModelIds(flow);
     return flowModelSlots(flow)
         .map((slot, i) => ({ phase: i + 1, modelId: resolved[i], loras: slot.loras }))
-        .filter(entry => entry.loras && entry.modelId)
+        // A cloud pick loads no LoRA (MPI-918): its graph phase is pruned away.
+        .filter(entry => entry.loras && entry.modelId && !isCloudCandidate(entry.modelId))
         .map(({ phase, modelId }) => ({ phase, modelId }));
 }
 

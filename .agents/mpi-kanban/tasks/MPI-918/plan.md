@@ -51,20 +51,24 @@ None of the four graphs has an `MpiIfElse` today.
 
 ## Phase 2: Two-pass seam, Scribble first
 
-- [ ] A scratch pass: pass 1's outputs come back to the caller and NEVER land as a card (an
-  opt on the queue/landing path, or a run that bypasses commit — pick the smaller after reading
-  `generationService` commit; the pass-1 file is deleted after pass 2).
-- [ ] Graph: `MpiIfElse` titled `Input_Cloud_Edit` (default local) between the local VAEDecode
-  and a `LoadImage` `Input_Cloud_Result` scaled to the edit size; `Output_Edit_Input` (+ size via
-  `PreviewAny`, the `Output_Prompt` precedent) for pass 1. Pass 1 / pass 2 select their output
-  nodes by pruning the prompt, never by a second graph file.
-- [ ] Orchestration in `flowService`: a cloud candidate in the slot -> pass 1 -> `/deepinfra/
-  generate` (the same request `cloudExecutor.js:350` builds: credit gate, agent CONFIRM_COST,
-  `estimateUsd`) -> pass 2; the cost lands on the final card's `generationSettings.cost`.
-- [ ] Slot: cloud ids as extra candidates with a `modelParams` arm flipping `Input_Cloud_Edit`;
-  the LoRA rack hides for a cloud pick; `flowAvailability` counts a cloud id only with a key.
-  **Verify:** unit tests (prune, orchestration, slot), eslint, `npm test`; live Scribble run on
-  the local engine (paid, Fabio's yes).
+- [x] (code 2026-10-01) Scratch pass: pass 1 is a DIRECT `runCommand` (MpiToolOptionsResize's
+  shape: outside the queue, `suppressLifecycleEvents`), its graph tapped with `Output_Display` +
+  `Output_prompt`, so it never lands. Pass-1 picture -> `/comfy/stage-media-data-url` (the engine's
+  `mpi_staged/`, the mask precedent; not deleted, like the masks).
+- [x] (code) Graph: NO graph-file change - `js/utils/cloudEditGraph.js` transforms the injected
+  graph in `runCommand` (after the op injector) from the FlowDef's `cloudEdit: {input, prompt,
+  output}` node ids. Pass 2 replaces `output` (same id) with ImageScale(MpiLoadImage
+  `Input_Cloud_Result`) and prunes to what `Output_*` reaches. See Plan Drift for why not MpiIfElse.
+- [x] (code) Orchestration: `flowService.runCloudEdit` - pass 1 -> `/deepinfra/generate` with the
+  `cloudRunFields` + `estimateRunCost` body (credit gate) -> pass 2 enqueued with `config.cloudEdit`
+  {pass 2, image data URL, size, cost}; `generationService` whitelists it and lands `cost` on the
+  card. A refusal reaches onError with the route's code. Agent CONFIRM_COST: not needed - a cloud
+  candidate runs ONLY when picked, and an agent cannot pick a slot.
+- [x] (code) Slot: Scribble lists `klein-9b-cloud` + `nano-banana-2-lite-cloud`; `flowModelIds`
+  never resolves a cloud id unpicked; `flowModelChoices` hides one without a key; no LoRA phase
+  and no cog for a cloud pick. `cloudEdit` joins `services/userFlows.js` FLOW_KEYS.
+- [ ] **Verify:** unit tests (`cloud-edit-graph`, `flow-cloud-edit`), eslint, `npm test` DONE;
+  live Scribble run (Klein ~$0.015, Nano Banana 2 Lite ~$0.034) on Fabio's yes - LEFT.
 
 ## Phase 3: Draw It In, Outpaint, Object Stamp
 
@@ -97,11 +101,20 @@ None of the four graphs has an `MpiIfElse` today.
 
 ## Remaining Work
 
-Phases 2-4.
+Phase 2's live run, then Phases 3-4.
 
 ## Current State
 
-2026-10-01: Phase 1 DONE, live run passed ($0.015 billed = quote; validation.md). How it ran:
+2026-10-01 (later): Phase 2 CODE DONE, offline-verified (`npm test` green, see Completed);
+NOT yet run live. Next: the live Scribble run, which needs Fabio's yes (money + his engine on
+48188, shared with an isolated app). Route for it: `app:isolated` with the env key, then a
+playwright-cli page in THAT instance: add the cloud id to `state.s_installedModelIds` (the
+renderer reads no env key), `setFlowModel('scribble', ...)`, `submitFlowGeneration` with a
+drawing; check the card lands with `generationSettings.cost` and the drawing was rendered.
+Phase 3 starts from `research/phase3-graph-map.md` (Agent 86's map; Object Stamp needs a second
+input keyed by mode, 106 Auto / 201 Manual).
+
+Phase 1 (earlier the same day): DONE, live run passed ($0.015 billed = quote; validation.md). How it ran:
 `npm run app:isolated` with `DEEPINFRA_API_KEY` exported in the same shell call (the route's
 `resolveConnection` falls back to it; the RENDERER still reads no key, so cloud models show
 uninstalled there and the connector would refuse) + a POST to the isolated server's
@@ -110,6 +123,11 @@ checks; a Flow run through the UI needs a key SAVED in the isolated profile. Nex
 1, the scratch pass.
 
 ## Plan Drift
+
+- 2026-10-01: NO `MpiIfElse` switch. ComfyUI validates every node an output can reach before it
+  runs any (the lazy switch only skips EXECUTION), so the local `UNETLoader` behind the switch
+  refuses the prompt ("value not in list") for a user without local Klein, the main user of a
+  cloud pick. Pruning in app code reaches nothing local and needs no graph-file edit at all.
 
 - 2026-10-01: the card text says Nano Banana takes ONE reference; MPI-919 (`c90e6effd`) and
   `a0e6b58a2` now collage 2-4 refs into one sheet (`routes/deepinfra.js:492-503`). Nano Banana

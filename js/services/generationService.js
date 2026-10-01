@@ -1051,6 +1051,8 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         // below, which is what Reuse Prompt reads back off the sidecar (MPI-620).
         flowModelIds: Array.isArray(config.flowModelIds) ? [...config.flowModelIds] : null,
         previewOnly: config.previewOnly === true,
+        // MPI-918: pass 2 of a Flow whose edit stage ran in the cloud (flowService).
+        cloudEdit: config.cloudEdit || null,
         // MPI-869: an agent's run reports a credit refusal in chat, so the executor must
         // not also toast it.
         byAgent: config.byAgent === true,
@@ -1270,10 +1272,12 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         // app's estimate. `generationSettings` passes through `save-generation` verbatim
         // and comes back off the sidecar on reload, so the record survives with no server
         // edit. Absent on every local generation, which costs nothing but electricity.
-        if (outputInfo.cost) generationSettings.cost = outputInfo.cost;
+        // A Flow's cloud edit stage (MPI-918) was billed before this run, by flowService.
+        const _cost = outputInfo.cost || config.cloudEdit?.cost;
+        if (_cost) generationSettings.cost = _cost;
         // MPI-928: a cloud run Stopped after it was sent still bills, so its result lands;
         // the card says why a Stopped run is in the gallery.
-        if (outputInfo.cost && _wasCancelled()) generationSettings.chargedAfterStop = true;
+        if (_cost && _wasCancelled()) generationSettings.chargedAfterStop = true;
 
         // Multi-stage video preview tagging: when this run was a Preview-only pass,
         // tag the saved sidecar with stage='preview' + frozenParams (so a later
