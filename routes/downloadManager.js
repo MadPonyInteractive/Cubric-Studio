@@ -1603,7 +1603,7 @@ function _registerJob(modelId, engine, entries) {
     }
     // Stamp the grace-window anchor for the reconciler's orphan-fail gate (G11).
     job.registeredAt = job.lastTickAt = Date.now();
-    reconciler.start(); // idempotent; self-idles when no jobs are active
+    reconciler.start(); // idempotent; idles once the store holds no job
     return job;
 }
 
@@ -1678,12 +1678,12 @@ router.get('/comfy/downloads/stream', (req, res) => {
     req.on('close', () => { _sseClients.delete(res); });
     // G11: reconcile against truth, then hand the fresh client the current
     // snapshot so it rebuilds state.downloadJobs wholesale (kills cold-boot
-    // phantom cards). Runs only when jobs are live; otherwise emits an empty
-    // snapshot so the FE clears any stale bars. Errors are non-fatal.
-    (store.hasActiveJobs()
-        ? reconciler.reconcileOnce().catch((err) => logger.warn('download', `SSE-connect reconcile failed: ${err.message}`))
-        : Promise.resolve()
-    ).finally(() => store.broadcastSnapshot());
+    // phantom cards). With nothing live the pass is the I/O-free TTL prune, so an
+    // expired finished job leaves before the snapshot paints it (MPI-497). Errors
+    // are non-fatal.
+    reconciler.reconcileOnce()
+        .catch((err) => logger.warn('download', `SSE-connect reconcile failed: ${err.message}`))
+        .finally(() => store.broadcastSnapshot());
 });
 
 // ── Status Endpoint ───────────────────────────────────────────────────────────
@@ -2912,6 +2912,16 @@ function _downloadJobEventPayload(modelJob) {
     };
 }
 
+// The model-level success event. `alreadyInstalled` (every dep was on disk when the
+// job registered) tells the client nothing was installed now, so it re-syncs without
+// an "installed" toast — a re-verify of a full Pod volume used to announce every
+// model on it (MPI-497).
+function _broadcastModelComplete(modelJob) {
+    _broadcast('download:complete', modelJob.alreadyInstalled
+        ? { modelId: modelJob.modelId, alreadyInstalled: true }
+        : { modelId: modelJob.modelId });
+}
+
 function _checkModelJobsComplete() {
     for (const modelJob of store.allModelJobs()) {
         if (modelJob.status !== 'downloading') continue;
@@ -2957,7 +2967,7 @@ function _checkModelJobsComplete() {
                 });
             } else {
                 _setModelStatus(modelJob, 'done', 'uw done');
-                _broadcast('download:complete', { modelId: modelJob.modelId });
+                _broadcastModelComplete(modelJob);
             }
         }
     }
@@ -2974,7 +2984,7 @@ async function _runCustomNodeInstall(modelJob, onNode = null) {
     if (!customDeps.length) {
         logger.info('download', `_runCustomNodeInstall: no custom_nodes deps found for model ${modelJob.modelId}`);
         _setModelStatus(modelJob, 'done', 'uw done');
-        _broadcast('download:complete', { modelId: modelJob.modelId });
+        _broadcastModelComplete(modelJob);
         return;
     }
     logger.info('download', `_runCustomNodeInstall: extracting ${customDeps.length} custom node(s) for model ${modelJob.modelId}`);
@@ -3157,7 +3167,7 @@ async function _runCustomNodeInstall(modelJob, onNode = null) {
     }
 
     _setModelStatus(modelJob, 'done', 'local done');
-    _broadcast('download:complete', { modelId: modelJob.modelId });
+    _broadcastModelComplete(modelJob);
     // A custom node was installed. The frontend gets `comfy:needs-restart` (→
     // state.comfyNeedsRestart) and the gen gate restarts ComfyUI. But that flag is
     // FRONTEND-ONLY and dies on an app restart — and if the node was installed while

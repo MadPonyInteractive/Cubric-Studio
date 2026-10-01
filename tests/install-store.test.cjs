@@ -442,5 +442,32 @@ test('a re-POST of a TERMINAL model registers a fresh job with fresh dep records
     assert.equal(fresh.deps[0], store.depJob('x'));
 });
 
+// ── Nothing to install (MPI-497) ────────────────────────────────────────────────
+// A job whose every dep is already on disk installs nothing, and its completion must
+// not be announced as "installed". The store is where that fact is known.
+
+test('a job whose every dep is already on disk is marked alreadyInstalled', () => {
+    const { store } = makeStore();
+    const job = store.registerModelJob({ modelId: 'm', engine: 'remote', deps: [
+        { depId: 'a', alreadyInstalled: true }, { depId: 'b', alreadyInstalled: true },
+    ] });
+    assert.equal(job.alreadyInstalled, true);
+});
+
+test('one dep to fetch means the job installs something', () => {
+    const { store } = makeStore();
+    const job = store.registerModelJob({ modelId: 'm', engine: 'local', deps: [
+        { depId: 'a', alreadyInstalled: true }, { depId: 'b' },
+    ] });
+    assert.equal(job.alreadyInstalled, false);
+});
+
+test('a re-POST adding a dep to fetch clears the mark on the live job', () => {
+    const { store } = makeStore();
+    store.registerModelJob({ modelId: 'm', engine: 'local', deps: [{ depId: 'a', alreadyInstalled: true }] });
+    const job = store.registerModelJob({ modelId: 'm', engine: 'local', deps: [{ depId: 'b' }] });
+    assert.equal(job.alreadyInstalled, false);
+});
+
 console.log(`\ninstall-store: ${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

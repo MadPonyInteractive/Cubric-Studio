@@ -215,6 +215,7 @@ function createInstallStore({ broadcast, logger, now } = {}) {
                 if (i === -1) existing.deps.push(dep); else existing.deps[i] = dep;
             }
             existing.installCustomNodes = existing.deps.some(d => d.type === 'custom_nodes');
+            existing.alreadyInstalled = existing.alreadyInstalled && deps.every(d => d.alreadyInstalled);
             _bump();
             return existing;
         }
@@ -230,6 +231,9 @@ function createInstallStore({ broadcast, logger, now } = {}) {
             progress: 0,
             speed: '',
             installCustomNodes: deps.some(d => (d.type || 'model') === 'custom_nodes'),
+            // Every dep was on disk when the job registered: finishing it installs
+            // nothing, so its completion must not be announced as "installed" (MPI-497).
+            alreadyInstalled: deps.length > 0 && deps.every(d => d.alreadyInstalled),
             terminalAt: null,
         };
         _modelJobs.set(modelId, job);

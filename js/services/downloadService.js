@@ -650,7 +650,10 @@ const downloadService = {
                 // to installed at once. Fabio's connect announced six models that way,
                 // with nothing downloaded. MPI-230 required that heal to be silent —
                 // "no prompt, no toast" — and this is the site that broke it.
-                const silent = _silentJobs.delete(data.modelId);
+                // MPI-497 — `alreadyInstalled`: every file was on disk when the job
+                // started, so nothing was installed now. Same silence, decided by
+                // the backend (it is the one that knows).
+                const silent = _silentJobs.delete(data.modelId) || data.alreadyInstalled === true;
                 data.silent = silent;
                 // Capture installed IDs before re-sync to detect cascade installs
                 const preSync = new Set(MODELS.filter(m => m.installed).map(m => m.id));

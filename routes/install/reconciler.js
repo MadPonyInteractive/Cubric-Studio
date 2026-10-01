@@ -35,7 +35,7 @@
  * `setIntervalFn`/`clearIntervalFn` so it is testable).
  */
 
-const POLL_MS = 15_000;      // active-job poll cadence (was _REMOTE_STALL_POLL_MS)
+const POLL_MS = 15_000;      // poll cadence while any job is held (was _REMOTE_STALL_POLL_MS)
 const ORPHAN_MS = 60_000;    // active job with no activity/disk this long → failed
 
 /**
@@ -156,13 +156,16 @@ function createReconciler({ store, checkInstalled, onSettled, isTransportLive, n
         return { settled, failed, pruned };
     }
 
-    /** Start the 15s poll. Self-idles: each tick runs a pass only while jobs are
-     *  active; the pass itself no-ops cheaply when there is nothing to do. */
+    /** Start the 15s poll. Self-idles: each tick runs a pass only while the store
+     *  holds a job. A TERMINAL job counts — idling on "nothing active" left every
+     *  finished job unpruned (the TTL belts live in the idle pass), so a `done` job
+     *  outlived its install and painted a 100% bar on a model the active engine does
+     *  not have (MPI-497). The idle pass is I/O-free. */
     function start() {
         if (_timer) return;
         _timer = _setInterval(() => {
             if (_running) return;
-            if (!store.hasActiveJobs()) return;
+            if (store.allModelJobs().length === 0) return;
             _running = true;
             Promise.resolve()
                 .then(reconcileOnce)

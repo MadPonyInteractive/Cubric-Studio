@@ -288,6 +288,34 @@ async function test(name, fn) {
         assert.equal(store.version(), before); // no mutation
     });
 
+    // MPI-497: the TTL belts live in the idle pass. A poll that idled on "nothing
+    // active" never ran them, so a finished job stayed in every snapshot forever.
+    await test('the poll keeps ticking while only finished jobs remain, and the TTL belt prunes them', async () => {
+        let clock = 1000;
+        let fire = null;
+        const events = [];
+        const store = createInstallStore({ broadcast: (event, data) => events.push({ event, data }), logger: { info() {}, warn() {}, error() {} }, now: () => clock });
+        const rec = createReconciler({
+            store,
+            checkInstalled: async () => new Map(),
+            now: () => clock,
+            logger: { info() {}, warn() {}, error() {} },
+            setIntervalFn: (fn) => { fire = fn; return 1; },
+            clearIntervalFn() {},
+        });
+        register(store, 'm', [{ depId: 'w', type: 'model', totalBytes: 10, downloadedBytes: 0 }]);
+        store.transitionDep('w', 'downloading', 't');
+        store.transitionDep('w', 'complete', 't');
+        store.transitionModel('m', 'done', 't');
+        assert.equal(store.hasActiveJobs(), false);
+        rec.start();
+        clock += 121_000;
+        fire();
+        for (let i = 0; i < 3; i++) await new Promise(r => setImmediate(r));
+        assert.equal(store.modelJob('m'), undefined, 'the finished job outlived its TTL');
+        assert.ok(events.some(e => e.event === 'download:snapshot'), 'the prune was never broadcast');
+    });
+
     console.log(`\n${passed} passed, ${failed} failed`);
     if (failed) process.exit(1);
 })().catch(err => { console.error(err); process.exit(1); });

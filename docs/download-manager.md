@@ -38,7 +38,10 @@ impossible by construction. A monotonic `version` bumps on every mutation.
   `version ≥` last seen).
 - **Prune (G10).** `done` jobs stay (card stays busy — no Install-flash, MPI-241)
   until a resync confirms install, then prune (belt: 120s TTL). `failed`/`cancelled`
-  prune on a 30s TTL.
+  prune on a 30s TTL. The belts live in the reconciler's IDLE pass, so its poll keeps
+  ticking while the store holds ANY job, terminal included — idling on "nothing active"
+  left a finished job immortal, and after a Pod install a switch to local painted its
+  100% bar on a model this engine does not have (MPI-497).
 
 **Reconciler — `routes/install/reconciler.js` (G11).** One pass, both engines,
 driven from disk/volume truth (`localModelsCheck` / wrapper `/models/status`):
@@ -404,7 +407,7 @@ three restarts, and the reverse would have destroyed it each time.
 **Endpoints:**
 - `POST /comfy/models/download/start` — register the model job in the store BEFORE responding (register-before-respond, G8); the response body carries the `job` snapshot + store `version`.
 - `POST /comfy/models/download/cancel` — stop + scrub a model's active/queued download. **Idempotent**: an unknown job returns 200 (+ `download:cancelled` broadcast), NOT 404 (MPI-258). On the remote engine it ALSO deletes the dep off the Pod volume — see the ordering rule above.
-- `GET /comfy/downloads/status` — the store's jobs + `version`. A finished job stays listed as `done` until a reconciler pass prunes it (passes run only while some job is active, on SSE connect and after an uninstall; disk-confirmed `done` prunes at once, else the 120s / 30s TTL belts), and cancel and uninstall drop it at once. So a poller reads "absent after seen" as finished and confirms with check-local.
+- `GET /comfy/downloads/status` — the store's jobs + `version`. A finished job stays listed as `done` until a reconciler pass prunes it (a pass runs every 15s while the store holds any job, on SSE connect and after an uninstall; disk-confirmed `done` prunes at once, else the 120s / 30s TTL belts), and cancel and uninstall drop it at once. So a poller reads "absent after seen" as finished and confirms with check-local.
 - `GET /comfy/downloads/active` — active model downloads plus the engine-JOB flag (`engine`, any install/upgrade/repair/first-start pip pass — MPI-792) for Electron quit warnings
 - `GET /comfy/downloads/stream` — SSE broadcast channel; on connect: reconcile pass → `download:snapshot`.
 - `POST /comfy/models/uninstall` — uninstall a model (engine-filtered, store-guarded — see below).
@@ -544,6 +547,12 @@ event, and both announcement sites read it:
 - `notificationService.js` returns early → no toast, no OS notification.
 - The **cascade toast** in `downloadService.js` returns early → the registry re-sync
   still runs, only the announcement is suppressed.
+
+**The backend's own silence: `alreadyInstalled` (MPI-497).** A job whose every dep was on
+disk when it registered installs nothing, so the store marks it `alreadyInstalled` and the
+model-level `download:complete` carries the flag (`_broadcastModelComplete`). The client
+folds it into `data.silent`. Without it a re-verify of a full Pod volume (the smoke install
+leg, an agent re-installing) announced "<model> installed." for every model on it.
 
 **Why this is a flag and not a list of job ids.** It WAS a list: MPI-395 added the single
 literal `'engine:assets'` to notificationService's allowlist. The very next `engine:*` id
