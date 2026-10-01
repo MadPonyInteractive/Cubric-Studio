@@ -667,6 +667,15 @@ function _isPodDead(podStatus, connecting, absent) {
   return absent === true || podStatus === 'EXITED' || podStatus === 'TERMINATED' || podStatus === 'ERROR';
 }
 
+// MPI-668: a Pod keeps the image it was created on, so a saved Pod resumed by an
+// UPDATED app runs the old app's image (older ComfyUI core, older baked nodes) and
+// the new graphs reject mid-generation. True only on a DEFINITE mismatch: no image
+// field (v2 `image`, v1 `imageName`) fails open and the resume goes ahead.
+function _isPodImageStale(pod, wantImage) {
+  const image = pod && (pod.image || pod.imageName);
+  return !!image && image !== wantImage;
+}
+
 function _selfHealIfPodDead(podStatus, connecting) {
   if (!_isPodDead(podStatus, connecting, _lastPodAbsent)) return false;
   logger.warn('runpod', `remote Pod ${_mode.podId} is ${_lastPodAbsent ? 'gone (404)' : podStatus} while connected — self-healing to local`);
@@ -1182,19 +1191,29 @@ router.post('/remote/pod/reconnect', async (req, res) => {
     // 2. Warm resume — keeps the same podId (stored token still matches). startPod
     //    is fast; the boot/ready wait is long, so on a successful start return
     //    `starting` and let the renderer poll /remote/comfy/status (no 504).
-    const started = await client.startPod(key, podId);
-    const startOk = started.ok || started.status === 400; // 400 ~ already running
-    if (startOk) {
-      logger.info('runpod', `Pod resume kicked off: ${podId}; renderer will poll for ready`);
-      kicked = true;
-      _setStarting(true); // spans the background resume until status sees ready
-      return res.json({ starting: true, ready: false, podId, recreated: false });
+    // 2a. MPI-668: a Pod on another image than this app creates with is recreated,
+    //     never resumed. An unreadable Pod fails open (resume as before).
+    const wantImage = podImageForCard(gpuTypeId);
+    const pod = await client.getPod(key, podId).catch(() => null);
+    const stale = !!(pod && pod.ok && _isPodImageStale(pod.json, wantImage));
+    if (stale) {
+      logger.warn('runpod', `Pod ${podId} runs ${pod.json.image || pod.json.imageName}, this app needs ${wantImage}; recreating it`);
+    } else {
+      const started = await client.startPod(key, podId);
+      const startOk = started.ok || started.status === 400; // 400 ~ already running
+      if (startOk) {
+        logger.info('runpod', `Pod resume kicked off: ${podId}; renderer will poll for ready`);
+        kicked = true;
+        _setStarting(true); // spans the background resume until status sees ready
+        return res.json({ starting: true, ready: false, podId, recreated: false });
+      }
+      // MPI-806: v2 errors use RFC 9457 {title,status,detail}; v1 used {message}
+      const msg = (started.json && (started.json.error || started.json.detail || started.json.title || started.json.message)) || `start ${started.status}`;
+      logger.warn('runpod', `Pod resume failed (${msg}); recreating fresh`);
     }
-    // MPI-806: v2 errors use RFC 9457 {title,status,detail}; v1 used {message}
-    const msg = (started.json && (started.json.error || started.json.detail || started.json.title || started.json.message)) || `start ${started.status}`;
-    logger.warn('runpod', `Pod resume failed (${msg}); recreating fresh`);
 
-    // 3. Resume failed → delete the stuck Pod and create fresh (also poll-for-ready).
+    // 3. Resume failed, or the Pod is on an old image (2a) → delete it and create
+    //    fresh (also poll-for-ready).
     await _deleteTrackedPod(key);
     const out = await _createPodInternal(key, {
       gpuTypeId, volumeId, datacenter, containerDiskGb, minMemoryInGb, wait: false,
@@ -1778,4 +1797,4 @@ router.post('/remote/pod/cleanup-orphans', async (req, res) => {
   }
 });
 
-module.exports = { router, remoteVolumeFreeBytes, resolveDiskTotalBytes, _isPodDead, _clampVolumeDisk, compareVolumeAccounting, _createPodInternal, CPU_FLAVORS };
+module.exports = { router, remoteVolumeFreeBytes, resolveDiskTotalBytes, _isPodDead, _isPodImageStale, _clampVolumeDisk, compareVolumeAccounting, _createPodInternal, CPU_FLAVORS };

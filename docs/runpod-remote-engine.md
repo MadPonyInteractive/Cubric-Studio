@@ -129,6 +129,12 @@ component kept its old name, so "Settings" in a file name or an older card means
   the host machine" / any non-already-running error) → DELETE + `createPod` fresh on the
   same GPU. A STOPPED Pod is **host-pinned** — it can only resume where its GPU is free; the
   delete+recreate fallback is the self-heal for that wall.
+- **Old image → recreate, never resume (MPI-668).** A Pod keeps the image it was CREATED on,
+  so a saved Pod from an older app would run the old ComfyUI under the new app's graphs.
+  Before `startPod`, reconnect reads `getPod` (v2 `image`, v1 `imageName`) and compares it to
+  `podImageForCard(gpuTypeId)`; a mismatch takes the delete+create path (volume kept). No
+  image field = resume as before (fail open). Every `POD_IMAGE_VERSION` bump therefore
+  recreates each user's saved Pod once, on their next Connect.
 - **Quit teardown** (`POST /remote/pod/teardown`, called by `main.js`): branches on the
   **delete-on-quit** pref. OFF (default) = `stopPod` (EXITED, warm-resumable, no GPU bill);
   ON = delete every `cubric-vision` Pod. `main.js` teardown timeout is **30s** (a slow

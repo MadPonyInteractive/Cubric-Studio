@@ -243,6 +243,7 @@ test('remoteProxy reconnect recreates the pod when warm start fails', { concurre
                 startCalls.push(podId);
                 return { ok: false, status: 500, json: { error: 'host full' } };
             },
+            getPod: async () => ({ ok: true, status: 200, json: {} }), // no image -> fail open
             deletePod: async () => ({ ok: true, status: 200, json: {} }),
             createPod: async (_key, spec) => {
                 createCalls.push(spec);
@@ -273,6 +274,61 @@ test('remoteProxy reconnect recreates the pod when warm start fails', { concurre
     } finally {
         harness.cleanup();
     }
+});
+
+// MPI-668: a saved Pod created by an OLDER app keeps that app's image; resuming it
+// runs the new app's graphs on an old ComfyUI. Reconnect must recreate, never resume.
+test('remoteProxy reconnect recreates a pod on an old image instead of resuming it', { concurrency: false }, async () => {
+    const startCalls = [];
+    const createCalls = [];
+    const deleted = [];
+    const harness = loadRemoteProxyHarness({
+        remoteEngine: {
+            getRunPodApiKey: async () => 'rpa_fake_key',
+            getWrapperToken: async () => 'wrapper-token',
+            setWrapperToken: async () => {},
+            clearWrapperToken: async () => {},
+            generateWrapperToken: () => 'generated-token',
+            waitForWrapperReady: async () => ({ ready: true, health: { ready: true } }),
+            proxyUrl: (podId) => `https://${podId}.proxy.test`,
+        },
+        client: {
+            dataCenters: async () => [{ id: 'eu-1', gpuAvailability: [{ available: true, gpuTypeId: 'gpu-x' }] }],
+            getPod: async () => ({ ok: true, status: 200, json: { image: 'docker.io/madponyinteractive/cubric-vision-pod:v0.1.0-cu130' } }),
+            startPod: async (_key, podId) => { startCalls.push(podId); return { ok: true, status: 200, json: {} }; },
+            deletePod: async (_key, podId) => { deleted.push(podId); return { ok: true, status: 200, json: {} }; },
+            createPod: async (_key, spec) => { createCalls.push(spec); return { ok: true, status: 200, json: { id: 'pod-new' } }; },
+            listPods: async () => ({ ok: true, status: 200, json: [] }),
+        },
+    });
+    try {
+        await withServer(harness.remoteProxy.router, async (baseUrl) => {
+            const res = await fetch(`${baseUrl}/remote/pod/reconnect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ podId: 'pod-old', gpuTypeId: 'gpu-x', datacenter: 'eu-1', volumeId: 'vol-1' }),
+            });
+            assert.equal(res.status, 200);
+            assert.deepEqual(await res.json(), { starting: true, ready: false, podId: 'pod-new', recreated: true });
+            assert.deepEqual(startCalls, [], 'an old-image Pod must never be resumed');
+            assert.deepEqual(deleted, ['pod-old']);
+            assert.equal(createCalls.length, 1);
+            assert.notEqual(createCalls[0].imageName, 'docker.io/madponyinteractive/cubric-vision-pod:v0.1.0-cu130');
+            assert.equal(createCalls[0].networkVolumeId, 'vol-1', 'the volume (and its models) is kept');
+        });
+    } finally {
+        harness.cleanup();
+    }
+});
+
+test('_isPodImageStale: only a definite mismatch is stale (MPI-668)', () => {
+    const { _isPodImageStale } = fresh('../routes/remotePodLifecycle');
+    const want = 'docker.io/x/pod:v2-cu130';
+    assert.equal(_isPodImageStale({ image: want }, want), false);
+    assert.equal(_isPodImageStale({ image: 'docker.io/x/pod:v1-cu130' }, want), true);
+    assert.equal(_isPodImageStale({ imageName: 'docker.io/x/pod:v1-cu130' }, want), true, 'v1 field');
+    assert.equal(_isPodImageStale({}, want), false, 'no image field fails open');
+    assert.equal(_isPodImageStale(null, want), false);
 });
 
 test('remoteProxy teardown stops the tracked pod when delete-on-quit is disabled', { concurrency: false }, async () => {
