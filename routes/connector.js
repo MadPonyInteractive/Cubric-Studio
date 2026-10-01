@@ -117,10 +117,23 @@ async function _getGuideIds() {
     return _corpusMod.guideIdsByModel();
 }
 let _commandsMod = null;
+/**
+ * The command registry WITH the installed Flow packages' ops. A package registers its op in
+ * the renderer only (`userFlowService.registerUserFlow`), so this static copy read every
+ * packaged Flow as having no media at all: DramaBox's voice slot, and with it the library
+ * voices, never reached the agent (MPI-1004, Fabio live 2026-10-01). Same key (`user:<id>`)
+ * and op the renderer writes; re-scanned per call, as a package can install or go while the
+ * app runs.
+ */
 async function _getCommandRegistry() {
     if (!_commandsMod) _commandsMod = await import('../js/data/commandRegistry.js');
-    return _commandsMod;
+    const packageOps = {};
+    for (const { id, manifest, errors } of require('../services/userFlows').scanUserFlows()) {
+        if (!errors.length && manifest?.op) packageOps[`user:${id}`] = manifest.op;
+    }
+    return { ..._commandsMod, COMMANDS: { ..._commandsMod.COMMANDS, ...packageOps } };
 }
+router.commandRegistry = _getCommandRegistry;
 
 /**
  * The media one model's op takes, as generate's `media[].role` names them: the op's

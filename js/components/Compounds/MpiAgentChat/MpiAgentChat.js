@@ -45,6 +45,7 @@ import { attachDictation }     from '../../../services/dictation.js';
 import { state }               from '../../../state.js';
 import { PAGE_LANDING }        from '../../../router.js';
 import { getCommandAccent, getCommandProgressLabel } from '../../../data/commandRegistry.js';
+import { FLOWS }               from '../../../data/flowsRegistry.js';
 import {
     agentSendMessage,
     agentGetHistory,
@@ -75,6 +76,17 @@ const _COSMO_LEDGE = `
  * names mirror heroCrew.js `CREW`; `studio` has no guest, because Cosmo is already there.
  */
 const _GUESTS = Object.freeze({ vision: 'Prism', video: 'Reel', audio: 'Vinyl', prompt: 'Lingo' });
+
+/**
+ * A job's working clip. SPEECH is a Flow that takes a voice (a `voiceLibrary` slot: Text to
+ * Speech, Voice Changer, the DramaBox package), and Vinyl sings it into his mic (`idle-3`);
+ * music and every other job keeps the `working` clip, Vinyl at the decks (Fabio, 2026-10-01).
+ */
+function _jobClip(key, op) {
+    const speech = key === 'audio' && FLOWS.some(f => f.operation === op
+        && (f.inputSchema?.media || []).some(g => (g.voiceLibrary || []).some(Boolean)));
+    return speech ? 'idle-3' : 'working';
+}
 
 /**
  * The panel ledge plays STANDING figures with their feet on the composer's top rule
@@ -458,7 +470,7 @@ export const MpiAgentChat = ComponentFactory.create({
         function _guestWanted() {
             const last = [..._running.values()].pop();
             const key  = last && getCommandAccent(last);
-            if (_GUESTS[key]) return { kind: 'job', key, verb: getCommandProgressLabel(last).toLowerCase() };
+            if (_GUESTS[key]) return { kind: 'job', key, clip: _jobClip(key, last), verb: getCommandProgressLabel(last).toLowerCase() };
             return _toolGuest && { kind: 'tool', ..._toolGuest };
         }
 
@@ -487,7 +499,9 @@ export const MpiAgentChat = ComponentFactory.create({
                 } else _guestOut();
                 return;
             }
-            const id = `${want.kind}:${want.key}`;
+            // The clip is in the id: a song taking over from a voice line is the same guest
+            // on a different clip.
+            const id = `${want.kind}:${want.key}:${want.clip}`;
             // A job taking over from a tool guest starts its clock too, or it counts from 1970.
             const arriving = !guest.classList.contains(_GUEST_IN) || !_guestId?.startsWith('job:');
             let shown = Promise.resolve();
@@ -496,7 +510,7 @@ export const MpiAgentChat = ComponentFactory.create({
                 guest.dataset.accent = want.key;
                 qs('#ac-guest-name', el).textContent = _GUESTS[want.key];
                 shown = want.kind === 'job'
-                    ? _guestPlay(want.key, 'getting-ready', { loop: false, then: () => _guestPlay(want.key, 'working') })
+                    ? _guestPlay(want.key, 'getting-ready', { loop: false, then: () => _guestPlay(want.key, want.clip) })
                     : _guestPlay(want.key, want.clip);
             }
             clearInterval(_guestTimer);

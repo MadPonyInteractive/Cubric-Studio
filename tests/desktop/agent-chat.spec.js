@@ -830,6 +830,18 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
     await expect(guest).not.toHaveClass(/mpi-agent-chat__crew-guest--in/);
     await fire('agent:tool', { turnId: 't1', id: 'k3', tool: 'generate', status: 'done', label: 'Queued' });
 
+    // Speech is Vinyl at the mic, music Vinyl at the decks (Fabio, 2026-10-01). Speech = a
+    // Flow that takes a voice; a song taking over is the same guest on another clip.
+    await fire('generation:started', { id: 'gs', operation: 'flowChatterBox' });
+    await expect(guestName).toHaveText('Vinyl');
+    await expect(guestLive).toHaveAttribute('src', /audio\/idle-3\.webm/, { timeout: 8000 });
+    await fire('generation:started', { id: 'gm', operation: 'flowTextToMusic' });
+    await expect(guestLive).toHaveAttribute('src', /audio\/working\.webm/, { timeout: 8000 });
+    await fire('generation:complete', { id: 'gm' });
+    await expect(guestLive).toHaveAttribute('src', /audio\/idle-3\.webm/, { timeout: 8000 });
+    await fire('generation:complete', { id: 'gs' });
+    await expect(guest).not.toHaveClass(/mpi-agent-chat__crew-guest--in/, { timeout: 8000 });
+
     // A click is the landing's party trick: a puff over him, centred on his body.
     await window.locator('#e2e-agent-host #ac-cosmo').click();
     await expect(window.locator('#e2e-agent-host #ac-cosmo-fx')).toHaveAttribute('src', /studio\/transition-\w+\.webm/);

@@ -35,6 +35,28 @@
   first run failed inside ComfyUI (`DramaBoxTextEncode` device mismatch, our MelodramaBox fork,
   not this card's code); the agent's retry ran. Carded as MPI-1008 (breaks users).
 
+## CI (2026-10-01)
+
+- `7c168b195` (the code commit): tests.yml run 36835439944 green.
+- MPI-1008 fixed and pinned (`bff32c628`, MelodramaBox `529c4be`), so the DramaBox look is unblocked.
+
+## Fabio's look, round 2 (2026-10-01, after MPI-1008)
+
+- Step 1 PASSED: a voice line with a cough went to DramaBox and played.
+- Step 2 FAILED: "use DramaBox with a voice from the library" - the agent said DramaBox's media
+  roles are empty in this install. Root cause: `routes/connector.js` built every Flow's `media`
+  from a static server copy of the command registry, and a Flow PACKAGE registers its op in the
+  renderer only (`userFlowService.registerUserFlow`). So every packaged Flow (DramaBox, Head Swap,
+  user Flows) listed no media, and the voices had no row to fold onto. Same miss in
+  `_firstFrames` (a video sent to a packaged Flow's picture slot). Fix: `_getCommandRegistry`
+  adds each valid installed package's op under the renderer's key (`user:<id>`), re-scanned per
+  call. Proof: Fabio's installed `user:drama-box` -> static registry `[]`, fixed
+  `[{"role":"audio1","type":"audio","required":false}]`. `tests/connector-package-media.test.cjs`
+  2/2; connector/agent/user-flows suites 428 pass / 0 fail; eslint clean.
+- Folded in (Fabio asked, same panel): a speech job brings Vinyl in on his mic clip (`idle-3`),
+  music keeps the decks (`working`). Speech = a Flow with a `voiceLibrary` slot (Text to Speech,
+  Voice Changer, the DramaBox package). `agent-chat.spec` 37/37 incl. the new ledge step.
+
 ## Left: Fabio's look and listen (user-ux)
 
 Needs the app restarted (server code changed) and the agent model on his DeepInfra key.

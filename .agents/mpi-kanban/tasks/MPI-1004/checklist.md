@@ -8,4 +8,7 @@
 - [x] `docs/agent/flows.md`: spoken lines (DramaBox first, voice in words, sounds; Chatterbox needs a sample, reads words only; no DramaBox -> pick a library voice, the app asks); MEDIA_REQUIRED offer text
 - [x] `docs/agent-chat.md`: the voice ref and card
 - [x] Tests: unit (catalogue voices, ref resolve/refuse, loop card), desktop card spec; `npm test`
-- [ ] Fabio: live look + listen
+- [x] Look step 1 (DramaBox voice line with a cough) passed
+- [x] Look step 2 failure fixed: packaged Flows' media reach the catalogue (`routes/connector.js`)
+- [x] Vinyl sings speech on his mic, DJs music (`MpiAgentChat.js`, spec step)
+- [ ] Fabio: steps 2 + 3 again, and the Vinyl mic by eye
