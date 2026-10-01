@@ -120,3 +120,4 @@ no RAM/vCPU on tiles (v2 still has none, live openapi rechecked today); spec-she
   Whether he pressed Connect was not reported: the DC-pinned volume-less create itself is the pre-existing
   server path (MPI-135 steering), not new code.
 - `.claude/rules/components.md`: one line, "Scroll survives an overlay" (TRAP 4), on Fabio's explicit yes.
+- 2026-10-01 (session ff52b7be, Fabio's ask): `minRamGb` default 62 -> 0 (auto) in `js/core/storage.js`; no floor is sent when 0 (MpiRunpodSettings.js:518, shell.js:983, unchanged). Saved configs keep their value (not migrated). No doc or test stated 62; `npm test` 2661 / 0 fail; eslint clean. The smoke runner keeps its own `MIN_RAM_GB` 62 (agent tool, not the user default).

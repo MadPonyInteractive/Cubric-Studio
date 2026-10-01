@@ -121,21 +121,12 @@ export const DEFAULT_RUNPOD_CONFIG = Object.freeze({
   // host with >= that much system RAM. 0 = no floor. Ignored for the CPU download
   // Pod and Any-region.
   //
-  // Defaulted to 62 (was 0 = place anywhere, then 80). Weights spill to system RAM on
-  // any consumer card; with no floor users were placed on boxes with no chance.
-  //
-  // 62 and not 80 (Fabio, 2026-09-28: "62 passes the mark of most"): the 2.0 smoke ran
-  // EVERY op, H3 t2v/i2v/ref2v included, on a 5090 placed against a 60 GB floor that
-  // delivered 55.88 GiB — 51 pass, 0 fail. 80 excluded most of the hosts that pass. The
-  // old case for 80 was a 54 GB L4 that OOM-killed minimax-h3/t2v_ms on 2026-09-05
-  // (advertised 62, delivered 54); Fabio reads that as another fault, and no 768p H3 run
-  // was made to settle it. THE ASK IS NOT THE READ still holds: a 62 floor can deliver
-  // ~54-56.
-  //
-  // This is a TRADE: a floor that cannot be met returns "no host available" instead of
-  // a Pod. That is what autoRetry is for, and the settings hint says so. A saved config
-  // keeps its stored value; only a fresh one takes this default.
-  minRamGb: 62,
+  // Defaults to 0 = auto (Fabio, 2026-10-01; it was 80, then 62). Most low-end cards'
+  // hosts have under ~56 GB, so a floor turned a new user's Connect into a "no host
+  // available" RAM toast they could not act on. The floor is for advanced users who know
+  // their model needs a big host (H3 at 768p, LTX at 2K: docs/runpod-remote-engine.md
+  // § "Sizing a Pod"). A saved config keeps its stored value; only a fresh one takes this.
+  minRamGb: 0,
 });
 
 // MPI-774: the in-app agent's endpoint profile and mode. `deepinfra` is the

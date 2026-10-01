@@ -1,13 +1,13 @@
 {
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-801",
-  "title": "Paint tools: hold Alt for a colour picker (eyedropper)",
-  "description": "Fabio 2026-09-17: in the IMAGE history workspace, while a Paint tool is active, holding Alt temporarily turns the cursor into a colour picker; clicking samples the canvas colour into the paint colour, releasing Alt returns to painting. Reuse what MPI-771 built: js/utils/colourKeyMask.js readImagePixels / cornerColour and the native EyeDropper pattern in MpiToolOptionsMaskColour. Paint colour lives in toolSettings.paint.color. Alt must go through Hotkeys.bind + hotkeyRegistry.js (no raw keydown).",
+  "title": "Eyedropper for painting: Alt-pick in the Paint tools, and a Pick in the Flows' paint step",
+  "description": "Fabio 2026-09-17: in the IMAGE history workspace, while a Paint tool is active, holding Alt temporarily turns the cursor into a colour picker; clicking samples the canvas colour into the paint colour, releasing Alt returns to painting. Reuse what MPI-771 built: js/utils/colourKeyMask.js readImagePixels / cornerColour and the native EyeDropper pattern in MpiToolOptionsMaskColour. Paint colour lives in toolSettings.paint.color. Alt must go through Hotkeys.bind + hotkeyRegistry.js (no raw keydown). FOLDED IN, Fabio 2026-10-01 (screenshot of Scribble's \"Draw it\" step): the Flows' paint step has no eyedropper either. MpiStepPaint (the `paint` step kind, used by Scribble and Draw It In) mounts a bare MpiColorPicker (MpiStepPaint.js:533); MpiColorField already pairs that picker with a Pick button on the native EyeDropper API and five tool panels use it - swap it in, and give the drawing canvas the same Alt-pick as the history Paint tools. See brief.md.",
   "column": "todo",
   "maturity": "idea",
   "status": "active",
   "created_at": "2026-09-17T16:38:10+01:00",
-  "updated_at": "2026-09-17T16:38:10+01:00",
+  "updated_at": "2026-10-01T22:47:17Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

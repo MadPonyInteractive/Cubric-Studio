@@ -20,7 +20,8 @@ graph-file change and no node: the app prunes and swaps the graph around the clo
    cannot be swapped this way.
 3. Declare `cloudEdit: { input, prompt, output }` on the FlowDef and append the cloud ids to the
    edit slot's `models`, AFTER the local ones (`models[0]` stays the recommendation).
-   - Nano Banana only where the edit takes ONE reference.
+   - Nano Banana only where the edit takes ONE reference, and only after a live look: it
+     failed on Draw It In and Outpaint and passed on Scribble (Fabio 2026-10-01).
    - A slot with `loras: true` keeps it: a cloud pick drops the rack by itself.
 4. `npm test`. `tests/flow-cloud-edit.test.cjs` checks every `cloudEdit` spec still names its
    graph's edit stage, and that no Flow lists a cloud model without one.
@@ -39,5 +40,10 @@ graph-file change and no node: the app prunes and swaps the graph around the clo
   local loader behind an `MpiIfElse` refuses the whole prompt for a user without that model.
 - **Size.** Pass 2 fits the cloud picture to pass 1's size; a stitch or harmoniser downstream
   that resizes plates to the IMAGE's size (Outpaint) depends on that fit.
-- **Two references** (Object Stamp): tap each under its own title and collect by title. Pass 1's
-  `Output_Display` urls arrive in ComfyUI's execution order, not yours.
+- **The cloud call sees pictures, never latents.** If the local edit samples from something it
+  is not handed as an image (Object Stamp samples from the clean crop's latent with both
+  references beside it, which is its clean-up), the cloud result keeps the seam and shifts the
+  crop's colour. Leave that slot local (Object Stamp, Fabio 2026-10-01) or split the graph.
+- **Two references** (no shipped Flow since Object Stamp left the cloud): tap each under its own
+  title and collect by title. Pass 1's `Output_Display` urls arrive in ComfyUI's execution
+  order, not yours.

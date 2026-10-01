@@ -49,6 +49,16 @@ const _modelDepStatusCache = new Map();
 const CLOUD_PROFILE_ID = 'deepinfra';
 let _hasCloudKey = false;
 let _cloudKeyAsked = false;
+// The disk sync's last answer (isModelUsable, partial-aware). The two writers of the
+// installed list — the sync and the key check — each own one half and keep the other's,
+// or a Flow slot never offers a cloud candidate (MPI-918) and a key change drops every
+// partial install.
+let _localInstalledIds = [];
+
+/** @returns {string[]} the installed-model list: the disk's answer plus the cloud models when a key is saved. */
+function _installedModelIds() {
+    return _hasCloudKey ? [..._localInstalledIds, ...MODELS.filter(m => m.provider).map(m => m.id)] : _localInstalledIds.slice();
+}
 
 /** @returns {boolean} true when a key for the cloud provider is saved. */
 export function hasCloudKey() {
@@ -79,7 +89,7 @@ export async function refreshCloudKey() {
     for (const model of MODELS) if (model.provider) model.installed = has;
     if (changed) {
         Events.emit('models:checked', {
-            installedModelIds: MODELS.filter(m => m.installed).map(m => m.id),
+            installedModelIds: _installedModelIds(),
             driftedModelIds: getDriftedModelIds(),
         });
     }
@@ -315,8 +325,11 @@ export async function syncModelInstalled() {
         // an app key can never leak into the installed-MODEL set (which feeds the model
         // pickers and every s_installedModelIds consumer). Explicit, not relying on
         // isModelUsable happening to reject an unknown id.
-        const installedModelIds = Object.keys(results)
+        // MPI-918: the cloud models were never in `results` (see the payload above), so they
+        // join here, or this emit wipes them from every Flow slot.
+        _localInstalledIds = Object.keys(results)
             .filter(id => !id.startsWith('app:') && !id.startsWith('plugin:') && isModelUsable(id));
+        const installedModelIds = _installedModelIds();
         // MPI-326: only fan out when the installed or drifted set actually changed —
         // a redundant re-sync (remote heartbeat) must not rebuild the op UI.
         const _installedKey = installedModelIds.slice().sort().join(',');

@@ -10,8 +10,8 @@
 ## The shape
 
 One model slot (Klein 9B), two image inputs, two gizmo steps, one graph, two modes.
-The slot also lists `klein-9b-cloud` (MPI-918), never Nano Banana: two references
-([../cloud-edit.md](../cloud-edit.md) § Traps).
+No cloud candidate (MPI-918, Fabio 2026-10-01): a cloud edit skips the clean-up this graph's
+local edit does, and the seam shows ([../cloud-edit.md](../cloud-edit.md) § Traps).
 
 | | Auto (default) | Manual |
 |---|---|---|

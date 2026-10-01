@@ -851,11 +851,11 @@ export const FLOWS = [
         // 9B ONLY, deliberately — see the paragraph above on 4B integrating worse. Adding
         // 4B was raised on 2026-08-26 and applies to SCRIBBLE, not here.
         //
-        // The two cloud ids (MPI-918) run this graph's edit stage at DeepInfra, as on
-        // Scribble: offered only with a key saved, run unpicked only when no local one is
-        // installed, no LoRA rack. Nano Banana fits because this edit takes ONE reference.
+        // Klein 9B cloud (MPI-918) runs this graph's edit stage at DeepInfra, as on Scribble:
+        // offered only with a key saved, run unpicked only when no local one is installed,
+        // no LoRA rack. NOT Nano Banana: it failed hard here on Fabio's look (2026-10-01).
         requiredModels: [
-            { label: 'Edit model', models: ['klein-9b', 'klein-9b-cloud', 'nano-banana-2-lite-cloud'], loras: true },
+            { label: 'Edit model', models: ['klein-9b', 'klein-9b-cloud'], loras: true },
         ],
         // The edit stage a cloud pick replaces (utils/cloudEditGraph.js): 106 is the boxed
         // crop at 1 MP as the local edit encodes it, 185 the joined instruction, 168 the
@@ -1423,10 +1423,10 @@ export const FLOWS = [
             + 'over the sides you want filled, and say what should appear there if you like. Your '
             + 'own pixels are kept exactly as they were. Runs on FLUX.2 Klein 9B, or on a cloud '
             + 'model with your DeepInfra key.',
-        // The graph bakes 9B's transformer + encoder, so there is nothing to inject. The two
-        // cloud ids (MPI-918) run its edit stage at DeepInfra instead, as on Scribble; Nano
-        // Banana fits because this edit takes ONE reference.
-        requiredModels: [{ label: 'Base model', models: ['klein-9b', 'klein-9b-cloud', 'nano-banana-2-lite-cloud'] }],
+        // The graph bakes 9B's transformer + encoder, so there is nothing to inject. Klein 9B
+        // cloud (MPI-918) runs its edit stage at DeepInfra instead, as on Scribble. NOT Nano
+        // Banana: it failed here on Fabio's look (2026-10-01).
+        requiredModels: [{ label: 'Base model', models: ['klein-9b', 'klein-9b-cloud'] }],
         // The edit stage a cloud pick replaces: 673 is the padded picture at 1 MP, 685 the
         // trimmed instruction, 682 the decode. The boundary harmonize + paste-back after it
         // are model-free and resize the plate to the DECODE's size, so the cloud picture is
@@ -1864,18 +1864,14 @@ export const FLOWS = [
         // photograph, not just the inserted object. Opt-in, so it is the user's to
         // choose rather than one the flow forbids on their behalf.
         //
-        // Klein 9B on DeepInfra (MPI-918) runs the edit stage in the cloud. It is the ONLY
-        // cloud id: this edit takes TWO references, and Nano Banana collages several into
-        // one sheet, which is untested inside a stitch.
+        // NO cloud candidate (MPI-918, Fabio 2026-10-01). The local edit samples from the
+        // clean crop's latent with both references beside it, which is what cleans the
+        // stamp into the scene; a cloud call only sees two pictures, so its result kept a
+        // seam and shifted the colour of the crop. Splitting the graph in two would be the
+        // way back (the two-reference support in utils/cloudEditGraph.js is kept for it).
         requiredModels: [
-            { label: 'Edit model', models: ['klein-9b', 'klein-9b-cloud'], loras: true },
+            { label: 'Edit model', models: ['klein-9b'], loras: true },
         ],
-        // The edit stage a cloud pick replaces. Image one is 211, the CLEAN scene crop, in
-        // both modes. Image two follows `Input_Mode` (220), the same switch `Ref2_Select`
-        // reads: 1 Auto is 106, the crop of the stamped composite; 2 Manual is 201, the
-        // clean object at its own aspect. 185 is the joined instruction, 168 the decode,
-        // which is image one's size (the latent is 106's, the same crop geometry as 211).
-        cloudEdit: { input: '211', input2: { mode: '220', 1: '106', 2: '201' }, prompt: '185', output: '168' },
         // THE CLIP ARM IS NOT OPTIONAL TRIM. Klein 9B needs `qwen_3_8b_int8_convrot`;
         // pairing it with 4B's encoder dies with a shape error that reads as a sampler
         // bug and is not one (MPI-600). The text encoder moves WITH the checkpoint.

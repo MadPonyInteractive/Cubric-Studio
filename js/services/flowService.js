@@ -447,11 +447,9 @@ function _runPass1(flow, config) {
             suppressLifecycleEvents: true,
             forceLocal: state.engineOverride === 'local',
         });
-        exec.onComplete = (_urls, info) => {
-            const shown = pass1Shown(flow.cloudEdit, info);
-            if (shown) resolve(shown);
-            else reject(new Error('The edit stage handed back no picture to send.'));
-        };
+        // Resolves null when the run finished without a picture; rejects only with the
+        // engine's own error, which commandExecutor has already shown the user.
+        exec.onComplete = (_urls, info) => resolve(pass1Shown(flow.cloudEdit, info));
         exec.onError = reject;
     });
 }
@@ -486,8 +484,22 @@ export async function runCloudEdit(flow, model, config, callbacks, { enqueue, pa
         Events.emit('ui:warning', { message: `${flow.title}: ${userMessage}` });
         callbacks.onError?.(Object.assign(new Error(userMessage), { code, userMessage }));
     };
+    let shown;
     try {
-        const shown = await pass1(flow, config);
+        shown = await pass1(flow, config);
+    } catch (err) {
+        // Pass 1 runs on the user's own engine and nothing has reached the provider: the
+        // engine's error passes through as it is, code and all, and commandExecutor has
+        // already said why (a Pod still connecting, a workflow error), as for any Flow.
+        clientLogger.warn('flowService', `${flow.id} edit stage (pass 1) failed: ${err?.message || err}`);
+        callbacks.onError?.(err);
+        return;
+    }
+    if (!shown) {
+        fail('EDIT_STAGE_EMPTY', 'The edit stage handed back no picture to send.');
+        return;
+    }
+    try {
         const picture = await _blobOf(shown.url);
         // The fit size is image one's, whatever image two is (Object Stamp's Manual object
         // keeps its own aspect): the local decode is the size of image one's latent.

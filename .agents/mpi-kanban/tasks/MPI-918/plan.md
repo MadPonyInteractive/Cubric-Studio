@@ -110,7 +110,25 @@ Phases 3-4.
 
 ## Current State
 
-2026-10-01 (latest, session c1337688): Phase 3 LANDED (`abb5dcbbf`, Agent 86, CI green) and
+2026-10-01 (latest, session ff52b7be, at handoff): EVERY LOOK DONE. Final cloud slots (Fabio):
+Scribble Klein cloud + Nano Banana; Draw It In Klein cloud; Outpaint Klein cloud; Object Stamp
+none. NEXT: confirm CI green on this session's commit, then the done move in its own board
+commit, then close MPI-985 (umbrella: check its other members are done first). Then MPI-595.
+
+Earlier in this session: `npm test` 2661/0, eslint clean:
+(1) slot never offered a cloud model in the real app -> `modelRegistry.js` one helper for both
+writers of the installed list; (2) Pod-connected run PASSED (attempt 2; validation.md);
+(3) Fabio's look: Object Stamp NOT a pass (seam + colour, its clean-up never reaches a cloud
+call) -> his option 2, Klein cloud removed from Object Stamp (registry, tests, 3 docs);
+(4) pass-1 engine errors no longer reported as the provider's (`flowService.js`);
+(5) MPI-894 fold-in, Fabio's ask: RAM floor default 62 -> 0 (`js/core/storage.js`).
+NEXT: Fabio reloads his app and checks Draw It In offers "FLUX.2 Klein 9B (Cloud)", and looks
+at Draw It In / Outpaint (`research/phase4-live-2026-10-01.jpg`; Outpaint seam = MPI-1011).
+On his yes: commit by pathspec (card in doing), CI green, done move in its own board commit,
+then MPI-985. Rig for any further Pod run: scratchpad `pod-live.cjs` (visible instance, he
+pastes the key, waits for `state.remoteEnginePhase` to clear, deletes the Pod, wipes the key).
+
+2026-10-01 (session c1337688): Phase 3 LANDED (`abb5dcbbf`, Agent 86, CI green) and
 Phase 4 docs done. 6 paid live runs ($0.128, validation.md): Draw It In both models good;
 Object Stamp Manual was broken (pass 1 read the baked mode) -> fixed `3665e6645`, not yet
 re-run; Auto run was a rig error (no `box1`) -> re-run; Outpaint's border step is a

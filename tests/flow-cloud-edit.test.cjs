@@ -96,7 +96,7 @@ test('no cloud Flow\'s two passes reach a local model, in any mode it has', asyn
     const { cloudEditPass1, cloudEditPass2 } = await import(url('js/utils/cloudEditGraph.js'));
     const LOCAL = ['UNETLoader', 'CLIPLoader', 'VAELoader', 'MpiLoraModel', 'SamplerCustomAdvanced', 'VAEDecode'];
     const flows = registry.FLOWS.filter(f => f.cloudEdit);
-    assert.deepEqual(flows.map(f => f.id).sort(), ['object-stamp', 'outpaint', 'scribble', 'scribble-object']);
+    assert.deepEqual(flows.map(f => f.id).sort(), ['outpaint', 'scribble', 'scribble-object']);
     for (const flow of flows) {
         const g = require(path.join(ROOT, 'comfy_workflows', flow.workflow));
         const { input2 } = flow.cloudEdit;
@@ -111,11 +111,22 @@ test('no cloud Flow\'s two passes reach a local model, in any mode it has', asyn
     }
 });
 
-test('Nano Banana stays off Object Stamp, whose edit takes two references', async () => {
+test('Object Stamp offers no cloud model: a cloud edit skips the clean-up its local edit does', async () => {
+    // Fabio, 2026-10-01: the cloud result kept a seam and shifted the crop's colour.
     const { registry } = await load();
-    const models = registry.flowModelSlots(registry.getFlowById('object-stamp')).flatMap(s => s.models);
-    assert.ok(models.includes(CLOUD));
-    assert.ok(!models.includes('nano-banana-2-lite-cloud'));
+    const flow = registry.getFlowById('object-stamp');
+    const models = registry.flowModelSlots(flow).flatMap(s => s.models);
+    assert.deepEqual(models.filter(id => registry.isCloudCandidate(id)), []);
+    assert.equal(flow.cloudEdit, undefined);
+});
+
+test('Nano Banana stays on Scribble only: it failed on Draw It In and Outpaint on Fabio\'s look', async () => {
+    const { registry } = await load();
+    const cloudIds = (id) => registry.flowModelSlots(registry.getFlowById(id)).flatMap(s => s.models)
+        .filter(m => registry.isCloudCandidate(m));
+    assert.deepEqual(cloudIds('scribble'), [CLOUD, 'nano-banana-2-lite-cloud']);
+    assert.deepEqual(cloudIds('scribble-object'), [CLOUD]);
+    assert.deepEqual(cloudIds('outpaint'), [CLOUD]);
 });
 
 test('pass 1\'s pictures are read by tap id, so image two reporting first cannot swap them', async () => {
@@ -192,7 +203,10 @@ test('the cloud edit sends pass 1\'s picture and prompt, and pass 2 carries the 
 
 test('a two-reference edit sends image one then image two, and fits to image one', async () => {
     const { registry } = await load();
-    const flow = registry.getFlowById('object-stamp');
+    // No shipped Flow takes two references since Object Stamp left the cloud; the support
+    // stays for a split graph, so it is pinned here with the spec Object Stamp had.
+    const flow = { ...registry.getFlowById('object-stamp'),
+        cloudEdit: { input: '211', input2: { mode: '220', 1: '106', 2: '201' }, prompt: '185', output: '168' } };
     const { MODELS } = await import(url('js/data/modelConstants/models.js'));
     const { runCloudEdit } = await import(url('js/services/flowService.js'));
     const SCENE = new Blob([Buffer.from('scene')], { type: 'image/png' });
@@ -252,4 +266,43 @@ test('a refused cloud call reaches the caller with its code and queues nothing',
     assert.equal(queued, false);
     assert.equal(errors.length, 1);
     assert.equal(errors[0].code, 'LOW_BALANCE');
+});
+
+test('an edit stage the engine refused reaches the caller as the engine said it, and blames no provider', async () => {
+    const { registry } = await load();
+    const flow = registry.getFlowById('scribble-object');
+    const { MODELS } = await import(url('js/data/modelConstants/models.js'));
+    const { runCloudEdit } = await import(url('js/services/flowService.js'));
+    const { Events } = await import(url('js/events.js'));
+    const sent = stubBrowser({});
+    const warnings = [];
+    const off = Events.on('ui:warning', ({ message }) => warnings.push(message));
+    // Pass 1 runs on the user's engine; a Pod still connecting refuses it (comfyController),
+    // and commandExecutor has already told the user why.
+    const refusal = Object.assign(new Error('Connecting to the remote engine — wait until it is ready before generating.'),
+        { code: 'remote_transition' });
+    const errors = [];
+    await runCloudEdit(flow, MODELS.find(m => m.id === CLOUD), { operation: 'flowScribObj' },
+        { onError: (e) => errors.push(e) },
+        { enqueue: () => assert.fail('nothing may queue'), pass1: async () => { throw refusal; } });
+    off();
+    assert.ok(!sent.some(s => s.url.includes('deepinfra')), 'nothing went to the provider');
+    assert.equal(errors.length, 1);
+    assert.equal(errors[0].code, 'remote_transition');
+    assert.deepEqual(warnings, [], 'no second toast, and never "the provider could not complete"');
+});
+
+test('an edit stage that hands back no picture says so, not that the provider failed', async () => {
+    const { registry } = await load();
+    const flow = registry.getFlowById('scribble');
+    const { MODELS } = await import(url('js/data/modelConstants/models.js'));
+    const { runCloudEdit } = await import(url('js/services/flowService.js'));
+    const sent = stubBrowser({});
+    const errors = [];
+    await runCloudEdit(flow, MODELS.find(m => m.id === CLOUD), { operation: 'flowScribble' },
+        { onError: (e) => errors.push(e) },
+        { enqueue: () => assert.fail('nothing may queue'), pass1: async () => null });
+    assert.ok(!sent.some(s => s.url.includes('deepinfra')));
+    assert.equal(errors.length, 1);
+    assert.doesNotMatch(errors[0].userMessage, /provider/);
 });

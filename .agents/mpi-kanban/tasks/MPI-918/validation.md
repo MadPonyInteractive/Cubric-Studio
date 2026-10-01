@@ -46,3 +46,57 @@ Verify mode: user-ux at Phase 4 (Fabio's look at stitched results); Phases 1-3 a
     offline with the real node classes the step is unchanged when the fill is shifted 0..+24 RGB;
     it is HarmonizeBoundary counting black-blended edge pixels as known. Any model, bright edges.
     Card MPI-1011 (fix: GrowMask on the harmonizer's mask only).
+- 2026-10-01 Phase 4 RE-RUN (Fabio's yes, 2 runs; session ff52b7be), same rig, on `3665e6645`:
+  Object Stamp Auto (`box1` 810,770 180x180) and Manual (`box1` 790,740 220x220), Klein 9B
+  cloud, 6.2 s / 6.9 s, $0.015 each billed = quote, cost on both cards. Pass-1 taps off the
+  engine history (918002 image one, 918004 image two) DIFFER in both runs (sha1 d72a49 vs
+  108537 Auto, d24bf6 vs 48f169 Manual); Manual's image two is the cut-out object on black,
+  Auto's is the stamp in the scene crop. The object LANDS in both: Auto lays the mascot on the
+  sand, Manual stands it upright at the box. Change confined to the crop (|diff|>2 bbox
+  788-1011 x 748-971 Auto, 766-1023 x 716-983 Manual). For Fabio's look: Auto's crop square
+  reads slightly lighter/pinker than the sand round it. Spent: $0.03 (phase total $0.158).
+  Montage: `research/phase4-rerun-2026-10-01.jpg`.
+- 2026-10-01 BREAKER found by Fabio in his own app (dev run of master, key saved): the Object
+  Stamp slot never offered Klein 9B (Cloud). ROOT CAUSE: `syncModelInstalled` sends only local
+  models to the disk check and rebuilt `s_installedModelIds` from the answer, so every disk sync
+  wiped the cloud ids; the Flow slot offers installed candidates only. Every live run so far
+  pushed the id in by hand (the rig's "renderer reads no env key" line), which hid it. Fix:
+  one helper builds the list for both writers (disk answer + cloud ids when a key is saved),
+  `js/data/modelRegistry.js`. RED first (`tests/cloud-installed-survives-sync.test.cjs`:
+  "disk sync dropped flux-schnell-cloud"), then green; `npm test` 2659 / 0 fail; eslint clean.
+  Side effect, intended by Phase 2: a Flow whose only installed candidate is a cloud one now
+  reads available with a key saved.
+- 2026-10-01 POD-CONNECTED run (Fabio's option 2: he pasted his RunPod key into MY visible
+  isolated instance and clicked Connect; scratchpad `pod-live.cjs`). Account had 0 Pods before.
+  Attempt 1: rig error, it fired 2 s after the server's ready while the renderer was still in
+  its connect phase -> `remote_transition` refusal (correct product behaviour), Pod deleted,
+  161 s billed. Attempt 2 waits for `state.remoteEnginePhase` to clear: RTX 2000 Ada EU-RO-1
+  ($0.24/hr, 31 GB RAM), ready 102 s, app connected +6 s, Object Stamp Manual on Klein cloud
+  ran in 14.5 s, $0.015 billed = quote, the object lands; Pod deleted (account 0 Pods),
+  `runpod-secrets.json` wiped from the test profile. Proves pass-1 taps come back through the
+  proxy and the cloud picture is uploaded to the Pod for pass 2. Spent: ~$0.035 (Pod ~$0.02 +
+  $0.015). Phase total ~$0.19 of the earlier $0.15 + today's $0.25 caps.
+- 2026-10-01 FABIO'S LOOK, Object Stamp: NOT a pass. The cloud result shows the seam and shifts
+  the crop's colour, because the local edit's clean-up (it samples from the clean crop's
+  latent, node 212, with both reference latents 202-203 beside it) never reaches a cloud call.
+  Fabio's call: option 2, no cloud model on Object Stamp. Done: slot back to `['klein-9b']`,
+  `cloudEdit` removed, docs (UNRELEASED three Flows, cloud-edit.md trap, object-stamp.md).
+  Kept: the two-reference support in `cloudEditGraph.js`, pinned by a test with the old spec,
+  for a split graph (option 1). Checked the other three graphs: each has ONE sampler and the
+  cloud route skips only its edit stage (loaders, sampler, LoRAs), nothing else.
+- 2026-10-01 found in attempt 1's log: a pass-1 ENGINE failure was reported as the provider's
+  ("The provider could not complete this generation. Failed calls are not billed.", code
+  PROVIDER_ERROR) on top of the engine's own toast, and Cosmo got the wrong code. Fixed in
+  `flowService.js`: pass 1 rejects only with the engine's error, which passes through as is;
+  a run with no picture resolves null -> its own message. RED first (2 tests), then green.
+  `npm test` 2661 / 0 fail; eslint clean.
+- 2026-10-01 FABIO'S LOOK, Draw It In: Klein 9B cloud "seems good"; Nano Banana "failing hard"
+  -> dropped from Draw It In (registry, test, UNRELEASED, scribble-to-object.md, cloud-edit.md
+  step 3). Scribble and Outpaint keep Nano Banana pending his word. `npm test` 2662 / 0 fail.
+- 2026-10-01 FABIO'S LOOK, Scribble: "passed on both" (Klein 9B cloud and Nano Banana) -> both
+  stay. Outpaint (Klein + Nano Banana) is the last look.
+- 2026-10-01 FABIO'S LOOK, Outpaint: "Nano Banana failed" -> dropped (registry, outpaint.md,
+  cloud-edit.md, UNRELEASED); Klein cloud stays (only Nano Banana was flagged). Final cloud
+  slots: Scribble Klein + Nano Banana, Draw It In Klein, Outpaint Klein, Object Stamp none;
+  pinned by one test. `npm test` 2662 / 0 fail; eslint clean. ALL LOOKS DONE ("we got our
+  answers"). Left: commit, CI, done move, MPI-985.
