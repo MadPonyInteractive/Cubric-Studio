@@ -183,3 +183,50 @@ Sources: https://docs.runpod.io/release-notes ,
 https://docs.runpod.io/storage/globalvolume/globalvolume-pods ,
 https://docs.runpod.io/storage/network-volumes ,
 https://docs.runpod.io/api-reference/pods/POST/pods (all checked 2026-10-01).
+
+---
+
+## Part 5 - an opt-in Community Cloud tier (Fabio's direction, 2026-10-01) - TO EXPLORE
+
+### The price gap (checked 2026-10-01)
+
+| RTX 4090, $/hr | Price | Source |
+|---|---|---|
+| RunPod Community | **0.34** | runpod.io/pricing + the live deploy page |
+| RunPod Secure | **0.74** (was 0.59 in the July notes) | runpod.io/pricing |
+| Vast, verified hosts, on-demand | 0.34 cheapest, 0.46 median | live Vast offer search |
+| Vast, any host, on-demand | 0.31 cheapest | live Vast offer search |
+
+Same story across the list: 3090 0.22, A40 0.35, L40S 0.79, H100 SXM 2.69 are all the
+Community column. **Our users pay Secure, about 2.2x Community for a 4090.** And **Vast has no
+price edge over RunPod Community** - plus Vast bills bandwidth per GB (median ~$0.0086/GB, so
+~$0.34 to re-pull 40 GB of weights). That weakens Part 3 further: a cheap tier does not need a
+second provider.
+
+Where Community lives in RunPod's new deploy page (1 Jul 2026): **Filter -> Cloud type ->
+Community**, under a red banner: "Community Cloud is unpredictable and may result in
+unexpected behavior. Secure Cloud is more reliable and recommended for production and
+development." The deploy page does not label which cloud a price comes from.
+
+### The direction
+
+- Explore it, **even if Community is ephemeral-only** (no volume, models re-download each
+  session). Worth offering to price-sensitive users.
+- **Never the first option.** Secure Cloud + network volume stays the default and the first
+  thing offered.
+- **A big red warning**, the way RunPod's own filter does it, wherever Community is picked.
+- If global volumes (Part 4) turn out to work on Community, Community stops being
+  ephemeral-only - that is the upgrade, not a precondition.
+
+### What it touches (pointers, not a plan)
+
+- Today the app is Secure-only by design: `docs/runpod-remote-engine.md:15` ("Community Cloud
+  is unsupported") - that line changes when this ships.
+- The GPU catalogue query is pinned `cloud=SECURE` (`routes/runpodRemote.js`, `GPU_CATALOG`),
+  and the Pod create (`_toV2PodSpec`) sends no cloud field, so it gets RunPod's default.
+- The ephemeral shape already ships: "Any region" with no volume (MPI-78), picked in
+  `MpiRunpodSettings.js` (`js/components/Organisms/MpiRunpodSettings/`).
+- **Open:** the field name the v2 `POST /pods` takes for Community (v1 docs say
+  `cloudType: COMMUNITY`; we migrated to v2 in MPI-806). Check the live v2 schema first.
+- **Open:** Community hosts' download speed (10-100 Gbps NICs vs 200-400 on Secure, per the
+  MPI-186 research) - ephemeral re-pulls weights every session, so this sets cold-start time.
