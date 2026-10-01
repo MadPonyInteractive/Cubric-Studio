@@ -19,8 +19,13 @@ members turn out to be the better unit, delete this umbrella instead.
 
 ## Current State
 
-2026-10-01 (Agent 83): card in `doing`, Phase 0 investigation done (findings below), design
-briefed to Fabio — **no code changed yet; waiting on his go for the Phase 1 design.**
+2026-10-01 (Agent 83): card in `doing`, Phase 0 investigation done (findings below).
+**Fabio approved the Phase 1 design (D1-D5) on 2026-10-01**, to be built in a fresh session,
+tests first. No code changed yet. Next: write failing tests for D2 (two models on one dep —
+both store jobs see the shared dep settle) and D4 (reconciler never moves an `installing`
+job; its orphan-fail broadcasts `download:failed`), then start the flip with
+`installStore.registerModelJob` reuse semantics. Re-read the source before trusting a line
+number here: line refs are HEAD 6213881ce.
 MPI-544 is the only member that is not a standing defect: it was seen once during the
 2026-08-11 download-Pod incident and has never reproduced, so it is carded rather than fixed
 — **no evidence, no speculative patch.**
