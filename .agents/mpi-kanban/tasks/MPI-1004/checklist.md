@@ -13,4 +13,6 @@
 - [x] Vinyl sings speech on his mic, DJs music (`MpiAgentChat.js`, spec step)
 - [x] Pick from the voice library opens on Inputs with the library open (`pickVoice`)
 - [x] Voice previews: switching voices keeps the new one playing (`MpiVoicePicker`)
-- [ ] Fabio: Pick lands in the library, previews play, Use <voice> runs, Vinyl mic by eye
+- [x] Fabio: Pick lands in the library, Use <voice> runs, Vinyl mic by eye (round 4)
+- [x] Previews reach the chosen output device (`applySink`)
+- [ ] Fabio: previews audible

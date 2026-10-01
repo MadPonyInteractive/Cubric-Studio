@@ -5,6 +5,7 @@ import { qs, qsa, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { createVoiceLibrary, EMOTIONS } from '../../../data/voiceLibrary.js';
 import { clientLogger } from '../../../services/clientLogger.js';
+import { applySink } from '../../../utils/audioOutput.js';
 
 /**
  * MpiVoicePicker — voice selection compound for the TTS/VC flows (MPI-622).
@@ -175,6 +176,10 @@ export const MpiVoicePicker = ComponentFactory.create({
                 done();
             });
             _playingId = voice.id;
+            // Never in the DOM, so audioOutput's document-level `play` listener cannot see it:
+            // without this the audition played to the Windows default endpoint while the app's
+            // chosen device stayed silent (MPI-1004, Fabio on SteelSeries Sonar, 2026-10-01).
+            applySink(a);
             a.play().catch(done);
             emit('audition-start', { voice });
         }

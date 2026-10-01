@@ -375,6 +375,21 @@ test('the mic and voice cards render only when the slot hands their components i
     });
     expect(played.first).toBe(played.firstId);
     expect(played.now).toBe(played.second);
+
+    // The audition goes to the app's CHOSEN output device (MPI-803). It is never in the DOM,
+    // so the document-level `play` listener cannot route it: it played to the Windows default
+    // while Fabio listened on SteelSeries Sonar, and he heard nothing (MPI-1004, 2026-10-01).
+    const sinks = await window.evaluate(async () => {
+      const { Storage } = await import('/js/core/storage.js');
+      Storage.setAudioOutputDevice({ deviceId: 'e2e-device', label: 'E2E Speakers' });
+      const seen = [];
+      HTMLMediaElement.prototype.setSinkId = function (id) { seen.push([this.src, id]); return Promise.resolve(); };
+      document.querySelectorAll('.mpi-media-picker__voice .mpi-voice-picker__card')[1].click();
+      await new Promise(r => setTimeout(r, 300));
+      Storage.setAudioOutputDevice({ deviceId: '', label: '' });
+      return seen.filter(([src]) => src.includes('/voices/')).map(([, id]) => id);
+    });
+    expect(sinks).toEqual(['e2e-device']);
   } finally {
     await closeApp(app);
   }

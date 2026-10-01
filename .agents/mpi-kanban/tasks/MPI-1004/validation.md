@@ -75,6 +75,21 @@
 - `npm test` 2621 pass / 0 fail / 2 skip (flow-frame's `el.open` shape updated); flow-*.spec +
   media-picker-cards 37/37; eslint + lint:components clean.
 
+## Fabio's look, round 4 (2026-10-01)
+
+- PASSED by Fabio ("It works now"): the voice card on DramaBox (Standard Female, then Child on a
+  typed ask), Use <voice> ran ("Started"), Pick landed in the library, and Vinyl stood on the
+  mic "performing the line" (screenshot).
+- FAILED: previews showed playing with no sound. Root cause: MPI-803's chosen OUTPUT device is
+  applied by a document-level `play` listener, and the audition is a detached `new Audio()`, so
+  it played to the Windows default endpoint while Fabio listens on SteelSeries Sonar. Measured
+  first in an isolated Electron: the clip really plays (currentTime advances, volume 1, unmuted,
+  not starved of sockets even under 8 gallery audio cards), so the sound went to a device.
+  Fix: `applySink(a)` before play, as MpiToast's chime does; the other `new Audio()` (Settings
+  Test) already did, every `createElement('audio')` site is in the DOM. Spec step: a chosen
+  device reaches the audition's `setSinkId` - RED with the call removed, green with it.
+  `docs/component-contracts.md` § (4) now names every detached player.
+
 ## Left: Fabio's look and listen (user-ux)
 
 Needs the app restarted (server code changed) and the agent model on his DeepInfra key.
