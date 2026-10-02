@@ -1775,12 +1775,17 @@ export function getAvailableCommands(mediaType, model = null, ctx = {}) {
 }
 
 /**
- * True when `key` needs no media at all. The predicate a caller uses to ask
- * "can the selected op still run on an empty box?" — false for an unknown key.
+ * True when `key` takes no image or video at all — false for an unknown key.
+ *
+ * Judged by the op's SLOTS, not by what it requires: `ref2v` and `ref2v_ms` require
+ * nothing (every reference is optional) yet take images and videos, and reading them
+ * as text-only made the prompt box move a dropped video off them and prune it
+ * (2026-10-02). An audio-only slot (t2v_ms) still counts as text-only, as staged
+ * audio never moved the op.
  */
 export function isTextOnlyOp(key) {
-    const cmd = commands[key];
-    return !!cmd && (cmd.requiresImages ?? 0) === 0 && (cmd.requiresVideo ?? 0) === 0;
+    return !!commands[key] && !getCommandMediaInputs(key)
+        .some(slot => slot.mediaType === MEDIA_TYPE.IMAGE || slot.mediaType === MEDIA_TYPE.VIDEO);
 }
 
 /**
@@ -1796,7 +1801,7 @@ export function isTextOnlyOp(key) {
  */
 export function pickTextOnlyOp(mediaType, model, ctx = {}) {
     const textOps = getAvailableCommands(mediaType, model, ctx)
-        .filter(c => (c.requiresImages ?? 0) === 0 && (c.requiresVideo ?? 0) === 0 && !c.requiresMask);
+        .filter(c => isTextOnlyOp(c.key) && !c.requiresMask);
     return (textOps.find(c => c.available) ?? textOps[0])?.key ?? null;
 }
 

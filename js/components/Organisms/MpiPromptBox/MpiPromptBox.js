@@ -485,8 +485,12 @@ export const MpiPromptBox = ComponentFactory.create({
 
             const hasMedia = el.imageCount > 0 || el.videoCount > 0;
             const curIsTextOnly = isTextOnlyOp(activeOperation);
+            // A staged image or video the op has no slot for (any text op, or a video
+            // dropped on i2v) moves the box to an op that holds it, as a text op always did.
+            const curRefusesMedia = (el.imageCount > 0 && _maxMediaForOperation(activeOperation, 'image') === 0)
+                || (el.videoCount > 0 && _maxMediaForOperation(activeOperation, 'video') === 0);
 
-            if (hasMedia && curIsTextOnly) {
+            if (hasMedia && curRefusesMedia) {
                 const fallback = _pickFallbackOp();
                 if (fallback) {
                     el.setOperation(fallback, { programmatic: true });
@@ -829,10 +833,13 @@ export const MpiPromptBox = ComponentFactory.create({
             const hasVideo  = (el.videoCount  ?? 0) > 0;
             const hasMedia  = hasImages || hasVideo;
 
+            // A staged type needs a SLOT for it, not a requirement: ref2v requires nothing
+            // and takes both, and judging by requirement dropped a staged video (2026-10-02).
+            const takes = (cmd, type) => getCommandMediaInputs(cmd.key).some(s => s.mediaType === type);
             const matches = (cmd) => {
                 if (!cmd) return false;
-                if (hasImages && (cmd.requiresImages ?? 0) === 0) return false;
-                if (hasVideo  && (cmd.requiresVideo  ?? 0) === 0) return false;
+                if (hasImages && !takes(cmd, 'image')) return false;
+                if (hasVideo  && !takes(cmd, 'video')) return false;
                 if (!hasMedia && ((cmd.requiresImages ?? 0) > 0 || (cmd.requiresVideo ?? 0) > 0)) return false;
                 return true;
             };
@@ -1953,8 +1960,7 @@ export const MpiPromptBox = ComponentFactory.create({
         function _pickFallbackOp() {
             if (!model) return null;
             const cmds = getAvailableCommands(model.mediaType, model, _ctxWithInstalledOps(model));
-            const candidates = cmds.filter(c => ((c.requiresImages ?? 0) > 0 || (c.requiresVideo ?? 0) > 0)
-                && !_stackBlockedReason(c.key));
+            const candidates = cmds.filter(c => !isTextOnlyOp(c.key) && !_stackBlockedReason(c.key));
             // MPI-295: the fallback op must FIT the media already present, not just be
             // the first image op. Restoring/injecting 2 images must land on an op with
             // capacity ≥ 2 (e.g. krea2Edit), never the cap-1 i2i — which would evict
@@ -2009,7 +2015,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 ? availableCmds.filter(cmd => (cmd.requiresImages ?? 0) > 0 || (cmd.requiresVideo ?? 0) > 0)
                 : availableCmds;
             return filteredCmds.map(cmd => {
-                const isTextOnly = (cmd.requiresImages ?? 0) === 0 && (cmd.requiresVideo ?? 0) === 0;
+                const isTextOnly = isTextOnlyOp(cmd.key);
                 const textOnlyBlocked = hasMedia && isTextOnly;
                 const stackReason = _stackBlockedReason(cmd.key);
                 const disabled = !cmd.available || textOnlyBlocked || !!stackReason;

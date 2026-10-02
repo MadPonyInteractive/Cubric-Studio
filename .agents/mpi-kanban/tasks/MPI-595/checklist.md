@@ -40,9 +40,8 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
     Fabio 2026-09-30: YES to both. **Phase 1 DONE
     2026-09-30** (`doing`): model-resolution ops on a 16K send the engine a 4096 copy, live-proven
     (Klein Edit + H3 i2v). Next: Phase 2, localised edits crop/stitch (Fabio's look ends it)
-  - [ ] **Registry PR #2** (cubric-flows-registry, Head Swap + DramaBox paid entries): check
-    green, merge BLOCKED for agents by the permission check ("Merge Without Review") — Fabio
-    merges it himself
+  - [x] **Registry PR #2** (cubric-flows-registry, Head Swap + DramaBox paid entries) MERGED
+    2026-10-02 on Fabio's go (squash `a7460019a`, lint green; no main-branch build to wait on)
   - [x] **MPI-708 mascots — NOT a 2.0 gate (Fabio 2026-09-30):** the still logo stays; the
     animated crew already shipped (MPI-777). The candidate list is now EMPTY
   - Housekeeping found: `secrets:endpoint-changed` landed (`js/events.js:187`), message
@@ -126,6 +125,13 @@ THIS umbrella:
   RUNNING by a crash (v2 answers `start` on RUNNING with a non-400 error). Fixed in this
   umbrella (MPI-894 lane): a RUNNING Pod attaches without `startPod` and skips the availability
   gate; tests RED-proven. Pushed `ec18c1086`; CI on it to confirm before close
+- [x] **NEW BREAKER 2026-10-02 (Fabio): a video dragged onto a cloud video model made no chip**
+  (Seedance 2.0, Wan 3.0). `isTextOnlyOp` judged by REQUIRED inputs, so `ref2v` (all slots
+  optional) read as text-only: the box moved a staged video to `i2v` and pruned it. Fixed at
+  the rule (slot-based) + its inline copies in `MpiPromptBox.js` (`_pickFallbackOp`, op
+  strip, `_pickOpForModel`; a video on `i2v` now moves to `ref2v` too). History's MPI-281
+  "requires input" filters kept as they were. RED-proven: `tests/text-only-op.test.cjs` +
+  `tests/desktop/prompt-box-video-ref.spec.js` (failed on HEAD, passes); `npm test` 2673/0
 - [ ] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step
 
 Agent 85:
