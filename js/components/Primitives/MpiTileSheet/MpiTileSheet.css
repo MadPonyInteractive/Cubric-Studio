@@ -139,12 +139,11 @@
 .mpi-tile--video .mpi-tile__flag--cloud { color: var(--video-accent); }
 
 /* Media flags take the SAME three colours the media section headers use, so a
-   badge on a tile and a header above a grid read as one language. Image has no
-   header colour of its own (it inherits the muted header ink), which is too dim
-   against a thumb, so it takes ink-2 here. */
-.mpi-tile__flag--mediaImage { color: var(--ink-2); }
-.mpi-tile__flag--mediaVideo { color: var(--accent-frost); }
-.mpi-tile__flag--mediaAudio { color: var(--accent-warn); }
+   badge on a tile and a header above a grid read as one language: the family
+   accents (Fabio 2026-10-02, MPI-1012; DESIGN.md § The accent family). */
+.mpi-tile__flag--mediaImage { color: var(--vision-accent); }
+.mpi-tile__flag--mediaVideo { color: var(--video-accent); }
+.mpi-tile__flag--mediaAudio { color: var(--accent-audio); }
 
 /* The `warning` glyph's ink sits half a unit HIGH in its 24-unit viewBox, so
    flex-centering the <svg> box still leaves the triangle off-centre. Nudge it
@@ -212,7 +211,9 @@
     flex: none;
 }
 .mpi-tile__badge .mpi-icon { width: 12px; height: 12px; }
-.mpi-tile__badge--video { color: var(--accent-frost); }
+.mpi-tile__badge--image { color: var(--vision-accent); }
+.mpi-tile__badge--video { color: var(--video-accent); }
+.mpi-tile__badge--audio { color: var(--accent-audio); }
 
 /* Inline install-state row — FIXED height (chip OR progress bar, no shift) */
 .mpi-tile__state {

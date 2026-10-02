@@ -24,6 +24,7 @@ import { getModelLicence, hasAcceptedLicence } from '../../../data/modelConstant
 import { qs, qsa, ce, on } from '../../../utils/dom.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { renderIcon } from '../../../utils/icons.js';
+import { ASSET_KINDS } from '../../../utils/assetKinds.js';
 import { openExternal } from '../../../utils/openExternal.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
 import { tradeTable, sizeToGb, fitsHardware } from '../../../data/modelConstants/footprint.js';
@@ -1220,9 +1221,9 @@ export const MpiModelManager = ComponentFactory.create({
                 .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
             if (!items.length) return;
             const head = ce('div', {
-                className: `mpi-model-library__media-head${media === 'video' ? ' mpi-model-library__media-head--video' : ''}`,
+                className: `mpi-model-library__media-head mpi-model-library__media-head--${media}`,
             });
-            head.innerHTML = `${renderIcon(media, 'sm')}<span>${media === 'video' ? 'Video' : 'Image'}</span><span class="mpi-model-library__media-head-n">${items.length}</span>`;
+            head.innerHTML = `${renderIcon(media, 'sm')}<span>${ASSET_KINDS.find(k => k.kind === media)?.singular || media}</span><span class="mpi-model-library__media-head-n">${items.length}</span>`;
             bodySlot.appendChild(head);
             const sheet = MpiTileSheet.mount(ce('div'), {
                 items: items.map(_tileItem),

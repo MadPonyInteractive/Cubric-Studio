@@ -1,6 +1,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
+import { ASSET_KINDS } from '../../../utils/assetKinds.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 
 /**
@@ -101,10 +102,12 @@ export const MpiTileSheet = ComponentFactory.create({
         // Consumer-owned preview cache (MPI-394). Absent = build fresh every time.
         const _previewCache = props.previewCache instanceof Map ? props.previewCache : null;
 
+        // Each media in its family accent (MPI-1012); a tile with no media reads Image,
+        // as it always has.
         function _mediaBadge(media) {
-            return media === 'video'
-                ? `<span class="mpi-tile__badge mpi-tile__badge--video">${renderIcon('video', 'sm')}Video</span>`
-                : `<span class="mpi-tile__badge">${renderIcon('image', 'sm')}Image</span>`;
+            const m = ASSET_KINDS.find(k => k.kind === media) ? media : 'image';
+            const label = ASSET_KINDS.find(k => k.kind === m).singular;
+            return `<span class="mpi-tile__badge mpi-tile__badge--${m}">${renderIcon(m, 'sm')}${label}</span>`;
         }
 
         // The tile's thumb media, reused across rebuilds when the consumer passed a

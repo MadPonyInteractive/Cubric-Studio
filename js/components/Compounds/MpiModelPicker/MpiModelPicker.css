@@ -78,7 +78,10 @@
     color: var(--ink-4);
     margin: var(--s-4) 0 var(--s-3);
 }
-.mpi-model-picker__media-head--video { color: var(--accent-frost); }
+/* Family accent per media (MPI-1012; DESIGN.md § The accent family). */
+.mpi-model-picker__media-head--image { color: var(--vision-accent); }
+.mpi-model-picker__media-head--video { color: var(--video-accent); }
+.mpi-model-picker__media-head--audio { color: var(--accent-audio); }
 .mpi-model-picker__media-head .mpi-icon { width: 12px; height: 12px; }
 .mpi-model-picker__media-head-n { color: var(--ink-3); }
 

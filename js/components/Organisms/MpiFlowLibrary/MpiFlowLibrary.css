@@ -115,9 +115,10 @@
 .mpi-flow-library__body::-webkit-scrollbar-track { background: transparent; }
 
 /* Output-type section headers (MPI-634) — the twin of the Model Library's and the
-   model picker's `__media-head`, so the three pickers read alike. Video keeps the
-   frost those two already use; audio takes warn because ok/green is spoken for by
-   the Ready chip right below it in the same grid (MpiTileSheet.css). */
+   model picker's `__media-head`, so the three pickers read alike. Each takes its
+   family accent (Fabio 2026-10-02, MPI-1012; DESIGN.md § The accent family): Image
+   = Prism rose, Video = Reel orange, Audio = Vinyl green. A section about no single
+   media type (Third-party) keeps the muted ink. */
 .mpi-flow-library__media-head {
     display: flex;
     align-items: center;
@@ -128,8 +129,9 @@
     color: var(--ink-4);
     margin: var(--s-4) 0 var(--s-3);
 }
-.mpi-flow-library__media-head--video { color: var(--accent-frost); }
-.mpi-flow-library__media-head--audio { color: var(--accent-warn); }
+.mpi-flow-library__media-head--image { color: var(--vision-accent); }
+.mpi-flow-library__media-head--video { color: var(--video-accent); }
+.mpi-flow-library__media-head--audio { color: var(--accent-audio); }
 .mpi-flow-library__media-head .mpi-icon { width: 12px; height: 12px; }
 .mpi-flow-library__media-head-n { color: var(--ink-3); }
 

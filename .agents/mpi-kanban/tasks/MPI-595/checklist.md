@@ -137,6 +137,12 @@ THIS umbrella:
   spec-proven, `validating`; CI GREEN on `df16648ad` (run 37007031522). Left: Fabio's look in
   his pre-cut smoke, then done. Hold-Alt pick
   stays on the card, not 2.0
+- [ ] **NEW 2.0 GATE 2026-10-02 (Fabio): MPI-1012 audio in the prompt box.** Sound & Music
+  and Text to Speech become prompt-box models and leave the Flow Library; Voice Changer stays
+  a Flow. Fabio: "I don't mind waiting a few more days to release"; account for every
+  ramification (in-app agent, existing installs) and reuse the Flow art for the model cards.
+  Same weights + nodes, so v0.24.0 stays valid. **Item 2 (paid re-smoke) waits for it** so one
+  run covers the two new models too
 - [ ] **Fabio's own smoke in the app BEFORE the re-smoke (Fabio 2026-10-02):** item 1 (lock:
   MelodramaBox sync + Mickmumpitz drop + release image build + pin) DONE 2026-10-02
   (`edff37f2a` + `42ddbda10`, mpi-ci `89bb08b`, image v0.24.0). NOW WAITING on Fabio: restart

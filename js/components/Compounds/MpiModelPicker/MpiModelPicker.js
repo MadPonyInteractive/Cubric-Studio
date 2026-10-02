@@ -4,6 +4,9 @@ import { MpiTileSheet } from '../../Primitives/MpiTileSheet/MpiTileSheet.js';
 import { ce, qs, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { modelQuote } from '../../../data/modelConstants/deepinfraPricing.js';
+import { ASSET_KINDS } from '../../../utils/assetKinds.js';
+
+const _mediaLabel = (media) => ASSET_KINDS.find(k => k.kind === media)?.singular || media;
 
 /**
  * MpiModelPicker — the model overlay (MPI-356).
@@ -109,9 +112,9 @@ export const MpiModelPicker = ComponentFactory.create({
             if (!items.length) return;
 
             const head = ce('div', {
-                className: `mpi-model-picker__media-head${media === 'video' ? ' mpi-model-picker__media-head--video' : ''}`,
+                className: `mpi-model-picker__media-head mpi-model-picker__media-head--${media}`,
             });
-            head.innerHTML = `${renderIcon(media, 'sm')}<span>${media === 'video' ? 'Video' : 'Image'}</span><span class="mpi-model-picker__media-head-n">${items.length}</span>`;
+            head.innerHTML = `${renderIcon(media, 'sm')}<span>${_mediaLabel(media)}</span><span class="mpi-model-picker__media-head-n">${items.length}</span>`;
             bodySlot.appendChild(head);
 
             const sheet = MpiTileSheet.mount(ce('div'), { items: items.map(m => _tileItem(m, activeId)) });

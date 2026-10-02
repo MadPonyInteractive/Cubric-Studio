@@ -119,7 +119,9 @@
 }
 .mpi-model-library__section-n { color: var(--ink-3); }
 
-/* Media sub-block header (Image / Video, one aspect each) */
+/* Media sub-block header (Image / Video / Audio, one aspect each), in its family
+   accent (MPI-1012; DESIGN.md § The accent family) — same rule as the model picker
+   and the Flow Library. */
 .mpi-model-library__media-head {
     display: flex;
     align-items: center;
@@ -130,7 +132,9 @@
     color: var(--ink-4);
     margin: var(--s-4) 0 var(--s-3);
 }
-.mpi-model-library__media-head--video { color: var(--accent-frost); }
+.mpi-model-library__media-head--image { color: var(--vision-accent); }
+.mpi-model-library__media-head--video { color: var(--video-accent); }
+.mpi-model-library__media-head--audio { color: var(--accent-audio); }
 .mpi-model-library__media-head .mpi-icon { width: 12px; height: 12px; }
 .mpi-model-library__media-head-n { color: var(--ink-3); }
 
