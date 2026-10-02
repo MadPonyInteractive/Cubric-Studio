@@ -98,6 +98,19 @@ test('a merge that still leaves a gap keeps saying so', async () => {
         'and the merged file says so out loud');
 });
 
+test('a model added since the prior run stays unproven until a run touches it (MPI-1012)', async () => {
+    const { mergeEvidence } = await import('../scripts/smoke-workflows.mjs');
+    // The prior full run predates stable-audio-3, so its scope never names it — not in
+    // modelsRun, covers OR unproven. The old intersection read that silence as "proven".
+    const f = fresh();
+    f.scope.unproven = ['sdxl-nsfw', 'sdxl-lustify', 'stable-audio-3'];
+    f.scope.modelsInRegistry = 21;
+    const m = mergeEvidence(prior(), f);
+    assert.deepStrictEqual(m.scope.unproven, ['stable-audio-3'],
+        'neither run proved the new model, so the merged file must not claim it');
+    assert.ok(m.limits.some(l => l.startsWith('SCOPED RUN:') && l.includes('stable-audio-3')));
+});
+
 test('a prior file that cannot say what it left out may not narrow the claim', async () => {
     const { mergeEvidence } = await import('../scripts/smoke-workflows.mjs');
     const p = prior();

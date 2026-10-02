@@ -700,22 +700,51 @@ const IN_FLIGHT = ['queued', 'downloading', 'paused', 'installing'];
  * full three-hour budget with nothing watching it. A copy is how that hole got
  * there, and a second copy is how it would come back.
  *
+ * A finished job does not STAY (MPI-513): the status route prunes `done` once a resync
+ * confirms it on disk (120 s at most) and `failed` after 30 s. So a job seen once and then
+ * absent is FINISHED, and the absence cannot say which way it went: the engine's disk is
+ * asked. Until this, an absent job read as "not registered yet" for the whole 3-hour
+ * budget, and the failure scan that ran after the loop found nothing for an earlier
+ * model's pruned `failed` job, so a GPU was rented over a missing weight. The verdict
+ * rides on `probe.failed`, read the moment the probe answers true.
+ *
  * @param {string} modelId
- * @param {{getJobs?: () => Promise<object[]>, stallMs?: number}} [o] seams for
- *   --self-check only; the defaults are the app's own status route and STALL_MS.
+ * @param {{deps?: object[], seen?: boolean, getJobs?: () => Promise<object[]>,
+ *   isInstalled?: () => Promise<boolean>, stallMs?: number}} [o] `deps` are what the
+ *   disk check asks about; `seen` = the start POST already returned the registered job.
+ *   getJobs / isInstalled / stallMs are test seams; the defaults are the app's routes and STALL_MS.
  */
-function installProbe(modelId, o = {}) {
+export function installProbe(modelId, o = {}) {
     const getJobs = o.getJobs || (async () => (await app('/comfy/downloads/status')).jobs || []);
+    const isInstalled = o.isInstalled || (() => engineHas(modelId, o.deps || []));
     const stallMs = o.stallMs ?? STALL_MS;
-    let last = -1, lastMoveMs = Date.now();
-    return async () => {
+    let last = -1, lastMoveMs = Date.now(), seen = !!o.seen;
+    const probe = async () => {
         const j = (await getJobs()).find(x => x.modelId === modelId);
-        if (!j) return false;
+        if (!j) {
+            if (!seen) return false;
+            probe.failed = !(await isInstalled());   // throws on a blip: waitReady polls again
+            return true;
+        }
+        seen = true;
         const got = (j.deps || []).reduce((a, d) => a + (d.downloadedBytes || 0), 0);
         if (got !== last) { last = got; lastMoveMs = Date.now(); }
         else if (Date.now() - lastMoveMs > stallMs) throw new GiveUp(`stalled — no bytes moved for ${Math.round(stallMs / 60000)} min`);
-        return !IN_FLIGHT.includes(j.status);
+        if (IN_FLIGHT.includes(j.status)) return false;
+        probe.failed = j.status === 'failed' || j.status === 'cancelled'
+            || (j.deps || []).some(d => d.status === 'failed' || d.status === 'error');
+        return true;
     };
+    probe.failed = false;
+    return probe;
+}
+
+/** Every dep of `modelId` on the engine's disk? /comfy/models/check asks the Pod volume while remote mode is on. */
+async function engineHas(modelId, deps) {
+    const out = await app('/comfy/models/check', {
+        method: 'POST', body: JSON.stringify({ models: [{ id: modelId, deps }] }),
+    });
+    return out?.results?.[modelId]?.installed === true;
 }
 
 // A create REFUSAL rents nothing, so a spec with no alternative card (the CPU download
@@ -989,7 +1018,8 @@ function healSeparators(graph) {
     return n;
 }
 
-function prepOp(reg, model, op, probeImage) {
+/** @param {{image:string, video?:string, audio?:string}} probes Pod paths of the staged fixtures, by media type */
+function prepOp(reg, model, op, probes) {
     const { resolveWorkflowFile, COMMANDS } = reg;
     const file = resolveWorkflowFile(model, op, ENGINE, { variantTokens: { arch: ARCH } });
     if (!file) return { status: 'SKIP', why: 'no workflow mapped' };
@@ -1004,22 +1034,32 @@ function prepOp(reg, model, op, probeImage) {
             return { status: 'FAIL', why: `opInject title "${title}" matches no node — the graph would run the WRONG branch` };
         }
     }
+    // A REQUIRED slot of any type gets its fixture (Chatterbox's voice is audio, MPI-1012).
+    // Leaving one empty is no shortcut: the voice loader blocks on empty, ComfyUI reports
+    // success with no output, and that reads as a broken model.
     for (const mi of COMMANDS[op]?.mediaInputs || []) {
         if (!mi.required) continue;
-        if (mi.mediaType !== 'image') return { status: 'SKIP', why: `needs a ${mi.mediaType} input; only images are staged` };
-        injectByTitle(graph, mi.title, probeImage);
+        if (!probes[mi.mediaType]) return { status: 'SKIP', why: `no ${mi.mediaType} fixture — add one to dev_configs/smoke-fixtures/` };
+        injectByTitle(graph, mi.title, probes[mi.mediaType]);
     }
     healSeparators(graph);
     const fast = applyFastTier(graph, model);
     return { graph, applied: [...fast, ...minimizeGraph(graph)] };
 }
 
+// Placeholder Pod paths for the offline sweeps — prep only sets node values, never opens a path.
+const PROBE_PLACEHOLDERS = {
+    image: '/workspace/comfyui/input/smoke-probe.png',
+    video: '/workspace/comfyui/input/smoke-probe.mp4',
+    audio: '/workspace/comfyui/input/smoke-probe.wav',
+};
+
 /** Free sweep of every op's offline half. Returns the count of hard faults. */
 function preflightOps(reg, set) {
     const problems = [];
     for (const e of set) {
         for (const op of e.ops) {
-            const r = prepOp(reg, e.model, op, '/workspace/comfyui/input/smoke-probe.png');
+            const r = prepOp(reg, e.model, op, PROBE_PLACEHOLDERS);
             if (r.status) problems.push(`  ${r.status} ${e.model.id}/${op} — ${r.why}`);
         }
     }
@@ -1082,8 +1122,15 @@ export async function orphanReason(promptId, elapsedMs) {
         + `app log for a restart-comfy caller) or the op completed as this check ran`;
 }
 
-async function runOp(reg, model, op, probeImage) {
-    const prep = prepOp(reg, model, op, probeImage);
+/** Outputs a finished prompt produced, every media kind: a model op can make audio now (MPI-1012). */
+export function countMedia(outputs) {
+    return Object.values(outputs || {}).reduce((n, o) =>
+        n + (o.images?.length || 0) + (o.gifs?.length || 0) + (o.videos?.length || 0)
+          + (o.audio?.length || 0) + (o.audios?.length || 0), 0);
+}
+
+async function runOp(reg, model, op, probes) {
+    const prep = prepOp(reg, model, op, probes);
     if (prep.status) return { op, status: prep.status, why: prep.why };
     const { graph, applied } = prep;
 
@@ -1116,8 +1163,7 @@ async function runOp(reg, model, op, probeImage) {
             return { op, status: 'FAIL', why: `${err?.node_type || '?'}: ${String(err?.exception_message || 'execution_error').slice(0, 180)}`, budget: applied };
         }
         if (st.completed) {
-            const outs = Object.values(rec.outputs || {});
-            const media = outs.reduce((n, o) => n + (o.images?.length || 0) + (o.gifs?.length || 0) + (o.videos?.length || 0), 0);
+            const media = countMedia(rec.outputs);
             if (!media) return { op, status: 'FAIL', why: 'completed but produced no media', budget: applied };
             return { op, status: 'PASS', secs: Math.round((Date.now() - t0) / 1000), media, budget: applied };
         }
@@ -1496,12 +1542,17 @@ function mergeEvidence(prior, fresh) {
     const n = (s) => results.filter(r => r.status === s).length;
 
     const pScope = prior.scope || null;
+    // A model the prior file never names (added since: stable-audio-3 and chatterbox,
+    // MPI-1012) was proven by neither run. Absent from its `unproven` is NOT covered.
+    const priorKnew = new Set([...(pScope?.modelsRun || []), ...(pScope?.covers || []), ...(pScope?.unproven || [])]);
     const scope = {
         requested: 'merged',
         modelsRun: [...new Set([...(pScope?.modelsRun || []), ...fresh.scope.modelsRun])],
         covers: [...new Set([...(pScope?.covers || []), ...fresh.scope.covers])],
         // No prior scope = a file that cannot say what it left out; it may not narrow this one.
-        unproven: pScope?.unproven ? fresh.scope.unproven.filter(id => pScope.unproven.includes(id)) : fresh.scope.unproven,
+        unproven: pScope?.unproven
+            ? fresh.scope.unproven.filter(id => pScope.unproven.includes(id) || !priorKnew.has(id))
+            : fresh.scope.unproven,
         modelsInRegistry: fresh.scope.modelsInRegistry,
     };
     const skippedWeights = (prior.skippedWeights || []).filter(w => (fresh.skippedWeights || []).includes(w));
@@ -1533,7 +1584,7 @@ function filterOps(set, keep) {
 
 // ── Flow smoke leg ─────────────────────────────────────────────────────────────
 // Flows are derived from the real FLOWS array in flowsRegistry.js, which loads fine
-// in bare Node (confirmed: import returns FLOWS.length 13). No hand-kept catalog needed.
+// in bare Node (confirmed: the import returns the live array). No hand-kept catalog needed.
 
 const FIXTURE_DIR = path.join(REPO, 'dev_configs', 'smoke-fixtures');
 
@@ -1705,15 +1756,9 @@ function printFlowPlan(reg, flowSet, flowNeeds) {
 
 function preflightFlows(reg, flowSet) {
     if (!flowSet.length) return 0;
-    // Use placeholder Pod paths — prepFlowOp only sets node values, never validates paths.
-    const probeFiles = {
-        image: '/workspace/comfyui/input/smoke-probe.png',
-        video: '/workspace/comfyui/input/smoke-probe.mp4',
-        audio: '/workspace/comfyui/input/smoke-probe.wav',
-    };
     const problems = [];
     for (const e of flowSet) {
-        const r = prepFlowOp(reg, e, probeFiles);
+        const r = prepFlowOp(reg, e, PROBE_PLACEHOLDERS);
         if (r.status) problems.push(`  ${r.status} flow/${e.label} — ${r.why}`);
     }
     const fails = problems.filter(l => l.trim().startsWith('FAIL')).length;
@@ -1726,7 +1771,8 @@ function preflightFlows(reg, flowSet) {
     return fails;
 }
 
-/** Upload flow fixture files (video, audio) to the Pod. Returns a probeFiles map. */
+/** Upload the video + audio fixtures to the Pod. Returns a probeFiles map. Never fatal: */
+/** every run calls it, and a run that needs neither must not die on it. */
 async function stageProbeMedia() {
     const result = {};
     const fixtures = [
@@ -1736,14 +1782,14 @@ async function stageProbeMedia() {
     for (const { key, file } of fixtures) {
         const localPath = path.join(FIXTURE_DIR, file);
         if (!existsSync(localPath)) {
-            log(`  ⚠ fixture missing: dev_configs/smoke-fixtures/${file} — flows needing ${key} input will SKIP`);
+            log(`  ⚠ fixture missing: dev_configs/smoke-fixtures/${file} — ops needing ${key} input will SKIP`);
             continue;
         }
         const up = await app('/remote/upload/media', {
             method: 'POST', body: JSON.stringify({ localPath, filename: file }),
-        });
+        }).catch(() => null);
         if (!up?.success || !(up.path || up.name)) {
-            log(`  ⚠ ${file} upload failed — flows needing ${key} input will SKIP`);
+            log(`  ⚠ ${file} upload failed — ops needing ${key} input will SKIP`);
             continue;
         }
         result[key] = up.path || up.name;
@@ -1781,11 +1827,7 @@ async function runFlowOp(reg, entry, probeFiles) {
             return { op: entry.label, status: 'FAIL', why: `${err?.node_type || '?'}: ${String(err?.exception_message || 'execution_error').slice(0, 180)}`, budget: applied };
         }
         if (st.completed) {
-            const outs = Object.values(rec.outputs || {});
-            // Count all media types including audio (flow outputs images, videos, or audio).
-            const media = outs.reduce((n, o) =>
-                n + (o.images?.length || 0) + (o.gifs?.length || 0) + (o.videos?.length || 0)
-                  + (o.audio?.length || 0) + (o.audios?.length || 0), 0);
+            const media = countMedia(rec.outputs);
             if (!media) return { op: entry.label, status: 'FAIL', why: 'completed but produced no media', budget: applied };
             return { op: entry.label, status: 'PASS', secs: Math.round((Date.now() - t0) / 1000), media, budget: applied };
         }
@@ -1893,13 +1935,15 @@ async function main() {
         const installModels = async (entries) => {
             // ponytail: install via the app's normal per-model route. Same queue, same SSE, same
             // code users hit — a bespoke bulk installer would be a second path to keep correct.
+            const bad = [];
             for (const [i, e] of entries.entries()) {
                 log(`\n  [${i + 1}/${entries.length}] ${e.model.id}`);
-                await app('/comfy/models/download/start', {
-                    method: 'POST',
-                    body: JSON.stringify({ modelId: e.model.id, dependencies: reg.resolveDeps(e.model, null, null, ENGINE, { arch: ARCH }).map(id => reg.DEPS[id]).filter(Boolean) }),
+                const deps = reg.resolveDeps(e.model, null, null, ENGINE, { arch: ARCH }).map(id => reg.DEPS[id]).filter(Boolean);
+                const start = () => app('/comfy/models/download/start', {
+                    method: 'POST', body: JSON.stringify({ modelId: e.model.id, dependencies: deps }),
                 });
-                const done = await waitReady(`install ${e.model.id}`, installProbe(e.model.id),
+                let probe = installProbe(e.model.id, { deps, seen: !!(await start())?.job });
+                const done = await waitReady(`install ${e.model.id}`, probe,
                     3 * 60 * 60 * 1000, { soft: true, watchLog: true }).catch(() => false);
 
                 if (!done) {
@@ -1909,22 +1953,15 @@ async function main() {
                     await app('/remote/pod/delete-active', { method: 'POST' }).catch(() => { });
                     await sleep(5000);
                     await createPodWithRetry(cpuSpec, 'CPU download Pod', 5 * 60 * 1000);
-                    await app('/comfy/models/download/start', {
-                        method: 'POST',
-                        body: JSON.stringify({ modelId: e.model.id, dependencies: reg.resolveDeps(e.model, null, null, ENGINE, { arch: ARCH }).map(id => reg.DEPS[id]).filter(Boolean) }),
-                    });
-                    await waitReady(`install ${e.model.id} (retry)`, installProbe(e.model.id),
+                    probe = installProbe(e.model.id, { deps, seen: !!(await start())?.job });
+                    await waitReady(`install ${e.model.id} (retry)`, probe,
                         3 * 60 * 60 * 1000, { watchLog: true });
                 }
+                // Read off the probe, never a status scan after the loop: the route prunes a
+                // failed job after 30 s (MPI-513), so a later scan sees only the last model.
+                if (probe.failed) bad.push(e.model.id);
             }
-            // Only THIS call's models. The app keeps every job of the session, so a failed Flow
-            // job from an earlier run (2026-09-28: flow:chatter-box) aborted a later run that
-            // never asked for it.
-            const mine = new Set([...entries].map(e => e.model.id));
-            const jobs = (await app('/comfy/downloads/status')).jobs || [];
-            return jobs.filter(j => mine.has(j.modelId))
-                .filter(j => (j.deps || []).some(d => d.status === 'failed' || d.status === 'error'))
-                .map(j => j.modelId);
+            return bad;
         };
 
         // Swallow whatever [download] warnings app.log already holds, so the first
@@ -1949,7 +1986,7 @@ async function main() {
         if (bad.length) await abort(`install failed after a retry for: ${bad.join(', ')}`);
 
         // ── Flow model + dep installs (CPU Pod, same download mode) ──────────────
-        // Audio flows (voice-changer, chatter-box, stems, minimax-music, sound-and-music) have
+        // Audio flows (voice-changer, stems, minimax-music) have
         // NO requiredModels and GBs of their own weights in requiredDeps. outpaint and others
         // may need model + dep weights not in the model-matrix set. Install them here, before
         // the GPU Pod is rented.
@@ -1961,23 +1998,18 @@ async function main() {
             const flowModelBad = await installModels(flowModelEntries);
             if (flowModelBad.length) await abort(`flow model install failed: ${flowModelBad.join(', ')}`);
         }
+        const flowBad = [];
         for (const de of flowNeeds.depEntries) {
             log(`\n  installing flow deps [${de.flowId}]…`);
-            await app('/comfy/models/download/start', {
+            const ack = await app('/comfy/models/download/start', {
                 method: 'POST',
                 body: JSON.stringify({ modelId: de.installKey, dependencies: de.deps }),
             });
-            await waitReady(`install ${de.installKey}`, installProbe(de.installKey),
-                3 * 60 * 60 * 1000, { watchLog: true });
+            const probe = installProbe(de.installKey, { deps: de.deps, seen: !!ack?.job });
+            await waitReady(`install ${de.installKey}`, probe, 3 * 60 * 60 * 1000, { watchLog: true });
+            if (probe.failed) flowBad.push(de.installKey);
         }
-        if (flowNeeds.depEntries.length) {
-            const jobs = (await app('/comfy/downloads/status')).jobs || [];
-            const flowBad = jobs
-                .filter(j => flowNeeds.depEntries.some(de => de.installKey === j.modelId))
-                .filter(j => (j.deps || []).some(d => d.status === 'failed' || d.status === 'error'))
-                .map(j => j.modelId);
-            if (flowBad.length) await abort(`flow dep install failed: ${flowBad.join(', ')}`);
-        }
+        if (flowBad.length) await abort(`flow dep install failed: ${flowBad.join(', ')}`);
 
         log(`  installs verified: no failed deps`);
 
@@ -2035,17 +2067,16 @@ async function main() {
         await abort(`this Pod reports engine ${engine.got || '(unproven)'} but dev_configs/smoke-evidence.json records ${prior.engine?.got || '(unrecorded)'} — refusing to merge two engines into one file.`);
     }
 
-    const probe = await stageProbeImage();
-    // Upload flow fixture files (video, audio) if the flow leg is requested.
-    const probeMedia = flowSet.length ? await stageProbeMedia() : {};
-    const probeFiles = { image: probe, ...probeMedia };
+    // Every run stages the video + audio fixtures too: a model op can need one now
+    // (Chatterbox's voice, MPI-1012), and two small uploads cost less than a rule for when.
+    const probeFiles = { image: await stageProbeImage(), ...await stageProbeMedia() };
 
     const results = [];
     const vramGb = await podVramGb(gpu.id);
     for (const e of set) {
         await stageModelOnPod(reg, e.model, vramGb);
         for (const op of e.ops) {
-            const r = await runOp(reg, e.model, op, probe).catch(err => ({ op, status: 'FAIL', why: err.message }));
+            const r = await runOp(reg, e.model, op, probeFiles).catch(err => ({ op, status: 'FAIL', why: err.message }));
             results.push({ model: e.model.id, ...r });
             log(`  ${r.status.padEnd(4)} ${e.model.id}/${op}${r.why ? ' — ' + r.why : ` (${r.secs}s, ${r.media} out)`}`);
         }

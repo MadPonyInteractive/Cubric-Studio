@@ -55,3 +55,26 @@ Verify mode: user-ux. Evidence per phase lands here; Fabio's look closes it.
   picker in the voice library. Bites: dropping the mount-time `_takePromptOpen()` fails it.
 - Desktop agent-chat + flow-pick-voice + media-picker-to-history + prompt-box-voice: 45/45.
 - eslint on every touched file: clean.
+- CI on e78e16c4f: run 37054738413, unit + desktop (1-4) all `success`.
+- P5 leftover, `app:operations`: renders `## Sound & Music (`t2a`)` and
+  `## Text to Speech (`tts`)` with the registry info, both help paragraphs and the model
+  (rendered and read 2026-10-02). Already guarded by `tests/agent-corpus.test.cjs`
+  `testOperationsIsRenderedFromTheRegistries` (every offered op, its info verbatim). No change.
+
+## P6 smoke runner (session 7ca011ff, 2026-10-02)
+
+- `node --test "tests/**/*.test.cjs"`: 2700 tests, 2698 pass, 0 fail (2 skipped).
+- New `tests/smoke-model-ops.test.cjs` (8 cases): `prepOp` chatterbox/tts SKIPs with no
+  audio fixture and puts `smoke-probe.wav` on `Input_Audio` with one; stable-audio-3/t2a needs
+  no fixture and gets `Input_Duration=1`; every audio model op preps offline; `countMedia`
+  counts `audio`; `installProbe` reads a seen-then-pruned job as finished and asks the disk
+  (on disk = ok, absent = failed), never asks about a job that never registered, takes `seen`
+  from the start POST, reads a failed job/dep at once, treats a disk-check throw as a blip.
+  Each case fails on HEAD's runner (old SKIP for non-image slots; no `countMedia` /
+  `installProbe` export; absent = false forever).
+- `tests/smoke-evidence-merge.test.cjs` +1: a model the prior scope never names stays
+  `unproven` (HEAD's intersection returned `[]`, claiming stable-audio-3 proven).
+- `node scripts/smoke-workflows.mjs --self-check`: OK (the old installProbe asserts still hold).
+- `--plan` NOT run: it reads the local engine's `/object_info` (Fabio's), and the offline half
+  it would prove is what the new prepOp cases run. `dev_configs/smoke-run.txt` untouched.
+- eslint on the runner + both test files: clean. Smoke tests together: 62/62.

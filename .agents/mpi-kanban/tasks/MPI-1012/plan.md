@@ -90,8 +90,8 @@ run covers the two new models.
   new tests (licence key, alias routing, audio model listed). `release:check` op parity green.
 - [x] **P4 Prompt box voice + required slot** — media picker on slot type + voice library +
   record; op dimming for a missing required audio slot; Enhance hidden.
-- [ ] **P5 Agent / connector / MCP** — decision 12; update the agent tests listed in research B.
-- [ ] **P6 Smoke runner** — decision 13 (`tests/smoke-*.test.cjs` cases).
+- [x] **P5 Agent / connector / MCP** — decision 12; update the agent tests listed in research B.
+- [x] **P6 Smoke runner** — decision 13 (`tests/smoke-*.test.cjs` cases).
 - [ ] **P7 Docs** — move `existing-flows/chatter-box.md` + `sound-and-music.md` to the model docs
   home, fix every cross-link (research B), `docs/README.md` map, both skills,
   `UNRELEASED.md` (roster Thirteen -> Eleven + an audio-models bullet; Flow-list reconcile),
@@ -163,6 +163,17 @@ OP_UNAVAILABLE / INVALID_LANGUAGE / VIEW_BUSY) -> `state.s_promptOpen` + navigat
 `t2a`/`tts` info/help; then P6 smoke runner (decision 13), P7 docs, P8 live check (ask Fabio
 before using his GPU or downloading).
 
+2026-10-02 (session 7ca011ff): CI green on e78e16c4f (run 37054738413). P5 leftover: no change,
+`app:operations` already renders t2a/tts info + help from the registry (agent-corpus test
+guards it). **P6 DONE** in `scripts/smoke-workflows.mjs`: `prepOp(reg, model, op, probes)`
+takes the fixture map like `prepFlowOp` (a required slot of any type gets its fixture, else
+SKIP naming it); `PROBE_PLACEHOLDERS` shared by both offline sweeps; `countMedia(outputs)`
+shared by both legs (audio counts); every run stages the mp4 + wav (upload failure non-fatal);
+plus the two fold-ins in Plan Drift. Playbook `docs/playbooks/bump-engine/01-smoke-run.md`
+updated (probe media, audio counting, install verdicts, merge coverage, stale Flow counts).
+**Next: P7 docs** (the existing-flows docs move, UNRELEASED roster, skills, bench fixture,
+Docs-site message, Website lines to Fabio), then P8 (ask Fabio first).
+
 ## Plan Drift
 
 - 2026-10-02 (P3): **part of P5 came forward**, because the suite requires it — every shipped
@@ -195,3 +206,14 @@ before using his GPU or downloading).
   fixtures on purpose: they exercise the generic Flow path (open: true, install, the voice card),
   still live for Voice Changer. The model path has its own tests (agent-loop "MPI-1012 — the
   voice card on a model op", agent-voice-library openPrompt case, prompt-box-voice spec test 2).
+- 2026-10-02 (P6): **two runner faults folded in**, both on the path MPI-595 item 2's paid
+  re-smoke takes to prove the two new models. (1) Open message 1b701cfc (MPI-513 -> MPI-894,
+  a deferred umbrella nobody would land): `/comfy/downloads/status` prunes a finished job
+  (`done` <= 120 s, `failed` after 30 s), so `installProbe` waited out 3 h on a job it missed,
+  and the post-loop failure scan only ever saw the last model's failure. Now the probe takes
+  `seen` from the start POST's `job`, reads seen-then-absent as finished and asks
+  `/comfy/models/check` (remote-aware), and the verdict rides on `probe.failed`, read per
+  model. (2) `mergeEvidence` intersected `unproven` with the prior's, so a model added since
+  the prior run (both audio models) read as PROVEN after any scoped merge. Not done:
+  `release:check` still prints the file's frozen "covers all 36" until item 2's run rewrites
+  the scope (noted in brief.md).

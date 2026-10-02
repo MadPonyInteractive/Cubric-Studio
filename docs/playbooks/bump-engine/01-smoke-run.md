@@ -31,7 +31,10 @@ the same path users hit.
 3. **CPU Pod install.** Download-mode Pod, no GPU, pennies. Installs every model in the set
    onto the volume and waits.
 4. **Verify the installs** before renting a GPU. A missing weight found at sampling time has
-   already cost the expensive half of the run.
+   already cost the expensive half of the run. Each model's verdict is read the moment its
+   install finishes: `/comfy/downloads/status` prunes a finished job (MPI-513: `done` within
+   120 s, `failed` after 30 s), so a job seen and then gone is asked of the volume
+   (`/comfy/models/check`), never waited on and never scanned for afterwards.
 5. **Rent the first available preferred GPU** and connect.
 6. **Execute every op minimally.**
 7. **Report**, then **prompt** on the volume — keep or delete.
@@ -152,7 +155,7 @@ Flows are **off by default** — a plain smoke run exercises model ops only, sam
 Opt in:
 
 ```bash
-node scripts/smoke-workflows.mjs --flows all                    # all 14 flow entries
+node scripts/smoke-workflows.mjs --flows all                    # every Flow, each byModel arm its own entry
 node scripts/smoke-workflows.mjs --flows ltx-extend,scribble    # specific ids
 node scripts/smoke-workflows.mjs --plan --flows all             # dry run, no Pod
 ```
@@ -170,22 +173,23 @@ so a new Flow is covered the day it lands. Each Flow brings its own installs: it
 install as the app does it, under `flow:<id>`. `--plan` prints both, and the GB the Flows add
 to the volume counts only weights the model matrix does not already install. One Flow, `ltx-extend`, has a `byModel` arm for
 `minimax-h3` (the fl2va DiT) that uses a different graph (`flow_h3_extend.json`). That arm is
-expanded at resolve time, so `--flows all` produces **14 entries**, not 13.
+expanded at resolve time, so `--flows all` produces one entry more than there are Flows.
 `--flows ltx-extend` likewise produces 2.
 
 ### Probe media
 
-Flow ops that need media read from `dev_configs/smoke-fixtures/`:
+Every REQUIRED media slot gets a fixture, model op or Flow op alike. The video and audio ones
+read from `dev_configs/smoke-fixtures/` and every run stages both, whatever it smokes:
 
 | file | type | used by |
 |---|---|---|
-| (none: the matrix's own probe image) | 128×128 grey PNG, staged for the model ops | image-input flows (outpaint, scribble, scribble-object, object-stamp, character-sheet, ltx-upscale) |
+| (none: the matrix's own probe image) | 128×128 grey PNG, staged for the model ops | image-input ops, and flows (outpaint, scribble, scribble-object, object-stamp, character-sheet, ltx-upscale) |
 | `smoke-probe.mp4` | 1 s, 128×128, H.264, silent | video-input flows (ltx-extend, ltx-foley) |
-| `smoke-probe.wav` | 1 s, mono 22050 Hz, PCM silent | audio-input flows (stems, voice-changer, chatter-box) |
+| `smoke-probe.wav` | 1 s, mono 22050 Hz, PCM silent | audio-input flows (stems, voice-changer) and the voice of `chatterbox/tts` |
 
-A Flow op whose required fixture is absent is **SKIP**-ted, not FAIL-ed. The fixtures are
+An op whose required fixture is absent is **SKIP**-ted, not FAIL-ed. The fixtures are
 committed to the repo, so they should always be present; a missing file is a tree problem,
-not a flow failure.
+not a model failure.
 
 ### Evidence
 
@@ -201,9 +205,13 @@ checks `counts.fail > 0` and the engine version match; Flow results are additive
 without `--flows` leaves no Flow entries and is still accepted. A run with flows that FAIL
 blocks as expected.
 
-Audio-output flows (ltx-foley, voice-changer, chatter-box, stems, minimax-music,
-sound-and-music) are counted by audio files produced, not images. A graph that emits zero
-audio when audio is expected is a FAIL, same as a model op that emits no media.
+Audio-output flows (ltx-foley, voice-changer, stems, minimax-music) and the audio models
+(`stable-audio-3/t2a`, `chatterbox/tts`) are counted by audio files produced, not images
+(`countMedia`, one counter for both legs). A graph that emits zero media is a FAIL.
+
+Rows from before MPI-1012 name `flow/sound-and-music` and `flow/chatter-box`: the same graphs,
+which became those two model ops. A run that includes the models adds their own rows; the old
+rows stay as history.
 
 ### When to run
 
@@ -262,7 +270,8 @@ The merge is guarded, and both guards run **before anything is rented**:
 Either mismatch refuses the scoped run and demands a full matrix. On success every row carries
 `run` (the ISO stamp of the run that produced it), the file lists its `runs`, counts are
 recomputed off the merged rows, and coverage becomes the **union** — a model is `unproven` only
-when neither run touched its family.
+when neither run touched its family. A model the prior file never names (added since it ran)
+counts as untouched by it: silence is not coverage.
 
 **The app must be idle during a run, or MPI-501's fix must be in.** A live renderer restarts the
 Pod's ComfyUI when a model install adds nodes, and until that fix it did so without reading the
