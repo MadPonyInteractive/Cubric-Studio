@@ -53,6 +53,13 @@ source. It returns **canonical `OP_ORDER`**, not registry or `supportedOps` orde
   renders it `aria-disabled` and appends a short clause to the op's own description
   (`needs 1 image`, `paint a mask first`, `takes at most 2 images`) — never replacing it.
   What the op does is the useful half.
+- **A REQUIRED audio slot is a minimum too** (`requiresAudio`, MPI-1012): Text to Speech is
+  dim with `needs a voice` until a voice is staged. Min only, and optional audio slots (LTX,
+  H3 `ref2v_ms`) count nothing, so staged audio still never moves an op. On that op the `+`
+  card reads "Add a voice" and opens `MpiMediaPicker` on audio with the voice library and the
+  mic card (the gallery hands `recordAudioIntoProject` down as the `recordAudio` prop); a model
+  that takes no media at all (Sound & Music) has no `+` card. Pinned by
+  `tests/audio-models.test.cjs` and `tests/desktop/prompt-box-voice.spec.js`.
 - **Single-op models** render ONE always-selected chip (verified on Qwen Image Edit:
   `[edit, selected, dim]`).
 - `_context.filterNoInputOps` (History video-continuation mounts only) HIDES text-only ops

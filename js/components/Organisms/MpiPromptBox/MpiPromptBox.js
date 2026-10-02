@@ -9,6 +9,7 @@ import { renderIcon } from '../../../utils/icons.js';
 import { commands, getAvailableCommands, getCommandComponents, getCommandMediaInputs, filterMediaInputsForModel, matchRefTagQuery, refTagHandle, stripOrdinalMediaRoles, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, modelControlTypes, getOpHelp, isTextOnlyOp, pickTextOnlyOp, opAllowsEnhance, selectCueAllTargets } from '../../../data/commandRegistry.js';
 import { MpiOpHelpDialog } from '../../Compounds/MpiOpHelpDialog/MpiOpHelpDialog.js';
 import { MpiMediaPicker } from '../../Compounds/MpiMediaPicker/MpiMediaPicker.js';
+import { MpiVoicePicker } from '../../Compounds/MpiVoicePicker/MpiVoicePicker.js';
 import { MpiLoraRack } from '../../Compounds/MpiLoraRack/MpiLoraRack.js';
 import { getModelDepStatus, tierLetterFor } from '../../../data/modelRegistry.js';
 import { usesQualityTier } from '../../../utils/ratios.js';
@@ -994,13 +995,34 @@ export const MpiPromptBox = ComponentFactory.create({
             }, renderIcon('plus', 'md'))
             : null;
         if (_addBtn) {
-            _addBtn.title = 'Add a reference image';
-            _addBtn.setAttribute('aria-label', 'Add a reference image');
             _unsubs.push(on(_addBtn, 'click', () => _openMediaPicker()));
             // Seated now, not left to _renderStrip: an empty strip rendering empty takes
             // its same-set fast path, which never appends — so a gallery box with no
             // chips would never show the card (MPI-924).
             _stripEl.appendChild(_addBtn);
+            _refreshAddBtn();
+        }
+
+        // MPI-1012: the active op's REQUIRED audio slot — Text to Speech's voice — which
+        // the `+` fills instead of a reference image. Required, not merely present: LTX's
+        // optional audio slot must leave the `+` on images, where it moves t2v to i2v.
+        function _voiceSlot() {
+            return _mediaSlotsForOperation().find(s => s.mediaType === 'audio' && s.required) ?? null;
+        }
+
+        // The `+` says what it adds, and is absent when the model takes nothing at all
+        // (Sound & Music): a card whose every pick ends in "not supported" is a dead end.
+        // Runs from _refreshOpSlot, where model and op both land.
+        function _addTakesMedia() {
+            return ['image', 'video', 'audio'].some(_acceptsMediaType);
+        }
+        function _refreshAddBtn() {
+            if (!_addBtn) return;
+            const label = _voiceSlot() ? 'Add a voice' : 'Add a reference image';
+            _addBtn.title = label;
+            _addBtn.setAttribute('aria-label', label);
+            if (!_addTakesMedia()) _addBtn.remove();
+            else if (!_addBtn.isConnected) _stripEl.prepend(_addBtn);
         }
 
         /**
@@ -1012,20 +1034,34 @@ export const MpiPromptBox = ComponentFactory.create({
          */
         function _openMediaPicker() {
             _picker?.el?.destroy?.();
+            const voice = _voiceSlot();
+            const slotType = voice ? 'audio' : 'image';
             _picker = MpiMediaPicker.mount(document.createElement('div'), {
-                mediaType: 'image',
+                mediaType: slotType,
+                // A voice slot gets the voice library and the mic card. The picker is a
+                // Compound and may import neither: the library is this Organism's import,
+                // the recorder a Block's, handed down as `recordAudio`.
+                ...(voice ? {
+                    voiceRoute: voice.voiceLibrary ?? null,
+                    voicePicker: MpiVoicePicker,
+                    recordAudio: props.recordAudio,
+                } : {}),
                 // MPI-887: the box's own destination is a reference chip, but the
                 // history workspace behind it has a second one — the open card's
                 // history, which is the only place Composite's slot can reach. The
                 // toggle only exists where `stageMedia` does, so the gallery box
                 // never offers a card it does not have.
                 ...(_stageMedia ? { toHistoryLabel: 'Add to history' } : {}),
-                onPick: ({ filePath, item, toHistory }) => {
-                    if (toHistory) emit('stage-to-history', { filePath, item, mediaType: 'image' });
-                    else el.injectMedia({ url: filePath, mediaType: 'image' });
+                // The PICKED tile's type, not the slot's: the user can widen the filter,
+                // and an image staged as a voice (or a clip as an image) is a broken chip.
+                onPick: ({ filePath, item, toHistory, mediaType = slotType }) => {
+                    if (toHistory) emit('stage-to-history', { filePath, item, mediaType });
+                    else el.injectMedia({ url: filePath, mediaType });
                 },
+                // The upload card's input accepts only the slot's type, and a library
+                // voice arrives here as a decoded WAV.
                 onImport: (files, { toHistory } = {}) => {
-                    if (files?.[0]) _importMediaFile(files[0], 'image', { toHistory });
+                    if (files?.[0]) _importMediaFile(files[0], slotType, { toHistory });
                 },
             });
             const close = () => { _picker?.el?.destroy?.(); _picker = null; };
@@ -1113,7 +1149,7 @@ export const MpiPromptBox = ComponentFactory.create({
             }
 
             _stripEl.innerHTML = '';
-            if (_addBtn) _stripEl.appendChild(_addBtn);
+            if (_addBtn && _addTakesMedia()) _stripEl.appendChild(_addBtn);
             items.forEach((item, idx) => {
                 const chip = document.createElement('div');
                 chip.className = `mpi-prompt-box-media-strip__chip mpi-prompt-box-media-strip__chip--${item.mediaType}`;
@@ -1997,6 +2033,8 @@ export const MpiPromptBox = ComponentFactory.create({
             const vidN = el.videoCount ?? 0;
             if (imgN < (cmd.requiresImages ?? 0)) return `needs ${count(cmd.requiresImages, 'image')}`;
             if (vidN < (cmd.requiresVideo ?? 0)) return `needs ${count(cmd.requiresVideo, 'video')}`;
+            // The one op with a required audio slot is Text to Speech, and that slot is a voice.
+            if ((el.audioCount ?? 0) < (cmd.requiresAudio ?? 0)) return 'needs a voice';
             const maxImg = _maxMediaForOperation(cmd.key, 'image');
             if (imgN > maxImg) return `takes at most ${count(maxImg, 'image')}`;
             const maxVid = _maxMediaForOperation(cmd.key, 'video');
@@ -2121,6 +2159,9 @@ export const MpiPromptBox = ComponentFactory.create({
             // The enhance control is OP-gated (edit and inpaint get none at all), and
             // the op is reassigned live by setOperation. Same convergence point.
             _refreshEnhanceBtn();
+            // So is what the `+` adds (MPI-1012): a voice on Text to Speech, nothing on
+            // Sound & Music.
+            _refreshAddBtn();
 
             // MPI-736: the whole box wears the SELECTED MODEL's colour — name, selector,
             // border, settings, queue, stop. Same convergence point again, because that is

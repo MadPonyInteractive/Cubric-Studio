@@ -23,3 +23,19 @@ Verify mode: user-ux. Evidence per phase lands here; Fabio's look closes it.
 - eslint on every touched JS file: clean.
 - Desktop specs touched (flow-library-filters, flow-pick-voice, agent-chat): 39/39 passed
   locally through `playwright.desktop.config.js` (own port + userData).
+- CI on c0b04e095: run 37050434172, unit + desktop (1-4) all `success` (2026-10-02 19:08Z).
+
+## P4 prompt box voice (session a8d03bbe, 2026-10-02)
+
+- `node --test "tests/**/*.test.cjs"`: 2688 tests, 2686 pass, 0 fail (2 skipped).
+- New case in `tests/audio-models.test.cjs`: `tts` unavailable with no audio staged
+  (`requiresAudio` 1), available with `audioCount: 1`, and no other op of any model waits on
+  audio. Bites: deleting `audioCount >= requiresAudio` from `getAvailableCommands` fails it.
+- New `tests/desktop/prompt-box-voice.spec.js` (gallery box): `+` reads "Add a voice" on
+  Chatterbox and opens the picker on audio with the voice-library and mic cards; tts is
+  `aria-disabled` with "needs a voice" until a voice is injected; no `+` on Stable Audio 3;
+  "Add a reference image" back on SDXL. Bites twice: without the weightless-runner pin the box
+  never mounts; with `_voiceSlot()` returning null the label assertion fails.
+- `npx playwright test --config=playwright.desktop.config.js` on prompt-box-voice +
+  media-picker-to-history + media-picker-cards + gallery-stack-run + flow-pick-voice: all pass.
+- eslint on every touched file: clean.

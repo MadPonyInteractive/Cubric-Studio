@@ -16,6 +16,7 @@ import { MpiMediaDropOverlay } from '../../Primitives/MpiMediaDropOverlay/MpiMed
 import { MpiCompareOverlay } from '../../Organisms/MpiCompareOverlay/MpiCompareOverlay.js';
 import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
 import { MpiRemote } from '../MpiRemote/MpiRemote.js';
+import { recordAudioIntoProject } from '../MpiAudioRecorder/MpiAudioRecorder.js';
 import { hasNoEngine } from '../../../services/engineGate.js';
 import { MpiModelSettings } from '../../Compounds/MpiModelSettings/MpiModelSettings.js';
 import { MpiModelPicker } from '../../Compounds/MpiModelPicker/MpiModelPicker.js';
@@ -1689,7 +1690,9 @@ export const MpiGalleryBlock = ComponentFactory.create({
 
         function _mountPb(props) {
             _pb?.el?.destroy?.();
-            _pb = MpiPromptBox.mount(gid('prompt-box-mount'), { ...props, workspaceKey: 'gallery' });
+            // `recordAudio`: the `+` on Text to Speech offers the mic, and an Organism may
+            // not import the recorder Block itself (MPI-1012).
+            _pb = MpiPromptBox.mount(gid('prompt-box-mount'), { ...props, workspaceKey: 'gallery', recordAudio: recordAudioIntoProject });
             return _pb;
         }
 

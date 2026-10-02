@@ -820,6 +820,11 @@
  *   the `+` card (MPI-924) — only the history-mode strip and the picker's
  *   "Add to history" toggle stay behind the prop. NOTE: `workspaceKey: 'history'` persists NO chips at all —
  *   the entry is rebuilt on every mount and references are per-edit by design.
+ * @property {Function} [recordAudio]
+ *   `recordAudioIntoProject`, handed down by the Block that mounts the box (an Organism
+ *   may not import a Block). On an op whose required slot is a voice (Text to Speech,
+ *   MPI-1012) the `+` opens the picker on audio, with the voice library and, when this
+ *   is set, the mic card. Omit it and there is no mic card. The gallery sets it.
  *
  * Instance methods (on instance.el):
  *   imageCount    {number}

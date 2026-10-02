@@ -88,7 +88,7 @@ run covers the two new models.
   graphics, FlowDefs out, tombstones, aliases table + Reuse + routines, tests updated
   (`flow-uninstall-guard` case rewritten: Voice Changer now owns `ComfyUI_Fill-ChatterBox` alone),
   new tests (licence key, alias routing, audio model listed). `release:check` op parity green.
-- [ ] **P4 Prompt box voice + required slot** — media picker on slot type + voice library +
+- [x] **P4 Prompt box voice + required slot** — media picker on slot type + voice library +
   record; op dimming for a missing required audio slot; Enhance hidden.
 - [ ] **P5 Agent / connector / MCP** — decision 12; update the agent tests listed in research B.
 - [ ] **P6 Smoke runner** — decision 13 (`tests/smoke-*.test.cjs` cases).
@@ -137,6 +137,20 @@ MpiPromptBox imports MpiVoicePicker; `_openMediaPicker` opens on 'audio' with
 empty (add `audioCount` to getAvailableCommands' ctx, min-only, and an `_opBlockedReason`
 clause). Then the rest of P5 (Cosmo's voice-pick card for a MODEL slot), P6-P8.
 
+2026-10-02 (session a8d03bbe): tree cleaned first (1baff2718: MPI-958 back on the board, 64
+lost root events restored, MPI-706/730/858 stranded files; manifest + 1.4.2 token restored
+from HEAD; validator clean). CI green on c0b04e095 (run 37050434172). **P4 DONE**:
+`getAvailableCommands` returns `requiresAudio` (REQUIRED audio slots after the model filter)
+and gates `available` on `ctx.audioCount`; `_opBlockedReason` says "needs a voice";
+`_voiceSlot()` = the active op's required audio slot drives the `+` (label "Add a voice",
+picker on audio + `voiceRoute` + `MpiVoicePicker` + `props.recordAudio`, which MpiGalleryBlock
+hands down); `_refreshAddBtn()` runs from `_refreshOpSlot` and detaches the `+` when the model
+takes nothing (Sound & Music). Pick type now follows the PICKED tile. Doc:
+`docs/op-model-selection.md` § Which ops appear. **Next: rest of P5** — Cosmo's voice-pick card
+for a MODEL slot: the renderer capability to open the gallery box on Chatterbox/tts with the
+line filled and `MpiMediaPicker` on the voice library (`openVoiceLibrary: true`), reusing
+`_openMediaPicker`; then P6-P8.
+
 ## Plan Drift
 
 - 2026-10-02 (P3): **part of P5 came forward**, because the suite requires it — every shipped
@@ -160,3 +174,8 @@ clause). Then the rest of P5 (Cosmo's voice-pick card for a MODEL slot), P6-P8.
   nothing", 03-model-registry.md). `progressStages.js`: no entry (the Flows had none); count
   the bars live at P8.
 - Connector reroute leaves a body with BOTH flowId and modelId alone, so it is still refused.
+- 2026-10-02 (P4): the voice `+` keys on a REQUIRED audio slot, not "audio-only slots": LTX's
+  `t2v_ms` has an optional audio slot only, and keying on that would have turned its `+` (an
+  image that moves t2v to i2v) into an audio picker. Added beyond the plan text: no `+` on a
+  model that takes no media at all (Sound & Music), since every pick there ended in "not
+  supported"; and a pick is staged as the picked tile's type, not the slot's.

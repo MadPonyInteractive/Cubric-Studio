@@ -180,6 +180,22 @@ test('an old Flow submit or routine step runs as the model it became', async () 
     assert.strictEqual(v.inputKind, 'audio');
 });
 
+test('Text to Speech dims until a voice is staged, and no other op ever waits on audio', async () => {
+    const { MODELS } = await esm('js/data/modelConstants/models.js');
+    const { getAvailableCommands } = await esm('js/data/commandRegistry.js');
+    const chatterbox = MODELS.find(m => m.id === 'chatterbox');
+    const tts = (ctx) => getAvailableCommands('audio', chatterbox, ctx).find(c => c.key === 'tts');
+    assert.strictEqual(tts({}).available, false, 'no voice staged: the op must dim, not wait for the Cue toast');
+    assert.strictEqual(tts({}).requiresAudio, 1);
+    assert.strictEqual(tts({ audioCount: 1 }).available, true);
+    // LTX and H3 declare OPTIONAL audio slots; an empty box must never dim them.
+    for (const m of MODELS) {
+        for (const c of getAvailableCommands(m.mediaType, m, {})) {
+            if (c.requiresAudio) assert.strictEqual(c.key, 'tts', `${m.id}/${c.key} would dim with no audio staged`);
+        }
+    }
+});
+
 test('Reuse on an old Flow card opens the model, keeps the voice and restores the settings', async () => {
     const { buildPromptReusePayload, buildPromptReuseSettings, isFlowCardItem } = await esm('js/utils/promptReuse.js');
     const card = {

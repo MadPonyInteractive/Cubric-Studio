@@ -1827,7 +1827,7 @@ function _orderIndex(cmd) {
 }
 
 export function getAvailableCommands(mediaType, model = null, ctx = {}) {
-    const { imageCount = 0, videoCount = 0, hasMask = false, canMask = true, installedOps = null } = ctx;
+    const { imageCount = 0, videoCount = 0, audioCount = 0, hasMask = false, canMask = true, installedOps = null } = ctx;
 
     // When the caller supplies the model's physically-installed op set (MPI-122),
     // a selectable op the user did NOT install is hidden — so a T2V-only install
@@ -1860,13 +1860,19 @@ export function getAvailableCommands(mediaType, model = null, ctx = {}) {
             // ops showed selectable/enabled with 2 chips staged.
             const maxImages = _maxMediaSlots(cmd, MEDIA_TYPE.IMAGE, cmd.requiresImages, model);
             const maxVideos = _maxMediaSlots(cmd, MEDIA_TYPE.VIDEO, cmd.requiresVideo, model);
+            // MPI-1012: a REQUIRED audio slot is a minimum, like requiresImages, so Text to
+            // Speech dims until its voice is staged. Min only: staged audio never moved an
+            // op, and the optional audio slots on LTX and H3 must dim nothing.
+            const requiresAudio = filterMediaInputsForModel(getCommandMediaInputs(key), model)
+                .filter(s => s.mediaType === MEDIA_TYPE.AUDIO && s.required).length;
             const available =
                 imageCount >= (cmd.requiresImages ?? 0) &&
                 imageCount <= maxImages &&
                 videoCount >= (cmd.requiresVideo ?? 0) &&
                 videoCount <= maxVideos &&
+                audioCount >= requiresAudio &&
                 (!cmd.requiresMask || hasMask);
-            return { key, available, ...cmd };
+            return { key, available, requiresAudio, ...cmd };
         })
         .sort((a, b) => _orderIndex(a) - _orderIndex(b));
 }
