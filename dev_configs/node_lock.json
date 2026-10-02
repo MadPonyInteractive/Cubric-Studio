@@ -138,13 +138,6 @@
       "filename": "ComfyUI-MelodramaBox",
       "installRequirements": true
     },
-    "ComfyUI-Mickmumpitz-Nodes": {
-      "source": "git-commit",
-      "repo": "mickmumpitz/ComfyUI-Mickmumpitz-Nodes",
-      "commit": "4d5ff7c433884631599c3b2d82011a2cbbeea37e",
-      "filename": "ComfyUI-Mickmumpitz-Nodes",
-      "installRequirements": true
-    },
     "Comfyui_Minimax_h3_latent_Upscaler": {
       "source": "git-commit",
       "repo": "LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler",

@@ -44,6 +44,14 @@
       "attested_by": "Fabio (MadPonyInteractive)",
       "card": "MPI-1008",
       "reason": "No shipped graph loads this pack. Every class it registers is named DramaBox* (17, NODE_CLASS_MAPPINGS in __init__.py at 529c4be) and none appears anywhere under comfy_workflows/, raw/ and scripts/ included: DramaBox ships as a paid package Flow since MPI-781, so its graph is not in this repo and the 2026-09-28 smoke never ran it. The hop itself is one fix (dramabox_nodes/model/patcher.py: always fully load, MPI-1008) plus NOTICE. Fabio 2026-10-01: no re-smoke for this move."
+    },
+    "ComfyUI-Mickmumpitz-Nodes": {
+      "from": "4d5ff7c433884631599c3b2d82011a2cbbeea37e",
+      "to": null,
+      "attested_at": "2026-10-02",
+      "attested_by": "Fabio (MadPonyInteractive)",
+      "card": "MPI-595",
+      "reason": "REMOVED from the lock at the 2.0 cut (Fabio 2026-10-02). No shipped graph loads this pack: its 84 classes (every NODE_CLASS_MAPPINGS key across the pack's .py files at 4d5ff7c, read with ast) appear in none of the 109 JSON graphs under comfy_workflows/, scripts/, and the paid Flow packages in c:/AI/Mpi/Cubric-Flows (Head Swap, DramaBox). The last users were Outpaint's HarmonizeBoundary + ComposeColorMatch, removed by MPI-1011 (bf9588d59); Outpaint itself is re-smoked at the cut because its graph changed. Its requirements stay in python_deps.in for other packs, so python_deps.txt is byte-identical."
     }
   }
 }

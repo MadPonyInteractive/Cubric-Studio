@@ -363,25 +363,12 @@ export const nodesDeps = {
         size: '0.3MB',
     },
 
-    // MIT, pinned by git commit. Carries the MickmumpitzPano* nodes, for MPI-623's equirect
-    // half. Outpaint used HarmonizeBoundary + ComposeColorMatch until MPI-1011 (2026-10-02);
-    // no shipped graph loads the pack since.
-    // Requirements (numpy, Pillow, opencv-python, ultralytics) are covered by the curated
-    // dev_configs/python_deps.in set like every other baked node; nothing compiled, no torch.
-    //
-    // Its 3D-scene partner ComfyUI-SplatKit is NOT here: 3D scene is not in 2.0 (Fabio,
-    // 2026-09-27), and a custom node is universal, so it would install on every user's
-    // engine for a feature with no surface (MPI-952). MPI-623 restores the entry, its
-    // node_lock.json pin and `click` in python_deps.in by reverting that commit.
-    'ComfyUI-Mickmumpitz-Nodes': {
-        id: 'ComfyUI-Mickmumpitz-Nodes',
-        name: 'ComfyUI Mickmumpitz Nodes',
-        type: 'custom_nodes',
-        filename: 'ComfyUI-Mickmumpitz-Nodes',
-        url: lockUrl('ComfyUI-Mickmumpitz-Nodes'),
-        installRequirements: true,
-        size: '0.18MB',
-    },
+    // ComfyUI-Mickmumpitz-Nodes and ComfyUI-SplatKit are NOT here: a custom node is
+    // universal, so each would install on every user's engine with no shipped graph using
+    // it. SplatKit left with 3D scene (MPI-952); Mickmumpitz left at the 2.0 cut (MPI-595)
+    // once MPI-1011's Outpaint stopped loading HarmonizeBoundary + ComposeColorMatch. MPI-623
+    // (equirect + 3D scene) restores both entries and their node_lock.json pins by reverting
+    // those commits; SplatKit's also brings `click` back to python_deps.in.
     // Supplies `MinimaxH3LatentUpscaler3D`, the node the H3 two-pass shape is built on:
     // stage 1 samples at half-res, this upscales the VIDEO half of the latent, and a
     // 3-step refine rebuilds detail at full res. Both H3 models route through it, so it

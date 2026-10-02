@@ -66,6 +66,19 @@ test('a third-party pack attestation applies only to the exact hop it names', as
         'a pack ADDED since the evidence has no from-commit and never matches');
     assert.strictEqual(attestedPacks(tmpJson('p5.json', doc()), { Other: { commit: A } }, { Other: { commit: B } }).size, 0,
         'an attestation names one pack, not any pack on the same commits');
+
+    // A REMOVAL (MPI-595 drops Mickmumpitz): `to: null` signs off "the pack left the lock".
+    const gone = (a) => ({ packs: { Pack: { from: A, to: null, reason: 'no graph loads it', ...a } } });
+    assert.deepStrictEqual([...attestedPacks(tmpJson('r1.json', gone()), then, {})], ['Pack'],
+        'a removal signed off from the exact pin it left at must be honoured');
+    assert.strictEqual(attestedPacks(tmpJson('r2.json', gone()), then, now).size, 0,
+        'a removal sign-off must not cover the pack still being in the lock at another commit');
+    assert.strictEqual(attestedPacks(tmpJson('r3.json', gone()), { Pack: { commit: 'deadbeefdeadbeef' } }, {}).size, 0,
+        'a removal from a different pin is a different question');
+    assert.strictEqual(attestedPacks(tmpJson('r4.json', gone({ reason: '' })), then, {}).size, 0,
+        'a blank reason is a rubber stamp, removal or not');
+    assert.strictEqual(attestedPacks(tmpJson('r5.json', doc()), then, {}).size, 0,
+        'a hop sign-off (to: <commit>) never covers the pack being removed');
 });
 
 // End to end through a throwaway git repo: node_lock.json at the evidence vs now, with

@@ -157,9 +157,11 @@ export function attestedClasses(file, from, to) {
  *
  * These packs are not checked out here, so no class can be diffed: the sign-off is the whole
  * answer, and its reason must say why no shipped graph can reach the pack. Same expiry as
- * attestedClasses — either end moving voids it. A pack added or removed (no commit at one end)
- * never matches. MPI-1008 is the case: DramaBox ships as a package Flow, so its pin move
- * cannot touch a graph in comfy_workflows/.
+ * attestedClasses — either end moving voids it. A pack ADDED (no from-commit) never matches.
+ * A pack REMOVED matches only a sign-off with `to: null` from the exact pin it left at.
+ * MPI-1008 is the hop case: DramaBox ships as a package Flow, so its pin move cannot touch a
+ * graph in comfy_workflows/. MPI-595 is the removal case: Mickmumpitz left the lock once no
+ * shipped graph loaded any of its classes.
  */
 export function attestedPacks(file, thenNodes, nowNodes) {
     if (!file || !existsSync(file)) return new Set();
@@ -171,9 +173,10 @@ export function attestedPacks(file, thenNodes, nowNodes) {
     }
     return new Set(Object.entries(doc?.packs || {})
         .filter(([name, a]) => a && typeof a.reason === 'string' && a.reason.trim().length > 0
-            && a.from && a.to && thenNodes[name]?.commit && nowNodes[name]?.commit
-            && short(a.from) === short(thenNodes[name].commit)
-            && short(a.to) === short(nowNodes[name].commit))
+            && a.from && thenNodes[name]?.commit && short(a.from) === short(thenNodes[name].commit)
+            && (a.to === null
+                ? !nowNodes[name]
+                : a.to && nowNodes[name]?.commit && short(a.to) === short(nowNodes[name].commit)))
         .map(([name]) => name));
 }
 
