@@ -56,8 +56,14 @@
   Mickmumpitz node left). `flow-cloud-edit` pins Outpaint cloud-free (RED first).
 - `npm test` 2670 / 0 fail; eslint clean.
 
+## Fabio's second look - 2026-10-02: PASSED ("Fantastabomb.")
+
+- Committed `bf9588d59`. His 9:21 on the monkey after a restart: two passes, two cards
+  (flowOutpaint_010 = pass 1, flowOutpaint_011 = the final, 672x1568, 13.5 s apart), two
+  "Generation finished." toasts, the flow screen showed the result with "Done - saved to your
+  gallery.", no line anywhere.
+
 ## Open
 
-- Fabio's second look (user-ux): one multi-pass Outpaint lands every pass, final ~1 MP, no
-  seam, the flow screen shows the result. Then CI, done. Outpaint stays in the scoped
-  re-smoke at the cut (MPI-595 B1).
+- CI on `bf9588d59`, then the done move. Outpaint stays in the scoped re-smoke at the cut
+  (MPI-595 B1).

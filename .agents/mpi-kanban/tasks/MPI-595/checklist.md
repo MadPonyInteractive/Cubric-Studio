@@ -33,7 +33,8 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   - [x] **MPI-841 registry browsing — NOT 2.0; a 2.1 BLOCKER (Fabio 2026-09-30)**, noted atop its
     plan.md. Same talk: Head Swap + DramaBox listed in the public registry as paid-lane entries
     (entry files only, Gumroad links, zip sha256) — registry PR #2, on his yes
-  - [ ] **MPI-971 has no owner** — a 2.0 gate nobody had picked up; this umbrella takes it
+  - [x] **MPI-971** board `done` (read 2026-10-02; closed with MPI-962, see Big photos below).
+    Was: has no owner — a 2.0 gate nobody had picked up; this umbrella takes it
     (Fabio 2026-09-30: "go plan MPI-971"). PLANNED 2026-09-30: `tasks/MPI-971/plan.md`, 4 phases,
     two picks for Fabio (P-A upscale refuses an output over 16384; P-B Detail composites back),
     Fabio 2026-09-30: YES to both. **Phase 1 DONE
@@ -86,11 +87,14 @@ THIS umbrella:
   `922ce37a1` / `ecd112ad1` (inside green `747341588`) and `ec18c1086`
 - [ ] **MPI-918 REOPENED 2026-10-02** (Fabio's test): every cloud edit sent no size, so FLUX 2
   dev/pro/max and Klein 9B came back a 1024 square that centre-cut the source. Fixed `476c6fb67`
-  (route sends image 1's shape). Left: CI, one paid live edit, and Seedream 4/4.5/5 Pro's '2K'
-  default is UNPROVEN to follow the input (paid check on Fabio's yes)
-- [ ] **MPI-1011** Outpaint seam + passes — 2.0 GATE (Fabio 2026-10-02). Both built and proven
-  at node level; `validating` on Fabio's look. Its graph change adds `outpaint` to the cut's
-  scoped re-smoke (B1)
+  (route sends image 1's shape), CI green. Outpaint's cloud slot REMOVED (Fabio, `bf9588d59`).
+  Left: one paid live Klein edit on t2i_006 (~$0.02, Fabio runs it), and Seedream 4/4.5/5 Pro's
+  '2K' default is UNPROVEN to follow the input (3 paid edits, ~$0.18, on Fabio's yes)
+- [ ] **MPI-1011** Outpaint — 2.0 GATE (Fabio 2026-10-02). REBUILT `bf9588d59`: Klein's picture
+  is the result (paste-back + harmonizer removed, Fabio's option 2: ~1 MP, no seam), passes at
+  a third per side now actually chain (pass 2 never started before), no cloud model. Fabio's
+  look PASSED ("Fantastabomb."). Left: CI green on `bf9588d59`, then the done move. Its graph
+  change keeps `outpaint` in the cut's scoped re-smoke (B1)
 - [x] **MPI-894** 2.0 SCOPE DONE 2026-10-02, card parked `todo`/`deferred` (541/183/349 after
   2.0). Saved RAM floors stay as set (Fabio 2026-10-02). Was: remote GPU umbrella — v2 + 1b + 1c done. **Fabio 2026-10-01: MPI-668 IN**,
   MPI-541 / MPI-183 / MPI-349 OUT of 2.0 (reasons in MPI-894 plan.md). `publish-runtime.sh

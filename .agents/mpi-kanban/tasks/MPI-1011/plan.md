@@ -34,7 +34,12 @@ at the cut (MPI-595 B1) since the graph changes.
 
 ## Current State
 
-2026-10-02 (session 27738b6a, LATEST): Phase 1 is SUPERSEDED (see Plan Drift). Built and
+2026-10-02 (session 27738b6a, at handoff): COMMITTED `bf9588d59` and Fabio's look PASSED
+("Fantastabomb.": 9:21, two passes, flowOutpaint_011 672x1568, no seam). NEXT: CI run
+36995557115 green -> done move in a board-only commit (template: session 27738b6a scratchpad
+`close_commit.py`). What `bf9588d59` holds, as built:
+
+2026-10-02 (session 27738b6a): Phase 1 is SUPERSEDED (see Plan Drift). Built and
 tested, not committed: (1) pass 2 fix in `MpiStepCrop.js` `composeNextPass` (`filePath`, new
 `tests/outpaint-next-pass.test.cjs`); (2) Outpaint graph = Klein's decode straight to
 `Output_Image` (686-690 gone, raw + runtime, links checked), FlowDef description/comments,
