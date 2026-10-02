@@ -10,8 +10,10 @@
  * as "the first image in the card went to the cloud". Held down here:
  *   - a pixel ('wh') endpoint gets the SOURCE's shape at its own default area;
  *   - an explicit size still wins (the Flow path and the ratio picker);
- *   - Nano Banana ('aspect') and Seedream 5 Pro ('size') send nothing, as before: with no
- *     field they follow the reference (measured, research 01d section 4) or a tier;
+ *   - Nano Banana ('aspect') sends nothing, as before: with no field it follows the reference
+ *     (measured, research 01d section 4);
+ *   - Seedream ('size') gets the source's shape too: 4 and 4.5 answered a 2048 square
+ *     (measured 2026-10-02);
  *   - the real route reads image 1's upright size and sends it.
  * No provider call: the provider is stubbed.
  */
@@ -56,9 +58,26 @@ test('no source and no size still sends nothing (t2i keeps the provider default)
     assert.deepEqual(buildSizeFields(KLEIN, {}), {});
 });
 
-test('Nano Banana and Seedream 5 Pro send no size for a source: they follow it already', () => {
+test('Nano Banana sends no size for a source: it follows it already', () => {
     assert.deepEqual(buildSizeFields('google/nano-banana-2-lite', { sourceWidth: 1365, sourceHeight: 1024 }), {});
-    assert.deepEqual(buildSizeFields('ByteDance/Seedream-5.0-Pro', { sourceWidth: 1365, sourceHeight: 1024 }), {});
+});
+
+// Measured 2026-10-02 (3 paid edits of the 1365x1024 crop, no size sent): Seedream 4 and 4.5
+// came back 2048x2048 (the '2K' default is a square, reframing the picture); 5 Pro came back
+// 2368x1776. So every 'size' endpoint gets the source's shape at its default tier's area.
+test('a Seedream endpoint with no size gets the source shape at its default tier', () => {
+    for (const id of ['ByteDance/Seedream-4', 'ByteDance/Seedream-4.5', 'ByteDance/Seedream-5.0-Pro']) {
+        const out = buildSizeFields(id, { sourceWidth: 1365, sourceHeight: 1024 });
+        assert.ok(out.size, `${id}: no size sent`);
+        const [w, h] = out.size.split('x').map(Number);
+        assert.ok(Math.abs(w / h - 1365 / 1024) < 0.04, `${id}: ${out.size} is not 4:3`);
+        assert.ok(Math.abs(w * h - 2048 * 2048) < 0.06 * 2048 * 2048, `${id}: ${out.size} is not the 2K area`);
+        assert.equal(w % 64 + h % 64, 0, `${id}: ${out.size} is off Seedream's 64 grid`);
+    }
+    const tall = buildSizeFields('ByteDance/Seedream-4', { sourceWidth: 1080, sourceHeight: 1920 });
+    const [tw, th] = tall.size.split('x').map(Number);
+    assert.ok(th > tw, `portrait came back ${tall.size}`);
+    assert.deepEqual(buildSizeFields('ByteDance/Seedream-4', {}), {}, 't2i with no size keeps the provider default');
 });
 
 test('the route sends image 1\'s upright shape for a Klein 9B cloud edit with no size', async () => {

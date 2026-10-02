@@ -88,8 +88,9 @@ THIS umbrella:
 - [ ] **MPI-918 REOPENED 2026-10-02** (Fabio's test): every cloud edit sent no size, so FLUX 2
   dev/pro/max and Klein 9B came back a 1024 square that centre-cut the source. Fixed `476c6fb67`
   (route sends image 1's shape), CI green. Outpaint's cloud slot REMOVED (Fabio, `bf9588d59`).
-  Left: one paid live Klein edit on t2i_006 (~$0.02, Fabio runs it), and Seedream 4/4.5/5 Pro's
-  '2K' default is UNPROVEN to follow the input (3 paid edits, ~$0.18, on Fabio's yes)
+  Klein edit: Fabio ran it, fine. Seedream check ($0.179): 4 + 4.5 came back a 2048 square
+  from a 4:3 source (5 Pro kept it) — fixed in `buildSizeFields` 'size', tests green. Left: CI,
+  one paid Seedream edit at the new size (~$0.04, Fabio's call), done move
 - [x] **MPI-1011** Outpaint — CLOSED 2026-10-02 (CI green on `bf9588d59`, run 36995557115).
   Was a 2.0 GATE (Fabio 2026-10-02). REBUILT `bf9588d59`: Klein's picture
   is the result (paste-back + harmonizer removed, Fabio's option 2: ~1 MP, no seam), passes at

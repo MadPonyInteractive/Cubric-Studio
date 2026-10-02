@@ -127,8 +127,8 @@ export function buildSizeFields(endpointId, want = {}) {
             // An edit that follows its source (`imageSizedOps`) arrives with no pixels. These
             // endpoints do NOT follow the input then: width/height default to a fixed square
             // (1024x1024 on FLUX 2 dev and Klein 9B), which centre-cuts any other shape. So the
-            // source's shape goes out, at the area of the endpoint's own default. The 'size'
-            // and 'aspect' models need nothing: a tier or no ratio follows the reference.
+            // source's shape goes out, at the area of the endpoint's own default. 'size' does
+            // the same below; only 'aspect' needs nothing (no ratio follows the reference).
             let [w, h] = [width, height];
             const srcW = Number(want.sourceWidth) || 0;
             const srcH = Number(want.sourceHeight) || 0;
@@ -148,11 +148,24 @@ export function buildSizeFields(endpointId, want = {}) {
             // Explicit pixels, not the '2K'/'4K' shorthand. The shorthand is square-ish
             // and would throw away the ratio the user picked — which is the one thing the
             // picker exists to express.
-            if (width > 0 && height > 0) {
+            //
+            // An edit with no size is the same trap as 'wh': Seedream 4 and 4.5 answered a
+            // 1365x1024 source with a 2048 square, reframed (measured 2026-10-02; 5 Pro kept
+            // the shape). So the source's shape goes out at the default tier's area, on
+            // Seedream's 64 grid — the one its ratio tables already send.
+            let [w, h] = [width, height];
+            const srcW = Number(want.sourceWidth) || 0;
+            const srcH = Number(want.sourceHeight) || 0;
+            if (!(w > 0 && h > 0) && srcW > 0 && srcH > 0) {
+                const side = (parseFloat(limits.size.default) || 2) * 1024; // '2K' -> 2048
+                const scale = side / Math.sqrt(srcW * srcH);
+                [w, h] = [srcW * scale, srcH * scale].map(v => Math.round(v / 64) * 64);
+            }
+            if (w > 0 && h > 0) {
                 const box = pixelBoxFor(endpointId);
                 out.size = box
-                    ? `${_boxFit(width, box.minW, box.maxW, box.step)}x${_boxFit(height, box.minH, box.maxH, box.step)}`
-                    : `${width}x${height}`;
+                    ? `${_boxFit(w, box.minW, box.maxW, box.step)}x${_boxFit(h, box.minH, box.maxH, box.step)}`
+                    : `${w}x${h}`;
             }
             break;
         }

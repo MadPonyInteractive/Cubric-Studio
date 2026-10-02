@@ -121,3 +121,19 @@ Verify mode: user-ux at Phase 4 (Fabio's look at stitched results); Phases 1-3 a
   `cloudEdit` removed; `tests/flow-cloud-edit.test.cjs` "Outpaint offers no cloud model" RED
   first, then green; the cloud-Flow list test now expects Scribble + Draw It In only.
   `npm test` 2670 / 0 fail.
+- 2026-10-02 (session c6543d87) Fabio ran the Klein 9B cloud edit on `476c6fb67`+: "It worked
+  fine." The 'wh' fix is live-proven.
+- 2026-10-02 Seedream shape check (Fabio's yes, 3 paid edits, ~$0.18): direct DeepInfra calls
+  with exactly the body the route built for a Seedream edit with no size (`{prompt, image}`),
+  source `Deepinfra model tests/Media/crop_005.jpg` 1365x1024 (scratchpad
+  `seedream_shape.mjs`). Seedream 4: 2048x2048, $0.04, 11.4 s, squashed and reframed.
+  Seedream 4.5: 2048x2048, $0.04, 9.9 s, cut and refilled square. 5 Pro: 2368x1776, $0.099,
+  99.7 s, shape kept. **Spent: $0.179.** Montage (source, 4, 4.5, 5 Pro):
+  `research/seedream-shape-2026-10-02.jpg`. Same bug as the 'wh' square, never caught because
+  the code comment assumed a '2K' tier follows the reference.
+- Fix: `buildSizeFields` 'size' sends the source's shape at the default tier's area on the
+  64 grid (1365x1024 -> `2368x1792`; 1080x1920 -> `1536x2752`), for all three (5 Pro gets
+  ~the pixels it picked itself, same 2K price band). RED first (`cloud-edit-follows-source`:
+  "Seedream-4: no size sent"), then 6/6; `npm test` 2671 / 0 fail; eslint clean.
+- NOT yet live: one paid Seedream 4 or 4.5 edit with the new size (~$0.04 each), past the
+  $0.18 yes, so Fabio's call.
