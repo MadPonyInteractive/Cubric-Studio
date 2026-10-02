@@ -102,12 +102,21 @@ export const OPERATION_REGISTRY = {
     // DEPRECATED (MPI-781): DramaBox left the app and is sold as a Flow package, which
     // registers under its own `user:drama-box` key. Same reason as `flowHeadSwap` above.
     flowDramaBox: { latestVersion: '1.0', appVersionIntroduced: '1.5.0', deprecated: true },
-    flowChatterBox: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
+    // DEPRECATED (MPI-1012): Text to Speech left the Flow Library and is the `tts` op on
+    // the Chatterbox model. Kept so history items written by the Flow still validate;
+    // nothing may WRITE it again (old cards reuse through js/data/retiredFlows.js).
+    flowChatterBox: { latestVersion: '1.0', appVersionIntroduced: '1.5.0', deprecated: true },
     flowStems: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
     // MPI-664 — MiniMax Music 3, the text-to-music flow. Same stamping reason.
     flowTextToMusic: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
     // MPI-694 — Stable Audio 3: instrumentals, instruments, SFX and one-shots.
-    flowSoundAndMusic: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
+    // DEPRECATED (MPI-1012): the `t2a` op on the Stable Audio 3 model now. Same reason
+    // as `flowChatterBox` above.
+    flowSoundAndMusic: { latestVersion: '1.0', appVersionIntroduced: '1.5.0', deprecated: true },
+    // MPI-1012 — the audio MODEL ops that replaced the two Flows above. New keys, stamped
+    // for 2.0 (the next public release) ahead of APP_VERSION, like `ref2v`.
+    t2a:          { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
+    tts:          { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
 };
 
 /**

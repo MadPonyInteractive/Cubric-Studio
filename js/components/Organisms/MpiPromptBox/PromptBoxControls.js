@@ -20,7 +20,7 @@ import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { qsa } from '../../../utils/dom.js';
 import { state } from '../../../state.js';
 import { getOpSettings, getSharedSettings, getModelSettings } from '../../../data/projectModel.js';
-import { getCommandComponents, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, CONTROL_TYPES, modelControlTypes } from '../../../data/commandRegistry.js';
+import { getCommandComponents, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, CONTROL_TYPES, modelControlTypes, AUDIO_CATEGORIES, AUDIO_LENGTH, TTS_LANGUAGES, ttsLanguageValue, ttsLanguageParams } from '../../../data/commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from '../../../data/promptControlDefaults.js';
 import { Events } from '../../../events.js';
 import { getModelRatios, usesQualityTier } from '../../../utils/ratios.js';
@@ -36,14 +36,19 @@ import { resolveEffectiveQualityTier, resolveThreeLayerDefault } from '../../../
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 //
 // Controls declare `scope: 'shared' | 'perOp' | 'perModel'`.
-//   'shared'   → project.shared[mediaType] (cross-model, partitioned by image|video)
+//   'shared'   → project.shared[mediaType] (cross-model, partitioned by image|video;
+//                audio has NO shared bucket — reads {} and writes are dropped, so an
+//                audio model's controls must be perModel/perOp, MPI-1012)
 //   'perOp'    → project.modelSettings[modelId].operations[opName]
 //   'perModel' → project.modelSettings[modelId] (model-wide, NOT op-scoped)
 // `opName` is provided by MpiPromptBox via mount opts. If a perOp control mounts
 // without an opName (legacy/demo), it falls back to the shared bucket.
 
+// Audio passes through rather than folding into 'image': folded, a shared control on an
+// audio model would have read and written the IMAGE models' ratio/batch bucket.
 function _mediaTypeOf(opts) {
-    return opts.model?.mediaType === 'video' ? 'video' : 'image';
+    const m = opts.model?.mediaType;
+    return m === 'video' || m === 'audio' ? m : 'image';
 }
 
 function _readSaved(ctrl, opts) {
@@ -1589,6 +1594,172 @@ export const PROMPT_BOX_CONTROLS = {
         getInjectionParams() {
             const v = Math.min(1, Math.max(0, Number(this.value ?? this.defaultValue)));
             return { Input_Control_strength: Number.isFinite(v) ? v : this.defaultValue };
+        },
+    },
+
+    // ── Audio models (MPI-1012) ──────────────────────────────────────────────
+    // All three are `perModel`: audio has no shared bucket (see `_mediaTypeOf`), and each
+    // belongs to one model. Their option lists live in commandRegistry.js, which the
+    // agent's named-param resolver reads too.
+
+    /** Stable Audio 3's "What is it" — the graph's checkpoint switch (`Input_Category`). */
+    audioCategory: {
+        nodeTitle: 'Input_Category',
+        scope: 'perModel',
+        defaultValue: PROMPT_CONTROL_DEFAULTS.audioCategory,
+        mount(hostEl, opts = {}) {
+            const allowed = AUDIO_CATEGORIES.map(c => c.v);
+            const saved = _readSaved(this, opts).audioCategory;
+            const initial = allowed.includes(saved) ? saved : _resolveDefault(this, 'audioCategory', opts);
+            this.value = initial;
+
+            hostEl.className = 'mpi-prompt-box__slider-control';
+            hostEl.style.display = 'flex';
+            const lblRow = document.createElement('div');
+            lblRow.className = 'mpi-prompt-box__slider-lbl';
+            const nameEl = document.createElement('span');
+            nameEl.className = 'mpi-prompt-box__slider-name';
+            nameEl.textContent = 'What is it';
+            lblRow.appendChild(nameEl);
+            hostEl.appendChild(lblRow);
+
+            const radioHost = document.createElement('div');
+            hostEl.appendChild(radioHost);
+            this._instance = MpiRadioGroup.mount(radioHost, {
+                options: AUDIO_CATEGORIES.map(c => ({ label: c.label, value: c.v })),
+                value: initial,
+                name: 'audioCategory',
+                size: 'sm',
+                columns: AUDIO_CATEGORIES.length,
+                info: AUDIO_CATEGORIES.map(c => `${c.label}: ${c.info}`).join(' '),
+            });
+            this._instance.on('select', ({ value }) => {
+                if (!allowed.includes(value)) return;
+                this.value = value;
+                _emitUpdate(this, opts, 'audioCategory', value);
+            });
+        },
+        getValue() {
+            return this.value ?? this.defaultValue;
+        },
+        getInjectionParams() {
+            const v = this.value ?? this.defaultValue;
+            return { Input_Category: AUDIO_CATEGORIES.some(c => c.v === v) ? v : this.defaultValue };
+        },
+        destroy() {
+            this._instance?.destroy?.();
+            this._instance = null;
+        },
+    },
+
+    /**
+     * Stable Audio 3's length in seconds (`Input_Duration`). Its OWN control, not
+     * `duration`: that one is the video slider — shared scope, 1..30, "Video length" —
+     * and an audio clip runs to 190 s.
+     */
+    audioLength: {
+        nodeTitle: 'Input_Duration',
+        scope: 'perModel',
+        defaultValue: PROMPT_CONTROL_DEFAULTS.audioLength,
+        mount(hostEl, opts = {}) {
+            const _clamp = (v) => Math.min(AUDIO_LENGTH.max, Math.max(AUDIO_LENGTH.min, Math.round(v)));
+            const savedNum = Number(_readSaved(this, opts).audioLength ?? _resolveDefault(this, 'audioLength', opts));
+            const initial = _clamp(Number.isFinite(savedNum) ? savedNum : this.defaultValue);
+            this.value = initial;
+
+            hostEl.className = 'mpi-prompt-box__slider-control';
+            hostEl.style.display = 'flex';
+            const lblRow = document.createElement('div');
+            lblRow.className = 'mpi-prompt-box__slider-lbl';
+            const nameEl = document.createElement('span');
+            nameEl.className = 'mpi-prompt-box__slider-name';
+            nameEl.textContent = 'Length';
+            const valEl = document.createElement('span');
+            valEl.className = 'mpi-prompt-box__slider-val';
+            valEl.textContent = `${initial} s`;
+            lblRow.appendChild(nameEl);
+            lblRow.appendChild(valEl);
+            hostEl.appendChild(lblRow);
+
+            const barHost = document.createElement('div');
+            barHost.className = 'mpi-prompt-box__slider-track';
+            hostEl.appendChild(barHost);
+            this._instance = MpiProgressBar.mount(barHost, {
+                min: AUDIO_LENGTH.min,
+                max: AUDIO_LENGTH.max,
+                step: 1,
+                value: initial,
+                interactive: true,
+                wheel: true,
+                handle: true,
+                variant: 'primary',
+                info: 'Length of the sound in seconds — exact, not a cap',
+            });
+            this._instance.on('input', ({ value }) => { valEl.textContent = `${_clamp(value)} s`; });
+            this._instance.on('change', ({ value }) => {
+                const v = _clamp(value);
+                this.value = v;
+                valEl.textContent = `${v} s`;
+                _emitUpdate(this, opts, 'audioLength', v);
+            });
+        },
+        getValue() {
+            return this.value ?? this.defaultValue;
+        },
+        getInjectionParams() {
+            const n = Math.round(Number(this.value ?? this.defaultValue)) || this.defaultValue;
+            return { Input_Duration: Math.min(AUDIO_LENGTH.max, Math.max(AUDIO_LENGTH.min, n)) };
+        },
+        destroy() {
+            this._instance?.destroy?.();
+            this._instance = null;
+        },
+    },
+
+    /** Chatterbox's language. Injects the language AND the arm it runs on (ttsLanguageParams). */
+    ttsLanguage: {
+        nodeTitle: 'Input_Language',
+        scope: 'perModel',
+        defaultValue: PROMPT_CONTROL_DEFAULTS.ttsLanguage,
+        mount(hostEl, opts = {}) {
+            const initial = ttsLanguageValue(_readSaved(this, opts).ttsLanguage)
+                ?? _resolveDefault(this, 'ttsLanguage', opts);
+            this.value = initial;
+
+            hostEl.className = 'mpi-prompt-box__slider-control';
+            hostEl.style.display = 'flex';
+            const lblRow = document.createElement('div');
+            lblRow.className = 'mpi-prompt-box__slider-lbl';
+            const nameEl = document.createElement('span');
+            nameEl.className = 'mpi-prompt-box__slider-name';
+            nameEl.textContent = 'Language';
+            lblRow.appendChild(nameEl);
+            hostEl.appendChild(lblRow);
+
+            const ddHost = document.createElement('div');
+            hostEl.appendChild(ddHost);
+            this._instance = MpiDropdown.mount(ddHost, {
+                options: TTS_LANGUAGES.map(l => ({ label: l.label, value: l.v, ...(l.info ? { info: l.info } : {}) })),
+                value: initial,
+                direction: 'up',
+                info: 'The language the line is written in',
+            });
+            this._instance.on('change', ({ value }) => {
+                const v = ttsLanguageValue(value);
+                if (!v) return;
+                this.value = v;
+                _emitUpdate(this, opts, 'ttsLanguage', v);
+            });
+        },
+        getValue() {
+            return this.value ?? this.defaultValue;
+        },
+        getInjectionParams() {
+            return ttsLanguageParams(this.value ?? this.defaultValue);
+        },
+        destroy() {
+            this._instance?.destroy?.();
+            this._instance = null;
         },
     },
 

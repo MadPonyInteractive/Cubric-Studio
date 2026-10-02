@@ -140,13 +140,6 @@ test('prepFlowOp no-media flow (minimax-music): returns graph without probe', as
     assert.ok(!result.status, `minimax-music: ${result.why}`);
 });
 
-test('prepFlowOp no-media flow (sound-and-music): returns graph without probe', async () => {
-    const reg = await loadRegistry();
-    const [entry] = resolveFlowSmokeSet(reg, ['sound-and-music']);
-    const result = prepFlowOp(reg, entry, {});
-    assert.ok(!result.status, `sound-and-music: ${result.why}`);
-});
-
 test('prepFlowOp ltx-extend default arm: resolves flow_ltx_extend.json', async () => {
     const reg = await loadRegistry();
     const entries = resolveFlowSmokeSet(reg, ['ltx-extend']);
@@ -246,7 +239,7 @@ test('resolveFlowSmokeSet: ltx-foley has empty flowDepIds (no requiredDeps)', as
 
 test('flowInstallNeeds: audio-only flows contribute gbTotal > 0', async () => {
     const reg = await loadRegistry();
-    const flowSet = resolveFlowSmokeSet(reg, ['voice-changer', 'stems', 'chatter-box']);
+    const flowSet = resolveFlowSmokeSet(reg, ['voice-changer', 'stems']);
     const needs = flowInstallNeeds(reg, flowSet);
     assert.ok(needs.gbTotal > 0, `audio flows must add GB to volume estimate, got ${needs.gbTotal}`);
     assert.equal(needs.models.length, 0, 'audio flows have no requiredModels');

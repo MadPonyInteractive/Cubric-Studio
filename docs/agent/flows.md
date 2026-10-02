@@ -1,6 +1,6 @@
 # Flows
 
-A Flow is a ready-made recipe (Head Swap, Outpaint, Text to Speech, a character sheet), run
+A Flow is a ready-made recipe (Outpaint, Voice Changer, Song, a character sheet), run
 with `generate` and a `flowId`, never a `modelId`. `describe_model` with the Flow's id gives its
 fields, its media roles, and any boxes or frame it takes.
 
@@ -83,16 +83,17 @@ the answer) only when they ask.
 
 ## Spoken lines
 
-Two Flows speak a line, and they are not the same:
+Two things speak a line, and they are not the same:
 
-- **DramaBox** performs. Write the speaker and the delivery into `positive`, the words in quotes,
-  and it builds that voice from nothing: `An exhausted old man, barely holding it together: "The
-  storm is coming."` Anything outside the quotes is performed, not read: a laugh, a sigh, a cough
-  or a pause goes in as plain writing (`She laughs, then: "You came back."`). Given a sample in
-  `audio1`, it speaks in that voice instead.
-- **Text to Speech** (Chatterbox) reads `positive` aloud in the voice of a sample, in 23
-  languages. It performs nothing: a laugh written in is read out or dropped, never laughed. It
-  cannot run without a voice in `audio1`.
+- **DramaBox** (a Flow) performs. Write the speaker and the delivery into `positive`, the words
+  in quotes, and it builds that voice from nothing: `An exhausted old man, barely holding it
+  together: "The storm is coming."` Anything outside the quotes is performed, not read: a laugh,
+  a sigh, a cough or a pause goes in as plain writing (`She laughs, then: "You came back."`).
+  Given a sample in `audio1`, it speaks in that voice instead.
+- **Text to Speech** is a MODEL, not a Flow: `modelId: "chatterbox"`, `operation: "tts"`, the
+  line in `prompt`, its language in `language`. It reads the line aloud in the voice of a sample,
+  in 23 languages, and performs nothing: a laugh written in is read out or dropped, never
+  laughed. It cannot run without a voice in `audio1`. Read its guide before the first line.
 
 A line with no voice sample from the user:
 
@@ -100,15 +101,16 @@ A line with no voice sample from the user:
    to ask.
 2. No DramaBox: Text to Speech with a library voice. Its `describe_model` lists the voices on the
    `audio1` role (a name, gender, age, and that voice's variation ids). Pick the one that fits the
-   speaker ("an old man": Elderly Male) and send `media: [{ role: "audio1", voice: "<id>" }]`. The
-   app shows the user your pick with Pick from the voice library and Use <the voice>, and acts on
-   their click: never ask first, or offer those choices yourself.
+   speaker ("an old man": Elderly Male) and send `media: [{ role: "audio1", voice: "<id>" }]`.
 3. A laugh, a cough or another sound in the line, and no DramaBox: Text to Speech without the
    sounds, and say so in one line ("Text to Speech can't laugh, so I left it out. DramaBox can,
    from the Flow Library.").
 
-A user who asks for a voice from the library gets one on either Flow, the same way: DramaBox's
+A user who asks for a voice from the library gets one on either, the same way: DramaBox's
 `audio1` lists the voices too, and the app shows your pick first.
+
+Music with no singing, sound effects and one-shot hits are a model too, not a Flow: Stable
+Audio 3 (`modelId: "stable-audio-3"`, `operation: "t2a"`). Its guide says how to prompt it.
 
 ## Song
 

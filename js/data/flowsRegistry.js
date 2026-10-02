@@ -1471,8 +1471,8 @@ export const FLOWS = [
     //
     // Only the VC half is declared. The five TTS weight ids in assetDeps
     // (`chatterbox-ve` / `-t3` / `-s3gen` / `-tokenizer` / `-conds`, 4.25GB) belong
-    // to Flow B and stay unowned until it lands — declaring them here would make
-    // every Voice Changer user download a text-to-speech model they never run.
+    // to the Chatterbox MODEL (Text to Speech, MPI-1012) — declaring them here would
+    // make every Voice Changer user download a text-to-speech model they never run.
     //
     // THE WEIGHT DEPS ARE `targetPath` AND MUST STAY THAT WAY. The pack computes
     // `<ComfyUI>/models/chatterbox/` from its own `__file__` and never reads
@@ -1555,179 +1555,8 @@ export const FLOWS = [
         // and 3 only look contradictory — distance in TIMBRE is what makes the
         // conversion audible, distance in PITCH is what you compensate for.
     },
-    // MPI-607 — "Text to Speech". Chatterbox: type a line, give it a voice to speak
-    // in, pick a language. The TTS half that the Voice Changer flow deliberately left
-    // unowned, and the third audio-only Flow.
-    //
-    // TWO ARMS, ONE PICKED PER RUN. `Input_Is_Multilingual` (MpiIfElse#52) selects
-    // between FL_ChatterboxTTS (English only, node 43) and
-    // FL_ChatterboxMultilingualTTS (23 languages, node 33). MpiIfElse is LAZY — its
-    // `true`/`false` inputs declare `lazy: True` and `check_lazy_status` returns only
-    // the taken branch — so exactly one TTS model loads per run and the other arm's
-    // weights are never touched. Both sets are declared because either arm can be the
-    // one a given user runs.
-    //
-    // 🔴 THERE IS NO VC STAGE ANY MORE, and re-adding one is not an open question.
-    // The arm was reached by filling `Input_Audio_2`; the op stopped mapping that role,
-    // and the nodes themselves were deleted on 2026-08-28 — `Input_Audio_2` (#58),
-    // MpiAnyChecker#57, MpiIfElse#53, MpiLoadAudio#56 and FL_ChatterboxVC#31 are gone,
-    // with `Output_Audio` re-pointed onto the #52 selector. Seven nodes, one route.
-    // `cfg_weight` stays at 0.5 on the TTS nodes: the 0.3 an earlier session baked was
-    // compensating for a VC -> TTS chain order that was itself wrong, so it is void
-    // twice over. Both arms now sit at `exaggeration` 0.5 (Fabio, same re-export — the
-    // multilingual node's 0.8 was aimed at accents, which is not this flow's job).
-    //
-    // WHY IT WENT, MEASURED (Fabio, 2026-08-28). The VC arm's only real job was
-    // EMOTION: text cannot select emotion, so the emotion arrived as one of the
-    // library's 30 performance clips, and that clip is the VC `target_voice`.
-    // FL_ChatterboxVC takes TIMBRE from the target, so the output is the CLIP'S
-    // speaker and the chosen voice is overwritten — and the 30 clips carry 30
-    // DISTINCT seeds, so they are 30 different people rather than 6 emotions from 5
-    // speakers. Young Male (R3, 201-250 Hz) plus perf_R3_cheerful (272.5 Hz) came out
-    // a child, as it must: register matching bounds PITCH, never identity. A role swap
-    // (emotion clip -> TTS `audio_prompt`, chosen voice -> VC target) was offered and
-    // rejected on the same grounds — "let's ship something that works, not something
-    // that may work sometimes".
-    {
-        id: 'chatter-box',
-        title: 'Text to Speech',
-        // THREE beats, one per language, each from that language's OWN real run — English
-        // on the English-only arm, Chinese and Japanese through the multilingual one. The
-        // change is invisible and the hero is muted, so it animates the added channel like
-        // DramaBox's; what it says that DramaBox's cannot is the LANGUAGE axis, which is
-        // this flow's actual pitch and needs more than one beat to show.
-        //
-        // The tile deliberately does NOT freeze beat 1. Two playbook rules collide here —
-        // "distinct from every other flow's still" against "beat 1 must match the tile",
-        // since the tile is the video's poster — and distinctness wins, because these two
-        // audio tiles now sit side by side in the Library's AUDIO section and a second
-        // block of Latin type over a waveform would read as the same picture twice. The
-        // mismatch is softened rather than ignored: the tile's first line is English and
-        // its waveform IS beat 1's audio.
-        preview: 'flow-chatter-box.webp',
-        video: 'flow-chatter-box.mp4',
-        description: 'Type a line and hear it spoken. Give Chatterbox a sample of the voice you want it in, pick one of 23 languages, and it reads your text in that voice.',
-        requiredModels: [],
-        requiredDeps: [
-            // The English arm (3.19GB) — what every measurement on this card was made
-            // on, so it stays reachable rather than being folded into the multilingual
-            // model that also speaks English.
-            'chatterbox-ve',
-            'chatterbox-t3',
-            'chatterbox-s3gen',
-            'chatterbox-tokenizer',
-            'chatterbox-conds',
-            // The 23-language arm (2.99GB). ONE checkpoint for all 23 — t3_mtl23ls_v2
-            // is "multilingual, 23 languages" — so there is no per-language cost and
-            // no list worth trimming.
-            'chatterbox-mtl-t3',
-            'chatterbox-mtl-s3gen',
-            'chatterbox-mtl-ve',
-            'chatterbox-mtl-grapheme',
-            'chatterbox-mtl-cangjie',
-            'chatterbox-mtl-conds',
-            // MPI-684 — the VC pair (`chatterbox-vc-s3gen` + `chatterbox-vc-conds`,
-            // 1.06GB) was declared here and is NOT. This flow never loads it: the graph
-            // runs `FL_ChatterboxTTS` + `FL_ChatterboxMultilingualTTS`, and
-            // `chatterbox_vc/` is reached only by `load_vc_model()`, whose only callers
-            // are inside `FL_ChatterboxVCNode`. The old comment justified the ids being
-            // IDENTICAL to Voice Changer's, which they are — not this flow needing them.
-            // Cost of the mistake: every Text to Speech user downloaded 1.06GB they
-            // never use, the drawer read 6.9GB against a real 5.96GB, and — because the
-            // dep guard walks DECLARED flows, installed or not — Voice Changer's whole
-            // footprint was a strict subset of this list, so its Uninstall could never
-            // free a single byte. Do not re-add them to "help" a user who owns both.
-            // Flow-only node pack; no model declares it. `ComfyUI-MpiNodes` stays out
-            // for the reason spelled out on voice-changer above. This one IS shared with
-            // Voice Changer for real — both run the pack — so it stays in both lists.
-            'ComfyUI_Fill-ChatterBox',
-        ],
-        operation: 'flowChatterBox',
-        workflow: 'flow_chatter_box.json',
-        mediaType: 'audio',
-        type: 'create',
-        inputSchema: {
-            media: [
-                // ONE slot, and there is no second one. "Convert onto (optional)" was
-                // tried and pulled (Fabio, 2026-08-28): read cold it says nothing, and
-                // "converts onto a second voice" describes a mechanism nobody asked
-                // for. The `audio2` role it fed is gone with it — see the VC note on
-                // the flow above.
-                {
-                    type: 'audio', mode: 'upto', max: 1,
-                    roles: ['audio1'],
-                    labels: ['Voice to speak in'],
-                    voiceLibrary: ['character'],
-                },
-            ],
-        },
-        fields: [
-            {
-                id: 'positive', type: 'text', rows: 3, label: 'The line',
-                placeholder: 'Hello and welcome to Cubric Studio.',
-            },
-            // THE ARM SELECTOR IS NO LONGER A CONTROL. It used to be an "Other
-            // languages" toggle sitting above this select, and the pair had exactly one
-            // state a user could get wrong: toggle OFF with a non-English language
-            // picked, which silently produced English. MPI-620 had rejected `showWhen`,
-            // so the mitigation was copy — the toggle declared first, and every
-            // non-English option carrying an info hover telling you to go turn it on.
-            //
-            // Fabio removed the whole class of error instead (2026-08-28): "we can't
-            // have other languages toggle. We only have the drop-down. If English is
-            // selected, then we ourselves inject false into the other languages
-            // boolean." The boolean is now DERIVED from this select — see `derived`
-            // below — so the broken state is unreachable rather than warned about, and
-            // the 21 hovers that only ever said "turn the toggle on" are gone with it.
-            {
-                // DOTTED KEY, and it has to be. `language` is NOT in the injector's
-                // spray list, so a plain `Input_Language` would match the node by title
-                // and then write nothing. `Title.widget` (MPI-359) addresses the one
-                // widget directly; `tests/inject-params-titles.test.cjs` has a case that
-                // asserts every dotted key resolves to a real node AND a real widget.
-                //
-                // The values are the node's EXACT combo labels — ComfyUI rejects
-                // anything else with "Value not in list" — and they are generated from
-                // the live /object_info list rather than typed, so they cannot drift.
-                id: 'Input_Language.language', type: 'select', label: 'Language',
-                default: 'English (en)',
-                options: [
-                    { v: 'English (en)', label: 'English',
-                      info: 'The default. English is the one language both arms speak.' },
-                    { v: 'Arabic (ar)', label: 'Arabic' },
-                    { v: 'Danish (da)', label: 'Danish' },
-                    { v: 'German (de)', label: 'German' },
-                    { v: 'Greek (el)', label: 'Greek' },
-                    { v: 'Spanish (es)', label: 'Spanish' },
-                    { v: 'Finnish (fi)', label: 'Finnish' },
-                    { v: 'French (fr)', label: 'French' },
-                    { v: 'Hebrew (he)', label: 'Hebrew' },
-                    { v: 'Hindi (hi)', label: 'Hindi' },
-                    { v: 'Italian (it)', label: 'Italian' },
-                    { v: 'Japanese (ja)', label: 'Japanese' },
-                    { v: 'Korean (ko)', label: 'Korean' },
-                    { v: 'Malay (ms)', label: 'Malay' },
-                    { v: 'Dutch (nl)', label: 'Dutch' },
-                    { v: 'Norwegian (no)', label: 'Norwegian' },
-                    { v: 'Polish (pl)', label: 'Polish' },
-                    { v: 'Portuguese (pt)', label: 'Portuguese',
-                      info: 'Delivers BRAZILIAN Portuguese — confirmed by ear; the node label does not say so.' },
-                    { v: 'Russian (ru)', label: 'Russian' },
-                    { v: 'Swedish (sv)', label: 'Swedish' },
-                    { v: 'Swahili (sw)', label: 'Swahili' },
-                    { v: 'Turkish (tr)', label: 'Turkish' },
-                    { v: 'Chinese (zh)', label: 'Chinese' },
-                ],
-            },
-        ],
-        // The arm selector is computed, never shown. One shape, no predicate language:
-        // read `from`, compare to `equals`, send `then` or `else` to `id`.
-        derived: [
-            { id: 'Input_Is_Multilingual', from: 'Input_Language.language',
-              equals: 'English (en)', then: false, else: true },
-        ],
-        // No `result.compare` — two waveforms have nothing to reveal between them.
-    },
+    // MPI-607 "Text to Speech" (`chatter-box`) left the Library in MPI-1012: it is the
+    // Chatterbox MODEL in the prompt box now (models.js; old ids: js/data/retiredFlows.js).
     // MPI-663 — "Stems". One track in, four stem files out, and the ONLY multi-output
     // flow in the Library: its four `Output_Audio_1..4` SaveAudioAdvanced nodes each land
     // their own gallery card. It is the export bridge — generate several songs, listen,
@@ -2069,7 +1898,8 @@ export const FLOWS = [
         // 🔴 RETITLED AGAIN, "Music Maker" -> "Song" (Fabio, 2026-09-05), when the
         // instrumental half split off into its own flow. "Music Maker" claimed the whole
         // territory and this flow now owns exactly one part of it: songs, with words,
-        // sung. `Sound & Music` (MPI-694, Stable Audio 3) owns the rest. The `id`, the op
+        // sung. `Sound & Music` (MPI-694, Stable Audio 3; a prompt-box model since
+        // MPI-1012) owns the rest. The `id`, the op
         // key `flowTextToMusic` and the `filePrefix` all STAY — a renamed op id is a
         // tombstone problem (MPI-533), not a rename.
         title: 'Song',
@@ -2490,142 +2320,8 @@ export const FLOWS = [
             { id: 'Input_Arrangement', type: 'text', rows: 7, label: 'Arrangement', default: '', hidden: true },
         ],
     },
-    // MPI-694 — Stable Audio 3. The SECOND audio engine, and a deliberate SPLIT rather
-    // than a bigger Music Maker.
-    //
-    // 🔴 WHY TWO FLOWS AND NOT ONE (Fabio, 2026-09-05). This shipped for one day as a
-    // five-outcome dropdown on a single flow with one 30.92GB install gate, and he
-    // reversed it before a line was built: *"I think this could be two separate models…
-    // This way, we keep dependencies separate as well, and we avoid complicated UIs. The
-    // user might just want to do backing tracks and sound effects, and not do any
-    // songs."* Someone who never writes a song pays 11.81GB instead of 30.92, and neither
-    // flow grows a stage that exists to hide the other one. Do not re-merge them.
-    //
-    // THE SPLIT IS BY CAPABILITY, and it is his verdict after hearing all four modes:
-    // *"This model is good… I tried everything. Instrumental, effects, one-shot, and
-    // music: it's very good… We can use it for everything else but sung songs."* So
-    // MiniMax keeps the one thing Stable Audio does not claim — VOCALS — and this takes
-    // the rest. SFX and one-shots are a capability Vision had no route to at all.
-    //
-    // NO REPROMPTER, deliberately. Stability's blueprint carries one (Qwen3.5-2B, 4.55GB,
-    // with 47/80/58/36 worked examples per category behind a `JsonExtractString`) and we
-    // do not port it: it would add 4.88GB to the one flow whose whole appeal is being
-    // small, and every clip judged good so far was made with it OFF — the door slam, the
-    // 1.5s dry stick, the rain with two thunder rolls, first seed, no iteration. Adding
-    // it later is one `enhance:` block plus one dep line.
-    // ponytail: add it the first time a raw prompt audibly falls short.
-    //
-    // 🔴 IF IT IS EVER ADDED IT STAYS A SEPARATE `promptEnhance` DISPATCH. Collapsing an
-    // enhancer into the audio graph is Stability's single-subgraph shape and it was
-    // measured at 12.35GB -> 6.4GB once an unload is inserted: 5.9GB, 48%, for +0.7s. Our
-    // architecture already splits them. Do not undo that by copying their blueprint.
-    //
-    // NO MODEL and NO MEDIA — `requiredModels: []` with the weights in `requiredDeps` is
-    // the same FLOW-WITH-DEPS shape as Music Maker and Voice Changer, and text is the
-    // entire input, so step 0 renders its own "needs no input media" panel.
-    //
-    {
-        id: 'sound-and-music',
-        title: 'Sound & Music',
-        // Art off four real runs made for it (MPI-694) — one per category, durations
-        // MEASURED off the files: 10.031 / 10.031 / 4.087 / 2.043s for 10/10/4/2 asked.
-        // Both assets are a TIME RULER, not lanes: a row's width IS its length, so the
-        // 2s one-shot is a fifth of the 10s bed and the frost tick marks where each one
-        // actually stops. That is deliberate distance from Stems, whose tile is five
-        // EQUAL lanes of one track — four labelled lanes here would have been the same
-        // picture with different words. The hero draws each row in under a heat playhead
-        // that halts on its own mark, so the dropdown and the length slider are taught in
-        // one pass; loop seam measured 0.013/255.
-        preview: 'flow-sound-and-music.webp',
-        video: 'flow-sound-and-music.mp4',
-        // NO "for sung songs, use Song" TAIL (Fabio, 2026-09-07): naming the other flow
-        // on this screen reads as an option ON this one — the user is standing inside
-        // Sound & Music, and a sentence about songs there hints the flow might do them.
-        // The description says what this flow makes; the Flow Library is where a user
-        // chooses between the two.
-        description: 'Describe a sound and hear it. Backing tracks and instrumentals, a single instrument, sound effects, or a one-shot hit — Stable Audio 3 makes it, at exactly the length you ask for.',
-        requiredModels: [],
-        // THREE weights, 11.81GB, all sha256-verified against HuggingFace's own
-        // `X-Linked-ETag` (see `assetDeps.js`). The enhancer is NOT here — this flow has
-        // no enhancer, which is the point.
-        requiredDeps: [
-            'stable-audio-3-medium',      // 8.59GB — Music and Instrument
-            'stable-audio-3-small-sfx',   // 2.11GB — SFX and One-shot
-            't5gemma-b-b-ul2',            // 1.11GB — the encoder BOTH share
-        ],
-        operation: 'flowSoundAndMusic',
-        workflow: 'flow_stable_audio.json',
-        mediaType: 'audio',
-        type: 'create',
-        // NO `steps` AT ALL — the intro, then the run slide, and that is the whole flow
-        // (Fabio, 2026-09-05: *"it's going to have two stages: 1. The introduction 2. A
-        // small prompt box with a dropdown… and a slider for the length"*). `steps: []`
-        // is an ordinary shape here: ltx-upscale, voice-changer, chatter-box, drama-box
-        // and stems all ship without one.
-        fields: [
-            {
-                id: 'positive', type: 'text', rows: 4, label: 'Describe it',
-                // A SOUND, not a picture and not a song brief. The three clips Fabio
-                // approved were written this way — the thing itself, its material, its
-                // room.
-                placeholder: 'A heavy wooden door slamming shut in a stone corridor, long tail.',
-            },
-            {
-                // 🔴 THIS DROPDOWN IS THE CHECKPOINT SWITCH, and nothing else today.
-                // The four values are Stability's own `CustomCombo`, read out of their
-                // blueprint rather than a doc. In the graph they reach ONE
-                // `MpiTextContains` node (`Is_Tonal`, words "Music, Instrument") whose
-                // boolean drives two lazy `MpiIfElse` gates — so the option strings ARE
-                // the lookup table and there is no index to drift.
-                //
-                // 🟡 `Instrument` ON MEDIUM IS A GUESS, NOT A MEASUREMENT. It is there
-                // because it is tonal. `small_sfx` made every effect and one-shot Fabio
-                // approved; Medium is what he judged music on. Changing it is one word
-                // in the graph's `words` widget — change it when someone listens.
-                id: 'Input_Category', type: 'select', label: 'What is it',
-                default: 'Music',
-                options: [
-                    { v: 'Music', label: 'Music',
-                      info: 'A backing track or an instrumental piece. Uses the larger model.' },
-                    { v: 'Instrument', label: 'Instrument',
-                      info: 'A single instrument playing — a riff, a phrase, a texture.' },
-                    { v: 'SFX', label: 'Sound effect',
-                      info: 'A noise or an event: a door, rain, an engine, a room tone.' },
-                    { v: 'One-shot', label: 'One-shot',
-                      info: 'A single hit in near-silence — a stick, a snare, an impact.' },
-                ],
-            },
-            {
-                // 🔴 A REAL LENGTH, and it is the one control MiniMax cannot have.
-                // Measured off the decoded file with `ffprobe`, never trusted from the
-                // request: 1.5s -> 1.486s, 10s -> 10.031s, 25s -> 25.078s. Exact to
-                // ~80ms across a 16x range. Music Maker's `Input_Duration` is a
-                // GUILLOTINE by comparison — the AR decides its own length there and the
-                // cut-off only ever shortens. This is a categorical difference between
-                // the two flows, not a better number, and it is the clearest reason they
-                // are not interchangeable.
-                //
-                // Default 10s because that is where the approved clips sit; 190 is the
-                // longest duration this card has actually run, not a spec number.
-                // ponytail: step 1, so the bench's 1.5s one-shot rounds to 1 or 2.
-                // Drop to 0.5 if a one-shot ever needs the half second.
-                id: 'Input_Duration', type: 'slider', label: 'Length',
-                min: 1, max: 190, step: 1, default: 10, format: 'duration',
-            },
-            // 🔴 NO `Input_Low_Vram` HERE, and it is not an oversight — it was built,
-            // measured, and REMOVED (Fabio, 2026-09-07: *"I don't think sound and music
-            // need that"*). Music Maker keeps its copy; 13.3GB of MiniMax weights make
-            // the toggle real there. This flow's whole graph stages ~6.5GB (Medium 2771MB
-            // + VAE 3243MB + the 537MB encoder, read off the engine log on the first real
-            // run), and the four-arm bench on 2026-09-05 found chunked decode saves
-            // NOTHING on peak once nothing else is resident — 6.35 vs 6.19-6.44GB, inside
-            // the noise — while costing +15s at 60s, reproduced three times. A control
-            // that buys no memory and spends a whole generation's worth of time is worse
-            // than absent. `VAEDecodeAudioTiled` and its `MpiIfElse` gate came out of the
-            // graph with it, so the plain decode feeds `MpiClearVram` directly.
-            // ponytail: wire it back only if a real card is measured falling over.
-        ],
-    },
+    // MPI-694 "Sound & Music" (`sound-and-music`) left the Library in MPI-1012: it is the
+    // Stable Audio 3 MODEL in the prompt box now (models.js; old ids: js/data/retiredFlows.js).
 ];
 
 /** @returns {FlowDef[]} All flow descriptors. */

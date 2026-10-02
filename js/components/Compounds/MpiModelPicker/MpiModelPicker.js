@@ -84,7 +84,8 @@ export const MpiModelPicker = ComponentFactory.create({
             return {
                 id: model.id,
                 name: model.name,
-                media: model.mediaType === 'video' ? 'video' : 'image',
+                // An audio model (MPI-1012) shows its 4:5 still, like an image model.
+                media: model.mediaType,
                 preview: model.mediaType === 'video' ? model.video : model.image,
                 meta: isCloud
                     ? quote.unit
@@ -153,6 +154,7 @@ export const MpiModelPicker = ComponentFactory.create({
                 : `${_models.length} installed`;
             _mediaBlock(_models, 'image', activeId);
             _mediaBlock(_models, 'video', activeId);
+            _mediaBlock(_models, 'audio', activeId);
         }
 
         el.open = ({ models = [], modelId = null } = {}) => {

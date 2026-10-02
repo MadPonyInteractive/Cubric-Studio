@@ -530,6 +530,8 @@ export function setOpSettings(project, modelId, opName, updates) {
 // Use these instead of operations.shared. Bucket key is the model's mediaType
 // ('image' | 'video'), so all image models share one bucket and all video
 // models share another. Op-specific values stay under modelSettings[].operations[].
+// Audio models (MPI-1012) deliberately get NO bucket: their controls (category, length,
+// language) belong to one model each, so an 'audio' read is {} and a write is a no-op.
 
 const _SHARED_TYPES = new Set(['image', 'video']);
 

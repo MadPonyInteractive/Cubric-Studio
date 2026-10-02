@@ -8,7 +8,7 @@
  * @property {string}   [enhanceRecipe] - Explicit enhancer-recipe id, overriding `type` when they diverge. Both keys are read by `resolveRecipe()` in `js/data/recipes/registry.js` — the LOCAL recipe index (MPI-35, MPI-677). They used to name a recipe inside the sibling Cubric Prompt app (MPI-5); the recipes moved here, so the keys kept their values and changed their address.
  * @property {'deepinfra'} [provider] - CLOUD model (MPI-851). Its presence is the whole discriminator: a model with a `provider` has no weights, no ComfyUI graph and no engine — it runs on the user's own API key at the provider, who bills them directly. It MUST declare no `dependencies`, `commonDeps`, `operations`, `workflows`, `engines` or `variants`: the dep resolver, the orphan sweep and the install UI all key on those, and an empty `dependencies: []` reads as INSTALLED by accident in two places (`resolveModelDeps.js` `[].every()`, `routes/comfy.js` `allPresent`). "Installed" for these means A KEY IS SAVED — see `hasCloudKey()` in modelRegistry.js, which `isModelUsable`/`isOperationInstalled` answer from before they ever consult the dep cache. Dispatch branches at `generationService.js`'s `runCommand` call and never reaches ComfyUI.
  * @property {{endpointId:string, body?:Record<string,*>, imageField?:string, mediaList?:boolean, imageBareBase64?:boolean, imageFields?:string[], inputMaxPixels?:number}} [cloud] - The provider-side call this model makes. `endpointId` is the provider's own model id (`black-forest-labs/FLUX-1-schnell`), which is ALSO the key `dev_configs/deepinfra-prices.json` prices it under — the two must stay equal or the estimate silently describes another model. `body` is constant fields merged into every request (leave a field out to take the provider's own default; DeepInfra's default step count is what its published price assumes). `imageField` names the body field a reference image goes in, for edit ops. `mediaList` sends every input as one typed list `media: [{ type, url }]` instead (Wan 3.0: frames on i2v, references on ref2v). `imageBareBase64` sends the picture as bare base64, not a data URL: FLUX-2 pro/max forward it to BFL, which cannot decode a data URL (HTTP 500, measured 2026-09-25). `imageFields` lists an endpoint's numbered reference fields in order (MPI-919): reference N goes in field N, and the model also declares `capabilities.multiReference` (and `multiReference8` past four) so the edit op shows that many slots. `inputMaxPixels` shrinks each reference to that area before sending, for an endpoint that bills input by the megapixel.
- * @property {'image'|'video'} mediaType
+ * @property {'image'|'video'|'audio'} mediaType - What the model MAKES. 'audio' (MPI-1012: Stable Audio 3, Chatterbox) lists in its own Audio section of the picker and the Model Library, takes the 4:5 `image` still, and has no shared control bucket (projectModel `_SHARED_TYPES`) — its controls are perModel.
  * @property {'low'|'balanced'|'high'} [sizeTier] - Weight-size tier (MPI-168). Shown as a Low/Balanced/High badge + L/B/H marker. A model has ONE tier; siblings ship as separate cards. Absent → treated as 'balanced' by UI.
  * @property {string}   [modelFamily] - Soft grouping key for same-base-model tier variants, e.g. 'LTX-2.3' (MPI-168). Drives tier clustering + the "show L/B/H only when 2+ tiers of a family installed" rule. UI-only; no resolver effect.
  * @property {boolean}  [featured]   - Editorial spotlight flag for the Model Library ("hot / new / best right now"). Featured models sort FIRST within their sub-grid (stable) and carry a gold sparkle star badge. Purely a curation signal — set as many as you like, add/remove freely; no cap, no resolver effect. Consumed only by MpiModelManager (sort) + MpiTileSheet (the `.mpi-tile__flag--featured` badge). See also [deprecated] below.
@@ -1845,6 +1845,88 @@ const ALL_MODELS = [
             // It pulls its annotator weights itself on first use; DepthAnythingV2's are
             // already cached by Klein, the OpenPose ones (body/hand/face) are new.
             'comfyui_controlnet_aux',
+        ],
+    },
+
+    // ── Audio models (MPI-1012) ───────────────────────────────────────────────
+    // Sound & Music and Text to Speech were Flows until 2026-10-02 (Fabio: "It doesn't have
+    // inputs. All it has is two parameters and a prompt. I don't think it should be a
+    // flow"). Voice Changer, Song and Stems stay Flows. Same graphs (renamed), and the
+    // SAME dep ids the Flows declared, so an install made through the Flow reads as this
+    // model installed on the first sync and nothing downloads again, on a Pod volume too.
+    // The FlowDefs left in the SAME commit these landed: with no owner for a moment, the
+    // orphan sweep would have taken the 11.81GB of Stable Audio weights on the next
+    // uninstall. Old cards, routines and agent calls naming the Flows resolve through
+    // `js/data/retiredFlows.js`.
+    //
+    // Stable Audio 3 — instrumentals, single instruments, sound effects and one-shots;
+    // Song (MiniMax) keeps sung vocals, the one thing this does not claim. TWO checkpoints
+    // behind one lazy gate on `audioCategory`, so only the picked one loads. NO
+    // reprompter on purpose (4.88GB, and every approved clip was made without it), so
+    // `t2a` is enhance-exempt. Gated: MODEL_LICENCES['stable-audio-3'].
+    {
+        id: 'stable-audio-3',
+        sizeTier: 'balanced',
+        name: 'Stable Audio 3',
+        dropdownMeta: 'AUDIO',
+        mediaType: 'audio',
+        image: 'stable-audio-3.webp',
+        // No negative node, and one sound per run.
+        capabilities: { negativePrompt: false, batch: false },
+        type: 'stable-audio-3',
+        // No LoRAs and no upscaler: the settings gear would open an empty popup.
+        showSettings: false,
+        supportedOps: ['t2a'],
+        gen_speed: 'fast',
+        description: 'Describe a sound and hear it. Backing tracks and instrumentals, a single instrument, sound effects, or a one-shot hit — Stable Audio 3 makes it, at exactly the length you ask for.',
+        workflows: { t2a: 'stable_audio_3.json' },
+        dependencies: [
+            'stable-audio-3-medium',      // 8.59GB — Music and Instrument
+            'stable-audio-3-small-sfx',   // 2.11GB — SFX and One-shot
+            't5gemma-b-b-ul2',            // 1.11GB — the encoder both share
+            'ComfyUI-MpiNodes',
+        ],
+    },
+    // Chatterbox — Text to Speech. A line, a voice to speak it in, one of 23 languages.
+    // TWO arms behind `Input_Is_Multilingual` (a lazy MpiIfElse): English runs
+    // FL_ChatterboxTTS, anything else FL_ChatterboxMultilingualTTS, so one TTS model loads
+    // per run and both weight sets are declared. The arm is DERIVED from `ttsLanguage`,
+    // never shown (commandRegistry `ttsLanguageParams`).
+    // The voice-conversion pair (`chatterbox-vc-*`) is NOT here: only Voice Changer loads
+    // it (MPI-684 — declaring it cost every TTS user 1.06GB and made Voice Changer's
+    // uninstall free nothing).
+    {
+        id: 'chatterbox',
+        sizeTier: 'low',
+        name: 'Chatterbox',
+        dropdownMeta: 'AUDIO',
+        mediaType: 'audio',
+        image: 'chatterbox.webp',
+        // `audio: true` is what keeps the voice slot: filterMediaInputsForModel drops an
+        // audio slot from any model without it.
+        capabilities: { audio: true, negativePrompt: false, batch: false },
+        type: 'chatterbox',
+        showSettings: false,
+        supportedOps: ['tts'],
+        gen_speed: 'fast',
+        description: 'Type a line and hear it spoken. Give Chatterbox a sample of the voice you want it in, pick one of 23 languages, and it reads your text in that voice.',
+        workflows: { tts: 'chatterbox_tts.json' },
+        dependencies: [
+            // The English arm (3.19GB).
+            'chatterbox-ve',
+            'chatterbox-t3',
+            'chatterbox-s3gen',
+            'chatterbox-tokenizer',
+            'chatterbox-conds',
+            // The 23-language arm (2.99GB) — ONE checkpoint for all 23.
+            'chatterbox-mtl-t3',
+            'chatterbox-mtl-s3gen',
+            'chatterbox-mtl-ve',
+            'chatterbox-mtl-grapheme',
+            'chatterbox-mtl-cangjie',
+            'chatterbox-mtl-conds',
+            'ComfyUI_Fill-ChatterBox',
+            'ComfyUI-MpiNodes',
         ],
     },
 

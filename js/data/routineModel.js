@@ -22,6 +22,7 @@ import { AGENT_TOOL_OPS, agentToolOp, toolRun } from '../shell/agentToolOps.js';
 import { getCommandMediaInputs, filterMediaInputsForModel } from './commandRegistry.js';
 import { resolveNamedParams } from './generationControls.js';
 import { resolveFlowFieldValues } from '../utils/declaredFields.js';
+import { retiredFlow, retiredFlowAsModel } from './retiredFlows.js';
 
 export const ROUTINE_SCHEMA = 'cubric/routine/v1';
 
@@ -32,7 +33,7 @@ const MAX_STEPS = 10;
 const _TOOL_OP_SET = new Set(AGENT_TOOL_OPS.map(t => t.op));
 
 /** Named params a model step may carry (passed to resolveNamedParams). */
-const _MODEL_NAMED_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration', 'denoise', 'batch'];
+const _MODEL_NAMED_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration', 'denoise', 'batch', 'category', 'language'];
 
 const _bad = (code, message) => ({ ok: false, code, message });
 
@@ -204,6 +205,11 @@ export function validateRoutine(routine, lookups) {
     }
     if (!Array.isArray(routine.steps) || routine.steps.length === 0) {
         return _bad('INVALID_ROUTINE', 'steps must be a non-empty array.');
+    }
+    // A step saved against a Flow that is a MODEL now (MPI-1012) validates and runs as that
+    // model step, and the routine handed back carries it in its new shape.
+    if (routine.steps.some(s => retiredFlow(s?.flowId))) {
+        routine = { ...routine, steps: routine.steps.map(s => retiredFlowAsModel(s) ?? s) };
     }
     if (routine.steps.length > MAX_STEPS) {
         return _bad('TOO_MANY_STEPS',

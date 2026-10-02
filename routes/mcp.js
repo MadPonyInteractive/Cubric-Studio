@@ -263,7 +263,7 @@ const INSTRUCTIONS = [
     'Name the project every generate runs in: pass folderPath from list_projects or create_project. The project does not have to be open, and the user\'s view stays where it is. Without folderPath a generation lands in whatever project the app has open, which the user can change at any moment. Call open_project only when the user wants to see the project in the app.',
     'Pick a model with list_models (the op marked best:true is the recommended one for its task), then call describe_model for that id: it lists the ops and the only values each param accepts.',
     'Before you write the first prompt for a model, call read_knowledge with each guide id describe_model lists for it: the guide says how that model wants to be prompted.',
-    'generate returns the result\'s file path on disk, its card id and a small picture of it, so you can see what you made. A video or a Flow returns { running: true, jobId } at once instead: tell the user it started, then END YOUR TURN so they can keep talking; call wait_generation when they ask whether it is done. An image slower than 45 s returns running too. Never re-send generate for a job that is still running, and call cancel_generation if the user wants it stopped. The card also appears in the app\'s gallery.',
+    'generate returns the result\'s file path on disk, its card id and a small picture of it, so you can see what you made. A video, a sound or a Flow returns { running: true, jobId } at once instead: tell the user it started, then END YOUR TURN so they can keep talking; call wait_generation when they ask whether it is done. An image slower than 45 s returns running too. Never re-send generate for a job that is still running, and call cancel_generation if the user wants it stopped. The card also appears in the app\'s gallery.',
     'An image the user attaches in this chat never reaches the app as a file. To edit, animate or reference a picture, pass generate media: [{ role, path }]: the role from describe_model, the path of a card (list_cards gives each card\'s path) or of a file on the user\'s disk. A file from outside the project is copied into it first.',
     'A video result carries only its first frame. To see a whole clip, a GIF, or any card larger, call view_card with its path.',
     'Paid cloud models cost the user real money. generate answers CONFIRM_COST with the price and makes nothing: tell the user the price and ask. Only if they say yes, resend with confirmCost. Never confirm on their behalf.',
@@ -394,7 +394,7 @@ const TOOLS = {
     },
     generate: {
         title: 'Generate',
-        description: 'Generate an image, video or audio with a model op, or run a Flow, in the project folderPath names (open or not), else in the project the app has open. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the file path on disk plus a picture of the result. A video or Flow, or an image slower than 45 s, returns { running: true, jobId } instead: tell the user and end your turn, then call wait_generation when asked, never generate again. A paid model first answers CONFIRM_COST with its price and generates nothing.',
+        description: 'Generate an image, video or audio with a model op, or run a Flow, in the project folderPath names (open or not), else in the project the app has open. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the file path on disk plus a picture of the result. A video, a sound or a Flow, or an image slower than 45 s, returns { running: true, jobId } instead: tell the user and end your turn, then call wait_generation when asked, never generate again. A paid model first answers CONFIRM_COST with its price and generates nothing.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -407,7 +407,9 @@ const TOOLS = {
                 ratio: { type: 'string', description: 'e.g. 1:1, 16:9, 9:16.' },
                 qualityTier: { type: 'string' },
                 turbo: { type: 'boolean' },
-                duration: { type: 'number', description: 'Video ops only, in seconds.' },
+                duration: { type: 'number', description: 'In seconds, within the op\'s params.duration range: a video op, or Sound & Music (t2a).' },
+                category: { type: 'string', description: 'Sound & Music (t2a) only: one of the op\'s params.categories.' },
+                language: { type: 'string', description: 'Text to Speech (tts) only: the language of the line, one of the op\'s params.languages.' },
                 styleSelect: { type: 'string' },
                 seed: { type: 'integer' },
                 denoise: { type: 'number', description: 'Only on an op whose params list it (i2i, upscale, detail): 0 to 1, higher changes more.' },
@@ -439,7 +441,8 @@ const TOOLS = {
             }
             const refused = await spendGate(t, body, confirmCost);
             if (refused) return refused;
-            const slow = !!body.flowId || (await t.listModels())?.models?.find((m) => m.id === body.modelId)?.type === 'video';
+            // Audio too (MPI-1012): a Stable Audio sound runs to 190 s.
+            const slow = !!body.flowId || ['video', 'audio'].includes((await t.listModels())?.models?.find((m) => m.id === body.modelId)?.type);
             const jobId = startJob((id) => t.generate({ ...body, requestId: id }));
             if (!slow) return waitForJob(jobId, rpcKey);
             // A few seconds still catch a bad param or a full queue before the agent moves on.

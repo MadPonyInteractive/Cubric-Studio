@@ -1,5 +1,5 @@
 /**
- * flow-derived-fields.test.cjs — MPI-607.
+ * flow-derived-fields.test.cjs — MPI-607, rebuilt on a fixture in MPI-1012.
  *
  * A FlowDef's `derived[]` computes a graph input the user never sees. Text to Speech's
  * `Input_Is_Multilingual` is the case it was built for: it used to be an "Other
@@ -7,14 +7,14 @@
  * state a user could get wrong — toggle OFF with a non-English language picked, which
  * silently produced English. Deriving the boolean makes that state unreachable.
  *
- * Nothing in the UI can show the derivation is wrong: a mis-derived boolean simply
- * routes the run down the other arm and returns audio, in the wrong language, with no
- * error. So the contract worth pinning is the whole option list evaluating to the right
- * arm — it fails the moment someone re-adds a control for the boolean, renames the
- * select, or adds a language to the wrong side.
+ * MPI-1012 made Text to Speech the Chatterbox MODEL, and its derivation moved with it into
+ * one control (`ttsLanguage` -> `ttsLanguageParams`, the `ratio` W+H pattern). No shipped
+ * Flow declares `derived[]` today, but the mechanism stays a Flow capability, so its guard
+ * survives on a fixture shaped exactly like the Flow it was built for — the guard must
+ * outlive its exemplar. The arm itself is pinned below on the model path.
  *
- * (This file was `flow-voice-emotion.test.cjs` until the Emotion/VC feature was stripped
- * — see the FlowDef comment for why it went.)
+ * Nothing in the UI can show a derivation is wrong: a mis-derived boolean simply routes the
+ * run down the other arm and returns audio, in the wrong language, with no error.
  */
 
 'use strict';
@@ -26,57 +26,52 @@ const path = require('node:path');
 const repo = p => path.join(__dirname, '..', p);
 const esm = p => import('file://' + repo(p).replace(/\\/g, '/'));
 
-async function chatterBox() {
-    const mod = await esm('js/data/flowsRegistry.js');
-    const flows = mod.FLOWS || mod.flows || mod.default;
-    const flow = flows.find(f => f.id === 'chatter-box');
-    assert.ok(flow, 'chatter-box FlowDef must exist');
-    return flow;
-}
+/** The Text to Speech FlowDef's own shape at MPI-1012, reduced to what `derived` reads. */
+const FIXTURE = {
+    id: 'derived-fixture',
+    fields: [
+        { id: 'positive', type: 'text' },
+        { id: 'Input_Language.language', type: 'select', default: 'English (en)',
+          options: [{ v: 'English (en)' }, { v: 'French (fr)' }, { v: 'Japanese (ja)' }] },
+    ],
+    derived: [
+        { id: 'Input_Is_Multilingual', from: 'Input_Language.language',
+          equals: 'English (en)', then: false, else: true },
+    ],
+};
 
-const fieldById = (flow, id) => (flow.fields || []).find(f => f.id === id);
+test('derived[] is computed AFTER the caller\'s value, from the value the caller picked', async () => {
+    const { resolveFlowFieldValues } = await esm('js/utils/declaredFields.js');
 
-async function commands() {
-    const cmd = await esm('js/data/commandRegistry.js');
-    return cmd.COMMANDS || cmd.commands || cmd.default;
-}
+    const english = resolveFlowFieldValues(FIXTURE, { positive: 'hi' });
+    assert.strictEqual(english.injectionParams.Input_Is_Multilingual, false,
+        'the default must derive from the default');
 
-test('the multilingual arm is derived from the language, never from a control', async () => {
-    const flow = await chatterBox();
+    // Computed before the override, this comes back false and a Japanese request runs the
+    // English arm — ok:true and nothing to explain it.
+    const japanese = resolveFlowFieldValues(FIXTURE, { positive: 'hi', 'Input_Language.language': 'Japanese (ja)' });
+    assert.strictEqual(japanese.injectionParams['Input_Language.language'], 'Japanese (ja)');
+    assert.strictEqual(japanese.injectionParams.Input_Is_Multilingual, true);
+    assert.deepStrictEqual(japanese.unknown, [], 'a derived id is never the caller\'s unknown field');
+});
 
-    // The toggle is GONE on purpose: with it, "English" plus a non-English language was
-    // reachable and silently produced English. If someone re-adds a control for the
-    // boolean, the broken state comes back.
-    const ids = (flow.fields || []).map(f => f.id);
-    assert.ok(!ids.includes('Input_Is_Multilingual'),
-        'Input_Is_Multilingual must not be a user control — it is derived');
-
-    const d = (flow.derived || []).find(x => x.id === 'Input_Is_Multilingual');
-    assert.ok(d, 'chatter-box must derive Input_Is_Multilingual');
-    assert.strictEqual(d.from, 'Input_Language.language');
-
-    // English is the ONLY value that may take the English-only arm.
-    const langs = fieldById(flow, 'Input_Language.language').options.map(o => o.v);
-    const evaluate = v => (String(v) === String(d.equals) ? d.then : d.else);
-    assert.strictEqual(evaluate('English (en)'), false, 'English must take the English arm');
-    for (const v of langs.filter(v => v !== 'English (en)')) {
-        assert.strictEqual(evaluate(v), true, `${v} must take the multilingual arm`);
+test('Chatterbox: every language but English takes the multilingual arm, and none is a control', async () => {
+    const { TTS_LANGUAGES, TTS_ENGLISH, ttsLanguageParams, commands } = await esm('js/data/commandRegistry.js');
+    for (const { v } of TTS_LANGUAGES) {
+        assert.strictEqual(ttsLanguageParams(v).Input_Is_Multilingual, v !== TTS_ENGLISH, `${v} on the wrong arm`);
     }
+    // The toggle is GONE on purpose: with it, a non-English language could run on the
+    // English arm. If someone re-adds a control for the boolean, that state comes back.
+    assert.ok(!commands.tts.components.includes('ttsMultilingual') && commands.tts.components.length === 1,
+        'tts exposes the language and nothing else');
 });
 
 test('Text to Speech is TTS only — no second audio role reaches the graph', async () => {
-    const flow = await chatterBox();
-
-    // `Input_Audio_2` is the ONLY thing MpiAnyChecker#57 reads to switch the graph onto
-    // FL_ChatterboxVC. Mapping an `audio2` role — from a slot, or from a run-time
-    // deriver like the Emotion clip this file used to test — puts the VC arm back, and
-    // that arm was killed on measurement: VC takes timbre from its target, so the
-    // output is the reference clip's speaker rather than the voice the user chose.
-    const roles = (flow.inputSchema?.media || []).flatMap(g => g.roles || []);
-    assert.deepStrictEqual(roles, ['audio1'], 'Text to Speech declares exactly one media role');
-
-    const reg = await commands();
-    const keys = reg.flowChatterBox.mediaInputs.map(m => m.key);
-    assert.deepStrictEqual(keys, ['audio1'],
-        'flowChatterBox must map only audio1 — an audio2 mapping re-enables the VC arm');
+    // `Input_Audio_2` used to switch the graph onto FL_ChatterboxVC. That arm was killed on
+    // measurement (VC takes timbre from its target, so the output was the reference clip's
+    // speaker, not the chosen voice) and its nodes are gone; an `audio2` mapping would write
+    // to a title that no longer exists, or put the arm back if it ever returns.
+    const { commands } = await esm('js/data/commandRegistry.js');
+    assert.deepStrictEqual(commands.tts.mediaInputs.map(m => m.key), ['audio1'],
+        'tts must map only audio1 — an audio2 mapping re-enables the VC arm');
 });

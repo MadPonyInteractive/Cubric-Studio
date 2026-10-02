@@ -115,8 +115,8 @@ export const MpiModelManager = ComponentFactory.create({
         // Close the detail drawer too so a reopen starts clean.
         overlay.on('close', () => { _closeDetail(); });
 
-        // ── Media filter (Image / Video) — reads model.mediaType directly ─────
-        let _mediaActive = new Set();     // 'image' | 'video'; empty = all
+        // ── Media filter (Image / Video / Audio) — reads model.mediaType directly ─────
+        let _mediaActive = new Set();     // 'image' | 'video' | 'audio'; empty = all
 
         // ── Live search query (name / dropdownMeta) ───────────────────────────
         let _searchQuery = '';
@@ -186,7 +186,7 @@ export const MpiModelManager = ComponentFactory.create({
         // Sets + query and force-rebuilds the grid (the filter change IS the sig change).
         const filterBar = MpiFilterBar.mount(ce('div'), {
             groups: [
-                { key: 'media', label: 'Media', options: [{ value: 'image', label: 'Image' }, { value: 'video', label: 'Video' }] },
+                { key: 'media', label: 'Media', options: [{ value: 'image', label: 'Image' }, { value: 'video', label: 'Video' }, { value: 'audio', label: 'Audio' }] },
                 { key: 'tier', label: 'Tier', options: TIER_ORDER.map(tier => ({ value: tier, label: TIER_WORD[tier] })) },
                 { key: 'fit', label: 'Hardware', options: [{ value: 'gpu', label: 'Fits my GPU' }] },
             ],
@@ -740,7 +740,7 @@ export const MpiModelManager = ComponentFactory.create({
 
         /** The queued model's mascot key (MPI-906), or false when not queued. */
         function _waitingMascot(model, st) {
-            return st.downloadState === 'queued' && (model.mediaType === 'video' ? 'video' : 'vision');
+            return st.downloadState === 'queued' && (model.mediaType === 'image' ? 'vision' : model.mediaType);
         }
 
         // Tile item for the shared MpiTileSheet (MPI-356). The sheet owns the thumb,
@@ -752,7 +752,7 @@ export const MpiModelManager = ComponentFactory.create({
             return {
                 id: model.id,
                 name: model.name,
-                media: model.mediaType === 'video' ? 'video' : 'image',
+                media: model.mediaType,
                 preview: model.mediaType === 'video' ? model.video : model.image,
                 meta: `${model.dropdownMeta || ''}${model.dropdownMeta ? ' · ' : ''}${TIER_WORD[tier] || tier}`,
                 showMediaBadge: true,
@@ -865,7 +865,7 @@ export const MpiModelManager = ComponentFactory.create({
                         <div class="mpi-detail__name">${model.name}</div>
                         <div class="mpi-detail__cat">${model.dropdownMeta || ''}${model.dropdownMeta ? ' · ' : ''}${TIER_WORD[tier] || tier} tier</div>
                     </div>
-                    <span class="mpi-detail__pill mpi-detail__pill--${isVideo ? 'video' : 'image'}">${isVideo ? 'Video' : 'Image'}</span>
+                    <span class="mpi-detail__pill mpi-detail__pill--${model.mediaType}">${ASSET_KINDS.find(k => k.kind === model.mediaType)?.singular || 'Image'}</span>
                 </div>
                 ${model.description ? `<p class="mpi-detail__desc">${model.description}</p>` : ''}
                 <div class="mpi-detail__field" id="detail-arch" style="display:none;">
@@ -1234,15 +1234,16 @@ export const MpiModelManager = ComponentFactory.create({
             bodySlot.appendChild(sheet.el);
         }
 
-        // A full section (Installed / Available): header + Image sub-grid + Video
-        // sub-grid. The media filter narrows which sub-grids appear.
+        // A full section (Installed / Available): header + Image, Video and Audio
+        // sub-grids. The media filter narrows which sub-grids appear.
         function _section(label, list) {
             if (!list.length) return;
             const header = ce('div', { className: 'mpi-model-library__section' });
             header.innerHTML = `<span>${label}</span><span class="mpi-model-library__section-n">${list.length}</span>`;
             bodySlot.appendChild(header);
-            if (_mediaActive.size === 0 || _mediaActive.has('image')) _mediaBlock(list, 'image');
-            if (_mediaActive.size === 0 || _mediaActive.has('video')) _mediaBlock(list, 'video');
+            for (const media of ['image', 'video', 'audio']) {
+                if (_mediaActive.size === 0 || _mediaActive.has(media)) _mediaBlock(list, media);
+            }
         }
 
         // ── Plugins section (MPI-310) ─────────────────────────────────────────

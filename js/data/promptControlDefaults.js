@@ -89,5 +89,10 @@ export const PROMPT_CONTROL_DEFAULTS = Object.freeze({
     stylization: 1.0,
     // Prompt enhancer (Input_Enhance_Prompt MpiIfElse). OFF by default: it costs a
     // full autoregressive pass through the text encoder's LM head before sampling.
+    // MPI-1012 audio models — the defaults the Flows shipped with. Music and 10 s are
+    // where the approved Stable Audio clips sit; English runs Chatterbox's English-only arm.
+    audioCategory: 'Music',
+    audioLength: 10,
+    ttsLanguage: 'English (en)',
 });
 

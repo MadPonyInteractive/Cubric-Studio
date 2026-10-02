@@ -44,7 +44,7 @@ import { clientLogger }        from '../../../services/clientLogger.js';
 import { attachDictation }     from '../../../services/dictation.js';
 import { state }               from '../../../state.js';
 import { PAGE_LANDING }        from '../../../router.js';
-import { getCommandAccent, getCommandProgressLabel } from '../../../data/commandRegistry.js';
+import { getCommandAccent, getCommandProgressLabel, getCommandMediaInputs } from '../../../data/commandRegistry.js';
 import { FLOWS }               from '../../../data/flowsRegistry.js';
 import {
     agentSendMessage,
@@ -78,13 +78,15 @@ const _COSMO_LEDGE = `
 const _GUESTS = Object.freeze({ vision: 'Prism', video: 'Reel', audio: 'Vinyl', prompt: 'Lingo' });
 
 /**
- * A job's working clip. SPEECH is a Flow that takes a voice (a `voiceLibrary` slot: Text to
- * Speech, Voice Changer, the DramaBox package), and Vinyl sings it into his mic (`idle-3`);
- * music and every other job keeps the `working` clip, Vinyl at the decks (Fabio, 2026-10-01).
+ * A job's working clip. SPEECH is an op that takes a voice (a `voiceLibrary` slot: Voice
+ * Changer, the DramaBox package, and since MPI-1012 the Chatterbox model's `tts`), and Vinyl
+ * sings it into his mic (`idle-3`); music and every other job keeps the `working` clip, Vinyl
+ * at the decks (Fabio, 2026-10-01).
  */
 function _jobClip(key, op) {
-    const speech = key === 'audio' && FLOWS.some(f => f.operation === op
-        && (f.inputSchema?.media || []).some(g => (g.voiceLibrary || []).some(Boolean)));
+    const speech = key === 'audio' && (getCommandMediaInputs(op).some(s => s.voiceLibrary)
+        || FLOWS.some(f => f.operation === op
+            && (f.inputSchema?.media || []).some(g => (g.voiceLibrary || []).some(Boolean))));
     return speech ? 'idle-3' : 'working';
 }
 

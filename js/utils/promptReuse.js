@@ -1,6 +1,7 @@
 import { findClosestRatio, getModelRatios, qualityTiersFor, usesOrientation, usesQualityTier, clampQualityTier } from './ratios.js';
 import { getCommand, getCommandDefault, getCommandMediaInputs } from '../data/commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from '../data/promptControlDefaults.js';
+import { retiredFlow, retiredFlowControls } from '../data/retiredFlows.js';
 
 function _clone(value) {
     if (value == null) return value;
@@ -114,7 +115,12 @@ function _settingsSource(item = {}) {
 }
 
 export function buildPromptReusePayload(item = {}) {
-    const source = _settingsSource(item);
+    // A card made by a Flow that is a MODEL now (MPI-1012) reuses as that model: its op
+    // drives media acceptance below (the Flow op is a tombstone with no slots, so its
+    // voice would be dropped), and its field values become the model's control values.
+    const retired = retiredFlow(item.flowId ?? item.appId);
+    const _source = _settingsSource(item);
+    const source = retired ? { ..._source, operation: retired.operation, modelId: retired.modelId } : _source;
     const injectionParams = _clone(source.injectionParams || {});
     if (!injectionParams.Ratio_Label && item.ratioLabel) {
         injectionParams.Ratio_Label = item.ratioLabel;
@@ -166,9 +172,14 @@ export function buildPromptReusePayload(item = {}) {
         // MPI-474. Absent on every item generated before the third prompt mode
         // shipped, which is why it falls through to '' rather than being required.
         negativeAudio: item.negativeAudioPrompt ?? source.negativeAudio ?? '',
-        modelId: item.modelId ?? source.modelId ?? null,
+        modelId: retired?.modelId ?? item.modelId ?? source.modelId ?? null,
         operation: source.operation ?? item.operation ?? null,
         injectionParams,
+        // MPI-1012: the old Flow card's settings as the model's control values. Null on
+        // every other card.
+        retiredControls: retired
+            ? retiredFlowControls(item.flowId ?? item.appId, item.flowInputs ?? item.appInputs, injectionParams)
+            : null,
         // Frame snapshots are the authoritative IMAGE source; saved media supplies
         // everything else (audio, non-frame video). Merging — not either/or — so an
         // i2v gen with audio carries BOTH its start/end frames AND its audio clip.
@@ -240,6 +251,13 @@ export function payloadHasReusableAudio(payload = {}) {
 function _payloadHasReusableType(payload = {}, mediaType) {
     const items = Array.isArray(payload?.mediaItems) ? payload.mediaItems : [];
     return items.some(m => m && (m.url || m.filePath) && (m.mediaType === mediaType || m.type === mediaType));
+}
+
+/** Does Reuse on this card offer "Apply to App"? Not for a retired Flow (MPI-1012): it
+ *  reopens as a model in the prompt box, so there is no App to apply to. */
+export function isFlowCardItem(item) {
+    const id = item?.flowId ?? item?.appId;
+    return !!id && !retiredFlow(id);
 }
 
 export function itemHasReusablePrompt(item = {}) {
@@ -371,6 +389,11 @@ function _clampReusedTier(modelUpdates, model) {
 }
 
 export function buildPromptReuseSettings(payload = {}, model = {}) {
+    // A card from a retired Flow (MPI-1012) carries no control snapshot — a Flow run has no
+    // model to snapshot against — so its saved fields ARE its settings, all perModel.
+    if (payload.retiredControls) {
+        return { sharedUpdates: {}, opUpdates: {}, modelUpdates: { ...payload.retiredControls } };
+    }
     // Fast path: items generated after MPI-115 carry the exact PromptBox control
     // state snapshotted at gen time. Replay it directly — no reverse-derivation.
     // Requires shared/op (the full snapshot); migrated old sidecars carry only

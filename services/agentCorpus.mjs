@@ -124,12 +124,16 @@ export function guideEntries(dir = GUIDES_DIR) {
 /**
  * `{ [modelId]: guideIds[] }` for every Vision model: the guide of the recipe the enhancer
  * resolves for it (`resolveRecipe`), when that guide exists. One readdir for the lot.
+ *
+ * A model with NO recipe — the audio models (MPI-1012), whose every op is enhance-exempt —
+ * is guided by `docs/agent/models/<type>.md` instead: the agent still writes their prompt,
+ * and there is no enhancer grammar to borrow one from.
  */
 export function guideIdsByModel(dir = GUIDES_DIR) {
     const have = new Set(guideRecipeIds(dir));
     return Object.fromEntries(MODELS.map((m) => {
         const recipe = resolveRecipe(m.enhanceRecipe ?? m.type);
-        const id = recipe?.modelId;
+        const id = recipe?.modelId ?? m.type;
         return [m.id, id && have.has(id) ? [`guide:${id}`, ...subSkillTopics(id, dir).map((t) => `guide:${id}/${t}`)] : []];
     }));
 }

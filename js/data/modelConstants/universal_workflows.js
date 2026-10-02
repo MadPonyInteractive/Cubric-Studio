@@ -128,12 +128,6 @@ export const UNIVERSAL_WORKFLOWS = {
     flowVoiceChanger: {
         workflow: 'flow_voice_changer.json',
     },
-    // MPI-607 — Chatterbox TTS, optionally chained into VC. Twelve nodes: two TTS
-    // nodes (English and multilingual) behind Input_Is_Multilingual, then a second
-    // MpiIfElse that routes through FL_ChatterboxVC only when a target voice is given.
-    flowChatterBox: {
-        workflow: 'flow_chatter_box.json',
-    },
     // MPI-663 — Stems. Seven nodes, no model loader: an MpiLoadAudio path into
     // AudioSeparation (Hybrid Demucs v3), out through four SaveAudioAdvanced saves.
     flowStems: {
@@ -145,14 +139,8 @@ export const UNIVERSAL_WORKFLOWS = {
     flowTextToMusic: {
         workflow: 'flow_minimax_music.json',
     },
-    // MPI-694 — Stable Audio 3. 17 nodes: two checkpoints behind a lazy gate, one
-    // T5Gemma encoder shared by both, and a plain decode straight into MpiClearVram.
-    // Was 19 — `VAEDecodeAudioTiled` and its `MpiIfElse` came out with the Low VRAM
-    // toggle (Fabio, 2026-09-07), because chunked decode saves nothing on peak here
-    // and costs +15s at 60s. Song keeps its pair. No reprompter — see the FlowDef.
-    flowSoundAndMusic: {
-        workflow: 'flow_stable_audio.json',
-    },
+    // `flowChatterBox` and `flowSoundAndMusic` left in MPI-1012: Text to Speech and Sound
+    // & Music are model ops now (`tts` on chatterbox, `t2a` on stable-audio-3, models.js).
     // MPI-504 — Krea2 t2i: the sheet alone since MPI-997.
     flowCharacterSheet: {
         workflow: 'flow_character_sheet.json',

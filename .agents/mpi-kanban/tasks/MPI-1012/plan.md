@@ -112,12 +112,47 @@ automated checks).
 ## Current State
 
 2026-10-02 (session b98e08bd): card created, both sweeps done (`research.md`), plan written.
-**P1 DONE in code** (headers + tile flags/badges, `tests/media-head-colours.test.cjs`, npm test
-green); Fabio's look pending (the Flow Library's audio header now sits in Vinyl green right
-above the green Ready chip — the old comment chose amber to avoid that; his call at the look).
-**Next: P2 + P3** (audio model media type, then the swap in ONE commit). Start by running
-`/mpi-add-model` (it enforces `docs/playbooks/add-model/`) and reading `research.md`.
+**P1 DONE** (8d543e4d6, CI green); Fabio's look pending (the Flow Library's audio header now
+sits in Vinyl green right above the green Ready chip; his call at the look).
+
+2026-10-02 (session 3fabe4ef): **P2 + P3 DONE in code, ONE commit** (see Plan Drift for what
+P5 work came forward). Unit suite green; release:check red only on the known 1.6.x archival
+notes. What landed: `getLastSelectedMediaType`/`MODEL_MEDIA_TYPES` (modelHelpers) for the
+three image|video coercions; picker + Model Library audio section/filter/pill; `_mediaTypeOf`
+passes audio (no shared bucket by design); ops `t2a`/`tts` + 3 perModel controls
+(`audioCategory` radio, `audioLength` slider 1-190, `ttsLanguage` dropdown emitting the
+language AND `Input_Is_Multilingual` via `ttsLanguageParams`); option tables in
+commandRegistry (`AUDIO_CATEGORIES`, `TTS_LANGUAGES`, `AUDIO_LENGTH`); ModelDefs
+`stable-audio-3` + `chatterbox` (Flow dep ids verbatim + `ComfyUI-MpiNodes`); graphs renamed
+`stable_audio_3.json` / `chatterbox_tts.json` (runtime + raw, plain mv, no graph edit); webps
+renamed, hero mp4s deleted; FlowDefs + universal_workflows out; tombstones in both registries;
+licence key `stable-audio-3` (same descriptor); `js/data/retiredFlows.js` = the ONE alias table
+(Reuse via promptReuse.js, routines via validateRoutine, connector generate/quote reroute,
+openFlow/buildFlow refusal names the model). New test `tests/audio-models.test.cjs`.
+**Next: commit P2+P3 (private index; deletes need `--force-remove`), check CI, then P4**
+(prompt box: `+` opens the media picker on the voice library for `tts`, record, op dimming
+for a missing voice) and the rest of P5 (Cosmo's voice-pick card for a MODEL slot).
 
 ## Plan Drift
 
-(none yet)
+- 2026-10-02 (P3): **part of P5 came forward**, because the suite requires it — every shipped
+  model must resolve a guide (`agent-corpus`), and every connector named param must be on the
+  agent tool (`agent-duration`). Landed with P3: `docs/agent/models/stable-audio-3.md` +
+  `chatterbox.md`; a model with NO recipe (all ops enhance-exempt) is guided by its `type`
+  (`agentCorpus.guideIdsByModel`, both corpus tests + the recipe audit updated to match);
+  named params `category` / `language` / `duration` (1-190 on t2a) in resolveNamedParams,
+  namedParamsFor, the connector, routines, the agent + MCP tool schemas (tool budget raised
+  18,490 -> 18,673 with the reason in the test); library voices on a MODEL slot (CommandDef
+  slot `voiceLibrary: 'character'`; `resolveVoices`/`slotVoices` take an op key; listed on
+  the op's media row); MCP treats audio as slow; `docs/agent/flows.md` Spoken lines points at
+  the model; Cosmo's speech clip keys on any voice-library op.
+- **Still P5:** Cosmo's voice-pick CARD ("Pick from the voice library / Use <voice>") fires for
+  Flows only. For a model it needs a renderer capability that does not exist (open the prompt
+  box on the model, line filled, media picker on the voice library) — build it with P4's picker.
+  Until then a library voice on `tts` runs as sent.
+- `derived[]` has no FlowDef user any more (Chatterbox's was the only one). Kept as a Flow
+  capability; `tests/flow-derived-fields.test.cjs` rebuilt on a fixture of the old shape.
+- Not ranked in `modelPriority.js`: each audio task has one candidate ("a list of one ranks
+  nothing", 03-model-registry.md). `progressStages.js`: no entry (the Flows had none); count
+  the bars live at P8.
+- Connector reroute leaves a body with BOTH flowId and modelId alone, so it is still refused.

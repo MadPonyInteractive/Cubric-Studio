@@ -24,7 +24,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { RECIPE_REGISTRY } = require('../js/data/recipes/registry.js');
-const { COMMANDS } = require('../js/data/commandRegistry.js');
+const { COMMANDS, opAllowsEnhance } = require('../js/data/commandRegistry.js');
 const { MODELS } = require('../js/data/modelConstants/models.js');
 
 // Patch BEFORE the corpus module is loaded so nothing eager escapes the count.
@@ -131,17 +131,25 @@ const { guideIdsByModel, guideEntries, GUIDES_DIR, SKILL_DIRS, isVisionSkill } =
 function testEveryShippedModelHasAGuide() {
     // The loop will not send a model's first prompt before its guide is read, so a model
     // with no guide is a model the agent writes for blind. One guide per recipe in use.
+    // A model the enhancer never touches (every op enhance-exempt: the audio models,
+    // MPI-1012) has no recipe, and is guided by its `type` instead.
     const byModel = guideIdsByModel();
     for (const m of MODELS) {
         const recipe = resolveRecipe(m.enhanceRecipe ?? m.type);
-        assert.ok(recipe, `${m.id} resolves to no recipe`);
-        assert.strictEqual(byModel[m.id][0], `guide:${recipe.modelId}`,
-            `${m.id} (recipe ${recipe.modelId}) needs docs/agent/models/${recipe.modelId}.md`);
+        const neverEnhanced = m.supportedOps.every((op) => !opAllowsEnhance(op));
+        assert.ok(recipe || neverEnhanced, `${m.id} resolves to no recipe`);
+        const key = recipe?.modelId ?? m.type;
+        assert.strictEqual(byModel[m.id][0], `guide:${key}`,
+            `${m.id} (${recipe ? 'recipe' : 'type'} ${key}) needs docs/agent/models/${key}.md`);
     }
 }
 
 function testEveryGuideIsARealGuide() {
-    const recipeIds = new Set(RECIPE_REGISTRY.map((r) => r.modelId));
+    // A guide is named after its recipe, or after the `type` of a model that has none.
+    const recipeIds = new Set([
+        ...RECIPE_REGISTRY.map((r) => r.modelId),
+        ...MODELS.filter((m) => !resolveRecipe(m.enhanceRecipe ?? m.type)).map((m) => m.type),
+    ]);
     const guides = listCorpus().filter((e) => e.kind === 'guide');
     assert.ok(guides.length > 0, 'no guide in the corpus');
     for (const g of guides) {

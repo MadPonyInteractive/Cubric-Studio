@@ -1,10 +1,11 @@
 /**
  * modelHelpers.js — Model resolution utilities.
  *
- * Selection is partitioned by mediaType (image | video) in
+ * Selection is partitioned by mediaType (image | video | audio) in
  * `state.s_selectedModelIdByType`. Workspaces read/write only the slot for
  * their own mediaType — picking a video model never coerces the image slot
- * and vice versa.
+ * and vice versa. Audio joined in MPI-1012 (Stable Audio 3, Chatterbox); its
+ * slot is simply absent until the first audio pick.
  */
 
 import { state } from '../state.js';
@@ -15,7 +16,7 @@ import { canonicalModelId } from '../data/modelConstants/resolveModelDeps.js';
  * Read the persisted model id for a given mediaType. Legacy split ids
  * (wan-22-t2v / wan-22-i2v) canonicalize to the merged wan-22 so a selection
  * persisted in the split era still resolves to a real model. (MPI-122)
- * @param {'image'|'video'} mediaType
+ * @param {'image'|'video'|'audio'} mediaType
  * @returns {string|null}
  */
 export function getSelectedModelId(mediaType) {
@@ -34,7 +35,7 @@ export function getSelectedModelId(mediaType) {
  * "preferred default mode," so they must not clobber the marker that Gallery
  * relies on for restore.
  *
- * @param {'image'|'video'} mediaType
+ * @param {'image'|'video'|'audio'} mediaType
  * @param {string|null} modelId
  * @param {{ markAsLast?: boolean }} [opts]
  */
@@ -47,6 +48,21 @@ export function setSelectedModelId(mediaType, modelId, opts = {}) {
     if (markAsLast && state.s_lastSelectedMediaType !== mediaType) {
         state.s_lastSelectedMediaType = mediaType;
     }
+}
+
+/** Every media type a model can make — the slots of `s_selectedModelIdByType`. */
+export const MODEL_MEDIA_TYPES = Object.freeze(['image', 'video', 'audio']);
+
+/**
+ * The media type the user last picked a model for, coerced to a real one. A
+ * hand-edited or pre-audio value reads as 'image', the old default. ONE reader for
+ * the Gallery mount, its install watcher and the agent's pinned model, which each
+ * coerced to video|image on their own and would have dropped an audio pick.
+ * @returns {'image'|'video'|'audio'}
+ */
+export function getLastSelectedMediaType() {
+    const t = state.s_lastSelectedMediaType;
+    return MODEL_MEDIA_TYPES.includes(t) ? t : 'image';
 }
 
 /**
@@ -84,7 +100,7 @@ export function setSelectedOp(modelId, op) {
  *
  * Caller is responsible for any write-back — this helper only reads.
  *
- * @param {'image'|'video'} mediaType
+ * @param {'image'|'video'|'audio'} mediaType
  * @returns {{ model: Object|null, modelId: string|null, installedModels: Object[] }}
  */
 export function resolveActiveModel(mediaType) {

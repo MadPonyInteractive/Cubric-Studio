@@ -64,7 +64,7 @@ import { extractFilenameFromPath, extractAbsPath, resolveMediaUrl, downloadMedia
 import { describeItem } from '../../../utils/describeAction.js';
 import { resolveActiveModel, setSelectedModelId, getSelectedOp, setSelectedOp } from '../../../utils/modelHelpers.js';
 import { updateGroup, addGroup, removeGroup, applyPromptReuseSettings, removeFromStack, stepStackVersions } from '../../../services/projectService.js';
-import { buildPromptReuseSettings, resolvePromptReuseMediaItems, payloadHasReusableImages, payloadHasReusableVideos, payloadHasReusableAudio } from '../../../utils/promptReuse.js';
+import { buildPromptReuseSettings, resolvePromptReuseMediaItems, payloadHasReusableImages, payloadHasReusableVideos, payloadHasReusableAudio, isFlowCardItem } from '../../../utils/promptReuse.js';
 import {
     promoteHistoryEntry,
     appendToHistory,
@@ -2405,7 +2405,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                     includes: options,
                     showSource: false,
                     // App cards (MPI-263) split Apply into "to Prompt Box" vs "to App".
-                    isFlowCard: !!(payload.item?.flowId ?? payload.item?.appId),
+                    isFlowCard: isFlowCardItem(payload.item),
                     // Single-source dialog (no Original/Current toggle) → the
                     // dialog defaults source to 'original'; gate each Use … toggle on
                     // whether THIS payload carries that input (MPI-212/227).

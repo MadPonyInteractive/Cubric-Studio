@@ -34,14 +34,17 @@ import {
 import {
     getCommandDefault, modelShowsStyleRack, modelShowsBatch, modelShowsRatio,
     getCommandMediaInputs, filterMediaInputsForModel, getCommandComponents,
+    AUDIO_CATEGORIES, AUDIO_LENGTH, TTS_LANGUAGES, audioCategoryValue, ttsLanguageValue, ttsLanguageParams,
 } from './commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from './promptControlDefaults.js';
 import { MODELS } from './modelConstants/models.js';
 import { canonicalModelId } from './modelConstants/resolveModelDeps.js';
 import { getExtension, isImageFile, isVideoFile, isAudioFile } from '../utils/file.js';
 
+// Twin of PromptBoxControls' `_mediaTypeOf`: audio has no shared bucket (MPI-1012).
 function _mediaTypeOf(model) {
-    return model?.mediaType === 'video' ? 'video' : 'image';
+    const m = model?.mediaType;
+    return m === 'video' || m === 'audio' ? m : 'image';
 }
 
 function _err(code, message) {
@@ -244,9 +247,18 @@ export function namedParamsFor(model, operation) {
         // Seconds, on a clip op only (MPI-820). Advertised as a RANGE, not a list: the
         // slider is 1-30 and H3 snaps whatever it is given onto its own frame grid, so a
         // list of legal values would be a different list per model type and wrong anyway.
-        duration: modelShowsDuration(model, operation)
-            ? { min: DURATION_MIN, max: DURATION_MAX }
-            : null,
+        // Sound & Music takes its length as `duration` too, on its own 1-190 range (MPI-1012).
+        duration: getCommandComponents(operation).includes('audioLength')
+            ? { min: AUDIO_LENGTH.min, max: AUDIO_LENGTH.max }
+            : modelShowsDuration(model, operation)
+                ? { min: DURATION_MIN, max: DURATION_MAX }
+                : null,
+        // The audio models' pickers (MPI-1012), only where the op has them: every other
+        // op's answer keeps exactly its old shape.
+        ...(getCommandComponents(operation).includes('audioCategory')
+            ? { categories: AUDIO_CATEGORIES.map(c => c.v) } : {}),
+        ...(getCommandComponents(operation).includes('ttsLanguage')
+            ? { languages: TTS_LANGUAGES.map(l => l.label) } : {}),
         // How far the run may move off the picture it was given (MPI-817): 0 keeps it, 1
         // repaints it. With its default, so "a bit more" has somewhere to start from.
         denoise: modelShowsDenoise(model, operation)
@@ -404,7 +416,7 @@ export function isValidSeed(value) {
  *            provenance:Object<string,{from:'asked'|'defaulted', value:*}>}|{ok:false, code:string, message:string}}
  */
 export function resolveNamedParams(project, model, operation, named = {}) {
-    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch } = named;
+    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch, category, language } = named;
     const injectionParams = {};
     const modelName = model?.name || model?.id || 'this model';
     const provenance = {};
@@ -495,7 +507,21 @@ export function resolveNamedParams(project, model, operation, named = {}) {
     // slider said 5 the whole time. Same shape as turbo: explicit wins, else the project's
     // saved value, else the three-layer default.
     let duration = null;
-    if (modelShowsDuration(model, operation)) {
+    const components = getCommandComponents(operation);
+    if (components.includes('audioLength')) {
+        // Sound & Music's length (MPI-1012). Asked for as `duration`, the word anyone uses,
+        // but it is the audioLength control: 1..190 s, per model, never the video slider's
+        // shared 1..30. Exact, so there is nothing to report back beyond the ask.
+        if (durationWanted !== undefined && !(typeof durationWanted === 'number' && Number.isFinite(durationWanted)
+            && durationWanted >= AUDIO_LENGTH.min && durationWanted <= AUDIO_LENGTH.max)) {
+            return _err('INVALID_DURATION', `duration must be a number of seconds between ${AUDIO_LENGTH.min} and ${AUDIO_LENGTH.max}.`);
+        }
+        const saved = getModelSettings(project || {}, model?.id).audioLength;
+        injectionParams.Input_Duration = Math.round(durationWanted ?? (typeof saved === 'number'
+            ? saved
+            : resolveThreeLayerDefault('audioLength', model, operation, PROMPT_CONTROL_DEFAULTS.audioLength)));
+        _from('duration', durationWanted !== undefined, injectionParams.Input_Duration);
+    } else if (modelShowsDuration(model, operation)) {
         if (durationWanted !== undefined) {
             if (!isValidDuration(durationWanted)) {
                 return _err('INVALID_DURATION', `duration must be a number of seconds between ${DURATION_MIN} and ${DURATION_MAX}.`);
@@ -528,6 +554,34 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         _from('denoise', denoiseWanted !== undefined, injectionParams.Denoise);
     } else if (denoiseWanted !== undefined) {
         return _err('INVALID_DENOISE', `"${operation}" has no denoise: it does not start from a picture it keeps.`);
+    }
+
+    // The audio models' two pickers (MPI-1012). Same ladder as turbo: asked, else the
+    // model's saved value, else its default. Without them an agent run kept the graph's
+    // BAKED values — Chatterbox's bake is the multilingual arm reading English.
+    if (components.includes('audioCategory')) {
+        const asked = category !== undefined ? audioCategoryValue(category) : null;
+        if (category !== undefined && !asked) {
+            return _err('INVALID_CATEGORY', `category must be one of: ${AUDIO_CATEGORIES.map(c => c.v).join(', ')}.`);
+        }
+        const saved = audioCategoryValue(getModelSettings(project || {}, model?.id).audioCategory);
+        injectionParams.Input_Category = asked ?? saved
+            ?? resolveThreeLayerDefault('audioCategory', model, operation, PROMPT_CONTROL_DEFAULTS.audioCategory);
+        _from('category', category !== undefined, injectionParams.Input_Category);
+    } else if (category !== undefined) {
+        return _err('INVALID_CATEGORY', `${modelName} has no category on "${operation}".`);
+    }
+    if (components.includes('ttsLanguage')) {
+        const asked = language !== undefined ? ttsLanguageValue(language) : null;
+        if (language !== undefined && !asked) {
+            return _err('INVALID_LANGUAGE', `language must be one of: ${TTS_LANGUAGES.map(l => l.label).join(', ')}.`);
+        }
+        const saved = ttsLanguageValue(getModelSettings(project || {}, model?.id).ttsLanguage);
+        Object.assign(injectionParams, ttsLanguageParams(asked ?? saved
+            ?? resolveThreeLayerDefault('ttsLanguage', model, operation, PROMPT_CONTROL_DEFAULTS.ttsLanguage)));
+        _from('language', language !== undefined, injectionParams['Input_Language.language']);
+    } else if (language !== undefined) {
+        return _err('INVALID_LANGUAGE', `${modelName} has no language on "${operation}".`);
     }
 
     return {

@@ -571,11 +571,12 @@ test('the Voice Changer Flow carries its two audio inputs and the audio capture 
 // so `input_positive` had to be PRESENT where the flow above requires its absence, with
 // its negative baked on DramaBoxTextEncode rather than titled. It left the app as a Flow
 // package (MPI-781), taking its graph, so those assertions moved with it:
-// c:\AI\Mpi\Cubric-Flows/checks.test.cjs. `flow_chatter_box.json` below still holds the
+// c:\AI\Mpi\Cubric-Flows/checks.test.cjs. `chatterbox_tts.json` below still holds the
 // prompt-present side of the pair.
 
-test('the Text to Speech Flow carries both TTS arms (MPI-607)', () => {
-    const file = 'flow_chatter_box.json';
+// Text to Speech is the Chatterbox MODEL since MPI-1012; the graph was renamed, not changed.
+test('the Chatterbox graph carries both TTS arms (MPI-607)', () => {
+    const file = 'chatterbox_tts.json';
     const have = titlesOf(file);
     // NOT `input_audio_2`. That node fed the VC arm, which was stripped on
     // 2026-08-28 — the op maps one audio role now, so nothing can fill it. Asserting
@@ -609,26 +610,27 @@ test('the Text to Speech Flow carries both TTS arms (MPI-607)', () => {
     assert.ok(Object.values(graph).some(n => n?.class_type === 'FL_ChatterboxMultilingualTTS'),
         `${file} must keep the multilingual TTS arm`);
 
-    // The dotted key the FlowDef emits must address a real node AND a real widget. The
-    // MPI-359 sweep further down reads PromptBoxControls.js only, so it does NOT cover a
-    // FLOW's declared fields — without this assertion a renamed widget here is a dead
-    // control that no test notices.
-    const flows = fs.readFileSync(
-        path.join(__dirname, '..', 'js/data/flowsRegistry.js'), 'utf8');
-    const dotted = [...flows.matchAll(/id: '(Input_\w+)\.(\w+)'/g)];
-    assert.ok(dotted.length >= 1, 'no dotted flow field found — flowsRegistry has drifted');
-    for (const [, title, widget] of dotted) {
+    // Every key the `ttsLanguage` control emits — the dotted language key AND the derived
+    // arm — must address a real node (and the dotted one a real widget). The MPI-359 sweep
+    // further down reads only the literal keys in PromptBoxControls.js, and this control
+    // builds its keys in commandRegistry's `ttsLanguageParams`, so without this assertion a
+    // renamed widget here is a dead control that no test notices.
+    const { ttsLanguageParams, TTS_LANGUAGES } = require('../js/data/commandRegistry.js');
+    for (const key of Object.keys(ttsLanguageParams('French'))) {
+        const [title, widget] = key.split('.');
         const hit = byTitle(title.toLowerCase());
-        if (!hit) continue;                       // a dotted key for some other flow's graph
-        assert.ok(widget in hit[1].inputs,
-            `${file}: node "${title}" has no widget "${widget}" — the declared field is dead`);
+        assert.ok(hit, `${file} has no node titled "${title}"`);
+        if (widget) {
+            assert.ok(widget in hit[1].inputs,
+                `${file}: node "${title}" has no widget "${widget}" — the control is dead`);
+        }
     }
 
-    // The baked language must be one the FlowDef actually offers, or the default sends a
-    // value ComfyUI rejects with "Value not in list".
+    // The baked language must be one the control offers, or the default sends a value
+    // ComfyUI rejects with "Value not in list".
     const lang = byTitle('input_language')[1].inputs.language;
-    assert.ok(flows.includes(`v: '${lang}'`),
-        `${file}: baked language ${JSON.stringify(lang)} is not among the FlowDef's options`);
+    assert.ok(TTS_LANGUAGES.some((l) => l.v === lang),
+        `${file}: baked language ${JSON.stringify(lang)} is not among the control's options`);
 });
 
 test('the Stems Flow carries its audio input and all FOUR numbered captures (MPI-663)', () => {

@@ -90,7 +90,7 @@ test('Flow Library filters, search and count compose, persist, and tear down', a
       tag('type', 'enhance').click();
       out.clearedAll = tiles().length;
 
-      // (3) Media = Audio + Type = Create → the five audio creators. The earlier add()
+      // (3) Media = Audio + Type = Create → the audio creators. The earlier add()
       // on a payload copy must not have smuggled Create in (see step 1).
       tag('media', 'audio').click();
       out.audioOnly = tiles().length;
@@ -165,8 +165,10 @@ test('Flow Library filters, search and count compose, persist, and tear down', a
     // returns five: the four shipped audio Flows, plus the advert for the one you buy.
     // That it answers Media=Audio + Type=Create at all is the behaviour being pinned —
     // an advert that ignored the filters would sit in a grid it does not belong to.
-    expect(r.audioCreate, 'Media=Audio + Type=Create').toHaveLength(5);
-    for (const title of ['Text to Speech', 'Song', 'Sound & Music', 'Stems']) {
+    // MPI-1012: Text to Speech and Sound & Music left for the prompt box as models, so the
+    // creators are Song, Stems and the advert.
+    expect(r.audioCreate, 'Media=Audio + Type=Create').toHaveLength(3);
+    for (const title of ['Song', 'Stems']) {
       expect(r.audioCreate.some(t => t.includes(title)), title).toBe(true);
     }
     expect(r.audioCreate.some(t => t.includes('DramaBox') && t.includes('Get it')),
@@ -178,7 +180,7 @@ test('Flow Library filters, search and count compose, persist, and tear down', a
     expect(r.subFiltered, 'the count covers ALL flows, never the filtered view').toBe(r.subBefore);
 
     expect(r.voice.some(t => t.includes('Voice Changer'))).toBe(true);
-    expect(r.voice.some(t => t.includes('Text to Speech'))).toBe(true);
+    expect(r.voice.some(t => t.includes('Text to Speech')), 'Text to Speech is a model now (MPI-1012)').toBe(false);
     expect(r.voicePayload).toEqual({ key: 'search', query: 'voice' });
 
     expect(r.noMatch).toEqual({ tiles: 0, empty: 'No flows match — clear filters or search.' });

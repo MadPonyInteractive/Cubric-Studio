@@ -62,22 +62,22 @@ const imp = (p) => import(pathToFileURL(path.resolve(p)).href);
         }
     }
 
-    // (4) MPI-684 — voice-changer must be able to free its OWN weights, and the node pack
-    //     it genuinely shares must survive. This assertion used to read "voice-changer's
-    //     3 deps are ALL shared with chatter-box, so its uninstall must free NOTHING",
-    //     which pinned a BUG as expected behaviour: chatter-box declared the VC weight
-    //     pair it never loads (`chatterbox_vc/` is reached only by `load_vc_model()`,
-    //     called solely from `FL_ChatterboxVCNode`). Because the guard walks DECLARED
-    //     flows, that made voice-changer a strict subset of chatter-box and its Uninstall
-    //     a permanent no-op — no path existed to reclaim the 1.0GB. Re-adding those ids
-    //     to chatter-box fails this test, which is the point.
+    // (4) MPI-684 — voice-changer must be able to free its OWN weights. Text to Speech once
+    //     declared the VC weight pair it never loads (`chatterbox_vc/` is reached only by
+    //     `load_vc_model()`, called solely from `FL_ChatterboxVCNode`), which made
+    //     voice-changer a strict subset of it and its Uninstall a permanent no-op.
+    //     MPI-1012 made Text to Speech the `chatterbox` MODEL, so the one thing the two
+    //     genuinely share — the node pack — is now protected by the MODEL side of the keep
+    //     set, not by a sibling flow. Both halves are pinned: the model declares the pack
+    //     and never the VC pair, and voice-changer's own uninstall frees the VC pair.
+    const { MODELS } = await imp('js/data/modelConstants/models.js');
+    const ttsModelDeps = MODELS.find(m => m.id === 'chatterbox')?.dependencies || [];
+    assert.ok(ttsModelDeps.includes('ComfyUI_Fill-ChatterBox'),
+        'the chatterbox model must declare the node pack, or voice-changer\'s uninstall strands it');
     const vc = ownDeps('voice-changer');
-    const shared = vc.filter(id => ownDeps('chatter-box').includes(id));
-    assert.deepStrictEqual(shared, ['ComfyUI_Fill-ChatterBox'],
-        'only the node pack is genuinely shared — a WEIGHT here means chatter-box has re-declared what it cannot load');
+    assert.deepStrictEqual(vc.filter(id => ttsModelDeps.includes(id)), ['ComfyUI_Fill-ChatterBox'],
+        'only the node pack is genuinely shared — a WEIGHT here means the chatterbox model has re-declared what it cannot load');
     const afterVc = dm._flowRequiredDepIds(reg.flowDepKey('voice-changer'));
-    assert.ok(afterVc.has('ComfyUI_Fill-ChatterBox'),
-        'the node pack is chatter-box\'s too — it must survive voice-changer\'s uninstall');
     for (const id of ['chatterbox-vc-s3gen', 'chatterbox-vc-conds']) {
         assert.ok(!afterVc.has(id),
             `${id} is voice-changer's alone — its own uninstall must be able to free it`);

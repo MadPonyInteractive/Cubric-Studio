@@ -8,6 +8,10 @@
  * The renderer half is here: the catalogue lists each voice slot's voices, and a
  * `{ role, voice }` ref becomes the same placed WAV the picker makes (`voiceWavFile`). The loop's
  * card is in agent-loop.test.cjs (MPI-1004 block).
+ *
+ * MPI-1012 made Text to Speech the Chatterbox MODEL, so its voice slot is now a model OP's
+ * (`tts`, `audio1`, the CommandDef slot's `voiceLibrary`) and the resolver takes the op
+ * key where it took the FlowDef. Voice Changer keeps the Flow half of the same contract.
  */
 
 const assert = require('node:assert/strict');
@@ -63,7 +67,7 @@ async function withApp(fn) {
 }
 
 test('the catalogue lists a voice slot\'s voices: one row per performer, its variations as ids', () => {
-    const tts = slotVoices(getFlowById('chatter-box'), LIB);
+    const tts = slotVoices('tts', LIB);
     assert.deepEqual(Object.keys(tts), ['audio1']);
     assert.equal(tts.audio1.length, new Set(MANIFEST.voices.map((v) => v.section)).size, 'a section is a performer');
     const old = tts.audio1.find((s) => s.name === 'Elderly Male');
@@ -75,13 +79,14 @@ test('the catalogue lists a voice slot\'s voices: one row per performer, its var
 test('only the slot that declares the library lists it: Voice Changer\'s own performance never does', () => {
     assert.deepEqual(Object.keys(slotVoices(getFlowById('voice-changer'), LIB)), ['audio2']);
     assert.equal(slotVoices(getFlowById('minimax-music'), LIB), null);
-    assert.equal(slotVoices(getFlowById('chatter-box'), null), null, 'no library loaded: no list, never a throw');
+    assert.equal(slotVoices('t2a', LIB), null, 'an op with no voice slot lists none');
+    assert.equal(slotVoices('tts', null), null, 'no library loaded: no list, never a throw');
 });
 
 test('a voice ref becomes the placed WAV the picker makes, beside the refs it leaves alone', async () => {
     await withApp(async (seen) => {
         const other = { role: 'audio2', url: '/project-file?path=x.wav' };
-        const r = await resolveVoices(getFlowById('chatter-box'), [{ role: 'audio1', voice: 'elderly_male_1' }, other], PROJECT);
+        const r = await resolveVoices('tts', [{ role: 'audio1', voice: 'elderly_male_1' }, other], PROJECT, 'Chatterbox');
         assert.equal(r.ok, true, r.message);
         assert.deepEqual(r.media, [{ role: 'audio1', url: PLACED }, other]);
         assert.ok(seen.some((s) => s.url === `/voices/${LIB.getVoice('elderly_male_1').sample}`), 'the voice\'s own sample');
@@ -95,7 +100,7 @@ test('a voice ref becomes the placed WAV the picker makes, beside the refs it le
 test('no voice ref: nothing fetched, the media handed back as it came', async () => {
     await withApp(async (seen) => {
         const media = [{ role: 'audio1', url: '/project-file?path=x.wav' }];
-        const r = await resolveVoices(getFlowById('chatter-box'), media, PROJECT);
+        const r = await resolveVoices('tts', media, PROJECT, 'Chatterbox');
         assert.equal(r.media, media);
         assert.equal(seen.length, 0);
     });
@@ -103,7 +108,7 @@ test('no voice ref: nothing fetched, the media handed back as it came', async ()
 
 test('an id the library lacks, or a slot with no library, is refused by name', async () => {
     await withApp(async () => {
-        const bad = await resolveVoices(getFlowById('chatter-box'), [{ role: 'audio1', voice: 'no_such_voice' }], PROJECT);
+        const bad = await resolveVoices('tts', [{ role: 'audio1', voice: 'no_such_voice' }], PROJECT, 'Chatterbox');
         assert.deepEqual([bad.ok, bad.code], [false, 'INVALID_VOICE']);
         assert.match(bad.message, /no_such_voice/);
         const own = await resolveVoices(getFlowById('voice-changer'), [{ role: 'audio1', voice: 'elderly_male_1' }], PROJECT);
@@ -117,12 +122,12 @@ test('the open path resolves it too: the Flow opens with the voice in its slot',
     const off = Events.on('flow:open', (p) => opened.push(p));
     try {
         await withApp(() => openFlow('job-open-voice', {
-            flowId: 'chatter-box', follow: true, fields: { positive: 'The storm is coming.' },
-            media: [{ role: 'audio1', voice: 'elderly_male_1' }],
+            flowId: 'voice-changer', follow: true,
+            media: [{ role: 'audio2', voice: 'elderly_male_1' }],
         }));
     } finally {
         off();
     }
     assert.equal(opened.length, 1);
-    assert.deepEqual(state.s_flowInputs?.['chatter-box']?.mediaItems?.map((m) => [m.role, m.url]), [['audio1', PLACED]]);
+    assert.deepEqual(state.s_flowInputs?.['voice-changer']?.mediaItems?.map((m) => [m.role, m.url]), [['audio2', PLACED]]);
 });

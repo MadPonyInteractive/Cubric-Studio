@@ -85,9 +85,9 @@ const I2V_HELP = {
  *                                              share a verb across models (edit/krea2Edit/qwenEdit) share a
  *                                              `short` and therefore a strip position. Only ops the strip can
  *                                              render carry one — universal/tool ops live on the History rail.
- * @property {string}          [filePrefix]   - Filename prefix for saved output (`flowTTS_001.wav`). Defaults to the
+ * @property {string}          [filePrefix]   - Filename prefix for saved output (`flowSong_001.wav`). Defaults to the
  *                                              op KEY, which is right for every op the user can name — but a Flow's
- *                                              key is an internal id (`flowChatterBox`) while the Library shows its
+ *                                              key is an internal id (`flowTextToMusic`) while the Library shows its
  *                                              title ("Text to Speech"), so the card read as a Flow that does not
  *                                              exist. Set one wherever the key does not read as the Flow's title.
  *                                              NOT a rename of the key: `operation` is stamped in every sidecar and
@@ -98,7 +98,7 @@ const I2V_HELP = {
  *                                              the teaching form. Omit it and `getOpHelp` synthesises a guide from
  *                                              `label` + `info` rather than opening an empty popup.
  * @property {string}          [icon]         - MpiIcon registry key for op selectors (model-manager operation toggles). Optional.
- * @property {'image'|'video'} mediaType      - Which group type this applies to
+ * @property {'image'|'video'|'audio'} mediaType - Which group type this applies to (the OUTPUT type)
  * @property {number}          requiresImages - Min number of input images needed (0 = none)
  * @property {number}          [requiresVideo]- Min number of input videos needed (0 = none)
  * @property {boolean}         [requiresMask] - Requires an active mask from the Mask Tool
@@ -142,8 +142,14 @@ const I2V_HELP = {
  *   required?:boolean,
  *   ordinal?:boolean,
  *   requiresCapability?:string,
- *   tag?:string
+ *   tag?:string,
+ *   voiceLibrary?:'character'|'narration'
  * }>}                         [mediaInputs] - Named media slots injected by Comfy node title.
+ *                                              `voiceLibrary` (an audio slot, MPI-1012) offers the
+ *                                              shipped voice library on that slot, previewing that
+ *                                              route — the model-op twin of a FlowDef media group's
+ *                                              `voiceLibrary`. The prompt box's picker and the
+ *                                              agent's `{ role, voice }` both read it.
  *                                              `requiresCapability` hides the slot on any model
  *                                              whose `capabilities` lacks that flag — how one
  *                                              shared op offers a model-specific extra input.
@@ -961,6 +967,73 @@ export const commands = {
         components: [],
     },
 
+    // ── Audio — Model Operations (MPI-1012) ───────────────────────────────────
+    // Sound & Music and Text to Speech were Flows until 2026-10-02 (`flowSoundAndMusic`,
+    // `flowChatterBox`, now tombstones in operationRegistry.js). No picture in and a
+    // control or two each, so they became prompt-box ops on two audio MODELS: Stable
+    // Audio 3 and Chatterbox. They run the same graphs, renamed. Anything still naming
+    // the old Flows resolves here through `js/data/retiredFlows.js`.
+    //
+    // Both are ENHANCE_EXEMPT. Sound & Music shipped with no enhancer on purpose (every
+    // approved clip was made without one, and Stability's reprompter is 4.88GB), and a
+    // line of speech must reach the voice exactly as it was typed.
+    //
+    // t2a is ONE OP ON TWO CHECKPOINTS. `audioCategory` routes Music/Instrument to
+    // `stable_audio_3_medium` and SFX/One-shot to `stable_audio_3_small_sfx` INSIDE the
+    // graph, through a lazy `MpiIfElse`, so the unpicked one never loads.
+    t2a: {
+        label: 'Sound & Music',
+        short: 't2a',
+        info: 'Sound & Music — music, an instrument, a sound effect or a one-shot hit, at exactly the length you ask for',
+        help: {
+            body: [
+                'Describe a SOUND: the thing itself, what it is made of, the room it is in. Not a picture, and not a song brief.',
+                '"What is it" picks the model. Music and Instrument run the larger one; Sound effect and One-shot the small one built for them. The length is exact.',
+            ],
+            examples: [
+                { prompt: 'A heavy wooden door slamming shut in a stone corridor, long tail.', note: 'The thing, its material, its room.' },
+                { prompt: 'Warm lo-fi hip hop beat, dusty vinyl drums, mellow electric piano chords, 80 BPM.', note: 'Music: style, instruments, tempo.' },
+                { prompt: 'amazing, high quality, masterpiece', bad: true, note: 'Quality words describe no sound.' },
+            ],
+        },
+        progressLabel: 'Generating',
+        mediaType: MEDIA_TYPE.AUDIO,
+        requiresImages: 0,
+        promptRequired: true,               // the description IS the input
+        components: ['audioCategory', 'audioLength'],
+    },
+    // ONE required voice slot, `audio1` - the key the Flow used, so an old card's voice and
+    // an old routine's role still land. `MpiLoadAudio#54` carries `block_if_empty: true`:
+    // with no voice the graph returns an ExecutionBlocker and ComfyUI reports SUCCESS with
+    // no output, so `required` is the only thing between the user and a silent no-op.
+    // Turning `block_if_empty` off is NOT the alternative: MpiLoadAudio._empty returns a
+    // 1-sample silence, which would become Chatterbox's `audio_prompt`.
+    // THERE IS NO `audio2`: the voice-conversion arm it fed was deleted from the graph on
+    // 2026-08-28 (it overwrote the chosen voice with the emotion clip's speaker).
+    tts: {
+        label: 'Text to Speech',
+        short: 'tts',
+        info: 'Text to Speech — your line, spoken in the voice you give it, in one of 23 languages',
+        help: {
+            body: [
+                'Type the line exactly as it should be said: it is spoken word for word, so it is never enhanced.',
+                'Give it a sample of the voice to speak in: a recording of you, or a voice from the library. Pick the language the line is written in.',
+            ],
+            examples: [
+                { prompt: 'Hello and welcome to Cubric Studio.', note: 'The words, as they should be heard.' },
+                { prompt: 'a cheerful woman saying hello', bad: true, note: 'That describes a voice; it would be read out loud.' },
+            ],
+        },
+        progressLabel: 'Speaking the line',
+        mediaType: MEDIA_TYPE.AUDIO,
+        requiresImages: 0,
+        mediaInputs: [
+            { key: 'audio1', mediaType: MEDIA_TYPE.AUDIO, title: 'Input_Audio', required: true, voiceLibrary: 'character' },
+        ],
+        promptRequired: true,
+        components: ['ttsLanguage'],
+    },
+
     // ── Universal Workflows (not model-tied) ──────────────────────────
     // These appear regardless of active model; they have their own workflow files.
 
@@ -1326,40 +1399,8 @@ export const commands = {
         universal: true,
     },
 
-    // MPI-607 — Chatterbox text-to-speech, the TTS half that the Voice Changer flow
-    // deliberately left unowned. ONE audio role: `audio1` is the voice the line is
-    // spoken IN, feeding `audio_prompt` on both TTS nodes, and the graph blocks
-    // without it.
-    //
-    // THERE IS NO `audio2`, AND MAPPING ONE BACK PUTS THE VC ARM BACK (2026-08-28).
-    // The VC nodes are gone from the graph as of that re-export, so a role mapped here
-    // would write `Input_Audio_2` on a node that no longer exists. It carried an
-    // emotion clip for one session and was killed on measurement — the reason is on
-    // the FlowDef in flowsRegistry.js.
-    //
-    // `audio1` IS REQUIRED, and saying so is what produces the toast. `MpiLoadAudio#54`
-    // carries `block_if_empty: true`, so a run with no voice returns an
-    // ExecutionBlocker: zero output, and ComfyUI reports SUCCESS. The slot renders as
-    // optional either way (`upto` is the only media mode there is), so `required` is
-    // the only thing standing between the user and a silent no-op — it is what
-    // `_findMissingMediaSlot` reads at enqueue AND at dispatch. It was `false`, which
-    // opts OUT of that guard; absent would have been enough, but say it out loud.
-    //
-    // Turning `block_if_empty` off instead is NOT the alternative: MpiLoadAudio._empty
-    // returns a 1-sample 44.1 kHz silence, which would become Chatterbox's
-    // `audio_prompt` — a garbage reference in place of a clean refusal.
-    flowChatterBox: {
-        label: 'Flow: Text to Speech',
-        filePrefix: 'flowTTS',              // key names the model; the Library says "Text to Speech"
-        progressLabel: 'Speaking the line',
-        mediaType: MEDIA_TYPE.AUDIO,        // OUTPUT type
-        requiresImages: 0,
-        mediaInputs: [
-            { key: 'audio1', mediaType: MEDIA_TYPE.AUDIO, title: 'Input_Audio', required: true },
-        ],
-        promptRequired: true,
-        universal: true,
-    },
+    // `flowChatterBox` (Text to Speech) lived here until MPI-1012 made it the `tts` op
+    // on the Chatterbox model; its key is a tombstone in operationRegistry.js.
 
     // MPI-663 — Stems. One track in, four stem files out (Bass / Drums / Other /
     // Vocals) through Hybrid Demucs. The only multi-output op in the fleet: its four
@@ -1413,30 +1454,8 @@ export const commands = {
         universal: true,
     },
 
-    // MPI-694 — Stable Audio 3, the second audio engine. `flowTextToMusic` above keeps
-    // the one thing Stable Audio does not claim (sung vocals); this op takes everything
-    // else: instrumentals, single instruments, sound effects and one-shots.
-    //
-    // ONE OP, TWO CHECKPOINTS. The flow's category dropdown routes `Music`/`Instrument`
-    // to `stable_audio_3_medium` and `SFX`/`One-shot` to `stable_audio_3_small_sfx`
-    // INSIDE the graph, through a lazy `MpiIfElse` — so the unpicked one is never
-    // loaded and this stays a single op with a single workflow.
-    //
-    // `progressLabel` is 'Generating' rather than 'Composing': the same press makes a
-    // door slam and a string quartet, and "Composing" is a lie about the door.
-    flowSoundAndMusic: {
-        label: 'Flow: Sound & Music',
-        // `flowSoundMusic`, not `flowSoundAndMusic` — the guard compacts the title to
-        // `soundmusic` (punctuation dropped), so spelling the ampersand out fails it.
-        filePrefix: 'flowSoundMusic',
-        progressLabel: 'Generating',
-        mediaType: MEDIA_TYPE.AUDIO,        // OUTPUT type
-        requiresImages: 0,
-        // No `mediaInputs`, no `inputSchema.media` — text is the whole input, exactly
-        // like the flow above, so step 0 renders its own "needs no input media" panel.
-        promptRequired: true,               // the description IS the input
-        universal: true,
-    },
+    // `flowSoundAndMusic` (Sound & Music) lived here until MPI-1012 made it the `t2a` op
+    // on the Stable Audio 3 model; its key is a tombstone in operationRegistry.js.
 
     flowCharacterSheet: {
         label: 'Flow: Character Sheet',
@@ -1531,6 +1550,8 @@ export const COMMANDS = commands;
  */
 export const ENHANCE_EXEMPT_OPS = Object.freeze(new Set([
     'edit', 'kleinEdit', 'krea2Edit', 'qwenEdit', 'inpaint',
+    // MPI-1012: Sound & Music has no enhancer by design; a speech line is read verbatim.
+    't2a', 'tts',
 ]));
 
 /** True when this op is one the enhancer must stay out of. */
@@ -1584,6 +1605,81 @@ export const CONTROL_TYPES = Object.freeze({
 export function modelControlTypes(model) {
     const ids = Array.isArray(model?.controlTypes) ? model.controlTypes : [];
     return ids.filter((id) => Object.hasOwn(CONTROL_TYPES, id));
+}
+
+// ── Audio model controls (MPI-1012) ──────────────────────────────────────────
+// One table each, read by the prompt-box control AND the agent's named-param resolver
+// (generationControls.js), so the two can never offer different lists. The values are
+// the graphs' own strings, carried over from the Flows these models replaced.
+
+/** Stable Audio 3's "What is it". `v` reaches `Input_Category` (an MpiText read by one
+ *  `MpiTextContains` "Music, Instrument"), so the string IS the checkpoint switch. */
+export const AUDIO_CATEGORIES = Object.freeze([
+    Object.freeze({ v: 'Music',      label: 'Music',        info: 'A backing track or an instrumental piece. Uses the larger model.' }),
+    Object.freeze({ v: 'Instrument', label: 'Instrument',   info: 'A single instrument playing — a riff, a phrase, a texture.' }),
+    Object.freeze({ v: 'SFX',        label: 'Sound effect', info: 'A noise or an event: a door, rain, an engine, a room tone.' }),
+    Object.freeze({ v: 'One-shot',   label: 'One-shot',     info: 'A single hit in near-silence — a stick, a snare, an impact.' }),
+]);
+
+/** A category as asked ('SFX', 'sound effect', 'one-shot') -> its graph value, or null. */
+export function audioCategoryValue(asked) {
+    const want = String(asked ?? '').trim().toLowerCase();
+    return AUDIO_CATEGORIES.find(c => c.v.toLowerCase() === want || c.label.toLowerCase() === want)?.v ?? null;
+}
+
+/** Stable Audio 3's length in seconds. Exact to ~80ms across the range (measured off the
+ *  decoded files); 190 is the longest this card has actually run, not a spec number. */
+export const AUDIO_LENGTH = Object.freeze({ min: 1, max: 190 });
+
+/** The one language both Chatterbox arms speak — and the English-only arm's switch. */
+export const TTS_ENGLISH = 'English (en)';
+
+/** Chatterbox's 23 languages. `v` is the multilingual node's EXACT combo label (ComfyUI
+ *  refuses anything else with "Value not in list"); `label` is what the user and the
+ *  agent say. */
+export const TTS_LANGUAGES = Object.freeze([
+    { v: TTS_ENGLISH, label: 'English' },
+    { v: 'Arabic (ar)', label: 'Arabic' },
+    { v: 'Danish (da)', label: 'Danish' },
+    { v: 'German (de)', label: 'German' },
+    { v: 'Greek (el)', label: 'Greek' },
+    { v: 'Spanish (es)', label: 'Spanish' },
+    { v: 'Finnish (fi)', label: 'Finnish' },
+    { v: 'French (fr)', label: 'French' },
+    { v: 'Hebrew (he)', label: 'Hebrew' },
+    { v: 'Hindi (hi)', label: 'Hindi' },
+    { v: 'Italian (it)', label: 'Italian' },
+    { v: 'Japanese (ja)', label: 'Japanese' },
+    { v: 'Korean (ko)', label: 'Korean' },
+    { v: 'Malay (ms)', label: 'Malay' },
+    { v: 'Dutch (nl)', label: 'Dutch' },
+    { v: 'Norwegian (no)', label: 'Norwegian' },
+    { v: 'Polish (pl)', label: 'Polish' },
+    { v: 'Portuguese (pt)', label: 'Portuguese', info: 'Delivers BRAZILIAN Portuguese — confirmed by ear; the node label does not say so.' },
+    { v: 'Russian (ru)', label: 'Russian' },
+    { v: 'Swedish (sv)', label: 'Swedish' },
+    { v: 'Swahili (sw)', label: 'Swahili' },
+    { v: 'Turkish (tr)', label: 'Turkish' },
+    { v: 'Chinese (zh)', label: 'Chinese' },
+].map(Object.freeze));
+
+/** A language as asked ('French', 'french' or 'French (fr)') -> its combo value, or null. */
+export function ttsLanguageValue(asked) {
+    const want = String(asked ?? '').trim().toLowerCase();
+    return TTS_LANGUAGES.find(l => l.v.toLowerCase() === want || l.label.toLowerCase() === want)?.v ?? null;
+}
+
+/**
+ * What one language injects. TWO keys, the `ratio` W+H pattern: the multilingual node's
+ * language (a DOTTED key, because `language` is not in the injector's spray list — a
+ * plain `Input_Language` matches the node and writes nothing) AND the arm selector,
+ * derived rather than shown. Fabio removed the "Other languages" toggle (2026-08-28):
+ * toggle off with French picked silently produced English, so English now picks the
+ * English-only arm and anything else the multilingual one, with no state to get wrong.
+ */
+export function ttsLanguageParams(value) {
+    const v = ttsLanguageValue(value) ?? TTS_ENGLISH;
+    return { 'Input_Language.language': v, Input_Is_Multilingual: v !== TTS_ENGLISH };
 }
 
 /**
@@ -1722,6 +1818,7 @@ function _maxMediaSlots(cmd, mediaType, minFallback, model = null) {
 export const OP_ORDER = Object.freeze([
     't2i', 'i2i', 'control', 'edit', 'upscale', 'detail', 'inpaint',
     't2v', 'i2v', 'ref2v', 'extend',
+    't2a', 'tts',
 ]);
 
 function _orderIndex(cmd) {

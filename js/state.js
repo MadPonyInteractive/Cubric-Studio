@@ -41,7 +41,7 @@ const _state = {
 
     // ── Canonical selected model (per-mediaType, persisted via localStorage) ──
     s_selectedModelIdByType: Storage.getSelectedModels(),
-                               // { image: modelId|null, video: modelId|null }.
+                               // { image: modelId|null, video: modelId|null, audio?: modelId|null }.
                                // Read by workspaces via resolveActiveModel(mediaType).
                                // Written via setSelectedModelId(mediaType, id) in
                                // js/utils/modelHelpers.js — top-level replace pattern
@@ -49,7 +49,7 @@ const _state = {
                                // change by the subscriber below.
 
     s_lastSelectedMediaType: Storage.getLastSelectedMediaType(),
-                               // 'image' | 'video' — which slot was most recently
+                               // 'image' | 'video' | 'audio' — which slot was most recently
                                // written. Gallery is mediaType-agnostic: on mount it
                                // resolves from this so the user's last pick (image or
                                // video) is restored. Updated by setSelectedModelId.

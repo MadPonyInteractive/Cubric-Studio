@@ -55,7 +55,7 @@ test.describe('which Flows open for the user (Fabio\'s sort)', () => {
     test('every other Flow is the agent\'s to run', () => {
         const runs = listFlows().filter((f) => !f.agentOpens).map((f) => f.id);
         // Song too: the app asks "Review lyrics | Just do it" first, on a card (MPI-1005).
-        for (const id of ['character-sheet', 'outpaint', 'ltx-extend', 'ltx-foley', 'ltx-upscale', 'stems', 'sound-and-music', 'chatter-box', 'voice-changer', 'minimax-music']) {
+        for (const id of ['character-sheet', 'outpaint', 'ltx-extend', 'ltx-foley', 'ltx-upscale', 'stems', 'voice-changer', 'minimax-music']) {
             assert.ok(runs.includes(id), `${id} should run`);
         }
     });
@@ -106,8 +106,10 @@ test.describe('openFlow — filled, on screen, and nothing runs', () => {
         assert.deepEqual(state.s_flowInputs['object-stamp'].mediaItems.map((m) => m.role), ['image1', 'image2']);
     });
 
+    // Stems stands in for Text to Speech here: both take one required clip in `audio1`, and
+    // Text to Speech is a prompt-box model now (MPI-1012).
     test('a Flow the agent would run opens on its inputs while a required slot is empty', async () => {
-        const { report, opened } = await run({ flowId: 'chatter-box', fields: { positive: 'Hello there.' }, follow: true });
+        const { report, opened } = await run({ flowId: 'stems', follow: true });
         assert.equal(report.ok, true, 'an empty slot is the user\'s to fill, not a refusal');
         assert.equal(opened[0].openAt, 'inputs');
         assert.match(report.output.empty, /audio in the "audio1" slot/);
@@ -115,8 +117,8 @@ test.describe('openFlow — filled, on screen, and nothing runs', () => {
 
     test('...and past Inputs once everything it needs is there', async () => {
         const voice = `/project-file?path=${encodeURIComponent('C:\\Projects\\Test\\Media\\voice.wav')}`;
-        const { opened, report } = await run({ flowId: 'chatter-box', fields: { positive: 'Hello.' }, media: [{ role: 'audio1', url: voice }], follow: true });
-        const flow = getFlowById('chatter-box');
+        const { opened, report } = await run({ flowId: 'stems', media: [{ role: 'audio1', url: voice }], follow: true });
+        const flow = getFlowById('stems');
         assert.equal(opened[0].openAt, flow.steps?.[0]?.kind || 'run');
         assert.equal(report.output.empty, undefined);
     });
@@ -129,6 +131,13 @@ test.describe('openFlow — filled, on screen, and nothing runs', () => {
         assert.equal(report.ok, true, JSON.stringify(report));
         assert.deepEqual(opened, [{ flowId: 'minimax-music', openAt: 'fields' }]);
         assert.equal(report.output.at, 'Write the song');
+    });
+
+    test('a Flow that became a model (MPI-1012) is refused with the model to use instead', async () => {
+        const { report, opened } = await run({ flowId: 'chatter-box', fields: { positive: 'Hello.' }, follow: true });
+        assert.equal(report.error.code, 'UNKNOWN_FLOW');
+        assert.match(report.error.message, /modelId "chatterbox" and operation "tts"/);
+        assert.deepEqual(opened, []);
     });
 
     test('never without a typed turn, never over the user\'s work, never with a field it lacks', async () => {

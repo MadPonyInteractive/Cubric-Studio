@@ -57,11 +57,12 @@ import { DEPS } from '../data/modelConstants/dependencies.js';
 import { resolveFullUniverse } from '../data/modelConstants/resolveModelDeps.js';
 import { sizeToGb } from '../data/modelConstants/footprint.js';
 import { getFlowById, listFlows, flowAvailability } from '../data/flowsRegistry.js';
+import { retiredFlowMessage } from '../data/retiredFlows.js';
 import { resolveFlowFieldValues, agentFieldSpecs } from '../utils/declaredFields.js';
 import { enhanceFlowRun } from '../services/flowEnhance.js';
-import { getCommand } from '../data/commandRegistry.js';
+import { getCommand, getCommandMediaInputs } from '../data/commandRegistry.js';
 import { resolveNamedParams, isValidSeed, resolveAgentMedia, namedParamsFor } from '../data/generationControls.js';
-import { resolveActiveModel } from '../utils/modelHelpers.js';
+import { resolveActiveModel, getLastSelectedMediaType } from '../utils/modelHelpers.js';
 import { CROP_RATIOS } from '../utils/ratios.js';
 import { resolveMediaUrl, extractAbsPath } from '../utils/mediaActions.js';
 import { stepValueToMedia } from '../components/Blocks/MpiBaseFlow/stepKinds.js';
@@ -231,8 +232,7 @@ export async function targetProject(input) {
  * nothing gets a Krea2-shaped prompt and a worse image than either party intended.
  */
 export function pinnedModel() {
-    const type = state.s_lastSelectedMediaType === 'video' ? 'video' : 'image';
-    return resolveActiveModel(type).model;
+    return resolveActiveModel(getLastSelectedMediaType()).model;
 }
 
 /**
@@ -265,14 +265,14 @@ export function pinnedModel() {
  * @returns {{model:object|null, project:object|null, named:object, injectionParams:object, error?:{code:string,message:string}}}
  */
 export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
-    const { modelId, ratio, qualityTier, turbo, styleSelect, stylization, duration, denoise, batch, injectionParams } = input;
+    const { modelId, ratio, qualityTier, turbo, styleSelect, stylization, duration, denoise, batch, category, language, injectionParams } = input;
     if (!pinned) {
         return {
             model: getModelById(modelId),
             project: null,
             // `denoise` too: the connector validates it (NAMED_PARAM_KEYS), so dropping it
             // here ran the op default while the agent said it chose a low one.
-            named: { ratio, qualityTier, turbo, styleSelect, stylization, duration, denoise, batch },
+            named: { ratio, qualityTier, turbo, styleSelect, stylization, duration, denoise, batch, category, language },
             injectionParams: injectionParams || {},
         };
     }
@@ -627,9 +627,14 @@ export async function buildGeneration(input, project, { pinned = false, painted 
         return _refuse(mask.error.code, mask.error.message);
     }
 
+    // MPI-1012: a library voice on a model op's voice slot (Chatterbox's `audio1`) becomes
+    // the same placed file a Flow's does.
+    const voiced = await resolveVoices(operation, media, project, model.name);
+    if (!voiced.ok) return _refuse(voiced.code, voiced.message);
+
     // MPI-765: media by reference, resolved exactly as the Flow branch resolves it.
     // Checked here for the same reason as the op: the enqueue guard's refusal is a toast.
-    const resolvedMedia = resolveAgentMedia(operation, model, media);
+    const resolvedMedia = resolveAgentMedia(operation, model, voiced.media);
     if (!resolvedMedia.ok) {
         return _refuse(resolvedMedia.code, resolvedMedia.message);
     }
@@ -1072,10 +1077,18 @@ function _voiceLib() {
     return _voiceLibLoad;
 }
 
-/** role -> the library route that slot offers ('character' / 'narration'), for one Flow. */
-function _voiceRoutes(flow) {
+/**
+ * role -> the library route that slot offers ('character' / 'narration'), for one Flow, or
+ * for one model OP (a string) whose slot declares `voiceLibrary` — Chatterbox's `tts`
+ * (MPI-1012), which carried its library over from the Text to Speech Flow.
+ */
+function _voiceRoutes(source) {
     const routes = {};
-    for (const g of flow?.inputSchema?.media || []) {
+    if (typeof source === 'string') {
+        for (const s of getCommandMediaInputs(source)) if (s.voiceLibrary) routes[s.key] = s.voiceLibrary;
+        return routes;
+    }
+    for (const g of source?.inputSchema?.media || []) {
         (g.roles || []).forEach((role, i) => { if (g.voiceLibrary?.[i]) routes[role] = g.voiceLibrary[i]; });
     }
     return routes;
@@ -1087,8 +1100,8 @@ function _voiceRoutes(flow) {
  * § listSections), and fifteen rows is what an agent can match "an old man" against.
  * @returns {Object<string, Array<{name:string, gender?:string, age?:string, ids:string[]}>>|null}
  */
-export function slotVoices(flow, lib) {
-    const routes = Object.entries(_voiceRoutes(flow));
+export function slotVoices(source, lib) {
+    const routes = Object.entries(_voiceRoutes(source));
     if (!lib || !routes.length) return null;
     return Object.fromEntries(routes.map(([role, kind]) => [role, lib.listSections({ kind }).map((s) => {
         const { gender, age } = s.voices[0];
@@ -1103,18 +1116,18 @@ export function slotVoices(flow, lib) {
  * "call describe_model" hint fires).
  * @returns {Promise<{ok:true, media:Array}|{ok:false, code:string, message:string}>}
  */
-export async function resolveVoices(flow, media, project) {
+export async function resolveVoices(source, media, project, title = source?.title) {
     const list = Array.isArray(media) ? media : [];
     if (!list.some(m => m?.voice)) return { ok: true, media: list };
-    const routes = _voiceRoutes(flow);
+    const routes = _voiceRoutes(source);
     try {
         const lib = await _voiceLib();
         const out = [];
         for (const m of list) {
             if (!m?.voice) { out.push(m); continue; }
-            if (!routes[m.role]) return { ok: false, code: 'INVALID_VOICE', message: `${flow.title}'s "${m.role}" slot takes no library voice.` };
+            if (!routes[m.role]) return { ok: false, code: 'INVALID_VOICE', message: `${title}'s "${m.role}" slot takes no library voice.` };
             const voice = lib.listVoices({ kind: routes[m.role] }).find(v => v.id === String(m.voice));
-            if (!voice) return { ok: false, code: 'INVALID_VOICE', message: `No library voice "${m.voice}" for ${flow.title}'s "${m.role}" slot.` };
+            if (!voice) return { ok: false, code: 'INVALID_VOICE', message: `No library voice "${m.voice}" for ${title}'s "${m.role}" slot.` };
             const url = await _placePreviewAsset(await voiceWavFile(voice), project, '.wav');
             if (!url) throw new Error('the project would not take the file');
             out.push({ role: m.role, url });
@@ -1140,7 +1153,7 @@ export async function buildFlow(input, project) {
 
     const flow = getFlowById(flowId);
     if (!flow) {
-        return _refuse('UNKNOWN_FLOW', `No flow with id "${flowId}".`);
+        return _refuse('UNKNOWN_FLOW', retiredFlowMessage(flowId) || `No flow with id "${flowId}".`);
     }
 
     // submitFlowGeneration pre-flights this itself, but it reports through a TOAST
@@ -1335,7 +1348,7 @@ export async function openFlow(jobId, input = {}) {
         return _fail(jobId, 'NO_PROJECT', 'No project is open, and a Flow opens in the open project.');
     }
     const flow = getFlowById(input.flowId);
-    if (!flow) return _fail(jobId, 'UNKNOWN_FLOW', `No flow with id "${input.flowId}".`);
+    if (!flow) return _fail(jobId, 'UNKNOWN_FLOW', retiredFlowMessage(input.flowId) || `No flow with id "${input.flowId}".`);
     const blocked = followBlocker();
     if (blocked) {
         return _fail(jobId, 'VIEW_BUSY', `Nothing was opened: the user is ${BUSY_WORDS[blocked] || 'working on the picture'}. Tell them you will open ${flow.title} once they are done, and send it again when they say so.`);
@@ -1608,11 +1621,17 @@ async function _listModels(jobId) {
     const models = MODELS.map(model => {
         // `params`: what the agent may set on this op, so it never guesses a turbo
         // or a tier the model lacks (namedParamsFor mirrors resolveNamedParams).
-        const ops = (model.supportedOps || []).map(op => ({
-            op,
-            installed: isOperationInstalled(model, op),
-            params: namedParamsFor(model, op),
-        }));
+        const ops = (model.supportedOps || []).map(op => {
+            // MPI-1012: a model op with a voice slot lists its library voices the way a
+            // Flow does (Chatterbox's `tts`).
+            const voices = slotVoices(op, voiceLib);
+            return {
+                op,
+                installed: isOperationInstalled(model, op),
+                params: namedParamsFor(model, op),
+                ...(voices ? { voices } : {}),
+            };
+        });
 
         // Compute missing dep IDs for this engine so the route can sum their sizes.
         const allDepIds = resolveFullUniverse(model, null, engine);

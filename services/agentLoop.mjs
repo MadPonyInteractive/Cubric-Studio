@@ -113,7 +113,9 @@ export const TOOL_DEFS = [
                     ratio: { type: 'string' },
                     qualityTier: { type: 'string', enum: ['very_low', 'low', 'medium', 'high', 'very_high', 'ultra'] },
                     turbo: { type: 'boolean' },
-                    duration: { type: 'number', description: 'Clip length in seconds, 1-30. Video ops only — see the Duration rule.' },
+                    duration: { type: 'number', description: 'Seconds, in the op\'s params.duration range. A clip: see the Duration rule.' },
+                    category: { type: 'string', description: 'One of the op\'s params.categories.' },
+                    language: { type: 'string', description: 'The line\'s language, one of the op\'s params.languages.' },
                     denoise: { type: 'number', description: 'Only on an op whose params list it (i2i, upscale, detail): 0 to 1. The higher it is, the more the image changes: low keeps the picture and its pose, high repaints it. Unset = params.denoise.default.' },
                     styleSelect: { type: 'string' },
                     stylization: { type: 'number' },
@@ -3156,7 +3158,7 @@ function _projectFileUrl(absPath) {
  * (defaulted)` for all five runs: the number was in its reply and never in the call. The result
  * only said "started", so nothing it read could contradict the claim.
  */
-const _SENT_KEYS = ['ratio', 'qualityTier', 'turbo', 'duration', 'denoise', 'styleSelect', 'stylization', 'seed'];
+const _SENT_KEYS = ['ratio', 'qualityTier', 'turbo', 'duration', 'denoise', 'styleSelect', 'stylization', 'seed', 'category', 'language'];
 
 /**
  * A generate call's own fields in the connector's words: `prompt` goes as `positive`, and a

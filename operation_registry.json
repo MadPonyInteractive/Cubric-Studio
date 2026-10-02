@@ -195,7 +195,7 @@
   "flowChatterBox": {
     "latestVersion": "1.0",
     "appVersionIntroduced": "1.5.0",
-    "universal": true
+    "deprecated": true
   },
   "flowStems": {
     "latestVersion": "1.0",
@@ -220,6 +220,14 @@
   "flowSoundAndMusic": {
     "latestVersion": "1.0",
     "appVersionIntroduced": "1.5.0",
-    "universal": true
+    "deprecated": true
+  },
+  "t2a": {
+    "latestVersion": "1.0",
+    "appVersionIntroduced": "2.0.0"
+  },
+  "tts": {
+    "latestVersion": "1.0",
+    "appVersionIntroduced": "2.0.0"
   }
 }

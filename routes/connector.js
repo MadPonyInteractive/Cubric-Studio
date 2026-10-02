@@ -463,7 +463,17 @@ router.get('/connector/jobs/stream', (req, res) => {
 // model's own capability data — no project is open here, so an unset param is
 // left off `input` and resolved against the real project by
 // `js/shell/agentDispatch.js`.
-const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration', 'denoise', 'batch'];
+const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration', 'denoise', 'batch', 'category', 'language'];
+
+// MPI-1012: Sound & Music and Text to Speech are MODELS now. A body still naming their old
+// flowId runs as the model (js/data/retiredFlows.js) on generate and quote alike.
+let _retiredMod = null;
+async function _asCurrentBody(body) {
+  // Both sent stays a caller error (refused below), never a silent pick of the model.
+  if (!body?.flowId || body.modelId) return body;
+  if (!_retiredMod) _retiredMod = await import('../js/data/retiredFlows.js');
+  return _retiredMod.retiredFlowAsModel(body) ?? body;
+}
 
 /**
  * A video sent where the op takes a picture stands for its FIRST frame (MPI-980): the
@@ -539,6 +549,7 @@ async function _frameZero(file) {
  * names, open or closed (MPI-873); without one, in whatever project the app has open.
  */
 router.post('/connector/generate', async (req, res) => {
+  req.body = await _asCurrentBody(req.body);
   const {
     modelId, operation, positive, negative, injectionParams, flowId, fields, media,
     styleSelect, batch, seed, params,
@@ -714,6 +725,7 @@ router.post('/connector/generate', async (req, res) => {
  * its own gate — see the sibling install route).
  */
 router.post('/connector/quote', async (req, res) => {
+  req.body = await _asCurrentBody(req.body);
   const { modelId, operation, flowId, injectionParams, media, count } = req.body || {};
   if (!flowId && (!modelId || !operation)) {
     return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.flowId, or body.modelId and body.operation, are required.' } });
@@ -1014,9 +1026,12 @@ router.get('/connector/models', async (req, res) => {
       ...rest,
       // `rank`/`note` (MPI-774 Phase 5): which model does this task best, and the one line
       // a ranking cannot hold. Absent on a task with no ranking — never a rank of 0.
-      ops: (rest.ops || []).map((o) => ({
+      // MPI-1012: a model op's voice slot (Chatterbox's `tts`) folds its library voices into
+      // its media row, exactly as a Flow's does below.
+      ops: (rest.ops || []).map(({ voices, ...o }) => ({
         ...o,
-        media: registry ? mediaRolesFor(registry, o.op, findModelDef(m.id)) : [],
+        media: registry ? mediaRolesFor(registry, o.op, findModelDef(m.id))
+          .map((r) => (voices?.[r.role] ? { ...r, voices: voices[r.role] } : r)) : [],
         ...(opPriority(m.id, o.op) || {}),
       })),
       missingDownloadGb: Math.round(missingDownloadGb * 100) / 100,

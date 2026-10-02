@@ -360,11 +360,12 @@ const MINIMAX_MUSIC3 = {
     report: CUBRIC_DISCORD,
 };
 
-// Stable Audio 3 — TWO agreements behind ONE gate, the `Sound & Music` flow (MPI-694).
+// Stable Audio 3 — TWO agreements behind ONE gate, the `stable-audio-3` model (MPI-694;
+// it was the `Sound & Music` flow until MPI-1012).
 //
 // ONE DESCRIPTOR, NOT TWO, and the architecture forces that rather than preferring it:
 // the gate fires per INSTALL KEY, and all three weights install under the single
-// `flow:sound-and-music` dep key (`requiredModels: []`, the Music Maker shape). A second
+// `stable-audio-3` key (`flow:sound-and-music` while it was a Flow). A second
 // descriptor could not be keyed there — it would be dead data and its agreement would
 // never be shown. Binding both in one dialog is also the only honest reading: every arm
 // of the flow loads a Stability checkpoint AND the Gemma encoder, so there is no install
@@ -413,7 +414,7 @@ const STABLE_AUDIO_3 = {
     version: 1,
     name: 'Stability AI Community License + Gemma Terms of Use',
     modelName: 'Stable Audio 3',
-    summary: 'Sound & Music installs weights from two licensors: Stability AI’s two Stable '
+    summary: 'Stable Audio 3 installs weights from two licensors: Stability AI’s two Stable '
            + 'Audio 3 checkpoints, and Google’s T5Gemma text encoder. Both are free to use, '
            + 'including commercially, and neither restricts where you are or what you do with '
            + 'the audio. Both set out how the models may not be used, and this step shows you '
@@ -424,9 +425,9 @@ const STABLE_AUDIO_3 = {
     ],
     // §IV(a)(iii) — "prominently display “Powered by Stability AI” on a related website,
     // user interface, blogpost, about page, or product documentation". That exact string
-    // IS the obligation and is not paraphrasable. It renders on both Flow surfaces via
-    // buildLicenceRows (MPI-666), which is where a user of this flow actually looks —
-    // there is no model card, deliberately. The Gemma Terms ask for no such string; their
+    // IS the obligation and is not paraphrasable. It renders in the Model Library drawer
+    // (MpiModelManager), which since MPI-1012 is where a user of Stable Audio 3 looks; it
+    // was on the two Flow surfaces while this was a Flow. The Gemma Terms ask for no such string; their
     // attribution is the NOTICE file and the About-page credit on the t5gemma dep.
     poweredBy: 'Powered by Stability AI',
     sections: [
@@ -479,11 +480,12 @@ export const MODEL_LICENCES = {
     // it does. When it lands its `id` must be `minimax-music` or this gate never fires and
     // 13.3GB of licensed weights install with nothing shown.
     'flow:minimax-music': MINIMAX_MUSIC3,
-    // Same shape, same trap — `flowDepKey('sound-and-music')` (MPI-694). The flow ships
-    // with `requiredModels: []`, so this key is the ONLY one its 11.81GB installs under
-    // and the only place a gate can hang. Rename the flow's `id` without moving this key
-    // and the lookup misses SILENTLY: three licensed weights land with nothing shown.
-    'flow:sound-and-music': STABLE_AUDIO_3,
+    // A MODEL id since MPI-1012 — it was `flow:sound-and-music` while Stable Audio 3 was a
+    // Flow. The SAME descriptor object (same `id`, `version: 1`), and receipts are filed by
+    // descriptor id, so nobody who accepted it under the Flow is asked again. Rename the
+    // model's `id` without moving this key and the lookup misses SILENTLY: three licensed
+    // weights install with nothing shown (tests/audio-models.test.cjs pins it).
+    'stable-audio-3':    STABLE_AUDIO_3,
 };
 
 /** Where a user requests access to a `verify` licence — the licensor's own model page. */

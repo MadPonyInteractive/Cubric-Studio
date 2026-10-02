@@ -56,7 +56,7 @@ const TILE_FLAGS = [
  * @typedef {Object} TileItem
  * @property {string}  id               - Unique; the key for patchState/setWaiting/setSelected
  * @property {string}  name             - Primary label
- * @property {'image'|'video'} [media='image'] - Drives 4:5 vs 16:9 thumb aspect
+ * @property {'image'|'video'|'audio'} [media='image'] - Drives 4:5 vs 16:9 thumb aspect (audio takes the 4:5 still) and the badge
  * @property {string}  [preview]        - Filename under comfy_workflows/display/
  * @property {string}  [meta]           - Second label line (e.g. "VIDEO · High")
  * @property {boolean} [showMediaBadge] - Render the Image/Video pill

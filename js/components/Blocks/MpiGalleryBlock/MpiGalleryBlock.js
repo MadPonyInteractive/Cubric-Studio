@@ -32,7 +32,7 @@ import { ce, qs, gid } from '../../../utils/dom.js';
 import { navigate, PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../../../router.js';
 import { extractFilenameFromPath, extractAbsPath, downloadMediaFiles, deleteMediaFiles, resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
-import { resolveActiveModel, setSelectedModelId, getSelectedModelId, getSelectedOp, setSelectedOp } from '../../../utils/modelHelpers.js';
+import { resolveActiveModel, setSelectedModelId, getSelectedModelId, getSelectedOp, setSelectedOp, getLastSelectedMediaType, MODEL_MEDIA_TYPES } from '../../../utils/modelHelpers.js';
 import { truncateCardName } from '../../../utils/displayHelpers.js';
 import { MODELS, getModelsByType, getModelById, isModelUsable, isOperationInstalled, firstInstalledOp } from '../../../data/modelRegistry.js';
 import { canonicalModelId } from '../../../data/modelConstants/resolveModelDeps.js';
@@ -46,7 +46,7 @@ import { clientLogger } from '../../../services/clientLogger.js';
 import { uploadMediaFile, prepareImageImport } from '../../../services/mediaUploadService.js';
 import { addGroup, updateGroup, removeGroup, persistGroups, validatePreviewAssets, applyPromptReuseSettings, listProjects, stackGroups, unstackGroup } from '../../../services/projectService.js';
 import { trackConcatJob } from '../../../services/concatProgress.js';
-import { buildPromptReuseSettings, resolvePromptReuseMediaItems, payloadHasReusableImages, payloadHasReusableVideos, payloadHasReusableAudio } from '../../../utils/promptReuse.js';
+import { buildPromptReuseSettings, resolvePromptReuseMediaItems, payloadHasReusableImages, payloadHasReusableVideos, payloadHasReusableAudio, isFlowCardItem } from '../../../utils/promptReuse.js';
 import {
     createVideoItem,
     createImageItem,
@@ -1249,7 +1249,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // Gallery is a mediaType-agnostic entry point — show ALL installed models
         // in the dropdown (image + video). Initial active model follows the user's
         // last-touched mediaType so a video pick survives navigation/restart.
-        const _lastType = state.s_lastSelectedMediaType === 'video' ? 'video' : 'image';
+        const _lastType = getLastSelectedMediaType();
         const { model: activeModelInit, modelId: activeModelIdInit } = resolveActiveModel(_lastType);
         let installedAllModels = MODELS.filter(isModelUsable);
         let activeModelId = activeModelIdInit;
@@ -1315,7 +1315,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
                     showSource: true,
                     // Flow cards (MPI-263): either resolved source being a Flow card
                     // splits Apply into "to Prompt Box" vs "to App".
-                    isFlowCard: !!(bundle.original?.item?.flowId ?? bundle.original?.item?.appId) || !!(bundle.current?.item?.flowId ?? bundle.current?.item?.appId),
+                    isFlowCard: isFlowCardItem(bundle.original?.item) || isFlowCardItem(bundle.current?.item),
                     // Per-source media availability so the dialog can grey out each
                     // "Use …" toggle for a source lacking that input (MPI-212/227).
                     imageAvailability: {
@@ -2063,13 +2063,11 @@ export const MpiGalleryBlock = ComponentFactory.create({
             if (!_pb?.el) {
                 // Prefer last-touched mediaType's selection, then the other type,
                 // then first available. Mirrors mount-time logic above.
-                const lastType = state.s_lastSelectedMediaType === 'video' ? 'video' : 'image';
-                const otherType = lastType === 'video' ? 'image' : 'video';
-                const persistedPrimary   = getSelectedModelId(lastType);
-                const persistedSecondary = getSelectedModelId(otherType);
-                const newModel =
-                    installedAllModels.find(m => m.id === persistedPrimary)
-                    || installedAllModels.find(m => m.id === persistedSecondary)
+                const lastType = getLastSelectedMediaType();
+                const typeOrder = [lastType, ...MODEL_MEDIA_TYPES.filter(t => t !== lastType)];
+                const newModel = typeOrder
+                    .map(t => installedAllModels.find(m => m.id === getSelectedModelId(t)))
+                    .find(Boolean)
                     || installedAllModels[0];
                 activeModel = newModel;
                 activeModelId = newModel.id;

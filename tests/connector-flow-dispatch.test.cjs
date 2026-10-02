@@ -91,21 +91,20 @@ test('a flowId relays a flow-shaped job, media and fields intact', async () => {
   const renderer = await fakeRenderer(base);
   try {
     const pending = postJson(`${base}/connector/generate`, {
-      flowId: 'chatter-box',
-      fields: { positive: 'Hello and welcome to Cubric Studio.' },
+      flowId: 'voice-changer',
       media: [{ role: 'audio1', url: '/project-file?path=C%3A%2Fp%2FMedia%2F.preview-assets%2Fab.wav' }],
     });
 
     const frame = await renderer.readFrame();
     assert.equal(frame.data.capability, 'generation.submit');
     assert.deepEqual(frame.data.input, {
-      flowId: 'chatter-box',
-      fields: { positive: 'Hello and welcome to Cubric Studio.' },
+      flowId: 'voice-changer',
+      fields: {},
       media: [{ role: 'audio1', url: '/project-file?path=C%3A%2Fp%2FMedia%2F.preview-assets%2Fab.wav' }],
     }, 'no modelId/operation is invented for a flow — a Flow has no model');
 
     await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, {
-      ok: true, output: { itemId: 'item-1', type: 'audio', filePath: 'C:/p/Media/flowChatterBox_001.flac' },
+      ok: true, output: { itemId: 'item-1', type: 'audio', filePath: 'C:/p/Media/flowVoiceChanger_001.flac' },
     });
     const { json } = await pending;
     assert.equal(json.ok, true);
@@ -123,13 +122,38 @@ test('flowId and modelId are alternatives, not a merge', async () => {
     // Whichever won would run something the caller did not fully describe, and the
     // response would still say ok:true — so this has to be refused, not resolved.
     const both = await postJson(`${base}/connector/generate`, {
-      flowId: 'chatter-box', modelId: 'krea2', operation: 't2i',
+      flowId: 'chatter-box', modelId: 'krea2', operation: 't2i',   // a retired id too: still refused, never rerouted
     });
     assert.equal(both.status, 400);
     assert.equal(both.json.error.code, 'BAD_REQUEST');
 
     const neither = await postJson(`${base}/connector/generate`, { positive: 'hi' });
     assert.equal(neither.status, 400);
+  } finally {
+    renderer.close();
+    await stop();
+  }
+});
+
+test('a Flow that became a model (MPI-1012) is relayed as that model, its fields as named params', async () => {
+  // Text to Speech is the Chatterbox model now. An agent or a saved habit still naming the
+  // Flow must reach it rather than fail UNKNOWN_FLOW in the renderer.
+  const { base, stop } = await startServer();
+  const renderer = await fakeRenderer(base);
+  try {
+    const voice = { role: 'audio1', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fvoice.wav' };
+    const pending = postJson(`${base}/connector/generate`, {
+      flowId: 'chatter-box',
+      fields: { positive: 'Bonjour.', 'Input_Language.language': 'French (fr)' },
+      media: [voice],
+    });
+    const frame = await renderer.readFrame();
+    assert.deepEqual(frame.data.input, {
+      modelId: 'chatterbox', operation: 'tts', positive: 'Bonjour.', negative: '',
+      injectionParams: {}, media: [voice], language: 'French (fr)',
+    });
+    await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, { ok: true, output: {} });
+    assert.equal((await pending).json.ok, true);
   } finally {
     renderer.close();
     await stop();
@@ -208,21 +232,9 @@ test('a null value is an OMITTED field, not an override (MPI-816)', async () => 
   assert.equal(zeroed.injectionParams.Input_N, 0, '0 is a value the caller chose');
 });
 
-test('the multilingual arm follows the language the CALLER picked', async () => {
-  const { resolveFlowFieldValues } = await fields();
-  const cb = await flow('chatter-box');
-
-  const english = resolveFlowFieldValues(cb, { positive: 'hi' });
-  assert.equal(english.injectionParams.Input_Is_Multilingual, false,
-    'the default language must resolve to the English arm');
-
-  // Derived is computed AFTER the override. Compute it before and this comes back
-  // false, the run takes the English arm, and the caller gets English audio for a
-  // Japanese request — with ok:true and nothing to explain it.
-  const japanese = resolveFlowFieldValues(cb, { positive: 'hi', 'Input_Language.language': 'Japanese (ja)' });
-  assert.equal(japanese.injectionParams['Input_Language.language'], 'Japanese (ja)');
-  assert.equal(japanese.injectionParams.Input_Is_Multilingual, true);
-});
+// "The multilingual arm follows the language the CALLER picked" lived here while Text to
+// Speech was a Flow. It is the Chatterbox model now (MPI-1012) and its arm is derived by the
+// `ttsLanguage` named param: tests/audio-models.test.cjs pins it on the agent path.
 
 test('an undeclared field is reported, never silently dropped', async () => {
   const { resolveFlowFieldValues } = await fields();
@@ -245,9 +257,8 @@ test('list_models describes a field well enough to FILL it (MPI-816)', async () 
   assert.equal(quality.default, 1);
   assert.deepEqual(quality.options, [{ v: 1, label: '1K' }, { v: 2, label: '2K' }]);
 
-  // A free-choice enum is the same bug waiting: 23 languages the agent cannot invent.
-  const lang = agentFieldSpecs(await flow('chatter-box')).find(f => f.id === 'Input_Language.language');
-  assert.ok(lang.options.length > 10, 'the language list ships, or the agent guesses a string');
+  // (A free-choice enum — Text to Speech's 23 languages — was the second case here; it is a
+  // model's `params.languages` since MPI-1012, pinned in tests/audio-models.test.cjs.)
 
   // Prose and widget geometry do NOT ship: this answer is the largest the agent reads.
   const leaked = specs.flatMap(f => Object.keys(f))

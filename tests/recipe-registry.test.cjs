@@ -36,6 +36,7 @@ const {
 const { renderRecipeBrief, renderAllBriefs } = require('../js/data/recipes/brief.js');
 const { composeSystemPrompt, DEFAULT_STYLE } = require('../js/data/recipes/styles.js');
 const { MODELS } = require('../js/data/modelConstants/models.js');
+const { opAllowsEnhance } = require('../js/data/commandRegistry.js');
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 
@@ -133,9 +134,12 @@ function testAliasesResolve() {
 }
 
 function testResolutionAudit() {
-    // Every key models.js actually sends: `enhanceRecipe ?? type`.
+    // Every key models.js actually sends: `enhanceRecipe ?? type`. A model whose every op is
+    // enhance-exempt sends none — the enhancer is never offered on it (the audio models,
+    // MPI-1012) — so it has no key to resolve.
     const keys = new Map();
     for (const m of MODELS) {
+        if (m.supportedOps.every((op) => !opAllowsEnhance(op))) continue;
         const key = m.enhanceRecipe ?? m.type ?? '(none)';
         keys.set(key, [...(keys.get(key) ?? []), m.id]);
     }

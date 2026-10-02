@@ -55,7 +55,8 @@ test('open-flow with pickVoice lands on the inputs, the voice library showing on
 
     const res = await window.evaluate(() => fetch('/connector/open-flow', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ flowId: 'chatter-box', fields: { positive: 'The storm is coming.' }, media: [], follow: true, pickVoice: 'audio1' }),
+      // Voice Changer's target voice, since Text to Speech became a model (MPI-1012).
+      body: JSON.stringify({ flowId: 'voice-changer', media: [], follow: true, pickVoice: 'audio2' }),
     }).then(r => r.json()));
     expect(res.ok, JSON.stringify(res.error)).toBe(true);
     expect(res.output.at).toBe('Inputs');
