@@ -13,4 +13,9 @@
   tile at the old label's width.
 
 ## Eye test
-- Waiting on Fabio in his app.
+- 2026-10-02: Fabio opened the picker in his app: "exactly what was missing... a lot easier
+  to read". Passed.
+
+## Close
+- No UNRELEASED.md change: the picker has reached no public build (1.6.3 tester notes only),
+  so polish on it owes no entry (close-out.md). The 459a78bbd wording edit there was reverted.
