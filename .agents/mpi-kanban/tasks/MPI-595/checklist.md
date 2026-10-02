@@ -134,11 +134,15 @@ THIS umbrella:
   `tests/desktop/prompt-box-video-ref.spec.js` (failed on HEAD, passes); `npm test` 2673/0; `22fef2823` CI green (run 37005121706)
 - [ ] **MPI-801** eyedropper Pick in the Flows' paint step (Scribble, Draw It In) — a 2.0 ask
   Fabio remembered 2026-10-02 (folded into MPI-801 on 10-01, never listed here). Built +
-  spec-proven, `validating`: Fabio's look in his pre-cut smoke, then CI + done. Hold-Alt pick
+  spec-proven, `validating`; CI GREEN on `df16648ad` (run 37007031522). Left: Fabio's look in
+  his pre-cut smoke, then done. Hold-Alt pick
   stays on the card, not 2.0
 - [ ] **Fabio's own smoke in the app BEFORE the re-smoke (Fabio 2026-10-02):** item 1 (lock:
-  MelodramaBox sync + Mickmumpitz drop + release image build + pin) runs in a fresh session;
-  item 2 (paid scoped re-smoke) and everything after wait for his green light
+  MelodramaBox sync + Mickmumpitz drop + release image build + pin) DONE 2026-10-02
+  (`edff37f2a` + `42ddbda10`, mpi-ci `89bb08b`, image v0.24.0). NOW WAITING on Fabio: restart
+  the app, smoke it himself (agent, generations, a Pod connect boots v0.24.0). Item 2 (paid
+  scoped re-smoke `--models minimax-h3 --flows ltx-extend,character-sheet,outpaint`, quote the
+  price first) and everything after wait for his green light
 - [ ] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step
 
 Agent 85:
@@ -200,9 +204,9 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     refusal). MelodramaBox `9ebb44be` -> `529c4be` attested (17 `DramaBox*` classes, none under
     `comfy_workflows/`). `npm run release:check`: smoke line clear ("attested packs:
     ComfyUI-MelodramaBox"); only the 1.6.x archival notes (Gate D) remain. `tests/engine-drift.test.cjs`
-    6/6, the 2 new ones proven RED on the old gate. STILL OWED, AT THE CUT (not a question
-    before then; Fabio 2026-10-01): sync `node_lock.json` into `mpi-ci/cubric-vision-pod`, then
-    the clean release image build at that lock (the "release Pod image PROMOTED" line below)
+    6/6, the 2 new ones proven RED on the old gate. Owed at the cut: sync `node_lock.json` into
+    `mpi-ci/cubric-vision-pod`, then the clean release image build at that lock — BOTH DONE
+    2026-10-02 (mpi-ci `89bb08b`, image v0.24.0, lines below)
   - [x] ~~**REOPENED 2026-10-01 by MPI-1008**~~ (`bff32c628`): `node_lock.json` repinned ComfyUI-MelodramaBox `9ebb44be` -> `529c4be` (DramaBox device-mismatch fix). A third-party pin move is the blunt verdict in `scripts/engine-drift.mjs` `assessPinMove`, so the 09-28 evidence reads STALE (proven) and a scoped run cannot merge into it. Owed before the cut: sync `node_lock.json` into `mpi-ci/cubric-vision-pod` (still `9ebb44be`; the Pod image BAKES MelodramaBox, so until a rebuild a 2.0 app on a Pod toasts "Pod image is stale - rebuild needed") - folds into the release image build below, no extra build. **A re-smoke is NOT needed for this move (Fabio asked 2026-10-01):** no `comfy_workflows/*.json` loads a DramaBox class (DramaBox is a package Flow since MPI-781), so the pin cannot reach a smoked graph; the gate is blunt only because it cannot diff third-party packs. Fix the GATE instead (attest a third-party pack no shipped graph loads, or narrow by class_type), so `release:check` stops reading the 09-28 evidence as stale. Image publish: Fabio's go
   - [x] sync `node_lock.json` AND `python_deps.txt` into `c:\AI\Mpi\mpi-ci\cubric-vision-pod\`, re-measure the drift, commit there — 2026-09-28 mpi-ci `5ba9eb8` (MpiNodes cff4c3b -> bc92a1b, SplatKit out, core v0.34.0 unchanged); byte-identical to Vision. pushed 2026-09-29 with mpi-ci `57a31c0` (MPI-894)
   - [x] `node scripts/smoke-workflows.mjs --plan --flows all` 2026-09-28, shown to Fabio: 13 models / 38 ops / 290.5 GB + 14 Flows (+64.1 GB) = **400 GB volume**; lock in sync; MpiNodes + required-inputs sweeps clean; 1 SKIP `flux-schnell-cloud/t2i` (cloud, no workflow). **Re-run right before the real smoke** (sync LAST rule)
@@ -211,10 +215,23 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     - 2026-09-28 run 1 (`--flows all`) installed all 13 models + Flow models, then ABORTED before the GPU leg: `flow dep install failed: flow:voice-changer, flow:chatter-box` — every chatterbox dep `invalid model type` (a `targetPath` weight reaches the wrapper with an empty type; `_SUBDIR_RE` rejects it). NOT a regression: MPI-607 (2026-08-24, Fabio-approved) made both Flows honest-missing on remote; neither the image nor the volume path can supply them. Run 2 = same matrix, `--flows` minus those two (12 Flow entries) — ALSO aborted, on run 1's leftover failed jobs (runner bug). **Fabio 2026-09-28: B — 2.0 cannot ship a Flow that works locally and not remotely.**
     - [x] B fix: Vision `43eab1c33` (`wrapperDepPath` maps `targetPath: models/<type>/<sub>` to a real wrapper type at status/install/uninstall; `_withRegistryDef` resolves `targetPath` + `bakedOnPod` by id for stripped callers; runner counts only its own jobs; `tests/remote-target-path-deps.test.cjs`; npm test 2190/0 fail). mpi-ci start.sh links `/opt/ComfyUI/models/chatterbox` -> volume `mpi_models/chatterbox`, published to R2 **dev** (served bytes verified = committed). mpi-ci `b131c0a` pushed 2026-09-29 with `57a31c0`. `promote` to stable at release
     - [x] run 3: `--flows all` after an app restart (routes changed); chatter-box + voice-changer PASS on the Pod is the live proof of the symlink (not testable on Windows) — chatter-box 21s + voice-changer 8s PASS on the 5090 Pod 2026-09-28
-  - [ ] **Drop `ComfyUI-Mickmumpitz-Nodes` from `node_lock.json` at the cut (Fabio 2026-10-02):**
-    no shipped graph loads it since MPI-1011's Outpaint rebuild. Same lock edit as the
-    MelodramaBox sync, so it rides into the one release image build below
-  - [ ] release Pod image PROMOTED (clean rebuild, never a renamed `-dev` tag)
+  - [x] **Drop `ComfyUI-Mickmumpitz-Nodes` from `node_lock.json` at the cut (Fabio 2026-10-02):**
+    DONE `edff37f2a` (lock + nodesDeps; python_deps.txt byte-identical). None of its 84 classes
+    is in the 109 graphs under comfy_workflows/, scripts/ or Cubric-Flows (Head Swap, DramaBox).
+    The gate could not attest a REMOVED pack (blunt-stale = full re-smoke): `packs.<name>.to:
+    null` now signs off a removal from the exact pin it left at; 5 tests RED-proven.
+    `release:check` smoke line clear ("attested packs: MelodramaBox, Mickmumpitz"). mpi-ci
+    `89bb08b` synced (both files byte-identical to Vision, pushed)
+  - [x] release Pod image PROMOTED (clean rebuild, never a renamed `-dev` tag) — **`v0.24.0`
+    built 2026-10-02** (mpi-ci `89bb08b`, CI run 37007901023, both legs green): core v0.34.0,
+    wrapper 0.2.45 baked, MelodramaBox 529c4be, no Mickmumpitz in the bake log. Anonymous
+    registry pull 200 on both (cu130 `sha256:5a42081e`, cpu `sha256:3125fc65`); `node-import
+    smoke test OK`, torch 2.12.0+cu130, one cv2. Pinned in `42ddbda10`: stable AND dev pairs
+    -> v0.24.0 (a rebuild's proof never transfers from its dev tag, so Fabio's smoke and the
+    re-smoke boot the release image). **App restart needed** to pick it up. `release:check`:
+    only the 1.6.x archival notes left. NOT run: local cpu boot smoke (Docker daemon down);
+    the re-smoke's CPU install Pod boots it on RunPod. `--plan` scoped re-smoke now reads
+    "pod lock + python_deps in sync ✓" (no longer refuses)
   - [ ] **Scoped re-smoke at the cut (found 2026-10-02):** two shipped Flow graphs changed AFTER
     the 09-28 run — `flow_h3_extend.json` (MPI-974, `d8f23a421`; Flow `ltx-extend/minimax-h3`) and
     `flow_character_sheet.json` (MPI-997 split, `09f49a278` + `6f342280c`; Flow `character-sheet`).
