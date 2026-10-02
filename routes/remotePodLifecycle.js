@@ -154,7 +154,14 @@ const POD_IMAGE_BASE = 'docker.io/madponyinteractive/cubric-vision-pod';
 // not ceremonial: the two images' layer digests genuinely diverge (cu130 from index 11,
 // cpu from index 4) because the rebuild resolved fresh apt/pip bits, so the dev image's
 // live Pod proof does NOT transfer to this one.
-const POD_IMAGE_VERSION = 'v0.21.0';
+// v0.24.0 (MPI-595, the 2.0 cut): ComfyUI 0.34.0 — the engine the 2026-09-28 smoke proved
+// (v1.5.0 shipped v0.23.0 from its release branch; this replaces it). Clean release rebuild
+// at the lock, NOT v0.24.0-dev renamed: MelodramaBox 529c4be (MPI-1008) and
+// ComfyUI-Mickmumpitz-Nodes OUT of the bake (no shipped graph loads it since MPI-1011).
+// mpi-ci 89bb08b, CI run 37007901023, wrapper 0.2.45 baked. Both legs anonymously pullable
+// (cu130 sha256:5a42081e, cpu sha256:3125fc65); `node-import smoke test OK`, post-node torch
+// 2.12.0+cu130, one cv2 (5.0.0 ximgproc True). cpu boot smoke NOT run (Docker daemon down).
+const POD_IMAGE_VERSION = 'v0.24.0';
 // The CPU image stays on GHCR (not moved to Docker Hub — MPI-189 only repointed
 // the GPU image whose cold-start pull is being measured).
 const POD_IMAGE_BASE_CPU = 'ghcr.io/madponyinteractive/cubric-vision-pod';
@@ -188,7 +195,8 @@ const POD_IMAGE_BASE_CPU = 'ghcr.io/madponyinteractive/cubric-vision-pod';
 // 0.31.0 wave), pushed to GHCR and pull-verified public. Kept in lockstep with the GPU
 // pin — a GPU-only bump is the v0.10.3-cpu 404 trap, where CPU download Pods pull a tag
 // that does not exist and the Pod exits at boot while the app blames a bad host.
-const POD_IMAGE_VERSION_CPU = 'v0.21.0';
+// v0.24.0-cpu (MPI-595): same CI dispatch as the GPU pin (37007901023), lockstep.
+const POD_IMAGE_VERSION_CPU = 'v0.24.0';
 // MPI-340: DEV-ONLY image pins. _devMode (BUILD_HASH === 'dev') is false in every
 // released portable, so a shipped app can NEVER resolve these — the stable pins above
 // stay frozen while Pod-image work iterates. Bump these (not the stable pair) after a
@@ -302,8 +310,12 @@ const POD_IMAGE_VERSION_CPU = 'v0.21.0';
 // both legs pushed and pull-verified; cu130 printed `node-import smoke test OK` with post-node
 // torch 2.12.0+cu130. The cpu boot smoke was NOT run (Docker daemon down) — the smoke's CPU
 // install Pod boots this tag on RunPod instead.
-const POD_IMAGE_VERSION_DEV = 'v0.24.0-dev';
-const POD_IMAGE_VERSION_CPU_DEV = 'v0.24.0-dev';
+// v0.24.0 (MPI-595, the 2.0 cut): the dev pair points at the RELEASE image, equal to the
+// stable pins. A clean rebuild's proof does not transfer from its dev tag (see v0.21.0), so
+// Fabio's pre-cut smoke and the scoped re-smoke — both run from a dev app — must boot the
+// exact image released users get.
+const POD_IMAGE_VERSION_DEV = 'v0.24.0';
+const POD_IMAGE_VERSION_CPU_DEV = 'v0.24.0';
 // 0.2.23 (MPI-169): add GET /wrapper/disk (du -sb of the mounted volume) so the
 // Settings volume bar can show truthful USED bytes — RunPod's API has no used-bytes.
 // R2-publish-only (publish-runtime.sh, no image rebuild). Degrades gracefully: an
