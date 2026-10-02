@@ -97,3 +97,35 @@ Verify mode: user-ux. Evidence per phase lands here; Fabio's look closes it.
 - Bench fixture `services/agentBench/connector-models.json`: the two retired Flow rows out,
   two model rows in (built by `namedParamsFor`), byte-exact round-trip guarded;
   `tests/agent-bench.test.cjs` green.
+
+## P8 live check (session c49812a3, 2026-10-02, Fabio's yes)
+
+Own instance (`cubric-agent-profile`, port 61711; later relaunched with a CDP port), attached
+to the shared engine on 48188, every GPU run under `gpu_lease.py`. CI green on eff5b6a0c
+(run 37058921023, unit + 4 desktop shards). Throwaway projects: `MPI-1012 P8 audio check`, plus
+COPIES of Fabio's `TTS` and `Music Maker` (own id/name; his originals untouched, TTS
+`project.json` still 08:21).
+
+- Listing: `/connector/models` lists both audio models with their params; Stable Audio
+  installed (G: already held its 11.8 GB), Chatterbox 5.96 GB missing.
+- Install by agent: `POST /connector/install {modelId: chatterbox}` -> 6.4 GB downloaded,
+  job `done`, model then `installed: true`.
+- Agent generate by modelId: `stable-audio-3`/`t2a` SFX 4 s -> 4.09 s stereo 44.1 kHz flac,
+  7.0 s; sidecar `Input_Duration 4`, `Input_Category SFX`. `chatterbox`/`tts` with a LIBRARY
+  voice (`deep_male_1`): English 3.52 s (14.4 s, `Is_Multilingual false`), German 4.67 s
+  (15.8 s, `German (de)`, `Is_Multilingual true`).
+- Old ids: a saved routine with a `{flowId: "chatter-box"}` step (written straight to disk, the
+  pre-MPI-1012 shape) quotes free and RUNS as the chatterbox `tts` step on a card as the voice;
+  `/connector/generate {flowId: "sound-and-music", fields}` runs Stable Audio (One-shot, 2.7 s).
+- Prompt box (driven over CDP): model picker shows Image / Video / Audio heads in Prism pink,
+  Reel orange, Vinyl green; Audio section has both tiles. Stable Audio: box rebinds to green, no
+  `+`, no Enhance, op `t2a` ("Sound & Music" tooltip), params = What is it + Length 10 s.
+  Cue from the box: lands a card, ONE 0-100% bar, 3.7 s warm. Chatterbox Cue: lands a 3.62 s
+  card, NO progress (STARTING 0% throughout; pre-existing, brief.md Noticed). No progressStages
+  entry needed: one bar has no stage count.
+- Reuse on an OLD Flow card: chatter-box card -> Reuse dialog (Prompt/Settings/Model/Audio) ->
+  Chatterbox, `tts`, line restored, voice staged, `+` = "Add a voice", Language English.
+  sound-and-music card -> Stable Audio 3, `t2a`, prompt, Music, Length 45 s.
+- Not run: Cosmo itself (needs a paid DeepInfra LLM key; its generate tool rides the same
+  connector dispatch, covered by the agent-loop tests).
+- Left for Fabio's look: P1 colours in the four overlays + audio in the prompt box.

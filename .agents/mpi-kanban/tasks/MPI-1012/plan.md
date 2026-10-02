@@ -187,6 +187,19 @@ Website `index.html:247, 260, 262, 272, 275` ("Thirteen", TTS + Sound & Music li
 an old Flow card, a routine step naming `chatter-box`, an agent `generate` by modelId, count
 progressStages bars. Then his look (colours + audio in the prompt box), then MPI-595 item 2.
 
+2026-10-02 (session c49812a3): CI green on eff5b6a0c (37058921023). **P8 live check DONE**
+with Fabio's yes, every check green, evidence in `validation.md` § P8 (agent install + generate
+by modelId, both TTS arms, old routine step + old flowId, picker/box/params, Cue from the box,
+Reuse of OLD Flow cards). Chatterbox downloaded into the shared engine (6.4 GB). No code
+changed. progressStages: no entry needed (Stable Audio = 1 bar; Chatterbox emits none,
+pre-existing, brief.md Noticed). **Next: Fabio's look** (P1 colours in the four overlays +
+audio in the prompt box) -> close MPI-1012; then MPI-595 item 2 (paid re-smoke, quote first).
+Throwaway projects left in his Documents: `MPI-1012 P8 audio check`, `MPI-1012 P8 copy of TTS`,
+`MPI-1012 P8 copy of Music Maker` (delete after his look).
+Fabio went to bed before the look; the visible instance was closed. Tomorrow: relaunch it with
+`CUBRIC_BACKGROUND=0 npm run app:isolated` (own profile, Chatterbox already installed), give
+him the five look steps, and ask again whether to delete the three test projects (pick: yes).
+
 ## Plan Drift
 
 - 2026-10-02 (P3): **part of P5 came forward**, because the suite requires it — every shipped

@@ -15,3 +15,8 @@
   while stable-audio-3 and chatterbox have no rows. Reported, never gated; MPI-595 item 2's
   merge rewrites the scope (and since P6 keeps a new model unproven). Computing `unproven`
   from the live MODELS there would make the line true at any time.
+- Chatterbox reports NO progress: a prompt-box `tts` run sits on "STARTING 0%" for its whole
+  length (11.6 s measured at P8), then goes IDLE. The FL_ChatterboxTTS node never calls
+  ComfyUI's progress hook; same as when it was the Text to Speech Flow (no `progressStages`
+  entry ever), so not a regression. A long line will read as stuck. Stable Audio shows one
+  0-100% bar, fine.
