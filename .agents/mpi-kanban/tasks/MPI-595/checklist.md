@@ -256,7 +256,14 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
   - [x] DRAFTED 2026-09-29 in `UNRELEASED.md` § "Known issues (GitHub release page ONLY)": RunPod cutoff (Updating?), SAC (First launch, Windows), xcode-select (First launch, macOS), macOS untested (Platform support). A5 needs no line (MPI-954 fixed). They are release-BODY lines, not in-app: 1.5.0's update prompt shows no notes (`git show v1.5.0:js/services/updateChecker.js`, OK/Cancel only)
   - [x] Fabio reviewed the four lines 2026-09-29: "lines are good". Copy them into the release body at Gate 2 as written
 - [x] MPI-543 / MPI-544 / MPI-569 — OUT of 2.0 (Fabio 2026-09-29). 544 was seen once, in the 2026-08-11 download-Pod incident (bot-driven installs), never reproduced; Fabio reads it as smoke-run-only. Cards stay on the board as they are
-- [ ] Flow-list reconcile — LAST, once, at notes freeze (13 ids on 2026-09-27)
+- [ ] Flow-list reconcile — LAST, once, at notes freeze (13 ids on 2026-09-27; still 13 and
+  matching the 13 lines on 2026-10-02)
+- [ ] **Changelog clean-up (2026-10-02, session c6543d87), Fabio's look pending:** em dashes out
+  of every user-facing bullet; 1.6.x tester notes cross-checked against v1.5.0, gaps added
+  (lost-prompt hang MPI-516, camera-rotated photos MPI-959, eyedropper MPI-960/964, big-photo
+  History/landing MPI-963, masked area only MPI-971); `## Engine` added (core v0.34.0
+  unchanged, 4 packs added). Upscaler line kept (matches MPI-791; the 1.6.2 note was looser).
+  Then the Docs site compares its pages against these notes (Fabio)
 
 ## Agent connection (MPI-593)
 

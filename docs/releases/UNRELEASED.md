@@ -79,8 +79,8 @@
   engine** button at the end of Settings → External Connections, and it waits for anything
   you are generating to finish.
 
-- **Inpainting no longer erases on an empty prompt.** Name what you want gone — "remove the
-  tattoo" — instead of clearing the prompt and painting over it. Both Klein cards.
+- **Inpainting no longer erases on an empty prompt.** Name what you want gone ("remove the
+  tattoo") instead of clearing the prompt and painting over it. Both Klein cards.
 
 - **FLUX.2 Klein 4B is one weight lighter.** The 72 MB outpaint LoRA is gone, and Cubric Studio
   clears it off your disk if you had it.
@@ -93,7 +93,7 @@
 
 - **Deleting a card always asks first now.** Right-clicking a card and choosing Delete used to
   remove it and its files on the spot, with no confirmation. It opens the same box the Delete
-  key does — and that box now offers **Archive** beside Delete, so you can put a card away
+  key does, and that box now offers **Archive** beside Delete, so you can put a card away
   instead of losing it.
 
 - **Reuse Prompt needs the source card to still be there.** The app used to keep a hidden copy
@@ -114,20 +114,20 @@
   finished result. Open the Flow Library from the Flows button at the top of the gallery, from
   the landing page, or with TAB. Thirteen to start with:
 
-  - **Draw It In** — draw something into a photo you already have
-  - **Scribble** — draw on a blank canvas and have it rendered
-  - **Object Stamp** — take an object out of one photo and put it in another
-  - **Character Sheet** — turn a description into a character reference sheet, with the front
+  - **Draw It In**: draw something into a photo you already have
+  - **Scribble**: draw on a blank canvas and have it rendered
+  - **Object Stamp**: take an object out of one photo and put it in another
+  - **Character Sheet**: turn a description into a character reference sheet, with the front
     view's head removed for video models or kept (one press on the result swaps them)
-  - **Outpaint** — extend a picture past its edges
-  - **Extend Video** — carry on past the last frame, sound and all
-  - **Add Foley** — give a silent clip its soundtrack
-  - **Upscale Video** — double a clip's resolution
-  - **Voice Changer** — say a line and have it come back in someone else's voice
-  - **Text to Speech** — read your text aloud in a voice you pick, in 23 languages
-  - **Song** — write a song from a style, a mood and your own lyrics
-  - **Stems** — split a song into bass, drums, vocals and everything else
-  - **Sound & Music** — sound effects, one-shots, instruments and instrumental music
+  - **Outpaint**: extend a picture past its edges
+  - **Extend Video**: carry on past the last frame, sound and all
+  - **Add Foley**: give a silent clip its soundtrack
+  - **Upscale Video**: double a clip's resolution
+  - **Voice Changer**: say a line and have it come back in someone else's voice
+  - **Text to Speech**: read your text aloud in a voice you pick, in 23 languages
+  - **Song**: write a song from a style, a mood and your own lyrics
+  - **Stems**: split a song into bass, drums, vocals and everything else
+  - **Sound & Music**: sound effects, one-shots, instruments and instrumental music
 
   Each flow says which models it needs and installs them for you. Most run on a model the
   Library already offers, so once you own it the flow costs you nothing extra. The Library has
@@ -148,7 +148,7 @@
   Remove background cuts the object out first, so what lands is the object and not its box.
 
 - **Videos can be upscaled with LTX, sound and all.** The Upscale tool in the History
-  workspace doubles a clip's resolution and leaves the audio untouched. Short clips first — a
+  workspace doubles a clip's resolution and leaves the audio untouched. Short clips first: a
   long one can still exhaust graphics memory.
 
 - **You can now mask a picture and give it a reference at the same time.** Her hair like this
@@ -165,7 +165,7 @@
 - **MiniMax H3's Turbo mode is faster and cleaner.** The full-quality 25-step mode is
   untouched.
 
-- **MiniMax H3 Reference has its own Turbo weight now**, tuned for references — more
+- **MiniMax H3 Reference has its own Turbo weight now**, tuned for references: more
   cinematic shots, and sound that follows what you asked for more closely.
 
 - **Audio looks like audio.** An audio card is now a wide tile drawn with its own waveform,
@@ -180,7 +180,7 @@
 - **Choose which speakers or headphones Cubric Studio plays through.** Settings has an Audio section
   with an Output picker and a Test button. Left empty, Windows keeps deciding.
 
-- **The cogwheel by the prompt shows the LoRAs your model is running** — name, strength, and a
+- **The cogwheel by the prompt shows the LoRAs your model is running**: name, strength, and a
   switch to mute one for the next run, without leaving the prompt you are working on.
 
 - **Stack: collect several cards into one.** Select cards and press Stack. Drop the stack on
@@ -243,7 +243,8 @@
   frame onto transparency.
 
 - **Big photos just work.** 16K images import, thumbnail and edit, and anything over 4K offers
-  to shrink to a size every tool handles quickly. SVGs import as pictures too.
+  to shrink to a size every tool handles quickly. A masked edit or Detail works on just the
+  masked area and stitches it back. SVGs import as pictures too.
 
 - **Sharper masks on large images.** Masks now work at up to 4096 pixels instead of 1536, so on
   a 4K photo a mask edge lands on the exact pixel, and Grow and Shrink draw a smooth edge.
@@ -255,14 +256,17 @@
   rotating quote. Hover one and it greets you; click it for a happy pose. The selected model's
   mascot peeks over the prompt box, and plays on a card while it generates.
 
+- **Pick a colour straight off the picture.** The Remove Background, Paint and Paint Adjust
+  colours have an eyedropper beside them.
+
 - **Resize can shrink a picture by megapixels or by a fixed amount.** MP resizes to the
   megapixels you type, SCALE divides width and height by 1.5, 2, 3 or 4.
 
-- **Mark cards with a dot, a square or a triangle.** The heart is now a mark — click for a
-  dot, hold to pick a shape — and FILTER can show only the shapes you choose.
+- **Mark cards with a dot, a square or a triangle.** The heart is now a mark (click for a
+  dot, hold to pick a shape), and FILTER can show only the shapes you choose.
 
 - **The radial menu is back.** Hold TAB and pick Gallery, Models, Flows or your latest
-  workspace — a quick way to move between them. Models opens the model picker, so you can
+  workspace, a quick way to move between them. Models opens the model picker, so you can
   change the model you are generating with from anywhere.
 
 - **The card right-click menu is reorganised, and every entry explains itself.** Two groups
@@ -285,6 +289,14 @@
 
 - **Pod runs no longer hang on "Still connecting to the remote engine".** After new nodes
   installed on a Pod, the next run could wait forever. The app now reconnects on its own.
+
+- **A generation the engine loses now fails instead of waiting forever.**
+
+- **Photos turned by the camera crop, edit and import upright.** A portrait phone photo used to
+  be cropped in the wrong place and saved sideways.
+
+- **History and the landing page open quickly on big photos.** They load the thumbnail now,
+  not the full picture.
 
 - **Mask Adjust keeps working when you switch versions.** Grow, Shrink and Edge stopped
   responding after you picked another version of the image in History, until you left History
@@ -348,7 +360,7 @@
 
 - **Cancelling an install no longer leaves the Model Library showing the wrong thing.**
 
-- **Clicking away closes a panel now, wherever you are** — Settings, Hotkeys and About
+- **Clicking away closes a panel now, wherever you are**: Settings, Hotkeys and About
   included. The Cue queue stays open on purpose, so you can keep prompting.
 
 - **The colour picker no longer opens off the bottom of the screen.** It opens upward when
@@ -363,7 +375,7 @@
 
 - **Scrolling a gallery full of videos is smooth again.**
 
-- **The first engine start no longer looks frozen.** The long step now names itself —
+- **The first engine start no longer looks frozen.** The long step now names itself:
   "Installing Python packages… First engine start only".
 
 - **The app no longer keeps running outdated engine components after an update.** "Skip the
@@ -380,13 +392,13 @@
 - **Big gallery cards are sharp.** A card now picks a thumbnail that matches the size it is
   drawn at.
 
-- **Generated files are named after the button you pressed** — `edit_004` whichever model made
+- **Generated files are named after the button you pressed**: `edit_004` whichever model made
   it, `upscale_002`, `i2v_007`. Files you already have keep their names.
 
 - **Hovering a video card costs a fraction of what it did.** The gallery keeps a 720p copy for
   hover; everything you export still uses the original.
 
-- **Download-only Pods no longer fail when one CPU size sells out** — the app tries the others.
+- **Download-only Pods no longer fail when one CPU size sells out**: the app tries the others.
 
 - **Connect waits for your GPU by default.** RunPod stock moves minute to minute, so a card
   shown in stock is often gone by the time you press Connect. New installs now keep trying in
@@ -406,3 +418,9 @@
 
 - **Opening a project no longer makes saves and generations wait.** The project list stops
   loading its video previews when you leave it.
+
+## Engine
+
+- **The ComfyUI engine is unchanged from 1.5.0.** Four more custom-node packs come with it,
+  mostly for the voice, music and stem Flows, and the Cubric pack moves to a newer version. The first
+  launch after updating installs them and their Python packages, so expect that download.
