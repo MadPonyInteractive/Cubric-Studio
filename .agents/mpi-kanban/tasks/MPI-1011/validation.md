@@ -63,7 +63,8 @@
   "Generation finished." toasts, the flow screen showed the result with "Done - saved to your
   gallery.", no line anywhere.
 
-## Open
+## CI - 2026-10-02: GREEN
 
-- CI on `bf9588d59`, then the done move. Outpaint stays in the scoped re-smoke at the cut
-  (MPI-595 B1).
+- Tests run 36995557115 on `bf9588d59096950cf072ac278afeb768b5717dc0`: unit + desktop 1-4 all
+  success. With Fabio's look above, that closes the card. Outpaint stays in the scoped re-smoke
+  at the cut (MPI-595 B1).

@@ -90,10 +90,11 @@ THIS umbrella:
   (route sends image 1's shape), CI green. Outpaint's cloud slot REMOVED (Fabio, `bf9588d59`).
   Left: one paid live Klein edit on t2i_006 (~$0.02, Fabio runs it), and Seedream 4/4.5/5 Pro's
   '2K' default is UNPROVEN to follow the input (3 paid edits, ~$0.18, on Fabio's yes)
-- [ ] **MPI-1011** Outpaint — 2.0 GATE (Fabio 2026-10-02). REBUILT `bf9588d59`: Klein's picture
+- [x] **MPI-1011** Outpaint — CLOSED 2026-10-02 (CI green on `bf9588d59`, run 36995557115).
+  Was a 2.0 GATE (Fabio 2026-10-02). REBUILT `bf9588d59`: Klein's picture
   is the result (paste-back + harmonizer removed, Fabio's option 2: ~1 MP, no seam), passes at
   a third per side now actually chain (pass 2 never started before), no cloud model. Fabio's
-  look PASSED ("Fantastabomb."). Left: CI green on `bf9588d59`, then the done move. Its graph
+  look PASSED ("Fantastabomb."). Its graph
   change keeps `outpaint` in the cut's scoped re-smoke (B1)
 - [x] **MPI-894** 2.0 SCOPE DONE 2026-10-02, card parked `todo`/`deferred` (541/183/349 after
   2.0). Saved RAM floors stay as set (Fabio 2026-10-02). Was: remote GPU umbrella — v2 + 1b + 1c done. **Fabio 2026-10-01: MPI-668 IN**,
