@@ -131,7 +131,7 @@ THIS umbrella:
   the rule (slot-based) + its inline copies in `MpiPromptBox.js` (`_pickFallbackOp`, op
   strip, `_pickOpForModel`; a video on `i2v` now moves to `ref2v` too). History's MPI-281
   "requires input" filters kept as they were. RED-proven: `tests/text-only-op.test.cjs` +
-  `tests/desktop/prompt-box-video-ref.spec.js` (failed on HEAD, passes); `npm test` 2673/0
+  `tests/desktop/prompt-box-video-ref.spec.js` (failed on HEAD, passes); `npm test` 2673/0; `22fef2823` CI green (run 37005121706)
 - [ ] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step
 
 Agent 85:
@@ -204,6 +204,9 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     - 2026-09-28 run 1 (`--flows all`) installed all 13 models + Flow models, then ABORTED before the GPU leg: `flow dep install failed: flow:voice-changer, flow:chatter-box` — every chatterbox dep `invalid model type` (a `targetPath` weight reaches the wrapper with an empty type; `_SUBDIR_RE` rejects it). NOT a regression: MPI-607 (2026-08-24, Fabio-approved) made both Flows honest-missing on remote; neither the image nor the volume path can supply them. Run 2 = same matrix, `--flows` minus those two (12 Flow entries) — ALSO aborted, on run 1's leftover failed jobs (runner bug). **Fabio 2026-09-28: B — 2.0 cannot ship a Flow that works locally and not remotely.**
     - [x] B fix: Vision `43eab1c33` (`wrapperDepPath` maps `targetPath: models/<type>/<sub>` to a real wrapper type at status/install/uninstall; `_withRegistryDef` resolves `targetPath` + `bakedOnPod` by id for stripped callers; runner counts only its own jobs; `tests/remote-target-path-deps.test.cjs`; npm test 2190/0 fail). mpi-ci start.sh links `/opt/ComfyUI/models/chatterbox` -> volume `mpi_models/chatterbox`, published to R2 **dev** (served bytes verified = committed). mpi-ci `b131c0a` pushed 2026-09-29 with `57a31c0`. `promote` to stable at release
     - [x] run 3: `--flows all` after an app restart (routes changed); chatter-box + voice-changer PASS on the Pod is the live proof of the symlink (not testable on Windows) — chatter-box 21s + voice-changer 8s PASS on the 5090 Pod 2026-09-28
+  - [ ] **Drop `ComfyUI-Mickmumpitz-Nodes` from `node_lock.json` at the cut (Fabio 2026-10-02):**
+    no shipped graph loads it since MPI-1011's Outpaint rebuild. Same lock edit as the
+    MelodramaBox sync, so it rides into the one release image build below
   - [ ] release Pod image PROMOTED (clean rebuild, never a renamed `-dev` tag)
   - [ ] **Scoped re-smoke at the cut (found 2026-10-02):** two shipped Flow graphs changed AFTER
     the 09-28 run — `flow_h3_extend.json` (MPI-974, `d8f23a421`; Flow `ltx-extend/minimax-h3`) and
