@@ -272,6 +272,17 @@ async function _readReference(file, maxPixels = REF_MAX_PIXELS) {
         .jpeg({ quality: 92 }).toBuffer();
 }
 
+/** A picture's upright size (EXIF 5-8 turn it a quarter), or null when it cannot be read. */
+async function _uprightSize(file) {
+    try {
+        const { width, height, orientation } = await sharp(file, { limitInputPixels: false }).metadata();
+        if (!width || !height) return null;
+        return orientation >= 5 ? { width: height, height: width } : { width, height };
+    } catch {
+        return null;
+    }
+}
+
 // Wan 3.0's published input limits (DeepInfra schema, 2026-09-30). Images go through
 // `_readReference` like every other reference; these bound the files sent as they are.
 const MEDIA_MIME = { '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.wav': 'audio/wav', '.mp3': 'audio/mpeg' };
@@ -510,9 +521,14 @@ router.post('/deepinfra/generate', async (req, res) => {
     // Re-derived server-side rather than trusted from the client for the same reason the
     // batch always was: every one of these fields moves the bill, and the renderer is not
     // the authority on spending. The caps are the endpoint's own published maxima.
+    //
+    // Image 1's own size rides along for an edit that follows its source and so sends no
+    // size: a pixel endpoint's default is a fixed square (deepinfraSizing.js 'wh').
+    const source = !sheet && refs[0] && !(width > 0 && height > 0) ? await _uprightSize(refs[0]) : null;
     Object.assign(body, buildSizeFields(model.cloud.endpointId, sheet
         ? { width: sheet.width, height: sheet.height, qualityTier, duration, batch }
-        : { width, height, ratioLabel, qualityTier, duration, batch }));
+        : { width, height, ratioLabel, qualityTier, duration, batch,
+            sourceWidth: source?.width, sourceHeight: source?.height }));
     // Most endpoints take the picture as a data URL. FLUX-2 pro/max take bare base64
     // (`cloud.imageBareBase64`): BFL cannot decode a data URL and answers a 500. The data
     // URL names the file's REAL type, sniffed from its bytes.

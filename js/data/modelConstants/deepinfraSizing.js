@@ -105,11 +105,13 @@ export function pixelBoxFor(endpointId) {
  * Everything is optional, because a caller may legitimately know only some of it — a
  * reused prompt carries pixels but no tier, an edit op carries neither. A field this
  * cannot resolve is OMITTED rather than guessed, so the provider applies its own default
- * instead of us inventing one.
+ * instead of us inventing one — except where that default is a fixed size that would
+ * reshape an edit's source (the 'wh' case below).
  *
  * @param {string} endpointId - the provider's model id (`model.cloud.endpointId`)
  * @param {{width?:number, height?:number, ratioLabel?:string, qualityTier?:string,
- *          duration?:number, batch?:number}} [want]
+ *          duration?:number, batch?:number, sourceWidth?:number, sourceHeight?:number}} [want]
+ *   `sourceWidth`/`sourceHeight`: image 1's upright size, used only when no size was picked.
  * @returns {Record<string, *>} fields to merge into the request body
  */
 export function buildSizeFields(endpointId, want = {}) {
@@ -122,8 +124,21 @@ export function buildSizeFields(endpointId, want = {}) {
 
     switch (sizingModeFor(endpointId)) {
         case 'wh': {
-            if (width > 0 && height > 0) {
-                const fitted = _fitPair(width, height, limits.width, limits.height, WH_STEP);
+            // An edit that follows its source (`imageSizedOps`) arrives with no pixels. These
+            // endpoints do NOT follow the input then: width/height default to a fixed square
+            // (1024x1024 on FLUX 2 dev and Klein 9B), which centre-cuts any other shape. So the
+            // source's shape goes out, at the area of the endpoint's own default. The 'size'
+            // and 'aspect' models need nothing: a tier or no ratio follows the reference.
+            let [w, h] = [width, height];
+            const srcW = Number(want.sourceWidth) || 0;
+            const srcH = Number(want.sourceHeight) || 0;
+            if (!(w > 0 && h > 0) && srcW > 0 && srcH > 0) {
+                const area = (Number(limits.width.default) || 1024) * (Number(limits.height.default) || 1024);
+                const scale = Math.sqrt(area / (srcW * srcH));
+                [w, h] = [srcW * scale, srcH * scale];
+            }
+            if (w > 0 && h > 0) {
+                const fitted = _fitPair(w, h, limits.width, limits.height, WH_STEP);
                 out.width = fitted.width;
                 out.height = fitted.height;
             }

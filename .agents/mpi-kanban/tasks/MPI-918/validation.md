@@ -102,3 +102,18 @@ Verify mode: user-ux at Phase 4 (Fabio's look at stitched results); Phases 1-3 a
   answers"). Left: commit, CI, done move, MPI-985.
 - 2026-10-02 CI Tests run 36937756046 on `5dd3e2c2b` (the final code commit): success, unit + 4 desktop
   shards. Closes the card.
+
+## Reopened 2026-10-02 - a direct cloud edit came back square
+
+- Fabio: a Klein 9B cloud edit on card t2i_006 (active entry crop_005, 1365x1024: the 1024^2
+  original plus 171 px black bars) returned edit_022 at 1024x1024 with no bars - read as "the
+  first image went to the cloud". The sidecar shows crop_005 WAS sent. Cause: an `imageSizedOps`
+  edit hides the picker and sends no size; FLUX 2 dev + Klein 9B default width/height to 1024,
+  so the provider centre-cut the crop, and the centre of that crop IS the original. Local Klein
+  (edit_021) came back 1184x880, right. FLUX 2 dev cloud had the same hole since MPI-853.
+- Fix: the route reads image 1's upright size; `buildSizeFields` 'wh' sends that shape at the
+  endpoint's default area (1365x1024 -> 1184x896). Explicit sizes (Flows, picker) still win;
+  Nano Banana + Seedream 5 Pro unchanged (they follow the reference). RED first
+  (`tests/cloud-edit-follows-source.test.cjs`: "no size sent: [prompt, input_image_1]"), then
+  5/5; `npm test` 2665 / 0 fail; eslint clean. Quote vs new send: within ~1% (linear per px).
+- NOT yet live: needs one paid cloud edit (~$0.015) after an app restart.

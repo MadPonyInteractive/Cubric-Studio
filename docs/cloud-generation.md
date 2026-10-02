@@ -33,6 +33,11 @@ model is a `ModelDef` in `js/data/modelConstants/models.js` with `provider: 'dee
 
 - **Size:** `buildSizeFields` (`js/data/modelConstants/deepinfraSizing.js`) picks the currency THIS
   endpoint takes and fits it to its published bounds. The fitted size is what bills.
+  **An edit that follows its source (`imageSizedOps`, no picker) sends no size, and a pixel
+  endpoint does NOT follow the input then:** FLUX 2 dev and Klein 9B default to 1024x1024, which
+  centre-cut a 1365x1024 crop back to the original (MPI-918, 2026-10-02). So the route reads
+  image 1's upright size and the 'wh' case sends that shape at the endpoint's default area.
+  Nano Banana (no ratio = follows the reference) and Seedream 5 Pro (a '2K' tier) need nothing.
 - **Batch:** a native count where the endpoint has one (`batchFieldFor`): N outputs, ONE call,
   ONE bill. Otherwise `calls` requests of one sent together, N bills (MPI-940). One output is kept
   per output asked; extras are dropped (MPI-875).
@@ -157,7 +162,7 @@ reaches `_readReference` as "an image".
 ## Tests
 
 `tests/cloud-executor.test.cjs` (lane invariant, copy), `cloud-price-tag`, `cloud-duration-bounds`,
-`cloud-key-refresh`, `model-picker-cloud`, and `deepinfra-*` (account, catalogue, collage, credit
+`cloud-key-refresh`, `cloud-edit-follows-source`, `model-picker-cloud`, and `deepinfra-*` (account, catalogue, collage, credit
 gate, multiref, output retention, pricing, seedance-refs, transcribe, wan-media). Inside a Flow:
 `cloud-edit-graph` (the two passes) and `flow-cloud-edit` (who runs, the spec names its graph's
 edit stage, the orchestration, the agent's `cloud` line).
