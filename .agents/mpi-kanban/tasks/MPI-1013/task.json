@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1013",
+  "title": "GPU picker: Gen speed shows seconds per image, not just a bar",
+  "description": "Fabio 2026-10-02: the Gen speed bar alone makes close cards (RTX 5090 vs RTX PRO 4500) hard to tell apart. The tile label shows RunPod's measured s/img (GPU_GEN_SECS) beside the bar. Follows MPI-1007.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-02T19:04:22+01:00",
+  "updated_at": "2026-10-02T19:06:45+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

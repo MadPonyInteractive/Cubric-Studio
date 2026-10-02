@@ -106,7 +106,7 @@ component kept its old name, so "Settings" in a file name or an older card means
   A refused catalogue read throws → the route answers 502.
   **The picker is an overlay (MPI-894 1c)**, `MpiGpuPicker` opened by **Choose GPU** in the
   Remote panel, after RunPod's deploy page: tiles show $/hr, VRAM, `maxCount`, a three-bar stock
-  meter and a green **Gen speed** bar (MPI-1007): `GPU_GEN_SECS` in `js/data/runpodGpuSpecs.js`,
+  meter and a green **Gen speed** bar labelled with its seconds per image (MPI-1007, MPI-1013): `GPU_GEN_SECS` in `js/data/runpodGpuSpecs.js`,
   RunPod's MEASURED FLUX.2 Klein 9B seconds per image (runpod.io/gpu-compare, Sept 2026), the
   fastest card = a full bar. Neither RunPod API has a speed field, so it is hand-copied; a card
   RunPod did not benchmark shows no bar. Klein stands in for Krea2 (not benchmarked; same size

@@ -58,7 +58,7 @@ export const MpiGpuPicker = ComponentFactory.create({
                     </div>
                     <div class="mpi-gpu-picker__refresh" id="gpu-refresh"></div>
                 </div>
-                <p class="mpi-gpu-picker__note">Auto-retry: pick an out-of-stock card and Connect waits until it frees. Min RAM: every GPU Pod gets at least this much system RAM (0 = any host). Gen speed: RunPod's measured image times on each card (FLUX.2 Klein 9B, Sept 2026); no bar = not benchmarked.</p>
+                <p class="mpi-gpu-picker__note">Auto-retry: pick an out-of-stock card and Connect waits until it frees. Min RAM: every GPU Pod gets at least this much system RAM (0 = any host). Gen speed: RunPod's measured seconds per image on each card (FLUX.2 Klein 9B, Sept 2026), lower is faster; no bar = not benchmarked.</p>
             </div>
             <div class="mpi-gpu-picker__body">
                 <div id="gpu-grid"></div>
@@ -139,7 +139,7 @@ export const MpiGpuPicker = ComponentFactory.create({
                 specs: `${card.vramGb} GB VRAM${card.maxCount ? ` · max ${card.maxCount}` : ''}`,
                 bars,
                 speed: secs != null ? bestSecs / secs : undefined,   // fastest card = full bar
-                speedText: secs != null ? 'Gen speed' : '',
+                speedText: secs != null ? `${secs.toFixed(1)} s/img` : '',   // a bar alone hid close cards (MPI-1013)
                 state: out ? 'Out of stock · Connect waits' : STOCK_WORD[bars],
                 selected,
                 available: !out,
