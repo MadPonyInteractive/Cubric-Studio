@@ -84,6 +84,13 @@ THIS umbrella:
   live runs on Fabio's yes. THE LONG POLE
 - [x] **MPI-668 live leg handed to Agent 86** (2026-10-01, via Agent 85's handoff); CI green on
   `922ce37a1` / `ecd112ad1` (inside green `747341588`) and `ec18c1086`
+- [ ] **MPI-918 REOPENED 2026-10-02** (Fabio's test): every cloud edit sent no size, so FLUX 2
+  dev/pro/max and Klein 9B came back a 1024 square that centre-cut the source. Fixed `476c6fb67`
+  (route sends image 1's shape). Left: CI, one paid live edit, and Seedream 4/4.5/5 Pro's '2K'
+  default is UNPROVEN to follow the input (paid check on Fabio's yes)
+- [ ] **MPI-1011** Outpaint seam + passes — 2.0 GATE (Fabio 2026-10-02). Both built and proven
+  at node level; `validating` on Fabio's look. Its graph change adds `outpaint` to the cut's
+  scoped re-smoke (B1)
 - [x] **MPI-894** 2.0 SCOPE DONE 2026-10-02, card parked `todo`/`deferred` (541/183/349 after
   2.0). Saved RAM floors stay as set (Fabio 2026-10-02). Was: remote GPU umbrella — v2 + 1b + 1c done. **Fabio 2026-10-01: MPI-668 IN**,
   MPI-541 / MPI-183 / MPI-349 OUT of 2.0 (reasons in MPI-894 plan.md). `publish-runtime.sh

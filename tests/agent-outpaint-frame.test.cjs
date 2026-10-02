@@ -50,8 +50,18 @@ test('validateBoxParams: frame.grow takes a side, and refuses anything else', as
     assert.equal(bad.code, 'INVALID_FRAME');
 });
 
-// Outpaint itself runs ONE pass since e7228875 (Klein, no `maxGrow`), and so does the agent
-// path. This is the generic `maxGrow` path both frames keep, for a crop flow that declares it.
+// Outpaint fills a big frame in passes again (MPI-1011, Fabio 2026-10-02; one pass from
+// e7228875 to then). Both the flow frame and the agent path read the step's `maxGrow`.
+test('Outpaint declares maxGrow, so a 9:16 frame round a 16:9 photo is several passes', async () => {
+    const { getFlowById } = await esm('js/data/flowsRegistry.js');
+    const { planOutpaintPasses, OUTPAINT_MAX_GROW } = await esm('js/utils/outpaintPasses.js');
+    const crop = getFlowById('outpaint').steps.find(s => s.kind === 'crop');
+    assert.equal(crop.maxGrow, OUTPAINT_MAX_GROW);
+    // Fabio's frame 2026-10-02: 1920x1080 grown to 9:16, 1920x3413.
+    const plan = planOutpaintPasses({ w: 1920, h: 1080 }, { x: 0, y: -1167, w: 1920, h: 3413 }, crop.maxGrow);
+    assert.ok(plan && plan.length >= 3, `expected 3+ passes, got ${plan && plan.length}`);
+});
+
 test('with maxGrow, the one-sided rect splits into passes that all keep the bottom edge', async () => {
     const { frameRectForRatio } = await esm('js/shell/agentDispatch.js');
     const { planOutpaintPasses, OUTPAINT_MAX_GROW } = await esm('js/utils/outpaintPasses.js');

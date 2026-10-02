@@ -46,11 +46,12 @@ the source image's own edge row differs from the next (t2i generators often leav
 row is the user's pixels, not the seam. That is the product requirement: an extended
 video start/end frame may not change colour where it was not extended.
 
-**One pass (Fabio, 2026-09-24).** Klein filled half the height in one pass; a failed fill is
-re-run by the user or agent, no automatic retry. The step declares no `maxGrow`, so
-`planOutpaintPasses` never splits. The pass machinery (`outpaintPasses.js`, `flowService`
-`runNextPass`, `MpiBaseFlow._planPasses`, the agent path in `agentDispatch.js`) is idle, not
-deleted — it went in with 9c8c5841 and removing it touches MPI-891's file.
+**Passes again (MPI-1011, Fabio 2026-10-02).** One pass (2026-09-24 to 10-02) failed on large
+fills, so the crop step declares `maxGrow: OUTPAINT_MAX_GROW` (a third per side): each pass grows
+a side by at most a third of what it already has and runs on the previous result
+(`outpaintPasses.js`, `flowService` `runNextPass`, `MpiBaseFlow._planPasses`, the agent path in
+`agentDispatch.js`). A 9:16 frame round a 16:9 photo is three passes. A failed fill is still
+re-run by the user or agent, no automatic retry.
 
 ## The prompt is joined after a bake
 

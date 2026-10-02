@@ -297,6 +297,7 @@ import { state } from '../state.js';
 import { DEPS } from './modelConstants/dependencies.js';
 import { getPlugin } from './pluginsRegistry.js';
 import { MODELS } from './modelConstants/models.js';
+import { OUTPAINT_MAX_GROW } from '../utils/outpaintPasses.js';
 
 /**
  * The download-queue / dep-status key for a flow's own deps. Namespaced so it can
@@ -1449,7 +1450,9 @@ export const FLOWS = [
                 // No `param`: this gizmo's value changes the PICTURE, not a widget —
                 // it binds through STEP_MEDIA instead (stepKinds.js).
                 kind: 'crop', role: 'image1',
-                // No `maxGrow`: Klein fills in ONE pass (MPI-900, Fabio 2026-09-24).
+                // A big frame fills in passes, each growing a side by at most a third of what
+                // it already has (MPI-1011, Fabio 2026-10-02: one pass failed on large fills).
+                maxGrow: OUTPAINT_MAX_GROW,
                 tickerLabel: 'Frame',
                 title: 'Choose the frame you want',
                 hint: 'Pick a shape, then drag the frame past the edges — black is what gets painted in.',

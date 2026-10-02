@@ -369,7 +369,20 @@ test('the Outpaint Flow carries its I/O and declared control titles (MPI-594)', 
         'the paste-back source must be the harmonized decode, or the seam returns');
     assert.equal(graph[harmonize.inputs.image[0]].class_type, 'VAEDecode');
     assert.deepEqual(harmonize.inputs.plate, [imageId, 0], 'harmonize against the original');
-    assert.deepEqual(harmonize.inputs.inpaint_mask, [imageId, 1]);
+    // MPI-1011: its hole mask is Input_Image's alpha brought to the DECODE size and grown
+    // there. Straight from the plate, the half-black edge row it resizes in counts as the
+    // original and pulls the fill's level down (+8 RGB on a bright sky).
+    const grow = graph[harmonize.inputs.inpaint_mask[0]];
+    assert.equal(grow?.class_type, 'GrowMask', 'the harmonizer\'s hole must be grown');
+    assert.ok(grow.inputs.expand >= 1, 'grown by at least one decode pixel');
+    const resize = graph[grow.inputs.mask[0]];
+    assert.equal(resize?.class_type, 'ResizeMask');
+    assert.deepEqual(resize.inputs.mask, [imageId, 1], 'grown from Input_Image\'s alpha');
+    assert.equal(resize.inputs.upscale_method, 'bilinear', 'the same resize the harmonizer does itself');
+    const size = graph[resize.inputs.width[0]];
+    assert.equal(size?.class_type, 'GetImageSize');
+    assert.deepEqual(size.inputs.image, harmonize.inputs.image, 'sized to the decode it harmonizes');
+    assert.deepEqual(resize.inputs.height, [resize.inputs.width[0], 1]);
     assert.equal(harmonize.inputs.wrap_horizontal, false, 'an outpaint frame does not wrap');
     assert.equal(compose.inputs.correction, 'Off');
     const out = Object.values(graph).find(n => n._meta?.title === 'Output_Image');

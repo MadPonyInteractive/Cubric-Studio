@@ -366,13 +366,62 @@
         0
       ],
       "inpaint_mask": [
-        "553",
-        1
+        "690",
+        0
       ]
     },
     "class_type": "MickmumpitzPanoHarmonizeBoundary",
     "_meta": {
       "title": "Match Fill To Original Edge"
+    }
+  },
+  "688": {
+    "inputs": {
+      "image": [
+        "682",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Decode Size"
+    }
+  },
+  "689": {
+    "inputs": {
+      "width": [
+        "688",
+        0
+      ],
+      "height": [
+        "688",
+        1
+      ],
+      "keep_proportions": false,
+      "upscale_method": "bilinear",
+      "crop": "disabled",
+      "mask": [
+        "553",
+        1
+      ]
+    },
+    "class_type": "ResizeMask",
+    "_meta": {
+      "title": "Hole Mask At Decode Size"
+    }
+  },
+  "690": {
+    "inputs": {
+      "expand": 2,
+      "tapered_corners": true,
+      "mask": [
+        "689",
+        0
+      ]
+    },
+    "class_type": "GrowMask",
+    "_meta": {
+      "title": "Grow Hole For Harmonize"
     }
   }
 }

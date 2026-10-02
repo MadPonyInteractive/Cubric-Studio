@@ -1,8 +1,8 @@
 {
   "id": "9a2437bd-d5e3-4c4f-bdea-2897c2fb75df",
   "revision": 0,
-  "last_node_id": 687,
-  "last_link_id": 1446,
+  "last_node_id": 690,
+  "last_link_id": 1452,
   "nodes": [
     {
       "id": 494,
@@ -135,7 +135,7 @@
           "type": "MASK",
           "links": [
             1441,
-            1445
+            1450
           ]
         },
         {
@@ -1382,7 +1382,8 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            1443
+            1443,
+            1447
           ],
           "slot_index": 0
         }
@@ -1567,7 +1568,7 @@
           "localized_name": "inpaint_mask",
           "name": "inpaint_mask",
           "type": "MASK",
-          "link": 1445
+          "link": 1452
         }
       ],
       "outputs": [
@@ -1595,6 +1596,173 @@
         8,
         4000,
         false
+      ]
+    },
+    {
+      "id": 688,
+      "type": "GetImageSize",
+      "pos": [
+        -3966.4250342439855,
+        5559.644546979616
+      ],
+      "size": [
+        220,
+        80
+      ],
+      "flags": {},
+      "order": 62,
+      "mode": 0,
+      "title": "Decode Size",
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1447
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "links": [
+            1448
+          ]
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "links": [
+            1449
+          ]
+        },
+        {
+          "localized_name": "batch_size",
+          "name": "batch_size",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GetImageSize"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 689,
+      "type": "ResizeMask",
+      "pos": [
+        -3626.4250342439855,
+        5559.644546979616
+      ],
+      "size": [
+        270,
+        170
+      ],
+      "flags": {},
+      "order": 63,
+      "mode": 0,
+      "title": "Hole Mask At Decode Size",
+      "inputs": [
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "link": 1450
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 1448
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 1449
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "links": [
+            1451
+          ]
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ResizeMask"
+      },
+      "widgets_values": [
+        512,
+        512,
+        false,
+        "bilinear",
+        "disabled"
+      ]
+    },
+    {
+      "id": 690,
+      "type": "GrowMask",
+      "pos": [
+        -3286.4250342439855,
+        5559.644546979616
+      ],
+      "size": [
+        240,
+        90
+      ],
+      "flags": {},
+      "order": 64,
+      "mode": 0,
+      "title": "Grow Hole For Harmonize",
+      "inputs": [
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "link": 1451
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "MASK",
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            1452
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GrowMask"
+      },
+      "widgets_values": [
+        2,
+        true
       ]
     }
   ],
@@ -1880,20 +2048,60 @@
       "IMAGE"
     ],
     [
-      1445,
-      553,
-      1,
-      687,
-      2,
-      "MASK"
-    ],
-    [
       1446,
       687,
       0,
       686,
       1,
       "IMAGE"
+    ],
+    [
+      1447,
+      682,
+      0,
+      688,
+      0,
+      "IMAGE"
+    ],
+    [
+      1448,
+      688,
+      0,
+      689,
+      1,
+      "INT"
+    ],
+    [
+      1449,
+      688,
+      1,
+      689,
+      2,
+      "INT"
+    ],
+    [
+      1450,
+      553,
+      1,
+      689,
+      0,
+      "MASK"
+    ],
+    [
+      1451,
+      689,
+      0,
+      690,
+      0,
+      "MASK"
+    ],
+    [
+      1452,
+      690,
+      0,
+      687,
+      2,
+      "MASK"
     ]
   ],
   "groups": [
