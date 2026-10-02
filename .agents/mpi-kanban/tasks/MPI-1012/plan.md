@@ -129,9 +129,13 @@ renamed, hero mp4s deleted; FlowDefs + universal_workflows out; tombstones in bo
 licence key `stable-audio-3` (same descriptor); `js/data/retiredFlows.js` = the ONE alias table
 (Reuse via promptReuse.js, routines via validateRoutine, connector generate/quote reroute,
 openFlow/buildFlow refusal names the model). New test `tests/audio-models.test.cjs`.
-**Next: commit P2+P3 (private index; deletes need `--force-remove`), check CI, then P4**
-(prompt box: `+` opens the media picker on the voice library for `tts`, record, op dimming
-for a missing voice) and the rest of P5 (Cosmo's voice-pick card for a MODEL slot).
+**Committed c0b04e095 + pushed** (58 files; CI was running at handoff). **Next: check CI on
+c0b04e095, then P4** — MpiGalleryBlock `_mountPb` passes `recordAudio: recordAudioIntoProject`;
+MpiPromptBox imports MpiVoicePicker; `_openMediaPicker` opens on 'audio' with
+`voiceRoute: slot.voiceLibrary` when the active op's (model-filtered) slots are audio-only;
+`_addBtn` title follows the op ("Add a voice"); dim the op while a REQUIRED audio slot is
+empty (add `audioCount` to getAvailableCommands' ctx, min-only, and an `_opBlockedReason`
+clause). Then the rest of P5 (Cosmo's voice-pick card for a MODEL slot), P6-P8.
 
 ## Plan Drift
 
