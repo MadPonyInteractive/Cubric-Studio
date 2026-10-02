@@ -257,7 +257,7 @@
   mascot peeks over the prompt box, and plays on a card while it generates.
 
 - **Pick a colour straight off the picture.** The Remove Background, Paint and Paint Adjust
-  colours have an eyedropper beside them.
+  colours have an eyedropper beside them, and so does the drawing step in Scribble and Draw It In.
 
 - **Resize can shrink a picture by megapixels or by a fixed amount.** MP resizes to the
   megapixels you type, SCALE divides width and height by 1.5, 2, 3 or 4.

@@ -1,7 +1,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
-import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
+import { MpiColorField } from '../../Compounds/MpiColorField/MpiColorField.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { PaintManager } from '../../Primitives/MpiCanvas/managers/PaintManager.js';
 import { ViewManager } from '../../Primitives/MpiCanvas/managers/ViewManager.js';
@@ -530,9 +530,12 @@ export const MpiStepPaint = ComponentFactory.create({
             _report();
         });
 
-        _picker = MpiColorPicker.mount(colorSlot, {
+        // Swatch + Pick (MPI-801): Pick samples any pixel on screen, so a colour can come
+        // off the photo under the drawing.
+        _picker = MpiColorField.mount(colorSlot, {
             value: paint.color,
             info: 'Drawing colour',
+            pickInfo: 'Pick a drawing colour from the screen, the picture included',
         });
         _picker.on('change', ({ hex }) => {
             paint.color = hex;

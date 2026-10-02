@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-801/**",
+    "js/components/Organisms/MpiStepPaint/MpiStepPaint.js",
+    "js/components/Organisms/MpiStepPaint/MpiStepPaint.css",
+    "tests/desktop/step-paint-pick.spec.js"
+  ]
+}

@@ -132,6 +132,13 @@ THIS umbrella:
   strip, `_pickOpForModel`; a video on `i2v` now moves to `ref2v` too). History's MPI-281
   "requires input" filters kept as they were. RED-proven: `tests/text-only-op.test.cjs` +
   `tests/desktop/prompt-box-video-ref.spec.js` (failed on HEAD, passes); `npm test` 2673/0; `22fef2823` CI green (run 37005121706)
+- [ ] **MPI-801** eyedropper Pick in the Flows' paint step (Scribble, Draw It In) — a 2.0 ask
+  Fabio remembered 2026-10-02 (folded into MPI-801 on 10-01, never listed here). Built +
+  spec-proven, `validating`: Fabio's look in his pre-cut smoke, then CI + done. Hold-Alt pick
+  stays on the card, not 2.0
+- [ ] **Fabio's own smoke in the app BEFORE the re-smoke (Fabio 2026-10-02):** item 1 (lock:
+  MelodramaBox sync + Mickmumpitz drop + release image build + pin) runs in a fresh session;
+  item 2 (paid scoped re-smoke) and everything after wait for his green light
 - [ ] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step
 
 Agent 85:
