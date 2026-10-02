@@ -363,8 +363,9 @@ export const nodesDeps = {
         size: '0.3MB',
     },
 
-    // MIT, pinned by git commit. Carries the MickmumpitzPano* nodes: the shipped Outpaint
-    // Flow uses MickmumpitzPanoHarmonizeBoundary, and MPI-623's equirect half uses the rest.
+    // MIT, pinned by git commit. Carries the MickmumpitzPano* nodes, for MPI-623's equirect
+    // half. Outpaint used HarmonizeBoundary + ComposeColorMatch until MPI-1011 (2026-10-02);
+    // no shipped graph loads the pack since.
     // Requirements (numpy, Pillow, opencv-python, ultralytics) are covered by the curated
     // dev_configs/python_deps.in set like every other baked node; nothing compiled, no torch.
     //

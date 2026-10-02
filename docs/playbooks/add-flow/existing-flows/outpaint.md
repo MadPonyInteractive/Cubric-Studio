@@ -1,15 +1,15 @@
 # Outpaint (MPI-594, rebuilt MPI-900)
 
 One image in, the same picture back inside a bigger frame. FLUX.2 Klein 9B fills whatever the
-user added, and the original pixels come back untouched. The portable half — the gizmo — is
+user added and hands back the WHOLE picture, repainted, at ~1 MP. The portable half — the gizmo — is
 [../ui/crop-gizmo.md](../ui/crop-gizmo.md); this file is what is specific to THIS flow.
 
 | | |
 |---|---|
 | id / op | `outpaint` / `flowOutpaint` |
 | graph | `comfy_workflows/flow_outpaint.json` (raw: `raw/flow_outpaint.json`) |
-| models | `[['klein-9b', 'klein-9b-cloud']]` — 9B baked, nothing injected; the cloud id swaps the edit stage ([../cloud-edit.md](../cloud-edit.md), MPI-918) |
-| deps | `ComfyUI-Mickmumpitz-Nodes` (ComposeColorMatch) |
+| models | `[['klein-9b']]` — 9B baked, nothing injected. No cloud model: Klein 9B cloud ran here 2026-10-01 to 10-02 (MPI-918), removed by Fabio |
+| deps | none (the Mickmumpitz paste-back left with MPI-1011) |
 | steps | 01 Inputs · 02 Frame (`kind: 'crop'`) · 03 Generate |
 | controls | one optional prompt, `Input_Positive` |
 
@@ -21,37 +21,34 @@ bars into a single PNG, places it in `Media/.preview-assets/`, and THAT file is 
 is the step kind's (`STEP_MEDIA`), not this flow's — any flow declaring `kind: 'crop'` gets it.
 
 **The bars are transparent, never painted (MPI-900).** A cleared canvas pixel exports as RGBA
-0,0,0,0, so `MpiLoadImage`'s IMAGE (RGB) still shows Klein the black bars, and its MASK output
-(channel `alpha`, inverted like LoadImage) is exactly the new area. Never detect the new area
-by black pixels — a dark photo has black pixels of its own.
+0,0,0,0, so `MpiLoadImage`'s IMAGE (RGB) still shows Klein the black bars. Never detect the new
+area by black pixels — a dark photo has black pixels of its own.
 
-**Klein repaints the whole frame, so the fill is pasted back.** Klein samples the padded image
+**Klein's picture is the result (MPI-1011, Fabio 2026-10-02).** Klein samples the padded image
 at ~1 MP (`ImageScaleToTotalPixels`, the OOM guard: a 4K plate gets a result, not an OOM) and
-its decode shifts the colour of EVERYTHING, original included. `Match Fill To Original Edge`
-(Mickmumpitz `HarmonizeBoundary`) takes `original − klein` on the original's side and solves a
-smooth harmonic field from it into the new area, so the fill meets the original EXACTLY at the
-border and its own texture is untouched. `Paste Fill Over Original` (ComposeColorMatch,
-correction `Off`) then resizes that fill to the frame and composites it over the untouched
-original. The output is therefore the FRAME at source resolution, and the original pixels are
-byte-for-byte the user's.
-
-**Why not the grade match alone.** The first live run used ComposeColorMatch's `Grade match
-(surround)` — one per-channel affine over the whole original — and left a straight tone line
-at the border (2026-09-24: -1 to +8 RGB along the seam, varying across the width, where the
-wall had a vignette Klein flattened). The drift is LOCAL, so no single affine removes it, and
-feathering the mask is out: the fill side of the composite is transparent black and the other
-side is the original, which may not change. Proven offline on that output before wiring: step
-≤0.5 RGB, original byte-identical, solve ~1 s at 4000 iterations. A faint line can remain when
-the source image's own edge row differs from the next (t2i generators often leave one) — that
-row is the user's pixels, not the seam. That is the product requirement: an extended
-video start/end frame may not change colour where it was not extended.
+its decode IS the output: the whole frame repainted, original included, slightly recoloured.
+From 2026-09-24 (MPI-900) the graph pasted only the fill back over the untouched original
+(ComposeColorMatch), bending it to meet the original first (Mickmumpitz `HarmonizeBoundary`),
+so an extended video start/end frame kept its colours and the photo its size. The live look on
+2026-10-02 still showed a line where the bottom edge cut a horse: a step of ~3 levels on
+average, up to 9, over 30-65 px stretches, against ~0.4 anywhere else. The harmonizer matches
+colour averaged over ~10 px blocks, never the edge row itself. A direct Klein edit has no join,
+so Fabio chose it: smaller, recoloured, no seam. A user who needs the original exact uses
+another technique. Later versions may bring the original back (measured options: a second
+harmonize at a fine scale, or a feathered paste).
 
 **Passes again (MPI-1011, Fabio 2026-10-02).** One pass (2026-09-24 to 10-02) failed on large
 fills, so the crop step declares `maxGrow: OUTPAINT_MAX_GROW` (a third per side): each pass grows
 a side by at most a third of what it already has and runs on the previous result
 (`outpaintPasses.js`, `flowService` `runNextPass`, `MpiBaseFlow._planPasses`, the agent path in
 `agentDispatch.js`). A 9:16 frame round a 16:9 photo is three passes. A failed fill is still
-re-run by the user or agent, no automatic retry.
+re-run by the user or agent, no automatic retry. Each result is ~1 MP, so `nextPassRect`
+scales the next frame into that result's pixels.
+
+**The next pass reads the finished ITEM's `filePath`.** Both twins hand `composeNextPass` the
+completion's `item`, a gallery item with no `url`. Reading `url` returned null, so every
+multi-pass fill stopped after pass 1 with "Generation failed." (Fabio's live run, 2026-10-02).
+`tests/outpaint-next-pass.test.cjs` builds the item with `createImageItem`, as the app does.
 
 ## The prompt is joined after a bake
 
@@ -65,7 +62,8 @@ empty prompt leaves the bake exactly as written.
 written over it. Caught in the first live run (MPI-594). **Do not "fix" this by making the app
 skip an empty prompt** — nearly every graph in `comfy_workflows/` carries a leftover authoring
 prompt, and the always-injected empty string is what stops those from running.
-`inject-params-titles.test.cjs` pins the join, the untitled bake and the paste-back wiring.
+`inject-params-titles.test.cjs` pins the join, the untitled bake, and that `Output_Image` reads
+Klein's decode with no paste-back.
 
 **No `result.compare`.** The output is a different SHAPE from the input, so a wipe between
 them compares two framings rather than two versions of one picture.
@@ -79,6 +77,5 @@ absent by the test. AnyPaint was evaluated the same day and dropped.
 
 ## Still open
 
-- **Output size.** The paste-back returns the frame at SOURCE resolution; before MPI-900 it was
-  ~1 MP (Fabio, 2026-08-21). Awaiting Fabio's call. (The live run on 2026-09-24 confirmed no
-  seam and a byte-identical original.)
+- **Keeping the original exact, with no seam.** Deferred to a later version (Fabio, 2026-10-02);
+  see "Klein's picture is the result" above for what was measured.

@@ -1399,13 +1399,14 @@ export const FLOWS = [
     // crop tool has no auto-mask (docs/crop.md § The rect is not confined to the image):
     // prompting an edit model to fill "the black area" beats handing it a painted mask.
     //
-    // KLEIN 9B ONLY, ONE PASS (MPI-900, Fabio 2026-09-24). Krea 2 was slower and failed
-    // more; Klein filled half the height in one pass, and a failed fill is simply re-run.
-    // Klein repaints the WHOLE frame at ~1 MP, so ComposeColorMatch (`Paste Fill Over
-    // Original`, Mickmumpitz pack) pastes only the new area back over the untouched
-    // original, grade-matched from the surround: the original pixels never change colour,
-    // which a video start/end frame needs. The new area's mask is the bars' ALPHA
-    // (`Input_Image`'s MASK output), never a black-pixel guess.
+    // KLEIN 9B ONLY (MPI-900, Fabio 2026-09-24). Krea 2 was slower and failed more, and a
+    // failed fill is simply re-run.
+    //
+    // KLEIN'S PICTURE IS THE RESULT (MPI-1011, Fabio 2026-10-02). Klein repaints the WHOLE
+    // frame at ~1 MP. MPI-900 pasted only the new area back over the untouched original;
+    // it kept the original's pixels and size, but a line showed wherever the fill met it.
+    // Fabio's call: the direct result, smaller and recoloured, with no join at all. Better
+    // ways to keep the original are for a later version.
     //
     // AN OPTIONAL PROMPT (MPI-900, reverses MPI-594's "no prompt"). The fill instruction
     // stays baked in an UNTITLED node; `Input_Positive` is a second node the graph JOINS
@@ -1421,21 +1422,12 @@ export const FLOWS = [
         preview: 'flow-outpaint.webp',
         video: 'flow-outpaint.mp4',
         description: 'Extend an image past its edges. Choose the shape you want, drag the frame out '
-            + 'over the sides you want filled, and say what should appear there if you like. Your '
-            + 'own pixels are kept exactly as they were. Runs on FLUX.2 Klein 9B, or on a cloud '
-            + 'model with your DeepInfra key.',
-        // The graph bakes 9B's transformer + encoder, so there is nothing to inject. Klein 9B
-        // cloud (MPI-918) runs its edit stage at DeepInfra instead, as on Scribble. NOT Nano
-        // Banana: it failed here on Fabio's look (2026-10-01).
-        requiredModels: [{ label: 'Base model', models: ['klein-9b', 'klein-9b-cloud'] }],
-        // The edit stage a cloud pick replaces: 673 is the padded picture at 1 MP, 685 the
-        // trimmed instruction, 682 the decode. The boundary harmonize + paste-back after it
-        // are model-free and resize the plate to the DECODE's size, so the cloud picture is
-        // fitted to 673's size before them, never to the original's.
-        cloudEdit: { input: '673', prompt: '685', output: '682' },
-        // The one node pack no model declares (ComposeColorMatch) — same reasoning as
-        // Voice Changer declaring ComfyUI_Fill-ChatterBox.
-        requiredDeps: ['ComfyUI-Mickmumpitz-Nodes'],
+            + 'over the sides you want filled, and say what should appear there if you like. Runs '
+            + 'on FLUX.2 Klein 9B.',
+        // The graph bakes 9B's transformer + encoder, so there is nothing to inject. NO cloud
+        // model (Fabio, 2026-10-02, MPI-1011); Klein 9B cloud ran here 2026-10-01 to 10-02
+        // (MPI-918).
+        requiredModels: [{ label: 'Base model', models: ['klein-9b'] }],
         operation: 'flowOutpaint',
         workflow: 'flow_outpaint.json',
         mediaType: 'image',

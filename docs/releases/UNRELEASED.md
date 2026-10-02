@@ -207,7 +207,7 @@
 
 - **Nano Banana edits take up to four reference images.**
 
-- **Scribble, Draw It In and Outpaint can render on a cloud model.** Pick FLUX.2 Klein 9B
+- **Scribble and Draw It In can render on a cloud model.** Pick FLUX.2 Klein 9B
   (Cloud) as the edit model (Nano Banana 2 Lite too on Scribble), and the Flow
   renders on your DeepInfra key, with the price shown beside the model and the cost saved on
   the card. Without a local Klein installed, these Flows use the cloud model on their own,

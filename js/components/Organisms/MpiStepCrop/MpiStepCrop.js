@@ -173,14 +173,15 @@ export async function planCropPasses(media, rect, maxGrow) {
  * result came back at the graph's ~1 MP, so the frame is rescaled into its pixels
  * (`nextPassRect`).
  *
- * @param {{url?:string}} result - the previous pass's output item
+ * @param {{filePath?:string}} result - the previous pass's output item, as the completion
+ *   hands it over: a gallery item, whose file is `filePath` (it has no `url`, MPI-1011)
  * @param {Object} prev - the previous pass's frame (source px)
  * @param {Object} next - the next pass's frame (source px)
  * @returns {Promise<File|null>}
  */
 export async function composeNextPass(result, prev, next) {
-    if (!result?.url) return null;
-    const img = await _loadImage(resolveMediaUrl(result.url));
+    if (!result?.filePath) return null;
+    const img = await _loadImage(resolveMediaUrl(result.filePath));
     return _padTo(img, nextPassRect(prev, next, { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height }));
 }
 

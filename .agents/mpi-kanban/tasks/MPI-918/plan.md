@@ -110,7 +110,14 @@ Phases 3-4.
 
 ## Current State
 
-2026-10-02 (session b487ee6b, LATEST): REOPENED. Every cloud edit sent no size (`edit` has no
+2026-10-02 (session 27738b6a, LATEST): Fabio: "remove cloud models from Outpaint" (after the
+MPI-1011 seam work). Done in the working tree, not committed (it rides MPI-1011's commit):
+Outpaint slot `['klein-9b']`, no `cloudEdit`, `flow-cloud-edit` pins it cloud-free,
+UNRELEASED cloud bullet now "Scribble and Draw It In", cloud-edit.md + outpaint.md. Final cloud
+slots: Scribble Klein cloud + Nano Banana, Draw It In Klein cloud. Still open from below: the
+paid Klein edit on t2i_006 (~$0.02) and the Seedream shape check (~$0.18), both Fabio's call.
+
+2026-10-02 (session b487ee6b): REOPENED. Every cloud edit sent no size (`edit` has no
 ratio picker); FLUX 2 dev/pro/max + Klein 9B default to 1024^2 and centre-cut the source. Fixed
 `476c6fb67` (route reads image 1's upright size; `buildSizeFields` 'wh' sends that shape at the
 default area), CI green. NEXT: one paid live Klein cloud edit on t2i_006 (~$0.02, Fabio), and

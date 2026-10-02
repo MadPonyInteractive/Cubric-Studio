@@ -26,7 +26,38 @@
   `agent-outpaint-frame` + `outpaint-passes` 11/11.
 - `npm test` 2666 / 0 fail; eslint clean.
 
+## Fabio's first look - 2026-10-02 (session 27738b6a)
+
+- His run: 1024x1024 source, 9:21 frame (1024x2389). One prompt reached the engine (26.55 s,
+  `app.log`), card flowOutpaint_009 = 1024x1706 = pass 1's frame; the flow screen said
+  "Generation failed." with no log line. CI on `f04c5eb56` was green (run 36991237890).
+- Pass 2 cause: both twins hand `composeNextPass` the completion `item` (`createImageItem`:
+  `filePath`, no `url`); it read `url` -> null -> `nextPassCallbacks` onError "The next pass
+  could not start." Fix: read `filePath`. RED first (`tests/outpaint-next-pass.test.cjs`:
+  "a finished item must compose the next pass", actual null), then green. Staging reads
+  `item.url || item.filePath` (`commandExecutor.js:167`), so the frame twin's
+  `{...m, url}` reaches the engine.
+- Seam, measured on flowOutpaint_009 (scratchpad `seam_measure.py`, `seam_freq.py`): original
+  rows 341-1364 byte-identical; top edge (sky) step +0.78 luma; bottom edge (cuts the horse)
+  excess step mean 2.99 / p95 9.0 smoothed over 33 px, vs 0.42 / 1.15 inside the original.
+  The 8x block solve pins the correction ~5-16 px inside the original, not at the edge row.
+- Fabio: "remove cloud models from Outpaint"; then, shown a direct Klein edit (edit_019, no
+  seam): OPTION 2, Klein's picture is the result ("if it's smaller, it's smaller"); passes stay
+  at a third per side.
+
+## Option 2 - built 2026-10-02 (not committed yet)
+
+- Graph: 493 (feeds `Output_Image`) reads 682 (VAEDecode); 686-690 removed from raw and
+  runtime; every link of every active raw node checked against the runtime (27 match).
+  `smoke-workflows.mjs --plan --flows outpaint`: flow preflight resolves, required-inputs sweep
+  clean (51 graphs). `inject-params-titles` pins Output_Image <- VAEDecode and no
+  ComposeColorMatch / HarmonizeBoundary.
+- FlowDef: no "pixels kept" claim, no cloud id, no `cloudEdit`, no `requiredDeps` (no
+  Mickmumpitz node left). `flow-cloud-edit` pins Outpaint cloud-free (RED first).
+- `npm test` 2670 / 0 fail; eslint clean.
+
 ## Open
 
-- NOT run live: one local Outpaint on a bright sky (seam) and one multi-pass fill - Fabio's look
-  (verify mode user-ux). Outpaint joins the scoped re-smoke at the cut (MPI-595 B1).
+- Fabio's second look (user-ux): one multi-pass Outpaint lands every pass, final ~1 MP, no
+  seam, the flow screen shows the result. Then CI, done. Outpaint stays in the scoped
+  re-smoke at the cut (MPI-595 B1).

@@ -39,7 +39,8 @@ graph-file change and no node: the app prunes and swaps the graph around the clo
 - **Never a lazy switch in the graph.** ComfyUI validates every node an output reaches, so a
   local loader behind an `MpiIfElse` refuses the whole prompt for a user without that model.
 - **Size.** Pass 2 fits the cloud picture to pass 1's size; a stitch or harmoniser downstream
-  that resizes plates to the IMAGE's size (Outpaint) depends on that fit.
+  that resizes plates to the IMAGE's size depends on that fit. Outpaint, the Flow that had
+  one, left the cloud on 2026-10-02 (Fabio, MPI-1011).
 - **The cloud call sees pictures, never latents.** If the local edit samples from something it
   is not handed as an image (Object Stamp samples from the clean crop's latent with both
   references beside it, which is its clean-up), the cloud result keeps the seam and shifts the

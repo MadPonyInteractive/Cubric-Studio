@@ -34,4 +34,23 @@ at the cut (MPI-595 B1) since the graph changes.
 
 ## Current State
 
+2026-10-02 (session 27738b6a, LATEST): Phase 1 is SUPERSEDED (see Plan Drift). Built and
+tested, not committed: (1) pass 2 fix in `MpiStepCrop.js` `composeNextPass` (`filePath`, new
+`tests/outpaint-next-pass.test.cjs`); (2) Outpaint graph = Klein's decode straight to
+`Output_Image` (686-690 gone, raw + runtime, links checked), FlowDef description/comments,
+`requiredDeps` dropped; (3) no cloud model on Outpaint (MPI-918's slot). `npm test` 2670 / 0
+fail, eslint clean, smoke `--plan --flows outpaint` clean. NEXT: Fabio restarts his app and
+runs one multi-pass Outpaint (his 9:21 on the monkey: two passes, final ~1 MP portrait, no
+seam, the flow screen shows it); then commit by pathspec (MPI-1011 + MPI-918 files), CI,
+done moves. Outpaint stays in the cut's scoped re-smoke (MPI-595 B1).
+
 2026-10-02 (session b487ee6b): BOTH PHASES BUILT, unit + node-level proven (validation.md). Left: Fabio's look (seam on a bright sky, one multi-pass fill), then CI + close. Outpaint joins the cut's scoped re-smoke.
+
+## Plan Drift
+
+- 2026-10-02 (Fabio's live look, flowOutpaint_009): pass 2 never started (`composeNextPass`
+  read `url`; a finished item has `filePath`), and a line showed where the bottom edge cut the
+  horse (~3 levels average, up to 9, 30-65 px scale; the harmonizer's 8x block solve never
+  matches the edge row). Fabio's call after the why: OPTION 2, run Klein directly, no paste-back
+  (smaller, recoloured, no join); passes stay at a third per side; no cloud model on Outpaint.
+  A seam-free exact original is for a later version.

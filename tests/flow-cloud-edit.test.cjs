@@ -96,7 +96,7 @@ test('no cloud Flow\'s two passes reach a local model, in any mode it has', asyn
     const { cloudEditPass1, cloudEditPass2 } = await import(url('js/utils/cloudEditGraph.js'));
     const LOCAL = ['UNETLoader', 'CLIPLoader', 'VAELoader', 'MpiLoraModel', 'SamplerCustomAdvanced', 'VAEDecode'];
     const flows = registry.FLOWS.filter(f => f.cloudEdit);
-    assert.deepEqual(flows.map(f => f.id).sort(), ['outpaint', 'scribble', 'scribble-object']);
+    assert.deepEqual(flows.map(f => f.id).sort(), ['scribble', 'scribble-object']);
     for (const flow of flows) {
         const g = require(path.join(ROOT, 'comfy_workflows', flow.workflow));
         const { input2 } = flow.cloudEdit;
@@ -120,13 +120,21 @@ test('Object Stamp offers no cloud model: a cloud edit skips the clean-up its lo
     assert.equal(flow.cloudEdit, undefined);
 });
 
+test('Outpaint offers no cloud model (Fabio, 2026-10-02)', async () => {
+    // After the MPI-1011 seam work: "remove cloud models from Outpaint".
+    const { registry } = await load();
+    const flow = registry.getFlowById('outpaint');
+    const models = registry.flowModelSlots(flow).flatMap(s => s.models);
+    assert.deepEqual(models.filter(id => registry.isCloudCandidate(id)), []);
+    assert.equal(flow.cloudEdit, undefined);
+});
+
 test('Nano Banana stays on Scribble only: it failed on Draw It In and Outpaint on Fabio\'s look', async () => {
     const { registry } = await load();
     const cloudIds = (id) => registry.flowModelSlots(registry.getFlowById(id)).flatMap(s => s.models)
         .filter(m => registry.isCloudCandidate(m));
     assert.deepEqual(cloudIds('scribble'), [CLOUD, 'nano-banana-2-lite-cloud']);
     assert.deepEqual(cloudIds('scribble-object'), [CLOUD]);
-    assert.deepEqual(cloudIds('outpaint'), [CLOUD]);
 });
 
 test('pass 1\'s pictures are read by tap id, so image two reporting first cannot swap them', async () => {

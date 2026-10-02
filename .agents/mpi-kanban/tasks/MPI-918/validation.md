@@ -117,3 +117,7 @@ Verify mode: user-ux at Phase 4 (Fabio's look at stitched results); Phases 1-3 a
   (`tests/cloud-edit-follows-source.test.cjs`: "no size sent: [prompt, input_image_1]"), then
   5/5; `npm test` 2665 / 0 fail; eslint clean. Quote vs new send: within ~1% (linear per px).
 - NOT yet live: needs one paid cloud edit (~$0.015) after an app restart.
+- 2026-10-02 (session 27738b6a) Fabio: no cloud model on Outpaint. Slot `['klein-9b']`,
+  `cloudEdit` removed; `tests/flow-cloud-edit.test.cjs` "Outpaint offers no cloud model" RED
+  first, then green; the cloud-Flow list test now expects Scribble + Draw It In only.
+  `npm test` 2670 / 0 fail.

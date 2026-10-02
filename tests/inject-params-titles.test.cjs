@@ -351,44 +351,17 @@ test('the Outpaint Flow carries its I/O and declared control titles (MPI-594)', 
     assert.ok(!/^input_/i.test(graph[join.inputs.string_a[0]]._meta?.title || ''),
         'the baked instruction must stay untitled, or the run injects over it');
 
-    // MPI-900 paste-back: Klein repaints the whole frame, so what reaches Output_Image
-    // must be ComposeColorMatch with the ORIGINAL as destination and the loaded image's
-    // alpha MASK (slot 1) as the mask — or the original pixels shift colour.
-    const [imageId] = Object.entries(graph).find(([, n]) => n._meta?.title === 'Input_Image');
-    const compose = Object.values(graph).find(n => n.class_type === 'ComposeColorMatch');
-    assert.ok(compose, `${file} must paste the fill back with ComposeColorMatch`);
-    assert.deepEqual(compose.inputs.destination, [imageId, 0], 'destination is the untouched original');
-    assert.deepEqual(compose.inputs.mask, [imageId, 1], 'the mask is Input_Image\'s alpha');
-    // …and the fill it pastes must be HARMONIZED first. A global grade left a straight
-    // tone step at the border in the first live run (2026-09-24: -1..+8 RGB along the
-    // seam, varying across the width) — the drift is local, so one affine cannot remove
-    // it. HarmonizeBoundary bends the decode to meet the original exactly at the edge;
-    // the paste-back then only composites, so its own grade stays Off.
-    const harmonize = graph[compose.inputs.source[0]];
-    assert.equal(harmonize?.class_type, 'MickmumpitzPanoHarmonizeBoundary',
-        'the paste-back source must be the harmonized decode, or the seam returns');
-    assert.equal(graph[harmonize.inputs.image[0]].class_type, 'VAEDecode');
-    assert.deepEqual(harmonize.inputs.plate, [imageId, 0], 'harmonize against the original');
-    // MPI-1011: its hole mask is Input_Image's alpha brought to the DECODE size and grown
-    // there. Straight from the plate, the half-black edge row it resizes in counts as the
-    // original and pulls the fill's level down (+8 RGB on a bright sky).
-    const grow = graph[harmonize.inputs.inpaint_mask[0]];
-    assert.equal(grow?.class_type, 'GrowMask', 'the harmonizer\'s hole must be grown');
-    assert.ok(grow.inputs.expand >= 1, 'grown by at least one decode pixel');
-    const resize = graph[grow.inputs.mask[0]];
-    assert.equal(resize?.class_type, 'ResizeMask');
-    assert.deepEqual(resize.inputs.mask, [imageId, 1], 'grown from Input_Image\'s alpha');
-    assert.equal(resize.inputs.upscale_method, 'bilinear', 'the same resize the harmonizer does itself');
-    const size = graph[resize.inputs.width[0]];
-    assert.equal(size?.class_type, 'GetImageSize');
-    assert.deepEqual(size.inputs.image, harmonize.inputs.image, 'sized to the decode it harmonizes');
-    assert.deepEqual(resize.inputs.height, [resize.inputs.width[0], 1]);
-    assert.equal(harmonize.inputs.wrap_horizontal, false, 'an outpaint frame does not wrap');
-    assert.equal(compose.inputs.correction, 'Off');
+    // Klein's decode IS the result (MPI-1011, Fabio 2026-10-02, reverses MPI-900's
+    // paste-back). Pasting the fill round the untouched original kept its pixels and size,
+    // but left a line wherever the fill met it; run directly, Klein redraws the whole frame
+    // at ~1 MP and nothing is joined. Pinned so a stale re-export cannot bring the paste back.
     const out = Object.values(graph).find(n => n._meta?.title === 'Output_Image');
     const fed = graph[out.inputs.images[0]];
     const last = fed.class_type === 'MpiClearVram' ? graph[fed.inputs.passthrough[0]] : fed;
-    assert.equal(last, compose, 'Output_Image must read the paste-back, not Klein\'s raw decode');
+    assert.equal(last?.class_type, 'VAEDecode', 'Output_Image must read Klein\'s decode, with no paste-back');
+    for (const cls of ['ComposeColorMatch', 'MickmumpitzPanoHarmonizeBoundary']) {
+        assert.ok(!Object.values(graph).some(n => n.class_type === cls), `${file} still carries ${cls}`);
+    }
 });
 
 test('the Draw It In Flow carries its I/O, its model arm and its box (MPI-567)', () => {
