@@ -150,12 +150,13 @@ One smaller measured note: **VC softens consonant articulation** slightly. The s
 crisper on a direct-TTS route than through VC. Not a defect, and not worth a warning — but
 it is why a mumbled source gets no clearer on the way through.
 
-## What this flow can do that the TTS flow structurally cannot
+## What this flow can do that Text to Speech structurally cannot
 
 **VC passes non-verbal sound through.** A cough, a shush, a laugh, a breath all arrive in
-the target voice, because the input is a real recording. Flow B (Text to Speech) generates
-its stage-1 audio from TEXT, so it has no mouth sounds to carry. "Your laugh, your breath,
-your timing, in someone else's voice" is this flow's copy and Flow B has no answer to it.
+the target voice, because the input is a real recording. Text to Speech (the `chatterbox`
+model since MPI-1012) generates its audio from TEXT, so it has no mouth sounds to carry. "Your
+laugh, your breath, your timing, in someone else's voice" is this flow's copy and Text to
+Speech has no answer to it.
 
 This is also why Turbo was dropped rather than shipped: its distinctive feature is nine
 paralinguistic tags (`[laugh]`, `[cough]`, `[shush]`…), and VC gets those for free from a

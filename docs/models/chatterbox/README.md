@@ -1,20 +1,22 @@
-# Text to Speech (MPI-607) — Chatterbox, two language arms
+# Chatterbox — Text to Speech (MPI-607), two language arms
 
-> Part of [add-flow/existing-flows](../README.md). Type a line, give it a voice to speak
-> in, pick a language. **The TTS half that [Voice Changer](voice-changer.md) deliberately
-> left unowned**, and the third audio-only Flow. Read this before touching the flow, its
-> graph, or the Chatterbox deps.
+> Part of [docs/models](../README.md). Type a line, give it a voice to speak in, pick a
+> language. **The TTS half that [Voice Changer](../../playbooks/add-flow/existing-flows/voice-changer.md)
+> deliberately left unowned.** It shipped as the `chatter-box` Flow and became a prompt-box
+> MODEL on 2026-10-02 (MPI-1012, Fabio: two parameters and a prompt is not a Flow): same
+> graph, renamed, and the same dep ids, so a Flow-era install reads as installed. Old cards,
+> routines and agent calls naming `chatter-box` resolve through `js/data/retiredFlows.js`.
+> Read this before touching the model, its graph, or the Chatterbox deps.
 
 ## Shape
 
 | | |
 |---|---|
-| id / op | `chatter-box` / `flowChatterBox` |
-| graph | `comfy_workflows/flow_chatter_box.json` (7 nodes) |
-| `requiredModels` | `[]` |
-| `requiredDeps` | 13 weights + `ComfyUI_Fill-ChatterBox` — **6.95 GB** |
-| `mediaType` | `'audio'` |
-| inputs | prompt, `Input_Language.language`, `audio1` (required by the graph). `Input_Is_Multilingual` is DERIVED, never a control |
+| id / op | `chatterbox` / `tts` "Text to Speech" (output `tts_001.flac`) |
+| graph | `comfy_workflows/chatterbox_tts.json` (7 nodes) |
+| `dependencies` | 11 weights + `ComfyUI_Fill-ChatterBox` + `ComfyUI-MpiNodes` — **5.96 GB** (the VC pair is Voice Changer's alone, MPI-684) |
+| `mediaType` | `'audio'`; `capabilities.audio: true`, or `filterMediaInputsForModel` drops the voice slot |
+| inputs | prompt; the `ttsLanguage` control (perModel), which emits `Input_Language.language` AND the derived `Input_Is_Multilingual`; `audio1`, REQUIRED, `voiceLibrary: 'character'` |
 | output | `SaveAudioAdvanced` titled `Output_Audio`, flac |
 
 ## Two arms, one picked per run — and MpiIfElse is LAZY
@@ -31,15 +33,15 @@ Both weight sets are still declared, because either arm can be the one a given u
 
 ## 🔴 THERE IS NO VC STAGE, and this is not an open question
 
-The flow declares **one** media slot — `audio1` → `Input_Audio`, the voice the line is
+The `tts` op declares **one** media slot — `audio1` → `Input_Audio`, the voice the line is
 spoken in, which `MpiLoadAudioUpload#54` marks `block_if_empty` so the graph blocks without it.
 The op maps that role and **nothing else**.
 
-`Input_Audio_2` is the only thing `MpiAnyChecker#57` reads to flip `MpiIfElse#53` onto
-`FL_ChatterboxVC`, so **leaving the `audio2` role unmapped is what keeps this flow on TTS
+`Input_Audio_2` was the only thing `MpiAnyChecker#57` read to flip `MpiIfElse#53` onto
+`FL_ChatterboxVC`, so **leaving the `audio2` role unmapped is what keeps this model on TTS
 alone**. Re-adding a slot, or a run-time deriver that fills the role, puts the whole VC arm
-back. `tests/flow-derived-fields.test.cjs` asserts both halves — one declared role, one
-mapped `mediaInput`.
+back. `tests/flow-derived-fields.test.cjs` ("Text to Speech is TTS only") asserts the op
+maps `audio1` alone.
 
 Those nodes are **gone** as of 2026-08-28: Fabio re-exported `raw/` without
 `Input_Audio_2` (#58), `MpiAnyChecker#57`, `MpiIfElse#53`, `MpiLoadAudio#56` or
@@ -71,8 +73,8 @@ order that was itself wrong, so it is void twice over.
 ## 🟢 All 23 languages are ONE model — there is no list to trim
 
 `t3_mtl23ls_v2.safetensors` is "multilingual, **23** languages" in a single checkpoint.
-Shipping every language costs exactly what shipping one would, so the flow offers the
-node's full list. Six files, 2.99 GB.
+Shipping every language costs exactly what shipping one would, so the model offers the
+node's full list (`TTS_LANGUAGES`, commandRegistry.js). Six files, 2.99 GB.
 
 Two of those six are **byte-identical** to their `chatterbox_vc` twins (`s3gen.pt`
 sha `9b9ff07e…`, `conds.pt` sha `6552d705…`) and are deliberately **not** deduped — the
@@ -86,17 +88,16 @@ duplicate.
 ## The language field needs the DOTTED key
 
 `language` is **not** in the injector's spray list, so a plain `Input_Language` would match
-the node by title and then write nothing. The field uses `Input_Language.language` — the
+the node by title and then write nothing. The control emits `Input_Language.language` — the
 `Title.widget` form (MPI-359, `comfyController.js` §3) that addresses one widget directly.
 
 By contrast `Input_Is_Multilingual` uses a **plain** key, because `boolean` **is** in the
 spray list and the node's `true`/`false` inputs are links, which `_isLink` skips. It is not
-a field at all — see the next section.
+a control at all — see the next section.
 
-**The MPI-359 dotted-key sweep does not cover this.** That test reads
-`PromptBoxControls.js` only, so it passes whether or not a *flow's* declared dotted field
-resolves. This flow's own test case carries the assertion instead — without it, a renamed
-widget here is a dead control no test notices.
+The key is emitted by a function (`ttsLanguageParams`), which no static sweep reads, so
+`tests/audio-models.test.cjs` asserts every key the audio controls inject names a real node
+AND widget in the graph — without it, a renamed widget here is a dead control no test notices.
 
 The option values are the node's **exact** combo labels (ComfyUI rejects anything else with
 "Value not in list") and were generated from the live `/object_info` rather than typed, so
@@ -111,19 +112,14 @@ predicate language the frame would own forever) and `blankOnly` is step-fields-o
 mitigation was copy — the toggle declared first, plus 21 `info` hovers saying to turn it on.
 
 Fabio removed the class of error instead (2026-08-28): *"If English is selected, then we
-ourselves inject false into the other languages boolean."* The FlowDef now carries a
-`derived[]` entry — read `from`, compare to `equals`, send `then`/`else` to `id`:
-
-```js
-derived: [
-    { id: 'Input_Is_Multilingual', from: 'Input_Language.language',
-      equals: 'English (en)', then: false, else: true },
-],
-```
-
-`MpiBaseFlow._collectInputs` evaluates it. **One shape, no predicate language** — that was
-the condition for accepting it at all. The broken state is now unreachable rather than
-warned about, and the 21 dead hovers went with the toggle.
+ourselves inject false into the other languages boolean."* As a Flow that was a `derived[]`
+entry on the FlowDef (still a Flow capability, now with no user). As a model the same rule is
+ONE control: `ttsLanguage`'s injection is `ttsLanguageParams(value)` (commandRegistry.js),
+which returns the language AND `Input_Is_Multilingual: value !== 'English (en)'` — the
+`ratio` → Width + Height pattern. The agent's, the connector's and a routine's `language`
+named param go through the same function, so no caller can send one half without the other.
+The broken state is unreachable rather than warned about, and the 21 dead hovers went with
+the toggle.
 
 English still takes the English-only arm, which is where every measurement on this card was
 made.
@@ -167,18 +163,22 @@ again, check `pkg_resources` before suspecting the model.
   required inputs, 0 dangling links, 0 widget shifts.
 - All 13 weights install through the app's own download manager onto their `targetPath`s.
 
+## The voice is REQUIRED, and the model can say so
+
+`MpiLoadAudioUpload#54` carries `block_if_empty: true`, which returns an `ExecutionBlocker`
+with no voice: no output, and ComfyUI reports success. Turning the flag off is **not** the
+answer — `false` emits a 1-sample 44.1 kHz silence (`video.py` `MpiLoadAudio._empty`, which
+the Upload loader inherits) that then becomes Chatterbox's `audio_prompt`, a garbage
+reference for a clean block. As a Flow this was a silent no-op a user could reach (a FlowDef
+had no way to SAY a slot is required). As a model it cannot be reached: `audio1` is
+`required: true` on the `tts` CommandDef, the prompt box dims Text to Speech ("needs a voice")
+until a voice is staged and its `+` opens the voice library and the mic
+([op-model-selection.md](../../op-model-selection.md) § Which ops appear), and the enqueue
+refuses a missing required slot.
+
 ## Not done yet
 
-- **No run through the Flow overlay.** Every generation above was dispatched straight to
-  the engine, which exercises the graph but not the flow's media routing, `.preview-assets`
-  storage or reuse.
-- 🔴 **A run with no voice is a SILENT no-op, and this predates the strip.** The slot is
-  `mode: 'upto'` — the only mode there is — so a user can type a line, leave the voice
-  empty and press Generate. `MpiLoadAudioUpload#54` carries `block_if_empty: true`, which
-  returns an `ExecutionBlocker`: no output, and ComfyUI reports success. Turning the
-  flag off is **not** the fix — `false` emits a 1-sample 44.1 kHz silence
-  (`video.py` `MpiLoadAudio._empty`, which the Upload loader inherits) which then becomes Chatterbox's `audio_prompt`, so
-  it trades a clean block for a garbage reference. The voice is genuinely required; what
-  is missing is a way for a FlowDef to SAY a slot is required, and neither `upto` nor
-  `requiresImages` (unread on the flow path) provides one.
+- **No run through the prompt box yet** (MPI-1012 P8). Every generation above was dispatched
+  straight to the engine or through the old Flow, which exercises the graph but not the
+  model's slot routing.
 - **Which languages are worth promising** is unmeasured beyond Portuguese.

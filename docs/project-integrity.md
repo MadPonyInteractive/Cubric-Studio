@@ -302,7 +302,8 @@ something the user picked the op by — the key is an internal id. `getFilePrefi
 resolves `filePrefix` → `short` → key, and save-generation takes the answer as its own `filePrefix`
 body field, *beside* an untouched `operation`. That is what folds the four edit keys
 (`edit`/`krea2Edit`/`qwenEdit`/`kleinEdit`) onto `edit_NNN`, `pid` onto `upscale`, the `_ms` video
-keys onto `t2v`/`i2v`/`ref2v`, and `flowChatterBox` onto `flowTTS`. Ops now sharing a prefix share
+keys onto `t2v`/`i2v`/`ref2v`, and `flowChatterBox` onto `flowTTS` (a tombstone since MPI-1012;
+its successor `tts` writes `tts_NNN`). Ops now sharing a prefix share
 one counter — still monotonic, just interleaved. **Never rename `operation` to fix a filename:** it
 is stamped in every sidecar, resolved by Reuse, and versioned in `operationRegistry.js`.
 `tests/flow-output-filename.test.cjs` fails any op filed under a name the UI does not show.

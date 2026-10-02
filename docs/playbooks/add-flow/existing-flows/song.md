@@ -1,8 +1,8 @@
 # Song (MPI-664, split by MPI-694) — MiniMax Music 3, and it only makes SUNG songs
 
 > Part of [add-flow/existing-flows](../README.md). A brief in, a finished song out: lyrics,
-> a cast of voices, one of eighteen style families. Its twin is
-> [sound-and-music.md](sound-and-music.md), which owns everything this flow does not sing.
+> a cast of voices, one of eighteen style families. Its twin is Sound & Music
+> ([the Stable Audio 3 model](../../../models/stable-audio-3/README.md) since MPI-1012), which owns everything this flow does not sing.
 > Read this before touching the flow, its graph, or its enhancer recipe.
 
 ## Shape
@@ -46,7 +46,7 @@ prefix, so a card saved under a name the user cannot find in the Library fails t
 
 ## What MPI-694 took away
 
-The instrumental half left for [Sound & Music](sound-and-music.md) on 2026-09-05: *"We drop the
+The instrumental half left for [Sound & Music](../../../models/stable-audio-3/README.md) on 2026-09-05: *"We drop the
 instrumental case for Minimax, considering it's crap anyway."* (Fabio)
 
 - `Input_Instrumental` and `Input_Structure` left the UI, **and left `enhance.from` with them**
@@ -213,7 +213,7 @@ directions. Weigh it accordingly (ONE seed, hand-written caption):
   `computeDepHashes.py --sizes` (`size` parses 1024-based; HF displays decimal).
 - **`Input_Low_Vram` stays HERE** and was removed from the twin. Measured, not stylistic:
   13.3 GB of MiniMax weights make the toggle real here, ~6.5 GB of Stable Audio weights do not
-  make it real there. See [sound-and-music.md](sound-and-music.md) § No Low VRAM.
+  make it real there. See [the Stable Audio 3 doc](../../../models/stable-audio-3/README.md) § No Low VRAM.
 
 ## The art
 
@@ -239,5 +239,5 @@ through the type.
   observed has reached the cap, so add the fade the first time a run is audibly truncated.
 - **A seconds → frames conversion.** `Input_Duration` is an `MpiFloat` straight into the
   encoder, so the LTX Extend `MpiMath` pattern does not apply.
-- **Instrumentals.** [Sound & Music](sound-and-music.md)'s, and re-adding them here re-opens a
+- **Instrumentals.** [Sound & Music](../../../models/stable-audio-3/README.md)'s, and re-adding them here re-opens a
   split Fabio made deliberately.

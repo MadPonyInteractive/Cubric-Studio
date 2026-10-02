@@ -88,6 +88,12 @@ test('Stable Audio 3 is gated by the SAME descriptor, so nobody is asked again',
     assert.strictEqual(lic.id, 'stable-audio-3-stability-gemma-2026-09-05');
     assert.strictEqual(lic.version, 1, 'a version bump re-prompts every Flow-era acceptor');
     assert.ok(!MODEL_LICENCES['flow:sound-and-music'], 'a dead flow key gates nothing');
+    // ONE descriptor, TWO agreements. The Flow drawer linked both (flowLicences.js); the
+    // Model drawer is the standing surface now and rendered only the first, so the Gemma
+    // terms were reachable from the install dialog alone.
+    assert.ok(lic.alsoLicensed?.length, 'the Gemma terms ride on alsoLicensed');
+    const drawer = fs.readFileSync(repo('js/components/Organisms/MpiModelManager/MpiModelManager.js'), 'utf8');
+    assert.match(drawer, /licence\.alsoLicensed \|\| \[\]/, 'the Model drawer must link the second agreement too');
 });
 
 test('every key the audio controls inject is a node title in its graph', async () => {

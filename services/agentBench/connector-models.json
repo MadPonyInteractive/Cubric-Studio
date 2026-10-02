@@ -2051,6 +2051,84 @@
         "ramGbAtYourVram": 20,
         "runs": true
       }
+    },
+    {
+      "id": "stable-audio-3",
+      "name": "Stable Audio 3",
+      "type": "audio",
+      "installed": true,
+      "ops": [
+        {
+          "op": "t2a",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "tierSizes": {},
+            "turbo": false,
+            "styles": [],
+            "duration": {
+              "min": 1,
+              "max": 190
+            },
+            "categories": [
+              "Music",
+              "Instrument",
+              "SFX",
+              "One-shot"
+            ],
+            "denoise": null
+          }
+        }
+      ],
+      "missingDownloadGb": 0
+    },
+    {
+      "id": "chatterbox",
+      "name": "Chatterbox",
+      "type": "audio",
+      "installed": true,
+      "ops": [
+        {
+          "op": "tts",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "tierSizes": {},
+            "turbo": false,
+            "styles": [],
+            "duration": null,
+            "languages": [
+              "English",
+              "Arabic",
+              "Danish",
+              "German",
+              "Greek",
+              "Spanish",
+              "Finnish",
+              "French",
+              "Hebrew",
+              "Hindi",
+              "Italian",
+              "Japanese",
+              "Korean",
+              "Malay",
+              "Dutch",
+              "Norwegian",
+              "Polish",
+              "Portuguese",
+              "Russian",
+              "Swedish",
+              "Swahili",
+              "Turkish",
+              "Chinese"
+            ],
+            "denoise": null
+          }
+        }
+      ],
+      "missingDownloadGb": 0
     }
   ],
   "flows": [
@@ -2164,17 +2242,6 @@
       "boxParams": []
     },
     {
-      "id": "chatter-box",
-      "title": "Text to Speech",
-      "operation": "flowChatterBox",
-      "installed": false,
-      "fields": [
-        "positive",
-        "Input_Language.language"
-      ],
-      "boxParams": []
-    },
-    {
       "id": "drama-box",
       "title": "DramaBox",
       "operation": "flowDramaBox",
@@ -2222,18 +2289,6 @@
         "Input_Mood",
         "Input_Vocal",
         "Input_Arrangement"
-      ],
-      "boxParams": []
-    },
-    {
-      "id": "sound-and-music",
-      "title": "Sound & Music",
-      "operation": "flowSoundAndMusic",
-      "installed": true,
-      "fields": [
-        "positive",
-        "Input_Category",
-        "Input_Duration"
       ],
       "boxParams": []
     }

@@ -87,8 +87,8 @@ A Flow that is run with plain fields the labels explain gets nothing.
   (paid, like Head Swap and DramaBox) is named in `flows.md` § Picking one, and one that is not
   installed is added from the Flow Library.
 - An outside agent (MCP, Claude Desktop) reads `.claude/skills/cubric-vision-flows/SKILL.md` instead,
-  which has a recipe per Flow that needs a calling convention (Text to Speech, DramaBox). Add one only
-  for that kind of Flow.
+  which has a recipe per Flow that needs a calling convention (DramaBox). Add one only for that kind
+  of Flow. (Text to Speech is a model since MPI-1012; its recipe lives in `cubric-vision-generate`.)
 
 ## 5. A new media KIND (audio was one)
 

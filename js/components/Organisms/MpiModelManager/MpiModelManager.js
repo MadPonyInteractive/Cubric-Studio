@@ -988,6 +988,10 @@ export const MpiModelManager = ComponentFactory.create({
                     return b;
                 };
                 links.append(linkTo('Read the licence', licence.licenceUrl));
+                // A second agreement (Stable Audio 3: Stability's checkpoints + Google's Gemma
+                // encoder). The Flow drawer always linked it; as a model (MPI-1012) this drawer
+                // is its standing route, and a copy that cannot be opened was never provided.
+                for (const extra of licence.alsoLicensed || []) links.append(linkTo(`Read the ${extra.name}`, extra.url));
                 if (licence.territory) links.append(linkTo('Request authorization', licence.territory.authorizationUrl));
                 if (licence.report) links.append(linkTo(licence.report.label, licence.report.url));
                 row.append(links);

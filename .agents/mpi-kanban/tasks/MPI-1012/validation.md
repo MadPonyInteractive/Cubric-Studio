@@ -78,3 +78,22 @@ Verify mode: user-ux. Evidence per phase lands here; Fabio's look closes it.
 - `--plan` NOT run: it reads the local engine's `/object_info` (Fabio's), and the offline half
   it would prove is what the new prepOp cases run. `dev_configs/smoke-run.txt` untouched.
 - eslint on the runner + both test files: clean. Smoke tests together: 62/62.
+- Committed 82b19e16d, pushed.
+
+## P7 docs (session 7ca011ff, 2026-10-02)
+
+- `node --test "tests/**/*.test.cjs"`: 2700 tests, 2698 pass, 0 fail (2 skipped).
+- Model drawer `alsoLicensed` (Stable Audio 3's Gemma terms): `tests/audio-models.test.cjs`
+  licence case now asserts the descriptor carries it AND `MpiModelManager.js` renders it;
+  red on HEAD (the drawer had no `alsoLicensed` loop). eslint clean.
+- Docs moved with `git mv` (history kept): `existing-flows/chatter-box.md` ->
+  `docs/models/chatterbox/README.md`, `sound-and-music.md` -> `docs/models/stable-audio-3/README.md`
+  (200 lines), both rewritten to the model shape; index rows in `docs/models/README.md`,
+  `docs/README.md` map. Every in-repo reference re-grepped: none left outside history notes.
+- Skills: `cubric-vision-generate` gains audio (description, `category`/`language`/`duration`
+  rows, an Audio section with both curls + library voices); `cubric-vision-flows` drops the
+  Chatterbox recipe for DramaBox-only; `cubric-vision` core routes speech to generate.
+- `docs/releases/UNRELEASED.md`: Flow roster Thirteen -> Eleven, audio-models bullet.
+- Bench fixture `services/agentBench/connector-models.json`: the two retired Flow rows out,
+  two model rows in (built by `namedParamsFor`), byte-exact round-trip guarded;
+  `tests/agent-bench.test.cjs` green.

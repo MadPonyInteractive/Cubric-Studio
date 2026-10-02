@@ -36,8 +36,9 @@ not** — a single reference plus a prompted emotion delivered "not greatly, but
 prompting". Do not promise expressiveness as a comparison.
 
 **But the description must lead with DIRECTION, not identity** (Fabio, 2026-08-28, reading
-the slide-over). Both audio flows are text-to-speech, so a description that only says "hear
-your line performed" makes the pair read as duplicates. The distinguishing thing is in the
+the slide-over). Both are text-to-speech (Text to Speech was a Flow then; the `chatterbox`
+model since MPI-1012), so a description that only says "hear your line performed" makes the
+pair read as duplicates. The distinguishing thing is in the
 graph, not in the marketing:
 
 | | Text to Speech (Chatterbox) | DramaBox |
@@ -257,7 +258,7 @@ Checked on 2026-08-28, so it does not need checking again:
   is no third file we failed to fetch — those weights do not exist in the release.
 
 🔴 **Why this is worth a section rather than a shrug.** It has the same SHAPE as
-the Chatterbox silence bug (`chatter-box.md`): a swallowed initialisation failure
+the Chatterbox silence bug ([models/chatterbox](../../../models/chatterbox/README.md)): a swallowed initialisation failure
 that still returns a plausible-looking result. What tells them apart is the OUTPUT,
 never the log — Chatterbox's tell was a real `.flac` of zero duration at −91 dB,
 while DramaBox produces real measured speech. So if this flow ever does go wrong,

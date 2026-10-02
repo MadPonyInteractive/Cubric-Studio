@@ -112,7 +112,7 @@
 - **Flows are here, and they are the headline of this release.** A flow is a whole job in one
   place: it asks for what it needs a step at a time, brings its own models, and hands you a
   finished result. Open the Flow Library from the Flows button at the top of the gallery, from
-  the landing page, or with TAB. Thirteen to start with:
+  the landing page, or with TAB. Eleven to start with:
 
   - **Draw It In**: draw something into a photo you already have
   - **Scribble**: draw on a blank canvas and have it rendered
@@ -124,14 +124,17 @@
   - **Add Foley**: give a silent clip its soundtrack
   - **Upscale Video**: double a clip's resolution
   - **Voice Changer**: say a line and have it come back in someone else's voice
-  - **Text to Speech**: read your text aloud in a voice you pick, in 23 languages
   - **Song**: write a song from a style, a mood and your own lyrics
   - **Stems**: split a song into bass, drums, vocals and everything else
-  - **Sound & Music**: sound effects, one-shots, instruments and instrumental music
 
   Each flow says which models it needs and installs them for you. Most run on a model the
   Library already offers, so once you own it the flow costs you nothing extra. The Library has
   filters, search and a count.
+
+- **Sound and speech in the prompt box.** Two audio models sit beside the image and video
+  ones. **Stable Audio 3** makes sound effects, one-shots, instruments and instrumental music at
+  exactly the length you ask for. **Chatterbox** reads your text aloud in a voice you record or
+  pick from the voice library, in 23 languages. Pick one, type, and press Cue.
 
 - **Klein 9B now asks you to accept its licence before it downloads, like MiniMax H3.** Request
   access from the people who made it, paste a Hugging Face token, and Cubric Studio unlocks the

@@ -167,8 +167,8 @@ refusal has to come back as a named error code, not a `ui:warning` nobody reads.
 
 **A Flow reaches the same route by `flowId`, never by `modelId` (MPI-658).** A Flow dispatches
 with `model.id: null` — it is an operation, not a model — so `modelId` could not name one, and
-EVERY Flow was unreachable from an agent, including both text-to-speech surfaces, which are
-Flows and not models. `flowId` resolves the FlowDef, pre-flights `flowAvailability` (which
+EVERY Flow was unreachable from an agent, including both text-to-speech surfaces, which were
+Flows then (Text to Speech is the `chatterbox` model since MPI-1012; DramaBox is still a Flow). `flowId` resolves the FlowDef, pre-flights `flowAvailability` (which
 otherwise reports through a toast and returns a bare `null`), and reads the caller's `fields`
 through `resolveFlowFieldValues` — the same declared-field dialect the flow frame renders from,
 so `derived` is computed after the caller's overrides exactly as it is under a click. A

@@ -1,22 +1,25 @@
-# Sound & Music (MPI-694) — Stable Audio 3, everything except sung vocals
+# Stable Audio 3 — Sound & Music (MPI-694), everything except sung vocals
 
-> Part of [add-flow/existing-flows](../README.md). Backing tracks and instrumentals, a single
-> instrument, sound effects, one-shot hits — one op, two checkpoints behind a lazy gate, and a
-> length slider that is exact. Its twin is [song.md](song.md), which owns the one thing this
-> engine does not claim. Read this before touching the flow, its graph, or its licence gate.
+> Part of [docs/models](../README.md). Backing tracks and instrumentals, a single instrument,
+> sound effects, one-shot hits — one op, two checkpoints behind a lazy gate, and a length
+> slider that is exact. Its twin is [Song](../../playbooks/add-flow/existing-flows/song.md),
+> which owns the one thing this engine does not claim. It shipped as the `sound-and-music`
+> Flow and became a prompt-box MODEL on 2026-10-02 (MPI-1012, Fabio: *"It doesn't have
+> inputs. All it has is two parameters and a prompt"*): same graph, renamed, same dep ids,
+> same licence descriptor. Old cards, routines and agent calls naming `sound-and-music`
+> resolve through `js/data/retiredFlows.js`. Read this before touching the model, its graph,
+> or its licence gate.
 
 ## Shape
 
 | | |
 |---|---|
-| id / op | `sound-and-music` / `flowSoundAndMusic` |
-| label / prefix | `Flow: Sound & Music` / **`flowSoundMusic`** — the filename guard compacts the title with punctuation dropped, so spelling the ampersand out FAILS `tests/flow-output-filename.test.cjs` |
-| graph | `comfy_workflows/flow_stable_audio.json` — **17 nodes** (19 until the Low VRAM pair came out) |
-| `requiredModels` | `[]` — a FLOW WITH DEPS, the same shape as Song and Voice Changer |
-| `requiredDeps` | 3 weights, **11.81 GB**: `stable-audio-3-medium` 8.59 + `stable-audio-3-small-sfx` 2.11 + `t5gemma-b-b-ul2` 1.11 |
-| licence | `STABLE_AUDIO_3`, keyed `flow:sound-and-music` — 🔴 ONE descriptor carrying TWO agreements |
-| `mediaType` | `'audio'`; inputs **none** — no `inputSchema`, so step 0 renders its own "needs no input media" panel |
-| shape | **no `steps` at all** — the intro, then the run slide. Fields: `positive`, `Input_Category` (select ×4), `Input_Duration` (slider) |
+| id / op | `stable-audio-3` / `t2a` "Sound & Music" (output `t2a_001.flac`) |
+| graph | `comfy_workflows/stable_audio_3.json` — **17 nodes** (19 until the Low VRAM pair came out) |
+| `dependencies` | 3 weights, **11.81 GB**: `stable-audio-3-medium` 8.59 + `stable-audio-3-small-sfx` 2.11 + `t5gemma-b-b-ul2` 1.11, plus `ComfyUI-MpiNodes` |
+| licence | `STABLE_AUDIO_3`, keyed `stable-audio-3` in `MODEL_LICENCES` — 🔴 ONE descriptor carrying TWO agreements |
+| `mediaType` | `'audio'`; takes **no media**, so the prompt box shows no `+` card on it |
+| controls | prompt; `audioCategory` (4 options → `Input_Category`) and `audioLength` (slider 1-190 s, default 10 → `Input_Duration`), both perModel. NOT the video `duration` control: its bounds, hover and shared scope are video's |
 
 ```
 Input_Category -> Is_Tonal (MpiTextContains, "Music, Instrument")
@@ -27,7 +30,7 @@ Input_Duration -> Empty Latent Audio
       -> KSampler -> VAEDecodeAudio -> MpiClearVram -> Output_Audio
 ```
 
-## 🔴 Why two flows and not one
+## 🔴 Why two surfaces and not one (Song stays a Flow)
 
 This shipped for one day as a five-outcome dropdown on a single flow with one 30.92 GB install
 gate, and Fabio reversed it before a line was built (2026-09-05): *"I think this could be two
@@ -73,8 +76,8 @@ Measured off the decoded file with `ffprobe`, never trusted from the request —
 
 **Exact to ~80 ms across a 16× range**, on the app path and not just the bench. Song's
 `Input_Duration` is a GUILLOTINE by comparison — the AR decides its own length there and the
-cut-off only ever shortens ([song.md](song.md) § Cut off at). A categorical difference between
-the flows, not a better number. Default 10 s because that is where the approved clips sit;
+cut-off only ever shortens ([song.md](../../playbooks/add-flow/existing-flows/song.md) § Cut off at). A categorical difference between
+the two, not a better number. Default 10 s because that is where the approved clips sit;
 `max: 190` is the longest duration this card has actually run, not a spec number; `step: 1`, so
 the bench's 1.5 s one-shot rounds to 1 or 2 — drop to 0.5 only if one ever needs the half second.
 
@@ -82,9 +85,10 @@ the bench's 1.5 s one-shot rounds to 1 or 2 — drop to 0.5 only if one ever nee
 
 Stability's blueprint carries one (Qwen3.5-2B, 4.55 GB, with 47/80/58/36 worked examples per
 category behind a `JsonExtractString`) and we do not port it: it would add 4.88 GB to the one
-flow whose whole appeal is being small, and **every clip judged good so far was made with it
+surface whose whole appeal is being small, and **every clip judged good so far was made with it
 OFF** — the door slam, the 1.5 s dry stick, the rain with two thunder rolls, first seed, no
-iteration. Adding it later is one `enhance:` block plus one dep line.
+iteration. `t2a` sits in `ENHANCE_EXEMPT_OPS` (commandRegistry.js), so the prompt box offers no
+Enhance on it; adding one later means a recipe and taking `t2a` out of that set.
 
 🔴 **IF IT IS EVER ADDED IT STAYS A SEPARATE `promptEnhance` DISPATCH.** Collapsing an enhancer
 into the audio graph is Stability's single-subgraph shape, and the bench measured its cost:
@@ -123,10 +127,12 @@ after. Wire it back only if a real card is measured falling over.
 ## The licence gate — ONE descriptor, TWO agreements
 
 🔴 **The architecture forces one descriptor, not two.** The gate fires per INSTALL KEY, and all
-three weights install under the single `flow:sound-and-music` dep key (`requiredModels: []`), so
-a second descriptor could never be keyed there. Rename the flow's `id` without moving the key and
-the lookup misses **SILENTLY**: three licensed weights land with nothing shown. `STABLE_AUDIO_3`
-therefore carries both agreements, bundled under `licences/stable-audio-3/`:
+three weights install under ONE key — the model id `stable-audio-3` now, `flow:sound-and-music`
+while it was a Flow — so a second descriptor could never be keyed there. Rename the model's `id`
+without moving the key and the lookup misses **SILENTLY**: three licensed weights land with
+nothing shown (`tests/audio-models.test.cjs` pins the key to the id). MPI-1012 re-keyed the
+SAME descriptor (same `id`, `version: 1`), so nobody who accepted it as a Flow is asked again.
+`STABLE_AUDIO_3` therefore carries both agreements, bundled under `licences/stable-audio-3/`:
 
 | file | what it is |
 |---|---|
@@ -135,10 +141,11 @@ therefore carries both agreements, bundled under `licences/stable-audio-3/`:
 | `NOTICE.txt` | both required attribution strings, verbatim |
 
 `poweredBy` is **"Powered by Stability AI"** — §IV(a)(iii)'s exact string, not paraphrasable,
-rendered on both Flow surfaces via `buildLicenceRows` (MPI-666), which is where a user of this
-flow looks: there is no model card, deliberately. **One new field was the only code:**
-`alsoLicensed` carries the second agreement as its own link in the gate AND in
-`flowLicences.js` — "provide a copy" is not discharged by naming it.
+rendered in the Model Library drawer's licence row (as a Flow it rode both Flow surfaces via
+`buildLicenceRows`, MPI-666). **One new field was the only code:** `alsoLicensed` carries the
+second agreement as its own link in the gate AND in the drawer — "provide a copy" is not
+discharged by naming it. The Model drawer did not render `alsoLicensed` until MPI-1012 found
+the Gemma link missing there; `tests/audio-models.test.cjs` now pins it.
 
 🟢 **No `territory` block, and that is a finding rather than an omission.** Neither agreement
 restricts by territory and neither bars outputs — Stability §IV(c)(iii) gives outputs to the
@@ -160,41 +167,34 @@ Re-fetch both texts if either licensor revises, and bump `version` — a bump in
 prior receipt, which is how a revised AUP reaches users who installed under the old one.
 
 **The weights serve from R2 (MPI-705)**, because HuggingFace measured ~1 %/min on Fabio's line —
-~100 minutes for the flow whose appeal is being small. All three sit in `cubric-models`, verified
+~100 minutes for the install whose appeal is being small. All three sit in `cubric-models`, verified
 byte-exact by `rclone lsl` and a public HEAD, `url` on `models.cubric.studio` with the Comfy-Org
 HF urls kept as `mirrorUrl`. Every sha256 was verified against HuggingFace's own `X-Linked-ETag`;
 `size` comes from `computeDepHashes.py`'s formatter, never typed (1024-based; HF shows decimal).
 
 ## The art
 
-Four NEW runs, one per category (the previously approved clips died with a deleted throwaway
-project and nothing survived on disk). Durations MEASURED off the files —
-**10.031 / 10.031 / 4.087 / 2.043 s** for 10/10/4/2 asked — so the exact-length claim the art
-makes is verified, not assumed. Both assets are a **TIME RULER, not lanes**: a row's width IS
-its length, so the 2 s one-shot is a fifth of the 10 s bed, and a frost tick marks where each
-actually stops. That is deliberate distance from [Stems](stems.md), whose tile is five EQUAL
-lanes of one track — four labelled lanes here would have been the same picture with different
-words. The hero draws each row in under a heat playhead that halts on its own mark, teaching the
-dropdown and the slider in one pass. 31,174 B / 74,935 B, 8.0 s, loop seam 0.013/255.
+The 4:5 tile is the model's `image` (`comfy_workflows/display/stable-audio-3.webp`); the Flow's
+hero clip went with the Flow (no model surface plays one; git keeps it). Four runs, one per
+category, durations MEASURED off the files — **10.031 / 10.031 / 4.087 / 2.043 s** for 10/10/4/2
+asked — so the exact-length claim the art makes is verified, not assumed. It is a **TIME RULER,
+not lanes**: a row's width IS its length, so the 2 s one-shot is a fifth of the 10 s bed, and a
+frost tick marks where each actually stops — deliberate distance from
+[Stems](../../playbooks/add-flow/existing-flows/stems.md)' five EQUAL lanes of one track.
 
 🔴 **THE SOURCE AUDIO IS EPHEMERAL.** The four flacs live in a scratchpad project
 (`…/scratchpad/mpi694-art/MPI-694 Flow Art/Media/flowSoundMusic_00{1..4}.flac`), with prompts
-and settings in `sam-runs.json` beside them. This flow's art audio has already been lost once.
+and settings in `sam-runs.json` beside them. This art audio has already been lost once.
 **If the art ever needs rebuilding, that audio must be re-generated (GPU, and Fabio's word) or
-moved somewhere durable FIRST.**
-
-🔴 Making it found the **bigger-than-the-viewport screenshot** trap (unpainted region pure black,
-right dimensions, no error — it reached the live Library once). Now in
-[../06-preview-image.md](../06-preview-image.md)'s trap table.
+moved somewhere durable FIRST.** (Making it found the bigger-than-the-viewport screenshot trap,
+now in [06-preview-image.md](../../playbooks/add-flow/06-preview-image.md)'s trap table.)
 
 ## Out of scope, and still open
 
 - **A reprompter** (and if ever added, as a separate dispatch), and **`Input_Low_Vram`** — built,
-  measured, removed. Do not harmonise this flow with Song by putting either back.
-- **Sung vocals** are [Song](song.md)'s, by capability and by Fabio's ear. **A second op or
-  workflow for the SFX checkpoint** buys nothing — the lazy `MpiIfElse` pair already keeps the
-  unpicked one unloaded.
+  measured, removed. Do not harmonise this model with Song by putting either back.
+- **Sung vocals** are [Song](../../playbooks/add-flow/existing-flows/song.md)'s, by capability and
+  by Fabio's ear. **A second op or workflow for the SFX checkpoint** buys nothing — the lazy
+  `MpiIfElse` pair already keeps the unpicked one unloaded.
 - 🟡 `Instrument` on Medium vs `small_sfx` — untested, one word to change.
 - 🟡 A direct A/B against MiniMax on one instrumental brief, before Stable Audio owns that arm.
-- 🟡 An agent-dispatched flow gets no caption (`agentDispatch.js:_submitFlow` vs
-  `MpiBaseFlow._run`) — not specific to this flow, and worth its own card.

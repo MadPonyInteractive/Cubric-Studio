@@ -332,7 +332,8 @@ that means the step, and changing the value before `Generate Again` costs one ti
 
 The sequenced stem (`flowTTS_001.wav`) is the gallery card's NAME, so it must read as the Flow's
 title in the Library. It used to be the op key, which is an internal id — the Flow titled "Text to
-Speech" runs on `flowChatterBox`, so its card named a Flow that does not exist.
+Speech" ran on `flowChatterBox` (the model op `tts` since MPI-1012), so its card named a Flow that
+did not exist.
 
 **Set `filePrefix` on the CommandDef whenever the key does not read as the title.** `getFilePrefix`
 resolves `filePrefix` → `short` → key; a Flow op has no `short` (it never reaches the op strip), so

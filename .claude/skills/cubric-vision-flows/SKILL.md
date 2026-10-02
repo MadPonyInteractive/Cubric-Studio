@@ -1,11 +1,11 @@
 ---
 name: cubric-vision-flows
-description: Run Cubric Studio (formerly Cubric Vision) Flows from an agent, which is how TEXT-TO-SPEECH is reached - generate speech, a voice-over, a spoken line, a narration or any audio from text, or clone or match a voice from a sample, with the chatter-box and drama-box Flows. Also head swap, outpaint, character sheet and every other Flow; a Flow is not a model, so modelId can never reach one. Covers flowId and declared fields, naming the card, and supplying your own audio, image or video file from another repo by staging it into the project first. Use whenever asked for speech or audio from text with Cubric Studio, or to run any Flow. Part of the cubric-vision skill family.
+description: Run Cubric Studio (formerly Cubric Vision) Flows from an agent - DramaBox (speech you DIRECT in words - a laugh, a whisper, a stage direction - with or without a voice sample), Voice Changer (a recording re-spoken in another voice), head swap, outpaint, character sheet and every other Flow; a Flow is not a model, so modelId can never reach one. Plain text-to-speech and sound effects are MODELS (chatterbox, stable-audio-3) in cubric-vision-generate. Covers flowId and declared fields, library voices, naming the card, and supplying your own audio, image or video file from another repo by staging it into the project first. Use whenever asked to run any Flow, or for a performed line or a changed voice with Cubric Studio. Part of the cubric-vision skill family.
 user-invocable: true
 metadata: {"openclaw":{"emoji":"👁️","os":["win32","darwin","linux"],"requires":{"anyBins":["curl"]},"primaryEnv":"CUBRIC_URL"}}
 ---
 
-# Cubric Studio: Flows and text-to-speech
+# Cubric Studio: Flows
 
 ## Before anything else
 
@@ -18,12 +18,14 @@ connection means Vision is not running. Name the project on the submit with
 whatever project the app has open, which the user can change under you (core skill,
 projects.md).
 
-## Running a Flow (and text-to-speech)
+## Running a Flow
 
 **A Flow is not a model, and `modelId` can never name one.** Flows run as an
 operation with `model.id: null`, so head-swap, outpaint, character sheet and
-both text-to-speech surfaces are unreachable through `modelId`. They take
-`flowId` on the same endpoint, `/connector/generate`, instead (MPI-658):
+DramaBox are unreachable through `modelId`. They take `flowId` on the same
+endpoint, `/connector/generate`, instead (MPI-658). (Text to Speech and Sound &
+Music were Flows until MPI-1012; a `flowId` of `chatter-box` or
+`sound-and-music` still routes to their models.)
 
 ```bash
 curl -s -X POST "$CUBRIC_URL/connector/generate" \
@@ -37,7 +39,7 @@ descriptor already names it.
 
 | Key | Notes |
 |---|---|
-| `flowId` | The FlowDef id — `chatter-box`, `drama-box`, `ltx-extend`, … |
+| `flowId` | The FlowDef id — `drama-box`, `voice-changer`, `ltx-extend`, … |
 | `fields` | Declared field id → value. Every id must be one the flow declares; an unknown one is a `BAD_REQUEST` naming what it does declare. Omitted fields take the flow's default, **and a declared field sent as `null` counts as omitted** — it takes the default rather than overwriting it, so you never have to invent a value for a control you do not care about. `0` and `''` are values you chose, not absences. |
 | `media` | `[{ role, url }]`, **by reference, never bytes** — see Supplying your own audio |
 | `cardName` | Optional. Names the gallery card when the run lands; the reply carries `output.cardName`. See the `cubric-vision-generate` skill § Naming the card. |
@@ -45,9 +47,7 @@ descriptor already names it.
 **`fields` ids are not `injectionParams`.** They are the flow's own declared
 controls, and the `Input_` prefix is what decides where each lands: `positive`
 and `negative` reach the op as themselves, anything starting `Input_` is
-injected into the graph. Values are clamped to the declared `min`/`max`, and
-computed fields follow whatever you set — pick a language on Text to Speech and
-its multilingual arm switches with it.
+injected into the graph. Values are clamped to the declared `min`/`max`.
 
 **A flow's fields describe themselves.** Each entry a flow lists carries
 `{id, label, type}` plus `default`, `options` (`{v, label}` pairs) and `min`/`max`
@@ -100,35 +100,11 @@ costs one file.
 not in the app's audio extension lists and will not classify as audio — the app's
 own voice picker decodes to WAV for exactly this reason. Convert before staging.
 
-### The two text-to-speech flows
+### DramaBox: text to speech you direct
 
-Both are Flows, both output audio, and they are not interchangeable.
-
-**`chatter-box` — "Text to Speech".** Speaks your line in a voice you supply.
-The voice sample is **required**: its graph blocks without one, and ComfyUI
-reports SUCCESS with no output, so the skill refuses the run up front with
-`MEDIA_REQUIRED` instead.
-
-```bash
-curl -s -X POST "$CUBRIC_URL/connector/generate" \
-  -H 'Content-Type: application/json' \
-  -d '{"flowId":"chatter-box",
-       "fields":{"positive":"Hello and welcome to Cubric Studio.",
-                 "Input_Language.language":"English (en)"},
-       "media":[{"role":"audio1","url":"<filePath from place-preview-asset>"}]}'
-```
-
-- `positive` — the line to speak.
-- `Input_Language.language` — one of 23, written exactly as the FlowDef lists it
-  (`English (en)`, `Japanese (ja)`, `Chinese (zh)`, …). Defaults to English.
-  Portuguese delivers **Brazilian** Portuguese.
-- `media` role `audio1` — the voice to speak in. Required.
-
-Verified end to end 2026-08-29 on an isolated instance: a staged `.wav` handed in
-as `audio1` returned `flowChatterBox_001.flac` (24 kHz mono) in 38.9s, as a real
-`type: "audio"` gallery card. Its sidecar carries `flowId`, `flowInputs` with the
-media by reference, and the derived language arm — so **Reuse reopens the flow
-with the agent's own inputs restored**.
+Plain Text to Speech — your line, word for word, in a voice you give it, in 23
+languages — is the `chatterbox` MODEL: `cubric-vision-generate` § Audio. Reach
+for DramaBox when the line needs a PERFORMANCE.
 
 **`drama-box` — "DramaBox".** Text to speech you direct in words, with the voice
 reference **optional**: leave `media` off and it invents a speaker from the line
@@ -141,10 +117,9 @@ alone. It holds a supplied voice more closely than Chatterbox does.
   runs past it is cut off mid-word.** Give a long line more seconds. Never 0.
 - English only. Accent rides on the prompt and only trained accents land.
 
-Both need their weights installed — roughly 4GB for Chatterbox's English arm,
-15GB for DramaBox. `OP_UNAVAILABLE` names what is missing; the user installs it
-from the Flows library.
+DramaBox needs roughly 15GB of weights. `OP_UNAVAILABLE` names what is missing;
+the user installs it from the Flows library.
 
-**Not covered yet:** the app's shipped 56-voice library is pickable in the UI but
-has no HTTP listing, so an agent supplies its own sample rather than naming a
-stock voice.
+**Library voices.** A voice slot's media row in `/connector/models` lists the
+shipped library voices it takes (`voices`); pass one by id, `{"role":"<role>",
+"voice":"<id>"}`, instead of staging a sample.

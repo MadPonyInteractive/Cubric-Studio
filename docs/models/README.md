@@ -78,6 +78,16 @@ load-bearing, plus the 2-reference face wall and its ruled-out list.
 SDXL's `inpaint` op (MPI-615) is not SDXL-specific — it is the shared LanPaint branch,
 documented once in [lanpaint-inpaint.md](lanpaint-inpaint.md).
 
+### [stable-audio-3/](stable-audio-3/) — Stable Audio 3, the `t2a` "Sound & Music" op (a Flow until MPI-1012)
+| File | Holds |
+|---|---|
+| [README.md](stable-audio-3/README.md) | Two checkpoints behind ONE lazy gate on the category, the exact length (measured to ~80 ms) Song cannot have, why there is no enhancer and no Low VRAM (the VRAM table that decided both), and the ONE-descriptor-TWO-agreements licence with the two obligations it does not discharge. |
+
+### [chatterbox/](chatterbox/) — Chatterbox, the `tts` "Text to Speech" op (a Flow until MPI-1012)
+| File | Holds |
+|---|---|
+| [README.md](chatterbox/README.md) | Two language arms behind a lazy gate the language picks, why there is NO voice-conversion stage (measured), the dotted `Input_Language.language` key, the silence that `setuptools<81` fixed (the tell is the output file), and why the voice is required. |
+
 ### [lanpaint-inpaint.md](lanpaint-inpaint.md) — the shared `inpaint` op (Klein, SDXL x5, Krea 2 x2)
 One op key, one branch shape, three families: `Input_wf_type: 5` everywhere, the
 bbox-crop → LanPaint → stitch chain, why the op mounts no ratio/batch/denoise control, and

@@ -1,6 +1,6 @@
 ---
 name: cubric-vision-generate
-description: Dispatch image and video generations in a running Cubric Studio (formerly Cubric Vision) app from an agent, landing as real gallery cards with history and sidecar, through POST /connector/generate. Covers model ops by ModelDef id (the modelId trap), named params (ratio, quality tier, turbo, style, seed), naming the card as it lands, reference images fed with your own files for edits, image-to-video and reference-to-video ops (Klein Edit with up to three references), raw injectionParams, and every error code. Use when asked to generate, edit, upscale or animate an image with Cubric Studio, or to run several variations. Part of the cubric-vision skill family - Flows and text-to-speech are cubric-vision-flows, opening the target project first is the cubric-vision core skill.
+description: Dispatch image, video and audio generations in a running Cubric Studio (formerly Cubric Vision) app from an agent, landing as real gallery cards with history and sidecar, through POST /connector/generate. Covers model ops by ModelDef id (the modelId trap), named params (ratio, quality tier, turbo, style, seed, duration, category, language), naming the card as it lands, reference images fed with your own files for edits, image-to-video and reference-to-video ops (Klein Edit with up to three references), TEXT-TO-SPEECH (a spoken line, voice-over or narration in a voice you supply or pick from the library, the chatterbox model) and SOUND & MUSIC (sound effects, one-shots, instrumentals, the stable-audio-3 model), raw injectionParams, and every error code. Use when asked to generate, edit, upscale or animate an image, speak a line, or make a sound with Cubric Studio, or to run several variations. Part of the cubric-vision skill family - Flows (DramaBox speech you direct in words, Voice Changer, head swap, outpaint) are cubric-vision-flows, opening the target project first is the cubric-vision core skill.
 user-invocable: true
 metadata: {"openclaw":{"emoji":"👁️","os":["win32","darwin","linux"],"requires":{"anyBins":["curl"]},"primaryEnv":"CUBRIC_URL"}}
 ---
@@ -66,7 +66,9 @@ curl -s -X POST "$CUBRIC_URL/connector/generate" \
 | `turbo` | boolean | Maps to whichever turbo toggle the model has (`krea2Turbo` or `h3Turbo`) — send the same friendly `turbo` key either way. Rejected on a model with neither. |
 | `styleSelect` | integer | Index into the model's style rack (`styleLoraLabels`), 0 = no style. Rejected on a model/operation with no style rack. |
 | `stylization` | number | 0..1, the selected style's strength. Same style-rack gate as `styleSelect`. |
-| `duration` | number | Seconds, 1..30, on a clip op only. Rejected on an op that makes a still. **You do not always get what you ask for:** H3 can only land on a 17k+5 frame grid at 24 fps, so 6 s is 141 frames = 5.875 s. The result carries the real `durationSeconds` (and `frames`) — quote that, never the ask. |
+| `category` | string | Sound & Music (`stable-audio-3`, `t2a`) only: `Music`, `Instrument`, `SFX` or `One-shot`. It picks the checkpoint (the first two run the larger one). Rejected elsewhere (`INVALID_CATEGORY`). |
+| `language` | string | Text to Speech (`chatterbox`, `tts`) only: one of 23, by name (`German`) or label (`German (de)`). English runs the English arm, anything else the multilingual one; Portuguese is Brazilian. Rejected elsewhere (`INVALID_LANGUAGE`). |
+| `duration` | number | Seconds, 1..30, on a clip op only — and 1..190 on Sound & Music, where the length is exact. Rejected on an op that makes a still. **You do not always get what you ask for:** H3 can only land on a 17k+5 frame grid at 24 fps, so 6 s is 141 frames = 5.875 s. The result carries the real `durationSeconds` (and `frames`) — quote that, never the ask. |
 | `denoise` | number | 0..1, only on an op whose `params.denoise` is not null (`i2i`, `upscale`, `detail`, …): how far the result may move off the picture it was given. **The higher it is, the more the image changes** — low keeps the picture and its pose, high repaints it from the prompt. Unset uses the project's value for that op, else `params.denoise.default`. On a model with no edit op this is the only way to ask for a faithful restyle. |
 | `seed` | integer | 0..4294967295. Unset stays random — this is the only way to pin one; the PromptBox itself has no seed UI. |
 
@@ -245,6 +247,26 @@ user to paint and send the call again. `edit`, `kleinEdit`, `krea2Edit`, `qwenEd
 `i2i` honour a mask but do **not** refuse without one — with no mask they re-render the
 whole picture and report success. `control` ignores a mask entirely. Video has no mask
 support yet.
+
+### Audio: Sound & Music and Text to Speech
+
+Two audio MODELS (Flows until MPI-1012, so a `flowId` of `sound-and-music` or `chatter-box`
+still routes to them). The result is a `type: "audio"` card, `.flac`.
+
+```bash
+curl -s -X POST "$CUBRIC_URL/connector/generate" -H 'Content-Type: application/json' \
+  -d '{"modelId":"stable-audio-3","operation":"t2a","positive":"A heavy wooden door slamming shut in a stone corridor, long tail.","category":"SFX","duration":4}'
+curl -s -X POST "$CUBRIC_URL/connector/generate" -H 'Content-Type: application/json' \
+  -d '{"modelId":"chatterbox","operation":"tts","positive":"Hello and welcome to Cubric Studio.","language":"English","media":[{"role":"audio1","url":"<filePath from place-preview-asset>"}]}'
+```
+
+- **Sound & Music** takes no media. Describe the SOUND (the thing, its material, its room),
+  never quality words; it has no enhancer on purpose.
+- **Text to Speech** speaks `positive` word for word, so write the line, not a description of
+  a voice. The voice slot `audio1` is **required** (`MEDIA_REQUIRED` without it): stage your own
+  sample as in Supplying images and video (`.wav`/`.mp3`/`.flac`, never `.opus`), or name a
+  library voice, `{"role":"audio1","voice":"<id>"}`, from the `voices` list on the op's media
+  row in `/connector/models`. A laugh or a stage direction is DramaBox's (`cubric-vision-flows`).
 
 ### What it does not do yet
 

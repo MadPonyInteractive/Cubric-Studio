@@ -6,5 +6,5 @@
 - [x] P4 Prompt box voice picker + required-slot dimming + no Enhance (`+` reads "Add a voice" on tts and opens audio with library + mic; tts dims "needs a voice"; no `+` on Sound & Music; Enhance already off since P3)
 - [x] P5 Agent / connector / MCP (voice card on a model op opens the prompt box; `app:operations` already renders t2a/tts info + help from the registry)
 - [x] P6 Smoke runner counts audio for model ops (+ required audio slot gets `smoke-probe.wav`; folded in: install probe survives MPI-513 job pruning, merge keeps a new model unproven)
-- [ ] P7 Docs, skills, UNRELEASED roster; message the Docs-site session; Website lines to Fabio
+- [x] P7 Docs, skills, UNRELEASED roster, bench fixture (+ the Model drawer now links Stable Audio's Gemma terms); Docs-site + Website lines handed to Fabio (no Docs-site session live)
 - [ ] P8 Live check in an isolated app, then Fabio's look

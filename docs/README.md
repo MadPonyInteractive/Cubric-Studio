@@ -126,7 +126,7 @@ NOT mechanically split these):
 | Topic | Doc |
 |---|---|
 | **Playbook routing** (add-model, add-flow, shared invariants) | [playbooks/README.md](playbooks/README.md) |
-| **Per-model research** (Krea2, Klein, Chroma, SDXL, LTX, Wan, PiD) — authoring, tuning, measured data | [models/README.md](models/README.md) |
+| **Per-model research** (Krea2, Klein, Chroma, SDXL, LTX, Wan, PiD, Stable Audio 3, Chatterbox) — authoring, tuning, measured data | [models/README.md](models/README.md) |
 | Builder operational loop | [builder/README.md](builder/README.md) — read `builder/research/README.md` before re-testing anything |
 | Cloudflare R2 (upload/list/verify weights, builds, pod-runtime files) | `c:\AI\Mpi\MadPony-Identity\capabilities\cloudflare-r2\README.md` (sibling repo) |
 | Environments (ComfyUI portable, cu130) | [builder/01-environments.md](builder/01-environments.md) |

@@ -206,8 +206,7 @@ protects the very files it is trying to free and silently no-ops. That is an ide
 on the uninstall id, **not** a test of whether the files are on disk: a flow and a plugin
 have no install state of their own (their deps ARE it), so gating on presence would be the
 circularity the table above catalogues. A dep still declared by ANOTHER flow/plugin stays
-protected, so a shared weight survives to its last owner (`chatter-box` ∩ `voice-changer` =
-3 deps). The exclusion threads through BOTH call sites — `_localSharedDepsMap` and
+protected, so a shared weight survives to its last owner. The exclusion threads through BOTH call sites — `_localSharedDepsMap` and
 `_remoteSharedDepIds` — or a flow uninstall frees the local copy while the Pod volume keeps
 its twin. Guards: `tests/plugin-dep-gc.test.cjs`, `tests/flow-uninstall-guard.test.cjs`.
 

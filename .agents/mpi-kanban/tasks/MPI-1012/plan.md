@@ -92,7 +92,7 @@ run covers the two new models.
   record; op dimming for a missing required audio slot; Enhance hidden.
 - [x] **P5 Agent / connector / MCP** — decision 12; update the agent tests listed in research B.
 - [x] **P6 Smoke runner** — decision 13 (`tests/smoke-*.test.cjs` cases).
-- [ ] **P7 Docs** — move `existing-flows/chatter-box.md` + `sound-and-music.md` to the model docs
+- [x] **P7 Docs** — move `existing-flows/chatter-box.md` + `sound-and-music.md` to the model docs
   home, fix every cross-link (research B), `docs/README.md` map, both skills,
   `UNRELEASED.md` (roster Thirteen -> Eleven + an audio-models bullet; Flow-list reconcile),
   bench fixture. OUTSIDE the repo (never written from here): message the Docs-site session
@@ -173,6 +173,19 @@ plus the two fold-ins in Plan Drift. Playbook `docs/playbooks/bump-engine/01-smo
 updated (probe media, audio counting, install verdicts, merge coverage, stale Flow counts).
 **Next: P7 docs** (the existing-flows docs move, UNRELEASED roster, skills, bench fixture,
 Docs-site message, Website lines to Fabio), then P8 (ask Fabio first).
+
+2026-10-02 later (session 7ca011ff): **P6 committed 82b19e16d (pushed). P7 DONE in-repo**:
+docs moved to `docs/models/chatterbox/` + `docs/models/stable-audio-3/` (git mv, rewritten to the
+model shape), cross-links, three skills, UNRELEASED (Eleven + audio bullet), bench fixture. Found
++ fixed a P3 regression: the Model drawer never rendered `alsoLicensed`, so Stable Audio's Gemma
+terms had no standing link once it stopped being a Flow. OUTSIDE the repo, handed to Fabio (no
+Docs-site session live): Docs `pages/flows.html` (:5, :47, :148, :188), `pages/audio.html:8`,
+`flows/index.html`, `audio/index.html:133`, `llms.txt:23`, `scripts/seo-routes.mjs:204`;
+Website `index.html:247, 260, 262, 272, 275` ("Thirteen", TTS + Sound & Music listed as Flows).
+**Next: P8** — needs Fabio's yes first (local GPU; ~7-12 GB download if the weights are absent):
+`npm run app:isolated`, pick each audio model, one Stable Audio clip + one Chatterbox line, Reuse
+an old Flow card, a routine step naming `chatter-box`, an agent `generate` by modelId, count
+progressStages bars. Then his look (colours + audio in the prompt box), then MPI-595 item 2.
 
 ## Plan Drift
 

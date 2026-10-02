@@ -173,8 +173,8 @@ Fabio, 2026-08-28, on the "Render model" / "Edit model" captions that used to sh
 > complexity. So if we move the model drop downs to the last stage of the flow and place a little
 > cogwheel next to the model drop down that is solved.
 
-**No shipped flow declares two or more slots** — nine declare exactly one, and the three audio
-flows (`voice-changer`, `chatter-box`, `drama-box`) declare none at all and render no model row
+**No shipped flow declares two or more slots** — nine declare exactly one, and the audio
+flows (`voice-changer`, `drama-box`) declare none at all and render no model row
 whatever. So that wording left the app with **no descriptor edit at all** — the field stays in
 the `FlowDef`, tested and documented, for the day a two-slot flow ships and its author has a real
 distinction that earns words. The drawer falls back to a generic `Model` caption; the run slide
