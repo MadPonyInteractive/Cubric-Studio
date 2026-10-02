@@ -77,6 +77,12 @@ const _state = {
     s_installedModelIds: [],    // Array of model IDs where model.installed === true.
                                // Updated by the 'models:checked' event from modelRegistry.
 
+    // ── Agent hand-over to the gallery prompt box (session-only, MPI-1012) ──────
+    s_promptOpen: null,         // { modelId, operation, prompt, controls, pickVoice } | null — set by
+                               // agentDispatch.openPrompt, TAKEN (set back to null) by the gallery on
+                               // mount or on `prompt:open`. A slot, not an event payload, because
+                               // navigation is async and the gallery may not exist yet.
+
     // ── Flow inputs (session-only, MPI-256) ─────────────────────────────────────
     s_flowInputs: {},           // { [flowId]: Object } — per-Flow last-collected inputs, so a
                                // Flow overlay restores its controls on close→reopen. Session-only,

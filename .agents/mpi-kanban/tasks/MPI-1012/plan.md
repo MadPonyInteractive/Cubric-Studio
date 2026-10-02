@@ -151,6 +151,18 @@ for a MODEL slot: the renderer capability to open the gallery box on Chatterbox/
 line filled and `MpiMediaPicker` on the voice library (`openVoiceLibrary: true`), reusing
 `_openMediaPicker`; then P6-P8.
 
+2026-10-02 later (session a8d03bbe): P4 pushed (21ee28998, CI green run 37052857123). **P5
+voice card on a MODEL op DONE** (verified, committed at handoff): loop `_rememberGuides` indexes
+model-op media-row voices + `_modelNames`; `_pickedVoice` covers `args.modelId`; 'library' ->
+`_openPrompt` -> `agentTools.openPrompt` -> `POST /connector/open-prompt` -> renderer
+`prompt.open` (`agentDispatch.openPrompt`: NOT_NOW / NO_PROJECT / UNKNOWN_MODEL /
+OP_UNAVAILABLE / INVALID_LANGUAGE / VIEW_BUSY) -> `state.s_promptOpen` + navigate or
+`prompt:open` -> MpiGalleryBlock `_takePromptOpen` (Reuse's `_applyPromptReuse`, then
+`ttsLanguage` via applyPromptReuseSettings, then `el.openMediaPicker({ openVoiceLibrary: true })`).
+**Next: P5 leftover** = check `app:operations` (services/agentCorpus.mjs builds it) covers
+`t2a`/`tts` info/help; then P6 smoke runner (decision 13), P7 docs, P8 live check (ask Fabio
+before using his GPU or downloading).
+
 ## Plan Drift
 
 - 2026-10-02 (P3): **part of P5 came forward**, because the suite requires it — every shipped
@@ -179,3 +191,7 @@ line filled and `MpiMediaPicker` on the voice library (`openVoiceLibrary: true`)
   image that moves t2v to i2v) into an audio picker. Added beyond the plan text: no `+` on a
   model that takes no media at all (Sound & Music), since every pick there ended in "not
   supported"; and a pick is staged as the picked tile's type, not the slot's.
+- 2026-10-02 (P5): the loop/MCP/handover tests that mock a `chatter-box` FLOW row were kept as
+  fixtures on purpose: they exercise the generic Flow path (open: true, install, the voice card),
+  still live for Voice Changer. The model path has its own tests (agent-loop "MPI-1012 — the
+  voice card on a model op", agent-voice-library openPrompt case, prompt-box-voice spec test 2).

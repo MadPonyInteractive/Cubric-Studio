@@ -60,7 +60,7 @@ import { getFlowById, listFlows, flowAvailability } from '../data/flowsRegistry.
 import { retiredFlowMessage } from '../data/retiredFlows.js';
 import { resolveFlowFieldValues, agentFieldSpecs } from '../utils/declaredFields.js';
 import { enhanceFlowRun } from '../services/flowEnhance.js';
-import { getCommand, getCommandMediaInputs } from '../data/commandRegistry.js';
+import { getCommand, getCommandMediaInputs, TTS_LANGUAGES, ttsLanguageValue } from '../data/commandRegistry.js';
 import { resolveNamedParams, isValidSeed, resolveAgentMedia, namedParamsFor } from '../data/generationControls.js';
 import { resolveActiveModel, getLastSelectedMediaType } from '../utils/modelHelpers.js';
 import { CROP_RATIOS } from '../utils/ratios.js';
@@ -1392,6 +1392,48 @@ export async function openFlow(jobId, input = {}) {
 }
 
 /**
+ * `prompt.open` (MPI-1012) — the model twin of `flow.open`, for the voice card's "Pick from the
+ * voice library" on a model op (Chatterbox's `tts`). The gallery's prompt box goes onto the
+ * model and op with the line in it and the language the agent chose, and its `+` picker opens
+ * in the voice library. Nothing runs until the user presses Cue. Same guards as `flow.open`.
+ *
+ * Handed over through `state.s_promptOpen`, which the gallery takes on mount or on
+ * `prompt:open`: navigation is async, so an event alone reaches no gallery when the user is in
+ * another workspace.
+ */
+export function openPrompt(jobId, input = {}) {
+    if (!input.follow) {
+        return _fail(jobId, 'NOT_NOW', 'The prompt box is filled on the user\'s screen only in reply to something they typed.');
+    }
+    if (!state.currentProject) {
+        return _fail(jobId, 'NO_PROJECT', 'No project is open, and the prompt box belongs to the open project.');
+    }
+    const model = getModelById(input.modelId);
+    if (!model) return _fail(jobId, 'UNKNOWN_MODEL', `No model with id "${input.modelId}".`);
+    if (!isOperationInstalled(model, input.operation)) {
+        return _fail(jobId, 'OP_UNAVAILABLE', `"${input.operation}" is not available on ${model.name || model.id}: unsupported, or its weights are not installed.`);
+    }
+    // ponytail: the one control a voice op carries; generalise when a second op needs this.
+    let controls = null;
+    if (input.language !== undefined) {
+        const value = getCommand(input.operation)?.components?.includes('ttsLanguage') ? ttsLanguageValue(input.language) : null;
+        if (!value) return _fail(jobId, 'INVALID_LANGUAGE', `language must be one of: ${TTS_LANGUAGES.map(l => l.label).join(', ')}.`);
+        controls = { ttsLanguage: value };
+    }
+    const blocked = followBlocker();
+    if (blocked) {
+        return _fail(jobId, 'VIEW_BUSY', `Nothing was opened: the user is ${BUSY_WORDS[blocked] || 'working on the picture'}. Tell them you will open ${model.name} once they are done, and send it again when they say so.`);
+    }
+    state.s_promptOpen = {
+        modelId: model.id, operation: input.operation, prompt: String(input.prompt || ''), controls,
+        pickVoice: !!input.pickVoice,
+    };
+    if (state.currentPage === PAGE_GALLERY) Events.emit('prompt:open');
+    else navigate(PAGE_GALLERY);
+    return _report(jobId, { ok: true, output: { opened: model.name || model.id } });
+}
+
+/**
  * Run one `project.open` job — the same pair of calls every project row in
  * `projectUI.js` makes, because opening a project IS `openProject` + navigate.
  * `openProject` needs only `folderPath`; it migrates, reconciles and hydrates the
@@ -1806,6 +1848,7 @@ const _HANDLERS = {
     'generation.quote': _quoteGeneration,
     'generation.cancel': _cancelGeneration,
     'flow.open': openFlow,
+    'prompt.open': openPrompt,
     'project.open': _openProject,
     'project.current': _currentProject,
     'card.rename': _renameCard,

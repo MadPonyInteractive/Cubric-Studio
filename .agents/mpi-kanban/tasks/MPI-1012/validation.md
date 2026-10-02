@@ -39,3 +39,19 @@ Verify mode: user-ux. Evidence per phase lands here; Fabio's look closes it.
 - `npx playwright test --config=playwright.desktop.config.js` on prompt-box-voice +
   media-picker-to-history + media-picker-cards + gallery-stack-run + flow-pick-voice: all pass.
 - eslint on every touched file: clean.
+- CI on 21ee28998: run 37052857123, unit + desktop (1-4) all `success`.
+
+## P5 voice card on a model op (session a8d03bbe, 2026-10-02)
+
+- `node --test "tests/**/*.test.cjs"`: 2691 tests, 2689 pass, 0 fail (2 skipped).
+- agent-loop "MPI-1012 — the voice card on a model op" (2 cases): card names Chatterbox and
+  the voice; Use runs it with the voice id; Pick from the library calls `openPrompt` with the
+  line, the language, `pickVoice: 'audio1'`, no voice, no model call. Bites: reverting the
+  `(args.flowId || args.modelId)` gate fails both.
+- agent-voice-library: `openPrompt` hands `s_promptOpen` (ttsLanguage 'Italian (it)'), and
+  NOT_NOW / INVALID_LANGUAGE / OP_UNAVAILABLE hand nothing over.
+- agent-no-delete allowlist: `POST /connector/open-prompt` added (fills, runs nothing).
+- prompt-box-voice spec test 2: `s_promptOpen` + navigate -> gallery box on tts, line filled,
+  picker in the voice library. Bites: dropping the mount-time `_takePromptOpen()` fails it.
+- Desktop agent-chat + flow-pick-voice + media-picker-to-history + prompt-box-voice: 45/45.
+- eslint on every touched file: clean.

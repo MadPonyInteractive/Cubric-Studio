@@ -1474,6 +1474,31 @@ export const MpiGalleryBlock = ComponentFactory.create({
             _pb.el.updateContext?.({ imageCount, videoCount, hasMask: false });
         }
 
+        /**
+         * MPI-1012: the agent's voice card, "Pick from the voice library" on a model op
+         * (agentDispatch.openPrompt), hands this box a model, an op, the line and the language
+         * through `state.s_promptOpen`. Taken on mount, or on `prompt:open` when the gallery is
+         * already up. Reuse's own path sets model, op and line; then the `+` picker opens in
+         * the voice library.
+         */
+        async function _takePromptOpen() {
+            const req = state.s_promptOpen;
+            if (!req || !_pb?.el) return;
+            state.s_promptOpen = null;
+            await _applyPromptReuse({ modelId: req.modelId, operation: req.operation, positive: req.prompt },
+                { prompt: true, model: true });
+            if (activeModel?.id !== req.modelId) return; // not installed: Reuse already said so
+            if (req.controls) {
+                applyPromptReuseSettings({
+                    modelId: activeModel.id, mediaType: activeModel.mediaType, operation: activeOperation,
+                    sharedUpdates: {}, opUpdates: {}, modelUpdates: req.controls,
+                });
+                _pb.el.refreshControls?.();
+            }
+            if (req.pickVoice) _pb.el.openMediaPicker?.({ openVoiceLibrary: true });
+        }
+        _unsubs.push(Events.on('prompt:open', () => { _takePromptOpen(); }));
+
 
         function _wirePromptBox(pb) {
             if (!pb) return;
@@ -1930,6 +1955,8 @@ export const MpiGalleryBlock = ComponentFactory.create({
             // returning from history mid-video) or block-owned busy state
             // (continue / queued-continue / stage2 branches).
             _refreshPbGenerating();
+            // MPI-1012: an agent hand-over that navigated here (see _takePromptOpen).
+            _takePromptOpen();
         }
 
         // ── Import spinner cards (MPI-671) ────────────────────────────────────
@@ -2084,6 +2111,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
                 });
                 _wirePromptBox(_pb);
                 _pb?.el?.show();
+                _takePromptOpen();
             } else {
                 _pb.el.setModelList?.(installedAllModels);
             }

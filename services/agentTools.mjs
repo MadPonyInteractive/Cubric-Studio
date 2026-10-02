@@ -147,6 +147,14 @@ export async function openFlow(body) {
 }
 
 /**
+ * POST /connector/open-prompt — the gallery's prompt box on a model op, line filled, voice
+ * library open, without running it (MPI-1012). Answers at once: nothing is queued.
+ */
+export async function openPrompt(body) {
+    return _post('/connector/open-prompt', body);
+}
+
+/**
  * MPI-913 — does a ComfyUI job run on THIS PC's card, rather than on a RunPod Pod? Read in
  * process, not over loopback: the loop asks per dispatch. Required lazily so importing this
  * module (every agent-loop test does) never loads the remote stack.

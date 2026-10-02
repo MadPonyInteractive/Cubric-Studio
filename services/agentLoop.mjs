@@ -684,6 +684,7 @@ export class AgentLoop {
         this._opens = new Map();    // flowId -> the step it opens at instead of running (MPI-892), or null
         this._reviews = new Map();  // flowId -> { field, title } the app asks about first (MPI-1005), or null
         this._flowTitles = new Map(); // flowId -> its title, for a card that names it (MPI-1004)
+        this._modelNames = new Map(); // modelId -> its name, the same for a model op's voice card (MPI-1012)
         this._flowMissing = new Set(); // flowIds not installed: no card asks about a run that cannot happen
         this._voiceNames = new Map(); // library voice id -> its performer's name, "Elderly Male" (MPI-1004)
         this._reviewEnd = null;     // a review card answered this round: the turn's last context line
@@ -1230,7 +1231,14 @@ export class AgentLoop {
     _rememberGuides(list) {
         for (const m of list?.models || []) {
             this._guides.set(m.id, Array.isArray(m.guides) ? m.guides : []);
-            for (const o of m.ops || []) this._ops.set(`${m.id}\n${o.op}`, o);
+            this._modelNames.set(m.id, m.name || m.id);
+            for (const o of m.ops || []) {
+                this._ops.set(`${m.id}\n${o.op}`, o);
+                // MPI-1012: a model op's voice slot lists its voices the way a Flow's does.
+                for (const slot of o.media || []) {
+                    for (const v of slot.voices || []) for (const id of v.ids || []) this._voiceNames.set(id, v.name);
+                }
+            }
         }
         for (const f of list?.flows || []) {
             this._boxSteps.set(f.id, Array.isArray(f.boxParams) ? f.boxParams : []);
@@ -1719,10 +1727,11 @@ export class AgentLoop {
     }
 
     /**
-     * MPI-1004 — the library voice this Flow run carries, named for its card, or null. Cosmo
-     * picks one only for a line with no sample (app:flows § Spoken lines), so the user sees
-     * the pick before the GPU spends. An id the catalogue does not know raises no card: the
-     * app refuses it by name, and the model fixes the call.
+     * MPI-1004 — the library voice this run carries, named for its card, or null. Cosmo picks
+     * one only for a line with no sample (app:flows § Spoken lines), so the user sees the pick
+     * before the GPU spends. An id the catalogue does not know raises no card: the app refuses
+     * it by name, and the model fixes the call. A Flow (Voice Changer) or, since MPI-1012, a
+     * model op (Chatterbox's `tts`).
      */
     async _pickedVoice(args) {
         const id = (Array.isArray(args.media) ? args.media : []).find((m) => m?.voice)?.voice;
@@ -1731,7 +1740,9 @@ export class AgentLoop {
             try { this._rememberGuides(await this._tools.listModels()); } catch { return null; }
         }
         const name = this._voiceNames.get(String(id));
-        return name && await this._flowRunnable(args.flowId) ? { name, title: this._flowTitles.get(args.flowId) || args.flowId } : null;
+        if (!name) return null;
+        if (!args.flowId) return { name, title: this._modelNames.get(args.modelId) || args.modelId };
+        return await this._flowRunnable(args.flowId) ? { name, title: this._flowTitles.get(args.flowId) || args.flowId } : null;
     }
 
     /**
@@ -1787,6 +1798,28 @@ export class AgentLoop {
         return JSON.stringify({
             ok: true, opened: o.opened, at: o.at, ...(o.empty ? { empty: o.empty } : {}), ...(o.hint ? { hint: o.hint } : {}),
             message: `Nothing ran. ${o.opened} is open on the user's screen at "${o.at}", filled with what you sent${o.empty ? `; it still needs ${o.empty}` : ''}. They finish it there and press Cue, and the result lands in the gallery. Tell them so in one line. Say how to do that step (the hint) only if they ask.`,
+        });
+    }
+
+    /**
+     * MPI-1012 — the model twin of `_openFlow`, for its one case: the user chose to pick a model
+     * op's voice themselves (Chatterbox's `tts`). The gallery's prompt box opens on the model and
+     * op with the line in it and the voice library showing; nothing runs until they press Cue.
+     * Only from the card's click, so always the user replying.
+     */
+    async _openPrompt(args, pickVoice) {
+        const r = await this._tools.openPrompt({
+            modelId: String(args.modelId), operation: String(args.operation), prompt: String(args.prompt || ''),
+            ...(args.language !== undefined ? { language: String(args.language) } : {}),
+            ...(pickVoice ? { pickVoice } : {}),
+            follow: true,
+        });
+        if (!r?.ok) {
+            return JSON.stringify({ ok: false, error: { ...r?.error, message: `Nothing was opened: ${r?.error?.message || 'the app refused it.'}` } });
+        }
+        return JSON.stringify({
+            ok: true, opened: r.output?.opened,
+            message: `Nothing ran. The prompt box is on ${r.output?.opened} with the line in it and the voice library open. The user picks a voice there and presses Cue, and the result lands in the gallery. Tell them so in one line.`,
         });
     }
 
@@ -2128,16 +2161,17 @@ ${knowledgeIndex}`.trim();
                     this._reviewEnd = `Started ${review.title}, as the user chose.`;
                 }
                 // MPI-1004 — the same shape for a library voice Cosmo picked (Fabio, 2026-10-01):
-                // "Pick from the voice library" opens the Flow with that slot empty for the user's
-                // own pick; "Use <voice>" runs it as sent.
-                const picked = args.flowId && !opts.batch ? await this._pickedVoice(args) : null;
+                // "Pick from the voice library" opens the Flow (or, MPI-1012, the prompt box on the
+                // model) with that slot empty for the user's own pick; "Use <voice>" runs it as sent.
+                const picked = (args.flowId || args.modelId) && !opts.batch ? await this._pickedVoice(args) : null;
                 if (picked) {
                     const choice = await this._askChoice(turnId, { kind: 'voice', flow: picked.title, voice: picked.name }, args);
                     if (choice === 'library') {
                         this._reviewEnd = `Opened ${picked.title} for the user to pick a voice from the library, as they chose. Nothing ran.`;
                         // Opened on the voice slot's picker, already in the library (Fabio, 2026-10-01).
                         const pickVoice = args.media.find((m) => m?.voice)?.role;
-                        return this._openFlow({ ...args, media: args.media.filter((m) => !m?.voice) }, currentProject, true, pickVoice);
+                        const rest = { ...args, media: args.media.filter((m) => !m?.voice) };
+                        return args.flowId ? this._openFlow(rest, currentProject, true, pickVoice) : this._openPrompt(rest, pickVoice);
                     }
                     if (choice !== 'use') {
                         this._reviewEnd = 'The user wrote back instead of choosing. Nothing ran.';

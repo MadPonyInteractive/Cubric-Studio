@@ -131,3 +131,35 @@ test('the open path resolves it too: the Flow opens with the voice in its slot',
     assert.equal(opened.length, 1);
     assert.deepEqual(state.s_flowInputs?.['voice-changer']?.mediaItems?.map((m) => [m.role, m.url]), [['audio2', PLACED]]);
 });
+
+// MPI-1012: Text to Speech is a model, so "Pick from the voice library" hands the gallery's
+// prompt box the model, the op, the line and the language (`prompt.open`); the box takes it
+// and opens its picker in the library. Nothing runs.
+test('a model op\'s library pick hands the gallery box its line and language, and runs nothing', async () => {
+    const { openPrompt } = require('../js/shell/agentDispatch.js');
+    const { getModelById } = require('../js/data/modelRegistry.js');
+    const model = getModelById('chatterbox');
+    const before = Object.getOwnPropertyDescriptor(model, 'installed');
+    Object.defineProperty(model, 'installed', { get: () => true, configurable: true });
+    state.currentProject = PROJECT;
+    state.currentPage = 'gallery';
+    const taken = [];
+    const off = Events.on('prompt:open', () => { taken.push(state.s_promptOpen); state.s_promptOpen = null; });
+    const run = (input) => withApp(async (seen) => {
+        await openPrompt(`job-${seen.length}-${Math.random()}`, input);
+        return seen.find((s) => s.url.includes('/result'))?.body;
+    });
+    try {
+        const ok = await run({ modelId: 'chatterbox', operation: 'tts', prompt: 'Ciao', language: 'Italian', pickVoice: 'audio1', follow: true });
+        assert.deepEqual(ok, { ok: true, output: { opened: 'Chatterbox' } });
+        assert.deepEqual(taken, [{ modelId: 'chatterbox', operation: 'tts', prompt: 'Ciao', controls: { ttsLanguage: 'Italian (it)' }, pickVoice: true }]);
+
+        assert.equal((await run({ modelId: 'chatterbox', operation: 'tts', follow: false })).error.code, 'NOT_NOW');
+        assert.equal((await run({ modelId: 'chatterbox', operation: 'tts', language: 'Klingon', follow: true })).error.code, 'INVALID_LANGUAGE');
+        assert.equal((await run({ modelId: 'chatterbox', operation: 't2i', follow: true })).error.code, 'OP_UNAVAILABLE');
+        assert.equal(taken.length, 1, 'a refusal hands nothing over');
+    } finally {
+        off();
+        if (before) Object.defineProperty(model, 'installed', before); else delete model.installed;
+    }
+});

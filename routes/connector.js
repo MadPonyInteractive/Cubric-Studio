@@ -771,6 +771,31 @@ router.post('/connector/open-flow', async (req, res) => {
 });
 
 /**
+ * POST /connector/open-prompt { modelId, operation, prompt?, language?, pickVoice?, follow } —
+ * the model twin of /connector/open-flow (MPI-1012): the gallery's prompt box opens on that
+ * model and op with the line in it, and with `pickVoice` the `+` picker opens in the voice
+ * library. The in-app agent's voice card sends it when the user chooses to pick Text to
+ * Speech's voice themselves. Nothing runs; the user presses Cue. `follow` as open-flow's.
+ * -> `{ ok: true, output: { opened } }`.
+ * Errors: BAD_REQUEST, NOT_NOW, NO_PROJECT, UNKNOWN_MODEL, MODEL_NOT_INSTALLED,
+ * UNSUPPORTED_OPERATION, INVALID_LANGUAGE, VIEW_BUSY, APP_UNAVAILABLE.
+ */
+router.post('/connector/open-prompt', async (req, res) => {
+  const { modelId, operation, prompt, language, pickVoice } = req.body || {};
+  if (typeof modelId !== 'string' || !modelId || typeof operation !== 'string' || !operation) {
+    return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.modelId and body.operation are required.' } });
+  }
+  res.json(await _dispatchToRenderer('prompt.open', {
+    modelId,
+    operation,
+    prompt: typeof prompt === 'string' ? prompt : '',
+    ...(language !== undefined ? { language: String(language) } : {}),
+    ...(typeof pickVoice === 'string' ? { pickVoice } : {}),
+    follow: req.body.follow === true,
+  }));
+});
+
+/**
  * POST /connector/cancel { requestId } — stop a generation this caller submitted with that
  * `requestId`, whether it is rendering or still waiting in the queue. Nothing else is touched:
  * not the user's own runs, not another caller's. The cancelled submit's own held response

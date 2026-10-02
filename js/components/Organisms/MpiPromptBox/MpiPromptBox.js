@@ -62,6 +62,8 @@ import { thumbSrc } from '../../../utils/displayImage.js';
  *                                     standing enhancement, which is why it is read
  *                                     rather than defaulted
  *   el.setOperation(key)
+ *   el.openMediaPicker({ openVoiceLibrary? })  — the `+` card's picker, by code; on a voice
+ *                                     slot `openVoiceLibrary` lands it in the library (MPI-1012)
  *   el.setGenerating(bool)
  *   el.setRunCount(n)               — runs one Cue press makes (a History stack, MPI-949); the price tag quotes ×n
  *   el.updateContext(ctx)
@@ -1032,7 +1034,7 @@ export const MpiPromptBox = ComponentFactory.create({
          * this box's lifecycle — but a workspace switch mid-pick would still orphan
          * it, which is what the `destroy()` below covers.
          */
-        function _openMediaPicker() {
+        function _openMediaPicker({ openVoiceLibrary = false } = {}) {
             _picker?.el?.destroy?.();
             const voice = _voiceSlot();
             const slotType = voice ? 'audio' : 'image';
@@ -1045,6 +1047,7 @@ export const MpiPromptBox = ComponentFactory.create({
                     voiceRoute: voice.voiceLibrary ?? null,
                     voicePicker: MpiVoicePicker,
                     recordAudio: props.recordAudio,
+                    openVoiceLibrary,
                 } : {}),
                 // MPI-887: the box's own destination is a reference chip, but the
                 // history workspace behind it has a second one — the open card's
@@ -1070,6 +1073,8 @@ export const MpiPromptBox = ComponentFactory.create({
             _picker.el.addEventListener('cancel', close);
             _picker.el.show();
         }
+        // MPI-1012: the agent's voice card opens this box's picker straight into the library.
+        el.openMediaPicker = (opts) => _openMediaPicker(opts);
 
         // Best-effort display name for an audio chip: the user-facing name
         // carried on the item (group customName/derived — MPI-130), else the

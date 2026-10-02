@@ -829,6 +829,9 @@
  * Instance methods (on instance.el):
  *   imageCount    {number}
  *   videoCount    {number}
+ *   openMediaPicker({ openVoiceLibrary? })
+ *     — The `+` card's picker, opened by code (MPI-1012: the agent's voice card). On a voice
+ *       slot `openVoiceLibrary` opens it already in the library.
  *   getMediaItems()
  *   clearMedia()
  *     — Clears STAGED media only. A pinned item survives (MPI-721): it is the

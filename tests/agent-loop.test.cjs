@@ -3837,3 +3837,51 @@ describe('MPI-1004 — the voice card', () => {
         assert.deepEqual(answers, [['c1', 'replied']]);
     });
 });
+
+// ---------------------------------------------------------------------------
+// MPI-1012: Text to Speech is the Chatterbox MODEL, so the same card fires on a model op's
+// voice slot, and "Pick from the voice library" opens the gallery's prompt box on the model
+// (POST /connector/open-prompt) instead of a Flow.
+// ---------------------------------------------------------------------------
+
+describe('MPI-1012 — the voice card on a model op', () => {
+    const call = (id, name, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
+    const project = { folderPath: '/project', name: 'Test' };
+    const TTS = { modelId: 'chatterbox', operation: 'tts', prompt: 'Arriva la tempesta.', language: 'Italian', media: [{ role: 'audio1', voice: 'elderly_male_1' }] };
+
+    async function asked() {
+        const made = await makeLoop({ engineResponses: [call('g1', 'generate', TTS), { text: 'should never be asked' }] });
+        made.tools.calls.openPrompt = [];
+        made.tools.openPrompt = async (body) => {
+            made.tools.calls.openPrompt.push(body);
+            return { ok: true, output: { opened: 'Chatterbox' } };
+        };
+        made.tools.listModels = async () => ({ ok: true, flows: [], models: [{
+            id: 'chatterbox', name: 'Chatterbox', guides: [],
+            ops: [{ op: 'tts', installed: true, media: [{ role: 'audio1', type: 'audio', required: true, voices: [{ name: 'Elderly Male', ids: ['elderly_male_1'] }] }] }],
+        }] });
+        const turn = made.loop.runTurn('An old man says it in Italian', [], project, 'auto', 'deepinfra', 't-model-voice');
+        const card = await waitForEvent(made.fakeRes, (e) => e.event === 'agent:confirm');
+        return { ...made, turn, card };
+    }
+
+    test('the card names the model and the voice, and nothing runs yet', async () => {
+        const { loop, tools, turn, card } = await asked();
+        assert.deepEqual([card.data.kind, card.data.flow, card.data.voice], ['voice', 'Chatterbox', 'Elderly Male']);
+        assert.equal(tools.calls.generate.length + tools.calls.openPrompt.length, 0);
+        await loop.confirm(card.data.confirmId, 'use');
+        await turn;
+        assert.deepEqual(tools.calls.generate[0].media, [{ role: 'audio1', voice: 'elderly_male_1' }], 'Use <voice> runs it as sent');
+    });
+
+    test('Pick from the voice library opens the prompt box with the line and the language, and NO voice', async () => {
+        const { loop, tools, engine, turn, card } = await asked();
+        await loop.confirm(card.data.confirmId, 'library');
+        await turn;
+        assert.deepEqual(tools.calls.openPrompt, [{
+            modelId: 'chatterbox', operation: 'tts', prompt: 'Arriva la tempesta.', language: 'Italian', pickVoice: 'audio1', follow: true,
+        }]);
+        assert.equal(tools.calls.generate.length, 0);
+        assert.equal(engine.calls.length, 1, 'the click did the job');
+    });
+});

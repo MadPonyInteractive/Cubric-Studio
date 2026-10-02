@@ -635,8 +635,16 @@ it, and the user presses Generate. Per Flow, not one box on every run (Fabio sor
   voice library -> `_openFlow` with the voice dropped and `pickVoice: <role>`, which opens the
   Flow on its Inputs with that slot's media picker already in the library (`openVoiceLibrary`,
   on MpiBaseFlow's first `el.open` so it stacks above the Flow); Use <voice> -> the normal path,
-  ending the turn like a review. Cosmo picks a voice only for a line with no sample and no DramaBox
-  (`flows.md` § Spoken lines: DramaBox builds a voice from the words and performs laughs and
-  coughs; Chatterbox cannot), so the card is that case's ask.
+  ending the turn like a review. **On a model op (MPI-1012, Chatterbox's `tts`)** the same card
+  fires (`_pickedVoice` reads the op's media-row voices, the card names the model), and Pick from
+  the voice library -> `_openPrompt` -> `POST /connector/open-prompt { modelId, operation, prompt,
+  language?, pickVoice, follow }` -> the renderer's `prompt.open` (`agentDispatch.openPrompt`),
+  which leaves `state.s_promptOpen` and navigates to the gallery (navigation is async, so an event
+  alone would reach no gallery). The gallery takes it on mount or on `prompt:open`: Reuse's apply
+  path puts the box on the model, op and line, the language lands as the `ttsLanguage` setting,
+  and `el.openMediaPicker({ openVoiceLibrary: true })` opens the `+` picker in the library.
+  Cosmo picks a voice only for a line with no sample and no DramaBox (`flows.md` § Spoken lines:
+  DramaBox builds a voice from the words and performs laughs and coughs; Chatterbox cannot), so
+  the card is that case's ask.
 - **Settled first: the Duration rule's "you never speak first" was stale** (wake turns, MPI-870).
   It now says the app wakes the agent when the job finishes.
