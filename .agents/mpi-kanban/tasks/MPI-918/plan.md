@@ -113,8 +113,8 @@ Phases 3-4.
 2026-10-02 (session c6543d87, LATEST): Fabio's Klein cloud edit worked. Seedream check run
 ($0.179): 4 and 4.5 return a 2048 square from a 4:3 source, 5 Pro keeps it. Fixed in
 `buildSizeFields` 'size' (source shape at the 2K area), test RED then green, `npm test` 2671/0.
-NEXT: CI on the fix; one paid Seedream 4/4.5 edit at the new size (~$0.04, Fabio's call); then
-the done move.
+`197cd10a3` CI green; live Seedream 4 at the new size came back 2368x1792, framing kept ($0.04).
+CLOSED.
 
 2026-10-02 (session 27738b6a): Fabio: "remove cloud models from Outpaint" (after the
 MPI-1011 seam work). Done in the working tree, not committed (it rides MPI-1011's commit):

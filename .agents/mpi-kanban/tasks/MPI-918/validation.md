@@ -135,5 +135,9 @@ Verify mode: user-ux at Phase 4 (Fabio's look at stitched results); Phases 1-3 a
   64 grid (1365x1024 -> `2368x1792`; 1080x1920 -> `1536x2752`), for all three (5 Pro gets
   ~the pixels it picked itself, same 2K price band). RED first (`cloud-edit-follows-source`:
   "Seedream-4: no size sent"), then 6/6; `npm test` 2671 / 0 fail; eslint clean.
-- NOT yet live: one paid Seedream 4 or 4.5 edit with the new size (~$0.04 each), past the
-  $0.18 yes, so Fabio's call.
+- Committed `197cd10a3`; CI Tests run 37001533612: success (unit + desktop 1-4).
+- LIVE 2026-10-02 (Fabio's yes, 1 more run, $0.04): Seedream 4, same source and prompt, body
+  `{prompt, image, size: "2368x1792"}` taken from the fixed `buildSizeFields` -> HTTP 200 in
+  10.8 s, 2368x1792, $0.04. Framing matches the source (subject same place and scale), the
+  black bars filled with scene. Montage (source, old square, fixed):
+  `research/seedream4-fixed-2026-10-02.jpg`. **Seedream spend total: $0.219.** Closes the card.
