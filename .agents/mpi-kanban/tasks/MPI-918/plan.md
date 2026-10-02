@@ -110,6 +110,13 @@ Phases 3-4.
 
 ## Current State
 
+2026-10-02 (session b487ee6b, LATEST): REOPENED. Every cloud edit sent no size (`edit` has no
+ratio picker); FLUX 2 dev/pro/max + Klein 9B default to 1024^2 and centre-cut the source. Fixed
+`476c6fb67` (route reads image 1's upright size; `buildSizeFields` 'wh' sends that shape at the
+default area), CI green. NEXT: one paid live Klein cloud edit on t2i_006 (~$0.02, Fabio), and
+Seedream 4/4.5/5 Pro ('2K' tier default, UNPROVEN to follow the input): one paid edit each,
+~$0.18, on Fabio's yes. Then the done move in a board-only commit.
+
 2026-10-01 (session b487ee6b): CLOSED on CI green for `5dd3e2c2b`; MPI-985 closed with it.
 
 2026-10-01 (session ff52b7be, at handoff): EVERY LOOK DONE. Final cloud slots (Fabio):
