@@ -20,7 +20,7 @@ import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { qsa } from '../../../utils/dom.js';
 import { state } from '../../../state.js';
 import { getOpSettings, getSharedSettings, getModelSettings } from '../../../data/projectModel.js';
-import { getCommandComponents, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, CONTROL_TYPES, modelControlTypes, AUDIO_CATEGORIES, AUDIO_LENGTH, TTS_LANGUAGES, ttsLanguageValue, ttsLanguageParams } from '../../../data/commandRegistry.js';
+import { getCommandComponents, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, CONTROL_TYPES, modelControlTypes, AUDIO_CATEGORIES, AUDIO_LENGTH, TTS_LANGUAGES, ttsLanguageValue, ttsLanguageParams, TTS_KNOBS, ttsKnobParams } from '../../../data/commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from '../../../data/promptControlDefaults.js';
 import { Events } from '../../../events.js';
 import { getModelRatios, usesQualityTier } from '../../../utils/ratios.js';
@@ -1763,7 +1763,74 @@ export const PROMPT_BOX_CONTROLS = {
         },
     },
 
+    /** Chatterbox's delivery (MPI-1012 P9): `cfg_weight` and `exaggeration` on both arms. */
+    ttsSpeed: _ttsKnob('ttsSpeed', 'Speed', 'How fast the line is spoken - lower is slower and more deliberate'),
+    ttsExaggeration: _ttsKnob('ttsExaggeration', 'Exaggeration', 'How much emotion goes into the delivery - higher is more dramatic'),
+
 };
+
+/** One Chatterbox knob slider: the audioLength shape on a TTS_KNOBS range, two decimals. */
+function _ttsKnob(key, label, info) {
+    const k = TTS_KNOBS[key];
+    const _clamp = (v) => Math.min(k.max, Math.max(k.min, Number((Math.round(v / k.step) * k.step).toFixed(2))));
+    const _fmt = (v) => _clamp(v).toFixed(2);
+    return {
+        nodeTitle: 'Input_Language',
+        scope: 'perModel',
+        defaultValue: PROMPT_CONTROL_DEFAULTS[key],
+        mount(hostEl, opts = {}) {
+            const savedNum = Number(_readSaved(this, opts)[key] ?? _resolveDefault(this, key, opts));
+            const initial = _clamp(Number.isFinite(savedNum) ? savedNum : this.defaultValue);
+            this.value = initial;
+
+            hostEl.className = 'mpi-prompt-box__slider-control';
+            hostEl.style.display = 'flex';
+            const lblRow = document.createElement('div');
+            lblRow.className = 'mpi-prompt-box__slider-lbl';
+            const nameEl = document.createElement('span');
+            nameEl.className = 'mpi-prompt-box__slider-name';
+            nameEl.textContent = label;
+            const valEl = document.createElement('span');
+            valEl.className = 'mpi-prompt-box__slider-val';
+            valEl.textContent = _fmt(initial);
+            lblRow.appendChild(nameEl);
+            lblRow.appendChild(valEl);
+            hostEl.appendChild(lblRow);
+
+            const barHost = document.createElement('div');
+            barHost.className = 'mpi-prompt-box__slider-track';
+            hostEl.appendChild(barHost);
+            this._instance = MpiProgressBar.mount(barHost, {
+                min: k.min,
+                max: k.max,
+                step: k.step,
+                value: initial,
+                interactive: true,
+                wheel: true,
+                handle: true,
+                variant: 'primary',
+                info,
+            });
+            this._instance.on('input', ({ value }) => { valEl.textContent = _fmt(value); });
+            this._instance.on('change', ({ value }) => {
+                const v = _clamp(value);
+                this.value = v;
+                valEl.textContent = _fmt(v);
+                _emitUpdate(this, opts, key, v);
+            });
+        },
+        getValue() {
+            return this.value ?? this.defaultValue;
+        },
+        getInjectionParams() {
+            return ttsKnobParams(key, this.value ?? this.defaultValue);
+        },
+        destroy() {
+            this._instance?.destroy?.();
+            this._instance = null;
+        },
+    };
+}
 
 /**
  * Collects injection params from all active mounted controls.

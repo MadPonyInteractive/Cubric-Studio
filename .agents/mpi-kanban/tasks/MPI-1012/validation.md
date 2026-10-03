@@ -129,3 +129,26 @@ COPIES of Fabio's `TTS` and `Music Maker` (own id/name; his originals untouched,
 - Not run: Cosmo itself (needs a paid DeepInfra LLM key; its generate tool rides the same
   connector dispatch, covered by the agent-loop tests).
 - Left for Fabio's look: P1 colours in the four overlays + audio in the prompt box.
+
+## Fabio's look (session 5854a2e5, 2026-10-03)
+
+Visible isolated instance (`cubric-agent-profile`, port 64137). Fabio: "I've checked all five.
+They're all okay" - picker colours, Stable Audio box, Chatterbox voice `+`, Model Library +
+Flow Library headers and Flow list, Reuse on `MPI-1012 P8 copy of TTS`. P1-P8 accepted.
+Same message: Chatterbox lines come out rushed ("sped up") -> P9 Pace control (plan.md).
+Fold-in: `docs/agent/models/stable-audio-3.md` examples no longer break its own "never what
+you do not" rule ("no wind" -> "still air", "no room" dropped); agent-corpus test green.
+
+## P9 Speed + Exaggeration (session 5854a2e5, 2026-10-03)
+
+- Measured on the isolated instance under `gpu_lease` (local, free, Fabio's ok): same line,
+  `deep_male_1`, seed 4242, raw `Input_TTS_English.cfg_weight` 0.2/0.5/0.8 -> 8.16/7.84/7.36 s
+  (cards `speed cfg *`). Higher = faster -> Speed is cfg_weight, uninverted.
+- Unit 2698 pass / 0 fail (2700, 2 skipped); eslint clean on the 4 touched js files. New
+  assertions: both knobs address a float widget on BOTH arms (inject-params-titles), agent
+  run injects the saved values on both arms (audio-models), tts components pinned
+  (flow-derived-fields).
+- Fabio's ears, 2026-10-03: three takes (default / min / max Speed) all ~3 s, but "at max the
+  character is pacing ... it speaks more clearly when the speed is low"; Exaggeration "on max,
+  the characters go crazy ... really good for cartoon stuff". "Yeah, it's good. Let's
+  continue." P9 accepted; docs reworded (delivery, not length).

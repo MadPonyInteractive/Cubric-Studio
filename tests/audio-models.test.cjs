@@ -127,6 +127,15 @@ test('an agent run without params gets the defaults injected, never the graph\'s
     const tts = resolveNamedParams(null, cb, 'tts', {});
     assert.ok(tts.ok);
     assert.strictEqual(tts.injectionParams.Input_Is_Multilingual, false, 'the bake is TRUE: English must run the English arm');
+    // Speed + Exaggeration (P9): the node defaults with no project, the user's slider with one,
+    // on BOTH arms.
+    assert.strictEqual(tts.injectionParams['Input_TTS_English.cfg_weight'], 0.5);
+    const saved = { modelSettings: { chatterbox: { ttsSpeed: 0.3, ttsExaggeration: 1.2 } } };
+    const mine = resolveNamedParams(saved, cb, 'tts', {}).injectionParams;
+    assert.deepStrictEqual(
+        [mine['Input_Language.cfg_weight'], mine['Input_TTS_English.cfg_weight'],
+            mine['Input_Language.exaggeration'], mine['Input_TTS_English.exaggeration']],
+        [0.3, 0.3, 1.2, 1.2]);
     assert.strictEqual(resolveNamedParams(null, cb, 'tts', { language: 'German' }).injectionParams['Input_Language.language'], 'German (de)');
     assert.strictEqual(resolveNamedParams(null, cb, 'tts', { language: 'Klingon' }).code, 'INVALID_LANGUAGE');
 

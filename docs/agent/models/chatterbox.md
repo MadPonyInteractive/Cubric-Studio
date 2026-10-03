@@ -37,6 +37,10 @@ spoken IN, taken from a short sample: a few seconds of one person speaking clear
 - The voice sample may be in any language: the line comes out in `language`, in that voice.
 - Portuguese comes out as Brazilian Portuguese.
 - No negative prompt, no batch, no enhancer. One line per run.
+- Speed and Exaggeration are sliders the user sets in the prompt box; your run uses their
+  setting and you cannot send one. If the user says a line sounds rushed or unclear, tell
+  them to lower Speed (a clearer, unhurried read; the length barely changes); if it is flat,
+  to raise Exaggeration (at the top it goes wild, which suits cartoon voices).
 
 ## The prompt shape
 

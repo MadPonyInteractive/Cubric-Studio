@@ -62,8 +62,9 @@ test('Chatterbox: every language but English takes the multilingual arm, and non
     }
     // The toggle is GONE on purpose: with it, a non-English language could run on the
     // English arm. If someone re-adds a control for the boolean, that state comes back.
-    assert.ok(!commands.tts.components.includes('ttsMultilingual') && commands.tts.components.length === 1,
-        'tts exposes the language and nothing else');
+    // Speed + Exaggeration (MPI-1012 P9) write both arms equally, so they choose no arm.
+    assert.deepStrictEqual(commands.tts.components, ['ttsLanguage', 'ttsSpeed', 'ttsExaggeration'],
+        'tts exposes the language and the two delivery knobs, never an arm toggle');
 });
 
 test('Text to Speech is TTS only — no second audio role reaches the graph', async () => {

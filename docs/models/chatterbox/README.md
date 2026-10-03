@@ -16,13 +16,13 @@
 | graph | `comfy_workflows/chatterbox_tts.json` (7 nodes) |
 | `dependencies` | 11 weights + `ComfyUI_Fill-ChatterBox` + `ComfyUI-MpiNodes` — **5.96 GB** (the VC pair is Voice Changer's alone, MPI-684) |
 | `mediaType` | `'audio'`; `capabilities.audio: true`, or `filterMediaInputsForModel` drops the voice slot |
-| inputs | prompt; the `ttsLanguage` control (perModel), which emits `Input_Language.language` AND the derived `Input_Is_Multilingual`; `audio1`, REQUIRED, `voiceLibrary: 'character'` |
+| inputs | prompt; the `ttsLanguage` control (perModel), which emits `Input_Language.language` AND the derived `Input_Is_Multilingual`; `ttsSpeed` + `ttsExaggeration` sliders (perModel, both arms, see § Speed and Exaggeration); `audio1`, REQUIRED, `voiceLibrary: 'character'` |
 | output | `SaveAudioAdvanced` titled `Output_Audio`, flac |
 
 ## Two arms, one picked per run — and MpiIfElse is LAZY
 
 `Input_Is_Multilingual` (`MpiIfElse#52`) selects between `FL_ChatterboxTTS` (English only,
-node 43) and `FL_ChatterboxMultilingualTTS` (23 languages, node 33).
+node 43, titled `Input_TTS_English`) and `FL_ChatterboxMultilingualTTS` (23 languages, node 33).
 
 **`MpiIfElse` declares `lazy: True` on both inputs and its `check_lazy_status` returns only
 the taken branch**, so exactly one TTS model loads per run and the other arm's weights are
@@ -66,9 +66,25 @@ A role swap (emotion clip → TTS `audio_prompt`, chosen voice → VC target) wa
 **rejected** on the grounds that it would still be inconsistent. Fabio, 2026-08-28: *"let's
 ship something that works, not something that may work sometimes."* Do not re-propose it.
 
-One thing from the VC era survives and is still load-bearing: `cfg_weight` stays at **0.5**
-on the TTS nodes. The 0.3 an earlier session baked was compensating for a VC → TTS chain
-order that was itself wrong, so it is void twice over.
+From the VC era: the 0.3 `cfg_weight` an earlier session baked was compensating for a VC → TTS
+chain order that was itself wrong. The bake is 0.5 again, and the user now moves it (below).
+
+## Speed and Exaggeration (MPI-1012 P9, 2026-10-03)
+
+Fabio found most lines rushed. Two perModel sliders, `ttsSpeed` → `cfg_weight` (0.2-1.0) and
+`ttsExaggeration` → `exaggeration` (0.25-2.0), both default 0.5 = the node defaults every run
+used before. `ttsKnobParams` (commandRegistry) writes each to BOTH arms, which is why node 43
+is titled `Input_TTS_English`: untitled, the English arm could not be addressed and the
+slider would have worked in 22 languages and silently not in English. Bounds are the English
+node's (the multilingual one goes to 0.0).
+
+**Speed is `cfg_weight` UNINVERTED**, and it moves the DELIVERY, not the clip length. Measured
+(same line, voice `deep_male_1`, seed 4242): 0.2 → 8.16 s, 0.5 → 7.84 s, 0.8 → 7.36 s, a ~10%
+spread. Fabio by ear (2026-10-03, three takes all ~3 s): at max the speaker hurries the words,
+at min it takes its time inside the same length and speaks more clearly. So never judge it by
+duration. Exaggeration at max makes the speaker "go crazy" (Fabio: good for cartoon voices);
+with a neutral voice it changes intensity, not which emotion (MPI-622, above).
+An agent run speaks at the user's saved slider values (no named param yet).
 
 ## 🟢 All 23 languages are ONE model — there is no list to trim
 

@@ -94,5 +94,9 @@ export const PROMPT_CONTROL_DEFAULTS = Object.freeze({
     audioCategory: 'Music',
     audioLength: 10,
     ttsLanguage: 'English (en)',
+    // Chatterbox's own node defaults (cfg_weight / exaggeration), the values every shipped
+    // TTS run used before the sliders existed.
+    ttsSpeed: 0.5,
+    ttsExaggeration: 0.5,
 });
 

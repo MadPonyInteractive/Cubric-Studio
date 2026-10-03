@@ -626,6 +626,24 @@ test('the Chatterbox graph carries both TTS arms (MPI-607)', () => {
         }
     }
 
+    // Speed + Exaggeration (MPI-1012 P9) write BOTH arms; a key missing either node means
+    // half the languages silently ignore the slider. Both must be plain floats, not links.
+    const { TTS_KNOBS, ttsKnobParams } = require('../js/data/commandRegistry.js');
+    for (const knob of Object.keys(TTS_KNOBS)) {
+        const keys = Object.keys(ttsKnobParams(knob, 0.5));
+        assert.strictEqual(keys.length, 2, `${knob} must address both TTS arms`);
+        for (const key of keys) {
+            const [title, widget] = key.split('.');
+            const hit = byTitle(title.toLowerCase());
+            assert.ok(hit, `${file} has no node titled "${title}" (${knob})`);
+            assert.strictEqual(typeof hit[1].inputs[widget], 'number',
+                `${file}: node "${title}" has no float widget "${widget}" — ${knob} is dead`);
+        }
+    }
+    const classes = new Set(['input_language', 'input_tts_english'].map(t => byTitle(t)?.[1].class_type));
+    assert.deepStrictEqual([...classes].sort(), ['FL_ChatterboxMultilingualTTS', 'FL_ChatterboxTTS'],
+        `${file}: the two knob titles must be the two TTS arms`);
+
     // The baked language must be one the control offers, or the default sends a value
     // ComfyUI rejects with "Value not in list".
     const lang = byTitle('input_language')[1].inputs.language;

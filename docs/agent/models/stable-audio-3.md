@@ -57,11 +57,11 @@ Sound effect, `category: "SFX"`, `duration: 4`:
 
 Ambience, `category: "SFX"`, `duration: 20`:
 
-> Steady rain on a tin roof with two distant rolls of thunder, night, no wind.
+> Steady rain on a tin roof with two distant rolls of thunder, night, still air.
 
 One-shot, `category: "One-shot"`, `duration: 2`:
 
-> A single dry drumstick click, close and bright, no room.
+> A single dry drumstick click, close and bright.
 
 Instrument, `category: "Instrument"`, `duration: 12`:
 

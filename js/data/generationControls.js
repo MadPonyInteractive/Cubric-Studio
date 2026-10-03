@@ -35,6 +35,7 @@ import {
     getCommandDefault, modelShowsStyleRack, modelShowsBatch, modelShowsRatio,
     getCommandMediaInputs, filterMediaInputsForModel, getCommandComponents,
     AUDIO_CATEGORIES, AUDIO_LENGTH, TTS_LANGUAGES, audioCategoryValue, ttsLanguageValue, ttsLanguageParams,
+    TTS_KNOBS, ttsKnobParams,
 } from './commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from './promptControlDefaults.js';
 import { MODELS } from './modelConstants/models.js';
@@ -582,6 +583,16 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         _from('language', language !== undefined, injectionParams['Input_Language.language']);
     } else if (language !== undefined) {
         return _err('INVALID_LANGUAGE', `${modelName} has no language on "${operation}".`);
+    }
+    // Chatterbox's Speed + Exaggeration sliders (MPI-1012 P9). No named param: an agent run
+    // speaks at the user's own setting for the model, else the default.
+    // ponytail: add `speed`/`exaggeration` named params when an agent needs to pick its own.
+    for (const key of Object.keys(TTS_KNOBS)) {
+        if (!components.includes(key)) continue;
+        const saved = getModelSettings(project || {}, model?.id)[key];
+        Object.assign(injectionParams, ttsKnobParams(key, typeof saved === 'number'
+            ? saved
+            : resolveThreeLayerDefault(key, model, operation, PROMPT_CONTROL_DEFAULTS[key])));
     }
 
     return {

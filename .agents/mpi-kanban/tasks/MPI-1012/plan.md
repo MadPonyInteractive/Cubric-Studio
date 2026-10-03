@@ -103,6 +103,10 @@ run covers the two new models.
   an OLD Flow card, run a routine step naming `chatter-box`, an agent `generate` by modelId.
   Local GPU only, no money. Downloads ~7-12 GB if the weights are absent: ask Fabio first.
   Then Fabio's look (colours + audio in the prompt box).
+- [ ] **P9 Chatterbox Speed + Exaggeration** (Fabio 2026-10-03, lines rushed) — perModel
+  sliders `ttsSpeed` -> `cfg_weight`, `ttsExaggeration` -> `exaggeration`, both arms (node 43
+  retitled `Input_TTS_English`); agent runs use the saved values. **Verify mode: user-ux**
+  (Fabio listens).
 
 ## Verification
 
@@ -199,6 +203,17 @@ Throwaway projects left in his Documents: `MPI-1012 P8 audio check`, `MPI-1012 P
 Fabio went to bed before the look; the visible instance was closed. Tomorrow: relaunch it with
 `CUBRIC_BACKGROUND=0 npm run app:isolated` (own profile, Chatterbox already installed), give
 him the five look steps, and ask again whether to delete the three test projects (pick: yes).
+
+2026-10-03 (session 5854a2e5): **Fabio's look PASSED all five** (validation.md). Same message:
+Chatterbox lines rushed -> **P9 DONE in code, uncommitted**: `TTS_KNOBS` + `ttsKnobParams`
+(commandRegistry), `_ttsKnob` sliders (PromptBoxControls), defaults 0.5 (promptControlDefaults),
+agent path (generationControls, saved value else default, no named param), graph node 43
+retitled `Input_TTS_English` (runtime + raw). Measured: cfg 0.2/0.5/0.8 -> 8.16/7.84/7.36 s, so
+Speed = cfg_weight uninverted. Unit 2698/0, eslint clean. Docs: chatterbox README § Speed and
+Exaggeration, agent guide, UNRELEASED. Fabio said YES to deleting the three `MPI-1012 P8 ...`
+projects; held until he has heard the `speed cfg 0.2/0.5/0.8` cards in `MPI-1012 P8 audio
+check`. **Next: Fabio listens + tries the sliders (isolated instance), '1' -> delete the three
+projects -> mpi-end-session closes MPI-1012.**
 
 ## Plan Drift
 

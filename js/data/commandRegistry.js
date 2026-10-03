@@ -1031,7 +1031,7 @@ export const commands = {
             { key: 'audio1', mediaType: MEDIA_TYPE.AUDIO, title: 'Input_Audio', required: true, voiceLibrary: 'character' },
         ],
         promptRequired: true,
-        components: ['ttsLanguage'],
+        components: ['ttsLanguage', 'ttsSpeed', 'ttsExaggeration'],
     },
 
     // ── Universal Workflows (not model-tied) ──────────────────────────
@@ -1680,6 +1680,27 @@ export function ttsLanguageValue(asked) {
 export function ttsLanguageParams(value) {
     const v = ttsLanguageValue(value) ?? TTS_ENGLISH;
     return { 'Input_Language.language': v, Input_Is_Multilingual: v !== TTS_ENGLISH };
+}
+
+/**
+ * Chatterbox's two delivery knobs (MPI-1012 P9, Fabio 2026-10-03: lines came out rushed).
+ * `widget` is the node input; both arms carry it, so each knob writes BOTH nodes
+ * (`Input_Language` = multilingual, `Input_TTS_English` = English-only) or half the
+ * languages would ignore it. Bounds are the English node's, the narrower of the two.
+ * Speed IS `cfg_weight`, not inverted: higher is faster. It moves the DELIVERY, not the
+ * length (0.2/0.5/0.8 -> 8.16/7.84/7.36 s on one line; Fabio's three takes all ~3 s): low
+ * is clearer and unhurried, high hurries the words.
+ */
+export const TTS_KNOBS = Object.freeze({
+    ttsSpeed:        Object.freeze({ widget: 'cfg_weight',   min: 0.2,  max: 1, step: 0.05 }),
+    ttsExaggeration: Object.freeze({ widget: 'exaggeration', min: 0.25, max: 2, step: 0.05 }),
+});
+
+/** What one knob injects: its value, clamped, on both TTS arms. */
+export function ttsKnobParams(key, value) {
+    const k = TTS_KNOBS[key];
+    const v = Math.min(k.max, Math.max(k.min, Number(value)));
+    return { [`Input_Language.${k.widget}`]: v, [`Input_TTS_English.${k.widget}`]: v };
 }
 
 /**

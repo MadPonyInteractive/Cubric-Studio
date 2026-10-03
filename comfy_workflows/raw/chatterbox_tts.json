@@ -7,6 +7,7 @@
     {
       "id": 43,
       "type": "FL_ChatterboxTTS",
+      "title": "Input_TTS_English",
       "pos": [
         2328.5050373473314,
         -525.2822069736126
