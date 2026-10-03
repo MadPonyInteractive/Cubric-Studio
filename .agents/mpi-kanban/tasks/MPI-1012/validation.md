@@ -152,3 +152,4 @@ you do not" rule ("no wind" -> "still air", "no room" dropped); agent-corpus tes
   character is pacing ... it speaks more clearly when the speed is low"; Exaggeration "on max,
   the characters go crazy ... really good for cartoon stuff". "Yeah, it's good. Let's
   continue." P9 accepted; docs reworded (delivery, not length).
+- CI green on 1a6bc93d5 (run 37109328458: unit + 4 desktop shards). Claim audit: 17 proven, 0 false, 3 live-only. Closed.

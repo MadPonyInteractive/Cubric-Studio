@@ -7,4 +7,5 @@
 - [x] P5 Agent / connector / MCP (voice card on a model op opens the prompt box; `app:operations` already renders t2a/tts info + help from the registry)
 - [x] P6 Smoke runner counts audio for model ops (+ required audio slot gets `smoke-probe.wav`; folded in: install probe survives MPI-513 job pruning, merge keeps a new model unproven)
 - [x] P7 Docs, skills, UNRELEASED roster, bench fixture (+ the Model drawer now links Stable Audio's Gemma terms); Docs-site + Website lines handed to Fabio (no Docs-site session live)
-- [ ] P8 Live check in an isolated app, then Fabio's look
+- [x] P8 Live check in an isolated app, then Fabio's look (all five steps passed 2026-10-03)
+- [x] P9 Chatterbox Speed + Exaggeration sliders, both arms (1a6bc93d5; Fabio listened, accepted)

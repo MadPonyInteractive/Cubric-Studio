@@ -79,12 +79,12 @@ run covers the two new models.
 
 ## Phases (each ends green: `npm test`, eslint on touched files)
 
-- [ ] **P1 Colours** — the four overlays + tile flags/badges (decision 14). Desktop spec or
+- [x] **P1 Colours** — the four overlays + tile flags/badges (decision 14). Desktop spec or
   computed-style unit check per header. **Verify mode: user-ux** (Fabio's look).
-- [ ] **P2 Audio as a model media type** — typedefs, selected-model store, gallery restore,
+- [x] **P2 Audio as a model media type** — typedefs, selected-model store, gallery restore,
   `_SHARED_TYPES` guard (audio controls are perModel; assert audio never writes the image
   bucket), picker + Library sections/filter/tiles/pills, MpiTileSheet audio thumb + badge.
-- [ ] **P3 The swap (ONE commit)** — ops, controls, ModelDefs, workflow renames, licence re-key,
+- [x] **P3 The swap (ONE commit)** — ops, controls, ModelDefs, workflow renames, licence re-key,
   graphics, FlowDefs out, tombstones, aliases table + Reuse + routines, tests updated
   (`flow-uninstall-guard` case rewritten: Voice Changer now owns `ComfyUI_Fill-ChatterBox` alone),
   new tests (licence key, alias routing, audio model listed). `release:check` op parity green.
@@ -98,12 +98,12 @@ run covers the two new models.
   bench fixture. OUTSIDE the repo (never written from here): message the Docs-site session
   (`pages/flows.html`, `audio.html`, `home.html` "Thirteen", `llms.txt`, `seo-routes.mjs`) and
   tell Fabio about the Website lines (`index.html:247-275`).
-- [ ] **P8 Verify live** — `npm run app:isolated` (own port + profile, never :3000): pick each
+- [x] **P8 Verify live** — `npm run app:isolated` (own port + profile, never :3000): pick each
   audio model, generate one Stable Audio clip and one Chatterbox line on the local engine, Reuse
   an OLD Flow card, run a routine step naming `chatter-box`, an agent `generate` by modelId.
   Local GPU only, no money. Downloads ~7-12 GB if the weights are absent: ask Fabio first.
   Then Fabio's look (colours + audio in the prompt box).
-- [ ] **P9 Chatterbox Speed + Exaggeration** (Fabio 2026-10-03, lines rushed) — perModel
+- [x] **P9 Chatterbox Speed + Exaggeration** (Fabio 2026-10-03, lines rushed) — perModel
   sliders `ttsSpeed` -> `cfg_weight`, `ttsExaggeration` -> `exaggeration`, both arms (node 43
   retitled `Input_TTS_English`); agent runs use the saved values. **Verify mode: user-ux**
   (Fabio listens).
