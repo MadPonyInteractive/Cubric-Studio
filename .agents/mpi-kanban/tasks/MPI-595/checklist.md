@@ -137,7 +137,11 @@ THIS umbrella:
   spec-proven, `validating`; CI GREEN on `df16648ad` (run 37007031522). Left: Fabio's look in
   his pre-cut smoke, then done. Hold-Alt pick
   stays on the card, not 2.0
-- [ ] **NEW 2.0 GATE 2026-10-02 (Fabio): MPI-1012 audio in the prompt box.** Sound & Music
+- [x] **MPI-1012 CLOSED 2026-10-03** (`1a6bc93d5` CI green run 37109328458, close `8ecc475ef`):
+  Fabio's look passed all five steps; P9 added Chatterbox Speed (`cfg_weight`) + Exaggeration
+  sliders on both arms (graph node 43 retitled `Input_TTS_English`, same weights + nodes, so
+  v0.24.0 stays valid). Item 2's scope now adds `--models stable-audio-3,chatterbox`.
+  Was: **NEW 2.0 GATE 2026-10-02 (Fabio): MPI-1012 audio in the prompt box.** Sound & Music
   and Text to Speech become prompt-box models and leave the Flow Library; Voice Changer stays
   a Flow. Fabio: "I don't mind waiting a few more days to release"; account for every
   ramification (in-app agent, existing installs) and reuse the Flow art for the model cards.
