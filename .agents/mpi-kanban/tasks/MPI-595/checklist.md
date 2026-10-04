@@ -218,7 +218,9 @@ THIS umbrella:
     money yes RE-GIVEN 2026-10-04 after that quote** ("You already have my permission to run it"):
     the next session runs it straight away through `/mpi-bump-engine`, cap **$1.00**, no re-ask
     unless past the cap. Delete the Pod and its volume after; report the spend
-- [ ] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step
+- [ ] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step.
+  **Fabio's YES to the cut 2026-10-04** (session fedd1e8c, after the re-smoke passed): "Yes,
+  but let's do it in a fresh session." Run Gate D top to bottom there
 
 Agent 85:
 - [x] **MPI-513** CLOSED by Agent 85 (`a1552ef08`, members folded). Was: install state that lies to the user (umbrella: 497/397/320) — Fabio 2026-10-01:
