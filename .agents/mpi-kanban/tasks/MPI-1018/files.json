@@ -6,6 +6,7 @@
     "js/data/recipes/wan-3.0.recipe.js",
     "js/data/recipes/registry.js",
     "js/data/modelConstants/models.js",
-    "docs/agent/models/wan-2.2.md"
+    "docs/agent/models/wan-2.2.md",
+    "scripts/recipe-test.mjs"
   ]
 }

@@ -27,8 +27,8 @@
  * REFERENCE TAGS: the app's `@` picker inserts `<Image 1>`, `<Video 1>`,
  * `<Audio 1>` (via `refTagHandle`, `js/data/commandRegistry.js`). The enhancer
  * is told to cite whatever form is in the Attached references line verbatim,
- * as the Seedance 2.0 recipe does. The test harness sends `@image1` / `@video1`
- * style tags in its REF_INPUTS; the recipe handles both.
+ * as the Seedance 2.0 recipe does. The test harness writes them the same way
+ * (`refTagHandle` on this recipe's model), not Seedance's `@image1`.
  *
  * WORD BUDGETS: derived from the official example range (9-57 words for
  * single/multi-shot prompts) and the practical length of multi-shot prompts
@@ -77,7 +77,8 @@ export const wan30 = {
         + 'Focal lengths in millimetres are in the official vocabulary. '
         + 'No negative-prompt API field; constraints are a trailing list in the prompt. '
         + 'Reference tags: app writes <Image 1> / <Video 1> / <Audio 1>; enhancer cites them verbatim. '
-        + 'Word budgets rest on official 9-57 word example range and 20k char API cap; Stage 1 calibration pending.',
+        + 'Word budgets rest on official 9-57 word example range and 20k char API cap, floors calibrated in Stage 1 '
+        + '(docs/recipes/research/wan-3.0/validation.md). Open: r2v with no references can still invent <Image 1> on a garbled technical idea.',
 
     modes: {
         t2v: {
@@ -201,10 +202,12 @@ Output ONLY the finished prompt, ready to paste into Wan 3.0. No preamble, no ex
 
         i2v: {
             outputFormat: 'prose',
-            lengthNorm: '20-180 words; the first frame provides the cast, look, set, and framing; describe motion, camera, dialogue, and audio only; with a last frame, describe the transition',
+            lengthNorm: '15-180 words; the first frame provides the cast, look, set, and framing; describe motion, camera, dialogue, and audio only; with a last frame, describe the transition',
             // Rests on: first frame carries appearance and setting; the enhancer describes
-            // only what changes. Sized to accommodate a multi-shot i2v with audio.
-            wordBudget: { min: 20, max: 180 },
+            // only what changes. Sized to accommodate a multi-shot i2v with audio. Floor
+            // measured in Stage 1 (MPI-1018): a thin idea lands at 18-46 words, and the
+            // 18-word one is complete (motion, camera, sound).
+            wordBudget: { min: 15, max: 180 },
             structureOrder: [
                 'Action: what happens from the first frame on; concrete motion verbs; one camera move per shot (push in, pull out, orbit, dolly, crane, handheld follow, fixed shot); no re-description of the first frame',
                 'Transition (with last frame): how the subject moves from the opening state to the closing state',
@@ -269,15 +272,15 @@ The four jobs:
 - A long idea: CONDENSE it. Note only the motion, camera, and audio the user specified. Drop every description of how the first frame looks.
 - A vague or garbled idea: INFER what the user meant.
 
-With a last frame: write the transition between the two frames — how the subject moves from the opening state to the closing state.
+If the user's idea mentions a last frame, write the transition between the two frames — how the subject moves from the opening state to the closing state.
 
-Wan 3.0 generates audio by default. Write "No dialogue." only when the user wants no spoken words; "No background music." only when they want no music. Never suppress audio the user did not ask to suppress.
+Wan 3.0 generates audio by default. Write "No dialogue." only when the user wants no spoken words; "No background music." only when they want no music. Never suppress audio the user did not ask to suppress. When nobody speaks and the user did not ask for silence, leave speech out entirely: no dialogue and no "No dialogue." line.
 
 Write the prompt as plain continuous prose. Never use section labels or word-then-colon headings: write "She lifts the cup..." not "Action: She lifts...".
 
 Start with what happens from the first frame on: motion with concrete verbs and pace. One camera move per shot, stated with a plain verb and speed (slow push in, pull out, orbit, dolly, crane, handheld follow, fixed shot). A focal length in millimetres is fine. Never two camera moves in one shot. No zoom (a zoom changes the first frame's framing). Do not re-describe the appearance of anything the first frame already shows.
 
-If a last frame is supplied, describe how the subject moves from the opening state to the closing state.
+If the user's idea mentions a last frame, describe how the subject moves from the opening state to the closing state.
 
 Then, only when someone speaks, the dialogue as plain sentences: Character name says: "line." or Voiceover: "line." Omit entirely if nobody speaks.
 
@@ -285,14 +288,15 @@ Then the audio as plain sentences — "Birdsong outside the window." "Rain on th
 
 Then, only if the user named a style change, two or three words. If the first frame's style should hold, omit this part.
 
-Output ONLY the finished prompt, ready to paste into Wan 3.0. No preamble, no headings, no labels, no markdown.`,
+Output ONLY the finished prompt, ready to paste into Wan 3.0. No preamble, no explanation, no headings, no labels, no markdown. If you would reconsider, do it silently and emit only the final version. Your reply ends where the prompt ends: no note, no second version, nothing after it.`,
         },
 
         r2v: {
             outputFormat: 'prose',
-            lengthNorm: '40-240 words; one anchor phrase per reference tag, then overall description, action, and audio; one continuous take unless cuts are requested',
-            // Rests on: anchor lines add ~20-40 words over t2v; similar ceiling.
-            wordBudget: { min: 40, max: 240 },
+            lengthNorm: '20-240 words; one anchor phrase per reference tag, then overall description, action, and audio; one continuous take unless cuts are requested',
+            // Measured in Stage 1 (MPI-1018): a thin idea lands at 25-36 words, because the
+            // references carry the look as the first frame does on i2v (also min 20).
+            wordBudget: { min: 20, max: 240 },
             structureOrder: [
                 'Overall description: subject (citing references by tag) and setting in one to two sentences',
                 'Citation phrases: one brief sentence per real tag giving it its job (omit if already clear from the overall description)',
@@ -348,10 +352,10 @@ Output ONLY the finished prompt, ready to paste into Wan 3.0. No preamble, no he
                 'The woman in <Image 1> walks through the market street shown in <Image 2>.\n<Image 1> is the character; <Image 2> is the location. She moves at a steady pace between the stalls, pausing to examine the produce on display. Slow push in from a wide shot to medium. Ambient market sounds: vendors calling, produce handled, a distant radio. No dialogue.',
                 'The man from <Image 1> performs the dance moves from <Video 1> on an empty rooftop at sunset.\n<Image 1> is the dancer; <Video 1> is the choreography reference. He follows the motion of <Video 1>, arms wide, weight landing on each beat. Fixed camera at waist height, medium shot. Upbeat electronic music; footsteps on the rooftop; no dialogue. Warm amber dusk.',
             ],
-            systemPrompt: `You write reference-to-video prompts for Wan 3.0. The user has attached reference files — images, video clips, or audio clips. You cannot see or hear them. Each one is named by a tag from the Attached references line, such as <Image 1>, <Video 1>, <Audio 1>, or @image1, @video1, @audio1 — numbered per type in load order. The last line of the user's message tells you which tags exist: "Attached references, in load order: <Image 1>, <Audio 1>." or "...: none." when nothing is attached. The references fix how subjects look; your words say what they do.
+            systemPrompt: `You write reference-to-video prompts for Wan 3.0. The user may have attached reference files — images, video clips, or audio clips. You cannot see or hear them. Each one is named by a tag from the Attached references line, such as <Image 1>, <Video 1>, <Audio 1>, or @image1, @video1, @audio1 — numbered per type in load order. The last line of the user's message tells you which tags exist: "Attached references, in load order: <Image 1>, <Audio 1>." or "...: none." when nothing is attached. The references fix how subjects look; your words say what they do.
 
 THREE RULES THAT OVERRIDE EVERYTHING BELOW:
-1. ONLY REAL TAGS, AND EVERY ONE OF THEM. A real tag is on the "Attached references" line or in the user's text. Cite every real tag at least once, copy each exactly as written (same brackets, case, and number), and never write any other tag. Never copy the "Attached references" line itself into the prompt. When the line says none and the user wrote no tag, there are no tags: write a plain prompt with no citations.
+1. ONLY REAL TAGS, AND EVERY ONE OF THEM. A real tag is on the "Attached references" line or in the user's text. Cite every real tag at least once, copy each exactly as written (same brackets, case, and number), and never write any other tag. Never copy the "Attached references" line itself into the prompt. When the line says none and the user wrote no tag, there are no tags at all: start with the subject in words ("A cat stretches..."), and write no tag and no "is the character" sentence anywhere. A word you do not recognise is a typo to infer, never a reference.
 2. THE SUBJECT'S LOOKS ARE THE REFERENCE'S. Give no tagged subject an age, face, hair, clothing, or colour beyond the user's own words. The reference fixes them; your description would fight it.
 3. DO NOT WRITE DURATION, ASPECT RATIO, RESOLUTION, OR FRAME RATE. The app sets them.
 
@@ -361,25 +365,25 @@ The four jobs:
 - A long idea: CONDENSE. Keep the tags, one subject, the main action, the place, and the camera. Drop descriptions of how tagged subjects look, repeats, and quality spam. Every tag must still appear.
 - A vague or garbled idea: INFER what the user meant.
 
-Wan 3.0 generates audio by default. Write "No dialogue." only when the user wants no spoken words; "No background music." only when they want no music. Never suppress audio the user did not ask to suppress.
+Wan 3.0 generates audio by default. Write "No dialogue." only when the user wants no spoken words; "No background music." only when they want no music. Never suppress audio the user did not ask to suppress. When nobody speaks and the user did not ask for silence, leave speech out entirely: no dialogue and no "No dialogue." line.
 
 Write the prompt as plain continuous prose. Never use section labels or word-then-colon headings: write "The woman in <Image 1> walks..." not "Overall Description: The woman in <Image 1> walks..."; write "Shot 1 [0-4s]:" only as a shot-segment marker, never as a section name.
 
-Start with one to two sentences describing the scene and citing the references by their tags ("the woman in <Image 1> walks through the market from <Image 2>"). Keep it short; the references carry the visual detail.
+Start with one to two sentences describing the scene. When references are attached, cite them here by their tags ("the woman in <Image 1> walks through the market from <Image 2>") and keep it short; the references carry the visual detail. When the Attached references line says none and the user wrote no tag, write no tag anywhere in the prompt.
 
-Then, for any tag whose role is not obvious from the opening sentence, add one brief sentence making it explicit: "<Image 1> is the character." "<Video 1> is the choreography reference." "<Audio 1> is her voice." Only write these when needed; if the opening sentence already made the role clear, omit them.
+Then, only when references are attached, for any tag whose role is not obvious from the opening sentence, add one brief sentence making it explicit: "<Image 1> is the character." "<Video 1> is the choreography reference." "<Audio 1> is her voice." Only write these when needed; if the opening sentence already made the role clear, omit them.
 
-Then the action: what unfolds, as a continuous take by default. If the user asks for cuts, write "Shot N [Xs-Ys]:" segments on separate lines, each 2-5 seconds. One camera move per shot, stated with a plain verb and speed (slow push in, pull out, orbit, dolly, crane, handheld follow, fixed shot). A focal length in millimetres is fine.
+Then describe what unfolds, as a continuous take by default. This part is in every prompt, even for a one-word idea: at least one concrete movement over the clip, never a still scene. If the user asks for cuts, write "Shot N [Xs-Ys]:" segments on separate lines, each 2-5 seconds. One camera move per shot, stated with a plain verb and speed (slow push in, pull out, orbit, dolly, crane, handheld follow, fixed shot). A focal length in millimetres is fine.
 
 Then, only when someone speaks, the dialogue as plain sentences: Character name says: "line." or Voiceover: "line." For voice cloning: Voice timbre reference <Audio N>. Omit entirely if nobody speaks.
 
 Then the audio as plain sentences — "Ambient market sounds." "Footsteps on gravel." If the user asked for no spoken words, write "No dialogue." If they asked for no music, write "No background music." Never invent audio they did not ask for and never suppress audio they did not ask to suppress.
 
-Then, only if the user named a style, two or three words. Omit otherwise.
+Then, only if the user named a visual style or mood, two or three words describing it (warm amber tones, muted grey-blue, film grain). If they named none, omit this part.
 
 Then, only if the user excluded something, one phrase per exclusion at the very end. Omit if nothing was excluded.
 
-Output ONLY the finished prompt. Start with the scene description. No preamble, no section labels, no markdown.`,
+Output ONLY the finished prompt. Start with the scene description. No preamble, no explanation, no section labels, no markdown. If you would reconsider, do it silently and emit only the final version. Your reply ends where the prompt ends: no note, no second version, nothing after it.`,
         },
     },
 };

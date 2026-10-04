@@ -1,2 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1018", "at": "2026-10-04T11:54:19+01:00", "actor": "claude", "column": "todo", "title": "Wan 3.0 gets its own prompting guide and recipe (it borrowed Wan 2.2's)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1018", "at": "2026-10-04T11:54:41+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1018", "at": "2026-10-04T15:42:58+01:00", "actor": "claude", "summary": "Stage 1: t2v, i2v, r2v-with-refs green twice; r2v no-refs directed open"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1018", "at": "2026-10-04T15:42:58+01:00", "actor": "claude", "maturity": "validating"}

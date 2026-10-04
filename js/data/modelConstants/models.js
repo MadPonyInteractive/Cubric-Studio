@@ -2310,7 +2310,7 @@ const ALL_MODELS = [
             '1080p': _cloudVideoRatios(WAN3_ASPECTS, 1080),
         },
         supportedOps: ['t2v', 'i2v', 'ref2v'],
-        enhanceRecipe: 'wan-2.2',
+        enhanceRecipe: 'wan-3.0',
         // audio keeps ref2v's voice wells (filterMediaInputsForModel drops audio slots
         // otherwise); negativePrompt: false keeps the audio-negative stop it would arm
         // off, as on minimax-h3-ref2va. endFrame shows i2v's optional last frame.

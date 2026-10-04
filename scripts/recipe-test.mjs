@@ -7,7 +7,7 @@
  *   node scripts/recipe-test.mjs <recipeId> [options]
  *
  *   --mode t2v|i2v|r2v  recipe mode (default t2v)
- *   --ref-tiers         the job tiers as an r2v run sends them, staged @ tags attached (REF_INPUTS)
+ *   --ref-tiers         the job tiers as an r2v run sends them, staged tags attached in the app's form (refInputs)
  *   --backend B         where the ENHANCER runs: ollama (default) | comfy | deepinfra
  *   --engine <id|name>  the enhancer LLM: a registry id, a raw Ollama name, or
  *                       (with --backend comfy) a CLIPLoader clip_name
@@ -40,6 +40,8 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getRecipe, withReferences } from '../js/data/recipes/registry.js';
+import { MODELS } from '../js/data/modelConstants/models.js';
+import { refTagHandle } from '../js/data/commandRegistry.js';
 import {
     avoidedTerms,
     composeSystemPrompt,
@@ -127,18 +129,23 @@ const TIERS = [
 /** `--ref-tiers` (MPI-1006): the four job tiers as an `r2v` run sends them, the staged
  *  references appended by the app's own `withReferences`. Two tiers tag nothing in the text
  *  (the mode must cite what is attached), two tag it (kept verbatim). The deterministic tag
- *  check reads the whole input, so it demands every attached tag and forbids any other. */
-const REF_INPUTS = {
-    bare: withReferences('cat', ['@image1']),
-    medium: withReferences('The man from @image1 sitting on a rocking chair in @image2 with two cats at his feet by the fireplace, cosy warm atmosphere', ['@image1', '@image2']),
-    directed: withReferences(TIERS.find((t) => t.name === 'directed').input, ['@image1', '@video1']),
-    overlong: withReferences(`${TIERS.find((t) => t.name === 'overlong').input
-        .replace('a lone samurai warrior', 'the samurai warrior from @image1')
-        .replace('the edge of a cliff', 'the edge of the cliff in @image2')} He speaks in the voice of @audio1.`, ['@image1', '@image2', '@audio1']),
-};
+ *  check reads the whole input, so it demands every attached tag and forbids any other.
+ *  `tag` writes each one as the app's `@` picker does for the recipe's own model
+ *  (`refTagHandle`): `@image1` on Seedance, `<Image 1>` on Wan 3.0 (MPI-1018). */
+function refInputs(tag) {
+    const [i1, i2, v1, a1] = ['Image 1', 'Image 2', 'Video 1', 'Audio 1'].map(tag);
+    return {
+        bare: withReferences('cat', [i1]),
+        medium: withReferences(`The man from ${i1} sitting on a rocking chair in ${i2} with two cats at his feet by the fireplace, cosy warm atmosphere`, [i1, i2]),
+        directed: withReferences(TIERS.find((t) => t.name === 'directed').input, [i1, v1]),
+        overlong: withReferences(`${TIERS.find((t) => t.name === 'overlong').input
+            .replace('a lone samurai warrior', `the samurai warrior from ${i1}`)
+            .replace('the edge of a cliff', `the edge of the cliff in ${i2}`)} He speaks in the voice of ${a1}.`, [i1, i2, a1]),
+    };
+}
 
-/** An `@image1` / `@Image 1` reference tag, as Seedance reads them. */
-const AT_TAG = /@(image|video|audio)\s?\d+/gi;
+/** A reference tag in either form the app writes: `@image1` (Seedance) or `<Image 1>` (Wan 3.0). */
+const REF_TAG = /@(image|video|audio)\s?\d+|<(image|video|audio)\s?\d+>/gi;
 
 const FILLER =
     /^\s*(here('s| is| are)|sure|certainly|okay|of course|absolutely|i've|i have|below is|this is|prompt:|enhanced prompt:|optimized prompt:)/i;
@@ -238,8 +245,8 @@ export function runChecks(tier, input, out, mode, style, isRegisterTier) {
 
     // MPI-1006: a tag is how a reference reaches the model, so it survives byte for byte
     // and none is invented. Silent on inputs and outputs that carry no tag.
-    const tagsIn = new Set(input.match(AT_TAG) ?? []);
-    const tagsOut = out.match(AT_TAG) ?? [];
+    const tagsIn = new Set(input.match(REF_TAG) ?? []);
+    const tagsOut = out.match(REF_TAG) ?? [];
     if (tagsIn.size || tagsOut.length) {
         const missing = [...tagsIn].filter((t) => !tagsOut.includes(t));
         const added = [...new Set(tagsOut)].filter((t) => !tagsIn.has(t));
@@ -436,6 +443,8 @@ async function main() {
     const only = arg('--tier');
     // A recipe without `styleVocabulary` has no register to test — running the
     // register tiers on it would fail four tiers for not having opted in yet.
+    const refModel = MODELS.find((m) => m.enhanceRecipe === recipeId && m.supportedOps?.includes('ref2v'));
+    const REF_INPUTS = refInputs((name) => refTagHandle(name, refModel));
     const eligible = process.argv.includes('--ref-tiers')
         ? TIERS.filter((t) => REF_INPUTS[t.name]).map((t) => ({ ...t, input: REF_INPUTS[t.name] }))
         : mode.styleVocabulary
