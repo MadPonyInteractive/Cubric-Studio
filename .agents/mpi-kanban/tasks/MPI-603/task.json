@@ -3,11 +3,11 @@
   "id": "MPI-603",
   "title": "Retire the outpaint LoRA - and give the Character Sheet flow its own answer",
   "description": "flux2-klein-4b-outpaint is deprecated: LanPaint replaces the fill/removal path it was baked in for (MPI-602), and Fabio removed it from the bench template 2026-08-22. Retiring it is NOT one deletion. It has a second consumer with nothing to do with inpainting - flow_character_sheet.json node 708 loads it at strength 1.1 - and that flow (MPI-504, shipped) needs a real replacement, not a removal. Fabio has authorised the eventual R2 and HF delete; the ordering is the constraint. There is also no 9B equivalent of this weight, so the 9B arm has no outpaint LoRA at all.",
-  "column": "doing",
-  "maturity": "validating",
+  "column": "todo",
+  "maturity": "deferred",
   "status": "active",
   "created_at": "2026-08-22T14:50:06Z",
-  "updated_at": "2026-09-15T11:52:00+01:00",
+  "updated_at": "2026-10-04T23:35:58+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -20,8 +20,8 @@
   },
   "activeSessionTitle": "MPI-603 - retire the outpaint LoRA from the Character Sheet head-removal branch (LanPaint re-author)",
   "attention": {
-    "state": "required",
-    "reason": "Release-gated, not implementation-gated. Steps 1-3 are DONE and live-confirmed on master (head comes off cleanly; dep dropped from models.js in 7d72f0b6, 2026-08-28). 1.5.0 (2026-09-08) did NOT satisfy step 4: that line was cut from 1.4.2 and 7d72f0b6 was never ported, so v1.5.0 models.js still lists klein-lora-outpaint in Klein 4B's deps. It is only a leftover dep line - no 1.5.0 graph loads the LoRA (LanPaint is in klein_t2i / klein_9b_t2i), so users just download 72MB nothing uses. Step 4 = the first release cut from master; a 1.5.x hotfix carries the drop only if 7d72f0b6 is ported. The weight is still on R2 and HF (checked 2026-09-15). Do NOT delete before that release: in 1.5.0 a 4xx dep is permanent (no retry), fails the whole Klein 4B model job, and a fresh Klein 4B install reads as not installed. Decision 2026-09-15: wait for the next release, no hotfix. Then step 5 delete from R2/HF, then close.",
-    "updated_at": "2026-09-15T11:52:00+01:00"
+    "state": "cleared",
+    "reason": "Deferred to ~2.2 (Fabio 2026-10-04). Steps 1-4 done (2.0 cut from master drops the dep). Step 5, the R2/HF delete of klein-lora-outpaint, waits until 1.5.0 users have moved on: 1.5.0 still lists it in Klein 4B deps and a 4xx dep fails the whole install there. Then close.",
+    "updated_at": "2026-10-04T23:38:00+01:00"
   }
 }

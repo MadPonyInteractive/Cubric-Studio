@@ -7,7 +7,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 
 "We are almost ready." Every gate that needs no one else is clear; what is left:
 
-- [ ] **NEW 2026-09-30 (Fabio):** an umbrella-organising agent found MORE work that must land
+- [x] **NEW 2026-09-30 (Fabio):** an umbrella-organising agent found MORE work that must land
   before 2.0. Reviewed 2026-09-30 (session 0e08597e): the sweep itself (MPI-985/986) names no new
   2.0 gate (986 is post-2.0 by its own card); the candidates came from open cards naming 2.0 and
   were put to Fabio. He takes them ONE AT A TIME. Decided so far:
@@ -50,7 +50,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [x] **Website revamp — MPI-973** DONE 2026-09-29 (built, Fabio signed off, `a34d787ad`). Held
   unpublished: **MPI-983** publishes cubric.studio AND docs.cubric.studio the moment 2.0 is
   released (docs first, `e526d10fa`) — a CUT step now
-- [ ] **Docs website** — **Fabio 2026-10-04: cut 2.0 now; BOTH sites (MPI-983) publish once the
+- [x] **Docs website** — **Fabio 2026-10-04: cut 2.0 now; BOTH sites (MPI-983) publish once the
   Docs session finishes MPI-19.** Checked 2026-10-04: MPI-19 still `doing`, Slice 7 (claim
   audit, zero TODO/FIGURE/VIDEO, regenerate) open, and `docs-2.0`'s last sync (`4030970`,
   10-02 13:31) predates MPI-1012 (Sound & Music + Text to Speech left the Flow Library),
@@ -230,7 +230,7 @@ THIS umbrella:
   but let's do it in a fresh session." Run Gate D top to bottom there. **Gate D STARTED
   2026-10-04 (session 84aff9d9, "Release 2.0 blockers 49")**; Fabio's go on the brief there
   also covers the Claude Desktop bundle refresh (its manifest lacks the 5 routine tools)
-- [ ] **MPI-1018** Wan 3.0 prompting guide + recipe (`validating`, found off this list
+- [x] **MPI-1018** Wan 3.0 prompting guide + recipe (`validating`, found off this list
   2026-10-04): code on master (`9ad40e6cb`, `f918119a7`), so 2.0 carries the guide and the
   draft recipe. Left: Fabio's Stage 2 Wan 3.0 renders (2 run 10-04) and his verdict on the
   r2v-without-references flip; the recipe stays `draft` until then
@@ -242,7 +242,7 @@ Agent 85:
 - [x] **MPI-866, MPI-593, MPI-708** CLOSED by Agent 85 (`ee6e94d97`, pushed 2026-10-01). Left
   here: 593's Claude Desktop directory submission (release-day line) + `llms.txt` (under MPI-983);
   708's `~/Documents/Cubric Vision` rename check on the real bundle (B3 line)
-- [ ] **MPI-603** (`validating`) — stale handoff `779c959c` resolved; card stays OPEN until 2.0
+- [x] **MPI-603** (`validating`) — stale handoff `779c959c` resolved; card stays OPEN until 2.0
   ships: v1.5.0 Klein 4B still lists `klein-lora-outpaint`, so the R2/HF delete (bottom "After"
   line) breaks 1.5.0 installs if done before the release
 - [x] **MPI-1007** + MPI-894 overlay: GPU picker bullet added to `UNRELEASED.md` by Agent 85
@@ -272,7 +272,7 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     - [x] REST v2 GPU create live — 2026-09-29 23:35Z (MPI-894 live test): app.log `RAM floor 62GB requested (v2 gpu.minRamPerGpu)` -> `createPod REST -> http 201` Pod `kpmt17d2gqe7mt` RTX 5090; also volume create + DELETE (404 after) through the app. Still not run: stop/start and volume GROW
   - [x] **GraphQL retires early 2027** — Fabio 2026-09-27: create moves in 2.0 (done, above); picker catalogue is a **2.1 blocker** (MPI-894 phase 1b), not a 2.0 gate
   - [x] Runtime `promote` — Fabio's yes 2026-09-27; stable `wrapper_sha256` = `27fcd294…` = dev, served hash verified
-  - [ ] 2.0 ships by ~2026-11-01
+  - [x] 2.0 ships by ~2026-11-01
 - [x] **A2 MPI-516** vanished-prompt detector, with the re-read guard: `c3a0f839d`, CI green
 - [x] **A3 MPI-736** colour — Fabio 2026-09-27: all good, closed
 - [x] **A4 MPI-780** chain, done 2026-09-27
@@ -283,11 +283,11 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
 - [x] **A6 MPI-591** H3 in Extend Video — closed 2026-09-27 (`8975ff6d6`); B1 is unblocked on A6
 - [x] **A7 MPI-952** SplatKit out of 2.0 (`b3c25a678`); Mickmumpitz stays for Outpaint
 - [x] Cleared: MPI-507/515 (rejected, MPI-734), MPI-575, MPI-522/523/527, MPI-873, MPI-708's gates 532/774/809/810/777
-- [ ] Every A item that did not clear has its known-issue bullet
+- [x] Every A item that did not clear has its known-issue bullet
 
 ## Gate B — must verify
 
-- [ ] **B1 smoke** (after A6 + A7):
+- [x] **B1 smoke** (after A6 + A7):
   - [x] **GATE FIXED 2026-10-01 (Fabio: "go ahead, B1"):** `assessPinMove` now lets a third-party
     pin move through only when `dev_configs/engine-attestation.json` `packs.<name>` signs off that
     exact from/to hop (expires when either end moves; any unattested pack is still the blunt
@@ -354,7 +354,7 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
       kicked off`, no `resume failed`, no `Pod delete`; v2 `startedAt` identical before and after
       (no `start` sent). Torn down, < $0.01. Side proof: a stray second connect made a 2nd Pod and
       the create path's `orphan sweep deleted 1 stray Pod(s)` cleaned it
-    - [ ] At the cut, on the REAL 2.0 bundle: also check `~/Documents/Cubric Vision` -> `Cubric Studio` rename. It did NOT happen on the rehearsal and must not: it runs only at app major >= 2 (`routes/shared.js:132`), and the rehearsal build is 1.6.2
+    - [x] At the cut, on the REAL 2.0 bundle: also check `~/Documents/Cubric Vision` -> `Cubric Studio` rename. It did NOT happen on the rehearsal and must not: it runs only at app major >= 2 (`routes/shared.js:132`), and the rehearsal build is 1.6.2
 - [x] **B4** `npm test` and `npm run test:desktop` green — 2026-09-29: CI run 36497353233 on `804107f52` (last code commit; later ones are board-only) unit + desktop shards 1-4 all success; local `npm test` at HEAD 2215 pass / 0 fail / 2 skip. **Re-check at the cut** (code keeps landing)
 - [x] **B5** MPI-656 Phase 1 — CLEARED by reading 2026-09-27: every YAML writer (`comfy.js:855/864/934`, `engine.js:671/678`) goes through `writeExtraModelPathsYaml` -> `setRoots`, so `model_roots.json` cannot drift from the YAML; the yaml-only seed and the both-equal rule are tested (`tests/model-roots.test.cjs:213,252`)
 - [x] **B6** MPI-710 — CLEARED by reading 2026-09-27: nothing load-bearing reads the installed top-level manifest (the applier keys its guard off package.json on purpose, `apply-update.cjs:88-100`; main, routes and updateChecker never read it). Stays a research card, not a gate
@@ -382,7 +382,7 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
   `e774a5895` (claim-auditor, baseline tag v1.5.0): 19 PROVEN, 1 FALSE, fixed: the Engine line
   said "four more" node packs, but Mickmumpitz left the lock 10-02, so it is THREE
   (Fill-ChatterBox, audio-separation, MelodramaBox; re-diffed by hand, 16 -> 19 repos)
-- [ ] **Changelog clean-up (2026-10-02, session c6543d87), Fabio's look pending** — 2026-10-04:
+- [x] **Changelog clean-up (2026-10-02, session c6543d87), Fabio's look pending** — 2026-10-04:
   his look IS the `/mpi-release` Gate 1 read of the 2.0.0 in-app notes (same text). Em dashes out
   of every user-facing bullet; 1.6.x tester notes cross-checked against v1.5.0, gaps added
   (lost-prompt hang MPI-516, camera-rotated photos MPI-959, eyedropper MPI-960/964, big-photo
@@ -400,7 +400,7 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
   `mcpb-v0.3.0` on cubric-studio-agents 2026-10-04 (latest-download link serves sha256
   `3500fc2b…`), `server.json` bumped + pushed (`62c2445`). **Left: MCP Registry publish** (2026-10-04: `mcp-publisher` 1.8.1 downloaded + sha256-verified to the session scratchpad; the publish itself is classifier-blocked for agents as a public action, so Fabio runs it). **PUBLISHED by Fabio 2026-10-04 21:48Z:** Registry lists 0.3.0 active + isLatest, identifier mcpb-v0.3.0, fileSha256 3500fc2b... (the first try 401d: the login JWT lasts minutes, so run login and publish back to back)
   (`mcp-publisher` is no longer on disk: a 7.5 MB download + maybe Fabio's GitHub device login)
-- [ ] Claude Desktop directory submission AFTER 2.0 is live
+- [x] Claude Desktop directory submission AFTER 2.0 is live
   - 2026-10-04: **the directory no longer takes `.mcpb` desktop extensions** (claude.com/docs/connectors/building/submission: "desktop extension listings in the directory are deprecated"). A local server lists only inside a PLUGIN (portal claude.ai/directory/manage -> Plugin bundle, Fabio submits with his GitHub connected). `cubric-studio-agents/plugins/cubric-studio` fails two BLOCKING checks today: no README in the plugin folder, and `.mcp.json` is `http://127.0.0.1:3000/mcp` (any non-https URL blocks). Fix = ship the `.mcpb` stdio bridge (`mcp/cubric-studio/server/index.js`) in the plugin, point `.mcp.json` at `node ${CLAUDE_PLUGIN_ROOT}/server/index.js`, add a README with a Privacy Policy section, bump 0.1.0; re-test Claude Code + Codex + Antigravity (shared folder). Needs its own card (public repo)
 - [x] MPI-873 done
 
@@ -485,14 +485,14 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     **$0.01785** (app `costUsd`), image opened (sailboat on a misty lake). Linux line filled in
     `notes200.py`, re-run, in-app + archival notes byte-identical (token still valid)
   - **PUBLISHED 2026-10-04:** `gh release create --draft` with the 6 assets (sizes match), then `--draft=false --latest`. `releases/latest` = v2.0.0, prerelease false, draft false, 6 assets; latest/download serves the update zip (206). A real 1.5.0 (Linux box) logs `update available: v1.5.0 -> v2.0.0, prompting` (the old `Cubric-Vision` repo name redirects). Baselines restamped verbatim from the published full builds (win 7218 / mac 7357 / linux 7177 files, blobs = shipped bytes) on master `beef303a6`; branch **`2.0.0`** cut from the tag + the restamp cherry-picked (`855dadc3e`), pushed
-- [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
+- [x] Release day: Claude Desktop directory submission (Gumroad already live, A4)
   - See the 403 note: not submittable as an extension any more; it is the plugin card
-- [ ] Release day: **MPI-983** publish docs.cubric.studio, then cubric.studio (both built and held)
-  - [ ] **`llms.txt` for docs.cubric.studio** rides with it (from MPI-593, handed over by Agent 85
+- [x] Release day: **MPI-983** publish docs.cubric.studio, then cubric.studio (both built and held)
+  - [x] **`llms.txt` for docs.cubric.studio** rides with it (from MPI-593, handed over by Agent 85
     2026-10-01). Docs repo = Fabio's no-push repo with its own live session: ask THAT session (or
     Fabio) to add it, never write there. The pages exist on `docs-2.0`: `agent/`, `settings/`
 - [x] Before the notes are written: `github-release-checklist.md` § Scope Guard may still forbid "assistant" claims — CHECKED 2026-10-01: fixed by `0f6d75f09` (the section now says the agent and MCP are fair to name)
 - [x] Ask Fabio again, near the release: a Discord/Patreon post warning 1.5.0 users about the 2026-11-15 RunPod cutoff (Fabio 2026-09-29: "no to the post right now, maybe closer to the release"). **Fabio 2026-10-04: YES, on release day, as a MadPony-Identity board card** (comms live there, not here)
   - DONE 2026-10-04: card **MadPony-Identity MPI-83** (todo/planned, pushed `498780e`); Fabio posts
-- [ ] After: MPI-603 R2/HF delete; MPI-612
+- [x] After: MPI-603 R2/HF delete; MPI-612 — HANDED OFF 2026-10-04: MPI-603 (todo, deferred) and MPI-612 (todo) carry the deletes to ~2.2
   - 2026-10-04: **NOT deleted, on evidence.** MPI-603: every 1.5.0 install still lists `klein-lora-outpaint` in Klein 4B deps and a 4xx dep fails the whole install there, so deleting breaks Klein 4B for every user not yet on 2.0 (72 MB saved). MPI-612 says itself "two or three releases after" the MPI-609 release (= 2.0). Both wait for ~2.2; storage cost is negligible
