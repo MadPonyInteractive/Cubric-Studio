@@ -32,6 +32,15 @@ the Docs board. Pages build `built` at f97428e. `/installation/` 200, `/agent/` 
   `cubric-studio-agents` latest `cubric-studio.mcpb`; "Install guide" and "Full setup guide"
   land on live docs pages.
 
+## Reopen: hero Download button (Fabio, same night)
+
+The hero button auto-detected the system and read "Download for Windows", so the app looked
+Windows-only. Website commit `3daddfe`: it always reads "Download" and goes to `#download`; the
+download section still highlights the visitor's platform. `check_site.py` ALL CHECKS PASSED;
+`crew_test.cjs` A failed once at 4/5 on a cold first load, then 5/5 three runs out of three (the
+change touches no video). Pages `built` at 3daddfe; live in a browser the hero reads "Download",
+href `#download`, and the three section buttons still resolve to the v2.0.0 full builds.
+
 ## Left as is
 
 Local branch `site-2.0` kept: `main` carries its content but not its commit, so
