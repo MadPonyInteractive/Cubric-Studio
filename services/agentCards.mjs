@@ -242,6 +242,26 @@ export async function readCard(folderPath, groupId) {
  * names: one read per sidecar in `.meta`, and only when a video is sent as a picture.
  */
 export async function startFrameOf(file) {
+    const meta = await _sidecarOf(file);
+    const start = (meta?.generationSettings?.mediaItems || []).find((m) => m?.role === 'startFrame');
+    const picture = start && _ownedMedia(path.dirname(path.dirname(path.resolve(file))), start.url || start.filePath);
+    return picture ? fs.access(picture).then(() => picture, () => null) : null;
+}
+
+/**
+ * A project clip's length in seconds, from its sidecar, or null (MPI-1017). The spend card
+ * prices a reference clip by it: Wan 3.0 bills the reference's seconds on top of the clip's,
+ * and without the length the quote has to assume the provider's 15 s ceiling.
+ * @param {string} file absolute path of a clip in a project's Media folder
+ * @returns {Promise<number|null>}
+ */
+export async function durationOf(file) {
+    const seconds = Number((await _sidecarOf(file))?.duration);
+    return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
+}
+
+/** The `.meta` sidecar of a file in a project's Media folder, or null. */
+async function _sidecarOf(file) {
     const media = path.dirname(path.resolve(file));
     if (path.basename(media) !== 'Media') return null;
     const want = path.resolve(file).toLowerCase();
@@ -250,10 +270,7 @@ export async function startFrameOf(file) {
         if (!name.endsWith('.json')) continue;
         const meta = await _readJson(path.join(metaDir, name));
         const own = _decode(meta?.filePath);
-        if (!own || path.resolve(own).toLowerCase() !== want) continue;
-        const start = (meta.generationSettings?.mediaItems || []).find((m) => m?.role === 'startFrame');
-        const picture = start && _ownedMedia(path.dirname(media), start.url || start.filePath);
-        return picture ? fs.access(picture).then(() => picture, () => null) : null;
+        if (own && path.resolve(own).toLowerCase() === want) return meta;
     }
     return null;
 }

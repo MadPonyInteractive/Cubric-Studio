@@ -1,0 +1,22 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/state.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/shell/agentDispatch.js",
+    "js/services/agentService.js",
+    "js/data/generationControls.js",
+    "js/services/cloudExecutor.js",
+    "services/agentLoop.mjs",
+    "services/agentCards.mjs",
+    "routes/connector.js",
+    "tests/agent-pinned-settings.test.cjs",
+    "tests/cloud-price-tag.test.cjs",
+    "tests/agent-loop.test.cjs",
+    "tests/deepinfra-wan-media.test.cjs",
+    "docs/agent-chat.md",
+    "tests/agent-cards.test.cjs",
+    "docs/cloud-generation.md",
+    "tests/connector-named-params.test.cjs"
+  ]
+}

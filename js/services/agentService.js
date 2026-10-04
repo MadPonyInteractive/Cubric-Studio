@@ -34,6 +34,7 @@ import { activeStackMember } from '../shell/activeStackMember.js';
 import { isStack, expandStacks } from '../data/stackModel.js';
 import { PAGE_GROUP_HISTORY } from '../router.js';
 import { isOperationInstalled } from '../data/modelRegistry.js';
+import { resolveNamedParams } from '../data/generationControls.js';
 
 export const AGENT_EVENT_NAMES = [
     'agent:working',
@@ -158,17 +159,24 @@ export async function agentWake() {
  * makes video, it doesn't make images, you need to select another model." The agent still
  * resolves task -> op; knowing what the pinned model can do is what lets it refuse in
  * words instead of discovering it through an OP_UNAVAILABLE.
- * @returns {{modelId:string, name:string, mediaType:string, ops:string[]}|null}
+ *
+ * `operation` and `batch` (MPI-1017) are the panel's too, so the agent is told the values
+ * that will run: the op to send, and how many it can say are coming.
+ * @returns {{modelId:string, name:string, mediaType:string, ops:string[], operation:?string, batch:number}|null}
  */
 function _pinnedForTurn() {
     if (state.agentSettingsPinned !== true) return null;
     const model = pinnedModel();
     if (!model) return null;
+    const operation = state.agentPinnedOp || null;
+    const run = operation ? resolveNamedParams(state.currentProject, model, operation, {}) : null;
     return {
         modelId: model.id,
         name: model.name,
         mediaType: model.mediaType,
         ops: (model.supportedOps || []).filter((op) => isOperationInstalled(model, op)),
+        operation,
+        batch: (run?.ok && run.injectionParams.Input_Batch_Size) || 1,
     };
 }
 

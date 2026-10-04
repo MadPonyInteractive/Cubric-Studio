@@ -2827,7 +2827,19 @@ describe('(m) the spend gate', () => {
         assert.equal(out.code, 'SPEND_DECLINED');
         assert.doesNotMatch(out.message, /install/i, 'the install path\'s decline copy must not leak into a spend card');
         assert.match(out.message, /ending on \[options: A \| B\]/);
+        // MPI-1017: told nothing on a No, the agent re-priced the run off the model's blurb.
+        assert.match(out.message, /The spend card quoted about \$0\.07/);
         assert.equal(tools.calls.generate.length, 0);
+    });
+
+    test('with the settings panel open, a count is refused: how many is the panel batch', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }], toolOpts: { quote: BILLED } });
+        loop._pinned = { modelId: 'test-model', batch: 2 };
+        const out = JSON.parse(await loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a fox', count: 3 }, 'turn-pinned-count', project));
+        assert.equal(out.error?.code, 'SETTINGS_PINNED');
+        assert.match(out.error.message, /each generate makes 2/);
+        assert.equal(tools.calls.generate.length, 0);
+        assert.equal(fakeRes.events.filter((e) => e.event === 'agent:confirm').length, 0, 'no spend card for a run that will not happen');
     });
 
     test('a local model is never asked about at all', async () => {

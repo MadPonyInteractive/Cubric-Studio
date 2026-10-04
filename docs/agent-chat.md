@@ -74,7 +74,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 | `describe_model` | `{ id: string }` required | the same route, one entry whole: `params`, `media`, a Flow's `fields`/`boxParams`, `guides`, `fit` (`UNKNOWN_MODEL`) |
 | `read_knowledge` | `{ id?: string }` (no id = the index) | `GET /connector/knowledge[/:id]` |
 | `install_model` | `{ modelId: string }` required | **never directly**: emits `agent:confirm`; `POST /agent/confirm` runs it |
-| `generate` | `{ modelId?, operation?, flowId?, prompt?, negative?, ratio?, qualityTier?, turbo?, styleSelect?, stylization?, seed?, cardName?, fields?: object, params?: object, media?: [{ role, image }] }` | `POST /connector/generate`, fired and not awaited; a model op waits for its guide (below). `cards` / `count` fan out as ONE batch (`_newBatch`, MPI-941): items settle silently into one progress line (an `agent:tool` of tool `batch`, replaced by id) and one `[Batch finished]` note, with no per-item result card, note or look; only items up to the first one that passes meet the 1 s refusal race, and the batch keeps one unfinished-ledger entry that ends holding only its failed cards. A Yes on a spend card hands the card's figure back in the result (`_priceNote`): told nothing, the chat priced a clip off the model's blurb, $0.13 under a $0.05 card (2026-10-04). An `OP_UNAVAILABLE` names the installed models of the refused one's `modelFamily` (`installedKin`, agentDispatch.js): "MiniMax H3" went to the uninstalled `minimax-h3` and got a 21 GB install offer with H3 Reference installed. **No `modelId` and no `flowId` = a tool** (MPI-904, `js/shell/agentToolOps.js`): `imageUpscale`, `removeBackground`, `crop`, `downscale`, settings in `fields`, listed as `tools` by `list_models` and whole by `describe_model <op>`. A top-level name that is one of the tool's OWN fields (crop's `ratio` shares its name with a model's) rides in `fields` instead — the route refuses a named param on a tool outright (MPI-941 Phase 9). It runs the History rail's universal op with the rail's params (`crop` is `resize` in crop mode; `downscale` is `resize` at the rail's MP size and refuses to enlarge, `ALREADY_SMALLER`), skips the guide gate and the auto-look, and an edited entry gets the result as its card's next entry |
+| `generate` | `{ modelId?, operation?, flowId?, prompt?, negative?, ratio?, qualityTier?, turbo?, styleSelect?, stylization?, seed?, cardName?, fields?: object, params?: object, media?: [{ role, image }] }` | `POST /connector/generate`, fired and not awaited; a model op waits for its guide (below). `cards` / `count` fan out as ONE batch (`_newBatch`, MPI-941): items settle silently into one progress line (an `agent:tool` of tool `batch`, replaced by id) and one `[Batch finished]` note, with no per-item result card, note or look; only items up to the first one that passes meet the 1 s refusal race, and the batch keeps one unfinished-ledger entry that ends holding only its failed cards. A Yes on a spend card hands the card's figure back in the result (`_priceNote`): told nothing, the chat priced a clip off the model's blurb, $0.13 under a $0.05 card (2026-10-04). A No hands it back too (`_declinedPriceNote`, MPI-1017): the declined Wan 3.0 run was re-priced off the blurb at $0.50 under a $1.90 card. An `OP_UNAVAILABLE` names the installed models of the refused one's `modelFamily` (`installedKin`, agentDispatch.js): "MiniMax H3" went to the uninstalled `minimax-h3` and got a 21 GB install offer with H3 Reference installed. **No `modelId` and no `flowId` = a tool** (MPI-904, `js/shell/agentToolOps.js`): `imageUpscale`, `removeBackground`, `crop`, `downscale`, settings in `fields`, listed as `tools` by `list_models` and whole by `describe_model <op>`. A top-level name that is one of the tool's OWN fields (crop's `ratio` shares its name with a model's) rides in `fields` instead — the route refuses a named param on a tool outright (MPI-941 Phase 9). It runs the History rail's universal op with the rail's params (`crop` is `resize` in crop mode; `downscale` is `resize` at the rail's MP size and refuses to enlarge, `ALREADY_SMALLER`), skips the guide gate and the auto-look, and an edited entry gets the result as its card's next entry |
 | `cancel_generation` | `{ toolCallId? }` (none = the LATEST it started) | `POST /connector/cancel { requestId }`. Only what THIS conversation started and has not settled (`_inflight`; else `NOT_IN_FLIGHT`), rendering or still queued; never the user's own runs. `generate` sends its `toolCallId` as the submit's `requestId`, which becomes the relay `jobId`; the renderer maps it to the Cue queue id and calls the queue's own `cancelPendingCueJob` / `cancelRunningCueJob`. A clip cancelled this way LEAVES the unfinished ledger and is not reported to the model as a failure. Found live 2026-09-20: with no cancel tool, "Scratch that. Leave it." was read as "leave it running". Allowlisted on purpose in `tests/agent-no-delete.test.cjs` - it is not a delete |
 | `look` | `{ image: string, question?: string, crop?: {x,y,width,height}, box?: boolean }`, `image` required | `POST /connector/describe`. A video or GIF ref (MPI-941 Phase 4) is sampled first: `cardView.viewFile` tiles it into ONE contact sheet, written to `cropDir()` as a `.webp`, and that goes to describe instead of the clip itself — one call, the same cost as a still. The question opens with the sheet's own facts (frame count, duration, columns, times), the caller's question after. `crop` and `box` stay stills-only |
 | `list_projects` / `create_project` | `{}` / `{ name }` | `GET /connector/projects` / `POST /connector/create-project` |
@@ -485,9 +485,18 @@ so the model button and cog are simply always there.
 
 | | Cog shut — agent drives | Cog open — the USER drives |
 |---|---|---|
-| prompt, media in/out, op, card name | agent | **agent, still — all of it** |
-| model | agent picks by task + rank | **the user** |
-| ratio / quality / turbo / style / stylization | agent, **from MODEL DEFAULTS** | **the user** |
+| prompt, media in/out (reference images, videos, audio), card name | agent | **agent, still — all of it** |
+| model, **op** (MPI-1017) | agent picks by task + rank | **the user** |
+| ratio / quality / duration / turbo / style / stylization / **batch** | agent, **from MODEL DEFAULTS** | **the user** |
+
+- **The op and the batch joined the pin in MPI-1017** (Fabio, 2026-10-04: *"Cosmo should only
+  take care of reference images, videos, audio, and the prompt"*). The panel was on Wan 3.0 t2v at
+  $0.40 and the agent sent ref2v with the finished clip as its own reference: $1.90 quoted. Only
+  the box knows the op it shows (a media drop re-picks it past the per-model memory), so it
+  publishes `state.agentPinnedOp` while its popup is open; a different op is refused `OP_PINNED`,
+  an omitted one runs the panel's. The batch is the panel's saved shared `batch` (the agent's is
+  dropped, MPI-876's carve-out reversed), and a `count` fan-out is refused `SETTINGS_PINNED` in the
+  loop. The Settings panel line names the op and the batch, so the agent says what runs.
 
 - **Open means PINNED.** The popup survives outside-click and Escape while the agent panel is open
   and closes on the cog alone — handing that ownership back by accident is worse than a popup that
@@ -495,8 +504,9 @@ so the model button and cog are simply always there.
   click. **MPI-797 Phase 3 dropped `.mpi-prompt-box__popup--agent`**, which used to hide the op strip
   inside this popup (Fabio: *"if the user wants to go and change operations, then he just needs to
   close the agent mode."*). That rested on the prompt box being the agent's face; now the user drives
-  the prompt box themselves while the panel is open, so hiding their own op selector was wrong. The
-  op was never part of the handover — the table above has always given it to the agent either way.
+  the prompt box themselves while the panel is open, so hiding their own op selector was wrong. With
+  the strip on show the op read as the user's setting while the gate still gave it to the agent:
+  the gap MPI-1017 closed.
 - **Enforcement is code, never a prompt rule** — `resolveSettingsOwner` (`js/shell/agentDispatch.js`),
   rejected as a prompt rule twice. Pinned, the named params are dropped and a foreign `modelId` is
   **refused** (`MODEL_PINNED`), never silently swapped: running the user's model under the agent's

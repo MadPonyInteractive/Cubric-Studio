@@ -70,6 +70,20 @@ test('a reference video is quoted as a ceiling: 15 s a video, 30 s in all', () =
     assert.match(one.display, /^up to \$/);
 });
 
+// MPI-1017, Fabio live 2026-10-04: 720p, 4 s, the card's own 5.875 s clip as the reference.
+// The ceiling quoted $1.90 against a run that bills (4 + 5.875) s = $0.99.
+test('a reference video whose length is known is priced by it, and is no longer a ceiling', () => {
+    const wan3 = MODELS.find(m => m.id === 'wan3-cloud');
+    const params = { Input_Duration: 4, Width: 1280, Height: 720 };
+    const unknown = estimateRunCost(wan3, params, [{ mediaType: 'video', url: 'C:/p/ref2v_003.mp4' }]);
+    const known = estimateRunCost(wan3, params, [{ mediaType: 'video', url: 'C:/p/ref2v_003.mp4', seconds: 5.875 }]);
+    assert.equal(unknown.display, 'up to $1.90');
+    assert.equal(known.display, 'about $0.99');
+    // One known and one unknown is still a ceiling: the unknown one is what can surprise.
+    const mixed = estimateRunCost(wan3, params, [{ mediaType: 'video', url: 'C:/p/a.mp4', seconds: 2 }, { mediaType: 'video', url: 'C:/p/b.mp4' }]);
+    assert.match(mixed.display, /^up to \$2\.10$/);
+});
+
 test('video and audio go as data URLs; a type or size Wan refuses is refused before sending', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mpi923-'));
     const file = (name, bytes) => { const p = path.join(dir, name); fs.writeFileSync(p, bytes); return p; };

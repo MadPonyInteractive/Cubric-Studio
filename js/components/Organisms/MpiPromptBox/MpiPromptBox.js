@@ -253,6 +253,9 @@ export const MpiPromptBox = ComponentFactory.create({
             state.promptMedia = { ...state.promptMedia, [_wsKey]: { id: _wsId, items } };
         }
         let activeOperation   = props.operation || 't2i';
+        // The settings popup's open state. Up here, not with the popup, because setOperation
+        // reads it (MPI-1017) and setOperation exists long before the popup is built.
+        let popupActive       = false;
         let isGenerating      = props.generating || false;
         let _remoteTransitioning = false; // MPI-73: remote engine connecting/disconnecting — block Cue
         let _context          = props.context || {};
@@ -756,6 +759,7 @@ export const MpiPromptBox = ComponentFactory.create({
         // programmatic re-pick must not overwrite what the user last selected.
         el.setOperation = (key, { programmatic = false } = {}) => {
             activeOperation = key;
+            if (popupActive) state.agentPinnedOp = key;
             _refreshOpStrip();
             _refreshOpSlot();
             _renderBadge();
@@ -1794,7 +1798,6 @@ export const MpiPromptBox = ComponentFactory.create({
             _opHelpDialog.el.show();
         });
 
-        let popupActive = false;
         let leaveTimer = null;
 
         const positionPopup = () => {
@@ -1848,12 +1851,16 @@ export const MpiPromptBox = ComponentFactory.create({
             // onto state.agentMode, which is the same flag it always mirrored; what changed
             // is only that the top bar's Agent button sets it now, not a toggle in here.
             if (state.agentMode === true) state.agentSettingsPinned = true;
+            // MPI-1017: the op strip is in this panel, so the op is the user's too. Only this
+            // box knows which op it shows (a media drop re-picks it without the per-model memory).
+            state.agentPinnedOp = activeOperation;
         };
         const closePopup = () => {
             popupActive = false;
             popupNode.classList.remove('is-active');
             cogBtn.el.classList.remove('is-active');
             state.agentSettingsPinned = false;
+            state.agentPinnedOp = null;
         };
 
         const cancelClose = () => { clearTimeout(leaveTimer); leaveTimer = null; };
@@ -2932,6 +2939,7 @@ export const MpiPromptBox = ComponentFactory.create({
             // otherwise a nav away with the cog open leaves agentDispatch dropping the
             // agent's params against a panel nobody can see (MPI-774 Phase 7).
             state.agentSettingsPinned = false;
+            state.agentPinnedOp = null;
             if (popupNode.parentNode) popupNode.parentNode.removeChild(popupNode);
             _stripEl.remove();
             el.remove();

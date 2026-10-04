@@ -1046,11 +1046,17 @@ export class AgentLoop {
      * party intended. The ops are here so it can refuse in WORDS when the pinned model
      * cannot do what was asked, instead of discovering it through an OP_UNAVAILABLE.
      * Costs nothing on a turn with the panel shut: the line is absent.
+     *
+     * MPI-1017: the operation and the batch are the panel's too (a different op is refused,
+     * OP_PINNED; a `count` is refused in `generate`), so the line names both values.
      */
     _pinnedSettingsLine(pinned) {
         if (!pinned?.modelId) return '';
         const ops = Array.isArray(pinned.ops) && pinned.ops.length ? pinned.ops.join(', ') : 'none installed';
-        return `[Settings panel: the user has it OPEN, so the model and every setting (ratio, quality, turbo, style) are THEIRS for this turn. You still write the prompt, choose the operation, supply the media and name the card. The model is "${pinned.modelId}" (${pinned.name}, ${pinned.mediaType}); the operations it can run are: ${ops}. Use modelId "${pinned.modelId}" on every generate and send no ratio, quality, turbo or style — yours are ignored. Write the prompt for THIS model. If it cannot do what the user asked, say so plainly, say what it does instead, and ask them to select a different model or close the settings panel so you pick one — never switch it yourself, and never pretend a different one ran.]`;
+        const op = pinned.operation ? ` and the operation is "${pinned.operation}"` : '';
+        const use = pinned.operation ? `modelId "${pinned.modelId}" and operation "${pinned.operation}"` : `modelId "${pinned.modelId}"`;
+        const batch = Number(pinned.batch) > 1 ? ` Each generate makes ${pinned.batch}, the panel's batch.` : '';
+        return `[Settings panel: the user has it OPEN, so the model, the operation and every setting (duration, quality, ratio, batch, turbo, style) are THEIRS for this turn. You supply only the prompt and the media (reference images, videos, audio), and name the card. The model is "${pinned.modelId}" (${pinned.name}, ${pinned.mediaType})${op}; the operations it can run are: ${ops}. Use ${use} on every generate and send no duration, quality, ratio, batch, count, turbo or style — yours are ignored.${batch} Write the prompt for THIS model and operation. If they cannot do what the user asked, say so plainly, say what they do instead, and ask them to change the model or operation, or close the settings panel so you pick — never switch it yourself, and never pretend a different one ran.]`;
     }
 
     /**
@@ -1326,8 +1332,8 @@ export class AgentLoop {
         // action learns to stop reading. And a cloud batch BELOW the threshold still asks,
         // for the same reason — the threshold has nothing to do with spending.
         const spend = await this._askSpend(turnId, this._batchQuoteBody(args, runs[0].media || args.media), n);
-        if (spend === false) {
-            return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on ${what}. Ask what they would like instead, ending on [options: A | B]; do not send it again unless they say so.` });
+        if (spend?.declined) {
+            return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on ${what}.${_declinedPriceNote(spend.price)} Ask what they would like instead, ending on [options: A | B]; do not send it again unless they say so.` });
         }
         if (spend === null && n > BATCH_CONFIRM_ABOVE && !await this._askBatch(turnId, n, args)) {
             return JSON.stringify({ ok: false, declined: true, message: `The user said no to ${what}. Ask what they would like instead, ending on [options: A | B]; do not send it again unless they say so.` });
@@ -1542,8 +1548,9 @@ export class AgentLoop {
      *
      * @param {object} body  the connector body about to be sent, priced as it stands.
      * @param {number} count how many generations this one card is about to agree to.
-     * @returns {Promise<{price: string|null}|false|null>} the card's price on a Yes, for
-     *   `_priceNote`. null when nothing about this run can be billed, which is every local
+     * @returns {Promise<{price: string|null, declined?: true}|null>} the card's price, for
+     *   `_priceNote` on a Yes and `_declinedPriceNote` on a No (`declined: true`). null when
+     *   nothing about this run can be billed, which is every local
      *   model and every Flow that runs locally — those raise no card at all. A Flow whose
      *   edit slot runs on a cloud model bills (MPI-918) and does.
      */
@@ -1558,7 +1565,10 @@ export class AgentLoop {
         }
         if (!quote) return null;
         const price = quote.display || null;
-        return await this._confirmSpend(turnId, { modelName: quote.modelName, count: quote.count || count, price }, 'generate', body) && { price };
+        // A No carries the figure too (MPI-1017): told nothing, the agent priced the run it
+        // had just been refused off the model's blurb, $0.50 under a card that said $1.90.
+        return await this._confirmSpend(turnId, { modelName: quote.modelName, count: quote.count || count, price }, 'generate', body)
+            ? { price } : { declined: true, price };
     }
 
     /**
@@ -1645,7 +1655,7 @@ export class AgentLoop {
             return JSON.stringify({ ok: false, error: { code: 'NOT_INSTALLED', missing, message: `Nothing was run: this routine needs ${missing.join(', ')}, not installed. Tell the user, and offer install_model for a local model.` } });
         }
         if (billed && !await this._confirmSpend(turnId, { modelName: `the routine "${args.name}"`, count, price: display || null }, 'routine', args)) {
-            return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on the routine "${args.name}". Nothing was run. Ask what they would like instead, ending on [options: A | B]; do not run it again unless they say so.` });
+            return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on the routine "${args.name}". Nothing was run.${_declinedPriceNote(display)} Ask what they would like instead, ending on [options: A | B]; do not run it again unless they say so.` });
         }
 
         const pending = this._tools.runRoutine(args.name, body)
@@ -2140,6 +2150,10 @@ ${knowledgeIndex}`.trim();
                 // shares this call's media, so the outer call's answer is every run's answer, and
                 // a refusal here costs no spend card the user already said Yes to.
                 if (Number(args.count) > 1) {
+                    // MPI-1017: how many is the panel's batch while it is open, never a fan-out.
+                    if (this._pinned && args.modelId && !args.flowId) {
+                        return JSON.stringify({ ok: false, error: { code: 'SETTINGS_PINNED', message: `Nothing was generated: the user has the settings panel open, so how many is theirs — each generate makes ${this._pinned.batch || 1}, the panel's batch. Send it once with no count, or ask them to change the batch or close the settings panel, and you will pick.` } });
+                    }
                     return this._fanOut(args, turnId, currentProject);
                 }
                 // MPI-892 — handed over, never run: before the box gate, because a box on a Flow
@@ -2270,8 +2284,8 @@ ${knowledgeIndex}`.trim();
                 let spend = null;
                 if (!opts.batch) {
                     spend = await this._askSpend(turnId, body, 1);
-                    if (spend === false) {
-                        return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on this generation. Nothing was generated and nothing was billed. Ask what they would like instead, ending on [options: A | B]; do not send it again unless they say so.` });
+                    if (spend?.declined) {
+                        return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on this generation. Nothing was generated and nothing was billed.${_declinedPriceNote(spend.price)} Ask what they would like instead, ending on [options: A | B]; do not send it again unless they say so.` });
                     }
                 }
 
@@ -2704,6 +2718,8 @@ ${knowledgeIndex}`.trim();
         this._working = true;
         this._lastMode = mode;
         this._gateWaiting = null;
+        // MPI-1017: `generate` refuses a `count` while the panel is open (its batch is theirs).
+        this._pinned = pinned?.modelId ? pinned : null;
         // MPI-891 — only a turn the user TYPED here may take them to where its work renders.
         // A wake was not asked for, and a carry was asked in a view they have since left.
         this._follow = !wake && !carried;
@@ -3258,6 +3274,11 @@ function _sentNote(body) {
  */
 function _priceNote(spend) {
     return spend?.price ? ` The user said yes to ${spend.price} on the spend card: that is the price, so quote it and never a figure of your own.` : '';
+}
+
+/** The same figure on a No (MPI-1017): the declined Wan 3.0 run was re-priced off the blurb. */
+function _declinedPriceNote(price) {
+    return price ? ` The spend card quoted ${price}: if you mention the price, quote that and never a figure of your own.` : '';
 }
 
 /**

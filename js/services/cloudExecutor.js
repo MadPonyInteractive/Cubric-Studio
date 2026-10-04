@@ -173,11 +173,16 @@ export function estimateRunCost(model, params = {}, mediaItems = []) {
     // Gemini family sends neither and is priced off token counts, so 0 is correct there.
     const [sizeW, sizeH] = String(sent.size || '').split('x').map(Number);
     // Wan 3.0 bills a reference VIDEO's seconds on top of the clip's (MPI-923, measured
-    // 2026-09-30: a 6.9 s reference + a 5 s clip at 480p billed 11.9 s, $0.595). Its length
-    // is unknown here, so quote the ceiling the provider allows: 15 s a video, 30 s in all.
-    // Seedance 2.0 (`cloud.mediaFields`, MPI-910) allows 15 s of reference video in all.
-    const refVideos = (model.cloud.mediaList || model.cloud.mediaFields)
-        ? want.media.filter(m => m.mediaType === 'video').length : 0;
+    // 2026-09-30: a 6.9 s reference + a 5 s clip at 480p billed 11.9 s, $0.595). A reference
+    // whose length is known (`seconds`, off its sidecar - MPI-1017) is priced by it; one that
+    // is not is priced at the ceiling the provider allows, 15 s a video (30 s in all), and
+    // the figure then reads "up to". Seedance 2.0 (`cloud.mediaFields`, MPI-910) allows 15 s
+    // of reference video in all.
+    const refs = (model.cloud.mediaList || model.cloud.mediaFields)
+        ? want.media.filter(m => m.mediaType === 'video') : [];
+    const refVideos = refs.length;
+    const refSeconds = refs.reduce((sum, m) => sum + (m.seconds > 0 ? m.seconds : 15), 0);
+    const ceiling = refs.some(m => !(m.seconds > 0));
     const clip = sent.duration || want.duration || 0;
 
     const est = estimateCost(endpointId, {
@@ -188,15 +193,15 @@ export function estimateRunCost(model, params = {}, mediaItems = []) {
         resolution: sent.resolution || '1k',
         // Veo publishes no duration field at all, so `sent` carries none and the pricing
         // module falls back to that model's own fixed clip length.
-        duration: refVideos && model.cloud.mediaList ? Math.min(30, clip + 15 * refVideos) : clip,
-        referenceVideoSeconds: refVideos && model.cloud.mediaFields ? 15 : 0,
+        duration: refVideos && model.cloud.mediaList ? Math.min(30, clip + refSeconds) : clip,
+        referenceVideoSeconds: refVideos && model.cloud.mediaFields ? Math.min(15, refSeconds) : 0,
         // What the route actually SENDS: one per numbered field, or one image (a Nano
         // Banana collage is one picture) for everything else.
         references: Math.min(want.imagePaths.length, model.cloud.imageFields?.length || 1),
         // Every image is priced, whether one call carries them or N calls do.
         batch: want.batch * want.calls,
     });
-    if (est && refVideos) est.display = est.display.replace(/^about /, 'up to ');
+    if (est && ceiling) est.display = est.display.replace(/^about /, 'up to ');
     return est;
 }
 
@@ -436,7 +441,8 @@ function _imagePaths(mediaItems) {
 /** Staged image/video/audio items as `{ mediaType, role, path }`, disk paths as above. */
 function _mediaRefs(mediaItems) {
     return (mediaItems || [])
-        .map(m => ({ mediaType: m?.mediaType || m?.type, role: m?.role || null, path: m?.url || m?.filePath || m?.path }))
+        .map(m => ({ mediaType: m?.mediaType || m?.type, role: m?.role || null, path: m?.url || m?.filePath || m?.path,
+            ...(m?.seconds > 0 ? { seconds: m.seconds } : {}) }))
         .filter(m => ['image', 'video', 'audio'].includes(m.mediaType) && m.path)
         .map(m => ({ ...m, path: extractAbsPath(m.path) || m.path }));
 }

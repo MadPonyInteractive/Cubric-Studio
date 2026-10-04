@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1017",
+  "title": "The open settings panel locks every setting; Cosmo owns only references and the prompt",
+  "description": "Fabio 2026-10-04, live: with the panel open on Wan 3.0 t2v 720p 4s ($0.40), Cosmo sent ref2v with the finished clip as its own reference and the spend card quoted $1.90 (4 s + a 15 s reference ceiling). Panel open now locks operation, model, duration, quality, ratio and batch; Cosmo supplies reference images/videos/audio and the prompt only. Also: a reference clip is priced by its real length, a ceiling says 'up to', and a No on the spend card hands the price back so Cosmo stops inventing one. Blocks the 2.0 cut (MPI-595).",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-04T11:40:39+01:00",
+  "updated_at": "2026-10-04T11:42:37+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

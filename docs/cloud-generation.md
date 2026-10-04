@@ -69,8 +69,10 @@ model is a `ModelDef` in `js/data/modelConstants/models.js` with `provider: 'dee
 - **`ref2v`** is the cloud twin of H3's two-stage `ref2v_ms`: same 9/3/3 wells, but tagged with
   the names the cloud model reads (Wan: `Image n` / `Video n`, counted per type). Wan bills a
   reference VIDEO's seconds as well as the clip's (measured 2026-09-30: 6.9 s ref + 5 s clip billed
-  11.9 s); images and audio are free. The length is unknown before the run, so `estimateRunCost`
-  quotes the ceiling, "up to", at 15 s a video and 30 s in all (the provider's own limits).
+  11.9 s); images and audio are free. A reference item carrying `seconds` is priced by it, which
+  only the agent's `/connector/quote` attaches, off the card's sidecar (`agentCards.durationOf`,
+  MPI-1017); any other reference is quoted at the ceiling, "up to", 15 s a video and 30 s in all
+  (the provider's own limits). The ceiling quoted $1.90 for a 5.9 s clip that bills $0.99.
   Seedance 2.0 with a reference video bills its cheaper "with video" token band ($4.70/M) over the
   clip's seconds plus reference seconds, quoted "up to" with 15 s of reference
   (`referenceVideoSeconds`, `deepinfraPricing.js`). Measured once, 2026-10-01: a 4 s 480p clip with

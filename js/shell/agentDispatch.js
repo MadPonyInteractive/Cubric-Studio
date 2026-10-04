@@ -237,8 +237,14 @@ export function pinnedModel() {
 
 /**
  * The pinned gate (MPI-774 Phase 7, Fabio 2026-09-19). One boolean decides who owns the
- * model and the settings of an agent-dispatched generation; the agent keeps the prompt,
- * the media, the op and the card name either way.
+ * model, the op and the settings of an agent-dispatched generation; the agent keeps the
+ * prompt, the media and the card name either way.
+ *
+ * The OP and the BATCH joined the pin in MPI-1017 (Fabio, 2026-10-04: "Cosmo should only
+ * take care of reference images, videos, audio, and the prompt"). The panel was on Wan 3.0
+ * t2v at $0.40 and the agent sent ref2v with the finished clip as its own reference: the
+ * same model, a $1.90 quote. The op strip sits in that panel, so it was always read as one
+ * of the user's settings; the op was the one the gate let through.
  *
  * Enforcement is HERE, in code, and never a prompt rule: a prompt rule can be ignored, a
  * dropped field cannot. Fabio has now rejected a prompt-rule answer to this twice.
@@ -258,17 +264,19 @@ export function pinnedModel() {
  * @param {boolean} pinned      state.agentSettingsPinned
  * @param {object|null} project state.currentProject
  * @param {object|null} pinnedM the model the panel is showing, when pinned
+ * @param {string|null} [pinnedOp] the op the panel is showing (state.agentPinnedOp)
  * Raw `injectionParams` (the escape hatch) obey the same owner: pinned, they are dropped
  * with the named params, or the agent could still move a setting the user set (Fabio,
  * 2026-09-26).
  *
- * @returns {{model:object|null, project:object|null, named:object, injectionParams:object, error?:{code:string,message:string}}}
+ * @returns {{model:object|null, operation:string|undefined, project:object|null, named:object, injectionParams:object, error?:{code:string,message:string}}}
  */
-export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
-    const { modelId, ratio, qualityTier, turbo, styleSelect, stylization, duration, denoise, batch, category, language, injectionParams } = input;
+export function resolveSettingsOwner(input = {}, pinned, project, pinnedM, pinnedOp = null) {
+    const { modelId, operation, ratio, qualityTier, turbo, styleSelect, stylization, duration, denoise, batch, category, language, injectionParams } = input;
     if (!pinned) {
         return {
             model: getModelById(modelId),
+            operation,
             project: null,
             // `denoise` too: the connector validates it (NAMED_PARAM_KEYS), so dropping it
             // here ran the op default while the agent said it chose a low one.
@@ -289,9 +297,16 @@ export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
         return { model: null, project, named: {}, injectionParams: {}, error: { code: 'MODEL_PINNED',
             message: `Nothing was generated: the user has the settings panel open, so they own the model — it is "${pinnedM.id}" (${pinnedM.name}), not "${modelId}". Send this again with modelId "${pinnedM.id}", writing the prompt for that model. If it cannot do what was asked, say so and ask them to select a different one; you cannot change it. Also tell them they can close the settings panel instead, and you will pick the model.` } };
     }
-    // `batch` survives the pin: it is HOW MANY the user asked for (MPI-876), not a setting,
-    // and dropping it would run one picture where the agent says four are coming.
-    return { model: pinnedM, project, named: batch !== undefined ? { batch } : {}, injectionParams: {} };
+    // Refused like the model, for the same reason: the media and the prompt were built for
+    // the op the agent named, so running the panel's op under them is a different job.
+    if (operation && pinnedOp && operation !== pinnedOp) {
+        return { model: null, project, named: {}, injectionParams: {}, error: { code: 'OP_PINNED',
+            message: `Nothing was generated: the user has the settings panel open, so they own the operation — it is "${pinnedOp}", not "${operation}". Send this again with operation "${pinnedOp}" and the media that op takes. If it cannot do what was asked, say so and ask them to select a different operation; you cannot change it. Also tell them they can close the settings panel instead, and you will pick.` } };
+    }
+    // `batch` is the panel's too (MPI-1017, reversing MPI-876's carve-out): dropped with the
+    // rest, so the panel's saved number runs. The agent is told that number in its Settings
+    // panel line, so it says how many are coming without choosing it.
+    return { model: pinnedM, operation: pinnedOp || operation, project, named: {}, injectionParams: {} };
 }
 
 /**
@@ -614,16 +629,18 @@ export function installedKin(model) {
  */
 export async function buildGeneration(input, project, { pinned = false, painted = null } = {}) {
     const {
-        modelId, operation, positive = '', negative = '', media = [], seed,
+        modelId, positive = '', negative = '', media = [], seed,
     } = input;
 
-    // Who owns the model and the settings — see resolveSettingsOwner. `owner.project` is
-    // NOT always state.currentProject: unpinned it is null on purpose, so the resolve
+    // Who owns the model, the op and the settings — see resolveSettingsOwner. `owner.project`
+    // is NOT always state.currentProject: unpinned it is null on purpose, so the resolve
     // below lands on model defaults instead of the project's saved bucket.
-    const owner = resolveSettingsOwner(input, pinned, state.currentProject, pinned ? pinnedModel() : null);
+    const owner = resolveSettingsOwner(input, pinned, state.currentProject,
+        pinned ? pinnedModel() : null, pinned ? state.agentPinnedOp : null);
     if (owner.error) {
         return _refuse(owner.error.code, owner.error.message);
     }
+    const operation = owner.operation;
 
     const model = owner.model;
     if (!model) {
@@ -852,7 +869,7 @@ function _enqueueAgentRun(jobId, input, config, target, historyOpts, { width = 0
     // The job FIRST, the stack after: the settle drops a filling stack with no live job.
     if (stack && !_agentStacks.has(stack.id)) {
         _agentStacks.add(stack.id);
-        addGroup({ ...createItemGroup(STACK_TYPE, resultStackFields({ kind: stack.kind, name: truncateCardName(getCommand(input.operation)?.label || input.operation), expected: stack.total })), id: stack.id });
+        addGroup({ ...createItemGroup(STACK_TYPE, resultStackFields({ kind: stack.kind, name: truncateCardName(getCommand(config.operation)?.label || config.operation), expected: stack.total })), id: stack.id });
     }
     if (!_settled.has(jobId)) _queueJobs.set(jobId, queued.queueJobId);
     return null;
@@ -900,8 +917,10 @@ function _quoteGeneration(jobId, input = {}) {
     }
 
     const pinned = state.agentSettingsPinned === true;
-    const owner = resolveSettingsOwner(input, pinned, state.currentProject, pinned ? pinnedModel() : null);
+    const owner = resolveSettingsOwner(input, pinned, state.currentProject,
+        pinned ? pinnedModel() : null, pinned ? state.agentPinnedOp : null);
     const model = owner.model;
+    const operation = String(owner.operation || '');
     // `provider` is the whole discriminator (MPI-851): a model that has one runs on the
     // user's own key and bills them, and a model that has none cannot cost anything.
     if (!model?.provider) return _report(jobId, { ok: true, output: { billed: false } });
@@ -909,9 +928,9 @@ function _quoteGeneration(jobId, input = {}) {
     const modelName = model.name || model.id;
     // Best effort from here down. Every failure below loses the NUMBER, never the card:
     // the answer stays `billed: true` and the gate says it cannot be quoted.
-    const named = resolveNamedParams(owner.project, model, String(input.operation || ''), owner.named);
+    const named = resolveNamedParams(owner.project, model, operation, owner.named);
     const params = { ...(named.ok ? named.injectionParams : {}), ...owner.injectionParams };
-    const media = resolveAgentMedia(String(input.operation || ''), model, input.media || []);
+    const media = resolveAgentMedia(operation, model, input.media || []);
     const quote = estimateRunCost(model, params, media.ok ? media.mediaItems : []);
 
     // A fan-out is N separate calls and N bills of this same run, so the total is the
@@ -919,13 +938,16 @@ function _quoteGeneration(jobId, input = {}) {
     // can never be multiplied: below a cent it carries one significant figure, so six
     // lots of "about $0.0005" cannot be read back out of the string.
     const usd = quote ? quote.usd * count : null;
+    // A ceiling stays one (MPI-1017): re-formatting the total dropped the "up to" off a
+    // reference clip of unknown length, and the card read "costs about $1.90".
+    const display = usd === null ? null : formatPrice(usd);
 
     return _report(jobId, { ok: true, output: {
         billed: true,
         modelName,
         count,
         usd,
-        display: usd === null ? null : formatPrice(usd),
+        display: display && quote.display?.startsWith('up to ') ? display.replace(/^about /, 'up to ') : display,
     } });
 }
 

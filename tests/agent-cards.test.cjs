@@ -271,3 +271,16 @@ test('the GIF tools turn a ref into the item id the card is SHOWING, and a chain
     assert.ok(loop._groups.has('g-gif'));
     assert.ok(!loop._groups.has('g-user'), 'an edit of the user`s card does not make it the agent`s to rename');
 });
+
+test('a clip`s sidecar gives its length and its start frame; a file with no sidecar gives neither (MPI-1017)', async (t) => {
+    const { file } = makeProject(t);
+    const cards = await esm('services/agentCards.mjs');
+    // Wan 3.0 bills a reference clip's seconds: the quote reads them here.
+    assert.equal(await cards.durationOf(file('i2v_006.mp4')), 5.875);
+    assert.equal(await cards.durationOf(file('i2i_001.png')), null, 'a still has no length');
+    assert.equal(await cards.durationOf(file('nope.mp4')), null);
+    // startFrameOf shares the sidecar lookup: the picture is returned only once it exists.
+    assert.equal(await cards.startFrameOf(file('i2v_006.mp4')), null);
+    fs.writeFileSync(file('flowOutpaint_002.png'), 'x');
+    assert.equal(path.resolve(await cards.startFrameOf(file('i2v_006.mp4'))), path.resolve(file('flowOutpaint_002.png')));
+});

@@ -296,15 +296,19 @@ test('agentCanBatch: SDXL family t2i and every op of every cloud model, nothing 
     ].sort());
 });
 
-test('batch: a project saved at batch 3 still runs an unasked agent submit at batch 1', () => {
+// MPI-1017 reversed half of this: a project is passed only on the PINNED path, where the
+// saved batch is the panel the user is looking at, so it runs. Unpinned passes no project.
+test('batch: an unasked agent submit runs at 1 unpinned, and at the panel`s saved 3 pinned', () => {
     const sdxl = MODELS.find((m) => m.id === SDXL.modelId);
     assert.ok(sdxl, 'fixture guard: sdxl-realistic is still a shipped model');
 
     const project = { shared: { image: { batch: 3 } } };
-    const result = resolveNamedParams(project, sdxl, 't2i', {});
+    const unpinned = resolveNamedParams(null, sdxl, 't2i', {});
+    const pinned = resolveNamedParams(project, sdxl, 't2i', {});
 
-    assert.equal(result.ok, true);
-    assert.equal(result.injectionParams.Input_Batch_Size, 1);
+    assert.equal(unpinned.ok, true);
+    assert.equal(unpinned.injectionParams.Input_Batch_Size, 1);
+    assert.equal(pinned.injectionParams.Input_Batch_Size, 3);
 });
 
 test('seed: a non-integer is a named error', async () => {

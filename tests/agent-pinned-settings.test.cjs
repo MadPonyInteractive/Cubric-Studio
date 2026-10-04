@@ -157,3 +157,44 @@ test('both paths still produce injection params a real dispatch can use', () => 
         assert.equal(typeof named.injectionParams, 'object', label);
     }
 });
+
+// ── MPI-1017: the op and the batch are the panel's too ───────────────────────
+// Fabio, 2026-10-04: "Cosmo should only take care of reference images, videos, audio, and
+// the prompt." The panel was on Wan 3.0 t2v at $0.40; the agent sent ref2v with the finished
+// clip as its own reference, and the card quoted $1.90.
+
+test('pinned: an op the user did not pick is refused, named, never silently swapped', () => {
+    const owner = resolveSettingsOwner({ modelId: PINNED.id, operation: 'i2i' }, true, PROJECT, PINNED, 't2i');
+    assert.equal(owner.error?.code, 'OP_PINNED');
+    assert.equal(owner.model, null, 'a refusal must not hand back a model to run');
+    assert.match(owner.error.message, /"t2i"/, 'it names the op to resend with');
+    assert.match(owner.error.message, /close the settings panel/);
+});
+
+test('pinned: the panel op runs when the agent names it, or names none', () => {
+    assert.equal(resolveSettingsOwner({ modelId: PINNED.id, operation: 't2i' }, true, PROJECT, PINNED, 't2i').operation, 't2i');
+    assert.equal(resolveSettingsOwner({ modelId: PINNED.id }, true, PROJECT, PINNED, 't2i').operation, 't2i');
+    // Shut, the op is the agent's: the panel op is never consulted.
+    assert.equal(resolveSettingsOwner({ modelId: KREA.id, operation: 'i2i' }, false, PROJECT, null, 't2i').operation, 'i2i');
+});
+
+test('pinned: the agent`s batch is dropped and the PANEL`s saved batch runs', () => {
+    const SDXL = getModelById('sdxl-realistic'); // a model whose t2i shows the batch control
+    assert.ok(SDXL, 'sdxl-realistic must exist');
+    const panel = { ...PROJECT, shared: { image: { batch: 3 } } };
+    const owner = resolveSettingsOwner({ modelId: SDXL.id, operation: 't2i', batch: 1 }, true, panel, SDXL, 't2i');
+    assert.deepEqual(owner.named, {}, 'batch is no longer carved out of the pin (MPI-876 reversed)');
+    assert.equal(resolveNamedParams(owner.project, SDXL, 't2i', owner.named).injectionParams.Input_Batch_Size, 3);
+    // Shut, a project saved at 3 must not leak into an agent run: no project, so 1.
+    const free = resolveSettingsOwner({ modelId: SDXL.id, operation: 't2i' }, false, panel, null);
+    assert.equal(resolveNamedParams(free.project, SDXL, 't2i', free.named).injectionParams.Input_Batch_Size, 1);
+});
+
+test('the Settings panel line names the op and the batch, and gives the agent only refs and the prompt', async () => {
+    const { AgentLoop } = await import('../services/agentLoop.mjs');
+    const line = AgentLoop.prototype._pinnedSettingsLine({ modelId: 'wan3-cloud', name: 'Wan 3.0', mediaType: 'video', ops: ['t2v', 'i2v', 'ref2v'], operation: 't2v', batch: 2 });
+    assert.match(line, /operation "t2v"/);
+    assert.match(line, /Each generate makes 2/);
+    assert.match(line, /You supply only the prompt and the media/);
+    assert.match(line, /send no duration, quality, ratio, batch, count/);
+});

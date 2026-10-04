@@ -157,12 +157,15 @@ const _state = {
                                     // and re-mounted PromptBoxes (survives workspace nav).
                                     // Session-only — resets on app restart.
     agentSettingsPinned: false,     // MPI-774 Phase 7: the parameters popup is OPEN in agent
-                                    // mode, which means the USER owns the model and the
-                                    // settings for the agent's generations; the agent still
-                                    // owns the prompt, the media, the op and the card name.
+                                    // mode, which means the USER owns the model, the op and
+                                    // the settings for the agent's generations; the agent
+                                    // still owns the prompt, the media and the card name.
                                     // Written by MpiPromptBox (open/close of that popup while
                                     // agentMode); read by agentDispatch, which DROPS the
                                     // agent's named params while it is true. Session-only.
+    agentPinnedOp: null,            // MPI-1017: the op that open popup's box is showing, null
+                                    // while shut. Written by MpiPromptBox; agentDispatch refuses
+                                    // any other op while agentSettingsPinned. Session-only.
 
     // ── Prompt draft (session-only, not persisted) ─────────────────────────────
     promptDraft: { gallery: { id: null, positive: '', negative: '' }, history: { id: null, positive: '', negative: '' } },

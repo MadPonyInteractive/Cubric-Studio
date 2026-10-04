@@ -502,6 +502,24 @@ async function _firstFrames(media, operation, model) {
   }));
 }
 
+/**
+ * A clip still standing as a clip after `_firstFrames` (a reference video) gets its length,
+ * `seconds`, off its sidecar (MPI-1017): Wan 3.0 bills a reference's seconds on top of the
+ * clip's, and unknown, `estimateRunCost` quotes the 15 s ceiling — $1.90 for a 5.9 s clip
+ * that would have billed $0.99. A clip with no sidecar length keeps the ceiling.
+ */
+async function _clipSeconds(media) {
+  if (!Array.isArray(media) || !media.length) return media;
+  const { isVideoFile } = require('../js/utils/file.js');
+  return Promise.all(media.map(async (m) => {
+    let file = null;
+    try { file = new URL(String(m?.url), 'http://127.0.0.1').searchParams.get('path'); } catch (_) { /* not a project file */ }
+    if (!file || !path.isAbsolute(file) || !isVideoFile(file)) return m;
+    const seconds = await (await _cards()).durationOf(file).catch(() => null);
+    return seconds ? { ...m, seconds } : m;
+  }));
+}
+
 /** Frame 0 of a project's clip, full size, as a staged input of that same project. */
 async function _frameZero(file) {
   const parts = path.resolve(file).split(path.sep);
@@ -731,7 +749,7 @@ router.post('/connector/quote', async (req, res) => {
     return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.flowId, or body.modelId and body.operation, are required.' } });
   }
   // Priced with the picture the run will send (MPI-980): a clip refused here would price no reference.
-  const sent = flowId ? media : await _firstFrames(media, String(operation), findModelDef(modelId));
+  const sent = flowId ? media : await _clipSeconds(await _firstFrames(media, String(operation), findModelDef(modelId)));
   const input = flowId ? { flowId: String(flowId) } : {
     modelId: String(modelId),
     operation: String(operation),

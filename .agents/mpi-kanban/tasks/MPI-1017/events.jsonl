@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1017", "at": "2026-10-04T11:40:39+01:00", "actor": "claude", "column": "todo", "title": "The open settings panel locks every setting; Cosmo owns only references and the prompt"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1017", "at": "2026-10-04T11:42:37+01:00", "actor": "claude", "from": "todo", "to": "doing"}

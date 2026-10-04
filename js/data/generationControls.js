@@ -491,7 +491,7 @@ export function resolveNamedParams(project, model, operation, named = {}) {
 
     // batch (MPI-876). Asked for, it runs as ONE job only where the model batches cleanly
     // (agentCanBatch), and is refused by name elsewhere so the caller queues N instead.
-    // Unasked, it is pinned to 1 rather than inheriting a project saved at 3.
+    // Unasked: see below.
     if (batch !== undefined) {
         if (!Number.isInteger(batch) || batch < 1 || batch > AGENT_BATCH_MAX) {
             return _err('INVALID_BATCH', `batch must be an integer 1-${AGENT_BATCH_MAX}.`);
@@ -500,7 +500,12 @@ export function resolveNamedParams(project, model, operation, named = {}) {
             return _err('BATCH_UNSUPPORTED', `${modelName} cannot batch "${operation}" cleanly. Send separate submits instead; they queue.`);
         }
     }
-    if (modelShowsBatch(model, operation)) injectionParams.Input_Batch_Size = batch ?? 1;
+    // Unasked, the PROJECT's saved number — which only a pinned run passes (MPI-1017: the
+    // panel's batch is the user's); every other caller passes no project and gets 1.
+    if (modelShowsBatch(model, operation)) {
+        const saved = Number(getSharedSettings(project || {}, _mediaTypeOf(model)).batch);
+        injectionParams.Input_Batch_Size = batch ?? (Number.isInteger(saved) && saved >= 1 && saved <= AGENT_BATCH_MAX ? saved : 1);
+    }
 
     // duration (MPI-820). It was missing from this set entirely, so NO agent video ever
     // carried `Input_Duration` and every one ran the workflow's baked value — 2 for H3,
@@ -670,7 +675,9 @@ export function resolveAgentMedia(operation, model, media = [], { allowEmpty = f
         if (mediaItems.some(item => item.role === slot.key)) {
             return _err('BAD_REQUEST', `Media role "${m.role}" was given twice.`);
         }
-        mediaItems.push({ url: m.url, mediaType: slot.mediaType, role: slot.key, source: model ? 'agent' : 'flow-agent' });
+        // `seconds`: a reference clip's length, which only `/connector/quote` attaches, for its price (MPI-1017).
+        mediaItems.push({ url: m.url, mediaType: slot.mediaType, role: slot.key, source: model ? 'agent' : 'flow-agent',
+            ...(m.seconds > 0 ? { seconds: m.seconds } : {}) });
     }
     // Roles are explicit here, so a required slot is filled BY ROLE. The shared
     // `findMissingMediaSlot` also accepts any item of the slot's type, which suits an
