@@ -7,4 +7,4 @@
 - [x] A No on the spend card hands the quoted price back to Cosmo (`_declinedPriceNote`)
 - [x] Tests: pinned op / batch / count, reference-clip pricing, declined price note, sidecar length
 - [x] docs/agent-chat.md pinned table + docs/cloud-generation.md reference pricing updated
-- [ ] Fabio's live re-ask: panel open on Wan 3.0 t2v 720p 4 s, "repeat this video" -> t2v, card says about $0.40
+- [x] Fabio's live re-ask: panel open on Wan 3.0 t2v 720p 4 s, "repeat this video" -> t2v, card says about $0.40

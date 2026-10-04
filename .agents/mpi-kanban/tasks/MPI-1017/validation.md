@@ -17,6 +17,9 @@ The original clip's sidecar shows H3 Reference ref2v with NO media, so the faith
 - `tests/agent-loop.test.cjs`: a No carries "The spend card quoted about $0.07"; a pinned `count` is
   refused SETTINGS_PINNED with no spend card and no generate.
 
-## Remaining
+## Fabio's live re-ask (2026-10-04) — PASSED
 
-Fabio's live re-ask (needs an app restart: `services/agentLoop.mjs` and `routes/connector.js` are server-side).
+Panel open on Wan 3.0 t2v 720p 4 s, batch 1. "Repeat this video." -> Cosmo read wan3-cloud's settings and
+guide:wan-3.0, the spend card quoted about $0.40, and the clip landed as WAN 3.0 TEXT TO VIDEO 4S,
+1280x720, one clip; the session's Generations total reads $0.40 (was $1.90 before the fix). Fabio:
+"it landed perfectly". CI green on ab394a373.
