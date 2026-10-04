@@ -531,9 +531,11 @@ export const RECOMMENDED_REMOTE_MODELS = {
         // conversation (suite cost / conversations), fixed at test time, not a live price.
         // `suiteHash` (MPI-941 Phase 12) = `agentBench.suiteHash()` of the cases it ran; a score without one,
         // or with another, reads "older tests" in Settings. Re-scored 2026-10-01 on the 34-case suite (MPI-965
-        // validation.md): DeepSeek x3 = 30/34 strict (passes 33, 32, 33; was 28/28 x3 on 28 cases), $0.3538.
+        // validation.md): DeepSeek x3 passes 33, 32, 33 (was 28/28 x3 on 28 cases), $0.3538. A multi-run score is
+        // the MEDIAN, the rule bench.cubric.studio scores the same runs by (Fabio 2026-10-04: one number in both
+        // places); it was stamped 30/34 "strict" (passed in all three), which the site never showed.
         { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576, reasoningEffort: 'low',
-            agentTest: { passed: 30, cases: 34, runs: 3, perChat: 0.0035, suiteHash: '38728db81118' } },
+            agentTest: { passed: 33, cases: 34, runs: 3, perChat: 0.0035, suiteHash: '38728db81118' } },
         // 31/34 x1, $0.2165 (was 25/28 on 2026-09-29, 19/23 x3 on MPI-912 § 6).
         { id: 'Qwen/Qwen3.6-35B-A3B', jobs: [], agentTest: { passed: 31, cases: 34, runs: 1, perChat: 0.0064, suiteHash: '38728db81118' } },
         // 31/34 x1, $0.0730 (was 19/28 on 2026-09-29).

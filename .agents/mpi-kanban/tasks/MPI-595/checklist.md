@@ -147,6 +147,10 @@ THIS umbrella:
   ramification (in-app agent, existing installs) and reuse the Flow art for the model cards.
   Same weights + nodes, so v0.24.0 stays valid. **Item 2 (paid re-smoke) waits for it** so one
   run covers the two new models too
+- [x] **Agent dropdown score matches bench.cubric.studio (Fabio 2026-10-04):** DeepSeek-V4-Flash
+  stamp 30/34 "strict" -> 33/34, the MEDIAN of the same 3 runs (33, 32, 33), the rule the bench
+  site scores by (live `/v1/scores` read 33/34 x3). Qwen3.6 + gpt-oss-120b already matched
+  (31/34 x1). `services/llmEngines.mjs`; `llm-connection` + `bench-community` tests 29/0
 - [ ] **Fabio's own smoke in the app BEFORE the re-smoke (Fabio 2026-10-02):** item 1 (lock:
   MelodramaBox sync + Mickmumpitz drop + release image build + pin) DONE 2026-10-02
   (`edff37f2a` + `42ddbda10`, mpi-ci `89bb08b`, image v0.24.0). NOW WAITING on Fabio: restart
