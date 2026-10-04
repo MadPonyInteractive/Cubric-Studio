@@ -68,7 +68,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   Fabio 2026-09-30, picked up AFTER MPI-971 closes.** Plan `tasks/MPI-1000/plan.md`: 998 + 999 in
   parallel, 997 waits on MPI-603 (`validating` on 2026-09-30). **A 2.0 gate — Fabio 2026-09-30.**
   NEXT, now that MPI-971 is closed
-- [ ] Then **the cut**: Gate D below, top to bottom. Costs ~nothing (CI + R2); it needs Fabio's yes
+- [x] Then **the cut**: Gate D below, top to bottom. Costs ~nothing (CI + R2); it needs Fabio's yes
   because it is public and one-way (promote reaches every released Pod; the release reaches every updater)
 
 ## EVERY CARD IN `doing` IS FOLDED HERE (Fabio 2026-10-01 — no card left on the side)
@@ -225,7 +225,7 @@ THIS umbrella:
     money yes RE-GIVEN 2026-10-04 after that quote** ("You already have my permission to run it"):
     the next session runs it straight away through `/mpi-bump-engine`, cap **$1.00**, no re-ask
     unless past the cap. Delete the Pod and its volume after; report the spend
-- [ ] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step.
+- [x] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step.
   **Fabio's YES to the cut 2026-10-04** (session fedd1e8c, after the re-smoke passed): "Yes,
   but let's do it in a fresh session." Run Gate D top to bottom there. **Gate D STARTED
   2026-10-04 (session 84aff9d9, "Release 2.0 blockers 49")**; Fabio's go on the brief there
@@ -335,7 +335,7 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
   - [x] RAM floor 80 -> 62: app default `b5b20a042`; smoke runner `MIN_RAM_GB` 62 + playbook 01 (2026-09-29, Fabio: yes; evidence = B1's H3 PASS on a 55.88 GiB 5090 host, `dev_configs/smoke-run.txt:166-167` at `751e9d886`). Runner `--self-check` OK. Saved 80 GB user floors NOT migrated (Fabio did not ask; default pick: leave them)
   - [x] Runner fix, same session: `--plan` / `--self-check` no longer truncate the committed `dev_configs/smoke-run.txt` (both did; this session's `--install-only` + `--self-check` wiped the B1 transcript, restored from HEAD, blob `d6f247a` re-verified after a plan + self-check). `tests/smoke-*.test.cjs` 54/54
 - [x] **B2 MPI-953** Flow leg in the smoke runner — `49564ad53`: real FLOWS, stages each Flow's models + deps, volume counts only what Flows add; runs for real inside B1 with `--flows all`
-- [ ] **B3** Linux box, REMOTE-ONLY (no ComfyUI there): agent, DeepInfra, RunPod v2 (MPI-806 live leg), updater A/B through `update.sh` on a real 2.0 bundle
+- [x] **B3** Linux box, REMOTE-ONLY (no ComfyUI there): agent, DeepInfra, RunPod v2 (MPI-806 live leg), updater A/B through `update.sh` on a real 2.0 bundle
   - 2026-09-29 started (Fabio: yes, paid legs capped at **$0.25**). Box is now `192.168.0.210` (router restart; same host key on .199/.210; `~/.ssh/config` updated). Build: master `f74855990` -> mpi-ci run `36504709115`. Plan: fresh v1.5.0 extract in `~/b3/` -> in-app `update.sh` with `~/mpi954/fetch-release-stub.cjs` pointed at the CI Linux update zip -> that updated install runs the legs. **Fabio pastes the DeepInfra + RunPod keys into Settings on the box himself** (agents never type real keys). Legs: FLUX Schnell 1 image (~$0.0005), 1 agent turn, RunPod create/stop/start/delete + volume create/grow/delete (~$0.10-0.20). The real-2.0-bundle updater run stays a cut step
     - [x] Update rehearsal PASSED 2026-09-29 00:56Z (dash): CI artifact `CubricStudio-linux-x64-update-v1.6.2.zip` (sha256 `ca056d6b…`, full bundle, `fromVersion: null`, launchers under `update/pending-launchers/`) through the INSTALLED 1.5.0 `update.sh` (only `fetch-release.cjs` stubbed; kit `~/b3/b3-inapp.sh`): exit 0, 1.5.0 -> 1.6.2, relaunch served :3000 200, boot heal installed all 4 launchers (app.log 00:57:34Z), update check "up to date". 1.5.0 was booted once first so real `user-data/` rode the update
     - [x] DeepInfra leg PASSED 2026-09-29 01:09Z: `flux2-dev-cloud` t2i via connector generate into project "B3 Linux test", 11.5 s, card landed, image checked by eye, **$0.018** (app-reported `costUsd`). (`flux-schnell-cloud` is `devOnly`: UNKNOWN_MODEL in a packaged build, correct)
@@ -358,7 +358,8 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
 - [x] **B4** `npm test` and `npm run test:desktop` green — 2026-09-29: CI run 36497353233 on `804107f52` (last code commit; later ones are board-only) unit + desktop shards 1-4 all success; local `npm test` at HEAD 2215 pass / 0 fail / 2 skip. **Re-check at the cut** (code keeps landing)
 - [x] **B5** MPI-656 Phase 1 — CLEARED by reading 2026-09-27: every YAML writer (`comfy.js:855/864/934`, `engine.js:671/678`) goes through `writeExtraModelPathsYaml` -> `setRoots`, so `model_roots.json` cannot drift from the YAML; the yaml-only seed and the both-equal rule are tested (`tests/model-roots.test.cjs:213,252`)
 - [x] **B6** MPI-710 — CLEARED by reading 2026-09-27: nothing load-bearing reads the installed top-level manifest (the applier keys its guard off package.json on purpose, `apply-update.cjs:88-100`; main, routes and updateChecker never read it). Stays a research card, not a gate
-- [ ] **B7** on the 2.0 build, Get it on Head Swap and DramaBox opens Gumroad at £0
+- [x] **B7** on the 2.0 build, Get it on Head Swap and DramaBox opens Gumroad at £0
+  - DONE 2026-10-04: shipped `MpiFlowLibrary.js` (tag v2.0.0) links `gumroad.com/l/khsbf` + `/l/odacbs`; both pages show £4 struck to **£0**, "100% off will be applied at checkout"
 
 ## Gate C — decide / notes
 
@@ -416,7 +417,7 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
   2026-10-01: 3 candidates, none overtaken (MPI-775 board-save commit, MPI-560 live Flow
   umbrella, MPI-249 a question answered). Re-run at the cut — **2026-10-04: the same 3, none overtaken**
 - [x] `publish-runtime.sh promote` (mpi-ci `cubric-vision-pod/`): dev -> stable = wrapper 0.2.45 (MPI-894 async hot-store, live-proven 2026-09-29) + `b131c0a` chatterbox link. Fabio 2026-09-29: at the cut, not before. Harmless to 1.5.0/1.6.x (they never send `async`), useless to them until 2.0's app. **PROMOTED 2026-10-04** (guard OK at mpi-ci `89bb08b`, server-side copy): stable manifest = dev on all four fields (wrapper 0.2.45, start `776f1f1e…`, start-cpu `5b7a1879…`, wrapper `46aacae3…`), and the served stable start.sh / start-cpu.sh / wrapper.py hash to the manifest (python urllib read, no-cache)
-- [ ] `/mpi-version-bump` -> **2.0.0**, then `/mpi-release`. **Bump DONE 2026-10-04:** version
+- [x] `/mpi-version-bump` -> **2.0.0**, then `/mpi-release`. **Bump DONE 2026-10-04:** version
   triple 2.0.0; `RELEASE_NOTES['2.0.0']` + `docs/releases/2026-10-04-v2.0.0.md` generated from
   ONE list (scratchpad `notes200.py`; 12 important / 54 new / 44 fixes / 1 engine, cut to 1-2
   lines, no em dashes; Known issues kept in the archival note only); UNRELEASED cleared; the 15
@@ -447,7 +448,7 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
   it rewrites `releaseNotes.js`'s 2.0.0 block, the archival note AND the Gate 2 body draft
   `tasks/MPI-595/release-body-2.0.0.md` (Platform support = TO FILL from the install tests);
   any change to the notes voids an earlier `release:approve` token
-- [ ] **Install smoke tests BEFORE the GitHub publish (Fabio 2026-10-04):** on the real 2.0
+- [x] **Install smoke tests BEFORE the GitHub publish (Fabio 2026-10-04):** on the real 2.0
   build, (a) Windows on his D: drive and (b) the Linux box. Windows: the publish gate wants a
   FULL bundle tested from TWO releases back (<= 1.4.4); 2.0's bundle still says appId
   `cubric.vision` (`build-portable.mjs:900`), so a 1.4.x applier takes it offline. On disk:
@@ -482,11 +483,13 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     way, all 15 cloud models installed (key survived), `flux2-dev-cloud` t2i 1024px in 8.8 s,
     **$0.01785** (app `costUsd`), image opened (sailboat on a misty lake). Linux line filled in
     `notes200.py`, re-run, in-app + archival notes byte-identical (token still valid)
+  - **PUBLISHED 2026-10-04:** `gh release create --draft` with the 6 assets (sizes match), then `--draft=false --latest`. `releases/latest` = v2.0.0, prerelease false, draft false, 6 assets; latest/download serves the update zip (206). A real 1.5.0 (Linux box) logs `update available: v1.5.0 -> v2.0.0, prompting` (the old `Cubric-Vision` repo name redirects). Baselines restamped verbatim from the published full builds (win 7218 / mac 7357 / linux 7177 files, blobs = shipped bytes) on master `beef303a6`; branch **`2.0.0`** cut from the tag + the restamp cherry-picked (`855dadc3e`), pushed
 - [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
 - [ ] Release day: **MPI-983** publish docs.cubric.studio, then cubric.studio (both built and held)
   - [ ] **`llms.txt` for docs.cubric.studio** rides with it (from MPI-593, handed over by Agent 85
     2026-10-01). Docs repo = Fabio's no-push repo with its own live session: ask THAT session (or
     Fabio) to add it, never write there. The pages exist on `docs-2.0`: `agent/`, `settings/`
 - [x] Before the notes are written: `github-release-checklist.md` § Scope Guard may still forbid "assistant" claims — CHECKED 2026-10-01: fixed by `0f6d75f09` (the section now says the agent and MCP are fair to name)
-- [ ] Ask Fabio again, near the release: a Discord/Patreon post warning 1.5.0 users about the 2026-11-15 RunPod cutoff (Fabio 2026-09-29: "no to the post right now, maybe closer to the release"). **Fabio 2026-10-04: YES, on release day, as a MadPony-Identity board card** (comms live there, not here)
+- [x] Ask Fabio again, near the release: a Discord/Patreon post warning 1.5.0 users about the 2026-11-15 RunPod cutoff (Fabio 2026-09-29: "no to the post right now, maybe closer to the release"). **Fabio 2026-10-04: YES, on release day, as a MadPony-Identity board card** (comms live there, not here)
+  - DONE 2026-10-04: card **MadPony-Identity MPI-83** (todo/planned, pushed `498780e`); Fabio posts
 - [ ] After: MPI-603 R2/HF delete; MPI-612
