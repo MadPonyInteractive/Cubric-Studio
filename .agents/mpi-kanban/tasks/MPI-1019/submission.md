@@ -17,16 +17,15 @@ Name "Cubric Studio", description "Make images and video in the Cubric Studio ap
 computer.", the plugin folder's README as the long description, icon, docs / support / privacy
 links (privacy = https://cubric.studio/privacy/). To change any of it, tell me and I push a fix.
 
-## Data handling answers
+## Data handling answers (as submitted 2026-10-04; the portal asks multiple choice)
 
-- **Reads or stores personal data?** It passes your prompts, and the pictures and video you ask
-  about, between Claude and the Cubric Studio app on your own computer. The plugin stores
-  nothing; the app keeps your projects in your own Documents folder.
-- **Sends data to services other than its declared connectors?** No. The plugin talks only to
-  the app at `http://127.0.0.1:3000/mcp` on the same computer. (The app itself uses cloud
-  services only when you choose a cloud model or RunPod, as its privacy policy lists.)
-- **How long it keeps data:** the plugin keeps none.
-- **Intended for people under 18?** No. Cubric Studio has an 18+ gate.
+- **Reads or stores personal data (names, emails, addresses)?** No. It passes prompts and
+  pictures between Claude and the app on the user's computer.
+- **Does any skill send data to a service other than the declared connectors?** No.
+- **How long does your service retain data received from Claude?** Under 30 days: the privacy
+  page says Mad Pony keeps nothing except a reference video for a cloud video, deleted within the
+  hour; projects stay on the user's own computer.
+- **Intended for users under 18?** No. Cubric Studio has an 18+ gate.
 
 ## Compliance step
 
@@ -35,9 +34,10 @@ is not shown publicly. Then tick the four acknowledgements.
 
 ## Review and submit
 
-Keep **GitHub push webhook** (default). After submitting, **Set up push updates** needs admin on
-the repo (you have it). Turning on auto-publish is optional; I would leave the reviewer default
-for the first version.
+As submitted: **Scheduled check only** (the directory looks at `main` about every 6 hours;
+**Check for new commits** on the plugin page forces it), and **Auto-publish passing versions
+OFF**, so an agent's push to the public repo never goes live in the directory without Fabio
+pressing Publish. Either can change later on the plugin's Settings tab.
 
 ## What a reviewer may notice
 

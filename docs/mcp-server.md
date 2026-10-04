@@ -112,9 +112,12 @@ Claude Code, Codex AND Antigravity: `.claude-plugin/marketplace.json` plus `plug
 Anthropic's directory BLOCKS a plugin whose MCP url is a literal non-https address (MPI-1019).
 Codex reads that url literally, so it gets its own manifest naming its own file: a
 `.codex-plugin/plugin.json` wins over `.claude-plugin/` in Codex (proven 2026-10-04, scratch
-`CODEX_HOME`). Keep the three MCP files on the same address. The directory takes this plugin,
-not the `.mcpb` (desktop extension listings are deprecated); Fabio submits it at
-claude.ai/directory/manage as a Plugin bundle. The skill is the part that matters: it names the server, says the tools may be deferred
+`CODEX_HOME`). Keep the three MCP files on the same address. The directory takes this plugin, not
+the `.mcpb`; Fabio submitted 0.2.1 on 2026-10-04 (MPI-1019). claude.ai chat IGNORES an MCP server
+whose url holds `${user_config.*}`, so there the plugin is skill-only (README and skill say so).
+`main` reaches the directory on a ~6 h check with auto-publish off: each version waits for Fabio's
+Publish, so raise `version` in both manifests with every change. The skill is the part that
+matters: it names the server, says the tools may be deferred
 and how to find them, and forbids the browser and the raw HTTP API. `claude plugin validate`
 must pass on both the folder and the plugin. Cold-tested 2026-09-26 in all three: one image
 each, MCP only, the guide read first (Claude Code via `--plugin-dir`, tools named
