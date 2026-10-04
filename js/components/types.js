@@ -301,23 +301,6 @@
  */
 
 /**
- * @typedef {Object} MpiToolOptionsPromptProps (Organism — js/components/Organisms/MpiToolOptionsPrompt)
- * @property {Object} promptBox - Live MpiPromptBox instance handle (mount return)
- * @property {Object} project - Current project { id, folderPath } for thumb drop uploads
- *
- * Renders two role-tagged frame thumb slots (startFrame / endFrame) with a
- * swap button between them and Extend / Create new action buttons.
- * Mirrors PromptBox media chips via the `media-change` event.
- *
- * Emits via Events bus:
- *   'prompt-box-tools:extend'
- *   'prompt-box-tools:create-new'
- *
- * Requires PromptBox instance API: getMediaByRole(role), removeMediaByRole(role),
- *   swapMediaRoles(roleA, roleB), injectMedia({ url, mediaType, role }).
- */
-
-/**
  * @typedef {Object} MpiColorPickerProps (Primitive — js/components/Primitives/MpiColorPicker)
  * @property {string|{r:number,g:number,b:number}} [value='#000000'] - Initial RGB or #rrggbb color
  * @property {string} [info] - Info Bar description
@@ -814,11 +797,11 @@
  * @property {boolean} [stageMedia=false]
  *   Does this box stage its OWN reference media (MPI-721)? Two effects, one prop,
  *   because they are the same statement: a `+` card at the head of the media strip
- *   opening MpiMediaPicker, and the strip made visible in history mode — where CSS
- *   otherwise hides it because MpiToolOptionsPrompt owns the video frame thumbs.
- *   Image history groups turn it on. The gallery box leaves it off yet still gets
- *   the `+` card (MPI-924) — only the history-mode strip and the picker's
- *   "Add to history" toggle stay behind the prop. NOTE: `workspaceKey: 'history'` persists NO chips at all —
+ *   opening MpiMediaPicker, and the strip made visible in history mode, where CSS
+ *   otherwise hides it. Every history group turns it on (video since MPI-1015). The
+ *   gallery box leaves it off yet still gets the `+` card (MPI-924) — only the
+ *   history-mode strip and the picker's "Add to history" toggle (image models only)
+ *   stay behind the prop. NOTE: `workspaceKey: 'history'` persists NO chips at all —
  *   the entry is rebuilt on every mount and references are per-edit by design.
  * @property {Function} [recordAudio]
  *   `recordAudioIntoProject`, handed down by the Block that mounts the box (an Organism

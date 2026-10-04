@@ -82,9 +82,9 @@ reuses the `video.playPause` / `video.frame.back` / `video.frame.forward`
 hotkey ids — a card mounts this bar or the video one, never both, so they
 never compete for a keypress.
 
-**Mediator:** `mountOptions(mode)` destroys the previous `MpiToolOptions*` instance and mounts the new one. `prompt` is special — no compound; toggles `mpi-group-history-block--prompt-active` CSS class (shows PromptBox, hides `#right-top-slot`). Tool options compounds: `MpiToolOptionsCrop`, `MpiToolOptionsMaskDetect`, `MpiToolOptionsMaskPoints`, `MpiToolOptionsUpscale`, `MpiToolOptionsInterpolate`, `MpiToolOptionsResize`, `MpiToolOptionsPrompt`.
+**Mediator:** `mountOptions(mode)` destroys the previous `MpiToolOptions*` instance and mounts the new one. `prompt` is special — no compound; toggles `mpi-group-history-block--prompt-active` CSS class (shows PromptBox, hides `#right-top-slot`). Tool options compounds: `MpiToolOptionsCrop`, `MpiToolOptionsMaskDetect`, `MpiToolOptionsMaskPoints`, `MpiToolOptionsUpscale`, `MpiToolOptionsInterpolate`, `MpiToolOptionsResize`.
 
-**PromptBox gating:** `_hasPromptOps()` — true iff active model exposes ≥1 enabled prompt op. Recomputed on model/install-state changes. Video groups with prompt-capable models get PromptBox too.
+**PromptBox gating:** `_hasPromptOps()` — true iff active model exposes ≥1 enabled prompt op. Recomputed on model/install-state changes. A video card's box also mounts with nothing staged (`_videoBoxBeforeMedia()`): its picture-animating ops need a picture the user adds there. Both kinds offer every model with an op that takes media (`_modelTakesMedia`, not `isTextOnlyOp`): MPI-955 image, MPI-1015 video.
 
 **Media contract — IMAGE groups (MPI-721).** The media strip IS the slot order, and nothing a run consumes is off-screen.
 - The **active entry is an ordinary numbered chip**, pinned: no remove pill, still reorderable. `_setCurrentIdx()` is the ONE place the selection moves and it re-points the chip through `_syncEntryChip()` → `promptBox.el.setPinnedMedia()`. A new site that writes `_currentIdx` directly is a stale chip.
@@ -96,7 +96,11 @@ never compete for a keypress.
 
 **The two drop zones are separate, and deliberately so.** `MpiMediaDropOverlay` (`inset: 0` on the *block root*) takes the full-area OS-file drop and fills the **Place** slot (MPI-454). The PromptBox stages a **chip** — `#prompt-box-mount` is shell-level (`index.html`), *outside* the block root, so the full-area overlay never covers it. Video groups keep the chip path on both (start/end frames).
 
-**VIDEO groups are not this.** Their source clip is never a chip: frames come from `MpiToolOptionsPrompt`'s dedicated start/end slots, the strip stays CSS-hidden, and `_generationFromPromptPayload` still resolves the current item in code. The two branches are split on purpose — do not collapse them.
+**VIDEO groups follow the same contract (MPI-1015)** — the `+` strip, `mediaItems` as-is, nothing persisted — with these differences:
+- The open clip is a pinned chip **only on an op that takes a video** (the reference ops). Its tag is a button (`swappable` → PromptBox `pinned-swap` → `_swapClipChip`) that swaps it for the frame under the playhead as a picture, captured at the click, and back. On a picture-animating op (`i2v*`) the clip is no chip and is not sent: Wan bills a reference clip's seconds, so it is never forced in.
+- The card opens on the model's **first media op in its own order** (i2v before ref2v; PromptBox `_pickOpForModel` re-picks an emptied box the same way), so a `+` picture is a start frame unless the user picks the reference op. The strip's Start/Last frame pill (MPI-466) and right-click **Set as start / end frame** (`_setFrameFromVideo`) fill the same strip.
+- `_baseCtx` starts at zero: the clip is not a picture, so there is no bootstrap entry. The picker's **Add to history** toggle stays image-only.
+- The Start/End frame panel (`MpiToolOptionsPrompt`) and **Extend / New shot** (`/extend-video`) are gone: make the shot, then **Combine**. Old entries keep their "extended from" line (`extendedFrom`).
 
 ## Shell-level singletons (always present)
 Mounted once in `js/shell.js`, independent of active workspace:

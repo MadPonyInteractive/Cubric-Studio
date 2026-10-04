@@ -55,7 +55,7 @@ color = `<video>` / DaVinci Resolve / our ffmpeg crop-export (all agree). Cost
 is per-displayed-frame only (paused/step), so clip length is irrelevant.
 
 > The same recolor must be applied wherever a frame is **extracted** to an
-> image (extend-from-last-frame). See the follow-up card.
+> image (Set as start / end frame, the clip chip's frame swap). See the follow-up card.
 
 ## The frame-index coordinate law
 

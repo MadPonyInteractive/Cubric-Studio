@@ -170,8 +170,8 @@ THIS umbrella:
   straight to H3 Reference, no install card, $0.00; then a Seedance 2.0 run behind its Yes card
 - [ ] **MPI-1015 the video screen works like the image screen (Fabio's smoke 2026-10-04, 2.0
   gate):** `+` strip and reference models (H3 Reference was hidden) on the video history screen;
-  the Start/End frame panel and Extend / New shot retired (Combine joins clips). Plan in its
-  `plan.md`, waiting for Fabio's go
+  the Start/End frame panel and Extend / New shot retired (Combine joins clips). All three
+  phases BUILT and green 2026-10-04 (`validating`); waiting on Fabio's look, then CI green
 - [ ] **Fabio's own smoke in the app BEFORE the re-smoke (Fabio 2026-10-02):** item 1 (lock:
   MelodramaBox sync + Mickmumpitz drop + release image build + pin) DONE 2026-10-02
   (`edff37f2a` + `42ddbda10`, mpi-ci `89bb08b`, image v0.24.0). NOW WAITING on Fabio: restart

@@ -124,7 +124,6 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.css',
   'js/components/Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.css',
   'js/components/Organisms/MpiToolOptionsGifTransform/MpiToolOptionsGifTransform.css',
-  'js/components/Organisms/MpiToolOptionsPrompt/MpiToolOptionsPrompt.css',
 
   // Services (shared, non-component)
   'js/services/podDiskBar.css',

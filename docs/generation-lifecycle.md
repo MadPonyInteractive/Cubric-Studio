@@ -83,11 +83,11 @@ every mount — so ONE image staged once owned `Input_Image` for every later run
 panel hides behind the History prompt rail tool). Read it as: a wrong-looking output here means
 reading the `.meta` sidecar's `generationSettings.mediaItems`, not the output size.
 
-Video is NOT collapsed to the entry — `i2v` requires an IMAGE `startFrame` a video entry can never
-fill. There, role-tagged `startFrame`/`endFrame` (the dedicated slots in `MpiToolOptionsPrompt`,
-plus the Extend/New-shot last-frame capture) and non-image chips survive; untagged rail images do
-not. Multi-image ops belong in the Gallery. Reuse no longer injects images in an image group, and
-the mount clears the restored chip.
+MPI-721 (image) and MPI-1015 (video) replaced all of this structurally: the open entry is a pinned,
+numbered chip, the box persists nothing for `'history'`, and `mediaItems` goes to dispatch as-is —
+strip order is slot order (`docs/workspaces.md` § Media contract). A video's clip is a chip only on
+an op that takes a video; the old video branch kept only role-tagged `startFrame`/`endFrame` and
+silently dropped every reference picture.
 
 ## Progress pipeline — ComfyUI stdout is the truth, WS events are useless (MPI-147)
 

@@ -102,6 +102,9 @@
   works exactly as before; if the source really was deleted, Reuse tells you which inputs it
   could not bring back and leaves the rest.
 
+- **Extend and New shot are gone from video History.** Make the next shot, then select both
+  clips and **Combine** them. The **Extend Video** Flow still carries a clip on in one go.
+
 - **"Cleanup assets…" is now the slim-a-project-down step.** Right-click a project on the
   landing page and it clears the thumbnails and video previews the app generates, which rebuild
   themselves next time you open the project, as well as the cached Reuse inputs it already
@@ -160,6 +163,10 @@
 
 - **The gallery prompt box has a + button too.** Browse your project or your disk for a
   reference picture instead of dragging one in.
+
+- **Video History works like image History.** Add pictures with the **+**, and run reference
+  models (MiniMax H3 Reference, Seedance 2.0, Wan 3.0) on the open clip, which goes in as
+  Video 1. Click its tag to send the frame under the playhead instead.
 
 - **You can go and get an update instead of waiting to be asked.** Settings shows a new
   version at the top with a button to install it, and the startup prompt now has a **Don't ask

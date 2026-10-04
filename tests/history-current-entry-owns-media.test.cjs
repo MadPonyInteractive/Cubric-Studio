@@ -1,89 +1,75 @@
 'use strict';
 
-// MPI-351 — the History workspace runs ONE op on the SELECTED entry, so that entry
-// is the only image it may feed a graph. The old resolution treated "the PromptBox
-// rail holds an image" as "the user supplied the input" and dropped the active
-// entry, so one persisted chip (state.promptMedia[wsKey], re-injected on every
-// mount) silently owned Input_Image for every later run — proven on real sidecars:
-// upscale_002-005 and upscale_007 all recorded a two-hour-old kleinEdit output
-// while a fresh crop was the active entry.
+// The History workspace's media rule. MPI-351 once collapsed an image run to the
+// selected entry, because one persisted, INVISIBLE rail chip (state.promptMedia,
+// re-injected on every mount) owned Input_Image run after run: upscale_002-005 and
+// upscale_007 all recorded a two-hour-old kleinEdit output while a fresh crop was
+// the active entry. MPI-721 (image) and MPI-1015 (video) fixed it structurally: the
+// open entry is itself a pinned, numbered chip, the box persists nothing for
+// 'history', and the strip goes to dispatch as-is, so nothing a run consumes is
+// off-screen.
+//
+// Video (MPI-1015): the clip is a chip only on an op that takes a video (the
+// reference ops), or the frame its tag swapped it for; on a picture-animating op it
+// is no chip and is not sent (Fabio: a clip that is ALWAYS an input is the problem,
+// and Wan bills a reference clip's seconds).
 //
 // Mirrored from source: js/components/Blocks/MpiGroupHistoryBlock/
-// MpiGroupHistoryBlock.js  _generationFromPromptPayload.
-//
-// Video is NOT collapsed to the entry: i2v requires an IMAGE start frame, which a
-// video entry can never fill. Its start/end frames come from the dedicated slots in
-// MpiToolOptionsPrompt and the Extend/New-shot last-frame capture, so role-tagged
-// frames (and audio) survive — untagged rail images do not.
+// MpiGroupHistoryBlock.js  _syncEntryChip + _generationFromPromptPayload.
+// The real thing runs in tests/desktop/video-history-strip.spec.js.
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
 // --- op media-input contract stub (mirrors commandRegistry) ---
 const SLOTS = {
-    upscale:   [{ key: 'inputImage',  mediaType: 'image', required: true }],
-    krea2Edit: [{ key: 'inputImage',  mediaType: 'image', required: true },
-                { key: 'inputImage2', mediaType: 'image', required: false }],
-    i2v:       [{ key: 'startFrame',  mediaType: 'image', required: true },
-                { key: 'endFrame',    mediaType: 'image', required: false }],
-    extend:    [{ key: 'inputVideo',  mediaType: 'video', required: true }],
+    upscale: [{ key: 'inputImage', mediaType: 'image' }],
+    i2v:     [{ key: 'startFrame', mediaType: 'image' }, { key: 'endFrame', mediaType: 'image' }],
+    ref2v:   [{ key: 'inputImage', mediaType: 'image' }, { key: 'inputVideo', mediaType: 'video' }],
 };
 const getCommandMediaInputs = (op) => SLOTS[op] || [];
 
-// --- resolution under test ---
-function resolveMedia({ operation, isVideo, currentItem, mediaItems = [] }) {
-    const currentMediaType = isVideo ? 'video' : 'image';
-    const mediaSlots = getCommandMediaInputs(operation);
-    const wantsStartFrame = mediaSlots.some(slot => slot.key === 'startFrame');
-    const wantsCurrentType = mediaSlots.some(slot => slot.mediaType === currentMediaType && slot.required !== false);
-    const stagedMedia = isVideo
-        ? mediaItems.filter(m => m.mediaType !== 'image' || m.role === 'startFrame' || m.role === 'endFrame')
-        : [];
-    const hasCurrentTypeMedia = stagedMedia.some(m => m.mediaType === currentMediaType);
-    let resolvedMedia = stagedMedia;
-
-    if (currentItem?.filePath) {
-        const currentMedia = { url: currentItem.filePath, mediaType: currentMediaType, source: 'history' };
-        if (!isVideo && wantsStartFrame) {
-            resolvedMedia = [{ ...currentMedia, role: 'startFrame' }, ...stagedMedia];
-        } else if (wantsCurrentType && !hasCurrentTypeMedia) {
-            resolvedMedia = [currentMedia, ...stagedMedia];
-        } else if (!mediaSlots.length && !hasCurrentTypeMedia) {
-            resolvedMedia = [currentMedia, ...stagedMedia];
-        }
-    }
-    return resolvedMedia;
+// --- the pinned chip under test (`_syncEntryChip`) ---
+function pinFor({ isVideo, item, operation, clipFrame = null }) {
+    if (!isVideo) return item?.filePath ? { url: item.filePath } : null;
+    if (clipFrame && clipFrame.entryId !== item?.id) clipFrame = null;
+    const takesVideo = getCommandMediaInputs(operation).some(s => s.mediaType === 'video');
+    return !item?.filePath || !takesVideo ? null
+        : clipFrame ? { url: clipFrame.url, mediaType: 'image', swappable: true }
+        : { url: item.filePath, mediaType: 'video', swappable: true };
 }
+// `_generationFromPromptPayload`: the strip IS the media, no prepend, no discard.
+const dispatchMedia = (mediaItems) => mediaItems;
 
-const crop     = { filePath: 'Media/crop_011.png' };
-const clip     = { filePath: 'Media/i2v_ms_024.mp4' };
-// The real hijacker: a persisted rail chip pointing at an unrelated older entry.
-const staleChip = { mediaType: 'image', role: 'inputImage', url: 'Media/.preview-assets/5b9ea765.png' };
-const startFrame = { mediaType: 'image', role: 'startFrame', url: 'Media/frame-startFrame.png' };
-const endFrame   = { mediaType: 'image', role: 'endFrame',   url: 'Media/frame-endFrame.png' };
-const audioClip  = { mediaType: 'audio', role: 'inputAudio', url: 'Media/voice.wav' };
+const crop  = { id: 'c', filePath: 'Media/crop_011.png' };
+const clip  = { id: 'v', filePath: 'Media/i2v_ms_024.mp4' };
+const frame = { entryId: 'v', url: 'Media/frame-reference_001.png' };
 
-test('image history: a stale rail chip never displaces the selected entry', () => {
-    const out = resolveMedia({ operation: 'upscale', isVideo: false, currentItem: crop, mediaItems: [staleChip] });
-    assert.deepEqual(out.map(m => m.url), [crop.filePath]);
+test('image history: the open entry is always the pinned chip', () => {
+    assert.deepEqual(pinFor({ isVideo: false, item: crop, operation: 'upscale' }), { url: crop.filePath });
 });
 
-test('image history: a multi-image op still runs on the selected entry alone', () => {
-    const out = resolveMedia({ operation: 'krea2Edit', isVideo: false, currentItem: crop, mediaItems: [staleChip] });
-    assert.deepEqual(out.map(m => m.url), [crop.filePath]);
+test('video history: on a reference op the clip is the pinned chip, swappable', () => {
+    assert.deepEqual(pinFor({ isVideo: true, item: clip, operation: 'ref2v' }),
+        { url: clip.filePath, mediaType: 'video', swappable: true });
 });
 
-test('image history: no chip at all resolves the same way', () => {
-    const out = resolveMedia({ operation: 'upscale', isVideo: false, currentItem: crop, mediaItems: [] });
-    assert.deepEqual(out.map(m => m.url), [crop.filePath]);
+test('video history: a swapped clip is the frame, as a picture', () => {
+    assert.deepEqual(pinFor({ isVideo: true, item: clip, operation: 'ref2v', clipFrame: frame }),
+        { url: frame.url, mediaType: 'image', swappable: true });
 });
 
-test('video history: dedicated start/end frames and audio survive', () => {
-    const out = resolveMedia({ operation: 'i2v', isVideo: true, currentItem: clip, mediaItems: [startFrame, endFrame, audioClip] });
-    assert.deepEqual(out.map(m => m.url), [startFrame.url, endFrame.url, audioClip.url]);
+test('video history: another entry drops the swapped frame and pins its own clip', () => {
+    const other = { id: 'w', filePath: 'Media/i2v_ms_025.mp4' };
+    assert.equal(pinFor({ isVideo: true, item: other, operation: 'ref2v', clipFrame: frame }).url, other.filePath);
 });
 
-test('video history: an untagged rail image is dropped, the clip still feeds a video op', () => {
-    const out = resolveMedia({ operation: 'extend', isVideo: true, currentItem: clip, mediaItems: [staleChip] });
-    assert.deepEqual(out.map(m => m.url), [clip.filePath]);
+test('video history: a picture-animating op takes no clip, swapped or not', () => {
+    assert.equal(pinFor({ isVideo: true, item: clip, operation: 'i2v' }), null);
+    assert.equal(pinFor({ isVideo: true, item: clip, operation: 'i2v', clipFrame: frame }), null);
+});
+
+test('both kinds: what the strip holds is what the run is sent', () => {
+    const strip = [{ mediaType: 'video', url: clip.filePath }, { mediaType: 'image', url: 'Media/ref.png' }];
+    assert.deepEqual(dispatchMedia(strip), strip);
 });

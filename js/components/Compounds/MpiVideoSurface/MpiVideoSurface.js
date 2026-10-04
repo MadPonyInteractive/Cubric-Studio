@@ -160,18 +160,6 @@ export const MpiVideoSurface = ComponentFactory.create({
 
         el.getEffectiveFps = () => _effectiveFps();
 
-        // Exact integer index of the clip's last frame — same law frameStep uses:
-        // for the full clip prefer probed frameCount-1 (avoids a synthetic
-        // one-past-last on short clips); for a trim, round(out * effFps). MPI-287.
-        el.lastFrameIndex = (trimOut = null) => {
-            const dur = video.duration;
-            const eff = _effectiveFps();
-            if (!Number.isFinite(dur) || dur <= 0 || !Number.isFinite(eff) || eff <= 0) return null;
-            const hasTrim = Number.isFinite(+trimOut) && +trimOut > 0 && +trimOut < dur - 1e-6;
-            if (hasTrim) return Math.max(0, Math.round(+trimOut * eff));
-            return _frameCount ? _frameCount - 1 : Math.max(0, Math.round(dur * eff) - 1);
-        };
-
         // Frame-accurate decode of a single frame to a canvas via the shared sink
         // (same exact-decode path the scrub overlay uses). Returns null when the
         // clip can't be decoded on this platform — caller falls back to native

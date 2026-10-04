@@ -7,9 +7,9 @@
  *   GET  /concat/events/stream — SSE channel; emits `concat:progress` +
  *                                 `concat:done` + `concat:error` events
  *   POST /combine-videos       — concat N items, writes combined_NNN.mp4
- *   POST /extend-video         — concat source + freshly-generated mp4,
- *                                 writes extended_NNN.mp4, sidecar links
- *                                 back via `extendedFrom`
+ *
+ * `/extend-video` (Extend / New shot) was retired in MPI-1015: make the shot,
+ * then Combine. Old `extended_NNN.mp4` cards keep their `extendedFrom` line.
  *
  * Sidecar IDs are resolved from `<projectFolder>/Media/.meta/<id>.json`.
  * Output sidecars follow the same shape as save-generation + videoCrop.
@@ -77,8 +77,8 @@ async function _resolveItemPath(metaDir, itemId) {
     return { abs, sidecar };
 }
 
-// Delegates to the monotonic allocator in routes/projects.js so combined_/
-// extended_ names never reuse a deleted number (avoids the overwrite/orphan bug).
+// Delegates to the monotonic allocator in routes/projects.js so combined_
+// names never reuse a deleted number (avoids the overwrite/orphan bug).
 async function _nextSequencedName(folderPath, mediaDir, prefix, ext = 'mp4') {
     return nextSequence(folderPath, mediaDir, prefix, ext);
 }
@@ -203,139 +203,6 @@ router.post('/combine-videos', async (req, res) => {
         res.json({ success: true, item, group, method: result.method, jobId });
     } catch (err) {
         logger.error('project', 'combine-videos failed', err);
-        if (outputPath) { try { await fs.remove(outputPath); } catch {} }
-        const _shortErr = String(err.message || 'unknown').split('\n')[0].slice(0, 200);
-        _broadcast('concat:error', { jobId, error: _shortErr });
-        res.status(500).json({ success: false, error: _shortErr, jobId });
-    }
-});
-
-// ── POST /extend-video ───────────────────────────────────────────────────────
-/**
- * Body: {
- *   folderPath:          string,   // absolute project folder
- *   sourceItemId:        string,   // existing video item to extend
- *   generatedFilePath:   string,   // absolute path to fresh I2V output (will be deleted on success)
- *   jobId?:              string,
- *   modelId?:            string,
- *   prompt?:             string,
- *   negativePrompt?:     string,
- *   seed?:               number,
- *   frozenParams?:       object,   // echoed into sidecar (advisory)
- *   op?:                 string,   // operation key from caller (advisory)
- *   trimIn?:             number,   // optional; slice source video starting at this offset (s)
- *   trimOut?:            number,   // optional; slice source video ending at this offset (s)
- * }
- * Response: { success, item, method }
- */
-router.post('/extend-video', async (req, res) => {
-    const {
-        folderPath, sourceItemId, generatedFilePath,
-        jobId: clientJobId,
-        modelId, prompt, negativePrompt, seed,
-        frozenParams, op, generationSettings,
-        trimIn, trimOut,
-    } = req.body || {};
-    const jobId = clientJobId || `extend-${Date.now()}`;
-    let outputPath = '';
-    let resolvedGenPath = '';
-
-    try {
-        if (!folderPath || !sourceItemId || !generatedFilePath) {
-            return res.status(400).json({
-                success: false,
-                error: 'folderPath, sourceItemId, generatedFilePath required',
-            });
-        }
-
-        const mediaDir = path.join(folderPath, 'Media');
-        const metaDir  = path.join(mediaDir, '.meta');
-        if (!(await fs.pathExists(metaDir))) {
-            return res.status(404).json({ success: false, error: '.meta directory missing' });
-        }
-
-        const { abs: sourcePath, sidecar: sourceSidecar } = await _resolveItemPath(metaDir, sourceItemId);
-        if (!sourcePath || !(await fs.pathExists(sourcePath))) {
-            return res.status(404).json({ success: false, error: `source file missing for ${sourceItemId}` });
-        }
-        if (sourceSidecar.type !== 'video') {
-            return res.status(400).json({ success: false, error: 'source is not a video' });
-        }
-
-        resolvedGenPath = _decodeProjectFilePath(generatedFilePath) || generatedFilePath;
-        if (!(await fs.pathExists(resolvedGenPath))) {
-            return res.status(404).json({ success: false, error: `generated file missing: ${resolvedGenPath}` });
-        }
-
-        const finalName = await _nextSequencedName(folderPath, mediaDir, 'extended', 'mp4');
-        outputPath = path.join(mediaDir, finalName);
-
-        _broadcast('concat:progress', { jobId, ratio: 0 });
-        const onProgress = _makeProgressEmitter(jobId);
-
-        // Build per-input range list. Source is index 0; only it carries trim.
-        const inputRanges = [null, null];
-        const tIn  = Number(trimIn);
-        const tOut = Number(trimOut);
-        if (Number.isFinite(tIn) && Number.isFinite(tOut) && tOut > tIn) {
-            inputRanges[0] = { in: tIn, out: tOut };
-        }
-
-        const result = await concatVideos(
-            [sourcePath, resolvedGenPath],
-            outputPath,
-            { onProgress, inputRanges },
-        );
-
-        const displayName = sourceSidecar.displayName || sourceSidecar.name || sourceItemId.slice(0, 8);
-        const extraFields = {
-            extendedFrom: { id: sourceItemId, displayName },
-        };
-        if (modelId)        extraFields.modelId        = modelId;
-        if (prompt)         extraFields.prompt         = prompt;
-        if (negativePrompt) extraFields.negativePrompt = negativePrompt;
-        if (Number.isFinite(seed)) extraFields.seed    = seed;
-        if (frozenParams)   extraFields.frozenParams   = frozenParams;
-        if (op)             extraFields.sourceOperation = op;
-
-        const sidecar = await _writeOutputSidecar({
-            mediaDir, metaDir, outputPath, finalName, operation: 'extend',
-            extraFields,
-        });
-
-        // Reuse Prompt metadata: attach the underlying i2v generation snapshot so
-        // the extended entry replays Duration/ratio/model from the values the user
-        // had at Extend press (NOT the combined clip length). The extend item's own
-        // operation stays 'extend'.
-        //
-        // MPI-821: the start-frame image is no longer copied into
-        // `.preview-assets/`. `generationSettings.mediaItems` already names it by its
-        // own project url, so Reuse re-chips the source card; if that card was
-        // deleted, `resolvePromptReuseMediaItems` HEADs the url and drops it.
-        if (generationSettings && typeof generationSettings === 'object') {
-            sidecar.generationSettings = generationSettings;
-            await fs.writeJson(path.join(metaDir, `${sidecar.id}.json`), sidecar, { spaces: 2 });
-        }
-
-        // Delete the intermediate generated file (caller passed it in; disk hygiene).
-        // Belt+suspenders: never delete the source. Probe path equality first.
-        try {
-            if (path.normalize(resolvedGenPath) !== path.normalize(sourcePath) &&
-                path.normalize(resolvedGenPath) !== path.normalize(outputPath)) {
-                await fs.remove(resolvedGenPath);
-                // Companion sidecar/thumb for the intermediate file may already
-                // have been written by save-generation — leave that cleanup to
-                // the caller (it knows the itemId).
-            }
-        } catch (rmErr) {
-            logger.warn('project', `extend: intermediate cleanup failed: ${rmErr.message}`);
-        }
-
-        const item = { ...sidecar };
-        _broadcast('concat:done', { jobId, item, method: result.method });
-        res.json({ success: true, item, method: result.method, jobId });
-    } catch (err) {
-        logger.error('project', 'extend-video failed', err);
         if (outputPath) { try { await fs.remove(outputPath); } catch {} }
         const _shortErr = String(err.message || 'unknown').split('\n')[0].slice(0, 200);
         _broadcast('concat:error', { jobId, error: _shortErr });

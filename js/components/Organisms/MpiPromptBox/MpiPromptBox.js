@@ -52,9 +52,6 @@ import { thumbSrc } from '../../../utils/displayImage.js';
  *                                     position), or inserts at the head the first time;
  *                                     null removes it. `swappable` makes its tag a button
  *                                     that emits 'pinned-swap'
- *   el.getMediaByRole(role)         — returns role-assigned item or undefined
- *   el.removeMediaByRole(role)      — removes the chip currently assigned to that role
- *   el.swapMediaRoles(roleA, roleB) — flips role tags between two chips (no re-upload)
  *   el.remainingCapacity(mediaType) → number of free media slots for type
  *                                     under the current operation
  *   el.injectPrompts({ positive, negative, negativeAudio, enhanced })  — negativeAudio
@@ -752,23 +749,6 @@ export const MpiPromptBox = ComponentFactory.create({
         // the strip from the canvas it generates on. Drop it with setPinnedMedia(null).
         el.clearMedia    = () => _mediaItems.filter(m => !m.pinned).forEach(m => _removeItem(m.id));
         el.removeMedia   = (id) => _removeItem(id);
-        el.getMediaByRole = (role) => _withAssignedRoles().find(m => m.role === role);
-        el.removeMediaByRole = (role) => {
-            const item = _withAssignedRoles().find(m => m.role === role);
-            if (item) _removeItem(item.id);
-        };
-        el.swapMediaRoles = (roleA, roleB) => {
-            const assigned = _withAssignedRoles();
-            const a = assigned.find(m => m.role === roleA);
-            const b = assigned.find(m => m.role === roleB);
-            if (!a && !b) return;
-            // Mutate the live _mediaItems so role tags flip without re-upload.
-            const liveA = a ? _mediaItems.find(m => m.id === a.id) : null;
-            const liveB = b ? _mediaItems.find(m => m.id === b.id) : null;
-            if (liveA) liveA.role = roleB;
-            if (liveB) liveB.role = roleA;
-            _emitMediaChange();
-        };
 
         // MPI-247: `programmatic` distinguishes an op the box RE-DERIVED for the
         // user (model switch, media-context re-pick) from an op the USER chose.

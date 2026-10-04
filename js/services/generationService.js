@@ -21,7 +21,6 @@ import { state } from '../state.js';
 import { clientLogger } from './clientLogger.js';
 import { truncateCardName } from '../utils/displayHelpers.js';
 import { activeGenerations } from './activeGenerations.js';
-import { trackConcatJob } from './concatProgress.js';
 import { extractFilenameFromPath } from '../utils/mediaActions.js';
 import { getCommand, getCommandMediaInputs, getFilePrefix } from '../data/commandRegistry.js';
 import { getFlowById } from '../data/flowsRegistry.js';
@@ -902,16 +901,6 @@ async function _deleteSavedItems(items) {
  * @property {Object}   [injectionParams]
  * @property {boolean}  [previewOnly]   — multi-stage ops only; injects Video_Latent.is_preview=true
  * @property {boolean}  [historyMode]   — history workspace context; forces is_preview=false on _ms ops
- * @property {boolean}  [extend]        — when true, after save-generation the saved video is
- *                                       concatenated onto `sourceItemId` via /extend-video.
- *                                       The intermediate item is deleted; the extended output
- *                                       replaces it in the existing history group.
- * @property {string}   [sourceItemId]  — required when extend=true; UUID of the source video
- *                                       in the same project that the generation extends.
- * @property {number}   [trimIn]        — optional; when extend=true, slice the source video
- *                                       starting at `trimIn` seconds before concatenation.
- * @property {number}   [trimOut]       — optional; when extend=true, slice the source video
- *                                       ending at `trimOut` seconds before concatenation.
  * @property {number}   [seed]          — explicit seed (MPI-547, agent submits only — no
  *                                       manual PromptBox control sets this); randomised by
  *                                       commandExecutor._buildParams when absent.
@@ -1510,133 +1499,6 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                 ? createVideoItem(baseProps)
                 : isAudio ? createAudioItem(baseProps) : createImageItem(baseProps);
             builtItems.push(item);
-        }
-
-        // Extend post-process: concat the freshly-saved I2V output onto the
-        // source video. Replaces builtItems[0] with the extended output and
-        // deletes the intermediate item so only the extended video lands in
-        // the history group. Source video is untouched.
-        if (isVideo && config.extend === true && config.sourceItemId && _originProject?.folderPath) {
-            const intermediate = builtItems[0];
-            const generatedAbs = intermediate?.filePath
-                ? (() => {
-                    try {
-                        const u = new URL(intermediate.filePath, 'http://localhost');
-                        const raw = u.searchParams.get('path');
-                        return raw ? decodeURIComponent(raw) : '';
-                    } catch (_) { return ''; }
-                })()
-                : '';
-
-            if (!generatedAbs) {
-                clientLogger.warn('generationService', 'extend: intermediate filePath unresolved; skipping concat');
-            } else {
-                const jobId = `extend-${_regId}-${Date.now()}`;
-                try {
-                    // silentComplete: the i2v gen already emits one "Generation
-                    // finished" toast; the concat is an internal extend sub-step,
-                    // so suppress its duplicate completion toast (MPI-112).
-                    const concatPromise = trackConcatJob({ jobId, label: 'Concatenating videos', silentComplete: true });
-                    const extendBody = {
-                        jobId,
-                        folderPath: _originProject.folderPath,
-                        sourceItemId: config.sourceItemId,
-                        generatedFilePath: generatedAbs,
-                        modelId: model.id,
-                        prompt:  positive,
-                        negativePrompt: negative,
-                        negativeAudioPrompt: negativeAudio,
-                        seed: exec.seed ?? -1,
-                        op: operation,
-                        // Carry the underlying i2v generation snapshot so the extended
-                        // sidecar owns Reuse Prompt metadata (Duration param + start-frame
-                        // image). Without this the extended item only has the combined
-                        // clip length, so Reuse Prompt drifts duration and finds no image.
-                        // `operation` here IS the i2v op the extend chunk ran with; the
-                        // server uses it to materialize the start-frame snapshot.
-                        generationSettings,
-                    };
-                    if (Number.isFinite(+config.trimIn) && Number.isFinite(+config.trimOut)
-                        && +config.trimOut > +config.trimIn) {
-                        extendBody.trimIn  = +config.trimIn;
-                        extendBody.trimOut = +config.trimOut;
-                    }
-                    const resp = await fetch('/extend-video', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(extendBody),
-                    });
-                    const data = await resp.json();
-                    if (!resp.ok || !data?.success || !data?.item) {
-                        throw new Error(data?.error || 'extend-video failed');
-                    }
-                    // Wait for SSE-driven done event so StatusBar completes.
-                    // The HTTP response and SSE done fire close together; the
-                    // promise may resolve first or after — both are fine.
-                    try { await concatPromise; } catch (_) { /* HTTP path already succeeded */ }
-
-                    // Delete the intermediate sidecar/thumb (server already
-                    // removed the .mp4 inside /extend-video).
-                    try {
-                        const filename = generatedAbs.split(/[\\/]/).pop();
-                        await fetch(
-                            `/project-media/${_originProject.id}/${encodeURIComponent(filename)}?folderPath=${encodeURIComponent(_originProject.folderPath)}&itemId=${encodeURIComponent(intermediate.id)}`,
-                            { method: 'DELETE' }
-                        );
-                    } catch (delErr) {
-                        clientLogger.warn('generationService', 'extend: intermediate sidecar cleanup failed', delErr);
-                    }
-
-                    // Swap intermediate → extended item. Server sidecar shape
-                    // maps cleanly through createVideoItem; preserve the new
-                    // server-assigned id so future history-group ops resolve.
-                    const ext = data.item;
-                    const extendedItem = createVideoItem({
-                        id:              ext.id,
-                        filePath:        ext.filePath,
-                        operation:       ext.operation || 'extend',
-                        displayName:     truncateCardName(ext.displayName || 'extend'),
-                        prompt:          ext.prompt || positive,
-                        negativePrompt:  ext.negativePrompt || negative,
-                        negativeAudioPrompt: ext.negativeAudioPrompt || negativeAudio,
-                        modelId:         ext.modelId || model.id,
-                        seed:            Number.isFinite(ext.seed) ? ext.seed : (exec.seed ?? -1),
-                        // `resolvedDims` is block-scoped to the build loop above and is
-                        // NOT in scope here — reading it threw a ReferenceError on any
-                        // response without `pixelDimensions` (MPI-832). The intermediate
-                        // item carries the same value: it was built from that very
-                        // variable, and the extend runs at the clip's own resolution.
-                        pixelDimensions: ext.pixelDimensions || intermediate.pixelDimensions,
-                        generationMs:    elapsedMs,
-                        thumbPath:       ext.thumbPath ?? null,
-                        wavePath:        ext.wavePath ?? null,
-                        fps:             ext.fps ?? 0,
-                        duration:        ext.duration ?? 0,
-                        frameCount:      ext.frameCount ?? 0,
-                        hasAudio:        ext.hasAudio ?? false,
-                        extendedFrom:    ext.extendedFrom ?? null,
-                        // Reuse Prompt metadata: server returns the materialized
-                        // generationSettings (mediaItems rewritten to project-owned
-                        // snapshots) + previewAssets. Falls back to the client-side
-                        // snapshot if the server didn't materialize.
-                        generationSettings: ext.generationSettings ?? generationSettings,
-                        previewAssets:   ext.previewAssets ?? null,
-                    });
-                    builtItems[0] = extendedItem;
-                } catch (extErr) {
-                    clientLogger.error('generationService', 'extend post-step failed; keeping intermediate', extErr);
-                    // Surface a short, user-readable summary. ffmpeg dumps its
-                    // full stderr into err.message; truncate before showing.
-                    const _shortMsg = String(extErr.message || 'unknown error')
-                        .split('\n')[0]
-                        .slice(0, 160);
-                    Events.emit('ui:error', {
-                        title: 'Extend failed',
-                        message: `${_shortMsg}. Intermediate video kept in history.`,
-                    });
-                    // Intermediate stays as a regular new history entry.
-                }
-            }
         }
 
         // Project mutation. MUST await — addGroup/updateGroup are serialized

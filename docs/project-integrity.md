@@ -294,7 +294,8 @@ inside `updateProjectJson` — the same queue as the item write, so there is no 
 Prefix present → grab+bump, ignoring disk. Prefix absent → seed from disk-max **once** (legacy
 files), then pure source-of-truth forever. Keys are added lazily, so a new app operation needs no
 pre-seeding. Call sites: save-generation, upload/imported, crop, composite, apply-paint (prefix
-is the route's own `paint`/`composite` field), `videoConcat` (`combined_`/`extended_`),
+is the route's own `paint`/`composite` field), `videoConcat` (`combined_`; `extended_` went
+with Extend in MPI-1015, its counter stays in old projects),
 `videoCrop`, `videoReverse`.
 
 **The prefix is NOT the op key (MPI-660).** The stem is the gallery card's NAME, so it has to be

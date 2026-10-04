@@ -8,6 +8,7 @@
     "js/components/Organisms/MpiToolOptionsPrompt/",
     "js/services/generationService.js",
     "routes/videoConcat.js",
+    "services/videoConcat.js",
     "js/components/Organisms/MpiVideoViewer/MpiVideoViewer.js",
     "js/components/Compounds/MpiVideoSurface/MpiVideoSurface.js",
     "js/components/types.js",

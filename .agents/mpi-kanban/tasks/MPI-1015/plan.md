@@ -86,15 +86,12 @@ PB = `MpiPromptBox.js`.
 Fabio's go 2026-10-04 with the clip-chip toggle (Video 1 <-> current frame as Image 1), yes to
 keeping right-click Set as start/end frame, yes to the rule files.
 
-Phase 1 BUILT, spec green (4/4 `tests/desktop/video-history-strip.spec.js`, 3 RED on HEAD
-first; the right-click test passes on HEAD too, kept as a guard). Phase 2 HALF: the panel's
-mount + import and the HB Extend/New shot handlers are gone; still to delete:
-`js/components/Organisms/MpiToolOptionsPrompt/` (now unimported), its `preloadStyles.js`
-entry + `types.js` typedef, `generationService` extend typedef + post-step + `trackConcatJob`
-import, the `/extend-video` route in `routes/videoConcat.js`, and orphaned
-`captureLastFrameAccurate` / `MpiVideoSurface.lastFrameIndex` / `captureFrameCanvas` (grep
-callers first). Then Phase 3 (docs, rules, UNRELEASED, the mirror unit test
-`tests/history-current-entry-owns-media.test.cjs` video branch), then Fabio's look.
+ALL THREE PHASES BUILT AND GREEN, committed + pushed in session 7ad19928's handoff commit; card
+`doing`/`validating`. Only Fabio's look is left (verify mode user-ux), in a fresh session: open
+a video, `+` a picture, run H3 Reference with it (local, $0); animate a picture from the strip;
+right-click Set as start frame. His "1" closes the card (CI green on the commit first). The
+next session ALSO gets a message from a peer who found two bugs (Fabio, 2026-10-04): read it
+before the look; a bug on this card's surface folds in here, anything else per Discovered work.
 
 How it works (HB = MpiGroupHistoryBlock): `_syncEntryChip` pins the clip (`mediaType:'video',
 swappable`) only when `activeOperation` has a video slot, else unpins; `_clipFrame` holds the
@@ -109,6 +106,9 @@ swapped frame; `_pinnedKey` stops re-pinning an unchanged chip. It re-runs on ev
   `isTextOnlyOp` in HB `_opOptions`, PB `_opChoices`, PB `_pickOpForModel` (an EMPTY history
   box lands on the model's first media op, so i2v before ref2v); video floor of 1 dropped;
   `stageMedia: true`; "Add to history" image-only; run path sends the strip as is.
+- Phase 2 (2026-10-04): panel folder + preload + typedef, PromptBox role APIs, extend post-step,
+  `/extend-video`, concat `inputRanges`, `captureLastFrameAccurate`, `lastFrameIndex` deleted.
+- Phase 3 (2026-10-04): five docs, five rule files, UNRELEASED, mirror unit test.
 
 ## Plan Drift
 
@@ -120,3 +120,8 @@ swapped frame; `_pinnedKey` stops re-pinning an unchanged chip. It re-runs on ev
 - Spec gotcha: drive the model through the real picker (`ui:open-model-picker` + tile click).
   `promptBox.setModel()` alone never reaches the Block's `_adoptModel`, so HB keeps the old
   model and re-picks its op (read as "the swap unpins itself" for a debugging round).
+- 2026-10-04: KEPT `MpiVideoSurface.captureFrameCanvas` (no caller now): MPI-715's plan names
+  it as its frame-accurate building block. Also deleted what the panel alone used: PromptBox
+  `getMediaByRole`/`removeMediaByRole`/`swapMediaRoles` and the concat service's `inputRanges`.
+- 2026-10-04: the mirror test mirrored MPI-351's collapse, dead since MPI-721; rewritten to
+  mirror `_syncEntryChip` + the as-is dispatch.

@@ -344,8 +344,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         const { model: activeModelInit, modelId: activeModelIdInit, installedModels: _allInstalledModels } =
             resolveActiveModel(isVideo ? 'video' : 'image');
-        // Models offered in this workspace's prompt box. For video, i2v-capable
-        // only; for image, models that take an image (MPI-955).
+        // Models offered in this workspace's prompt box: those with an op that takes
+        // media, for both kinds (MPI-955 image, MPI-1015 video).
         const installedModels = _allInstalledModels.filter(_promptModelFilter);
         // If the resolver picked a model the filter excludes (e.g. last-selected was
         // t2v, or a t2i-only image model), fall back to the first eligible model.
@@ -2234,11 +2234,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             _adoptModel(model);
         });
 
-        // Extend / New shot always inject a self-captured start frame, so a
-        // continuation MUST run the model's image-to-video op — never a text op
-        // carried in by a reused card (t2v_ms has no image loader → the injected
-        // frame goes nowhere → "Prompt outputs failed validation"). Maps to the
-        // model's first i2v* op; falls back to the given op if none exists.
+        // A reused card's text-only op (t2v_ms) is not offered here, so Reuse maps it
+        // to the model's first i2v* op; falls back to the given op if none exists.
         function _continuationOp(op) {
             const i2v = activeModel?.supportedOps?.find(k => k.startsWith('i2v'));
             return i2v || op;
@@ -3777,7 +3774,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // PromptBox mounts via the s_installedModelIds watcher (option A) when
         // models become available, not via the removed `models:closed` event.
         _unsubs.push(Events.onState('s_installedModelIds', () => {
-            // Video history only offers i2v-capable models (frame-driven workspace).
+            // The mount's own filter: models with an op that takes media (MPI-955/1015).
             const currentModels = getModelsByType(modeKind)
                 .filter(isModelUsable)
                 .filter(_promptModelFilter);
