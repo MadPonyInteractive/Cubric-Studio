@@ -25,3 +25,12 @@ Cosmo, guide:wan-3.0, ref2v 480p 2 s 4:3 with one 16:9 reference (tiger + rider,
 ref2v_003). Prompt cites plain "Image 1" (not `<Image 1>`), one continuous action, sound line last
 ("No dialogue. No background music."). Identity held; Wan invented the frame's top to fill 4:3.
 Fabio: "Came out great". $0.10. Still open: the `<Image 1>` bracket form on a real render, r2v with no refs.
+
+## Closed 2026-10-04 on Fabio's verdict
+
+Fabio, asked in session "Release 2.0 blockers 51": close it on run 2's "Came out great"; no more
+renders, no spend. Known limits, accepted (Enhance edge cases do not block; Cosmo writes the video
+prompts): (1) Enhance on ref2v before any reference is staged can invent `<Image 1>` on the
+`directed` tier (Stage 1, 5/6); (2) the `<Image 1>` bracket form has passed the text loop but not
+a real render. The recipe's `status: 'draft'` stays: `RECIPE_STATUSES` is a label nothing in
+`js/` branches on.

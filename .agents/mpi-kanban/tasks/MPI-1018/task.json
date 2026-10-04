@@ -3,11 +3,11 @@
   "id": "MPI-1018",
   "title": "Wan 3.0 gets its own prompting guide and recipe (it borrowed Wan 2.2's)",
   "description": "Fabio 2026-10-04: Cosmo read guide:wan-2.2 to write a Wan 3.0 prompt. Wan 3.0 has its own grammar (Alibaba's official guide: overall description, Image N / Video N / Audio N citations, timed shots, dialogue and sound lines, a trailing negative list), so it needs its own enhancer recipe (wan-3.0) and agent guide (docs/agent/models/wan-3.0.md), built per /create-enhancer-recipe from the official guide, the wan3-pe skill and the OpenArt guide. Other borrowed guides (Veo -> kling-3.0, Seedream and Nano Banana -> flux-2) stay a known issue for after 2.0.",
-  "column": "doing",
-  "maturity": "validating",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
   "created_at": "2026-10-04T11:54:19+01:00",
-  "updated_at": "2026-10-04T15:42:58+01:00",
+  "updated_at": "2026-10-04T23:31:08+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -19,8 +19,8 @@
     "research": "research/"
   },
   "attention": {
-    "state": "required",
-    "reason": "Stage 1 green twice except r2v with no references (directed invents <Image 1>); shipped on the agent's pick. Fabio: Stage 2 renders, and reverse the flip if he disagrees.",
-    "updated_at": "2026-10-04T15:42:58+01:00"
+    "state": "cleared",
+    "reason": "Fabio 2026-10-04: Stage 2 render came out great; Enhance edge cases accepted as known limits",
+    "updated_at": "2026-10-04T23:32:30+01:00"
   }
 }

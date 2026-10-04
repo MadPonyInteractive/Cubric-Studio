@@ -3,3 +3,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1018", "at": "2026-10-04T15:42:58+01:00", "actor": "claude", "summary": "Stage 1: t2v, i2v, r2v-with-refs green twice; r2v no-refs directed open"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1018", "at": "2026-10-04T15:42:58+01:00", "actor": "claude", "maturity": "validating"}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1018", "at": "2026-10-04T18:59:36+01:00", "actor": "claude", "summary": "Stage 2 run 2: ref2v 2 s 4:3, plain Image 1 kept identity"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1018", "at": "2026-10-04T23:31:08+01:00", "actor": "Release 2.0 blockers 51", "from": "doing", "to": "done", "reason": "Fabio's Stage 2 render came out great; two Enhance edge cases accepted as known limits"}
+{"schema": "mpi-kanban/event/v1", "type": "attention.cleared", "id": "MPI-1018", "at": "2026-10-04T23:32:30+01:00", "actor": "Release 2.0 blockers 51", "reason": "Fabio 2026-10-04: Stage 2 render came out great; Enhance edge cases accepted as known limits"}
