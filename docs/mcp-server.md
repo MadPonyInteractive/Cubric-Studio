@@ -105,10 +105,16 @@ The pack validates the manifest; the archive must hold exactly `manifest.json`, 
 `c:\AI\Mpi\cubric-studio-agents`), because Claude Code and Codex read `marketplace.json` from a
 repo's ROOT. A tool change needs no plugin change: the tools live in the app. One folder serves
 Claude Code, Codex AND Antigravity: `.claude-plugin/marketplace.json` plus `plugins/cubric-studio/` with
-`.claude-plugin/plugin.json` + `.mcp.json` (Claude Code, Codex), `plugin.json` + `mcp_config.json`
-(Antigravity, `serverUrl`), and one `skills/cubric-studio/SKILL.md` all three load. Codex reads the
-`.claude-plugin/` files and the Claude-format `.mcp.json` as they are; no `.codex-plugin/` is
-needed. The skill is the part that matters: it names the server, says the tools may be deferred
+`.claude-plugin/plugin.json` + `.mcp.json` (Claude Code), `.codex-plugin/plugin.json` +
+`.codex.mcp.json` (Codex), `plugin.json` + `mcp_config.json` (Antigravity, `serverUrl`), and one
+`skills/cubric-studio/SKILL.md` all three load. **Claude's `.mcp.json` url is
+`${user_config.app_url}`** (a `userConfig` option, default `http://127.0.0.1:3000/mcp`), because
+Anthropic's directory BLOCKS a plugin whose MCP url is a literal non-https address (MPI-1019).
+Codex reads that url literally, so it gets its own manifest naming its own file: a
+`.codex-plugin/plugin.json` wins over `.claude-plugin/` in Codex (proven 2026-10-04, scratch
+`CODEX_HOME`). Keep the three MCP files on the same address. The directory takes this plugin,
+not the `.mcpb` (desktop extension listings are deprecated); Fabio submits it at
+claude.ai/directory/manage as a Plugin bundle. The skill is the part that matters: it names the server, says the tools may be deferred
 and how to find them, and forbids the browser and the raw HTTP API. `claude plugin validate`
 must pass on both the folder and the plugin. Cold-tested 2026-09-26 in all three: one image
 each, MCP only, the guide read first (Claude Code via `--plugin-dir`, tools named
