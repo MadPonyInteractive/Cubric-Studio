@@ -188,10 +188,26 @@ THIS umbrella:
   (`edff37f2a` + `42ddbda10`, mpi-ci `89bb08b`, image v0.24.0). **His smoke DONE and PASSED
   2026-10-04** ("my smoke is done"; MPI-1015, MPI-801, the Cosmo fixes all passed). He wants 2.0
   out now, not more found: "otherwise we'll never release version 2"
-- [ ] **NEXT: the paid scoped re-smoke** `--models minimax-h3 --flows
+- [x] **The paid scoped re-smoke** `--models minimax-h3 --flows
   ltx-extend,character-sheet,outpaint`. **Fabio's go 2026-10-04** ("we'll do the paid smoke in a
   fresh session"), on the price quoted to him: 8 runs, ~$0.30-0.60, **cap $1.00**. `--plan`
   first (spends nothing); past the cap, stop and ask. Report what was spent
+  - **DONE 2026-10-04 (session fedd1e8c), Fabio's go re-given in that session: PASS 6 · SKIP 0 ·
+    FAIL 0.** Engine proven 0.34.0 (gate 7), release image v0.24.0, EU-RO-1, RTX 4090 at the
+    62 GB floor (5090 out of stock). minimax-h3 t2v_ms 180 s, i2v_ms 192 s; Flows ltx-extend
+    188 s, ltx-extend/minimax-h3 89 s, character-sheet 91 s, outpaint 60 s. Evidence MERGED over
+    B1: **PASS 51 · SKIP 1 (flux-schnell-cloud/t2i) · FAIL 0 across 52 ops**. Two runner calls:
+    `--install-only` (CPU fill 18:07-18:12Z), then `--skip-install --wait 30` (GPU 18:13-18:30Z);
+    `dev_configs/smoke-run.txt` holds both legs. Pod deleted (204), volume `k3gkyqbtq1` (180 GB)
+    deleted (200); 0 Pods left, Fabio's dev volume untouched. **Spent ~$0.24** of the $1.00 cap
+    (4090 17 min x $0.74/hr = $0.21, CPU fill 6 min ~$0.02, volume ~$0.01). `release:check`:
+    only the 1.6.x archival notes (Gate D)
+  - [ ] **GAP, Fabio's call:** the run left out `--models stable-audio-3,chatterbox`, which the
+    MPI-1012 line above put in its scope (the 6-graph `--plan` dropped them; 8 runs - 2 = 6).
+    Same graphs PASSED 09-28 as `flow/sound-and-music` + `flow/chatter-box`; since then only
+    node 43's title moved (`Input_TTS_English`), and the model-op path is new. `release:check`
+    now names them (plus `klein-9b-cloud`, cloud, nothing to smoke) as in no smoked family.
+    Covering them: 2 more runs, ~$0.10-0.15
   - **`--plan` DONE 2026-10-04 (session 88b78413), spent nothing:** 6 graphs, not 8 (minimax-h3
     t2v_ms + i2v_ms; Flows ltx-extend, ltx-extend/minimax-h3, character-sheet, outpaint); every
     preflight green, pod lock in sync with v0.34.0, MpiNodes bc92a1b8 clean. **Fabio's explicit
@@ -287,7 +303,8 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     only the 1.6.x archival notes left. NOT run: local cpu boot smoke (Docker daemon down);
     the re-smoke's CPU install Pod boots it on RunPod. `--plan` scoped re-smoke now reads
     "pod lock + python_deps in sync ✓" (no longer refuses)
-  - [ ] **Scoped re-smoke at the cut (found 2026-10-02):** two shipped Flow graphs changed AFTER
+  - [x] **Scoped re-smoke at the cut (found 2026-10-02)** - DONE 2026-10-04, PASS 6/6 (the
+    re-smoke line in the list above). Was: two shipped Flow graphs changed AFTER
     the 09-28 run — `flow_h3_extend.json` (MPI-974, `d8f23a421`; Flow `ltx-extend/minimax-h3`) and
     `flow_character_sheet.json` (MPI-997 split, `09f49a278` + `6f342280c`; Flow `character-sheet`).
     `release:check` still reads the smoke line clear (it dedupes by MODEL class_type, not by Flow
@@ -296,7 +313,7 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     REFUSES to rent today: "POD LOCK IS BEHIND — ComfyUI-MelodramaBox" — so it rides AFTER the lock
     sync + image build above. Never smoked: `flow_character_sheet_headless.json` (MPI-997's chained
     SAM3 leg 2; the runner smokes only FLOWS entries, and leg 2 is an op, not a Flow)
-  - [x] RAM floor 80 -> 62: app default `b5b20a042`; smoke runner `MIN_RAM_GB` 62 + playbook 01 (2026-09-29, Fabio: yes; evidence = B1's H3 PASS on a 55.88 GiB 5090 host, `dev_configs/smoke-run.txt:166-167`). Runner `--self-check` OK. Saved 80 GB user floors NOT migrated (Fabio did not ask; default pick: leave them)
+  - [x] RAM floor 80 -> 62: app default `b5b20a042`; smoke runner `MIN_RAM_GB` 62 + playbook 01 (2026-09-29, Fabio: yes; evidence = B1's H3 PASS on a 55.88 GiB 5090 host, `dev_configs/smoke-run.txt:166-167` at `751e9d886`). Runner `--self-check` OK. Saved 80 GB user floors NOT migrated (Fabio did not ask; default pick: leave them)
   - [x] Runner fix, same session: `--plan` / `--self-check` no longer truncate the committed `dev_configs/smoke-run.txt` (both did; this session's `--install-only` + `--self-check` wiped the B1 transcript, restored from HEAD, blob `d6f247a` re-verified after a plan + self-check). `tests/smoke-*.test.cjs` 54/54
 - [x] **B2 MPI-953** Flow leg in the smoke runner — `49564ad53`: real FLOWS, stages each Flow's models + deps, volume counts only what Flows add; runs for real inside B1 with `--flows all`
 - [ ] **B3** Linux box, REMOTE-ONLY (no ComfyUI there): agent, DeepInfra, RunPod v2 (MPI-806 live leg), updater A/B through `update.sh` on a real 2.0 bundle
