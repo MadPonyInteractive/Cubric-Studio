@@ -5,3 +5,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1014", "at": "2026-10-04T07:39:10+01:00", "actor": "session:91654848", "from": "doing", "to": "doing", "reason": "Phase 4 built + self-verified; waits on Fabio's look"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1014", "at": "2026-10-04T07:55:12+01:00", "actor": "session:91654848", "from": "doing", "to": "doing", "reason": "Fabio: the cutout brush caps far too small on a 16K"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1014", "at": "2026-10-04T08:03:28+01:00", "actor": "session:91654848", "from": "doing", "to": "doing", "reason": "brush scaling built + self-verified; waits on Fabio's look"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1014", "at": "2026-10-04T08:09:50+01:00", "actor": "session:91654848", "from": "doing", "to": "doing", "reason": "Fabio: fix the History brush too"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1014", "at": "2026-10-04T08:11:01+01:00", "actor": "session:91654848", "from": "doing", "to": "doing", "reason": "History brush left as is: Fabio, it already grows as far as needed"}
