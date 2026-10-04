@@ -132,11 +132,10 @@ THIS umbrella:
   strip, `_pickOpForModel`; a video on `i2v` now moves to `ref2v` too). History's MPI-281
   "requires input" filters kept as they were. RED-proven: `tests/text-only-op.test.cjs` +
   `tests/desktop/prompt-box-video-ref.spec.js` (failed on HEAD, passes); `npm test` 2673/0; `22fef2823` CI green (run 37005121706)
-- [ ] **MPI-801** eyedropper Pick in the Flows' paint step (Scribble, Draw It In) — a 2.0 ask
+- [x] **MPI-801** eyedropper Pick in the Flows' paint step (Scribble, Draw It In) — a 2.0 ask
   Fabio remembered 2026-10-02 (folded into MPI-801 on 10-01, never listed here). Built +
-  spec-proven, `validating`; CI GREEN on `df16648ad` (run 37007031522). Left: Fabio's look in
-  his pre-cut smoke, then done. Hold-Alt pick
-  stays on the card, not 2.0
+  spec-proven; CI GREEN on `df16648ad` (run 37007031522). **Fabio's look PASSED 2026-10-04.**
+  The card went back to `todo` / `deferred` carrying only the unbuilt hold-Alt pick, not 2.0
 - [x] **MPI-1012 CLOSED 2026-10-03** (`1a6bc93d5` CI green run 37109328458, close `8ecc475ef`):
   Fabio's look passed all five steps; P9 added Chatterbox Speed (`cfg_weight`) + Exaggeration
   sliders on both arms (graph node 43 retitled `Input_TTS_English`, same weights + nodes, so
@@ -168,7 +167,7 @@ THIS umbrella:
   3.0; the cloud ones keep PAID first) saying what a reference op is, and the Seedance guide no
   longer says a reference never appears as-is. **Fabio's live ask PASSED 2026-10-04**: Cosmo went
   straight to H3 Reference, no install card, $0.00; then a Seedance 2.0 run behind its Yes card
-- [ ] **Cosmo: two slips from Fabio's recordings `lm (1)` / `lm (5)` (peer's report 2026-10-04,
+- [x] **Cosmo: two slips from Fabio's recordings `lm (1)` / `lm (5)` (peer's report 2026-10-04,
   on the restarted build):** (1) Seedance 1.5 Pro 480p 4 s: the Yes card and the counter said
   $0.05, Cosmo said "about $0.13". `_askSpend` threw the card's price away, so Cosmo priced it
   off the model blurb; a Yes now hands the figure back in every generate result (single, wait,
@@ -177,17 +176,22 @@ THIS umbrella:
   and Cosmo offered the 21 GB install with H3 Reference installed (Fabio's log 08:51). The
   refusal now names the installed `modelFamily` members (`installedKin`,
   `js/shell/agentDispatch.js`, test `agent-installed-kin`). Spend tests + 4 asserts; npm test
-  2703/0, eslint clean. Left: Fabio's live re-ask of both
+  2703/0, eslint clean (`0eea416b6`, CI green). **Fabio's re-ask PASSED 2026-10-04:** the
+  Seedance clip quotes the card's price; the H3 ask still opened on an install question, then
+  offered H3 Reference or a cloud model. Fabio: fine as is, "we don't want to confuse them"
 - [x] **MPI-1015 the video screen works like the image screen (Fabio's smoke 2026-10-04, 2.0
   gate):** `+` strip and reference models (H3 Reference was hidden) on the video history screen;
   the Start/End frame panel and Extend / New shot retired (Combine joins clips). All three
   phases shipped (`7fe110674`, `0dedf2f66`, CI green); Fabio's look PASSED 2026-10-04: DONE
-- [ ] **Fabio's own smoke in the app BEFORE the re-smoke (Fabio 2026-10-02):** item 1 (lock:
+- [x] **Fabio's own smoke in the app BEFORE the re-smoke (Fabio 2026-10-02):** item 1 (lock:
   MelodramaBox sync + Mickmumpitz drop + release image build + pin) DONE 2026-10-02
-  (`edff37f2a` + `42ddbda10`, mpi-ci `89bb08b`, image v0.24.0). NOW WAITING on Fabio: restart
-  the app, smoke it himself (agent, generations, a Pod connect boots v0.24.0). Item 2 (paid
-  scoped re-smoke `--models minimax-h3 --flows ltx-extend,character-sheet,outpaint`, quote the
-  price first) and everything after wait for his green light
+  (`edff37f2a` + `42ddbda10`, mpi-ci `89bb08b`, image v0.24.0). **His smoke DONE and PASSED
+  2026-10-04** ("my smoke is done"; MPI-1015, MPI-801, the Cosmo fixes all passed). He wants 2.0
+  out now, not more found: "otherwise we'll never release version 2"
+- [ ] **NEXT: the paid scoped re-smoke** `--models minimax-h3 --flows
+  ltx-extend,character-sheet,outpaint`. **Fabio's go 2026-10-04** ("we'll do the paid smoke in a
+  fresh session"), on the price quoted to him: 8 runs, ~$0.30-0.60, **cap $1.00**. `--plan`
+  first (spends nothing); past the cap, stop and ask. Report what was spent
 - [ ] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step
 
 Agent 85:

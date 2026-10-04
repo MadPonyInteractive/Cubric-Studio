@@ -11,8 +11,13 @@
   CLEAR on one row.
 - Release note: the eyedropper bullet in `UNRELEASED.md` now names Scribble and Draw It In.
 
-## Open
+## Fabio's look (2026-10-04, session 3b6b39a7) - PASSED
 
-- Fabio's look in the app (his pre-cut smoke): Scribble, "Draw it" step, Pick samples a colour
-  into the brush. Then CI green and the done move.
-- Not in 2.0 unless Fabio adds it: hold-Alt pick (History Paint tools, Flow canvas).
+- Fabio, in his pre-cut smoke: "I had already checked the eyedropper", everything passes. CI
+  `Tests` green on the code commit `df16648ad` (run 37007031522). The 2.0 half is DONE.
+
+## Open (not 2.0)
+
+- Hold-Alt pick on the History Paint tools and on the Flow canvas (`brief.md` scope 1 and the
+  Alt half of scope 2), never built. Fabio 2026-10-04 wants 2.0 out rather than more added, so
+  the card goes back to `todo` / `deferred` carrying only this half.
