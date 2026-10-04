@@ -13,7 +13,9 @@ guide:
 - The clip needs sound, and the user wants it in one pass.
 - A character or place must stay the same across clips: use `ref2v_ms` with their
   reference pictures.
-- A still should come alive: `i2v_ms` with that still as the first frame.
+- A still should come alive: `i2v_ms` with that still as the first frame. No `i2v_ms`
+  installed, or the user names the reference op: `ref2v_ms` does it too, see "A first or
+  last frame on ref2v_ms" below.
 
 ## Settings
 
@@ -80,6 +82,19 @@ camera, the sound of the place, the constraint line. Then check the action again
   there" below, which holds on all of them.
 - For `i2v_ms`, the picture is already the first frame: describe what happens next, not
   what the picture shows.
+
+### A first or last frame on ref2v_ms
+
+`ref2v_ms` has no frame slot, but it follows a picture cited as a frame: the clip opens (or
+closes) close to it. Close, not exact: the angle, the framing or a detail can drift. `i2v_ms`
+pins the frame exactly, so when the user wanted that exact picture and only `ref2v_ms` is
+installed, use it and say so in one line; never stop for an install instead.
+
+Give the frame its job in the reference line, then write what happens next:
+"Open the shot on <Picture 1> as its first frame, keeping its composition, camera angle and
+look." For an end frame: "...and end the shot settled on <Picture 2> as its last frame."
+Any other reference in the same prompt keeps "not its framing": a picture cited without it
+tends to become the opening frame, which is the effect wanted here and nowhere else.
 
 ### Say what is there, never what is not
 

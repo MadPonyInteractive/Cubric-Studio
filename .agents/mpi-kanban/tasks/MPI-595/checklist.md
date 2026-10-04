@@ -155,7 +155,14 @@ THIS umbrella:
   showed a broken Inputs chip, a 16K painted in strip by strip, Draw It In unusable. Every Flow
   screen now draws the server display copy and no export builds a canvas past 4096 (Outpaint
   lost its 16384 refusal). Spec RED-proven, real 32K checked in Chromium. Left: Fabio's look
-  (Draw It In, Scribble, Outpaint, Object Stamp on his own 16K/32K), then close
+  (Draw It In, Scribble, Outpaint, Object Stamp on his own 16K/32K), then close. Phase 4 (a new
+  image in a slot resets its steps, his Object Stamp find) pushed `db11c7fa6`
+- [ ] **Cosmo: H3 Reference animates a still too (Fabio's smoke 2026-10-04):** with no i2v
+  installed, "just use MiniMax H3 reference" got install offers and paid clips. `ref2v_ms`
+  note (`modelPriority.js`) + every i2v note now say it takes a picture as the opening/closing
+  frame, close not exact, and is the route rather than an install; guide
+  `docs/agent/models/minimax-h3.md` § "A first or last frame on ref2v_ms". `model-priority`
+  test RED on HEAD, green after; npm test 2699/0. Left: Fabio's live ask to Cosmo
 - [ ] **Fabio's own smoke in the app BEFORE the re-smoke (Fabio 2026-10-02):** item 1 (lock:
   MelodramaBox sync + Mickmumpitz drop + release image build + pin) DONE 2026-10-02
   (`edff37f2a` + `42ddbda10`, mpi-ci `89bb08b`, image v0.24.0). NOW WAITING on Fabio: restart

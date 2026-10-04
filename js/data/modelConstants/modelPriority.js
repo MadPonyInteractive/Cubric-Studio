@@ -102,7 +102,9 @@ const NOTES = {
     // Fabio 2026-09-30): with Head Swap not installed, it read as "only Qwen can move a head",
     // and the agent told him no installed editor could, with Klein 9B taking references.
     'qwen-edit:qwenEdit': 'the slowest of these',
-    'minimax-h3-ref2va:ref2v_ms': 'the identity route: a character sheet, a turnaround or several views of one subject go in as references, and the clip is made new around them',
+    // Fabio 2026-10-04: with no i2v installed, "just use MiniMax H3 reference" was told the
+    // free model that animates this picture was missing, and offered installs and paid clips.
+    'minimax-h3-ref2va:ref2v_ms': 'the identity route: a character sheet, a turnaround or several views of one subject go in as references, and the clip is made new around them. It also animates a still: cite the picture as the opening frame (or another as the closing one) and the clip starts or ends close to it, not exactly, since the angle or framing can drift. With no i2v op installed, or when the user names it, it is the route for "animate this picture", not an install',
     // MPI-941 Phase 9 (Fabio, corrected after a live Krea test): rank is untouched either way.
     'krea2:detail': KREA2_SKIN,
     'krea2:upscale': KREA2_SKIN,
@@ -135,7 +137,7 @@ const NOTES = {
  * models ran "this image but with <model>" as that model's i2i, and fed a character sheet to
  * i2v as its first frame, with the rule sitting in the system prompt and not in front of them.
  */
-const I2V_NOTE = 'animates THIS picture: it becomes the first frame exactly as it is, so a character sheet or several views of one subject is never a start frame (that is a reference op)';
+const I2V_NOTE = 'animates THIS picture: it becomes the first frame exactly as it is, so a character sheet or several views of one subject is never a start frame (that is a reference op). No i2v op installed: ref2v_ms animates it too, close but not exact';
 const OP_NOTES = {
     // MPI-904: a model upscale is a diffusion pass, and the plain tool ranks above it.
     upscale: 're-renders the picture at the new size to add or change detail, from a prompt written per picture; only when the user asks for more or new detail. A plain enlargement is the imageUpscale tool, with no model',
