@@ -214,7 +214,7 @@ body += ki['First launch, Windows'] + ['',
          'xattr -dr com.apple.quarantine "<extracted folder>"', '```', '', 'then double-click `start.command`.', '']
 body += ki['First launch, macOS'] + ['', '---', '', '## Platform support, please read', '',
          '- **Windows** - Tested on this version: a 1.5.0 install updated in place with the update zip kept its projects and settings, installed the new engine parts, and generated an image. Older than 1.5.0: take the full zip (see the top).',
-         '- **Linux** - TO FILL from the Linux box install smoke test, or "not tested on this version."',
+         '- **Linux** - Tested on this version (Ubuntu 22.04): a 1.5.0 install updated in place with its own update script, renamed the projects folder to Cubric Studio and kept every project, and generated a cloud image. The local engine was not tested on Linux.',
          '- **macOS** - ' + ki['Platform support, macOS'][0], '']
 open(ROOT + '.agents/mpi-kanban/tasks/MPI-595/release-body-2.0.0.md', 'wb').write('\n'.join(body).encode('utf-8'))
 print('important', len(important), 'new', len(whats_new), 'fixes', len(fixes), 'engine', len(engine))

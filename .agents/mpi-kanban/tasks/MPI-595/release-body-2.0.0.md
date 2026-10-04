@@ -159,5 +159,5 @@ Setting up the local engine on a Mac needs Apple's Command Line Tools. If setup 
 ## Platform support, please read
 
 - **Windows** - Tested on this version: a 1.5.0 install updated in place with the update zip kept its projects and settings, installed the new engine parts, and generated an image. Older than 1.5.0: take the full zip (see the top).
-- **Linux** - TO FILL from the Linux box install smoke test, or "not tested on this version."
+- **Linux** - Tested on this version (Ubuntu 22.04): a 1.5.0 install updated in place with its own update script, renamed the projects folder to Cubric Studio and kept every project, and generated a cloud image. The local engine was not tested on Linux.
 - **macOS** - Not tested on this version, including updating from 1.5.0.

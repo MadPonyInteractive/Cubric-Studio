@@ -472,8 +472,16 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     + registry rewritten, engine installed the 3 new packs, SDXL t2i 1024px in 75 s, PNG opened
     (red bicycle). `dev_configs/update-evidence.json` written; `release:check:publish` green;
     the gate refuses the 3 bad shapes (no oldestServed / tested above it / unpublished)
-  - [ ] Linux box: fresh 1.5.0 extract -> 2.0 update zip, B3 rename check, then fill the Linux
-    line in `notes200.py` and re-run it
+  - [x] **Linux DONE 2026-10-04 (Ubuntu 22.04 box, Fabio's yes to $0.02):** leg A = fresh
+    published 1.5.0 extract (`~/cut200`, tarball 502,585,277 bytes = the release asset) booted
+    once, then its OWN `update.sh` (only `fetch-release.cjs` stubbed to the CI zip, sha256
+    `1cb8393a…` matched both ends): exit 0, 1.5.0 -> 2.0.0, relaunched, all 4 launchers healed,
+    no user-data file lost (6 Chromium logs/caches rewritten by the boot). **B3 rename PASS:**
+    `~/Documents/Cubric Vision` -> `Cubric Studio` on first use, registry rewritten, all 3
+    projects listed. Leg B = the `~/b3` install (1.6.3, Fabio's saved keys) -> 2.0.0 the same
+    way, all 15 cloud models installed (key survived), `flux2-dev-cloud` t2i 1024px in 8.8 s,
+    **$0.01785** (app `costUsd`), image opened (sailboat on a misty lake). Linux line filled in
+    `notes200.py`, re-run, in-app + archival notes byte-identical (token still valid)
 - [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
 - [ ] Release day: **MPI-983** publish docs.cubric.studio, then cubric.studio (both built and held)
   - [ ] **`llms.txt` for docs.cubric.studio** rides with it (from MPI-593, handed over by Agent 85
