@@ -45,3 +45,16 @@ keeping `fields`; the same picture re-picked keeps the drawing.
 - CI green on `3ed4ae7cd` (Tests + Red master watch) and `d9db2af70`.
 
 Left: Fabio's look on all four image Flows (swap an image after drawing: the step mounts clean).
+
+## Brush size on a big picture (2026-10-04, Fabio's look at Object Stamp on a 16K)
+
+The cutout brush at its 400 px cap drew a ring a few screen px wide. Root cause: the Cutout and
+Paint brushes are in IMAGE px with default 40, cap 400 and wheel step 5 tuned on a ~1K picture.
+`brushScale(size)` (`brushDab.js`, long edge / 1024, min 1) multiplies all three in both twins;
+MIN 2 never scales; Paint's default re-derives on a canvas resize only until the user picks a size.
+
+- `tests/desktop/flow-big-photo.spec.js` + "the cutout and paint brushes grow with the picture":
+  a 2048 photo gives default 80, cap 800 on both. **RED on HEAD** (the three files swapped back),
+  green after.
+- `npm test` 2699/0; 30 desktop specs touching paint, cutout and the Flows green; eslint clean.
+- NOT changed: the History canvas brush (no cap there, step 5 px): not reported.

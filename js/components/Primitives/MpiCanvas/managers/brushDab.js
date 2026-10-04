@@ -334,6 +334,21 @@ export const BRUSH_ERASER = 'oklch(0.78 0.14 220)';
 const RING_DASH = 4;
 
 /**
+ * How much a step gizmo's brush default, cap and wheel step grow on THIS picture.
+ *
+ * A brush is sized in IMAGE px, and those constants were tuned on a ~1K picture. On a 16K
+ * the 400 px cap drew a ring a few screen px wide at fit (Fabio, MPI-1014). Scaling them
+ * by the long edge keeps the brush the same size ON SCREEN at any picture size; 1 at
+ * 1024 and below, so a normal picture is unchanged.
+ *
+ * @param {{w: number, h: number}} size  the picture's ORIGINAL size
+ * @returns {number}
+ */
+export function brushScale({ w, h }) {
+    return Math.max(1, Math.max(w, h) / 1024);
+}
+
+/**
  * Draw the brush cursor at a point, in the DESTINATION canvas' own pixels.
  *
  * Two passes, one accent and one dark, offset half a dash period so they

@@ -57,6 +57,11 @@ be made): the paint layer (Draw It In) and the Place stamp (Object Stamp) are LA
 composite and the Outpaint frame are scaled into 4096 because their graphs shrink them anyway.
 Measured on a 32768x16384 photo (2026-10-04): chip in 1.6 s on the first copy, paint step in 82 ms.
 
+**The Paint and Cutout brushes grow with the picture.** Brush size is in IMAGE px, and its default
+(40), cap (400) and wheel step (5) were tuned on a ~1K picture: on a 16K the cap drew a ring a few
+screen px wide. `brushScale(size)` (`brushDab.js`, long edge / 1024, never below 1) multiplies all
+three, so the brush is the same size on screen at any picture size; the 2 px floor never scales.
+
 ## The backstop
 
 `_loadRefusal` (`loadRefusal` in `upscaleLimit.js`) runs after every fit, for every op and every

@@ -6,7 +6,7 @@ import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { PaintManager } from '../../Primitives/MpiCanvas/managers/PaintManager.js';
 import { ViewManager } from '../../Primitives/MpiCanvas/managers/ViewManager.js';
 import {
-    BRUSH_PRESETS, DEFAULT_BRUSH_PRESET, drawBrushRing,
+    BRUSH_PRESETS, DEFAULT_BRUSH_PRESET, drawBrushRing, brushScale,
 } from '../../Primitives/MpiCanvas/managers/brushDab.js';
 import { UndoStack } from '../../Primitives/MpiCanvas/managers/UndoStack.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
@@ -93,7 +93,8 @@ const OPACITY = 1;
 /** The long edge the engine is ever sent (routes/projects.js ENGINE_MAX_EDGE). */
 const ENGINE_MAX_EDGE = 4096;
 
-/** Brush size in IMAGE px — `PaintManager`'s own default, so the two surfaces match. */
+/** Brush size in IMAGE px — `PaintManager`'s own default, so the two surfaces match. Default,
+ *  cap and step grow with the picture's size (`brushScale`), MIN never does. */
 const DEFAULT_BRUSH = 40;
 const MIN_BRUSH = 2;
 const MAX_BRUSH = 400;
@@ -294,6 +295,8 @@ export const MpiStepPaint = ComponentFactory.create({
         const seeded = props.value || {};
         paint.color = seeded.color || DEFAULT_COLOR;
         paint.brushSize = seeded.brushSize || DEFAULT_BRUSH;
+        /** A saved or wheel-picked size; until then the default follows the picture's size. */
+        let _brushPicked = !!seeded.brushSize;
         paint.brushType = seeded.mode === 'eraser' ? 'eraser' : 'brush';
         // No validation on the way in: `brushDab.getPreset()` falls back to the hard
         // round for an unknown id, so a stale value from an older snapshot degrades to
@@ -650,8 +653,10 @@ export const MpiStepPaint = ComponentFactory.create({
                 _draw();
                 return;
             }
-            const next = paint.brushSize + (ev.deltaY > 0 ? -BRUSH_STEP : BRUSH_STEP);
-            paint.brushSize = Math.max(MIN_BRUSH, Math.min(MAX_BRUSH, next));
+            _brushPicked = true;
+            const k = brushScale(_natural);
+            const next = paint.brushSize + (ev.deltaY > 0 ? -BRUSH_STEP : BRUSH_STEP) * k;
+            paint.brushSize = Math.round(Math.max(MIN_BRUSH, Math.min(MAX_BRUSH * k, next)));
             _draw();
             _report();
         }, { passive: false }));
@@ -701,6 +706,8 @@ export const MpiStepPaint = ComponentFactory.create({
          */
         function _initSurface(w, h, restoreUrl = seeded.paint) {
             _natural = { w: Math.max(1, Math.round(w)), h: Math.max(1, Math.round(h)) };
+            // Re-run on a canvas resize too, so only while the user has not picked a size.
+            if (!_brushPicked) paint.brushSize = Math.round(DEFAULT_BRUSH * brushScale(_natural));
             _loaded = true;
             // init() sizes the layer to the source and clears it WITHOUT recording —
             // a load is not an edit anyone could have undone (docs/masking-undo.md).

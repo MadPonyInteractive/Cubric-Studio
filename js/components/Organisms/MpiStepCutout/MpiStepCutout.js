@@ -5,7 +5,7 @@ import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { MaskManager } from '../../Primitives/MpiCanvas/managers/MaskManager.js';
 import { ViewManager } from '../../Primitives/MpiCanvas/managers/ViewManager.js';
 import { UndoStack } from '../../Primitives/MpiCanvas/managers/UndoStack.js';
-import { drawBrushRing } from '../../Primitives/MpiCanvas/managers/brushDab.js';
+import { drawBrushRing, brushScale } from '../../Primitives/MpiCanvas/managers/brushDab.js';
 import { enqueueGeneration } from '../../../services/generationService.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { setDisplaySrc, originalSize } from '../../../utils/displayImage.js';
@@ -90,7 +90,8 @@ import { composeObjectAlpha } from '../../../utils/maskUtils.js';
  * be cut.
  */
 
-/** Brush size in OBJECT px — `MaskManager`'s own default, so the surfaces match. */
+/** Brush size in OBJECT px — `MaskManager`'s own default, so the surfaces match. Default,
+ *  cap and step grow with the object's size (`brushScale`), MIN never does. */
 const DEFAULT_BRUSH = 40;
 const MIN_BRUSH = 2;
 const MAX_BRUSH = 400;
@@ -624,7 +625,8 @@ export const MpiStepCutout = ComponentFactory.create({
                 _draw();
                 return;
             }
-            _brush = Math.max(MIN_BRUSH, Math.min(MAX_BRUSH, _brush + (ev.deltaY > 0 ? -BRUSH_STEP : BRUSH_STEP)));
+            const k = brushScale(_object);
+            _brush = Math.round(Math.max(MIN_BRUSH, Math.min(MAX_BRUSH * k, _brush + (ev.deltaY > 0 ? -BRUSH_STEP : BRUSH_STEP) * k)));
             _draw();
             _report();
         }, { passive: false }));
@@ -670,6 +672,7 @@ export const MpiStepCutout = ComponentFactory.create({
             _objImg = await _loadImage(resolveMediaUrl(_sourceUrl));
             if (!_objImg) { _say(); _draw(); return; }
             _object = originalSize(_objImg);
+            if (!seeded.brushSize) _brush = Math.round(DEFAULT_BRUSH * brushScale(_object));
             _loaded = true;
             mask.init(_object.w, _object.h);
             undo.clear();

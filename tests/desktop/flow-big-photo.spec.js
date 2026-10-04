@@ -88,3 +88,54 @@ test('every Flow step screen draws the display copy and keeps the original\'s px
     await closeApp(app);
   }
 });
+
+// MPI-1014 (Fabio 2026-10-04, Object Stamp on a 16K): the cutout brush at its 400 px cap drew a
+// ring a few screen px wide. The cutout and paint brushes are in IMAGE px with a default, cap
+// and wheel step tuned on a ~1K picture; they now grow with the long edge (`brushScale`), so on
+// this 2048 photo the default is 80 and the cap 800.
+test('the cutout and paint brushes grow with the picture', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const dir = testInfo.outputPath('.preview-assets');
+  fs.mkdirSync(dir, { recursive: true });
+  const photo = path.join(dir, 'big.png');
+  await sharp({ create: { width: 2048, height: 1024, channels: 3, background: '#7f6a55' } }).png().toFile(photo);
+
+  const { app, window } = await launchApp(testInfo);
+  try {
+    const out = await window.evaluate(async (file) => {
+      const { MpiStepPaint } = await import('/js/components/Organisms/MpiStepPaint/MpiStepPaint.js');
+      const { MpiStepCutout } = await import('/js/components/Organisms/MpiStepCutout/MpiStepCutout.js');
+      const media = { url: `/project-file?path=${encodeURIComponent(file)}`, mediaType: 'image' };
+      const until = async (read) => {
+        for (let i = 0; i < 100; i++) {
+          const v = read();
+          if (v) return v;
+          await new Promise(r => setTimeout(r, 50));
+        }
+        return null;
+      };
+      const probe = async (Comp, kind) => {
+        const host = document.createElement('div');
+        host.style.cssText = 'position:fixed;left:0;top:0;width:800px;height:600px';
+        document.body.appendChild(host);
+        const inst = Comp.mount(host, { media, value: null, step: { id: kind, kind }, onChange: () => {} });
+        // Loaded = the default re-derived from the picture's size.
+        const start = await until(() => { const b = inst.el.getValue()?.brushSize; return b !== 40 ? b : null; });
+        const canvas = host.querySelector('canvas');
+        for (let i = 0; i < 300; i++) {
+          canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true }));
+        }
+        const max = inst.el.getValue()?.brushSize;
+        inst.destroy?.();
+        host.remove();
+        return { start, max };
+      };
+      return { paint: await probe(MpiStepPaint, 'paint'), cutout: await probe(MpiStepCutout, 'cutout') };
+    }, photo);
+
+    expect(out.paint).toEqual({ start: 80, max: 800 });
+    expect(out.cutout).toEqual({ start: 80, max: 800 });
+  } finally {
+    await closeApp(app);
+  }
+});
