@@ -104,7 +104,7 @@ const NOTES = {
     'qwen-edit:qwenEdit': 'the slowest of these',
     // Fabio 2026-10-04: with no i2v installed, "just use MiniMax H3 reference" was told the
     // free model that animates this picture was missing, and offered installs and paid clips.
-    'minimax-h3-ref2va:ref2v_ms': 'the identity route: a character sheet, a turnaround or several views of one subject go in as references, and the clip is made new around them. It also animates a still: cite the picture as the opening frame (or another as the closing one) and the clip starts or ends close to it, not exactly, since the angle or framing can drift. With no i2v op installed, or when the user names it, it is the route for "animate this picture", not an install',
+    'minimax-h3-ref2va:ref2v_ms': 'free and local: with no i2v op installed, or when the user names it, it is the route for "animate this picture", not an install',
     // MPI-941 Phase 9 (Fabio, corrected after a live Krea test): rank is untouched either way.
     'krea2:detail': KREA2_SKIN,
     'krea2:upscale': KREA2_SKIN,
@@ -137,13 +137,20 @@ const NOTES = {
  * models ran "this image but with <model>" as that model's i2i, and fed a character sheet to
  * i2v as its first frame, with the rule sitting in the system prompt and not in front of them.
  */
-const I2V_NOTE = 'animates THIS picture: it becomes the first frame exactly as it is, so a character sheet or several views of one subject is never a start frame (that is a reference op). No i2v op installed: ref2v_ms animates it too, close but not exact';
+const I2V_NOTE = 'animates THIS picture: it becomes the first frame exactly as it is, so a character sheet or several views of one subject is never a start frame (that is a reference op). No i2v op installed: a reference op animates it too, close but not exact';
+/**
+ * What a reference op IS, on every one (Fabio 2026-10-04: "any reference operation does
+ * that"). Not only the identity route: a picture cited as a frame is followed, loosely.
+ */
+const REF_NOTE = 'a reference op: the pictures (and clips and sounds) steer who and what appears and the clip is made new around them, the route for a character sheet, a turnaround or several views of one subject. A picture cited as the opening frame (or another as the closing one) also gives a first or last frame: close, not exact, since the angle or framing can drift';
 const OP_NOTES = {
     // MPI-904: a model upscale is a diffusion pass, and the plain tool ranks above it.
     upscale: 're-renders the picture at the new size to add or change detail, from a prompt written per picture; only when the user asks for more or new detail. A plain enlargement is the imageUpscale tool, with no model',
     i2i:'the restyle route, only when the user asks to change how THIS picture looks; "this picture, but with <model>" is a re-run: that model\'s t2i, with no media. It repaints the whole picture from the WORDS, so prompt it with the description of THIS image and then the style you want, never a better scene. denoise decides how much moves — keep it low to hold the pose and composition. If the result comes back wrong (the look did not take, or it strays from the original), the next try is an edit op, never this op at another denoise',
     i2v_ms: I2V_NOTE,
     i2v: I2V_NOTE,
+    ref2v_ms: REF_NOTE,
+    ref2v: REF_NOTE,
 };
 
 const _ranked = new Map();
@@ -221,7 +228,8 @@ for (const task of CLOUD_TASKS) {
             task,
             // Never `best`: a paid run is picked only when asked for by name (the note).
             paid: true,
-            note: _cloudNote(model),
+            // The technique note too: a cloud i2v or ref2v is still that op (OP_NOTES).
+            note: [_cloudNote(model), OP_NOTES[task]].filter(Boolean).join(' '),
         }));
 }
 

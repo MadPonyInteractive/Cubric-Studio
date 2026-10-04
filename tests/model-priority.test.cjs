@@ -220,11 +220,14 @@ test('a character sheet is steered to the reference op, and a re-run away from i
     assert.match(ref.note, /character sheet/);
     for (const [m, o] of RANKED.find(([t]) => t === 'i2v')[1]) {
         assert.match(opPriority(m, o).note, /never a start frame/, `${m}:${o}`);
-        assert.match(opPriority(m, o).note, /No i2v op installed: ref2v_ms animates it too/, `${m}:${o}`);
+        assert.match(opPriority(m, o).note, /No i2v op installed: a reference op animates it too/, `${m}:${o}`);
     }
-    // Fabio 2026-10-04: the reference op animates a still too (close, not exact), and with
-    // no i2v installed that is the route, not an install offer.
-    assert.match(ref.note, /animates a still: cite the picture as the opening frame/);
+    // Fabio 2026-10-04: EVERY reference op takes a picture as a first or last frame too
+    // (close, not exact), the paid ones included; the free one is the route with no i2v.
+    for (const [m, o] of [['minimax-h3-ref2va', 'ref2v_ms'], ['seedance-2-cloud', 'ref2v'], ['wan3-cloud', 'ref2v']]) {
+        assert.match(opPriority(m, o).note, /cited as the opening frame .* first or last frame: close, not exact/, `${m}:${o}`);
+    }
+    assert.match(opPriority('seedance-2-cloud', 'ref2v').note, /^PAID: /);
     assert.match(ref.note, /not an install/);
     assert.match(opPriority('ill-anime', 'i2i').note, /re-run: that model's t2i, with no media/);
 });

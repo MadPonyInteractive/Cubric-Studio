@@ -20,7 +20,7 @@ This file is the router. Five sub-skills hold the detail; the table near the end
 - No batch: one clip per call.
 - **No negative prompt field.** Constraints go into the prompt as short locks.
 - `i2v` sends the clip's **first frame**, plus an optional **last frame** (the `endFrame` slot): the clip starts on one picture and ends on the other. No references go with it, so @ tags (`@image1`, `@video1`, `@audio1`) name nothing in `t2v` or `i2v`; never write them there.
-- `ref2v` sends **references**, not frames: up to 9 images, 3 videos and 3 audio clips, none of which appears in the output as-is. Videos and audio must be 2 to 15 seconds each and 15 seconds in all, per type; audio only alongside an image or a video. The app refuses anything else before sending, so nothing is billed. A reference video raises the price: the estimate quotes the most it can cost ("up to").
+- `ref2v` sends **references**, not frames: up to 9 images, 3 videos and 3 audio clips, none of which appears in the output as-is unless the prompt cites it as a frame. "@image1 as the first frame" (or "@image2 as the last frame") makes the clip open or end close to that picture: close, not exact, the angle or framing can drift. That is how `ref2v` animates a still when `i2v` is not the pick. Videos and audio must be 2 to 15 seconds each and 15 seconds in all, per type; audio only alongside an image or a video. The app refuses anything else before sending, so nothing is billed. A reference video raises the price: the estimate quotes the most it can cost ("up to").
 
 ## The prompt shape, both ops
 

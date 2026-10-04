@@ -162,7 +162,10 @@ THIS umbrella:
   note (`modelPriority.js`) + every i2v note now say it takes a picture as the opening/closing
   frame, close not exact, and is the route rather than an install; guide
   `docs/agent/models/minimax-h3.md` § "A first or last frame on ref2v_ms". `model-priority`
-  test RED on HEAD, green after; npm test 2699/0. Left: Fabio's live ask to Cosmo
+  test RED on HEAD, green after; npm test 2699/0 (`5d84b7449`). Then Fabio: "any reference
+  operation does that": the note is now `REF_NOTE` on EVERY reference op (H3, Seedance 2.0, Wan
+  3.0; the cloud ones keep PAID first) saying what a reference op is, and the Seedance guide no
+  longer says a reference never appears as-is. Left: Fabio's live ask to Cosmo
 - [ ] **Fabio's own smoke in the app BEFORE the re-smoke (Fabio 2026-10-02):** item 1 (lock:
   MelodramaBox sync + Mickmumpitz drop + release image build + pin) DONE 2026-10-02
   (`edff37f2a` + `42ddbda10`, mpi-ci `89bb08b`, image v0.24.0). NOW WAITING on Fabio: restart
