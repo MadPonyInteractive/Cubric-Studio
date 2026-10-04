@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1016", "at": "2026-10-04T11:14:11+01:00", "actor": "claude", "column": "doing", "title": "A second right-click on an open context menu pops Electron's dev menu over it"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1016", "at": "2026-10-04T11:38:09+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fix 5cc16c91e green in CI (run 37195320078); real-input double right-click verified, regression spec fails without the fix."}
