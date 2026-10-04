@@ -37,6 +37,7 @@ import { minimaxH3 } from './minimax-h3.recipe.js';
 import { flux2 } from './flux-2.recipe.js';
 import { pony } from './pony.recipe.js';
 import { illustrious } from './illustrious.recipe.js';
+import { wan30 } from './wan-3.0.recipe.js';
 
 /** Generation modes a recipe may declare. `r2v` is reference-to-video (MPI-26). */
 export const RECIPE_MODES = ['t2v', 'i2v', 'r2v'];
@@ -73,6 +74,7 @@ export const RECIPE_REGISTRY = [
     minimaxH3,
     pony,
     illustrious,
+    wan30,
 ].map(normalizeRecipe);
 
 /**
@@ -115,6 +117,10 @@ export const RECIPE_ALIASES = {
     // The alias fixed the RECIPE only: its i2v/r2v MODES stayed unreachable until MPI-1006,
     // because the Enhance dialog sent no mode (`recipeModeForOp`, llmService.js).
     h3: 'minimax-h3',
+    // `wan3` -> Wan 3.0. `wan3-cloud` declares `type: 'wan3'` with no `enhanceRecipe` yet;
+    // the dispatcher will add `enhanceRecipe: 'wan-3.0'` to models.js (MPI-1018), so the
+    // alias is a safety net for any caller that still sends only the `type` key.
+    wan3: 'wan-3.0',
     // `chroma` needs no alias — it matches a recipe id exactly.
 };
 

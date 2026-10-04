@@ -1,0 +1,11 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "docs/agent/models/wan-3.0.md",
+    "docs/recipes/research/wan-3.0/",
+    "js/data/recipes/wan-3.0.recipe.js",
+    "js/data/recipes/registry.js",
+    "js/data/modelConstants/models.js",
+    "docs/agent/models/wan-2.2.md"
+  ]
+}

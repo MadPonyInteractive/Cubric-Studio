@@ -17,6 +17,7 @@
     "docs/agent-chat.md",
     "tests/agent-cards.test.cjs",
     "docs/cloud-generation.md",
-    "tests/connector-named-params.test.cjs"
+    "tests/connector-named-params.test.cjs",
+    "tests/agent-prompt-budget.test.cjs"
   ]
 }
