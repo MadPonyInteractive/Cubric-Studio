@@ -5626,3 +5626,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1020", "at": "2026-10-05T00:16:48+01:00", "actor": "claude", "column": "todo", "title": "README refresh for 2.0: new screenshots from the docs site, current feature list, fixed doc links"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1020", "at": "2026-10-05T00:17:11+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting README refresh"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1020", "at": "2026-10-05T00:20:51+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "README refreshed for 2.0"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1020", "at": "2026-10-05T00:21:45+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "reopened: done-gate needs CI on the README commit first"}
