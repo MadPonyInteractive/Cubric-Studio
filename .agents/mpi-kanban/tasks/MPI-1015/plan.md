@@ -86,12 +86,9 @@ PB = `MpiPromptBox.js`.
 Fabio's go 2026-10-04 with the clip-chip toggle (Video 1 <-> current frame as Image 1), yes to
 keeping right-click Set as start/end frame, yes to the rule files.
 
-ALL THREE PHASES BUILT AND GREEN, committed + pushed in session 7ad19928's handoff commit; card
-`doing`/`validating`. Only Fabio's look is left (verify mode user-ux), in a fresh session: open
-a video, `+` a picture, run H3 Reference with it (local, $0); animate a picture from the strip;
-right-click Set as start frame. His "1" closes the card (CI green on the commit first). The
-next session ALSO gets a message from a peer who found two bugs (Fabio, 2026-10-04): read it
-before the look; a bug on this card's surface folds in here, anything else per Discovered work.
+DONE 2026-10-04: all three phases shipped (`7fe110674`, `0dedf2f66`, CI green) and Fabio's
+look passed (his "1", session 3b6b39a7). The peer's two bugs were both Cosmo, not this
+surface: fixed under MPI-595 (`0eea416b6`). Nothing left on this card.
 
 How it works (HB = MpiGroupHistoryBlock): `_syncEntryChip` pins the clip (`mediaType:'video',
 swappable`) only when `activeOperation` has a video slot, else unpins; `_clipFrame` holds the
@@ -109,6 +106,7 @@ swapped frame; `_pinnedKey` stops re-pinning an unchanged chip. It re-runs on ev
 - Phase 2 (2026-10-04): panel folder + preload + typedef, PromptBox role APIs, extend post-step,
   `/extend-video`, concat `inputRanges`, `captureLastFrameAccurate`, `lastFrameIndex` deleted.
 - Phase 3 (2026-10-04): five docs, five rule files, UNRELEASED, mirror unit test.
+- Fabio's look passed (2026-10-04); CI green on `0dedf2f66`.
 
 ## Plan Drift
 

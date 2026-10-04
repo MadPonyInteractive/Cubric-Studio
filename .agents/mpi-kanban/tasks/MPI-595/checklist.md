@@ -178,10 +178,10 @@ THIS umbrella:
   refusal now names the installed `modelFamily` members (`installedKin`,
   `js/shell/agentDispatch.js`, test `agent-installed-kin`). Spend tests + 4 asserts; npm test
   2703/0, eslint clean. Left: Fabio's live re-ask of both
-- [ ] **MPI-1015 the video screen works like the image screen (Fabio's smoke 2026-10-04, 2.0
+- [x] **MPI-1015 the video screen works like the image screen (Fabio's smoke 2026-10-04, 2.0
   gate):** `+` strip and reference models (H3 Reference was hidden) on the video history screen;
   the Start/End frame panel and Extend / New shot retired (Combine joins clips). All three
-  phases BUILT and green 2026-10-04 (`validating`); waiting on Fabio's look, then CI green
+  phases shipped (`7fe110674`, `0dedf2f66`, CI green); Fabio's look PASSED 2026-10-04: DONE
 - [ ] **Fabio's own smoke in the app BEFORE the re-smoke (Fabio 2026-10-02):** item 1 (lock:
   MelodramaBox sync + Mickmumpitz drop + release image build + pin) DONE 2026-10-02
   (`edff37f2a` + `42ddbda10`, mpi-ci `89bb08b`, image v0.24.0). NOW WAITING on Fabio: restart

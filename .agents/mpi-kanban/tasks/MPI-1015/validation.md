@@ -28,3 +28,12 @@
   Combine's path, 3.04 s with audio; two identical clips take the demuxer fast path, 4.00 s.
 - Docs (workspaces, generation-lifecycle, PROJECT, video-player, project-integrity), the five
   rule files, UNRELEASED (Important changes + What's new). Left: Fabio's look.
+
+## Fabio's look (2026-10-04, session 3b6b39a7) - PASSED
+
+- Fabio's "1" on the restarted app: the `+` strip on a video card, H3 Reference with a `+`
+  picture and the clip chip's Video 1 / Image 1 swap, animating a picture from the strip,
+  right-click Set as start frame.
+- CI `Tests` green on the last code commit `0dedf2f66` (and on `0eea416b6` above it).
+- The peer's two bugs (Fabio's recordings `lm (1)` / `lm (5)`) were Cosmo's, not this surface:
+  fixed under MPI-595 in `0eea416b6`.
