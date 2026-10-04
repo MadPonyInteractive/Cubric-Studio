@@ -50,22 +50,20 @@ export const OPERATION_REGISTRY = {
     // write it, so no deprecated predecessor is owed. Stamped 1.4.0 to match `control`,
     // which is likewise ahead of APP_VERSION until the release bump lands.
     ref2v_ms:     { latestVersion: '1.0', appVersionIntroduced: '1.4.0' },
-    // Cloud reference-to-video (MPI-923). A new KEY, stamped ahead of the release bump.
+    // Cloud reference-to-video (MPI-923). New in 2.0.0.
     ref2v:        { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     extend:      { latestVersion: '1.0', appVersionIntroduced: '0.0.1' },
     // Universal operations (not model-tied)
     interpolate:  { latestVersion: '1.1', appVersionIntroduced: '0.0.1' },
     videoUpscale: { latestVersion: '1.1', appVersionIntroduced: '0.0.1' },
     imageUpscale: { latestVersion: '1.0', appVersionIntroduced: '0.0.1' },
-    // MPI-579 — the LTX Video upscaler plugin's op. A new KEY, so nothing before
-    // 1.5.0 could have written it; stamped ahead of APP_VERSION (1.4.2, released)
-    // until the release bump lands, the same way `ref2v_ms` was.
-    ltxVideoUpscale: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
+    // MPI-579 — the LTX Video upscaler plugin's op. A new KEY in 2.0.0.
+    ltxVideoUpscale: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     removeBackground: { latestVersion: '1.0', appVersionIntroduced: '1.1.0' },
     imageDescribe: { latestVersion: '1.0', appVersionIntroduced: '1.1.0' },
     autoMaskImg:  { latestVersion: '1.0', appVersionIntroduced: '0.0.1' },
-    gifCutoutSam3: { latestVersion: '1.0', appVersionIntroduced: '1.6.0' },
-    gifCutoutBirefnet: { latestVersion: '1.0', appVersionIntroduced: '1.6.0' },
+    gifCutoutSam3: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
+    gifCutoutBirefnet: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     resize:       { latestVersion: '1.0', appVersionIntroduced: '0.0.1' },
     resizeVideo:  { latestVersion: '1.1', appVersionIntroduced: '0.0.1' },
     // `1.1` (MPI-744, 2026-09-13): re-engined from Qwen Edit to FLUX.2 Klein 9B + the BFS
@@ -79,42 +77,39 @@ export const OPERATION_REGISTRY = {
     flowLtxExtend: { latestVersion: '1.0', appVersionIntroduced: '1.4.2' },
     flowLtxFoley: { latestVersion: '1.0', appVersionIntroduced: '1.4.2' },
     // MPI-504 — the Character Sheet flow and the text-only prompt enhancer any flow can
-    // call. Both are new KEYS, stamped ahead of APP_VERSION (1.4.2, released) for the
-    // same reason as `ltxVideoUpscale`.
-    flowCharacterSheet: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
+    // call. Flows first shipped in 2.0.0, so the flow keys below are stamped 2.0.0.
+    flowCharacterSheet: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     flowCharacterSheetHeadless: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
-    // MPI-594 — the Outpaint flow. Same stamping reason as the two above.
-    flowOutpaint: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
-    promptEnhance: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
-    // MPI-567 — the Draw It In flow. Same stamping reason as the three above.
+    // MPI-594 — the Outpaint flow.
+    flowOutpaint: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
+    promptEnhance: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
+    // MPI-567 — the Draw It In flow.
     // `1.1` (MPI-621, 2026-08-25): the Klein-only rebuild REMOVED two parameters,
     // `Input_Control_Net` and `Input_Control_strength`, along with the ControlNet the
     // graph no longer carries. Reuse of an older card degrades quietly rather than
     // breaking — `comfyController._inject` no-ops on a title that matches no node — so
     // the bump is the record of the removal, not a gate.
-    flowScribObj: { latestVersion: '1.1', appVersionIntroduced: '1.5.0' },
-    flowScribble: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
-    flowObjectStamp: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
-    // MPI-607 — the Voice Changer flow, the first op that OUTPUTS audio. Same
-    // stamping reason as the four above.
-    flowVoiceChanger: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
-    // MPI-607 — the two TTS flows that join Voice Changer. Same stamping reason.
+    flowScribObj: { latestVersion: '1.1', appVersionIntroduced: '2.0.0' },
+    flowScribble: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
+    flowObjectStamp: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
+    // MPI-607 — the Voice Changer flow, the first op that OUTPUTS audio.
+    flowVoiceChanger: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
+    // MPI-607 — the two TTS flows that join Voice Changer.
     // DEPRECATED (MPI-781): DramaBox left the app and is sold as a Flow package, which
     // registers under its own `user:drama-box` key. Same reason as `flowHeadSwap` above.
-    flowDramaBox: { latestVersion: '1.0', appVersionIntroduced: '1.5.0', deprecated: true },
+    flowDramaBox: { latestVersion: '1.0', appVersionIntroduced: '2.0.0', deprecated: true },
     // DEPRECATED (MPI-1012): Text to Speech left the Flow Library and is the `tts` op on
     // the Chatterbox model. Kept so history items written by the Flow still validate;
     // nothing may WRITE it again (old cards reuse through js/data/retiredFlows.js).
-    flowChatterBox: { latestVersion: '1.0', appVersionIntroduced: '1.5.0', deprecated: true },
-    flowStems: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
-    // MPI-664 — MiniMax Music 3, the text-to-music flow. Same stamping reason.
-    flowTextToMusic: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
+    flowChatterBox: { latestVersion: '1.0', appVersionIntroduced: '2.0.0', deprecated: true },
+    flowStems: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
+    // MPI-664 — MiniMax Music 3, the text-to-music flow.
+    flowTextToMusic: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     // MPI-694 — Stable Audio 3: instrumentals, instruments, SFX and one-shots.
     // DEPRECATED (MPI-1012): the `t2a` op on the Stable Audio 3 model now. Same reason
     // as `flowChatterBox` above.
-    flowSoundAndMusic: { latestVersion: '1.0', appVersionIntroduced: '1.5.0', deprecated: true },
-    // MPI-1012 — the audio MODEL ops that replaced the two Flows above. New keys, stamped
-    // for 2.0 (the next public release) ahead of APP_VERSION, like `ref2v`.
+    flowSoundAndMusic: { latestVersion: '1.0', appVersionIntroduced: '2.0.0', deprecated: true },
+    // MPI-1012 — the audio MODEL ops that replaced the two Flows above. New keys in 2.0.0.
     t2a:          { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     tts:          { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
 };

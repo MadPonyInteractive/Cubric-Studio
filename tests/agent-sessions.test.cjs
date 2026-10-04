@@ -492,7 +492,8 @@ describe('connector project routes', () => {
     });
 
     test('a nameless create is a 400 and makes nothing', async () => {
-        const count = () => fs.readdirSync(path.join(docs, 'Cubric Vision', 'Projects')).length;
+        // The routes' own resolver: the Documents folder name follows the app's major version.
+        const count = () => fs.readdirSync(require('../routes/shared').getProjectsRoot()).length;
         const n = count();
         for (const body of [{}, { name: '   ' }, { name: 42 }, { name: 'x'.repeat(101) }]) {
             const r = await post('/connector/create-project', body);

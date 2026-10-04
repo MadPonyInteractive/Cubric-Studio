@@ -84,9 +84,9 @@ the bridge or the manifest changes.
 is the permanent link. It is the one everything reads: the Settings page
 (`routes/agentConnect.js` `MCPB_URL`), the agents README, and the MCP Registry, whose `server.json`
 names the versioned URL plus its `fileSha256` (the Registry only accepts a release URL containing
-`mcp`, which a `Cubric-Studio/releases/...` URL is not). The app release also attaches a copy (the
-release skill, step 6); nothing reads that one. A new bundle, only when the bridge or manifest
-changed:
+`mcp`, which a `Cubric-Studio/releases/...` URL is not). The app release attaches no copy (the
+release skill, step 6). A new bundle when the bridge or manifest changed, including the
+manifest's `tools` falling behind `routes/mcp.js` `TOOLS` (checked at every release):
 
 ```bash
 npx -y @anthropic-ai/mcpb@2.1.2 pack mcp/cubric-studio <scratch>/cubric-studio.mcpb

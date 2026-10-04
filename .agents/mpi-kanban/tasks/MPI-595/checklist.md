@@ -50,11 +50,18 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [x] **Website revamp — MPI-973** DONE 2026-09-29 (built, Fabio signed off, `a34d787ad`). Held
   unpublished: **MPI-983** publishes cubric.studio AND docs.cubric.studio the moment 2.0 is
   released (docs first, `e526d10fa`) — a CUT step now
-- [ ] **Docs website** — built by Fabio's agent; publishes with MPI-983 at the cut. **Fabio
+- [ ] **Docs website** — **Fabio 2026-10-04: cut 2.0 now; BOTH sites (MPI-983) publish once the
+  Docs session finishes MPI-19.** Checked 2026-10-04: MPI-19 still `doing`, Slice 7 (claim
+  audit, zero TODO/FIGURE/VIDEO, regenerate) open, and `docs-2.0`'s last sync (`4030970`,
+  10-02 13:31) predates MPI-1012 (Sound & Music + Text to Speech left the Flow Library),
+  MPI-1015 (Start/End frame panel, Extend / New shot retired), MPI-1013, MPI-801 Pick in Flows.
+  Was: built by Fabio's agent; publishes with MPI-983 at the cut. **Fabio
   2026-10-01: its session is almost finished, small adjustments only.** NOT finished
   (checked 2026-09-30): Docs-repo card MPI-19 is `doing`, branch `docs-2.0` last commit 2026-09-29;
   3 items left — re-audit the rewritten pages, a Routines page (waits on MPI-970), Slice 7 claim audit
-- [ ] **In-app agent** — Fabio has an agent on what is left. MPI-941 (umbrella 2) itself closed 2026-09-29 (`f622892db`): check its UNRELEASED line landed (Gate C) and which card holds the rest
+- [x] **In-app agent** — clear 2026-10-04: no agent card left in `doing` (board read; MPI-965,
+  MPI-970 done), MPI-941's UNRELEASED line landed (Gate C). Only MPI-1018 (Wan 3.0 guide) is
+  open, listed below. Was: Fabio has an agent on what is left. MPI-941 (umbrella 2) itself closed 2026-09-29 (`f622892db`): check its UNRELEASED line landed (Gate C) and which card holds the rest
 - [x] **Big photos — MPI-962** (umbrella) — closed 2026-09-30 with its last member **MPI-971** (16K engine ops, app-side sizing; Fabio verified locally + on a Pod, CI green `e752180c3`; `docs/big-photos.md`). MPI-1001 (Pod WS wedge) closed the same day
 - [x] **MPI-1000 small Flow + media fixes** — **CLOSED 2026-10-01** (`cb0b3bff5`: every member done; MPI-1004 `b639dd345`) (umbrella by Agent 74: MPI-997 Character Sheet split,
   MPI-998 Object Stamp flip, MPI-999 recording silence strip) — **folded into THIS umbrella by
@@ -220,7 +227,13 @@ THIS umbrella:
     unless past the cap. Delete the Pod and its volume after; report the spend
 - [ ] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step.
   **Fabio's YES to the cut 2026-10-04** (session fedd1e8c, after the re-smoke passed): "Yes,
-  but let's do it in a fresh session." Run Gate D top to bottom there
+  but let's do it in a fresh session." Run Gate D top to bottom there. **Gate D STARTED
+  2026-10-04 (session 84aff9d9, "Release 2.0 blockers 49")**; Fabio's go on the brief there
+  also covers the Claude Desktop bundle refresh (its manifest lacks the 5 routine tools)
+- [ ] **MPI-1018** Wan 3.0 prompting guide + recipe (`validating`, found off this list
+  2026-10-04): code on master (`9ad40e6cb`, `f918119a7`), so 2.0 carries the guide and the
+  draft recipe. Left: Fabio's Stage 2 Wan 3.0 renders (2 run 10-04) and his verdict on the
+  r2v-without-references flip; the recipe stays `draft` until then
 
 Agent 85:
 - [x] **MPI-513** CLOSED by Agent 85 (`a1552ef08`, members folded). Was: install state that lies to the user (umbrella: 497/397/320) — Fabio 2026-10-01:
@@ -245,10 +258,10 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
 
 ## ON PICKUP (measure, never read counts from prose)
 
-- [ ] `git rev-list --count v1.4.2..HEAD`, `git status --short`, `git log --oneline @{u}..HEAD`
-- [ ] `npm run release:check` (RED on 2026-09-27: stale smoke evidence + missing 1.6.x archival notes — both expected, see B1 and D)
-- [ ] `gh release list | head -3` — latest public is v1.5.0; nothing cut since
-- [ ] Who is in `doing`, and which files are claimed
+- [x] `git rev-list --count v1.4.2..HEAD`, `git status --short`, `git log --oneline @{u}..HEAD` — 2026-10-04: 2214, only the peer's InputController.js dirty, nothing unpushed
+- [x] `npm run release:check` (RED on 2026-09-27: stale smoke evidence + missing 1.6.x archival notes — both expected, see B1 and D) — 2026-10-04: red only on the four 1.6.x notes; smoke SCOPED, klein-9b-cloud (no graph) outside a smoked family
+- [x] `gh release list | head -3` — latest public is v1.5.0; nothing cut since (2026-10-04 same)
+- [x] Who is in `doing`, and which files are claimed — 2026-10-04: MPI-595, MPI-603, MPI-1018; no active claims; board validator clean after `--fix`
 
 ## Gate A — must fix
 
@@ -361,9 +374,15 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
   - [x] DRAFTED 2026-09-29 in `UNRELEASED.md` § "Known issues (GitHub release page ONLY)": RunPod cutoff (Updating?), SAC (First launch, Windows), xcode-select (First launch, macOS), macOS untested (Platform support). A5 needs no line (MPI-954 fixed). They are release-BODY lines, not in-app: 1.5.0's update prompt shows no notes (`git show v1.5.0:js/services/updateChecker.js`, OK/Cancel only)
   - [x] Fabio reviewed the four lines 2026-09-29: "lines are good". Copy them into the release body at Gate 2 as written
 - [x] MPI-543 / MPI-544 / MPI-569 — OUT of 2.0 (Fabio 2026-09-29). 544 was seen once, in the 2026-08-11 download-Pod incident (bot-driven installs), never reproduced; Fabio reads it as smoke-run-only. Cards stay on the board as they are
-- [ ] Flow-list reconcile — LAST, once, at notes freeze (13 ids on 2026-09-27; still 13 and
-  matching the 13 lines on 2026-10-02)
-- [ ] **Changelog clean-up (2026-10-02, session c6543d87), Fabio's look pending:** em dashes out
+- [x] Flow-list reconcile — LAST, once, at notes freeze (13 ids on 2026-09-27; still 13 and
+  matching the 13 lines on 2026-10-02). **Done at the freeze 2026-10-04: 11 = 11** (`FLOWS` in
+  `js/data/flowsRegistry.js` read through node; Sound & Music + Text to Speech left in MPI-1012)
+- [x] **Gate 0 re-run at the freeze 2026-10-04** on the 22 bullets new or reworded since
+  `e774a5895` (claim-auditor, baseline tag v1.5.0): 19 PROVEN, 1 FALSE, fixed: the Engine line
+  said "four more" node packs, but Mickmumpitz left the lock 10-02, so it is THREE
+  (Fill-ChatterBox, audio-separation, MelodramaBox; re-diffed by hand, 16 -> 19 repos)
+- [ ] **Changelog clean-up (2026-10-02, session c6543d87), Fabio's look pending** — 2026-10-04:
+  his look IS the `/mpi-release` Gate 1 read of the 2.0.0 in-app notes (same text). Em dashes out
   of every user-facing bullet; 1.6.x tester notes cross-checked against v1.5.0, gaps added
   (lost-prompt hang MPI-516, camera-rotated photos MPI-959, eyedropper MPI-960/964, big-photo
   History/landing MPI-963, masked area only MPI-971); `## Engine` added (core v0.34.0
@@ -375,6 +394,11 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
 - [x] App `README.md` "Use it from your AI agent" section (`ec7b81cb3`, says it needs 2.0)
 - [x] `UNRELEASED.md` bullet — now points at Settings > Connect an agent
 - [x] `.mcpb` home: agents-repo release ONLY (Fabio 2026-09-29). Every link already read it (`routes/agentConnect.js` `MCPB_URL`, agents README, MCP Registry `server.json`); the app-release copy is gone from `mpi-release` SKILL step 6 and `github-release-checklist.md`. The website gets a download button for it (MPI-973)
+- [x] `.mcpb` tools caught up at the cut (release-skill precondition, MPI-1009): manifest lacked
+  the 5 routine tools. Manifest 0.3.0 (22 tools), packed with mcpb 2.1.2 (3 members), released
+  `mcpb-v0.3.0` on cubric-studio-agents 2026-10-04 (latest-download link serves sha256
+  `3500fc2b…`), `server.json` bumped + pushed (`62c2445`). **Left: MCP Registry publish**
+  (`mcp-publisher` is no longer on disk: a 7.5 MB download + maybe Fabio's GitHub device login)
 - [ ] Claude Desktop directory submission AFTER 2.0 is live
 - [x] MPI-873 done
 
@@ -386,18 +410,28 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
   - [x] MPI-845 DONE 2026-09-29: Fabio "845 looks good" (titlebar mark, chip hover, reference-chip X)
   - [x] MPI-720 DONE 2026-09-29: Fabio confirmed the reporter downloads at normal speed on the fixed build (evidence in its `validation.md`)
 - [x] MPI-623 / 711 / 591 / 656 out of `doing`, or scoped into 2.0 explicitly — 2026-09-29 Fabio: 623/711/656 post-2.0 -> `todo`/`deferred`; 591 was already done (A6)
-- [ ] 1.6.0 / 1.6.1 / 1.6.2 / **1.6.3** (MPI-1010, 2026-10-01) `RELEASE_NOTES` entries + `.approved-1.6.*.json` deleted at the fold — `release:check` 2026-10-01 names all four, nothing else
+- [x] 1.6.0 / 1.6.1 / 1.6.2 / **1.6.3** (MPI-1010, 2026-10-01) `RELEASE_NOTES` entries + `.approved-1.6.*.json` deleted at the fold — `release:check` 2026-10-01 names all four, nothing else. **DONE 2026-10-04:** every 1.6.x line checked against UNRELEASED.md first (all there, as Fabio said, except the 1.6.0 log-diagnostics line: log-only, no user copy); the four entries + their comment block and the four tokens deleted (commits with the 2.0.0 stamp)
 - [x] ~~MPI-708 Phase 3: dual-publish `CubricVision-*` at the cut~~ DROPPED: Fabio 2026-09-29 (MPI-972, `f74855990`) no legacy set at 2.0; 2.0 updates in place from 1.5.0. The `mpi-release` SKILL still said "also attaches legacy copies" — fixed this session
-- [ ] `python scripts/overtaken-cards.py`; unpushed pushed; commit by pathspec — overtaken run
+- [x] `python scripts/overtaken-cards.py`; unpushed pushed; commit by pathspec — overtaken run
   2026-10-01: 3 candidates, none overtaken (MPI-775 board-save commit, MPI-560 live Flow
-  umbrella, MPI-249 a question answered). Re-run at the cut
-- [ ] `publish-runtime.sh promote` (mpi-ci `cubric-vision-pod/`): dev -> stable = wrapper 0.2.45 (MPI-894 async hot-store, live-proven 2026-09-29) + `b131c0a` chatterbox link. Fabio 2026-09-29: at the cut, not before. Harmless to 1.5.0/1.6.x (they never send `async`), useless to them until 2.0's app
-- [ ] `/mpi-version-bump` -> **2.0.0**, then `/mpi-release`
+  umbrella, MPI-249 a question answered). Re-run at the cut — **2026-10-04: the same 3, none overtaken**
+- [x] `publish-runtime.sh promote` (mpi-ci `cubric-vision-pod/`): dev -> stable = wrapper 0.2.45 (MPI-894 async hot-store, live-proven 2026-09-29) + `b131c0a` chatterbox link. Fabio 2026-09-29: at the cut, not before. Harmless to 1.5.0/1.6.x (they never send `async`), useless to them until 2.0's app. **PROMOTED 2026-10-04** (guard OK at mpi-ci `89bb08b`, server-side copy): stable manifest = dev on all four fields (wrapper 0.2.45, start `776f1f1e…`, start-cpu `5b7a1879…`, wrapper `46aacae3…`), and the served stable start.sh / start-cpu.sh / wrapper.py hash to the manifest (python urllib read, no-cache)
+- [ ] `/mpi-version-bump` -> **2.0.0**, then `/mpi-release`. **Bump DONE 2026-10-04:** version
+  triple 2.0.0; `RELEASE_NOTES['2.0.0']` + `docs/releases/2026-10-04-v2.0.0.md` generated from
+  ONE list (scratchpad `notes200.py`; 12 important / 54 new / 44 fixes / 1 engine, cut to 1-2
+  lines, no em dashes; Known issues kept in the archival note only); UNRELEASED cleared; the 15
+  ops first shipped in 2.0 but pre-stamped 1.5.0/1.6.0 restamped `2.0.0` in both registries;
+  engine 0.34.0 + schema 4 unchanged. `release:check` green. Gate found two reds, both fixed:
+  `tests/agent-sessions.test.cjs` hardcoded `Documents\Cubric Vision` (at major 2 the folder is
+  `Cubric Studio`; now reads `getProjectsRoot()`, green at 2.0.0 and at 1.6.3), and
+  `release:deps` caught the H3 latent upscaler's HF mirror 404 (author moved it into a v1 folder
+  09-17; new path's LFS sha256 + size = ours). npm test 2712/0/2; release:deps 304 reachable.
+  Left: test:desktop, Fabio's Gate 1 read + his `release:approve`, then commit + tag
 - [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
 - [ ] Release day: **MPI-983** publish docs.cubric.studio, then cubric.studio (both built and held)
   - [ ] **`llms.txt` for docs.cubric.studio** rides with it (from MPI-593, handed over by Agent 85
     2026-10-01). Docs repo = Fabio's no-push repo with its own live session: ask THAT session (or
     Fabio) to add it, never write there. The pages exist on `docs-2.0`: `agent/`, `settings/`
 - [x] Before the notes are written: `github-release-checklist.md` § Scope Guard may still forbid "assistant" claims — CHECKED 2026-10-01: fixed by `0f6d75f09` (the section now says the agent and MCP are fair to name)
-- [ ] Ask Fabio again, near the release: a Discord/Patreon post warning 1.5.0 users about the 2026-11-15 RunPod cutoff (Fabio 2026-09-29: "no to the post right now, maybe closer to the release")
+- [ ] Ask Fabio again, near the release: a Discord/Patreon post warning 1.5.0 users about the 2026-11-15 RunPod cutoff (Fabio 2026-09-29: "no to the post right now, maybe closer to the release"). **Fabio 2026-10-04: YES, on release day, as a MadPony-Identity board card** (comms live there, not here)
 - [ ] After: MPI-603 R2/HF delete; MPI-612

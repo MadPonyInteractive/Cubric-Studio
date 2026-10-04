@@ -78,9 +78,8 @@ CubricStudio-macos-arm64-v<ver>.zip            CubricStudio-macos-arm64-update-v
 
 (See `docs/releases/github-release-checklist.md` for the canonical asset names
 and `docs/releases/portable-distribution-contract.md` for the artifact contract.)
-**2.0.0 additionally ships legacy `CubricVision-*` copies of these six** (D1,
-MPI-708 Phase 3, not yet built) so an install older than 1.5.0, whose updater only
-matches `CubricVision-*`, can still update; 2.1 drops the legacy names.
+**No legacy `CubricVision-*` copies** (Fabio 2026-09-29, MPI-972): 2.0 updates in place
+from 1.5.0, and an older install downloads the full build.
 
 **Attach all 6 to the GitHub Release** — the full builds are for fresh installs;
 the **delta bundles** are how existing users update without redownloading the

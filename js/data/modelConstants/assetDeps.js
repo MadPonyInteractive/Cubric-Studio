@@ -344,7 +344,8 @@ export const assetDeps = {
         origin: 'LBH-123-AI/Minimax_h3_latent_Upscaler (Apache-2.0)',
         filename: 'latent_upscale_models/minimax_h3_latent_upscaler_3d_bf16.safetensors',
         url: 'https://models.cubric.studio/vision/models/latent_upscale_models/minimax_h3_latent_upscaler_3d_bf16.safetensors',
-        mirrorUrl: 'https://huggingface.co/LBH-123-AI/Minimax_h3_latent_Upscaler/resolve/main/minimax_h3_latent_upscaler_3d_bf16.safetensors',
+        // The author moved the file into a v1 folder 2026-09-17; same bytes (HF LFS sha256 = ours).
+        mirrorUrl: 'https://huggingface.co/LBH-123-AI/Minimax_h3_latent_Upscaler/resolve/main/minimax_h3_latent_upscaler_3d_conv_v1/minimax_h3_latent_upscaler_3d_conv_v1_bf16.safetensors',
         size: '658.61MB',
         bytes: 690592992,
         sha256: '4f57821f5837f32f7142b67d815606dbd7550f194e5c769f7d6c3f83b146a5e6',

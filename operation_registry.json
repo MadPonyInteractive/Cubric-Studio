@@ -104,7 +104,7 @@
   },
   "ltxVideoUpscale": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "universal": true
   },
   "removeBackground": {
@@ -124,12 +124,12 @@
   },
   "gifCutoutSam3": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.6.0",
+    "appVersionIntroduced": "2.0.0",
     "universal": true
   },
   "gifCutoutBirefnet": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.6.0",
+    "appVersionIntroduced": "2.0.0",
     "universal": true
   },
   "resize": {
@@ -159,7 +159,7 @@
   },
   "flowCharacterSheet": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "universal": true
   },
   "flowCharacterSheetHeadless": {
@@ -169,57 +169,57 @@
   },
   "promptEnhance": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "universal": true
   },
   "flowOutpaint": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "universal": true
   },
   "flowScribObj": {
     "latestVersion": "1.1",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "universal": true
   },
   "flowVoiceChanger": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "universal": true
   },
   "flowDramaBox": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "deprecated": true
   },
   "flowChatterBox": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "deprecated": true
   },
   "flowStems": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "universal": true
   },
   "flowScribble": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "universal": true
   },
   "flowObjectStamp": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "universal": true
   },
   "flowTextToMusic": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "universal": true
   },
   "flowSoundAndMusic": {
     "latestVersion": "1.0",
-    "appVersionIntroduced": "1.5.0",
+    "appVersionIntroduced": "2.0.0",
     "deprecated": true
   },
   "t2a": {
