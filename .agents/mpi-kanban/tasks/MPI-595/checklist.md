@@ -202,12 +202,16 @@ THIS umbrella:
     deleted (200); 0 Pods left, Fabio's dev volume untouched. **Spent ~$0.24** of the $1.00 cap
     (4090 17 min x $0.74/hr = $0.21, CPU fill 6 min ~$0.02, volume ~$0.01). `release:check`:
     only the 1.6.x archival notes (Gate D)
-  - [ ] **GAP, Fabio's call:** the run left out `--models stable-audio-3,chatterbox`, which the
-    MPI-1012 line above put in its scope (the 6-graph `--plan` dropped them; 8 runs - 2 = 6).
-    Same graphs PASSED 09-28 as `flow/sound-and-music` + `flow/chatter-box`; since then only
-    node 43's title moved (`Input_TTS_English`), and the model-op path is new. `release:check`
-    now names them (plus `klein-9b-cloud`, cloud, nothing to smoke) as in no smoked family.
-    Covering them: 2 more runs, ~$0.10-0.15
+  - [x] **GAP closed 2026-10-04 (Fabio: "yes, run the audio pair"):** the run above left out
+    `--models stable-audio-3,chatterbox`, which the MPI-1012 line above put in its scope (the
+    6-graph `--plan` dropped them; 8 runs - 2 = 6). Ran them: **PASS 2 · SKIP 0 · FAIL 0** on an
+    RTX 5090 (62 GB floor, engine 0.34.0 proven), stable-audio-3/t2a 8 s, chatterbox/tts 21 s
+    (probe voice `smoke-probe.wav`). Evidence MERGED: **PASS 53 · SKIP 1 · FAIL 0 across 54 ops**,
+    3 runs. `release:check` now names only `klein-9b-cloud` (DeepInfra, no graph) as in no
+    smoked family. Pod deleted (204), volume `n8c5lgr00t` (60 GB) deleted (200), 0 Pods left.
+    **Spent ~$0.05** (5090 2m40s x $0.99/hr = $0.04, CPU fill 1.5 min ~$0.01).
+    **Whole re-smoke: ~$0.29 of the $1.00 cap.** Transcript: audio legs in
+    `dev_configs/smoke-run.txt`, the 6-graph legs at `ab5e81b4d`
   - **`--plan` DONE 2026-10-04 (session 88b78413), spent nothing:** 6 graphs, not 8 (minimax-h3
     t2v_ms + i2v_ms; Flows ltx-extend, ltx-extend/minimax-h3, character-sheet, outpaint); every
     preflight green, pod lock in sync with v0.34.0, MpiNodes bc92a1b8 clean. **Fabio's explicit

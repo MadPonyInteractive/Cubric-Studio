@@ -1,15 +1,15 @@
 {
-  "at": "2026-10-04T18:30:24.671Z",
+  "at": "2026-10-04T18:51:08.153Z",
   "engine": {
     "want": "0.34.0",
     "got": "0.34.0",
     "proven": true
   },
   "datacenter": "EU-RO-1",
-  "gpu": "RTX 4090",
+  "gpu": "RTX 5090",
   "volume": {
-    "id": "k3gkyqbtq1",
-    "size": 180
+    "id": "n8c5lgr00t",
+    "size": 60
   },
   "budget": {
     "steps": 1,
@@ -722,13 +722,38 @@
       ],
       "run": "2026-09-28T19:56:55.993Z",
       "gpu": "RTX 5090"
+    },
+    {
+      "model": "stable-audio-3",
+      "op": "t2a",
+      "status": "PASS",
+      "secs": 8,
+      "media": 1,
+      "budget": [
+        "Input_Duration=1",
+        "Input_Seed=42"
+      ],
+      "run": "2026-10-04T18:51:08.153Z",
+      "gpu": "RTX 5090"
+    },
+    {
+      "model": "chatterbox",
+      "op": "tts",
+      "status": "PASS",
+      "secs": 21,
+      "media": 1,
+      "budget": [
+        "Input_Seed=42"
+      ],
+      "run": "2026-10-04T18:51:08.153Z",
+      "gpu": "RTX 5090"
     }
   ],
   "counts": {
-    "pass": 51,
+    "pass": 53,
     "skip": 1,
     "fail": 0,
-    "opsPlanned": 52
+    "opsPlanned": 54
   },
   "scope": {
     "requested": "merged",
@@ -745,7 +770,9 @@
       "minimax-h3-ref2va",
       "wan22-5b",
       "qwen-edit",
-      "flux-schnell-cloud"
+      "flux-schnell-cloud",
+      "stable-audio-3",
+      "chatterbox"
     ],
     "covers": [
       "sdxl-realistic",
@@ -773,8 +800,6 @@
       "veo-31-cloud"
     ],
     "unproven": [
-      "stable-audio-3",
-      "chatterbox",
       "klein-9b-cloud"
     ],
     "modelsInRegistry": 39
@@ -783,7 +808,7 @@
     "Pod-green is not Windows-green: different OS, python, torch, CUDA.",
     "Deduped by class_type set — a break tied to weight FORMAT under the same loader node is not covered.",
     "Proves a graph RUNS; does not judge output quality.",
-    "SCOPED RUN: 3 of 39 models are in no family EITHER run touched — stable-audio-3, chatterbox, klein-9b-cloud."
+    "SCOPED RUN: 1 of 39 models are in no family EITHER run touched — klein-9b-cloud."
   ],
   "skippedWeights": [
     "sdxl-realistic(6.62GB)",
@@ -809,6 +834,7 @@
   ],
   "runs": [
     "2026-09-28T19:56:55.993Z",
-    "2026-10-04T18:30:24.671Z"
+    "2026-10-04T18:30:24.671Z",
+    "2026-10-04T18:51:08.153Z"
   ]
 }
