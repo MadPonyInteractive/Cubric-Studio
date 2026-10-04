@@ -456,6 +456,24 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
   `main.js:769`), or 2.0 renames Fabio's REAL `Documents\Cubric Vision`. One real generation
   (his GPU: say first), open the PNG, record `dev_configs/update-evidence.json`. Linux: fresh
   1.5.0 extract -> 2.0 bundle, plus the B3 Documents-rename check; Fabio pastes keys
+  - [x] **Built + downloaded 2026-10-04:** tag `v2.0.0` = `741ab812d` (approval token
+    commit); mpi-ci run 37231506822 built that SHA on all 3 legs; 6 `CubricStudio-*` assets in
+    `D:\CubricStudio\Vision\Builds\v2.0.0\`, every archive integrity-tested, CI artifacts
+    deleted. Tests CI on `0cb194124` green (the 2 local popup fails were this box)
+  - [x] **Windows DONE 2026-10-04 (Fabio's yes to GPU + gate change + body line):** 1.4.2's
+    applier CANNOT take the 2.0 FULL zip: aborts on the memory-mapped `icudtl.dat` (`UNKNOWN`,
+    fixed only in 1.5.0's applier; all 1.4.x lack it) after 6 byte-identical runtime files (all
+    1.4.x = Electron 41.1.1), so harmless, install stays 1.4.2 + a stray CubricStudio.exe; 1.4.x
+    in-app update only matches `CubricVision-*` assets, so it finds nothing. Gate now takes
+    `oldestServedVersion` (release-health-check.mjs + install-test playbook), body tells 1.4.x
+    the zip stops with an "unknown error". REAL test: published-1.5.0 copy
+    (`D:\CVTest\CubricVision-v1.5.0pub-to-v2.0.0`) -> update-from-zip.bat -> 2.0.0, user-data
+    27/27 byte-identical, models marker kept, scratch `Cubric Vision` renamed to `Cubric Studio`
+    + registry rewritten, engine installed the 3 new packs, SDXL t2i 1024px in 75 s, PNG opened
+    (red bicycle). `dev_configs/update-evidence.json` written; `release:check:publish` green;
+    the gate refuses the 3 bad shapes (no oldestServed / tested above it / unpublished)
+  - [ ] Linux box: fresh 1.5.0 extract -> 2.0 update zip, B3 rename check, then fill the Linux
+    line in `notes200.py` and re-run it
 - [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
 - [ ] Release day: **MPI-983** publish docs.cubric.studio, then cubric.studio (both built and held)
   - [ ] **`llms.txt` for docs.cubric.studio** rides with it (from MPI-593, handed over by Agent 85

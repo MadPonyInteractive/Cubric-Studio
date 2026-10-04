@@ -1,0 +1,18 @@
+{
+  "at": "2026-10-04T20:48:02Z",
+  "toVersion": "2.0.0",
+  "fromVersion": "1.5.0",
+  "bundleFromVersion": null,
+  "oldestServedVersion": "1.5.0",
+  "oldestServedReason": "Every 1.4.x applier aborts on the memory-mapped icudtl.dat (UNKNOWN, fixed in 1.5.0). Measured on a 1.4.2 copy: it stopped after 6 byte-identical runtime files (all 1.4.x share Electron 41.1.1), install still 1.4.2. The release body sends pre-1.5.0 installs to the full build.",
+  "platform": "win32",
+  "bundle": "CubricStudio-windows-x64-update-v2.0.0.zip",
+  "source": "D:\\CVTest\\CubricVision-v1.5.0pub-to-v2.0.0 (copy of a published-1.5.0 install with engine/; models/ held only a marker file, which survived)",
+  "userDataSurvived": true,
+  "userDataNote": "27 of 27 user-data files byte-identical after the update; scratch APP_DOCUMENTS 'Cubric Vision' folder renamed to 'Cubric Studio' and project-paths.json rewritten; the project opened",
+  "generation": {
+    "ok": true,
+    "artifact": "D:\\CVTest\\docs-v2.0.0-test\\Cubric Studio\\Projects\\Rename Check\\Media\\t2i_001.png",
+    "note": "SDXL Realistic t2i 1024x1024, 75 s on the RTX 4060 Ti, after the engine installed 2.0's 3 new node packs; opened it: a red bicycle against a white brick wall, matches the prompt"
+  }
+}

@@ -202,7 +202,7 @@ body = ['# Cubric Studio 2.0', '',
         'Cubric Vision becomes Cubric Studio, with two headlines: Flows, and an agent inside the app.', '',
         '---', '', '## ⚠️ Updating? Check your version first', '',
         '**You are on 1.5.0:** update as normal, in the app or with the update zip below.', '',
-        '**You are on anything older than 1.5.0:** download the full zip below. Your projects carry over.', '']
+        '**You are on anything older than 1.5.0:** download the full zip below. Your projects carry over. The update zip does not work on those versions: it stops with an "unknown error" and leaves your install working as it was.', '']
 body += [f'- {s}' for s in ki['Updating? section']] + ['', '---', '']
 for title, items in (('Important', important), ("What's new", whats_new), ('Fixes', fixes), ('Engine', engine)):
     body += [f'## {title}', ''] + [f'- {s}' for s in items] + ['']
@@ -213,7 +213,7 @@ body += ki['First launch, Windows'] + ['',
          '**macOS.** Any downloaded build is quarantined. Clear it, then launch:', '', '```',
          'xattr -dr com.apple.quarantine "<extracted folder>"', '```', '', 'then double-click `start.command`.', '']
 body += ki['First launch, macOS'] + ['', '---', '', '## Platform support, please read', '',
-         '- **Windows** - TO FILL from the D: drive install smoke test (what ran, how far it got).',
+         '- **Windows** - Tested on this version: a 1.5.0 install updated in place with the update zip kept its projects and settings, installed the new engine parts, and generated an image. Older than 1.5.0: take the full zip (see the top).',
          '- **Linux** - TO FILL from the Linux box install smoke test, or "not tested on this version."',
          '- **macOS** - ' + ki['Platform support, macOS'][0], '']
 open(ROOT + '.agents/mpi-kanban/tasks/MPI-595/release-body-2.0.0.md', 'wb').write('\n'.join(body).encode('utf-8'))

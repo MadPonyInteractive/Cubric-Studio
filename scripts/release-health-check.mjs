@@ -617,6 +617,15 @@ async function checkUpdateEvidence(appVersion) {
     ? null
     : String(evidence.bundleFromVersion).replace(/^v/, '');
   const from = String(evidence.fromVersion || '').replace(/^v/, '');
+  // A FULL bundle is applied by the applier ALREADY installed, and an old one can refuse it.
+  // 2.0's is: every 1.4.x applier aborts on the memory-mapped icudtl.dat (the UNKNOWN fix
+  // first shipped in 1.5.0), so it serves 1.5.0 and up and the release body sends older
+  // installs to the full build. `oldestServedVersion` records that line, and the test must
+  // start there - the oldest install the bundle still claims (MPI-595, 2026-10-04).
+  const oldestServed = evidence.oldestServedVersion == null
+    ? null
+    : String(evidence.oldestServedVersion).replace(/^v/, '');
+  const isFull = hasBundleFrom && bundleFrom === null;
 
   if (!hasBundleFrom) {
     fail("update-evidence.json does not record bundleFromVersion - the fromVersion field of the bundle's own update-manifest.json (null for a FULL bundle, a version for a delta). Without it the check cannot tell which installs the bundle claims to serve, and so cannot tell what a fair test of it is.");
@@ -625,8 +634,12 @@ async function checkUpdateEvidence(appVersion) {
     fail('update-evidence.json does not record fromVersion - the version of the install that was updated.');
   } else if (!prior.includes(from)) {
     fail(`update-evidence.json says the source install was ${from}, which is not a published version. Test from a release users actually hold: ${prior.join(', ')}.`);
-  } else if (hasBundleFrom && bundleFrom === null && compareVersions(from, oneBehind) >= 0) {
-    fail(`update-evidence.json tested a FULL bundle from ${from}, only ONE release behind ${appVersion}. A one-behind update passes even when the applier is broken, and a FULL bundle claims to serve every older install too. Re-run from ${twoBehind} or older (MPI-709).`);
+  } else if (isFull && oldestServed !== null && !prior.includes(oldestServed)) {
+    fail(`update-evidence.json says the FULL bundle serves ${oldestServed} and up, which is not a published version: ${prior.join(', ')}.`);
+  } else if (isFull && oldestServed !== null && compareVersions(from, oldestServed) > 0) {
+    fail(`update-evidence.json says the FULL bundle serves ${oldestServed} and up, but tested from ${from}. Test from ${oldestServed}, the oldest install it claims.`);
+  } else if (isFull && oldestServed === null && compareVersions(from, oneBehind) >= 0) {
+    fail(`update-evidence.json tested a FULL bundle from ${from}, only ONE release behind ${appVersion}. A one-behind update passes even when the applier is broken, and a FULL bundle claims to serve every older install too. Re-run from ${twoBehind} or older (MPI-709) - or, if older installs' own appliers cannot take this bundle, record oldestServedVersion and test from it.`);
   } else if (hasBundleFrom && bundleFrom !== null && from !== bundleFrom) {
     fail(`update-evidence.json tested from ${from}, but this is a DELTA bundle whose manifest fromVersion is ${bundleFrom} - the only install it can be applied to. Test it from ${bundleFrom}. Every older install is NOT served by this release and must be told so in the release body, because their installed applier predates the fromVersion guard and will apply this delta silently (MPI-709).`);
   }
@@ -637,6 +650,10 @@ async function checkUpdateEvidence(appVersion) {
 
   if (evidence.userDataSurvived !== true) {
     fail('update-evidence.json does not record that user-data (projects, secrets, settings) survived the update.');
+  }
+
+  if (isFull && oldestServed !== null) {
+    console.warn(`The update bundle serves ${oldestServed} and up: the release body must tell every older install to download the full build.`);
   }
 }
 

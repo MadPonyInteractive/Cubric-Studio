@@ -104,6 +104,13 @@ record the `fromVersion` you find there as `bundleFromVersion` in the evidence:
 - **A DELTA claims exactly one install — its own `fromVersion`.** Test it from precisely that
   version. Demanding a two-behind run of a delta asks for a test that cannot legitimately
   pass, and running it anyway just reproduces the corruption on purpose.
+- **A FULL bundle that older APPLIERS cannot take serves less than every install.** The
+  applier that runs is the one already installed, so its bugs decide. 2.0 is the case: every
+  1.4.x applier aborts on the memory-mapped `icudtl.dat` (it stops with `UNKNOWN: unknown
+  error, copyfile`, harmlessly — all 1.4.x share Electron 41.1.1, so the files it already
+  swapped are byte-identical), and the fix first shipped in 1.5.0. Record the line as
+  `oldestServedVersion` (`"1.5.0"`), test from exactly that version, and make the release body
+  send every older install to the full build. The gate then accepts a one-behind source.
 
 ```bash
 git tag --list "v*" | sort -V | tail -6

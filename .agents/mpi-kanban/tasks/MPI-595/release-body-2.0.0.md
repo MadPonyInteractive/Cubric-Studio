@@ -8,7 +8,7 @@ Cubric Vision becomes Cubric Studio, with two headlines: Flows, and an agent ins
 
 **You are on 1.5.0:** update as normal, in the app or with the update zip below.
 
-**You are on anything older than 1.5.0:** download the full zip below. Your projects carry over.
+**You are on anything older than 1.5.0:** download the full zip below. Your projects carry over. The update zip does not work on those versions: it stops with an "unknown error" and leaves your install working as it was.
 
 - **Use rented GPUs? Update to 2.0 before 15 November 2026.** That day RunPod switches off the connection every version before 2.0 uses to rent GPUs. 2.0 uses the new one.
 - **Your first Connect after updating sets up a fresh Pod.** A Pod keeps the version it was made with, so 2.0 replaces the one an older version made instead of reusing it. The models on your network volume stay; only that first Connect takes longer.
@@ -158,6 +158,6 @@ Setting up the local engine on a Mac needs Apple's Command Line Tools. If setup 
 
 ## Platform support, please read
 
-- **Windows** - TO FILL from the D: drive install smoke test (what ran, how far it got).
+- **Windows** - Tested on this version: a 1.5.0 install updated in place with the update zip kept its projects and settings, installed the new engine parts, and generated an image. Older than 1.5.0: take the full zip (see the top).
 - **Linux** - TO FILL from the Linux box install smoke test, or "not tested on this version."
 - **macOS** - Not tested on this version, including updating from 1.5.0.
