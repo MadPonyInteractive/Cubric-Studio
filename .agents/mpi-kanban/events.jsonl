@@ -5603,3 +5603,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1017", "at": "2026-10-04T18:24:19+01:00", "actor": "claude", "status": "active"}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1017", "at": "2026-10-04T18:31:04+01:00", "actor": "claude", "summary": "reopen fix: panel duration+ratio reach Cosmo; tests green"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1017", "at": "2026-10-04T18:31:04+01:00", "actor": "claude", "maturity": "validating"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1017", "at": "2026-10-04T18:55:48+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio's look after restart passed: ref2v 2 s 4:3, Cosmo kept the panel's duration and ratio, no shot past the clip; CI green on 2a1f70a39"}
+{"schema": "mpi-kanban/event/v1", "type": "attention.cleared", "id": "MPI-1017", "at": "2026-10-04T18:56:03+01:00", "actor": "claude", "reason": "Fabio's look after restart passed; closed"}

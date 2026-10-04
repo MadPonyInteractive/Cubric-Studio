@@ -41,3 +41,13 @@ Agent evidence:
 - `npm test`: 2714 tests, 2712 pass, 0 fail. eslint clean on the four changed files.
 
 Remaining: Fabio's look after an app restart.
+
+## Fabio's look after restart (2026-10-04) — PASSED
+
+Project Deepinfra model tests, panel open on Wan 3.0 ref2v 480p 2 s 4:3, a 16:9 tiger image attached.
+Cosmo first refused to run t2v over an image and asked Fabio to switch the panel op (the lock holding).
+After the switch: "Started - it's a 2-second ref2v clip on Wan 3.0" - panel duration, no foreign ratio.
+Sidecar ref2v_003 (500bd4d5...): Input_Duration 2, Ratio_Label 4:3, 640x480 sent; output 740x554;
+prompt has no Shot timestamps, one continuous 2 s action. Spend $0.10. Fabio: "Came out great"
+(Wan invented the top of the frame filling 4:3 from a 16:9 reference - expected ref2v behaviour).
+CI green on 2a1f70a39 (Tests run 37220841060). Closed.

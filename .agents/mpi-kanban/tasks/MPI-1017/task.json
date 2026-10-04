@@ -3,11 +3,11 @@
   "id": "MPI-1017",
   "title": "The open settings panel locks every setting; Cosmo owns only references and the prompt",
   "description": "Fabio 2026-10-04, live: with the panel open on Wan 3.0 t2v 720p 4s ($0.40), Cosmo sent ref2v with the finished clip as its own reference and the spend card quoted $1.90 (4 s + a 15 s reference ceiling). Panel open now locks operation, model, duration, quality, ratio and batch; Cosmo supplies reference images/videos/audio and the prompt only. Also: a reference clip is priced by its real length, a ceiling says 'up to', and a No on the spend card hands the price back so Cosmo stops inventing one. Blocks the 2.0 cut (MPI-595).",
-  "column": "doing",
-  "maturity": "validating",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
   "created_at": "2026-10-04T11:40:39+01:00",
-  "updated_at": "2026-10-04T18:31:04+01:00",
+  "updated_at": "2026-10-04T18:56:03+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -19,8 +19,8 @@
     "research": "research/"
   },
   "attention": {
-    "state": "required",
-    "reason": "Fabio: restart the app, panel open on Wan 3.0; Cosmo should name the panel ratio and time shots inside the clip",
-    "updated_at": "2026-10-04T18:31:04+01:00"
+    "state": "cleared",
+    "reason": "Fabio's look after restart passed; closed",
+    "updated_at": "2026-10-04T18:56:03+01:00"
   }
 }
