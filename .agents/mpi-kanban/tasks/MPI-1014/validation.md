@@ -65,3 +65,8 @@ MIN 2 never scales; Paint's default re-derives on a canvas resize only until the
 
 Fabio "1" on the four image Flows (image swap resets the steps, cutout + paint brush on 16K).
 Closes once CI is green on `1193fd7c0` (contains `c482068db`; `db11c7fa6` already green).
+
+## Closed (2026-10-04)
+
+`gh run list --branch master`: Tests `success` on `1193fd7c0` (and `5d84b7449`, `db11c7fa6`).
+With Fabio's "1" above, MPI-1014 moves to done.

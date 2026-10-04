@@ -1,0 +1,29 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.css",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.css",
+    "js/components/Organisms/MpiToolOptionsPrompt/",
+    "js/services/generationService.js",
+    "routes/videoConcat.js",
+    "js/components/Organisms/MpiVideoViewer/MpiVideoViewer.js",
+    "js/components/Compounds/MpiVideoSurface/MpiVideoSurface.js",
+    "js/components/types.js",
+    "js/shell/preloadStyles.js",
+    "tests/history-current-entry-owns-media.test.cjs",
+    "tests/desktop/video-history-strip.spec.js",
+    "docs/workspaces.md",
+    "docs/generation-lifecycle.md",
+    "docs/PROJECT.md",
+    "docs/video-player.md",
+    "docs/project-integrity.md",
+    "docs/releases/UNRELEASED.md",
+    ".claude/rules/components.md",
+    ".claude/rules/component-mounts.md",
+    ".claude/rules/component-events-organisms.md",
+    ".claude/rules/component-events-blocks.md",
+    ".claude/rules/component-state.md"
+  ]
+}

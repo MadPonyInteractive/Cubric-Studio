@@ -1,0 +1,22 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1015",
+  "title": "Video screen works like the image screen: the + strip and reference models; retire the Start/End frame panel and Extend/New shot",
+  "description": "Fabio 2026-10-04, 2.0 gate: the video history workspace gets the PromptBox media strip with its + card (pop-up library) like gallery and image history, offers reference-video models (MiniMax H3 Reference was hidden: the screen listed i2v-only models), and retires the Start/End frame panel (MpiToolOptionsPrompt) and Continue video Extend/New shot (Combine already joins clips). Consistency before 2.0, no deadline.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-04T08:43:52+01:00",
+  "updated_at": "2026-10-04T09:19:05+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  },
+  "activeSessionTitle": "Release 2.0 blockers 42"
+}

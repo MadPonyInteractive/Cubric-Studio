@@ -7,3 +7,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1014", "at": "2026-10-04T08:03:28+01:00", "actor": "session:91654848", "from": "doing", "to": "doing", "reason": "brush scaling built + self-verified; waits on Fabio's look"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1014", "at": "2026-10-04T08:09:50+01:00", "actor": "session:91654848", "from": "doing", "to": "doing", "reason": "Fabio: fix the History brush too"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1014", "at": "2026-10-04T08:11:01+01:00", "actor": "session:91654848", "from": "doing", "to": "doing", "reason": "History brush left as is: Fabio, it already grows as far as needed"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1014", "at": "2026-10-04T08:18:24+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio passed his look ('1', 2026-10-04) and CI is green on 1193fd7c0; evidence in validation.md."}

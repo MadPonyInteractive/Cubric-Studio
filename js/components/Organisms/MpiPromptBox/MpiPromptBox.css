@@ -617,10 +617,9 @@
     display: none;
 }
 
-/* History workspace: toolbar organism (MpiToolOptionsPrompt) owns frame thumbs.
- * Strip stays in DOM with chip data intact; only rendering suppressed.
- * MPI-721: unless the box stages its own media, in which case the strip IS the
- * surface — the `+` card and the numbered chips, entry included, live in it. */
+/* History workspace: the strip shows only when the box stages its own media (MPI-721
+ * image, MPI-1015 video) — then it IS the surface: the `+` card and the numbered chips,
+ * entry included, live in it. Strip stays in DOM with chip data intact otherwise. */
 .mpi-prompt-box--history-mode:not(.mpi-prompt-box--stage-media) .mpi-prompt-box-media-strip {
     display: none;
 }
@@ -701,6 +700,26 @@
     line-height: 1;
     pointer-events: none;
     z-index: 5;
+}
+
+/* MPI-1015: a video card's clip chip — its tag swaps the clip for a frame and back.
+ * Same badge, made a mounted MpiButton; the `.mpi-btn` prefix outranks the Primitive. */
+.mpi-btn.mpi-prompt-box-media-strip__index--toggle {
+    gap: var(--s-1);
+    border-radius: 0;
+    background: var(--accent-heat);
+    color: var(--surface-0);
+    font-size: var(--t-2xs);
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: normal;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.mpi-btn.mpi-btn--ghost.mpi-prompt-box-media-strip__index--toggle:hover:not(:disabled) {
+    background: color-mix(in oklch, var(--accent-heat) 80%, transparent);
+    color: var(--surface-0);
 }
 
 /* MPI-949: a staged Gallery stack — the layers icon and its member count, the same

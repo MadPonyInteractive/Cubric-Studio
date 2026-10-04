@@ -38,7 +38,6 @@ import { MpiToolOptionsGifCutout } from '../../Organisms/MpiToolOptionsGifCutout
 import { MpiToolOptionsGifTiming } from '../../Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.js';
 import { timingEdit, rangeBounds } from '../../../utils/gifTiming.js';
 import { MpiToolOptionsGifTransform } from '../../Organisms/MpiToolOptionsGifTransform/MpiToolOptionsGifTransform.js';
-import { MpiToolOptionsPrompt } from '../../Organisms/MpiToolOptionsPrompt/MpiToolOptionsPrompt.js';
 import { MpiPromptBox } from '../../Organisms/MpiPromptBox/MpiPromptBox.js';
 import { MpiQueuePanel } from '../../Compounds/MpiQueuePanel/MpiQueuePanel.js';
 import { state } from '../../../state.js';
@@ -332,22 +331,16 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         // ── Model / operation context ─────────────────────────────────────────
 
-        // Video history is a frame-driven workspace: its prompt toolbar (Start/End
-        // frame, Extend, Create new) only makes sense for models that accept image
-        // input. After the combined→split model change, t2v-only models carry no
-        // i2v op, so they must NOT be selectable here — gate the MODEL LIST, not the
-        // tools.
-        const _modelSupportsI2V = (m) =>
-            Array.isArray(m?.supportedOps) && m.supportedOps.some(op => op.startsWith('i2v'));
-        // MPI-955: image history mirrors the same gate. A model with no op that
-        // takes an image (e.g. a DeepInfra text-to-image-only model) left
-        // `_hasPromptOps()` false for every op, so the prompt tool — and the
-        // Cue/Stop/model-picker that live inside it — went dead with no way out.
-        // Every op key not in `isTextOnlyOp` (t2i, t2v...) requires an image or a
-        // video; for an image model that means "takes an image".
-        const _modelTakesImage = (m) =>
+        // A history workspace generates FROM something, so it offers the models with an
+        // op that takes an image or a video. MPI-955: a model with none (a DeepInfra
+        // text-to-image-only model) left `_hasPromptOps()` false for every op, so the
+        // prompt tool — and the Cue/Stop/model-picker inside it — went dead. Every op
+        // key not in `isTextOnlyOp` (t2i, t2v...) takes an image or a video.
+        // MPI-1015: video is the same rule. It was cut to models that animate a
+        // picture, which hid every reference model (MiniMax H3 Reference has no i2v).
+        const _modelTakesMedia = (m) =>
             Array.isArray(m?.supportedOps) && m.supportedOps.some(op => !isTextOnlyOp(op));
-        const _promptModelFilter = (m) => (isVideo ? _modelSupportsI2V(m) : _modelTakesImage(m));
+        const _promptModelFilter = _modelTakesMedia;
 
         const { model: activeModelInit, modelId: activeModelIdInit, installedModels: _allInstalledModels } =
             resolveActiveModel(isVideo ? 'video' : 'image');
@@ -367,23 +360,20 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // group's mediaType. Persisting here would clobber the sibling-type
         // slot (e.g. entering image history would wipe a video selection).
 
-        // Live media context — counts reflect (a) the implicit "current item"
-        // (1 image in image groups, 1 video in video groups) PLUS (b) any
-        // chips the user has staged in PromptBox via inject (e.g. start/end
-        // frame). `_refreshOpOptions` recomputes from PromptBox state so
-        // I2V ops unlock the moment a frame chip lands.
+        // Live media context — the chips staged in the PromptBox, which include the
+        // workspace's own entry as a pinned chip (MPI-721 image, MPI-1015 video on a
+        // reference op). The image seed of 1 is that entry before the box mounts.
+        // `_refreshOpOptions` recomputes from PromptBox state so I2V ops unlock the
+        // moment a frame chip lands.
         const _baseCtx = isVideo
-            ? { imageCount: 0, videoCount: 1 }
+            ? { imageCount: 0, videoCount: 0 }
             : { imageCount: 1, videoCount: 0 };
         function _syncBaseCtxFromPromptBox() {
-            const img = Number(_pb?.el?.imageCount) || 0;
-            const vid = Number(_pb?.el?.videoCount) || 0;
-            // MPI-721: no `Math.max(1, img)` for an image group any more. The active
-            // entry IS one of the chips now, so the old floor would count it twice —
-            // three references plus the entry would offer a 4-image op on a 3-slot model.
-            // Video keeps its floor: its source clip is never a chip.
-            _baseCtx.imageCount = img;
-            _baseCtx.videoCount = isVideo ? Math.max(1, vid) : vid;
+            // MPI-721 (image) / MPI-1015 (video): no floor of 1. The entry IS one of
+            // the chips now, so a floor would count it twice — three references plus
+            // the entry would offer a 4-image op on a 3-slot model.
+            _baseCtx.imageCount = Number(_pb?.el?.imageCount) || 0;
+            _baseCtx.videoCount = Number(_pb?.el?.videoCount) || 0;
         }
 
         let _canvasHasMask = false;
@@ -408,8 +398,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // without it this list offers an op whose per-op weights are absent, and
             // the block's own `activeOperation` seeds from it.
             const maskCtx = { ..._baseCtx, hasMask: liveMask, installedOps: installedOpsForContext(activeModel) };
+            // Text-only ops are hidden here; judged by SLOTS, not requirements, since
+            // ref2v requires nothing and takes pictures, clips and audio (MPI-1015).
             return getAvailableCommands(activeModel.mediaType, activeModel, { ...maskCtx, ...ctx })
-                .filter(cmd => (cmd.requiresImages ?? 0) > 0 || (cmd.requiresVideo ?? 0) > 0)
+                .filter(cmd => !isTextOnlyOp(cmd.key))
                 .map(cmd => ({ value: cmd.key, label: cmd.label, disabled: !cmd.available }));
         }
 
@@ -419,14 +411,12 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         }
 
         /**
-         * Active model exposes frame-driven ops (i2v* / v2v*) that accept external
-         * media drops. PromptBox must be visible even with no chips staged so the
-         * user can drop a start/end-frame image (or input video) from outside.
+         * A video card's box must be up with nothing staged: its picture-animating
+         * ops need a picture the user adds there (`+`, a drop, right-click Set as
+         * start frame). An image card always has its entry chip, so it never needs this.
          */
-        function _modelHasFrameOps() {
-            const ops = activeModel?.supportedOps;
-            if (!Array.isArray(ops)) return false;
-            return ops.some(op => op.startsWith('i2v') || op.startsWith('v2v'));
+        function _videoBoxBeforeMedia() {
+            return isVideo && _modelTakesMedia(activeModel);
         }
 
         /** Unified PromptBox-visible gate used across mount/show paths.
@@ -436,11 +426,15 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
          *  directly for the `force: true` callers that bypass this check. */
         function _shouldShowPromptBox() {
             if (isGif) return false;
-            return _hasPromptOps() || _modelHasFrameOps();
+            return _hasPromptOps() || _videoBoxBeforeMedia();
         }
 
         const _firstAvailable = _opOptions().find(o => !o.disabled);
-        const _firstFrameOp = activeModel?.supportedOps?.find(op => op.startsWith('i2v') || op.startsWith('v2v'));
+        // MPI-1015: a video card opens on the model's first op that takes media in
+        // ITS order, so a model with both lands on animate-a-picture (i2v before
+        // ref2v): a `+` picture is then a start frame, and the clip is not sent
+        // unless the user picks the reference op.
+        const _firstMediaOp = activeModel?.supportedOps?.find(op => !isTextOnlyOp(op));
         // MPI-247: prefer the user's remembered op for this model so navigating
         // Gallery<->History (which remounts the block) doesn't snap the op back
         // to the first available. Only honour it if it's actually available in
@@ -449,9 +443,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         const _rememberedAvailable = _rememberedOp && _opOptions().some(o => o.value === _rememberedOp && !o.disabled);
         let activeOperation = _rememberedAvailable
             ? _rememberedOp
-            : (_hasPromptOps()
-                ? (_firstAvailable?.value ?? 'upscale')
-                : (_firstFrameOp || (isVideo ? 't2v' : 'generate')));
+            : isVideo
+                ? (_firstMediaOp || 't2v')
+                : (_hasPromptOps() ? (_firstAvailable?.value ?? 'upscale') : 'generate');
         let _preferredOperation = activeOperation;
         let _isProgrammaticOperationSync = false;
         let _currentIdx = _group.selectedIndex ?? 0;
@@ -1136,25 +1130,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
             if (mode === 'prompt') {
                 if (!isVideo) await viewer.el.swapToPreview?.();
-                // Force-mount PromptBox whenever the active model supports
-                // frame-driven ops (i2v*/v2v*) so the user can drop a
-                // start/end-frame (or input video) from outside — even before
-                // any chip is staged. Otherwise fall back to the gated path.
-                const hasFrameOps = _modelHasFrameOps();
-                if (hasFrameOps) {
-                    if (!_pb?.el) _mountPromptBoxIfNeeded({ force: true });
-                } else if (!_pb?.el) {
-                    _mountPromptBoxIfNeeded();
-                }
+                // Force-mount on a video card so the user can stage its first picture
+                // there — even before any chip is staged. Otherwise the gated path.
+                if (!_pb?.el) _mountPromptBoxIfNeeded({ force: _videoBoxBeforeMedia() });
                 if (_pb?.el && _shouldShowPromptBox()) _pb.el.show();
-                // Mount frame-slot toolbar organism into #right-top-slot for
-                // video-history when the active model supports any i2v op.
-                if (isVideo && _pb?.el && hasFrameOps) {
-                    _options = MpiToolOptionsPrompt.mount(slot, {
-                        promptBox: _pb,
-                        project: state.currentProject,
-                    });
-                }
                 return;
             }
 
@@ -1424,7 +1403,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         };
 
         // MPI-113: mirror this group's running jobs into the PromptBox so its
-        // inline Stop/Clear enable when an op (e.g. extend) is dispatched from
+        // inline Stop/Clear enable when an op (e.g. a rail tool) is dispatched from
         // outside the Cue button. Gallery does the same via _refreshPbGenerating;
         // history previously left Stop disabled, forcing a trip to the gallery queue.
         const _syncPbGenerating = () => {
@@ -1945,7 +1924,12 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             const jobs = [];
             for (const m of stackTargets(_stackMembers(), _picked)) {
                 const item = m.history[m.selectedIndex ?? 0];
-                const mediaItems = isVideo ? payload.mediaItems : buildCueAllJobItems(
+                // MPI-1015: a video stack swaps in each member's clip where the strip
+                // holds the open one (a reference op). With no clip chip (an animate op,
+                // or the clip swapped for a frame) every member gets the strip as it is.
+                // ponytail: a swapped frame is the OPEN member's, sent to all; grab one
+                // per member only if stacks of clips on reference ops become a real use.
+                const mediaItems = (isVideo && pinned?.mediaType !== 'video') ? payload.mediaItems : buildCueAllJobItems(
                     payload.operation, activeModel, payload.mediaItems,
                     { ...(pinned || { mediaType: 'image', source: 'history' }), url: resolveMediaUrl(item.filePath) },
                     { chipId: pinned?.id },
@@ -2166,19 +2150,55 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             _syncEntryChip();
         }
 
+        // MPI-1015: the open clip's pinned chip, while it is swapped for a frame:
+        // { entryId, url } of the captured picture. Null = the chip is the clip.
+        let _clipFrame = null;
+        // What the video chip was last pointed at, so an unchanged op change does not
+        // re-pin (each re-pin is a fresh id, a repaint and a media-change).
+        let _pinnedKey = '';
+
         /**
          * Point the PromptBox's pinned chip at the active entry, or drop it.
          *
-         * Image groups only. A video group's source clip is NOT a chip — its frames come
-         * from MpiToolOptionsPrompt's dedicated start/end slots, and a video entry cannot
-         * fill i2v's required IMAGE slot anyway, so the two paths stay split.
+         * Video (MPI-1015): only on an op that takes a video — the reference ops —
+         * where the clip is Video 1, or, swapped by its tag, the frame under the
+         * playhead as a picture (Fabio: a clip that is always an input is the problem,
+         * and Wan bills a reference clip's seconds). A picture-animating op takes
+         * pictures, so there the clip is no chip and is not sent.
          */
         function _syncEntryChip() {
-            if (isVideo || !_pb?.el?.setPinnedMedia) return;
+            if (!_pb?.el?.setPinnedMedia) return;
             const item = _group.history?.[_currentIdx];
-            _pb.el.setPinnedMedia(item?.filePath
-                ? { url: resolveMediaUrl(item.filePath), name: _group.name || undefined }
-                : null);
+            if (!isVideo) {
+                _pb.el.setPinnedMedia(item?.filePath
+                    ? { url: resolveMediaUrl(item.filePath), name: _group.name || undefined }
+                    : null);
+                return;
+            }
+            if (_clipFrame && _clipFrame.entryId !== item?.id) _clipFrame = null;
+            const takesVideo = getCommandMediaInputs(activeOperation).some(s => s.mediaType === 'video');
+            const pin = !item?.filePath || !takesVideo ? null
+                : _clipFrame ? { url: _clipFrame.url, mediaType: 'image', swappable: true }
+                : { url: resolveMediaUrl(item.filePath), mediaType: 'video', name: _group.name || undefined, swappable: true };
+            const key = pin ? `${pin.mediaType}|${pin.url}` : '';
+            if (key === _pinnedKey) return;
+            _pinnedKey = key;
+            _pb.el.setPinnedMedia(pin);
+        }
+
+        /** The pinned clip's tag was clicked: clip -> the frame under the playhead, frame -> clip. */
+        async function _swapClipChip() {
+            const item = _group.history?.[_currentIdx];
+            if (!isVideo || !item) return;
+            if (_clipFrame) {
+                _clipFrame = null;
+                _syncEntryChip();
+                return;
+            }
+            const uploaded = await _captureFrameUpload({}, 'frame-reference');
+            if (!uploaded) return;
+            _clipFrame = { entryId: item.id, url: uploaded.filePath };
+            _syncEntryChip();
         }
 
         // Block-side bookkeeping after the active model changed. Called by the
@@ -2297,10 +2317,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 workspaceKey: 'history',
                 // A stack keeps ONE draft across its members (MPI-949).
                 workspaceId: _stackId || _group.id,
-                // MPI-721: image groups stage their own reference media — the `+` card
-                // opens MpiMediaPicker and the strip becomes visible. Video groups do
-                // not: MpiToolOptionsPrompt owns their start/end frame thumbs.
-                stageMedia: !isVideo,
+                // MPI-721 image, MPI-1015 video: the box stages its own media — the `+`
+                // card opens MpiMediaPicker and the strip is visible.
+                stageMedia: true,
             });
             _pb?.el?.hide();
 
@@ -2316,12 +2335,16 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // box no longer persists or restores anything for 'history' (_saveMedia), so
             // there is nothing to clear — and the entry it generates from is now a chip
             // the user can see. Seed it here; _setCurrentIdx re-points it after that.
+            _pinnedKey = '';
             _syncEntryChip();
             _syncRunCount();
 
             _unsubs.push(_pb.on('model-change', ({ model }) => _adoptModel(model)));
+            _unsubs.push(_pb.on('pinned-swap', () => { _swapClipChip(); }));
             _unsubs.push(_pb.on('operation-change', ({ operation, programmatic }) => {
                 activeOperation = operation;
+                // A video card's clip is a chip only on an op that takes a video.
+                if (isVideo) _syncEntryChip();
                 // User-driven pick only: update the preferred op AND remember it
                 // per model (MPI-247), so it survives a remount. Guard on BOTH the
                 // block's own programmatic-sync flag and the PromptBox's own
@@ -2474,11 +2497,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             let targetOperation = payload.operation && targetModel.supportedOps?.includes(payload.operation)
                 ? payload.operation
                 : activeOperation;
-            // MPI-281 follow-up: History video is a continuation surface — it only
-            // serves i2v (Extend/New shot self-capture a start frame). A reused card
-            // whose op is text-only (t2v_ms) is filtered out of the op dropdown here,
-            // so restoring it renders "Select...". Remap a text-only reused op to the
-            // model's i2v op so the panel reads a real, runnable operation.
+            // MPI-281 follow-up: History hides text-only ops, so a reused card whose op
+            // is text-only (t2v_ms) is filtered out of the op dropdown here, and
+            // restoring it renders "Select...". Remap it to the model's i2v op so the
+            // panel reads a real, runnable operation.
             if (isVideo && !_opOptions().some(o => o.value === targetOperation)) {
                 targetOperation = _continuationOp(targetOperation);
             }
@@ -2587,13 +2609,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // it, and this one carries the short prompt behind an approved enhancement.
         // `group` (MPI-949): a stack run builds one job per member; every other caller runs
         // on the card on screen.
-        function _generationFromPromptPayload({ operation, positive, negative, negativeAudio, sourcePrompt = null, mediaItems = [], maskDataUrl, injectionParams = {}, previewOnly = false, historyMode = false, extend = false, sourceItemId = null, forceLocal = false }, group = _group) {
+        function _generationFromPromptPayload({ operation, positive, negative, negativeAudio, sourcePrompt = null, mediaItems = [], maskDataUrl, injectionParams = {}, previewOnly = false, historyMode = false, forceLocal = false }, group = _group) {
             if (!activeModel) return;
 
-            const currentItem = group === _group ? _group.history[_currentIdx] : group.history[group.selectedIndex ?? 0];
-            const currentMediaType = isVideo ? 'video' : 'image';
-            const mediaSlots = getCommandMediaInputs(operation);
-            const wantsCurrentType = mediaSlots.some(slot => slot.mediaType === currentMediaType && slot.required !== false);
             // MPI-721 supersedes MPI-351's discard, and does it structurally.
             //
             // MPI-351 threw image-group chips away because they were PERSISTED per
@@ -2602,37 +2620,21 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // two-hour-old kleinEdit output while a fresh crop was the active entry).
             // The answer here is the opposite of hiding chips: the active entry is itself
             // a pinned, numbered chip (`_syncEntryChip`), and the box persists nothing
-            // for 'history'. So for an image group `mediaItems` IS the whole slot truth —
-            // strip order is slot order, and nothing a run consumes is off-screen. There
-            // is no prepend, because prepending the entry would now double it.
+            // for 'history'. So `mediaItems` IS the whole slot truth — strip order is
+            // slot order, and nothing a run consumes is off-screen. There is no prepend,
+            // because prepending the entry would now double it.
             //
-            // Video is deliberately NOT collapsed into this. Its source clip never
-            // appears in the strip: frames come from MpiToolOptionsPrompt's dedicated
-            // start/end slots (and the Extend / New-shot last-frame capture), and a video
-            // entry cannot fill i2v's required IMAGE slot itself — so it still resolves
-            // the current item in here.
-            const stagedMedia = isVideo
-                ? mediaItems.filter(m => m.mediaType !== 'image' || m.role === 'startFrame' || m.role === 'endFrame')
-                : mediaItems;
-            const hasCurrentTypeMedia = stagedMedia.some(m => m.mediaType === currentMediaType);
-            let resolvedMedia = stagedMedia;
-
-            if (isVideo && currentItem?.filePath && !hasCurrentTypeMedia) {
-                const currentMedia = {
-                    url: resolveMediaUrl(currentItem.filePath),
-                    mediaType: currentMediaType,
-                    source: 'history',
-                };
-                if (wantsCurrentType || !mediaSlots.length) {
-                    resolvedMedia = [currentMedia, ...stagedMedia];
-                }
-            }
+            // MPI-1015: video is the same rule. Its clip is a pinned chip on an op that
+            // takes a video (or the frame it was swapped for), and no chip on an op
+            // that takes pictures. The old video branch kept only start/end frames and
+            // silently dropped every reference picture.
+            const resolvedMedia = mediaItems;
             const resolvedMask = maskDataUrl !== undefined
                 ? maskDataUrl
                 : (viewer.el.hasMask?.() ? viewer.el.getCurrentMaskDataURL?.() : null);
 
             return {
-                config: { operation, model: activeModel, positive, negative, negativeAudio, sourcePrompt, mediaItems: resolvedMedia, maskDataUrl: resolvedMask, injectionParams, previewOnly, historyMode, extend, sourceItemId },
+                config: { operation, model: activeModel, positive, negative, negativeAudio, sourcePrompt, mediaItems: resolvedMedia, maskDataUrl: resolvedMask, injectionParams, previewOnly, historyMode },
                 opts: { existingGroup: group, scope: 'groupHistory', groupId: group.id, forceLocal },
             };
         }
@@ -3814,25 +3816,39 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 || null;
         }
 
-        async function _setFrameFromVideo(role) {
-            if (!isVideo) return;
+        /**
+         * Save a frame of the open clip into the project as a picture. `snapOpts.time`
+         * picks the frame; none = the frame under the playhead. Null (toasted) on failure.
+         */
+        async function _captureFrameUpload(snapOpts, prefix) {
             const project = state.currentProject;
-            if (!project?.folderPath || !project?.id) return;
+            if (!project?.folderPath || !project?.id) return null;
             try {
-                // Range-aware: prefer outPoint when active trim covers a
-                // subset; otherwise fall through to live playhead.
-                const cur = _group?.history?.[_currentIdx];
-                const trim = cur?.trim;
-                const snapOpts = (trim && Number.isFinite(+trim.out)) ? { time: +trim.out } : {};
                 const snap = await viewer.el.captureSnapshot?.(snapOpts);
-                if (!snap?.blob) { _showToast('Capture failed', 'error'); return; }
-                const file = new File([snap.blob], `frame_${role}.png`, { type: 'image/png' });
+                if (!snap?.blob) { _showToast('Capture failed', 'error'); return null; }
+                const file = new File([snap.blob], `${prefix}.png`, { type: 'image/png' });
                 const uploaded = await uploadMediaFile(file, 'image', project.folderPath, project.id, {
-                    filenamePrefix: `frame-${role}`,
+                    filenamePrefix: prefix,
                     operation: 'frame-capture',
                 });
-                if (!uploaded) { _showToast('Frame save failed', 'error'); return; }
+                if (!uploaded) _showToast('Frame save failed', 'error');
+                return uploaded || null;
+            } catch (err) {
+                clientLogger.warn('MpiGroupHistoryBlock', 'frame capture failed', err);
+                _showToast('Frame capture failed', 'error');
+                return null;
+            }
+        }
 
+        async function _setFrameFromVideo(role) {
+            if (!isVideo) return;
+            // Range-aware: prefer outPoint when active trim covers a
+            // subset; otherwise fall through to live playhead.
+            const trim = _group?.history?.[_currentIdx]?.trim;
+            const snapOpts = (trim && Number.isFinite(+trim.out)) ? { time: +trim.out } : {};
+            const uploaded = await _captureFrameUpload(snapOpts, `frame-${role}`);
+            if (!uploaded) return;
+            try {
                 // Auto-switch model if the current video model lacks any I2V op.
                 const current = activeModel;
                 const hasI2V = Array.isArray(current?.supportedOps)
@@ -3886,96 +3902,12 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                     file: uploaded.filename,
                 });
             } catch (err) {
-                clientLogger.warn('MpiGroupHistoryBlock', 'frame capture failed', err);
+                clientLogger.warn('MpiGroupHistoryBlock', 'start/end frame inject failed', err);
                 _showToast('Frame capture failed', 'error');
             }
         }
 
         if (isVideo) {
-            // Toolbar (MpiToolOptionsPrompt) Create new / Extend.
-            // Toolbar emits semantic events on the global bus; this block is
-            // the only listener (single video-history mount at a time, since
-            // mountOptions('prompt') guards mount on isVideo + I2V model).
-            // Both Create New and Extend seed the I2V chunk from the current clip's
-            // LAST frame (trim out-point, or full duration). Any startFrame already
-            // in the PromptBox (e.g. populated by Reuse Prompt, which recalls the
-            // ORIGINAL gen's start frame) is the wrong frame for a continuation, so
-            // it's dropped and the current clip's end frame is re-captured. Returns
-            // the rebuilt mediaItems (startFrame first), or null on capture failure.
-            async function _captureLastFrameMedia(payload, hasTrim, trim) {
-                const baseMedia = (payload.mediaItems || []).filter(m => m.role !== 'startFrame');
-                const project = state.currentProject;
-                if (!project?.folderPath || !project?.id) return baseMedia;
-                try {
-                    const vid = viewer.el.getSourceElement?.();
-                    const lastTime = hasTrim ? +trim.out
-                        : (Number.isFinite(vid?.duration) && vid.duration > 0 ? Math.max(0, vid.duration - 1e-3) : null);
-                    // MPI-287: grab the EXACT last frame via the frame-accurate
-                    // decode sink; native captureSnapshot seeks <video>.currentTime
-                    // which is not frame-accurate and can seed a drifted frame.
-                    // Fall back to native capture when the clip can't be decoded.
-                    const accurate = await viewer.el.captureLastFrameAccurate?.({ trimOut: hasTrim ? +trim.out : null });
-                    const { blob } = accurate || await viewer.el.captureSnapshot?.({ time: lastTime }) || {};
-                    if (blob) {
-                        const file = new File([blob], 'frame-startFrame.png', { type: 'image/png' });
-                        const uploaded = await uploadMediaFile(file, 'image', project.folderPath, project.id, {
-                            filenamePrefix: 'frame-startFrame',
-                            operation: 'extend-last-frame',
-                        });
-                        if (uploaded) {
-                            return [
-                                { url: uploaded.filePath, mediaType: 'image', role: 'startFrame', pixelDimensions: uploaded.pixelDimensions },
-                                ...baseMedia,
-                            ];
-                        }
-                    }
-                } catch (err) {
-                    clientLogger.warn('MpiGroupHistoryBlock', 'last-frame capture failed; falling back to guard', err);
-                }
-                return baseMedia;
-            }
-
-            // Create New = same as Extend (seed from current clip's last frame) but
-            // WITHOUT the concat — the generated video lands as a standalone entry.
-            _unsubs.push(Events.on('prompt-box-tools:create-new', async () => {
-                if (!_pb?.el) return;
-                const payload = _pb.el.getRunPayload?.();
-                if (!payload) return;
-                const currentItem = _group.history[_currentIdx];
-                const trim = currentItem?.trim;
-                const hasTrim = trim && Number.isFinite(+trim.in) && Number.isFinite(+trim.out) && +trim.out > +trim.in;
-                const mediaItems = await _captureLastFrameMedia(payload, hasTrim, trim);
-                const operation = _continuationOp(payload.operation);
-                _runGenerate({ ...payload, operation, mediaItems, historyMode: true });
-            }));
-            _unsubs.push(Events.on('prompt-box-tools:extend', async () => {
-                if (!_pb?.el) return;
-                const payload = _pb.el.getRunPayload?.();
-                if (!payload) return;
-                const currentItem = _group.history[_currentIdx];
-                if (!currentItem?.id) {
-                    _showToast('No source video to extend', 'error');
-                    return;
-                }
-                const trim = currentItem.trim;
-                const hasTrim = trim && Number.isFinite(+trim.in) && Number.isFinite(+trim.out) && +trim.out > +trim.in;
-                const extendMedia = await _captureLastFrameMedia(payload, hasTrim, trim);
-
-                const extendCfg = {
-                    ...payload,
-                    operation: _continuationOp(payload.operation),
-                    mediaItems: extendMedia,
-                    historyMode: true,
-                    extend: true,
-                    sourceItemId: currentItem.id,
-                };
-                if (hasTrim) {
-                    extendCfg.trimIn  = +trim.in;
-                    extendCfg.trimOut = +trim.out;
-                }
-                _runGenerate(extendCfg);
-            }));
-
             _unsubs.push(Events.on('video-viewer:context-menu', ({ x, y }) => {
                 const disabled = !_anyInstalledModelHasI2V();
                 const reason = disabled ? 'No installed video model supports I2V' : '';

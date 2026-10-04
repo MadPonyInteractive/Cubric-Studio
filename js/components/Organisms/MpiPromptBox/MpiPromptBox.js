@@ -45,10 +45,13 @@ import { thumbSrc } from '../../../utils/displayImage.js';
  *   el.clearMedia()
  *   el.removeMedia(id)
  *   el.injectMedia({ url, mediaType, role?, name? })  — role tags chip to a slot key (e.g. 'startFrame', 'endFrame'); name is the user-facing chip label (customName/derived)
- *   el.setPinnedMedia({ url, name? } | null)  — the WORKSPACE'S OWN image as an ordinary
- *                                     numbered chip: no remove pill, still reorderable.
- *                                     Replaces in place (keeps its strip position), or
- *                                     inserts at the head the first time; null removes it
+ *   el.setPinnedMedia({ url, name?, mediaType?, swappable? } | null)  — the WORKSPACE'S
+ *                                     OWN image (or a video card's clip, MPI-1015) as an
+ *                                     ordinary numbered chip: no remove pill, still
+ *                                     reorderable. Replaces in place (keeps its strip
+ *                                     position), or inserts at the head the first time;
+ *                                     null removes it. `swappable` makes its tag a button
+ *                                     that emits 'pinned-swap'
  *   el.getMediaByRole(role)         — returns role-assigned item or undefined
  *   el.removeMediaByRole(role)      — removes the chip currently assigned to that role
  *   el.swapMediaRoles(roleA, roleB) — flips role tags between two chips (no re-upload)
@@ -73,6 +76,7 @@ import { thumbSrc } from '../../../utils/displayImage.js';
  * Emits:
  *   'input' | 'mode-change' | 'media-change' | 'media-imported'
  *   'run' | 'cancel' | 'model-change' | 'operation-change'
+ *   'pinned-swap' { mediaType } — MPI-1015: the swappable pinned chip's tag was clicked
  *   'stage-to-history' { filePath, mediaType, item?, uploaded? } — MPI-887, `stageMedia`
  *      only. The user armed the picker's "Add to history" toggle, so this media belongs
  *      in the open card's history, not on the strip. `item` = a picked card's MediaItem,
@@ -176,7 +180,7 @@ export const MpiPromptBox = ComponentFactory.create({
         // because they are the same statement: a `+` button at the head of the strip
         // (MpiMediaPicker — the project's own gallery, plus the filesystem through its
         // upload card), and the strip itself made visible in history mode, where CSS
-        // otherwise hides it because MpiToolOptionsPrompt owns the video frame thumbs.
+        // otherwise hides it. Both history workspaces pass it (video since MPI-1015).
         // Default OFF. MPI-924: the gallery box gets the `+` card without the prop —
         // browsing beats drag-drop for some users — see `_addBtn`.
         const _stageMedia = props.stageMedia === true;
@@ -848,36 +852,25 @@ export const MpiPromptBox = ComponentFactory.create({
             };
 
             const currentCmd = byKey.get(activeOperation);
-            // MPI-281 follow-up: in History video-continuation mode (text-only ops
-            // hidden), a text-only current op (e.g. t2v_ms carried in by a reused
-            // card) `matches()` an empty box and would be kept here — before the
-            // media-op fallback below ever runs. Reject it so the box lands on the
-            // model's i2v op; Extend/New-shot inject a self-captured start frame and
-            // must run I2V, never T2V (which has no image loader → validation fail).
-            const curIsTextOnly = currentCmd
-                && (currentCmd.requiresImages ?? 0) === 0
-                && (currentCmd.requiresVideo ?? 0) === 0;
-            const keepCurrent = !(_context.filterNoInputOps && curIsTextOnly);
-            if (keepCurrent && supported.includes(activeOperation) && matches(currentCmd)) return activeOperation;
+            // MPI-281: History hides text-only ops (`filterNoInputOps`), so it must
+            // never land on one — the dropdown filters it away and the trigger renders
+            // "Select...". A text-only current op (t2v_ms carried in by a reused card)
+            // `matches()` an empty box, so it is not kept either. Judged by SLOTS:
+            // ref2v requires nothing yet takes pictures and clips (MPI-1015).
+            const offered = _context.filterNoInputOps ? supported.filter(k => !isTextOnlyOp(k)) : supported;
+            if (offered.includes(activeOperation) && matches(currentCmd)) return activeOperation;
 
-            const ranked = supported.map(k => byKey.get(k)).filter(Boolean);
+            // MPI-1015: an EMPTY history box (a video card on an animate op) lands on
+            // the model's first media op in its own order — i2v before ref2v — so a
+            // picture added next is a start frame, not a reference beside the clip.
+            if (_context.filterNoInputOps && !hasMedia && offered.length) return offered[0];
+
+            const ranked = offered.map(k => byKey.get(k)).filter(Boolean);
             const ready = ranked.find(c => matches(c) && c.available);
             if (ready) return ready.key;
             const fit = ranked.find(c => matches(c));
             if (fit) return fit.key;
-            // MPI-281: when text-only ops are hidden (History video-continuation
-            // mode), the final fallback must not land on a text op — the dropdown
-            // filters it away and the trigger renders "Select...". Prefer the first
-            // media op the model supports; the Extend / New shot buttons run I2V
-            // with a self-captured last frame regardless of box emptiness.
-            if (_context.filterNoInputOps) {
-                const mediaOp = supported.find(k => {
-                    const c = byKey.get(k);
-                    return c && ((c.requiresImages ?? 0) > 0 || (c.requiresVideo ?? 0) > 0);
-                });
-                if (mediaOp) return mediaOp;
-            }
-            return supported[0];
+            return offered[0] ?? supported[0];
         }
 
         // ── Head peeks (MPI-909) ─────────────────────────────────────────────────
@@ -1053,8 +1046,9 @@ export const MpiPromptBox = ComponentFactory.create({
                 // history workspace behind it has a second one — the open card's
                 // history, which is the only place Composite's slot can reach. The
                 // toggle only exists where `stageMedia` does, so the gallery box
-                // never offers a card it does not have.
-                ...(_stageMedia ? { toHistoryLabel: 'Add to history' } : {}),
+                // never offers a card it does not have. Not on a video card (MPI-1015):
+                // its history holds clips, and a picked picture is not one.
+                ...((_stageMedia && model?.mediaType !== 'video') ? { toHistoryLabel: 'Add to history' } : {}),
                 // The PICKED tile's type, not the slot's: the user can widen the filter,
                 // and an image staged as a voice (or a clip as an image) is a broken chip.
                 onPick: ({ filePath, item, toHistory, mediaType = slotType }) => {
@@ -1146,7 +1140,9 @@ export const MpiPromptBox = ComponentFactory.create({
                 items.forEach((item, idx) => {
                     const chip = existing.find(c => c.dataset.id === item.id);
                     _stripEl.appendChild(chip); // appendChild moves, not clones
-                    const badge = qs('.mpi-prompt-box-media-strip__index', chip);
+                    // A swap tag keeps its icon: only its label span is re-stamped.
+                    const badge = qs('.mpi-prompt-box-media-strip__index-label', chip)
+                        || qs('.mpi-prompt-box-media-strip__index', chip);
                     if (badge) badge.textContent = _badgeFor(item, idx);
                 });
                 _playFlip(_prevRects);
@@ -1174,7 +1170,9 @@ export const MpiPromptBox = ComponentFactory.create({
                 // qwenEdit use in prompts. A lone chip needs no number — but a lone
                 // TAGGED chip still needs its tag, which is the whole point of it.
                 const _badge = _badgeFor(item, idx);
-                const indexHtml = _badge
+                // MPI-1015: a swappable pinned chip's tag is a button (appended below).
+                const _swapTag = !!(_badge && item.pinned && item.swappable);
+                const indexHtml = (_badge && !_swapTag)
                     ? `<span class="mpi-prompt-box-media-strip__index">${_badge}</span>`
                     : '';
                 // One image => the role is a CHOICE, so the pill is a button. Two images
@@ -1214,6 +1212,21 @@ export const MpiPromptBox = ComponentFactory.create({
                     rolePill.setAttribute('aria-pressed', String(_isEnd));
                     rolePill.setAttribute('aria-label', _isEnd ? 'Use as start frame' : 'Use as last frame');
                     chip.appendChild(rolePill);
+                }
+                // MPI-1015: the open clip's tag swaps it for a frame of it, and back.
+                // Same shape as the role pill: the swap icon is what says "clickable".
+                if (_swapTag) {
+                    const swapTag = mountButton({
+                        variant: 'ghost',
+                        size: 'sm',
+                        extraClasses: 'mpi-prompt-box-media-strip__index mpi-prompt-box-media-strip__index--toggle',
+                    }, `${renderIcon('swap', 'xs')}<span class="mpi-prompt-box-media-strip__index-label">${_badge}</span>`);
+                    swapTag.setAttribute('aria-label', item.mediaType === 'video'
+                        ? 'Use the frame under the playhead instead of the clip'
+                        : 'Use the clip instead of this frame');
+                    on(swapTag, 'click', (e) => { e.stopPropagation(); emit('pinned-swap', { mediaType: item.mediaType }); });
+                    on(swapTag, 'pointerdown', (e) => e.stopPropagation());
+                    chip.appendChild(swapTag);
                 }
                 // MPI-721: a pinned chip is the WORKSPACE'S OWN image — the thing the
                 // box generates from — so there is no remove pill. It stays reorderable,
@@ -1417,7 +1430,11 @@ export const MpiPromptBox = ComponentFactory.create({
          * Deliberately NOT routed through _tryAddMedia: this chip is not a user drop,
          * so it must not trigger the capacity eviction or the MPI-292 op up-jump.
          *
-         * @param {{url: string, name?: string}|null} value
+         * MPI-1015: a video card pins its CLIP (`mediaType: 'video'`), and `swappable`
+         * makes the chip's tag a button that emits `pinned-swap`: the Block swaps the
+         * clip for a frame of it and back. Which one is pinned is the Block's call.
+         *
+         * @param {{url: string, name?: string, mediaType?: 'image'|'video', swappable?: boolean}|null} value
          */
         el.setPinnedMedia = (value) => {
             const idx = _mediaItems.findIndex(m => m.pinned);
@@ -1428,8 +1445,9 @@ export const MpiPromptBox = ComponentFactory.create({
             // A FRESH id on every re-point, deliberately: _renderStrip's reorder fast
             // path keys on the item set, so reusing the id would skip the repaint and
             // leave the previous entry's <img src> on screen under the new one's meaning.
-            const item = { id: crypto.randomUUID(), url: value.url, file: null, mediaType: 'image', source: 'app', pinned: true };
+            const item = { id: crypto.randomUUID(), url: value.url, file: null, mediaType: value.mediaType || 'image', source: 'app', pinned: true };
             if (value.name) item.name = value.name;
+            if (value.swappable) item.swappable = true;
             // Replace IN PLACE. The chip's position is the user's slot choice — chip 1
             // is an edit's base, but on `control` the depth/pose map leads and the
             // subject sits behind it — so a re-point must not send it back to the head.
@@ -2054,8 +2072,9 @@ export const MpiPromptBox = ComponentFactory.create({
             if (!model) return [];
             const hasMedia = el.imageCount > 0 || el.videoCount > 0;
             const availableCmds = getAvailableCommands(model.mediaType, model, _ctxWithInstalledOps(model));
+            // History hides text-only ops, judged by slots (ref2v requires nothing).
             const filteredCmds = _context.filterNoInputOps
-                ? availableCmds.filter(cmd => (cmd.requiresImages ?? 0) > 0 || (cmd.requiresVideo ?? 0) > 0)
+                ? availableCmds.filter(cmd => !isTextOnlyOp(cmd.key))
                 : availableCmds;
             return filteredCmds.map(cmd => {
                 const isTextOnly = isTextOnlyOp(cmd.key);
