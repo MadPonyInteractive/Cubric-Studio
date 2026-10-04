@@ -6,6 +6,7 @@ import { CompositeManager } from '../../Primitives/MpiCanvas/managers/CompositeM
 import { ViewManager } from '../../Primitives/MpiCanvas/managers/ViewManager.js';
 import { composeObjectAlpha } from '../../../utils/maskUtils.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { setDisplaySrc, originalSize } from '../../../utils/displayImage.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { qs, on } from '../../../utils/dom.js';
 
@@ -107,8 +108,19 @@ const NO_OBJECT = 'Add the object image on the first step.';
 /** Manual draws no object, so a flip there is invisible on the canvas; say it lands. */
 const MANUAL_FLIP_NOTE = 'The model receives the object mirrored.';
 
+/** The long edge the engine is ever sent (routes/projects.js ENGINE_MAX_EDGE). */
+const ENGINE_MAX_EDGE = 4096;
+
+/** `{ w, h }` scaled to fit ENGINE_MAX_EDGE, never up. */
+function _fitEngine({ w, h }) {
+    const k = Math.min(1, ENGINE_MAX_EDGE / Math.max(w, h));
+    return { w: Math.max(1, Math.round(w * k)), h: Math.max(1, Math.round(h * k)), k };
+}
+
 /**
- * Decode an image URL, resolving to null rather than throwing.
+ * Decode an image URL, resolving to null rather than throwing. A big still decodes its
+ * server display copy (MPI-1014; a 32K original never decodes) — `originalSize(img)` is
+ * the original's px.
  * @param {string} url
  * @returns {Promise<HTMLImageElement|null>}
  */
@@ -119,7 +131,7 @@ function _loadImage(url) {
         img.crossOrigin = 'anonymous';
         img.onload = () => resolve(img);
         img.onerror = () => resolve(null);
-        img.src = url;
+        setDisplaySrc(img, url);
     });
 }
 
@@ -249,10 +261,14 @@ export async function composePlacedObject(value, source) {
 
     if (manual) return _canvasToFile(flipObject(object, flipX, flipY), 'object-flipped.png');
 
-    const w = Math.round(value?.size?.w || 0);
-    const h = Math.round(value?.size?.h || 0);
+    const sw = Math.round(value?.size?.w || 0);
+    const sh = Math.round(value?.size?.h || 0);
     const p = value?.place;
-    if (!(w > 0) || !(h > 0) || !p) return null;
+    if (!(sw > 0) || !(sh > 0) || !p) return null;
+    // The stamp is a LAYER over the scene. Past the engine cap the scene is cut round the
+    // box by `/engine-box`, which maps a layer of the same aspect at any size (MPI-1014): a
+    // 16K stamp was a ~1 GB canvas, a 32K one impossible.
+    const { w, h, k } = _fitEngine({ w: sw, h: sh });
 
     // The SAME rotated-rect stamp the canvas drew, through the same manager, so the
     // dispatched picture cannot disagree with the one the user approved.
@@ -260,14 +276,14 @@ export async function composePlacedObject(value, source) {
     // Flipped BEFORE the rotated rect takes it, exactly as the preview does.
     comp.placeImage = flipObject(object, flipX, flipY);
     const shape = new ShapeManager();
-    shape.init(w, h);
+    shape.init(sw, sh);
     Object.assign(shape, {
         cx: p.cx, cy: p.cy, halfW: p.halfW, halfH: p.halfH, rot: p.rot || 0, hasShape: true,
     });
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
-    comp.drawPlaced(canvas.getContext('2d'), shape, 1);
+    comp.drawPlaced(canvas.getContext('2d'), shape, k);
     return _canvasToFile(canvas, 'placed.png');
 }
 
@@ -586,7 +602,8 @@ export const MpiStepPlace = ComponentFactory.create({
         }
 
         _unsubs.push(on(sceneImg, 'load', () => {
-            _scene = { w: sceneImg.naturalWidth || 1, h: sceneImg.naturalHeight || 1 };
+            // The ORIGINAL's px while the stage draws a display copy (MPI-1014).
+            _scene = originalSize(sceneImg);
             _sceneLoaded = true;
             shape.init(_scene.w, _scene.h);
             if (seeded.place?.halfW > 0) {
@@ -618,16 +635,17 @@ export const MpiStepPlace = ComponentFactory.create({
         async function _initObject() {
             _objImg = await _loadImage(resolveMediaUrl(_sourceUrl));
             if (!_objImg) { _say(); _draw(); return; }
-            _object = { w: _objImg.naturalWidth || 1, h: _objImg.naturalHeight || 1 };
+            _object = originalSize(_objImg);
 
             const bg = (_cut?.removeBg && _cut?.bgUrl)
                 ? await _loadImage(resolveMediaUrl(_cut.bgUrl))
                 : null;
             const manual = await _loadImage(_cut?.userMask?.manual || '');
             const subtract = await _loadImage(_cut?.userMask?.subtract || '');
-            _placeBase = composeObjectAlpha(
-                _objImg, bg, manual, subtract, _object.w, _object.h,
-            );
+            // A picture to draw into the box, so at most the engine cap (MPI-1014); `_object`
+            // stays the original's size for the box's own geometry.
+            const fit = _fitEngine(_object);
+            _placeBase = composeObjectAlpha(_objImg, bg, manual, subtract, fit.w, fit.h);
             comp.placeImage = flipObject(_placeBase, _flipX, _flipY);
 
             // The gizmo was seeded before the object's aspect was known when the scene
@@ -645,7 +663,7 @@ export const MpiStepPlace = ComponentFactory.create({
         _say();
         // Source last: with the handler wired, a cached image still fires load.
         const sceneUrl = props.media?.url ? resolveMediaUrl(props.media.url) : '';
-        if (sceneUrl) sceneImg.src = sceneUrl;
+        if (sceneUrl) setDisplaySrc(sceneImg, sceneUrl);
         if (_sourceUrl) _initObject();
 
         el.getValue = _value;

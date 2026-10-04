@@ -4,6 +4,7 @@ import { MpiButton, mountButton } from '../../Primitives/MpiButton/MpiButton.js'
 import { state } from '../../../state.js';
 import { Storage } from '../../../core/storage.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { setDisplaySrc } from '../../../utils/displayImage.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { renderIcon } from '../../../utils/icons.js';
@@ -293,7 +294,10 @@ export const MpiMediaPicker = ComponentFactory.create({
                     src: resolveMediaUrl(item.filePath), controls: true, autoplay: true,
                 }));
             } else {
-                inner.appendChild(ce('img', { src: resolveMediaUrl(item.filePath), alt: '' }));
+                // A big still shows the server's display copy (MPI-1014).
+                const still = ce('img', { alt: '' });
+                setDisplaySrc(still, resolveMediaUrl(item.filePath));
+                inner.appendChild(still);
             }
 
             const close = mountButton({

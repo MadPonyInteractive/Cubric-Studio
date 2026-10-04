@@ -218,6 +218,22 @@ test('Auto: the stamp is the object MIRRORED about its own centre (flipX)', asyn
     assert.strictEqual(colourAt(flipped._px, SCENE.w, 0, 0), '0,0,0,0');
 });
 
+// MPI-1014: the stamp is a LAYER that `/engine-box` maps onto a scene past the cap by
+// ratio, so it is built at most 4096 on its long edge; a 16K scene was a ~1 GB canvas.
+test('Auto on a 16K scene: the stamp is built at 4096, the object where it sits, scaled', async () => {
+    const { composePlacedObject } = await esm('js/components/Organisms/MpiStepPlace/MpiStepPlace.js');
+    const big = { ...value(), size: { w: 16384, h: 8192 }, place: { cx: 8192, cy: 4096, halfW: 2048, halfH: 1024, rot: 0 } };
+
+    const file = await composePlacedObject(big, null);
+
+    assert.strictEqual(file.size, 4096 * 2048 * 4, 'the layer is 4096x2048, the scene\'s aspect');
+    const stamp = await decode(file, 4096, 2048);
+    // A quarter of the scene px: the object spans 1536..2559 x 768..1279.
+    assert.notStrictEqual(colourAt(stamp._px, 4096, 2048, 1024), '0,0,0,0', 'the object is stamped at its centre');
+    assert.strictEqual(colourAt(stamp._px, 4096, 1500, 1024), '0,0,0,0', 'nothing left of the box');
+    assert.strictEqual(colourAt(stamp._px, 4096, 2600, 1024), '0,0,0,0', 'nothing right of the box');
+});
+
 test('Auto: a value with NO flip keys (saved before MPI-998) stamps exactly as before', async () => {
     const { composePlacedObject } = await esm('js/components/Organisms/MpiStepPlace/MpiStepPlace.js');
     const legacy = await decode(await composePlacedObject(value(), null), SCENE.w, SCENE.h);

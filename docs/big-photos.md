@@ -37,9 +37,25 @@ so the local engine and the Pod get the same treatment. The pixel work is server
 - **Masks come over at working size** (at most 4096): `MaskManager.getURL` no longer scales to the
   source; the server fits the mask to the job. A 32K mask cannot be built in Chromium anyway.
 - **Scribble** composes its paint over the photo in the renderer; `composePaintComposite`
-  (`MpiStepPaint`) caps that composite at 4096.
-- **Outpaint** refuses a frame past 16384 / 179 MP in its crop step (`outpaintRefusal`, shown by
-  MpiBaseFlow through `userMessage`), before the padded frame is built.
+  (`MpiStepPaint`) caps that composite at 4096, drawn from the display copy.
+- **Outpaint** pads its frame at most 4096 on the long edge (`_padTo`, `MpiStepCrop`): the graph
+  scales its input to 1 MP on load, so any frame size works. The old refusal past 16384
+  (`outpaintRefusal`) went with MPI-1014.
+
+## Flow screens (MPI-1014)
+
+The Flow screens follow the History canvas's MPI-961 rule: past `displayMaxEdge()` they draw the
+server's **display copy** (`GET /display-image`), while every box / crop / paint coordinate stays
+in the ORIGINAL's px. `setDisplaySrc(img, url)` + `originalSize(img)` (`js/utils/displayImage.js`)
+are the pair every screen uses: the Inputs slot chip and result pane (`MpiBaseFlow`) and the
+Paint, Box, Crop, Preview, Cutout and Place steps. A file no sidecar owns (an uploaded Flow input
+in `.preview-assets`) gets its copy in the temp cache, as the engine copy does.
+
+**No Run-time export builds a canvas past ENGINE_MAX_EDGE** (a 16K canvas is ~1 GB, a 32K cannot
+be made): the paint layer (Draw It In) and the Place stamp (Object Stamp) are LAYERS, and
+`/engine-box` maps a layer of the photo's aspect at any size; the cut object, the Scribble
+composite and the Outpaint frame are scaled into 4096 because their graphs shrink them anyway.
+Measured on a 32768x16384 photo (2026-10-04): chip in 1.6 s on the first copy, paint step in 82 ms.
 
 ## The backstop
 
@@ -62,7 +78,10 @@ failed". A new op with a full-resolution input that nobody flagged fails HERE, l
 - A graph that resizes right after load: add `modelSizedInputs`.
 - A masked graph: keep the `InpaintCropImproved` -> sample -> `InpaintStitchImproved` pair (or
   MaskDetailer) and add `cropsToMask`; a graph that samples the WHOLE masked image breaks the cut.
-- A box Flow: keep `MpiBoxMask` -> crop -> stitch and add `cropsToBox`.
+- A box Flow: keep `MpiBoxMask` -> crop -> stitch and add `cropsToBox`. A Flow whose paint or
+  place step sends a LAYER must be `cropsToBox`: past 4096 the layer comes at its working size and
+  only `/engine-box` maps it onto the photo.
+- A new Flow step screen: load its picture with `setDisplaySrc`, read sizes with `originalSize`.
 - Package Flows opt in through `OP_KEYS` in `services/userFlows.js` (`modelSizedInputs`, `cropsToBox`).
 - Not flagged and fed a big photo: the backstop refuses it. That is the correct failure.
 

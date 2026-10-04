@@ -220,9 +220,12 @@ async function _sidecarIdFor(metaDir, filePath) {
 /**
  * `engine: true` is the ENGINE copy (MPI-971) — what a model-resolution op hands ComfyUI
  * instead of a 16K original that `MpiLoadImage` cannot open. Same rule, cache and EXIF
- * turn, but lossless PNG (an input, not a picture to look at), and it cannot fall back to
- * the original when no sidecar owns the file (a Flow's `.preview-assets` input, an agent's
- * own file): that copy goes to the temp cache, never a `.meta` beside a folder we do not own.
+ * turn, but lossless PNG (an input, not a picture to look at).
+ *
+ * A file no sidecar owns (a Flow's `.preview-assets` input, an agent's own file) gets its
+ * copy in the temp cache, never a `.meta` beside a folder we do not own. The display copy
+ * too since MPI-1014: a Flow's uploaded photo is exactly that file, and the original it
+ * used to fall back to is what a 32K broke on (Chromium cannot decode one).
  */
 async function resolveDisplayImage(filePath, edge, { engine = false } = {}) {
     const url = (p, v) => `/project-file?path=${encodeURIComponent(p)}${v ? `&v=${Math.round(v)}` : ''}`;
@@ -237,13 +240,9 @@ async function resolveDisplayImage(filePath, edge, { engine = false } = {}) {
 
     const metaDir = path.join(path.dirname(filePath), '.meta');
     const id = await _sidecarIdFor(metaDir, filePath);
-    if (!id && !engine) {
-        logger.warn('project', `display-image: no sidecar owns ${path.basename(filePath)}, serving the original`);
-        return original;
-    }
     const out = !id
         ? path.join(os.tmpdir(), 'cubric-engine-inputs',
-            `${crypto.createHash('sha1').update(_normPath(filePath)).digest('hex')}.engine${edge}.png`)
+            `${crypto.createHash('sha1').update(_normPath(filePath)).digest('hex')}.${engine ? `engine${edge}.png` : `fit${edge}.webp`}`)
         : path.join(metaDir, engine ? `${id}.thumb.engine${edge}.png` : `${id}.thumb.fit${edge}.webp`);
     // The copy is stamped with its original's mtime, and any other stamp means another
     // version. `newer than` would re-make forever for an original dated in the future (a

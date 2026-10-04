@@ -3,8 +3,8 @@ import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { CropManager } from '../../Primitives/MpiCanvas/managers/CropManager.js';
 import { CROP_RATIOS } from '../../../utils/ratios.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { setDisplaySrc, originalSize } from '../../../utils/displayImage.js';
 import { planOutpaintPasses, nextPassRect } from '../../../utils/outpaintPasses.js';
-import { outpaintRefusal } from '../../../utils/upscaleLimit.js';
 import { qs, on } from '../../../utils/dom.js';
 
 /**
@@ -62,6 +62,9 @@ const FILL = '#000000';
  * whole rather than half-clipped. Handles are 10px across (CropManager).
  */
 const HANDLE_SLACK = 14;
+
+/** The long edge the engine is ever sent (routes/projects.js ENGINE_MAX_EDGE). */
+const ENGINE_MAX_EDGE = 4096;
 
 /** Icon-only orientation toggle. Mirrors MpiToolOptionsCrop's own pair. */
 const ORIENTATIONS = [
@@ -126,29 +129,22 @@ export async function composePaddedImage(media, value) {
     if (!rect || !url || !(rect.w > 0) || !(rect.h > 0)) return null;
 
     const img = await _loadImage(url);
-    const nw = img.naturalWidth || img.width;
-    const nh = img.naturalHeight || img.height;
-    if (rect.x === 0 && rect.y === 0 && rect.w === nw && rect.h === nh) return null;
-    _refuseTooBig(rect);
-    return _padTo(img, rect);
+    const src = originalSize(img);
+    if (rect.x === 0 && rect.y === 0 && rect.w === src.w && rect.h === src.h) return null;
+    return _padTo(img, rect, src);
 }
 
 /**
- * A frame the app cannot make is refused with its reason (MPI-971) before a canvas that size
- * is attempted: the run's catch shows `userMessage` instead of "could not prepare its image".
+ * The display copy past the cap (MPI-1014): a 32K original never decodes, and the copy's
+ * long edge (>= 4096) is more than `_padTo` ever draws it at. Sizes: `originalSize(img)`.
+ * @param {string} url @returns {Promise<HTMLImageElement>}
  */
-function _refuseTooBig(rect) {
-    const why = outpaintRefusal(rect.w, rect.h);
-    if (why) throw Object.assign(new Error(why), { code: 'TOO_BIG', userMessage: why });
-}
-
-/** @param {string} url @returns {Promise<HTMLImageElement>} */
 function _loadImage(url) {
     return new Promise((resolve, reject) => {
         const im = new Image();
         im.onload = () => resolve(im);
         im.onerror = reject;
-        im.src = url;
+        setDisplaySrc(im, url);
     });
 }
 
@@ -162,10 +158,8 @@ function _loadImage(url) {
  */
 export async function planCropPasses(media, rect, maxGrow) {
     if (!rect || !media?.url || !(maxGrow > 0)) return null;
-    // The FINISHED frame, before pass 1 is paid for.
-    _refuseTooBig(rect);
     const img = await _loadImage(resolveMediaUrl(media.url));
-    return planOutpaintPasses({ w: img.naturalWidth || img.width, h: img.naturalHeight || img.height }, rect, maxGrow);
+    return planOutpaintPasses(originalSize(img), rect, maxGrow);
 }
 
 /**
@@ -182,21 +176,31 @@ export async function planCropPasses(media, rect, maxGrow) {
 export async function composeNextPass(result, prev, next) {
     if (!result?.filePath) return null;
     const img = await _loadImage(resolveMediaUrl(result.filePath));
-    return _padTo(img, nextPassRect(prev, next, { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height }));
+    const src = originalSize(img);
+    return _padTo(img, nextPassRect(prev, next, src), src);
 }
 
-/** @param {HTMLImageElement} img @param {{x:number,y:number,w:number,h:number}} rect */
-async function _padTo(img, rect) {
+/**
+ * The frame, at most ENGINE_MAX_EDGE on its long edge (MPI-1014): the graph scales its
+ * input to 1 MP the moment it loads it (`ImageScaleToTotalPixels`, flow_outpaint.json), so
+ * a bigger frame was only ever a bigger canvas — ~1 GB at 16K — and the reason Outpaint used
+ * to refuse a frame past 16384.
+ * @param {HTMLImageElement} img
+ * @param {{x:number,y:number,w:number,h:number}} rect - in `src` px
+ * @param {{w:number,h:number}} src - the picture's own size (the original's, past a copy)
+ */
+async function _padTo(img, rect, src) {
+    const k = Math.min(1, ENGINE_MAX_EDGE / Math.max(rect.w, rect.h));
     const canvas = document.createElement('canvas');
-    canvas.width = rect.w;
-    canvas.height = rect.h;
+    canvas.width = Math.max(1, Math.round(rect.w * k));
+    canvas.height = Math.max(1, Math.round(rect.h * k));
     const ctx = canvas.getContext('2d');
     // The new area is left TRANSPARENT, never painted (MPI-900): it exports as RGBA
     // 0,0,0,0, so the graph's IMAGE still sees the black the fill instruction names,
     // and `Input_Image`'s alpha MASK is exactly the area to paste Klein's fill into.
     // Top-left anchored, so a rect that starts off-canvas simply draws the source
     // at a negative offset — no clamping, no arithmetic, nothing to get wrong.
-    ctx.drawImage(img, -rect.x, -rect.y);
+    ctx.drawImage(img, -rect.x * k, -rect.y * k, src.w * k, src.h * k);
 
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
     return blob ? new File([blob], 'outpaint.png', { type: 'image/png' }) : null;
@@ -424,7 +428,8 @@ export const MpiStepCrop = ComponentFactory.create({
         }
 
         _unsubs.push(on(imgEl, 'load', () => {
-            _natural = { w: imgEl.naturalWidth || 1, h: imgEl.naturalHeight || 1 };
+            // The ORIGINAL's px while the stage draws a display copy (MPI-1014).
+            _natural = originalSize(imgEl);
             _loaded = true;
             crop.init(_natural.w, _natural.h);
             _syncCanvasSize();
@@ -445,7 +450,7 @@ export const MpiStepCrop = ComponentFactory.create({
 
         // Source last: with the handler wired, a cached image still fires load.
         const url = props.media?.url ? resolveMediaUrl(props.media.url) : '';
-        if (url) imgEl.src = url;
+        if (url) setDisplaySrc(imgEl, url);
 
         el.getValue = () => ({
             crop: crop.getCropRect(),

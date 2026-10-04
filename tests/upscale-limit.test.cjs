@@ -38,14 +38,6 @@ test('the engine opens up to Pillow\'s line and no further (MPI-971 Phase 4)', a
     assert.equal(loadRefusal(4096, 4096), null);
 });
 
-test('an Outpaint frame is refused past 16384 on the long edge or Pillow\'s line', async () => {
-    const { outpaintRefusal } = await load('js/utils/upscaleLimit.js');
-    assert.equal(outpaintRefusal(6000, 4000), null);
-    assert.equal(outpaintRefusal(16384, 9000), null);
-    assert.match(outpaintRefusal(16385, 100), /new frame would be 16385x100/);
-    assert.match(outpaintRefusal(13500, 13500), /182 MP/);
-});
-
 test('the guard covers every op whose output is its input times the factor', async () => {
     const { commands } = await load('js/data/commandRegistry.js');
     const flagged = Object.keys(commands).filter(k => commands[k].enlarges).sort();

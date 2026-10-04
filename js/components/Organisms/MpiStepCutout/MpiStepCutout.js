@@ -8,6 +8,7 @@ import { UndoStack } from '../../Primitives/MpiCanvas/managers/UndoStack.js';
 import { drawBrushRing } from '../../Primitives/MpiCanvas/managers/brushDab.js';
 import { enqueueGeneration } from '../../../services/generationService.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { setDisplaySrc, originalSize } from '../../../utils/displayImage.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { qs, on, accentHeat } from '../../../utils/dom.js';
 import { composeObjectAlpha } from '../../../utils/maskUtils.js';
@@ -110,8 +111,19 @@ const NO_OBJECT = 'Add the object image on the first step.';
 const CUTTING = 'Removing the background…';
 const CUT_FAILED = 'Background removal failed — the object is unchanged.';
 
+/** The long edge the engine is ever sent (routes/projects.js ENGINE_MAX_EDGE). */
+const ENGINE_MAX_EDGE = 4096;
+
+/** `{ w, h }` scaled to fit ENGINE_MAX_EDGE, never up. */
+function _fitEngine({ w, h }) {
+    const k = Math.min(1, ENGINE_MAX_EDGE / Math.max(w, h));
+    return { w: Math.max(1, Math.round(w * k)), h: Math.max(1, Math.round(h * k)) };
+}
+
 /**
- * Decode an image URL, resolving to null rather than throwing.
+ * Decode an image URL, resolving to null rather than throwing. A big still decodes its
+ * server display copy (MPI-1014; a 32K original never decodes) — `originalSize(img)` is
+ * the original's px.
  * @param {string} url
  * @returns {Promise<HTMLImageElement|null>}
  */
@@ -122,7 +134,7 @@ function _loadImage(url) {
         img.crossOrigin = 'anonymous';
         img.onload = () => resolve(img);
         img.onerror = () => resolve(null);
-        img.src = url;
+        setDisplaySrc(img, url);
     });
 }
 
@@ -156,8 +168,9 @@ export async function composeCutObject(value, media) {
     const srcUrl = media?.url || value?.sourceUrl;
     const rgb = await _loadImage(resolveMediaUrl(srcUrl || ''));
     if (!rgb) return null;
-    const w = rgb.naturalWidth || 1;
-    const h = rgb.naturalHeight || 1;
+    // At most the engine cap (MPI-1014): the object is stamped into a capped layer or sent
+    // as a reference at model size, so a bigger canvas only cost memory — ~1 GB at 16K.
+    const { w, h } = _fitEngine(originalSize(rgb));
 
     const bg = (value.removeBg && value.bgUrl)
         ? await _loadImage(resolveMediaUrl(value.bgUrl))
@@ -269,13 +282,16 @@ export const MpiStepCutout = ComponentFactory.create({
         function _syncObject() {
             if (!_objDirty) return;
             _objDirty = false;
+            // Built at most at the engine cap (MPI-1014) and drawn scaled to `_object`: it
+            // is rebuilt per stroke, and at 16K that was a ~1 GB canvas each time.
+            const fit = _fitEngine(_object);
             _objCanvas = _objImg
                 ? composeObjectAlpha(
                     _objImg,
                     _removeBg ? _cutImg : null,
                     mask.manualCanvas,
                     mask.subtractCanvas,
-                    _object.w, _object.h,
+                    fit.w, fit.h,
                 )
                 : null;
         }
@@ -653,7 +669,7 @@ export const MpiStepCutout = ComponentFactory.create({
         async function _initObject() {
             _objImg = await _loadImage(resolveMediaUrl(_sourceUrl));
             if (!_objImg) { _say(); _draw(); return; }
-            _object = { w: _objImg.naturalWidth || 1, h: _objImg.naturalHeight || 1 };
+            _object = originalSize(_objImg);
             _loaded = true;
             mask.init(_object.w, _object.h);
             undo.clear();

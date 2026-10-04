@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1014",
+  "title": "Flows on big photos: every Flow screen draws a display copy, and no export builds a source-size canvas",
+  "description": "2.0 BREAKER (Fabio 2026-10-04, his pre-cut smoke): a 32K photo shows a broken chip in a Flow's Inputs slot and a 16K paints in step by step; Draw It In's paint step is unusable on a 16K. MPI-961/971 gave the History canvas and the engine big-photo handling; the Flow image loader and step screens (MpiMediaPicker, MpiStepBox/Preview/Crop/Paint/Cutout/Place) never got it. Fabio: implement if easy, else gate with a warning. Folded under the MPI-595 umbrella.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-04T06:43:28+01:00",
+  "updated_at": "2026-10-04T07:07:55+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

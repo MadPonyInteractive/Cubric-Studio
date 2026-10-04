@@ -10,6 +10,7 @@ import {
 } from '../../Primitives/MpiCanvas/managers/brushDab.js';
 import { UndoStack } from '../../Primitives/MpiCanvas/managers/UndoStack.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { resolveDisplayImage, setDisplaySrc, originalSize } from '../../../utils/displayImage.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { qs, on, accentHeat } from '../../../utils/dom.js';
 
@@ -77,7 +78,13 @@ import { qs, on, accentHeat } from '../../../utils/dom.js';
  * the photo would land the object at the wrong place and scale — silently, with
  * a plausible-looking result. `size` therefore carries the SOURCE's natural
  * dimensions and `composePaintLayer` redraws into them; at or below 4096 that is
- * a 1:1 copy and costs nothing.
+ * a 1:1 copy and costs nothing. Past 4096 the layer stays at its working size:
+ * the photo then goes through `/engine-box` (`cropsToBox`), which maps the layer
+ * onto it by ratio (MPI-1014; a 16K canvas here was ~1 GB, a 32K impossible).
+ *
+ * The stage draws the photo's server display copy past the cap (MPI-1014, the
+ * History canvas's MPI-961 rule), so a 16K paints at once and a 32K opens at all;
+ * `_natural` is still the ORIGINAL's size, so every stroke is in source px.
  */
 
 /** Layer opacity is pinned at 1: what is drawn is exactly what is exported. */
@@ -148,8 +155,11 @@ function _dataUrlBytes(dataUrl) {
  */
 export async function composePaintLayer(value) {
     const dataUrl = value?.paint;
-    const w = Math.round(value?.size?.w || 0);
-    const h = Math.round(value?.size?.h || 0);
+    // Never past the engine cap: above it the photo is cut round the box by `/engine-box`,
+    // which reads a layer of the same aspect at any size (see § Resolution above).
+    const fit = Math.min(1, ENGINE_MAX_EDGE / Math.max(value?.size?.w || 0, value?.size?.h || 0));
+    const w = Math.round((value?.size?.w || 0) * fit);
+    const h = Math.round((value?.size?.h || 0) * fit);
     if (!dataUrl || !(w > 0) || !(h > 0)) return null;
 
     const bytes = _dataUrlBytes(dataUrl);
@@ -226,11 +236,14 @@ export async function composePaintComposite(value, media) {
     if (srcUrl) {
         // A failed decode must not take the drawing down with it — fall through to the
         // white ground and still send the strokes, which is a usable picture.
+        // The display copy (MPI-1014): at least 4096 on its long edge, so the composite
+        // loses nothing, and a 32K original — which Chromium cannot decode — still lands.
+        const { src } = await resolveDisplayImage(srcUrl);
         const img = await new Promise((resolve) => {
             const i = new Image();
             i.onload = () => resolve(i);
             i.onerror = () => resolve(null);
-            i.src = srcUrl;
+            i.src = src;
         });
         if (img) c2d.drawImage(img, 0, 0, w, h);
     }
@@ -777,7 +790,8 @@ export const MpiStepPaint = ComponentFactory.create({
         }
 
         _unsubs.push(on(imgEl, 'load', () => {
-            _initSurface(imgEl.naturalWidth || 1, imgEl.naturalHeight || 1);
+            const { w, h } = originalSize(imgEl);
+            _initSurface(w, h);
         }));
 
         const _ro = new ResizeObserver(() => _syncCanvasSize());
@@ -785,7 +799,7 @@ export const MpiStepPaint = ComponentFactory.create({
 
         // Source last: with the handler wired, a cached image still fires load.
         const url = _hasMedia ? resolveMediaUrl(props.media.url) : '';
-        if (url) imgEl.src = url;
+        if (url) setDisplaySrc(imgEl, url);
         // No source, so no `load` will ever fire — arm the surface directly, NOW, before
         // anything can report. This is the line that makes the gizmo media-optional.
         else _initSurface(_blankSize().w, _blankSize().h);

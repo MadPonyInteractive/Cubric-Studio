@@ -22,6 +22,7 @@ import { activeGenerations } from '../../../services/activeGenerations.js';
 import { createPreviewClipPlayer } from '../../../services/previewClipPlayer.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { setDisplaySrc } from '../../../utils/displayImage.js';
 import { isVideoFile } from '../../../utils/file.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
@@ -772,10 +773,11 @@ export const MpiBaseFlow = ComponentFactory.create({
 
             if (item) {
                 if (group.type === 'image') {
-                    slot.appendChild(ce('img', {
-                        src: resolveMediaUrl(item.url),
-                        alt: _slotLabel(group, idx),
-                    }));
+                    // A big still shows the server's display copy (MPI-1014): a 32K
+                    // original never decodes, and a 16K painted in strip by strip.
+                    const still = ce('img', { alt: _slotLabel(group, idx) });
+                    setDisplaySrc(still, resolveMediaUrl(item.url));
+                    slot.appendChild(still);
                 } else if (group.type === 'video') {
                     // A filled video slot used to be a FILENAME, so the user could not
                     // see what they had picked. It loops silently instead — the clip is
@@ -2436,7 +2438,10 @@ export const MpiBaseFlow = ComponentFactory.create({
                     src: url, muted: true, loop: true, autoplay: true, playsInline: true,
                 });
             }
-            return ce('img', { src: url, alt: 'result', draggable: false });
+            // A stitched result is the source's size — 16K in, 16K out (MPI-1014).
+            const img = ce('img', { alt: 'result', draggable: false });
+            setDisplaySrc(img, url);
+            return img;
         }
 
         /**
@@ -2900,7 +2905,9 @@ export const MpiBaseFlow = ComponentFactory.create({
                 // result. Do not re-add it without an `autoplay` to justify it.
                 const media = isVideo
                     ? ce('video', { src: url, controls: true, loop: true })
-                    : ce('img', { src: url, alt: 'result', draggable: false });
+                    : ce('img', { alt: 'result', draggable: false });
+                // A stitched result is the source's size — 16K in, 16K out (MPI-1014).
+                if (!isVideo) setDisplaySrc(media, url);
                 // Fit the FINAL image once it has dimensions — a latent's view never
                 // carries over (different crop, different resolution).
                 _resultMediaEl.appendChild(media);

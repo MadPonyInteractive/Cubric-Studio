@@ -42,9 +42,3 @@ export function loadRefusal(width, height) {
     if (!(width * height > ENGINE_LOAD_MAX_PIXELS)) return null;
     return `Too big for the engine: ${width}x${height} is ${_mp(width * height)} MP, and it opens at most ${_mp(ENGINE_LOAD_MAX_PIXELS)} MP. Try a smaller copy of the picture.`;
 }
-
-/** Why an Outpaint frame this big cannot be made (it is sent and returned whole), or null. */
-export function outpaintRefusal(width, height) {
-    if (!(Math.max(width, height) > UPSCALE_MAX_EDGE) && !(width * height > ENGINE_LOAD_MAX_PIXELS)) return null;
-    return `Too big to outpaint: the new frame would be ${width}x${height} (${_mp(width * height)} MP), and the most the app can make is ${UPSCALE_MAX_EDGE} px on the long edge and ${_mp(ENGINE_LOAD_MAX_PIXELS)} MP.`;
-}

@@ -93,12 +93,21 @@ test('a chip preview is the sidecar thumb; the original only without one', async
     await fs.remove(p.root);
 });
 
-test('a big still no sidecar owns falls back to the original', async () => {
+// MPI-1014: was "falls back to the original" — and a Flow's uploaded 32K (a `.preview-assets`
+// file, no sidecar) then showed a broken image, since Chromium cannot decode one.
+test('a big still no sidecar owns gets its copy in the temp cache, never a .meta', async () => {
     const p = await project();
     const file = path.join(p.mediaDir, 'stray.png');
     await solid(5000, 100).png().toFile(file);
     const r = await resolveDisplayImage(file, 4096);
-    assert.deepEqual(r, { url: null, width: 5000, height: 100 });
+    assert.equal(r.width, 5000);
+    assert.equal(r.height, 100);
+    const copy = decodeURIComponent(new URL(r.url, 'http://x').searchParams.get('path'));
+    assert.equal(path.dirname(copy), path.join(os.tmpdir(), 'cubric-engine-inputs'));
+    assert.match(path.basename(copy), /^[0-9a-f]{40}\.fit4096\.webp$/);
+    const m = await sharp(copy).metadata();
+    assert.equal(m.width, 4096);
     assert.deepEqual(await fs.readdir(p.metaDir), []);
+    await fs.remove(copy);
     await fs.remove(p.root);
 });

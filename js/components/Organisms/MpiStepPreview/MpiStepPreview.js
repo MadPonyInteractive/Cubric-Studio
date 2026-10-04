@@ -1,5 +1,6 @@
 import { ComponentFactory } from '../../factory.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { setDisplaySrc } from '../../../utils/displayImage.js';
 
 /**
  * MpiStepPreview — the `preview` step kind.
@@ -44,7 +45,9 @@ export const MpiStepPreview = ComponentFactory.create({
             const isVideo = (media.mediaType || media.type) === 'video';
             const node = document.createElement(isVideo ? 'video' : 'img');
             node.className = 'mpi-step-preview__media';
-            node.src = url;
+            // A big still shows the server's display copy (MPI-1014).
+            if (isVideo) node.src = url;
+            else setDisplaySrc(node, url);
             if (isVideo) {
                 node.controls = true;
                 node.loop = true;

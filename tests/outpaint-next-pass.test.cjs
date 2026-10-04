@@ -37,8 +37,15 @@ class FakeImage {
 }
 const canvases = [];
 class FakeCanvas {
-    constructor() { this.draws = []; canvases.push(this); }
-    getContext() { return { drawImage: (img, x, y) => this.draws.push({ w: img.naturalWidth, h: img.naturalHeight, x, y }) }; }
+    constructor() { this.draws = []; this.sized = []; canvases.push(this); }
+    getContext() {
+        return {
+            drawImage: (img, x, y, dw, dh) => {
+                this.draws.push({ w: img.naturalWidth, h: img.naturalHeight, x, y });
+                this.sized.push({ x, y, dw, dh });
+            },
+        };
+    }
     toBlob(cb) { cb(new Blob([new Uint8Array(4)], { type: 'image/png' })); }
 }
 globalThis.document = { createElement: (tag) => { assert.strictEqual(tag, 'canvas'); return new FakeCanvas(); } };
@@ -64,4 +71,20 @@ test('pass 2 is composed from the finished item flowService hands over', async (
     assert.deepEqual([canvas.width, canvas.height], [1024, 2389], 'the next pass is the full frame');
     assert.deepEqual(canvas.draws, [{ w: 1024, h: 1706, x: 0, y: 341 }],
         'pass 1 sits where its frame sits inside the next one');
+});
+
+// MPI-1014: the graph scales its input to 1 MP on load, so a frame past the engine cap was
+// only ever a bigger canvas (~1 GB at 16K) — and the reason a 16K photo could not be
+// outpainted at all (refused past 16384).
+test('a 16K frame is composed at most 4096 on its long edge, the source scaled into it', async () => {
+    const { composePaddedImage } = await esm('js/components/Organisms/MpiStepCrop/MpiStepCrop.js');
+    const url = '/project-file?path=C%3A%2Fproj%2FMedia%2Fbig_001.png';
+    IMAGES.set(url, { w: 16384, h: 10240 });
+
+    const file = await composePaddedImage({ url }, { crop: { x: 0, y: -2048, w: 16384, h: 14336 } });
+
+    assert.ok(file, 'a 16K photo grown past 16384 is composed, never refused');
+    const canvas = canvases.at(-1);
+    assert.deepEqual([canvas.width, canvas.height], [4096, 3584]);
+    assert.deepEqual(canvas.sized.at(-1), { x: 0, y: 512, dw: 4096, dh: 2560 });
 });

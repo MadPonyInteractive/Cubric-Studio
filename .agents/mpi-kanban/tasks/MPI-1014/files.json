@@ -1,0 +1,24 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Compounds/MpiMediaPicker/MpiMediaPicker.js",
+    "js/components/Organisms/MpiStepBox/MpiStepBox.js",
+    "js/components/Organisms/MpiStepPreview/MpiStepPreview.js",
+    "js/components/Organisms/MpiStepCrop/MpiStepCrop.js",
+    "js/components/Organisms/MpiStepPaint/MpiStepPaint.js",
+    "js/components/Organisms/MpiStepCutout/MpiStepCutout.js",
+    "js/components/Organisms/MpiStepPlace/MpiStepPlace.js",
+    "js/utils/displayImage.js",
+    "routes/projects.js",
+    "docs/big-photos.md",
+    "tests/desktop/flow-big-photo.spec.js",
+    "tests/flow-big-photo.test.cjs",
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+    "tests/canvas-display-rendition.test.cjs",
+    "tests/engine-input-cap.test.cjs",
+    "js/utils/upscaleLimit.js",
+    "tests/upscale-limit.test.cjs",
+    "tests/object-stamp-flip.test.cjs",
+    "tests/outpaint-next-pass.test.cjs"
+  ]
+}

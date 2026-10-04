@@ -1,6 +1,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { createCropTool } from '../../../utils/cropTool.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { setDisplaySrc, originalSize } from '../../../utils/displayImage.js';
 import { qs, on } from '../../../utils/dom.js';
 
 /**
@@ -75,18 +76,6 @@ const MIN_BOX_PX = 32;
  * Handles are 10px across, hit-tested at 16 (cropTool).
  */
 const HANDLE_SLACK = 16;
-
-/**
- * Natural (intrinsic) dimensions of a loaded media element.
- * @param {HTMLImageElement} imgEl
- * @returns {{w:number,h:number}}
- */
-function _naturalSize(imgEl) {
-    return {
-        w: imgEl.naturalWidth || imgEl.width || 1,
-        h: imgEl.naturalHeight || imgEl.height || 1,
-    };
-}
 
 /**
  * Normalized [0..1] rect → absolute source pixels, clamped to the image.
@@ -255,7 +244,9 @@ export const MpiStepBox = ComponentFactory.create({
 
         /** Build the crop tool once the image has real intrinsic dimensions. */
         function _initCropTool() {
-            _natural = _naturalSize(mediaEl);
+            // The ORIGINAL's px even while the element shows a display copy (MPI-1014): the
+            // box reaches the graph and `/engine-box` in source px.
+            _natural = originalSize(mediaEl);
             _syncOverlaySize();
 
             _cropTool = createCropTool({
@@ -299,7 +290,7 @@ export const MpiStepBox = ComponentFactory.create({
 
         // Source last: with the handler wired, a cached image still fires load.
         const url = props.media?.url ? resolveMediaUrl(props.media.url) : '';
-        if (url) mediaEl.src = url;
+        if (url) setDisplaySrc(mediaEl, url);
 
         el.getValue = () => ({ box: _box });
 

@@ -92,8 +92,15 @@ test('a file no sidecar owns (a Flow input, an agent\'s own file) gets a temp co
     assert.equal((await sharp(out).metadata()).width, 4096);
     assert.deepEqual(await fs.readdir(store), ['abc123.png'], 'no .meta written into a folder we do not own');
 
-    // The display copy keeps its old rule there: no sidecar, serve the original.
-    assert.equal((await resolveDisplayImage(file, 4096)).url, null);
+    // The display copy too since MPI-1014 (a Flow's uploaded 32K showed broken): its own
+    // file in the same cache, a WebP, never the engine's PNG.
+    const shown = await resolveDisplayImage(file, 4096);
+    const view = decodeURIComponent(shown.url.match(/[?&]path=([^&]+)/)[1]);
+    assert.equal(path.dirname(view), path.dirname(out));
+    assert.notEqual(view, out);
+    assert.equal((await sharp(view).metadata()).format, 'webp');
+    assert.deepEqual(await fs.readdir(store), ['abc123.png']);
+    await fs.remove(view);
     await fs.remove(out);
     await fs.remove(p.root);
 });
