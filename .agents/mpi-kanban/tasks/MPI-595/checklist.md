@@ -440,8 +440,9 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
   Committed + pushed `0cb194124` (no approval token yet). **test:desktop locally: 214 pass, 3
   fail** - GIF strip drag passed on rerun (flaky); `model-settings-popup` + `popup-contract`
   ("trigger click did not register") fail locally EVEN with APP_VERSION back at 1.6.3 and
-  with the 2.0.0 notes hidden, so not this change; CI was green on `f47bf6164`. CI on
-  `0cb194124` decides. Left: Fabio's round-2 read + his `release:approve`, token commit, tag.
+  with the 2.0.0 notes hidden, so not this change. **CI GREEN on `0cb194124`** (run
+  37230711166: unit + desktop shards 1-4 all success), so those two are local-only. B4 at
+  the cut: done. Left: Fabio's round-2 read + his `release:approve`, token commit, tag.
   **Edit the notes ONLY in `tasks/MPI-595/notes200.py`** and run it (`python <that path>`):
   it rewrites `releaseNotes.js`'s 2.0.0 block, the archival note AND the Gate 2 body draft
   `tasks/MPI-595/release-body-2.0.0.md` (Platform support = TO FILL from the install tests);
