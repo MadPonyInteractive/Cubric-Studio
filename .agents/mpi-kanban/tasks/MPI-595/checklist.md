@@ -398,9 +398,10 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
 - [x] `.mcpb` tools caught up at the cut (release-skill precondition, MPI-1009): manifest lacked
   the 5 routine tools. Manifest 0.3.0 (22 tools), packed with mcpb 2.1.2 (3 members), released
   `mcpb-v0.3.0` on cubric-studio-agents 2026-10-04 (latest-download link serves sha256
-  `3500fc2b…`), `server.json` bumped + pushed (`62c2445`). **Left: MCP Registry publish**
+  `3500fc2b…`), `server.json` bumped + pushed (`62c2445`). **Left: MCP Registry publish** (2026-10-04: `mcp-publisher` 1.8.1 downloaded + sha256-verified to the session scratchpad; the publish itself is classifier-blocked for agents as a public action, so Fabio runs it)
   (`mcp-publisher` is no longer on disk: a 7.5 MB download + maybe Fabio's GitHub device login)
 - [ ] Claude Desktop directory submission AFTER 2.0 is live
+  - 2026-10-04: **the directory no longer takes `.mcpb` desktop extensions** (claude.com/docs/connectors/building/submission: "desktop extension listings in the directory are deprecated"). A local server lists only inside a PLUGIN (portal claude.ai/directory/manage -> Plugin bundle, Fabio submits with his GitHub connected). `cubric-studio-agents/plugins/cubric-studio` fails two BLOCKING checks today: no README in the plugin folder, and `.mcp.json` is `http://127.0.0.1:3000/mcp` (any non-https URL blocks). Fix = ship the `.mcpb` stdio bridge (`mcp/cubric-studio/server/index.js`) in the plugin, point `.mcp.json` at `node ${CLAUDE_PLUGIN_ROOT}/server/index.js`, add a README with a Privacy Policy section, bump 0.1.0; re-test Claude Code + Codex + Antigravity (shared folder). Needs its own card (public repo)
 - [x] MPI-873 done
 
 ## Gate D — hygiene at the cut
@@ -485,6 +486,7 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
     `notes200.py`, re-run, in-app + archival notes byte-identical (token still valid)
   - **PUBLISHED 2026-10-04:** `gh release create --draft` with the 6 assets (sizes match), then `--draft=false --latest`. `releases/latest` = v2.0.0, prerelease false, draft false, 6 assets; latest/download serves the update zip (206). A real 1.5.0 (Linux box) logs `update available: v1.5.0 -> v2.0.0, prompting` (the old `Cubric-Vision` repo name redirects). Baselines restamped verbatim from the published full builds (win 7218 / mac 7357 / linux 7177 files, blobs = shipped bytes) on master `beef303a6`; branch **`2.0.0`** cut from the tag + the restamp cherry-picked (`855dadc3e`), pushed
 - [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
+  - See the 403 note: not submittable as an extension any more; it is the plugin card
 - [ ] Release day: **MPI-983** publish docs.cubric.studio, then cubric.studio (both built and held)
   - [ ] **`llms.txt` for docs.cubric.studio** rides with it (from MPI-593, handed over by Agent 85
     2026-10-01). Docs repo = Fabio's no-push repo with its own live session: ask THAT session (or
@@ -493,3 +495,4 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
 - [x] Ask Fabio again, near the release: a Discord/Patreon post warning 1.5.0 users about the 2026-11-15 RunPod cutoff (Fabio 2026-09-29: "no to the post right now, maybe closer to the release"). **Fabio 2026-10-04: YES, on release day, as a MadPony-Identity board card** (comms live there, not here)
   - DONE 2026-10-04: card **MadPony-Identity MPI-83** (todo/planned, pushed `498780e`); Fabio posts
 - [ ] After: MPI-603 R2/HF delete; MPI-612
+  - 2026-10-04: **NOT deleted, on evidence.** MPI-603: every 1.5.0 install still lists `klein-lora-outpaint` in Klein 4B deps and a 4xx dep fails the whole install there, so deleting breaks Klein 4B for every user not yet on 2.0 (72 MB saved). MPI-612 says itself "two or three releases after" the MPI-609 release (= 2.0). Both wait for ~2.2; storage cost is negligible
