@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1020", "at": "2026-10-05T00:17:11+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting README refresh"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1020", "at": "2026-10-05T00:20:51+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "README refreshed for 2.0"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1020", "at": "2026-10-05T00:21:45+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "reopened: done-gate needs CI on the README commit first"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1020", "at": "2026-10-05T00:33:35+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 11f83c34 (run 37243493305)"}
