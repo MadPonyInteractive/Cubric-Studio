@@ -18,3 +18,10 @@ Harness fix in the same job: `scripts/recipe-test.mjs --ref-tiers` wrote Seedanc
 Full record, iterations and known limitations: `docs/recipes/research/wan-3.0/validation.md`.
 
 Shipped with the open case on the agent's pick (Fabio may reverse): the failing case is Enhance on ref2v before any reference is staged, and the wan-2.2 recipe it replaces is wrong for every Wan 3.0 mode.
+
+## Stage 2, Fabio's live run 2 (2026-10-04)
+
+Cosmo, guide:wan-3.0, ref2v 480p 2 s 4:3 with one 16:9 reference (tiger + rider, Deepinfra model tests,
+ref2v_003). Prompt cites plain "Image 1" (not `<Image 1>`), one continuous action, sound line last
+("No dialogue. No background music."). Identity held; Wan invented the frame's top to fill 4:3.
+Fabio: "Came out great". $0.10. Still open: the `<Image 1>` bracket form on a real render, r2v with no refs.
