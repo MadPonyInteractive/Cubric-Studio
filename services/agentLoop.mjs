@@ -1338,7 +1338,7 @@ export class AgentLoop {
         // N-1 invisible queued jobs. The connector refuses BATCH_UNSUPPORTED on a model whose
         // images 2+ artefact, before anything is queued, and then it is the fan-out below.
         if (!cards) {
-            const batched = await this._runBatched(args, n, turnId, currentProject, spend !== null);
+            const batched = await this._runBatched(args, n, turnId, currentProject, spend);
             if (batched) return batched;
         }
 
@@ -1376,7 +1376,7 @@ export class AgentLoop {
             refused,
             message: refused.length
                 ? `Started ${started.length} of ${n}. ${refused.length} were refused — tell the user which, and why.${lands}`
-                : `Started all ${started.length}. ${BATCH_STARTED}${lands}`,
+                : `Started all ${started.length}. ${BATCH_STARTED}${lands}${_priceNote(spend)}`,
         });
     }
 
@@ -1456,12 +1456,12 @@ export class AgentLoop {
      * when the FIRST is refused BATCH_UNSUPPORTED — the model cannot batch cleanly, nothing
      * was queued, and the caller fans out instead. Any other refusal is the answer.
      */
-    async _runBatched(args, n, turnId, currentProject, billed) {
+    async _runBatched(args, n, turnId, currentProject, spend) {
         // ponytail: mirrors AGENT_BATCH_MAX in js/data/generationControls.js, which the
         // connector enforces; this loop imports nothing from js/data.
         const MAX = 4;
         let made = 0;
-        const batch = this._newBatch(turnId, args, currentProject, 'run', billed);
+        const batch = this._newBatch(turnId, args, currentProject, 'run', spend !== null);
         for (let i = 0; made < n; i++) {
             const size = Math.min(MAX, n - made);
             // A batch shares one seed; each further job steps it so they do not repeat.
@@ -1483,7 +1483,7 @@ export class AgentLoop {
             made += size;
         }
         batch.close();
-        return JSON.stringify({ ok: true, started: n, refused: [], message: `Started all ${n} as a batch; every card is already in the gallery. ${BATCH_STARTED}` });
+        return JSON.stringify({ ok: true, started: n, refused: [], message: `Started all ${n} as a batch; every card is already in the gallery. ${BATCH_STARTED}${_priceNote(spend)}` });
     }
 
     /**
@@ -1542,9 +1542,10 @@ export class AgentLoop {
      *
      * @param {object} body  the connector body about to be sent, priced as it stands.
      * @param {number} count how many generations this one card is about to agree to.
-     * @returns {Promise<true|false|null>} null when nothing about this run can be billed,
-     *   which is every local model and every Flow that runs locally — those raise no card
-     *   at all. A Flow whose edit slot runs on a cloud model bills (MPI-918) and does.
+     * @returns {Promise<{price: string|null}|false|null>} the card's price on a Yes, for
+     *   `_priceNote`. null when nothing about this run can be billed, which is every local
+     *   model and every Flow that runs locally — those raise no card at all. A Flow whose
+     *   edit slot runs on a cloud model bills (MPI-918) and does.
      */
     async _askSpend(turnId, body, count) {
         let quote = null;
@@ -1556,7 +1557,8 @@ export class AgentLoop {
             // below fails the same way and spends nothing. Never a reason to raise a card.
         }
         if (!quote) return null;
-        return this._confirmSpend(turnId, { modelName: quote.modelName, count: quote.count || count, price: quote.display || null }, 'generate', body);
+        const price = quote.display || null;
+        return await this._confirmSpend(turnId, { modelName: quote.modelName, count: quote.count || count, price }, 'generate', body) && { price };
     }
 
     /**
@@ -2423,13 +2425,13 @@ ${knowledgeIndex}`.trim();
                     // The filePath is the ref the next call passes as `media[].image` — it
                     // is already registered by `settle`, so the chain needs nothing else.
                     return JSON.stringify({ ok: true, output: r.output,
-                        message: `Finished. Use "${r.output?.filePath}" as the image for the next step.${snapNote}${_sentNote(body)}` });
+                        message: `Finished. Use "${r.output?.filePath}" as the image for the next step.${snapNote}${_sentNote(body)}${_priceNote(spend)}` });
                 }
 
                 pending.then(settle).catch(settleThrow);
 
                 const lands = _isTool(args) && sourceIsCard ? ` It lands as the ${LANDS_ON_CARD}.` : '';
-                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${lands}${snapNote}${_sentNote(body)}` });
+                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${lands}${snapNote}${_sentNote(body)}${_priceNote(spend)}` });
             }
             case 'look': {
                 const ref = this._resolveImage(args.image);
@@ -3247,6 +3249,15 @@ function _sentNote(body) {
     if (!body.modelId) return '';
     const sent = _SENT_KEYS.filter((k) => body[k] !== undefined).map((k) => `${k} ${body[k]}`);
     return ` Settings you sent: ${sent.length ? sent.join(', ') : 'none'}. Every other setting runs at its default. Tell the user only settings listed here; to change one, send it.`;
+}
+
+/**
+ * The figure on the spend card the user said yes to. Told nothing, the agent priced a 4 s
+ * 480p Seedance 1.5 clip off the model's blurb ("$0.30 for five seconds at 1080p") and said
+ * $0.13 under a card and a counter that both said $0.05 (Fabio's smoke, 2026-10-04).
+ */
+function _priceNote(spend) {
+    return spend?.price ? ` The user said yes to ${spend.price} on the spend card: that is the price, so quote it and never a figure of your own.` : '';
 }
 
 /**

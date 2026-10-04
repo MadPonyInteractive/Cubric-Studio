@@ -2812,6 +2812,8 @@ describe('(m) the spend gate', () => {
         const out = JSON.parse(await pending);
         assert.equal(out.started, true);
         assert.equal(tools.calls.generate.length, 1);
+        // Fabio's smoke 2026-10-04: told nothing, the agent said $0.13 under a $0.05 card.
+        assert.match(out.message, /said yes to about \$0\.07 on the spend card/, 'the agent must be handed the price the user agreed to');
     });
 
     test('No spends nothing, and the refusal does not talk about an installation', async () => {
@@ -2835,6 +2837,7 @@ describe('(m) the spend gate', () => {
         assert.equal(out.started, true);
         assert.equal(tools.calls.generate.length, 1, 'it ran straight through');
         assert.equal(fakeRes.events.some((e) => e.event === 'agent:confirm'), false, 'a free run must not raise a card');
+        assert.doesNotMatch(out.message, /spend card/, 'a free run quotes no price');
     });
 
     test('a price that cannot be known still asks, and says so without naming a cause', async () => {
@@ -2927,6 +2930,7 @@ describe('(m) the spend gate', () => {
         const out = JSON.parse(await pending);
         assert.equal(out.started, 6);
         assert.equal(tools.calls.generate.length, 6);
+        assert.match(out.message, /said yes to about \$0\.40 on the spend card/);
         const cards = fakeRes.events.filter((e) => e.event === 'agent:confirm');
         assert.equal(cards.length, 1, 'one action, one question: the batch card must not stack on top of the spend card');
         assert.equal(tools.calls.quote.length, 1, 'and the six fanned-out calls must not each raise their own');
@@ -2964,6 +2968,20 @@ describe('(m) the spend gate', () => {
         assert.equal(evt.data.count, 2);
         await loop.confirm(evt.data.confirmId, true);
         assert.equal(JSON.parse(await pending).started, 2);
+    });
+
+    test('a billed count that runs as a real batch hands the agent the price too', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({
+            engineResponses: [{ text: 'ok' }],
+            toolOpts: { quote: (body) => ({ billed: true, modelName: 'Nano Banana 2', count: body.count || 1, display: 'about $0.13' }) },
+        });
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a fox', count: 2 }, 'turn-spend-count', project);
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        await loop.confirm(evt.data.confirmId, true);
+        const out = JSON.parse(await pending);
+        assert.equal(out.started, 2);
+        assert.equal(tools.calls.generate.length, 1, 'one batched submit, not a fan-out');
+        assert.match(out.message, /said yes to about \$0\.13 on the spend card/);
     });
 
     // Fabio live, 2026-09-22: "a batch of two" on FLUX Schnell (Cloud) raised TWO cards at

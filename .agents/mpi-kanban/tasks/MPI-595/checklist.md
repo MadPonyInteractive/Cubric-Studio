@@ -168,6 +168,16 @@ THIS umbrella:
   3.0; the cloud ones keep PAID first) saying what a reference op is, and the Seedance guide no
   longer says a reference never appears as-is. **Fabio's live ask PASSED 2026-10-04**: Cosmo went
   straight to H3 Reference, no install card, $0.00; then a Seedance 2.0 run behind its Yes card
+- [ ] **Cosmo: two slips from Fabio's recordings `lm (1)` / `lm (5)` (peer's report 2026-10-04,
+  on the restarted build):** (1) Seedance 1.5 Pro 480p 4 s: the Yes card and the counter said
+  $0.05, Cosmo said "about $0.13". `_askSpend` threw the card's price away, so Cosmo priced it
+  off the model blurb; a Yes now hands the figure back in every generate result (single, wait,
+  fan-out, real batch: `_priceNote`, `services/agentLoop.mjs`). (2) "the same video but with
+  MiniMax H3" went to the uninstalled `minimax-h3`, refused `OP_UNAVAILABLE` naming only it,
+  and Cosmo offered the 21 GB install with H3 Reference installed (Fabio's log 08:51). The
+  refusal now names the installed `modelFamily` members (`installedKin`,
+  `js/shell/agentDispatch.js`, test `agent-installed-kin`). Spend tests + 4 asserts; npm test
+  2703/0, eslint clean. Left: Fabio's live re-ask of both
 - [ ] **MPI-1015 the video screen works like the image screen (Fabio's smoke 2026-10-04, 2.0
   gate):** `+` strip and reference models (H3 Reference was hidden) on the video history screen;
   the Start/End frame panel and Extend / New shot retired (Combine joins clips). All three

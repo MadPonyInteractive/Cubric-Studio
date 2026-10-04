@@ -576,6 +576,27 @@ async function _submitGeneration(jobId, input = {}) {
 const _refuse = (code, message) => ({ ok: false, code, message });
 
 /**
+ * The installed models of a refused model's family, for its OP_UNAVAILABLE. Fabio's smoke
+ * 2026-10-04: "the same video but with MiniMax H3" went to `minimax-h3`, not installed; the
+ * refusal named only that, and the agent offered its 21 GB download with MiniMax H3
+ * Reference installed and able to animate the picture. The user named a family, the id was
+ * one member of it, and nothing named the member that was there.
+ *
+ * @param {object} model
+ * @returns {string} '' when no other model of its `modelFamily` has an installed op
+ */
+export function installedKin(model) {
+    if (!model?.modelFamily) return '';
+    const kin = MODELS
+        .filter(m => m.id !== model.id && m.modelFamily === model.modelFamily)
+        .map(m => ({ m, ops: (m.supportedOps || []).filter(op => isOperationInstalled(m, op)) }))
+        .filter(k => k.ops.length);
+    if (!kin.length) return '';
+    const names = kin.map(k => `${k.m.name} ("${k.m.id}": ${k.ops.join(', ')})`).join('; ');
+    return ` Installed from the same family: ${names}. When one of those ops can do the ask (its note in list_models says what it does), run it there and say so in one line, rather than offering an install.`;
+}
+
+/**
  * The BUILD half of a model submit (MPI-970): who owns the model and settings, whether
  * the op is installed, the mask, the media, the seed and the named params, resolved into
  * the config `enqueueGeneration` takes. Enqueues nothing, so a routine step builds through
@@ -618,7 +639,7 @@ export async function buildGeneration(input, project, { pinned = false, painted 
         // video, it doesn't make images, you need to select another model").
         return _refuse('OP_UNAVAILABLE', pinned
             ? `"${operation}" is not available on ${model.name || model.id} — unsupported, or its weights are not installed. The user has the settings panel open, so that model is theirs and you cannot change it: tell them this model cannot do it and ask them to select one that can - or to close the settings panel, and you will pick the model.`
-            : `"${operation}" is not available on ${model.name || modelId} — unsupported, or its weights are not installed.`);
+            : `"${operation}" is not available on ${model.name || modelId} — unsupported, or its weights are not installed.${installedKin(model)}`);
     }
 
     const areas = painted && ONE_AREA_OPS.has(operation) ? await _maskAreas(painted.dataUrl) : null;
