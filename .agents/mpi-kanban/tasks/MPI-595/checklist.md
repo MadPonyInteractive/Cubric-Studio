@@ -192,6 +192,12 @@ THIS umbrella:
   ltx-extend,character-sheet,outpaint`. **Fabio's go 2026-10-04** ("we'll do the paid smoke in a
   fresh session"), on the price quoted to him: 8 runs, ~$0.30-0.60, **cap $1.00**. `--plan`
   first (spends nothing); past the cap, stop and ask. Report what was spent
+  - **`--plan` DONE 2026-10-04 (session 88b78413), spent nothing:** 6 graphs, not 8 (minimax-h3
+    t2v_ms + i2v_ms; Flows ltx-extend, ltx-extend/minimax-h3, character-sheet, outpaint); every
+    preflight green, pod lock in sync with v0.34.0, MpiNodes bc92a1b8 clean. **Fabio's explicit
+    money yes RE-GIVEN 2026-10-04 after that quote** ("You already have my permission to run it"):
+    the next session runs it straight away through `/mpi-bump-engine`, cap **$1.00**, no re-ask
+    unless past the cap. Delete the Pod and its volume after; report the spend
 - [ ] **The cut** (Gate D below) once both lists are empty; MPI-983 sites publish is a cut step
 
 Agent 85:
