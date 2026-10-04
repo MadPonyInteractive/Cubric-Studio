@@ -426,7 +426,35 @@ calls MPI-531 a "RELEASE BLOCKER" but 531 is archived — stale line, not a gate
   `Cubric Studio`; now reads `getProjectsRoot()`, green at 2.0.0 and at 1.6.3), and
   `release:deps` caught the H3 latent upscaler's HF mirror 404 (author moved it into a v1 folder
   09-17; new path's LFS sha256 + size = ours). npm test 2712/0/2; release:deps 304 reachable.
-  Left: test:desktop, Fabio's Gate 1 read + his `release:approve`, then commit + tag
+  **Gate 1 round 1 (Fabio 2026-10-04) applied, notes now 10 important / 52 new / 44 fixes / 1
+  engine:** Head Swap + DramaBox line moved under Flows (never shipped as built-ins, so no
+  "now"); Klein 4B outpaint-LoRA line cut; BOTH H3 Turbo lines cut (both turbo weights are in
+  v1.5.0's models.js, and its body said Turbo moved to a stronger model); headline = Flows AND
+  the agent (agent moved up as "the other headline"); one "+ button on Gallery and History"
+  line replaces the gallery-+ and video-History lines; Place says drop a picture on an image
+  in History (MPI-454 drop arms Place); audio-card line reframed as new; FILTER line merges
+  kinds + marks and names the + picker (shared `galleryFilterPanel.js`); crew line adds the
+  per-media colours (DESIGN.md accent family); new "Shrink big pictures by megapixels" line
+  (import offer `mediaUploadService.js` + Resize + agent `downscale`). KEPT on evidence: the
+  inpaint line (v1.5.0 `commandRegistry.js:585` still says "Leave the prompt EMPTY to remove").
+  Committed + pushed `0cb194124` (no approval token yet). **test:desktop locally: 214 pass, 3
+  fail** - GIF strip drag passed on rerun (flaky); `model-settings-popup` + `popup-contract`
+  ("trigger click did not register") fail locally EVEN with APP_VERSION back at 1.6.3 and
+  with the 2.0.0 notes hidden, so not this change; CI was green on `f47bf6164`. CI on
+  `0cb194124` decides. Left: Fabio's round-2 read + his `release:approve`, token commit, tag.
+  **Edit the notes ONLY in `tasks/MPI-595/notes200.py`** and run it (`python <that path>`):
+  it rewrites `releaseNotes.js`'s 2.0.0 block, the archival note AND the Gate 2 body draft
+  `tasks/MPI-595/release-body-2.0.0.md` (Platform support = TO FILL from the install tests);
+  any change to the notes voids an earlier `release:approve` token
+- [ ] **Install smoke tests BEFORE the GitHub publish (Fabio 2026-10-04):** on the real 2.0
+  build, (a) Windows on his D: drive and (b) the Linux box. Windows: the publish gate wants a
+  FULL bundle tested from TWO releases back (<= 1.4.4); 2.0's bundle still says appId
+  `cubric.vision` (`build-portable.mjs:900`), so a 1.4.x applier takes it offline. On disk:
+  `D:\CVTest\CubricVision-v1.4.2` (1.4.2), `-v1.3.0`, `-v1.5.0` (fresh), `-v1.4.4` (now 1.5.0,
+  has `engine/`). Launch with `APP_DOCUMENTS` set to a scratch folder (honoured by
+  `main.js:769`), or 2.0 renames Fabio's REAL `Documents\Cubric Vision`. One real generation
+  (his GPU: say first), open the PNG, record `dev_configs/update-evidence.json`. Linux: fresh
+  1.5.0 extract -> 2.0 bundle, plus the B3 Documents-rename check; Fabio pastes keys
 - [ ] Release day: Claude Desktop directory submission (Gumroad already live, A4)
 - [ ] Release day: **MPI-983** publish docs.cubric.studio, then cubric.studio (both built and held)
   - [ ] **`llms.txt` for docs.cubric.studio** rides with it (from MPI-593, handed over by Agent 85
