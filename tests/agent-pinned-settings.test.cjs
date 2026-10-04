@@ -198,3 +198,16 @@ test('the Settings panel line names the op and the batch, and gives the agent on
     assert.match(line, /You supply only the prompt and the media/);
     assert.match(line, /send no duration, quality, ratio, batch, count/);
 });
+
+// Fabio, 2026-10-04: a 2 s panel clip got "Shot 2 [3-6s]", and Cosmo announced 4:3 at 1:1.
+test('the Settings panel line names the clip length and ratio, and the renderer sends both', async () => {
+    const { AgentLoop } = await import('../services/agentLoop.mjs');
+    const line = AgentLoop.prototype._pinnedSettingsLine({ modelId: 'wan3-cloud', name: 'Wan 3.0', mediaType: 'video', ops: ['ref2v'], operation: 'ref2v', batch: 1, duration: 2, ratio: '1:1' });
+    assert.match(line, /The clip is 2 s long: time any shots inside it\./);
+    assert.match(line, /The ratio is 1:1\./);
+    const still = AgentLoop.prototype._pinnedSettingsLine({ modelId: 'flux-schnell', name: 'FLUX Schnell', mediaType: 'image', ops: ['t2i'], duration: null, ratio: null });
+    assert.doesNotMatch(still, /The clip is|The ratio is/, 'nothing named when the panel resolves none');
+    const src = require('node:fs').readFileSync(require.resolve('../js/services/agentService.js'), 'utf8');
+    assert.match(src, /duration: \(run\?\.ok && run\.injectionParams\.Input_Duration\)/, '_pinnedForTurn sends the panel duration');
+    assert.match(src, /ratio: \(run\?\.ok && run\.injectionParams\.Ratio_Label\)/, '_pinnedForTurn sends the panel ratio');
+});

@@ -1,3 +1,7 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1017", "at": "2026-10-04T11:40:39+01:00", "actor": "claude", "column": "todo", "title": "The open settings panel locks every setting; Cosmo owns only references and the prompt"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1017", "at": "2026-10-04T11:42:37+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1017", "at": "2026-10-04T18:13:45+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio's live re-ask passed: t2v 720p 4 s, one clip, $0.40; CI green on ab394a373"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1017", "at": "2026-10-04T18:24:03+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Reopened: Fabio's ref2v test - Cosmo announced 4:3 while the open panel ran 1:1; the start note echoes ignored settings"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1017", "at": "2026-10-04T18:24:19+01:00", "actor": "claude", "status": "active"}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1017", "at": "2026-10-04T18:31:04+01:00", "actor": "claude", "summary": "reopen fix: panel duration+ratio reach Cosmo; tests green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1017", "at": "2026-10-04T18:31:04+01:00", "actor": "claude", "maturity": "validating"}

@@ -1048,7 +1048,8 @@ export class AgentLoop {
      * Costs nothing on a turn with the panel shut: the line is absent.
      *
      * MPI-1017: the operation and the batch are the panel's too (a different op is refused,
-     * OP_PINNED; a `count` is refused in `generate`), so the line names both values.
+     * OP_PINNED; a `count` is refused in `generate`), so the line names both values. The
+     * duration and ratio too: shots are timed inside the panel's clip, not a guessed one.
      */
     _pinnedSettingsLine(pinned) {
         if (!pinned?.modelId) return '';
@@ -1056,7 +1057,9 @@ export class AgentLoop {
         const op = pinned.operation ? ` and the operation is "${pinned.operation}"` : '';
         const use = pinned.operation ? `modelId "${pinned.modelId}" and operation "${pinned.operation}"` : `modelId "${pinned.modelId}"`;
         const batch = Number(pinned.batch) > 1 ? ` Each generate makes ${pinned.batch}, the panel's batch.` : '';
-        return `[Settings panel: the user has it OPEN, so the model, the operation and every setting (duration, quality, ratio, batch, turbo, style) are THEIRS for this turn. You supply only the prompt and the media (reference images, videos, audio), and name the card. The model is "${pinned.modelId}" (${pinned.name}, ${pinned.mediaType})${op}; the operations it can run are: ${ops}. Use ${use} on every generate and send no duration, quality, ratio, batch, count, turbo or style — yours are ignored.${batch} Write the prompt for THIS model and operation. If they cannot do what the user asked, say so plainly, say what they do instead, and ask them to change the model or operation, or close the settings panel so you pick — never switch it yourself, and never pretend a different one ran.]`;
+        const clip = pinned.duration ? ` The clip is ${pinned.duration} s long: time any shots inside it.` : '';
+        const ratio = pinned.ratio ? ` The ratio is ${pinned.ratio}.` : '';
+        return `[Settings panel: the user has it OPEN, so the model, the operation and every setting (duration, quality, ratio, batch, turbo, style) are THEIRS for this turn. You supply only the prompt and the media (reference images, videos, audio), and name the card. The model is "${pinned.modelId}" (${pinned.name}, ${pinned.mediaType})${op}; the operations it can run are: ${ops}. Use ${use} on every generate and send no duration, quality, ratio, batch, count, turbo or style — yours are ignored.${batch}${clip}${ratio} Write the prompt for THIS model and operation. If they cannot do what the user asked, say so plainly, say what they do instead, and ask them to change the model or operation, or close the settings panel so you pick — never switch it yourself, and never pretend a different one ran.]`;
     }
 
     /**
@@ -2440,13 +2443,13 @@ ${knowledgeIndex}`.trim();
                     // The filePath is the ref the next call passes as `media[].image` — it
                     // is already registered by `settle`, so the chain needs nothing else.
                     return JSON.stringify({ ok: true, output: r.output,
-                        message: `Finished. Use "${r.output?.filePath}" as the image for the next step.${snapNote}${_sentNote(body)}${_priceNote(spend)}` });
+                        message: `Finished. Use "${r.output?.filePath}" as the image for the next step.${snapNote}${_sentNote(body, this._pinned)}${_priceNote(spend)}` });
                 }
 
                 pending.then(settle).catch(settleThrow);
 
                 const lands = _isTool(args) && sourceIsCard ? ` It lands as the ${LANDS_ON_CARD}.` : '';
-                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${lands}${snapNote}${_sentNote(body)}${_priceNote(spend)}` });
+                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${lands}${snapNote}${_sentNote(body, this._pinned)}${_priceNote(spend)}` });
             }
             case 'look': {
                 const ref = this._resolveImage(args.image);
@@ -3254,7 +3257,7 @@ function _generateFields(args) {
     return body;
 }
 
-function _sentNote(body) {
+function _sentNote(body, pinned = null) {
     // A tool names the value of EVERY setting it runs with, defaults included: told nothing,
     // the agent called a default x2 upscale the x1.5 the user asked for (Fabio, MPI-970).
     const tool = body.modelId || body.flowId ? null : agentToolOp(String(body.operation || ''));
@@ -3264,6 +3267,12 @@ function _sentNote(body) {
         return ` It runs with: ${run.join(', ')}. Tell the user only these; to change one, send it in fields.`;
     }
     if (!body.modelId) return '';
+    // MPI-1017: the open panel drops what the agent sent (`resolveSettingsOwner`), so echoing
+    // it here told Cosmo to announce a 4:3 the panel ran at 1:1 (Fabio, 2026-10-04).
+    if (pinned) {
+        const at = [pinned.duration && `${pinned.duration} s`, pinned.ratio].filter(Boolean).join(', ');
+        return ` The settings panel is open, so it runs at the panel's settings${at ? ` (${at})` : ''} and any you sent were dropped. Name no other duration, quality or ratio to the user.`;
+    }
     const sent = _SENT_KEYS.filter((k) => body[k] !== undefined).map((k) => `${k} ${body[k]}`);
     return ` Settings you sent: ${sent.length ? sent.join(', ') : 'none'}. Every other setting runs at its default. Tell the user only settings listed here; to change one, send it.`;
 }

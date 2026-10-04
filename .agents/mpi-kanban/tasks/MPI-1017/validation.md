@@ -22,4 +22,22 @@ The original clip's sidecar shows H3 Reference ref2v with NO media, so the faith
 Panel open on Wan 3.0 t2v 720p 4 s, batch 1. "Repeat this video." -> Cosmo read wan3-cloud's settings and
 guide:wan-3.0, the spend card quoted about $0.40, and the clip landed as WAN 3.0 TEXT TO VIDEO 4S,
 1280x720, one clip; the session's Generations total reads $0.40 (was $1.90 before the fix). Fabio:
-"it landed perfectly". CI green on ab394a373.
+"it landed perfectly". CI green on ab394a373. Closed in a9197656d.
+
+## REOPENED 2026-10-04 — Fabio's ref2v test
+
+Panel open on Wan 3.0 ref2v 480p 2 s 1:1. The clip ran right (ref2v_004: 640x640, 2 s, $0.10) but
+Cosmo said "set at 4:3", and its prompt timed `Shot 1 [0-3s]` / `Shot 2 [3-6s]` into the 2 s clip
+(the t2v repeat did the same: 0-6 s in a 4 s clip). Causes: `_sentNote` echoed the agent's ratio
+back ("Settings you sent: ratio 4:3 ... Tell the user only settings listed here") though the
+panel had dropped it; and `_pinnedForTurn` sent the panel's batch but not its duration or ratio.
+
+Agent evidence:
+- `tests/agent-loop.test.cjs`: pinned generate with ratio 4:3 -> message names "(2 s, 1:1)", never 4:3.
+- `tests/agent-pinned-settings.test.cjs`: the panel line names "The clip is 2 s long" and "The ratio
+  is 1:1"; names neither when the panel resolves none; `_pinnedForTurn` sends both.
+- `resolveNamedParams` on the real Big Photos Test project.json, wan3-cloud ref2v: Input_Duration 2,
+  Ratio_Label 1:1 (what the panel shows).
+- `npm test`: 2714 tests, 2712 pass, 0 fail. eslint clean on the four changed files.
+
+Remaining: Fabio's look after an app restart.

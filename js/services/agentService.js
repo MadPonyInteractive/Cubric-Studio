@@ -161,8 +161,10 @@ export async function agentWake() {
  * words instead of discovering it through an OP_UNAVAILABLE.
  *
  * `operation` and `batch` (MPI-1017) are the panel's too, so the agent is told the values
- * that will run: the op to send, and how many it can say are coming.
- * @returns {{modelId:string, name:string, mediaType:string, ops:string[], operation:?string, batch:number}|null}
+ * that will run: the op to send, and how many it can say are coming. `duration` and `ratio`
+ * likewise: told nothing, Cosmo timed shots to 6 s on a 2 s clip and announced a 4:3 the
+ * panel ran at 1:1 (Fabio, 2026-10-04).
+ * @returns {{modelId:string, name:string, mediaType:string, ops:string[], operation:?string, batch:number, duration:?number, ratio:?string}|null}
  */
 function _pinnedForTurn() {
     if (state.agentSettingsPinned !== true) return null;
@@ -177,6 +179,8 @@ function _pinnedForTurn() {
         ops: (model.supportedOps || []).filter((op) => isOperationInstalled(model, op)),
         operation,
         batch: (run?.ok && run.injectionParams.Input_Batch_Size) || 1,
+        duration: (run?.ok && run.injectionParams.Input_Duration) || null,
+        ratio: (run?.ok && run.injectionParams.Ratio_Label) || null,
     };
 }
 

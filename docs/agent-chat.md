@@ -496,7 +496,10 @@ so the model button and cog are simply always there.
   publishes `state.agentPinnedOp` while its popup is open; a different op is refused `OP_PINNED`,
   an omitted one runs the panel's. The batch is the panel's saved shared `batch` (the agent's is
   dropped, MPI-876's carve-out reversed), and a `count` fan-out is refused `SETTINGS_PINNED` in the
-  loop. The Settings panel line names the op and the batch, so the agent says what runs.
+  loop. The Settings panel line names the op and the batch, so the agent says what runs. It names
+  the panel's duration and ratio too (`_pinnedForTurn`), and the generate result quotes those instead
+  of echoing the agent's dropped ones: told nothing, Cosmo timed `Shot 2 [3-6s]` into a 2 s clip and
+  announced a 4:3 the panel ran at 1:1 (Fabio, 2026-10-04).
 
 - **Open means PINNED.** The popup survives outside-click and Escape while the agent panel is open
   and closes on the cog alone — handing that ownership back by accident is worse than a popup that

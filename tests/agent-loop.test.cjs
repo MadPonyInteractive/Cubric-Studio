@@ -440,6 +440,19 @@ describe('(c) generate non-blocking', () => {
         assert.doesNotMatch(out.message, /denoise/, 'a denoise never sent is never named');
     });
 
+    // MPI-1017, live 2026-10-04: panel open at 1:1, Cosmo sent 4:3, the note echoed it, and
+    // Cosmo told Fabio "set at 4:3". The panel dropped it; the note must not hand it back.
+    test('with the settings panel open, the generate result names none of the settings the agent sent', async () => {
+        const { loop } = await makeLoop();
+        loop._pinned = { modelId: 'test-model', operation: 't2i', batch: 1, duration: 2, ratio: '1:1' };
+        const project = { folderPath: '/project', name: 'Test' };
+        const out = JSON.parse(await loop._executeTool('generate',
+            { modelId: 'test-model', operation: 't2i', prompt: 'A fox', ratio: '4:3', wait: true }, 'turn-pinned-sent', project));
+        assert.equal(out.ok, true, JSON.stringify(out));
+        assert.doesNotMatch(out.message, /4:3|Settings you sent/);
+        assert.match(out.message, /runs at the panel's settings \(2 s, 1:1\)/);
+    });
+
     /**
      * MPI-817. Non-blocking is right for the LAST step and wrong for every step something
      * else needs. Live (Fabio, 2026-09-19): "grow the top and bottom edges so the format
