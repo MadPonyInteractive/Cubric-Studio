@@ -156,7 +156,8 @@ THIS umbrella:
   screen now draws the server display copy and no export builds a canvas past 4096 (Outpaint
   lost its 16384 refusal). Spec RED-proven, real 32K checked in Chromium. Left: Fabio's look
   (Draw It In, Scribble, Outpaint, Object Stamp on his own 16K/32K), then close. Phase 4 (a new
-  image in a slot resets its steps, his Object Stamp find) pushed `db11c7fa6`
+  image in a slot resets its steps, his Object Stamp find) pushed `db11c7fa6`; cutout + paint
+  brush grow with the picture `c482068db`. **Fabio "1" 2026-10-04**: close once CI green on `1193fd7c0`
 - [ ] **Cosmo: H3 Reference animates a still too (Fabio's smoke 2026-10-04):** with no i2v
   installed, "just use MiniMax H3 reference" got install offers and paid clips. `ref2v_ms`
   note (`modelPriority.js`) + every i2v note now say it takes a picture as the opening/closing

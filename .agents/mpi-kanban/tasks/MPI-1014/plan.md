@@ -66,9 +66,8 @@ its 16384 refusal (frame capped at 4096, the graph scales to 1 MP). Phase 4 buil
 `MpiBaseFlow.js` is the one slot write (X, pick, upload/drop) and resets the steps bound to a
 changed picture; `flow-swap-resets-steps.spec.js` RED on HEAD, green after. His look then found
 the cutout brush capped tiny on a 16K: `brushScale` (`brushDab.js`) now scales the Cutout and
-Paint brush default, cap and step by the long edge. **Next: Fabio's look**
-on Draw It In, Scribble, Outpaint, Object Stamp with his own 16K/32K photos (app restart first),
-and CI green on the push. A GPU run only on his yes.
+Paint brush default, cap and step by the long edge (History brush left alone: Fabio, no cap there).
+**Fabio's look PASSED ("1", 2026-10-04).** Next: CI green on `1193fd7c0`, then close the card.
 
 ## Completed
 

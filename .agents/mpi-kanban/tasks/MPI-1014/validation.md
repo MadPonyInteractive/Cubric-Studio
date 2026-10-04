@@ -57,4 +57,11 @@ MIN 2 never scales; Paint's default re-derives on a canvas resize only until the
   a 2048 photo gives default 80, cap 800 on both. **RED on HEAD** (the three files swapped back),
   green after.
 - `npm test` 2699/0; 30 desktop specs touching paint, cutout and the Flows green; eslint clean.
-- NOT changed: the History canvas brush (no cap there, step 5 px): not reported.
+- NOT changed: the History canvas brush (no cap there, step 5 px). Fabio 2026-10-04: "it seems
+  to go as big as it wants to... perhaps it doesn't need a fix" - a built + RED-proven change was
+  reverted unpushed.
+
+## Fabio's look: PASSED (2026-10-04)
+
+Fabio "1" on the four image Flows (image swap resets the steps, cutout + paint brush on 16K).
+Closes once CI is green on `1193fd7c0` (contains `c482068db`; `db11c7fa6` already green).

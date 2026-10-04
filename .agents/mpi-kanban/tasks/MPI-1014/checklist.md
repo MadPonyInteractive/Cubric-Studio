@@ -6,4 +6,4 @@
 - [x] Real 32K in real Chromium (chip, Paint, Box, Crop); no GPU generation run
 - [x] Phase 4: a new image in a slot resets the step state of steps on that role and of steps whose `sourceRole` is it (picker pick + upload/drop, same rule as the X button); spec RED first
 - [x] Cutout + Paint brush grow with the picture (Fabio 2026-10-04: the cutout brush capped tiny on a 16K): `brushScale` scales default, cap and wheel step; spec RED first
-- [ ] Fabio's look (in progress 2026-10-04: found Phase 4 in Object Stamp)
+- [x] Fabio's look - found Phase 4 and the brush, then "1" 2026-10-04 (close once CI green on `1193fd7c0`)
