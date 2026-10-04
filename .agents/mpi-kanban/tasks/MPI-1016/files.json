@@ -1,0 +1,7 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Compounds/MpiContextMenu/MpiContextMenu.js",
+    "tests/desktop/context-menu-owns-right-click.spec.js"
+  ]
+}

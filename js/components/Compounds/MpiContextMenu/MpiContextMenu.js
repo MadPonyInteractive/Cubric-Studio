@@ -91,11 +91,22 @@ function show({ x, y, items, onSelect }) {
         _cleanup();
     }));
 
-    // Dismiss on outside click — but NOT on contextmenu (handled separately per caller)
+    // Dismiss on outside click
     _unsubs.push(on(document, 'click', (e) => {
         if (menuEl.contains(e.target)) return;
         _cleanup();
     }));
+
+    // A right-click while open. ON the menu it does nothing: the menu opens with its
+    // corner under the cursor, so a second right-click landed here unclaimed and dev
+    // mode's native Copy / Inspect Element menu covered this one (MPI-1016). Anywhere
+    // else it closes this menu, and a caller that owns that spot opens its own.
+    // Capture phase, so the right-click that opened this menu, still dispatching, is
+    // already past document and cannot close it.
+    _unsubs.push(on(document, 'contextmenu', (e) => {
+        if (menuEl.contains(e.target)) e.preventDefault();
+        else _cleanup();
+    }, { capture: true }));
 
     _unsubs.push(Events.on('ui:close-all-popups', _cleanup));
 
