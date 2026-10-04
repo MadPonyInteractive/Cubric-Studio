@@ -62,9 +62,11 @@ source-size canvas in the renderer (a 32K cannot decode at all; a 16K is ~700 MB
 ## Current State
 
 2026-10-04: Phases 1-3 built, self-verified, pushed `3ed4ae7cd` (validation.md). Outpaint lost
-its 16384 refusal (frame capped at 4096, the graph scales to 1 MP). Fabio's look IN PROGRESS: he
-found the Phase 4 bug in Object Stamp. **Next: Phase 4** (root cause + fix site above), then his
-look again on all four image Flows with his own 16K/32K photos. A GPU run only on his yes.
+its 16384 refusal (frame capped at 4096, the graph scales to 1 MP). Phase 4 built: `_setSlot` in
+`MpiBaseFlow.js` is the one slot write (X, pick, upload/drop) and resets the steps bound to a
+changed picture; `flow-swap-resets-steps.spec.js` RED on HEAD, green after. **Next: Fabio's look**
+on Draw It In, Scribble, Outpaint, Object Stamp with his own 16K/32K photos (app restart first),
+and CI green on the push. A GPU run only on his yes.
 
 ## Completed
 

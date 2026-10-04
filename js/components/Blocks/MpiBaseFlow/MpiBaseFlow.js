@@ -829,18 +829,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                     e.stopPropagation();
                     // Clear THIS slot only — never splice, or every later image would
                     // shift up a slot and silently change role (and meaning).
-                    delete entry.items[idx];
-                    const freedRole = group.roles[idx];
-                    // A removed image invalidates the DRAWING bound to that role — the
-                    // strokes were placed over the image that just left — but NOT the
-                    // step's declared FIELD values. Those are the user's own prompt and
-                    // canvas size, which have nothing to do with the upload, and dropping
-                    // the whole record silently threw away typed text (MPI-620).
-                    if (freedRole && _stepValues[freedRole]) {
-                        const { fields } = _stepValues[freedRole];
-                        if (fields) _stepValues[freedRole] = { fields };
-                        else delete _stepValues[freedRole];
-                    }
+                    _setSlot(entry, idx, null);
                     onDirty();
                 }));
                 slot.appendChild(clear);
@@ -901,6 +890,40 @@ export const MpiBaseFlow = ComponentFactory.create({
         }
 
         /**
+         * Put `item` in one slot (null clears it) — the ONE write every slot path
+         * goes through: the X button, a picker pick, an upload or drop.
+         *
+         * When the PICTURE changed, every step bound to it is reset: the steps ON its
+         * role and the steps reading it through `sourceRole`. Their drawing was made
+         * over the old picture — a cutout's erase mask and background cut, a box, a
+         * crop, a paint layer, a placement sized to the old object's aspect — and
+         * kept, it lands on the new one (Object Stamp erased a new squirrel's body
+         * with the old object's mask, MPI-1014). Only the swap paths used to skip
+         * this; the X button already did it. The steps' declared FIELDS survive:
+         * they are the user's own prompt and canvas size, nothing to do with the
+         * picture, and dropping them threw away typed text (MPI-620).
+         *
+         * The same picture re-picked changes nothing, so its drawing stays.
+         *
+         * @param {{group,items}} entry
+         * @param {number} idx
+         * @param {Object|null} item
+         */
+        function _setSlot(entry, idx, item) {
+            const prev = entry.items[idx];
+            if (item) entry.items[idx] = item;
+            else delete entry.items[idx];
+            const role = entry.group.roles[idx];
+            if (!role || prev?.url === item?.url) return;
+            (flow.steps || []).forEach((step) => {
+                if (!step?.role || (step.role !== role && step.sourceRole !== role)) return;
+                const fields = _stepValues[step.role]?.fields;
+                if (fields) _stepValues[step.role] = { fields };
+                else delete _stepValues[step.role];
+            });
+        }
+
+        /**
          * Open the project-media picker for one slot and fill it with the pick.
          *
          * No _placePreviewAsset here, deliberately: picked media is ALREADY in the
@@ -928,12 +951,12 @@ export const MpiBaseFlow = ComponentFactory.create({
                 recordAudio: recordAudioIntoProject,
                 voicePicker: MpiVoicePicker,
                 onPick: ({ filePath }) => {
-                    entry.items[idx] = {
+                    _setSlot(entry, idx, {
                         url: filePath,
                         mediaType: entry.group.type,
                         source: 'flow-project',
                         role: entry.group.roles[idx],
-                    };
+                    });
                     onDirty();
                 },
                 // The picker's second source. It routes into the SAME _handleFiles as
@@ -1043,12 +1066,12 @@ export const MpiBaseFlow = ComponentFactory.create({
                     continue;
                 }
                 const slotIdx = targets[i];
-                entry.items[slotIdx] = {
+                _setSlot(entry, slotIdx, {
                     url: placedUrl,
                     mediaType: group.type,
                     source: 'flow-upload',
                     role: group.roles[slotIdx],
-                };
+                });
             }
             onDirty();
         }

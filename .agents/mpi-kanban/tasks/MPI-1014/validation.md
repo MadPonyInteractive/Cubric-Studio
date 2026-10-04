@@ -29,3 +29,19 @@ uploaded photo (`.preview-assets`) — Fabio's broken 32K chip.
 
 NOT run: a GPU generation through Draw It In / Object Stamp / Outpaint on a 16K (Fabio's GPU or a
 Pod: needs his yes). Left: Fabio's look.
+
+## Phase 4 - a new image in a slot resets the steps bound to it (2026-10-04)
+
+`MpiBaseFlow.js` `_setSlot`: the ONE write for every slot path (X, picker pick, upload/drop).
+When the url changed it drops the value of each step ON the role or reading it via `sourceRole`,
+keeping `fields`; the same picture re-picked keeps the drawing.
+
+- `tests/desktop/flow-swap-resets-steps.spec.js` (new): Object Stamp, a real picker swap of the
+  Object slot. **RED on HEAD** (`image2` kept `{removeBg, bgUrl: old-cut, erase: old-mask}`),
+  green after: cutout value gone, Place reduced to `{ fields: { positive: 'keep me' } }`, and a
+  same-card re-pick kept both.
+- `npm test`: 2701 tests, 2699 pass, 0 fail. All 35 `tests/desktop/flow-*.spec.js` green
+  (incl. flow-clear-slot-advances: the X button now goes through the same `_setSlot`). eslint clean.
+- CI green on `3ed4ae7cd` (Tests + Red master watch) and `d9db2af70`.
+
+Left: Fabio's look on all four image Flows (swap an image after drawing: the step mounts clean).

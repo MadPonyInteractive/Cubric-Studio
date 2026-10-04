@@ -19,6 +19,8 @@
     "js/utils/upscaleLimit.js",
     "tests/upscale-limit.test.cjs",
     "tests/object-stamp-flip.test.cjs",
-    "tests/outpaint-next-pass.test.cjs"
+    "tests/outpaint-next-pass.test.cjs",
+    "tests/desktop/flow-swap-resets-steps.spec.js",
+    "docs/playbooks/add-flow/ui/carousel-frame/steps.md"
   ]
 }

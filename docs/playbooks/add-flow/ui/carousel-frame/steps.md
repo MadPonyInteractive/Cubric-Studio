@@ -53,6 +53,10 @@ Two rules that keep this honest:
 - **A step is never invalid.** Every step kind supplies a usable default (the box defaults to
   the full image), so `›` is never blocked. Required-because-the-flow-walks-you-there, not
   required-because-Run-is-gated.
+- **A new picture resets the steps bound to it** (MPI-1014). Every slot write — X, pick,
+  upload, drop — goes through `_setSlot` (`MpiBaseFlow.js`); when the url CHANGED it drops
+  the value of each step ON that role or reading it through `sourceRole`, keeping `fields`.
+  A gizmo never has to notice a swap: it mounts clean. Same picture re-picked keeps it.
 
 ## A step may declare FIELDS — one row, under the canvas
 
