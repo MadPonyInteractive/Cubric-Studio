@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1025",
+  "title": "Comfy engine rule: document the MPI-1024 dynamic VRAM fallback wiring",
+  "description": "Add processState.dynamicVramOff / comfyRestartReason, _noteDynamicVramFault / _cudaModeArgs and /comfy/status restartReason to .claude/rules/comfy_engine.md (Fabio-approved rules edit).",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-05T20:16:26+01:00",
+  "updated_at": "2026-10-05T20:17:37+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
