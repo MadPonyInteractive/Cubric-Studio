@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1024", "at": "2026-10-05T18:31:34+01:00", "actor": "claude", "column": "todo", "title": "Local generation crashes on 2.0: comfy-aimdo 'VRAM Allocation failed' -> CUDA unknown error (first public 2.0 bug)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1024", "at": "2026-10-05T18:46:13+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: go with the fallback; test on his box first"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1024", "at": "2026-10-05T20:02:48+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fallback shipped in e9dd61463, CI green (run 37358975388). Reaches users only in a release."}
