@@ -463,9 +463,10 @@ function createEngine({ engine, alwaysLocal }) {
 
             // ── Auto-restart if custom nodes were installed (even if ComfyUI is ready) ─
             if (needsRestart && status.running) {
-                clientLogger.info('comfy', 'Custom nodes installed — triggering auto-restart');
+                // restartReason: a server-side cause other than a node install (MPI-1024).
+                clientLogger.info('comfy', `Engine restart pending — triggering auto-restart (${status.restartReason || 'custom nodes installed'})`);
                 Events.emit('ui:info', {
-                    message: 'Restarting ComfyUI — new custom nodes were installed.',
+                    message: status.restartReason || 'Restarting ComfyUI — new custom nodes were installed.',
                 });
 
                 await fetch('/comfy/stop', { method: 'POST' });

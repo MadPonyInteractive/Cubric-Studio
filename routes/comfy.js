@@ -164,6 +164,27 @@ function _importFailureWarning() {
     return `custom node packs failed to import: ${failed.join(', ')}`;
 }
 
+// MPI-1024: comfy-aimdo (ComfyUI's dynamic VRAM) failing to allocate. On a 12 GB card
+// under memory pressure it stalled minutes, then left the CUDA context dead ("CUDA error:
+// unknown error") and the engine exited. Same allocator as Comfy-Org/comfy-aimdo#100 (open).
+const AIMDO_FAULT_RE = /aimdo:.*VRAM Allocation failed|Fault failed: \d/;
+
+function _noteDynamicVramFault(text) {
+    if (processState.dynamicVramOff || !AIMDO_FAULT_RE.test(text)) return;
+    processState.dynamicVramOff = true;
+    processState.comfyNeedsRestart = true;
+    processState.comfyRestartReason = 'Restarting ComfyUI in a safer GPU memory mode after a memory fault.';
+    logger.warn('comfy', 'Dynamic VRAM fault — the engine restarts with dynamic VRAM off for the rest of this session (MPI-1024)');
+}
+
+/** Launch flags for a CUDA engine. Measured on a 4060 Ti held to 12 GB: off is ~30% slower
+ *  on a quiet card but never stalled under memory pressure, where on stalled up to 20 min. */
+function _cudaModeArgs() {
+    // --lowvram is inert under aimdo but live without it, where it puts the text
+    // encoders on the CPU (comfy/model_management.py text_encoder_device). So it goes.
+    return processState.dynamicVramOff ? ['--disable-dynamic-vram'] : ['--lowvram'];
+}
+
 function _handleComfyOutput(level, chunk) {
     const raw = chunk.toString();
     _scanForImportFailures(raw);
@@ -174,6 +195,7 @@ function _handleComfyOutput(level, chunk) {
     if (_comfyOutputTail.length > COMFY_TAIL_MAX) _comfyOutputTail.shift();
 
     logger[_classifyComfyOutput(level, text)]('comfy', text);
+    _noteDynamicVramFault(text);
 
     if (/Model Initialization complete!/i.test(text)) {
         _broadcastComfyEvent('comfy:model-init-complete', { message: text });
@@ -271,6 +293,7 @@ router.get('/comfy/status', async (req, res) => {
     // cannot outlive the breakage.
     const flags = {
         needsRestart,
+        restartReason: processState.comfyRestartReason,
         depsWarning: processState.lastDepsWarning || _importFailureWarning() || await curatedDepsFailure(),
     };
     try {
@@ -546,7 +569,10 @@ function _watchForRestartRequests(spawnedAt) {
 router.post('/comfy/start', async (req, res) => {
     try {
         const isUserRestart = req.body && req.body.isUserRestart;
-        if (isUserRestart) processState.comfyNeedsRestart = false;
+        if (isUserRestart) {
+            processState.comfyNeedsRestart = false;
+            processState.comfyRestartReason = null;
+        }
 
         // Already running → do NOT clear comfyNeedsRestart: a node may have been
         // installed against THIS still-running process (its node scan already ran),
@@ -596,6 +622,7 @@ router.post('/comfy/start', async (req, res) => {
         // We are about to SPAWN a fresh process → its node scan will pick up any
         // newly-installed custom node, satisfying the restart need. Clear the flag.
         processState.comfyNeedsRestart = false;
+        processState.comfyRestartReason = null;
 
         const pythonPath = getPythonBin(ENGINE_ROOT);
         const mainPath = getComfyPath(ENGINE_ROOT, 'main.py');
@@ -639,10 +666,11 @@ router.post('/comfy/start', async (req, res) => {
         } else if (useCpu) {
             modeArgs = ['--cpu'];
         } else {
-            modeArgs = ['--lowvram'];
+            modeArgs = _cudaModeArgs();
         }
         if (useCpu) logger.info('comfy', 'No GPU detected — starting ComfyUI in CPU mode.');
         else if (vendor === 'apple') logger.info('comfy', 'Apple Silicon — starting ComfyUI with Metal/MPS.');
+        else if (processState.dynamicVramOff) logger.info('comfy', 'Starting ComfyUI with dynamic VRAM off — an aimdo fault earlier this session (MPI-1024).');
 
         // NEVER `--enable-cors-header` (MPI-922). Bare, it sends ACAO `*` AND replaces
         // ComfyUI's origin check, so any web page in the user's browser could queue a
@@ -1217,3 +1245,5 @@ module.exports.removeComfyEventClient = removeComfyEventClient;
 module.exports.localModelsCheck = _localModelsCheck;
 module.exports.scanForImportFailures = _scanForImportFailures;   // MPI-674 — exported for unit test
 module.exports.stageMediaFile = stageMediaFile;                  // MPI-800 — exported for unit test
+module.exports.noteDynamicVramFault = _noteDynamicVramFault;     // MPI-1024 — exported for unit test
+module.exports.cudaModeArgs = _cudaModeArgs;                     // MPI-1024 — exported for unit test

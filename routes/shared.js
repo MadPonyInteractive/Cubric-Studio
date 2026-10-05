@@ -345,6 +345,13 @@ const processState = {
     // and the pip pass reports nothing to fail. The packs still do not import, and this
     // is the only place that says so. Reset on every fresh spawn.
     comfyImportFailures: [],
+    // MPI-1024: set when the engine prints a comfy-aimdo allocation fault. Every later
+    // spawn in THIS app session runs with --disable-dynamic-vram. Never reset: a fault
+    // means this machine hits it, so no retry in the same session.
+    dynamicVramOff: false,
+    // Why comfyNeedsRestart was set, when it is not a custom-node install: the restart
+    // toast reads it from /comfy/status. Cleared with comfyNeedsRestart on a spawn.
+    comfyRestartReason: null,
 };
 
 function stopComfyUI() {

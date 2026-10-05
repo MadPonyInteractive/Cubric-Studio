@@ -148,6 +148,8 @@ lifecycle event table, ComfyUI auto-restart) live in
 
 ## Engine Gotchas
 
+**Dynamic VRAM fallback (MPI-1024):** comfy-aimdo can fail an allocation (`aimdo: ...VRAM Allocation failed`, `Fault failed: N`), leave CUDA dead (`CUDA error: unknown error`) and kill the engine — first public 2.0 bug, 12 GB 3060. `_noteDynamicVramFault` (`routes/comfy.js`) sees the line on stdout, sets `processState.dynamicVramOff` for the session and asks for a restart; every later spawn passes `--disable-dynamic-vram` and drops `--lowvram` (live without aimdo: text encoders go to the CPU). Never default it off: measured on a 4060 Ti held to 12 GB, off is ~30% slower on a quiet card, but under outside VRAM pressure on stalled up to 20 min while off held 24-31 s (`tasks/MPI-1024/validation.md`).
+
 **v0.26 completion sentinel (MPI-152):** v0.26 dropped `executing {node:null}` — completion is now `execution_success {prompt_id}` WS message. Both handlers (`comfyController.js` + `commandExecutor.js`) accept EITHER terminal (legacy + new) via idempotent `_finishGeneration()`. Terminal events are `broadcast=False` (not replayed on WS reconnect) — `_reconcileFromHistory` polls `/history/{prompt_id}` on reconnect. `model_type FLUX` in LTX boot log is NORMAL (LTX uses DiT/Flux arch class), not a bug.
 
 **sage-attention arch gating (MPI-145):** `--use-sage-attention` crashes LTX-2.3 on Ada sm_89 (4090/4060Ti) with `CUDA error: unspecified launch failure` → engine dies → WS drops (shows misleading "engine disconnected" dialog, NOT OOM). Works on Blackwell sm_120. Gated in `start.sh` via `SAGE_DISABLED_ARCHS` (default `sm_89`). `CUBRIC_SAGE_DISABLED_ARCHS` Pod env overrides without a rebuild. Local engine never installs sage (MPI-50).
