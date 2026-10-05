@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1023",
+  "title": "git.md: an M with an empty diff is a line-ending phantom - clear it, do not pass it on",
+  "description": "InputController.js sat ' M' across many sessions with an empty diff; each agent called it not theirs. It was a stale index size from a CRLF period. Fabio asked (2026-10-05) for one line in .claude/rules/git.md so the next session clears it with git add.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-05T08:30:03+01:00",
+  "updated_at": "2026-10-05T08:30:32+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
