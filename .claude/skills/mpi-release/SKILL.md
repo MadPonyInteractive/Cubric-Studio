@@ -24,7 +24,8 @@ Pick the digit, then run the exact same steps below. There is no separate
 
 **One release per change, always cut from master (Fabio, 2026-10-05).** Add a
 Flow → release. Add a model → release. Fix a bug → release. No batching work up
-for a big cut, no maintenance branches. The version bump lands on **master**, so
+for a big cut, no maintenance branches. A change users cannot see (the updater,
+tooling) is not a release on its own: it rides with the next Flow, model or fix. The version bump lands on **master**, so
 Fabio's own dev app shows the version users just got. Every release ships a FULL
 update bundle (`release-baselines/README.md` § Current baselines) because users
 skip versions and a delta serves only installs exactly one behind.

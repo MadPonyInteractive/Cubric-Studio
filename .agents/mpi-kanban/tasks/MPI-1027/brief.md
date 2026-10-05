@@ -25,12 +25,22 @@ updates, then the app starting again instead of being left at the desktop.
    the update replaces (Windows locks a mapped `app.asar` / `icudtl.dat`).
 3. **Relaunch on every path,** including the update-zip scripts, with the splash covering the
    gap.
-4. **Pick the right bundle.** From 2.0.1 on, every release ships a FULL update bundle,
-   because one release per change means users skip versions and a delta serves only installs
-   exactly one behind (MPI-1026). A smarter updater could take a delta when its `fromVersion`
-   matches and fall back to the full bundle otherwise, cutting the ~540 MB download.
+4. **Download only the files that changed (Fabio, 2026-10-05: "the modern solution").** From
+   2.0.1 every release ships ONE full update zip per platform (MPI-1026), ~540 MB, because
+   today's updaters take one zip and a delta serves only installs exactly one behind. The new
+   updater reads the latest full zip's own file list (`resources/cubric/update-manifest.json`,
+   a SHA256 per file), compares it with the install, and fetches ONLY the changed files out of
+   that zip by HTTP range (GitHub served the 2.0.0 asset with 206), plus the deletions. One
+   step from any version, one zip per release, no chains, no baselines. Any failure falls back
+   to the whole zip. Same idea as Steam manifests and electron-updater's differential download.
+   Rejected: chained deltas (long, and one bad link blocks everyone behind it) and a patch
+   from the previous version only (anyone two behind still gets the full zip).
 
 ## Constraint that shapes the rollout
 
-The updater that runs is the one ALREADY installed. Whatever ships in 2.1 is first seen on
-the 2.1 -> next update, so land it early in the 2.1 work.
+The updater that runs is the one ALREADY installed. Whatever release first ships this is still
+downloaded whole; every release after it is small for anyone on it or later. 1.4.x installs
+can never benefit (their applier cannot take 2.0's files): they download the full build once.
+
+**Not a release of its own (Fabio, 2026-10-05):** it rides with the next Flow release — the
+video edit Flow or the 3D scene Flow, whichever lands first (both in other sessions).
