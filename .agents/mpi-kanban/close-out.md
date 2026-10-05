@@ -54,7 +54,9 @@ blames by spec set, so a close during someone else's red still goes through - if
 you, the red is yours. Code and close in one push is refused too: the message hands you
 the `git push origin <sha>:master` that sends the code alone. That escape needs the close in
 its OWN commit: a commit carrying both the code and the `done` move can never pass, because
-CI must judge that very commit first (MPI-924, 2026-09-25).
+CI must judge that very commit first (MPI-924, 2026-09-25). `.husky/pre-commit` refuses that
+commit before it exists (MPI-1022, 2026-10-05), so commit the code with the card still in
+`doing`, and the close on its own once CI is green.
 
 ## Release-awareness check (do NOT skip)
 

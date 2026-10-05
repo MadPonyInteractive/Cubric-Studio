@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1022",
+  "title": "Pre-commit check: refuse a commit that carries code and a card's done move",
+  "description": "The pre-push done gate (MPI-819) can never pass such a commit; hit on MPI-924, MPI-994, MPI-1020. Refuse it at commit time, while splitting is one command.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-05T08:07:19+01:00",
+  "updated_at": "2026-10-05T08:07:28+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

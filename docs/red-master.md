@@ -72,13 +72,21 @@ Green here and red in CI is an ANSWER, not a dead end — see cause 1.
 
 Both fail OPEN (no `gh`, no network, shallow clone) and both yield to `--no-verify`.
 
+**One more check runs at COMMIT time** (MPI-1022): `.husky/pre-commit` runs
+`scripts/precommit-done-gate.sh`, which refuses a commit carrying code AND a card's move to
+`done`. That is the one shape the done gate can never pass, because CI has to judge the code
+commit before the close lands; MPI-924, MPI-994 and MPI-1020 each paid a reopen commit and a CI
+wait for it. It prints the `git commit --only` that sends the code alone. A card closed as
+`rejected` and a merge being concluded pass.
+
 **A board-only push no longer produces a verdict at all** (MPI-878). `tests.yml` carries a
 `paths-ignore` matching the same set as the hook's `DOCS_RE`, so a docs or `.agents/` commit
 creates no run — which means "master's last completed run", the query both gates and
 `red-master-watch.yml` read, is now always the last real CODE verdict. Before this, 65% of
 master's runs were board commits, and eight of twenty-one reds in a 48-hour window sat on a
-docs-only commit that had merely inherited someone else's break. If either list changes,
-change the other: `.github/workflows/tests.yml` and `.husky/pre-push`.
+docs-only commit that had merely inherited someone else's break. If one list changes,
+change all three: `.github/workflows/tests.yml`, `.husky/pre-push` and
+`scripts/precommit-done-gate.sh`.
 
 ## The rules that go with them
 

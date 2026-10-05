@@ -1,1 +1,2 @@
+sh scripts/precommit-done-gate.sh
 npx lint-staged --no-stash

@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": [".agents/mpi-kanban/tasks/MPI-1022/", "scripts/precommit-done-gate.sh", ".husky/pre-commit", "tests/pre-commit-done-gate.test.cjs", "docs/red-master.md", ".agents/mpi-kanban/close-out.md"]}
