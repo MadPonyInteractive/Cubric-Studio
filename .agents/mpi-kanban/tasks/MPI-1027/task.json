@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1027",
+  "title": "Update experience: preview what changes, a splash instead of a terminal, relaunch every time (2.1)",
+  "description": "Update prompt lists the notes between installed and latest; updater shows a splash-style progress window, no console; app relaunches after every update path. Brief: brief.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-05T20:34:08+01:00",
+  "updated_at": "2026-10-05T20:34:08+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

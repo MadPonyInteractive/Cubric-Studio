@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1027", "at": "2026-10-05T20:34:08+01:00", "actor": "72dc0090-b1c1-41e1-b01a-2bc1b5815de8", "column": "todo", "title": "Update experience: preview what changes, a splash instead of a terminal, relaunch every time (2.1)"}

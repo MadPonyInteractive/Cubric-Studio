@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/core/appVersion.js", "package.json", "package-lock.json", "js/data/releaseNotes.js", "docs/releases/UNRELEASED.md", "docs/releases/", "release-baselines/", "routes/comfy.js", "routes/shared.js", "js/services/comfyController.js", "tests/dynamic-vram-fallback.test.cjs", "docs/comfy.md"] }
