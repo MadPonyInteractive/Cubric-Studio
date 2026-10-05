@@ -10,7 +10,20 @@ their URLs. There is no test to run.
 
 ## Current State
 
-**2026-09-13 — READ THIS FIRST. Phase 3 ran; long clips now go through core context windows.**
+**2026-10-05 — READ THIS FIRST, BEFORE the 09-13 notes below. This card is a RE-EVALUATION now,
+not a resume.** Fabio took it out of `doing` on 09-29 for the 2.0 cut (MPI-595 Gate D); it is
+`todo` / `deferred`. 2.0 released 10-04, 2.0.1 stamped after it. The one open question from
+09-13 — did the ctxwin run happen — **can no longer be answered from evidence**: the bench log
+has rotated three times (comfyui.log now 09-27, prev 09-24, prev2 09-18) and a second bench
+instance appeared on port 8189. What is still provable: as of 09-13 16:50 no Wan model had
+loaded since the 14:32 OOM and no `Using context windows` / `Context window N/M` line was ever
+printed, so it had NOT run by then; and both bench workflows are byte-untouched since
+(`flow_bernini_video_edit.json` 14:58, `flow_bernini_video_edit_ctxwin.json` 15:02 — though a
+run does not change an mtime, so a later unsaved run is not excluded). **Fabio's instruction for
+the next session: look at what differs post-2.0 and whether a different approach belongs here,
+before touching the bench.** Handoff: `state/handoffs/a3305d6a-e097-4c5b-a757-871fe6c2f6a1.json`.
+
+**2026-09-13 — Phase 3 ran; long clips now go through core context windows.**
 Older notes below are history; two of them are stale: the card IS in `doing`, and MpiNodes is
 pushed with the pin at 1.2.12 (`dbc6a74c`) — "20a8d4d NOT pushed" is closed.
 
