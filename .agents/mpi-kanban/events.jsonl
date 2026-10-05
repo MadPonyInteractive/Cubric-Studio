@@ -5628,3 +5628,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1020", "at": "2026-10-05T00:20:51+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "README refreshed for 2.0"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1020", "at": "2026-10-05T00:21:45+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "reopened: done-gate needs CI on the README commit first"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1020", "at": "2026-10-05T00:33:35+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 11f83c34 (run 37243493305)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1021", "at": "2026-10-05T01:29:08+01:00", "actor": "claude", "column": "todo", "title": "Mpi-Kanban 1.6.0: every new session starts with a board-problem warning its own start hook caused"}

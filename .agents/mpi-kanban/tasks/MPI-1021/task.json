@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1021",
+  "title": "Mpi-Kanban 1.6.0: every new session starts with a board-problem warning its own start hook caused",
+  "description": "ensure_session writes the session record but never index.json by design, then the same SessionStart hook's validate flags it as missing from active_sessions. Upstream pack defect: file an issue on MadPonyInteractive/mpi-kanban.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-05T01:29:08+01:00",
+  "updated_at": "2026-10-05T01:29:08+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
