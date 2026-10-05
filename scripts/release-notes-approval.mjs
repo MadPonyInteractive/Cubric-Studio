@@ -48,16 +48,12 @@ const SECTIONS = [
 ];
 
 // ── Stage derivation (mirror of js/core/appStage.js deriveStage) ─────────────
+// This copy kept the retired alpha/beta rule and previewed 2.0.1 as "Alpha" while the
+// app showed "Release" (2026-10-05). tests/release-notes-preview.test.cjs pins the two.
 function deriveStage(version) {
   const m = /^(\d+)\.(\d+)\.(\d+)/.exec(String(version || '').trim());
   if (!m) return 'alpha';
-  const major = Number(m[1]);
-  const minor = Number(m[2]);
-  const patch = Number(m[3]);
-  if (major < 1) return 'alpha';
-  if (minor === 0 && patch === 0) return 'release';
-  if (patch === 0) return 'beta';
-  return 'alpha';
+  return Number(m[1]) < 1 ? 'alpha' : 'release';
 }
 
 function stageLabel(version) {

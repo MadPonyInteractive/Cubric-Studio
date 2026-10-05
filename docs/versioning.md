@@ -35,11 +35,16 @@ Engine versions are stored in `dev_configs/system_dependencies.json` and accesse
 ### APP_VERSION
 
 - **Purpose:** Identifies the Cubric Studio release. Bumped on every public release.
-- **Format:** Semantic versioning (`MAJOR.MINOR.PATCH`).
-- **When to bump:**
-  - **Patch** (0.0.x → 0.0.y): Bug fixes, no new operations, no schema change.
-  - **Minor** (0.x.0 → 0.(x+1).0): New operations added, or ComfyUI engine updated.
-  - **Major** (x.0.0 → (x+1).0.0): Breaking changes (schema change, significant architectural shift).
+- **Format:** three integers, `X.Y.Z`, compared as numbers (2.0.10 is newer than 2.0.9 in the
+  update check, then and now). The digits are read by USERS, so they follow size, not semver.
+- **When to bump (Fabio, 2026-10-05 — one release per change, cut from master):**
+  - **3rd digit** (2.0.1 → 2.0.2): every routine release — a new model, a new Flow, a new
+    operation, a fix, an engine update. Most releases.
+  - **2nd digit** (2.0.x → 2.1.0): a big visible step — a new workspace, a redesign of a main
+    screen, or a project-format change that older versions cannot open.
+  - **1st digit** (2.x → 3.0.0): a new product generation. Fabio's call, nobody else's.
+  - Before 2026-10-05 a new op, model or engine took the 2nd digit and a schema change the 1st.
+    Nothing in code reads a digit's meaning; the engine smoke gate keys on the engine pin itself.
 - **Propagates to:** `operationRegistry.js` entries (as `appVersionIntroduced`), release notes file naming, the runtime release-note source `js/data/releaseNotes.js` (keyed by `APP_VERSION`), and package metadata (`package.json` plus root `package-lock.json` fields).
 
 ### COMFY_VERSION
@@ -76,7 +81,7 @@ Engine versions are stored in `dev_configs/system_dependencies.json` and accesse
 
 - **Purpose:** Identifies the release channel (`alpha` | `beta` | `release`) shown on the About panel and carried into the prefilled "App version" field of an in-app bug report.
 - **Not a separate source of truth.** Derived purely from `APP_VERSION` so it can never drift. Rule: `0.x.x` → alpha; `X.Y.Z` (X≥1) → release. (`beta` is still in the type union but unreachable — alpha/beta staging was retired.)
-- **Where:** `js/core/appStage.js` exports `deriveStage()`, `APP_STAGE`, `APP_STAGE_LABEL`. **One implementation, no mirror.** `routes/system.js` used to carry a duplicate `deriveStage()` for the `stage:<x>` label on auto-filed issues; MPI-675 removed that route (it needed a `GITHUB_TOKEN` the portable build strips), so the stage now travels as advisory text the reporter can see and correct.
+- **Where:** `js/core/appStage.js` exports `deriveStage()`, `APP_STAGE`, `APP_STAGE_LABEL`. **One app implementation.** `routes/system.js` used to carry a duplicate `deriveStage()` for the `stage:<x>` label on auto-filed issues; MPI-675 removed that route (it needed a `GITHUB_TOKEN` the portable build strips), so the stage now travels as advisory text the reporter can see and correct. **One mirror remains:** `scripts/release-notes-approval.mjs` labels its preview kicker with its own copy, which kept the retired alpha/beta rule and previewed 2.0.1 as "Alpha" while the app showed "Release" (fixed 2026-10-05); `tests/release-notes-preview.test.cjs` now pins the two together.
 - **Build hash** travels the same way, as text in the prefilled version field — not a `build:<hash>` label.
 
 ---
@@ -160,13 +165,11 @@ There is no sync script. "Generated" language elsewhere is historical — treat 
 
 Use the `/mpi-version-bump` slash command to guide the bump process interactively. Here's the decision matrix:
 
-| Change | Bump | Rationale |
-| --- | --- | --- |
-| Bug fixes only, no new features | `patch` | No API or data shape changes |
-| New operations added | `minor` | New user-facing capability |
-| ComfyUI engine upgraded | `minor` | New models/features may be available |
-| Schema change (project.json structure changes) | `major` | Breaking change; all existing projects need migration |
-| Breaking change to operation parameters | `major` | Backward incompatibility |
+| Change | Bump |
+| --- | --- |
+| A fix, a new model, a new Flow, a new operation, a ComfyUI engine update | 3rd digit |
+| A new workspace, a main-screen redesign, a project schema change | 2nd digit |
+| A new product generation | 1st digit — Fabio's call |
 
 ---
 
@@ -178,15 +181,15 @@ portable dry-runs, pre-release generation tests, tags, pushes, or publication.
 
 | Change type | Required updates | Version impact |
 | --- | --- | --- |
-| Changelog-only or copy-only release | `APP_VERSION`, `package.json`, root `package-lock.json`, `js/data/releaseNotes.js`, `docs/releases/YYYY-MM-DD-vX.Y.Z.md` | Patch |
-| Command control/default text changes without output/API change | Runtime release notes and archival markdown; update docs if user-facing behavior changed | Usually patch |
-| Operation parameter semantics changed, removed, or made incompatible | `operationRegistry.js` `latestVersion`, `operation_registry.json`, command/workflow injectors, release notes | Major if backward-incompatible; patch/minor only with explicit compatibility rationale |
-| New operation or deprecated operation | `commandRegistry.js`, `operationRegistry.js`, `operation_registry.json`, model/universal workflow mapping, release notes | Minor for new operation; patch/minor for deprecation depending on user impact |
-| Workflow filename or graph changed for existing compatible operation | `models.js` or `universal_workflows.js` if filenames changed, release notes, workflow baselines/pre-release validation | Patch if compatible; major if old project/history payloads break |
-| New model or model workflow support | `models.js`, dependency registry/provisioning docs as needed, release notes | Minor when user-facing |
-| ComfyUI engine/provisioning/dependency change | `dev_configs/system_dependencies.json`, engine/provisioning routes/docs, release notes engine section | Minor for engine upgrade; patch for installer/provisioning fix |
-| Project schema/data-shape change | `SCHEMA_VERSION`, `projectMigrations.js`, project creation defaults, release notes breaking/important sections | Major |
-| Portable build, launcher, updater, artifact naming, or manifest change | `scripts/build-portable.mjs`/portable templates/docs, release notes platform section, dry-run or platform validation notes | Patch unless release artifact compatibility breaks |
+| Changelog-only or copy-only release | `APP_VERSION`, `package.json`, root `package-lock.json`, `js/data/releaseNotes.js`, `docs/releases/YYYY-MM-DD-vX.Y.Z.md` | 3rd digit |
+| Command control/default text changes without output/API change | Runtime release notes and archival markdown; update docs if user-facing behavior changed | 3rd digit |
+| Operation parameter semantics changed, removed, or made incompatible | `operationRegistry.js` `latestVersion`, `operation_registry.json`, command/workflow injectors, release notes | 3rd digit; 2nd if old projects or history stop replaying |
+| New operation or deprecated operation | `commandRegistry.js`, `operationRegistry.js`, `operation_registry.json`, model/universal workflow mapping, release notes | 3rd digit |
+| Workflow filename or graph changed for existing compatible operation | `models.js` or `universal_workflows.js` if filenames changed, release notes, workflow baselines/pre-release validation | 3rd digit; 2nd if old project/history payloads break |
+| New model or model workflow support | `models.js`, dependency registry/provisioning docs as needed, release notes | 3rd digit |
+| ComfyUI engine/provisioning/dependency change | `dev_configs/system_dependencies.json`, engine/provisioning routes/docs, release notes engine section | 3rd digit (the full Pod smoke is gated on the engine pin, not the digit) |
+| Project schema/data-shape change | `SCHEMA_VERSION`, `projectMigrations.js`, project creation defaults, release notes breaking/important sections | 2nd digit |
+| Portable build, launcher, updater, artifact naming, or manifest change | `scripts/build-portable.mjs`/portable templates/docs, release notes platform section, dry-run or platform validation notes | 3rd digit; 2nd if release artifact compatibility breaks |
 
 `npm run release:check` currently enforces the high-risk invariants: app/package
 version parity, current release notes, archival release-note coverage, schema

@@ -40,6 +40,23 @@ test('the approval preview matches what the app imports, escapes and all', async
     }
 });
 
+test('the preview kicker names the stage the app shows', async () => {
+    // The script mirrors appStage.js's rule and the copy went stale: it previewed 2.0.1
+    // as "Alpha" while the app said "Release" (2026-10-05).
+    const [{ renderNotes }, { deriveStage }] = await Promise.all([
+        import('../scripts/release-notes-approval.mjs'),
+        import('../js/core/appStage.js'),
+    ]);
+    for (const version of ['0.9.3', '1.4.2', '2.0.0', '2.0.1', '2.0.10', '2.1.0']) {
+        const stage = deriveStage(version);
+        const label = stage.charAt(0).toUpperCase() + stage.slice(1);
+        assert.ok(
+            renderNotes({ version }).includes(`${label} · v${version}`),
+            `REGRESSION: the approval preview labels ${version} differently from the app (${label}).`,
+        );
+    }
+});
+
 test('an escaped apostrophe survives extraction as a plain apostrophe', async () => {
     // The specific defect, pinned directly: deepEqual above only catches it while a
     // release entry happens to contain an escape. This one always does.

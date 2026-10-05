@@ -13,8 +13,9 @@ optionally running pre-release tests.
 It does NOT run builds, push tags, or publish to GitHub. That is the single
 release skill that calls this one as its bump step:
 
-- **`mpi-release`** — the one GitHub-only release flow: pick the digit (3rd = fix,
-  2nd = feature, 1st = breaking), stamp the version here, build the portable in
+- **`mpi-release`** — the one GitHub-only release flow: pick the digit (3rd = routine:
+  model, Flow, fix, engine; 2nd = big visible step; 1st = new generation — see
+  `docs/versioning.md`), stamp the version here, build the portable in
   CI, and publish a GitHub Release with the full builds + update bundles.
 
 Run this skill directly only for the in-repo file edits, or when `mpi-release`
@@ -25,7 +26,7 @@ Use this skill whenever you're ready to stamp a new version of Cubric Studio.
 
 ---
 
-## Quick path: patch-only release (most common)
+## Quick path: no new op, no engine change, no schema change (most common)
 
 If the release is a **pure patch** — bug fixes and/or small UI changes, with
 **no new operations, no ComfyUI engine change, and no project-schema change** —
@@ -86,18 +87,19 @@ pre-release generation tests, or publication.
 I will ask you the following questions:
 
 ### Q1: Bump Type?
-Choose: **patch** / **minor** / **major**
+Choose: **3rd** / **2nd** / **1st** digit (Fabio, 2026-10-05 — `docs/versioning.md`)
 
-- **patch** (e.g., 1.0.1 → 1.0.2): Bug fixes, no new features, no schema change. Stage stays/derives **alpha** (Z>0).
-- **minor** (e.g., 1.0.2 → 1.1.0): New operations added OR ComfyUI engine updated. Stage derives **beta** (X.Y.0, Y>0).
-- **major** (e.g., 1.1.0 → 2.0.0): Breaking changes (schema change, significant architecture change). Stage derives **release** (X.0.0).
+- **3rd** (e.g., 2.0.1 → 2.0.2): every routine release — a new model, a new Flow, a new operation, a fix, an engine update.
+- **2nd** (e.g., 2.0.9 → 2.1.0): a big visible step — a new workspace, a main-screen redesign, a project schema change.
+- **1st** (e.g., 2.4.3 → 3.0.0): a new product generation. Only when Fabio says so.
 
 All three are shipped by the same skill, `mpi-release` — the digit is the only difference.
+A new op or an engine update still needs the registry / engine steps below whatever the digit.
 
-> **Derived stage:** `js/core/appStage.js` derives alpha/beta/release from the
-> version — you don't set it. `X.0.0`→release, `X.Y.0`(Y>0)→beta, `X.Y.Z`(Z>0)→alpha,
-> `0.x.x`→alpha. It drives the About panel + bug-report `stage:<x>` label, so a
-> patch labeled itself "alpha" is correct, not a mistake.
+> **Derived stage:** `js/core/appStage.js` derives the stage — you don't set it. Every
+> `X.Y.Z` with X ≥ 1 is "Release"; `0.x.x` is "Alpha". (Until 2026-10-05 this note claimed
+> patch → alpha / minor → beta; the app had already dropped that, and only the approval
+> preview script still carried it.)
 
 ### Q2: ComfyUI Engine Version Changing?
 Current ComfyUI version: **X.Y.Z** (read from `dev_configs/system_dependencies.json`)
@@ -514,7 +516,7 @@ Test result: PASS (17 tests)
 2. **Hand back to `mpi-release`**, which owns the build, tag, and publish:
    push master, push the `v<ver>` tag to trigger the CI build, download the 6
    artifacts, then `gh release create` with the full builds + update bundles.
-   The digit you bumped (patch / minor / major) is the only thing that varies —
+   The digit you bumped (3rd / 2nd / 1st) is the only thing that varies —
    the ship steps are identical.
 3. **Comms** (Discord / YouTube / Gumroad) are owned by the MadPony-Identity
    launch-comms workflow — a separate manual step, never automated from here.

@@ -1,5 +1,9 @@
 # Release baselines (delta-update `--from-manifest` sources)
 
+> **Empty on purpose since 2.0.1 — see § Current baselines.** Every release ships a
+> FULL update bundle; the rest of this file describes the delta mechanism for when
+> that changes.
+
 These are the **previous release's FULL (portable-stage) manifests**, one per
 platform/arch:
 
@@ -58,21 +62,18 @@ Local Windows builds do the same by hand:
 
 ## Current baselines
 
-- All three hold the **v2.0.0 FULL (portable-stage)** manifests (2026-10-04)
-  from the shipped 2.0.0 build, so the next release deltas against
-  2.0.0. `toVersion: 2.0.0`, `fromVersion: null`, `kind: portable-stage`:
-  - `darwin-arm64.json` — 7357 files
-  - `linux-x64.json` — 7177 files
-  - `win32-x64.json` — 7218 files
+- **None, by decision — every release ships a FULL update bundle (Fabio,
+  2026-10-05, MPI-1026).** Releases are now cut from master, one per change (a
+  Flow, a model, a fix), so users skip versions, and a delta serves only an install
+  exactly one release behind: every applier since 1.5.0 refuses a delta whose
+  `fromVersion` is not the installed version, and the in-app Update always takes
+  the LATEST release's bundle. A 2.0.1 delta would have stranded every 1.5.0
+  install. So keep this folder free of `*.json` baselines and do **not** restamp
+  after a release. Revisit only when the updater can take a matching delta and
+  fall back to the full bundle otherwise (MPI-1027).
 
-  Restamped from the published artifacts (mpi-ci run 37231506822, SHA
-  `741ab812`, tag `v2.0.0`) **after** v2.0.0 went live on the GitHub release,
-  per the timing rule in **Contract**. 2.0.0 was cut from master, which carried
-  NO baselines so the build emitted the FULL update bundle 2.0 owed (1.6.x
-  private installs and 1.5.0 alike). Authored on master and on the `2.0.0`
-  maintenance branch, so both delta against the same shipped build.
-
-  Preceding values: v1.4.4 were 6654 / 6474 / 6512 (mpi-ci run 33806856417,
+  Preceding values: v2.0.0 were 7357 / 7177 / 7218 (mpi-ci run 37231506822, SHA
+  `741ab812`, restamped after v2.0.0 went live; deleted for 2.0.1); v1.4.4 were 6654 / 6474 / 6512 (mpi-ci run 33806856417,
   SHA `8b28b230`, on the `1.4.2` branch only); v1.4.3 were 6652 / 6472 / 6510 (mpi-ci run 33519891797,
   SHA `f7939337`); v1.4.2 were 6650 / 6470 / 6508 (mpi-ci run
   31910502305, SHA `372c1895`); v1.4.1 were 6595 / 6415

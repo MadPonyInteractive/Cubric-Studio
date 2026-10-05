@@ -38,6 +38,16 @@
  * @type {Record<string, ReleaseNotes>}
  */
 export const RELEASE_NOTES = {
+  '2.0.1': {
+    version: '2.0.1',
+    whatIsNew: [],
+    fixes: [
+      '**Local generation recovers from a GPU memory fault.** On some cards (seen on a 12 GB RTX 3060) the engine could stop mid-generation with a "CUDA error". It now restarts in a safer memory mode for the rest of the session: press Generate again.',
+    ],
+    breakingChanges: [],
+    importantChanges: [],
+    engineNotes: [],
+  },
   '2.0.0': {
     version: '2.0.0',
     whatIsNew: [

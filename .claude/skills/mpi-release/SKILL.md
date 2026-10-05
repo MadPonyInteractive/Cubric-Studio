@@ -1,6 +1,6 @@
 ---
 name: mpi-release
-description: Cut a Cubric Studio release — the single GitHub-only release flow. Bump the right version digit (2nd = new features/ops/engine, 3rd = bug fixes, 1st = breaking), stamp the files via mpi-version-bump, build the portable artifacts in CI, and publish a GitHub Release with the full builds + update bundles. Use when the user says "cut a release", "ship a release", "make a release", "publish the release", "release to GitHub", "ship this version", "release the fixes", or indicates master is ready to go public. There is ONE release flow now — no pre-release tiers, no branch merging.
+description: Cut a Cubric Studio release — the single GitHub-only release flow, one release per change, cut from master. Bump the right version digit (3rd = routine: a model, a Flow, a fix, an engine update; 2nd = a big visible step like a new workspace; 1st = a new generation, Fabio's call), stamp the files via mpi-version-bump, build the portable artifacts in CI, and publish a GitHub Release with the full builds + update bundles. Use when the user says "cut a release", "ship a release", "make a release", "publish the release", "release to GitHub", "ship this version", "release the fixes", or indicates master is ready to go public. There is ONE release flow now — no pre-release tiers, no branch merging.
 user-invocable: true
 ---
 # mpi-release — the one GitHub-only release flow
@@ -11,12 +11,23 @@ the version digit differs:
 
 | Digit | When | Example |
 |---|---|---|
-| **3rd (patch)** | Bug fixes only, no new ops/engine/schema | `1.1.0 → 1.1.1` |
-| **2nd (minor)** | New operations, new model support, or a ComfyUI engine bump | `1.1.1 → 1.2.0` |
-| **1st (major)** | Breaking change (schema bump, incompatible op change) | `1.2.0 → 2.0.0` |
+| **3rd** | Every routine release: a new model, a new Flow, a new op, a fix, an engine update | `2.0.1 → 2.0.2` |
+| **2nd** | A big visible step: a new workspace, a main-screen redesign, a project schema change | `2.0.9 → 2.1.0` |
+| **1st** | A new product generation — Fabio's call only | `2.4.3 → 3.0.0` |
+
+Adopted 2026-10-05 (Fabio): the digits are read by users, so they follow size, not
+semver — a 2nd digit per model would reach 2.300. Rationale and the full matrix:
+`docs/versioning.md`.
 
 Pick the digit, then run the exact same steps below. There is no separate
 "promote", "patch", or "publish" skill — this is all of them.
+
+**One release per change, always cut from master (Fabio, 2026-10-05).** Add a
+Flow → release. Add a model → release. Fix a bug → release. No batching work up
+for a big cut, no maintenance branches. The version bump lands on **master**, so
+Fabio's own dev app shows the version users just got. Every release ships a FULL
+update bundle (`release-baselines/README.md` § Current baselines) because users
+skip versions and a delta serves only installs exactly one behind.
 
 Read the two references in this skill's `references/` before running:
 `build-dispatch.md` (CI build + artifact download) and `copy-review.md` (the two
@@ -37,27 +48,16 @@ mandatory user-facing copy gates). The version file edits belong to
 
 ## Preconditions
 
-- **Find the release line FIRST — it is often NOT master.** Resolve the last
-  published tag to a commit and ask which branches contain it:
-  ```bash
-  gh release list --repo MadPonyInteractive/Cubric-Studio --limit 3
-  git rev-parse "v<last>^{}" && git branch -a --contains "v<last>^{}"
-  ```
-  Whichever branch that names is the line you cut from, and you work in ITS
-  worktree (`git worktree list`). **1.4.3, 1.4.4 and 1.5.0 were all cut from the
-  `1.4.2` maintenance branch**, created by step 9, while master ran on toward the
-  next minor — master was 879 commits ahead and still stamped `1.4.2`. This
-  precondition used to read "you are on master", and in 2026-09-08 MPI-709 that
-  cost an hour: every fix for the bug being released had been committed to
-  master, so none of it was in the release it was written for. `mpi-continue`
-  will not catch this for you; the card says nothing about branches.
-- **The line you cut from is at the version you're bumping *from*.** Confirm on
-  that branch, not master: `git show <branch>:js/core/appVersion.js`. A `git
-  status` that looks right in the wrong worktree is the trap.
-- **Check `release-baselines/*.json` belongs to that line too.** The branches
-  diverge on purpose: master has none (so a build from it emits a FULL bundle),
-  the maintenance line carries them (so it emits a delta). See
-  `release-baselines/README.md` § Current baselines.
+- **You cut from master, at the version you're bumping *from*.** `git show
+  master:js/core/appVersion.js` equals the latest `gh release list` tag. Master
+  carries no half-finished work between releases now, so there is nothing to
+  branch around. **Maintenance branches are retired (2026-10-05):** `1.4.2`,
+  `1.5.0` and `2.0.0` were the last; never cut from them or create another. (They
+  existed because 1.2.0 could not be hotfixed past a master full of unfinished
+  features — the one-change-per-release cadence removes that cause.)
+- **`release-baselines/` holds no `*.json`.** One there makes CI emit a delta,
+  which strands every install more than one release behind. Delete it before
+  building and do not restamp after publishing.
 - **`1.6.x` is the PRIVATE VERIFICATION LINE — never cut a public 1.6 release.**
   Master was stamped `1.6.0` on 2026-09-11 (MPI-722) so a build hand-delivered to
   one beta tester orders above every published release and still takes the 2.0
@@ -113,6 +113,9 @@ mandatory user-facing copy gates). The version file edits belong to
   MPI-465 shipped a completely dead LTX for six days because nothing executed a graph and
   ComfyUI's own validation passed it. **Pod-green is not Windows-green** — the local
   portable half is the playbook's gate 5 and this check does not cover it.
+  **The full matrix is for an engine move only (Fabio, 2026-10-05).** A release that adds
+  one model smokes that model alone — `node scripts/smoke-workflows.mjs --models <id>`
+  (`--flows <id>` for a Flow) — and a fix with no graph or engine change needs no Pod smoke.
 
 ## Private 1.6.x build (hand-delivered, never published)
 
@@ -145,8 +148,8 @@ item into the `js/data/releaseNotes.js` block + a new archival
 `docs/releases/YYYY-MM-DD-v<ver>.md`, then clears UNRELEASED back to its header.
 Hold `release:approve`/`check` until after Gate 1.
 
-> Derived stage (`js/core/appStage.js`) is automatic: `X.Y.Z` (Z>0) = alpha,
-> `X.Y.0` (Y>0) = beta, `X.0.0` = release. You don't set it.
+> Derived stage (`js/core/appStage.js`) is automatic: every `X.Y.Z` with X ≥ 1 is
+> "Release", `0.x.x` is "Alpha". You don't set it.
 
 ### 2. 🛑 Gate 1 — user reviews the in-app changelog
 Present the `releaseNotes.js` block rendered the way `MpiChangelogDialog` shows it
@@ -263,32 +266,9 @@ the MadPony-Identity launch-comms workflow, a separate manual step the user
 drives. (Patreon is a comms/support channel only — it no longer gates release
 downloads.)
 
-### 9. Post-publish — restamp the baselines, then cut the maintenance branch
-Both are **post**-publish by definition. Doing either early is exactly what
-MPI-409 was.
-
-**Restamp `release-baselines/*.json`** to the just-shipped FULL manifests so the
-NEXT release deltas against this one. Extract them verbatim from the published
-artifacts — never re-serialise — then assert `toVersion: <ver>`,
-`fromVersion: null`, `kind: portable-stage`, and a file count in the thousands on
-all three before committing. Recipe and the timing rule live in
-`release-baselines/README.md`. **Windows uses a different member path**
-(`resources/cubric/update-manifest.json`, no top-level folder since the MPI-387
-layout move); the wrapped path that works for linux/macOS fails there in a way
-that truncates the baseline to 0 bytes *before* erroring.
-
-**Cut the maintenance branch:**
-```bash
-git branch <ver> v<ver> && git push -u origin <ver>
-```
-Master then moves on toward the next minor, while a bug report against the
-shipped version is fixed on this branch and released as the next patch digit —
-without dragging master's unfinished work into it. Building from the branch needs
-nothing new: mpi-ci's `workflow_dispatch` takes `ref: Branch, tag, or SHA`.
-**Cherry-pick the baseline restamp onto the branch too**, or its update bundles
-delta against the *previous* release — correct, but needlessly fat.
-
-> Established 2026-08-01. 1.2.0 could not be hotfixed because master held
-> half-finished features, which forced a week of unplanned work finishing them
-> just to get fixes out — and that shipped as 1.3.0 with the rest of the
-> in-flight work pushed to 1.4.0. The branch exists so that never repeats.
+### 9. Post-publish — nothing to restamp, no branch to cut
+**Retired 2026-10-05 (MPI-1026).** This step used to restamp
+`release-baselines/*.json` to the shipped manifests and cut a `<ver>` maintenance
+branch. Both are gone with the one-change-per-release cadence: baselines stay
+deleted so every update bundle is FULL, and a fix ships from master as the next
+release. Master already carries the bumped version, so the step is done.
