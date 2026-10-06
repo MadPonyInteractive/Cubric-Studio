@@ -40,3 +40,7 @@
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
 
+
+## Fixes
+
+- **Compare labels each side with its History name.** An imported image showed its full file path instead.
