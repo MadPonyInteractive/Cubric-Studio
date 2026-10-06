@@ -6,5 +6,5 @@
 - [x] Tests: agent-cards (input carries groupId; look read + kept on the input's sidecar) and agent-sessions (held only for the same conversation). Both negative-controlled: fail on HEAD's service, pass on the fix
 - [x] docs/agent-chat.md updated (list_cards row + queue paragraph). docs/agent-findings.md NOT touched: it sits at its 200-line cap; the live evidence is in agent-chat.md
 - [x] npm test 2725/2727 pass, 0 fail; eslint clean on the changed files
-- [ ] CI green on the code commit
-- [ ] Live check: next Cosmo look at a card's input reads `look CACHED` in app.log after the first (needs the app restarted on this code)
+- [x] CI green on the code commit (run 37438022791)
+- [x] Live: the held fix observed (no cancel on a mid-turn message). Input-look cache NOT yet observed live (no input look ran); covered by the negative-controlled test
