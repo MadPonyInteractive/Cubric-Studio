@@ -6,6 +6,11 @@
 > archival `docs/releases/YYYY-MM-DD-v<newVersion>.md`, then clear this file
 > back to the header.
 >
+> **Cleared 2026-10-06 at the 2.0.1 publish (MPI-1026).** The one item here (the Settings
+> microphone, MPI-1034) was folded into `RELEASE_NOTES['2.0.1']` and
+> `docs/releases/2026-10-06-v2.0.1.md`; the other six 2.0.1 fixes never passed through this
+> file and were written into those two files straight from their commits.
+>
 > **Cleared 2026-10-04 at the 2.0.0 bump (MPI-595).** Every item was folded into
 > `RELEASE_NOTES['2.0.0']` and `docs/releases/2026-10-04-v2.0.0.md`, cut to one or two
 > lines each; the Known issues lines (release body only, never `releaseNotes.js`) moved to
@@ -34,8 +39,4 @@
 > or three times inside one unreleased version reads like user-visible history but
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
-
-## Fixes
-
-- **The microphone you pick in Settings is now the one dictation and the recorder listen to.**
 
