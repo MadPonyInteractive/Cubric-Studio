@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1030",
+  "title": "H3 ref2v runs the reference encode (25 GB text encoder + VAEs) twice per generation",
+  "description": "Two MpiH3References by design (stage 1 match, refine max) with an MpiClearVram after each; only image refs differ between them. Cause found, fix awaits a decision.",
+  "column": "todo",
+  "maturity": "needs-decision",
+  "status": "active",
+  "created_at": "2026-10-06T08:25:01+01:00",
+  "updated_at": "2026-10-06T08:25:01+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

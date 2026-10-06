@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1030", "at": "2026-10-06T08:25:01+01:00", "actor": "claude", "column": "todo", "title": "H3 ref2v runs the reference encode (25 GB text encoder + VAEs) twice per generation"}
