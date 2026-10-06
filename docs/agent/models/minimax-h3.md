@@ -6,7 +6,9 @@ guide:
 
 - `minimax-h3`: `t2v_ms` (text to video) and `i2v_ms` (image to video).
 - `minimax-h3-ref2va`: `ref2v_ms` (reference to video: up to 9 pictures, 3 videos and
-  3 audio clips steer who and what appears).
+  3 audio clips steer who and what appears; a clip given as `<Video 1>` and asked for the
+  same motion and sound with one change comes back edited, its own soundtrack kept, speech
+  included. Keeping the picture and changing the sound is the Add Foley Flow instead).
 
 ## Pick it when
 
@@ -74,8 +76,10 @@ camera, the sound of the place, the constraint line. Then check the action again
 - A long travelling shot names what the camera passes on the way; otherwise the model
   invents events to fill the time.
 - Speech: quote the words and put the delivery right before them ("shouts over the
-  hooves: ..."). A voice reference gives the timbre; the prompt gives the delivery. Expect
-  the scene sound to dip while someone speaks.
+  hooves: ..."). For new words, a voice reference gives the timbre and the prompt gives the
+  delivery. Quote the clip's own words and it comes back as that recorded line, timing kept
+  and the lips moving to it: a talking portrait. Expect the scene sound to dip while someone
+  speaks.
 - Cite each reference inside the sentence that uses it ("the rider from <Picture 1>
   pulls up"), never as a tag after the sentence.
 - `ref2v_ms` has no negative field. Neither does any other op here: see "Say what is

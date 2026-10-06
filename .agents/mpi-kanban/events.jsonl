@@ -5674,3 +5674,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1034", "at": "2026-10-06T14:04:02+01:00", "actor": "claude", "column": "todo", "title": "Mic picker ignored: app records the Windows default mic whatever is picked in Settings"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1034", "at": "2026-10-06T14:04:39+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1034", "at": "2026-10-06T14:07:53+01:00", "actor": "claude", "from": "doing", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1033", "at": "2026-10-06T13:44:17+01:00", "actor": "a28c4a2e-51dd-4bbd-be3f-1c4235949a8f", "summary": "Speech bench run 4: soundtrack kept 0.955/0.960; agent text corrected in 3 files, tests 2725/0 fail"}
+{"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-1033", "at": "2026-10-06T13:44:17+01:00", "actor": "a28c4a2e-51dd-4bbd-be3f-1c4235949a8f", "summary": "Speech bench + agent-text correction checked off"}

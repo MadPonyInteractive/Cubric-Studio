@@ -30,12 +30,20 @@ modelPriority.js:145` (REF_NOTE: "the clip is made new around them"), `docs/agen
 (references only "steer who and what appears"; no editing case). Keep-video/change-sound route is the Add Foley
 Flow (`js/data/flowsRegistry.js` ~619, "silent clip", foley only - music is on its negative), not ref2v_ms.
 
-NEXT (Fabio said yes to both, in this order): (1) speech-clip bench - control mode, a sounded SPEECH video as
-`<Video 1>`, score its soundtrack; (2) then correct those three texts in place (fix the wrong sentences, do not
-add new instruction lines), after reading github.com/MiniMax-AI/MiniMax-H3/tree/main/skills for anything usable.
-Phases 2-3 (product toggles, graph wiring) wait for Fabio after that; Phase 3 also waits for MPI-1029's claim.
+2026-10-06 (session a28c4a2e): speech bench DONE - `bench.py speech`, `lipdub_input.mp4`, soundtrack back at
+0.955 / 0.960 (run 4). MiniMax's `ref-en.txt` names `[video editing + audio reuse]` as a task type. The three
+texts are corrected (validation.md § Agent text corrected); the edit claim sits on H3's own note, not the shared
+REF_NOTE, because cloud ref2v (Seedance/Wan) shares it unmeasured. Tests 2725/0 fail, lint clean.
+
+Run 5 (talking portrait: still + `Boss_3s.mp3`) - the line comes back with lips moving to it; Fabio: "really
+good". DONE: Fabio dropped Phases 2-3 (no pass-through, no graph wiring, no toggles). Card closes on validation.md.
 
 ## Completed
+- Phase 1 bench, 5 runs incl. speech and a talking portrait (validation.md). Agent-text correction in three files.
+
+## Plan Drift (2026-10-06, close)
+- Phases 2-3 dropped by Fabio: the clip edit and the talking portrait both work on today's graph, and a remux
+  pass-through only buys byte-exact audio at the cost of length and lip-sync risk.
 
 ## Plan Drift
 - 2026-10-06: Fabio corrected the bench: image + standalone track only proves an anchor animates a picture.

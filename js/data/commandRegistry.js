@@ -880,7 +880,7 @@ export const commands = {
         help: {
             body: [
                 'Give it references — a character sheet, a face, a location, a clip whose motion you want, a voice — and it generates a NEW video that keeps them consistent. No training, no LoRA.',
-                'References are not frames: none of them appears in the output as-is. They condition the result.',
+                'References are not frames: a picture never appears in the output as-is. A clip can be edited instead: ask for the same motion and sound with one change, and it comes back changed with its own soundtrack, speech included.',
                 'Address a specific one in the prompt by its tag. Each chip shows the tag it became.',
             ],
             examples: [

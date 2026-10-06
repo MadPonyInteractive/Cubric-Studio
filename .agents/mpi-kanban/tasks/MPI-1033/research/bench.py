@@ -1,7 +1,7 @@
 """MPI-1033 bench: H3 ref2va, one sounded input VIDEO as the picture reference, its own soundtrack
 pinned with MiniMaxH3AddGuide (anchor) vs today's graph (soundtrack only as a reference).
 
-usage: python bench.py anchor|control
+usage: python bench.py anchor|control|keepvideo|speech|portrait
 """
 import json, sys, time, urllib.request, copy
 
@@ -17,6 +17,33 @@ w["331"]["inputs"]["video"] = "mpi568_ai_cowboys_hi.mp4"
 w["444"]["inputs"]["boolean"] = True  # turbo: 10-step stage 1
 w["574"]["inputs"]["filename_prefix"] = f"mpi1033/{MODE}_preview"
 w["610"]["inputs"]["filename_prefix"] = f"mpi1033/{MODE}"
+
+if MODE == "speech":
+    # control graph, a talking clip (3.04 s, 1920x1088): does speech survive the restyle like the hoofbeats did?
+    w["212"]["inputs"]["int"] = 3
+    w["232"]["inputs"]["string"] = ("The woman from <Video 1> on the city rooftop at night, saying the same words in the "
+                                    "same voice, same motion and framing, but her dress is emerald green.")
+    w["331"]["inputs"]["video"] = "lipdub_input.mp4"
+
+if MODE == "portrait":
+    # talking portrait: a still (<Picture 1>) + a voice line (<Audio 1>, "You better stop right there", 3.04 s).
+    # Does the line come back as recorded, and do the lips follow it?
+    w["212"]["inputs"]["int"] = 3
+    w["331"]["inputs"]["video"] = "None"
+    w["321"]["inputs"]["image"] = "mpi1033_sheriff_portrait.png"
+    w["333"]["inputs"]["audio"] = "Boss_3s.mp3"
+    w["232"]["inputs"]["string"] = (
+        "Western film look: warm late-afternoon light, dusty tones, shallow depth of field, a close-up portrait, "
+        "mood tense.\n"
+        "Use <Picture 1> as the man's face, hair, moustache and coat, not its framing. <Audio 1> is his voice and "
+        "his line: he speaks it exactly as recorded.\n"
+        "[Shot 1] Close-up of the man from <Picture 1> in a dusty frontier street, looking straight into the lens. "
+        "His smile drops, his eyes narrow, and he says in a low gravelly warning, as in <Audio 1>: "
+        "\"You better stop right there.\" Then he holds the stare, jaw set, for the rest of the shot.\n"
+        "The camera is static at eye level.\n"
+        "overall_soundscape: A faint wind over the empty street, his voice close and dry.\n"
+        "non_diegetic_music: N/A\n"
+        "No text, subtitles, logos or watermarks, no cartoon or CG rendering.")
 
 if MODE == "anchor":
     # the same soundtrack the reference already gets (331 audio), pinned at frame 0 in both stages

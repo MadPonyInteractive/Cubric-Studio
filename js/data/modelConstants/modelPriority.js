@@ -104,7 +104,8 @@ const NOTES = {
     'qwen-edit:qwenEdit': 'the slowest of these',
     // Fabio 2026-10-04: with no i2v installed, "just use MiniMax H3 reference" was told the
     // free model that animates this picture was missing, and offered installs and paid clips.
-    'minimax-h3-ref2va:ref2v_ms': 'free and local: with no i2v op installed, or when the user names it, it is the route for "animate this picture", not an install',
+    // The clip edit is measured (MPI-1033 bench): soundtrack back at 0.96, speech and hoofbeats.
+    'minimax-h3-ref2va:ref2v_ms': 'free and local: with no i2v op installed, or when the user names it, it is the route for "animate this picture", not an install. It also edits a clip: given it as <Video 1> and asked for the same motion and sound with one change, the clip comes back changed with its own soundtrack, speech included. Keeping the picture and changing the sound is not this op: that is the Add Foley Flow, sound effects only',
     // MPI-941 Phase 9 (Fabio, corrected after a live Krea test): rank is untouched either way.
     'krea2:detail': KREA2_SKIN,
     'krea2:upscale': KREA2_SKIN,
@@ -142,7 +143,7 @@ const I2V_NOTE = 'animates THIS picture: it becomes the first frame exactly as i
  * What a reference op IS, on every one (Fabio 2026-10-04: "any reference operation does
  * that"). Not only the identity route: a picture cited as a frame is followed, loosely.
  */
-const REF_NOTE = 'a reference op: the pictures (and clips and sounds) steer who and what appears and the clip is made new around them, the route for a character sheet, a turnaround or several views of one subject. A picture cited as the opening frame (or another as the closing one) also gives a first or last frame: close, not exact, since the angle or framing can drift';
+const REF_NOTE = 'a reference op: the pictures (and clips and sounds) steer who and what appears, the route for a character sheet, a turnaround or several views of one subject. A picture cited as the opening frame (or another as the closing one) also gives a first or last frame: close, not exact, since the angle or framing can drift';
 const OP_NOTES = {
     // MPI-904: a model upscale is a diffusion pass, and the plain tool ranks above it.
     upscale: 're-renders the picture at the new size to add or change detail, from a prompt written per picture; only when the user asks for more or new detail. A plain enlargement is the imageUpscale tool, with no model',

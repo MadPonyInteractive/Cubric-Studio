@@ -28,3 +28,7 @@ H3 takes audio two ways, both in core `comfy_extras/nodes_minimax_h3.py`:
 ## Ordering
 
 AFTER MPI-1029: a peer session is re-syncing the same r2va workflow from Fabio's template, and Fabio has uncommitted edits in all three r2va files (24 fps on the video loaders). Do not touch those files until both land.
+
+## Noticed
+
+- Cloud `ref2v` texts (commandRegistry `ref2v` help :783, `docs/agent/models/seedance-2.0.md:23`, `wan-3.0.md:87`) still say no reference appears as-is; unmeasured on those models, left alone (MPI-1033 measured H3 only).
