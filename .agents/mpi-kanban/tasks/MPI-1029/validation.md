@@ -53,3 +53,5 @@ fault; not investigated here.
   Second TE pass 18.8 s / 16.2 s.
 - Shipped 3e7ae7dad; CI Tests run 37439820138 - success. Release session (MPI-1026) told 2.0.1
   is unblocked.
+- Reopened for the doc only (Fabio's yes): 8aca67958 adds the rule + log tell to
+  `docs/models/h3/performance.md` (187 lines, under budget). Docs-only, no code.
