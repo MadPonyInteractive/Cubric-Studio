@@ -160,3 +160,69 @@ agent missed it because every 1:1 crop it checked was village, ground or seam, n
 **Consequence:** the refined 8Ks are unusable; the bake input stays the AnimeSharp-only 8K.
 Any tiled refine needs an empty or generic prompt (or per-tile prompts). Fabio is testing
 his "super upscaler" workflow as the alternative (2026-10-06).
+
+## Super upscaler (Fabio's `flow_super_detailer`, bench, 2026-10-06)
+
+Impact Pack's Make-Tile-SEGS demo (its notes describe a **2x** step, 1024x1536 -> 2048x3072):
+AnimeSharp 4x -> `ImpactMakeTileSEGS` (1024, crop 1.5, overlap 200, irregular masks) ->
+`DetailerForEachDebugPipe` on `ILL_Anime` (SDXL), lcm 8 steps cfg 1.5, **denoise 0.46**,
+wildcard "2D flat shader, cartoon"; person split present but the character pass bypassed.
+761 s for 2K -> 8K in one jump. Copies + scripts: `D:\WORK\MPI-623-spike\cartoon\superdetail\`.
+
+- **Far crisper than any model-only upscale** (Fabio's screenshots), but **tile colour
+  blocks** (grass, a vertical band in the sky) and a global palette drift (sky cyan, stones
+  pink). Measured against the base at 64 px scale: drift mean 15.6, max 93 (0-255).
+- **It redraws content, not just colour**: at 0.46 with a 1024 tile seeing ~1/32 of the pano,
+  background trees change species and a house becomes rocks (`sheet_colour_lock_crops.png`).
+- **Input was `ostris_fast_raw` (pre-seam, wrap seam 2.53)** - a pano run must take
+  `ostris_fast_final`, and the tiles need the 128 px (at 2K) wrap pad like the Siax refine.
+- **Colour lock REJECTED (no GPU, `colour_lock.py`)**: out = D - LP(D) + LP(B) at f 8/16/32
+  drops drift to 0.5-0.9 and keeps detail (hf 3.9 vs 3.9 detailed, 2.5 base), but leaves
+  halos round every outline and doubled edges wherever the detailer moved a shape. Numbers
+  passed, eyes failed. Only viable once the detailer keeps the geometry.
+- Levers left: two 2x passes (Fabio's idea; the notes' own design), lower denoise on the 8K
+  pass, the bench's `ControlNet-Union-ProMax-SDXL` in tile mode per SEG
+  (`ImpactControlNetApplySEGS`), Klein 9B as the detailer. **Fabio is testing Klein 9B on a
+  lanczos 2x at denoise 0.3 himself first; the agent's 3-run test (~45 min) waits for his
+  handover.**
+
+**Fabio's Klein recipe (his eye: 0.35 right, 0.45 changes too much; an 8K detail pass is
+overkill):** `ostris_fast_final` -> lanczos 2x (4K) -> the same tiles -> Klein 9B int8
+(`flux-2-klein-9b-int8-convrot`, `qwen_3_8b_int8_convrot`, `flux2-vae`) in the Detailer,
+4 steps lcm/normal cfg 1, **denoise 0.35** -> AnimeSharp 4x -> 8192x4096. Keeps the content
+(houses, well, stones) and the palette. Agent runs as one API graph,
+`superdetail\run_superdetail.py`, outputs `D:\WORK\Images\Outputs\mpi623_superdetail\`:
+
+| 4K detail pass | wrap seam (lanczos base) | drift mean / max | wall clock |
+|---|---|---|---|
+| ILL 0.46, 8K one jump (Fabio, before) | 15.03 @8K (2.66) | 15.5 / 93 | 761 s |
+| Klein 0.35, no pad (Fabio) | 3.91 (1.38) | 5.6 / 44 | 322 s |
+| + wrap pad 128 @2K | 3.08 (1.38) | 5.8 / 36 | 440 s cold |
+| **+ pad 128 + 256 px cross-fade** | **0.83** (1.38); 8K **1.08** (2.66) | 5.8 / 36 | 80 s warm |
+
+- Klein drifts 3x less than ILL and its drift map shows NO tile grid (only where lines were
+  added). No inner column/row seams; a few garbage rows at the very bottom (nadir) remain.
+- **The pad alone reconnects the lines but leaves a TONAL step** (each side is its own
+  render). **The cross-fade fixes it**: the right pad (rendered beside col W-1) fades into
+  the core's first 256 columns via KJNodes `CreateGradientMask` (`frames` must be 1 - 0
+  returns an empty batch) + core `ImageCompositeMasked`, then `ImageStitch`. No new node.
+  Seam close-ups at 1:1: `superdetail\sheet_seam_xf.png` - no seam, no visible double lines.
+- **Fabio still saw a seam in flat sky** - correctly; the whole-height ratio hides it under
+  the village rows. Measured on sky rows only (`sky_seam.py`): **the SOURCE 2K already
+  carries it** (2.16x the column median at the wrap, tone -2/-3/-4 RGB, a thin LIGHT streak
+  by eye, `sheet_sky_boost.png`). Root cause: the 360 Flow's own seam stage is img2img at
+  **0.45** (pano.json: 96 px strip, feather 24, euler/simple 10, cfg 4), and img2img at that
+  denoise keeps low-frequency tone. pad+xf carries it unchanged (-3.4/-2.6/-3.2).
+- Tried on the upscaler side, all on the pad+xf 4K: a Klein seam re-detail
+  (`run_seampass.py`: `MickmumpitzPanoSeamRoll` 6% strip -> `MaskToSEGS` ->
+  `ImpactMakeTileSEGS` filter_in, which ANDs tile masks with the strip) at **0.5 - no
+  change** (the same 0.45 trap), at **0.75 - REJECTED by eye**: the wrap metric went clean
+  (0.7x, tone ~0) but the strip came out a visible band (dark sky block, a red mushroom cap
+  grown out of a tree, a green band on the ground). On the unpadded 4K the 0.5 pass left the
+  tile seam too (6.2x). A deterministic tone level (`seam_level.py`, per-row excess step
+  over the local slope, median along y, faded out over 256 px) halves the step
+  (-1.9/-0.8/-1.3) with no damage, but a ridge is not a step and the streak stays faint.
+  A first version measured the step over 16 px and picked up CONTENT (|J| max 52 RGB), making
+  the wrap worse (3.45x) - the excess-over-slope estimate is what fixed that.
+- **Where the fix belongs: the 360 Flow's seam stage, at 2K, before any upscale** - not the
+  upscaler. GPU spent this block: ~15.5 min (440 + 80 + 130 + 140 + 140 s).

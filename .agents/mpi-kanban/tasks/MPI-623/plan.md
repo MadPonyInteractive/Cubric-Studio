@@ -545,6 +545,27 @@ notes in [research/](research/).
 > Use the split graphs A then B (amendment 47: the merged graph ran the box out of RAM).
 > Then wiring via `/mpi-add-flow`: Ostris pack + Mickmumpitz nodes as deps (re-add by hand,
 > never revert `edff37f2a`), the two LoRAs, fast tier only, Siax with the wrap pad.
+>
+> **Session note 2026-10-06 (twenty-first). THE BAKE WAITS FOR FABIO'S BEDTIME** (a 3.5 h
+> run blocks his bench). Prepped, not run: graphs A/B need only values changed; the input
+> must be copied into `G:\ComfyUi\ComfyUI\input\` (MPI-800 containment: the loader reads
+> nothing else); rails = the shipped 27/122/133/157 (the "swap157" set IS Mickmumpitz's
+> village piloting, byte for byte - drop 144, worst on the room), checked against a
+> `SplatKit_CameraPlotSceneReference` cloud (written to bench `temp\splatkit_scene_ref\`)
+> before Wan. **Meanwhile: Fabio's super-upscaler** (validation.md § Super upscaler) - far
+> crisper, but at 0.46 it redraws content per tile; a colour lock was tried and rejected.
+> Fabio is finding a Klein 9B denoise himself; then the agent runs a ~45 min, 3-run test
+> (two-pass ILL / + tile ControlNet / Klein) on `ostris_fast_final` with the wrap pad.
+> **UPDATE, same session: Fabio's Klein recipe won** (lanczos 2x -> Klein 9B detailer
+> @0.35 -> AnimeSharp to 8K; 0.45 changes too much, an 8K detail pass is overkill), and
+> the agent's wrap pad 128 + 256 px cross-fade fixes its tile wrap seam (0.83 @4K, 1.08
+> @8K) - `superdetail\run_superdetail.py 128 0.35 xf`. Bake input candidate:
+> `D:\WORK\Images\Outputs\mpi623_superdetail\klein035_pad128_xf_8k_00001_.png`. **Left:
+> a faint light streak at the wrap in flat SKY, inherited from the SOURCE pano** - the 360
+> Flow's own seam stage (img2img @0.45) keeps tone. Upscaler-side fixes failed or half-
+> worked (validation.md § Super upscaler). **Next (Fabio's yes): re-run the 360 seam
+> stage at 2K on `ostris_fast_preseam` with Krea + the outpaint LoRA at 0.6 and 0.7, 160 px
+> strip; re-upscale the winner; then the bake at his bedtime.** ~15.5 of 45 GPU min spent.
 
 **Project mode:** `scalable-foundation`.
 
