@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1031", "at": "2026-10-06T08:46:56+01:00", "actor": "claude", "column": "todo", "title": "Gallery: a mark set on a generating card is lost when the card lands"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1031", "at": "2026-10-06T08:47:12+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "carry a generating card's mark to the card it becomes"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1031", "at": "2026-10-06T10:01:59+01:00", "actor": "adddc00f-6d15-439e-aadd-333e30dd4944", "from": "doing", "to": "done", "reason": "104bc1af6 green in CI (Tests 37432004227); Fabio confirmed live: a generating card keeps its mark"}

@@ -9,8 +9,8 @@ held by `activeGenerations` and handed to the grid by reference). The mark butto
 project (a no-op). On completion `generationService` builds the card fresh with
 `createItemGroup`, never reading the placeholder - so the mark is dropped.
 
-- [ ] `generationService.js` gallery branch: each built group takes its placeholder's mark
+- [x] `generationService.js` gallery branch: each built group takes its placeholder's mark
       (placeholderGroup for the first output, extraPlaceholders for the rest)
-- [ ] desktop spec: marking the generating card lands on the run's own placeholder object
-- [ ] `docs/gallery-filters.md` § Card marks: a generating card's mark carries over
-- [ ] Fabio checks it live (mark a generating card, it keeps the mark when it lands)
+- [x] desktop spec: marking the generating card lands on the run's own placeholder object
+- [x] `docs/gallery-filters.md` § Card marks: a generating card's mark carries over
+- [x] Fabio checks it live (mark a generating card, it keeps the mark when it lands)
