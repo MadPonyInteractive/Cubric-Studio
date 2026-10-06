@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1028", "at": "2026-10-06T08:05:07+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "fixing gallery filter + chip for generating cards"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1028", "at": "2026-10-06T08:10:29+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "shipped: generating card passes the filter, chip reads group type"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1028", "at": "2026-10-06T08:11:13+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "code commits with the card in doing; done after CI judges it (done-gate)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1028", "at": "2026-10-06T08:24:27+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "806cd12bb green in CI (Tests 37428171291)"}

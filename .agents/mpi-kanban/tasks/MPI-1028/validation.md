@@ -19,8 +19,9 @@
   Green (10.1 s). **Red with the HEAD versions of the two source files swapped in** (`gen1`
   missing from the card list), green again restored.
 - eslint clean on both files.
+- CI: Tests run 37428171291 on 806cd12bb, success (and Red master watch 37428345519, success).
 
 ## Left as is
 
 A finished run that does not match the active filter drops out when it lands (the filter doing
-its job); raised with Fabio as a product call.
+its job). Fabio, 2026-10-06: leave it as is.
