@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": [".agents/mpi-kanban/tasks/MPI-1034/", "js/utils/audioInput.js", "js/services/dictation.js", "js/components/Blocks/MpiAudioRecorder/MpiAudioRecorder.js", "js/components/Compounds/LandingPages/MpiSettings/MpiSettings.js", "tests/audio-input.test.cjs"]}

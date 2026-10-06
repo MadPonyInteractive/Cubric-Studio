@@ -5,6 +5,7 @@ import { MpiLevelMeter, meterAnalyser } from '../../Primitives/MpiLevelMeter/Mpi
 import { MpiAudioPlayer } from '../../Organisms/MpiAudioPlayer/MpiAudioPlayer.js';
 import { qs, on } from '../../../utils/dom.js';
 import { Storage } from '../../../core/storage.js';
+import { openMic } from '../../../utils/audioInput.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { toWavFile } from '../../../utils/toWavFile.js';
 import { encodeWav } from '../../../utils/wavEncoder.js';
@@ -299,12 +300,9 @@ export const MpiAudioRecorder = ComponentFactory.create({
          * user who turns the gain up sees no change and turns it up again.
          */
         async function _start() {
-            const deviceId = Storage.getAudioInputDevice();
             const gain = Storage.getAudioInputGain();
             try {
-                _stream = await navigator.mediaDevices.getUserMedia({
-                    audio: deviceId ? { deviceId: { ideal: deviceId } } : true,
-                });
+                _stream = await openMic();
             } catch (err) {
                 // Two very different failures land here and the user can only fix one
                 // of them from inside the app, so say which it is.

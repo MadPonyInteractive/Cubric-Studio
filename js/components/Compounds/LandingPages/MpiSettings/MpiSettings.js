@@ -17,6 +17,7 @@ import { getPendingUpdate, runUpdate } from '../../../../services/updateChecker.
 import { localEngine } from '../../../../services/comfyController.js';
 import { ce, qs } from '../../../../utils/dom.js';
 import { applySink, setOutputDevice } from '../../../../utils/audioOutput.js';
+import { openMic } from '../../../../utils/audioInput.js';
 
 const REUSE_PARTS = [
     { key: 'prompt', label: 'Use Prompt' },
@@ -337,8 +338,8 @@ export const MpiSettings = ComponentFactory.create({
          *
          * The stored id is deliberately NOT validated against the list on load: a
          * device unplugged today is usually back tomorrow, and clearing the setting
-         * silently would lose a choice the user made. `getUserMedia` asks with
-         * `ideal`, so a missing device degrades to the default instead of throwing.
+         * silently would lose a choice the user made. `openMic` (MPI-1034) falls back
+         * to the default only when the picked device is missing.
          */
         async function _initAudioInput(root) {
             const deviceSlot = qs('#mpiSettingsAudioDeviceSlot', root);
@@ -519,12 +520,9 @@ export const MpiSettings = ComponentFactory.create({
 
             testBtn.on('click', async () => {
                 if (_monitor) { _stopMicTest(); return; }
-                const deviceId = Storage.getAudioInputDevice();
                 let stream;
                 try {
-                    stream = await navigator.mediaDevices.getUserMedia({
-                        audio: deviceId ? { deviceId: { ideal: deviceId } } : true,
-                    });
+                    stream = await openMic();
                 } catch (err) {
                     clientLogger.warn('settings', `[MpiSettings] mic test failed: ${err?.name || err}`);
                     testBtn.el.setActive?.(false);

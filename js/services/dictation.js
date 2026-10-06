@@ -24,6 +24,7 @@ import { Storage } from '../core/storage.js';
 import { hasCloudKey } from '../data/modelRegistry.js';
 import { clientLogger } from './clientLogger.js';
 import { on } from '../utils/dom.js';
+import { openMic } from '../utils/audioInput.js';
 
 const INFO_READY = 'Dictate: click, speak, click again. Or hold Ctrl+Space while you speak. Your voice is sent to DeepInfra to be written out';
 const INFO_NO_KEY = 'Dictate: needs a DeepInfra key. Add one in Settings';
@@ -96,10 +97,7 @@ async function _start(host, held) {
     const take = _take = { host, held, chunks: [], recorder: null, stream: null, startedAt: 0, stopAsked: false, discard: false };
     _mark(host, held ? 'held' : 'recording');
     try {
-        const deviceId = Storage.getAudioInputDevice();
-        take.stream = await navigator.mediaDevices.getUserMedia({
-            audio: deviceId ? { deviceId: { ideal: deviceId } } : true,
-        });
+        take.stream = await openMic();
     } catch (err) {
         clientLogger.warn('dictation', `getUserMedia failed: ${err?.name || err}`);
         _take = null;

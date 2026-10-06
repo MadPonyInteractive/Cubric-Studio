@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1034",
+  "title": "Mic picker ignored: app records the Windows default mic whatever is picked in Settings",
+  "description": "getUserMedia asks deviceId as ideal, Chromium opens the system default instead; Sonar default mic = digital silence, so dictation and the recorder hear nothing",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-06T14:04:02+01:00",
+  "updated_at": "2026-10-06T14:07:53+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
