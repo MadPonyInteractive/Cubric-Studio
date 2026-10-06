@@ -13,6 +13,7 @@
 | MPI-355 | 4K/8K localized-edit Flow - mask a small region of a huge scene (crop-stitch wiring already shipped) | `todo` / `planned` |
 | MPI-557 | Video face detailer | `todo` / `planned` |
 | MPI-715 | Video masking needs an adjust step - a reusable mask gizmo over the clip, and the mask-clip transport | `todo` / `planned` (added 2026-09-29, umbrella sweep, Fabio's yes) |
+| MPI-1036 | Video Edit Flow on MiniMax H3 Reference - swap a person, head or outfit, or any edit, with an optional mask step | `todo` / `planned` (added 2026-10-06, Fabio's yes; needs MPI-715's mask clip transport) |
 
 ## Why these belong together
 
@@ -52,6 +53,8 @@ write and message the other before touching it.
 - **Any code that mutates `manualCanvas`/`subtractCanvas`/a paint layer MUST record an
   `UndoStack` entry first.** Unwired = a silent hole in Ctrl+Z. Read `docs/masking-undo.md`.
 - The H3 `as sampled` mask floors at **32px in OUTPUT pixels** - a grow below it is a no-op.
-- A localised VIDEO edit already hit a wall once: MPI-711 (`doing`) is the record of the
-  LanPaint/H3 masked route failing. Read it before re-deriving that.
+- A localised VIDEO edit already hit a wall once: MPI-711 (`done`) is the record of the
+  LanPaint/H3 masked route failing. Read it before re-deriving that. What DID work on video:
+  a model with a native edit task (Bernini-R, then H3 Reference - MPI-1036) with the mask as
+  crop-and-stitch round the region, not as LanPaint's known-pixel conditioning.
 - A new destination is a ROW in a table, never a new engine (the MPI-424 thesis).

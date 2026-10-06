@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1036",
+  "title": "Video Edit Flow on MiniMax H3 Reference - swap a person, head or outfit, or any edit, with an optional mask step",
+  "description": "ONE Flow, decided with Fabio 2026-10-06 (replaces MPI-711's Bernini route). Input: a clip + an optional photo. A 'What to change' picker (Swap the person / Swap the head / Change the outfit / Anything else) selects a hidden instruction that the user's own words are appended to, and whether the photo is required. Optional mask step, as Detail/Inpaint/Edit already do on images: crop-and-stitch round the masked region keeps the rest of the frame and its resolution untouched, and a small region renders ten times faster or more (Fabio). The mask step is MPI-715 (mask clip transport + adjust gizmo), which the video detailer MPI-557 also needs. Member of umbrella MPI-897. Brief + plan: brief.md, plan.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-06T23:56:53+01:00",
+  "updated_at": "2026-10-06T23:56:53+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

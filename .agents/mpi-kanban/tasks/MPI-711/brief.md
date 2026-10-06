@@ -153,7 +153,7 @@ Six days, no shippable result, and the failure is structural rather than a tunin
 | native task | unified: T2V, T2I, **instruction-based video-to-video editing**, image editing, in-context / reference-driven editing | in-context image+video conditioning: t2v, v2v restyle, **rv2v reference-guided video EDITING**, r2v, image edit, content insertion | **object removal only** |
 | localised edit | **"local and global edits" demonstrated** | not documented as masked | mask-driven |
 | mask | not explicitly documented | not mentioned | **yes — SAM3, text-prompted** |
-| licence | **MIT** | not stated in the docs | **Apache 2.0** |
+| licence | **MIT for the project only** - the weights are built on HunyuanVideo-1.5 under the Tencent Hunyuan Community License, which excludes the EU, UK and South Korea (`research/licence-and-weights.md`) | **Apache 2.0** (ByteDance and the Comfy-Org repack, no territory clause) | **Apache 2.0** |
 | ComfyUI | custom nodes for all task types, FP8, auto attention backend | native nodes, needs an updated ComfyUI; subgraph workflows | documented workflow |
 | known limits | CUDA 12.6, compute ≥8.9 for FP8; 480p / 50 steps recommended for video | no LoRA training needed; "lightweight, no diffusion t2v backbone" | struggles on unclear masks, chaotic motion, targets dominating the frame |
 

@@ -10,6 +10,11 @@ their URLs. There is no test to run.
 
 ## Current State
 
+**2026-10-06 — CLOSED (`done` / `complete`).** Fabio: reference models do this job now, so the
+product route is a Video Edit Flow on MiniMax H3 Reference with an optional mask step, on its
+own card under MPI-897. Evidence and what was left in place: `validation.md`. Everything below
+is history.
+
 **2026-10-05 — READ THIS FIRST, BEFORE the 09-13 notes below. This card is a RE-EVALUATION now,
 not a resume.** Fabio took it out of `doing` on 09-29 for the 2.0 cut (MPI-595 Gate D); it is
 `todo` / `deferred`. 2.0 released 10-04, 2.0.1 stamped after it. The one open question from
