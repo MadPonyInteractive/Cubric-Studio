@@ -35,3 +35,7 @@
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
 
+## Fixes
+
+- **The microphone you pick in Settings is now the one dictation and the recorder listen to.**
+
