@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1033", "at": "2026-10-06T09:56:41+01:00", "actor": "8a65be20-cec9-4e55-9d13-d492ef46d0d3", "column": "todo", "title": "H3 Reference: anchor a soundtrack so the clip keeps it (the music-video path)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1033", "at": "2026-10-06T10:03:18+01:00", "actor": "b222db05-21a4-4bc0-aeae-949dcadcd994", "from": "todo", "to": "doing", "reason": "Bench test: MiniMaxH3AddGuide audio anchor on the ref2va graph"}
