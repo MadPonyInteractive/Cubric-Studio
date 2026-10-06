@@ -167,10 +167,7 @@ function _importFailureWarning() {
 // MPI-1024: comfy-aimdo (ComfyUI's dynamic VRAM) failing to allocate. On a 12 GB card
 // under memory pressure it stalled minutes, then left the CUDA context dead ("CUDA error:
 // unknown error") and the engine exited. Same allocator as Comfy-Org/comfy-aimdo#100 (open).
-// MPI-1029: its weight STREAMING fails too — Windows error 1450 (no system resources) on
-// the unbuffered reads of a 25 GB H3 text encoder, surfacing as `HostBuffer.read_file_slice
-// failed`. Upstream open; dynamic VRAM off avoids that read path, so the same fallback.
-const AIMDO_FAULT_RE = /aimdo:.*(VRAM Allocation failed|file read failed)|Fault failed: \d/;
+const AIMDO_FAULT_RE = /aimdo:.*VRAM Allocation failed|Fault failed: \d/;
 
 function _noteDynamicVramFault(text) {
     if (processState.dynamicVramOff || !AIMDO_FAULT_RE.test(text)) return;

@@ -25,8 +25,6 @@ const { noteDynamicVramFault, cudaModeArgs } = comfyRouter;
 
 const ALLOC_FAILED = '\x1b[1m\x1b[31m[ERROR]\x1b[0m aimdo: src/model-vbar.c:403:ERROR:VRAM Allocation failed';
 const FAULT_FAILED = 'RuntimeError: Fault failed: 2';
-// MPI-1029, verbatim from a 4060 Ti 16 GB source run (H3 ref2v, the 25 GB text encoder).
-const READ_FAILED = '\x1b[1m\x1b[31m[ERROR]\x1b[0m aimdo: src/hostbuf.c:275:ERROR:hostbuf_read_file_slice: file read failed handle=0x220 file_offset=23437917932 size=67108864 host_offset=7127540736';
 const HEALTHY = '\x1b[32m[INFO]\x1b[0m Model Flux2 prepared for dynamic VRAM loading. 3885MB Staged. 0 patches attached.';
 
 function reset() {
@@ -43,7 +41,7 @@ test('a healthy dynamic VRAM line changes nothing; the engine keeps the shipped 
     assert.deepEqual(cudaModeArgs(), ['--lowvram']);
 });
 
-for (const [name, line] of [['the aimdo allocation line', ALLOC_FAILED], ['the vbar fault exception', FAULT_FAILED], ['the aimdo weight read failure', READ_FAILED]]) {
+for (const [name, line] of [['the aimdo allocation line', ALLOC_FAILED], ['the vbar fault exception', FAULT_FAILED]]) {
     test(`${name} turns dynamic VRAM off, asks for a restart, and drops --lowvram`, () => {
         reset();
         noteDynamicVramFault(line);

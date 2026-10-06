@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1029", "at": "2026-10-06T08:07:18+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "extend the MPI-1024 fallback detector"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1029", "at": "2026-10-06T08:10:31+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "shipped: MPI-1024 fallback catches aimdo read fault 1450"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1029", "at": "2026-10-06T08:11:14+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "code commits with the card in doing; done after CI judges it (done-gate)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1029", "at": "2026-10-06T08:20:21+01:00", "actor": "claude", "from": "doing", "to": "todo", "reason": "fallback extension reverted per Fabio: one H3 read error must not slow the whole session; first find out if it repeats"}

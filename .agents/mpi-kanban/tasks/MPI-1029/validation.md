@@ -1,5 +1,8 @@
 # MPI-1029 validation
 
+> **REVERTED 2026-10-06 (Fabio): nothing below is live.** The fallback extension cost the whole
+> session 1.3-1.65x after one H3 read error. Plan now: checklist.md section Next.
+
 ## Fix
 
 `routes/comfy.js` `AIMDO_FAULT_RE` now also matches aimdo's weight-read failure
