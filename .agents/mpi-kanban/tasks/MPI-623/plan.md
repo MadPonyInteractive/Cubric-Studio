@@ -442,6 +442,65 @@ notes in [research/](research/).
 > `D:\WORK\MPI-623-spike\3d-scene-8-deliverables\`. Keep anything a later step needs
 > OUTSIDE `%TEMP%`, and never re-run a long bake to replace an output without asking.
 
+> **Session note 2026-10-05 (nineteenth). FABIO IS BACK ON IT - the card left
+> `todo/deferred` for `doing`. 2.0 shipped while it was parked, and four things moved:**
+>
+> - **Neither node pack is in the engine any more.** SplatKit left in `b3c25a678`
+>   (MPI-952), Mickmumpitz in `edff37f2a` (MPI-595; Outpaint stopped using it in
+>   MPI-1011). Restoring is RE-ADDING the two entries, never reverting `edff37f2a` whole -
+>   that commit also carries the engine-drift `to: null` attestation fix. A re-added pack
+>   is an engine change, so the release smoke gate fires.
+> - **MPI-800 (MpiNodes 1.2.16) changed `MpiBrushTrain`** (message 9c02ef9c): it
+>   downloads nothing. Brush must be pre-placed in
+>   `custom_nodes/ComfyUi-MpiNodes/bin/brush-v0.3.0/` (`brush_path` is a file name in
+>   that folder), and `dataset_path` must resolve inside the engine's `input/`, `output/`
+>   or `temp/` - no symlink or junction. So the deps half must ship the Brush binary as a
+>   dep, and graph B's dataset must live under `output/`.
+> - **The chain is shared now:** MPI-997 (Character Sheet head removal) runs on `chain`
+>   with an optional `when`. Capture (`splatViewFileInfo`, `outputSplatNodeIds`) and
+>   ingest (`splatViewUrl`) are on master, still unconsumed by any Flow.
+> - **The handoff's first job could not run as written.** `wan_brush_out\wan_30000.ply`
+>   trained on EVERY view (it has no `eval_*` dir), Brush v0.3.0 has no render-a-ply mode,
+>   and it is the fp8 bake on the shipped village rails anyway. "Same poses as the
+>   Wan-free control" is impossible too: the control is a different reconstruction (96
+>   views, 12 held out), so no pose is shared. **Fabio chose (2026-10-05): a fresh
+>   30 000-step bake of the swap157 dataset** (Q4_K_M, rails 27/122/133/157) at
+>   `MpiBrushTrain`'s flags plus `--eval-split-every 8`, the control paired to the Wan
+>   view with the closest ground truth.
+>
+> Run: `D:\WORK\MPI-623-spike\run_swap157_brush.py` -> `swap157_30k_out\` (log
+> `swap157_30k_run.log`); sheets: `sheet_30k.py` -> `3d-scene-30k-deliverables\`. The
+> scorer reproduces amendment 42's 5 000-step table to 0.01 dB, so it is the same metric.
+>
+> **RESULT: 48.1 min, 380 MB, held-out mean 32.28 dB (15 000: 31.12, Draft: 28.88), every
+> rail/face cell up.** Peak RAM 7.6 GB (861 training views), GPU 5.9 GB. Wide views are
+> near-identical to truth; near-camera objects ghost, floor debris softens, rail 122 owns
+> the worst views. Full table and failure modes: [validation.md](validation.md). Sheets
+> pick MEDIAN views, never top-PSNR - top PSNR picks flat close-ups (a bare wall at 39 dB
+> while its grain is smoothed away). **VERDICT (Fabio, 2026-10-06): no green light - the
+> test room is the problem, not proof either way.** Rubble and graffiti are hard to read
+> even in the ground truth; realism looks doubtful, a cartoon world may suit it. Green
+> light -> Phase 2 wiring (re-add packs, Brush dep, graphs).
+>
+> **2026-10-06: PHASE 4 (360 Panorama) RUNS FIRST - Fabio said yes to all three:**
+> (1) download both 360 LoRAs (218 MiB each, HF, MIT) into
+> `G:\CubricModels\loras\krea-2\360\`, clone `ostris/ComfyUI-Krea2-Ostris-Edit` into the
+> bench's `custom_nodes` and restart the bench ComfyUI (`G:\ComfyUi`, :8188); (2) ~1 h GPU
+> for 4-6 bench runs, each measured; (3) **the agent makes the cartoon input ITSELF on the
+> bench - "a little forest or a village" - and SHOWS IT TO FABIO FIRST**, before any 360
+> run. Then the bench test: image->360 on Vision's weights (Raw fast tier with the
+> turbo-distill LoRA, and quality tier without), with Ostris's edit nodes AND with
+> Vision's lbouaraba nodes, plus one text->360 with a cartoon prompt; check seam (left/right
+> edge) and horizon, send him the panos. Then a 3D Scene bake from the best cartoon pano.
+>
+> **`max_resolution` 2048 vs 1920 RAN (Fabio's yes): no gain at Draft** - -0.19 dB over the
+> same 123 held-out views, 2048 wins 55/123, walls flat to 0.01 dB. Whether 2048 pays at
+> 30 000 is untested (~48 min 1920 bake). Brush's measured RAM at 2048 is 7.5-7.6 GB, not
+> the ~11.5 GB `splat.py`'s comment states. Details: [validation.md](validation.md).
+> **DECIDED (Fabio, 2026-10-05): keep 2048, skip the full-tier test** - ~1 GB of RAM is
+> small next to the SfM spike, and reverting means a node commit and a re-pin. Closed; do
+> not re-raise.
+
 **Project mode:** `scalable-foundation`.
 
 A user bakes a Gaussian-splat scene once from a 360 equirect image, then re-enters
@@ -2128,15 +2187,28 @@ built against a hand-placed `.ply`. Runs no generation.
 
 **Fully independent of Phases 1-3** and of the splat pipeline - it only produces
 an image. Can run at any time, including in parallel with Phase 2 or 3, by a
-different session. Blocked only on the LoRA question.
+different session. ~~Blocked only on the LoRA question.~~
+
+> **PROMOTED (Fabio, 2026-10-06): NOT optional, and it runs FIRST.** "How else is the
+> user going to create cartoon environments?" A cartoon pano from this Flow is then the
+> 3D Scene test input (the rubble room was rejected as a benchmark, see validation.md).
+>
+> **Vision's Krea2 edit path is NOT the Ostris patch** - the brief's "`krea2-lora-identity-
+> edit` (this *is* the Ostris edit patch)" is wrong. Vision edits with
+> `conradlocke/krea2-identity-edit` on `lbouaraba/comfyui-krea2edit`
+> (`Krea2EditModelPatch`, `Krea2EditGroundedEncode`). The outpaint LoRA is an ai-toolkit
+> Ostris-edit LoRA driven by `ostris/ComfyUI-Krea2-Ostris-Edit` (`Krea2OstrisEditModelPatch`,
+> `TextEncodeKrea2OstrisEdit`; MIT, one `nodes.py`, no extra deps) - a NEW pack, unless a
+> bench run proves lbouaraba's patch drives the LoRA. And `pano.json` runs on
+> `krea2_turbo_fp8_scaled`, which Vision deleted for Raw + `krea2_turbo_distill_r128`.
 
 **Verify mode:** `user-ux`.
 
-- [ ] Resolve the LoRA question before building: ask Mickmumpitz for permission to
-      redistribute `krea2_t2i_360_erp_lora_v1` and
-      `krea2_oedit_360_erp_outpaint_lora_v1`, OR substitute Matrix-3D's own MIT
-      `Text2PanoImage`. **Verify:** a written answer recorded on this card - do not
-      start wiring until one path is confirmed.
+- [x] Resolve the LoRA question before building. **ANSWERED 2026-10-06: MIT, no
+      permission needed.** `huggingface.co/mickmumpitz/Krea2-360-ERP-LoRAs` carries
+      `license: mit` in its card and tags, ungated, both files 218 MiB, unchanged since
+      2026-08-25. Keep the MIT notice. Triggers: `img-txt-2-360` (t2i); the outpaint
+      LoRA takes green-marked fill areas and a fixed instruction (see the repo README).
 - [ ] **Test the known trap first:** does the outpaint LoRA compose with the Krea2
       Ostris edit patch? Style LoRAs do not (MPI-282), and IMG2SPHERE is exactly
       that shape. **Verify:** a bench run showing the edit path with the outpaint
@@ -2186,6 +2258,14 @@ geometry - far stronger than a still for v2v. Revisit once Phase 3 is in use.
   of this session's GPU work. Patterns match the raw command line, so a graph dispatched
   from a script is invisible, and `brush_app.exe` matches nothing at all - which this card
   is about to ship as a node.
+- **2026-10-05 - 2.0 shipped around the parked card.** Both node packs left the engine
+  lock, MPI-800 moved Brush to a pre-placed binary and contained `dataset_path`, and the
+  chain gained a second consumer. Details and what each costs Phase 2: the nineteenth
+  session note in Current State.
+- **2026-10-06 - Phase 4 (360 Panorama) is promoted to required and runs before Phase 2's
+  wiring** (Fabio). Its licence blocker was void all along (the LoRAs are MIT), and a new
+  one replaced it: Vision's Krea2 edit nodes are not the Ostris patch the outpaint LoRA
+  was trained on. See the Phase 4 note.
 
 ## Verification
 

@@ -186,7 +186,14 @@ Delivered per plan.md amendments 18-20. `'splat'` is NOT a media type.
       `npm test`, lint clean. plan.md amendment 54.
 - [ ] **`ComfyUI-SplatKit` is NOT in `dev_configs/node_lock.json`** - the pack every node
       in this card comes from is undeclared and exists only on the bench. Belongs with
-      task 2 below.
+      task 2 below. **(2026-10-05) Declared in `eb8efab0`, then taken OUT for 2.0 with
+      Mickmumpitz too (`b3c25a678`, `edff37f2a`).** Re-add both entries by hand - never
+      revert `edff37f2a` whole, it carries the engine-drift `to: null` fix - and ship the
+      Brush binary as a pre-placed dep in `bin/brush-v0.3.0/` (MPI-800, MpiNodes 1.2.16).
+- [ ] **GREEN-LIGHT EVIDENCE (Fabio, 2026-09-14): a FULL-tier result before any Vision
+      wiring.** 2026-10-05: a fresh 30 000-step held-out bake of the swap157 dataset at
+      `MpiBrushTrain`'s flags (`run_swap157_brush.py` -> `swap157_30k_out\`), sheets by
+      `sheet_30k.py`. Ticks only on Fabio's verdict, not on the run finishing.
 - [ ] Wire the Flow across the five registry files; coverage presets as scene-relative
       waypoints; per-waypoint bounds check (NOT a radius cap - amendment 43); dev-gate
       and tile still. See plan.md Phase 2.
