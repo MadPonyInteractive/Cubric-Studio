@@ -89,7 +89,8 @@ function _basenameNoExt(filePath) {
 }
 
 function _labelFor(item, fallback) {
-    return _truncate(item?.name || item?.displayName || _basenameNoExt(_pathOf(item)) || fallback);
+    // Same name the History list shows (MpiHistoryList: displayName || operation).
+    return _truncate(item?.name || item?.displayName || item?.operation || _basenameNoExt(_pathOf(item)) || fallback);
 }
 
 export const MpiCompareView = ComponentFactory.create({

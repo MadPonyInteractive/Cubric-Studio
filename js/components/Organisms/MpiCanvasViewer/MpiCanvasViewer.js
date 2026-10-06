@@ -325,7 +325,9 @@ export const MpiCanvasViewer = ComponentFactory.create({
         }
 
         function _labelOf(item) {
-            const raw = item?.name || item?.displayName || '';
+            // Same name the History list shows (MpiHistoryList: displayName || operation).
+            // An imported entry has no displayName and a project-file URL for filePath.
+            const raw = item?.name || item?.displayName || item?.operation || '';
             if (raw) return raw.length > 28 ? raw.slice(0, 27) + '…' : raw;
             const fp = (item?.filePath || '').replace(/\\/g, '/').split('/').pop() || '';
             const dot = fp.lastIndexOf('.');
