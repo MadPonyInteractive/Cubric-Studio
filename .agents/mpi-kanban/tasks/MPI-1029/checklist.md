@@ -60,3 +60,5 @@ loaders #331/#332/#346 `force_rate` 0 -> 24 (Fabio's own change).
       line. (`25140MB Staged` logs per forward - not the tell.)
 - [x] Commit raw + API template + runtime together, push, message the release session (MPI-1026).
       3e7ae7dad, CI Tests 37439820138 green.
+- [x] Reopened (Fabio, 2026-10-06): `docs/models/h3/performance.md` § "H3 Reference: ONE VRAM
+      clear" - the rule and the app.log load tell (`Requested to load`, not `Staged`).

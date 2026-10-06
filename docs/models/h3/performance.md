@@ -172,3 +172,16 @@ stage 2.** `easycache_sample_wrapper` is an `OUTER_SAMPLE` wrapper whose `finall
 sits in the high-sigma region where per-step change always clears `reuse_threshold`.
 Stage 2 is the low-sigma region it exists for. Two samplers cannot be given separate
 cache instances, because they share one guider.
+
+## H3 Reference: ONE VRAM clear, after BOTH reference encodes (2026-10-06, MPI-1029)
+
+`minimax_h3_r2va.json` encodes the references twice by design (`Input_Refs` for stage 1,
+`Refine_Refs` for the refine). One `MpiClearVram` takes an `MpiPacker` of both encodes and
+runs before any sampler. **Never one clear per encode:** that evicts the 25 GB text encoder
+between the two forwards, the second reads it from disk again, and on Windows that read is
+where comfy-aimdo died with error 1450 (`HostBuffer.read_file_slice failed`).
+
+Checking a run in `app.log`: count `Requested to load MiniMaxH3TEModel_` per `got prompt`
+(one = the encoder stayed loaded). The `... 25140MB Staged` line prints on EVERY encode,
+loaded or not, so it proves nothing. Change the prompt between runs: a repeated one is served
+from ComfyUI's cache and loads nothing.
