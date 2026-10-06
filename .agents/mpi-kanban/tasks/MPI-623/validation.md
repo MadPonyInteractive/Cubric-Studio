@@ -226,3 +226,96 @@ overkill):** `ostris_fast_final` -> lanczos 2x (4K) -> the same tiles -> Klein 9
   the wrap worse (3.45x) - the excess-over-slope estimate is what fixed that.
 - **Where the fix belongs: the 360 Flow's seam stage, at 2K, before any upscale** - not the
   upscaler. GPU spent this block: ~15.5 min (440 + 80 + 130 + 140 + 140 s).
+
+### Source seam re-run (2026-10-06, `cartoon\run_seamfix.py`, 160 px strip / feather 32)
+
+Only the seam stage, on the saved `ostris_fast_preseam` + `canvas` (copied into bench `input/`
+as `mpi623_seamfix_*.png`), same Ostris model/cond chain, seed 12345. Sky luminance profile
+across the wrap (8 px bins, `scratchpad sky_profile.py` logic) is the measure that told them
+apart; `sky_seam.py`'s 8-col step alone misreads a ridge as a step.
+
+- **Correction: the preseam has NO sky tone step** (-0.4/-0.2/-0.7, profile 189.5 | 189.1),
+  only a hard 1-column line. **The 0.45 seam pass CREATES the streak**: a +5 light ridge
+  16 px wide just left of the wrap (192.9, 194.4 vs ~190). Img2img at 0.45 keeps the hard
+  edge's trace and turns it into a ridge - not "keeps an inherited step".
+- euler/cfg 4 (pano.json's image seam sampler) @0.6: ridge gone, but mottled flat sky in the
+  strip and the redrawn tree's right edge ghosts over the old orange one (feather blend).
+- **er_sde/cfg 1 (pano.json's t2i seam sampler) @0.6: best.** Sky flat across the wrap
+  (188.4 | 188.2), wrap diff 0.82x median (0.45: 2.16x), step < 1 RGB, orange tree intact.
+  Left: faint checker mottle in the upper flat sky (visible at 2x), one new grass plant +
+  a leaf whose stem fades at the strip edge.
+- @0.7, both samplers: REJECTED - whole strip +10-12 brighter, a cloud and a half-house
+  with hard edges where the strip ends (same failure as Klein 0.75).
+- er_sde @0.6 with 20 steps: mottle WORSE (blocky dashes, a diagonal edge) - not residual
+  noise from 6 effective steps.
+- Sheets: `superdetail\sheet_srcseam_fabio_sky.png` / `_village.png` (2x, wrap centred).
+  GPU this block: 280 + 133 + 124 s = ~9 min; ~24.5 of Fabio's 45 spent.
+- **Fabio: keep 0.45** ("usually the best": it changes least) and opened the GPU freely.
+  So the edge, not the denoise: `cartoon\wrap_soften.py` blurs the 2K preseam across the
+  wrap only (horizontal Gaussian, smoothstep blend to 0 at +-R; asserts the pano centre is
+  byte-identical), then the ORIGINAL seam pass (96/24, euler cfg 4, 10, 0.45) via
+  `PRESEAM=<x> run_seamfix.py 96 24 euler 4.0 10 0.45`.
+- Control (unsoftened, same graph) reproduces `ostris_fast_final` (mean |diff| 0.61/255,
+  1.7 in the wrap strip) and its ridge (+2.5-3), so the graph is the Flow's.
+- **soft12 (sigma 12, R 48): ridge gone**, sky flat in the boosted view; the strip reads
+  3-4 darker over ~64 px in the profile, invisible by eye. Trade: the cloud that ends at the
+  wrap now fades into a blue gap instead of being joined. soft6 (sigma 6, R 24) leaves a
+  hard vertical cut through that cloud - soft12 preferred. Village: only flowers change.
+  Sheets `superdetail\sheet_soft_sky.png` / `_village.png` / `_sky_boost.png`. ~6.6 GPU min.
+- **Fabio REJECTED soft6/soft12 by eye: "messed up a cloud"** - his 0.45 joins the cloud
+  the wrap cuts; a blurred cloud edge comes back as a fade. Village crops: he could not find
+  the seam in any variant (it is a sky-only problem). The soft12 re-upscale was interrupted.
+- **Flat-sky-only soften (`wrap_soften.py <in> <out> 12 48 6`) - the candidate.** Blur only
+  where it changes a sigma-2-smoothed copy by < 3 levels (ramp to 0 at 6), mask eroded 8 px
+  and softened: judged raw, the paper texture moves 2-3 under any blur and the mask came out
+  EMPTY; pre-smoothed, sky p90 is 1.3-2.2 vs 14-46 on cloud/tree rows. Cloud rows change
+  <= 1 level, sky rows <= 5. Then the unchanged 0.45 pass: **ridge gone** (wrap diff 2.16x
+  -> 0.94x median, profile 190.9 190.6 | 189.3 187.0 = a gentle slope), **cloud joined
+  exactly as in his 0.45**, village composition unchanged (pink flower kept).
+  Output `mpi623_pano\ostris_fast_seam045w96_flat12t6_00001_.png`; sheets
+  `superdetail\sheet_flat_sky.png` / `_village.png` / `_sky_boost.png`. **Fabio, 2026-10-06:
+  "the sky is now spot on. The village as well."** - the 360 seam fix for the Flow.
+- **Re-upscaled** (`run_superdetail.py 128 0.35 xf mpi623_pano_flatsky_final.png flatsky`,
+  451 s cold; the input is now an argv): `mpi623_superdetail\klein035_pad128_xf_flatsky_4k_
+  00001_.png` (8.8 MB) and **`..._flatsky_8k_00001_.png` (31 MB, 8192x4096) = the bake
+  input.** Flat-sky wrap vs the old pad+xf: 4K line 2.39x -> 1.14x median, tone step
+  -3.4/-2.6/-3.2 -> -1.4/-0.4/-0.2, ridge gone in the profile; 8K tone step -2.2 -> -0.2,
+  line 1.1-1.2 levels of 255 (a column's median 0.5; old 1.97). By eye at 1:1 no seam in
+  sky, trees or ground at 4K or 8K (`superdetail\sheet_flatsky_seam.png`); at x4.7 contrast
+  only a hairline, the old light band gone (`sheet_flatsky_8k_sky_boost.png`).
+- GPU this session ~28.5 min (seam 0.6/0.7 x2 + s20 9 min, soften x3 6.6, interrupted soft12
+  upscale ~3, flat 2.5, 8K 7.5) - ~44 in all against Fabio's 45, then he opened the GPU.
+
+### Cross-fade GHOSTING (Fabio caught it, 2026-10-06) -> cut merge
+
+- **Fabio on `sheet_flatsky_seam.png`: the middle (trees) crops "have ghosting ... like
+  overlapping images", and the ground crop shows a slight seam.** Correct; the agent had
+  passed it. Traced by cropping one patch through every stage (`stages_trees.png`,
+  `stages_ground.png`): absent at 2K, faint at 4K, crisp at 8K - the 256 px **cross-fade**
+  (xf) blends two Klein renders of the same strip; where Klein drew a line a few px apart,
+  both show at half strength, and AnimeSharp sharpens them into a double outline (chimney,
+  canopy, roof edge). The ground "seam" is the same ghost (a broken grass-edge line ~50 px
+  right of the wrap, inside the xf zone). The validation.md claim above that the xf sheet
+  showed "no visible double lines" was wrong - it was judged at 4K, where the ghost is soft.
+- `seam_level.py` at 2K on the stone: no visible change (the stone's dark crescent is its
+  shading) - dropped.
+- **Fix: `superdetail\wrap_cut.py <padded.png> <out_4k.png> 128`** on the raw padded Klein
+  render (`run_superdetail.py ... xf` now also saves it as `*_padded`): low-frequency tone
+  LP(R)-LP(C) (sigma 32) ramped across the 256 px overlap, then each row takes R left of a
+  min-cost top-to-bottom cut through the dilated |R'-C'| and C right of it, 2 px feather.
+  Cut stayed 32..147 px into the overlap. CPU, 4 s.
+- **8K via `superdetail\run_animesharp.py <src> <tag> 32`**: AnimeSharp is now wrap-padded
+  too (32 px at 4K), which removed the 8K hairline (wrap col diff 0.34-0.48 vs median 0.49;
+  was 1.1-1.2). 80 s.
+- Result `mpi623_superdetail\flatsky_cut_8k_00001_.png`: sky wrap <= 0.97x median at 8K (xf:
+  2.46x); by eye single outlines on chimney/canopy/trees, one continuous grass edge
+  (`sheet_cut_seam.png`, xf top, cut bottom). Left: two few-px jogs where the cut must cross
+  a line (grass edge, one stone outline). **Fabio, 2026-10-06: "bottom ones are
+  acceptable" - this is the bake input**, staged as `G:\ComfyUi\ComfyUI\input\
+  mpi623_bake_village_8k.png` (byte-identical copy).
+- **Fabio's "Flow Tile Detailer"** (he named it): `G:\ComfyUi\ComfyUI\user\default\workflows\
+  flow_tile_detailer.json`, built by `superdetail\make_tile_detailer_wf.py` from his
+  `flow_super_detailer.json` (left byte-identical): + the 360 wrap pad (2 ImageCrop + 2
+  ImageStitch on link 73, an ImageCrop after the Background detailer), a read-me Note and
+  group, LoadImage on the approved 2K. Pad only - no xf (ghosts), no cut (needs a node).
+  Link consistency asserted in the script; NOT yet opened in the ComfyUI UI.

@@ -566,6 +566,30 @@ notes in [research/](research/).
 > worked (validation.md § Super upscaler). **Next (Fabio's yes): re-run the 360 seam
 > stage at 2K on `ostris_fast_preseam` with Krea + the outpaint LoRA at 0.6 and 0.7, 160 px
 > strip; re-upscale the winner; then the bake at his bedtime.** ~15.5 of 45 GPU min spent.
+>
+> **Session note 2026-10-06 (twenty-second). THE 360 SEAM FIX IS FOUND AND FABIO SIGNED IT
+> OFF** ("the sky is now spot on. The village as well."). Correction to the note above: the
+> preseam carries NO tone step - **the 0.45 seam pass CREATES the streak**, turning the hard
+> 1-px wrap edge into a +5 light ridge. Higher denoise (0.6/0.7, either sampler) kills it but
+> redraws/brightens the strip, and Fabio prefers 0.45 ("changes the least"). **Fix: soften
+> the wrap edge ONLY in flat sky before the unchanged 0.45 pass** (`cartoon\wrap_soften.py
+> <in> <out> 12 48 6`: horizontal blur across +-48 px, applied only where it moves a
+> sigma-2-smoothed copy < 3 levels) - a full-height blur "messed up a cloud". The Flow needs
+> this as a pre-seam stage (probably one small MpiNodes node). Evidence: validation.md §
+> "Source seam re-run". **Then Fabio caught GHOSTING at 8K**: the 256 px cross-fade blends
+> two Klein renders and AnimeSharp sharpens the half-strength copies into double outlines.
+> Replaced by a CUT merge (`superdetail\wrap_cut.py`, CPU, on the `*_padded` render
+> `run_superdetail.py` now saves) + a wrap-padded AnimeSharp (`run_animesharp.py`).
+> **Bake input = `D:\WORK\Images\Outputs\mpi623_superdetail\flatsky_cut_8k_00001_.png`,
+> APPROVED by Fabio ("bottom ones are acceptable")**, already staged in the bench as
+> `input\mpi623_bake_village_8k.png`. The Flow will need the cut merge as a small MpiNodes
+> node (no stock node does it) - build it when the Flow is wired, not before.
+> **Fabio approved STARTING THE BAKE NOW** (2026-10-06 ~23:50, he is watching a film, not
+> in bed) - the next session runs it. His "Flow Tile Detailer" (pad-only copy of his super
+> detailer) is saved in the bench workflows, not yet opened in the UI. Next: the bake at Fabio's
+> bedtime (graphs A then B, rails 27/122/133/157 MoGe-checked first, 30000 steps, lease
+> --timeout 21600, assert on the .ply); then offer him `flow_super_detailer_pano.json` and
+> wire the Flow with a flat-sky wrap soften before the seam pass.
 
 **Project mode:** `scalable-foundation`.
 
