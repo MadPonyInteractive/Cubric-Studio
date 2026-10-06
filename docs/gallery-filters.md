@@ -105,6 +105,11 @@ reads as a dot, and anything unknown reads as unmarked.
   that ends a hold on the button is swallowed, or it would toggle the dot straight back off.
   The timer is the whole wait: the menu draws in the frame it mounts (the spec pins this).
   At 400 ms the hold felt like 1.5 s while measuring 408 ms.
+- **A generating card can be marked** (MPI-1031). It is the run's placeholder group, held by
+  `activeGenerations` and handed to the grid by reference, so the mark lands on that object
+  (its `updateGroup` finds no project card - a no-op); `generationService` copies placeholder
+  i's mark onto output i when it builds the finished card. Copy a placeholder anywhere and the
+  mark is silently dropped.
 - The panel's **Only** rows are Dots, Squares, Triangles, then Previews.
 - The media picker shows a tile's mark read-only and filters by it.
 

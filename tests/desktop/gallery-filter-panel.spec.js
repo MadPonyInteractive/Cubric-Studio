@@ -223,6 +223,14 @@ test('kind chips, the FILTER panel and the gallery toolbar in the project bar', 
       await expect(chip).toHaveAttribute('data-kind', 'video');
       await expect(chip).toHaveAttribute('data-accent', 'video');
 
+      // MPI-1031: a mark set mid-run must reach the RUN's own placeholder - the object
+      // generationService reads when it builds the finished card. A copy would drop it.
+      await window.locator('.mpi-gallery-grid__row-wrap[data-group-id="gen1"] .mpi-group-card__fav-wrap .mpi-btn').click();
+      expect(await window.evaluate(async () => {
+        const { activeGenerations } = await import('/js/services/activeGenerations.js');
+        return activeGenerations.get(window.__gen1028).placeholderGroup.favourite;
+      })).toBe('dot');
+
       // Tear it down the way generationService does for a run that makes no card.
       await window.evaluate(async () => {
         const { state } = await import('/js/state.js');

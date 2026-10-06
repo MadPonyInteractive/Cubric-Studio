@@ -1575,7 +1575,14 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             const _galleryEntry = activeGenerations.get(_regId);
             const _galleryTempId = _galleryEntry?.tempId ?? _stableTempId;
             const _galleryExtraTempIds = _galleryEntry?.extraTempIds ?? _stableExtraTempIds;
-            const groups = builtItems.map((it) => {
+            // MPI-1031: the generating card IS the placeholder, and its mark button writes
+            // onto it, so a mark set mid-run lives only there. Output i lands in place of
+            // placeholder i; it keeps that mark.
+            const _placeholders = [
+                _galleryEntry?.placeholderGroup ?? opts.placeholderGroup,
+                ...(_galleryEntry?.extraPlaceholders ?? opts.extraPlaceholders ?? []),
+            ];
+            const groups = builtItems.map((it, i) => {
                 const name = truncateCardName(it.displayName || it.operation || firstDisplayName);
                 // MPI-354: shape the CARD from the item's ACTUAL pixels, not the
                 // requested Width/Height. Those two diverge whenever the graph sizes
@@ -1590,6 +1597,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                     name,
                     width:  dims?.w || width,
                     height: dims?.h || height,
+                    favourite: _placeholders[i]?.favourite || false,
                 });
                 return appendToHistory(g, it);
             });
