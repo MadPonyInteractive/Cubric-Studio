@@ -198,6 +198,43 @@ test('kind chips, the FILTER panel and the gallery toolbar in the project bar', 
       expect(chips.img1.color).not.toBe(chips.vid1.color);
     });
 
+    await test.step('MPI-1028: a running generation shows under a marks filter, wearing what it is MAKING', async () => {
+      // The i2v/ref2v placeholder shape (MpiGalleryBlock `mkPlaceholder`): unmarked, and
+      // holding its input frame as an IMAGE item while it runs. Both made it vanish under
+      // Dots only, and the frame made a video run wear the Image chip.
+      await window.evaluate(async (folderPath) => {
+        const { state } = await import('/js/state.js');
+        const { activeGenerations } = await import('/js/services/activeGenerations.js');
+        state.gallerySort = { ...state.gallerySort, marks: ['dot'] };
+        window.__gen1028 = activeGenerations.start({
+          scope: 'gallery', tempId: 'gen1', operation: 'ref2v', modelId: 'e2e', projectPath: folderPath,
+          placeholderGroup: {
+            id: 'gen1', type: 'video', name: 'Generating...', selectedIndex: 0,
+            width: 1280, height: 720, isGenerating: true,
+            history: [{
+              id: 'gen1-input-preview', type: 'image', inputPreview: true,
+              filePath: '/comfy_workflows/display/flow-head-swap.webp', pixelDimensions: { w: 0, h: 0 },
+            }],
+          },
+        }).id;
+      }, project.folderPath);
+      await expect.poll(() => cards(window)).toEqual(['gen1', 'vid1']);
+      const chip = window.locator('.mpi-gallery-grid__row-wrap[data-group-id="gen1"] .mpi-group-card__kind');
+      await expect(chip).toHaveAttribute('data-kind', 'video');
+      await expect(chip).toHaveAttribute('data-accent', 'video');
+
+      // Tear it down the way generationService does for a run that makes no card.
+      await window.evaluate(async () => {
+        const { state } = await import('/js/state.js');
+        const { Events } = await import('/js/events.js');
+        const { activeGenerations } = await import('/js/services/activeGenerations.js');
+        activeGenerations.end(window.__gen1028);
+        Events.emit('generation:cancelled', { id: window.__gen1028, tempId: 'gen1', extraTempIds: [], byUser: false });
+        state.gallerySort = { ...state.gallerySort, marks: [] };
+      });
+      await expect.poll(() => cards(window)).toEqual(ALL);
+    });
+
     await test.step('card marks: a legacy heart is a dot, click marks a dot, hold picks a shape', async () => {
       const markBtn = (id) => window.locator(
         `.mpi-gallery-grid__row-wrap[data-group-id="${id}"] .mpi-group-card__fav-wrap .mpi-btn`);

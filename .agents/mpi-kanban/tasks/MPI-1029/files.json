@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": [".agents/mpi-kanban/tasks/MPI-1029/", "routes/comfy.js", "tests/dynamic-vram-fallback.test.cjs", "docs/comfy.md"]}

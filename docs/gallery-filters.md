@@ -23,8 +23,10 @@ on an entry.
   order is `panelOrder`, never row order** — Images, Videos, Audio, 3D Scenes (Fabio's mockup).
 - **Kind is read off the card's SELECTED history item, never `group.type`.** A video group
   can hold an image take; the chip must match what the card paints, and the filter makes the
-  same call so the two cannot disagree. A generating placeholder has no item yet, so the grid
-  and the panel pass `{ type: group.type }` in its place.
+  same call so the two cannot disagree. Both go through `kindItemOf(group, item)`
+  (`galleryFilter.js`): a stack reads as its `kind`, and a generating placeholder as its
+  `group.type` — it has no result yet, at most the input frame it shows meanwhile
+  (`inputPreview`, always an image), which made an i2v/ref2v run wear the Image chip (MPI-1028).
 - `badge: false` means the card already reads as itself: unmarked is a picture, and an audio
   card's waveform says audio.
 - `MpiMediaPicker` reads it through the same filter (below), so a card lists under the same
@@ -77,7 +79,8 @@ launch never opens into a filtered-looking gallery (MPI-678). Replace the top-le
 mutate it.
 
 - `matchesGallerySort(group, item, sort)` is the grid's only predicate: **scope first**
-  (subtractive), then `hiddenKinds` via `kindOfItem(item)`, then the `marks` "only" list (the
+  (subtractive), then **a generating placeholder passes** (MPI-1028: unmarked and result-less, any
+  Only row hid the one card the user was waiting on; it can still drop out when it lands), then `hiddenKinds` via `kindOfItem(item)`, then the `marks` "only" list (the
   card's mark is one of them — marks OR together) and the `previews` "only" flag, ANDed. `order` hides nothing.
 - `isGalleryFiltered(sort)` — any hidden kind or flag. It drives the FILTER heat dot and the
   empty states; Oldest does not count.

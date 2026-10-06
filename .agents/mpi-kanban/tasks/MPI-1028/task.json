@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1028",
+  "title": "Gallery: a generating card vanishes under a filter, and an i2v/ref2v run wears the Image chip",
+  "description": "Generating placeholders fail the marks/kinds filter (no mark, input-frame item reads as image), and the chip reads the input-preview frame instead of the group type.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-06T08:04:14+01:00",
+  "updated_at": "2026-10-06T08:11:13+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

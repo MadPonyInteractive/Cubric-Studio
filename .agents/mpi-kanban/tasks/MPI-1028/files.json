@@ -1,0 +1,11 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1028/",
+    "js/utils/galleryFilter.js",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "tests/gallery-filter.test.cjs",
+    "docs/gallery-filters.md",
+    "tests/desktop/gallery-filter-panel.spec.js"
+  ]
+}

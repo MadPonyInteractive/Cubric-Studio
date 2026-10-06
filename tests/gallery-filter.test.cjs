@@ -135,6 +135,19 @@ test('MPI-949: a stacked card is in no scope; a stack filters as its members\' k
     assert.deepStrictEqual(F.listedKinds(entries, sort()).map(k => k.kind), ['video']);
 });
 
+test('MPI-1028: a generating card shows under any filter, and reads as what it is MAKING', () => {
+    // The placeholder carries its input frame as an image item while it runs.
+    const frame = { type: 'image', inputPreview: true, filePath: 'start.png' };
+    const running = { type: 'video', isGenerating: true, favourite: false };
+    assert.strictEqual(F.matchesGallerySort(running, frame, sort({ marks: ['dot'] })), true);
+    assert.strictEqual(F.matchesGallerySort(running, frame, sort({ hiddenKinds: ['video'], previews: true })), true);
+    assert.strictEqual(F.matchesGallerySort(running, frame, sort({ scope: 'archived' })), false);
+
+    assert.strictEqual(F.kindItemOf(running, frame).type, 'video');
+    assert.strictEqual(F.kindItemOf(running, undefined).type, 'video');
+    assert.strictEqual(F.kindItemOf({ type: 'video' }, IMG), IMG, 'a real image take keeps its own kind');
+});
+
 test('the default sort cannot be mutated through a shared reference', () => {
     assert.ok(Object.isFrozen(F.DEFAULT_GALLERY_SORT));
     assert.ok(Object.isFrozen(F.DEFAULT_GALLERY_SORT.hiddenKinds));

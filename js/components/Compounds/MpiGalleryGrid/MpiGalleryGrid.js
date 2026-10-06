@@ -6,7 +6,7 @@ import { ce, qs, qsa, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { kindOfItem, PANEL_KINDS } from '../../../utils/assetKinds.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
-import { matchesGallerySort, isGalleryFiltered, byGalleryOrder, markOf, markIcon, DEFAULT_GALLERY_SORT } from '../../../utils/galleryFilter.js';
+import { matchesGallerySort, kindItemOf, isGalleryFiltered, byGalleryOrder, markOf, markIcon, DEFAULT_GALLERY_SORT } from '../../../utils/galleryFilter.js';
 import { wireCardMark, closeCardMarkMenu } from './cardMarkMenu.js';
 import { mountSelectionBar } from './selectionBar.js';
 import { removeHistoryEntry } from '../../../data/projectModel.js';
@@ -1536,7 +1536,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // No selected item = no chip: `kindOfItem`'s last row is a catch-all that
                 // matches anything including undefined, and since MPI-736 round 7 EVERY
                 // row badges, so an empty card would announce itself as an image.
-                const kind = selected ? kindOfItem(selected) : null;
+                // A generating card shows what it is MAKING, never its input frame (MPI-1028).
+                const kind = selected || group.isGenerating ? kindOfItem(kindItemOf(_faceOf(group), selected)) : null;
                 cardEl.classList.toggle('mpi-group-card--kind', !!kind?.badge);
                 if (kindEl.dataset.kind !== (kind?.kind ?? '')) {
                     kindEl.dataset.kind = kind?.kind ?? '';

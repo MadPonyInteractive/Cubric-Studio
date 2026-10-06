@@ -56,15 +56,24 @@ function _inScope(group, sort) {
     return !!group?.archived === (sort.scope === 'archived');
 }
 
-/** The item a card's KIND is read from: a stack owns no item, so it reads as its members' kind. */
-function _kindItem(group, item) {
-    return isStack(group) ? { type: group.kind } : item;
+/**
+ * The item a card's KIND is read from — the filter and the grid's kind chip both call it.
+ * A stack owns no item, so it reads as its members' kind. A generating placeholder has no
+ * result yet: at most the input frame it shows meanwhile (`inputPreview`, always an image),
+ * so its group type — what it is MAKING — stands in (MPI-1028).
+ */
+export function kindItemOf(group, item) {
+    if (isStack(group)) return { type: group.kind };
+    return !item || item.inputPreview ? { type: group.type } : item;
 }
 
 /** Does this card (its group + selected history item) show under `sort`? */
 export function matchesGallerySort(group, item, sort) {
     if (!_inScope(group, sort)) return false;
-    if (sort.hiddenKinds?.includes(kindOfItem(_kindItem(group, item)).kind)) return false;
+    // MPI-1028: a run in progress always shows. It has no mark yet and no result to be a
+    // preview, so any "only" row would hide the one card the user is waiting on.
+    if (group?.isGenerating) return true;
+    if (sort.hiddenKinds?.includes(kindOfItem(kindItemOf(group, item)).kind)) return false;
     if (sort.marks?.length && !sort.marks.includes(markOf(group))) return false;
     if (sort.previews && item?.stage !== 'preview') return false;
     return true;
@@ -107,6 +116,6 @@ export function describeGalleryFilter(sort, kinds = PANEL_KINDS) {
  * `entries` = [{ group, item }], `item` being the group's selected history item.
  */
 export function listedKinds(entries, sort) {
-    const present = new Set(entries.filter(e => _inScope(e.group, sort)).map(e => kindOfItem(_kindItem(e.group, e.item)).kind));
+    const present = new Set(entries.filter(e => _inScope(e.group, sort)).map(e => kindOfItem(kindItemOf(e.group, e.item)).kind));
     return PANEL_KINDS.filter(k => present.has(k.kind) || sort.hiddenKinds?.includes(k.kind));
 }
