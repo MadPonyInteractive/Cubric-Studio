@@ -24,8 +24,10 @@ the version). First cut on the `2.0.0` maintenance branch in worktree
 - [x] Hold lifted 2026-10-06: MPI-1028/1029/1031/1032/1033/1034 on master, CI green through `546dc5fc1`. Notes redone (8 fixes), archival note renamed `2026-10-06-v2.0.1.md`, UNRELEASED folded, Fabio re-approved (token 14:05Z), Gate 1 OK; `acf2dc384` pushed, CI run 37476235455 green (unit + 4 desktop shards)
 - [x] Tag `v2.0.1` moved to `acf2dc384` (delete + fresh push, no force); dispatcher 37478057897 ok; mpi-ci build 37478074382
 - [x] Empty draft release 404413440 deleted; stale 30ea77df6 assets deleted from `D:/CubricStudio/Vision/Builds/v2.0.1/`
-- [ ] Download the 6 new assets, integrity-test, delete CI artifacts; Windows update test from `D:/CVTest/CubricVision-v1.5.0-to-v2.0.1b/` (pristine 1.5.0 + 1.4.4 engine + extra_model_paths to 1.4.4 models, prepared); rewrite `update-evidence.json`; `release:check:publish`
-- [ ] `gh release create v2.0.1` (Fabio go); `releases/latest` = v2.0.1, not draft, not prerelease
+- [x] 6 new assets downloaded, integrity-tested (manifest `acf2dc3842cb`, 7220 files, full), CI artifacts deleted
+- [x] Windows update test redone from the PUBLISHED 1.5.0 (the Sep 8 `CubricVision-v1.5.0/` copy is a pre-release cut whose applier aborts on icudtl.dat): applier exit 0, 398/398 files identical, rename + project listed, own engine up in 155 s, SDXL 896x1152 in 83.5 s, image opened; `update-evidence.json` rewritten; `release:check:publish` green (`483df401e`)
+- [x] Gate 2 again: Fabio OK'd the body 2026-10-06 (new intro, 8 fixes, Windows line) and said proceed
+- [x] `gh release create v2.0.1` (Fabio go, 2026-10-06): draft + 6 assets (sizes verified) -> `--draft=false --latest` 15:22Z; `releases/latest` = v2.0.1, not draft, not prerelease, 6 assets
 - [x] Removed the `2.0.x` worktree; local `2.0.0` reset to `origin/2.0.0`
 
 ## Decisions
