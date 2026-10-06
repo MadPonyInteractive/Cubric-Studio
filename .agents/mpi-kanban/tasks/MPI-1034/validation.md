@@ -25,3 +25,13 @@ The real `js/utils/audioInput.js` loaded in that Electron:
 - nothing picked -> the default
 
 `node --test tests/audio-input.test.cjs`: 4/4. eslint on the touched files: clean.
+CI: Tests run 37469996453 green on 546dc5fc1, which has fd45d5948 as an ancestor.
+
+## What was NOT the app
+
+Fabio started Sonar and the mic came straight back: Sonar had not been running, so its
+virtual mic fed silence to everything (ffmpeg too). With Sonar running, Chromium gets
+signal from the Sonar mic with voice processing both on and off, so that is not a
+Chromium quirk. The app opens the mic fresh on every take, so it recovers as soon as
+Sonar starts. Fabio declined an in-app "your mic is silent" warning: Sonar users
+already know this failure.

@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1034", "at": "2026-10-06T14:04:02+01:00", "actor": "claude", "column": "todo", "title": "Mic picker ignored: app records the Windows default mic whatever is picked in Settings"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1034", "at": "2026-10-06T14:04:39+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1034", "at": "2026-10-06T14:07:53+01:00", "actor": "claude", "from": "doing", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1034", "at": "2026-10-06T14:45:24+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "fd45d5948 green in CI (via 546dc5fc1); real module opens the picked mic in the app's Electron"}

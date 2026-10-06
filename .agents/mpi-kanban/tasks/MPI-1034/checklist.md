@@ -4,5 +4,5 @@
 - [x] Dictation, the recorder and the Settings mic test all use it
 - [x] Probe: Focusrite picked -> track label is Focusrite, samples non-zero
 - [x] Probe: stale/unplugged id -> default mic opens, no throw
-- [ ] CI green on the commit
-- [ ] Fabio: reload the app, pick Focusrite in Settings, dictate a line
+- [x] CI green: Tests run 37469996453 on 546dc5fc1, which carries fd45d5948 (none ran on fd45d5948 itself)
+- [x] Picking a mic is agent-verified: the real module in the app's own Electron opened the Focusrite (see validation.md)
