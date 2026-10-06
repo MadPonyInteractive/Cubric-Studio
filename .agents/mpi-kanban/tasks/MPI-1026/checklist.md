@@ -15,10 +15,11 @@ the version). First cut on the `2.0.0` maintenance branch in worktree
 - [x] Approval preview fixed: `scripts/release-notes-approval.mjs` kept the retired alpha/beta rule and previewed 2.0.1 as "Alpha" while the app shows "Release"; now matches `js/core/appStage.js`, pinned by a new check in `tests/release-notes-preview.test.cjs` (fails on the old copy, 3/3 on the new). Hash never covered the label.
 - [x] Local desktop run (old 2.0.x worktree): 187 pass / 17 fail / 13 not run - 15 are Windows 0xC0000142 (process init failed, machine out of resources), 1 failed launch, 2 popup clicks in the same window; same code is CI-green (e9dd61463). The stamp commit gets its own CI run.
 - [x] Fabio ran `npm run release:approve` (token `docs/releases/.approved-2.0.1.json`)
-- [ ] Commit + push master; CI green on the stamp commit
-- [ ] Push tag v2.0.1 (fires the private build); download the 6 artifacts to `D:/CubricStudio/Vision/Builds/v2.0.1/`; delete the CI artifacts
-- [ ] Update test: published 1.5.0 copy -> 2.0.1 full update zip, user-data intact, real generation opened; `dev_configs/update-evidence.json`; `npm run release:check:publish`
-- [ ] Gate 2: Fabio reviews `release-body-2.0.1.md` (Windows line filled from the test)
+- [x] Commit + push master (`30ea77df6`); CI green on it at attempt 3 (run 37365763898): attempt 1 never got a runner, attempt 2 lost its runner mid desktop shard 3 - GitHub Actions major outage 2026-10-05, no test ever failed
+- [x] Tag `v2.0.1` = `30ea77df6` pushed 21:19Z; dispatcher run 37375088078 ok; mpi-ci build run 37375120690
+- [x] Build 37375120690 green on all 3 legs in 14 min, each at `HEAD is now at 30ea77df6`, each `No baseline ...; full bundle`; 6 assets in `D:/CubricStudio/Vision/Builds/v2.0.1/` (flattened), all archives integrity-tested (tar needs `--force-local` in Git Bash), update manifests fromVersion null / toVersion 2.0.1 / ~7.2k files; 3 CI artifacts deleted
+- [x] Update test (Windows): 1.5.0 copy with engine -> 2.0.1 via its own update-from-zip.bat, exit 0; 385/385 user-data + models files byte-identical; scratch Documents renamed Cubric Vision -> Cubric Studio, both projects listed; engine installed 2.0 packages; SDXL t2i 768x1024 in 81 s under the GPU lease, image opened (red bicycle, white brick wall); `dev_configs/update-evidence.json` written (uncommitted until close); `release:check:publish` green
+- [x] Gate 2: Fabio OK'd `release-body-2.0.1.md` (2026-10-06, after the Windows line was filled from the test) and said proceed with publishing - in the next session (handoff)
 - [ ] `gh release create v2.0.1` (Fabio go); `releases/latest` = v2.0.1, not draft, not prerelease
 - [x] Removed the `2.0.x` worktree; local `2.0.0` reset to `origin/2.0.0`
 

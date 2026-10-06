@@ -23,7 +23,7 @@ A fix for local generation on graphics cards short of GPU memory.
 
 ## Engine
 
-- **Unchanged from 2.0.0.**
+- **Unchanged from 2.0.0.** Coming from 1.5.0, the first launch installs 2.0's new engine parts, so expect that download.
 
 ---
 
@@ -49,6 +49,6 @@ Setting up the local engine on a Mac needs Apple's Command Line Tools. If setup 
 
 ## Platform support, please read
 
-- **Windows** - PENDING: the 1.5.0 -> 2.0.1 update-zip test result goes here.
+- **Windows** - Tested on this version: a 1.5.0 install updated in place with the update zip kept its projects and settings, renamed the projects folder to Cubric Studio, installed the new engine parts, and generated an image. Older than 1.5.0: take the full zip (see the top).
 - **Linux** - Not tested on this version.
 - **macOS** - Not tested on this version.

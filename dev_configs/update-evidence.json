@@ -1,18 +1,18 @@
 {
-  "at": "2026-10-04T20:48:02Z",
-  "toVersion": "2.0.0",
+  "at": "2026-10-05T21:49:07Z",
+  "toVersion": "2.0.1",
   "fromVersion": "1.5.0",
   "bundleFromVersion": null,
   "oldestServedVersion": "1.5.0",
-  "oldestServedReason": "Every 1.4.x applier aborts on the memory-mapped icudtl.dat (UNKNOWN, fixed in 1.5.0). Measured on a 1.4.2 copy: it stopped after 6 byte-identical runtime files (all 1.4.x share Electron 41.1.1), install still 1.4.2. The release body sends pre-1.5.0 installs to the full build.",
+  "oldestServedReason": "Every 1.4.x applier aborts on the memory-mapped icudtl.dat (UNKNOWN, fixed in 1.5.0), measured on a 1.4.2 copy at the 2.0.0 release (MPI-595). 2.0.1 ships the same FULL bundle shape, so the line holds. The release body sends pre-1.5.0 installs to the full build.",
   "platform": "win32",
-  "bundle": "CubricStudio-windows-x64-update-v2.0.0.zip",
-  "source": "D:\\CVTest\\CubricVision-v1.5.0pub-to-v2.0.0 (copy of a published-1.5.0 install with engine/; models/ held only a marker file, which survived)",
+  "bundle": "CubricStudio-windows-x64-update-v2.0.1.zip",
+  "source": "D:\\CVTest\\CubricVision-v1.5.0-to-v2.0.1 (copy of a 1.5.0 install with engine/; models/ held only a marker file, which survived; weights read from the source install through extra_model_paths)",
   "userDataSurvived": true,
-  "userDataNote": "27 of 27 user-data files byte-identical after the update; scratch APP_DOCUMENTS 'Cubric Vision' folder renamed to 'Cubric Studio' and project-paths.json rewritten; the project opened",
+  "userDataNote": "385 of 385 user-data + models files byte-identical after the update (sha256 before/after, applied with the install's own update-from-zip.bat, exit 0); scratch APP_DOCUMENTS 'Cubric Vision' renamed to 'Cubric Studio', project-paths.json rewritten, the pre-update project listed; update check read current=2.0.1 latest=2.0.0, no prompt",
   "generation": {
     "ok": true,
-    "artifact": "D:\\CVTest\\docs-v2.0.0-test\\Cubric Studio\\Projects\\Rename Check\\Media\\t2i_001.png",
-    "note": "SDXL Realistic t2i 1024x1024, 75 s on the RTX 4060 Ti, after the engine installed 2.0's 3 new node packs; opened it: a red bicycle against a white brick wall, matches the prompt"
+    "artifact": "D:\\CVTest\\docs-v2.0.1-test\\Cubric Studio\\Projects\\Update Check 2.0.1\\Media\\t2i_001.png",
+    "note": "SDXL Realistic t2i 768x1024, 81 s render (171 s including the engine's first start after it installed 2.0's packages) on the RTX 4060 Ti under the GPU lease; opened it: a red bicycle against a white brick wall in morning light, matches the prompt"
   }
 }
