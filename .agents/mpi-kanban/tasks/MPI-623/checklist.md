@@ -200,3 +200,19 @@ Delivered per plan.md amendments 18-20. `'splat'` is NOT a media type.
 - [ ] Author the graph on the ComfyUI canvas at `G:\ComfyUi` - `flow_3d_scene.api.json`
       is API-format and script-assembled, which the add-flow playbook forbids shipping.
       **Fabio's half.**
+
+## Phase 4 - 360 Panorama Flow (promoted to FIRST, 2026-10-06)
+
+- [x] LoRA licence: MIT, ungated (`huggingface.co/mickmumpitz/Krea2-360-ERP-LoRAs`).
+- [x] Bench setup: both LoRAs in `G:\CubricModels\loras\krea-2\360\` (+ model card),
+      `ostris/ComfyUI-Krea2-Ostris-Edit` @ `7756566` cloned, bench restarted.
+- [x] Cartoon input made on the bench with Vision's Krea2 and shown to Fabio first; he
+      picked the village.
+- [x] Does the outpaint LoRA run on Vision's weights, and on which edit nodes? Ostris:
+      yes. lbouaraba: no. Fast tier beats the Raw quality tier. validation.md § Phase 4.
+- [x] 2K -> 8K on Vision's weights: shipped 4x-NMKD-Siax replaces RealESRGAN_x2; the tiled
+      refine re-opens the wrap seam and a 128 px wrap pad fixes it (2.71 vs 2.66 baseline).
+- [ ] Fabio judges the bench panos (seam, horizon, look) - `user-ux`.
+- [ ] 3D Scene bake from the pano he picks (Phase 2 bench pipeline, ~3 h GPU - his yes).
+- [ ] Wire the Flow via `/mpi-add-flow`: Ostris pack + Mickmumpitz nodes (re-add by hand),
+      both LoRAs as deps, fast tier only, Siax 8K stage inside a wrap pad/crop.

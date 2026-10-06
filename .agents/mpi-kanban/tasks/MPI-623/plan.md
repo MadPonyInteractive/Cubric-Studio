@@ -500,6 +500,51 @@ notes in [research/](research/).
 > **DECIDED (Fabio, 2026-10-05): keep 2048, skip the full-tier test** - ~1 GB of RAM is
 > small next to the SfM spike, and reverting means a node commit and a re-pin. Closed; do
 > not re-raise.
+>
+> **Session note 2026-10-06 (twentieth). PHASE 4's BENCH TEST RAN - the 360 Panorama Flow
+> works on Vision's weights, with ONE new pack.** Fabio picked a cartoon VILLAGE (over a
+> forest) as the image->360 input, made on the bench with Vision's Krea2 fast tier. Both
+> 360 LoRAs are in `G:\CubricModels\loras\krea-2\360\`, `ostris/ComfyUI-Krea2-Ostris-Edit`
+> @ `7756566` is in the bench `custom_nodes`, the bench was restarted. Table, sheets and
+> every verdict: [validation.md](validation.md) § Phase 4 bench test. What it settled:
+>
+> - **The Ostris pack is REQUIRED.** Vision's lbouaraba nodes cannot drive the outpaint
+>   LoRA - the green comes back as noise, nothing is filled - and they are >2x slower.
+>   Ostris's `Krea2OstrisEditModelPatch` (`kv_cache` on, as pano.json) works first time.
+> - **Fast tier only.** Raw + `krea2_turbo_distill_r128` reproduces pano.json's Turbo and
+>   wins: 211 s cold for image->360, 96 s for text->360, wrap seam 0.79 / 0.74 after the
+>   seam pass (1.0 = seamless), level horizon in every view. The Raw quality tier is
+>   2.8x slower and drifts off-style. The Flow carries no quality toggle.
+> - **Both 360 LoRAs stack with the turbo-distill LoRA** on Raw int8, with the abliterated
+>   encoder and `qwen_image_vae` - no new weights beyond the two LoRAs.
+> - **The outpaint repeats the input's subject behind the camera** (a second village at
+>   yaw ~270) when the scene sentence names it.
+> - Peak GPU memory 15.4-15.8 GB of 16 on every run: the 2048x1024 edit pass carries a
+>   2 MP reference, so a 12 GB card will offload.
+> - **2K -> 8K: use the shipped 4x-NMKD-Siax** (as good as pano.json's RealESRGAN_x2 or
+>   better). **The tiled refine re-opens the wrap seam; wrap-padding fixes it** (pad 128 px
+>   of the opposite edges at 2K, crop after) - the Flow must carry that pad/crop.
+>
+> - **The tiled Krea refine GHOSTS the village into the sky** (Fabio caught it; the agent
+>   never cropped the sky): the per-tile prompt trap in `docs/models/krea2/upscaling.md`.
+>   Both refined 8Ks are unusable. Fabio is testing his own "super upscaler" workflow as
+>   the 8K route.
+> - **Fabio's app tests, same day: 4x-AnimeSharp beats Siax for this style, and a
+>   model-only upscale keeps the wrap seam clean** (the seam came from the tiled refine).
+>   Agent's recommendation: drop the 8K refine for now - the splat's 2048 views and Wan's
+>   softer holes cap what extra sharpness buys; spend quality on captured stills instead.
+>
+> **Next: THE BAKE IS APPROVED (Fabio, 2026-10-06) - run it in a FRESH session, not this
+> one.** Input: his AnimeSharp-only 8K, `C:\Users\Fabio\Documents\Cubric Studio\Projects\
+> 3D pano tests\Media\imageUpscale_003.png` (8192x4096, seam-clean). Full tier, 30 000
+> steps. Measured local cost: ~3.5 h on the 4060 Ti (4 rails x ~35 min incl. composite,
+> SfM 20.5 min, Brush 30k 48 min), under the GPU lease. **Rails are absolute units**
+> (amendment 15/43): the room's swap157 set will not fit a village. Start from the SHIPPED
+> defaults in `ds_shipped.json` - Mickmumpitz hand-piloted them for an outdoor village -
+> and check every waypoint lands inside this scene's MoGe geometry before the Wan pass.
+> Use the split graphs A then B (amendment 47: the merged graph ran the box out of RAM).
+> Then wiring via `/mpi-add-flow`: Ostris pack + Mickmumpitz nodes as deps (re-add by hand,
+> never revert `edff37f2a`), the two LoRAs, fast tier only, Siax with the wrap pad.
 
 **Project mode:** `scalable-foundation`.
 
@@ -2209,10 +2254,13 @@ different session. ~~Blocked only on the LoRA question.~~
       `license: mit` in its card and tags, ungated, both files 218 MiB, unchanged since
       2026-08-25. Keep the MIT notice. Triggers: `img-txt-2-360` (t2i); the outpaint
       LoRA takes green-marked fill areas and a fixed instruction (see the repo README).
-- [ ] **Test the known trap first:** does the outpaint LoRA compose with the Krea2
+- [x] **Test the known trap first:** does the outpaint LoRA compose with the Krea2
       Ostris edit patch? Style LoRAs do not (MPI-282), and IMG2SPHERE is exactly
       that shape. **Verify:** a bench run showing the edit path with the outpaint
       LoRA either works or fails - evidence either way, before any app wiring.
+      **ANSWERED 2026-10-06: works on Ostris's patch, FAILS on Vision's lbouaraba patch.**
+      Ostris + Raw + turbo-distill gives a seamless, level cartoon pano; lbouaraba fills
+      nothing. Ship the Ostris pack; fast tier only. [validation.md](validation.md).
 - [ ] Wire the Flow (TEXT2SPHERE and IMG2SPHERE modes), pinning
       ComfyUI-Mickmumpitz-Nodes and declaring the LoRA deps. Vision already ships
       the rest: `krea2-raw-transformer`, `qwen3vl-abliterated-clip`, `wan_2.1_vae`,
@@ -2266,6 +2314,11 @@ geometry - far stronger than a still for v2v. Revisit once Phase 3 is in use.
   wiring** (Fabio). Its licence blocker was void all along (the LoRAs are MIT), and a new
   one replaced it: Vision's Krea2 edit nodes are not the Ostris patch the outpaint LoRA
   was trained on. See the Phase 4 note.
+- **2026-10-06 - the bench test closed both Phase 4 unknowns the same day.** Vision's edit
+  nodes cannot drive the outpaint LoRA, so the Flow adds `ostris/ComfyUI-Krea2-Ostris-Edit`
+  as a new dep. Fast tier only: the Raw quality tier was slower and worse. The plan's wiring
+  line said "`krea2-lora-identity-edit`" ships the edit path - it does not apply here; the
+  outpaint LoRA replaces it. Twentieth session note.
 
 ## Verification
 
@@ -2318,3 +2371,9 @@ End-to-end criteria:
   `comfy_extras/nodes_gaussian_splat.py`.
 - If Phase 0's gate fails, decision 3 in Current State re-opens; the
   `ffmpegBinary.js`-clone alternative is written up in brief.md.
+- **For `docs/models/krea2/editing.md` (2026-10-06):** an ai-toolkit "Ostris edit" LoRA
+  (e.g. Mickmumpitz's 360 outpaint) does NOT run on lbouaraba's `Krea2EditModelPatch` -
+  it needs `ostris/ComfyUI-Krea2-Ostris-Edit`. The two packs are not interchangeable; the
+  identity-edit LoRA is lbouaraba's, the outpaint LoRA is Ostris's.
+- **For the 360 Flow's doc:** UltimateSDUpscale tiles do not wrap, so any tiled refine of
+  an equirect re-opens the left/right seam. Wrap-pad before, crop after (Phase 4 bench).

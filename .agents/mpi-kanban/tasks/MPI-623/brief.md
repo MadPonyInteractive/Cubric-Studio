@@ -151,3 +151,9 @@ An investigation agent reported them as wrong because the internal Python class 
 unprefixed (`PanoRollHorizontal` etc.). The `NODE_CLASS_MAPPINGS` key is what a workflow
 binds to. **A ComfyUI node's registered type is not necessarily its class name - trust the
 workflow JSON, not the source.**
+
+## Noticed
+
+- 2026-10-06: Fabio's "super upscaler" workflow (irregular masks, detailed area by area) could
+  become its own Flow for stills, including the ones captured from a 3D scene. Separate from
+  this card; he has the workflow.
