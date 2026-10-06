@@ -106,12 +106,34 @@ test('one card in full: the whole prompt, what ran, and what it was made from', 
     assert.ok(card.prompt.endsWith('END'), 'the whole prompt, untruncated');
     assert.equal(card.negativePrompt, 'blur');
     assert.deepEqual(card.settings, { Input_Duration: 6, Ratio_Label: '9:16' });
-    assert.deepEqual(card.madeFrom, [{ role: 'startFrame', ref: 'flowOutpaint_002.png' }]);
+    assert.deepEqual(card.madeFrom, [{ role: 'startFrame', ref: 'flowOutpaint_002.png', groupId: 'g-out' }], 'an input that is a card names it');
     assert.equal(files['flowOutpaint_002.png'].path, path.resolve(file('flowOutpaint_002.png')), 'what it was made from is reachable too');
 
     const flow = await readCard(root, 'g-out');
-    assert.deepEqual(flow.card.madeFrom, [{ role: 'image1', ref: 'i2i_001.png' }], 'a Flow keeps its inputs under flowInputs');
+    assert.deepEqual(flow.card.madeFrom, [{ role: 'image1', ref: 'i2i_001.png', groupId: 'g-still' }], 'a Flow keeps its inputs under flowInputs; the archived card sharing the item is not named');
     assert.deepEqual(flow.card.settings, { Input_is_Turbo: true });
+});
+
+test('a card`s input is that input`s card: its look is read from and kept on its own sidecar (MPI-1032)', async (t) => {
+    const { AgentLoop } = await esm('services/agentLoop.mjs');
+    const cards = await esm('services/agentCards.mjs');
+    const { root, file } = makeProject(t);
+    const stored = [];
+    const read = [];
+    const loop = new AgentLoop({ tools: {
+        listCards: async (folderPath, groupId) => ({ ok: true, ...(await cards.readCard(folderPath, groupId)) }),
+        look: async () => ({ ok: true, output: { text: 'a duck on a pony, outpainted' } }),
+        storedLook: async (imagePath, itemId) => { read.push([imagePath, itemId]); return null; },
+        storeLook: async (imagePath, itemId) => { stored.push([imagePath, itemId]); },
+    } });
+    const project = { folderPath: root, name: 'Cowgirl on a Bull' };
+
+    await loop._executeTool('list_cards', { groupId: 'g-clip' }, 't1', project);
+    const r = JSON.parse(await loop._executeTool('look', { image: 'flowOutpaint_002.png' }, 't1', project));
+    assert.equal(r.ok, true);
+    const own = [path.resolve(file('flowOutpaint_002.png')), 'item-out'];
+    assert.deepEqual(read, [own], 'the stored description is looked for on the input`s own sidecar');
+    assert.deepEqual(stored, [own], 'and a fresh one is kept there, so the next look is a read');
 });
 
 test('named refusals', async (t) => {

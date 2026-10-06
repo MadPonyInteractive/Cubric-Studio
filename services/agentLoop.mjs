@@ -2713,7 +2713,7 @@ ${knowledgeIndex}`.trim();
     // Run a turn (called by POST /agent/message)
     // -------------------------------------------------------------------------
 
-    async runTurn(text, attachments, project, mode, profileId, turnId, { model: pickedModel, carried = false, pinned = null, workspace = null, wake = false } = {}) {
+    async runTurn(text, attachments, project, mode, profileId, turnId, { model: pickedModel, carried = false, pinned = null, workspace = null, wake = false, held = false } = {}) {
         // MPI-870: the streak is what the runaway bound counts, and anything the user
         // actually typed clears it. Reset BEFORE the turn runs — a wake that dispatches a
         // generation must see its own predecessor's count, not a cleared one.
@@ -2846,6 +2846,11 @@ ${knowledgeIndex}`.trim();
             const woke = wake
                 ? '[Nothing was typed: your generations have finished and this turn exists to report them. Say what landed, briefly, the way you would to someone who walked back to the screen. Do not start new work unless they already asked for it.]'
                 : '';
+            // MPI-1032: a message queued behind this conversation's own turn arrives AFTER that
+            // turn's reply, and unsaid, the model reads it as a reaction to the reply.
+            const heldLine = held
+                ? '[Typed while you were still working on the previous turn: it was written before your last reply and is not a reaction to it. If what you already started covers it, let that run and say so; stop or redo work only for what it actually changes.]'
+                : '';
             // MPI-941 Phase 9: a real turn only — a wake starts with `_inflight` empty by
             // construction, so this is zero bytes there and on every quiet turn.
             const running = wake ? '' : this._inflightLine();
@@ -2853,7 +2858,7 @@ ${knowledgeIndex}`.trim();
             // built, so the line lists it among the refs it is the allowlist for.
             this._registerWorkspaceEntry(workspace);
             this._masked = !!(workspace?.activeEntry?.filePath && workspace.masked);
-            const opening = [this._appStateLine(project, workspace), this._pinnedSettingsLine(pinned), handover, woke, running, await this._globalNotesLine(), await this._projectNotesLine(project), ...this._notes.splice(0)];
+            const opening = [this._appStateLine(project, workspace), this._pinnedSettingsLine(pinned), handover, woke, heldLine, running, await this._globalNotesLine(), await this._projectNotesLine(project), ...this._notes.splice(0)];
             contentParts.unshift(...opening.filter(Boolean).map((t) => ({ type: 'text', text: t })));
 
             // Add user message to LLM context (plain text for OpenAI compat)

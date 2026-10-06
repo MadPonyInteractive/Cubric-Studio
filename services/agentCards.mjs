@@ -77,13 +77,30 @@ async function _selected(folderPath, group) {
     return itemId ? _readJson(path.join(folderPath, 'Media', '.meta', `${itemId}.json`)) : null;
 }
 
-/** `{ role, ref }` for each picture a generation was made from, where the project still has it. */
-function _inputs(folderPath, meta) {
+/**
+ * `madeFrom`: `{ role, ref, groupId? }` for each picture a generation was made from, where the
+ * project still has it, plus the `files` entry each one registers. An input that is a card of
+ * this project names that card: `groupId` so it can be read, and the item id `look` keeps its
+ * description under. A sidecar records its inputs by file only, so the card is found the way
+ * `startFrameOf` finds one, by the file its sidecar names (MPI-1032).
+ */
+async function _inputs(folderPath, project, meta) {
     const items = meta.generationSettings?.mediaItems || meta.flowInputs?.mediaItems || [];
-    return items
+    const owned = items
         .map((m) => ({ role: m.role, file: _ownedMedia(folderPath, m.url || m.filePath) }))
-        .filter((m) => m.file)
-        .map((m) => ({ role: m.role, ref: path.basename(m.file) }));
+        .filter((m) => m.file);
+    const sidecars = await _sidecarsOf(path.join(folderPath, 'Media'), owned.map((m) => m.file));
+    // Archived cards are left out: read_card cannot open one, so a groupId would only fail.
+    const cardOf = new Map(_groups(project).flatMap((g) => (Array.isArray(g.history) ? g.history : []).map((id) => [id, g.id])));
+    const files = {};
+    const madeFrom = owned.map(({ role, file }) => {
+        const own = sidecars.get(_fileKey(file));
+        const itemId = own?.itemId || null;
+        const groupId = (itemId && cardOf.get(itemId)) || null;
+        files[path.basename(file)] = { path: file, modelId: own?.meta?.modelId || null, itemId, groupId };
+        return { role, ref: path.basename(file), ...(groupId ? { groupId } : {}) };
+    });
+    return { madeFrom, files };
 }
 
 function _row(folderPath, group, meta) {
@@ -216,11 +233,8 @@ export async function readCard(folderPath, groupId) {
     }
     const meta = await _selected(folderPath, group);
     const { cards, files } = _split([_row(folderPath, group, meta)]);
-    const inputs = meta ? _inputs(folderPath, meta) : [];
-    for (const m of meta?.generationSettings?.mediaItems || meta?.flowInputs?.mediaItems || []) {
-        const file = _ownedMedia(folderPath, m.url || m.filePath);
-        if (file) files[path.basename(file)] = { path: file, modelId: null };
-    }
+    const inputs = meta ? await _inputs(folderPath, project, meta) : { madeFrom: [], files: {} };
+    Object.assign(files, inputs.files);
     return {
         card: {
             ...cards[0],
@@ -229,7 +243,7 @@ export async function readCard(folderPath, groupId) {
             ...(meta?.seed !== undefined ? { seed: meta.seed } : {}),
             ...(meta?.generationMs ? { generationMs: meta.generationMs } : {}),
             settings: meta?.generationSettings?.injectionParams || meta?.flowInputs?.injectionParams || {},
-            madeFrom: inputs,
+            madeFrom: inputs.madeFrom,
         },
         files,
     };
@@ -264,13 +278,28 @@ export async function durationOf(file) {
 async function _sidecarOf(file) {
     const media = path.dirname(path.resolve(file));
     if (path.basename(media) !== 'Media') return null;
-    const want = path.resolve(file).toLowerCase();
+    return (await _sidecarsOf(media, [file])).get(_fileKey(file))?.meta || null;
+}
+
+const _fileKey = (file) => path.resolve(file).toLowerCase();
+
+/**
+ * The sidecars in `<media>/.meta` naming any of `files`, keyed by `_fileKey`, as `{ itemId, meta }`.
+ * The item id is the sidecar's FILE name, which is where `look` reads and writes, never the `id`
+ * inside it. One pass over the folder however many files are asked for.
+ */
+async function _sidecarsOf(media, files) {
+    const want = new Set(files.map(_fileKey));
+    const found = new Map();
+    if (!want.size) return found;
     const metaDir = path.join(media, '.meta');
     for (const name of await fs.readdir(metaDir).catch(() => [])) {
+        if (found.size === want.size) break;
         if (!name.endsWith('.json')) continue;
         const meta = await _readJson(path.join(metaDir, name));
         const own = _decode(meta?.filePath);
-        if (own && path.resolve(own).toLowerCase() === want) return meta;
+        const key = own && _fileKey(own);
+        if (key && want.has(key) && !found.has(key)) found.set(key, { itemId: name.slice(0, -'.json'.length), meta });
     }
-    return null;
+    return found;
 }

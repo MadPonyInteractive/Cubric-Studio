@@ -178,6 +178,29 @@ describe('one conversation per project', () => {
         );
     });
 
+    // MPI-1032 — queued behind its own conversation's turn, a message runs after that turn's
+    // reply, and unsaid the model reads it as a reaction to the reply.
+    test('a message held behind its own conversation`s turn says it was typed before the reply', async (t) => {
+        let release;
+        const gate = new Promise((r) => { release = r; });
+        const { sessions, send, restore } = await makeSessions({ gate: () => gate });
+        t.after(restore);
+        const { sessionKey } = await load();
+        const turn = (text, project, turnId) => ({ text, attachments: [], project, mode: 'auto', profileId: 'deepinfra', turnId, model: 'fake' });
+
+        const running = send('slow', A);
+        sessions.queue(turn('keep the same video', A, 'q1'));
+        sessions.queue(turn('and one in beta', B, 'q2'));
+        release();
+        await running;
+
+        const sent = (p, text) => sessions._loops.get(sessionKey(p.folderPath))._messages
+            .find((m) => m.role === 'user' && m.content.endsWith(text)).content;
+        assert.match(sent(A, 'keep the same video'), /Typed while you were still working/);
+        assert.doesNotMatch(sent(A, 'slow'), /Typed while/, 'a turn that ran at once is not held');
+        assert.doesNotMatch(sent(B, 'and one in beta'), /Typed while/, 'behind ANOTHER conversation`s turn, no reply of its own came in between');
+    });
+
     // The route has no harness of its own, so its one ordering rule is pinned on the source:
     // busy() is read AFTER the attachment-staging awaits, with nothing async before the
     // hand-off. Read before them, a turn queued once the running one had already ended

@@ -83,12 +83,16 @@ export class AgentSessions {
      * already dispatched arrives after the dispatch.
      */
     queue(turn) {
-        this._queued.push(turn);
-        // MPI-1005: typing instead of clicking answers a review card ("change verse 2"). Left
-        // up, the card would hold the turn, and this message behind it, until a click.
         const loop = !turn.wake && this._loops.get(projectKey(turn.project?.folderPath));
         const pc = loop?._pendingConfirm;
-        if (CHOICE_CARDS[pc?.kind]) loop.confirm(pc.confirmId, 'replied');
+        const answersCard = !!CHOICE_CARDS[pc?.kind];
+        // MPI-1032: typed while ITS OWN conversation was mid-turn, it runs after that turn's
+        // reply and reads as a reaction to it. `held` makes the turn say so. A message that
+        // answers a review card is a reply to what is on screen, so it is not held.
+        this._queued.push({ ...turn, held: !!loop?._working && !answersCard });
+        // MPI-1005: typing instead of clicking answers a review card ("change verse 2"). Left
+        // up, the card would hold the turn, and this message behind it, until a click.
+        if (answersCard) loop.confirm(pc.confirmId, 'replied');
     }
 
     /**
@@ -283,7 +287,7 @@ export class AgentSessions {
      * Run one user turn in the conversation of `turn.project`, then the request it carried to
      * another project, if any. The caller does not wait for this.
      * @param {{text: string, attachments: Array, project: ?{folderPath: string, name: string},
-     *          mode: string, profileId: string, turnId: string, model?: string, carried?: boolean,
+     *          mode: string, profileId: string, turnId: string, model?: string, carried?: boolean, held?: boolean,
      *          pinned?: ?{modelId: string, name: string, mediaType: string, ops: string[]},
      *          workspace?: ?{page: string, groupId: ?string, card: ?object, activeEntry: ?object}}} turn
      * @returns {Promise<string>} the key of the conversation the turn ran in
@@ -292,7 +296,7 @@ export class AgentSessions {
         const key = projectKey(turn.project?.folderPath);
         const loop = this._loops.get(key) || this._newLoop(key);
         try {
-            await loop.runTurn(turn.text, turn.attachments, turn.project || null, turn.mode, turn.profileId, turn.turnId, { model: turn.model, carried: !!turn.carried, pinned: turn.pinned || null, workspace: turn.workspace || null, wake: !!turn.wake });
+            await loop.runTurn(turn.text, turn.attachments, turn.project || null, turn.mode, turn.profileId, turn.turnId, { model: turn.model, carried: !!turn.carried, pinned: turn.pinned || null, workspace: turn.workspace || null, wake: !!turn.wake, held: !!turn.held });
         } finally {
             // The carry first: it is the second half of the request already running. Then what
             // the user typed meanwhile, oldest first (MPI-840) — that send drains the rest.

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1032",
+  "title": "Cosmo: made-from inputs carry their card; a held message says it was typed mid-turn",
+  "description": "Two agent fixes from Fabio's fox-to-monkey H3 test 2026-10-06: read_card's madeFrom inputs register with no card id (looks never cached, no link to the input's card), and a message queued behind its own conversation's turn reads as a reaction to that turn's reply (Cosmo cancelled a correct run).",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-06T09:34:50+01:00",
+  "updated_at": "2026-10-06T09:35:36+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
