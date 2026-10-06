@@ -25,13 +25,13 @@ That last row is why `ref2v_ms` is one op with no t2v/i2v split: references neve
 become frames, so the presence of chips is the only variable and an empty strip is a
 valid run, not an error state.
 
-### Lip-sync is NOT established either way
+### Lip-sync holds, and a reference clip keeps its sound (MPI-1033, 2026-10-06)
 
-In the sheet+audio clip the subject **did not move her lips**. She was looking at her
-phone, so it read as an internal thought rather than a failure — plausible, and the
-user accepted it. But that is **one sample with a confound**, so nothing here says
-whether ref2va drives mouth motion from a reference audio track. If it matters, test
-it deliberately: a subject facing camera, an audio reference that is clearly speech.
+Tested deliberately on today's graph (`tasks/MPI-1033/validation.md`, runs 1-5). A still
+facing camera + a speech clip as `<Audio 1>`, its words quoted: the line comes back as
+recorded (loudness envelope 0.968) and the **lips move with it** — Fabio: "really good".
+A sounded `<Video 1>` asked for the same motion and sound with one change comes back
+edited with its own soundtrack (0.96-0.97, speech and hoofbeats). No graph change needed.
 
 ## Why a plausible result was not evidence
 

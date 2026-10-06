@@ -71,6 +71,8 @@ quotes the line and says he speaks it "exactly as recorded". 120 s (models warm)
   corrected in place (new words: timbre; its own words quoted: the recorded line, lips moving to it).
 - Product call (Fabio 2026-10-06): NO pass-through, NO graph wiring, NO toggles. Today's graph already keeps the
   sound in sync with the picture it generates; a remux would add length and lip-sync risk for byte-exact audio.
+- Reopened 2026-10-06 (Fabio's yes): `docs/models/h3/ref2va.md` § "Lip-sync is NOT established either way" asked
+  for exactly run 5; replaced in place with the result (same length).
 
 ## Findings
 
