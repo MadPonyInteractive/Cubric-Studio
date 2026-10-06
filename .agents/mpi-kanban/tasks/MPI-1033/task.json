@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1033",
+  "title": "H3 Reference: anchor a soundtrack so the clip keeps it (the music-video path)",
+  "description": "Our r2va graph feeds audio only as a REFERENCE (steers, H3 regenerates sound). Core MiniMaxH3AddGuide anchors audio and holds it. Wire an anchor option into H3 Reference after a bench test on the ref2va weights. Ordered after MPI-1029 (same r2va workflow). Brief: tasks/MPI-1033/brief.md.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-06T09:56:41+01:00",
+  "updated_at": "2026-10-06T09:56:41+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
