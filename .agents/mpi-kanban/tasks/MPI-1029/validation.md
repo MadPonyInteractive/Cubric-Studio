@@ -51,3 +51,5 @@ fault; not investigated here.
   i.e. the clear evicted the encoder and the second encode re-read it. New graph: once per
   prompt (08:39:56 only; 08:53:35 only) - the encoder stayed loaded across the second encode.
   Second TE pass 18.8 s / 16.2 s.
+- Shipped 3e7ae7dad; CI Tests run 37439820138 - success. Release session (MPI-1026) told 2.0.1
+  is unblocked.

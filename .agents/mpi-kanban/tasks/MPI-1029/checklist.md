@@ -58,4 +58,5 @@ loaders #331/#332/#346 `force_rate` 0 -> 24 (Fabio's own change).
 - [x] Fabio: two H3 ref2v runs (image ref + video ref, new prompts), no error, output as asked.
       app.log: `Requested to load MiniMaxH3TEModel_` ONCE per `got prompt` (was twice), no aimdo
       line. (`25140MB Staged` logs per forward - not the tell.)
-- [ ] Commit raw + API template + runtime together, push, message the release session (MPI-1026).
+- [x] Commit raw + API template + runtime together, push, message the release session (MPI-1026).
+      3e7ae7dad, CI Tests 37439820138 green.
