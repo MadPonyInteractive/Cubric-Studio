@@ -24,12 +24,20 @@ save the run that failed. The MPI-1024 crash kills the engine, so a restart cost
 there; this fault leaves the engine alive (`Prompt executed`), so the restart buys nothing.
 Never fix a one-off fault with a session-wide slowdown.
 
-## Next
+## Next - 2.0.1 is ON HOLD for this card (Fabio, 2026-10-06)
 
-- [ ] Fabio reruns the same H3 ref2v (dynamic VRAM on). Pass = a one-off, like MPI-774 fix 8
-      (also H3 + aimdo hostbuf, never reproduced in 4 tries): close with no code.
-- [ ] Fails again = real. Then measure, on that run only: `--disable-pinned-memory` (keeps
-      dynamic VRAM; Comfy-Org/ComfyUI#14250 reports this exact `HostBuffer.read_file_slice
-      failed` fixed by it) - its speed cost on H3 and one other model before it ships anywhere.
-- [ ] The H3 TE staged TWICE in the one run (06:59:19Z and 07:00:12Z) - a separate session is
-      finding out why; removing a second 25 GB pass halves the reads that hit 1450.
+Lead (not proven): the two TE stagings are BY DESIGN (MPI-1030: two `MpiH3References`, stage-1
+match + refine max), and an `MpiClearVram` runs between them. `MpiClearVram`
+(`ComfyUi-MpiNodes/vram.py`) = `unload_all_models()` + `soft_empty_cache()` - the "Clean/Unload"
+of Comfy-Org/ComfyUI#15352: MiniMax H3 INT8 ConvRot + aimdo DynamicVRAM on Windows, 64 GB RAM,
+`HostBuffer.read_file_slice failed` on the load AFTER a Clean/Unload. Reporter's analysis: WDDM
+charges registered (pinned) host memory and aimdo residency against ONE system budget, and pins
+reused after a Clean skip the budget check. Ours failed in stage 2, right after the clear.
+ComfyUI pins up to 40% of RAM on Windows (`MAX_PINNED_MEMORY`, `Enabled pinned memory 26124.0`).
+
+- [ ] Fabio reruns the same H3 ref2v unchanged: does stage 2 fail again?
+- [ ] If yes: local, uncommitted `--disable-pinned-memory` in `_cudaModeArgs()`, app restart,
+      same job - pass? And its time cost on H3 + one image model. (ComfyUI#14250: the same
+      error string fixed by that flag. Dynamic VRAM stays ON.)
+- [ ] Ship only what passes at an acceptable cost. Not for 2.0.1: an aimdo bump (0.4.15 ->
+      0.5.x reportedly tracks the WDDM budget) = a full /mpi-bump-engine run.
