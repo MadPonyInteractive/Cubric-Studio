@@ -1,1 +1,1 @@
-{"schema": "mpi-kanban/task-files/v1", "files": [".agents/mpi-kanban/tasks/MPI-1029/", "routes/comfy.js", "tests/dynamic-vram-fallback.test.cjs", "docs/comfy.md"]}
+{"schema": "mpi-kanban/task-files/v1", "files": [".agents/mpi-kanban/tasks/MPI-1029/", "comfy_workflows/raw/minimax_h3_r2va_template.json", "comfy_workflows/scripts/workflow_generation/minimax_h3_r2va_template.json", "comfy_workflows/minimax_h3_r2va.json"]}

@@ -32,3 +32,22 @@ after this fault restarts the engine with dynamic VRAM off; the failed run itsel
 
 The H3 ref2v graph stages the 25 GB text encoder TWICE per run, doubling the reads that hit this
 fault; not investigated here.
+
+## One-clear graph fix (2026-10-06, session adddc00f)
+
+- Runtime `comfy_workflows/minimax_h3_r2va.json` regenerated from Fabio's raw template. Semantic
+  diff vs HEAD: #765/#766 removed; #873 packer, #875 clear, #877/#879 unpackers added; #562/#565/
+  #597 rewired through them; #331/#332/#346 `force_rate` 0 -> 24. Nothing else.
+- `node scripts/validate-injection-rules.mjs comfy_workflows/minimax_h3_r2va.json` - conforms.
+- `node --test` inject-never-clobbers-link, inject-params-titles, in-graph-enhance,
+  h3-two-pass-dimensions - 104/104 pass.
+- Pinned MpiNodes `bc92a1b8` ships `MpiPacker`/`MpiUnpacker` (added in 69a4333).
+- Live proof (Fabio, source run, app restarted 08:37Z, log read from byte 190532): two H3 ref2v
+  runs with image + video refs - 08:39:15Z (`Prompt executed in 401.30 seconds`) and 08:53:09Z
+  (past both encodes into sampling at time of reading). Zero aimdo / `read_file_slice` lines.
+- The tell is `Requested to load MiniMaxH3TEModel_`, NOT the `25140MB Staged` line (that one
+  logs on EVERY forward, loaded or not - the handoff's "Staged ONCE" check was wrong). Old graph:
+  `Requested to load` before BOTH encodes in every run (06:59:19 + 07:00:12, 07:32:44 + 07:33:33),
+  i.e. the clear evicted the encoder and the second encode re-read it. New graph: once per
+  prompt (08:39:56 only; 08:53:35 only) - the encoder stayed loaded across the second encode.
+  Second TE pass 18.8 s / 16.2 s.

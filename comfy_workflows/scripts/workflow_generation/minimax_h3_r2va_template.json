@@ -188,7 +188,7 @@
     "inputs": {
       "video": "None",
       "block_if_empty": false,
-      "force_rate": 0,
+      "force_rate": 24,
       "string": ""
     },
     "class_type": "MpiLoadVideoUpload",
@@ -200,7 +200,7 @@
     "inputs": {
       "video": "None",
       "block_if_empty": false,
-      "force_rate": 0,
+      "force_rate": 24,
       "string": ""
     },
     "class_type": "MpiLoadVideoUpload",
@@ -318,7 +318,7 @@
     "inputs": {
       "video": "None",
       "block_if_empty": false,
-      "force_rate": 0,
+      "force_rate": 24,
       "string": ""
     },
     "class_type": "MpiLoadVideoUpload",
@@ -688,7 +688,7 @@
         0
       ],
       "conditioning": [
-        "765",
+        "879",
         0
       ]
     },
@@ -751,7 +751,7 @@
         0
       ],
       "latent_image": [
-        "330",
+        "879",
         1
       ]
     },
@@ -980,8 +980,8 @@
         0
       ],
       "conditioning": [
-        "766",
-        0
+        "877",
+        2
       ]
     },
     "class_type": "BasicGuider",
@@ -1407,30 +1407,6 @@
       "title": "Window Frames"
     }
   },
-  "765": {
-    "inputs": {
-      "passthrough": [
-        "330",
-        0
-      ]
-    },
-    "class_type": "MpiClearVram",
-    "_meta": {
-      "title": "Mpi Clear Vram"
-    }
-  },
-  "766": {
-    "inputs": {
-      "passthrough": [
-        "688",
-        0
-      ]
-    },
-    "class_type": "MpiClearVram",
-    "_meta": {
-      "title": "Mpi Clear Vram"
-    }
-  },
   "770": {
     "inputs": {
       "sampler_name": "euler"
@@ -1486,6 +1462,62 @@
     "class_type": "MpiClearVram",
     "_meta": {
       "title": "Mpi Clear Vram"
+    }
+  },
+  "873": {
+    "inputs": {
+      "any_1": [
+        "330",
+        0
+      ],
+      "any_2": [
+        "330",
+        1
+      ],
+      "any_3": [
+        "688",
+        0
+      ]
+    },
+    "class_type": "MpiPacker",
+    "_meta": {
+      "title": "Mpi Packer"
+    }
+  },
+  "875": {
+    "inputs": {
+      "passthrough": [
+        "873",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "Mpi Clear Vram"
+    }
+  },
+  "877": {
+    "inputs": {
+      "pack": [
+        "875",
+        0
+      ]
+    },
+    "class_type": "MpiUnpacker",
+    "_meta": {
+      "title": "Mpi Unpacker"
+    }
+  },
+  "879": {
+    "inputs": {
+      "pack": [
+        "875",
+        0
+      ]
+    },
+    "class_type": "MpiUnpacker",
+    "_meta": {
+      "title": "Mpi Unpacker"
     }
   }
 }

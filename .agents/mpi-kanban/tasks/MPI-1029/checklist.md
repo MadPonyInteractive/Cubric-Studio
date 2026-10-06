@@ -41,3 +41,21 @@ ComfyUI pins up to 40% of RAM on Windows (`MAX_PINNED_MEMORY`, `Enabled pinned m
       error string fixed by that flag. Dynamic VRAM stays ON.)
 - [ ] Ship only what passes at an acceptable cost. Not for 2.0.1: an aimdo bump (0.4.15 ->
       0.5.x reportedly tracks the WDDM budget) = a full /mpi-bump-engine run.
+
+## Fix taken - one clear after BOTH reference encodes (MPI-1030 option A1, graph-only)
+
+Fabio edited `comfy_workflows/raw/minimax_h3_r2va_template.json` himself (2026-10-06): the two
+per-encode clears #765/#766 are gone; ONE `MpiClearVram` #875 now takes an `MpiPacker` #873 of
+`#330` (cond + latent) and `#688` (cond), so it runs only after both encodes and before any
+sampler; `MpiUnpacker` #879 feeds stage-1 guider #562 + sampler #565, #877 feeds refine guider
+#597. Nothing wipes the pinned 25 GB encoder between the two forwards. Same commit: input video
+loaders #331/#332/#346 `force_rate` 0 -> 24 (Fabio's own change).
+
+- [x] Raw -> API template (`workflow-to-api.mjs` against the app engine :48188 schema), then
+      `generate_h3.build` for r2va only. Runtime diff vs HEAD = exactly the edit above, nothing else.
+- [x] Graph check: one clear between refs and sampling, needs both refs, upstream of #562/#597/#565;
+      no clear upstream of either refs node. `validate-injection-rules` + 104 workflow tests pass.
+- [x] Fabio: two H3 ref2v runs (image ref + video ref, new prompts), no error, output as asked.
+      app.log: `Requested to load MiniMaxH3TEModel_` ONCE per `got prompt` (was twice), no aimdo
+      line. (`25140MB Staged` logs per forward - not the tell.)
+- [ ] Commit raw + API template + runtime together, push, message the release session (MPI-1026).
