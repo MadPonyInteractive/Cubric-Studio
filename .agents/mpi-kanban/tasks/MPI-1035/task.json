@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1035",
+  "title": "Compare labels show the file path instead of the history entry name",
+  "description": "In-viewer compare (MpiCanvasViewer _labelOf) labels each side name||displayName||file basename, never the history list's operation fallback, and never decodes a project-file?path= URL. An imported entry (no displayName, filePath is a project-file URL) shows the raw encoded URL. Fix: labels follow the history list rule (displayName||operation), same in MpiCompareView.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-06T20:21:29+01:00",
+  "updated_at": "2026-10-06T20:22:40+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

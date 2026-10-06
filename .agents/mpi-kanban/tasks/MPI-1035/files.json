@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/components/Organisms/MpiCanvasViewer/MpiCanvasViewer.js", "js/components/Compounds/MpiCompareView/MpiCompareView.js"] }

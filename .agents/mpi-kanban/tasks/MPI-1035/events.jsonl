@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1035", "at": "2026-10-06T20:21:29+01:00", "actor": "claude", "column": "doing", "title": "Compare labels show the file path instead of the history entry name"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1035", "at": "2026-10-06T20:22:40+01:00", "actor": "claude", "from": "doing", "to": "done"}
