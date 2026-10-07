@@ -1,0 +1,31 @@
+/* MpiSceneCanvas — the 3D scene viewport (MPI-623). The GL clear is transparent, so the
+   surface colour is this background, not a value baked into the renderer. */
+
+.mpi-scene-canvas {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--surface-canvas);
+}
+
+.mpi-scene-canvas__surface {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.mpi-scene-canvas__note {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    padding: var(--s-4);
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+    text-align: center;
+}
+
+.mpi-scene-canvas--unsupported .mpi-scene-canvas__surface { display: none; }
+.mpi-scene-canvas--unsupported .mpi-scene-canvas__note { display: flex; }

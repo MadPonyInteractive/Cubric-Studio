@@ -24,7 +24,7 @@
 import { state } from '../state.js';
 import { Events } from '../events.js';
 import { Hotkeys } from '../managers/hotkeyManager.js';
-import { PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../router.js';
+import { PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../router.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { qs } from '../utils/dom.js';
 
@@ -36,6 +36,7 @@ const PAGE_BODY_CLASSES = {
     [PAGE_LANDING]:        'page-landing',
     [PAGE_GALLERY]:        'page-gallery',
     [PAGE_GROUP_HISTORY]:  'page-group-history',
+    [PAGE_SCENE]:          'page-scene',
 };
 const ALL_PAGE_CLASSES = Object.values(PAGE_BODY_CLASSES);
 

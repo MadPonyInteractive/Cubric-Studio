@@ -1,6 +1,6 @@
 /**
  * router.js — Lightweight client-side page router.
- * Pages: 'landing' | 'gallery' | 'group-history'
+ * Pages: 'landing' | 'gallery' | 'group-history' | 'scene'
  *
  * Navigation is history-stack based. Each navigate() call pushes an entry.
  * back() pops the current entry and restores the previous one.
@@ -11,6 +11,7 @@ import { state } from './state.js';
 export const PAGE_LANDING       = 'landing';
 export const PAGE_GALLERY       = 'gallery';        // Main project gallery (item groups grid)
 export const PAGE_GROUP_HISTORY = 'group-history';  // Single item group history view
+export const PAGE_SCENE         = 'scene';          // A card's 3D scene (MPI-623, dev_mode)
 
 let _onNavigateCallback = null;
 

@@ -4,7 +4,8 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiWaveform } from '../../Primitives/MpiWaveform/MpiWaveform.js';
 import { ce, qs, qsa, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
-import { kindOfItem, PANEL_KINDS } from '../../../utils/assetKinds.js';
+import { kindOfItem, PANEL_KINDS, canConvertToPano } from '../../../utils/assetKinds.js';
+import { APP_CONFIG } from '../../../../dev_configs/app_config.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { matchesGallerySort, kindItemOf, isGalleryFiltered, byGalleryOrder, markOf, markIcon, DEFAULT_GALLERY_SORT } from '../../../utils/galleryFilter.js';
 import { wireCardMark, closeCardMarkMenu } from './cardMarkMenu.js';
@@ -1702,6 +1703,13 @@ export const MpiGalleryGrid = ComponentFactory.create({
                                 ? 'Describe reads one image at a time'
                                 : _stackCount ? 'Describe reads one image, not a stack'
                                     : (_selectedVideoCount > 0 ? 'Describe reads a still image, not a video' : 'Caption this image into a prompt') },
+                        // MPI-623 (A9): offered, never guessed — a 2:1 still may be a banner.
+                        // ponytail: disabled until Phase 2's `sceneConvert` op exists; that
+                        // phase enables the row and wires its emit.
+                        ...(APP_CONFIG.dev_mode && targetIds.length === 1 && canConvertToPano(group)
+                            ? [{ key: 'convert-pano', icon: 'cube', label: 'Convert to 360 pano', disabled: true,
+                                info: 'Turn this 2:1 picture into a 3D scene. The scene engine is not built yet' }]
+                            : []),
 
                         { separator: true },
 

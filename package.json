@@ -46,6 +46,7 @@
     "node-7z": "^3.0.0",
     "node-downloader-helper": "^2.1.11",
     "sharp": "^0.34.5",
+    "three": "^0.186.1",
     "trash": "^8.1.1",
     "uuid": "^13.0.0"
   },

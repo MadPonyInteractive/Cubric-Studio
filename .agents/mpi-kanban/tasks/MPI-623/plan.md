@@ -26,6 +26,14 @@ plan.md / validation.md / checklist.md. Session 28 ("3D Scene 18") stays on spik
 ONLY `D:\WORK\MPI-623-spike\` plus `research/spike-0a.md`; the shell session folds that file
 into validation.md when it lands.
 
+**Session 29 ("3D Scene 19", 2026-10-07): the Scene workspace SHELL is built and verified**
+(validation.md § Scene workspace shell, committed at session 29's handoff): `PAGE_SCENE`,
+`MpiSceneBlock`, `MpiSceneCanvas` (three ^0.186.1, render on demand, full GL teardown proven by a
+10-visit spec), the dev_mode intercept, a DISABLED dev_mode **Convert to 360 pano** row
+(`canConvertToPano`). Phase 2 enables that row + writes `scenePath`; Phase 3 draws into
+`MpiSceneCanvas.getScene()`. GPU-free next work: Phase 2's MpiNodes code + CPU tests (its bench
+run needs the lease). `research/spike-0a.md` not landed yet - fold it in when it does.
+
 **The product (Fabio's why):** the 3D scene exists for EXACT camera placement - behind a house,
 up a tree, on the floor looking up, inside a house through a shut window, a door frame, a gap
 between buildings. The deliverable is the STILL from the placed camera. Locale consistency
@@ -69,8 +77,9 @@ declared dep (SplatKit fetched it at runtime; SplatKit and Mickmumpitz left the 
 `b3c25a678` / `edff37f2a`). New MpiNodes nodes obey `registry-safety.md` (no runtime download,
 paths via `resolve_in_comfy_dir`, no subprocess, no HTTP route).
 
-**App facts:** no 3D library in `package.json`; no `loseContext` anywhere in `js/`; no
-add-a-workspace doc (touch list: `js/router.js:11-13`, `js/shell/navigation.js:195-206,
+**App facts:** three ^0.186.1 in `package.json` since the shell (imported from
+`node_modules/three/build/three.module.js`, like `marked`); the only GL teardown is
+`MpiSceneCanvas.destroy()`; no add-a-workspace doc (touch list: `js/router.js:11-13`, `js/shell/navigation.js:195-206,
 276-319, 546-558`, `js/shell/focusModeService.js:38`, `MpiFlowLibrary.js:100`,
 `agentService.js:215`, `agentDispatch.js:457/510`, `preloadStyles.js`, `types.js`). History:
 `appendToHistory` selects the newest entry (`projectModel.js:226-229`); right-click `Add to
@@ -251,7 +260,10 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       `js/utils/assetKinds.js`, `MpiGalleryBlock.js`, `MpiGalleryGrid.js`, `MpiFlowLibrary.js`
       **(A2/A3 data layer LANDED 2026-10-07: `scenePath`, `getSceneItem`, `scene` in
       `DERIVATIVE_RE`, add-from-cards copies the set, kind/chip/filter/intercept/stacking read
-      the card - `tests/scene-companion.test.cjs`. Left here: the `scenePath` WRITER is Convert's.)**
+      the card - `tests/scene-companion.test.cjs`. SHELL LANDED 2026-10-07 (session 29):
+      `PAGE_SCENE`, both components, the intercept, the Convert row DISABLED -
+      `tests/scene-workspace.test.cjs` + `tests/desktop/scene-workspace.spec.js`. Left here:
+      enable the row, wire it to `sceneConvert`, write `scenePath` - after Phase 2.)**
       (page check only), `agentService.js` / `agentDispatch.js` (page maps only),
       `package.json` + lock (three), `styles/` for the new Block, `tests/scene-*.cjs`,
       `tests/desktop/scene-*.spec.js`. Briefings: `components`, `dos_and_donts`, `workspaces`,
@@ -306,6 +318,11 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
 - **2026-10-07 - A9 decided by Fabio:** no auto-open for a 2:1 image (a banner is not always a
   pano); right-click **Convert to 360 pano** converts the card, then a left-click opens Scene.
   Convert left the Scene workspace for the gallery menu; the Pano Flow converts at its end.
+- **2026-10-07 - the Scene shell ran BEFORE Phase 2** (Fabio split the card while the GPU was
+  held): built without `sceneConvert`, so the Convert row ships disabled. three is ^0.186.1, not
+  the spike's 0.170 - Phase 3's port re-checks parity on it. `agentDispatch.js` needed no page
+  map. `.claude/rules/workspaces.md` + `docs/workspaces.md` still say "three workspaces" and
+  `component-state.md` lists no `'scene'` page - drift for Phase 4, rules only with Fabio's yes.
 - **2026-10-07 - A5 settled on neither planned route.** The op is `inpaint` on `klein-9b`, not a
   `kleinInpaint`; `scenePicture` is no longer a universal op (Phase 2's op list drops it), the
   sequencer lives in `js/services/scene/` (Phase 3) and needs `sceneLift` from Phase 2.

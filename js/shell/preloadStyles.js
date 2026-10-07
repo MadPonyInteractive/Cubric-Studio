@@ -33,6 +33,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Compounds/MpiMaskedImagePreview/MpiMaskedImagePreview.css',
   'js/components/Primitives/MpiWaveform/MpiWaveform.css',
   'js/components/Primitives/MpiFilterBar/MpiFilterBar.css',
+  'js/components/Primitives/MpiSceneCanvas/MpiSceneCanvas.css',
 
   // Compounds
   'js/components/Compounds/MpiThumbStrip/MpiThumbStrip.css',
@@ -131,6 +132,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   // Blocks
   'js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.css',
   'js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.css',
+  'js/components/Blocks/MpiSceneBlock/MpiSceneBlock.css',
 
 ];
 

@@ -32,7 +32,7 @@ import { activeMask } from '../shell/activeMask.js';
 import { activeFrame } from '../shell/activeFrame.js';
 import { activeStackMember } from '../shell/activeStackMember.js';
 import { isStack, expandStacks } from '../data/stackModel.js';
-import { PAGE_GROUP_HISTORY } from '../router.js';
+import { PAGE_GROUP_HISTORY, PAGE_SCENE } from '../router.js';
 import { isOperationInstalled } from '../data/modelRegistry.js';
 import { resolveNamedParams } from '../data/generationControls.js';
 
@@ -212,7 +212,8 @@ function _workspaceForTurn() {
     const page = state.currentPage;
     const groupId = state.currentParams?.groupId || null;
     const base = { page, groupId: null, card: null, activeEntry: null };
-    if (page !== PAGE_GROUP_HISTORY || !groupId) return base;
+    // MPI-623: in a card's Scene the agent still needs to know which card it is.
+    if ((page !== PAGE_GROUP_HISTORY && page !== PAGE_SCENE) || !groupId) return base;
 
     const groups = state.currentProject?.itemGroups || [];
     const route = groups.find((g) => g.id === groupId);

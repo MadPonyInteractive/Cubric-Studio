@@ -499,3 +499,28 @@ Neither of the plan's two routes. The Flow `chain` cannot carry it; the existing
 - `node --test tests/scene-companion.test.cjs` (4 tests, incl. a scene card whose selected entry is a
   plain picture: still `scene`, never stackable) + splat/asset-kind/filter suites: 42/42. `npm test`:
   2735 pass, 0 fail, 2 skipped. eslint on the 9 touched files: clean.
+
+## Scene workspace shell (2026-10-07, session 29 "3D Scene 19", no GPU)
+
+- `PAGE_SCENE` ('scene') routed at every touch-list site: `router.js`, `navigation.js` (route,
+  lazy import, breadcrumb/accent/ENTRIES stats shared with History, up-arrow -> gallery),
+  `focusModeService` (`page-scene`), `MpiFlowLibrary._inProject`, `agentService` (the agent sees
+  the card). `agentDispatch` left alone: nothing dispatches from Scene yet.
+- `MpiSceneCanvas` (Primitive): three ^0.186.1 `WebGLRenderer` on a transparent canvas, empty
+  `Scene` + `PerspectiveCamera`, render ON DEMAND (`requestRender`), ResizeObserver bails on 0x0.
+  Teardown: cancel RAF, disconnect, `dispose()`, `forceContextLoss()`, zero canvas, null refs.
+  No WebGL2 -> `--unsupported` note. `MpiSceneBlock` mounts it. Both registered (preload, types).
+- Intercept: `dev_mode && !stack && getSceneItem(group)` -> `navigate(PAGE_SCENE)`; dev_mode off
+  -> Group History (the old "not built yet" toast is gone). Gallery right-click **Convert to 360
+  pano** via `canConvertToPano(group)` (assetKinds.js: image card, no scene, selected entry a plain
+  still at exactly 2:1), dev_mode only, single card, DISABLED until Phase 2 wires `sceneConvert`.
+- **WebGL2 EXISTS under `CUBRIC_E2E`** (GPU off, software GL): the spec's 10 contexts were real.
+- `tests/desktop/scene-workspace.spec.js`: 10 real left-click round trips -> 10 webgl2 contexts
+  made, 0 live after, 0 canvases sized, no Scene canvas left; a scene card whose selected entry is
+  a plain picture opens Scene and wears `data-kind="scene"`; Convert offered (disabled) on a 2:1
+  still, absent on 16:9 and on the scene card. **Failing direction proven:** with
+  `forceContextLoss()` commented out the spec fails `every context lost on leave: received 10`.
+- `tests/scene-workspace.test.cjs` (4 tests, the Convert gate). `npm test` 2739 pass, 0 fail;
+  `npm run lint` clean; desktop scene + workspace-sweep + focus-mode + gallery-filter-panel: 9/9.
+- Not run: an `app:isolated` look on the real GPU (nothing to see yet but an empty canvas);
+  Convert on a 2K pano (Phase 2).

@@ -101,3 +101,18 @@ export function kindOfItem(item) {
 export function getSceneItem(group) {
     return group?.history?.find(i => i?.scenePath || i?.splatPath) ?? null;
 }
+
+/**
+ * MPI-623 (plan A9) — may the gallery offer "Convert to 360 pano" on this card? An image
+ * card with no scene yet whose selected entry is a plain still (not a GIF) at EXACTLY 2:1,
+ * the shape the equirect maths needs. The app cannot tell a pano from a 2:1 banner, so it
+ * offers and the user says which.
+ * @param {Object} group
+ * @returns {boolean}
+ */
+export function canConvertToPano(group) {
+    if (group?.type !== 'image' || getSceneItem(group)) return false;
+    const item = group.history?.[group.selectedIndex ?? 0];
+    const { w, h } = item?.pixelDimensions || {};
+    return kindOfItem(item).kind === 'image' && w > 0 && w === 2 * h;
+}

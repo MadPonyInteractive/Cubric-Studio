@@ -32,6 +32,22 @@
     "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
     "routes/gifMake.js",
     "tests/scene-companion.test.cjs",
-    "tests/asset-kinds.test.cjs"
+    "tests/asset-kinds.test.cjs",
+    "js/router.js",
+    "js/shell/navigation.js",
+    "js/shell/focusModeService.js",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js",
+    "js/components/Blocks/MpiSceneBlock/MpiSceneBlock.js",
+    "js/components/Blocks/MpiSceneBlock/MpiSceneBlock.css",
+    "js/components/Primitives/MpiSceneCanvas/MpiSceneCanvas.js",
+    "js/components/Primitives/MpiSceneCanvas/MpiSceneCanvas.css",
+    "js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js",
+    "js/services/agentService.js",
+    "package.json",
+    "package-lock.json",
+    "tests/scene-workspace.test.cjs",
+    "tests/desktop/scene-workspace.spec.js",
+    ".agents/mpi-kanban/tasks/MPI-623/validation.md"
   ]
 }

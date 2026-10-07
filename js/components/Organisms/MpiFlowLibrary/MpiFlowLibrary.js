@@ -17,7 +17,7 @@ import { sizeToGb, fitsHardware } from '../../../data/modelConstants/footprint.j
 import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
 import { DEPS } from '../../../data/modelConstants/dependencies.js';
-import { PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../../../router.js';
+import { PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../../../router.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { openExternal } from '../../../utils/openExternal.js';
@@ -90,14 +90,15 @@ const PAID_FLOWS = [
 
 /**
  * Can a flow open from here? A flow lands as a card in the OPEN project, so the answer is
- * "inside a project" — the Gallery OR a card's History workspace — and never Landing,
+ * "inside a project" — the Gallery OR a card's History or Scene workspace — and never Landing,
  * where `flow:open` lands nowhere. MPI-992: this was `=== PAGE_GALLERY` from Apps v1,
  * before the Tab ring and the bar's Flows button reached the Library from History; there
  * an installed flow stopped at the install drawer with its Open button disabled.
  * @returns {boolean}
  */
 function _inProject() {
-    return state.currentPage === PAGE_GALLERY || state.currentPage === PAGE_GROUP_HISTORY;
+    return state.currentPage === PAGE_GALLERY || state.currentPage === PAGE_GROUP_HISTORY
+        || state.currentPage === PAGE_SCENE;
 }
 
 /**

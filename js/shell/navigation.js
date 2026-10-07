@@ -5,6 +5,7 @@
  *   PAGE_LANDING      → project picker
  *   PAGE_GALLERY      → main gallery (grid of ItemGroups); default on project open
  *   PAGE_GROUP_HISTORY → history view for a single ItemGroup (params: { groupId })
+ *   PAGE_SCENE        → a scene card's 3D viewer (params: { groupId }; MPI-623, dev_mode)
  *
  * Hold Tab for the radial (MPI-811) — four fixed destinations on the diagonals:
  * Gallery (top-left), Models (the PICKER, bottom-left — MPI-848), Flows (top-right) and your latest
@@ -22,7 +23,7 @@ import { Events } from '../events.js';
 import { refreshProject as refreshProjectStats, refreshGroup as refreshGroupStats } from '../services/projectStatsService.js';
 import { APP_CONFIG } from '../../dev_configs/app_config.js';
 import { gid, qs } from '../utils/dom.js';
-import { navigate, back, clearHistory, PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../router.js';
+import { navigate, back, clearHistory, PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../router.js';
 import { MpiRadialMenu } from '../components/Primitives/MpiRadialMenu/MpiRadialMenu.js';
 import { resolveFlipTarget } from '../data/projectModel.js';
 import { MODELS, isModelUsable } from '../data/modelRegistry.js';
@@ -65,9 +66,9 @@ export function initNavigation(refs) {
     _projectNameInst = refs.projectNameInstance;
 
     // Up-arrow — navigates up one level (not back in history stack)
-    // group-history → gallery, gallery → landing
+    // group-history / scene → gallery, gallery → landing
     _projectNameInst.on('up', () => {
-        if (state.currentPage === PAGE_GROUP_HISTORY) {
+        if (state.currentPage === PAGE_GROUP_HISTORY || state.currentPage === PAGE_SCENE) {
             navigate(PAGE_GALLERY);
         } else {
             navigate(PAGE_LANDING);
@@ -199,10 +200,10 @@ export async function handleNavigation(page, params = {}) {
         return;
     }
 
-    if (page === PAGE_GROUP_HISTORY) {
+    if (page === PAGE_GROUP_HISTORY || page === PAGE_SCENE) {
         _showShell();
         updateTitlebarProject();
-        await _loadView(PAGE_GROUP_HISTORY, params, navToken);
+        await _loadView(page, params, navToken);
     }
 }
 
@@ -236,7 +237,7 @@ async function _destroyCurrentBlock() {
 
 /**
  * Loads the correct workspace into _toolContainer and syncs the breadcrumb.
- * @param {string} page   - PAGE_GALLERY | PAGE_GROUP_HISTORY
+ * @param {string} page   - PAGE_GALLERY | PAGE_GROUP_HISTORY | PAGE_SCENE
  * @param {Object} params - Route params (e.g. { groupId } for group-history)
  */
 async function _loadView(page, params = {}, navToken = _navSeq) {
@@ -294,7 +295,8 @@ function _updateBreadcrumb(page, params) {
         // one media type — it is a shared surface and keeps :root's Studio cream.
         delete _appShell.dataset.accent;
         refreshProjectStats();
-    } else if (page === PAGE_GROUP_HISTORY) {
+    } else if (page === PAGE_GROUP_HISTORY || page === PAGE_SCENE) {
+        // MPI-623: Scene is a card's workspace too — same name, entries, accent.
         const group = state.currentProject?.itemGroups?.find(g => g.id === params.groupId);
         // MPI-736: a card's workspace wears its media type's colour — every
         // var(--accent-heat) below this element follows in one line. This branch is
@@ -358,7 +360,7 @@ Events.on('state:changed', ({ key, value }) => {
     if (!_projectNameInst) return;
     if (key === 'projectStats' && _currentPage === PAGE_GALLERY) {
         _projectNameInst.el.setStats({ count: value.count, bytes: value.bytes, label: 'ASSETS' });
-    } else if (key === 'historyStats' && _currentPage === PAGE_GROUP_HISTORY) {
+    } else if (key === 'historyStats' && (_currentPage === PAGE_GROUP_HISTORY || _currentPage === PAGE_SCENE)) {
         if (value.groupId === _currentGroupId) {
             _projectNameInst.el.setStats({ count: value.count, bytes: value.bytes, label: 'ENTRIES' });
         }
@@ -551,6 +553,10 @@ async function _importView(view) {
         case PAGE_GROUP_HISTORY: {
             const { MpiGroupHistoryBlock } = await import('../components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js');
             return { mount: (container, params) => MpiGroupHistoryBlock.mount(container, params) };
+        }
+        case PAGE_SCENE: {
+            const { MpiSceneBlock } = await import('../components/Blocks/MpiSceneBlock/MpiSceneBlock.js');
+            return { mount: (container, params) => MpiSceneBlock.mount(container, params) };
         }
         default:
             console.warn(`[navigation] Unknown view: "${view}"`);

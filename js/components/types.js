@@ -1978,6 +1978,30 @@
  */
 
 /**
+ * @typedef {Object} MpiSceneBlockProps (Block — js/components/Blocks/MpiSceneBlock)
+ * @property {string} groupId - ID of the scene card (from router params, PAGE_SCENE).
+ *   Opened only for a card with `getSceneItem(group)`, behind APP_CONFIG.dev_mode (MPI-623).
+ *
+ * Today the workspace shell: mounts MpiSceneCanvas and destroys it on teardown.
+ * Emits: (none)
+ */
+
+/**
+ * @typedef {Object} MpiSceneCanvasProps (Primitive — js/components/Primitives/MpiSceneCanvas)
+ * No props. Owns ONE WebGL2 context via a three.js WebGLRenderer, an empty Scene and a
+ * PerspectiveCamera; draws on demand only (no free-running loop). No WebGL2 → the
+ * `--unsupported` modifier shows a note and the getters return null.
+ *
+ * Instance methods (on el):
+ *   el.getRenderer() / el.getScene() / el.getCamera() — null when unsupported or destroyed
+ *   el.requestRender() — draw one frame on the next animation frame
+ *   el.isSupported()   — false when no WebGL2 context could be made
+ *   el.destroy()       — cancel the frame, disconnect the ResizeObserver, dispose the
+ *                        renderer, force context loss, zero the canvas, null every ref
+ * Emits: (none)
+ */
+
+/**
  * @typedef {Object} MpiRadialMenuProps (Primitive — js/components/Primitives/MpiRadialMenu)
  * @property {'root'|'image'|'video'|'audio'} [context='root'] - Active context that determines which items are shown
  * @property {boolean} [open=false] - Force the menu open on mount (used for first-run/workspace entry)
