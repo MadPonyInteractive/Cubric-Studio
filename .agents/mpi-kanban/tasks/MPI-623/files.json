@@ -53,6 +53,22 @@
     "c:/AI/Mpi/ComfyUi-MpiNodes/scene3d/",
     "c:/AI/Mpi/ComfyUi-MpiNodes/tests/",
     "c:/AI/Mpi/ComfyUi-MpiNodes/.comfyignore",
+    "js/data/modelConstants/assetDeps.js",
+    "js/data/commandRegistry.js",
+    "js/data/modelConstants/universal_workflows.js",
+    "js/core/operationRegistry.js",
+    "operation_registry.json",
+    "comfy_workflows/raw/scene_convert.json",
+    "comfy_workflows/raw/scene_lift.json",
+    "comfy_workflows/scene_convert.json",
+    "comfy_workflows/scene_lift.json",
+    "tests/scene-ops.test.cjs",
+    "tests/flow-output-filename.test.cjs",
+    "js/services/scene/sceneConvert.js",
+    "tests/scene-convert.test.cjs",
+    "docs/scenes.md",
+    "docs/README.md",
+    "c:/AI/Mpi/mpi-ci/cubric-vision-pod/start.sh",
     ".agents/mpi-kanban/tasks/MPI-623/files.json"
   ]
 }
