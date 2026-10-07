@@ -524,3 +524,52 @@ Neither of the plan's two routes. The Flow `chain` cannot carry it; the existing
   `npm run lint` clean; desktop scene + workspace-sweep + focus-mode + gallery-filter-panel: 9/9.
 - Not run: an `app:isolated` look on the real GPU (nothing to see yet but an empty canvas);
   Convert on a 2K pano (Phase 2).
+
+## Phase 2 MpiNodes: code + CPU checks (2026-10-07, session 30 "3D Scene 20", no GPU)
+
+MpiNodes `3e8d7d2` (main, pushed, not pinned): `scene.py` (6 nodes, category
+`MpiNodes/Scene`), `scene3d/` (pure maths, no ComfyUI import), `tests/test_scene3d.py`, registration
+in `__init__.py`, README § 3D Scene, two changelog lines under V1.2.17, `/tests/` in `.comfyignore`.
+
+- **Vendored MoGe v1** in `scene3d/moge/`: `model.py` (0d strip list applied: no HF download, no
+  hub loaders, no `importlib`, `from_state_dict` only), `geometry.py`, `panorama.py` (MoGe's
+  `infer_panorama.py` as Matrix-3D changed it + SplatKit's in-process wrapper), `utils3d.py` (the 12
+  functions used), `dinov2/` (xFormers, env reads, logging, download and DINOHead removed; Apache
+  change notices in each edited file). `LICENSE` carries MoGe MIT + Apache-2.0, Matrix-3D MIT,
+  utils3d MIT (`Copyright (c) 2022 EasternJournalist`, fetched from its repo).
+- **Weights format: `.safetensors` in `models/moge/`** (no pickle in the pack; the config of the one
+  shipped checkpoint is `MOGE_VITL_CONFIG` in `scene.py`, asserted equal to `model.pt`'s own).
+  Recipe for the Ship step: `safetensors.torch.save_file({k: v.contiguous() for k, v in
+  ck["model"].items()}, ...)` from `torch.load(model.pt, weights_only=True)`.
+- **Contract with the app** (Phase 2's ops build on it): depth is a raw `<f4` file, no header,
+  under `output/scenes/`, path returned as STRING (the `Output_Splat` pattern).
+  `MpiPanoDepth` -> `depth_width/2 x depth_width` (default 1024 x 2048), sky = 2x the farthest
+  valid depth (export_records.py's rule). `MpiLiftDepth(image, known_depth, fov_x)`:
+  `known_depth` = a `<f4` file in `input/` the size of the fill, camera z, 0 = unknown -> depth file
+  with 0 = not kept + `fit_error` (median rel). `IS_CHANGED` hashes the file. Wrap Crop / Cut Merge
+  take the PRE-pad image as `reference` so the pad scales with any upscale.
+- `tests/test_scene3d.py` (engine python, CPU): **9 passed** - pad/crop round trip incl. a 4x
+  upscale, soften leaves columns past `radius` untouched and keeps a hard edge at threshold 6,
+  cut merge = identity on two equal renders and meets each side's tone, depth edges, lift recovers
+  a=2.5 b=0.3 exactly and keeps the holes grown 2 px, empty known map raises, pano direction round
+  trip, 12 orthonormal cameras, a constant room merges flat.
+- **Vendoring parity, CPU, real weights** (scratchpad `parity_moge.py`): vendored `MoGeModel.infer`
+  vs SplatKit's copy on one 512x384 view: points / depth / intrinsics max abs diff **0.0**, masks
+  equal (6.7 s for both).
+- **Pano depth vs the spike, CPU** (plan verify, GPU half replaced by CPU): `panorama_depth` on the
+  ring 8K pano at 2048x1024, level 9, vs `pano_depth_ring8k.npz`: rel err **median 0.46%, mean
+  0.77%** (< 1%), p99 4.2%, valid mask agrees 99.97%, scale ratio 0.99987; 104 s on CPU.
+- **Whole-pack smoke** (scratchpad `node_smoke.py`: the pack imported as ComfyUI does, `--cpu`, scratch
+  input/output/models dirs): all 6 nodes registered with display names; wrap nodes run; `MpiLiftDepth`
+  on a real picture with known z = 2.5 x MoGe + 0.3 on the left 60%: fit_error 5.5e-6, keeps 100%
+  of the right side and 0% left of the 2 px growth, max rel err on kept 5.4e-5; `../outside.f32`
+  refused; `MpiPanoDepth` node vs a direct `panorama_depth` call: median rel 3e-5, 4 of 2M pixels
+  flipped valid (CPU run-to-run noise at MoGe's 0.8 mask threshold).
+- Registry self-check grep (`publishing.md` + `os.environ|subprocess|torch.load|PromptServer`) over
+  `scene.py`, `scene3d/`, `tests/`: clean. No route, no download, the only path widget goes through
+  `resolve_input_file`.
+- **Found:** the sky rule "2x the farthest valid depth" is outlier-led: the CPU run's valid max is
+  18.9 vs the spike's 15.7, so the sky dome lands at 37.8 vs 31.5 for the same pano. Known pixels
+  are unaffected; noted for Phase 3's viewer (a percentile would be steadier).
+- **Not run (GPU, bench, needs the lease):** the pano on the GPU, and the lift fit error per step
+  vs `chain_ring8k_gen.log` (needs the spike's known-z renders, which only its GPU raster makes).

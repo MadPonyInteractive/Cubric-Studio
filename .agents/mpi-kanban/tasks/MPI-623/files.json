@@ -48,6 +48,11 @@
     "package-lock.json",
     "tests/scene-workspace.test.cjs",
     "tests/desktop/scene-workspace.spec.js",
-    ".agents/mpi-kanban/tasks/MPI-623/validation.md"
+    ".agents/mpi-kanban/tasks/MPI-623/validation.md",
+    "c:/AI/Mpi/ComfyUi-MpiNodes/scene.py",
+    "c:/AI/Mpi/ComfyUi-MpiNodes/scene3d/",
+    "c:/AI/Mpi/ComfyUi-MpiNodes/tests/",
+    "c:/AI/Mpi/ComfyUi-MpiNodes/.comfyignore",
+    ".agents/mpi-kanban/tasks/MPI-623/files.json"
   ]
 }

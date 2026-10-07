@@ -34,6 +34,15 @@ into validation.md when it lands.
 `MpiSceneCanvas.getScene()`. GPU-free next work: Phase 2's MpiNodes code + CPU tests (its bench
 run needs the lease). `research/spike-0a.md` not landed yet - fold it in when it does.
 
+**Session 30 ("3D Scene 20", 2026-10-07): Phase 2's MpiNodes CODE is written and CPU-verified,
+committed + pushed as MpiNodes `3e8d7d2` (main), NOT pinned** (`scene.py`, `scene3d/`, `tests/`;
+validation.md § Phase 2 MpiNodes). Fabio picked this work ("go"). Vendored MoGe == SplatKit's on
+CPU (diff 0.0); pano depth vs the spike npz mean 0.77% on CPU. Weights ship as
+`models/moge/*.safetensors`. **Next:** the bench GPU run under the lease (copy the pack into
+`G:\ComfyUi\ComfyUI\custom_nodes\`, a `moge_vitl.safetensors` in `models/moge/`; lift fit per step
+needs the spike's GPU renders for known z), then Ship (pin + R2 dep) and the two universal ops.
+`research/spike-0a.md` still not landed.
+
 **The product (Fabio's why):** the 3D scene exists for EXACT camera placement - behind a house,
 up a tree, on the floor looking up, inside a house through a shut window, a door frame, a gap
 between buildings. The deliverable is the STILL from the placed camera. Locale consistency
@@ -218,6 +227,9 @@ only and may run beside the others).
       `MpiWrapCutMerge`; add utils3d's MIT notice to the vendored tree. **Verify:** CPU unit tests on tiny
       tensors; one bench GPU run reproduces the spike - pano depth vs `pano_depth_ring8k.npz`
       rel err < 1%, lift fit error matches `chain_ring8k_gen.log` per step.
+      **(CODE + CPU checks DONE 2026-10-07, session 30, uncommitted: 9/9 unit tests, vendored MoGe
+      == SplatKit's, pano vs npz mean 0.77% ON CPU, whole-pack smoke. Left: the GPU bench run -
+      pano on the GPU, lift fit per step, which needs the spike's GPU raster for known z.)**
 - [ ] **Ship the pack and the weights:** commit, push, pin in `dev_configs/node_lock.json`; MoGe
       weights as a dep via `/mpi-add-model`'s deps half (R2, SHA). **Verify:** presence check
       green on the local engine; a Pod connect installs the pack with no image rebuild.
@@ -326,6 +338,13 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
 - **2026-10-07 - A5 settled on neither planned route.** The op is `inpaint` on `klein-9b`, not a
   `kleinInpaint`; `scenePicture` is no longer a universal op (Phase 2's op list drops it), the
   sequencer lives in `js/services/scene/` (Phase 3) and needs `sceneLift` from Phase 2.
+
+- **2026-10-07 - Phase 2 node contract settled in code (session 30):** MoGe weights are
+  `.safetensors` (no pickle in a Registry pack; config pinned in `scene.py`), folder `models/moge/`
+  (the Ship step's dep `filename` must be `moge/<name>.safetensors`). `MpiLiftDepth` reads known z
+  from a `<f4` file in `input/` (0 = unknown) instead of a mask input; its output depth uses 0 = not
+  kept, so a layer record needs no separate keep mask. Wrap Crop / Cut Merge take the pre-pad image
+  as `reference`. Pano depth's GPU half ran on the CPU instead (same code, < 1%).
 
 ## Verification
 
