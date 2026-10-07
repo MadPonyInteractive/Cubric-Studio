@@ -118,10 +118,10 @@ test('Scene: a scene card opens it whichever entry is selected, every visit free
         expect(gl.live, 'every context lost on leave').toBe(0);
         expect(gl.sized, 'every canvas zeroed on leave').toBe(0);
 
-        // ── 3. Convert to 360 pano: a plain 2:1 still only, greyed until Phase 2 ──
+        // ── 3. Convert to 360 pano: a plain 2:1 still only, live since Phase 2's sceneConvert ──
         const pano = await menuRows(window, 'e2e-pano');
         expect(pano.keys).toContain('convert-pano');
-        expect(pano.convertDisabled).toBe(true);
+        expect(pano.convertDisabled).toBe(false);
         expect((await menuRows(window, 'e2e-flat')).keys).not.toContain('convert-pano');
         expect((await menuRows(window, 'e2e-scene')).keys, 'a scene card is never converted again').not.toContain('convert-pano');
 

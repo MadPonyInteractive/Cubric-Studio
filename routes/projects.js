@@ -12,6 +12,7 @@
  *   DELETE /project-media/:projectId/:filename
  *   GET    /project-media/:projectId/download/:filename
  *   POST   /project-media/:projectId/update-meta
+ *   POST   /project-media/:projectId/scene
  *   POST   /project-notes
  *   POST   /project-notes/save
  *   POST   /project-media/:projectId/upload
@@ -1490,6 +1491,47 @@ router.post('/project-media/:projectId/update-meta', async (req, res) => {
         res.json({ success: true, metadata: merged });
     } catch (err) {
         logger.error('project', 'update-meta failed', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// MPI-623 (A9) — Convert to 360 pano: store a `sceneConvert` result as the item's scene, in
+// place. The client ran the op; both files are fetched HERE over the /view proxy, like a splat,
+// so a Pod's output reaches us. The manifest `<id>.scene.json` names its siblings by suffix
+// (`pano.png`, `pano_depth.f32`), so the add-from-cards copy renames the set unedited; its shape
+// is the spike's records `scene.json`. `scenePath` is written LAST: a failure leaves a plain
+// image card, never one that opens onto missing files.
+router.post('/project-media/:projectId/scene', async (req, res) => {
+    const { folderPath } = req.query;
+    const { itemId, imageUrl, depthUrl } = req.body || {};
+    if (!folderPath || !itemId || !imageUrl || !depthUrl) {
+        return res.status(400).json({ success: false, error: 'folderPath, itemId, imageUrl and depthUrl required' });
+    }
+    const metaDir = path.join(folderPath, 'Media', '.meta');
+    // updateItemMeta starts a missing sidecar from {}: an unknown id would mint a junk one.
+    if (!/^[\w-]+$/.test(itemId) || !(await fs.pathExists(path.join(metaDir, `${itemId}.json`)))) {
+        return res.status(404).json({ success: false, error: `no item ${itemId} in this project` });
+    }
+    const prefix = path.join(metaDir, `${itemId}.scene.`);
+    const files = { image: 'pano.png', depth: 'pano_depth.f32' };
+    try {
+        await streamDownload(imageUrl, prefix + files.image);
+        await streamDownload(depthUrl, prefix + files.depth);
+        // Raw little-endian float32, h rows x w = 2h (MpiPanoDepth): the grid size is in the bytes.
+        const raw = await fs.readFile(prefix + files.depth);
+        const h = Math.sqrt(raw.length / 8);
+        if (!Number.isInteger(h) || h < 1) throw new Error(`depth file holds ${raw.length} bytes, not a 2:1 float32 grid`);
+        const depth = new Float32Array(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.length));
+        let sky = 0;  // the node pushes the sky to twice the farthest depth, so the max IS the dome
+        for (const d of depth) if (d > sky) sky = d;
+        const manifestPath = path.join(metaDir, `${itemId}.scene.json`);
+        await fs.writeJson(manifestPath, { version: 1, pano: { image: files.image, depth: files.depth, w: 2 * h, h, sky }, layers: [] }, { spaces: 1 });
+        const scenePath = `/project-file?path=${encodeURIComponent(manifestPath)}`;
+        const merged = await updateItemMeta(path.join(metaDir, `${itemId}.json`), (prev) => ({ ...prev, scenePath }));
+        res.json({ success: true, scenePath, metadata: merged });
+    } catch (err) {
+        await Promise.all([...Object.values(files), 'json'].map(f => fs.remove(prefix + f).catch(() => {})));
+        logger.error('project', `scene save failed for ${itemId}`, err);
         res.status(500).json({ success: false, error: err.message });
     }
 });

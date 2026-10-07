@@ -41,6 +41,7 @@ import { canonicalModelId } from '../../../data/modelConstants/resolveModelDeps.
 import { getAvailableCommands, getCommand, buildCueAllJobItems, selectCueAllTargets } from '../../../data/commandRegistry.js';
 import { isStack, expandStacks, stackableKind, resultStackFields, STACK_TYPE } from '../../../data/stackModel.js';
 import { getSceneItem } from '../../../utils/assetKinds.js';
+import { convertToPano } from '../../../services/scene/sceneConvert.js';
 import { startGeneration, enqueueGeneration, clearPendingQueue, refreshQueueDepth, removeCueJob, peekCueQueue, cancelRunningCueJob } from '../../../services/generationService.js';
 import { StatusBar } from '../../../shell/statusBar.js';
 import { readSavedRoutines, routineMenu, runSavedRoutine } from '../../../shell/routineDispatch.js';
@@ -81,6 +82,10 @@ async function _mediaStillOnDisk(item) {
         return true;
     }
 }
+
+// MPI-623 — cards with a Convert to 360 pano in flight. Module scope: the job outlives a
+// gallery remount (navigation away and back), and so must the guard.
+const _convertingGroupIds = new Set();
 
 export const MpiGalleryBlock = ComponentFactory.create({
     name: 'MpiGalleryBlock',
@@ -300,6 +305,28 @@ export const MpiGalleryBlock = ComponentFactory.create({
         grid.on('describe', ({ group }) => {
             if (!group) return;
             describeItem(getSelectedItem(group), { group, scope: 'gallery' });
+        });
+
+        // MPI-623 (A9) — Convert to 360 pano: the card gets its scene in place (~1.5 min on a
+        // 4060 Ti), then a left-click opens it in Scene. Module-scoped so a second click while
+        // one runs does not start a second 8K job.
+        grid.on('convert-pano', ({ group }) => {
+            const project = state.currentProject;
+            const item = getSelectedItem(group);
+            if (!project?.folderPath || !item) return;
+            if (_convertingGroupIds.has(group.id)) {
+                Events.emit('ui:info', { message: 'This card is already being converted.', sound: false });
+                return;
+            }
+            _convertingGroupIds.add(group.id);
+            Events.emit('ui:info', { message: 'Building the 3D scene. This takes a minute or two.', sound: false });
+            convertToPano(project, group, item)
+                .then(() => Events.emit('ui:success', { message: 'Scene ready. Click the card to walk around in it.' }))
+                .catch((err) => {
+                    clientLogger.error('scene', 'convert to 360 pano failed', err);
+                    Events.emit('ui:error', { title: 'Convert failed', message: err.message });
+                })
+                .finally(() => _convertingGroupIds.delete(group.id));
         });
 
         grid.on('card-notes', ({ group }) => {

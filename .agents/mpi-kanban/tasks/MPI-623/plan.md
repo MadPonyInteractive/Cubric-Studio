@@ -54,8 +54,15 @@ the old MpiNodes in memory; an `app:isolated` instance attaches to that engine, 
 (engine) restarted on the new pin first. **Open decisions:** how `moge-vitl` installs (an
 `engineAsset` puts 1.17 GB on every engine while Scene is dev_mode-only); HF re-host (then drop
 `noMirror`); `publish-runtime.sh dev` for the `start.sh` line (not live on any Pod until then).
-**Next after that check:** enable the Convert row (shell item): `runSceneOp('sceneConvert')` ->
-download the 8K + depth -> write `.meta/<id>.scene.json` + companions + `scenePath`.
+**Found:** a NEW dep folder type (`moge`) never reaches an existing install's engine yaml - Ship
+gate item below; Fabio's own yaml was patched by hand so his test can run.
+**Convert row WIRED too** (validation.md § Convert to 360 pano wired): row enabled ->
+`convertToPano` -> `POST /project-media/:id/scene` (manifest + `pano.png` + `pano_depth.f32` by
+suffix, `scenePath` last). **Next:** after Fabio restarts his app (the engine reinstalls MpiNodes at
+`3e8d7d2`, and `moge_vitl.safetensors` must be in his models root - `G:\CubricModels\moge\` has it),
+right-click Convert on a 2:1 card (the ring 2K pano) and check the scene lands and opens; that one
+run closes the Phase 2 ops verify AND the Convert verify. Then Phase 3's viewer (port 0a's renderer
+onto the manifest) - 0a's parity result first (`research/spike-0a.md`, session 28).
 
 **The product (Fabio's why):** the 3D scene exists for EXACT camera placement - behind a house,
 up a tree, on the floor looking up, inside a house through a shut window, a door frame, a gap
@@ -250,6 +257,15 @@ only and may run beside the others).
       **(2026-10-07: pinned `3e8d7d2`, weights on R2 byte-exact, dep written, `start.sh` maps
       `moge`. Left: the engine-side verify (needs an engine restart), HF re-host,
       `publish-runtime.sh dev`.)**
+- [ ] **SHIP GATE - a new dep folder type never reaches an existing install's yaml.** The local
+      `extra_model_paths.yaml` is DERIVED from the deps (`yamlHelper.js`) but rewritten only on engine
+      install, a models-path change or an extra-folder change - so on every existing install a
+      downloaded `moge-vitl` sits in `<root>/moge/` and the engine never sees it (MpiPanoDepth's model
+      list stays empty -> "value not in list"). Found 2026-10-07; Fabio's own yaml got `moge: moge/` by
+      hand (backup in session 31's scratchpad) so his test can run. **My pick:** at engine start,
+      rewrite the yaml when a dep folder type is missing from it (same builder, current root +
+      extras). Touches every user's boot, so Fabio's call before it is built. Not breaking today:
+      Scene is dev_mode-only and nothing downloads `moge-vitl`.
 - [ ] **Universal ops + graphs:** `sceneConvert` (wrap-padded AnimeSharp when < 8K, cap 8K,
       `MpiPanoDepth`), `sceneLift` (`MpiLiftDepth` on a fill + the known-depth map + keep mask;
       Take picture and Build here both sequence it after Klein's own `inpaint`, A5),
@@ -293,8 +309,9 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       `DERIVATIVE_RE`, add-from-cards copies the set, kind/chip/filter/intercept/stacking read
       the card - `tests/scene-companion.test.cjs`. SHELL LANDED 2026-10-07 (session 29):
       `PAGE_SCENE`, both components, the intercept, the Convert row DISABLED -
-      `tests/scene-workspace.test.cjs` + `tests/desktop/scene-workspace.spec.js`. Left here:
-      enable the row, wire it to `sceneConvert`, write `scenePath` - after Phase 2.)**
+      `tests/scene-workspace.test.cjs` + `tests/desktop/scene-workspace.spec.js`. CONVERT WIRED
+      2026-10-07 (session 31): row enabled, `convertToPano`, `POST /project-media/:id/scene`,
+      `tests/scene-convert.test.cjs`. Left: one real Convert in the app.)**
       (page check only), `agentService.js` / `agentDispatch.js` (page maps only),
       `package.json` + lock (three), `styles/` for the new Block, `tests/scene-*.cjs`,
       `tests/desktop/scene-*.spec.js`. Briefings: `components`, `dos_and_donts`, `workspaces`,

@@ -650,3 +650,21 @@ only. MoGe loaded from the SHIPPED `moge_vitl.safetensors`.
   2.0.1); `flow-output-filename.test.cjs` lists both as save-nothing ops like `gifCutout*`.
 - Checks: `tests/scene-ops.test.cjs` 6/6 (fails if `Input_Known_Depth` leaves PATH_MEDIA_CLASSES);
   `npm test` 2745 pass / 0 fail; eslint clean; `release:check` passed.
+
+## Convert to 360 pano wired (2026-10-07, session 31, dev_mode only)
+
+- Gallery row enabled (`MpiGalleryGrid` emits `convert-pano`); `MpiGalleryBlock` runs
+  `convertToPano` (`js/services/scene/sceneConvert.js`): `runSceneOp('sceneConvert')` on the selected
+  still -> `POST /project-media/:id/scene` -> mirror `scenePath` on the live item + `gallery:item-updated`
+  (the card-notes pattern) so the card repaints with its 3D badge and opens in Scene. Info toast at the
+  start, success / error toast at the end; a module-scoped set stops a second click starting a second
+  8K job while one runs.
+- **Route** (`routes/projects.js`): downloads the 8K + depth over /view into `<id>.scene.pano.png` +
+  `<id>.scene.pano_depth.f32`, writes `<id>.scene.json` = the spike's records shape
+  `{version 1, pano {image, depth, w, h, sky}, layers []}` with siblings named by SUFFIX, `scenePath`
+  last. Grid size from the byte count (2:1 float32), sky = the max. Unknown / unsafe item id -> 404
+  (`updateItemMeta` would mint a sidecar); any failure removes every `<id>.scene.*` it wrote.
+- Checks: `tests/scene-convert.test.cjs` 3/3 (fake /view engine: manifest, siblings, sidecar,
+  DERIVATIVE_RE owns every file; failure cleanup; bad ids); `tests/desktop/scene-workspace.spec.js`
+  green with the row now ENABLED; `npm test` 2748 pass / 0 fail; eslint clean.
+- **Not run:** a real Convert in the app - same blocker as the ops (engine restart on the new pin).

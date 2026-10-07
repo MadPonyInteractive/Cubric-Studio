@@ -1704,11 +1704,9 @@ export const MpiGalleryGrid = ComponentFactory.create({
                                 : _stackCount ? 'Describe reads one image, not a stack'
                                     : (_selectedVideoCount > 0 ? 'Describe reads a still image, not a video' : 'Caption this image into a prompt') },
                         // MPI-623 (A9): offered, never guessed — a 2:1 still may be a banner.
-                        // ponytail: disabled until Phase 2's `sceneConvert` op exists; that
-                        // phase enables the row and wires its emit.
                         ...(APP_CONFIG.dev_mode && targetIds.length === 1 && canConvertToPano(group)
-                            ? [{ key: 'convert-pano', icon: 'cube', label: 'Convert to 360 pano', disabled: true,
-                                info: 'Turn this 2:1 picture into a 3D scene. The scene engine is not built yet' }]
+                            ? [{ key: 'convert-pano', icon: 'cube', label: 'Convert to 360 pano',
+                                info: 'Turn this 2:1 picture into a 3D scene you can walk around in' }]
                             : []),
 
                         { separator: true },
@@ -1747,6 +1745,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         if (key === 'card-notes') emit('card-notes', { group });
                         if (key === 'archive')    _archive(selected, !group.archived);
                         if (key === 'describe')   emit('describe', { group: selected[0] });
+                        if (key === 'convert-pano') emit('convert-pano', { group: selected[0] });
                         if (key === 'download')   emit('download', { groups: selected });
                         if (key === 'delete')     emit('delete',   { groups: selected });
                         if (key === 'unstack')    emit('unstack',  { groups: selected.filter(isStack) });
