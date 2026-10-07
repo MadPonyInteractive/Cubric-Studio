@@ -44,3 +44,4 @@
 ## Fixes
 
 - **Compare labels each side with its History name.** An imported image showed its full file path instead.
+- **Focus mode (F) shows your image again.** On an image it turned the whole screen black, with Compare on too.
