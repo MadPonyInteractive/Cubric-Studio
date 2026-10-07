@@ -8,7 +8,18 @@ Verification is Fabio's eyes on edited clips, plus measured timings for the mask
 
 ## Current State
 
-2026-10-06: card opened, nothing built. Next action: Phase 1 on the bench, Fabio at the graph.
+2026-10-07: card in `doing`, Phase 1 bench ready; waiting on Fabio's runs.
+
+- `G:/CubricModels/loras/minimax-h3/h3_character_swap_pro4500_1000.safetensors` - 155,110,320 B,
+  sha256 `4b2a3f42...` matches the repo's `SHA256SUMS`.
+- `G:/ComfyUi/ComfyUI/user/default/workflows/H3 Character Swap v1 Ref2VA.json` - akatz-ai's
+  example, repointed at the weights we ship: text encoder #128 -> the heretic int8_convrot
+  (theirs was nvfp4_awq, reverted by MPI-698 and not on the bench); turbo #145 -> our 8-step v1.0
+  (theirs 4-step v0.1), so #144 "Int (Lightning LoRA)" 4 -> 8; swap LoRA #147 -> the `minimax-h3\`
+  subfolder. 32 nodes, 35 links, 0 dangling. Turbo off by default (their switch #146).
+- A/B: bypass #147 (Ctrl+B) for the base run; same seed (#129 fixed 904234), 4-5 s clip.
+
+Next action: Fabio runs the A/B and judges background held + identity from the photo.
 
 ## Phase 1 - The hidden instructions, on the bench
 
