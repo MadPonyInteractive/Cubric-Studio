@@ -573,3 +573,80 @@ in `__init__.py`, README § 3D Scene, two changelog lines under V1.2.17, `/tests
   are unaffected; noted for Phase 3's viewer (a percentile would be steadier).
 - **Not run (GPU, bench, needs the lease):** the pano on the GPU, and the lift fit error per step
   vs `chain_ring8k_gen.log` (needs the spike's known-z renders, which only its GPU raster makes).
+
+## Ship, GPU-free half: MoGe weights + dep entry (2026-10-07, session 31 "3D Scene 21", no GPU)
+
+The GPU lease was session 28's (spike 0a), so this ran instead of the bench.
+
+- **Conversion** (scratchpad `convert_moge.py`, engine python, CPU): `G:\ComfyUi\ComfyUI\models\MoGe\model.pt`
+  -> `G:\CubricModels\moge\moge_vitl.safetensors` (the local master copy `computeDepHashes.py` reads).
+  The checkpoint's own `model_config` == `MOGE_VITL_CONFIG`, no extra keys; 421 tensors, all fp32,
+  every tensor `torch.equal` after the round trip. **1,256,740,032 bytes, sha256
+  `dbdf89d1f7651b9213a507923b4f100fed87489bb7425fda7f7d430bcb31d8a9`.** The vendored
+  `MoGeModel.from_state_dict` (strict) loads it and infers on a 384x256 image.
+- **Dep `moge-vitl`** in `js/data/modelConstants/assetDeps.js`: `filename: 'moge/moge_vitl.safetensors'`,
+  R2 url, `size: '1.17GB'` (the script's own `format_size`), `noMirror: true` (our bytes, no upstream
+  twin; drop it after an HF re-host), MIT `credit`. **NOT `engineAsset`**: that lands 1.17 GB on every
+  engine install while the feature is dev_mode-only - the `sceneConvert` step decides how it installs.
+  Nothing references it yet, so nothing downloads it.
+- **Pod folder map:** `moge: mpi_models/moge/` added to `c:\AI\Mpi\mpi-ci\cubric-vision-pod\start.sh`
+  (release:check's MPI-143 guard fails without it). The wrapper needs nothing (`MODEL_SUBDIRS.get(s, s)`).
+  Not live on any Pod until `publish-runtime.sh dev`.
+- Checks: `npm run release:check` passed; the guard regex sees `moge`, the local yaml builder emits
+  `moge:`, `DEPS['moge-vitl']` resolves; `npm test` 2739 pass / 0 fail; eslint clean on assetDeps.js.
+- **Not done (Fabio's call):** the R2 upload (~7 min at the 3 MB/s cap), the HF re-host, and
+  `publish-runtime.sh dev`. Until the upload, `npm run release:deps` reports the url as a 404.
+
+## Phase 2 bench, GPU half (2026-10-07, session 31, RTX 4060 Ti, under the lease, ~6 min)
+
+Scratchpad `bench_gpu.py` (results `bench_gpu.json`), run with the bench's python; read the spike dir
+only. MoGe loaded from the SHIPPED `moge_vitl.safetensors`.
+
+- **Pano depth on cuda** (ring 8K pano at 2048x1024, level 9) vs `pano_depth_ring8k.npz`: rel err
+  **median 0.46%, mean 0.77%** (< 1%, PASS), p99 4.2%, valid mask agrees 99.97%, scale ratio 0.9999;
+  **46 s**, peak torch VRAM **2.8 GB**. Same numbers as the CPU run, so the GPU adds nothing.
+- **Lift per step:** chain.py's `ring8k_gen` walk replayed on the spike's GPU raster with the SAVED Klein
+  fills (`D:\WORK\Images\Outputs\mpi623_chain_ring8k_gen\fill_step*.png`, no Klein call); each step runs
+  the spike's own fit (it also builds the layers, so the walk stays the logged one) and the node's
+  (vendored MoGe + `scene3d.lift_depth` on known z = render z where known, 0 elsewhere). **All 8 steps
+  PASS, exactly:** fit `a, b` identical to the log's to 4 decimals, fit error identical (3.09 / 2.15 /
+  3.70 / 3.06 / 2.15 / 2.91 / 2.39 / 1.42 % vs the log's rounded 3.1 / 2.2 / 3.7 / 3.1 / 2.2 / 2.9 /
+  2.4 / 1.4), kept pixels == the log's `layer_splats` on every step, keep IoU 1.0, kept depth median
+  rel diff <= 3e-7.
+- The SplatKit shim printed `triton raster backend unavailable` (tcc cannot find `Python.h`) and fell
+  back to its torch raster - the spike's own path, so no effect on the comparison.
+
+## Ship: R2 upload + pin (2026-10-07, session 31, Fabio's yes for the upload)
+
+- **R2:** `moge/moge_vitl.safetensors` uploaded (`--bwlimit 3M`, ~7 min, one run, no restart so no
+  orphaned multipart). `rclone lsl` = **1,256,740,032** bytes, byte-exact. Public HEAD with a browser
+  User-Agent: 200, same Content-Length. **A Python-default-UA HEAD gets 403 from Cloudflare on EVERY
+  object** (birefnet too) - not an upload fault. Still `noMirror: true`: the HF re-host was not asked for.
+- **Pin:** `dev_configs/node_lock.json` MpiNodes `bc92a1b` -> **`3e8d7d2995357bb67323fce91c5d31cf9aa6b821`**
+  (pushed; archive URL HEAD 200; MpiNodes tree clean, HEAD == origin/main). Adds 6 classes, removes none
+  (`__init__.py` diff). The `from .scene import` is unguarded, so a failed import would take every
+  MpiNodes node down: the scene modules import cleanly in the APP engine's python (cv2 5.0, scipy 1.18,
+  both pinned in `python_deps.txt`, which the Pod installs too). Volume node: no image rebuild.
+
+## Phase 2 ops: sceneConvert + sceneLift (2026-10-07, session 31)
+
+- **Graphs** (`comfy_workflows/raw/scene_*.json` LiteGraph, generated from the bench's `/object_info` by
+  scratchpad `make_scene_raw.py`, synced by `sync-raw-workflows.mjs`; injection validator clean):
+  `scene_convert` = `Input_Image` -> width < 4096 ? (Wrap Pad 32 -> AnimeSharp 4x -> Wrap Crop) : as is
+  (`MpiCompare` + lazy `MpiIfElse`) -> scale 8192x4096 -> `Output_Image` + `MpiPanoDepth` (2048) ->
+  `Output_Depth`. `scene_lift` = `Input_Image` + `Input_Known_Depth` (**`MpiString`**: a
+  PATH_MEDIA_CLASSES node, so the engine stages the f32 into input/ or uploads it to a Pod) +
+  `Input_Fov_X` (`MpiFloat`) -> `MpiLiftDepth` -> `Output_Depth`.
+- **Bench live run** (scratchpad `run_scene_graphs.py`, title injection like the app, under the lease):
+  `sceneConvert` on `mpi623_ring_2k.png`: **92 s**, 8K texture **pixel-identical** to the spike's
+  `ring_8k_00001_.png` (mean abs diff 0.0), depth vs `pano_depth_ring8k.npz` median 0.46% / mean 0.77%,
+  sky share 22.64% vs 22.64%. `sceneLift` on walk steps 0 and 4 (known z dumped from the replay,
+  uploaded through `/upload/image` - byte-identical round trip): kept **65,945 / 178,302** px vs the
+  log's 65,945 / 178,303, keep IoU 0.99994 / 0.99997, depth rel diff 7e-6; 4 s / 2 s.
+- **App side:** `runSceneOp` (commandExecutor.js, beside `runGifCutoutTrack`): direct dispatch, captures
+  `Output_Image` + `Output_Depth` -> `onResult({ imageUrl, depthUrl })`. Not `runCommand`: a depth-only run
+  reads as a CANCEL in generationService (`!urls.length` -> `onCancel`), and Convert must not make a card.
+  `splatViewFileInfo(path, dir)` gained `dir` ('scenes'). Registered in the 4 files (`appVersionIntroduced`
+  2.0.1); `flow-output-filename.test.cjs` lists both as save-nothing ops like `gifCutout*`.
+- Checks: `tests/scene-ops.test.cjs` 6/6 (fails if `Input_Known_Depth` leaves PATH_MEDIA_CLASSES);
+  `npm test` 2745 pass / 0 fail; eslint clean; `release:check` passed.

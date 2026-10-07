@@ -36,6 +36,13 @@ export const UNIVERSAL_WORKFLOWS = {
     removeBackground: {
         workflow: 'remove_background.json',
     },
+    // MPI-623. Their weights (moge-vitl) are not engineAsset while Scene is dev_mode-only.
+    sceneConvert: {
+        workflow: 'scene_convert.json',
+    },
+    sceneLift: {
+        workflow: 'scene_lift.json',
+    },
     autoMaskImg: {
         workflow: 'img_auto_mask.json',
     },

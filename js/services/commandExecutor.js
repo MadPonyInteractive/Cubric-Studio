@@ -1415,6 +1415,97 @@ export function runGifCutoutTrack(payload) {
 }
 
 /**
+ * MPI-623 — the two 3D Scene ops, dispatched directly like the GIF cut-out above, never
+ * through `runCommand`: neither makes a card. `sceneConvert` turns a 2:1 pano into its
+ * scene (the 8K texture + equirect depth) for the SAME card's companions; `sceneLift`
+ * returns only the depth of a Take-picture fill, and `generationService` reads a run with
+ * no image as a cancel.
+ *
+ * Two captures: `Output_Image` (sceneConvert's 8K texture) and `Output_Depth`, a
+ * `PreviewAny` holding the path of the raw float32 file the scene node wrote under
+ * `output/scenes/` — the `Output_Splat` contract, so it reaches a Pod's disk too.
+ *
+ * @param {{ op: 'sceneConvert'|'sceneLift', imagePath: string, knownDepthPath?: string, fovX?: number, forceLocal?: boolean }} payload
+ *   `knownDepthPath` (sceneLift): a local float32 file of the render's camera z, 0 = unknown.
+ *   `Input_Known_Depth` is an `MpiString`, so the engine stages it into input/ (uploads it
+ *   to a Pod) like any media path. `fovX`: the render's horizontal field of view, degrees.
+ * @returns {{ onResult: ?Function, onError: ?Function, onDone: ?Function, cancel: Function }}
+ *   `onResult({ imageUrl, depthUrl })` — `/view` URLs; `imageUrl` is null for sceneLift.
+ */
+export function runSceneOp(payload) {
+    let _settled = false;
+    let _promptId = null;
+    let _cancelled = false;
+    const forceLocal = payload.forceLocal === true;
+    const exec = {
+        onResult: null,
+        onError:  null,
+        onDone:   null,
+        cancel() {
+            if (_settled) return;
+            _cancelled = true;
+            if (_promptId) getEngine(forceLocal).interrupt(_promptId);
+        },
+    };
+
+    (async () => {
+        let imageUrl = null;
+        let depthUrl = null;
+        try {
+            const workflowFile = getUniversalWorkflow(payload.op);
+            if (!workflowFile) throw new Error(`${payload.op} workflow not registered`);
+            const res = await fetch(`/comfy_workflows/${workflowFile}`);
+            if (!res.ok) throw new Error(`Failed to load workflow: ${workflowFile}`);
+            const workflow = await res.json();
+            const idsTitled = (t) => new Set(Object.keys(workflow).filter(id => workflow[id]._meta?.title?.toLowerCase() === t));
+            const imageIds = idsTitled('output_image');
+            const depthIds = idsTitled('output_depth');
+
+            const params = { Input_Image: payload.imagePath };
+            if (payload.op === 'sceneLift') {
+                params.Input_Known_Depth = payload.knownDepthPath;
+                params.Input_Fov_X = payload.fovX;
+            }
+
+            const onMessage = (msg) => {
+                if (msg.type === 'prompt_ack') {
+                    _promptId = msg.prompt_id;
+                    if (_cancelled) getEngine(forceLocal).interrupt(_promptId);
+                    return;
+                }
+                if (msg.type !== 'executed') return;
+                const nodeId = msg.data?.node;
+                const nodeOutput = msg.data?.output;
+                if (imageIds.has(nodeId)) {
+                    const urls = [];
+                    _collectComfyOutputUrls(nodeOutput, urls, forceLocal);
+                    imageUrl = urls[0] || imageUrl;
+                }
+                if (depthIds.has(nodeId)) {
+                    const info = splatViewFileInfo(readComfyOutputText(nodeOutput), 'scenes');
+                    if (info) depthUrl = _buildComfyViewUrl(info, forceLocal);
+                }
+            };
+
+            await getEngine(forceLocal).runWorkflow(workflow, params, onMessage);
+            if (!depthUrl) throw new Error(`${payload.op} finished without a depth file`);
+            exec.onResult?.({ imageUrl, depthUrl });
+        } catch (err) {
+            // MPI-856: a no-engine refusal already warned the user — no bug dialog on top.
+            if (err?.code !== NO_ENGINE_CODE && !_cancelled) {
+                clientLogger.error('comfy', `${payload.op} failed`, err);
+            }
+            exec.onError?.(err);
+        } finally {
+            _settled = true;
+            exec.onDone?.();
+        }
+    })();
+
+    return exec;
+}
+
+/**
  * Executes a generative command.
  *
  * Returns an Execution handle synchronously — attach callbacks before the

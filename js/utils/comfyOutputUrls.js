@@ -97,14 +97,18 @@ export function readComfyOutputText(nodeOutput) {
  * Separator-agnostic on purpose: the authoring bench is Windows and the Pod is
  * Linux, and the same graph runs on both.
  *
+ * The 3D Scene depth files (`Output_Depth`, MpiNodes scene.py) follow the same contract
+ * under `<comfy_output>/scenes/…`, so they pass `dir = 'scenes'`.
+ *
  * @param {string} plyPath  absolute path as `Output_Splat` reported it
+ * @param {string} [dir='splats']  the output subfolder the node owns
  * @returns {{filename: string, subfolder: string, type: string}|null}
- *          null when the path is empty or carries no `splats/` segment — an
+ *          null when the path is empty or carries no `<dir>/` segment — an
  *          unrecognised shape must not become a half-built URL that 404s.
  */
-export function splatViewFileInfo(plyPath) {
+export function splatViewFileInfo(plyPath, dir = 'splats') {
     const parts = String(plyPath || '').split(/[\\/]+/).filter(Boolean);
-    const at = parts.lastIndexOf('splats');
+    const at = parts.lastIndexOf(dir);
     if (at === -1 || at === parts.length - 1) return null;
     return {
         filename: parts[parts.length - 1],

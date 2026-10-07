@@ -112,6 +112,9 @@ export const OPERATION_REGISTRY = {
     // MPI-1012 — the audio MODEL ops that replaced the two Flows above. New keys in 2.0.0.
     t2a:          { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     tts:          { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
+    // MPI-623 — the 3D Scene ops (dev_mode-only), run by `runSceneOp`.
+    sceneConvert: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
+    sceneLift:    { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
 };
 
 /**

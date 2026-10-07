@@ -1,0 +1,65 @@
+{
+  "1": {
+    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": true,
+      "string": ""
+    },
+    "class_type": "MpiLoadImage",
+    "_meta": {
+      "title": "Input_Image"
+    }
+  },
+  "2": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiString",
+    "_meta": {
+      "title": "Input_Known_Depth"
+    }
+  },
+  "3": {
+    "inputs": {
+      "float": 60
+    },
+    "class_type": "MpiFloat",
+    "_meta": {
+      "title": "Input_Fov_X"
+    }
+  },
+  "4": {
+    "inputs": {
+      "model": "moge_vitl.safetensors",
+      "image": [
+        "1",
+        0
+      ],
+      "known_depth": [
+        "2",
+        0
+      ],
+      "fov_x": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "MpiLiftDepth",
+    "_meta": {
+      "title": "Lift Depth"
+    }
+  },
+  "5": {
+    "inputs": {
+      "source": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Output_Depth"
+    }
+  }
+}

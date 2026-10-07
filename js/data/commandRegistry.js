@@ -1135,6 +1135,32 @@ export const commands = {
         promptRequired: false,
         universal: true,
     },
+    // MPI-623: the 3D Scene ops. Dispatched by `runSceneOp` (commandExecutor.js), never
+    // `runCommand` - neither makes a card. sceneConvert: a 2:1 pano -> its 8K texture + MoGe
+    // equirect depth. sceneLift: a Take-picture fill + the render's known z
+    // (`Input_Known_Depth`, `Input_Fov_X`) -> the fill's depth.
+    sceneConvert: {
+        label: 'Convert to 360 pano',
+        progressLabel: 'Building the 3D scene',
+        mediaType: MEDIA_TYPE.IMAGE,
+        requiresImages: 1,
+        mediaInputs: [
+            { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
+        ],
+        promptRequired: false,
+        universal: true,
+    },
+    sceneLift: {
+        label: 'Lift a fill into the scene',
+        progressLabel: 'Lifting the fill',
+        mediaType: MEDIA_TYPE.IMAGE,
+        requiresImages: 1,
+        mediaInputs: [
+            { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
+        ],
+        promptRequired: false,
+        universal: true,
+    },
     // MPI-771: GIF cut-out — SAM3 video tracking by name across every frame of
     // a temp video the GIF workspace encodes from the frame strip. Dispatched
     // by `runGifCutoutTrack` (commandExecutor.js) directly, not `runCommand` —

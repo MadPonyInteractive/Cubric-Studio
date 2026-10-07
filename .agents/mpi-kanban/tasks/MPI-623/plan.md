@@ -43,6 +43,20 @@ CPU (diff 0.0); pano depth vs the spike npz mean 0.77% on CPU. Weights ship as
 needs the spike's GPU renders for known z), then Ship (pin + R2 dep) and the two universal ops.
 `research/spike-0a.md` still not landed.
 
+**Session 31 ("3D Scene 21", 2026-10-07, Fabio asleep from ~21:45): Phase 2 is DONE but one
+check.** validation.md § Ship GPU-free half, § Phase 2 bench GPU half, § Ship R2 + pin, § Phase 2
+ops. MoGe safetensors on R2 (byte-exact, Fabio's yes), dep `moge-vitl` (NOT `engineAsset`,
+`noMirror`), `moge:` in mpi-ci `start.sh`; GPU bench green (pano 0.77%, lift == log on 8 steps);
+MpiNodes pinned at `3e8d7d2`; `sceneConvert` + `sceneLift` graphs + `runSceneOp` + the 4 registry
+files, both graphs run live on the bench (8K pixel-identical to the spike). **The one open check:**
+a dispatch THROUGH THE APP (`runSceneOp` -> staging -> engine). Fabio's app was open on :48188 with
+the old MpiNodes in memory; an `app:isolated` instance attaches to that engine, so it needs his app
+(engine) restarted on the new pin first. **Open decisions:** how `moge-vitl` installs (an
+`engineAsset` puts 1.17 GB on every engine while Scene is dev_mode-only); HF re-host (then drop
+`noMirror`); `publish-runtime.sh dev` for the `start.sh` line (not live on any Pod until then).
+**Next after that check:** enable the Convert row (shell item): `runSceneOp('sceneConvert')` ->
+download the 8K + depth -> write `.meta/<id>.scene.json` + companions + `scenePath`.
+
 **The product (Fabio's why):** the 3D scene exists for EXACT camera placement - behind a house,
 up a tree, on the floor looking up, inside a house through a shut window, a door frame, a gap
 between buildings. The deliverable is the STILL from the placed camera. Locale consistency
@@ -222,24 +236,29 @@ only and may run beside the others).
 
 - [x] **Settle A5** (2026-10-07, pulled forward while the GPU was busy): sequencer over
       `enqueueGeneration` + `deferCommit`, existing Klein model ops. Its test is Phase 3's.
-- [ ] **MpiNodes** (`/mpi-nodes-sync`, the sibling's new-node procedure read inline): vendored
+- [x] **MpiNodes** (`/mpi-nodes-sync`, the sibling's new-node procedure read inline): vendored
       MoGe v1, `MpiPanoDepth`, `MpiLiftDepth`, `MpiWrapPad`, `MpiWrapCrop`, `MpiWrapSoften`,
       `MpiWrapCutMerge`; add utils3d's MIT notice to the vendored tree. **Verify:** CPU unit tests on tiny
       tensors; one bench GPU run reproduces the spike - pano depth vs `pano_depth_ring8k.npz`
       rel err < 1%, lift fit error matches `chain_ring8k_gen.log` per step.
       **(CODE + CPU checks DONE 2026-10-07, session 30, uncommitted: 9/9 unit tests, vendored MoGe
-      == SplatKit's, pano vs npz mean 0.77% ON CPU, whole-pack smoke. Left: the GPU bench run -
-      pano on the GPU, lift fit per step, which needs the spike's GPU raster for known z.)**
+      == SplatKit's, pano vs npz mean 0.77% ON CPU, whole-pack smoke. GPU bench DONE 2026-10-07,
+      session 31: pano on cuda mean 0.77% in 46 s; lift == the log on all 8 steps.)**
 - [ ] **Ship the pack and the weights:** commit, push, pin in `dev_configs/node_lock.json`; MoGe
       weights as a dep via `/mpi-add-model`'s deps half (R2, SHA). **Verify:** presence check
       green on the local engine; a Pod connect installs the pack with no image rebuild.
+      **(2026-10-07: pinned `3e8d7d2`, weights on R2 byte-exact, dep written, `start.sh` maps
+      `moge`. Left: the engine-side verify (needs an engine restart), HF re-host,
+      `publish-runtime.sh dev`.)**
 - [ ] **Universal ops + graphs:** `sceneConvert` (wrap-padded AnimeSharp when < 8K, cap 8K,
       `MpiPanoDepth`), `sceneLift` (`MpiLiftDepth` on a fill + the known-depth map + keep mask;
       Take picture and Build here both sequence it after Klein's own `inpaint`, A5),
       registered in the 4 files (`commandRegistry.js`, `universal_workflows.js`,
       `operationRegistry.js`, `operation_registry.json`). **Verify:** op/registry tests green;
       one live dispatch of each on an ISOLATED app (`npm run app:isolated`), outputs match the
-      spike's numbers.
+      spike's numbers. **(2026-10-07: graphs + `runSceneOp` + registry DONE, tests green, both
+      graphs live on the BENCH match the spike; the app-level dispatch waits on an engine
+      restart. Neither op goes through `runCommand` - see Plan Drift.)**
 
 ### Parallel Batch: Pano Flow + Scene workspace shell
 
@@ -345,6 +364,12 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
   from a `<f4` file in `input/` (0 = unknown) instead of a mask input; its output depth uses 0 = not
   kept, so a layer record needs no separate keep mask. Wrap Crop / Cut Merge take the pre-pad image
   as `reference`. Pano depth's GPU half ran on the CPU instead (same code, < 1%).
+- **2026-10-07 - the scene ops run through `runSceneOp`, not `enqueueGeneration` (session 31).**
+  A depth-only run has no image URL, and generationService treats that as a CANCEL; Convert must not
+  make a card either. So A5's sequencer calls `enqueueGeneration` for the two Klein steps only and
+  `runSceneOp('sceneLift')` between them. sceneConvert upscales with AnimeSharp only UNDER 4096 wide
+  (a 4x model on a 4K+ pano builds a 16K+ intermediate); wider inputs are resized to 8192x4096.
+  `Input_Known_Depth` is an `MpiString` so the engine stages / uploads the f32 itself.
 
 ## Verification
 

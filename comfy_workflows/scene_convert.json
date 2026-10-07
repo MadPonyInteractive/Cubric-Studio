@@ -1,0 +1,171 @@
+{
+  "1": {
+    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": true,
+      "string": ""
+    },
+    "class_type": "MpiLoadImage",
+    "_meta": {
+      "title": "Input_Image"
+    }
+  },
+  "2": {
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Get Image Size"
+    }
+  },
+  "3": {
+    "inputs": {
+      "operator": "<",
+      "b_value": 4096,
+      "a": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "MpiCompare",
+    "_meta": {
+      "title": "Width Under 4096"
+    }
+  },
+  "4": {
+    "inputs": {
+      "pad": 32,
+      "image": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "MpiWrapPad",
+    "_meta": {
+      "title": "Wrap Pad"
+    }
+  },
+  "5": {
+    "inputs": {
+      "model_name": "4x-AnimeSharp.pth"
+    },
+    "class_type": "UpscaleModelLoader",
+    "_meta": {
+      "title": "Load AnimeSharp"
+    }
+  },
+  "6": {
+    "inputs": {
+      "upscale_model": [
+        "5",
+        0
+      ],
+      "image": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "_meta": {
+      "title": "Upscale 4x"
+    }
+  },
+  "7": {
+    "inputs": {
+      "pad": 32,
+      "image": [
+        "6",
+        0
+      ],
+      "reference": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "MpiWrapCrop",
+    "_meta": {
+      "title": "Wrap Crop"
+    }
+  },
+  "8": {
+    "inputs": {
+      "boolean": [
+        "3",
+        0
+      ],
+      "true": [
+        "7",
+        0
+      ],
+      "false": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Upscale Or Not"
+    }
+  },
+  "9": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": 8192,
+      "height": 4096,
+      "crop": "disabled",
+      "image": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "Scale To 8K"
+    }
+  },
+  "10": {
+    "inputs": {
+      "filename_prefix": "sceneConvert",
+      "images": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Output_Image"
+    }
+  },
+  "11": {
+    "inputs": {
+      "model": "moge_vitl.safetensors",
+      "resolution_level": 9,
+      "depth_width": 2048,
+      "image": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "MpiPanoDepth",
+    "_meta": {
+      "title": "Pano Depth"
+    }
+  },
+  "12": {
+    "inputs": {
+      "source": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Output_Depth"
+    }
+  }
+}

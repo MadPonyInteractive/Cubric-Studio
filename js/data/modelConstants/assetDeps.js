@@ -1420,4 +1420,27 @@ export const assetDeps = {
             url: 'https://huggingface.co/google/t5gemma-b-b-ul2',
         },
     },
+    // MoGe v1 depth (MPI-623, 3D scene) -------------------------------------
+    // Upstream `model.pt` (pickle) re-saved as safetensors, every tensor equal, so the
+    // bytes are OURS: no byte-identical upstream copy exists for a mirrorUrl, and it is
+    // noMirror until it is re-hosted to Mad-Pony-Interactive/cubric-studio. MpiNodes
+    // scene.py registers models/moge/ and pins the checkpoint's config (MOGE_VITL_CONFIG).
+    // NOT engineAsset yet: the Scene workspace is dev_mode-only, and an engineAsset
+    // lands on every engine install - the sceneConvert op step decides how it installs.
+    'moge-vitl': {
+        id: 'moge-vitl',
+        name: 'MoGe ViT-L depth',
+        origin: 'Ruicheng/moge-vitl',
+        filename: 'moge/moge_vitl.safetensors',
+        url: 'https://models.cubric.studio/vision/models/moge/moge_vitl.safetensors',
+        size: '1.17GB',
+        bytes: 1256740032,
+        sha256: 'dbdf89d1f7651b9213a507923b4f100fed87489bb7425fda7f7d430bcb31d8a9',
+        noMirror: true,
+        credit: {
+            author: 'Microsoft (Ruicheng Wang et al.)',
+            work: 'MoGe',
+            url: 'https://huggingface.co/Ruicheng/moge-vitl',
+        },
+    },
 };
