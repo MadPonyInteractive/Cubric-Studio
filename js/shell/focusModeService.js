@@ -106,8 +106,8 @@ function _applyFocusState(active) {
                 state.focusMode = false;
             });
         }
-        // Group-history + video → request native fullscreen on the <video>.
-        // Image mode (no <video>) falls back to the chrome-hide CSS path.
+        // Group-history + video → request native fullscreen on the viewer's <video>.
+        // Image mode (incl. its inline compare) takes the chrome-hide CSS path.
         if (state.currentPage === PAGE_GROUP_HISTORY) {
             _enterVideoFullscreenIfPresent();
         }
@@ -131,8 +131,11 @@ function _applyFocusState(active) {
 }
 
 function _enterVideoFullscreenIfPresent() {
+    // The VIEWER's clip, never "the first <video>": History also parks the mascot peek
+    // (MPI-906) in the centre slot — no src, opacity 0 — so on an image that was the only
+    // match, and fullscreening it turned the screen black (MPI-1037).
     const toolContainer = qs('#tool-container');
-    const video = toolContainer ? qs('video', toolContainer) : null;
+    const video = toolContainer ? qs('.mpi-video-viewer__player video', toolContainer) : null;
     if (!video || typeof video.requestFullscreen !== 'function') return;
     video.requestFullscreen().catch(err => {
         clientLogger.warn('focusModeService', 'video requestFullscreen failed:', err);

@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1037", "at": "2026-10-07T09:37:28+01:00", "actor": "claude", "column": "todo", "title": "Focus mode (F) in the image workspace shows a black screen"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1037", "at": "2026-10-07T09:38:14+01:00", "actor": "claude", "from": "todo", "to": "doing"}
