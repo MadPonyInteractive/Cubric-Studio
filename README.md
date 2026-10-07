@@ -14,10 +14,10 @@
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS-555)](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WX7tDFSVmY)
 [![Roadmap](https://img.shields.io/badge/Roadmap-Trello-0079BF?logo=trello&logoColor=white)](https://trello.com/b/wg1r5aYz/cubric-vision)
+[![PayPal](https://img.shields.io/badge/PayPal-donate-003087?logo=paypal&logoColor=white)](https://www.paypal.com/donate/?hosted_button_id=LLBTJZRT6465N)
 [![Patreon](https://img.shields.io/badge/Patreon-support-FF424D?logo=patreon&logoColor=white)](https://www.patreon.com/madponyinteractive)
-[![Gumroad](https://img.shields.io/badge/Gumroad-donate-FF90E8?logo=gumroad&logoColor=black)](https://mad-pony-interactive.gumroad.com/l/vfdxe)
 
-[Website](https://cubric.studio) · [Documentation](https://docs.cubric.studio) · [Download](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest) · [Discord](https://discord.gg/WX7tDFSVmY) · [Roadmap](https://trello.com/b/wg1r5aYz/cubric-vision) · [Patreon](https://www.patreon.com/madponyinteractive) · [Gumroad](https://mad-pony-interactive.gumroad.com/l/vfdxe)
+[Website](https://cubric.studio) · [Documentation](https://docs.cubric.studio) · [Download](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest) · [Discord](https://discord.gg/WX7tDFSVmY) · [Roadmap](https://trello.com/b/wg1r5aYz/cubric-vision) · [Donate](https://www.paypal.com/donate/?hosted_button_id=LLBTJZRT6465N) · [Patreon](https://www.patreon.com/madponyinteractive)
 
 </div>
 
@@ -160,9 +160,10 @@ Step-by-step instructions are in the
 [installation guide](https://docs.cubric.studio/installation/).
 
 Every build is free and public on GitHub Releases. If Cubric Studio is useful to
-you, you can fund its development on
-[Patreon](https://www.patreon.com/madponyinteractive) (recurring) or
-[Gumroad](https://mad-pony-interactive.gumroad.com/l/vfdxe) (one-off). That is
+you, you can fund its development with a
+[PayPal donation](https://www.paypal.com/donate/?hosted_button_id=LLBTJZRT6465N)
+(any amount, once or monthly) or on
+[Patreon](https://www.patreon.com/madponyinteractive) (monthly tiers). That is
 support, not a paywall.
 
 ### What you'll need
@@ -207,11 +208,11 @@ The full user guide lives at [docs.cubric.studio](https://docs.cubric.studio):
   bug reports.
 - [**GitHub Discussions**](https://github.com/MadPonyInteractive/Cubric-Studio/discussions):
   feature requests.
-- [**Patreon**](https://www.patreon.com/madponyinteractive): a recurring
-  three-tier subscription with tutorial project files and a direct line to the
-  developer. Funds ongoing development.
-- [**Gumroad**](https://mad-pony-interactive.gumroad.com/l/vfdxe): a one-off
-  donation if you'd rather support the build without a subscription.
+- [**PayPal**](https://www.paypal.com/donate/?hosted_button_id=LLBTJZRT6465N):
+  donate any amount, once or monthly, with PayPal or a card.
+- [**Patreon**](https://www.patreon.com/madponyinteractive): three monthly tiers
+  that all get the same thing, dev posts and the Supporter role on Discord. You
+  choose the amount. Funds ongoing development.
 
 This app started as the first of several planned Cubric apps. They've since
 folded into one, which now carries the [Cubric Studio](https://cubric.studio)
