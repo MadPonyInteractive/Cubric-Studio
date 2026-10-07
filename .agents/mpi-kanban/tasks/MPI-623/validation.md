@@ -340,3 +340,25 @@ apart; `sky_seam.py`'s 8-col step alone misreads a ridge as a step.
   the damage was local, not polluting neighbours.
 - Not tested: free navigation OFF the rails (Brush renders only training poses). That is
   Fabio's eye-test on `eval_trim_out\village_trim_30k_30000.ply`. GPU tonight: ~5 h local.
+
+## Single-shot warp-and-inpaint, no bake (2026-10-07, `D:\WORK\MPI-623-spike\single_shot\`)
+
+- Base renders straight from the 8K pano (`run_render.py`, SplatKit perspective node, `cut`):
+  4 shots in 150 s on the 4060 Ti; 2 more in 20 s (depth cached in the bench process).
+- Fill sweep on B_deep (24% holes) and C_front (15%) with the app's own graphs
+  (`run_fill.py`), seed 42: **Klein 9B inpaint wins** - drift on known pixels 0.7-0.8/255,
+  30-40 s a shot at 1920x1088. Klein edit fills but drifts 9-11 (Reinhard fixes colour).
+  Krea2 edit AND masked edit leave the holes black, 6-8 min a job. Qwen not installed.
+- Pano splat with holes for Fabio's own look: `village_pano_holes_2k.ply` (2,027,034
+  splats, 108 MB, 70,118 edge pixels cut; ground at y +0.39, y-DOWN) - `pano_splat.py`.
+- **Reuse check (`reuse.py`):** own renderer reproduces the node's frames (mean abs
+  0.42/255, hole masks 100% identical on all 3 cameras). C_front's Klein fill lifted to 3D
+  with MoGe depth fitted on known pixels (z = 0.7789*moge + 0.0973, median rel err 4.1%).
+  | step | holes, pano only | holes with shot 1's fill | reused | fill in front of pano |
+  |---|---|---|---|---|
+  | C_step1 (0.1 right) | 16.0% | 4.5% | 72% | 0.58% px |
+  | C_step2 (0.2 right) | 17.9% | 7.8% | 57% | 0.63% px |
+  By eye (`reuse_sheet.jpg`): shot 1's invented side wall + window, bush and trees carry
+  into both steps; Klein then fills only silhouette slivers. Klein from scratch invents a
+  DIFFERENT wall and trees each time. Weak spots: a few small pale rectangular seams where
+  the lifted fill's edge meets the pano; the reused fill is a touch softer.

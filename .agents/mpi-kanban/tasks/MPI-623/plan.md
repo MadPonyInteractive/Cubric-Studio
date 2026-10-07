@@ -664,6 +664,76 @@ notes in [research/](research/).
 > the view + hole mask, auto stretch mask, Krea/Klein fill at 2K, then move slightly and check
 > reuse). Bench ComfyUI restarted by Fabio (its temp is wiped; scene-ref cloud is saved in
 > `village_bake\`).
+>
+> **Session note 2026-10-07 (twenty-fourth). SINGLE-SHOT TEST, NO BAKE.** All in
+> `D:\WORK\MPI-623-spike\single_shot\`, renders in `D:\WORK\Images\Outputs\mpi623_single\`
+> (the bench runs `--output-directory D:\WORK\Images\Outputs`, NOT `ComfyUI\output`).
+> **Fabio's own test (app, Klein 9B kleinEdit, whole image, project `3D pano tests`
+> edit_002):** fixes a streaky SPLAT frame in one pass but shifts colour; **Reinhard LAB
+> colour lock** (`color_lock.py`, CPU, 1 s) pulls the palette back - Fabio: "looks very
+> good". Frequency split rejected (brings the smears back). Fabio then redirected: the test
+> that matters is the BASE render with black holes, not a finished splat.
+> **Base renders** (`run_render.py`, 150 s, 4 shots, `spots.py`): registered node is
+> `SplatKit_CameraPlotFlythroughPersp`; it PINS anchor 0 to the pano origin, so a shot is a
+> 9-frame path origin -> spot and the last frame is the shot. `cut` mode; its `hole_mask`
+> and `splat_mask` are WHITE = real pano pixel, black = hole (identical in cut mode).
+> **Fills** (`run_fill.py`: the APP's graphs injected by title, media path in the
+> MpiLoadImage `string`; edit ops resize to ~1 MP inside the graph). Early read: **Klein 9B
+> inpaint (wf 5, hole mask grown 6 px, denoise 1.0, scene prompt) wins** - holes become
+> believable cottages/trees, known pixels kept (drift 0.7-0.8 vs 9-11 for whole-image
+> edits); Klein edit also fills; **Krea2 leaves the black untouched in BOTH edit and masked
+> edit** (and costs 6-8 min a job at 2 MP vs Klein's ~15-30 s). **Qwen edit: "success" with
+> nothing saved** - only its loaders ran (weights likely absent on the bench); not chased.
+> `post.py` = Reinhard on KNOWN pixels + known pano pixels pasted back
+> (`sheet_<shot>.jpg`, `klein_vs_krea2.jpg`). Trap: `| tail` after `gpu_lease.py run` hides
+> the script's exit code - a `sys.exit("MISSING ...")` showed as exit 0.
+> **Next: the reuse check** - add shot 1's fill back into the scene, step the camera
+> (A_side -> A_step in `spots.py`), and check shot 2 shows the SAME filled content; needs an
+> own renderer (SplatKit's node renders the pano mesh only). Awaiting Fabio's go.
+> **Fabio, same day: the user steers the fill.** Klein invents cottages behind B_deep's lone
+> house every time; the user may want forest. Design: OUR base fill prompt + the USER's
+> prompt concatenated ("trees" -> only forest back there). Qwen is not installed and is slow
+> anyway - out. Stretch needs no separate mask: `cut` mode already tears stretched
+> triangles into holes.
+> **REUSE CHECK PASSED** (Fabio's go): `reuse.py` = own renderer (pixel-parity with the
+> node, 0.42/255) + shot 1's fill lifted to 3D by MoGe depth fitted on known pixels (4.1%).
+> Stepping 0.1 / 0.2 right, shot 1's fill covers 72% / 57% of the new holes with the SAME
+> content; Klein fills only slivers. Numbers + weak spots: validation.md § "Single-shot".
+> Traps: embedded python skips the script dir on sys.path (`geom.py` import); call
+> `mp.setup_paths()` before `_load_nvrender()` or the nvdiffrast shim is not installed.
+> Fabio has `village_pano_holes_2k.ply` (`pano_splat.py`) to fly himself.
+> **Next candidate:** chain it - each step's new fill becomes another layer, walk 6-8 steps,
+> export pano + all fill layers as ONE .ply so Fabio flies the result in SuperSplat.
+> **S-TREES ARE THE DEPTH, NOT THE PANO** (Fabio orbited a tree in the holes splat,
+> recording 2026-10-07 11:09). `pano_views.py`: a pinhole look straight DOWN from the pano
+> centre is a clean top-down path of round stones - the equirect projection is correct, so
+> Fabio's "not distorted enough" worry is ruled out. `trunk_depth.py`: a vertical trunk
+> must keep ONE horizontal distance at every height; MoGe's does not - big tree 1.006 (top)
+> -> 0.910 (eye level) -> 0.938 (base) = 10% bow, left tree 12%, far tree B 19% lean.
+> Reading: flat cel shading leaves few depth cues, so MoGe reads the painted trunk taper as
+> perspective. Same depth fed the bake's Wan control renders (its S-tree). The ground
+> "comb" stripes in SuperSplat are the per-pixel splat export at grazing angles, not the pano.
+> **Next candidate, before chaining (the chain inherits this geometry): depth-model
+> bake-off** on the same trunks + ground flatness (MoGe-2, Depth Anything 3 - licences to
+> check) in a SEPARATE venv so the bench's python stays untouched.
+> **Fabio's counter (taken first): change the INPUT, not the model - a 3D-rendered pano
+> has shading/haze depth cues.** `run_pano3d.py` (copy of cartoon/run_pano.py whose 3rd arg
+> replaces the t2i prompt): `t2i_fast_pixar` 118 s, `t2i_fast_lowpoly` 103 s, same village
+> layout. MoGe now FINDS the sky (valid 0.88 / 0.80; the cartoon's 0.989 = sky read as
+> surface). `trunk_compare.py`, trunk-proper rows (canopy to root flare, nearest-depth
+> per row): cartoon 10 / 11 / 17%; Pixar big tree 4% (far right pick 23%, unreliable);
+> low-poly 14% (its trunk is drawn slanted) / 5 / 4%. Big near trunks ~2x straighter, not
+> uniform - crude picks, so Fabio's fly-through decides: `pixar_pano_holes_2k.ply`,
+> `lowpoly_pano_holes_2k.ply` (`pano_splat.py <pano> <tag>`).
+> **FABIO'S VERDICT (flew both): "no S shapes, this looks like real 3D geometry" - the 2D
+> cartoon input WAS the issue.** Test style from now on = **LOW-POLY** (straight lines make
+> distortion easy to see). His catch: these panos hold only a small slice of village and
+> fly as mostly black - the next low-poly pano should wrap content all the way round
+> (village/props on every side), then run the chain test on it.
+> **Next: chain test on a fuller low-poly pano** - prompt for 360 content, `pano_splat.py`
+> for depth, pick spots (`spots.py` needs new coords for the new scene), walk 6-8 steps with
+> Klein inpaint + `reuse.py`-style layering (generalise it from 2 layers to N), export pano +
+> every fill layer as ONE .ply for Fabio to fly. Fill prompt = our base + the user's text.
 
 **Project mode:** `scalable-foundation`.
 
