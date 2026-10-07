@@ -350,6 +350,9 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
 
 - [ ] `docs/scenes.md` (new subsystem doc, routed from `docs/README.md`): A1-A9, the record
       format, rule C, the timings, the limits. **Verify:** <= 200 lines, every symbol greps.
+      **(STARTED 2026-10-07, session 31: what is BUILT - card/companions/manifest, Convert, the
+      two ops, nodes + weights, the yaml gap; 108 lines, symbols grepped. Phase 3 adds the viewer,
+      rule C, Take picture, limits.)**
 - [ ] Ask Fabio before touching `.claude/rules/` (workspaces.md says "three"; component maps via
       `mpic-update-component-map`). **Verify:** his yes recorded, or the drift noted.
 - [ ] Privacy check: MoGe weights come from our R2 - no new outbound service. **Verify:** none
