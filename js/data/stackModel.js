@@ -16,7 +16,7 @@
  * must not drag the model registry in with it.
  */
 
-import { kindOfItem } from '../utils/assetKinds.js';
+import { kindOfItem, getSceneItem } from '../utils/assetKinds.js';
 
 export const STACK_TYPE = 'stack';
 
@@ -31,11 +31,12 @@ export function isStack(group) {
 /**
  * The stack kind a card would bring to a stack: its selected item's kind when that is an
  * image or a video, else null. Read from the ITEM, never `group.type` (assetKinds.js: a
- * video group can hold an image item).
+ * video group can hold an image item). A 3D Scene card never stacks, whichever entry is
+ * selected (MPI-623, `getSceneItem`).
  */
 export function stackableKind(group) {
     if (!group || isStack(group)) return null;
-    const item = group.history?.[group.selectedIndex ?? 0];
+    const item = getSceneItem(group) || group.history?.[group.selectedIndex ?? 0];
     if (!item) return null;
     const kind = kindOfItem(item).kind;
     return STACKABLE_KINDS.includes(kind) ? kind : null;

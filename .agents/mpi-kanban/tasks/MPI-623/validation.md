@@ -451,3 +451,51 @@ dropped. Self-check: rule C at the walk's step-0 camera flags 0% back faces. B =
 - Camera placement used `topdown360.py ring8k` + depth probes (`probe_xyz.py`, scratch).
 - **Fabio's eye-test on the four C+B stills (window = the INTERIOR run): "1". Clean-up B stays ON for
   every picture (Fabio, 2026-10-07).**
+
+## A5 settled: how Take picture dispatches (2026-10-07, code read, no GPU)
+
+Neither of the plan's two routes. The Flow `chain` cannot carry it; the existing direct door can.
+- `chain` is two legs, both UNIVERSAL ops: `config.model.id` is `null` and `operation` picks a
+  universal graph (`js/services/flowService.js:251-255`); leg 2 never chains again (`:348`). Klein's
+  `inpaint` / `kleinEdit` are MODEL ops on `klein-9b` (`models.js:996`, `opInject` `Input_wf_type`
+  5 / 4), and Take picture is 3 jobs (inpaint, lift, clean-up). Each leg also lands a card.
+- **Route: a scene sequencer calls `enqueueGeneration` once per step with `deferCommit: true`**
+  (`generationService.js:1610` withholds every project write; guarded by
+  `tests/flow-defer-commit.test.cjs`). Precedent caller: Cutout's Remove Background
+  (`MpiStepCutout.js:548-562`, a Promise per job). Steps: `klein-9b` `inpaint` (render + hole mask)
+  -> `sceneLift` (new universal op) on the fill -> `klein-9b` `kleinEdit` (clean-up) -> Reinhard +
+  depth of field in the app -> upload as a history entry. No copy of the Klein graph, no drift test.
+- Same graph branch as the spike: `inpaint` on a frame under `ENGINE_MAX_EDGE` 4096
+  (`routes/projects.js:191`) is NOT cut server-side (`commandExecutor.js:250-279` only fits masks over
+  the cap), so it reaches the same Klein master graph wf 5 shots.py drove; `opInject` coverage of
+  both ops is held by `tests/inject-params-titles.test.cjs:152`. An `inpaint` sends no size and keeps
+  the source's (`commandRegistry.js:1759-1762`); `kleinEdit` returns Klein's size (1360x768),
+  resized back as shots.py did.
+- The proving test moves to Phase 3's Take picture task: the sequencer's own test (configs per
+  step, deferCommit on every job, one landing at the end).
+
+## 0d licences and deps (2026-10-07, research sub-agent, key rows spot-checked on disk)
+
+| item | licence | link | verdict |
+|---|---|---|---|
+| MoGe v1 code | MIT (Microsoft) + Apache-2.0 for the DINOv2-derived parts, one file | `G:\ComfyUi\ComfyUI\custom_nodes\ComfyUI-SplatKit\vendored\LICENSE-MoGe.txt` (Apache at :24) | OK |
+| MoGe v1 weights `Ruicheng/moge-vitl` (DINOv2 backbone bundled in `model.pt`) | MIT (HF `license:mit`, empty card, no extra terms) | https://huggingface.co/Ruicheng/moge-vitl | OK, R2 redistribution allowed |
+| utils3d (MoGe uses `intrinsics_from_focal_center`, `unproject_cv`, `image_uv`, `image_pixel_center`, `sliding_window_2d`) | MIT; SplatKit's vendored copy has NO licence file - add the notice when we vendor | https://raw.githubusercontent.com/EasternJournalist/utils3d/main/LICENSE | OK + notice |
+| three.js | MIT | https://raw.githubusercontent.com/mrdoob/three.js/dev/LICENSE | OK |
+| KJNodes `ColorMatch` `reinhard` | offered (`nodes/image_nodes.py:76`) but the node is `DEPRECATED`, KJNodes is GPL-3 and `color-matcher` 0.6.0 is GPL-3 (`METADATA:8`) | `G:\ComfyUi\ComfyUI\custom_nodes\comfyui-kjnodes\LICENSE` | NOT USED: Reinhard runs in the app (A4/A6) |
+| MoGe inference imports | torch, numpy (engine), `einops` (`python_deps.in:82`), `cv2` (`:96`), `huggingface_hub` (`:120`), utils3d (vendor) - all covered | `dev_configs/python_deps.in` | OK after the strip below |
+
+- Strip when vendoring (`moge_model.py`): the `hf_hub_download` import (:16) and `from_pretrained`'s HF
+  branch (:222-229); `cache_pretrained_backbone` (:237-239) and `load_pretrained_backbone` (:241-244),
+  both `torch.hub.load` (training-only). The dinov2 `load_state_dict_from_url` calls are dead after that.
+- No non-commercial or territory term anywhere: no STOP.
+
+## A2/A3 data layer (2026-10-07, pulled forward while the GPU was busy)
+
+- `scenePath` on `createImageItem`; `getSceneItem(group)` in `js/utils/assetKinds.js`, read by
+  `kindItemOf` (chip + filter), the gallery open intercept, `stackableKind` and the grid's repaint
+  key; `scene` in `DERIVATIVE_RE`; add-from-cards copies every `<id>.scene.*` under the new id and
+  drops a dead `scenePath`; `/gif/make` refuses a scene item.
+- `node --test tests/scene-companion.test.cjs` (4 tests, incl. a scene card whose selected entry is a
+  plain picture: still `scene`, never stackable) + splat/asset-kind/filter suites: 42/42. `npm test`:
+  2735 pass, 0 fail, 2 skipped. eslint on the 9 touched files: clean.

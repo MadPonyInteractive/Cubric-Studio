@@ -100,7 +100,10 @@ function pathFromProjectFileUrl(value) {
  * Every companion file an item id owns, as a filename test: `<id>.thumb.jpg` (the
  * legacy thumb, image and video alike), `<id>.thumb.webp` (the 512 rendition),
  * `<id>.thumb.1280.webp` and `<id>.proxy.mp4` (MPI-633), `<id>.splat.ply` (MPI-623),
- * `<id>.wave.webp` (MPI-829, a video's trim-bar waveform).
+ * `<id>.wave.webp` (MPI-829, a video's trim-bar waveform), and a converted pano's scene
+ * records `<id>.scene.json` + `<id>.scene.<anything>` (MPI-623 plan A2: depth, fill
+ * layers). A scene suffix must never contain `.thumb.`/`.proxy.`/`.splat.`/`.wave.`: the
+ * greedy prefix would then claim it for the wrong id.
  * Matched by PREFIX, not by an extension list — three separate lists had to be edited
  * in lock-step every time one was added, and a missed one leaks a file per asset
  * forever.
@@ -110,7 +113,7 @@ function pathFromProjectFileUrl(value) {
  * convention anyway because "file owned by an item id, deleted with it" is exactly
  * what this regex is for, and that buys delete, orphan-sweep and GC for free.
  */
-const DERIVATIVE_RE = /^(.*)\.(?:thumb|proxy|splat|wave)\..+$/;
+const DERIVATIVE_RE = /^(.*)\.(?:thumb|proxy|splat|wave|scene)\..+$/;
 
 function removeItemThumbs(metaDir, id) {
     let entries;
@@ -2742,6 +2745,20 @@ async function copyItemIntoProject({ item, mediaDir, metaDir, type, name }) {
     } else {
         delete meta.splatPath;
     }
+    // MPI-623 plan A2: a converted pano's scene is a SET of records, `<id>.scene.json` (the
+    // manifest `scenePath` names) plus its `<id>.scene.*` siblings. The manifest names them
+    // by suffix, never by id, so the whole set copies under the new id unedited. Dropped,
+    // like a dead splat, when the manifest is gone.
+    const srcScene = pathFromProjectFileUrl(item?.scenePath) || pathFromProjectFileUrl(meta.scenePath);
+    if (srcScene && await fs.pathExists(srcScene)) {
+        const srcPrefix = path.basename(srcScene).replace(/json$/, '');
+        for (const f of await fs.readdir(path.dirname(srcScene))) {
+            if (f.startsWith(srcPrefix)) await fs.copy(path.join(path.dirname(srcScene), f), path.join(metaDir, `${id}.scene.${f.slice(srcPrefix.length)}`));
+        }
+        meta.scenePath = `/project-file?path=${encodeURIComponent(path.join(metaDir, `${id}.scene.json`))}`;
+    } else {
+        delete meta.scenePath;
+    }
 
     // MPI-768: a GIF card's `gif.frames` are hashes into the SOURCE
     // project's content-addressed `.gif-frames` store — the sidecar clone
@@ -2780,7 +2797,8 @@ function copiedItemResponse(id, meta) {
         proxyPath:          meta.proxyPath   || null,
         wavePath:           meta.wavePath    || null,
         splatPath:          meta.splatPath   || null,
-        gif:                meta.gif         ?? null,
+        scenePath:          meta.scenePath   || null,
+        gif:              meta.gif         ?? null,
         fps:                meta.fps         || 0,
         duration:           meta.duration    || 0,
         frameCount:         meta.frameCount  || 0,

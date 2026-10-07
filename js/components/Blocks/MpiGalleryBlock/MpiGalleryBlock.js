@@ -39,6 +39,7 @@ import { MODELS, getModelsByType, getModelById, isModelUsable, isOperationInstal
 import { canonicalModelId } from '../../../data/modelConstants/resolveModelDeps.js';
 import { getAvailableCommands, getCommand, buildCueAllJobItems, selectCueAllTargets } from '../../../data/commandRegistry.js';
 import { isStack, expandStacks, stackableKind, resultStackFields, STACK_TYPE } from '../../../data/stackModel.js';
+import { getSceneItem } from '../../../utils/assetKinds.js';
 import { startGeneration, enqueueGeneration, clearPendingQueue, refreshQueueDepth, removeCueJob, peekCueQueue, cancelRunningCueJob } from '../../../services/generationService.js';
 import { StatusBar } from '../../../shell/statusBar.js';
 import { readSavedRoutines, routineMenu, runSavedRoutine } from '../../../shell/routineDispatch.js';
@@ -276,14 +277,15 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // Audio-only groups are not click-through (like preview cards) — they are
         // input assets played in-place via the card's native controls, not a
         // history workspace target.
-        // MPI-623: a 3D Scene card is an image card carrying a `.ply`, so it reaches
+        // MPI-623: a 3D Scene card is an image card carrying a scene, so it reaches
         // here as a normal image group. Group History is the wrong target — it shows
         // the still, not the scene — so it is intercepted here until PAGE_SCENE
-        // exists (Phase 3).
+        // exists (Phase 3). Read off the CARD (`getSceneItem`): selecting one of its
+        // pictures must not send it to Group History.
         grid.on('open-group', ({ group }) => {
             if (group?.type === 'audio') return;
             // MPI-949: a stack opens in the same workspace, in its stack mode.
-            if (!isStack(group) && getSelectedItem(group)?.splatPath) {
+            if (!isStack(group) && getSceneItem(group)) {
                 Events.emit('ui:info', { message: 'Scene viewer is not built yet.' });
                 return;
             }

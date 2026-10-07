@@ -51,6 +51,7 @@ const generateId = () => crypto.randomUUID();
  * @typedef {MediaItemBase & {
  *   pixelDimensions: {w: number, h: number},
  *   splatPath?: string|null,
+ *   scenePath?: string|null,
  *   gif?: {frames: GifFrameRef[], loop: number, output: {maxEdge: number, colours: number|null, edgeColour: string|null}}|null,
  * }} ImageItem
  */
@@ -77,6 +78,12 @@ const generateId = () => crypto.randomUUID();
  * the companion file needs handling, and it rides the same `<id>.<kind>.<ext>`
  * derivative convention as the thumbs (see `DERIVATIVE_RE` in `routes/projects.js`).
  *
+ * `scenePath` (MPI-623 single shot, plan A2) is the scene a pano item was CONVERTED into:
+ * a `/project-file?path=` URL for its manifest `.meta/<id>.scene.json`, whose records
+ * (depth, fill layers) are the sibling `<id>.scene.*` files. `splatPath` stays for the
+ * future Wan bake's `.ply`. Either makes the CARD a scene, whichever entry is selected
+ * (`getSceneItem`, js/utils/assetKinds.js).
+ *
  * @param {Partial<ImageItem>} overrides
  * @returns {ImageItem}
  */
@@ -100,7 +107,8 @@ export function createImageItem(overrides = {}) {
         pixelDimensions:  { w: 0, h: 0 },
         generationMs:     null,
         splatPath:        null,   // MPI-623 — set only on 3D Scene cards
-        gif:              null,   // MPI-768 — set only on a GIF card (see docs/gif.md)
+        scenePath:        null,   // MPI-623 — set only on a converted pano item (plan A2)
+        gif:            null,   // MPI-768 — set only on a GIF card (see docs/gif.md)
         ...overrides,
     };
 }

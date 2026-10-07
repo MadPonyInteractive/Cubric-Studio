@@ -75,7 +75,7 @@ function _resolveAbsPath(rawFilePath) {
  * `image` row), re-checked here at the trust boundary. */
 function _isEligibleStillImage(sidecar) {
     if (!sidecar || sidecar.type !== 'image') return false;
-    if (sidecar.splatPath) return false; // 3D Scene
+    if (sidecar.splatPath || sidecar.scenePath) return false; // 3D Scene
     if (sidecar.gif) return false;
     if (/\.gif$/i.test(sidecar.filePath || '')) return false; // legacy .gif import
     return true;

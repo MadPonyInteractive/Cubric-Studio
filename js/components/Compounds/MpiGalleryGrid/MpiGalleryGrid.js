@@ -2088,8 +2088,9 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 sel?.thumbPathLg || '',
                 sel?.proxyPath || '',
                 sel?.type || '',
-                // A splat landing on an image item changes the kind chip, not the type.
-                kindOfItem(sel).kind,
+                // A splat or scene landing on an image item changes the kind chip, not the
+                // type, and it may land on an entry that is not the selected one (MPI-623).
+                kindOfItem(kindItemOf(_faceOf(group) || group, sel)).kind,
                 sel?.stage || '',
                 sel?.operation || '',
                 sel?.modelId || '',

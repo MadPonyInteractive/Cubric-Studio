@@ -14,7 +14,7 @@
  *
  * Relative import only, so Node can load it (tests/gallery-filter.test.cjs).
  */
-import { PANEL_KINDS, kindOfItem } from './assetKinds.js';
+import { PANEL_KINDS, kindOfItem, getSceneItem } from './assetKinds.js';
 import { isStack } from '../data/stackModel.js';
 
 export const DEFAULT_GALLERY_SORT = Object.freeze({
@@ -60,11 +60,13 @@ function _inScope(group, sort) {
  * The item a card's KIND is read from — the filter and the grid's kind chip both call it.
  * A stack owns no item, so it reads as its members' kind. A generating placeholder has no
  * result yet: at most the input frame it shows meanwhile (`inputPreview`, always an image),
- * so its group type — what it is MAKING — stands in (MPI-1028).
+ * so its group type — what it is MAKING — stands in (MPI-1028). A 3D Scene card reads as
+ * its scene item whichever entry is selected (MPI-623, `getSceneItem`).
  */
 export function kindItemOf(group, item) {
     if (isStack(group)) return { type: group.kind };
-    return !item || item.inputPreview ? { type: group.type } : item;
+    if (!item || item.inputPreview) return { type: group.type };
+    return getSceneItem(group) || item;
 }
 
 /** Does this card (its group + selected history item) show under `sort`? */

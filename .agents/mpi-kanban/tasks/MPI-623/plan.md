@@ -8,7 +8,23 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: Phase 0, spike 0a.**
+**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: finish spike 0a's GPU half.**
+
+**Session 28 (2026-10-07):** 0a's CPU half is built - `export_records.py` wrote ring8k as records
+(`viewer/records/`, every layer's verts + faces round-trip the shots.py cache exactly; the
+reference renders' black pixels equal the logged holes to 0.01%, so `render != 0` IS the known
+mask) and `viewer/index.html` + `app.js` (three 0.170, rule C in the shader, reversed float depth,
+seam column duplicated, sky-band toggle for the silhouette spikes, buttons: parity all / bench
+1080p / self-check). Serve: `python -m http.server 8623 --bind 127.0.0.1 --directory
+D:/WORK/MPI-623-spike/single_shot/viewer`, open `http://127.0.0.1:8623/`. NOT YET RUN: the peer
+(MPI-1036) held the GPU lease all session; a lease holder was queued. Done meanwhile: 0d, A5,
+the A2/A3 data layer (all in validation.md), A9 decided by Fabio.
+
+**Two sessions on this card from here (Fabio, 2026-10-07):** a FRESH session builds the Scene
+workspace shell (Parallel Batch item 2, without `sceneConvert`, which is Phase 2) and owns
+plan.md / validation.md / checklist.md. Session 28 ("3D Scene 18") stays on spike 0a and writes
+ONLY `D:\WORK\MPI-623-spike\` plus `research/spike-0a.md`; the shell session folds that file
+into validation.md when it lands.
 
 **The product (Fabio's why):** the 3D scene exists for EXACT camera placement - behind a house,
 up a tree, on the floor looking up, inside a house through a shut window, a door frame, a gap
@@ -69,10 +85,12 @@ Flows have NO dev gate of their own (`listFlows()` unfiltered).
 
 1. **Making the scene.** The 360 Pano Flow makes the pano and upscales it to 8K itself
    (Ostris Krea2 edit pack + Mickmumpitz's MIT 360 LoRAs, fast tier only, flat-sky wrap soften
-   before the seam pass, AnimeSharp wrap-padded). Tile upscaler = MPI-1038. No splat Flow:
-   opening a pano card lands in the Scene workspace, whose **Convert** gives the SAME card its
-   scene. Convert auto-upscales under 8K with the same step; above 8K it works at 8K and keeps
-   the original.
+   before the seam pass, AnimeSharp wrap-padded). Tile upscaler = MPI-1038. No splat Flow.
+   **Convert** gives the SAME card its scene: right-click **Convert to 360 pano** on a plain
+   image (Fabio 2026-10-07: the app cannot tell a pano from a 2:1 banner, so the user says so);
+   the Pano Flow ends with the same Convert, so its cards land converted. A card opens in the
+   Scene workspace on a normal left-click once it HAS a scene, never before. Convert
+   auto-upscales under 8K with the same step; above 8K it works at 8K and keeps the original.
 2. **Explore.** Fly camera (WASD, Q/E down/up, drag rotate). **The viewer IS the shot**: what
    the viewer shows is what the picture starts from; nothing that only exists at picture time.
 3. **Build here** (on demand, only the spots the user picks): fill everything around the camera
@@ -120,12 +138,12 @@ Flows have NO dev gate of their own (`listFlows()` unfiltered).
   image + least-squares fit to a known-depth map + keep mask), `MpiWrapPad` / `MpiWrapCrop`
   (shared by Convert and the Pano Flow), `MpiWrapSoften` and `MpiWrapCutMerge` (Pano Flow).
   Float depth crosses the wire as a 32-bit file in `output/` (path via `resolve_in_comfy_dir`).
-  Reinhard = KJNodes `ColorMatch` method `reinhard` if 0d confirms it, else a ~20-line node.
-- **A5. Take picture is ONE dispatch.** Preferred: the existing flow `chain` (`flowService`,
-  shared with MPI-997) stringing the EXISTING Klein ops (`kleinInpaint` wf 5, `kleinEdit` wf 4)
-  with the new lift and colour ops - no copy of the Klein master graph. Fallback, only if the
-  chain cannot carry a model op: one `scene_picture.json` with a drift test against
-  `klein_9b_t2i.json`. Phase 2 task 1 settles it with evidence.
+  Reinhard runs in the APP beside depth of field (0d: KJNodes and `color-matcher` are GPL-3).
+- **A5. Take picture is ONE press, three jobs - SETTLED 2026-10-07** (validation.md § A5): a
+  scene sequencer calls `enqueueGeneration` per step with `deferCommit: true` (Cutout's Remove
+  Background is the precedent): `klein-9b` `inpaint` -> `sceneLift` -> `klein-9b` `kleinEdit`
+  -> Reinhard + depth of field in the app -> one history entry. The Flow `chain` cannot carry
+  it (two universal legs, each landing a card); no copy of the Klein graph is needed.
 - **A6. Depth of field runs in the app** (same shader in the viewer and on the final picture,
   using the picture's own depth: rendered z + the lifted fill's depth).
 - **A7. A picture's pose is an item sidecar field `scenePose`** (position, yaw/pitch/roll, mm,
@@ -133,12 +151,15 @@ Flows have NO dev gate of their own (`listFlows()` unfiltered).
   (the `trim` pattern), parity rule honoured.
 - **A8. Gate = `APP_CONFIG.dev_mode` on master, not a long-lived branch.** The shared tree has
   many peers; a weeks-long branch rots. Hidden in a released build: the Scene workspace entry,
-  Convert, the Pano Flow tile (a `devOnly` FlowDef flag filtered in `listFlows()` - the
+  the right-click Convert to 360 pano, the Pano Flow tile (a `devOnly` FlowDef flag filtered in `listFlows()` - the
   mechanism does not exist yet). Adding a workspace bumps the 2nd version digit at release
   (`docs/versioning.md:43`) - the version itself is Fabio's call.
-- **A9. Which cards open in Scene:** any card with a scene item, any card made by the Pano Flow
-  (op `flowPano360`), and any other exactly-2:1 image via right-click `Open in Scene`. My pick:
-  a 2:1 banner is not always a pano, so the plain 2:1 case asks for one click.
+- **A9. Which cards open in Scene - DECIDED (Fabio 2026-10-07):** exactly the cards with a scene
+  item (`getSceneItem`, already the gallery intercept). A plain image gets right-click
+  **Convert to 360 pano** (offered on an image card with no scene, behind `dev_mode`; my pick:
+  only at exactly 2:1, the shape Convert's equirect maths needs); it runs `sceneConvert` on the
+  SAME card and writes `scenePath`. The Pano Flow's last step is that Convert (my pick: one
+  opening rule, no `flowPano360` special case).
 
 ## Completed
 
@@ -172,10 +193,8 @@ only and may run beside the others).
       and two pictures in each agree; time per build recorded (target <= 6 min on the 4060 Ti).
 - [ ] **0c. Depth of field.** Thin-lens blur by camera z on the four extreme stills (focus near
       and far), and live in the 0a page. **Verify (user-ux):** Fabio's eye on the stills.
-- [ ] **0d. Licences and deps (research).** MoGe v1 weights + code, utils3d bits we vendor,
-      three.js; KJNodes `ColorMatch` offers `reinhard` on `color-matcher==0.6.0`; MoGe's
-      imports satisfiable from the curated set. **Verify:** a table in validation.md, each row a
-      link; a non-commercial or territory term anywhere = STOP and brief Fabio.
+- [x] **0d. Licences and deps** (2026-10-07): all MIT / Apache-2.0, no STOP; Reinhard moves to
+      the app (KJNodes + `color-matcher` are GPL-3); MoGe vendoring strip list in validation.md.
 
 ### Phase 1: Scene card - COMPLETE (history). Its `user-ux` look moved to Phase 4's end check.
 
@@ -183,19 +202,19 @@ only and may run beside the others).
 
 **Verify mode:** `auto`.
 
-- [ ] **Settle A5:** can `chain` run a model op (`kleinInpaint`) then a universal op? Read
-      `flowService` chain + `tests/flow-chain.test.cjs`. **Verify:** a test proving the chosen
-      route, or the fallback graph plus its drift test.
+- [x] **Settle A5** (2026-10-07, pulled forward while the GPU was busy): sequencer over
+      `enqueueGeneration` + `deferCommit`, existing Klein model ops. Its test is Phase 3's.
 - [ ] **MpiNodes** (`/mpi-nodes-sync`, the sibling's new-node procedure read inline): vendored
       MoGe v1, `MpiPanoDepth`, `MpiLiftDepth`, `MpiWrapPad`, `MpiWrapCrop`, `MpiWrapSoften`,
-      `MpiWrapCutMerge` (+ Reinhard only if 0d says so). **Verify:** CPU unit tests on tiny
+      `MpiWrapCutMerge`; add utils3d's MIT notice to the vendored tree. **Verify:** CPU unit tests on tiny
       tensors; one bench GPU run reproduces the spike - pano depth vs `pano_depth_ring8k.npz`
       rel err < 1%, lift fit error matches `chain_ring8k_gen.log` per step.
 - [ ] **Ship the pack and the weights:** commit, push, pin in `dev_configs/node_lock.json`; MoGe
       weights as a dep via `/mpi-add-model`'s deps half (R2, SHA). **Verify:** presence check
       green on the local engine; a Pod connect installs the pack with no image rebuild.
 - [ ] **Universal ops + graphs:** `sceneConvert` (wrap-padded AnimeSharp when < 8K, cap 8K,
-      `MpiPanoDepth`), `scenePicture` (A5), `sceneBuildView` (inpaint + lift, no clean-up),
+      `MpiPanoDepth`), `sceneLift` (`MpiLiftDepth` on a fill + the known-depth map + keep mask;
+      Take picture and Build here both sequence it after Klein's own `inpaint`, A5),
       registered in the 4 files (`commandRegistry.js`, `universal_workflows.js`,
       `operationRegistry.js`, `operation_registry.json`). **Verify:** op/registry tests green;
       one live dispatch of each on an ISOLATED app (`npm run app:isolated`), outputs match the
@@ -209,7 +228,8 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
 - [ ] **360 Panorama Flow** via `/mpi-add-flow` (TEXT2SPHERE + IMG2SPHERE, op `flowPano360`,
       `devOnly`): Ostris pack + both 360 LoRAs as deps (re-add by hand, never revert
       `edff37f2a`), fast tier only, `MpiWrapSoften` before the 0.45 seam pass, AnimeSharp
-      wrap-padded to 8K, the `devOnly` filter in `listFlows()`; graphics via `/mpi-flow-graphics`.
+      wrap-padded to 8K, then `sceneConvert`'s depth so the card lands converted (A9), the
+      `devOnly` filter in `listFlows()`; graphics via `/mpi-flow-graphics`.
       Ownership: `js/data/flowsRegistry.js`, `comfy_workflows/flow_pano360*.json`,
       `js/data/commandRegistry.js`, `js/data/modelConstants/universal_workflows.js`,
       `js/core/operationRegistry.js`, `operation_registry.json`,
@@ -222,12 +242,16 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       `MpiSceneBlock`, Primitive `MpiSceneCanvas` owning the GL context (teardown: cancel RAF,
       disconnect observers, `WEBGL_lose_context`, zero canvas dims, null refs - new code),
       `scenePath` + `getSceneItem` (A2/A3) incl. `DERIVATIVE_RE` and the Add-to-project copy,
-      A9 entry points behind `dev_mode`, the Convert tool calling `sceneConvert` and writing
-      `scenePath` on the SAME card. Ownership: `js/router.js`, `js/shell/navigation.js`,
+      A9 behind `dev_mode`: the gallery right-click **Convert to 360 pano** calling
+      `sceneConvert` and writing `scenePath` on the SAME card, and the intercept navigating to
+      `PAGE_SCENE` instead of today's "not built yet" toast. Ownership: `js/router.js`, `js/shell/navigation.js`,
       `js/shell/focusModeService.js`, `js/shell/preloadStyles.js`, `js/components/types.js`,
       `js/components/Blocks/MpiSceneBlock/**`, `js/components/Primitives/MpiSceneCanvas/**`,
       `js/services/scene/**` (new), `js/data/projectModel.js`, `routes/projects.js`,
       `js/utils/assetKinds.js`, `MpiGalleryBlock.js`, `MpiGalleryGrid.js`, `MpiFlowLibrary.js`
+      **(A2/A3 data layer LANDED 2026-10-07: `scenePath`, `getSceneItem`, `scene` in
+      `DERIVATIVE_RE`, add-from-cards copies the set, kind/chip/filter/intercept/stacking read
+      the card - `tests/scene-companion.test.cjs`. Left here: the `scenePath` WRITER is Convert's.)**
       (page check only), `agentService.js` / `agentDispatch.js` (page maps only),
       `package.json` + lock (three), `styles/` for the new Block, `tests/scene-*.cjs`,
       `tests/desktop/scene-*.spec.js`. Briefings: `components`, `dos_and_donts`, `workspaces`,
@@ -279,6 +303,12 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
   renders in WebGL so the viewer and the picture cannot drift. Spike 0a is the price.
 - **2026-10-07 - "~1.4 MP" said to Fabio in the brainstorm was wrong:** Klein's 16:9 output is
   1360x768 (~1 MP).
+- **2026-10-07 - A9 decided by Fabio:** no auto-open for a 2:1 image (a banner is not always a
+  pano); right-click **Convert to 360 pano** converts the card, then a left-click opens Scene.
+  Convert left the Scene workspace for the gallery menu; the Pano Flow converts at its end.
+- **2026-10-07 - A5 settled on neither planned route.** The op is `inpaint` on `klein-9b`, not a
+  `kleinInpaint`; `scenePicture` is no longer a universal op (Phase 2's op list drops it), the
+  sequencer lives in `js/services/scene/` (Phase 3) and needs `sceneLift` from Phase 2.
 
 ## Verification
 
@@ -287,9 +317,11 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
 Phase 0 spikes 0a/0d and Phase 2 are `auto`; 0b, 0c and Phase 3's end check need Fabio's eye.
 
 End-to-end:
-1. A text prompt -> 360 Pano Flow -> 8K seam-clean pano card that opens in the Scene workspace.
-2. Convert (also on a 2K pano: auto-upscaled) gives the same card a scene; the 3D badge stays
-   whichever entry is selected.
+1. A text prompt -> 360 Pano Flow -> 8K seam-clean pano card, already converted, that opens in
+   the Scene workspace on a left-click.
+2. Right-click Convert to 360 pano on a plain 2:1 image (also a 2K one: auto-upscaled) gives the
+   same card a scene; before it, a left-click opens Group History as for any picture; after it,
+   Scene, and the 3D badge stays whichever entry is selected.
 3. Flying shows exactly what Take picture starts from (A1); pictures from treetop, floor,
    behind an object and inside a built room through a shut window all pass Fabio's eye.
 4. Clicking a picture entry restores its camera; several entries -> one gallery stack.

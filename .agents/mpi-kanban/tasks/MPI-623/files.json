@@ -25,6 +25,13 @@
     "dev_configs/node_lock.json",
     "js/data/modelConstants/nodesDeps.js",
     "dev_configs/python_deps.in",
-    "dev_configs/python_deps.txt"
+    "dev_configs/python_deps.txt",
+    "js/utils/assetKinds.js",
+    "js/utils/galleryFilter.js",
+    "js/data/stackModel.js",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "routes/gifMake.js",
+    "tests/scene-companion.test.cjs",
+    "tests/asset-kinds.test.cjs"
   ]
 }

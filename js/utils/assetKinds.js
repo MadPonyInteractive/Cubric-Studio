@@ -12,8 +12,10 @@
  * Kind is read from an ITEM (the card's selected history item), never `group.type`:
  * a video group can hold an image item, and the icon has to match what the card
  * paints. A 3D Scene is deliberately not a fourth media type — it is an image item
- * carrying `splatPath` (projectModel.js, MPI-623) — so it must match before the type
- * rows, and `image` is the catch-all that has to stay last.
+ * carrying `scenePath` or `splatPath` (projectModel.js, MPI-623) — so it must match before
+ * the type rows, and `image` is the catch-all that has to stay last. The one exception to
+ * "read the selected item": a scene card stays a scene whichever entry is selected
+ * (`getSceneItem`, read through galleryFilter.js `kindItemOf`).
  *
  * `badge` = the card shows a corner icon. EVERY kind carries one (Fabio, 2026-09-19,
  * MPI-736 round 7) — this used to be false for `image` and `audio` on the argument that
@@ -62,7 +64,7 @@ function _underlyingPath(filePath) {
 }
 
 export const ASSET_KINDS = Object.freeze([
-    { kind: 'scene', label: '3D Scenes', singular: '3D Scene', icon: 'cube',  type: 'image', badge: true, accent: 'vision', panelOrder: 5, match: (item) => !!item?.splatPath },
+    { kind: 'scene', label: '3D Scenes', singular: '3D Scene', icon: 'cube',  type: 'image', badge: true, accent: 'vision', panelOrder: 5, match: (item) => !!(item?.scenePath || item?.splatPath) },
     { kind: 'video', label: 'Videos',    singular: 'Video',    icon: 'video', type: 'video', badge: true, accent: 'video',  panelOrder: 3, match: (item) => item?.type === 'video' },
     { kind: 'audio', label: 'Audio',     singular: 'Audio',    icon: 'audio', type: 'audio', badge: true, accent: 'audio',  panelOrder: 4, match: (item) => item?.type === 'audio' },
     // MPI-759: a GIF is an image item, never a fourth media `type` — same precedent
@@ -85,4 +87,17 @@ export const PANEL_KINDS = Object.freeze([...ASSET_KINDS].sort((x, y) => x.panel
  */
 export function kindOfItem(item) {
     return ASSET_KINDS.find(k => k.match(item));
+}
+
+/**
+ * MPI-623 (plan A3) — the item that makes a CARD a 3D Scene: its first history item
+ * carrying a scene (`scenePath`) or a splat (`splatPath`), else null. Scene-ness belongs to
+ * the card, not the selected entry: a scene card's pictures are plain image entries of its
+ * history, and selecting one must not turn the card back into a plain image for the open
+ * intercept, the corner chip, the kind filter or stacking.
+ * @param {Object} group
+ * @returns {Object|null}
+ */
+export function getSceneItem(group) {
+    return group?.history?.find(i => i?.scenePath || i?.splatPath) ?? null;
 }
