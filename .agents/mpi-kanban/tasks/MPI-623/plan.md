@@ -802,6 +802,46 @@ notes in [research/](research/).
 > with GENERIC + user line/preset, lift the fill as a layer), what it returns (a still card per
 > shot, the scene's fill layers kept for reuse), and how it reuses Phase 1's scene card. Product
 > wiring only on a branch (Flows have no dev gate). Run `mpi-brainstorm` first.
+>
+> **Session note 2026-10-07 (twenty-sixth). BRAINSTORM: THE PRODUCT IS THE STILL.** Fabio's WHY:
+> locale consistency is already solvable with edit models (the multi-angle Flow, MPI-1039); this
+> card exists for EXACT camera placement - behind a house and a tree, a creature's POV up a tree,
+> on the floor looking up as characters pass, inside a house through a window. So the deliverable
+> is the still from the placed camera; the viewer only has to be good enough to aim, and stills
+> (not fly-throughs) are what get judged. Shape agreed (§ Remaining Work has the list): Pano Flow
+> upscales to 8K itself; tile upscaler = MPI-1038; NO splat Flow - opening a pano lands in the Scene
+> workspace, whose Convert tool gives the same card its `splatPath`; fly camera (WASD, Q/E, drag);
+> Take picture = render + Klein fill + lift, each picture an entry that snaps the camera back; Wan
+> bake = a coming-soon workspace tool. Picture-as-360 "bubbles" DROPPED for exteriors (they help
+> looking around where you stood, not the need); a ROOM bubble is the middle rung for interiors.
+> **Hole rule picked (Fabio: "go with your picks"): C then B** - repaint black + back faces +
+> stretched pixels, then a whole-frame Klein polish + Reinhard. `shots.py` tests it on four
+> extreme cameras (window, treetop, floor, behind_well) on ring8k with the walk's 8 fill layers
+> rebuilt from the saved Klein outputs (replay matches chain.py's holes exactly; cached in
+> `shots_layers_ring8k_gen.pt`). Rule C = per-face affine map source->screen: det < 0 = seen from
+> BEHIND, largest singular value > 3 = stretch; a window rect on the mesh drops its back faces so
+> the room sees out. Preview: window A = the painted window from behind, no view out (0.3% holes);
+> window C = black room + the real square and well through the opening (85% holes); treetop and
+> floor hold up well (6% / 13% holes, almost no stretch flagged); behind_well = the well's back
+> is simply absent (55-62% holes). Behind the left tree is INSIDE the house behind it - no room.
+> **Run (validation.md § Extreme cameras):** treetop and floor pass by eye under both rules; the
+> window needs rule C (A = the painted window from behind) AND its own `INTERIOR` instruction -
+> GENERIC + "inside a cosy cottage room" painted the outside with a giant second well; INTERIOR gave
+> a plaster wall, an open casement and the real well outside. Behind the well, the never-seen back
+> became a stone basin (inherent). Polish B = mild sharpening, +35 s; it does not remove the
+> hair-thin sky-silhouette spikes. **Fabio's eye-test on the four stills: "1"; clean-up stays ON.**
+> Design consequences: the app switches to the INTERIOR instruction itself when most of the frame
+> is seen-from-behind (79% on the window shot) - no user toggle; never-seen parts are invented and
+> can swap a known object (well -> basin), so the user line can name it. Spikes = renderer fix.
+> **Q3 decided (Fabio): every picture is a HISTORY ENTRY of the scene card**, as in the image and
+> video workspaces; clicking an entry flies the camera to where it was taken. Right-click an entry
+> -> the existing `Add to gallery` (`MpiHistoryList`, single entry only today) makes it a card;
+> select SEVERAL -> add as a STACK is NEW. (The picker reaching only the selected entry is by
+> design - docs/component-contracts.md:195 - so a shot is used elsewhere once it is a card.)
+> **Brainstorm still open:** window openings (cut brush vs SAM3 at convert vs both); the picture
+> panel (lens, aspect, user line + presets); Convert on a pano under 8K; what the scene card
+> shows in the gallery once its history is pictures. Then present the full design and plan it
+> (`mpi-create-large-plan` - multi-phase; the card already exists, so no new card).
 
 **Project mode:** `scalable-foundation`.
 
@@ -2297,6 +2337,33 @@ validation.md § Single-shot ... § One style-free fill prompt) needs no bake. D
   - no tiled refine (it ghosts houses into the sky).
 - **Test scenes are OPEN layouts** (a square ringed by houses); a crossroads (rows behind rows)
   is unusable - Fabio flew it.
+
+**Product shape (brainstorm with Fabio, 2026-10-07 - session note 26 has the why):**
+
+- **360 Pano Flow** (Phase 4) makes the pano and upscales it to 8K straight away; options in one step.
+- **Tile upscaler Flow** = its own card, MPI-1038. **Multi-angle Flow** = MPI-1039 (locale
+  consistency from one image via an edit model - the sibling this card is NOT).
+- **No Flow for the splat.** Opening a pano card lands in the **Scene workspace** (Phase 3), whose
+  **Convert to splat** tool gives the SAME card its `splatPath` (Phase 1 contract - no new type).
+- **Workspace:** fly camera (WASD move, Q/E down/up, click-drag rotate); a **Take picture** tool
+  in its own panel = render + Klein fill + lift as a layer; every picture is an entry (like history
+  entries) and clicking one snaps the camera to its pose. The viewer can run the light splat while
+  the picture renders from the full 8K in the engine.
+- **Pictures are HISTORY ENTRIES of the scene card** (Fabio, Q3): clicking one flies the camera to
+  its pose; right-click -> `Add to gallery` makes a card (exists, single entry); several selected ->
+  a stack (NEW).
+- **Take picture hole rule: C then B** - repaint black + surfaces seen from behind + stretched
+  pixels, then one whole-frame Klein polish + Reinhard colour lock (ALWAYS on - Fabio). Passed
+  Fabio's eye on four extreme cameras (validation.md § Extreme cameras). When most of the frame is
+  seen from behind, the fill uses the `INTERIOR` instruction (`shots.py`) instead of `GENERIC`.
+- **Interiors:** a window/door must be a real OPENING (a cut brush in the workspace, or SAM3 at
+  convert); seen from inside, the opening shows the real scene and the rest is invented. Ladder:
+  one interior picture -> a room bubble (one 360 fill from the room's middle, if several interior
+  shots must agree) -> the Wan bake as "explore inside". Climb only when the rung below fails.
+- **Wan bake** = a coming-soon tool in the workspace (needs camera paths).
+- Later, not designed yet: lens (mm) + aspect + a height readout in metres (call the pano's eye
+  1.6 m) + a roll key on the picture tool; a stand-in figure for framing character shots. Flat 2D
+  styles bend under big moves - state it as a limit.
 
 ## Phase 0: Prove the pipeline (spike - NO product code)
 

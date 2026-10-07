@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1039",
+  "title": "Multi-angle Flow",
+  "description": "One image of a locale becomes 4, 6 or 8 shots of the same place from different angles via an image edit model, for scene consistency (video-model references, places to put characters). The work is finding the prompt. MPI-623 is the exact-camera-placement sibling.",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-10-07T16:52:27+01:00",
+  "updated_at": "2026-10-07T16:52:27+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

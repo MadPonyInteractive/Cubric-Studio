@@ -428,3 +428,26 @@ edges, match the image's own style/lighting/detail) + optional `USER_LINE`. Klei
 | `real_gen` (new `t2i_fast_real`, 2K) | photoreal | 4 | 2.8-9.2% | hedges, walls, tree, cobbles read as one photo; a pale patch at step 1 |
 
 Camera clearance 0.29-0.45 on every probe step. Village fit error is the known 2D-depth problem, not the prompt.
+
+## Extreme cameras: does Take picture hold? (2026-10-07, `shots.py`, ~14 min GPU)
+
+The product is the STILL from an exactly placed camera (Fabio). ring8k + the `ring8k_gen` walk's 8 fill
+layers, rebuilt from the saved Klein outputs (replay = chain.py's holes on all 8 steps, to 0.01%). Rule A =
+today (black = no surface or a depth-edge tear). Rule C = A + faces seen from BEHIND (source->screen map
+flips) + STRETCH (one source texel > 3 screen px), plus a hand-marked window rect whose back faces are
+dropped. Self-check: rule C at the walk's step-0 camera flags 0% back faces. B = whole-frame Klein edit
+(wf 4) + Reinhard. Stills in `D:\WORK\Images\Outputs\mpi623_shots\`, sheet `shots_sheet.jpg`.
+
+| camera | holes A / C | back / stretch / bad-fill px (C) | by eye |
+|---|---|---|---|
+| window: inside the house behind the pano camera, 0.25 behind its window, 24 mm | 0.3 / 84.8% | 78.6 / 1.5 / 2.8% | A = the painted window seen from behind, no view out: FAIL. C + GENERIC + user line "inside a cosy cottage room" = Klein painted the OUTSIDE with a giant second well: FAIL. C + `INTERIOR` instruction (`window_i`, `PROMPT_MODE=interior`) = plaster wall, open casement window, sill, the REAL well and houses outside: passes my eye. Opening is a rect, the outside window is arched |
+| treetop: at the left tree's canopy, ~6 m, looking down | 5.9 / 6.5% | 0 / 0.02 / 0.6% | one coherent high shot; B sharpens the magnified near cobbles |
+| floor: 3 cm up, 16 mm, looking up | 12.2 / 13.2% | 0 / 0.6 / 0.3% | strong worm's-eye still; hair-thin spikes at sky silhouettes survive inpaint AND polish (they are "known" pixels) |
+| behind_well: 0.17 behind the well, looking back | 55.0 / 61.8% | 0 / 0 / 6.9% | the well's back was never seen: Klein invents a stone BASIN, flagstones, a blue cloudy sky. C removes A's torn old-fill strips (jagged basin rim) |
+
+- Polish B: mean change 5.8-9.2/255; sharpens magnified blur, removes specks, does NOT remove the spikes;
+  +~35 s a picture (Klein edit returns 1360x768, resized back).
+- Behind the left tree is INSIDE the house behind it (A render = smeared trunk, C = 99.98% holes) - dropped.
+- Camera placement used `topdown360.py ring8k` + depth probes (`probe_xyz.py`, scratch).
+- **Fabio's eye-test on the four C+B stills (window = the INTERIOR run): "1". Clean-up B stays ON for
+  every picture (Fabio, 2026-10-07).**
