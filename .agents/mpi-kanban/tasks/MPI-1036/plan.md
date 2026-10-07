@@ -20,6 +20,11 @@ Bench copy of `comfy_workflows/minimax_h3_r2va.json`: the clip as `<Video 1>`, t
 everything else the same". Today's drift (half-applied recolour, a changed dress cut) is the
 bar to beat.
 
+Swap the person also gets an A/B on the akatz-ai Character Swap LoRA (`brief.md`): same
+clip, seed and 4-5 s shot, base vs +LoRA, each with turbo on and off. Background held and
+identity taken from the photo are what it is judged on. Repeat on Swap the head to see
+whether the LoRA helps or fights it.
+
 ## Phase 2 - The mask path, on the bench
 
 **Verify:** a small-region edit stitched back into the untouched source at source resolution,

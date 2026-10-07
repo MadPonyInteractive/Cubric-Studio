@@ -40,6 +40,33 @@ Source: MPI-1033 `validation.md` runs 1-5, `docs/models/h3/ref2va.md` § "Lip-sy
 - **Slow.** 5 s (124 frames) = 1080-1140 s on the 4060 Ti, turbo on; 3 s = 610 s. Long clips
   get a warning, never a cap.
 
+## Character Swap LoRA - akatz-ai, checked 2026-10-07
+
+<https://huggingface.co/akatz-ai/MiniMax-H3-Character-Swap-LoRA> - Fabio's find, a candidate
+for the Swap the person option only.
+
+- **One file**, `h3_character_swap_pro4500_1000.safetensors`, 155,110,320 B, rank 16,
+  model-only, strength 1.0, no trigger word. 348 likes / 23k downloads by 10-07.
+- **Trained on the exact transformer we ship**: their `training/base-model-files.json` sha256
+  `9255f52b...` = our `minimax-h3-ref2va-transformer` dep.
+- **Licence: the MiniMax H3 Community License itself** - same territory exclusion, so the
+  existing H3 gate covers it. Host it like the transformer (download from HF), not on R2,
+  until someone argues it the way MPI-517 argued the VAE.
+- **Its README's example prompt is the starting point for the hidden instruction** (README §
+  Use): name the target person in `<Video 1>`, take identity/outfit/style from `<Picture 1>`,
+  keep camera, background, lighting, objects and other people, match position/scale/pose/
+  movement, never show the reference sheet. It needs WHO to replace, so the Flow needs a
+  "Who to replace" field (default "the person"). Training captions were the short form,
+  "Swap <who> in <Video 1> with the character in <Picture 1>."
+- **Author's limits (v1, 1,000 steps, trained on still edits, not moving targets):** best on
+  short continuous shots of 4-5 s; long windows drift; hard cuts turn into zooms; close-up
+  expressions do not follow; stronger expression prompts sometimes cancel the swap. Their
+  audio was the SOURCE track remuxed in post - so the Flow should mux the source audio back
+  for swaps rather than trust the generated track.
+- **Untested here:** stacking with our turbo 8-step LoRA (they tried "a 768p Turbo 8-step
+  LoRA"), and whether it helps or fights Swap the head (it carries the outfit over too).
+- Their bench workflow ships in the repo: `examples/H3 Character Swap v1 Ref2VA.json`.
+
 ## Constraints
 
 - **Licence.** H3's licence excludes the EU, UK, USA and South Korea; the Flow sits behind the
