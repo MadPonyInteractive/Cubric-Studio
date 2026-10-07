@@ -319,3 +319,24 @@ apart; `sky_seam.py`'s 8-col step alone misreads a ridge as a step.
   ImageStitch on link 73, an ImageCrop after the Background detailer), a read-me Note and
   group, LoadImage on the approved 2K. Pad only - no xf (ghosts), no cut (needs a node).
   Link consistency asserted in the script; NOT yet opened in the ComfyUI UI.
+
+## Village 3D Scene bake + GO/NO-GO trim test (2026-10-06/07, `D:\WORK\MPI-623-spike\village_bake\`)
+
+- **MoGe waypoint check FAILED rails 122/133** (into the near trees); scaled x0.55 / x0.70
+  about the origin (`moge_check.py`, `scale_search.py`). Wan prompt rewritten for the village.
+- **Bake** (`run_bake.py`, graphs A then B, 30000 steps, lease): 23:57 -> 03:20, 3 h 23 min.
+  `splats\mpi623_village_bake_whuos8uv\export_30000.ply` 286 MB, ONE model, 984 images.
+- **Fabio caught an S-tree and a broken well in the Wan frames.** `frame_clearance.py`: manifest
+  poses are y-DOWN, the cloud y-UP. Bad frames = the rail tails under canopies / over the well.
+- **Held-out eval, untrimmed** (`run_eval_brush.py`, 43 min, 123 views): mean 25.88 dB; typical
+  views clean on every rail; the worst views ARE the bad tails (rail 122 f70-f80 near-trunk smear
+  19.4-22.9 dB, rail 27 f80 well rim 21.7). `sheets_untrimmed\`.
+- **Trim test** (`run_trim.py`; drop clearance < 0.22 OR coverage < 0.60 = 22 of 164 frames:
+  27 f72-80, 122 f64-80, 133 f24-38): SfM 17.5 min (one model, 852 images) + held-out Brush
+  41 min, 107 views, mean 26.09 dB. **Worst trimmed view 23.0 dB and readable** (soft near-trunk
+  edges), no S-tree, no broken well (`sheets_trim\trim_worst4.jpg`).
+- Same-pose (27 poses, rail 27 only - the renumbering misaligns the rest): -0.18 dB, invisible
+  by eye (`cmp_loss.jpg`). **Trimming does not improve kept views; it removes the bad ones** -
+  the damage was local, not polluting neighbours.
+- Not tested: free navigation OFF the rails (Brush renders only training poses). That is
+  Fabio's eye-test on `eval_trim_out\village_trim_30k_30000.ply`. GPU tonight: ~5 h local.

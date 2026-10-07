@@ -590,6 +590,80 @@ notes in [research/](research/).
 > bedtime (graphs A then B, rails 27/122/133/157 MoGe-checked first, 30000 steps, lease
 > --timeout 21600, assert on the .ply); then offer him `flow_super_detailer_pano.json` and
 > wire the Flow with a flat-sky wrap soften before the seam pass.
+>
+> **Session note 2026-10-06 (twenty-third). THE VILLAGE BAKE IS RUNNING** (started 23:57,
+> ETA ~03:30; log `D:\WORK\MPI-623-spike\village_bake\bake.log`, dataset
+> `D:\WORK\Images\Outputs\mpi623_village_bake`). **The MoGe check FAILED two shipped rails**
+> (`village_bake\moge_check.py`, cloud saved beside it): 122 and 133 fly into the near trees
+> (reach 1.23 / 1.12 of the way to the surface, clearance 0.06 / 0.02). Fixed by a uniform
+> scale about the origin - same shapes, same view directions, shorter travel:
+> **122 x0.55, 133 x0.70, 27 and 157 unchanged** (`scale_search.py` -> `rails_fitted.json`;
+> pass = reach < 0.8 and clearance >= 0.15). **Graph A's Wan prompt (node 10) still described
+> the ROOM** - rewritten for the village in `run_bake.py`. Next: assert the .ply, held-out
+> eval views by eye, show Fabio.
+> **Bake done 03:20** (`splats\mpi623_village_bake_whuos8uv\export_30000.ply`, 286 MB, one
+> model, 984 images). **Fabio caught an S-shaped tree and a broken well in the Wan frames**:
+> rail 133 is under the near canopies from ~f16, 122 from ~f60, 27's last frames look down
+> on the well top (`frame_clearance.py`: poses are y-DOWN in the manifests, the cloud y-UP;
+> nearest-point clearance misses the well, the manifest's `coverage` < ~0.6 catches it).
+> Next: held-out eval (`run_eval_brush.py`, ~04:10), then a ~65 min SfM + Brush on the frames
+> minus the too-close/low-coverage ones - Fabio's yes. **Fabio: NO more 3.5 h runs on his card;
+> the next full bake is an RTX Pro 6000 Pod through the app, wired on a branch.**
+> **Pod findings (agent, spot-checked):** Flows have NO dev gate (`listFlows()` is
+> unfiltered; checklist's "dev-gate" item has no mechanism), so a wired Flow on master ships -
+> hence the branch (own worktree, never a checkout switch in the shared tree). Node packs
+> volume-install with no rebuild (lock + `nodesDeps.js` + Flow `requiredDeps`); SplatKit,
+> Mickmumpitz, GGUF, Ostris are NOT in the lock; SplatKit fetches its own Linux COLMAP.
+> **Blockers:** Brush has no delivery path to a Pod (`bin/` gitignored, wrapper fetches no
+> binaries) and wgpu needs a Vulkan loader the image lacks (unverified); GGUF needs pip `gguf`
+> (image rebuild) - on a 96 GB card use non-GGUF Wan instead.
+> **GO/NO-GO (Fabio, 2026-10-07): the ~65 min trimmed SfM + Brush run IS the gate for the whole
+> 3D Scene Flow.** No good result there = no RTX Pro 6000 test and no Flow. Judged by Fabio's
+> eye on held-out views, untrimmed vs trimmed at the same poses.
+> **TRIM TEST RAN (04:07 -> 05:06):** every held-out view of the trimmed splat is a clean
+> village (worst 23.0 dB, soft near-trunk edges; untrimmed worst 19.4 was the S-trunk smear).
+> Trimming removes the bad views without improving the kept ones (-0.18 dB same-pose).
+> Evidence: validation.md § "Village 3D Scene bake". **Verdict pending: Fabio's free-navigation
+> look at `village_bake\eval_trim_out\village_trim_30k_30000.ply`** - the held-out views only
+> cover the rails. If GO: the cut rule (clearance < 0.22 OR coverage < 0.60 off the manifest)
+> becomes a Flow stage between composites and SfM.
+> **Fabio flew the trimmed splat in SuperSplat (screen recording 2026-10-07 08:33, 23 s):**
+> near the start point it is a clean village (square, well, cottages); moving sideways
+> between/around cottages and trees it breaks into long brush-stroke STREAKS (under-covered
+> volume - no camera ever saw it); low over the well the top is readable but the cobbles
+> stretch; one near trunk still bends (kept rail 133 frames). Held-out views could not show
+> this. Verdict still Fabio's.
+> **Fabio, 2026-10-07 morning: "I don't think this is going to work [automatically]. It needs to
+> be a manual process like in the video - the user chooses the paths to re-render with Wan."**
+> Direction, not yet a decision. SplatKit's Camera Plot node already has an in-ComfyUI path
+> editor over the MoGe backdrop, and amendments 39-42 proved a NEW rail (traj04) joins an
+> existing dataset without disturbing the others. Cheapest proof of the manual loop: Fabio
+> draws 1-2 paths into the streaky zones on the bench, render only those rails (~35 min each),
+> SfM + Brush on the grown set (~60 min), fly it again.
+> **Brainstorm, same morning (Fabio's ideas, nothing decided):** (1) a 3D path tool in the app -
+> fly the unrendered/first-pass scene, a key drops a waypoint (pos + look = the existing
+> 6-float anchor row), start/end paths, a panel with per-path and total render time, one
+> batch render; agent adds: live too-close warning (the 0.22 rule) and a never-seen
+> coverage tint. Fits Phase 3's viewer. (2) H3 instead of Wan: NOT a drop-in (sampler mask
+> only, 32 px blocks, 73/90 frames, 1408x704; failed on edits MPI-711); community H3 360
+> LoRAs exist (rehan-fal, shamanic) - generate 360 video, not hole-fill; licence is SOLVED per
+> Fabio, do not raise. (3) World models: real-time ones (Matrix-Game 3.0, GameCraft, Genie 3,
+> Odyssey) are frame streams with no persistent place - wrong for re-entry. Persistent
+> image->3D: WorldGen (individual dev, ~10 GB low-VRAM, PLY, licence unstated), HunyuanWorld
+> 1.0-Lite (<17 GB), Lyra 2.0 (NVIDIA, Wan-14B, anti-drift long walkthroughs -> splat, but a
+> NON-COMMERCIAL research licence - verified on HF), Marble (paid API).
+> **Fabio's leading idea (the 3 h bake is the red flag): SINGLE-SHOT warp-and-inpaint.** User
+> places the camera; render the known scene from there + a hole mask; an edit model fills it
+> at 2K in seconds (the still IS the deliverable); depth of the new image aligned to the known
+> pixels and added back to the scene so the next nearby shot reuses it. Stretch (grazing-angle
+> surfaces, NOT torn by SplatKit's depth-discontinuity cut at `core/hires_composite.py:340`) gets
+> an AUTO stretch mask + a user brush (Fill = hole, Repaint = ~0.5 denoise guide) + preset
+> prompts. WorldGen: skip - Fabio believes Mickmumpitz tried and dropped it; find why first.
+> **Next: Fabio is testing edit models on messed-up splat frames himself; then the agent's
+> ~10 GPU-min single-shot test** (a spot between the cottages, SplatKit's perspective node for
+> the view + hole mask, auto stretch mask, Krea/Klein fill at 2K, then move slightly and check
+> reuse). Bench ComfyUI restarted by Fabio (its temp is wiped; scene-ref cloud is saved in
+> `village_bake\`).
 
 **Project mode:** `scalable-foundation`.
 
