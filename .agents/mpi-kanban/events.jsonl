@@ -5693,3 +5693,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-745", "at": "2026-10-06T23:58:30+01:00", "actor": "9a18fc2d-771e-4c7a-b35d-7fe440754ef5", "fields": ["description"], "reason": "Note: Video Edit Flow MPI-1036 covers the same job"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1037", "at": "2026-10-07T09:37:28+01:00", "actor": "claude", "column": "todo", "title": "Focus mode (F) in the image workspace shows a black screen"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1037", "at": "2026-10-07T09:38:14+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1037", "at": "2026-10-07T09:55:36+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "fdbad7e79 CI green (run 37595768791); spec red pre-fix on mascot-peek, green after"}
