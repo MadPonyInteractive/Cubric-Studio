@@ -24,6 +24,81 @@ MPI-711 (`done`) keeps the measurement record, including why H3 + LanPaint maski
 - Umbrella: **MPI-897** (localised editing). MPI-745 (LTX video head swap, deferred) covers the
   same job as the Swap the head option.
 
+## The main use (Fabio, 2026-10-07) - read this first
+
+**Performance capture.** A user films a performance on a phone or camera, picks a character
+image (and optionally a background), and the character performs it. Known, heavily used
+workflow among AI filmmakers and small studios. So the headline option is the picture-supplies-
+the-look mode (bench run F): the clip is ONLY the performance. Swaps inside an existing clip
+are secondary.
+
+What that changes:
+- The **face and voice** are the performance, not just the body. The bench dance clip tests
+  neither. Judge on an acting/talking clip: expressions, lip-sync, the performer's own voice
+  carried over (MPI-1033: a sounded `<Video 1>` keeps its soundtrack and lips follow `<Audio 1>`).
+- Depth or line-art input (runs F_depth / F_lineart) stops phone-footage quality leaking, but
+  may lose the mouth and eyes; pose with face landmarks (DWPose, on the bench) is the other
+  candidate.
+- Prior art on this machine: Fabio's Wan Animate workflow
+  (`D:/WORK/workflows/New Systems/Wan Animate Local.json`) does exactly this job; MPI-711 kept
+  motion transfer there. The same performance clip through both is the fair comparison.
+
+## Added 2026-10-07 (Fabio, after the first bench A/B)
+
+- **The photo input for a swap is a character SHEET** (front + back), not a single portrait.
+  A front-only photo leaves the back of the head unknown and the source's hair comes back
+  when the subject turns away (runs C and D, both).
+- **Background choice for Swap the person: keep the video's room, or take the photo's.**
+  With the photo's room the clip is only a motion guide (H3 already does image + video ->
+  "she performs the dance", `docs/models/h3/ref2va.md`). The instruction must lead with "make
+  the woman in the picture do the same dance as the woman in the video, using the video ONLY
+  as a reference" - otherwise the video's poor quality carries into the result (Fabio). The swap LoRA was trained to keep the
+  SOURCE scene, so it is expected ON for "keep video background" and OFF for "photo background".
+- **New option: Change the background** - keep the person, take the room from an image.
+- **Idea (Fabio): feed the clip as line art or a depth map** when it is only a motion guide, so
+  its picture quality cannot reach the result (seen done with Blender line renders into H3).
+  The bench has `comfyui_controlnet_aux` with Depth Anything V2 Large and LineartStandard;
+  runs F_depth / F_lineart test it. Only for the photo-background mode - keeping the video's
+  room needs its real pixels.
+- **All prompts follow the H3 r2v recipe shape** (`js/data/recipes/minimax-h3.recipe.js`, r2v):
+  look line, a reference line giving every asset a job and naming what a content reference
+  must NOT supply, one `[Shot 1]`, camera line, the two sound fields, constraints last.
+- **Flow UI (Fabio):** a dropdown for the operation, and a switch or radio for which
+  background to keep (video's or picture's).
+- **Several characters.** The swap LoRA replaces ONE character per run (its README: trained on
+  single-character targets only, two-character inference untested). Fabio has swapped two at
+  once WITHOUT the LoRA. So: one person -> LoRA on; two people in one pass -> LoRA off, one
+  picture per character; or two passes, LoRA on, the second run on the first one's result.
+- **Run E (mirror shot as the only picture, LoRA + turbo, 591 s) - PROVEN, Fabio:** a picture
+  that shows the character's back IS used when the performer turns away - dark bun, no source
+  blonde left. Usable video. Side effects, put down to the photo's very different angle: the
+  first 1.6 s show the photo itself before a hard cut to the dance, and the source's shorts
+  stayed (the photo never shows her legwear). A plain-background front/back sheet avoids both.
+- **Runs F / F_depth / F_lineart / G (576x1024, turbo, LoRA off, recipe-shaped prompts):**
+  - **F with the RAW clip is the best of the three.** Character, bathroom and the photo's clean
+    sharp look all came through; the clip's blur and watermark did NOT; the dance and the turn
+    to the back follow the source; the back shows her bun. 981 s.
+  - **Depth and line art bought nothing on this clip and cost identity:** both turned her bun
+    into long loose hair from behind (the source dancer's hair silhouette travels in both), and
+    the depth run gave her black briefs instead of shorts. 1,751 / 1,761 s - but that is
+    partly the bench run's own error: the preprocessors output 1024x1820, 3.2x the target's
+    pixels, so a fair timing needs `resolution` = the output size.
+  - So the quality leak was the PROMPT, not the pixels: with the recipe shape and "the clip is
+    only the choreography", raw footage did not carry its quality across. Depth/line art stay a
+    candidate only for faces/lip-sync, untested.
+  - Legwear is invented in every F run (the photo shows bare legs under the sweater) - the
+    character sheet should show the whole outfit.
+  - **G (keep the dancer, bedroom from the cat photo): works.** Dancer kept as she is, the room
+    and its light replaced, the vanity mirror even reflects her. The TikTok overlay SURVIVED the
+    "no text" line - in keep-the-video modes it is part of the kept pixels. 1,011 s.
+- Bench resolution so far 480x864 (0.41 MP, ~1.3 MB per 5 s clip); the F/G batch runs 576x1024.
+- **Remove on-screen text** (captions, usernames, watermarks) and **match the photo's quality**
+  belong in the hidden instruction; Higgsfield does both on the same clip. Bench runs F and G
+  test them.
+- Bench so far (seed 904234, 480x864, 124 frames, turbo 8 steps): LoRA on 611 s (incl. load),
+  off 510 s. LoRA on kept the room slightly closer (background diff 14.2 vs 16.4 /255) and kept
+  the TikTok overlay; off dropped it. Fabio: LoRA on is a bit closer to the character.
+
 ## What today's H3 runs say the Flow must handle
 
 Source: MPI-1033 `validation.md` runs 1-5, `docs/models/h3/ref2va.md` § "Lip-sync holds".

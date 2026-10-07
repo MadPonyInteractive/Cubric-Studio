@@ -19,7 +19,15 @@ Verification is Fabio's eyes on edited clips, plus measured timings for the mask
   subfolder. 32 nodes, 35 links, 0 dangling. Turbo off by default (their switch #146).
 - A/B: bypass #147 (Ctrl+B) for the base run; same seed (#129 fixed 904234), 4-5 s clip.
 
-Next action: Fabio runs the A/B and judges background held + identity from the photo.
+2026-10-07 evening: Phase 1 runs C, D, A, E, F, F_depth, F_lineart, G done on the bench (results +
+timings in `brief.md`; outputs `D:/WORK/Images/Outputs/mpi1036/`, the bench saves there via
+`--output-directory`; inputs `G:/ComfyUi/ComfyUI/input/mpi1036_*`; API builders in the session
+scratchpad `charswap_*.py`). Proven: the swap LoRA helps a little (background + overlay kept);
+a back view of the character is used; the performance-capture mode (F, raw clip, recipe-shaped
+prompt) gives the picture's quality, not the clip's; background-only change (G) works.
+
+Next action: a talking/acting performance clip (face, lip-sync, own voice) through F, and the
+same clip through Fabio's Wan Animate workflow for comparison.
 
 ## Phase 1 - The hidden instructions, on the bench
 
