@@ -734,6 +734,74 @@ notes in [research/](research/).
 > for depth, pick spots (`spots.py` needs new coords for the new scene), walk 6-8 steps with
 > Klein inpaint + `reuse.py`-style layering (generalise it from 2 layers to N), export pano +
 > every fill layer as ONE .ply for Fabio to fly. Fill prompt = our base + the user's text.
+>
+> **Session note 2026-10-07 (twenty-fifth). N-LAYER CHAIN RUNS END TO END, NO BAKE.**
+> Fuller low-poly panos (`pano360.sh`, ~105 s each): `ring` (square enclosed by cottages)
+> and `cross` (crossroads, lanes in 4 directions) both wrap content all the way round.
+> Splats: `cross_pano_holes_2k.ply`, `ring_pano_holes_2k.ply`; `topdown360.py` maps a
+> pano's cloud for picking a walk (cross: lane along Z, |x| < 0.4, well at (-0.65, 0),
+> ground 0.5 below eye). **`chain.py <tag>`** = reuse.py generalised to N layers in ONE
+> process: own look-at cameras (asserted equal to the node's C_front camera), render pano
+> + all fills, Klein 9B inpaint over HTTP on the still-black pixels (prompt = BASE style
+> line + USER scene line), MoGe lift fitted on known pixels, next step. MoGe parks on
+> the CPU while Klein runs; bench had ~14.8 GB free before every Klein job. 8 steps of
+> 1280x720, ~33 s Klein each, ~6 min total, deterministic (rerun = identical numbers).
+> Output: `chain_cross_all.ply` (3,520,004 splats = 2.00 M pano + 1.52 M fill, 187 MB),
+> `chain_cross_fills_only.ply`, `chain_cross_sheet.jpg`, numbers in `chain_cross.log`,
+> step images in `D:\WORK\Images\Outputs\mpi623_chain_cross\`. Traps: the Klein graph has
+> preview nodes - take the image from the SaveImage node id, not `outputs` order; the
+> holes .ply has 14 float props (xyz, f_dc x3, opacity, scale x3, rot x4).
+> **Weak spots seen:** step 4 (camera close to a wall, 54% holes) Klein invented a SECOND
+> well - the user-steered prompt matters; the fit gets weak when holes are most of the
+> frame (rel err 10-13% at steps 4-5 vs 3-4% elsewhere); 2K pano renders soft next to
+> sharp fills; pale haze patches where Klein painted sky into mid-distance holes.
+> **Next: Fabio flies `chain_cross_all.ply`** (and `fills_only` to see the layers alone).
+> **Fabio flew it: "1" (looks right) and asked for the 8K pano first.** `chain8k.sh`:
+> `run_animesharp2k.py` (copy of the cartoon AnimeSharp script for a 2K source; model-only
+> 4x, wrap-padded - no tiled refine, so no sky ghosts) -> `cross_8k_00001_.png` in 25 s,
+> wrap 1.73x the median column diff (`seam8k.py`), no seam by eye. `pano_splat.py` takes an
+> optional grid width (4096 -> `cross8k_pano_holes_4k.ply`, 8.1 M splats, pano splat size
+> now equals the fills'). `chain.py cross8k <8k path>` = same walk, same depth (npz copied),
+> 8K texture; exports `chain_cross8k_all_4k.ply` (9.65 M splats, 515 MB) and `_all_2k.ply`
+> (3.5 M, the lite one). `cmp_2k_8k.jpg`: pano parts now as crisp as the fills, the
+> pano/fill boundary mostly gone. **New finding: Klein plants the prompt's NOUNS in every
+> hole** - "a stone well" in the USER line gave a second well in both runs (step 4 at 2K,
+> step 1 at 8K). The fill prompt should carry style + generic surroundings, not one-off
+> landmarks. **Next: Fabio flies `chain_cross8k_all_4k.ply`; then a steering run.**
+> **Fabio flew cross8k: sharper, but "unwalkable, anywhere I look it's a mess" - the
+> crossroads image is unusable** (rows of houses behind rows: every off-centre step opens
+> a big hole behind the first row, and every fill is a single-view depth sheet that reads
+> as shredded strips from anywhere but its own camera). Re-run on the `ring` pano (open
+> square, one ring of houses; `ring8k.sh`, `chain.py ring8k`, walk across the square round
+> the well's right, clearance >= 0.30 printed per camera; fill USER line per walk, no
+> landmark nouns): holes 7-27% a step (cross 12-55%), depth fit 1.2-4.4% (cross 2.6-12%),
+> 0.93 M fill splats (cross 1.51 M), 2K edge pixels cut 65 k vs 93 k. Frames coherent by eye;
+> step 7 filled the hidden well interior with grass + a fence (prompt nouns again).
+> `chain_ring8k_all_4k.ply` (9.14 M, 488 MB) / `_all_2k.ply` (2.96 M, 158 MB).
+> **Next: Fabio flies the ring; the test scene is now an OPEN layout.**
+> **Fabio: the fill prompt must be STYLE-FREE** (realistic, 2D, any style) - it fills holes
+> and fixes broken edges - plus an optional user line for big blank areas ("forest behind the
+> houses" / "more houses"). `chain.py` now defaults to `FILL=generic` (the `GENERIC` task
+> instruction, no style or object words; Klein inpaint is LanPaint and follows instructions,
+> `docs/models/klein/9b.md`) + `USER_LINE` env appended as "In the large empty areas: ...";
+> `FILL=scene` keeps the old low-poly prompts; outputs named by RUN (`<tag>_gen[_user]`); an
+> unknown tag walks the 4-step `probe` path. `prompt_test.sh` (~17 min GPU): **generic holds on
+> all three styles** - ring low-poly (well interior now stone, not grass + fence; big gaps get
+> extended walls), 2D cartoon village (outlines + flat palette kept), new photoreal pano
+> `t2i_fast_real` (fills read as one photograph). User line "a dense forest behind the
+> houses" puts forest behind the houses at steps 4-7. Drift left: generic sometimes paints a
+> saturated blue sky with clouds; the user-line forest leans a little realistic; one pale
+> patch on photoreal step 1. Fabio floated Character-Sheet-style STYLE templates - not needed
+> for style matching on this evidence; the user line is the steer (presets for IT are the
+> cheap option). Sheets: `cmp_ring_scene_vs_gen.jpg`, `cmp_ring_gen_vs_user.jpg`,
+> `chain_village_gen_sheet.jpg`, `chain_real_gen_sheet.jpg`.
+> **Fabio: "1" on the generic prompt; presets noted in § Remaining Work, built WITH the Flow.**
+> That "1" was given AFTER flying `chain_ring8k_gen_user_all_4k.ply` in SuperSplat - the ring
+> fly-through is passed. **Next (Fabio, 2026-10-07): DESIGN the single-shot Flow** - where the
+> user places shots, what one dispatch does (render from the pano + earlier fills, Klein inpaint
+> with GENERIC + user line/preset, lift the fill as a layer), what it returns (a still card per
+> shot, the scene's fill layers kept for reuse), and how it reuses Phase 1's scene card. Product
+> wiring only on a branch (Flows have no dev gate). Run `mpi-brainstorm` first.
 
 **Project mode:** `scalable-foundation`.
 
@@ -2209,6 +2277,26 @@ Test it before building on it.
 - [ ] Nothing yet.
 
 ## Remaining Work
+
+### Single-shot route - decided for the Flow (Fabio, 2026-10-07)
+
+Phases 2-3 below still describe the BAKE Flow; the single-shot route (session notes 24-25,
+validation.md § Single-shot ... § One style-free fill prompt) needs no bake. Decided so far:
+
+- **Fill prompt = `GENERIC` in `D:\WORK\MPI-623-spike\single_shot\chain.py`, verbatim** - a
+  task instruction with no style or object words; Fabio passed it on low-poly, 2D cartoon and
+  photoreal ("1"). **No style picker** - the generic prompt matches the image's own style.
+- **Optional user line**, appended as `In the large empty areas: <text>.` - the user steers
+  what fills big blank areas ("forest behind the houses" / "more houses").
+- **User-line PRESETS, built with the Flow** (Fabio: "note the presets now and build them with
+  the Flow"): a Character-Sheet-style picker whose presets fill the user line, e.g. Forest,
+  More houses, Open fields; free text stays available. Character Sheet's shape: one text node per
+  recipe (`Recipe_Photoreal` / `_3D` / `_Anime` / `_Cartoon`), picked by a field -
+  `docs/playbooks/add-flow/existing-flows/character-sheet.md`.
+- **Pano at 8K before rendering**: AnimeSharp 4x, model-only, wrap-padded (`run_animesharp2k.py`)
+  - no tiled refine (it ghosts houses into the sky).
+- **Test scenes are OPEN layouts** (a square ringed by houses); a crossroads (rows behind rows)
+  is unusable - Fabio flew it.
 
 ## Phase 0: Prove the pipeline (spike - NO product code)
 

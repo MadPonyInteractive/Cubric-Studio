@@ -362,3 +362,69 @@ apart; `sky_seam.py`'s 8-col step alone misreads a ridge as a step.
   into both steps; Klein then fills only silhouette slivers. Klein from scratch invents a
   DIFFERENT wall and trees each time. Weak spots: a few small pale rectangular seams where
   the lifted fill's edge meets the pano; the reused fill is a touch softer.
+
+## N-layer chain on a full low-poly pano (2026-10-07, `chain.py cross`)
+
+- Pano `t2i_fast_cross` (low-poly crossroads, content on every side), 2K, MoGe valid 0.758.
+- 8 steps up the lane and back toward the square, 1280x720, 24 mm. Each step: render pano + all
+  earlier fills, Klein 9B inpaint (seed 42) on the still-black pixels, MoGe lift as a new layer.
+  Look-at cameras asserted equal to SplatKit's C_front camera (atol 1e-3). Rerun gave identical numbers.
+
+  | step | holes, pano only | holes after earlier fills | reused | depth fit rel err |
+  |---|---|---|---|---|
+  | 0 | 21.6% | 21.6% | - | 4.0% |
+  | 1 | 33.8% | 19.6% | 42% | 3.5% |
+  | 2 | 19.6% | 15.6% | 20% | 6.7% |
+  | 3 | 16.3% | 6.2% | 62% | 7.5% |
+  | 4 | 53.8% | 53.8% | 0% (new view) | 10.2% |
+  | 5 | 55.1% | 24.9% | 55% | 13.4% |
+  | 6 | 12.2% | 6.2% | 49% | 2.7% |
+  | 7 | 19.9% | 13.9% | 30% | 3.0% |
+
+- `chain_cross_all.ply`: 3,520,004 splats (2,004,219 pano + 1,515,785 fill), 187 MB; `ply_check.py`:
+  byte size matches the header, all values finite, fill xyz inside the scene bounds.
+- By eye (`chain_cross_sheet.jpg`): step 4's invented cottage + stall reappear in step 5 from a new
+  angle. Weak: step 4 invented a second well, softer 2K pano next to sharp fills, haze patches.
+- **Fabio flew `chain_cross_all.ply`: "1"**, then asked for the pano at 8K first.
+
+### Same walk on the 8K pano (2026-10-07, `chain8k.sh`)
+
+- 2K -> 8K: AnimeSharp 4x, model-only, 32 px wrap pad, 25 s; wrap col diff 2.04 vs median 1.18
+  (1.73x; the earlier AnimeSharp-only 8K was 1.97x against a 2.66x lanczos baseline); no seam by eye.
+- Same depth and cameras, so hole % are identical per step; reuse 25-61% (2K run 20-62%); depth
+  fit at step 4 improved 10.2% -> 5.1% (Klein drew more consistent geometry from a sharp input).
+- `chain_cross8k_all_4k.ply`: 9,652,678 splats (8,139,002 pano on a 4096 grid + 1,513,676 fill),
+  515 MB; `ply_check.py` passed. Lite: `chain_cross8k_all_2k.ply` 3,517,895 splats, 187 MB.
+- By eye (`cmp_2k_8k.jpg`, 1:1 crops): pano parts as sharp as the fills; the pano/fill boundary
+  mostly gone. **Klein places the prompt's nouns in every hole** - a second well at step 1.
+- **Fabio flew `chain_cross8k_all_4k.ply`: sharper, but unwalkable - the crossroads pano is
+  unusable** (row behind row of houses; fills are single-view sheets, shredded off their camera).
+
+### Open layout: the `ring` pano, 8K (2026-10-07, `ring8k.sh`)
+
+| | cross8k | ring8k |
+|---|---|---|
+| holes a step, pano only | 12.2-55.1% | 7.2-27.3% |
+| depth fit rel err | 2.6-11.9% | 1.2-4.4% |
+| fill splats (Klein-invented) | 1,513,676 | 930,693 |
+| edge pixels cut, 2K grid | 92,933 | 65,183 |
+
+- Camera clearance 0.30-0.47 on every step. Reuse 18-34% on steps 1-6, 72% on step 7 (looking back).
+- `chain_ring8k_all_4k.ply` 9,140,669 splats, 488 MB; lite `_all_2k.ply` 2,962,662, 158 MB.
+- By eye (`chain_ring8k_sheet.jpg`): coherent houses, doors, cart, stall and well across steps.
+  Weak: step 7 filled the hidden well interior with grass and a fence (prompt nouns), white sky
+  patches at step 6.
+
+### One style-free fill prompt across styles (2026-10-07, `prompt_test.sh`, ~17 min GPU)
+
+`chain.py` `GENERIC` (task instruction only: fill the black, continue the surroundings, repair broken
+edges, match the image's own style/lighting/detail) + optional `USER_LINE`. Klein 9B inpaint, seed 42.
+
+| run | style | steps | depth fit rel err | by eye |
+|---|---|---|---|---|
+| `ring8k_gen` | low-poly | 8 | 1.4-3.7% | well interior stone (scene prompt: grass + fence); gaps get walls, not landmarks; blue cloudy sky at 6-7 |
+| `ring8k_gen_user` "a dense forest behind the houses" | low-poly | 8 | 1.6-3.5% | forest behind the houses at 4-7; pines lean a little realistic |
+| `village_gen` (8K cartoon, `probe` walk) | 2D cartoon | 4 | 1.6-21.5% | outlines + flat palette kept; step 2 (36% holes) meadow + trees, the rock split |
+| `real_gen` (new `t2i_fast_real`, 2K) | photoreal | 4 | 2.8-9.2% | hedges, walls, tree, cobbles read as one photo; a pale patch at step 1 |
+
+Camera clearance 0.29-0.45 on every probe step. Village fit error is the known 2D-depth problem, not the prompt.

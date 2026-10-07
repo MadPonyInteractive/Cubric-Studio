@@ -216,3 +216,15 @@ Delivered per plan.md amendments 18-20. `'splat'` is NOT a media type.
 - [ ] 3D Scene bake from the pano he picks (Phase 2 bench pipeline, ~3 h GPU - his yes).
 - [ ] Wire the Flow via `/mpi-add-flow`: Ostris pack + Mickmumpitz nodes (re-add by hand),
       both LoRAs as deps, fast tier only, Siax 8K stage inside a wrap pad/crop.
+- [x] Single-shot N-layer chain on a full low-poly 360 pano (`chain.py cross`, 8 steps, Klein
+      inpaint per step, one combined .ply). validation.md § N-layer chain.
+- [x] Fabio flies `chain_cross_all.ply` - `user-ux`. 2026-10-07: "1" (looks right); next = 8K pano first.
+- [x] Same walk on an 8K pano (AnimeSharp 4x model-only, wrap pad; `chain8k.sh`). validation.md
+      § Same walk on the 8K pano.
+- [x] Fabio flies `chain_cross8k_all_4k.ply` - sharper, but the crossroads pano is unusable (row behind row).
+- [x] Same pipeline on the open `ring` pano at 8K (`ring8k.sh`). validation.md § Open layout.
+- [x] Fabio flies the ring - `user-ux`. 2026-10-07: flew `chain_ring8k_gen_user_all_4k.ply`, "1".
+- [x] One style-free fill prompt (`GENERIC` + optional user line) on low-poly, 2D cartoon and
+      photoreal (`prompt_test.sh`). validation.md § One style-free fill prompt.
+- [x] Fabio judges the generic fill prompt on the three styles - `user-ux`. 2026-10-07: "1".
+- [ ] Build user-line presets (Forest / More houses / Open fields + free text) WITH the Flow.
