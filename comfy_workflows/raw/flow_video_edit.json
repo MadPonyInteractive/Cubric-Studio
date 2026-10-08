@@ -1,5 +1,5 @@
 {
-  "id": "68c423e8-2084-4f26-9013-a53de5f9423a",
+  "id": "3caaf785-cd6c-4eb5-a444-1caadda8ec4b",
   "revision": 0,
   "last_node_id": 130,
   "last_link_id": 220,
@@ -431,14 +431,14 @@
     },
     {
       "id": 15,
-      "type": "MpiString",
+      "type": "MpiText",
       "pos": [
         60,
         1404
       ],
       "size": [
-        270,
-        58
+        400,
+        200
       ],
       "flags": {},
       "order": 5,
@@ -456,8 +456,8 @@
       ],
       "outputs": [
         {
-          "localized_name": "string",
-          "name": "string",
+          "localized_name": "Text",
+          "name": "Text",
           "type": "STRING",
           "links": [
             178
@@ -468,7 +468,7 @@
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
         "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
-        "Node name for S&R": "MpiString"
+        "Node name for S&R": "MpiText"
       },
       "widgets_values": [
         "the person"
@@ -479,14 +479,14 @@
     },
     {
       "id": 16,
-      "type": "MpiString",
+      "type": "MpiText",
       "pos": [
         60,
-        1552
+        1694
       ],
       "size": [
-        270,
-        58
+        400,
+        200
       ],
       "flags": {},
       "order": 6,
@@ -504,8 +504,8 @@
       ],
       "outputs": [
         {
-          "localized_name": "string",
-          "name": "string",
+          "localized_name": "Text",
+          "name": "Text",
           "type": "STRING",
           "links": [
             111,
@@ -518,7 +518,7 @@
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
         "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
-        "Node name for S&R": "MpiString"
+        "Node name for S&R": "MpiText"
       },
       "widgets_values": [
         ""
@@ -532,7 +532,7 @@
       "type": "MpiInt",
       "pos": [
         60,
-        1700
+        1984
       ],
       "size": [
         270,
@@ -1555,7 +1555,7 @@
       "type": "CheckpointLoaderSimple",
       "pos": [
         60,
-        1848
+        2132
       ],
       "size": [
         270,
@@ -2377,7 +2377,7 @@
       "type": "MpiInt",
       "pos": [
         60,
-        2036
+        2320
       ],
       "size": [
         270,
@@ -2426,7 +2426,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        2184
+        2468
       ],
       "size": [
         400,
@@ -2474,7 +2474,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        2474
+        2758
       ],
       "size": [
         400,
@@ -2522,7 +2522,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        2764
+        3048
       ],
       "size": [
         400,
@@ -2570,7 +2570,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        3054
+        3338
       ],
       "size": [
         400,
@@ -2618,7 +2618,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        3344
+        3628
       ],
       "size": [
         400,
@@ -2666,7 +2666,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        3634
+        3918
       ],
       "size": [
         400,
@@ -2838,7 +2838,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        3924
+        4208
       ],
       "size": [
         400,
@@ -2886,7 +2886,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        4214
+        4498
       ],
       "size": [
         400,
@@ -2934,7 +2934,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        4504
+        4788
       ],
       "size": [
         400,
@@ -2982,7 +2982,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        4794
+        5078
       ],
       "size": [
         400,
@@ -3030,7 +3030,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        5084
+        5368
       ],
       "size": [
         400,
@@ -3078,7 +3078,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        5374
+        5658
       ],
       "size": [
         400,
@@ -3310,7 +3310,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        5664
+        5948
       ],
       "size": [
         400,
@@ -3358,7 +3358,7 @@
       "type": "MpiText",
       "pos": [
         60,
-        5954
+        6238
       ],
       "size": [
         400,
@@ -3746,7 +3746,7 @@
       "type": "UNETLoader",
       "pos": [
         60,
-        6244
+        6528
       ],
       "size": [
         270,
@@ -3805,7 +3805,7 @@
       "type": "CLIPLoader",
       "pos": [
         60,
-        6416
+        6700
       ],
       "size": [
         270,
@@ -3875,7 +3875,7 @@
       "type": "VAELoader",
       "pos": [
         60,
-        6612
+        6896
       ],
       "size": [
         270,
@@ -3923,7 +3923,7 @@
       "type": "VAELoader",
       "pos": [
         60,
-        6760
+        7044
       ],
       "size": [
         270,
@@ -4186,7 +4186,7 @@
       "type": "MpiTinyVaeLoader",
       "pos": [
         60,
-        6908
+        7192
       ],
       "size": [
         270,
@@ -4591,7 +4591,7 @@
       "type": "KSamplerSelect",
       "pos": [
         60,
-        7056
+        7340
       ],
       "size": [
         270,
