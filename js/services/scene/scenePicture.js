@@ -28,10 +28,20 @@ export const POLISH = 'Clean up this image: repair any smeared, stretched, blurr
     + 'whole and sharp. Keep everything else exactly the same - the same composition, objects, style, '
     + 'colours and lighting.';
 
+/** Most of the frame seen from behind: the camera stands inside something. */
+const isInterior = (backFrac) => backFrac > 0.5;
+
 /** The fill prompt: INTERIOR when most of the frame is seen from behind, plus the user's line. */
 export function fillPrompt(backFrac, fillLine) {
     const line = String(fillLine || '').trim().replace(/[.\s]+$/, '');
-    return (backFrac > 0.5 ? INTERIOR : GENERIC) + (line ? ` In the large empty areas: ${line}.` : '');
+    return (isInterior(backFrac) ? INTERIOR : GENERIC) + (line ? ` In the large empty areas: ${line}.` : '');
+}
+
+/** The lift's known depth. Inside, the walls seen from behind (negative z) are what the room is
+ *  fitted to while the fill replaces them. Outside, a back face is an object's far side and the
+ *  fill paints what lies beyond it, so it only counts as a hole (0). */
+function knownDepth(z, backFrac) {
+    return isInterior(backFrac) ? z : z.map(v => Math.max(v, 0));
 }
 
 // ── Reinhard colour lock in CIELAB (D65), the spike's color_lock.py "A" ──────────────────────
@@ -210,7 +220,7 @@ export async function takePicture({ project, group, sceneItem, view, renderer, p
         const mask = await io.blobToDataUrl(await io.encodePng(shot.mask, shot.w, shot.h));
         const fill = await kleinJob(io, 'inpaint', frame.filePath, fillPrompt(shot.backFrac, fillLine), mask);
         onStep('lift');
-        const known = await asset(await io.blobToDataUrl(new Blob([shot.z.buffer], { type: 'application/octet-stream' })), '.f32');
+        const known = await asset(await io.blobToDataUrl(new Blob([knownDepth(shot.z, shot.backFrac).buffer], { type: 'application/octet-stream' })), '.f32');
         const fovX = 2 * Math.atan(18 / pose.mm) * 180 / Math.PI;
         const depthUrl = await liftJob(io, { imagePath: io.resolveMediaUrl(fill.filePath), knownDepthPath: known.absPath, fovX });
         const saved = await io.post(`/project-media/${project.id}/scene-layer?folderPath=${encodeURIComponent(project.folderPath)}`,

@@ -8,11 +8,13 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: the Interior lift (Remaining Work,
-Phase 3) with Fabio's yes for the pick (negative z = fit AND keep), before Build here; DoF waits on
-spike 0c. The ENGINE IS BEING BUMPED (bench + app, a separate session, 2026-10-08): let that land
-first, then re-read `dev_configs/node_lock.json` before pinning MpiNodes.** Fabio passed the four
-Take picture stills ("1").
+**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: re-take the window shot end
+to end** (session 35's `take.cjs window` on an isolated app, under the lease) once the engine runs
+MpiNodes `3ec03ef` - Fabio's app on 48188 still has `6bf5659` loaded, so ask him to restart it (or
+run while it is closed) first; expect own-camera holes ~13% (offline). Then Build here (0b).
+**Session 36 (2026-10-08): Interior lift DONE but that live re-take** (validation.md § Interior
+lift): the pick alone gave 58% (walls = one flat plane, Klein paints a corridor); Fabio picked A =
+the pick + a back face never hides a fill -> 13%. MpiNodes `3ec03ef` pushed + pinned.
 
 **Session 28 (2026-10-07):** 0a's CPU half is built - `export_records.py` wrote ring8k as records
 (`viewer/records/`, every layer's verts + faces round-trip the shots.py cache exactly; the
@@ -432,6 +434,8 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       = fit here AND keep). MpiNodes change + pin (`/mpi-nodes-sync`), then `renderPicture` writes
       `-z` on back faces. **Verify:** the window picture's own camera < 15% holes in the viewer; a
       CPU test of the node's sign convention. Build here (0b) depends on it.
+      **(BUILT 2026-10-08, session 36: + option A, a back face never hides a fill; 13% offline on
+      the real fill, MpiNodes `3ec03ef` pinned. Left: the live re-take on the new pin.)**
 - [ ] **Build here:** 0b's loop as a tool (progress, cancel), SAM3 glass windows, fill line.
       **Verify:** isolated run inside a house builds the room and its windows show the real
       outside; time within 0b's measured budget.
@@ -516,6 +520,12 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
   stretched hid the one seen straight on. A rejected fill fragment is now discarded (the pano keeps
   its bad faces). Spike parity moved by design (behind_well IoU 0.9198); the 0a gate measured the
   port, not this rule.
+- **2026-10-08 - the Interior lift pick does not reach its own target (session 36).** Fitting the
+  room to the back-faced walls assumed the fill agrees with them; on the window shot it does not (a
+  corridor vs one flat wall, fit error 73%), so the window stays 58% holes. Fabio picked A: the
+  composite lets a fill win over a pano face seen from behind (13%); the price is another picture's
+  fill showing through a wall where the room's own fill does not reach. Build here will show
+  whether that leak matters.
 - **2026-10-08 - a `.meta` json is not always a sidecar (session 35).** The scene manifest
   `<id>.scene.json` was deleted by save-generation's orphan GC; every sidecar scan in
   `routes/projects.js` now goes through `isSidecarFile`.

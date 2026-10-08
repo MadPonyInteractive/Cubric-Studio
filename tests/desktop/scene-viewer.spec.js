@@ -200,11 +200,18 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
             const V = await import('/js/services/scene/sceneViewer.js');
             const view = V.createSceneView(await V.loadScene(manifestUrl));
             const renderer = document.querySelector('.mpi-scene-canvas').getRenderer();
-            const at = (yaw) => {
-                const s = V.renderPicture(view, renderer, { pos: [0, 0, 0], yaw, pitch: 0, mm: 24 }, { w: 64, h: 36 });
-                return { z: s.z[18 * 64 + 32], back: s.backFrac };
+            const at = (yaw, pos = [0, 0, 0], mm = 24) => {
+                const s = V.renderPicture(view, renderer, { pos, yaw, pitch: 0, mm }, { w: 64, h: 36 });
+                const k = 18 * 64 + 32;
+                return { z: s.z[k], back: s.backFrac, rgb: [...s.rgba.slice(k * 4, k * 4 + 3)] };
             };
-            const r = { ahead: at(0), layer: at(Math.PI / 4) };
+            // Outside the sphere, 1 past the blue band, looking back at it: all of it from behind.
+            // Then 6 out on the layers' ray, looking back through the sphere at 300 mm: the white
+            // fill (seen from its front, 5.5 away) is behind a back face (1 away), and a back face
+            // never hides a fill; the purple one (5 away) is seen from behind and discarded.
+            const s45 = Math.SQRT1_2 * 6;
+            const r = { ahead: at(0), layer: at(Math.PI / 4), outside: at(Math.PI, [0, 0, 6]),
+                through: at(5 * Math.PI / 4, [s45, 0, s45], 300) };
             view.dispose();
             return r;
         }, scenePath);
@@ -212,6 +219,12 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
         expect(shot.ahead.z).toBeLessThan(5.1);
         expect(shot.ahead.back, 'nothing ahead is seen from behind').toBe(0);
         expect(Math.abs(shot.layer.z - 1), `the layer at depth 1 wins, got ${shot.layer.z}`).toBeLessThan(0.1);
+        // A hole that is a real surface seen from behind carries MINUS its z: sceneLift fits an
+        // interior's fill to those walls and still replaces them (the window picture's 64% holes).
+        expect(shot.outside.back, 'the frame is the sphere seen from behind').toBeGreaterThan(0.9);
+        expect(Math.abs(shot.outside.z + 1), `the back face 1 ahead reads -1, got ${shot.outside.z}`).toBeLessThan(0.1);
+        expect(Math.abs(shot.through.z - 5.5), `the fill behind a back face shows, got z ${shot.through.z}`).toBeLessThan(0.1);
+        expect(shot.through.rgb, 'it is the white fill').toEqual([255, 255, 255]);
 
         expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
     } finally {

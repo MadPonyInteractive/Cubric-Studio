@@ -910,3 +910,45 @@ plus the spike's window rect; the real **Take picture** button clicked at the fo
   branch: "got 0", the live failure); a back-facing fill at 0.5 in front of the layer does not hide it
   (mutant = no discard: "got 255,255,255,255"). Scene unit tests 43/43, both scene desktop specs
   green, eslint clean on every touched file.
+
+## Interior lift: the pick measured (2026-10-08, session 36 "3D Scene 26", CPU + SwiftShader, no GPU)
+
+Built, NOT committed / pushed / pinned (waits on Fabio's call below): `MpiLiftDepth` sign convention
+(`scene3d/lift.py`: negative = |z| in the fit AND kept; 0 = unknown, kept; positive = known, not
+kept), `renderPicture` writes MINUS the pano's z on a hole that is a real surface seen from behind
+(`COMP_FRAG` view 3), and Take picture sends those only for an INTERIOR shot (`knownDepth` in
+`scenePicture.js`, the same > 50% switch as the prompt: outside, a back face is an object's far side
+and Klein paints what lies beyond it).
+- **Checks green:** MpiNodes `tests/test_scene3d.py` 10/10, +1 test (mutants killed: the old `zc > 0`
+  rule -> "fewer than 2 known pixels"; negatives fit but not kept -> assert). `scene-picture.test.cjs`
+  +1 (interior sends -z, exterior zeros it), scene unit tests 42/42. `scene-viewer.spec.js` +1: from
+  outside the fixture sphere, the back face 1 ahead reads z -1, backFrac > 0.9 (mutant = the old `: 0`
+  -> "got 0"). eslint clean.
+- **Offline A/B on the window picture's real fill** (rig: session scratchpad `ab/`; Electron with
+  hardware acceleration OFF, so no GPU and no lease while MPI-1036 held it; MoGe on CPU, 10 s). The rig
+  reproduces session 35 exactly: holes at render 85.1%, the old known depth == the run's `.f32` (100%
+  of the mask, z 1e-7), the CPU lift == the GPU run's layer (99.84% kept agree, z 0.01%), and all four
+  cameras' own-camera holes with all layers 64.2 / 0.4 / 6.5 / 8.4%.
+- **The pick alone does NOT reach < 15%:** window own camera **58.3%** (today 64.3%). Fit error goes
+  2.2% -> **73%**. Why (`viz.png`): the back faces are ONE flat plane, the window wall 0.25 ahead
+  (|z| p05-p75 0.23-0.28), but Klein painted a deep corridor ending at the opening (MoGe: the doorway
+  ~2x farther than the walls round the frame). No scale + shift makes a corridor a plane.
+- **What does pass** (window, own camera, its layer only):
+
+  | lift | composite today | + a fill at a rejected surface wins (x1.03) | + back faces never hide a fill |
+  |---|---|---|---|
+  | today (fit on the view out) | 64.3% | 62.9% | 26.1% |
+  | the pick (fit on walls too) | 58.3% | 57.2% | **13.0%** |
+  | fill painted onto the walls (the wall's own z) | 80.2% | **2.3%** | 2.3% |
+
+  "Back faces never hide a fill" leaves treetop / floor / behind_well unchanged (0.4 / 6.5 / 8.4%) but
+  lets another picture's fill show through the house wall where the room fill does not reach
+  (`all_window.jpg`, right edge). Painted-on-walls is exact at the camera and flat from anywhere else
+  (`sheet.jpg`, moved camera). **Fabio picked A (2026-10-08).**
+- **A shipped:** `COMP_FRAG` `take` gains `|| A0.z > 1.5` (a back face never hides a fill). Measured
+  with the app's own shader (no rig override): window own camera **13.0%** holes (< 15%). Spec +1: 6
+  out on the layers' ray at 300 mm the white fill 5.5 away shows through the sphere's back face 1
+  away, z 5.5 (mutant = the old `take`: "got z -1.05"). `npm test` 2778 pass / 0 fail; scene desktop
+  spec green; eslint clean. MpiNodes `3ec03ef` committed + pushed (on `6bf5659`), pinned in
+  `dev_configs/node_lock.json`. **Left:** the window shot RE-TAKEN end to end on an isolated app
+  under the lease, on an engine restarted onto `3ec03ef` (Fabio's 48188 still runs `6bf5659`).

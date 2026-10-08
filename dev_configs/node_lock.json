@@ -22,7 +22,7 @@
     "ComfyUI-MpiNodes": {
       "source": "git-commit",
       "repo": "MadPonyInteractive/ComfyUi-MpiNodes",
-      "commit": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+      "commit": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
       "filename": "ComfyUI-MpiNodes",
       "installRequirements": false
     },

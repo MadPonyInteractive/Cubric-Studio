@@ -368,7 +368,8 @@ void main() {
 
 // shots.py render(): a fill wins where the pano has no real surface or is clearly behind it.
 // Holes come out transparent black. uView 1 paints them magenta; 2 is the self-check readout;
-// 3 is Take picture's: r = camera z where known (0 = hole), g = the pano seen from behind.
+// 3 is Take picture's: r = camera z where known, MINUS the pano's z on a real surface seen from
+// behind (a hole sceneLift still fits to), else 0; g = the pano seen from behind.
 const COMP_VERT = /* glsl */`precision highp float; in vec3 position;
 void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }`;
 
@@ -380,9 +381,13 @@ void main() {
   vec4 A0 = texelFetch(a0, p, 0), A1 = texelFetch(a1, p, 0);
   bool surf = A0.w > 0.5 && A0.y > 0.5, bad0 = A0.z > 0.5;
   if (uView > 1.5 && uView < 2.5) { o = vec4(surf && bad0 ? 1.0 : 0.0, surf ? 1.0 : 0.0, A0.w, 1.0); return; }
-  bool take = A1.w > 0.5 && (!surf || A1.x < A0.x * 0.97); // a drawn fill fragment is never rule C bad
+  // A drawn fill fragment is never rule C bad. A pano face seen from behind never hides one: from
+  // inside a house the walls are back faces, and the room's fill can never agree with them (MPI-623
+  // window picture: a painted corridor vs one flat wall, 58% holes even fitted to the walls).
+  bool take = A1.w > 0.5 && (!surf || A0.z > 1.5 || A1.x < A0.x * 0.97);
   bool known = take || (surf && !bad0);
-  if (uView > 2.5) { o = vec4(known ? (take ? A1.x : A0.x) : 0.0, A0.w > 0.5 && A0.z > 1.5 ? 1.0 : 0.0, 0.0, 1.0); return; }
+  bool back = A0.w > 0.5 && A0.z > 1.5;
+  if (uView > 2.5) { o = vec4(known ? (take ? A1.x : A0.x) : (surf && back ? -A0.x : 0.0), back ? 1.0 : 0.0, 0.0, 1.0); return; }
   vec3 rgb = take ? texelFetch(c1, p, 0).rgb : (known ? texelFetch(c0, p, 0).rgb : vec3(0.0));
   if (uView > 0.5 && !known) rgb = vec3(1.0, 0.0, 1.0);
   o = vec4(rgb, known ? 1.0 : 0.0);
@@ -504,7 +509,8 @@ export function createSceneView({ manifest, depth, image, layers }, { skyBand = 
 /**
  * Render the picture a pose takes, at `size` (`pictureSize`): the frame with rule C holes,
  * read back top-down. `rgba` is the frame (holes black), `mask` is white where Klein must
- * fill, `z` the camera z of every known pixel (0 = hole: sceneLift's known depth),
+ * fill, `z` the camera z of every known pixel, 0 on a hole and MINUS the pano's z on a hole
+ * that is a real surface seen from behind (sceneLift's known depth: fit there, still kept),
  * `backFrac` the share of the frame where the pano is seen from behind (the INTERIOR switch),
  * `record` the camera as a layer's pinhole record.
  * @returns {{ w: number, h: number, rgba: Uint8ClampedArray, mask: Uint8ClampedArray,
@@ -532,7 +538,7 @@ export function renderPicture(view, renderer, pose, { w, h }) {
         rgba[q + 3] = 255;
         mask.fill(known ? 0 : 255, q, q + 3);
         mask[q + 3] = 255;
-        z[k] = known ? aux[o] : 0;
+        z[k] = known ? aux[o] : Math.min(aux[o], 0);
         if (!known) holes++;
         if (aux[o + 1] > 0.5) back++;
     }

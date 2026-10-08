@@ -35,8 +35,11 @@
   spikes of tree texels on the dome). A manifest may carry `stretch_k` / `pano.edge_rtol`.
 - **Two passes and a composite** (`createSceneView`): the pano and the fill layers each render to a
   float MRT pair, colour + aux (camera z, real surface, rule C bad, covered); the composite takes a
-  layer where the pano has no real surface or is >3% farther, else the pano, else a HOLE
-  (transparent; `draw(..., { view: 1 })` paints holes magenta). A FILL fragment rule C rejects is
+  layer where the pano has no real surface, is seen from behind, or is >3% farther, else the pano,
+  else a HOLE (transparent; `draw(..., { view: 1 })` paints holes magenta). A back face never hides
+  a fill because inside a house the walls are back faces and the room's fill never agrees with them
+  (a painted corridor vs one flat wall); the price is another picture's fill showing through a
+  wall where the room's own fill does not reach. A FILL fragment rule C rejects is
   discarded, never an occluder: two pictures' fills of one ground disagree by ~1 cm, which at a
   grazing angle beats any z tolerance, and the stretched one hid a picture's own fill (44% holes at
   its own camera; 8.4% now). The pano keeps its bad faces. Faces inside a `pano.windows` rect
@@ -66,13 +69,16 @@
 
 `js/services/scene/scenePicture.js` `takePicture(ctx, appIo())`, one press (plan A5):
 1. `renderPicture` at `pictureSize(aspect)` (~1 MP, sides x16: 16:9 = 1360x768): the frame, the
-   hole mask (white = fill), the camera z of every known pixel (0 = hole), the share of the frame
-   seen from behind, and the camera as a pinhole record (`layerCamera`: OpenCV w2c = diag(1,-1,-1)
+   hole mask (white = fill), the camera z of every known pixel (0 = hole, MINUS the pano's z on a
+   hole that is a real surface seen from behind), the share of the frame seen from behind, and the
+   camera as a pinhole record (`layerCamera`: OpenCV w2c = diag(1,-1,-1)
    x the GL view). The frame goes to disk via `place-preview-asset` (no card).
 2. Holes -> Klein `inpaint` (`maskDataUrl`), `GENERIC` or `INTERIOR` when > 50% is seen from behind,
    plus `In the large empty areas: <fill line>.`
 3. `sceneLift` on the fill with the known z (`place-preview-asset` `.f32` -> `absPath`) and the lens
-   as `fovX`; `POST /project-media/:id/scene-layer` copies the fill and downloads the depth as
+   as `fovX`. `MpiLiftDepth` fits on positive AND negative z (|z|) and keeps 0 and negative pixels;
+   the minus signs ride only on an INTERIOR shot (`knownDepth`), since outside a back face is an
+   object's far side and the fill paints what lies beyond it; `POST /project-media/:id/scene-layer` copies the fill and downloads the depth as
    `layer<n>.png` / `layer<n>_depth.f32`, appends the record (manifest LAST); `view.addLayer` meshes
    it live (`loadLayer`).
 4. Clean-up B, always: Klein `kleinEdit` with `POLISH` on the filled frame, then `colorLock`
@@ -84,9 +90,10 @@ job lands a card; their `inpaint_NNN` / `edit_NNN` PNGs stay in `Media/` for Cle
 drops its float targets once the render is read (Klein's VRAM).
 - Measured on a 4060 Ti (four spike cameras, 2026-10-08): 60-77 s a picture = fill 33-51 s, lift
   2-2.5 s, clean-up 23-26 s.
-- Limit: a picture taken INSIDE something fits its fill's depth only on the view out, so the room
-  lands ~8% past the walls' back faces and the composite hides most of it in the viewer (the picture
-  itself is fine). MPI-623 plan, "Interior lift".
+- Limit: inside, Klein paints a room the walls do not match (window spike camera: a deep corridor
+  vs one flat wall 0.25 ahead, fit error 73%), so the room's depth is a compromise; it shows because
+  back faces never hide a fill (window own-camera holes 64% -> 13%). MPI-623 validation.md
+  § Interior lift.
 
 ## Companions and the manifest
 

@@ -20,18 +20,18 @@ const SCENE_ITEM = { id: 'pano1', scenePath: pf('C:/P/Media/.meta/pano1.scene.js
 const POSE = { pos: [0.1, 0.2, 0.3], yaw: 0.5, pitch: -0.1, roll: 0.05, mm: 24 };
 const RECORD = { w: 4, h: 2, w2c: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], fx: 2.6, fy: 2.6, cx: 2, cy: 1 };
 
-function harness({ holeFrac = 0.25, backFrac = 0, failInpaint = false } = {}) {
-    const log = [], calls = { enqueue: [], lift: [], post: [], layers: [], saved: [] };
+function harness({ holeFrac = 0.25, backFrac = 0, failInpaint = false, z = new Float32Array(8).fill(2) } = {}) {
+    const log = [], calls = { enqueue: [], lift: [], post: [], layers: [], saved: [], blobs: [] };
     const w = 4, h = 2;
     const io = {
         klein: { id: 'klein-9b' },
         render: (view, renderer, pose, size) => {
             log.push(`render ${size.w}x${size.h}`);
             return { w, h, rgba: new Uint8ClampedArray(w * h * 4), mask: new Uint8ClampedArray(w * h * 4),
-                z: new Float32Array(w * h).fill(2), holeFrac, backFrac, record: RECORD };
+                z, holeFrac, backFrac, record: RECORD };
         },
         encodePng: async () => new Blob(['png']),
-        blobToDataUrl: async () => 'data:x;base64,AA==',
+        blobToDataUrl: async (blob) => { calls.blobs.push(blob); return 'data:x;base64,AA=='; },
         resolveMediaUrl: (u) => u,
         post: async (url, body) => {
             calls.post.push({ url, body });
@@ -113,6 +113,22 @@ test('most of the frame seen from behind fills with the INTERIOR instruction', a
     const t = harness({ backFrac: 0.6 });
     await takePicture(t.ctx, t.io);
     assert.equal(t.calls.enqueue[0].config.positive, INTERIOR);
+});
+
+// renderPicture writes -z where a hole is a real surface seen from behind; sceneLift fits the
+// fill to those and still keeps them. Only inside does that surface bound the fill: outside, a
+// back face is an object's far side and the fill paints what lies beyond it.
+test('the known depth keeps the back faces\' -z inside only', async () => {
+    const { takePicture } = await esm('js/services/scene/scenePicture.js');
+    const z = new Float32Array([2, 2, -3, -3, 0, 0, 2, -1]);
+    const sent = async (backFrac) => {
+        const t = harness({ backFrac, z });
+        await takePicture(t.ctx, t.io);
+        const blob = t.calls.blobs.find(b => b.type === 'application/octet-stream');
+        return [...new Float32Array(await blob.arrayBuffer())];
+    };
+    assert.deepEqual(await sent(0.6), [2, 2, -3, -3, 0, 0, 2, -1]);
+    assert.deepEqual(await sent(0.4), [2, 2, 0, 0, 0, 0, 2, 0]);
 });
 
 test('no holes: no fill, no lift, no layer - the clean-up still runs (always on)', async () => {
