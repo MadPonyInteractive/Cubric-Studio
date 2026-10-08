@@ -60,11 +60,22 @@ Split from **MPI-1041** (the Character Sheet Editor), which changes a finished s
   op crops to the sheet's front-body quarter, which a user's photo does not have. Bench a flat
   fill of the mask (no sampling, deterministic) against the LanPaint fill: a reference only has
   to say "no head here", and a grey blob may get drawn as a grey thing.
-- **One face picture, any angle; the hint suggests three-quarter** (agent pick, awaiting Fabio).
-  The sheet's only face panel IS a 3/4 close-up, so a 3/4 picture is copied, not rotated. No
-  profile slot in v1: the sheet never shows a profile, a third reference costs ~14 s and fills
-  Klein's three, and two face pictures give the model two faces to choose between. Add one only
-  if the bench shows a front-only picture loses identity on the turn to 3/4.
+- **Face: a FRONT picture (required) + a side view (optional).** Reverses an earlier 3/4 pick.
+  Fabio, 2026-10-08: a 3/4 view hides one side of the face, so anything asymmetric is lost - one
+  broken or cut ear, different piercings in each ear. A front view shows both sides; a side view
+  shows ear shape and the nose / jaw line. Front + side + body = three references, ~44 s.
+  Bench whether the side view earns its 14 s.
+- **The OUTPUT has the same flaw, and so does the shipped sheet.** `character-sheet`'s only face
+  panel is a 3/4 close-up (the front body is headless), so a hidden-side ear never reaches the
+  video model, whatever the input. Fixing it is a LAYOUT change shared by both Flows (they must
+  stay one layout for the editor and video models) - Fabio's look-and-feel call, not this card's
+  alone. Prior art Fabio's photographer tester sent unprompted (2026-10-08, a real singer, so
+  NOT saved to the repo): a FRONT identity portrait, front + back full body WITH the head, and
+  macro panels for eye and eyebrow piercings, neck tattoos and the poncho's textile.
+- **Idea: detail panels from the user's own pixels.** The tester's macro panels are what he cared
+  about most (mouth, eyes, textures exactly like the original). A generated macro invents the
+  detail; a crop of the user's own picture pasted into a panel is exact, costs no sampling and
+  cannot drift. A later step (a crop step per detail), not v1.
 - **Body picture vs a body in the prompt** (agent pick): the picture wins; the field hint says
   "leave the body picture out to describe a different body".
 - **Reuse the headless chain as-is.** `flowCharacterSheetHeadless` runs on any finished sheet
