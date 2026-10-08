@@ -21,6 +21,16 @@ from master.
       tags, then move the STABLE `POD_IMAGE_VERSION` / `POD_IMAGE_VERSION_CPU` pair in
       `routes/remotePodLifecycle.js` (still v0.24.0 = ComfyUI 0.34.0). Mandatory after an
       engine bump: without it a 2.0.2 user runs 0.39.0 locally against a 0.34.0 Pod.
+- [ ] **The ComfyUI describe encoder reaches both engines (MPI-1045).** `qwen3vl-abliterated-clip`
+      (4.88 GB) became an `engineAsset` and the Image Describer plugin is gone; proven by unit
+      tests only. Ride blocker 1's Pod session, no extra rent: after connect the volume holds
+      `text_encoders/qwen3vl_4b_abliterated_fp8_scaled.safetensors` (`_installRemoteEngineAssets`)
+      and a right-click Describe on ComfyUI returns text. Local: an `app:isolated` engine missing
+      the weight downloads it at start (`/engine/repair-deps`).
+- [ ] **Release-note copy agrees with itself.** `UNRELEASED.md`'s engine line says first launch
+      takes "about a minute, with no full re-download", but a user without Krea 2 also downloads
+      the 4.88 GB describe encoder on that launch (the MPI-1045 Fixes line). Reword one so they
+      agree, at the `/mpi-release` copy review.
 - [ ] **Stamp 2.0.2** (`/mpi-version-bump`) and `npm run release:check` green, then
       `/mpi-release`.
 
