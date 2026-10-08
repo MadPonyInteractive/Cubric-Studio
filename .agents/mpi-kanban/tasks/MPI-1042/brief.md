@@ -68,7 +68,8 @@ Split from **MPI-1041** (the Character Sheet Editor), which changes a finished s
 - **Known limit, accepted:** a 3/4 view hides one side, so an asymmetric feature there (a cut
   ear, a different piercing in the other ear) is lost - in the shipped `character-sheet` too,
   whose only face panel is the 3/4 close-up. Bench: does the close-up turn to the SAME side as the
-  picture? If it mirrors, the side the user chose is the one that vanishes.
+  picture? If it mirrors, the side the user chose is the one that vanishes. Fabio: the user can
+  always inpaint an earring or piercing back from another angle with the app's inpaint tools.
 - **Parked unless users hit that limit - several head views:** front, side, 3/4, rear packed into
   ONE collage reference, leaving Klein's other slots for the body. Only for a REAL person shot on
   one camera and lens: different cameras or an AI character are not consistent with each other,
