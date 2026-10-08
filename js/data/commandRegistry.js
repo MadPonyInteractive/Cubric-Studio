@@ -1399,6 +1399,27 @@ export const commands = {
         cropsToBox: true,
     },
 
+    // MPI-1036. MiniMax H3 reference-to-video edits a clip: swap the person, the head, the
+    // outfit or the background, or any edit in words. ONE graph, two routes chosen in-graph:
+    // Input_Target names an object -> SAM3 + one still square box, only the box re-rendered
+    // and stitched back at source resolution; empty -> the whole frame re-rendered at
+    // ~0.59 MP. The source soundtrack is muxed back either way (the edit is pixels only).
+    flowVideoEdit: {
+        label: 'Flow: Video Edit',
+        filePrefix: 'flowVideoEdit',
+        progressLabel: 'Editing the video',
+        mediaType: MEDIA_TYPE.VIDEO,        // OUTPUT type
+        requiresImages: 0,                  // media is never a hard requirement at the op layer
+        mediaInputs: [
+            { key: 'video1', mediaType: MEDIA_TYPE.VIDEO, title: 'Input_Video', required: true },
+            // <Picture 1>: the character sheet, outfit or room the edit takes from. Optional -
+            // with none, the model invents from the words.
+            { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: false },
+        ],
+        promptRequired: false,
+        universal: true,
+    },
+
     // MPI-607. The FIRST audio-only op: two clips in, one clip out, nothing visual
     // anywhere in the run. `mediaType: AUDIO` is what promotes the graph's
     // `Output_Audio` SaveAudio from the video mux's side-channel to the primary
@@ -1578,6 +1599,8 @@ export const ENHANCE_EXEMPT_OPS = Object.freeze(new Set([
     'edit', 'kleinEdit', 'krea2Edit', 'qwenEdit', 'inpaint',
     // MPI-1012: Sound & Music has no enhancer by design; a speech line is read verbatim.
     't2a', 'tts',
+    // MPI-1036: the user's words are the edit's instruction, wrapped in a hidden one.
+    'flowVideoEdit',
 ]));
 
 /** True when this op is one the enhancer must stay out of. */

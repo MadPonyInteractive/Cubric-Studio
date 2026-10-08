@@ -162,6 +162,30 @@ export const loraDeps = {
         bytes: 1956193000,
         sha256: '6a56f41ab4229c9dd845b9501bbd475ee57e112d846cf2e819d534a1ae928c5a',
     },
+    // akatz-ai's Character Swap LoRA (MPI-1036), a dep of the Video Edit FLOW, not of any
+    // model. Trained on the exact ref2va transformer we ship (their base-model sha256 =
+    // `minimax-h3-ref2va-transformer`). It was made for swaps, but its real job in the Flow
+    // is SYNC: it was trained to keep the source's position, pose and movement, and that
+    // holds for any masked edit - lag in fast motion 2.27 frames without it, 0.00 with it
+    // (MPI-1036 validation.md). So it is ON for every masked edit, under the turbo LoRA.
+    // Licence: the MiniMax H3 Community License itself, so the PUBLISHER url, never R2 -
+    // the same position as the transformer. The Flow's dep key is gated by MINIMAX_H3 in
+    // licences.js, keyed by licence id, so a user who accepted for H3 is not asked again.
+    'minimax-h3-character-swap-lora': {
+        id: 'minimax-h3-character-swap-lora',
+        name: 'MiniMax H3 Character Swap LoRA (v1)',
+        origin: 'akatz-ai/MiniMax-H3-Character-Swap-LoRA (MiniMax H3 Community License)',
+        filename: 'loras/minimax-h3/h3_character_swap_pro4500_1000.safetensors',
+        url: 'https://huggingface.co/akatz-ai/MiniMax-H3-Character-Swap-LoRA/resolve/main/h3_character_swap_pro4500_1000.safetensors',
+        size: '147.92MB',
+        bytes: 155110320,
+        sha256: '4b2a3f420ae804c0aa3422761ff84dbd1bf52eef6900ffab6d2e66df63cb4e79',
+        credit: {
+            author: 'akatz-ai',
+            work: 'MiniMax-H3-Character-Swap-LoRA',
+            url: 'https://huggingface.co/akatz-ai/MiniMax-H3-Character-Swap-LoRA',
+        },
+    },
     // Content-filter-bypass LoRA (always-on Input_Bypass_Filter_Lora node). A tiny
     // 12-float projector nudge. Dep of BOTH models (it's negligible); the generator bakes
     // strength 1.0 on SFW (the fp8_scaled weight is filtered) and 0.0 on NSFW (self-unfiltered).

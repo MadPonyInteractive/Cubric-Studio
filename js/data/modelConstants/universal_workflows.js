@@ -130,6 +130,11 @@ export const UNIVERSAL_WORKFLOWS = {
     flowObjectStamp: {
         workflow: 'flow_object_stamp.json',
     },
+    // MPI-1036 — Video Edit. One single-pass H3 r2v turbo graph; masked vs whole frame is
+    // routed in-graph off Input_Target, never by a second file.
+    flowVideoEdit: {
+        workflow: 'flow_video_edit.json',
+    },
     // MPI-607 — Chatterbox voice conversion. Five nodes, no model loader: two
     // MpiLoadAudio paths into FL_ChatterboxVC, out through a native SaveAudio.
     flowVoiceChanger: {

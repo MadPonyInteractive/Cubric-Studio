@@ -222,6 +222,11 @@
     "appVersionIntroduced": "2.0.0",
     "universal": true
   },
+  "flowVideoEdit": {
+    "latestVersion": "1.0",
+    "appVersionIntroduced": "2.0.1",
+    "universal": true
+  },
   "flowTextToMusic": {
     "latestVersion": "1.0",
     "appVersionIntroduced": "2.0.0",

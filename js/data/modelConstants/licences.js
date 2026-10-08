@@ -480,6 +480,10 @@ export const MODEL_LICENCES = {
     // it does. When it lands its `id` must be `minimax-music` or this gate never fires and
     // 13.3GB of licensed weights install with nothing shown.
     'flow:minimax-music': MINIMAX_MUSIC3,
+    // A FLOW dep-queue key too, `flowDepKey('video-edit')` (MPI-1036). The Flow's own dep
+    // is akatz-ai's Character Swap LoRA, which is under the MiniMax H3 Community License
+    // itself. Same descriptor as the model, so a user who accepted for H3 is not asked again.
+    'flow:video-edit':    MINIMAX_H3,
     // A MODEL id since MPI-1012 — it was `flow:sound-and-music` while Stable Audio 3 was a
     // Flow. The SAME descriptor object (same `id`, `version: 1`), and receipts are filed by
     // descriptor id, so nobody who accepted it under the Flow is asked again. Rename the

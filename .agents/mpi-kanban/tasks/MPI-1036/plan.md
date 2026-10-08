@@ -53,6 +53,49 @@ Masked mode drops the hidden "no text" line. Also decided 2026-10-08 (`brief.md`
 video head swap is free once tested; clothing removal stays (own dropdown entry if it needs its
 own wording, e.g. a supplied torso image).
 
+2026-10-08 (Video edit 7): Phase 3 started.
+- Grade match = NEW MpiNodes node `MpiGradeMatch` (`grade.py`, torch only, `tests/test_grade.py` 5 pass),
+  committed + pushed `6bf5659e689d78496d00452abd1d87206c5a26f5`. KJNodes ColorMatch rejected (whole-frame
+  palette, no mask - tints the edit); MpiInpaintHeal rejected (shifts a fill's mean to its surroundings, no
+  paired original). A/B vs ComposeColorMatch on the passed M3l_horns crop (`grade_ab.py`): 0.93/255 mean,
+  below the 1.07/255 codec-noise floor, diff map = edge codec noise only.
+- PIN NOT MOVED: `dev_configs/node_lock.json` is claimed by the MPI-1043 engine-bump session (0437ad9a);
+  message `8e322db4` asks it to take MpiNodes to 6bf5659 in its bump (Fabio: next release may carry an
+  engine bump). Until pinned, the app engine has no MpiGradeMatch - in-app runs need the pin.
+- Swap LoRA dep `minimax-h3-character-swap-lora` in `loraDeps.js` (HF url, sha256 4b2a3f42...e79 = HF LFS
+  oid); `licences.js` `'flow:video-edit': MINIMAX_H3`. Flow id = `video-edit`. SAM3 is an engineAsset, no dep.
+- Bench builders saved to `research/bench/` (charswap_*.py = Phase 1 prompts, mask_bench.py etc.).
+- THE FLOW GRAPH = `research/bench/flow_graph.py` (API prompt with the real Input_*/Output_* titles; the
+  authoring source). Runner `run_flow.py <preset>` (presets R1-R5), sync check `lag_full.py SRC RUN...`
+  (box found at diff > 8/255; validated: M3 2.13, M3l 0.00). Single-pass H3 r2v turbo 8 (bench shape, NOT the
+  shipped two-pass r2va), MpiH3References, swap LoRA via MpiIfElse, 12 instruction templates (6 picture / 6 no
+  picture, picked by MpiMath + MpiAnySwitch10), {who}/{target}/{words} by StringReplace, masked vs whole
+  routed in-graph (masked = Input_Target typed AND op != 4). Inputs: Input_Video, Input_Image, Input_Positive,
+  Input_Operation (1 person, 2 head, 3 outfit, 4 background, 5 anything; 6 = person into the picture's room,
+  picked in-graph), Input_Keep_Background, Input_Who, Input_Target, Input_Seed. Output_Video, source audio.
+- R1 (masked, op 5, "cat ears" -> horns) PASSED the numbers: in sync (fast frames 0.00), edge drift 3.22 vs
+  M3l's 2.97/255, horns made, ears gone. 470 s cold. BUT the caption inside the box is re-drawn GARBLED
+  (masked tail drops "no text" per Fabio's decision; the M3l pass had it and erased the caption cleanly).
+  Fabio's call - asked in the Video edit 7 close-out; pick = keep "no text" in masked mode too.
+- R2-R5 (whole frame: swap keep room, swap picture room, background, head) NOT RUN - stopped for Fabio's
+  engine bump (bench + app). Re-run them after the bump: `run_flow.py R2_swap_keep R3_swap_picture_room
+  R4_background R5_head` under the GPU lease, in the background (~10-16 min each).
+- App side wired so far (uncommitted until the handoff): op `flowVideoEdit` in the 4 registries
+  (appVersionIntroduced 2.0.1, same as MPI-623's scene ops), `ENHANCE_EXEMPT_OPS` + flowVideoEdit
+  (tests/enhance-control requires any *edit* op there). NOT yet: FlowDef, the workflow file
+  `comfy_workflows/flow_video_edit.json` + `raw/` twin, inject test case, agent docs, UNRELEASED.md.
+- FlowDef plan: id `video-edit`, title Video Edit, type edit, mediaType video, requiredModels
+  ['minimax-h3-ref2va'], requiredDeps ['minimax-h3-character-swap-lora'], media video1 + optional image1,
+  result.compare video1; fields: Input_Operation select 1-5, Input_Keep_Background radio (hiddenWhen op isNot
+  1), Input_Who text default 'the person' (hiddenWhen op is 5), Input_Target text "Only change (optional)"
+  with the faster/keeps-the-rest hint (hiddenWhen op is 4), positive text. Seed is injected by
+  commandExecutor (Input_Seed). No preview yet (Phase 4).
+- raw/ export route: no API->LiteGraph converter exists. Load the flow_graph.py prompt into the bench
+  frontend (app.loadApiJson), check titles survived, `app.graph.serialize()` -> `comfy_workflows/raw/
+  flow_video_edit.json`, then `node scripts/sync-raw-workflows.mjs` (needs a running ComfyUI) - it resets
+  the pickers to None and gates on validate-injection-rules.
+- In-app runs need the MpiNodes pin at 6bf5659 (message 8e322db4 to the MPI-1043 bump session).
+
 ## Phase 1 - The hidden instructions, on the bench
 
 **Verify:** Fabio judges each option on 2-3 real clips; the winning instruction text for every

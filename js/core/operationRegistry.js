@@ -92,6 +92,7 @@ export const OPERATION_REGISTRY = {
     flowScribObj: { latestVersion: '1.1', appVersionIntroduced: '2.0.0' },
     flowScribble: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     flowObjectStamp: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
+    flowVideoEdit: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
     // MPI-607 — the Voice Changer flow, the first op that OUTPUTS audio.
     flowVoiceChanger: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     // MPI-607 — the two TTS flows that join Voice Changer.
