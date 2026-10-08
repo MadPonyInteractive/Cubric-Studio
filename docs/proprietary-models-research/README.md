@@ -147,6 +147,28 @@ marked paid tier. This is what the user proposed and it is the right shape, but 
 costs the same as Option B, because the proxy, the payments, the ledger and the legal work are
 all still required. The free tier does not reduce the work; it only protects the product.
 
+> **Update 2026-10-08: our own open-weight models on RunPod Serverless, sold as credits.
+> Parked until the audience exists — thousands of downloads and a stable community, then
+> think again.** This is Option B with our own weights in place of an aggregator, and it
+> dodges both reasons MPI-849 rejected credits: no third-party API is resold, so DeepInfra's
+> § 11 does not apply, and a transparent markup replaces breakage as the margin. GPU cost is
+> not the obstacle (RunPod's calculator: an RTX 4090 at $0.00031/s, about $0.005 for a warm
+> 15-second image). MPI-186 ruled Serverless out as the *interactive* engine (no live
+> preview, 5 s idle timeout); a paid submit-and-wait tier needs neither, so that verdict does
+> not block this. What does:
+>
+> 1. **Every weight's licence must allow a paid hosted service**, read per weight. Qwen-Image
+>    2.1 is non-commercial. H3's weight licence excludes the UK and covers Outputs, so the
+>    MPI-449 grant has to be re-read for this use. A CivitAI weight needs the `Rent` flag, and
+>    LUSTIFY V10 carries only `Image, RentCivit` (`docs/models/krea2/licences.md`), so it
+>    needs the creator's written agreement. A revenue threshold covers none of these.
+> 2. **We become the operator** of everything generated on our GPUs: content blocking, an
+>    acceptable-use policy and abuse handling are ours, not the user's.
+> 3. **The Option B plumbing is unchanged**: proxy, merchant of record, ledger, accounts, our
+>    own terms.
+> 4. **Each model is its own endpoint**, mostly cold at low volume, and every cold start loads
+>    the weights on our bill. FlashBoot's 250 ms applies only to an already-warm worker.
+
 ---
 
 ## What I would do next, cheapest first
