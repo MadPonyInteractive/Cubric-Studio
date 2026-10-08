@@ -15,19 +15,23 @@ Split from **MPI-1041** (the Character Sheet Editor), which changes a finished s
   § "Path 2 - reference photo in. **The hard one.**" Same note in code at
   `js/data/flowsRegistry.js:755-759`.
 - **MPI-815** (Elements library) plans a "sheet-builder Flow (character + clothes + weapon -> a
-  character sheet)" as a later card (`tasks/MPI-815/plan.md:236`). This card is its first half;
-  weapon / prop images come later.
+  character sheet)" as a later card (`tasks/MPI-815/plan.md:236`). This card is its character
+  half; clothes and weapon belong to the editor (MPI-1041).
 
-## Shape (agent pick, awaiting Fabio)
+## Settled - Fabio, 2026-10-08
+
+- **Face + body only. No clothes field, no outfit picture.** Clothes are the editor's job
+  (MPI-1041). The sheet follows the body picture as given: a naked body in, a naked sheet out,
+  then the editor dresses it - as many outfits as the user wants, one sheet each. The same holds
+  from scratch: a naked character from `character-sheet` on Krea 2 NSFW, then the editor.
+- **Free, no head-swap LoRA.** If a face lands weak, the user fixes it with Head Swap afterwards.
+
+## Shape
 
 - **A new Flow on Klein 9B** (`klein-9b` + `klein-9b-cloud`). The prompt-only `character-sheet`
   Flow on Krea 2 is untouched - no optional images bolted onto it.
-- **Inputs fit Klein's three references exactly** (1 ref 20 s, 2 / 3 refs 30 / 44 s,
-  `docs/models/klein/README.md`):
-  1. Face - required.
-  2. Full body - optional; carries body shape (and clothes, when the user keeps them).
-  3. Outfit - optional, a third picture, later if v1 runs long.
-- **Clothes: a toggle.** "Keep the clothes from the pictures" or "Describe the clothes" (prompt).
+- **Two pictures, both required** (agent pick: with no clothes field, a missing body leaves the
+  model nothing to keep). Two references run ~30 s on Klein (`docs/models/klein/README.md`).
 - **Reuse the headless chain as-is.** `flowCharacterSheetHeadless` runs on any finished sheet
   image, so the front body comes back headless with no new graph.
 - Same sheet layout as `character-sheet` (3/4 close-up, front, back, grey), so both Flows feed
@@ -42,14 +46,11 @@ Split from **MPI-1041** (the Character Sheet Editor), which changes a finished s
 2. **One shot vs per panel.** One image keeps the three panels consistent with each other but asks
    Klein to lay out a sheet from references. Per panel (three runs, stitched in code) makes the
    layout certain but risks the outfit drifting between front and back. Bench one shot first.
-3. **A body photo carries its clothes and pose.** With "Describe the clothes" on, does the photo's
-   outfit still leak through?
-4. **The back panel is invented.** No source shows it. The face does not matter there; hair and
+3. **The back panel is invented.** No source shows it. The face does not matter there; hair and
    outfit from behind do. Judge it on those.
 
-## Open product call
+## Head Swap stays separate
 
 **Head Swap is a paid Flow** (Gumroad, MPI-780 / MPI-781; Klein 9B + BFS head-swap LoRA
-`klein-9b-lora-headswap`, `docs/playbooks/add-flow/existing-flows/head-swap.md`). This Flow also
-carries a face from a picture, onto a sheet. Free or paid, and may it use the head-swap LoRA if the
-bench says identity needs it? Fabio's call.
+`klein-9b-lora-headswap`, `docs/playbooks/add-flow/existing-flows/head-swap.md`). This Flow does
+NOT use that LoRA (settled above); Head Swap is the user's fix-up for a weak face.
