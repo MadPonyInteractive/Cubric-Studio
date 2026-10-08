@@ -4,6 +4,29 @@ Design is settled in `brief.md`. This plan is the order of work only.
 
 ## Current State
 
+**2026-10-08, Fabio's decision: FORCE a three-quarter close-up, even from a frontal picture.** A
+frontal close-up makes the video model hallucinate the 3/4 view, so shots stop matching. Today
+the T6 portrait pass COPIES the picture's turn (frontal in, frontal out) because asking Klein for
+a new pose redrew the face (run 2; A1). **Next action: bench frontal -> 3/4** on the front 4:5
+crop, pass 1 prompt asking for the head turned three-quarters, 3+ seeds under `gpu_lease.py`;
+judge likeness by eye against the picture (piercings, neck tattoo, face shape) and keep the
+stretch check on the parts that do not turn. Fabio is also wiring Qwen-Image 2.1 in a separate
+session as a possible better engine for this - check its card before deep-tuning Klein.
+
+2026-10-08 afternoon (agent, ~50 autonomous bench runs, validation.md batches 1-8): **both issues
+have one fix - sample the portrait on its OWN 896x1120 canvas, then the body views on their own
+896x1120 with the finished portrait as a second reference, and stitch** (T6 in validation.md).
+Portrait stretch 0.98-1.01 (was 0.92-0.96), turn + expression held 6 of 6 on the 3/4 picture
+(was 1 of 3), two body views 12 of 12, same total pixels so ~same time (~50 s warm). The 4:5 crop
+alone fixed neither; naming the turn, re-wording the portrait sentence, and every one-canvas
+inpaint order failed (validation.md). The faint background step at the join (~1 in 3 seeds,
+<= 14/255) is NOT an issue (Fabio, 2026-10-08): no gutter, no levelling node.
+`research/bench-tools/two_pass.py <api.json> <out.json>` builds the tested graph (pass 1 prompts +
+896x1120 baked); `sweep.py` posts it with image + seed. **Next: Fabio's eye on the T6 sheets;
+then the bench graph v2 (two samplings) for his node graph; then body mode** - its
+pass 2 takes the headless body as a third reference, and the portrait (Picture 1 only) will show
+Picture 1's clothes at the shoulders: check that.
+
 2026-10-08 (lunch handoff): Fabio has run the bench 6 times (no-body mode only) and handed TWO
 issues over for autonomous testing while he is out. **He authorized bench runs on his `:8188`
 (G:/ComfyUi) for these tests**, each batch under `gpu_lease.py run`, one line said before the
@@ -100,5 +123,11 @@ Bench outputs are judged by Fabio's eye (identity, layout, back panel). Wiring i
 
 ## Plan Drift
 
+- 2026-10-08 (Fabio): the close-up is ALWAYS three-quarter, even from a frontal picture - a
+  frontal close-up leaves the video model to invent the 3/4 view. Overrides "the hint asks for a
+  3/4 picture and the portrait copies it" as the only route.
+- 2026-10-08 (afternoon): the sheet is no longer ONE sampling. The portrait must be sampled on its
+  own 4:5 canvas (stretch + turn), the body views on a second canvas referencing it, then stitched
+  (validation.md T6). Same layout and size; the brief's one-shot assumption is gone.
 - 2026-10-08: brief's `Input_Has_Body` app param dropped. `MpiLoadImage.loaded` on Picture 2 already
   carries body presence inside the graph, so the app needs no new param (see Current State).
