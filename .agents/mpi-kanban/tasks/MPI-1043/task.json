@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1043",
+  "title": "Bump the shipped engine ComfyUI v0.34.0 -> v0.39.0 (unblocks Qwen-Image 2.1, MPI-936)",
+  "description": "Engine bump via /mpi-bump-engine: both pins, node recheck, local floor gate, mpi-ci lock sync + DEV Pod image, smoke matrix on RunPod, evidence. Unblocks MPI-936 (Qwen-Image 2.1 needs core >= 0.37) and MPI-578. 2nd-digit app version bump at release.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-08T13:33:43+01:00",
+  "updated_at": "2026-10-08T13:33:43+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
