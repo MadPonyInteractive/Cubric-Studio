@@ -62,7 +62,13 @@ async function writeFixtureScene(metaDir, id) {
     fs.writeFileSync(path.join(metaDir, `${id}.scene.layer0_depth.f32`), Buffer.from(new Float32Array(L * L).fill(1).buffer));
     const layer = { image: 'layer0.png', depth: 'layer0_depth.f32', w: L, h: L, fx: 1000, fy: 1000, cx: L / 2, cy: L / 2,
         w2c: [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 0, 1] };
-    const manifest = { version: 1, pano: { image: 'pano.png', depth: 'pano_depth.f32', w: DW, h: DH, sky: 5 }, layers: [layer] };
+    // A second fill IN FRONT of it (0.5 out), shot from the far side so it is seen from behind
+    // here: rule C rejects it, and a rejected fill must not hide the first one (MPI-623 live run).
+    await sharp(Buffer.alloc(L * L * 3, 255), { raw: { width: L, height: L, channels: 3 } })
+        .png().toFile(path.join(metaDir, `${id}.scene.layer1.png`));
+    fs.writeFileSync(path.join(metaDir, `${id}.scene.layer1_depth.f32`), Buffer.from(new Float32Array(L * L).fill(1.5).buffer));
+    const behind = { ...layer, image: 'layer1.png', depth: 'layer1_depth.f32', w2c: [-c, 0, s, 0, 0, 1, 0, 0, -s, 0, -c, 2, 0, 0, 0, 1] };
+    const manifest = { version: 1, pano: { image: 'pano.png', depth: 'pano_depth.f32', w: DW, h: DH, sky: 5 }, layers: [layer, behind] };
     const file = path.join(metaDir, `${id}.scene.json`);
     fs.writeFileSync(file, JSON.stringify(manifest));
     return `/project-file?path=${encodeURIComponent(file)}`;
@@ -149,7 +155,7 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
         const tear = await centre(window, { yaw: 3 * Math.PI / 4 });
         expect(tear[3], `the step between red (5) and green (2.5) is a tear hole, got ${tear}`).toBe(0);
         const layer = await centre(window, { yaw: Math.PI / 4 });
-        expect(near(layer, LAYER), `the layer at depth 1 covers the pano at 5, got ${layer}`).toBe(true);
+        expect(near(layer, LAYER), `the layer at depth 1 covers the pano at 5, and the back-facing fill at 0.5 does not hide it, got ${layer}`).toBe(true);
 
         // ── Fly: W forward, A left, and A is not Agent mode here ──────────────────
         await centre(window, { yaw: 0 });
@@ -187,6 +193,25 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
         await expect.poll(() => getPose(window)).toEqual(shotPose);
         await expect.poll(frameRatio, { message: 'the entry\'s 9:16 frame' }).toBe(0.56);
         await expect(panel.locator('.mpi-dropdown').first()).toContainText('35 mm');
+
+        // ── Take picture's readout: z is the camera depth sceneLift fits against ──
+        // (the self-check view used to swallow it: z all 0, so the first live lift failed)
+        const shot = await window.evaluate(async (manifestUrl) => {
+            const V = await import('/js/services/scene/sceneViewer.js');
+            const view = V.createSceneView(await V.loadScene(manifestUrl));
+            const renderer = document.querySelector('.mpi-scene-canvas').getRenderer();
+            const at = (yaw) => {
+                const s = V.renderPicture(view, renderer, { pos: [0, 0, 0], yaw, pitch: 0, mm: 24 }, { w: 64, h: 36 });
+                return { z: s.z[18 * 64 + 32], back: s.backFrac };
+            };
+            const r = { ahead: at(0), layer: at(Math.PI / 4) };
+            view.dispose();
+            return r;
+        }, scenePath);
+        expect(shot.ahead.z, `camera z ahead is the band at depth 5, got ${shot.ahead.z}`).toBeGreaterThan(4.5);
+        expect(shot.ahead.z).toBeLessThan(5.1);
+        expect(shot.ahead.back, 'nothing ahead is seen from behind').toBe(0);
+        expect(Math.abs(shot.layer.z - 1), `the layer at depth 1 wins, got ${shot.layer.z}`).toBeLessThan(0.1);
 
         expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
     } finally {

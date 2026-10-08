@@ -847,3 +847,66 @@ The GPU was held by the MPI-1036 peer (`mask_bench.py` under the lease) for this
   sweeps held the lease and 12-14.5 GB all afternoon). That run closes the panel's verify: an
   isolated app on a converted scene, a picture from each of the four spike cameras by eye, the layer
   in the manifest, one entry per press, no stray cards; it is also `sceneLift`'s first app dispatch.
+
+## Take picture end to end on the engine (2026-10-08, session 35 "3D Scene 25", 4060 Ti, under the lease)
+
+Rig: a Playwright `_electron.launch` of the real app (own profile `cubric-agent-profile`, own port,
+`APP_DOCUMENTS` scratch, `CUBRIC_BACKGROUND`), attached to Fabio's engine on 48188 (queue empty, his
+heads-up given), on a scratch copy of his converted `MPI-623 Convert test` card (ring 2K, 8K pano)
+plus the spike's window rect; the real **Take picture** button clicked at the four spike cameras
+(`viewer/records/scene.json` poses, roll 0). Scripts: session scratchpad `take.cjs`, `dbg/`.
+- **Run 1 found two breakers, both fixed at the root:**
+  1. `sceneLift` failed "fewer than 2 known pixels": the known-depth `.f32` was ALL zeros (its sha
+     == the zero buffer's). `COMP_FRAG`'s self-check branch `uView > 1.5` also caught view 3, so
+     `renderPicture` read rule-C flags as z. Now `uView > 1.5 && uView < 2.5`. INTERIOR had been
+     picked by accident (g = "real surface", not "back face").
+  2. The scene MANIFEST vanished mid-run: save-generation's sidecar GC read `<id>.scene.json` as a
+     sidecar (no `filePath` -> `Media/<id>.scene` "gone") and deleted it. Every generation saved in a
+     project wiped every scene in it. `isSidecarFile` (`routes/projects.js`) = `.json` minus
+     `DERIVATIVE_RE`, used by all seven `.meta` sidecar scans in that file (the GC was the only one
+     that deleted; the rest read it harmlessly). `agentCards.mjs`, `gifFrames.js`,
+     `projectMigrations.js` also list `.meta/*.json` and only READ fields a manifest never has.
+- **Runs 2-3, all four PASS on bookkeeping:**
+
+  | camera | s (fill / lift / clean) | holes at render | entry | layers | cards |
+  |---|---|---|---|---|---|
+  | window | 68.3 (39.5 / 2.5 / 25.8) | 85.1% | +1, `scenePose` all 7 keys | 0 -> 1 | 1 |
+  | treetop | 59.5 (33.0 / 2.0 / 23.9) | 12.5% | +1 | 1 -> 2 | 1 |
+  | floor | 76.6 (50.5 / 2.0 / 23.5) | 14.6% | +1 | 2 -> 3 | 1 |
+  | behind_well | 65.1 (38.4 / 2.5 / 23.6) | 75.8% | +1 | 3 -> 4 | 1 |
+
+  One history entry per press, selected, sidecar carries `scenePose` (`pos yaw pitch roll mm aspect
+  fillLine`) and 1360x768; the manifest grew `layer<n>.png` + `_depth.f32` each press and survived
+  eight generation saves; no gallery card was added. Each press leaves its deferred `inpaint_NNN` +
+  `edit_NNN` PNGs (+ sidecars) in `Media/` for Cleanup, the deferCommit contract. Fixed on the way:
+  the picture's name was only in memory (sidecar said `scene_001`); `update-meta` now carries
+  `displayName`.
+- **By eye** (sheet `take_picture_vs_spike.jpg`, scratchpad): treetop ~= the spike's; floor has NO
+  sky-silhouette spikes (the spike's still has them: sky band 3 holds); behind_well a coherent back
+  courtyard, no invented basin; window = an interior looking out through an opening at the well,
+  read as a doorway with stone blocks along its sill (this scene has no walk layers, and INTERIOR
+  has no window nouns). **Fabio's eye on the four stills: "1" (2026-10-08).**
+- **Breaker 3, the fill did not sit in the viewer:** at behind_well's OWN camera 44% stayed holes
+  with all four layers loaded, 9.5% with only its own. Debug rig (patched composite dumping per-pixel
+  flags): 372k px had a NEARER layer fragment that rule C rejects - treetop's and floor's ground
+  fills, seen stretched from 0.6 m and > 3% in front of behind_well's own ground (two fits of one
+  ground disagree by ~1 cm, which at a grazing angle is far more than any z tolerance; a 3% depth
+  bias was tried and moved 44.0 -> 43.6%). Fix: `LAYER_FRAG` DISCARDS a rule-C-bad fragment, so a
+  rejected fill never occludes; the pano keeps its bad faces. Holes left at each own camera, all
+  layers: treetop 0.4%, floor 6.5%, behind_well 8.4% (sky and depth edges the lift does not keep).
+- **Window (open, needs a lift contract change):** 64% still holes at its own camera: 426k px where
+  the room fill lies BEHIND the house walls' back faces (layer/pano z p50 1.077, p95 1.185). The lift
+  fitted the room's depth only on the far view through the opening, so the room is pushed out past
+  the walls. Root fix is in `MpiLiftDepth`: fit against the back-faced walls' z too while still
+  keeping those pixels (e.g. negative z = known for the fit, kept). Build here (0b) needs the same.
+- **Parity vs the spike moved by design:** the same harness as session 34 (copied), band 0: IoU
+  window 0.9971, treetop 0.9978, floor 0.9974, behind_well **0.9198** (30,625 px the spike calls holes
+  now show a walk fill that a stretched sheet used to hide - a ground patch, checked by eye); colour
+  mad unchanged (0.06-0.13); 1.71 ms / 586 fps at 1080p. The 0a gate measured the PORT; this is a
+  deliberate rule change for fill layers.
+- **Checks:** `tests/save-generation-gc.test.cjs` +1 (a scene card's manifest + companions survive
+  another item's save; mutant = the old `.json` filter, killed). `tests/desktop/scene-viewer.spec.js`
+  +2: `renderPicture`'s z ahead 4.5-5.1 and 1 +- 0.1 on the layer, `backFrac` 0 (mutant = the old
+  branch: "got 0", the live failure); a back-facing fill at 0.5 in front of the layer does not hide it
+  (mutant = no discard: "got 255,255,255,255"). Scene unit tests 43/43, both scene desktop specs
+  green, eslint clean on every touched file.

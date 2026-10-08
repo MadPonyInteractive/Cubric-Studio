@@ -40,7 +40,10 @@ ticks (Phase 0/0b/1, all complete) moved verbatim to
       golden PNG)
 - [ ] Picture panel + Take picture (`scenePose` entries, entry click flies the camera)
       (2026-10-08 session 34: built + GPU-free checks green, validation.md § Phase 3 picture panel.
-      Left: the end-to-end Klein run on an isolated app, the floor-still eye check, DoF after 0c)
+      2026-10-08 session 35: engine run end to end, three breakers fixed, floor still clean,
+      validation.md § Take picture end to end. Fabio's eye on the four stills: "1". Left: DoF after 0c)
+- [ ] Interior lift: fit a fill on the back-faced walls' z too (MpiLiftDepth sign convention),
+      window picture < 15% holes at its own camera (found session 35)
 - [ ] Build here (0b's loop as a tool)
 - [x] History -> gallery: several entries -> one stack of plain cards (2026-10-08, validation.md
       § Phase 3 GPU-free)

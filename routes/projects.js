@@ -115,6 +115,9 @@ function pathFromProjectFileUrl(value) {
  * what this regex is for, and that buys delete, orphan-sweep and GC for free.
  */
 const DERIVATIVE_RE = /^(.*)\.(?:thumb|proxy|splat|wave|scene)\..+$/;
+/** A sidecar is `<id>.json`. A scene manifest `<id>.scene.json` is a DERIVATIVE: read as a
+ *  sidecar it has no `filePath`, and save-generation's GC deleted it as an orphan. */
+const isSidecarFile = (f) => f.endsWith('.json') && !DERIVATIVE_RE.test(f);
 
 function removeItemThumbs(metaDir, id) {
     let entries;
@@ -214,7 +217,7 @@ async function _sidecarIdFor(metaDir, filePath) {
     const known = _displayIds.get(want);
     if (known && await owns(known)) return known;
     for (const f of await fs.readdir(metaDir).catch(() => [])) {
-        if (!f.endsWith('.json')) continue;
+        if (!isSidecarFile(f)) continue;
         const id = f.slice(0, -5);
         if (await owns(id)) { _displayIds.set(want, id); return id; }
     }
@@ -303,7 +306,7 @@ async function findRecentProjectThumbnail(mediaDir) {
     const metaDir = path.join(mediaDir, '.meta');
     let sawMetaSidecar = false;
     if (await fs.pathExists(metaDir)) {
-        const metaFiles = (await fs.readdir(metaDir)).filter(f => f.endsWith('.json'));
+        const metaFiles = (await fs.readdir(metaDir)).filter(isSidecarFile);
         sawMetaSidecar = metaFiles.length > 0;
         // Read every sidecar concurrently — a heavy project has 100+ of them and
         // serialising readJson+stat over cold disk was the dominant cost.
@@ -641,7 +644,7 @@ async function migratePreviewAssetsStore(folderPath) {
     const metaDir = path.join(mediaDir, '.meta');
     let rewrote = 0;
     if (await fs.pathExists(metaDir)) {
-        const metaFiles = (await fs.readdir(metaDir)).filter(f => f.endsWith('.json'));
+        const metaFiles = (await fs.readdir(metaDir)).filter(isSidecarFile);
         for (const mf of metaFiles) {
             const metaPath = path.join(metaDir, mf);
             try {
@@ -1109,7 +1112,7 @@ async function cleanupRebuildableAssets(folderPath) {
             await fs.remove(path.join(metaDir, entry)).catch(() => {});
             removed++;
         }
-        for (const f of entries.filter(e => e.endsWith('.json'))) {
+        for (const f of entries.filter(isSidecarFile)) {
             const p = path.join(metaDir, f);
             let meta;
             try { meta = await fs.readJson(p); } catch { continue; }
@@ -1797,7 +1800,7 @@ router.post('/project-media/:projectId/probe-videos', async (req, res) => {
         const metaDir  = path.join(mediaDir, '.meta');
         if (!(await fs.pathExists(metaDir))) return res.json({ success: true, patched: 0, total: 0 });
 
-        const sidecars = (await fs.readdir(metaDir)).filter(f => f.endsWith('.json'));
+        const sidecars = (await fs.readdir(metaDir)).filter(isSidecarFile);
         let patched = 0, total = 0;
 
         for (const f of sidecars) {
@@ -1878,7 +1881,7 @@ router.post('/backfill-media-derivatives', async (req, res) => {
         const metaDir = path.join(mediaDir, '.meta');
         if (!(await fs.pathExists(metaDir))) return res.json({ success: true, patched: 0, thumbs: {} });
 
-        const sidecars = (await fs.readdir(metaDir)).filter(f => f.endsWith('.json'));
+        const sidecars = (await fs.readdir(metaDir)).filter(isSidecarFile);
         const thumbs = {};
         let patched = 0;
 
@@ -2671,7 +2674,7 @@ router.post('/project/save-generation', async (req, res) => {
             const entries = await fs.readdir(metaDir);
 
             for (const sc of entries) {
-                if (!sc.endsWith('.json')) continue;
+                if (!isSidecarFile(sc)) continue;
                 const baseName = sc.slice(0, -5); // strip .json
 
                 // Skip the meta file we just created

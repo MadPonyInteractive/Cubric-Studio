@@ -36,7 +36,10 @@
 - **Two passes and a composite** (`createSceneView`): the pano and the fill layers each render to a
   float MRT pair, colour + aux (camera z, real surface, rule C bad, covered); the composite takes a
   layer where the pano has no real surface or is >3% farther, else the pano, else a HOLE
-  (transparent; `draw(..., { view: 1 })` paints holes magenta). Faces inside a `pano.windows` rect
+  (transparent; `draw(..., { view: 1 })` paints holes magenta). A FILL fragment rule C rejects is
+  discarded, never an occluder: two pictures' fills of one ground disagree by ~1 cm, which at a
+  grazing angle beats any z tolerance, and the stretched one hid a picture's own fill (44% holes at
+  its own camera; 8.4% now). The pano keeps its bad faces. Faces inside a `pano.windows` rect
   draw last with a material that discards back faces, so a room sees out. `draw({ out })` renders
   into a picture-sized target instead of the canvas; `dropTargets()` frees the float targets (Take
   picture needs Klein's VRAM) and the next draw rebuilds them.
@@ -77,7 +80,13 @@
 5. `uploadMediaFile` -> `createImageItem({ scenePose })` -> `appendToHistory` -> `updateGroup`, and
    `scenePose` on the sidecar (`update-meta`): `{ pos, yaw, pitch, roll, mm, aspect, fillLine }`.
 Every Klein job runs `deferCommit` without `existingGroup` (the only branch that honours it), so no
-job lands a card; the viewer drops its float targets once the render is read (Klein's VRAM).
+job lands a card; their `inpaint_NNN` / `edit_NNN` PNGs stay in `Media/` for Cleanup. The viewer
+drops its float targets once the render is read (Klein's VRAM).
+- Measured on a 4060 Ti (four spike cameras, 2026-10-08): 60-77 s a picture = fill 33-51 s, lift
+  2-2.5 s, clean-up 23-26 s.
+- Limit: a picture taken INSIDE something fits its fill's depth only on the view out, so the room
+  lands ~8% past the walls' back faces and the composite hides most of it in the viewer (the picture
+  itself is fine). MPI-623 plan, "Interior lift".
 
 ## Companions and the manifest
 
@@ -99,6 +108,9 @@ A scene is a SET of files beside the item's sidecar in `Media/.meta/`:
   the whole set under the new id without editing it (`routes/projects.js`, add-from-cards).
 - Every `<id>.scene.*` file matches `DERIVATIVE_RE`, so delete, the orphan sweep and GC treat the
   set like thumbs. A scene suffix must never contain `.thumb.`/`.proxy.`/`.splat.`/`.wave.`.
+- The manifest is a `.json` in `.meta` that is NOT a sidecar: a `.meta` sidecar scan must filter
+  with `isSidecarFile` (`routes/projects.js`). save-generation's orphan GC once read it as a sidecar
+  with no media file and deleted it, so any generation in the project wiped its scenes.
 - `w`/`h` are the DEPTH grid (the texture is larger). `sky` is the depth file's max: the node
   pushes every invalid (sky) pixel to twice the farthest real depth. That rule is outlier-led
   (one far pixel moves the dome); a viewer wanting a steadier dome should use a percentile.

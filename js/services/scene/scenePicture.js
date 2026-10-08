@@ -155,7 +155,7 @@ export async function appIo() {
             const next = model.appendToHistory(live, entry);
             await updateGroup(next);
             await postJson(`/project-media/${project.id}/update-meta?folderPath=${encodeURIComponent(project.folderPath)}`,
-                { itemId: entry.id, updates: { scenePose } });
+                { itemId: entry.id, updates: { scenePose, displayName: entry.displayName } }); // the upload named it scene_NNN
             return { group: next, entry };
         },
     };

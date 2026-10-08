@@ -8,9 +8,11 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: run Take picture end to end
-on an isolated app (Klein 9B needs ~14.5 GB free: wait for the GPU, lease it) - the picture panel and
-the sequencer are built and their GPU-free checks pass (session 34 below).**
+**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: the Interior lift (Remaining Work,
+Phase 3) with Fabio's yes for the pick (negative z = fit AND keep), before Build here; DoF waits on
+spike 0c. The ENGINE IS BEING BUMPED (bench + app, a separate session, 2026-10-08): let that land
+first, then re-read `dev_configs/node_lock.json` before pinning MpiNodes.** Fabio passed the four
+Take picture stills ("1").
 
 **Session 28 (2026-10-07):** 0a's CPU half is built - `export_records.py` wrote ring8k as records
 (`viewer/records/`, every layer's verts + faces round-trip the shots.py cache exactly; the
@@ -121,6 +123,20 @@ stray cards, the fill sits right in the viewer, the floor still (sky band 3) by 
 code: whether `/engine-mask` crops the inpaint round the mask (`cropsToMask`) - the result is
 stitched back full-frame either way. INTERIOR is the spike's with its cottage nouns removed
 (unproven). The history list's context menu (delete, add-to-gallery...) is not wired in Scene.
+
+**Session 35 ("3D Scene 25", 2026-10-08): Take picture RAN end to end on the engine** (validation.md
+§ Take picture end to end). Rig: Playwright `_electron.launch` of the real app (own profile + port,
+scratch `APP_DOCUMENTS`) on Fabio's 48188, a scratch copy of his converted card + the spike's window
+rect, the real button at the four spike cameras. Three breakers found and fixed at the root: (1)
+`renderPicture`'s z was all 0 (the composite's view-2 branch swallowed view 3) -> sceneLift failed;
+(2) save-generation's sidecar GC DELETED `<id>.scene.json` on any generation in the project ->
+`isSidecarFile` in `routes/projects.js`; (3) another picture's stretched ground fill hid a picture's
+own fill at its own camera (44% holes) -> `LAYER_FRAG` discards rule-C-bad fragments (8.4%). Also the
+picture's `displayName` now reaches the sidecar. All four: one entry per press with `scenePose`,
+a layer per press, no new card, 60-77 s a picture; floor has no sky spikes. **Open:** the window
+picture's room fill lies ~8% behind the walls' back faces (fit only on the view out), so 64% of its
+own frame stays holes in the viewer - a lift contract change (below). Fabio's eye on the stills:
+`take_picture_vs_spike.jpg` in session 35's scratchpad.
 
 **The product (Fabio's why):** the 3D scene exists for EXACT camera placement - behind a house,
 up a tree, on the floor looking up, inside a house through a shut window, a door frame, a gap
@@ -407,6 +423,15 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       `scenePose` (A7); entry click flies the camera to its pose. `INTERIOR` switch at > 50%
       back faces. **Verify:** on an isolated app, poses set to the four spike cameras produce
       stills that match the spike's by eye; a spec clicks an entry and asserts the camera pose.
+      **(ENGINE RUN DONE 2026-10-08, session 35: all four end to end, bookkeeping PASS, three
+      breakers fixed; Fabio's eye on the four stills: "1". Left: DoF after 0c.)**
+- [ ] **Interior lift** (found by session 35's window picture): `MpiLiftDepth` fits a fill's depth
+      only on the known (non-hole) pixels, so a picture taken inside a house fits the room on the
+      view out and lands ~8% past the walls' back faces, hidden in the viewer. Pass the back-faced
+      pano z as known-for-the-fit while still keeping those pixels (pick: negative z in the `.f32`
+      = fit here AND keep). MpiNodes change + pin (`/mpi-nodes-sync`), then `renderPicture` writes
+      `-z` on back faces. **Verify:** the window picture's own camera < 15% holes in the viewer; a
+      CPU test of the node's sign convention. Build here (0b) depends on it.
 - [ ] **Build here:** 0b's loop as a tool (progress, cancel), SAM3 glass windows, fill line.
       **Verify:** isolated run inside a house builds the room and its windows show the real
       outside; time within 0b's measured budget.
@@ -485,6 +510,15 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
   three ^0.186 calls `updateProjectionMatrix()` on every camera it renders with, so the composite
   uses an `OrthographicCamera`, never a bare `Camera`. The parity re-check ran the app's module in
   Electron (a scratch main serving the repo), not the Scene workspace UI.
+- **2026-10-08 - rule C for FILL LAYERS changed (session 35).** The spike (and the 0a port) let
+  the nearest layer fragment win and made it a hole when rule C rejected it. Take picture adds a
+  layer per picture, and two pictures' fills of one ground disagree by ~1 cm, so the one seen
+  stretched hid the one seen straight on. A rejected fill fragment is now discarded (the pano keeps
+  its bad faces). Spike parity moved by design (behind_well IoU 0.9198); the 0a gate measured the
+  port, not this rule.
+- **2026-10-08 - a `.meta` json is not always a sidecar (session 35).** The scene manifest
+  `<id>.scene.json` was deleted by save-generation's orphan GC; every sidecar scan in
+  `routes/projects.js` now goes through `isSidecarFile`.
 
 ## Verification
 

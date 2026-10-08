@@ -58,3 +58,49 @@ test('save-generation leaves an in-flight item\'s renditions alone', async () =>
         await fs.remove(root);
     }
 });
+
+// MPI-623 — Take picture's Klein job saved a generation, and the GC read the scene card's
+// manifest `<id>.scene.json` as a sidecar: no `filePath`, so `Media/<id>.scene` "was gone"
+// and the manifest was deleted. Every generation in a project wiped its scenes.
+test('save-generation keeps a scene card\'s manifest', async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'mpi623-gc-'));
+    const metaDir = path.join(root, 'Media', '.meta');
+    await fs.ensureDir(metaDir);
+    await fs.writeJson(path.join(root, 'project.json'), { id: 'p', itemGroups: [] });
+    const scene = 'cccccccc-0000-0000-0000-000000000623';
+    const pano = path.join(root, 'Media', 'imported_001.png');
+    await fs.writeFile(pano, 'x');
+    await fs.writeJson(path.join(metaDir, `${scene}.json`), { id: scene, type: 'image', filePath: `/project-file?path=${encodeURIComponent(pano)}` });
+    const companions = [`${scene}.scene.json`, `${scene}.scene.pano.png`, `${scene}.scene.pano_depth.f32`];
+    await fs.writeJson(path.join(metaDir, companions[0]), { version: 1, pano: { image: 'pano.png', depth: 'pano_depth.f32', w: 2, h: 1 }, layers: [] });
+    for (const f of companions.slice(1)) await fs.writeFile(path.join(metaDir, f), 'x');
+
+    const png = await sharp({ create: { width: 64, height: 64, channels: 4, background: '#f00' } }).png().toBuffer();
+    const view = http.createServer((req, res) => res.end(png));
+    await new Promise(r => view.listen(0, '127.0.0.1', r));
+    const app = express();
+    app.use(express.json());
+    app.use(require('../routes/projects.js'));
+    const server = await new Promise(r => { const s = app.listen(0, '127.0.0.1', () => r(s)); });
+    try {
+        const res = await fetch(`http://127.0.0.1:${server.address().port}/project/save-generation`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                folderPath: root,
+                comfyViewUrl: `http://127.0.0.1:${view.address().port}/view?filename=inpaint_001.png`,
+                itemId: 'dddddddd-0000-0000-0000-000000000623',
+                operation: 'inpaint',
+                mediaType: 'image',
+            }),
+        }).then(r => r.json());
+        assert.equal(res.success, true, JSON.stringify(res));
+
+        const left = await fs.readdir(metaDir);
+        for (const f of companions) assert.ok(left.includes(f), `${f} was swept by another item's save`);
+    } finally {
+        await new Promise(r => server.close(r));
+        await new Promise(r => view.close(r));
+        await fs.remove(root);
+    }
+});

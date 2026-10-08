@@ -353,11 +353,18 @@ out vec3 vCol; out vec2 vSrc; out float vZ;
 void main() { vec4 mv = modelViewMatrix * vec4(position, 1.0); vZ = -mv.z;
   vCol = color; vSrc = src; gl_Position = projectionMatrix * mv; }`;
 
+// A fill fragment rule C rejects from here is not drawn at all, so it cannot hide a fill seen
+// straight on: two pictures' fills of one ground disagree by a centimetre, which at a grazing
+// angle is far more than any depth tolerance, and the stretched one used to win (MPI-623 live
+// run: 35% of a picture's own fill hidden at its own camera). The pano keeps its bad faces.
 const LAYER_FRAG = /* glsl */`precision highp float;
 ${RULE_GLSL}
 in vec3 vCol; in vec2 vSrc; in float vZ;
 layout(location = 0) out vec4 oCol; layout(location = 1) out vec4 oAux;
-void main() { oCol = vec4(vCol, 1.0); oAux = vec4(vZ, 1.0, badC(vSrc), 1.0); }`;
+void main() {
+  if (badC(vSrc) > 0.5) discard;
+  oCol = vec4(vCol, 1.0); oAux = vec4(vZ, 1.0, 0.0, 1.0);
+}`;
 
 // shots.py render(): a fill wins where the pano has no real surface or is clearly behind it.
 // Holes come out transparent black. uView 1 paints them magenta; 2 is the self-check readout;
@@ -372,11 +379,9 @@ void main() {
   ivec2 p = ivec2(gl_FragCoord.xy);
   vec4 A0 = texelFetch(a0, p, 0), A1 = texelFetch(a1, p, 0);
   bool surf = A0.w > 0.5 && A0.y > 0.5, bad0 = A0.z > 0.5;
-  if (uView > 1.5) { o = vec4(surf && bad0 ? 1.0 : 0.0, surf ? 1.0 : 0.0, A0.w, 1.0); return; }
-  bool cov1 = A1.w > 0.5, bad1 = A1.z > 0.5;
-  bool front = cov1 && (!surf || A1.x < A0.x * 0.97);
-  bool take = front && !bad1;
-  bool known = take || (surf && !bad0 && !front);
+  if (uView > 1.5 && uView < 2.5) { o = vec4(surf && bad0 ? 1.0 : 0.0, surf ? 1.0 : 0.0, A0.w, 1.0); return; }
+  bool take = A1.w > 0.5 && (!surf || A1.x < A0.x * 0.97); // a drawn fill fragment is never rule C bad
+  bool known = take || (surf && !bad0);
   if (uView > 2.5) { o = vec4(known ? (take ? A1.x : A0.x) : 0.0, A0.w > 0.5 && A0.z > 1.5 ? 1.0 : 0.0, 0.0, 1.0); return; }
   vec3 rgb = take ? texelFetch(c1, p, 0).rgb : (known ? texelFetch(c0, p, 0).rgb : vec3(0.0));
   if (uView > 0.5 && !known) rgb = vec3(1.0, 0.0, 1.0);
