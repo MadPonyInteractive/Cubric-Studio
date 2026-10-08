@@ -1,15 +1,15 @@
 {
-  "id": "98d5f4f1-184c-4368-9340-6deca10a9ef0",
+  "id": "7697134e-9d03-49a4-9d4f-de89b0d057d1",
   "revision": 0,
-  "last_node_id": 130,
-  "last_link_id": 220,
+  "last_node_id": 172,
+  "last_link_id": 228,
   "nodes": [
     {
       "id": 10,
       "type": "MpiLoadVideoUpload",
       "pos": [
-        60,
-        90
+        100,
+        130
       ],
       "size": [
         270,
@@ -73,7 +73,7 @@
           "name": "images",
           "type": "IMAGE",
           "links": [
-            121
+            125
           ]
         },
         {
@@ -81,7 +81,7 @@
           "name": "audio",
           "type": "AUDIO",
           "links": [
-            125
+            129
           ]
         },
         {
@@ -89,7 +89,7 @@
           "name": "fps",
           "type": "FLOAT",
           "links": [
-            129
+            133
           ]
         },
         {
@@ -97,7 +97,7 @@
           "name": "frame_count",
           "type": "INT",
           "links": [
-            120
+            124
           ]
         },
         {
@@ -105,7 +105,7 @@
           "name": "duration",
           "type": "FLOAT",
           "links": [
-            123
+            127
           ]
         },
         {
@@ -113,8 +113,8 @@
           "name": "width",
           "type": "INT",
           "links": [
-            131,
-            134
+            135,
+            138
           ]
         },
         {
@@ -122,8 +122,8 @@
           "name": "height",
           "type": "INT",
           "links": [
-            132,
-            133
+            136,
+            137
           ]
         },
         {
@@ -131,7 +131,7 @@
           "name": "has_audio",
           "type": "BOOLEAN",
           "links": [
-            124
+            128
           ]
         },
         {
@@ -144,7 +144,7 @@
       "title": "Input_Video",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiLoadVideoUpload"
       },
       "widgets_values": [
@@ -166,8 +166,8 @@
       "id": 11,
       "type": "MpiLoadImage",
       "pos": [
-        60,
-        494
+        100,
+        574
       ],
       "size": [
         270,
@@ -230,7 +230,7 @@
           "name": "image",
           "type": "IMAGE",
           "links": [
-            197
+            201
           ]
         },
         {
@@ -256,15 +256,15 @@
           "name": "loaded",
           "type": "BOOLEAN",
           "links": [
-            116,
-            169
+            120,
+            173
           ]
         }
       ],
       "title": "Input_Image",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiLoadImage"
       },
       "widgets_values": [
@@ -286,8 +286,8 @@
       "id": 12,
       "type": "MpiText",
       "pos": [
-        60,
-        818
+        100,
+        938
       ],
       "size": [
         400,
@@ -313,14 +313,14 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            182
+            186
           ]
         }
       ],
       "title": "Input_Positive",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
@@ -334,8 +334,8 @@
       "id": 13,
       "type": "MpiInt",
       "pos": [
-        60,
-        1108
+        100,
+        1268
       ],
       "size": [
         270,
@@ -361,16 +361,16 @@
           "name": "int",
           "type": "INT",
           "links": [
-            113,
-            115,
-            119
+            117,
+            119,
+            123
           ]
         }
       ],
       "title": "Input_Operation",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiInt"
       },
       "widgets_values": [
@@ -384,8 +384,8 @@
       "id": 14,
       "type": "MpiSimpleBoolean",
       "pos": [
-        60,
-        1256
+        100,
+        1456
       ],
       "size": [
         270,
@@ -411,15 +411,15 @@
           "name": "boolean",
           "type": "BOOLEAN",
           "links": [
-            114,
-            117
+            118,
+            121
           ]
         }
       ],
       "title": "Input_Keep_Background",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiSimpleBoolean"
       },
       "widgets_values": [
@@ -433,8 +433,8 @@
       "id": 15,
       "type": "MpiText",
       "pos": [
-        60,
-        1404
+        100,
+        1644
       ],
       "size": [
         400,
@@ -460,14 +460,14 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            178
+            182
           ]
         }
       ],
       "title": "Input_Who",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
@@ -481,8 +481,8 @@
       "id": 16,
       "type": "MpiText",
       "pos": [
-        60,
-        1694
+        100,
+        1974
       ],
       "size": [
         400,
@@ -508,16 +508,16 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            111,
-            139,
-            180
+            115,
+            143,
+            184
           ]
         }
       ],
       "title": "Input_Target",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
@@ -531,8 +531,8 @@
       "id": 17,
       "type": "MpiInt",
       "pos": [
-        60,
-        1984
+        100,
+        2304
       ],
       "size": [
         270,
@@ -558,14 +558,14 @@
           "name": "int",
           "type": "INT",
           "links": [
-            199
+            203
           ]
         }
       ],
       "title": "Input_Seed",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiInt"
       },
       "widgets_values": [
@@ -576,25 +576,121 @@
       }
     },
     {
+      "id": 18,
+      "type": "MpiText",
+      "pos": [
+        100,
+        2492
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "Text",
+          "name": "Text",
+          "type": "STRING",
+          "links": [
+            226
+          ]
+        }
+      ],
+      "title": "Input_Look",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiText"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "string": ""
+      }
+    },
+    {
+      "id": 19,
+      "type": "MpiText",
+      "pos": [
+        100,
+        2822
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "Text",
+          "name": "Text",
+          "type": "STRING",
+          "links": [
+            228
+          ]
+        }
+      ],
+      "title": "Input_Kept",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiText"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "string": ""
+      }
+    },
+    {
       "id": 20,
       "type": "MpiAnyChecker",
       "pos": [
-        520,
-        1446
+        600,
+        1686
       ],
       "size": [
         153.444921875,
         46
       ],
       "flags": {},
-      "order": 35,
+      "order": 37,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "any",
           "name": "any",
           "type": "*",
-          "link": 111
+          "link": 115
         }
       ],
       "outputs": [
@@ -609,14 +705,14 @@
           "name": "has_value",
           "type": "BOOLEAN",
           "links": [
-            118
+            122
           ]
         }
       ],
       "title": "Masked? (a \"what to change\" was typed)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiAnyChecker"
       }
     },
@@ -624,36 +720,36 @@
       "id": 21,
       "type": "MpiMath",
       "pos": [
-        1440,
-        1126
+        1600,
+        1326
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 49,
+      "order": 51,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 112
+          "link": 116
         },
         {
           "localized_name": "b",
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 113
+          "link": 117
         },
         {
           "localized_name": "c",
           "name": "c",
           "shape": 7,
           "type": "*",
-          "link": 114
+          "link": 118
         },
         {
           "localized_name": "math_expression",
@@ -671,14 +767,14 @@
           "name": "result",
           "type": "*",
           "links": [
-            184
+            188
           ]
         }
       ],
       "title": "Swap LoRA on? (masked, or Swap the person in the video room)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
@@ -692,36 +788,36 @@
       "id": 22,
       "type": "MpiMath",
       "pos": [
-        520,
-        1156
+        600,
+        1356
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 34,
+      "order": 36,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 115
+          "link": 119
         },
         {
           "localized_name": "b",
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 116
+          "link": 120
         },
         {
           "localized_name": "c",
           "name": "c",
           "shape": 7,
           "type": "*",
-          "link": 117
+          "link": 121
         },
         {
           "localized_name": "math_expression",
@@ -739,15 +835,15 @@
           "name": "result",
           "type": "*",
           "links": [
-            155,
-            162
+            159,
+            166
           ]
         }
       ],
       "title": "Template (6 = the person into the picture room)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
@@ -761,29 +857,29 @@
       "id": 23,
       "type": "MpiMath",
       "pos": [
-        980,
-        1396
+        1100,
+        1636
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 44,
+      "order": 46,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 118
+          "link": 122
         },
         {
           "localized_name": "b",
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 119
+          "link": 123
         },
         {
           "localized_name": "c",
@@ -808,19 +904,19 @@
           "name": "result",
           "type": "*",
           "links": [
-            112,
-            146,
-            149,
-            152,
-            172,
-            216
+            116,
+            150,
+            153,
+            156,
+            176,
+            220
           ]
         }
       ],
       "title": "Masked? (typed, and not Change the background)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
@@ -834,22 +930,22 @@
       "id": 30,
       "type": "MpiMath",
       "pos": [
-        520,
-        90
+        600,
+        130
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 30,
+      "order": 32,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 120
+          "link": 124
         },
         {
           "localized_name": "b",
@@ -881,16 +977,16 @@
           "name": "result",
           "type": "*",
           "links": [
-            122,
-            127,
-            196
+            126,
+            131,
+            200
           ]
         }
       ],
       "title": "Frames on the H3 grid (17k+5)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
@@ -904,15 +1000,15 @@
       "id": 31,
       "type": "GetImageRangeFromBatch",
       "pos": [
-        980,
-        90
+        1100,
+        130
       ],
       "size": [
         349.7056640625,
         102
       ],
       "flags": {},
-      "order": 39,
+      "order": 41,
       "mode": 0,
       "inputs": [
         {
@@ -920,7 +1016,7 @@
           "name": "images",
           "shape": 7,
           "type": "IMAGE",
-          "link": 121
+          "link": 125
         },
         {
           "localized_name": "masks",
@@ -945,7 +1041,7 @@
           "widget": {
             "name": "num_frames"
           },
-          "link": 122
+          "link": 126
         }
       ],
       "outputs": [
@@ -954,9 +1050,9 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            135,
-            141,
-            144
+            139,
+            145,
+            148
           ]
         },
         {
@@ -985,15 +1081,15 @@
       "id": 32,
       "type": "EmptyAudio",
       "pos": [
-        520,
-        380
+        600,
+        460
       ],
       "size": [
         270,
         106
       ],
       "flags": {},
-      "order": 31,
+      "order": 33,
       "mode": 0,
       "inputs": [
         {
@@ -1003,7 +1099,7 @@
           "widget": {
             "name": "duration"
           },
-          "link": 123
+          "link": 127
         },
         {
           "localized_name": "sample_rate",
@@ -1030,7 +1126,7 @@
           "name": "AUDIO",
           "type": "AUDIO",
           "links": [
-            126
+            130
           ]
         }
       ],
@@ -1055,28 +1151,28 @@
       "id": 33,
       "type": "MpiIfElse",
       "pos": [
-        980,
-        572
+        1100,
+        692
       ],
       "size": [
         270,
         78
       ],
       "flags": {},
-      "order": 41,
+      "order": 43,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 125
+          "link": 129
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 126
+          "link": 130
         },
         {
           "localized_name": "boolean",
@@ -1085,7 +1181,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 124
+          "link": 128
         }
       ],
       "outputs": [
@@ -1094,14 +1190,14 @@
           "name": "output",
           "type": "*",
           "links": [
-            128
+            132
           ]
         }
       ],
       "title": "has_audio ? source audio : silence",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiIfElse"
       },
       "widgets_values": [
@@ -1115,22 +1211,22 @@
       "id": 34,
       "type": "MpiMath",
       "pos": [
-        980,
-        282
+        1100,
+        362
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 40,
+      "order": 42,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 127
+          "link": 131
         },
         {
           "localized_name": "b",
@@ -1162,14 +1258,14 @@
           "name": "result",
           "type": "*",
           "links": [
-            130
+            134
           ]
         }
       ],
       "title": "Last frame",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
@@ -1183,22 +1279,22 @@
       "id": 35,
       "type": "MpiAudioRange",
       "pos": [
-        1440,
-        762
+        1600,
+        882
       ],
       "size": [
         270,
         106
       ],
       "flags": {},
-      "order": 47,
+      "order": 49,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "audio",
           "name": "audio",
           "type": "AUDIO",
-          "link": 128
+          "link": 132
         },
         {
           "localized_name": "fps",
@@ -1207,7 +1303,7 @@
           "widget": {
             "name": "fps"
           },
-          "link": 129
+          "link": 133
         },
         {
           "localized_name": "start",
@@ -1225,7 +1321,7 @@
           "widget": {
             "name": "end"
           },
-          "link": 130
+          "link": 134
         }
       ],
       "outputs": [
@@ -1234,14 +1330,14 @@
           "name": "audio",
           "type": "AUDIO",
           "links": [
-            220
+            224
           ]
         }
       ],
       "title": "Source audio on the grid",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiAudioRange"
       },
       "widgets_values": [
@@ -1259,29 +1355,29 @@
       "id": 40,
       "type": "MpiMath",
       "pos": [
-        520,
-        576
+        600,
+        696
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 32,
+      "order": 34,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 131
+          "link": 135
         },
         {
           "localized_name": "b",
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 132
+          "link": 136
         },
         {
           "localized_name": "c",
@@ -1306,15 +1402,15 @@
           "name": "result",
           "type": "*",
           "links": [
-            136,
-            151
+            140,
+            155
           ]
         }
       ],
       "title": "Render width",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
@@ -1328,29 +1424,29 @@
       "id": 41,
       "type": "MpiMath",
       "pos": [
-        520,
-        866
+        600,
+        1026
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 33,
+      "order": 35,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 133
+          "link": 137
         },
         {
           "localized_name": "b",
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 134
+          "link": 138
         },
         {
           "localized_name": "c",
@@ -1375,15 +1471,15 @@
           "name": "result",
           "type": "*",
           "links": [
-            137,
-            154
+            141,
+            158
           ]
         }
       ],
       "title": "Render height",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
@@ -1397,22 +1493,22 @@
       "id": 42,
       "type": "ImageResizeKJv2",
       "pos": [
-        1440,
-        90
+        1600,
+        130
       ],
       "size": [
         270,
         286
       ],
       "flags": {},
-      "order": 45,
+      "order": 47,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
-          "link": 135
+          "link": 139
         },
         {
           "localized_name": "mask",
@@ -1428,7 +1524,7 @@
           "widget": {
             "name": "width"
           },
-          "link": 136
+          "link": 140
         },
         {
           "localized_name": "height",
@@ -1437,7 +1533,7 @@
           "widget": {
             "name": "height"
           },
-          "link": 137
+          "link": 141
         },
         {
           "localized_name": "upscale_method",
@@ -1501,7 +1597,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            148
+            152
           ]
         },
         {
@@ -1554,15 +1650,15 @@
       "id": 50,
       "type": "CheckpointLoaderSimple",
       "pos": [
-        60,
-        2132
+        100,
+        3152
       ],
       "size": [
         270,
         98
       ],
       "flags": {},
-      "order": 8,
+      "order": 10,
       "mode": 0,
       "inputs": [
         {
@@ -1581,7 +1677,7 @@
           "name": "MODEL",
           "type": "MODEL",
           "links": [
-            140
+            144
           ]
         },
         {
@@ -1589,7 +1685,7 @@
           "name": "CLIP",
           "type": "CLIP",
           "links": [
-            138
+            142
           ]
         },
         {
@@ -1616,22 +1712,22 @@
       "id": 51,
       "type": "CLIPTextEncode",
       "pos": [
-        520,
-        1754
+        600,
+        2074
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 37,
+      "order": 39,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "clip",
           "name": "clip",
           "type": "CLIP",
-          "link": 138
+          "link": 142
         },
         {
           "localized_name": "text",
@@ -1640,7 +1736,7 @@
           "widget": {
             "name": "text"
           },
-          "link": 139
+          "link": 143
         }
       ],
       "outputs": [
@@ -1649,7 +1745,7 @@
           "name": "CONDITIONING",
           "type": "CONDITIONING",
           "links": [
-            142
+            146
           ]
         }
       ],
@@ -1670,35 +1766,35 @@
       "id": 52,
       "type": "SAM3_Detect",
       "pos": [
-        1440,
-        466
+        1600,
+        546
       ],
       "size": [
         270,
         206
       ],
       "flags": {},
-      "order": 46,
+      "order": 48,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 140
+          "link": 144
         },
         {
           "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
-          "link": 141
+          "link": 145
         },
         {
           "localized_name": "conditioning",
           "name": "conditioning",
           "shape": 7,
           "type": "CONDITIONING",
-          "link": 142
+          "link": 146
         },
         {
           "localized_name": "bboxes",
@@ -1755,7 +1851,7 @@
           "name": "masks",
           "type": "MASK",
           "links": [
-            143
+            147
           ]
         },
         {
@@ -1786,22 +1882,22 @@
       "id": 53,
       "type": "MpiMaskSquareBbox",
       "pos": [
-        1900,
-        90
+        2100,
+        130
       ],
       "size": [
         270,
         118
       ],
       "flags": {},
-      "order": 53,
+      "order": 55,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "mask",
           "name": "mask",
           "type": "MASK",
-          "link": 143
+          "link": 147
         },
         {
           "localized_name": "padding",
@@ -1819,7 +1915,7 @@
           "name": "square_mask",
           "type": "MASK",
           "links": [
-            145
+            149
           ]
         },
         {
@@ -1844,7 +1940,7 @@
       "title": "One still square round it (pad 64)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiMaskSquareBbox"
       },
       "widgets_values": [
@@ -1858,29 +1954,29 @@
       "id": 54,
       "type": "InpaintCropImproved",
       "pos": [
-        2360,
-        90
+        2600,
+        130
       ],
       "size": [
         357.44140625,
         650
       ],
       "flags": {},
-      "order": 56,
+      "order": 58,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
-          "link": 144
+          "link": 148
         },
         {
           "localized_name": "mask",
           "name": "mask",
           "shape": 7,
           "type": "MASK",
-          "link": 145
+          "link": 149
         },
         {
           "localized_name": "optional_context_mask",
@@ -2112,7 +2208,7 @@
           "name": "stitcher",
           "type": "STITCHER",
           "links": [
-            214
+            218
           ]
         },
         {
@@ -2120,8 +2216,8 @@
           "name": "cropped_image",
           "type": "IMAGE",
           "links": [
-            147,
-            211
+            151,
+            215
           ]
         },
         {
@@ -2129,7 +2225,7 @@
           "name": "cropped_mask",
           "type": "MASK",
           "links": [
-            213
+            217
           ]
         }
       ],
@@ -2196,28 +2292,28 @@
       "id": 60,
       "type": "MpiIfElse",
       "pos": [
-        2820,
-        90
+        3100,
+        130
       ],
       "size": [
         270,
         78
       ],
       "flags": {},
-      "order": 60,
+      "order": 62,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 147
+          "link": 151
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 148
+          "link": 152
         },
         {
           "localized_name": "boolean",
@@ -2226,7 +2322,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 146
+          "link": 150
         }
       ],
       "outputs": [
@@ -2235,14 +2331,14 @@
           "name": "output",
           "type": "*",
           "links": [
-            198
+            202
           ]
         }
       ],
       "title": "masked ? crop : whole frame",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiIfElse"
       },
       "widgets_values": [
@@ -2256,28 +2352,28 @@
       "id": 61,
       "type": "MpiIfElse",
       "pos": [
-        1440,
-        1416
+        1600,
+        1656
       ],
       "size": [
         270,
         78
       ],
       "flags": {},
-      "order": 50,
+      "order": 52,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 150
+          "link": 154
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 151
+          "link": 155
         },
         {
           "localized_name": "boolean",
@@ -2286,7 +2382,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 149
+          "link": 153
         }
       ],
       "outputs": [
@@ -2295,14 +2391,14 @@
           "name": "output",
           "type": "*",
           "links": [
-            194
+            198
           ]
         }
       ],
       "title": "masked ? crop width : render width",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiIfElse"
       },
       "widgets_values": [
@@ -2316,28 +2412,28 @@
       "id": 62,
       "type": "MpiIfElse",
       "pos": [
-        1440,
-        1584
+        1600,
+        1864
       ],
       "size": [
         270,
         78
       ],
       "flags": {},
-      "order": 51,
+      "order": 53,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 153
+          "link": 157
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 154
+          "link": 158
         },
         {
           "localized_name": "boolean",
@@ -2346,7 +2442,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 152
+          "link": 156
         }
       ],
       "outputs": [
@@ -2355,14 +2451,14 @@
           "name": "output",
           "type": "*",
           "links": [
-            195
+            199
           ]
         }
       ],
       "title": "masked ? crop height : render height",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiIfElse"
       },
       "widgets_values": [
@@ -2376,15 +2472,15 @@
       "id": 63,
       "type": "MpiInt",
       "pos": [
-        60,
-        2320
+        100,
+        3380
       ],
       "size": [
         270,
         58
       ],
       "flags": {},
-      "order": 9,
+      "order": 11,
       "mode": 0,
       "inputs": [
         {
@@ -2403,15 +2499,15 @@
           "name": "int",
           "type": "INT",
           "links": [
-            150,
-            153
+            154,
+            157
           ]
         }
       ],
       "title": "Crop size",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiInt"
       },
       "widgets_values": [
@@ -2425,104 +2521,8 @@
       "id": 71,
       "type": "MpiText",
       "pos": [
-        60,
-        2468
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {},
-      "order": 10,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
-          "widget": {
-            "name": "string"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "Text",
-          "name": "Text",
-          "type": "STRING",
-          "links": [
-            156
-          ]
-        }
-      ],
-      "title": "Instruction 1 (picture)",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
-        "Node name for S&R": "MpiText"
-      },
-      "widgets_values": [
-        "Replace only {who} in <Video 1> with the character in <Picture 1>. Keep the character's identity, face, hair, outfit and art style from <Picture 1>, and use it for the back of the head whenever they turn away. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself or its background.\n{words}"
-      ],
-      "widgets_values_named": {
-        "string": "Replace only {who} in <Video 1> with the character in <Picture 1>. Keep the character's identity, face, hair, outfit and art style from <Picture 1>, and use it for the back of the head whenever they turn away. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself or its background.\n{words}"
-      }
-    },
-    {
-      "id": 72,
-      "type": "MpiText",
-      "pos": [
-        60,
-        2758
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {},
-      "order": 11,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
-          "widget": {
-            "name": "string"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "Text",
-          "name": "Text",
-          "type": "STRING",
-          "links": [
-            157
-          ]
-        }
-      ],
-      "title": "Instruction 2 (picture)",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
-        "Node name for S&R": "MpiText"
-      },
-      "widgets_values": [
-        "Replace only the head and face of {who} in <Video 1> with the head and face of the character in <Picture 1>: their face, hair, skin and features from every angle, and the back of the head whenever {who} turns away. Keep {who}'s body, clothes and hands, and the camera, framing, background, lighting, objects and all other people of <Video 1>. Match the head's position, angle, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself, its body or its background.\n{words}"
-      ],
-      "widgets_values_named": {
-        "string": "Replace only the head and face of {who} in <Video 1> with the head and face of the character in <Picture 1>: their face, hair, skin and features from every angle, and the back of the head whenever {who} turns away. Keep {who}'s body, clothes and hands, and the camera, framing, background, lighting, objects and all other people of <Video 1>. Match the head's position, angle, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself, its body or its background.\n{words}"
-      }
-    },
-    {
-      "id": 73,
-      "type": "MpiText",
-      "pos": [
-        60,
-        3048
+        100,
+        3568
       ],
       "size": [
         400,
@@ -2548,29 +2548,29 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            158
+            160
           ]
         }
       ],
-      "title": "Instruction 3 (picture)",
+      "title": "Instruction 1 (picture)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
-        "Change what {who} in <Video 1> wears to match <Picture 1>, taking only what is worn there, or the bare skin it shows, never its face, pose or room. Keep {who}'s face, hair, body and every movement, and the camera, framing, background, lighting, objects and all other people of <Video 1>; the clothes move and fold with the body.\n{words}"
+        "Replace only {who} in <Video 1> with the character in <Picture 1>. Keep the character's identity, face, hair, outfit and art style from <Picture 1>, and use it for the back of the head whenever they turn away. Nothing remains of how {who} looked: not their face, their hair or their clothes. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself or its background.\n{words}\nThe character in <Picture 1>: {look}"
       ],
       "widgets_values_named": {
-        "string": "Change what {who} in <Video 1> wears to match <Picture 1>, taking only what is worn there, or the bare skin it shows, never its face, pose or room. Keep {who}'s face, hair, body and every movement, and the camera, framing, background, lighting, objects and all other people of <Video 1>; the clothes move and fold with the body.\n{words}"
+        "string": "Replace only {who} in <Video 1> with the character in <Picture 1>. Keep the character's identity, face, hair, outfit and art style from <Picture 1>, and use it for the back of the head whenever they turn away. Nothing remains of how {who} looked: not their face, their hair or their clothes. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself or its background.\n{words}\nThe character in <Picture 1>: {look}"
       }
     },
     {
-      "id": 74,
+      "id": 72,
       "type": "MpiText",
       "pos": [
-        60,
-        3338
+        100,
+        3898
       ],
       "size": [
         400,
@@ -2596,29 +2596,29 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            159
+            161
           ]
         }
       ],
-      "title": "Instruction 4 (picture)",
+      "title": "Instruction 2 (picture)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
-        "Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and as the camera framing, kept exactly as it is; use <Picture 1> only as the location and its light, without taking its composition, its camera angle, its grade or any person in it.\n[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now the location of <Picture 1>, its light falling on them. {words}"
+        "Replace only the head and face of {who} in <Video 1> with the head and face of the character in <Picture 1>: their face, hair, skin and features from every angle, and the back of the head whenever {who} turns away. All of {who}'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the one in <Picture 1>. Keep {who}'s body, clothes and hands, and the camera, framing, background, lighting, objects and all other people of <Video 1>. Match the head's position, angle, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself, its body or its background.\n{words}\nThe head in <Picture 1>: {look}"
       ],
       "widgets_values_named": {
-        "string": "Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and as the camera framing, kept exactly as it is; use <Picture 1> only as the location and its light, without taking its composition, its camera angle, its grade or any person in it.\n[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now the location of <Picture 1>, its light falling on them. {words}"
+        "string": "Replace only the head and face of {who} in <Video 1> with the head and face of the character in <Picture 1>: their face, hair, skin and features from every angle, and the back of the head whenever {who} turns away. All of {who}'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the one in <Picture 1>. Keep {who}'s body, clothes and hands, and the camera, framing, background, lighting, objects and all other people of <Video 1>. Match the head's position, angle, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself, its body or its background.\n{words}\nThe head in <Picture 1>: {look}"
       }
     },
     {
-      "id": 75,
+      "id": 73,
       "type": "MpiText",
       "pos": [
-        60,
-        3628
+        100,
+        4228
       ],
       "size": [
         400,
@@ -2644,29 +2644,29 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            160
+            162
           ]
         }
       ],
-      "title": "Instruction 5 (picture)",
+      "title": "Instruction 3 (picture)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
-        "Use <Picture 1> as the reference for this change to <Video 1>: {words} Keep everything else exactly as it is in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and the light."
+        "Change what {who} in <Video 1> wears to match <Picture 1>, taking only what is worn there, or the bare skin it shows, never its face, pose or room. Keep {who}'s face, hair, body and every movement, and the camera, framing, background, lighting, objects and all other people of <Video 1>; the clothes move and fold with the body.\n{words}\nWhat is worn in <Picture 1>: {look}"
       ],
       "widgets_values_named": {
-        "string": "Use <Picture 1> as the reference for this change to <Video 1>: {words} Keep everything else exactly as it is in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and the light."
+        "string": "Change what {who} in <Video 1> wears to match <Picture 1>, taking only what is worn there, or the bare skin it shows, never its face, pose or room. Keep {who}'s face, hair, body and every movement, and the camera, framing, background, lighting, objects and all other people of <Video 1>; the clothes move and fold with the body.\n{words}\nWhat is worn in <Picture 1>: {look}"
       }
     },
     {
-      "id": 76,
+      "id": 74,
       "type": "MpiText",
       "pos": [
-        60,
-        3918
+        100,
+        4558
       ],
       "size": [
         400,
@@ -2692,153 +2692,29 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            161
+            163
           ]
         }
       ],
-      "title": "Instruction 6 (picture)",
+      "title": "Instruction 4 (picture)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
-        "Use <Picture 1> as the character, their face, hair, outfit and art style, and as the location and its light, without taking its composition or its camera angle; use <Video 1> only as the performance of {who}, every move, expression, mouth movement and its timing, and its camera framing, and take nothing else from it, not its room, its performer's looks, its image quality, its grade or its text.\n[Shot 1] The character from <Picture 1> performs exactly what {who} does in <Video 1>, move for move, in the location of <Picture 1>. {words}\nThe camera frames them exactly as <Video 1> does. No phone-video look: the picture quality of <Picture 1>."
+        "Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and as the camera framing, kept exactly as it is; use <Picture 1> only as the location and its light, without taking its composition, its camera angle, its grade or any person in it.\n[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now the location of <Picture 1>, its light falling on them. {words}\nThe location of <Picture 1>: {look}\n{who} in <Video 1>, who stays exactly as filmed: {kept}"
       ],
       "widgets_values_named": {
-        "string": "Use <Picture 1> as the character, their face, hair, outfit and art style, and as the location and its light, without taking its composition or its camera angle; use <Video 1> only as the performance of {who}, every move, expression, mouth movement and its timing, and its camera framing, and take nothing else from it, not its room, its performer's looks, its image quality, its grade or its text.\n[Shot 1] The character from <Picture 1> performs exactly what {who} does in <Video 1>, move for move, in the location of <Picture 1>. {words}\nThe camera frames them exactly as <Video 1> does. No phone-video look: the picture quality of <Picture 1>."
+        "string": "Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and as the camera framing, kept exactly as it is; use <Picture 1> only as the location and its light, without taking its composition, its camera angle, its grade or any person in it.\n[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now the location of <Picture 1>, its light falling on them. {words}\nThe location of <Picture 1>: {look}\n{who} in <Video 1>, who stays exactly as filmed: {kept}"
       }
     },
     {
-      "id": 77,
-      "type": "MpiAnySwitch10",
-      "pos": [
-        980,
-        740
-      ],
-      "size": [
-        270,
-        238
-      ],
-      "flags": {},
-      "order": 42,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "any_1",
-          "name": "any_1",
-          "shape": 7,
-          "type": "*",
-          "link": 156
-        },
-        {
-          "localized_name": "any_2",
-          "name": "any_2",
-          "shape": 7,
-          "type": "*",
-          "link": 157
-        },
-        {
-          "localized_name": "any_3",
-          "name": "any_3",
-          "shape": 7,
-          "type": "*",
-          "link": 158
-        },
-        {
-          "localized_name": "any_4",
-          "name": "any_4",
-          "shape": 7,
-          "type": "*",
-          "link": 159
-        },
-        {
-          "localized_name": "any_5",
-          "name": "any_5",
-          "shape": 7,
-          "type": "*",
-          "link": 160
-        },
-        {
-          "localized_name": "any_6",
-          "name": "any_6",
-          "shape": 7,
-          "type": "*",
-          "link": 161
-        },
-        {
-          "localized_name": "any_7",
-          "name": "any_7",
-          "shape": 7,
-          "type": "*",
-          "link": null
-        },
-        {
-          "localized_name": "any_8",
-          "name": "any_8",
-          "shape": 7,
-          "type": "*",
-          "link": null
-        },
-        {
-          "localized_name": "any_9",
-          "name": "any_9",
-          "shape": 7,
-          "type": "*",
-          "link": null
-        },
-        {
-          "localized_name": "any_10",
-          "name": "any_10",
-          "shape": 7,
-          "type": "*",
-          "link": null
-        },
-        {
-          "localized_name": "select",
-          "name": "select",
-          "type": "INT",
-          "widget": {
-            "name": "select"
-          },
-          "link": 155
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "any",
-          "name": "any",
-          "type": "*",
-          "links": [
-            170
-          ]
-        },
-        {
-          "localized_name": "index",
-          "name": "index",
-          "type": "INT",
-          "links": null
-        }
-      ],
-      "title": "Instruction (picture)",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
-        "Node name for S&R": "MpiAnySwitch10"
-      },
-      "widgets_values": [
-        1
-      ],
-      "widgets_values_named": {
-        "select": 1
-      }
-    },
-    {
-      "id": 81,
+      "id": 75,
       "type": "MpiText",
       "pos": [
-        60,
-        4208
+        100,
+        4888
       ],
       "size": [
         400,
@@ -2864,29 +2740,29 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            163
+            164
           ]
         }
       ],
-      "title": "Instruction 1 (no picture)",
+      "title": "Instruction 5 (picture)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
-        "Replace only {who} in <Video 1> with this new person: {words} Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
+        "Use <Picture 1> as the reference for this change to <Video 1>: {words} Keep everything else exactly as it is in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and the light.\n<Picture 1> shows: {look}"
       ],
       "widgets_values_named": {
-        "string": "Replace only {who} in <Video 1> with this new person: {words} Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
+        "string": "Use <Picture 1> as the reference for this change to <Video 1>: {words} Keep everything else exactly as it is in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and the light.\n<Picture 1> shows: {look}"
       }
     },
     {
-      "id": 82,
+      "id": 76,
       "type": "MpiText",
       "pos": [
-        60,
-        4498
+        100,
+        5218
       ],
       "size": [
         400,
@@ -2912,228 +2788,36 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            164
-          ]
-        }
-      ],
-      "title": "Instruction 2 (no picture)",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
-        "Node name for S&R": "MpiText"
-      },
-      "widgets_values": [
-        "Replace only the head and face of {who} in <Video 1>: {words} Keep {who}'s body, clothes and hands, and the camera, framing, background, lighting, objects and all other people of <Video 1>. Match the head's position, angle, expression, mouth and every movement throughout the clip."
-      ],
-      "widgets_values_named": {
-        "string": "Replace only the head and face of {who} in <Video 1>: {words} Keep {who}'s body, clothes and hands, and the camera, framing, background, lighting, objects and all other people of <Video 1>. Match the head's position, angle, expression, mouth and every movement throughout the clip."
-      }
-    },
-    {
-      "id": 83,
-      "type": "MpiText",
-      "pos": [
-        60,
-        4788
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {},
-      "order": 18,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
-          "widget": {
-            "name": "string"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "Text",
-          "name": "Text",
-          "type": "STRING",
-          "links": [
             165
           ]
         }
       ],
-      "title": "Instruction 3 (no picture)",
+      "title": "Instruction 6 (picture)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
-        "Change only what {who} wears in <Video 1>: {words} Keep {who}'s face, hair, body and every movement, and the camera, framing, background, lighting, objects and all other people of <Video 1>; the clothes move and fold with the body."
+        "Use <Picture 1> as the character, their face, hair, outfit and art style, and as the location and its light, without taking its composition or its camera angle; use <Video 1> only as the performance of {who}, every move, expression, mouth movement and its timing, and its camera framing, and take nothing else from it, not its room, its performer's looks, its image quality, its grade or its text.\n[Shot 1] The character from <Picture 1> performs exactly what {who} does in <Video 1>, move for move from the first frame, in the location of <Picture 1>. Nothing remains of how {who} looked: not their face, their hair or their clothes. Never show <Picture 1> itself or hold its pose. {words}\nThe camera frames them exactly as <Video 1> does. No phone-video look: the picture quality of <Picture 1>.\nThe character and the location in <Picture 1>: {look}"
       ],
       "widgets_values_named": {
-        "string": "Change only what {who} wears in <Video 1>: {words} Keep {who}'s face, hair, body and every movement, and the camera, framing, background, lighting, objects and all other people of <Video 1>; the clothes move and fold with the body."
+        "string": "Use <Picture 1> as the character, their face, hair, outfit and art style, and as the location and its light, without taking its composition or its camera angle; use <Video 1> only as the performance of {who}, every move, expression, mouth movement and its timing, and its camera framing, and take nothing else from it, not its room, its performer's looks, its image quality, its grade or its text.\n[Shot 1] The character from <Picture 1> performs exactly what {who} does in <Video 1>, move for move from the first frame, in the location of <Picture 1>. Nothing remains of how {who} looked: not their face, their hair or their clothes. Never show <Picture 1> itself or hold its pose. {words}\nThe camera frames them exactly as <Video 1> does. No phone-video look: the picture quality of <Picture 1>.\nThe character and the location in <Picture 1>: {look}"
       }
     },
     {
-      "id": 84,
-      "type": "MpiText",
-      "pos": [
-        60,
-        5078
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {},
-      "order": 19,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
-          "widget": {
-            "name": "string"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "Text",
-          "name": "Text",
-          "type": "STRING",
-          "links": [
-            166
-          ]
-        }
-      ],
-      "title": "Instruction 4 (no picture)",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
-        "Node name for S&R": "MpiText"
-      },
-      "widgets_values": [
-        "Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and as the camera framing, kept exactly as it is; change only the place around them.\n[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now this: {words}"
-      ],
-      "widgets_values_named": {
-        "string": "Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and as the camera framing, kept exactly as it is; change only the place around them.\n[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now this: {words}"
-      }
-    },
-    {
-      "id": 85,
-      "type": "MpiText",
-      "pos": [
-        60,
-        5368
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {},
-      "order": 20,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
-          "widget": {
-            "name": "string"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "Text",
-          "name": "Text",
-          "type": "STRING",
-          "links": [
-            167
-          ]
-        }
-      ],
-      "title": "Instruction 5 (no picture)",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
-        "Node name for S&R": "MpiText"
-      },
-      "widgets_values": [
-        "Change <Video 1> like this: {words} Keep everything else exactly as it is in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and the light."
-      ],
-      "widgets_values_named": {
-        "string": "Change <Video 1> like this: {words} Keep everything else exactly as it is in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and the light."
-      }
-    },
-    {
-      "id": 86,
-      "type": "MpiText",
-      "pos": [
-        60,
-        5658
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {},
-      "order": 21,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
-          "widget": {
-            "name": "string"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "Text",
-          "name": "Text",
-          "type": "STRING",
-          "links": [
-            168
-          ]
-        }
-      ],
-      "title": "Instruction 6 (no picture)",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
-        "Node name for S&R": "MpiText"
-      },
-      "widgets_values": [
-        "Replace only {who} in <Video 1> with this new person: {words} Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
-      ],
-      "widgets_values_named": {
-        "string": "Replace only {who} in <Video 1> with this new person: {words} Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
-      }
-    },
-    {
-      "id": 87,
+      "id": 77,
       "type": "MpiAnySwitch10",
       "pos": [
-        980,
-        1068
+        1100,
+        900
       ],
       "size": [
         270,
         238
       ],
       "flags": {},
-      "order": 43,
+      "order": 44,
       "mode": 0,
       "inputs": [
         {
@@ -3141,42 +2825,42 @@
           "name": "any_1",
           "shape": 7,
           "type": "*",
-          "link": 163
+          "link": 160
         },
         {
           "localized_name": "any_2",
           "name": "any_2",
           "shape": 7,
           "type": "*",
-          "link": 164
+          "link": 161
         },
         {
           "localized_name": "any_3",
           "name": "any_3",
           "shape": 7,
           "type": "*",
-          "link": 165
+          "link": 162
         },
         {
           "localized_name": "any_4",
           "name": "any_4",
           "shape": 7,
           "type": "*",
-          "link": 166
+          "link": 163
         },
         {
           "localized_name": "any_5",
           "name": "any_5",
           "shape": 7,
           "type": "*",
-          "link": 167
+          "link": 164
         },
         {
           "localized_name": "any_6",
           "name": "any_6",
           "shape": 7,
           "type": "*",
-          "link": 168
+          "link": 165
         },
         {
           "localized_name": "any_7",
@@ -3213,7 +2897,7 @@
           "widget": {
             "name": "select"
           },
-          "link": 162
+          "link": 159
         }
       ],
       "outputs": [
@@ -3222,7 +2906,7 @@
           "name": "any",
           "type": "*",
           "links": [
-            171
+            174
           ]
         },
         {
@@ -3232,10 +2916,10 @@
           "links": null
         }
       ],
-      "title": "Instruction (no picture)",
+      "title": "Instruction (picture)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiAnySwitch10"
       },
       "widgets_values": [
@@ -3246,71 +2930,203 @@
       }
     },
     {
-      "id": 90,
-      "type": "MpiIfElse",
+      "id": 81,
+      "type": "MpiText",
       "pos": [
-        1440,
-        958
+        100,
+        5548
       ],
       "size": [
-        270,
-        78
+        400,
+        200
       ],
       "flags": {},
-      "order": 48,
+      "order": 18,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "true",
-          "name": "true",
-          "type": "*",
-          "link": 170
-        },
-        {
-          "localized_name": "false",
-          "name": "false",
-          "type": "*",
-          "link": 171
-        },
-        {
-          "localized_name": "boolean",
-          "name": "boolean",
-          "type": "BOOLEAN",
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
           "widget": {
-            "name": "boolean"
+            "name": "string"
           },
-          "link": 169
+          "link": null
         }
       ],
       "outputs": [
         {
-          "localized_name": "output",
-          "name": "output",
-          "type": "*",
+          "localized_name": "Text",
+          "name": "Text",
+          "type": "STRING",
           "links": [
-            175
+            167
           ]
         }
       ],
-      "title": "picture ? : no picture",
+      "title": "Instruction 1 (no picture)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
-        "Node name for S&R": "MpiIfElse"
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiText"
       },
       "widgets_values": [
-        true
+        "Replace only {who} in <Video 1> with this new person: {words} Nothing remains of how {who} looked: not their face, their hair or their clothes. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
       ],
       "widgets_values_named": {
-        "boolean": true
+        "string": "Replace only {who} in <Video 1> with this new person: {words} Nothing remains of how {who} looked: not their face, their hair or their clothes. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
       }
     },
     {
-      "id": 91,
+      "id": 82,
       "type": "MpiText",
       "pos": [
-        60,
-        5948
+        100,
+        5878
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "Text",
+          "name": "Text",
+          "type": "STRING",
+          "links": [
+            168
+          ]
+        }
+      ],
+      "title": "Instruction 2 (no picture)",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiText"
+      },
+      "widgets_values": [
+        "Replace only the head and face of {who} in <Video 1>: {words} Keep {who}'s body, clothes and hands, and the camera, framing, background, lighting, objects and all other people of <Video 1>. Match the head's position, angle, expression, mouth and every movement throughout the clip."
+      ],
+      "widgets_values_named": {
+        "string": "Replace only the head and face of {who} in <Video 1>: {words} Keep {who}'s body, clothes and hands, and the camera, framing, background, lighting, objects and all other people of <Video 1>. Match the head's position, angle, expression, mouth and every movement throughout the clip."
+      }
+    },
+    {
+      "id": 83,
+      "type": "MpiText",
+      "pos": [
+        100,
+        6208
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 20,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "Text",
+          "name": "Text",
+          "type": "STRING",
+          "links": [
+            169
+          ]
+        }
+      ],
+      "title": "Instruction 3 (no picture)",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiText"
+      },
+      "widgets_values": [
+        "Change only what {who} wears in <Video 1>: {words} Keep {who}'s face, hair, body and every movement, and the camera, framing, background, lighting, objects and all other people of <Video 1>; the clothes move and fold with the body."
+      ],
+      "widgets_values_named": {
+        "string": "Change only what {who} wears in <Video 1>: {words} Keep {who}'s face, hair, body and every movement, and the camera, framing, background, lighting, objects and all other people of <Video 1>; the clothes move and fold with the body."
+      }
+    },
+    {
+      "id": 84,
+      "type": "MpiText",
+      "pos": [
+        100,
+        6538
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 21,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "Text",
+          "name": "Text",
+          "type": "STRING",
+          "links": [
+            170
+          ]
+        }
+      ],
+      "title": "Instruction 4 (no picture)",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiText"
+      },
+      "widgets_values": [
+        "Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and as the camera framing, kept exactly as it is; change only the place around them.\n[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now this: {words}"
+      ],
+      "widgets_values_named": {
+        "string": "Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and as the camera framing, kept exactly as it is; change only the place around them.\n[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now this: {words}"
+      }
+    },
+    {
+      "id": 85,
+      "type": "MpiText",
+      "pos": [
+        100,
+        6868
       ],
       "size": [
         400,
@@ -3336,29 +3152,29 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            173
+            171
           ]
         }
       ],
-      "title": "Tail (masked)",
+      "title": "Instruction 5 (no picture)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
-        "Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows <Video 1> exactly, frame for frame.\nNo text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no warped anatomy, no flicker."
+        "Change <Video 1> like this: {words} Keep everything else exactly as it is in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and the light."
       ],
       "widgets_values_named": {
-        "string": "Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows <Video 1> exactly, frame for frame.\nNo text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no warped anatomy, no flicker."
+        "string": "Change <Video 1> like this: {words} Keep everything else exactly as it is in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and the light."
       }
     },
     {
-      "id": 92,
+      "id": 86,
       "type": "MpiText",
       "pos": [
-        60,
-        6238
+        100,
+        7198
       ],
       "size": [
         400,
@@ -3384,14 +3200,294 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            174
+            172
+          ]
+        }
+      ],
+      "title": "Instruction 6 (no picture)",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiText"
+      },
+      "widgets_values": [
+        "Replace only {who} in <Video 1> with this new person: {words} Nothing remains of how {who} looked: not their face, their hair or their clothes. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
+      ],
+      "widgets_values_named": {
+        "string": "Replace only {who} in <Video 1> with this new person: {words} Nothing remains of how {who} looked: not their face, their hair or their clothes. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
+      }
+    },
+    {
+      "id": 87,
+      "type": "MpiAnySwitch10",
+      "pos": [
+        1100,
+        1268
+      ],
+      "size": [
+        270,
+        238
+      ],
+      "flags": {},
+      "order": 45,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "any_1",
+          "name": "any_1",
+          "shape": 7,
+          "type": "*",
+          "link": 167
+        },
+        {
+          "localized_name": "any_2",
+          "name": "any_2",
+          "shape": 7,
+          "type": "*",
+          "link": 168
+        },
+        {
+          "localized_name": "any_3",
+          "name": "any_3",
+          "shape": 7,
+          "type": "*",
+          "link": 169
+        },
+        {
+          "localized_name": "any_4",
+          "name": "any_4",
+          "shape": 7,
+          "type": "*",
+          "link": 170
+        },
+        {
+          "localized_name": "any_5",
+          "name": "any_5",
+          "shape": 7,
+          "type": "*",
+          "link": 171
+        },
+        {
+          "localized_name": "any_6",
+          "name": "any_6",
+          "shape": 7,
+          "type": "*",
+          "link": 172
+        },
+        {
+          "localized_name": "any_7",
+          "name": "any_7",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "localized_name": "any_8",
+          "name": "any_8",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "localized_name": "any_9",
+          "name": "any_9",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "localized_name": "any_10",
+          "name": "any_10",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "localized_name": "select",
+          "name": "select",
+          "type": "INT",
+          "widget": {
+            "name": "select"
+          },
+          "link": 166
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "any",
+          "name": "any",
+          "type": "*",
+          "links": [
+            175
+          ]
+        },
+        {
+          "localized_name": "index",
+          "name": "index",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "title": "Instruction (no picture)",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiAnySwitch10"
+      },
+      "widgets_values": [
+        1
+      ],
+      "widgets_values_named": {
+        "select": 1
+      }
+    },
+    {
+      "id": 90,
+      "type": "MpiIfElse",
+      "pos": [
+        1600,
+        1118
+      ],
+      "size": [
+        270,
+        78
+      ],
+      "flags": {},
+      "order": 50,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "true",
+          "name": "true",
+          "type": "*",
+          "link": 174
+        },
+        {
+          "localized_name": "false",
+          "name": "false",
+          "type": "*",
+          "link": 175
+        },
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "boolean"
+          },
+          "link": 173
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "output",
+          "name": "output",
+          "type": "*",
+          "links": [
+            179
+          ]
+        }
+      ],
+      "title": "picture ? : no picture",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "widgets_values_named": {
+        "boolean": true
+      }
+    },
+    {
+      "id": 91,
+      "type": "MpiText",
+      "pos": [
+        100,
+        7528
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "Text",
+          "name": "Text",
+          "type": "STRING",
+          "links": [
+            177
+          ]
+        }
+      ],
+      "title": "Tail (masked)",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiText"
+      },
+      "widgets_values": [
+        "Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows <Video 1> exactly, frame for frame.\nNo text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no warped anatomy, no flicker."
+      ],
+      "widgets_values_named": {
+        "string": "Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows <Video 1> exactly, frame for frame.\nNo text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no warped anatomy, no flicker."
+      }
+    },
+    {
+      "id": 92,
+      "type": "MpiText",
+      "pos": [
+        100,
+        7858
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 25,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "Text",
+          "name": "Text",
+          "type": "STRING",
+          "links": [
+            178
           ]
         }
       ],
       "title": "Tail (whole frame)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
@@ -3405,28 +3501,28 @@
       "id": 93,
       "type": "MpiIfElse",
       "pos": [
-        1440,
-        1752
+        1600,
+        2072
       ],
       "size": [
         270,
         78
       ],
       "flags": {},
-      "order": 52,
+      "order": 54,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 173
+          "link": 177
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 174
+          "link": 178
         },
         {
           "localized_name": "boolean",
@@ -3435,7 +3531,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 172
+          "link": 176
         }
       ],
       "outputs": [
@@ -3444,14 +3540,14 @@
           "name": "output",
           "type": "*",
           "links": [
-            176
+            180
           ]
         }
       ],
       "title": "masked ? : whole frame",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiIfElse"
       },
       "widgets_values": [
@@ -3465,15 +3561,15 @@
       "id": 94,
       "type": "StringConcatenate",
       "pos": [
-        1900,
-        466
+        2100,
+        586
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 55,
+      "order": 57,
       "mode": 0,
       "inputs": [
         {
@@ -3483,7 +3579,7 @@
           "widget": {
             "name": "string_a"
           },
-          "link": 175
+          "link": 179
         },
         {
           "localized_name": "string_b",
@@ -3492,7 +3588,7 @@
           "widget": {
             "name": "string_b"
           },
-          "link": 176
+          "link": 180
         },
         {
           "localized_name": "delimiter",
@@ -3510,7 +3606,7 @@
           "name": "STRING",
           "type": "STRING",
           "links": [
-            177
+            181
           ]
         }
       ],
@@ -3535,155 +3631,15 @@
       "id": 95,
       "type": "StringReplace",
       "pos": [
-        2360,
-        1238
+        2600,
+        1398
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 59,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
-          "widget": {
-            "name": "string"
-          },
-          "link": 177
-        },
-        {
-          "localized_name": "find",
-          "name": "find",
-          "type": "STRING",
-          "widget": {
-            "name": "find"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "replace",
-          "name": "replace",
-          "type": "STRING",
-          "widget": {
-            "name": "replace"
-          },
-          "link": 178
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "STRING",
-          "name": "STRING",
-          "type": "STRING",
-          "links": [
-            179
-          ]
-        }
-      ],
-      "title": "{who}",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.39.0",
-        "Node name for S&R": "StringReplace"
-      },
-      "widgets_values": [
-        "",
-        "{who}",
-        ""
-      ],
-      "widgets_values_named": {
-        "string": "",
-        "find": "{who}",
-        "replace": ""
-      }
-    },
-    {
-      "id": 96,
-      "type": "StringReplace",
-      "pos": [
-        2820,
-        426
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {},
-      "order": 62,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
-          "widget": {
-            "name": "string"
-          },
-          "link": 179
-        },
-        {
-          "localized_name": "find",
-          "name": "find",
-          "type": "STRING",
-          "widget": {
-            "name": "find"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "replace",
-          "name": "replace",
-          "type": "STRING",
-          "widget": {
-            "name": "replace"
-          },
-          "link": 180
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "STRING",
-          "name": "STRING",
-          "type": "STRING",
-          "links": [
-            181
-          ]
-        }
-      ],
-      "title": "{target}",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.39.0",
-        "Node name for S&R": "StringReplace"
-      },
-      "widgets_values": [
-        "",
-        "{target}",
-        ""
-      ],
-      "widgets_values_named": {
-        "string": "",
-        "find": "{target}",
-        "replace": ""
-      }
-    },
-    {
-      "id": 97,
-      "type": "StringReplace",
-      "pos": [
-        3280,
-        90
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {},
-      "order": 63,
+      "order": 61,
       "mode": 0,
       "inputs": [
         {
@@ -3720,7 +3676,147 @@
           "name": "STRING",
           "type": "STRING",
           "links": [
-            193
+            183
+          ]
+        }
+      ],
+      "title": "{who}",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "StringReplace"
+      },
+      "widgets_values": [
+        "",
+        "{who}",
+        ""
+      ],
+      "widgets_values_named": {
+        "string": "",
+        "find": "{who}",
+        "replace": ""
+      }
+    },
+    {
+      "id": 96,
+      "type": "StringReplace",
+      "pos": [
+        3100,
+        546
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 64,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 183
+        },
+        {
+          "localized_name": "find",
+          "name": "find",
+          "type": "STRING",
+          "widget": {
+            "name": "find"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "replace",
+          "name": "replace",
+          "type": "STRING",
+          "widget": {
+            "name": "replace"
+          },
+          "link": 184
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            185
+          ]
+        }
+      ],
+      "title": "{target}",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "StringReplace"
+      },
+      "widgets_values": [
+        "",
+        "{target}",
+        ""
+      ],
+      "widgets_values_named": {
+        "string": "",
+        "find": "{target}",
+        "replace": ""
+      }
+    },
+    {
+      "id": 97,
+      "type": "StringReplace",
+      "pos": [
+        3600,
+        130
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 65,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 185
+        },
+        {
+          "localized_name": "find",
+          "name": "find",
+          "type": "STRING",
+          "widget": {
+            "name": "find"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "replace",
+          "name": "replace",
+          "type": "STRING",
+          "widget": {
+            "name": "replace"
+          },
+          "link": 186
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            225
           ]
         }
       ],
@@ -3745,15 +3841,15 @@
       "id": 100,
       "type": "UNETLoader",
       "pos": [
-        60,
-        6528
+        100,
+        8188
       ],
       "size": [
         270,
         82
       ],
       "flags": {},
-      "order": 24,
+      "order": 26,
       "mode": 0,
       "inputs": [
         {
@@ -3781,8 +3877,8 @@
           "name": "MODEL",
           "type": "MODEL",
           "links": [
-            183,
-            186
+            187,
+            190
           ]
         }
       ],
@@ -3804,15 +3900,15 @@
       "id": 101,
       "type": "CLIPLoader",
       "pos": [
-        60,
-        6700
+        100,
+        8400
       ],
       "size": [
         270,
         106
       ],
       "flags": {},
-      "order": 25,
+      "order": 27,
       "mode": 0,
       "inputs": [
         {
@@ -3850,7 +3946,7 @@
           "name": "CLIP",
           "type": "CLIP",
           "links": [
-            190
+            194
           ]
         }
       ],
@@ -3874,15 +3970,15 @@
       "id": 102,
       "type": "VAELoader",
       "pos": [
-        60,
-        6896
+        100,
+        8636
       ],
       "size": [
         270,
         58
       ],
       "flags": {},
-      "order": 26,
+      "order": 28,
       "mode": 0,
       "inputs": [
         {
@@ -3901,8 +3997,8 @@
           "name": "VAE",
           "type": "VAE",
           "links": [
-            191,
-            209
+            195,
+            213
           ]
         }
       ],
@@ -3922,15 +4018,15 @@
       "id": 103,
       "type": "VAELoader",
       "pos": [
-        60,
-        7044
+        100,
+        8824
       ],
       "size": [
         270,
         58
       ],
       "flags": {},
-      "order": 27,
+      "order": 29,
       "mode": 0,
       "inputs": [
         {
@@ -3949,7 +4045,7 @@
           "name": "VAE",
           "type": "VAE",
           "links": [
-            192
+            196
           ]
         }
       ],
@@ -3970,153 +4066,15 @@
       "id": 104,
       "type": "MpiLoraModel",
       "pos": [
-        520,
-        2044
+        600,
+        2404
       ],
       "size": [
         270,
         122
       ],
       "flags": {},
-      "order": 38,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "model",
-          "name": "model",
-          "type": "MODEL",
-          "link": 183
-        },
-        {
-          "localized_name": "lora_name",
-          "name": "lora_name",
-          "type": "COMBO",
-          "widget": {
-            "name": "lora_name"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "strength_model",
-          "name": "strength_model",
-          "type": "FLOAT",
-          "widget": {
-            "name": "strength_model"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "model",
-          "name": "model",
-          "type": "MODEL",
-          "links": [
-            185
-          ]
-        },
-        {
-          "localized_name": "lora_name",
-          "name": "lora_name",
-          "type": "*",
-          "links": null
-        },
-        {
-          "localized_name": "strength",
-          "name": "strength",
-          "type": "FLOAT",
-          "links": null
-        }
-      ],
-      "title": "Character Swap LoRA",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
-        "Node name for S&R": "MpiLoraModel"
-      },
-      "widgets_values": [
-        "minimax-h3\\h3_character_swap_pro4500_1000.safetensors",
-        1
-      ],
-      "widgets_values_named": {
-        "lora_name": "minimax-h3\\h3_character_swap_pro4500_1000.safetensors",
-        "strength_model": 1
-      }
-    },
-    {
-      "id": 105,
-      "type": "MpiIfElse",
-      "pos": [
-        1900,
-        298
-      ],
-      "size": [
-        270,
-        78
-      ],
-      "flags": {},
-      "order": 54,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "true",
-          "name": "true",
-          "type": "*",
-          "link": 185
-        },
-        {
-          "localized_name": "false",
-          "name": "false",
-          "type": "*",
-          "link": 186
-        },
-        {
-          "localized_name": "boolean",
-          "name": "boolean",
-          "type": "BOOLEAN",
-          "widget": {
-            "name": "boolean"
-          },
-          "link": 184
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "output",
-          "name": "output",
-          "type": "*",
-          "links": [
-            187,
-            200
-          ]
-        }
-      ],
-      "title": "swap LoRA ? : base",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
-        "Node name for S&R": "MpiIfElse"
-      },
-      "widgets_values": [
-        true
-      ],
-      "widgets_values_named": {
-        "boolean": true
-      }
-    },
-    {
-      "id": 106,
-      "type": "MpiLoraModel",
-      "pos": [
-        2360,
-        830
-      ],
-      "size": [
-        270,
-        122
-      ],
-      "flags": {},
-      "order": 57,
+      "order": 40,
       "mode": 0,
       "inputs": [
         {
@@ -4150,7 +4108,145 @@
           "name": "model",
           "type": "MODEL",
           "links": [
-            188
+            189
+          ]
+        },
+        {
+          "localized_name": "lora_name",
+          "name": "lora_name",
+          "type": "*",
+          "links": null
+        },
+        {
+          "localized_name": "strength",
+          "name": "strength",
+          "type": "FLOAT",
+          "links": null
+        }
+      ],
+      "title": "Character Swap LoRA",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiLoraModel"
+      },
+      "widgets_values": [
+        "minimax-h3\\h3_character_swap_pro4500_1000.safetensors",
+        1
+      ],
+      "widgets_values_named": {
+        "lora_name": "minimax-h3\\h3_character_swap_pro4500_1000.safetensors",
+        "strength_model": 1
+      }
+    },
+    {
+      "id": 105,
+      "type": "MpiIfElse",
+      "pos": [
+        2100,
+        378
+      ],
+      "size": [
+        270,
+        78
+      ],
+      "flags": {},
+      "order": 56,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "true",
+          "name": "true",
+          "type": "*",
+          "link": 189
+        },
+        {
+          "localized_name": "false",
+          "name": "false",
+          "type": "*",
+          "link": 190
+        },
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "boolean"
+          },
+          "link": 188
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "output",
+          "name": "output",
+          "type": "*",
+          "links": [
+            191,
+            204
+          ]
+        }
+      ],
+      "title": "swap LoRA ? : base",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "widgets_values_named": {
+        "boolean": true
+      }
+    },
+    {
+      "id": 106,
+      "type": "MpiLoraModel",
+      "pos": [
+        2600,
+        910
+      ],
+      "size": [
+        270,
+        122
+      ],
+      "flags": {},
+      "order": 59,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "link": 191
+        },
+        {
+          "localized_name": "lora_name",
+          "name": "lora_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "lora_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "strength_model",
+          "name": "strength_model",
+          "type": "FLOAT",
+          "widget": {
+            "name": "strength_model"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            192
           ]
         },
         {
@@ -4169,7 +4265,7 @@
       "title": "Turbo LoRA (8-step)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiLoraModel"
       },
       "widgets_values": [
@@ -4185,15 +4281,15 @@
       "id": 107,
       "type": "MpiTinyVaeLoader",
       "pos": [
-        60,
-        7192
+        100,
+        9012
       ],
       "size": [
         270,
         58
       ],
       "flags": {},
-      "order": 28,
+      "order": 30,
       "mode": 0,
       "inputs": [
         {
@@ -4212,13 +4308,13 @@
           "name": "vae",
           "type": "VAE",
           "links": [
-            189
+            193
           ]
         }
       ],
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiTinyVaeLoader"
       },
       "widgets_values": [
@@ -4232,28 +4328,28 @@
       "id": 108,
       "type": "MpiVideoSamplingPreview",
       "pos": [
-        2820,
-        258
+        3100,
+        338
       ],
       "size": [
         288.312109375,
         78
       ],
       "flags": {},
-      "order": 61,
+      "order": 63,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 188
+          "link": 192
         },
         {
           "localized_name": "vae",
           "name": "vae",
           "type": "VAE",
-          "link": 189
+          "link": 193
         },
         {
           "localized_name": "preview_rate",
@@ -4271,13 +4367,13 @@
           "name": "model",
           "type": "MODEL",
           "links": [
-            201
+            205
           ]
         }
       ],
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiVideoSamplingPreview"
       },
       "widgets_values": [
@@ -4291,41 +4387,41 @@
       "id": 110,
       "type": "MpiH3References",
       "pos": [
-        3740,
-        90
+        5100,
+        130
       ],
       "size": [
         400,
         584
       ],
       "flags": {},
-      "order": 64,
+      "order": 68,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "clip",
           "name": "clip",
           "type": "CLIP",
-          "link": 190
+          "link": 194
         },
         {
           "localized_name": "vae",
           "name": "vae",
           "type": "VAE",
-          "link": 191
+          "link": 195
         },
         {
           "localized_name": "audio_vae",
           "name": "audio_vae",
           "type": "VAE",
-          "link": 192
+          "link": 196
         },
         {
           "localized_name": "ref_image_1",
           "name": "ref_image_1",
           "shape": 7,
           "type": "IMAGE",
-          "link": 197
+          "link": 201
         },
         {
           "localized_name": "ref_image_2",
@@ -4388,7 +4484,7 @@
           "name": "ref_video_1",
           "shape": 7,
           "type": "IMAGE",
-          "link": 198
+          "link": 202
         },
         {
           "localized_name": "ref_video_audio_1",
@@ -4453,7 +4549,7 @@
           "widget": {
             "name": "prompt"
           },
-          "link": 193
+          "link": 197
         },
         {
           "localized_name": "width",
@@ -4462,7 +4558,7 @@
           "widget": {
             "name": "width"
           },
-          "link": 194
+          "link": 198
         },
         {
           "localized_name": "height",
@@ -4471,7 +4567,7 @@
           "widget": {
             "name": "height"
           },
-          "link": 195
+          "link": 199
         },
         {
           "localized_name": "length",
@@ -4480,7 +4576,7 @@
           "widget": {
             "name": "length"
           },
-          "link": 196
+          "link": 200
         },
         {
           "localized_name": "ref_image_size",
@@ -4498,7 +4594,7 @@
           "name": "positive",
           "type": "CONDITIONING",
           "links": [
-            202
+            206
           ]
         },
         {
@@ -4506,7 +4602,7 @@
           "name": "latent",
           "type": "LATENT",
           "links": [
-            207
+            211
           ]
         },
         {
@@ -4519,7 +4615,7 @@
       "title": "H3 references (<Video 1> the clip, <Picture 1> the picture)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiH3References"
       },
       "widgets_values": [
@@ -4541,15 +4637,15 @@
       "id": 111,
       "type": "RandomNoise",
       "pos": [
-        520,
-        1582
+        600,
+        1862
       ],
       "size": [
         270,
         82
       ],
       "flags": {},
-      "order": 36,
+      "order": 38,
       "mode": 0,
       "inputs": [
         {
@@ -4559,7 +4655,7 @@
           "widget": {
             "name": "noise_seed"
           },
-          "link": 199
+          "link": 203
         }
       ],
       "outputs": [
@@ -4568,7 +4664,7 @@
           "name": "NOISE",
           "type": "NOISE",
           "links": [
-            203
+            207
           ]
         }
       ],
@@ -4590,15 +4686,15 @@
       "id": 112,
       "type": "KSamplerSelect",
       "pos": [
-        60,
-        7340
+        100,
+        9200
       ],
       "size": [
         270,
         58
       ],
       "flags": {},
-      "order": 29,
+      "order": 31,
       "mode": 0,
       "inputs": [
         {
@@ -4617,7 +4713,7 @@
           "name": "SAMPLER",
           "type": "SAMPLER",
           "links": [
-            205
+            209
           ]
         }
       ],
@@ -4637,22 +4733,22 @@
       "id": 113,
       "type": "BasicScheduler",
       "pos": [
-        2360,
-        1042
+        2600,
+        1162
       ],
       "size": [
         270,
         106
       ],
       "flags": {},
-      "order": 58,
+      "order": 60,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 200
+          "link": 204
         },
         {
           "localized_name": "scheduler",
@@ -4688,7 +4784,7 @@
           "name": "SIGMAS",
           "type": "SIGMAS",
           "links": [
-            206
+            210
           ]
         }
       ],
@@ -4712,28 +4808,28 @@
       "id": 114,
       "type": "BasicGuider",
       "pos": [
-        4200,
-        90
+        5600,
+        130
       ],
       "size": [
         159.568359375,
         46
       ],
       "flags": {},
-      "order": 65,
+      "order": 69,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 201
+          "link": 205
         },
         {
           "localized_name": "conditioning",
           "name": "conditioning",
           "type": "CONDITIONING",
-          "link": 202
+          "link": 206
         }
       ],
       "outputs": [
@@ -4742,7 +4838,7 @@
           "name": "GUIDER",
           "type": "GUIDER",
           "links": [
-            204
+            208
           ]
         }
       ],
@@ -4756,46 +4852,46 @@
       "id": 115,
       "type": "SamplerCustomAdvanced",
       "pos": [
-        4419.568359375,
-        90
+        5859.568359375,
+        130
       ],
       "size": [
         212.3638671875,
         106
       ],
       "flags": {},
-      "order": 66,
+      "order": 70,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "noise",
           "name": "noise",
           "type": "NOISE",
-          "link": 203
+          "link": 207
         },
         {
           "localized_name": "guider",
           "name": "guider",
           "type": "GUIDER",
-          "link": 204
+          "link": 208
         },
         {
           "localized_name": "sampler",
           "name": "sampler",
           "type": "SAMPLER",
-          "link": 205
+          "link": 209
         },
         {
           "localized_name": "sigmas",
           "name": "sigmas",
           "type": "SIGMAS",
-          "link": 206
+          "link": 210
         },
         {
           "localized_name": "latent_image",
           "name": "latent_image",
           "type": "LATENT",
-          "link": 207
+          "link": 211
         }
       ],
       "outputs": [
@@ -4804,7 +4900,7 @@
           "name": "output",
           "type": "LATENT",
           "links": [
-            208
+            212
           ]
         },
         {
@@ -4824,28 +4920,28 @@
       "id": 116,
       "type": "VAEDecode",
       "pos": [
-        4691.9322265625,
-        90
+        6171.9322265625,
+        130
       ],
       "size": [
         140,
         46
       ],
       "flags": {},
-      "order": 67,
+      "order": 71,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "samples",
           "name": "samples",
           "type": "LATENT",
-          "link": 208
+          "link": 212
         },
         {
           "localized_name": "vae",
           "name": "vae",
           "type": "VAE",
-          "link": 209
+          "link": 213
         }
       ],
       "outputs": [
@@ -4854,7 +4950,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            210
+            214
           ]
         }
       ],
@@ -4868,15 +4964,15 @@
       "id": 117,
       "type": "MpiClearVram",
       "pos": [
-        4891.9322265625,
-        90
+        6411.9322265625,
+        130
       ],
       "size": [
         186.9140625,
         26
       ],
       "flags": {},
-      "order": 68,
+      "order": 72,
       "mode": 0,
       "inputs": [
         {
@@ -4884,7 +4980,7 @@
           "name": "passthrough",
           "shape": 7,
           "type": "*",
-          "link": 210
+          "link": 214
         }
       ],
       "outputs": [
@@ -4893,14 +4989,14 @@
           "name": "passthrough",
           "type": "*",
           "links": [
-            212,
-            218
+            216,
+            222
           ]
         }
       ],
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiClearVram"
       }
     },
@@ -4908,34 +5004,34 @@
       "id": 120,
       "type": "MpiGradeMatch",
       "pos": [
-        5138.8462890625,
-        90
+        6698.8462890625,
+        130
       ],
       "size": [
         270,
         98
       ],
       "flags": {},
-      "order": 69,
+      "order": 73,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "destination",
           "name": "destination",
           "type": "IMAGE",
-          "link": 211
+          "link": 215
         },
         {
           "localized_name": "source",
           "name": "source",
           "type": "IMAGE",
-          "link": 212
+          "link": 216
         },
         {
           "localized_name": "mask",
           "name": "mask",
           "type": "MASK",
-          "link": 213
+          "link": 217
         },
         {
           "localized_name": "band",
@@ -4953,14 +5049,14 @@
           "name": "image",
           "type": "IMAGE",
           "links": [
-            215
+            219
           ]
         }
       ],
       "title": "Grade match on the band round the box",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiGradeMatch"
       },
       "widgets_values": [
@@ -4974,28 +5070,28 @@
       "id": 121,
       "type": "InpaintStitchImproved",
       "pos": [
-        5468.8462890625,
-        90
+        7068.8462890625,
+        130
       ],
       "size": [
         172.248046875,
         46
       ],
       "flags": {},
-      "order": 70,
+      "order": 74,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "stitcher",
           "name": "stitcher",
           "type": "STITCHER",
-          "link": 214
+          "link": 218
         },
         {
           "localized_name": "inpainted_image",
           "name": "inpainted_image",
           "type": "IMAGE",
-          "link": 215
+          "link": 219
         }
       ],
       "outputs": [
@@ -5004,7 +5100,7 @@
           "name": "image",
           "type": "IMAGE",
           "links": [
-            217
+            221
           ]
         }
       ],
@@ -5019,28 +5115,28 @@
       "id": 122,
       "type": "MpiIfElse",
       "pos": [
-        5701.0943359375,
-        90
+        7341.0943359375,
+        130
       ],
       "size": [
         270,
         78
       ],
       "flags": {},
-      "order": 71,
+      "order": 75,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 217
+          "link": 221
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 218
+          "link": 222
         },
         {
           "localized_name": "boolean",
@@ -5049,7 +5145,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 216
+          "link": 220
         }
       ],
       "outputs": [
@@ -5058,14 +5154,14 @@
           "name": "output",
           "type": "*",
           "links": [
-            219
+            223
           ]
         }
       ],
       "title": "masked ? stitched : whole frame",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiIfElse"
       },
       "widgets_values": [
@@ -5079,29 +5175,29 @@
       "id": 130,
       "type": "MpiSaveVideo",
       "pos": [
-        6031.0943359375,
-        90
+        7711.0943359375,
+        130
       ],
       "size": [
         270,
         150
       ],
       "flags": {},
-      "order": 72,
+      "order": 76,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
-          "link": 219
+          "link": 223
         },
         {
           "localized_name": "audio",
           "name": "audio",
           "shape": 7,
           "type": "AUDIO",
-          "link": 220
+          "link": 224
         },
         {
           "localized_name": "fps",
@@ -5153,7 +5249,7 @@
       "title": "Output_Video",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "6bf5659e689d78496d00452abd1d87206c5a26f5",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
         "Node name for S&R": "MpiSaveVideo"
       },
       "widgets_values": [
@@ -5168,11 +5264,151 @@
         "use_audio": true,
         "truncate_to_audio": false
       }
+    },
+    {
+      "id": 162,
+      "type": "StringReplace",
+      "pos": [
+        4100,
+        130
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 66,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 225
+        },
+        {
+          "localized_name": "find",
+          "name": "find",
+          "type": "STRING",
+          "widget": {
+            "name": "find"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "replace",
+          "name": "replace",
+          "type": "STRING",
+          "widget": {
+            "name": "replace"
+          },
+          "link": 226
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            227
+          ]
+        }
+      ],
+      "title": "{look}",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "StringReplace"
+      },
+      "widgets_values": [
+        "",
+        "{look}",
+        ""
+      ],
+      "widgets_values_named": {
+        "string": "",
+        "find": "{look}",
+        "replace": ""
+      }
+    },
+    {
+      "id": 172,
+      "type": "StringReplace",
+      "pos": [
+        4600,
+        130
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 67,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 227
+        },
+        {
+          "localized_name": "find",
+          "name": "find",
+          "type": "STRING",
+          "widget": {
+            "name": "find"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "replace",
+          "name": "replace",
+          "type": "STRING",
+          "widget": {
+            "name": "replace"
+          },
+          "link": 228
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            197
+          ]
+        }
+      ],
+      "title": "{kept}",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "StringReplace"
+      },
+      "widgets_values": [
+        "",
+        "{kept}",
+        ""
+      ],
+      "widgets_values_named": {
+        "string": "",
+        "find": "{kept}",
+        "replace": ""
+      }
     }
   ],
   "links": [
     [
-      111,
+      115,
       16,
       0,
       20,
@@ -5180,7 +5416,7 @@
       "STRING"
     ],
     [
-      112,
+      116,
       23,
       0,
       21,
@@ -5188,7 +5424,7 @@
       "*"
     ],
     [
-      113,
+      117,
       13,
       0,
       21,
@@ -5196,7 +5432,7 @@
       "INT"
     ],
     [
-      114,
+      118,
       14,
       0,
       21,
@@ -5204,7 +5440,7 @@
       "BOOLEAN"
     ],
     [
-      115,
+      119,
       13,
       0,
       22,
@@ -5212,7 +5448,7 @@
       "INT"
     ],
     [
-      116,
+      120,
       11,
       4,
       22,
@@ -5220,7 +5456,7 @@
       "BOOLEAN"
     ],
     [
-      117,
+      121,
       14,
       0,
       22,
@@ -5228,7 +5464,7 @@
       "BOOLEAN"
     ],
     [
-      118,
+      122,
       20,
       1,
       23,
@@ -5236,7 +5472,7 @@
       "BOOLEAN"
     ],
     [
-      119,
+      123,
       13,
       0,
       23,
@@ -5244,7 +5480,7 @@
       "INT"
     ],
     [
-      120,
+      124,
       10,
       3,
       30,
@@ -5252,7 +5488,7 @@
       "INT"
     ],
     [
-      121,
+      125,
       10,
       0,
       31,
@@ -5260,7 +5496,7 @@
       "IMAGE"
     ],
     [
-      122,
+      126,
       30,
       0,
       31,
@@ -5268,7 +5504,7 @@
       "INT"
     ],
     [
-      123,
+      127,
       10,
       4,
       32,
@@ -5276,7 +5512,7 @@
       "FLOAT"
     ],
     [
-      124,
+      128,
       10,
       7,
       33,
@@ -5284,7 +5520,7 @@
       "BOOLEAN"
     ],
     [
-      125,
+      129,
       10,
       1,
       33,
@@ -5292,7 +5528,7 @@
       "AUDIO"
     ],
     [
-      126,
+      130,
       32,
       0,
       33,
@@ -5300,7 +5536,7 @@
       "AUDIO"
     ],
     [
-      127,
+      131,
       30,
       0,
       34,
@@ -5308,7 +5544,7 @@
       "*"
     ],
     [
-      128,
+      132,
       33,
       0,
       35,
@@ -5316,7 +5552,7 @@
       "AUDIO"
     ],
     [
-      129,
+      133,
       10,
       2,
       35,
@@ -5324,7 +5560,7 @@
       "FLOAT"
     ],
     [
-      130,
+      134,
       34,
       0,
       35,
@@ -5332,39 +5568,39 @@
       "INT"
     ],
     [
-      131,
-      10,
-      5,
-      40,
-      0,
-      "INT"
-    ],
-    [
-      132,
-      10,
-      6,
-      40,
-      1,
-      "INT"
-    ],
-    [
-      133,
-      10,
-      6,
-      41,
-      0,
-      "INT"
-    ],
-    [
-      134,
-      10,
-      5,
-      41,
-      1,
-      "INT"
-    ],
-    [
       135,
+      10,
+      5,
+      40,
+      0,
+      "INT"
+    ],
+    [
+      136,
+      10,
+      6,
+      40,
+      1,
+      "INT"
+    ],
+    [
+      137,
+      10,
+      6,
+      41,
+      0,
+      "INT"
+    ],
+    [
+      138,
+      10,
+      5,
+      41,
+      1,
+      "INT"
+    ],
+    [
+      139,
       31,
       0,
       42,
@@ -5372,7 +5608,7 @@
       "IMAGE"
     ],
     [
-      136,
+      140,
       40,
       0,
       42,
@@ -5380,7 +5616,7 @@
       "INT"
     ],
     [
-      137,
+      141,
       41,
       0,
       42,
@@ -5388,7 +5624,7 @@
       "INT"
     ],
     [
-      138,
+      142,
       50,
       1,
       51,
@@ -5396,7 +5632,7 @@
       "CLIP"
     ],
     [
-      139,
+      143,
       16,
       0,
       51,
@@ -5404,7 +5640,7 @@
       "STRING"
     ],
     [
-      140,
+      144,
       50,
       0,
       52,
@@ -5412,7 +5648,7 @@
       "MODEL"
     ],
     [
-      141,
+      145,
       31,
       0,
       52,
@@ -5420,7 +5656,7 @@
       "IMAGE"
     ],
     [
-      142,
+      146,
       51,
       0,
       52,
@@ -5428,7 +5664,7 @@
       "CONDITIONING"
     ],
     [
-      143,
+      147,
       52,
       0,
       53,
@@ -5436,7 +5672,7 @@
       "MASK"
     ],
     [
-      144,
+      148,
       31,
       0,
       54,
@@ -5444,7 +5680,7 @@
       "IMAGE"
     ],
     [
-      145,
+      149,
       53,
       0,
       54,
@@ -5452,7 +5688,7 @@
       "MASK"
     ],
     [
-      146,
+      150,
       23,
       0,
       60,
@@ -5460,7 +5696,7 @@
       "BOOLEAN"
     ],
     [
-      147,
+      151,
       54,
       1,
       60,
@@ -5468,7 +5704,7 @@
       "IMAGE"
     ],
     [
-      148,
+      152,
       42,
       0,
       60,
@@ -5476,7 +5712,7 @@
       "IMAGE"
     ],
     [
-      149,
+      153,
       23,
       0,
       61,
@@ -5484,7 +5720,7 @@
       "BOOLEAN"
     ],
     [
-      150,
+      154,
       63,
       0,
       61,
@@ -5492,7 +5728,7 @@
       "INT"
     ],
     [
-      151,
+      155,
       40,
       0,
       61,
@@ -5500,7 +5736,7 @@
       "*"
     ],
     [
-      152,
+      156,
       23,
       0,
       62,
@@ -5508,7 +5744,7 @@
       "BOOLEAN"
     ],
     [
-      153,
+      157,
       63,
       0,
       62,
@@ -5516,7 +5752,7 @@
       "INT"
     ],
     [
-      154,
+      158,
       41,
       0,
       62,
@@ -5524,7 +5760,7 @@
       "*"
     ],
     [
-      155,
+      159,
       22,
       0,
       77,
@@ -5532,7 +5768,7 @@
       "INT"
     ],
     [
-      156,
+      160,
       71,
       0,
       77,
@@ -5540,7 +5776,7 @@
       "STRING"
     ],
     [
-      157,
+      161,
       72,
       0,
       77,
@@ -5548,7 +5784,7 @@
       "STRING"
     ],
     [
-      158,
+      162,
       73,
       0,
       77,
@@ -5556,7 +5792,7 @@
       "STRING"
     ],
     [
-      159,
+      163,
       74,
       0,
       77,
@@ -5564,7 +5800,7 @@
       "STRING"
     ],
     [
-      160,
+      164,
       75,
       0,
       77,
@@ -5572,7 +5808,7 @@
       "STRING"
     ],
     [
-      161,
+      165,
       76,
       0,
       77,
@@ -5580,7 +5816,7 @@
       "STRING"
     ],
     [
-      162,
+      166,
       22,
       0,
       87,
@@ -5588,7 +5824,7 @@
       "INT"
     ],
     [
-      163,
+      167,
       81,
       0,
       87,
@@ -5596,7 +5832,7 @@
       "STRING"
     ],
     [
-      164,
+      168,
       82,
       0,
       87,
@@ -5604,7 +5840,7 @@
       "STRING"
     ],
     [
-      165,
+      169,
       83,
       0,
       87,
@@ -5612,7 +5848,7 @@
       "STRING"
     ],
     [
-      166,
+      170,
       84,
       0,
       87,
@@ -5620,7 +5856,7 @@
       "STRING"
     ],
     [
-      167,
+      171,
       85,
       0,
       87,
@@ -5628,7 +5864,7 @@
       "STRING"
     ],
     [
-      168,
+      172,
       86,
       0,
       87,
@@ -5636,7 +5872,7 @@
       "STRING"
     ],
     [
-      169,
+      173,
       11,
       4,
       90,
@@ -5644,7 +5880,7 @@
       "BOOLEAN"
     ],
     [
-      170,
+      174,
       77,
       0,
       90,
@@ -5652,7 +5888,7 @@
       "*"
     ],
     [
-      171,
+      175,
       87,
       0,
       90,
@@ -5660,7 +5896,7 @@
       "*"
     ],
     [
-      172,
+      176,
       23,
       0,
       93,
@@ -5668,7 +5904,7 @@
       "BOOLEAN"
     ],
     [
-      173,
+      177,
       91,
       0,
       93,
@@ -5676,7 +5912,7 @@
       "STRING"
     ],
     [
-      174,
+      178,
       92,
       0,
       93,
@@ -5684,7 +5920,7 @@
       "STRING"
     ],
     [
-      175,
+      179,
       90,
       0,
       94,
@@ -5692,7 +5928,7 @@
       "STRING"
     ],
     [
-      176,
+      180,
       93,
       0,
       94,
@@ -5700,7 +5936,7 @@
       "STRING"
     ],
     [
-      177,
+      181,
       94,
       0,
       95,
@@ -5708,7 +5944,7 @@
       "STRING"
     ],
     [
-      178,
+      182,
       15,
       0,
       95,
@@ -5716,7 +5952,7 @@
       "STRING"
     ],
     [
-      179,
+      183,
       95,
       0,
       96,
@@ -5724,7 +5960,7 @@
       "STRING"
     ],
     [
-      180,
+      184,
       16,
       0,
       96,
@@ -5732,7 +5968,7 @@
       "STRING"
     ],
     [
-      181,
+      185,
       96,
       0,
       97,
@@ -5740,7 +5976,7 @@
       "STRING"
     ],
     [
-      182,
+      186,
       12,
       0,
       97,
@@ -5748,7 +5984,7 @@
       "STRING"
     ],
     [
-      183,
+      187,
       100,
       0,
       104,
@@ -5756,7 +5992,7 @@
       "MODEL"
     ],
     [
-      184,
+      188,
       21,
       0,
       105,
@@ -5764,7 +6000,7 @@
       "BOOLEAN"
     ],
     [
-      185,
+      189,
       104,
       0,
       105,
@@ -5772,7 +6008,7 @@
       "MODEL"
     ],
     [
-      186,
+      190,
       100,
       0,
       105,
@@ -5780,7 +6016,7 @@
       "MODEL"
     ],
     [
-      187,
+      191,
       105,
       0,
       106,
@@ -5788,7 +6024,7 @@
       "MODEL"
     ],
     [
-      188,
+      192,
       106,
       0,
       108,
@@ -5796,7 +6032,7 @@
       "MODEL"
     ],
     [
-      189,
+      193,
       107,
       0,
       108,
@@ -5804,7 +6040,7 @@
       "VAE"
     ],
     [
-      190,
+      194,
       101,
       0,
       110,
@@ -5812,7 +6048,7 @@
       "CLIP"
     ],
     [
-      191,
+      195,
       102,
       0,
       110,
@@ -5820,7 +6056,7 @@
       "VAE"
     ],
     [
-      192,
+      196,
       103,
       0,
       110,
@@ -5828,15 +6064,15 @@
       "VAE"
     ],
     [
-      193,
-      97,
+      197,
+      172,
       0,
       110,
       21,
       "STRING"
     ],
     [
-      194,
+      198,
       61,
       0,
       110,
@@ -5844,7 +6080,7 @@
       "INT"
     ],
     [
-      195,
+      199,
       62,
       0,
       110,
@@ -5852,7 +6088,7 @@
       "INT"
     ],
     [
-      196,
+      200,
       30,
       0,
       110,
@@ -5860,7 +6096,7 @@
       "INT"
     ],
     [
-      197,
+      201,
       11,
       0,
       110,
@@ -5868,7 +6104,7 @@
       "IMAGE"
     ],
     [
-      198,
+      202,
       60,
       0,
       110,
@@ -5876,7 +6112,7 @@
       "IMAGE"
     ],
     [
-      199,
+      203,
       17,
       0,
       111,
@@ -5884,7 +6120,7 @@
       "INT"
     ],
     [
-      200,
+      204,
       105,
       0,
       113,
@@ -5892,7 +6128,7 @@
       "MODEL"
     ],
     [
-      201,
+      205,
       108,
       0,
       114,
@@ -5900,7 +6136,7 @@
       "MODEL"
     ],
     [
-      202,
+      206,
       110,
       0,
       114,
@@ -5908,7 +6144,7 @@
       "CONDITIONING"
     ],
     [
-      203,
+      207,
       111,
       0,
       115,
@@ -5916,7 +6152,7 @@
       "NOISE"
     ],
     [
-      204,
+      208,
       114,
       0,
       115,
@@ -5924,7 +6160,7 @@
       "GUIDER"
     ],
     [
-      205,
+      209,
       112,
       0,
       115,
@@ -5932,7 +6168,7 @@
       "SAMPLER"
     ],
     [
-      206,
+      210,
       113,
       0,
       115,
@@ -5940,7 +6176,7 @@
       "SIGMAS"
     ],
     [
-      207,
+      211,
       110,
       1,
       115,
@@ -5948,7 +6184,7 @@
       "LATENT"
     ],
     [
-      208,
+      212,
       115,
       0,
       116,
@@ -5956,7 +6192,7 @@
       "LATENT"
     ],
     [
-      209,
+      213,
       102,
       0,
       116,
@@ -5964,7 +6200,7 @@
       "VAE"
     ],
     [
-      210,
+      214,
       116,
       0,
       117,
@@ -5972,7 +6208,7 @@
       "IMAGE"
     ],
     [
-      211,
+      215,
       54,
       1,
       120,
@@ -5980,7 +6216,7 @@
       "IMAGE"
     ],
     [
-      212,
+      216,
       117,
       0,
       120,
@@ -5988,7 +6224,7 @@
       "IMAGE"
     ],
     [
-      213,
+      217,
       54,
       2,
       120,
@@ -5996,7 +6232,7 @@
       "MASK"
     ],
     [
-      214,
+      218,
       54,
       0,
       121,
@@ -6004,7 +6240,7 @@
       "STITCHER"
     ],
     [
-      215,
+      219,
       120,
       0,
       121,
@@ -6012,7 +6248,7 @@
       "IMAGE"
     ],
     [
-      216,
+      220,
       23,
       0,
       122,
@@ -6020,7 +6256,7 @@
       "BOOLEAN"
     ],
     [
-      217,
+      221,
       121,
       0,
       122,
@@ -6028,7 +6264,7 @@
       "IMAGE"
     ],
     [
-      218,
+      222,
       117,
       0,
       122,
@@ -6036,7 +6272,7 @@
       "*"
     ],
     [
-      219,
+      223,
       122,
       0,
       130,
@@ -6044,12 +6280,44 @@
       "IMAGE"
     ],
     [
-      220,
+      224,
       35,
       0,
       130,
       1,
       "AUDIO"
+    ],
+    [
+      225,
+      97,
+      0,
+      162,
+      0,
+      "STRING"
+    ],
+    [
+      226,
+      18,
+      0,
+      162,
+      2,
+      "STRING"
+    ],
+    [
+      227,
+      162,
+      0,
+      172,
+      0,
+      "STRING"
+    ],
+    [
+      228,
+      19,
+      0,
+      172,
+      2,
+      "STRING"
     ]
   ],
   "groups": [],
