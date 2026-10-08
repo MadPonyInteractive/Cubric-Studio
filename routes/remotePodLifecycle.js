@@ -314,8 +314,14 @@ const POD_IMAGE_VERSION_CPU = 'v0.24.0';
 // stable pins. A clean rebuild's proof does not transfer from its dev tag (see v0.21.0), so
 // Fabio's pre-cut smoke and the scoped re-smoke — both run from a dev app — must boot the
 // exact image released users get.
-const POD_IMAGE_VERSION_DEV = 'v0.24.0';
-const POD_IMAGE_VERSION_CPU_DEV = 'v0.24.0';
+// v0.25.0-dev (MPI-1043, the engine bump): ComfyUI v0.34.0 -> v0.39.0 (b0b74356). mpi-ci 88e6120
+// synced node_lock.json + python_deps.txt (frontend 1.53.10, templates 0.11.76; MpiNodes 6bf5659
+// is code-only and installs at connect). CI run 37786409120, both legs pushed and pull-verified;
+// cu130 printed `node-import smoke test OK` with post-node torch 2.12.0+cu130. The stable pair
+// stays on v0.24.0 (ComfyUI 0.34.0) — a clean release-version rebuild at ship is MANDATORY, or a
+// released user gets a 0.39.0 local engine against a 0.34.0 remote Pod, silently.
+const POD_IMAGE_VERSION_DEV = 'v0.25.0-dev';
+const POD_IMAGE_VERSION_CPU_DEV = 'v0.25.0-dev';
 // 0.2.23 (MPI-169): add GET /wrapper/disk (du -sb of the mounted volume) so the
 // Settings volume bar can show truthful USED bytes — RunPod's API has no used-bytes.
 // R2-publish-only (publish-runtime.sh, no image rebuild). Degrades gracefully: an

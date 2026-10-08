@@ -9,7 +9,7 @@ Playbook: `docs/playbooks/bump-engine/README.md`. Target v0.39.0 (`b0b743566f65d
 - [x] Gate 5 (needs a window: moves the shared engine install): local engine upgraded in place, `node scripts/engine-floor-check.mjs` exits 0 - 2026-10-08 Fabio relaunched the dev app; boot gate moved 48188 in place in 23 s (5 pip lines, MpiNodes repaired to 6bf5659), floor 220/220, no IMPORT FAILED (KJNodes PatchTritonVAE triton warning pre-exists since 09-28, unused)
 - [x] Found + fixed on the way: a node 2.0 dropped from the registry (SplatKit, Mickmumpitz - 1.6.x tester builds + dev engines) sent the in-place upgrade to the full ~11 GB wipe; `routes/engine.js` now sets it aside as `<name>.stale-<sha8>.disabled` (proved live on this engine)
 - [x] Bench `G:\ComfyUi` bumped too (`/mpi-bump-local-comfy`) - MPI-936 authors its graph there
-- [ ] Gate 6: `node_lock.json` + `python_deps.txt` synced into mpi-ci; DEV Pod image built (`v<ver>-dev-<profile>`), only `POD_IMAGE_VERSION_DEV`/`_CPU_DEV` moved - IN PROGRESS: synced mpi-ci 88e6120; CI run 37786409120 building v0.25.0-dev (cpu pushed, cu130 building); consts not moved yet
+- [x] Gate 6: `node_lock.json` + `python_deps.txt` synced into mpi-ci; DEV Pod image built (`v<ver>-dev-<profile>`), only `POD_IMAGE_VERSION_DEV`/`_CPU_DEV` moved - synced mpi-ci 88e6120; CI run 37786409120 both legs success, cu130 `node-import smoke test OK` (torch 2.12.0+cu130); `v0.25.0-dev-cu130` + `v0.25.0-dev-cpu` pull-verified 2026-10-08; dev consts -> v0.25.0-dev, stable pair untouched at v0.24.0
 - [ ] Gate 7: Pod reports 0.39.0
 - [ ] Gate 8 (costs money, Fabio's yes first): smoke matrix green, skips named
 - [ ] Gate 9: evidence written, Windows-half limit stated
