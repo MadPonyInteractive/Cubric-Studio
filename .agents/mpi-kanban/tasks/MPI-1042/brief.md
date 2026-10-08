@@ -54,8 +54,8 @@ Split from **MPI-1041** (the Character Sheet Editor), which changes a finished s
 - **The body picture loses its head before Klein sees it** (Fabio, 2026-10-08). Same reasoning as
   the sheet's headless front body: one place to take a face from, so the body picture's face (and
   hair) can never compete with Picture 1. Fabio: *"Otherwise, the faces might not match, and the
-  model might pick up from the smaller face from the body instead of the big face."* It also
-  settles risk 4's half about the body's hair. Reuse the head-removal nodes of
+  model might pick up from the smaller face from the body instead of the big face."* The body
+  picture's hair goes with the head, so hair comes only from the face picture or the prompt. Reuse the head-removal nodes of
   `flowCharacterSheetHeadless` (SAM3 text-select face + hat), but over the WHOLE body picture: that
   op crops to the sheet's front-body quarter, which a user's photo does not have. Bench a flat
   fill of the mask (no sampling, deterministic) against the LanPaint fill: a reference only has
