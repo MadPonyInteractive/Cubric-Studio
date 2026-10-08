@@ -668,3 +668,40 @@ only. MoGe loaded from the SHIPPED `moge_vitl.safetensors`.
   DERIVATIVE_RE owns every file; failure cleanup; bad ids); `tests/desktop/scene-workspace.spec.js`
   green with the row now ENABLED; `npm test` 2748 pass / 0 fail; eslint clean.
 - **Not run:** a real Convert in the app - same blocker as the ops (engine restart on the new pin).
+
+## Live Convert in Fabio's app (2026-10-08, session 32 "3D Scene 22")
+
+Closes the Phase 2 ops verify AND the Convert verify.
+- Boot 08:13 UTC: `node drift: ComfyUI-MpiNodes installed=bc92a1b pinned=3e8d7d2` -> pre-wiped,
+  downloaded the `3e8d7d2` archive, marker stamped; `.mpi_node_commit` reads `3e8d7d2995...`.
+- Fabio dropped `mpi623_ring_2k.png` (sha256 `dd1cd54d...`, == the bench input) into a fresh project
+  (`MPI-623 Convert test`) and right-clicked **Convert to 360 pano** (log `select convert-pano`
+  08:23:06); engine `Prompt executed in 71.47 seconds`.
+- On disk: `<id>.scene.json` = `{version 1, pano {image "pano.png", depth "pano_depth.f32", w 2048,
+  h 1024, sky 37.91}, layers []}`; `<id>.scene.pano.png` **8192x4096** RGB; `<id>.scene.pano_depth.f32`
+  8,388,608 B = **2048x1024** float32, all finite, max == the manifest's sky; the item sidecar
+  carries `scenePath`. Still ONE card with ONE history entry: Convert made no card.
+- Depth vs the spike's `pano_depth_ring8k.npz` (non-sky pixels, 1.62M): rel err **mean 0.80%**, p99
+  4.3% - the bench's 0.77% within GPU noise.
+- The card repainted with the cube badge; a left-click opened the Scene page (breadcrumb
+  `MPI-623 Convert test / imported_001`, empty canvas - Phase 3 draws into it).
+
+## Fabio's four Phase 2 calls, settled (2026-10-08, session 32)
+
+- **yaml gap BUILT.** Checked first: the yaml was written only by `engine.js` install (and only
+  when absent), `/comfy/set-path` and `/comfy/extra-folders`; boot only read it. New
+  `syncExtraModelPathsYaml` (`routes/shared.js`) rewrites it when it differs from what the builder
+  derives; `/comfy/start` calls it before spawn (a failed rewrite logs and boots on the old file).
+  `tests/extra-model-folders.test.cjs`: a yaml missing `moge:` is restored byte-for-byte, a second
+  call is a no-op (5/5). Fabio's hand-patched yaml == the builder's output, so his next boot
+  leaves it alone.
+- **moge-vitl -> the `scene-convert` plugin** ("3D Scene", `devOnly`, `PLUGINS` filtered like
+  `MODELS`). Checked first: no plugin owned it, so nothing protected it from GC. The gallery
+  handler warns "3D Scene is not installed. Add it from the Model Library (Plugins)." before the
+  info toast. `tests/scene-convert.test.cjs` 4/4: the plugin owns `moge-vitl`, an unrelated
+  uninstall keeps it, the plugin's own uninstall can reclaim it. AnimeSharp needs no edge (engineAsset).
+- **HF re-host:** weights stay on R2; the HF mirror is a Phase 4 dev_mode gate.
+- **`publish-runtime.sh dev` DONE.** Before: mpi-ci clean + == origin/main, dev manifest == stable
+  (no peer bytes on dev). After: dev `start_sha256` `e3712063...` == mpi-ci HEAD's `start.sh`,
+  served file maps `moge: mpi_models/moge/`; wrapper 0.2.45 and stable untouched.
+- `npm test` 2750 pass / 0 fail; eslint clean on every touched file.

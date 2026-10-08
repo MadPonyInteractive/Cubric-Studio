@@ -8,7 +8,8 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: finish spike 0a's GPU half.**
+**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: spike 0a's parity result
+(session 28), then Phase 3's viewer. Phase 2 is closed (session 32 below).**
 
 **Session 28 (2026-10-07):** 0a's CPU half is built - `export_records.py` wrote ring8k as records
 (`viewer/records/`, every layer's verts + faces round-trip the shots.py cache exactly; the
@@ -63,6 +64,17 @@ suffix, `scenePath` last). **Next:** after Fabio restarts his app (the engine re
 right-click Convert on a 2:1 card (the ring 2K pano) and check the scene lands and opens; that one
 run closes the Phase 2 ops verify AND the Convert verify. Then Phase 3's viewer (port 0a's renderer
 onto the manifest) - 0a's parity result first (`research/spike-0a.md`, session 28).
+
+**Session 32 ("3D Scene 22", 2026-10-08): Phase 2 CLOSED.** Fabio restarted; his engine
+reinstalled MpiNodes at `3e8d7d2`, and a real Convert in his app on the ring 2K pano landed the
+scene (71 s, 8K + 2048x1024 depth, `scenePath`, no new card, depth 0.80% off the spike, cube
+badge, opens Scene) - validation.md § Live Convert. Fabio's calls, all settled: (1) the yaml gap is
+BUILT - `syncExtraModelPathsYaml` at engine start; (2) MoGe belongs to a dev-only **3D Scene**
+plugin (`scene-convert`), Convert warns when it is not installed; (3) weights stay on R2, HF
+re-host before dev_mode comes off (Phase 4 gate); (4) `publish-runtime.sh dev` DONE (only
+`start.sh` changed, dev was == stable before). **Next:** Phase 3's viewer once spike 0a's parity
+result lands (`research/spike-0a.md` - session 28 still holds that claim, not landed 2026-10-08).
+A Pod connect check of the `moge` line + `promote` waits for a Pod run (costs money - ask).
 
 **The product (Fabio's why):** the 3D scene exists for EXACT camera placement - behind a house,
 up a tree, on the floor looking up, inside a house through a shut window, a door frame, a gap
@@ -251,13 +263,19 @@ only and may run beside the others).
       **(CODE + CPU checks DONE 2026-10-07, session 30, uncommitted: 9/9 unit tests, vendored MoGe
       == SplatKit's, pano vs npz mean 0.77% ON CPU, whole-pack smoke. GPU bench DONE 2026-10-07,
       session 31: pano on cuda mean 0.77% in 46 s; lift == the log on all 8 steps.)**
-- [ ] **Ship the pack and the weights:** commit, push, pin in `dev_configs/node_lock.json`; MoGe
+- [x] **Ship the pack and the weights:** commit, push, pin in `dev_configs/node_lock.json`; MoGe
       weights as a dep via `/mpi-add-model`'s deps half (R2, SHA). **Verify:** presence check
       green on the local engine; a Pod connect installs the pack with no image rebuild.
       **(2026-10-07: pinned `3e8d7d2`, weights on R2 byte-exact, dep written, `start.sh` maps
-      `moge`. Left: the engine-side verify (needs an engine restart), HF re-host,
-      `publish-runtime.sh dev`.)**
-- [ ] **SHIP GATE - a new dep folder type never reaches an existing install's yaml.** The local
+      `moge`. 2026-10-08: the local engine reinstalled the pin on boot and ran it;
+      `publish-runtime.sh dev` live. The Pod connect check + `promote` + HF re-host moved to
+      Phase 4's dev_mode gate.)**
+- [x] **moge-vitl install mode** (Fabio 2026-10-08, "go with your suggestion"): the dev-only
+      `scene-convert` plugin owns it (`pluginsRegistry.js`, `devOnly` filtered like a ModelDef);
+      Convert warns "3D Scene is not installed" without it. `tests/scene-convert.test.cjs`.
+- [x] **SHIP GATE - a new dep folder type never reaches an existing install's yaml.** BUILT
+      2026-10-08 (Fabio's yes): `syncExtraModelPathsYaml` (`routes/shared.js`), called by the engine
+      start before spawn. `tests/extra-model-folders.test.cjs`. The local
       `extra_model_paths.yaml` is DERIVED from the deps (`yamlHelper.js`) but rewritten only on engine
       install, a models-path change or an extra-folder change - so on every existing install a
       downloaded `moge-vitl` sits in `<root>/moge/` and the engine never sees it (MpiPanoDepth's model
@@ -266,7 +284,7 @@ only and may run beside the others).
       rewrite the yaml when a dep folder type is missing from it (same builder, current root +
       extras). Touches every user's boot, so Fabio's call before it is built. Not breaking today:
       Scene is dev_mode-only and nothing downloads `moge-vitl`.
-- [ ] **Universal ops + graphs:** `sceneConvert` (wrap-padded AnimeSharp when < 8K, cap 8K,
+- [x] **Universal ops + graphs:** `sceneConvert` (wrap-padded AnimeSharp when < 8K, cap 8K,
       `MpiPanoDepth`), `sceneLift` (`MpiLiftDepth` on a fill + the known-depth map + keep mask;
       Take picture and Build here both sequence it after Klein's own `inpaint`, A5),
       registered in the 4 files (`commandRegistry.js`, `universal_workflows.js`,
@@ -274,7 +292,9 @@ only and may run beside the others).
       one live dispatch of each on an ISOLATED app (`npm run app:isolated`), outputs match the
       spike's numbers. **(2026-10-07: graphs + `runSceneOp` + registry DONE, tests green, both
       graphs live on the BENCH match the spike; the app-level dispatch waits on an engine
-      restart. Neither op goes through `runCommand` - see Plan Drift.)**
+      restart. Neither op goes through `runCommand` - see Plan Drift. 2026-10-08: `sceneConvert`
+      dispatched through Fabio's app via Convert; `sceneLift` has no app caller until Take
+      picture, so its app dispatch is Phase 3's verify.)**
 
 ### Parallel Batch: Pano Flow + Scene workspace shell
 
@@ -294,7 +314,7 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       Briefings: `comfy_engine`, `comfy_injection`, `versioning` + the add-flow playbook.
       **Verify:** text -> 360 and image -> 360 on an isolated app give a seam-clean 8K
       (`seam8k.py` ratio <= 2x median); the tile is hidden with `dev_mode` off.
-- [ ] **Scene workspace shell + Convert:** `PAGE_SCENE` (all touch-list sites above), Block
+- [x] **Scene workspace shell + Convert:** `PAGE_SCENE` (all touch-list sites above), Block
       `MpiSceneBlock`, Primitive `MpiSceneCanvas` owning the GL context (teardown: cancel RAF,
       disconnect observers, `WEBGL_lose_context`, zero canvas dims, null refs - new code),
       `scenePath` + `getSceneItem` (A2/A3) incl. `DERIVATIVE_RE` and the Add-to-project copy,
@@ -311,7 +331,7 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       `PAGE_SCENE`, both components, the intercept, the Convert row DISABLED -
       `tests/scene-workspace.test.cjs` + `tests/desktop/scene-workspace.spec.js`. CONVERT WIRED
       2026-10-07 (session 31): row enabled, `convertToPano`, `POST /project-media/:id/scene`,
-      `tests/scene-convert.test.cjs`. Left: one real Convert in the app.)**
+      `tests/scene-convert.test.cjs`. Real Convert in Fabio's app DONE 2026-10-08.)**
       (page check only), `agentService.js` / `agentDispatch.js` (page maps only),
       `package.json` + lock (three), `styles/` for the new Block, `tests/scene-*.cjs`,
       `tests/desktop/scene-*.spec.js`. Briefings: `components`, `dos_and_donts`, `workspaces`,
@@ -357,6 +377,10 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       `mpic-update-component-map`). **Verify:** his yes recorded, or the drift noted.
 - [ ] Privacy check: MoGe weights come from our R2 - no new outbound service. **Verify:** none
       added, or `cubric.studio/privacy/` updated in the same job.
+- [ ] **Before dev_mode comes off** (Fabio 2026-10-08): MoGe re-hosted to the HF mirror and
+      `noMirror` dropped; a Pod connect proves `start.sh`'s `moge` line (dev channel, live since
+      2026-10-08) then `publish-runtime.sh promote`; the `scene-convert` plugin loses `devOnly`.
+      **Verify:** `release:check` green with those three done.
 
 ## Plan Drift
 
