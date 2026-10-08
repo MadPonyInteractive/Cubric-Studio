@@ -41,6 +41,10 @@
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
 
 
+## ComfyUI Engine
+
+- **ComfyUI 0.39.0 (was 0.34.0).** It updates itself on first launch in about a minute, with no full re-download, and custom nodes you added yourself stay.
+
 ## Fixes
 
 - **Compare labels each side with its History name.** An imported image showed its full file path instead.
