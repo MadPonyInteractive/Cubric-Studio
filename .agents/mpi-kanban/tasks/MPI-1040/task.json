@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1040",
+  "title": "Decision models (Clef / Nimble / Jev-style) via DeepInfra",
+  "description": "Blocked on DeepInfra hosting a decision model. Typed choice / yes-no / score answers with probabilities, ~4 output tokens, to replace whole LLM turns for routing, moderation and best-of-N image picking. Fabio: build nothing until DeepInfra has one; a weekly check watches for it.",
+  "column": "todo",
+  "maturity": "blocked",
+  "status": "active",
+  "created_at": "2026-10-08T09:50:13+01:00",
+  "updated_at": "2026-10-08T09:50:13+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1040", "at": "2026-10-08T09:50:13+01:00", "actor": "claude", "column": "todo", "title": "Decision models (Clef / Nimble / Jev-style) via DeepInfra"}
