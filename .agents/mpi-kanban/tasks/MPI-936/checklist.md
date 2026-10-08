@@ -19,6 +19,8 @@ Scope widened 2026-10-08 (Fabio): Klein 9B's seven ops, inpaint included. Plan: 
 - [x] Rank: IMAGE_ORDER + EDIT, last, with notes (research licence, alpha, 8 refs)
 - [x] Agent guide `docs/agent/models/flux-2.md` names the model, ops, alpha, 8 refs, licence
 - [x] Preview `comfy_workflows/display/qwen-image-2-1.webp`: Fabio picked A (Lisbon tram, bench seed 21), 896x1088, 119 KB
-- [ ] NC badge on the Model Library tile (eye-test)
-- [ ] Agent read-back + three agent tests
-- [ ] One generation per op in the real app; RGBA output survives capture
+- [x] NC badge on the Model Library tile (eye-test: Fabio "looks good", 2026-10-08)
+- [x] Detail + upscale at half steps (12 of 25), Fabio 2026-10-08
+- [x] Agent read-back + three agent tests (21/21; transparency note moved to t2i)
+- [x] One generation per op in the real app; RGBA output survives capture (t2i 69%, edit 59% clear)
+- [x] Pod yaml maps `model_patches` (mpi-ci c57f7dd, pushed); release:check passes

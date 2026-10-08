@@ -14,6 +14,11 @@ from master.
       price and run count still go to him before anything is rented. The 2026-10-08 matrix
       did NOT execute Qwen 2.1 (both ops skipped: workflow not landed), although
       `release:check` prints "covers all 40 models" - see MPI-1043 brief § Noticed.
+- [ ] **Pod runtime publish, BEFORE blocker 1:** `./publish-runtime.sh dev` (never `stable`) carrying
+      mpi-ci `6f43c26` (`moge`, MPI-623) and `c57f7dd` (`model_patches`, MPI-936), Pod restart, test,
+      then `promote` (`docs/runpod-remote-engine.md` § 5). Both start.sh yaml lines are pushed but no
+      Pod sees them until published: Qwen 2.1's `control` (its ControlNet lives in `model_patches`) and
+      the 3D scene's MoGe silently produce nothing remotely. Same Pod session as blocker 1.
 - [ ] **Pod lock sync:** `c:\AI\Mpi\mpi-ci\cubric-vision-pod\node_lock.json` MpiNodes to the
       app pin (`dev_configs/node_lock.json`; 3ec03efb on 2026-10-08, MPI-623 may move it
       again). Code-only, no rebuild by itself - do it right before blocker 3.

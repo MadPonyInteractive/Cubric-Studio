@@ -909,7 +909,7 @@
   },
   "81": {
     "inputs": {
-      "steps": 25,
+      "steps": 12,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
@@ -1077,7 +1077,7 @@
   },
   "97": {
     "inputs": {
-      "steps": 25,
+      "steps": 12,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",

@@ -2,7 +2,13 @@
 
 ## Current State
 
-2026-10-08 (session 6271e0b6). All seven ops proven on the bench (`research/bench-results.md` runs 2-3).
+2026-10-08 (session 2a01ba53): **DONE, ready to close.** All seven ops pass in an isolated app (t2i/edit
+RGBA 69%/59% clear), detail + upscale at 12 steps, NC badge eye-tested (Fabio OK), agent read-back fixed
+(transparency note now t2i-only), npm test 2789/0, release:check green after mpi-ci c57f7dd (pushed).
+Uncommitted here: raw + runtime `qwen_image_2_1.json` (steps), `modelPriority.js`, doc hub settings row,
+MPI-1044 brief (new Pod-runtime-publish blocker). Pod publish of c57f7dd is MPI-1044's (costs Pod time).
+
+Previous: 2026-10-08 (session 6271e0b6). All seven ops proven on the bench (`research/bench-results.md` runs 2-3).
 Raw exported + committed by the sync (541caee9a); runtime `comfy_workflows/qwen_image_2_1.json` converted,
 validated and STAGED (uncommitted). ModelDef, ControlNet dep, rank, guide, doc hub written (uncommitted).
 Preview: Fabio picked A (Lisbon tram) -> `comfy_workflows/display/qwen-image-2-1.webp`. MPI-1045's message
@@ -18,6 +24,12 @@ Gotchas found: MpiAnySwitch10 = Nth CONNECTED input (wire every slot); the conve
   numbered as Klein's so `opInject` reads the same: 1 t2i, 2 i2i, 3 control, 4 edit, 5 inpaint, 6 detail,
   7 upscale. Still ONE bare raw `qwen_image_2_1.json` (one size, so no generator), now WITH opInject.
 - Run 1's "edit loses alpha" was a harness bug (run.py saved the loader preview). Void.
+- 2026-10-08 (session 2a01ba53): Fabio: "upscale and detail usually use half the steps". Raw nodes 81 (detail
+  KSampler) and 97 (UltimateSDUpscale) 25 -> 12, runtime reconverted by hand (the sync refused on MPI-1036's
+  staged `flow_video_edit.json`): diff = those two scalars. Klein runs them at 2 of its 4.
+- 2026-10-08 (session 2a01ba53): agent read-back found the model-wide rank note claiming "the only model that
+  generates a transparent background" on ALL seven ops; only t2i and edit keep alpha. Note moved to
+  `qwen-image-2-1:t2i`; the model-wide note is licence-only.
 
 ## Ops (graph.py)
 
