@@ -75,6 +75,12 @@ re-host before dev_mode comes off (Phase 4 gate); (4) `publish-runtime.sh dev` D
 `start.sh` changed, dev was == stable before). **Next:** Phase 3's viewer once spike 0a's parity
 result lands (`research/spike-0a.md` - session 28 still holds that claim, not landed 2026-10-08).
 A Pod connect check of the `moge` line + `promote` waits for a Pod run (costs money - ask).
+**Handoff (session 32 -> 33):** session 28 and every other 3D Scene session are ARCHIVED (Fabio);
+session 28's claim on `D:\WORK\MPI-623-spike\` + `research/spike-0a.md` was released, so spike 0a's
+GPU half is THIS card's next owner's. Fabio: do GPU-free work while the GPU is busy. GPU-free now:
+Phase 3's History -> gallery stack, the Wan bake stub, the viewer scaffold (manifest loader + pano
+layer + fly controls via `Hotkeys.bind`; rule C waits on 0a's verdict). The GPU half: serve
+`viewer/` and run parity all / bench 1080p (plan § 0a Verify) under `gpu_lease.py run`.
 
 **The product (Fabio's why):** the 3D scene exists for EXACT camera placement - behind a house,
 up a tree, on the floor looking up, inside a house through a shut window, a door frame, a gap
