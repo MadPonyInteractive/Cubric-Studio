@@ -26,8 +26,8 @@ Run with `/mpi-bump-engine` (playbook `docs/playbooks/bump-engine/README.md`). F
   - `torchaudio` line REMOVED (a disappearing line is not pip work - see 02-local-upgrade
     traps; check no audio node relied on core pulling it).
   - No torch / torchvision move -> no ~11 GB user reinstall.
-- Breaking-surface research (release notes + 19 pinned nodes): `research/gate0.md` when the
-  research pass lands.
+- Breaking-surface research (release notes + 19 pinned nodes): `research/gate0.md` - no
+  confirmed breaker; watch LTXVideo kornia + the aimdo log prefix.
 
 ## Coordination
 
