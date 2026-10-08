@@ -118,3 +118,122 @@ One `MpiClearVram` at the end (none between the passes, so Klein stays loaded). 
   hand touches the cut. Out. A noise-masked hold does not carry its tone over at 4 steps.
 - **State of the fix:** stretch (B) and turn (A) are fixed by T6 on 12 of 12 runs. The faint
   step at the join (~1 in 3 seeds, <= 14/255): Fabio, 2026-10-08 - "there is no issue with that".
+
+## 2026-10-08 - batch 12, frontal picture -> forced three-quarter close-up (engine 0.39.0)
+
+T6 graph rebuilt from the bench file against the live 0.39.0 `/object_info` (`convert.py` exit 0,
+`two_pass.py`); only the pass-1 portrait prompt changes. Front 4:5 crop, seeds 42 / 7 / 2024.
+
+- **Engine bump check:** T6 baseline, front s42: sx/sy **1.000**, NCC 0.988 - the fix holds on 0.39.0.
+- **F1 descriptive** ("the head and shoulders turned three-quarters toward the left side of the
+  image ... both eyes visible, far cheek partly hidden", then the keep list), **F2 instruction**
+  ("Turn the person's head and shoulders three-quarters toward the left ..."), **F3 camera orbit**
+  ("photographed from a three-quarter angle, the camera moved 45 degrees ..."): **turned 9 of 9**,
+  same side every time (brow piercing stays on the near side). The wording barely matters: one
+  seed gives near the same picture under all three.
+- **Likeness (eye; no face-embedding model on the bench):** a redraw, not a copy, but the same man
+  - brow + lip piercings, ear stud, neck tattoo, goatee, hat and shirt all kept. Skin a little
+  smoother.
+- **Flaw: s2024 invents hair under the hat** on all three prompts (a braid; F3 full dreadlocks),
+  and pass 2 copies it into the back view. Suspect our own tail "hair fully visible from the
+  crown down": a copy has nothing to add, a redraw adds hair to satisfy it. Batch 13 tests it.
+
+## 2026-10-08 - batch 13, hair fix + which side to turn
+
+Tail now "the whole head inside the frame, the hair and headwear exactly as in image 1". New
+input `input/mpi1042_threequarter_4x5_flip.png` = the 3/4 crop mirrored (faces image-right; both
+originals face image-left, so only the mirror can catch a flipped side).
+
+- **H = F1 + hair fix, front:** turned 3 of 3. s1234 / s31337 clean; **s2024 still grows a small
+  braid in the portrait, but the back view stays short-haired** (was dreadlocks). Better, not gone.
+- **N = side-neutral** ("turned three-quarters to one side, toward the side the face already
+  leans in image 1"): front picture -> turned image-RIGHT on both seeds and over-rotated to near
+  profile; 3/4 left-facing -> kept the side on s42, **flipped it on s2024**; mirrored -> kept 2 of
+  2. Klein cannot read "the side it already leans": unreliable. Out.
+- **H on the mirrored picture:** turned it the other way (to the left), as worded.
+- **Every forced-turn prompt drops the smile on the 3/4 picture** (N tq / tqflip 4 of 4, H 1 of
+  1); T6's copy prompt kept it 6 of 6. A forced turn is a redraw, and a redraw loses expression.
+- **Verdict:** a fixed side ("toward the left side of the image") turns a FRONTAL picture 12 of 12
+  with the likeness kept (eye). An already-turned picture is better served by T6's copy prompt
+  (turn + smile kept). One prompt cannot do both: the graph needs to know which picture it got.
+
+## 2026-10-08 - batch 14a, can the describer tell frontal from turned? (Fabio's idea)
+
+The app's LOCAL describer (`comfy_workflows/image_descriptor.json`, Qwen3-VL 4B), the question wrapped
+exactly as `llmService.buildDescribeInjectionParams` does, run by `research/bench-tools/pose_quiz.py`:
+"Look only at the person's head. Is the face pointing straight at the camera, or is the head turned
+to one side (a three-quarter or profile view)? Reply with one word: FRONT or TURNED."
+
+- **6 of 7 right, one clean word each, 2-6 s:** front 4:5 crop FRONT; 3/4 crop, mirrored 3/4 crop,
+  Klein's F1 three-quarter portrait and N near-profile portrait TURNED; Klein's frontal T6 portrait FRONT.
+- **The miss: the UNCROPPED torso shot** (`16eeba8c...jpg`, small face, mild turn) -> FRONT, while its
+  4:5 face crop -> TURNED. Ask on the boxed face crop the Flow already makes, never the whole picture.
+- `describeImage({ imagePath, question })` (`js/services/llmService.js`) already serves both describe
+  backends (local queue / endpoint) and never rejects, so the Flow can ask before dispatch.
+
+## 2026-10-08 - batch 14b, Qwen-Image 2.1 (Fabio: if it wins, Klein goes)
+
+MPI-936's bench graph imported read-only (`research/bench-tools/qwen_sheet.py`: picture 1 the only
+reference, the canvas repointed at the empty latent at sheet size, MpiClearVram at the end); int8
+transformer + Qwen3-VL 8B encoder, euler/simple 25 steps cfg 1. Same pictures, prompts and seeds
+as Klein (hair-fix tail).
+
+- **ONE sampling, whole 1792x1120 sheet (63-72 s; Klein two-pass ~48 s):** three views held 7 of 7,
+  no ghost figures, no invented hair on any run.
+- **Stretch gone without two passes:** front copy s42 sx/sy **1.010**, NCC 0.986 (Klein one-shot
+  0.93-0.96). Qwen does not squeeze the portrait the way Klein does.
+- **3/4 picture, copy prompt: turn AND smile kept 3 of 3** (Klein one-shot 1 of 3; Klein needed T6),
+  poncho and gold-band hat kept, front body view smiles too. Background a little warmer / darker.
+- **Frontal picture, turn asked INSIDE the sheet: only a mild turn 3 of 3** - not the three-quarter
+  Fabio wants. Batch 15 tries stronger wording.
+- **Portrait alone (896x1120, 27-33 s), turn asked: three-quarter 3 of 3**, piercings / tattoo / hat
+  kept, no braid on s2024 (Klein grew one). Likeness on a par with Klein's by eye.
+- **Licence (MPI-936 brief):** the Qwen Research Licence has NO outputs clause - images made with it
+  are not commercially usable; Klein 9B's FLUX NC licence frees the images. Weights ~17.3 GB set.
+
+## 2026-10-08 - batch 15, Qwen one-shot sheet with a stronger turn
+
+Portrait sentence rewritten: "The right half of the image is filled by a three-quarter view head and
+shoulders portrait, not a frontal one: the head and shoulders turned 45 degrees toward the left side
+of the image, the face at a three-quarter angle with the far cheek partly hidden and the near ear
+fully visible, with the same face, features, piercings, tattoos and expression as image 1, ..."
+(rest as batch 14). Front picture, seeds 42 / 7 / 2024, 63-69 s.
+
+- **Three-quarter turn 3 of 3 inside ONE sampling** (s2024 a little shallower), same side every time,
+  brow + lip piercings, ear stud, neck tattoo and hat kept, no invented hair, two body views 3 of 3.
+- So on Qwen the whole sheet - stretch, kept turn + smile, forced turn - is one sampling. The
+  describer's FRONT / TURNED answer would pick between this sentence and the copy sentence.
+
+## 2026-10-08 - batch 16, Qwen at higher resolution (Fabio: "like we did on Klein")
+
+Seed 42, the batch 14b copy prompt (3/4 picture) and the batch 15 turn prompt (front picture), against
+the batch 14b/15 runs (reference ~1 MP = `resolution` 1024, sheet 1792x1120, 63-72 s):
+
+- **Reference ~2 MP (`resolution` 1408, Klein's picture-1 size), sheet 1792x1120: 90-93 s.**
+- **Reference ~2 MP, sheet 2048x1280: 108 s.** The portrait comes out framed tighter (hat to the edges).
+- **No detail gain:** face sharpness (Laplacian variance, crop resized to 600 px) 111 / 107 / 101 on
+  the 3/4 sheet, 84 / 87 / 89 on the front sheet - flat within 5%; by eye the same picture.
+  Composition, turn, smile and piercings unchanged. Klein's gain came from leaving 1280x800; Qwen
+  already runs at Klein's final 1792x1120, and its reference size does not show in the output.
+- **Keep Qwen at 1792x1120 with the 1 MP reference** (+40-70% time buys nothing visible).
+  Contact sheet: `research/qwen_resolution.jpg` (left to right: 1 MP ref, 2 MP ref, 2048 sheet).
+
+## 2026-10-08 - bench graph v2 (batch 17): two LiteGraph files, proven on the bench
+
+`research/bench-tools/build_bench_v2.py <dir>` writes `MPI-1042_character_sheet_v2_klein.json` (T6 two
+samplings) and `..._v2_qwen.json` (one sampling, `SplitImageWithAlpha` drops the 251-255 alpha), now in
+`G:/ComfyUi/ComfyUI/user/default/workflows/`. Both: `Input_Face_Turned` (MpiSimpleBoolean) picks copy vs
+three-quarter wording, v1's optional body branch kept. `convert.py` against live 0.39.0: exit 0, every
+link resolved (65 / 40 executable nodes). Posted with `research/bench-tools/run_api.py`:
+
+- **Klein, front, turn, s1234: portrait half PIXEL-IDENTICAL to the tested H run** (max diff 0); the
+  body half differs slightly (mean 2.8/255) - the joined pass-2 prompt now carries `[CHARACTER PROMPT]`,
+  so an empty user text leaves a double space. 66 s.
+- **Klein, 3/4, copy, s7:** turn + smile kept; vs T6c (run on the old 0.34.2 engine) mean 2.7/255. 51 s.
+- **Qwen, front, turn, s42 / 3/4, copy, s42:** same pictures as batches 15 / 14b by eye (mean 1.6-2.6/255,
+  the same double space). 75 / 69 s. Output RGB.
+- **Body mode smoke (torso shot as Picture 2):** both execute the SAM3 branch (66 / 94 s). Neither dresses
+  the body views cleanly in Picture 2's clothes - Klein drapes the poncho as a stole over picture 1's
+  shirt, Qwen keeps picture 1's shirt and takes only the jeans / belt / boots; both portraits wear
+  picture 1's shirt. The body-mode test proper (with a real full-body picture) is still open.
+- Contact sheet: `research/bench_v2_check.jpg`.

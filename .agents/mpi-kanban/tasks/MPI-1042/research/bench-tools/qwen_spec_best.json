@@ -1,0 +1,18 @@
+[
+ {
+  "tag": "copy (picture already turned) - batch 14b",
+  "image": "mpi1042_threequarter_4x5.png",
+  "seed": 42,
+  "prompt": "Character reference sheet of the character from image 1, in exactly the same visual style and medium as image 1. The face, head and hair come only from image 1. A single continuous image containing three views of the same character arranged side by side in one unbroken frame, the two full-body views on the left and the portrait on the right, the grey background flowing continuously behind all three, the same character in every view with identical face, hair and wardrobe. The right half of the image is filled by a head and shoulders portrait that keeps the head exactly as it is in image 1, with the same turn, tilt and expression, face sharp and clear, the whole head inside the frame, the hair and headwear exactly as in image 1. The left half holds two narrow full-body standing views of equal width, one seen from the front and one from directly behind, arms hanging loose and relaxed at the sides, hands open and resting against the thighs, feet planted, generous headroom. Plain smooth grey seamless studio background. Extremely even frontal illumination, soft open shadows, uniform brightness from edge to edge.",
+  "w": 1792,
+  "h": 1120
+ },
+ {
+  "tag": "turn (frontal picture) - batch 15",
+  "image": "mpi1042_front_4x5.png",
+  "seed": 42,
+  "prompt": "Character reference sheet of the character from image 1, in exactly the same visual style and medium as image 1. The face, head and hair come only from image 1. A single continuous image containing three views of the same character arranged side by side in one unbroken frame, the two full-body views on the left and the portrait on the right, the grey background flowing continuously behind all three, the same character in every view with identical face, hair and wardrobe. The right half of the image is filled by a three-quarter view head and shoulders portrait, not a frontal one: the head and shoulders turned 45 degrees toward the left side of the image, the face at a three-quarter angle with the far cheek partly hidden and the near ear fully visible, with the same face, features, piercings, tattoos and expression as image 1, face sharp and clear, the whole head inside the frame, the hair and headwear exactly as in image 1. The left half holds two narrow full-body standing views of equal width, one seen from the front and one from directly behind, arms hanging loose and relaxed at the sides, hands open and resting against the thighs, feet planted, generous headroom. Plain smooth grey seamless studio background. Extremely even frontal illumination, soft open shadows, uniform brightness from edge to edge.",
+  "w": 1792,
+  "h": 1120
+ }
+]

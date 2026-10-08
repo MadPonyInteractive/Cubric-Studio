@@ -1,5 +1,7 @@
 import json, sys
-# two_pass.py <api.json from convert.py> <out.json>   (validation.md "T6", the MPI-1042 A+B fix)
+# two_pass.py <api.json from convert.py> <out.json> [turn]   (validation.md "T6", the MPI-1042 A+B fix)
+# `turn` = pass 1 forces a three-quarter close-up (batch 13 "H": frontal picture -> 3/4, 12 of 12) instead of
+# copying the picture's own turn.
 # Pass 1 = the bench graph at 896x1120 (portrait alone; sweep spec sets W/H 896x1120 + the portrait prompts).
 # Pass 2 = the body-views half, its own 896x1120 sampling, refs = picture 1 + the finished portrait
 # (so it copies the portrait's grey), then [bodies | portrait] stitched. No mask, no shared canvas.
@@ -26,6 +28,14 @@ api[T['Sheet_Layout']]['inputs']['value'] = (
     "A head and shoulders portrait that keeps the head exactly as it is in image 1, with the same turn, tilt and "
     "expression and the same framing, face sharp and clear, hair fully visible from the crown down. Plain smooth grey "
     "seamless studio background. Extremely even soft illumination, soft open shadows, uniform brightness from edge to edge.")
+if sys.argv[3:] == ['turn']:
+    api[T['Sheet_Layout']]['inputs']['value'] = (
+        "A head and shoulders portrait of exactly the same person as image 1, the head and shoulders turned "
+        "three-quarters toward the left side of the image, the face seen at a three-quarter angle with both eyes "
+        "visible and the far cheek partly hidden. The face, features, skin, piercings, tattoos, hair, headwear, "
+        "expression and clothing stay exactly as in image 1, the same framing, face sharp and clear, the whole head "
+        "inside the frame, the hair and headwear exactly as in image 1. Plain smooth grey seamless studio background. "
+        "Extremely even soft illumination, soft open shadows, uniform brightness from edge to edge.")
 
 
 def n(i, cls, inputs, title=''):
