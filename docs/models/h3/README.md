@@ -32,6 +32,9 @@ evidence of anything.
 The MiniMax H3 Community License Agreement (2026-08-02) grants rights only in the
 "Applicable Territory": **worldwide EXCLUDING the EU, the UK, the USA and South Korea**.
 The bar covers Outputs, not just weights. Governing law is Hong Kong.
+**Re-checked 2026-10-08:** the live `MiniMaxAI/MiniMax-H3` LICENSE is byte-identical to
+`licences/minimax-h3/LICENSE.txt` (sha256 `59b99642…`), and the repo's `docs/QA-about-License.md`
+promises any change will be announced, not silent. Re-run that comparison, not a re-read.
 
 Two consequences are baked into the wiring and must not be "tidied away":
 
