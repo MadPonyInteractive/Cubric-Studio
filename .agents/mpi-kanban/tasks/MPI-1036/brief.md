@@ -43,6 +43,17 @@ What that changes:
   (`D:/WORK/workflows/New Systems/Wan Animate Local.json`) does exactly this job; MPI-711 kept
   motion transfer there. The same performance clip through both is the fair comparison.
 
+## Fabio's verdict on the bench runs (2026-10-08)
+
+- **"Very good results. I'm happy."** H3 Reference does this with fewer nodes and less hassle
+  than Bernini or Wan Animate, so both leave the board (MPI-711 done, MPI-289 rejected; Fabio
+  keeps them on the Trello board).
+- **Raw clip for the main objective.** Depth / canny / line art stay useful for other inputs -
+  e.g. a simple Blender render (bare walls for a sense of space, an untextured character
+  shape) - not for real footage.
+- **Invented legwear is GOOD, not a flaw:** nothing was prompted, and it made nice shorts.
+- G (background from the cat photo's bedroom): "a very good job indeed".
+
 ## Added 2026-10-07 (Fabio, after the first bench A/B)
 
 - **The photo input for a swap is a character SHEET** (front + back), not a single portrait.

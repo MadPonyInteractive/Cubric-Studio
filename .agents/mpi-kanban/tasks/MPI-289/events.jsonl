@@ -1,1 +1,3 @@
 {"schema":"mpi-kanban/event/v1","type":"task.created","id":"MPI-289","at":"2026-07-15T10:35:20.675Z","actor":"vscode","summary":"Created MPI-289."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-289", "at": "2026-10-08T09:13:30+01:00", "actor": "9a18fc2d-771e-4c7a-b35d-7fe440754ef5", "from": "todo", "to": "done", "reason": "Fabio 2026-10-08: H3 Reference does performance transfer with fewer nodes (MPI-1036 run F); Wan Animate leaves the board"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-289", "at": "2026-10-08T09:13:31+01:00", "actor": "9a18fc2d-771e-4c7a-b35d-7fe440754ef5", "fields": ["links", "status"], "reason": "Closed: rejected, evidence in validation.md"}

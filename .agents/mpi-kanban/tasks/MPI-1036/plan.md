@@ -26,8 +26,12 @@ scratchpad `charswap_*.py`). Proven: the swap LoRA helps a little (background + 
 a back view of the character is used; the performance-capture mode (F, raw clip, recipe-shaped
 prompt) gives the picture's quality, not the clip's; background-only change (G) works.
 
-Next action: a talking/acting performance clip (face, lip-sync, own voice) through F, and the
-same clip through Fabio's Wan Animate workflow for comparison.
+2026-10-08: Fabio approved the bench results ("very good, I'm happy") - verdict in `brief.md`.
+Wan Animate is no longer a comparison target (MPI-289 rejected).
+
+Next action: close Phase 1 in `checklist.md`, then Phase 2 (mask path) or straight to a
+talking/acting clip through F to check face, lip-sync and the performer's own voice - Fabio's
+pick at the start of the next session.
 
 ## Phase 1 - The hidden instructions, on the bench
 
