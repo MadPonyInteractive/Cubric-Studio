@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1042",
+  "title": "Character Sheet from images - an existing character in, a sheet out (Klein 9B)",
+  "description": "A new Flow: the user drops images of a character they already have (face, optional full body) and gets a Character Sheet of THAT character. Clothes come from the images or from a prompt. Klein 9B multi-reference. Sibling of the editor MPI-1041. Brief: brief.md.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-08T10:45:13+01:00",
+  "updated_at": "2026-10-08T10:45:13+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

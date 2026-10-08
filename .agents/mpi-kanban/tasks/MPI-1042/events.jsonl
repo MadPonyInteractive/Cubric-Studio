@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1042", "at": "2026-10-08T10:45:13+01:00", "actor": "claude", "column": "todo", "title": "Character Sheet from images - an existing character in, a sheet out (Klein 9B)"}

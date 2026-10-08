@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1041", "at": "2026-10-08T10:11:45+01:00", "actor": "claude", "column": "todo", "title": "Character Sheet from an existing character - one or more base images in"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1041", "at": "2026-10-08T10:25:43+01:00", "actor": "claude", "fields": ["title", "description"], "reason": "Fabio 2026-10-08: reshaped into a Character Sheet Editor"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1041", "at": "2026-10-08T10:45:51+01:00", "actor": "claude", "fields": ["title", "description"], "reason": "Fabio 2026-10-08: editor never swaps a face; from-images split to MPI-1042"}
