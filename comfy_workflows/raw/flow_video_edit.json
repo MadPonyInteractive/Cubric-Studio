@@ -1,5 +1,5 @@
 {
-  "id": "3caaf785-cd6c-4eb5-a444-1caadda8ec4b",
+  "id": "98d5f4f1-184c-4368-9340-6deca10a9ef0",
   "revision": 0,
   "last_node_id": 130,
   "last_link_id": 220,
@@ -3347,10 +3347,10 @@
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
-        "Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows <Video 1> exactly, frame for frame."
+        "Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows <Video 1> exactly, frame for frame.\nNo text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no warped anatomy, no flicker."
       ],
       "widgets_values_named": {
-        "string": "Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows <Video 1> exactly, frame for frame."
+        "string": "Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows <Video 1> exactly, frame for frame.\nNo text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no warped anatomy, no flicker."
       }
     },
     {
@@ -6056,10 +6056,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.9,
+      "scale": 0.11008426202772492,
       "offset": [
-        416,
-        110
+        5540.045424623843,
+        1176.333333333334
       ]
     }
   },
