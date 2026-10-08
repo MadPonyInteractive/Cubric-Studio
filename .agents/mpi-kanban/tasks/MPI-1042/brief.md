@@ -60,6 +60,11 @@ Split from **MPI-1041** (the Character Sheet Editor), which changes a finished s
   op crops to the sheet's front-body quarter, which a user's photo does not have. Bench a flat
   fill of the mask (no sampling, deterministic) against the LanPaint fill: a reference only has
   to say "no head here", and a grey blob may get drawn as a grey thing.
+- **One face picture, any angle; the hint suggests three-quarter** (agent pick, awaiting Fabio).
+  The sheet's only face panel IS a 3/4 close-up, so a 3/4 picture is copied, not rotated. No
+  profile slot in v1: the sheet never shows a profile, a third reference costs ~14 s and fills
+  Klein's three, and two face pictures give the model two faces to choose between. Add one only
+  if the bench shows a front-only picture loses identity on the turn to 3/4.
 - **Body picture vs a body in the prompt** (agent pick): the picture wins; the field hint says
   "leave the body picture out to describe a different body".
 - **Reuse the headless chain as-is.** `flowCharacterSheetHeadless` runs on any finished sheet
