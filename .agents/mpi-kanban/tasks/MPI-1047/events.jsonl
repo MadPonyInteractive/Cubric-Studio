@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1047", "at": "2026-10-08T22:50:55+01:00", "actor": "claude", "column": "todo", "title": "Raw-workflow sync refuses whenever any generated workflow is dirty, even with no template changed"}

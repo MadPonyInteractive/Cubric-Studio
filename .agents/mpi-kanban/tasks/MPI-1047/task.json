@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1047",
+  "title": "Raw-workflow sync refuses whenever any generated workflow is dirty, even with no template changed",
+  "description": "scripts/sync-raw-workflows.mjs:130-148 refuses ('orchestrate.py rebuilds ALL templates') on ANY uncommitted file under comfy_workflows/ outside raw/, BEFORE it knows what changed (line 150). orchestrate.py only runs when a changed raw is a _template (line ~245, if (anyTemplate)), so a plain raw edit is blocked by a peer's unrelated staged runtime file. Hit twice in a row on MPI-936 (2026-10-08, both sessions converted + validated by hand). Fix: compute the changed set first; refuse on dirty generated files only when a changed raw is a template (or --all), and otherwise only when the converted file's OWN output path is dirty. Fabio approved as its own card 2026-10-08.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-08T22:50:55+01:00",
+  "updated_at": "2026-10-08T22:50:55+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
