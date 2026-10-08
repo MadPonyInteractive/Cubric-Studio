@@ -41,7 +41,8 @@ Split from **MPI-1041** (the Character Sheet Editor), which changes a finished s
 
 1. **Klein 9B places the referenced person ~2 in 3 at best, and a miss looks clean**
    (`docs/models/klein/9b.md` § "Known limit - reference placement fails SILENTLY"). Expect a
-   retry. Batch is no answer (artefacts on images 2+ outside SDXL / cloud). The Flow's copy must
+   retry. A batch fixes nothing: it is the same as N runs with N seeds, same odds per image
+   (Fabio, 2026-10-08). The Flow's copy must
    say "if it is not your character, run it again".
 2. **One shot vs per panel.** One image keeps the three panels consistent with each other but asks
    Klein to lay out a sheet from references. Per panel (three runs, stitched in code) makes the
