@@ -17,6 +17,31 @@ PRESETS = {
     'R4_background': dict(video=DANCE, image=ROOM, operation=4, who='the blonde woman'),
     'R5_head': dict(video=DANCE, image=SHEET, operation=2, who='the blonde woman dancing'),
 }
+# R2/R3 again with GONE in templates 1 and 6 (both kept the dancer's own face, hair and clothes)
+PRESETS['R2b_swap_keep'] = PRESETS['R2_swap_keep']
+PRESETS['R3b_swap_picture_room'] = PRESETS['R3_swap_picture_room']
+# R4 kept the source room too. Phase 1 runs E/F/G NAMED what the picture holds; these put that in the words.
+PRESETS['R2c_swap_keep_named'] = dict(PRESETS['R2_swap_keep'], positive=(
+    "The character in <Picture 1> is a young woman with freckles, a dark messy bun, pink-lined black cat ears, black "
+    "paw gloves and a loose pink off-shoulder sweater with a black skull on it."))
+PRESETS['R4c_background_named'] = dict(PRESETS['R4_background'], positive=(
+    "The location in <Picture 1> is a bright bedroom: a white bed, a white vanity with a mirror, window blinds and "
+    "soft cool daylight."))
+# The same two, described in-graph by the image-describer encoder instead of by hand (flow_graph caption=True).
+PRESETS['R2d_swap_keep_described'] = dict(PRESETS['R2_swap_keep'], caption=True)
+PRESETS['R4d_background_described'] = dict(PRESETS['R4_background'], caption=True)
+PRESETS['R3d_swap_picture_room_described'] = dict(PRESETS['R3_swap_picture_room'], caption=True)
+PRESETS['R5d_head_described'] = dict(PRESETS['R5_head'], caption=True)
+# R5d kept the source's long blonde lengths under the bun: template 2 now says all of their own hair goes
+PRESETS['R5e_head_all_hair'] = dict(PRESETS['R5_head'], caption=True)
+# R3d/R3e opened on the mirror shot's own pose whatever the prompt said: same mode with a front-facing picture
+PRESETS['R3f_swap_picture_room_front'] = dict(PRESETS['R3_swap_picture_room'], image=ROOM, caption=True)
+# Change the outfit (template 3) had no Phase 3 run yet
+PRESETS['R6d_outfit_described'] = dict(video=DANCE, image=SHEET, operation=3, who='the blonde woman dancing', caption=True)
+# R4d took the picture's person along with the room: describe the clip's person to keep as well
+PRESETS['R4e_background_kept'] = dict(PRESETS['R4_background'], caption=True)
+# R3d held the picture's mirror pose for ~0.8 s: template 6 now says from the first frame, never show the picture
+PRESETS['R3e_swap_picture_room_no_photo_open'] = dict(PRESETS['R3_swap_picture_room'], caption=True)
 
 
 def call(path, body=None):
@@ -31,7 +56,8 @@ def composed(p):
     op = p.get('operation', 1)
     photo, keep, masked = p.get('image', 'None') != 'None', p.get('keep_background', True), bool(p.get('target'))
     idx = 6 if op == 1 and photo and not keep else op
-    text = (fg.PHOTO if photo else fg.NO_PHOTO)[idx] + '\n' + (fg.TAIL_MASKED if masked else fg.TAIL_WHOLE)
+    look = fg.LOOK[idx] if photo and p.get('caption') else ''
+    text = (fg.PHOTO if photo else fg.NO_PHOTO)[idx] + look + '\n' + (fg.TAIL_MASKED if masked else fg.TAIL_WHOLE)
     return text.replace('{who}', p.get('who', 'the person')).replace('{target}', p.get('target', '')).replace('{words}', p.get('positive', ''))
 
 
@@ -50,6 +76,9 @@ for name in sys.argv[1:]:
         if pid in h:
             st = h[pid].get('status', {})
             outs = [f for o in h[pid].get('outputs', {}).values() for k in ('gifs', 'videos', 'images') for f in o.get(k, [])]
+            for o in h[pid].get('outputs', {}).values():
+                for t in o.get('text', []):
+                    print('PROMPT SENT =', t, flush=True)
             print(f'{name}: {st.get("status_str")} in {time.time() - t0:.0f}s ->',
                   [f.get('subfolder', '') + '/' + f['filename'] for f in outs], flush=True)
             if st.get('status_str') != 'success':

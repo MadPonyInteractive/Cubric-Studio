@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1045",
+  "title": "Deprecate the Image Describer plugin - descriptions and ComfyUI enhance follow the Remote pick",
+  "description": "The Image Describer plugin (`js/data/pluginsRegistry.js`, id `image-describer`, dep `qwen3vl-abliterated-clip`) is not a describer of its own: it is the install gate for the ComfyUI choice in Remote > Language Models, for Image descriptions AND Enhancement. Fabio (2026-10-08): deprecate it. Descriptions always come from the Remote pick (ComfyUI = Qwen3-VL-4B abliterated, the default, or a Remote vision model).\n\nFIRST STEP (Fabio): investigate EVERY place the plugin is used and record, per call site, whether it already shows the user a toast when the plugin is missing. The point is that every call gets addressed when the plugin goes, none left failing silently. Known starting points, not a complete list:\n- `llmService.describeImage` comfy branch: returns DESCRIBER_MISSING when the plugin is not installed (describeAction.js toasts it; check agentDispatch `_describeImage`).\n- `MpiLlmSettings.js` ENHANCER_PLUGIN_ID: the ComfyUI enhance/describe rows lean on the plugin's install state.\n- `commandRegistry.js` imageDescribe op (owned by the plugin), plugin menu gating (\"NOT installed = absent\"), `notificationService.js` plugin install notice, the Model Library Plugins tab.\n\nThen the plugin entry goes, and Qwen3-VL-4B (`qwen3vl-abliterated-clip`) becomes an APP dependency (Fabio, 2026-10-08): installed WITH ComfyUI, never on demand, so the ComfyUI choice in Remote is always ready and has nothing to download or gate on. Do NOT delete the dep entry `qwen3vl-abliterated-clip`: Krea2 shares it and the orphan sweep reads DEPS.\n\nMust land before the Video Edit Flow ships (MPI-1036): that Flow describes its picture through `describeImage`, so a ComfyUI pick without the plugin would error inside the Flow.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-08T18:55:33+01:00",
+  "updated_at": "2026-10-08T18:58:41+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

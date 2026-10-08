@@ -24,14 +24,18 @@ CROP = 512
 AREA = 576 * 1024  # whole-frame render area, the Phase 1 bench size
 
 KEEP_SHOT = ("the camera, framing, background, lighting, objects and all other people of <Video 1>")
+# R2/R3 kept the source person (only the picture's accessories came over): say their own look must go.
+GONE = "Nothing remains of how {who} looked: not their face, their hair or their clothes."
 MATCH = "Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
 PHOTO = {
     1: ("Replace only {who} in <Video 1> with the character in <Picture 1>. Keep the character's identity, face, hair, "
         "outfit and art style from <Picture 1>, and use it for the back of the head whenever they turn away. "
-        f"Preserve {KEEP_SHOT}. {MATCH} Do not show <Picture 1> itself or its background.\n{{words}}"),
+        f"{GONE} Preserve {KEEP_SHOT}. {MATCH} Do not show <Picture 1> itself or its background.\n{{words}}"),
     2: ("Replace only the head and face of {who} in <Video 1> with the head and face of the character in <Picture 1>: "
         "their face, hair, skin and features from every angle, and the back of the head whenever {who} turns away. "
-        f"Keep {{who}}'s body, clothes and hands, and {KEEP_SHOT}. Match the head's position, angle, expression, mouth "
+        # R5/R5d kept the source's long lengths under the picture's bun: hair past the shoulders read as "body"
+        "All of {who}'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the "
+        f"one in <Picture 1>. Keep {{who}}'s body, clothes and hands, and {KEEP_SHOT}. Match the head's position, angle, expression, mouth "
         "and every movement throughout the clip. Do not show <Picture 1> itself, its body or its background.\n{words}"),
     3: ("Change what {who} in <Video 1> wears to match <Picture 1>, taking only what is worn there, or the bare skin it "
         "shows, never its face, pose or room. Keep {who}'s face, hair, body and every movement, and "
@@ -48,12 +52,14 @@ PHOTO = {
         "without taking its composition or its camera angle; use <Video 1> only as the performance of {who}, every "
         "move, expression, mouth movement and its timing, and its camera framing, and take nothing else from it, not "
         "its room, its performer's looks, its image quality, its grade or its text.\n"
-        "[Shot 1] The character from <Picture 1> performs exactly what {who} does in <Video 1>, move for move, in the "
-        "location of <Picture 1>. {words}\n"
+        # R3d opened on the picture's own mirror pose for ~0.8 s before dancing (Phase 1 E did the same)
+        "[Shot 1] The character from <Picture 1> performs exactly what {who} does in <Video 1>, move for move from "
+        f"the first frame, in the location of <Picture 1>. {GONE} Never show <Picture 1> itself or hold its pose. "
+        "{words}\n"
         "The camera frames them exactly as <Video 1> does. No phone-video look: the picture quality of <Picture 1>."),
 }
 NO_PHOTO = {
-    1: f"Replace only {{who}} in <Video 1> with this new person: {{words}} Preserve {KEEP_SHOT}. {MATCH}",
+    1: f"Replace only {{who}} in <Video 1> with this new person: {{words}} {GONE} Preserve {KEEP_SHOT}. {MATCH}",
     2: (f"Replace only the head and face of {{who}} in <Video 1>: {{words}} Keep {{who}}'s body, clothes and hands, and "
         f"{KEEP_SHOT}. Match the head's position, angle, expression, mouth and every movement throughout the clip."),
     3: (f"Change only what {{who}} wears in <Video 1>: {{words}} Keep {{who}}'s face, hair, body and every movement, and "
@@ -73,13 +79,45 @@ TAIL_WHOLE = ("No text, subtitles, captions, usernames, logos or watermarks, no 
 TAIL_MASKED = ("Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows "
                "<Video 1> exactly, frame for frame.\n" + TAIL_WHOLE)
 
+# R2/R3/R4 ignored a picture the prompt did not DESCRIBE (Phase 1 E/F/G named it and worked). caption=True describes
+# the picture in-graph with the shipped image-describer encoder (dep `qwen3vl-abliterated-clip`, image_descriptor.json)
+# through core TextGenerate - H3's own encoder is truncated, it cannot generate - and splices it in as {look}.
+DESCRIBER = 'qwen3vl_4b_abliterated_fp8_scaled.safetensors'
+PERSON = ("the main person: apparent age and gender, face and skin, hair colour, length and style, and every garment "
+          "and accessory with its colour")
+PLACE = "the place: the kind of room or location, its main furniture and objects, its surfaces and colours, and its light"
+CAPTION_ASK = {
+    1: f"Describe only {PERSON}.",
+    2: ("Describe only the main person's head: apparent age and gender, face, skin, eyes, hair colour, length and "
+        "style, and anything worn on the head."),
+    3: ("Describe only what the main person wears: every garment and accessory with its colour, pattern and "
+        "material, or the bare skin shown."),
+    4: f"Describe only {PLACE}. Leave out any people.",
+    5: "Describe the main subject of the image.",
+    6: f"Describe {PERSON}, and then {PLACE}.",
+}
+LOOK = {
+    1: "\nThe character in <Picture 1>: {look}",
+    2: "\nThe head in <Picture 1>: {look}",
+    3: "\nWhat is worn in <Picture 1>: {look}",
+    # R4d took the room AND the picture's person; Phase 1 G kept the dancer because it described her too.
+    4: "\nThe location of <Picture 1>: {look}\n{who} in <Video 1>, who stays exactly as filmed: {kept}",
+    5: "\n<Picture 1> shows: {look}",
+    6: "\nThe character and the location in <Picture 1>: {look}",
+}
+# Same chat framing as image_descriptor.json, which runs on this encoder in the shipped app.
+CAPTION_PROMPT = ("<|im_start|>system\nYou describe a reference picture for a video edit. Reply with one or two plain "
+                  "sentences of concrete visual facts, starting at the subject: no preamble, no opinions, and describe "
+                  "only what is there.<|im_end|>\n<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>"
+                  "{ask}<|im_end|>\n<|im_start|>assistant")
+
 
 def node(cls, title, **inputs):
     return {'class_type': cls, 'inputs': inputs, '_meta': {'title': title}}
 
 
 def graph(video='None', image='None', positive='', operation=1, keep_background=True, who='the person',
-          target='', seed=904234, prefix='MpiVideo_Edit'):
+          target='', seed=904234, prefix='MpiVideo_Edit', caption=False):
     """video/image: bench picker values (the app injects `string` and the sync resets the picker to None)."""
     g = {}
     # ---- inputs
@@ -144,7 +182,7 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
 
     # ---- the instruction
     for i in range(1, 7):
-        g[f'7{i}'] = node('MpiText', f'Instruction {i} (picture)', string=PHOTO[i])
+        g[f'7{i}'] = node('MpiText', f'Instruction {i} (picture)', string=PHOTO[i] + (LOOK[i] if caption else ''))
         g[f'8{i}'] = node('MpiText', f'Instruction {i} (no picture)', string=NO_PHOTO[i])
     g['77'] = node('MpiAnySwitch10', 'Instruction (picture)', select=['22', 0], **{f'any_{i}': [f'7{i}', 0] for i in range(1, 7)})
     g['87'] = node('MpiAnySwitch10', 'Instruction (no picture)', select=['22', 0], **{f'any_{i}': [f'8{i}', 0] for i in range(1, 7)})
@@ -156,6 +194,42 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['95'] = node('StringReplace', '{who}', string=['94', 0], find='{who}', replace=['15', 0])
     g['96'] = node('StringReplace', '{target}', string=['95', 0], find='{target}', replace=['16', 0])
     g['97'] = node('StringReplace', '{words}', string=['96', 0], find='{words}', replace=['12', 0])
+    prompt = ['97', 0]
+    if caption:
+        # MpiIfElse is lazy: with no picture the describer never loads.
+        g['140'] = node('CLIPLoader', 'Describer (Qwen3-VL-4B)', clip_name=DESCRIBER, type='krea2', device='default')
+        g['141'] = node('ImageScaleToTotalPixels', 'Picture at 1 MP', image=['11', 0], upscale_method='nearest-exact',
+                        megapixels=1, resolution_steps=16)
+        for i in range(1, 7):
+            g[f'15{i}'] = node('MpiText', f'Describe {i}', string=CAPTION_PROMPT.replace('{ask}', CAPTION_ASK[i]))
+        g['157'] = node('MpiAnySwitch10', 'Describe (by template)', select=['22', 0],
+                        **{f'any_{i}': [f'15{i}', 0] for i in range(1, 7)})
+        gen = dict(max_length=256, sampling_mode='on', thinking=False, use_default_template=True, **{
+            'sampling_mode.temperature': 0.2, 'sampling_mode.top_k': 64, 'sampling_mode.top_p': 0.95,
+            'sampling_mode.min_p': 0.05, 'sampling_mode.repetition_penalty': 1.05, 'sampling_mode.seed': 0,
+            'sampling_mode.presence_penalty': 0})
+        g['158'] = node('TextGenerate', 'Describe the picture', clip=['140', 0], prompt=['157', 0], image=['141', 0], **gen)
+        # R2d's reply opened with ": " - drop anything before the first word
+        g['164'] = node('RegexReplace', 'Trim the reply', string=['158', 0], regex_pattern='^[^A-Za-z0-9]+', replace='')
+        g['160'] = node('MpiText', 'No picture, no description', string='')
+        g['161'] = node('MpiIfElse', 'picture ? description : none', boolean=['11', 4], true=['164', 0], false=['160', 0])
+        g['162'] = node('StringReplace', '{look}', string=['97', 0], find='{look}', replace=['161', 0])
+        # Change the background with a picture: also describe the person to KEEP, from the clip's first frame.
+        g['165'] = node('ImageFromBatch', 'First frame', image=['31', 0], batch_index=0, length=1)
+        g['166'] = node('ImageScaleToTotalPixels', 'First frame at 1 MP', image=['165', 0], upscale_method='nearest-exact',
+                        megapixels=1, resolution_steps=16)
+        g['167'] = node('MpiText', 'Describe the person to keep', string=CAPTION_PROMPT.replace('{ask}', CAPTION_ASK[1]))
+        g['168'] = node('TextGenerate', 'Describe the person in the clip', clip=['140', 0], prompt=['167', 0],
+                        image=['166', 0], **gen)
+        g['169'] = node('RegexReplace', 'Trim the reply', string=['168', 0], regex_pattern='^[^A-Za-z0-9]+', replace='')
+        g['170'] = node('MpiMath', 'Background with a picture?', a=['22', 0], b=['11', 4],
+                        math_expression='(a == 4) * b > 0')
+        g['171'] = node('MpiIfElse', 'background ? person : none', boolean=['170', 0], true=['169', 0], false=['160', 0])
+        g['172'] = node('StringReplace', '{kept}', string=['162', 0], find='{kept}', replace=['171', 0])
+        # Freed once both descriptions are in, before H3 loads.
+        g['173'] = node('MpiClearVram', 'Free the describer', passthrough=['172', 0])
+        g['163'] = node('PreviewAny', 'Prompt (bench only)', source=['173', 0])  # ponytail: drop before export
+        prompt = ['173', 0]
 
     # ---- H3 r2v, turbo 8 steps (+ the swap LoRA where it holds the timing)
     g['100'] = node('UNETLoader', 'Load Diffusion Model', unet_name=H3_UNET, weight_dtype='default')
@@ -168,7 +242,7 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['107'] = node('MpiTinyVaeLoader', 'Mpi Tiny Vae Loader', vae_name='taeh3.safetensors')
     g['108'] = node('MpiVideoSamplingPreview', 'Mpi Video Sampling Preview', model=['106', 0], vae=['107', 0], preview_rate=24)
     g['110'] = node('MpiH3References', 'H3 references (<Video 1> the clip, <Picture 1> the picture)',
-                    clip=['101', 0], vae=['102', 0], audio_vae=['103', 0], prompt=['97', 0], width=['61', 0],
+                    clip=['101', 0], vae=['102', 0], audio_vae=['103', 0], prompt=prompt, width=['61', 0],
                     height=['62', 0], length=['30', 0], ref_image_size='match', ref_image_1=['11', 0],
                     ref_video_1=['60', 0])
     g['111'] = node('RandomNoise', 'RandomNoise', noise_seed=['17', 0])

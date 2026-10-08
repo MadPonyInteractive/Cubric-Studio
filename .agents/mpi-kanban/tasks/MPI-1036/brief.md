@@ -250,6 +250,18 @@ for the Swap the person option only.
   bench R1 re-drew the caption inside the box GARBLED; the passed M3l run had it and erased the caption cleanly.
 - **A provisional preview tile** may ship before Phase 4 so CI stays green (Fabio, same day); Phase 4 replaces it.
 
+- **The describer follows Remote (Fabio, 2026-10-08, Video edit 9):** the Flow's picture description comes from
+  whatever Remote > Language Models > Image descriptions has selected (ComfyUI = Qwen3-VL-4B, the default, or a
+  Remote vision model) - NOT a describer hard-wired in the graph. So the bench's in-graph caption
+  (`graph(caption=True)`) is evidence only; the shipped Flow describes app-side through `describeImage()`
+  (`llmService.js`, the switch point the gallery's "Describe image" already uses) and injects the text.
+- **Qwen3-VL-4B becomes an APP dependency, installed with ComfyUI** (Fabio, same day; MPI-1045): so Video Edit adds
+  no describer dep of its own, and the ComfyUI describe pick is always ready. Closes the "4.88 GB dep" question.
+- **The Flow Library tile needs at least THREE images** (Fabio, same day), like the Character Sheet and Object
+  Stamp tiles - not the single provisional frame. Phase 4.
+- Fabio also thinks the Image Describer PLUGIN should be deprecated: descriptions always come from the Remote
+  pick. (Separate job: MPI-1045.)
+
 ## Phase 3 - whole-frame Flow graph on the bench (Video edit 8, 2026-10-08)
 
 Flow graph (`research/bench/flow_graph.py`) through `run_flow.py`, 576x1024, turbo 8, seed 904234, the dance clip.
@@ -262,5 +274,90 @@ Flow graph (`research/bench/flow_graph.py`) through `run_flow.py`, 576x1024, tur
   node, so not suspected); E's prompt named the look ("her face, her dark hair in a bun ... no blonde
   hair remains"), the generic template says only "identity, face, hair, outfit and art style".
   Suspect the template: it never says the person's OWN look must go.
+- **R3 Swap the person into the picture's room (template 6, LoRA off): SAME FAILURE.** 981 s. The room
+  came over (the bathroom: mirror, marble counter, tiles, soap) and so did the cat ears; the clip's
+  overlay is gone and the dance and turn follow the source. But it is still the blonde dancer in her black
+  T-shirt and teal shorts, no pink sweater, no bun. Phase 1 run F (same clip, picture, seed, LoRA off,
+  576x1024) gave the picture's woman fully. F's prompt opened with a LOOK LINE ("A young woman with pink-
+  lined cat ears and a dark messy bun ...") and named every part in the reference line ("her face,
+  freckles, hair, cat ears, paw gloves, pink skull sweater"); template 6 says only "the character, their
+  face, hair, outfit". So two templates, LoRA on and off, both keep the source person: the picture alone
+  carries the room and the accessories, not the identity. Next test: `GONE` ("Nothing of {who}'s own face,
+  hair or clothes remains.") in templates 1 and 6 (and no-picture 1) as R2b / R3b. If that is not enough,
+  the fallback is a look line: the user's words, or a caption of the picture made in-graph.
+- **R4 Change the background (template 4, bedroom picture, LoRA off): FAILED - nothing changed.** 981 s.
+  Still the source living room (fan, frames, sofa); only the overlay is gone. Phase 1 run G (same clip,
+  picture, seed, LoRA off) moved her into the bedroom; G NAMED the room ("its white bed, vanity and window
+  blinds and its soft daylight"), template 4 says only "the location of <Picture 1>".
+- **R5 Swap the head (template 2, mirror-shot picture, LoRA off): PARTIAL.** 951 s. The face changed toward
+  the picture (freckles, its features, dark hair at the crown and fringe) and the cat ears came over, but the
+  hair below the ears stays the source's long blonde (two-tone), and from behind it is the long blonde hair,
+  not the picture's dark bun. Body, clothes, room and sync kept, overlay gone. Best of the four whole-frame
+  runs, still not a head swap. Same pattern: the template names "hair" but not WHICH hair.
+- **So three templates fail the same way: a picture the prompt does not DESCRIBE is mostly ignored** (the
+  model takes the easy parts - accessories, the room when the clip's is dropped - and keeps the clip). Not
+  the node: MpiH3References delegates to core, and both present references images-then-videos
+  (`nodes_minimax_h3.py`). The H3 text encoder does see the picture (vision blocks spliced before the
+  prompt, `comfy/text_encoders/minimax.py`), but it is truncated at layer 50 with no LM head, so core
+  `TextGenerate` cannot caption with it; an in-graph caption would need another VLM loaded.
+- **R2d = R2 + the picture DESCRIBED IN-GRAPH (`flow_graph.graph(caption=True)`): FULL SWAP.** 941 s incl.
+  the describer. The image-describer encoder (Qwen3-VL-4B abliterated, shipped for Krea2) wrote: "A young
+  woman with fair skin and freckles, wearing a pink off-the-shoulder sweatshirt with a black skull and
+  crossbones graphic, has dark hair tied up in a bun. She wears black cat ears with pink bows on her head and
+  black clawed gloves with pink pads." Result: her face and freckles, the dark bun from behind, the pink
+  skull sweater, paw gloves and ears, in the source living room, dance and framing kept, overlay gone (pink
+  shorts invented - legwear the picture does not show, which Fabio called good). The describer's reply
+  opened with ": " - a RegexReplace trims it now. R2b/R2c dropped as redundant; R3d/R5d (picture room, head)
+  queued with the description; R4d (background) running.
+- **R1b = R1 re-run with the masked tail keeping "no text" (Fabio's call): PASSED.** 460 s. Horns made, ears
+  gone, in sync (`lag_full.py`: box 30,30-115,119, mean |lag| 0.01, fast frames 0.00 - same as R1). The
+  caption the box holds is now ERASED cleanly (R1 re-drew it garbled), no seam where the box cuts the plain
+  wall; the TikTok handle outside the box is untouched, as designed. Matches the M3l behaviour Fabio passed.
+- **R4d = R4 + the picture described: the ROOM came over, but so did the picture's PERSON.** 941 s.
+  Description: "A bedroom with light blue walls, a white bed ... a white vanity ... carpeted floor ... soft,
+  diffused natural light from a window with blinds". The bedroom, its light and the blinds are right, but the
+  dancer took the picture girl's face, braid, cat ears, paw gloves and blue pleated skirt (her T-shirt and,
+  from behind, her blonde hair stayed). Template 4 says "without taking ... any person in it"; not enough.
+  Phase 1 G (same picture) kept the dancer because its look line ALSO described her ("A blonde woman in a
+  black T-shirt and teal shorts"). Fix built as `R4e_background_kept`: a second describer pass on the clip's
+  first frame (`CAPTION_ASK[1]`, the person), spliced as "{who} in <Video 1>, who stays exactly as filmed:
+  {kept}", only when the template is 4 and a picture is given (lazy MpiIfElse). One MpiClearVram after both.
+- **R4e = R4 + the room described + the dancer described from the clip's first frame: PASSED.** 941 s (the
+  two describer passes cost no visible time against R4's 981). Person description: "A young woman with blonde,
+  straight, shoulder-length hair, wearing a black short-sleeved top and dark green shorts, has her hands placed
+  on her stomach." Result: the dancer exactly as filmed (blonde, black tee, teal shorts), the bedroom of the
+  picture (lit vanity, white bed, blinds, carpet, its soft light), overlay gone, dance in step. Side-by-side
+  source | R4 | R4e sent to Fabio (scratchpad `r4_vs_r4e_side_by_side.webm`).
+- **R3d = R3 + the picture described (person + place): SWAP AND ROOM RIGHT, but it OPENS ON THE PICTURE.**
+  951 s. Description: "Main person: apparent age 20s, female, freckles ... dark brown hair tied up in a high
+  bun, pink off-the-shoulder sweatshirt with a black skull ... cat ears with pink bows, black furry paw gloves
+  ... Place: bathroom, white marble countertop ... large mirror ... soft, even illumination." From ~1 s on: the
+  picture's woman fully, in its bathroom, dancing the source's routine, back view with the bun. But frames
+  0-20 (~0.8 s) hold the picture's own mirror pose (back to camera, toothbrush) and then turn into the dance,
+  so the routine's first second is lost - Phase 1 E's "shows the photo first" again. Template 1 says "Do not
+  show <Picture 1> itself"; template 6 did not. Now it says "move for move from the first frame ... Never show
+  <Picture 1> itself or hold its pose." -> R3e queued. (A character sheet on a plain background, the input
+  Fabio specified for swaps, is also expected to avoid it; the mirror shot is the hard case.)
+- **R5d = R5 + the head described: BETTER, STILL A HYBRID.** 971 s. Description: "a young woman with fair
+  skin, light-colored eyes, and dark hair tied up in a bun. She wears black cat ears with pink bows". Face as
+  in R5 (freckles, the picture's features, dark crown and fringe), and now the picture's dark BUN from behind -
+  but the source's long blonde lengths still hang below it, over the shoulders and down the back. Body,
+  clothes, room kept: no leak of the picture's body or sweater, so `{kept}` is NOT needed for template 2.
+  Reading: "Keep {who}'s body, clothes and hands" claims the hair past the shoulders. Template 2 now says
+  "All of {who}'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the
+  one in <Picture 1>." -> R5e queued. If that fails, the next lever is the swap LoRA on for op 2 (R2d had it).
+- **R3e = R3d + "from the first frame ... never show <Picture 1> itself or hold its pose": NO CHANGE.** 971 s.
+  Frame for frame the same opening (~0.8 s of the mirror shot's pose, then the turn into the dance). Same seed,
+  so the line did nothing measurable: the hold comes from the picture, not the wording (Phase 1 E opened the
+  same way on this picture). Kept the line (harmless, and template 1 has its twin). R3f queued: same mode, the
+  front-facing cat-girl picture, to see whether an ordinary picture opens clean.
+- **R5e = R5d + "All of {who}'s own hair goes, the lengths over the shoulders and down the back too": PASSED.**
+  991 s. A real head swap: the picture's face, freckles and dark hair, the bun from behind, NO blonde left
+  anywhere; body, black tee, teal shorts, room, dance kept; overlay gone. Swap LoRA not needed for op 2.
+- R6d queued: Change the outfit (template 3, mirror-shot picture, described) - op 3 had no Phase 3 run.
+- (superseded plan) Next runs (queued together): **R2b** = GONE only, reworded to "Nothing remains of how {who} looked: not
+  their face, their hair or their clothes." (the possessive read badly with a long {who}); **R2c** = GONE +
+  the picture's look in the words; **R4c** = the room named in the words. R3b held back until R2b reads.
 
 ## Noticed
+- 2026-10-08: the Image Describer plugin (`pluginsRegistry.js` `image-describer`) is only the install gate for Remote's ComfyUI describe/enhance choice (`llmService.describeImage` comfy branch returns DESCRIBER_MISSING without it; `MpiLlmSettings` ENHANCER_PLUGIN_ID). Fabio wants it deprecated so descriptions always come from the Remote pick - card MPI-1045 (todo, research; first step = audit every plugin call site for an existing toast). Must land before Video Edit ships.

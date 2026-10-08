@@ -132,6 +132,72 @@ own wording, e.g. a supplied torso image).
   Launch: `APP_DOCUMENTS=<scratch> npm run app:isolated` in the background, grep READY for the port;
   `git status -- dev_configs/` must be clean first (boot repairs the real engine to the pin).
 
+2026-10-08 (Video edit 9):
+- R3 (swap into the picture's room) FAILED the same way as R2: room + cat ears came over, the dancer kept her own
+  look. Verdict + the run-F prompt comparison in `brief.md` § Phase 3. Common cause = no look line in templates.
+- R4 (background) FAILED too: source room unchanged. Phase 1 G named the room; template 4 does not. Pattern for
+  R2/R3/R4: a picture the prompt does not describe is mostly ignored (`brief.md` § Phase 3).
+- `GONE` ("Nothing remains of how {who} looked: not their face, their hair or their clothes.") added to PHOTO[1],
+  PHOTO[6], NO_PHOTO[1] in `flow_graph.py` (NOT yet re-exported to raw/ + synced). Presets `R2b_swap_keep` (GONE
+  only), `R2c_swap_keep_named` (+ look in words), `R4c_background_named` (room in words) queued under the lease
+  (log: session d8900127 scratchpad `r2b.log`). `R3b_swap_picture_room` defined, not queued.
+- If only the named runs work, the fix is a description of the picture, and WHERE it comes from is Fabio's call:
+  the user's words (field hint), the agent, or an in-graph caption (H3's encoder cannot generate; another VLM).
+- In-graph caption BUILT behind `graph(caption=True)` (default off, default graphs byte-identical to before):
+  the shipped image-describer encoder (`qwen3vl-abliterated-clip`, 4.88 GB, shared with Krea2) + core TextGenerate,
+  a per-template ask (person / head / outfit / place / subject / person + place), spliced as `{look}` after the
+  template; lazy MpiIfElse so no picture = no load. PreviewAny node 163 is BENCH ONLY - drop before export.
+  Presets `R2d_swap_keep_described`, `R4d_background_described` queued (log `r2d.log`). Shipping it adds
+  `qwen3vl-abliterated-clip` to the FlowDef's requiredDeps - Fabio's call with the evidence.
+- **R2d PASSED (full swap, 941 s)** - verdict + the description text in `brief.md`. Side-by-side source | R2 | R2d sent
+  to Fabio (session d8900127 scratchpad `r2_vs_r2d_side_by_side.webm` - NEVER into the repo: creator footage).
+  RegexReplace node 164 trims the describer's leading ": ". R2b/R2c/R4c dropped (never ran). R4d running;
+  `R3d_swap_picture_room_described` + `R5d_head_described` queued (log `r2b.log`, reused name).
+- R4d: room right, but the picture's PERSON leaked onto the dancer. Built `{kept}` = second describer pass on the
+  clip's first frame (op 4 + picture only); preset `R4e_background_kept`. PreviewAny 163 now shows the whole
+  prompt sent (runner prints `PROMPT SENT =`).
+- GPU etiquette: MPI-936 (Qwen 2.1 session) asked for the next turn; I stopped my R3d/R5d waiter and promised not
+  to queue until MPI-936 holds the lease. Then queue `R3d_swap_picture_room_described R5d_head_described
+  R4e_background_kept`. The old R1b waiter (pid 30048, session f014ce69) is still in the race - killing it was
+  refused (another session's process).
+- R1b (masked, "no text" kept) PASSED: caption in the box erased cleanly, horns made, sync 0.00 on fast frames.
+  The masked path needs nothing more on the bench.
+- R4e, R3d, R5d queued at 16:55 behind MPI-936 (log session d8900127 scratchpad `r3d.log`).
+- **R4e PASSED** (dancer kept, bedroom right) - side-by-side sent. Open question for R5d: does the head swap leak the
+  picture's body/clothes too? If yes, extend `{kept}` (the clip's person) to templates 2 and 3 (`170`'s expression).
+- R3d: swap + room right, but ~0.8 s opening on the picture's own pose. Template 6 now "from the first frame ...
+  Never show <Picture 1> itself or hold its pose" (changes the non-caption R3 graph too - expected). R3e queued
+  (log `r3e.log`).
+- R5d: face + bun from the picture, source's blonde lengths still under it; no body leak (`{kept}` not needed for 2).
+  Template 2 now says all of their own hair goes; R5e queued (log `r5e.log`). Fallback: swap LoRA on for op 2.
+- **R5e PASSED** (full head swap). R3e = no change vs R3d (opening hold is the mirror picture, not the wording).
+  Queued: R3f (picture room, front-facing cat-girl picture, `r3f.log`), R6d (outfit, described, `r6d.log`).
+  Side-by-sides sent to Fabio: R2/R2d, R4/R4e, R5/R5e (scratchpad, never the repo).
+- Score so far with caption=True: person (R2d), head (R5e), background (R4e), masked (R1b) PASS; picture room (R3d/e)
+  passes after a ~0.8 s opening hold on this mirror picture; outfit (R6d) pending. Untested: op 5 whole frame,
+  every no-picture template.
+- **FABIO DECIDED (late Video edit 9): the description follows Remote > Language Models > Image descriptions**, NOT an
+  in-graph describer. So the shipped graph gets NO describer nodes: it gets two hidden MpiText inputs (e.g.
+  `Input_Look`, `Input_Kept`) spliced where `{look}` / `{kept}` sit, and the app fills them BEFORE the run through
+  `llmService.describeImage()` (the gallery's switch point; comfy branch = image_descriptor.json, Qwen3-VL-4B).
+  Asks per template = `CAPTION_ASK` in flow_graph.py; `{kept}` = the clip's FIRST FRAME described with
+  `CAPTION_ASK[1]`, only for op 4 + picture. Must run for hand runs (MpiBaseFlow) AND agent/routine runs
+  (`agentDispatch.buildFlow`) - model it on `services/flowEnhance.js` (the shared enhance leg, MPI-1002). Needs a
+  first-frame image from the clip app-side. Keep the RegexReplace-style trim of a leading ": " app-side.
+- Qwen3-VL-4B becomes an app dependency installed with ComfyUI (MPI-1045, created this session, todo/research:
+  deprecate the Image Describer plugin; must land before Video Edit ships). So Video Edit adds no describer dep.
+- Tile: Fabio wants >= 3 images like Character Sheet / Object Stamp (Phase 4), from owned footage.
+- IN FLIGHT at handoff (background lease waiters of session d8900127; outputs land in
+  `D:/WORK/Images/Outputs/mpi1036/` whatever happens to that session): `R3f_swap_picture_room_front_00001.mp4`
+  (template 6 with the front-facing cat-girl picture: does an ordinary picture open clean?) and
+  `R6d_outfit_described_00001.mp4` (template 3, never benched). Judge both against the source + picture.
+- `flow_graph.py` templates changed this session (GONE in 1/6/no-picture 1, hair line in 2, "from the first frame /
+  never show <Picture 1>" in 6, LOOK/{kept} lines, caption block). NOT re-exported to raw/ - do that once the
+  app-side describe inputs replace the caption block.
+- If R3d/R4e/R5d hold: make caption=True the graph (drop PreviewAny 163), add the dep to the FlowDef, re-export
+  raw/ + sync (constraint list in the handoff), docs (`existing-flows/video-edit.md`, `docs/agent/flows.md`).
+- UNRELEASED.md is free now (no peer claim) but its Video Edit bullet waits for Fabio's eye test.
+
 ## Phase 1 - The hidden instructions, on the bench
 
 **Verify:** Fabio judges each option on 2-3 real clips; the winning instruction text for every
