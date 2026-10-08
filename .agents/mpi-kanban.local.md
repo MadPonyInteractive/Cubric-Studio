@@ -54,9 +54,8 @@ bundles:
     rules: [behaviour, root-cause, component-mounts, component-events, component-state, component-comfy]
 gpu_command_patterns:
   - "(?<![\w-])py(?:thon)?\S*(?:\s+-\S+)*\s+\S*scripts/pre_release_test\.py"
-  - "(?<![\w-])node\S*(?:\s+-\S+)*\s+\S*scripts/smoke-workflows\.mjs(?![^&|;\n]*(?:--plan|--self-check))"
   - "127\.0\.0\.1:(8188|48188)/prompt"
-  - "/connector/generate"
+  - "/connector/generate(?![^&|;\n]*modelId\W{1,6}[\w.-]+-cloud\b)"
 ---
 
 # mpi-brief-rule config
@@ -104,16 +103,32 @@ python "${CLAUDE_PLUGIN_ROOT}/skills/mpi-lib/scripts/gpu_lease.py" run -- <comma
 python "${CLAUDE_PLUGIN_ROOT}/skills/mpi-lib/scripts/gpu_lease.py" status
 ```
 
-The four patterns are the commands that actually *execute* a generation from the
-shell. They are deliberately narrow — the guard blocks on a regex hit with no
-"this one is fine" escape, so a broad pattern taxes ordinary work:
+The three patterns are the commands that actually *execute* a generation **on this
+machine's GPU** from the shell. They are deliberately narrow — the guard blocks on a
+regex hit with no "this one is fine" escape, so a broad pattern taxes ordinary work:
 
 - `pre_release_test\.py` — submits every op to a running ComfyUI. Local card, long.
-- `smoke-workflows\.mjs` — a minimal generation per op. Pod GPU, and real money.
 - `127\.0\.0\.1:(8188|48188)/prompt` — direct dispatch to the bench (8188) or the app engine (48188).
-- `/connector/generate` — the app route that lands a real gallery card.
+- `/connector/generate` — the app route that lands a real gallery card, EXCEPT when the
+  same command segment names a `modelId` ending in `-cloud`.
+
+**A generation that runs on DeepInfra or RunPod never takes the lease** (Fabio,
+2026-10-08). It does not use the local GPU, so leasing it only blocks the peers who do:
+the MPI-1043 engine smoke held GPU 0 for ~1.5 h of pure RunPod work while Qwen 2.1's
+10-minute local presets waited. So `smoke-workflows.mjs` left the list, and
+`/connector/generate` exempts a cloud model. Every DeepInfra model, and only those, has
+an id ending `-cloud` (16 on 2026-10-08, `provider: 'deepinfra'` in `models.js`); a new
+cloud model must keep that suffix or its dispatches lease again. The exemption is keyed
+on `modelId` so a local op whose PROMPT says "storm-cloud" still leases. A body sent from
+a file (`-d @body.json`) cannot be read, so it leases: a false positive costs a retry.
+
+**Not covered: a RunPod generation through `/connector/generate`.** Whether the app runs
+it locally or on a Pod is the app's remote mode, which the command text cannot show, so
+it still leases. The MCP `generate` tool never did (`guard-gpu` sees Bash only).
 
 ### The two file patterns are anchored on their interpreter (MPI-697, 2026-09-05)
+
+(Only `pre_release_test` is left since 2026-10-08; the smoke examples below are history.)
 
 They used to be bare paths, which was wrong in **both** directions.
 
@@ -138,7 +153,7 @@ table — 13 must-block, 16 must-not — which the old patterns failed 8 of.
 frontmatter with a line regex and strips the quotes; it does not run a YAML
 unescape. `\\w` therefore reaches the regex as a literal backslash, matches
 nothing, and silently disarms the guard. After editing this block, re-parse it
-with `configured_patterns()` and assert you get 4 patterns that compile — a
+with `configured_patterns()` and assert you get 3 patterns that compile — a
 disarmed guard looks exactly like a working one until a run collides.
 
 **The two URL patterns stay broad, deliberately.** They have the same over-match
@@ -155,6 +170,8 @@ Deliberately NOT matched, and each for a reason:
   does not compute. Leasing it would hold a device for a whole session.
 - `/proxy/prompt` — remote Pod, not the local device. Pod collisions are
   `guard-runpod-create.py`'s job.
+- `scripts/smoke-workflows.mjs` — the engine smoke runs on a rented Pod (removed
+  2026-10-08, see above).
 
 **The enforcement is per-repo, the lock is not.** Agents here now take the lease;
 agents in a repo with no `gpu_command_patterns` still walk straight onto the card.

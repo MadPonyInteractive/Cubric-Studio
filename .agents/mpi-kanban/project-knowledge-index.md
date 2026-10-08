@@ -284,7 +284,7 @@ Topic-to-files map. Match the topic closest to the current task and read the lis
 
 ### The GPU lease (enforced here since 2026-08-19)
 
-- **Read first:** `.agents/mpi-kanban.local.md` § `gpu_command_patterns` — the four matched commands and why each of the deliberate exclusions is excluded
+- **Read first:** `.agents/mpi-kanban.local.md` § `gpu_command_patterns` — the three matched commands and why each of the deliberate exclusions is excluded. **A DeepInfra or RunPod generation never leases** (Fabio, 2026-10-08): the engine smoke is unmatched, and `/connector/generate` skips a `-cloud` `modelId`
 - **The lease:** `${CLAUDE_PLUGIN_ROOT}/skills/mpi-lib/scripts/gpu_lease.py` — `run -- <command>` takes a free device and sets `CUDA_VISIBLE_DEVICES`; `status` names who holds what. Run it as a BACKGROUND Bash call so waiting costs no tokens
 - **Scope:** the lock is machine-global (`~/.mpi-kanban/gpu/<index>.lock`, kernel flock, released on exit/crash/Ctrl-C/TaskStop — no TTL, no stale lease). This box has ONE device, slot 0
 - **The gap to know about:** enforcement is per-repo. A sibling repo with no `gpu_command_patterns` is not leased and will still collide — add the same block there
