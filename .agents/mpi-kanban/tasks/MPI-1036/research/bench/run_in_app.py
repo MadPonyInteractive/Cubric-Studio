@@ -13,6 +13,9 @@ PRESETS = {
     # whole frame, picture slot, Input_Who, swap LoRA on (op 1 keeping the video's room)
     'A2_swap_keep': dict(video='mpi1036_source_24fps.mp4', image='mpi1036_girl_back_mirror.png',
                          fields={'Input_Operation': 1, 'Input_Who': 'the blonde woman dancing'}),
+    # the app-side describe step: Input_Look (the room) + Input_Kept (the clip's first frame), bench twin R4e
+    'A3_background': dict(video='mpi1036_source_24fps.mp4', image='mpi1036_girl_with_cat.png',
+                          fields={'Input_Operation': 4, 'Input_Who': 'the blonde woman'}),
 }
 
 

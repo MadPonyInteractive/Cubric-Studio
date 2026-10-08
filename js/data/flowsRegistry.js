@@ -448,6 +448,13 @@ const MINIMAX_MUSIC_ENHANCE_PARAMS = {
     'Input_Text_Gen.max_length': 800,
 };
 
+// MPI-1036: what Video Edit asks the describer picked in Remote about its picture. A question
+// REPLACES the describer's own instruction on both backends, so the reply shape rides in it.
+// The asks are the bench's (tasks/MPI-1036/research/bench/flow_graph.py CAPTION_ASK).
+const VIDEO_EDIT_PERSON = 'the main person: apparent age and gender, face and skin, hair colour, length and style, and every garment and accessory with its colour';
+const VIDEO_EDIT_PLACE = 'the place: the kind of room or location, its main furniture and objects, its surfaces and colours, and its light';
+const videoEditAsk = what => `This picture is a reference for a video edit. ${what} Reply with one or two plain sentences of concrete visual facts, starting at the subject: no preamble, no opinions, and only what is there.`;
+
 /** @type {FlowDef[]} */
 export const FLOWS = [
     // head-swap and drama-box LEFT THE APP (MPI-781, umbrella MPI-780 phase 2). They are
@@ -831,6 +838,24 @@ export const FLOWS = [
                 id: 'positive', type: 'text', rows: 3, label: 'Describe the change', default: '',
                 placeholder: 'Optional with a picture. e.g. two small red demon horns, or a long black coat',
             },
+        ],
+        // The picture put into words before the run (flowEnhance.js § describe): H3 mostly
+        // ignores a picture its prompt does not describe (MPI-1036 bench: R2-R4 kept the clip,
+        // R2d/R3f/R4e/R5e passed described). The graph splices Input_Look after the picked
+        // template, and Input_Kept (the clip's own person, so a background change keeps them).
+        // First entry per target that holds wins: template 6 (the picture's room) before 1.
+        describe: [
+            { to: 'Input_Look', media: 'image1', when: [{ field: 'Input_Operation', is: 1 }, { field: 'Input_Keep_Background', is: false }],
+                ask: videoEditAsk(`Describe ${VIDEO_EDIT_PERSON}, and then ${VIDEO_EDIT_PLACE}.`) },
+            { to: 'Input_Look', media: 'image1', when: { field: 'Input_Operation', is: 1 }, ask: videoEditAsk(`Describe only ${VIDEO_EDIT_PERSON}.`) },
+            { to: 'Input_Look', media: 'image1', when: { field: 'Input_Operation', is: 2 },
+                ask: videoEditAsk('Describe only the main person\'s head: apparent age and gender, face, skin, eyes, hair colour, length and style, and anything worn on the head.') },
+            { to: 'Input_Look', media: 'image1', when: { field: 'Input_Operation', is: 3 },
+                ask: videoEditAsk('Describe only what the main person wears: every garment and accessory with its colour, pattern and material, or the bare skin shown.') },
+            { to: 'Input_Look', media: 'image1', when: { field: 'Input_Operation', is: 4 }, ask: videoEditAsk(`Describe only ${VIDEO_EDIT_PLACE}. Leave out any people.`) },
+            { to: 'Input_Look', media: 'image1', when: { field: 'Input_Operation', is: 5 }, ask: videoEditAsk('Describe the main subject of the image.') },
+            { to: 'Input_Kept', media: 'video1', frame: 'first', when: [{ field: 'Input_Operation', is: 4 }, { media: 'image1' }],
+                ask: videoEditAsk(`Describe only ${VIDEO_EDIT_PERSON}.`) },
         ],
     },
 

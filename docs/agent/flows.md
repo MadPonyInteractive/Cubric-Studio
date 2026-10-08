@@ -95,6 +95,9 @@ place (`image1`, optional) or from words. `Input_Operation` picks the change.
   filmed. Leave it empty for a whole person or the background.
 - `Input_Keep_Background: false` puts the picture's character in the picture's place, moving as
   the clip's person does. Only for Swap the person with a picture.
+- The app describes the picture in words itself before the run, on the user's Remote image
+  describer; do not describe it in `positive`. If that describer fails, nothing is generated and
+  the error says why: pass it on.
 
 ## Spoken lines
 

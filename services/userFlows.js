@@ -38,7 +38,9 @@ const FLOW_KEYS = new Set(['title', 'preview', 'video', 'description', 'required
     'requiredDeps', 'requiredPlugins', 'modelParams', 'mediaType', 'type', 'inputSchema',
     'result', 'steps', 'fields', 'derived', 'enhance', 'chain', 'agentOpens', 'agentReview',
     // MPI-918: three node ids of the package's own graph; a wrong one refuses at run time.
-    'cloudEdit']);
+    'cloudEdit',
+    // MPI-1036: the picture put into words before the run (flowEnhance.js § describe).
+    'describe']);
 // The two big-photo flags a Flow graph can earn (MPI-971; commandRegistry.js says what each
 // promises about the graph): a package opts in the same way a built-in Flow does.
 const OP_KEYS = new Set(['label', 'progressLabel', 'mediaType', 'requiresImages',

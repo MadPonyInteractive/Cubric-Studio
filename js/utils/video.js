@@ -26,6 +26,31 @@ export async function captureFrame(video, cropRect = { x: 0, y: 0, width: 1, hei
 }
 
 /**
+ * A clip's first frame as a PNG data URL, from its URL alone, with no player on screen: the
+ * describe step of a Flow run reads it (flowEnhance.js, MPI-1036).
+ *
+ * @param {string} url
+ * @returns {Promise<string>} Data URL (PNG)
+ */
+export async function firstFrameDataUrl(url) {
+    const video = document.createElement('video');
+    video.muted = true;
+    video.preload = 'auto';
+    try {
+        // `loadeddata` = the frame at the current position (0) is decoded and drawable.
+        await new Promise((resolve, reject) => {
+            video.onloadeddata = resolve;
+            video.onerror = () => reject(new Error('The clip could not be read.'));
+            video.src = url;
+        });
+        return await captureFrame(video);
+    } finally {
+        video.removeAttribute('src');
+        video.load();
+    }
+}
+
+/**
  * Captures a frame and returns both a Blob and a Data URL.
  *
  * @param {HTMLVideoElement} video

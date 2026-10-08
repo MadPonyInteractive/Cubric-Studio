@@ -198,6 +198,57 @@ own wording, e.g. a supplied torso image).
   raw/ + sync (constraint list in the handoff), docs (`existing-flows/video-edit.md`, `docs/agent/flows.md`).
 - UNRELEASED.md is free now (no peer claim) but its Video Edit bullet waits for Fabio's eye test.
 
+2026-10-08 (Video edit 10):
+- **R3f PASSED** (front-facing bedroom cat-girl picture, template 6): opens clean on frame 0, full swap + room. The
+  R3d/R3e hold is the mirror shot's back-to-camera pose, not the wording (`brief.md` § Phase 3).
+- R6d (outfit, described) still waiting for the lease (waiter pid 40168 of session d8900127, log its scratchpad
+  `r6d.log`; MPI-1042 then MPI-936 took the GPU first). Lands in `D:/WORK/Images/Outputs/mpi1036/` regardless.
+- App-side describe design (briefed to Fabio, awaiting his go):
+  - Graph: caption block (140-173, PreviewAny 163) out; two MpiText inputs `Input_Look` / `Input_Kept` (default '')
+    replace `{look}` / `{kept}` by StringReplace. LOOK lines stay in the picture templates.
+  - FlowDef `describe: [...]` (new key; `services/userFlows.js` FLOW_KEYS += 'describe'): entries
+    `{ to, media, when, ask, frame? }`, first entry per `to` whose `when` rules match (hiddenWhen's `{field, is|isNot}`)
+    and whose media role is present runs. Look: 6 entries (op 1 + keep false = person+place, then op 1..5). Kept:
+    op 4, media video1 frame 0, needs image1, ask = PERSON.
+  - Runner `describeFlowRun(flow, config, deps)` in `services/flowEnhance.js`, called ONCE in
+    `flowService.submitFlowGeneration` before enqueue (the runCloudEdit precedent: async, returns
+    `{queueJobId: null, tempId}`) - covers hand, agent and routine runs without touching MpiBaseFlow or
+    agentDispatch (MPI-1045 holds agentDispatch.js + llmService.js; we only CALL describeImage). Writes only blank
+    targets into run-only `injectionParams`, never the snapshot (Reuse re-describes). Trims a leading non-word run.
+    Failure/cancel stops the run with the describer's error + "Remote > Language Models" (enhance's rule).
+  - Clip first frame: renderer `<video>` -> `captureFrameBlob` (utils/video.js) -> `place-preview-asset`
+    (content-addressed, no card) -> describeImage. Project = `runOriginProject || state.currentProject`.
+  - Test: `tests/flow-describe.test.cjs` (ask per op/keep/picture, Kept only op 4 + picture, blank-only, trim,
+    failure stops) with describe + frame grab stubbed. Then raw/ re-export + sync, in-app runs on app:isolated.
+- Fabio: GO, description stays HIDDEN. BUILT (uncommitted): `flowEnhance.js` describeAsks/describeFlowRun,
+  `utils/video.js` firstFrameDataUrl, `flowService.submitFlowGeneration` hook, `services/userFlows.js` FLOW_KEYS
+  'describe', `tests/flow-describe.test.cjs` (8/9 pass with the FlowDef preloaded; the 9th needs the synced API),
+  docs (video-edit.md, 01-descriptor-and-ops.md, agent/flows.md). `flow_graph.py`: Input_Look/Input_Kept (18/19) +
+  {look}/{kept} always; caption=True still the bench describer (R6d's graph unchanged). raw/ RE-EXPORTED (77 nodes,
+  converted API = builder, 0 diffs, validator clean) but NOT synced/committed.
+- BLOCKED on two peers: (1) `js/data/flowsRegistry.js` is in MPI-1045's claim (session 9ac7a7c7) - message
+  `4a34f6a0` asks for release or "go"; the hunk to paste is in session 188faecd scratchpad `flowdef_describe.js`
+  (also `preload_describe.mjs` = the same block for running the test before it lands). (2) the sync refuses while
+  MPI-936's `comfy_workflows/qwen_image_2_1.json` is staged - re-run `node scripts/sync-raw-workflows.mjs` once it
+  is committed (it commits raw itself, stages the API).
+- (2) CLEARED: synced - raw committed locally `2ff4c0ff4` (not pushed), API `comfy_workflows/flow_video_edit.json`
+  STAGED, byte-equal to the builder-checked conversion. flow-describe 9/9 with the FlowDef preloaded.
+- (1) CLEARED on Fabio's word ("just add the registry hunk"): path lent out of MPI-1045's claim, hunk added, given
+  back; MPI-1045 then committed `5938f6484` (describer = engineAsset, Image Describer plugin + DESCRIBER_MISSING
+  gone) and released. Full unit suite 2789 pass / 0 fail, eslint clean on the touched files.
+- In-app: `app:isolated` up on :64232 (APP_DOCUMENTS = session 188faecd scratchpad `appdocs`, profile
+  `cubric-agent-profile`), attached to Fabio's engine on 48188. `run_in_app.py A3_background A2_swap_keep` queued
+  under the lease (log scratchpad `inapp.log`); A3 (new preset) = op 4 + bedroom picture -> Look + Kept (first frame).
+  Evidence = each card's sidecar `Media/.meta/<id>.json` (injectionParams Input_Look/Input_Kept) + the clip.
+- **R6d PASSED (Fabio)**: outfit exact; the bare legs are the picture's own ("she never had any bottoms"). Template 3
+  stays. Bench score: person, head, outfit, background, picture room (front picture), masked all PASS.
+- IN FLIGHT at handoff: the in-app lease waiter (session 188faecd background, `inapp.sh` -> frees :8188 VRAM, then
+  `run_in_app.py http://127.0.0.1:64232 A3_background A2_swap_keep`, log scratchpad `inapp.log`). The project lands
+  under scratchpad `appdocs/`. If :64232 is dead when the lease comes, relaunch app:isolated (new port) and re-run.
+  Judge: sidecar Input_Look/Input_Kept non-empty and sane, clip like bench R4e / R2d; app.log `[flow-describe]` lines.
+  Then close the isolated app (memory: close via the listener's PARENT), then UNRELEASED.md bullet after Fabio's eye
+  test, then Phase 4 graphics (>= 3 images, owned footage).
+
 ## Phase 1 - The hidden instructions, on the bench
 
 **Verify:** Fabio judges each option on 2-3 real clips; the winning instruction text for every

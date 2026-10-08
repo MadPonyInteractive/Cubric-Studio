@@ -117,8 +117,10 @@ def node(cls, title, **inputs):
 
 
 def graph(video='None', image='None', positive='', operation=1, keep_background=True, who='the person',
-          target='', seed=904234, prefix='MpiVideo_Edit', caption=False):
-    """video/image: bench picker values (the app injects `string` and the sync resets the picker to None)."""
+          target='', seed=904234, prefix='MpiVideo_Edit', caption=False, look='', kept=''):
+    """video/image: bench picker values (the app injects `string` and the sync resets the picker to None).
+    look/kept: the picture (and, for a background change, the clip's person) in words - the app fills them before
+    the run (FlowDef `describe`, flowEnhance.js). caption=True describes in-graph instead: BENCH ONLY."""
     g = {}
     # ---- inputs
     g['10'] = node('MpiLoadVideoUpload', 'Input_Video', video=video, block_if_empty=True, force_rate=24, string='')
@@ -131,6 +133,9 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['15'] = node('MpiText', 'Input_Who', string=who)
     g['16'] = node('MpiText', 'Input_Target', string=target)
     g['17'] = node('MpiInt', 'Input_Seed', int=seed)
+    # Filled by the app before the run from Remote > Image descriptions (Fabio, 2026-10-08), never typed.
+    g['18'] = node('MpiText', 'Input_Look', string=look)
+    g['19'] = node('MpiText', 'Input_Kept', string=kept)
 
     # ---- routing
     g['20'] = node('MpiAnyChecker', 'Masked? (a "what to change" was typed)', any=['16', 0])
@@ -182,7 +187,7 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
 
     # ---- the instruction
     for i in range(1, 7):
-        g[f'7{i}'] = node('MpiText', f'Instruction {i} (picture)', string=PHOTO[i] + (LOOK[i] if caption else ''))
+        g[f'7{i}'] = node('MpiText', f'Instruction {i} (picture)', string=PHOTO[i] + LOOK[i])
         g[f'8{i}'] = node('MpiText', f'Instruction {i} (no picture)', string=NO_PHOTO[i])
     g['77'] = node('MpiAnySwitch10', 'Instruction (picture)', select=['22', 0], **{f'any_{i}': [f'7{i}', 0] for i in range(1, 7)})
     g['87'] = node('MpiAnySwitch10', 'Instruction (no picture)', select=['22', 0], **{f'any_{i}': [f'8{i}', 0] for i in range(1, 7)})
@@ -194,7 +199,7 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['95'] = node('StringReplace', '{who}', string=['94', 0], find='{who}', replace=['15', 0])
     g['96'] = node('StringReplace', '{target}', string=['95', 0], find='{target}', replace=['16', 0])
     g['97'] = node('StringReplace', '{words}', string=['96', 0], find='{words}', replace=['12', 0])
-    prompt = ['97', 0]
+    look_in, kept_in = ['18', 0], ['19', 0]
     if caption:
         # MpiIfElse is lazy: with no picture the describer never loads.
         g['140'] = node('CLIPLoader', 'Describer (Qwen3-VL-4B)', clip_name=DESCRIBER, type='krea2', device='default')
@@ -213,7 +218,6 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
         g['164'] = node('RegexReplace', 'Trim the reply', string=['158', 0], regex_pattern='^[^A-Za-z0-9]+', replace='')
         g['160'] = node('MpiText', 'No picture, no description', string='')
         g['161'] = node('MpiIfElse', 'picture ? description : none', boolean=['11', 4], true=['164', 0], false=['160', 0])
-        g['162'] = node('StringReplace', '{look}', string=['97', 0], find='{look}', replace=['161', 0])
         # Change the background with a picture: also describe the person to KEEP, from the clip's first frame.
         g['165'] = node('ImageFromBatch', 'First frame', image=['31', 0], batch_index=0, length=1)
         g['166'] = node('ImageScaleToTotalPixels', 'First frame at 1 MP', image=['165', 0], upscale_method='nearest-exact',
@@ -225,7 +229,11 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
         g['170'] = node('MpiMath', 'Background with a picture?', a=['22', 0], b=['11', 4],
                         math_expression='(a == 4) * b > 0')
         g['171'] = node('MpiIfElse', 'background ? person : none', boolean=['170', 0], true=['169', 0], false=['160', 0])
-        g['172'] = node('StringReplace', '{kept}', string=['162', 0], find='{kept}', replace=['171', 0])
+        look_in, kept_in = ['161', 0], ['171', 0]
+    g['162'] = node('StringReplace', '{look}', string=['97', 0], find='{look}', replace=look_in)
+    g['172'] = node('StringReplace', '{kept}', string=['162', 0], find='{kept}', replace=kept_in)
+    prompt = ['172', 0]
+    if caption:
         # Freed once both descriptions are in, before H3 loads.
         g['173'] = node('MpiClearVram', 'Free the describer', passthrough=['172', 0])
         g['163'] = node('PreviewAny', 'Prompt (bench only)', source=['173', 0])  # ponytail: drop before export

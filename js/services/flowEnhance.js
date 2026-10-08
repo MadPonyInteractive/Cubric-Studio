@@ -16,10 +16,15 @@
  *
  * The frame keeps the UI half (`_enhanceWrote`, `_mayEnhanceWrite`, painting); this file
  * holds nothing that touches a DOM node or a component.
+ *
+ * Its twin, the `describe` step (MPI-1036, bottom of the file), puts a Flow's picture into
+ * words on the describer picked in Remote; `submitFlowGeneration` runs it for every caller.
  */
 
-import { enhanceFlow, backendPreference } from './llmService.js';
+import { enhanceFlow, backendPreference, describeImage } from './llmService.js';
 import { clientLogger } from './clientLogger.js';
+import { firstFrameDataUrl } from '../utils/video.js';
+import { resolveMediaUrl } from '../utils/mediaActions.js';
 import { getFlowById, flowModelIds } from '../data/flowsRegistry.js';
 import { mapDeclaredValue, hiddenFieldIds, isInjectionParam } from '../utils/declaredFields.js';
 
@@ -362,4 +367,113 @@ export async function enhanceFlowRun(flow, resolved, deps = { enhance: runEnhanc
         injectionParams: patch.injectionParams,
         inputs: { ...patch.inputs, ...(wrote.size ? { enhanceWrote: [...wrote] } : {}) },
     };
+}
+
+// ── The describe step (MPI-1036) ─────────────────────────────────────────────────────────────
+//
+// A Flow's `describe` declaration puts a picture INTO WORDS before the graph runs. Video Edit
+// needs it: MiniMax H3 mostly ignores a reference picture its prompt does not describe (a swap
+// kept the clip's own person, a background change kept the clip's room), and the same runs
+// passed once the picture was described. The words come from the describer picked in Remote >
+// Language Models (`llmService.describeImage`, the one describe switch point), never from a
+// describer wired into the graph (Fabio, 2026-10-08).
+//
+// Entries are `{ to, media, ask, when?, frame? }`. Per target, the FIRST entry whose media slot
+// holds something and whose `when` rules all hold is the one asked; `when` takes `hiddenWhen`'s
+// `{ field, is | isNot }` and `{ media }` (that slot holds something). `frame: 'first'` describes
+// a clip's first frame instead of the file. Targets are graph inputs nobody types into, so the
+// text is run-only: it never enters the snapshot, and Reuse describes the picture again.
+
+/** One `when` rule against the run's graph values and the media slots that hold something. */
+function _describeRuleHolds(rule, values, roles) {
+    if (rule?.media) return roles.has(rule.media);
+    return 'isNot' in rule ? values[rule.field] !== rule.isNot : values[rule.field] === rule.is;
+}
+
+/**
+ * The describe entries a run asks: one per target, the first that holds, and only for a target
+ * that is still blank (a caller that wrote one keeps it).
+ *
+ * @param {Object} flow  a FlowDef
+ * @param {Object} [values]  the run's graph values (`injectionParams`)
+ * @param {Object[]} [mediaItems]  the run's media, each with its slot `role`
+ * @returns {Object[]}
+ */
+export function describeAsks(flow, values = {}, mediaItems = []) {
+    const roles = new Set(mediaItems.filter(m => m?.url).map(m => m.role));
+    const picked = new Map();
+    for (const d of flow?.describe || []) {
+        if (picked.has(d.to) || !roles.has(d.media)) continue;
+        const rules = Array.isArray(d.when) ? d.when : d.when ? [d.when] : [];
+        if (rules.every(r => _describeRuleHolds(r, values, roles))) picked.set(d.to, d);
+    }
+    return [...picked.values()].filter(d => _isBlank(values[d.to]));
+}
+
+/**
+ * A clip's first frame as a project file the describer can read: grabbed in the renderer and
+ * placed in the project's content-addressed store, so it makes no gallery card.
+ *
+ * @param {string} url  the clip
+ * @param {{id?: string, folderPath: string}} project
+ * @returns {Promise<string>}  the frame's path
+ */
+async function stageFirstFrame(url, project) {
+    if (!project?.folderPath) throw new Error('No project to keep the frame in.');
+    // An agent's media can be a bare file path, which a <video> cannot load.
+    const dataUrl = await firstFrameDataUrl(resolveMediaUrl(url));
+    const res = await fetch(
+        `/project-media/${project.id || 'agent'}/place-preview-asset?folderPath=${encodeURIComponent(project.folderPath)}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataUrl, ext: '.png' }) },
+    );
+    const data = res.ok ? await res.json() : null;
+    if (!data?.success || !data.filePath) throw new Error('The first frame could not be stored in the project.');
+    return data.filePath;
+}
+
+/**
+ * The describe step of a Flow run, on whatever path reached it (`flowService.submitFlowGeneration`
+ * calls it for hand, agent and routine runs alike).
+ *
+ * Returns the described text by target for the caller to merge into the run's `injectionParams`.
+ * FAILURE STOPS THE RUN, as a failed enhance does: a picture the prompt does not describe is the
+ * very run this step exists to prevent, so nothing is generated and the message names the
+ * describer's own error and where it is picked.
+ *
+ * @param {Object} flow  a FlowDef
+ * @param {{injectionParams?: Object, mediaItems?: Object[]}} config  the run as it will be queued
+ * @param {?Object} project  where a clip's first frame is kept
+ * @param {{describe?: Function, firstFrame?: Function}} [deps]  a test stubs them
+ * @returns {Promise<{ok: true, injectionParams: Object}|{ok: false, cancelled?: boolean, message: string}>}
+ */
+export async function describeFlowRun(flow, config, project, deps = {}) {
+    const describe = deps.describe || describeImage;
+    const firstFrame = deps.firstFrame || stageFirstFrame;
+    const media = config?.mediaItems || [];
+    const name = flow?.title || 'this Flow';
+    const out = {};
+    for (const d of describeAsks(flow, config?.injectionParams, media)) {
+        const started = Date.now();
+        let result;
+        try {
+            const url = media.find(m => m?.role === d.media).url;
+            result = await describe({ imagePath: d.frame === 'first' ? await firstFrame(url, project) : url, question: d.ask });
+        } catch (err) {
+            result = { ok: false, error: err?.message };
+        }
+        if (result?.cancelled) {
+            return { ok: false, cancelled: true, message: `Cancelled while the picture was being described for ${name}. Nothing was generated.` };
+        }
+        // The describer can open on stray punctuation (": A young woman ..."): start at the first word.
+        const text = String(result?.text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
+        if (!result?.ok || !text) {
+            const why = String(result?.error || 'It gave no answer.').trim();
+            clientLogger.warn('flow-describe', `${name} ${d.to} describe failed via ${result?.via || '?'}: ${why}`);
+            const hint = /Remote > Language Models|Model Library/.test(why) ? '' : ' Check Remote > Language Models.';
+            return { ok: false, message: `Nothing was generated: the picture could not be described for ${name}. ${why}${/[.!?]$/.test(why) ? '' : '.'}${hint}` };
+        }
+        clientLogger.info('flow-describe', `${name} ${d.to} described via ${result.via} (${result.model || 'default model'}), ${Date.now() - started} ms`);
+        out[d.to] = text;
+    }
+    return { ok: true, injectionParams: out };
 }

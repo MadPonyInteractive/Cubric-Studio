@@ -22,6 +22,7 @@ import { getModelById } from '../data/modelRegistry.js';
 import { state } from '../state.js';
 import { Events } from '../events.js';
 import { clientLogger } from './clientLogger.js';
+import { describeAsks, describeFlowRun } from './flowEnhance.js';
 
 /**
  * Queue a generation for a Flow.
@@ -361,12 +362,33 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // pass 2 enters the queue when the picture is back. So there is no queue id yet.
     // ponytail: an agent's cancel before pass 2 enqueues answers NOT_IN_FLIGHT, like leg 2 of a chain.
     const cloudModel = _leg.operation ? null : cloudEditModel(flow);
-    if (cloudModel) {
-        runCloudEdit(flow, cloudModel, config, runCallbacks, { enqueue: (cfg) => enqueueGeneration(cfg, runCallbacks, landing) });
+    const start = () => {
+        if (cloudModel) {
+            runCloudEdit(flow, cloudModel, config, runCallbacks, { enqueue: (cfg) => enqueueGeneration(cfg, runCallbacks, landing) });
+            return { queueJobId: null, tempId };
+        }
+        return enqueueGeneration(config, runCallbacks, landing);
+    };
+
+    // The picture put into words first (MPI-1036, flowEnhance.js § describe), on the describer
+    // picked in Remote: every caller reaches the graph through here, so hand, agent and routine
+    // runs are described alike. Like the cloud edit there is no queue id until it is done.
+    // ponytail: first call only. No describing Flow chains or passes; one that does needs the
+    // text carried into `runInputs` so leg 2 and each pass get it too.
+    if (!_leg.tempId && describeAsks(flow, config.injectionParams, mediaItems).length) {
+        describeFlowRun(flow, config, runOriginProject || state.currentProject).then((d) => {
+            if (!d.ok) {
+                if (d.cancelled) return runCallbacks.onCancel?.();
+                Events.emit('ui:warning', { message: d.message });
+                return runCallbacks.onError?.(Object.assign(new Error(d.message), { code: 'DESCRIBE_FAILED', userMessage: d.message }));
+            }
+            Object.assign(config.injectionParams, d.injectionParams);
+            if (!start()) runCallbacks.onError?.(new Error('The job was rejected before it entered the queue.'));
+        });
         return { queueJobId: null, tempId };
     }
 
-    const res = enqueueGeneration(config, runCallbacks, landing);
+    const res = start();
     // Return the tempId so the caller (MpiBaseFlow) can match this job's live latent
     // previews (preview:frame → activeGenerations.byPromptId → entry.tempId; MPI-271).
     return res ? { ...res, tempId } : null;

@@ -354,10 +354,24 @@ Flow graph (`research/bench/flow_graph.py`) through `run_flow.py`, 576x1024, tur
 - **R5e = R5d + "All of {who}'s own hair goes, the lengths over the shoulders and down the back too": PASSED.**
   991 s. A real head swap: the picture's face, freckles and dark hair, the bun from behind, NO blonde left
   anywhere; body, black tee, teal shorts, room, dance kept; overlay gone. Swap LoRA not needed for op 2.
-- R6d queued: Change the outfit (template 3, mirror-shot picture, described) - op 3 had no Phase 3 run.
+- **R3f = R3e's graph with the front-facing cat-girl picture (`mpi1036_girl_with_cat.png`, bedroom): PASSED, opens
+  clean.** 971 s. Frame 0 is already the picture's girl in the source's opening pose (hands at the chest), no hold;
+  her face, freckles, braids with the pink/blue bows, cream sweater, blue pleated skirt, paw gloves and cat ears, in
+  the picture's bedroom (vanity, white bed, blinds, carpet), back view with both braids; dance, framing and timing
+  follow the source (frames 0-26 step for step), overlay gone. So the R3d/R3e opening hold is the MIRROR SHOT
+  (a back-to-camera pose the model starts from), not template 6: an ordinary picture opens clean.
+- **R6d = Change the outfit (template 3, mirror-shot picture, described): the OUTFIT came over exactly, and so did
+  the picture's bare legs.** 981 s. Description: "pink off-the-shoulder sweatshirt with a black skull and crossbones
+  pattern, black furry paw gloves with pink pads, and black cat ears with pink bows. Their skin is visible on their
+  legs and neck." Result: the dancer (her face, blonde hair, body, the room, dance and framing kept, overlay gone) in
+  the pink skull sweater, paw gloves and ears. Her teal shorts are GONE: the picture shows bare legs under the
+  sweater and template 3 takes "what is worn there, or the bare skin it shows" (Fabio's removal case), so from
+  behind (frame 90) the sweater rides up over a bare bottom. **Fabio PASSED it (2026-10-08): "the girl in the mirror
+  never had any bottoms ... the output is correct."** Template 3 stays as written.
 - (superseded plan) Next runs (queued together): **R2b** = GONE only, reworded to "Nothing remains of how {who} looked: not
   their face, their hair or their clothes." (the possessive read badly with a long {who}); **R2c** = GONE +
   the picture's look in the words; **R4c** = the room named in the words. R3b held back until R2b reads.
 
 ## Noticed
+- 2026-10-08: `scripts/sync-raw-workflows.mjs` refuses on ANY uncommitted generated workflow (a peer's staged `qwen_image_2_1.json` blocked a runtime-only raw sync) though orchestrate.py runs only when a `_template` raw changed; the guard could apply only then.
 - 2026-10-08: the Image Describer plugin (`pluginsRegistry.js` `image-describer`) is only the install gate for Remote's ComfyUI describe/enhance choice (`llmService.describeImage` comfy branch returns DESCRIBER_MISSING without it; `MpiLlmSettings` ENHANCER_PLUGIN_ID). Fabio wants it deprecated so descriptions always come from the Remote pick - card MPI-1045 (todo, research; first step = audit every plugin call site for an existing toast). Must land before Video Edit ships.

@@ -77,6 +77,24 @@
       "title": "Input_Seed"
     }
   },
+  "18": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Look"
+    }
+  },
+  "19": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Kept"
+    }
+  },
   "20": {
     "inputs": {
       "any": [
@@ -478,7 +496,7 @@
   },
   "71": {
     "inputs": {
-      "string": "Replace only {who} in <Video 1> with the character in <Picture 1>. Keep the character's identity, face, hair, outfit and art style from <Picture 1>, and use it for the back of the head whenever they turn away. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself or its background.\n{words}"
+      "string": "Replace only {who} in <Video 1> with the character in <Picture 1>. Keep the character's identity, face, hair, outfit and art style from <Picture 1>, and use it for the back of the head whenever they turn away. Nothing remains of how {who} looked: not their face, their hair or their clothes. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself or its background.\n{words}\nThe character in <Picture 1>: {look}"
     },
     "class_type": "MpiText",
     "_meta": {
@@ -487,7 +505,7 @@
   },
   "72": {
     "inputs": {
-      "string": "Replace only the head and face of {who} in <Video 1> with the head and face of the character in <Picture 1>: their face, hair, skin and features from every angle, and the back of the head whenever {who} turns away. Keep {who}'s body, clothes and hands, and the camera, framing, background, lighting, objects and all other people of <Video 1>. Match the head's position, angle, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself, its body or its background.\n{words}"
+      "string": "Replace only the head and face of {who} in <Video 1> with the head and face of the character in <Picture 1>: their face, hair, skin and features from every angle, and the back of the head whenever {who} turns away. All of {who}'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the one in <Picture 1>. Keep {who}'s body, clothes and hands, and the camera, framing, background, lighting, objects and all other people of <Video 1>. Match the head's position, angle, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself, its body or its background.\n{words}\nThe head in <Picture 1>: {look}"
     },
     "class_type": "MpiText",
     "_meta": {
@@ -496,7 +514,7 @@
   },
   "73": {
     "inputs": {
-      "string": "Change what {who} in <Video 1> wears to match <Picture 1>, taking only what is worn there, or the bare skin it shows, never its face, pose or room. Keep {who}'s face, hair, body and every movement, and the camera, framing, background, lighting, objects and all other people of <Video 1>; the clothes move and fold with the body.\n{words}"
+      "string": "Change what {who} in <Video 1> wears to match <Picture 1>, taking only what is worn there, or the bare skin it shows, never its face, pose or room. Keep {who}'s face, hair, body and every movement, and the camera, framing, background, lighting, objects and all other people of <Video 1>; the clothes move and fold with the body.\n{words}\nWhat is worn in <Picture 1>: {look}"
     },
     "class_type": "MpiText",
     "_meta": {
@@ -505,7 +523,7 @@
   },
   "74": {
     "inputs": {
-      "string": "Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and as the camera framing, kept exactly as it is; use <Picture 1> only as the location and its light, without taking its composition, its camera angle, its grade or any person in it.\n[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now the location of <Picture 1>, its light falling on them. {words}"
+      "string": "Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and as the camera framing, kept exactly as it is; use <Picture 1> only as the location and its light, without taking its composition, its camera angle, its grade or any person in it.\n[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now the location of <Picture 1>, its light falling on them. {words}\nThe location of <Picture 1>: {look}\n{who} in <Video 1>, who stays exactly as filmed: {kept}"
     },
     "class_type": "MpiText",
     "_meta": {
@@ -514,7 +532,7 @@
   },
   "75": {
     "inputs": {
-      "string": "Use <Picture 1> as the reference for this change to <Video 1>: {words} Keep everything else exactly as it is in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and the light."
+      "string": "Use <Picture 1> as the reference for this change to <Video 1>: {words} Keep everything else exactly as it is in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and the light.\n<Picture 1> shows: {look}"
     },
     "class_type": "MpiText",
     "_meta": {
@@ -523,7 +541,7 @@
   },
   "76": {
     "inputs": {
-      "string": "Use <Picture 1> as the character, their face, hair, outfit and art style, and as the location and its light, without taking its composition or its camera angle; use <Video 1> only as the performance of {who}, every move, expression, mouth movement and its timing, and its camera framing, and take nothing else from it, not its room, its performer's looks, its image quality, its grade or its text.\n[Shot 1] The character from <Picture 1> performs exactly what {who} does in <Video 1>, move for move, in the location of <Picture 1>. {words}\nThe camera frames them exactly as <Video 1> does. No phone-video look: the picture quality of <Picture 1>."
+      "string": "Use <Picture 1> as the character, their face, hair, outfit and art style, and as the location and its light, without taking its composition or its camera angle; use <Video 1> only as the performance of {who}, every move, expression, mouth movement and its timing, and its camera framing, and take nothing else from it, not its room, its performer's looks, its image quality, its grade or its text.\n[Shot 1] The character from <Picture 1> performs exactly what {who} does in <Video 1>, move for move from the first frame, in the location of <Picture 1>. Nothing remains of how {who} looked: not their face, their hair or their clothes. Never show <Picture 1> itself or hold its pose. {words}\nThe camera frames them exactly as <Video 1> does. No phone-video look: the picture quality of <Picture 1>.\nThe character and the location in <Picture 1>: {look}"
     },
     "class_type": "MpiText",
     "_meta": {
@@ -568,7 +586,7 @@
   },
   "81": {
     "inputs": {
-      "string": "Replace only {who} in <Video 1> with this new person: {words} Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
+      "string": "Replace only {who} in <Video 1> with this new person: {words} Nothing remains of how {who} looked: not their face, their hair or their clothes. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
     },
     "class_type": "MpiText",
     "_meta": {
@@ -613,7 +631,7 @@
   },
   "86": {
     "inputs": {
-      "string": "Replace only {who} in <Video 1> with this new person: {words} Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
+      "string": "Replace only {who} in <Video 1> with this new person: {words} Nothing remains of how {who} looked: not their face, their hair or their clothes. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
     },
     "class_type": "MpiText",
     "_meta": {
@@ -919,7 +937,7 @@
         0
       ],
       "prompt": [
-        "97",
+        "172",
         0
       ],
       "width": [
@@ -1123,6 +1141,40 @@
     "class_type": "MpiSaveVideo",
     "_meta": {
       "title": "Output_Video"
+    }
+  },
+  "162": {
+    "inputs": {
+      "find": "{look}",
+      "string": [
+        "97",
+        0
+      ],
+      "replace": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "{look}"
+    }
+  },
+  "172": {
+    "inputs": {
+      "find": "{kept}",
+      "string": [
+        "162",
+        0
+      ],
+      "replace": [
+        "19",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "{kept}"
     }
   }
 }
