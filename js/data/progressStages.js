@@ -131,6 +131,11 @@ export const PROGRESS_STAGES = Object.freeze({
     // runs, 2026-07-18); Quality swaps the accelerator LoRA for the raw UNET but keeps the
     // same single sampler, so the count is structural rather than per-tier.
     'qwen_edit.json':            Object.freeze({ single: 1 }),
+    // Qwen-Image 2.1 (MPI-936) — NO ENTRY, deliberately: Klein's one-file-seven-ops shape.
+    // Counted on the bench (websocket progress restarts, the app's own feed): t2i, edit,
+    // i2i, inpaint (LanPaint) and detail = 1 bar; control = 2 (annotator + sampler);
+    // upscale = one per UltimateSDUpscale tile (2 at 1.5x). `{ single: 1 }` would read
+    // "Stage 2/1" on control and upscale.
     // (MPI-350's krea2_upscaler.json entry moved onto krea2_t2i.json above — MPI-365
     // folded the upscaler into the master template, so that filename no longer exists.
     // The reasoning it carried still applies: no `single`, because UltimateSDUpscale's

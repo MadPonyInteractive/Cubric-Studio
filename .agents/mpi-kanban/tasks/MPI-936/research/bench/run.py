@@ -19,6 +19,7 @@ PRESETS = {
                      width=1344, height=768, seed=7),
     't2i_rgba': dict(prompt='A glossy red apple with one green leaf, product shot, transparent background, '
                             'alpha channel.', seed=3),
+    't2i_2k': dict(prompt=WOMAN, width=1472, height=1472, seed=9),
     't2i_jacket': dict(prompt='A tan suede jacket with a fleece collar, laid flat on a plain grey floor, '
                               'product photo.', seed=11),
     'edit_one': dict(prompt='change her t-shirt to a black leather jacket', refs=('t2i_square',), seed=5),
@@ -29,6 +30,32 @@ PRESETS = {
     # A box mask over the lower half of the frame (her t-shirt): the edit must stay inside it.
     'edit_masked': dict(prompt='change her t-shirt to a black leather jacket', refs=('t2i_square',), seed=5,
                         mask_box=(0.15, 0.55, 0.85, 1.0)),
+    # Klein's other ops, by Input_wf_type (graph.py header).
+    'i2i': dict(prompt='Watercolour painting of a young woman with short auburn hair in a white t-shirt in a sunlit '
+                       'kitchen, soft washes, visible paper texture.', refs=('t2i_square',), wf=2, denoise=0.65, seed=5),
+    'i2i_85': dict(prompt='Watercolour painting of a young woman with short auburn hair in a white t-shirt in a sunlit '
+                          'kitchen, soft washes, visible paper texture.', refs=('t2i_square',), wf=2, denoise=0.85, seed=5),
+    # The kettle on the left counter becomes a plant: a real object swap, prompt describing the whole picture.
+    'inpaint': dict(prompt='Photo of a young woman with short auburn hair in a white t-shirt in a sunlit kitchen, a '
+                           'small green potted plant on the counter beside her.', refs=('t2i_square',), wf=5, seed=5,
+                    mask_box=(0.0, 0.58, 0.2, 0.82)),
+    'detail': dict(prompt='Close-up photo of a young woman\'s face, high skin detail, visible pores, sharp eyes.',
+                   refs=('t2i_square',), wf=6, denoise=0.35, seed=5, mask_box=(0.3, 0.1, 0.7, 0.5)),
+    'upscale': dict(prompt=WOMAN, refs=('t2i_square',), wf=7, denoise=0.3, upscale=1.5, seed=5),
+    'upscale_45': dict(prompt=WOMAN, refs=('t2i_square',), wf=7, denoise=0.45, upscale=1.5, seed=5),
+    # The Model Library card (comfy_workflows/display/qwen-image-2-1.webp), 896x1088 like klein-9b.webp.
+    'preview_a': dict(prompt='Photo of a smiling young woman in a yellow raincoat riding a red vintage bicycle down a '
+                             'rainy Lisbon street at golden hour, a yellow tram behind her, warm low sunlight from the '
+                             'left glinting on wet cobblestones, vivid colours, shot on a 50mm lens.',
+                      width=896, height=1088, seed=21),
+    'preview_b': dict(prompt='Photo of a young man with curly hair laughing as he feeds a curious alpaca over a wooden '
+                             'fence in a green Andean valley, snowy peaks behind, bright late-afternoon sun from the '
+                             'right, vivid colours, shot on a 35mm lens.', width=896, height=1088, seed=22),
+    # control: a different subject on her structure. Input_Control_Net 2 depth (the default), 1 pose.
+    'control_depth': dict(prompt='A bronze statue of a woman with short hair in a museum hall, dramatic spotlight.',
+                          refs=('t2i_square',), wf=3, seed=5),
+    'control_pose': dict(prompt='An astronaut in a white spacesuit, helmet off, standing on the surface of Mars.',
+                         refs=('t2i_square',), wf=3, seed=5, control=1),
 }
 
 
@@ -109,7 +136,8 @@ for name in sys.argv[1:]:
     if st.get('status_str') != 'success':
         print(name, 'FAILED', json.dumps(st.get('messages', []))[-4000:], flush=True)
         sys.exit(1)
-    f = [i for o in h[pid]['outputs'].values() for i in o.get('images', [])][0]
+    # Output_Image (node 35) only: an MpiLoadImage previews its loaded reference as an `images` output too.
+    f = h[pid]['outputs']['35']['images'][0]
     q = urllib.parse.urlencode({'filename': f['filename'], 'subfolder': f['subfolder'], 'type': f['type']})
     raw = urllib.request.urlopen(f'{URL}/view?{q}', timeout=60).read()
     im = Image.open(io.BytesIO(raw))

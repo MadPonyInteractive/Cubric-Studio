@@ -57,3 +57,8 @@ the engine bump lands.
 ## Not in scope
 
 Hosted `Qwen-Image-Max` on DeepInfra (priced and rejected 2026-09-22).
+
+## Noticed
+
+- 2026-10-08: MpiAnySwitch/MpiAnySwitch10 (ComfyUi-MpiNodes switches.py) select the Nth CONNECTED input, not the input named any_N: a graph with an unwired slot silently runs the WRONG branch for every later index (MPI-936 bench: "inpaint" ran detail, "detail" ran upscale, "upscale" ran off the end and saved nothing). Scanned all 62 switches in the shipped API graphs (comfy_workflows/ + workflow_generation/) the same day: none gapped, so no user impact; a doc line or a by-name select would stop the next author.
+- 2026-10-08: the upscale op's crosshatch ("screen door" on skin and cloth) comes from 4x-NMKD-Siax itself: the upscaler alone, scaled to 1.5x, already carries it (MPI-936 bench probe, research/bench-results.md run 3). Siax is defaultUpscale on every photo model, and 0.45 denoise only softens it. Worth a look across Klein/Krea2/SDXL upscales and a different default upscaler.

@@ -6,7 +6,8 @@
 > (`weights.md` = weights, licences, accelerators; `graph.md` = the official graph).
 
 Qwen-Image 2.1 (Alibaba, released 2026-09-20): one 7B model for text-to-image AND instruction
-editing (up to 10 reference images in the official template), with native transparent (RGBA)
+editing (up to 10 reference images in the official template; we ship 8), shipped with Klein 9B's
+seven ops (Fabio 2026-10-08), with native transparent (RGBA)
 output through a 4-channel VAE. **Not** Qwen-Image-Edit 2511 ([../qwen-edit/](../qwen-edit/)) —
 different transformer, encoder and VAE; nothing is shared between the two.
 
@@ -14,13 +15,16 @@ different transformer, encoder and VAE; nothing is shared between the two.
 |---|---|
 | Licence | **Qwen RESEARCH License — "research or evaluation only, no commercial use".** No Outputs clause: the IMAGES are not commercially usable either (unlike Klein 9B). Never say "personal use". Ships behind a `MODEL_LICENCES` gate + NC badge; bundle the agreement under `licences/<id>/`; attribution notice in `poweredBy`. Full facts: the card's `brief.md` |
 | Engine floor | ComfyUI core **0.37.0** (support), shipped on **0.39.0** (MPI-1043: int8/int4 KV-cache crash fix, RGBA preprocessing fix) |
-| Nodes | **All core** — `UNETLoader` → `QwenImage21Cache` → `KSampler`; `CLIPLoader` (`type: qwen_image`) → `TextEncodeQwenImage21` (`image_1..image_16`); `VAELoader` → `VAEDecode`. Edit refs gathered by `BatchImagesNode`. No custom pack |
+| Nodes | **All core** — `UNETLoader` → `QwenImage21Cache` → `KSampler`; `CLIPLoader` (`type: qwen_image`) → `TextEncodeQwenImage21` (`image_1..image_16`); `VAELoader` → `VAEDecode`. The official template gathers edit refs with `BatchImagesNode`; ours wires `images.image_1..8` straight in. The model needs no custom pack; the op branches use Klein's (MpiNodes, kjnodes, UltimateSDUpscale, controlnet_aux, inpaint-cropandstitch, LanPaint) |
 | Settings | euler / simple, 25 steps, **cfg 1** (the negative does nothing at cfg 1; ~2 follows dense prompts but over-sharpens). ~1 MP default |
 | Transformer | `diffusion_models/qwen_image_2.1_int8_convrot.safetensors` 7.26 GB — **HF only** (`Comfy-Org/Qwen-Image-2.1`), never R2: research-licensed |
 | Text encoder | **REUSE `boogu-qwen3vl-8b-clip`** (`text_encoders/qwen3vl_8b_fp8_scaled.safetensors`, 9.86 GB, on R2). 2.1's encoder is stock Qwen3-VL-8B-Instruct (Apache-2.0), proven tensor-for-tensor — see `weights.md` § Phase 0.6 |
 | VAE | `vae/qwen_image_2.1_vae_bf16.safetensors` 0.68 GB — new (alpha VAE; NOT `vae-qwen-image`), **HF only** |
+| Graph | **ONE file, Klein's shape** (`comfy_workflows/qwen_image_2_1.json`, raw source `raw/qwen_image_2_1.json`, bench source `research/bench/graph.py`): `Input_wf_type` 1 t2i, 2 i2i, 3 control, 4 edit, 5 inpaint, 6 detail, 7 upscale. Masked edit + inpaint = mask crop -> **LanPaint** -> stitch (Klein's route; LanPaint runs on 2.1 because it is `ModelType.FLUX`); detail = our crop/stitch at `Input_denoise` (not Impact's MaskDetailer); upscale = UltimateSDUpscale. User LoRA rack, no style rack. Bench proof per op: `research/bench-results.md` run 3 |
+| ControlNet | `model_patches/qwen_image_2.1_fun_controlnet_union_int8_convrot.safetensors` 3.78 GB, **HF only** (same research licence), core `ModelPatchLoader` -> `QwenImageDiffsynthControlnet`. One patch, eight conditions + an inpaint mode; we wire depth / pose / scribble / canny at `CONTROL_TYPES`' indices via `AIO_Preprocessor`, as SDXL's union |
+| Alpha | The VAE decodes RGBA on EVERY run. t2i and edit keep it; every branch that repaints an opaque source (i2i, inpaint, detail, upscale) AND control drop it with `SplitImageWithAlpha` (control came back with a see-through ghost on 4.7% of the subject) |
 | Speed tier | Standard only for now. Alibaba's Fun-Acc 4-step LoRA needs a parallel-decoding head core ComfyUI runs for H3 only; Viggle turbo 6-step is the candidate fast tier (needs a resolution-dependent sigma node) — `weights.md` § Phase 0.4 |
-| Skipped | Qwen3.5-9B prompt-enhancer encoders (+9.5 GB each; we have our own enhancer), Fun ControlNet union, the background-removal template (BiRefNet / SAM3 cover it) |
+| Skipped | Qwen3.5-9B prompt-enhancer encoders (+9.5 GB each; we have our own enhancer), the background-removal template (BiRefNet / SAM3 cover it) |
 
 ## Hard rules
 
@@ -30,6 +34,10 @@ different transformer, encoder and VAE; nothing is shared between the two.
   redistribute research-licensed weights; users fetch them from Hugging Face.
 - **Transparency is asked for in the PROMPT** ("transparent background, alpha channel"); there is
   no switch. The capture node must keep the alpha channel.
+- **Anything blending the decode with an RGB image needs `SplitImageWithAlpha` first** — the
+  stitch failed `size of tensor a (4) must match b (3)` until it had one.
+- **Wire every `MpiAnySwitch10` slot.** It picks the Nth CONNECTED input, not `any_N`: with
+  control unwired, wf 5 ran detail and wf 7 ran off the end with no output.
 
 ## Sources
 

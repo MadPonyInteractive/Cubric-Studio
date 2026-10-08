@@ -357,6 +357,25 @@ export const modelDeps = {
         sha256: 'cb74113cb03faecd79611b01fd7fd642f0aa60d6f0b95086abee214d75eaa57d',
         noMirror: true,
     },
+    // The 2.1 Fun ControlNet Union (MPI-936): ONE patch for eight control types and an
+    // inpaint mode, loaded by core ModelPatchLoader. IS the `control` op. Same research
+    // licence and the same HF-only rule as the transformer above.
+    'qwen-image-21-controlnet-union': {
+        id: 'qwen-image-21-controlnet-union',
+        name: 'Qwen-Image 2.1 Fun ControlNet Union (int8_convrot)',
+        origin: 'Comfy-Org/Qwen-Image-2.1 (model_patches/qwen_image_2.1_fun_controlnet_union_int8_convrot.safetensors)',
+        filename: 'model_patches/qwen_image_2.1_fun_controlnet_union_int8_convrot.safetensors',
+        url: 'https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/model_patches/qwen_image_2.1_fun_controlnet_union_int8_convrot.safetensors',
+        credit: {
+            author: 'Alibaba PAI, ComfyUI repackage by Comfy-Org',
+            work: 'Qwen-Image-2.1-Fun-Controlnet-Union (Qwen RESEARCH License Agreement)',
+            url: 'https://huggingface.co/alibaba-pai/Qwen-Image-2.1-Fun-Controlnet-Union',
+        },
+        size: '3.52GB',
+        bytes: 3779298944,
+        sha256: '07aa961570ac0e03d4ca936aecd76854d077a33cde69b5092399afba01b3715d',
+        noMirror: true,
+    },
     // ── FLUX.2 Klein 4B transformer (MPI-354) ──────────────────────────────────
     // Apache-2.0, 4B. The FASTEST image model we ship. ONE checkpoint, ONE tier: the
     // DISTILLED weight, int8_convrot quantized. There is no accelerator LoRA and no

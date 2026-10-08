@@ -46,6 +46,7 @@ const IMAGE_ORDER = [
     'chroma-hyper',
     'klein-4b',
     'sdxl-realistic',
+    'qwen-image-2-1',
     'ill-anime',
     'ill-anime-beauty',
     'pony-mix',
@@ -59,6 +60,7 @@ const EDIT = [
     ['klein-4b', 'kleinEdit'],
     ['krea2', 'krea2Edit'],
     ['qwen-edit', 'qwenEdit'],
+    ['qwen-image-2-1', 'edit'],
 ];
 
 const T2V = [
@@ -102,6 +104,10 @@ const NOTES = {
     // Fabio 2026-09-30): with Head Swap not installed, it read as "only Qwen can move a head",
     // and the agent told him no installed editor could, with Klein 9B taking references.
     'qwen-edit:qwenEdit': 'the slowest of these',
+    // MPI-936: ranked last on purpose. Its research licence covers the images too, so the
+    // agent must reach it for what only it does, never drift to it.
+    'qwen-image-2-1:edit': 'takes up to eight images in one edit, more than any editor here, and can return the subject on a transparent background. Research or evaluation use only: the images are not for commercial use',
+    'qwen-image-2-1': 'the only model here that generates a transparent background (ask for "transparent background, alpha channel"). Research or evaluation use only: the images are not for commercial use, so never the default',
     // Fabio 2026-10-04: with no i2v installed, "just use MiniMax H3 reference" was told the
     // free model that animates this picture was missing, and offered installs and paid clips.
     // The clip edit is measured (MPI-1033 bench): soundtrack back at 0.96, speech and hoofbeats.

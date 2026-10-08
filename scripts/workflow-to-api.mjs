@@ -259,10 +259,13 @@ function convert(workflow, objectInfo) {
   for (const [id, node] of Object.entries(output)) {
     const req = objectInfo[node.class_type]?.input?.required || {};
     // A dynamic group (COMFY_AUTOGROW_V3 / dynamic combo) is emitted as `<name>.<sub>`
-    // entries, never as the bare name — a prefix hit satisfies it.
+    // entries, never as the bare name — a prefix hit satisfies it. An autogrow whose
+    // template declares `min: 0` may legally carry no entries at all (MPI-936: Qwen-Image
+    // 2.1's prompt-only TextEncodeQwenImage21, as in Comfy's own t2i template).
     const have = Object.keys(node.inputs);
+    const optionalGroup = (k) => req[k]?.[0] === 'COMFY_AUTOGROW_V3' && req[k]?.[1]?.template?.min === 0;
     const missing = Object.keys(req)
-      .filter((k) => !have.some((h) => h === k || h.startsWith(`${k}.`)));
+      .filter((k) => !optionalGroup(k) && !have.some((h) => h === k || h.startsWith(`${k}.`)));
     if (missing.length) holes.push(`  ${id} ${node.class_type} "${node._meta.title}" — missing: ${missing.join(', ')}`);
   }
   if (holes.length) {
