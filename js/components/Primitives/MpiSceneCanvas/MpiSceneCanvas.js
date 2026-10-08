@@ -1,10 +1,11 @@
 /**
  * MpiSceneCanvas — the 3D scene viewport (Primitive, MPI-623).
  *
- * Owns ONE WebGL2 context through a three.js `WebGLRenderer` (MIT), plus the empty
- * `Scene` and `PerspectiveCamera` it draws. The scene renderer itself (records meshed as
- * grids, rule C in the shader) lands in Phase 3 and adds to `getScene()`; this component
- * only owns the context's life, which is why its teardown is the point of it.
+ * Owns ONE WebGL2 context through a three.js `WebGLRenderer` (MIT, `RENDERER_OPTIONS`:
+ * reverse depth) and the `PerspectiveCamera` it draws from. WHAT it draws is the owner's
+ * `setDraw(fn)` (the Scene Block hands it `createSceneView().draw`: two passes and a
+ * composite, so a single three `Scene` cannot hold it); this component owns the context's
+ * life, which is why its teardown is the point of it.
  *
  * Draws ON DEMAND, never in a free-running loop: `requestRender()` schedules one frame. An
  * idle viewer holds no GPU time, and Take picture needs Klein's VRAM headroom (plan 0a).
@@ -20,8 +21,10 @@
  *                                 must be re-applied: it depends on the aspect)
  *
  * Instance API (on el):
- *   getRenderer() / getScene() / getCamera() — null when unsupported or destroyed
+ *   getRenderer() / getCamera() — null when unsupported or destroyed
+ *   setDraw(fn)      — `fn(renderer, camera)` draws a frame; null draws nothing
  *   requestRender()  — draw one frame on the next animation frame
+ *   renderNow()      — draw one frame now (a readback in the same task needs it)
  *   isSupported()    — false when no WebGL2 context could be made
  *   destroy()        — cancel the frame, disconnect the observer, dispose the renderer,
  *                      LOSE the context, zero the canvas, drop every reference
@@ -30,7 +33,8 @@
 import { ComponentFactory } from '../../factory.js';
 import { qs } from '../../../utils/dom.js';
 import { clientLogger } from '../../../services/clientLogger.js';
-import { WebGLRenderer, Scene, PerspectiveCamera } from '../../../../node_modules/three/build/three.module.js';
+import { WebGLRenderer, PerspectiveCamera } from '../../../../node_modules/three/build/three.module.js';
+import { RENDERER_OPTIONS, NEAR } from '../../../services/scene/sceneViewer.js';
 
 export const MpiSceneCanvas = ComponentFactory.create({
     name: 'MpiSceneCanvas',
@@ -46,17 +50,19 @@ export const MpiSceneCanvas = ComponentFactory.create({
     setup: (el, props, emit) => {
         let canvas = qs('#surface', el);
         let renderer = null;
-        let scene = null;
         let camera = null;
+        let draw = null;
         let observer = null;
         let raf = 0;
 
         try {
-            renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'high-performance' });
+            renderer = new WebGLRenderer({ canvas, ...RENDERER_OPTIONS });
             renderer.setClearColor(0x000000, 0);
             renderer.setPixelRatio(window.devicePixelRatio || 1);
-            scene = new Scene();
-            camera = new PerspectiveCamera(60, 1, 0.05, 1000);
+            camera = new PerspectiveCamera(60, 1, NEAR, 1000);
+            // three falls back to plain depth without EXT_clip_control; at a 1e-4 near plane
+            // that is too coarse for rule C's z-test, so say so where a bug report will show it.
+            if (!renderer.capabilities.reversedDepthBuffer) clientLogger.warn('scene', 'no EXT_clip_control: reverse depth is off, near depth will be coarse');
         } catch (err) {
             // three throws when getContext('webgl2') returns null.
             clientLogger.warn('scene', `no WebGL2 context: ${err?.message || err}`);
@@ -66,11 +72,19 @@ export const MpiSceneCanvas = ComponentFactory.create({
 
         const _draw = () => {
             raf = 0;
-            if (renderer) renderer.render(scene, camera);
+            if (renderer && draw) draw(renderer, camera);
         };
 
+        el.setDraw = (fn) => {
+            draw = fn;
+            el.requestRender();
+        };
         el.requestRender = () => {
             if (renderer && !raf) raf = requestAnimationFrame(_draw);
+        };
+        el.renderNow = () => {
+            if (raf) cancelAnimationFrame(raf);
+            _draw();
         };
 
         if (renderer) {
@@ -90,7 +104,6 @@ export const MpiSceneCanvas = ComponentFactory.create({
         }
 
         el.getRenderer = () => renderer;
-        el.getScene = () => scene;
         el.getCamera = () => camera;
         el.isSupported = () => !!renderer;
 
@@ -106,7 +119,7 @@ export const MpiSceneCanvas = ComponentFactory.create({
                 renderer.forceContextLoss();
             }
             if (canvas) { canvas.width = 0; canvas.height = 0; }
-            renderer = scene = camera = observer = canvas = null;
+            renderer = camera = draw = observer = canvas = null;
         };
     },
 });

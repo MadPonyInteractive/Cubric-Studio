@@ -774,3 +774,76 @@ The GPU was held by the MPI-1036 peer (`mask_bench.py` under the lease) for this
   colour-pick-eyedropper, canvas-pan-no-repaint, gif-workspace). Hotkeys page: a "3D Scene" group
   only under `dev_mode`. `docs/shell.md` § Gating model says per entry.
 - `npm test` 2759 pass / 0 fail; eslint clean on every touched file; scene-workspace spec green.
+
+## Phase 3 viewer: rule C + fill layers in the app (2026-10-08, session 34 "3D Scene 24")
+
+- **Ported** from spike 0a into `js/services/scene/sceneViewer.js`: `depthEdges` (3x3 spread > 5%),
+  `panoGrid` + `src` (texel in the TEXTURE) + `edge` + `SKY_BAND` 3 + `pano.windows` faces last,
+  `layerGrid` (kept pixels back-projected through the OpenCV w2c), `createSceneView` (pano and layer
+  MRT passes into float targets with float depth, composite, `view` 1 magenta / 2 self-check,
+  `draw({ out })`, `dropTargets`), `RENDERER_OPTIONS` with **`reversedDepthBuffer`** (the 0.186 name).
+  `MpiSceneCanvas` now takes a draw callback (`setDraw`, `renderNow`; no `getScene`) and logs a
+  warning when `capabilities.reversedDepthBuffer` is false; `MpiSceneBlock` loads layers too.
+- **three ^0.186 trap found:** under reverse depth `WebGLRenderer` calls `camera.updateProjectionMatrix()`
+  on every camera it renders with; the composite's bare `Camera` has none (`TypeError` on the first
+  frame, caught by the desktop spec's page-error check). Fixed with an `OrthographicCamera`.
+- **GPU parity, the APP's module in Electron 41 (the app's Chromium), RTX 4060 Ti, ANGLE D3D11,
+  reverse depth ON, under the lease:** scratch harness `scratchpad/parity/` (main.js serves the repo +
+  the spike records, `parity.js` = `loadScene` -> `createSceneView` -> `applyPose` -> `draw({ out })`,
+  scored exactly as the spike's `parity()` against `ref/<cam>_C_render.png`). Rule C, sky band 0:
+
+  | cam | IoU | mad /255 | holes % (ref) | mine-only / ref-only px |
+  |---|---|---|---|---|
+  | window | 0.9999 | 0.125 | 84.78 (84.78) | 3 / 9 |
+  | treetop | 0.9999 | 0.125 | 6.48 (6.48) | 38 / 24 |
+  | floor | 0.9995 | 0.101 | 13.19 (13.16) | 89 / 310 |
+  | behind_well | 0.9997 | 0.064 | 61.82 (61.82) | 81 / 35 |
+
+  Gates (IoU >= 0.98, mad <= 2/255) pass on all four. Self-check at walk0: 0.00% pano back|stretch.
+  1080p, all 8 layers: 4.14 ms (242 fps) over 120 and 240 frames, vs the spike page's 2.30 ms; the
+  peer's engine held ~12.6 GB and had just run (not chased: 4x over the 60 fps gate). Sky band 3 (the
+  viewer default): floor ref-only 310 -> 2145 px, i.e. +1835 known px become holes, the spike's exact
+  number; the other three cameras move by <= 22 px. The same harness on WARP (CPU D3D11, the dry run):
+  IoU 0.9995-0.9999, mad 0.061-0.122.
+- **Specs:** `tests/scene-viewer.test.cjs` 9/9 (+4: depth edges, sky band wraps the seam, window faces
+  last and reordered only, layer back-projection + kept-corner faces). `tests/desktop/scene-viewer.spec.js`:
+  the fixture grew to a 4096x2048 texture (rule C calls a 64 px pano a stretch everywhere) with the behind
+  band at depth 2.5 and one 64 px fill layer at yaw 45 deg; asserts reverse depth TRUE (Electron's
+  SwiftShader has `EXT_clip_control`), the four band colours, the red/green step is a hole (alpha 0), the
+  layer's colour wins over the pano, plus the fly keys. Green with `scene-workspace.spec.js` (10 visits
+  free their GL context). `npm test` 2763 pass / 0 fail; eslint clean on every touched file.
+
+## Phase 3 picture panel + Take picture, GPU-free half (2026-10-08, session 34)
+
+- **Built:** `sceneViewer.js` roll (`pose.roll`, Z/C `scene.fly.rollLeft|rollRight`, roll > 0 tilts
+  right), `pictureSize` (16:9 1360x768, 9:16 768x1360, 1:1 1024x1024), `renderPicture` (frame + white-
+  hole mask + known camera z + back-face share + `layerCamera` record; rule C's bad now encodes 2 =
+  back face, 1 = stretch, and the composite's `view` 3 reads z and back faces), `loadLayer`,
+  `view.addLayer`, `groundBelow` + `EYE_HEIGHT_M`. `POST /project-media/:id/scene-layer` (copy the
+  fill, download the lifted depth, append the record, manifest last, clean up on failure).
+  `scenePicture.js`: `takePicture` over injectable doors (`appIo()`), `fillPrompt` (GENERIC /
+  INTERIOR at > 50% back faces + the fill line), `colorLock` (Reinhard in CIELAB), prompts from the
+  spike (INTERIOR with its cottage nouns removed). `MpiSceneBlock`: letterboxed frame, picture panel
+  (aspect radio, lens dropdown, height/mm/roll readout, presets + fill line, Take picture, status),
+  the card's `MpiHistoryList` (an entry's `scenePose` flies camera + frame + lens; selecting persists
+  `selectedIndex`); float targets dropped once the render is read.
+- **Checks:** `tests/scene-viewer.test.cjs` 13/13 (+ ground estimate, picture sizes, roll + the
+  layer record back-projecting a rolled, turned picture onto its own rays). `tests/scene-picture.test.cjs`
+  6/6: step order render -> inpaint -> sceneLift -> kleinEdit -> save; every Klein job
+  `{ deferCommit: true }` with one media item; inpaint gets `maskDataUrl` + GENERIC + the fill line,
+  clean-up gets POLISH on the FILLED frame; lift gets the fill, the `.f32` asset's `absPath`, fovX
+  73.7398 at 24 mm; the layer POST carries the render's own camera and the view meshes it; one
+  `savePicture` with `scenePose` incl. aspect + fill line; INTERIOR at backFrac 0.6; no holes = no
+  fill/lift/layer but clean-up still runs; a failed inpaint saves nothing. Colour lock: identity
+  within 1/255, a drifted edit's channel means return to the frame's within 2. `tests/scene-layer.test.cjs`
+  3/3 (two layers numbered, pano untouched, siblings ride `DERIVATIVE_RE`; wrong-size depth leaves
+  manifest + folder as they were; no scene / unsafe id / fill outside the project / bad camera
+  refused). `tests/desktop/scene-viewer.spec.js` + the panel: readout `Height 1.60 m · 24 mm · roll 0°`,
+  Take picture enabled once loaded, frame 1.78 -> 1:1 = 1.00, C rolls right and the readout follows,
+  the picture entry restores `{ pos, yaw, pitch, roll, mm }` exactly, the 9:16 frame (0.56) and
+  `35 mm`. Mutant (entry click no longer calls `setPose`) killed. Both scene desktop specs green;
+  `npm test` 2775 pass / 0 fail; eslint clean on every touched file.
+- **NOT yet run: Take picture end to end on an engine** (Klein 9B needs ~14.5 GB free; the peer's
+  sweeps held the lease and 12-14.5 GB all afternoon). That run closes the panel's verify: an
+  isolated app on a converted scene, a picture from each of the four spike cameras by eye, the layer
+  in the manifest, one entry per press, no stray cards; it is also `sceneLift`'s first app dispatch.

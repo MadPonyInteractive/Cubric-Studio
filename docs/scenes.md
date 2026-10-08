@@ -23,10 +23,28 @@
 ## The viewer
 
 - `MpiSceneBlock` loads the card's scene through `js/services/scene/sceneViewer.js`
-  (`loadScene` -> `createPanoMesh`) into `MpiSceneCanvas.getScene()`. Ported from spike 0a, whose
-  renderer matched the Python reference (rule C hole IoU >= 0.9995, colour <= 0.13/255, 435+ fps at
-  1080p on a 4060 Ti; MPI-623 `research/spike-0a.md`): the same grid, colour looked up by DIRECTION
-  per fragment, a raw shader with no colour management, the same camera maths (`applyPose`).
+  (`loadScene` -> `createSceneView`) and hands the view's `draw` to `MpiSceneCanvas.setDraw`. Ported
+  from spike 0a, whose renderer matched the Python reference (rule C hole IoU >= 0.9995, colour
+  <= 0.13/255, 435+ fps at 1080p on a 4060 Ti; MPI-623 `research/spike-0a.md`): the same grids,
+  colour looked up by DIRECTION per fragment, raw shaders with no colour management, the same
+  camera maths (`applyPose`). The app port scores the same against the spike's references.
+- **Rule C (holes)**, per fragment: a back face (`!gl_FrontFacing`), a STRETCH (one source texel
+  over `STRETCH_K` = 3 screen px: the smallest singular value of d(src texel)/d(screen px)) or a
+  depth-edge TEAR (`depthEdges`: a 3x3 depth spread over `EDGE_RTOL` = 5%, as a vertex `edge`
+  attribute; `SKY_BAND` = 3 widens it into sky cells beside a silhouette, which removes hair-thin
+  spikes of tree texels on the dome). A manifest may carry `stretch_k` / `pano.edge_rtol`.
+- **Two passes and a composite** (`createSceneView`): the pano and the fill layers each render to a
+  float MRT pair, colour + aux (camera z, real surface, rule C bad, covered); the composite takes a
+  layer where the pano has no real surface or is >3% farther, else the pano, else a HOLE
+  (transparent; `draw(..., { view: 1 })` paints holes magenta). Faces inside a `pano.windows` rect
+  draw last with a material that discards back faces, so a room sees out. `draw({ out })` renders
+  into a picture-sized target instead of the canvas; `dropTargets()` frees the float targets (Take
+  picture needs Klein's VRAM) and the next draw rebuilds them.
+- The renderer is made with `RENDERER_OPTIONS`: **`reversedDepthBuffer`** (three ^0.186's name;
+  0.170's `reverseDepthBuffer` is ignored without a word) at `NEAR` = 1e-4, far = 4x the dome. The
+  canvas warns in the log when `capabilities.reversedDepthBuffer` is false (no `EXT_clip_control`;
+  even Electron's SwiftShader has it). Under reverse depth three calls `updateProjectionMatrix()` on
+  EVERY camera it renders with, so a full-screen pass must not use a bare `Camera` (it has none).
 - Coordinates: the world is y-DOWN (OpenCV, as the fill layers' `w2c`); a pose is
   `{ pos, yaw, pitch, mm }` in y-UP spot coords (+X right, +Z forward, origin = the pano camera).
   The lens is full-frame `mm` across the frame WIDTH, so `applyPose` re-runs on the canvas's
@@ -34,9 +52,32 @@
 - Fly: `scene.fly.*` hotkeys, a DOWN and an UP entry per key (W/S/A/D, Q/E down/up), gated to
   the Scene page; `agentMode.toggle` is gated OFF it so A only flies. Drag looks. Frames are drawn
   on demand, a loop only while a key is held. `tests/desktop/scene-viewer.spec.js`.
-- Not yet: rule C, the fill layers, frame guides, the picture panel. When it gains reverse
-  depth, three ^0.186 calls the option `reversedDepthBuffer` (0.170's `reverseDepthBuffer` is
-  ignored there without a word).
+- The picture panel (`MpiSceneBlock`): the canvas letterboxed to the picture's aspect (`--frame-ar`
+  + container units, MpiGifViewer's trick; 16:9 / 9:16 / 1:1 / 2.39:1), lens (12-85 mm), a readout
+  (height in metres = `EYE_HEIGHT_M` 1.6 x (1 + y / `groundBelow`), the median drop straight below
+  the pano camera; mm; roll), Z/C roll (`scene.fly.rollLeft|rollRight`), the fill line + presets,
+  Take picture, and the card's `MpiHistoryList`: an entry with a `scenePose` flies the camera, frame
+  and lens back to it. Not yet: depth of field (spike 0c), the golden-PNG check.
+
+## Take picture
+
+`js/services/scene/scenePicture.js` `takePicture(ctx, appIo())`, one press (plan A5):
+1. `renderPicture` at `pictureSize(aspect)` (~1 MP, sides x16: 16:9 = 1360x768): the frame, the
+   hole mask (white = fill), the camera z of every known pixel (0 = hole), the share of the frame
+   seen from behind, and the camera as a pinhole record (`layerCamera`: OpenCV w2c = diag(1,-1,-1)
+   x the GL view). The frame goes to disk via `place-preview-asset` (no card).
+2. Holes -> Klein `inpaint` (`maskDataUrl`), `GENERIC` or `INTERIOR` when > 50% is seen from behind,
+   plus `In the large empty areas: <fill line>.`
+3. `sceneLift` on the fill with the known z (`place-preview-asset` `.f32` -> `absPath`) and the lens
+   as `fovX`; `POST /project-media/:id/scene-layer` copies the fill and downloads the depth as
+   `layer<n>.png` / `layer<n>_depth.f32`, appends the record (manifest LAST); `view.addLayer` meshes
+   it live (`loadLayer`).
+4. Clean-up B, always: Klein `kleinEdit` with `POLISH` on the filled frame, then `colorLock`
+   (Reinhard in CIELAB) to the pre-clean frame.
+5. `uploadMediaFile` -> `createImageItem({ scenePose })` -> `appendToHistory` -> `updateGroup`, and
+   `scenePose` on the sidecar (`update-meta`): `{ pos, yaw, pitch, roll, mm, aspect, fillLine }`.
+Every Klein job runs `deferCommit` without `existingGroup` (the only branch that honours it), so no
+job lands a card; the viewer drops its float targets once the render is read (Klein's VRAM).
 
 ## Companions and the manifest
 
@@ -62,8 +103,9 @@ A scene is a SET of files beside the item's sidecar in `Media/.meta/`:
   pushes every invalid (sky) pixel to twice the farthest real depth. That rule is outlier-led
   (one far pixel moves the dome); a viewer wanting a steadier dome should use a percentile.
 - The shape is the spike's records `scene.json` (`D:\WORK\MPI-623-spike\single_shot\viewer\records\`),
-  so `layers[]` will take pinhole records: `image`, `depth` (0 = not kept), `w`, `h`, `w2c`
-  (16 floats, OpenCV), `fx`, `fy`, `cx`, `cy`.
+  so `layers[]` takes pinhole records (`layerGrid` meshes the kept pixels): `image`, `depth`
+  (float32 camera z, 0 = not kept), `w`, `h`, `w2c` (16 floats, row-major, OpenCV), `fx`, `fy`,
+  `cx`, `cy`. Optional: `pano.windows` (`[{ rows, cols }]` in depth cells, `cols` may wrap the seam).
 
 ## Convert to 360 pano
 

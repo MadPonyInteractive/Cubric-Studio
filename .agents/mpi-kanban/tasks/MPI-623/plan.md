@@ -8,9 +8,9 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: rule C in the app on the
-viewer scaffold, then the picture panel + Take picture. Spike 0a PASSED and the scaffold landed
-(session 33 below).**
+**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: run Take picture end to end
+on an isolated app (Klein 9B needs ~14.5 GB free: wait for the GPU, lease it) - the picture panel and
+the sequencer are built and their GPU-free checks pass (session 34 below).**
 
 **Session 28 (2026-10-07):** 0a's CPU half is built - `export_records.py` wrote ring8k as records
 (`viewer/records/`, every layer's verts + faces round-trip the shots.py cache exactly; the
@@ -96,6 +96,31 @@ the 0.186 name), then the picture panel + Take picture (render targets dropped d
 picture for Klein's VRAM; the floor-still spike eye check, sky band from 3). `.claude/rules/`
 component-events maps updated with Fabio's yes (MpiHistoryList `{ indices }`, MpiSceneCanvas
 `resize`, MpiSceneBlock). Fabio's call open: Add-to-gallery-as-a-stack ships ungated (my pick: keep).
+
+**Session 34 ("3D Scene 24", 2026-10-08): rule C + fill layers IN THE APP, parity PASS on the GPU**
+(validation.md § Phase 3 viewer: rule C). `createSceneView` (pano + layer MRT passes, composite,
+`draw({ out })` for a picture-sized target, `dropTargets`), `RENDERER_OPTIONS` with
+`reversedDepthBuffer`; `MpiSceneCanvas` takes `setDraw(fn)` instead of owning a Scene. The app's
+module in Electron on the 4060 Ti: IoU 0.9995-0.9999, mad <= 0.125/255, 242 fps at 1080p. Viewer
+sky band defaults to 3 (+1835 holes at the floor camera, as the spike measured). **Take picture
+plumbing found (read-only sweep):** inpaint's mask is `config.maskDataUrl` (PNG data URL, white =
+fill; a data-URL `Input_Image` skips the mask fit, so same size); `POST /project-media/:id/
+place-preview-asset` `{ dataUrl, ext }` stores a PNG or `.f32` with no card and returns `absPath`
+(= sceneLift's `knownDepthPath`); a new history entry = `uploadMediaFile` -> `createImageItem` ->
+`appendToHistory` -> `updateGroup` (`MpiGroupHistoryBlock._addPickedEntry`); `deferCommit` works only
+WITHOUT `existingGroup`; `POST .../scene` only CREATES a manifest (`layers: []`), so a layer needs a
+new route. DoF waits on spike 0c.
+**Then the picture panel + Take picture, GPU-free half** (validation.md § Phase 3 picture panel):
+`scenePicture.js` (`takePicture` over `appIo()` doors, so its order/config test runs in node),
+`POST .../scene-layer`, `renderPicture` / `pictureSize` / `layerCamera` / `loadLayer` /
+`view.addLayer` / `groundBelow`, roll on Z/C, the panel in `MpiSceneBlock` with the card's
+`MpiHistoryList` (entry -> fly back). **Not run: the engine half** - the peer's sweeps held the GPU.
+The live run: `npm run app:isolated` (own profile + port), a converted 2:1 card (ring 2K), Take
+picture at the four spike cameras; check the layer lands in the manifest, one entry per press, no
+stray cards, the fill sits right in the viewer, the floor still (sky band 3) by eye. Unchecked in
+code: whether `/engine-mask` crops the inpaint round the mask (`cropsToMask`) - the result is
+stitched back full-frame either way. INTERIOR is the spike's with its cottage nouns removed
+(unproven). The history list's context menu (delete, add-to-gallery...) is not wired in Scene.
 
 **The product (Fabio's why):** the 3D scene exists for EXACT camera placement - behind a house,
 up a tree, on the floor looking up, inside a house through a shut window, a door frame, a gap
@@ -372,10 +397,11 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       lens, depth-of-field preview. **Verify:** desktop spec renders a fixed pose of a fixture
       scene and matches a golden PNG within 2/255.
       **(SCAFFOLD 2026-10-08, session 33: `sceneViewer.js` loader + pano layer + fly/drag,
-      `scene-viewer.spec.js` checks the centre colour at four yaws within 2/255. Left: rule C and
-      the layers (spike MRT shader, `reversedDepthBuffer`), frame guides, lens/height UI, DoF,
-      the golden PNG.)**
-- [ ] **Picture panel + Take picture:** components only (ComponentFactory), fill line + presets
+      `scene-viewer.spec.js` checks the centre colour at four yaws within 2/255. RULE C + LAYERS
+      2026-10-08, session 34: GPU parity PASS in Electron, spec asserts a tear hole + a layer +
+      reverse depth. Left: frame guides, lens/height UI, DoF, the golden PNG.)**
+- [ ] **Picture panel + Take picture:** **(BUILT 2026-10-08, session 34, GPU-free checks green;
+      the engine run is open)** components only (ComponentFactory), fill line + presets
       (Character-Sheet-style picker), render base + mask at Klein size per aspect -> `scenePicture`
       -> add the fill layer to the manifest -> depth of field -> upload as a history entry with
       `scenePose` (A7); entry click flies the camera to its pose. `INTERIOR` switch at > 50%
@@ -453,6 +479,12 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
   order kept; behaviour-preserving for every existing entry (only Escape and Space-up had
   differing gates, and both handlers self-gate). `agentMode.toggle` is gated off the Scene page.
   The Hotkeys page gets a "3D Scene" group only when `dev_mode` is on (A8).
+- **2026-10-08 - the canvas draws a callback, not a Scene (session 34).** Rule C is two MRT passes
+  and a composite, which no single three `Scene` holds, so `MpiSceneCanvas.getScene()` became
+  `setDraw(fn)` + `renderNow()` (the plan said Phase 3 "draws into getScene()"). Under reverse depth
+  three ^0.186 calls `updateProjectionMatrix()` on every camera it renders with, so the composite
+  uses an `OrthographicCamera`, never a bare `Camera`. The parity re-check ran the app's module in
+  Electron (a scratch main serving the repo), not the Scene workspace UI.
 
 ## Verification
 

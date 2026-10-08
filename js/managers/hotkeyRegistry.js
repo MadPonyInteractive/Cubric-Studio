@@ -802,16 +802,17 @@ export const HOTKEY_REGISTRY = [
     },
 
     // ── Scene fly (MPI-623, dev_mode) ─────────────────────────────────────────
-    // Held keys: each letter has a DOWN and an UP entry, and MpiSceneBlock flies while any
-    // is down. Gated to the Scene page, where A is a fly key and not Agent mode.
-    ...[['w', 'forward'], ['s', 'back'], ['a', 'left'], ['d', 'right'], ['q', 'down'], ['e', 'up']]
-        .flatMap(([key, dir]) => [KEY_TYPE.DOWN, KEY_TYPE.UP].map(type => ({
+    // Held keys: each letter has a DOWN and an UP entry, and MpiSceneBlock flies (Z/C roll)
+    // while any is down. Gated to the Scene page, where A is a fly key and not Agent mode.
+    ...[['w', 'forward'], ['s', 'back'], ['a', 'left'], ['d', 'right'], ['q', 'down'], ['e', 'up'],
+        ['z', 'rollLeft', 'Roll left'], ['c', 'rollRight', 'Roll right']]
+        .flatMap(([key, dir, label = `Fly ${dir}`]) => [KEY_TYPE.DOWN, KEY_TYPE.UP].map(type => ({
             id:               `scene.fly.${dir}${type === KEY_TYPE.UP ? '.release' : ''}`,
             key,
             type,
             category:         'scene',
             scopeLabel:       'Scene',
-            description:      `Fly ${dir} (hold)`,
+            description:      `${label} (hold)`,
             when:             ({ state }) => state.currentPage === 'scene',
             allowWhileTyping: false,
         }))),

@@ -2,9 +2,28 @@
 
 .mpi-scene-block {
     position: relative;
+    display: flex;
     height: 100%;
     overflow: hidden;
     background: var(--surface-1);
+}
+
+/* The viewer, letterboxed to the picture's aspect (`--frame-ar`, set by the Block): the
+   frame shows exactly what Take picture holds. MpiGifViewer's contain-in-a-size-container. */
+.mpi-scene-block__stage {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    container-type: size;
+}
+
+.mpi-scene-block__frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(100cqw, 100cqh * var(--frame-ar, 1.7778));
+    height: min(100cqh, 100cqw / var(--frame-ar, 1.7778));
+    transform: translate(-50%, -50%);
 }
 
 .mpi-scene-block__viewport {
@@ -18,4 +37,38 @@
     left: var(--s-3);
     display: flex;
     gap: var(--s-2);
+}
+
+/* The picture panel. */
+.mpi-scene-block__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    width: 300px;
+    padding: var(--s-3);
+    overflow-y: auto;
+    border-left: 1px solid var(--line);
+    background: var(--surface-0);
+}
+
+.mpi-scene-block__label {
+    margin-top: var(--s-2);
+    color: var(--ink-3);
+    font-size: var(--t-xs);
+    text-transform: uppercase;
+}
+
+.mpi-scene-block__readout,
+.mpi-scene-block__status {
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+}
+
+.mpi-scene-block__status:empty {
+    display: none;
+}
+
+.mpi-scene-block__history {
+    flex: 1;
+    min-height: 120px;
 }

@@ -1536,6 +1536,51 @@ router.post('/project-media/:projectId/scene', async (req, res) => {
     }
 });
 
+// MPI-623 — Take picture's fill joins the scene as a LAYER: a pinhole record (the fill, its
+// lifted depth, the camera that took it) appended to the item's manifest. The fill is already
+// a project file (a deferCommit inpaint), so it is copied; the depth comes over /view like
+// Convert's. Siblings are named by suffix (`layer<n>.png`, `layer<n>_depth.f32`) so the
+// add-from-cards copy renames them unedited; the manifest is written LAST.
+// ponytail: one Take picture at a time per scene (the panel's button) - two at once would race
+// on the manifest; a per-item lock if a batch caller ever appears.
+router.post('/project-media/:projectId/scene-layer', async (req, res) => {
+    const { folderPath } = req.query;
+    const { itemId, imagePath, depthUrl, camera } = req.body || {};
+    const { w, h, w2c, fx, fy, cx, cy } = camera || {};
+    const finite = (...v) => v.every(Number.isFinite);
+    if (!folderPath || !itemId || !imagePath || !depthUrl || !Number.isInteger(w) || !Number.isInteger(h) || w < 2 || h < 2
+        || !Array.isArray(w2c) || w2c.length !== 16 || !finite(...w2c, fx, fy, cx, cy)) {
+        return res.status(400).json({ success: false, error: 'folderPath, itemId, imagePath, depthUrl and camera { w, h, w2c[16], fx, fy, cx, cy } required' });
+    }
+    const metaDir = path.join(folderPath, 'Media', '.meta');
+    const manifestPath = path.join(metaDir, `${itemId}.scene.json`);
+    if (!/^[\w-]+$/.test(itemId) || !(await fs.pathExists(manifestPath))) {
+        return res.status(404).json({ success: false, error: `no scene for item ${itemId} in this project` });
+    }
+    const rel = path.relative(folderPath, path.resolve(imagePath));
+    if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) {
+        return res.status(400).json({ success: false, error: 'imagePath must be a file of this project' });
+    }
+    const prefix = path.join(metaDir, `${itemId}.scene.`);
+    let files = null;
+    try {
+        const manifest = await fs.readJson(manifestPath);
+        const n = (manifest.layers || []).length;
+        files = { image: `layer${n}.png`, depth: `layer${n}_depth.f32` };
+        await fs.copy(path.resolve(imagePath), prefix + files.image);
+        await streamDownload(depthUrl, prefix + files.depth);
+        const bytes = (await fs.stat(prefix + files.depth)).size;
+        if (bytes !== w * h * 4) throw new Error(`layer depth holds ${bytes} bytes, not ${w}x${h} float32`);
+        const record = { image: files.image, depth: files.depth, w, h, w2c, fx, fy, cx, cy };
+        await fs.writeJson(manifestPath, { ...manifest, layers: [...(manifest.layers || []), record] }, { spaces: 1 });
+        res.json({ success: true, record, index: n });
+    } catch (err) {
+        if (files) await Promise.all(Object.values(files).map(f => fs.remove(prefix + f).catch(() => {})));
+        logger.error('project', `scene layer save failed for ${itemId}`, err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // ── Project notes (project.md sidecar) ──────────────────────────────────────
 // project.md lives next to project.json (created at project creation). These
 // two routes read/write it for the in-app notes editor. Folder must hold a

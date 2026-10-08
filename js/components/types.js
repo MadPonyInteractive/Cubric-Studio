@@ -1988,17 +1988,19 @@
 
 /**
  * @typedef {Object} MpiSceneCanvasProps (Primitive — js/components/Primitives/MpiSceneCanvas)
- * No props. Owns ONE WebGL2 context via a three.js WebGLRenderer, an empty Scene and a
- * PerspectiveCamera; draws on demand only (no free-running loop). No WebGL2 → the
- * `--unsupported` modifier shows a note and the getters return null.
+ * No props. Owns ONE WebGL2 context via a three.js WebGLRenderer (reverse depth) and a
+ * PerspectiveCamera; draws on demand only (no free-running loop), whatever `setDraw` was
+ * handed. No WebGL2 → the `--unsupported` modifier shows a note and the getters return null.
  *
  * Instance methods (on el):
- *   el.getRenderer() / el.getScene() / el.getCamera() — null when unsupported or destroyed
+ *   el.getRenderer() / el.getCamera() — null when unsupported or destroyed
+ *   el.setDraw(fn)     — `fn(renderer, camera)` draws a frame; null draws nothing
  *   el.requestRender() — draw one frame on the next animation frame
+ *   el.renderNow()     — draw one frame now (for a readback in the same task)
  *   el.isSupported()   — false when no WebGL2 context could be made
  *   el.destroy()       — cancel the frame, disconnect the ResizeObserver, dispose the
  *                        renderer, force context loss, zero the canvas, null every ref
- * Emits: (none)
+ * Emits: 'resize' { width, height } — after the camera took the new aspect
  */
 
 /**

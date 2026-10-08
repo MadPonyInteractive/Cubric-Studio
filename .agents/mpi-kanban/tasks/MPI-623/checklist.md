@@ -35,8 +35,12 @@ ticks (Phase 0/0b/1, all complete) moved verbatim to
 - [ ] Viewer: 0a's renderer in `js/services/scene/`, fly controls via `Hotkeys.bind`, frame guides,
       height, lens, depth-of-field preview (golden-PNG spec)
       (2026-10-08 scaffold: loader + pano layer + fly + drag look, validation.md § Phase 3 viewer
-      scaffold. Left: rule C + layers, frame guides, lens/height UI, DoF, golden PNG)
+      scaffold. 2026-10-08 session 34: rule C + fill layers + reverse depth, GPU parity PASS in
+      Electron, validation.md § Phase 3 viewer: rule C. Left: frame guides, lens/height UI, DoF,
+      golden PNG)
 - [ ] Picture panel + Take picture (`scenePose` entries, entry click flies the camera)
+      (2026-10-08 session 34: built + GPU-free checks green, validation.md § Phase 3 picture panel.
+      Left: the end-to-end Klein run on an isolated app, the floor-still eye check, DoF after 0c)
 - [ ] Build here (0b's loop as a tool)
 - [x] History -> gallery: several entries -> one stack of plain cards (2026-10-08, validation.md
       § Phase 3 GPU-free)
