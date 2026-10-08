@@ -29,9 +29,29 @@ prompt) gives the picture's quality, not the clip's; background-only change (G) 
 2026-10-08: Fabio approved the bench results ("very good, I'm happy") - verdict in `brief.md`.
 Wan Animate is no longer a comparison target (MPI-289 rejected).
 
-Next action: close Phase 1 in `checklist.md`, then Phase 2 (mask path) or straight to a
-talking/acting clip through F to check face, lip-sync and the performer's own voice - Fabio's
-pick at the start of the next session.
+2026-10-08 (Video edit 6): Phase 2 started on Fabio's pick. Clip: last 3 s of
+`C:/Users/Fabio/Videos/Screen Recordings/new (3).mp4` (medium shot -> close-up), staged as
+`G:/ComfyUi/ComfyUI/input/mpi1036_ears_last3s_24fps.mp4` (73 frames = 17k+5 at 24 fps, 576x1024,
+sound). Edit: cat ears -> small demon horns, and remove them. Builder: session scratchpad
+`mask_bench.py` (SAM3_Detect "cat ears" on `sam3.1_multiplex_fp16` -> InpaintCropImproved
+512x512, expand 12, blend 16, context 1.6 -> H3 turbo 8-step -> InpaintStitchImproved, source
+audio muxed). Mask + crop preview: both ears held in every frame, 75 s incl. SAM3 load.
+Runs M_horns, M_remove (masked) and U_horns (whole frame, timing baseline) queued.
+Then M2 (mask +32 px + ComposeColorMatch grade match), M3/M4 (Fabio's still square, padding
+64/128, + grade match). All results + timings in `brief.md` § Phase 2. Side-by-sides sent to Fabio
+(scratchpad `horns_side_by_side.webm`, `remove_side_by_side.webm`, built by `compare_mask.py`).
+Fabio's eye test: shape-mask pastes FAIL (ghosting), the box drifted out of sync -> shape masking
+dropped. Then the box + swap LoRA (M3l) locked sync (lag 0.00, no edge seam) on horns AND remove;
+the camera line and re-sync add nothing on top. Videos `box_horns_side_by_side.webm`,
+`box_remove_side_by_side.webm`. Fabio PASSED it (and the plain box re-timed by `resync.py`):
+Phase 2 closed, recipe in `brief.md` § Phase 2 recipe, evidence in `validation.md`.
+
+Fabio decided: the mask step is a TEXT field resolved by SAM3 in-graph, box round it - MPI-715 is
+NOT a dependency. Next action: Phase 3 - wire the Flow with `/mpi-add-flow`. New parts it needs:
+the swap LoRA as a dep, a shipped grade-match node (see `brief.md` § Phase 3 parts check).
+Masked mode drops the hidden "no text" line. Also decided 2026-10-08 (`brief.md` § Decided):
+video head swap is free once tested; clothing removal stays (own dropdown entry if it needs its
+own wording, e.g. a supplied torso image).
 
 ## Phase 1 - The hidden instructions, on the bench
 
@@ -61,9 +81,11 @@ refuses. Grow / fill holes stay upstream in the mask step, never in this graph (
 
 **Verify:** the `/mpi-add-flow` playbook's own checks, then Fabio runs each option in the app.
 
-Run `/mpi-add-flow`. Fields: clip, optional photo, the picker, the user's extra words, the
-optional mask step from MPI-715 (its Phase 1 transport is a hard dependency; its gizmo can
-follow). Behind the H3 licence gate. Long-clip warning, no cap.
+Run `/mpi-add-flow`. Fields: clip, optional photo, the picker, the user's extra words, an
+optional "what to change" TEXT field - filled = masked mode (SAM3 -> square box pad 64 -> H3 +
+swap LoRA -> grade match -> stitch, with a hint that it is faster and keeps the rest as filmed),
+empty = whole-frame edit. (MPI-715 dropped as a dependency, Fabio 2026-10-08.) Behind the H3
+licence gate. Long-clip warning, no cap.
 
 ## Phase 4 - Flow graphics
 
@@ -73,11 +95,18 @@ Run `/mpi-flow-graphics`.
 
 ## Remaining Work
 
-- [ ] Phase 1 - hidden instructions benched
-- [ ] Phase 2 - mask path benched and timed
+- [x] Phase 1 - hidden instructions benched (Fabio approved 2026-10-08)
+- [x] Phase 2 - mask path benched and timed (square box + swap LoRA, Fabio passed 2026-10-08)
 - [ ] Phase 3 - Flow wired
 - [ ] Phase 4 - graphics
 
 ## Completed
 
 ## Plan Drift
+
+- 2026-10-08: the talking/acting-clip test through mode F is DROPPED - Fabio: the Phase 1 dance
+  runs already carried the face, expressions, mouthing the song in sync and the right audio, at
+  a distance from the camera, so performance capture's face/lip-sync question is answered.
+- 2026-10-08: Phase 2's shape-mask paste (the plan's InpaintCrop/Stitch round the SAM3 mask) FAILED
+  on Fabio's eye (ghosting); the still square box + swap LoRA replaced it. The swap LoRA is no
+  longer swap-only: it locks H3's timing to the source for every masked edit.
