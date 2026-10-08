@@ -29,3 +29,12 @@
 - `npm test`: 2782 pass, 7 fail - ALL 7 in `tests/flow-describe.test.cjs`, an UNTRACKED file from
   the Video Edit session's work in progress (MPI-1036), testing code not written yet. None of mine.
 - `npx eslint js/data/modelConstants/assetDeps.js`: clean.
+
+## Close-out (2026-10-08)
+
+- Committed and pushed in 5938f6484 (code + docs + cards, cards still in doing).
+- Claim auditor: 25 PROVEN, 1 UNPROVEN - audit.md row 5 called the v2.0.1 Enhance failure
+  "silent". Traced: callers DO show an error (MpiEnhanceDialog; flowEnhance's ENHANCE_FAILED says
+  "Check Remote > Language Models"), it just never names the missing encoder. Row reworded.
+- `npm run release:check` fails on `model_patches` missing from mpi-ci start.sh: MPI-936's
+  uncommitted Qwen-Image 2.1 ControlNet dep, not this card. Told that session (message b73155ff).
