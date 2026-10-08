@@ -16,6 +16,9 @@ def run(loaded):
         if v['class_type'] == 'MpiIfElse':
             visit(ins['boolean'][0])
             ins = {'x': ins['true' if loaded else 'false']}
+        elif v['class_type'] == 'ComfySwitchNode':  # core switch, on_true / on_false lazy (nodes_logic.py)
+            visit(ins['switch'][0])
+            ins = {'x': ins.get('on_true' if loaded else 'on_false')}
         for val in ins.values():
             if isinstance(val, list) and len(val) == 2 and isinstance(val[0], str):
                 visit(val[0])

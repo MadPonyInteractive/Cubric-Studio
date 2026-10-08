@@ -25,32 +25,52 @@ KLEIN_P1_COPY = (
 KLEIN_P1_TURN = (
     "A head and shoulders portrait of exactly the same person as image 1, the head and shoulders turned "
     "three-quarters toward the left side of the image, the face seen at a three-quarter angle with both eyes "
-    "visible and the far cheek partly hidden. The face, features, skin, piercings, tattoos, hair, headwear, "
-    "expression and clothing stay exactly as in image 1, the same framing, face sharp and clear, the whole head "
+    "visible and the far cheek partly hidden. The face, features, skin, hair, headwear and expression stay exactly "
+    "as in image 1, with nothing added that image 1 does not show, the same framing, face sharp and clear, the whole head "
     "inside the frame, the hair and headwear exactly as in image 1. Plain smooth grey seamless studio background. "
     "Extremely even soft illumination, soft open shadows, uniform brightness from edge to edge.")
+# batch 18: with a body, the portrait wore picture 1's clothes - pass 1 now sees the body as image 2
+# No wording alone dresses the portrait right for both a clothed and a nude body (batches 19-21). The app's
+# describer names the body picture's clothes and the app puts that caption in the user text (see the note);
+# with it this wording (batch 19's) was right 6 of 6 on both models, clothed and nude (batch 22).
+BELOW_CHIN = ("wears exactly what image {n} wears below the chin, or bare skin where image {n} shows bare skin; no clothing "
+              "from image 1 below the chin")
+KLEIN_P1_REF_BODY = (
+    "The character from image 1, in exactly the same visual style and medium as image 1. The face, head and hair come "
+    "only from image 1. Image 2 shows the character's body with its head removed: the portrait "
+    + BELOW_CHIN.format(n=2) + ". " + CP)
 KLEIN_P2_REF = ("The character from image 1, in exactly the same visual style and medium as image 1. The face, head and "
-                "hair come only from image 1. " + CP)
+                "hair come only from image 1. The grey background and the lighting are exactly those of image 2. " + CP)
+# batch 19: picture 1 as a pass-2 ref still dressed the body views in picture 1's clothes, so with a body
+# pass 2 sees only the portrait (image 1, already in the body's clothes) and the body (image 2)
 KLEIN_P2_REF_BODY = (
     "The character from image 1, in exactly the same visual style and medium as image 1. The face, head and hair come "
-    "only from image 1. The body, build, skin and clothing come from image 3, which shows that body with its head "
-    "removed: give that body the head from image 1. " + CP)
+    "only from image 1, and so do the grey background and the lighting. The body, build, skin and clothing come from "
+    "image 2, which shows that body with its head removed: give that body the head from image 1, with the same body "
+    "shape, weight and proportions as image 2. The character " + BELOW_CHIN.format(n=2) + ". " + CP)
 KLEIN_P2_LAYOUT = (
     "A single continuous image containing two full-body standing views of the same character side by side, of equal "
     "width, one seen from the front and one from directly behind, the grey background flowing continuously behind both, "
     "the same character in both views with identical face, hair and wardrobe, arms hanging loose and relaxed at the "
     "sides, hands open and resting against the thighs, feet planted, generous headroom. Plain smooth grey seamless "
-    "studio background, exactly the same grey and the same lighting as image 2. Extremely even frontal illumination, "
-    "soft open shadows, uniform brightness from edge to edge.")
+    "studio background. Extremely even frontal illumination, soft open shadows, uniform brightness from edge to edge.")
 
 best = json.load(open(os.path.join(HERE, 'qwen_spec_best.json'), encoding='utf-8'))
 Q_HEAD = ("Character reference sheet of the character from image 1, in exactly the same visual style and medium as "
           "image 1. The face, head and hair come only from image 1. ")
 assert all(r['prompt'].startswith(Q_HEAD) for r in best), 'qwen_spec_best.json no longer starts with Q_HEAD'
 Q_COPY, Q_TURN = (r['prompt'][len(Q_HEAD):] for r in best)  # [0] copy (batch 14b), [1] turn (batch 15)
+# batch 18: naming piercings and tattoos makes the model ADD them to a face that has none
+Q_NAMED = "with the same face, features, piercings, tattoos and expression as image 1,"
+assert Q_NAMED in Q_TURN
+Q_TURN = Q_TURN.replace(Q_NAMED, "with the same face, features and expression as image 1, nothing added that image 1 does not show,")
 Q_REF = Q_HEAD + CP
 Q_REF_BODY = (Q_HEAD + "The body, build, skin and clothing come from image 2, which shows that body with its head "
-              "removed: give that body the head from image 1. " + CP)
+              "removed: give that body the head from image 1, with the same body shape, weight and proportions as image "
+              "2. In every view, the portrait included, the character " + BELOW_CHIN.format(n=2) + ". " + CP)
+
+NSFW_WORDS = ("nude, naked, tits, breasts, pussy, ass, slut, cunt, vagina, nipples, asshole, sex, fuck, fucking, pubic "
+              "hair, anus, vulva")  # the app's Klein list, klein_t2i_template.json #43
 
 LOAD_OUTS = [("image", "IMAGE"), ("mask", "MASK"), ("width", "INT"), ("height", "INT"), ("loaded", "BOOLEAN")]
 LOAD_INS = [("image", "COMBO"), ("channel", "COMBO"), ("block_if_empty", "BOOLEAN"), ("string", "STRING"), ("upload", "IMAGEUPLOAD")]
@@ -115,13 +135,18 @@ def inputs(g, model):
             "describer's FRONT / TURNED answer on the face crop.\n"
             "Picture 2 = body (optional). Picker on None = no body: the SAM3 branch never runs.\n"
             "Input_Positive = the user's text; it replaces [CHARACTER PROMPT].\n\n"
-            + ("Two samplings: pass 1 = the portrait alone (896x1120), pass 2 = the two body views (896x1120) with "
-               "picture 1, the portrait and the body as references, stitched [bodies | portrait]. ~48 s warm."
+            + ("Two samplings: pass 1 = the portrait alone (896x1120; + the body as ref 2 when loaded), pass 2 = the "
+               "two body views (896x1120) with picture 1 + the portrait as references - the portrait + the body when "
+               "a body is loaded - stitched [bodies | portrait]. ~48 s warm, ~70 s with a body."
                if model == 'Klein 9B' else
                "One sampling of the whole 1792x1120 sheet, euler/simple 25 steps. ~65 s warm. Research licence: the "
                "images cannot be used commercially.")
-            + "\n\nUNTESTED: body mode on v2 - the portrait sees picture 1 only, so its shoulders may wear picture 1's "
-              "clothes while the body views wear picture 2's.")
+            + "\n\nWith a body, ALSO put the clothing caption in Input_Positive (the app asks its describer on picture "
+              "2: \"Describe only the clothing this person wears below the neck, as one short phrase ... If the person "
+              "wears no clothing, reply exactly: no clothing.\"), e.g. \"Below the chin the character wears a white tank "
+              "top and gray jeans, in every view.\" or \"Below the chin the character is nude, in every view.\" "
+              "Without it the portrait keeps picture 1's clothes (validation.md batches 18-23). Klein: \"nude\" (or "
+              "any NSFW trigger word in Input_Positive) switches the NSFW LoRA on, as in the app's Klein workflow.")
     g.n("note", "Note", [note], [], [], (-560, -700), (500, 560), props={})
     g.n("img1", "MpiLoadImage", ["None", "alpha", True, "", "image"], LOAD_INS, LOAD_OUTS, (0, 0), (300, 450), "Input_Image", MPI)
     g.n("turned", "MpiSimpleBoolean", [False], [], [("boolean", "BOOLEAN")], (0, -160), (300, 60), "Input_Face_Turned", MPI)
@@ -198,6 +223,16 @@ def klein():
     g.n("enc1", "VAEEncode", None, [("pixels", "IMAGE"), ("vae", "VAE")], [("LATENT", "LATENT")], (X, 260), (200, 50), "Encode picture 1")
     g.n("scale2", "ImageScaleToTotalPixels", ["nearest-exact", 1, 16], [("image", "IMAGE")], [("IMAGE", "IMAGE")], (1720, 700), (300, 106))
     g.n("enc2", "VAEEncode", None, [("pixels", "IMAGE"), ("vae", "VAE")], [("LATENT", "LATENT")], (2080, 700), (200, 50), "Encode body")
+    # Fabio: base Klein does not draw bare skin - the app's Klein workflow switches its NSFW LoRA on by words in
+    # the user's text (klein_t2i_template.json #43 -> #44 -> #38); same switch here, so a "nude" caption fires it
+    g.n("nsfw_words", "MpiTextContains", [NSFW_WORDS], [("text", "STRING")], [("boolean", "BOOLEAN")], (X, -760), (340, 120),
+        "NSFW trigger words (user text)", MPI)
+    g.n("nsfw_on", "MpiMath", ["1.0 if a else 0.0"], [("a", "*"), ("b", "*"), ("c", "*")], [("result", "*")], (X + 380, -760), (240, 100), props=MPI)
+    g.n("nsfw", "LoraLoaderModelOnly", ["flux2-klein\\NSFW_party_time_v2.0_klein9b.safetensors", 1.0],
+        [("model", "MODEL"), ("strength_model", "FLOAT", True)], [("MODEL", "MODEL")], (X + 380, -620), (340, 82), "NSFW LoRA")
+    for a, b, c, d in [("user", "STRING", "nsfw_words", "text"), ("nsfw_words", "boolean", "nsfw_on", "a"),
+                       ("nsfw_on", "result", "nsfw", "strength_model"), ("unet", "MODEL", "nsfw", "model")]:
+        g.l(a, b, c, d)
     g.n("noise", "RandomNoise", [0, "fixed"], [("noise_seed", "INT", True)], [("NOISE", "NOISE")], (X, -460), (300, 90))
     g.n("sampler", "KSamplerSelect", ["lcm"], [], [("SAMPLER", "SAMPLER")], (X + 340, -460), (300, 60))
     g.n("w", "MpiInt", [896], [], [("int", "INT")], (X + 680, -460), (210, 60), "W_panel", MPI)
@@ -207,7 +242,7 @@ def klein():
                        ("seed", "int", "noise", "noise_seed")]:
         g.l(a, b, c, d)
 
-    prompt(g, "p1", KLEIN_P1_REF, None, KLEIN_P1_COPY, KLEIN_P1_TURN, "Portrait_Prompt", (X, Y))
+    prompt(g, "p1", KLEIN_P1_REF, KLEIN_P1_REF_BODY, KLEIN_P1_COPY, KLEIN_P1_TURN, "Portrait_Prompt", (X, Y))
     prompt(g, "p2", KLEIN_P2_REF, KLEIN_P2_REF_BODY, KLEIN_P2_LAYOUT, None, "Sheet_Prompt", (X + 1300, Y))
 
     def sample(p, x, y, refs):
@@ -230,7 +265,7 @@ def klein():
             [("noise", "NOISE"), ("guider", "GUIDER"), ("sampler", "SAMPLER"), ("sigmas", "SIGMAS"), ("latent_image", "LATENT")],
             [("output", "LATENT"), ("denoised_output", "LATENT")], (x + 340, y), (260, 120))
         g.n(p + "_dec", "VAEDecode", None, [("samples", "LATENT"), ("vae", "VAE")], [("IMAGE", "IMAGE")], (x + 340, y + 160), (170, 50))
-        g.l("unet", "MODEL", p + "_guider", "model"); g.l(positive[0], positive[1], p + "_guider", "positive")
+        g.l("nsfw", "MODEL", p + "_guider", "model"); g.l(positive[0], positive[1], p + "_guider", "positive")
         g.l(p + "_zero", "CONDITIONING", p + "_guider", "negative")
         for wh in ("_sched", "_latent"):
             g.l("w", "int", p + wh, "width"); g.l("h", "int", p + wh, "height")
@@ -239,15 +274,25 @@ def klein():
             g.l(a, b, p + "_sca", c)
         g.l(p + "_sca", "output", p + "_dec", "samples"); g.l("vae", "VAE", p + "_dec", "vae")
 
-    # pass 1: the portrait alone - only there does Klein copy picture 1 unsqueezed and keep (or take) the turn
+    # pass 1: the portrait alone - only there does Klein copy picture 1 unsqueezed and keep (or take) the turn;
+    # ref 2 = the body when loaded, so the portrait's shoulders wear the body's clothes (batch 18)
     SX = X + 2700
-    finish("p1", SX + 700, -900, sample("p1", SX, -900, [(("enc1", "LATENT"), "picture 1")]))
+    last1 = sample("p1", SX, -900, [(("enc1", "LATENT"), "picture 1"), (("enc2", "LATENT"), "body")])
+    g.ifelse("cond1_sw", "Pass1_Conditioning (has body?)", (SX + 340, -740))
+    g.l(last1[0], last1[1], "cond1_sw", "true"); g.l("p1_r1", "CONDITIONING", "cond1_sw", "false"); g.l("img2", "loaded", "cond1_sw", "boolean")
+    finish("p1", SX + 700, -900, ("cond1_sw", "output"))
     # pass 2: the body views, the finished portrait as ref 2 so the grey and light match; ref 3 = the body when loaded
     g.n("encp", "VAEEncode", None, [("pixels", "IMAGE"), ("vae", "VAE")], [("LATENT", "LATENT")], (SX + 1100, -500), (200, 50), "Encode portrait")
     g.l("p1_dec", "IMAGE", "encp", "pixels"); g.l("vae", "VAE", "encp", "vae")
-    last = sample("p2", SX, -200, [(("enc1", "LATENT"), "picture 1"), (("encp", "LATENT"), "portrait"), (("enc2", "LATENT"), "body")])
-    g.ifelse("cond_sw", "Pass2_Conditioning (has body?)", (SX + 340, 60))
-    g.l(last[0], last[1], "cond_sw", "true"); g.l("p2_r2", "CONDITIONING", "cond_sw", "false"); g.l("img2", "loaded", "cond_sw", "boolean")
+    last = sample("p2", SX, -200, [(("enc1", "LATENT"), "picture 1"), (("encp", "LATENT"), "portrait")])
+    prev = ("p2_text", "CONDITIONING")
+    for i, (lat, label) in enumerate([("encp", "portrait"), ("enc2", "body")], 1):
+        g.n(f"p2b_r{i}", "ReferenceLatent", None, [("conditioning", "CONDITIONING"), ("latent", "LATENT")],
+            [("CONDITIONING", "CONDITIONING")], (SX + 340, -20 + 80 * i), (240, 50), f"p2 (body) ref {i} = {label}")
+        g.l(prev[0], prev[1], f"p2b_r{i}", "conditioning"); g.l(lat, "LATENT", f"p2b_r{i}", "latent")
+        prev = (f"p2b_r{i}", "CONDITIONING")
+    g.ifelse("cond_sw", "Pass2_Conditioning (has body?)", (SX + 340, 220))
+    g.l(prev[0], prev[1], "cond_sw", "true"); g.l(last[0], last[1], "cond_sw", "false"); g.l("img2", "loaded", "cond_sw", "boolean")
     finish("p2", SX + 700, -200, ("cond_sw", "output"))
     g.n("stitch", "ImageStitch", ["right", False, 0, "white"], [("image1", "IMAGE"), ("image2", "IMAGE")], [("IMAGE", "IMAGE")],
         (SX + 1400, -200), (270, 150), "sheet [bodies | portrait]")

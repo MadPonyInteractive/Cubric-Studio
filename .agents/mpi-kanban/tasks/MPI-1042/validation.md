@@ -237,3 +237,118 @@ link resolved (65 / 40 executable nodes). Posted with `research/bench-tools/run_
   shirt, Qwen keeps picture 1's shirt and takes only the jeans / belt / boots; both portraits wear
   picture 1's shirt. The body-mode test proper (with a real full-body picture) is still open.
 - Contact sheet: `research/bench_v2_check.jpg`.
+
+## 2026-10-08 - batch 18, body mode on v2 with Fabio's three new pictures (agent-run under gpu_lease)
+
+Pictures (Fabio, `G:/ComfyUi/ComfyUI/input/`): P = a woman in a black latex catsuit holding a phone
+(`mpi1042_phone_4x5.png`, 4:5 face crop), F = a heavy woman in a white tank top + jeans, smoking, full body
+(`49cf8c25...jpg`), N = a nude woman cut at the thighs (`Sheet for Dataset Maker V2 Pt.png`). Cases PF, PN
+(3 seeds each: 42 / 7 / 2024) and SF = F's own face crop (`mpi1042_smoker_4x5.png`) + F (1 seed), both
+v2 graphs as built, `Input_Face_Turned` false, empty user text. Klein 60-81 s, Qwen 78-99 s. **Outputs and
+contact sheets stay OUT of the repo** (real person / nude): `G:/ComfyUi/ComfyUI/output/mpi1042_body/`.
+
+- **Describer:** P crop FRONT (right), smoker crop TURNED (a frontal face, tilted, a cigarette hand on
+  it: arguably wrong). Tally now 7 of 9.
+- **Both models INVENT piercings when the turn prompt names them.** Klein's portrait grew a nose stud,
+  ear piercings and a neck tattoo on P 3 of 3, and a septum ring, hoop and shoulder tattoo on S; Qwen
+  added two ear studs on P s42. The turn wording ("piercings, tattoos ... stay exactly as in image 1")
+  was tuned on the pierced, tattooed man only, so it never showed.
+- **Klein ignores Picture 2's clothes and build.** PF: jeans taken, but the top is picture 1's black
+  leather and the body stays slim 3 of 3; PN: the full catsuit 3 of 3, nothing nude. Pass 2's
+  references are picture 1 + the portrait (both in the catsuit) + the body: two outvote one.
+- **Qwen follows Picture 2.** PF: tank top + jeans + a heavier build 3 of 3; PN: nude 2 of 3 (s7 a
+  black leotard). SF: the bra strap of F kept. Qwen is the better body-mode model by eye.
+- **Both portraits wear PICTURE 1's clothes** (the catsuit collar on all 12 P runs), so with a body the
+  sheet shows two outfits. The portrait sees picture 1 only (Klein pass 1) or is told to keep image 1
+  (Qwen). SF hides it (one outfit).
+- Turn: Klein three-quarter 4 of 4; Qwen 3/4 on s42 / s2024, mild on s7.
+
+## 2026-10-08 - batch 19, no named piercings + the body below the chin (builder edits, scratchpad graphs)
+
+`build_bench_v2.py`: the turn sentences (Klein + Qwen) say "nothing added that image 1 does not show"
+instead of naming piercings / tattoos; Klein pass 1 takes the headless body as ref 2 when loaded; every
+with-body prompt adds "wears exactly what image N wears below the chin, or bare skin where image N shows
+bare skin; no clothing from image 1 below the chin" + "the same body shape, weight and proportions".
+Same pictures and seeds as batch 18, plus no-body controls. Contact sheets `contact3_*.jpg` (G:, not repo).
+
+- **Piercings fixed:** 0 of 13 portraits of the clean faces grew one (Klein 7, Qwen 6); the man (no body)
+  kept brow + lip + ear piercings and the neck tattoo 3 of 3 (Klein s42 / s2024, Qwen s42). Klein s2024
+  still a small braid at his ear, as in batch 13.
+- **Portrait clothes, Klein:** PN bare shoulders 3 of 3 (right); PF bare shoulders 2, black straps 1 -
+  never the white tank, but never the catsuit again.
+- **Klein body views still wear picture 1:** PN front = catsuit 3 of 3 (the back nude on s42 only),
+  PF front = black leather / black tee, s7 back a white tank (front and back disagree). Picture 1 as
+  pass-2 ref 1 still outvotes the body. Next: drop it from pass 2 when a body is loaded.
+- **Qwen:** PN nude 3 of 3 (s7 was a leotard in batch 18) with bare-shoulder portraits 3 of 3 (s7 framed
+  as a floating bust); PF body views tank + jeans 3 of 3, portrait bare shoulders s42, catsuit s7, a
+  head faded into the background s2024.
+
+## 2026-10-08 - batch 20, Klein pass 2 = portrait + body only; "the same garment at the neck" wording
+
+Klein with a body: pass 2's refs are the finished portrait (image 1) and the headless body (image 2),
+picture 1 dropped; the grey-background sentence moved from the shared layout into each ref string (the
+image numbers differ per mode). Every with-body prompt: "wears exactly the clothing image N shows on the
+body, the same garment at the neck and shoulders, and bare skin only where image N shows bare skin".
+Contact sheets `contact4_*.jpg` (G:).
+
+- **Klein portrait and body views now always agree** (pass 2 copies the portrait's clothes), 6 of 6.
+- **PF (tank top body): Qwen right 3 of 3** - white tank on the portrait AND the body views, jeans,
+  heavy build. Klein: s2024 right (white tank, heavier build), s7 a brown tank (shape right, colour
+  wrong), s42 a black leather vest (picture 1's).
+- **PN (nude body): REGRESSION on both** - Klein catsuit top on the portrait + leather top / briefs on
+  the body 3 of 3, Qwen a catsuit leotard 3 of 3 (batch 19's wording gave nude 3 of 3). "Garment" makes
+  the model put one on.
+- **No-body control unchanged** after the background-sentence move (man s42, phone woman s42 vs batch 19).
+- So batch 19's wording wins on a nude body, batch 20's on a clothed one: a wording that names both
+  cases, or the describer naming the clothes, is next.
+
+## 2026-10-08 - batch 21, a both-cases wording (W5), alone and with the describer's clothing caption
+
+W5 = "shows exactly what image N shows below the chin, the neck and shoulders included: the same clothing
+where image N is clothed, the same bare skin where image N is unclothed; no clothing from image 1 below
+the chin". Caption = the app's LOCAL describer (Qwen3-VL 4B, `image_descriptor.json`) asked on the WHOLE
+body picture "Describe only the clothing this person wears below the neck, as one short phrase ... If the
+person wears no clothing, reply exactly: no clothing." -> F `a white tank top and gray jeans`, N `no
+clothing`, put in the user-text slot as "Below the chin the character wears <answer>, in every view." /
+"Below the chin the character is unclothed, in every view." Seeds 42 / 7 / 2024 (W5), 42 / 7 (+caption).
+
+- **W5 alone fails on a clothed body:** PF portrait in the catsuit, Klein 3 of 3, Qwen 2 of 3 (+ one
+  faded head). PN: Qwen nude 3 of 3 (right), Klein the catsuit top 3 of 3.
+- **W5 + caption, Qwen: right 4 of 4** - white tank on the portrait AND the body views + jeans (PF 2 of 2),
+  nude with bare shoulders (PN 2 of 2).
+- **W5 + caption, Klein: PF right 2 of 2** (white tank on the portrait and the body views, grey jeans as
+  captioned, barefoot), **PN wrong 2 of 2** (catsuit / black top on the portrait, leather top + briefs on
+  the body) - "unclothed" in words does not beat picture 1's clothes in Klein's pass 1. Batch 22 tries
+  the caption with other wordings.
+- Contact sheet `contact5.jpg` (G:).
+
+## 2026-10-08 - batch 22, the caption with two other below-the-chin wordings
+
+Batch 21's captions, W5 swapped in the with-body text nodes for A = batch 19's "wears exactly what image N
+wears below the chin, or bare skin where image N shows bare skin; no clothing from image 1 below the chin"
+or B = "takes everything below the chin from image 2, the neck and shoulders included; no clothing from
+image 1 below the chin". Klein seeds 42 / 7, Qwen 42. Contact sheet `contact6.jpg` (G:).
+
+- **A + caption and B + caption: right 12 of 12** - Klein PF white tank on the portrait and the body
+  views 4 of 4, **Klein PN nude with bare-shoulder portraits 4 of 4** (W5 + caption: 0 of 2), Qwen PF / PN
+  4 of 4. Klein's body views go barefoot with the tank caption (it names no shoes).
+- **Picked A**: the most evidence (batch 19 without a caption was right on a nude body too). Built into
+  `build_bench_v2.py`; the regenerated API graphs equal the tested ones node for node.
+- No-caption fallback (describer down): A leaves a clothed body's portrait in bare shoulders (batch 19).
+
+## 2026-10-08 - batch 23, Klein arm gets the app's word-triggered NSFW LoRA (Fabio)
+
+Fabio: base Klein does not draw bare skin well; the app's Klein workflow switches `NSFW_party_time_v2.0_klein9b`
+to strength 1.0 when the user's text holds a word from its list (`klein_t2i_template.json` #43 MpiTextContains
+-> #44 MpiMath -> #38). Same three nodes in the Klein bench arm on `Input_Positive`, the LoRA model feeding both
+samplings; the nude caption now says "nude" (a list word), not "unclothed" (not one). Qwen unchanged.
+
+- **LoRA-off path unchanged:** Klein PF s42 (tank caption, no list word) vs batch 22: max pixel diff 0.
+- **Klein PN, LoRA on: nude 3 of 3** (42 / 7 / 2024), bare-shoulder portraits, front + back agree; s2024's
+  portrait turned less than three-quarter. At sheet scale it looks like batch 22's no-LoRA nude - the
+  detail call is Fabio's (`contact7.jpg`, G:).
+- **Qwen PN with "nude": nude 2 of 2**; s7's portrait over-turned (shoulder toward the camera).
+- Fabio's `MPI-1042_character_sheet_v2_{klein,qwen}.json` regenerated from `build_bench_v2.py`; converted, they
+  equal the tested batch-23 graphs node for node.
+- **Fabio's eye, 2026-10-08: "1" - approved** (contact6 / contact7), and the Flow points body-picture users
+  to Qwen.
