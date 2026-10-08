@@ -96,6 +96,42 @@ own wording, e.g. a supplied torso image).
   the pickers to None and gates on validate-injection-rules.
 - In-app runs need the MpiNodes pin at 6bf5659 (message 8e322db4 to the MPI-1043 bump session).
 
+2026-10-08 (Video edit 8): engine bump landed (MPI-1043 04b4f08eb, bench on 0.39.0, MpiGradeMatch registers).
+- R2-R5 running on the bench under the lease (background, log in the session scratchpad `r2r5.log`).
+- FlowDef `video-edit` in `flowsRegistry.js` (after ltx-upscale), no `preview`/`video` yet. Fields as planned;
+  description ends on the long-clip warning.
+- BUG FOUND + FIXED in the graph: Input_Who / Input_Target were `MpiString`, which the app treats as a media
+  PATH (`comfyController` PATH_MEDIA_CLASSES -> staged as a file). Now `MpiText`. Caught by
+  `tests/workflow-media-slots.test.cjs` (MpiAnyChecker on an Input_* MpiString).
+- raw/ exported via the bench frontend (`research/bench/export_raw.py push|pull` + browser `loadApiJson` /
+  `serialize`), synced: raw committed `15b26e6ea` + `0bf61b010` (sync script commits raw itself), API
+  `comfy_workflows/flow_video_edit.json` STAGED, diffed against the builder: 73/73 nodes, 0 diffs.
+- Tests: inject-params-titles case, agent-flow-handover `runs` += video-edit. Full suite 2777/2780 before the
+  last fixes; the one left: `user-flows.test.cjs` "every shipped Flow, expressed as a package" needs a
+  `preview` file - RED UNTIL PHASE 4 ART (or a provisional tile). Do not push the FlowDef without it.
+- Docs: `docs/agent/flows.md` § Video Edit, `docs/playbooks/add-flow/existing-flows/video-edit.md`.
+- NOT yet: UNRELEASED.md (claimed by the live MPI-1043 session cd4bd605; no `## What's new` section exists -
+  add one with the Flows roster + entry at close), in-app runs, Fabio's eye test, Phase 4.
+- Fabio (same session): YES to keeping "no text" in masked mode (done: TAIL_MASKED = change-only line +
+  TAIL_WHOLE, raw re-exported + synced, 0 diffs), YES to a provisional tile (done:
+  `comfy_workflows/display/flow-video-edit.webp`, frame 30 of Phase 1 run F, 896x1120 - NOT the horns or dance
+  clips: those are a real TikTok creator's footage with her @handle, never ship them; Phase 4's hero needs owned
+  footage), YES to in-app runs on app:isolated (his GPU, 48188 shared).
+- Full unit suite green (2778 pass, 0 fail) with the tile.
+- **R2 (swap, keep room) FAILED the swap** (brief.md § Phase 3): the dancer keeps her own face/hair/clothes, only
+  the picture's accessories came over. Run E (Phase 1) swapped fully with a prompt that named the look and said
+  "no blonde hair remains". Next: test a generic line in PHOTO[1] (and NO_PHOTO[1]) - "nothing of {who}'s own
+  face, hair or clothes remains" - as R2b; if it holds, re-export raw + sync.
+- In flight at handoff: `run_flow.py R3 R4 R5` (lease, log scratchpad `r2r5.log` of session f014ce69) and the
+  queued R1 re-run (no-text masked tail, `r1b.log`). Outputs land in `D:/WORK/Images/Outputs/mpi1036/` as
+  `R3_swap_picture_room_*`, `R4_background_*`, `R5_head_*`, `R1_masked_horns_00002.mp4` whatever happens to
+  this session - judge them from there. Contact sheet recipe: ffmpeg scale both to 225x400, select frames
+  12/48/90, tile=3x1, vstack (source 480x864, output 576x1024).
+- In-app runs: `research/bench/run_in_app.py <base-url> A1_masked_horns A2_swap_keep`, wrapped in gpu_lease,
+  after the bench is idle AND its VRAM freed (POST :8188/free {"unload_models":true,"free_memory":true}).
+  Launch: `APP_DOCUMENTS=<scratch> npm run app:isolated` in the background, grep READY for the port;
+  `git status -- dev_configs/` must be clean first (boot repairs the real engine to the pin).
+
 ## Phase 1 - The hidden instructions, on the bench
 
 **Verify:** Fabio judges each option on 2-3 real clips; the winning instruction text for every

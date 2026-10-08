@@ -66,11 +66,12 @@ NO_PHOTO = {
         "performance, every move and its timing, the camera framing, the room and the light."),
 }
 NO_PHOTO[6] = NO_PHOTO[1]  # no picture, so there is no picture room to take
-TAIL_MASKED = ("Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows "
-               "<Video 1> exactly, frame for frame.")
-# The masked tail drops "no text": inside a box it erases on-screen text the box happens to hold, nothing else.
 TAIL_WHOLE = ("No text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no "
               "warped anatomy, no flicker.")
+# The masked tail KEEPS "no text" (Fabio, 2026-10-08): without it R1 re-drew the caption inside the box garbled; with
+# it (the passed M3l run) the caption the box holds is erased cleanly. Text outside the box is never touched.
+TAIL_MASKED = ("Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows "
+               "<Video 1> exactly, frame for frame.\n" + TAIL_WHOLE)
 
 
 def node(cls, title, **inputs):
@@ -87,8 +88,10 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['12'] = node('MpiText', 'Input_Positive', string=positive)
     g['13'] = node('MpiInt', 'Input_Operation', int=operation)
     g['14'] = node('MpiSimpleBoolean', 'Input_Keep_Background', boolean=keep_background)
-    g['15'] = node('MpiString', 'Input_Who', string=who)
-    g['16'] = node('MpiString', 'Input_Target', string=target)
+    # MpiText, never MpiString: the app treats an Input_* MpiString as a media PATH and stages it as a file
+    # (comfyController PATH_MEDIA_CLASSES), so 'the person' would be resolved as a filename.
+    g['15'] = node('MpiText', 'Input_Who', string=who)
+    g['16'] = node('MpiText', 'Input_Target', string=target)
     g['17'] = node('MpiInt', 'Input_Seed', int=seed)
 
     # ---- routing

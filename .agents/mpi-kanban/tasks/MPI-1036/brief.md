@@ -246,4 +246,21 @@ for the Swap the person option only.
   user picks the operation type, the hidden prompt follows it) - same dropdown as decided
   2026-10-06/07, not a separate Flow.
 
+- **Masked mode KEEPS "no text" (Fabio, 2026-10-08, Video edit 8)** - reverses the Phase 2 recipe line above. Without it
+  bench R1 re-drew the caption inside the box GARBLED; the passed M3l run had it and erased the caption cleanly.
+- **A provisional preview tile** may ship before Phase 4 so CI stays green (Fabio, same day); Phase 4 replaces it.
+
+## Phase 3 - whole-frame Flow graph on the bench (Video edit 8, 2026-10-08)
+
+Flow graph (`research/bench/flow_graph.py`) through `run_flow.py`, 576x1024, turbo 8, seed 904234, the dance clip.
+
+- **R2 Swap the person, keep the room, mirror-shot picture, swap LoRA on: the SWAP FAILED at the front.**
+  991 s. The source blonde dancer keeps her own face, hair and clothes; only the picture's ACCESSORIES
+  came over (cat ears, paw gloves) plus a dark bun when she turns away. Room, framing, sync and the
+  overlay removal are right. Run E (Phase 1: same clip, picture, seed, LoRA + turbo) replaced her fully.
+  Differences from E: 480x864 -> 576x1024; core node -> MpiH3References (delegates to the same core
+  node, so not suspected); E's prompt named the look ("her face, her dark hair in a bun ... no blonde
+  hair remains"), the generic template says only "identity, face, hair, outfit and art style".
+  Suspect the template: it never says the person's OWN look must go.
+
 ## Noticed

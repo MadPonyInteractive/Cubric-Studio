@@ -1,0 +1,1128 @@
+{
+  "10": {
+    "inputs": {
+      "video": "None",
+      "block_if_empty": true,
+      "force_rate": 24,
+      "string": ""
+    },
+    "class_type": "MpiLoadVideoUpload",
+    "_meta": {
+      "title": "Input_Video"
+    }
+  },
+  "11": {
+    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": false,
+      "string": ""
+    },
+    "class_type": "MpiLoadImage",
+    "_meta": {
+      "title": "Input_Image"
+    }
+  },
+  "12": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Positive"
+    }
+  },
+  "13": {
+    "inputs": {
+      "int": 1
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Operation"
+    }
+  },
+  "14": {
+    "inputs": {
+      "boolean": true
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Keep_Background"
+    }
+  },
+  "15": {
+    "inputs": {
+      "string": "the person"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Who"
+    }
+  },
+  "16": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Target"
+    }
+  },
+  "17": {
+    "inputs": {
+      "int": 904234
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Seed"
+    }
+  },
+  "20": {
+    "inputs": {
+      "any": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "MpiAnyChecker",
+    "_meta": {
+      "title": "Masked? (a \"what to change\" was typed)"
+    }
+  },
+  "21": {
+    "inputs": {
+      "math_expression": "(a + (b == 1) * c) > 0",
+      "a": [
+        "23",
+        0
+      ],
+      "b": [
+        "13",
+        0
+      ],
+      "c": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Swap LoRA on? (masked, or Swap the person in the video room)"
+    }
+  },
+  "22": {
+    "inputs": {
+      "math_expression": "6 if (a == 1) * b * (1 - c) > 0 else a",
+      "a": [
+        "13",
+        0
+      ],
+      "b": [
+        "11",
+        4
+      ],
+      "c": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Template (6 = the person into the picture room)"
+    }
+  },
+  "23": {
+    "inputs": {
+      "math_expression": "(a * (b != 4)) > 0",
+      "a": [
+        "20",
+        1
+      ],
+      "b": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Masked? (typed, and not Change the background)"
+    }
+  },
+  "30": {
+    "inputs": {
+      "math_expression": "floor((a - 5) / 17) * 17 + 5",
+      "a": [
+        "10",
+        3
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Frames on the H3 grid (17k+5)"
+    }
+  },
+  "31": {
+    "inputs": {
+      "start_index": 0,
+      "images": [
+        "10",
+        0
+      ],
+      "num_frames": [
+        "30",
+        0
+      ]
+    },
+    "class_type": "GetImageRangeFromBatch",
+    "_meta": {
+      "title": "Source on the grid"
+    }
+  },
+  "32": {
+    "inputs": {
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration": [
+        "10",
+        4
+      ]
+    },
+    "class_type": "EmptyAudio",
+    "_meta": {
+      "title": "Silence (source has no audio)"
+    }
+  },
+  "33": {
+    "inputs": {
+      "true": [
+        "10",
+        1
+      ],
+      "false": [
+        "32",
+        0
+      ],
+      "boolean": [
+        "10",
+        7
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "has_audio ? source audio : silence"
+    }
+  },
+  "34": {
+    "inputs": {
+      "math_expression": "a - 1",
+      "a": [
+        "30",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Last frame"
+    }
+  },
+  "35": {
+    "inputs": {
+      "start": 0,
+      "audio": [
+        "33",
+        0
+      ],
+      "fps": [
+        "10",
+        2
+      ],
+      "end": [
+        "34",
+        0
+      ]
+    },
+    "class_type": "MpiAudioRange",
+    "_meta": {
+      "title": "Source audio on the grid"
+    }
+  },
+  "40": {
+    "inputs": {
+      "math_expression": "floor(sqrt(589824 * a / b) / 32 + 0.5) * 32",
+      "a": [
+        "10",
+        5
+      ],
+      "b": [
+        "10",
+        6
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Render width"
+    }
+  },
+  "41": {
+    "inputs": {
+      "math_expression": "floor(sqrt(589824 * a / b) / 32 + 0.5) * 32",
+      "a": [
+        "10",
+        6
+      ],
+      "b": [
+        "10",
+        5
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Render height"
+    }
+  },
+  "42": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "crop",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 32,
+      "device": "cpu",
+      "image": [
+        "31",
+        0
+      ],
+      "width": [
+        "40",
+        0
+      ],
+      "height": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Whole frame at the render size"
+    }
+  },
+  "50": {
+    "inputs": {
+      "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "SAM3"
+    }
+  },
+  "51": {
+    "inputs": {
+      "clip": [
+        "50",
+        1
+      ],
+      "text": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "What to find"
+    }
+  },
+  "52": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "50",
+        0
+      ],
+      "image": [
+        "31",
+        0
+      ],
+      "conditioning": [
+        "51",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "Find it in every frame"
+    }
+  },
+  "53": {
+    "inputs": {
+      "padding": 64,
+      "mask": [
+        "52",
+        0
+      ]
+    },
+    "class_type": "MpiMaskSquareBbox",
+    "_meta": {
+      "title": "One still square round it (pad 64)"
+    }
+  },
+  "54": {
+    "inputs": {
+      "downscale_algorithm": "bilinear",
+      "upscale_algorithm": "bicubic",
+      "preresize": false,
+      "preresize_mode": "ensure minimum resolution",
+      "preresize_min_width": 1024,
+      "preresize_min_height": 1024,
+      "preresize_max_width": 16384,
+      "preresize_max_height": 16384,
+      "mask_fill_holes": true,
+      "mask_expand_pixels": 0,
+      "mask_invert": false,
+      "mask_blend_pixels": 24,
+      "mask_hipass_filter": 0.1,
+      "extend_for_outpainting": false,
+      "extend_up_factor": 1,
+      "extend_down_factor": 1,
+      "extend_left_factor": 1,
+      "extend_right_factor": 1,
+      "context_from_mask_extend_factor": 1.25,
+      "output_resize_to_target_size": true,
+      "output_target_width": 512,
+      "output_target_height": 512,
+      "output_padding": "32",
+      "device_mode": "cpu (compatible)",
+      "image": [
+        "31",
+        0
+      ],
+      "mask": [
+        "53",
+        0
+      ]
+    },
+    "class_type": "InpaintCropImproved",
+    "_meta": {
+      "title": "Crop the square"
+    }
+  },
+  "60": {
+    "inputs": {
+      "true": [
+        "54",
+        1
+      ],
+      "false": [
+        "42",
+        0
+      ],
+      "boolean": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "masked ? crop : whole frame"
+    }
+  },
+  "61": {
+    "inputs": {
+      "true": [
+        "63",
+        0
+      ],
+      "false": [
+        "40",
+        0
+      ],
+      "boolean": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "masked ? crop width : render width"
+    }
+  },
+  "62": {
+    "inputs": {
+      "true": [
+        "63",
+        0
+      ],
+      "false": [
+        "41",
+        0
+      ],
+      "boolean": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "masked ? crop height : render height"
+    }
+  },
+  "63": {
+    "inputs": {
+      "int": 512
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Crop size"
+    }
+  },
+  "71": {
+    "inputs": {
+      "string": "Replace only {who} in <Video 1> with the character in <Picture 1>. Keep the character's identity, face, hair, outfit and art style from <Picture 1>, and use it for the back of the head whenever they turn away. Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself or its background.\n{words}"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 1 (picture)"
+    }
+  },
+  "72": {
+    "inputs": {
+      "string": "Replace only the head and face of {who} in <Video 1> with the head and face of the character in <Picture 1>: their face, hair, skin and features from every angle, and the back of the head whenever {who} turns away. Keep {who}'s body, clothes and hands, and the camera, framing, background, lighting, objects and all other people of <Video 1>. Match the head's position, angle, expression, mouth and every movement throughout the clip. Do not show <Picture 1> itself, its body or its background.\n{words}"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 2 (picture)"
+    }
+  },
+  "73": {
+    "inputs": {
+      "string": "Change what {who} in <Video 1> wears to match <Picture 1>, taking only what is worn there, or the bare skin it shows, never its face, pose or room. Keep {who}'s face, hair, body and every movement, and the camera, framing, background, lighting, objects and all other people of <Video 1>; the clothes move and fold with the body.\n{words}"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 3 (picture)"
+    }
+  },
+  "74": {
+    "inputs": {
+      "string": "Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and as the camera framing, kept exactly as it is; use <Picture 1> only as the location and its light, without taking its composition, its camera angle, its grade or any person in it.\n[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now the location of <Picture 1>, its light falling on them. {words}"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 4 (picture)"
+    }
+  },
+  "75": {
+    "inputs": {
+      "string": "Use <Picture 1> as the reference for this change to <Video 1>: {words} Keep everything else exactly as it is in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and the light."
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 5 (picture)"
+    }
+  },
+  "76": {
+    "inputs": {
+      "string": "Use <Picture 1> as the character, their face, hair, outfit and art style, and as the location and its light, without taking its composition or its camera angle; use <Video 1> only as the performance of {who}, every move, expression, mouth movement and its timing, and its camera framing, and take nothing else from it, not its room, its performer's looks, its image quality, its grade or its text.\n[Shot 1] The character from <Picture 1> performs exactly what {who} does in <Video 1>, move for move, in the location of <Picture 1>. {words}\nThe camera frames them exactly as <Video 1> does. No phone-video look: the picture quality of <Picture 1>."
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 6 (picture)"
+    }
+  },
+  "77": {
+    "inputs": {
+      "any_1": [
+        "71",
+        0
+      ],
+      "any_2": [
+        "72",
+        0
+      ],
+      "any_3": [
+        "73",
+        0
+      ],
+      "any_4": [
+        "74",
+        0
+      ],
+      "any_5": [
+        "75",
+        0
+      ],
+      "any_6": [
+        "76",
+        0
+      ],
+      "select": [
+        "22",
+        0
+      ]
+    },
+    "class_type": "MpiAnySwitch10",
+    "_meta": {
+      "title": "Instruction (picture)"
+    }
+  },
+  "81": {
+    "inputs": {
+      "string": "Replace only {who} in <Video 1> with this new person: {words} Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 1 (no picture)"
+    }
+  },
+  "82": {
+    "inputs": {
+      "string": "Replace only the head and face of {who} in <Video 1>: {words} Keep {who}'s body, clothes and hands, and the camera, framing, background, lighting, objects and all other people of <Video 1>. Match the head's position, angle, expression, mouth and every movement throughout the clip."
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 2 (no picture)"
+    }
+  },
+  "83": {
+    "inputs": {
+      "string": "Change only what {who} wears in <Video 1>: {words} Keep {who}'s face, hair, body and every movement, and the camera, framing, background, lighting, objects and all other people of <Video 1>; the clothes move and fold with the body."
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 3 (no picture)"
+    }
+  },
+  "84": {
+    "inputs": {
+      "string": "Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and as the camera framing, kept exactly as it is; change only the place around them.\n[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now this: {words}"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 4 (no picture)"
+    }
+  },
+  "85": {
+    "inputs": {
+      "string": "Change <Video 1> like this: {words} Keep everything else exactly as it is in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and the light."
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 5 (no picture)"
+    }
+  },
+  "86": {
+    "inputs": {
+      "string": "Replace only {who} in <Video 1> with this new person: {words} Preserve the camera, framing, background, lighting, objects and all other people of <Video 1>. Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Instruction 6 (no picture)"
+    }
+  },
+  "87": {
+    "inputs": {
+      "any_1": [
+        "81",
+        0
+      ],
+      "any_2": [
+        "82",
+        0
+      ],
+      "any_3": [
+        "83",
+        0
+      ],
+      "any_4": [
+        "84",
+        0
+      ],
+      "any_5": [
+        "85",
+        0
+      ],
+      "any_6": [
+        "86",
+        0
+      ],
+      "select": [
+        "22",
+        0
+      ]
+    },
+    "class_type": "MpiAnySwitch10",
+    "_meta": {
+      "title": "Instruction (no picture)"
+    }
+  },
+  "90": {
+    "inputs": {
+      "true": [
+        "77",
+        0
+      ],
+      "false": [
+        "87",
+        0
+      ],
+      "boolean": [
+        "11",
+        4
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "picture ? : no picture"
+    }
+  },
+  "91": {
+    "inputs": {
+      "string": "Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows <Video 1> exactly, frame for frame.\nNo text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no warped anatomy, no flicker."
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Tail (masked)"
+    }
+  },
+  "92": {
+    "inputs": {
+      "string": "No text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no warped anatomy, no flicker."
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Tail (whole frame)"
+    }
+  },
+  "93": {
+    "inputs": {
+      "true": [
+        "91",
+        0
+      ],
+      "false": [
+        "92",
+        0
+      ],
+      "boolean": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "masked ? : whole frame"
+    }
+  },
+  "94": {
+    "inputs": {
+      "delimiter": "\n",
+      "string_a": [
+        "90",
+        0
+      ],
+      "string_b": [
+        "93",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Instruction + tail"
+    }
+  },
+  "95": {
+    "inputs": {
+      "find": "{who}",
+      "string": [
+        "94",
+        0
+      ],
+      "replace": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "{who}"
+    }
+  },
+  "96": {
+    "inputs": {
+      "find": "{target}",
+      "string": [
+        "95",
+        0
+      ],
+      "replace": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "{target}"
+    }
+  },
+  "97": {
+    "inputs": {
+      "find": "{words}",
+      "string": [
+        "96",
+        0
+      ],
+      "replace": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "{words}"
+    }
+  },
+  "100": {
+    "inputs": {
+      "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "101": {
+    "inputs": {
+      "clip_name": "qwen3vl_32b_h3_ultra_uncensored_heretic_int8_convrot.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "102": {
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_int8_convrot.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "103": {
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load Audio VAE"
+    }
+  },
+  "104": {
+    "inputs": {
+      "lora_name": "minimax-h3\\h3_character_swap_pro4500_1000.safetensors",
+      "strength_model": 1,
+      "model": [
+        "100",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Character Swap LoRA"
+    }
+  },
+  "105": {
+    "inputs": {
+      "true": [
+        "104",
+        0
+      ],
+      "false": [
+        "100",
+        0
+      ],
+      "boolean": [
+        "21",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "swap LoRA ? : base"
+    }
+  },
+  "106": {
+    "inputs": {
+      "lora_name": "minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "105",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Turbo LoRA (8-step)"
+    }
+  },
+  "107": {
+    "inputs": {
+      "vae_name": "taeh3.safetensors"
+    },
+    "class_type": "MpiTinyVaeLoader",
+    "_meta": {
+      "title": "Mpi Tiny Vae Loader"
+    }
+  },
+  "108": {
+    "inputs": {
+      "preview_rate": 24,
+      "model": [
+        "106",
+        0
+      ],
+      "vae": [
+        "107",
+        0
+      ]
+    },
+    "class_type": "MpiVideoSamplingPreview",
+    "_meta": {
+      "title": "Mpi Video Sampling Preview"
+    }
+  },
+  "110": {
+    "inputs": {
+      "ref_image_size": "match",
+      "clip": [
+        "101",
+        0
+      ],
+      "vae": [
+        "102",
+        0
+      ],
+      "audio_vae": [
+        "103",
+        0
+      ],
+      "ref_image_1": [
+        "11",
+        0
+      ],
+      "ref_video_1": [
+        "60",
+        0
+      ],
+      "prompt": [
+        "97",
+        0
+      ],
+      "width": [
+        "61",
+        0
+      ],
+      "height": [
+        "62",
+        0
+      ],
+      "length": [
+        "30",
+        0
+      ]
+    },
+    "class_type": "MpiH3References",
+    "_meta": {
+      "title": "H3 references (<Video 1> the clip, <Picture 1> the picture)"
+    }
+  },
+  "111": {
+    "inputs": {
+      "noise_seed": [
+        "17",
+        0
+      ]
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "112": {
+    "inputs": {
+      "sampler_name": "res_multistep"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "113": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 8,
+      "denoise": 1,
+      "model": [
+        "105",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "BasicScheduler"
+    }
+  },
+  "114": {
+    "inputs": {
+      "model": [
+        "108",
+        0
+      ],
+      "conditioning": [
+        "110",
+        0
+      ]
+    },
+    "class_type": "BasicGuider",
+    "_meta": {
+      "title": "Basic Guider"
+    }
+  },
+  "115": {
+    "inputs": {
+      "noise": [
+        "111",
+        0
+      ],
+      "guider": [
+        "114",
+        0
+      ],
+      "sampler": [
+        "112",
+        0
+      ],
+      "sigmas": [
+        "113",
+        0
+      ],
+      "latent_image": [
+        "110",
+        1
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "116": {
+    "inputs": {
+      "samples": [
+        "115",
+        0
+      ],
+      "vae": [
+        "102",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "117": {
+    "inputs": {
+      "passthrough": [
+        "116",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "Mpi Clear Vram"
+    }
+  },
+  "120": {
+    "inputs": {
+      "band": 48,
+      "destination": [
+        "54",
+        1
+      ],
+      "source": [
+        "117",
+        0
+      ],
+      "mask": [
+        "54",
+        2
+      ]
+    },
+    "class_type": "MpiGradeMatch",
+    "_meta": {
+      "title": "Grade match on the band round the box"
+    }
+  },
+  "121": {
+    "inputs": {
+      "stitcher": [
+        "54",
+        0
+      ],
+      "inpainted_image": [
+        "120",
+        0
+      ]
+    },
+    "class_type": "InpaintStitchImproved",
+    "_meta": {
+      "title": "Stitch back into the source"
+    }
+  },
+  "122": {
+    "inputs": {
+      "true": [
+        "121",
+        0
+      ],
+      "false": [
+        "117",
+        0
+      ],
+      "boolean": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "masked ? stitched : whole frame"
+    }
+  },
+  "130": {
+    "inputs": {
+      "fps": 24,
+      "filename_prefix": "MpiVideo_Edit",
+      "use_audio": true,
+      "truncate_to_audio": false,
+      "images": [
+        "122",
+        0
+      ],
+      "audio": [
+        "35",
+        0
+      ]
+    },
+    "class_type": "MpiSaveVideo",
+    "_meta": {
+      "title": "Output_Video"
+    }
+  }
+}

@@ -55,7 +55,7 @@ test.describe('which Flows open for the user (Fabio\'s sort)', () => {
     test('every other Flow is the agent\'s to run', () => {
         const runs = listFlows().filter((f) => !f.agentOpens).map((f) => f.id);
         // Song too: the app asks "Review lyrics | Just do it" first, on a card (MPI-1005).
-        for (const id of ['character-sheet', 'outpaint', 'ltx-extend', 'ltx-foley', 'ltx-upscale', 'stems', 'voice-changer', 'minimax-music']) {
+        for (const id of ['character-sheet', 'outpaint', 'ltx-extend', 'ltx-foley', 'ltx-upscale', 'stems', 'voice-changer', 'minimax-music', 'video-edit']) {
             assert.ok(runs.includes(id), `${id} should run`);
         }
     });

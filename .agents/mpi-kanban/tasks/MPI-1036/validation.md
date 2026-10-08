@@ -22,3 +22,9 @@ Measured, reproduce with the session scratchpad scripts (`mask_bench.py NAME`, `
 
 Side-by-sides sent to Fabio: `box_horns_side_by_side.webm`, `box_remove_side_by_side.webm`,
 `labelled_horns_side_by_side.webm` (session scratchpad).
+
+## Phase 3 - Flow wiring (Video edit 8, 2026-10-08)
+
+- raw/ -> API sync: `node scripts/sync-raw-workflows.mjs` validator green; `comfy_workflows/flow_video_edit.json` diffed against `research/bench/flow_graph.py` node by node (class, title, every input, every link): 73/73, 0 diffs.
+- `node --test tests/agent-flow-handover.test.cjs tests/agent-prompt-budget.test.cjs tests/connector-flow-dispatch.test.cjs tests/connector-agent-tools.test.cjs tests/inject-params-titles.test.cjs tests/workflow-media-slots.test.cjs`: 87/87.
+- Full suite: one red left, `user-flows.test.cjs` (a shipped Flow as a package needs a `preview` file) - waits on the tile.

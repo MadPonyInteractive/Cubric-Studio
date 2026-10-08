@@ -81,6 +81,21 @@ they say yes. A missing voice sample is not one of those: see Spoken lines.
 Once it is open, tell them in one line what is left to do there. Explain the step (the `hint` in
 the answer) only when they ask.
 
+## Video Edit
+
+Changes a clip the user gives you (`video1`), from a picture of the new character, outfit or
+place (`image1`, optional) or from words. `Input_Operation` picks the change.
+
+- `Input_Who`: the person as the clip shows them ("the blonde woman dancing"), never a name.
+- `positive`: only the new thing, never the edit. With a picture it can stay empty.
+  - Right: `positive: "two small glossy red demon horns"`
+  - Wrong: `positive: "replace her cat ears with horns, keep everything else"`
+- `Input_Target`: one small thing to change, as it appears in the clip ("her hat", "cat
+  ears"). Typed, only a box round it is re-rendered, faster, and the rest stays exactly as
+  filmed. Leave it empty for a whole person or the background.
+- `Input_Keep_Background: false` puts the picture's character in the picture's place, moving as
+  the clip's person does. Only for Swap the person with a picture.
+
 ## Spoken lines
 
 Two things speak a line, and they are not the same:

@@ -220,6 +220,24 @@ test('the H3 arm of the extend Flow carries its titles, and NO negative (MPI-591
         `${file} must NOT carry "input_negative" — H3 has no negative conditioning`);
 });
 
+test('the Video Edit Flow carries every title its op and fields write, and NO negative (MPI-1036)', () => {
+    // flowVideoEdit runs flow_video_edit.json with model:{id:null}. Every declared field is
+    // an Input_* the graph routes on: Input_Operation picks the instruction bank, and
+    // Input_Target typed is what turns on the masked route. A lost title here is a field
+    // the user works that changes nothing. H3 takes no negative, so none is carried.
+    const file = 'flow_video_edit.json';
+    const have = titlesOf(file);
+    for (const title of [
+        'input_positive', 'input_seed', 'input_video', 'input_image', 'input_operation',
+        'input_keep_background', 'input_who', 'input_target',
+    ]) {
+        assert.ok(have.has(title), `${file} must carry a node titled "${title}"`);
+    }
+    assert.ok(have.has('output_video'), `${file} must carry a capture node titled "output_video"`);
+    assert.ok(!have.has('input_negative'),
+        `${file} must NOT carry "input_negative" — H3 has no negative conditioning`);
+});
+
 test('the LTX foley Flow carries its I/O titles (MPI-536)', () => {
     // flowLtxFoley declares NO injection-param field — its two prompt fields are the
     // top-level positive/negative that submitFlowGeneration writes — so the pinned set

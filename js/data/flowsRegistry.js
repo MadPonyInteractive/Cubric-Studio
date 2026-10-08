@@ -752,6 +752,88 @@ export const FLOWS = [
         ],
     },
 
+    // MPI-1036 — Video Edit, on MiniMax H3 reference-to-video. ONE graph, and every choice
+    // below is resolved INSIDE it: the picker selects one of twelve hidden instruction
+    // templates (picture / no picture), the user's words, who and target are spliced in by
+    // StringReplace, and a typed "Only change" routes the run through SAM3 + one still square
+    // box (re-render the box, grade-match, stitch back at source resolution) instead of the
+    // whole frame. The swap LoRA is a FLOW dep: it holds H3's timing to the source on every
+    // masked edit, which is why it is not swap-only. Bench evidence: tasks/MPI-1036/brief.md.
+    //
+    // 🔴 A HIDDEN FIELD KEEPS ITS VALUE (fields.md), so the graph re-checks each rule the
+    // hiddenWhen clauses below express: a target typed and then hidden by Change the
+    // background does not mask (MpiMath `a * (b != 4)`), and the picture's room is taken only
+    // when op 1 AND a picture AND Keep_Background false. Change a clause here, change the
+    // graph's twin.
+    //
+    // PROVISIONAL `preview` (Fabio, 2026-10-08): a frame of bench run F, the picture's
+    // character dancing in the picture's room, so CI's package check passes before Phase 4.
+    // Phase 4 (/mpi-flow-graphics) replaces it and adds the `video` hero.
+    {
+        id: 'video-edit',
+        title: 'Video Edit',
+        preview: 'flow-video-edit.webp',
+        description: 'Swap the person, head or outfit in a video, change its background, or make any edit you describe. Add a picture of the new character, outfit or place, or describe it in words. Name one thing under “Only change” and just that part is re-rendered, faster, with the rest kept exactly as filmed. The soundtrack comes through untouched. Short clips first: a 5-second clip can take 20 minutes, and longer ones drift.',
+        requiredModels: ['minimax-h3-ref2va'],
+        // The swap LoRA belongs to this Flow, not to the model (01-descriptor-and-ops.md §
+        // requiredDeps). SAM3 is an engineAsset, so it is not listed.
+        requiredDeps: ['minimax-h3-character-swap-lora'],
+        operation: 'flowVideoEdit',
+        workflow: 'flow_video_edit.json',
+        mediaType: 'video',
+        type: 'edit',
+        inputSchema: {
+            media: [
+                { type: 'video', mode: 'upto', max: 1, roles: ['video1'], labels: ['Video to edit'] },
+                // <Picture 1>. Optional: with none, the no-picture template bank runs and the
+                // words carry the whole change.
+                { type: 'image', mode: 'upto', max: 1, roles: ['image1'], labels: ['Picture (optional)'] },
+            ],
+        },
+        result: { compare: 'video1' },
+        fields: [
+            {
+                // Selects the instruction template (MpiAnySwitch10 banks). 6, "the person
+                // into the picture's room", is NOT an option: the graph picks it from 1 +
+                // a picture + Keep_Background false.
+                id: 'Input_Operation', type: 'select', label: 'What to change', default: 1,
+                options: [
+                    { v: 1, label: 'Swap the person', info: 'Replace someone in the video with the character in your picture, or one you describe.' },
+                    { v: 2, label: 'Swap the head', info: 'Replace only the head and face; the body, clothes and hands stay.' },
+                    { v: 3, label: 'Change the outfit', info: 'Dress them in what your picture shows, or what you describe.' },
+                    { v: 4, label: 'Change the background', info: 'Keep the performance, move it to the place in your picture or your words.' },
+                    { v: 5, label: 'Anything else', info: 'Describe any change; everything else stays as filmed.' },
+                ],
+            },
+            {
+                id: 'Input_Keep_Background', type: 'radio', label: 'Where they are', default: true,
+                options: [
+                    { v: true, label: 'The video\'s room' },
+                    { v: false, label: 'The picture\'s room', info: 'The character performs the video\'s moves in the place your picture shows. Needs a picture.' },
+                ],
+                hiddenWhen: { field: 'Input_Operation', isNot: 1 },
+            },
+            {
+                // {who} in the templates. Anything else has no {who}, so it is hidden there.
+                id: 'Input_Who', type: 'text', label: 'Who', default: 'the person',
+                placeholder: 'e.g. the woman in the red dress',
+                hiddenWhen: { field: 'Input_Operation', is: 5 },
+            },
+            {
+                // Typed = masked mode (SAM3 finds it, one still square box round it). A box
+                // cannot hold a background, so it is hidden there and the graph ignores it.
+                id: 'Input_Target', type: 'text', label: 'Only change (optional)', default: '',
+                placeholder: 'e.g. her hat',
+                note: 'Name one thing and only it is re-rendered: faster, and the rest of the video stays exactly as filmed.',
+                hiddenWhen: { field: 'Input_Operation', is: 4 },
+            },
+            {
+                id: 'positive', type: 'text', rows: 3, label: 'Describe the change', default: '',
+                placeholder: 'Optional with a picture. e.g. two small red demon horns, or a long black coat',
+            },
+        ],
+    },
+
     // MPI-504 — the Character Sheet. A description in, a three-panel video-reference
     // sheet out: a large 3/4 close-up, full body front and full body back, in the
     // layout a video model reads best. v1 takes a PROMPT AND NOTHING ELSE — the
