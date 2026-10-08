@@ -36,3 +36,7 @@ Run with `/mpi-bump-engine` (playbook `docs/playbooks/bump-engine/README.md`). F
 - The bench `G:\ComfyUi` is on v0.34.2; bump it too (`/mpi-bump-local-comfy`) so MPI-936
   can author its graph.
 - Smoke (gate 8) rents RunPod: state price + run count, get Fabio's yes first.
+
+## Noticed
+
+- 2026-10-08: the smoke scope counts a model as RUN when every op it has SKIPped (qwen-image-2-1, workflow not landed), so `scope.unproven` reads `[]` and `release:check` prints "covers all 40 models" while Qwen 2.1 never executed. `scripts/smoke-workflows.mjs` scope builder; MPI-936 still owes its scoped smoke before it ships.
