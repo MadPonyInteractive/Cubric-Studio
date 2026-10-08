@@ -5713,3 +5713,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-623", "at": "2026-10-08T08:33:49Z", "actor": "20963505-5d79-437e-b3c5-c537483dbd92", "note": "Live Convert in Fabio's app (ring 2K pano, 71 s, scene landed, opens Scene) + the four Phase 2 calls settled."}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1040", "at": "2026-10-08T09:50:13+01:00", "actor": "claude", "column": "todo", "title": "Decision models (Clef / Nimble / Jev-style) via DeepInfra"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1041", "at": "2026-10-08T10:11:45+01:00", "actor": "claude", "column": "todo", "title": "Character Sheet from an existing character - one or more base images in"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1041", "at": "2026-10-08T10:25:43+01:00", "actor": "claude", "fields": ["title", "description"], "reason": "Fabio 2026-10-08: reshaped into a Character Sheet Editor"}

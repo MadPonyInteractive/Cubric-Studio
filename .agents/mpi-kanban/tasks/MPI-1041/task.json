@@ -1,13 +1,13 @@
 {
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-1041",
-  "title": "Character Sheet from an existing character - one or more base images in",
-  "description": "The Character Sheet takes a prompt only (MPI-504 v1). Add the deferred v2 path: the user feeds one or more images of a character they already have, and the sheet (3/4 close-up, front, back) comes back as THAT character. Bench first; the back view is the risky step. Brief: brief.md.",
+  "title": "Character Sheet Editor - change head, body, hair, clothes, accessories on a finished sheet (Klein 9B)",
+  "description": "A new image-required Flow on Klein 9B that edits an existing Character Sheet per field and keeps all three panels consistent. Covers a sheet from an existing character (face + body images) and story states (John beaten up, torn clothes). The prompt-only Character Sheet stays as is. Brief: brief.md.",
   "column": "todo",
   "maturity": "research",
   "status": "active",
   "created_at": "2026-10-08T10:11:45+01:00",
-  "updated_at": "2026-10-08T10:11:45+01:00",
+  "updated_at": "2026-10-08T10:25:43+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
