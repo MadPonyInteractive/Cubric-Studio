@@ -16,4 +16,4 @@ Playbook: `docs/playbooks/bump-engine/README.md`. Target v0.39.0 (`b0b743566f65d
 - [x] Smoke volume `0gzc4yk344` (360 GB) deleted - runner kept it (no TTY); Fabio deleted it 2026-10-08 (agent delete was permission-blocked)
 - [ ] mpi-ci `cubric-vision-pod/node_lock.json` MpiNodes 6bf5659 -> the app pin (3ec03efb as of 2026-10-08; code-only drift, not a rebuild) - sync at the release rebuild, since MPI-623 may move it again
 - [ ] Scoped smoke for Qwen 2.1 (MPI-936) + 3D scene (MPI-623) with `--flows all` on v0.25.0-dev, once both cards' graphs land - Fabio said yes to running it 2026-10-08; quote price + run count before renting, that yes is not a money yes
-- [ ] Release note engine section (DONE f5926cfa8, UNRELEASED.md); 2nd-digit version bump at release (`/mpi-version-bump`) + clean RELEASE Pod image rebuild at ship (mandatory for an engine bump)
+- [ ] Release note engine section (DONE f5926cfa8, UNRELEASED.md); version bump at release (`/mpi-version-bump`) + clean RELEASE Pod image rebuild at ship (mandatory for an engine bump) - Fabio 2026-10-08: ships as **2.0.2**; these leftovers are the blockers of umbrella **MPI-1044**

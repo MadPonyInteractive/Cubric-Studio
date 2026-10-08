@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1044",
+  "title": "Release 2.0.2 readiness (umbrella): ComfyUI 0.39.0 ships, MPI-1043 leftovers block the cut",
+  "description": "Umbrella for the 2.0.2 release (Fabio, 2026-10-08). 2.0.2 ships the engine bump to ComfyUI 0.39.0 (MPI-1043). BLOCKERS, all must close before the cut: (1) scoped smoke of Qwen-Image 2.1 (MPI-936) + 3D scene (MPI-623) with --flows all on the v0.25.0-dev Pod image, once both graphs land; price and run count to Fabio first. (2) sync mpi-ci cubric-vision-pod/node_lock.json MpiNodes to the app pin (code-only, no rebuild). (3) clean RELEASE Pod image rebuild at v0.25.0 and move the STABLE POD_IMAGE_VERSION / _CPU pair in routes/remotePodLifecycle.js; mandatory after an engine bump, or 2.0.2 users get a 0.39.0 local engine against a 0.34.0 Pod. (4) stamp 2.0.2 with /mpi-version-bump, then /mpi-release. Details in brief.md.",
+  "column": "todo",
+  "maturity": "blocked",
+  "status": "active",
+  "created_at": "2026-10-08T18:27:30+01:00",
+  "updated_at": "2026-10-08T18:27:30+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

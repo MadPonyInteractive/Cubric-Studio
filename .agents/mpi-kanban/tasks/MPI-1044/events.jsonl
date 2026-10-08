@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1044", "at": "2026-10-08T18:27:30+01:00", "actor": "c3b0c71e-bd0d-49c3-a81d-fcb95aaddf4f", "column": "todo", "title": "Release 2.0.2 readiness (umbrella): ComfyUI 0.39.0 ships, MPI-1043 leftovers block the cut"}
