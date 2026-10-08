@@ -62,7 +62,7 @@ import { loadAll as loadAssets } from '../../../services/assetService.js';
 import { extractFilenameFromPath, extractAbsPath, resolveMediaUrl, downloadMediaFiles } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
 import { resolveActiveModel, setSelectedModelId, getSelectedOp, setSelectedOp } from '../../../utils/modelHelpers.js';
-import { updateGroup, addGroup, removeGroup, applyPromptReuseSettings, removeFromStack, stepStackVersions } from '../../../services/projectService.js';
+import { updateGroup, addGroup, removeGroup, applyPromptReuseSettings, removeFromStack, stepStackVersions, stackGroups } from '../../../services/projectService.js';
 import { buildPromptReuseSettings, resolvePromptReuseMediaItems, payloadHasReusableImages, payloadHasReusableVideos, payloadHasReusableAudio, isFlowCardItem } from '../../../utils/promptReuse.js';
 import {
     promoteHistoryEntry,
@@ -3257,12 +3257,24 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             describeItem(_group.history[index], { group: _group, scope: 'groupHistory' });
         });
 
-        historyList.on('add-to-gallery', async ({ index }) => {
-            if (typeof index !== 'number') return;
-            const item = _group.history[index];
-            if (!item?.filePath) { _showToast('No source media', 'error'); return; }
+        // One entry -> one card. Several -> one plain card each, then ONE stack of them,
+        // named after this card (MPI-623: pictures taken in a scene go out as a stack).
+        historyList.on('add-to-gallery', async ({ indices }) => {
+            const items = (indices || []).map(i => _group.history[i]).filter(it => it?.filePath);
+            if (!items.length) { _showToast('No source media', 'error'); return; }
             historyList.el.exitSelectMode();
-            await _addItemToGallery(item, isVideo ? 'video' : 'image');
+            const mediaType = isVideo ? 'video' : 'image';
+            const added = [];
+            for (const item of items) {
+                const g = await _addItemToGallery(item, mediaType);
+                if (g) added.push(g);
+            }
+            if (added.length < 2) {
+                if (added.length) _showToast('Added to gallery');
+                return;
+            }
+            const stack = await stackGroups(added.map(g => g.id), { name: _group.customName || _group.name || 'Stack' });
+            _showToast(stack ? `Added ${added.length} to gallery as a stack` : 'Added to gallery', stack ? 'info' : 'warning');
         });
 
         // Single entry → reveal + select the media file. Multiple → open the Media folder
@@ -3492,10 +3504,11 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 });
                 const populated = appendToHistory(newGroup, newItem);
                 await addGroup(populated);
-                _showToast('Added to gallery');
+                return populated;
             } catch (err) {
                 clientLogger.error('MpiGroupHistoryBlock', 'add-to-gallery failed', err);
                 _showToast(`Add to gallery failed: ${err.message}`, 'error');
+                return null;
             }
         }
 

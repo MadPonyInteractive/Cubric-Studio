@@ -20,6 +20,24 @@
   the context loss (`renderer.forceContextLoss()`, not left to GC) and zeroes the canvas;
   `tests/desktop/scene-workspace.spec.js` proves 10 visits leave no live context.
 
+## The viewer
+
+- `MpiSceneBlock` loads the card's scene through `js/services/scene/sceneViewer.js`
+  (`loadScene` -> `createPanoMesh`) into `MpiSceneCanvas.getScene()`. Ported from spike 0a, whose
+  renderer matched the Python reference (rule C hole IoU >= 0.9995, colour <= 0.13/255, 435+ fps at
+  1080p on a 4060 Ti; MPI-623 `research/spike-0a.md`): the same grid, colour looked up by DIRECTION
+  per fragment, a raw shader with no colour management, the same camera maths (`applyPose`).
+- Coordinates: the world is y-DOWN (OpenCV, as the fill layers' `w2c`); a pose is
+  `{ pos, yaw, pitch, mm }` in y-UP spot coords (+X right, +Z forward, origin = the pano camera).
+  The lens is full-frame `mm` across the frame WIDTH, so `applyPose` re-runs on the canvas's
+  `resize` event. `el.getPose()` / `el.setPose()` on the Block.
+- Fly: `scene.fly.*` hotkeys, a DOWN and an UP entry per key (W/S/A/D, Q/E down/up), gated to
+  the Scene page; `agentMode.toggle` is gated OFF it so A only flies. Drag looks. Frames are drawn
+  on demand, a loop only while a key is held. `tests/desktop/scene-viewer.spec.js`.
+- Not yet: rule C, the fill layers, frame guides, the picture panel. When it gains reverse
+  depth, three ^0.186 calls the option `reversedDepthBuffer` (0.170's `reverseDepthBuffer` is
+  ignored there without a word).
+
 ## Companions and the manifest
 
 A scene is a SET of files beside the item's sidecar in `Media/.meta/`:

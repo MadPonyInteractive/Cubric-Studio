@@ -54,7 +54,7 @@ function isTextEntryElement(el) {
 
 class HotkeyManager {
     constructor() {
-        /** @type {Map<string, Set<Function>>} key = `${type}:${normalizedKey}` */
+        /** @type {Map<string, Array<{id: string, fn: Function}>>} key = `${type}:${normalizedKey}`, bind order */
         this._handlers = new Map();
         this._cleanupDown = null;
         this._cleanupUp   = null;
@@ -107,8 +107,9 @@ class HotkeyManager {
             console.warn(`[Hotkeys] bind: unknown id "${id}"`);
             return () => {};
         }
-        if (!this._handlers.has(mapKey)) this._handlers.set(mapKey, new Set());
-        this._handlers.get(mapKey).add(handler);
+        if (!this._handlers.has(mapKey)) this._handlers.set(mapKey, []);
+        const list = this._handlers.get(mapKey);
+        if (!list.some(r => r.id === id && r.fn === handler)) list.push({ id, fn: handler });
         return () => this.unbind(id, handler);
     }
 
@@ -119,7 +120,9 @@ class HotkeyManager {
     unbind(id, handler) {
         const mapKey = this._mapKey(id);
         if (!mapKey) return;
-        this._handlers.get(mapKey)?.delete(handler);
+        const list = this._handlers.get(mapKey);
+        const i = list ? list.findIndex(r => r.id === id && r.fn === handler) : -1;
+        if (i >= 0) list.splice(i, 1);
     }
 
     /**
@@ -151,11 +154,12 @@ class HotkeyManager {
         const mapKey = `${type}:${key}`;
 
         const handlers = this._handlers.get(mapKey);
-        if (!handlers || handlers.size === 0) return;
+        if (!handlers || handlers.length === 0) return;
 
-        // Find the matching registry entry for this key+type combo.
-        // There may be multiple entries with same key+type (e.g. mask.brush.toolbar + mask.brush.canvas).
-        // All bound handlers for this mapKey are eligible; we apply shared gating.
+        // Find the matching registry entries for this key+type combo. There may be several
+        // (e.g. mask.brush.toolbar + mask.brush.canvas, six on Escape). Each entry's OWN gate
+        // decides whether ITS handlers fire: a shared verdict fired a handler whose `when`
+        // read false whenever a sibling passed (MPI-623: Scene's fly A toggled Agent mode).
         const entries = HOTKEY_REGISTRY.filter(e => e.key === key && (e.type ?? KEY_TYPE.DOWN) === type);
         if (entries.length === 0) return;
 
@@ -181,9 +185,7 @@ class HotkeyManager {
             'Home', 'End', 'PageUp', 'PageDown',
         ].includes(e.key);
 
-        // Determine if ANY bound handler should fire by checking at least one
-        // registry entry allows it under current conditions.
-        let shouldFire = false;
+        const passing = new Set();
         for (const entry of entries) {
             // isTyping gate
             if (isTyping && !entry.allowWhileTyping) {
@@ -197,11 +199,12 @@ class HotkeyManager {
                 continue;
             }
 
-            shouldFire = true;
-            break;
+            passing.add(entry.id);
         }
 
-        if (!shouldFire) return;
+        // Bind order, and one call per function even when bound under two passing ids.
+        const fns = [...new Set(handlers.filter(r => passing.has(r.id)).map(r => r.fn))];
+        if (fns.length === 0) return;
 
         if (key === 'escape') {
             e.mpiEscapeContext = this._buildEscapeContext(activeEl);
@@ -210,7 +213,7 @@ class HotkeyManager {
         e.preventDefault();
         e.stopPropagation();
 
-        handlers.forEach(fn => {
+        fns.forEach(fn => {
             try { fn(e); }
             catch (err) { console.error(`[Hotkeys] Error in "${mapKey}" handler:`, err); }
         });

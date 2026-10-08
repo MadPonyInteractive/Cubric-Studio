@@ -22,6 +22,12 @@ PROPS:   `onBrushSizeChange(size)` · `onBrushTypeChange(type)` · `onPointsChan
 API:     `setPointsMode(bool)` / `isPointsMode()` · `clearMaskPoints()` / `getMaskPointCount()` / `getPointsMaskDataURL()` · `bakeAutoPicksInto('manual'|'subtract')` (MPI-361)
 NOTE:    Point prompts are a FOURTH mask layer and deliberately not a canvas — `MaskManager.points[]` holds `{x, y, positive}` in SOURCE-image px (not the MASK_MAX_EDGE-capped working px), because the graph measures each dot's bbox in real pixels of the image it loads. `getPointsMaskDataURL()` renders them white-on-BLACK at full source size on demand; nothing composites them. Polarity is carried by RADIUS: r=8 positive / r=4 negative straddles the exact `< 10px bbox width` cliff `mask_hint_use_negative='Small'` uses. In points mode, left-click adds a positive dot, right-click a negative one, and clicking an existing dot removes it; `InputController`'s contextmenu handler calls `stopPropagation` as well as `preventDefault` because `MpiCanvasViewer` has its own contextmenu handler on its root.
 
+### MpiSceneCanvas (Primitive — the Scene workspace's WebGL2 viewport, MPI-623)
+EMITS:   `resize` `{ width, height }` — after the camera took the new aspect; a lens set in mm must be re-applied (MpiSceneBlock re-runs `applyPose`)
+LISTENS: (none)
+API:     `getRenderer()` · `getScene()` · `getCamera()` (null when unsupported/destroyed) · `requestRender()` (one frame, on demand) · `isSupported()`
+NOTE:    Owns the only GL context; `el.destroy()` disposes the renderer, forces context loss and zeroes the canvas (`tests/desktop/scene-workspace.spec.js`, 10 visits).
+
 ### MpiCheckbox
 EMITS:   `change` `{ checked: boolean }`
 LISTENS: (none)
@@ -164,7 +170,7 @@ EMITS:   `entry-selected`    `{ idx, item }` — card clicked (single-select)
          `compare-requested` `{ indices: [number, number] }` — Compare chosen from context menu (exactly 2 selected)
          `combine-requested` `{ indices: number[] }` — Combine chosen from context menu (video group, ≥2 selected, chronological order)
          `composite-requested` `{ indices: [number, number] }` — Mask composite chosen from context menu (image group, exactly 2 selected, ≥1 of them masked — gate awaits `props.hasMaskForIndex` on BOTH)
-         `add-to-gallery`    `{ index: number }` — Add to gallery chosen from context menu (exactly 1 selected)
+         `add-to-gallery`    `{ indices: number[] }` — Add to gallery chosen from context menu (1 or more, click order; the row reads "Add to gallery as a stack" when several, MPI-623)
          `reuse`             `{ positive: string, negative: string }` — Reuse-prompt icon button on a card clicked. Parent emits `workspace:inject-prompts` so PromptBox restores text. Button hidden on cards without `item.prompt` or `item.negativePrompt`.
 LISTENS: (none)
 GLOBAL EMITS: `ui:context-menu` `{ x, y, items, onSelect }` — the right-click menu. A Compound may not import `MpiContextMenu`, so `shell.js` shows it (MPI-751)

@@ -23,7 +23,7 @@
  *   'delete-selected'   { indices }                 — delete action from context menu
  *   'compare-requested' { indices: [number, number] } — compare action from context menu
  *   'combine-requested' { indices }                  — combine selected videos (video group, ≥2)
- *   'add-to-gallery'    { index }                    — add single selected entry to gallery
+ *   'add-to-gallery'    { indices }                  — add the entries to the gallery (several = one stack)
  *   'download-selected' { indices }                  — download selected entries
  *   'download-mask'     { index }                    — download single entry mask
  *   'copy-mask'         { index }                    — copy single entry mask layers
@@ -232,7 +232,8 @@ export const MpiHistoryList = ComponentFactory.create({
 
                 const compareDisabled = targetIdxs.length !== 2;
                 const combineDisabled = !_isVideo || targetIdxs.length < 2;
-                const addToGalleryDisabled = targetIdxs.length !== 1;
+                // Several entries become one gallery stack of plain cards (MPI-623).
+                const addToGalleryLabel = targetIdxs.length > 1 ? 'Add to gallery as a stack' : 'Add to gallery';
                 const downloadMaskDisabled = _isVideo
                     || targetIdxs.length !== 1
                     || !(await props.hasMaskForIndex?.(targetIdxs[0]));
@@ -268,7 +269,7 @@ export const MpiHistoryList = ComponentFactory.create({
                     // rather than shipping a permanently-greyed row on video groups.
                     ...(_isVideo ? [] : [{ key: 'describe', icon: 'chat', label: 'Describe image',
                         disabled: targetIdxs.length !== 1 }]),
-                    { key: 'add-to-gallery', icon: 'plus',     label: 'Add to gallery', disabled: addToGalleryDisabled },
+                    { key: 'add-to-gallery', icon: 'plus',     label: addToGalleryLabel },
                     { key: 'reveal',         icon: 'folder',   label: 'Open in file system' },
                     { key: 'delete',         icon: 'trash',    label: 'Delete',         danger: true },
                 );
@@ -294,7 +295,7 @@ export const MpiHistoryList = ComponentFactory.create({
                         } else if (key === 'describe') {
                             emit('describe', { index: targetIdxs[0] });
                         } else if (key === 'add-to-gallery') {
-                            emit('add-to-gallery', { index: targetIdxs[0] });
+                            emit('add-to-gallery', { indices: targetIdxs });
                         } else if (key === 'reveal') {
                             emit('reveal', { indices: targetIdxs });
                         }

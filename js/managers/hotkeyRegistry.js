@@ -133,6 +133,8 @@ export const HOTKEY_REGISTRY = [
         category:         'agent',
         scopeLabel:       'Agent',
         description:      'Toggle Agent mode',
+        // A flies left in the Scene workspace (scene.fly.left).
+        when:             ({ state }) => state.currentPage !== 'scene',
         allowWhileTyping: false,
     },
 
@@ -798,6 +800,21 @@ export const HOTKEY_REGISTRY = [
         when:             ({ isTyping }) => !APP_CONFIG.dev_mode && !isTyping,
         allowWhileTyping: false,
     },
+
+    // ── Scene fly (MPI-623, dev_mode) ─────────────────────────────────────────
+    // Held keys: each letter has a DOWN and an UP entry, and MpiSceneBlock flies while any
+    // is down. Gated to the Scene page, where A is a fly key and not Agent mode.
+    ...[['w', 'forward'], ['s', 'back'], ['a', 'left'], ['d', 'right'], ['q', 'down'], ['e', 'up']]
+        .flatMap(([key, dir]) => [KEY_TYPE.DOWN, KEY_TYPE.UP].map(type => ({
+            id:               `scene.fly.${dir}${type === KEY_TYPE.UP ? '.release' : ''}`,
+            key,
+            type,
+            category:         'scene',
+            scopeLabel:       'Scene',
+            description:      `Fly ${dir} (hold)`,
+            when:             ({ state }) => state.currentPage === 'scene',
+            allowWhileTyping: false,
+        }))),
 ];
 
 /**

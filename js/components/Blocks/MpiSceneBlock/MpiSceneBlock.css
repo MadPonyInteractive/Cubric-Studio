@@ -11,3 +11,11 @@
     position: absolute;
     inset: 0;
 }
+
+.mpi-scene-block__tools {
+    position: absolute;
+    top: var(--s-3);
+    left: var(--s-3);
+    display: flex;
+    gap: var(--s-2);
+}

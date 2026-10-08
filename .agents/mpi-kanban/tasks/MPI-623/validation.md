@@ -705,3 +705,72 @@ Closes the Phase 2 ops verify AND the Convert verify.
   (no peer bytes on dev). After: dev `start_sha256` `e3712063...` == mpi-ci HEAD's `start.sh`,
   served file maps `moge: mpi_models/moge/`; wrapper 0.2.45 and stable untouched.
 - `npm test` 2750 pass / 0 fail; eslint clean on every touched file.
+
+## Spike 0a GPU half: renderer parity PASS (2026-10-08, session 33, RTX 4060 Ti, under the lease, 472 s)
+
+Full record: [research/spike-0a.md](research/spike-0a.md). Rule C vs `shots.py` at the four extreme
+cameras: IoU 0.9995-0.9998 (gate >= 0.98), mean colour diff 0.065-0.129/255 (gate <= 2/255).
+1080p with all 8 layers and rule C: 1.92-2.30 ms/frame = 435-521 fps (gate >= 60). Page VRAM ~650
+MiB (1522 open / 871 closed), leaving ~14.6 GB on this card against Klein's ~14.5 GB need: tight,
+so the viewer drops its render targets during Take picture. Self-check 0.00%. Found and fixed in the
+page: three 0.170's reverse-depth clear bug (every render empty); 0.186 fixes it but renames the
+option `reversedDepthBuffer`, which the port must use. Floor-still spikes: band 3 turns 1835 known
+silhouette px into holes (none the other way); the by-eye check on a FILLED still moves to Take
+picture. Run: `gpu_lease.py run -- python -u D:/WORK/MPI-623-spike/single_shot/serve.py`, then
+`window.scene.parityAll()` / `bench()` / `selfCheck()` on `http://127.0.0.1:8623/`.
+
+## Phase 3 GPU-free: History to gallery stack + Wan bake stub (2026-10-08, session 33 "3D Scene 23", no GPU)
+
+The GPU was held by the MPI-1036 peer (`mask_bench.py` under the lease) for this part.
+
+- **History to gallery stack.** `MpiHistoryList`'s Add to gallery is no longer single-only: it
+  emits `{ indices }` and reads "Add to gallery as a stack" when several are selected.
+  `MpiGroupHistoryBlock` makes one plain card per entry (`_addItemToGallery` now returns the group,
+  re-upload as before, so no scene field travels) and then `stackGroups`, named after the card.
+  One entry is unchanged. `tests/desktop/history-add-stack.spec.js`: three entries (the first
+  carrying a `scenePath`) -> one image stack of three one-entry image cards, none a scene, source
+  card keeps 3 entries, the stack persists in `project.json`. Mutants killed via
+  `scripts/mutate-check.mjs`: never stacking (`added.length < 99`), and copying the entry
+  (`createImageItem({ ...item,`; `stackGroups` then refuses the scene card, no stack forms).
+  Run: `npx playwright test --config=playwright.desktop.config.js tests/desktop/history-add-stack.spec.js`.
+  Same pass green: gallery-stack, history-list-thumbs, history-modes, history-prompt-model,
+  stack-history, video-history-strip, workspace-sweep (15/15); `tests/mask-tool-registry.test.cjs` 44/44.
+  Not dev-gated: A8 hides the Scene workspace, Convert and the Pano tile only, and this is a
+  plain History improvement. The Scene workspace's own history list (Phase 3 picture panel)
+  reuses the Compound event.
+- **Wan bake stub.** `MpiSceneBlock` tools strip: one ghost `MpiButton` "Bake 3D" (icon `cube`),
+  `disabled`, `info` "Coming soon: bake the whole scene into full 3D" (the status bar hint; a
+  disabled `.mpi-btn` keeps hover, as the gallery selection bar relies on). Destroyed with the
+  Block. `tests/desktop/scene-workspace.spec.js` § 4: shown, disabled, says why, a click leaves the
+  page on Scene; mutant (drop `disabled: true`) killed.
+
+## Phase 3 viewer scaffold + the hotkey gate fix (2026-10-08, session 33, no GPU)
+
+- **Viewer scaffold** (`js/services/scene/sceneViewer.js`, `MpiSceneBlock`): `loadScene` reads the
+  manifest and its siblings by suffix (`sceneFileUrl`), `createPanoMesh` = the spike's grid
+  (`panoGrid`, seam column doubled) + per-fragment equirect lookup in a raw shader (no colour
+  management), `applyPose` = the spike's `setCamera` (lens across the frame WIDTH, re-applied on
+  MpiSceneCanvas's new `resize` event), `flyStep` / `flyLook` = the spike's fly. Block: WASD/QE held
+  keys (`scene.fly.*`, DOWN + UP entries gated to the Scene page), drag look via `on()`, a rAF loop
+  only while a key is held, `getPose` / `setPose`, teardown aborts the load and disposes geometry,
+  material, texture and bitmap. `tests/scene-viewer.test.cjs` 5/5 (sibling URL, grid shape + seam,
+  fly axes, look clamp, camera position in the y-down world + fov 45.7473 deg at 24 mm 16:9).
+  `tests/desktop/scene-viewer.spec.js`: a fixture scene written as Convert writes one (64x32 pano
+  of four colour bands at depth 5); centre pixel at yaw 0 / +90 / -90 / 180 is blue / red / yellow
+  / green within 2/255 (green across the seam); W moves +Z, A moves -X, A leaves `state.agentMode`
+  alone, the camera stops on release. Mutants killed: mirrored lookup (`fract(mod(...` -> "right is
+  red, got 230,210,30"), and `agentMode.toggle` un-gated -> "A did not toggle Agent mode".
+  NOT yet: rule C, fill layers, frame guides, lens UI, the golden-PNG verify.
+- **hotkeyManager per-entry gate.** Handlers are stored per registry id in bind order; a key fires
+  the handlers whose OWN entry passes typing + `when`, one call per function. Measured first
+  (`scratchpad/keys.mjs` over the registry): only Escape (`promptBox.blur`) and Space-up
+  (`dictation.release.space`) had entries with different gates, and both handlers no-op outside
+  their gate, so nothing that worked changes. `tests/hotkey-gating.test.cjs` 4/4; mutant (shared
+  verdict back) kills 2. `flow-close-destroys-instance.spec.js` read `_handlers...size`, now
+  `.length`. Desktop specs that press keys: 71/71 (agent-chat, cancelled-mascot,
+  context-menu-owns-right-click, cue-send-countdown, delete-offers-archive,
+  flow-close-destroys-instance, flow-queue-hotkey, focus-mode incl. "A opens and closes the agent
+  panel", fullscreen-titlebar, notes-enter-newline, radial-menu, gallery-filter-panel, mask-colour,
+  colour-pick-eyedropper, canvas-pan-no-repaint, gif-workspace). Hotkeys page: a "3D Scene" group
+  only under `dev_mode`. `docs/shell.md` § Gating model says per entry.
+- `npm test` 2759 pass / 0 fail; eslint clean on every touched file; scene-workspace spec green.

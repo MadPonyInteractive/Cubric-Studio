@@ -15,6 +15,10 @@
  * No WebGL2 (blocklisted driver, a GPU-less E2E run) → the `--unsupported` modifier shows
  * a note instead, and every instance method is a no-op.
  *
+ * Emits:
+ *   'resize' { width, height } — after the camera took the new aspect (a lens set in mm
+ *                                 must be re-applied: it depends on the aspect)
+ *
  * Instance API (on el):
  *   getRenderer() / getScene() / getCamera() — null when unsupported or destroyed
  *   requestRender()  — draw one frame on the next animation frame
@@ -39,7 +43,7 @@ export const MpiSceneCanvas = ComponentFactory.create({
         </div>
     `,
 
-    setup: (el) => {
+    setup: (el, props, emit) => {
         let canvas = qs('#surface', el);
         let renderer = null;
         let scene = null;
@@ -79,6 +83,7 @@ export const MpiSceneCanvas = ComponentFactory.create({
                 renderer.setSize(width, height, false);
                 camera.aspect = width / height;
                 camera.updateProjectionMatrix();
+                emit('resize', { width, height });
                 el.requestRender();
             });
             observer.observe(el);

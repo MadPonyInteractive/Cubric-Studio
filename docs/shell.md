@@ -71,7 +71,7 @@ The Hotkeys slide-over (`MpiHotkeys`) is **not** generated from `hotkeyRegistry.
 
 `isTyping` means a real text-entry context: `TEXTAREA`, `[contenteditable]`, or text-like `INPUT` types. Non-text controls such as `input[type="range"]`, checkboxes, radios, and buttons are not typing contexts, so global hotkeys continue to work after those controls receive focus.
 
-Keydown fires handlers only if all guards pass (in order):
+Guards run per ENTRY, and a handler fires only if the entry it was bound to passes them; a sibling entry on the same key passing does not fire it (Escape has six entries; MPI-623 gated `agentMode.toggle` off the Scene page, where A flies). Guards, in order:
 1. Entry found in registry for normalized key + type.
 2. `isTyping` check — single-letter and bare-modifier keys blocked while a text-entry control is focused, unless `allowWhileTyping: true`. F-keys and `Ctrl+`-chords always pass.
 3. `when(ctx)` optional gate — receives `{ state, event, activeElement, isTyping }`.

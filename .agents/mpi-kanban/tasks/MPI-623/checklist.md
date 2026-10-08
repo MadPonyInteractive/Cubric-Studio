@@ -25,3 +25,20 @@ ticks (Phase 0/0b/1, all complete) moved verbatim to
       disabled Convert to 360 pano row (2026-10-07, validation.md § Scene workspace shell)
 - [x] Convert enabled + wired to `sceneConvert`, writes `scenePath` (after Phase 2)
       (2026-10-08: real Convert in Fabio's app - validation.md § Live Convert in Fabio's app)
+
+## Phase 0: spikes
+
+- [x] 0a renderer parity, GPU half: PASS (2026-10-08, research/spike-0a.md)
+
+## Phase 3: Explore, picture, build
+
+- [ ] Viewer: 0a's renderer in `js/services/scene/`, fly controls via `Hotkeys.bind`, frame guides,
+      height, lens, depth-of-field preview (golden-PNG spec)
+      (2026-10-08 scaffold: loader + pano layer + fly + drag look, validation.md § Phase 3 viewer
+      scaffold. Left: rule C + layers, frame guides, lens/height UI, DoF, golden PNG)
+- [ ] Picture panel + Take picture (`scenePose` entries, entry click flies the camera)
+- [ ] Build here (0b's loop as a tool)
+- [x] History -> gallery: several entries -> one stack of plain cards (2026-10-08, validation.md
+      § Phase 3 GPU-free)
+- [x] Wan bake: disabled coming-soon tool (2026-10-08, same section)
+- [ ] End check (user-ux, Fabio)

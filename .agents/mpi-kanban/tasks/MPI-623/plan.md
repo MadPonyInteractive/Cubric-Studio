@@ -8,8 +8,9 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: spike 0a's parity result
-(session 28), then Phase 3's viewer. Phase 2 is closed (session 32 below).**
+**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: rule C in the app on the
+viewer scaffold, then the picture panel + Take picture. Spike 0a PASSED and the scaffold landed
+(session 33 below).**
 
 **Session 28 (2026-10-07):** 0a's CPU half is built - `export_records.py` wrote ring8k as records
 (`viewer/records/`, every layer's verts + faces round-trip the shots.py cache exactly; the
@@ -81,6 +82,20 @@ GPU half is THIS card's next owner's. Fabio: do GPU-free work while the GPU is b
 Phase 3's History -> gallery stack, the Wan bake stub, the viewer scaffold (manifest loader + pano
 layer + fly controls via `Hotkeys.bind`; rule C waits on 0a's verdict). The GPU half: serve
 `viewer/` and run parity all / bench 1080p (plan § 0a Verify) under `gpu_lease.py run`.
+
+**Session 33 ("3D Scene 23", 2026-10-08): spike 0a PASSED, three Phase 3 items built.** The peer
+(MPI-1036) held the GPU until ~09:20Z, so GPU-free work first, then 0a under the lease the moment
+it freed (validation.md § Spike 0a, research/spike-0a.md). Built + verified: History -> gallery
+stack (`history-add-stack.spec.js`), the Wan bake stub (`scene-workspace.spec.js` § 4), and the
+viewer scaffold (`js/services/scene/sceneViewer.js` + `MpiSceneBlock`: manifest loader, pano
+layer by direction, fly keys + drag look, `getPose`/`setPose`; `tests/scene-viewer.test.cjs`,
+`tests/desktop/scene-viewer.spec.js`). The fly keys needed a hotkeyManager ROOT fix: each
+registry entry now gates its own handlers (A flew AND toggled Agent mode). **Next:** rule C in
+the app (port the spike's MRT + rule C shader onto the scaffold, pass `reversedDepthBuffer` -
+the 0.186 name), then the picture panel + Take picture (render targets dropped during Take
+picture for Klein's VRAM; the floor-still spike eye check, sky band from 3). `.claude/rules/`
+component-events maps updated with Fabio's yes (MpiHistoryList `{ indices }`, MpiSceneCanvas
+`resize`, MpiSceneBlock). Fabio's call open: Add-to-gallery-as-a-stack ships ungated (my pick: keep).
 
 **The product (Fabio's why):** the 3D scene exists for EXACT camera placement - behind a house,
 up a tree, on the floor looking up, inside a house through a shut window, a door frame, a gap
@@ -233,7 +248,9 @@ All files in `D:\WORK\MPI-623-spike\single_shot\`; every GPU run via `gpu_lease.
 the bench queue empty. Ordered; no batch - one GPU and each spike feeds the next (0d is research
 only and may run beside the others).
 
-- [ ] **0a. App-side renderer parity.** Export ring8k as records (pano 8K + depth `.f32`, the
+- [x] **0a. App-side renderer parity.** **PASS 2026-10-08 (session 33, research/spike-0a.md):
+      IoU 0.9995-0.9998, colour 0.065-0.129/255, 435-521 fps, ~650 MiB. The floor-still eye check
+      moved to Take picture (it needs Klein's fill).** Export ring8k as records (pano 8K + depth `.f32`, the
       walk's 8 layers as fill PNG + depth + pose; CPU script). A standalone three.js page renders
       them with rule C in the shader at the four extreme cameras (window, treetop, floor,
       behind_well) and flies them. Fix the hair-thin sky-silhouette spikes here (depth-edge flag
@@ -354,6 +371,10 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       `Hotkeys.bind` + `hotkeyRegistry.js` (WASD, Q/E, roll keys); frame guides, height readout,
       lens, depth-of-field preview. **Verify:** desktop spec renders a fixed pose of a fixture
       scene and matches a golden PNG within 2/255.
+      **(SCAFFOLD 2026-10-08, session 33: `sceneViewer.js` loader + pano layer + fly/drag,
+      `scene-viewer.spec.js` checks the centre colour at four yaws within 2/255. Left: rule C and
+      the layers (spike MRT shader, `reversedDepthBuffer`), frame guides, lens/height UI, DoF,
+      the golden PNG.)**
 - [ ] **Picture panel + Take picture:** components only (ComponentFactory), fill line + presets
       (Character-Sheet-style picker), render base + mask at Klein size per aspect -> `scenePicture`
       -> add the fill layer to the manifest -> depth of field -> upload as a history entry with
@@ -363,10 +384,13 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
 - [ ] **Build here:** 0b's loop as a tool (progress, cancel), SAM3 glass windows, fill line.
       **Verify:** isolated run inside a house builds the room and its windows show the real
       outside; time within 0b's measured budget.
-- [ ] **History -> gallery:** multi-select in `MpiHistoryList` -> `Add to gallery` makes one
+- [x] **History -> gallery:** multi-select in `MpiHistoryList` -> `Add to gallery` makes one
       stack of plain image cards (`stackGroups`); single stays as today. **Verify:** spec selects
       three entries -> one stack of three image cards, none carrying `scenePath`.
-- [ ] **Wan bake** as a disabled coming-soon tool with a tooltip. **Verify:** visible, inert.
+      **(DONE 2026-10-08, session 33: `tests/desktop/history-add-stack.spec.js`, validation.md
+      § Phase 3 GPU-free. The Scene workspace's history list reuses the `{ indices }` event.)**
+- [x] **Wan bake** as a disabled coming-soon tool with a tooltip. **Verify:** visible, inert.
+      **(DONE 2026-10-08: `MpiSceneBlock` tools strip, `scene-workspace.spec.js` § 4.)**
 - [ ] **End check (user-ux, includes Phase 1's deferred look):** Fabio makes a pano, converts it,
       flies, builds one interior, takes pictures from the four kinds of spot, sends three to the
       gallery as a stack, copies the card to a second project (companions travel), deletes it
@@ -420,6 +444,15 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
   `runSceneOp('sceneLift')` between them. sceneConvert upscales with AnimeSharp only UNDER 4096 wide
   (a 4x model on a 4K+ pano builds a 16K+ intermediate); wider inputs are resized to 8192x4096.
   `Input_Known_Depth` is an `MpiString` so the engine stages / uploads the f32 itself.
+- **2026-10-08 - 0a ran on three 0.170 and hit a three bug (session 33).** Under reverse depth
+  0.170 never clears depth to 0, so every render was empty until a two-step `setClear`. 0.186 (the
+  app) fixes it but renames the option `reversedDepthBuffer`; the spike's spelling is ignored there
+  silently. The floor-still eye check needs Klein's fill, so it moved from 0a to Take picture.
+- **2026-10-08 - the fly keys forced a hotkeyManager fix (session 33).** Entries on one key
+  shared one verdict, so a `when` that read false still fired its handler. Now per entry, bind
+  order kept; behaviour-preserving for every existing entry (only Escape and Space-up had
+  differing gates, and both handlers self-gate). `agentMode.toggle` is gated off the Scene page.
+  The Hotkeys page gets a "3D Scene" group only when `dev_mode` is on (A8).
 
 ## Verification
 

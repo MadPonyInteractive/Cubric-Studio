@@ -1,4 +1,5 @@
 import { ComponentFactory } from '../../../factory.js';
+import { APP_CONFIG } from '../../../../../dev_configs/app_config.js';
 
 /**
  * MpiHotkeys — Hotkeys content for the MpiSlideOver panel.
@@ -51,7 +52,17 @@ export const MpiHotkeys = ComponentFactory.create({
                                 <li><span>A</span><span>Toggle Agent mode</span></li>
                             </ul>
                         </div>
-
+${APP_CONFIG.dev_mode ? `
+                        <!-- 3D Scene (MPI-623, dev_mode until it ships) -->
+                        <div class="mpi-hotkeys__shortcut-group">
+                            <h4>3D Scene</h4>
+                            <ul>
+                                <li><span>HOLD W / A / S / D</span><span>Fly forward, left, back, right</span></li>
+                                <li><span>HOLD Q / E</span><span>Fly down, up</span></li>
+                                <li><span>DRAG</span><span>Look around</span></li>
+                            </ul>
+                        </div>
+` : ''}
                         <!-- Memory -->
                         <div class="mpi-hotkeys__shortcut-group">
                             <h4>Memory</h4>

@@ -28,7 +28,7 @@ test('closing a Flow releases its generation.run hotkey', async ({}, testInfo) =
 
     const runHandlers = () => window.evaluate(async () => {
       const { Hotkeys } = await import('/js/managers/hotkeyManager.js');
-      return Hotkeys._handlers.get('down:control+enter')?.size ?? 0;
+      return Hotkeys._handlers.get('down:control+enter')?.length ?? 0;
     });
 
     const before = await runHandlers();
