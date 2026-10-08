@@ -335,6 +335,28 @@ export const modelDeps = {
         bytes: 20499083824,
         sha256: '11b5af5ac601821d73930c84846c9a158e67177356daf927ce1c8d10f3963829',
     },
+    // ── Qwen-Image 2.1 transformer (MPI-936) ───────────────────────────────────
+    // Qwen RESEARCH licence, so it is NEVER on R2: `url` is Comfy-Org's own HF file, the
+    // non-mirrored pattern (playbook 02 § "may we host it at all?"). We reference the
+    // weight; the user pulls it from Hugging Face. `noMirror` is a statement, not an
+    // oversight: there is no second origin we may lawfully run. The repo is not gated, and
+    // the pinned sha256 (= HF's lfs.oid) is the only integrity guard on a host we do not own.
+    'qwen-image-21-transformer': {
+        id: 'qwen-image-21-transformer',
+        name: 'Qwen-Image 2.1 Transformer (int8_convrot)',
+        origin: 'Comfy-Org/Qwen-Image-2.1 (diffusion_models/qwen_image_2.1_int8_convrot.safetensors)',
+        filename: 'diffusion_models/qwen_image_2.1_int8_convrot.safetensors',
+        url: 'https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_int8_convrot.safetensors',
+        credit: {
+            author: 'Qwen (Alibaba), ComfyUI repackage by Comfy-Org',
+            work: 'Qwen-Image 2.1 (Qwen RESEARCH License Agreement)',
+            url: 'https://huggingface.co/Qwen/Qwen-Image-2.1',
+        },
+        size: '6.76GB',
+        bytes: 7256783064,
+        sha256: 'cb74113cb03faecd79611b01fd7fd642f0aa60d6f0b95086abee214d75eaa57d',
+        noMirror: true,
+    },
     // ── FLUX.2 Klein 4B transformer (MPI-354) ──────────────────────────────────
     // Apache-2.0, 4B. The FASTEST image model we ship. ONE checkpoint, ONE tier: the
     // DISTILLED weight, int8_convrot quantized. There is no accelerator LoRA and no

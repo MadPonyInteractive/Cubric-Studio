@@ -130,6 +130,7 @@
 
 .mpi-tile__flag--featured   { color: var(--accent-warn); }
 .mpi-tile__flag--deprecated { color: var(--accent-heat); }
+.mpi-tile__flag--nonCommercial { color: var(--accent-warn); }
 
 /* Cloud flag (MPI-865) — the SAME rule the price chip takes below: the hue says what
    the model makes, not that it is paid. Rose for an image model, Video orange for a

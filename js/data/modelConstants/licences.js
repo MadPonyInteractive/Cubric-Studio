@@ -31,6 +31,8 @@
  * @property {string} name        - Licence display name.
  * @property {string} modelName   - What the user believes they are installing.
  * @property {string} summary     - One line above the fold: why this dialog exists.
+ * @property {boolean} [nonCommercial] - The licence bars commercial use. Flags every model
+ *                                  it governs on its Model Library tile (MPI-936).
  * @property {string} licenceUrl  - The full agreement. Opened in the system browser. A
  *                                  ROOT-RELATIVE path points at a copy BUNDLED under
  *                                  `licences/<id>/`, which `openExternal` resolves against
@@ -467,6 +469,62 @@ const STABLE_AUDIO_3 = {
     ],
 };
 
+// Qwen-Image 2.1 — Qwen RESEARCH License Agreement, released 2026-09-20 (MPI-936).
+//
+// THE FIRST LICENCE HERE WHOSE IMAGES ARE NOT COMMERCIALLY USABLE EITHER. The grant is
+// "FOR NON-COMMERCIAL PURPOSES ONLY" (§2.a) and Non-Commercial means "research or
+// evaluation purposes only" (§1.i). There is no Outputs clause, unlike FLUX NCL §2.d, so
+// never copy Klein 9B's "the Outputs are mine to use commercially" line near this model,
+// and never say "personal use": it is not in the grant (Fabio, 2026-09-26).
+//
+// WE DO NOT DISTRIBUTE THE RESEARCH-LICENSED WEIGHTS. Transformer and VAE download straight
+// from Comfy-Org/Qwen-Image-2.1 on Hugging Face. The text encoder is the one weight on R2,
+// because it is stock Qwen3-VL-8B-Instruct under Apache-2.0, proven tensor-for-tensor
+// (docs/models/qwen-image-2/). No repo is HF-gated, so there is no `verify` step. §3.a and
+// §3.c are honoured anyway: the agreement is bundled under `licences/qwen-image-2-1/`,
+// byte-identical to Qwen/Qwen-Image-2.1's LICENSE (7,831 bytes, fetched 2026-10-08), with
+// the §3.c notice in NOTICE.txt and verbatim in `poweredBy`.
+//
+// The commercial-licence request to model-business@notice.qwencloud.com is open. If one is
+// granted, rewrite this descriptor and bump `version`.
+/** @type {LicenceDescriptor} */
+const QWEN_IMAGE_21 = {
+    id: 'qwen-research-2026-09-20',
+    version: 1,
+    name: 'Qwen RESEARCH License Agreement',
+    modelName: 'Qwen-Image 2.1',
+    nonCommercial: true,
+    summary: 'Qwen-Image 2.1 is licensed for research or evaluation only. No commercial use is '
+           + 'allowed, of the model or of the images you make with it. This step shows you the '
+           + 'terms before the download starts.',
+    licenceUrl: '/licences/qwen-image-2-1/LICENSE.txt',
+    // §3.c — the attribution notice, verbatim. It is not paraphrasable.
+    poweredBy: 'Qwen is licensed under the Qwen RESEARCH LICENSE AGREEMENT, Copyright (c) 2026 '
+             + 'Hangzhou Tongyi Laboratory Technology Co., Ltd. All Rights Reserved.',
+    sections: [
+        {
+            heading: 'Sections 1 and 2: What you may do',
+            items: [
+                '"Non-Commercial" shall mean for research or evaluation purposes only.',
+                'You are granted a non-exclusive, worldwide, non-transferable and royalty-free limited license under our intellectual property or other rights owned by us embodied in the Materials to use, reproduce, distribute, copy, create derivative works of, and make modifications to the Materials FOR NON-COMMERCIAL PURPOSES ONLY.',
+                'You shall not use the Materials for any commercial purpose without obtaining a separate commercial license from us. If you wish to use the Materials commercially, you shall request a license from us at model-business@notice.qwencloud.com.',
+            ],
+        },
+        {
+            heading: 'Section 4: Rules of use',
+            items: [
+                'The Materials may be subject to export controls or restrictions in China, the United States or other countries or regions. You shall comply with applicable laws and regulations in your use of the Materials.',
+                'If you use the Materials or any outputs or results therefrom to create, train, fine-tune, or improve an AI model that is distributed or made available, you shall prominently display “Built with Qwen” or “Improved using Qwen” in the related product documentation.',
+                'You shall not use "Qwen" as the primary name or identifier of any derivative works or products; reasonable descriptive use (e.g., "fine-tuned from Qwen Image") is permitted.',
+            ],
+        },
+    ],
+    acknowledgements: [
+        'I will use Qwen-Image 2.1 for research or evaluation only, and I understand that rules out commercial use of the images I make with it too.',
+        'I understand my licence is granted by Hangzhou Tongyi Laboratory under the Qwen RESEARCH License Agreement, and that only they can grant a commercial one.',
+    ],
+};
+
 /** @type {Record<string, LicenceDescriptor>} */
 export const MODEL_LICENCES = {
     'minimax-h3':        MINIMAX_H3,   // first/last-frame to video+audio
@@ -490,6 +548,7 @@ export const MODEL_LICENCES = {
     // model's `id` without moving this key and the lookup misses SILENTLY: three licensed
     // weights install with nothing shown (tests/audio-models.test.cjs pins it).
     'stable-audio-3':    STABLE_AUDIO_3,
+    'qwen-image-2-1':    QWEN_IMAGE_21,  // MPI-936; the ModelDef id must match or the gate never fires
 };
 
 /** Where a user requests access to a `verify` licence — the licensor's own model page. */

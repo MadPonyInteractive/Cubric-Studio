@@ -25,6 +25,11 @@ load-bearing, plus the 2-reference face wall and its ruled-out list.
 | [refcontrol.md](klein/refcontrol.md) | The depth op — the grayscale root cause (cost a day, do NOT re-derive) and the style×depth exclusivity rule. |
 | [licences.md](klein/licences.md) | Community-LoRA licence method + table. Klein's Apache-2.0 does NOT extend to them. |
 
+### [qwen-image-2/](qwen-image-2/) — Qwen-Image 2.1 (t2i + edit + RGBA, Qwen RESEARCH licence)
+Hub: [qwen-image-2/README.md](qwen-image-2/README.md) — the licence bar (images not commercially
+usable either), why only the encoder is on R2 (it is stock Qwen3-VL-8B, proven), the all-core graph,
+and why Alibaba's 4-step accelerator does not run on core ComfyUI.
+
 ### [ltx/](ltx/) — LTX-2.3 video
 | File | Holds |
 |---|---|

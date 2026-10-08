@@ -760,6 +760,9 @@ export const MpiModelManager = ComponentFactory.create({
                 // Sunset marker (MPI-514) — the model is leaving the library on a
                 // future release; the card that replaces it is named in its ModelDef.
                 deprecated: !!model.deprecated,
+                // Non-commercial flag (MPI-936) — data on the licence descriptor, so a
+                // licence that bars commercial use flags every model it governs.
+                nonCommercial: !!getModelLicence(model.id)?.nonCommercial,
                 // Recently-installed heat dot (MPI-215) — the model's transient flag.
                 dot: !!model.justInstalled,
                 // Queued-install waiting mascot (MPI-284) — hidden until the job sits

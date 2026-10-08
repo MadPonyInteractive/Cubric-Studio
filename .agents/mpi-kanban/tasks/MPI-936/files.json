@@ -1,1 +1,21 @@
-{ "schema": "mpi-kanban/task-files/v1", "files": [".agents/mpi-kanban/tasks/MPI-936/", "docs/models/qwen-image-2/"] }
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-936/",
+    "docs/models/qwen-image-2/",
+    "js/data/modelConstants/models.js",
+    "js/data/modelConstants/modelDeps.js",
+    "js/data/modelConstants/assetDeps.js",
+    "js/data/modelConstants/licences.js",
+    "js/data/modelConstants/modelPriority.js",
+    "js/data/progressStages.js",
+    "licences/qwen-image-2-1/",
+    "docs/agent/models/",
+    "comfy_workflows/raw/qwen_image_2_1.json",
+    "comfy_workflows/qwen_image_2_1.json",
+    "js/utils/icons.js",
+    "js/components/Primitives/MpiTileSheet/MpiTileSheet.js",
+    "js/components/Primitives/MpiTileSheet/MpiTileSheet.css",
+    "js/components/Organisms/MpiModelManager/MpiModelManager.js"
+  ]
+}

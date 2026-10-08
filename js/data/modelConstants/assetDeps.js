@@ -102,6 +102,26 @@ export const assetDeps = {
         bytes: 253806246,
         sha256: 'a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f'
     },
+    // Qwen-Image 2.1's VAE (MPI-936) — a DIFFERENT weight from `vae-qwen-image` above: the
+    // 2.1 VAE carries the alpha channel the model's transparent output comes through.
+    // Research-licensed like the transformer, so HF-primary and never on R2 (see
+    // 'qwen-image-21-transformer' in modelDeps.js for the pattern).
+    'vae-qwen-image-21': {
+        id: 'vae-qwen-image-21',
+        name: 'Qwen-Image 2.1 VAE',
+        origin: 'Comfy-Org/Qwen-Image-2.1 (vae/qwen_image_2.1_vae_bf16.safetensors)',
+        filename: 'vae/qwen_image_2.1_vae_bf16.safetensors',
+        url: 'https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/vae/qwen_image_2.1_vae_bf16.safetensors',
+        credit: {
+            author: 'Qwen (Alibaba), ComfyUI repackage by Comfy-Org',
+            work: 'Qwen-Image 2.1 VAE (Qwen RESEARCH License Agreement)',
+            url: 'https://huggingface.co/Qwen/Qwen-Image-2.1',
+        },
+        size: '644.22MB',
+        bytes: 675509688,
+        sha256: 'bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9',
+        noMirror: true,
+    },
     'ltx23-video-vae': {
         id: 'ltx23-video-vae',
         name: 'LTX-2.3 Video VAE (bf16)',
@@ -193,10 +213,13 @@ export const assetDeps = {
     },
     // Qwen3-VL-8B fp8_scaled (hidden 4096) — Boogu's text encoder, `type: 'boogu'` in
     // the CLIPLoader. Distinct weight from the Qwen3-VL-4B encoders above. Shared by all three
-    // Boogu tiers.
+    // Boogu tiers, AND by Qwen-Image 2.1 at CLIPLoader `type: qwen_image` (MPI-936): 2.1's own
+    // encoder is stock Qwen3-VL-8B-Instruct, proven by tensor bytes, and this file's
+    // unquantised norms match stock exactly — docs/models/qwen-image-2/. The id keeps its
+    // Boogu prefix because renaming a shipped id strands it; the display name follows the weight.
     'boogu-qwen3vl-8b-clip': {
         id: 'boogu-qwen3vl-8b-clip',
-        name: 'Boogu Text Encoder (Qwen3-VL-8B fp8_scaled)',
+        name: 'Qwen3-VL-8B Text Encoder (fp8_scaled)',
         origin: 'Boogu/Boogu-Image-0.1-Edit',
         filename: 'text_encoders/qwen3vl_8b_fp8_scaled.safetensors',
         url: 'https://models.cubric.studio/vision/models/text_encoders/qwen3vl_8b_fp8_scaled.safetensors',

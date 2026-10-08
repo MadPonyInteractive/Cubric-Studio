@@ -1,0 +1,39 @@
+# Qwen-Image 2.1 — model notes
+
+> **What this is.** The Qwen-Image 2.1 *what*. `docs/playbooks/add-model/` is the generic *how*.
+>
+> Tracking card: MPI-936. Raw research: `.agents/mpi-kanban/tasks/MPI-936/research/`
+> (`weights.md` = weights, licences, accelerators; `graph.md` = the official graph).
+
+Qwen-Image 2.1 (Alibaba, released 2026-09-20): one 7B model for text-to-image AND instruction
+editing (up to 10 reference images in the official template), with native transparent (RGBA)
+output through a 4-channel VAE. **Not** Qwen-Image-Edit 2511 ([../qwen-edit/](../qwen-edit/)) —
+different transformer, encoder and VAE; nothing is shared between the two.
+
+| | |
+|---|---|
+| Licence | **Qwen RESEARCH License — "research or evaluation only, no commercial use".** No Outputs clause: the IMAGES are not commercially usable either (unlike Klein 9B). Never say "personal use". Ships behind a `MODEL_LICENCES` gate + NC badge; bundle the agreement under `licences/<id>/`; attribution notice in `poweredBy`. Full facts: the card's `brief.md` |
+| Engine floor | ComfyUI core **0.37.0** (support), shipped on **0.39.0** (MPI-1043: int8/int4 KV-cache crash fix, RGBA preprocessing fix) |
+| Nodes | **All core** — `UNETLoader` → `QwenImage21Cache` → `KSampler`; `CLIPLoader` (`type: qwen_image`) → `TextEncodeQwenImage21` (`image_1..image_16`); `VAELoader` → `VAEDecode`. Edit refs gathered by `BatchImagesNode`. No custom pack |
+| Settings | euler / simple, 25 steps, **cfg 1** (the negative does nothing at cfg 1; ~2 follows dense prompts but over-sharpens). ~1 MP default |
+| Transformer | `diffusion_models/qwen_image_2.1_int8_convrot.safetensors` 7.26 GB — **HF only** (`Comfy-Org/Qwen-Image-2.1`), never R2: research-licensed |
+| Text encoder | **REUSE `boogu-qwen3vl-8b-clip`** (`text_encoders/qwen3vl_8b_fp8_scaled.safetensors`, 9.86 GB, on R2). 2.1's encoder is stock Qwen3-VL-8B-Instruct (Apache-2.0), proven tensor-for-tensor — see `weights.md` § Phase 0.6 |
+| VAE | `vae/qwen_image_2.1_vae_bf16.safetensors` 0.68 GB — new (alpha VAE; NOT `vae-qwen-image`), **HF only** |
+| Speed tier | Standard only for now. Alibaba's Fun-Acc 4-step LoRA needs a parallel-decoding head core ComfyUI runs for H3 only; Viggle turbo 6-step is the candidate fast tier (needs a resolution-dependent sigma node) — `weights.md` § Phase 0.4 |
+| Skipped | Qwen3.5-9B prompt-enhancer encoders (+9.5 GB each; we have our own enhancer), Fun ControlNet union, the background-removal template (BiRefNet / SAM3 cover it) |
+
+## Hard rules
+
+- **Never copy Klein 9B's "images stay commercially usable" line** into this model's gate,
+  description or agent note — the research licence has no Outputs clause.
+- **Weights never go to R2 except the encoder** (the only Apache-2.0 file). We do not
+  redistribute research-licensed weights; users fetch them from Hugging Face.
+- **Transparency is asked for in the PROMPT** ("transparent background, alpha channel"); there is
+  no switch. The capture node must keep the alpha channel.
+
+## Sources
+
+- Weights: `huggingface.co/Comfy-Org/Qwen-Image-2.1`, `huggingface.co/Qwen/Qwen-Image-2.1`
+- Official graphs: ComfyUI `comfyui_workflow_templates_json` 0.39 —
+  `image_qwen_image_2_1_t2i.json`, `image_qwen_image_2_1_image_edit.json`
+- Accelerators: `alibaba-pai/Qwen-Image-2.1-Fun-Acc-LoRAs`, `Viggle/Qwen-Image-2.1-viggle-turbo`

@@ -19,6 +19,9 @@ const TILE_FLAGS = [
     // tile root already carries `mpi-tile--video`/`--image`, so the family colour is a
     // CSS descendant rule rather than a second table row saying the same thing twice.
     { key: 'cloud',      icon: 'cloud',   info: 'Runs on your own API key', badge: 'secondary' },
+    // Non-commercial flag (MPI-936) — the model's licence bars commercial use. The detail
+    // drawer names the licence and links it; this only says so before anyone opens it.
+    { key: 'nonCommercial', icon: 'moneyOff', info: 'Non-commercial licence', badge: 'warning' },
     // Media flags (MPI-831) — what the tile PRODUCES. Every other grid is split by
     // media, so its header answers this and no tile needs to; the Flow Library's
     // Third-party section holds all three media types at once, which leaves the tile
@@ -63,6 +66,7 @@ const TILE_FLAGS = [
  * @property {boolean} [featured]       - Gold sparkle flag on the thumb
  * @property {boolean} [deprecated]     - Warning flag on the thumb (model is on its way out)
  * @property {boolean} [cloud]          - Cloud flag on the thumb (runs on the user's own API key)
+ * @property {boolean} [nonCommercial]  - Non-commercial licence flag on the thumb
  * @property {boolean} [dot]            - Recently-installed heat dot
  * @property {boolean} [dimmed]         - Desaturates the thumb (not installed yet)
  * @property {string|boolean} [waiting] - Queued-install waiting mascot: its key (vision | video | audio | studio; true = studio)
