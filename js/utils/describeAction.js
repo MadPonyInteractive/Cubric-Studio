@@ -7,7 +7,7 @@
  * describe switch point (`llmService.describeImage`), write the caption into the
  * prompt box on success.
  *
- * The describe backend (ComfyUI or Remote) and the plugin/connection check are
+ * The describe backend (ComfyUI or Remote) and the connection check are
  * handled inside `describeImage` — the caller's job is item validation only.
  * D1 (MPI-737): on failure a toast names the reason; nothing falls back silently.
  *
@@ -57,9 +57,6 @@ export function describeItem(item, opts = {}) {
             if (result.via === 'endpoint') {
                 // A toast, not the error modal: a missing key is setup, not a bug to report.
                 Events.emit('ui:warning', { message: withRemoteSettingsHint(result.errorCode, msg) });
-            } else if (result.errorCode === 'DESCRIBER_MISSING') {
-                // The encoder is a plugin weight the user installs deliberately.
-                Events.emit('ui:warning', { message: msg });
             }
             // A ComfyUI run that fails is already reported by the generation pipeline.
         }

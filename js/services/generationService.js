@@ -222,11 +222,13 @@ function _buildQueueDisplay(config = {}, opts = {}, source = 'manual', isLoop = 
     // Flow gens (config.flowId) show the Flow's title in the Cue, not the generic
     // "Universal workflow" fallback that model:{id:null} would otherwise pick.
     const flowTitle = config.flowId ? (getFlowById(config.flowId)?.title || null) : null;
-    // Plugin ops (MPI-310) consume no prompt — the Cue's prompt line would fall
-    // back to "No prompt text". Name the capability instead, mirroring flowTitle.
+    // Plugin ops (MPI-310) and promptless text ops (imageDescribe) consume no prompt —
+    // the Cue's prompt line would fall back to "No prompt text". Name the capability
+    // instead, mirroring flowTitle.
     const plugin = pluginForOperation(config.operation);
     return {
-        promptExcerpt: _promptExcerpt(config.positive) || plugin?.title || '',
+        promptExcerpt: _promptExcerpt(config.positive) || plugin?.title
+            || (command?.outputKind === 'text' ? command.label : ''),
         negativeExcerpt: _promptExcerpt(config.negative),
         modelId: model.id ?? null,
         modelName: model.displayName || model.name || model.label || model.id || flowTitle || (command?.universal ? 'Universal workflow' : 'Unknown model'),

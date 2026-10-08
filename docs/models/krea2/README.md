@@ -17,7 +17,7 @@ Do not reason about it as a Flux model.
 | Speed tiers | Runtime toggle, **not** separate cards (MPI-316). `krea2Turbo` → `Input_is_Turbo` (a BOOLEAN since MPI-365; was the `Input_Tier` int) — false = quality, true = fast |
 | Transformer | SFW `diffusion_models/krea2_raw_int8_convrot.safetensors` · NSFW `lustify-v10-krea-raw-int8_convrot.safetensors` |
 | Accelerator | `loras/krea-2/extra/krea2_turbo_distill_r128.safetensors` — an SVD delta extracted **from Raw**, so Raw + this @ 1.0 reconstructs Turbo. **This is the fast tier**; it replaced the two ~12GB Turbo transformers (deleted, ~24.5GB saved) |
-| Text encoder | `text_encoders/qwen3vl_4b_abliterated_fp8_scaled.safetensors` — Qwen3-VL-4B, **not** a Flux encoder. Shared with the image-describer plugin; the stock `qwen3vl_4b_fp8_scaled` twin was retired 2026-07-19 (A/B'd equal, deleted from R2 and disk) |
+| Text encoder | `text_encoders/qwen3vl_4b_abliterated_fp8_scaled.safetensors` — Qwen3-VL-4B, **not** a Flux encoder. An `engineAsset` since MPI-1045 (installed with the engine; it drives ComfyUI describe/enhance); the stock `qwen3vl_4b_fp8_scaled` twin was retired 2026-07-19 (A/B'd equal, deleted from R2 and disk) |
 | VAE | `vae/qwen_image_vae.safetensors` — reuse existing dep **`vae-qwen-image`** (already on R2) |
 | Native res | **1024–2048** (both tiers; `qualityTiers: ['1k','2k']`) |
 | Upstream | `Comfy-Org/Krea-2` (weights) · `krea-ai/krea-2` (first-party inference code) |

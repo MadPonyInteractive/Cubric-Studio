@@ -1,9 +1,10 @@
 # Plugins — the third entity
 
 A **plugin** is a capability another surface calls. Not a thing the user generates
-with, not a Flow Library tile. The archetype is the image describer: it is triggered
-from a right-click menu and produces text. The second is the LTX Video upscaler: it
-adds an entry to the History workspace's Upscale dropdown.
+with, not a Flow Library tile. The LTX Video upscaler adds an entry to the History
+workspace's Upscale dropdown; the 3D Scene plugin (dev-only) adds a gallery right-click
+action. The first plugin, the image describer, was retired by MPI-1045: a capability
+every user gets belongs to the engine (`engineAsset`), not to a plugin.
 
 | entity | lives in | user meets it as |
 |---|---|---|
@@ -24,7 +25,7 @@ The split is the one `FlowDef` has shipped since MPI-304:
 
 | declares | means | example |
 |---|---|---|
-| `requiredDeps: ['x']` | a weight **no model provides** — the plugin's own | `image-describer` → its 5.24GB encoder |
+| `requiredDeps: ['x']` | a weight **no model provides** — the plugin's own | `scene-convert` → MoGe (`moge-vitl`) |
 | `requiredModels: ['m']` | it runs on a model's weights, and owns none | `ltx-video-upscaler` → `ltx-23-balanced`; same as the `ltx-foley` / `ltx-extend` Flows |
 | both | a model plus its own extras | the `head-swap` Flow → `qwen-edit` + its LoRA and node pack |
 

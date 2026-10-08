@@ -49,3 +49,4 @@
 
 - **Compare labels each side with its History name.** An imported image showed its full file path instead.
 - **Focus mode (F) shows your image again.** On an image it turned the whole screen black, with Compare on too.
+- **Enhance and Describe work on ComfyUI without installing anything first.** Without the Image Describer plugin or a Krea 2 model, Enhance failed with an error and Describe asked for the plugin. Their 4.88 GB text encoder now installs with the engine, and the plugin is gone.

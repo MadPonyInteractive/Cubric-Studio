@@ -1839,7 +1839,7 @@ async function _installModel(jobId, input = {}) {
 /**
  * `agent.describe` — run the image describer with an optional injected question.
  * The imagePath (possibly a cropped file) is passed by the server-side route.
- * Returns `{ text }` via _report. Errors: DESCRIBER_MISSING, REJECTED, CANCELLED, RUNTIME_ERROR
+ * Returns `{ text }` via _report. Errors: REJECTED, CANCELLED, RUNTIME_ERROR
  * (ComfyUI) or the /llm/describe codes NO_PROFILE, NO_KEY, NOT_VISION, BAD_IMAGE, ENDPOINT_ERROR (Remote).
  *
  * MPI-737: delegates to `llmService.describeImage` — the ONE describe switch

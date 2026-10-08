@@ -2018,9 +2018,9 @@ export const FLOWS = [
             // It was undeclared for as long as Enhance was a button: an install without
             // it lost a button that warned, which is survivable. The one-box design runs
             // the enhancer as step one of Generate (see `enhance` below), so on a clean
-            // install an undeclared weight is a Generate that dies. It arrives via Krea2,
-            // Qwen or the Image Describer plugin as well, and the dep system dedupes —
-            // a user who has any of those pays nothing for this line.
+            // install an undeclared weight is a Generate that dies. Since MPI-1045 it is an
+            // engineAsset, installed WITH the engine, so this line costs nobody a download;
+            // it stays declared so the Flow never depends on that flag.
             'qwen3vl-abliterated-clip',
         ],
         operation: 'flowTextToMusic',

@@ -87,6 +87,19 @@ test('no engine, no Pod: projects open, engine tools refuse by name, Flows stay 
         await prompt.locator('button:has-text("Add a DeepInfra key")').click();
         await expect(window.locator('.mpi-remote')).toBeVisible();
         expect(await page(window)).toBe('gallery');
+
+        // MPI-1046: Language Models never offers ComfyUI here. Both rows grey it, and the
+        // default ComfyUI pick says it runs on Remote (which runnableBackend already does).
+        await expect(window.locator('.mpi-llm-settings--loading')).toHaveCount(0, { timeout: 15000 });
+        const toggle = (slot) => window.evaluate((sel) => document.querySelector(sel).click(), `${slot} .mpi-dropdown__trigger`);
+        for (const slot of ['#mpiSettingsLlmEnhanceBackendSlot', '#mpiSettingsLlmDescribeBackendSlot']) {
+            await toggle(slot);
+            const comfy = window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option[data-value="comfy"]');
+            await expect(comfy).toHaveClass(/is-disabled/);
+            await expect(comfy).toContainText('Needs the ComfyUI engine');
+            await toggle(slot);
+        }
+        await expect(window.locator('#mpiSettingsLlmDescribeNote')).toContainText('runs on Remote');
         await window.keyboard.press('Escape');
 
         // 2. Back to the landing page and open it from its row.

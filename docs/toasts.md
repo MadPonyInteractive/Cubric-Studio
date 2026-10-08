@@ -243,7 +243,6 @@ rather than trusting them.
 | `utils/describeAction.js:41` | Describe on a video | Describing video frames is not supported yet. | warning | eligible |
 | `utils/describeAction.js:52` | Describe succeeded, caption injected | Description added to the prompt. | success | eligible |
 | `utils/describeAction.js:59` | Describe on Remote failed (no key/connection, non-vision model, endpoint error; MPI-737 D1, never the error modal) | ${error} Check Remote > Language Models. (`withRemoteSettingsHint`) | warning | eligible |
-| `utils/describeAction.js:62` | Describe on ComfyUI, image-describer plugin not installed | ${title} is not installed… | warning | eligible |
 | `data/modelRegistry.js:173` | Models-check reports bakedDrift (once/file/session) | Pod image is stale — rebuild needed (${key}) | warning | eligible |
 
 ## RunPod connect/disconnect (`MpiRunpodSettings.js`)

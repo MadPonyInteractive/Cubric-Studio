@@ -31,6 +31,11 @@ const volumeEngineAssets = () => Object.values(DEPS)
 {
     assert.ok(volumeEngineAssets().includes('sam3-multiplex'),
         'sam3-multiplex must be volume-installed on remote — it is NOT in the Pod image');
+    // MPI-1045 — the ComfyUI describe/enhance encoder installs WITH the engine on both
+    // sides (it replaced the image-describer plugin), so the ComfyUI pick in Remote >
+    // Language Models never has anything to download or gate on.
+    assert.ok(volumeEngineAssets().includes('qwen3vl-abliterated-clip'),
+        'qwen3vl-abliterated-clip must be an engineAsset, volume-installed on remote');
 }
 
 // 2. A baked engineAsset reports image-resident, so it is never re-downloaded onto the

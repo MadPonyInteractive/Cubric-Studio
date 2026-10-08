@@ -115,16 +115,12 @@ test('Remote rows list the connection models, recommended first', async ({}, tes
       .toEqual(['{"deepinfra":"acme/zeta-chat"}', 'gemma-4-e4b']);
 
     // ComfyUI hides the describe model row: its graph loads one baked describer.
-    // A fresh E2E profile may lack the Image Describer plugin, which greys the entry.
+    // Never greyed, even on a fresh profile: its encoder installs with the engine (MPI-1045).
     await toggle('#mpiSettingsLlmDescribeBackendSlot');
     const comfy = window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option[data-value="comfy"]');
-    if (/is-disabled/.test(await comfy.getAttribute('class'))) {
-      await expect(comfy).toContainText('Install the Image Describer plugin');
-      await toggle('#mpiSettingsLlmDescribeBackendSlot');
-    } else {
-      await window.evaluate(() => document.querySelector('.mpi-dropdown__list.is-open .mpi-dropdown__option[data-value="comfy"]').click());
-      await expect(window.locator('#mpiSettingsLlmDescribeModelGroup')).toBeHidden();
-    }
+    await expect(comfy).not.toHaveClass(/is-disabled/);
+    await window.evaluate(() => document.querySelector('.mpi-dropdown__list.is-open .mpi-dropdown__option[data-value="comfy"]').click());
+    await expect(window.locator('#mpiSettingsLlmDescribeModelGroup')).toBeHidden();
 
     // The agent has one backend, so it is a fixed label, not a dropdown.
     await expect(window.locator('#mpiSettingsAgentBackend')).toHaveText('Remote · DeepInfra');

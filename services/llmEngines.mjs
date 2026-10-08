@@ -560,7 +560,7 @@ export const RECOMMENDED_REMOTE_MODELS = {
     // `agentTest` (MPI-941 Phase 11; re-scored 2026-10-01 on the 34-case suite, MPI-965 validation.md): `--runs 1`
     // on Fabio's 16 GB card (granite4.1:8b by his own in-app run). None reaches the bar, so none carries `agent`;
     // listed, scored.
-    // `describe` (MPI-993, Fabio 2026-09-30): the Image Describer plugin's own model
+    // `describe` (MPI-993, Fabio 2026-09-30): the ComfyUI describer's own model
     // (`qwen3vl-abliterated-clip`), which he rates on real use. MPI-912's one-picture bench:
     // 7/10 facts, nothing wrong. It is under the DeepInfra bar; the flag is his call, not a score.
     // A listed model the user's Ollama lacks is still offered, `installed: false` (listRemoteModels).

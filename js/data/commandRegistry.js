@@ -1064,8 +1064,7 @@ export const commands = {
     // MPI-579 — the LTX Video upscaler PLUGIN's op (js/data/pluginsRegistry.js).
     // Universal like its siblings, but its weights are NOT the universal set: it runs
     // on the LTX 2.3 Balanced stack, and the plugin's own availability gate is what
-    // keeps it off the dropdown when those are absent. Same shape as `imageDescribe`,
-    // whose encoder is likewise a plugin's rather than the engine's.
+    // keeps it off the dropdown when those are absent.
     //
     // The `ltxSigmas` injector turns the one mapped `Input_Denoise` value into
     // ManualSigmas' whole schedule string — see ltxSigmasInjector.js for why that
@@ -1096,8 +1095,8 @@ export const commands = {
         universal: true,
     },
     // MPI-310 — the captioner. Produces a caption string via Output_prompt and writes
-    // no file, hence outputKind: 'text'. Owned by the image-describer PLUGIN (see
-    // js/data/pluginsRegistry.js), which owns its encoder weight.
+    // no file, hence outputKind: 'text'. Its encoder `qwen3vl-abliterated-clip` is an
+    // engineAsset (MPI-1045 retired the image-describer plugin that used to own it).
     imageDescribe: {
         label: 'Describe Image',
         info: 'Describe Image — write a detailed prompt from the picture',

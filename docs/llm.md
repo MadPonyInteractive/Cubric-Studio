@@ -13,7 +13,7 @@ text jobs off the card.
 | Job | ComfyUI | Remote | Ollama |
 |---|---|---|---|
 | Prompt enhancement | yes (default) | yes, needs the connection | yes, needs the model downloaded |
-| Image descriptions | yes (default), needs the Image Describer plugin | yes, needs a vision model | no |
+| Image descriptions | yes (default) | yes, needs a vision model | no |
 | Agent | no | yes, the only option (a fixed label) | no |
 
 - **Remote** (code value `'endpoint'`, UI label "Remote", MPI-737 D2) is the ONE user-connected
@@ -21,9 +21,10 @@ text jobs off the card.
   custom. `'remote'` is NOT used in code: it already means the RunPod GPU lane.
 - **Ollama** stays its own backend beside Remote (D3): it owns install/start/pull and releases VRAM
   after every call, which a bare `/v1` connection does not.
-- ComfyUI enhance and describe are gated on the `image-describer` plugin
-  (`js/data/pluginsRegistry.js`, `requiredDeps: ['qwen3vl-abliterated-clip']`): the enhancer
-  graph's default `CLIPLoader` and the descriptor graph load the same weight.
+- ComfyUI enhance and describe have NO install gate: both graphs load `qwen3vl-abliterated-clip`,
+  an `engineAsset` installed WITH the engine (boot repair locally, the volume at Pod connect). It
+  was the retired `image-describer` plugin's weight until MPI-1045; do not bring the gate back.
+  The ONE grey on ComfyUI is no engine at all (no local install, no Pod: `hasNoEngine`, MPI-1046).
 
 ## Files
 
@@ -94,8 +95,8 @@ nothing elsewhere), else nothing. The connection itself is `Storage.getLlmConnec
 - **`RECOMMENDED_REMOTE_MODELS`** carries exact ids per preset, and a flag only on a measured
   result: DeepInfra enhance = `google/gemma-4-26B-A4B-it`, `google/gemma-3-12b-it`; describe =
   `google/gemma-4-26B-A4B-it` (MPI-817's scored run). Ollama (its own `/v1/models` ids, tag
-  included) enhance = `huihui_ai/gemma-4-abliterated:12b`, the enhancer of record; describe = `huihui_ai/qwen3-vl-abliterated:4b`, the Image
-  Describer plugin's own model, by Fabio's call (MPI-993; 7/10 on MPI-912's bench); agent none. Ollama only: a recommended model it lacks is still listed, `installed: false`; `minVramGb` (gemma4:26b, 24) recommends only on a card that holds it, from the route's nvidia-smi read. **Table order is preference**: the list sorts recommended rows by it, so a row's first recommendation is `recommendedModel`'s, the one the server runs for an empty pick (sorted by id, DeepInfra enhance showed gemma-3-12b and ran gemma-4-26B).
+  included) enhance = `huihui_ai/gemma-4-abliterated:12b`, the enhancer of record; describe = `huihui_ai/qwen3-vl-abliterated:4b`, the ComfyUI
+  describer's own model, by Fabio's call (MPI-993; 7/10 on MPI-912's bench); agent none. Ollama only: a recommended model it lacks is still listed, `installed: false`; `minVramGb` (gemma4:26b, 24) recommends only on a card that holds it, from the route's nvidia-smi read. **Table order is preference**: the list sorts recommended rows by it, so a row's first recommendation is `recommendedModel`'s, the one the server runs for an empty pick (sorted by id, DeepInfra enhance showed gemma-3-12b and ran gemma-4-26B).
 - **`agentTest: { passed, cases, runs, perChat, suiteHash? }`** on an entry = it ran `scripts/agent-test.mjs` (MPI-916 `validation.md` § 2f;
   `perChat` is USD per conversation, fixed at test time). The agent dropdown lists these models on top, best score first,
   `28/28 tests · $0.36/100 chats` in the meta beside the context window, no "(recommended)" label (Fabio 2026-09-26); `agentTest` with
@@ -140,8 +141,7 @@ harness only; the app never instantiates it.
 errorCode?, error?, cancelled? }`, never rejects. Both callers use it: the right-click
 (`describeAction.js`) and the agent's `look` (`agentDispatch._describeImage`, relay `agent.describe`).
 
-- **`comfy`:** plugin check (`DESCRIBER_MISSING`), then an `enqueueGeneration` of the `imageDescribe`
-  op - the only one outside `js/data/`. It rides the Cue, so it waits behind a generation, and on a Pod it runs on
+- **`comfy`:** an `enqueueGeneration` of the `imageDescribe` op - the only one outside `js/data/`. It rides the Cue, so it waits behind a generation, and on a Pod it runs on
   the Pod. A `question` replaces `Input_Describe_Prompt` with a WHOLE ChatML turn (`buildDescribeInjectionParams`):
   image pad, the question as user text, assistant header. A `<|im_start|>` prompt skips the tokenizer
   template, so a string without `<|image_pad|>` never shows the model the image (it answered nothing).
@@ -151,9 +151,8 @@ errorCode?, error?, cancelled? }`, never rejects. Both callers use it: the right
 - **Failure never falls back** (D1): no connection, no key, a non-vision model -> the caller says so.
   The right-click toast (a `ui:warning`, never the error modal: setup is not a bug) points at Remote
   settings only for an endpoint failure (`withRemoteSettingsHint`, which Remote enhance errors carry
-  too, so the Enhance dialog names the same place), keeps the Model
-  Library warning for `DESCRIBER_MISSING`, and stays silent for a ComfyUI run failure (the
-  generation pipeline reports it). The agent gets the code and message back.
+  too, so the Enhance dialog names the same place), and stays silent for a ComfyUI run
+  failure (the generation pipeline reports it). The agent gets the code and message back.
 
 ## Settings (`MpiLlmSettings`)
 

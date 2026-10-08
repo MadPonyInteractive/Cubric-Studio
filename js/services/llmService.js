@@ -29,8 +29,8 @@
  *     encoder can run `TextGenerate`, the enhance borrows it instead (Fabio,
  *     2026-09-13 — Klein's `qwen_3_8b_int8_convrot`), so the weight the
  *     generation is about to load is the one that writes the prompt
- *     (`enhancerClipParams`). With nothing to borrow it needs the
- *     `qwen3vl-abliterated-clip` dep installed.
+ *     (`enhancerClipParams`). With nothing to borrow it loads
+ *     `qwen3vl-abliterated-clip`, an engineAsset installed WITH the engine (MPI-1045).
  *   - `ollama` — local, in a second runtime with its own VRAM. The only backend
  *     that carries an abliterated build.
  *
@@ -969,7 +969,7 @@ export function buildDescribeInjectionParams(question) {
  * the right-click path shows a toast; the agent path returns the error text so
  * the agent can suggest switching.
  *
- *   - comfy: plugin check → `enqueueGeneration('imageDescribe')` with the
+ *   - comfy: `enqueueGeneration('imageDescribe')` with the
  *     ChatML-wrapped question in `Input_Describe_Prompt` (node 38). Text lands
  *     in the prompt box via `workspace:inject-prompts` (the caller emits this on
  *     ok). Waits in the queue behind any running generation.
@@ -1020,19 +1020,8 @@ export async function describeImage({ imagePath, question, crop, scope, group } 
         }
     }
 
-    // comfy branch
-    const { pluginAvailability, getPlugin } = await import('../data/pluginsRegistry.js');
-    const PLUGIN_ID = 'image-describer';
-    if (!pluginAvailability(PLUGIN_ID).installed) {
-        const title = getPlugin(PLUGIN_ID)?.title || 'Image Describer';
-        return {
-            ok: false,
-            via: 'comfy',
-            errorCode: 'DESCRIBER_MISSING',
-            error: `${title} is not installed — add it from the Model Library (Plugins).`,
-        };
-    }
-
+    // comfy branch. No install gate: the encoder is an engineAsset (MPI-1045), on disk
+    // wherever the engine is.
     const { enqueueGeneration } = await import('./generationService.js');
     const injectionParams = buildDescribeInjectionParams(question);
     const queueOpts = group
@@ -1052,7 +1041,7 @@ export async function describeImage({ imagePath, question, crop, scope, group } 
             {
                 // `model` names the local describer the way the endpoint route names its own.
                 onText: (text) => resolve({ ok: true, via: 'comfy', text: String(text || '').trim(),
-                    model: `ComfyUI ${getPlugin(PLUGIN_ID)?.requiredDeps?.[0] || PLUGIN_ID}` }),
+                    model: 'ComfyUI qwen3vl-abliterated-clip' }),
                 onError: (err) => resolve({ ok: false, via: 'comfy', error: (err && err.message) || 'The description failed.' }),
                 onCancel: () => resolve({ ok: false, via: 'comfy', cancelled: true, error: 'The description was cancelled.' }),
             },

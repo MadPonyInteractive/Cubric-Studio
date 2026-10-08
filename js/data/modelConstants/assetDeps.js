@@ -193,11 +193,11 @@ export const assetDeps = {
     // `krea2-qwen3vl-clip` (stock Qwen3-VL-4B fp8_scaled) was REMOVED 2026-07-19: the
     // Krea2 cards moved to qwen3vl-abliterated-clip below and the R2 object was deleted,
     // so the entry was an orphan whose url 404s. Do not re-add the split weight — the
-    // abliterated twin serves both the Krea2 cards and the image-describer plugin.
+    // abliterated twin serves the Krea2 cards and every ComfyUI describe/enhance.
     // Abliterated twin of the stock Qwen3-VL-4B — same architecture, refusal behaviour
-    // removed. SHARED: the image-describer PLUGIN (js/data/pluginsRegistry.js) AND all
-    // four Krea2 cards, which moved off the stock encoder 2026-07-19 after an A/B showed
-    // no cost — locked seed, 5/6 constraints honoured by both on an adversarial
+    // removed. SHARED: installed WITH the engine (`engineAsset`, MPI-1045 - the image-describer
+    // plugin that owned it is gone) AND declared by all four Krea2 cards, which moved off
+    // the stock encoder 2026-07-19 after an A/B showed no cost — locked seed, 5/6 constraints honoured by both on an adversarial
     // instruction-following prompt, and no sanitisation on a disinhibition probe.
     // NOTE the switch bought simplicity + ~4.88GB, NOT censorship relief: the refusals
     // seen in-app came from the enhancer LLM downstream of Generate Text, never the CLIP.
@@ -210,6 +210,7 @@ export const assetDeps = {
         size: '4.88GB',
         bytes: 5242481504,
         sha256: '45fe15d359fbc6fe8773f24cebc34acedf5696d96d41a0c9a3039611ece3b866',
+        engineAsset: true,
     },
     // Qwen3-VL-8B fp8_scaled (hidden 4096) — Boogu's text encoder, `type: 'boogu'` in
     // the CLIPLoader. Distinct weight from the Qwen3-VL-4B encoders above. Shared by all three

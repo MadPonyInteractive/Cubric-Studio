@@ -180,7 +180,7 @@ test('MPI-993: a recommended model the user\'s Ollama lacks is still listed, ins
         assert.deepEqual(absent, expected);
         // An installed row carries no flag at all, so every other preset's rows are unchanged.
         assert.equal('installed' in models.find((m) => m.id === 'huihui_ai/gemma-4-abliterated:12b'), false);
-        // The describe recommendation is the Image Describer plugin's own model, offered to download.
+        // The describe recommendation is the ComfyUI describer's own model, offered to download.
         const vl = models.find((m) => m.id === 'huihui_ai/qwen3-vl-abliterated:4b');
         assert.deepEqual([vl.installed, vl.recommendedFor, vl.vision], [false, ['describe'], null]);
         // Recommended first, installed or not.

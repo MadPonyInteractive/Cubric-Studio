@@ -1359,8 +1359,8 @@ router.post('/connector/install', async (req, res) => {
  * to the renderer's `agent.describe` capability. Returns `{ ok, output: { text } }`.
  * `box: true` (with a `question` naming what to box) appends BOX_INSTRUCTION and adds
  * `output.box` `{x, y, width, height}` in ORIGINAL pixels.
- * Errors: BAD_REQUEST, IMAGE_NOT_FOUND, CROP_OUT_OF_BOUNDS, NO_BOX, DESCRIBER_MISSING,
- * APP_UNAVAILABLE, RUNTIME_ERROR, TIMEOUT.
+ * Errors: BAD_REQUEST, IMAGE_NOT_FOUND, CROP_OUT_OF_BOUNDS, NO_BOX, APP_UNAVAILABLE,
+ * RUNTIME_ERROR, TIMEOUT.
  */
 router.post('/connector/describe', async (req, res) => {
   const { imagePath, question, crop, box } = req.body || {};

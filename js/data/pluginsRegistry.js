@@ -3,9 +3,9 @@
  * FLOWS (js/data/flowsRegistry.js).
  *
  * A PLUGIN is a capability other surfaces call, not a thing the user generates
- * with and not a tile in the Flow Library. The image describer is the archetype:
- * it owns a 5.24GB encoder, is triggered from a gallery/history context menu,
- * and produces text rather than media.
+ * with and not a tile in the Flow Library. The 3D Scene plugin is the archetype:
+ * it owns a weight no model provides (MoGe), is triggered from a gallery context
+ * menu, and adds an action rather than a generation.
  *
  * Why not a ModelDef with an `isPlugin` flag: a ModelDef forces dead fields
  * (workflows / qualityTiers / mediaType / gen_speed / ratio tables) AND every
@@ -40,7 +40,7 @@
  *                                   every gate agree.
  * @property {PluginUpscaleEntry} [upscale]  Contributes an ENTRY to the EXISTING History
  *                                   Upscale dropdown (MPI-580). Omit and the plugin is
- *                                   invisible there, exactly like image-describer.
+ *                                   invisible there, exactly like scene-convert.
  *
  * @typedef {Object} PluginUpscaleEntry
  * @property {Array<'image'|'video'>} kinds  Which MpiToolOptionsUpscale `kind` lists it.
@@ -64,13 +64,9 @@ import { APP_CONFIG } from '../../dev_configs/app_config.js';
 
 /** @type {PluginDef[]} */
 const ALL_PLUGINS = [
-    {
-        id: 'image-describer',
-        title: 'Image Describer',
-        description: 'Unlocks "Describe image" on the gallery and history right-click menus.',
-        requiredDeps: ['qwen3vl-abliterated-clip'],
-        operation: 'imageDescribe',
-    },
+    // The `image-describer` plugin was retired by MPI-1045 (Fabio, 2026-10-08): its encoder
+    // `qwen3vl-abliterated-clip` is an engineAsset now, installed WITH the engine, so ComfyUI
+    // describe/enhance has nothing to install or gate on. Do not bring it back as a plugin.
     // MPI-579 — the first consumer of the `upscale` contribution point (MPI-580).
     //
     // IT DECLARES A MODEL, NOT THAT MODEL'S WEIGHTS, AND THAT IS LOAD-BEARING.

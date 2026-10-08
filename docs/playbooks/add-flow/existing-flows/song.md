@@ -105,8 +105,8 @@ actually cast. Tempo is not (the graph states the BPM verbatim), and the lyrics 
 on their own wire, never through the rewriter.
 
 🔴 **That is why `qwen3vl-abliterated-clip` is a `requiredDep`.** While Enhance was a button, an
-install without it lost a button that warned. Now it loses Generate. The weight also arrives via
-Krea2, Qwen or the Image Describer plugin and the dep system dedupes.
+install without it lost a button that warned. Now it loses Generate. Since MPI-1045 the weight is
+an `engineAsset` installed with the engine, so the declaration costs nobody a download.
 
 🔴 **THE ONE RECIPE RULE THAT MUST SURVIVE ANY EDIT: never invent a running order, a section
 list or a timing.** The first two live runs had the 4B writing a complete TIMED plan nobody

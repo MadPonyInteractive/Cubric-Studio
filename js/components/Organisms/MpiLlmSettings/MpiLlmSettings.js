@@ -8,7 +8,7 @@ import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.j
 import { MpiOllamaSetup } from '../../Compounds/LandingPages/MpiOllamaSetup/MpiOllamaSetup.js';
 import { secretsClient } from '../../../core/secretsClient.js';
 import { clientLogger } from '../../../services/clientLogger.js';
-import { pluginAvailability } from '../../../data/pluginsRegistry.js';
+import { hasNoEngine } from '../../../services/engineGate.js';
 import {
     backendPreference,
     setBackendPreference,
@@ -59,9 +59,6 @@ import { Events } from '../../../events.js';
  * subject 6 runs in 10 where both shipped models dropped none).
  */
 
-/** The plugin whose deps ARE the local enhancer/describer weight. */
-const ENHANCER_PLUGIN_ID = 'image-describer';
-
 /**
  * `mpi-dropdown--stacked` puts each option's meta on its OWN line with no
  * ellipsis cap. Without it the cost labels — the entire reason these entries read
@@ -74,8 +71,10 @@ const STACKED = 'mpi-dropdown--stacked';
  * THREE ENTRIES AND NO "AUTOMATIC" (Fabio, 2026-09-12): the RunPod section has no
  * automatic entry, so neither does this, and with nothing picked it is ComfyUI
  * (`backendPreference()`). An entry that cannot run yet stays LISTED but greyed
- * rather than vanishing — Remote until the connection has a key, ComfyUI until its
- * plugin is installed — because the list is also how a user learns what exists.
+ * rather than vanishing — Remote until the connection has a key, ComfyUI while there is
+ * no engine at all (no local install, no Pod: MPI-1046) — because the list is also how a
+ * user learns what exists. ComfyUI has no install gate beyond the engine: its encoder
+ * installs WITH it (MPI-1045).
  * `endpoint` is the code value for Remote: 'remote' already means the RunPod lane.
  */
 const REMOTE    = { value: 'endpoint', label: 'Remote',          meta: 'No VRAM, runs on the connection above' };
@@ -263,6 +262,8 @@ export const MpiLlmSettings = ComponentFactory.create({
          * undefined = still loading, null = the app server did not answer.
          */
         let _remote;
+        /** No local engine and no Pod (engineGate, MPI-1046): a ComfyUI pick runs on Remote. */
+        let _noEngine = false;
         /**
          * "Benchmark this model" (MPI-941 Phase 12): its step ('idle' | 'confirm' | 'running'), the
          * server's `GET /agent/benchmark` reply (cases, suite hash, estimate, a run in progress) and the
@@ -297,6 +298,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             _remote = undefined;
             _setLoading(root, true);
             try {
+                _noEngine = await hasNoEngine();
                 _models = await enhancerModels();
                 await _initConnection(root);
             } finally {
@@ -328,15 +330,6 @@ export const MpiLlmSettings = ComponentFactory.create({
         }
 
         /**
-         * The ONE gate on ComfyUI, and it is a download rather than a model: the
-         * graphs load their own encoder, so what decides is whether that weight is
-         * on disk. Same dep, same question, for both jobs.
-         */
-        function _comfyInstalled() {
-            return pluginAvailability(ENHANCER_PLUGIN_ID).installed;
-        }
-
-        /**
          * Can a job run on Remote right now? Only a connection that is not set up
          * greys the entry; an endpoint that is merely unreachable stays pickable
          * and its model list says what went wrong.
@@ -348,6 +341,10 @@ export const MpiLlmSettings = ComponentFactory.create({
             return '';
         }
 
+        function _comfyOption() {
+            return _noEngine ? { ...COMFY, disabled: true, meta: 'Needs the ComfyUI engine' } : COMFY;
+        }
+
         /** Remote's dropdown entry, with what it runs on or why it cannot. */
         function _remoteOption() {
             const blocked = _remoteBlocked();
@@ -356,21 +353,13 @@ export const MpiLlmSettings = ComponentFactory.create({
             return { ...REMOTE, meta: `No VRAM, runs on ${_profile?.name || 'the connection above'}` };
         }
 
-        function _comfyOption() {
-            return _comfyInstalled() ? COMFY : { ...COMFY, disabled: true, meta: 'Install the Image Describer plugin' };
-        }
-
         // ── Prompt enhancement ──────────────────────────────────────────────
         function _renderBackend(root) {
             const slot = qs('#mpiSettingsLlmEnhanceBackendSlot', root);
             if (!slot) return;
             _backendInst?.destroy();
 
-            const options = BACKENDS.map((b) => {
-                if (b === REMOTE) return _remoteOption();
-                if (b === COMFY) return _comfyOption();
-                return b;
-            });
+            const options = BACKENDS.map(b => (b === REMOTE ? _remoteOption() : b === COMFY ? _comfyOption() : b));
 
             const current = backendPreference();
             _backendInst = MpiDropdown.mount(slot, {
@@ -401,12 +390,13 @@ export const MpiLlmSettings = ComponentFactory.create({
 
         /**
          * A backend picked while it could run and unavailable since (the key
-         * cleared, the plugin removed) stays selected. Swapping it would turn the
-         * user's pick into a quiet substitution, so the note says what is missing.
+         * cleared, the engine gone or the Pod disconnected) stays selected. Swapping it
+         * would turn the user's pick into a quiet substitution, so the note says what is missing.
          */
         function _missing(backend) {
             if (backend === 'endpoint' && _remoteBlocked()) return 'Remote is not set up: the connection above needs a provider and an API key. Finish it, or pick another backend.';
-            if (backend === 'comfy' && !_comfyInstalled()) return 'Needs the Image Describer plugin, which is not installed. Install it, or pick another backend.';
+            // runnableBackend (llmService) already sends the job to Remote; say so rather than show ComfyUI.
+            if (backend === 'comfy' && _noEngine) return 'There is no ComfyUI engine, so this runs on Remote. To use ComfyUI, connect a Pod in Settings → RunPod or install the engine.';
             return '';
         }
 

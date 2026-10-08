@@ -12,13 +12,17 @@
 // be undone by the guard, and it cascaded across the whole family.
 //
 // If this fails, "Files shared with other installed models will be kept" is a lie.
+//
+// MPI-1045 retired the image-describer plugin (its encoder is an engineAsset now), so the
+// uninstall below is a different plugin's. What is under test never named that plugin:
+// a NON-model uninstall must still leave a model's declared dep protected.
 const assert = require('assert');
 
 const dm = require('../routes/downloadManager.js');
 const comfyRoutes = require('../routes/comfy.js');
 
 const SHARED = 'qwen3vl-abliterated-clip';
-const PLUGIN_ID = 'plugin:image-describer';
+const PLUGIN_ID = 'plugin:ltx-video-upscaler';
 
 // Stub the ONLY I/O in _localSharedDepsMap: the disk stat. `installedIds` is what we
 // pretend is on disk; every other declared dep reads absent.

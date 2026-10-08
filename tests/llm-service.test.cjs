@@ -715,20 +715,6 @@ function testDescribeImageEndpointErrorNoFallback() {
     });
 }
 
-function testDescribeImageComfyPluginMissing() {
-    // comfy: if the Image Describer plugin is not installed, return DESCRIBER_MISSING.
-    // This does not call enqueueGeneration.
-    delete _ls['cubric.llm.describeBackend'];
-    // describeBackendPreference() returns 'comfy' by default.
-    // pluginAvailability in Node.js returns { installed: false } (state is empty).
-    return describeImage({ imagePath: '/img.jpg' }).then((res) => {
-        assert.strictEqual(res.ok, false);
-        assert.strictEqual(res.errorCode, 'DESCRIBER_MISSING');
-        assert.strictEqual(res.via, 'comfy');
-        assert.ok(res.error.includes('not installed'), `error: ${res.error}`);
-    });
-}
-
 // ── Runner ───────────────────────────────────────────────────────────────────
 
 const tests = [
@@ -764,7 +750,6 @@ const tests = [
     testInGraphEnhancerFollowsTheRemotePick,
     testDescribeImageEndpointBranch,
     testDescribeImageEndpointErrorNoFallback,
-    testDescribeImageComfyPluginMissing,
 ];
 
 let failed = 0;

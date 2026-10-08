@@ -164,7 +164,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
   instruction; relayed as `agent.describe` to `llmService.describeImage` ([llm.md](llm.md)). **`box`** (needs
   a `question`): both describers answer RELATIVE (Qwen3-VL 0-1000, Remote 0-1, measured), mapped over the
   crop or image to ORIGINAL pixels (`boxFromDescribeAnswer`) + `square` (for `ratio: 1`); unreadable -> `NO_BOX`. Errors: `BAD_REQUEST`,
-  `IMAGE_NOT_FOUND`, `CROP_OUT_OF_BOUNDS`, `NO_BOX`, `DESCRIBER_MISSING`, Remote codes, `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `WINDOW_CLOSED`.
+  `IMAGE_NOT_FOUND`, `CROP_OUT_OF_BOUNDS`, `NO_BOX`, Remote codes, `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `WINDOW_CLOSED`.
 - **`POST /connector/generate`, Flow `params`** `{ box1: { x, y, width, height } }`: checked against the
   flow's `kind: 'box'` steps (known `param`, integers, square when `ratio: 1`), merged into
   `injectionParams`; no bounds check (every shipped box step declares `overflow: 'allow'`). Errors:
