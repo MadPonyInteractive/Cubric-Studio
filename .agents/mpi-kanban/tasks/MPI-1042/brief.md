@@ -51,6 +51,15 @@ Split from **MPI-1041** (the Character Sheet Editor), which changes a finished s
   `ReferenceLatent` chains. A boolean the graph reads already has precedent: `chain.when:
   'Input_Remove_Head'` on `character-sheet`, the `Input_Use_*` toggles in `PromptBoxControls.js`.
   Rejected: two workflow files routed by presence (two graphs to keep in step for one switch).
+- **The body picture loses its head before Klein sees it** (Fabio, 2026-10-08). Same reasoning as
+  the sheet's headless front body: one place to take a face from, so the body picture's face (and
+  hair) can never compete with Picture 1. Fabio: *"Otherwise, the faces might not match, and the
+  model might pick up from the smaller face from the body instead of the big face."* It also
+  settles risk 4's half about the body's hair. Reuse the head-removal nodes of
+  `flowCharacterSheetHeadless` (SAM3 text-select face + hat), but over the WHOLE body picture: that
+  op crops to the sheet's front-body quarter, which a user's photo does not have. Bench a flat
+  fill of the mask (no sampling, deterministic) against the LanPaint fill: a reference only has
+  to say "no head here", and a grey blob may get drawn as a grey thing.
 - **Body picture vs a body in the prompt** (agent pick): the picture wins; the field hint says
   "leave the body picture out to describe a different body".
 - **Reuse the headless chain as-is.** `flowCharacterSheetHeadless` runs on any finished sheet
