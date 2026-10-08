@@ -20,18 +20,39 @@ Split from **MPI-1041** (the Character Sheet Editor), which changes a finished s
 
 ## Settled - Fabio, 2026-10-08
 
-- **Face + body only. No clothes field, no outfit picture.** Clothes are the editor's job
-  (MPI-1041). The sheet follows the body picture as given: a naked body in, a naked sheet out,
-  then the editor dresses it - as many outfits as the user wants, one sheet each. The same holds
-  from scratch: a naked character from `character-sheet` on Krea 2 NSFW, then the editor.
+- **Face picture required, body picture optional. No outfit picture.**
+- **One free-text prompt, added to our baked sheet prompt.** The user asks for whatever they want
+  changed or added: body type, haircut, clothes (*"the head of a lady, but a different haircut or
+  body type"*). Empty prompt = the model invents the rest, and that is fine: the user reruns until
+  the body is right.
+- **The editor (MPI-1041) still changes clothes afterwards.** A naked sheet in (from a naked body
+  picture, or `character-sheet` on Krea 2 NSFW), then the editor dresses it, one sheet per outfit.
 - **Free, no head-swap LoRA.** If a face lands weak, the user fixes it with Head Swap afterwards.
 
 ## Shape
 
 - **A new Flow on Klein 9B** (`klein-9b` + `klein-9b-cloud`). The prompt-only `character-sheet`
   Flow on Krea 2 is untouched - no optional images bolted onto it.
-- **Two pictures, both required** (agent pick: with no clothes field, a missing body leaves the
-  model nothing to keep). Two references run ~30 s on Klein (`docs/models/klein/README.md`).
+- **Inputs:** face (required) + body (optional) + the prompt. One reference ~20 s, two ~30 s on
+  Klein (`docs/models/klein/README.md`).
+- **Reuse the prompt step of `character-sheet`** (`flowsRegistry.js`, the `kind: 'fields'` step
+  "Describe your character": raw text, Enhance, the phrase box) - but NOT its enhancer recipe as
+  is. That recipe writes a whole character, face included, and an invented face fights the face
+  picture. This Flow needs its own rewrite (the enhancer-override hook documented at
+  `flowsRegistry.js:283`) that describes body, hair and clothes only, or Enhance off in v1.
+- **Two baked prompts, picked by whether a body picture is there** (Fabio, 2026-10-08). With a
+  body: face from Picture 1, body from Picture 2, the user's text on top. Without: face from
+  Picture 1, body from the user's text or invented. The user's text is added to whichever runs.
+- **The presence check is NEW work.** No Flow branches on a missing optional picture today
+  (searched 2026-10-08: no `Input_Has_*` anywhere in `js/`, no presence check in
+  `flowService.js`; the `mode: 'upto'` slots of voice-changer and object-stamp are filled in
+  practice). Agent pick: the app sets one boolean param from whether the body slot is filled
+  (`Input_Has_Body`), and the graph switches the baked prompt AND whether the second
+  `ReferenceLatent` chains. A boolean the graph reads already has precedent: `chain.when:
+  'Input_Remove_Head'` on `character-sheet`, the `Input_Use_*` toggles in `PromptBoxControls.js`.
+  Rejected: two workflow files routed by presence (two graphs to keep in step for one switch).
+- **Body picture vs a body in the prompt** (agent pick): the picture wins; the field hint says
+  "leave the body picture out to describe a different body".
 - **Reuse the headless chain as-is.** `flowCharacterSheetHeadless` runs on any finished sheet
   image, so the front body comes back headless with no new graph.
 - Same sheet layout as `character-sheet` (3/4 close-up, front, back, grey), so both Flows feed
@@ -49,6 +70,9 @@ Split from **MPI-1041** (the Character Sheet Editor), which changes a finished s
    layout certain but risks the outfit drifting between front and back. Bench one shot first.
 3. **The back panel is invented.** No source shows it. The face does not matter there; hair and
    outfit from behind do. Judge it on those.
+4. **The face picture's hair may beat a prompted haircut.** Klein copies a reference hard. If
+   "short bob" loses to the picture's long hair, cut the reference down to the face only (the
+   graph already has SAM3 text-select and face-yolov8n) before it reaches Klein.
 
 ## Head Swap stays separate
 

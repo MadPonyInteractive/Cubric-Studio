@@ -16,7 +16,7 @@ job moved to its own card, **MPI-1042**.
 - **Klein, not Krea 2:** Krea 2 is weaker and slower at editing.
 - **Dressing a naked sheet is the main use** (Fabio, same day). Sheets are made naked - from
   images (MPI-1042) or from scratch (`character-sheet` on Krea 2 NSFW) - and the editor dresses
-  them, one sheet per outfit. MPI-1042 has no clothes field because of this.
+  them, one sheet per outfit. MPI-1042 can prompt first clothes too; the editor changes them after.
 
 ### Shape (agent pick)
 
