@@ -12,7 +12,7 @@
 //      python is the exact stomp `--no-deps` exists to prevent (shared.js § curated
 //      python deps).
 const assert = require('assert');
-const { changedRequirements, engineOwnedChange, comfyLoadsNodeFolder } = require('../routes/engine');
+const { changedRequirements, engineOwnedChange, comfyLoadsNodeFolder, setAsideNodeName } = require('../routes/engine');
 
 // ── 1. The real bump, verbatim ───────────────────────────────────────────────
 // Trimmed from ComfyUI's own requirements.txt at the two tags. torch is present in
@@ -108,5 +108,15 @@ assert.strictEqual(comfyLoadsNodeFolder('ComfyUI-KJNodes.DISABLED'), false, 'the
 assert.strictEqual(comfyLoadsNodeFolder('ComfyUI-MpiNodes.stale-aaa1d2d9'), true, 'no suffix = ComfyUI imports it');
 assert.strictEqual(comfyLoadsNodeFolder('ComfyUI-LTXVideo'), true, 'an ordinary node loads');
 assert.strictEqual(comfyLoadsNodeFolder('some.disabled.node'), true, 'only the SUFFIX disables, not the substring');
+
+// ── 7. A deprecated node is set aside, not a reason to wipe the engine ───────
+// MPI-1043: the 1.6.x tester builds installed ComfyUI-SplatKit and
+// ComfyUI-Mickmumpitz-Nodes, 2.0 dropped both from the registry, and the next engine
+// bump would have sent every such engine to the full wipe. The set-aside name must be
+// one ComfyUI never imports, or the dead node keeps loading AND is flagged again on
+// every later upgrade.
+const asideName = setAsideNodeName('ComfyUI-SplatKit', '4d5ff7c433884631599c3b2d82011a2cbbeea37e\n');
+assert.strictEqual(asideName, 'ComfyUI-SplatKit.stale-4d5ff7c4.disabled', 'marker is trimmed, sha shortened');
+assert.strictEqual(comfyLoadsNodeFolder(asideName), false, 'ComfyUI skips the set-aside folder');
 
 console.log('engine-in-place-upgrade: OK');

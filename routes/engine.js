@@ -973,27 +973,45 @@ function comfyLoadsNodeFolder(folderName) {
 }
 
 /**
- * A custom-node folder WE installed — it carries the `.mpi_node_commit` marker — that
- * ComfyUI will LOAD and whose name the registry no longer knows. That is a real
- * deprecation, and the in-place path cannot resolve it: a checkout leaves the dead node
- * importing forever. Two things keep this from firing on innocent folders: the marker
- * (a folder the user dropped in by hand has none) and the load check above.
- * @returns {Promise<string|null>} folder name, or null
+ * Custom-node folders WE installed — each carries the `.mpi_node_commit` marker — that
+ * ComfyUI will LOAD and whose names the registry no longer knows. A checkout leaves such
+ * a dead node importing forever, so the in-place path sets each one aside. Two things
+ * keep this from firing on innocent folders: the marker (a folder the user dropped in
+ * by hand has none) and the load check above.
+ * @returns {Promise<string[]>} folder names
  */
-async function _findDeprecatedNode() {
+async function _findDeprecatedNodes() {
     const customNodesDir = getComfyPath(ENGINE_ROOT, 'custom_nodes');
-    if (!(await fs.pathExists(customNodesDir))) return null;
+    if (!(await fs.pathExists(customNodesDir))) return [];
     const known = new Set(getUniversalWorkflowDeps()
         .filter((d) => d && d.type === 'custom_nodes')
         .map((d) => d.filename));
+    const dead = [];
     for (const entry of await fs.readdir(customNodesDir, { withFileTypes: true })) {
         if (!entry.isDirectory() || known.has(entry.name)) continue;
         if (!comfyLoadsNodeFolder(entry.name)) continue;
         if (await fs.pathExists(path.join(customNodesDir, entry.name, NODE_COMMIT_MARKER))) {
-            return entry.name;
+            dead.push(entry.name);
         }
     }
-    return null;
+    return dead;
+}
+
+/**
+ * The name a deprecated node is set aside under: upstream's own `.disabled` opt-out, so
+ * ComfyUI stops importing it and `_findDeprecatedNodes` never flags it again, with the
+ * installed commit kept in the name for anyone who wants it back. Pure — unit-tested.
+ *
+ * It used to send the whole ~11 GB engine to the full wipe instead (MPI-457), which also
+ * deleted every node the user had added by hand. The 1.6.x tester builds installed two
+ * nodes 2.0 dropped from the registry, so the first engine bump after 2.0 (MPI-1043)
+ * would have wiped every engine that ran one of them.
+ * @param {string} folderName
+ * @param {string} commit - the folder's `.mpi_node_commit`
+ * @returns {string}
+ */
+function setAsideNodeName(folderName, commit) {
+    return `${folderName}.stale-${String(commit).trim().slice(0, 8)}.disabled`;
 }
 
 /**
@@ -1007,8 +1025,6 @@ async function _fullReinstallReason() {
     if (!(await fs.pathExists(getPythonBin(ENGINE_ROOT)))) return 'the engine python is missing';
     if (!(await fs.pathExists(getComfyPath(ENGINE_ROOT, 'comfyui_version.py')))) return 'the ComfyUI tree is incomplete';
     if (!(await fs.pathExists(getComfyPath(ENGINE_ROOT, '.git')))) return 'ComfyUI is not a git checkout';
-    const deprecated = await _findDeprecatedNode();
-    if (deprecated) return `custom node "${deprecated}" is no longer in the registry`;
     return null;
 }
 
@@ -1054,6 +1070,18 @@ async function _upgradeEngineInPlace() {
     if (engineOwned) {
         throw new Error(`${COMFY_VERSION} moves the engine-owned package "${engineOwned}" — only a full reinstall can deliver it`);
     }
+
+    // Here, not beside stopComfyUI(): SIGKILL does not wait, and Windows refuses to rename
+    // a folder a dying process still holds. The fetch + checkout above outlast it.
+    const customNodesDir = getComfyPath(ENGINE_ROOT, 'custom_nodes');
+    for (const name of await _findDeprecatedNodes()) {
+        const dir = path.join(customNodesDir, name);
+        const commit = await fs.readFile(path.join(dir, NODE_COMMIT_MARKER), 'utf8');
+        // ponytail: a name collision throws, and the throw falls back to the full wipe.
+        await fs.move(dir, path.join(customNodesDir, setAsideNodeName(name, commit)));
+        logger.info('engine', `Set aside custom node "${name}": no longer in the registry`);
+    }
+
     if (changed.length) {
         broadcastEngineEvent('engine:upgrade-status', { status: `Updating ${changed.length} python package(s)...` });
         logger.info('engine', `In-place upgrade pip set: ${changed.join(' ')}`);
@@ -1161,3 +1189,4 @@ module.exports.installPathDepthError = installPathDepthError; // MPI-387 — exp
 module.exports.changedRequirements = changedRequirements;     // MPI-457 — exported for unit test
 module.exports.engineOwnedChange = engineOwnedChange;         // MPI-457 — exported for unit test
 module.exports.comfyLoadsNodeFolder = comfyLoadsNodeFolder;   // MPI-457 — exported for unit test
+module.exports.setAsideNodeName = setAsideNodeName;           // MPI-1043 — exported for unit test

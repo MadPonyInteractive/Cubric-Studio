@@ -119,12 +119,15 @@ reinstall when:
 | signal | why in-place cannot do it |
 |---|---|
 | engine python missing, no `comfyui_version.py`, or `ComfyUI` is not a git checkout | nothing to check out |
-| a custom-node folder carrying our `.mpi_node_commit` marker is no longer in the registry | a checkout leaves the dead node importing forever |
 | a **moved** requirement line names an engine-owned package (`torch`, `torchvision`, `torchaudio`, `triton`, `nvidia-*`, `cuda-*`) | the portable owns those; pip-installing them is the stomp `--no-deps` exists to prevent |
 | the in-place path throws for any other reason | the wipe is the backstop, and it is automatic |
 
-The marker is what makes the deprecation signal safe: a node folder the **user** dropped in
-by hand has no marker, so their own work never triggers an engine wipe.
+**A deprecated node is NOT a wipe signal (MPI-1043).** A custom-node folder carrying our
+`.mpi_node_commit` marker whose name the registry no longer knows is renamed
+`<name>.stale-<sha8>.disabled` by the in-place path — upstream's opt-out, so ComfyUI stops
+importing it. It used to send the whole engine to the wipe, and the 1.6.x tester builds
+left two such folders (`ComfyUI-SplatKit`, `ComfyUI-Mickmumpitz-Nodes`) that 2.0 dropped.
+The marker is what keeps this off the user's own work: a folder dropped in by hand has none.
 
 `POST /engine/upgrade {"mode":"full"}` forces the wipe; `{"mode":"in-place"}` disables the
 fallback so a failure is reported instead of silently costing 11 GB. `auto` is the default

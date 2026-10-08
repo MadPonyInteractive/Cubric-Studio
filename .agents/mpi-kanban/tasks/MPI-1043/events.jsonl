@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1043", "at": "2026-10-08T13:33:43+01:00", "actor": "claude", "column": "doing", "title": "Bump the shipped engine ComfyUI v0.34.0 -> v0.39.0 (unblocks Qwen-Image 2.1, MPI-936)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1043", "at": "2026-10-08T13:45:47+01:00", "actor": "claude", "from": "doing", "to": "todo", "reason": "Handed to a fresh session by Fabio's call 2026-10-08; gate 0 facts in brief.md"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1043", "at": "2026-10-08T14:22:48+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Session cd4bd605 picks up the bump: pins, bench, local engine, Pod image, smoke"}
