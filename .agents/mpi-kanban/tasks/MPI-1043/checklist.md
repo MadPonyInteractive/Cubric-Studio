@@ -13,6 +13,7 @@ Playbook: `docs/playbooks/bump-engine/README.md`. Target v0.39.0 (`b0b743566f65d
 - [x] Gate 7: Pod reports 0.39.0 - `engine: Pod image built from 0.39.0, matches node_lock ✓` 2026-10-08T16:15:55Z, RTX 4090 EU-RO-1
 - [x] Gate 8 (costs money, Fabio's yes first): smoke matrix green, skips named - Fabio's one approved run, model ops only: PASS 39 · SKIP 3 (qwen-image-2-1/t2i + edit: workflow not landed yet; flux-schnell-cloud/t2i: no workflow) · FAIL 0. MpiNodes ran at the app pin 3ec03efb (MPI-623 moved it after the mpi-ci sync)
 - [x] Gate 9: evidence written, Windows-half limit stated - `dev_configs/smoke-evidence.json` engine want=got=0.39.0 proven; limits carry "Pod-green is not Windows-green" (gate 5 is the local half, done). Gap: qwen-image-2-1 is in `scope.modelsRun` though both ops skipped, so `unproven: []` overstates it; its scoped smoke (with the 3D scene, `--flows all`) is still owed
-- [ ] Smoke volume `0gzc4yk344` (360 GB) deleted - runner kept it (no TTY); Fabio deletes it (agent delete was permission-blocked)
-- [ ] mpi-ci `cubric-vision-pod/node_lock.json` MpiNodes 6bf5659 -> 3ec03efb (code-only drift, not a rebuild)
+- [x] Smoke volume `0gzc4yk344` (360 GB) deleted - runner kept it (no TTY); Fabio deleted it 2026-10-08 (agent delete was permission-blocked)
+- [ ] mpi-ci `cubric-vision-pod/node_lock.json` MpiNodes 6bf5659 -> the app pin (3ec03efb as of 2026-10-08; code-only drift, not a rebuild) - sync at the release rebuild, since MPI-623 may move it again
+- [ ] Scoped smoke for Qwen 2.1 (MPI-936) + 3D scene (MPI-623) with `--flows all` on v0.25.0-dev, once both cards' graphs land - Fabio said yes to running it 2026-10-08; quote price + run count before renting, that yes is not a money yes
 - [ ] Release note engine section (DONE f5926cfa8, UNRELEASED.md); 2nd-digit version bump at release (`/mpi-version-bump`) + clean RELEASE Pod image rebuild at ship (mandatory for an engine bump)
