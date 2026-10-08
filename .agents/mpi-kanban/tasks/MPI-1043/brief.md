@@ -40,3 +40,4 @@ Run with `/mpi-bump-engine` (playbook `docs/playbooks/bump-engine/README.md`). F
 ## Noticed
 
 - 2026-10-08: the smoke scope counts a model as RUN when every op it has SKIPped (qwen-image-2-1, workflow not landed), so `scope.unproven` reads `[]` and `release:check` prints "covers all 40 models" while Qwen 2.1 never executed. `scripts/smoke-workflows.mjs` scope builder; MPI-936 still owes its scoped smoke before it ships.
+- 2026-10-08: run from an agent, the smoke runner has no TTY and KEEPS its volume, and auto mode refuses the agent's separate `DELETE /runpod/volumes/<id>`, so Fabio deletes it by hand. A `--delete-volume` flag (delete in-run, the approval given up front with the price) would close that. `scripts/smoke-workflows.mjs` teardown, ~line 2146.

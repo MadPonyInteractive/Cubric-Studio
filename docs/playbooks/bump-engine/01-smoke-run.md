@@ -17,7 +17,10 @@ while it waits; Ctrl+C is free. `--skip-install` drops steps 3-4 (the CPU Pod) w
 volume was already filled and verified, which is otherwise a 1-4 min detour on every attempt.
 `GPU_ORDER` is RTX 5090 → RTX 4090 → A100 PCIe (2026-09-28). The RAM floor is 62 GB, the
 app's own default (2026-09-29): the 2.0 smoke ran every op, H3 included, on a 5090 with a
-55.88 GiB host. A 4090 host is 61 GB, so it places only with `--min-ram 60`.
+55.88 GiB host. Most 4090 hosts are 61 GB and refuse at 62 (`"ramFloorMissed": true`, nothing
+rented), but not all: the 2026-10-08 engine-bump matrix placed a 4090 at 62 and ran every op
+on it, after one such refusal and two plain stock races (`"ramFloorMissed": false`, "no longer
+any instances available"). Under `--wait` both kinds are just more polling.
 
 Requires the app running on `:3000` (`CUBRIC_PORT` if moved) and a RunPod API key saved
 in the Remote panel. The runner drives the app's own routes — `/runpod/gpu-availability`, the volume
@@ -100,8 +103,8 @@ gating.
 | | value | why |
 |---|---|---|
 | Datacenter | `EU-RO-1` | Network volumes are DC-locked: a GPU Pod can only mount a volume in its own DC. Create it elsewhere and the cheap cards are unreachable |
-| GPU order | **L4 → RTX 3090 → RTX 4090**, first available | Measured availability. An L4 runs every workflow we ship; a 4090 is the reliable fallback. RTX 2000 Ada is skipped — 16 GB and rarely available |
-| System RAM | assert ≥48 GB | Weights spill to RAM on a 24 GB card (`footprint.js`). Effectively every EU-RO-1 card has ~54 GB, so this is a guard, not a filter |
+| GPU order | **RTX 5090 → RTX 4090 → A100 PCIe**, first available (`GPU_ORDER`) | L4 (54 GB host, OOM-killed by H3) and RTX 3090 (30 GB host) were dropped 2026-09-28: neither can place at the RAM floor. B200-class cards stay off on price |
+| System RAM | floor **62 GB** (`MIN_RAM_GB`, `--min-ram` to measure lower) | Weights spill to RAM on a 24 GB card (`footprint.js`); H3 stages ~45 GB at once. The floor is a placement filter now, not a guard — see the top of this file |
 | Volume | **separate** from the dev volume | Container disk mirrors volume size ([../../runpod-remote-engine.md:242](../../runpod-remote-engine.md)), so growing the dev volume would make every ordinary dev Pod provision a matching disk |
 
 ## What green prints
