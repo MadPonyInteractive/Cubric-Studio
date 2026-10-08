@@ -1029,6 +1029,24 @@ async function writeExtraModelPathsYaml(primaryRoot, extras = null) {
 }
 
 /**
+ * Rewrites extra_model_paths.yaml when it no longer matches what the deps derive.
+ * The writes above happen only on engine install, a models-root change or an
+ * extra-folder change, so a dep that adds a NEW folder type (`moge/`, MPI-623)
+ * never reached an existing install: the weight lands in `<root>/moge/` and the
+ * node's model list stays empty ("value not in list"). ComfyUI reads the yaml only
+ * at boot, so the engine start calls this before it spawns. Returns true on a rewrite.
+ */
+async function syncExtraModelPathsYaml() {
+    const extraConfigPath = getComfyPath(ENGINE_ROOT, 'extra_model_paths.yaml');
+    if (!(await fs.pathExists(extraConfigPath))) return false;
+    const root = (await getCustomRoot()) || getDefaultModelsRoot();
+    const expected = buildExtraModelPathsYaml(root, await getExtraModelFolders(), getDefaultModelsRoot());
+    if ((await fs.readFile(extraConfigPath, 'utf8')) === expected) return false;
+    await writeExtraModelPathsYaml(root);
+    return true;
+}
+
+/**
  * Marker filename stamped into a custom_node folder recording WHICH pinned commit
  * was installed. Mirrors the engine's `.mpi_engine_version` precedent
  * (routes/engine.js). A missing/mismatched marker = drift (MPI-222).
@@ -1199,6 +1217,7 @@ module.exports = {
     setExtraModelFolders,
     hasExtraModelFolders,
     writeExtraModelPathsYaml,
+    syncExtraModelPathsYaml,
     cleanComfyUITempFiles,
     getUniversalWorkflowDepIds,
     getUniversalWorkflowDeps,

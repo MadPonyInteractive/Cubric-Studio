@@ -42,6 +42,7 @@ import { getAvailableCommands, getCommand, buildCueAllJobItems, selectCueAllTarg
 import { isStack, expandStacks, stackableKind, resultStackFields, STACK_TYPE } from '../../../data/stackModel.js';
 import { getSceneItem } from '../../../utils/assetKinds.js';
 import { convertToPano } from '../../../services/scene/sceneConvert.js';
+import { pluginAvailability, getPlugin } from '../../../data/pluginsRegistry.js';
 import { startGeneration, enqueueGeneration, clearPendingQueue, refreshQueueDepth, removeCueJob, peekCueQueue, cancelRunningCueJob } from '../../../services/generationService.js';
 import { StatusBar } from '../../../shell/statusBar.js';
 import { readSavedRoutines, routineMenu, runSavedRoutine } from '../../../shell/routineDispatch.js';
@@ -314,6 +315,12 @@ export const MpiGalleryBlock = ComponentFactory.create({
             const project = state.currentProject;
             const item = getSelectedItem(group);
             if (!project?.folderPath || !item) return;
+            // MoGe belongs to the 3D Scene plugin: offered like Describe, installed from the Library.
+            if (!pluginAvailability('scene-convert').installed) {
+                Events.emit('ui:warning', { title: 'Convert to 360 pano',
+                    message: `${getPlugin('scene-convert')?.title || '3D Scene'} is not installed. Add it from the Model Library (Plugins).` });
+                return;
+            }
             if (_convertingGroupIds.has(group.id)) {
                 Events.emit('ui:info', { message: 'This card is already being converted.', sound: false });
                 return;

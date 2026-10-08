@@ -179,3 +179,23 @@ test('extra folder routes persist, preserve set-path extras, and union list-file
         await fs.rm(root, { recursive: true, force: true });
     }
 });
+
+// MPI-623: the yaml was written only on install / path set / extra-folder change, so the
+// `moge` folder type never reached an existing install. The engine start now re-derives it.
+test('syncExtraModelPathsYaml restores a dep folder type an old yaml lacks, then leaves it alone', async () => {
+    const { syncExtraModelPathsYaml, writeExtraModelPathsYaml } = require('../routes/shared');
+    const yamlPath = getComfyPath(getEngineRoot(), 'extra_model_paths.yaml');
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'cubric-yaml-sync-'));
+    try {
+        await writeExtraModelPathsYaml(root);
+        const current = await fs.readFile(yamlPath, 'utf8');
+        assert.match(current, /^ {4}moge: moge\/$/m);
+        await fs.writeFile(yamlPath, current.replace(/^ {4}moge: moge\/\n/gm, ''));
+
+        assert.equal(await syncExtraModelPathsYaml(), true);
+        assert.equal(await fs.readFile(yamlPath, 'utf8'), current);
+        assert.equal(await syncExtraModelPathsYaml(), false);
+    } finally {
+        await fs.rm(root, { recursive: true, force: true });
+    }
+});

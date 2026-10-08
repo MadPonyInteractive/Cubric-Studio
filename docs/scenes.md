@@ -101,8 +101,10 @@ result as a CANCEL, and Convert must not make a card.
 - Weights: dep **`moge-vitl`** (`moge/moge_vitl.safetensors`, 1.17 GB on R2) - Ruicheng/moge-vitl's
   pickle `model.pt` re-saved as safetensors (every tensor equal); `scene.py` pins its config as
   `MOGE_VITL_CONFIG`. `noMirror: true` (our bytes, no upstream twin) until re-hosted on HF.
-  **Not `engineAsset`** while Scene is dev_mode-only: that would put 1.17 GB on every engine.
-- The `moge` model folder: mapped on the Pod by mpi-ci `start.sh` (release:check's MPI-143 guard),
-  locally by the yaml `yamlHelper.js` derives from the deps. **An existing install's yaml is
-  rewritten only on engine install or a models-folder change**, so a new folder type never reaches
-  it - an open ship gate on MPI-623.
+  **Not `engineAsset`** (that would put 1.17 GB on every engine): the dev-only **3D Scene**
+  plugin (`scene-convert`, `pluginsRegistry.js`) owns it, so it installs from the Library and the
+  GC guards keep it; Convert warns when the plugin is not installed.
+- The `moge` model folder: mapped on the Pod by mpi-ci `start.sh` (release:check's MPI-143 guard;
+  live on the `dev` runtime channel, not yet promoted), locally by the yaml `yamlHelper.js` derives
+  from the deps. An existing install's yaml learns a new folder type at the next engine start:
+  `syncExtraModelPathsYaml` (`routes/shared.js`) rewrites it when it differs from the builder's.

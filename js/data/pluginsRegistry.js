@@ -35,6 +35,9 @@
  *                                   while `head-swap` declares a model PLUS the LoRA
  *                                   and node pack that are its own.
  * @property {string}   operation     commandRegistry op key this plugin runs.
+ * @property {boolean}  [devOnly]     Present in source runs only, like a `devOnly` ModelDef (MPI-851):
+ *                                   filtered at the one export, so the Library, the GC guards and
+ *                                   every gate agree.
  * @property {PluginUpscaleEntry} [upscale]  Contributes an ENTRY to the EXISTING History
  *                                   Upscale dropdown (MPI-580). Omit and the plugin is
  *                                   invisible there, exactly like image-describer.
@@ -57,9 +60,10 @@
  */
 
 import { state } from '../state.js';
+import { APP_CONFIG } from '../../dev_configs/app_config.js';
 
 /** @type {PluginDef[]} */
-export const PLUGINS = [
+const ALL_PLUGINS = [
     {
         id: 'image-describer',
         title: 'Image Describer',
@@ -135,7 +139,21 @@ export const PLUGINS = [
             ],
         },
     },
+    // MPI-623 - the 3D scene. Owns MoGe (1.17GB): the plugin, not an engineAsset, so the
+    // weight lands only on an engine whose user asked for it. AnimeSharp, its other weight,
+    // is an engineAsset already. devOnly while the Scene workspace is.
+    {
+        id: 'scene-convert',
+        title: '3D Scene',
+        description: 'Unlocks "Convert to 360 pano" on the gallery right-click menu.',
+        requiredDeps: ['moge-vitl'],
+        operation: 'sceneConvert',
+        devOnly: true,
+    },
 ];
+
+/** @type {PluginDef[]} Every plugin a user can see. A `devOnly` entry exists in source runs only. */
+export const PLUGINS = ALL_PLUGINS.filter(p => !p.devOnly || APP_CONFIG.dev_mode);
 
 /** Namespaces download-queue / dep-status keys so they cannot collide with
  *  model ids or the app registry's `app:<id>` keys. */

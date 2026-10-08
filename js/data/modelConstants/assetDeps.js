@@ -1425,8 +1425,8 @@ export const assetDeps = {
     // bytes are OURS: no byte-identical upstream copy exists for a mirrorUrl, and it is
     // noMirror until it is re-hosted to Mad-Pony-Interactive/cubric-studio. MpiNodes
     // scene.py registers models/moge/ and pins the checkpoint's config (MOGE_VITL_CONFIG).
-    // NOT engineAsset yet: the Scene workspace is dev_mode-only, and an engineAsset
-    // lands on every engine install - the sceneConvert op step decides how it installs.
+    // NOT engineAsset: the `scene-convert` plugin owns it (pluginsRegistry.js), so it
+    // installs from the Library on the engines whose users asked for 3D scenes.
     'moge-vitl': {
         id: 'moge-vitl',
         name: 'MoGe ViT-L depth',

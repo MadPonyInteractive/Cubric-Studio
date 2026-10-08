@@ -37,6 +37,7 @@ const {
     getExtraModelFolders,
     setExtraModelFolders,
     writeExtraModelPathsYaml,
+    syncExtraModelPathsYaml,
     ensureCuratedPythonDeps,
     curatedDepsPending,
     curatedDepsFailure,
@@ -677,6 +678,14 @@ router.post('/comfy/start', async (req, res) => {
         // workflow here. The renderer needs no flag: main.js's session hooks rewrite its
         // Origin and add the CORS headers, for this port only. PROJECT.md invariant 15.
         const args = [mainPath, '--listen', '127.0.0.1', '--port', COMFYUI_PORT.toString(), ...modeArgs, '--preview-method', 'taesd'];
+
+        // A dep that adds a folder type reaches an existing install's yaml only here (MPI-623).
+        // A failed rewrite must not stop the engine: it boots on the yaml it already had.
+        try {
+            if (await syncExtraModelPathsYaml()) logger.info('comfy', 'extra_model_paths.yaml was out of date with the deps - rewritten');
+        } catch (err) {
+            logger.warn('comfy', `extra_model_paths.yaml sync failed, starting on the existing file: ${err.message}`);
+        }
 
         if (await fs.pathExists(extraConfigPath)) {
             logger.info('comfy', `Using extra model paths: ${extraConfigPath}`);

@@ -87,3 +87,16 @@ test('an unknown or unsafe item id never mints a sidecar', async () => {
         assert.deepEqual(await fs.readdir(f.metaDir), ['item1.json']);
     } finally { await f.close(); }
 });
+
+// MoGe belongs to the dev-only 3D Scene plugin (not an engineAsset): an unrelated uninstall
+// must not reclaim it, and the plugin's own uninstall must.
+test('the scene-convert plugin owns moge-vitl, dev-only, and the GC guards see it', async () => {
+    const { pathToFileURL } = require('node:url');
+    const reg = await import(pathToFileURL(path.resolve('js/data/pluginsRegistry.js')).href);
+    const plugin = reg.getPlugin('scene-convert'); // listed: a source run is dev_mode
+    assert.deepEqual(plugin.requiredDeps, ['moge-vitl']);
+    assert.equal(plugin.devOnly, true);
+    const dm = require('../routes/downloadManager.js');
+    assert.ok(dm._pluginRequiredDepIds('krea2').has('moge-vitl'));
+    assert.ok(!dm._pluginRequiredDepIds(reg.pluginDepKey('scene-convert')).has('moge-vitl'));
+});

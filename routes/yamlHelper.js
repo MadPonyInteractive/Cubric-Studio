@@ -24,7 +24,8 @@ const _require = createRequire(__filename);
  * dep filenames alone.
  *
  * When a new dep with a new folder type is added to dependencies.js, the YAML
- * auto-includes it on the next engine install or path set — no manual edits needed.
+ * auto-includes it at the next engine start (`syncExtraModelPathsYaml`, MPI-623) —
+ * no manual edits needed.
  *
  * @param {string|string[]} basePath
  *   Absolute path to the primary (active) models root, OR an ordered array of
