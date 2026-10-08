@@ -8,10 +8,23 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Next action: re-take the window shot end
-to end** (session 35's `take.cjs window` on an isolated app, under the lease) once the engine runs
-MpiNodes `3ec03ef` - Fabio's app on 48188 still has `6bf5659` loaded, so ask him to restart it (or
-run while it is closed) first; expect own-camera holes ~13% (offline). Then Build here (0b).
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 37 (2026-10-08): Interior lift
+re-take PASSED (12.3%) and Build here BUILT + run live at both 0b spots** (validation.md § Build
+here): window 265 s -> window frame 1.9% holes; behind_well 295 s -> 6.3%; projects exported to
+Fabio's Projects folder (`MPI-623 Build here - window` / `- behind well`) for his fly-through.
+**Open: the interior fill's STYLE** - Klein paints a modern photoreal apartment inside the cartoon
+cottage (the first view is 96% black; INTERIOR's "match the image" carries nothing). Fabio's idea:
+the pano as Klein's reference image 2 (the inpaint graph already chains `Input_Image_2` as
+`ReferenceLatent` 2 on the LanPaint sampler; only the app's `inpaint` op has no second image slot).
+Bench A/B `abref/abref.py` (session 37 scratchpad): A today / B pano ref + style-only line / C pano
+ref alone, seeds 42 + 7, on build view 1 (frame/mask in `D:/WORK/Images/Outputs/mpi623_abref/in/`,
+outputs `.../mpi623_abref/`). **A/B RESULT:** the reference warms light + palette and copies no
+village content, but every fill stays PHOTOREAL; B == C; +19 s a fill. NOT wired. **Next:**
+Fabio's call on the rendering style - it needs words: a style phrase from the pano (a caption) or
+the user's fill line, or Klein's style rack; my pick: A/B a pano-caption style phrase in INTERIOR
+on the same bench rig (`abref.py`, add a variant), then wire the winner (if the reference stays in:
+an optional `inputImage2` on `inpaint` gated like kleinEdit's `requiresCapability:
+'multiReference'`) and re-run `build.cjs`. Then SAM3 glass windows, DoF after 0c.
 **Session 36 (2026-10-08): Interior lift DONE but that live re-take** (validation.md § Interior
 lift): the pick alone gave 58% (walls = one flat plane, Klein paints a corridor); Fabio picked A =
 the pick + a back face never hides a fill -> 13%. MpiNodes `3ec03ef` pushed + pinned.
@@ -427,7 +440,7 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       stills that match the spike's by eye; a spec clicks an entry and asserts the camera pose.
       **(ENGINE RUN DONE 2026-10-08, session 35: all four end to end, bookkeeping PASS, three
       breakers fixed; Fabio's eye on the four stills: "1". Left: DoF after 0c.)**
-- [ ] **Interior lift** (found by session 35's window picture): `MpiLiftDepth` fits a fill's depth
+- [x] **Interior lift** (found by session 35's window picture): `MpiLiftDepth` fits a fill's depth
       only on the known (non-hole) pixels, so a picture taken inside a house fits the room on the
       view out and lands ~8% past the walls' back faces, hidden in the viewer. Pass the back-faced
       pano z as known-for-the-fit while still keeping those pixels (pick: negative z in the `.f32`
@@ -435,10 +448,14 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       `-z` on back faces. **Verify:** the window picture's own camera < 15% holes in the viewer; a
       CPU test of the node's sign convention. Build here (0b) depends on it.
       **(BUILT 2026-10-08, session 36: + option A, a back face never hides a fill; 13% offline on
-      the real fill, MpiNodes `3ec03ef` pinned. Left: the live re-take on the new pin.)**
+      the real fill, MpiNodes `3ec03ef` pinned. LIVE RE-TAKE PASS 2026-10-08, session 37: 12.3%
+      at its own camera, 79.6 s, fill-behind-wall 426k -> 120 px.)**
 - [ ] **Build here:** 0b's loop as a tool (progress, cancel), SAM3 glass windows, fill line.
       **Verify:** isolated run inside a house builds the room and its windows show the real
       outside; time within 0b's measured budget.
+      **(BUILT 2026-10-08, session 37: tool + Stop, both spots live in 265 / 295 s, holes 1.9 /
+      6.3% at the spot's picture. Left: interior style (pano-reference A/B), SAM3 glass, Fabio's
+      fly-through.)**
 - [x] **History -> gallery:** multi-select in `MpiHistoryList` -> `Add to gallery` makes one
       stack of plain image cards (`stackGroups`); single stays as today. **Verify:** spec selects
       three entries -> one stack of three image cards, none carrying `scenePath`.
@@ -526,6 +543,12 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
   composite lets a fill win over a pano face seen from behind (13%); the price is another picture's
   fill showing through a wall where the room's own fill does not reach. Build here will show
   whether that leak matters.
+- **2026-10-08 - spike 0b folded into Build here (session 37, Fabio "go").** Take picture already
+  runs render -> fill -> lift -> layer in the app, so 0b's bench loop became the product tool
+  directly (`buildHere`, `buildPoses` in `scenePicture.js`; button in `MpiSceneBlock`'s tools strip).
+  Views are 1024x1024 at 16 mm (~97 deg, overlapping), up/down at pitch +-`PITCH_MAX` (1.55:
+  `applyPose` has no right vector straight up). SAM3 glass windows not in yet - the test house uses
+  the spike's hand-marked window rect.
 - **2026-10-08 - a `.meta` json is not always a sidecar (session 35).** The scene manifest
   `<id>.scene.json` was deleted by save-generation's orphan GC; every sidecar scan in
   `routes/projects.js` now goes through `isSidecarFile`.

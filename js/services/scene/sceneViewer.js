@@ -20,7 +20,7 @@ export const FLY_SPEED = 0.25;
 export const LOOK_RATE = 0.003;
 /** Roll in radians a second while a roll key is held. */
 export const ROLL_SPEED = 0.5;
-const PITCH_MAX = 1.55;
+export const PITCH_MAX = 1.55;
 
 /** Facing the pano's centre column from its camera, level, a 24 mm lens. */
 export const START_POSE = Object.freeze({ pos: [0, 0, 0], yaw: 0, pitch: 0, roll: 0, mm: 24 });

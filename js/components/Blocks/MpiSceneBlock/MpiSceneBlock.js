@@ -15,6 +15,8 @@
  * fill line with presets, Take picture (`scenePicture.js`: inpaint -> lift -> layer ->
  * clean-up -> one history entry with its `scenePose`), and the card's pictures, where a
  * click flies the camera back to where one was taken. Depth of field waits on spike 0c.
+ * Build here (tools strip) fills the six views round the camera into the scene first, layers
+ * only (`buildHere`); a second press stops it after the running view.
  *
  * Instance API (on el):
  *   getPose()      — the camera pose `{ pos, yaw, pitch, roll, mm }` (spot coords)
@@ -39,7 +41,7 @@ import { updateGroup } from '../../../services/projectService.js';
 import {
     START_POSE, NEAR, EYE_HEIGHT_M, loadScene, createSceneView, applyPose, flyStep, flyLook,
 } from '../../../services/scene/sceneViewer.js';
-import { takePicture, appIo } from '../../../services/scene/scenePicture.js';
+import { takePicture, buildHere, appIo } from '../../../services/scene/scenePicture.js';
 
 const FLY_DIRS = ['forward', 'back', 'left', 'right', 'up', 'down', 'rollLeft', 'rollRight'];
 const ASPECTS = ['16:9', '9:16', '1:1', '2.39:1'];
@@ -62,7 +64,7 @@ export const MpiSceneBlock = ComponentFactory.create({
         <div class="mpi-scene-block">
             <div class="mpi-scene-block__stage">
                 <div class="mpi-scene-block__frame" id="frame"><div class="mpi-scene-block__viewport" id="viewport"></div></div>
-                <div class="mpi-scene-block__tools" id="tools"></div>
+                <div class="mpi-scene-block__tools"><div id="bake"></div><div id="build"></div></div>
             </div>
             <div class="mpi-scene-block__panel">
                 <div class="mpi-scene-block__label">Frame</div>
@@ -89,9 +91,14 @@ export const MpiSceneBlock = ComponentFactory.create({
         const canvasEl = viewport.el;
         // ponytail: inert on purpose - the Wan bake (a full 3D scene from a video orbit) is a
         // later card (plan Design 7); this only says it is coming.
-        const bake = MpiButton.mount(qs('#tools', el), {
+        const bake = MpiButton.mount(qs('#bake', el), {
             icon: 'cube', label: 'Bake 3D', variant: 'ghost', size: 'sm', disabled: true,
             info: 'Coming soon: bake the whole scene into full 3D',
+        });
+        const BUILD = { icon: 'layers', label: 'Build here' };
+        const buildBtn = MpiButton.mount(qs('#build', el), {
+            ...BUILD, variant: 'ghost', size: 'sm', disabled: true,
+            info: 'Fill everything round the camera into the scene, so pictures taken from here have it all',
         });
 
         let pose = { ...START_POSE };
@@ -166,7 +173,7 @@ export const MpiSceneBlock = ComponentFactory.create({
             const project = state.currentProject, live = liveGroup();
             if (busy || !view || !project || !live) return;
             busy = true;
-            takeBtn.el.setDisabled(true);
+            [takeBtn, buildBtn].forEach(b => b.el.setDisabled(true));
             try {
                 const { entry } = await takePicture({
                     project, group: live, sceneItem, view, renderer: canvasEl.getRenderer(), pose, aspect, fillLine,
@@ -188,7 +195,53 @@ export const MpiSceneBlock = ComponentFactory.create({
                 if (err?.message !== 'cancelled') Events.emit('ui:warning', { message: `Take picture failed: ${err?.message || err}` });
             } finally {
                 busy = false;
-                if (!destroyed) takeBtn.el.setDisabled(!view);
+                if (!destroyed) [takeBtn, buildBtn].forEach(b => b.el.setDisabled(!view));
+            }
+        };
+
+        let building = null; // the running build's AbortController; a second press stops it
+        const build = async () => {
+            if (building) {
+                building.abort();
+                buildBtn.el.setDisabled(true);
+                status.textContent = 'Stopping after this view...';
+                return;
+            }
+            const project = state.currentProject;
+            if (busy || !view || !project) return;
+            busy = true;
+            building = new AbortController();
+            const { signal } = building;
+            takeBtn.el.setDisabled(true);
+            buildBtn.el.setLabel('Stop building');
+            buildBtn.el.setIcon('stop');
+            try {
+                const layers = await buildHere({
+                    project, sceneItem, view, renderer: canvasEl.getRenderer(), pose, fillLine, signal,
+                    onStep: (step, at) => {
+                        if (!signal.aborted) status.textContent = `View ${at.view} of ${at.of}: ${STEPS[step] || ''}`;
+                        if (step !== 'render') view?.dropTargets(); // Klein's VRAM, as Take picture
+                    },
+                }, await appIo());
+                if (destroyed) return;
+                status.textContent = `Built here: ${layers.length} of 6 views filled.`;
+            } catch (err) {
+                if (destroyed) return;
+                const stopped = err?.message === 'cancelled';
+                status.textContent = stopped ? 'Build stopped. The views already filled stay in the scene.' : '';
+                if (!stopped) {
+                    clientLogger.warn('scene', `build here failed: ${err?.message || err}`);
+                    Events.emit('ui:warning', { message: `Build here failed: ${err?.message || err}` });
+                }
+            } finally {
+                busy = false;
+                building = null;
+                if (!destroyed) {
+                    buildBtn.el.setLabel(BUILD.label);
+                    buildBtn.el.setIcon(BUILD.icon);
+                    [takeBtn, buildBtn].forEach(b => b.el.setDisabled(!view));
+                    show();
+                }
             }
         };
 
@@ -215,6 +268,7 @@ export const MpiSceneBlock = ComponentFactory.create({
         presetPick.on('change', ({ value }) => { fillLine = value; fillInput.el.setValue(value); });
         fillInput.on('input', ({ value }) => { fillLine = value; });
         takeBtn.on('click', take);
+        buildBtn.on('click', build);
         historyList.on('entry-selected', ({ idx, item }) => {
             const live = liveGroup();
             if (live && live.selectedIndex !== idx) {
@@ -235,7 +289,7 @@ export const MpiSceneBlock = ComponentFactory.create({
                     view = createSceneView(data);
                     Object.assign(canvasEl.getCamera(), { near: NEAR, far: view.far });
                     canvasEl.setDraw((renderer, camera) => view.draw(renderer, camera));
-                    takeBtn.el.setDisabled(false);
+                    [takeBtn, buildBtn].forEach(b => b.el.setDisabled(false));
                     show();
                 })
                 .catch((err) => {
@@ -254,6 +308,7 @@ export const MpiSceneBlock = ComponentFactory.create({
         el.destroy = () => {
             destroyed = true;
             loading.abort();
+            building?.abort();
             if (raf) cancelAnimationFrame(raf);
             unbinds.forEach(off => off());
             offs.forEach(off => off());
@@ -262,7 +317,7 @@ export const MpiSceneBlock = ComponentFactory.create({
                 view.dispose();
                 view = null;
             }
-            [bake, aspectPick, lensPick, presetPick, fillInput, takeBtn, historyList].forEach(c => c.destroy());
+            [bake, buildBtn, aspectPick, lensPick, presetPick, fillInput, takeBtn, historyList].forEach(c => c.destroy());
             viewport.destroy();
         };
     },

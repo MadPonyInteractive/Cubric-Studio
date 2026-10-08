@@ -42,9 +42,11 @@ ticks (Phase 0/0b/1, all complete) moved verbatim to
       (2026-10-08 session 34: built + GPU-free checks green, validation.md § Phase 3 picture panel.
       2026-10-08 session 35: engine run end to end, three breakers fixed, floor still clean,
       validation.md § Take picture end to end. Fabio's eye on the four stills: "1". Left: DoF after 0c)
-- [ ] Interior lift: fit a fill on the back-faced walls' z too (MpiLiftDepth sign convention),
-      window picture < 15% holes at its own camera (found session 35)
-- [ ] Build here (0b's loop as a tool)
+- [x] Interior lift: fit a fill on the back-faced walls' z too (MpiLiftDepth sign convention),
+      window picture < 15% holes at its own camera (found session 35). Done 2026-10-08: + option
+      A, MpiNodes `3ec03ef`; live re-take 12.3% (was 64%), validation.md § Interior lift
+- [ ] Build here (0b's loop as a tool) (2026-10-08 session 37: built, both 0b spots live, 265 /
+      295 s; left: interior style via the pano as reference (A/B), SAM3 glass, Fabio's eye)
 - [x] History -> gallery: several entries -> one stack of plain cards (2026-10-08, validation.md
       § Phase 3 GPU-free)
 - [x] Wan bake: disabled coming-soon tool (2026-10-08, same section)

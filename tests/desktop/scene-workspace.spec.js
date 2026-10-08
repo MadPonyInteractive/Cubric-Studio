@@ -7,7 +7,8 @@
 //   2. Scene-ness is the CARD's: a scene card whose selected entry is one of its plain
 //      pictures still opens Scene and still wears the 3D chip (A3).
 //   3. "Convert to 360 pano" is offered on a plain 2:1 still and nowhere else.
-//   4. The Wan bake is on show as a coming-soon tool that does nothing.
+//   4. The Wan bake is on show as a coming-soon tool that does nothing; Build here beside it
+//      stays off while no scene is loaded.
 const { test, expect } = require('@playwright/test');
 const { launchApp, closeApp } = require('./launch');
 
@@ -101,13 +102,16 @@ test('Scene: a scene card opens it whichever entry is selected, every visit free
             })).toEqual(['scene', 'e2e-scene', true]);
             if (i === 0) {
                 // ── 4. The Wan bake is a coming-soon tool: shown, disabled, says why, inert ──
-                const bake = window.locator('.mpi-scene-block__tools .mpi-btn');
-                await expect(bake).toHaveCount(1);
+                const tools = window.locator('.mpi-scene-block__tools .mpi-btn');
+                await expect(tools).toHaveCount(2);
+                const bake = tools.filter({ hasText: 'Bake 3D' });
                 await expect(bake).toBeVisible();
                 await expect(bake).toBeDisabled();
                 await expect(bake).toHaveAttribute('data-info', /^Coming soon/);
                 await window.evaluate(() => document.querySelector('.mpi-scene-block__tools .mpi-btn').click());
                 expect(await window.evaluate(async () => (await import('/js/state.js')).state.currentPage)).toBe('scene');
+                // Build here waits for a scene to build in: this card's manifest is not on disk.
+                await expect(tools.filter({ hasText: 'Build here' })).toBeDisabled();
             }
             await window.evaluate(async () => {
                 const { navigate, PAGE_GALLERY } = await import('/js/router.js');

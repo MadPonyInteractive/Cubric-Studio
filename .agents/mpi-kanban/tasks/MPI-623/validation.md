@@ -952,3 +952,59 @@ and Klein paints what lies beyond it).
   spec green; eslint clean. MpiNodes `3ec03ef` committed + pushed (on `6bf5659`), pinned in
   `dev_configs/node_lock.json`. **Left:** the window shot RE-TAKEN end to end on an isolated app
   under the lease, on an engine restarted onto `3ec03ef` (Fabio's 48188 still runs `6bf5659`).
+- **Live re-take PASS (2026-10-08, session 37 "3D Scene 27", 4060 Ti, under the lease).** Fabio
+  restarted his app at 15:34 local; the engine reinstalled MpiNodes `3ec03ef` (`.mpi_node_commit`
+  15:34:29) and started after it (48188, pid 22640). Session 35's `take.cjs window` (own profile
+  `cubric-agent-profile-64baa187`, own port, a fresh copy of the Convert test card + the spike's
+  window rect): **79.6 s** (fill 47.9 / lift 11.2 / clean 19.8), one entry with `scenePose`, layers
+  0 -> 1, no new card. The `ab/` rig on that manifest, the app's own shader, layer 0 at its own
+  camera: **12.3% holes** (was 64.3%; offline 13.0%). Of those, 128,684 px have no layer at all
+  (the lift's unkept pixels: a ~30 px strip down both frame sides + sky round the roofs) and only
+  **120 px** are a fill hidden behind a wall (was 426k). By eye (`window_retake_sheet.jpg`,
+  session 37 scratchpad): the room's walls, floor and door frame sit in the viewer; Klein still
+  paints an open DOORWAY, not a shut window (INTERIOR has no window nouns) - Build here's SAM3
+  glass + closed-window wording is where that changes. Rig: session 37 scratchpad `take.cjs`,
+  `ab/`.
+
+## Build here (2026-10-08, session 37 "3D Scene 27", 4060 Ti, under the lease)
+
+Built (Fabio "go"): `buildHere` / `buildPoses` / `BUILD_MM` + `fillLayer` (Take picture's fill, now
+shared) in `scenePicture.js`, `PITCH_MAX` exported from `sceneViewer.js`, a **Build here** button in
+`MpiSceneBlock`'s tools strip (Stop on a second press; Take picture and Build here lock each other).
+- **Checks green:** `scene-picture.test.cjs` +2 (six poses in order, square, 16 mm, INTERIOR, a full
+  view skipped, no clean-up / entry, a layer per filled view; Stop finishes the running view and
+  starts no other) - mutants killed: no stop check, no skip, up/down untilted. `npm test` 2780 pass /
+  0 fail. `scene-workspace.spec.js` (two tools; Build here off while no scene loads) and
+  `scene-viewer.spec.js` green - the spec caught a real bug: `MpiButton.mount` REPLACES its
+  container, so the second button in `#tools` wiped Bake 3D (now one slot each). eslint clean.
+- **Live, window spike camera** (session 37 scratchpad `build.cjs`: a fresh copy of the Convert test
+  card, Build here, then Take picture out of the window and turned 180 into the room): **264.7 s**
+  for 6 of 6 views (fill 37-47 s, lift ~2 s each; target <= 6 min). Then the window picture 66.8 s,
+  the room picture 66.3 s, one entry each, 8 layers, no new card.
+- **Holes with the BUILD's layers only** (`measure.py`, the `ab/` rig, app shader): window frame
+  **1.9%** (85.1% at render before), room frame 5.3%, the six views 0.5 / 1.8 / 4.2 / 2.0 / 0.2 /
+  1.8%. Left holes are thin rims round plants and the window frame edge. With the two pictures' layers
+  too: window 0.4%, room 1.5%.
+- **By eye** (`build_sheet.jpg`): a coherent room round the camera; both pictures agree on it (the
+  plants and wall behind). BUT Klein paints a **modern photoreal apartment** (beige walls, oak floor,
+  pot plants, a TV, skylights) inside a stylised cartoon cottage: the first view is mostly black and
+  INTERIOR's "match the existing image" does not carry the style. The down view reads as a courtyard
+  seen from above. The opening is still a doorway (SAM3 glass not in). Fabio's eye: open.
+- Exported for Fabio to fly: `Documents/Cubric Studio/Projects/MPI-623 Build here - window`.
+- **Live, behind_well spike camera** (outdoors, same rig, `BUILD_CAM=behind_well`): **295.2 s** for 6 of 6
+  views; the behind_well picture 79.6 s, turned 180 91.9 s. Holes with the build's layers only: the
+  behind_well frame **6.3%** (75.8% at render in session 35), turned 180 7.3%, the views 6.6 / 9.4 /
+  5.0 / 6.6 / 0.5 / 0.1% - sky round the tree crowns (the lift keeps no sky) and the near ground. By
+  eye (`build_sheet_well.jpg`): the village's own style everywhere, both pictures agree. Exported:
+  `Documents/Cubric Studio/Projects/MPI-623 Build here - behind well`.
+- **Interior style: the pano as Klein's reference image 2 (Fabio's idea), bench A/B** (session 37
+  scratchpad `abref/`, sheet `abref_sheet.jpg`; the app's Klein 9B graph wf 5 on the bench, title
+  injection, `Input_Image_2` = the pano at 1440x720 - the graph scales a reference to 1 MP with
+  NEAREST, and MpiLoadImage reads only inside input/ output/ temp/). Build view 1 at the window spot
+  (96% holes, backFrac 0.78). A = INTERIOR today; B = + pano ref + a style-only line ("paint the
+  room in exactly its style ... put nothing from image 2 inside"); C = + pano ref alone. Seeds 42, 7.
+  **Result:** the reference warms the light and palette (golden light, warm wood, mouldings; A is
+  grey-beige) and copies NO village content into the room - but all six stay PHOTOREAL; none takes
+  the cartoon rendering. B == C by eye. Cost **+19 s a fill** (48 s vs 27-30 s), ~+2 min a build.
+  Not wired. The rendering style needs words, not a picture: a style phrase from the pano (a
+  caption, or the user's fill line), or Klein's style rack - Fabio's call.

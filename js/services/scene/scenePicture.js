@@ -6,8 +6,9 @@
 // Every Klein job runs with `deferCommit` (no card of its own; Cutout's precedent), the lift
 // through `runSceneOp` (a depth-only run is not a generation). Prompts are the spike's
 // (`D:\WORK\MPI-623-spike\single_shot\chain.py`, `shots.py`). Depth of field waits on spike 0c.
+// Build here runs the same fill over six views round the camera, layers only (plan 0b).
 
-import { pictureSize, renderPicture, loadLayer } from './sceneViewer.js';
+import { pictureSize, renderPicture, loadLayer, PITCH_MAX } from './sceneViewer.js';
 
 /** The fill instruction: style-free, so it works on any pano (chain.py GENERIC). */
 export const GENERIC = 'Fill the black empty areas so the picture is complete and no black remains. Continue the scene that '
@@ -200,6 +201,65 @@ function liftJob(io, payload) {
     });
 }
 
+/** A file in the project's preview assets (no card): a rendered frame or a known-depth `.f32`. */
+const placeAsset = (io, project, dataUrl, ext) => io.post(
+    `/project-media/${project.id}/place-preview-asset?folderPath=${encodeURIComponent(project.folderPath)}`, { dataUrl, ext });
+
+/** A rendered shot's holes filled and placed in the scene: Klein inpaint -> sceneLift -> a layer
+ *  in the manifest, meshed into the live view. `frame` = the shot's PNG as a preview asset. */
+async function fillLayer({ project, sceneItem, view, pose, fillLine, onStep }, shot, frame, io) {
+    onStep('fill');
+    const mask = await io.blobToDataUrl(await io.encodePng(shot.mask, shot.w, shot.h));
+    const fill = await kleinJob(io, 'inpaint', frame.filePath, fillPrompt(shot.backFrac, fillLine), mask);
+    onStep('lift');
+    const known = await placeAsset(io, project, await io.blobToDataUrl(new Blob([knownDepth(shot.z, shot.backFrac).buffer], { type: 'application/octet-stream' })), '.f32');
+    const fovX = 2 * Math.atan(18 / pose.mm) * 180 / Math.PI;
+    const depthUrl = await liftJob(io, { imagePath: io.resolveMediaUrl(fill.filePath), knownDepthPath: known.absPath, fovX });
+    const saved = await io.post(`/project-media/${project.id}/scene-layer?folderPath=${encodeURIComponent(project.folderPath)}`,
+        { itemId: sceneItem.id, imagePath: pathOf(fill.filePath), depthUrl, camera: shot.record });
+    view.addLayer(await io.loadLayer(sceneItem.scenePath, saved.record));
+    return { layer: saved.record, fillPath: fill.filePath };
+}
+
+/** Build here's lens: ~97 degrees across a square, so the six views overlap. */
+export const BUILD_MM = 16;
+
+/**
+ * Build here's six views from `pose.pos`: the way the camera faces first, then right, behind,
+ * left, up, down. Up and down stop at `PITCH_MAX` - `applyPose` has no right vector straight
+ * up - and the lens's overlap covers the 1.2 degrees that leaves.
+ */
+export function buildPoses({ pos, yaw }) {
+    const around = [0, 1, 2, 3].map(k => ({ yaw: yaw + k * Math.PI / 2, pitch: 0 }));
+    return [...around, { yaw, pitch: PITCH_MAX }, { yaw, pitch: -PITCH_MAX }]
+        .map(p => ({ pos: [...pos], roll: 0, mm: BUILD_MM, ...p }));
+}
+
+/**
+ * Build here (plan 0b): fill the space round the camera into the scene before pictures are
+ * taken in it. Each of `buildPoses` in turn, so each view starts from the ones before it:
+ * render -> Klein inpaint -> lift -> a layer, as Take picture's fill. No clean-up and no
+ * history entry: the layers are the result. A view with no holes is skipped; `signal` stops
+ * the build before the next view (the running fill finishes).
+ * @param {{ project: Object, sceneItem: Object, view: Object, renderer: Object, pose: Object,
+ *   fillLine?: string, signal?: AbortSignal, onStep?: (step: string, at: { view: number, of: number }) => void }} ctx
+ * @param {Object} io  `appIo()`, or a test's stand-ins
+ * @returns {Promise<Object[]>} the layer records added, in order
+ */
+export async function buildHere({ project, sceneItem, view, renderer, pose, fillLine = '', signal, onStep = () => {} }, io) {
+    const poses = buildPoses(pose), size = pictureSize('1:1'), layers = [];
+    for (const [i, p] of poses.entries()) {
+        if (signal?.aborted) throw new Error('cancelled');
+        const at = { view: i + 1, of: poses.length }, step = (s) => onStep(s, at);
+        step('render');
+        const shot = io.render(view, renderer, p, size);
+        if (shot.holeFrac === 0) continue;
+        const frame = await placeAsset(io, project, await io.blobToDataUrl(await io.encodePng(shot.rgba, shot.w, shot.h)), '.png');
+        layers.push((await fillLayer({ project, sceneItem, view, pose: p, fillLine, onStep: step }, shot, frame, io)).layer);
+    }
+    return layers;
+}
+
 /**
  * Take the picture `pose` frames at `aspect`.
  * @param {{ project: Object, group: Object, sceneItem: Object, view: Object, renderer: Object,
@@ -212,22 +272,10 @@ export async function takePicture({ project, group, sceneItem, view, renderer, p
     const size = pictureSize(aspect);
     onStep('render');
     const shot = io.render(view, renderer, pose, size);
-    const asset = async (dataUrl, ext) => io.post(`/project-media/${project.id}/place-preview-asset?folderPath=${encodeURIComponent(project.folderPath)}`, { dataUrl, ext });
-    const frame = await asset(await io.blobToDataUrl(await io.encodePng(shot.rgba, shot.w, shot.h)), '.png');
+    const frame = await placeAsset(io, project, await io.blobToDataUrl(await io.encodePng(shot.rgba, shot.w, shot.h)), '.png');
     let base = frame.filePath, layer = null;
     if (shot.holeFrac > 0) {
-        onStep('fill');
-        const mask = await io.blobToDataUrl(await io.encodePng(shot.mask, shot.w, shot.h));
-        const fill = await kleinJob(io, 'inpaint', frame.filePath, fillPrompt(shot.backFrac, fillLine), mask);
-        onStep('lift');
-        const known = await asset(await io.blobToDataUrl(new Blob([knownDepth(shot.z, shot.backFrac).buffer], { type: 'application/octet-stream' })), '.f32');
-        const fovX = 2 * Math.atan(18 / pose.mm) * 180 / Math.PI;
-        const depthUrl = await liftJob(io, { imagePath: io.resolveMediaUrl(fill.filePath), knownDepthPath: known.absPath, fovX });
-        const saved = await io.post(`/project-media/${project.id}/scene-layer?folderPath=${encodeURIComponent(project.folderPath)}`,
-            { itemId: sceneItem.id, imagePath: pathOf(fill.filePath), depthUrl, camera: shot.record });
-        layer = saved.record;
-        view.addLayer(await io.loadLayer(sceneItem.scenePath, layer));
-        base = fill.filePath;
+        ({ layer, fillPath: base } = await fillLayer({ project, sceneItem, view, pose, fillLine, onStep }, shot, frame, io));
     }
     onStep('clean');
     const cleaned = await kleinJob(io, 'kleinEdit', base, POLISH);

@@ -21,14 +21,15 @@ const POSE = { pos: [0.1, 0.2, 0.3], yaw: 0.5, pitch: -0.1, roll: 0.05, mm: 24 }
 const RECORD = { w: 4, h: 2, w2c: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], fx: 2.6, fy: 2.6, cx: 2, cy: 1 };
 
 function harness({ holeFrac = 0.25, backFrac = 0, failInpaint = false, z = new Float32Array(8).fill(2) } = {}) {
-    const log = [], calls = { enqueue: [], lift: [], post: [], layers: [], saved: [], blobs: [] };
+    const log = [], calls = { enqueue: [], lift: [], post: [], layers: [], saved: [], blobs: [], poses: [] };
     const w = 4, h = 2;
     const io = {
         klein: { id: 'klein-9b' },
         render: (view, renderer, pose, size) => {
             log.push(`render ${size.w}x${size.h}`);
-            return { w, h, rgba: new Uint8ClampedArray(w * h * 4), mask: new Uint8ClampedArray(w * h * 4),
-                z, holeFrac, backFrac, record: RECORD };
+            calls.poses.push(pose);
+            return { w, h, rgba: new Uint8ClampedArray(w * h * 4), mask: new Uint8ClampedArray(w * h * 4), z, backFrac, record: RECORD,
+                holeFrac: typeof holeFrac === 'function' ? holeFrac(calls.poses.length - 1) : holeFrac };
         },
         encodePng: async () => new Blob(['png']),
         blobToDataUrl: async (blob) => { calls.blobs.push(blob); return 'data:x;base64,AA=='; },
@@ -148,6 +149,43 @@ test('a failed fill saves nothing and adds no layer', async () => {
     assert.equal(t.calls.saved.length, 0);
     assert.equal(t.calls.layers.length, 0);
     assert.equal(t.calls.lift.length, 0);
+});
+
+// Build here (plan 0b): six square views from where the camera stands, each filled into the
+// scene like Take picture's fill. Wrong here, the room has a gap no picture can fill, a build
+// lands stray pictures on the card, or Stop leaves Klein running view after view.
+test('Build here: six views round the camera, front first, each filled into a layer, no entry', async () => {
+    const { buildHere, BUILD_MM, INTERIOR } = await esm('js/services/scene/scenePicture.js');
+    const { PITCH_MAX } = await esm('js/services/scene/sceneViewer.js');
+    const t = harness({ backFrac: 0.6, holeFrac: (i) => (i === 3 ? 0 : 0.4) }); // the 4th view needs nothing
+    const at = [];
+    const layers = await buildHere({ ...t.ctx, onStep: (s, a) => at.push(`${a.view}/${a.of} ${s}`) }, t.io);
+    const Q = Math.PI / 2;
+    assert.deepEqual(t.calls.poses.map(p => [p.yaw, p.pitch]),
+        [[0.5, 0], [0.5 + Q, 0], [0.5 + 2 * Q, 0], [0.5 + 3 * Q, 0], [0.5, PITCH_MAX], [0.5, -PITCH_MAX]]);
+    for (const p of t.calls.poses) assert.deepEqual({ pos: p.pos, roll: p.roll, mm: p.mm }, { pos: POSE.pos, roll: 0, mm: BUILD_MM });
+    assert.ok(t.log.filter(l => l.startsWith('render')).every(l => l === 'render 1024x1024'), 'square views');
+    assert.deepEqual(t.log.filter(l => !l.startsWith('render')), Array(5).fill(['inpaint', 'sceneLift']).flat(),
+        'a fill + lift per view with holes, no clean-up, nothing saved');
+    assert.equal(t.calls.saved.length, 0);
+    assert.equal(layers.length, 5);
+    assert.equal(t.calls.layers.length, 5, 'each fill meshed in before the next view renders');
+    for (const { config, opts } of t.calls.enqueue) {
+        assert.deepEqual(opts, { deferCommit: true });
+        assert.equal(config.positive, INTERIOR);
+    }
+    for (const l of t.calls.lift) assert.ok(Math.abs(l.fovX - 96.7325) < 1e-3, `fovX ${l.fovX}`);
+    assert.deepEqual(at.slice(0, 3), ['1/6 render', '1/6 fill', '1/6 lift']);
+    assert.ok(at.includes('4/6 render') && !at.includes('4/6 fill'));
+});
+
+test('Build here: Stop lets the running view finish and starts no other', async () => {
+    const { buildHere } = await esm('js/services/scene/scenePicture.js');
+    const t = harness();
+    const stop = new AbortController();
+    await assert.rejects(buildHere({ ...t.ctx, signal: stop.signal, onStep: (s) => { if (s === 'lift') stop.abort(); } }, t.io), /cancelled/);
+    assert.equal(t.calls.poses.length, 1);
+    assert.equal(t.calls.layers.length, 1, 'the view that was running still lands');
 });
 
 test('the colour lock: a frame keeps its colours, a drifted edit returns to the frame\'s', async () => {

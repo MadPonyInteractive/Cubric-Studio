@@ -2,7 +2,7 @@
 
 > A 360 pano becomes a scene the user walks around in to take EXACT-camera stills (behind a house,
 > up a tree, through a shut window). Everything here sits behind `APP_CONFIG.dev_mode` until it
-> ships. This doc holds what is BUILT; the remaining design (viewer, Take picture, Build here, the
+> ships. This doc holds what is BUILT; the remaining design (depth of field, SAM3 glass windows, the
 > Pano Flow) is the card's plan: `.agents/mpi-kanban/tasks/MPI-623/plan.md` § Design, A1-A9.
 
 ## A scene card is an image card
@@ -94,6 +94,16 @@ drops its float targets once the render is read (Klein's VRAM).
   vs one flat wall 0.25 ahead, fit error 73%), so the room's depth is a compromise; it shows because
   back faces never hide a fill (window own-camera holes 64% -> 13%). MPI-623 validation.md
   § Interior lift.
+
+## Build here
+
+`buildHere(ctx, appIo())` (the tools strip's **Build here**; a second press stops after the running
+view): Take picture's fill steps (1-3 above, `fillLayer`) over `buildPoses` - six 1024x1024 views
+at `BUILD_MM` 16 (~97 deg, so they overlap) from the camera's spot, facing first, then right,
+behind, left, up, down; up/down at pitch +-`PITCH_MAX` (`applyPose` has no right vector straight
+up). Each view renders with the layers before it; one with no holes is skipped. No clean-up, no
+history entry: the layers are the result. Window spike camera, 4060 Ti: 265 s for six views; after
+it the window picture's frame is 1.9% holes (85% before), every build view <= 4.2%.
 
 ## Companions and the manifest
 
