@@ -265,7 +265,22 @@ export function namedParamsFor(model, operation) {
         denoise: modelShowsDenoise(model, operation)
             ? { min: 0, max: 1, default: _denoiseDefault(operation) }
             : null,
+        // The upscale op's factor and tile path (MPI-1038). 1 is detail only: tiles only.
+        ...(getCommandComponents(operation).includes('upscaleFactor')
+            ? { upscaleFactors: modelShowsTiles(model, operation) ? [1, ...UPSCALE_FACTORS] : [...UPSCALE_FACTORS] } : {}),
+        ...(modelShowsTiles(model, operation) ? { tiles: true } : {}),
     };
+}
+
+// ── upscale factor + Use Tiles (MPI-1038) ────────────────────────────────────
+
+/** The upscale op's factors without tiles; Use Tiles adds 1 (detail only). Mirrors the
+ *  PromptBox `upscaleFactor` control's options. */
+export const UPSCALE_FACTORS = Object.freeze([1.5, 2, 3, 4]);
+
+/** Does `operation` on `model` carry Use Tiles? The op's control AND the graph's "Tile Upscale" group. */
+export function modelShowsTiles(model, operation) {
+    return getCommandComponents(operation).includes('useTiles') && model?.capabilities?.tileUpscale === true;
 }
 
 // ── agent batch (MPI-876) ────────────────────────────────────────────────────
@@ -417,7 +432,7 @@ export function isValidSeed(value) {
  *            provenance:Object<string,{from:'asked'|'defaulted', value:*}>}|{ok:false, code:string, message:string}}
  */
 export function resolveNamedParams(project, model, operation, named = {}) {
-    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch, category, language } = named;
+    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch, category, language, tiles, upscaleFactor } = named;
     const injectionParams = {};
     const modelName = model?.name || model?.id || 'this model';
     const provenance = {};
@@ -560,6 +575,34 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         _from('denoise', denoiseWanted !== undefined, injectionParams.Denoise);
     } else if (denoiseWanted !== undefined) {
         return _err('INVALID_DENOISE', `"${operation}" has no denoise: it does not start from a picture it keeps.`);
+    }
+
+    // Use Tiles + upscale factor (MPI-1038). Same ladder: asked, else the project's own
+    // (tiles is shared across models, Grid and factor per op), else the default. As in the
+    // PromptBox, tiles on turns Grid off and is the only way to 1x (detail only).
+    const showsTiles = modelShowsTiles(model, operation);
+    if (tiles !== undefined && (typeof tiles !== 'boolean' || !showsTiles)) {
+        return _err('INVALID_TILES', showsTiles ? 'tiles must be a boolean.' : `${modelName} has no tile upscale on "${operation}".`);
+    }
+    const tilesOn = showsTiles && (tiles ?? getSharedSettings(project || {}, _mediaTypeOf(model)).useTiles === true);
+    if (showsTiles) {
+        injectionParams.Input_Tile_Upscale = tilesOn;
+        _from('tiles', tiles !== undefined, tilesOn);
+    }
+    const opSaved = getOpSettings(project || {}, model?.id, operation);
+    if (components.includes('useGrid')) injectionParams.Input_Auto_Grid = !tilesOn && opSaved.useGrid === true;
+    if (components.includes('upscaleFactor')) {
+        const allowed = tilesOn ? [1, ...UPSCALE_FACTORS] : UPSCALE_FACTORS;
+        if (upscaleFactor !== undefined && !allowed.includes(upscaleFactor)) {
+            return _err('INVALID_UPSCALE_FACTOR', `upscaleFactor must be one of: ${allowed.join(', ')}${tilesOn || !showsTiles ? '' : ' (1, detail only, needs tiles: true)'}.`);
+        }
+        const saved = Number(opSaved.upscaleFactor);
+        injectionParams.Input_Upscale_Factor = upscaleFactor ?? (allowed.includes(saved)
+            ? saved
+            : resolveThreeLayerDefault('upscaleFactor', model, operation, PROMPT_CONTROL_DEFAULTS.upscaleFactor));
+        _from('upscaleFactor', upscaleFactor !== undefined, injectionParams.Input_Upscale_Factor);
+    } else if (upscaleFactor !== undefined) {
+        return _err('INVALID_UPSCALE_FACTOR', `"${operation}" has no upscale factor.`);
     }
 
     // The audio models' two pickers (MPI-1012). Same ladder as turbo: asked, else the

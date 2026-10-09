@@ -41,6 +41,11 @@
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
 
 
+## What's new
+
+- **Qwen-Image 2.1.** Makes and edits images, up to eight references in one edit, and can return a transparent background. Research licence: the images are not for commercial use.
+- **Use Tiles, beside Use Grid in every model's Upscale.** It redraws the picture in 1024 px tiles, so very large pictures work, and at 1x it adds detail without enlarging. Cosmo and the MCP tools can use it too.
+
 ## ComfyUI Engine
 
 - **ComfyUI 0.39.0 (was 0.34.0).** It updates itself on first launch in about a minute, with no full re-download, and custom nodes you added yourself stay.

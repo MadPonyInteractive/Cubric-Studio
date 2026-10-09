@@ -33,7 +33,7 @@ const MAX_STEPS = 10;
 const _TOOL_OP_SET = new Set(AGENT_TOOL_OPS.map(t => t.op));
 
 /** Named params a model step may carry (passed to resolveNamedParams). */
-const _MODEL_NAMED_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration', 'denoise', 'batch', 'category', 'language'];
+const _MODEL_NAMED_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration', 'denoise', 'batch', 'category', 'language', 'tiles', 'upscaleFactor'];
 
 const _bad = (code, message) => ({ ok: false, code, message });
 

@@ -71,6 +71,7 @@ then the copied models) and judges the result and the tile-count label.
 
 ## Current State
 
+2026-10-09 ~15:30: Fabio said 1 on Krea2 + Klein in his app; his Klein A/B: 4 tile steps beat 2 (runtimes back at the committed 4). Agent + MCP now know tiles: named params `tiles` + `upscaleFactor` (generationControls resolveNamedParams/namedParamsFor, ladder asked > panel > default, tiles forces Grid off, 1x only with tiles), wired through agentDispatch, connector NAMED_PARAM_KEYS, routineModel, mcp.js + agentLoop.mjs schemas + _SENT_KEYS; TOOLS_BUDGET 18,673 -> 19,006 (+333, annotated). tests/agent-tiles.test.cjs; npm test 2808 pass / 0 fail. Skill doc + UNRELEASED.md entry written. NEXT: mpi-end-session (commit --only my files; Chroma/SDXL stay validator-proven only).
 2026-10-09 ~14:40: Fabio testing in his app (Krea2 now, Klein next) - screenshot showed USE GRID / USE
 TILES + "UPSCALE · 6 TILES" + 1x working on Qwen 2.1. His asks, BOTH DONE: (1) Use Tiles persists across
 model switches -> `useTiles` scope `shared` (project.shared.image); useGrid (still perOp) mounts OFF

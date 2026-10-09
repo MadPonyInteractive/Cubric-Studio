@@ -100,3 +100,12 @@ the user's `Documents/Cubric Studio/project-paths.json` for the run only and rem
 - run_tiles.py under gpu_lease, village 1344x768 x1.5, denoise 0.35, empty prompt: Klein 9B 2016x1152 in 57 s; Krea2 (turbo) 2016x1152 in 96 s; Qwen 2.1 174 s (above). Crops vs lanczos: all three crisper, content kept, no seams.
 - Chroma + SDXL NOT run: ComfyUI dropped Output_Image on value_not_in_list (Chroma1-HD-Flash / t5xxl_fp16 / ae; SDXL_Realistic + ControlNet-Union-ProMax) - those weights are not on this machine at all. Graph proof for them = validator + runtime diff only.
 - Runtimes committed: krea2 48c9dec4f, qwen (see above), klein/chroma/sdxl b399d7920 (pushed). App code, models.js flags, desktop spec, docs: uncommitted, waiting on Fabio's in-app look.
+
+### Klein tile steps A/B in the app (2026-10-09)
+
+- Fabio ran Klein Use Tiles at 4 steps (ba5ac9fe5), then at 2 (temporary uncommitted runtime edit): 4 is better. Runtimes restored to the committed 4; nothing to commit.
+
+### Fabio in-app + agent/MCP params (2026-10-09)
+
+- Fabio: "they look right" on Krea2 + Klein Use Tiles in his app (user-ux verdict = 1).
+- Agent/MCP `tiles` + `upscaleFactor`: tests/agent-tiles.test.cjs 7 pass (describe lists them; asked tiles+1x injects Input_Tile_Upscale/Input_Upscale_Factor 1/Input_Auto_Grid false; unset = defaults; project panel ladder; refusals; through resolveSettingsOwner pinned + unpinned). Full `npm test`: 2808 pass, 0 fail (budget test raised to 19,006 for the +333 bytes).
