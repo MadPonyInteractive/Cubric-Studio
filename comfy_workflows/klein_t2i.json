@@ -1741,7 +1741,7 @@
   "436": {
     "inputs": {
       "any": [
-        "405",
+        "688",
         0
       ]
     },
@@ -2133,6 +2133,183 @@
       "boolean": [
         "296",
         4
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
+    }
+  },
+  "674": {
+    "inputs": {
+      "model": [
+        "100",
+        0
+      ],
+      "clip": [
+        "14",
+        0
+      ],
+      "vae": [
+        "15",
+        0
+      ],
+      "positive": [
+        "681",
+        0
+      ],
+      "negative": [
+        "680",
+        0
+      ]
+    },
+    "class_type": "ToBasicPipe",
+    "_meta": {
+      "title": "ToBasicPipe"
+    }
+  },
+  "680": {
+    "inputs": {
+      "conditioning": [
+        "681",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "Conditioning Zero Out"
+    }
+  },
+  "681": {
+    "inputs": {
+      "clip": [
+        "14",
+        0
+      ],
+      "text": [
+        "88",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "683": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "image": [
+        "474",
+        0
+      ],
+      "scale_by": [
+        "397",
+        0
+      ]
+    },
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "Upscale first (1.0 = detail only)"
+    }
+  },
+  "684": {
+    "inputs": {
+      "bbox_size": 1024,
+      "crop_factor": 1.5,
+      "min_overlap": 200,
+      "filter_segs_dilation": 30,
+      "mask_irregularity": 0.7,
+      "irregular_mask_mode": "Reuse fast",
+      "images": [
+        "683",
+        0
+      ]
+    },
+    "class_type": "ImpactMakeTileSEGS",
+    "_meta": {
+      "title": "Make Tile SEGS"
+    }
+  },
+  "685": {
+    "inputs": {
+      "guide_size": 1024,
+      "guide_size_for": true,
+      "max_size": 1536,
+      "steps": 2,
+      "cfg": 1,
+      "sampler_name": "lcm",
+      "scheduler": "normal",
+      "feather": 10,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "wildcard": "",
+      "refiner_ratio": 0.2,
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 10,
+      "tiled_encode": false,
+      "tiled_decode": false,
+      "image": [
+        "683",
+        0
+      ],
+      "segs": [
+        "684",
+        0
+      ],
+      "basic_pipe": [
+        "674",
+        0
+      ],
+      "seed": [
+        "33",
+        0
+      ],
+      "denoise": [
+        "330",
+        0
+      ]
+    },
+    "class_type": "DetailerForEachPipe",
+    "_meta": {
+      "title": "Tile detailer"
+    }
+  },
+  "686": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Tile_Upscale"
+    }
+  },
+  "687": {
+    "inputs": {
+      "boolean": [
+        "686",
+        0
+      ]
+    },
+    "class_type": "MpiBooleanInvert",
+    "_meta": {
+      "title": "Mpi Boolean Invert"
+    }
+  },
+  "688": {
+    "inputs": {
+      "true": [
+        "405",
+        0
+      ],
+      "false": [
+        "685",
+        0
+      ],
+      "boolean": [
+        "687",
+        0
       ]
     },
     "class_type": "MpiIfElse",

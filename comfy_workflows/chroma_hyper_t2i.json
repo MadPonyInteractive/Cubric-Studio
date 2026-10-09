@@ -1043,7 +1043,7 @@
   "2748": {
     "inputs": {
       "any": [
-        "2753",
+        "2783",
         0
       ]
     },
@@ -1205,6 +1205,203 @@
     "class_type": "VAEEncode",
     "_meta": {
       "title": "VAE Encode"
+    }
+  },
+  "2766": {
+    "inputs": {
+      "model": [
+        "2671",
+        1
+      ],
+      "clip": [
+        "823",
+        1
+      ],
+      "vae": [
+        "823",
+        2
+      ],
+      "positive": [
+        "2770",
+        0
+      ],
+      "negative": [
+        "2772",
+        0
+      ]
+    },
+    "class_type": "ToBasicPipe",
+    "_meta": {
+      "title": "ToBasicPipe"
+    }
+  },
+  "2770": {
+    "inputs": {
+      "clip": [
+        "823",
+        1
+      ],
+      "text": [
+        "2665",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "2772": {
+    "inputs": {
+      "clip": [
+        "823",
+        1
+      ],
+      "text": [
+        "2668",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "2773": {
+    "inputs": {
+      "math_expression": "6 if a==3 else 4",
+      "a": [
+        "2623",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Mpi Math"
+    }
+  },
+  "2778": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "image": [
+        "2645",
+        0
+      ],
+      "scale_by": [
+        "2737",
+        0
+      ]
+    },
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "Upscale first (1.0 = detail only)"
+    }
+  },
+  "2779": {
+    "inputs": {
+      "bbox_size": 1024,
+      "crop_factor": 1.5,
+      "min_overlap": 200,
+      "filter_segs_dilation": 30,
+      "mask_irregularity": 0.7,
+      "irregular_mask_mode": "Reuse fast",
+      "images": [
+        "2778",
+        0
+      ]
+    },
+    "class_type": "ImpactMakeTileSEGS",
+    "_meta": {
+      "title": "Make Tile SEGS"
+    }
+  },
+  "2780": {
+    "inputs": {
+      "guide_size": 1024,
+      "guide_size_for": true,
+      "max_size": 1536,
+      "cfg": 1,
+      "sampler_name": "heun",
+      "scheduler": "beta",
+      "feather": 10,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "wildcard": "",
+      "refiner_ratio": 0.2,
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 10,
+      "tiled_encode": false,
+      "tiled_decode": false,
+      "image": [
+        "2778",
+        0
+      ],
+      "segs": [
+        "2779",
+        0
+      ],
+      "basic_pipe": [
+        "2766",
+        0
+      ],
+      "seed": [
+        "2631",
+        0
+      ],
+      "steps": [
+        "2773",
+        0
+      ],
+      "denoise": [
+        "2630",
+        0
+      ]
+    },
+    "class_type": "DetailerForEachPipe",
+    "_meta": {
+      "title": "Tile detailer"
+    }
+  },
+  "2781": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Tile_Upscale"
+    }
+  },
+  "2782": {
+    "inputs": {
+      "boolean": [
+        "2781",
+        0
+      ]
+    },
+    "class_type": "MpiBooleanInvert",
+    "_meta": {
+      "title": "Mpi Boolean Invert"
+    }
+  },
+  "2783": {
+    "inputs": {
+      "true": [
+        "2753",
+        0
+      ],
+      "false": [
+        "2780",
+        0
+      ],
+      "boolean": [
+        "2782",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
     }
   }
 }

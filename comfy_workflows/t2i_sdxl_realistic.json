@@ -617,7 +617,7 @@
   "1595": {
     "inputs": {
       "any": [
-        "1702",
+        "1752",
         0
       ]
     },
@@ -1491,6 +1491,124 @@
     "class_type": "MpiLatentUpscale",
     "_meta": {
       "title": "Mpi Latent Upscale"
+    }
+  },
+  "1747": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "image": [
+        "1640",
+        0
+      ],
+      "scale_by": [
+        "1694",
+        0
+      ]
+    },
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "Upscale first (1.0 = detail only)"
+    }
+  },
+  "1748": {
+    "inputs": {
+      "bbox_size": 1024,
+      "crop_factor": 1.5,
+      "min_overlap": 200,
+      "filter_segs_dilation": 30,
+      "mask_irregularity": 0.7,
+      "irregular_mask_mode": "Reuse fast",
+      "images": [
+        "1747",
+        0
+      ]
+    },
+    "class_type": "ImpactMakeTileSEGS",
+    "_meta": {
+      "title": "Make Tile SEGS"
+    }
+  },
+  "1749": {
+    "inputs": {
+      "guide_size": 1024,
+      "guide_size_for": true,
+      "max_size": 1536,
+      "seed": 0,
+      "steps": 8,
+      "cfg": 1.4,
+      "sampler_name": "lcm",
+      "scheduler": "simple",
+      "feather": 10,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "wildcard": "",
+      "refiner_ratio": 0.2,
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 10,
+      "tiled_encode": false,
+      "tiled_decode": false,
+      "image": [
+        "1747",
+        0
+      ],
+      "segs": [
+        "1748",
+        0
+      ],
+      "basic_pipe": [
+        "1584",
+        0
+      ],
+      "denoise": [
+        "1596",
+        0
+      ]
+    },
+    "class_type": "DetailerForEachPipe",
+    "_meta": {
+      "title": "Tile detailer"
+    }
+  },
+  "1750": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Tile_Upscale"
+    }
+  },
+  "1751": {
+    "inputs": {
+      "boolean": [
+        "1750",
+        0
+      ]
+    },
+    "class_type": "MpiBooleanInvert",
+    "_meta": {
+      "title": "Mpi Boolean Invert"
+    }
+  },
+  "1752": {
+    "inputs": {
+      "true": [
+        "1702",
+        0
+      ],
+      "false": [
+        "1749",
+        0
+      ],
+      "boolean": [
+        "1751",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
     }
   }
 }
