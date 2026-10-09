@@ -1,8 +1,8 @@
 {
-  "id": "30a47347-77ef-4a78-ab2c-135a96737ab4",
+  "id": "17b23af1-4e09-4547-8326-fca5c3024d9c",
   "revision": 0,
   "last_node_id": 172,
-  "last_link_id": 232,
+  "last_link_id": 236,
   "nodes": [
     {
       "id": 10,
@@ -73,7 +73,7 @@
           "name": "images",
           "type": "IMAGE",
           "links": [
-            127
+            129
           ]
         },
         {
@@ -81,7 +81,7 @@
           "name": "audio",
           "type": "AUDIO",
           "links": [
-            131
+            133
           ]
         },
         {
@@ -89,7 +89,7 @@
           "name": "fps",
           "type": "FLOAT",
           "links": [
-            135
+            137
           ]
         },
         {
@@ -97,7 +97,7 @@
           "name": "frame_count",
           "type": "INT",
           "links": [
-            126
+            128
           ]
         },
         {
@@ -105,7 +105,7 @@
           "name": "duration",
           "type": "FLOAT",
           "links": [
-            129
+            131
           ]
         },
         {
@@ -113,8 +113,8 @@
           "name": "width",
           "type": "INT",
           "links": [
-            137,
-            140
+            139,
+            142
           ]
         },
         {
@@ -122,8 +122,8 @@
           "name": "height",
           "type": "INT",
           "links": [
-            138,
-            139
+            140,
+            141
           ]
         },
         {
@@ -131,7 +131,7 @@
           "name": "has_audio",
           "type": "BOOLEAN",
           "links": [
-            130
+            132
           ]
         },
         {
@@ -230,7 +230,7 @@
           "name": "image",
           "type": "IMAGE",
           "links": [
-            205
+            209
           ]
         },
         {
@@ -256,8 +256,8 @@
           "name": "loaded",
           "type": "BOOLEAN",
           "links": [
-            122,
-            175
+            124,
+            179
           ]
         }
       ],
@@ -313,7 +313,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            188
+            192
           ]
         }
       ],
@@ -361,9 +361,9 @@
           "name": "int",
           "type": "INT",
           "links": [
-            119,
             121,
-            125
+            123,
+            127
           ]
         }
       ],
@@ -411,8 +411,8 @@
           "name": "boolean",
           "type": "BOOLEAN",
           "links": [
-            120,
-            123
+            122,
+            125
           ]
         }
       ],
@@ -460,7 +460,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            184
+            188
           ]
         }
       ],
@@ -508,9 +508,9 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            117,
-            145,
-            186
+            119,
+            149,
+            190
           ]
         }
       ],
@@ -558,7 +558,7 @@
           "name": "int",
           "type": "INT",
           "links": [
-            207
+            211
           ]
         }
       ],
@@ -606,7 +606,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            230
+            234
           ]
         }
       ],
@@ -654,7 +654,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            232
+            236
           ]
         }
       ],
@@ -690,7 +690,7 @@
           "localized_name": "any",
           "name": "any",
           "type": "*",
-          "link": 117
+          "link": 119
         }
       ],
       "outputs": [
@@ -705,7 +705,7 @@
           "name": "has_value",
           "type": "BOOLEAN",
           "links": [
-            124
+            126
           ]
         }
       ],
@@ -728,28 +728,28 @@
         200
       ],
       "flags": {},
-      "order": 52,
+      "order": 54,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 118
+          "link": 120
         },
         {
           "localized_name": "b",
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 119
+          "link": 121
         },
         {
           "localized_name": "c",
           "name": "c",
           "shape": 7,
           "type": "*",
-          "link": 120
+          "link": 122
         },
         {
           "localized_name": "math_expression",
@@ -767,7 +767,7 @@
           "name": "result",
           "type": "*",
           "links": [
-            192
+            196
           ]
         }
       ],
@@ -803,21 +803,21 @@
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 121
+          "link": 123
         },
         {
           "localized_name": "b",
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 122
+          "link": 124
         },
         {
           "localized_name": "c",
           "name": "c",
           "shape": 7,
           "type": "*",
-          "link": 123
+          "link": 125
         },
         {
           "localized_name": "math_expression",
@@ -835,8 +835,8 @@
           "name": "result",
           "type": "*",
           "links": [
-            161,
-            168
+            165,
+            172
           ]
         }
       ],
@@ -858,28 +858,28 @@
       "type": "MpiMath",
       "pos": [
         1100,
-        1636
+        2296
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 47,
+      "order": 49,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 124
+          "link": 126
         },
         {
           "localized_name": "b",
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 125
+          "link": 127
         },
         {
           "localized_name": "c",
@@ -904,12 +904,12 @@
           "name": "result",
           "type": "*",
           "links": [
-            118,
-            152,
-            155,
-            158,
-            178,
-            224
+            120,
+            156,
+            159,
+            162,
+            182,
+            228
           ]
         }
       ],
@@ -945,7 +945,7 @@
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 126
+          "link": 128
         },
         {
           "localized_name": "b",
@@ -977,9 +977,9 @@
           "name": "result",
           "type": "*",
           "links": [
-            128,
-            133,
-            204
+            130,
+            135,
+            208
           ]
         }
       ],
@@ -1016,7 +1016,7 @@
           "name": "images",
           "shape": 7,
           "type": "IMAGE",
-          "link": 127
+          "link": 129
         },
         {
           "localized_name": "masks",
@@ -1041,7 +1041,7 @@
           "widget": {
             "name": "num_frames"
           },
-          "link": 128
+          "link": 130
         }
       ],
       "outputs": [
@@ -1050,9 +1050,9 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            141,
-            147,
-            150
+            143,
+            151,
+            154
           ]
         },
         {
@@ -1099,7 +1099,7 @@
           "widget": {
             "name": "duration"
           },
-          "link": 129
+          "link": 131
         },
         {
           "localized_name": "sample_rate",
@@ -1126,7 +1126,7 @@
           "name": "AUDIO",
           "type": "AUDIO",
           "links": [
-            132
+            134
           ]
         }
       ],
@@ -1166,13 +1166,13 @@
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 131
+          "link": 133
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 132
+          "link": 134
         },
         {
           "localized_name": "boolean",
@@ -1181,7 +1181,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 130
+          "link": 132
         }
       ],
       "outputs": [
@@ -1190,7 +1190,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            134
+            136
           ]
         }
       ],
@@ -1226,7 +1226,7 @@
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 133
+          "link": 135
         },
         {
           "localized_name": "b",
@@ -1258,7 +1258,7 @@
           "name": "result",
           "type": "*",
           "links": [
-            136
+            138
           ]
         }
       ],
@@ -1280,21 +1280,21 @@
       "type": "MpiAudioRange",
       "pos": [
         1600,
-        882
+        466
       ],
       "size": [
         270,
         106
       ],
       "flags": {},
-      "order": 50,
+      "order": 51,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "audio",
           "name": "audio",
           "type": "AUDIO",
-          "link": 134
+          "link": 136
         },
         {
           "localized_name": "fps",
@@ -1303,7 +1303,7 @@
           "widget": {
             "name": "fps"
           },
-          "link": 135
+          "link": 137
         },
         {
           "localized_name": "start",
@@ -1321,7 +1321,7 @@
           "widget": {
             "name": "end"
           },
-          "link": 136
+          "link": 138
         }
       ],
       "outputs": [
@@ -1330,7 +1330,7 @@
           "name": "audio",
           "type": "AUDIO",
           "links": [
-            228
+            232
           ]
         }
       ],
@@ -1370,14 +1370,14 @@
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 137
+          "link": 139
         },
         {
           "localized_name": "b",
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 138
+          "link": 140
         },
         {
           "localized_name": "c",
@@ -1402,8 +1402,8 @@
           "name": "result",
           "type": "*",
           "links": [
-            142,
-            157
+            146,
+            161
           ]
         }
       ],
@@ -1439,14 +1439,14 @@
           "localized_name": "a",
           "name": "a",
           "type": "*",
-          "link": 139
+          "link": 141
         },
         {
           "localized_name": "b",
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": 140
+          "link": 142
         },
         {
           "localized_name": "c",
@@ -1471,8 +1471,8 @@
           "name": "result",
           "type": "*",
           "links": [
-            143,
-            160
+            147,
+            164
           ]
         }
       ],
@@ -1494,21 +1494,21 @@
       "type": "ImageResizeKJv2",
       "pos": [
         1600,
-        130
+        702
       ],
       "size": [
         270,
         286
       ],
       "flags": {},
-      "order": 48,
+      "order": 52,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
-          "link": 141
+          "link": 143
         },
         {
           "localized_name": "mask",
@@ -1524,7 +1524,7 @@
           "widget": {
             "name": "width"
           },
-          "link": 142
+          "link": 144
         },
         {
           "localized_name": "height",
@@ -1533,7 +1533,7 @@
           "widget": {
             "name": "height"
           },
-          "link": 143
+          "link": 145
         },
         {
           "localized_name": "upscale_method",
@@ -1597,7 +1597,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            154
+            158
           ]
         },
         {
@@ -1619,7 +1619,7 @@
           "links": null
         }
       ],
-      "title": "Whole frame at the render size",
+      "title": "Whole frame at 0.75 of the render size",
       "properties": {
         "cnr_id": "comfyui-kjnodes",
         "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
@@ -1644,6 +1644,142 @@
         "crop_position": "center",
         "divisible_by": 32,
         "device": "cpu"
+      }
+    },
+    {
+      "id": 43,
+      "type": "MpiMath",
+      "pos": [
+        1100,
+        900
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 45,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "a",
+          "name": "a",
+          "type": "*",
+          "link": 146
+        },
+        {
+          "localized_name": "b",
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "localized_name": "c",
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "localized_name": "math_expression",
+          "name": "math_expression",
+          "type": "STRING",
+          "widget": {
+            "name": "math_expression"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "result",
+          "name": "result",
+          "type": "*",
+          "links": [
+            144
+          ]
+        }
+      ],
+      "title": "Clip width (0.75)",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "db3bdc7381b6c1f8da39d9d1feca75797af1560b",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "floor(a * 0.75 / 32 + 0.5) * 32"
+      ],
+      "widgets_values_named": {
+        "math_expression": "floor(a * 0.75 / 32 + 0.5) * 32"
+      }
+    },
+    {
+      "id": 44,
+      "type": "MpiMath",
+      "pos": [
+        1100,
+        1230
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 46,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "a",
+          "name": "a",
+          "type": "*",
+          "link": 147
+        },
+        {
+          "localized_name": "b",
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "localized_name": "c",
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "localized_name": "math_expression",
+          "name": "math_expression",
+          "type": "STRING",
+          "widget": {
+            "name": "math_expression"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "result",
+          "name": "result",
+          "type": "*",
+          "links": [
+            145
+          ]
+        }
+      ],
+      "title": "Clip height (0.75)",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "db3bdc7381b6c1f8da39d9d1feca75797af1560b",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "floor(a * 0.75 / 32 + 0.5) * 32"
+      ],
+      "widgets_values_named": {
+        "math_expression": "floor(a * 0.75 / 32 + 0.5) * 32"
       }
     },
     {
@@ -1677,7 +1813,7 @@
           "name": "MODEL",
           "type": "MODEL",
           "links": [
-            146
+            150
           ]
         },
         {
@@ -1685,7 +1821,7 @@
           "name": "CLIP",
           "type": "CLIP",
           "links": [
-            144
+            148
           ]
         },
         {
@@ -1727,7 +1863,7 @@
           "localized_name": "clip",
           "name": "clip",
           "type": "CLIP",
-          "link": 144
+          "link": 148
         },
         {
           "localized_name": "text",
@@ -1736,7 +1872,7 @@
           "widget": {
             "name": "text"
           },
-          "link": 145
+          "link": 149
         }
       ],
       "outputs": [
@@ -1745,7 +1881,7 @@
           "name": "CONDITIONING",
           "type": "CONDITIONING",
           "links": [
-            148
+            152
           ]
         }
       ],
@@ -1767,34 +1903,34 @@
       "type": "SAM3_Detect",
       "pos": [
         1600,
-        546
+        130
       ],
       "size": [
         270,
         206
       ],
       "flags": {},
-      "order": 49,
+      "order": 50,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 146
+          "link": 150
         },
         {
           "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
-          "link": 147
+          "link": 151
         },
         {
           "localized_name": "conditioning",
           "name": "conditioning",
           "shape": 7,
           "type": "CONDITIONING",
-          "link": 148
+          "link": 152
         },
         {
           "localized_name": "bboxes",
@@ -1851,7 +1987,7 @@
           "name": "masks",
           "type": "MASK",
           "links": [
-            149
+            153
           ]
         },
         {
@@ -1890,14 +2026,14 @@
         118
       ],
       "flags": {},
-      "order": 56,
+      "order": 58,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "mask",
           "name": "mask",
           "type": "MASK",
-          "link": 149
+          "link": 153
         },
         {
           "localized_name": "padding",
@@ -1915,7 +2051,7 @@
           "name": "square_mask",
           "type": "MASK",
           "links": [
-            151
+            155
           ]
         },
         {
@@ -1962,21 +2098,21 @@
         650
       ],
       "flags": {},
-      "order": 59,
+      "order": 61,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
-          "link": 150
+          "link": 154
         },
         {
           "localized_name": "mask",
           "name": "mask",
           "shape": 7,
           "type": "MASK",
-          "link": 151
+          "link": 155
         },
         {
           "localized_name": "optional_context_mask",
@@ -2208,7 +2344,7 @@
           "name": "stitcher",
           "type": "STITCHER",
           "links": [
-            222
+            226
           ]
         },
         {
@@ -2216,8 +2352,8 @@
           "name": "cropped_image",
           "type": "IMAGE",
           "links": [
-            153,
-            219
+            157,
+            223
           ]
         },
         {
@@ -2225,7 +2361,7 @@
           "name": "cropped_mask",
           "type": "MASK",
           "links": [
-            221
+            225
           ]
         }
       ],
@@ -2300,20 +2436,20 @@
         78
       ],
       "flags": {},
-      "order": 63,
+      "order": 65,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 153
+          "link": 157
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 154
+          "link": 158
         },
         {
           "localized_name": "boolean",
@@ -2322,7 +2458,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 152
+          "link": 156
         }
       ],
       "outputs": [
@@ -2331,7 +2467,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            206
+            210
           ]
         }
       ],
@@ -2360,20 +2496,20 @@
         78
       ],
       "flags": {},
-      "order": 53,
+      "order": 55,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 156
+          "link": 160
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 157
+          "link": 161
         },
         {
           "localized_name": "boolean",
@@ -2382,7 +2518,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 155
+          "link": 159
         }
       ],
       "outputs": [
@@ -2391,7 +2527,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            202
+            206
           ]
         }
       ],
@@ -2420,20 +2556,20 @@
         78
       ],
       "flags": {},
-      "order": 54,
+      "order": 56,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 159
+          "link": 163
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 160
+          "link": 164
         },
         {
           "localized_name": "boolean",
@@ -2442,7 +2578,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 158
+          "link": 162
         }
       ],
       "outputs": [
@@ -2451,7 +2587,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            203
+            207
           ]
         }
       ],
@@ -2499,8 +2635,8 @@
           "name": "int",
           "type": "INT",
           "links": [
-            156,
-            159
+            160,
+            163
           ]
         }
       ],
@@ -2548,7 +2684,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            162
+            166
           ]
         }
       ],
@@ -2596,7 +2732,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            163
+            167
           ]
         }
       ],
@@ -2607,10 +2743,10 @@
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
-        "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is the head of the person in <Picture 1>. {look}\n<Subject 2> is {who} in <Video 1>.\n<Subject 3> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 2> has the head of <Subject 1> and keeps their own body, clothes and hands and every move, in <Subject 3>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 2> changes.\n<Subject 1> (appears in [Shot 1]): attribute_transfer - the face, skin, eyes, features and whole hairstyle of <Picture 1>, and anything worn on the head, are transferred onto <Subject 2>.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are those of <Subject 1>.\n<Subject 3> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the head of <Subject 1> from every angle: its face, skin and features, and its hairstyle down to the ends of the hair, the back of the head showing whenever <Subject 2> turns away. {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+        "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is the head of the person in <Picture 1>. {look}\n<Subject 2> is {who} in <Video 1>.\n<Subject 3> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 2> has the head of <Subject 1> and keeps their own body, clothes and hands and every move, in <Subject 3>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 2> changes.\n<Subject 1> (appears in [Shot 1]): attribute_transfer - the face, skin, eyes, features and whole hairstyle of <Picture 1>, and anything worn on the head, are transferred onto <Subject 2>.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are those of <Subject 1>.\n<Subject 3> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the head of <Subject 1> from every angle: its face, skin and features, and its hairstyle, the back of the head showing whenever <Subject 2> turns away. All of <Subject 2>'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the one in <Picture 1>. {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
       ],
       "widgets_values_named": {
-        "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is the head of the person in <Picture 1>. {look}\n<Subject 2> is {who} in <Video 1>.\n<Subject 3> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 2> has the head of <Subject 1> and keeps their own body, clothes and hands and every move, in <Subject 3>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 2> changes.\n<Subject 1> (appears in [Shot 1]): attribute_transfer - the face, skin, eyes, features and whole hairstyle of <Picture 1>, and anything worn on the head, are transferred onto <Subject 2>.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are those of <Subject 1>.\n<Subject 3> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the head of <Subject 1> from every angle: its face, skin and features, and its hairstyle down to the ends of the hair, the back of the head showing whenever <Subject 2> turns away. {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+        "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is the head of the person in <Picture 1>. {look}\n<Subject 2> is {who} in <Video 1>.\n<Subject 3> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 2> has the head of <Subject 1> and keeps their own body, clothes and hands and every move, in <Subject 3>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 2> changes.\n<Subject 1> (appears in [Shot 1]): attribute_transfer - the face, skin, eyes, features and whole hairstyle of <Picture 1>, and anything worn on the head, are transferred onto <Subject 2>.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are those of <Subject 1>.\n<Subject 3> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the head of <Subject 1> from every angle: its face, skin and features, and its hairstyle, the back of the head showing whenever <Subject 2> turns away. All of <Subject 2>'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the one in <Picture 1>. {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
       }
     },
     {
@@ -2644,7 +2780,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            164
+            168
           ]
         }
       ],
@@ -2692,7 +2828,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            165
+            169
           ]
         }
       ],
@@ -2740,7 +2876,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            166
+            170
           ]
         }
       ],
@@ -2788,7 +2924,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            167
+            171
           ]
         }
       ],
@@ -2810,14 +2946,14 @@
       "type": "MpiAnySwitch10",
       "pos": [
         1100,
-        900
+        1560
       ],
       "size": [
         270,
         238
       ],
       "flags": {},
-      "order": 45,
+      "order": 47,
       "mode": 0,
       "inputs": [
         {
@@ -2825,42 +2961,42 @@
           "name": "any_1",
           "shape": 7,
           "type": "*",
-          "link": 162
+          "link": 166
         },
         {
           "localized_name": "any_2",
           "name": "any_2",
           "shape": 7,
           "type": "*",
-          "link": 163
+          "link": 167
         },
         {
           "localized_name": "any_3",
           "name": "any_3",
           "shape": 7,
           "type": "*",
-          "link": 164
+          "link": 168
         },
         {
           "localized_name": "any_4",
           "name": "any_4",
           "shape": 7,
           "type": "*",
-          "link": 165
+          "link": 169
         },
         {
           "localized_name": "any_5",
           "name": "any_5",
           "shape": 7,
           "type": "*",
-          "link": 166
+          "link": 170
         },
         {
           "localized_name": "any_6",
           "name": "any_6",
           "shape": 7,
           "type": "*",
-          "link": 167
+          "link": 171
         },
         {
           "localized_name": "any_7",
@@ -2897,7 +3033,7 @@
           "widget": {
             "name": "select"
           },
-          "link": 161
+          "link": 165
         }
       ],
       "outputs": [
@@ -2906,7 +3042,7 @@
           "name": "any",
           "type": "*",
           "links": [
-            176
+            180
           ]
         },
         {
@@ -2960,7 +3096,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            169
+            173
           ]
         }
       ],
@@ -3008,7 +3144,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            170
+            174
           ]
         }
       ],
@@ -3019,10 +3155,10 @@
         "Node name for S&R": "MpiText"
       },
       "widgets_values": [
-        "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is {who} in <Video 1>.\n<Subject 2> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 1> has a new head, described in [Shot 1], and keeps their own body, clothes and hands and every move, in <Subject 2>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 1> changes.\n<Subject 1> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are the new ones.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 2>, <Subject 1> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the new head from every angle, the back of the head showing whenever <Subject 1> turns away. The new head: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+        "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is {who} in <Video 1>.\n<Subject 2> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 1> has a new head, described in [Shot 1], and keeps their own body, clothes and hands and every move, in <Subject 2>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 1> changes.\n<Subject 1> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are the new ones.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 2>, <Subject 1> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the new head from every angle, the back of the head showing whenever <Subject 1> turns away. All of <Subject 1>'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the new one. The new head: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
       ],
       "widgets_values_named": {
-        "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is {who} in <Video 1>.\n<Subject 2> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 1> has a new head, described in [Shot 1], and keeps their own body, clothes and hands and every move, in <Subject 2>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 1> changes.\n<Subject 1> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are the new ones.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 2>, <Subject 1> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the new head from every angle, the back of the head showing whenever <Subject 1> turns away. The new head: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+        "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is {who} in <Video 1>.\n<Subject 2> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 1> has a new head, described in [Shot 1], and keeps their own body, clothes and hands and every move, in <Subject 2>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 1> changes.\n<Subject 1> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are the new ones.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 2>, <Subject 1> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the new head from every angle, the back of the head showing whenever <Subject 1> turns away. All of <Subject 1>'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the new one. The new head: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
       }
     },
     {
@@ -3056,7 +3192,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            171
+            175
           ]
         }
       ],
@@ -3104,7 +3240,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            172
+            176
           ]
         }
       ],
@@ -3152,7 +3288,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            173
+            177
           ]
         }
       ],
@@ -3200,7 +3336,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            174
+            178
           ]
         }
       ],
@@ -3222,14 +3358,14 @@
       "type": "MpiAnySwitch10",
       "pos": [
         1100,
-        1268
+        1928
       ],
       "size": [
         270,
         238
       ],
       "flags": {},
-      "order": 46,
+      "order": 48,
       "mode": 0,
       "inputs": [
         {
@@ -3237,42 +3373,42 @@
           "name": "any_1",
           "shape": 7,
           "type": "*",
-          "link": 169
+          "link": 173
         },
         {
           "localized_name": "any_2",
           "name": "any_2",
           "shape": 7,
           "type": "*",
-          "link": 170
+          "link": 174
         },
         {
           "localized_name": "any_3",
           "name": "any_3",
           "shape": 7,
           "type": "*",
-          "link": 171
+          "link": 175
         },
         {
           "localized_name": "any_4",
           "name": "any_4",
           "shape": 7,
           "type": "*",
-          "link": 172
+          "link": 176
         },
         {
           "localized_name": "any_5",
           "name": "any_5",
           "shape": 7,
           "type": "*",
-          "link": 173
+          "link": 177
         },
         {
           "localized_name": "any_6",
           "name": "any_6",
           "shape": 7,
           "type": "*",
-          "link": 174
+          "link": 178
         },
         {
           "localized_name": "any_7",
@@ -3309,7 +3445,7 @@
           "widget": {
             "name": "select"
           },
-          "link": 168
+          "link": 172
         }
       ],
       "outputs": [
@@ -3318,7 +3454,7 @@
           "name": "any",
           "type": "*",
           "links": [
-            177
+            181
           ]
         },
         {
@@ -3353,20 +3489,20 @@
         78
       ],
       "flags": {},
-      "order": 51,
+      "order": 53,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 176
+          "link": 180
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 177
+          "link": 181
         },
         {
           "localized_name": "boolean",
@@ -3375,7 +3511,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 175
+          "link": 179
         }
       ],
       "outputs": [
@@ -3384,7 +3520,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            181
+            185
           ]
         }
       ],
@@ -3432,7 +3568,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            179
+            183
           ]
         }
       ],
@@ -3480,7 +3616,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            180
+            184
           ]
         }
       ],
@@ -3509,20 +3645,20 @@
         78
       ],
       "flags": {},
-      "order": 55,
+      "order": 57,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 179
+          "link": 183
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 180
+          "link": 184
         },
         {
           "localized_name": "boolean",
@@ -3531,7 +3667,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 178
+          "link": 182
         }
       ],
       "outputs": [
@@ -3540,7 +3676,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            190
+            194
           ]
         }
       ],
@@ -3569,7 +3705,7 @@
         200
       ],
       "flags": {},
-      "order": 57,
+      "order": 59,
       "mode": 0,
       "inputs": [
         {
@@ -3579,7 +3715,7 @@
           "widget": {
             "name": "string_a"
           },
-          "link": 181
+          "link": 185
         },
         {
           "localized_name": "string_b",
@@ -3588,7 +3724,7 @@
           "widget": {
             "name": "string_b"
           },
-          "link": 182
+          "link": 186
         },
         {
           "localized_name": "delimiter",
@@ -3606,7 +3742,7 @@
           "name": "STRING",
           "type": "STRING",
           "links": [
-            189
+            193
           ]
         }
       ],
@@ -3639,147 +3775,7 @@
         200
       ],
       "flags": {},
-      "order": 64,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
-          "widget": {
-            "name": "string"
-          },
-          "link": 183
-        },
-        {
-          "localized_name": "find",
-          "name": "find",
-          "type": "STRING",
-          "widget": {
-            "name": "find"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "replace",
-          "name": "replace",
-          "type": "STRING",
-          "widget": {
-            "name": "replace"
-          },
-          "link": 184
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "STRING",
-          "name": "STRING",
-          "type": "STRING",
-          "links": [
-            185
-          ]
-        }
-      ],
-      "title": "{who}",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.39.0",
-        "Node name for S&R": "StringReplace"
-      },
-      "widgets_values": [
-        "",
-        "{who}",
-        ""
-      ],
-      "widgets_values_named": {
-        "string": "",
-        "find": "{who}",
-        "replace": ""
-      }
-    },
-    {
-      "id": 96,
-      "type": "StringReplace",
-      "pos": [
-        3600,
-        130
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {},
       "order": 66,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
-          "widget": {
-            "name": "string"
-          },
-          "link": 185
-        },
-        {
-          "localized_name": "find",
-          "name": "find",
-          "type": "STRING",
-          "widget": {
-            "name": "find"
-          },
-          "link": null
-        },
-        {
-          "localized_name": "replace",
-          "name": "replace",
-          "type": "STRING",
-          "widget": {
-            "name": "replace"
-          },
-          "link": 186
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "STRING",
-          "name": "STRING",
-          "type": "STRING",
-          "links": [
-            187
-          ]
-        }
-      ],
-      "title": "{target}",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.39.0",
-        "Node name for S&R": "StringReplace"
-      },
-      "widgets_values": [
-        "",
-        "{target}",
-        ""
-      ],
-      "widgets_values_named": {
-        "string": "",
-        "find": "{target}",
-        "replace": ""
-      }
-    },
-    {
-      "id": 97,
-      "type": "StringReplace",
-      "pos": [
-        4100,
-        130
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {},
-      "order": 67,
       "mode": 0,
       "inputs": [
         {
@@ -3816,7 +3812,147 @@
           "name": "STRING",
           "type": "STRING",
           "links": [
-            229
+            189
+          ]
+        }
+      ],
+      "title": "{who}",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "StringReplace"
+      },
+      "widgets_values": [
+        "",
+        "{who}",
+        ""
+      ],
+      "widgets_values_named": {
+        "string": "",
+        "find": "{who}",
+        "replace": ""
+      }
+    },
+    {
+      "id": 96,
+      "type": "StringReplace",
+      "pos": [
+        3600,
+        130
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 68,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 189
+        },
+        {
+          "localized_name": "find",
+          "name": "find",
+          "type": "STRING",
+          "widget": {
+            "name": "find"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "replace",
+          "name": "replace",
+          "type": "STRING",
+          "widget": {
+            "name": "replace"
+          },
+          "link": 190
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            191
+          ]
+        }
+      ],
+      "title": "{target}",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "StringReplace"
+      },
+      "widgets_values": [
+        "",
+        "{target}",
+        ""
+      ],
+      "widgets_values_named": {
+        "string": "",
+        "find": "{target}",
+        "replace": ""
+      }
+    },
+    {
+      "id": 97,
+      "type": "StringReplace",
+      "pos": [
+        4100,
+        130
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 69,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 191
+        },
+        {
+          "localized_name": "find",
+          "name": "find",
+          "type": "STRING",
+          "widget": {
+            "name": "find"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "replace",
+          "name": "replace",
+          "type": "STRING",
+          "widget": {
+            "name": "replace"
+          },
+          "link": 192
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            233
           ]
         }
       ],
@@ -3868,7 +4004,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            182
+            186
           ]
         }
       ],
@@ -3897,7 +4033,7 @@
         200
       ],
       "flags": {},
-      "order": 60,
+      "order": 62,
       "mode": 0,
       "inputs": [
         {
@@ -3907,7 +4043,7 @@
           "widget": {
             "name": "string"
           },
-          "link": 189
+          "link": 193
         },
         {
           "localized_name": "find",
@@ -3925,7 +4061,7 @@
           "widget": {
             "name": "replace"
           },
-          "link": 190
+          "link": 194
         }
       ],
       "outputs": [
@@ -3934,7 +4070,7 @@
           "name": "STRING",
           "type": "STRING",
           "links": [
-            183
+            187
           ]
         }
       ],
@@ -3995,8 +4131,8 @@
           "name": "MODEL",
           "type": "MODEL",
           "links": [
-            191,
-            194
+            195,
+            198
           ]
         }
       ],
@@ -4064,7 +4200,7 @@
           "name": "CLIP",
           "type": "CLIP",
           "links": [
-            198
+            202
           ]
         }
       ],
@@ -4115,8 +4251,8 @@
           "name": "VAE",
           "type": "VAE",
           "links": [
-            199,
-            217
+            203,
+            221
           ]
         }
       ],
@@ -4163,7 +4299,7 @@
           "name": "VAE",
           "type": "VAE",
           "links": [
-            200
+            204
           ]
         }
       ],
@@ -4199,7 +4335,7 @@
           "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 191
+          "link": 195
         },
         {
           "localized_name": "lora_name",
@@ -4226,7 +4362,7 @@
           "name": "model",
           "type": "MODEL",
           "links": [
-            193
+            197
           ]
         },
         {
@@ -4269,20 +4405,20 @@
         78
       ],
       "flags": {},
-      "order": 58,
+      "order": 60,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 193
+          "link": 197
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 194
+          "link": 198
         },
         {
           "localized_name": "boolean",
@@ -4291,7 +4427,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 192
+          "link": 196
         }
       ],
       "outputs": [
@@ -4300,8 +4436,8 @@
           "name": "output",
           "type": "*",
           "links": [
-            195,
-            208
+            199,
+            212
           ]
         }
       ],
@@ -4330,14 +4466,14 @@
         122
       ],
       "flags": {},
-      "order": 61,
+      "order": 63,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 195
+          "link": 199
         },
         {
           "localized_name": "lora_name",
@@ -4364,7 +4500,7 @@
           "name": "model",
           "type": "MODEL",
           "links": [
-            196
+            200
           ]
         },
         {
@@ -4426,7 +4562,7 @@
           "name": "vae",
           "type": "VAE",
           "links": [
-            197
+            201
           ]
         }
       ],
@@ -4454,20 +4590,20 @@
         78
       ],
       "flags": {},
-      "order": 65,
+      "order": 67,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 196
+          "link": 200
         },
         {
           "localized_name": "vae",
           "name": "vae",
           "type": "VAE",
-          "link": 197
+          "link": 201
         },
         {
           "localized_name": "preview_rate",
@@ -4485,7 +4621,7 @@
           "name": "model",
           "type": "MODEL",
           "links": [
-            209
+            213
           ]
         }
       ],
@@ -4513,33 +4649,33 @@
         584
       ],
       "flags": {},
-      "order": 70,
+      "order": 72,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "clip",
           "name": "clip",
           "type": "CLIP",
-          "link": 198
+          "link": 202
         },
         {
           "localized_name": "vae",
           "name": "vae",
           "type": "VAE",
-          "link": 199
+          "link": 203
         },
         {
           "localized_name": "audio_vae",
           "name": "audio_vae",
           "type": "VAE",
-          "link": 200
+          "link": 204
         },
         {
           "localized_name": "ref_image_1",
           "name": "ref_image_1",
           "shape": 7,
           "type": "IMAGE",
-          "link": 205
+          "link": 209
         },
         {
           "localized_name": "ref_image_2",
@@ -4602,7 +4738,7 @@
           "name": "ref_video_1",
           "shape": 7,
           "type": "IMAGE",
-          "link": 206
+          "link": 210
         },
         {
           "localized_name": "ref_video_audio_1",
@@ -4667,7 +4803,7 @@
           "widget": {
             "name": "prompt"
           },
-          "link": 201
+          "link": 205
         },
         {
           "localized_name": "width",
@@ -4676,7 +4812,7 @@
           "widget": {
             "name": "width"
           },
-          "link": 202
+          "link": 206
         },
         {
           "localized_name": "height",
@@ -4685,7 +4821,7 @@
           "widget": {
             "name": "height"
           },
-          "link": 203
+          "link": 207
         },
         {
           "localized_name": "length",
@@ -4694,7 +4830,7 @@
           "widget": {
             "name": "length"
           },
-          "link": 204
+          "link": 208
         },
         {
           "localized_name": "ref_image_size",
@@ -4712,7 +4848,7 @@
           "name": "positive",
           "type": "CONDITIONING",
           "links": [
-            210
+            214
           ]
         },
         {
@@ -4720,7 +4856,7 @@
           "name": "latent",
           "type": "LATENT",
           "links": [
-            215
+            219
           ]
         },
         {
@@ -4773,7 +4909,7 @@
           "widget": {
             "name": "noise_seed"
           },
-          "link": 207
+          "link": 211
         }
       ],
       "outputs": [
@@ -4782,7 +4918,7 @@
           "name": "NOISE",
           "type": "NOISE",
           "links": [
-            211
+            215
           ]
         }
       ],
@@ -4831,7 +4967,7 @@
           "name": "SAMPLER",
           "type": "SAMPLER",
           "links": [
-            213
+            217
           ]
         }
       ],
@@ -4859,14 +4995,14 @@
         106
       ],
       "flags": {},
-      "order": 62,
+      "order": 64,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 208
+          "link": 212
         },
         {
           "localized_name": "scheduler",
@@ -4902,7 +5038,7 @@
           "name": "SIGMAS",
           "type": "SIGMAS",
           "links": [
-            214
+            218
           ]
         }
       ],
@@ -4934,20 +5070,20 @@
         46
       ],
       "flags": {},
-      "order": 71,
+      "order": 73,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 209
+          "link": 213
         },
         {
           "localized_name": "conditioning",
           "name": "conditioning",
           "type": "CONDITIONING",
-          "link": 210
+          "link": 214
         }
       ],
       "outputs": [
@@ -4956,7 +5092,7 @@
           "name": "GUIDER",
           "type": "GUIDER",
           "links": [
-            212
+            216
           ]
         }
       ],
@@ -4978,38 +5114,38 @@
         106
       ],
       "flags": {},
-      "order": 72,
+      "order": 74,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "noise",
           "name": "noise",
           "type": "NOISE",
-          "link": 211
+          "link": 215
         },
         {
           "localized_name": "guider",
           "name": "guider",
           "type": "GUIDER",
-          "link": 212
+          "link": 216
         },
         {
           "localized_name": "sampler",
           "name": "sampler",
           "type": "SAMPLER",
-          "link": 213
+          "link": 217
         },
         {
           "localized_name": "sigmas",
           "name": "sigmas",
           "type": "SIGMAS",
-          "link": 214
+          "link": 218
         },
         {
           "localized_name": "latent_image",
           "name": "latent_image",
           "type": "LATENT",
-          "link": 215
+          "link": 219
         }
       ],
       "outputs": [
@@ -5018,7 +5154,7 @@
           "name": "output",
           "type": "LATENT",
           "links": [
-            216
+            220
           ]
         },
         {
@@ -5046,20 +5182,20 @@
         46
       ],
       "flags": {},
-      "order": 73,
+      "order": 75,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "samples",
           "name": "samples",
           "type": "LATENT",
-          "link": 216
+          "link": 220
         },
         {
           "localized_name": "vae",
           "name": "vae",
           "type": "VAE",
-          "link": 217
+          "link": 221
         }
       ],
       "outputs": [
@@ -5068,7 +5204,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            218
+            222
           ]
         }
       ],
@@ -5090,7 +5226,7 @@
         26
       ],
       "flags": {},
-      "order": 74,
+      "order": 76,
       "mode": 0,
       "inputs": [
         {
@@ -5098,7 +5234,7 @@
           "name": "passthrough",
           "shape": 7,
           "type": "*",
-          "link": 218
+          "link": 222
         }
       ],
       "outputs": [
@@ -5107,8 +5243,8 @@
           "name": "passthrough",
           "type": "*",
           "links": [
-            220,
-            226
+            224,
+            230
           ]
         }
       ],
@@ -5130,26 +5266,26 @@
         98
       ],
       "flags": {},
-      "order": 75,
+      "order": 77,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "destination",
           "name": "destination",
           "type": "IMAGE",
-          "link": 219
+          "link": 223
         },
         {
           "localized_name": "source",
           "name": "source",
           "type": "IMAGE",
-          "link": 220
+          "link": 224
         },
         {
           "localized_name": "mask",
           "name": "mask",
           "type": "MASK",
-          "link": 221
+          "link": 225
         },
         {
           "localized_name": "band",
@@ -5167,7 +5303,7 @@
           "name": "image",
           "type": "IMAGE",
           "links": [
-            223
+            227
           ]
         }
       ],
@@ -5196,20 +5332,20 @@
         46
       ],
       "flags": {},
-      "order": 76,
+      "order": 78,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "stitcher",
           "name": "stitcher",
           "type": "STITCHER",
-          "link": 222
+          "link": 226
         },
         {
           "localized_name": "inpainted_image",
           "name": "inpainted_image",
           "type": "IMAGE",
-          "link": 223
+          "link": 227
         }
       ],
       "outputs": [
@@ -5218,7 +5354,7 @@
           "name": "image",
           "type": "IMAGE",
           "links": [
-            225
+            229
           ]
         }
       ],
@@ -5241,20 +5377,20 @@
         78
       ],
       "flags": {},
-      "order": 77,
+      "order": 79,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "true",
           "name": "true",
           "type": "*",
-          "link": 225
+          "link": 229
         },
         {
           "localized_name": "false",
           "name": "false",
           "type": "*",
-          "link": 226
+          "link": 230
         },
         {
           "localized_name": "boolean",
@@ -5263,7 +5399,7 @@
           "widget": {
             "name": "boolean"
           },
-          "link": 224
+          "link": 228
         }
       ],
       "outputs": [
@@ -5272,7 +5408,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            227
+            231
           ]
         }
       ],
@@ -5301,21 +5437,21 @@
         150
       ],
       "flags": {},
-      "order": 78,
+      "order": 80,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
-          "link": 227
+          "link": 231
         },
         {
           "localized_name": "audio",
           "name": "audio",
           "shape": 7,
           "type": "AUDIO",
-          "link": 228
+          "link": 232
         },
         {
           "localized_name": "fps",
@@ -5395,7 +5531,7 @@
         200
       ],
       "flags": {},
-      "order": 68,
+      "order": 70,
       "mode": 0,
       "inputs": [
         {
@@ -5405,7 +5541,7 @@
           "widget": {
             "name": "string"
           },
-          "link": 229
+          "link": 233
         },
         {
           "localized_name": "find",
@@ -5423,7 +5559,7 @@
           "widget": {
             "name": "replace"
           },
-          "link": 230
+          "link": 234
         }
       ],
       "outputs": [
@@ -5432,7 +5568,7 @@
           "name": "STRING",
           "type": "STRING",
           "links": [
-            231
+            235
           ]
         }
       ],
@@ -5465,7 +5601,7 @@
         200
       ],
       "flags": {},
-      "order": 69,
+      "order": 71,
       "mode": 0,
       "inputs": [
         {
@@ -5475,7 +5611,7 @@
           "widget": {
             "name": "string"
           },
-          "link": 231
+          "link": 235
         },
         {
           "localized_name": "find",
@@ -5493,7 +5629,7 @@
           "widget": {
             "name": "replace"
           },
-          "link": 232
+          "link": 236
         }
       ],
       "outputs": [
@@ -5502,7 +5638,7 @@
           "name": "STRING",
           "type": "STRING",
           "links": [
-            201
+            205
           ]
         }
       ],
@@ -5526,7 +5662,7 @@
   ],
   "links": [
     [
-      117,
+      119,
       16,
       0,
       20,
@@ -5534,7 +5670,7 @@
       "STRING"
     ],
     [
-      118,
+      120,
       23,
       0,
       21,
@@ -5542,7 +5678,7 @@
       "*"
     ],
     [
-      119,
+      121,
       13,
       0,
       21,
@@ -5550,7 +5686,7 @@
       "INT"
     ],
     [
-      120,
+      122,
       14,
       0,
       21,
@@ -5558,7 +5694,7 @@
       "BOOLEAN"
     ],
     [
-      121,
+      123,
       13,
       0,
       22,
@@ -5566,7 +5702,7 @@
       "INT"
     ],
     [
-      122,
+      124,
       11,
       4,
       22,
@@ -5574,7 +5710,7 @@
       "BOOLEAN"
     ],
     [
-      123,
+      125,
       14,
       0,
       22,
@@ -5582,7 +5718,7 @@
       "BOOLEAN"
     ],
     [
-      124,
+      126,
       20,
       1,
       23,
@@ -5590,7 +5726,7 @@
       "BOOLEAN"
     ],
     [
-      125,
+      127,
       13,
       0,
       23,
@@ -5598,7 +5734,7 @@
       "INT"
     ],
     [
-      126,
+      128,
       10,
       3,
       30,
@@ -5606,7 +5742,7 @@
       "INT"
     ],
     [
-      127,
+      129,
       10,
       0,
       31,
@@ -5614,7 +5750,7 @@
       "IMAGE"
     ],
     [
-      128,
+      130,
       30,
       0,
       31,
@@ -5622,7 +5758,7 @@
       "INT"
     ],
     [
-      129,
+      131,
       10,
       4,
       32,
@@ -5630,7 +5766,7 @@
       "FLOAT"
     ],
     [
-      130,
+      132,
       10,
       7,
       33,
@@ -5638,7 +5774,7 @@
       "BOOLEAN"
     ],
     [
-      131,
+      133,
       10,
       1,
       33,
@@ -5646,7 +5782,7 @@
       "AUDIO"
     ],
     [
-      132,
+      134,
       32,
       0,
       33,
@@ -5654,7 +5790,7 @@
       "AUDIO"
     ],
     [
-      133,
+      135,
       30,
       0,
       34,
@@ -5662,7 +5798,7 @@
       "*"
     ],
     [
-      134,
+      136,
       33,
       0,
       35,
@@ -5670,7 +5806,7 @@
       "AUDIO"
     ],
     [
-      135,
+      137,
       10,
       2,
       35,
@@ -5678,7 +5814,7 @@
       "FLOAT"
     ],
     [
-      136,
+      138,
       34,
       0,
       35,
@@ -5686,39 +5822,39 @@
       "INT"
     ],
     [
-      137,
+      139,
       10,
       5,
       40,
-      0,
-      "INT"
-    ],
-    [
-      138,
-      10,
-      6,
-      40,
-      1,
-      "INT"
-    ],
-    [
-      139,
-      10,
-      6,
-      41,
       0,
       "INT"
     ],
     [
       140,
       10,
+      6,
+      40,
+      1,
+      "INT"
+    ],
+    [
+      141,
+      10,
+      6,
+      41,
+      0,
+      "INT"
+    ],
+    [
+      142,
+      10,
       5,
       41,
       1,
       "INT"
     ],
     [
-      141,
+      143,
       31,
       0,
       42,
@@ -5726,23 +5862,39 @@
       "IMAGE"
     ],
     [
-      142,
-      40,
+      144,
+      43,
       0,
       42,
       2,
       "INT"
     ],
     [
-      143,
-      41,
+      145,
+      44,
       0,
       42,
       3,
       "INT"
     ],
     [
-      144,
+      146,
+      40,
+      0,
+      43,
+      0,
+      "*"
+    ],
+    [
+      147,
+      41,
+      0,
+      44,
+      0,
+      "*"
+    ],
+    [
+      148,
       50,
       1,
       51,
@@ -5750,7 +5902,7 @@
       "CLIP"
     ],
     [
-      145,
+      149,
       16,
       0,
       51,
@@ -5758,7 +5910,7 @@
       "STRING"
     ],
     [
-      146,
+      150,
       50,
       0,
       52,
@@ -5766,7 +5918,7 @@
       "MODEL"
     ],
     [
-      147,
+      151,
       31,
       0,
       52,
@@ -5774,7 +5926,7 @@
       "IMAGE"
     ],
     [
-      148,
+      152,
       51,
       0,
       52,
@@ -5782,7 +5934,7 @@
       "CONDITIONING"
     ],
     [
-      149,
+      153,
       52,
       0,
       53,
@@ -5790,7 +5942,7 @@
       "MASK"
     ],
     [
-      150,
+      154,
       31,
       0,
       54,
@@ -5798,7 +5950,7 @@
       "IMAGE"
     ],
     [
-      151,
+      155,
       53,
       0,
       54,
@@ -5806,7 +5958,7 @@
       "MASK"
     ],
     [
-      152,
+      156,
       23,
       0,
       60,
@@ -5814,7 +5966,7 @@
       "BOOLEAN"
     ],
     [
-      153,
+      157,
       54,
       1,
       60,
@@ -5822,7 +5974,7 @@
       "IMAGE"
     ],
     [
-      154,
+      158,
       42,
       0,
       60,
@@ -5830,7 +5982,7 @@
       "IMAGE"
     ],
     [
-      155,
+      159,
       23,
       0,
       61,
@@ -5838,7 +5990,7 @@
       "BOOLEAN"
     ],
     [
-      156,
+      160,
       63,
       0,
       61,
@@ -5846,7 +5998,7 @@
       "INT"
     ],
     [
-      157,
+      161,
       40,
       0,
       61,
@@ -5854,7 +6006,7 @@
       "*"
     ],
     [
-      158,
+      162,
       23,
       0,
       62,
@@ -5862,7 +6014,7 @@
       "BOOLEAN"
     ],
     [
-      159,
+      163,
       63,
       0,
       62,
@@ -5870,7 +6022,7 @@
       "INT"
     ],
     [
-      160,
+      164,
       41,
       0,
       62,
@@ -5878,7 +6030,7 @@
       "*"
     ],
     [
-      161,
+      165,
       22,
       0,
       77,
@@ -5886,7 +6038,7 @@
       "INT"
     ],
     [
-      162,
+      166,
       71,
       0,
       77,
@@ -5894,7 +6046,7 @@
       "STRING"
     ],
     [
-      163,
+      167,
       72,
       0,
       77,
@@ -5902,7 +6054,7 @@
       "STRING"
     ],
     [
-      164,
+      168,
       73,
       0,
       77,
@@ -5910,7 +6062,7 @@
       "STRING"
     ],
     [
-      165,
+      169,
       74,
       0,
       77,
@@ -5918,7 +6070,7 @@
       "STRING"
     ],
     [
-      166,
+      170,
       75,
       0,
       77,
@@ -5926,7 +6078,7 @@
       "STRING"
     ],
     [
-      167,
+      171,
       76,
       0,
       77,
@@ -5934,7 +6086,7 @@
       "STRING"
     ],
     [
-      168,
+      172,
       22,
       0,
       87,
@@ -5942,7 +6094,7 @@
       "INT"
     ],
     [
-      169,
+      173,
       81,
       0,
       87,
@@ -5950,7 +6102,7 @@
       "STRING"
     ],
     [
-      170,
+      174,
       82,
       0,
       87,
@@ -5958,7 +6110,7 @@
       "STRING"
     ],
     [
-      171,
+      175,
       83,
       0,
       87,
@@ -5966,7 +6118,7 @@
       "STRING"
     ],
     [
-      172,
+      176,
       84,
       0,
       87,
@@ -5974,7 +6126,7 @@
       "STRING"
     ],
     [
-      173,
+      177,
       85,
       0,
       87,
@@ -5982,7 +6134,7 @@
       "STRING"
     ],
     [
-      174,
+      178,
       86,
       0,
       87,
@@ -5990,7 +6142,7 @@
       "STRING"
     ],
     [
-      175,
+      179,
       11,
       4,
       90,
@@ -5998,7 +6150,7 @@
       "BOOLEAN"
     ],
     [
-      176,
+      180,
       77,
       0,
       90,
@@ -6006,7 +6158,7 @@
       "*"
     ],
     [
-      177,
+      181,
       87,
       0,
       90,
@@ -6014,7 +6166,7 @@
       "*"
     ],
     [
-      178,
+      182,
       23,
       0,
       93,
@@ -6022,7 +6174,7 @@
       "BOOLEAN"
     ],
     [
-      179,
+      183,
       91,
       0,
       93,
@@ -6030,7 +6182,7 @@
       "STRING"
     ],
     [
-      180,
+      184,
       92,
       0,
       93,
@@ -6038,7 +6190,7 @@
       "STRING"
     ],
     [
-      181,
+      185,
       90,
       0,
       94,
@@ -6046,7 +6198,7 @@
       "STRING"
     ],
     [
-      182,
+      186,
       98,
       0,
       94,
@@ -6054,7 +6206,7 @@
       "STRING"
     ],
     [
-      183,
+      187,
       99,
       0,
       95,
@@ -6062,7 +6214,7 @@
       "STRING"
     ],
     [
-      184,
+      188,
       15,
       0,
       95,
@@ -6070,7 +6222,7 @@
       "STRING"
     ],
     [
-      185,
+      189,
       95,
       0,
       96,
@@ -6078,7 +6230,7 @@
       "STRING"
     ],
     [
-      186,
+      190,
       16,
       0,
       96,
@@ -6086,7 +6238,7 @@
       "STRING"
     ],
     [
-      187,
+      191,
       96,
       0,
       97,
@@ -6094,7 +6246,7 @@
       "STRING"
     ],
     [
-      188,
+      192,
       12,
       0,
       97,
@@ -6102,7 +6254,7 @@
       "STRING"
     ],
     [
-      189,
+      193,
       94,
       0,
       99,
@@ -6110,7 +6262,7 @@
       "STRING"
     ],
     [
-      190,
+      194,
       93,
       0,
       99,
@@ -6118,7 +6270,7 @@
       "STRING"
     ],
     [
-      191,
+      195,
       100,
       0,
       104,
@@ -6126,7 +6278,7 @@
       "MODEL"
     ],
     [
-      192,
+      196,
       21,
       0,
       105,
@@ -6134,7 +6286,7 @@
       "BOOLEAN"
     ],
     [
-      193,
+      197,
       104,
       0,
       105,
@@ -6142,7 +6294,7 @@
       "MODEL"
     ],
     [
-      194,
+      198,
       100,
       0,
       105,
@@ -6150,7 +6302,7 @@
       "MODEL"
     ],
     [
-      195,
+      199,
       105,
       0,
       106,
@@ -6158,7 +6310,7 @@
       "MODEL"
     ],
     [
-      196,
+      200,
       106,
       0,
       108,
@@ -6166,7 +6318,7 @@
       "MODEL"
     ],
     [
-      197,
+      201,
       107,
       0,
       108,
@@ -6174,7 +6326,7 @@
       "VAE"
     ],
     [
-      198,
+      202,
       101,
       0,
       110,
@@ -6182,7 +6334,7 @@
       "CLIP"
     ],
     [
-      199,
+      203,
       102,
       0,
       110,
@@ -6190,7 +6342,7 @@
       "VAE"
     ],
     [
-      200,
+      204,
       103,
       0,
       110,
@@ -6198,7 +6350,7 @@
       "VAE"
     ],
     [
-      201,
+      205,
       172,
       0,
       110,
@@ -6206,7 +6358,7 @@
       "STRING"
     ],
     [
-      202,
+      206,
       61,
       0,
       110,
@@ -6214,7 +6366,7 @@
       "INT"
     ],
     [
-      203,
+      207,
       62,
       0,
       110,
@@ -6222,7 +6374,7 @@
       "INT"
     ],
     [
-      204,
+      208,
       30,
       0,
       110,
@@ -6230,7 +6382,7 @@
       "INT"
     ],
     [
-      205,
+      209,
       11,
       0,
       110,
@@ -6238,7 +6390,7 @@
       "IMAGE"
     ],
     [
-      206,
+      210,
       60,
       0,
       110,
@@ -6246,7 +6398,7 @@
       "IMAGE"
     ],
     [
-      207,
+      211,
       17,
       0,
       111,
@@ -6254,7 +6406,7 @@
       "INT"
     ],
     [
-      208,
+      212,
       105,
       0,
       113,
@@ -6262,7 +6414,7 @@
       "MODEL"
     ],
     [
-      209,
+      213,
       108,
       0,
       114,
@@ -6270,7 +6422,7 @@
       "MODEL"
     ],
     [
-      210,
+      214,
       110,
       0,
       114,
@@ -6278,7 +6430,7 @@
       "CONDITIONING"
     ],
     [
-      211,
+      215,
       111,
       0,
       115,
@@ -6286,7 +6438,7 @@
       "NOISE"
     ],
     [
-      212,
+      216,
       114,
       0,
       115,
@@ -6294,7 +6446,7 @@
       "GUIDER"
     ],
     [
-      213,
+      217,
       112,
       0,
       115,
@@ -6302,7 +6454,7 @@
       "SAMPLER"
     ],
     [
-      214,
+      218,
       113,
       0,
       115,
@@ -6310,7 +6462,7 @@
       "SIGMAS"
     ],
     [
-      215,
+      219,
       110,
       1,
       115,
@@ -6318,7 +6470,7 @@
       "LATENT"
     ],
     [
-      216,
+      220,
       115,
       0,
       116,
@@ -6326,7 +6478,7 @@
       "LATENT"
     ],
     [
-      217,
+      221,
       102,
       0,
       116,
@@ -6334,7 +6486,7 @@
       "VAE"
     ],
     [
-      218,
+      222,
       116,
       0,
       117,
@@ -6342,7 +6494,7 @@
       "IMAGE"
     ],
     [
-      219,
+      223,
       54,
       1,
       120,
@@ -6350,7 +6502,7 @@
       "IMAGE"
     ],
     [
-      220,
+      224,
       117,
       0,
       120,
@@ -6358,7 +6510,7 @@
       "IMAGE"
     ],
     [
-      221,
+      225,
       54,
       2,
       120,
@@ -6366,7 +6518,7 @@
       "MASK"
     ],
     [
-      222,
+      226,
       54,
       0,
       121,
@@ -6374,7 +6526,7 @@
       "STITCHER"
     ],
     [
-      223,
+      227,
       120,
       0,
       121,
@@ -6382,7 +6534,7 @@
       "IMAGE"
     ],
     [
-      224,
+      228,
       23,
       0,
       122,
@@ -6390,7 +6542,7 @@
       "BOOLEAN"
     ],
     [
-      225,
+      229,
       121,
       0,
       122,
@@ -6398,7 +6550,7 @@
       "IMAGE"
     ],
     [
-      226,
+      230,
       117,
       0,
       122,
@@ -6406,7 +6558,7 @@
       "*"
     ],
     [
-      227,
+      231,
       122,
       0,
       130,
@@ -6414,7 +6566,7 @@
       "IMAGE"
     ],
     [
-      228,
+      232,
       35,
       0,
       130,
@@ -6422,7 +6574,7 @@
       "AUDIO"
     ],
     [
-      229,
+      233,
       97,
       0,
       162,
@@ -6430,7 +6582,7 @@
       "STRING"
     ],
     [
-      230,
+      234,
       18,
       0,
       162,
@@ -6438,7 +6590,7 @@
       "STRING"
     ],
     [
-      231,
+      235,
       162,
       0,
       172,
@@ -6446,7 +6598,7 @@
       "STRING"
     ],
     [
-      232,
+      236,
       19,
       0,
       172,
