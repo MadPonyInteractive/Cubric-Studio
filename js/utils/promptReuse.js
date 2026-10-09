@@ -462,6 +462,9 @@ export function buildPromptReuseSettings(payload = {}, model = {}) {
     if (typeof params.Auto_Grid === 'boolean') opUpdates.useGrid = params.Auto_Grid;
     else if (_hasComponent(components, 'useGrid')) opUpdates.useGrid = PROMPT_CONTROL_DEFAULTS.useGrid;
 
+    if (typeof params.Input_Tile_Upscale === 'boolean') sharedUpdates.useTiles = params.Input_Tile_Upscale;
+    else if (_hasComponent(components, 'useTiles')) sharedUpdates.useTiles = PROMPT_CONTROL_DEFAULTS.useTiles;
+
     const upscale = _number(params.Upscale_Factor);
     if (upscale != null) opUpdates.upscaleFactor = upscale;
     else if (_hasComponent(components, 'upscaleFactor')) opUpdates.upscaleFactor = PROMPT_CONTROL_DEFAULTS.upscaleFactor;

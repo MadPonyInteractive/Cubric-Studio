@@ -1,3 +1,7 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1038", "at": "2026-10-07T16:52:26+01:00", "actor": "claude", "column": "todo", "title": "Tile upscaler Flow"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1038", "at": "2026-10-08T21:37:54+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "plan approved by Fabio 2026-10-08; building Tile Detailer Flow"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1038", "at": "2026-10-08T23:26:30+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "phases 1-4 verified (validation.md); waiting on Fabio's eye-test"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1038", "at": "2026-10-09T10:40:21Z", "actor": "claude", "fields": ["title", "description", "maturity", "status", "activeSessionTitle"]}
+{"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-1038", "at": "2026-10-09T10:40:21Z", "actor": "claude", "summary": "re-planned after the 2026-10-09 brainstorm: tile upscale moves into the upscale op"}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1038", "at": "2026-10-09T11:27:36Z", "actor": "claude", "summary": "all six templates carry Use Tiles; Krea2/Klein 9B/Qwen 2.1 bench-proven; desktop spec green; waiting on Fabio in-app look"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1038", "at": "2026-10-09T11:27:36Z", "actor": "claude", "fields": ["maturity"]}

@@ -20,6 +20,9 @@ export const PROMPT_CONTROL_DEFAULTS = Object.freeze({
     duration: 3,
     motionIntensity: 0,
     useGrid: false,
+    // Upscale op's tile path (Input_Tile_Upscale, MPI-1038). OFF matches the graph's
+    // baked switch, so a caller that never sends it gets the Grid path as before.
+    useTiles: false,
     upscaleFactor: 1.5,
     denoise: 0.2,
     // PiD upscaler (Input_Type MpiAnySwitch, 1-indexed): 1=flux, 2=sd3, 3=qwen, 4=sdxl.

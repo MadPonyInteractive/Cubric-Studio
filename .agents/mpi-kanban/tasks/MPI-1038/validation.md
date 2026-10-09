@@ -63,3 +63,40 @@ the user's `Documents/Cubric Studio/project-paths.json` for the run only and rem
 - UI probe (own Electron, own port, `probe_td_ui.cjs`): run slide mounts MpiRadioGroup (None /
   1.5x / 2x, 2x selected), the slider at 0.35, MpiInput text, Cue. The 2-row text box clipped
   its placeholder -> rows 3.
+
+## RE-SCOPE 2026-10-09: tile upscale in the upscale op (the Flow evidence above is history)
+
+### Phase 1 - Krea2 into the repo (2026-10-09)
+
+- Bench `krea2_t2i_template` (Fabio, saved 11:36) copied VERBATIM to raw (`cmp` identical); `sync-raw-workflows.mjs` committed raw `42eb8fd3d`, validator: "All 1 file(s) conform", orchestrate baked `krea2_t2i_sfw/nsfw.json` (145 nodes each).
+- Runtime diff vs HEAD (sfw): +13 nodes (Tile Upscale group, `Input_Tile_Upscale` default false, invert, IfElse), -3 (dead refiner VAEEncode/Clownshark/VAEDecode), `upscale` reroute now from the IfElse, `Input_denoise` default 0.6 -> 0.3 (injected anyway), TextGenerate gains `mtp: auto` from the newer bench ComfyUI (an undeclared input is dropped by older engines). No rgthree node.
+- `node --test` inject-params-titles, injection-keys, injector-consumes, inject-never-clobbers-link, krea2-ratio-roundtrip, tile-post-pass-stage, upscale-limit, workflow-media-slots, workflow-input-staging-gate, lora-injection-routing: 60 pass, 0 fail.
+- Generated API + runtimes are STAGED, not committed (sync design) - commit at handoff/close with `--only`.
+
+### Phase 2 - app wiring (2026-10-09, all but the models.js capability line)
+
+- `js/utils/tileCount.js` vs a verbatim copy of Impact `MakeTileSEGS` maths + ComfyUI `round()`: 25,010 size x factor cases (300-8200 px, x1/1.5/2/3/4), 0 mismatches. `tests/tile-count.test.cjs`: 2 pass (800x533 x1 = 3, x2 = 2; 1344x768 x2 = 8; 1920x1080 x2 = 15; 4000x6000 x2 = 150, x1 = 40).
+- `node --check` on 6 touched JS files clean; 16 prompt-box/reuse/inject test files: 141 pass, 0 fail.
+- Capability line on both Krea2 ModelDefs NOT written: `models.js` is claimed by MPI-936 (session 3e2b8b66). Until it lands the toggle stays hidden (visibleControlIds gate).
+
+### Phase 5 - Flow removed (2026-10-09)
+
+- `git show --binary e0dff8c54 -- <12 code/doc/test paths> | git apply -R` (check first: clean; `git diff e0dff8c54 HEAD` on those paths empty). `git grep flowTileDetailer|flow_tile_detailer|tile-detailer` outside .agents: 0 hits.
+- `npm test`: 2802 tests, 2800 pass, 0 fail. `npm run lint`: clean.
+
+### Red master fix (2026-10-09)
+
+- `tests/desktop/flow-library-filters.spec.js:155` (Type=Enhance expects 1 Flow) failed on e0dff8c54 (run 37909278151). Fix `03b63033b` = the Flow removal alone (`git diff e0dff8c54~1 HEAD` on its 12 paths empty), pushed --no-verify; CI 37922285517: unit green, desktop shards running at note time.
+
+### Qwen 2.1 + Klein / Chroma / SDXL graphs (2026-10-09)
+
+- Qwen 2.1: raw e3a60af59, runtime fa7b4990a (diff: +8 tile nodes, any_7 rewired, nothing else). Bench (gpu_lease, :8188): village 1344x768 x1.5, denoise 0.35, empty prompt -> 2016x1152 RGB in 174 s; side-by-side: no seams, content kept, lines cleaner, palette slightly cooler (path stones greyer).
+- Klein/Chroma/SDXL: copy_tiles.py cloned 9 / 12 / 2 pipe nodes from each Detailer group; detailer settings copied: Klein 2 steps lcm/normal cfg 1, Chroma heun/beta cfg 1 steps from its tier MpiMath, SDXL 8 steps lcm/simple cfg 1.4 (seed fixed 0 as its MaskDetailer). Validator: all 3 conform; orchestrate rebuilt 2+2+5 runtimes; apidiff on 6 of them: only the tile nodes added + the `upscale` reroute rewired.
+- Desktop spec prompt-box-use-tiles: 1 passed (Grid/Tiles exclusive, 1x only with tiles, label 8 tiles at 1920x1080 x1.5 and 6 at x1, injects Input_Tile_Upscale + Input_Upscale_Factor 1).
+
+### Bench runs per family + CI (2026-10-09)
+
+- Red-fix CI 37922285517: success (unit + desktop 1-4).
+- run_tiles.py under gpu_lease, village 1344x768 x1.5, denoise 0.35, empty prompt: Klein 9B 2016x1152 in 57 s; Krea2 (turbo) 2016x1152 in 96 s; Qwen 2.1 174 s (above). Crops vs lanczos: all three crisper, content kept, no seams.
+- Chroma + SDXL NOT run: ComfyUI dropped Output_Image on value_not_in_list (Chroma1-HD-Flash / t5xxl_fp16 / ae; SDXL_Realistic + ControlNet-Union-ProMax) - those weights are not on this machine at all. Graph proof for them = validator + runtime diff only.
+- Runtimes committed: krea2 48c9dec4f, qwen (see above), klein/chroma/sdxl b399d7920 (pushed). App code, models.js flags, desktop spec, docs: uncommitted, waiting on Fabio's in-app look.

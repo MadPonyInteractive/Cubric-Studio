@@ -1,1 +1,27 @@
-{ "schema": "mpi-kanban/task-files/v1", "files": ["comfy_workflows/raw/flow_tile_detailer.json", "comfy_workflows/flow_tile_detailer.json", "js/data/flowsRegistry.js", "js/data/commandRegistry.js", "js/data/modelConstants/universal_workflows.js", "js/core/operationRegistry.js", "operation_registry.json", "tests/inject-params-titles.test.cjs", "tests/agent-flow-handover.test.cjs", "docs/agent/flows.md", "docs/playbooks/add-flow/existing-flows/tile-detailer.md", "docs/releases/UNRELEASED.md"] }
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "comfy_workflows/raw/flow_tile_detailer.json",
+    "comfy_workflows/flow_tile_detailer.json",
+    "js/data/flowsRegistry.js",
+    "js/data/commandRegistry.js",
+    "js/data/modelConstants/universal_workflows.js",
+    "js/core/operationRegistry.js",
+    "operation_registry.json",
+    "tests/inject-params-titles.test.cjs",
+    "tests/agent-flow-handover.test.cjs",
+    "docs/agent/flows.md",
+    "docs/playbooks/add-flow/existing-flows/tile-detailer.md",
+    "docs/releases/UNRELEASED.md",
+    "comfy_workflows/raw/krea2_t2i_template.json",
+    "comfy_workflows/scripts/workflow_generation/krea2_t2i_template.json",
+    "comfy_workflows/krea2_t2i_sfw.json",
+    "comfy_workflows/krea2_t2i_nsfw.json",
+    "js/components/Organisms/MpiPromptBox/PromptBoxControls.js",
+    "js/data/promptControlDefaults.js",
+    "js/utils/promptReuse.js",
+    "js/shell/agentToolOps.js",
+    "docs/playbooks/common/prompt-box-controls.md",
+    "docs/models/krea2/upscaling.md"
+  ]
+}

@@ -438,6 +438,8 @@ export const commands = {
                 'In practice: 0.20 and under adds resolution and leaves the picture alone. Past 0.30 real changes creep in. Over 0.50 you are generating a NEW image that merely started from this one. If you find yourself dropping below 0.10 to stay safe, do not generate at all — the Upscale tool in the tool rail enlarges without a model and is far faster.',
                 'The prompt is the other brake. The more accurately it describes what is ALREADY in the picture, the less the model invents — so empty is fine at 0.20, but a full description is what holds the composition together once you push higher.',
                 'You do not have to write that description: right-click the image in the gallery (or in the history strip) and pick "Describe image". The caption lands straight in the prompt box, ready to edit.',
+                // MPI-1038: the per-tile prompt trap (docs/models/krea2/upscaling.md § Traps).
+                'Use Tiles cuts the picture into 1024 px tiles and redraws each one, so it handles very large pictures, and 1x adds detail without enlarging. The label counts the tiles. Every tile gets the WHOLE prompt, so describe the look (sharp photo, film grain) or leave it empty; a scene description gets painted into every tile.',
             ],
             examples: [
                 { prompt: '', note: 'Denoise 0.20 or under. Resolution goes up, the picture stays put.' },
@@ -455,7 +457,7 @@ export const commands = {
         promptRequired: false,
         // styleSelect/stylization mount only for a model carrying the rack on this op
         // (modelShowsStyleRack) — Klein's master graph, not Krea2's upscaler file.
-        components: ['useGrid', 'upscaleFactor', 'denoise', 'krea2Turbo', 'styleSelect', 'stylization'],
+        components: ['useGrid', 'useTiles', 'upscaleFactor', 'denoise', 'krea2Turbo', 'styleSelect', 'stylization'],
         defaults: { denoise: 0.20 },
     },
     edit: {

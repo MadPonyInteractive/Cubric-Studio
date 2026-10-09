@@ -19,18 +19,36 @@ Read this before re-tuning the upscaler or adding another pass to it.
 
 ## Shape
 
+Two paths, switched by `Input_Tile_Upscale` (MPI-1038, the prompt box's **Use Tiles**)
+through `MpiBooleanInvert` → `MpiIfElse` into the `upscale` reroute. MpiIfElse is lazy, so
+only the chosen path runs.
+
 ```
-Input_Image → ResizeImageMaskNode (÷16) → UltimateSDUpscale (1686)
-                                        → VAEEncode (1708)
-                                        → ClownsharKSampler_Beta (1705)   ← refiner
-                                        → VAEDecode (1709) → Output_image (1556)
+Grid  (off): Input_Image → ResizeImageMaskNode (÷16) → UltimateSDUpscale ──┐
+Tiles (on):  Get_img1 → ImageScaleBy lanczos × Input_Upscale_Factor        ├→ upscale
+             → ImpactMakeTileSEGS 1024 / 1.5 / 200 / 30 / 0.7 "Reuse fast" │
+             → DetailerForEachPipe (guide 1024 bbox, max 1536) ────────────┘
 ```
 
-`1707 FromBasicPipe` supplies vae / positive / negative to the refiner. The refiner
-shares `Input_Seed` with the main pass; its steps / cfg / denoise are **baked
-widgets, not injected** — the app's sliders do not reach it.
+**Tiles** is a copy of this graph's own Detailer group (same Get nodes → ToBasicPipe, turbo
+model switch, `3 if turbo else 16` steps, `1.0 if turbo else 1.5` cfg, euler/beta,
+`Input_denoise`), with MaskDetailer swapped for the tile nodes. Fixed 1024 tiles, so the
+count grows with the picture (`js/utils/tileCount.js` ports the node's maths for the
+prompt box label: 1920×1080 ×2 = 15 tiles, 4000×6000 ×2 = 150). Cloud masks blend the
+tiles, so no seam shows. Factor 1.0 = detail only (offered only with tiles on). **No
+resize-to-multiple** on this path: the detailer resizes each crop itself, and a
+whole-picture resize would only stretch it and break output = input × factor.
 
-## Why the refiner exists — it is a FIX, not a flourish
+**Grid** splits at most 9 ways (`MpiGridDimensions`, each ≤768 source px) with seam fix
+off, so it seams, and a big photo gets 9 huge tiles. Kept beside Tiles by Fabio's call.
+
+## The refiner (REMOVED 2026-10-09)
+
+The UltimateSDUpscale pass used to feed a 2-step ClownsharK refiner. Its VAEDecode had
+been wired to nothing for a while, so it never ran; Fabio's MPI-1038 edit deleted the
+dead chain. The history below explains why it was added.
+
+## Why the refiner existed — it was a FIX, not a flourish
 
 Before it, a single UltimateSDUpscale pass at cfg 2 produced heavy noise: unusable
 at full quality, mediocre on turbo. Two things were wrong at once, and both had to
@@ -60,7 +78,7 @@ full-quality refine. Do not "fix" this by routing the refiner through `1711`.
 
 ## Traps
 
-- **Prompt applies PER TILE.** With `Use Grid` on, every tile is sampled with the
+- **Prompt applies PER TILE.** With `Use Grid` or `Use Tiles` on, every tile is sampled with the
   full positive prompt at the current denoise, so a scene prompt ("two women on a
   ship") renders the whole scene *in each tile*. Grid upscaling wants an empty or
   generic prompt. Live-confirmed on a 4×2 grid.
@@ -69,6 +87,8 @@ full-quality refine. Do not "fix" this by routing the refiner through `1711`.
   input size, factor and the Use Grid toggle. Never record a static stage total for
   this graph — see [../../generation-lifecycle.md](../../generation-lifecycle.md)
   for `postTile` and the T+1 tile-tick trap.
+  The Tiles path is the same: its count follows the OUTPUT size, so a big photo is
+  150+ detailer steps (the `DETAILING · 0%` status sat still deep into a Flow run - unchecked).
 - **`Grid_H` / `Grid_V` (1604/1605) are NOT injectable** — no `Input_` prefix, fixed
   at 1. Only `Input_Auto_Grid` varies the split.
 - **Injection surface is 16** (`Input_*` / `Output_*`) and did not change when the

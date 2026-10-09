@@ -1,118 +1,130 @@
-# MPI-1038 - Tile Detailer Flow (detail, optional upscale first)
+# MPI-1038 - Tile upscale in the upscale op ("Use Tiles")
 
 ## Goal
 
-A Flow that redraws a picture tile by tile with FLUX.2 Klein 9B to add real detail, with an
-OPTIONAL lanczos upscale that runs BEFORE the detail pass (Fabio, 2026-10-08: "not just an
-upscaler ... upscaling should be optional and should happen before the detailing phase").
-Detail-only = upscale Off. Recipe = Fabio's bench "Flow Tile Detailer" (MPI-623 validation.md
-§ Super upscaler): lanczos 2x -> `ImpactMakeTileSEGS` 1024 / crop 1.5 / overlap 200 /
-dilation 30 / irregularity 0.7 "Reuse fast" -> Klein 9B int8 in `DetailerForEachPipe`,
-4 steps lcm/normal cfg 1, **denoise 0.35** (his eye: 0.35 right, 0.45 changes too much).
+Fabio, 2026-10-09, after five Pod runs of the Tile Detailer Flow: tile detailing is far better
+than the upscale op's Use Grid (Grid caps at 9 tiles with seam fix off = seams, and huge tiles on
+a big photo). It becomes a **Use Tiles** option in every model's upscale op, BESIDE Use Grid
+(Fabio: keep Grid). With tiles on, a **1.0x** factor appears = detail only. The Flow goes.
 
-## Shape (decided here, product calls flagged in the brief)
+## Design (approved in the 2026-10-09 brainstorm)
 
-- id `tile-detailer`, title **Tile Detailer** (Fabio's own name for the bench graph),
-  op `flowTileDetailer`, workflow `flow_tile_detailer.json`, `mediaType: 'image'`.
-- `requiredModels: [{ label: 'Base model', models: ['klein-9b'] }]`, loaders baked like
-  Outpaint (`flux-2-klein-9b-int8-convrot`, `qwen_3_8b_int8_convrot`, `flux2-vae` - the app's
-  own dep filenames, byte-same as the bench). No cloud model (tiles need the local graph).
-- One image slot `image1` -> `Input_Image` (MpiLoadImage). `result: { compare: 'image1' }`.
-- Fields: `Input_Upscale_Factor` radio **None (detail only) / 1.5x / 2x**, default 2x;
-  `Input_Denoise` slider 0.15-0.60, default 0.35; `positive` optional text = the LOOK, not
-  the scene (the per-tile prompt trap: every tile is sampled with it, a scene prompt paints
-  the scene into flat sky - MPI-623 sky ghosting, `docs/models/krea2/upscaling.md` § Traps).
-- Graph: `Input_Image` -> `ImageScaleBy` lanczos x `Input_Upscale_Factor` (1.0 = no-op) ->
-  tiles -> `DetailerForEachPipe` (non-debug twin of the bench node) -> `Output_Image`.
-  `Input_Seed` MpiInt, `Input_Positive` PrimitiveStringMultiline; negative untitled (cfg 1).
-- OUT of v1: 360 wrap pad (pad-only leaves a tonal step, xf ghosts, the cut needs a node;
-  the 360 Flow upscales its own pano), 4x (run it twice; Fabio: an 8K detail pass is
-  overkill), an upscale-model choice (lanczos is the proven pre-detail step).
+- **Prompt box.** `useTiles` toggle next to `useGrid`, injects `Input_Tile_Upscale`. One on turns
+  the other off. Hover (status bar): "For very large images, or for improving detail on an
+  existing image at 1.0." `upscaleFactor` offers **1.0** only while tiles are on; tiles off on 1.0
+  snaps to 1.5. While tiles are on the label reads `Upscale · N tiles`, N from a JS port of Impact
+  `MakeTileSEGS` maths on input W x H x factor (bbox clamps to the short side; irregularity pads
+  1024/200 to 1068/222). Expected: 800x533 x2 = 2, 1344x768 x2 = 8, 1920x1080 x2 = 15,
+  4000x6000 x2 = 150 (from last session's simulator - re-derive from Impact source, do not trust).
+- **Denoise:** the same slider, the user chooses (Fabio). **No cap** on 4x - the count is the
+  warning; check what breaks past 16K a side (sharp/ffmpeg decode).
+- **Which models:** a ModelDef capability gates the toggle; only templates with a tile section get
+  it. **Qwen 2.1 later** - no Detailer group to copy, and its file is held by the Qwen agent.
+- **Graph contract** (Fabio's Krea2 wiring, bench `krea2_t2i_template`, saved 2026-10-09 11:36):
+  group "Tile Upscale" = a COPY of that template's own Detailer group pipe (its Get nodes ->
+  ToBasicPipe, seed, steps/cfg rule, sampler/scheduler, Get_denoise) - never wired into the
+  existing Detailer's nodes (Fabio). `Get_img1` -> `ImageScaleBy` lanczos x `Input_Upscale_Factor`
+  (reroute) -> `ImpactMakeTileSEGS` 1024 / 1.5 / 200 / 30 / 0.7 "Reuse fast" ->
+  `DetailerForEachPipe` (guide 1024 bbox, max 1536, feather 10, noise_mask + force_inpaint on,
+  refiner 0.2, cycle 1, noise_mask_feather 10). `Input_Tile_Upscale` (MpiSimpleBoolean, default
+  false) -> `MpiBooleanInvert` -> `MpiIfElse` (true = Use Grid path, false = tiles) -> `upscale`
+  reroute -> Any Switch slot 7. MpiIfElse inputs are lazy: only the chosen path runs.
+  **No resize-to-multiple on the tile path** - the detailer resizes each crop itself
+  (`core.py enhance_detail`, crop -> new_w/new_h -> back to crop size); a whole-image resize only
+  stretches the picture and breaks output = input x factor (compare misaligns at 1.0).
+- Fabio's bench edit also deleted two DEAD chains (confirmed dead in the repo copy): Krea2's
+  `Input_Image_3` loader (bypassed since MPI-365) and the UltimateSDUpscale refiner (its
+  VAEDecode fed nothing). `docs/models/krea2/upscaling.md` still describes that refiner - fix it.
 
 ## Phases
 
-1. **Bench graph.** Generator script (scratch) writes the raw LiteGraph
-   `comfy_workflows/raw/flow_tile_detailer.json`; prove it on bench :8188 under the GPU lease:
-   a ~1 MP picture at None and at 2x. **Verify:** both runs succeed, output dims = input x
-   factor, no tile grid / colour blocks by eye at 1:1.
-2. **Repo wiring.** `node scripts/sync-raw-workflows.mjs` (gate: validate-injection-rules);
-   op in 4 files (`commandRegistry.js`, `universal_workflows.js`, `js/core/operationRegistry.js`,
-   `operation_registry.json`, `appVersionIntroduced` = APP_VERSION); FlowDef in
-   `flowsRegistry.js`; `tests/inject-params-titles.test.cjs` case.
-   **Verify:** inject test + `node --check` on touched JS + `npm run lint`.
-3. **Agent knowledge** (playbook 07): description's first sentence = the ask; field meaning
-   in `docs/agent/flows.md`; `tests/agent-flow-handover.test.cjs` `runs`.
-   **Verify:** the four agent tests green.
-4. **Live run** in an isolated app (`npm run app:isolated`, never :3000): run None + 2x,
-   card lands, compare works, Reuse reopens with inputs. **Verify:** cards + sidecar
-   `flowId`/`flowInputs` on disk.
-5. **Docs + announce:** `docs/playbooks/add-flow/existing-flows/tile-detailer.md`,
-   `docs/releases/UNRELEASED.md` roster + entry. Graphics (tile + hero) = `/mpi-flow-graphics`
-   after Fabio's eye on results.
+1. **Krea2 into the repo.** Copy the bench file verbatim to
+   `comfy_workflows/raw/krea2_t2i_template.json` (raw is Fabio's source - no script edits it);
+   `node scripts/sync-raw-workflows.mjs` (commits raw `--only`, gates on
+   validate-injection-rules, bakes `krea2_t2i_sfw/nsfw.json`). **Verify:** validator passes;
+   both runtimes carry `Input_Tile_Upscale` + `ImpactMakeTileSEGS` + `DetailerForEachPipe`, no
+   rgthree node; inject tests green.
+2. **App wiring.** `useTiles` in `PromptBoxControls.js` + `promptControlDefaults.js`; 1.0 gating
+   + tile-count label; upscale op `components` in `commandRegistry.js`; capability on both Krea2
+   ModelDefs in `models.js` (HELD by MPI-936 - wait or message); Reuse in `promptReuse.js`; agent:
+   `agentToolOps.js` + MCP `describe_model`; docs `docs/playbooks/common/prompt-box-controls.md`,
+   `docs/models/krea2/upscaling.md`. **Verify:** a test for the tile-count function (known counts)
+   and for the injection, `npm run lint`, `node --check`.
+3. **Live run** in an isolated app (`npm run app:isolated`, never :3000) on Krea2: tiles off (Grid
+   path unchanged), tiles 2x, tiles 1.0; Reuse restores the toggle. **Verify:** cards + sidecars
+   carry `Input_Tile_Upscale`; output dims = input x factor.
+4. **Copy to Klein, Chroma, SDXL** by script, each from its OWN Detailer group (its sampler,
+   scheduler, steps/cfg; the tile nodes + switch as in Krea2). Fabio eye-checks each on the
+   bench; sync; capability on. **Verify:** validator + inject tests; one bench run per template
+   under `gpu_lease.py run --poll 2`.
+5. **Remove the Flow** (in no release: newest tag v2.0.1 predates `e0dff8c54`): FlowDef, op in 4
+   files, raw + runtime workflow, `docs/agent/flows.md`, tests, the existing-flows doc.
+   **Verify:** `grep flowTileDetailer` = 0, tests + lint green.
+6. `docs/releases/UNRELEASED.md` entry.
 
 ## Verification
 
 **Verify mode:** user-ux
 
-Automated: phase Verify lines above. Human: Fabio runs the Flow on his own picture (detail
-only, then 2x) and judges the detail.
+Automated: the phase Verify lines. Human: Fabio uses Use Tiles in the app (2x and 1.0 on Krea2,
+then the copied models) and judges the result and the tile-count label.
 
 ## Current State
 
-2026-10-08 ~23:30: phases 1-4 + the Flow doc DONE and verified (validation.md); card in
-doing/validating. Bench found detail-only on a SMALL picture redrew too much -> detailer
-guide_size 1024 / max_size 1536 (benched, adopted). Live in-app runs x2 + x1 landed with full
-sidecars; isolated instance stopped. Provisional preview = crop of the x2 bench run.
-2026-10-09 eye-test, part 1 (Fabio, on a 24 GB Pod, None, a photo smaller than a tile): "it just
-detailed the whole thing without tiles". CAUSE CONFIRMED by Fabio ("I didn't account for that"):
-ImpactMakeTileSEGS bbox 1024 makes a picture under 1024 px ONE tile, so detail-only is one
-whole-image pass (guide_size 1024 then samples it at ~1 MP). Working as built, not a bug. Open:
-whether he still wants to review the workflow, or tiles on small pictures (a smaller bbox, or one
-derived from the picture - bench it first). Pod: the run worked there (Impact baked in the image).
-2026-10-09 CORRECTION (read Impact source, `segs_nodes.py` MakeTileSEGS + `utils.make_crop_region`;
-simulator `tiles.py` in session scratch): under 1024 is NOT one tile. bbox clamps to the short side
-(irregularity pads it to 1068 / overlap 222), so 800x533 = 3 tiles of 533, BUT crop_factor 1.5 makes
-each tile SEE ~the whole picture -> reads as one whole-image pass. 800x533 x2 = 2 tiles each seeing
-99%. Real tiling (a tile sees part of the picture) starts once the OUTPUT passes ~1600 px a side:
-1344x768 x2 = 8 tiles at 59%, 1920x1080 x2 = 15 at 30%. Big inputs: 4000x6000 x2 = 150 tiles,
-8000x12000 output (RAM on a 16 GB box - unchecked).
-2026-10-09 ~10:40 DIRECTION CHANGE (Fabio, after 5 Pod runs in `Qwen 2.1/Media/flowTileDetailer_001-005`):
-"this is not a flow - it should be part of the UPSCALE operation for every model; far superior
-to the Use Grid option". NEXT = a BRAINSTORM (mpi-brainstorm) with Fabio's ideas on how tile
-upscale lands in the per-model upscale op (the op popover: Use Grid, Upscale 1.5x/2x/3x/4x,
-Denoise, Style, Stylization). The Flow stays built + committed; whether it ships, is hidden or
-is removed is part of that brainstorm. Inputs for it: the tile maths above, the per-tile prompt
-trap (Plan Shape), and that 4x on a big photo is 150+ tiles.
-- Previews on the Pod looked bad: NOT this graph - the Pod lacks `taef2_decoder` (Latent2RGB
-  fallback); split to MPI-1050 (remote engine assets one-shot install). Final images were clean.
-- Flow art PAUSED (moot if it is not a Flow): candidate 1 (cloud-tile walk, real Impact masks
-  re-run in numpy) in `art/candidate1_tile.png` + `art/candidate1_hero.mp4` (stand-in plates);
-  generators kept in `art/td_art.py` (tile layout + cloud masks) and `art/td_build.py`
-  (`python td_build.py <input> <output> <factor> <outdir> [still|hero|both] [active] [cx]`).
-  The 28-tile bench run (2688 village x2) was cancelled before it ran.
-- Noticed: the status bar read `DETAILING · 0%` deep into a run (detailer steps may not reach
-  the progress tracker). Not checked. On a "1":
-/mpi-flow-graphics (tile + hero), then the UNRELEASED.md entry, then close-out (commit raw +
-runtime + preview with `--only`; NOT via sync-raw-workflows while MPI-936's raw is dirty).
-Nothing committed yet. Session scratch tools (gone with the session): `make_tile_detailer.py`,
-`run_td.py`, `cmp_td.py`, `live_td.py`, `probe_td_ui.cjs`.
+2026-10-09 ~14:40: Fabio testing in his app (Krea2 now, Klein next) - screenshot showed USE GRID / USE
+TILES + "UPSCALE · 6 TILES" + 1x working on Qwen 2.1. His asks, BOTH DONE: (1) Use Tiles persists across
+model switches -> `useTiles` scope `shared` (project.shared.image); useGrid (still perOp) mounts OFF
+when shared tiles is on for a tile-capable model; upscaleFactor reads tiles from the shared bucket;
+legacy Reuse writes `sharedUpdates.useTiles`. Desktop spec + 38 reuse/inject tests green.
+(2) Klein tile detailer 2 -> 4 steps (his Flow recipe; 2 "just not doing it"), runtimes `ba5ac9fe5` pushed.
+NEXT: wait for his Krea2 + Klein verdict ("1" or changes); then commit the app code (list below)
+with `--only`, UNRELEASED.md entry (MPI-1051 held it), close-out. Chroma/SDXL unproven (no weights).
+2026-10-09 ~14:00: ALL graphs done + every runtime committed and pushed (b399d7920); red-fix CI green.
+Bench x1.5 clean on Krea2 / Klein 9B / Qwen 2.1; Chroma + SDXL have no weights on this machine.
+NEXT = Fabio's in-app look (user-ux): reload his app, Krea2 upscale op -> Use Tiles, 2x and 1x.
+Uncommitted, waiting on that look: PromptBoxControls.js, MpiPromptBox.js, promptControlDefaults.js,
+commandRegistry.js (useTiles component + help line), promptReuse.js, models.js (12 flags),
+tileCount.js + test, desktop spec, krea2 upscaling.md. Then: UNRELEASED.md entry (MPI-1051 holds
+the file now), optional agent named param.
+2026-10-09 ~13:25: RED MASTER fixed - the Flow (e0dff8c54) broke `tests/desktop/flow-library-filters.spec.js`
+(Type=Enhance expects 1); pushed the removal alone as `03b63033b` (--no-verify, carried peers'
+ea0b707ef + 02eff35b0), CI 37922285517 watched. Krea2 runtimes committed `48c9dec4f`. Qwen 2.1
+DONE (Fabio freed it): tile group built by `copy`-style script from Fabio's Krea2 nodes wired to
+Qwen's own model/encode/sampler (15 steps euler/simple), raw `e3a60af59`, runtime `fa7b4990a`,
+bench x1.5 = 2016x1152 in 174 s, no seams, palette a touch cooler. Klein / Chroma / SDXL DONE by
+`copy_tiles.py` (scratchpad; clones each template's OWN Detailer group pipe): raws committed by
+sync, 12 generated files STAGED; bench runs queued behind the Qwen agent's GPU lease.
+`tileUpscale: true` on all 12 upscale ModelDefs (uncommitted). Desktop spec
+`tests/desktop/prompt-box-use-tiles.spec.js` passes (exclusivity, 1x gating, label, injection).
+Upscale help gained the Use Tiles + per-tile prompt line.
+2026-10-09 ~12:15: phase 1 DONE (raw committed `42eb8fd3d`; API + sfw/nsfw runtimes STAGED,
+uncommitted). Phase 2 code DONE except ONE line: `capabilities.tileUpscale: true` on both Krea2
+ModelDefs in `models.js`, which MPI-936 (Qwen agent, session 3e2b8b66) holds - add it when
+released, then phase 3 (live run). Written: `js/utils/tileCount.js` (port verified against the
+verbatim Impact maths on 25,010 size/factor cases, 0 mismatches) + `tests/tile-count.test.cjs`;
+`useTiles` control + Grid/Tiles exclusivity over `promptbox:upscale-split` + `upscaleFactor` 1.0
+gating and `Upscale · N tiles` label (`setInputImage`, called from MpiPromptBox like
+`setAudioPresent`); `useTiles` default; upscale `components`; legacy Reuse reads
+`Input_Tile_Upscale`; krea2 `upscaling.md`. Phase 5 DONE: the Flow commit reversed on its code
+files (`git apply -R`, nothing later touched them). `npm test` 2800 pass / 0 fail, lint clean.
+NOT done: agent/MCP (agents set the factor only through raw injectionParams today, so
+`Input_Tile_Upscale` works the same way; a named param is a later call). Flow art in `art/` is moot.
 
 ## Completed
 
-- Phase 2 wiring, phase 3 agent knowledge, phase 5 existing-flows doc (see Current State).
+- Brainstorm + Krea2 bench wiring (Fabio).
 
 ## Remaining Work
 
-Phase 1 bench proof; provisional preview; phase 4 live run; UNRELEASED entry + graphics after
-Fabio's eye (close-out: a Flow with no art is not announced).
+Phases 1-6.
 
 ## Plan Drift
 
-- 2026-10-08: `sync-raw-workflows.mjs` NOT run - it commits every git-changed raw and stages
-  every dirty runtime file, and MPI-936 (peer) holds uncommitted `raw/qwen_image_2_1.json` +
-  runtime. Ran its converter + validator on this one file instead (same steps for a bare-name
-  raw); runtime = converter output. Commit raw + runtime with `--only` at close-out.
-- 2026-10-08: UNRELEASED.md has no Flows roster since the 2.0.1 clear, and close-out.md says a
-  Flow without art is not announced: the entry moves to the graphics step.
-- 2026-10-08: recipe change - DetailerForEachPipe guide_size 64 -> 1024, max_size 1024 -> 1536
-  (detail-only on a small picture; evidence in validation.md). Identical for 1024 tiles.
+- 2026-10-09: card re-scoped from "Tile upscaler Flow" to tile upscale inside the upscale op; the
+  old Flow plan lives in git history (`cb0b04fee`).
+
+## Preservation Notes
+
+- `docs/models/krea2/upscaling.md`: refiner gone, tile path added, per-tile prompt trap applies
+  to tiles too.
+- Rule drift question at close-out: a new prompt control (`useTiles`) changes component wiring.

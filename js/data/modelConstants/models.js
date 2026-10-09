@@ -86,7 +86,7 @@ const ALL_MODELS = [
         // AIO_Preprocessor annotators, both switched by Input_Control_Net.
         controlTypes: ['depth', 'pose', 'scribble', 'canny'],
         // Input_Control_strength -> MpiNormalizeValue -> ControlNetApplyAdvanced.strength.
-        capabilities: { controlStrength: true },
+        capabilities: { controlStrength: true, tileUpscale: true },   // tileUpscale: MPI-1038 Use Tiles
         // Op -> the Input_wf_type value selecting its branch. MUST cover every entry in
         // supportedOps: a gap does not error, it runs the graph default and returns a
         // plausible image from the WRONG op. Slot 5 stopped being dead with the MPI-615
@@ -162,7 +162,7 @@ const ALL_MODELS = [
         // AIO_Preprocessor annotators, both switched by Input_Control_Net.
         controlTypes: ['depth', 'pose', 'scribble', 'canny'],
         // Input_Control_strength -> MpiNormalizeValue -> ControlNetApplyAdvanced.strength.
-        capabilities: { controlStrength: true },
+        capabilities: { controlStrength: true, tileUpscale: true },   // tileUpscale: MPI-1038 Use Tiles
         // Op -> the Input_wf_type value selecting its branch. MUST cover every entry in
         // supportedOps: a gap does not error, it runs the graph default and returns a
         // plausible image from the WRONG op. Slot 5 stopped being dead with the MPI-615
@@ -242,7 +242,7 @@ const ALL_MODELS = [
         // AIO_Preprocessor annotators, both switched by Input_Control_Net.
         controlTypes: ['depth', 'pose', 'scribble', 'canny'],
         // Input_Control_strength -> MpiNormalizeValue -> ControlNetApplyAdvanced.strength.
-        capabilities: { controlStrength: true },
+        capabilities: { controlStrength: true, tileUpscale: true },   // tileUpscale: MPI-1038 Use Tiles
         // Op -> the Input_wf_type value selecting its branch. MUST cover every entry in
         // supportedOps: a gap does not error, it runs the graph default and returns a
         // plausible image from the WRONG op. Slot 5 stopped being dead with the MPI-615
@@ -322,7 +322,7 @@ const ALL_MODELS = [
         // AIO_Preprocessor annotators, both switched by Input_Control_Net.
         controlTypes: ['depth', 'pose', 'scribble', 'canny'],
         // Input_Control_strength -> MpiNormalizeValue -> ControlNetApplyAdvanced.strength.
-        capabilities: { controlStrength: true },
+        capabilities: { controlStrength: true, tileUpscale: true },   // tileUpscale: MPI-1038 Use Tiles
         // Op -> the Input_wf_type value selecting its branch. MUST cover every entry in
         // supportedOps: a gap does not error, it runs the graph default and returns a
         // plausible image from the WRONG op. Slot 5 stopped being dead with the MPI-615
@@ -402,7 +402,7 @@ const ALL_MODELS = [
         // AIO_Preprocessor annotators, both switched by Input_Control_Net.
         controlTypes: ['depth', 'pose', 'scribble', 'canny'],
         // Input_Control_strength -> MpiNormalizeValue -> ControlNetApplyAdvanced.strength.
-        capabilities: { controlStrength: true },
+        capabilities: { controlStrength: true, tileUpscale: true },   // tileUpscale: MPI-1038 Use Tiles
         // Op -> the Input_wf_type value selecting its branch. MUST cover every entry in
         // supportedOps: a gap does not error, it runs the graph default and returns a
         // plausible image from the WRONG op. Slot 5 stopped being dead with the MPI-615
@@ -478,6 +478,7 @@ const ALL_MODELS = [
         // model, so the control is off everywhere rather than offering a batch that
         // is not one. Only the SDXL family and the cloud models batch safely.
         capabilities: {
+            tileUpscale: true,   // MPI-1038: the upscale branch carries the "Tile Upscale" group (Use Tiles)
             batch: false,
             // Five style LoRAs on one MpiStyleLoras bank (MPI-365).
             styleLoras: true,
@@ -591,6 +592,7 @@ const ALL_MODELS = [
         // model, so the control is off everywhere rather than offering a batch that
         // is not one. Only the SDXL family and the cloud models batch safely.
         capabilities: {
+            tileUpscale: true,   // MPI-1038: the upscale branch carries the "Tile Upscale" group (Use Tiles)
             batch: false,
             styleLoras: true,
             controlStrength: true,
@@ -681,6 +683,8 @@ const ALL_MODELS = [
         capabilities: {
             multiStage: false, audio: false, negativePrompt: true, styleLoras: true,
             batch: false, turboToggle: true,
+            // MPI-1038: the upscale branch carries the "Tile Upscale" group (Use Tiles).
+            tileUpscale: true,
             // MPI-365: the depth branch became a LINE — image 1 is the depth map, image 2
             // the subject posed into it. Krea2 stops at TWO: its Input_Image_3 was
             // bypassed out of the graph, so it does NOT declare `depthSubject3`.
@@ -812,6 +816,8 @@ const ALL_MODELS = [
         capabilities: {
             multiStage: false, audio: false, negativePrompt: true, styleLoras: true,
             batch: false, turboToggle: true,
+            // MPI-1038: the upscale branch carries the "Tile Upscale" group (Use Tiles).
+            tileUpscale: true,
             // MPI-365: the depth branch became a LINE — image 1 is the depth map, image 2
             // the subject posed into it. Krea2 stops at TWO: its Input_Image_3 was
             // bypassed out of the graph, so it does NOT declare `depthSubject3`.
@@ -996,6 +1002,7 @@ const ALL_MODELS = [
         supportedOps: ['t2i', 'i2i', 'control', 'kleinEdit', 'inpaint', 'detail', 'upscale'],
         loraStrengths: ['model'],   // MpiLoraModel is model-only; no CLIP side
         capabilities: {
+            tileUpscale: true,   // MPI-1038: the upscale branch carries the "Tile Upscale" group (Use Tiles)
             multiStage: false, audio: false, negativePrompt: false, styleLoras: true,
             batch: false, turboToggle: false,
             // Klein's depth branch shares the edit branch's ReferenceLatent chain, so
@@ -1136,6 +1143,7 @@ const ALL_MODELS = [
         supportedOps: ['t2i', 'i2i', 'control', 'kleinEdit', 'inpaint', 'detail', 'upscale'],
         loraStrengths: ['model'],
         capabilities: {
+            tileUpscale: true,   // MPI-1038: the upscale branch carries the "Tile Upscale" group (Use Tiles)
             multiStage: false, audio: false, negativePrompt: false, styleLoras: true,
             batch: false, turboToggle: false,
             depthSubject: true,
@@ -1881,6 +1889,8 @@ const ALL_MODELS = [
             batch: false,
             multiReference: true, multiReference8: true,
             controlStrength: true,
+            // MPI-1038: the upscale branch carries the "Tile Upscale" group (Use Tiles).
+            tileUpscale: true,
         },
         opInject: {
             t2i:     { Input_wf_type: 1 },

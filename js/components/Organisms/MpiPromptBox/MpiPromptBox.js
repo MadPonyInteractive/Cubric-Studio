@@ -524,6 +524,8 @@ export const MpiPromptBox = ComponentFactory.create({
             const _audioPresent = el.audioCount > 0;
             _activeControls.get('audioMode')?.setAudioPresent?.(_audioPresent);
             _activeControls.get('useAudio')?.setAudioPresent?.(_audioPresent);
+            // Use Tiles counts its tiles off the input picture's size (MPI-1038).
+            _activeControls.get('upscaleFactor')?.setInputImage?.(_mediaItems.find(m => m.mediaType === 'image')?.url ?? null);
 
             const renderedItems = _withAssignedRoles();
             _renderStrip(renderedItems);
@@ -2157,6 +2159,7 @@ export const MpiPromptBox = ComponentFactory.create({
             const _seedAudioPresent = (el.audioCount || 0) > 0;
             _activeControls.get('audioMode')?.setAudioPresent?.(_seedAudioPresent);
             _activeControls.get('useAudio')?.setAudioPresent?.(_seedAudioPresent);
+            _activeControls.get('upscaleFactor')?.setInputImage?.(_mediaItems.find(m => m.mediaType === 'image')?.url ?? null);
 
             // The negative toggle is model-gated too, and `model` is reassigned
             // live by setModel/setModelList without a remount. Both converge here.
