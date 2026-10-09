@@ -33,7 +33,8 @@ function harness({ holeFrac = 0.25, inside = false, frontFrac = 0.3, failInpaint
         render: (view, renderer, pose, size) => {
             log.push(`render ${size.w}x${size.h}`);
             calls.poses.push(pose);
-            return { w, h, rgba: new Uint8ClampedArray(w * h * 4), mask: new Uint8ClampedArray(w * h * 4), z, frontFrac, record: RECORD,
+            return { w, h, rgba: new Uint8ClampedArray(w * h * 4), mask: new Uint8ClampedArray(w * h * 4), frontFrac, record: RECORD,
+                z: typeof z === 'function' ? z(calls.poses.length - 1) : z,
                 holeFrac: typeof holeFrac === 'function' ? holeFrac(calls.poses.length - 1) : holeFrac };
         },
         encodePng: async () => new Blob(['png']),
@@ -190,6 +191,29 @@ test('a frame with no known depth stops before Klein and says why; walls seen fr
     assert.equal(back.calls.lift.length, 1, 'inside, back faces are the known depth');
 });
 
+// MPI-623 well_fit / well_shift: Klein left 2% and 8.5% of a frame black in its holes - a black patch in the scene.
+test('a fill that leaves its holes black is filled again once, on a new seed', async () => {
+    const { takePicture, blackLeft, LEAK } = await esm('js/services/scene/scenePicture.js');
+    const hole = new Uint8ClampedArray(32).fill(255), black = new Uint8ClampedArray(32), lit = new Uint8ClampedArray(32).fill(120);
+    assert.equal(blackLeft(black, hole), 1);
+    assert.equal(blackLeft(black, new Uint8ClampedArray(32)), 0, 'black outside the holes is the scene\'s own');
+    assert.ok(LEAK > 0.0015 && LEAK < 0.02, 'between the healthy fills (<= 0.15%) and the leaks (2%, 8.5%)');
+    for (const [first, inpaints] of [[black, 2], [lit, 1]]) {
+        const t = harness();
+        const render = t.io.render;
+        t.io.render = (...a) => ({ ...render(...a), mask: hole });
+        let n = 0, k = 0;
+        t.io.pixelsAt = async () => (n++ === 0 ? first : lit);
+        const enqueue = t.io.enqueue;
+        t.io.enqueue = (config, cb, opts) => enqueue(config, { ...cb, onComplete: (r) => cb.onComplete(config.operation === 'inpaint'
+            ? { item: { filePath: pf(`C:/P/Media/.preview-assets/fill${++k}.png`) } } : r) }, opts);
+        await takePicture(t.ctx, t.io);
+        assert.equal(t.log.filter(l => l === 'inpaint').length, inpaints);
+        assert.equal(t.calls.lift.length, 1);
+        assert.ok(t.calls.lift[0].imagePath.includes(`fill${inpaints}.png`), 'the lift takes the fill that is kept');
+    }
+});
+
 test('a failed fill saves nothing and adds no layer', async () => {
     const { takePicture } = await esm('js/services/scene/scenePicture.js');
     const t = harness({ failInpaint: true });
@@ -228,6 +252,22 @@ test('Build here: six views round the camera, front first, each filled into a la
     for (const l of t.calls.lift) assert.ok(Math.abs(l.fovX - 96.7325) < 1e-3, `fovX ${l.fovX}`);
     assert.deepEqual(at.slice(0, 4), ['1/6 render', '1/6 style', '1/6 fill', '1/6 lift']);
     assert.ok(at.includes('4/6 render') && !at.includes('4/6 fill'));
+});
+
+// MPI-623 win_shift: inside a house the view behind sees only what the views before it built; a near
+// fill in view 2 left view 3 nothing known and the whole build failed.
+test('Build here: a view that sees nothing of the scene yet waits for the others; still nothing -> skipped', async () => {
+    const { buildHere } = await esm('js/services/scene/scenePicture.js');
+    const seen = new Float32Array(8).fill(2), none = new Float32Array(8);
+    const t = harness({ inside: true, z: (r) => (r === 2 ? none : seen) }); // view 3 sees the scene on its retry
+    const at = [];
+    const layers = await buildHere({ ...t.ctx, onStep: (s, a) => at.push(`${a.view} ${s}`) }, t.io);
+    assert.equal(layers.length, 6);
+    assert.deepEqual(at.filter(s => s.endsWith('render')), ['1 render', '2 render', '3 render', '4 render', '5 render', '6 render', '3 render']);
+    assert.deepEqual(at.slice(-2), ['3 fill', '3 lift'], 'view 3 filled last');
+    const never = harness({ inside: true, z: (r) => (r === 2 || r === 6 ? none : seen) });
+    assert.equal((await buildHere(never.ctx, never.io)).length, 5, 'never sees it: skipped, the build still lands');
+    assert.equal(never.calls.poses.length, 7, 'one wait only');
 });
 
 test('Build here: Stop lets the running view finish and starts no other', async () => {

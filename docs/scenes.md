@@ -76,9 +76,9 @@
    the frame goes to disk via `place-preview-asset` (no card).
 2. Holes -> Klein `inpaint`: `GENERIC`, or inside (`insideAt` the SPOT: six 48 px views see more pano
    from behind than front) `INTERIOR`, `ROOM` when the frame sees no outside, + `STYLE_ASK` put once a
-   scene to `describeImage` (Remote's pick; a failure stops the fill); looking down past 60 deg `DOWN` / `FLOOR`. Then `In the large empty areas: <line>.`
+   scene to `describeImage` (Remote's pick; a failure stops the fill); looking down past 60 deg `DOWN` / `FLOOR`. Then `In the large empty areas: <line>.` A fill that leaves over `LEAK` (0.5% of the frame) black in its holes runs once more (new seed).
 3. `sceneLift` on the fill with the known z (`place-preview-asset` `.f32` -> `absPath`) and the lens
-   as `fovX` (NO known z: stops before Klein). `MpiLiftDepth` fits on |z| (scale only at one depth or slope <= 0) and keeps 0 and negative pixels;
+   as `fovX` (NO known z: stops before Klein). `MpiLiftDepth` fits on |z| (scale only at one depth, slope <= 0, or shift < 0 with no back faces) and keeps 0 and negative pixels;
    the minus signs ride only on an INTERIOR shot (`knownDepth`), since outside a back face is an
    object's far side and the fill paints what lies beyond it; `POST /project-media/:id/scene-layer` copies the fill and downloads the depth as
    `layer<n>.png` / `layer<n>_depth.f32`, appends the record (manifest LAST); `view.addLayer` meshes
@@ -89,9 +89,7 @@
 Every Klein job runs `deferCommit` without `existingGroup` (the only branch that honours it), so no
 job lands a card; their `inpaint_NNN` / `edit_NNN` PNGs stay in `Media/` for Cleanup. The viewer
 drops its float targets once the render is read (Klein's VRAM).
-- 4060 Ti, four spike cameras: 60-77 s a picture = fill 33-51 s, lift 2-2.5 s, clean-up 23-26 s.
-- Limit: inside, the room's depth is a compromise (window: Klein's deep corridor vs one flat wall 0.25
-  ahead, fit error 73%), shown as back faces never hide a fill (holes 64% -> 13%). § Interior lift.
+- 4060 Ti: 60-77 s a picture (fill 33-51 s, lift 2-2.5 s, clean-up 23-26 s). Limit: inside, the room's depth is a compromise (fit error up to 73%); back faces never hide a fill. § Interior lift.
 
 ## Build here
 
@@ -100,9 +98,11 @@ view): Take picture's fill steps (1-3 above, `fillLayer`) over `buildPoses` - si
 at `BUILD_MM` 16 (~97 deg, so they overlap) from the camera's spot, facing first, then right,
 behind, left, up, down; up/down at pitch +-`PITCH_MAX` (`applyPose` has no right vector straight
 up). One `insideAt` answer for all six; each renders with the layers before it, one with no holes
-is skipped. No clean-up, no entry: the layers are the result. Window spike camera, 4060 Ti: 265 s;
-after it the window picture's frame is 1.9% holes (85% before). The near floor sank 2.4-6x (the fit
-is on mid/far pixels): the lift now gets the ground plane (`Input_Ground`, below). validation.md.
+is skipped, one that sees nothing known yet (inside: the view behind) waits for the rest, then is skipped if still blind. No clean-up, no entry: the layers are the result. 4060 Ti: ~200-265 s; the lift gets the ground plane (`Input_Ground`, below). Limit: it only ADDS layers - side-stepping tears them, a second press never clears a stray piece.
+
+## Camera path (P1 of the Wan route, plan § Plan Drift 2026-10-09)
+
+**P** / Add point drops a ball where the camera is (`scenePath.js` `addPoint`; an empty path starts at `PATH_START`, the pano's centre, because Wan's video starts from the pano; a double press adds nothing). `view.setPath` draws balls + tubes over the screen frame only, never hidden, never in a picture. Saved on the pano item's sidecar as `cameraPaths: [{ points }]` (`update-meta`, mirrored on the live item). Rendering it with Wan is P2.
 
 ## Companions and the manifest
 

@@ -8,7 +8,29 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 39 (2026-10-09, "3D Scene 29"):
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 40 (2026-10-09, "3D Scene 30",
+CPU only): both behind_well by-eye items explained** (validation.md § behind_well's two by-eye items):
+the up view's black blob = black Klein left in its own fill (1 of 36 build fills); the 0.51 = the
+whole near floor floating (affine fit b < 0; the guard did not fire; the clamp is one-sided). Offline
+A/B (`abfit.py`, `abfloor.py`): "affine, scale-only when b < 0" fixes both outside floats and is never
+worse outside; inside it is mixed. Floor-aware fits: no one-scale fit puts Klein's room on both the
+walls and the ground (pinning the floor puts the walls off ~2x). **Fabio "go with your picks":**
+MpiNodes `db3bdc7` pushed + pinned (scale-only on b < 0 when the frame has no back faces; 15/15, 3
+mutants; offline the 5 outside b < 0 views all better). Live (`well_shift`): every near floor 1.00.
+The live run exposed two more, both FIXED in the app (unit + mutants) and LIVE (`well_wait` /
+`win_wait`): the window's Build here failed at view 3 (nothing known yet behind, inside) -> a blind
+view now waits for the rest, then is skipped (not needed live this run); a fill leaving > 0.5% black
+in its holes runs once more (fired live: 2.47% -> 0.00%). App changes + pin UNCOMMITTED (handoff /
+close-out commits). Exported for his fly-through: `MPI-623 Fixes - behind well` / `- window`.
+**PIVOT (Fabio, after flying them): paths + Wan** (§ Plan Drift 2026-10-09). **P1 path editor
+BUILT + checked live in an isolated app** (validation.md § Paths P1): P / Add point, balls + tubes,
+saved on the pano sidecar as `cameraPaths`. **Fabio's eye on P1: "1" (passed).** Test projects
+MERGED into ONE `Projects/MPI-623` (cards Convert test / Fixes - behind well / Fixes - window; the
+seven old folders in the Recycle Bin; `merge623.py`, session 40 scratchpad). **Future runs Fabio
+should see go in as new cards there**, never a new project. **Next:** P2 = render a path with Wan
+(Matrix-3D rail, research/plan-history-bake.md) - plan it first (Pod vs local ~35 min a rail).
+Room floor / SAM3 / DoF parked behind the pivot.
+**Session 39 (2026-10-09, "3D Scene 29"):
 the straight-down wording is BUILT and LIVE at both spots** (validation.md § The straight-down
 wording): `fillPrompt(..., pitch)` - pitched down past 60 degrees, `DOWN` outside / `FLOOR` + style
 inside (A/B `abdown.py`, session 39 scratchpad: GENERIC = courtyard + sky, ROOM = a level box room,
@@ -520,6 +542,16 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
 
 ## Plan Drift
 
+- **2026-10-09 - Paths + Wan (Fabio, session 40: "we are doing way too much kung fu").** After
+  flying the Build here layers (side-stepping inside the window tears them; Build here only adds,
+  never removes, so a second press cannot clear the stray pieces), Fabio picked the path route:
+  the user lays a camera path in the 3D view (balls joined by lines), Wan renders a 360 video
+  along it and INVENTS what the path walks into (his reference: a Matrix-3D-style clip, street ->
+  through a window -> a room that did not exist). Steps: **P1 path editor** (now; no GPU) ->
+  **P2 render a path** (Matrix-3D / Wan 2.1 rail, ~35 min a rail on the 4060 Ti, or RunPod) ->
+  **P3 what the video becomes** (Fabio's call; my pick: a playable 360 video card, its last frame a
+  new pano spot). Constraint: Wan's video starts FROM the pano, so a path's first ball is the
+  pano's centre (later: the end of an earlier path). Single shot / Build here stay as they are.
 - **2026-10-07 - the bake became the single shot.** Phases 2-5 of the bake plan are superseded
   (history file). The Wan bake survives only as a coming-soon tool.
 - **2026-10-07 - the renderer moved to the app (A1).** The spike renders in Python; the product

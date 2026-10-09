@@ -285,17 +285,33 @@ function liftJob(io, payload) {
 const placeAsset = (io, project, dataUrl, ext) => io.post(
     `/project-media/${project.id}/place-preview-asset?folderPath=${encodeURIComponent(project.folderPath)}`, { dataUrl, ext });
 
+/** Any known depth in the shot - back faces count (negative z). */
+const seesScene = (shot) => shot.z.some(v => v !== 0);
+
+/** Share of the frame a fill left black inside the holes (`mask` white). Healthy fills leave <= 0.15%;
+ *  Klein's leaks (MPI-623: 2 of 12 behind_well fills) 2% and 8.5%. */
+export const LEAK = 0.005;
+export function blackLeft(px, mask) {
+    let n = 0;
+    for (let q = 0; q < mask.length; q += 4) if (mask[q] && Math.max(px[q], px[q + 1], px[q + 2]) < 20) n++;
+    return n / (mask.length / 4);
+}
+
 /** A rendered shot's holes filled and placed in the scene: Klein inpaint -> sceneLift -> a layer
  *  in the manifest, meshed into the live view. `frame` = the shot's PNG as a preview asset;
  *  `inside` = `insideAt` the camera's spot. */
 async function fillLayer({ project, sceneItem, view, pose, fillLine, onStep, inside }, shot, frame, io) {
     // The lift places a fill by the scene's depth around it; with none in the frame there is nothing
     // to place it against (MpiLiftDepth: "fewer than 2 known pixels"), so stop before Klein runs.
-    if (!shot.z.some(v => v !== 0)) throw new Error('nothing of the scene is in this view to fit the fill to. Turn the camera toward the scene');
+    if (!seesScene(shot)) throw new Error('nothing of the scene is in this view to fit the fill to. Turn the camera toward the scene');
     const style = inside ? await sceneStyle(io, sceneItem, onStep) : '';
     onStep('fill');
     const mask = await io.blobToDataUrl(await io.encodePng(shot.mask, shot.w, shot.h));
-    const fill = await kleinJob(io, 'inpaint', frame.filePath, fillPrompt(inside, fillLine, style, shot.frontFrac > SEES_OUT, pose.pitch), mask);
+    const job = () => kleinJob(io, 'inpaint', frame.filePath, fillPrompt(inside, fillLine, style, shot.frontFrac > SEES_OUT, pose.pitch), mask);
+    let fill = await job();
+    // Klein now and then leaves part of a hole black, which lands in the scene as a black patch: a new
+    // seed (each job draws one) once. ponytail: one retry; a second leak lands.
+    if (blackLeft(await io.pixelsAt(fill.filePath, shot.w, shot.h), shot.mask) > LEAK) fill = await job();
     onStep('lift');
     const known = await placeAsset(io, project, await io.blobToDataUrl(new Blob([knownDepth(shot.z, inside).buffer], { type: 'application/octet-stream' })), '.f32');
     const fovX = 2 * Math.atan(18 / pose.mm) * 180 / Math.PI;
@@ -325,8 +341,11 @@ export function buildPoses({ pos, yaw }) {
  * Build here (plan 0b): fill the space round the camera into the scene before pictures are
  * taken in it. Each of `buildPoses` in turn, so each view starts from the ones before it:
  * render -> Klein inpaint -> lift -> a layer, as Take picture's fill. No clean-up and no
- * history entry: the layers are the result. A view with no holes is skipped; `signal` stops
- * the build before the next view (the running fill finishes).
+ * history entry: the layers are the result. A view with no holes is skipped; a view that sees
+ * nothing of the scene yet waits for the others (inside a house the view behind sees only what
+ * the views before it built, and a near fill there failed the whole build - MPI-623 win_shift),
+ * then is skipped if it still sees nothing, its holes left for Take picture. `signal` stops the
+ * build before the next view (the running fill finishes).
  * @param {{ project: Object, sceneItem: Object, view: Object, renderer: Object, pose: Object,
  *   fillLine?: string, signal?: AbortSignal, onStep?: (step: string, at: { view: number, of: number }) => void }} ctx
  * @param {Object} io  `appIo()`, or a test's stand-ins
@@ -335,12 +354,18 @@ export function buildPoses({ pos, yaw }) {
 export async function buildHere({ project, sceneItem, view, renderer, pose, fillLine = '', signal, onStep = () => {} }, io) {
     const poses = buildPoses(pose), size = pictureSize('1:1'), layers = [];
     const inside = io.inside(view, renderer, pose.pos); // one answer for the spot: a room all round, or none
-    for (const [i, p] of poses.entries()) {
+    const queue = poses.map((p, i) => ({ p, i, waited: false }));
+    while (queue.length) {
+        const { p, i, waited } = queue.shift();
         if (signal?.aborted) throw new Error('cancelled');
         const at = { view: i + 1, of: poses.length }, step = (s) => onStep(s, at);
         step('render');
         const shot = io.render(view, renderer, p, size);
         if (shot.holeFrac === 0) continue;
+        if (!seesScene(shot)) { // ponytail: one wait, after all the others
+            if (!waited) queue.push({ p, i, waited: true });
+            continue;
+        }
         const frame = await placeAsset(io, project, await io.blobToDataUrl(await io.encodePng(shot.rgba, shot.w, shot.h)), '.png');
         layers.push((await fillLayer({ project, sceneItem, view, pose: p, fillLine, onStep: step, inside }, shot, frame, io)).layer);
     }

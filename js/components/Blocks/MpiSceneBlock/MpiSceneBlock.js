@@ -20,9 +20,13 @@
  * a picture puts it back.
  * Build here (tools strip) fills the six views round the camera into the scene first, layers
  * only (`buildHere`); a second press stops it after the running view.
+ * The camera path (plan P1, for Wan to render): P or Add point drops a ball where the camera is,
+ * from the pano's centre on (`scenePath.js`); balls and line drawn over the frame
+ * (`view.setPath`), saved on the pano item as `cameraPaths`.
  *
  * Instance API (on el):
  *   getPose()      — the camera pose `{ pos, yaw, pitch, roll, mm }` (spot coords)
+ *   getPath()      — the camera path's points, scene coords
  *   setPose(pose)  — move the camera there (a picture entry's pose, a test's fixed view)
  *   isLoaded()     — true once the scene is drawn
  */
@@ -45,6 +49,7 @@ import {
     START_POSE, NEAR, EYE_HEIGHT_M, FLY_BOOST, loadScene, createSceneView, applyPose, flyStep, flyLook,
 } from '../../../services/scene/sceneViewer.js';
 import { takePicture, buildHere, appIo } from '../../../services/scene/scenePicture.js';
+import { addPoint, removeLast } from '../../../services/scene/scenePath.js';
 
 const FLY_DIRS = ['forward', 'back', 'left', 'right', 'up', 'down', 'rollLeft', 'rollRight'];
 const ASPECTS = ['16:9', '9:16', '1:1', '2.39:1'];
@@ -58,6 +63,14 @@ const STEPS = {
 };
 
 const ratioOf = (aspect) => { const [a, b] = aspect.split(':').map(Number); return a / b; };
+/** A colour token as sRGB bytes: three cannot read oklch, a 2D canvas can. */
+const tokenRgb = (node, name) => {
+    const g = new OffscreenCanvas(1, 1).getContext('2d');
+    g.fillStyle = getComputedStyle(node).getPropertyValue(name).trim();
+    g.fillRect(0, 0, 1, 1);
+    return [...g.getImageData(0, 0, 1, 1).data.slice(0, 3)];
+};
+const PATH_HINT = 'Fly to a spot and press P to add a point. A path starts where the pano was taken.';
 
 export const MpiSceneBlock = ComponentFactory.create({
     name: 'MpiSceneBlock',
@@ -82,6 +95,9 @@ export const MpiSceneBlock = ComponentFactory.create({
                 <div id="fill"></div>
                 <div id="take"></div>
                 <div class="mpi-scene-block__status" id="status"></div>
+                <div class="mpi-scene-block__label">Path</div>
+                <div class="mpi-scene-block__path"><div id="path-add"></div><div id="path-undo"></div><div id="path-clear"></div></div>
+                <div class="mpi-scene-block__readout" id="path-readout"></div>
                 <div class="mpi-scene-block__label">Pictures</div>
                 <div class="mpi-scene-block__history" id="history"></div>
             </div>
@@ -146,6 +162,41 @@ export const MpiSceneBlock = ComponentFactory.create({
         const historyList = MpiHistoryList.mount(qs('#history', el), {
             history: group?.history || [], selectedIndex: panoIndex,
         });
+        const pathReadout = qs('#path-readout', el);
+        const addBtn = MpiButton.mount(qs('#path-add', el), {
+            icon: 'plus', label: 'Add point', size: 'sm', disabled: true, info: 'Add a path point where the camera is (P)',
+        });
+        const undoBtn = MpiButton.mount(qs('#path-undo', el), {
+            icon: 'minus', label: 'Remove last', variant: 'ghost', size: 'sm', disabled: true, info: 'Take the last point off the path',
+        });
+        const clearBtn = MpiButton.mount(qs('#path-clear', el), {
+            icon: 'trash', label: 'Clear', variant: 'ghost', size: 'sm', disabled: true, info: 'Remove the whole path',
+        });
+        // The camera path (plan P1), on the pano item: one path for now, `cameraPaths` leaves room for more.
+        let pathPoints = sceneItem?.cameraPaths?.[0]?.points || [];
+        const showPath = () => {
+            pathReadout.textContent = pathPoints.length ? `${pathPoints.length} points` : PATH_HINT;
+            [undoBtn, clearBtn].forEach(b => b.el.setDisabled(!pathPoints.length));
+            if (!view) return;
+            view.setPath(pathPoints, { start: tokenRgb(el, '--accent-frost'), point: tokenRgb(el, '--accent-heat') });
+            canvasEl.requestRender();
+        };
+        const savePath = async (next) => {
+            if (next === pathPoints) return;
+            pathPoints = next;
+            showPath();
+            const project = state.currentProject, live = liveGroup();
+            if (!project || !live || !sceneItem) return;
+            const cameraPaths = next.length ? [{ points: next }] : [];
+            try { // the sidecar holds item fields (project.json keeps ids); the live item mirrors it (plan A7)
+                await (await appIo()).post(`/project-media/${project.id}/update-meta?folderPath=${encodeURIComponent(project.folderPath)}`,
+                    { itemId: sceneItem.id, updates: { cameraPaths } });
+                await updateGroup({ ...live, history: live.history.map(it => (it.id === sceneItem.id ? { ...it, cameraPaths } : it)) });
+            } catch (err) {
+                clientLogger.warn('scene', `saving the camera path failed: ${err?.message || err}`);
+            }
+        };
+        const addHere = () => { if (view) savePath(addPoint(pathPoints, pose.pos, view.ground)); };
 
         const showReadout = () => {
             const metres = view ? EYE_HEIGHT_M * (1 + pose.pos[1] / view.ground) : EYE_HEIGHT_M;
@@ -265,6 +316,7 @@ export const MpiSceneBlock = ComponentFactory.create({
             ])),
             Hotkeys.bind('scene.fly.boost', () => { boost = FLY_BOOST; }),
             Hotkeys.bind('scene.fly.boost.release', () => { boost = 1; }),
+            Hotkeys.bind('scene.path.add', addHere),
         ];
         const offs = [
             on(canvasEl, 'pointerdown', (e) => { drag = [e.clientX, e.clientY]; canvasEl.setPointerCapture(e.pointerId); }),
@@ -283,6 +335,9 @@ export const MpiSceneBlock = ComponentFactory.create({
         fillInput.on('input', ({ value }) => { fillLine = value; });
         takeBtn.on('click', take);
         buildBtn.on('click', build);
+        addBtn.on('click', addHere);
+        undoBtn.on('click', () => savePath(removeLast(pathPoints)));
+        clearBtn.on('click', () => savePath([]));
         // A picture flies the camera back to where it was taken; the card stays on its pano.
         historyList.on('entry-selected', ({ item }) => {
             if (!item?.scenePose) return; // the pano itself: no camera to fly to
@@ -299,7 +354,8 @@ export const MpiSceneBlock = ComponentFactory.create({
                     view = createSceneView(data);
                     Object.assign(canvasEl.getCamera(), { near: NEAR, far: view.far });
                     canvasEl.setDraw((renderer, camera) => view.draw(renderer, camera));
-                    [takeBtn, buildBtn].forEach(b => b.el.setDisabled(false));
+                    [takeBtn, buildBtn, addBtn].forEach(b => b.el.setDisabled(false));
+                    showPath();
                     show();
                 })
                 .catch((err) => {
@@ -307,8 +363,10 @@ export const MpiSceneBlock = ComponentFactory.create({
                 });
         }
         showReadout();
+        showPath();
 
         el.getPose = () => ({ ...pose, pos: [...pose.pos] });
+        el.getPath = () => pathPoints.map(p => [...p]);
         el.isLoaded = () => !!view;
         el.setPose = (next) => {
             pose = { ...START_POSE, ...next, pos: [...(next?.pos || START_POSE.pos)] };
@@ -327,7 +385,7 @@ export const MpiSceneBlock = ComponentFactory.create({
                 view.dispose();
                 view = null;
             }
-            [bake, buildBtn, aspectPick, lensPick, fillInput, takeBtn, historyList].forEach(c => c.destroy());
+            [bake, buildBtn, aspectPick, lensPick, fillInput, takeBtn, historyList, addBtn, undoBtn, clearBtn].forEach(c => c.destroy());
             viewport.destroy();
         };
     },

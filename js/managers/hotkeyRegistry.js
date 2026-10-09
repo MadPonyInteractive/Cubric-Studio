@@ -819,6 +819,16 @@ export const HOTKEY_REGISTRY = [
                 when:             ({ state }) => state.currentPage === 'scene',
                 allowWhileTyping: false,
             })))),
+    {
+        id:               'scene.path.add',
+        key:              'p',
+        type:             KEY_TYPE.DOWN,
+        category:         'scene',
+        scopeLabel:       'Scene',
+        description:      'Add a path point where the camera is',
+        when:             ({ state }) => state.currentPage === 'scene',
+        allowWhileTyping: false,
+    },
 ];
 
 /**

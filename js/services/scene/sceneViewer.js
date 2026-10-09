@@ -13,6 +13,7 @@ import {
     BufferGeometry, BufferAttribute, Mesh, RawShaderMaterial, GLSL3, DoubleSide, Texture, Scene,
     OrthographicCamera, PerspectiveCamera, WebGLRenderTarget, DepthTexture, FloatType, NearestFilter, RepeatWrapping,
     ClampToEdgeWrapping, LinearFilter, NoColorSpace, Vector2, Vector3, Matrix4, MathUtils,
+    IcosahedronGeometry, CylinderGeometry, MeshBasicMaterial, Color, SRGBColorSpace,
 } from '../../../node_modules/three/build/three.module.js';
 
 /** Fly speed in scene units a second, and drag-look radians a pixel (spike 0a). */
@@ -50,6 +51,9 @@ export const RENDERER_OPTIONS = Object.freeze({
 
 /** The spike's shim clips at clip-w 1e-4 (not shots.py's NEAR); reverse depth keeps it precise. */
 export const NEAR = 1e-4;
+
+/** A path ball's radius, a share of the pano camera's height above the ground: ~20 cm at eye height. */
+export const PATH_BALL = 0.12;
 /** Rule C, shots.py's numbers: a depth edge is a 3x3 spread over 5% of the depth; a stretch is
  *  one source texel drawn over more than 3 screen px. A manifest may carry its own. */
 export const EDGE_RTOL = 0.05;
@@ -508,6 +512,15 @@ export function createSceneView({ manifest, depth, image, layers }, { skyBand = 
     const size = new Vector2();
 
     const ground = groundBelow(depth, P.w, P.h);
+
+    // The camera path (P1): low-poly balls joined by tubes, drawn over the frame on screen only
+    // (a picture never holds it) and never hidden by the scene, so a path through a wall shows.
+    const pathScene = new Scene();
+    const clearPath = () => {
+        pathScene.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); });
+        pathScene.clear();
+    };
+    const rgb = ([r, g, b]) => new Color().setRGB(r / 255, g / 255, b / 255, SRGBColorSpace);
     return {
         far: manifest.far ?? 4 * P.sky, // the spike's records: 4x the dome
         /** The pano camera's height above the ground, scene units (`groundBelow`). */
@@ -531,7 +544,37 @@ export function createSceneView({ manifest, depth, image, layers }, { skyBand = 
             U.uGaps.value = out ? 0 : 1; // the screen paints over gaps; a picture keeps them
             renderer.setRenderTarget(out);
             renderer.render(compScene, flat);
+            if (!out && pathScene.children.length) {
+                const clear = renderer.autoClear;
+                renderer.autoClear = false;
+                renderer.clearDepth(); // the balls hide each other, never the scene them
+                renderer.render(pathScene, camera);
+                renderer.autoClear = clear;
+            }
             renderer.setRenderTarget(null);
+        },
+        /**
+         * Show the camera path `points` (scene coords): the first ball in `start`, the rest and
+         * the joins in `point` (sRGB bytes). `[]` hides it.
+         */
+        setPath(points, { start, point }) {
+            clearPath();
+            if (!points.length) return;
+            const geo = new IcosahedronGeometry(PATH_BALL * ground, 1);
+            const mats = [start, point].map(c => new MeshBasicMaterial({ color: rgb(c) }));
+            points.forEach((p, i) => {
+                const ball = new Mesh(geo, mats[i ? 1 : 0]);
+                ball.position.fromArray(p);
+                pathScene.add(ball);
+            });
+            // The joins as thin tubes: WebGL draws a line 1 px wide whatever its width.
+            for (let i = 1; i < points.length; i++) {
+                const a = new Vector3(...points[i - 1]), d = new Vector3(...points[i]).sub(a), len = d.length();
+                const tube = new Mesh(new CylinderGeometry(PATH_BALL * ground / 4, PATH_BALL * ground / 4, len, 6), mats[1]);
+                tube.position.copy(a).addScaledVector(d, 0.5);
+                tube.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), d.normalize());
+                pathScene.add(tube);
+            }
         },
         /** Mesh one more fill layer into the scene (Take picture's lifted fill). */
         addLayer,
@@ -539,6 +582,7 @@ export function createSceneView({ manifest, depth, image, layers }, { skyBand = 
         dropTargets,
         dispose() {
             dropTargets();
+            clearPath();
             [panoGeo, tri, ...layerGeos].forEach(g => g.dispose());
             [...panoMats, layerMat, compMat].forEach(m => m.dispose());
             texture.dispose();

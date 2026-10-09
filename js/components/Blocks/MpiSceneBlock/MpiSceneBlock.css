@@ -78,6 +78,13 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* The camera path's buttons, one row. */
+.mpi-scene-block__path {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+}
+
 .mpi-scene-block__readout,
 .mpi-scene-block__status {
     color: var(--ink-2);

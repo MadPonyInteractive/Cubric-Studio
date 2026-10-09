@@ -1190,3 +1190,107 @@ Fabio: "go" on a straight-down line for Build here's DOWN view (pitch -PITCH_MAX
     DOWN = hexagonal flagstones from above, 0.0% under the ground. Open by eye: behind_well's up view
     has a black blob in the rock; its behind layer's near floor reads layer/ground 0.51 (was 1.00) -
     maybe planters standing on it, maybe the guard fired there (check: `liftrepro.py well_fit`).
+
+## behind_well's two by-eye items (2026-10-09, session 40 "3D Scene 30", CPU only)
+
+Rigs in the session 40 scratchpad (`C:/Users/Fabio/AppData/Local/Temp/claude/C--AI-Mpi-Cubric-Vision/1afa8c46-9a6a-4879-8dc4-13b620d674cc/scratchpad`):
+`upblob.py` / `upblob2.py` / `leakscan.py` (the blob), `floatmap.py` (z / ground per pixel), `abfit.py`
+(A = today's fit vs B = scale-only always, through the repo's `lift_depth` with the live ground plane as
+`floor`; zm cached in session 39's `zm_cache/`). Results `abfit_seam.txt`.
+
+- **The up view's black blob = black left in Klein's own fill**, not the lift or the viewer: the same
+  2.05% dark pixels in `inpaint_005.png` and its layer, sitting in the middle of the frame's biggest hole
+  (Klein drew a rock lip round it, so it reads as a cave mouth). One-off: over 36 build fills (6 runs)
+  every other fill leaves <= 319 dark px in its holes; this one 20,657.
+- **The behind layer's 0.51 = the whole near floor floating, not planters, and the guard did NOT fire**
+  (p90/p10 1.52, a = +1.020): the affine fit's intercept b = -0.318 tilts the floor up toward the
+  camera, rows 819 to 1023 at 0.69 down to 0.13 of the ground's depth (`floatmap.py`). The ground clamp
+  is one-sided (only under). Session 38's run of the same view had b ~ 0, so 1.00; run-to-run Klein
+  decides. Offline A reproduces it exactly; well_ground view 2 (right) has it worse (A: floor 0.08,
+  kept 21%).
+- **A vs B, outside (behind_well, 18 views):** B puts the near floor on the ground on all 18 (A fails 2);
+  seam error (median |za - z| / z on known pixels within 24 px of the holes) B better on 11, equal 4,
+  worse on 3: both front views where A's fit was good (0.071 to 0.208, 0.052 to 0.171) and one down
+  view (0.015 to 0.047). Every floating view has b < 0; every b > 0 sink is already caught by the clamp.
+- **Inside (window, 18 views): neither fit puts the room floor on the ground** (A 0.36-0.96, B
+  0.40-0.84) and seams are poor both ways (0.05-0.62); B is worse on the side views. That is the next
+  item's own mechanism (the room floor above the outside ground), not the outside float.
+- **Floor-aware fits** (`abfloor.py`, `abfloor.txt`; floor = hole pixels whose MoGe surface faces along
+  the plane normal, below the camera; target z = the ground's): C = affine, scale-only when b < 0;
+  D = scale-only over known + floor; E = affine over known + floor.
+  - Outside: **C is never worse than A** on 18 views, fixes both floats (0.51 / 0.08 to 1.00) and
+    improves 5 seams. D / E cost the front views' seam (0.05-0.07 to 0.22-0.29) - no gain over C.
+  - Inside: pinning the room floor to the ground puts the walls off about 2x (down views: floor
+    0.63-0.77 to 0.93-1.00, seam 0.48 to 1.0-1.3). **No one-scale fit can put Klein's room on both the
+    house walls and the ground** - the room it paints is not the house's size. C inside is mixed (front
+    seams better, side seams worse: 0.10-0.34 to 0.28-0.58).
+- **Fabio: "go with your picks"** - C outside only; the room floor waits on his fly-through eye; the
+  blob is left (1 in 36).
+  - **MpiNodes `db3bdc7`** (pushed, pinned in `dev_configs/node_lock.json`): `lift_depth` also fits
+    scale only when the shift is < 0 on a frame with no back-faced known pixels. `tests/test_scene3d.py`
+    15/15 (+1: a far wall whose fit shift is -0.5 - outside the near floor lands >= 0.85 of the
+    ground's depth, b = 0; the same frame with back faces keeps a = 2.5, b = -0.5). Mutants killed
+    (`mutants_shift.py`): no shift rule; inside too; sign flipped.
+  - **Offline on the 36 real views through the repo's own `lift_depth`** (`abfit_new.txt`): exactly the
+    5 outside views with b < 0 change, all better (well_fit 3: floor 0.51 to 1.00, seam 0.074 to 0.048;
+    well_ground 2: floor 0.08 to 1.00, kept 21% to 52%); 2 inside views that see no back face change
+    too (win_fit 3 seam 0.293 to 0.307, win_fit 6 0.476 to 0.421) - written as a ponytail in the
+    docstring. App lock tests (node-drift, engine-drift, curated deps, download) 35/35.
+  - **Live after Fabio's restart** (marker `db3bdc7`; `run_shift.sh` -> `well_shift` / `win_shift`):
+    behind_well build 248.9 s, pictures 59.8 / 60.1 s, every near floor 1.00, 0.0% under the ground.
+    Weak proof of the rule: live it fired only on view 3, whose plain fit had b = -0.000 (`whyfit.py`);
+    the offline 5 views stay the evidence. **Two new failures found:**
+    - **Window: Build here FAILED at view 3** ("nothing of the scene is in this view"). Not the rule:
+      views 1-2 see back faces, plain fit (`whyfit.py win_shift`). Inside the house the view behind sees
+      only what views 1-2 built; this run's view 2 fill sat nearer (b -0.682 vs -0.436, kept 61% vs 75%)
+      and reached none of view 3's frame. Session 39's pass hung on a 106 px strip. **Fixed (app):**
+      `buildHere` sends a view with no known z to the back of the queue once; still blind -> skipped,
+      its holes left for Take picture. Unit (+1, `z` per render in the harness), 4 mutants killed
+      (`mutants_wait.py`): no wait; endless wait; skip at once; retry first.
+    - **behind_well's down view: 8.55% of the frame left BLACK** (89,639 px, a square) - the second leak
+      in two runs (2 of the last 12 behind_well fills), so "leave it" no longer holds. **Fixed (app):**
+      `fillLayer` measures the fill's black inside the holes (`blackLeft`, mask white, max channel < 20)
+      and over `LEAK` 0.5% fills once more (each job draws its own seed - every live sidecar differs).
+      On the 38 real fills on disk it fires on exactly the 2 leaks (healthy <= 0.15%). Unit (+1), 5
+      mutants killed (`mutants_leak.py`).
+  - **Live, both fixes, PASSED** (`run_wait.sh` under the lease -> `well_wait` / `win_wait`,
+    `analyze.py`, `retryscan.py`): behind_well build 194.5 s, pictures 47.3 / 74.4 s - **the retry
+    fired**: picture 2's first fill left 2.47% black in its holes, the second 0.00% (the third leak in
+    three behind_well runs); every near floor 1.00, 0.0% under the ground, no black on the sheet.
+    Window build 192.8 s (view 3 saw view 2's layer this time, so the wait was not needed live - unit
+    only), window picture 47.3 s, room picture 14.3 s with no holes; room floor 0.34-0.92 (the open
+    interior item).
+  - `npm test` 2822 / 0 fail (both fixes in); eslint clean; docs/scenes.md steps 2-3 + Build
+    here (200 lines).
+
+## Paths P1: the camera path editor (2026-10-09, session 40, no GPU job)
+
+Fabio flew `MPI-623 Fixes - window`: side-stepping inside tears the Build here layers ("way too
+much kung fu"); he picked the path route (plan § Plan Drift 2026-10-09). His reference clip (4 s,
+`/watch`): a 360 video walking down a street, through a lit window, into a room Wan invented.
+
+- **Built:** `js/services/scene/scenePath.js` (`addPoint`: an empty path starts at `PATH_START`, the
+  pano's centre - Wan's video starts from the pano; a press within 5% of the camera height of the
+  last point adds nothing; `removeLast`: down to the start = no path). `view.setPath(points, colours)`
+  in `sceneViewer.js`: low-poly balls (`PATH_BALL` 0.12 of the camera height, ~20 cm) joined by
+  thin tubes (a WebGL line is 1 px whatever its width), drawn after the composite on SCREEN only,
+  depth cleared first so the scene never hides them, never in a picture. MpiSceneBlock: a Path
+  section (Add point / Remove last / Clear + a count or the hint), hotkey **P** (`scene.path.add`,
+  Scene page only), colours from `--accent-frost` (start) / `--accent-heat` through a 1 px canvas
+  (three cannot read oklch). Saved on the pano item's SIDECAR (`update-meta`, `cameraPaths:
+  [{ points }]`) and mirrored on the live item: project.json keeps item ids only, so `updateGroup`
+  alone saved nothing (caught by the rig, fixed).
+- **Checks:** `tests/scene-path.test.cjs` 3/3; scene/hotkey tests 43/43; `npm test` 2825 / 0 fail
+  (before the sidecar + tube changes; related tests re-run after); eslint clean. **Live**
+  (`path_check.cjs`, session 40 scratchpad, isolated app, staged test card): P at the pano centre,
+  behind_well and the window -> 3 points, a 4th P on the same spot ignored; saved to the sidecar;
+  navigate away and back -> the same 3 points; Remove last -> 2; Clear -> 0 and `[]` saved; no page
+  errors. Screens `path_out/views.jpg`: cyan start ball, rose balls + tubes, visible from above, the
+  side and the start.
+- **Fabio's eye: "1" - PASSED.** Then P2: render a path with Wan.
+- **Test projects merged (Fabio's yes):** `Projects/MPI-623`, three named cards (Convert test as is;
+  each Fixes run a new card id, a new pano id, `well_` / `win_` file prefixes, only what its card
+  uses). 24 file refs, 0 missing, no old path left; opened in the isolated app: all three scenes
+  load (0 / 8 / 7 layers) with their pictures, no page errors. The seven old folders went to the
+  Recycle Bin, not deleted. Two script bugs caught by its own checks before anything was removed:
+  stale fill-job sidecars from the shared scratch staging, and a late-binding closure.
