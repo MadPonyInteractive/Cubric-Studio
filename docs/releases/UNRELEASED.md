@@ -44,6 +44,7 @@
 ## What's new
 
 - **Qwen-Image 2.1.** Makes and edits images, up to eight references in one edit, and can return a transparent background. Research licence: the images are not for commercial use.
+- **Character Sheet from Images, a new Flow.** Box the face in a picture of a character you already have, add a full-body picture if you like, and get the same three-view sheet as Character Sheet. Runs on Qwen-Image 2.1 or FLUX.2 Klein 9B.
 - **Use Tiles, beside Use Grid in every model's Upscale.** It redraws the picture in 1024 px tiles, so very large pictures work, and at 1x it adds detail without enlarging. Cosmo and the MCP tools can use it too.
 
 ## ComfyUI Engine
@@ -52,6 +53,7 @@
 
 ## Fixes
 
+- **Character Sheet's headless front body no longer cuts bits of clothing away.** It searched the whole body for the head and its hat, so a bow or a strap could vanish with the head. It now searches only round the face.
 - **RunPod stages a model as soon as it installs.** With "Stage all models on connect" on, a model you installed while connected waited for the next connect, so its first generation was slow.
 - **Switching to a new RunPod volume mid-session gets the shared engine files too.** Klein previews looked like coloured noise there, and SAM3 masking and Describe had nothing to load until the app was restarted.
 - **Compare labels each side with its History name.** An imported image showed its full file path instead.

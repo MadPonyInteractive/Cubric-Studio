@@ -4,6 +4,19 @@ Design is settled in `brief.md`. This plan is the order of work only.
 
 ## Current State
 
+**2026-10-09 18:45 (session 6080697a) - DONE, closing.** Fabio: "The graphics are fine. The workflow works."
+(eye-test 1). His run exposed the headless leg taking a bikini bow: fixed by his crop-and-stitch call (SAM3
+"face" finds the head, the vocabulary runs only on a crop round it; hair and beards stay on purpose) -
+validation batch 27, raw `8e94321a6`. Hero wired (`video:`). Next card: MPI-1041.
+
+**2026-10-09 15:20 (session 6080697a) - real art SHIPPED (`3a5464918`, pushed), validation batch 26.** Tile =
+cafe picture strip + heat box over the sheet's three cells; hero = cafe then a 3D fisherman, picture -> box ->
+panels one by one, 8 s, 1.08 MB, seam 0/255. Both serve 200 at their byte counts. **Left:** (1) the hero's
+`video:` line in `flowsRegistry.js` - the file is claimed by MPI-1036 (session 11dd9adb), asked by message
+`37d16a28` (add `video: 'flow-character-sheet-from-images.mp4'` after `preview`, drop the PROVISIONAL comment);
+(2) Fabio's in-app eye-test; (3) /mpi-end-session (UNRELEASED.md entry, playbook trap rows, MPI-936's
+`edit.components` style pair in commandRegistry.js are all in the tree, uncommitted). Then MPI-1041.
+
 **2026-10-09 handoff - Fabio could not press Generate yet (a peer's smoke test held the GPU).** His asks:
 (1) the graphics must be "similar to the other one" - run `/mpi-flow-graphics` for a real tile + hero like
 Character Sheet's (the tile now is a placeholder crop of batch-25 FK3); (2) he asked why the face box is 4:5,

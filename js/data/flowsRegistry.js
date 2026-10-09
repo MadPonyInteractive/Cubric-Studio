@@ -1523,9 +1523,8 @@ export const FLOWS = [
     {
         id: 'character-sheet-from-images',
         title: 'Character Sheet from Images',
-        // PROVISIONAL: a crop of a bench sheet, so CI's package check passes; /mpi-flow-graphics
-        // replaces it and adds the `video` hero.
         preview: 'flow-character-sheet-from-images.webp',
+        video: 'flow-character-sheet-from-images.mp4',
         description: 'Turn pictures of a character you already have into a character sheet: a large three-quarter portrait, plus full-body front and back views, on a plain grey studio backdrop. Box the face in the first picture; add a full-body picture and the sheet takes its build and clothes. Qwen-Image 2.1 follows a body picture best, but its pictures are not for commercial use; FLUX.2 Klein 9B\'s are. If the sheet does not look like your character, run it again.',
         requiredModels: [{ label: 'Model', models: ['qwen-image-2-1', 'klein-9b'] }],
         operation: 'flowCharacterSheetImages',

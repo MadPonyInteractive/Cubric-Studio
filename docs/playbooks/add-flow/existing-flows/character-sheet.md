@@ -64,17 +64,35 @@ loader (the sheet), whose width/height outputs are `W`/`H`.
 
 ```
 #774 MpiMath "a // 4" (W)  ->  #752 MpiBox(width W//4, height H, x 0, y 0)
-#900 the sheet  ->  #758 MpiBoxCrop
-    ->  #755 SAM3_Detect  "face, hat, moustache"  (threshold 0.5, individual_masks false)
-    ->  #757 MaskComposite(add) onto #756 SolidMask(W x H) at (0,0)
+#900 the sheet  ->  #758 MpiBoxCrop                                  (quarter 1)
+    ->  #903 SAM3_Detect "face" (#902)  ->  #904 MpiMaskBbox  ->  #905 MpiFromBox
+    ->  #906-#908 MpiMath: x - w, 3w, y + h + h//20  ->  #909 MpiBox (y 0)   (the head box)
+    ->  #910 MpiBoxCrop(quarter 1, head box)  ->  #911 MpiFromBox            (crop + offset)
+    ->  #755 SAM3_Detect  "face, hat, moustache"  ON THE HEAD CROP  (threshold 0.5, unioned)
+    ->  #757 MaskComposite(add) onto #756 SolidMask(W x H) at #911's (x, y)
     ->  #854 GrowMask(expand 6, tapered)
 ```
 
-SAM3 only ever sees the left quarter, and the result is pasted back at `(0,0)`. **The head
-mask cannot reach quarters 2–4 by construction.** Keep that in mind when something looks
-"removed" elsewhere on the sheet — it is not this branch, and chasing it here wastes a run.
-One known catch inside quarter 1: "face" can take a round brooch or clasp on the chest
-(seen on the MPI-997 bench run), which gets filled with backdrop like the head.
+SAM3 only ever sees the left quarter, and the vocabulary only the HEAD inside it: "face" alone
+finds where the head is, the box runs three face-widths wide from the quarter's top to just
+under the chin, and the mask is pasted back at that crop's offset. **The head mask cannot
+reach quarters 2–4, nor the body below the chin, by construction.** Keep that in mind when
+something looks "removed" elsewhere on the sheet — it is not this branch, and chasing it here
+wastes a run.
+
+**Why the crop (MPI-1042, 2026-10-09).** On the whole quarter "hat" took a bikini's hip bow
+(Fabio's run), and cropping to the top 40% instead made "hat" take the bikini TOP. "face" alone
+never misfired on five sheets (photo, 3D, anime, Krea 2, a bikini). An empty "face" result is a
+zero box, and `MpiBoxCrop` passes a zero box through, so a sheet with no face found behaves as
+before. The MPI-997 brooch catch ("face" taking a round clasp on the chest) still stands: such a
+hit widens the head box down to the clasp and the vocabulary pass can fill it as before (the
+anime sheet's round brooch was NOT taken in the 2026-10-09 runs).
+
+**Hair stays, on purpose** (Fabio): hair often falls over the clothes, and removing it makes the
+model invent hair on the new clothes. That is why the vocabulary has no "hair" and no "head" —
+"head" takes most of it. Inside the crop, "hat" no longer catches hair the way it sometimes did
+on the whole quarter, so a curly bob now stays round the removed face. A beard stays for the
+same reason: it covers the clothes.
 
 ### The fill — sampled from the sheet, never a constant
 

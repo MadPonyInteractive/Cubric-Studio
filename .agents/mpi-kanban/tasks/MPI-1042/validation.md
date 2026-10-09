@@ -380,3 +380,35 @@ the user's words alone in `Input_Positive`. Outputs `G:/ComfyUi/ComfyUI/output/m
   brow + ear piercings, three-quarter. The box left out the shirt, so the body views wear a plain tee. 57 s.
 - **Character Sheet's own goggled man** (its tile, boxed head and shoulders, TURNED, Qwen): a clean sheet of
   him, goggles and harness kept front and back. 72 s.
+
+## 2026-10-09 - batch 26, the Flow's art (/mpi-flow-graphics), Klein arm, agent-run under gpu_lease
+
+Inputs made for the art, no real person: Klein 9B t2i (`klein_9b_t2i.json`, wf_type 1, 1280x800, seed 42) - a
+photo of a woman in a cafe, a 3D-cartoon fisherman, an anime swordswoman. Each through the Flow's Klein graph as
+the app sets it (box, `Input_Face_Pose` TURNED, no body, empty words, s42) + the headless leg. 54-66 s + 3-6 s.
+Material in the session scratchpad only (art/), not the repo.
+
+- **All three keep likeness, turn and style** (photo / 3D / anime held, "same visual style and medium").
+- **Headless leg on a beard leaves the beard** (fisher); Fabio: fine, the beard covers the clothes. On long hair it
+  blanks the face and keeps the hair (anime) - not used in the art.
+- **Shipped (`3a5464918`):** tile 896x1120 WebP 161,682 B = the cafe picture in a top strip with its 4:5 box
+  (505,10,440,550; re-run so the box fits the strip) in --accent-heat over the sheet's front | back | portrait;
+  hero 1280x800 H.264 8.0 s 1,084,218 B = cafe then fisher, each: picture, box, grey, panels one by one, grey;
+  each beat on its own sheet's grey, loop seam 0/255. Both served 200 at those byte counts by an app:isolated
+  instance. Checked at 220 px in the grid beside the 14 shipped flow tiles, and the hero at 446 px.
+- **Not live yet:** the hero needs `video:` in flowsRegistry.js, held by MPI-1036 (message 37d16a28).
+- npm test 2820 pass / 0 fail (with the MPI-936 `edit.components` style pair).
+- **Fabio's eye, 2026-10-09:** "The graphics are fine. The workflow works." (his Qwen run, flowCSFI_001 in his
+  Qwen 2.1 project). He flagged the headless leg painting out the bikini's hip bow along with the head.
+
+## 2026-10-09 - batch 27, the headless leg searches only round the face (Fabio's crop-and-stitch call)
+
+Fabio's run (Qwen, bikini) lost the bikini's hip bow with the head. Word by word on the front quarter: "hat"
+took the bow and missed the head; "face" alone was clean; "moustache" found nothing; a top-40% crop made "hat"
+take the bikini TOP. Fabio: hair stays (removed, the model invents hair on the new clothes), so no "hair" or
+"head". Built: SAM3 "face" -> MpiMaskBbox -> head box (x - w, 3w wide, top to y + 1.05h) -> MpiBoxCrop ->
+the unchanged "face, hat, moustache" SAM3 on that crop -> pasted at the crop offset (raw `8e94321a6`, API
+staged by sync, injection rules OK). On 5 sheets (Fabio's bikini, cafe, fisher, anime, a Krea 2 Character
+Sheet): bow kept, heads removed, the shipped API graph equals the prototype at max pixel diff 0. The cafe's
+curly bob now stays round the removed face (hat had taken it on the whole quarter). npm test 2825 pass / 0 fail.
+Hero wired: `video:` added to flowsRegistry.js after MPI-1036 released it (message 37d16a28 resolved).

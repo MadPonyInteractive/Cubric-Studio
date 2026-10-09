@@ -49,7 +49,7 @@
         0
       ],
       "image": [
-        "758",
+        "910",
         0
       ],
       "conditioning": [
@@ -59,7 +59,7 @@
     },
     "class_type": "SAM3_Detect",
     "_meta": {
-      "title": "head + hat, unioned"
+      "title": "head + hat, on the head crop only"
     }
   },
   "756": {
@@ -81,8 +81,6 @@
   },
   "757": {
     "inputs": {
-      "x": 0,
-      "y": 0,
       "operation": "add",
       "destination": [
         "756",
@@ -91,11 +89,19 @@
       "source": [
         "893",
         0
+      ],
+      "x": [
+        "911",
+        2
+      ],
+      "y": [
+        "911",
+        3
       ]
     },
     "class_type": "MaskComposite",
     "_meta": {
-      "title": "paste the head mask back at full size"
+      "title": "paste the head mask back at the crop's offset"
     }
   },
   "758": {
@@ -251,6 +257,165 @@
     "class_type": "MpiClearVram",
     "_meta": {
       "title": "Mpi Clear Vram"
+    }
+  },
+  "902": {
+    "inputs": {
+      "text": "face",
+      "clip": [
+        "753",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "SAM3 'face' only - finds WHERE the head is"
+    }
+  },
+  "903": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "753",
+        0
+      ],
+      "image": [
+        "758",
+        0
+      ],
+      "conditioning": [
+        "902",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "face only"
+    }
+  },
+  "904": {
+    "inputs": {
+      "padding": 0,
+      "divisible_by": 1,
+      "mask": [
+        "903",
+        0
+      ]
+    },
+    "class_type": "MpiMaskBbox",
+    "_meta": {
+      "title": "face box (empty -> 0 box -> whole quarter, as before)"
+    }
+  },
+  "905": {
+    "inputs": {
+      "mpi_box": [
+        "904",
+        1
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "Mpi From Box"
+    }
+  },
+  "906": {
+    "inputs": {
+      "math_expression": "c - a",
+      "a": [
+        "905",
+        0
+      ],
+      "c": [
+        "905",
+        2
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "head x: one face-width left"
+    }
+  },
+  "907": {
+    "inputs": {
+      "math_expression": "a * 3",
+      "a": [
+        "905",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "head width: three face-widths"
+    }
+  },
+  "908": {
+    "inputs": {
+      "math_expression": "b + a + a // 20",
+      "a": [
+        "905",
+        1
+      ],
+      "b": [
+        "905",
+        3
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "head height: quarter top to just under the chin"
+    }
+  },
+  "909": {
+    "inputs": {
+      "y": 0,
+      "width": [
+        "907",
+        0
+      ],
+      "height": [
+        "908",
+        0
+      ],
+      "x": [
+        "906",
+        0
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "head box"
+    }
+  },
+  "910": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "758",
+        0
+      ],
+      "mpi_box": [
+        "909",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "crop to the head - the vocabulary never sees the body"
+    }
+  },
+  "911": {
+    "inputs": {
+      "mpi_box": [
+        "910",
+        1
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "head crop offset"
     }
   }
 }

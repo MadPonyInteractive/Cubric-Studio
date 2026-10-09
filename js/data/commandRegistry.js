@@ -495,11 +495,12 @@ export const commands = {
         ],
         promptRequired: true,
         // Boogu-Image-Edit's op: a whole-image instruction edit that follows the SOURCE
-        // image dimensions and exposes no controls at all — hence the empty list. Krea2's
+        // image dimensions. Boogu exposes no controls; the style pair mounts only for a
+        // model whose rack reaches edit (Qwen-Image 2.1, MPI-936). Krea2's
         // edit is a separate op (krea2Edit) for its style rack and second reference slot;
         // it too follows the source size, because Krea2 names krea2Edit in its
         // `imageSizedOps` and modelShowsRatio() suppresses the picker there.
-        components: [],
+        components: ['styleSelect', 'stylization'],
     },
     krea2Edit: {
         label: 'Edit',
