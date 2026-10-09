@@ -24,6 +24,8 @@ Spend ~$0.33 (rate x wall time). No Pod left running.
 ## Checks
 
 - `node --test tests/gpu-picker.test.cjs`: 8 pass, 0 fail.
+- Master CI "Tests" green on 07027949 (run 37999840357) and on the red fix 1973b7c6
+  (run 37998658417).
 
 ## Red master met on the way (1973b7c6)
 

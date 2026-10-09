@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1055", "at": "2026-10-09T23:14:40+01:00", "actor": "claude", "column": "doing", "title": "GPU benchmark harness in the repo + a playbook so any agent can measure a RunPod card"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1055", "at": "2026-10-09T23:47:09+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "runner + playbook in 65e54f16, 3 more cards in 07027949 (CI Tests 37999840357 green)"}
