@@ -19,3 +19,17 @@ roof     NEW: stated 8/8, in opening 8/8, alpha line 0/8, >1 paragraph 1/8, inve
 sticker  NEW: stated 8/8, in opening 0/8, alpha line 8/8, >1 paragraph 1/8, invented brand 0/8
 
 Reading: the alpha line is CORRECT only on the sticker case (transparent background asked). The opening check needs every stated detail (knees+water / roof+rain+umbrella) in sentence 1; the sticker opening is the RGBA line by design, hence 0/8 there.
+
+== Round 4 (2026-10-09, session 180f15d1): Fabio's knees renders failed again (t2i_015/016: opening kept the knees, a LATER
+sentence put her feet on sand and Qwen drew that; t2i_017 + Cosmo's t2i_018 worked: "the water covers her legs").
+New script deepinfra-ab2.mjs: feetOnSand (feet/ankles/toes + sand/shore/ground in one sentence), legsCovered, opening.
+Raw outputs ab-out4.json (OLD+v1), ab-out4-r2/r3/r4.json. Spend: $0.00323 + $0.00160 + $0.00163 + $0.00158 = 0.80 cents
+(Fabio: 20 calls then 30 more, cap 1 cent).
+OLD (3ab767f07) feet on sand 7/10, legs covered 2/10, knee in opening 10/10, >1 paragraph 1/10
+v1 (covered-part rule)        7/10,  10/10,  2/10 (opening collapsed to "shallow water"), 3/10
+v2 (+ keep user measure)      7/10,   5/10,  9/10, 3/10
+v3 (+ "standing in the sea")  7/10,   7/10, 10/10, 7/10
+v4 (ROOT CAUSE: structure step 2 "the surface the subject sits on" -> Gemma writes "the sand beneath her feet";
+   now the water around them when they stand IN it; v3 text shortened)  5/10 regex, ~4/10 by hand (shell/sand at a
+   foot on the beach; "sand beneath the water" and "obscuring any visible sand" are harmless), 5/10, 10/10, 2/10.
+Not the 9/10 bar: gemma-3-12b keeps placing a shell or sand at her feet. Prompt-only fix plateaus around half.

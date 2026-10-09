@@ -25,3 +25,16 @@ Not run yet: GPU held by the app engine (13.2 GB idle), Ollama quit. See plan Cu
   Residual: gemma-3 splits about 1 output in 8 into paragraphs at section boundaries (OLD did too); harmless to the encoder.
 - Spend: ~1.2 cents of Fabio's 2-cent cap.
 - npm test 2817/0 (2 skipped) with the recipe change + MPI-936's rack in the tree.
+
+## 2026-10-09 (session 180f15d1) - Stage 2 field failure + v4 fix
+
+Fabio re-ran his knees prompt with Enhance (DeepInfra gemma-3-12b): t2i_015/016 still at the waterline. Sidecars: the
+opening kept "water up to her knees", but a later sentence put her feet on sand ("The sand immediately surrounding her
+feet...", "waves wash over the sand near her feet") and Qwen drew THAT. His reworded t2i_017 and Cosmo's t2i_018 both
+had a sentence saying the water COVERS her legs: knee-deep. Root cause in the recipe: structure step 2 "the surface the
+subject sits on" -> "the sand beneath her feet". v4: step 2 = the water/snow around them when they stand IN it; walk
+stops at the line that hides them, opening keeps the user's measure; "drop shadow" removed from the prompt entirely
+(vocabulary, rule text, sticker example). DeepInfra A/B, 4 rounds, 0.80 cents (deepinfra-ab.txt): sand/shell at her feet
+7/10 -> ~4/10, legs covered 2/10 -> 5/10, knees in opening 10/10 kept, paragraphs 1/10 -> 2/10. Short of 9/10;
+Fabio: ship v4 (Gemma 4 costs more). Stage 1 harness NOT re-run (judge needs his GPU): change is conditional on a
+covered subject + the drop-shadow removal; recipe-registry/agent tests 22/0.

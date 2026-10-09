@@ -44,6 +44,10 @@ Stage 1 twice green; recipe validates as `draft`; read-back shows `guide:qwen-im
 
 ## Current State
 
+**2026-10-09 (session 180f15d1): v4 SHIPPED on Fabio's call** after his knees renders failed again (later sentence put her
+feet on sand; recipe step 2 "surface the subject sits on" was the cause). validation.md + deepinfra-ab.txt round 4.
+Still Phase 7: his own Enhance renders decide draft -> validated. Stage 1 not re-run since v4 (needs his GPU).
+
 **2026-10-09 (session cd9258be): stated-details fix APPLIED to the recipe, proven on DeepInfra gemma-3.** Parked patch
 applied and tightened: rule 1 = THE BRIEF IS FIXED, opening sentence carries every stated detail (incl. what the subject
 holds; example in the rule is NOT the knees case, so the A/B is not rigged), never invent brands, a closing self-check,
