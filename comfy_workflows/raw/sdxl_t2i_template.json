@@ -1,8 +1,8 @@
 {
   "id": "6292445b-5b89-4f2f-b57a-67373270c1d5",
   "revision": 0,
-  "last_node_id": 1743,
-  "last_link_id": 489,
+  "last_node_id": 1752,
+  "last_link_id": 501,
   "nodes": [
     {
       "id": 1543,
@@ -5293,7 +5293,8 @@
           "name": "float",
           "type": "FLOAT",
           "links": [
-            407
+            407,
+            491
           ]
         }
       ],
@@ -5483,7 +5484,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            419
+            498
           ]
         }
       ],
@@ -5539,7 +5540,7 @@
         {
           "name": "any",
           "type": "*",
-          "link": 419
+          "link": 501
         }
       ],
       "outputs": [
@@ -7291,6 +7292,764 @@
         "clipspace-painted-masked-1787558439017.png [input]",
         "image"
       ]
+    },
+    {
+      "id": 1744,
+      "type": "GetNode",
+      "pos": [
+        5729.038604026481,
+        4868.833258780041
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {},
+      "order": 35,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "*",
+          "type": "*",
+          "links": [
+            495
+          ]
+        }
+      ],
+      "title": "Get_models",
+      "properties": {
+        "Node name for S&R": "GetNode",
+        "aux_id": "kijai/ComfyUI-KJNodes"
+      },
+      "widgets_values": [
+        "models"
+      ]
+    },
+    {
+      "id": 1745,
+      "type": "GetNode",
+      "pos": [
+        5723.987569824997,
+        4976.577163950749
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {},
+      "order": 36,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "FLOAT",
+          "type": "FLOAT",
+          "links": [
+            496
+          ]
+        }
+      ],
+      "title": "Get_denoise",
+      "properties": {
+        "Node name for S&R": "GetNode",
+        "aux_id": "kijai/ComfyUI-KJNodes"
+      },
+      "widgets_values": [
+        "denoise"
+      ],
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 1746,
+      "type": "GetNode",
+      "pos": [
+        6089.038604026481,
+        4868.833258780041
+      ],
+      "size": [
+        210,
+        58
+      ],
+      "flags": {},
+      "order": 100,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            490
+          ]
+        }
+      ],
+      "title": "Get_img1",
+      "properties": {
+        "Node name for S&R": "GetNode",
+        "aux_id": "kijai/ComfyUI-KJNodes"
+      },
+      "widgets_values": [
+        "img1"
+      ],
+      "widgets_values_named": {
+        "Constant": "img1"
+      },
+      "color": "#2a363b",
+      "bgcolor": "#3f5159"
+    },
+    {
+      "id": 1747,
+      "type": "ImageScaleBy",
+      "pos": [
+        6389.038604026481,
+        4868.833258780041
+      ],
+      "size": [
+        300,
+        90
+      ],
+      "flags": {},
+      "order": 168,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 490
+        },
+        {
+          "localized_name": "upscale_method",
+          "name": "upscale_method",
+          "type": "COMBO",
+          "widget": {
+            "name": "upscale_method"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scale_by",
+          "name": "scale_by",
+          "type": "FLOAT",
+          "widget": {
+            "name": "scale_by"
+          },
+          "link": 491
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            492,
+            493
+          ]
+        }
+      ],
+      "title": "Upscale first (1.0 = detail only)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ImageScaleBy"
+      },
+      "widgets_values": [
+        "lanczos",
+        1
+      ],
+      "widgets_values_named": {
+        "upscale_method": "lanczos",
+        "scale_by": 1
+      }
+    },
+    {
+      "id": 1748,
+      "type": "ImpactMakeTileSEGS",
+      "pos": [
+        6789.038604026481,
+        4868.833258780041
+      ],
+      "size": [
+        300,
+        220
+      ],
+      "flags": {},
+      "order": 186,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 492
+        },
+        {
+          "localized_name": "filter_in_segs_opt",
+          "name": "filter_in_segs_opt",
+          "shape": 7,
+          "type": "SEGS",
+          "link": null
+        },
+        {
+          "localized_name": "filter_out_segs_opt",
+          "name": "filter_out_segs_opt",
+          "shape": 7,
+          "type": "SEGS",
+          "link": null
+        },
+        {
+          "localized_name": "bbox_size",
+          "name": "bbox_size",
+          "type": "INT",
+          "widget": {
+            "name": "bbox_size"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "crop_factor",
+          "name": "crop_factor",
+          "type": "FLOAT",
+          "widget": {
+            "name": "crop_factor"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "min_overlap",
+          "name": "min_overlap",
+          "type": "INT",
+          "widget": {
+            "name": "min_overlap"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "filter_segs_dilation",
+          "name": "filter_segs_dilation",
+          "type": "INT",
+          "widget": {
+            "name": "filter_segs_dilation"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "mask_irregularity",
+          "name": "mask_irregularity",
+          "type": "FLOAT",
+          "widget": {
+            "name": "mask_irregularity"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "irregular_mask_mode",
+          "name": "irregular_mask_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "irregular_mask_mode"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "SEGS",
+          "name": "SEGS",
+          "type": "SEGS",
+          "links": [
+            494
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-impact-pack",
+        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
+        "Node name for S&R": "ImpactMakeTileSEGS"
+      },
+      "widgets_values": [
+        1024,
+        1.5,
+        200,
+        30,
+        0.7,
+        "Reuse fast"
+      ],
+      "widgets_values_named": {
+        "bbox_size": 1024,
+        "crop_factor": 1.5,
+        "min_overlap": 200,
+        "filter_segs_dilation": 30,
+        "mask_irregularity": 0.7,
+        "irregular_mask_mode": "Reuse fast"
+      }
+    },
+    {
+      "id": 1749,
+      "type": "DetailerForEachPipe",
+      "pos": [
+        7239.038604026481,
+        4868.833258780041
+      ],
+      "size": [
+        340,
+        852
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 201,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 493
+        },
+        {
+          "localized_name": "segs",
+          "name": "segs",
+          "type": "SEGS",
+          "link": 494
+        },
+        {
+          "localized_name": "basic_pipe",
+          "name": "basic_pipe",
+          "type": "BASIC_PIPE",
+          "link": 495
+        },
+        {
+          "localized_name": "detailer_hook",
+          "name": "detailer_hook",
+          "shape": 7,
+          "type": "DETAILER_HOOK",
+          "link": null
+        },
+        {
+          "localized_name": "refiner_basic_pipe_opt",
+          "name": "refiner_basic_pipe_opt",
+          "shape": 7,
+          "type": "BASIC_PIPE",
+          "link": null
+        },
+        {
+          "localized_name": "scheduler_func_opt",
+          "name": "scheduler_func_opt",
+          "shape": 7,
+          "type": "SCHEDULER_FUNC",
+          "link": null
+        },
+        {
+          "localized_name": "guide_size",
+          "name": "guide_size",
+          "type": "FLOAT",
+          "widget": {
+            "name": "guide_size"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "guide_size_for",
+          "name": "guide_size_for",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "guide_size_for"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "max_size",
+          "name": "max_size",
+          "type": "FLOAT",
+          "widget": {
+            "name": "max_size"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "steps",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "sampler_name",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scheduler",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "denoise",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": 496
+        },
+        {
+          "localized_name": "feather",
+          "name": "feather",
+          "type": "INT",
+          "widget": {
+            "name": "feather"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "noise_mask",
+          "name": "noise_mask",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "noise_mask"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "force_inpaint",
+          "name": "force_inpaint",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "force_inpaint"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "wildcard",
+          "name": "wildcard",
+          "type": "STRING",
+          "widget": {
+            "name": "wildcard"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "refiner_ratio",
+          "name": "refiner_ratio",
+          "type": "FLOAT",
+          "widget": {
+            "name": "refiner_ratio"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "cycle",
+          "name": "cycle",
+          "type": "INT",
+          "widget": {
+            "name": "cycle"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "inpaint_model",
+          "name": "inpaint_model",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "inpaint_model"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "noise_mask_feather",
+          "name": "noise_mask_feather",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "noise_mask_feather"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tiled_encode",
+          "name": "tiled_encode",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "tiled_encode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tiled_decode",
+          "name": "tiled_decode",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "tiled_decode"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            499
+          ]
+        },
+        {
+          "localized_name": "segs",
+          "name": "segs",
+          "type": "SEGS",
+          "links": []
+        },
+        {
+          "localized_name": "basic_pipe",
+          "name": "basic_pipe",
+          "type": "BASIC_PIPE",
+          "links": []
+        },
+        {
+          "localized_name": "cnet_images",
+          "name": "cnet_images",
+          "shape": 6,
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "Tile detailer",
+      "properties": {
+        "cnr_id": "comfyui-impact-pack",
+        "ver": "429d0159ad429e64d2b3916e6e7be9c22d025c3c",
+        "Node name for S&R": "DetailerForEachPipe"
+      },
+      "widgets_values": [
+        1024,
+        true,
+        1536,
+        0,
+        "fixed",
+        8,
+        1.4,
+        "lcm",
+        "simple",
+        0.5,
+        10,
+        true,
+        true,
+        "",
+        0.2,
+        1,
+        false,
+        10,
+        false,
+        false
+      ],
+      "widgets_values_named": {
+        "guide_size": 1024,
+        "guide_size_for": true,
+        "max_size": 1536,
+        "seed": 0,
+        "control_after_generate": "fixed",
+        "steps": 8,
+        "cfg": 1.4,
+        "sampler_name": "lcm",
+        "scheduler": "simple",
+        "denoise": 0.5,
+        "feather": 10,
+        "noise_mask": true,
+        "force_inpaint": true,
+        "wildcard": "",
+        "refiner_ratio": 0.2,
+        "cycle": 1,
+        "inpaint_model": false,
+        "noise_mask_feather": 10,
+        "tiled_encode": false,
+        "tiled_decode": false
+      }
+    },
+    {
+      "id": 1750,
+      "type": "MpiSimpleBoolean",
+      "pos": [
+        7639.038604026481,
+        4618.833258780041
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 99,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "boolean"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "links": [
+            497
+          ]
+        }
+      ],
+      "title": "Input_Tile_Upscale",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "4501c5f3911e26c884b2d876e2e80c03c566f56d",
+        "Node name for S&R": "MpiSimpleBoolean",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.7"
+        }
+      },
+      "widgets_values": [
+        false
+      ],
+      "widgets_values_named": {
+        "boolean": false
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 1751,
+      "type": "MpiBooleanInvert",
+      "pos": [
+        7939.038604026481,
+        4618.833258780041
+      ],
+      "size": [
+        163.808203125,
+        26
+      ],
+      "flags": {},
+      "order": 157,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 497
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "inverted",
+          "name": "inverted",
+          "type": "BOOLEAN",
+          "links": [
+            500
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "972dc229407acda8d970b20b5fcaf40b3d201f1a",
+        "Node name for S&R": "MpiBooleanInvert"
+      }
+    },
+    {
+      "id": 1752,
+      "type": "MpiIfElse",
+      "pos": [
+        8189.038604026481,
+        4668.833258780041
+      ],
+      "size": [
+        270,
+        78
+      ],
+      "flags": {},
+      "order": 211,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "true",
+          "name": "true",
+          "type": "*",
+          "link": 498
+        },
+        {
+          "localized_name": "false",
+          "name": "false",
+          "type": "*",
+          "link": 499
+        },
+        {
+          "localized_name": "boolean",
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "boolean"
+          },
+          "link": 500
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "output",
+          "name": "output",
+          "type": "*",
+          "links": [
+            501
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "972dc229407acda8d970b20b5fcaf40b3d201f1a",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "widgets_values_named": {
+        "boolean": true
+      }
     }
   ],
   "links": [
@@ -8487,14 +9246,6 @@
       "INT"
     ],
     [
-      419,
-      1702,
-      0,
-      1595,
-      0,
-      "IMAGE"
-    ],
-    [
       423,
       1696,
       0,
@@ -8765,6 +9516,102 @@
       1636,
       0,
       "MASK"
+    ],
+    [
+      490,
+      1746,
+      0,
+      1747,
+      0,
+      "IMAGE"
+    ],
+    [
+      491,
+      1694,
+      0,
+      1747,
+      2,
+      "FLOAT"
+    ],
+    [
+      492,
+      1747,
+      0,
+      1748,
+      0,
+      "IMAGE"
+    ],
+    [
+      493,
+      1747,
+      0,
+      1749,
+      0,
+      "IMAGE"
+    ],
+    [
+      494,
+      1748,
+      0,
+      1749,
+      1,
+      "SEGS"
+    ],
+    [
+      495,
+      1744,
+      0,
+      1749,
+      2,
+      "*"
+    ],
+    [
+      496,
+      1745,
+      0,
+      1749,
+      14,
+      "FLOAT"
+    ],
+    [
+      497,
+      1750,
+      0,
+      1751,
+      0,
+      "BOOLEAN"
+    ],
+    [
+      498,
+      1702,
+      0,
+      1752,
+      0,
+      "IMAGE"
+    ],
+    [
+      499,
+      1749,
+      0,
+      1752,
+      1,
+      "IMAGE"
+    ],
+    [
+      500,
+      1751,
+      0,
+      1752,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      501,
+      1752,
+      0,
+      1595,
+      0,
+      "*"
     ]
   ],
   "groups": [
@@ -8872,6 +9719,18 @@
         -366.330688073947,
         2755.359134804173,
         781.9671307917215
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 10,
+      "title": "Tile Upscale",
+      "bounding": [
+        5663.987569824997,
+        4528.833258780041,
+        2865.051034201485,
+        1500
       ],
       "color": "#3f789e",
       "flags": {}
