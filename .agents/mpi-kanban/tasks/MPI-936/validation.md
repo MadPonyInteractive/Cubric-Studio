@@ -99,3 +99,6 @@ RGBA survives capture; `npm test`; agent read-back; Fabio eye-tests the NC tile 
 - **Decoder visual proof (same day, Fabio freed the GPU):** bench, shipped runtime, t2i Lisbon prompt seed 21 896x1088,
   preview frame at step 21/30: WITHOUT the file = Latent2RGB blur; WITH `taeqi2_1_decoder.safetensors` in the bench's own
   `ComfyUI/models/vae_approx/` (not the shared store) = a sharp, correct-colour preview of the same frame. Sent to Fabio.
+- **Fabio's eye on the picker (2026-10-09, his screenshot of project "Qwen 2.1"):** "So pretty" - the object cards in the
+  t2i style picker, Stylization 0.70. **Labels stay as they are** (Lenovo / Canon / Samsung; "the supporting image should
+  be enough"). Edit-op picker landed in MPI-1042's 3b1747f40 (`edit.components = [styleSelect, stylization]`).

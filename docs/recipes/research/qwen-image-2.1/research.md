@@ -41,7 +41,10 @@ this recipe is the only rewriter a Vision user gets.
 
 1. Opening sentence, ~20 words: medium (never omitted), style word, subject, background and
    palette. `The image is a <style> <medium> of <subject>, <background and palette>.`
-2. The background and the surface it sits on, straight after the opening.
+2. The background and the surface it sits on, straight after the opening. **Object-centric**: right for
+   a cup on a table, wrong for a person standing IN water or snow, where gemma-3 wrote "the sand beneath
+   her feet" and Qwen drew her on the shore (Fabio's knees renders, MPI-1048 v4). The recipe now names the
+   water or snow around the subject in that case.
 3. Walk the frame. Divided frame (poster, layout, wide scene): top band, then left, centre,
    right of the body, then bottom band. Single subject: background falloff, pose and placement,
    head and face, body and each garment or surface, what is held, the edges. About a third of

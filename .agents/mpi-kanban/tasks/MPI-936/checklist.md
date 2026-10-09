@@ -31,4 +31,4 @@ Scope widened 2026-10-08 (Fabio): Klein 9B's seven ops, inpaint included. Plan: 
 - [x] REOPEN: raw edits (Fabio asked the agent to: the Qwen raw is script-exported spaghetti): int8 CLIPLoader both raws; Qwen steps 30, LanPaint 20, detail/upscale 15; converted by hand (sync would commit a peer raw), Boogu regenerated, validator 4/4, git diff = only those scalars, npm test 2800/0
 - [x] REOPEN: docs settings row (30 / LanPaint 20 / 15), guide: 30/15 + place every limb, recipe: per-section sentence counts + limb rule
 - [x] REOPEN: style-LoRA survey (HF; Fabio picked: 5 Danrisi, Clay, Natural Exposure, Detail Fix as a style; doodle out)
-- [ ] Style rack on Qwen 2.1 (t2i + edit), deps HF-primary, Detail Fix licence flagged
+- [x] Style rack on Qwen 2.1 (t2i + edit), deps HF-primary, Detail Fix licence flagged (3ab767f07 + edit picker in MPI-1042 3b1747f40)

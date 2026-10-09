@@ -9,7 +9,10 @@ PASS (validation.md): rack runs on t2i + empty-prompt edit; NO style + empty edi
 corrected, tests green). Card art generated (`scratchpad/art.py` of session 180f15d1: harbour-pier man, seed 21,
 896x1120 -> 512x640 `art/cards/qwen-image-21-style-<slug>.webp`, slugs none/lenovo/canon/samsung/filmstills/grainscape/
 detailfix/naturalexposure/clay) - VOID: **Fabio does the style generations + card art himself** (2026-10-09).
-**Preview decoder DONE (uncommitted):** `taeqi21-decoder` in assetDeps.js (R2, sha 992112ba, MIT, derived from
+**PUSHED 3ab767f07 (decoder + object style cards, Fabio "1, ship them").** Decoder also copied into
+`G:/CubricModels/vae_approx/` (sha OK) so local installs stay complete; a Pod volume that already holds Qwen 2.1 reads
+NOT installed until one Install click (14.6 MB; model "installed" = every dep on disk, no receipt, no auto-heal).
+Was: **Preview decoder DONE (uncommitted):** `taeqi21-decoder` in assetDeps.js (R2, sha 992112ba, MIT, derived from
 madebyollin/taeqi2_1), dep of qwen-image-2-1 in models.js, docs/preview-decoders.md row; npm test 2825/0. Visual proof
 = his next Qwen 2.1 render with the file in `G:/CubricModels/vae_approx/` (NOT copied yet: ask). NO GPU runs by the agent
 without one line to Fabio first (he was rendering; bench restarted).
