@@ -538,7 +538,7 @@ In `js/state.js`:
 
 ## Internal heal jobs are silent by construction (MPI-576)
 
-Two jobs run on the first remote connect with no user behind them — the node-drift
+Two jobs run on every remote connect edge (MPI-1050) with no user behind them — the node-drift
 re-clone (`engine:node-drift`, `shell.js _healRemoteNodeDrift`) and the engine-asset
 install (`engine:assets`, `_installRemoteEngineAssets`). Neither may be announced.
 

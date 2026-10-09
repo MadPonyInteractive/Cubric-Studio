@@ -549,7 +549,8 @@ difference between hunting for a 96 GB instance and taking whatever is in stock.
   different repo — so an engineAsset added after the last image build reached a Pod by no path
   at all, surfacing as a 503 mid-generation rather than a build error. `sam3-multiplex` (1.75GB,
   the SAM3 masking weight) shipped that way and was dead on every Pod. Now `shell.js
-  _installRemoteEngineAssets` fires on the SAME first-connect latch as the node-drift heal and
+  _installRemoteEngineAssets` runs beside the node-drift heal on EVERY connect edge (MPI-1050: a
+  once-per-session latch left a volume swapped to mid-session without any engine asset) and
   volume-installs every engineAsset EXCEPT those flagged `bakedOnPod: true` (the 5 the image
   really bakes) or carrying `targetPath` (baked inside a node folder) — reusing the ordinary
   remote install path, so the volume pre-check, dedupe, serial chain and SSE progress all come

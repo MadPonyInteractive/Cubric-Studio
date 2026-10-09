@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/shell.js", "routes/downloadManager.js", "tests/remote-engine-assets.test.cjs", "docs/runpod-remote-engine.md", "docs/download-manager.md", ".claude/rules/comfy_engine.md"] }

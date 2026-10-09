@@ -2852,6 +2852,10 @@ async function _startRemoteDownload(modelId, dependencies, res) {
       }
     }
 
+    // MPI-1050: the remote twin of the local "Starting download for" line. A remote
+    // install logged nothing at all, so a heal that never ran and one that found the
+    // volume complete read the same in app.log.
+    logger.info('download', `remote install ${modelId}: fetching ${toInstall.length ? toInstall.map(d => d.id).join(', ') : 'nothing'}; ${dependencies.length - toInstall.length} on the volume or in flight`);
     const modelJob = _registerJob(modelId, 'remote', entries);
     // Remote installs never run local custom-node extraction — custom_nodes are
     // image-resident on the Pod, so completion must not route through

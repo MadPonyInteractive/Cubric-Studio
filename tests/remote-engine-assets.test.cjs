@@ -165,4 +165,27 @@ const volumeEngineAssets = () => Object.values(DEPS)
     }
 }
 
-console.log('remote-engine-assets: 7/7 OK');
+// 8. MPI-1050 — the install must run on EVERY remote connect edge, not once per app
+//    session. A session latch kept every engine asset off a fresh volume Fabio moved
+//    to mid-session (his first connect, on a warm volume, had used it up). Structural
+//    check: in the connect-edge branch, both heals sit at the SAME brace depth as the
+//    edge's own syncModelInstalled(), so no `if (...) {` gate can wrap them.
+{
+    const fs = require('fs');
+    const src = fs.readFileSync(require('path').join(__dirname, '../js/shell.js'), 'utf8')
+        .split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n');
+    const start = src.indexOf("Events.on('remote:connection', async");
+    const branch = src.slice(start, src.indexOf('} else if (!connected && _wasRemoteConnected)', start));
+    const sync = branch.indexOf('await syncModelInstalled();');
+    assert.ok(start >= 0 && sync >= 0, 'remote:connection connect-edge branch not found in shell.js');
+    for (const call of ['await _healRemoteNodeDrift();', 'await _installRemoteEngineAssets();']) {
+        const at = branch.indexOf(call);
+        assert.ok(at > sync, `${call} must run in the connect-edge branch, after syncModelInstalled()`);
+        const between = branch.slice(sync, at);
+        const depth = (between.match(/\{/g) || []).length - (between.match(/\}/g) || []).length;
+        assert.strictEqual(depth, 0,
+            `${call} is nested inside a block on the connect edge — a latch or gate there skips the heal on a later Pod/volume (MPI-1050)`);
+    }
+}
+
+console.log('remote-engine-assets: 8/8 OK');

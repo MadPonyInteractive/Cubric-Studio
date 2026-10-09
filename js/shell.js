@@ -1651,10 +1651,6 @@ async function _initDataRegistries() {
   // the model check when the remote engine reaches CONNECTED so the volume's real
   // installed set is read. Only on the connected edge; ignore transition phases.
   let _wasRemoteConnected = false;
-  // MPI-230: offer to auto-heal remote node-drift ONCE per session, on the genuine
-  // first resolved connect — never on later reconnect flaps (a multi-GB re-fetch is
-  // too heavy to fire on transient edges). Latches true after the check runs.
-  let _didFirstConnectDriftCheck = false;
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
   Events.on('remote:connection', async ({ connected, phase = null } = {}) => {
     if (phase) return; // mid-transition, not a resolved state
@@ -1683,17 +1679,20 @@ async function _initDataRegistries() {
           .catch((err) => clientLogger.warn('shell', `stage-on-connect prefetch skipped: ${err?.message || err}`));
         await _maybeNotifyArchChange(); // MPI-207: Pod swap to a new arch
         // MPI-230: syncModelInstalled just tagged any volume node at the wrong commit
-        // as drifted. On the genuine first connect only, silently auto-heal it (local
-        // parity — no prompt, no toast).
-        if (!_didFirstConnectDriftCheck) {
-          _didFirstConnectDriftCheck = true;
-          await _healRemoteNodeDrift();
-          // MPI-380: same first-connect latch — install any engineAsset the Pod
-          // image lacks onto the volume. Runs AFTER the drift heal: a node re-clone
-          // is KB-scale and quick, an engine asset can be GB-scale, and the install
-          // chain is serial.
-          await _installRemoteEngineAssets();
-        }
+        // as drifted. Silently auto-heal it (local parity — no prompt, no toast).
+        // MPI-1050: on EVERY connect edge, not once per app session. A session latch
+        // is keyed to nothing the heal depends on: Fabio's first connect went to a warm
+        // volume, he then moved to a fresh one, and the latch kept every engine asset
+        // off it for the rest of the session (Klein previews fell back to Latent2RGB,
+        // SAM3 and the Qwen3-VL describer had no weights). Both heals are near-free on a
+        // healthy volume — no drifted node returns early (MPI-393 made the re-clone
+        // KB-scale), the asset install's volume pre-check credits what is there — and
+        // _wasRemoteConnected above already keeps the heartbeat from re-firing them.
+        await _healRemoteNodeDrift();
+        // MPI-380: install any engineAsset the Pod image lacks onto the volume. Runs
+        // AFTER the drift heal: a node re-clone is KB-scale and quick, an engine asset
+        // can be GB-scale, and the install chain is serial.
+        await _installRemoteEngineAssets();
       } catch (err) {
         clientLogger.error('shell', 'model registry sync on remote connect failed:', err);
       }

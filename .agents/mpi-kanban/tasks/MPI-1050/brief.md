@@ -22,8 +22,9 @@ Pod `6mtshnzc61jz87` (RTX PRO 4500 Blackwell, image `v0.25.0-dev-cu130`, volume 
   `vae_approx: mpi_models/vae_approx/`, :89, :98-100), so the files are absent from the
   volume, not hidden.
 
-So all four volume-installed engine assets (`engineAsset && !bakedOnPod && !targetPath`,
-~7 GB: qwen3vl-abliterated-clip 4.88 GB, sam3-multiplex 1.63 GB, hand-yolov8n, taef2-decoder)
+So all five volume-installed engine assets (`engineAsset && !bakedOnPod && !targetPath`,
+~6.5 GB: qwen3vl-abliterated-clip 4.88 GB, sam3-multiplex 1.63 GB, hand-yolov8n,
+person-yolov8n-seg, taef2-decoder)
 are missing. SAM3 masking and the Qwen3-VL describer would fail on this Pod too.
 
 ## Likely cause (circumstantial, NOT yet proven)
@@ -51,3 +52,7 @@ job that dies says nothing.
   no-op (its own MPI-380 comment says so).
 - A silent job that FAILS must still log a `[download]` warning, so the next one is visible.
 - Test: extend `tests/remote-engine-assets.test.cjs` (it already mirrors the shell.js filter).
+
+## Noticed
+
+- 2026-10-09 live check: on connect the server universal-node install (10:48:48Z) and the client drift heal (10:48:53Z) BOTH installed ComfyUI-MpiNodes - the client sync read it drifted while the server was still installing it. The client re-clone sets remoteComfyNeedsRestart, so the first generation waits on a second ComfyUI restart ("Loading new nodes - restarting the remote engine"). Pre-existing: same pair at 08:57:54Z/08:57:57Z on the morning connect.
