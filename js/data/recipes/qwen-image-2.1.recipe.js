@@ -31,15 +31,16 @@
  * Paraphrased from the vendor prompts, never copied (repo licence "Other").
  * Research: `docs/recipes/research/qwen-image-2.1/`.
  *
- * STATUS: `draft` — Stage 2 (the real-model render) and the `draft -> validated` flip are
- * Fabio's.
+ * STATUS: `validated` — by Fabio, 2026-10-09, after his own Stage 2 renders (the knees prompt,
+ * MPI-1048 v4). Known ceiling: on DeepInfra gemma-3-12b about 4 in 10 rewrites still mention a
+ * shell or sand at a covered subject's feet (`tasks/MPI-1048/deepinfra-ab.txt`).
  */
 
 export const qwenImage21 = {
   modelId: 'qwen-image-2.1',
   family: 'qwen',
   displayName: 'Qwen-Image 2.1',
-  status: 'draft',
+  status: 'validated',
   notes:
     'Qwen-Image 2.1, 7B t2i + edit, stock Qwen3-VL-8B encoder (no prompt token cap), cfg 1 in Vision so the negative is inert. Shaped on the vendor\'s own t2i rewriter prompt (PE-T2I): one English observational paragraph describing the finished picture, opening sentence naming the medium, background, a positional walk round the frame, every legible string quoted in its own script, a lighting sentence, one closing composition sentence. The vendor targets ~20 sentences / 400-500 words for ANY brief; this draft keeps the structure at 250-350 (checked 200-400) because the harness condense tier is a 410-word brief, and leaves the full length to Stage 2. Transparency is a prompt-only switch: the vendor template opens "This is an RGBA image with transparency." and closes "The image has alpha channel and the background is transparent." Ratio and orientation belong to the Prompt Box picker, never the prose. Edit ops never enhance: their rules are in the agent guide.',
   modes: {

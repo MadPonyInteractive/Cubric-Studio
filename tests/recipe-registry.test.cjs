@@ -99,8 +99,13 @@ function testDraftStaysHumanOnly() {
     // The `draft -> validated` flip is a human act, taken only after a real
     // render (Fabio). Nothing in this repo may set it. If a recipe ever reads
     // `validated` here, someone flipped it in code — that is the failure.
+    // Fabio's own flips are named here, one line each, with the date he said it.
+    const FABIO_VALIDATED = {
+        'qwen-image-2.1': '2026-10-09', // "validate the Qwen recipe", MPI-1048
+    };
     for (const r of RECIPE_REGISTRY) {
-        assert.strictEqual(r.status, 'draft', `${r.modelId} must ship as draft`);
+        const want = FABIO_VALIDATED[r.modelId] ? 'validated' : 'draft';
+        assert.strictEqual(r.status, want, `${r.modelId} must ship as ${want}`);
     }
 }
 
