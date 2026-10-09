@@ -114,3 +114,4 @@ the user's `Documents/Cubric Studio/project-paths.json` for the run only and rem
 
 - Fabio: a 4K photo + "add detail" should be a tile upscale at 1x, chosen by Cosmo. Before: routed to a whole-picture edit (graphs scale input to 1 MP) or the masked Detail op. Now: Model rule clause (+82 bytes, SYSTEM_BUDGET 10,814), TILES_NOTE on every tile-capable model upscale op, Detail op note pointing to it. tests/agent-tiles.test.cjs 8 pass; agent suites 547 pass. Live Cosmo run: pending Fabio restart.
 - CI 01524eb07: red on the model-settings-popup flake, re-run green on all shards.
+- Fabio, 2026-10-09: the full detail/upscale routing (i2i vs tiles vs mask vs the upscale kinds, by picture size) is its own card, MPI-1053, which reworks the 019d0e507 rule + notes. MPI-1038 closes on: his in-app 1 on Krea2 + Klein Use Tiles, the agent/MCP params (tests), CI green. Chroma + SDXL tiles: graph-validator proof only (no weights here).
