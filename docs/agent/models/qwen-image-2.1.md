@@ -22,7 +22,7 @@ result is not for commercial use, and never pick it when another model can do th
 
 ## Settings
 
-- One tier: 25 steps (`detail` and `upscale` 12), cfg 1. No negative field, no style
+- One tier: 30 steps (`detail` and `upscale` 15), cfg 1. No negative field, no style
   rack, a user LoRA rack only.
 - Ratios in two size classes (`1k`, `2k`) on `t2i` and `i2i`. `edit`, `control`,
   `detail` and `upscale` follow the source; on `edit` the first image sets the output's
@@ -55,7 +55,8 @@ for about 300. In order:
 2. The background and the surface the subject sits on.
 3. A walk round the frame with positional phrases (in the upper-left corner, across the
    lower third, on the far right), reaching the edges as well as the centre. One subject:
-   pose and placement, then face, then body and each garment, then what it holds.
+   pose and placement, then face, then body and each garment, then what it holds. A
+   person: where each arm and each leg is and what each hand does.
 4. Any words in the picture, each in straight double quotes, character for character, in
    its own script, with where it sits and how it looks: a bold black headline across the
    top reads "OPEN LATE". No words wanted: write none.
@@ -125,6 +126,9 @@ Replace the t-shirt the woman wears in <image1> with the leather jacket from <im
   stop describing it in detail.
 - A short prompt came back plain or generic: write the full description above rather
   than a phrase; the model was trained on long ones.
+- Bent, extra-long or tangled arms and legs: the prompt left the limbs unplaced. Rewrite it
+  long and say where each limb is. On the same seed, the long form fixed both such
+  failures tested.
 
 ## Sources
 

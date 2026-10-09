@@ -47,7 +47,9 @@ Stage 1 twice green; recipe validates as `draft`; read-back shows `guide:qwen-im
 Phases 1, 2, 4, 5, 6 done (2026-10-09): research + sources, recipe `js/data/recipes/qwen-image-2.1.recipe.js`
 registered (registry test count 13 -> 14), guide `docs/agent/models/qwen-image-2.1.md`, flux-2.md trimmed to a
 pointer, models.js `enhanceRecipe: 'qwen-image-2.1'`, read-back shows `guide:qwen-image-2.1`, agent tests green.
-NEXT: Phase 3 Stage 1 sweeps. Blocked on the GPU: Ollama is quit, and Fabio's app engine (:48188, pid of
+**2026-10-09 (session 3e2b8b66): Phase 3 DONE.** Two recipe fixes (per-section sentence counts + limb rule from MPI-936's
+renders; stated length 350), then sweeps 3+4 both 15/15 ALL PASS: `docs/recipes/research/qwen-image-2.1/validation.md`.
+NEXT: Phase 7 (Stage 2 renders, Fabio). Old note: Phase 3 was blocked on the GPU: Ollama is quit, and Fabio's app engine (:48188, pid of
 engine/ComfyUI_windows_portable python) holds 13.2 GB idle on the 16 GB 4060 Ti; a 12B beside a full card
 bluescreened the box once (global memory tools/mpi-kanban.md 2026-10-04). Asked Fabio to free it or allow it.
 Run: `gpu_lease.py run --timeout 7200 -- "C:/Program Files/Git/bin/bash.exe" <script>` where the script starts
@@ -60,7 +62,7 @@ gemma-4-abliterated-12b --judge gemma-3-12b --runs 3` to a log (no tee), then ki
 
 ## Remaining Work
 
-Phase 3 (two green sweeps, research validation.md), Phase 7 (Stage 2 renders, Fabio).
+Phase 7 (Stage 2 renders, Fabio).
 
 ## Plan Drift
 

@@ -2,6 +2,17 @@
 
 ## Current State
 
+**2026-10-09 (session 3e2b8b66).** int8 encoder proven on Boogu + Qwen 2.1, on disk, on R2; dep `qwen3vl-8b-int8-clip`
+written, the three ModelDefs + three tests moved, old dep deprecated (17/17 dep tests green). Limb cause found on
+Fabio's own seeds: short prompt + 25 steps (validation.md). Fabio picked 30 steps, detail/upscale 15.
+**DONE since: raw edits (agent, on Fabio's ask), runtimes converted, npm test 2800/0. NEXT: bench smoke of the shipped qwen_image_2_1.json (int8, 30 steps) once the MPI-1048 sweeps free the GPU, then the style-LoRA survey. Was:** (node list in chat: raw/qwen_image_2_1.json #3 w0 int8, #33/#63/#112 w2 30, #49 (LanPaint) w2 20, #81 w2 15,
+#97 w3 15; raw/boogu_edit_template.json #59 w0 int8). Then convert by hand, NOT sync-raw-workflows (it would commit the
+peer's untracked raw/flow_tile_detailer.json): `node scripts/workflow-to-api.mjs <raw> > <runtime>`, Boogu via its
+generator, validate-injection-rules, tests; docs/models/qwen-image-2/README.md settings row 30/15. Then style-LoRA survey.
+Harness: `research/bench/ab.py` (groups boogu / limbs / repro; argv[2:] filters columns).
+
+Previous (reopen, session 547921d1):
+
 **REOPENED 2026-10-09 (session 547921d1), Fabio after his own Qwen 2.1 runs.** Do NOT rebuild the graph
 (his call: the work is done; the never-again rule now lives in the add-model skill + playbook + memory).
 

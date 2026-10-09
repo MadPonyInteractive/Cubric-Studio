@@ -1249,7 +1249,7 @@ const ALL_MODELS = [
         },
         dependencies: [
             'boogu-edit-transformer-high',
-            'boogu-qwen3vl-8b-clip',
+            'qwen3vl-8b-int8-clip',
             'vae-flux-ae',            // shared — already on R2, zero upload
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',        // SetNode/GetNode
@@ -1281,7 +1281,7 @@ const ALL_MODELS = [
         },
         dependencies: [
             'boogu-edit-transformer-balanced',
-            'boogu-qwen3vl-8b-clip',
+            'qwen3vl-8b-int8-clip',
             'vae-flux-ae',
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',
@@ -1945,7 +1945,7 @@ const ALL_MODELS = [
         },
         dependencies: [
             'qwen-image-21-transformer',  // HF-primary, research licence
-            'boogu-qwen3vl-8b-clip',      // stock Qwen3-VL-8B (Apache-2.0), shared with Boogu
+            'qwen3vl-8b-int8-clip',       // stock Qwen3-VL-8B (Apache-2.0), shared with Boogu
             'vae-qwen-image-21',          // HF-primary, research licence
             'qwen-image-21-controlnet-union', // HF-primary, research licence; IS the control op
             '4x-NMKD-Siax',               // shared engineAsset (upscale op)

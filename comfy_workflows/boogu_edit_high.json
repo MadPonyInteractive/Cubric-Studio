@@ -33,7 +33,7 @@
   },
   "59": {
     "inputs": {
-      "clip_name": "qwen3vl_8b_fp8_scaled.safetensors",
+      "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
       "type": "boogu",
       "device": "default"
     },

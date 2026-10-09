@@ -29,7 +29,7 @@ const { getUniversalWorkflowDepIds } = require('../routes/shared.js');
 // Same pair the local test uses: a model with no operation groups (its whole universe
 // on the volume makes it installed) and the shared text encoder it also declares.
 const FLAT = MODELS.find(m => m.id === 'boogu-edit-balanced');
-const ORPHAN = 'boogu-qwen3vl-8b-clip';
+const ORPHAN = 'qwen3vl-8b-int8-clip';
 
 // ── Fake Pod volume ───────────────────────────────────────────────────────────
 const volume = new Set();

@@ -25,5 +25,9 @@ Scope widened 2026-10-08 (Fabio): Klein 9B's seven ops, inpaint included. Plan: 
 - [x] One generation per op in the real app; RGBA output survives capture (t2i 69%, edit 59% clear)
 - [x] Pod yaml maps `model_patches` (mpi-ci c57f7dd, pushed); release:check passes
 - [x] REOPEN 2026-10-09: MpiClearVram spliced before Output_Image (raw + runtime), validator + 55 injection tests green
-- [ ] REOPEN: live check, engine VRAM drops after a Qwen 2.1 run (needs the GPU)
-- [ ] REOPEN: encoder A/B, Boogu fp8_scaled vs the templates int8_convrot (Fabio decides on the result)
+- [x] REOPEN: live VRAM check dropped by Fabio (MpiClearVram proven on dozens of graphs)
+- [x] REOPEN: int8_convrot encoder proven on Boogu (type boogu) + Qwen 2.1; downloaded, R2 uploaded; dep `qwen3vl-8b-int8-clip`, old dep deprecated, 3 ModelDefs + 3 tests moved
+- [x] REOPEN: limb A/B on Fabio's own failed seeds; cause = short prompt + 25 steps, not the encoder
+- [x] REOPEN: raw edits (Fabio asked the agent to: the Qwen raw is script-exported spaghetti): int8 CLIPLoader both raws; Qwen steps 30, LanPaint 20, detail/upscale 15; converted by hand (sync would commit a peer raw), Boogu regenerated, validator 4/4, git diff = only those scalars, npm test 2800/0
+- [x] REOPEN: docs settings row (30 / LanPaint 20 / 15), guide: 30/15 + place every limb, recipe: per-section sentence counts + limb rule
+- [ ] REOPEN: style-LoRA survey (HF + Civitai, VPN)

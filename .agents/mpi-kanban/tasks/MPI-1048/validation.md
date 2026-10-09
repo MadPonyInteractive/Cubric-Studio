@@ -10,3 +10,6 @@
 ## Phase 3 Stage 1
 
 Not run yet: GPU held by the app engine (13.2 GB idle), Ollama quit. See plan Current State.
+
+- 2026-10-09 (session 3e2b8b66): Stage 1 ALL PASS twice (sweeps 3+4, 15/15, judge 2/2/2 on all 30) after two recipe
+  fixes; record in `docs/recipes/research/qwen-image-2.1/validation.md`. Agent tests 21/21, recipe test green, npm test 2800/0.

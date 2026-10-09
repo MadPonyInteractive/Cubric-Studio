@@ -80,3 +80,23 @@ scratch; the method is "same key set, then sha256 of the first 4 MB of sampled t
   the sigmas still need an MpiNode (core `ManualSigmas` is fixed-resolution). Fast tier deferred
   until the standard tier ships.
 - Licences: all three repos tag `license: other` (qwen-research), none HF-gated.
+
+## Style-LoRA survey (2026-10-09, session 3e2b8b66) - HF only; Civitai not checked (needs Fabio's VPN)
+
+HF `base_model:adapter:Qwen/Qwen-Image-2.1`: ~100 LoRAs, sorted by downloads. Klein's rack is drawn styles
+(anime, chibi, comic, doodle, storybook, vintage, watercolour) + photo looks. What 2.1 has today:
+
+| kind | repo (file, size) | licence | dl / likes | note |
+|---|---|---|---|---|
+| doodle | ML-Intern-lab/Qwen-Image-2.1-doodle-in-LoRA (`doodle_in_lora_qwen21`, 152 MB) | qwen-research | 910 / 17 | the only Klein-rack match with traction |
+| clay | prithivMLmods/Qwen-Image-2.1-Clay-Sculpture-Style (3 checkpoints, 80 MB) | qwen-research | 340 / 5 | |
+| anime | NicknickAI/QwenImage2.1-2anime (80 MB) | qwen-research | 0 / 4 | untested by anyone |
+| anime consistency | WarmBloodAban/Qwen-Image-2.1-LoRAs (`Qwen2.1_Anime_consistency`, 160 MB) | apache-2.0 | 21.9k / 118 | character consistency, not a style |
+| Y2K / voxel / outrun / heatwave / amethyst | empero-ai, prithivMLmods | qwen-research | <=320 | thin |
+| photo looks | Danrisi `lenovo` / `filmstills` / `canon` / `samsung` / `grainscape` (76 MB each, trigger `l3n0v0` etc., strength 0.7) | qwen-research | 0.8-2.6k | same author as chroma's lenovo style |
+| photo | prithivMLmods/Qwen-Image-2.1-Natural-Exposure-LoRA | qwen-research | 8.9k / 56 | |
+| quality | e-n-v-y/Qwen-Image-2.1-Fix(-v2.0) (`qwen2.1-detail-fix-2.0`, 52 MB) | none stated | 17.6k / 92 | detail fix, comparison images only |
+
+Verdict: no drawn-style set yet that matches Klein's rack (watercolour, storybook, comic, chibi, vintage: none). A
+rack today would be doodle + clay + photo looks. A rack is a structural graph change (the raw is script-exported, so
+the agent's). Fabio's call whether, and Civitai with VPN first.

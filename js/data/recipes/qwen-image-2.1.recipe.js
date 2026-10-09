@@ -16,9 +16,12 @@
  *
  * Length: the vendor says 400-500 words. The harness's `overlong` tier is a 410-word
  * brief whose `condensed` check needs a SHORTER output, so the vendor figure fails the
- * condense job by construction; the draft keeps the vendor's whole structure at 250-350
- * stated / 200-400 checked (`docs/recipes/research/qwen-image-2.1/research.md` § 1).
- * Whether the full 450-word form renders better at 25 steps int8 is a Stage 2 question.
+ * condense job by construction; the draft keeps the vendor's whole structure at 300-380
+ * stated / 200-400 checked (the 12B engine lands ~25% under any stated figure, so 350 stated is
+ * what clears the 200 floor; Stage 1, 2026-10-09) (`docs/recipes/research/qwen-image-2.1/research.md` § 1).
+ * Whether the full 450-word form renders better at 30 steps int8 is a Stage 2 question. What IS
+ * proven (MPI-936 bench, 2026-10-09): on the same seed a ~300-word description in this shape fixed
+ * the bent limbs a one-line prompt produced; hence the per-section sentence counts and the limb rule.
  *
  * ONE MODE. Enhance never runs on an edit op (`ENHANCE_EXEMPT_OPS`), so the edit
  * rewriter's rules (an instruction, not a description; `<image1>` tags) live in the agent
@@ -42,7 +45,7 @@ export const qwenImage21 = {
   modes: {
     t2v: {
       outputFormat: 'prose',
-      lengthNorm: 'one paragraph, ~300 words in 14-18 sentences; 350 stated ceiling, 400 hard',
+      lengthNorm: 'one paragraph, ~350 words in 16-20 sentences; 380 stated ceiling, 400 hard',
       // Vendor PE-T2I: "about twenty sentences and four to five hundred words", the same
       // size for a three-word or a three-hundred-word brief. Held lower for the harness's
       // 410-word condense tier (see the header). The floor is real: a thin brief buying a
@@ -102,7 +105,7 @@ export const qwenImage21 = {
 
 THREE RULES THAT OVERRIDE EVERYTHING BELOW:
 1. THE SUBJECT IS FIXED. Whatever the user named is what the picture is of. If the input is one word, that word IS the subject: "cat" means a cat. Never replace it, upgrade it, or drift to a different subject.
-2. LENGTH: about 300 words in 14 to 18 sentences of roughly twenty words each, never below 250 and never above 350, and the SAME size whatever the input was. A one-word request means you invent most of the frame, not that you write less. A long request means you keep its specific details and drop its filler, not that you write more.
+2. LENGTH: about 350 words in 16 to 20 sentences of roughly twenty words each, never below 300 and never above 380, and the SAME size whatever the input was. A one-word request means you invent most of the frame, not that you write less. A long request means you keep its specific details and drop its filler, not that you write more.
 3. ONE PARAGRAPH of continuous prose. No line breaks, no lists, no headings.
 
 Write as an observer. Present tense, third person, declarative: the prompt states what IS in the picture. Never talk to the user or to a renderer: no "you", no "create", no "make sure", no "the image should".
@@ -117,10 +120,10 @@ Some of the input may be an instruction about the job rather than about the pict
 
 Write the paragraph in this order:
 1. One opening sentence of about twenty words naming the medium (photograph, poster, illustration, portrait, close-up, infographic, logo...), one style word (realistic, cinematic, minimalist, flat-vector, watercolour, isometric, editorial, 3D-rendered...), the subject, and the background and its palette. A form like "The image is a realistic photograph of ..." works. Never leave out the medium.
-2. The background and the surface the subject sits on, straight after the opening.
-3. A walk round the frame. For a scene or layout with several regions: the top band, then the left, centre and right of the body, then the bottom band. For a single subject: its pose and where it sits in the frame, then head and face, then body and each garment or surface, then anything held or touching it, then whatever is left at the edges. Place things with positional phrases (in the upper-left corner, across the lower third, on the far right, behind, in front of), at least eight of them, reaching the corners and edges and not only the centre. Open about a third of your sentences on the positional phrase itself.
+2. The background and the surface the subject sits on, in two sentences, straight after the opening.
+3. A walk round the frame in at least nine sentences, each on one region or one part of the subject. For a scene or layout with several regions: the top band, then the left, centre and right of the body, then the bottom band. For a single subject: its pose and where it sits in the frame, then head and face, then body and each garment or surface, then anything held or touching it, then whatever is left at the edges. For a person, say where each arm and each leg is and what each hand is doing: an unplaced limb is the one 2.1 bends. Place things with positional phrases (in the upper-left corner, across the lower third, on the far right, behind, in front of), at least eight of them, reaching the corners and edges and not only the centre. Open about a third of your sentences on the positional phrase itself.
 4. Only if the picture is meant to contain words: each string in reading order, with where it sits and how it looks, as in: a bold black headline across the top reads "OPEN LATE". Copy the user's text character for character inside straight double quotes, in its own script; Chinese, Japanese, Russian or Arabic text stays in that script. If the user asked for no text, add none and invent no signage.
-5. A sentence for the lighting, opening "The lighting is": its source, direction and quality, and the shadows and highlights it leaves.
+5. Two sentences for the lighting, the first opening "The lighting is": its source, direction and quality, then the shadows and highlights it leaves.
 6. Exactly one closing sentence about the whole frame, opening "The overall composition" or "The overall mood": its balance, palette, style and mood. Nothing after it.
 
 Rules for the description:

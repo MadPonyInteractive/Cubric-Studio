@@ -212,12 +212,14 @@ export const assetDeps = {
         sha256: '45fe15d359fbc6fe8773f24cebc34acedf5696d96d41a0c9a3039611ece3b866',
         engineAsset: true,
     },
-    // Qwen3-VL-8B fp8_scaled (hidden 4096) — Boogu's text encoder, `type: 'boogu'` in
-    // the CLIPLoader. Distinct weight from the Qwen3-VL-4B encoders above. Shared by all three
-    // Boogu tiers, AND by Qwen-Image 2.1 at CLIPLoader `type: qwen_image` (MPI-936): 2.1's own
-    // encoder is stock Qwen3-VL-8B-Instruct, proven by tensor bytes, and this file's
-    // unquantised norms match stock exactly — docs/models/qwen-image-2/. The id keeps its
-    // Boogu prefix because renaming a shipped id strands it; the display name follows the weight.
+    // ── DEPRECATED (MPI-936, 2026-10-09) — replaced by `qwen3vl-8b-int8-clip` below on every
+    // model that listed it (both Boogu tiers + Qwen-Image 2.1; Fabio: int8 wherever it fits).
+    // NOT reachable. It stays because `_orphanedDepIds` (routes/downloadManager.js) iterates
+    // this map and trashes what no model protects: this entry is what lets the sweep reclaim
+    // the 9.86GB already on an existing Boogu user's disk. R2 + HF copies stay up so a
+    // released build that still lists it installs rather than 404s.
+    // Was: Qwen3-VL-8B fp8_scaled (hidden 4096) — Boogu's text encoder, `type: 'boogu'` in
+    // the CLIPLoader. The id keeps its Boogu prefix because renaming a shipped id strands it.
     'boogu-qwen3vl-8b-clip': {
         id: 'boogu-qwen3vl-8b-clip',
         name: 'Qwen3-VL-8B Text Encoder (fp8_scaled)',
@@ -228,6 +230,22 @@ export const assetDeps = {
         size: '9.86GB',
         bytes: 10588637512,
         sha256: '4ba424cf62e51392e4d1a39933e803706f4e823c1065f36aaf149c6453f66bcd',
+    },
+    // Qwen3-VL-8B int8_convrot (MPI-936) — the stock Qwen3-VL-8B-Instruct encoder (Apache-2.0),
+    // Comfy-Org's int8 cut, the Qwen-Image 2.1 templates' default. Loaded at CLIPLoader
+    // `type: boogu` by both Boogu tiers and `type: qwen_image` by Qwen-Image 2.1. Bench
+    // 2026-10-09: Boogu Balanced edits on fixed seeds match the fp8 encoder near pixel for pixel
+    // (MPI-936 research/bench/ab.py). 0.5GB smaller than the fp8 it replaces.
+    'qwen3vl-8b-int8-clip': {
+        id: 'qwen3vl-8b-int8-clip',
+        name: 'Qwen3-VL-8B Text Encoder (int8_convrot)',
+        origin: 'Comfy-Org/Qwen3-VL (text_encoders/qwen3vl_8b_int8_convrot.safetensors)',
+        filename: 'text_encoders/qwen3vl_8b_int8_convrot.safetensors',
+        url: 'https://models.cubric.studio/vision/models/text_encoders/qwen3vl_8b_int8_convrot.safetensors',
+        mirrorUrl: 'https://huggingface.co/Comfy-Org/Qwen3-VL/resolve/main/text_encoders/qwen3vl_8b_int8_convrot.safetensors',
+        size: '8.71GB',
+        bytes: 9350798360,
+        sha256: '8bfd0f6e12abf2d2d697ecc888e5e90b0d6741d6708f05799f53afa560452e8f',
     },
     // Qwen-Image-Edit-2511 text encoder (MPI-300). Qwen2.5-VL-7B (hidden 3584) — NOT
     // the boogu Qwen3-VL-8B nor the krea2 Qwen3-VL-4B. Full-precision TE tested &

@@ -289,7 +289,7 @@ export const modelDeps = {
     // Unified 10B image edit, Apache-2.0. Native ComfyUI (comfy_extras/nodes_boogu.py
     // — TextEncodeBooguEdit, no baked node). Three quality TIERS ship as three sibling
     // ModelDefs (modelFamily 'Boogu-Image-Edit'), one transformer each; same graph,
-    // Input_Tier baked per file. CLIP = Qwen3-VL-8B (boogu-qwen3vl-8b-clip in assetDeps),
+    // Input_Tier baked per file. CLIP = Qwen3-VL-8B (qwen3vl-8b-int8-clip in assetDeps, MPI-936),
     // VAE = shared vae-flux-ae. bf16 is 19.17 binary GB — UNDER the 20GB hot-store gate,
     // stays on the volume.
     'boogu-edit-transformer-high': {

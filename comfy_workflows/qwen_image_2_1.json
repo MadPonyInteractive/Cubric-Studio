@@ -25,7 +25,7 @@
   },
   "3": {
     "inputs": {
-      "clip_name": "qwen3vl_8b_fp8_scaled.safetensors",
+      "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
       "type": "qwen_image",
       "device": "default"
     },
@@ -405,7 +405,7 @@
   },
   "33": {
     "inputs": {
-      "steps": 25,
+      "steps": 30,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
@@ -653,7 +653,7 @@
   },
   "49": {
     "inputs": {
-      "steps": 25,
+      "steps": 20,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
@@ -825,7 +825,7 @@
   },
   "63": {
     "inputs": {
-      "steps": 25,
+      "steps": 30,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
@@ -909,7 +909,7 @@
   },
   "81": {
     "inputs": {
-      "steps": 12,
+      "steps": 15,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
@@ -1077,7 +1077,7 @@
   },
   "97": {
     "inputs": {
-      "steps": 12,
+      "steps": 15,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",
@@ -1381,7 +1381,7 @@
   },
   "112": {
     "inputs": {
-      "steps": 25,
+      "steps": 30,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",

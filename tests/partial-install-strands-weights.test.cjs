@@ -41,11 +41,11 @@ const dm = require('../routes/downloadManager.js');
 
 const imp = p => import(pathToFileURL(path.resolve(__dirname, '..', p)).href);
 
-// Y and the common dep to delete. Boogu is the real shape: two tiers sharing one 10.59GB
+// Y and the common dep to delete. Boogu is the real shape: two tiers sharing one 9.35GB
 // Qwen3-VL encoder, each with its own exclusive transformer — and the family that stranded
 // 15.91GB in MPI-462.
 const MODEL_ID = 'boogu-edit-high';
-const MISSING_DEP = 'boogu-qwen3vl-8b-clip';
+const MISSING_DEP = 'qwen3vl-8b-int8-clip';
 
 (async () => {
     try {

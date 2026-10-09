@@ -28,7 +28,7 @@ const { getUniversalWorkflowDepIds } = require('../routes/shared.js');
 // A model with no operation groups: placing its whole universe makes it installed.
 const FLAT = MODELS.find(m => m.id === 'boogu-edit-balanced');
 // Stranded exactly as the user's was: the shared text encoder with neither tier installed.
-const ORPHAN = 'boogu-qwen3vl-8b-clip';
+const ORPHAN = 'qwen3vl-8b-int8-clip';
 
 function place(depIds) {
     for (const id of depIds) {
