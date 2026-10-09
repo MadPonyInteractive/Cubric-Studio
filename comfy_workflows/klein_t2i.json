@@ -2236,7 +2236,7 @@
       "guide_size": 1024,
       "guide_size_for": true,
       "max_size": 1536,
-      "steps": 2,
+      "steps": 4,
       "cfg": 1,
       "sampler_name": "lcm",
       "scheduler": "normal",
