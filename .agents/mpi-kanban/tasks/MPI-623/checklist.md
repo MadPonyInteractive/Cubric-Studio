@@ -47,6 +47,17 @@ ticks (Phase 0/0b/1, all complete) moved verbatim to
       A, MpiNodes `3ec03ef`; live re-take 12.3% (was 64%), validation.md § Interior lift
 - [ ] Build here (0b's loop as a tool) (2026-10-08 session 37: built, both 0b spots live, 265 /
       295 s; left: interior style via the pano as reference (A/B), SAM3 glass, Fabio's eye)
+      (2026-10-08 session 38: Fabio flew behind_well - the near floor sinks 2.4-6x, measured,
+      validation.md § Fly-through; fix route is Fabio's call. Interior style: describer A/B queued)
+- [x] Fly-through asks (session 38): card stays on its pano, Shift flies x4, stepped lens slider,
+      presets removed (validation.md § Fly-through)
+- [x] Interior style: the pano's style phrase via `describeImage`, inside per SPOT (`insideAt`),
+      `ROOM` for frames that see no outside (validation.md § Fly-through, § Fabio's three picks)
+- [x] Gaps painted over on screen only (`uGaps`)
+- [x] Ground plane in the lift (MpiNodes `87d7962` pinned): live at both spots, 0% under the ground
+      (validation.md § Fabio's three picks)
+- [ ] Left by eye: the down view's content (a courtyard laid on the floor), the room floor above
+      the ground, Fabio's fly-through of `MPI-623 Ground - behind well` / `- window`
 - [x] History -> gallery: several entries -> one stack of plain cards (2026-10-08, validation.md
       § Phase 3 GPU-free)
 - [x] Wan bake: disabled coming-soon tool (2026-10-08, same section)

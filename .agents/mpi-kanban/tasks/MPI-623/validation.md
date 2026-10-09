@@ -1008,3 +1008,125 @@ shared) in `scenePicture.js`, `PITCH_MAX` exported from `sceneViewer.js`, a **Bu
   the cartoon rendering. B == C by eye. Cost **+19 s a fill** (48 s vs 27-30 s), ~+2 min a build.
   Not wired. The rendering style needs words, not a picture: a style phrase from the pano (a
   caption, or the user's fill line), or Klein's style rack - Fabio's call.
+
+## Fly-through feedback + panel fixes (2026-10-08, session 38 "3D Scene 28", no GPU)
+
+Fabio flew `MPI-623 Build here - behind well` (three screenshots). His asks: the gallery always
+shows the pano; Shift flies faster; a stepped lens slider, not a dropdown; how do the presets
+(Forest / More houses / Open fields) generalise; a floor under the floor above the well; the
+pictures "not looking good".
+- **Built:** the card stays on its pano (`savePicture` keeps `selectedIndex`; a picture pick in the
+  list no longer writes it; opening Scene resets a card left on a picture). Shift = `FLY_BOOST` x4
+  (`scene.fly.boost` + a `.shift` twin per fly letter, which also stops `shift+w` leaving W held).
+  Lens = `MpiProgressBar` stepped over 12/14/16/20/24/28/35/50/85 with the length beside it.
+  Presets removed (they named the spike village; the free line stays) - my pick on his question.
+- **Checks:** scene unit tests 26/26 (+1: boost x4, roll unboosted); `npm test` 2790 pass / 0
+  fail; `scene-viewer.spec.js` (card reset to the pano on open and kept on a picture pick, Shift+W
+  > 2.5x W in 400 ms and stops when released under Shift, the slider's 35 mm / 12 mm) and
+  `scene-workspace.spec.js` green. Mutants killed (`scripts/mutate-check.mjs`): boost ignored, no
+  reset on open, no `.shift` twins. eslint clean.
+- **Screenshots 2-3 are the LIVE view at the pictures' cameras, not the pictures:** `scene_001` /
+  `scene_002` are whole and in the village style (scratchpad `well_pictures.jpg`). The dark rims are
+  holes: torn depth edges and the sky the lift keeps out. Showing them is plan A1 ("the viewer IS
+  the shot"); whether flying should paint them over is Fabio's call.
+- **The floor under the floor (screenshot 1), measured offline** (session 38 scratchpad `floor.py`,
+  `fit.py`, on the exported project's manifest + preview-asset `.f32`s): the pano's ground is level
+  (y 0.46 at the camera -> 0.51 at r 1.5); the build camera sits 0.23 above it. Each side view's
+  bottom quarter (floor the pano never saw) is lifted at **3.05 / 2.95 / 2.37 / 6.01x** the flat
+  ground's depth (medians, views 1-4); layer 3's floor is 1.0 below the pano's. The down view's
+  known depth is the render of those layers (median z 0.73 against 0.23 true; its centre a hole), so
+  it fits to them and sinks too (`down_view.jpg`). Root: `MpiLiftDepth` fits `z = a * MoGe + b` on
+  the known pixels, which are mid/far geometry, and extrapolates to the near floor. Not a viewer bug.
+- **Interior style, describer A/B** (Fabio: "go with your pick", the describer = whatever Remote
+  picks). Session 38 scratchpad `abstyle.py` on the bench under the lease, same build view 1 /
+  seeds as `abref`. The ComfyUI describer (Qwen3-VL, 9.0 s) on the pano, asked style only: "The
+  image employs a low-poly, stylized 3D rendering with flat, geometric surfaces, soft gradient
+  shading, and a warm, earthy color palette that emphasizes simplified forms and minimal detail."
+  D = INTERIOR + "The style of the picture: <that>" (27-33 s); E = D + the pano as image 2 (48 s).
+  **Result** (`abstyle_sheet.jpg`, beside A and C): D and E are no longer photoreal - flat walls,
+  soft gradients, no wood grain or pot plants, the scene's warm palette - but bare (the phrase says
+  "minimal detail"). E == D by eye at +19 s. D wins. Wired: `STYLE_ASK` + `sceneStyle` in
+  `scenePicture.js` (once a scene through `io.describe` = `describeImage`, INTERIOR only, a failure
+  stops the fill before Klein with a Remote > Language Models hint, Scene status "Reading the
+  scene's style..."). Unit 11/11 (+3: asked once a scene with the pano's path, never outside, a
+  failure enqueues nothing); mutants killed: no cache, phrase dropped, failure ignored, asked
+  outside too.
+- **Live re-run 1, window spot** (session 38 scratchpad `build.cjs` -> `build_style/`, own app on
+  its own port, engine 48188, under the lease): style read once 15.7 s (ComfyUI describer), build
+  263 s, window picture 63 s, room picture 61 s. The front view, the up view and the window picture
+  came out in the scene's flat style - but the right / behind / left / down views and the room
+  picture are a PHOTOREAL OPEN COURTYARD (sky, palms, plaster) inside the cottage
+  (`style_build_sheet.jpg`). The fills' sidecars say why: those five ran GENERIC, the other three
+  INTERIOR + style. **Root:** INTERIOR was a per-FRAME switch (`backFrac` > 0.5 of the frame seen from
+  behind); inside the cottage the side views see mostly NOTHING (the pano never saw those walls), so
+  they read as outside, and GENERIC's "walls, ground, sky, plants" painted a courtyard. **Fix:**
+  `insideAt(view, renderer, pos)` decides per SPOT - six 48 px views round it, more pano seen from
+  behind than from the front (`renderPicture` now returns `frontFrac`, from the composite's free
+  view-3 b channel: a real pano surface seen from the front; layers never count). Build here asks
+  once for all six views; Take picture once per picture; `knownDepth` follows the same answer.
+  Checks: unit 25/25 (`insideAt` cottage vs well, one answer per build, asked at the camera's
+  spot); `scene-viewer.spec.js` (front share ahead > 0.9, 0 from outside; `insideAt` false at the
+  fixture's centre, true 6 out behind its wall) + `scene-workspace.spec.js` green; `npm test`
+  2793 / 1 fail = `user-flows.test.cjs` "every shipped Flow ... validates" on `tile-detailer`
+  (a peer's uncommitted Flow in `flowsRegistry.js`, not this card). Mutants killed: the shader's
+  front channel zeroed (spec), `insideAt` always false, the build's answer forced false (unit).
+- **Live re-run 2, window spot** (`build_style2/`, `style_build_sheet2.jpg`): `insideAt` on the real
+  scene for every spike camera = window **true**; treetop, floor, behind_well, walk0 **false** (so
+  behind_well's build is unchanged: GENERIC, as in session 37). Build 255 s, pictures 61 / 59 s; all
+  eight fills INTERIOR + style (sidecar `prompt`). No courtyard, no photoreal anywhere. **New flaw:**
+  every view that sees no outside (right / behind / left / up / down) got a blank WHITE opening, and
+  the room picture is mostly a white doorway. INTERIOR speaks of "the bright areas ... outside ...
+  its openings" and "the frames around the openings": with nothing outside in the frame, Klein
+  invents an opening and leaves it white. Bench A/B of a closed-room line queued (`abclosed.py`).
+
+## Fabio's three picks: gaps on screen, the ground plane, presets out (2026-10-08, session 38)
+
+Fabio: "go with your picks on all three".
+- **Closed-room wording** (`abclosed.py` on the bench, run 2's view 2 + 3 frames, 91% / 97% holes,
+  `abclosed_sheet.jpg`): F = INTERIOR + style reproduces the white doorway (both views); G = `ROOM`
+  ("walls, the ceiling and the floor", no openings, no bright areas) + style = a closed room in the
+  scene's flat style, both views, seeds 42 / 7. Wired: inside, a frame whose pano-from-the-front share
+  is <= 1% (`SEES_OUT`) fills with `ROOM`. Unit +1; mutant (always sees out) killed.
+- **Gaps on screen:** the composite paints a hole the pano drew any face in with that face
+  (`uGaps`, set on every canvas draw, 0 for `renderPicture`'s target), so flying shows the stretched
+  pano / a wall from behind instead of dark rims; Take picture still gets the hole. Spec: the tear
+  reads the band's colour on screen, alpha 255, while `renderPicture` at the same pose has the hole
+  (mask 255). Mutants killed: gaps never painted, gaps painted in the picture too.
+- **Presets:** stay removed.
+- **The ground plane** (the sunk floor). MpiNodes `87d7962` (pushed, pinned in
+  `dev_configs/node_lock.json`): `MpiLiftDepth` takes an optional `ground` 'nx,ny,nz,d' (camera
+  frame) and moves a kept pixel the fit put past it onto it (`ground_depth`, `lift_depth(floor=)`);
+  `tests/test_scene3d.py` 12/12 (+2: a level camera's ground rows; a sunk floor lifted onto the
+  plane, nothing above it moved, and sunk without it); mutant (no clamp) killed. App:
+  `view.groundAt(x, z)` = the median y of the 800 pano cells nearest the spot in plan, of those
+  looking down and within 12% of `groundBelow` - the pano's ground is not level (behind_well 0.505
+  at the spot vs 0.455 under the camera) and inside the cottage the nearest down-looking cells are
+  the facade (0.38 without the band, 0.46 with); `groundPlane(record, groundAt)` -> `Input_Ground`
+  (a core `PrimitiveString`: an `MpiString` would be staged as a file). Units: groundAt on a sloped
+  synthetic pano + a wall beside the spot (band mutant killed at 1024x512; at 256x128 it never
+  shows); groundPlane on behind_well's real down-view record = camera 0.228 above the ground
+  (sign mutant killed); scene-ops: `Input_Ground` is no path node, feeds `ground`.
+  **Offline on behind_well's real layers** (JS `groundPlane` -> the node's own `ground_depth`,
+  `plane_check.mjs` + `clamp_check.py`): side views level, camera 0.225 above the ground, up view
+  never meets it, down view straight at it. Views 1-4 bottom quarter, layer/ground median **3.10 /
+  2.99 / 2.41 / 6.09 -> 1.00** (exactly the new node's output: the clamp runs after the fit). BUT
+  61-84% of each view's kept fill moves - the whole near field was too deep, so a near object would
+  lie flat on the floor rather than sink under it. Next if it shows live: refit with the floor in it.
+- Checks: `npm test` 2796 / 1 fail (the peer's `tile-detailer` Flow, unchanged); scene specs green;
+  eslint clean; `scene.py` compiles. **Live run waits on the engine running `87d7962`** (Fabio's app
+  restart reinstalls pinned nodes, as for `3ec03ef`).
+- **Live, both spots** (Fabio restarted 22:37 UTC; app log: node drift 3ec03ef -> 87d7962 wiped +
+  reinstalled; `/object_info/MpiLiftDepth` lists `ground`). Session 38 scratchpad `run_both.sh`
+  under one lease, fresh card each, `analyze.py` -> `well_ground/sheet.jpg`, `win_ground/sheet.jpg`.
+  behind_well: build 247.5 s, pictures 65 / 64 s; all eight fills GENERIC (outside, as before);
+  ground under the spot 0.505, camera 0.225 above; **0.0% of any layer under the ground**; the side
+  views' near floor on it (layer/ground 1.00 front / behind / left). Window: build 253 s, picture 61 s,
+  the room picture 17 s (no holes left: clean-up only); fills = front INTERIOR + style, the five
+  others ROOM + style, the window picture INTERIOR + style; 0.0% under the ground; a closed room in
+  the scene's flat style, no white doorways. The live views at both pictures show no dark rims
+  (`uGaps`). **Left by eye:** (1) behind_well's DOWN view is a walled courtyard with sky - Klein does
+  not know the frame looks straight down - laid on the floor, which shows from above; (2) the room's
+  floor sits ABOVE the outside ground (layer/ground 0.37-0.80: the interior fit, the compromise of
+  § Interior lift; the clamp only lifts what is under the ground); (3) turned 180 inside, the room's
+  back wall fills the frame (a small box room). Exported for Fabio: `MPI-623 Ground - behind well`,
+  `MPI-623 Ground - window`.

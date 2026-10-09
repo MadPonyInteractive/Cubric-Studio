@@ -54,6 +54,13 @@ test('fly: W goes along the yaw, D to its right, Q/E down/up, all level', async 
     assert.deepEqual(at(['forward'], turned).map(v => +v.toFixed(6)), [FLY_SPEED, 0, 0], 'pitch never lifts a forward move');
 });
 
+test('fly: Shift (the boost) moves FLY_BOOST times as far, and rolls no faster', async () => {
+    const { flyStep, START_POSE, FLY_SPEED, FLY_BOOST, ROLL_SPEED } = await esm('js/services/scene/sceneViewer.js');
+    assert.ok(FLY_BOOST > 1);
+    near(flyStep(START_POSE, new Set(['forward']), 1, FLY_BOOST).pos[2], FLY_SPEED * FLY_BOOST);
+    near(flyStep(START_POSE, new Set(['rollRight']), 1, FLY_BOOST).roll, ROLL_SPEED);
+});
+
 test('look: drag right turns right, pitch stops short of straight up', async () => {
     const { flyLook, START_POSE, LOOK_RATE } = await esm('js/services/scene/sceneViewer.js');
     near(flyLook(START_POSE, 100, 0).yaw, 100 * LOOK_RATE);
@@ -173,4 +180,30 @@ test('roll: held keys turn it; roll > 0 tilts the camera right, the centre ray u
     // the pixel right of centre: rolled 90 degrees right, the frame's right is world DOWN (+y)
     const right = at(5);
     assert.ok(right[1] > -2 + 1e-3 && Math.abs(right[2] - 3) < 1e-5, `right of centre dips: ${right}`);
+});
+
+// Build here's floor fix needs the ground under the SPOT, not under the pano camera: a MoGe pano's
+// ground is not level (behind_well: 0.455 under the camera, 0.508 at the spot).
+test('groundAt: the ground under a spot, where the ground slopes; walls beside it do not count', async () => {
+    const { groundAt, groundBelow } = await esm('js/services/scene/sceneViewer.js');
+    const w = 1024, h = 512, depth = new Float32Array(w * h).fill(50); // 50 = sky; coarser, the band never shows
+    for (let i = h / 2; i < h; i++) for (let j = 0; j < w; j++) {
+        const ph = (i + 0.5) / h * Math.PI, th = (1 - (j + 0.5) / w) * 2 * Math.PI;
+        // the ground y = 0.5 + 0.04 x, world y down (x = d sin(ph) sin(th), y = -d cos(ph))
+        depth[i * w + j] = 0.5 / (-Math.cos(ph) - 0.04 * Math.sin(ph) * Math.sin(th));
+    }
+    const g = groundBelow(depth, w, h);
+    near(g, 0.5, 0.01);
+    near(groundAt(depth, w, h, 1, 0, g, 50), 0.54, 0.015);
+    near(groundAt(depth, w, h, -1, 0, g, 50), 0.46, 0.015);
+    // a wall beside the spot (the plane x = 0.95, |z| < 0.4), as the cottage's facade beside the
+    // window spot: the rays that meet it before the ground see its face, above the ground
+    for (let i = h / 2; i < h; i++) for (let j = 0; j < w; j++) {
+        const ph = (i + 0.5) / h * Math.PI, th = (1 - (j + 0.5) / w) * 2 * Math.PI, k = i * w + j;
+        const sx = Math.sin(ph) * Math.sin(th), dw = 0.95 / sx;
+        if (sx > 0 && dw < depth[k] && Math.abs(-dw * Math.sin(ph) * Math.cos(th)) < 0.4) depth[k] = dw;
+    }
+    const withWall = groundAt(depth, w, h, 1, 0, g, 50);
+    near(withWall, 0.52, 0.025); // the ground behind the wall is hidden; without the band: 0.425
+    near(groundAt(depth, w, h, 1, 0, g, 50), withWall); // deterministic
 });

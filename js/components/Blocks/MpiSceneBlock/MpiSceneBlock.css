@@ -58,6 +58,26 @@
     text-transform: uppercase;
 }
 
+/* The lens: a stepped slider and the length it stops on. */
+.mpi-scene-block__lens {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+}
+
+.mpi-scene-block__lens-slider {
+    flex: 1;
+    min-width: 0;
+}
+
+.mpi-scene-block__lens-value {
+    min-width: 4em;
+    color: var(--ink-1);
+    font-size: var(--t-sm);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
 .mpi-scene-block__readout,
 .mpi-scene-block__status {
     color: var(--ink-2);

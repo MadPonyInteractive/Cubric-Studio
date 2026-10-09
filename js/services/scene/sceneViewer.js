@@ -17,6 +17,8 @@ import {
 
 /** Fly speed in scene units a second, and drag-look radians a pixel (spike 0a). */
 export const FLY_SPEED = 0.25;
+/** Shift held: moves this many times faster (roll keeps its speed). */
+export const FLY_BOOST = 4;
 export const LOOK_RATE = 0.003;
 /** Roll in radians a second while a roll key is held. */
 export const ROLL_SPEED = 0.5;
@@ -200,6 +202,36 @@ export function groundBelow(depth, w, h) {
     return drops[drops.length >> 1] || 1;
 }
 
+/** `groundAt`'s sample: the cells nearest a spot, of those within this share of `groundBelow`. */
+const GROUND_K = 800, GROUND_BAND = 0.12;
+
+/**
+ * The ground's height (world y, down) under the world spot (x, z): the median y of the
+ * `GROUND_K` pano cells nearest it in plan, of those looking down past 18 degrees whose y is
+ * within `GROUND_BAND` of `ground`. The pano's ground is not level (behind_well: 0.455 under
+ * the camera, 0.508 at the spot), and inside a house the nearest cells are its facade, which
+ * the band drops (window spot: 0.38 without it, 0.46 with). None in the band: `ground`.
+ */
+export function groundAt(depth, w, h, x, z, ground, sky = Infinity) {
+    const ys = [], ds = [];
+    for (let i = Math.ceil(0.6 * h); i < h; i++) {
+        const ph = (i + 0.5) / h * Math.PI, sp = Math.sin(ph), cp = Math.cos(ph);
+        for (let j = 0; j < w; j++) {
+            const d = depth[i * w + j];
+            if (!(d < sky)) continue;
+            const y = -d * cp;
+            if (Math.abs(y - ground) > GROUND_BAND * ground) continue;
+            const th = (1 - (j + 0.5) / w) * 2 * Math.PI;
+            ys.push(y);
+            ds.push(Math.hypot(d * sp * Math.sin(th) - x, -d * sp * Math.cos(th) - z));
+        }
+    }
+    if (!ys.length) return ground;
+    const cut = Float64Array.from(ds).sort()[Math.min(GROUND_K, ds.length) - 1];
+    const near = ys.filter((_, k) => ds[k] <= cut).sort((a, b) => a - b);
+    return near[near.length >> 1];
+}
+
 /** Unit forward vector of a pose, spot coords. */
 function forward({ yaw, pitch }) {
     return [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)];
@@ -210,9 +242,10 @@ function forward({ yaw, pitch }) {
  * up, down, rollLeft, rollRight). Moves level: forward follows the yaw, never the pitch.
  * @param {{pos: number[], yaw: number, pitch: number, roll?: number, mm: number}} pose
  * @param {Set<string>} held
+ * @param {number} [boost=1]  `FLY_BOOST` while Shift is held
  */
-export function flyStep(pose, held, dt) {
-    const s = FLY_SPEED * dt, c = Math.cos(pose.yaw), n = Math.sin(pose.yaw);
+export function flyStep(pose, held, dt, boost = 1) {
+    const s = FLY_SPEED * boost * dt, c = Math.cos(pose.yaw), n = Math.sin(pose.yaw);
     const axes = { forward: [n, 0, c], back: [-n, 0, -c], right: [c, 0, -n], left: [-c, 0, n], up: [0, 1, 0], down: [0, -1, 0] };
     const pos = [...pose.pos];
     for (const d of held) (axes[d] || [0, 0, 0]).forEach((v, i) => { pos[i] += v * s; });
@@ -367,14 +400,17 @@ void main() {
 }`;
 
 // shots.py render(): a fill wins where the pano has no real surface or is clearly behind it.
-// Holes come out transparent black. uView 1 paints them magenta; 2 is the self-check readout;
+// Holes come out transparent black - in a picture. On screen (uGaps) a hole the pano drew anything
+// in shows that, stretched or seen from behind (Fabio, 2026-10-08: flying, gaps read as broken;
+// Take picture still fills the real ones). uView 1 paints them magenta; 2 is the self-check readout;
 // 3 is Take picture's: r = camera z where known, MINUS the pano's z on a real surface seen from
-// behind (a hole sceneLift still fits to), else 0; g = the pano seen from behind.
+// behind (a hole sceneLift still fits to), else 0; g = the pano seen from behind; b = a real pano
+// surface seen from the front (layers ignored: `insideAt` asks where the camera stands).
 const COMP_VERT = /* glsl */`precision highp float; in vec3 position;
 void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }`;
 
 const COMP_FRAG = /* glsl */`precision highp float;
-uniform sampler2D c0, a0, c1, a1; uniform float uView;
+uniform sampler2D c0, a0, c1, a1; uniform float uView, uGaps;
 out vec4 o;
 void main() {
   ivec2 p = ivec2(gl_FragCoord.xy);
@@ -387,9 +423,10 @@ void main() {
   bool take = A1.w > 0.5 && (!surf || A0.z > 1.5 || A1.x < A0.x * 0.97);
   bool known = take || (surf && !bad0);
   bool back = A0.w > 0.5 && A0.z > 1.5;
-  if (uView > 2.5) { o = vec4(known ? (take ? A1.x : A0.x) : (surf && back ? -A0.x : 0.0), back ? 1.0 : 0.0, 0.0, 1.0); return; }
+  if (uView > 2.5) { o = vec4(known ? (take ? A1.x : A0.x) : (surf && back ? -A0.x : 0.0), back ? 1.0 : 0.0, surf && !back ? 1.0 : 0.0, 1.0); return; }
   vec3 rgb = take ? texelFetch(c1, p, 0).rgb : (known ? texelFetch(c0, p, 0).rgb : vec3(0.0));
   if (uView > 0.5 && !known) rgb = vec3(1.0, 0.0, 1.0);
+  if (uView < 0.5 && uGaps > 0.5 && !known && A0.w > 0.5) { o = vec4(texelFetch(c0, p, 0).rgb, 1.0); return; }
   o = vec4(rgb, known ? 1.0 : 0.0);
 }`;
 
@@ -446,7 +483,7 @@ export function createSceneView({ manifest, depth, image, layers }, { skyBand = 
 
     const tri = new BufferGeometry();
     tri.setAttribute('position', new BufferAttribute(new Float32Array([-1, -1, 0, 3, -1, 0, -1, 3, 0]), 3));
-    const compMat = raw(COMP_VERT, COMP_FRAG, { c0: { value: null }, a0: { value: null }, c1: { value: null }, a1: { value: null }, uView: { value: 0 } },
+    const compMat = raw(COMP_VERT, COMP_FRAG, { c0: { value: null }, a0: { value: null }, c1: { value: null }, a1: { value: null }, uView: { value: 0 }, uGaps: { value: 0 } },
         { depthTest: false, depthWrite: false });
     const compScene = new Scene().add(meshOf(tri, compMat));
     // Any camera: the composite's vertex shader ignores it. Not a bare Camera, which has no
@@ -470,10 +507,13 @@ export function createSceneView({ manifest, depth, image, layers }, { skyBand = 
     };
     const size = new Vector2();
 
+    const ground = groundBelow(depth, P.w, P.h);
     return {
         far: manifest.far ?? 4 * P.sky, // the spike's records: 4x the dome
         /** The pano camera's height above the ground, scene units (`groundBelow`). */
-        ground: groundBelow(depth, P.w, P.h),
+        ground,
+        /** The ground's height under the world spot (x, z) (`groundAt`). */
+        groundAt: (x, z) => groundAt(depth, P.w, P.h, x, z, ground, P.sky),
         /**
          * Draw the scene from `camera` into `out` (a render target the size of the picture)
          * or, without one, the canvas. The camera's aspect must be the target's.
@@ -488,6 +528,7 @@ export function createSceneView({ manifest, depth, image, layers }, { skyBand = 
             renderer.render(layerScene, camera);
             const U = compMat.uniforms;
             [U.c0.value, U.a0.value, U.c1.value, U.a1.value, U.uView.value] = [t.pano.textures[0], t.pano.textures[1], t.layers.textures[0], t.layers.textures[1], view];
+            U.uGaps.value = out ? 0 : 1; // the screen paints over gaps; a picture keeps them
             renderer.setRenderTarget(out);
             renderer.render(compScene, flat);
             renderer.setRenderTarget(null);
@@ -511,10 +552,11 @@ export function createSceneView({ manifest, depth, image, layers }, { skyBand = 
  * read back top-down. `rgba` is the frame (holes black), `mask` is white where Klein must
  * fill, `z` the camera z of every known pixel, 0 on a hole and MINUS the pano's z on a hole
  * that is a real surface seen from behind (sceneLift's known depth: fit there, still kept),
- * `backFrac` the share of the frame where the pano is seen from behind (the INTERIOR switch),
- * `record` the camera as a layer's pinhole record.
+ * `backFrac` / `frontFrac` the share of the frame where the pano is seen from behind / where a
+ * real pano surface is seen from the front (`insideAt`), `record` the camera as a layer's
+ * pinhole record.
  * @returns {{ w: number, h: number, rgba: Uint8ClampedArray, mask: Uint8ClampedArray,
- *   z: Float32Array, holeFrac: number, backFrac: number, record: Object }}
+ *   z: Float32Array, holeFrac: number, backFrac: number, frontFrac: number, record: Object }}
  */
 export function renderPicture(view, renderer, pose, { w, h }) {
     const camera = new PerspectiveCamera(50, w / h, NEAR, view.far);
@@ -530,7 +572,7 @@ export function renderPicture(view, renderer, pose, { w, h }) {
         out.dispose();
     }
     const rgba = new Uint8ClampedArray(w * h * 4), mask = new Uint8ClampedArray(w * h * 4), z = new Float32Array(w * h);
-    let holes = 0, back = 0;
+    let holes = 0, back = 0, front = 0;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
         const o = ((h - 1 - y) * w + x) * 4, k = y * w + x, q = k * 4; // GL rows are bottom-up
         const known = col[o + 3] > 0.5;
@@ -541,6 +583,8 @@ export function renderPicture(view, renderer, pose, { w, h }) {
         z[k] = known ? aux[o] : Math.min(aux[o], 0);
         if (!known) holes++;
         if (aux[o + 1] > 0.5) back++;
+        if (aux[o + 2] > 0.5) front++;
     }
-    return { w, h, rgba, mask, z, holeFrac: holes / (w * h), backFrac: back / (w * h), record: layerCamera(camera, pose.mm, w, h) };
+    const n = w * h;
+    return { w, h, rgba, mask, z, holeFrac: holes / n, backFrac: back / n, frontFrac: front / n, record: layerCamera(camera, pose.mm, w, h) };
 }

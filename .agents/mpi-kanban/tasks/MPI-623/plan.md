@@ -8,7 +8,26 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 37 (2026-10-08): Interior lift
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 38, later (Fabio "go with your
+picks on all three"):** built + checked, NOT yet live: interior style (describer phrase, `insideAt`
+per spot, `ROOM` wording), on-screen gap paint (`uGaps`), the ground plane in the lift (MpiNodes
+`87d7962` pushed + pinned; app `groundAt` / `groundPlane` / `Input_Ground`). **LIVE at both spots
+after Fabio's restart:** 0% of any layer under the ground, the room closed and in style, no rims on
+screen (`run_both.sh`, `analyze.py`; exported `MPI-623 Ground - behind well` / `- window`). **Next
+(Fabio "go", 2026-10-09):** a straight-down wording for Build here's DOWN view (pitch -PITCH_MAX):
+Klein paints a courtyard + sky into it, laid on the floor. Bench A/B first like `abclosed.py` (the
+down frame of `well_ground/project`), wire the winner (a view looking down -> its own line), re-run
+`run_both.sh`. Also open by eye: the room floor above the ground (interior fit), Fabio's fly-through
+of the two `MPI-623 Ground` projects. Then SAM3 glass windows, DoF after 0c. validation.md § Fabio's three picks.
+**Session 38 (2026-10-08, "3D Scene 28"):**
+describe/enhance already follow Remote > Language Models (`describeImage`, `settleInGraphEnhance`; no
+card needed). Fabio flew behind_well: built the card-stays-on-pano rule, Shift x4, the stepped lens
+slider, presets removed (validation.md § Fly-through). **Measured: the near floor sinks 2.4-6x**
+(the lift's affine fit extrapolates) - fix route is Fabio's call (my pick: a ground-plane prior in
+`MpiLiftDepth`). Interior-style A/B (`abstyle.py`, session 38 scratchpad: the pano's style captioned
+on the ComfyUI describer, D = INTERIOR + phrase, E = D + pano ref, seeds 42/7, out
+`D:/WORK/Images/Outputs/mpi623_abstyle/`) was queued behind a peer's lease; wire the winner through
+`describeImage` (Remote's pick). **Session 37 (2026-10-08): Interior lift
 re-take PASSED (12.3%) and Build here BUILT + run live at both 0b spots** (validation.md § Build
 here): window 265 s -> window frame 1.9% holes; behind_well 295 s -> 6.3%; projects exported to
 Fabio's Projects folder (`MPI-623 Build here - window` / `- behind well`) for his fly-through.

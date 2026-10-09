@@ -1425,10 +1425,11 @@ export function runGifCutoutTrack(payload) {
  * `PreviewAny` holding the path of the raw float32 file the scene node wrote under
  * `output/scenes/` — the `Output_Splat` contract, so it reaches a Pod's disk too.
  *
- * @param {{ op: 'sceneConvert'|'sceneLift', imagePath: string, knownDepthPath?: string, fovX?: number, forceLocal?: boolean }} payload
+ * @param {{ op: 'sceneConvert'|'sceneLift', imagePath: string, knownDepthPath?: string, fovX?: number, ground?: string, forceLocal?: boolean }} payload
  *   `knownDepthPath` (sceneLift): a local float32 file of the render's camera z, 0 = unknown.
  *   `Input_Known_Depth` is an `MpiString`, so the engine stages it into input/ (uploads it
  *   to a Pod) like any media path. `fovX`: the render's horizontal field of view, degrees.
+ *   `ground`: the ground plane in the render's camera frame, 'nx,ny,nz,d' (`groundPlane`).
  * @returns {{ onResult: ?Function, onError: ?Function, onDone: ?Function, cancel: Function }}
  *   `onResult({ imageUrl, depthUrl })` — `/view` URLs; `imageUrl` is null for sceneLift.
  */
@@ -1465,6 +1466,7 @@ export function runSceneOp(payload) {
             if (payload.op === 'sceneLift') {
                 params.Input_Known_Depth = payload.knownDepthPath;
                 params.Input_Fov_X = payload.fovX;
+                params.Input_Ground = payload.ground || ''; // a plain PrimitiveString: never staged as a path
             }
 
             const onMessage = (msg) => {

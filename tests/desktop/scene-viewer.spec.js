@@ -120,7 +120,8 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
         await window.evaluate(async ({ still, scenePath, shot }) => {
             const { addGroup } = await import('/js/services/projectService.js');
             const at = new Date().toISOString();
-            await addGroup({ id: 'e2e-scene', type: 'image', name: 'scene', createdAt: at, selectedIndex: 0, history: [
+            // Left on its picture (index 1): opening Scene puts the card back on its pano.
+            await addGroup({ id: 'e2e-scene', type: 'image', name: 'scene', createdAt: at, selectedIndex: 1, history: [
                 { id: 'e2e-pano', type: 'image', filePath: still, thumbPath: still, createdAt: at, pixelDimensions: { w: 4096, h: 2048 }, scenePath },
                 { id: 'e2e-shot', type: 'image', filePath: still, thumbPath: still, createdAt: at, pixelDimensions: { w: 768, h: 1360 },
                     operation: 'scenePicture', scenePose: shot },
@@ -131,6 +132,9 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
 
         await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-scene-block')?.isLoaded?.()),
             { timeout: 30000 }).toBe(true);
+        const cardIndex = () => window.evaluate(async () => (await import('/js/state.js')).state.currentProject
+            .itemGroups.find(g => g.id === 'e2e-scene').selectedIndex);
+        await expect.poll(cardIndex, { message: 'the card is back on its pano, so the gallery shows the pano' }).toBe(0);
         const gpu = await window.evaluate(() => {
             const r = document.querySelector('.mpi-scene-canvas').getRenderer(), gl = r.getContext();
             return { reversed: r.capabilities.reversedDepthBuffer, clip: !!gl.getExtension('EXT_clip_control') };
@@ -152,8 +156,21 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
         expect(near(behind, GREEN), `behind is green across the seam, got ${behind}`).toBe(true);
 
         // ── Rule C: the depth step is a hole; the fill layer wins over the pano behind it ──
+        // On screen a gap shows the stretched pano (flying, holes read as broken); the picture
+        // Take picture starts from still has the hole for Klein to fill.
         const tear = await centre(window, { yaw: 3 * Math.PI / 4 });
-        expect(tear[3], `the step between red (5) and green (2.5) is a tear hole, got ${tear}`).toBe(0);
+        expect(tear[3], `on screen the tear is painted over, got ${tear}`).toBe(255);
+        expect(near(tear, BANDS[1].rgb) || near(tear, GREEN), `with the stretched pano's red or green, got ${tear}`).toBe(true);
+        const tearHole = await window.evaluate(async () => {
+            const V = await import('/js/services/scene/sceneViewer.js');
+            const blk = document.querySelector('.mpi-scene-block'), c = document.querySelector('.mpi-scene-canvas');
+            const scenePath = (await import('/js/state.js')).state.currentProject.itemGroups.find(g => g.id === 'e2e-scene').history[0].scenePath;
+            const view = V.createSceneView(await V.loadScene(scenePath));
+            const s = V.renderPicture(view, c.getRenderer(), blk.getPose(), { w: 64, h: 36 });
+            view.dispose();
+            return s.mask[(18 * 64 + 32) * 4];
+        });
+        expect(tearHole, 'the picture\'s render keeps the tear as a hole (mask white)').toBe(255);
         const layer = await centre(window, { yaw: Math.PI / 4 });
         expect(near(layer, LAYER), `the layer at depth 1 covers the pano at 5, and the back-facing fill at 0.5 does not hide it, got ${layer}`).toBe(true);
 
@@ -172,6 +189,24 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
         // Released: the camera stays put.
         await window.waitForTimeout(300);
         expect((await getPose(window)).pos).toEqual(afterA.pos);
+        // Shift held flies faster, and a W released under Shift (`shift+w`) still stops it.
+        const boosted = await window.evaluate(async () => {
+            const key = (type, k, shiftKey) => window.dispatchEvent(new KeyboardEvent(type, { key: k, shiftKey, bubbles: true }));
+            const z = () => document.querySelector('.mpi-scene-block').getPose().pos[2];
+            const wait = (t) => new Promise(r => setTimeout(r, t));
+            const z0 = z();
+            key('keydown', 'Shift', true);
+            key('keydown', 'W', true);
+            await wait(400);
+            key('keyup', 'W', true);
+            key('keyup', 'Shift', false);
+            await wait(100);
+            const z1 = z();
+            await wait(300);
+            return { moved: z1 - z0, after: z() - z1 };
+        });
+        expect(boosted.moved, `Shift+W covers far more than W's ${afterW.pos[2]} in the same 400 ms`).toBeGreaterThan(afterW.pos[2] * 2.5);
+        expect(boosted.after, 'released under Shift, W stopped').toBe(0);
 
         // ── The picture panel ─────────────────────────────────────────────────────
         const panel = window.locator('.mpi-scene-block__panel');
@@ -192,32 +227,47 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
         const { aspect: _a, fillLine: _f, ...shotPose } = SHOT;
         await expect.poll(() => getPose(window)).toEqual(shotPose);
         await expect.poll(frameRatio, { message: 'the entry\'s 9:16 frame' }).toBe(0.56);
-        await expect(panel.locator('.mpi-dropdown').first()).toContainText('35 mm');
+        await expect(panel.locator('.mpi-scene-block__lens-value')).toHaveText('35 mm');
+        expect(await cardIndex(), 'picking a picture leaves the card on its pano').toBe(0);
+        // The lens slider steps through the stops and says the one it is on.
+        await window.evaluate(() => {
+            const input = document.querySelector('.mpi-scene-block__lens-slider input');
+            input.value = 0;
+            input.dispatchEvent(new Event('input'));
+        });
+        await expect(panel.locator('.mpi-scene-block__lens-value')).toHaveText('12 mm');
+        expect((await getPose(window)).mm).toBe(12);
 
         // ── Take picture's readout: z is the camera depth sceneLift fits against ──
         // (the self-check view used to swallow it: z all 0, so the first live lift failed)
         const shot = await window.evaluate(async (manifestUrl) => {
             const V = await import('/js/services/scene/sceneViewer.js');
+            const { insideAt } = await import('/js/services/scene/scenePicture.js');
             const view = V.createSceneView(await V.loadScene(manifestUrl));
             const renderer = document.querySelector('.mpi-scene-canvas').getRenderer();
             const at = (yaw, pos = [0, 0, 0], mm = 24) => {
                 const s = V.renderPicture(view, renderer, { pos, yaw, pitch: 0, mm }, { w: 64, h: 36 });
                 const k = 18 * 64 + 32;
-                return { z: s.z[k], back: s.backFrac, rgb: [...s.rgba.slice(k * 4, k * 4 + 3)] };
+                return { z: s.z[k], back: s.backFrac, front: s.frontFrac, rgb: [...s.rgba.slice(k * 4, k * 4 + 3)] };
             };
+            // The pano camera stands in the open; 6 out it stands behind the sphere's walls.
+            const inside = { centre: insideAt(view, renderer, [0, 0, 0]), beyond: insideAt(view, renderer, [0, 0, 6]) };
             // Outside the sphere, 1 past the blue band, looking back at it: all of it from behind.
             // Then 6 out on the layers' ray, looking back through the sphere at 300 mm: the white
             // fill (seen from its front, 5.5 away) is behind a back face (1 away), and a back face
             // never hides a fill; the purple one (5 away) is seen from behind and discarded.
             const s45 = Math.SQRT1_2 * 6;
             const r = { ahead: at(0), layer: at(Math.PI / 4), outside: at(Math.PI, [0, 0, 6]),
-                through: at(5 * Math.PI / 4, [s45, 0, s45], 300) };
+                through: at(5 * Math.PI / 4, [s45, 0, s45], 300), inside };
             view.dispose();
             return r;
         }, scenePath);
         expect(shot.ahead.z, `camera z ahead is the band at depth 5, got ${shot.ahead.z}`).toBeGreaterThan(4.5);
         expect(shot.ahead.z).toBeLessThan(5.1);
         expect(shot.ahead.back, 'nothing ahead is seen from behind').toBe(0);
+        expect(shot.ahead.front, `the band ahead is a real surface seen from the front, got ${shot.ahead.front}`).toBeGreaterThan(0.9);
+        expect(shot.outside.front, 'from outside, no pano surface faces the camera').toBeLessThan(0.05);
+        expect(shot.inside, 'the pano camera is in the open; behind the sphere\'s wall is inside').toEqual({ centre: false, beyond: true });
         expect(Math.abs(shot.layer.z - 1), `the layer at depth 1 wins, got ${shot.layer.z}`).toBeLessThan(0.1);
         // A hole that is a real surface seen from behind carries MINUS its z: sceneLift fits an
         // interior's fill to those walls and still replaces them (the window picture's 64% holes).

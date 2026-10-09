@@ -43,6 +43,10 @@
       "fov_x": [
         "3",
         0
+      ],
+      "ground": [
+        "6",
+        0
       ]
     },
     "class_type": "MpiLiftDepth",
@@ -60,6 +64,15 @@
     "class_type": "PreviewAny",
     "_meta": {
       "title": "Output_Depth"
+    }
+  },
+  "6": {
+    "inputs": {
+      "value": ""
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "Input_Ground"
     }
   }
 }

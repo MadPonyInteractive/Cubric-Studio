@@ -6,15 +6,18 @@
  * `{ groupId }`, exactly like Group History.
  *
  * Loads the card's scene (`js/services/scene/sceneViewer.js`) into the viewport and flies a
- * camera through it: hold W/A/S/D to move, Q/E down/up, Z/C to roll (`scene.fly.*`
- * hotkeys), drag to look. Draws on demand: a frame per move, a loop only while a key is
- * held. The frame is the scene with hole rule C (`createSceneView`), letterboxed to the
- * picture's aspect: what Take picture starts from (plan A1, "the viewer IS the shot").
+ * camera through it: hold W/A/S/D to move, Q/E down/up, Z/C to roll, Shift to fly faster
+ * (`scene.fly.*` hotkeys), drag to look. Draws on demand: a frame per move, a loop only while
+ * a key is held. The frame is the scene with hole rule C (`createSceneView`), letterboxed to
+ * the picture's aspect: what Take picture starts from (plan A1, "the viewer IS the shot").
  *
- * The picture panel (plan Design 4): frame aspect, lens, a height / lens / roll readout, the
- * fill line with presets, Take picture (`scenePicture.js`: inpaint -> lift -> layer ->
+ * The picture panel (plan Design 4): frame aspect, a lens slider, a height / lens / roll
+ * readout, the fill line, Take picture (`scenePicture.js`: inpaint -> lift -> layer ->
  * clean-up -> one history entry with its `scenePose`), and the card's pictures, where a
  * click flies the camera back to where one was taken. Depth of field waits on spike 0c.
+ * The card stays on its pano (Fabio, 2026-10-08): the gallery always shows the pano, so
+ * picking a picture here never moves the card's `selectedIndex`, and opening a card left on
+ * a picture puts it back.
  * Build here (tools strip) fills the six views round the camera into the scene first, layers
  * only (`buildHere`); a second press stops it after the running view.
  *
@@ -28,7 +31,7 @@ import { ComponentFactory } from '../../factory.js';
 import { MpiSceneCanvas } from '../../Primitives/MpiSceneCanvas/MpiSceneCanvas.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
-import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
+import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiHistoryList } from '../../Compounds/MpiHistoryList/MpiHistoryList.js';
 import { qs, on } from '../../../utils/dom.js';
@@ -39,18 +42,18 @@ import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { updateGroup } from '../../../services/projectService.js';
 import {
-    START_POSE, NEAR, EYE_HEIGHT_M, loadScene, createSceneView, applyPose, flyStep, flyLook,
+    START_POSE, NEAR, EYE_HEIGHT_M, FLY_BOOST, loadScene, createSceneView, applyPose, flyStep, flyLook,
 } from '../../../services/scene/sceneViewer.js';
 import { takePicture, buildHere, appIo } from '../../../services/scene/scenePicture.js';
 
 const FLY_DIRS = ['forward', 'back', 'left', 'right', 'up', 'down', 'rollLeft', 'rollRight'];
 const ASPECTS = ['16:9', '9:16', '1:1', '2.39:1'];
-const LENSES = [12, 16, 24, 35, 50, 85];
-// ponytail: the plan's three presets; the free line covers the rest (Klein plants the
-// line's nouns, so presets name AREAS, never landmarks).
-const PRESETS = ['Forest', 'More houses', 'Open fields'];
+/** The lens slider's stops, full-frame mm: the usual prime lengths. */
+const LENSES = [12, 14, 16, 20, 24, 28, 35, 50, 85];
+/** The stop nearest `mm` (a pose saved off the stops still lands on one). */
+const lensStop = (mm) => LENSES.reduce((best, v, i) => (Math.abs(v - mm) < Math.abs(LENSES[best] - mm) ? i : best), 0);
 const STEPS = {
-    render: 'Rendering the frame...', fill: 'Filling the empty areas...', lift: 'Placing the fill in the scene...',
+    render: 'Rendering the frame...', style: 'Reading the scene\'s style...', fill: 'Filling the empty areas...', lift: 'Placing the fill in the scene...',
     clean: 'Cleaning up the picture...', save: 'Saving the picture...',
 };
 
@@ -70,10 +73,12 @@ export const MpiSceneBlock = ComponentFactory.create({
                 <div class="mpi-scene-block__label">Frame</div>
                 <div id="aspect"></div>
                 <div class="mpi-scene-block__label">Lens</div>
-                <div id="lens"></div>
+                <div class="mpi-scene-block__lens">
+                    <div class="mpi-scene-block__lens-slider" id="lens"></div>
+                    <span class="mpi-scene-block__lens-value" id="lens-value"></span>
+                </div>
                 <div class="mpi-scene-block__readout" id="readout"></div>
                 <div class="mpi-scene-block__label">Fill the empty areas with</div>
-                <div id="preset"></div>
                 <div id="fill"></div>
                 <div id="take"></div>
                 <div class="mpi-scene-block__status" id="status"></div>
@@ -110,6 +115,7 @@ export const MpiSceneBlock = ComponentFactory.create({
         let last = 0;
         let drag = null;
         let destroyed = false;
+        let boost = 1; // FLY_BOOST while Shift is held
         const held = new Set();
         const loading = new AbortController();
         const liveGroup = () => state.currentProject?.itemGroups?.find(g => g.id === props.groupId) || null;
@@ -118,12 +124,10 @@ export const MpiSceneBlock = ComponentFactory.create({
             options: ASPECTS, value: aspect, name: 'scene-aspect', size: 'sm', columns: 4,
             info: 'The picture\'s shape: the frame shows exactly what it will hold',
         });
-        const lensOptions = LENSES.map(mm => ({ label: `${mm} mm`, value: String(mm) }));
-        const lensPick = MpiDropdown.mount(qs('#lens', el), {
-            options: lensOptions, value: String(pose.mm), info: 'Lens, full-frame millimetres: lower sees wider',
-        });
-        const presetPick = MpiDropdown.mount(qs('#preset', el), {
-            options: PRESETS, value: '', placeholder: 'Presets', info: 'Pick a line to steer what fills the empty areas',
+        const lensValue = qs('#lens-value', el);
+        const lensPick = MpiProgressBar.mount(qs('#lens', el), {
+            interactive: true, handle: true, wheel: true, min: 0, max: LENSES.length - 1, step: 1, value: lensStop(pose.mm),
+            info: 'Lens, full-frame millimetres: lower sees wider',
         });
         const fillInput = MpiInput.mount(qs('#fill', el), {
             placeholder: 'Leave empty to continue the scene', info: 'Steers what Take picture paints into the empty areas',
@@ -134,14 +138,20 @@ export const MpiSceneBlock = ComponentFactory.create({
         });
         const group = liveGroup();
         const sceneItem = group ? getSceneItem(group) : null;
+        const panoIndex = group && sceneItem ? group.history.indexOf(sceneItem) : 0;
+        if (group && sceneItem && group.selectedIndex !== panoIndex) {
+            updateGroup({ ...group, selectedIndex: panoIndex }) // a card left on a picture shows its pano again
+                .catch(err => clientLogger.warn('scene', `putting the card back on its pano failed: ${err?.message || err}`));
+        }
         const historyList = MpiHistoryList.mount(qs('#history', el), {
-            history: group?.history || [], selectedIndex: group?.selectedIndex ?? 0,
+            history: group?.history || [], selectedIndex: panoIndex,
         });
 
         const showReadout = () => {
             const metres = view ? EYE_HEIGHT_M * (1 + pose.pos[1] / view.ground) : EYE_HEIGHT_M;
             const roll = Math.round((pose.roll || 0) * 180 / Math.PI);
             readout.textContent = `Height ${metres.toFixed(2)} m · ${pose.mm} mm · roll ${roll}°`;
+            lensValue.textContent = `${pose.mm} mm`;
         };
         const show = () => {
             showReadout();
@@ -159,7 +169,7 @@ export const MpiSceneBlock = ComponentFactory.create({
 
         const tick = (now) => {
             raf = 0;
-            pose = flyStep(pose, held, Math.min(0.1, (now - last) / 1000));
+            pose = flyStep(pose, held, Math.min(0.1, (now - last) / 1000), boost);
             last = now;
             show();
             if (held.size) raf = requestAnimationFrame(tick);
@@ -245,12 +255,17 @@ export const MpiSceneBlock = ComponentFactory.create({
             }
         };
 
-        // ponytail: a fly key released with Shift/Ctrl down arrives as `shift+w` and is not
-        // seen; the key stays held until the window loses focus. Add modifier releases if it bites.
-        const unbinds = FLY_DIRS.flatMap(dir => [
-            Hotkeys.bind(`scene.fly.${dir}`, () => press(dir)),
-            Hotkeys.bind(`scene.fly.${dir}.release`, () => held.delete(dir)),
-        ]);
+        // Each fly key and its `.shift` twin (pressed or released under Shift) move the same way.
+        // ponytail: a fly key released with Ctrl down arrives as `control+w` and is not seen;
+        // the key stays held until the window loses focus. Add Ctrl twins if it bites.
+        const unbinds = [
+            ...FLY_DIRS.flatMap(dir => ['', '.shift'].flatMap(mod => [
+                Hotkeys.bind(`scene.fly.${dir}${mod}`, () => press(dir)),
+                Hotkeys.bind(`scene.fly.${dir}${mod}.release`, () => held.delete(dir)),
+            ])),
+            Hotkeys.bind('scene.fly.boost', () => { boost = FLY_BOOST; }),
+            Hotkeys.bind('scene.fly.boost.release', () => { boost = 1; }),
+        ];
         const offs = [
             on(canvasEl, 'pointerdown', (e) => { drag = [e.clientX, e.clientY]; canvasEl.setPointerCapture(e.pointerId); }),
             on(canvasEl, 'pointerup', () => { drag = null; }),
@@ -260,26 +275,21 @@ export const MpiSceneBlock = ComponentFactory.create({
                 drag = [e.clientX, e.clientY];
                 show();
             }),
-            on(window, 'blur', () => held.clear()),
+            on(window, 'blur', () => { held.clear(); boost = 1; }),
         ];
         viewport.on('resize', show);
         aspectPick.on('select', ({ value }) => setAspect(value));
-        lensPick.on('change', ({ value }) => { pose = { ...pose, mm: Number(value) }; show(); });
-        presetPick.on('change', ({ value }) => { fillLine = value; fillInput.el.setValue(value); });
+        lensPick.on('input', ({ value }) => { pose = { ...pose, mm: LENSES[value] }; show(); });
         fillInput.on('input', ({ value }) => { fillLine = value; });
         takeBtn.on('click', take);
         buildBtn.on('click', build);
-        historyList.on('entry-selected', ({ idx, item }) => {
-            const live = liveGroup();
-            if (live && live.selectedIndex !== idx) {
-                updateGroup({ ...live, selectedIndex: idx })
-                    .catch(err => clientLogger.warn('scene', `selecting a picture failed: ${err?.message || err}`));
-            }
+        // A picture flies the camera back to where it was taken; the card stays on its pano.
+        historyList.on('entry-selected', ({ item }) => {
             if (!item?.scenePose) return; // the pano itself: no camera to fly to
             const { aspect: shotAspect, fillLine: _line, ...shotPose } = item.scenePose;
             if (ASPECTS.includes(shotAspect)) setAspect(shotAspect);
             el.setPose(shotPose);
-            lensPick.el.setOptions(lensOptions, String(pose.mm));
+            lensPick.el.setValueQuiet(lensStop(pose.mm));
         });
 
         if (sceneItem?.scenePath && canvasEl.isSupported()) {
@@ -317,7 +327,7 @@ export const MpiSceneBlock = ComponentFactory.create({
                 view.dispose();
                 view = null;
             }
-            [bake, buildBtn, aspectPick, lensPick, presetPick, fillInput, takeBtn, historyList].forEach(c => c.destroy());
+            [bake, buildBtn, aspectPick, lensPick, fillInput, takeBtn, historyList].forEach(c => c.destroy());
             viewport.destroy();
         };
     },

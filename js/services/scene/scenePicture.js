@@ -15,34 +15,97 @@ export const GENERIC = 'Fill the black empty areas so the picture is complete an
     + 'surrounds each area: extend the walls, ground, sky, plants and objects that are already there, and '
     + 'repair any broken or smeared edges. Match the existing image exactly - the same style, rendering, '
     + 'materials, lighting, colours, perspective and level of detail - so the filled areas cannot be told apart.';
-/** Most of the frame seen from behind = the camera stands inside something. GENERIC there painted
- *  the OUTSIDE into the room (shots.py); this is the spike's INTERIOR with its cottage nouns taken
- *  out, because Klein plants a prompt's nouns in every hole.
+/** The camera stands inside something (`insideAt`). GENERIC there painted the OUTSIDE into the
+ *  room (shots.py); this is the spike's INTERIOR with its cottage nouns taken out, because Klein
+ *  plants a prompt's nouns in every hole.
  *  ponytail: unproven on a real scene until Take picture's eye check. */
 export const INTERIOR = 'This picture is taken from inside a room. The bright areas are what is outside the room, seen '
     + 'through its openings - keep them exactly as they are. Fill all the black areas with the inside of the room '
     + 'around the camera: the inner faces of its walls, the frames around the openings, the ceiling and the floor, '
     + 'in the soft shade of an indoor room. Match the existing image exactly - the same style, rendering, materials, '
     + 'colours and level of detail.';
+/** INTERIOR for a frame that sees nothing outside (no pano surface faces it, `frontFrac`): with
+ *  INTERIOR's openings and bright areas Klein painted a blank white doorway into every such view
+ *  of the cottage (session 38 A/B: this line gives a closed room). */
+export const ROOM = 'This picture is taken from inside a room. Fill all the black areas with the inside of the room around the '
+    + 'camera: its walls, the ceiling and the floor, in the soft shade of an indoor room. Match the existing image '
+    + 'exactly - the same style, rendering, materials, colours and level of detail.';
+/** A frame sees out once this share of it is the pano seen from the front. */
+const SEES_OUT = 0.01;
+/** What the describer is asked about the pano, for INTERIOR's style (session 38 A/B: the phrase
+ *  turns Klein's photoreal room into the scene's own rendering; the pano as a second reference
+ *  image only warmed the light, +19 s a fill). Content-free: Klein plants a prompt's nouns. */
+export const STYLE_ASK = 'Describe only the visual style of this image in one sentence: the medium and rendering '
+    + 'technique, the shading, the colour palette and the level of detail. Do not name or describe any objects, '
+    + 'places, buildings or people.';
 /** Clean-up B's instruction (shots.py POLISH), on the whole filled frame. */
 export const POLISH = 'Clean up this image: repair any smeared, stretched, blurry, torn or broken areas so every object is '
     + 'whole and sharp. Keep everything else exactly the same - the same composition, objects, style, '
     + 'colours and lighting.';
 
-/** Most of the frame seen from behind: the camera stands inside something. */
-const isInterior = (backFrac) => backFrac > 0.5;
+/**
+ * Does the camera at `pos` stand inside something? Over six small views round it, more of the
+ * pano's real surface is seen from behind than from the front (fill layers do not count). Asked
+ * per FRAME this misfired: inside the cottage the side views see mostly nothing, since the pano
+ * never saw those walls, so they read as outside and GENERIC painted an open courtyard (session 38).
+ */
+export function insideAt(view, renderer, pos, render = renderPicture) {
+    let back = 0, front = 0;
+    for (const p of buildPoses({ pos, yaw: 0 })) {
+        const s = render(view, renderer, p, { w: 48, h: 48 });
+        back += s.backFrac;
+        front += s.frontFrac;
+    }
+    return back > front;
+}
 
-/** The fill prompt: INTERIOR when most of the frame is seen from behind, plus the user's line. */
-export function fillPrompt(backFrac, fillLine) {
+/** The fill prompt: inside, INTERIOR (ROOM when the frame sees nothing outside) + the scene's
+ *  style; else GENERIC. Then the user's line. */
+export function fillPrompt(inside, fillLine, style = '', seesOut = true) {
     const line = String(fillLine || '').trim().replace(/[.\s]+$/, '');
-    return (isInterior(backFrac) ? INTERIOR : GENERIC) + (line ? ` In the large empty areas: ${line}.` : '');
+    const base = inside ? (seesOut ? INTERIOR : ROOM) + (style ? ` The style of the picture: ${style}` : '') : GENERIC;
+    return base + (line ? ` In the large empty areas: ${line}.` : '');
+}
+
+// ponytail: in memory, so each app start asks once per scene again; keep it in the manifest if that shows.
+const styles = new Map(); // scenePath -> the describer's style phrase
+
+/** The pano's style, asked once per scene of the describer picked in Remote > Language Models
+ *  (`describeImage`). A failure stops the fill: a room in the wrong style is what this prevents. */
+async function sceneStyle(io, sceneItem, onStep) {
+    if (styles.has(sceneItem.scenePath)) return styles.get(sceneItem.scenePath);
+    onStep('style');
+    const r = await io.describe({ imagePath: sceneItem.filePath, question: STYLE_ASK });
+    if (r?.cancelled) throw new Error('cancelled');
+    const text = String(r?.text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
+    if (!r?.ok || !text) {
+        const why = String(r?.error || 'it gave no answer').trim().replace(/[.!?]$/, '');
+        throw new Error(`the scene's style could not be read (${why}). Check Remote > Language Models`);
+    }
+    styles.set(sceneItem.scenePath, text);
+    return text;
+}
+
+/**
+ * The ground under a shot's camera as `MpiLiftDepth`'s `ground`: the plane n . X = d in the
+ * camera frame (OpenCV, the record's `w2c`), 'nx,ny,nz,d'. The lift moves what its fit sank under
+ * the floor onto it (behind_well: the near floor 2.4-6x too deep). '' with the camera under it.
+ * @param {{ w2c: number[] }} record  the shot's pinhole record (row-major 4x4, world y-down)
+ * @param {(x: number, z: number) => number} groundAt  the ground's world y under a spot (`view.groundAt`)
+ */
+export function groundPlane({ w2c }, groundAt) {
+    const R = (r, c) => w2c[r * 4 + c], t = [w2c[3], w2c[7], w2c[11]];
+    const centre = [0, 1, 2].map(c => -(R(0, c) * t[0] + R(1, c) * t[1] + R(2, c) * t[2]));
+    const n = [R(0, 1), R(1, 1), R(2, 1)]; // world down, in the camera frame
+    const d = groundAt(centre[0], centre[2]) + n[0] * t[0] + n[1] * t[1] + n[2] * t[2];
+    return d > 0 ? [...n, d].map(v => +v.toFixed(6)).join(',') : '';
 }
 
 /** The lift's known depth. Inside, the walls seen from behind (negative z) are what the room is
  *  fitted to while the fill replaces them. Outside, a back face is an object's far side and the
  *  fill paints what lies beyond it, so it only counts as a hole (0). */
-function knownDepth(z, backFrac) {
-    return isInterior(backFrac) ? z : z.map(v => Math.max(v, 0));
+function knownDepth(z, inside) {
+    return inside ? z : z.map(v => Math.max(v, 0));
 }
 
 // ── Reinhard colour lock in CIELAB (D65), the spike's color_lock.py "A" ──────────────────────
@@ -121,15 +184,17 @@ const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
 
 /** The app's own doors, loaded on first use so this module imports in node for its test. */
 export async function appIo() {
-    const [{ enqueueGeneration }, { runSceneOp }, { uploadMediaFile }, { getModelById }, model, { updateGroup }, { state }, { resolveMediaUrl }] = await Promise.all([
+    const [{ enqueueGeneration }, { runSceneOp }, { uploadMediaFile }, { getModelById }, model, { updateGroup }, { state }, { resolveMediaUrl }, { describeImage }] = await Promise.all([
         import('../generationService.js'), import('../commandExecutor.js'), import('../mediaUploadService.js'),
         import('../../data/modelRegistry.js'), import('../../data/projectModel.js'), import('../projectService.js'),
-        import('../../state.js'), import('../../utils/mediaActions.js'),
+        import('../../state.js'), import('../../utils/mediaActions.js'), import('../llmService.js'),
     ]);
     const canvasOf = (w, h) => new OffscreenCanvas(w, h).getContext('2d', { willReadFrequently: true });
     return {
         render: renderPicture,
+        inside: (view, renderer, pos) => insideAt(view, renderer, pos),
         enqueue: enqueueGeneration,
+        describe: describeImage, // the describer picked in Remote > Language Models
         runSceneOp,
         resolveMediaUrl,
         post: postJson,
@@ -163,7 +228,8 @@ export async function appIo() {
                 ...(up.thumbPathLg ? { thumbPathLg: up.thumbPathLg } : {}),
             });
             const live = state.currentProject?.itemGroups?.find(g => g.id === group.id) || group;
-            const next = model.appendToHistory(live, entry);
+            // The card stays on its pano (the gallery always shows it); the picture only joins the history.
+            const next = { ...model.appendToHistory(live, entry), selectedIndex: live.selectedIndex };
             await updateGroup(next);
             await postJson(`/project-media/${project.id}/update-meta?folderPath=${encodeURIComponent(project.folderPath)}`,
                 { itemId: entry.id, updates: { scenePose, displayName: entry.displayName } }); // the upload named it scene_NNN
@@ -206,15 +272,18 @@ const placeAsset = (io, project, dataUrl, ext) => io.post(
     `/project-media/${project.id}/place-preview-asset?folderPath=${encodeURIComponent(project.folderPath)}`, { dataUrl, ext });
 
 /** A rendered shot's holes filled and placed in the scene: Klein inpaint -> sceneLift -> a layer
- *  in the manifest, meshed into the live view. `frame` = the shot's PNG as a preview asset. */
-async function fillLayer({ project, sceneItem, view, pose, fillLine, onStep }, shot, frame, io) {
+ *  in the manifest, meshed into the live view. `frame` = the shot's PNG as a preview asset;
+ *  `inside` = `insideAt` the camera's spot. */
+async function fillLayer({ project, sceneItem, view, pose, fillLine, onStep, inside }, shot, frame, io) {
+    const style = inside ? await sceneStyle(io, sceneItem, onStep) : '';
     onStep('fill');
     const mask = await io.blobToDataUrl(await io.encodePng(shot.mask, shot.w, shot.h));
-    const fill = await kleinJob(io, 'inpaint', frame.filePath, fillPrompt(shot.backFrac, fillLine), mask);
+    const fill = await kleinJob(io, 'inpaint', frame.filePath, fillPrompt(inside, fillLine, style, shot.frontFrac > SEES_OUT), mask);
     onStep('lift');
-    const known = await placeAsset(io, project, await io.blobToDataUrl(new Blob([knownDepth(shot.z, shot.backFrac).buffer], { type: 'application/octet-stream' })), '.f32');
+    const known = await placeAsset(io, project, await io.blobToDataUrl(new Blob([knownDepth(shot.z, inside).buffer], { type: 'application/octet-stream' })), '.f32');
     const fovX = 2 * Math.atan(18 / pose.mm) * 180 / Math.PI;
-    const depthUrl = await liftJob(io, { imagePath: io.resolveMediaUrl(fill.filePath), knownDepthPath: known.absPath, fovX });
+    const depthUrl = await liftJob(io, { imagePath: io.resolveMediaUrl(fill.filePath), knownDepthPath: known.absPath, fovX,
+        ground: groundPlane(shot.record, view.groundAt) });
     const saved = await io.post(`/project-media/${project.id}/scene-layer?folderPath=${encodeURIComponent(project.folderPath)}`,
         { itemId: sceneItem.id, imagePath: pathOf(fill.filePath), depthUrl, camera: shot.record });
     view.addLayer(await io.loadLayer(sceneItem.scenePath, saved.record));
@@ -248,6 +317,7 @@ export function buildPoses({ pos, yaw }) {
  */
 export async function buildHere({ project, sceneItem, view, renderer, pose, fillLine = '', signal, onStep = () => {} }, io) {
     const poses = buildPoses(pose), size = pictureSize('1:1'), layers = [];
+    const inside = io.inside(view, renderer, pose.pos); // one answer for the spot: a room all round, or none
     for (const [i, p] of poses.entries()) {
         if (signal?.aborted) throw new Error('cancelled');
         const at = { view: i + 1, of: poses.length }, step = (s) => onStep(s, at);
@@ -255,7 +325,7 @@ export async function buildHere({ project, sceneItem, view, renderer, pose, fill
         const shot = io.render(view, renderer, p, size);
         if (shot.holeFrac === 0) continue;
         const frame = await placeAsset(io, project, await io.blobToDataUrl(await io.encodePng(shot.rgba, shot.w, shot.h)), '.png');
-        layers.push((await fillLayer({ project, sceneItem, view, pose: p, fillLine, onStep: step }, shot, frame, io)).layer);
+        layers.push((await fillLayer({ project, sceneItem, view, pose: p, fillLine, onStep: step, inside }, shot, frame, io)).layer);
     }
     return layers;
 }
@@ -275,7 +345,8 @@ export async function takePicture({ project, group, sceneItem, view, renderer, p
     const frame = await placeAsset(io, project, await io.blobToDataUrl(await io.encodePng(shot.rgba, shot.w, shot.h)), '.png');
     let base = frame.filePath, layer = null;
     if (shot.holeFrac > 0) {
-        ({ layer, fillPath: base } = await fillLayer({ project, sceneItem, view, pose, fillLine, onStep }, shot, frame, io));
+        const inside = io.inside(view, renderer, pose.pos);
+        ({ layer, fillPath: base } = await fillLayer({ project, sceneItem, view, pose, fillLine, onStep, inside }, shot, frame, io));
     }
     onStep('clean');
     const cleaned = await kleinJob(io, 'kleinEdit', base, POLISH);

@@ -87,6 +87,11 @@ test('sceneLift: known depth rides a staged path node, depth out', () => {
     const lift = source(g, depth, 'source');
     assert.strictEqual(lift.class_type, 'MpiLiftDepth');
     assert.strictEqual(g[lift.inputs.known_depth[0]], known);
+    // The ground plane is TEXT ('nx,ny,nz,d'): a path node would have the engine stage it as a file.
+    const ground = titled(g, 'Input_Ground');
+    assert.ok(!PATH_MEDIA.includes(`'${ground.class_type}'`), `${ground.class_type} must not be a path node`);
+    assert.strictEqual(g[lift.inputs.ground[0]], ground);
+    assert.ok('value' in ground.inputs, 'injected through `value`');
 });
 
 test('runSceneOp captures Output_Depth under scenes/ and never goes through runCommand', () => {
@@ -94,6 +99,6 @@ test('runSceneOp captures Output_Depth under scenes/ and never goes through runC
     const body = src.slice(src.indexOf('export function runSceneOp'), src.indexOf('export function runCommand'));
     assert.ok(body.includes("idsTitled('output_depth')"));
     assert.ok(body.includes("splatViewFileInfo(readComfyOutputText(nodeOutput), 'scenes')"));
-    assert.ok(body.includes('Input_Known_Depth') && body.includes('Input_Fov_X'));
+    assert.ok(body.includes('Input_Known_Depth') && body.includes('Input_Fov_X') && body.includes('Input_Ground'));
     assert.ok(!body.includes('runCommand('));
 });

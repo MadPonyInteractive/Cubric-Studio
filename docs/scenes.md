@@ -36,7 +36,8 @@
 - **Two passes and a composite** (`createSceneView`): the pano and the fill layers each render to a
   float MRT pair, colour + aux (camera z, real surface, rule C bad, covered); the composite takes a
   layer where the pano has no real surface, is seen from behind, or is >3% farther, else the pano,
-  else a HOLE (transparent; `draw(..., { view: 1 })` paints holes magenta). A back face never hides
+  else a HOLE (transparent; `view: 1` paints it magenta; ON SCREEN, `uGaps`, it shows whatever pano
+  face is there, stretched or from behind - Fabio: gaps read as broken; a picture keeps it). A back face never hides
   a fill because inside a house the walls are back faces and the room's fill never agrees with them
   (a painted corridor vs one flat wall); the price is another picture's fill showing through a
   wall where the room's own fill does not reach. A FILL fragment rule C rejects is
@@ -55,45 +56,42 @@
   `{ pos, yaw, pitch, mm }` in y-UP spot coords (+X right, +Z forward, origin = the pano camera).
   The lens is full-frame `mm` across the frame WIDTH, so `applyPose` re-runs on the canvas's
   `resize` event. `el.getPose()` / `el.setPose()` on the Block.
-- Fly: `scene.fly.*` hotkeys, a DOWN and an UP entry per key (W/S/A/D, Q/E down/up), gated to
-  the Scene page; `agentMode.toggle` is gated OFF it so A only flies. Drag looks. Frames are drawn
-  on demand, a loop only while a key is held. `tests/desktop/scene-viewer.spec.js`.
-- The picture panel (`MpiSceneBlock`): the canvas letterboxed to the picture's aspect (`--frame-ar`
-  + container units, MpiGifViewer's trick; 16:9 / 9:16 / 1:1 / 2.39:1), lens (12-85 mm), a readout
-  (height in metres = `EYE_HEIGHT_M` 1.6 x (1 + y / `groundBelow`), the median drop straight below
-  the pano camera; mm; roll), Z/C roll (`scene.fly.rollLeft|rollRight`), the fill line + presets,
-  Take picture, and the card's `MpiHistoryList`: an entry with a `scenePose` flies the camera, frame
-  and lens back to it. Not yet: depth of field (spike 0c), the golden-PNG check.
+- Fly: `scene.fly.*`, a DOWN + UP entry per key (W/S/A/D, Q/E down/up, Z/C roll), Scene page only
+  (`agentMode.toggle` is gated OFF it). Shift = `FLY_BOOST` x4; a letter under Shift arrives as
+  `shift+w`, so each has a `.shift` twin or never releases. Drag looks. Drawn on demand.
+- The picture panel (`MpiSceneBlock`): the canvas letterboxed to the aspect (`--frame-ar` +
+  container units; 16:9 / 9:16 / 1:1 / 2.39:1), a stepped lens slider (`MpiProgressBar` over
+  `LENSES`, 12-85 mm), a readout (height m = `EYE_HEIGHT_M` 1.6 x (1 + y / `groundBelow`, the median
+  drop below the pano camera); mm; roll), the fill line, Take picture, and the card's
+  `MpiHistoryList`: an entry's `scenePose` flies camera, frame, lens back. Not yet: DoF, golden PNG.
+  **The card stays on its pano** (the gallery shows it): no pick writes `selectedIndex`; open resets one.
 
 ## Take picture
 
 `js/services/scene/scenePicture.js` `takePicture(ctx, appIo())`, one press (plan A5):
 1. `renderPicture` at `pictureSize(aspect)` (~1 MP, sides x16: 16:9 = 1360x768): the frame, the
    hole mask (white = fill), the camera z of every known pixel (0 = hole, MINUS the pano's z on a
-   hole that is a real surface seen from behind), the share of the frame seen from behind, and the
-   camera as a pinhole record (`layerCamera`: OpenCV w2c = diag(1,-1,-1)
-   x the GL view). The frame goes to disk via `place-preview-asset` (no card).
-2. Holes -> Klein `inpaint` (`maskDataUrl`), `GENERIC` or `INTERIOR` when > 50% is seen from behind,
-   plus `In the large empty areas: <fill line>.`
+   hole that is a real surface seen from behind), the pano's share seen from behind / from the
+   front, the camera as a pinhole record (`layerCamera`: OpenCV w2c = diag(1,-1,-1) x the GL view);
+   the frame goes to disk via `place-preview-asset` (no card).
+2. Holes -> Klein `inpaint`: `GENERIC`, or inside (`insideAt` the SPOT: six 48 px views see more pano
+   from behind than front) `INTERIOR`, `ROOM` when the frame sees no outside, + `STYLE_ASK` put once a
+   scene to `describeImage` (Remote's pick; a failure stops the fill). Then `In the large empty areas: <line>.`
 3. `sceneLift` on the fill with the known z (`place-preview-asset` `.f32` -> `absPath`) and the lens
    as `fovX`. `MpiLiftDepth` fits on positive AND negative z (|z|) and keeps 0 and negative pixels;
    the minus signs ride only on an INTERIOR shot (`knownDepth`), since outside a back face is an
    object's far side and the fill paints what lies beyond it; `POST /project-media/:id/scene-layer` copies the fill and downloads the depth as
    `layer<n>.png` / `layer<n>_depth.f32`, appends the record (manifest LAST); `view.addLayer` meshes
    it live (`loadLayer`).
-4. Clean-up B, always: Klein `kleinEdit` with `POLISH` on the filled frame, then `colorLock`
-   (Reinhard in CIELAB) to the pre-clean frame.
+4. Clean-up B, always: Klein `kleinEdit` + `POLISH` on the filled frame, then `colorLock` (Reinhard, CIELAB) to the pre-clean frame.
 5. `uploadMediaFile` -> `createImageItem({ scenePose })` -> `appendToHistory` -> `updateGroup`, and
    `scenePose` on the sidecar (`update-meta`): `{ pos, yaw, pitch, roll, mm, aspect, fillLine }`.
 Every Klein job runs `deferCommit` without `existingGroup` (the only branch that honours it), so no
 job lands a card; their `inpaint_NNN` / `edit_NNN` PNGs stay in `Media/` for Cleanup. The viewer
 drops its float targets once the render is read (Klein's VRAM).
-- Measured on a 4060 Ti (four spike cameras, 2026-10-08): 60-77 s a picture = fill 33-51 s, lift
-  2-2.5 s, clean-up 23-26 s.
-- Limit: inside, Klein paints a room the walls do not match (window spike camera: a deep corridor
-  vs one flat wall 0.25 ahead, fit error 73%), so the room's depth is a compromise; it shows because
-  back faces never hide a fill (window own-camera holes 64% -> 13%). MPI-623 validation.md
-  § Interior lift.
+- 4060 Ti, four spike cameras: 60-77 s a picture = fill 33-51 s, lift 2-2.5 s, clean-up 23-26 s.
+- Limit: inside, the room's depth is a compromise (window: Klein's deep corridor vs one flat wall 0.25
+  ahead, fit error 73%), shown as back faces never hide a fill (holes 64% -> 13%). § Interior lift.
 
 ## Build here
 
@@ -101,9 +99,10 @@ drops its float targets once the render is read (Klein's VRAM).
 view): Take picture's fill steps (1-3 above, `fillLayer`) over `buildPoses` - six 1024x1024 views
 at `BUILD_MM` 16 (~97 deg, so they overlap) from the camera's spot, facing first, then right,
 behind, left, up, down; up/down at pitch +-`PITCH_MAX` (`applyPose` has no right vector straight
-up). Each view renders with the layers before it; one with no holes is skipped. No clean-up, no
-history entry: the layers are the result. Window spike camera, 4060 Ti: 265 s for six views; after
-it the window picture's frame is 1.9% holes (85% before), every build view <= 4.2%.
+up). One `insideAt` answer for all six; each renders with the layers before it, one with no holes
+is skipped. No clean-up, no entry: the layers are the result. Window spike camera, 4060 Ti: 265 s;
+after it the window picture's frame is 1.9% holes (85% before). The near floor sank 2.4-6x (the fit
+is on mid/far pixels): the lift now gets the ground plane (`Input_Ground`, below). validation.md.
 
 ## Companions and the manifest
 
@@ -163,7 +162,7 @@ result as a CANCEL, and Convert must not make a card.
 | op | graph | in | out |
 |---|---|---|---|
 | `sceneConvert` | `scene_convert.json` | `Input_Image` | `Output_Image` (8K) + `Output_Depth` |
-| `sceneLift` | `scene_lift.json` | `Input_Image` (a fill), `Input_Known_Depth`, `Input_Fov_X` | `Output_Depth` |
+| `sceneLift` | `scene_lift.json` | `Input_Image` (a fill), `Input_Known_Depth`, `Input_Fov_X`, `Input_Ground` | `Output_Depth` |
 
 - **`Output_Depth`** is a `PreviewAny` holding the path the node wrote under `output/scenes/`;
   `splatViewFileInfo(path, 'scenes')` turns it into a `/view` file dict (the `Output_Splat`
@@ -177,6 +176,8 @@ result as a CANCEL, and Convert must not make a card.
   stages the file into the local `input/` or uploads it to a Pod like any media path; a plain text
   node would hand a Pod a path on the user's disk. `MpiLiftDepth` fits `z = a * MoGe + b` on the
   known pixels (eroded 9 px) and keeps the holes grown 5 px, minus depth edges; output 0 = not kept.
+  `Input_Ground` (`PrimitiveString`, not a path): 'nx,ny,nz,d' in the camera frame (`groundPlane` of
+  `view.groundAt`, the ground under the SPOT); what the fit put under it moves onto it (`87d7962`).
 - Measured on a 4060 Ti: pano depth 46 s (2.8 GB VRAM), sceneConvert from a 2K pano 92 s,
   sceneLift 2-4 s. The nodes reproduce the spike exactly (validation.md, MPI-623).
 
