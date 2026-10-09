@@ -24,6 +24,7 @@ export const VIDEO_MIN_VRAM_GB = 24;
 // Rows marked `ours` are cards RunPod skipped, measured by us (MPI-1054, 2026-10-09) with
 // their setup replicated: same graph, ComfyUI v0.39.0, a new prompt every image. Checked on
 // two cards they did measure: A40 4.6 s vs their 4.80, A5000 6.75 s vs their 6.46.
+// Runner: scripts/bench-gpu-klein.mjs; procedure: docs/playbooks/gpu-benchmark/README.md.
 // ponytail: hand-copied table; a card nobody benchmarked shows no bar.
 export const GPU_GEN_SECS = {
     'NVIDIA H100 80GB HBM3': 1.47,

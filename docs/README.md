@@ -120,6 +120,7 @@ NOT mechanically split these):
 |---|---|
 | Architecture contract (topology, lifecycle, billing) | [runpod-remote-engine.md](runpod-remote-engine.md) |
 | Fixed-bug traps + CPU download-mode | [runpod-troubleshooting.md](runpod-troubleshooting.md) |
+| **Benchmarking a card for the GPU picker's Gen speed bar** (RunPod's setup replicated, the calibration rule, the runner, traps that cost money) | [playbooks/gpu-benchmark/README.md](playbooks/gpu-benchmark/README.md) |
 | Engine-split (deps + workflow axis) | [.claude/rules/comfy_engine.md](../.claude/rules/comfy_engine.md) § Engine Split |
 | **Vast.ai as a 2nd provider — research (PARKED, MPI-344)** | [vast-ai-research/README.md](vast-ai-research/README.md) |
 

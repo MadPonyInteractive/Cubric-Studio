@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "scripts/bench-gpu-klein.mjs",
+    "docs/playbooks/gpu-benchmark/README.md",
+    "docs/README.md",
+    "js/data/runpodGpuSpecs.js",
+    "docs/runpod-remote-engine.md"
+  ]
+}
