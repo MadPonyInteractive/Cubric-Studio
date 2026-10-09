@@ -146,6 +146,16 @@ const ALL_PLUGINS = [
         operation: 'sceneConvert',
         devOnly: true,
     },
+    // MPI-623 P2 - a camera path rendered as a 360 video: Wan 2.1 I2V 720P (Q4 GGUF) under the
+    // Matrix-3D 360 LoRA, ~20 GB. A plugin of its own so Convert alone does not pull it in.
+    {
+        id: 'scene-path',
+        title: '3D Scene path video',
+        description: 'Unlocks "Render path" in a 3D scene: a 360 video along the camera path you lay.',
+        requiredDeps: ['wan21-i2v-720p-q4', 'wan21-pano360-lora', 'wan21-lightx2v-distill', 'umt5_xxl_fp8_e4m3fn_scaled', 'wan_2.1_vae', 'clip-vision-h'],
+        operation: 'scenePathVideo',
+        devOnly: true,
+    },
 ];
 
 /** @type {PluginDef[]} Every plugin a user can see. A `devOnly` entry exists in source runs only. */

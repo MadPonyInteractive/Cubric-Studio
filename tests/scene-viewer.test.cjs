@@ -207,3 +207,53 @@ test('groundAt: the ground under a spot, where the ground slopes; walls beside i
     near(withWall, 0.52, 0.025); // the ground behind the wall is hidden; without the band: 0.425
     near(groundAt(depth, w, h, 1, 0, g, 50), withWall); // deterministic
 });
+
+// P2: a path video frame is six 90-degree views stitched into the pano's 2:1 layout. Wrong here,
+// Wan gets a mirrored or rotated 360 frame that no longer continues the pano it starts from.
+async function cubeFaces(frame, F, paint) {
+    const { cubePoses, applyPose, layerCamera } = await esm('js/services/scene/sceneViewer.js');
+    const { PerspectiveCamera } = await esm('node_modules/three/build/three.module.js');
+    return cubePoses(frame).map((pose, k) => {
+        const cam = new PerspectiveCamera(50, 1, 1e-4, 100);
+        applyPose(cam, pose);
+        const rgba = new Uint8ClampedArray(F * F * 4), mask = new Uint8ClampedArray(F * F * 4);
+        for (let i = 0; i < F * F; i++) paint(k, i % F, Math.floor(i / F), rgba, mask, i * 4);
+        return { w: F, h: F, rgba, mask, record: layerCamera(cam, pose.mm, F, F) };
+    });
+}
+
+test('P2 360 frame: front in the centre, right on the right, sky on top, the back at the seam', async () => {
+    const { stitchPano } = await esm('js/services/scene/sceneViewer.js');
+    for (const yaw of [0, 0.7]) {
+        const frame = { pos: [0, 0, 0], yaw };
+        const faces = await cubeFaces(frame, 16, (k, x, y, rgba, mask, o) => {
+            rgba[o] = 40 * k; rgba[o + 3] = 255;
+            mask.fill(k === 2 ? 255 : 0, o, o + 3); mask[o + 3] = 255; // the view behind is a hole
+        });
+        const w = 64, h = 32, out = stitchPano(faces, frame, { w, h });
+        const face = (u, v) => out.rgba[(v * w + u) * 4] / 40;
+        assert.equal(face(32, 16), 0, 'centre: the way it faces');
+        assert.equal(face(48, 16), 1, 'a quarter turn right');
+        assert.equal(face(1, 16), 2, 'the seam: behind');
+        assert.equal(face(16, 16), 3, 'a quarter turn left');
+        assert.equal(face(32, 0), 4, 'top: straight up');
+        assert.equal(face(32, h - 1), 5, 'bottom: straight down');
+        assert.equal(out.mask[(16 * w + 1) * 4], 255, 'a hole stays a hole');
+        assert.equal(out.mask[(16 * w + 32) * 4], 0);
+        assert.ok(out.holeFrac > 0.09 && out.holeFrac < 0.16, `the back view's share (a quarter of the width, its middle latitudes): ${out.holeFrac}`);
+    }
+});
+
+test('P2 360 frame: not mirrored or flipped - right of centre samples the front view\'s right, above its top', async () => {
+    const { stitchPano } = await esm('js/services/scene/sceneViewer.js');
+    const F = 64, frame = { pos: [0.3, 0.1, -0.2], yaw: -1.1 };
+    const faces = await cubeFaces(frame, F, (k, x, y, rgba, mask, o) => { rgba[o] = x; rgba[o + 1] = y; rgba[o + 3] = 255; mask[o + 3] = 255; });
+    const w = 360, h = 180, out = stitchPano(faces, frame, { w, h });
+    const at = (u, v) => [out.rgba[(v * w + u) * 4], out.rgba[(v * w + u) * 4 + 1]];
+    const [cx, cy] = at(180, 90);
+    assert.ok(Math.abs(cx - F / 2) <= 1 && Math.abs(cy - F / 2) <= 1, `centre -> the front view's centre (${cx}, ${cy})`);
+    const [rx] = at(180 + 30, 90), [ux, uy] = at(180, 90 - 30);
+    near(rx, F / 2 + (F / 2) * Math.tan(Math.PI / 6), 1.01); // 30 degrees right of centre
+    near(ux, F / 2, 1.01);
+    near(uy, F / 2 - (F / 2) * Math.tan(Math.PI / 6), 1.01); // 30 degrees up: rows count down
+});

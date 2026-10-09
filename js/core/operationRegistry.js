@@ -118,6 +118,7 @@ export const OPERATION_REGISTRY = {
     // MPI-623 — the 3D Scene ops (dev_mode-only), run by `runSceneOp`.
     sceneConvert: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
     sceneLift:    { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
+    scenePathVideo: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' }, // a card, through enqueueGeneration
 };
 
 /**

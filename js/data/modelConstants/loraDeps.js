@@ -1158,4 +1158,37 @@ export const loraDeps = {
         sha256: '8d59c75d75a9bb7764e90f045bb9b3f07f53c93445d112fbabd4bf7070dcccff',
         noMirror: true,
     },
+    // MPI-623 (3D Scene, P2): the two LoRAs on Wan 2.1 I2V 720P that render a camera path.
+    // Matrix-3D's 360 LoRA turns Wan's output into an equirect video (without it Wan makes an
+    // ordinary perspective clip). Upstream is a GATED repo in diffusers keys, so this is OUR
+    // ComfyUI-key conversion (SplatKit's tools/convert_pano_lora.py): R2 only, no mirror.
+    'wan21-pano360-lora': {
+        id: 'wan21-pano360-lora',
+        name: 'Matrix-3D 360 video (Wan 2.1 720P)',
+        origin: 'Skywork/Matrix-3D pano_video_gen_720p (MIT), converted to ComfyUI keys',
+        filename: 'loras/wan-2.1/pano_video_gen_720p_comfy.safetensors',
+        url: 'https://models.cubric.studio/vision/models/loras/wan-2.1/pano_video_gen_720p_comfy.safetensors',
+        size: '292.59MB',
+        bytes: 306809616,
+        sha256: 'f83b347569b9f903dfc1333fcb3a6ca3c266b0cf13ec71a3070f2ead51b8e87c',
+        noMirror: true,
+        credit: {
+            author: 'Skywork AI',
+            work: 'Matrix-3D',
+            url: 'https://huggingface.co/Skywork/Matrix-3D',
+        },
+    },
+    // The 8-step, cfg 1 distill the path video samples with (8 steps instead of ~30). HF copy
+    // byte-identical (checked 2026-10-10).
+    'wan21-lightx2v-distill': {
+        id: 'wan21-lightx2v-distill',
+        name: 'Wan 2.1 lightx2v step distill (8-step)',
+        origin: 'lightx2v (Apache-2.0), ComfyUI conversion by Kijai/WanVideo_comfy',
+        filename: 'loras/wan-2.1/lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors',
+        url: 'https://models.cubric.studio/vision/models/loras/wan-2.1/lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors',
+        mirrorUrl: 'https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Lightx2v/lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors',
+        size: '601.48MB',
+        bytes: 630697104,
+        sha256: '37d49218544b9e0bfb8e831d1399f451fbc5068aff6474f42a90c928363c3573'
+    },
 };

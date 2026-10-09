@@ -632,3 +632,53 @@ export function renderPicture(view, renderer, pose, { w, h }) {
     const n = w * h;
     return { w, h, rgba, mask, z, holeFrac: holes / n, backFrac: back / n, frontFrac: front / n, record: layerCamera(camera, pose.mm, w, h) };
 }
+
+/** A path video frame: 2:1 like the pano, Wan 2.1 720P's size for a 360 frame (the Matrix-3D LoRA's). */
+export const PANO_FRAME = Object.freeze({ w: 1440, h: 720 });
+/** Each 360 frame is stitched from six 90-degree views this many pixels square (> the frame's 4 px a degree). */
+export const CUBE_FACE = 512;
+const UP = Math.PI / 2 - 1e-6; // applyPose has no right vector at exactly straight up
+
+/** The six 90-degree poses (18 mm across a square frame) a 360 frame at `pos`, facing `yaw`, is stitched from. */
+export function cubePoses({ pos, yaw }) {
+    const face = (dy, pitch) => ({ pos, yaw: yaw + dy, pitch, roll: 0, mm: 18 });
+    return [face(0, 0), face(Math.PI / 2, 0), face(Math.PI, 0), face(-Math.PI / 2, 0), face(0, UP), face(0, -UP)];
+}
+
+/**
+ * Stitch six views (`renderPicture` results at `cubePoses`) into one 360 frame: the frame's
+ * centre is the way the camera faces, its right is the camera's right, level (the pano's own
+ * layout, so frame 0 at the centre facing yaw 0 IS the pano). Nearest pixel, so a hole stays a hole.
+ * @returns {{ w: number, h: number, rgba: Uint8ClampedArray, mask: Uint8ClampedArray, holeFrac: number }}
+ *   `mask` white where nothing is known (Wan fills it), as `renderPicture`'s
+ */
+export function stitchPano(faces, { pos, yaw }, { w, h } = PANO_FRAME) {
+    const rgba = new Uint8ClampedArray(w * h * 4), mask = new Uint8ClampedArray(w * h * 4);
+    const R = [Math.cos(yaw), 0, -Math.sin(yaw)], F = [Math.sin(yaw), 0, Math.cos(yaw)];
+    let holes = 0;
+    for (let v = 0; v < h; v++) {
+        const lat = (0.5 - (v + 0.5) / h) * Math.PI;
+        for (let u = 0; u < w; u++) {
+            const lon = ((u + 0.5) / w - 0.5) * 2 * Math.PI, cx = Math.cos(lat) * Math.sin(lon), cz = Math.cos(lat) * Math.cos(lon);
+            const d = [cx * R[0] + cz * F[0], -Math.sin(lat), cx * R[2] + cz * F[2]]; // world, y-down
+            let best = null, bz = 0;
+            for (const f of faces) {
+                const m = f.record.w2c, z = m[8] * d[0] + m[9] * d[1] + m[10] * d[2];
+                if (z > bz) { bz = z; best = f; }
+            }
+            const m = best.record.w2c, x = m[0] * d[0] + m[1] * d[1] + m[2] * d[2], y = m[4] * d[0] + m[5] * d[1] + m[6] * d[2];
+            const px = Math.min(best.w - 1, Math.max(0, Math.floor((best.record.fx * x) / bz + best.record.cx)));
+            const py = Math.min(best.h - 1, Math.max(0, Math.floor((best.record.fy * y) / bz + best.record.cy)));
+            const s = (py * best.w + px) * 4, q = (v * w + u) * 4;
+            rgba.set(best.rgba.subarray(s, s + 4), q);
+            mask.set(best.mask.subarray(s, s + 4), q);
+            if (best.mask[s] > 127) holes++;
+        }
+    }
+    return { w, h, rgba, mask, holeFrac: holes / (w * h) };
+}
+
+/** The 360 frame the scene shows from `frame` (`pathFrames`): six `renderPicture`s, stitched. */
+export function renderPano(view, renderer, frame, size = PANO_FRAME, face = CUBE_FACE) {
+    return stitchPano(cubePoses(frame).map(p => renderPicture(view, renderer, p, { w: face, h: face })), frame, size);
+}

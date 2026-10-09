@@ -99,6 +99,8 @@ ftfy==6.3.1
     # via -r dev_configs/python_deps.in
 fvcore==0.1.5.post20221221
     # via -r dev_configs/python_deps.in
+gguf==0.19.0
+    # via -r dev_configs/python_deps.in
 gguf-connector==3.6.9
     # via -r dev_configs/python_deps.in
 h11==0.16.0
@@ -221,6 +223,7 @@ numpy==2.5.1
     #   diffusers
     #   embreex
     #   fvcore
+    #   gguf
     #   imageio
     #   librosa
     #   manifold3d
@@ -305,6 +308,7 @@ pre-commit==4.6.2
     # via s3tokenizer
 protobuf==7.35.1
     # via
+    #   -r dev_configs/python_deps.in
     #   onnx
     #   onnxruntime-gpu
 psutil==7.2.2
@@ -340,6 +344,7 @@ pyyaml==6.0.3
     #   accelerate
     #   albumentations
     #   fvcore
+    #   gguf
     #   huggingface-hub
     #   omegaconf
     #   pre-commit
@@ -358,6 +363,7 @@ regex==2026.7.19
 requests==2.34.2
     # via
     #   diffusers
+    #   gguf
     #   pooch
     #   ultralytics
 resampy==0.4.3
@@ -444,6 +450,7 @@ tqdm==4.70.0
     # via
     #   -r dev_configs/python_deps.in
     #   fvcore
+    #   gguf
     #   huggingface-hub
     #   iopath
     #   s3tokenizer

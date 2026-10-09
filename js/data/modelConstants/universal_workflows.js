@@ -43,6 +43,10 @@ export const UNIVERSAL_WORKFLOWS = {
     sceneLift: {
         workflow: 'scene_lift.json',
     },
+    // Its weights belong to the `scene-path` plugin; ComfyUI-GGUF installs with the engine.
+    scenePathVideo: {
+        workflow: 'scene_path_video.json',
+    },
     autoMaskImg: {
         workflow: 'img_auto_mask.json',
     },

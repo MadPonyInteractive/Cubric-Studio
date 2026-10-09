@@ -2071,6 +2071,41 @@ router.post('/project-media/:projectId/place-preview-asset', async (req, res) =>
     }
 });
 
+// MPI-623 P2: a camera path's guide frames (PNGs placed by the route above, each the 360 frame
+// over its hole mask) -> ONE video in the same store, so the engine stages one file (one Pod
+// upload) instead of 81. The frames are this render's own and go once encoded. yuv444p at crf
+// 10: 4:2:0 would smear colour a pixel across every hole edge.
+router.post('/project-media/:projectId/frames-to-video', async (req, res) => {
+    let tmpDir = null;
+    try {
+        const { folderPath } = req.query;
+        const { frames, fps = 16 } = req.body;
+        if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
+        if (!Array.isArray(frames) || !frames.length || !frames.every(f => /^[0-9a-f]{64}$/.test(f))) {
+            return res.status(400).json({ success: false, error: 'frames: the sha256 of each placed PNG, in order' });
+        }
+        if (!(fps > 0 && fps <= 120)) return res.status(400).json({ success: false, error: 'fps out of range' });
+        const mediaDir = path.join(folderPath, 'Media');
+        const store = path.join(mediaDir, '.preview-assets');
+        tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'frames-to-video-'));
+        for (let i = 0; i < frames.length; i++) {
+            await fs.copy(path.join(store, `${frames[i]}.png`), path.join(tmpDir, `f_${String(i).padStart(5, '0')}.png`));
+        }
+        await execFilePromise(ffmpegPath, [
+            '-y', '-framerate', String(fps), '-i', 'f_%05d.png',
+            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '10', '-pix_fmt', 'yuv444p', 'out.mp4',
+        ], { cwd: tmpDir, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
+        const placed = await placeContentAsset(path.join(tmpDir, 'out.mp4'), '.mp4', mediaDir, folderPath);
+        await Promise.all([...new Set(frames)].map(f => fs.remove(path.join(store, `${f}.png`))));
+        res.json({ success: true, ...placed });
+    } catch (err) {
+        logger.error('project', 'frames-to-video error', err);
+        res.status(500).json({ success: false, error: err.message });
+    } finally {
+        if (tmpDir) await fs.remove(tmpDir).catch(() => {});
+    }
+});
+
 router.post('/project-data/:projectId/upload', async (req, res) => {
     try {
         const { folderPath } = req.query;

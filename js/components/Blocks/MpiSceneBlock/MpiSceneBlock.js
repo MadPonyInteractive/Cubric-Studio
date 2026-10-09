@@ -22,7 +22,9 @@
  * only (`buildHere`); a second press stops it after the running view.
  * The camera path (plan P1, for Wan to render): P or Add point drops a ball where the camera is,
  * from the pano's centre on (`scenePath.js`); balls and line drawn over the frame
- * (`view.setPath`), saved on the pano item as `cameraPaths`.
+ * (`view.setPath`), saved on the pano item as `cameraPaths`. Render path (P2, `scenePathVideo.js`)
+ * renders the path's guide here, then Wan turns it into a 360 video card (~30 min, the
+ * generation queue); the panel is free again once the engine has the guide.
  *
  * Instance API (on el):
  *   getPose()      — the camera pose `{ pos, yaw, pitch, roll, mm }` (spot coords)
@@ -50,6 +52,8 @@ import {
 } from '../../../services/scene/sceneViewer.js';
 import { takePicture, buildHere, appIo } from '../../../services/scene/scenePicture.js';
 import { addPoint, removeLast } from '../../../services/scene/scenePath.js';
+import { renderPath } from '../../../services/scene/scenePathVideo.js';
+import { pluginAvailability, getPlugin } from '../../../data/pluginsRegistry.js';
 
 const FLY_DIRS = ['forward', 'back', 'left', 'right', 'up', 'down', 'rollLeft', 'rollRight'];
 const ASPECTS = ['16:9', '9:16', '1:1', '2.39:1'];
@@ -60,6 +64,10 @@ const lensStop = (mm) => LENSES.reduce((best, v, i) => (Math.abs(v - mm) < Math.
 const STEPS = {
     render: 'Rendering the frame...', style: 'Reading the scene\'s style...', fill: 'Filling the empty areas...', lift: 'Placing the fill in the scene...',
     clean: 'Cleaning up the picture...', save: 'Saving the picture...',
+};
+const PATH_STEPS = {
+    style: 'Reading the scene\'s style...', upload: 'Sending the guide to the engine...',
+    wan: 'Wan is rendering the path: about 30 minutes on a 16 GB card. It lands as a new card in the gallery.',
 };
 
 const ratioOf = (aspect) => { const [a, b] = aspect.split(':').map(Number); return a / b; };
@@ -98,6 +106,8 @@ export const MpiSceneBlock = ComponentFactory.create({
                 <div class="mpi-scene-block__label">Path</div>
                 <div class="mpi-scene-block__path"><div id="path-add"></div><div id="path-undo"></div><div id="path-clear"></div></div>
                 <div class="mpi-scene-block__readout" id="path-readout"></div>
+                <div id="path-render"></div>
+                <div class="mpi-scene-block__status" id="path-status"></div>
                 <div class="mpi-scene-block__label">Pictures</div>
                 <div class="mpi-scene-block__history" id="history"></div>
             </div>
@@ -172,11 +182,17 @@ export const MpiSceneBlock = ComponentFactory.create({
         const clearBtn = MpiButton.mount(qs('#path-clear', el), {
             icon: 'trash', label: 'Clear', variant: 'ghost', size: 'sm', disabled: true, info: 'Remove the whole path',
         });
+        const renderBtn = MpiButton.mount(qs('#path-render', el), {
+            icon: 'video', label: 'Render path', size: 'md', disabled: true,
+            info: 'Wan renders a 360 video along the path and invents what it walks into (about 30 min). The fill line above steers it',
+        });
+        const pathStatus = qs('#path-status', el);
         // The camera path (plan P1), on the pano item: one path for now, `cameraPaths` leaves room for more.
         let pathPoints = sceneItem?.cameraPaths?.[0]?.points || [];
         const showPath = () => {
             pathReadout.textContent = pathPoints.length ? `${pathPoints.length} points` : PATH_HINT;
             [undoBtn, clearBtn].forEach(b => b.el.setDisabled(!pathPoints.length));
+            renderBtn.el.setDisabled(!view || busy || pathPoints.length < 2);
             if (!view) return;
             view.setPath(pathPoints, { start: tokenRgb(el, '--accent-frost'), point: tokenRgb(el, '--accent-heat') });
             canvasEl.requestRender();
@@ -234,7 +250,7 @@ export const MpiSceneBlock = ComponentFactory.create({
             const project = state.currentProject, live = liveGroup();
             if (busy || !view || !project || !live) return;
             busy = true;
-            [takeBtn, buildBtn].forEach(b => b.el.setDisabled(true));
+            [takeBtn, buildBtn, renderBtn].forEach(b => b.el.setDisabled(true));
             try {
                 const { entry } = await takePicture({
                     project, group: live, sceneItem, view, renderer: canvasEl.getRenderer(), pose, aspect, fillLine,
@@ -256,7 +272,7 @@ export const MpiSceneBlock = ComponentFactory.create({
                 if (err?.message !== 'cancelled') Events.emit('ui:warning', { message: `Take picture failed: ${err?.message || err}` });
             } finally {
                 busy = false;
-                if (!destroyed) [takeBtn, buildBtn].forEach(b => b.el.setDisabled(!view));
+                if (!destroyed) { [takeBtn, buildBtn].forEach(b => b.el.setDisabled(!view)); showPath(); }
             }
         };
 
@@ -273,7 +289,7 @@ export const MpiSceneBlock = ComponentFactory.create({
             busy = true;
             building = new AbortController();
             const { signal } = building;
-            takeBtn.el.setDisabled(true);
+            [takeBtn, renderBtn].forEach(b => b.el.setDisabled(true));
             buildBtn.el.setLabel('Stop building');
             buildBtn.el.setIcon('stop');
             try {
@@ -301,8 +317,50 @@ export const MpiSceneBlock = ComponentFactory.create({
                     buildBtn.el.setLabel(BUILD.label);
                     buildBtn.el.setIcon(BUILD.icon);
                     [takeBtn, buildBtn].forEach(b => b.el.setDisabled(!view));
+                    showPath();
                     show();
                 }
+            }
+        };
+
+        // P2: the path as a 360 video. Busy only until the engine has the guide: the Wan run
+        // (~30 min) goes through the generation queue and lands as a card by itself.
+        const renderVideo = async () => {
+            const project = state.currentProject;
+            if (busy || !view || !project || pathPoints.length < 2) return;
+            if (!pluginAvailability('scene-path').installed) {
+                Events.emit('ui:warning', { title: 'Render path',
+                    message: `${getPlugin('scene-path')?.title || '3D Scene path video'} is not installed. Add it from the Model Library (Plugins).` });
+                return;
+            }
+            busy = true;
+            [takeBtn, buildBtn, renderBtn].forEach(b => b.el.setDisabled(true));
+            let freed = false;
+            const free = () => {
+                if (freed) return;
+                freed = true;
+                busy = false;
+                if (!destroyed) { [takeBtn, buildBtn].forEach(b => b.el.setDisabled(!view)); showPath(); show(); }
+            };
+            try {
+                await renderPath({
+                    project, sceneItem, view, renderer: canvasEl.getRenderer(), points: pathPoints, fillLine,
+                    onStep: (step, at) => {
+                        if (destroyed) return;
+                        pathStatus.textContent = step === 'guide' ? `Rendering the guide: frame ${at.frame} of ${at.of}...` : PATH_STEPS[step] || '';
+                        if (step === 'wan') { view?.dropTargets(); free(); } // Wan needs the VRAM the float targets hold
+                    },
+                }, await appIo());
+                if (!destroyed) pathStatus.textContent = 'The path video is in the gallery.';
+                Events.emit('ui:success', { message: 'Path video ready: it is in the gallery.' });
+            } catch (err) {
+                if (!destroyed) pathStatus.textContent = '';
+                if (err?.message !== 'cancelled') {
+                    clientLogger.warn('scene', `render path failed: ${err?.message || err}`);
+                    Events.emit('ui:warning', { message: `Render path failed: ${err?.message || err}` });
+                }
+            } finally {
+                free();
             }
         };
 
@@ -338,6 +396,7 @@ export const MpiSceneBlock = ComponentFactory.create({
         addBtn.on('click', addHere);
         undoBtn.on('click', () => savePath(removeLast(pathPoints)));
         clearBtn.on('click', () => savePath([]));
+        renderBtn.on('click', renderVideo);
         // A picture flies the camera back to where it was taken; the card stays on its pano.
         historyList.on('entry-selected', ({ item }) => {
             if (!item?.scenePose) return; // the pano itself: no camera to fly to
@@ -385,7 +444,7 @@ export const MpiSceneBlock = ComponentFactory.create({
                 view.dispose();
                 view = null;
             }
-            [bake, buildBtn, aspectPick, lensPick, fillInput, takeBtn, historyList, addBtn, undoBtn, clearBtn].forEach(c => c.destroy());
+            [bake, buildBtn, aspectPick, lensPick, fillInput, takeBtn, historyList, addBtn, undoBtn, clearBtn, renderBtn].forEach(c => c.destroy());
             viewport.destroy();
         };
     },

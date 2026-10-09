@@ -1294,3 +1294,28 @@ much kung fu"); he picked the path route (plan § Plan Drift 2026-10-09). His re
   load (0 / 8 / 7 layers) with their pictures, no page errors. The seven old folders went to the
   Recycle Bin, not deleted. Two script bugs caught by its own checks before anything was removed:
   stale fill-job sidecars from the shared scratch staging, and a late-binding closure.
+
+## Paths P2: the guide video (2026-10-09, session 41 "3D Scene 31", WebGL only; Wan under the lease)
+
+- **Unit:** `node --test tests/scene-path.test.cjs tests/scene-viewer.test.cjs` 22/22. Mutants (all
+  killed, `mutants_p2.py`, session 41 scratchpad): mirrored frame, upside-down frame, first face
+  instead of the best, heading snapping at a bend (TURN 0), uneven speed.
+- **Live guide** (`stage.py` -> scratch copy `MPI-623 P2`, the Convert test pano given the window
+  card's rect; `guide.cjs` in an agent app, own profile + port): path
+  `[[0,0,0],[0,-0.1,-0.45],[0,-0.145,-0.79],[0,-0.145,-1.25]]` (window centre 10.5 deg below,
+  0.79 units = 2.8 m; the window is ~0.46 m square, ground 0.455 units = 1.6 m). 81 frames in
+  35 s (6 x 512 px views a frame, 0.2-0.7 s each). Holes: frame 0 5.0% (sky-band cuts round the
+  tree crowns), 20: 9.2%, 40: 44%, 50: 73% (at the window), 60-80: 98-99.7% (inside: only the
+  window behind shows the street, at the seam). Frame 0 by eye = the pano rolled to face the
+  house (yaw pi). Sheet: `p2_window_sheet.jpg`.
+- **Wan fill** (`p2_wan.py` under `gpu_lease.py run --poll 2`, bench :8188, the amendment-32 graph
+  with node 27 swapped for our frames): `success` in **1700 s (28 min)** on the 4060 Ti, Q4 GGUF.
+  Out: `D:/WORK/Images/Outputs/mpi623_p2/window_00001_.mp4` (+ `window_guide_00001_.mp4`).
+  `corr.py` (amendment 31 gate, known pixels only): frames 0-50 **+0.95-0.99**, 60: +0.88, 70:
+  +0.72, 80: +0.68 (1% known there: the window behind), min +0.62, **median +0.972** (the bake
+  rail: 0.86-0.93). Its "black left" column (sum < 24) reads 40% at frames 40-50: by eye that
+  is the dark warm shading of the invented interior, no black hole is visible in any frame. By eye:
+  street -> round window -> a cosy wooden room (beamed ceiling, round windows, shelves, sunlight
+  on the floor), the street still behind through the window at the seam, the passage coherent
+  (frames 52-64, `p2_window_passage.jpg`). Previews sent to Fabio as VP9 WebM.
+- **Fabio, 2026-10-09: "Awesomeness. 1"** - P2 guide + Wan fill passed by eye. Next: wire it into the app.

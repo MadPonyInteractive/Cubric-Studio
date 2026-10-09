@@ -569,4 +569,19 @@ export const modelDeps = {
             url: 'https://huggingface.co/MiniMaxAI/MiniMax-H3',
         },
     },
+    // MPI-623 (3D Scene, P2): Wan 2.1 I2V 14B 720P as Q4_K_M GGUF (ComfyUI-GGUF's loader), the
+    // model under the Matrix-3D 360 LoRA that renders a camera path. Q4 measured as good as fp8
+    // at filling holes (MPI-623 amendment 32) at 11.3 GB against 16.4. Owned by the `scene-path`
+    // plugin. The HF copy is byte-identical (lfs sha256 checked 2026-10-10).
+    'wan21-i2v-720p-q4': {
+        id: 'wan21-i2v-720p-q4',
+        name: 'Wan 2.1 I2V 14B 720P (Q4_K_M)',
+        origin: 'Wan-AI/Wan2.1-I2V-14B-720P (Apache-2.0), GGUF by city96',
+        filename: 'diffusion_models/wan2.1-i2v-14b-720p-Q4_K_M.gguf',
+        url: 'https://models.cubric.studio/vision/models/diffusion_models/wan2.1-i2v-14b-720p-Q4_K_M.gguf',
+        mirrorUrl: 'https://huggingface.co/city96/Wan2.1-I2V-14B-720P-gguf/resolve/main/wan2.1-i2v-14b-720p-Q4_K_M.gguf',
+        size: '10.56GB',
+        bytes: 11341184384,
+        sha256: 'ffecd91e4b636d8e3e43f3fa388218158ba447109547bde777c6d67ef4fe42a4'
+    },
 };

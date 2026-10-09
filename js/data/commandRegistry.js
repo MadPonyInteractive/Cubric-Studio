@@ -1163,6 +1163,22 @@ export const commands = {
         promptRequired: false,
         universal: true,
     },
+    // MPI-623 P2: a camera path through the scene as a 360 video. The app renders the guide
+    // (`scenePathVideo.js`: what the scene shows along the path, its holes white below it, one
+    // video) and Wan 2.1 I2V + the Matrix-3D 360 LoRA invent the holes. Unlike the two above it
+    // goes through `enqueueGeneration`, like a Flow: the video lands as a card.
+    scenePathVideo: {
+        label: 'Camera path video',
+        filePrefix: 'cameraPathVideo',
+        progressLabel: 'Rendering the camera path',
+        mediaType: MEDIA_TYPE.VIDEO,
+        requiresImages: 0,
+        mediaInputs: [
+            { key: 'video1', mediaType: MEDIA_TYPE.VIDEO, title: 'Input_Video', required: true },
+        ],
+        promptRequired: false,
+        universal: true,
+    },
     // MPI-771: GIF cut-out — SAM3 video tracking by name across every frame of
     // a temp video the GIF workspace encodes from the frame strip. Dispatched
     // by `runGifCutoutTrack` (commandExecutor.js) directly, not `runCommand` —

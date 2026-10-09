@@ -22,7 +22,7 @@
     "ComfyUI-MpiNodes": {
       "source": "git-commit",
       "repo": "MadPonyInteractive/ComfyUi-MpiNodes",
-      "commit": "db3bdc7381b6c1f8da39d9d1feca75797af1560b",
+      "commit": "d721182582ee0513186602ce807e4db33994bef9",
       "filename": "ComfyUI-MpiNodes",
       "installRequirements": false
     },
@@ -52,6 +52,13 @@
       "repo": "kijai/ComfyUI-KJNodes",
       "commit": "35e5956193769d18a13136cdedb73a36a05c73e6",
       "filename": "comfyui-kjnodes",
+      "installRequirements": true
+    },
+    "ComfyUI-GGUF": {
+      "source": "git-commit",
+      "repo": "city96/ComfyUI-GGUF",
+      "commit": "6ea2651e7df66d7585f6ffee804b20e92fb38b8a",
+      "filename": "ComfyUI-GGUF",
       "installRequirements": true
     },
     "ComfyUI-UltimateSDUpscale": {

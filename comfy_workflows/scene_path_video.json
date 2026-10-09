@@ -1,0 +1,303 @@
+{
+  "1": {
+    "inputs": {
+      "video": "None",
+      "block_if_empty": true,
+      "force_rate": 0,
+      "string": ""
+    },
+    "class_type": "MpiLoadVideoUpload",
+    "_meta": {
+      "title": "Input_Video"
+    }
+  },
+  "2": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Positive"
+    }
+  },
+  "3": {
+    "inputs": {
+      "int": 0
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Seed"
+    }
+  },
+  "4": {
+    "inputs": {
+      "width": 1440,
+      "height": 720,
+      "x": 0,
+      "y": 0,
+      "image": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "ImageCrop",
+    "_meta": {
+      "title": "Guide (top half)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 1440,
+      "height": 720,
+      "x": 0,
+      "y": 720,
+      "image": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "ImageCrop",
+    "_meta": {
+      "title": "Holes (bottom half, white = invent)"
+    }
+  },
+  "6": {
+    "inputs": {
+      "batch_index": 0,
+      "length": 1,
+      "image": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "ImageFromBatch",
+    "_meta": {
+      "title": "First frame (the pano, facing the way the path goes)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "unet_name": "wan2.1-i2v-14b-720p-Q4_K_M.gguf"
+    },
+    "class_type": "UnetLoaderGGUF",
+    "_meta": {
+      "title": "Wan 2.1 I2V 720P Q4_K_M"
+    }
+  },
+  "8": {
+    "inputs": {
+      "lora_name": "wan-2.1\\pano_video_gen_720p_comfy.safetensors",
+      "strength_model": 0.98,
+      "model": [
+        "7",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "Matrix-3D 360 video LoRA"
+    }
+  },
+  "9": {
+    "inputs": {
+      "lora_name": "wan-2.1\\lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "lightx2v 8-step distill"
+    }
+  },
+  "10": {
+    "inputs": {
+      "shift": 5,
+      "model": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingSD3",
+    "_meta": {
+      "title": "ModelSamplingSD3"
+    }
+  },
+  "11": {
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "umt5 xxl"
+    }
+  },
+  "12": {
+    "inputs": {
+      "text": [
+        "2",
+        0
+      ],
+      "clip": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Positive"
+    }
+  },
+  "13": {
+    "inputs": {
+      "text": "The video is not of a high quality, it has a low resolution. Distortion. strange artifacts.",
+      "clip": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Negative (inert at cfg 1)"
+    }
+  },
+  "14": {
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Wan 2.1 VAE"
+    }
+  },
+  "15": {
+    "inputs": {
+      "clip_name": "clip_vision_h.safetensors"
+    },
+    "class_type": "CLIPVisionLoader",
+    "_meta": {
+      "title": "CLIP Vision H"
+    }
+  },
+  "16": {
+    "inputs": {
+      "crop": "center",
+      "clip_vision": [
+        "15",
+        0
+      ],
+      "image": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "CLIPVisionEncode",
+    "_meta": {
+      "title": "CLIP Vision Encode"
+    }
+  },
+  "17": {
+    "inputs": {
+      "width": 1440,
+      "height": 720,
+      "length": 81,
+      "positive": [
+        "12",
+        0
+      ],
+      "negative": [
+        "13",
+        0
+      ],
+      "vae": [
+        "14",
+        0
+      ],
+      "guide": [
+        "4",
+        0
+      ],
+      "holes": [
+        "5",
+        0
+      ],
+      "clip_vision_output": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "MpiWanMaskedVideo",
+    "_meta": {
+      "title": "Mpi Wan Masked Video"
+    }
+  },
+  "18": {
+    "inputs": {
+      "seed": [
+        "3",
+        0
+      ],
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1,
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "17",
+        0
+      ],
+      "negative": [
+        "17",
+        1
+      ],
+      "latent_image": [
+        "17",
+        2
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "19": {
+    "inputs": {
+      "samples": [
+        "18",
+        0
+      ],
+      "vae": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "20": {
+    "inputs": {
+      "fps": 16,
+      "filename_prefix": "MpiScene_Path",
+      "use_audio": false,
+      "truncate_to_audio": false,
+      "images": [
+        "19",
+        0
+      ]
+    },
+    "class_type": "MpiSaveVideo",
+    "_meta": {
+      "title": "Output_Video"
+    }
+  }
+}

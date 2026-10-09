@@ -8,7 +8,29 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 40 (2026-10-09, "3D Scene 30",
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 41 (2026-10-09, "3D Scene 31"):
+P2 planned and half built** (§ Remaining Work > Paths P2). Fabio: run it on his card under the
+lease, no RunPod yet. Built + unit-tested: `pathFrames`, `stitchPano` / `renderPano` (uncommitted).
+Guide video of a path through the round window rendered live (scratchpad `p2_window/`, rig
+`stage.py` + `guide.cjs` in session 41's scratchpad). **Wan filled it on the bench: 28 min, known
+corr median +0.972, a coherent invented room** (`p2_wan.py`, `corr.py`; out
+D:/WORK/Images/Outputs/mpi623_p2/). **Fabio: "Awesomeness. 1".** Then WIRED into the app (all
+unit-tested, `npm test` 2837/0, lint clean, NOT yet run live): MpiNodes `d721182`
+`MpiWanMaskedVideo` (SplatKit port, identical tensors) pushed + pinned; ComfyUI-GGUF back in
+node_lock + nodesDeps + pip `gguf` (python_deps); deps `wan21-i2v-720p-q4`, `clip-vision-h`,
+`wan21-pano360-lora` (R2 only, NOT uploaded yet), `wan21-lightx2v-distill`; plugin `scene-path`;
+op `scenePathVideo` (4 places) + `scene_path_video.json`; route `frames-to-video`
+(routes/projects.js); `scenePathVideo.js` `renderPath`; MpiSceneBlock **Render path** button.
+The ~20.5 GB of weights were COPIED (not downloaded) into G:/CubricModels under the dep names
+(Fabio freed 20 GB; G: ~8.5 GB left). **Next:** Fabio restarts his app (engine installs GGUF + pip
+gguf + MpiNodes d721182), then the live run: `gpu_lease.py run --timeout 14400 --poll 2 -- node
+<s41 scratchpad>/p2_live.cjs '[[0,0,0],[0,-0.1,-0.45],[0,-0.145,-0.79],[0,-0.145,-1.25]]' '<line>'`
+(clicks the real button in an agent app on the scratch copy `MPI-623 P2`, waits for the card).
+Then: score it (split the guide mp4 into top/bottom, `corr.py`), put the card in
+Projects/MPI-623, Fabio's eye. Your-call items: R2 upload of the 360 LoRA (0.3 GB, needed for
+anyone but Fabio); a Pod image rebuild before Render path works on RunPod. Also done:
+MPI-1036's ask - pin MpiNodes `88816c8` + its changelog line (uncommitted; message resolved).
+**Session 40 (2026-10-09, "3D Scene 30",
 CPU only): both behind_well by-eye items explained** (validation.md § behind_well's two by-eye items):
 the up view's black blob = black Klein left in its own fill (1 of 36 build fills); the 0.51 = the
 whole near floor floating (affine fit b < 0; the guard did not fire; the clamp is one-sided). Offline
@@ -354,6 +376,25 @@ Flows have NO dev gate of their own (`listFlows()` unfiltered).
 
 ## Remaining Work
 
+### Paths P2: render a path with Wan (session 41, Fabio: "on my card, under the lease")
+
+Route (Plan Drift 2026-10-09, P2): the APP renders the guide, the bench fills it, only then wire.
+- [x] `pathFrames` (scenePath.js): 81 frames, centripetal Catmull-Rom, constant speed, level,
+      heading = chord over +-10% of the path. `cubePoses` / `stitchPano` / `renderPano`
+      (sceneViewer.js): six 90-degree `renderPicture`s -> one 1440x720 360 frame in the pano's
+      own layout + its hole mask. Unit 22/22, 5 mutants killed.
+- [x] Guide rendered live (isolated app, `guide.cjs`): Convert test pano + the window rect, path
+      `[[0,0,0],[0,-0.1,-0.45],[0,-0.145,-0.79],[0,-0.145,-1.25]]` through the round window;
+      frame 0 = the pano (5% holes: sky-band cuts), inside the room 98-99.7% black.
+- [x] Wan fill on the bench (`p2_wan.py`, the amendment-32 graph with node 27 swapped for our
+      frames, `invert_mask` true, CLIP vision on frame 0): 28 min, known corr median +0.972;
+      Wan invented a coherent room behind the window (validation.md § Paths P2).
+- [ ] Fabio's eye on the 360 video. Pass -> wire: MpiNodes node (port of SplatKit's
+      `WanI2VMaskedConditioning`, MIT), ComfyUI-GGUF pin + deps (Wan 2.1 I2V 720P Q4, Matrix-3D
+      LoRA via R2, lightx2v, clip_vision_h), op + Render button, a video card.
+- Levers, untested: Matrix-3D 480P LoRA (`pano_video_gen_480p.ckpt`, 0.31 GB, ~2x faster) and
+      `pano_video_gen_720p_5b.safetensors` (0.24 GB) on the Wan 2.2 5B the app already ships.
+
 ### Phase 0: Single-shot spikes (bench + a scratch HTML page, NO product code)
 
 All files in `D:\WORK\MPI-623-spike\single_shot\`; every GPU run via `gpu_lease.py run` with
@@ -542,6 +583,12 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
 
 ## Plan Drift
 
+- **2026-10-09 - P2 route (session 41, Fabio "on my card").** The guide video is rendered IN THE
+  APP (pano + every layer, the A1 renderer), not by SplatKit's `CameraPlotRenderControlGeo`: that
+  node re-runs MoGe on the pano, so the user's path would land in a different geometry and the
+  built layers would be missing. The engine needs only SplatKit's ~80-line conditioning node.
+  The bake's Wan was 2.1 I2V **720P** (the handoff's "480P" was wrong). A point stays a position:
+  the heading comes from the travel direction (amendments 30-32: facing away breaks Wan).
 - **2026-10-09 - Paths + Wan (Fabio, session 40: "we are doing way too much kung fu").** After
   flying the Build here layers (side-stepping inside the window tears them; Build here only adds,
   never removes, so a second press cannot clear the stray pieces), Fabio picked the path route:

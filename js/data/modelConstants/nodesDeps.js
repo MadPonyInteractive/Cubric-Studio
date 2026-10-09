@@ -92,12 +92,20 @@ export const nodesDeps = {
         // — all pinned in the curated dev_configs/python_deps.in set.
         size: '28MB',
     },
-    // MPI-190: ComfyUI-GGUF removed. It existed only to load the Q8_0 GGUF LTX
-    // transformer, which is deleted (bf16 now runs on both engines). It is NOT in any
-    // model's dependencies[], so the app never installs it. The node still ships in the
-    // Pod image (node_lock.json) because KJNodes' GGUFLoaderKJ hard-imports city96's
-    // gguf_sd_loader at load — dropping it from the Pod needs a KJNodes-load check
-    // first, so that cleanup is a separate Pod-rebuild task.
+    // MPI-623: back after MPI-190 removed it (it then loaded only LTX's Q8_0 transformer).
+    // The 3D Scene's camera-path video runs Wan 2.1 I2V 720P as a Q4_K_M GGUF: 11.3 GB
+    // against 16.4 GB fp8, the quality measured equal on hole-filling (MPI-623 amendment
+    // 32), and it fits a 16 GB card without offload. Needs pip `gguf` (python_deps.in), so
+    // it is BAKED on the Pod: a Pod image built before this entry has no GGUF loader.
+    'ComfyUI-GGUF': {
+        id: 'ComfyUI-GGUF',
+        name: 'ComfyUI-GGUF',
+        type: 'custom_nodes',
+        filename: 'ComfyUI-GGUF',
+        url: lockUrl('ComfyUI-GGUF'),
+        installRequirements: true,
+        size: '120KB',
+    },
     'ComfyUI-UltimateSDUpscale': {
         id: 'ComfyUI-UltimateSDUpscale',
         name: 'ComfyUI Ultimate SD Upscale',

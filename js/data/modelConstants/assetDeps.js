@@ -1503,4 +1503,16 @@ export const assetDeps = {
             url: 'https://huggingface.co/Ruicheng/moge-vitl',
         },
     },
+    // MPI-623 (3D Scene, P2): Wan 2.1 I2V's image encoder - the path video sees its first frame
+    // through it. Owned by the `scene-path` plugin. HF copy byte-identical (checked 2026-10-10).
+    'clip-vision-h': {
+        id: 'clip-vision-h',
+        name: 'CLIP Vision H',
+        filename: 'clip_vision/clip_vision_h.safetensors',
+        url: 'https://models.cubric.studio/vision/models/clip_vision/clip_vision_h.safetensors',
+        mirrorUrl: 'https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors',
+        size: '1.18GB',
+        bytes: 1264219396,
+        sha256: '64a7ef761bfccbadbaa3da77366aac4185a6c58fa5de5f589b42a65bcc21f161'
+    },
 };

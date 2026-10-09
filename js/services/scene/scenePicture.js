@@ -8,7 +8,7 @@
 // (`D:\WORK\MPI-623-spike\single_shot\chain.py`, `shots.py`). Depth of field waits on spike 0c.
 // Build here runs the same fill over six views round the camera, layers only (plan 0b).
 
-import { pictureSize, renderPicture, loadLayer, PITCH_MAX } from './sceneViewer.js';
+import { pictureSize, renderPicture, renderPano, loadLayer, PITCH_MAX } from './sceneViewer.js';
 
 /** The fill instruction: style-free, so it works on any pano (chain.py GENERIC). */
 export const GENERIC = 'Fill the black empty areas so the picture is complete and no black remains. Continue the scene that '
@@ -86,7 +86,7 @@ const styles = new Map(); // scenePath -> the describer's style phrase
 
 /** The pano's style, asked once per scene of the describer picked in Remote > Language Models
  *  (`describeImage`). A failure stops the fill: a room in the wrong style is what this prevents. */
-async function sceneStyle(io, sceneItem, onStep) {
+export async function sceneStyle(io, sceneItem, onStep) {
     if (styles.has(sceneItem.scenePath)) return styles.get(sceneItem.scenePath);
     onStep('style');
     const r = await io.describe({ imagePath: sceneItem.filePath, question: STYLE_ASK });
@@ -206,6 +206,7 @@ export async function appIo() {
     const canvasOf = (w, h) => new OffscreenCanvas(w, h).getContext('2d', { willReadFrequently: true });
     return {
         render: renderPicture,
+        renderPano, // a path video frame (scenePathVideo.js)
         inside: (view, renderer, pos) => insideAt(view, renderer, pos),
         enqueue: enqueueGeneration,
         describe: describeImage, // the describer picked in Remote > Language Models
@@ -282,7 +283,7 @@ function liftJob(io, payload) {
 }
 
 /** A file in the project's preview assets (no card): a rendered frame or a known-depth `.f32`. */
-const placeAsset = (io, project, dataUrl, ext) => io.post(
+export const placeAsset = (io, project, dataUrl, ext) => io.post(
     `/project-media/${project.id}/place-preview-asset?folderPath=${encodeURIComponent(project.folderPath)}`, { dataUrl, ext });
 
 /** Any known depth in the shot - back faces count (negative z). */

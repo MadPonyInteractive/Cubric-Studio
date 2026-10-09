@@ -25,3 +25,53 @@ export function addPoint(points, pos, ground) {
 
 /** `points` without its last point; only the start left = no path. */
 export const removeLast = (points) => (points.length > 2 ? points.slice(0, -1) : []);
+
+/** Wan 2.1's clip: 81 frames, 5 s at 16 fps. */
+export const FRAMES = 81;
+const STEPS = 64; // curve samples per segment before the even re-spacing
+/** The heading is the chord over this share of the path either side: a bend turns the camera gradually. */
+const TURN = 0.1;
+
+/** Centripetal Catmull-Rom between `p1` and `p2` at `t` in [0, 1]: no loops or cusps on uneven spacing. */
+function catmull(p0, p1, p2, p3, t) {
+    const knot = (a, b) => Math.max(Math.sqrt(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2])), 1e-9);
+    const t1 = knot(p0, p1), t2 = t1 + knot(p1, p2), t3 = t2 + knot(p2, p3), u = t1 + (t2 - t1) * t;
+    const lerp = (a, b, ta, tb) => a.map((v, i) => ((tb - u) * v + (u - ta) * b[i]) / (tb - ta));
+    const a1 = lerp(p0, p1, 0, t1), a2 = lerp(p1, p2, t1, t2), a3 = lerp(p2, p3, t2, t3);
+    return lerp(lerp(a1, a2, 0, t2), lerp(a2, a3, t1, t3), t1, t2);
+}
+
+/**
+ * The camera of every video frame along a path: a smooth curve through its points, frames evenly
+ * spaced along it (constant speed), each camera level and facing where it travels (Wan's 360
+ * LoRA breaks when the camera faces away from its motion, plan-history-bake amendments 30-32).
+ * Frame 0 is the path's first point, the pano's centre.
+ * @param {number[][]} points  a path's points (`addPoint`), the first `PATH_START`
+ * @returns {{pos: number[], yaw: number}[]} `n` frames; none for a path with no second point
+ */
+export function pathFrames(points, n = FRAMES) {
+    if (points.length < 2) return [];
+    const ends = (a, b) => a.map((v, i) => 2 * v - b[i]); // phantom points: the curve starts and ends straight
+    const p = [ends(points[0], points[1]), ...points, ends(points.at(-1), points.at(-2))];
+    const curve = [points[0]];
+    for (let s = 1; s < p.length - 2; s++) for (let k = 1; k <= STEPS; k++) curve.push(catmull(p[s - 1], p[s], p[s + 1], p[s + 2], k / STEPS));
+    const len = [0];
+    for (let i = 1; i < curve.length; i++) len.push(len[i - 1] + Math.hypot(...curve[i].map((v, c) => v - curve[i - 1][c])));
+    const total = len.at(-1);
+    const at = (s) => { // the curve's point `s` along it
+        s = Math.min(Math.max(s, 0), total);
+        let lo = 1, hi = curve.length - 1;
+        while (lo < hi) { const m = (lo + hi) >> 1; if (len[m] < s) lo = m + 1; else hi = m; }
+        const a = curve[lo - 1], b = curve[lo], w = len[lo] > len[lo - 1] ? (s - len[lo - 1]) / (len[lo] - len[lo - 1]) : 0;
+        return a.map((v, c) => v + (b[c] - v) * w);
+    };
+    const frames = [];
+    let yaw = 0;
+    for (let f = 0; f < n; f++) {
+        const s = (total * f) / (n - 1), a = at(s - TURN * total), b = at(s + TURN * total);
+        const dx = b[0] - a[0], dz = b[2] - a[2];
+        if (Math.hypot(dx, dz) > 1e-9) yaw = Math.atan2(dx, dz); // straight up or down: keep the last heading
+        frames.push({ pos: at(s), yaw });
+    }
+    return frames;
+}

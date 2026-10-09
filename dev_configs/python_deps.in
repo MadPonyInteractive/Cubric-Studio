@@ -110,6 +110,8 @@ diffusers
 filelock
 ftfy
 fvcore
+# gguf — ComfyUI-GGUF's reader (MPI-623: Wan 2.1 I2V 720P Q4_K_M for the 3D Scene's path video).
+gguf>=0.13.0
 # gguf-connector — the GGUF reader/dequant backend behind MelodramaBox's quantised DiT
 # path. Every import of it is LAZY (inside `load_dit_gguf` / the convert tool), so a
 # bf16 run never touches it and the pack loads fine without it. Declared anyway: the
@@ -135,6 +137,7 @@ mediapipe>=0.8.0
 ninja~=1.11.1.4
 omegaconf
 piexif
+protobuf
 python-dateutil
 pywavelets
 pyyaml
