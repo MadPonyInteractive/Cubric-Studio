@@ -782,9 +782,9 @@ export const FLOWS = [
         preview: 'flow-video-edit.webp',
         description: 'Swap the person, head or outfit in a video, change its background, or make any edit you describe. Add a picture of the new character, outfit or place, or describe it in words. List what to change under “Only change” and just that part is masked and re-rendered, faster, with the rest kept exactly as filmed. The soundtrack comes through untouched. Short clips first: a 5-second clip can take 20 minutes, and longer ones drift.',
         requiredModels: ['minimax-h3-ref2va'],
-        // The swap LoRA belongs to this Flow, not to the model (01-descriptor-and-ops.md §
-        // requiredDeps). SAM3 is an engineAsset, so it is not listed.
-        requiredDeps: ['minimax-h3-character-swap-lora'],
+        // The swap and Faceswap LoRAs belong to this Flow, not to the model (01-descriptor-and-ops.md
+        // § requiredDeps). SAM3 is an engineAsset, so it is not listed.
+        requiredDeps: ['minimax-h3-character-swap-lora', 'minimax-h3-faceswap-lora'],
         operation: 'flowVideoEdit',
         workflow: 'flow_video_edit.json',
         mediaType: 'video',

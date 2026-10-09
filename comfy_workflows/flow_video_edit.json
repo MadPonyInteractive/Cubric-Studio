@@ -186,6 +186,19 @@
       "title": "Masked? (and the square holds it)"
     }
   },
+  "25": {
+    "inputs": {
+      "math_expression": "a == 2",
+      "a": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Swap the head? (Faceswap LoRA + trigger)"
+    }
+  },
   "30": {
     "inputs": {
       "math_expression": "floor((a - 5) / 17) * 17 + 5",
@@ -971,7 +984,7 @@
       "lora_name": "minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
       "strength_model": 1,
       "model": [
-        "105",
+        "148",
         0
       ]
     },
@@ -1030,7 +1043,7 @@
         0
       ],
       "prompt": [
-        "172",
+        "149",
         0
       ],
       "width": [
@@ -1234,6 +1247,86 @@
     "class_type": "MpiSaveVideo",
     "_meta": {
       "title": "Output_Video"
+    }
+  },
+  "145": {
+    "inputs": {
+      "lora_name": "minimax-h3\\SS_FaceSwap_MiniMax_H3_REF2VA.safetensors",
+      "strength_model": 1,
+      "model": [
+        "105",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Faceswap LoRA"
+    }
+  },
+  "146": {
+    "inputs": {
+      "string": "Faceswap"
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Faceswap trigger"
+    }
+  },
+  "147": {
+    "inputs": {
+      "delimiter": "\n",
+      "string_a": [
+        "146",
+        0
+      ],
+      "string_b": [
+        "172",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Trigger + prompt"
+    }
+  },
+  "148": {
+    "inputs": {
+      "true": [
+        "145",
+        0
+      ],
+      "false": [
+        "105",
+        0
+      ],
+      "boolean": [
+        "25",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "head ? Faceswap : as is"
+    }
+  },
+  "149": {
+    "inputs": {
+      "true": [
+        "147",
+        0
+      ],
+      "false": [
+        "172",
+        0
+      ],
+      "boolean": [
+        "25",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "head ? trigger + prompt : prompt"
     }
   },
   "162": {

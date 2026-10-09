@@ -131,6 +131,21 @@ PRESETS['S5srL_single_ref_half_old_prompt_lora'] = dict(PRESETS['S5sro_single_fu
 for _src, _x in (('S1_swap_keep', 'S1x_swap_keep_ref075'), ('S3_swap_picture_room', 'S3x_picture_room_ref075'),
                  ('S4_background', 'S4x_background_ref075'), ('S6_outfit', 'S6x_outfit_ref075')):
     PRESETS[_x] = dict(PRESETS[_src], ours=False, ref_frac=0.75)
+# Video edit 14: Fabio's close-up (videoCrop_002, 448x800) masked "Head" left the crown blonde: the union square capped
+# at the frame width and cut the mask. T1 = his exact run on the fixed graph (should fall back to the whole frame);
+# T2 = T1 + the UntMods Faceswap LoRA (trigger word in front) for likeness.
+PRESETS['T1_closeup_head_fallback'] = dict(
+    video='mpi1036_fabio_closeup.mp4', image='mpi1036_fabio_pink.png', operation=2, who='The blonde woman',
+    target='Head', seed=2843194367, positive='Her hair is shoulder-length with pink and orange highlights.',
+    look=('The subject is a young woman with fair, glowing skin and brown eyes. She has shoulder-length, curly hair '
+          'that is black at the roots and transitions into shades of pink and light peach.'))
+# Fabio saw T1 = T2 in likeness. Same A/B on our own clean 1088x1920 H3 dancer (gen_dancer.py), + masked "Head":
+# her head stays put, so the square should fit and the masked route runs (crown + side-turn sync on a fitting mask).
+PRESETS['D1_dancer_head_whole'] = dict(PRESETS['T1_closeup_head_fallback'], video='mpi1036_dancer_1088x1920.mp4',
+                                       target='')
+PRESETS['D3_dancer_head_masked'] = dict(PRESETS['D1_dancer_head_whole'], target='Head')
+# T2/D2/D4 were T1/D1/D3 + a bench-only Faceswap override. Fabio picked D2/D4, so op 2 now carries the Faceswap LoRA
+# in flow_graph itself and T1/D1/D3 build WITH it (the no-Faceswap baselines: git history, Video edit 14).
 PRESETS['S5pq_stage1_turbo_075'] = dict(PRESETS['S5pr_stage1_ref_video_at_stage1_size'], patch={
     '620': {'math_expression': 'floor(a * 0.75 / 32 + 0.5) * 32'},
     '621': {'math_expression': 'floor(a * 0.75 / 32 + 0.5) * 32'}})

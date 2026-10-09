@@ -539,6 +539,48 @@ own wording, e.g. a supplied torso image).
   Fabio thinks it is the clip's quality / face distance and is testing a higher-quality video himself. Identity
   adapters noted in brief.md `## Noticed` (Faceswap LoRA, RefMods, fal Realism, akatz).
 
+**Video edit 14 (2026-10-09), running notes:**
+- Faceswap LoRA: `UntMods/FaceSwap_MiniMaxH3_REF2VA`, `SS_FaceSwap_MiniMax_H3_REF2VA.safetensors` 65,623,904 B, sha256
+  `1e032cf5...0326d` (= HF lfs), Apache-2.0 (an H3 fine-tune, so the H3 licence likely binds too; the H3 gate covers
+  it). Header: ai-toolkit, base `minimax_h3_ref2va`, rank 16, 4,500 steps, every caption the one word "FaceSwap",
+  ~half the blocks pruned. Author's graph = our int8 transformer + our turbo LoRA, prompt = the trigger alone.
+  Downloaded to `G:/CubricModels/loras/minimax-h3/` (Fabio's yes).
+- **Two MASK FAILURES in Fabio's app, both masked "Head":** close-up `videoCrop_002` (448x800) left the crown blonde;
+  dance `videoCrop_001` (1072x1920) showed a box seam across the hips. Measured from the files (median |result -
+  source|, scratchpad `boxfind.py`): BOTH pasted squares = the frame WIDTH (448 / 1072). ROOT CAUSE:
+  `square_bbox_from_mask` caps the side at min(W, H) and centres it, so a union box taller than a portrait frame is
+  wide gets CUT (crown above y~50 never re-rendered) and the square runs head-to-hips (its edge crosses the moving
+  body). Image workflows are NOT affected: there the square is only `optional_context_mask`, the painted mask is
+  never cut. Fix (flow_graph): node 55 "Square holds the whole mask?" = size < W and size < H; node 24 (lazy IfElse
+  on 23) feeds all six masked consumers (21, 60, 61, 62, 93, 122) - a capped square runs the whole-frame route.
+  Exported, synced (raw `1d336bc8c` auto-committed by the sync; generated STAGED), +2 nodes / +6 links, 50 tests pass.
+  Cost: the dance clip's masked run falls back to whole frame (7:21, not 5:19) - correct beats fast.
+- Fabio: the close-up (`videoCrop_002`) WAS his higher-quality clip - likeness still weak. So clip quality / face
+  distance is NOT the cause; an identity adapter is the lever (T2).
+- **T1 (300 s): fell back (576x1024 out = whole frame), crown fixed, curls every frame, follows the side turn (~3
+  frames early on the turn back). Fabio: "the likeness is much better"** than his masked 004 on the same clip.
+- **T2 (T1 + Faceswap LoRA under turbo, "Faceswap" opening the prompt; 251 s, no "lora key not loaded"):** heavier
+  dark brows, longer narrower face, paler skin - I read it closer; **Fabio: T1 and T2 have the SAME likeness** (no
+  clear LoRA gain on this clip). Ship decision waits for the clean-dancer A/B. Bench
+  key `faceswap` in run_flow.py. Side-by-side: session f255403e scratchpad `headswap_picture_masked_T1_T2.webm`.
+- Fabio: test clips are screen recordings; make our own TikTok dancer at 1088x1920 with H3 (ref2va only on disk,
+  no LTX: his drive is full), prompted per `docs/agent/models/minimax-h3.md`.
+- **Test dancer** (`research/bench/gen_dancer.py`, shipped `minimax_h3_r2va.json`, no refs = t2v, 1088x1920 turbo,
+  4 s -> 3.75 s, seed 20261009, 435 s): `D:/WORK/Images/Outputs/mpi1036/dancer_1088x1920_00001.mp4`, bench input
+  `mpi1036_dancer_1088x1920.mp4`. Full body (asked head-to-knees), face small; side turn + look back, ends hands on hips.
+- **D1/D2/D3 on it** (T1's picture/words/seed): D1 whole 430 s, D2 whole + Faceswap 422 s (no LoRA cost), D3 masked
+  "Head" 591 s - square ~rows 330-1000 (head + hair to the chest) FITS, so masked ran; in sync through the side turn,
+  crown clean, no seam seen. D2 face narrower/paler/heavier brows than D1 (my read). D3 timing: SAM3 + crop 71 s,
+  loads 35 s, 8 steps 167 s (vs 356 s whole), post 302 s - the BENCH runs the PRE-88816c8 grade (started 18:49,
+  fix 20:00; not restarted, shared box), so in the app masked ~5:10 vs whole ~7:10. 4-way clip: session f255403e
+  scratchpad `dancer_src_D1_D2_D3.webm`. **Fabio: D2 looks closer than D1** (the LoRA helps on a clean source; on
+  his screen-recorded close-up T1 = T2). **D4 = D3 + Faceswap** (stacked on the swap LoRA, 611 s): in sync through
+  the turn, crown clean; face vs D3 subtle (a bit narrower, sharper brows); D2 still reads closest to me. Upper-body
+  clip `dancer_src_D2_D3_D4_upper.webm`. **Fabio: SHIP the Faceswap LoRA on Swap the head, BOTH routes; D3 (masked,
+  no Faceswap) is a lot worse in likeness than D2 and D4** (not a failure, just worse).
+- Bench T1 (his close-up run, fixed graph -> should fall back) + T2 (T1 + Faceswap LoRA + trigger), queued in one
+  lease behind MPI-1041's Qwen batch; log in session f255403e scratchpad `t12.log`.
+
 **NEXT (Video edit 14), in order:**
 1. Fabio asked (2026-10-09): DOWNLOAD the H3 "Faceswap" LoRA (ref2va, trigger "Faceswap"; find the HF repo from
    https://hackernoon.com/faceswap-minimax-h3-lora-a-practical-guide-to-face-replacement) to `G:/CubricModels/loras/

@@ -9,7 +9,8 @@ import flow_graph as fg
 
 SHIPPED = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../../../../comfy_workflows/minimax_h3_r2va.json')
 # The Flow's own H3 section (single pass), replaced by the shipped one.
-FLOW_H3 = ('100', '101', '102', '103', '104', '105', '106', '107', '108', '110', '111', '112', '113', '114', '115', '116', '117')
+FLOW_H3 = ('100', '101', '102', '103', '104', '105', '106', '107', '108', '110', '111', '112', '113', '114', '115', '116', '117',
+           '145', '146', '147', '148', '149')  # + the head swap's Faceswap LoRA and trigger (Video edit 14)
 # Shipped nodes a Video Edit never feeds: the prompt/seed/size/duration inputs (the Flow's own drive them), the
 # reference slots past image 1 and video 1, and the generated soundtrack (the source audio is muxed back instead).
 UNUSED = ('195', '212', '213', '214', '232', '622', '623', '321', '329', '336', '337', '338', '339', '343', '344', '345',

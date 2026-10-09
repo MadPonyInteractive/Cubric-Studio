@@ -20,6 +20,7 @@ H3_VAE = 'minimax_h3_video_vae_int8_convrot.safetensors'
 H3_AVAE = 'minimax_h3_audio_vae_fp32.safetensors'
 TURBO = 'minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors'
 SWAP = 'minimax-h3\\h3_character_swap_pro4500_1000.safetensors'
+FACESWAP = 'minimax-h3\\SS_FaceSwap_MiniMax_H3_REF2VA.safetensors'  # UntMods, trigger "Faceswap", strength 1
 SAM3 = 'sam3.1_multiplex_fp16.safetensors'
 CROP = 512
 AREA = 576 * 1024  # whole-frame render area, the Phase 1 bench size
@@ -282,7 +283,7 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['23'] = node('MpiMath', 'Masked? (typed, and not Change the background)', a=['20', 1], b=['13', 0],
                    math_expression='(a * (b != 4)) > 0')
     g['21'] = node('MpiMath', 'Swap LoRA on? (masked, or Swap the person in the video room)',
-                   a=['23', 0], b=['13', 0], c=['14', 0], math_expression='(a + (b == 1) * c) > 0')
+                   a=['24', 0], b=['13', 0], c=['14', 0], math_expression='(a + (b == 1) * c) > 0')
     g['22'] = node('MpiMath', 'Template (6 = the person into the picture room)',
                    a=['13', 0], b=['11', 4], c=['14', 0], math_expression='6 if (a == 1) * b * (1 - c) > 0 else a')
 
@@ -314,6 +315,12 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['52'] = node('SAM3_Detect', 'Find it in every frame', model=['50', 0], image=['31', 0], conditioning=['51', 0],
                    threshold=0.5, refine_iterations=2, individual_masks=False)
     g['53'] = node('MpiMaskSquareBbox', 'One still square round it (pad 64)', mask=['52', 0], padding=64)
+    # The square caps at the frame's short side and then CUTS the mask (Video edit 14: a dancing head's union box is
+    # taller than a portrait frame is wide -> crown left as filmed, box edge across the hips). It holds the whole mask
+    # only below that cap; at it, the whole-frame route runs. Lazy (24): SAM3 runs only when a part was typed.
+    g['55'] = node('MpiMath', 'Square holds the whole mask?', a=['53', 3], b=['10', 5], c=['10', 6],
+                   math_expression='(a < b) * (a < c) > 0')
+    g['24'] = node('MpiIfElse', 'Masked? (and the square holds it)', boolean=['23', 0], true=['55', 0], false=['23', 0])
     # fill holes OFF: the mask is one solid square (53), so it is a no-op that cost ~0.85 s a frame on CPU
     # at 1072x1920 (77 s of a 90-frame run). device_mode stays cpu: gpu moves the WHOLE clip to VRAM first.
     g['54'] = node('InpaintCropImproved', 'Crop the square', image=['31', 0], mask=['53', 0],
@@ -326,10 +333,10 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
                    output_target_height=CROP, output_padding='32', device_mode='cpu (compatible)')
 
     # ---- what H3 sees
-    g['60'] = node('MpiIfElse', 'masked ? crop : whole frame', boolean=['23', 0], true=['54', 1], false=['42', 0])
+    g['60'] = node('MpiIfElse', 'masked ? crop : whole frame', boolean=['24', 0], true=['54', 1], false=['42', 0])
     g['63'] = node('MpiInt', 'Crop size', int=CROP)
-    g['61'] = node('MpiIfElse', 'masked ? crop width : render width', boolean=['23', 0], true=['63', 0], false=['40', 0])
-    g['62'] = node('MpiIfElse', 'masked ? crop height : render height', boolean=['23', 0], true=['63', 0], false=['41', 0])
+    g['61'] = node('MpiIfElse', 'masked ? crop width : render width', boolean=['24', 0], true=['63', 0], false=['40', 0])
+    g['62'] = node('MpiIfElse', 'masked ? crop height : render height', boolean=['24', 0], true=['63', 0], false=['41', 0])
 
     # ---- the instruction
     for i in range(1, 7):
@@ -340,7 +347,7 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['90'] = node('MpiIfElse', 'picture ? : no picture', boolean=['11', 4], true=['77', 0], false=['87', 0])
     g['91'] = node('MpiText', 'Masked line', string=MASKED)
     g['92'] = node('MpiText', 'No masked line', string='')
-    g['93'] = node('MpiIfElse', 'masked ? line : none', boolean=['23', 0], true=['91', 0], false=['92', 0])
+    g['93'] = node('MpiIfElse', 'masked ? line : none', boolean=['24', 0], true=['91', 0], false=['92', 0])
     g['98'] = node('MpiText', 'Constraint line', string=TAIL)
     g['94'] = node('StringConcatenate', 'Instruction + constraint line', string_a=['90', 0], string_b=['98', 0], delimiter='\n')
     g['99'] = node('StringReplace', '{masked}', string=['94', 0], find='{masked}', replace=['93', 0])
@@ -398,7 +405,16 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['103'] = node('VAELoader', 'Load Audio VAE', vae_name=H3_AVAE)
     g['104'] = node('MpiLoraModel', 'Character Swap LoRA', model=['100', 0], lora_name=SWAP, strength_model=1.0)
     g['105'] = node('MpiIfElse', 'swap LoRA ? : base', boolean=['21', 0], true=['104', 0], false=['100', 0])
-    g['106'] = node('MpiLoraModel', 'Turbo LoRA (8-step)', model=['105', 0], lora_name=TURBO, strength_model=1.0)
+    # Swap the head: the UntMods Faceswap LoRA, its trigger word opening the prompt, on both routes (Video edit 14:
+    # D2/D4 beat D1/D3 on likeness on a clean 1088x1920 clip; no time cost). Lazy: other options never load it.
+    g['25'] = node('MpiMath', 'Swap the head? (Faceswap LoRA + trigger)', a=['13', 0], math_expression='a == 2')
+    g['145'] = node('MpiLoraModel', 'Faceswap LoRA', model=['105', 0], lora_name=FACESWAP, strength_model=1.0)
+    g['148'] = node('MpiIfElse', 'head ? Faceswap : as is', boolean=['25', 0], true=['145', 0], false=['105', 0])
+    g['106'] = node('MpiLoraModel', 'Turbo LoRA (8-step)', model=['148', 0], lora_name=TURBO, strength_model=1.0)
+    g['146'] = node('MpiText', 'Faceswap trigger', string='Faceswap')
+    g['147'] = node('StringConcatenate', 'Trigger + prompt', string_a=['146', 0], string_b=prompt, delimiter='\n')
+    g['149'] = node('MpiIfElse', 'head ? trigger + prompt : prompt', boolean=['25', 0], true=['147', 0], false=prompt)
+    prompt = ['149', 0]
     g['107'] = node('MpiTinyVaeLoader', 'Mpi Tiny Vae Loader', vae_name='taeh3.safetensors')
     g['108'] = node('MpiVideoSamplingPreview', 'Mpi Video Sampling Preview', model=['106', 0], vae=['107', 0], preview_rate=24)
     g['110'] = node('MpiH3References', 'H3 references (<Video 1> the clip, <Picture 1> the picture)',
@@ -418,7 +434,7 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['120'] = node('MpiGradeMatch', 'Grade match on the band round the box', destination=['54', 1], source=['117', 0],
                     mask=['54', 2], band=48)
     g['121'] = node('InpaintStitchImproved', 'Stitch back into the source', stitcher=['54', 0], inpainted_image=['120', 0])
-    g['122'] = node('MpiIfElse', 'masked ? stitched : whole frame', boolean=['23', 0], true=['121', 0], false=['117', 0])
+    g['122'] = node('MpiIfElse', 'masked ? stitched : whole frame', boolean=['24', 0], true=['121', 0], false=['117', 0])
     g['130'] = node('MpiSaveVideo', 'Output_Video', images=['122', 0], audio=['35', 0], fps=24, filename_prefix=prefix,
                     use_audio=True, truncate_to_audio=False)
     return g

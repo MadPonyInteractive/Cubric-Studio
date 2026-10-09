@@ -186,6 +186,27 @@ export const loraDeps = {
             url: 'https://huggingface.co/akatz-ai/MiniMax-H3-Character-Swap-LoRA',
         },
     },
+    // UntMods' Faceswap LoRA (MPI-1036), a dep of the Video Edit FLOW: on for Swap the head only,
+    // both routes, with its trigger word "Faceswap" opening the prompt. Trained for ref2va
+    // (header: ai-toolkit, base minimax_h3_ref2va, rank 16, every caption "FaceSwap"). Fabio's
+    // A/B on a clean 1088x1920 clip: the head swap's face comes out closer to the picture with
+    // it, at no time cost. Published Apache-2.0, but it is a fine-tune of H3, so it rides the
+    // same MINIMAX_H3 gate as the swap LoRA above and downloads from the PUBLISHER, never R2.
+    'minimax-h3-faceswap-lora': {
+        id: 'minimax-h3-faceswap-lora',
+        name: 'MiniMax H3 Faceswap LoRA',
+        origin: 'UntMods/FaceSwap_MiniMaxH3_REF2VA (Apache-2.0)',
+        filename: 'loras/minimax-h3/SS_FaceSwap_MiniMax_H3_REF2VA.safetensors',
+        url: 'https://huggingface.co/UntMods/FaceSwap_MiniMaxH3_REF2VA/resolve/main/SS_FaceSwap_MiniMax_H3_REF2VA.safetensors',
+        size: '62.58MB',
+        bytes: 65623904,
+        sha256: '1e032cf519cc143f434e67516d8ad0aacf4c6e146315b2dcc3b1c2800470326d',
+        credit: {
+            author: 'UntMods',
+            work: 'FaceSwap_MiniMaxH3_REF2VA',
+            url: 'https://huggingface.co/UntMods/FaceSwap_MiniMaxH3_REF2VA',
+        },
+    },
     // Content-filter-bypass LoRA (always-on Input_Bypass_Filter_Lora node). A tiny
     // 12-float projector nudge. Dep of BOTH models (it's negligible); the generator bakes
     // strength 1.0 on SFW (the fp8_scaled weight is filtered) and 0.0 on NSFW (self-unfiltered).
