@@ -38,3 +38,7 @@ stops at the line that hides them, opening keeps the user's measure; "drop shado
 7/10 -> ~4/10, legs covered 2/10 -> 5/10, knees in opening 10/10 kept, paragraphs 1/10 -> 2/10. Short of 9/10;
 Fabio: ship v4 (Gemma 4 costs more). Stage 1 harness NOT re-run (judge needs his GPU): change is conditional on a
 covered subject + the drop-shadow removal; recipe-registry/agent tests 22/0.
+
+**2026-10-09: VALIDATED by Fabio** ("validate the Qwen recipe", after his Stage 2 knees renders). Flip in 3a06f51a1;
+`tests/recipe-registry.test.cjs` now names his flips (FABIO_VALIDATED, dated), every other recipe still must ship as
+draft. Known ceiling recorded in the recipe header: ~4/10 gemma-3 rewrites still mention sand/shell at covered feet.
