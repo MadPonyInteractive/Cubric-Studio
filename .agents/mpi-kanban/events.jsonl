@@ -5765,3 +5765,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1051", "at": "2026-10-09T12:10:22+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1051", "at": "2026-10-09T12:13:27+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Code + tests landed; waiting on CI."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1050", "at": "2026-10-09T12:25:07+01:00", "actor": "agent", "from": "doing", "to": "done", "reason": "fix live-proven on Pod hupqy4ocz0lus6 (install + reconnect re-run), CI 37922285517 green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1052", "at": "2026-10-09T12:27:05+01:00", "actor": "claude", "column": "todo", "title": "Stage-on-connect toast counts only models with weights to stage"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1052", "at": "2026-10-09T12:27:15+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1052", "at": "2026-10-09T12:27:56+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Fix + test landed; waiting on CI."}

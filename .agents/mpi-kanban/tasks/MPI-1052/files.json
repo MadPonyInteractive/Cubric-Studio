@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/services/commandExecutor.js", "tests/pod-identity-hot-store.test.cjs"] }

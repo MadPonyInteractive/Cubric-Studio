@@ -14,7 +14,17 @@ Guards are the existing ones: toggle off, local engine, CPU download-mode Pod ->
 - Bite check: with the `ids` param ignored and the call reverted to `prefetchInstalledModels()`, the new test FAILS ("the installed model only, not every model on the volume"); restored, it passes.
 - `npx eslint` on both files: clean.
 
-## Not checked
+## Live (2026-10-09, Fabio, RTX PRO 4500 Pod)
 
-- Live on a RunPod GPU Pod (costs money). What to look for the next time a model installs while a GPU Pod is connected: the toast "Warming the cloud engine — staging 1 model to fast disk in the background…" and the `app.log` line `hot-store: stage-on-connect queued N/M file(s) for 1 model(s)`.
+Toggle on, GPU Pod connected, SDXL Realistic installed from the Model Library. `app.log`:
+
+- 11:23:40 `remote install sdxl-realistic: fetching ...`
+- 11:23:45 `hot-store: stage-on-connect queued 13/13 file(s) for 18 model(s)` (the connect edge, unchanged)
+- 11:24:53 model cache reseeded (install complete)
+- 11:25:00 `hot-store: stage-on-connect queued 2/2 file(s) for 1 model(s)` (this card)
+
+Toast seen on screen: "Warming the cloud engine — staging 1 model to fast disk in the background…".
+
+## Open
+
 - Doc line for `docs/runpod-remote-engine.md` § Prefetch: peer MPI-1050 holds the file; sent as message `cc67cfc4`.

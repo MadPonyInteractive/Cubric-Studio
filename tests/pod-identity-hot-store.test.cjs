@@ -148,6 +148,24 @@ test('stage-on-connect sends ONE queued request for the whole set', async () => 
     assert.equal(new Set(keys).size, keys.length, 'a weight shared by two models is queued once');
 });
 
+// MPI-1052 — the toast said "staging 18 models" with 3 on the volume: every cloud model
+// sits in the installed set and has nothing to stage.
+test('stage-on-connect counts only models with weights to stage', async () => {
+    const { state, prefetchInstalledModels } = await load();
+    const { Events } = await import('../js/events.js');
+    const said = [];
+    const off = Events.on('ui:info', ({ message }) => said.push(message));
+    state.runpodConfig = { ...state.runpodConfig, stageOnConnect: true };
+    stubFetch(
+        { active: true, noGpu: false, gpuTypeId: RENTED },
+        (b) => (b.dryRun ? { async: true, pending: b.files.length } : { async: true }),
+    );
+    await prefetchInstalledModels(['klein-4b', 'flux-schnell-cloud', 'seedream-4-cloud']);
+    off();
+    assert.equal(said.length, 1);
+    assert.match(said[0], /staging 1 model to fast disk/, `REGRESSION: cloud models counted — ${said[0]}`);
+});
+
 test('stage-on-connect stays off a CPU Pod even when the picker says GPU', async () => {
     const { state, prefetchInstalledModels } = await load();
     state.runpodConfig = { ...state.runpodConfig, gpuType: PICKER, stageOnConnect: true };

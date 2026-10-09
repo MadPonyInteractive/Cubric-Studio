@@ -787,8 +787,13 @@ export async function prefetchInstalledModels(ids = state.s_installedModelIds ||
     // A CPU download-mode Pod has no ComfyUI to warm (MPI-539) — server truth, as above.
     if (!remoteEngineClient.isRemote() || remoteEngineClient.isDownloadOnly()) return;
     const byKey = new Map();
+    // MPI-1052: count only models with weights to stage. A cloud model sits in the
+    // installed set with no files, and the toast said "18 models" for 3 on the volume.
+    let models = 0;
     for (const id of ids) {
-        for (const f of await _hotStoreFiles(id, null)) byKey.set(`${f.type}/${f.filename}`, f);
+        const own = await _hotStoreFiles(id, null);
+        if (own.length) models += 1;
+        for (const f of own) byKey.set(`${f.type}/${f.filename}`, f);
     }
     const files = [...byKey.values()];
     if (!files.length) return;
@@ -803,9 +808,9 @@ export async function prefetchInstalledModels(ids = state.s_installedModelIds ||
             return;
         }
         Events.emit('ui:info', {
-            message: `Warming the cloud engine — staging ${ids.length} model${ids.length > 1 ? 's' : ''} to fast disk in the background…`,
+            message: `Warming the cloud engine — staging ${models} model${models > 1 ? 's' : ''} to fast disk in the background…`,
         });
-        clientLogger.info('commandExecutor', `hot-store: stage-on-connect queued ${dry.pending}/${files.length} file(s) for ${ids.length} model(s)`);
+        clientLogger.info('commandExecutor', `hot-store: stage-on-connect queued ${dry.pending}/${files.length} file(s) for ${models} model(s)`);
     } catch (e) {
         clientLogger.warn('commandExecutor', `hot-store: stage-on-connect failed (${e.message})`);
     }
