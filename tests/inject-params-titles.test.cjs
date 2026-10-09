@@ -1258,30 +1258,3 @@ test('the Object Stamp Flow carries its I/O, its model arm, its box and its mode
             `${file}: crop ${id} must derive mask_expand_pixels from the box size, not hard-code it (law 8)`);
     }
 });
-
-test('the Tile Detailer Flow carries its titles and upscales BEFORE it details (MPI-1038)', () => {
-    // flowTileDetailer runs flow_tile_detailer.json on klein-9b with model:{id:null}. Every
-    // Input_* field the FlowDef declares must land on a node, or the radio/slider is dead.
-    const file = 'flow_tile_detailer.json';
-    const have = titlesOf(file);
-    for (const title of ['input_image', 'input_seed', 'input_upscale_factor', 'input_denoise',
-        'input_positive', 'output_image']) {
-        assert.ok(have.has(title), `${file} must carry a node titled "${title}"`);
-    }
-
-    // Fabio, 2026-10-08: the upscale is optional and runs BEFORE the detail pass. Both the
-    // tiles and the detailer must read the scaled image, and the scale must be the field.
-    const graph = JSON.parse(fs.readFileSync(path.join(WORKFLOWS, file), 'utf8'));
-    const idOf = (title) => Object.keys(graph).find(k => graph[k]._meta?.title === title);
-    const scale = Object.entries(graph).find(([, n]) => n.class_type === 'ImageScaleBy');
-    assert.ok(scale, `${file} must carry the pre-detail ImageScaleBy`);
-    assert.equal(String(scale[1].inputs.scale_by[0]), idOf('Input_Upscale_Factor'));
-    assert.equal(String(scale[1].inputs.image[0]), idOf('Input_Image'));
-    const tiles = Object.values(graph).find(n => n.class_type === 'ImpactMakeTileSEGS');
-    const detailer = Object.values(graph).find(n => n.class_type === 'DetailerForEachPipe');
-    assert.equal(String(tiles.inputs.images[0]), scale[0], 'the tiles must be cut from the scaled image');
-    assert.equal(String(detailer.inputs.image[0]), scale[0], 'the detailer must paint on the scaled image');
-    assert.equal(String(detailer.inputs.denoise[0]), idOf('Input_Denoise'));
-    assert.equal(String(graph[idOf('Output_Image')].inputs.images[0]),
-        Object.keys(graph).find(k => graph[k] === detailer), 'the result is the detailer\'s image');
-});

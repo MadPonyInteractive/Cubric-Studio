@@ -187,11 +187,6 @@
     "appVersionIntroduced": "2.0.0",
     "universal": true
   },
-  "flowTileDetailer": {
-    "latestVersion": "1.0",
-    "appVersionIntroduced": "2.0.1",
-    "universal": true
-  },
   "flowScribObj": {
     "latestVersion": "1.1",
     "appVersionIntroduced": "2.0.0",

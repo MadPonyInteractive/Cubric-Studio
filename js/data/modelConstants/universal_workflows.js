@@ -106,10 +106,6 @@ export const UNIVERSAL_WORKFLOWS = {
     flowOutpaint: {
         workflow: 'flow_outpaint.json',
     },
-    // MPI-1038 — optional lanczos upscale, then Impact tile SEGS + Klein 9B detail.
-    flowTileDetailer: {
-        workflow: 'flow_tile_detailer.json',
-    },
     // MPI-567, rebuilt Klein-only in MPI-621 — the drawing is composited onto the
     // user's photo, a crop sized FROM the drawing is taken around it, Klein 9B edits
     // that crop, and the user's box is stitched back. One model, one pass; the SDXL

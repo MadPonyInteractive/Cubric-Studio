@@ -1289,21 +1289,6 @@ export const commands = {
         universal: true,
     },
 
-    // MPI-1038. Tile Detailer: ONE image in, the same picture back with more detail, bigger
-    // when `Input_Upscale_Factor` > 1 (a lanczos upscale that runs BEFORE the detail pass;
-    // 1 = detail only). Impact tile SEGS + Klein 9B at `Input_Denoise`.
-    flowTileDetailer: {
-        label: 'Flow: Tile Detailer',
-        progressLabel: 'Detailing',
-        mediaType: MEDIA_TYPE.IMAGE,        // OUTPUT type
-        requiresImages: 0,                  // media is never a hard requirement at the op layer
-        mediaInputs: [
-            { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
-        ],
-        promptRequired: false,
-        universal: true,
-    },
-
     // MPI-567, rebuilt Klein-only in MPI-621. The user draws on their own photo; the
     // drawing is composited onto it, a crop sized from the drawing is taken around it,
     // Klein 9B edits that crop, and the BOX the user places is stitched back.

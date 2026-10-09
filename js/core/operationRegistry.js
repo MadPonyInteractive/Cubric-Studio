@@ -82,7 +82,6 @@ export const OPERATION_REGISTRY = {
     flowCharacterSheetHeadless: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     // MPI-594 — the Outpaint flow.
     flowOutpaint: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
-    flowTileDetailer: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
     promptEnhance: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     // MPI-567 — the Draw It In flow.
     // `1.1` (MPI-621, 2026-08-25): the Klein-only rebuild REMOVED two parameters,
