@@ -497,31 +497,18 @@ export function getWorkflowFile(modelId, operation) {
  * otherwise the plain `workflow` does. Passing nothing keeps the old behaviour exactly, which
  * is what every non-Flow caller does.
  *
- * MPI-1036 — `params` is the run's `injectionParams`. When the op declares `byParams`, the
- * first entry whose `when` rules all hold names the file (after `byModel`, before `workflow`).
- *
  * @param {string} key - Command key (must have universal: true in commandRegistry)
  * @param {string[]|null} [modelIds] - Resolved flowModelIds for this run, if it is a Flow
- * @param {Object|null} [params] - The run's injectionParams, if it is a Flow
  * @returns {string|null}
  */
-export function getUniversalWorkflow(key, modelIds = null, params = null) {
+export function getUniversalWorkflow(key, modelIds = null) {
     const def = UNIVERSAL_WORKFLOWS[key];
     if (!def) return null;
     if (def.byModel && Array.isArray(modelIds)) {
         const hit = modelIds.find((id) => def.byModel[id]);
         if (hit) return def.byModel[hit];
     }
-    const route = params && def.byParams?.find(r => r.when.every(w => _paramHolds(w, params)));
-    if (route) return route.workflow;
     return def.workflow ?? null;
-}
-
-/** One `byParams` rule: `{ field, filled: true }` (non-blank) or `hiddenWhen`'s `{ field, is | isNot }`. */
-function _paramHolds(rule, params) {
-    const v = params[rule.field];
-    if (rule.filled) return String(v ?? '').trim() !== '';
-    return 'isNot' in rule ? v !== rule.isNot : v === rule.is;
 }
 
 /**

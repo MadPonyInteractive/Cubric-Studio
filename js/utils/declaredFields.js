@@ -865,6 +865,7 @@ export function buildField(f, cur, onChange, unsubs, opts = {}) {
             type: multi ? 'textarea' : 'text',
             placeholder: f.placeholder || '',
             value: cur != null ? String(cur) : '',
+            info: f.info || '',
         });
         if (multi) {
             const ta = qs('textarea', inst.el);

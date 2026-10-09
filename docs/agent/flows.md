@@ -95,9 +95,9 @@ place (`image1`, optional) or from words. `Input_Operation` picks the change.
 - `positive`: only the new thing, never the edit. With a picture it can stay empty.
   - Right: `positive: "two small glossy red demon horns"`
   - Wrong: `positive: "replace her cat ears with horns, keep everything else"`
-- `Input_Target`: one small thing to change, as it appears in the clip ("her hat", "cat
-  ears"). Typed, only a box round it is re-rendered, faster, and the rest stays exactly as
-  filmed. Leave it empty for a whole person or the background.
+- `Input_Target`: the small things to change, comma-separated, as they appear in the clip
+  ("her hat", "cat ears", "head, hair"). Typed, a mask box round them is re-rendered, faster,
+  and the rest stays exactly as filmed. Leave it empty for a whole person or the background.
 - `Input_Keep_Background: false` puts the picture's character in the picture's place, moving as
   the clip's person does. Only for Swap the person with a picture.
 - The app describes the picture in words itself before the run, on the user's Remote image

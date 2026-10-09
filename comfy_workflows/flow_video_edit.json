@@ -311,17 +311,43 @@
         0
       ],
       "width": [
-        "40",
+        "43",
         0
       ],
       "height": [
-        "41",
+        "44",
         0
       ]
     },
     "class_type": "ImageResizeKJv2",
     "_meta": {
-      "title": "Whole frame at the render size"
+      "title": "Whole frame at 0.75 of the render size"
+    }
+  },
+  "43": {
+    "inputs": {
+      "math_expression": "floor(a * 0.75 / 32 + 0.5) * 32",
+      "a": [
+        "40",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Clip width (0.75)"
+    }
+  },
+  "44": {
+    "inputs": {
+      "math_expression": "floor(a * 0.75 / 32 + 0.5) * 32",
+      "a": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Clip height (0.75)"
     }
   },
   "50": {
@@ -505,7 +531,7 @@
   },
   "72": {
     "inputs": {
-      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is the head of the person in <Picture 1>. {look}\n<Subject 2> is {who} in <Video 1>.\n<Subject 3> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 2> has the head of <Subject 1> and keeps their own body, clothes and hands and every move, in <Subject 3>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 2> changes.\n<Subject 1> (appears in [Shot 1]): attribute_transfer - the face, skin, eyes, features and whole hairstyle of <Picture 1>, and anything worn on the head, are transferred onto <Subject 2>.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are those of <Subject 1>.\n<Subject 3> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the head of <Subject 1> from every angle: its face, skin and features, and its hairstyle down to the ends of the hair, the back of the head showing whenever <Subject 2> turns away. {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is the head of the person in <Picture 1>. {look}\n<Subject 2> is {who} in <Video 1>.\n<Subject 3> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 2> has the head of <Subject 1> and keeps their own body, clothes and hands and every move, in <Subject 3>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 2> changes.\n<Subject 1> (appears in [Shot 1]): attribute_transfer - the face, skin, eyes, features and whole hairstyle of <Picture 1>, and anything worn on the head, are transferred onto <Subject 2>.\n<Subject 2> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are those of <Subject 1>.\n<Subject 3> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the head of <Subject 1> from every angle: its face, skin and features, and its hairstyle, the back of the head showing whenever <Subject 2> turns away. All of <Subject 2>'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the one in <Picture 1>. {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
     },
     "class_type": "MpiText",
     "_meta": {
@@ -595,7 +621,7 @@
   },
   "82": {
     "inputs": {
-      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is {who} in <Video 1>.\n<Subject 2> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 1> has a new head, described in [Shot 1], and keeps their own body, clothes and hands and every move, in <Subject 2>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 1> changes.\n<Subject 1> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are the new ones.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 2>, <Subject 1> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the new head from every angle, the back of the head showing whenever <Subject 1> turns away. The new head: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+      "string": "subject_definitions:\n<Video 1> is the source video for the target video edit.\n<Subject 1> is {who} in <Video 1>.\n<Subject 2> is the location of <Video 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 1> has a new head, described in [Shot 1], and keeps their own body, clothes and hands and every move, in <Subject 2>, with the camera, light and timing of <Video 1>.\n\nretention_analysis:\n<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept; only the head of <Subject 1> changes.\n<Subject 1> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are the new ones.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>.\n\ndetailed_description:\nThe target video keeps the look of <Video 1>: its lighting, colour grade and camera framing.\n[Shot 1] In <Subject 2>, <Subject 1> performs exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, with the new head from every angle, the back of the head showing whenever <Subject 1> turns away. All of <Subject 1>'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the new one. The new head: {words}\nThe camera frames the shot exactly as <Video 1> does.{masked}\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
     },
     "class_type": "MpiText",
     "_meta": {

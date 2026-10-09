@@ -472,6 +472,49 @@ own wording, e.g. a supplied torso image).
   `flow_graph.py`. Tests 122/122 (flow-model-choice, inject-params-titles, smoke-flows, flow-describe,
   workflow-media-slots, user-flows, agent-flow-handover). `video-edit.md` carries an INTERIM banner.
 
+2026-10-09 (Video edit 13):
+- **The "cancelled" S1x / S3x RAN ANYWAY** (`s_x.log`: S1x 17:59-18:11, S3x 18:11-18:23, after Fabio's 17:57 stop) -
+  the loop kill did not land. Outputs on disk, so no local-vs-RunPod question left. Lease free at 19:25.
+- Sheets (this session's scratchpad `sheet.py` OUT clip...; frames 5/24/40/62/82/110): `s6x_sheet.png`,
+  `s1x_sheet.png`, `s3x_sheet.png`. **All four whole-frame options PASS on single pass + clip 0.75:**
+  - **S6x (outfit) = R6d:** dancer's face + blonde hair kept, moves follow (lag +1/+2 throughout, R6d's own pattern;
+    S6's face leak gone). 671 s vs ours S6 771. One difference for Fabio's eye: S6x keeps the dancer's green shorts
+    under the sweater, R6d dropped them (bare).
+  - **S1x (swap, keep room) >= R2p:** full swap, room kept, same ~0.4 s late back turn as R2p; frames 80-105 lag 0
+    where R2p reads +-12. Keeps the source's green shorts (R2p pink). Frame-0 play icon survives (as R2p). 711 s vs S1 781.
+  - **S3x (picture + its room, `[reference generation]`) = R3f:** full swap in the picture bedroom, back view (braids)
+    and hand-on-head on time, arms-out end. 691 s vs R3f 971, = ours S3 692.
+  => Step 3 (one graph, clip at 0.75 for the whole frame) is cleared on the bench.
+- Fabio (2026-10-09): **R5e's hair line** in template 2; bare legs are fine (outfit = only what the reference shows,
+  extras via the words field - memory `feedback_outfit_only_what_reference_shows`). S6x passes as is.
+- **STEP 3 DONE - ONE graph again.** `flow_graph.py`: template 2 (+ no-picture twin) detailed line = R5e's "All of
+  {who}'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the one in <Picture 1>."
+  (retention line unchanged); nodes 43/44 = render w/h x 0.75 (/32) -> node 42 resizes the whole frame straight to that
+  (one resample; the bench did 576x1024 then 906 down). Render (61/62) stays full; masked crop 1:1. `byParams` removed
+  by reverse-applying 596e787ed's hunks (universal_workflows, modelRegistry, commandExecutor, smoke-workflows, 2 tests,
+  flow-packages, any-of-models); `video-edit.md` rewritten (one graph, why 0.75). `export_raw.py` = one graph.
+  Export: push -> bench tab loadApiJson/serialize (81 nodes, 118 links) -> pull -> sync (raw committed 8472ea0c7 LOCAL,
+  masked raw deleted in it; generated API staged; `flow_video_edit_masked.json` git rm'd, staged). Synced vs builder 0
+  diffs; injection rules green; targeted 121/121; full suite 2824 pass / 0 fail / 2 skipped.
+  - Sync trap: it refuses a staged GENERATED deletion and `git add`s a deleted raw path (fails if already `git rm`'d):
+    plain `rm` the raw, keep the generated file until the sync has run, `git rm` it after.
+  - UNBENCHED combination: new-format template 2 + R5e line + clip 0.75 never benched (S5s75 = OLD_T2 whole + 0.75).
+    The head swap is the eye test's first run. run_flow `ref_frac`/`ref_half` presets now stack on node 42's 0.75.
+  - Fabio's open app may hold the OLD universal_workflows (byParams -> deleted masked file): restart before testing.
+- **Fabio's eye test, run 1 (his app, head swap, pink-curls head close-up, Who "the person", no words):** 441 s (8 x
+  46 s/it). IN SYNC frame for frame (back turn too), face + ombre colour swapped, but the LENGTH is the dancer's
+  (curls to mid-back; the picture cannot show where its hair ends). Sheet: scratchpad `app_head1.png` (`FRAMES=` env,
+  `fps=24` - his source crop is 48 fps). Next run: his words for the length, Only change EMPTY.
+- Field copy from his test (Fabio confused Who / Only change / Describe): `Input_Who` label "Which person" + `info`
+  hover; `Input_Target` note = "A mask: list what to change, separated by commas..." (SAM3 tokenizer splits commas,
+  one search each, masks unioned - `comfy/text_encoders/sam3_clip.py`), placeholder "e.g. head, hair"; `positive`
+  label "Describe the new look", placeholder "e.g. short pink curls that end at the jaw". `declaredFields.js` text
+  branch now passes `info` to MpiInput (status-bar hover; fields.md says so). description + agent flows.md updated.
+  Flow tests 740/741 (1 skip), full suite before the last copy change 2825/0 fail.
+
+**NEXT (after Video edit 13): steps 1-3 below DONE. Left: step 4 - Fabio's in-app eye test (head swap first, then a
+masked edit), then the UNRELEASED.md roster + entry, then Phase 4 graphics.**
+
 **NEXT (Video edit 13), in order:**
 1. Judge S6x (outfit, clip 0.75) vs R6d. Then run S1x + S3x (`run_flow.py` presets exist; one lease each; ASK Fabio
    first whether local or RunPod, the box is shared).

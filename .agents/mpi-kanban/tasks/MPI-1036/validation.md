@@ -51,3 +51,15 @@ Side-by-sides sent to Fabio: `box_horns_side_by_side.webm`, `box_remove_side_by_
 - `node --test tests/flow-model-choice.test.cjs tests/inject-params-titles.test.cjs tests/smoke-flows.test.cjs
   tests/flow-describe.test.cjs tests/workflow-media-slots.test.cjs tests/user-flows.test.cjs tests/agent-flow-handover.test.cjs`:
   122/122. Full suite `node --test "tests/**/*.test.cjs"`: 2822 tests, 2820 pass, 0 fail, 2 skipped.
+
+## Phase 3 - one graph, clip at 0.75 (Video edit 13, 2026-10-09)
+
+- Bench, single pass + clip at 0.75 (sheets in session c646905a scratchpad, frames 5/24/40/62/82/110; lag_series.py):
+  S6x outfit 671 s = R6d (face kept, lag +1/+2 throughout); S1x swap keeping the room 711 s >= R2p (frames 80-105 lag 0
+  where R2p reads +-12); S3x picture + its room 691 s = R3f (971 s); S4x background 661 s = R4e (Video edit 12).
+- Export: synced API vs builder (diff_synced.py) 81/81 nodes, 0 diffs; validate-injection-rules green; object_info check
+  0 faults.
+- node --test tests/flow-model-choice.test.cjs tests/inject-params-titles.test.cjs tests/flow-describe.test.cjs
+  tests/workflow-media-slots.test.cjs tests/user-flows.test.cjs tests/agent-flow-handover.test.cjs tests/smoke-flows.test.cjs:
+  121/121. Full suite node --test "tests/**/*.test.cjs": 2826 tests, 2824 pass, 0 fail, 2 skipped.
+- NOT yet: Fabio's in-app eye test (the head swap on the new template 2 + R5e hair line + 0.75 is unbenched).

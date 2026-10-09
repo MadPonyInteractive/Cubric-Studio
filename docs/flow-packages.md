@@ -64,8 +64,8 @@ in `js/data/flowsRegistry.js`, and [playbooks/add-flow/01-descriptor-and-ops.md]
 key: a colon is not legal in a Windows filename. It must be one camelCase word of up to
 24 characters.
 
-**Not offered to packages:** a `byModel` or `byParams` graph switch (a package carries ONE
-graph) and progress stages (the bar runs without a total).
+**Not offered to packages:** a `byModel` graph switch (a package carries ONE graph) and
+progress stages (the bar runs without a total).
 
 ## Ids a package may use
 

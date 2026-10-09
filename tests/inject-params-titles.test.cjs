@@ -1061,8 +1061,7 @@ test('every FlowDef field and enhance recipe addresses a real node (MPI-664)', a
         // candidate carries the node. Checking `flow.workflow` alone would have called
         // Extend Video's Turbo toggle dead when it is the H3 arm's whole sampler gate.
         const files = [flow.workflow,
-            ...Object.values(UNIVERSAL_WORKFLOWS[flow.operation]?.byModel || {}),
-            ...(UNIVERSAL_WORKFLOWS[flow.operation]?.byParams || []).map(r => r.workflow)]; // MPI-1036 routes
+            ...Object.values(UNIVERSAL_WORKFLOWS[flow.operation]?.byModel || {})];
         const graphs = [];
         let unreadable = false;
         for (const file of [...new Set(files)].filter(Boolean)) {

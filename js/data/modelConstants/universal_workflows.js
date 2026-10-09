@@ -15,10 +15,6 @@
  *   `workflow`. Reach for `modelParams` (flowsRegistry) FIRST — it swaps widgets inside one
  *   graph and is the right answer whenever the candidates share a node set. This is only for
  *   candidates that do not.
- * @property {{when: Object[], workflow: string}[]} [byParams] - MPI-1036. For a Flow whose ROUTE
- *   (the run's own field values) needs a different graph. The first entry whose `when` rules all
- *   hold against the run's `injectionParams` names the file; rules are `{ field, filled: true }`
- *   or `hiddenWhen`'s `{ field, is | isNot }`. `byModel` is checked first.
  */
 
 /** @type {Record<string, UniversalWorkflowDef>} */
@@ -134,17 +130,10 @@ export const UNIVERSAL_WORKFLOWS = {
     flowObjectStamp: {
         workflow: 'flow_object_stamp.json',
     },
-    // MPI-1036 — Video Edit, two graphs (Fabio, 2026-10-09: "the app picks the correct one").
-    // The whole frame runs the shipped two-stage H3 graph; "Only change" typed is the masked
-    // route, which keeps the single pass - on two stages its box drifted 1-6 frames out of step
-    // (bench S7 vs S7s). One file cannot hold both: MpiClearVram is an output node, so ComfyUI
-    // would run both H3 sections. A box cannot hold a background, so Change the background
-    // (4) always takes the whole frame; the masked graph re-checks it too (a hidden field
-    // keeps its value).
+    // MPI-1036 — Video Edit. One single-pass H3 r2v turbo graph; masked vs whole frame is
+    // routed in-graph off Input_Target, never by a second file.
     flowVideoEdit: {
         workflow: 'flow_video_edit.json',
-        byParams: [{ when: [{ field: 'Input_Target', filled: true }, { field: 'Input_Operation', isNot: 4 }],
-            workflow: 'flow_video_edit_masked.json' }],
     },
     // MPI-607 — Chatterbox voice conversion. Five nodes, no model loader: two
     // MpiLoadAudio paths into FL_ChatterboxVC, out through a native SaveAudio.

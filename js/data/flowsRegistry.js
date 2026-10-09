@@ -780,7 +780,7 @@ export const FLOWS = [
         id: 'video-edit',
         title: 'Video Edit',
         preview: 'flow-video-edit.webp',
-        description: 'Swap the person, head or outfit in a video, change its background, or make any edit you describe. Add a picture of the new character, outfit or place, or describe it in words. Name one thing under “Only change” and just that part is re-rendered, faster, with the rest kept exactly as filmed. The soundtrack comes through untouched. Short clips first: a 5-second clip can take 20 minutes, and longer ones drift.',
+        description: 'Swap the person, head or outfit in a video, change its background, or make any edit you describe. Add a picture of the new character, outfit or place, or describe it in words. List what to change under “Only change” and just that part is masked and re-rendered, faster, with the rest kept exactly as filmed. The soundtrack comes through untouched. Short clips first: a 5-second clip can take 20 minutes, and longer ones drift.',
         requiredModels: ['minimax-h3-ref2va'],
         // The swap LoRA belongs to this Flow, not to the model (01-descriptor-and-ops.md §
         // requiredDeps). SAM3 is an engineAsset, so it is not listed.
@@ -822,21 +822,26 @@ export const FLOWS = [
             },
             {
                 // {who} in the templates. Anything else has no {who}, so it is hidden there.
-                id: 'Input_Who', type: 'text', label: 'Who', default: 'the person',
+                id: 'Input_Who', type: 'text', label: 'Which person', default: 'the person',
                 placeholder: 'e.g. the woman in the red dress',
+                info: 'Who in the video gets the change, as the clip shows them, e.g. the woman in the red dress. Only matters when more than one person is in it.',
                 hiddenWhen: { field: 'Input_Operation', is: 5 },
             },
             {
                 // Typed = masked mode (SAM3 finds it, one still square box round it). A box
                 // cannot hold a background, so it is hidden there and the graph ignores it.
+                // A comma list works: SAM3's tokenizer splits on commas into one search each
+                // and the detect node unions the masks (comfy text_encoders/sam3_clip.py).
                 id: 'Input_Target', type: 'text', label: 'Only change (optional)', default: '',
-                placeholder: 'e.g. her hat',
-                note: 'Name one thing and only it is re-rendered: faster, and the rest of the video stays exactly as filmed.',
+                placeholder: 'e.g. head, hair',
+                info: 'Finds these things in every frame and masks a box round them; only the box is redrawn. Leave it empty to edit the whole frame.',
+                note: 'A mask: list what to change, separated by commas. Only that area is re-rendered, faster, and the rest of the video stays exactly as filmed.',
                 hiddenWhen: { field: 'Input_Operation', is: 4 },
             },
             {
-                id: 'positive', type: 'text', rows: 3, label: 'Describe the change', default: '',
-                placeholder: 'Optional with a picture. e.g. two small red demon horns, or a long black coat',
+                id: 'positive', type: 'text', rows: 3, label: 'Describe the new look', default: '',
+                placeholder: 'e.g. short pink curls that end at the jaw',
+                info: 'Optional with a picture: your words add to it or correct it, like how long the hair is. Without a picture, describe the whole new look.',
             },
         ],
         // The picture put into words before the run (flowEnhance.js § describe): H3 mostly

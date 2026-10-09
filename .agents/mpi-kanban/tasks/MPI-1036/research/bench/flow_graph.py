@@ -75,7 +75,7 @@ retention_analysis:
 
 detailed_description:
 {STYLE}
-[Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, {MOVES}, with the head of <Subject 1> from every angle: its face, skin and features, and its hairstyle, the back of the head showing whenever <Subject 2> turns away. All of <Subject 2>'s hair is <Subject 1>'s hair, at the length and in the style it has in <Picture 1>: over the shoulders and down the back, <Subject 2> shows that hairstyle and only that. {{words}}
+[Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, {MOVES}, with the head of <Subject 1> from every angle: its face, skin and features, and its hairstyle, the back of the head showing whenever <Subject 2> turns away. All of <Subject 2>'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the one in <Picture 1>. {{words}}
 {CAMERA}{SOUND}""",
 
     3: f"""{SRC}<Subject 1> is the outfit worn in <Picture 1>. {{look}}
@@ -179,7 +179,7 @@ retention_analysis:
 
 detailed_description:
 {STYLE}
-[Shot 1] In <Subject 2>, <Subject 1> performs exactly as in <Video 1>, {MOVES}, with the new head from every angle, the back of the head showing whenever <Subject 1> turns away. All of <Subject 1>'s hair is the new hair, at its new length and in its new style: over the shoulders and down the back, <Subject 1> shows that hairstyle and only that. The new head: {{words}}
+[Shot 1] In <Subject 2>, <Subject 1> performs exactly as in <Video 1>, {MOVES}, with the new head from every angle, the back of the head showing whenever <Subject 1> turns away. All of <Subject 1>'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the new one. The new head: {{words}}
 {CAMERA}{SOUND}""",
 
     3: f"""{SRC}<Subject 1> is {{who}} in <Video 1>.
@@ -299,8 +299,13 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
                    math_expression=f'floor(sqrt({AREA} * a / b) / 32 + 0.5) * 32')
     g['41'] = node('MpiMath', 'Render height', a=['10', 6], b=['10', 5],
                    math_expression=f'floor(sqrt({AREA} * a / b) / 32 + 0.5) * 32')
-    g['42'] = node('ImageResizeKJv2', 'Whole frame at the render size', image=['31', 0], width=['40', 0], height=['41', 0],
-                   upscale_method='lanczos', keep_proportion='crop', pad_color='0, 0, 0', crop_position='center',
+    # <Video 1> goes in at 0.75 of the render size (Video edit 12: S5s75/S4x/S6x/S1x/S3x in sync, full edits, ~35%
+    # faster than the full-size clip; 0.5 weakens identity edits). The RENDER stays full size: H3 replays the clip ~1 s
+    # in whenever it renders below ~full size. The masked route's crop goes in 1:1 (node 60).
+    g['43'] = node('MpiMath', 'Clip width (0.75)', a=['40', 0], math_expression='floor(a * 0.75 / 32 + 0.5) * 32')
+    g['44'] = node('MpiMath', 'Clip height (0.75)', a=['41', 0], math_expression='floor(a * 0.75 / 32 + 0.5) * 32')
+    g['42'] = node('ImageResizeKJv2', 'Whole frame at 0.75 of the render size', image=['31', 0], width=['43', 0],
+                   height=['44', 0], upscale_method='lanczos', keep_proportion='crop', pad_color='0, 0, 0', crop_position='center',
                    divisible_by=32, device='cpu')
 
     # ---- masked: SAM3 -> one still square -> crop
@@ -309,10 +314,12 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['52'] = node('SAM3_Detect', 'Find it in every frame', model=['50', 0], image=['31', 0], conditioning=['51', 0],
                    threshold=0.5, refine_iterations=2, individual_masks=False)
     g['53'] = node('MpiMaskSquareBbox', 'One still square round it (pad 64)', mask=['52', 0], padding=64)
+    # fill holes OFF: the mask is one solid square (53), so it is a no-op that cost ~0.85 s a frame on CPU
+    # at 1072x1920 (77 s of a 90-frame run). device_mode stays cpu: gpu moves the WHOLE clip to VRAM first.
     g['54'] = node('InpaintCropImproved', 'Crop the square', image=['31', 0], mask=['53', 0],
                    downscale_algorithm='bilinear', upscale_algorithm='bicubic', preresize=False,
                    preresize_mode='ensure minimum resolution', preresize_min_width=1024, preresize_min_height=1024,
-                   preresize_max_width=16384, preresize_max_height=16384, mask_fill_holes=True, mask_expand_pixels=0,
+                   preresize_max_width=16384, preresize_max_height=16384, mask_fill_holes=False, mask_expand_pixels=0,
                    mask_invert=False, mask_blend_pixels=24, mask_hipass_filter=0.1, extend_for_outpainting=False,
                    extend_up_factor=1.0, extend_down_factor=1.0, extend_left_factor=1.0, extend_right_factor=1.0,
                    context_from_mask_extend_factor=1.25, output_resize_to_target_size=True, output_target_width=CROP,

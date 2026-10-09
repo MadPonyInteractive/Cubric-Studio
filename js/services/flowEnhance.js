@@ -21,7 +21,7 @@
  * words on the describer picked in Remote; `submitFlowGeneration` runs it for every caller.
  */
 
-import { enhanceFlow, backendPreference, describeImage } from './llmService.js';
+import { enhanceFlow, backendPreference, describeImage, describeBackendPreference, describeModelPreference } from './llmService.js';
 import { clientLogger } from './clientLogger.js';
 import { firstFrameDataUrl } from '../utils/video.js';
 import { resolveMediaUrl } from '../utils/mediaActions.js';
@@ -467,6 +467,10 @@ async function _stagePreview(dataUrl, project, what) {
     return data.filePath;
 }
 
+// ponytail: answers for the app session, a few hundred bytes each; never evicted, gone on restart.
+// A picture edited IN PLACE (same path) keeps its old answer until then; a cap if that ever bites.
+const DESCRIBED = new Map();
+
 /**
  * The describe step of a Flow run, on whatever path reached it (`flowService.submitFlowGeneration`
  * calls it for hand, agent and routine runs alike).
@@ -479,22 +483,34 @@ async function _stagePreview(dataUrl, project, what) {
  * @param {Object} flow  a FlowDef
  * @param {{injectionParams?: Object, mediaItems?: Object[]}} config  the run as it will be queued
  * @param {?Object} project  where a clip's first frame is kept
- * @param {{describe?: Function, firstFrame?: Function, boxCrop?: Function}} [deps]  a test stubs them
+ * A repeat run REUSES the answer (Fabio, 2026-10-09: re-describing the same picture every run is
+ * "ridiculous", and its wording drifts between runs, so two runs of one setup get different prompts):
+ * same picture, crop, frame, question and describer = the cached text.
+ *
+ * @param {{describe?: Function, firstFrame?: Function, boxCrop?: Function, cache?: Map}} [deps]  a test stubs them
  * @returns {Promise<{ok: true, injectionParams: Object}|{ok: false, cancelled?: boolean, message: string}>}
  */
 export async function describeFlowRun(flow, config, project, deps = {}) {
     const describe = deps.describe || describeImage;
     const firstFrame = deps.firstFrame || stageFirstFrame;
     const boxCrop = deps.boxCrop || stageBoxCrop;
+    // A stubbed describer caches only when its test hands in a Map: tests share this module.
+    const cache = deps.cache || (deps.describe ? null : DESCRIBED);
     const media = config?.mediaItems || [];
     const name = flow?.title || 'this Flow';
     const out = {};
     for (const d of describeAsks(flow, config?.injectionParams, media)) {
         const started = Date.now();
+        const url = media.find(m => m?.role === d.media)?.url;
+        const box = d.crop ? config?.injectionParams?.[d.crop] : null;
+        const key = JSON.stringify([url, box, d.frame || '', d.ask, describeBackendPreference(), describeModelPreference() || '']);
+        if (cache?.has(key)) {
+            clientLogger.info('flow-describe', `${name} ${d.to} reused (same picture and question as an earlier run)`);
+            out[d.to] = cache.get(key);
+            continue;
+        }
         let result;
         try {
-            const url = media.find(m => m?.role === d.media).url;
-            const box = d.crop ? config?.injectionParams?.[d.crop] : null;
             const imagePath = d.frame === 'first' ? await firstFrame(url, project)
                 : box ? await boxCrop(url, box, project) : url;
             result = await describe({ imagePath, question: d.ask });
@@ -513,6 +529,7 @@ export async function describeFlowRun(flow, config, project, deps = {}) {
             return { ok: false, message: `Nothing was generated: the picture could not be described for ${name}. ${why}${/[.!?]$/.test(why) ? '' : '.'}${hint}` };
         }
         clientLogger.info('flow-describe', `${name} ${d.to} described via ${result.via} (${result.model || 'default model'}), ${Date.now() - started} ms`);
+        cache?.set(key, text);
         out[d.to] = text;
     }
     return { ok: true, injectionParams: out };

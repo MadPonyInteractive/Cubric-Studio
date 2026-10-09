@@ -125,6 +125,19 @@ test('describeFlowRun: the answers land trimmed, the first frame is staged for t
     assert.deepEqual(calls.map(c => c.imagePath), [PIC.url, 'C:/p/Media/.preview/frame.png']);
 });
 
+test('describeFlowRun: a repeat run reuses the answer, a new picture is described again', async () => {
+    // Fabio, 2026-10-09: re-describing the same picture every run is "ridiculous", and the
+    // wording drifts, so two runs of one setup would get different prompts.
+    const { fe, flow } = await load();
+    let n = 0;
+    const deps = { cache: new Map(), describe: async () => ({ ok: true, via: 'endpoint', text: `Look ${++n}.` }) };
+    const go = pic => fe.describeFlowRun(flow, { injectionParams: run(2), mediaItems: [CLIP, pic] }, null, deps);
+    assert.deepEqual((await go(PIC)).injectionParams, { Input_Look: 'Look 1.' });
+    assert.deepEqual((await go(PIC)).injectionParams, { Input_Look: 'Look 1.' }, 'same picture: the first answer');
+    assert.deepEqual((await go({ ...PIC, url: `${PIC.url}?other` })).injectionParams, { Input_Look: 'Look 2.' });
+    assert.equal(n, 2);
+});
+
 test('describeFlowRun: a failed describe generates nothing and says where to fix it', async () => {
     const { fe, flow } = await load();
     const realWarn = console.warn;

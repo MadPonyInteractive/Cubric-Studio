@@ -740,47 +740,9 @@ test('the Extend Video pick selects the GRAPH, not just params (MPI-591)', async
     );
     assert.match(
         read('js/services/commandExecutor.js'),
-        /getUniversalWorkflow\(payload\.operation, payload\.flowModelIds, payload\.injectionParams\)/,
-        'the executor must resolve the workflow WITH the picked ids and the run\'s values (byParams)',
+        /getUniversalWorkflow\(payload\.operation, payload\.flowModelIds\)/,
+        'the executor must resolve the workflow WITH the picked ids',
     );
-});
-
-test('a Flow ROUTE can pick its own graph: Video Edit masked vs whole frame (byParams, MPI-1036)', async () => {
-    // One graph cannot carry both H3 sections (MpiClearVram is an output node, so ComfyUI runs
-    // both), so "Only change" typed loads the single-pass masked file and everything else the
-    // two-stage whole-frame one. A wrong pick is silent: the other graph renders a plausible clip.
-    const { registry } = await load();
-    const { getUniversalWorkflow } = await import('../js/data/modelRegistry.js');
-    const { UNIVERSAL_WORKFLOWS } = await import('../js/data/modelConstants/universal_workflows.js');
-    const ids = ['minimax-h3-ref2va'];
-    const pick = params => getUniversalWorkflow('flowVideoEdit', ids, params);
-
-    assert.equal(pick({ Input_Operation: 1, Input_Target: 'her hat' }), 'flow_video_edit_masked.json');
-    assert.equal(pick({ Input_Operation: 5, Input_Target: 'cat ears' }), 'flow_video_edit_masked.json');
-    assert.equal(pick({ Input_Operation: 1, Input_Target: '' }), 'flow_video_edit.json');
-    assert.equal(pick({ Input_Operation: 1, Input_Target: '   ' }), 'flow_video_edit.json', 'blank is not a target');
-    assert.equal(pick({ Input_Operation: 1 }), 'flow_video_edit.json', 'an agent that sends no target');
-    assert.equal(pick({ Input_Operation: 4, Input_Target: 'her hat' }), 'flow_video_edit.json',
-        'a box cannot hold a background: a hidden target that kept its value must not mask');
-    assert.equal(pick(null), 'flow_video_edit.json');
-    assert.equal(getUniversalWorkflow('flowVideoEdit'), 'flow_video_edit.json', 'no values = the default file');
-
-    // ANCHORING — every route names a field its flow declares, and its graph answers to every
-    // Input_* the flow injects (a title miss is skipped in SILENCE).
-    for (const [op, def] of Object.entries(UNIVERSAL_WORKFLOWS)) {
-        if (!def.byParams) continue;
-        const owner = registry.listFlows().find(f => f.operation === op);
-        assert.ok(owner, `${op} declares byParams but no flow declares that operation`);
-        const fields = [...(owner.fields || []), ...(owner.steps || []).flatMap(s => s.fields || [])];
-        for (const r of def.byParams) {
-            for (const w of r.when) assert.ok(fields.some(f => f.id === w.field), `${op}.byParams reads "${w.field}", which ${owner.id} does not declare`);
-            const titles = new Set(Object.values(readJson(`comfy_workflows/${r.workflow}`)).map(n => n?._meta?.title).filter(Boolean));
-            for (const id of [...fields.map(f => f.id).filter(id => /^Input_/.test(id)), ...(owner.describe || []).map(d => d.to)]) {
-                assert.ok(titles.has(id), `${owner.id}: "${id}" names no node in the ${r.workflow} route`);
-            }
-            assert.ok([...titles].some(t => /^Output_/.test(t)), `${r.workflow} has no Output_* capture node`);
-        }
-    }
 });
 
 test('the H3 extend re-takes its audio from the JOIN, never from the end (MPI-974)', () => {

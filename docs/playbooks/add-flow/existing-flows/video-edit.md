@@ -1,4 +1,4 @@
-# Video Edit (`video-edit`) — two H3 graphs, the app picks one per route
+# Video Edit (`video-edit`) — one single-pass H3 graph, masked or whole frame
 
 > Swap a person, a head or an outfit in a clip, change its background, or any edit in words,
 > with an optional picture. MPI-1036 (umbrella MPI-897). Bench evidence, numbers and Fabio's
@@ -12,40 +12,32 @@
 | requiredModels | `['minimax-h3-ref2va']` — the graph loads the ref2va transformer, its 8-step turbo LoRA, `taeh3` |
 | requiredDeps | `['minimax-h3-character-swap-lora']` (akatz-ai, `loraDeps.js`). `flow:video-edit` is gated by `MINIMAX_H3` in `licences.js`, so an H3 receipt covers it |
 | operation | `flowVideoEdit` (new, `appVersionIntroduced` 2.0.1) |
-| workflow | `flow_video_edit.json` (whole frame, the shipped two-stage H3 graph) + `byParams` -> `flow_video_edit_masked.json` (masked, single pass). Authoring: `tasks/MPI-1036/research/bench/flow_graph.py` (inputs, templates, routes) + `flow_graph_ours.py` (the two-stage section), exported by `export_raw.py` |
+| workflow | `flow_video_edit.json`, one single-pass H3 r2v turbo graph for both routes. Authoring: `tasks/MPI-1036/research/bench/flow_graph.py` (inputs, templates, routes), exported by `export_raw.py`; `flow_graph_ours.py` is the two-stage attempt, research only |
 | describe | `Input_Look` / `Input_Kept`, filled by the app before the run (below) |
 | inputs | `video1` (Input_Video), `image1` (Input_Image, optional); 5 run-slide fields |
 | output | `video`, source soundtrack muxed back (the edit is pixels only); `result.compare: 'video1'` |
 
-## Two routes, two graphs
+## Two routes, one graph
 
-> **INTERIM (2026-10-09): both files are the SINGLE pass.** The two-stage whole frame below REPLAYED the clip ~1 s
-> in on head / outfit / background edits: H3 loses the moves when it renders below ~full size (288x512 and 448x768
-> replay in any graph, prompt or sampler; 576x1024 follows), and the two-stage graph's stage 1 is half size. The fix
-> under test: the single pass with the clip handed in at 0.75 of the render size (in sync, full edits, ~35% faster:
-> MPI-1036 `plan.md`). The text below describes the two-stage design that was tried.
-
-`Input_Target` typed (and the op is not Change the background) = **masked**: SAM3 finds the thing in
-every frame -> `MpiMaskSquareBbox` pad 64 (ONE still square, the union of every frame) ->
+`Input_Target` typed (and the op is not Change the background) = **masked**: SAM3 finds the things in
+every frame (a comma list is one search per item, masks unioned: comfy `sam3_clip.py`) -> `MpiMaskSquareBbox` pad 64 (ONE still square, the union of every frame) ->
 `InpaintCropImproved` 512 -> H3 single pass + swap LoRA -> `MpiGradeMatch` band 48 ->
-`InpaintStitchImproved`. Empty = **whole frame**: the clip resized to ~0.59 MP (aspect kept, /32) and
-re-rendered by the shipped two-stage H3 graph (`minimax_h3_r2va.json`, Turbo on: stage 1 at half size
-with refs `match`, latent upscaler x2, 3-step stage 2 with refs `max`, + the swap LoRA where it is on).
-Both trim the clip to H3's 17k+5 frame grid.
+`InpaintStitchImproved`; the crop goes into H3 1:1. Empty = **whole frame**: rendered at ~0.59 MP
+(aspect kept, /32), with the clip handed to H3 as `<Video 1>` at **0.75 of that size**. Both trim the
+clip to H3's 17k+5 frame grid.
 
-- **The app picks the file** (`universal_workflows.js` `flowVideoEdit.byParams`, Fabio 2026-10-09:
-  "whatever works best for each"): Input_Target non-blank and Input_Operation not 4 -> the masked
-  file. Each file still carries both routes and re-checks the rule in-graph, so a stray value cannot
-  break it.
-- **Why two stages for the whole frame:** sharper, truer character and 17-29% faster (S1 781 s / S3
-  692 s against R2d 938 s / R3f 971 s single pass, 5 s clip, 4060 Ti bench). **Why NOT for the box:** on two stages the
-  512 crop's stage 1 runs at 256 px, and the box drifted 1-6 frames out of step (S7, mean lag 1.11);
-  the same prompt on the single pass held lag 0.01 (S7s), and the single pass is faster there too.
-- **One file cannot hold both H3 sections.** `MpiClearVram` is an OUTPUT node (MpiNodes `vram.py`),
-  and ComfyUI starts from every output node; a lazy `MpiIfElse` spares only what sits below it, so
-  the single pass's clear and the two-stage graph's three would run both H3s on every route.
-- The whole-frame file drops the shipped graph's stage-1 preview save (`Output_Preview` + its two
-  decodes): a Flow run is never preview-only, so it was a decode and a file per run for nothing.
+- **The render stays full size; only the clip shrinks.** H3 loses the clip's moves when it RENDERS
+  below ~full size: 288x512 and 448x768 jump back to the opening pose ~1 s in (even the frame-0
+  overlay comes back) in any graph, prompt, sampler, attention or model (bench S5p..S5ho). So the
+  shipped two-stage H3 graph (half-size stage 1) is out for this Flow: it fell out of step on head,
+  outfit and background edits, and leaked the picture's face on outfit. The REFERENCE clip's size is
+  the speed lever instead: at 0.75 every whole-frame option kept full edits in sync, 30-35% faster
+  than the full-size clip (S5s75 641 s vs 991, S4x 661 vs 1011, S3x 691 vs 971; 5 s clip, 4060 Ti);
+  at 0.5, identity edits came out half-swapped (S5sr/S5sro).
+- **One file, both routes.** A route picking its own file was built and removed again once the single
+  pass won both. If two H3 sections ever share a file: `MpiClearVram` is an OUTPUT node (MpiNodes
+  `vram.py`), ComfyUI starts from every output node, and a lazy `MpiIfElse` spares only what sits
+  below it, so both sections would run on every route.
 
 - **The box is still and square on purpose.** A shape mask pasted back FAILED Fabio's eye (a ghost
   round the edit), and a moving box drifts. The square + swap LoRA locked sync (lag 0.00 frames).
@@ -121,11 +113,11 @@ preview-asset store (no card). A failed describe generates nothing and says so.
   conjunctions as products, `(a * (b == 1) * c) > 0`.
 - **The raw/ files come from the bench frontend.** No API -> LiteGraph converter exists: push the
   builders' prompts to ComfyUI userdata, `app.loadApiJson` each in the bench tab, POST
-  `app.graph.serialize()` back, pull them into `raw/` (`research/bench/export_raw.py push|pull`, BOTH
-  files), then `node scripts/sync-raw-workflows.mjs`. Diff the synced API against the builder before
+  `app.graph.serialize()` back, pull them into `raw/` (`research/bench/export_raw.py push|pull`),
+  then `node scripts/sync-raw-workflows.mjs`. Diff the synced API against the builder before
   trusting it.
 
 ## Slow, warned, not capped
 
-On the 4060 Ti bench, cold: a 5 s clip whole frame takes 11.5-13 min, a 3 s masked edit ~8 min. The
+On the 4060 Ti bench, cold: a 5 s clip whole frame takes 11-12 min, a 3 s masked edit ~8 min. The
 description warns and nothing caps (the user's GPU is the limit, never the Flow's).
