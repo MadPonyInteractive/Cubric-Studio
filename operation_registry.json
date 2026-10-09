@@ -227,6 +227,11 @@
     "appVersionIntroduced": "2.0.1",
     "universal": true
   },
+  "flowCharacterSheetImages": {
+    "latestVersion": "1.0",
+    "appVersionIntroduced": "2.0.1",
+    "universal": true
+  },
   "flowTextToMusic": {
     "latestVersion": "1.0",
     "appVersionIntroduced": "2.0.0",

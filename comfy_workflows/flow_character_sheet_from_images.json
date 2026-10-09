@@ -1,0 +1,863 @@
+{
+  "2": {
+    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": true,
+      "string": ""
+    },
+    "class_type": "MpiLoadImage",
+    "_meta": {
+      "title": "Input_Image"
+    }
+  },
+  "3": {
+    "inputs": {
+      "int": 42
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Seed"
+    }
+  },
+  "4": {
+    "inputs": {
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "Input_Box"
+    }
+  },
+  "5": {
+    "inputs": {
+      "mpi_box": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "Mpi From Box"
+    }
+  },
+  "6": {
+    "inputs": {
+      "math_expression": "a if a * 5 >= b * 4 else (b * 4 + 2) // 5",
+      "a": [
+        "5",
+        0
+      ],
+      "b": [
+        "5",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "4:5 width"
+    }
+  },
+  "7": {
+    "inputs": {
+      "math_expression": "b if b * 4 >= a * 5 else (a * 5 + 2) // 4",
+      "a": [
+        "5",
+        0
+      ],
+      "b": [
+        "5",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "4:5 height"
+    }
+  },
+  "8": {
+    "inputs": {
+      "math_expression": "a - (b - c) // 2",
+      "a": [
+        "5",
+        2
+      ],
+      "b": [
+        "6",
+        0
+      ],
+      "c": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "4:5 x"
+    }
+  },
+  "9": {
+    "inputs": {
+      "math_expression": "a - (b - c) // 2",
+      "a": [
+        "5",
+        3
+      ],
+      "b": [
+        "7",
+        0
+      ],
+      "c": [
+        "5",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "4:5 y"
+    }
+  },
+  "10": {
+    "inputs": {
+      "width": [
+        "6",
+        0
+      ],
+      "height": [
+        "7",
+        0
+      ],
+      "x": [
+        "8",
+        0
+      ],
+      "y": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "face box widened to 4:5"
+    }
+  },
+  "11": {
+    "inputs": {
+      "pad": true,
+      "image": [
+        "2",
+        0
+      ],
+      "mpi_box": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "picture 1 cut to the face box"
+    }
+  },
+  "12": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Face_Pose"
+    }
+  },
+  "13": {
+    "inputs": {
+      "words": "turned",
+      "text": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "MpiTextContains",
+    "_meta": {
+      "title": "face already turned?"
+    }
+  },
+  "14": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Positive"
+    }
+  },
+  "15": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Body_Clothes"
+    }
+  },
+  "16": {
+    "inputs": {
+      "find": ".",
+      "replace": "",
+      "string": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "Replace Text"
+    }
+  },
+  "17": {
+    "inputs": {
+      "mode": "lowercase",
+      "string": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "CaseConverter",
+    "_meta": {
+      "title": "Convert Text Case"
+    }
+  },
+  "18": {
+    "inputs": {
+      "mode": "Both",
+      "string": [
+        "17",
+        0
+      ]
+    },
+    "class_type": "StringTrim",
+    "_meta": {
+      "title": "Trim Text"
+    }
+  },
+  "19": {
+    "inputs": {
+      "string_a": "Below the chin the character wears",
+      "delimiter": " ",
+      "string_b": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate Text"
+    }
+  },
+  "20": {
+    "inputs": {
+      "string_b": "in every view.",
+      "delimiter": ", ",
+      "string_a": [
+        "19",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate Text"
+    }
+  },
+  "21": {
+    "inputs": {
+      "value": "Below the chin the character is nude, in every view."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "caption: no clothing"
+    }
+  },
+  "22": {
+    "inputs": {
+      "words": "no clothing",
+      "text": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "MpiTextContains",
+    "_meta": {
+      "title": "Mpi Text Contains"
+    }
+  },
+  "23": {
+    "inputs": {
+      "true": [
+        "21",
+        0
+      ],
+      "false": [
+        "20",
+        0
+      ],
+      "boolean": [
+        "22",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "caption: nude or dressed"
+    }
+  },
+  "24": {
+    "inputs": {
+      "value": ""
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "caption: no body picture"
+    }
+  },
+  "25": {
+    "inputs": {
+      "true": [
+        "23",
+        0
+      ],
+      "false": [
+        "24",
+        0
+      ],
+      "boolean": [
+        "28",
+        4
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "caption only with a body"
+    }
+  },
+  "26": {
+    "inputs": {
+      "delimiter": " ",
+      "string_a": [
+        "25",
+        0
+      ],
+      "string_b": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "caption + the user's words"
+    }
+  },
+  "27": {
+    "inputs": {
+      "mode": "Both",
+      "string": [
+        "26",
+        0
+      ]
+    },
+    "class_type": "StringTrim",
+    "_meta": {
+      "title": "user text"
+    }
+  },
+  "28": {
+    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": false,
+      "string": ""
+    },
+    "class_type": "MpiLoadImage",
+    "_meta": {
+      "title": "Input_Image_2"
+    }
+  },
+  "29": {
+    "inputs": {
+      "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "SAM3 Model"
+    }
+  },
+  "30": {
+    "inputs": {
+      "text": "head, hair, hat",
+      "clip": [
+        "29",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "SAM3 vocabulary"
+    }
+  },
+  "31": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "29",
+        0
+      ],
+      "image": [
+        "28",
+        0
+      ],
+      "conditioning": [
+        "30",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "head + hair + hat, unioned"
+    }
+  },
+  "32": {
+    "inputs": {
+      "max_hole_size": 0,
+      "mask": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "MpiMaskFillHoles",
+    "_meta": {
+      "title": "Mpi Mask Fill Holes"
+    }
+  },
+  "33": {
+    "inputs": {
+      "expand": 6,
+      "tapered_corners": true,
+      "mask": [
+        "32",
+        0
+      ]
+    },
+    "class_type": "GrowMask",
+    "_meta": {
+      "title": "Grow Mask"
+    }
+  },
+  "34": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "width": 32,
+      "height": 32,
+      "edge": "original",
+      "image": [
+        "28",
+        0
+      ]
+    },
+    "class_type": "Image Crop Location Exact",
+    "_meta": {
+      "title": "backdrop sample (top-left 32px)"
+    }
+  },
+  "35": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "crop": "disabled",
+      "image": [
+        "34",
+        0
+      ],
+      "width": [
+        "28",
+        2
+      ],
+      "height": [
+        "28",
+        3
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "flat fill plate"
+    }
+  },
+  "36": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "resize_source": true,
+      "destination": [
+        "28",
+        0
+      ],
+      "source": [
+        "35",
+        0
+      ],
+      "mask": [
+        "33",
+        0
+      ]
+    },
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "body with its head filled flat"
+    }
+  },
+  "37": {
+    "inputs": {
+      "passthrough": [
+        "36",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "free SAM3 before the model"
+    }
+  },
+  "38": {
+    "inputs": {
+      "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "39": {
+    "inputs": {
+      "device": "auto",
+      "dtype": "default",
+      "model": [
+        "38",
+        0
+      ]
+    },
+    "class_type": "QwenImage21Cache",
+    "_meta": {
+      "title": "Qwen Image 2.1 Cache"
+    }
+  },
+  "40": {
+    "inputs": {
+      "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "41": {
+    "inputs": {
+      "vae_name": "qwen_image_2.1_vae_bf16.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "42": {
+    "inputs": {
+      "on_true": [
+        "37",
+        0
+      ],
+      "switch": [
+        "28",
+        4
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "Reference 2 = body, None when empty"
+    }
+  },
+  "43": {
+    "inputs": {
+      "value": "Character reference sheet of the character from image 1, in exactly the same visual style and medium as image 1. The face, head and hair come only from image 1. [CHARACTER PROMPT]"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Sheet_Prompt_No_Body"
+    }
+  },
+  "44": {
+    "inputs": {
+      "value": "Character reference sheet of the character from image 1, in exactly the same visual style and medium as image 1. The face, head and hair come only from image 1. The body, build, skin and clothing come from image 2, which shows that body with its head removed: give that body the head from image 1, with the same body shape, weight and proportions as image 2. In every view, the portrait included, the character wears exactly what image 2 wears below the chin, or bare skin where image 2 shows bare skin; no clothing from image 1 below the chin. [CHARACTER PROMPT]"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Sheet_Prompt_With_Body"
+    }
+  },
+  "45": {
+    "inputs": {
+      "true": [
+        "44",
+        0
+      ],
+      "false": [
+        "43",
+        0
+      ],
+      "boolean": [
+        "28",
+        4
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Sheet_Prompt_Select (has body?)"
+    }
+  },
+  "46": {
+    "inputs": {
+      "value": "A single continuous image containing three views of the same character arranged side by side in one unbroken frame, the two full-body views on the left and the portrait on the right, the grey background flowing continuously behind all three, the same character in every view with identical face, hair and wardrobe. The right half of the image is filled by a head and shoulders portrait that keeps the head exactly as it is in image 1, with the same turn, tilt and expression, face sharp and clear, the whole head inside the frame, the hair and headwear exactly as in image 1. The left half holds two narrow full-body standing views of equal width, one seen from the front and one from directly behind, arms hanging loose and relaxed at the sides, hands open and resting against the thighs, feet planted, generous headroom. Plain smooth grey seamless studio background. Extremely even frontal illumination, soft open shadows, uniform brightness from edge to edge."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Sheet_Prompt_Copy_Turn"
+    }
+  },
+  "47": {
+    "inputs": {
+      "value": "A single continuous image containing three views of the same character arranged side by side in one unbroken frame, the two full-body views on the left and the portrait on the right, the grey background flowing continuously behind all three, the same character in every view with identical face, hair and wardrobe. The right half of the image is filled by a three-quarter view head and shoulders portrait, not a frontal one: the head and shoulders turned 45 degrees toward the left side of the image, the face at a three-quarter angle with the far cheek partly hidden and the near ear fully visible, with the same face, features and expression as image 1, nothing added that image 1 does not show, face sharp and clear, the whole head inside the frame, the hair and headwear exactly as in image 1. The left half holds two narrow full-body standing views of equal width, one seen from the front and one from directly behind, arms hanging loose and relaxed at the sides, hands open and resting against the thighs, feet planted, generous headroom. Plain smooth grey seamless studio background. Extremely even frontal illumination, soft open shadows, uniform brightness from edge to edge."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Sheet_Prompt_Force_Three_Quarter"
+    }
+  },
+  "48": {
+    "inputs": {
+      "true": [
+        "46",
+        0
+      ],
+      "false": [
+        "47",
+        0
+      ],
+      "boolean": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Sheet_Prompt_Select (face turned?)"
+    }
+  },
+  "49": {
+    "inputs": {
+      "delimiter": " ",
+      "string_a": [
+        "45",
+        0
+      ],
+      "string_b": [
+        "48",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate Text"
+    }
+  },
+  "50": {
+    "inputs": {
+      "find": "[CHARACTER PROMPT]",
+      "string": [
+        "49",
+        0
+      ],
+      "replace": [
+        "27",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "Sheet_Prompt"
+    }
+  },
+  "51": {
+    "inputs": {
+      "source": [
+        "50",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Output_prompt"
+    }
+  },
+  "52": {
+    "inputs": {
+      "negative_prompt": "",
+      "resolution": 1024,
+      "clip": [
+        "40",
+        0
+      ],
+      "images.image_1": [
+        "11",
+        0
+      ],
+      "images.image_2": [
+        "42",
+        0
+      ],
+      "vae": [
+        "41",
+        0
+      ],
+      "prompt": [
+        "50",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImage21",
+    "_meta": {
+      "title": "Text Encode Qwen Image 2.1"
+    }
+  },
+  "53": {
+    "inputs": {
+      "int": 1792
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "W_sheet"
+    }
+  },
+  "54": {
+    "inputs": {
+      "int": 1120
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "H_sheet"
+    }
+  },
+  "55": {
+    "inputs": {
+      "batch_size": 1,
+      "width": [
+        "53",
+        0
+      ],
+      "height": [
+        "54",
+        0
+      ]
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "sheet canvas"
+    }
+  },
+  "56": {
+    "inputs": {
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "39",
+        0
+      ],
+      "positive": [
+        "52",
+        0
+      ],
+      "negative": [
+        "52",
+        1
+      ],
+      "latent_image": [
+        "55",
+        0
+      ],
+      "seed": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "57": {
+    "inputs": {
+      "samples": [
+        "56",
+        0
+      ],
+      "vae": [
+        "41",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "58": {
+    "inputs": {
+      "image": [
+        "57",
+        0
+      ]
+    },
+    "class_type": "SplitImageWithAlpha",
+    "_meta": {
+      "title": "drop alpha (2.1 VAE decodes RGBA)"
+    }
+  },
+  "59": {
+    "inputs": {
+      "passthrough": [
+        "58",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "free VRAM after the run"
+    }
+  },
+  "60": {
+    "inputs": {
+      "images": [
+        "59",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Output_Image"
+    }
+  }
+}

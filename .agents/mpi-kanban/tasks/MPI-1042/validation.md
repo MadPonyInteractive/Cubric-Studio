@@ -352,3 +352,31 @@ samplings; the nude caption now says "nude" (a list word), not "unclothed" (not 
   equal the tested batch-23 graphs node for node.
 - **Fabio's eye, 2026-10-08: "1" - approved** (contact6 / contact7), and the Flow points body-picture users
   to Qwen.
+
+## 2026-10-09 - batch 24, risk 4: a haircut in the user's words (agent-run under gpu_lease)
+
+v2 graphs as built, no body. P = the phone woman (sleek long dark ponytail, describer FRONT -> turn wording)
++ "Her hair is a short platinum blonde pixie cut."; S = the smoker crop (long loose brown hair, 230x287,
+describer TURNED -> copy wording) + "Her hair is a short chin-length bob with a straight fringe." Seeds 42 / 7.
+Klein 48-57 s, Qwen 63-78 s. Contact sheet `G:/ComfyUi/ComfyUI/output/mpi1042_hair/contact24.jpg` (not repo).
+
+- **The asked haircut wins 8 of 8**, both models, even on the copy wording ("keeps the head exactly as it is
+  in image 1"): platinum pixie on P, chin bob with fringe on S, front and back views agree. Risk 4 closed; no
+  face-only cut of the reference needed.
+- Face kept on P (both). **Klein on S drifted younger and slimmer** (no body picture, a 230x287 face);
+  Qwen kept her age and build and the bra strap. A low-resolution face is Qwen's case too.
+- Qwen P's expression gained a slight smile; turn three-quarter on all P runs.
+
+## 2026-10-09 - batch 25, the Flow's own graphs (`build_bench_v2.py --flow`), set as the app sets them
+
+`Input_Box` (box step), `Input_Face_Pose` / `Input_Body_Clothes` (the describer's raw answers, batch 21's),
+the user's words alone in `Input_Positive`. Outputs `G:/ComfyUi/ComfyUI/output/mpi1042_flow/` (not repo).
+
+- **Klein PF s42 and PN s42 equal the approved batch-23 sheets, max pixel diff 0** - box = the whole 4:5
+  picture, answers "A white tank top and gray jeans." / "No clothing." (the graph's caption reads exactly as
+  the bench's hand-written one, the nude one trips the NSFW LoRA). 66 / 56 s.
+- **Qwen PN s42 on the app's int8 Qwen3-VL encoder** (the bench ran fp8): nude, bare-shoulder portrait. 96 s.
+- **An agent-shaped box** (500x500 square on the man's 819x1023 picture) runs, widened to 4:5 in-graph: hat,
+  brow + ear piercings, three-quarter. The box left out the shirt, so the body views wear a plain tee. 57 s.
+- **Character Sheet's own goggled man** (its tile, boxed head and shoulders, TURNED, Qwen): a clean sheet of
+  him, goggles and harness kept front and back. 72 s.

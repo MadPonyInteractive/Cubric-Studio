@@ -238,6 +238,26 @@ test('the Video Edit Flow carries every title its op and fields write, and NO ne
         `${file} must NOT carry "input_negative" — H3 has no negative conditioning`);
 });
 
+test('Character Sheet from Images carries every title its op, box and describer write, on BOTH arms (MPI-1042)', () => {
+    // One op, two graphs (`byModel`): Qwen-Image 2.1 and Klein 9B. Each must take the face
+    // (Input_Image + its Input_Box), the optional body (Input_Image_2), the user's words and
+    // the describer's two answers - a missing Input_Face_Pose silently turns every
+    // already-turned face, a missing Input_Body_Clothes dresses the sheet in the face
+    // picture's clothes. Neither carries a negative: _buildParams would wipe a baked one.
+    for (const file of ['flow_character_sheet_from_images.json', 'flow_character_sheet_from_images_klein.json']) {
+        const have = titlesOf(file);
+        for (const title of [
+            'input_image', 'input_box', 'input_image_2', 'input_positive', 'input_seed',
+            'input_face_pose', 'input_body_clothes',
+        ]) {
+            assert.ok(have.has(title), `${file} must carry a node titled "${title}"`);
+        }
+        assert.ok(have.has('output_image'), `${file} must carry a capture node titled "output_image"`);
+        assert.ok(!have.has('input_negative'), `${file} must NOT carry "input_negative"`);
+        assert.ok(!have.has('input_remove_head'), `${file} must NOT carry Input_Remove_Head - the chained leg reads it`);
+    }
+});
+
 test('the LTX foley Flow carries its I/O titles (MPI-536)', () => {
     // flowLtxFoley declares NO injection-param field — its two prompt fields are the
     // top-level positive/negative that submitFlowGeneration writes — so the pinned set

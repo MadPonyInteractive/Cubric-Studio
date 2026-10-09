@@ -157,6 +157,16 @@ export const UNIVERSAL_WORKFLOWS = {
     flowCharacterSheet: {
         workflow: 'flow_character_sheet.json',
     },
+    // MPI-1042 — Character Sheet from Images. Qwen-Image 2.1 draws the whole sheet in one
+    // sampling; Klein 9B needs two (the portrait alone, then the body views referencing it,
+    // stitched) - no node set in common, so the pick selects the graph. Both files come from
+    // tasks/MPI-1042/research/bench-tools/build_bench_v2.py --flow.
+    flowCharacterSheetImages: {
+        workflow: 'flow_character_sheet_from_images.json',
+        byModel: {
+            'klein-9b': 'flow_character_sheet_from_images_klein.json',
+        },
+    },
     // MPI-997 — Character Sheet's chained leg 2: SAM3 removes the front body's head from
     // a finished sheet (no model; SAM3 installs with the engine).
     flowCharacterSheetHeadless: {

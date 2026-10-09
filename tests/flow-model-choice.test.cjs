@@ -694,14 +694,17 @@ test('the Extend Video pick selects the GRAPH, not just params (MPI-591)', async
             // directly) must exist in EVERY arm, not just the default one.
             for (const f of [...(owner.fields || []),
                              ...(owner.steps || []).flatMap(s => s.fields || [])]) {
-                if (!/^Input_/.test(f.id)) continue;
+                // A `chain.when` toggle is read by flowService, never by a graph (MPI-997).
+                if (!/^Input_/.test(f.id) || f.id === owner.chain?.when) continue;
                 assert.ok(titles.has(f.id),
                     `${owner.id}: field "${f.id}" names no node in the ${modelId} arm (${file}) — ` +
                     'injection matches titles and skips a miss in SILENCE');
             }
             // The prompt, the media the flow takes, and a capture node to read back.
             assert.ok(titles.has('Input_Positive'), `${file} has no Input_Positive`);
-            assert.ok(titles.has('Input_Video'), `${file} has no Input_Video for a video flow`);
+            // Character Sheet from Images (MPI-1042) is the first image flow with a byModel arm.
+            const media = owner.mediaType === 'video' ? 'Input_Video' : 'Input_Image';
+            assert.ok(titles.has(media), `${file} has no ${media} for a ${owner.mediaType} flow`);
             assert.ok([...titles].some(t => /^Output_/.test(t)), `${file} has no Output_* capture node`);
 
             // THE WEIGHTS, and this is the assertion that earns its keep. The arm was first

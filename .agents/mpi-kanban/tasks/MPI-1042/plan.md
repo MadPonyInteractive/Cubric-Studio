@@ -4,6 +4,38 @@ Design is settled in `brief.md`. This plan is the order of work only.
 
 ## Current State
 
+**2026-10-09 handoff - Fabio could not press Generate yet (a peer's smoke test held the GPU).** His asks:
+(1) the graphics must be "similar to the other one" - run `/mpi-flow-graphics` for a real tile + hero like
+Character Sheet's (the tile now is a placeholder crop of batch-25 FK3); (2) he asked why the face box is 4:5,
+not square: answered - the portrait panel is 4:5 (896x1120), the reference keeps its aspect (ImageScaleToTotalPixels,
+never 1024x1024), and a mismatched picture stretched Klein's copy 7% (runs 1-3); a SQUARE box on the two-pass
+(T6) graph is UNTESTED - bench it if he wants square. His in-app eye-test is still owed.
+
+**2026-10-09 later - WIRED and verified short of Fabio's eye.** Batch 25: the Flow graphs, set as the app
+sets them, reproduce the approved batch-23 sheets pixel for pixel (Klein PF / PN, max diff 0). Raw graphs
+committed locally by `sync-raw-workflows.mjs` (`dff0020e5`, NOT pushed); API graphs STAGED, equal to the tested
+ones. `npm test` 2813 pass / 0 fail; the 36 flow desktop specs pass; eslint clean. Op files as `flowCSFI`
+(28-char title vs the 24-char filename cap). Tile = provisional crop of batch-25 FK3 (no brand pattern).
+**Waiting on:** Fabio's in-app eye-test (his app on :3000 serves this tree - Ctrl+R; an isolated instance
+would attach to his engine on 48188, so not without his OK). Then /mpi-flow-graphics, the release note,
+/mpi-end-session.
+
+**2026-10-09 (session d2985589) - risk 4 closed, the Flow is wired in code; graphs not yet synced.**
+Risk 4: the asked haircut won 8 of 8 (validation batch 24). Wiring done in the working tree:
+`build_bench_v2.py <dir> --flow` writes the two raw Flow graphs (Qwen = `flow_character_sheet_from_images.json`,
+models[0]; Klein = `..._klein.json`, `byModel`): picture 1 cut to `Input_Box` widened to 4:5 in-graph, the
+describer's answers as MpiText `Input_Face_Pose` / `Input_Body_Clothes` (caption built in-graph), the app's
+int8 Qwen3-VL encoder, Sheet prompt titled `Output_prompt`. FlowDef `character-sheet-from-images` + op
+`flowCharacterSheetImages` in the 4 files (`injector: 'headSwap'`, enhance-exempt), the head-removal `chain`,
+`describe` with a NEW `crop: 'box1'` option (flowEnhance.js `stageBoxCrop`), `agentOpens: 'box'` (the agent's
+0.6 box gate would refuse a portrait's face box - brief ## Noticed), tests (inject titles, describe, handover,
+flow-model-choice now takes an image flow's byModel arm), `docs/agent/flows.md` paragraph, the playbook
+doc `existing-flows/character-sheet-from-images.md`, a PROVISIONAL tile (LV-pattern shirt: replace).
+**Next:** batch 25 (the Flow graphs set as the app sets them; FK1/FK2 must equal batch 23's approved sheets
+pixel for pixel) -> copy raw graphs to `comfy_workflows/raw/` -> `node scripts/sync-raw-workflows.mjs` ->
+full tests -> live run in `npm run app:isolated` -> /mpi-flow-graphics (tile + hero) -> release note (UNRELEASED.md
+was claimed by the MPI-1038 peer session c6e3baed) -> /mpi-end-session.
+
 **2026-10-08 night - body mode SOLVED on the bench (validation.md batches 18-23); Fabio's v2 files
 regenerated with it.** Fabio no longer runs the bench (too many agents on the GPU): the agent runs every
 batch under `gpu_lease.py`. What changed in `build_bench_v2.py`: (a) the turn sentences no longer name
@@ -151,7 +183,7 @@ authors and runs it in the node graph. GPU runs under `gpu_lease.py`.
 - [x] Risk 1: placement - three views in place on every run of batches 9-23 (130+ sheets, both modes).
 - [x] Risk 2: layout - Qwen holds the 3-panel sheet in one sampling; Klein needs two (T6).
 - [x] Risk 3: back panel - hair and outfit from behind match the front on the approved sheets.
-- [ ] Risk 4: prompted haircut vs the face picture's hair (user text asks a different haircut).
+- [x] Risk 4: a haircut in the user text beats the picture's hair 8 of 8, both models (batch 24).
 - [x] Same-side check: a fixed side ("toward the left side of the image") - batch 13.
 - [x] Head-removal fill: the flat fill is enough - no body picture's face ever reached a sheet
       (batches 17-23); LanPaint not needed.

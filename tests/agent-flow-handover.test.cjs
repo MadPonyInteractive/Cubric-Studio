@@ -52,6 +52,14 @@ test.describe('which Flows open for the user (Fabio\'s sort)', () => {
         }
     });
 
+    test('Character Sheet from Images opens on its face box (MPI-1042)', () => {
+        // The agent's box gate refuses a box over 0.6 of the picture, and a head-and-shoulders
+        // box on a portrait is most of it: the user boxes the face, then Generate.
+        const flow = getFlowById('character-sheet-from-images');
+        assert.equal(flow.agentOpens, 'box');
+        assert.ok(flow.steps.some((s) => s.kind === 'box' && s.role === 'image1'));
+    });
+
     test('every other Flow is the agent\'s to run', () => {
         const runs = listFlows().filter((f) => !f.agentOpens).map((f) => f.id);
         // Song too: the app asks "Review lyrics | Just do it" first, on a card (MPI-1005).

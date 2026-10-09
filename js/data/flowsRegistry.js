@@ -1497,6 +1497,89 @@ export const FLOWS = [
         ],
     },
 
+    // MPI-1042 — Character Sheet from Images. The character the user ALREADY has, from a
+    // face picture (required, boxed) and a body picture (optional), into the same sheet as
+    // `character-sheet` — same layout, so the same head-removal leg runs on it. No LoRA, no
+    // training: the pictures are references. Bench record: tasks/MPI-1042/validation.md.
+    //
+    // TWO ARMS, the user picks (Fabio, 2026-10-08). Qwen-Image 2.1 draws the whole sheet in
+    // one sampling and follows a body picture's build and clothes; Klein 9B needs two
+    // samplings (the portrait alone, or it squeezes and loses the turn) and leans on the face
+    // picture's clothes. Qwen is first, the recommended arm; its licence leaves the IMAGES
+    // non-commercial (the licence gate and badge are the model's, MPI-936), Klein's does not.
+    //
+    // The close-up is ALWAYS three-quarter (Fabio: a frontal one leaves the video model to
+    // invent the turn). Whether the face picture is already turned decides the wording - keep
+    // its turn and expression, or turn it - and the DESCRIBER says which, on the boxed face.
+    // A body picture is described too: no wording alone dressed the sheet in the body's
+    // clothes on both models, a caption of them did (batches 21-23). The graph builds the
+    // caption and puts it ahead of the user's words; "nude" there trips Klein's NSFW LoRA,
+    // exactly as in the app's Klein workflow.
+    {
+        id: 'character-sheet-from-images',
+        title: 'Character Sheet from Images',
+        // PROVISIONAL: a crop of a bench sheet, so CI's package check passes; /mpi-flow-graphics
+        // replaces it and adds the `video` hero.
+        preview: 'flow-character-sheet-from-images.webp',
+        description: 'Turn pictures of a character you already have into a character sheet: a large three-quarter portrait, plus full-body front and back views, on a plain grey studio backdrop. Box the face in the first picture; add a full-body picture and the sheet takes its build and clothes. Qwen-Image 2.1 follows a body picture best, but its pictures are not for commercial use; FLUX.2 Klein 9B\'s are. If the sheet does not look like your character, run it again.',
+        requiredModels: [{ label: 'Model', models: ['qwen-image-2-1', 'klein-9b'] }],
+        operation: 'flowCharacterSheetImages',
+        // The Qwen graph. Klein's file is `byModel`'s (universal_workflows.js); this field is
+        // read only by the tests that check declared fields against node titles.
+        workflow: 'flow_character_sheet_from_images.json',
+        chain: { operation: 'flowCharacterSheetHeadless', when: 'Input_Remove_Head', input: 'image1' },
+        // The agent fills the pictures and words and opens the box for the user (MPI-892). It
+        // cannot run it: its `look` box gate refuses any box over 0.6 of the picture as "the
+        // whole person" (Head Swap's head-only bound, agentLoop.mjs), and a head-and-shoulders
+        // box on a portrait picture is most of it. A per-step bound there would let it run.
+        agentOpens: 'box',
+        mediaType: 'image',
+        type: 'create',
+        inputSchema: {
+            media: [
+                { type: 'image', mode: 'upto', max: 1, roles: ['image1'], labels: ['Face picture'] },
+                // Optional: empty, the graph skips the head removal and the second reference.
+                { type: 'image', mode: 'upto', max: 1, roles: ['image2'], labels: ['Full-body picture (optional)'] },
+            ],
+        },
+        steps: [
+            {
+                // 4:5 = the portrait panel. Klein COPIES the face picture, so a picture of
+                // another shape comes back stretched (bench runs 1-3); the graph widens any box
+                // to 4:5 as well, for an agent's measured one. `overflow` + MpiBoxCrop `pad`:
+                // a head at the edge can still be framed with its hair.
+                kind: 'box', role: 'image1', param: 'box1', ratio: 0.8, overflow: 'allow',
+                tickerLabel: 'Face',
+                title: 'Box the face',
+                hint: [
+                    'Box the head and shoulders, hair and headwear included: the portrait copies what is inside the box.',
+                    'Adding a full-body picture? Qwen-Image 2.1 follows its build and clothes best.',
+                ],
+            },
+        ],
+        fields: [
+            {
+                id: 'positive', type: 'text', rows: 3, label: 'Changes (optional)', default: '',
+                placeholder: 'e.g. a short bob haircut, a heavier build, a red leather jacket',
+            },
+            {
+                id: 'Input_Remove_Head', type: 'toggle', label: 'Headless front body',
+                icon: 'eraser', default: true,
+                // As on Character Sheet: read by `chain.when`, not by either graph (MPI-997).
+            },
+        ],
+        // Both answers are graph TEXT: `Input_Face_Pose` holding "turned" keeps the picture's
+        // turn, anything else turns the head; `Input_Body_Clothes` becomes the caption, and
+        // "no clothing" the nude one. The turn is asked on the BOX: on a whole torso shot the
+        // describer called a turned head FRONT (batch 14a).
+        describe: [
+            { to: 'Input_Face_Pose', media: 'image1', crop: 'box1',
+                ask: 'Look only at the person\'s head. Is the face pointing straight at the camera, or is the head turned to one side (a three-quarter or profile view)? Reply with one word: FRONT or TURNED.' },
+            { to: 'Input_Body_Clothes', media: 'image2',
+                ask: 'Describe only the clothing this person wears below the neck, as one short phrase, for example \'a red hoodie and black jeans\'. If the person wears no clothing, reply exactly: no clothing.' },
+        ],
+    },
+
     // MPI-594 — OUTPAINT. One image in, the same picture back inside a bigger frame.
     //
     // The graph is a FLUX.2 Klein 9B EDIT that fills the black, and it never learns a

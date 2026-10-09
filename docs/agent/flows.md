@@ -73,6 +73,11 @@ drawn it, tell them to go to the last step and press Cue: you cannot press it fo
 A picture that should LOOK like a scribble, a doodle or a sketch ("make a scribble of a cat") is
 a style on a model, such as Klein's Doodle style, never these Flows.
 
+A character sheet of a character the user already HAS a picture of is Character Sheet from Images
+(Character Sheet takes words only). Pass the face picture as `image1` and, when there is one, a
+full-body picture as `image2`; `positive` holds only what should differ from the pictures (a
+haircut, a build), never a description of the character. It opens at the face box for the user.
+
 Any other Flow opens the same way with `open: true`, when the user wants to adjust it themselves
 (a result they did not like) or it needs something only they have, such as their own photo. Offer
 it first ("I need your photo for that. I can open the Flow for you to add it."), and open it when

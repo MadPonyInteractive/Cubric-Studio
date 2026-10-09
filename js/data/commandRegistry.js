@@ -1514,6 +1514,30 @@ export const commands = {
         universal: true,
     },
 
+    // MPI-1042. Character Sheet from Images: a face picture (boxed) and an optional body
+    // picture in, the same three-panel sheet out, on Qwen-Image 2.1 (one sampling) or Klein
+    // 9B (two, stitched) - `byModel` picks the graph. Chains the same head removal.
+    flowCharacterSheetImages: {
+        label: 'Flow: Character Sheet from Images',
+        // Initials, as `flowTTS`: the title spelled out is 28 characters and filenames are cut
+        // at 24 (routes/projects.js), which would file it as `flowCharacterSheetFromIm_001`.
+        filePrefix: 'flowCSFI',
+        progressLabel: 'Drawing the sheet',
+        mediaType: MEDIA_TYPE.IMAGE,        // OUTPUT type
+        requiresImages: 0,                  // media is never a hard requirement at the op layer
+        mediaInputs: [
+            // The face; the graph's loader blocks when it is empty, so a run without one is refused.
+            { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
+            // The body, head removed in-graph. Empty = the face alone carries the character.
+            { key: 'image2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false },
+        ],
+        promptRequired: false,              // the pictures are the input; words only adjust
+        universal: true,
+        // `box1` (the face box) -> `Input_Box`: an MpiBox's four widgets need the box injector,
+        // as on Draw It In. No `cropsToBox`: nothing is stitched back into the face picture.
+        injector: 'headSwap',
+    },
+
     // MPI-997. Character Sheet's chained leg 2 (the FlowDef's `chain`): a finished sheet in,
     // the front body's head removed by SAM3 and filled from the sheet's own backdrop. No
     // model and no FlowDef of its own; it lands as the sheet card's next version.
@@ -1602,6 +1626,8 @@ export const ENHANCE_EXEMPT_OPS = Object.freeze(new Set([
     't2a', 'tts',
     // MPI-1036: the user's words are the edit's instruction, wrapped in a hidden one.
     'flowVideoEdit',
+    // MPI-1042: the words adjust the pictures' character (a haircut, a build) inside baked prompts.
+    'flowCharacterSheetImages',
 ]));
 
 /** True when this op is one the enhancer must stay out of. */

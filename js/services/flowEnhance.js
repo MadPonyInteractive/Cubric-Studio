@@ -381,8 +381,11 @@ export async function enhanceFlowRun(flow, resolved, deps = { enhance: runEnhanc
 // Entries are `{ to, media, ask, when?, frame? }`. Per target, the FIRST entry whose media slot
 // holds something and whose `when` rules all hold is the one asked; `when` takes `hiddenWhen`'s
 // `{ field, is | isNot }` and `{ media }` (that slot holds something). `frame: 'first'` describes
-// a clip's first frame instead of the file. Targets are graph inputs nobody types into, so the
-// text is run-only: it never enters the snapshot, and Reuse describes the picture again.
+// a clip's first frame instead of the file; `crop: '<box param>'` only the part of the picture
+// that box holds, when the run carries one (a face's turn read off a whole torso shot came back
+// FRONT for a turned head, off the boxed face TURNED: MPI-1042 batch 14a). Targets are graph
+// inputs nobody types into, so the text is run-only: it never enters the snapshot, and Reuse
+// describes the picture again.
 
 /** One `when` rule against the run's graph values and the media slots that hold something. */
 function _describeRuleHolds(rule, values, roles) {
@@ -421,13 +424,46 @@ export function describeAsks(flow, values = {}, mediaItems = []) {
 async function stageFirstFrame(url, project) {
     if (!project?.folderPath) throw new Error('No project to keep the frame in.');
     // An agent's media can be a bare file path, which a <video> cannot load.
-    const dataUrl = await firstFrameDataUrl(resolveMediaUrl(url));
+    return _stagePreview(await firstFrameDataUrl(resolveMediaUrl(url)), project, 'The first frame');
+}
+
+/**
+ * The part of a picture a box holds, as a project file the describer can read. The box is in
+ * source pixels and may hang off an edge (`overflow: 'allow'`), so only what lies inside the
+ * picture is kept; a box that misses it describes the whole picture.
+ *
+ * @param {string} url  the picture
+ * @param {{x: number, y: number, width: number, height: number}} box
+ * @param {{id?: string, folderPath: string}} project
+ * @returns {Promise<string>}  the crop's path, or `url` when the box holds nothing
+ */
+async function stageBoxCrop(url, box, project) {
+    if (!project?.folderPath) throw new Error('No project to keep the crop in.');
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('The picture could not be read.'));
+        img.src = resolveMediaUrl(url);
+    });
+    const x0 = Math.max(0, box.x), y0 = Math.max(0, box.y);
+    const w = Math.min(img.naturalWidth, box.x + box.width) - x0;
+    const h = Math.min(img.naturalHeight, box.y + box.height) - y0;
+    if (w <= 0 || h <= 0) return url;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(img, x0, y0, w, h, 0, 0, w, h);
+    return _stagePreview(canvas.toDataURL('image/png'), project, 'The boxed part of the picture');
+}
+
+/** A data URL into the project's content-addressed preview store (no gallery card). */
+async function _stagePreview(dataUrl, project, what) {
     const res = await fetch(
         `/project-media/${project.id || 'agent'}/place-preview-asset?folderPath=${encodeURIComponent(project.folderPath)}`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataUrl, ext: '.png' }) },
     );
     const data = res.ok ? await res.json() : null;
-    if (!data?.success || !data.filePath) throw new Error('The first frame could not be stored in the project.');
+    if (!data?.success || !data.filePath) throw new Error(`${what} could not be stored in the project.`);
     return data.filePath;
 }
 
@@ -443,12 +479,13 @@ async function stageFirstFrame(url, project) {
  * @param {Object} flow  a FlowDef
  * @param {{injectionParams?: Object, mediaItems?: Object[]}} config  the run as it will be queued
  * @param {?Object} project  where a clip's first frame is kept
- * @param {{describe?: Function, firstFrame?: Function}} [deps]  a test stubs them
+ * @param {{describe?: Function, firstFrame?: Function, boxCrop?: Function}} [deps]  a test stubs them
  * @returns {Promise<{ok: true, injectionParams: Object}|{ok: false, cancelled?: boolean, message: string}>}
  */
 export async function describeFlowRun(flow, config, project, deps = {}) {
     const describe = deps.describe || describeImage;
     const firstFrame = deps.firstFrame || stageFirstFrame;
+    const boxCrop = deps.boxCrop || stageBoxCrop;
     const media = config?.mediaItems || [];
     const name = flow?.title || 'this Flow';
     const out = {};
@@ -457,7 +494,10 @@ export async function describeFlowRun(flow, config, project, deps = {}) {
         let result;
         try {
             const url = media.find(m => m?.role === d.media).url;
-            result = await describe({ imagePath: d.frame === 'first' ? await firstFrame(url, project) : url, question: d.ask });
+            const box = d.crop ? config?.injectionParams?.[d.crop] : null;
+            const imagePath = d.frame === 'first' ? await firstFrame(url, project)
+                : box ? await boxCrop(url, box, project) : url;
+            result = await describe({ imagePath, question: d.ask });
         } catch (err) {
             result = { ok: false, error: err?.message };
         }

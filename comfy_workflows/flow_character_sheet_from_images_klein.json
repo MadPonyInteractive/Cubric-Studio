@@ -1,0 +1,1370 @@
+{
+  "2": {
+    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": true,
+      "string": ""
+    },
+    "class_type": "MpiLoadImage",
+    "_meta": {
+      "title": "Input_Image"
+    }
+  },
+  "3": {
+    "inputs": {
+      "int": 42
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Seed"
+    }
+  },
+  "4": {
+    "inputs": {
+      "width": 0,
+      "height": 0,
+      "x": 0,
+      "y": 0
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "Input_Box"
+    }
+  },
+  "5": {
+    "inputs": {
+      "mpi_box": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "Mpi From Box"
+    }
+  },
+  "6": {
+    "inputs": {
+      "math_expression": "a if a * 5 >= b * 4 else (b * 4 + 2) // 5",
+      "a": [
+        "5",
+        0
+      ],
+      "b": [
+        "5",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "4:5 width"
+    }
+  },
+  "7": {
+    "inputs": {
+      "math_expression": "b if b * 4 >= a * 5 else (a * 5 + 2) // 4",
+      "a": [
+        "5",
+        0
+      ],
+      "b": [
+        "5",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "4:5 height"
+    }
+  },
+  "8": {
+    "inputs": {
+      "math_expression": "a - (b - c) // 2",
+      "a": [
+        "5",
+        2
+      ],
+      "b": [
+        "6",
+        0
+      ],
+      "c": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "4:5 x"
+    }
+  },
+  "9": {
+    "inputs": {
+      "math_expression": "a - (b - c) // 2",
+      "a": [
+        "5",
+        3
+      ],
+      "b": [
+        "7",
+        0
+      ],
+      "c": [
+        "5",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "4:5 y"
+    }
+  },
+  "10": {
+    "inputs": {
+      "width": [
+        "6",
+        0
+      ],
+      "height": [
+        "7",
+        0
+      ],
+      "x": [
+        "8",
+        0
+      ],
+      "y": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "face box widened to 4:5"
+    }
+  },
+  "11": {
+    "inputs": {
+      "pad": true,
+      "image": [
+        "2",
+        0
+      ],
+      "mpi_box": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "picture 1 cut to the face box"
+    }
+  },
+  "12": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Face_Pose"
+    }
+  },
+  "13": {
+    "inputs": {
+      "words": "turned",
+      "text": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "MpiTextContains",
+    "_meta": {
+      "title": "face already turned?"
+    }
+  },
+  "14": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Positive"
+    }
+  },
+  "15": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Body_Clothes"
+    }
+  },
+  "16": {
+    "inputs": {
+      "find": ".",
+      "replace": "",
+      "string": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "Replace Text"
+    }
+  },
+  "17": {
+    "inputs": {
+      "mode": "lowercase",
+      "string": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "CaseConverter",
+    "_meta": {
+      "title": "Convert Text Case"
+    }
+  },
+  "18": {
+    "inputs": {
+      "mode": "Both",
+      "string": [
+        "17",
+        0
+      ]
+    },
+    "class_type": "StringTrim",
+    "_meta": {
+      "title": "Trim Text"
+    }
+  },
+  "19": {
+    "inputs": {
+      "string_a": "Below the chin the character wears",
+      "delimiter": " ",
+      "string_b": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate Text"
+    }
+  },
+  "20": {
+    "inputs": {
+      "string_b": "in every view.",
+      "delimiter": ", ",
+      "string_a": [
+        "19",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate Text"
+    }
+  },
+  "21": {
+    "inputs": {
+      "value": "Below the chin the character is nude, in every view."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "caption: no clothing"
+    }
+  },
+  "22": {
+    "inputs": {
+      "words": "no clothing",
+      "text": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "MpiTextContains",
+    "_meta": {
+      "title": "Mpi Text Contains"
+    }
+  },
+  "23": {
+    "inputs": {
+      "true": [
+        "21",
+        0
+      ],
+      "false": [
+        "20",
+        0
+      ],
+      "boolean": [
+        "22",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "caption: nude or dressed"
+    }
+  },
+  "24": {
+    "inputs": {
+      "value": ""
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "caption: no body picture"
+    }
+  },
+  "25": {
+    "inputs": {
+      "true": [
+        "23",
+        0
+      ],
+      "false": [
+        "24",
+        0
+      ],
+      "boolean": [
+        "28",
+        4
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "caption only with a body"
+    }
+  },
+  "26": {
+    "inputs": {
+      "delimiter": " ",
+      "string_a": [
+        "25",
+        0
+      ],
+      "string_b": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "caption + the user's words"
+    }
+  },
+  "27": {
+    "inputs": {
+      "mode": "Both",
+      "string": [
+        "26",
+        0
+      ]
+    },
+    "class_type": "StringTrim",
+    "_meta": {
+      "title": "user text"
+    }
+  },
+  "28": {
+    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": false,
+      "string": ""
+    },
+    "class_type": "MpiLoadImage",
+    "_meta": {
+      "title": "Input_Image_2"
+    }
+  },
+  "29": {
+    "inputs": {
+      "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "SAM3 Model"
+    }
+  },
+  "30": {
+    "inputs": {
+      "text": "head, hair, hat",
+      "clip": [
+        "29",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "SAM3 vocabulary"
+    }
+  },
+  "31": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "29",
+        0
+      ],
+      "image": [
+        "28",
+        0
+      ],
+      "conditioning": [
+        "30",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "head + hair + hat, unioned"
+    }
+  },
+  "32": {
+    "inputs": {
+      "max_hole_size": 0,
+      "mask": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "MpiMaskFillHoles",
+    "_meta": {
+      "title": "Mpi Mask Fill Holes"
+    }
+  },
+  "33": {
+    "inputs": {
+      "expand": 6,
+      "tapered_corners": true,
+      "mask": [
+        "32",
+        0
+      ]
+    },
+    "class_type": "GrowMask",
+    "_meta": {
+      "title": "Grow Mask"
+    }
+  },
+  "34": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "width": 32,
+      "height": 32,
+      "edge": "original",
+      "image": [
+        "28",
+        0
+      ]
+    },
+    "class_type": "Image Crop Location Exact",
+    "_meta": {
+      "title": "backdrop sample (top-left 32px)"
+    }
+  },
+  "35": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "crop": "disabled",
+      "image": [
+        "34",
+        0
+      ],
+      "width": [
+        "28",
+        2
+      ],
+      "height": [
+        "28",
+        3
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "flat fill plate"
+    }
+  },
+  "36": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "resize_source": true,
+      "destination": [
+        "28",
+        0
+      ],
+      "source": [
+        "35",
+        0
+      ],
+      "mask": [
+        "33",
+        0
+      ]
+    },
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "body with its head filled flat"
+    }
+  },
+  "37": {
+    "inputs": {
+      "passthrough": [
+        "36",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "free SAM3 before the model"
+    }
+  },
+  "38": {
+    "inputs": {
+      "unet_name": "flux-2-klein-9b-int8-convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "39": {
+    "inputs": {
+      "clip_name": "qwen_3_8b_int8_convrot.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "40": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "41": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "megapixels": 2,
+      "resolution_steps": 16,
+      "image": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "Scale Image to Total Pixels"
+    }
+  },
+  "42": {
+    "inputs": {
+      "pixels": [
+        "41",
+        0
+      ],
+      "vae": [
+        "40",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "Encode picture 1"
+    }
+  },
+  "43": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "megapixels": 1,
+      "resolution_steps": 16,
+      "image": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "Scale Image to Total Pixels"
+    }
+  },
+  "44": {
+    "inputs": {
+      "pixels": [
+        "43",
+        0
+      ],
+      "vae": [
+        "40",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "Encode body"
+    }
+  },
+  "45": {
+    "inputs": {
+      "words": "nude, naked, tits, breasts, pussy, ass, slut, cunt, vagina, nipples, asshole, sex, fuck, fucking, pubic hair, anus, vulva",
+      "text": [
+        "27",
+        0
+      ]
+    },
+    "class_type": "MpiTextContains",
+    "_meta": {
+      "title": "NSFW trigger words (user text)"
+    }
+  },
+  "46": {
+    "inputs": {
+      "math_expression": "1.0 if a else 0.0",
+      "a": [
+        "45",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Mpi Math"
+    }
+  },
+  "47": {
+    "inputs": {
+      "lora_name": "flux2-klein\\NSFW_party_time_v2.0_klein9b.safetensors",
+      "model": [
+        "38",
+        0
+      ],
+      "strength_model": [
+        "46",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "NSFW LoRA"
+    }
+  },
+  "48": {
+    "inputs": {
+      "noise_seed": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "49": {
+    "inputs": {
+      "sampler_name": "lcm"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "50": {
+    "inputs": {
+      "int": 896
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "W_panel"
+    }
+  },
+  "51": {
+    "inputs": {
+      "int": 1120
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "H_panel"
+    }
+  },
+  "52": {
+    "inputs": {
+      "value": "The character from image 1, in exactly the same visual style and medium as image 1. [CHARACTER PROMPT]"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Portrait_Prompt_No_Body"
+    }
+  },
+  "53": {
+    "inputs": {
+      "value": "The character from image 1, in exactly the same visual style and medium as image 1. The face, head and hair come only from image 1. Image 2 shows the character's body with its head removed: the portrait wears exactly what image 2 wears below the chin, or bare skin where image 2 shows bare skin; no clothing from image 1 below the chin. [CHARACTER PROMPT]"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Portrait_Prompt_With_Body"
+    }
+  },
+  "54": {
+    "inputs": {
+      "true": [
+        "53",
+        0
+      ],
+      "false": [
+        "52",
+        0
+      ],
+      "boolean": [
+        "28",
+        4
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Portrait_Prompt_Select (has body?)"
+    }
+  },
+  "55": {
+    "inputs": {
+      "value": "A head and shoulders portrait that keeps the head exactly as it is in image 1, with the same turn, tilt and expression and the same framing, face sharp and clear, hair fully visible from the crown down. Plain smooth grey seamless studio background. Extremely even soft illumination, soft open shadows, uniform brightness from edge to edge."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Portrait_Prompt_Copy_Turn"
+    }
+  },
+  "56": {
+    "inputs": {
+      "value": "A head and shoulders portrait of exactly the same person as image 1, the head and shoulders turned three-quarters toward the left side of the image, the face seen at a three-quarter angle with both eyes visible and the far cheek partly hidden. The face, features, skin, hair, headwear and expression stay exactly as in image 1, with nothing added that image 1 does not show, the same framing, face sharp and clear, the whole head inside the frame, the hair and headwear exactly as in image 1. Plain smooth grey seamless studio background. Extremely even soft illumination, soft open shadows, uniform brightness from edge to edge."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Portrait_Prompt_Force_Three_Quarter"
+    }
+  },
+  "57": {
+    "inputs": {
+      "true": [
+        "55",
+        0
+      ],
+      "false": [
+        "56",
+        0
+      ],
+      "boolean": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Portrait_Prompt_Select (face turned?)"
+    }
+  },
+  "58": {
+    "inputs": {
+      "delimiter": " ",
+      "string_a": [
+        "54",
+        0
+      ],
+      "string_b": [
+        "57",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate Text"
+    }
+  },
+  "59": {
+    "inputs": {
+      "find": "[CHARACTER PROMPT]",
+      "string": [
+        "58",
+        0
+      ],
+      "replace": [
+        "27",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "Portrait_Prompt"
+    }
+  },
+  "60": {
+    "inputs": {
+      "source": [
+        "59",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "debug: Portrait_Prompt"
+    }
+  },
+  "61": {
+    "inputs": {
+      "value": "The character from image 1, in exactly the same visual style and medium as image 1. The face, head and hair come only from image 1. The grey background and the lighting are exactly those of image 2. [CHARACTER PROMPT]"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Sheet_Prompt_No_Body"
+    }
+  },
+  "62": {
+    "inputs": {
+      "value": "The character from image 1, in exactly the same visual style and medium as image 1. The face, head and hair come only from image 1, and so do the grey background and the lighting. The body, build, skin and clothing come from image 2, which shows that body with its head removed: give that body the head from image 1, with the same body shape, weight and proportions as image 2. The character wears exactly what image 2 wears below the chin, or bare skin where image 2 shows bare skin; no clothing from image 1 below the chin. [CHARACTER PROMPT]"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Sheet_Prompt_With_Body"
+    }
+  },
+  "63": {
+    "inputs": {
+      "true": [
+        "62",
+        0
+      ],
+      "false": [
+        "61",
+        0
+      ],
+      "boolean": [
+        "28",
+        4
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Sheet_Prompt_Select (has body?)"
+    }
+  },
+  "64": {
+    "inputs": {
+      "value": "A single continuous image containing two full-body standing views of the same character side by side, of equal width, one seen from the front and one from directly behind, the grey background flowing continuously behind both, the same character in both views with identical face, hair and wardrobe, arms hanging loose and relaxed at the sides, hands open and resting against the thighs, feet planted, generous headroom. Plain smooth grey seamless studio background. Extremely even frontal illumination, soft open shadows, uniform brightness from edge to edge."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Sheet_Prompt_Layout"
+    }
+  },
+  "65": {
+    "inputs": {
+      "delimiter": " ",
+      "string_a": [
+        "63",
+        0
+      ],
+      "string_b": [
+        "64",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate Text"
+    }
+  },
+  "66": {
+    "inputs": {
+      "find": "[CHARACTER PROMPT]",
+      "string": [
+        "65",
+        0
+      ],
+      "replace": [
+        "27",
+        0
+      ]
+    },
+    "class_type": "StringReplace",
+    "_meta": {
+      "title": "Sheet_Prompt"
+    }
+  },
+  "67": {
+    "inputs": {
+      "source": [
+        "66",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Output_prompt"
+    }
+  },
+  "68": {
+    "inputs": {
+      "clip": [
+        "39",
+        0
+      ],
+      "text": [
+        "59",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "69": {
+    "inputs": {
+      "conditioning": [
+        "68",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "Conditioning Zero Out"
+    }
+  },
+  "70": {
+    "inputs": {
+      "conditioning": [
+        "68",
+        0
+      ],
+      "latent": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "p1 ref 1 = picture 1"
+    }
+  },
+  "71": {
+    "inputs": {
+      "conditioning": [
+        "70",
+        0
+      ],
+      "latent": [
+        "44",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "p1 ref 2 = body"
+    }
+  },
+  "72": {
+    "inputs": {
+      "true": [
+        "71",
+        0
+      ],
+      "false": [
+        "70",
+        0
+      ],
+      "boolean": [
+        "28",
+        4
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Pass1_Conditioning (has body?)"
+    }
+  },
+  "73": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "47",
+        0
+      ],
+      "positive": [
+        "72",
+        0
+      ],
+      "negative": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFG Guider"
+    }
+  },
+  "74": {
+    "inputs": {
+      "steps": 4,
+      "width": [
+        "50",
+        0
+      ],
+      "height": [
+        "51",
+        0
+      ]
+    },
+    "class_type": "Flux2Scheduler",
+    "_meta": {
+      "title": "Flux2Scheduler"
+    }
+  },
+  "75": {
+    "inputs": {
+      "batch_size": 1,
+      "width": [
+        "50",
+        0
+      ],
+      "height": [
+        "51",
+        0
+      ]
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "Empty Flux 2 Latent"
+    }
+  },
+  "76": {
+    "inputs": {
+      "noise": [
+        "48",
+        0
+      ],
+      "guider": [
+        "73",
+        0
+      ],
+      "sampler": [
+        "49",
+        0
+      ],
+      "sigmas": [
+        "74",
+        0
+      ],
+      "latent_image": [
+        "75",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "77": {
+    "inputs": {
+      "samples": [
+        "76",
+        0
+      ],
+      "vae": [
+        "40",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "78": {
+    "inputs": {
+      "pixels": [
+        "77",
+        0
+      ],
+      "vae": [
+        "40",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "Encode portrait"
+    }
+  },
+  "79": {
+    "inputs": {
+      "clip": [
+        "39",
+        0
+      ],
+      "text": [
+        "66",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "80": {
+    "inputs": {
+      "conditioning": [
+        "79",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "Conditioning Zero Out"
+    }
+  },
+  "81": {
+    "inputs": {
+      "conditioning": [
+        "79",
+        0
+      ],
+      "latent": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "p2 ref 1 = picture 1"
+    }
+  },
+  "82": {
+    "inputs": {
+      "conditioning": [
+        "81",
+        0
+      ],
+      "latent": [
+        "78",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "p2 ref 2 = portrait"
+    }
+  },
+  "83": {
+    "inputs": {
+      "conditioning": [
+        "79",
+        0
+      ],
+      "latent": [
+        "78",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "p2 (body) ref 1 = portrait"
+    }
+  },
+  "84": {
+    "inputs": {
+      "conditioning": [
+        "83",
+        0
+      ],
+      "latent": [
+        "44",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "p2 (body) ref 2 = body"
+    }
+  },
+  "85": {
+    "inputs": {
+      "true": [
+        "84",
+        0
+      ],
+      "false": [
+        "82",
+        0
+      ],
+      "boolean": [
+        "28",
+        4
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Pass2_Conditioning (has body?)"
+    }
+  },
+  "86": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "47",
+        0
+      ],
+      "positive": [
+        "85",
+        0
+      ],
+      "negative": [
+        "80",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFG Guider"
+    }
+  },
+  "87": {
+    "inputs": {
+      "steps": 4,
+      "width": [
+        "50",
+        0
+      ],
+      "height": [
+        "51",
+        0
+      ]
+    },
+    "class_type": "Flux2Scheduler",
+    "_meta": {
+      "title": "Flux2Scheduler"
+    }
+  },
+  "88": {
+    "inputs": {
+      "batch_size": 1,
+      "width": [
+        "50",
+        0
+      ],
+      "height": [
+        "51",
+        0
+      ]
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "Empty Flux 2 Latent"
+    }
+  },
+  "89": {
+    "inputs": {
+      "noise": [
+        "48",
+        0
+      ],
+      "guider": [
+        "86",
+        0
+      ],
+      "sampler": [
+        "49",
+        0
+      ],
+      "sigmas": [
+        "87",
+        0
+      ],
+      "latent_image": [
+        "88",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "90": {
+    "inputs": {
+      "samples": [
+        "89",
+        0
+      ],
+      "vae": [
+        "40",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "91": {
+    "inputs": {
+      "direction": "right",
+      "match_image_size": false,
+      "spacing_width": 0,
+      "spacing_color": "white",
+      "image1": [
+        "90",
+        0
+      ],
+      "image2": [
+        "77",
+        0
+      ]
+    },
+    "class_type": "ImageStitch",
+    "_meta": {
+      "title": "sheet [bodies | portrait]"
+    }
+  },
+  "92": {
+    "inputs": {
+      "passthrough": [
+        "91",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "free VRAM after the run"
+    }
+  },
+  "93": {
+    "inputs": {
+      "images": [
+        "92",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Output_Image"
+    }
+  }
+}

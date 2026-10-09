@@ -167,6 +167,44 @@ test('describeFlowRun asks the Remote pick through describeImage, with the decla
     }
 });
 
+test('Character Sheet from Images: the turn is asked on the BOXED face, the clothes only with a body (MPI-1042)', async () => {
+    const fe = await esm('js/services/flowEnhance.js');
+    const flow = (await esm('js/data/flowsRegistry.js')).getFlowById('character-sheet-from-images');
+    const FACE = { role: 'image1', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fface.png' };
+    const BODY = { role: 'image2', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fbody.png' };
+    const box1 = { x: -20, y: 10, width: 400, height: 500 };
+
+    assert.deepEqual(fe.describeAsks(flow, { box1 }, [FACE]).map(d => d.to), ['Input_Face_Pose']);
+    assert.deepEqual(fe.describeAsks(flow, { box1 }, [FACE, BODY]).map(d => d.to), ['Input_Face_Pose', 'Input_Body_Clothes']);
+
+    const crops = [];
+    const asked = [];
+    const deps = {
+        describe: async (a) => { asked.push(a.imagePath); return { ok: true, text: a.imagePath.endsWith('crop.png') ? 'TURNED' : 'No clothing.' }; },
+        boxCrop: async (url, box, project) => { crops.push([url, box, project.folderPath]); return 'C:/p/Media/.preview/crop.png'; },
+    };
+    const res = await fe.describeFlowRun(flow, { injectionParams: { box1 }, mediaItems: [FACE, BODY] }, { id: 'p1', folderPath: 'C:/p' }, deps);
+    assert.deepEqual(res, { ok: true, injectionParams: { Input_Face_Pose: 'TURNED', Input_Body_Clothes: 'No clothing.' } });
+    assert.deepEqual(crops, [[FACE.url, box1, 'C:/p']], 'the face is cropped to its box; the body is described whole');
+    assert.deepEqual(asked, ['C:/p/Media/.preview/crop.png', BODY.url]);
+
+    // No box (an agent that measured none): the whole picture is described.
+    crops.length = 0;
+    await fe.describeFlowRun(flow, { injectionParams: {}, mediaItems: [FACE] }, { id: 'p1', folderPath: 'C:/p' }, deps);
+    assert.deepEqual(crops, []);
+
+    // Both arms take both answers as blank MpiText, and read the turn off the word "turned".
+    for (const file of ['flow_character_sheet_from_images.json', 'flow_character_sheet_from_images_klein.json']) {
+        const g = JSON.parse(fs.readFileSync(repo(`comfy_workflows/${file}`), 'utf8'));
+        const byTitle = new Map(Object.values(g).map(n => [n._meta?.title, n]));
+        for (const to of ['Input_Face_Pose', 'Input_Body_Clothes']) {
+            assert.equal(byTitle.get(to)?.class_type, 'MpiText', `${file} ${to}`);
+            assert.equal(byTitle.get(to).inputs.string, '', `${file} ${to} ships blank`);
+        }
+        assert.ok(Object.values(g).some(n => n.class_type === 'MpiTextContains' && n.inputs.words === 'turned'), file);
+    }
+});
+
 test('submitFlowGeneration describes before the graph is queued, on the first call only', () => {
     const src = fs.readFileSync(repo('js/services/flowService.js'), 'utf8');
     const body = src.slice(src.indexOf('export function submitFlowGeneration('), src.indexOf('// ── Cloud edit stage'));

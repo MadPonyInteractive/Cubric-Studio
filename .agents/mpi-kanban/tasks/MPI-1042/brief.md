@@ -108,3 +108,10 @@ Split from **MPI-1041** (the Character Sheet Editor), which changes a finished s
 **Head Swap is a paid Flow** (Gumroad, MPI-780 / MPI-781; Klein 9B + BFS head-swap LoRA
 `klein-9b-lora-headswap`, `docs/playbooks/add-flow/existing-flows/head-swap.md`). This Flow does
 NOT use that LoRA (settled above); Head Swap is the user's fix-up for a weak face.
+
+## Noticed
+
+- 2026-10-09: the agent's `look` box gate (`services/agentLoop.mjs`, "0.6 of either side is the whole
+  person") is global, Head Swap's head-only bound. A per-step bound in `boxParams` would let Cosmo RUN
+  this Flow instead of opening its box step (`agentOpens: 'box'` today). agentLoop.mjs was claimed by
+  the MPI-1038 session that day.
