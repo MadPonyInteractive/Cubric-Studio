@@ -41,6 +41,15 @@ clip to H3's 17k+5 frame grid.
 
 - **The box is still and square on purpose.** A shape mask pasted back FAILED Fabio's eye (a ghost
   round the edit), and a moving box drifts. The square + swap LoRA locked sync (lag 0.00 frames).
+- **A square that cannot hold the whole mask runs the whole frame.** `MpiMaskSquareBbox` caps its
+  side at the frame's short edge and centres it, so a union box taller than a portrait frame is
+  wide (a dancing head) got CUT: the crown stayed as filmed (448x800 close-up) and the box edge
+  crossed the hips (1072x1920). Measured from both results: square = frame width. Nodes 55/24
+  (lazy `MpiIfElse` on 23, so SAM3 still runs only when a part is typed): masked only when
+  `size < W` and `size < H`. Image workflows are unaffected: there the square is only
+  `optional_context_mask`, and the painted mask is never cut.
+- **A mask pays only on a small part that stays put** (ears, a hat on a talking head). A part that
+  travels makes the union box big, and a big box edge crosses moving body.
 - **The swap LoRA is not swap-only.** It was trained to keep the source's position, pose and timing,
   and that holds for any masked edit (lag 2.27 -> 0.00). It is on when masked, and for Swap the
   person keeping the video's room.
@@ -95,6 +104,9 @@ preview-asset store (no card). A failed describe generates nothing and says so.
 - **A question replaces the describer's own instruction on both backends**, so each `ask` carries
   the reply shape too ("one or two plain sentences of concrete visual facts...").
 - **First entry per target wins**: template 6 (op 1 + the picture's room) is declared before op 1.
+- **A head swap keeps the clip's hair LENGTH** unless the picture shows where the hair ends (a bun
+  worked); "shoulder-length" in the words did not move it. A model limit (Fabio, 2026-10-09): a
+  head-and-shoulders picture or a character sheet is the user's lever.
 - **A mirror-shot picture (back to camera) opens on its own pose for ~0.8 s** in template 6 (R3d/R3e);
   a front-facing picture opens clean (R3f). The wording does not move it; a character sheet on a
   plain background avoids it.

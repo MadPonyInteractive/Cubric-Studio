@@ -111,7 +111,7 @@
     "inputs": {
       "math_expression": "(a + (b == 1) * c) > 0",
       "a": [
-        "23",
+        "24",
         0
       ],
       "b": [
@@ -164,6 +164,26 @@
     "class_type": "MpiMath",
     "_meta": {
       "title": "Masked? (typed, and not Change the background)"
+    }
+  },
+  "24": {
+    "inputs": {
+      "true": [
+        "55",
+        0
+      ],
+      "false": [
+        "23",
+        0
+      ],
+      "boolean": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Masked? (and the square holds it)"
     }
   },
   "30": {
@@ -451,6 +471,27 @@
       "title": "Crop the square"
     }
   },
+  "55": {
+    "inputs": {
+      "math_expression": "(a < b) * (a < c) > 0",
+      "a": [
+        "53",
+        3
+      ],
+      "b": [
+        "10",
+        5
+      ],
+      "c": [
+        "10",
+        6
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Square holds the whole mask?"
+    }
+  },
   "60": {
     "inputs": {
       "true": [
@@ -462,7 +503,7 @@
         0
       ],
       "boolean": [
-        "23",
+        "24",
         0
       ]
     },
@@ -482,7 +523,7 @@
         0
       ],
       "boolean": [
-        "23",
+        "24",
         0
       ]
     },
@@ -502,7 +543,7 @@
         0
       ],
       "boolean": [
-        "23",
+        "24",
         0
       ]
     },
@@ -749,7 +790,7 @@
         0
       ],
       "boolean": [
-        "23",
+        "24",
         0
       ]
     },
@@ -1166,7 +1207,7 @@
         0
       ],
       "boolean": [
-        "23",
+        "24",
         0
       ]
     },
