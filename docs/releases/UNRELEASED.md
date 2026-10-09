@@ -43,7 +43,7 @@
 
 ## What's new
 
-- **Qwen-Image 2.1.** Makes and edits images, up to eight references in one edit, and can return a transparent background. Research licence: the images are not for commercial use.
+- **Qwen-Image 2.1.** Makes and edits images, up to eight references in one edit, and can return a transparent background. Eight styles work on every operation, and an edit with an empty prompt and a style restyles a photo like a filter. Research licence: the images are not for commercial use.
 - **Character Sheet from Images, a new Flow.** Box the face in a picture of a character you already have, add a full-body picture if you like, and get the same three-view sheet as Character Sheet. Runs on Qwen-Image 2.1 or FLUX.2 Klein 9B.
 - **Use Tiles, beside Use Grid in every model's Upscale.** It redraws the picture in 1024 px tiles, so very large pictures work, and at 1x it adds detail without enlarging. Cosmo and the MCP tools can use it too.
 
