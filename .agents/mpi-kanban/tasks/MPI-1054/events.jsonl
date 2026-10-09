@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1054", "at": "2026-10-09T20:25:36+01:00", "actor": "claude", "column": "doing", "title": "GPU picker Gen speed: our own Klein 9B benchmarks for the cards RunPod never measured"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1054", "at": "2026-10-09T22:01:14+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "5 cards shipped in 2776a317 (CI Tests green); RTX PRO 5000 had no stock in two 45-min windows"}

@@ -31,7 +31,10 @@ Both within 5% on the new-prompt measure. RunPod's own rows stay as published.
 | RTX A4500 | 7.01 | 5.46 |
 | L4 | 8.29 | 6.57 |
 
-RTX PRO 5000 Blackwell: no Secure Cloud stock at a 12.9+ driver for 45 min; not measured.
+RTX PRO 5000 Blackwell: no Secure Cloud stock at a 12.9+ driver in two 45-min windows
+(19:28-20:13 and 20:16-21:00); not measured. Closed without it (Fabio's call left open).
+
+Shipped in `2776a317`; master CI "Tests" green on that commit.
 
 ## Checks
 
