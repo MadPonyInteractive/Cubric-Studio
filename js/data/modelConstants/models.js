@@ -1962,6 +1962,7 @@ const ALL_MODELS = [
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',            // ImageResizeKJv2 - the i2i resize
             'ComfyUI-UltimateSDUpscale',
+            'ComfyUI-Impact-Pack',        // MPI-1038 Tile Upscale group: ImpactMakeTileSEGS, ToBasicPipe, DetailerForEachPipe
             'comfyui_controlnet_aux',     // AIO_Preprocessor x4, as SDXL's
             'comfyui-inpaint-cropandstitch', // masked edit, inpaint, detail
             'LanPaint',                   // LanPaint_KSampler - masked edit + inpaint
