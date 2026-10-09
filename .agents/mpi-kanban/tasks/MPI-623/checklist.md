@@ -56,8 +56,12 @@ ticks (Phase 0/0b/1, all complete) moved verbatim to
 - [x] Gaps painted over on screen only (`uGaps`)
 - [x] Ground plane in the lift (MpiNodes `87d7962` pinned): live at both spots, 0% under the ground
       (validation.md § Fabio's three picks)
-- [ ] Left by eye: the down view's content (a courtyard laid on the floor), the room floor above
-      the ground, Fabio's fly-through of `MPI-623 Ground - behind well` / `- window`
+- [x] Straight-down wording: `DOWN` / `FLOOR` past 60 degrees down (validation.md § The straight-down wording)
+- [x] The lift's fit on a known set with no depth spread (one wall strip) dropped window build view 3
+      (6% kept) and the turned-180 picture died in the lift: MpiNodes `972dc22` scale-only fit (pinned)
+      + the app stops a frame with no known z; LIVE at both spots (validation.md § The straight-down wording)
+- [ ] Left by eye: the room floor above the ground, Fabio's fly-through of `MPI-623 Ground -
+      behind well` / `- window`
 - [x] History -> gallery: several entries -> one stack of plain cards (2026-10-08, validation.md
       § Phase 3 GPU-free)
 - [x] Wan bake: disabled coming-soon tool (2026-10-08, same section)

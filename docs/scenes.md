@@ -76,9 +76,9 @@
    the frame goes to disk via `place-preview-asset` (no card).
 2. Holes -> Klein `inpaint`: `GENERIC`, or inside (`insideAt` the SPOT: six 48 px views see more pano
    from behind than front) `INTERIOR`, `ROOM` when the frame sees no outside, + `STYLE_ASK` put once a
-   scene to `describeImage` (Remote's pick; a failure stops the fill). Then `In the large empty areas: <line>.`
+   scene to `describeImage` (Remote's pick; a failure stops the fill); looking down past 60 deg `DOWN` / `FLOOR`. Then `In the large empty areas: <line>.`
 3. `sceneLift` on the fill with the known z (`place-preview-asset` `.f32` -> `absPath`) and the lens
-   as `fovX`. `MpiLiftDepth` fits on positive AND negative z (|z|) and keeps 0 and negative pixels;
+   as `fovX` (NO known z: stops before Klein). `MpiLiftDepth` fits on |z| (scale only at one depth or slope <= 0) and keeps 0 and negative pixels;
    the minus signs ride only on an INTERIOR shot (`knownDepth`), since outside a back face is an
    object's far side and the fill paints what lies beyond it; `POST /project-media/:id/scene-layer` copies the fill and downloads the depth as
    `layer<n>.png` / `layer<n>_depth.f32`, appends the record (manifest LAST); `view.addLayer` meshes

@@ -30,6 +30,18 @@ export const INTERIOR = 'This picture is taken from inside a room. The bright ar
 export const ROOM = 'This picture is taken from inside a room. Fill all the black areas with the inside of the room around the '
     + 'camera: its walls, the ceiling and the floor, in the soft shade of an indoor room. Match the existing image '
     + 'exactly - the same style, rendering, materials, colours and level of detail.';
+/** A view pitched down past 60 degrees looks at the ground (Build here's down view, a picture
+ *  aimed at the floor). With GENERIC Klein painted a walled courtyard and sky into that frame,
+ *  with ROOM a box room seen level, both then laid flat on the floor (session 39 A/B: these two
+ *  lines give the ground / the floor seen from above). */
+const LOOKS_DOWN = -Math.PI / 3;
+export const DOWN = 'A top-down view, looking straight down at the ground from above. Fill the black empty areas so the '
+    + 'picture is complete and no black remains: continue the ground that surrounds each area, seen from directly above, '
+    + 'flat and level, with what lies on it. Match the existing image exactly - the same style, rendering, materials, '
+    + 'lighting, colours and level of detail - so the filled areas cannot be told apart.';
+export const FLOOR = 'This picture is taken from inside a room, looking straight down at its floor from above. Fill all the '
+    + 'black areas with the floor of the room, seen from directly above, flat and level, in the soft shade of an indoor '
+    + 'room. Match the existing image exactly - the same style, rendering, materials, colours and level of detail.';
 /** A frame sees out once this share of it is the pano seen from the front. */
 const SEES_OUT = 0.01;
 /** What the describer is asked about the pano, for INTERIOR's style (session 38 A/B: the phrase
@@ -59,11 +71,13 @@ export function insideAt(view, renderer, pos, render = renderPicture) {
     return back > front;
 }
 
-/** The fill prompt: inside, INTERIOR (ROOM when the frame sees nothing outside) + the scene's
- *  style; else GENERIC. Then the user's line. */
-export function fillPrompt(inside, fillLine, style = '', seesOut = true) {
+/** The fill prompt: inside, INTERIOR (ROOM when the frame sees nothing outside, FLOOR looking
+ *  down) + the scene's style; else GENERIC (DOWN looking down). Then the user's line. */
+export function fillPrompt(inside, fillLine, style = '', seesOut = true, pitch = 0) {
     const line = String(fillLine || '').trim().replace(/[.\s]+$/, '');
-    const base = inside ? (seesOut ? INTERIOR : ROOM) + (style ? ` The style of the picture: ${style}` : '') : GENERIC;
+    const down = pitch < LOOKS_DOWN;
+    const base = inside ? (down ? FLOOR : seesOut ? INTERIOR : ROOM) + (style ? ` The style of the picture: ${style}` : '')
+        : (down ? DOWN : GENERIC);
     return base + (line ? ` In the large empty areas: ${line}.` : '');
 }
 
@@ -275,10 +289,13 @@ const placeAsset = (io, project, dataUrl, ext) => io.post(
  *  in the manifest, meshed into the live view. `frame` = the shot's PNG as a preview asset;
  *  `inside` = `insideAt` the camera's spot. */
 async function fillLayer({ project, sceneItem, view, pose, fillLine, onStep, inside }, shot, frame, io) {
+    // The lift places a fill by the scene's depth around it; with none in the frame there is nothing
+    // to place it against (MpiLiftDepth: "fewer than 2 known pixels"), so stop before Klein runs.
+    if (!shot.z.some(v => v !== 0)) throw new Error('nothing of the scene is in this view to fit the fill to. Turn the camera toward the scene');
     const style = inside ? await sceneStyle(io, sceneItem, onStep) : '';
     onStep('fill');
     const mask = await io.blobToDataUrl(await io.encodePng(shot.mask, shot.w, shot.h));
-    const fill = await kleinJob(io, 'inpaint', frame.filePath, fillPrompt(inside, fillLine, style, shot.frontFrac > SEES_OUT), mask);
+    const fill = await kleinJob(io, 'inpaint', frame.filePath, fillPrompt(inside, fillLine, style, shot.frontFrac > SEES_OUT, pose.pitch), mask);
     onStep('lift');
     const known = await placeAsset(io, project, await io.blobToDataUrl(new Blob([knownDepth(shot.z, inside).buffer], { type: 'application/octet-stream' })), '.f32');
     const fovX = 2 * Math.atan(18 / pose.mm) * 180 / Math.PI;

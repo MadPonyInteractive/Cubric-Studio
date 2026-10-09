@@ -8,7 +8,22 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 38, later (Fabio "go with your
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 39 (2026-10-09, "3D Scene 29"):
+the straight-down wording is BUILT and LIVE at both spots** (validation.md § The straight-down
+wording): `fillPrompt(..., pitch)` - pitched down past 60 degrees, `DOWN` outside / `FLOOR` + style
+inside (A/B `abdown.py`, session 39 scratchpad: GENERIC = courtyard + sky, ROOM = a level box room,
+both seeds; the new lines = ground / floor from above, both seeds). Unit 15/15, 4 mutants killed,
+docs/scenes.md step 2. **Found in the live run, not from the wording:** the window's turned-180
+picture failed in the lift ("fewer than 2 known pixels") - build view 3 kept 6% because the lift's
+`a*zm + b` fit ran on one edge-on wall strip with no depth spread (`scene3d/lift.py:52-58`). **Fixed
+(Fabio "let's try that approach"):** MpiNodes `972dc22` pushed + pinned - scale-only fit when the fit
+pixels' MoGe depth p90/p10 < 1.05 or the slope <= 0 (offline on the real views: 6% -> 90% kept, 16 of
+18 views unchanged; `liftrepro.py`); the app stops a frame with no known z before Klein. **LIVE at
+both spots after Fabio's restart** (`run_fit.sh` -> `well_fit` / `win_fit`): the window's turned-180
+picture now passes (no holes, behind layer 88% kept). **Next:** by eye - behind_well's up view black
+blob, its behind layer's near floor at 0.51 (`liftrepro.py well_fit` says whether the guard fired);
+then the room floor above the ground, Fabio's fly-through; then SAM3 glass windows, DoF after 0c.
+**Session 38, later (Fabio "go with your
 picks on all three"):** built + checked, NOT yet live: interior style (describer phrase, `insideAt`
 per spot, `ROOM` wording), on-screen gap paint (`uGaps`), the ground plane in the lift (MpiNodes
 `87d7962` pushed + pinned; app `groundAt` / `groundPlane` / `Input_Ground`). **LIVE at both spots

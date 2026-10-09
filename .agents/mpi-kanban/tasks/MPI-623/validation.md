@@ -1130,3 +1130,63 @@ Fabio: "go with your picks on all three".
   § Interior lift; the clamp only lifts what is under the ground); (3) turned 180 inside, the room's
   back wall fills the frame (a small box room). Exported for Fabio: `MPI-623 Ground - behind well`,
   `MPI-623 Ground - window`.
+
+## The straight-down wording (2026-10-09, session 39 "3D Scene 29", 4060 Ti, under the lease)
+
+Fabio: "go" on a straight-down line for Build here's DOWN view (pitch -PITCH_MAX).
+- **A/B** (`abdown.py` + `abdown_sheet.py` in session 39's scratchpad, bench 8188, Klein 9B wf 5, seeds
+  42 + 7, ~30 s a fill, out `D:/WORK/Images/Outputs/mpi623_down/`): the 6th square frame of session 38's
+  `well_ground` (outside, 79.7% holes) and `win_ground` (inside, 85.2%). Outside: GENERIC = a walled
+  courtyard with sky, BOTH seeds (the fault, reproduced); `DOWN` ("a top-down view, looking straight
+  down at the ground ... flat and level") = flat ground seen from above with the well's shadow, both
+  seeds; `DOWN` + "no sky, no horizon and no wall" = the same, so the plain line is kept. Inside: ROOM
+  + style = a box room seen LEVEL (walls, ceiling, back wall), both seeds - the same fault, inside;
+  `FLOOR` + style ("looking straight down at its floor ... seen from directly above") = the floor from
+  above, both seeds (s7 a wall strip at one edge, continuing the frame's wall).
+- **Wired:** `fillPrompt(..., pitch)`: a view pitched down past 60 degrees (`LOOKS_DOWN`) fills with
+  `DOWN` outside, `FLOOR` + style inside; the call site passes the shot's `pose.pitch`, so a Take
+  picture aimed at the ground gets it too. `docs/scenes.md` step 2 says so (kept at 200 lines).
+- **Checks:** `tests/scene-picture.test.cjs` 15/15 (+1: -61 deg DOWN, -59 deg GENERIC, +61 deg GENERIC,
+  inside -89 deg FLOOR + style, -59 deg ROOM, Take picture at -75 deg; the Build here test now expects
+  FLOOR on its down view). Mutants, each killed: the call site drops the pitch; looking UP counts as
+  down; inside never gets FLOOR; outside never gets DOWN. eslint clean.
+- **Live, both spots** (session 39 scratchpad `run_down.sh` = `run_both.sh` into `well_down` /
+  `win_down`, one lease; `analyze.py` there knows DOWN / FLOOR): behind_well build 207.7 s, pictures
+  50.7 / 49.1 s, fills GENERIC x5 + **DOWN** on view 6 + GENERIC pictures; the down layer is flat
+  flagstone ground seen from above with the well's shadow (no courtyard, no sky); 0.0% of any layer
+  under the ground, layer/ground 1.00. Window: build 205.9 s, fills INTERIOR / ROOM x4 / **FLOOR** on
+  view 6 (the floor from above, a thin wall rim at its edges), picture 1 48.9 s, 0.0% under the ground.
+- **FOUND, not from the wording: the window's room picture (turned 180) FAILED** -
+  `MpiLiftDepth failed: ValueError: lift: fewer than 2 known pixels`. Its frame was 100% holes with no
+  known depth at all, because build view 3 (behind - built BEFORE the down view, same prompt as session
+  38) kept only 6% of its fill (session 38: 95%). Cause, `scene3d/lift.py:52-58`: the fit `z = a*zm + b`
+  ran on view 3's only known pixels, a 106 px strip of view 2's wall seen edge-on, all ~0.13 deep (no
+  depth spread) -> the slope is ill-conditioned, the back wall's `za` comes out <= 0 and is dropped.
+  Run-to-run Klein variance in views 1-2 decides whether that strip is all view 3 sees. Two open
+  halves: (1) the fit on a known set with no depth spread; (2) Take picture on a frame that sees
+  nothing errors with the node's raw ValueError.
+- **Fixed, Fabio "let's try that approach"** (my pick: scale only, plus a plain stop):
+  - **Offline repro first** (`liftrepro.py`, session 39 scratchpad: CPU MoGe on each build view's real
+    fill + its known `.f32`, through the repo's own `lift_depth`, zm cached in `zm_cache/`): matches
+    live exactly (win_down view 3 kept 6%). Over 18 build views (win_down, win_ground, well_down) the
+    fit pixels' MoGe depth p90/p10 is 1.31-6.60 on every healthy view; the two degenerate ones are
+    win_down view 3 (1.02, a = -2.712, b = +1.548) and session 38's win_ground view 3 (1.03, a = +0.635
+    by luck, kept 95%).
+  - **MpiNodes `972dc22`** (pushed, pinned in `dev_configs/node_lock.json`): `lift_depth` fits
+    `z = a * zm`, a = the median ratio, when p90/p10 < `flat` (1.05) or the slope is <= 0.
+    `tests/test_scene3d.py` 14/14 (+2: one depth known with a negative noise slope - the back wall kept
+    where it stands; one depth with a steep positive slope (a = 100, the wall 27x too far), and a
+    spread set with a negative slope). Mutants killed: no guard; slope check only; spread check only.
+    Re-run offline: win_down view 3 kept 6% -> **90%** (back wall at 0.38; session 38's lucky run put it
+    at 0.44), win_ground view 3 95% -> 99%, the other 16 views identical (a, b, kept).
+  - **App:** `fillLayer` stops before the describer and Klein when the frame has no known z at all
+    ("nothing of the scene is in this view to fit the fill to. Turn the camera toward the scene");
+    back faces count as known. Unit 16/16 (+1); mutants killed: no check; back faces not counted.
+  - `npm test` 2801 / 0 fail; eslint clean; docs/scenes.md step 3 (200 lines).
+  - **Live, both spots, PASSED** (Fabio restarted; engine marker `.mpi_node_commit` = `972dc22`;
+    `run_fit.sh` into `well_fit` / `win_fit`, `analyze.py`): window build 249.7 s, the window picture
+    58.6 s, **the turned-180 room picture 15.0 s with no holes left** (behind layer kept 88%, was 6%),
+    FLOOR on the down view, 0.0% under the ground. behind_well build 211.7 s, pictures 52.3 / 50.7 s,
+    DOWN = hexagonal flagstones from above, 0.0% under the ground. Open by eye: behind_well's up view
+    has a black blob in the rock; its behind layer's near floor reads layer/ground 0.51 (was 1.00) -
+    maybe planters standing on it, maybe the guard fired there (check: `liftrepro.py well_fit`).

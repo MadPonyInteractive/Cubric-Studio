@@ -178,6 +178,18 @@ test('no holes: no fill, no lift, no layer - the clean-up still runs (always on)
     assert.equal(out.layer, null);
 });
 
+// The window's turned-180 picture (session 39) saw nothing of the scene, so Klein filled it all and
+// the lift then died on "fewer than 2 known pixels". With no known depth there is nothing to place a fill against.
+test('a frame with no known depth stops before Klein and says why; walls seen from behind count', async () => {
+    const { takePicture } = await esm('js/services/scene/scenePicture.js');
+    const t = harness({ holeFrac: 1, inside: true, z: new Float32Array(8) });
+    await assert.rejects(takePicture(t.ctx, t.io), /^Error: nothing of the scene is in this view to fit the fill to\. Turn the camera toward the scene$/);
+    assert.deepEqual([t.calls.enqueue.length, t.calls.describe.length, t.calls.lift.length, t.calls.saved.length], [0, 0, 0, 0]);
+    const back = harness({ holeFrac: 1, inside: true, z: new Float32Array(8).fill(-3) });
+    await takePicture({ ...back.ctx, sceneItem: { ...SCENE_ITEM, scenePath: pf('C:/P/Media/.meta/back.scene.json') } }, back.io);
+    assert.equal(back.calls.lift.length, 1, 'inside, back faces are the known depth');
+});
+
 test('a failed fill saves nothing and adds no layer', async () => {
     const { takePicture } = await esm('js/services/scene/scenePicture.js');
     const t = harness({ failInpaint: true });
@@ -191,7 +203,7 @@ test('a failed fill saves nothing and adds no layer', async () => {
 // scene like Take picture's fill. Wrong here, the room has a gap no picture can fill, a build
 // lands stray pictures on the card, or Stop leaves Klein running view after view.
 test('Build here: six views round the camera, front first, each filled into a layer, no entry', async () => {
-    const { buildHere, BUILD_MM, INTERIOR } = await esm('js/services/scene/scenePicture.js');
+    const { buildHere, BUILD_MM, INTERIOR, FLOOR } = await esm('js/services/scene/scenePicture.js');
     const { PITCH_MAX } = await esm('js/services/scene/sceneViewer.js');
     const t = harness({ inside: true, holeFrac: (i) => (i === 3 ? 0 : 0.4) }); // the 4th view needs nothing
     const at = [];
@@ -208,9 +220,10 @@ test('Build here: six views round the camera, front first, each filled into a la
     assert.deepEqual(t.calls.inside, [POSE.pos], 'one inside/outside answer for the whole spot');
     assert.equal(layers.length, 5);
     assert.equal(t.calls.layers.length, 5, 'each fill meshed in before the next view renders');
-    for (const { config, opts } of t.calls.enqueue) {
+    for (const [i, { config, opts }] of t.calls.enqueue.entries()) {
         assert.deepEqual(opts, { deferCommit: true });
-        assert.equal(config.positive, `${INTERIOR} The style of the picture: ${STYLE}`);
+        assert.equal(config.positive, `${i === 4 ? FLOOR : INTERIOR} The style of the picture: ${STYLE}`,
+            i === 4 ? 'the down view fills with the floor seen from above' : `view ${i + 1}`);
     }
     for (const l of t.calls.lift) assert.ok(Math.abs(l.fovX - 96.7325) < 1e-3, `fovX ${l.fovX}`);
     assert.deepEqual(at.slice(0, 4), ['1/6 render', '1/6 style', '1/6 fill', '1/6 lift']);
@@ -248,6 +261,21 @@ test('the fill line: trimmed, its full stop not doubled, empty adds nothing', as
     assert.equal(fillPrompt(false, '  Forest. '), `${GENERIC} In the large empty areas: Forest.`);
     assert.equal(fillPrompt(false, ''), GENERIC);
     assert.equal(fillPrompt(false, undefined), GENERIC);
+});
+
+// Build here's down view (pitch -PITCH_MAX) under GENERIC came back a walled courtyard with sky,
+// under ROOM a box room seen level, each then laid flat on the floor (session 39 A/B).
+test('a view pitched down past 60 degrees fills with the ground / the floor seen from above', async () => {
+    const { fillPrompt, takePicture, GENERIC, ROOM, DOWN, FLOOR } = await esm('js/services/scene/scenePicture.js');
+    const deg = (d) => d * Math.PI / 180;
+    assert.equal(fillPrompt(false, 'Leaves.', '', true, deg(-61)), `${DOWN} In the large empty areas: Leaves.`);
+    assert.equal(fillPrompt(false, '', '', true, deg(-59)), GENERIC);
+    assert.equal(fillPrompt(false, '', '', true, deg(61)), GENERIC, 'looking up is not looking down');
+    assert.equal(fillPrompt(true, '', STYLE, false, deg(-89)), `${FLOOR} The style of the picture: ${STYLE}`);
+    assert.equal(fillPrompt(true, '', STYLE, false, deg(-59)), `${ROOM} The style of the picture: ${STYLE}`);
+    const t = harness();
+    await takePicture({ ...t.ctx, pose: { ...POSE, pitch: deg(-75) } }, t.io);
+    assert.equal(t.calls.enqueue[0].config.positive, DOWN, 'Take picture aimed at the ground gets it too');
 });
 
 // Asked per frame, the switch misfired inside the cottage: the side views see mostly nothing (the
