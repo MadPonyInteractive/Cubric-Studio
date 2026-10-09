@@ -41,6 +41,18 @@ a TALLER shape than the picture, left and right a WIDER one.
 - Right, for "expand it up" on a 1:1 picture: `{ frame: { ratio: "4:5", grow: "up" } }`
 - Wrong: `{ frame: { ratio: "16:9", grow: "up" } }` (wider, so nothing can grow up)
 
+## Tile Detailer
+
+Adds detail to a picture the user gives you (`image1`), redrawn in overlapping tiles, so it
+works on a big image. It keeps what is in the picture; for a change, use an edit.
+
+- `Input_Upscale_Factor`: 1 keeps the size (detail only), 1.5 or 2 enlarges it first.
+- `Input_Denoise`: 0.35 is the default; 0.45 and up starts changing content.
+- `positive`: the LOOK, never the scene, or empty. Every tile is drawn with it, so a scene
+  draws itself into every patch of sky.
+  - Right: `positive: "2D flat shader, cartoon"`
+  - Wrong: `positive: "a cosy village in a forest"`
+
 ## Picking one, and one that is not installed
 
 Pick a Flow by what it `does` in `list_models`, not by its title alone: a Flow the user added

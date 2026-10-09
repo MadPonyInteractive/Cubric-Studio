@@ -1565,6 +1565,64 @@ export const FLOWS = [
             },
         ],
     },
+    // MPI-1038 — Tile Detailer, Fabio's bench "Flow Tile Detailer" (MPI-623 validation.md
+    // § Super upscaler). A DETAILER first, an upscaler second (Fabio, 2026-10-08): the
+    // optional lanczos upscale runs BEFORE the detail pass, and None is detail only. Then
+    // Impact cuts 1024 tiles with 200 px overlap and irregular masks (no tile grid, unlike
+    // the prompt box's Ultimate SD Upscale) and Klein 9B redraws each at the Denoise.
+    //
+    // The prompt is sampled on EVERY tile, so it asks for the look, never the scene: a
+    // scene prompt paints the scene into flat sky tiles (MPI-623's tiled refine ghosted
+    // villages into the sky). Loaders are baked like Outpaint's; no cloud model (the
+    // tiling lives in the local graph).
+    //
+    // Not a 360 graph: the tiles do not wrap, so a pano's seam re-opens. The wrap pad
+    // leaves a tone step on its own (MPI-623), so it waits for the 360 Flow's seam node.
+    //
+    // PROVISIONAL `preview`: a crop of the 2x bench run on the cartoon village, so the
+    // package check passes. /mpi-flow-graphics replaces it and adds the `video` hero.
+    {
+        id: 'tile-detailer',
+        title: 'Tile Detailer',
+        preview: 'flow-tile-detailer.webp',
+        description: 'Add fine detail to a picture, and enlarge it first if you like. FLUX.2 Klein 9B '
+            + 'redraws it in overlapping tiles, so even a big image gets sharp detail everywhere '
+            + 'without changing what is in it.',
+        requiredModels: [{ label: 'Base model', models: ['klein-9b'] }],
+        operation: 'flowTileDetailer',
+        workflow: 'flow_tile_detailer.json',
+        mediaType: 'image',
+        type: 'enhance',
+        inputSchema: {
+            media: [
+                { type: 'image', mode: 'upto', max: 1, roles: ['image1'], labels: ['Image'] },
+            ],
+        },
+        // It IMPROVES the user's own picture, so the before/after is the point (MPI-585).
+        result: { compare: 'image1' },
+        fields: [
+            {
+                // Fabio's recipe upscales 2x before the detail pass; 4x is two runs (an 8K
+                // detail pass in one go is overkill, his words).
+                id: 'Input_Upscale_Factor', type: 'radio', label: 'Enlarge first', columns: 3, default: 2,
+                options: [
+                    { v: 1, label: 'None', info: 'Detail only. The picture keeps its size.' },
+                    { v: 1.5, label: '1.5×' },
+                    { v: 2, label: '2×', info: 'Doubles the width and height, then adds the detail.' },
+                ],
+            },
+            {
+                // 0.35 is Fabio's eye on the bench: 0.45 already changes too much.
+                id: 'Input_Denoise', type: 'slider', label: 'Detail strength',
+                min: 0.15, max: 0.6, step: 0.05, default: 0.35,
+                note: 'Higher adds more detail and changes more of the picture.',
+            },
+            {
+                id: 'positive', type: 'text', rows: 3, label: 'Style (optional)', default: '',
+                placeholder: 'The look, not the scene: e.g. 2D flat shader, cartoon',
+            },
+        ],
+    },
     // MPI-607 — Voice Changer, the FIRST audio-only flow: audio in, audio out, no
     // picture anywhere in the run. `mediaType: 'audio'` is what routes the graph's
     // `Output_Audio` to a real gallery card instead of a video's soundtrack

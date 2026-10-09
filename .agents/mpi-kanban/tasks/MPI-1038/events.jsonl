@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1038", "at": "2026-10-07T16:52:26+01:00", "actor": "claude", "column": "todo", "title": "Tile upscaler Flow"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1038", "at": "2026-10-08T21:37:54+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "plan approved by Fabio 2026-10-08; building Tile Detailer Flow"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1038", "at": "2026-10-08T23:26:30+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "phases 1-4 verified (validation.md); waiting on Fabio's eye-test"}
