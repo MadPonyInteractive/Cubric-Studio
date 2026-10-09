@@ -394,6 +394,12 @@ difference between hunting for a 96 GB instance and taking whatever is in stock.
   (deduped) — never one blocking request per model, which 524'd every ~2 min (MPI-894). OFF =
   lazy on-first-use staging. Wired from shell.js, NOT self-tracked in commandExecutor (a
   phased/debounced disconnect made an in-module connect-edge flag unreliable).
+  **Also on install (MPI-1051):** a model-level `download:complete` in `downloadService.js`
+  (not a silent heal, not an already-installed re-verify) calls
+  `prefetchInstalledModels([modelId])`, so a model installed mid-session stages at once; same
+  guards. Its files queue BEHIND the connect set (one copy at a time), so a gen right after the
+  install still shows the "Preparing…" toast until its files jump the queue. The toast counts
+  only models that resolve files (MPI-1052: cloud models used to read "18 models" for 3).
   **Judge staging on the WARM number, never the first touch (MPI-200).** The first staged gen
   pays the one-time volume→disk copy and looks *slower* than unstaged (24GB mxfp8: 30s
   first-staged vs 20s volume-served); the warm repeat then ran 1m04s total = fast. A
