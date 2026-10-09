@@ -1,5 +1,5 @@
 {
-  "id": "17b23af1-4e09-4547-8326-fca5c3024d9c",
+  "id": "fd3e4076-faa5-4dd1-ac48-9bed9c2dce92",
   "revision": 0,
   "last_node_id": 172,
   "last_link_id": 236,
@@ -2380,7 +2380,7 @@
         1024,
         16384,
         16384,
-        true,
+        false,
         0,
         false,
         24,
@@ -2406,7 +2406,7 @@
         "preresize_min_height": 1024,
         "preresize_max_width": 16384,
         "preresize_max_height": 16384,
-        "mask_fill_holes": true,
+        "mask_fill_holes": false,
         "mask_expand_pixels": 0,
         "mask_invert": false,
         "mask_blend_pixels": 24,
@@ -6610,10 +6610,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.11008426202772492,
+      "scale": 0.08519141775347076,
       "offset": [
-        5540.045424623843,
-        1176.333333333334
+        6978.193572771991,
+        1494.666666666667
       ]
     }
   },
