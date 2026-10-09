@@ -249,6 +249,55 @@ own wording, e.g. a supplied torso image).
   Then close the isolated app (memory: close via the listener's PARENT), then UNRELEASED.md bullet after Fabio's eye
   test, then Phase 4 graphics (>= 3 images, owned footage).
 
+2026-10-08 (Video edit 11):
+- The old waiter never ran: `gpu_lease.py run -- bash ...` from Windows Python resolves `bash` to WSL's
+  (`execvpe(/bin/bash) failed`). Re-queued with `"C:/Program Files/Git/bin/bash.exe"`.
+- **A3_background PASSED in-app** (1019 s): `[flow-describe]` Look 13.7 s + Kept 6.5 s via ComfyUI Qwen3-VL;
+  sidecar `injectionParams` carry both, `flowInputs` (the Reuse snapshot) carries neither, as designed. Clip ~=
+  bench R4e (same room, woman, outfit, in sync, caption gone) - sheet `sheet_a3.png` in this session's scratchpad.
+- **A2_swap_keep NOT JUDGED**: its Look described fine (11.5 s), then `engine_dropped` at sampling step 6/8 -
+  Fabio's live app quit + relaunched at 19:40:10Z ("Remote Pod teardown on quit"), taking down engine 48188 the
+  isolated app borrowed. Not a Flow fault; graph is the bench's (API = builder, 0 diffs), R2d passed there.
+  Not re-run: 17 min on Fabio's engine; his eye test runs the same path.
+- Isolated app closed (parent 40372). Next: Fabio's in-app eye test, then UNRELEASED.md, then Phase 4 graphics.
+- **Fabio: try the Flow on OUR shipped H3 graph** (two-stage turbo, refs `match` stage 1 / `max` stage 2, upscaler,
+  same math), swap LoRA added; "the results decide which graph we go with". Builder `research/bench/flow_graph_ours.py`
+  = `minimax_h3_r2va.json` as-is (Input_is_Turbo on) + swap LoRA (IfElse on node 21, ahead of Input_Lora_1) + the
+  Flow's inputs/instruction/describer/source-audio tail; 141 nodes, validated against bench object_info. Preset
+  `R2o_swap_keep_ours` = R2d's inputs + seed. R2d baseline (bench log `G:/ComfyUi/ComfyUI/user/comfyui.log`): 15:38
+  total, 8 steps x ~105 s. R2o queued under the lease (this session's scratchpad `r2o.sh` / `r2o.log`). Then: side-by-side
+  `sbs.py` (source | R2d | R2o, timing in the labels) + per-stage times from the bench log -> Fabio picks the graph.
+- **R2o RAN: 12:21 vs R2d 15:38.** Bench log split: describe + both refs encodes ~3:00 (the 25 GB H3 TE runs twice, once
+  per refs node; started cold), stage 1 10 x 32 s = 5:21 (288x512), upscaler 15 s, stage 2 3 x 69 s = 3:28 (576x1024;
+  EasyCache skipped 0/3), decode 16 s. Sampling 8:49 vs 14:02. LOOK: sharper, truer character, follows the turn on time
+  (R2d lags ~0.3 s there) - BUT the room is LOST: the picture's bathroom/mirror replaced the clip's living room (R2d kept
+  it). Which stage drops it is unknown (stage-1 preview not saved on the bench). Sent `swap_one_vs_two_stage.webm` +
+  `sync_strip.jpg` (scratchpad). Waiting on Fabio's pick.
+- Fabio: KEEP `max` on stage 2 (the point of two stages: max only where it refines); no edit skill exists on record
+  (MiniMax's repo `skills/` are genre generators; Higgsfield LIRA's CHANGE/PRESERVE is image-edit, Seedance) -> use the
+  H3 prompt guide, POSITIVE only. Finding: the vendor `ref-en.txt` (h3-prompt-writing) has a VIDEO-EDITING format
+  ("[video editing] The target video is an edited version of <Video 1>", <Subject N>, retention markers;
+  `attribute_transfer` = a swap). Our template breaks the guide ("Do not show <Picture 1> ... its background" names
+  the picture's room). `flow_graph_ours.EDIT_SWAP` = template 1 in that format, the clip's room a fully_preserved
+  subject, picture's room never named. Preset `R2p_swap_keep_ours_edit_format` (room hand-written from frame 0; in
+  the app it needs a FlowDef `describe` entry: op 1 + keep room -> Kept = the clip's place). NOT RUN: its waiter was
+  withdrawn at 21:38 (Fabio: 6-7 agents waiting, don't be greedy), then re-queued on his "all good" with `--poll 60`
+  so the faster-polling peers win the race first (log `r2p.log`).
+- **R2p RAN: 12:30 (stage 1 10 x 31.9 s, stage 2 3 x 70.4 s) - THE ROOM IS KEPT** (fan, ceiling, sideboard, doorway),
+  character as sharp as R2o, caption gone. One flaw: on the fast turn (1.9-3.3 s) it turns ~0.4 s late, like R2d;
+  R2o (old prompt) turned on time. Sent `swap_four_way.webm` + `sync_strip_4.jpg`.
+- **FABIO DECIDED: our graph + the new prompt** (brief.md § "Decided - Fabio, 2026-10-08 late"). NEXT, in order:
+  1. Rewrite the other templates (PHOTO 2-6, NO_PHOTO 1-5, and the masked route's wording) in the EDIT_SWAP
+     video-editing format, positive only - each picture's role as a subject with its retention marker; nothing to
+     keep out is ever named. Move them into `flow_graph.py` (one template set), keep `flow_graph_ours.py` as the graph.
+  2. Make `flow_graph_ours` the Flow's graph for BOTH routes (masked crop 512 -> stage 1 256 'match', stage 2 512
+     'max'?) - bench the masked route (R1-style horns) on it before export; the box + swap LoRA sync (lag 0.00) must hold.
+  3. FlowDef `describe`: add op 1 + keep room -> Input_Kept = clip first frame, PLACE ask; the template's {kept}
+     holds the room (`js/data/flowsRegistry.js`, `tests/flow-describe.test.cjs`).
+  4. Re-bench every option on our graph (person, picture room, head, outfit, background, masked) - poll 60 under
+     the lease, the box is crowded; then re-export raw/ (`export_raw.py`) + `node scripts/sync-raw-workflows.mjs`.
+  5. Fabio's in-app eye test, UNRELEASED.md, Phase 4 graphics.
+
 ## Phase 1 - The hidden instructions, on the bench
 
 **Verify:** Fabio judges each option on 2-3 real clips; the winning instruction text for every

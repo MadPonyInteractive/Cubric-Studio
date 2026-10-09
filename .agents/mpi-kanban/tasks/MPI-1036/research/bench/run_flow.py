@@ -4,6 +4,7 @@ import json, os, sys, time, urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import flow_graph as fg  # noqa: E402
+import flow_graph_ours as fgo  # noqa: E402
 
 URL = 'http://127.0.0.1:8188'
 EARS, DANCE = 'mpi1036_ears_last3s_24fps.mp4', 'mpi1036_source_24fps.mp4'
@@ -42,6 +43,14 @@ PRESETS['R6d_outfit_described'] = dict(video=DANCE, image=SHEET, operation=3, wh
 PRESETS['R4e_background_kept'] = dict(PRESETS['R4_background'], caption=True)
 # R3d held the picture's mirror pose for ~0.8 s: template 6 now says from the first frame, never show the picture
 PRESETS['R3e_swap_picture_room_no_photo_open'] = dict(PRESETS['R3_swap_picture_room'], caption=True)
+# R2d on OUR shipped two-stage turbo H3 graph (flow_graph_ours.py) instead of the single pass: speed and look
+PRESETS['R2o_swap_keep_ours'] = dict(PRESETS['R2d_swap_keep_described'], ours=True)
+# R2o lost the clip's room: same graph, the prompt in MiniMax's video-editing format, positive only, room in words
+# (hand-written from frame 0 here; the app's describer would write it)
+PRESETS['R2p_swap_keep_ours_edit_format'] = dict(PRESETS['R2o_swap_keep_ours'], edit_format=True, room=(
+    "a dim living room with a high sloped white ceiling and a dark ceiling fan, a wall-mounted black television over a "
+    "dark fireplace, a long black sideboard with a phone charger and a cardboard box on it, a dark sofa, and framed "
+    "photos on a pale wall beside an open doorway on the right, in warm low evening light."))
 
 
 def call(path, body=None):
@@ -66,7 +75,9 @@ for name in sys.argv[1:]:
     print(f'--- {name}\n{composed(p)}\n---', flush=True)
     t0 = time.time()
     try:
-        pid = call('/prompt', {'prompt': fg.graph(prefix=f'mpi1036/{name}', **p), 'client_id': 'mpi1036-flow'})['prompt_id']
+        build = fgo.graph if p.get('ours') else fg.graph
+        args = {k: v for k, v in p.items() if k != 'ours'}
+        pid = call('/prompt', {'prompt': build(prefix=f'mpi1036/{name}', **args), 'client_id': 'mpi1036-flow'})['prompt_id']
     except urllib.error.HTTPError as e:
         print(name, 'REJECTED', e.read().decode()[:4000], flush=True)
         sys.exit(1)

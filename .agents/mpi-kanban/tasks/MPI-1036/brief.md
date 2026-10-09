@@ -372,6 +372,28 @@ Flow graph (`research/bench/flow_graph.py`) through `run_flow.py`, 576x1024, tur
   their face, their hair or their clothes." (the possessive read badly with a long {who}); **R2c** = GONE +
   the picture's look in the words; **R4c** = the room named in the words. R3b held back until R2b reads.
 
+## Decided - Fabio, 2026-10-08 late (Video edit 11): OUR H3 graph + the video-editing prompt format
+
+- **The Flow moves to OUR shipped two-stage H3 graph** (`comfy_workflows/minimax_h3_r2va.json`, Input_is_Turbo on):
+  stage 1 at half size with refs `match`, H3 latent upscaler x2, stage 2 = 3 manual sigmas on the windowed sampler
+  with refs `max`, same math, + the swap LoRA. NOT the akatz-ai single pass ("just a basic example, no acceleration";
+  ours "has been worked on for months"). Bench builder: `research/bench/flow_graph_ours.py`.
+- **`max` stays on stage 2** - two stages exist so only the short refine pays for `max`. Never `match` on both.
+- **Prompts follow MiniMax's VIDEO-EDITING format** (vendor `h3-prompt-writing` skill, `references/ref-en.txt`):
+  `subject_definitions` / `summary` opening "[video editing] The target video is an edited version of <Video 1>." /
+  `retention_analysis` (fully_preserved, partially_preserved, attribute_transfer = the swap) / `detailed_description`
+  with `[Shot 1]` / `overall_soundscape` / `non_diegetic_music`, then the constraint line. **POSITIVE ONLY** (Fabio:
+  "use that background", never "don't use the background"): what is kept is a subject marked fully_preserved; what
+  must not leak is simply never named. No edit-specific skill exists on record (checked MiniMax `skills/` and the
+  Higgsfield set) - the H3 guide (`docs/agent/models/minimax-h3.md`) is the source.
+- Evidence, same clip / picture / seed / description, bench log `G:/ComfyUi/ComfyUI/user/comfyui.log`:
+  R2d (akatz single pass, old prompt) 15:38, room kept, turn ~0.4 s late. R2o (ours, old prompt) 12:21, sharpest
+  character, turn on time, ROOM LOST to the picture's bathroom - the old "Do not show <Picture 1> ... or its
+  background" named it. R2p (ours, `EDIT_SWAP`) 12:30 (stage 1 10 x 32 s, stage 2 3 x 70 s), ROOM KEPT, character as
+  sharp as R2o, turn ~0.4 s late (same as R2d). Side-by-side `swap_four_way.webm` (session a2d7b6ab scratchpad).
+- The clip's room for a person swap comes from the describer: the FlowDef needs a `describe` entry (op 1 + keep the
+  video's room -> Input_Kept = the clip's first frame, PLACE ask), as Input_Kept already does for a background change.
+
 ## Noticed
 - 2026-10-08: `scripts/sync-raw-workflows.mjs` refuses on ANY uncommitted generated workflow (a peer's staged `qwen_image_2_1.json` blocked a runtime-only raw sync) though orchestrate.py runs only when a `_template` raw changed; the guard could apply only then.
 - 2026-10-08: the Image Describer plugin (`pluginsRegistry.js` `image-describer`) is only the install gate for Remote's ComfyUI describe/enhance choice (`llmService.describeImage` comfy branch returns DESCRIBER_MISSING without it; `MpiLlmSettings` ENHANCER_PLUGIN_ID). Fabio wants it deprecated so descriptions always come from the Remote pick - card MPI-1045 (todo, research; first step = audit every plugin call site for an existing toast). Must land before Video Edit ships.
