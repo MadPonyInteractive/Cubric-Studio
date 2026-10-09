@@ -25,6 +25,7 @@ different transformer, encoder and VAE; nothing is shared between the two.
 | Alpha | The VAE decodes RGBA on EVERY run. t2i and edit keep it; every branch that repaints an opaque source (i2i, inpaint, detail, upscale) AND control drop it with `SplitImageWithAlpha` (control came back with a see-through ghost on 4.7% of the subject) |
 | Speed tier | Standard only for now. Alibaba's Fun-Acc 4-step LoRA needs a parallel-decoding head core ComfyUI runs for H3 only; Viggle turbo 6-step is the candidate fast tier (needs a resolution-dependent sigma node) — `weights.md` § Phase 0.4 |
 | Skipped | Qwen3.5-9B prompt-enhancer encoders (+9.5 GB each; we have our own enhancer), the background-removal template (BiRefNet / SAM3 cover it) |
+| Prompting | Own recipe `qwen-image-2.1` (MPI-1048), built from those enhancers' published system prompts, which are NOT part of the encoder; guide `docs/agent/models/qwen-image-2.1.md` (Cosmo, MCP), evidence `docs/recipes/research/qwen-image-2.1/` |
 
 ## Hard rules
 

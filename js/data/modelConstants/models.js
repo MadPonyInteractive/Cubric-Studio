@@ -1871,7 +1871,7 @@ const ALL_MODELS = [
         image: 'qwen-image-2-1.webp',
         defaultUpscale: '4x-NMKD-Siax',
         type: 'qwen21',
-        enhanceRecipe: 'flux',
+        enhanceRecipe: 'qwen-image-2.1',
         supportedOps: ['t2i', 'i2i', 'control', 'edit', 'inpaint', 'detail', 'upscale'],
         loraStrengths: ['model'],
         capabilities: {

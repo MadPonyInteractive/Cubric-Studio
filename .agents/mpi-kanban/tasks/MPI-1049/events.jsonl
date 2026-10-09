@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1049", "at": "2026-10-09T09:36:14+01:00", "actor": "547921d1-bfc5-4b0e-a7d4-3cb2937c758d", "column": "todo", "title": "Transparent background toggle in the Prompt Box (Qwen-Image 2.1)"}

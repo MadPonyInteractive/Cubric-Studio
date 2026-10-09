@@ -6,6 +6,14 @@
 
 ## 0a. Author & prove the workflow in the LOCAL ComfyUI FIRST
 
+**Start from the closest shipped raw, not from a blank canvas or an official template.** Copy the
+nearest model's LiteGraph source from `comfy_workflows/raw/` (image generator/editor: Klein,
+`klein_t2i_template.json`), open it in ComfyUI, and swap loaders, samplers and settings in place.
+Its groups, Get/Set nodes, layout, op switch, style rack and `MpiClearVram` are the house shape that
+Fabio reads and edits; keep them. Official ComfyUI templates show which nodes a model needs and how
+they connect: read them, never ship them. Never build the graph in a script or convert an API graph
+back into `raw/` (MPI-936 did, and the raw came out unreadable).
+
 The raw→API sync procedure (author locally first, `sync-raw-workflows.mjs`, the
 `validate-injection-rules.mjs` gate, `raw/` writable but LiteGraph-only, staged output) is
 **[shared] — canonical in [../common/workflow-authoring-entry.md](../common/workflow-authoring-entry.md).**
@@ -55,6 +63,15 @@ keep `InpaintCropImproved` -> sample -> `InpaintStitchImproved` (or MaskDetailer
 inpaint / masked-edit graph, and give the op `cropsToMask` in `commandRegistry.js`. A graph that
 samples the whole masked image breaks the cut. An edit graph that resizes right after load gets
 `modelSizedInputs`; an unflagged op fed a big photo is refused by the load backstop.
+
+### Every graph ends in `MpiClearVram` before its `Output_*`
+
+Splice the pass-through `MpiClearVram` into the link feeding each `Output_*` (Klein: node 570 ->
+`Output_Image`; why the pass-through and not `MpiClearVramEnd`:
+[../../workflow-authoring/bench-editing.md](../../workflow-authoring/bench-editing.md)). An official
+ComfyUI template never carries it (it is our node), so a graph built from one misses it with no error:
+Qwen-Image 2.1 shipped without it and the engine kept ~13 GB resident after every run (MPI-936
+reopen, 2026-10-09). On Klein, peak VRAM roughly doubled across ops without it.
 
 ### Detailer / refiner sampler settings ≠ the base-gen settings
 

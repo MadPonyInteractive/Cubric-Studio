@@ -1,8 +1,8 @@
 {
   "id": "575e77e9-f3c9-40fe-bb6d-2027e56af489",
   "revision": 0,
-  "last_node_id": 114,
-  "last_link_id": 302,
+  "last_node_id": 115,
+  "last_link_id": 303,
   "nodes": [
     {
       "id": 1,
@@ -2430,7 +2430,7 @@
       "id": 35,
       "type": "PreviewImage",
       "pos": [
-        5958.781054687499,
+        6198.781054687499,
         130
       ],
       "size": [
@@ -2438,14 +2438,14 @@
         26
       ],
       "flags": {},
-      "order": 83,
+      "order": 84,
       "mode": 0,
       "inputs": [
         {
           "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
-          "link": 192
+          "link": 303
         }
       ],
       "outputs": [
@@ -6771,6 +6771,44 @@
         "ver": "0.39.0",
         "Node name for S&R": "SplitImageWithAlpha"
       }
+    },
+    {
+      "id": 115,
+      "type": "MpiClearVram",
+      "pos": [
+        5958.781054687499,
+        130
+      ],
+      "size": [
+        186.9140625,
+        26
+      ],
+      "flags": {},
+      "order": 83,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "passthrough",
+          "shape": 7,
+          "type": "*",
+          "link": 192
+        }
+      ],
+      "outputs": [
+        {
+          "name": "passthrough",
+          "type": "*",
+          "links": [
+            303
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiClearVram"
+      },
+      "widgets_values": []
     }
   ],
   "links": [
@@ -7098,9 +7136,9 @@
       192,
       99,
       0,
-      35,
+      115,
       0,
-      "IMAGE"
+      "*"
     ],
     [
       193,
@@ -7979,6 +8017,14 @@
       113,
       0,
       114,
+      0,
+      "IMAGE"
+    ],
+    [
+      303,
+      115,
+      0,
+      35,
       0,
       "IMAGE"
     ]

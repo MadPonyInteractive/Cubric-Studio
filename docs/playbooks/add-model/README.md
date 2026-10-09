@@ -7,6 +7,13 @@
 > Enforced by the `/mpi-add-model` skill. A handoff or a model-scoped research doc
 > (`docs/models/<model>/`) assumes this playbook — it does not replace it.
 >
+> **The graph starts as a COPY of the closest shipped raw** (`comfy_workflows/raw/`; an image
+> generator/editor = Klein's `klein_t2i_template.json`), loaders and settings swapped in place in
+> ComfyUI, its groups, Get/Set nodes, layout, style rack and `MpiClearVram` kept. An official
+> ComfyUI template is reference only; a script-built graph or an API graph converted back to
+> LiteGraph is never the raw. MPI-936 (Qwen-Image 2.1) did both and left Fabio a raw he could not
+> read. Detail: [01-workflow-split.md](01-workflow-split.md) §0a.
+>
 > **Models are NOT version-bumped.** Adding a model does not touch `appVersion.js`.
 > A new model that reuses existing ops (`t2v_ms`/`i2v_ms`) does NOT touch
 > `operationRegistry.js` / `commandRegistry.js` / `operation_registry.json` either —

@@ -38,6 +38,7 @@ import { flux2 } from './flux-2.recipe.js';
 import { pony } from './pony.recipe.js';
 import { illustrious } from './illustrious.recipe.js';
 import { wan30 } from './wan-3.0.recipe.js';
+import { qwenImage21 } from './qwen-image-2.1.recipe.js';
 
 /** Generation modes a recipe may declare. `r2v` is reference-to-video (MPI-26). */
 export const RECIPE_MODES = ['t2v', 'i2v', 'r2v'];
@@ -75,6 +76,7 @@ export const RECIPE_REGISTRY = [
     pony,
     illustrious,
     wan30,
+    qwenImage21,
 ].map(normalizeRecipe);
 
 /**

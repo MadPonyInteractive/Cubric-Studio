@@ -455,7 +455,7 @@
   "35": {
     "inputs": {
       "images": [
-        "99",
+        "115",
         0
       ]
     },
@@ -1438,6 +1438,18 @@
     "class_type": "SplitImageWithAlpha",
     "_meta": {
       "title": "Split Image with Alpha"
+    }
+  },
+  "115": {
+    "inputs": {
+      "passthrough": [
+        "99",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "Mpi Clear Vram"
     }
   }
 }

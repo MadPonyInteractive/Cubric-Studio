@@ -1,0 +1,13 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/data/recipes/qwen-image-2.1.recipe.js",
+    "js/data/recipes/registry.js",
+    "docs/recipes/research/qwen-image-2.1/",
+    "docs/agent/models/qwen-image-2.1.md",
+    "docs/agent/models/flux-2.md",
+    "js/data/modelConstants/models.js",
+    "docs/models/qwen-image-2/README.md",
+    "tests/recipe-registry.test.cjs"
+  ]
+}

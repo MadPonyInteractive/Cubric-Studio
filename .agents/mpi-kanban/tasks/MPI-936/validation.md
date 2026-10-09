@@ -40,3 +40,13 @@ RGBA survives capture; `npm test`; agent read-back; Fabio eye-tests the NC tile 
 - **`release:check`: was FAILING** (peer message b73155ff): the Pod yaml had no `model_patches`, so the
   ControlNet is invisible on a Pod. mpi-ci c57f7dd adds the line (pushed on Fabio's yes);
   `release:check` passes. Live on Pods only after `publish-runtime.sh dev` + a Pod test.
+
+## Reopen 2026-10-09 (session 547921d1): no VRAM clear in the graph
+
+- Fabio: the graph has no MpiClearVram. Confirmed: every other model graph has one before its Output_*; qwen_image_2_1.json had none.
+  His three Qwen 2.1 runs on :48188 (08:10-08:12 UTC, /history) left the engine holding 13.2 GB idle (Windows GPU counters, pid of engine python).
+- Root cause: graph built from the official template shape (bench graph.py), which never carries our node, and the add-model playbook never named it.
+- Fix: MpiClearVram (node 115) spliced 99 -> 115 -> Output_Image 35 in raw/qwen_image_2_1.json; runtime re-converted with
+  workflow-to-api.mjs (diff vs the old runtime = node 115 + Output_Image input only); validate-injection-rules OK; 55 injection tests pass.
+  Rule added: docs/playbooks/add-model/01-workflow-split.md (Every graph ends in MpiClearVram before its Output_*).
+- Not yet: the live VRAM-drop check (GPU), and the encoder A/B Fabio raised (weights.md Phase 0.6 planned it, never ran).

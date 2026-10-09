@@ -24,3 +24,6 @@ Scope widened 2026-10-08 (Fabio): Klein 9B's seven ops, inpaint included. Plan: 
 - [x] Agent read-back + three agent tests (21/21; transparency note moved to t2i)
 - [x] One generation per op in the real app; RGBA output survives capture (t2i 69%, edit 59% clear)
 - [x] Pod yaml maps `model_patches` (mpi-ci c57f7dd, pushed); release:check passes
+- [x] REOPEN 2026-10-09: MpiClearVram spliced before Output_Image (raw + runtime), validator + 55 injection tests green
+- [ ] REOPEN: live check, engine VRAM drops after a Qwen 2.1 run (needs the GPU)
+- [ ] REOPEN: encoder A/B, Boogu fp8_scaled vs the templates int8_convrot (Fabio decides on the result)

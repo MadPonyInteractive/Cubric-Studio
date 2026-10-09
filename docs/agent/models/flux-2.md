@@ -1,6 +1,6 @@
 # FLUX.2 Klein: how to prompt it
 
-Seven Vision cards resolve to this recipe through the `flux` alias, and they do
+Six Vision cards resolve to this recipe through the `flux` alias, and they do
 different jobs:
 
 - `klein-4b`, `klein-9b` (FLUX.2 Klein, two sizes, one graph): a generator (`t2i`,
@@ -14,10 +14,9 @@ different jobs:
   only, one op, `edit`.
 - `qwen-edit` (Qwen Image Edit): an instruction editor, `qwenEdit`, plus a structure
   copier, `control`.
-- `qwen-image-2-1` (Qwen-Image 2.1): Klein's seven ops (`t2i`, `i2i`, `control`,
-  `edit`, `inpaint`, `detail`, `upscale`) in one research-licence model, with up to
-  eight references on `edit` and a transparent background on `t2i` and `edit`. Not
-  Qwen Image Edit: a different model, nothing shared.
+
+Qwen-Image 2.1 (`qwen-image-2-1`) is a different model with its own guide,
+`guide:qwen-image-2.1`; nothing here applies to it.
 
 ## Pick it when
 
@@ -40,14 +39,8 @@ different jobs:
   asked for the cloud or for this model by name: `klein-9b-cloud`. Same prompts as the
   local 9B, so a prompt that worked locally carries over unchanged. It costs real
   money on every run: quote first.
-- A transparent background (a sticker, a product cut-out, a character to composite):
-  `qwen-image-2-1` `t2i`, or its `edit` on an existing picture ("remove the
-  background, keep only the woman"), with "transparent background, alpha channel" in
-  the prompt. The only model here that generates alpha; measured 59-64% of the frame
-  cleared, the subject untouched. Its other ops return an opaque picture.
-- More than three pictures in one edit: `qwen-image-2-1` `edit`, up to eight. Its
-  licence is research or evaluation only and covers the images, so tell the user the
-  result is not for commercial use, and never pick it when another model can do the job.
+- A transparent background, or more than three pictures in one edit: `qwen-image-2-1`,
+  not any card here (`guide:qwen-image-2.1`).
 - Removing an object or a head cleanly: suggest Klein's `inpaint`, but only as
   something the user runs (see Settings). Production measured Qwen unable to remove a
   head and leave the clothing behind; Klein does, reliably.
@@ -72,13 +65,6 @@ different jobs:
   `16:9`) and its `edit` none: the output keeps the input's shape. Its price rises
   with pixels, so a bigger picture costs more. Qwen's
   `qwenEdit` and `control` offer no ratio at all; output follows the source.
-- `qwen-image-2-1` runs one tier (25 steps, cfg 1, no negative, no style rack; a user
-  LoRA rack only), ratios in two size classes (`1k`, `2k`) on `t2i` and `i2i`; `edit`,
-  `control`, `detail` and `upscale` follow the source. `control` offers depth, pose,
-  scribble and canny (one ControlNet behind all four). Its `i2i` holds a photo until
-  about 0.8 denoise: at 0.65 a "watercolour" prompt stayed a photo, at 0.85 it became
-  a painting, with the face drifting further. `inpaint` and a masked `edit` share one
-  path (LanPaint over a crop round the mask), so a localised `edit` needs a mask too.
 - 4B and 9B do not share a style rack. 4B: `None` plus Muppets, Cartoon, Jojo, Anime,
   Chibi, Doodle, Vintage, Aesthetic. 9B: `None` plus Storybook, Comic, Anime, Chibi,
   Doodle, Vintage, Watercolour, different creators behind several of the same-sounding
@@ -95,8 +81,7 @@ different jobs:
   chainable, proven compositing two subjects at correct scale and lighting. `qwenEdit`:
   the same three-image shape. Boogu's `edit`: `inputImage` only, so no reference
   addressing ever applies. `klein-9b-cloud`'s `edit`: up to four images, the first
-  the one being changed. `qwen-image-2-1`'s `edit`: `inputImage` through
-  `inputImage8`, the first the one being changed (its size sets the output's).
+  the one being changed.
 
 ## The prompt shape
 
@@ -111,9 +96,8 @@ photoreal target.
 
 Every edit op (`kleinEdit`, `edit`, `qwenEdit`) is an instruction, and the enhancer
 never touches any of them; you write the final text. Say what changes, not what the
-picture already is. The Qwen models alone understand numbered addressing (on
-`qwen-image-2-1`, "dress the woman in image 1 in the jacket from image 2" landed first
-try): point the verb at the image that should change (an instruction to edit image 1 to match image 2 edited image
+picture already is. Qwen alone understands numbered addressing: point the verb at the
+image that should change (an instruction to edit image 1 to match image 2 edited image
 1; aiming the verb at image 2 instead edited image 2). Klein's edit names a reference
 inside the sentence instead ("the fox from Image 2 sits beside her"), never bare
 numbers alone; `klein-9b-cloud`'s `edit` is the same model, so write it the same way. Boogu needs no addressing at all: there is only ever one image.

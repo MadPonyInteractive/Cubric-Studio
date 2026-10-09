@@ -38,6 +38,9 @@ first (research steps 1–5 often span several sessions; use a handoff to resume
    - **Quality / adherence** — LoRAs that improve detail, realism, hands, or prompt
      adherence. Candidate optional boosts.
    - **De-censor** — LoRAs that lift content restrictions on a censored base.
+   - **Style** — style LoRAs for the style rack (playbook `05` §9). The source raw from step 9
+     carries a rack; it stays, filled with this model's styles or emptied on purpose, never
+     dropped unasked.
    List each candidate with source URL + version match; the user decides which ship.
 4. **Accelerator-LoRA strength axes.** For each distilled/accelerator LoRA: does it take
    **model strength only**, or **model AND clip strength**? This picks the loader —
@@ -58,8 +61,17 @@ first (research steps 1–5 often span several sessions; use a handoff to resume
    - `.agents/mpi-kanban/tasks/MPI-<n>/research/` — raw research dumps.
    - `docs/models/<model>/README.md` — the settled hub (copy Krea2's shape: variant table,
      dep-reuse note, topics table, hard rules, sources) + one topic file per settled finding.
-9. **Author + prove the graph locally**, then the user saves it to `comfy_workflows/raw/` —
-   see playbook **§0a**. Only a proven, saved graph graduates to wiring.
+9. **Start the graph as a COPY of the closest SHIPPED raw, never from scratch.** Open the
+   closest model's LiteGraph source in `comfy_workflows/raw/` (an image generator/editor =
+   Klein, `klein_t2i_template.json`) and swap loaders and settings IN PLACE, keeping its
+   groups, Get/Set nodes, layout, op switch, style rack and `MpiClearVram`. An official
+   ComfyUI template is REFERENCE ONLY (which nodes exist, how they connect), never the
+   source. **Never script a graph** (a `graph.py`) and never convert an API graph back to
+   LiteGraph (an `export_raw.py`): the raw is Fabio's to open and edit in ComfyUI, and a
+   script-built raw is an unreadable wall of nodes to him. MPI-936 (Qwen-Image 2.1) did both,
+   ran fine, and cost him hours: a working graph built that way is still a FALSE DONE.
+   Prove it locally, then the user saves it to `comfy_workflows/raw/` (playbook **§0a**).
+   Only a proven, saved graph graduates to wiring.
 
 Dump findings as you go. Wiring's STEP 1 reads the SAVED JSON as truth — research notes
 are context, not a substitute.
@@ -138,6 +150,9 @@ an order, and do not pre-read sections you haven't reached.
 
 ## Hard rules
 
+- **The raw starts as a copy of the closest shipped raw** (Klein for images), edited in
+  ComfyUI, never script-built and never from an official template (Phase 0 step 9). Every
+  shipped raw ends each output in `MpiClearVram`; a copy keeps it for free.
 - **Never hand-edit a workflow JSON.** Titles/values change in ComfyUI, then re-export.
   A manual edit is silently lost on the next export and the bug returns.
 - **R2 uploads need explicit user approval** before you run them. R2 *deletes* likewise.

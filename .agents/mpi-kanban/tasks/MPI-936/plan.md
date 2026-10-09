@@ -2,6 +2,34 @@
 
 ## Current State
 
+**REOPENED 2026-10-09 (session 547921d1), Fabio after his own Qwen 2.1 runs.** Do NOT rebuild the graph
+(his call: the work is done; the never-again rule now lives in the add-model skill + playbook + memory).
+
+Done this reopen: `MpiClearVram` node 115 spliced 99 -> 115 -> `Output_Image` 35 in raw + runtime (validator
++ 55 injection tests green). CAVEAT: it was spliced by a script (`add_clearvram.cjs`), against
+the no-script-edits rule; Fabio to confirm it in ComfyUI (node beside Output_Image) or add it himself.
+Live check: his next Qwen run should leave the :48188 engine near 0 GB (it held 13.2 GB before).
+
+Next, in order:
+1. **int8 text encoder everywhere it fits** (Fabio: "we already decided int8 wherever we can"). The fp8 dep
+   `boogu-qwen3vl-8b-clip` (`text_encoders/qwen3vl_8b_fp8_scaled.safetensors`, 9.86 GB, R2) has exactly
+   three users: `qwen-image-2-1`, `boogu-edit-high`, `boogu-edit-balanced`. Target: Comfy-Org's
+   `text_encoders/qwen3vl_8b_int8_convrot.safetensors` (9.35 GB, `Comfy-Org/Qwen-Image-2.1`, Apache-2.0
+   tensors = stock Qwen3-VL-8B, weights.md Phase 0.6). New dep entry; R2 upload needs Fabio's yes; never
+   delete the old dep entry (orphan sweep reads DEPS). Raw edits are Fabio's in ComfyUI: CLIPLoader
+   `raw/qwen_image_2_1.json` node 3 and `raw/boogu_edit_template.json` node 59, widget 0 -> the int8 file
+   (types `qwen_image` / `boogu` unchanged). Bench-prove Boogu loads the int8 file at type `boogu` FIRST;
+   if it cannot, Boogu keeps fp8 and only Qwen moves.
+2. **Bent / extended limbs on t2i (Fabio's runs).** Isolate ONE variable at a time on fixed seeds, bench,
+   GPU lease, Fabio's eye: (a) encoder fp8 vs int8; (b) steps 25 vs 40 (the vendor's default is 40);
+   (c) ~1 MP vs the vendor's native 2K (2048x2048 default); (d) a short prompt vs the MPI-1048 recipe's
+   long description (the vendor recommends its 9B rewriter "for best results"; our recipe now does its job).
+3. **Style-LoRA survey** (skipped at build): HF + Civitai (VPN, Fabio) for Qwen-Image 2.1 style LoRAs;
+   Klein's raw carried a rack, this graph has none.
+GPU: Fabio's engine holds VRAM until a run with the new node; say one line before any GPU job.
+
+Previous (closed state, 2026-10-08):
+
 2026-10-08 (session 2a01ba53): **DONE, ready to close.** All seven ops pass in an isolated app (t2i/edit
 RGBA 69%/59% clear), detail + upscale at 12 steps, NC badge eye-tested (Fabio OK), agent read-back fixed
 (transparency note now t2i-only), npm test 2789/0, release:check green after mpi-ci c57f7dd (pushed).
