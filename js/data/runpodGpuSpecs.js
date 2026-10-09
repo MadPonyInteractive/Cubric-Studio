@@ -35,8 +35,11 @@ export const GPU_GEN_SECS = {
     'NVIDIA A100-SXM4-80GB': 3.27,
     'NVIDIA L40S': 3.31,
     'NVIDIA RTX PRO 4500 Blackwell': 3.40,
+    'NVIDIA RTX PRO 4500 Blackwell Server Edition': 3.64,   // ours
     'NVIDIA GeForce RTX 4090': 3.79,
     'NVIDIA RTX 6000 Ada Generation': 3.88,     // ours
+    'NVIDIA A100 80GB PCIe': 4.02,              // ours
+    'NVIDIA L40': 4.22,                         // ours
     'NVIDIA RTX A6000': 4.53,                   // ours
     'NVIDIA A40': 4.80,
     'NVIDIA RTX PRO 4000 Blackwell': 5.04,
