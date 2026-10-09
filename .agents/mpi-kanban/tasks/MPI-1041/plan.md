@@ -20,10 +20,12 @@ field call, then `/mpi-create-plan`.** Verdicts:
 
 **NEXT (Fabio 2026-10-09): bench Body shape + Age on OTHER editors before dropping the fields, in
 this order: 1. Qwen-Image 2.1 edit, 2. Boogu Edit balanced (`boogu-edit-balanced`), 3. Qwen Image
-Edit (`qwen-edit`).** All so far was Klein 9B only (SAM3 only builds masks). Same cases as batch 6
-(muscular / heavyset / skinny on nude + photo; older on nude + photo; younger on photo + fisher),
-seed 42, `layout.py` gate. Find each model's app graph + edit op titles first (models.js /
-comfy_workflows); Boogu takes ONE image only. Qwen 2.1 is non-commercial - fine for a bench.
+Edit (`qwen-edit`), 4. Krea 2 edit.** All so far was Klein 9B only (SAM3 only builds masks).
+**EXACTLY 5 edits per model, no more** (Fabio: "don't try 10 or 20 or 8 batches") - one run per
+model, seed 42, these 5 cases: muscular (nude), heavyset (photo), skinny (nude), older (photo),
+younger (fisher). Batch 5's L1 wording; `layout.py` gate. Find each model's app graph + edit op
+titles first (models.js / comfy_workflows); Boogu takes ONE image only. Qwen 2.1 is
+non-commercial - fine for a bench.
 
 **Earlier the same day - Q1 PASSED (batch 3), Q4b running (batch 4).** The wording that
 works is **L1**: `Dress her in {outfit}. Dress her the same way in the close-up portrait on the
