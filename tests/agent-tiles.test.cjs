@@ -82,6 +82,17 @@ test('the route, the routine steps, the MCP tool and the in-app agent all carry 
     }
 });
 
+test('Cosmo is told to pick tiles at 1x for "add detail", where it picks the op, and not to edit', async () => {
+    const { opPriority } = await import('../js/data/modelConstants/modelPriority.js');
+    for (const id of ['krea2', 'klein-9b', 'qwen-image-2-1']) {
+        assert.match(opPriority(id, 'upscale').note, /tiles: true and upscaleFactor 1/, id);
+    }
+    assert.match(opPriority('krea2', 'detail').note, /upscale op with tiles at 1x/);
+    assert.doesNotMatch(opPriority('', 'imageUpscale')?.note || '', /tiles/, 'the plain tool has no tiles');
+    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    assert.match(loop, /More detail or sharpness on the whole picture is the upscale task, never an edit\./);
+});
+
 test('through the settings gate: an agent asks for tiles; an open panel runs ITS tiles', () => {
     const { resolveSettingsOwner } = require('../js/shell/agentDispatch.js');
     const run = (owner) => resolveNamedParams(owner.project, owner.model, 'upscale', owner.named).injectionParams;

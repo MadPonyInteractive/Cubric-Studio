@@ -109,3 +109,8 @@ the user's `Documents/Cubric Studio/project-paths.json` for the run only and rem
 
 - Fabio: "they look right" on Krea2 + Klein Use Tiles in his app (user-ux verdict = 1).
 - Agent/MCP `tiles` + `upscaleFactor`: tests/agent-tiles.test.cjs 7 pass (describe lists them; asked tiles+1x injects Input_Tile_Upscale/Input_Upscale_Factor 1/Input_Auto_Grid false; unset = defaults; project panel ladder; refusals; through resolveSettingsOwner pinned + unpinned). Full `npm test`: 2808 pass, 0 fail (budget test raised to 19,006 for the +333 bytes).
+
+### Cosmo picks tiles at 1x for "add detail" (2026-10-09)
+
+- Fabio: a 4K photo + "add detail" should be a tile upscale at 1x, chosen by Cosmo. Before: routed to a whole-picture edit (graphs scale input to 1 MP) or the masked Detail op. Now: Model rule clause (+82 bytes, SYSTEM_BUDGET 10,814), TILES_NOTE on every tile-capable model upscale op, Detail op note pointing to it. tests/agent-tiles.test.cjs 8 pass; agent suites 547 pass. Live Cosmo run: pending Fabio restart.
+- CI 01524eb07: red on the model-settings-popup flake, re-run green on all shards.
