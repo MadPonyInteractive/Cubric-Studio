@@ -201,3 +201,39 @@ test('a gen queues its files with priority and polls until they land', async () 
     remoteEngineClient._noGpu = false;
     remoteEngineClient._gpuType = null;
 });
+
+// MPI-1051 — with "Stage all models on connect" on, a model installed mid-session is
+// staged when its install finishes, not at the next connect.
+test('an install complete stages just that model, and only with the toggle on', async () => {
+    const { state, prefetchInstalledModels } = await load();
+    const pod = { active: true, noGpu: false, gpuTypeId: RENTED };
+    const queue = (b) => (b.dryRun ? { async: true, pending: b.files.length } : { async: true });
+    const staged = (posts) => posts.filter(b => !b.dryRun).flatMap(b => b.files.map(f => `${f.type}/${f.filename}`)).sort();
+
+    state.runpodConfig = { ...state.runpodConfig, stageOnConnect: true };
+    state.s_installedModelIds = ['klein-4b'];
+    let posts = stubFetch(pod, queue);
+    await prefetchInstalledModels();
+    const alone = staged(posts);
+    assert.ok(alone.length > 0);
+
+    state.s_installedModelIds = ['klein-4b', 'klein-9b'];
+    posts = stubFetch(pod, queue);
+    await prefetchInstalledModels(['klein-4b']);
+    assert.deepEqual(staged(posts), alone, 'the installed model only, not every model on the volume');
+
+    state.runpodConfig = { ...state.runpodConfig, stageOnConnect: false };
+    posts = stubFetch(pod, queue);
+    await prefetchInstalledModels(['klein-4b']);
+    assert.equal(posts.length, 0, 'toggle off = stage lazily on first gen');
+
+    // SOURCE-READ: downloadService cannot import in bare node. The model-level complete
+    // must hand its modelId over, after the re-sync and past the silent-job return (a
+    // drift/engine-asset heal or an already-installed re-verify installed nothing new).
+    const src = require('fs').readFileSync(path.join(__dirname, '..', 'js/services/downloadService.js'), 'utf8');
+    const handler = src.slice(src.indexOf("addEventListener('download:complete'"), src.indexOf("addEventListener('download:failed'"));
+    const silentAt = handler.indexOf('if (silent) return;');
+    const stageAt = handler.indexOf('prefetchInstalledModels([data.modelId])');
+    assert.ok(silentAt > handler.indexOf('reSyncInstalledModels().then('), 'the silent return sits in the re-sync callback');
+    assert.ok(stageAt > silentAt, 'REGRESSION: an install complete no longer stages its model');
+});

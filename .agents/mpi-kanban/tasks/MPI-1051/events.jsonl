@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1051", "at": "2026-10-09T12:09:43+01:00", "actor": "claude", "column": "todo", "title": "Stage a model on the Pod's fast disk as soon as its install finishes"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1051", "at": "2026-10-09T12:10:22+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1051", "at": "2026-10-09T12:13:27+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Code + tests landed; waiting on CI."}

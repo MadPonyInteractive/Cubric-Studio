@@ -778,12 +778,14 @@ export async function _ensureRemoteHotStore(modelId, operation, signal) {
 // background, one file at a time, and a generation's own files jump the queue. This
 // used to be one BLOCKING request per model — each past ~100 s died as a 524 while its
 // copy held the lock, and the loop ran on after the Pod was gone (2026-09-28).
-export async function prefetchInstalledModels() {
+//
+// MPI-1051: `ids` narrows the set. downloadService passes the one model whose install
+// just finished, so a model installed mid-session is staged now, not at the next connect.
+export async function prefetchInstalledModels(ids = state.s_installedModelIds || []) {
     if (state.runpodConfig?.stageOnConnect !== true) return;
     await remoteEngineClient.refresh();
     // A CPU download-mode Pod has no ComfyUI to warm (MPI-539) — server truth, as above.
     if (!remoteEngineClient.isRemote() || remoteEngineClient.isDownloadOnly()) return;
-    const ids = (state.s_installedModelIds || []).slice();
     const byKey = new Map();
     for (const id of ids) {
         for (const f of await _hotStoreFiles(id, null)) byKey.set(`${f.type}/${f.filename}`, f);

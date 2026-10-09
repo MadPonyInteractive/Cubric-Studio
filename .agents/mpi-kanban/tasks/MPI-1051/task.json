@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1051",
+  "title": "Stage a model on the Pod's fast disk as soon as its install finishes",
+  "description": "With RunPod 'Stage all models on connect' ON, a model installed mid-session stayed on the network volume until the next connect (or its first generation paid the copy). Now the model-level install complete queues that model's weights for staging, same path as the connect prefetch.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-09T12:09:43+01:00",
+  "updated_at": "2026-10-09T12:13:27+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

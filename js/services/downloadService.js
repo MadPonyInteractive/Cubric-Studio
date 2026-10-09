@@ -659,6 +659,14 @@ const downloadService = {
                 const preSync = new Set(MODELS.filter(m => m.installed).map(m => m.id));
                 reSyncInstalledModels().then(() => {
                     if (silent) return;
+                    // MPI-1051 — "Stage all models on connect" also covers a model installed
+                    // mid-session: queue its weights for the Pod's fast disk now, not at the
+                    // next connect. After the re-sync, so the volume holds them. It no-ops with
+                    // the toggle off, on the local engine and on a CPU download Pod; a flow or
+                    // plugin id has no model weights and stages nothing.
+                    import('./commandExecutor.js')
+                        .then(({ prefetchInstalledModels }) => prefetchInstalledModels([data.modelId]))
+                        .catch(err => clientLogger.warn('downloadService', `stage after install skipped: ${err?.message || err}`));
                     // Toast any model that became installed as a side-effect (shared deps)
                     // Skip the primary modelId — already toasted above
                     for (const m of MODELS) {
