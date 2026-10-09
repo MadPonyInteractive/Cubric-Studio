@@ -59,6 +59,7 @@
       "sampling_mode.presence_penalty": 0,
       "thinking": false,
       "use_default_template": true,
+      "mtp": "auto",
       "clip": [
         "69",
         0
@@ -1129,7 +1130,7 @@
   },
   "502": {
     "inputs": {
-      "float": 0.6
+      "float": 0.3
     },
     "class_type": "MpiFloat",
     "_meta": {
@@ -1829,29 +1830,13 @@
   "643": {
     "inputs": {
       "any": [
-        "648",
+        "741",
         0
       ]
     },
     "class_type": "MpiReroute",
     "_meta": {
       "title": "upscale"
-    }
-  },
-  "644": {
-    "inputs": {
-      "pixels": [
-        "648",
-        0
-      ],
-      "vae": [
-        "56",
-        0
-      ]
-    },
-    "class_type": "VAEEncode",
-    "_meta": {
-      "title": "VAE Encode"
     }
   },
   "645": {
@@ -1865,59 +1850,6 @@
     "class_type": "MpiMath",
     "_meta": {
       "title": "Mpi Math"
-    }
-  },
-  "646": {
-    "inputs": {
-      "eta": 0.5,
-      "sampler_name": "linear/euler",
-      "scheduler": "beta",
-      "steps": 2,
-      "steps_to_run": -1,
-      "denoise": 0.2,
-      "cfg": 1,
-      "sampler_mode": "standard",
-      "bongmath": true,
-      "model": [
-        "683",
-        0
-      ],
-      "positive": [
-        "629",
-        0
-      ],
-      "negative": [
-        "630",
-        0
-      ],
-      "latent_image": [
-        "644",
-        0
-      ],
-      "seed": [
-        "503",
-        0
-      ]
-    },
-    "class_type": "ClownsharKSampler_Beta",
-    "_meta": {
-      "title": "ClownsharKSampler"
-    }
-  },
-  "647": {
-    "inputs": {
-      "samples": [
-        "646",
-        0
-      ],
-      "vae": [
-        "56",
-        0
-      ]
-    },
-    "class_type": "VAEDecode",
-    "_meta": {
-      "title": "VAE Decode"
     }
   },
   "648": {
@@ -2429,6 +2361,251 @@
     "class_type": "MpiString",
     "_meta": {
       "title": "Mpi String"
+    }
+  },
+  "717": {
+    "inputs": {
+      "guide_size": 1024,
+      "guide_size_for": true,
+      "max_size": 1536,
+      "sampler_name": "euler",
+      "scheduler": "beta",
+      "feather": 10,
+      "noise_mask": true,
+      "force_inpaint": true,
+      "wildcard": "",
+      "refiner_ratio": 0.2,
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 10,
+      "tiled_encode": false,
+      "tiled_decode": false,
+      "image": [
+        "720",
+        0
+      ],
+      "segs": [
+        "719",
+        0
+      ],
+      "basic_pipe": [
+        "734",
+        0
+      ],
+      "seed": [
+        "503",
+        0
+      ],
+      "steps": [
+        "725",
+        0
+      ],
+      "cfg": [
+        "726",
+        0
+      ],
+      "denoise": [
+        "502",
+        0
+      ]
+    },
+    "class_type": "DetailerForEachPipe",
+    "_meta": {
+      "title": "Tile detailer (Klein 9B)"
+    }
+  },
+  "719": {
+    "inputs": {
+      "bbox_size": 1024,
+      "crop_factor": 1.5,
+      "min_overlap": 200,
+      "filter_segs_dilation": 30,
+      "mask_irregularity": 0.7,
+      "irregular_mask_mode": "Reuse fast",
+      "images": [
+        "720",
+        0
+      ]
+    },
+    "class_type": "ImpactMakeTileSEGS",
+    "_meta": {
+      "title": "Make Tile SEGS"
+    }
+  },
+  "720": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "image": [
+        "553",
+        0
+      ],
+      "scale_by": [
+        "739",
+        0
+      ]
+    },
+    "class_type": "ImageScaleBy",
+    "_meta": {
+      "title": "Upscale first (1.0 = detail only)"
+    }
+  },
+  "725": {
+    "inputs": {
+      "math_expression": "3 if a else 16",
+      "a": [
+        "617",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Mpi Math"
+    }
+  },
+  "726": {
+    "inputs": {
+      "math_expression": "1.0 if a else 1.5",
+      "a": [
+        "617",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Mpi Math"
+    }
+  },
+  "732": {
+    "inputs": {
+      "clip": [
+        "69",
+        0
+      ],
+      "text": [
+        "114",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "pos"
+    }
+  },
+  "733": {
+    "inputs": {
+      "clip": [
+        "69",
+        0
+      ],
+      "text": [
+        "283",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "neg"
+    }
+  },
+  "734": {
+    "inputs": {
+      "model": [
+        "735",
+        0
+      ],
+      "clip": [
+        "69",
+        0
+      ],
+      "vae": [
+        "56",
+        0
+      ],
+      "positive": [
+        "732",
+        0
+      ],
+      "negative": [
+        "733",
+        0
+      ]
+    },
+    "class_type": "ToBasicPipe",
+    "_meta": {
+      "title": "ToBasicPipe"
+    }
+  },
+  "735": {
+    "inputs": {
+      "true": [
+        "683",
+        0
+      ],
+      "false": [
+        "303",
+        0
+      ],
+      "boolean": [
+        "617",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
+    }
+  },
+  "739": {
+    "inputs": {
+      "any": [
+        "632",
+        0
+      ]
+    },
+    "class_type": "MpiReroute",
+    "_meta": {
+      "title": "UpScale factor"
+    }
+  },
+  "740": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Tile_Upscale"
+    }
+  },
+  "741": {
+    "inputs": {
+      "true": [
+        "648",
+        0
+      ],
+      "false": [
+        "717",
+        0
+      ],
+      "boolean": [
+        "742",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Mpi If Else"
+    }
+  },
+  "742": {
+    "inputs": {
+      "boolean": [
+        "740",
+        0
+      ]
+    },
+    "class_type": "MpiBooleanInvert",
+    "_meta": {
+      "title": "Mpi Boolean Invert"
     }
   }
 }
