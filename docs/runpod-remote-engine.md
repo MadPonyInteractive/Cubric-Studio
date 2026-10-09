@@ -108,8 +108,10 @@ component kept its old name, so "Settings" in a file name or an older card means
   Remote panel, after RunPod's deploy page: tiles show $/hr, VRAM, `maxCount`, a three-bar stock
   meter and a green **Gen speed** bar labelled with its seconds per image (MPI-1007, MPI-1013): `GPU_GEN_SECS` in `js/data/runpodGpuSpecs.js`,
   RunPod's MEASURED FLUX.2 Klein 9B seconds per image (runpod.io/gpu-compare, Sept 2026), the
-  fastest card = a full bar. Neither RunPod API has a speed field, so it is hand-copied; a card
-  RunPod did not benchmark shows no bar. Klein stands in for Krea2 (not benchmarked; same size
+  fastest card = a full bar. Neither RunPod API has a speed field, so it is hand-copied. Rows
+  marked `ours` (6000 Ada, A6000, 4000 Ada, A4500, L4) are cards RunPod skipped, measured by us with their
+  setup replicated (MPI-1054) and checked against two of their cards (A40, A5000, within 5%);
+  a card nobody benchmarked shows no bar. Klein stands in for Krea2 (not benchmarked; same size
   class, fits 24 GB), so only the ranking carries over. Spec-sheet TFLOPS, the bar before it,
   misranked cards (H100 SXM 990 TFLOPS lost SDXL to a 5090 at 419). A video bar waits on
   RunPod's LTX-2.3 numbers. **Auto-retry** (= RunPod's All tab)

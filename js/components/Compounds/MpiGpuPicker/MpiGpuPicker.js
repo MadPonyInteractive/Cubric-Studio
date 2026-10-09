@@ -15,7 +15,7 @@ const STOCK_WORD = ['Out of stock', 'Low stock', 'Medium stock', 'High stock'];
  * MpiGpuPicker — the RunPod GPU overlay (MPI-894 1c), after RunPod's own deploy page.
  *
  * One tile per card: name, $/hr, VRAM, max GPUs per Pod, RunPod's three-bar stock
- * meter, and a Gen speed bar from RunPod's measured image times. RunPod's
+ * meter, and a Gen speed bar from measured image times (RunPod's, plus ours, MPI-1054). RunPod's
  * "Available | All" tabs are our Auto-retry switch (on = every card, Connect waits for an
  * out-of-stock one), and a Video switch
  * keeps the cards with more than 24 GB VRAM. The system-RAM floor lives here too: it is
@@ -58,7 +58,7 @@ export const MpiGpuPicker = ComponentFactory.create({
                     </div>
                     <div class="mpi-gpu-picker__refresh" id="gpu-refresh"></div>
                 </div>
-                <p class="mpi-gpu-picker__note">Auto-retry: pick an out-of-stock card and Connect waits until it frees. Min RAM: every GPU Pod gets at least this much system RAM (0 = any host). Gen speed: RunPod's measured seconds per image on each card (FLUX.2 Klein 9B, Sept 2026), lower is faster; no bar = not benchmarked.</p>
+                <p class="mpi-gpu-picker__note">Auto-retry: pick an out-of-stock card and Connect waits until it frees. Min RAM: every GPU Pod gets at least this much system RAM (0 = any host). Gen speed: measured seconds per image on each card (FLUX.2 Klein 9B; RunPod's Sept 2026 runs, plus ours on the cards they skipped), lower is faster; no bar = not benchmarked.</p>
             </div>
             <div class="mpi-gpu-picker__body">
                 <div id="gpu-grid"></div>

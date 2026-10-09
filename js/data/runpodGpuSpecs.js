@@ -21,7 +21,10 @@ export const VIDEO_MIN_VRAM_GB = 24;
 // the RANKING carries over; Krea2 runs more steps, so these are not Krea2's seconds.
 // Spec-sheet TFLOPS was here until MPI-1007 and misranked cards (an H100 SXM at 990 lost
 // SDXL to a 5090 at 419). A video bar waits on RunPod's LTX-2.3 numbers.
-// ponytail: hand-copied table; a card RunPod did not benchmark shows no bar.
+// Rows marked `ours` are cards RunPod skipped, measured by us (MPI-1054, 2026-10-09) with
+// their setup replicated: same graph, ComfyUI v0.39.0, a new prompt every image. Checked on
+// two cards they did measure: A40 4.6 s vs their 4.80, A5000 6.75 s vs their 6.46.
+// ponytail: hand-copied table; a card nobody benchmarked shows no bar.
 export const GPU_GEN_SECS = {
     'NVIDIA H100 80GB HBM3': 1.47,
     'NVIDIA RTX PRO 6000 Blackwell Server Edition': 1.51,
@@ -32,11 +35,16 @@ export const GPU_GEN_SECS = {
     'NVIDIA L40S': 3.31,
     'NVIDIA RTX PRO 4500 Blackwell': 3.40,
     'NVIDIA GeForce RTX 4090': 3.79,
+    'NVIDIA RTX 6000 Ada Generation': 3.88,     // ours
+    'NVIDIA RTX A6000': 4.53,                   // ours
     'NVIDIA A40': 4.80,
     'NVIDIA RTX PRO 4000 Blackwell': 5.04,
     'NVIDIA RTX A5000': 6.46,
+    'NVIDIA RTX 4000 Ada Generation': 6.74,     // ours
     'NVIDIA GeForce RTX 3090': 6.81,
+    'NVIDIA RTX A4500': 7.01,                   // ours
     'NVIDIA RTX PRO 6000 Blackwell Server Edition MIG 1g.24gb': 8.14,
+    'NVIDIA L4': 8.29,                          // ours
     'NVIDIA RTX A4000': 9.42,
     'NVIDIA RTX 2000 Ada Generation': 13.19,
 };

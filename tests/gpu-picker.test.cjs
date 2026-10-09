@@ -20,7 +20,7 @@ test('in-stock only by default; CPU first, then VRAM, then price', async () => {
 test('fastest first by measured Gen speed; unbenchmarked cards after, CPU still leads', async () => {
     const { visibleGpuCards } = await import('../js/data/runpodGpuSpecs.js');
     const cards = [
-        { id: 'NVIDIA L4', vramGb: 24, price: 0.49, inStock: true },
+        { id: 'NVIDIA H200', vramGb: 141, price: 3.59, inStock: true },
         { id: 'NVIDIA GeForce RTX 4090', vramGb: 24, price: 0.74, inStock: true },
         { id: 'NVIDIA RTX PRO 6000 Blackwell Server Edition', vramGb: 96, price: 2.09, inStock: true },
         { id: '__cpu__', cpu: true, inStock: true },
@@ -31,7 +31,7 @@ test('fastest first by measured Gen speed; unbenchmarked cards after, CPU still 
         'NVIDIA RTX PRO 6000 Blackwell Server Edition',
         'NVIDIA GeForce RTX 5090',
         'NVIDIA GeForce RTX 4090',
-        'NVIDIA L4',
+        'NVIDIA H200',
     ]);
 });
 
@@ -81,12 +81,12 @@ test('stock meter: out of stock is 0 bars whatever the level says', async () => 
     assert.equal(stockBars({ inStock: false, stock: 'High' }), 0);
 });
 
-test('gen speed table: finite seconds only, and a card RunPod did not benchmark has none', async () => {
+test('gen speed table: finite seconds only, and a card nobody benchmarked has none', async () => {
     const { GPU_GEN_SECS, gpuGenSecs } = await import('../js/data/runpodGpuSpecs.js');
     for (const [id, v] of Object.entries(GPU_GEN_SECS)) {
         assert.ok(Number.isFinite(v) && v > 0, `${id}: ${v}`);
     }
-    assert.equal(gpuGenSecs('NVIDIA L4'), null);
+    assert.equal(gpuGenSecs('NVIDIA H200'), null);
     // Measured order, not spec-sheet order: a PRO 6000 (500 TFLOPS) beats a B300 (2250).
     assert.ok(gpuGenSecs('NVIDIA RTX PRO 6000 Blackwell Server Edition') < gpuGenSecs('NVIDIA B300 SXM6 AC'));
 });
