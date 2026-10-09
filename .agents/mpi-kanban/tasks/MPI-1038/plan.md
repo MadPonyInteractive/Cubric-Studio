@@ -69,7 +69,29 @@ ImpactMakeTileSEGS bbox 1024 makes a picture under 1024 px ONE tile, so detail-o
 whole-image pass (guide_size 1024 then samples it at ~1 MP). Working as built, not a bug. Open:
 whether he still wants to review the workflow, or tiles on small pictures (a smaller bbox, or one
 derived from the picture - bench it first). Pod: the run worked there (Impact baked in the image).
-NEXT: that conversation; then Fabio's eye-test in his app (restart it first). On a "1":
+2026-10-09 CORRECTION (read Impact source, `segs_nodes.py` MakeTileSEGS + `utils.make_crop_region`;
+simulator `tiles.py` in session scratch): under 1024 is NOT one tile. bbox clamps to the short side
+(irregularity pads it to 1068 / overlap 222), so 800x533 = 3 tiles of 533, BUT crop_factor 1.5 makes
+each tile SEE ~the whole picture -> reads as one whole-image pass. 800x533 x2 = 2 tiles each seeing
+99%. Real tiling (a tile sees part of the picture) starts once the OUTPUT passes ~1600 px a side:
+1344x768 x2 = 8 tiles at 59%, 1920x1080 x2 = 15 at 30%. Big inputs: 4000x6000 x2 = 150 tiles,
+8000x12000 output (RAM on a 16 GB box - unchecked).
+2026-10-09 ~10:40 DIRECTION CHANGE (Fabio, after 5 Pod runs in `Qwen 2.1/Media/flowTileDetailer_001-005`):
+"this is not a flow - it should be part of the UPSCALE operation for every model; far superior
+to the Use Grid option". NEXT = a BRAINSTORM (mpi-brainstorm) with Fabio's ideas on how tile
+upscale lands in the per-model upscale op (the op popover: Use Grid, Upscale 1.5x/2x/3x/4x,
+Denoise, Style, Stylization). The Flow stays built + committed; whether it ships, is hidden or
+is removed is part of that brainstorm. Inputs for it: the tile maths above, the per-tile prompt
+trap (Plan Shape), and that 4x on a big photo is 150+ tiles.
+- Previews on the Pod looked bad: NOT this graph - the Pod lacks `taef2_decoder` (Latent2RGB
+  fallback); split to MPI-1050 (remote engine assets one-shot install). Final images were clean.
+- Flow art PAUSED (moot if it is not a Flow): candidate 1 (cloud-tile walk, real Impact masks
+  re-run in numpy) in `art/candidate1_tile.png` + `art/candidate1_hero.mp4` (stand-in plates);
+  generators kept in `art/td_art.py` (tile layout + cloud masks) and `art/td_build.py`
+  (`python td_build.py <input> <output> <factor> <outdir> [still|hero|both] [active] [cx]`).
+  The 28-tile bench run (2688 village x2) was cancelled before it ran.
+- Noticed: the status bar read `DETAILING · 0%` deep into a run (detailer steps may not reach
+  the progress tracker). Not checked. On a "1":
 /mpi-flow-graphics (tile + hero), then the UNRELEASED.md entry, then close-out (commit raw +
 runtime + preview with `--only`; NOT via sync-raw-workflows while MPI-936's raw is dirty).
 Nothing committed yet. Session scratch tools (gone with the session): `make_tile_detailer.py`,

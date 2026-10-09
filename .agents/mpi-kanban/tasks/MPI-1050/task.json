@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1050",
+  "title": "Pods miss the engine assets: one-shot install dies with the first Pod",
+  "description": "On RunPod, the volume-installed engine assets (taef2 preview decoder, sam3-multiplex, qwen3vl-abliterated-clip, hand-yolov8n) can be missing for a whole app session. Seen 2026-10-09 on Pod 6mtshnzc61jz87: its ComfyUI lists none of them, so every FLUX.2 Klein live preview falls back to Latent2RGB (looks like crap; final images fine) and SAM3 masking / the Qwen3-VL describer would fail there. Likely cause: js/shell.js runs _installRemoteEngineAssets ONCE per app session behind the _didFirstConnectDriftCheck latch, silently; today the first connect was a CPU Pod deleted 36 s later, the install died with it, and the GPU Pod never retried. Prove with app restart + reconnect, then fix: run the (deduped) install on every connect edge and log a failed silent job. Evidence in brief.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-09T10:38:22+01:00",
+  "updated_at": "2026-10-09T10:38:22+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

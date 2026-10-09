@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1050", "at": "2026-10-09T10:38:22+01:00", "actor": "agent", "column": "todo", "title": "Pods miss the engine assets: one-shot install dies with the first Pod"}
