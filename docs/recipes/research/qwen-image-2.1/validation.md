@@ -31,6 +31,14 @@ The floor (200) now has 27 words of headroom; condense peaks at 299 against the 
 | 2 | 3/3 | 3/3 | 2/3 | 3/3 | 3/3 | per-section sentence counts (background 2, walk >= 9, lighting 2) + limb rule; `directed` 192 |
 | 3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | stated length 350 (16-20 sentences, never below 300) |
 | 4 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | none — confirmation sweep |
+| 5 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | MPI-1048 reopen: the brief is fixed (stated details in the opening sentence), transparency gated on the user's words, no invented brands, closing self-check; 221-342 words, judge 2/2/2 x15 |
+| 6 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | none — confirmation sweep; judge 2/2/2 x15 |
+
+**Sweeps 5-6 answer a field failure the harness could not see** (2026-10-09): Fabio's Enhance runs on DeepInfra
+`google/gemma-3-12b-it`, not the harness's gemma-4. On gemma-3 the sweep-4 recipe dropped "water up to her knees" from
+the opening and ended 13/16 ordinary prompts with the RGBA alpha sentence. DeepInfra A/B, before/after:
+`.agents/mpi-kanban/tasks/MPI-1048/deepinfra-ab.txt`. No harness tier carries a hard detail in a short prompt or a
+transparency request yet; the A/B is that evidence.
 
 ### What the loop taught
 

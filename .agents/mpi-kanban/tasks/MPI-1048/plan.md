@@ -44,7 +44,16 @@ Stage 1 twice green; recipe validates as `draft`; read-back shows `guide:qwen-im
 
 ## Current State
 
-**2026-10-09 (session 3e2b8b66), REOPENED by a field failure.** Stage 1 is green (sweeps 3+4) and committed in
+**2026-10-09 (session cd9258be): stated-details fix APPLIED to the recipe, proven on DeepInfra gemma-3.** Parked patch
+applied and tightened: rule 1 = THE BRIEF IS FIXED, opening sentence carries every stated detail (incl. what the subject
+holds; example in the rule is NOT the knees case, so the A/B is not rigged), never invent brands, a closing self-check,
+"sections are not paragraphs". Found and fixed on the way: gemma-3 appended the RGBA alpha sentence to 13/16 ordinary
+prompts (transparency now gated on the user's own words; 0/16 after, sticker still 8/8). Evidence `validation.md` +
+`deepinfra-ab.txt`. ~1.2 cents spent of a 2-cent cap. NEXT: Stage 1 twice (harness, gemma-4 + gemma-3 judge, running
+under the lease from this session), then commit. Open idea, not done: a harness tier for "short prompt with a hard
+detail" + a transparency tier (shared TIERS = every recipe; Fabio's call).
+
+Previous: **2026-10-09 (session 3e2b8b66), REOPENED by a field failure.** Stage 1 is green (sweeps 3+4) and committed in
 ea0b707ef, but Fabio's own Enhance on RunPod (project "Qwen 2.1", cards t2i_011/t2i_012, source prompt "A woman in a
 monokini on a beach with water up to her knees") came back 385 words with her on DRY SAND, two paragraphs, two
 closing sentences, lighting after the close, and "a subtle drop shadow". His app's enhancer is DeepInfra (stored

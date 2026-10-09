@@ -1,0 +1,21 @@
+MPI-1048 DeepInfra A/B, google/gemma-3-12b-it (the model Fabio's app enhances with), 2026-10-09, session cd9258be.
+Same call as the app endpoint branch: complete(input, {model, system: composeSystemPrompt(t2v)}), no temperature.
+Script: deepinfra-ab.mjs. Spend: ~1.2 cents for 80 calls (round 3 measured $0.00362 for 24).
+
+== Round 1: committed recipe (OLD) vs parked patch + opening-sentence rule (NEW)
+knees    NEW: stated 8/8, in opening 8/8, alpha line 8/8, >1 paragraph 0/8, invented brand 0/8
+knees    OLD: stated 8/8, in opening 0/8, alpha line 7/8, >1 paragraph 0/8, invented brand 0/8
+roof     NEW: stated 8/8, in opening 0/8, alpha line 8/8, >1 paragraph 0/8, invented brand 2/8
+roof     OLD: stated 8/8, in opening 0/8, alpha line 6/8, >1 paragraph 2/8, invented brand 0/8
+
+== Round 2: NEW + transparency gate + held object in opening + no invented brands
+knees    NEW: stated 8/8, in opening 8/8, alpha line 0/8, >1 paragraph 0/8, invented brand 0/8
+roof     NEW: stated 8/8, in opening 8/8, alpha line 0/8, >1 paragraph 1/8, invented brand 0/8
+sticker  NEW: stated 8/8, in opening 0/8, alpha line 8/8, >1 paragraph 3/8, invented brand 0/8
+
+== Round 3: NEW + sections-are-not-paragraphs line (shipped)
+knees    NEW: stated 8/8, in opening 8/8, alpha line 0/8, >1 paragraph 1/8, invented brand 0/8
+roof     NEW: stated 8/8, in opening 8/8, alpha line 0/8, >1 paragraph 1/8, invented brand 0/8
+sticker  NEW: stated 8/8, in opening 0/8, alpha line 8/8, >1 paragraph 1/8, invented brand 0/8
+
+Reading: the alpha line is CORRECT only on the sticker case (transparent background asked). The opening check needs every stated detail (knees+water / roof+rain+umbrella) in sentence 1; the sticker opening is the RGBA line by design, hence 0/8 there.
