@@ -298,6 +298,197 @@ own wording, e.g. a supplied torso image).
      the lease, the box is crowded; then re-export raw/ (`export_raw.py`) + `node scripts/sync-raw-workflows.mjs`.
   5. Fabio's in-app eye test, UNRELEASED.md, Phase 4 graphics.
 
+2026-10-09 (Video edit 12):
+- **Step 1 DONE: every template in the video-editing format, positive only, in `flow_graph.py`** (Fabio read the
+  draft and said go). Template 1 (picture) = R2p's EDIT_SWAP with "handheld phone framing" -> "camera framing";
+  `flow_graph_ours.py` no longer carries EDIT_SWAP / `edit_format` (R2p preset now passes `kept=`). Dropped every
+  negation (GONE, "Do not show <Picture 1>", "never hold its pose", "without taking any person"); R5e's hair line kept
+  positively in retention ("all of the hair, its lengths over the shoulders and down the back included"). No picture:
+  the new look gets no <Subject N> (vendor: subjects come from reference assets), the words land in [Shot 1] as "The
+  new character: {words}". LOOK dict gone ({look} sits inside subject_definitions). Fabio's picks: template 6
+  (performance capture) opens `[reference generation]` (vendor 2.1: look from a picture, moves from a video), fall
+  back to `[video editing]` if it benches worse; sound stays `[video editing]`, not `+ audio reuse` (one change).
+- Graph: the masked line is now `{masked}` at the end of detailed_description (node 93 -> StringReplace 99), and the
+  constraint line (node 98, `TAIL`) is ALWAYS last, both routes. In-graph describe (bench `caption=True`): Input_Kept
+  is now the clip's ROOM (CAPTION_ASK[4]) for template 1 with a picture, the person for template 4 (nodes 174-176).
+- All six S presets (`run_flow.py`: S7 masked horns vs R1b, S3 picture room vs R3f, S1 swap keep vs R2p, S4 background
+  vs R4e, S5 head vs R5e, S6 outfit vs R6d; all `ours`, in-graph describe) validated offline against bench
+  object_info, 0 faults. Queued one lease PER run (`s_all.sh` / `s_one.sh` / `s_all.log`, this session's scratchpad).
+- **Step 3 BLOCKED on a peer:** MPI-1042 (session d2985589) claims `js/data/flowsRegistry.js`, `flowEnhance.js`,
+  `tests/flow-describe.test.cjs` with uncommitted edits. Message 6edaf541 asks it to resolve when released. The entry to
+  add: `{ to: 'Input_Kept', media: 'video1', frame: 'first', when: [op 1, Keep_Background true, { media: 'image1' }],
+  ask: videoEditAsk(`Describe only ${VIDEO_EDIT_PLACE}. Leave out any people.`) }` + its test.
+- **S7 (masked horns, ours + new prompt): 531 s vs R1b 460 s, and the R1b LOCK IS LOST.** `lag_full.py`: mean |lag|
+  1.11 (R1b 0.01), worst -6..+5; per frame (scratchpad `lag_series.py`) the box's face error sits at ~20 vs R1b 5-10
+  (the face in the box is re-drawn, head a touch off), and frames 53-69 trail the source by 1-6. Horns better, ears and
+  caption gone, no seam. Stage 1 was 10 x 6.3 s at 256 px (half the 512 crop), stage 2 3 x 10 s; the rest is the 25 GB
+  H3 TE running twice (once per refs node). Two variables moved, so **S7s = the new prompt on the SINGLE pass** is
+  queued (`s7s.log`): lock back = the graph broke it (masked route stays single pass, or stage 1 at the full crop);
+  still drifting = the prompt did. Sent `s7_vs_r1b.webm` + `s7_f62.jpg`.
+- Fabio (2026-10-09): masked on the single pass if S7s locks, ours for the whole frame - "whatever works best for each".
+- **TRAP for that: ONE graph cannot hold both H3 sections.** `MpiClearVram` is `OUTPUT_NODE = True` (MpiNodes `vram.py`),
+  and ComfyUI starts from EVERY output node; a lazy MpiIfElse only spares what sits DOWNSTREAM of it. The single pass
+  has 117, ours has 875 (frees the 25 GB TE before sampling), 711 (between stages), 861 (after decode) - so a combined
+  graph runs both H3s on every route. `flow_graph_ours.graph(masked_single_pass=True)` builds that combined graph
+  (574 Output_Preview dropped, swap LoRA ids 904/905) and is object_info-clean, but `check_combined.py` (scratchpad)
+  lists those output nodes: do NOT ship it as is. Ways out: (a) the app picks the workflow per route - a field-keyed
+  twin of `byModel` (`getUniversalWorkflow`, `modelRegistry.js:503`, its caller `commandExecutor.js:1350`,
+  `universal_workflows.js` + the byModel tests, the last three held by MPI-1042); (b) an MpiNodes change - a lazy,
+  switchable `MpiClearVram` (enabled=false never pulls its passthrough), then gate ours' three on "not masked";
+  (c) masked on ours after all, if S7s says the prompt broke the lock.
+- Fabio: **two graphs, the app picks** ((a) above). Waits on MPI-1042 freeing `universal_workflows.js` + tests.
+- **S3 (performance capture, `[reference generation]`, ours): PASSED on my look - 692 s vs R3f 971 s.** Stage 1
+  10 x 32 s, stage 2 3 x 60 s. Describer gave girl + bedroom (braids, bows, cream sweater, skirt, paw gloves, ears;
+  bed, vanity, carpet, blinds). Full swap in the picture's bedroom, opens clean, dance step for step incl. the back view
+  (both braids) and the arms-out end pose R3f missed; sharper than R3f. Sent `s3_vs_r3f.webm`; sheet `s3_sheet.png`.
+- **S7s (new prompt, SINGLE pass, masked horns): LOCKED - mean |lag| 0.01, worst 0..1, box error 5-10 = R1b exactly.**
+  484 s. So the two-stage graph broke S7's lock, not the prompt. Horns clean, ears + caption gone. => masked route =
+  single pass + the new templates. Sent `masked_three_way.webm`.
+- MPI-1042 committed + released the describe files (e7074e84e; message 6edaf541 resolved). DONE, uncommitted:
+  - `flowsRegistry.js` describe: Input_Kept = the clip's room (PLACE ask, first frame) for op 1 + Keep_Background true
+    + a picture; `tests/flow-describe.test.cjs` + case (11/11 pass).
+  - Route pick `byParams` (twin of byModel): `universal_workflows.js` flowVideoEdit -> `flow_video_edit_masked.json`
+    when Input_Target filled and Input_Operation != 4; `modelRegistry.getUniversalWorkflow(key, ids, params)`;
+    `commandExecutor.js:1860` passes `payload.injectionParams`; `smoke-workflows.mjs` smokes byParams files;
+    `inject-params-titles.test.cjs` counts them; `flow-model-choice.test.cjs` resolver + anchoring test (resolver
+    passes; anchoring RED until `flow_video_edit_masked.json` is exported).
+  - `export_raw.py` now writes BOTH: `flow_video_edit` = ours minus 574/570/571 (the stage-1 preview save, never
+    captured on a Flow run), `flow_video_edit_masked` = flow_graph single pass. NOT run yet: waits for S1/S4/S5/S6.
+- **S1 (swap, keep the video's room, room DESCRIBED from frame 0 = the app's path): = R2p.** 781 s. Describer: "a dimly
+  lit indoor space with a dark ceiling fan ... black countertop ... doorway ... two framed pictures". Room kept, full
+  swap, caption gone; same ~0.4 s late turn as R2p/R2d; the source's own play icon survives on frame 0 (R2p too).
+  Sent `s1_vs_r2p.webm`.
+- Docs updated (uncommitted): `existing-flows/video-edit.md` (two graphs, the format, the output-node trap, two-file
+  export, bench timings), `any-of-models.md` (one-line `byParams` pointer; file held at its 200-line budget),
+  `flow-packages.md` (no byParams in packages). smoke arm marked `arm: <file>` (smoke-flows counted a null arm as
+  a second default). RED until the masked file exists: flow-model-choice anchoring, inject-params-titles,
+  smoke-flows "wfFile exists" - all three only on `flow_video_edit_masked.json` ENOENT.
+- **EXPORTED both graphs** (before S4-S6 finished; masked was settled by S7s, re-export if a template changes):
+  raw committed 2f72ee04b (sync script, local, not pushed), generated API STAGED, 0 diffs vs builder, injection rules
+  green. Full suite 2820/2822 pass, 0 fail. Browser pane tab on :8188 (bench frontend) used for loadApiJson/serialize.
+- **S4 (background, ours + new template 4): FAILED the performance.** 671 s. Bedroom right, dancer's own look right
+  (describer kept her: blonde, black top, green shorts), back turn on time - but the ARMS are her own routine, not the
+  source's (frames 2/3/5/6 of `s4_sheet.png` differ; R4e followed). Split queued (`s4_split.sh` / `s4_split.log`):
+  **S4s** = new template on the single pass, **S4o** = R4e's exact old template on ours (`instr` override of node 74).
+  S4s follows -> op 4 is a graph problem (fix: op 4 -> the single-pass file via byParams); S4o follows -> the template.
+- **S5 (head, ours + new template 2): FAILED twice.** 761 s. (1) the blonde lengths are BACK under the dark bun (the
+  R5d hybrid) - R5e's "All of {who}'s own hair goes ..." line, rewritten positively into retention_analysis, does not
+  carry it; (2) the arms re-perform, as in S4. Pattern: S4/S5 = `[video editing]`, swap LoRA OFF, on ours -> own
+  moves; S1 (LoRA on) and S3 (`[reference generation]`) follow. **S4L / S5L = S4 / S5 with the swap LoRA forced on**
+  queued (`s_lora.sh` / `s_lora.log`, `lora` preset key sets node 21 to '1 > 0'). Hair needs its own fix after.
+- **S4s (new template 4, SINGLE pass): FOLLOWS the source move for move** (= R4e; sheet `s4s_sheet.png`, rows source /
+  R4e / S4 / S4s). 1011 s. So the new prompt is fine; ours with the LoRA off re-performs. S4L decides: ours + LoRA
+  for every whole-frame option, or ops 2-5 to the single-pass file (byParams).
+- **Fabio (2026-10-09): fix OURS rather than retreat** - the 4 min gained on 5 s grows with clip length. And S5 fails on
+  the hair too. Shipped graph read: stage 1 (Turbo on) = turbo LoRA, BasicScheduler beta 10 steps, euler, shift_video
+  12, at HALF size; stage 2 = the BASE model (586 picks 523 = EasyCache + shift when Turbo is on), euler 3 manual
+  sigmas 0.9035/0.6316/0.3158/0, BasicGuider cfg 1, refs `max`; windowing off at 576x1024 (739: 100000 frames).
+  The single pass = turbo, res_multistep, simple 8 steps, no explicit shift, full size. Suspects: stage 1's small
+  size/sampler, or stage 2 re-drawing 90% with the base model. Diagnostics queued: S4L/S5L (swap LoRA on both
+  stages), **S5p = S5 stopped after stage 1** (`preview` key: 567 is_preview -> Output_Preview `_stage1` file).
+- Template 2 + no-picture 2 hair line, positive: "All of <Subject 2>'s hair is <Subject 1>'s hair, at the length and
+  in the style it has in <Picture 1>: over the shoulders and down the back, <Subject 2> shows that hairstyle and only
+  that." (S5L and S5p carry it; the exported app graphs do NOT yet - re-export after.)
+- **S6 (outfit, ours): FAILED - identity leak + moves.** 771 s. Outfit right, but the picture girl's FACE and dark bun
+  came too (blonde lengths under the bun from behind); R6d kept the dancer. Points at stage 2 (base model, 90% re-draw,
+  picture at `max`). S4o cancelled (S4s already cleared the prompt; waiter pid killed, ticket released).
+  **S6z = S6 with stage 2 from 0.6316** (`sigmas2` key -> node 600; Fabio's `max` on stage 2 kept) queued (`s6z.log`).
+- Fabio: "she repeats the move on ours, that's why she gets behind and stays behind". `lag_series.py` on the head
+  swap (room unchanged, so frames compare): R5e +1/+2 throughout; S5 tracks frames 0-22, loses the source ~30-100
+  (|offset| >= 12), re-locks for the last second. (Whole-frame lag is MEANINGLESS when the room changes: S4s reads
+  as bad as S4 though it follows by eye.)
+- **S4L (swap LoRA on both stages): STILL out of step** (hands crossed for the head touch, a side turn for the back
+  view). LoRA ruled out; S5L cancelled (waiter killed). Latent upscaler ruled out by reading it: chunk=32 latent
+  frames, T=37 here -> 2 chunks, overlap 5, a 1:1 time-preserving weighted blend (`minimax_h3_latent_upscaler_3d.py`
+  forward), no frame can repeat. Left: stage 1 (half size, euler/beta 10, shift 12) or stage 2 (base, 0.9035).
+- **S5p (stage 1 only, `S5p_head_stage1_only_stage1_00001.mp4`, 288x512): SAME break as the final S5** (lag series
+  identical: tracks 0-22, lost ~30-100, re-locks at the end). => the break is born in STAGE 1; stage 2 keeps it.
+  Fabio: "the first few frames are repeated", with or without the LoRA. Shift is 12 in both (ComfyUI
+  `supported_models.MiniMaxH3.sampling_settings`), so not that. Prime suspect: node 519 `ModelAttentionBackend`
+  "comfy kitchen attention" = QUANTIZED INT8 attention (its own tooltip), on both stages, not in the single pass.
+  Stage-1-only splits queued (`s_stage1.sh` / `s_stage1.log`, `patch` preset key): **S5pa** 519 -> pytorch attention,
+  **S5pb** stage-1 sampler res_multistep + simple 8 (= the single pass's).
+- **S6z (outfit, stage 2 from 0.6316): = S6** - same face leak, same moves (sheet `s6z_sheet.png`), 681 s vs 771 s.
+  Confirms stage 1 owns BOTH faults (the picture's face too); stage-2 start is not the lever.
+- **S5pa (pytorch attention, stage 1): = S5p frame for frame**, and 51.5 s/it vs 31.9 - INT8 attention CLEARED, keep it.
+- **THE BUG, seen** (`s5p_frames18_48.jpg`, rows source / R5e / S5p): ~1 s in, S5p's stage 1 jumps BACK to the
+  clip's opening pose (hands at the chest) and even redraws the frame-0 play icon, then trails ~24 frames - Fabio's
+  "first few frames repeated". Core `MiniMaxH3References` encodes a ref VIDEO at its own size (`adapt_canvas` keeps a
+  smaller-than-canvas video as is; `ref_image_size` only sizes pictures), all 124 frames, no trim. So stage 1 gets a
+  576x1024 <Video 1> against a 288x512 target (2:1); the single pass has 1:1. **S5pr** = stage 1 with the clip
+  shrunk to the stage-1 size for node 330 (`ref1_small`: ImageScale 906 from node 60 at 621x620) queued (`s5pr.log`).
+- **S5pb (stage-1 sampler = the single pass's: res_multistep, simple 8): SAME break.** Sampler CLEARED. 450 s vs 551
+  (8 steps vs 10) - worth keeping in mind as a speed-up once sync is fixed.
+- **S5pr (clip shrunk to the stage-1 size for stage 1's refs): replay STAYS** (`s5pr_frames0_60.jpg`: from ~frame 24
+  it replays frames 8-16, never reaches the turn by 60) - but stage 1 is 3.3x CHEAPER (9.5 s/it vs 32, 260 s whole
+  run): keep `ref1_small` whatever fixes the sync. Cleared so far: attention, sampler, shift, upscaler, stage 2, ref
+  scale. Left: the turbo LoRA (trained 768p) at 288x512. Queued (`s_stage1b.sh`): **S5pn** stage 1 on the BASE model
+  (444 Turbo off = the graph's own non-turbo path, 25 steps), **S5pq** turbo at 0.75 size (620/621 -> 448x768).
+- **S5pn (BASE model, 25 steps, EasyCache skipped 12/25, 4.86 s/it, 280 s): SAME replay** at the same frames
+  (`s5pn_frames0_60.jpg`). Turbo CLEARED. Loaders identical to the single pass (same unet / TE / video VAE / audio
+  VAE files); 330 gets the same clip, picture, length, seed as 110. The ONLY difference left: the target size
+  (288x512 vs 576x1024; the picture is also sized to that area by `match`). Every stage-1 variant replays at the same
+  frame, so it is structural, not sampling. S5pq (0.75) decides whether it is the size.
+- **S5pq (turbo, 0.75 = 448x768): SAME replay, same frame.** 27.6 s/it. Every stage-1 variant (0.5/0.75, turbo/base,
+  euler-beta/res_multistep-simple, INT8/pytorch attention, ref at 576 or at stage size) replays at ~frame 24.
+  Ancestor diff of 565 vs 115 (scratchpad `ancestors.py`): beyond those, only shift_audio 4 (base path: 2), the six
+  `Input_Lora_*` MpiLoraModelClip 'None' pass-throughs (CLIP for the refs comes through them), the 873/875/879 pack +
+  MpiClearVram. Control queued: **S5h = the SINGLE PASS at half size** (render area 147456 -> 288x512, clip too)
+  (`s5h.log`). Replays -> H3 cannot follow at that size in any graph; follows -> ours' plumbing.
+- **S5h (single pass, half size): SAME replay** (170 s; frame 28 redraws the frame-0 play icon + opening pose,
+  `s5h_frames0_60.jpg`). Ours' plumbing CLEARED. But every S5 run carries the NEW template 2 and R5e (the only head
+  swap that followed) the OLD one -> **S5ho = S5h with R5e's exact old template 2** (`patch` on node 72, `OLD_T2` in
+  run_flow) queued (`s5ho.log`). Follows -> the new template 2 causes the replay, not the size.
+- **S5ho (OLD template 2, single pass, half size): SAME replay.** => **ROOT CAUSE: H3 loses the moves when it RENDERS
+  below ~full size** - 288x512 and 448x768 replay (~frame 24 jumps back to the opening) in ANY graph, with ANY prompt,
+  sampler, attention or model (turbo/base); the single pass at 576x1024 follows (R5e, S4s). So "ours" can never hold
+  sync with a half-size stage 1 for these edits (S1/S3 got away with it; op 2/3/4 do not). The speed lever that
+  survives: the REFERENCE clip's tokens (S5pr: stage 1 3.3x cheaper with the clip at stage size).
+  **S5sr = the single pass at FULL render size with the clip handed in at HALF size** (`ref_half`: 907/908 half
+  math -> ImageScale 906 -> 110.ref_video_1) queued (`s5sr.log`). Compare speed with R5e (991 s) and sync.
+- **S5sr (single pass, full render, clip at HALF size): IN SYNC** (lag +1 throughout = R5e) **in 461 s vs R5e 991 s**
+  (8 x 48 s/it vs ~105) - faster than ours too (S5 761 s). BUT the head barely swaps: the source's blonde hair stays
+  (front and back), the face only half changes (`s5sr_sheet.png`, `head_four_way.webm` sent). Two variables vs R5e
+  (half clip + new template 2): **S5sro = S5sr + R5e's old template 2** queued (`s5sro.log`).
+- **S5sro (half clip, OLD template 2): in sync (451 s), stronger swap than S5sr but a HYBRID** - face changes, dark bun
+  from behind, blonde lengths under it, the last frame reverts (`s5sro_sheet.png`). R5e (full clip) swapped fully. So
+  (1) the half-size clip weakens an identity edit, (2) the positive hair line is weaker than R5e's "All of {who}'s own
+  hair goes ...". Queued (`s_ref.sh`, old template kept): **S5s75** clip at 0.75 (`ref_frac`), **S5srL** half + swap LoRA.
+- **S5s75 (single pass, clip at 0.75, old template 2): FULL SWAP (= R5e), IN SYNC (lag +1), 641 s vs R5e 991 s
+  (-35%) and vs ours S5 761 s.** S5srL (half + LoRA): still the hybrid - the LoRA does not strengthen identity.
+  => **THE FIX: the whole frame on the SINGLE pass with the clip handed in at 0.75 of the render size.** Ours (two
+  stages) is out for this Flow: its half-size stage 1 cannot hold time (root cause above). If every option passes on
+  it, the Flow is ONE graph again (masked = crop 1:1, whole = clip at 0.75) and the `byParams` two-graph pick has no
+  consumer - remove it then. Queued (`s_x.sh` / `s_x.log`): S4x, S6x, S1x, S3x = every whole-frame option on it.
+  Open for Fabio: R5e's hair line back in template 2 (the positive rewrite failed twice).
+- **S4x (background, clip 0.75): PASS** - = S4s move for move, bedroom right, dancer as filmed; 661 s vs 1011 s.
+- **Fabio stopped the bench (17:57): other agents were waiting for the GPU.** S6x (outfit, clip 0.75) was left to finish
+  (`D:/WORK/Images/Outputs/mpi1036/S6x_outfit_ref075_00001.mp4`, NOT judged yet - compare with R6d: face kept? moves?).
+  S1x / S3x CANCELLED (loop killed). Fabio may move the remaining runs to RunPod (he checks); timings on his 16 GB
+  card are already in hand.
+- **INTERIM SAFETY (his app runs from this tree):** `comfy_workflows/flow_video_edit.json` + `raw/` = a COPY of the
+  single-pass masked file (`export_raw.GRAPHS` both `fg.graph`), so both routes run the single pass (in sync, slow).
+  Builder diff: 0 except template 2 (nodes 72/82) - the exported graphs predate the positive hair line in
+  `flow_graph.py`. Tests 122/122 (flow-model-choice, inject-params-titles, smoke-flows, flow-describe,
+  workflow-media-slots, user-flows, agent-flow-handover). `video-edit.md` carries an INTERIM banner.
+
+**NEXT (Video edit 13), in order:**
+1. Judge S6x (outfit, clip 0.75) vs R6d. Then run S1x + S3x (`run_flow.py` presets exist; one lease each; ASK Fabio
+   first whether local or RunPod, the box is shared).
+2. Fabio's call on template 2's hair line: R5e's "All of {who}'s own hair goes, the lengths over the shoulders and
+   down the back too; the hairstyle is the one in <Picture 1>." (worked) vs the positive line (failed twice: S5, S5sr).
+3. Build the fix into `flow_graph.py`: whole-frame route feeds `110.ref_video_1` the clip at 0.75 of the render size
+   (IfElse on node 23: masked keeps the crop 1:1); masked stays as is. One graph again: delete the `byParams` switch
+   (universal_workflows, modelRegistry `_paramHolds`, commandExecutor arg, smoke arm, the flow-model-choice test,
+   the inject-params-titles line, docs `any-of-models.md` pointer + `video-edit.md`), drop `flow_video_edit_masked.json`
+   + its raw, and `flow_graph_ours.py` stays as research only. Re-export (`export_raw.py`), sync, diff, full suite.
+4. Fabio's in-app eye test (both routes, app:isolated), UNRELEASED.md, Phase 4 graphics.
+- run_flow refactor: `build(name)` applies every bench override (`BENCH_KEYS`); scratchpad `check_graphs.py` now
+  validates through it (no copy of the override logic).
+- NEXT: judge S4 (background) / S5 (head) / S6 (outfit) as they land; if all pass -> Fabio's in-app eye test (both
+  routes; app:isolated, its own port), then UNRELEASED.md, Phase 4 graphics. Uncommitted: flowsRegistry, describe
+  test, byParams (universal_workflows, modelRegistry, commandExecutor, smoke-workflows, 2 tests), 3 docs, card files.
+
 ## Phase 1 - The hidden instructions, on the bench
 
 **Verify:** Fabio judges each option on 2-3 real clips; the winning instruction text for every

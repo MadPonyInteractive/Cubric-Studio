@@ -113,8 +113,8 @@ first**; `byModel` is only for candidates with no node set in common.
   ([ui/carousel-frame/fields.md](ui/carousel-frame/fields.md) § The model clauses).
 - **Pinned** by `tests/flow-model-choice.test.cjs` § 'the Extend Video pick selects the GRAPH'
   (slot member, file exists, every declared `Input_*` title and baked weight present in that arm)
-  and `inject-params-titles.test.cjs`, which reads a flow's graph as the SET of its files. A user
-  Flow package carries ONE graph: `byModel` is not offered there (`services/userFlows.js`).
+  and `inject-params-titles.test.cjs` (a flow's graph = the SET of its files). A package carries ONE
+  graph, no `byModel` (`userFlows.js`). On the run's VALUES: `byParams` ([video-edit](existing-flows/video-edit.md)).
 
 ## Do NOT reach for `modelFamily`
 

@@ -38,3 +38,16 @@ Side-by-sides sent to Fabio: `box_horns_side_by_side.webm`, `box_remove_side_by_
   source / R4e / A3: A3 matches R4e. PASS.
 - A2_swap_keep: Input_Look described (11521 ms), then `engine_dropped` at sampling step 6/8 when Fabio's live app quit
   and relaunched (19:40:10Z), killing the engine the isolated app borrowed. Not judged, not re-run.
+
+## Phase 3 - video-editing prompts, two graphs (Video edit 12, 2026-10-09)
+
+- Bench (our graph, every template in MiniMax's video-editing format, in-graph describe): S3 performance capture 692 s
+  PASS on my look vs R3f 971 s; S1 swap keeping the video's room (room DESCRIBED from frame 0) 781 s = R2p; S7 masked on
+  our graph 531 s LOST the lock (lag_full mean |lag| 1.11, worst -6..5); S7s same prompt on the single pass 484 s LOCKED
+  (mean |lag| 0.01, worst 0..1, = R1b). => masked = single pass, whole frame = ours (Fabio: two graphs, the app picks).
+- `export_raw.py push` -> bench frontend loadApiJson/serialize (118 + 79 nodes) -> `pull` -> `node scripts/sync-raw-workflows.mjs`:
+  raw committed 2f72ee04b, injection rules green on both. Synced API vs builder (scratchpad `diff_synced.py`): 118/118 and
+  79/79 nodes, 0 diffs (class, title, every input and link).
+- `node --test tests/flow-model-choice.test.cjs tests/inject-params-titles.test.cjs tests/smoke-flows.test.cjs
+  tests/flow-describe.test.cjs tests/workflow-media-slots.test.cjs tests/user-flows.test.cjs tests/agent-flow-handover.test.cjs`:
+  122/122. Full suite `node --test "tests/**/*.test.cjs"`: 2822 tests, 2820 pass, 0 fail, 2 skipped.

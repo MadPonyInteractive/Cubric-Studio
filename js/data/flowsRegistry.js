@@ -841,8 +841,10 @@ export const FLOWS = [
         ],
         // The picture put into words before the run (flowEnhance.js § describe): H3 mostly
         // ignores a picture its prompt does not describe (MPI-1036 bench: R2-R4 kept the clip,
-        // R2d/R3f/R4e/R5e passed described). The graph splices Input_Look after the picked
-        // template, and Input_Kept (the clip's own person, so a background change keeps them).
+        // R2d/R3f/R4e/R5e passed described). The graph splices Input_Look into the picked
+        // template, and Input_Kept: what the clip must KEEP - its own person for a background
+        // change, its own room for a person swap that stays there (R2p kept the room once it was
+        // named; R2o, unnamed, took the picture's).
         // First entry per target that holds wins: template 6 (the picture's room) before 1.
         describe: [
             { to: 'Input_Look', media: 'image1', when: [{ field: 'Input_Operation', is: 1 }, { field: 'Input_Keep_Background', is: false }],
@@ -856,6 +858,9 @@ export const FLOWS = [
             { to: 'Input_Look', media: 'image1', when: { field: 'Input_Operation', is: 5 }, ask: videoEditAsk('Describe the main subject of the image.') },
             { to: 'Input_Kept', media: 'video1', frame: 'first', when: [{ field: 'Input_Operation', is: 4 }, { media: 'image1' }],
                 ask: videoEditAsk(`Describe only ${VIDEO_EDIT_PERSON}.`) },
+            { to: 'Input_Kept', media: 'video1', frame: 'first',
+                when: [{ field: 'Input_Operation', is: 1 }, { field: 'Input_Keep_Background', is: true }, { media: 'image1' }],
+                ask: videoEditAsk(`Describe only ${VIDEO_EDIT_PLACE}. Leave out any people.`) },
         ],
     },
 

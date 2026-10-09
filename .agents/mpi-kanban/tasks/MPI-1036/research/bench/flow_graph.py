@@ -2,7 +2,8 @@
 # The authoring source until it is proven on the bench; then it is loaded into the ComfyUI frontend and exported
 # to comfy_workflows/raw/flow_video_edit.json (LiteGraph), which is what ships.
 #
-# One single-pass H3 r2v turbo graph (the shape Phases 1 and 2 passed), two routes:
+# One single-pass H3 r2v turbo graph (the shape Phases 1 and 2 passed; the Flow ships its H3 section swapped for the
+# shipped two-stage one, flow_graph_ours.py, Fabio 2026-10-08 late), two routes:
 #   masked  (Input_Target names an object): SAM3 finds it -> MpiMaskSquareBbox pad 64 (one still square for the
 #           clip) -> InpaintCropImproved 512 -> H3 + swap LoRA -> MpiGradeMatch band 48 -> InpaintStitchImproved
 #   whole   (Input_Target empty): the clip resized to ~0.59 MP -> H3 (swap LoRA only for Swap the person keeping
@@ -23,61 +24,208 @@ SAM3 = 'sam3.1_multiplex_fp16.safetensors'
 CROP = 512
 AREA = 576 * 1024  # whole-frame render area, the Phase 1 bench size
 
-KEEP_SHOT = ("the camera, framing, background, lighting, objects and all other people of <Video 1>")
-# R2/R3 kept the source person (only the picture's accessories came over): say their own look must go.
-GONE = "Nothing remains of how {who} looked: not their face, their hair or their clothes."
-MATCH = "Match {who}'s position, scale, pose, expression, mouth and every movement throughout the clip."
+# The instruction, in MiniMax's VIDEO-EDITING format (vendor h3-prompt-writing skill, references/ref-en.txt), POSITIVE
+# ONLY (Fabio, 2026-10-08): what stays is a subject marked fully_preserved, and what must not leak is never named.
+# Template 1 (picture) is the R2p prompt that kept the clip's room. {masked} is empty unless the route is masked.
+SRC = "subject_definitions:\n<Video 1> is the source video for the target video edit.\n"
+EDIT = "[video editing] The target video is an edited version of <Video 1>."
+STYLE = "The target video keeps the look of <Video 1>: its lighting, colour grade and camera framing."
+CAMERA = "The camera frames the shot exactly as <Video 1> does.{masked}"
+SOUND = "\n\noverall_soundscape: The sound of <Video 1> continues unchanged.\nnon_diegetic_music: N/A"
+SHOT = "<Video 1> (whole video): partially_preserved - the camera framing and movement, the light, the colour grade and the timing of every move are kept"
+ROOM = "(appears in [Shot 1]): fully_preserved - the room, its furniture, walls, objects and light stay exactly as in <Video 1>."
+MOVES = "move for move from the first frame, at the same place in the frame and the same size"
+MASKED = "\nOnly {target} changes; everything else stays exactly as it is in <Video 1>, and the framing follows <Video 1> exactly, frame for frame."
+# The constraint line (rendering faults only, the H3 guide's last line) runs on the masked route too (Fabio,
+# 2026-10-08): without "no text" R1 re-drew the caption inside the box garbled; with it the caption is erased cleanly.
+TAIL = ("No text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no "
+        "warped anatomy, no flicker.")
+
 PHOTO = {
-    1: ("Replace only {who} in <Video 1> with the character in <Picture 1>. Keep the character's identity, face, hair, "
-        "outfit and art style from <Picture 1>, and use it for the back of the head whenever they turn away. "
-        f"{GONE} Preserve {KEEP_SHOT}. {MATCH} Do not show <Picture 1> itself or its background.\n{{words}}"),
-    2: ("Replace only the head and face of {who} in <Video 1> with the head and face of the character in <Picture 1>: "
-        "their face, hair, skin and features from every angle, and the back of the head whenever {who} turns away. "
-        # R5/R5d kept the source's long lengths under the picture's bun: hair past the shoulders read as "body"
-        "All of {who}'s own hair goes, the lengths over the shoulders and down the back too; the hairstyle is the "
-        f"one in <Picture 1>. Keep {{who}}'s body, clothes and hands, and {KEEP_SHOT}. Match the head's position, angle, expression, mouth "
-        "and every movement throughout the clip. Do not show <Picture 1> itself, its body or its background.\n{words}"),
-    3: ("Change what {who} in <Video 1> wears to match <Picture 1>, taking only what is worn there, or the bare skin it "
-        "shows, never its face, pose or room. Keep {who}'s face, hair, body and every movement, and "
-        f"{KEEP_SHOT}; the clothes move and fold with the body.\n{{words}}"),
-    4: ("Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and "
-        "as the camera framing, kept exactly as it is; use <Picture 1> only as the location and its light, without "
-        "taking its composition, its camera angle, its grade or any person in it.\n"
-        "[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now "
-        "the location of <Picture 1>, its light falling on them. {words}"),
-    5: ("Use <Picture 1> as the reference for this change to <Video 1>: {words} Keep everything else exactly as it is "
-        "in <Video 1>: every person, their performance, every move and its timing, the camera framing, the room and "
-        "the light."),
-    6: ("Use <Picture 1> as the character, their face, hair, outfit and art style, and as the location and its light, "
-        "without taking its composition or its camera angle; use <Video 1> only as the performance of {who}, every "
-        "move, expression, mouth movement and its timing, and its camera framing, and take nothing else from it, not "
-        "its room, its performer's looks, its image quality, its grade or its text.\n"
-        # R3d opened on the picture's own mirror pose for ~0.8 s before dancing (Phase 1 E did the same)
-        "[Shot 1] The character from <Picture 1> performs exactly what {who} does in <Video 1>, move for move from "
-        f"the first frame, in the location of <Picture 1>. {GONE} Never show <Picture 1> itself or hold its pose. "
-        "{words}\n"
-        "The camera frames them exactly as <Video 1> does. No phone-video look: the picture quality of <Picture 1>."),
+    1: f"""{SRC}<Subject 1> is the character in <Picture 1>. {{look}}
+<Subject 2> is {{who}} in <Video 1>.
+<Subject 3> is the location of <Video 1>: {{kept}}
+
+summary:
+{EDIT} <Subject 1> takes the place of <Subject 2> and performs every move of <Subject 2> in <Subject 3>, with the camera, light and timing of <Video 1>.
+
+retention_analysis:
+{SHOT}; only the look of <Subject 2> changes.
+<Subject 1> (appears in [Shot 1]): attribute_transfer - the face, skin, hair, outfit and accessories of the character in <Picture 1> are transferred onto <Subject 2>.
+<Subject 2> (appears in [Shot 1]): partially_preserved - the position, scale, pose, every movement, expression and mouth movement are kept; the face, hair and clothes are those of <Subject 1>.
+<Subject 3> {ROOM}
+
+detailed_description:
+{STYLE}
+[Shot 1] In <Subject 3>, <Subject 1> performs exactly what <Subject 2> does in <Video 1>, {MOVES}, with the face, hair, outfit and accessories of <Picture 1> from every angle, the back of the head and outfit showing whenever <Subject 2> turns away. {{words}}
+{CAMERA}{SOUND}""",
+
+    2: f"""{SRC}<Subject 1> is the head of the person in <Picture 1>. {{look}}
+<Subject 2> is {{who}} in <Video 1>.
+<Subject 3> is the location of <Video 1>.
+
+summary:
+{EDIT} <Subject 2> has the head of <Subject 1> and keeps their own body, clothes and hands and every move, in <Subject 3>, with the camera, light and timing of <Video 1>.
+
+retention_analysis:
+{SHOT}; only the head of <Subject 2> changes.
+<Subject 1> (appears in [Shot 1]): attribute_transfer - the face, skin, eyes, features and whole hairstyle of <Picture 1>, and anything worn on the head, are transferred onto <Subject 2>.
+<Subject 2> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are those of <Subject 1>.
+<Subject 3> {ROOM}
+
+detailed_description:
+{STYLE}
+[Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, {MOVES}, with the head of <Subject 1> from every angle: its face, skin and features, and its hairstyle, the back of the head showing whenever <Subject 2> turns away. All of <Subject 2>'s hair is <Subject 1>'s hair, at the length and in the style it has in <Picture 1>: over the shoulders and down the back, <Subject 2> shows that hairstyle and only that. {{words}}
+{CAMERA}{SOUND}""",
+
+    3: f"""{SRC}<Subject 1> is the outfit worn in <Picture 1>. {{look}}
+<Subject 2> is {{who}} in <Video 1>.
+<Subject 3> is the location of <Video 1>.
+
+summary:
+{EDIT} <Subject 2> wears <Subject 1> and keeps their own face, hair and body and every move, in <Subject 3>, with the camera, light and timing of <Video 1>.
+
+retention_analysis:
+{SHOT}; only what <Subject 2> wears changes.
+<Subject 1> (appears in [Shot 1]): attribute_transfer - every garment and accessory of <Picture 1>, with its colour, pattern and material, or the bare skin it shows, is transferred onto <Subject 2>.
+<Subject 2> (appears in [Shot 1]): partially_preserved - the face, hair, body, position, scale, pose, every movement, expression and mouth movement are kept; what they wear is <Subject 1>.
+<Subject 3> {ROOM}
+
+detailed_description:
+{STYLE}
+[Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, {MOVES}, wearing <Subject 1>; the clothes move and fold with the body from every angle, the back of the outfit showing whenever <Subject 2> turns away. {{words}}
+{CAMERA}{SOUND}""",
+
+    4: f"""{SRC}<Subject 1> is the location in <Picture 1>. {{look}}
+<Subject 2> is {{who}} in <Video 1>, who stays exactly as filmed: {{kept}}
+
+summary:
+{EDIT} <Subject 2> performs every move of <Video 1> exactly as filmed, now in <Subject 1>, its light falling on them, with the camera framing and timing of <Video 1>.
+
+retention_analysis:
+<Video 1> (whole video): partially_preserved - the camera framing and movement and the timing of every move are kept; only the place around <Subject 2> changes.
+<Subject 1> (appears in [Shot 1]): fully_preserved - the place, its furniture, objects, surfaces, colours and light, seen from the camera of <Video 1>.
+<Subject 2> (appears in [Shot 1]): fully_preserved - the face, hair, body, clothes, position, scale, pose, every movement, expression and mouth movement stay exactly as in <Video 1>.
+
+detailed_description:
+The target video has the camera framing of <Video 1> and the light of <Subject 1>.
+[Shot 1] <Subject 2> moves exactly as in <Video 1>, {MOVES}, and the place around them is <Subject 1>, its light falling on them. {{words}}
+{CAMERA}{SOUND}""",
+
+    5: f"""{SRC}<Subject 1> is the main subject of <Picture 1>, the reference for this change. {{look}}
+
+summary:
+{EDIT} It makes the change described in [Shot 1], with <Subject 1> as its reference, and everything else plays exactly as filmed.
+
+retention_analysis:
+<Video 1> (whole video): partially_preserved - everything outside the change is kept exactly as filmed: every person, their performance, every move and its timing, the camera framing, the location and the light.
+<Subject 1> (appears in [Shot 1]): attribute_transfer - what the change asks for is taken from <Picture 1>.
+
+detailed_description:
+{STYLE}
+[Shot 1] <Video 1> plays exactly as filmed, {MOVES}, with this change, following <Subject 1>: {{words}}
+{CAMERA}{SOUND}""",
+
+    # Performance capture: the clip gives only the moves and the camera, so the vendor's task type is
+    # REFERENCE GENERATION, not video editing (ref-en.txt 2.1: appearance from <Picture 1>, motion from <Video 1>).
+    6: f"""subject_definitions:
+<Video 1> is the reference for the performance, the camera framing and the timing of the target video.
+<Subject 1> is the character whose appearance comes from <Picture 1> and whose every move, expression and mouth movement come from {{who}} in <Video 1>.
+<Subject 2> is the location of <Picture 1>, with its light. {{look}}
+
+summary:
+[reference generation] <Subject 1> performs every move of {{who}} in <Video 1> in <Subject 2>, with the camera framing and timing of <Video 1> and the picture quality of <Picture 1>.
+
+retention_analysis:
+<Video 1> (performance, camera framing and timing): fully_preserved - every move, expression, mouth movement and its timing, and the camera framing and movement, are kept.
+<Subject 1> (appears in [Shot 1]): fully_preserved - the face, skin, hair, outfit, accessories and art style of <Picture 1> are kept from every angle.
+<Subject 2> (appears in [Shot 1]): fully_preserved - the place, its furniture, surfaces, colours and light, seen from the camera of <Video 1>.
+
+detailed_description:
+The target video has the picture quality, light and colour of <Picture 1>.
+[Shot 1] In <Subject 2>, <Subject 1> performs exactly what {{who}} does in <Video 1>, {MOVES}, with the face, hair, outfit and accessories of <Picture 1> from every angle, the back of the head and outfit showing whenever they turn away. {{words}}
+{CAMERA}{SOUND}""",
 }
+
+# No picture: the words are the new look. A new character with no reference asset gets no <Subject N> label
+# (ref-en.txt 2.1: subjects are abstracted from reference assets), so the words land in [Shot 1].
 NO_PHOTO = {
-    1: f"Replace only {{who}} in <Video 1> with this new person: {{words}} {GONE} Preserve {KEEP_SHOT}. {MATCH}",
-    2: (f"Replace only the head and face of {{who}} in <Video 1>: {{words}} Keep {{who}}'s body, clothes and hands, and "
-        f"{KEEP_SHOT}. Match the head's position, angle, expression, mouth and every movement throughout the clip."),
-    3: (f"Change only what {{who}} wears in <Video 1>: {{words}} Keep {{who}}'s face, hair, body and every movement, and "
-        f"{KEEP_SHOT}; the clothes move and fold with the body."),
-    4: ("Use <Video 1> as {who} and their whole performance, their face, hair, clothes, every move and its timing, and "
-        "as the camera framing, kept exactly as it is; change only the place around them.\n"
-        "[Shot 1] {who} from <Video 1> moves exactly as in <Video 1>, move for move, and the place around them is now "
-        "this: {words}"),
-    5: ("Change <Video 1> like this: {words} Keep everything else exactly as it is in <Video 1>: every person, their "
-        "performance, every move and its timing, the camera framing, the room and the light."),
+    1: f"""{SRC}<Subject 1> is {{who}} in <Video 1>.
+<Subject 2> is the location of <Video 1>.
+
+summary:
+{EDIT} A new character, described in [Shot 1], takes the place of <Subject 1> and performs every move of <Subject 1> in <Subject 2>, with the camera, light and timing of <Video 1>.
+
+retention_analysis:
+{SHOT}; only the look of <Subject 1> changes.
+<Subject 1> (appears in [Shot 1]): partially_preserved - the position, scale, pose, every movement, expression and mouth movement are kept; the face, hair and clothes are those of the new character.
+<Subject 2> {ROOM}
+
+detailed_description:
+{STYLE}
+[Shot 1] In <Subject 2>, the new character performs exactly what <Subject 1> does in <Video 1>, {MOVES}, their face, hair and outfit holding from every angle, the back of the head and outfit showing whenever they turn away. The new character: {{words}}
+{CAMERA}{SOUND}""",
+
+    2: f"""{SRC}<Subject 1> is {{who}} in <Video 1>.
+<Subject 2> is the location of <Video 1>.
+
+summary:
+{EDIT} <Subject 1> has a new head, described in [Shot 1], and keeps their own body, clothes and hands and every move, in <Subject 2>, with the camera, light and timing of <Video 1>.
+
+retention_analysis:
+{SHOT}; only the head of <Subject 1> changes.
+<Subject 1> (appears in [Shot 1]): partially_preserved - the body, clothes, hands, position, scale, pose, every movement, the head's angle, expression and mouth movement are kept; the head, the face and all of the hair, its lengths over the shoulders and down the back included, are the new ones.
+<Subject 2> {ROOM}
+
+detailed_description:
+{STYLE}
+[Shot 1] In <Subject 2>, <Subject 1> performs exactly as in <Video 1>, {MOVES}, with the new head from every angle, the back of the head showing whenever <Subject 1> turns away. All of <Subject 1>'s hair is the new hair, at its new length and in its new style: over the shoulders and down the back, <Subject 1> shows that hairstyle and only that. The new head: {{words}}
+{CAMERA}{SOUND}""",
+
+    3: f"""{SRC}<Subject 1> is {{who}} in <Video 1>.
+<Subject 2> is the location of <Video 1>.
+
+summary:
+{EDIT} <Subject 1> wears a new outfit, described in [Shot 1], and keeps their own face, hair and body and every move, in <Subject 2>, with the camera, light and timing of <Video 1>.
+
+retention_analysis:
+{SHOT}; only what <Subject 1> wears changes.
+<Subject 1> (appears in [Shot 1]): partially_preserved - the face, hair, body, position, scale, pose, every movement, expression and mouth movement are kept; what they wear is the new outfit.
+<Subject 2> {ROOM}
+
+detailed_description:
+{STYLE}
+[Shot 1] In <Subject 2>, <Subject 1> performs exactly as in <Video 1>, {MOVES}, wearing the new outfit; the clothes move and fold with the body from every angle, the back of the outfit showing whenever <Subject 1> turns away. The new outfit: {{words}}
+{CAMERA}{SOUND}""",
+
+    4: f"""{SRC}<Subject 1> is {{who}} in <Video 1>, who stays exactly as filmed.
+
+summary:
+{EDIT} <Subject 1> performs every move of <Video 1> exactly as filmed, now in a new place, described in [Shot 1], its light falling on them, with the camera framing and timing of <Video 1>.
+
+retention_analysis:
+<Video 1> (whole video): partially_preserved - the camera framing and movement and the timing of every move are kept; only the place around <Subject 1> changes.
+<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, body, clothes, position, scale, pose, every movement, expression and mouth movement stay exactly as in <Video 1>.
+
+detailed_description:
+The target video has the camera framing of <Video 1> and the light of the new place.
+[Shot 1] <Subject 1> moves exactly as in <Video 1>, {MOVES}, and the place around them is new, its light falling on them. The new place: {{words}}
+{CAMERA}{SOUND}""",
+
+    5: f"""{SRC.rstrip()}
+
+summary:
+{EDIT} It makes the change described in [Shot 1], and everything else plays exactly as filmed.
+
+retention_analysis:
+<Video 1> (whole video): partially_preserved - everything outside the change is kept exactly as filmed: every person, their performance, every move and its timing, the camera framing, the location and the light.
+
+detailed_description:
+{STYLE}
+[Shot 1] <Video 1> plays exactly as filmed, {MOVES}, with this change: {{words}}
+{CAMERA}{SOUND}""",
 }
 NO_PHOTO[6] = NO_PHOTO[1]  # no picture, so there is no picture room to take
-TAIL_WHOLE = ("No text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no "
-              "warped anatomy, no flicker.")
-# The masked tail KEEPS "no text" (Fabio, 2026-10-08): without it R1 re-drew the caption inside the box garbled; with
-# it (the passed M3l run) the caption the box holds is erased cleanly. Text outside the box is never touched.
-TAIL_MASKED = ("Change only {target}; everything else stays exactly as it is in <Video 1>, and the framing follows "
-               "<Video 1> exactly, frame for frame.\n" + TAIL_WHOLE)
 
 # R2/R3/R4 ignored a picture the prompt did not DESCRIBE (Phase 1 E/F/G named it and worked). caption=True describes
 # the picture in-graph with the shipped image-describer encoder (dep `qwen3vl-abliterated-clip`, image_descriptor.json)
@@ -95,15 +243,6 @@ CAPTION_ASK = {
     4: f"Describe only {PLACE}. Leave out any people.",
     5: "Describe the main subject of the image.",
     6: f"Describe {PERSON}, and then {PLACE}.",
-}
-LOOK = {
-    1: "\nThe character in <Picture 1>: {look}",
-    2: "\nThe head in <Picture 1>: {look}",
-    3: "\nWhat is worn in <Picture 1>: {look}",
-    # R4d took the room AND the picture's person; Phase 1 G kept the dancer because it described her too.
-    4: "\nThe location of <Picture 1>: {look}\n{who} in <Video 1>, who stays exactly as filmed: {kept}",
-    5: "\n<Picture 1> shows: {look}",
-    6: "\nThe character and the location in <Picture 1>: {look}",
 }
 # Same chat framing as image_descriptor.json, which runs on this encoder in the shipped app.
 CAPTION_PROMPT = ("<|im_start|>system\nYou describe a reference picture for a video edit. Reply with one or two plain "
@@ -187,16 +326,18 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
 
     # ---- the instruction
     for i in range(1, 7):
-        g[f'7{i}'] = node('MpiText', f'Instruction {i} (picture)', string=PHOTO[i] + LOOK[i])
+        g[f'7{i}'] = node('MpiText', f'Instruction {i} (picture)', string=PHOTO[i])
         g[f'8{i}'] = node('MpiText', f'Instruction {i} (no picture)', string=NO_PHOTO[i])
     g['77'] = node('MpiAnySwitch10', 'Instruction (picture)', select=['22', 0], **{f'any_{i}': [f'7{i}', 0] for i in range(1, 7)})
     g['87'] = node('MpiAnySwitch10', 'Instruction (no picture)', select=['22', 0], **{f'any_{i}': [f'8{i}', 0] for i in range(1, 7)})
     g['90'] = node('MpiIfElse', 'picture ? : no picture', boolean=['11', 4], true=['77', 0], false=['87', 0])
-    g['91'] = node('MpiText', 'Tail (masked)', string=TAIL_MASKED)
-    g['92'] = node('MpiText', 'Tail (whole frame)', string=TAIL_WHOLE)
-    g['93'] = node('MpiIfElse', 'masked ? : whole frame', boolean=['23', 0], true=['91', 0], false=['92', 0])
-    g['94'] = node('StringConcatenate', 'Instruction + tail', string_a=['90', 0], string_b=['93', 0], delimiter='\n')
-    g['95'] = node('StringReplace', '{who}', string=['94', 0], find='{who}', replace=['15', 0])
+    g['91'] = node('MpiText', 'Masked line', string=MASKED)
+    g['92'] = node('MpiText', 'No masked line', string='')
+    g['93'] = node('MpiIfElse', 'masked ? line : none', boolean=['23', 0], true=['91', 0], false=['92', 0])
+    g['98'] = node('MpiText', 'Constraint line', string=TAIL)
+    g['94'] = node('StringConcatenate', 'Instruction + constraint line', string_a=['90', 0], string_b=['98', 0], delimiter='\n')
+    g['99'] = node('StringReplace', '{masked}', string=['94', 0], find='{masked}', replace=['93', 0])
+    g['95'] = node('StringReplace', '{who}', string=['99', 0], find='{who}', replace=['15', 0])
     g['96'] = node('StringReplace', '{target}', string=['95', 0], find='{target}', replace=['16', 0])
     g['97'] = node('StringReplace', '{words}', string=['96', 0], find='{words}', replace=['12', 0])
     look_in, kept_in = ['18', 0], ['19', 0]
@@ -218,17 +359,21 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
         g['164'] = node('RegexReplace', 'Trim the reply', string=['158', 0], regex_pattern='^[^A-Za-z0-9]+', replace='')
         g['160'] = node('MpiText', 'No picture, no description', string='')
         g['161'] = node('MpiIfElse', 'picture ? description : none', boolean=['11', 4], true=['164', 0], false=['160', 0])
-        # Change the background with a picture: also describe the person to KEEP, from the clip's first frame.
+        # With a picture, also describe what to KEEP from the clip's first frame: the person for a background change
+        # (R4d took the picture's person), the room for Swap the person in the video's room (template 1's <Subject 3>).
         g['165'] = node('ImageFromBatch', 'First frame', image=['31', 0], batch_index=0, length=1)
         g['166'] = node('ImageScaleToTotalPixels', 'First frame at 1 MP', image=['165', 0], upscale_method='nearest-exact',
                         megapixels=1, resolution_steps=16)
         g['167'] = node('MpiText', 'Describe the person to keep', string=CAPTION_PROMPT.replace('{ask}', CAPTION_ASK[1]))
-        g['168'] = node('TextGenerate', 'Describe the person in the clip', clip=['140', 0], prompt=['167', 0],
+        g['174'] = node('MpiText', 'Describe the room to keep', string=CAPTION_PROMPT.replace('{ask}', CAPTION_ASK[4]))
+        g['176'] = node('MpiMath', 'Background? (keep the person, else the room)', a=['22', 0], math_expression='a == 4')
+        g['175'] = node('MpiIfElse', 'background ? person : room', boolean=['176', 0], true=['167', 0], false=['174', 0])
+        g['168'] = node('TextGenerate', 'Describe what to keep in the clip', clip=['140', 0], prompt=['175', 0],
                         image=['166', 0], **gen)
         g['169'] = node('RegexReplace', 'Trim the reply', string=['168', 0], regex_pattern='^[^A-Za-z0-9]+', replace='')
-        g['170'] = node('MpiMath', 'Background with a picture?', a=['22', 0], b=['11', 4],
-                        math_expression='(a == 4) * b > 0')
-        g['171'] = node('MpiIfElse', 'background ? person : none', boolean=['170', 0], true=['169', 0], false=['160', 0])
+        g['170'] = node('MpiMath', 'Background or the video room, with a picture?', a=['22', 0], b=['11', 4],
+                        math_expression='((a == 4) + (a == 1)) * b > 0')
+        g['171'] = node('MpiIfElse', 'keep ? clip description : none', boolean=['170', 0], true=['169', 0], false=['160', 0])
         look_in, kept_in = ['161', 0], ['171', 0]
     g['162'] = node('StringReplace', '{look}', string=['97', 0], find='{look}', replace=look_in)
     g['172'] = node('StringReplace', '{kept}', string=['162', 0], find='{kept}', replace=kept_in)

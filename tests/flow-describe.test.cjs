@@ -73,9 +73,20 @@ test('a background change also describes the clip\'s own person, from its first 
     assert.equal(kept.media, 'video1');
     assert.equal(kept.frame, 'first');
     assert.match(kept.ask, /Describe only the main person/);
-    for (const op of [1, 2, 3, 5]) {
+    for (const op of [2, 3, 5]) {
         assert.ok(!fe.describeAsks(flow, run(op), [CLIP, PIC]).some(a => a.to === 'Input_Kept'), `op ${op}`);
     }
+});
+
+test('a person swap that keeps the clip\'s room describes that room, from its first frame', async () => {
+    const { fe, flow } = await load();
+    const kept = fe.describeAsks(flow, run(1), [CLIP, PIC]).find(a => a.to === 'Input_Kept');
+    assert.equal(kept.media, 'video1');
+    assert.equal(kept.frame, 'first');
+    assert.match(kept.ask, /Describe only the place.*Leave out any people/);
+    // Into the picture's room (template 6) the clip's room is not wanted; with no picture nothing is described.
+    assert.ok(!fe.describeAsks(flow, run(1, { Input_Keep_Background: false }), [CLIP, PIC]).some(a => a.to === 'Input_Kept'));
+    assert.deepEqual(fe.describeAsks(flow, run(1), [CLIP]), []);
 });
 
 test('a target that already holds text is not asked again', async () => {

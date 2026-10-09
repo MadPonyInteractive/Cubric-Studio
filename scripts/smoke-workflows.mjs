@@ -1643,6 +1643,14 @@ export function resolveFlowSmokeSet(reg, only) {
             entries.push({ id, op, arm: modelId, wfFile: wf, label: `${id}/${modelId}`,
                 requiredModelIds: smokeModelIds(flow.requiredModels, modelId), flowDepIds });
         }
+        // byParams arms (MPI-1036) — a route's own graph file. ponytail: smoked on its baked
+        // defaults, so a route its graph re-checks (Video Edit's mask, a blank target) runs its
+        // fallback path; inject the route's params here if a route ever needs proving on the Pod.
+        for (const r of wfDef.byParams || []) {
+            const arm = r.workflow.replace(/\.json$/, '');
+            entries.push({ id, op, arm, wfFile: r.workflow, label: `${id}/${arm}`,
+                requiredModelIds: smokeModelIds(flow.requiredModels, null), flowDepIds });
+        }
     }
     return entries;
 }

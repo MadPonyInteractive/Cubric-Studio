@@ -1857,7 +1857,8 @@ export function runCommand(payload) {
             // variance — resolve them first, verbatim.
             // MPI-591: a Flow whose model slot picks a different GRAPH resolves here —
             // `flowModelIds` is null for every non-Flow run, which keeps the old lookup.
-            const universal = getUniversalWorkflow(payload.operation, payload.flowModelIds);
+            // MPI-1036: a Flow whose ROUTE picks a different graph (`byParams`) reads the run's values.
+            const universal = getUniversalWorkflow(payload.operation, payload.flowModelIds, payload.injectionParams);
             if (universal) {
                 workflowFile = universal;
             } else {

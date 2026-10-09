@@ -394,6 +394,17 @@ Flow graph (`research/bench/flow_graph.py`) through `run_flow.py`, 576x1024, tur
 - The clip's room for a person swap comes from the describer: the FlowDef needs a `describe` entry (op 1 + keep the
   video's room -> Input_Kept = the clip's first frame, PLACE ask), as Input_Kept already does for a background change.
 
+## Decided - Fabio, 2026-10-09 (Video edit 12)
+
+- **Every template in the video-editing format, positive only** (the draft he read): template 6 (performance capture)
+  opens `[reference generation]`, falling back to `[video editing]` only if it benches worse; the sound label stays
+  `[video editing]` (no `+ audio reuse`).
+- **One graph per route, whatever works best for each:** "There's no problem in having a single pass for ones and a
+  multi-pass for others." S7 (masked on our two-stage graph) lost R1b's sync lock; if S7s (the new prompt on the single
+  pass) locks again, the masked route keeps the SINGLE pass and the whole-frame route uses ours.
+- **Two graphs, the app picks** (same day): "we can have two graphs instead of one. The app picks the correct one for
+  the task." One graph cannot hold both H3s (`MpiClearVram` is an output node, so both would run - plan.md).
+
 ## Noticed
 - 2026-10-08: `scripts/sync-raw-workflows.mjs` refuses on ANY uncommitted generated workflow (a peer's staged `qwen_image_2_1.json` blocked a runtime-only raw sync) though orchestrate.py runs only when a `_template` raw changed; the guard could apply only then.
 - 2026-10-08: the Image Describer plugin (`pluginsRegistry.js` `image-describer`) is only the install gate for Remote's ComfyUI describe/enhance choice (`llmService.describeImage` comfy branch returns DESCRIBER_MISSING without it; `MpiLlmSettings` ENHANCER_PLUGIN_ID). Fabio wants it deprecated so descriptions always come from the Remote pick - card MPI-1045 (todo, research; first step = audit every plugin call site for an existing toast). Must land before Video Edit ships.
