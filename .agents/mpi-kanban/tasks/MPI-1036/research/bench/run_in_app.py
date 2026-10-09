@@ -16,7 +16,14 @@ PRESETS = {
     # the app-side describe step: Input_Look (the room) + Input_Kept (the clip's first frame), bench twin R4e
     'A3_background': dict(video='mpi1036_source_24fps.mp4', image='mpi1036_girl_with_cat.png',
                           fields={'Input_Operation': 4, 'Input_Who': 'the blonde woman'}),
+    # Video edit 14: the SHIPPED graph's head swap (Faceswap LoRA + trigger) on the clean H3 test dancer, both routes;
+    # bench twins D2 (whole) / D4 (masked). The dep check must find the Faceswap file on G: (no download).
+    'E1_dancer_head_whole': dict(video='mpi1036_dancer_1088x1920.mp4', image='mpi1036_fabio_pink.png',
+                                 fields={'Input_Operation': 2, 'Input_Who': 'The blonde woman',
+                                         'positive': 'Her hair is shoulder-length with pink and orange highlights.'}),
 }
+PRESETS['E2_dancer_head_masked'] = dict(PRESETS['E1_dancer_head_whole'],
+                                        fields=dict(PRESETS['E1_dancer_head_whole']['fields'], Input_Target='Head'))
 
 
 def post(path, body, timeout=60):

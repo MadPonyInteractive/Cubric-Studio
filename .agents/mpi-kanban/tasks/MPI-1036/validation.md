@@ -63,3 +63,21 @@ Side-by-sides sent to Fabio: `box_horns_side_by_side.webm`, `box_remove_side_by_
   tests/workflow-media-slots.test.cjs tests/user-flows.test.cjs tests/agent-flow-handover.test.cjs tests/smoke-flows.test.cjs:
   121/121. Full suite node --test "tests/**/*.test.cjs": 2826 tests, 2824 pass, 0 fail, 2 skipped.
 - NOT yet: Fabio's in-app eye test (the head swap on the new template 2 + R5e hair line + 0.75 is unbenched).
+
+## Video edit 14 (2026-10-09) - mask square cap, Faceswap LoRA
+
+- Fabio's in-app masked "Head" runs failed: close-up crown left blonde (flowVideoEdit_004), dance clip box seam at the
+  hips (flowVideoEdit_003). Measured (median |result - source|, scratchpad boxfind.py): both pasted squares = frame width
+  (448 / 1072) - MpiMaskSquareBbox capped and cut the mask. Fix nodes 55/24; the new expression checked on MpiNodes'
+  own safe_math (448/448/800 -> False, 300/448/800 -> True).
+- T1 (his close-up, fixed graph): 576x1024 out = whole-frame fallback, crown fixed, follows the side turn (~3 frames
+  early on the way back). Fabio: likeness much better than his masked run.
+- Faceswap LoRA (UntMods, sha256 = HF lfs, no 'lora key not loaded'): T2 = T1 + it, Fabio: same likeness (screen
+  recording). Clean 1088x1920 H3 dancer (gen_dancer.py, 435 s): D1 whole 430 s, D2 whole + Faceswap 422 s, D3 masked
+  591 s (bench runs the pre-88816c8 grade), D4 masked + Faceswap 611 s; D3/D4 in sync through the side turn, crown
+  clean. Fabio: D2 closer than D1; ship on both routes; D3 a lot worse than D2/D4.
+- Shipped: ee27e3a58 (square cap -> whole frame + docs), 85515d7de (Faceswap on op 2, dep minimax-h3-faceswap-lora).
+  Raw -> generated synced; generated wiring checked (25/145-149, turbo <- 148, refs prompt <- 149). All 51 bench
+  presets build. Full suite: 2834 tests, 2832 pass, 0 fail.
+- NOT yet: in-app run of the shipped graph with the Faceswap dep (app restart + dep check), push (master red on
+  MPI-623's bdfc432fe, its fix 1973b7c60 in CI).

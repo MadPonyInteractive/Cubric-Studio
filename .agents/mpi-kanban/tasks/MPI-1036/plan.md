@@ -581,7 +581,24 @@ own wording, e.g. a supplied torso image).
 - Bench T1 (his close-up run, fixed graph -> should fall back) + T2 (T1 + Faceswap LoRA + trigger), queued in one
   lease behind MPI-1041's Qwen batch; log in session f255403e scratchpad `t12.log`.
 
-**NEXT (Video edit 14), in order:**
+- **SHIPPED (committed, push held by MPI-623's red master):** `ee27e3a58` square cap -> whole frame + docs (video-edit.md,
+  docs/agent/flows.md: when a mask pays, hair length); `85515d7de` Faceswap LoRA on op 2 both routes (nodes 25,
+  145-149; dep `minimax-h3-faceswap-lora` in loraDeps.js + flowsRegistry requiredDeps; licence gate is per Flow, so
+  no licences.js change). run_flow's bench `faceswap` key REMOVED (built in now); flow_graph_ours FLOW_H3 += 145-149.
+
+**NEXT (after Video edit 14), in order:**
+1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.
+2. In-app test of the shipped graph - Fabio could not (agents hold the GPU for hours), so it runs UNATTENDED: queued
+   2026-10-10 00:33 under the lease (`research/bench/overnight_inapp.py`: own app:isolated, run_in_app.py E1 whole + E2
+   "Head" on the test dancer, then a process-tree teardown). READ `research/bench/overnight_inapp.log` (+
+   `overnight_app.log`, `overnight_lease.log`): the E1/E2 lines carry each result's file path. Check: no Faceswap
+   download (file on G:), E2 masked in sync, faces like D2/D4; send Fabio a side-by-side (VP9 WebM). If the log is
+   missing or says "command not run", the lease timed out (12 h) - re-queue. It lives in session f255403e's
+   background: if that session was closed before it ran, re-queue the same command (header of overnight_inapp.py).
+3. Cosmo live check (checklist), MpiNodes pin via MPI-623 (message b74e6705), UNRELEASED.md roster + entry, Phase 4
+   graphics.
+
+**NEXT (Video edit 14), DONE above:**
 1. Fabio asked (2026-10-09): DOWNLOAD the H3 "Faceswap" LoRA (ref2va, trigger "Faceswap"; find the HF repo from
    https://hackernoon.com/faceswap-minimax-h3-lora-a-practical-guide-to-face-replacement) to `G:/CubricModels/loras/
    minimax-h3/`; state file + size first. Check its licence. Bench head swap on it vs today's (bench single pass +
