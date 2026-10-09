@@ -5,4 +5,5 @@
 - [x] Guards unchanged: toggle OFF, local engine, CPU download-mode Pod = no staging
 - [x] Test proves install-complete stages only that model and respects the guards
 - [x] Release-note bullet in docs/releases/UNRELEASED.md
-- [ ] Doc line in docs/runpod-remote-engine.md § Prefetch — peer MPI-1050 holds it; sent as message cc67cfc4
+- [x] Doc line in docs/runpod-remote-engine.md § Prefetch (8d78d223a, after MPI-1050 released the file)
+- [x] Live test passed (Fabio, 2026-10-09: SDXL Realistic install -> "queued 2/2 file(s) for 1 model(s)")

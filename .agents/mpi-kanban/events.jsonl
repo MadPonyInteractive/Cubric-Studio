@@ -5770,3 +5770,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1038", "at": "2026-10-09T11:27:36Z", "actor": "claude", "summary": "all six templates carry Use Tiles; Krea2/Klein 9B/Qwen 2.1 bench-proven; desktop spec green; waiting on Fabio in-app look"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1038", "at": "2026-10-09T11:27:36Z", "actor": "claude", "fields": ["maturity"]}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1052", "at": "2026-10-09T12:27:56+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Fix + test landed; waiting on CI."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1051", "at": "2026-10-09T12:42:33+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Live test passed (SDXL Realistic install staged at once); CI green on dcdbce40c and 8603eb686."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1052", "at": "2026-10-09T12:42:35+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 8603eb686 (run 37924025553)."}
