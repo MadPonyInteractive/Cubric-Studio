@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1050", "at": "2026-10-09T10:53:42+01:00", "actor": "agent", "from": "todo", "to": "doing", "reason": "implementation started: drop the once-per-session remote heal latch"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1050", "at": "2026-10-09T09:56:04Z", "actor": "agent", "fields": ["description", "maturity", "status", "title"]}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1050", "at": "2026-10-09T09:56:04Z", "actor": "agent", "summary": "tests + eslint pass; live check on the next Pod connect remains"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1050", "at": "2026-10-09T12:25:07+01:00", "actor": "agent", "from": "doing", "to": "done", "reason": "fix live-proven on Pod hupqy4ocz0lus6 (install + reconnect re-run), CI 37922285517 green"}

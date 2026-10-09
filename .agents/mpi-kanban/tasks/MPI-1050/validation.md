@@ -32,3 +32,4 @@ hand-yolov8n, person-yolov8n-seg, sam3-multiplex, taef2-decoder; ...` and, once 
 - ~1 min later the Pod ComfyUI lists `taef2_decoder` (vae_approx), `sam3.1_multiplex_fp16` (checkpoints), `qwen3vl_4b_abliterated_fp8_scaled` (text_encoders), `hand_yolov8n.pt` + `person_yolov8n-seg.pt` (ultralytics_bbox).
 - Fabio eye-test: Klein (upscale, grid) live previews "came out nicely" - TAESD, not Latent2RGB speckle.
 - 11:01:53Z Pod stopped + resumed on the same volume, app NOT restarted -> 11:02:33Z `remote install engine:assets: fetching nothing; 5 on the volume or in flight`. The second connect edge re-ran the install; the old session latch would have logged nothing. Fix proven live.
+- CI: run 37922285517 on origin/master (carries 02eff35b0 + the 03b63033b red fix) - success, unit + desktop shards 1-4.
