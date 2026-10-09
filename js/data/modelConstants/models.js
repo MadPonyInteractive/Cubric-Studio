@@ -1910,11 +1910,20 @@ const ALL_MODELS = [
         styleOps: ['t2i', 'i2i', 'control', 'edit', 'inpaint', 'detail', 'upscale'],
         // Index-aligned with the graph's trigger lines and its two MpiStyleLoras banks (bank 1 =
         // the five Danrisi photo looks, bank 2 = Detail Fix / Natural Exposure / Clay + two empty
-        // slots). Detail Fix has NO trigger: its line is empty on purpose. No card art yet: the
-        // picker shows placeholders until styleLoraImages lands.
+        // slots). Detail Fix has NO trigger: its line is empty on purpose.
         styleLoraLabels: [
             'None', 'Lenovo', 'Canon', 'Samsung', 'Film Stills',
             'Grainscape', 'Detail Fix', 'Natural Exposure', 'Clay',
+        ],
+        // Cards show an unbranded OBJECT per style, not a sample render (Fabio, 2026-10-09):
+        // the photo looks are camera emulators, indistinguishable at card size. One backdrop
+        // and light for all nine; prompts in tasks/MPI-936/research/style-card-prompts.md.
+        styleLoraImages: [
+            'qwen-image-21-style-none.webp', 'qwen-image-21-style-lenovo.webp',
+            'qwen-image-21-style-canon.webp', 'qwen-image-21-style-samsung.webp',
+            'qwen-image-21-style-filmstills.webp', 'qwen-image-21-style-grainscape.webp',
+            'qwen-image-21-style-detailfix.webp', 'qwen-image-21-style-naturalexposure.webp',
+            'qwen-image-21-style-clay.webp',
         ],
         // edit follows reference 1 (the encoder's latent); control is sized on the input;
         // detail stitches back into the source; upscale is the source times the factor.
@@ -1972,6 +1981,7 @@ const ALL_MODELS = [
             'qwen3vl-8b-int8-clip',       // stock Qwen3-VL-8B (Apache-2.0), shared with Boogu
             'vae-qwen-image-21',          // HF-primary, research licence
             'qwen-image-21-controlnet-union', // HF-primary, research licence; IS the control op
+            'taeqi21-decoder',            // live-preview decoder (assetDeps.js), R2, MIT
             // The style rack, in rack order (loraDeps.js). HF-primary; one loads at a time.
             'qwen-image-21-style-lenovo',
             'qwen-image-21-style-canon',

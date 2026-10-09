@@ -26,7 +26,9 @@ result is not for commercial use, and never pick it when another model can do th
 - A style rack on every op (`styleSelect`, Stylization 0.7): five photo looks (Lenovo,
   Canon, Samsung, Film Stills, Grainscape), Detail Fix, Natural Exposure and Clay. The
   style's trigger words are appended for you: never write them into the prompt. An `edit`
-  with an empty prompt and a style restyles the photo like a filter.
+  with an empty prompt and a style restyles the photo like a filter (a photo look may also
+  reframe it). With NO style an empty `edit` is not a no-op (a yellow raincoat came back
+  beige): give it a task.
 - Ratios in two size classes (`1k`, `2k`) on `t2i` and `i2i`. `edit`, `control`,
   `detail` and `upscale` follow the source; on `edit` the first image sets the output's
   size. The ratio is a param: never write it into the prompt.

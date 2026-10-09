@@ -73,3 +73,16 @@ test('Qwen-Image 2.1: eight styles, Detail Fix is the trigger-less one', async (
     assert.strictEqual(rack.lines[i - 1], '', 'Detail Fix has no trigger words');
     assert.match(rack.slots[i - 1], /detail-fix/);
 });
+
+test('style card images: one per label, every file on disk', async () => {
+    const { MODELS } = await import('../js/data/modelConstants/models.js');
+    const withArt = MODELS.filter(m => Array.isArray(m.styleLoraImages));
+    for (const m of withArt) {
+        assert.strictEqual(m.styleLoraImages.length, m.styleLoraLabels.length,
+            `${m.id}: ${m.styleLoraImages.length} card images vs ${m.styleLoraLabels.length} labels - the picker shows the wrong picture`);
+        for (const f of m.styleLoraImages) {
+            assert.ok(fs.existsSync(path.join(WF_DIR, 'display', f)), `${m.id}: missing comfy_workflows/display/${f}`);
+        }
+    }
+    assert.ok(withArt.some(m => m.id === 'qwen-image-2-1'), 'Qwen-Image 2.1 ships card art');
+});

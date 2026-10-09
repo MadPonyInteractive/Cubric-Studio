@@ -2,6 +2,20 @@
 
 ## Current State
 
+**2026-10-09 (session 180f15d1).** Edit-op picker DONE by MPI-1042's session 6080697a (message 6553101e resolved;
+`edit.components = ['styleSelect','stylization']` lands in THEIR next commit). 8 style LoRAs downloaded (Fabio's yes)
+to `G:/CubricModels/loras/qwen-image-2.1/styles/`, all sha256 == loraDeps.js. README Clay row reworded. Bench smoke
+PASS (validation.md): rack runs on t2i + empty-prompt edit; NO style + empty edit is not a no-op (agent guide line
+corrected, tests green). Card art generated (`scratchpad/art.py` of session 180f15d1: harbour-pier man, seed 21,
+896x1120 -> 512x640 `art/cards/qwen-image-21-style-<slug>.webp`, slugs none/lenovo/canon/samsung/filmstills/grainscape/
+detailfix/naturalexposure/clay) - VOID: **Fabio does the style generations + card art himself** (2026-10-09).
+**Preview decoder DONE (uncommitted):** `taeqi21-decoder` in assetDeps.js (R2, sha 992112ba, MIT, derived from
+madebyollin/taeqi2_1), dep of qwen-image-2-1 in models.js, docs/preview-decoders.md row; npm test 2825/0. Visual proof
+= his next Qwen 2.1 render with the file in `G:/CubricModels/vae_approx/` (NOT copied yet: ask). NO GPU runs by the agent
+without one line to Fabio first (he was rendering; bench restarted).
+OPEN for Fabio: brand-name labels (Lenovo = an old cheap phone, Canon = the 1Ds per Danrisi's Krea-2 card, Samsung =
+no model named; Chroma ships 'Lenovo' too and connector.js:626 resolves styleSelect BY LABEL).
+
 **2026-10-09 (session cd9258be): style rack WIRED, not yet run.** Raw edited by script (`rack_edit.py` pattern: nodes
 124 `Input_Style_Selector`, 125/126 banks, 127 `StringConcatenate` prompt + trigger -> encoders 30 and 36; links
 152/171/194 replaced), runtime converted (`RUNTIME == convert(raw)` proven BEFORE the edit), validator green. 8 deps in

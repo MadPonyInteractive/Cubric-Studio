@@ -1062,6 +1062,24 @@ export const assetDeps = {
         engineAsset: true,
         noMirror: true,
     },
+    // Qwen-Image 2.1 is NOT the Wan21 family below: ComfyUI gives it its own `QwenImage21`
+    // latent (64 ch, 16x, RGBA) naming `taeqi2_1_decoder`, which takes core's plain TAESD
+    // path (DecoderF16), not VIDEO_TAES, so the lighttaew corruption bug cannot reach it.
+    // Without it every Qwen 2.1 preview was Latent2RGB at 1/16 size (Fabio, MPI-936). Derived
+    // as taef2: madebyollin/taeqi2_1 (taeqi2_1.safetensors, sha 6578b31c…, MIT), decoder half
+    // with the N → N+1 shift, strict-loaded into TAESD(latent_channels=64) and decoded. A
+    // MODEL dep, not an engineAsset (Fabio): one owner, so it installs and GCs with Qwen 2.1.
+    'taeqi21-decoder': {
+        id: 'taeqi21-decoder',
+        name: 'TAESD preview decoder (Qwen-Image 2.1)',
+        origin: 'madebyollin/taeqi2_1',
+        filename: 'vae_approx/taeqi2_1_decoder.safetensors',
+        url: 'https://models.cubric.studio/vision/models/vae_approx/taeqi2_1_decoder.safetensors',
+        size: '14.59MB',
+        bytes: 15294728,
+        sha256: '992112baa2e31f321e4bfd9097666d5652107ff5fdacb373448887e1908a3e40',
+        noMirror: true,
+    },
     // *** DO NOT ADD THE `lighttaew*` DECODERS. *** They are the Wan21/Wan22/Qwen
     // family (which is Krea 2, Qwen Image, Qwen Image Edit AND Wan 2.2 — see the
     // table in docs/preview-bus.md), and they take ComfyUI's VIDEO_TAES branch,

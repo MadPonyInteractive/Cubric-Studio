@@ -128,6 +128,20 @@ const volumeEngineAssets = () => Object.values(DEPS)
             `${id} must live under vae_approx/ — ComfyUI looks nowhere else`);
         assert.ok(dep.sha256 && dep.sha256.length === 64, `${id} needs a real sha256`);
     }
+    // MPI-936 — the one core-read decoder with a single owner: Qwen-Image 2.1's own latent
+    // (`QwenImage21`) names `taeqi2_1_decoder`, and only that model uses it, so it is a
+    // MODEL dep (installs and GCs with Qwen 2.1, remote included, through the normal model
+    // install - not the engine-asset heal). The filename must START WITH the decoder name
+    // or the previewer silently falls back to Latent2RGB.
+    {
+        const dep = DEPS['taeqi21-decoder'];
+        assert.ok(dep, 'taeqi21-decoder missing from DEPS');
+        assert.notStrictEqual(dep.engineAsset, true, 'taeqi21-decoder is Qwen 2.1\'s own dep, not an engineAsset');
+        assert.ok(dep.filename.startsWith('vae_approx/taeqi2_1_decoder'),
+            'taeqi21-decoder must be vae_approx/taeqi2_1_decoder* - latent_formats.QwenImage21.taesd_decoder_name');
+        assert.strictEqual(_isImageResident(dep), false, 'taeqi21-decoder is not in the Pod image');
+        assert.ok(dep.sha256 && dep.sha256.length === 64, 'taeqi21-decoder needs a real sha256');
+    }
     // MPI-508 — the OTHER kind of preview decoder. taeh3 (H3) and taeltx2_3 (LTX) are
     // read by NODES in the graph, never by core's previewer: neither latent format
     // names a `taesd_decoder_name`, so `get_previewer` never looks for them. That is

@@ -30,6 +30,7 @@ taef1" is wrong and was written into this table once already.
 | SDXL Realistic / NSFW, ILL Anime (both), PONY Mix | `SDXL` | `taesdxl_decoder` | ✅ engineAsset, baked on Pod |
 | Chroma (both) | `Flux` | `taef1_decoder` | ✅ engineAsset, baked on Pod |
 | FLUX.2 Klein | `Flux2` | `taef2_decoder` | ✅ engineAsset, volume-installed on remote |
+| Qwen-Image 2.1 | `QwenImage21` (64 ch, 16x, RGBA: NOT `Wan21`) | `taeqi2_1_decoder` | ✅ `taeqi21-decoder`, a MODEL dep of Qwen 2.1 (its only owner, so it installs and GCs with it); core's plain TAESD path, not the lighttaew trap (MPI-936) |
 | **Krea 2, Qwen Image, Qwen Image Edit** | `Wan21` | `lighttaew2_1` | ❌ **deliberately never** — see below |
 | **Wan 2.2** | `Wan22` | `lighttaew2_2` | ❌ **deliberately never** — see below |
 | LTX | `LTXV` / `LTXAV` | none — core names no decoder | ✅ but NOT via this table — `ltx23-preview-taehv`, see below |

@@ -79,3 +79,23 @@ RGBA survives capture; `npm test`; agent read-back; Fabio eye-tests the NC tile 
   Accept and Install.
 - **MPI-1048 Stage 1 (shared GPU window):** after two recipe fixes (per-section sentence counts + limb rule; stated length
   350), sweeps 3 and 4 both 15/15 ALL PASS, words 227-299.
+- **Style rack bench smoke: PASS** (2026-10-09, session 180f15d1; shipped `comfy_workflows/qwen_image_2_1.json`, G: bench
+  engine 0.39.0, GPU lease, app injections only: `Input_Style_Selector.selector` + `.strength_model` 0.7, seed 5). The 8
+  LoRAs downloaded on Fabio's yes, all sha256 == `loraDeps.js`. t2i selector 0 (39 s) vs 1 Lenovo (28 s): Lenovo visibly
+  shifts the look (amateur light, busier kitchen). Edit, EMPTY prompt, display `qwen-image-2-1.webp`: selector 8 Clay
+  (41 s) = a faithful clay version of the scene (same pose, tram, yellow coat). **Finding:** selector 0 + empty prompt is
+  NOT a no-op: the yellow raincoat came back beige-floral. Follow-up, same source + seed: Lenovo (50 s) keeps scene and
+  colours but re-shoots the framing in its amateur look; Natural Exposure (42 s) near-identical, light evened. So any
+  style makes an empty edit a filter; only NO style goes random (agent guide says so).
+- **Qwen 2.1 live-preview decoder (2026-10-09, session 180f15d1, Fabio: "download the decoder, and it becomes a dependency
+  of the Qwen 2.1 model").** Cause of the blurry previews: Qwen 2.1 is ComfyUI latent `QwenImage21` (64 ch, 16x, RGBA,
+  `taesd_decoder_name = taeqi2_1_decoder`), NOT `Wan21`; no such file in `vae_approx/` -> silent Latent2RGB at 1/16
+  size. `madebyollin/taeqi2_1` (MIT, sha 6578b31c...) -> decoder half, index N -> N+1 (taef2 recipe) -> strict-loaded into
+  ComfyUI 0.39 `TAESD(latent_channels=64)` (DecoderF16), decode (1,4,1024,896) OK. `taeqi21-decoder` (sha 992112ba...,
+  15294728 B) on R2: rclone exit 0, `lsl` 15294728, public GET 15294728 + same sha. Model dep of qwen-image-2-1. The
+  bench before/after preview run was KILLED unfinished (Fabio was rendering; he restarted the bench): the visual proof is
+  his next Qwen 2.1 render once the file is in his `vae_approx/`.
+- **Style art is Fabio's** (2026-10-09): he generates and checks each style himself; the agent art run is void.
+- **Decoder visual proof (same day, Fabio freed the GPU):** bench, shipped runtime, t2i Lisbon prompt seed 21 896x1088,
+  preview frame at step 21/30: WITHOUT the file = Latent2RGB blur; WITH `taeqi2_1_decoder.safetensors` in the bench's own
+  `ComfyUI/models/vae_approx/` (not the shared store) = a sharp, correct-colour preview of the same frame. Sent to Fabio.
