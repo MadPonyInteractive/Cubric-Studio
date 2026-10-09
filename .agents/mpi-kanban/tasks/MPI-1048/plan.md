@@ -44,6 +44,26 @@ Stage 1 twice green; recipe validates as `draft`; read-back shows `guide:qwen-im
 
 ## Current State
 
+**2026-10-09 (session 3e2b8b66), REOPENED by a field failure.** Stage 1 is green (sweeps 3+4) and committed in
+ea0b707ef, but Fabio's own Enhance on RunPod (project "Qwen 2.1", cards t2i_011/t2i_012, source prompt "A woman in a
+monokini on a beach with water up to her knees") came back 385 words with her on DRY SAND, two paragraphs, two
+closing sentences, lighting after the close, and "a subtle drop shadow". His app's enhancer is DeepInfra (stored
+endpoint model `google/gemma-3-12b-it`), not the harness's gemma-4 12B.
+Root cause (recipe): rule 1 locks only the SUBJECT; the Sparse branch says "decide everything the user left open" and
+nothing protects the other details he stated. "drop shadow" is in the system prompt's welcome-terms list unqualified.
+Candidate fix: `keep-stated-details.patch` (rule 1 -> THE BRIEF IS FIXED, every stated detail in the first three
+sentences; Sparse fills only the gaps; drop shadow on a poster/sticker only). A/B on his exact input, 5 runs each
+(`knees-ab.txt`, harness engine path): gemma-4 12B kept the knees 4/5 -> 5/5; gemma-3 12B 3/5 -> 1/5 (its opening still
+says "on a tropical beach"; the contradiction regex may over-count "feet in the sand" under water - read the outputs).
+NOT applied: the recipe file is back at ea0b707ef.
+NEXT: (1) read the gemma-3 runs, tighten the patch (likely: make the stated details the opening sentence itself, and a
+self-check line); (2) test on DeepInfra `google/gemma-3-12b-it` = what the app runs (costs cents, say the price first);
+(3) a harness case for "short prompt carrying a hard detail" (shared TIERS affect every recipe: Fabio's call, or a
+recipe-local check); (4) apply, re-run Stage 1 twice, commit. The 2-paragraph / double-closing slip is gemma-3's;
+check it in the same DeepInfra run.
+
+Previous:
+
 Phases 1, 2, 4, 5, 6 done (2026-10-09): research + sources, recipe `js/data/recipes/qwen-image-2.1.recipe.js`
 registered (registry test count 13 -> 14), guide `docs/agent/models/qwen-image-2.1.md`, flux-2.md trimmed to a
 pointer, models.js `enhanceRecipe: 'qwen-image-2.1'`, read-back shows `guide:qwen-image-2.1`, agent tests green.

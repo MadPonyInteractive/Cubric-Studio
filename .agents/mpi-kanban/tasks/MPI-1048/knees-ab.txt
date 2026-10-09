@@ -1,0 +1,33 @@
+(node:34184) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/AI/Mpi/Cubric-Vision/js/data/recipes/styles.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\AI\Mpi\Cubric-Vision\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+gemma3:12b OLD run 1: knees=true contradicts=false paragraphs=1 closings=1 words=399
+    The image is a realistic photograph of a young adult woman in a monokini on a sandy beach, set against a background of deep turquoise water and a hazy cerulean sky. The sand stretches out, a pale cream expanse, gently sloping towards the water’s edge, reflecting the muted light of the overcast day, and several scattered seashells lie partially buried within the grains. In the upper-left corner, the woman's face is angled slightly away, her dark hair pulled back in a loose bun, revealing a smooth
+gemma3:12b OLD run 2: knees=false contradicts=false paragraphs=1 closings=1 words=329
+gemma3:12b OLD run 3: knees=true contradicts=true paragraphs=1 closings=1 words=342
+gemma3:12b OLD run 4: knees=true contradicts=false paragraphs=1 closings=1 words=367
+gemma3:12b OLD run 5: knees=true contradicts=false paragraphs=1 closings=1 words=306
+== gemma3:12b OLD: kept the knees on 3/5
+gemma3:12b NEW run 1: knees=false contradicts=false paragraphs=1 closings=1 words=339
+    The image is a realistic photograph of a young adult woman in a monokini on a tropical beach, set against a backdrop of deep turquoise water and a hazy, pale-blue sky. The beach itself is composed of fine, warm-terracotta sand that slopes gently towards the water's edge, with a scattering of bleached driftwood logs partially submerged in the shallows along the far right. In the upper-left corner, a cluster of vibrant green palm trees leans towards the water, their fronds swaying slightly in the 
+gemma3:12b NEW run 2: knees=true contradicts=false paragraphs=1 closings=1 words=379
+gemma3:12b NEW run 3: knees=true contradicts=true paragraphs=1 closings=1 words=343
+gemma3:12b NEW run 4: knees=true contradicts=true paragraphs=4 closings=1 words=415
+gemma3:12b NEW run 5: knees=true contradicts=true paragraphs=1 closings=1 words=371
+== gemma3:12b NEW: kept the knees on 1/5
+huihui_ai/gemma-4-abliterated:12b OLD run 1: knees=true contradicts=false paragraphs=1 closings=1 words=223
+    The image is a cinematic, realistic photograph of a woman in a monokini standing on a beach with turquoise water reaching her knees. The background features a hazy coastline under a soft afternoon sky, where pale gold sand stretches toward the horizon. The water's surface is broken by small, gentle ripples that catch the light in shades of emerald and aquamarine.
+huihui_ai/gemma-4-abliterated:12b OLD run 2: knees=true contradicts=false paragraphs=1 closings=1 words=222
+huihui_ai/gemma-4-abliterated:12b OLD run 3: knees=true contradicts=false paragraphs=1 closings=1 words=240
+huihui_ai/gemma-4-abliterated:12b OLD run 4: knees=true contradicts=true paragraphs=1 closings=1 words=249
+huihui_ai/gemma-4-abliterated:12b OLD run 5: knees=true contradicts=false paragraphs=1 closings=1 words=271
+== huihui_ai/gemma-4-abliterated:12b OLD: kept the knees on 4/5
+huihui_ai/gemma-4-abliterated:12b NEW run 1: knees=true contradicts=false paragraphs=1 closings=1 words=222
+    The image is a realistic photograph of a woman in a monokini standing on a beach with water reaching her knees. The background features a soft coastline under a vast, pale azure sky. The turquoise water ripples gently across the wet, golden-sand beach.
+huihui_ai/gemma-4-abliterated:12b NEW run 2: knees=true contradicts=false paragraphs=1 closings=1 words=258
+huihui_ai/gemma-4-abliterated:12b NEW run 3: knees=true contradicts=false paragraphs=1 closings=1 words=237
+huihui_ai/gemma-4-abliterated:12b NEW run 4: knees=true contradicts=false paragraphs=1 closings=1 words=204
+huihui_ai/gemma-4-abliterated:12b NEW run 5: knees=true contradicts=false paragraphs=1 closings=1 words=261
+== huihui_ai/gemma-4-abliterated:12b NEW: kept the knees on 5/5
+EXIT 0

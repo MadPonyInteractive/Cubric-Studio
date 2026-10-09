@@ -2,6 +2,23 @@
 
 ## Current State
 
+**2026-10-09 (session 3e2b8b66) - committed ea0b707ef, claims released.** int8 encoder everywhere (dep
+`qwen3vl-8b-int8-clip`, R2 + HF mirror), Qwen 2.1 steps 30 / LanPaint 20 / detail+upscale 15, raws edited by the agent
+(Fabio: the Qwen raw is script-exported spaghetti, his raw rule does not cover it), npm test 2800/0, licence gate seen on
+a RunPod install. Push blocked by a red master that is MPI-1038's (flow-library-filters spec, Tile Detailer flow);
+ea0b707ef rides out with the next push from this tree.
+**NEXT: a style rack on Qwen 2.1** (Fabio 2026-10-09, after checking the links): all five Danrisi photo looks
+(lenovo, filmstills, canon, samsung, grainscape - triggers + strength 0.7 on their cards), Clay Sculpture
+(prithivMLmods, pick a checkpoint), Natural Exposure (prithivMLmods), and e-n-v-y Qwen-Image-2.1-Fix-v2.0 AS A STYLE
+(Fabio: it changes the style, it does not add detail; NO licence stated on that repo - flag it on the dep). Doodle OUT
+(no examples). Klein's raw carries the rack shape; the Qwen raw is the agent's to edit (structural change: wire a style
+rack as Klein's, keep MpiClearVram). Deps HF-primary like the other 2.1 deps (research licence). Fabio's "filter" use:
+a style LoRA on the EDIT op with an empty prompt restyles a photo - make sure edit gets the rack too.
+Also open: a tile upscaler is being added to this graph by MPI-1038's agent (Fabio released the workflow to them) -
+re-read the raw before touching it.
+
+Previous (same session, before the commit):
+
 **2026-10-09 (session 3e2b8b66).** int8 encoder proven on Boogu + Qwen 2.1, on disk, on R2; dep `qwen3vl-8b-int8-clip`
 written, the three ModelDefs + three tests moved, old dep deprecated (17/17 dep tests green). Limb cause found on
 Fabio's own seeds: short prompt + 25 steps (validation.md). Fabio picked 30 steps, detail/upscale 15.
