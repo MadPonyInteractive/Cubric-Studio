@@ -511,6 +511,45 @@ own wording, e.g. a supplied torso image).
   label "Describe the new look", placeholder "e.g. short pink curls that end at the jaw". `declaredFields.js` text
   branch now passes `info` to MpiInput (status-bar hover; fields.md says so). description + agent flows.md updated.
   Flow tests 740/741 (1 skip), full suite before the last copy change 2825/0 fail.
+- **Describe reused on a repeat run** (Fabio): `flowEnhance.describeFlowRun` caches by [url, crop, frame, ask, describe
+  backend, describe model] in a session Map (`deps.cache` for tests; stubbed describers do not cache). Test added.
+- **Run 2 (his app, MASKED "Head", words "shoulder-length"): 11:09 vs whole-frame 7:21.** Hair still long (run 1's
+  describer ALSO said "shoulder-length": H3 keeps the clip's hair length when the picture does not show where it ends -
+  a model limit; a head-and-shoulders picture or a character sheet is the user's lever). Breakdown: SAM3 + crop 2:18,
+  loads 0:36, 8 steps 3:00 (21 s/it at 512), post 5:14. CPU bench (scratchpad `post_bench.py`, `grade_fix_bench.py`,
+  engine python, CUDA hidden): **MpiGradeMatch 3.2 s/frame** (97x97 max_pool2d ring per frame) and **crop
+  mask_fill_holes 0.85 s/frame** at 1072x1920; stitch ~0.03 s/frame.
+  - FIX 1 (MpiNodes 88816c8, pushed): ring separable + built once per still mask, identical output, 32.4 s -> 0.2 s /
+    10 frames; tests/test_grade.py 6/6. **NOT PINNED: MPI-623 (1afa8c46) holds node_lock.json (uncommitted db3bdc7 bump)
+    + MpiNodes changelog.md - message b74e6705 asks it to pin 88816c8 + add the changelog line.**
+  - FIX 2 (flow_graph node 54): mask_fill_holes False (one solid square = no-op), exported + synced (raw 49bb04537,
+    API staged, 0 diffs). device_mode stays cpu: gpu mode moves the WHOLE clip to VRAM (4K x 10 s = ~24 GB).
+  - Committed locally 347aca55f (one-graph + fields + describe cache + byParams removal), NOT pushed.
+  - Fabio said copy it in: the fixed grade.py is HAND-COPIED into his engine
+    (`engine/.../custom_nodes/ComfyUI-MpiNodes/grade.py`, gitignored; original = pre-fix HEAD, backup in session
+    c646905a scratchpad `grade_engine_backup.py`). The pin (MPI-623) makes it official; an engine node sync before
+    that may overwrite the copy with the old pin's file.
+  - **Run 3 (after restart, both fixes live, same masked head swap): 318.55 s = 5:19 vs 11:09** - describe 1.8 s,
+    SAM3 + crop 69 s (was 2:18), loads 38 s, 8 steps 3:05, post 20 s (was 5:14). Masked now beats whole frame (7:21).
+    Fabio: short hair "is a limitation" - H3 keeps the clip's hair length (doc it in video-edit.md + Cosmo).
+  - Mask reuse across runs: ComfyUI's own cache should skip SAM3 on an identical clip + target (loader has no
+    IS_CHANGED, path stable); run 2 was the first mask. UNVERIFIED - check the log on his next repeat.
+
+- Likeness: run 1 (whole) and run 3 (masked) give the SAME face - picture colouring, face shape nearer the dancer.
+  Fabio thinks it is the clip's quality / face distance and is testing a higher-quality video himself. Identity
+  adapters noted in brief.md `## Noticed` (Faceswap LoRA, RefMods, fal Realism, akatz).
+
+**NEXT (Video edit 14), in order:**
+1. Fabio asked (2026-10-09): DOWNLOAD the H3 "Faceswap" LoRA (ref2va, trigger "Faceswap"; find the HF repo from
+   https://hackernoon.com/faceswap-minimax-h3-lora-a-practical-guide-to-face-replacement) to `G:/CubricModels/loras/
+   minimax-h3/`; state file + size first. Check its licence. Bench head swap on it vs today's (bench single pass +
+   clip 0.75; lease per run, ASK before queueing - the box is shared). Ask Fabio for his higher-quality clip's result.
+2. Write the limits into `existing-flows/video-edit.md` + `docs/agent/flows.md`: hair LENGTH follows the clip unless
+   the picture shows where it ends (a bun works); a mask pays only on a small part that stays put. Then the Cosmo
+   live check (checklist).
+3. Pin: message b74e6705 to MPI-623 (pin MpiNodes 88816c8 + changelog line). Until pinned, Fabio's engine runs a
+   HAND-COPIED grade.py. Optional: a repeat masked run proves SAM3 + describe reuse (log: "reused").
+4. Push 347aca55f + the staged sync (raw 49bb04537 already local), UNRELEASED.md roster + entry, Phase 4 graphics.
 
 **NEXT (after Video edit 13): steps 1-3 below DONE. Left: step 4 - Fabio's in-app eye test (head swap first, then a
 masked edit), then the UNRELEASED.md roster + entry, then Phase 4 graphics.**
