@@ -48,6 +48,7 @@
 ## Fixes
 
 - **RunPod stages a model as soon as it installs.** With "Stage all models on connect" on, a model you installed while connected waited for the next connect, so its first generation was slow.
+- **Switching to a new RunPod volume mid-session gets the shared engine files too.** Klein previews looked like coloured noise there, and SAM3 masking and Describe had nothing to load until the app was restarted.
 - **Compare labels each side with its History name.** An imported image showed its full file path instead.
 - **Focus mode (F) shows your image again.** On an image it turned the whole screen black, with Compare on too.
 - **Enhance and Describe work on ComfyUI without installing anything first.** Without the Image Describer plugin or a Krea 2 model, Enhance failed with an error and Describe asked for the plugin. Their 4.88 GB text encoder now installs with the engine, and the plugin is gone.
