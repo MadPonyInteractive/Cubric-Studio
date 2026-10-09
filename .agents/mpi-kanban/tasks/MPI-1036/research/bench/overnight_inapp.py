@@ -39,7 +39,21 @@ for _ in range(240):  # 2 min
 if not url:
     log(f'app never printed READY (exit {app.poll()}); see overnight_app.log')
     sys.exit(1)
-log(f'app READY at {url}; running E1 + E2')
+# READY is the SERVER; a submit 2 s later got APP_UNAVAILABLE (Video edit 15) because no window
+# had subscribed to the job relay yet. /connector/capabilities says when one has.
+import json, urllib.request
+for _ in range(360):  # 3 min
+    try:
+        if json.loads(urllib.request.urlopen(url + '/connector/capabilities', timeout=5).read()).get('generationSubmit'):
+            break
+    except Exception:
+        pass
+    time.sleep(0.5)
+else:
+    log('no window subscribed to the job relay in 3 min; see overnight_app.log')
+    kill_tree(port)
+    sys.exit(1)
+log(f'app READY at {url}, window listening; running E1 + E2')
 try:
     r = subprocess.run([sys.executable, '-u', os.path.join(HERE, 'run_in_app.py'), url,
                         'E1_dancer_head_whole', 'E2_dancer_head_masked'], capture_output=True, text=True, timeout=4 * 3600)

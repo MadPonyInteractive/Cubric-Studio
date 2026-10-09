@@ -46,9 +46,16 @@ const withFrame = (f) => {
     const crop = flow?.steps?.find((s) => s.kind === 'crop' && s.role);
     return crop ? { ...f, fields: agentFieldSpecs(flow), frame: { param: 'frame', role: crop.role, ratios: CROP_LABELS, grow: ['up', 'down', 'left', 'right'] } } : f;
 };
+// MPI-1036: Video Edit came after the capture, so it gets the row `_listModels` builds for it.
+// `does` mirrors agentDispatch.js flowDoes, which cannot be imported here either.
+const flowRow = (flow) => ({
+    id: flow.id, title: flow.title,
+    does: flow.description.split(/(?<=[.!?])\s/)[0].split(/\s[—–]\s|:\s/)[0].replace(/[.!?]$/, '').trim(),
+    operation: flow.operation, installed: true, fields: agentFieldSpecs(flow), boxParams: [],
+});
 const MODELS = {
     ...CAPTURED,
-    flows: CAPTURED.flows.map(withFrame),
+    flows: [...CAPTURED.flows.map(withFrame), flowRow(getFlowById('video-edit'))],
     models: CAPTURED.models.map((m) => ({
         ...m,
         ops: m.ops.map((o) => ({
@@ -91,6 +98,9 @@ const PRODUCT_SHOT = { schema: 'cubric/routine/v1', name: 'product-shot', summar
 const SQUARE_ONLY = { ...PRODUCT_SHOT, name: 'square-only', summary: 'Crop it square', steps: [PRODUCT_SHOT.steps[0]] };
 const SHOTS = { id: 'sel_shots', name: '3 cards', set: [1, 2, 3].map((n) => ({
     id: `shot${n}.png`, filePath: `${PROJECT.folderPath}/Media/shot${n}.png`, itemId: `item_s${n}`, groupId: `grp_s${n}` })) };
+// MPI-1036: a dragged video CARD (MPI-867), handed over by reference, never staged.
+const DANCER = { id: 'i2v_004.mp4', name: 'i2v_004.mp4', filePath: `${PROJECT.folderPath}/Media/i2v_004.mp4`,
+    reference: true, mediaType: 'video', itemId: 'item_d', groupId: 'grp_d' };
 
 // ── Fixture edits ─────────────────────────────────────────────────────────────
 
@@ -123,6 +133,8 @@ const ROOM_LOOKS = {
     [ROOM_FULL.filePath]: said('Living room photographed from the doorway, looking toward the window wall. An orange accent wall on the left. A light grey L-shaped sectional sofa sits against the orange wall, chaise end toward the window. A low white oval coffee table in front of it on a cream rug. A potted fiddle-leaf fig in a white pot in the corner by the window. A black TV on a white low cabinet on the right wall. Beige tiled floor, daylight from the window.'),
     [ROOM_EMPTY.filePath]: said('Empty living room photographed from the window corner, looking back toward the doorway. The orange accent wall is now on the right side of the frame. Beige tiled floor, white walls, bare, no furniture at all. Daylight from behind the camera.'),
 };
+const DANCER_LOOK = said('A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.');
+const NO_VIDEO_EDIT = { ...MODELS, flows: MODELS.flows.filter((f) => f.id !== 'video-edit') };
 const PARK_LOOKS = {
     [PARK_FULL.filePath]: said('A woman in a red coat sitting on a wooden bench on the left side of a park path, facing the camera. A lamp post behind her, autumn trees, a pond on the right.'),
     [PARK_EMPTY.filePath]: said('The same park path seen from the pond side, looking back at the wooden bench, which is now centre-right. Lamp post behind the bench. Nobody in the picture.'),
@@ -678,6 +690,22 @@ const CASES = [
             if (swaps.length) f.push(`ran Head Swap on a box covering the whole person (${swaps.length}x)`);
             if (!/(head|box|measure|crop)/i.test(run.lastReply)) f.push('the reply does not tell the user what went wrong with the measurement');
             return f;
+        },
+    },
+    {
+        // MPI-1036 (Fabio, 2026-10-09): a change to a person in a clip is Video Edit's job,
+        // never an image editor on its first frame.
+        id: 'video-hair-to-video-edit',
+        title: 'changing the hair of the person in a video runs Video Edit on that video',
+        setup: { attachments: [DANCER], look: DANCER_LOOK, turns: ['Change her hair in this video to short pink curls.'] },
+        flip: { models: NO_VIDEO_EDIT },
+        check(run) {
+            const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
+            if (!ok.length) return ['never generated'];
+            const { flowId, modelId, operation, media = [] } = ok[0].args;
+            if (flowId !== 'video-edit') return [`ran ${flowId || `${modelId}/${operation}`}, not Video Edit`];
+            const role = media.find((m) => m.image === DANCER.id)?.role;
+            return role === 'video1' ? [] : [`the video went in as ${role || 'nothing'}, not video1`];
         },
     },
     {

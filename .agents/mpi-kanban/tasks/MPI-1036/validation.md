@@ -81,3 +81,10 @@ Side-by-sides sent to Fabio: `box_horns_side_by_side.webm`, `box_remove_side_by_
   presets build. Full suite: 2834 tests, 2832 pass, 0 fail.
 - NOT yet: in-app run of the shipped graph with the Faceswap dep (app restart + dep check), push (master red on
   MPI-623's bdfc432fe, its fix 1973b7c60 in CI).
+- Video edit 15, Cosmo routing (Fabio OK'd $0.10): new agentBench case `video-hair-to-video-edit` (a dragged video
+  card + "Change her hair in this video to short pink curls."; Video Edit added to the bench catalogue, which predates
+  it). `npm run agent:test -- --case video-hair-to-video-edit --runs 3`: 3/3 pass on DeepSeek-V4-Flash-0731, first
+  generate = flowId video-edit with the clip as video1. `--bite` (Video Edit removed): fails as it must, falls back to
+  minimax-h3-ref2va ref2v_ms. Spent $0.0243. tests/agent-bench.test.cjs 14/14.
+- Video edit 15, in-app run #1 (00:47) never generated: APP_UNAVAILABLE 2 s after server READY, no window subscribed
+  yet. overnight_inapp.py now waits for /connector/capabilities generationSubmit; re-queued 00:52.

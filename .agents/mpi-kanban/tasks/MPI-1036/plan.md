@@ -586,6 +586,11 @@ own wording, e.g. a supplied torso image).
   145-149; dep `minimax-h3-faceswap-lora` in loraDeps.js + flowsRegistry requiredDeps; licence gate is per Flow, so
   no licences.js change). run_flow's bench `faceswap` key REMOVED (built in now); flow_graph_ours FLOW_H3 += 145-149.
 
+**Video edit 15 (2026-10-10):** Cosmo routing DONE (agentBench case `video-hair-to-video-edit`, 3/3 + bite, $0.0243;
+services/agentBench.mjs uncommitted). In-app run #1 died on APP_UNAVAILABLE (submitted before the window subscribed);
+overnight_inapp.py now waits on /connector/capabilities, re-queued 00:52 behind MPI-623 + MPI-1041 leases. Step 2
+below still stands; then step 3 minus the Cosmo check.
+
 **NEXT (after Video edit 14), in order:**
 1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.
 2. In-app test of the shipped graph - Fabio could not (agents hold the GPU for hours), so it runs UNATTENDED: queued
