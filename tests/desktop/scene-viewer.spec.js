@@ -214,14 +214,15 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
             const r = document.querySelector('.mpi-scene-block__frame').getBoundingClientRect();
             return Math.round(r.width / r.height * 100) / 100;
         });
-        await expect(panel.locator('.mpi-scene-block__readout')).toContainText('Height 1.60 m · 24 mm · roll 0°');
+        // #readout, not the class: MPI-623 added #path-readout with the same class.
+        await expect(panel.locator('#readout')).toContainText('Height 1.60 m · 24 mm · roll 0°');
         await expect(panel.locator('button:has-text("Take picture")')).toBeEnabled();
         expect(await frameRatio(), 'the frame starts 16:9').toBe(1.78);
         await panel.locator('button:has-text("1:1")').click();
         await expect.poll(frameRatio, { message: '1:1 letterboxes the frame square' }).toBe(1);
         await holdKey(window, 'c', 300);
         expect((await getPose(window)).roll, 'C rolls the camera right').toBeGreaterThan(0.05);
-        await expect(panel.locator('.mpi-scene-block__readout')).not.toContainText('roll 0°');
+        await expect(panel.locator('#readout')).not.toContainText('roll 0°');
         // A picture's entry flies the camera back to where it was taken, frame and lens too.
         await panel.locator('.mpi-history-list__card').nth(1).click();
         const { aspect: _a, fillLine: _f, ...shotPose } = SHOT;
