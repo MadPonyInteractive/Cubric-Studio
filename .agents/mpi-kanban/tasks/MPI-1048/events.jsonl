@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1048", "at": "2026-10-09T08:08:27+01:00", "actor": "claude", "column": "todo", "title": "Qwen-Image 2.1 prompting guide for MCP, the in-app agent and Enhance"}
