@@ -64,11 +64,11 @@ doing/validating. Bench found detail-only on a SMALL picture redrew too much -> 
 guide_size 1024 / max_size 1536 (benched, adopted). Live in-app runs x2 + x1 landed with full
 sidecars; isolated instance stopped. Provisional preview = crop of the x2 bench run.
 2026-10-09 eye-test, part 1 (Fabio, on a 24 GB Pod, None, a photo smaller than a tile): "it just
-detailed the whole thing without tiles" - he wants to look at the workflow itself. Not yet
-diagnosed. Likely: ImpactMakeTileSEGS bbox 1024 makes a picture under 1024 px ONE tile, so
-detail-only is one whole-image pass (guide_size 1024 then samples it at ~1 MP). Ask his picture's
-size and what he expected (tiles on a small picture = a smaller bbox, or tiling only after an
-enlarge) before changing the graph. Pod: the run worked there (Impact baked in the image).
+detailed the whole thing without tiles". CAUSE CONFIRMED by Fabio ("I didn't account for that"):
+ImpactMakeTileSEGS bbox 1024 makes a picture under 1024 px ONE tile, so detail-only is one
+whole-image pass (guide_size 1024 then samples it at ~1 MP). Working as built, not a bug. Open:
+whether he still wants to review the workflow, or tiles on small pictures (a smaller bbox, or one
+derived from the picture - bench it first). Pod: the run worked there (Impact baked in the image).
 NEXT: that conversation; then Fabio's eye-test in his app (restart it first). On a "1":
 /mpi-flow-graphics (tile + hero), then the UNRELEASED.md entry, then close-out (commit raw +
 runtime + preview with `--only`; NOT via sync-raw-workflows while MPI-936's raw is dirty).
