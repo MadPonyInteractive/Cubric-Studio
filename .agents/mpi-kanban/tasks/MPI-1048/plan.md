@@ -49,8 +49,8 @@ applied and tightened: rule 1 = THE BRIEF IS FIXED, opening sentence carries eve
 holds; example in the rule is NOT the knees case, so the A/B is not rigged), never invent brands, a closing self-check,
 "sections are not paragraphs". Found and fixed on the way: gemma-3 appended the RGBA alpha sentence to 13/16 ordinary
 prompts (transparency now gated on the user's own words; 0/16 after, sticker still 8/8). Evidence `validation.md` +
-`deepinfra-ab.txt`. ~1.2 cents spent of a 2-cent cap. NEXT: Stage 1 twice (harness, gemma-4 + gemma-3 judge, running
-under the lease from this session), then commit. Open idea, not done: a harness tier for "short prompt with a hard
+`deepinfra-ab.txt`. ~1.2 cents spent of a 2-cent cap. Stage 1 sweeps 5+6 ALL PASS 15/15, committed + pushed
+771dc98c0. NEXT: Phase 7 only (Stage 2 renders, Fabio). Open idea, not done: a harness tier for "short prompt with a hard
 detail" + a transparency tier (shared TIERS = every recipe; Fabio's call).
 
 Previous: **2026-10-09 (session 3e2b8b66), REOPENED by a field failure.** Stage 1 is green (sweeps 3+4) and committed in

@@ -1891,7 +1891,10 @@ const ALL_MODELS = [
             controlStrength: true,
             // MPI-1038: the upscale branch carries the "Tile Upscale" group (Use Tiles).
             tileUpscale: true,
+            styleLoras: true,   // MPI-936: the rack sits after Input_Lora_6, ahead of every sampler
         },
+        // Danrisi's photo looks are made for 0.7 (their cards); the rest are fine there too.
+        controlDefaults: { stylization: 0.7 },
         opInject: {
             t2i:     { Input_wf_type: 1 },
             i2i:     { Input_wf_type: 2 },
@@ -1902,6 +1905,17 @@ const ALL_MODELS = [
             upscale: { Input_wf_type: 7 },
         },
         controlTypes: ['depth', 'pose', 'scribble', 'canny'],
+        // ONE graph, and the rack feeds the model every op samples with, so it is live on all
+        // seven (Klein's reach). Edit with an empty prompt + a style = a photo "filter" (Fabio).
+        styleOps: ['t2i', 'i2i', 'control', 'edit', 'inpaint', 'detail', 'upscale'],
+        // Index-aligned with the graph's trigger lines and its two MpiStyleLoras banks (bank 1 =
+        // the five Danrisi photo looks, bank 2 = Detail Fix / Natural Exposure / Clay + two empty
+        // slots). Detail Fix has NO trigger: its line is empty on purpose. No card art yet: the
+        // picker shows placeholders until styleLoraImages lands.
+        styleLoraLabels: [
+            'None', 'Lenovo', 'Canon', 'Samsung', 'Film Stills',
+            'Grainscape', 'Detail Fix', 'Natural Exposure', 'Clay',
+        ],
         // edit follows reference 1 (the encoder's latent); control is sized on the input;
         // detail stitches back into the source; upscale is the source times the factor.
         imageSizedOps: ['edit', 'control', 'detail', 'upscale'],
@@ -1942,7 +1956,7 @@ const ALL_MODELS = [
             },
         },
         gen_speed: 'balanced',
-        description: 'Qwen-Image 2.1 makes images from text AND edits them, with up to eight reference images, and it also does image-to-image, structure control (depth, pose, scribble, canny), inpaint, detail and upscale. Text-to-image and edits can return a transparent background: ask for "transparent background, alpha channel" in the prompt. Licensed for research or evaluation only. You confirm that before downloading, and it covers the images you make too: they are not for commercial use.',
+        description: 'Qwen-Image 2.1 makes images from text AND edits them, with up to eight reference images, and it also does image-to-image, structure control (depth, pose, scribble, canny), inpaint, detail and upscale. Text-to-image and edits can return a transparent background: ask for "transparent background, alpha channel" in the prompt. Eight styles are available on every operation (five photo looks, Detail Fix, Natural Exposure and Clay); pick one and run an edit with an empty prompt to restyle a photo like a filter. Licensed for research or evaluation only. You confirm that before downloading, and it covers the images you make too: they are not for commercial use.',
         workflows: {
             // ONE file for all seven ops.
             t2i:     'qwen_image_2_1.json',
@@ -1958,6 +1972,15 @@ const ALL_MODELS = [
             'qwen3vl-8b-int8-clip',       // stock Qwen3-VL-8B (Apache-2.0), shared with Boogu
             'vae-qwen-image-21',          // HF-primary, research licence
             'qwen-image-21-controlnet-union', // HF-primary, research licence; IS the control op
+            // The style rack, in rack order (loraDeps.js). HF-primary; one loads at a time.
+            'qwen-image-21-style-lenovo',
+            'qwen-image-21-style-canon',
+            'qwen-image-21-style-samsung',
+            'qwen-image-21-style-filmstills',
+            'qwen-image-21-style-grainscape',
+            'qwen-image-21-style-detailfix',
+            'qwen-image-21-style-naturalexposure',
+            'qwen-image-21-style-clay',
             '4x-NMKD-Siax',               // shared engineAsset (upscale op)
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',            // ImageResizeKJv2 - the i2i resize

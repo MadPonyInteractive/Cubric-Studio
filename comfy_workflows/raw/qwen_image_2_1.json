@@ -1,8 +1,8 @@
 {
   "id": "575e77e9-f3c9-40fe-bb6d-2027e56af489",
   "revision": 0,
-  "last_node_id": 123,
-  "last_link_id": 322,
+  "last_node_id": 127,
+  "last_link_id": 330,
   "nodes": [
     {
       "id": 1,
@@ -81,7 +81,7 @@
           "localized_name": "model",
           "name": "model",
           "type": "MODEL",
-          "link": 152
+          "link": 324
         },
         {
           "localized_name": "device",
@@ -291,8 +291,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            171,
-            194
+            328
           ]
         }
       ],
@@ -2061,7 +2060,7 @@
           "widget": {
             "name": "prompt"
           },
-          "link": 171
+          "link": 329
         },
         {
           "localized_name": "negative_prompt",
@@ -2510,7 +2509,7 @@
           "widget": {
             "name": "prompt"
           },
-          "link": 194
+          "link": 330
         },
         {
           "localized_name": "negative_prompt",
@@ -4018,7 +4017,7 @@
           "name": "model",
           "type": "MODEL",
           "links": [
-            152
+            323
           ]
         },
         {
@@ -7578,17 +7577,406 @@
       "widgets_values_named": {
         "boolean": true
       }
+    },
+    {
+      "id": 124,
+      "type": "MpiStyleSelector",
+      "pos": [
+        1897.44140625,
+        390
+      ],
+      "size": [
+        420,
+        320
+      ],
+      "flags": {},
+      "order": 60,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "link": 323
+        },
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "localized_name": "selector",
+          "name": "selector",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "selector"
+          }
+        },
+        {
+          "localized_name": "triggers",
+          "name": "triggers",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "triggers"
+          }
+        },
+        {
+          "localized_name": "strength_model",
+          "name": "strength_model",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "strength_model"
+          }
+        },
+        {
+          "localized_name": "strength_clip",
+          "name": "strength_clip",
+          "type": "FLOAT",
+          "link": null,
+          "widget": {
+            "name": "strength_clip"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "style",
+          "name": "style",
+          "type": "MPI_STYLE",
+          "links": [
+            325
+          ]
+        }
+      ],
+      "title": "Input_Style_Selector",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiStyleSelector"
+      },
+      "widgets_values": [
+        0,
+        "l3n0v0, amateur photo\nc2n0n, dslr photo, amateur photo, candid photo\ns2msun9, raw smartphone photo, amateur photo, available light\nfilm still, 35mm film still\ncolor film photography, 35mm color negative look, heavy film grain\n\nTransform the image with balanced neutral exposure\nTransform the image into a clay sculpture style",
+        1,
+        0
+      ],
+      "widgets_values_named": {
+        "selector": 0,
+        "triggers": "l3n0v0, amateur photo\nc2n0n, dslr photo, amateur photo, candid photo\ns2msun9, raw smartphone photo, amateur photo, available light\nfilm still, 35mm film still\ncolor film photography, 35mm color negative look, heavy film grain\n\nTransform the image with balanced neutral exposure\nTransform the image into a clay sculpture style",
+        "strength_model": 1,
+        "strength_clip": 0
+      }
+    },
+    {
+      "id": 125,
+      "type": "MpiStyleLoras",
+      "pos": [
+        2357.44140625,
+        390
+      ],
+      "size": [
+        370,
+        214
+      ],
+      "flags": {},
+      "order": 60,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "style",
+          "name": "style",
+          "type": "MPI_STYLE",
+          "link": 325
+        },
+        {
+          "localized_name": "lora_1",
+          "name": "lora_1",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "lora_1"
+          }
+        },
+        {
+          "localized_name": "lora_2",
+          "name": "lora_2",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "lora_2"
+          }
+        },
+        {
+          "localized_name": "lora_3",
+          "name": "lora_3",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "lora_3"
+          }
+        },
+        {
+          "localized_name": "lora_4",
+          "name": "lora_4",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "lora_4"
+          }
+        },
+        {
+          "localized_name": "lora_5",
+          "name": "lora_5",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "lora_5"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "style",
+          "name": "style",
+          "type": "MPI_STYLE",
+          "links": [
+            326
+          ]
+        },
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "links": null
+        },
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "links": null
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiStyleLoras"
+      },
+      "widgets_values": [
+        "qwen-image-2.1\\styles\\lenovo_qwen21.safetensors",
+        "qwen-image-2.1\\styles\\canon_qwen21.safetensors",
+        "qwen-image-2.1\\styles\\samsung_qwen21.safetensors",
+        "qwen-image-2.1\\styles\\filmstills_qwen21.safetensors",
+        "qwen-image-2.1\\styles\\grainscape_qwen21.safetensors"
+      ],
+      "widgets_values_named": {
+        "lora_1": "qwen-image-2.1\\styles\\lenovo_qwen21.safetensors",
+        "lora_2": "qwen-image-2.1\\styles\\canon_qwen21.safetensors",
+        "lora_3": "qwen-image-2.1\\styles\\samsung_qwen21.safetensors",
+        "lora_4": "qwen-image-2.1\\styles\\filmstills_qwen21.safetensors",
+        "lora_5": "qwen-image-2.1\\styles\\grainscape_qwen21.safetensors"
+      }
+    },
+    {
+      "id": 126,
+      "type": "MpiStyleLoras",
+      "pos": [
+        2757.44140625,
+        390
+      ],
+      "size": [
+        370,
+        214
+      ],
+      "flags": {},
+      "order": 60,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "style",
+          "name": "style",
+          "type": "MPI_STYLE",
+          "link": 326
+        },
+        {
+          "localized_name": "lora_1",
+          "name": "lora_1",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "lora_1"
+          }
+        },
+        {
+          "localized_name": "lora_2",
+          "name": "lora_2",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "lora_2"
+          }
+        },
+        {
+          "localized_name": "lora_3",
+          "name": "lora_3",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "lora_3"
+          }
+        },
+        {
+          "localized_name": "lora_4",
+          "name": "lora_4",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "lora_4"
+          }
+        },
+        {
+          "localized_name": "lora_5",
+          "name": "lora_5",
+          "type": "COMBO",
+          "link": null,
+          "widget": {
+            "name": "lora_5"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "style",
+          "name": "style",
+          "type": "MPI_STYLE",
+          "links": null
+        },
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            324
+          ]
+        },
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "links": null
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "links": [
+            327
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiStyleLoras"
+      },
+      "widgets_values": [
+        "qwen-image-2.1\\styles\\qwen2.1-detail-fix-2.0.safetensors",
+        "qwen-image-2.1\\styles\\Qwen-Image-2.1-Natural-Exposure-LoRA-4000.safetensors",
+        "qwen-image-2.1\\styles\\Qwen-Image-2.1-Clay-Sculpture-Style-3000.safetensors",
+        "None",
+        "None"
+      ],
+      "widgets_values_named": {
+        "lora_1": "qwen-image-2.1\\styles\\qwen2.1-detail-fix-2.0.safetensors",
+        "lora_2": "qwen-image-2.1\\styles\\Qwen-Image-2.1-Natural-Exposure-LoRA-4000.safetensors",
+        "lora_3": "qwen-image-2.1\\styles\\Qwen-Image-2.1-Clay-Sculpture-Style-3000.safetensors",
+        "lora_4": "None",
+        "lora_5": "None"
+      }
+    },
+    {
+      "id": 127,
+      "type": "StringConcatenate",
+      "pos": [
+        550,
+        1006
+      ],
+      "size": [
+        300,
+        130
+      ],
+      "flags": {},
+      "order": 61,
+      "mode": 0,
+      "title": "prompt + style trigger",
+      "inputs": [
+        {
+          "localized_name": "string_a",
+          "name": "string_a",
+          "type": "STRING",
+          "link": 328,
+          "widget": {
+            "name": "string_a"
+          }
+        },
+        {
+          "localized_name": "string_b",
+          "name": "string_b",
+          "type": "STRING",
+          "link": 327,
+          "widget": {
+            "name": "string_b"
+          }
+        },
+        {
+          "localized_name": "delimiter",
+          "name": "delimiter",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "delimiter"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            329,
+            330
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "StringConcatenate"
+      },
+      "widgets_values": [
+        "",
+        "",
+        " "
+      ],
+      "widgets_values_named": {
+        "string_a": "",
+        "string_b": "",
+        "delimiter": " "
+      }
     }
   ],
   "links": [
-    [
-      152,
-      55,
-      0,
-      2,
-      0,
-      "MODEL"
-    ],
     [
       153,
       11,
@@ -7732,14 +8120,6 @@
       30,
       10,
       "VAE"
-    ],
-    [
-      171,
-      5,
-      0,
-      30,
-      11,
-      "STRING"
     ],
     [
       172,
@@ -7916,14 +8296,6 @@
       36,
       0,
       "CLIP"
-    ],
-    [
-      194,
-      5,
-      0,
-      36,
-      3,
-      "STRING"
     ],
     [
       195,
@@ -8940,6 +9312,70 @@
       99,
       6,
       "*"
+    ],
+    [
+      323,
+      55,
+      0,
+      124,
+      0,
+      "MODEL"
+    ],
+    [
+      324,
+      126,
+      1,
+      2,
+      0,
+      "MODEL"
+    ],
+    [
+      325,
+      124,
+      0,
+      125,
+      0,
+      "MPI_STYLE"
+    ],
+    [
+      326,
+      125,
+      0,
+      126,
+      0,
+      "MPI_STYLE"
+    ],
+    [
+      327,
+      126,
+      3,
+      127,
+      1,
+      "STRING"
+    ],
+    [
+      328,
+      5,
+      0,
+      127,
+      0,
+      "STRING"
+    ],
+    [
+      329,
+      127,
+      0,
+      30,
+      11,
+      "STRING"
+    ],
+    [
+      330,
+      127,
+      0,
+      36,
+      3,
+      "STRING"
     ]
   ],
   "groups": [

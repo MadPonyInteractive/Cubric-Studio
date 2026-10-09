@@ -1029,4 +1029,112 @@ export const loraDeps = {
         bytes: 448564344,
         sha256: 'd1c5756064bdbc6738bf24e6152c011b8ddaf0b93585963c381c3216318900fb',
     },
+
+    // ── Qwen-Image 2.1 style LoRAs (MPI-936) ───────────────────────────────────
+    // Fabio's picks, 2026-10-09. All but Detail Fix are under the Qwen RESEARCH licence, so
+    // like every other 2.1 dep they come from the PUBLISHER, never R2, and have one route.
+    // The model's licence gate (licences.js, keyed by ModelDef id) covers them. Upstream
+    // filenames kept. sha256 = the HF tree API's lfs.oid.
+    'qwen-image-21-style-lenovo': {
+        id: 'qwen-image-21-style-lenovo',
+        name: 'Qwen-Image 2.1 Style — Lenovo',
+        origin: 'Danrisi/lenovo_qwen2.1 (lenovo_qwen21.safetensors, Qwen RESEARCH License)',
+        filename: 'loras/qwen-image-2.1/styles/lenovo_qwen21.safetensors',
+        url: 'https://huggingface.co/Danrisi/lenovo_qwen2.1/resolve/main/lenovo_qwen21.safetensors',
+        credit: { author: 'Danrisi', work: 'lenovo_qwen2.1', url: 'https://huggingface.co/Danrisi/lenovo_qwen2.1' },
+        size: '76.05MB',
+        bytes: 79743896,
+        sha256: '7f1e95c3ec1e9c7cea197f7b6f80f601af8e6b479f6ead78ab16df542f447c0e',
+        noMirror: true,
+    },
+    'qwen-image-21-style-canon': {
+        id: 'qwen-image-21-style-canon',
+        name: 'Qwen-Image 2.1 Style — Canon',
+        origin: 'Danrisi/canon_qwen2.1 (canon_qwen21.safetensors, Qwen RESEARCH License)',
+        filename: 'loras/qwen-image-2.1/styles/canon_qwen21.safetensors',
+        url: 'https://huggingface.co/Danrisi/canon_qwen2.1/resolve/main/canon_qwen21.safetensors',
+        credit: { author: 'Danrisi', work: 'canon_qwen2.1', url: 'https://huggingface.co/Danrisi/canon_qwen2.1' },
+        size: '76.05MB',
+        bytes: 79743888,
+        sha256: '5d59914dfaf18dee544862f5c41b333005fdeb11233f04cc44607beac08f9b1a',
+        noMirror: true,
+    },
+    'qwen-image-21-style-samsung': {
+        id: 'qwen-image-21-style-samsung',
+        name: 'Qwen-Image 2.1 Style — Samsung',
+        origin: 'Danrisi/samsung_qwen2.1 (samsung_qwen21.safetensors, Qwen RESEARCH License)',
+        filename: 'loras/qwen-image-2.1/styles/samsung_qwen21.safetensors',
+        url: 'https://huggingface.co/Danrisi/samsung_qwen2.1/resolve/main/samsung_qwen21.safetensors',
+        credit: { author: 'Danrisi', work: 'samsung_qwen2.1', url: 'https://huggingface.co/Danrisi/samsung_qwen2.1' },
+        size: '76.05MB',
+        bytes: 79743880,
+        sha256: 'd5b75fbd0a78c7642f0af49f11834d7217e3b7441ac86f2da2f598d4e0b370ee',
+        noMirror: true,
+    },
+    'qwen-image-21-style-filmstills': {
+        id: 'qwen-image-21-style-filmstills',
+        name: 'Qwen-Image 2.1 Style — Film Stills',
+        origin: 'Danrisi/filmstills_qwen2.1 (filmstills_qwen21.safetensors, Qwen RESEARCH License)',
+        filename: 'loras/qwen-image-2.1/styles/filmstills_qwen21.safetensors',
+        url: 'https://huggingface.co/Danrisi/filmstills_qwen2.1/resolve/main/filmstills_qwen21.safetensors',
+        credit: { author: 'Danrisi', work: 'filmstills_qwen2.1', url: 'https://huggingface.co/Danrisi/filmstills_qwen2.1' },
+        size: '76.05MB',
+        bytes: 79743888,
+        sha256: 'ad4812903c6f6b8966885d09dff23344422d0d1f8b2bebad038f8a802f55e30a',
+        noMirror: true,
+    },
+    'qwen-image-21-style-grainscape': {
+        id: 'qwen-image-21-style-grainscape',
+        name: 'Qwen-Image 2.1 Style — Grainscape',
+        origin: 'Danrisi/grainscape_qwen2.1 (grainscape_qwen21.safetensors, Qwen RESEARCH License)',
+        filename: 'loras/qwen-image-2.1/styles/grainscape_qwen21.safetensors',
+        url: 'https://huggingface.co/Danrisi/grainscape_qwen2.1/resolve/main/grainscape_qwen21.safetensors',
+        credit: { author: 'Danrisi', work: 'grainscape_qwen2.1', url: 'https://huggingface.co/Danrisi/grainscape_qwen2.1' },
+        size: '76.05MB',
+        bytes: 79743888,
+        sha256: 'b04b226561c5c3cc65a8e5f79a63a831ffb068d8bd3f156271650cb46e1dc2bf',
+        noMirror: true,
+    },
+    // NO LICENCE STATED on the repo (2026-10-09): the card names none and carries no LICENSE
+    // file. Shipped on Fabio's pick behind the model's research-licence gate; ask the author
+    // (e-n-v-y) before any commercial route. Fabio: a style, not a detail booster.
+    'qwen-image-21-style-detailfix': {
+        id: 'qwen-image-21-style-detailfix',
+        name: 'Qwen-Image 2.1 Style — Detail Fix',
+        origin: 'e-n-v-y/Qwen-Image-2.1-Fix-v2.0 (qwen2.1-detail-fix-2.0.safetensors, no licence stated)',
+        filename: 'loras/qwen-image-2.1/styles/qwen2.1-detail-fix-2.0.safetensors',
+        url: 'https://huggingface.co/e-n-v-y/Qwen-Image-2.1-Fix-v2.0/resolve/main/qwen2.1-detail-fix-2.0.safetensors',
+        credit: { author: 'e-n-v-y', work: 'Qwen-Image-2.1-Fix-v2.0', url: 'https://huggingface.co/e-n-v-y/Qwen-Image-2.1-Fix-v2.0' },
+        size: '52.26MB',
+        bytes: 54800124,
+        sha256: '3f00361145703a64c7b9812d7797079820a1f7b0dbb5768b9d3df1f3c7750dfa',
+        noMirror: true,
+    },
+    // An image-to-image adapter (trained on edits): its trigger is an instruction.
+    'qwen-image-21-style-naturalexposure': {
+        id: 'qwen-image-21-style-naturalexposure',
+        name: 'Qwen-Image 2.1 Style — Natural Exposure',
+        origin: 'prithivMLmods/Qwen-Image-2.1-Natural-Exposure-LoRA (Qwen-Image-2.1-Natural-Exposure-LoRA-4000.safetensors, Qwen RESEARCH License)',
+        filename: 'loras/qwen-image-2.1/styles/Qwen-Image-2.1-Natural-Exposure-LoRA-4000.safetensors',
+        url: 'https://huggingface.co/prithivMLmods/Qwen-Image-2.1-Natural-Exposure-LoRA/resolve/main/Qwen-Image-2.1-Natural-Exposure-LoRA-4000.safetensors',
+        credit: { author: 'prithivMLmods', work: 'Qwen-Image-2.1-Natural-Exposure-LoRA', url: 'https://huggingface.co/prithivMLmods/Qwen-Image-2.1-Natural-Exposure-LoRA' },
+        size: '80.06MB',
+        bytes: 83943952,
+        sha256: 'a8edea397ce55ae6e1a442f3ba963eb78beeb515d4fe7d217d496542317292b1',
+        noMirror: true,
+    },
+    // Image-to-image adapter too. Three checkpoints upstream (1000/2000/3000 steps), no
+    // recommendation from the author; Fabio picked 3000 (2026-10-09), no bench comparison.
+    'qwen-image-21-style-clay': {
+        id: 'qwen-image-21-style-clay',
+        name: 'Qwen-Image 2.1 Style — Clay',
+        origin: 'prithivMLmods/Qwen-Image-2.1-Clay-Sculpture-Style (Qwen-Image-2.1-Clay-Sculpture-Style-3000.safetensors, Qwen RESEARCH License)',
+        filename: 'loras/qwen-image-2.1/styles/Qwen-Image-2.1-Clay-Sculpture-Style-3000.safetensors',
+        url: 'https://huggingface.co/prithivMLmods/Qwen-Image-2.1-Clay-Sculpture-Style/resolve/main/Qwen-Image-2.1-Clay-Sculpture-Style-3000.safetensors',
+        credit: { author: 'prithivMLmods', work: 'Qwen-Image-2.1-Clay-Sculpture-Style', url: 'https://huggingface.co/prithivMLmods/Qwen-Image-2.1-Clay-Sculpture-Style' },
+        size: '80.06MB',
+        bytes: 83943944,
+        sha256: '8d59c75d75a9bb7764e90f045bb9b3f07f53c93445d112fbabd4bf7070dcccff',
+        noMirror: true,
+    },
 };

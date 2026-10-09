@@ -14,8 +14,8 @@
       "device": "auto",
       "dtype": "default",
       "model": [
-        "55",
-        0
+        "126",
+        1
       ]
     },
     "class_type": "QwenImage21Cache",
@@ -357,7 +357,7 @@
         0
       ],
       "prompt": [
-        "5",
+        "127",
         0
       ]
     },
@@ -473,7 +473,7 @@
         0
       ],
       "prompt": [
-        "5",
+        "127",
         0
       ]
     },
@@ -1611,6 +1611,73 @@
     "class_type": "MpiIfElse",
     "_meta": {
       "title": "Mpi If Else"
+    }
+  },
+  "124": {
+    "inputs": {
+      "selector": 0,
+      "triggers": "l3n0v0, amateur photo\nc2n0n, dslr photo, amateur photo, candid photo\ns2msun9, raw smartphone photo, amateur photo, available light\nfilm still, 35mm film still\ncolor film photography, 35mm color negative look, heavy film grain\n\nTransform the image with balanced neutral exposure\nTransform the image into a clay sculpture style",
+      "strength_model": 1,
+      "strength_clip": 0,
+      "model": [
+        "55",
+        0
+      ]
+    },
+    "class_type": "MpiStyleSelector",
+    "_meta": {
+      "title": "Input_Style_Selector"
+    }
+  },
+  "125": {
+    "inputs": {
+      "lora_1": "qwen-image-2.1\\styles\\lenovo_qwen21.safetensors",
+      "lora_2": "qwen-image-2.1\\styles\\canon_qwen21.safetensors",
+      "lora_3": "qwen-image-2.1\\styles\\samsung_qwen21.safetensors",
+      "lora_4": "qwen-image-2.1\\styles\\filmstills_qwen21.safetensors",
+      "lora_5": "qwen-image-2.1\\styles\\grainscape_qwen21.safetensors",
+      "style": [
+        "124",
+        0
+      ]
+    },
+    "class_type": "MpiStyleLoras",
+    "_meta": {
+      "title": "Mpi Style Loras"
+    }
+  },
+  "126": {
+    "inputs": {
+      "lora_1": "qwen-image-2.1\\styles\\qwen2.1-detail-fix-2.0.safetensors",
+      "lora_2": "qwen-image-2.1\\styles\\Qwen-Image-2.1-Natural-Exposure-LoRA-4000.safetensors",
+      "lora_3": "qwen-image-2.1\\styles\\Qwen-Image-2.1-Clay-Sculpture-Style-3000.safetensors",
+      "lora_4": "None",
+      "lora_5": "None",
+      "style": [
+        "125",
+        0
+      ]
+    },
+    "class_type": "MpiStyleLoras",
+    "_meta": {
+      "title": "Mpi Style Loras"
+    }
+  },
+  "127": {
+    "inputs": {
+      "delimiter": " ",
+      "string_a": [
+        "5",
+        0
+      ],
+      "string_b": [
+        "126",
+        3
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "prompt + style trigger"
     }
   }
 }

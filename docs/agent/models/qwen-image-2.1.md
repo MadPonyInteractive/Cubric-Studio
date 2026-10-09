@@ -22,8 +22,11 @@ result is not for commercial use, and never pick it when another model can do th
 
 ## Settings
 
-- One tier: 30 steps (`detail` and `upscale` 15), cfg 1. No negative field, no style
-  rack, a user LoRA rack only.
+- One tier: 30 steps (`detail` and `upscale` 15), cfg 1. No negative field.
+- A style rack on every op (`styleSelect`, Stylization 0.7): five photo looks (Lenovo,
+  Canon, Samsung, Film Stills, Grainscape), Detail Fix, Natural Exposure and Clay. The
+  style's trigger words are appended for you: never write them into the prompt. An `edit`
+  with an empty prompt and a style restyles the photo like a filter.
 - Ratios in two size classes (`1k`, `2k`) on `t2i` and `i2i`. `edit`, `control`,
   `detail` and `upscale` follow the source; on `edit` the first image sets the output's
   size. The ratio is a param: never write it into the prompt.

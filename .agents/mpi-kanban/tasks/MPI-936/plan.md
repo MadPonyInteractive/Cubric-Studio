@@ -2,6 +2,24 @@
 
 ## Current State
 
+**2026-10-09 (session cd9258be): style rack WIRED, not yet run.** Raw edited by script (`rack_edit.py` pattern: nodes
+124 `Input_Style_Selector`, 125/126 banks, 127 `StringConcatenate` prompt + trigger -> encoders 30 and 36; links
+152/171/194 replaced), runtime converted (`RUNTIME == convert(raw)` proven BEFORE the edit), validator green. 8 deps in
+`loraDeps.js` (HF-primary, noMirror, sha256 = HF lfs.oid; Detail Fix flagged "no licence stated"), ModelDef
+`styleLoras`, `styleOps` all seven, labels, `controlDefaults.stylization 0.7`, description line; doc row + agent guide.
+New guard `tests/style-rack-shape.test.cjs` (proven to bite). npm test 2817/0. All 8 dep URLs HEAD-checked (302,
+exact bytes). Committed at handoff as "wired, not run". ALSO FIXED + pushed d172f4257: Qwen 2.1 deps lacked
+`ComfyUI-Impact-Pack` although MPI-1038's Tile Upscale group uses its nodes (a Qwen-only install would fail every op).
+Fabio 2026-10-09: Clay = the 3000 checkpoint, no comparison (docs/models/qwen-image-2/README.md still says
+"not benched against 1000/2000": reword at close-out).
+BLOCKED on a peer: `edit.components` in `js/data/commandRegistry.js` is `[]`, file held by MPI-1042's session
+d2985589 with uncommitted edits; message 6553101e asks them to add `['styleSelect', 'stylization']`. Until then the
+picker mounts on every op except edit.
+NEXT: bench smoke of the rack (needs the 8 LoRAs, ~630 MB from HF, in the bench's loras/qwen-image-2.1/styles/;
+asked Fabio for the download, no answer yet), then style card art (`styleLoraImages`, one prompt, 9 cards: Fabio's eye).
+
+Previous:
+
 **2026-10-09 (session 3e2b8b66) - committed ea0b707ef, claims released.** int8 encoder everywhere (dep
 `qwen3vl-8b-int8-clip`, R2 + HF mirror), Qwen 2.1 steps 30 / LanPaint 20 / detail+upscale 15, raws edited by the agent
 (Fabio: the Qwen raw is script-exported spaghetti, his raw rule does not cover it), npm test 2800/0, licence gate seen on
