@@ -414,3 +414,44 @@ caption of the sheet's own clothes. ~80 s a run, out 1792x1120.
   is two runs (~16 s Klein + ~80 s Qwen); the clothes caption comes from the Flow's describer.
   Untested: the Klein arm of the rebuild (commercial-safe, two samplings), the age cut-off where the
   rebuild starts to matter (a 16-year-old is near adult size), more seeds.
+
+## 2026-10-10 - batch 18, the rebuild on the KLEIN arm (6 runs, Fabio's go: commercial-safe child ages?)
+
+`ARM=<klein|kleinshort|kleinviews> run_qrebuild.sh` (`pairs_rebuild<arm>_*.jpg`): batch 17 as is, on
+`flow_character_sheet_from_images_klein.json` (two samplings: portrait, then the body views). ~50-64 s a
+run. Three wordings, because Klein's PORTRAIT pass reads `Input_Positive` too (graph nodes 59 + 66):
+`klein` = batch 17's words; `kleinshort` = "A 10-year-old child." + clothes; `kleinviews` = the body
+words tied to "In the full-body views ...".
+
+- **FAIL, layout, every wording:** the right panel is no longer a close-up portrait - a full standing
+  figure (`klein`, `kleinviews`, both sheets) or a crouching one (`kleinshort`, photo). The bodies read
+  as a child's build on `klein` / `kleinviews`, and the photo's back hair turns long on `klein`.
+- **Verdict: the rebuild stays on the Qwen arm** (batch 17), so a child age at 12 and under makes a
+  non-commercial picture, like Body shape. Fabio's fallback rule (2026-10-10). A Klein rebuild would
+  need a graph change (size words to the body pass only) - not v1.
+
+## 2026-10-10 - batch 19, Fabio's STEPWISE shape on Klein: portrait first, then the bodies by reference (19 runs)
+
+Fabio: these are edit models - change the big portrait first, then use it as the reference for the bodies, on the
+halves, as MPI-1042 does; the front-body face is usually removed by the user (not scored). `qp2b.py` /
+`PHASE=1..4 run_qp2b.sh` (`pairs_p2b_*.jpg`, out `mpi1041_age/`). Two body arms: **ref** = an EDIT of the bodies half
+with the portrait as image 2; **p2b** = the bodies half DRAWN FRESH by MPI-1042's Klein graph with its pass-1
+portrait swapped for the given one (node 77 -> a LoadImage), so only the body pass reads the body words (the batch
+18 fix). ~16 s a portrait edit, ~35 s a p2b. Phase 1's child runs fed a mis-cropped portrait (batch 15's sheets are
+1 MP, not 1792 wide) - re-run in phase 2.
+
+| case | portrait step (Klein edit, right half) | bodies | verdict |
+|---|---|---|---|
+| child 10, photo | batch 15 de-age | ref: adult size kept; p2b (2 wordings): slimmer, reads ~13-14 | weak - Qwen rebuild (b17) stays |
+| child 10, fisher | batch 15 de-age | p2b: a child's build, hat, suit, tie | **PASS** |
+| heavyset, photo | fuller face, double chin | p2b: +17 / +20% width, jacket + jumper + boots kept | **PASS** |
+| muscular, fisher | v1 cut the beard; v2 took the jacket OFF; v3 (caption in it) drew a whole body | p2b: muscular, sleeves kept once told "full-length sleeves" | bodies PASS, portrait FAIL |
+| skinny, photo | v1 "any beard" ADDED a beard; v2 (caption in it) pasted legs + boots on her chest | p2b: -6 to -8% width, modest | FAIL |
+
+- **The p2b bodies work** (build + clothes, from the portrait alone, a full-height figure). **The portrait EDIT is the
+  weak link for body shape:** Klein reads every word literally there - a garment named lands in the frame, "beard"
+  adds one, "muscular" strips the jacket. Only heavyset passed clean.
+- An EDIT of the bodies keeps the figure's size whatever the reference (as batch 16) - redrawing is what changes it.
+- **Verdict:** Body shape stays on Qwen-Image 2.1 for v1 (3 of 3, batch 9) and a photoreal child's body on the Qwen
+  rebuild (batch 17). Klein stepwise is the commercial-safe road for both later: heavyset and a stylised child pass
+  now; muscular / skinny need portrait wording that names only what the close-up shows (open).

@@ -12,4 +12,6 @@
 - [x] Bench the exact-age prompts on Qwen-Image 2.1 (batch 12): weakest on age - out
 - [x] Tune the age wording (batches 13-15): neutral template + "what a child lacks" clause passes 3 of 3 on Klein
 - [x] Child-sized body (batches 16-17): edit wording fails; edit + from-images REBUILD passes on both sheets
-- [ ] Flow plan from the verdicts (/mpi-create-plan)
+- [x] Bench the rebuild on the Klein arm (batch 18): FAIL 3 wordings - Klein's portrait pass draws a full figure; rebuild stays Qwen
+- [x] Bench Fabio's stepwise shape, portrait first then bodies by reference (batch 19): heavyset + stylised child PASS on Klein; muscular / skinny portrait edits unstable; photoreal child reads teen
+- [ ] Flow plan from the verdicts (/mpi-create-large-plan)
