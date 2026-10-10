@@ -31,4 +31,10 @@ clip of a clothed child (`imported_002.mp4`, 2160x3840, 59.9 fps):
   store (`Media/.preview-assets/9049559a...mp4`, sha256 = `imported_002.mp4`), the renderer grabbed
   frame 0 (`.preview-assets/615ae891...png`, 11 MB, written 19:57:52Z) and the run was refused at
   19:57:53Z `(picture)`. Toast: "Refused: ... on a picture or clip that may show someone under 18".
-- Not run: an adult clip (the NO -> queued path is covered by `tests/child-safety-gate.test.cjs`).
+- Adult clip (a woman walking, 1080x1920, dropped from Downloads, no card): stored as
+  `.preview-assets/244d3b75...mp4`, frame 0 grabbed (`b551fad7...png`, 20:01:30Z), describer NO (no
+  refusal), judge `[childSafety] judge on endpoint (google/gemma-3-12b-it) answered ALLOW`
+  20:01:32.814Z, ComfyUI `got prompt` 20:01:32.883Z: queued and generating. Fabio stopped it.
+- Found by the test (Fabio): a non-Latin prompt with innocent words on a picture or clip of a
+  CHILD is refused, because the look asks only "could anyone be under 18", not what the words ask.
+  An English speaker's same edit is never looked at. Pre-existing since MPI-1056, images too.
