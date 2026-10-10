@@ -97,3 +97,8 @@ Side-by-sides sent to Fabio: `box_horns_side_by_side.webm`, `box_remove_side_by_
 - Fabio 2026-10-10 on the side-by-side: "Looks good". Halter leak on whole frame = known limit; Cosmo's guide
   (docs/agent/flows.md) now types "head" when the picture's clothes differ, video-edit.md records it. Agent-doc tests
   (corpus, prompt budget, connector tools, field constraints, recipe registry) 47/47.
+- Video edit 15, Fabio's three asks (OK'd $0.15): agentBench gradeVideoEdit (first ok generate = video-edit, clip as
+  video1, Input_Operation = op). Hair case tightened to op 5 (Swap the head would redraw the face); new
+  video-coat-to-outfit (op 3, coat in positive), video-buns-keeps-face (op 5, buns in positive), video-person-from-picture
+  (op 1, picture as image1). --runs 3: 12/12 pass, $0.0568. --bite: 4/4 fail for the named reason (beach -> op 4,
+  old man's face -> op 2, no picture -> no image1, no Video Edit -> bare H3). $0.0215. Round total $0.0783.

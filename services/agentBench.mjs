@@ -134,6 +134,8 @@ const ROOM_LOOKS = {
     [ROOM_EMPTY.filePath]: said('Empty living room photographed from the window corner, looking back toward the doorway. The orange accent wall is now on the right side of the frame. Beige tiled floor, white walls, bare, no furniture at all. Daylight from behind the camera.'),
 };
 const DANCER_LOOK = said('A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.');
+const NEW_PERSON = { id: 'att_person', name: 'new-person.png', filePath: 'C:/Temp/cubric-agent/attachments/att_person.png' };
+const NEW_PERSON_LOOK = said('Full-body photo of a tall woman with short curly red hair and freckles, in a green bomber jacket, black trousers and boots, standing in a park.');
 const NO_VIDEO_EDIT = { ...MODELS, flows: MODELS.flows.filter((f) => f.id !== 'video-edit') };
 const PARK_LOOKS = {
     [PARK_FULL.filePath]: said('A woman in a red coat sitting on a wooden bench on the left side of a park path, facing the camera. A lamp post behind her, autumn trees, a pond on the right.'),
@@ -288,6 +290,18 @@ const refusedParams = (run) => calledAll(run, 'generate')
     .filter((c) => /^INVALID_/.test(c.result?.error?.code || ''))
     .map((c) => `${c.result.error.code} on ${c.args.modelId}/${c.args.operation}`);
 const modelById = (id) => MODELS.models.find((m) => m.id === id);
+/** MPI-1036: the first ok generate, graded as Video Edit on the dragged clip with What to change = `op`. */
+const gradeVideoEdit = (run, op) => {
+    const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
+    if (!ok.length) return { failures: ['never generated'] };
+    const { flowId, modelId, operation, media = [], fields = {} } = ok[0].args;
+    if (flowId !== 'video-edit') return { failures: [`ran ${flowId || `${modelId}/${operation}`}, not Video Edit`] };
+    const failures = [];
+    const role = media.find((m) => m.image === DANCER.id)?.role;
+    if (role !== 'video1') failures.push(`the video went in as ${role || 'nothing'}, not video1`);
+    if (Number(fields.Input_Operation) !== op) failures.push(`What to change = ${JSON.stringify(fields.Input_Operation)}, not ${op}`);
+    return { fields, media, failures };
+};
 /** Where the created project got opened: `create_project` opens what it makes (a2b243de) and
  *  says `opened: true`; only when it could not does the model's own open_project count. */
 const openedAt = (calls, created, made) => (calls[created].result?.opened
@@ -695,17 +709,50 @@ const CASES = [
     {
         // MPI-1036 (Fabio, 2026-10-09): a change to a person in a clip is Video Edit's job,
         // never an image editor on its first frame.
+        // Swap the head (2) would redraw her face too, so a hair change is Anything else (5).
         id: 'video-hair-to-video-edit',
-        title: 'changing the hair of the person in a video runs Video Edit on that video',
+        title: 'changing the hair of the person in a video runs Video Edit on that video, face kept',
         setup: { attachments: [DANCER], look: DANCER_LOOK, turns: ['Change her hair in this video to short pink curls.'] },
         flip: { models: NO_VIDEO_EDIT },
+        check: (run) => gradeVideoEdit(run, 5).failures,
+    },
+    {
+        // MPI-1036 (Fabio, 2026-10-10): the three asks he expects Cosmo to just handle.
+        id: 'video-coat-to-outfit',
+        title: 'a new garment on the person in a video is Video Edit\'s Change the outfit',
+        setup: { attachments: [DANCER], look: DANCER_LOOK, turns: ['Change the shirt of this woman to a coat.'] },
+        flip: { turns: ['Make the room in this video a sunny beach.'] },
         check(run) {
-            const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
-            if (!ok.length) return ['never generated'];
-            const { flowId, modelId, operation, media = [] } = ok[0].args;
-            if (flowId !== 'video-edit') return [`ran ${flowId || `${modelId}/${operation}`}, not Video Edit`];
-            const role = media.find((m) => m.image === DANCER.id)?.role;
-            return role === 'video1' ? [] : [`the video went in as ${role || 'nothing'}, not video1`];
+            const { fields, failures } = gradeVideoEdit(run, 3);
+            if (fields && !/coat/i.test(fields.positive || '')) failures.push('the coat is not in positive');
+            return failures;
+        },
+    },
+    {
+        id: 'video-buns-keeps-face',
+        title: 'a new hairstyle on the person in a video is Anything else, never Swap the head',
+        setup: { attachments: [DANCER], look: DANCER_LOOK, turns: ['Change the hairstyle of this woman to two buns.'] },
+        flip: { turns: ['Give the woman in this video the face of an old man with a grey beard.'] },
+        check(run) {
+            const { fields, failures } = gradeVideoEdit(run, 5);
+            if (fields && !/bun/i.test(fields.positive || '')) failures.push('the buns are not in positive');
+            return failures;
+        },
+    },
+    {
+        id: 'video-person-from-picture',
+        title: 'the person in a video swapped for the person in a picture: Swap the person, picture as image1',
+        setup: {
+            attachments: [DANCER, NEW_PERSON],
+            look: { [DANCER.filePath]: DANCER_LOOK, [NEW_PERSON.filePath]: NEW_PERSON_LOOK },
+            turns: ['Change the person in this video to the person in this image.'],
+        },
+        flip: { attachments: [DANCER], turns: ['Change the person in this video to a red-haired man.'] },
+        check(run) {
+            const { media, failures } = gradeVideoEdit(run, 1);
+            const role = media?.find((m) => m.image === NEW_PERSON.id)?.role;
+            if (media && role !== 'image1') failures.push(`the picture went in as ${role || 'nothing'}, not image1`);
+            return failures;
         },
     },
     {
