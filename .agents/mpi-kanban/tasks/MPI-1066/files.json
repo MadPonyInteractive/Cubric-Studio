@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1066/",
+    "js/data/modelConstants/models.js",
+    "js/data/modelConstants/assetDeps.js",
+    "comfy_workflows/qwen_image_2_1.json"
+  ]
+}

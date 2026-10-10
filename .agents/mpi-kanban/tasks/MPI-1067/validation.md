@@ -14,3 +14,4 @@
   GitHub archive zip for the pin answers 200; `tests/engine-drift.test.cjs` 6 pass. README row
   unchanged (it already said "by selection index"; the fix makes the node match it). No
   removed or renamed class. The app engine reinstalls the node at the new pin on its next boot.
+- CI: tests.yml 38083085739 on 1472494275 failed once on two desktop popup specs a node pin cannot reach (home screen, no overlay in test-failed-1.png); rerun of the failed shard green. Closed.
