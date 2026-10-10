@@ -2371,6 +2371,28 @@ export const MpiPromptBox = ComponentFactory.create({
                 : null
         );
 
+        const _transparentOn = () => _activeControls.get('transparentBackground')?.getValue?.() === true;
+
+        /**
+         * The same kind of note for No Background (MPI-1049): an enhancement written with
+         * the toggle in the other state describes a setting the model should not draw, or
+         * none where it should. Fabio's first run on 2026-10-10 carried a beach written
+         * before the toggle existed and came back 1.9% clear; re-enhanced, 35%.
+         * An enhancement saved before `transparent` was recorded is read from its own text:
+         * the No Background rule makes it open with the model's RGBA sentence.
+         */
+        const _madeTransparent = (enh) => enh.transparent ?? String(enh.positive || '').startsWith(model.transparentPrompt.prefix);
+        const _transparentMismatchNote = (enh) => (
+            enh && model?.transparentPrompt && _madeTransparent(enh) !== _transparentOn()
+                ? {
+                    text: _transparentOn()
+                        ? 'Enhanced before No Background was on, so it still describes a setting. Press Enhance to rewrite it without one.'
+                        : 'Enhanced for No Background, so it describes no setting. Press Enhance to rewrite it with one.',
+                    kind: 'warn',
+                }
+                : null
+        );
+
         function _openEnhanceDialog() {
             // NOT `if (_enhanceDialog) return`. `MpiModal.hide()` does not emit 'cancel'
             // — its own contract says so — so every dismissal that is NOT the Cancel
@@ -2380,6 +2402,7 @@ export const MpiPromptBox = ComponentFactory.create({
             // rest of the session. Found by Fabio after a generation, which pulses
             // close-all. Tearing down whatever is there costs nothing when there is
             // nothing, and the button is unreachable under an open backdrop anyway.
+            const transparent = _transparentOn();
             _closeEnhanceDialog();
             _enhanceDialog = MpiEnhanceDialog.mount(document.createElement('div'), {
                 prompt: positiveValue,
@@ -2387,6 +2410,8 @@ export const MpiPromptBox = ComponentFactory.create({
                 operation: activeOperation,
                 // MPI-1006: an r2v recipe cannot see the chips, so it is told their tags.
                 references: _stagedRefTags().map(entry => refTagHandle(entry.tag, model)),
+                // MPI-1049: No Background on, so the recipe describes no setting.
+                transparent,
                 // Reopening on an existing enhancement, so Cancel is non-destructive and
                 // OK is not the only way to keep what is already approved. `note` rides
                 // along because it is the only surface the FALLBACK WARNING has: without
@@ -2399,7 +2424,7 @@ export const MpiPromptBox = ComponentFactory.create({
                         // A model mismatch OUTRANKS the stored note: both ride the same
                         // one line, and "these words are for another model" is the more
                         // urgent of the two. Re-enhancing replaces it either way.
-                        note: _modelMismatchNote(_enhanced) ?? _enhanced.note,
+                        note: _modelMismatchNote(_enhanced) ?? _transparentMismatchNote(_enhanced) ?? _enhanced.note,
                     }
                     : undefined,
             });
@@ -2426,6 +2451,8 @@ export const MpiPromptBox = ComponentFactory.create({
                         note: note || null,
                         modelId: model?.id ?? null,
                         modelName: model?.name ?? null,
+                        // MPI-1049: the No Background state it was written for.
+                        transparent,
                         // Recorded so the NEXT enhancement can tell this negative
                         // apart from one the user typed. See below.
                         negative: negative || null,

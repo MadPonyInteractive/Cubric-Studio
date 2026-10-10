@@ -274,7 +274,7 @@ export function pinnedModel() {
  * @returns {{model:object|null, operation:string|undefined, project:object|null, named:object, injectionParams:object, error?:{code:string,message:string}}}
  */
 export function resolveSettingsOwner(input = {}, pinned, project, pinnedM, pinnedOp = null) {
-    const { modelId, operation, ratio, qualityTier, turbo, styleSelect, stylization, duration, denoise, batch, category, language, tiles, upscaleFactor, injectionParams } = input;
+    const { modelId, operation, ratio, qualityTier, turbo, styleSelect, stylization, duration, denoise, batch, category, language, tiles, upscaleFactor, transparent, injectionParams } = input;
     if (!pinned) {
         return {
             model: getModelById(modelId),
@@ -282,7 +282,7 @@ export function resolveSettingsOwner(input = {}, pinned, project, pinnedM, pinne
             project: null,
             // `denoise` too: the connector validates it (NAMED_PARAM_KEYS), so dropping it
             // here ran the op default while the agent said it chose a low one.
-            named: { ratio, qualityTier, turbo, styleSelect, stylization, duration, denoise, batch, category, language, tiles, upscaleFactor },
+            named: { ratio, qualityTier, turbo, styleSelect, stylization, duration, denoise, batch, category, language, tiles, upscaleFactor, transparent },
             injectionParams: injectionParams || {},
         };
     }

@@ -72,6 +72,7 @@ curl -s -X POST "$CUBRIC_URL/connector/generate" \
 | `denoise` | number | 0..1, only on an op whose `params.denoise` is not null (`i2i`, `upscale`, `detail`, …): how far the result may move off the picture it was given. **The higher it is, the more the image changes** — low keeps the picture and its pose, high repaints it from the prompt. Unset uses the project's value for that op, else `params.denoise.default`. On a model with no edit op this is the only way to ask for a faithful restyle. |
 | `tiles` | boolean | `upscale` only, on a model whose `params.tiles` is true: redraws the picture in 1024 px tiles, so it handles very large pictures, and with `upscaleFactor: 1` adds detail without enlarging. **Every tile gets the WHOLE prompt** - describe the look (sharp photo, film grain) or send none, never the scene, or it gets painted into every tile. Unset uses the project's Use Tiles, else off. On, it turns Use Grid off. |
 | `upscaleFactor` | number | `upscale` only: one of `params.upscaleFactors` (1.5, 2, 3, 4; plus 1, detail only, with `tiles: true`). Unset uses the project's factor for that op, else 1.5. |
+| `transparent` | boolean | `t2i` and `edit`, on a model whose `params.transparent` is true (Qwen-Image 2.1): the image comes back with a transparent background. The app adds the model's own RGBA sentences to the prompt, so describe the subject alone, with no setting. Unset uses the project's No Background toggle for that model, else off. |
 | `seed` | integer | 0..4294967295. Unset stays random — this is the only way to pin one; the PromptBox itself has no seed UI. |
 
 An invalid value is a **named error, never a silent fallback** — an unknown
@@ -115,7 +116,7 @@ instead. They queue, each request blocks until its own run finishes, so fire
 them together and collect N results. Unasked, a submit runs batch 1 whatever the
 open project's batch control says.
 
-`ratio`/`qualityTier`/`turbo`/`styleSelect`/`stylization`/`duration`/`denoise`/`tiles`/`upscaleFactor` all merge into
+`ratio`/`qualityTier`/`turbo`/`styleSelect`/`stylization`/`duration`/`denoise`/`tiles`/`upscaleFactor`/`transparent` all merge into
 `injectionParams` under the hood — a raw `injectionParams` key still wins over
 a named one, so `{"ratio":"9:16","injectionParams":{"Width":999,"Height":999}}`
 generates at 999×999. The single resolver behind both the named params and the
@@ -192,6 +193,7 @@ Failure returns `{"ok": false, "error": {"code": ..., "message": ...}}`:
 | `INVALID_DENOISE` | `denoise` is not a number in 0..1, or the operation has no denoise (it does not start from a picture it keeps). |
 | `INVALID_TILES` | `tiles` is not a boolean, or the model/op has no tile upscale. |
 | `INVALID_UPSCALE_FACTOR` | `upscaleFactor` is not one the op offers - 1 without `tiles: true` included - or the op has no factor. |
+| `INVALID_TRANSPARENT` | `transparent` is not a boolean, or the model/op cannot make a transparent background. |
 | `BATCH_UNSUPPORTED` | `batch` > 1 on a model/op that cannot batch cleanly, or on a Flow: send N submits instead. |
 | `INVALID_BATCH` | `batch` was not an integer 1-4. |
 | `INVALID_SEED` | `seed` is not an integer in 0..4294967295. |

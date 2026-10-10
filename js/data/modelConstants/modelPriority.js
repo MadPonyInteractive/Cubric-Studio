@@ -106,9 +106,11 @@ const NOTES = {
     'qwen-edit:qwenEdit': 'the slowest of these',
     // MPI-936: ranked last on purpose. Its research licence covers the images too, so the
     // agent must reach it for what only it does, never drift to it.
-    'qwen-image-2-1:edit': 'takes up to eight images in one edit, more than any editor here, and can return the subject on a transparent background. Research or evaluation use only: the images are not for commercial use',
+    'qwen-image-2-1:edit': 'takes up to eight images in one edit, more than any editor here, and can return the subject on a transparent background (transparent: true). Research or evaluation use only: the images are not for commercial use',
     // Alpha survives t2i and edit only: every other op repaints an opaque source and returns RGB.
-    'qwen-image-2-1:t2i': 'the only model here that generates a transparent background (ask for "transparent background, alpha channel"). Research or evaluation use only: the images are not for commercial use, so never the default',
+    // MPI-1049 (Fabio 2026-10-10): a no-background ask that names no model may come here, or be
+    // offered as a choice beside another model + removeBackground, the way options usually are.
+    'qwen-image-2-1:t2i': 'the only model here that generates a transparent background: send transparent: true and describe the subject alone. For a "no background" picture with no model named, use it or offer it beside another model followed by removeBackground. Research or evaluation use only: the images are not for commercial use, so never the default',
     'qwen-image-2-1': 'Research or evaluation use only: the images are not for commercial use, so never the default',
     // Fabio 2026-10-04: with no i2v installed, "just use MiniMax H3 reference" was told the
     // free model that animates this picture was missing, and offered installs and paid clips.

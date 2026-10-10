@@ -1,0 +1,7 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "C:/AI/Mpi/ComfyUi-MpiNodes/switches.py",
+    "dev_configs/node_lock.json"
+  ]
+}

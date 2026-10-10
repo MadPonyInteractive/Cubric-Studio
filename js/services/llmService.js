@@ -38,7 +38,7 @@
  * Nothing here ever sees it.
  */
 
-import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences } from '../data/recipes/registry.js';
+import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, TRANSPARENT_BACKGROUND_RULE } from '../data/recipes/registry.js';
 import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
@@ -817,6 +817,7 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
  * @param {string} [a.operation]    the op being generated, which picks the mode
  * @param {string[]} [a.references] staged reference tags (`@image1`), sent on an r2v run only
  * @param {string} [a.backend]      explicit override; defaults to the preference, then ComfyUI
+ * @param {boolean} [a.transparent] No Background is on (MPI-1049): the brief says so
  * @returns {Promise<{ok:boolean, text?:string, negativeText?:string, backend?:string,
  *                    model?:string, recipeId?:string, fellBack?:boolean, note?:string,
  *                    error?:string}>}
@@ -824,7 +825,7 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
  *          parsed. `text` is then the positive half alone — the caller must not
  *          re-split it.
  */
-export async function enhance({ prompt, model, recipeKey, mode, operation, references, backend } = {}) {
+export async function enhance({ prompt, model, recipeKey, mode, operation, references, backend, transparent } = {}) {
     const idea = String(prompt || '').trim();
     if (!idea) return { ok: false, error: 'Write a prompt first, then Enhance.' };
 
@@ -840,7 +841,11 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
     // Style defaults to `general` — v1.0 ships one general recipe per model and
     // the register axis is v1.1 (MPI-19/MPI-24); a recipe without
     // `styleVocabulary` is byte-identical whatever style is asked for.
-    const system = composeSystemPrompt(modeRecipe);
+    // MPI-1049: No Background outranks the recipe's "the brief is fixed" on the setting alone,
+    // so it rides in the system prompt, where that rule lives.
+    const system = transparent
+        ? `${composeSystemPrompt(modeRecipe)}\n\n${TRANSPARENT_BACKGROUND_RULE}`
+        : composeSystemPrompt(modeRecipe);
     // MPI-1006: only an r2v mode is told what is staged; it cites those tags and no others.
     const userText = resolvedMode === 'r2v' ? withReferences(idea, references ?? []) : idea;
 

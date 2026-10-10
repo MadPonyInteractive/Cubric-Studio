@@ -415,6 +415,7 @@ const TOOLS = {
                 denoise: { type: 'number', description: 'Only on an op whose params list it (i2i, upscale, detail): 0 to 1, higher changes more.' },
                 tiles: { type: 'boolean', description: 'Only on an upscale op whose params list tiles: true cuts the picture into 1024 px tiles and redraws each one. For a very large picture, or with upscaleFactor 1 to add detail without enlarging. Every tile gets the WHOLE prompt: describe the look (sharp photo, film grain) or send none, never the scene.' },
                 upscaleFactor: { type: 'number', description: 'Only on an upscale op: one of its params.upscaleFactors. 1 (detail only) needs tiles: true.' },
+                transparent: { type: 'boolean', description: 'Only where the op\'s params list transparent: true returns the image with a transparent background (no background). Describe the subject only, no setting.' },
                 cardName: { type: 'string', description: 'A short name for the gallery card this creates.' },
                 media: {
                     type: 'array',

@@ -1,0 +1,7 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "scripts/sync-raw-workflows.mjs",
+    "tests/sync-raw-workflows.test.cjs"
+  ]
+}

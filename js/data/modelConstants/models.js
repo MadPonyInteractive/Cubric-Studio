@@ -27,6 +27,7 @@
  * @property {string}   [image]      - Preview still filename in comfy_workflows/display/ (image models)
  * @property {string}   [video]      - Preview clip filename in comfy_workflows/display/; card plays it muted+looping on hover (video models)
  * @property {string}   [defaultUpscale]  - Dep id of the default upscale model for this model (image models only)
+ * @property {{prefix: string, suffix: string}} [transparentPrompt] - The vendor's own sentences that ask this model for a transparent (RGBA) background (MPI-1049). Presence shows the No Background toggle on every op whose `components` list `transparentBackground`; commandExecutor._buildParams wraps the prompt in them when it is on. For a model whose transparency is PROMPT-ONLY: there is no graph switch to inject.
  * @property {string[]} supportedOps - Operation keys from commandRegistry.js
  * @property {Record<string,string>} workflows - op key → workflow filename
  * @property {string[]} [dependencies] - Flat dep ids (models whose ops are NOT separably installable). Treated as commonDeps with no operations by the resolver.
@@ -1905,6 +1906,12 @@ const ALL_MODELS = [
             upscale: { Input_wf_type: 7 },
         },
         controlTypes: ['depth', 'pose', 'scribble', 'canny'],
+        // The vendor's RGBA template (Qwen's own prompt rewriter). Alpha survives t2i and edit
+        // only: every other branch drops it at SplitImageWithAlpha (MPI-936, 59-69% clear).
+        transparentPrompt: {
+            prefix: 'This is an RGBA image with transparency.',
+            suffix: 'The image has alpha channel and the background is transparent.',
+        },
         // ONE graph, and the rack feeds the model every op samples with, so it is live on all
         // seven (Klein's reach). Edit with an empty prompt + a style = a photo "filter" (Fabio).
         styleOps: ['t2i', 'i2i', 'control', 'edit', 'inpaint', 'detail', 'upscale'],
@@ -1965,7 +1972,7 @@ const ALL_MODELS = [
             },
         },
         gen_speed: 'balanced',
-        description: 'Qwen-Image 2.1 makes images from text AND edits them, with up to eight reference images, and it also does image-to-image, structure control (depth, pose, scribble, canny), inpaint, detail and upscale. Text-to-image and edits can return a transparent background: ask for "transparent background, alpha channel" in the prompt. Eight styles are available on every operation (five photo looks, Detail Fix, Natural Exposure and Clay); pick one and run an edit with an empty prompt to restyle a photo like a filter. Licensed for research or evaluation only. You confirm that before downloading, and it covers the images you make too: they are not for commercial use.',
+        description: 'Qwen-Image 2.1 makes images from text AND edits them, with up to eight reference images, and it also does image-to-image, structure control (depth, pose, scribble, canny), inpaint, detail and upscale. Text-to-image and edits can return a transparent background: turn on No Background in the prompt box settings. Eight styles are available on every operation (five photo looks, Detail Fix, Natural Exposure and Clay); pick one and run an edit with an empty prompt to restyle a photo like a filter. Licensed for research or evaluation only. You confirm that before downloading, and it covers the images you make too: they are not for commercial use.',
         workflows: {
             // ONE file for all seven ops.
             t2i:     'qwen_image_2_1.json',

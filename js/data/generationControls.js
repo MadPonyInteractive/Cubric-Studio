@@ -269,7 +269,31 @@ export function namedParamsFor(model, operation) {
         ...(getCommandComponents(operation).includes('upscaleFactor')
             ? { upscaleFactors: modelShowsTiles(model, operation) ? [1, ...UPSCALE_FACTORS] : [...UPSCALE_FACTORS] } : {}),
         ...(modelShowsTiles(model, operation) ? { tiles: true } : {}),
+        // No Background (MPI-1049): a transparent result, where the model can make one.
+        ...(modelShowsTransparent(model, operation) ? { transparent: true } : {}),
     };
+}
+
+// ── No Background (MPI-1049) ─────────────────────────────────────────────────
+
+/** Does `operation` on `model` carry No Background? The op's control AND the model's RGBA sentences. */
+export function modelShowsTransparent(model, operation) {
+    return getCommandComponents(operation).includes('transparentBackground') && !!model?.transparentPrompt;
+}
+
+/**
+ * `prompt` wrapped in the model's RGBA sentences. Idempotent, so a prompt that already
+ * carries them (the Qwen recipe writes them itself on Enhance, and older prompts were
+ * told to) is not doubled. A prompt typed without a closing full stop gets one, or the
+ * suffix runs on as part of its last sentence ("up to her knees The image has...").
+ */
+export function withTransparentPrompt(model, prompt) {
+    const tp = model?.transparentPrompt;
+    if (!tp) return prompt;
+    let text = String(prompt || '').trim();
+    if (!text.startsWith(tp.prefix)) text = `${tp.prefix} ${text}`.trim();
+    if (!text.endsWith(tp.suffix)) text = `${/[.!?]["')\]]*$/.test(text) ? text : `${text}.`} ${tp.suffix}`;
+    return text;
 }
 
 // ── upscale factor + Use Tiles (MPI-1038) ────────────────────────────────────
@@ -432,7 +456,7 @@ export function isValidSeed(value) {
  *            provenance:Object<string,{from:'asked'|'defaulted', value:*}>}|{ok:false, code:string, message:string}}
  */
 export function resolveNamedParams(project, model, operation, named = {}) {
-    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch, category, language, tiles, upscaleFactor } = named;
+    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch, category, language, tiles, upscaleFactor, transparent } = named;
     const injectionParams = {};
     const modelName = model?.name || model?.id || 'this model';
     const provenance = {};
@@ -603,6 +627,19 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         _from('upscaleFactor', upscaleFactor !== undefined, injectionParams.Input_Upscale_Factor);
     } else if (upscaleFactor !== undefined) {
         return _err('INVALID_UPSCALE_FACTOR', `"${operation}" has no upscale factor.`);
+    }
+
+    // No Background (MPI-1049). Same ladder as turbo: asked, else the model's saved value, else off.
+    const showsTransparent = modelShowsTransparent(model, operation);
+    if (transparent !== undefined && (typeof transparent !== 'boolean' || !showsTransparent)) {
+        return _err('INVALID_TRANSPARENT', showsTransparent
+            ? 'transparent must be a boolean.'
+            : `${modelName} cannot make a transparent background on "${operation}".`);
+    }
+    if (showsTransparent) {
+        injectionParams.Transparent_Background = transparent
+            ?? getModelSettings(project || {}, model?.id).transparentBackground === true;
+        _from('transparent', transparent !== undefined, injectionParams.Transparent_Background);
     }
 
     // The audio models' two pickers (MPI-1012). Same ladder as turbo: asked, else the

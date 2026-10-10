@@ -13,8 +13,10 @@ result is not for commercial use, and never pick it when another model can do th
 
 - A transparent background (a sticker, a product cut-out, a character to composite):
   `t2i`, or `edit` on an existing picture ("remove the background, keep only the
-  woman"). The only model here that generates alpha; measured 59-64% of the frame
-  cleared with the subject untouched. Every other op returns an opaque picture.
+  woman"), with `transparent: true`. The only model here that generates alpha;
+  measured 59-64% of the frame cleared with the subject untouched. Every other op
+  returns an opaque picture. Asked for "no background" with no model named, use it,
+  or offer it beside another model followed by `removeBackground`.
 - More than three pictures in one edit: `edit` takes up to eight.
 - Exact words in the picture, in any script: its maker leads with typography, and its
   own rewriter copies quoted text character for character. Not yet measured here.
@@ -76,10 +78,10 @@ On `detail`, describe only what is inside the mask, as a close-up of it. On `ups
 describe the picture as it already is. On `i2i`, describe the picture you want, not the
 change.
 
-**A transparent background** is asked for in the prompt and nowhere else. Open with
-"This is an RGBA image with transparency." and end with "The image has alpha channel and
-the background is transparent.", describing no background between them. The shorter
-"transparent background, alpha channel" also measured working.
+**A transparent background** is `transparent: true` (the user's No Background toggle).
+The app then wraps your prompt in the model's own RGBA sentences, so do not write them:
+describe the subject alone, with no setting, floor or backdrop. A background described
+in the prompt fights the alpha.
 
 **`edit` is an instruction**, and the enhancer never touches it; you write the final
 text. From its maker's own edit rewriter:
@@ -123,7 +125,7 @@ Replace the t-shirt the woman wears in <image1> with the leather jacket from <im
 ## When a result disappoints
 
 - A transparent request came back opaque: only `t2i` and `edit` keep alpha. Rerun there
-  with the RGBA sentences.
+  with `transparent: true` and a prompt that describes no background.
 - `i2i` ignored a style change: the denoise is under about 0.8.
 - An edit landed faintly: say the change more strongly. The keep clause holds content,
   not the strength of the edit.

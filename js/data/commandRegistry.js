@@ -256,7 +256,7 @@ export const commands = {
         // Krea2's panel matches LTX/Wan/SDXL. MPI-677 removed the in-graph
         // `enhancePrompt` toggle from every op — enhancement is now its own control
         // beside the prompt box, not a property of the workflow.
-        components: ['qualityTier', 'styleSelect', 'stylization', 'ratio', 'batch', 'krea2Turbo'],
+        components: ['qualityTier', 'styleSelect', 'stylization', 'ratio', 'batch', 'krea2Turbo', 'transparentBackground'],
     },
     i2i: {
         label: 'Image to Image',
@@ -500,7 +500,8 @@ export const commands = {
         // edit is a separate op (krea2Edit) for its style rack and second reference slot;
         // it too follows the source size, because Krea2 names krea2Edit in its
         // `imageSizedOps` and modelShowsRatio() suppresses the picker there.
-        components: ['styleSelect', 'stylization'],
+        // No Background (MPI-1049): Qwen-Image 2.1 keeps alpha on edit as on t2i.
+        components: ['styleSelect', 'stylization', 'transparentBackground'],
     },
     krea2Edit: {
         label: 'Edit',

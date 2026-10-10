@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1065",
+  "title": "Adding a dep to an installed model silently un-installs it (no message, gone from every picker)",
+  "description": "Noticed on MPI-936 (2026-10-09) when taeqi21-decoder joined Qwen-Image 2.1's deps. 'Installed' = every dep on disk NOW (no receipt), so a model whose dep list grows drops out of every picker with no message, and nothing fetches the new file until the user clicks Install in the Models library (as of 2026-10-09: routes/comfy.js:1060-1091, routes/remoteModels.js:376, js/data/modelRegistry.js:579; boot/connect heals cover engine assets only). Harmless for Qwen 2.1 only because it was unreleased; bites the first time a dep is added to a SHIPPED model. Umbrella MPI-1064.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-10T15:55:40+01:00",
+  "updated_at": "2026-10-10T15:55:40+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

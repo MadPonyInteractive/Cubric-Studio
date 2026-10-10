@@ -160,8 +160,8 @@ function testAnEmptyLowerBoxMeansRunMyWordsRaw() {
     // and `modelName` on 2026-09-12, and a string equality assertion failed on a
     // change that never touched the property it defends. What this test owns is
     // that the assignment is keyed on `positive` and that the empty branch is
-    // `null` — not how many fields the kept branch carries.
-    assert.ok(/_enhanced\s*=\s*positive\s*[\s\S]{0,600}?:\s*null;/.test(src),
+    // `null` — not how many fields the kept branch carries (900: MPI-1049 added one).
+    assert.ok(/_enhanced\s*=\s*positive\s*[\s\S]{0,900}?:\s*null;/.test(src),
         'clearing the enhanced box on OK must drop the enhancement, not keep the previous one');
     assert.ok(/_enhanced\s*=\s*positive\s*[\s\S]{0,600}?source:\s*positiveValue/.test(src),
         'the kept branch must record the short prompt it was made from, or staleness is undetectable');
@@ -190,7 +190,8 @@ function testTheNoteIsRestoredOnReopen() {
     assert.ok(src.includes('if (lastNote) _note(lastNote.text, lastNote.kind);'),
         'a seeded note must actually be rendered at mount, not merely held');
     const box = SRC('js/components/Organisms/MpiPromptBox/MpiPromptBox.js');
-    assert.ok(box.includes('_modelMismatchNote(_enhanced) ?? _enhanced.note'),
+    // MPI-1049's No Background note sits between the two; the fallback order is what this owns.
+    assert.ok(/_modelMismatchNote\(_enhanced\) \?\?[^\n]*?\?\? _enhanced\.note,/.test(box),
         'the box must pass the stored note back when it reopens the dialog, falling back from the mismatch note');
 }
 

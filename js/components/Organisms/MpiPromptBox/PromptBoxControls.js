@@ -1364,6 +1364,52 @@ export const PROMPT_BOX_CONTROLS = {
     },
 
     /**
+     * transparentBackground — No Background (MPI-1049). Qwen-Image 2.1's transparency is
+     * PROMPT-ONLY: no graph switch exists, the model returns alpha when the prompt opens
+     * and closes with its vendor's two RGBA sentences (`ModelDef.transparentPrompt`).
+     *
+     * `Transparent_Background` is therefore no node title. It rides the run's injection
+     * record so the sidecar, Reuse and an agent submit all describe it the way they do
+     * turbo (reconcileControlsFromInjection inverts it like any control), and
+     * commandExecutor._buildParams consumes it: it wraps `Input_Positive` in the
+     * sentences and drops the key before the graph sees it. The prompt of record stays
+     * the user's own words.
+     *
+     * perModel like the turbos: a way of working that holds across t2i and edit.
+     */
+    transparentBackground: {
+        nodeTitle: null,
+        scope: 'perModel',
+        defaultValue: PROMPT_CONTROL_DEFAULTS.transparentBackground,
+        mount(hostEl, opts = {}) {
+            const saved = _readSaved(this, opts);
+            this.value = saved.transparentBackground === true;
+
+            this._instance = MpiButton.mount(hostEl, {
+                icon: 'eraser',
+                label: 'No Background',
+                labelPosition: 'right',
+                size: 'sm',
+                variant: 'primary',
+                toggleable: true,
+                active: this.value,
+                info: 'No background — the image comes back transparent (text-to-image and edit)',
+            });
+
+            this._instance.on('click', ({ active }) => {
+                this.value = !!active;
+                _emitUpdate(this, opts, 'transparentBackground', !!active);
+            });
+        },
+        getValue() {
+            return this.value === true;
+        },
+        getInjectionParams() {
+            return { Transparent_Background: this.value === true };
+        },
+    },
+
+    /**
      * styleSelect — style-LoRA picker (Krea2 pattern, MPI-242; playbook §9).
      *
      * Injects the INDEX (`Input_Style_Selector.selector`), never a filename or a
@@ -2045,6 +2091,9 @@ export function visibleControlIds(model, operation, ctx = {}) {
         // Use Tiles (MPI-1038) needs the graph's "Tile Upscale" group and its
         // Input_Tile_Upscale switch; a model opts in once its template carries them.
         if (id === 'useTiles' && model?.capabilities?.tileUpscale !== true) return false;
+
+        // No Background (MPI-1049): only a model that says how to ask for alpha.
+        if (id === 'transparentBackground' && !model?.transparentPrompt) return false;
 
         // H3 turbo toggle (MPI-505). Its own flag rather than krea2's `turboToggle`,
         // because it is its own control — the two inject the same node title but differ

@@ -1,0 +1,27 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/data/modelConstants/models.js",
+    "js/data/modelConstants/modelPriority.js",
+    "js/data/generationControls.js",
+    "js/data/commandRegistry.js",
+    "js/data/promptControlDefaults.js",
+    "js/data/routineModel.js",
+    "js/data/recipes/registry.js",
+    "js/components/Organisms/MpiPromptBox/PromptBoxControls.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/components/Compounds/MpiEnhanceDialog/MpiEnhanceDialog.js",
+    "js/services/commandExecutor.js",
+    "js/services/llmService.js",
+    "js/utils/promptReuse.js",
+    "js/shell/agentDispatch.js",
+    "routes/connector.js",
+    "routes/mcp.js",
+    "services/agentLoop.mjs",
+    "docs/agent/models/qwen-image-2.1.md",
+    ".claude/skills/cubric-vision-generate/SKILL.md",
+    "docs/releases/UNRELEASED.md",
+    "tests/transparent-background.test.cjs",
+    "tests/agent-prompt-budget.test.cjs"
+  ]
+}

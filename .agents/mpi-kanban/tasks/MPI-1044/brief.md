@@ -14,7 +14,10 @@ from master.
       price and run count still go to him before anything is rented. The 2026-10-08 matrix
       did NOT execute Qwen 2.1 (both ops skipped: workflow not landed), although
       `release:check` prints "covers all 40 models" - see MPI-1043 brief § Noticed.
-- [ ] **Pod runtime publish, BEFORE blocker 1:** `./publish-runtime.sh dev` (never `stable`) carrying
+      **2026-10-10: Qwen half done - Fabio ran Qwen 2.1 on RunPod by hand. 3D scene half remains.**
+      Every other Qwen 2.1 leftover lives under umbrella MPI-1064.
+- [ ] **Pod runtime publish, BEFORE blocker 1:** (2026-10-10: `publish-runtime.sh dev` done by
+      MPI-1057, wrapper 0.2.46, carrying both lines; Pod restart + test + `promote` remain.) `./publish-runtime.sh dev` (never `stable`) carrying
       mpi-ci `6f43c26` (`moge`, MPI-623) and `c57f7dd` (`model_patches`, MPI-936), Pod restart, test,
       then `promote` (`docs/runpod-remote-engine.md` § 5). Both start.sh yaml lines are pushed but no
       Pod sees them until published: Qwen 2.1's `control` (its ControlNet lives in `model_patches`) and

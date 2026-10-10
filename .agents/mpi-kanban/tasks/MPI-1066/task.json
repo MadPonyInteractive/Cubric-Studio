@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1066",
+  "title": "Upscale crosshatch on skin and cloth: seen on Qwen-Image 2.1 upscale, traced to 4x-NMKD-Siax",
+  "description": "MPI-936 bench run 3 (2026-10-08): the Qwen 2.1 upscale op (1.5x, 0.3 denoise) leaves a fine diagonal crosshatch on skin and cloth. probe_siax_only ran 4x-NMKD-Siax ALONE (no Qwen, scaled to 1.5x) and the pattern was already there; the 2.1 VAE round-trip keeps it, 0.45 denoise only softens it (tasks/MPI-936/research/bench-results.md run 3). Siax is defaultUpscale on every photo model (js/data/modelConstants/models.js), so Klein/Krea2/SDXL upscales likely carry it too. Fabio 2026-10-10 asked whether it is Siax or the Qwen upscale: re-confirm side by side (Siax-only vs Qwen upscale vs another upscaler) before swapping the default. Start with Qwen 2.1. Umbrella MPI-1064.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-10T15:55:42+01:00",
+  "updated_at": "2026-10-10T15:55:42+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

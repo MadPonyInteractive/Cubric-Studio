@@ -121,30 +121,34 @@ function gitChangedRaw() {
   };
 }
 
+/**
+ * Pure helper — which dirty-generated-file lines should block this sync run?
+ *
+ * orchestrate.py is only invoked when --all or a _template is in changedNames; it
+ * does a GLOBAL rebuild and would overwrite every uncommitted generated file.
+ * A plain raw edit only writes its own specific output path, so only that path
+ * can block the run.
+ *
+ * @param {string[]} dirtyLines   git-status --porcelain lines with raw/ already stripped
+ * @param {string[]} changedNames basename list of changed raw files (after ignores applied)
+ * @param {boolean}  force        true when --all was passed
+ * @param {function} pathFor      f(basename) → repo-relative output path string
+ * @returns {string[]} the subset of dirtyLines that block this run
+ */
+function blockingDirtyLines(dirtyLines, changedNames, force, pathFor) {
+  if (force || changedNames.some(isTemplate)) {
+    // orchestrate.py will run a GLOBAL rebuild — any dirty generated file is a blocker
+    return dirtyLines;
+  }
+  // Plain raw edits only — block only on the output path(s) this run will write
+  const outputPaths = new Set(changedNames.map(pathFor));
+  return dirtyLines.filter((l) => outputPaths.has(l.slice(3).trim().replace(/^"|"$/g, '')));
+}
+
 async function main() {
   if (!existsSync(RAW_DIR)) {
     console.log(`No raw dir: ${RAW_DIR} — nothing to do.`);
     return;
-  }
-
-  // Guard: orchestrate.py does a GLOBAL template rebuild, which overwrites any
-  // uncommitted GENERATED files (templates in GEN_DIR + runtime in comfy_workflows).
-  // Refuse if any of those are dirty so we never clobber in-progress generated work.
-  // raw/ changes are EXPECTED (that's our input) and are committed below, so ignore
-  // raw/ here.
-  const dirtyGenerated = execFileSync('git', ['status', '--porcelain', '--', 'comfy_workflows'], {
-    cwd: REPO_ROOT, encoding: 'utf8',
-  })
-    .split('\n').filter(Boolean)
-    .filter((l) => !l.slice(3).trim().replace(/^"|"$/g, '').startsWith('comfy_workflows/raw/'));
-  if (dirtyGenerated.length) {
-    console.error(
-      `Refusing: ${dirtyGenerated.length} uncommitted GENERATED workflow change(s). ` +
-      `orchestrate.py rebuilds ALL templates and would overwrite them.\n` +
-      `Commit or stash them first (or run /mpi-end), then re-run.\n` +
-      dirtyGenerated.map((l) => '  ' + l).join('\n')
-    );
-    process.exit(1);
   }
 
   // 1. What changed — git-driven, not mtime. --all forces every raw file.
@@ -183,6 +187,29 @@ async function main() {
       toCommit = toCommit.filter((f) => !ignored.has(f));
       console.log(`Skipping gitignored raw: ${[...ignored].join(', ')}`);
     }
+  }
+
+  // Guard: orchestrate.py does a GLOBAL template rebuild when --all or a _template is
+  // changed, overwriting every uncommitted generated file. A plain raw edit only writes
+  // its own specific output path. Refuse only on the dirty files that this run would
+  // actually overwrite — never on an unrelated peer's dirty file from a different card.
+  const dirtyGeneratedLines = execFileSync('git', ['status', '--porcelain', '--', 'comfy_workflows'], {
+    cwd: REPO_ROOT, encoding: 'utf8',
+  })
+    .split('\n').filter(Boolean)
+    .filter((l) => !l.slice(3).trim().replace(/^"|"$/g, '').startsWith('comfy_workflows/raw/'));
+  const blocking = blockingDirtyLines(dirtyGeneratedLines, changed, FORCE, (f) => rel(outPathFor(f)));
+  if (blocking.length) {
+    const isGlobalRebuild = FORCE || changed.some(isTemplate);
+    console.error(
+      `Refusing: ${blocking.length} uncommitted GENERATED workflow change(s). ` +
+      (isGlobalRebuild
+        ? 'orchestrate.py rebuilds ALL templates and would overwrite them.'
+        : 'the converted output for this raw file is dirty.') +
+      '\nCommit or stash them first (or run /mpi-end), then re-run.\n' +
+      blocking.map((l) => '  ' + l).join('\n')
+    );
+    process.exit(1);
   }
 
   // 2. Commit the RAW sources FIRST — the record of the user's edit. Generated API +
@@ -263,7 +290,7 @@ async function main() {
   }
 }
 
-export { shipUploadSlots, outPathFor };
+export { shipUploadSlots, outPathFor, blockingDirtyLines };
 
 // Run only as a script, so a test or a one-off bake can import the helpers above.
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

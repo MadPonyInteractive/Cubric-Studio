@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1067",
+  "title": "MpiAnySwitch selects the Nth CONNECTED input, not any_N: an unwired slot runs the wrong branch",
+  "description": "Noticed on MPI-936 bench (2026-10-08): MpiAnySwitch/MpiAnySwitch10 (ComfyUi-MpiNodes switches.py) pick the Nth connected input, so with any_3 unwired 'inpaint' ran detail, 'detail' ran upscale and 'upscale' ran off the end and saved nothing. Same-day scan of all 62 switches in the shipped API graphs (comfy_workflows/ + workflow_generation/): none gapped, so no user impact today. Fix: select by input name (node change via /mpi-nodes-sync: committed, pushed, pinned) or at least a doc line for workflow authors. Umbrella MPI-1064.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-10T15:55:44+01:00",
+  "updated_at": "2026-10-10T16:12:37+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

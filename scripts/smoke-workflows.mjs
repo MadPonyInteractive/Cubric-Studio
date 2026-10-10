@@ -1522,6 +1522,53 @@ function loadMergeBase() {
 }
 
 /**
+ * Recompute the run scope from actual execution results.
+ * A model "executed" if at least one op returned PASS or FAIL; SKIP does not count.
+ * A model with zero executed ops moves to unproven, and so do its covered siblings —
+ * unless another executed model covers them.
+ *
+ * Called after the op loop, so the evidence scope reflects reality rather than the
+ * plan. The plan-time scope may list a model in modelsRun when every op was SKIP
+ * (e.g. "workflow not landed"), which made release:check print "covers all N models"
+ * while the model never executed (MPI-1068).
+ *
+ * @param {Array} set     Resolved smoke set; array entries have .model.id, .ops, .covers;
+ *                        set.scope is the plan-time scope attached to the array.
+ * @param {Array} results Op results: [{ model, op, status, ... }]
+ * @returns {object}      Corrected scope
+ */
+export function postRunScope(set, results) {
+    const executedModels = new Set(
+        set
+            .filter(e => results.some(
+                r => r.model === e.model.id && (r.status === 'PASS' || r.status === 'FAIL')))
+            .map(e => e.model.id)
+    );
+    const proven = new Set();
+    for (const e of set) {
+        if (executedModels.has(e.model.id)) {
+            proven.add(e.model.id);
+            for (const id of e.covers) proven.add(id);
+        }
+    }
+    const scope = set.scope;
+    // All model ids this plan knew about: run + covers + unproven
+    const allIds = [...new Set([
+        ...(scope.modelsRun || []),
+        ...(scope.covers || []),
+        ...(scope.unproven || []),
+    ])];
+    return {
+        ...scope,
+        modelsRun: (scope.modelsRun || []).filter(id => executedModels.has(id)),
+        covers: [...new Set(
+            set.filter(e => executedModels.has(e.model.id)).flatMap(e => e.covers)
+        )],
+        unproven: allIds.filter(id => !proven.has(id)),
+    };
+}
+
+/**
  * Fresh rows OVER prior rows, keyed model/op. Every row carries the run that produced it,
  * so a merged file can never pass off an old pass as part of this run.
  * Coverage is the UNION of the two runs — a model is unproven only when NEITHER touched
@@ -2089,6 +2136,11 @@ async function main() {
         results.push({ model: 'flow', ...r });
         log(`  ${r.status.padEnd(4)} flow/${r.op}${r.why ? ' — ' + r.why : ` (${r.secs}s, ${r.media} out)`}`);
     }
+
+    // Recompute scope from what actually executed. A model whose every op was SKIP
+    // did not run — demote it (and any unexecuted covers) to unproven before the
+    // evidence is written (MPI-1068).
+    set.scope = postRunScope(set, results);
 
     // ── report. A SKIP is never folded into the pass count. That is the whole card.
     const n = (s) => results.filter(r => r.status === s).length;

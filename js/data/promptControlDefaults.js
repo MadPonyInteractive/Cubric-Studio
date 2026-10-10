@@ -58,6 +58,9 @@ export const PROMPT_CONTROL_DEFAULTS = Object.freeze({
     // has to be the good one and speed is the opt-in. Krea2's turbo is a wash on
     // quality, which is why that one defaults ON.
     h3Turbo: false,
+    // No Background (MPI-1049, Qwen-Image 2.1): off, a background is what a picture has
+    // unless the user asks otherwise. Stored perModel like the turbos.
+    transparentBackground: false,
     // Control adherence (Input_Control_strength MpiFloat). What it lands on differs by
     // model — a control-LoRA's `strength` on Krea2/Klein, a ControlNet's on Chroma/SDXL —
     // but the meaning is the same everywhere: 1.0 = full (what each graph bakes and what

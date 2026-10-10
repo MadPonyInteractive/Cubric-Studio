@@ -26,6 +26,7 @@ import { remoteEngineClient } from './remoteEngineClient.js';
 import { resolveDeps, resolveWorkflowFile, variantDepsOf, archVariantOptions } from '../data/modelConstants/resolveModelDeps.js';
 import { downloadService } from './downloadService.js';
 import { COMMANDS, getCommandMediaInputs, filterMediaInputsForModel, stripOrdinalMediaRoles, commandIsMultiStage } from '../data/commandRegistry.js';
+import { withTransparentPrompt } from '../data/generationControls.js';
 import { Events } from '../events.js';
 import { clientLogger } from './clientLogger.js';
 import { state } from '../state.js';
@@ -890,6 +891,16 @@ function _buildParams(payload) {
 
     // Merge operation-specific control params (ratio, steps, denoise, etc.)
     Object.assign(params, injectionParams);
+
+    // No Background (MPI-1049) is a PROMPT switch, not a node: consumed here, the one point
+    // every producer (PromptBox, agent, connector) and both engines pass, so the run gets
+    // the model's RGBA sentences while the prompt of record stays the user's own words.
+    if ('Transparent_Background' in params) {
+        if (params.Transparent_Background === true) {
+            params.Input_Positive = withTransparentPrompt(modelDef, params.Input_Positive);
+        }
+        delete params.Transparent_Background;
+    }
 
     if (commandIsMultiStage(payload.operation)) {
         // The two halves of the stage split. History workspace forces single-stage

@@ -164,6 +164,16 @@ export function withReferences(idea, references = []) {
     return `${idea}\n\nAttached references, in load order: ${references.length ? references.join(', ') : 'none'}.`;
 }
 
+/**
+ * Appended to the enhancer's SYSTEM prompt when the user turned on No Background (MPI-1049).
+ * A background described in the prompt beats the RGBA sentences the app wraps it in: "a woman
+ * in a monokini on a beach with water up to her knees" came back as 400 words of beach and
+ * 1.9% clear (Fabio, 2026-10-10). It has to be a system rule, not a note on the brief: the
+ * Qwen recipe's own first rule fixes "where the subject is", and a user-message line lost to
+ * it. The setting is the ONE detail the toggle outranks; the subject keeps all of its own.
+ */
+export const TRANSPARENT_BACKGROUND_RULE = 'NO BACKGROUND. The user turned on a transparent background, and it outranks the brief on ONE point only: the setting. Drop every place, ground, floor, water, sky, horizon and object the brief puts around the subject, and never invent one. Keep the subject exactly as the brief gives it: who or what it is, its pose, clothing, expression, colours and the light falling on it. If the brief has the subject in or on something (water, sand, a chair), show the whole subject alone, as if cut out of that scene. Say once that it stands isolated with nothing behind it. Begin with "This is an RGBA image with transparency." and end with "The image has alpha channel and the background is transparent."';
+
 /** All recipes, for the target picker. */
 export function listRecipes() {
     return RECIPE_REGISTRY;

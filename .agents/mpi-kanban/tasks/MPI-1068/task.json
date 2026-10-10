@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1068",
+  "title": "Smoke scope counts a model as RUN when all its ops were skipped (Qwen 2.1 read as proven)",
+  "description": "MPI-1043 Noticed (2026-10-08): scripts/smoke-workflows.mjs scope builder counts qwen-image-2-1 as run although both its ops SKIPped (workflow not landed), so dev_configs/smoke-evidence.json has scope.unproven [] and release:check prints 'covers all 40 models' while Qwen 2.1 never executed. Fix: a model with zero executed ops lands in unproven. Fabio tested Qwen 2.1 on RunPod by hand 2026-10-10, so the gap is closed in fact, not in the evidence file. Umbrella MPI-1064.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-10T15:55:45+01:00",
+  "updated_at": "2026-10-10T16:12:35+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

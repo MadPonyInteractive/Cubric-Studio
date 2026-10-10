@@ -463,7 +463,7 @@ router.get('/connector/jobs/stream', (req, res) => {
 // model's own capability data — no project is open here, so an unset param is
 // left off `input` and resolved against the real project by
 // `js/shell/agentDispatch.js`.
-const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration', 'denoise', 'batch', 'category', 'language', 'tiles', 'upscaleFactor'];
+const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration', 'denoise', 'batch', 'category', 'language', 'tiles', 'upscaleFactor', 'transparent'];
 
 // MPI-1012: Sound & Music and Text to Speech are MODELS now. A body still naming their old
 // flowId runs as the model (js/data/retiredFlows.js) on generate and quote alike.
@@ -544,7 +544,7 @@ async function _frameZero(file) {
  * POST /connector/generate
  * Body, EITHER a model op:  { modelId, operation, positive, negative?, injectionParams?,
  *                              ratio?, qualityTier?, turbo?, styleSelect?, stylization?,
- *                              duration?, denoise?, batch?, tiles?, upscaleFactor?, seed?, media? }
+ *                              duration?, denoise?, batch?, tiles?, upscaleFactor?, transparent?, seed?, media? }
  *       OR a Flow (MPI-658): { flowId, fields?, media? }
  *       OR a tool (MPI-904): { operation, fields?, media } with NO modelId: imageUpscale,
  *                              removeBackground, crop or downscale (js/shell/agentToolOps.js)

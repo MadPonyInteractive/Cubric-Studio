@@ -1,0 +1,7 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "scripts/smoke-workflows.mjs",
+    "tests/smoke-scope-skipped.test.cjs"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1064",
+  "title": "Qwen-Image 2.1 umbrella: every leftover from MPI-936 before it ships in 2.0.2",
+  "description": "Fabio 2026-10-10: everything related to or affecting Qwen-Image 2.1 lives under this umbrella. Members: MPI-1049 (transparent background toggle + Cosmo knows no-background requests), MPI-1047 (raw-workflow sync refusal hit twice on the Qwen build), MPI-1065 (a dep added to an installed model silently un-installs it), MPI-1066 (upscale crosshatch seen on the 2.1 upscale, traced to 4x-NMKD-Siax), MPI-1067 (MpiAnySwitch picks the Nth connected input), MPI-1068 (smoke scope counted the all-skipped Qwen 2.1 as run). Related, not owned: MPI-1044 (2.0.2 release; Qwen ships there). Phases and parallel batches in plan.md.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-10T15:55:27+01:00",
+  "updated_at": "2026-10-10T15:58:44+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
