@@ -1445,3 +1445,36 @@ whole run under `gpu_lease.py`); out `lift_out/` (`run.log`, `result.json`, `lif
   Drift). The lift code was reverted (write-up: research/p3-lift-into-scene.md); his Convert test card
   cleaned by `unseed_fabio.py` (23 tagged layers + files removed, `renderedPaths` gone; 0 layers left).
   Kept: `frameCount` + the graph's `GetImageSize` frame count (scene-path / scene-ops tests).
+
+## P3 player: the path video as a 360 player (2026-10-10, session 46 "3D Scene 36")
+
+Fabio's pick (Plan Drift 2026-10-10 "option 1"). Rigs in the session 46 scratchpad: `stage.py` (a copy
+of the Convert test card + his 5090 well video card `cameraPathVideo_002`, project `MPI-623 P3 player`),
+`q/cut.py` + `q/q.cjs` (the quality test), `p.cjs` (the player, no engine), `t.cjs` (the real button).
+
+- **Picture quality FIRST (his well video, 4060 Ti, under the lease):** five views cut from frames 40
+  and 80 (`cut.py`: a pinhole from the 360 frame in `stitchPano`'s layout, bilinear = the GPU's linear
+  sampler) at 1360x768 - 24 mm forward/right/back (295 px of the 1440 frame across) and 50 mm (158 px)
+  - each through Take picture's clean-up exactly (`kleinEdit` POLISH, deferCommit, then `colorLock`;
+  14-28 s each). **By eye (`q/sheet.jpg`): every 24 mm picture comes back sharp and clean at full size,
+  composition and colours kept; the 50 mm too. Klein even repaired Wan's smeared tree edge (f80 back).
+  NO upscaler needed.**
+- **The player, UI only (`p.cjs`, empty CUBRIC_ENGINE_ROOT, 1600x1000):** the video card opened through
+  `navigate(PAGE_SCENE)` mounted `MpiPanoVideoBlock` (no scene block); "Frame 1 of 81 · 24 mm"; Play ->
+  frame 24 after 1.5 s (16 fps); a 300 px drag -> yaw 0.9; `seekFrame(80)` -> "Frame 81 of 81". Its
+  picture path (`createPanoView(...).picture`, frame 80, 24 mm 16:9) vs `cut.py` of the same frame:
+  **corr 0.9987 forward, 0.9993 back**, mean abs 3.9 / 2.5 (Chromium vs ffmpeg H.264 decode) - the
+  shader IS `stitchPano` backwards.
+- **Take picture LIVE through the REAL button** (`t.cjs`, agent app on the shared engine, under the
+  lease): view yaw 0.35, pitch -0.08, 24 mm 16:9 on frame 40 -> "Saved as a new card in the gallery."
+  in **24.8 s**, no warnings; project.json 2 -> 3 cards, the new image card `scene_001` first in the
+  gallery; its sidecar: operation `scenePicture`, `scenePose` {pos [0,0,0], yaw 0.35, pitch -0.08, mm 24,
+  aspect 16:9, frame 40, video 988b141d}, 1360x768. By eye (`t_out/picture.png`): sharp, clean, the
+  two cottage doors as framed.
+- **Noticed:** frame 0 of the well video has thin black outlines along the guide's sky-band cuts (later
+  frames clean; cause not traced). At 24 mm they read thick. Plan § Paths P3 item.
+- Unit: `pano-video` (Take picture's pipeline) + `scene-path-video` (frames + minutes for a short path)
+  + `scene-viewer` (a ball near the camera hidden); mutants killed: colour lock, the `^1.5`, the frame
+  count reaching `pathFrames`, the ball flag. Scene tests 85/85 + 1, eslint clean. Full `npm test` 3044
+  pass / 2 fail = `child-safety-gate` (two cases), from MPI-1062's uncommitted `js/data/childSafety.js`
+  + its test, not this card.

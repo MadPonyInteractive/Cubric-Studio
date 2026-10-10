@@ -7,21 +7,23 @@
  * Measured on a 4060 Ti (validation.md § Paths P2): the guide ~35 s, Wan ~28 min.
  */
 
-import { pathFrames } from './scenePath.js';
+import { pathFrames, FRAMES } from './scenePath.js';
 import { sceneStyle, placeAsset } from './scenePicture.js';
 import { gpuGenSecs } from '../../data/runpodGpuSpecs.js';
 
 // Render path's measured runs, in seconds: an RTX 5090 Pod 420 s from the guide reaching the engine to
 // the card (validation.md § Render path on RunPod), an RTX 4060 Ti 1810 s click to card (§ Paths P2
-// LIVE). Every path is 81 frames, so any other card scales the 5090 run by the GPU picker's measured
-// seconds per image (GPU_GEN_SECS). That scale put the 4060 Ti (on the A4000's row) at 1735 s: 4% off.
+// LIVE), both 81 frames. Any other card scales the 5090 run by the GPU picker's measured seconds per
+// image (GPU_GEN_SECS); that scale put the 4060 Ti (on the A4000's row) at 1735 s: 4% off. A shorter
+// clip (frameCount) scales by (frames / 81)^1.5: 49 frames took 805 s of Wan against ~1700 s for 81.
 const PATH_RUNS = new Map([['NVIDIA GeForce RTX 5090', 420], ['NVIDIA GeForce RTX 4060 Ti', 1810]]);
 const PATH_ANCHOR = 'NVIDIA GeForce RTX 5090';
 
-/** Minutes Render path takes on `gpu` (a RunPod GPU id or a local nvidia-smi name), or null when nobody measured that card. */
-export function pathEtaMin(gpu) {
+/** Minutes Render path takes on `gpu` (a RunPod GPU id or a local nvidia-smi name) for a `frames`-frame clip,
+ *  or null when nobody measured that card. */
+export function pathEtaMin(gpu, frames = FRAMES) {
     const secs = PATH_RUNS.get(gpu) ?? (gpuGenSecs(gpu) && (PATH_RUNS.get(PATH_ANCHOR) * gpuGenSecs(gpu)) / gpuGenSecs(PATH_ANCHOR));
-    return secs ? Math.max(1, Math.round(secs / 60)) : null;
+    return secs ? Math.max(1, Math.round((secs * (frames / FRAMES) ** 1.5) / 60)) : null;
 }
 
 /** Matrix-3D's own prompt opening; the scene's style and the user's line follow. */
@@ -37,7 +39,8 @@ export function stackFrame({ w, h, rgba, mask }) {
 }
 
 /**
- * Render `points` (a camera path, `scenePath.js`) as a 360 video card in `project`.
+ * Render `points` (a camera path, `scenePath.js`) as a `frames`-frame 360 video card in `project`
+ * (`frameCount`: a short path gets fewer).
  * `onStep(step, at)`: 'style', 'guide' ({ frame, of }), 'upload', 'wan' (the engine has it).
  * @returns {Promise<Object>} the landed video item
  */
@@ -45,10 +48,10 @@ export function stackFrame({ w, h, rgba, mask }) {
 // a different path can queue behind this one; the SAME path again is refused (code 'rendering').
 const rendering = new Set();
 
-export async function renderPath({ project, sceneItem, view, renderer, points, fillLine = '', signal, onStep = () => {} }, io) {
+export async function renderPath({ project, sceneItem, view, renderer, points, frames: n = FRAMES, fillLine = '', signal, onStep = () => {} }, io) {
     const key = JSON.stringify([sceneItem?.scenePath, points, fillLine.trim()]);
     if (rendering.has(key)) throw Object.assign(new Error('this path is already rendering'), { code: 'rendering' });
-    const frames = pathFrames(points);
+    const frames = pathFrames(points, n);
     if (!frames.length) throw new Error('the path needs a second point');
     rendering.add(key);
     try {

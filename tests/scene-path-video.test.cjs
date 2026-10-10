@@ -111,6 +111,17 @@ test('pathEtaMin: the measured runs; other cards scale the 5090 Pod run by the G
     assert.equal(pathEtaMin('NVIDIA GeForce RTX 3060'), null, 'nobody measured it');
     assert.equal(pathEtaMin(null), null);
     assert.equal(pathEtaMin('constructor'), null, 'a name is looked up, never a property');
+    assert.equal(pathEtaMin('NVIDIA GeForce RTX 4060 Ti', 41), 11, 'a 41-frame clip: (41/81)^1.5 of the 81-frame run');
+    assert.equal(pathEtaMin('NVIDIA GeForce RTX 4060 Ti', 81), 30);
+});
+
+test('renderPath: a short path renders the frames it is given (frameCount)', async () => {
+    const { renderPath } = await esm('js/services/scene/scenePathVideo.js');
+    const { io, calls } = fakeIo();
+    await renderPath({ project: PROJECT, sceneItem: { ...SCENE, scenePath: 'short' }, view: {}, renderer: {}, points: [[0, 0, 0], [0, 0, -1]], frames: 33 }, io);
+    assert.equal(calls.renders.length, 33);
+    assert.equal(calls.posts.at(-1).body.frames.length, 33);
+    assert.deepEqual(calls.renders.at(-1).pos, [0, 0, -1], 'the last frame is the path\'s end');
 });
 
 test('frames-to-video: placed frames -> one 4:4:4 video in the store, the frames removed', async (t) => {

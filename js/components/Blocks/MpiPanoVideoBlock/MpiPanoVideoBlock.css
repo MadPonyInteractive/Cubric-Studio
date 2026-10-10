@@ -1,0 +1,83 @@
+/* ── MpiPanoVideoBlock — a path video's 360 player (MPI-623 P3) ─────────────── */
+/* The Scene workspace's layout (MpiSceneBlock.css): the viewer letterboxed to the picture's
+   aspect, the panel on the right. */
+
+.mpi-pano-video-block {
+    position: relative;
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+    background: var(--surface-1);
+}
+
+.mpi-pano-video-block__stage {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    container-type: size;
+}
+
+.mpi-pano-video-block__frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(100cqw, 100cqh * var(--frame-ar, 1.7778));
+    height: min(100cqh, 100cqw / var(--frame-ar, 1.7778));
+    transform: translate(-50%, -50%);
+}
+
+.mpi-pano-video-block__viewport {
+    position: absolute;
+    inset: 0;
+}
+
+.mpi-pano-video-block__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    width: 300px;
+    padding: var(--s-3);
+    overflow-y: auto;
+    border-left: 1px solid var(--line);
+    background: var(--surface-0);
+}
+
+.mpi-pano-video-block__label {
+    margin-top: var(--s-2);
+    color: var(--ink-3);
+    font-size: var(--t-xs);
+    text-transform: uppercase;
+}
+
+/* Play / pause and the frame scrubber, one row. */
+.mpi-pano-video-block__transport,
+.mpi-pano-video-block__lens {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+}
+
+.mpi-pano-video-block__scrub,
+.mpi-pano-video-block__lens-slider {
+    flex: 1;
+    min-width: 0;
+}
+
+.mpi-pano-video-block__lens-value {
+    min-width: 4em;
+    color: var(--ink-1);
+    font-size: var(--t-sm);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.mpi-pano-video-block__readout,
+.mpi-pano-video-block__status {
+    color: var(--ink-2);
+    font-size: var(--t-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+.mpi-pano-video-block__status:empty {
+    display: none;
+}

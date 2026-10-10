@@ -6,6 +6,7 @@
  *   PAGE_GALLERY      → main gallery (grid of ItemGroups); default on project open
  *   PAGE_GROUP_HISTORY → history view for a single ItemGroup (params: { groupId })
  *   PAGE_SCENE        → a scene card's 3D viewer (params: { groupId }; MPI-623, dev_mode)
+ *                       or, for a scene's path video, its 360 player (MpiPanoVideoBlock, P3)
  *
  * Hold Tab for the radial (MPI-811) — four fixed destinations on the diagonals:
  * Gallery (top-left), Models (the PICKER, bottom-left — MPI-848), Flows (top-right) and your latest
@@ -26,6 +27,7 @@ import { gid, qs } from '../utils/dom.js';
 import { navigate, back, clearHistory, PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../router.js';
 import { MpiRadialMenu } from '../components/Primitives/MpiRadialMenu/MpiRadialMenu.js';
 import { resolveFlipTarget } from '../data/projectModel.js';
+import { getPathVideoItem } from '../utils/assetKinds.js';
 import { MODELS, isModelUsable } from '../data/modelRegistry.js';
 import { updateProject } from '../services/projectService.js';
 import { loadProjectGrid, releaseProjectGrid } from './projectUI.js';
@@ -555,8 +557,13 @@ async function _importView(view) {
             return { mount: (container, params) => MpiGroupHistoryBlock.mount(container, params) };
         }
         case PAGE_SCENE: {
-            const { MpiSceneBlock } = await import('../components/Blocks/MpiSceneBlock/MpiSceneBlock.js');
-            return { mount: (container, params) => MpiSceneBlock.mount(container, params) };
+            const [{ MpiSceneBlock }, { MpiPanoVideoBlock }] = await Promise.all([
+                import('../components/Blocks/MpiSceneBlock/MpiSceneBlock.js'),
+                import('../components/Blocks/MpiPanoVideoBlock/MpiPanoVideoBlock.js'),
+            ]);
+            const blockFor = (groupId) => (getPathVideoItem(state.currentProject?.itemGroups?.find(g => g.id === groupId))
+                ? MpiPanoVideoBlock : MpiSceneBlock);
+            return { mount: (container, params) => blockFor(params?.groupId).mount(container, params) };
         }
         default:
             console.warn(`[navigation] Unknown view: "${view}"`);

@@ -99,6 +99,17 @@ test('a path ball sits where the camera stood when the point was added', async (
     near(meshes[3].position.distanceTo(mid), 0); // the first join runs between its two balls
 });
 
+// Fabio's screenshot (session 44): a ball the camera stood by filled the screen.
+test('a path ball near the camera is hidden, the others and the joins stay', async () => {
+    const { pathMeshes, hideNearBalls, poseToWorld, BALL_HIDE } = await esm('js/services/scene/sceneViewer.js');
+    const { MeshBasicMaterial } = await esm('node_modules/three/build/three.module.js');
+    const r = 0.05, meshes = pathMeshes([[0, 0, 0], [0, 0, 1], [0, 0, 2]], r, [new MeshBasicMaterial(), new MeshBasicMaterial()]);
+    hideNearBalls(meshes, poseToWorld([0, 0, 1.01]), r);
+    assert.deepEqual(meshes.map(m => m.visible), [true, false, true, true, true]);
+    hideNearBalls(meshes, poseToWorld([0, 0, 1 + 1.1 * BALL_HIDE * r]), r);
+    assert.deepEqual(meshes.map(m => m.visible), [true, true, true, true, true], 'walked away: it shows again');
+});
+
 // ── Rule C's inputs (spike 0a parity rests on these matching shots.py) ──────────────────
 
 test('a depth edge is a 3x3 spread over 5% of the depth; the flag drops on its vertices', async () => {

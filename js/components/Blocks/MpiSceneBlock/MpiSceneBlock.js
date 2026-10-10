@@ -51,7 +51,7 @@ import {
     START_POSE, NEAR, EYE_HEIGHT_M, FLY_BOOST, loadScene, createSceneView, applyPose, flyStep, flyLook,
 } from '../../../services/scene/sceneViewer.js';
 import { takePicture, buildHere, appIo } from '../../../services/scene/scenePicture.js';
-import { addPoint, removeLast } from '../../../services/scene/scenePath.js';
+import { addPoint, removeLast, frameCount } from '../../../services/scene/scenePath.js';
 import { renderPath, pathEtaMin } from '../../../services/scene/scenePathVideo.js';
 import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { pluginAvailability, getPlugin } from '../../../data/pluginsRegistry.js';
@@ -348,9 +348,10 @@ export const MpiSceneBlock = ComponentFactory.create({
                 if (!destroyed) { [takeBtn, buildBtn].forEach(b => b.el.setDisabled(!view)); showPath(); show(); }
             };
             try {
-                const eta = pathEtaMin(await wanGpu());
+                const frames = frameCount(pathPoints, view.ground); // a short path renders fewer, sooner
+                const eta = pathEtaMin(await wanGpu(), frames);
                 await renderPath({
-                    project, sceneItem, view, renderer: canvasEl.getRenderer(), points: pathPoints, fillLine,
+                    project, sceneItem, view, renderer: canvasEl.getRenderer(), points: pathPoints, frames, fillLine,
                     onStep: (step, at) => {
                         if (destroyed) return;
                         pathStatus.textContent = step === 'guide' ? `Rendering the guide: frame ${at.frame} of ${at.of}...`

@@ -40,7 +40,7 @@ import { MODELS, getModelsByType, getModelById, isModelUsable, isOperationInstal
 import { canonicalModelId } from '../../../data/modelConstants/resolveModelDeps.js';
 import { getAvailableCommands, getCommand, buildCueAllJobItems, selectCueAllTargets } from '../../../data/commandRegistry.js';
 import { isStack, expandStacks, stackableKind, resultStackFields, STACK_TYPE } from '../../../data/stackModel.js';
-import { getSceneItem } from '../../../utils/assetKinds.js';
+import { getSceneItem, getPathVideoItem } from '../../../utils/assetKinds.js';
 import { convertToPano } from '../../../services/scene/sceneConvert.js';
 import { pluginAvailability, getPlugin } from '../../../data/pluginsRegistry.js';
 import { startGeneration, enqueueGeneration, clearPendingQueue, refreshQueueDepth, removeCueJob, peekCueQueue, cancelRunningCueJob } from '../../../services/generationService.js';
@@ -288,10 +288,11 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // here as a normal image group and opens in the Scene workspace instead. Read off
         // the CARD (`getSceneItem`): selecting one of its pictures must not send it to
         // Group History. Behind dev_mode until it ships (A8); off, it is a plain image.
+        // A scene's path video (P3) opens there too, in the 360 player.
         grid.on('open-group', ({ group }) => {
             if (group?.type === 'audio') return;
             // MPI-949: a stack opens in the same workspace, in its stack mode.
-            if (APP_CONFIG.dev_mode && !isStack(group) && getSceneItem(group)) {
+            if (APP_CONFIG.dev_mode && !isStack(group) && (getSceneItem(group) || getPathVideoItem(group))) {
                 navigate(PAGE_SCENE, { groupId: group.id });
                 return;
             }

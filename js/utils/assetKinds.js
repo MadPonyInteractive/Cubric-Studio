@@ -103,6 +103,16 @@ export function getSceneItem(group) {
 }
 
 /**
+ * MPI-623 P3 — the item that makes a card a path video (a scene's Render path, a 360 video):
+ * read off the card like `getSceneItem`, so it opens in the 360 player whichever entry is selected.
+ * @param {Object} group
+ * @returns {Object|null}
+ */
+export function getPathVideoItem(group) {
+    return group?.history?.find(i => i?.operation === 'scenePathVideo') ?? null;
+}
+
+/**
  * MPI-623 (plan A9) — may the gallery offer "Convert to 360 pano" on this card? An image
  * card with no scene yet whose selected entry is a plain still (not a GIF) at EXACTLY 2:1,
  * the shape the equirect maths needs. The app cannot tell a pano from a 2:1 banner, so it

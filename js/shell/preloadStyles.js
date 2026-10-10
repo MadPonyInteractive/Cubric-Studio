@@ -133,6 +133,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.css',
   'js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.css',
   'js/components/Blocks/MpiSceneBlock/MpiSceneBlock.css',
+  'js/components/Blocks/MpiPanoVideoBlock/MpiPanoVideoBlock.css',
 
 ];
 

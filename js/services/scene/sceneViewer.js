@@ -250,6 +250,7 @@ export function pathMeshes(points, radius, mats) {
     const balls = at.map((p, i) => {
         const ball = new Mesh(geo, mats[i ? 1 : 0]);
         ball.position.copy(p);
+        ball.userData.ball = true;
         return ball;
     });
     // The joins as thin tubes: WebGL draws a line 1 px wide whatever its width.
@@ -261,6 +262,13 @@ export function pathMeshes(points, radius, mats) {
         return tube;
     });
     return [...balls, ...tubes];
+}
+
+/** A ball within this many radii of the camera is hidden: one the camera stood by filled the screen (Fabio). */
+export const BALL_HIDE = 3;
+/** Hide the path balls (`pathMeshes`) within `BALL_HIDE` radii of `eye` (a world spot), show the rest. */
+export function hideNearBalls(meshes, eye, radius) {
+    for (const m of meshes) if (m.userData.ball) m.visible = m.position.distanceTo(eye) > BALL_HIDE * radius;
 }
 
 function forward({ yaw, pitch }) {
@@ -541,7 +549,7 @@ export function createSceneView({ manifest, depth, image, layers }, { skyBand = 
 
     // The camera path (P1): low-poly balls joined by tubes, drawn over the frame on screen only
     // (a picture never holds it) and never hidden by the scene, so a path through a wall shows.
-    const pathScene = new Scene();
+    const pathScene = new Scene(), eye = new Vector3();
     const clearPath = () => {
         pathScene.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); });
         pathScene.clear();
@@ -574,6 +582,7 @@ export function createSceneView({ manifest, depth, image, layers }, { skyBand = 
                 const clear = renderer.autoClear;
                 renderer.autoClear = false;
                 renderer.clearDepth(); // the balls hide each other, never the scene them
+                hideNearBalls(pathScene.children, eye.setFromMatrixPosition(camera.matrixWorld), PATH_BALL * ground);
                 renderer.render(pathScene, camera);
                 renderer.autoClear = clear;
             }

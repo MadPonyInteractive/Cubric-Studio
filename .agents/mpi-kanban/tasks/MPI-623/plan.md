@@ -8,7 +8,16 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 45 (2026-10-10, "3D Scene 35"): P3
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 46 (2026-10-10, "3D Scene 36"): P3's
+360 PLAYER BUILT + LIVE** (validation.md § P3 player; § Remaining Work > Paths P3). Quality first: Klein
+POLISH alone sharpens a 24 mm cut of the 1440 frame (295 px) to a clean 1360x768 - no upscaler. Then
+`MpiPanoVideoBlock` + `panoVideo.js`: a path-video card (`getPathVideoItem`) opens on PAGE_SCENE in the
+player (drag to look while it plays, scrubber, aspect, lens); Take picture renders the same view through
+the same shader -> Klein POLISH -> colour lock -> a NEW image card (pose + frame + video id on its
+sidecar). The real button ran live: 24.8 s, card `scene_001` in the gallery, sharp. Also wired
+`frameCount` (Render path + its minutes) and hid a path ball near the camera. All UNCOMMITTED. Gotcha:
+the look is relative to the path's heading (the video item has no points). **Fabio passed it live ("It works nicely").** **Next (his asks):** Left/Right arrows step a
+frame; aspect + lens keep their values once changed (§ Paths P3). Components gallery: my pick no (asked). Open: frame 0's thin black outlines (§ Paths P3). **Session 45 (2026-10-10, "3D Scene 35"): P3
 DECIDED - option 1, a 360 video player** (§ Plan Drift 2026-10-10 "option 1"; § Remaining Work > Paths
 P3). First built and ran live "a path builds the world" (Wan's frames lifted into the scene as layers):
 it WORKED mechanically but Fabio rejected it by eye (seams, floaters, soft) - same root cause as Build
@@ -471,21 +480,31 @@ The 3D scene only lays points and renders a path. The path video lands as a CARD
 360 player: drag to look while it plays, stop on a frame, frame a shot (lens + aspect, as the scene
 panel), Take picture. No walkable world (the lift into the scene was built, run live and dropped:
 [research/p3-lift-into-scene.md](research/p3-lift-into-scene.md)). My picks, stated to Fabio, not questioned:
-- [ ] Routing: PAGE_SCENE mounts a new `MpiPanoVideoBlock` when the card is a path video (selected entry
-      `operation === 'scenePathVideo'`; his cameraPathVideo_001/002 open the same way); the gallery
-      intercept (`MpiGalleryBlock` open-group) and `navigation.js` `_importView` choose by card. New
-      component checklist: `preloadStyles.js`, `types.js` props, ask Fabio about the components gallery.
-- [ ] Player: three.js sphere, a `<video>` as `VideoTexture`, a shader mapping the view direction to the
-      frame layout exactly as `stitchPano` (centre = the way the path faces, world y-down; `applyPose` +
-      `flyLook` for the scene's drag feel); play/pause, frame scrubber (16 fps), lens, aspect guides.
-- [ ] Take picture: render that exact view at `pictureSize(aspect)` into a render target (the viewer IS
-      the shot), then Klein `kleinEdit` POLISH (deferCommit) + `colorLock`, saved as a NEW image card.
-      TEST FIRST on his well video: a 24 mm 16:9 crop is only ~300 px of the 1440 frame; if Klein's
-      clean-up is too soft, an upscaler goes before it.
-- [ ] Wire `frameCount` (built + tested, unused): `renderPath({ frames })`, the panel passes
-      `frameCount(points, view.ground)`, `pathEtaMin(gpu, frames)` scaled by `(frames/81)**1.5`.
-- [ ] Path balls fill the screen when the camera stands on one (Fabio's screenshot): hide a ball near the camera.
-- [ ] Fabio's eye on the player + pictures.
+- [x] Routing (session 46): `getPathVideoItem(group)` (assetKinds.js, read off the CARD like
+      `getSceneItem`) opens the card on PAGE_SCENE (`MpiGalleryBlock` open-group), and `navigation.js`
+      mounts `MpiPanoVideoBlock` for it, `MpiSceneBlock` otherwise. CSS in `preloadStyles.js`, props in
+      `types.js`; the components gallery is Fabio's call (asked at close-out).
+- [x] Player (session 46, `MpiPanoVideoBlock` + `panoVideo.js`): a BackSide sphere, the `<video>` as a
+      `VideoTexture` (never in the DOM), a shader doing `stitchPano` backwards (raw bytes, RepeatWrapping
+      across the seam); look RELATIVE to the heading (the video item has no points). Play/pause, frame
+      scrubber, aspect, lens. Live (`p.cjs`, no engine): 16 fps, drag turns, seek lands; its picture of
+      frame 80 matches `cut.py` (= stitchPano) at corr 0.999.
+- [x] Picture quality FIRST (session 46): Klein POLISH alone is enough - every 24 mm cut (295 px of
+      the frame) comes back sharp at 1360x768, even 50 mm (158 px). NO upscaler (validation.md § P3 player).
+- [x] Take picture: `takeVideoPicture` renders the view at `pictureSize(aspect)` through the same shader
+      -> `kleinJob` POLISH -> `colorLock` -> `savePictureCard` (a NEW image card, `scenePose` + `frame` +
+      `video` on its sidecar). Unit + mutant. Live through the real button: see Current State.
+- [x] Wire `frameCount`: `renderPath({ frames })`, the scene panel passes `frameCount(points, view.ground)`,
+      `pathEtaMin(gpu, frames)` scales by `(frames/81)**1.5` (tests + 2 mutants).
+- [x] Path balls within `BALL_HIDE` (3) radii of the camera are hidden (`hideNearBalls`, test + mutant).
+- [ ] Frame 0 of his well video has thin black outlines along the guide's sky-band cuts (the 5% holes of
+      frame 0; later frames are clean; cause NOT traced - Wan's start image vs the mask edge). At 24 mm
+      they are thick. Candidate: the real pano as frame 0's guide picture.
+- [x] Fabio's eye on the player + a picture (session 46, his app, well video frame 59, 12 mm 2.39:1 ->
+      `scene_001` 1584x656): "It works nicely."
+- [ ] Fabio's asks (session 46): Left / Right arrows step one frame back / forward (via `Hotkeys.bind` +
+      `hotkeyRegistry.js`, never a raw keydown; pauses like the scrubber); the Frame aspect and Lens keep
+      their values once changed (across player opens - and the Scene panel's too? ask, or match both).
 
 ### Phase 0: Single-shot spikes (bench + a scratch HTML page, NO product code)
 

@@ -198,10 +198,10 @@ const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
 
 /** The app's own doors, loaded on first use so this module imports in node for its test. */
 export async function appIo() {
-    const [{ enqueueGeneration }, { runSceneOp }, { uploadMediaFile }, { getModelById }, model, { updateGroup }, { state }, { resolveMediaUrl }, { describeImage }] = await Promise.all([
+    const [{ enqueueGeneration }, { runSceneOp }, { uploadMediaFile }, { getModelById }, model, { updateGroup, addGroup }, { state }, { resolveMediaUrl }, { describeImage }, { Events }] = await Promise.all([
         import('../generationService.js'), import('../commandExecutor.js'), import('../mediaUploadService.js'),
         import('../../data/modelRegistry.js'), import('../../data/projectModel.js'), import('../projectService.js'),
-        import('../../state.js'), import('../../utils/mediaActions.js'), import('../llmService.js'),
+        import('../../state.js'), import('../../utils/mediaActions.js'), import('../llmService.js'), import('../../events.js'),
     ]);
     const canvasOf = (w, h) => new OffscreenCanvas(w, h).getContext('2d', { willReadFrequently: true });
     return {
@@ -250,11 +250,28 @@ export async function appIo() {
                 { itemId: entry.id, updates: { scenePose, displayName: entry.displayName } }); // the upload named it scene_NNN
             return { group: next, entry };
         },
+        /** A 360 player's picture (panoVideo.js) as a NEW image card, its pose on item + sidecar. */
+        async savePictureCard(project, blob, { w, h }, scenePose) {
+            const file = new File([blob], 'scene_picture.png', { type: 'image/png' });
+            const up = await uploadMediaFile(file, 'image', project.folderPath, project.id, { filenamePrefix: 'scene', operation: 'scenePicture' });
+            if (!up) throw new Error('the picture could not be saved');
+            const entry = model.createImageItem({
+                id: up.itemId, filePath: up.filePath, operation: 'scenePicture',
+                pixelDimensions: up.pixelDimensions || { w, h }, scenePose,
+                ...(up.thumbPath ? { thumbPath: up.thumbPath } : {}),
+                ...(up.thumbPathLg ? { thumbPathLg: up.thumbPathLg } : {}),
+            });
+            const group = model.appendToHistory(model.createItemGroup('image', { name: up.filename.replace(/\.[^.]+$/, '') }), entry);
+            await addGroup(group); // persists it and repaints the gallery
+            await postJson(`/project-media/${project.id}/update-meta?folderPath=${encodeURIComponent(project.folderPath)}`, { itemId: entry.id, updates: { scenePose } });
+            Events.emit('project:stats-dirty');
+            return { group, entry };
+        },
     };
 }
 
 /** One Klein job with no card of its own; resolves its result item. */
-function kleinJob(io, operation, url, positive, maskDataUrl) {
+export function kleinJob(io, operation, url, positive, maskDataUrl) {
     return new Promise((resolve, reject) => {
         const started = io.enqueue(
             {

@@ -1987,6 +1987,14 @@
  */
 
 /**
+ * @typedef {Object} MpiPanoVideoBlockProps (Block — js/components/Blocks/MpiPanoVideoBlock)
+ * @property {string} groupId - ID of a path video card (from router params, PAGE_SCENE). Mounted
+ *   instead of MpiSceneBlock when the card has `getPathVideoItem(group)`, behind APP_CONFIG.dev_mode
+ *   (MPI-623 P3): a 360 player whose Take picture lands as a new image card.
+ * Emits: (none)
+ */
+
+/**
  * @typedef {Object} MpiSceneCanvasProps (Primitive — js/components/Primitives/MpiSceneCanvas)
  * No props. Owns ONE WebGL2 context via a three.js WebGLRenderer (reverse depth) and a
  * PerspectiveCamera; draws on demand only (no free-running loop), whatever `setDraw` was
