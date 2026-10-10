@@ -1671,9 +1671,12 @@ export const FLOWS = [
         title: 'Character Sheet Editor',
         preview: 'flow-character-sheet-editor.webp',
         description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words; the result is a new card and the sheet you started from stays as it is. Body shape, and ages of 12 and under, run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
+        // Each slot's rack fills its phase's nodes: Klein's Input_Lora_Phase1_* (the edit and age
+        // legs), Qwen's Input_Lora_Phase2_* (Body shape). The child rebuild leg runs the
+        // from-images graph, titled Phase1, so it takes no rack here.
         requiredModels: [
-            'klein-9b',
-            { label: 'Body shape and child ages', models: ['qwen-image-2-1'], optional: true,
+            { label: 'Model', models: ['klein-9b'], loras: true },
+            { label: 'Body shape and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
               for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] },
         ],
         operation: 'flowCharacterSheetEdit',

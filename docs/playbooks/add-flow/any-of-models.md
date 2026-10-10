@@ -36,9 +36,9 @@ fails on it.
 **A flow may declare SEVERAL choosable slots, and they resolve independently** — each gets its
 own dropdown, its own pick, and its own `modelParams` contribution to the one merged
 `injectionParams`. `label` is what the picker shows — two fields both reading "Model" tell the
-user nothing, which is why the label is not optional in the object form. **No shipped flow
-declares two slots today**; the resolver is exercised by a synthetic fixture in
-`tests/flow-model-choice.test.cjs`.
+user nothing, which is why the label is not optional in the object form. The Character Sheet
+Editor declares two (MPI-1041): its second is `optional: true` with `for: [ops]`, the model only
+some of its ops run. That shape: [existing-flows/character-sheet-editor.md](existing-flows/character-sheet-editor.md).
 
 **`models[0]` is the RECOMMENDED candidate.** Declaration order is preference order: it is what an
 untouched picker resolves to, and the picker stars it. There is no separate `recommended` field —
@@ -51,7 +51,7 @@ A slot reaches a plain consumer as an object. Resolve it through `flowsRegistry.
 | Helper | Returns |
 |---|---|
 | `flowModelSlots(flow)` | Every slot normalised to `{ label, models }`, including the one-candidate ones. The shape helpers below are built on. |
-| `flowModelIds(flow)` | ONE id per slot — the pick, else the first installed candidate, else the recommended one. This is what the badge, the install keys, the required-models rows and the progress bar all use. |
+| `flowModelIds(flow, { op }?)` | ONE id per slot — the pick, else the first installed candidate, else the recommended one. This is what the badge, the install keys, the required-models rows and the progress bar all use. With `op`, a slot that op does not use is `null` (MPI-1041). |
 | `flowModelChoices(flow)` | The slots with a real choice in them, as `{ label, models, recommended }` — one dropdown each. Empty means no picker. |
 | `setFlowModel(flowId, id)` | Records the pick. **Session-only** — a pick that outlived the app would silently run a later sheet on the NSFW bake because of a click made days ago. Replaces any earlier pick in the SAME slot and leaves the other slots alone. |
 | `flowModelParams(flow)` | Every resolved candidate's `modelParams`, merged. `flowService` puts these into `injectionParams` FIRST, so a collected field of the same name still wins. |

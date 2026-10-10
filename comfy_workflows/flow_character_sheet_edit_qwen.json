@@ -14,7 +14,7 @@
       "device": "auto",
       "dtype": "default",
       "model": [
-        "1",
+        "135",
         0
       ]
     },
@@ -204,6 +204,90 @@
     "class_type": "ImageScale",
     "_meta": {
       "title": "back to the sheet's own size"
+    }
+  },
+  "130": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase2_1"
+    }
+  },
+  "131": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "130",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase2_2"
+    }
+  },
+  "132": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "131",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase2_3"
+    }
+  },
+  "133": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "132",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase2_4"
+    }
+  },
+  "134": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "133",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase2_5"
+    }
+  },
+  "135": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "134",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase2_6"
     }
   }
 }

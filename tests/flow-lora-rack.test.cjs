@@ -344,14 +344,19 @@ const RACKS = [
     // Character Sheet from Images: Qwen-Image 2.1 and Klein 9B, both model-only racks.
     { file: 'flow_character_sheet_from_images.json', loader: '38', consumer: '39', input: 'model' },
     { file: 'flow_character_sheet_from_images_klein.json', loader: '38', consumer: '47', input: 'model' },
+    // MPI-1041 Character Sheet Editor: Klein's rack feeds BOTH arms of the lock switch; the Qwen
+    // graph is the Flow's SECOND slot, so its rack is phase 2.
+    { file: 'flow_character_sheet_edit.json', loader: '34', consumer: '50', input: 'model' },
+    { file: 'flow_character_sheet_edit.json', loader: '34', consumer: '54', input: 'model' },
+    { file: 'flow_character_sheet_edit_qwen.json', loader: '1', consumer: '2', input: 'model', phase: 2 },
 ];
 
 for (const r of RACKS) {
-    test(`${r.file}: six "None" slots in ONE chain from the loader to node ${r.consumer}`, () => {
+    test(`${r.file}: six "None" phase ${r.phase || 1} slots in ONE chain from the loader to node ${r.consumer}`, () => {
         const g = JSON.parse(read(`comfy_workflows/${r.file}`));
         const want = new Set();
         for (let i = 1; i <= 6; i++) {
-            const title = `Input_Lora_Phase1_${i}`;
+            const title = `Input_Lora_Phase${r.phase || 1}_${i}`;
             const ids = idByTitle(g, title);
             assert.equal(ids.length, 1, `${r.file} must carry exactly one "${title}"`);
             assert.equal(g[ids[0]].inputs.lora_name, 'None', `${title} must bake "None"`);

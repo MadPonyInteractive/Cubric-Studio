@@ -78,6 +78,13 @@ A character sheet of a character the user already HAS a picture of is Character 
 full-body picture as `image2`; `positive` holds only what should differ from the pictures (a
 haircut, a build), never a description of the character. It opens at the face box for the user.
 
+A change to a sheet the user already HAS (new clothes, glasses, a haircut, beaten up, heavier, an
+age) is Character Sheet Editor: the sheet card as `image1`, `change` one of clothes, accessories,
+hair, condition, body or none, `words` only the new thing ("a red leather jacket"), `Input_Age`
+the age in years or 0 to keep it. One change per run: for a second, run it again on the result.
+Under 16 a sheet must be fully dressed; a `CHILD_SAFETY` refusal means run Clothes first. Body
+and ages 12 and under need Qwen-Image 2.1: when it is missing, say so, and the Flow offers it.
+
 Any other Flow opens the same way with `open: true`, when the user wants to adjust it themselves
 (a result they did not like) or it needs something only they have, such as their own photo. Offer
 it first ("I need your photo for that. I can open the Flow for you to add it."), and open it when

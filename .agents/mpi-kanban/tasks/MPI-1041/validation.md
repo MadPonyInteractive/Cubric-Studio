@@ -470,3 +470,15 @@ portrait swapped for the given one (node 77 -> a LoadImage), so only the body pa
   or in revealing swimwear?" refuse unless NO. Suites 87/87.
 - NOT benched yet (Phase E): the DRESSED ask gained "Swimwear or underwear is NOT DRESSED." (A4 pinned it without);
   the 16-17 ask is new.
+
+## 2026-10-10 - Phase D: racks, optional model, docs (session fe4cb412)
+
+- Raw rack insert diff (`git diff -U0`): only `last_node_id` / `last_link_id`, the loader's link list and the consumer
+  links' origin changed besides the six added nodes; fresh single-file conversions vs the committed API graphs differ
+  by the six `MpiLoraModel` nodes and the consumers' `model` input only (50, 54 / 2).
+- `node --test` flow-lora-rack 21/21 (three new rows), character-sheet-editor 18/18 (new: per-leg phases, rebuild leg
+  gets no Klein rack), flow-licence-surface 7/7 (new: optional model listed for its licence, out of install keys; the
+  install-key assert fails on the old `flowInstallKeys`), flow-field-constraints, flow-legs, flow-model-choice,
+  inject-params-titles: 125/125 together. agent-corpus / prompt-budget / recipe-registry green after the agent paragraph.
+- `npm test` 2983/2985 pass, 0 fail (2 skipped). `npm run lint` + `lint:components` clean.
+- NOT seen in the app yet: the run slide's Install row and the Library's Optional models list (Phase E).

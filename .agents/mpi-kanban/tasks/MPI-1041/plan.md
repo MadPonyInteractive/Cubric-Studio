@@ -2,6 +2,14 @@
 
 ## Current State
 
+**2026-10-10 (session fe4cb412) - Phase D DONE except the preview art (`npm test` 2983/2985, 0 fail; lint +
+lint:components clean). NEXT: Phase E** - bench the two dressed checks on the default describer under
+`gpu_lease` (MPI-1060 shares the G: bench on :8188), then `npm run app:isolated`. The LoRA racks went into the
+raws with `research/bench-tools/insert_rack.py` (raw in place, converted single-file against :8188's
+`/object_info`, diff = the rack only). Release-note bullet sent to MPI-1056 (it holds `UNRELEASED.md`):
+message `fe4cb412-mpi1041-to-mpi1056`; add it at close-out if they released instead. Claim
+`state/files/fe4cb412-mpi1041-phaseD.json`.
+
 **2026-10-10 (session 16d04a9a) - bench DONE (validation.md batches 1-19), Flow plan written, Fabio's go given.
 NEXT: `mpi-continue` -> Parallel Batch A** (route it to `mpi-execute-parallel`). Project mode: scalable-foundation.
 Research behind every line below, with file:line: `research/flow-plan-research.md`.
@@ -182,7 +190,15 @@ counts the optional slot, "Required models" (793) lists it, `_installProgress`/`
 
 ## Phase D: UI + docs
 
-- [ ] `MpiBaseFlow.js` live "needs Qwen-Image 2.1 - Install" row for an optional slot (ComponentFactory, BEM,
+- [x] (DONE 2026-10-10, session fe4cb412, except the preview art: `loras: true` on both slots, racks Phase1 in the Klein
+  graph in front of BOTH lock arms (50, 54) and Phase2 in the Qwen graph, three `RACKS` rows (the test gained a `phase`);
+  the child rebuild leg takes no rack (its graph is Phase1-titled, the leg sends phase 2) - pinned in the editor test.
+  `flowInstallKeys` = required only (`flowOptionalModelIds`), `flowLicences` lists the optional too; Library: Fits my
+  GPU skips optional slots, "Optional models" list, `_licenceErrands` only for install keys; run slide:
+  `_optionalInstallRow` (name + Install, `downloadService.start`), repainted on install events. Docs: recipe
+  `existing-flows/character-sheet-editor.md`, `01-descriptor-and-ops.md` (array chain, `operationBy`, optional, describe
+  CHECK), `any-of-models.md`, `ui/lora-rack.md`, `docs/agent/flows.md` paragraph. Preview art: Fabio's pick, later)
+  `MpiBaseFlow.js` live "needs Qwen-Image 2.1 - Install" row for an optional slot (ComponentFactory, BEM,
   `downloadService.start` so the licence gate fires); `MpiFlowLibrary.js` "Optional models" list; `flowLicences.js`
   shows the optional Qwen licence. Recipe `docs/playbooks/add-flow/existing-flows/character-sheet-editor.md`;
   `docs/flows.md` / add-flow playbook lines for legs, `operationBy`, optional slots; MPI-1036's `docs/agent/flows.md`

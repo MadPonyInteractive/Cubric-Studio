@@ -5,12 +5,10 @@
 > second. **Portable:** any flow whose graph carries `Input_Lora_Phase<N>_1..6` and whose
 > user might already own a LoRA.
 >
-> ⚠️ **NO SHIPPED FLOW DECLARES TWO SLOTS RIGHT NOW** (MPI-628 took the Character Sheet's
-> blend slot when its head removal stopped being a model pass). The per-phase machinery is
-> live and tested — `tests/flow-model-choice.test.cjs` carries a synthetic two-slot fixture
-> for it — but the two-slot examples below are written from a flow that no longer has two.
-> They are still the contract to build against; they are just not currently on screen
-> anywhere. The Library detail panel's multi-slot render has no desktop probe left.
+> **The two-slot Flow on screen is the Character Sheet Editor** (MPI-1041): Klein 9B fills
+> Phase1 of its Klein graph, the optional Qwen-Image 2.1 Phase2 of its Qwen graph, and each leg
+> sends only the phases of the slot it runs. The Library detail panel's multi-slot render has
+> no desktop probe.
 >
 > 🔴 **`settingsModel`, `flowSettingsModel()` and `config.loraModelId` are GONE** (MPI-608).
 > One string could name only one rack, so a flow choosing a model per phase could never fill
@@ -117,7 +115,8 @@ assertion to `tests/flow-lora-rack.test.cjs` with it.
   deliberately declaring no rack. Filling every slot whose graph HAS the nodes would silently start
   injecting the user's LTX LoRAs into it.
 - **Most Flows take one** (Fabio, MPI-1036): Character Sheet, Scribble, Draw It In, Object Stamp,
-  Upscale Video, Video Edit, Extend Video (both graphs), Character Sheet from Images (both graphs).
+  Upscale Video, Video Edit, Extend Video (both graphs), Character Sheet from Images (both graphs),
+  Character Sheet Editor (both graphs, phases 1 and 2).
   Foley and Outpaint do not, by his call. `tests/flow-lora-rack.test.cjs` `RACKS` walks each graph's
   chain loader -> consumer; add a row with every new rack.
 - **Retitle, never add.** `commandExecutor` still emits the flat `Lora_N` beside

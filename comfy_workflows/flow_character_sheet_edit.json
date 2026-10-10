@@ -753,7 +753,7 @@
   "50": {
     "inputs": {
       "model": [
-        "34",
+        "67",
         0
       ],
       "positive": [
@@ -848,7 +848,7 @@
       "LanPaint_Info": "LanPaint KSampler. For more info, visit https://github.com/scraed/LanPaint. If you find it useful, please give a star ⭐️!",
       "Inpainting_mode": "🖼️ Image Inpainting",
       "model": [
-        "34",
+        "67",
         0
       ],
       "positive": [
@@ -997,6 +997,90 @@
     "class_type": "PreviewImage",
     "_meta": {
       "title": "Output_Image"
+    }
+  },
+  "62": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "34",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase1_1"
+    }
+  },
+  "63": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase1_2"
+    }
+  },
+  "64": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "63",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase1_3"
+    }
+  },
+  "65": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "64",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase1_4"
+    }
+  },
+  "66": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "65",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase1_5"
+    }
+  },
+  "67": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "66",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase1_6"
     }
   }
 }

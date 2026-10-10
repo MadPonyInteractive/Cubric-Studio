@@ -23,7 +23,7 @@ import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { openExternal } from '../../../utils/openExternal.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
-import { flowInstallKeys, flowLicences, buildLicenceRows } from '../../../utils/flowLicences.js';
+import { flowInstallKeys, flowLicences, flowOptionalModelIds, buildLicenceRows } from '../../../utils/flowLicences.js';
 import { MpiProjectDropOverlay } from '../../Primitives/MpiProjectDropOverlay/MpiProjectDropOverlay.js';
 import { registerUserFlow, loadUserFlows, userFlowsDir, USER_FLOW_PREFIX } from '../../../services/userFlowService.js';
 import { clientLogger } from '../../../services/clientLogger.js';
@@ -320,7 +320,8 @@ export const MpiFlowLibrary = ComponentFactory.create({
             const engine = _pod ? 'remote' : 'local';
             const [vram, ram] = _pod ? [_pod.vramGb, _pod.ramGb] : [_vramGb, _ramGb];
             const arch = remoteEngineClient.archSync(engine);
-            return flowModelSlots(flow).every(({ models }) => models.some((id) => {
+            // An optional slot (MPI-1041) does not decide whether the Flow runs on this card.
+            return flowModelSlots(flow).filter(s => !s.optional).every(({ models }) => models.some((id) => {
                 const model = getModelById(id);
                 return !!model && fitsHardware(model, engine, vram, ram, { arch });
             }));
@@ -457,8 +458,11 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // of errand is outstanding and a second pass over all of them would name one the
         // user has already run.
         function _licenceErrands(flow) {
+            // Only what Install installs: an optional model's licence is listed, but its errand is
+            // the run slide's, where that model is installed (MPI-1041).
+            const keys = flowInstallKeys(flow);
             return flowLicences(flow)
-                .filter(({ key, licence }) => (licence.verify || licence.territory) && !hasAcceptedLicence(key))
+                .filter(({ key, licence }) => keys.includes(key) && (licence.verify || licence.territory) && !hasAcceptedLicence(key))
                 .map(({ licence }) => licence);
         }
 
@@ -587,16 +591,29 @@ export const MpiFlowLibrary = ComponentFactory.create({
             return { installing, progress: sum / ids.length };
         }
 
-        function _rowHtml(name, installed) {
+        function _rowHtml(name, installed, missingLabel = 'Install') {
             const chip = installed
                 ? `<span class="mpi-tile__chip mpi-tile__chip--installed">Installed</span>`
-                : `<span class="mpi-tile__chip mpi-tile__chip--available">Install</span>`;
+                : `<span class="mpi-tile__chip mpi-tile__chip--available">${missingLabel}</span>`;
             return `<li class="mpi-detail__model-row"><span>${name}</span>${chip}</li>`;
         }
 
-        function _modelRowHtml(modelId) {
+        function _modelRowHtml(modelId, missingLabel) {
             const model = getModelById(modelId);
-            return _rowHtml(model?.name || modelId, (state.s_installedModelIds || []).includes(modelId));
+            return _rowHtml(model?.name || modelId, (state.s_installedModelIds || []).includes(modelId), missingLabel);
+        }
+
+        // MPI-1041: Install leaves these out; the run slide offers each one when a run needs it.
+        function _optionalModelsHtml(flow) {
+            const ids = flowOptionalModelIds(flow);
+            if (!ids.length) return '';
+            return `
+                <div class="mpi-detail__field">
+                    <span class="mpi-detail__field-label">Optional models</span>
+                    <ul class="mpi-detail__models">
+                        ${ids.map(id => _modelRowHtml(id, 'Optional')).join('')}
+                    </ul>
+                </div>`;
         }
 
         // MPI-304 — flow-only deps appear as ONE extra row in the same required list,
@@ -790,10 +807,11 @@ export const MpiFlowLibrary = ComponentFactory.create({
                 <div class="mpi-detail__field">
                     <span class="mpi-detail__field-label">Required models</span>
                     <ul class="mpi-detail__models">
-                        ${flowModelIds(flow).map(_modelRowHtml).join('')}
+                        ${flowOptionalModelIds(flow, false).map(id => _modelRowHtml(id)).join('')}
                         ${_flowDepsRowHtml(flow)}
                     </ul>
                 </div>
+                ${_optionalModelsHtml(flow)}
                 ${_licenceFieldHtml(flow)}`;
 
             _mountModelChoice(flow);

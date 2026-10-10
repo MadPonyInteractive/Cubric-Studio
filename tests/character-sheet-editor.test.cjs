@@ -210,6 +210,23 @@ test('each leg runs its own model, and Qwen-Image 2.1 is asked for only when the
     assert.strictEqual(flowAvailability(flow).available, false);
 });
 
+test('each leg takes the rack of the model it runs, into nodes its graph carries', async () => {
+    const { getFlowById, flowModelIds, flowLoraPhases } = await registry();
+    const flow = getFlowById('character-sheet-editor');
+    await stage(['klein-9b', 'qwen-image-2-1']);
+    // flowService's filter: only the phases whose slot THIS op runs.
+    const phasesFor = op => flowLoraPhases(flow).filter(({ phase }) => flowModelIds(flow, { op })[phase - 1]);
+    const titles = file => JSON.stringify(require(path.join(ROOT, 'comfy_workflows', file)));
+    assert.deepStrictEqual(phasesFor('flowCharacterSheetEdit'), [{ phase: 1, modelId: 'klein-9b' }]);
+    assert.deepStrictEqual(phasesFor('flowCharacterSheetEditQwen'), [{ phase: 2, modelId: 'qwen-image-2-1' }]);
+    assert.match(titles('flow_character_sheet_edit.json'), /Input_Lora_Phase1_6/);
+    assert.match(titles('flow_character_sheet_edit_qwen.json'), /Input_Lora_Phase2_6/);
+    // The rebuild leg's graph is titled phase 1 for its own Flow: no Klein rack can land in it.
+    assert.deepStrictEqual(phasesFor('flowCharacterSheetImages'), [{ phase: 2, modelId: 'qwen-image-2-1' }]);
+    assert.doesNotMatch(titles('flow_character_sheet_from_images.json'), /Input_Lora_Phase2_/);
+    await stage([]);
+});
+
 test('every op the Flow dispatches takes the sheet on image1', async () => {
     const { getFlowById, flowOperations } = await registry();
     const { getCommand } = await esm('js/data/commandRegistry.js');

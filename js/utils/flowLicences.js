@@ -22,7 +22,7 @@
  * A consumer supplies its own wrapper class for spacing (see MpiBaseFlow's
  * `mpi-base-flow__licence`); nothing here writes a margin.
  */
-import { flowModelIds, flowDepKey } from '../data/flowsRegistry.js';
+import { flowModelIds, flowModelSlots, flowDepKey } from '../data/flowsRegistry.js';
 import { getModelLicence } from '../data/modelConstants/licences.js';
 import { ce, on } from './dom.js';
 import { mountButton } from '../components/Primitives/MpiButton/MpiButton.js';
@@ -46,9 +46,24 @@ export function flowInstallKeys(flow) {
     // Resolved ids (MPI-590): an any-of slot contributes the member that is
     // installed — or the default to install — never both, so the aggregated bar
     // and Cancel-all keep counting one job per slot exactly as before.
-    const keys = flowModelIds(flow);
+    // An OPTIONAL slot (MPI-1041) is not part of the install: the Flow runs without it and the
+    // run slide installs it on its own (MpiBaseFlow). Counted here, it held the Library's bar
+    // short of 100% and Cancel aimed at a download Install never started.
+    const keys = flowOptionalModelIds(flow, false);
     if ((flow.requiredDeps || []).length) keys.push(flowDepKey(flow.id));
     return keys;
+}
+
+/**
+ * The resolved ids of a flow's OPTIONAL slots (MPI-1041), or with `optional` false its
+ * required ones. Install, cancel and progress count the required ones; licences list both.
+ * @param {Object} flow a FlowDef
+ * @param {boolean} [optional]
+ * @returns {string[]}
+ */
+export function flowOptionalModelIds(flow, optional = true) {
+    const slots = flowModelSlots(flow);
+    return flowModelIds(flow).filter((id, i) => !!slots[i]?.optional === optional);
 }
 
 /**
@@ -63,7 +78,9 @@ export function flowInstallKeys(flow) {
 export function flowLicences(flow) {
     const seen = new Set();
     const out = [];
-    for (const key of flowInstallKeys(flow)) {
+    // The optional models too: a user who installs one from the run slide meets its terms
+    // there, and has to be able to read them here first.
+    for (const key of [...flowInstallKeys(flow), ...flowOptionalModelIds(flow)]) {
         const licence = getModelLicence(key);
         if (!licence || seen.has(licence.id)) continue;
         seen.add(licence.id);

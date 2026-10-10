@@ -190,7 +190,7 @@ test('both Flow surfaces consume the shared module', () => {
     // other not, when `poweredBy` is licence-mandated (MPI-452) and `report` is a channel
     // H3 §V.5 obliges us to keep reachable.
     const lib = src();
-    assert.match(lib, /import \{ flowInstallKeys, flowLicences, buildLicenceRows \}/,
+    assert.match(lib, /import \{ flowInstallKeys, flowLicences, (?:flowOptionalModelIds, )?buildLicenceRows \}/,
         'MpiFlowLibrary re-grew its own copy of the licence helpers');
     assert.match(lib, /Licence required/, 'the tile chip is gone');
     assert.match(lib, /Verify licence/, 'the footer button no longer names what the click delivers');
@@ -208,4 +208,19 @@ test('both Flow surfaces consume the shared module', () => {
         'MpiBaseFlow no longer imports the licence rows — an installed flow is blind again');
     assert.match(frame, /mpi-base-flow__licence/,
         'the licence block left step 0, so a flow opened inside a project shows no licence');
+});
+
+// MPI-1041: an OPTIONAL slot (Character Sheet Editor's Qwen-Image 2.1) is not part of the install -
+// the Library's bar, Cancel and Install count the required models only - but its licence is listed,
+// since the run slide's Install row reaches the same gate.
+test('an optional model is listed for its licence and left out of the install', async () => {
+    const { registry } = await load();
+    const { flowInstallKeys, flowLicences, flowOptionalModelIds } = await import('../js/utils/flowLicences.js');
+    const flow = registry.getFlowById('character-sheet-editor');
+    assert.deepStrictEqual(flowInstallKeys(flow), ['klein-9b']);
+    assert.deepStrictEqual(flowOptionalModelIds(flow), ['qwen-image-2-1']);
+    assert.deepStrictEqual(flowLicences(flow).map(l => l.key), ['klein-9b', 'qwen-image-2-1']);
+    const lib = src();
+    assert.match(lib, /filter\(s => !s\.optional\)\.every/, 'Fits my GPU counts the optional slot again');
+    assert.match(lib, /keys\.includes\(key\) && \(licence\.verify/, 'an optional model\'s licence errand relabels Install');
 });

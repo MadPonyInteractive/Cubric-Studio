@@ -35,7 +35,8 @@ import {
     runEnhanceDecl, adoptHiddenTargets,
 } from '../../../services/flowEnhance.js';
 import { flowModelSlots, flowModelIds, setFlowModel, isCloudCandidate, flowOperation, flowOperations, flowLegs, flowToggleLeg } from '../../../data/flowsRegistry.js';
-import { disambiguatedName } from '../../../data/modelRegistry.js';
+import { disambiguatedName, getModelDependencies } from '../../../data/modelRegistry.js';
+import { downloadService } from '../../../services/downloadService.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { buildField, mapDeclaredValue, isInjectionParam, disabledFieldIds, hiddenFieldIds, withEnhanceFallback, enhanceEchoTargets } from '../../../utils/declaredFields.js';
 import { buildLicenceRows } from '../../../utils/flowLicences.js';
@@ -1616,6 +1617,12 @@ export const MpiBaseFlow = ComponentFactory.create({
 
             slots.forEach((slot, i) => {
                 const choices = slot.models.filter(id => installed.includes(id));
+                // MPI-1041: an optional model the Flow runs without. Until it is on disk its row
+                // offers it here, so the change that needs it is one click away, not a Library trip.
+                if (slot.optional && !choices.length) {
+                    _modelRowHost.appendChild(_optionalInstallRow(slot, resolved[i]));
+                    return;
+                }
                 const showPick = choices.length > 1;
                 const showCog = slot.loras && canRack;
                 if (!showPick && !showCog) return;
@@ -1695,6 +1702,37 @@ export const MpiBaseFlow = ComponentFactory.create({
 
                 _modelRowHost.appendChild(field);
             });
+        }
+
+        /**
+         * The row of an OPTIONAL slot whose model is not installed (MPI-1041): its name and an
+         * Install button. `downloadService.start` is the one install path, so the model's licence
+         * gate fires here as it does in the Library. The install listeners below repaint the
+         * slots, so the row becomes the ordinary slot (with its cogwheel) once the weights land.
+         * @param {{label: string, models: string[]}} slot
+         * @param {string} modelId - the slot's resolved id, the one to install
+         * @returns {HTMLElement}
+         */
+        function _optionalInstallRow(slot, modelId) {
+            const field = ce('div', { className: 'mpi-base-flow__model-slot' });
+            const cap = ce('span', { className: 'mpi-base-flow__field-label' });
+            cap.textContent = slot.label;
+            const pick = ce('div', { className: 'mpi-base-flow__model-pick' });
+            const name = ce('span', { className: 'mpi-base-flow__model-name' });
+            name.textContent = disambiguatedName(modelId, slot.models);
+            const host = ce('div', { className: 'mpi-base-flow__model-install' });
+            const installing = (state.downloadJobs || []).some(j => j.modelId === modelId);
+            const btn = MpiButton.mount(host, {
+                text: installing ? 'Installing' : 'Install',
+                size: 'sm',
+                disabled: installing,
+                info: `${slot.label} need ${name.textContent}. It is not installed yet.`,
+            });
+            btn.on('click', () => downloadService.start(modelId, getModelDependencies(modelId)));
+            _modelBtns.push(btn);
+            pick.append(name, host);
+            field.append(cap, pick);
+            return field;
         }
 
         /**
@@ -3227,6 +3265,17 @@ export const MpiBaseFlow = ComponentFactory.create({
         function _setGauge(pct) {
             const bar = _gaugeEl?.firstElementChild;
             if (bar) bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+        }
+
+        // An optional slot's Install row (MPI-1041) follows its download: Installing while the
+        // job runs, back to Install on a cancel or failure, the ordinary slot once installed.
+        if (flowModelSlots(flow).some(s => s.optional)) {
+            _unsubs.push(Events.on('state:changed', ({ key }) => {
+                if (key === 's_installedModelIds') _paintModelSlots();
+            }));
+            for (const ev of ['download:started', 'download:cancelled', 'download:failed']) {
+                _unsubs.push(Events.on(ev, () => _paintModelSlots()));
+            }
         }
 
         // Live latents (MPI-271): resolve the frame to its generation by server-truth

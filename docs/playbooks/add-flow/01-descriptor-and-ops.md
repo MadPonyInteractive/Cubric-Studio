@@ -363,10 +363,15 @@ applied when the two were the same string; they are not any more, and the old lo
   completion; the caller hears ONE completion. `when` = a declared toggle that turns leg 2 off;
   `input` = the role leg 2 gets leg 1's picture on, and leg 2 then lands as the card's next
   VERSION. Worked example: [existing-flows/character-sheet.md](existing-flows/character-sheet.md).
+  **`chain` may be an ARRAY of legs** (MPI-1041), each `{ operation, when, input, box?, params? }`
+  with `when` a `ruleHolds` rule (`is | isNot | in | atMost | below | atLeast`, an array = all);
+  **`operationBy: { field, map }`** routes leg 1's op by a select (`null` skips it), and a slot may
+  be **`optional: true, for: [ops]`**. All three, worked: [existing-flows/character-sheet-editor.md](existing-flows/character-sheet-editor.md).
 - **A picture the graph needs IN WORDS is `describe: [{ to, media, ask, when?, frame? }]`**
   (MPI-1036): before the job is queued, `flowEnhance.describeFlowRun` asks the describer picked in
   Remote (`llmService.describeImage`) and writes the answer into the hidden `MpiText` input `to`,
   run-only. First entry per target whose `media` slot holds something and whose `when` rules hold
-  (`{ field, is | isNot }`, or `{ media }` = that slot holds something) wins; `frame: 'first'`
-  describes a clip's first frame. A failed describe generates nothing. Worked example:
+  (`ruleHolds`, or `{ media }` = that slot holds something) wins; `frame: 'first'`
+  describes a clip's first frame. A failed describe generates nothing. An entry with NO `to` is a
+  CHECK that refuses the run unless the whole answer equals `refuseUnless` (MPI-1041). Worked example:
   [existing-flows/video-edit.md](existing-flows/video-edit.md).

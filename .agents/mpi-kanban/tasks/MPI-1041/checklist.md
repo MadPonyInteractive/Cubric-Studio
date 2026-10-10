@@ -21,3 +21,4 @@
 - [x] A4 template + describer pins - teen15b, older70, Accessories (free edit) pinned 2 of 2; dressed ask 24/24; clothes caption clean; age ask direction-only (research/templates.md)
 - [x] Phase B: the Flow (ops in 4 registries, prompt builder, FlowDef, safety test) - npm test 2961/2963, character-sheet-editor.test.cjs 12/12
 - [x] Phase C: dressed checks (1-15 dressed, 16-17 nothing revealing) + card name; perceived-age check removed (CP Gate 1) - npm test 2973/2975, 0 fail; character-sheet-editor.test.cjs 17/17 (hand, agent, routine paths one code + message)
+- [x] Phase D: LoRA cogwheel (both slots, both graphs, RACKS), optional-model Install row + Library fixes, licences, docs - npm test 2983/2985, 0 fail; lint + lint:components clean; preview art left for Fabio's pick

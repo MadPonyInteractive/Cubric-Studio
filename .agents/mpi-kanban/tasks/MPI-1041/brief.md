@@ -61,6 +61,9 @@ No earlier card covered an editor. Near: **MPI-1042** (sheet from images, the si
 
 ## Noticed
 
+- The child-safety gate reads a LoRA's NSFW-ness only from `injectionParams` (`childSafety.js` `configContext`); a
+  user rack's LoRAs are resolved later in `commandExecutor` from project model settings, so the gate never sees them.
+  True of every rack (prompt box included), and now of this Flow, which makes child ages (2026-10-10, fe4cb412).
 - `MpiSwitch` (`ComfyUi-MpiNodes/switches.py`, base of `MpiAnySwitch`/`MpiAnySwitch10`) picks
   `select` by POSITION among the connected inputs, not by input name: a graph that leaves `any_1`
   unwired makes `select 2` miss -> ExecutionBlocker -> `success` with no output (batch 9c). Shipped

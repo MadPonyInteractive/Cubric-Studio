@@ -905,6 +905,8 @@
     gap: var(--s-2);
 }
 .mpi-base-flow__model-cog-host { display: flex; }
+/* An optional model's Install button (MPI-1041) sits where the cogwheel would, at its height. */
+.mpi-base-flow__model-install { display: flex; }
 /* The dropdown (or the static name) takes the width; the cogwheel keeps its own. */
 .mpi-base-flow__model-pick > :first-child {
     flex: 1;
