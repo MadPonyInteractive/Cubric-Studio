@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/data/childSafety.js",
+    "js/services/generationService.js",
+    "tests/child-safety.test.cjs",
+    "tests/child-safety-gate.test.cjs",
+    "docs/child-safety.md"
+  ]
+}
