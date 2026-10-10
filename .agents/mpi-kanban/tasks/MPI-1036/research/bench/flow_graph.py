@@ -23,7 +23,7 @@ SWAP = 'minimax-h3\\h3_character_swap_pro4500_1000.safetensors'
 FACESWAP = 'minimax-h3\\SS_FaceSwap_MiniMax_H3_REF2VA.safetensors'  # UntMods, trigger "Faceswap", strength 1
 SAM3 = 'sam3.1_multiplex_fp16.safetensors'
 CROP = 512
-AREA = 576 * 1024  # whole-frame render area, the Phase 1 bench size
+AREA = 576 * 1024  # whole-frame render area, the Phase 1 bench size and Input_Quality's default (576p)
 
 # The instruction, in MiniMax's VIDEO-EDITING format (vendor h3-prompt-writing skill, references/ref-en.txt), POSITIVE
 # ONLY (Fabio, 2026-10-08): what stays is a subject marked fully_preserved, and what must not leak is never named.
@@ -257,7 +257,7 @@ def node(cls, title, **inputs):
 
 
 def graph(video='None', image='None', positive='', operation=1, keep_background=True, who='the person',
-          target='', seed=904234, prefix='MpiVideo_Edit', caption=False, look='', kept=''):
+          target='', seed=904234, prefix='MpiVideo_Edit', caption=False, look='', kept='', quality=AREA):
     """video/image: bench picker values (the app injects `string` and the sync resets the picker to None).
     look/kept: the picture (and, for a background change, the clip's person) in words - the app fills them before
     the run (FlowDef `describe`, flowEnhance.js). caption=True describes in-graph instead: BENCH ONLY."""
@@ -276,6 +276,9 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     # Filled by the app before the run from Remote > Image descriptions (Fabio, 2026-10-08), never typed.
     g['18'] = node('MpiText', 'Input_Look', string=look)
     g['19'] = node('MpiText', 'Input_Kept', string=kept)
+    # The whole-frame render AREA in pixels (Fabio 2026-10-10: a resolution choice instead of an LTX upscale after).
+    # The masked route's crop follows it (node 63).
+    g['26'] = node('MpiInt', 'Input_Quality', int=quality)
 
     # ---- routing
     g['20'] = node('MpiAnyChecker', 'Masked? (a "what to change" was typed)', any=['16', 0])
@@ -296,15 +299,27 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['35'] = node('MpiAudioRange', 'Source audio on the grid', audio=['33', 0], fps=['10', 2], start=0, end=['34', 0])
 
     # ---- whole frame: resized to the render area, aspect kept, 32-divisible
-    g['40'] = node('MpiMath', 'Render width', a=['10', 5], b=['10', 6],
-                   math_expression=f'floor(sqrt({AREA} * a / b) / 32 + 0.5) * 32')
-    g['41'] = node('MpiMath', 'Render height', a=['10', 6], b=['10', 5],
-                   math_expression=f'floor(sqrt({AREA} * a / b) / 32 + 0.5) * 32')
-    # <Video 1> goes in at 0.75 of the render size (Video edit 12: S5s75/S4x/S6x/S1x/S3x in sync, full edits, ~35%
+    g['40'] = node('MpiMath', 'Render width', a=['10', 5], b=['10', 6], c=['26', 0],
+                   math_expression='floor(sqrt(c * a / b) / 32 + 0.5) * 32')
+    g['41'] = node('MpiMath', 'Render height', a=['10', 6], b=['10', 5], c=['26', 0],
+                   math_expression='floor(sqrt(c * a / b) / 32 + 0.5) * 32')
+    # <Video 1> goes in at ~0.75 of the render size (Video edit 12: S5s75/S4x/S6x/S1x/S3x in sync, full edits, ~35%
     # faster than the full-size clip; 0.5 weakens identity edits). The RENDER stays full size: H3 replays the clip ~1 s
     # in whenever it renders below ~full size. The masked route's crop goes in 1:1 (node 60).
-    g['43'] = node('MpiMath', 'Clip width (0.75)', a=['40', 0], math_expression='floor(a * 0.75 / 32 + 0.5) * 32')
-    g['44'] = node('MpiMath', 'Clip height (0.75)', a=['41', 0], math_expression='floor(a * 0.75 / 32 + 0.5) * 32')
+    # The clip must have the render's SHAPE: core H3 stretches a reference video onto its own /32 canvas
+    # (nodes_minimax_h3.py, crop "disabled") and the result follows it, so a plain 0.75 rounded per axis (448x768 for
+    # 576x1024) came out ~4% squeezed, and a result fed back in squeezed again (Fabio 2026-10-10, "stretching the
+    # image vertically"). Height: the first of three /32 heights from 0.75 up whose /32 width keeps the shape within
+    # 1% (576x1024 -> 448x800, 0.4%), else the full size (exact, ~35% slower). Width follows the height.
+    def width_at(h):
+        return f'floor({h} * a / b / 32 + 0.5) * 32'
+    pick = 'b'
+    for j in (2, 1, 0):
+        h = f'(floor(0.75 * b / 32 + 0.5) + {j}) * 32'
+        pick = f'{h} if fabs({width_at(h)} * b - {h} * a) <= 0.01 * {h} * a else ({pick})'
+    g['44'] = node('MpiMath', 'Clip height (~0.75, the render\'s shape)', a=['40', 0], b=['41', 0], math_expression=pick)
+    g['43'] = node('MpiMath', 'Clip width (follows the height)', a=['40', 0], b=['41', 0], c=['44', 0],
+                   math_expression=width_at('c'))
     g['42'] = node('ImageResizeKJv2', 'Whole frame at 0.75 of the render size', image=['31', 0], width=['43', 0],
                    height=['44', 0], upscale_method='lanczos', keep_proportion='crop', pad_color='0, 0, 0', crop_position='center',
                    divisible_by=32, device='cpu')
@@ -329,12 +344,14 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
                    preresize_max_width=16384, preresize_max_height=16384, mask_fill_holes=False, mask_expand_pixels=0,
                    mask_invert=False, mask_blend_pixels=24, mask_hipass_filter=0.1, extend_for_outpainting=False,
                    extend_up_factor=1.0, extend_down_factor=1.0, extend_left_factor=1.0, extend_right_factor=1.0,
-                   context_from_mask_extend_factor=1.25, output_resize_to_target_size=True, output_target_width=CROP,
-                   output_target_height=CROP, output_padding='32', device_mode='cpu (compatible)')
+                   context_from_mask_extend_factor=1.25, output_resize_to_target_size=True, output_target_width=['63', 0],
+                   output_target_height=['63', 0], output_padding='32', device_mode='cpu (compatible)')
 
     # ---- what H3 sees
     g['60'] = node('MpiIfElse', 'masked ? crop : whole frame', boolean=['24', 0], true=['54', 1], false=['42', 0])
-    g['63'] = node('MpiInt', 'Crop size', int=CROP)
+    # The crop is the quality's short edge (768 / 960 / 1088), except 576p keeps the benched 512.
+    g['63'] = node('MpiMath', 'Crop size (by quality)', a=['26', 0],
+                   math_expression=f'{CROP} if a == {AREA} else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32')
     g['61'] = node('MpiIfElse', 'masked ? crop width : render width', boolean=['24', 0], true=['63', 0], false=['40', 0])
     g['62'] = node('MpiIfElse', 'masked ? crop height : render height', boolean=['24', 0], true=['63', 0], false=['41', 0])
 
@@ -403,8 +420,14 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['101'] = node('CLIPLoader', 'Load CLIP', clip_name=H3_CLIP, type='minimax', device='default')
     g['102'] = node('VAELoader', 'Load VAE', vae_name=H3_VAE)
     g['103'] = node('VAELoader', 'Load Audio VAE', vae_name=H3_AVAE)
-    g['104'] = node('MpiLoraModel', 'Character Swap LoRA', model=['100', 0], lora_name=SWAP, strength_model=1.0)
-    g['105'] = node('MpiIfElse', 'swap LoRA ? : base', boolean=['21', 0], true=['104', 0], false=['100', 0])
+    # The user's own six LoRAs (the model's rack, via the Flow's cogwheel; lora-rack.md), one chain loader -> the rest.
+    base = (['100', 0], ['101', 0])
+    for i in range(1, 7):
+        g[f'18{i - 1}'] = node('MpiLoraModelClip', f'Input_Lora_Phase1_{i}', model=base[0], clip=base[1],
+                               lora_name='None', strength_model=1.0, strength_clip=1.0)
+        base = ([f'18{i - 1}', 0], [f'18{i - 1}', 1])
+    g['104'] = node('MpiLoraModel', 'Character Swap LoRA', model=base[0], lora_name=SWAP, strength_model=1.0)
+    g['105'] = node('MpiIfElse', 'swap LoRA ? : base', boolean=['21', 0], true=['104', 0], false=base[0])
     # Swap the head: the UntMods Faceswap LoRA, its trigger word opening the prompt, on both routes (Video edit 14:
     # D2/D4 beat D1/D3 on likeness on a clean 1088x1920 clip; no time cost). Lazy: other options never load it.
     g['25'] = node('MpiMath', 'Swap the head? (Faceswap LoRA + trigger)', a=['13', 0], math_expression='a == 2')
@@ -418,7 +441,7 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['107'] = node('MpiTinyVaeLoader', 'Mpi Tiny Vae Loader', vae_name='taeh3.safetensors')
     g['108'] = node('MpiVideoSamplingPreview', 'Mpi Video Sampling Preview', model=['106', 0], vae=['107', 0], preview_rate=24)
     g['110'] = node('MpiH3References', 'H3 references (<Video 1> the clip, <Picture 1> the picture)',
-                    clip=['101', 0], vae=['102', 0], audio_vae=['103', 0], prompt=prompt, width=['61', 0],
+                    clip=base[1], vae=['102', 0], audio_vae=['103', 0], prompt=prompt, width=['61', 0],
                     height=['62', 0], length=['30', 0], ref_image_size='match', ref_image_1=['11', 0],
                     ref_video_1=['60', 0])
     g['111'] = node('RandomNoise', 'RandomNoise', noise_seed=['17', 0])

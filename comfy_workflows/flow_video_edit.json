@@ -199,6 +199,15 @@
       "title": "Swap the head? (Faceswap LoRA + trigger)"
     }
   },
+  "26": {
+    "inputs": {
+      "int": 589824
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Quality"
+    }
+  },
   "30": {
     "inputs": {
       "math_expression": "floor((a - 5) / 17) * 17 + 5",
@@ -299,7 +308,7 @@
   },
   "40": {
     "inputs": {
-      "math_expression": "floor(sqrt(589824 * a / b) / 32 + 0.5) * 32",
+      "math_expression": "floor(sqrt(c * a / b) / 32 + 0.5) * 32",
       "a": [
         "10",
         5
@@ -307,6 +316,10 @@
       "b": [
         "10",
         6
+      ],
+      "c": [
+        "26",
+        0
       ]
     },
     "class_type": "MpiMath",
@@ -316,7 +329,7 @@
   },
   "41": {
     "inputs": {
-      "math_expression": "floor(sqrt(589824 * a / b) / 32 + 0.5) * 32",
+      "math_expression": "floor(sqrt(c * a / b) / 32 + 0.5) * 32",
       "a": [
         "10",
         6
@@ -324,6 +337,10 @@
       "b": [
         "10",
         5
+      ],
+      "c": [
+        "26",
+        0
       ]
     },
     "class_type": "MpiMath",
@@ -359,28 +376,40 @@
   },
   "43": {
     "inputs": {
-      "math_expression": "floor(a * 0.75 / 32 + 0.5) * 32",
+      "math_expression": "floor(c * a / b / 32 + 0.5) * 32",
       "a": [
         "40",
+        0
+      ],
+      "b": [
+        "41",
+        0
+      ],
+      "c": [
+        "44",
         0
       ]
     },
     "class_type": "MpiMath",
     "_meta": {
-      "title": "Clip width (0.75)"
+      "title": "Clip width (follows the height)"
     }
   },
   "44": {
     "inputs": {
-      "math_expression": "floor(a * 0.75 / 32 + 0.5) * 32",
+      "math_expression": "(floor(0.75 * b / 32 + 0.5) + 0) * 32 if fabs(floor((floor(0.75 * b / 32 + 0.5) + 0) * 32 * a / b / 32 + 0.5) * 32 * b - (floor(0.75 * b / 32 + 0.5) + 0) * 32 * a) <= 0.01 * (floor(0.75 * b / 32 + 0.5) + 0) * 32 * a else ((floor(0.75 * b / 32 + 0.5) + 1) * 32 if fabs(floor((floor(0.75 * b / 32 + 0.5) + 1) * 32 * a / b / 32 + 0.5) * 32 * b - (floor(0.75 * b / 32 + 0.5) + 1) * 32 * a) <= 0.01 * (floor(0.75 * b / 32 + 0.5) + 1) * 32 * a else ((floor(0.75 * b / 32 + 0.5) + 2) * 32 if fabs(floor((floor(0.75 * b / 32 + 0.5) + 2) * 32 * a / b / 32 + 0.5) * 32 * b - (floor(0.75 * b / 32 + 0.5) + 2) * 32 * a) <= 0.01 * (floor(0.75 * b / 32 + 0.5) + 2) * 32 * a else (b)))",
       "a": [
+        "40",
+        0
+      ],
+      "b": [
         "41",
         0
       ]
     },
     "class_type": "MpiMath",
     "_meta": {
-      "title": "Clip height (0.75)"
+      "title": "Clip height (~0.75, the render's shape)"
     }
   },
   "50": {
@@ -466,8 +495,6 @@
       "extend_right_factor": 1,
       "context_from_mask_extend_factor": 1.25,
       "output_resize_to_target_size": true,
-      "output_target_width": 512,
-      "output_target_height": 512,
       "output_padding": "32",
       "device_mode": "cpu (compatible)",
       "image": [
@@ -476,6 +503,14 @@
       ],
       "mask": [
         "53",
+        0
+      ],
+      "output_target_width": [
+        "63",
+        0
+      ],
+      "output_target_height": [
+        "63",
         0
       ]
     },
@@ -567,11 +602,15 @@
   },
   "63": {
     "inputs": {
-      "int": 512
+      "math_expression": "512 if a == 589824 else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32",
+      "a": [
+        "26",
+        0
+      ]
     },
-    "class_type": "MpiInt",
+    "class_type": "MpiMath",
     "_meta": {
-      "title": "Crop size"
+      "title": "Crop size (by quality)"
     }
   },
   "71": {
@@ -950,7 +989,7 @@
       "lora_name": "minimax-h3\\h3_character_swap_pro4500_1000.safetensors",
       "strength_model": 1,
       "model": [
-        "100",
+        "185",
         0
       ]
     },
@@ -966,7 +1005,7 @@
         0
       ],
       "false": [
-        "100",
+        "185",
         0
       ],
       "boolean": [
@@ -1023,8 +1062,8 @@
     "inputs": {
       "ref_image_size": "match",
       "clip": [
-        "101",
-        0
+        "185",
+        1
       ],
       "vae": [
         "102",
@@ -1361,6 +1400,120 @@
     "class_type": "StringReplace",
     "_meta": {
       "title": "{kept}"
+    }
+  },
+  "180": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "100",
+        0
+      ],
+      "clip": [
+        "101",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_1"
+    }
+  },
+  "181": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "180",
+        0
+      ],
+      "clip": [
+        "180",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_2"
+    }
+  },
+  "182": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "181",
+        0
+      ],
+      "clip": [
+        "181",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_3"
+    }
+  },
+  "183": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "182",
+        0
+      ],
+      "clip": [
+        "182",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_4"
+    }
+  },
+  "184": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "183",
+        0
+      ],
+      "clip": [
+        "183",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_5"
+    }
+  },
+  "185": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "184",
+        0
+      ],
+      "clip": [
+        "184",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_6"
     }
   }
 }
