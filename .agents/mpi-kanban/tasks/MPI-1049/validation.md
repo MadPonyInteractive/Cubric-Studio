@@ -46,4 +46,8 @@
   removeBackground ("Man walking dog"), one of the two routes the guide offers; Fabio accepts it.
   Asked to use Qwen 2.1: plain t2i (`Input_wf_type` 1), `transparent` sent, the RGBA sentences
   once each round a subject-only prompt ("...and from any background."), licence warned in chat.
-- [ ] The Enhance-dialog warning when the toggle no longer matches the enhancement.
+- [x] The Enhance-dialog warning when the toggle no longer matches the enhancement. First try
+  showed no line: the enhancement predated the warning code, so it had no record and the check
+  read "missing" as "off". Fixed to fall back to the text (a No Background enhancement opens
+  with "This is an RGBA image with transparency."). Retest 2026-10-10 18:16: toggle off, the
+  yellow line shows (Fabio's screenshot). Shipped in f403d0c3e, CI run 38075360174 green.
