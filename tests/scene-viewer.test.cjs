@@ -81,6 +81,24 @@ test('the camera sits at the pose in the y-down world, lens across the frame wid
     assert.equal(cam.matrixAutoUpdate, false);
 });
 
+// Fabio, 2026-10-10: a point added high up slid with the camera. The balls were drawn at the
+// raw pose spot (y up) in the y-down world, so a point above the pano camera showed below it.
+test('a path ball sits where the camera stood when the point was added', async () => {
+    const { applyPose, pathMeshes } = await esm('js/services/scene/sceneViewer.js');
+    const { PerspectiveCamera, Vector3, MeshBasicMaterial } = await esm('node_modules/three/build/three.module.js');
+    const points = [[0, 0, 0], [0.4, 2.1, -0.3], [1, -0.2, 0.5]];
+    const meshes = pathMeshes(points, 0.05, [new MeshBasicMaterial(), new MeshBasicMaterial()]);
+    assert.equal(meshes.length, 5); // three balls, two joins
+    const cam = new PerspectiveCamera(60, 16 / 9, 0.05, 1000);
+    points.forEach((pos, i) => {
+        applyPose(cam, { pos, yaw: 0.7, pitch: -0.3, mm: 24 });
+        const p = new Vector3().setFromMatrixPosition(cam.matrixWorld);
+        near(meshes[i].position.x, p.x); near(meshes[i].position.y, p.y); near(meshes[i].position.z, p.z);
+    });
+    const mid = meshes[0].position.clone().add(meshes[1].position).multiplyScalar(0.5);
+    near(meshes[3].position.distanceTo(mid), 0); // the first join runs between its two balls
+});
+
 // ── Rule C's inputs (spike 0a parity rests on these matching shots.py) ──────────────────
 
 test('a depth edge is a 3x3 spread over 5% of the depth; the flag drops on its vertices', async () => {

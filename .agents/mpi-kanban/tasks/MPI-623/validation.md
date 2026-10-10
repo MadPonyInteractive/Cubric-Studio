@@ -1319,3 +1319,34 @@ much kung fu"); he picked the path route (plan § Plan Drift 2026-10-09). His re
   on the floor), the street still behind through the window at the seam, the passage coherent
   (frames 52-64, `p2_window_passage.jpg`). Previews sent to Fabio as VP9 WebM.
 - **Fabio, 2026-10-09: "Awesomeness. 1"** - P2 guide + Wan fill passed by eye. Next: wire it into the app.
+
+## Paths P2 LIVE: the real Render path button (2026-10-10, session 42 "3D Scene 32")
+
+- **Engine** (Fabio restarted his app): :48188 `/object_info` has `UnetLoaderGGUF` + `MpiWanMaskedVideo`,
+  the GGUF list shows `wan2.1-i2v-14b-720p-Q4_K_M.gguf`. CI on `902c72e2` (the wiring commit) green, run 38004455946.
+- **Run** (`p2_live.cjs`, session 41 scratchpad, under `gpu_lease.py run --poll 2`; agent app, own profile + port,
+  scratch copy `MPI-623 P2`): plugin `scene-path` installed, nothing missing; the real button clicked; the guide
+  (81 frames) rendered in ~30 s; Wan landed `cameraPathVideo_001` (op `scenePathVideo`, 1440x720, 81 frames @ 16
+  fps, 5.06 s) in **1810 s** through the generation queue; zero page errors. Prompt = scene style line + fill line.
+- **Score** (`split_guide.py` + `corr.py`, session 42 scratchpad): known corr frames 0-40 **+0.97-0.99**, 50: +0.94,
+  60: +0.89, 70: +0.74, 80: +0.62, min +0.54, **median +0.975** (bench +0.972). Holes per frame identical to the
+  bench guide (5.0 / 9.2 / 44 / 73 / 98-99.7%). Frame 0's 47% "black left" = the dark tree outlines inside its
+  sky-cut holes; by eye frame 0 is clean.
+- **By eye:** street -> the house -> the round window -> a warm room with beams, a fireplace, shelves and a wall
+  lamp (the fill line followed), the window behind at the seam. `live_sheet.jpg`, `p2_live_wan.webm`,
+  `p2_live_guide_vs_wan.webm` (session 42 scratchpad), sent to Fabio.
+- **Card for Fabio:** copied into `Projects/MPI-623` as `Path - into the cottage` (`add_card.py`: 4 cards, 5 refs,
+  0 missing). The gallery shows a generated video card with NO name label (the imported cards show theirs).
+- **Fabio, 2026-10-10: "All in all, the video looks good. It proved that it can do interiors like we
+  expected."** - P2 live passed by eye. It plays as a FLAT equirect video in the app; looking around
+  inside it is P3 (a playable 360 video card).
+- **Fabio found a P1 bug (2026-10-10): a point added high up "keeps moving as I move the camera",
+  stationary only near the other points' height.** Cause: path points are pose spots (y up, the fly
+  keys' axis) and `applyPose` flips y into the y-down world the scene is meshed in; `setPath` drew the
+  balls at the RAW spot, so a point h above the pano camera showed h BELOW it, under the ground, and
+  (drawn over the scene) slid against it. Render path was never affected (its frames go through
+  `applyPose`). Fix: `poseToWorld` shared by `applyPose` and the new `pathMeshes` (balls + joins).
+  Sweep: `insideAt` / Build here / Take picture / Render path all pose through `applyPose`; the balls
+  were the only bypass. Test "a path ball sits where the camera stood" (3 points incl. 2.1 up, a
+  pitched + yawed camera); mutant (raw spot) killed. `node --test` scene-viewer + scene-path +
+  scene-path-video 26/26, eslint clean.

@@ -237,6 +237,32 @@ export function groundAt(depth, w, h, x, z, ground, sky = Infinity) {
 }
 
 /** Unit forward vector of a pose, spot coords. */
+/** A pose spot (y up, as the fly keys move it) in the y-down world the scene is meshed in. */
+export const poseToWorld = (p) => new Vector3(p[0], -p[1], p[2]);
+
+/**
+ * The camera path's meshes: a ball per point (`mats[0]` on the first, `mats[1]` on the rest)
+ * and a tube per join, at the world spot `applyPose` puts a camera at that pose.
+ */
+export function pathMeshes(points, radius, mats) {
+    const geo = new IcosahedronGeometry(radius, 1);
+    const at = points.map(poseToWorld);
+    const balls = at.map((p, i) => {
+        const ball = new Mesh(geo, mats[i ? 1 : 0]);
+        ball.position.copy(p);
+        return ball;
+    });
+    // The joins as thin tubes: WebGL draws a line 1 px wide whatever its width.
+    const tubes = at.slice(1).map((b, i) => {
+        const a = at[i], d = b.clone().sub(a), len = d.length();
+        const tube = new Mesh(new CylinderGeometry(radius / 4, radius / 4, len, 6), mats[1]);
+        tube.position.copy(a).addScaledVector(d, 0.5);
+        tube.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), d.normalize());
+        return tube;
+    });
+    return [...balls, ...tubes];
+}
+
 function forward({ yaw, pitch }) {
     return [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)];
 }
@@ -271,7 +297,7 @@ export function flyLook(pose, dx, dy) {
  */
 export function applyPose(camera, pose) {
     const fw = forward(pose), t = pose.pos.map((v, i) => v + fw[i]);
-    const P = new Vector3(pose.pos[0], -pose.pos[1], pose.pos[2]), T = new Vector3(t[0], -t[1], t[2]);
+    const P = poseToWorld(pose.pos), T = poseToWorld(t);
     const f = T.clone().sub(P).normalize();
     const r0 = new Vector3(0, 1, 0).cross(f).normalize(); // right
     const u0 = f.clone().cross(r0);                        // down (the world is y-down)
@@ -560,21 +586,8 @@ export function createSceneView({ manifest, depth, image, layers }, { skyBand = 
         setPath(points, { start, point }) {
             clearPath();
             if (!points.length) return;
-            const geo = new IcosahedronGeometry(PATH_BALL * ground, 1);
             const mats = [start, point].map(c => new MeshBasicMaterial({ color: rgb(c) }));
-            points.forEach((p, i) => {
-                const ball = new Mesh(geo, mats[i ? 1 : 0]);
-                ball.position.fromArray(p);
-                pathScene.add(ball);
-            });
-            // The joins as thin tubes: WebGL draws a line 1 px wide whatever its width.
-            for (let i = 1; i < points.length; i++) {
-                const a = new Vector3(...points[i - 1]), d = new Vector3(...points[i]).sub(a), len = d.length();
-                const tube = new Mesh(new CylinderGeometry(PATH_BALL * ground / 4, PATH_BALL * ground / 4, len, 6), mats[1]);
-                tube.position.copy(a).addScaledVector(d, 0.5);
-                tube.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), d.normalize());
-                pathScene.add(tube);
-            }
+            pathScene.add(...pathMeshes(points, PATH_BALL * ground, mats));
         },
         /** Mesh one more fill layer into the scene (Take picture's lifted fill). */
         addLayer,

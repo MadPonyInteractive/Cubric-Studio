@@ -8,7 +8,23 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 41 (2026-10-09, "3D Scene 31"):
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 42 (2026-10-10, "3D Scene 32"):
+P2 RAN LIVE through the app** (validation.md § Paths P2 LIVE): Fabio restarted, the engine has GGUF +
+`MpiWanMaskedVideo`; the real Render path button landed `cameraPathVideo_001` in 1810 s, known corr
+median +0.975 (bench +0.972), a warm room with a fireplace behind the window. Copied into
+`Projects/MPI-623` as card `Path - into the cottage` (`add_card.py`, session 42 scratchpad; his app
+persists whole itemGroups, so he reopens the project to see it). **Fabio passed it by eye** ("proved
+it can do interiors"). It plays as a FLAT equirect video: looking around in it is P3. Fabio found a
+P1 bug: path balls drawn at the raw y-up pose spot in the y-down world (a high point showed mirrored
+under the ground). FIXED (`poseToWorld` + `pathMeshes`, test + mutant; his eye on it after a restart
+is pending). Fabio: NO per-point camera direction needed (the video is 360). **Next (Fabio's ask):
+Render path on RunPod** - he wants to test on an RTX PRO 6000. Needs (1) a Pod image rebuild baking
+ComfyUI-GGUF + pip gguf + MpiNodes d721182 (mpi-ci `node_lock.json` / `python_deps.txt` are in
+MPI-1043's files.json - one rebuild for both; `build-cu128-v040.log` there suggests MPI-1043 already
+built one: read it first), (2) the R2 upload of `wan21-pano360-lora`, (3) state the build price
+before spending. Also: the "about 30 minutes on a 16 GB card" status line should come from the
+per-GPU gen-speed table (MPI-1055), not a constant. Then P3. Nothing of P2 is uncommitted
+except these task files. **Session 41 (2026-10-09, "3D Scene 31"):
 P2 planned and half built** (§ Remaining Work > Paths P2). Fabio: run it on his card under the
 lease, no RunPod yet. Built + unit-tested: `pathFrames`, `stitchPano` / `renderPano` (uncommitted).
 Guide video of a path through the round window rendered live (scratchpad `p2_window/`, rig
@@ -389,9 +405,12 @@ Route (Plan Drift 2026-10-09, P2): the APP renders the guide, the bench fills it
 - [x] Wan fill on the bench (`p2_wan.py`, the amendment-32 graph with node 27 swapped for our
       frames, `invert_mask` true, CLIP vision on frame 0): 28 min, known corr median +0.972;
       Wan invented a coherent room behind the window (validation.md § Paths P2).
-- [ ] Fabio's eye on the 360 video. Pass -> wire: MpiNodes node (port of SplatKit's
-      `WanI2VMaskedConditioning`, MIT), ComfyUI-GGUF pin + deps (Wan 2.1 I2V 720P Q4, Matrix-3D
-      LoRA via R2, lightx2v, clip_vision_h), op + Render button, a video card.
+- [x] Fabio's eye on the 360 video ("Awesomeness. 1") -> wired: MpiNodes `d721182`
+      `MpiWanMaskedVideo`, ComfyUI-GGUF + pip gguf, deps, plugin `scene-path`, op `scenePathVideo`,
+      Render path button (`902c72e2`, CI green).
+- [x] Live through the app (session 42): the real button, 1810 s, median +0.975.
+- [x] Fabio's eye on the app's card (Projects/MPI-623): "the video looks good. It proved that it
+      can do interiors like we expected." It plays flat; looking around in it = P3.
 - Levers, untested: Matrix-3D 480P LoRA (`pano_video_gen_480p.ckpt`, 0.31 GB, ~2x faster) and
       `pano_video_gen_720p_5b.safetensors` (0.24 GB) on the Wan 2.2 5B the app already ships.
 
