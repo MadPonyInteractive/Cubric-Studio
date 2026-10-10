@@ -129,7 +129,12 @@ test('scenePathVideo: one staged guide video, split into guide over holes, Wan o
         assert.deepStrictEqual([crop.inputs.width, crop.inputs.height, crop.inputs.x], [1440, 720, 0]);
     }
     assert.deepStrictEqual([guide.inputs.y, holes.inputs.y], [0, 720], 'the guide on top, its holes below');
-    assert.deepStrictEqual([wan.inputs.width, wan.inputs.height, wan.inputs.length], [1440, 720, 81]);
+    assert.deepStrictEqual([wan.inputs.width, wan.inputs.height], [1440, 720]);
+    // P3: as many frames as the guide holds (a short path renders fewer), never a fixed 81.
+    const count = source(g, wan, 'length');
+    assert.strictEqual(count.class_type, 'GetImageSize');
+    assert.strictEqual(g[count.inputs.image[0]], guide);
+    assert.strictEqual(wan.inputs.length[1], 2, 'its batch_size output');
     assert.strictEqual(source(g, wan, 'positive').class_type, 'CLIPTextEncode');
     assert.strictEqual(g[source(g, wan, 'positive').inputs.text[0]], titled(g, 'Input_Positive'));
     const sampler = Object.values(g).find((n) => n.class_type === 'KSampler');

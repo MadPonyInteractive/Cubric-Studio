@@ -41,6 +41,30 @@ function catmull(p0, p1, p2, p3, t) {
     return lerp(lerp(a1, a2, 0, t2), lerp(a2, a3, t1, t3), t1, t2);
 }
 
+/** The path's smooth curve (`STEPS` samples a segment) and the distance along it at each sample. */
+function curveOf(points) {
+    const ends = (a, b) => a.map((v, i) => 2 * v - b[i]); // phantom points: the curve starts and ends straight
+    const p = [ends(points[0], points[1]), ...points, ends(points.at(-1), points.at(-2))];
+    const curve = [points[0]];
+    for (let s = 1; s < p.length - 2; s++) for (let k = 1; k <= STEPS; k++) curve.push(catmull(p[s - 1], p[s], p[s + 1], p[s + 2], k / STEPS));
+    const len = [0];
+    for (let i = 1; i < curve.length; i++) len.push(len[i - 1] + Math.hypot(...curve[i].map((v, c) => v - curve[i - 1][c])));
+    return { curve, len };
+}
+
+/** The shortest clip Wan renders here, and how many frames a camera height of path gets: the spacing of
+ *  the P2 window path that passed live (81 frames over 2.78 camera heights, ~4.5 m; the 5090's well
+ *  path moved 3.5x faster a frame and passed too). Wan takes 4k + 1 frames. */
+export const FRAMES_MIN = 33;
+export const FRAMES_PER_HEIGHT = 29;
+/** Frames for a path: a short path gets fewer (Wan's time drops with them), never more than `FRAMES`.
+ *  `ground` = the pano camera's height above the ground (`view.ground`), the scene's own unit. */
+export function frameCount(points, ground) {
+    if (points.length < 2 || !(ground > 0)) return FRAMES;
+    const want = curveOf(points).len.at(-1) / ground * FRAMES_PER_HEIGHT;
+    return Math.min(FRAMES, Math.max(FRAMES_MIN, 4 * Math.round(want / 4) + 1));
+}
+
 /**
  * The camera of every video frame along a path: a smooth curve through its points, frames evenly
  * spaced along it (constant speed), each camera level and facing where it travels (Wan's 360
@@ -51,13 +75,7 @@ function catmull(p0, p1, p2, p3, t) {
  */
 export function pathFrames(points, n = FRAMES) {
     if (points.length < 2) return [];
-    const ends = (a, b) => a.map((v, i) => 2 * v - b[i]); // phantom points: the curve starts and ends straight
-    const p = [ends(points[0], points[1]), ...points, ends(points.at(-1), points.at(-2))];
-    const curve = [points[0]];
-    for (let s = 1; s < p.length - 2; s++) for (let k = 1; k <= STEPS; k++) curve.push(catmull(p[s - 1], p[s], p[s + 1], p[s + 2], k / STEPS));
-    const len = [0];
-    for (let i = 1; i < curve.length; i++) len.push(len[i - 1] + Math.hypot(...curve[i].map((v, c) => v - curve[i - 1][c])));
-    const total = len.at(-1);
+    const { curve, len } = curveOf(points), total = len.at(-1);
     const at = (s) => { // the curve's point `s` along it
         s = Math.min(Math.max(s, 0), total);
         let lo = 1, hi = curve.length - 1;

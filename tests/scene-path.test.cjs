@@ -71,3 +71,18 @@ test('P2 frames: a straight climb keeps the last heading', async () => {
     assert.ok(f.every(q => Number.isFinite(q.yaw)));
     assert.ok(Math.abs(f[10].yaw - Math.PI / 2) < 0.1, 'early: facing +x');
 });
+
+// P3 step 3: a short path renders fewer frames (Wan's time drops with them). The reference is the P2
+// window path that passed live: 2.78 camera heights at 81 frames.
+test('P3 frame count: the window path keeps 81, half of it 49, a stub 33, a long path never past 81', async () => {
+    const { frameCount, FRAMES } = await esm('js/services/scene/scenePath.js');
+    const g = 0.4546; // the cottage scene's camera height
+    const win = [[0, 0, 0], [0, -0.1, -0.45], [0, -0.145, -0.79], [0, -0.145, -1.25]];
+    assert.equal(frameCount(win, g), FRAMES);
+    assert.equal(frameCount([[0, 0, 0], [0, -0.1, -0.45], [0, -0.145, -0.73]], g), 49, 'about half as long');
+    assert.equal(frameCount([[0, 0, 0], [0, 0, -0.05]], g), 33, 'never under 33');
+    assert.equal(frameCount([[0, 0, 0], [0, 0, -9]], g), 81, 'never over 81');
+    assert.equal(frameCount(win, g * 2), 41, 'the same path in a scene twice the size is half as long');
+    for (const n of [frameCount(win, g * 2), frameCount([[0, 0, 0], [0, 0, -0.5]], g)]) assert.equal((n - 1) % 4, 0, 'Wan takes 4k + 1');
+    assert.equal(frameCount(win, 0), FRAMES, 'no ground measured: the full clip');
+});

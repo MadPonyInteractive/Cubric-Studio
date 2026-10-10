@@ -204,7 +204,10 @@
     "inputs": {
       "width": 1440,
       "height": 720,
-      "length": 81,
+      "length": [
+        "21",
+        2
+      ],
       "positive": [
         "12",
         0
@@ -298,6 +301,18 @@
     "class_type": "MpiSaveVideo",
     "_meta": {
       "title": "Output_Video"
+    }
+  },
+  "21": {
+    "inputs": {
+      "image": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Frames (the guide's own count)"
     }
   }
 }

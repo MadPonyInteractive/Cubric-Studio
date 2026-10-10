@@ -1405,3 +1405,43 @@ much kung fu"); he picked the path route (plan § Plan Drift 2026-10-09). His re
   test, none hangs. `node --test tests/scene-path-video.test.cjs` 5/5, eslint clean. The toast itself
   is not yet seen live (needs his restart).
 - Pods spent today: PRO 6000 x2 ~14 min ($2.49/hr), PRO 4500 ~4.5 min ($0.72/hr), 5090 ~16 min.
+
+## P3: a rendered path builds the scene - LIVE (2026-10-10, session 45 "3D Scene 35")
+
+Fabio's direction (Plan Drift 2026-10-10): Render path adds what Wan invents to the CURRENT scene, no
+video card; each path owns its layers (Delete / Re-render); a short path renders fewer frames.
+Rig: session 45 scratchpad `stage.py` (a copy of the Convert test card + his 5090 `cameraPathVideo_002`)
++ `lift.cjs` (agent-owned app, own profile/port, scratch APP_DOCUMENTS, engine spawned on 48188, the
+whole run under `gpu_lease.py`); out `lift_out/` (`run.log`, `result.json`, `lift_sheet.jpg`,
+`ab_sheet.jpg`, `ab_81_vs_49.webm`). No page errors.
+
+- **Step 1, his 5090 video into the scene through the REAL panel** (recorded as a rendered path, scene
+  reopened, `liftPending` did the rest): **36 s, 23 of 24 views lifted** (frames 80/60/40/20). 360 hole
+  share at those frames (`renderPano` on the saved manifest) before -> after: f80 21.9 -> 9.3%, f60
+  53.3 -> 21.3%, f40 53.6 -> 22.9%, f20 20.6 -> 10.3%. By eye (`lift_sheet.jpg`): the market stall, trees
+  and cobbles Wan invented replace the stretched rubber sheets; seams and ragged edges remain. What
+  stays a hole is mostly stretched pano surface IN FRONT of the new layers (rule C: a fill never beats
+  a nearer pano face), like Build here's own-camera 13%.
+- **Step 2a, Re-render's swap** (a second record `replaces` the first, same video): 29 s; the manifest
+  ends with 23 layers all tagged `rerun1`, `renderedPaths` = [rerun1 lifted, no `replaces`].
+- **Step 2b, Delete via the panel** (row visible, first press shows "Press again", second deletes):
+  0.5 s; 0 layers, 0 layer files left, row hidden; 360 holes back to EXACTLY the before values.
+- **Step 3 A/B, half the window path** (`[[0,0,0],[0,-0.1,-0.45],[0,-0.145,-0.73]]`, 1.64 camera
+  heights) from the clean scene on the 4060 Ti: **81 frames 1741 s** (straight `renderPath`, a
+  reference) vs **49 frames through the real Render path button 850.6 s** click to lifted (guide ~18 s,
+  Wan 805 s, lift ~27 s, 18 views). Known-pixel corr (`ab.py`, P2's gate) 81: min +0.964 median +0.977;
+  49: min +0.961 median +0.974 - the same (P2 bench +0.972); same content at the same spots
+  (`ab_sheet.jpg`). Wan time ~ (frames/81)^1.5, so `pathEtaMin` now says 14 min for that run (it said 18).
+- **Panel at 1600x1000 (`ui.cjs`, no engine):** the picker was squeezed to 39 px beside its buttons;
+  FIXED (its own line, 271 px). Option meta shortened to "in scene" (the dropdown cuts a meta at 11 ch).
+- Unit: scene tests 80/80, eslint clean; mutants killed: step 1 x6, step 2 x3, step 3 x7. Full
+  `npm test` 3018 pass / 1 fail = `agent-prompt-budget` (tool schemas 19101 > 18966 bytes), from a
+  PEER's uncommitted `services/agentLoop.mjs`, not this card.
+- **Seeded for Fabio's eye on his real card:** `renderedPaths` on `Projects/MPI-623` Convert test
+  (`630f986b`) = his 5090 video, `lifted: false` (backup + `seed_fabio.py` in the session 45 scratchpad).
+  After his restart, opening that scene lifts it (~40 s on his card); Delete takes it out again.
+- **Fabio's eye: REJECTED** (his screenshot: jagged edges, floating strips, doubled cobbles; "This is
+  making me rethink this whole 3D scene thing"). P3 became option 1, a 360 video player (plan § Plan
+  Drift). The lift code was reverted (write-up: research/p3-lift-into-scene.md); his Convert test card
+  cleaned by `unseed_fabio.py` (23 tagged layers + files removed, `renderedPaths` gone; 0 layers left).
+  Kept: `frameCount` + the graph's `GetImageSize` frame count (scene-path / scene-ops tests).

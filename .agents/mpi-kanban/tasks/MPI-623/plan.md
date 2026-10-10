@@ -8,7 +8,15 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 44 (2026-10-10, "3D Scene 34"):
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 45 (2026-10-10, "3D Scene 35"): P3
+DECIDED - option 1, a 360 video player** (§ Plan Drift 2026-10-10 "option 1"; § Remaining Work > Paths
+P3). First built and ran live "a path builds the world" (Wan's frames lifted into the scene as layers):
+it WORKED mechanically but Fabio rejected it by eye (seams, floaters, soft) - same root cause as Build
+here; fully written up in [research/p3-lift-into-scene.md](research/p3-lift-into-scene.md), code
+REVERTED (Fabio's Convert test card cleaned: 0 path layers, no `renderedPaths`). Kept + tested:
+`frameCount` (short path = fewer frames, 49 vs 81 same quality at half the time) and the graph taking
+the guide's own frame count (`GetImageSize`); `renderPath` still renders 81 until wired. **Next: build
+option 1** (§ Remaining Work > Paths P3). **Session 44 (2026-10-10, "3D Scene 34"):
 the PRO 6000 STALLED AGAIN** - Pod `fx1mghpdhuzmdz` (EU-RO-1, `v0.26.0-dev-cu130`, 105 GB container
 disk) sat 4 min with an EMPTY System log, and RunPod's own DELETE (the app's Cancel) hung until Fabio
 pressed Stop in the console (deleted 09:04:02Z, ~$0.25). Two of two PRO 6000 Pods in EU-RO-1 today;
@@ -457,6 +465,28 @@ Route (Plan Drift 2026-10-09, P2): the APP renders the guide, the bench fills it
 - Levers, untested: Matrix-3D 480P LoRA (`pano_video_gen_480p.ckpt`, 0.31 GB, ~2x faster) and
       `pano_video_gen_720p_5b.safetensors` (0.24 GB) on the Wan 2.2 5B the app already ships.
 
+### Paths P3: a 360 video player (Fabio, 2026-10-10, session 45: option 1)
+
+The 3D scene only lays points and renders a path. The path video lands as a CARD; opening it shows a
+360 player: drag to look while it plays, stop on a frame, frame a shot (lens + aspect, as the scene
+panel), Take picture. No walkable world (the lift into the scene was built, run live and dropped:
+[research/p3-lift-into-scene.md](research/p3-lift-into-scene.md)). My picks, stated to Fabio, not questioned:
+- [ ] Routing: PAGE_SCENE mounts a new `MpiPanoVideoBlock` when the card is a path video (selected entry
+      `operation === 'scenePathVideo'`; his cameraPathVideo_001/002 open the same way); the gallery
+      intercept (`MpiGalleryBlock` open-group) and `navigation.js` `_importView` choose by card. New
+      component checklist: `preloadStyles.js`, `types.js` props, ask Fabio about the components gallery.
+- [ ] Player: three.js sphere, a `<video>` as `VideoTexture`, a shader mapping the view direction to the
+      frame layout exactly as `stitchPano` (centre = the way the path faces, world y-down; `applyPose` +
+      `flyLook` for the scene's drag feel); play/pause, frame scrubber (16 fps), lens, aspect guides.
+- [ ] Take picture: render that exact view at `pictureSize(aspect)` into a render target (the viewer IS
+      the shot), then Klein `kleinEdit` POLISH (deferCommit) + `colorLock`, saved as a NEW image card.
+      TEST FIRST on his well video: a 24 mm 16:9 crop is only ~300 px of the 1440 frame; if Klein's
+      clean-up is too soft, an upscaler goes before it.
+- [ ] Wire `frameCount` (built + tested, unused): `renderPath({ frames })`, the panel passes
+      `frameCount(points, view.ground)`, `pathEtaMin(gpu, frames)` scaled by `(frames/81)**1.5`.
+- [ ] Path balls fill the screen when the camera stands on one (Fabio's screenshot): hide a ball near the camera.
+- [ ] Fabio's eye on the player + pictures.
+
 ### Phase 0: Single-shot spikes (bench + a scratch HTML page, NO product code)
 
 All files in `D:\WORK\MPI-623-spike\single_shot\`; every GPU run via `gpu_lease.py run` with
@@ -645,6 +675,18 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
 
 ## Plan Drift
 
+- **2026-10-10 - P3 REVERSED to option 1: a 360 video player (Fabio, session 45).** The lift below was
+  built, run live and passed every mechanical check, but by eye it was seams, floaters and soft patches
+  (Fabio: "This is making me rethink this whole 3D scene thing"): per-view depth guesses never agree,
+  the same root cause that tore Build here's layers. Write-up: research/p3-lift-into-scene.md; code
+  reverted. Fabio: the path video becomes "an actual 360 video that I could move the camera around... I
+  would just change to a frame I like, move the camera around, and take a picture, and we're done."
+- **2026-10-10 - P3 decided: a path builds the world (Fabio, session 45; superseded above).** The session-44 pick (a
+  playable 360 video card, its last frame a new pano spot) was wrong: Fabio expected Render path to add
+  what Wan invents to the CURRENT scene, as the old automatic rails did, now with the user choosing
+  where ("he creates a path and renders that area... that's fixed now"). The scene stays image + depth
+  layers (A2), not a splat. Each path owns its layers (delete / re-render), the frame count may follow
+  the path's length, and the video gets no card.
 - **2026-10-09 - P2 route (session 41, Fabio "on my card").** The guide video is rendered IN THE
   APP (pano + every layer, the A1 renderer), not by SplatKit's `CameraPlotRenderControlGeo`: that
   node re-runs MoGe on the pano, so the user's path would land in a different geometry and the
