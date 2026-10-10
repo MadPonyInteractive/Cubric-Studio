@@ -591,7 +591,8 @@ services/agentBench.mjs uncommitted). In-app run #1 died on APP_UNAVAILABLE (sub
 overnight_inapp.py now waits on /connector/capabilities, re-queued 00:52; ran 01:26-01:40: E1/E2 ok, no Faceswap
 download, E2 in sync (lag 0.12 = D4), side-by-side sent (logs/mpi1036/VE15_inapp_head_swap_sbs.webm). E1 whole carries
 the picture's halter neckline onto the dress; E2 masked does not. Fabio: "Looks good"; 4 Cosmo routing cases 12/12 (c2b58901e); UNRELEASED.md entry done. NEXT: Fabio's own UX try (he
-reports back), MpiNodes pin via MPI-623, Phase 4 graphics.
+reports back; he is trying a RunPod Pod too - first Video Edit run on a Pod, dev image v0.26.0-dev), Phase 4 graphics.
+MpiNodes pin DONE: node_lock d721182 (MPI-623) descends from 88816c8.
 
 **NEXT (after Video edit 14), in order:**
 1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.

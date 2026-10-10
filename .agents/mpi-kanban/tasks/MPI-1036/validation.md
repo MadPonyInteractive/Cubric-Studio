@@ -102,3 +102,7 @@ Side-by-sides sent to Fabio: `box_horns_side_by_side.webm`, `box_remove_side_by_
   video-coat-to-outfit (op 3, coat in positive), video-buns-keeps-face (op 5, buns in positive), video-person-from-picture
   (op 1, picture as image1). --runs 3: 12/12 pass, $0.0568. --bite: 4/4 fail for the named reason (beach -> op 4,
   old man's face -> op 2, no picture -> no image1, no Video Edit -> bare H3). $0.0215. Round total $0.0783.
+- 2026-10-10 first Video Edit runs on RunPod (Fabio, dev app, Pod image v0.26.0-dev-cu130, RTX PRO 6000 Blackwell Server,
+  EU-RO-1, 100 GB volume): Flow deps + H3 installed on the volume in ~2 min; run 1 (Swap the person) 4 min incl. loading
+  H3 while stage-on-connect copied it to fast disk; run 2 (new description, encoder re-ran) 2 min. Describe on his
+  Remote endpoint (gemma-4-26B-A4B-it, 1.4 s), reused on repeats.
