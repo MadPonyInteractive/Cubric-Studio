@@ -10,6 +10,9 @@ EXACTLY 5 edits per model, seed 42, batch 5's L1 wording, the app's own graph pe
            LoRAs are cut from the bench copy so their (absent) files are not validated
   krea2  = krea2_t2i_sfw.json, Input_wf_type 4 (krea2Edit) as shipped (1 MP). At the exact size (node 573 at
            w*h/2^20 MP) the 16 GB card offloads: 35 s a step, ~16 min an edit - unshippable in a Flow
+  krea2s = krea2 on Turbo (Raw was ~6.5 min an edit) + Loraholic's age slider (-3 younger .. +8 older) in Input_Lora_1
+           (that slot feeds the edit path: 481 -> Lora 1..6 -> 207 -> 265 identity edit). Neutral prompt, no age
+           words (a commenter: they weaken the slider), so the slider alone makes the change - SLIDER_CASES, not CASES
 Writes <out>/<model>_api.json + <model>_spec.json and runs run_api.py (MPI-1042) - execute only under gpu_lease.
 usage: qba.py <model> <out_dir>"""
 import json, os, subprocess, sys
@@ -26,8 +29,11 @@ CASES = [('muscular', 'nude', "Make the character's body muscular and athletic."
          ('skinny', 'nude', "Make the character's body very skinny."),
          ('older', 'photo', 'Make the character about twenty years older.'),
          ('younger', 'fisher', 'Make the character about twenty years younger.')]
+SLIDER = 'age_krea2_loraholic.safetensors'
+SLIDER_CASES = [('older4', 'photo', 4), ('older6', 'photo', 6), ('younger3', 'fisher', -3), ('younger3', 'photo', -3)]
 
-GRAPH = {'qwen21': 'qwen_image_2_1', 'boogu': 'boogu_edit_balanced', 'qwenedit': 'qwen_edit', 'krea2': 'krea2_t2i_sfw'}
+GRAPH = {'qwen21': 'qwen_image_2_1', 'boogu': 'boogu_edit_balanced', 'qwenedit': 'qwen_edit', 'krea2': 'krea2_t2i_sfw',
+         'krea2s': 'krea2_t2i_sfw'}
 g = json.load(open(os.path.join(REPO, 'comfy_workflows', GRAPH[MODEL] + '.json'), encoding='utf-8'))
 op = {}
 if MODEL == 'qwen21':
@@ -48,12 +54,20 @@ elif MODEL == 'qwenedit':
     op = {'Input_wf_type': {'int': 1}, 'Input_Tier': {'int': 2}}
 elif MODEL == 'krea2':
     op = {'Input_wf_type': {'int': 4}}
+elif MODEL == 'krea2s':
+    op = {'Input_wf_type': {'int': 4}, 'Input_is_Turbo': {'boolean': True}}
 api = os.path.join(OUT, f'{MODEL}_api.json')
 json.dump(g, open(api, 'w', encoding='utf-8'), indent=1)
 
-spec = [{'tag': f'{MODEL}_{k}_{sh}', 'api': api, 'set': {
-    **op, 'Input_Image': {'image': SHEETS[sh]}, 'Input_Positive': {'string': p + TAIL}, 'Input_Seed': {'int': 42}}}
-    for k, sh, p in CASES]
+if MODEL == 'krea2s':
+    spec = [{'tag': f'{MODEL}_{k}_{sh}', 'api': api, 'set': {
+        **op, 'Input_Image': {'image': SHEETS[sh]}, 'Input_Positive': {'string': 'Keep everything exactly as it is.'},
+        'Input_Seed': {'int': 42}, 'Input_Lora_1': {'lora_name': SLIDER, 'strength_model': float(s)}}}
+        for k, sh, s in SLIDER_CASES]
+else:
+    spec = [{'tag': f'{MODEL}_{k}_{sh}', 'api': api, 'set': {
+        **op, 'Input_Image': {'image': SHEETS[sh]}, 'Input_Positive': {'string': p + TAIL}, 'Input_Seed': {'int': 42}}}
+        for k, sh, p in CASES]
 p = os.path.join(OUT, f'{MODEL}_spec.json')
 json.dump(spec, open(p, 'w', encoding='utf-8'), indent=1)
 subprocess.run([sys.executable, RUN_API, OUT, p], check=True)

@@ -5,6 +5,59 @@ Bench-phase plan. Direction and the five bench questions are in `brief.md`; the 
 
 ## Current State
 
+**2026-10-10 (session 98aec79c) - batches 12-14 DONE, AGE IS SOLVED BY WORDS (except body size).**
+Template that passes: `Change the <man|woman> in this character sheet to be a <younger|older> version
+of <himself|herself> as a N-year-old[ boy|girl]` + for a child `, with a child's smooth face, no beard
+and no wrinkles, wearing the same clothes.` + L1 tail (`Make the same change in the close-up portrait
+on the right. Keep everything else exactly as it is.`). Older -> Klein (70 passes on all panels);
+younger photoreal -> Boogu (identity kept); the fisher at 10 passes on Klein AND Boogu with the
+child clause (batch 14). Qwen 2.1 is out for age; two-pass is worse. **A child-SIZED body: no edit
+does it** (idea: rebuild via MPI-1042's from-images sheet). **Batch 15: the NEUTRAL template
+passes 3 of 3 on Klein** (`Change the character in this character sheet to be a younger version of
+themselves as a 10-year-old child, with a child's smooth face, no beard and no wrinkles, wearing the
+same clothes.` + L1; adult target: `..., with a younger face, smooth skin and no grey hair.`). So
+**Age -> Klein 9B**; only Body shape needs Qwen-Image 2.1. NEXT: Fabio's field call (v1 fields +
+whether a child-sized body is a v1 need), then `/mpi-create-plan`. Untested: an older-direction
+neutral template, more seeds, a male photo sheet, the anime sheet. **Batch 16: concrete body-size
+words fail** (limbs: no change; "stands smaller, space above the head": Klein erases the heads) - a
+child-sized body = REBUILD via MPI-1042's from-images sheet, not an edit. **Batch 17: the rebuild
+WORKS on both sheets** (de-age edit on Klein, then the from-images Qwen arm on its portrait, no body
+picture, child size + a clothes caption in the words; ~80 s): a real child's build, identity and
+clothes kept. So the Flow's young-age step = edit + rebuild. **Fabio 2026-10-10: rebuild at age 12
+and under; above 12 the edit alone.** Open: Klein arm of the rebuild, more seeds. **MPI-1056 is built**
+(a word-and-age check on EVERY generation, `docs/child-safety.md`): the Flow's child template must
+get a test proving the gate lets it through (and the gate's under-16 "fully dressed" rule holds).
+
+**2026-10-10 (session 98aec79c) - batch 11 DONE: EXACT-age wording (Fabio's "a younger / older
+version of herself as a N-year-old") works on Klein where relative wording failed.** 70 passes on
+all three panels (best ageing yet); younger reaches the faces but misses a panel 3 of 4, drifts hair
+colour, and keeps the adult body size (`validation.md` batch 11). Fabio wants child ages for films
+(same character at several ages), always DRESSED, and proposed an age SLIDER that drives the
+prompt and forces clothing below 18. App-wide safety gate = **MPI-1056** (research; must land
+before any Flow ships a child age). **NEXT (agent pick): the same 5 `qage.py` prompts on
+Qwen-Image 2.1** (body proportions are a body-shape edit, which only Qwen 2.1 passed) - ~105 s an
+edit. Tools: `qage.py <klein|qwen21|boogu>` / `run_qage.sh <models>`, out
+`G:/ComfyUi/ComfyUI/output/mpi1041_age/`. **Fabio 2026-10-10: GPU free to use for this bench (still
+~5-edit runs); the loop now = tune the exact-age wording on the proven editors (Klein, Qwen 2.1,
+Boogu).** Age slider is OPTIONAL (the Flow already runs the Enhancer, which is the MPI-1056 gate):
+if built, Off = keep the age, 1-100 = target years (1 = a baby). Field call later.
+
+**2026-10-10 (session 98aec79c) - batch 10 DONE: Loraholic's Krea 2 age slider FAILS (0 of 4).**
+Krea 2 edit on Turbo, slider in `Input_Lora_1`, neutral prompt, seed 42: +6 vs -3 moves the
+portrait face only 6 / 255 while the re-render itself moves it 39; no visible ageing or de-ageing,
+fisher unchanged (`validation.md` batch 10). Slider is in `G:/CubricModels/loras/` (sha checked);
+tools `qba.py krea2s` / `run_qkslider.sh`. **Younger still has no editor. NEXT: Fabio's field call**
+- agent pick: v1 ships Body shape -> Qwen-Image 2.1, Older -> Boogu, and drops Younger; the
+Healthiness Slider fallback (likely Qwen-Image 1.0; unchecked whether its keys load on 2.1) is
+health + ageing, male-biased, and today's run says a slider is weak inside an edit - not worth a run.
+Then `/mpi-create-plan` for the Flow.
+**HARD LIMIT (2026-10-10):** Fabio's own Klein edit ("younger version of herself as a 5-year-old")
+turned a swimwear sheet into a CHILD on a body sheet. Fabio's rule: child ages are for films and
+are ALWAYS dressed. The Age field is a slider that writes the prompt; below 18 it forces fully
+clothed wording, runs only on a clothed sheet, and the Clothes / Accessories fields refuse swimwear
+/ underwear / nude. Bench child ages on clothed sheets only. Gate for MCP / Cosmo / the Enhancer =
+MPI-1056, which lands before the Flow ships a child age.
+
 **2026-10-10 (session adf9de68) - batch 9 DONE: body / age on four other editors, 5 edits each.**
 Table in `validation.md` batch 9. **Body shape -> Qwen-Image 2.1** (only editor that passes: 3 of
 3 on all three panels, exact size via node 30 `resolution` 0, ~105 s; non-commercial gate - Fabio
@@ -96,6 +149,9 @@ InpaintCrop + LanPaint path.
 
 ## Plan Drift
 
+- 2026-10-10 (session 98aec79c): Age is NOT dropped and NOT Boogu/Qwen - Fabio's exact-age wording
+  (batches 11-15) makes it a Klein field; a child's body (12 and under) is a from-images REBUILD
+  (batch 17). Child ages are wanted (films), always dressed; the MPI-1056 gate checks every prompt.
 - 2026-10-09 (session adf9de68): Fabio - **the Flow may use 2-3 editors**, each field routed to the
   model that passes it (e.g. Klein for clothes / hair / condition, another editor for body / age).
   So batch 9 is a per-field model pick, not a hunt for one editor that does everything. Each step

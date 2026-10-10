@@ -266,3 +266,151 @@ neck + shoulders, % vs the original (Klein's batch 5-6 numbers for comparison: s
 - Download note: the first `qwen_image_edit_2511_int8_convrot` pull failed its sha256 - the stream
   dropped (no timeout, no resume). A resumable re-pull matched size AND sha, and HF's `lfs.oid`
   equals the dep's sha256: the R2 object is fine, nothing breaks for users.
+
+## 2026-10-10 - batch 10, Krea 2 Turbo + Loraholic's age slider, 4 edits (agent-run under gpu_lease)
+
+`qba.py krea2s` -> `run_qkslider.sh`: `krea2_t2i_sfw.json` edit (wf_type 4) on Turbo, the slider
+(`age_krea2_loraholic.safetensors` in `G:/CubricModels/loras/`, sha256 `43fb1a7d...60a9c` matched the
+CivitAI page, HF mirror `Kutches/Kr3a`; native `diffusion_model.blocks.*` / `txtfusion` keys, 0
+"lora key not loaded") in `Input_Lora_1`, prompt `Keep everything exactly as it is.`, seed 42, 1 MP.
+69-82 s an edit. Out `G:/ComfyUi/ComfyUI/output/mpi1041_qba/` (`pairs_krea2s_*.jpg`,
+`faces_krea2s_*.jpg` = face crops at the sheet's size).
+
+- **0 of 4. The slider is too weak inside an edit**: the same seed at +6 vs -3 (a 9-step swing)
+  moves the portrait face 6 / 255 mean (front face 8), while Krea 2's own re-render moves it 39 /
+  255 from the original. +4 vs +6 differ by 1.9. No visible ageing at +4 / +6, no visible
+  de-ageing at -3; the fisher (-3) keeps the white beard, brows and wrinkles.
+- The photo sheet's portrait re-frames on all three (zoomed in, layout portrait -39 px; the
+  `back +121` on the two older edits is the back head's measure, not a visible move). Widths
+  within 3% (no body change, as expected). Fisher layout held (front +14).
+- Why, probably: the edit's reference conditioning (identity-edit LoRA + source patch) holds the
+  face to the input, and a rank-1 slider trained for text-to-image cannot push past it.
+- **Verdict: younger still has no editor.** The slider route is closed on Krea 2 edit.
+
+## 2026-10-10 - batch 11, Age by EXACT target age on Klein 9B, 5 edits (agent-run under gpu_lease)
+
+Fabio's own Klein edit ("Change the woman in this character sheet to be a younger version of herself
+as a 5-year-old.") de-aged a sheet where batch 5's relative "about twenty years younger" did
+nothing. `qage.py` -> `run_qage.sh`: his wording, no tail, Klein 9B edit as shipped (1 MP), seed
+42, **clothed sheets only**, child cases add "wearing the same clothes"; NSFW LoRA off (no word of
+node 43's list). 15-19 s an edit. Out `G:/ComfyUi/ComfyUI/output/mpi1041_age/` (its own folder,
+away from the nude bench; `pairs_age_*.jpg`). Layout held on all 5 (heads within 12 px).
+
+- **70 (photo): PASS, all three panels** - white hair front / back / portrait, wrinkles on both
+  faces, clothes and pose kept. The strongest ageing on any editor so far.
+- 25 (photo): PARTIAL - front + portrait read as a young woman, but the hair turns straight and
+  browner, and the BACK keeps the original red curly bob: the panels disagree.
+- 30 (fisher): FAIL - no visible change (white beard kept).
+- 10 (photo): PARTIAL - front + back + portrait read young (portrait more teen than 10), fully
+  clothed, but the hair turns red -> brown (identity drift) and the BODY keeps adult height and
+  proportions, the same "body is not there yet" Fabio saw.
+- 10 (fisher): PARTIAL - front + back become a boy (brown hair, no beard), the PORTRAIT stays the
+  old bearded man.
+- **Verdict:** exact-age wording fixes Older on Klein (better than Boogu: all three panels).
+  Younger reaches the face on most panels, but misses a panel 3 of 4 times, drifts hair colour, and
+  never changes the body's size; a child's proportions are a body-shape edit, which only Qwen-Image
+  2.1 passed (batch 9). Next test: the same 5 prompts on Qwen-Image 2.1.
+
+## 2026-10-10 - batch 12, the same exact-age prompts on Boogu + Qwen-Image 2.1 (5 each)
+
+`run_qage.sh boogu qwen21` (`pairs_age_<model>_*.jpg`). Boogu ~32 s, Qwen 2.1 ~108 s an edit.
+
+| case | Klein 9B (b11) | Boogu balanced | Qwen-Image 2.1 |
+|---|---|---|---|
+| 70 photo | **PASS, all 3 panels** (white hair) | faces age, hair stays red | weak (hair a little lighter) |
+| 25 photo | back disagrees, hair drifts | **PASS, identity kept** (red curls, freckles) | weak |
+| 10 photo | young on 3 panels, hair red -> brown | young faces, **identity kept** | barely younger (reads ~30) |
+| 10 fisher | front + back a boy, portrait old | front: brown hair + WHITE beard (broken) | portrait a child, front old; portrait re-framed +157 px |
+| 30 fisher | no change | slight | slight; portrait re-framed +112 px |
+
+No editor changes the body to a child's size (widths within 3% on Klein / Boogu; Qwen -3 / -6%
+thinner, not shorter). Layout: Boogu held; Qwen re-frames the fisher portrait. **Qwen 2.1 is out for
+age.** Older -> Klein; younger (photo) -> Boogu for identity, Klein for reach; the stylised old man
+(beard, white hair) stays the hard case. Next: tune the wording on Klein + Boogu.
+
+## 2026-10-10 - batch 13, exact-age wording v2 on Klein + Boogu (5 each)
+
+`SET=v2 run_qage.sh klein boogu` (`pairs_age_<model>v2_*.jpg`): Fabio's sentence + batch 5's L1
+tail ("Make the same change in the close-up portrait on the right. Keep everything else exactly as
+it is."), and at 10 a second arm adding ", with a child's height and body proportions". Layout
+held (within 16 px; the fisher `back -128` is the measure, no visible move).
+
+- **Boogu photo: PASS at 10 and 25** - all three panels agree, red curls + freckles kept, fully
+  dressed; reads ~13-15 rather than 10. The best photoreal younger so far.
+- Klein photo: young on all panels but the hair drifts (red -> brown), and with the body clause the
+  portrait keeps red curls while front / back go brown; at 25 the back keeps the old bob again.
+- Fisher, both editors: no fix. Klein: front + back a boy, the PORTRAIT stays the old man (L1 tail
+  or not). Boogu: young faces under a white beard on every panel.
+- **The body clause changes nothing** (widths within 1.5%, same height) on either editor: an edit
+  keeps the sheet's figure size, so a child's proportions are not an edit-model job.
+- **Per-field verdict so far:** Older -> Klein exact age. Younger, photoreal -> Boogu + exact age +
+  L1. Younger, stylised / bearded -> unsolved (Klein's portrait). Child proportions -> needs a
+  rebuild, not an edit (idea: de-age the portrait, then MPI-1042's from-images sheet).
+
+## 2026-10-10 - batch 14, the fisher at 10: two-pass vs a no-beard clause (5 edits)
+
+`qage2p.py` -> `run_qage2p.sh` (`pairs_age_b14_fisher.jpg`). Layout held on all 4 sheets (within 4 px).
+
+- **`nb` = one whole-sheet pass + ", with a child's smooth face, no beard and no wrinkles, wearing the
+  same clothes." + L1: PASS on Klein (18 s) AND Boogu (36 s)** - the same boy on all three panels,
+  brown hair under the same hat, the same jacket; the first full pass on the hard case.
+- Two-pass on Klein (body half leads at 0.957 MP, then the portrait half): FAIL both ways - alone,
+  the portrait keeps the beard and the big nose; with the pass-1 boy as image 2, a boy's face UNDER
+  a white beard. Two passes cost more and do worse - dropped.
+- So the beard was the blocker, not the panel: the model needs to be told what a child lacks.
+
+## 2026-10-10 - batch 15, NEUTRAL wording (the Flow never knows the pronoun), Klein + Boogu (3 each)
+
+`SET=v3 run_qage.sh klein boogu`: `Change the character in this character sheet to be a younger
+version of themselves as a 10-year-old child, with a child's smooth face, no beard and no wrinkles,
+wearing the same clothes.` + L1; and at 30 `... as a 30-year-old, with a younger face, smooth skin
+and no grey hair.` + L1. Layout held (within 4 px), widths within 2%.
+
+| case | Klein 9B (~16 s) | Boogu (~37 s) |
+|---|---|---|
+| 10 photo | **PASS, all 3 panels, red curls kept** (the clause also fixed batch 11's hair drift); reads ~13 | portrait the most convincing 10 yet, FRONT stays adult |
+| 10 fisher | **PASS, all 3** (the same boy, hat, jacket) | **PASS, all 3** |
+| 30 fisher | **PASS, all 3** - clean-shaven, dark hair, nose smaller | **PASS, all 3** - keeps the big nose (closer identity) |
+
+**Verdict: Age -> Klein 9B with the neutral template, 3 of 3** (fast, already the Flow's editor for
+clothes / hair / condition). Boogu 2 of 3. Still open: a child-SIZED body (no edit shrinks the
+figure), and "reads ~13" at 10 on photoreal.
+
+## 2026-10-10 - batch 16, a child-SIZED body in concrete words (6 edits)
+
+Fabio asked for concrete wording (shorter limbs, small height). Batch 15's neutral template with
+clothes "in a child's size", plus `v4limbs` (", with a child's small body: shorter arms and legs, a
+shorter torso and a larger head for the body.") or `v4height` ("The child is much shorter than the
+adult was: in the two full-body views the child stands smaller, with empty grey space above the
+head, the feet on the same floor line."). New gate `height.py` (head top to feet per body panel;
+batch 15's children measured +0.3-0.5% = adult height).
+
+- v4limbs, Klein: no change (height +0.4% on both sheets) - the same adult-sized figure.
+- **v4height, Klein: BROKEN** - figures 24-36% shorter, but by ERASING heads: photo front = a faded
+  headless body, the back panel turned into a front-facing boy; fisher = two headless bodies. Klein
+  reads "empty space above the head" as "remove the head".
+- v4height, Boogu: ignored (height +0.0-0.2%).
+- **Verdict: an edit cannot give a child's body size** - it either keeps the figure or breaks the
+  sheet. A child-sized body needs a REBUILD: de-age the sheet (batch 15 template), then generate a
+  new sheet from its portrait with MPI-1042's from-images Flow, which draws the body fresh.
+
+## 2026-10-10 - batch 17, a child-sized body by REBUILD (2 runs, Fabio's go)
+
+`qrebuild.py` -> `run_qrebuild.sh` (`pairs_rebuild_*.jpg` = original / batch 15 Klein edit /
+rebuild). MPI-1042's from-images graph as shipped (`flow_character_sheet_from_images.json`, the Qwen
+arm, one sampling), face picture = the right half of batch 15's `kleinv3_age10_<sheet>.png`, box =
+the whole half, `Input_Face_Pose` TURNED, NO body picture (Qwen copies a body picture's build), and
+in `Input_Positive`: `A 10-year-old child with a child's height and body proportions: a short, small
+body with shorter arms and legs, a shorter torso and a larger head for the body.` + a hand-written
+caption of the sheet's own clothes. ~80 s a run, out 1792x1120.
+
+- **PASS on both** (by eye): a CHILD's build at last - a bigger head for the body, shorter limbs,
+  narrow shoulders, the clothes roomy (trousers rolled at the ankle on the photo). Photo: her red
+  curls, freckles, jacket over the mustard jumper, olive trousers, boots. Fisher: the same boy, suit,
+  tie, red beanie, shoes. The portrait matches the bodies on both.
+- `height.py` reads +3-6% - the sheet always draws a full-height figure, so pixel height is not the
+  measure for a rebuild; the PROPORTIONS changed (judged by eye; no head-to-body gate yet).
+- **Verdict: young ages = edit (batch 15 template) then rebuild.** The Flow's age step for a child
+  is two runs (~16 s Klein + ~80 s Qwen); the clothes caption comes from the Flow's describer.
+  Untested: the Klein arm of the rebuild (commercial-safe, two samplings), the age cut-off where the
+  rebuild starts to matter (a 16-year-old is near adult size), more seeds.
