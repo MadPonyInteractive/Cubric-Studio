@@ -1992,7 +1992,7 @@ const ALL_MODELS = [
         dependencies: [
             'qwen-image-21-transformer',  // HF-primary, research licence
             'qwen3vl-8b-int8-clip',       // stock Qwen3-VL-8B (Apache-2.0), shared with Boogu
-            'vae-qwen-image-21',          // HF-primary, research licence
+            'vae-qwen-image-21-texturefix', // HF-primary, research licence; stock decoder checkers (MPI-1066)
             'qwen-image-21-controlnet-union', // HF-primary, research licence; IS the control op
             'taeqi21-decoder',            // live-preview decoder (assetDeps.js), R2, MIT
             // The style rack, in rack order (loraDeps.js). HF-primary; one loads at a time.
