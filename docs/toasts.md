@@ -221,6 +221,8 @@ signals* are suppressed. Rule + rationale: memory `feedback_no_toast_user_stop`.
 | `downloadService.js:634` | `download:failed` SSE, out-of-space, no job match | Not enough disk space to install this model… | warning | eligible |
 | `downloadService.js` cascade (in the `download:complete` re-sync `.then`) | A model became installed as a SIDE-EFFECT of another install (shared deps) | `${model.name} installed.` | success | eligible |
 | `downloadService.js:638` | `download:failed` SSE, `networkBlocked`, no job match | (server's own text, verbatim — MPI-427) | warning | eligible |
+| `downloadService.js` `upload:snapshot` | An Upload models job finished (MPI-1057; it outlasts the overlay) | ${filename} is on the Pod. | success | eligible |
+| `downloadService.js` `upload:snapshot` | An Upload models job failed | ${filename} did not upload (${error}). Try it again from Upload models. | warning | eligible |
 | `downloadService.js:640` | `download:failed` SSE, `transient`, no job match | The remote engine isn't ready yet — try the install again in a moment. | warning | eligible |
 
 The three branches above are checked IN ORDER and fall through to `ui:error` **Download

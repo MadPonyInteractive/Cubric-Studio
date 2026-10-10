@@ -2,7 +2,8 @@
     height: 100%;
     min-height: 0;
     display: grid;
-    grid-template-rows: 62px minmax(0, 1fr) 44px;
+    /* MPI-1057: the auto row is Transfers; at 0 height while it is hidden. */
+    grid-template-rows: 62px minmax(0, 1fr) auto 44px;
     background: var(--surface-1);
 }
 
@@ -399,7 +400,76 @@
     text-transform: uppercase;
 }
 
+/* MPI-1057 — Transfers: downloads + Upload models jobs, one bar each. */
+.mpi-queue-panel__transfers {
+    grid-row: 3;
+    min-width: 0;
+    max-height: 40vh;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    padding: var(--s-3) 22px;
+    border-top: 1px solid var(--line);
+}
+
+.mpi-queue-panel__transfers[hidden] {
+    display: none;
+}
+
+.mpi-queue-panel__transfers-title {
+    font-size: var(--t-2xs);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+}
+
+.mpi-queue-panel__transfers-list {
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+}
+
+.mpi-queue-panel__transfer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--s-2);
+    row-gap: var(--s-1);
+}
+
+.mpi-queue-panel__transfer-top {
+    grid-column: 1 / -1;
+    min-width: 0;
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-2);
+}
+
+.mpi-queue-panel__transfer-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--ink-1);
+    font-size: var(--t-xs);
+}
+
+.mpi-queue-panel__transfer-meta {
+    flex-shrink: 0;
+    color: var(--ink-3);
+    font-size: var(--t-2xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.mpi-queue-panel__transfer-bar {
+    min-width: 0;
+}
+
 .mpi-queue-panel__foot {
+    grid-row: 4;
     display: flex;
     align-items: center;
     justify-content: space-between;

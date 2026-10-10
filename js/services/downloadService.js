@@ -442,6 +442,30 @@ const downloadService = {
         this._connectSSE();
     },
 
+    /**
+     * MPI-1057 — queue local LoRAs / upscalers for the Pod volume. Resolves the
+     * server's `{ jobs, skipped }`; a refusal (volume full, runtime too old) rejects
+     * with the server's message. Progress arrives as `upload:progress` + `state.uploadJobs`.
+     * @param {'loras'|'upscale_models'} type
+     * @param {string[]} files  bucket-relative local paths, as `/remote/user-models` lists them
+     */
+    async uploadModels(type, files) {
+        this._ensureSSE();
+        const res = await fetch('/remote/uploads', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type, files }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+        return data;
+    },
+
+    /** MPI-1057 — cancel one upload; a running one's partial file is removed from the volume. */
+    async cancelUpload(id) {
+        await fetch(`/remote/uploads/${encodeURIComponent(id)}/cancel`, { method: 'POST' });
+    },
+
     // MPI-291 — SSE liveness watchdog. The 'error' handler's 3s reconnect covers a
     // stream that errors cleanly, but a silently-dropped stream (no error event) left
     // _eventSource null/CLOSED with no reconnect while a download ran — the grid showed
@@ -551,6 +575,28 @@ const downloadService = {
             // MpiModelManager filters to s_installedModelIds). Without this event the
             // reloaded grid never repaints the recovered job. MPI-276 Phase 8.
             Events.emit('download:snapshot', { jobs: state.downloadJobs });
+        });
+
+        // MPI-1057 — Upload models jobs share this stream. The snapshot is the whole list
+        // (on every status change and on connect); a job leaving the live set is
+        // announced here, since an upload outlasts the overlay that started it.
+        this._eventSource.addEventListener('upload:snapshot', (e) => {
+            const jobs = JSON.parse(e.data).jobs || [];
+            const prev = new Map(state.uploadJobs.map(j => [j.id, j.status]));
+            for (const j of jobs) {
+                const was = prev.get(j.id);
+                if (!was || was === j.status) continue;
+                if (j.status === 'complete') Events.emit('ui:success', { message: `${j.filename} is on the Pod.` });
+                if (j.status === 'failed') Events.emit('ui:warning', { message: `${j.filename} did not upload (${j.error}). Try it again from Upload models.` });
+            }
+            state.uploadJobs = jobs;
+        });
+
+        this._eventSource.addEventListener('upload:progress', (e) => {
+            const data = JSON.parse(e.data);
+            const job = state.uploadJobs.find(j => j.id === data.id);
+            if (job) job.sentBytes = data.sentBytes;  // in place: the bar follows the event, not state:changed
+            Events.emit('upload:progress', data);
         });
 
         // Backend broadcasts download:started with correct progress from pre-installed deps.

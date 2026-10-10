@@ -251,6 +251,7 @@ router.post('/remote/model-present', async (req, res) => {
   }
 });
 
+const GPU_UPLOAD_MAX_BYTES = 1e9;
 router.post('/remote/upload/model', async (req, res) => {
   const headers = await _guard(res);
   if (!headers) return;
@@ -264,6 +265,18 @@ router.post('/remote/upload/model', async (req, res) => {
     const localPath = await _resolveLocalModelPath(type, filename);
     if (!localPath) {
       return res.status(404).json({ error: 'not_found', message: `"${filename}" not found in your ${type} folders` });
+    }
+    // MPI-1057: a home uplink takes 10-40 min per 10 GB, billed at the GPU rate while the
+    // generation waits. Over 1 GB goes up once from the Upload models overlay on the CPU
+    // Pod instead; the volume keeps it. Small trained LoRAs still go up here.
+    const { size } = await require('fs').promises.stat(localPath);
+    if (!_mode.noGpu && size > GPU_UPLOAD_MAX_BYTES) {
+      const base = String(filename).split(/[\\/]/).pop();
+      logger.warn('runpod', `generate-time upload refused on a GPU Pod: ${base} is ${(size / 1e9).toFixed(2)} GB`);
+      return res.status(409).json({
+        error: 'too_big_for_gpu',
+        message: `"${base}" is ${(size / 1e9).toFixed(1)} GB, too big to upload while a GPU Pod bills. Connect the "No GPU - download only" Pod and upload it once with Upload models; the volume keeps it.`,
+      });
     }
     const remoteModels = require('./remoteModels');
     const out = await remoteModels.remoteUploadModel(localPath, type, filename);

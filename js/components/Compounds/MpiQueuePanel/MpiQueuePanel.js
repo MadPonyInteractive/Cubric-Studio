@@ -3,6 +3,10 @@ import { Events } from '../../../events.js';
 import { ce, on, qs } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { mountButton } from '../../Primitives/MpiButton/MpiButton.js';
+import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
+import { state } from '../../../state.js';
+import { downloadService } from '../../../services/downloadService.js';
+import { getModelById } from '../../../data/modelRegistry.js';
 import {
     cancelBatch,
     cancelPendingCueJob,
@@ -30,6 +34,10 @@ export const MpiQueuePanel = ComponentFactory.create({
                 </div>
             </div>
             <div class="mpi-queue-panel__list"></div>
+            <div class="mpi-queue-panel__transfers" hidden>
+                <span class="mpi-queue-panel__transfers-title">Transfers</span>
+                <div class="mpi-queue-panel__transfers-list"></div>
+            </div>
             <div class="mpi-queue-panel__foot">
                 <span class="mpi-queue-panel__foot-label" data-role="queue-depth">Idle</span>
                 <span class="mpi-queue-panel__foot-next" data-role="next-up"></span>
@@ -436,6 +444,100 @@ export const MpiQueuePanel = ComponentFactory.create({
                 listEl.appendChild(card);
             });
         };
+
+        // MPI-1057 — Transfers: model downloads and Upload models jobs, one bar each,
+        // hidden while nothing moves. Rows rebuild when the set or a status changes;
+        // byte ticks patch the bar and the meta line in place.
+        const transfersEl = qs('.mpi-queue-panel__transfers', el);
+        const transfersList = qs('.mpi-queue-panel__transfers-list', el);
+        const _rowByKey = new Map();
+        let _transferSig = '';
+        const LIVE_DOWNLOAD = new Set(['pending', 'queued', 'downloading', 'installing', 'paused']);
+        const _size = (b) => (b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.round((b || 0) / 1e6)} MB`);
+
+        const _transfers = () => [
+            ...state.downloadJobs
+                .filter(j => LIVE_DOWNLOAD.has(j.status) && j.modelId !== '__universal_workflow__')
+                .map(j => ({ kind: 'download', id: j.modelId, status: j.status, label: getModelById(j.modelId)?.name || j.modelId, job: j })),
+            ...state.uploadJobs
+                .filter(j => j.status === 'queued' || j.status === 'uploading')
+                .map(j => ({ kind: 'upload', id: j.id, status: j.status, label: j.filename, job: j })),
+        ];
+
+        const _transferPct = (t) => (t.kind === 'upload'
+            ? (t.job.totalBytes ? (t.job.sentBytes / t.job.totalBytes) * 100 : 0)
+            : (Number(t.job.progress) || 0) * 100);
+
+        const _transferMeta = (t) => {
+            const j = t.job;
+            if (t.kind === 'upload') {
+                return t.status === 'queued' ? 'Upload · waiting' : `Upload · ${_size(j.sentBytes)} / ${_size(j.totalBytes)}`;
+            }
+            if (t.status === 'queued' || t.status === 'pending') return 'Download · waiting';
+            if (t.status === 'installing') return 'Download · installing';
+            if (t.status === 'paused') return 'Download · paused';
+            return ['Download', `${Math.round(_transferPct(t))}%`, j.speed].filter(Boolean).join(' · ');
+        };
+
+        const _renderTransfers = () => {
+            const items = _transfers();
+            const sig = items.map(t => `${t.kind}:${t.id}:${t.status}`).join('|');
+            if (sig === _transferSig) {
+                // Same rows, but a snapshot may have replaced the job objects: re-point and repaint.
+                for (const t of items) {
+                    const row = _rowByKey.get(`${t.kind}:${t.id}`);
+                    if (row) { row.t = t; _patchTransfer(`${t.kind}:${t.id}`); }
+                }
+                return;
+            }
+            _transferSig = sig;
+            transfersEl.hidden = items.length === 0;
+            transfersList.replaceChildren();
+            _rowByKey.clear();
+            for (const t of items) {
+                const row = ce('div', { className: `mpi-queue-panel__transfer mpi-queue-panel__transfer--${t.kind}` });
+                const top = ce('div', { className: 'mpi-queue-panel__transfer-top' });
+                top.appendChild(ce('span', { className: 'mpi-queue-panel__transfer-name', textContent: t.label, title: t.label }));
+                const meta = ce('span', { className: 'mpi-queue-panel__transfer-meta', textContent: _transferMeta(t) });
+                top.appendChild(meta);
+                row.appendChild(top);
+                const barHost = ce('div', { className: 'mpi-queue-panel__transfer-bar' });
+                row.appendChild(barHost);
+                const bar = MpiProgressBar.mount(barHost, { value: _transferPct(t), info: '' }).el;
+                const cancel = mountButton({
+                    size: 'sm',
+                    variant: 'ghost',
+                    extraClasses: 'mpi-queue-panel__transfer-cancel',
+                }, `${renderIcon('close', 'xs')}<span>Cancel</span>`);
+                cancel.dataset.transferKind = t.kind;
+                cancel.dataset.transferId = t.id;
+                cancel.setAttribute('aria-label', `Cancel ${t.kind} of ${t.label}`);
+                row.appendChild(cancel);
+                transfersList.appendChild(row);
+                _rowByKey.set(`${t.kind}:${t.id}`, { t, bar, meta });
+            }
+        };
+
+        const _patchTransfer = (key) => {
+            const row = _rowByKey.get(key);
+            if (!row) return;
+            row.bar.setValueQuiet(_transferPct(row.t));
+            row.meta.textContent = _transferMeta(row.t);
+        };
+
+        _unsubs.push(on(transfersList, 'click', (event) => {
+            const button = event.target.closest?.('.mpi-queue-panel__transfer-cancel');
+            if (!button) return;
+            if (button.dataset.transferKind === 'upload') downloadService.cancelUpload(button.dataset.transferId);
+            else downloadService.cancel(button.dataset.transferId);
+        }));
+        _unsubs.push(Events.onState('uploadJobs', _renderTransfers));
+        _unsubs.push(Events.onState('downloadJobs', _renderTransfers));
+        _unsubs.push(Events.on('download:snapshot', _renderTransfers));
+        _unsubs.push(Events.on('upload:progress', (d) => _patchTransfer(`upload:${d.id}`)));
+        _unsubs.push(Events.on('download:progress', (d) => _patchTransfer(`download:${d.modelId}`)));
+        downloadService._ensureSSE();  // a reload mid-upload: the connect snapshot restores the rows
+        _renderTransfers();
 
         _unsubs.push(on(clearBtn, 'click', () => clearPendingQueue()));
         _unsubs.push(on(closeBtn, 'click', () => emit('close-request', {})));

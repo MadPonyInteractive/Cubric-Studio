@@ -380,6 +380,8 @@ const POD_IMAGE_VERSION_CPU_DEV = 'v0.26.0-dev';
 //     slices. The whole-file reads on both ends capped a user LoRA at 2 GiB (a 10 GB one
 //     failed). NOT raised to the pin: the pin is only a fallback label, and this app
 //     needs the endpoint from the R2 runtime, which every boot fetches.
+//   0.2.47 (MPI-1057) — GET /wrapper/models/list?type=: one bucket's files + sizes, `.part`
+//     as partial, for the Upload models overlay. NOT raised to the pin (same reason).
 const WRAPPER_VERSION = '0.2.41';
 // MPI-329: a network-volume GPU Pod sizes its container disk to MIRROR the volume
 // (+ a small scratch headroom). The volume is the SOURCE of every model, so the

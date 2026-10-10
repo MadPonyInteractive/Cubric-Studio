@@ -47,3 +47,19 @@ Verify mode: user-ux (plan.md). Automated evidence below; Fabio's look on his ne
   32 MiB slice is chosen to sit under both. Only a real Pod upload proves it.
 
 ## Fabio's look (pending)
+
+## U1 backend (2026-10-10, session 11c1e888)
+
+- `node --test tests/remote-uploads.test.cjs` 6/6: lists, sequential queue + per-slice progress,
+  skip already-on-Pod / not-found, free-space gate, cancel (running + queued, `.part` deleted),
+  delete refusing an app-installed weight, 1 GB GPU refusal (CPU Pod passes).
+- Regression: remote-upload-chunked, pod-self-heal-dead, cloud-installed-survives-sync,
+  pod-cpu-flavors + the new file: 23/23. eslint clean on every touched file.
+- mpi-ci `python test_models_list.py` ok, `python test_upload_chunk.py` ok.
+- Not proven: a real Pod (0.2.47 is not published; U4).
+
+## U2 Transfers (2026-10-10)
+
+- Isolated app: rows render, progress patches, hides when empty; stream sends upload:snapshot on connect. 68 related tests green.
+- Fabio, live app: SDXL Realistic download row, % + speed climbing, under a running job and above the foot. Layout: "It is fine." Cancel check pending.
+- Fabio, live: download finished and left Transfers; Cancel on a second install removed the row at once. U2 accepted. (He saw no installed toast: notificationService sends an OS notification instead when the window is unfocused; not this change.)

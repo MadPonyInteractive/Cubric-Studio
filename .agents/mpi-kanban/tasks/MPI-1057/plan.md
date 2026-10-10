@@ -128,8 +128,36 @@ strays get deleted later with the uploader's Delete), the release note. A RELEAS
 `promote` would break uploads for released users (stable runtime 0.2.45 has no
 /wrapper/upload/chunk); `mpi-release` flags the dev/stable drift.
 
+2026-10-10 ~20:25Z, session 11c1e888 ("Upload models 1"): **U1 DONE, uncommitted.**
+`routes/remoteUploads.js` (new, mounted in the `routes/remoteProxy.js` barrel because
+`server.js` is held by MPI-1069): `GET /remote/user-models?type=` -> `{local:[{rel,sizeBytes}],
+remote:[{rel,sizeBytes,partial,managed?}]}`; `GET /remote/uploads` -> `{jobs}`; `POST
+/remote/uploads {type, files:[rel]}` -> `{jobs, skipped:[{rel, reason: already_on_pod |
+already_queued | not_found}]}` or 400 `volume_full` (toast:true); `POST
+/remote/uploads/:id/cancel` (answers once settled; a running one's `.part` is deleted); `POST
+/remote/user-models/delete {type, filename}` (409 `managed_by_app` for a DEPS weight). Job wire
+shape `{id,type,filename,totalBytes,sentBytes,status,error}`; SSE `upload:snapshot {jobs}` on
+each status change + on stream connect (downloadManager stream handler), `upload:progress
+{id,sentBytes,totalBytes}` per 32 MiB slice; terminal jobs drop after 60 s. `/remote/upload/model`
+answers 409 `too_big_for_gpu` (> 1e9 bytes, `!noGpu`) with user-ready text; comfyController
+throws it verbatim (U3 adds the toast action). Wrapper 0.2.47 `GET /wrapper/models/list?type=`
+in mpi-ci (uncommitted, NOT published); an older runtime -> app error `runtime_too_old`.
+Tests: tests/remote-uploads.test.cjs (6), mpi-ci test_models_list.py. Docs line for
+`docs/runpod-remote-engine.md` waits: MPI-1069 holds it.
+
+U2 DONE + ACCEPTED by Fabio (download row live, Cancel removes the row; layout "fine"), committed
+at handoff: Transfers section rendered INSIDE
+`MpiQueuePanel` (grid row 3, `hidden` when empty), `MpiProgressBar` + Cancel per row; downloads
+from `state.downloadJobs` (live statuses, not `__universal_workflow__`), uploads from new
+`state.uploadJobs`. `downloadService`: `upload:snapshot` / `upload:progress` listeners (toast on
+complete/failed, rows in docs/toasts.md), `uploadModels(type, files)`, `cancelUpload(id)`; the
+panel calls `_ensureSSE()` on mount so a reload mid-upload restores rows. Proven on an
+app:isolated instance with injected jobs (render, progress patch, hide when empty, download row)
+and `curl` of the stream (connect sends `upload:snapshot`).
+
 Next, in order:
-1. **Phases U1-U4** (below), then Fabio's 10.27 GB LoRA through the uploader on a CPU Pod.
+1. **Phases U3-U4** (below), then Fabio's 10.27 GB LoRA through the uploader on a CPU Pod.
+   U4 needs `./publish-runtime.sh dev` for 0.2.47 first.
    Proven -> `./publish-runtime.sh promote`, commit mpi-ci. Watch for a 413/524 on a slice.
 2. **Volume 13 GB question.** Listing taken on the 5090 Pod:
    `research/pod-ls-2026-10-10-5090.json`. Top level: mpi_models 130.99 GB, comfyui 0.46 GB,
@@ -142,8 +170,19 @@ Next, in order:
 ## Completed
 
 - Steps 1-6 (see checklist.md), all on 2026-10-10.
+- U1 backend, 2026-10-10 (uncommitted; see Current State).
 
 ## Plan Drift
+
+- 2026-10-10 (U2): no `MpiTransferList` Compound. A Compound may import Primitives only, so
+  it could not mount inside the `MpiQueuePanel` Compound; and `preloadStyles.js` + `types.js`
+  were held by MPI-623. The section lives in `MpiQueuePanel` (same CSS file).
+
+- 2026-10-10 (U1): added beyond the plan: `GET /remote/uploads` (the job list, for a poll and
+  the test), and a `managed` flag + 409 on delete for weights the app installed itself
+  (deleting one through the uploader would leave its install state lying until the next
+  check). A file already complete on the Pod is refused, so a cancel can delete its `.part`
+  without touching a finished copy.
 
 - 2026-10-10: the > 2 GiB cap was not in the route the handoff named but in
   `routes/remoteModels.js` (`remoteUploadModel` AND its twin `remoteUploadInput`, both

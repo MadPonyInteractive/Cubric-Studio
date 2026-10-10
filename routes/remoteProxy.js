@@ -22,6 +22,7 @@ const { router: forwardRouter } = require('./remoteProxyForward');
 
 router.use(lifecycleRouter);
 router.use(forwardRouter);
+router.use(require('./remoteUploads'));  // MPI-1057 — Upload models queue
 
 module.exports = {
   router,

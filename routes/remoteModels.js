@@ -543,16 +543,18 @@ async function remoteUninstallDep(dep) {
 const UPLOAD_SLICE_BYTES = 32 * 1024 * 1024;
 
 /** POST one slice, with the post-restart proxy-404 retry. Returns the wrapper JSON. */
-async function _postSlice(url, headers, body) {
+async function _postSlice(url, headers, body, signal) {
   const retries = 4;
   const retryDelayMs = 2000;
   let lastErr = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
+    signal?.throwIfAborted();
     try {
       const res = await fetch(url, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/octet-stream' },
         body,
+        signal,
       });
       if (res.status === 404 && attempt < retries) {
         await new Promise((r) => setTimeout(r, retryDelayMs));
@@ -565,6 +567,7 @@ async function _postSlice(url, headers, body) {
       return json;
     } catch (err) {
       lastErr = err;
+      if (signal?.aborted) throw err;
       if (attempt < retries) {
         await new Promise((r) => setTimeout(r, retryDelayMs));
         continue;
@@ -581,8 +584,10 @@ async function _postSlice(url, headers, body) {
  * `filename`, and the model bucket `type`. A failed slice is retried on its own;
  * the wrapper renames `<dest>.part` to `<dest>` when the last slice lands.
  * Returns the last slice's wrapper JSON ({ name, type, path, bytes, done }).
+ * `onProgress(sentBytes, totalBytes)` fires after each slice; aborting `signal`
+ * stops the upload mid-slice (the Upload models queue's Cancel, MPI-1057).
  */
-async function _uploadInSlices(localPath, params, sliceBytes = UPLOAD_SLICE_BYTES) {
+async function _uploadInSlices(localPath, params, { sliceBytes = UPLOAD_SLICE_BYTES, onProgress, signal } = {}) {
   const fs = require('fs');
   const podId = _podId();
   if (!podId) throw new Error('remote_inactive');
@@ -601,8 +606,9 @@ async function _uploadInSlices(localPath, params, sliceBytes = UPLOAD_SLICE_BYTE
       const { bytesRead } = await fh.read(buf, 0, len, offset);
       if (bytesRead !== len) throw new Error(`${params.filename} changed on disk during upload`);
       const qs = new URLSearchParams({ ...params, offset: String(offset), total: String(total) });
-      json = await _postSlice(`${proxyUrl(podId)}/wrapper/upload/chunk?${qs}`, headers, buf.subarray(0, len));
+      json = await _postSlice(`${proxyUrl(podId)}/wrapper/upload/chunk?${qs}`, headers, buf.subarray(0, len), signal);
       offset += len;
+      onProgress?.(offset, total);
       const pct = Math.floor((offset / total) * 100);
       if (total > sliceBytes && pct >= loggedPct + 10) {
         loggedPct = pct - (pct % 10);
@@ -702,9 +708,10 @@ async function remoteModelPresent(type, filename) {
  * @param {string} localPath  absolute local model path
  * @param {string} type       wrapper bucket ('loras' | 'upscale_models')
  * @param {string} filename   destination basename (subfolder prefix tolerated)
+ * @param {{onProgress?: Function, signal?: AbortSignal}} [opts]  passed to _uploadInSlices
  * @returns {Promise<object>}
  */
-async function remoteUploadModel(localPath, type, filename) {
+async function remoteUploadModel(localPath, type, filename, opts) {
   const fs = require('fs-extra');
   const path = require('path');
   if (!localPath || typeof localPath !== 'string') throw new Error('localPath required');
@@ -715,7 +722,25 @@ async function remoteUploadModel(localPath, type, filename) {
   if (!base || base === '.' || base === '..') {
     throw new Error('filename must resolve to a bare basename');
   }
-  return _uploadInSlices(localPath, { kind: 'model', type, filename: base });
+  return _uploadInSlices(localPath, { kind: 'model', type, filename: base }, opts);
+}
+
+/**
+ * Every file in one models bucket on the Pod volume (MPI-1057, the Upload models
+ * overlay): `[{ rel, sizeBytes, partial }]`, `rel` relative to the bucket, a `.part`
+ * reported under its final name with `partial: true`. Wrapper 0.2.47
+ * `/wrapper/models/list`; `/wrapper/ls` runs `du` over the whole mount and is slow.
+ * An older runtime 404s: thrown as `runtime_too_old` after a short retry (not the
+ * 30 s warm-up budget, which would read as a hang in an open overlay).
+ * @param {string} type  wrapper bucket ('loras' | 'upscale_models')
+ * @returns {Promise<Array<{rel: string, sizeBytes: number, partial: boolean}>>}
+ */
+async function remoteListModels(type) {
+  const res = await wrapperFetch(`/wrapper/models/list?type=${encodeURIComponent(type)}`, { retries: 2 });
+  if (res.status === 404) throw new Error('runtime_too_old');
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json) throw new Error((json && (json.message || json.error)) || `wrapper models/list ${res.status}`);
+  return (json.files || []).map((f) => ({ rel: f.rel, sizeBytes: f.size_bytes, partial: !!f.partial }));
 }
 
 /**
@@ -998,6 +1023,7 @@ module.exports = {
   remoteModelPresent,
   podBakedModelNames,
   remoteUploadModel,
+  remoteListModels,
   remoteCancelInstall,
   remoteActiveInstallIds,
   openInstallEventStream,

@@ -2235,6 +2235,8 @@ function createEngine({ engine, alwaysLocal }) {
                 // Loud, user-actionable failure (NOT the silent no-output bug). On an
                 // un-rebuilt Pod the upload endpoint 404s → surfaces here.
                 const msg = data?.message || `HTTP ${res.status}`;
+                // MPI-1057: > 1 GB on a GPU Pod is refused on purpose; the server's text says what to do.
+                if (data?.error === 'too_big_for_gpu') throw new Error(msg);
                 clientLogger.error('comfy', `Remote model upload failed for ${base}: ${msg}`);
                 throw new Error(`Could not upload "${base}" to the cloud engine (${msg}). It may not be available on this Pod image yet.`);
             }

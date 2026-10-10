@@ -1684,6 +1684,7 @@ router.get('/comfy/downloads/stream', (req, res) => {
     reconciler.reconcileOnce()
         .catch((err) => logger.warn('download', `SSE-connect reconcile failed: ${err.message}`))
         .finally(() => store.broadcastSnapshot());
+    require('./remoteUploads').broadcastSnapshot();  // MPI-1057 — uploads share this stream
 });
 
 // ── Status Endpoint ───────────────────────────────────────────────────────────
