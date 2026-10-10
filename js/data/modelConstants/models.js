@@ -1381,14 +1381,17 @@ const ALL_MODELS = [
         // singleFileStages (MPI-466): LTX migrated onto MpiStageLatents, so ONE graph
         // carries both passes and `resolveWorkflowFile` must stop appending _stage2 —
         // that twin no longer exists and Finish would 404 on it.
-        capabilities: { batch: false, multiStage: true, audio: true, singleFileStages: true },
+        // referenceSheet: the app composes several pictures into one Ingredients sheet before
+        // dispatch (MPI-1060). Enables _composeReferenceSheet in commandExecutor and the
+        // ref2v_ms op's start-frame slot (Input_Start_Frame, gated by requiresCapability).
+        capabilities: { batch: false, multiStage: true, audio: true, audioRouting: true, singleFileStages: true, referenceSheet: true },
         video: 'ltx23_high_preview.mp4',
         type: 'ltx',
         // LTX has 6 flat user LoRA slots (Input_Lora_1..6), no high/low staging →
         // no loraStages. The Input_Lora_* nodes have a live strength_clip input
         // (default 1.0) and some LTX LoRAs use it, so surface both knobs. (MPI-224)
         loraStrengths: ['model', 'clip'],
-        supportedOps: ['t2v_ms', 'i2v_ms'],
+        supportedOps: ['t2v_ms', 'i2v_ms', 'ref2v_ms'],
         gen_speed: 'medium',
         description: 'This video generator is one of the best open source models available. It comes with synchronized audio — reference-voice and direct-audio modes.',
         // ONE graph for both ops (MPI-466). t2v / start-frame / end-frame / both are
@@ -1399,6 +1402,10 @@ const ALL_MODELS = [
         workflows: {
             t2v_ms: 'ltx_i2v_t2v.json',
             i2v_ms: 'ltx_i2v_t2v.json',
+            // MPI-1060: Reference to Video shares the same combined graph — the fill-driven
+            // IC branch activates when Input_Image is loaded, so ref2v_ms and the other ops
+            // all resolve to the same file; `supportedOps` still splits them for the UI.
+            ref2v_ms: 'ltx_i2v_t2v.json',
         },
         // MPI-190: engine split REVERTED, GGUF fully removed. cu130 (MPI-187/189)
         // collapsed the aimdo cold-fault tax that was the GGUF transformer's only
@@ -1457,13 +1464,15 @@ const ALL_MODELS = [
         name: 'LTX 2.3',
         dropdownMeta: 'VIDEO',
         mediaType: 'video',
-        capabilities: { batch: false, multiStage: true, audio: true, singleFileStages: true },
+        // referenceSheet: same IC branch as the High card (MPI-1060). Both tiers run the
+        // same composite-sheet path; only the transformer differs.
+        capabilities: { batch: false, multiStage: true, audio: true, audioRouting: true, singleFileStages: true, referenceSheet: true },
         video: 'ltx23_balanced_preview.mp4',
         type: 'ltx',
         // Same LoRA node shape as ltx-23 High: live strength_clip input, surface
         // both knobs. (MPI-224)
         loraStrengths: ['model', 'clip'],
-        supportedOps: ['t2v_ms', 'i2v_ms'],
+        supportedOps: ['t2v_ms', 'i2v_ms', 'ref2v_ms'],
         gen_speed: 'fast',
         description: 'This video generator is one of the best open source models available. It comes with synchronized audio — reference-voice and direct-audio modes. A faster tier that trades a little quality for speed and lighter VRAM use.',
         // The int8 sibling of the High card's file — same graph, different transformer
@@ -1472,6 +1481,8 @@ const ALL_MODELS = [
         workflows: {
             t2v_ms: 'ltx_i2v_t2v_int8.json',
             i2v_ms: 'ltx_i2v_t2v_int8.json',
+            // MPI-1060: same fill-driven IC branch, int8 transformer.
+            ref2v_ms: 'ltx_i2v_t2v_int8.json',
         },
         // The High card's set with the int8 transformer in place of the bf16. Every
         // other weight — both VAEs, the Gemma CLIP, the projection, the upscaler and
@@ -1660,7 +1671,11 @@ const ALL_MODELS = [
         // weight at a DIFFERENT strength — this card's own ref2v distill at 1.0, against
         // fl2va's v1.0 at 0.75. (See the fl2va card for why this is not krea2's
         // `turboToggle`.)
-        capabilities: { batch: false, multiStage: true, singleFileStages: true, audio: true, negativePrompt: false, h3TurboToggle: true },
+        // multiRefMedia: H3 takes video references and up to three audio references via
+        // MpiH3References. LTX's ref2v_ms uses the Ingredients sheet approach and has no
+        // video slots and only one audio slot, so those slots are gated on this flag
+        // (requiresCapability in ref2v_ms mediaInputs). (MPI-1060)
+        capabilities: { batch: false, multiStage: true, singleFileStages: true, audio: true, negativePrompt: false, h3TurboToggle: true, multiRefMedia: true },
         // ponytail: the fl2va clip, on loan. A ref2va showcase has to wait for a run judged
         // on the CORRECT transformer — every r2va result before the 2026-08-07 re-export
         // came off the fl2va DiT and ignored its references, so no existing clip can be

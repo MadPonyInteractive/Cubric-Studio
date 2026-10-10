@@ -24,6 +24,8 @@ const RANKED = [
         ['wan22-5b', 'i2v'], ['ltx-23', 'i2v_ms']]],
     ['t2i', [['krea2', 't2i'], ['klein-9b', 't2i'], ['chroma-flash', 't2i'], ['chroma-hyper', 't2i'],
         ['klein-4b', 't2i'], ['sdxl-realistic', 't2i']]],
+    // MPI-1060: LTX added at ranks 2 and 3 (H3 stays rank 1).
+    ['ref2v', [['minimax-h3-ref2va', 'ref2v_ms'], ['ltx-23-balanced', 'ref2v_ms'], ['ltx-23', 'ref2v_ms']]],
 ];
 
 test('every ranked pair is a model that exists and an op it really supports', () => {
@@ -230,4 +232,20 @@ test('a character sheet is steered to the reference op, and a re-run away from i
     assert.match(opPriority('seedance-2-cloud', 'ref2v').note, /^PAID: /);
     assert.match(ref.note, /not an install/);
     assert.match(opPriority('ill-anime', 'i2i').note, /re-run: that model's t2i, with no media/);
+});
+
+// MPI-1060: LTX ref2v_ms ranking and notes.
+test('LTX appears at ranks 2 and 3 in ref2v; notes say sheet-based and mention audio', () => {
+    assert.equal(opPriority('ltx-23-balanced', 'ref2v_ms').rank, 2);
+    assert.equal(opPriority('ltx-23', 'ref2v_ms').rank, 3);
+    assert.equal(opPriority('ltx-23-balanced', 'ref2v_ms').task, 'ref2v');
+    assert.equal(opPriority('ltx-23', 'ref2v_ms').task, 'ref2v');
+    // Note should mention the sheet-based approach and audio
+    assert.match(opPriority('ltx-23-balanced', 'ref2v_ms').note, /sheet/);
+    assert.match(opPriority('ltx-23-balanced', 'ref2v_ms').note, /audio/);
+    // High tier note distinguishes it from balanced
+    assert.match(opPriority('ltx-23', 'ref2v_ms').note, /high-quality/);
+    // Both models actually support ref2v_ms in supportedOps
+    assert.ok(opsOf('ltx-23-balanced').includes('ref2v_ms'), 'ltx-23-balanced supports ref2v_ms');
+    assert.ok(opsOf('ltx-23').includes('ref2v_ms'), 'ltx-23 supports ref2v_ms');
 });

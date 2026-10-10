@@ -14,6 +14,68 @@ Both offer `t2v_ms` (text to video) and `i2v_ms` (image to video), and both reso
 - A voice needs to carry into the clip: stage a reference or input audio clip (`inputAudio`) to steer delivery or identity (see Settings).
 - Not for mature or NSFW content: this model can only animate what a supplied image already shows, and cannot generate new anatomy from a text prompt alone. That is a confirmed capability gap (`docs/models/ltx/strategy.md`), not a prompting problem; `wan-22` is Vision's card for that instead.
 
+## Reference to Video
+
+LTX 2.3 can also take several reference pictures and animate them using Lightricks' Ingredients IC-LoRA. This is the `ref2v_ms` op. The pictures are packed into one reference sheet by the app; the prompt tells the model which cell is which.
+
+**Pick it over i2v** when you have more than one reference and care about identity tracking across the clip (not just the opening frame). `i2v_ms` takes a start frame; `ref2v_ms` takes a sheet that keeps guiding every frame.
+
+**Pick it over cloud ref2v** when the user wants it free: it runs on the LTX install they already have. **Over H3** when H3 is not installed, or when the clip needs LTX audio (lip-sync to a clip or a cloned voice); H3 takes video references, LTX does not.
+
+**You do not need to build or supply the sheet.** The user (or you) supply individual pictures; the app composes them. Your job is to write the prompt.
+
+### The prompt shape for ref2v_ms (D5)
+
+One `<Picture n>` line per reference picture, in order, then the scene:
+
+```
+<Picture 1> Maya, a woman with dark curly hair and faint freckles, mustard-yellow sweater, dark wool jacket, hiking boots
+<Picture 2> setting: a narrow mountain path at dusk, golden light through pines, loose stones on dirt
+<Picture 3> prop: a blue-framed canvas backpack, brown leather patch on the main pocket
+
+Maya adjusts her backpack straps and continues climbing the mountain trail.
+```
+
+Rules:
+- Every `<Picture n>` line must carry a real description -- never a bare tag with nothing after it (produces a web-page collage instead of a video, confirmed on bench).
+- Role word (`setting:`, `prop:`, `character:`) is optional. With no role word anywhere, Picture 1 is the character.
+- Two-word labels ("the backpack") lose the prop. Full descriptions hold. Describe what you can see or what the user told you; never invent appearance not mentioned.
+- The scene paragraph follows standard LTX seven-sentence prose (same structure as `t2v_ms`): shot establishment, scene setting, action, character, camera, audio, closing detail. The scene describes what happens; the sheet handles what things look like.
+- No `<Picture n>` tags in the scene paragraph and no `### Reference Sheet Description` heading -- the app writes those.
+
+### What makes a good reference sheet
+
+The app follows rules from a layout bench (MPI-1060 `research/results.md`):
+- **Whole pictures only.** Never split a character's front/side/back views into separate cells -- each split view becomes an extra person in the clip.
+- **One picture per character.** A three-view character sheet goes in as one file, not three.
+- **Character pictures are not cropped.** Settings may be centre-cropped (the app keeps at least 60% of the picture). Props are not cropped either.
+- **Props: three views.** A three-angle picture of a prop (front, side/three-quarter, back) works better than a single view.
+- **Descriptions are mandatory.** Without a description the model draws a UI card, not the prop.
+
+### Optional extra inputs
+
+- **Start frame** (role `inputStartFrame`): adds a start-frame image before the IC guide. The clip opens on the photo and the identity carries through.
+- **Audio** (`inputAudio`): one audio clip. The model can lip-sync to it or carry its voice identity across, depending on the audioMode the user set.
+- No video references. A clip used as the guide is copied frame-for-frame, not referenced (confirmed on bench).
+
+### Worked examples for ref2v_ms
+
+Single character, static camera:
+```
+<Picture 1> Maya, a woman in her early 30s with dark curly hair and faint freckles, mustard-yellow sweater, dark wool jacket, hiking boots laced to the ankle
+
+A wide shot from behind frames Maya climbing the last steep stretch of a rocky mountain trail at dusk. The narrow path is packed dirt between root-split stones, warm orange light angling through a row of pines on the left. Maya lifts each foot deliberately, left hand steadying briefly on a root before releasing as she tops the rise. Her dark curly hair catches the amber light at the edge, jacket collar turned up against the cooling air. The camera remains static, set back to hold her against the full width of the trail ahead. Dry pine needles crunch under each footstep and a low wind carries the sound of a distant creek; no music. The worn leather lace-hook on her left boot, a small brass fitting, catches the last low sunlight with each step she takes.
+```
+
+Three pictures -- character, setting and prop:
+```
+<Picture 1> Maya, a woman in her early 30s with dark curly hair and faint freckles, mustard-yellow sweater, dark wool jacket
+<Picture 2> setting: a narrow mountain hiking path at dusk, golden light through pine trees, loose stones on dirt
+<Picture 3> prop: a blue-framed canvas backpack with a brown leather patch on the main pocket, metal side buckles
+
+A wide shot from behind frames Maya on the mountain trail as she adjusts the shoulder straps of her blue-framed backpack and keeps climbing. The path cuts through golden-lit pine forest, amber light landing flat across the dirt and stones. She steps over a gnarled root, the backpack shifting with the movement, the brown leather patch catching the low sun at the edge. Her dark curly hair falls forward as she leans into the slope, jacket collar folded up against the cooling air. The camera remains static, wide enough to hold the full sweep of the trail and the treeline above. Dry pine needles and loose gravel crunch steadily under her boots; a light wind moves the highest branches; no music. The stitching on the leather patch, four lines of pale thread at its corners, rocks gently with each step she takes up the trail.
+```
+
 ## Settings
 
 - Ratios (per op, from `connector-models.json`): identical across `t2v_ms` and `i2v_ms` on both `ltx-23` and `ltx-23-balanced`: `1:1`, `9:16`, `16:9`, `21:9`.

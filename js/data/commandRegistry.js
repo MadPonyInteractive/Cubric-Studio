@@ -825,7 +825,7 @@ export const commands = {
             { key: 'inputAudio', mediaType: 'audio', title: 'Input_audio', required: false },
         ],
         promptRequired: true,
-        // audioMode is capability-gated (only models with capabilities.audio mount
+        // audioMode is capability-gated (only models with capabilities.audioRouting mount
         // it — MpiPromptBox skips it for WAN). Ordered first in the op slot.
         // h3Turbo is capability-gated the same way (capabilities.h3TurboToggle) — this op
         // is shared with LTX and WAN, which are already step-distilled and never mount it.
@@ -895,6 +895,30 @@ export const commands = {
                 { prompt: 'she speaks the line in <Audio 1>, matching the camera move of <Video 1>', note: 'Mixes an audio and a motion reference.' },
                 { prompt: 'a woman in a market', bad: true, note: 'References staged but never addressed — the model has to guess what they are for.' },
             ],
+            // D5 (MPI-1060, Fabio 2026-10-10): LTX uses the Ingredients IC-LoRA sheet approach.
+            // The user writes one line per picture (<Picture n> role: description), then the
+            // scene in plain words. The app composes the pictures into one sheet and rewrites
+            // the tagged lines into the Ingredients "Reference Sheet Description" section.
+            byModel: {
+                ltx: {
+                    body: [
+                        'Add reference pictures and give each one a line in the prompt: write the tag then a short description. Then describe the scene in plain words with no tags.',
+                        'The app composes the pictures into a single layout sheet the model reads. With no role word, Picture 1 is the character. Optional role words: "setting:", "prop:".',
+                        'One audio clip is optional: it lip-syncs or clones the voice. One start-frame picture is optional: the clip opens on it exactly.',
+                    ],
+                    examples: [
+                        {
+                            prompt: '<Picture 1> woman with long auburn hair and freckles, olive-green jacket\n<Picture 2> setting: mountain path with pine trees and rocky slopes\n<Picture 3> prop: large blue hiking backpack with an external metal frame\nShe walks up the winding path toward the camera, stops and catches her breath, snow-capped peaks behind her, handheld camera, morning sun',
+                            note: 'One description line per picture, then the scene with no tags.',
+                        },
+                        {
+                            prompt: '<Picture 1><Picture 2><Picture 3>\nA woman walking on a mountain path with a backpack',
+                            bad: true,
+                            note: 'Tags with no descriptions. The model reads a blank label sheet and generates a collage.',
+                        },
+                    ],
+                },
+            },
         },
         icon: 'layers',
         mediaType: MEDIA_TYPE.VIDEO,
@@ -902,28 +926,47 @@ export const commands = {
         // requiring an IMAGE specifically would block a video-only or audio-only reference.
         requiresImages: 0,
         modelSizedInputs: true,
-        // Nine images, three videos, three audio — the node's full surface. ALL ordinal:
-        // strip order IS the tag order, so a removed chip must not strand a role on the
-        // survivors (MPI-330). None required, for the same reason requiresImages is 0.
-        // The audio slots need the model to declare capabilities.audio, which
-        // minimax-h3-ref2va does — see filterMediaInputsForModel.
+        // Nine images, three videos, three audio — the node's full surface for H3.
+        // ALL ordinal: strip order IS the tag order, so a removed chip must not strand
+        // a role on the survivors (MPI-330). None required, for the same reason
+        // requiresImages is 0.
+        //
+        // Slot surface differs by model (MPI-1060):
+        //   H3: Picture 1-9, Video 1-3, Audio 1-3 — full set; Audio 1 is gated on
+        //       capabilities.audio (filterMediaInputsForModel); Video 1-3 and Audio 2-3
+        //       are gated on capabilities.multiRefMedia (which H3 alone declares).
+        //   LTX: Picture 1-9, Audio 1 (one optional lip-sync/voice-clone clip), plus an
+        //       optional start-frame slot (Input_Start_Frame, gated on referenceSheet).
+        //       No video references (Ingredients is a STILL-sheet approach).
+        //
         // `tag` is the prompt handle this slot becomes — the chip wears it, and the
         // reference picker inserts it verbatim. Written out rather than derived: the
         // ordinal is per TYPE, not per chip, so the strip's own 1..N numbering would be
         // wrong the moment a user mixes an image and a video.
         mediaInputs: [
             { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: false, ordinal: true, tag: 'Picture 1' },
-            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true, tag: 'Picture 2' },
-            { key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3', required: false, ordinal: true, tag: 'Picture 3' },
-            { key: 'inputImage4', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_4', required: false, ordinal: true, tag: 'Picture 4' },
-            { key: 'inputImage5', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_5', required: false, ordinal: true, tag: 'Picture 5' },
-            { key: 'inputImage6', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_6', required: false, ordinal: true, tag: 'Picture 6' },
-            { key: 'inputImage7', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_7', required: false, ordinal: true, tag: 'Picture 7' },
-            { key: 'inputImage8', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_8', required: false, ordinal: true, tag: 'Picture 8' },
-            { key: 'inputImage9', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_9', required: false, ordinal: true, tag: 'Picture 9' },
-            { key: 'inputVideo',  mediaType: MEDIA_TYPE.VIDEO, title: 'Input_Video',   required: false, ordinal: true, tag: 'Video 1' },
-            { key: 'inputVideo2', mediaType: MEDIA_TYPE.VIDEO, title: 'Input_Video_2', required: false, ordinal: true, tag: 'Video 2' },
-            { key: 'inputVideo3', mediaType: MEDIA_TYPE.VIDEO, title: 'Input_Video_3', required: false, ordinal: true, tag: 'Video 3' },
+            // compositorInput: 'referenceSheet' — on a model with capabilities.referenceSheet
+            // these slots are consumed by _composeReferenceSheet (commandExecutor.js) before
+            // injection: all pictures are composed into one sheet in Input_Image, and Input_Image_2..9
+            // are deleted from params. The LTX workflow carries only Input_Image; H3's workflow
+            // carries Input_Image_2..9 natively (MpiH3References handles them). The flag is read
+            // by inject-params-titles.test.cjs to skip the workflow-node check for composited models.
+            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true, tag: 'Picture 2', compositorInput: 'referenceSheet' },
+            { key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3', required: false, ordinal: true, tag: 'Picture 3', compositorInput: 'referenceSheet' },
+            { key: 'inputImage4', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_4', required: false, ordinal: true, tag: 'Picture 4', compositorInput: 'referenceSheet' },
+            { key: 'inputImage5', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_5', required: false, ordinal: true, tag: 'Picture 5', compositorInput: 'referenceSheet' },
+            { key: 'inputImage6', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_6', required: false, ordinal: true, tag: 'Picture 6', compositorInput: 'referenceSheet' },
+            { key: 'inputImage7', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_7', required: false, ordinal: true, tag: 'Picture 7', compositorInput: 'referenceSheet' },
+            { key: 'inputImage8', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_8', required: false, ordinal: true, tag: 'Picture 8', compositorInput: 'referenceSheet' },
+            { key: 'inputImage9', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_9', required: false, ordinal: true, tag: 'Picture 9', compositorInput: 'referenceSheet' },
+            // H3 only: video references (motion/clip guide). Not on LTX — the Ingredients
+            // sheet approach conditions on still pictures, not clips.
+            { key: 'inputVideo',  mediaType: MEDIA_TYPE.VIDEO, title: 'Input_Video',   required: false, ordinal: true, tag: 'Video 1', requiresCapability: 'multiRefMedia' },
+            { key: 'inputVideo2', mediaType: MEDIA_TYPE.VIDEO, title: 'Input_Video_2', required: false, ordinal: true, tag: 'Video 2', requiresCapability: 'multiRefMedia' },
+            { key: 'inputVideo3', mediaType: MEDIA_TYPE.VIDEO, title: 'Input_Video_3', required: false, ordinal: true, tag: 'Video 3', requiresCapability: 'multiRefMedia' },
+            // Audio 1: capabilities.audio gate (filterMediaInputsForModel), present on both
+            // H3 and LTX. On LTX it feeds the audioMode radio (reference = voice clone,
+            // original = direct lip-sync via Input_Use_Reference_Audio / Input_Use_Input_Audio).
             // These three are exact, and that is NOT free. Core shares ONE audio sequence
             // between reference videos and standalone clips, emitting a video's soundtrack
             // before its <Video k> — so a sounded reference video would push the first
@@ -933,17 +976,22 @@ export const commands = {
             // by SLOT (what these tags are) and rewrites it to core's ordinals at execution,
             // where both numberings are known. Keep these tags slot-numbered.
             { key: 'inputAudio',  mediaType: 'audio',           title: 'Input_Audio',   required: false, ordinal: true, tag: 'Audio 1' },
-            { key: 'inputAudio2', mediaType: 'audio',           title: 'Input_Audio_2', required: false, ordinal: true, tag: 'Audio 2' },
-            { key: 'inputAudio3', mediaType: 'audio',           title: 'Input_Audio_3', required: false, ordinal: true, tag: 'Audio 3' },
+            // H3 only: extra audio references (Audio 2-3). LTX takes one audio clip only.
+            { key: 'inputAudio2', mediaType: 'audio',           title: 'Input_Audio_2', required: false, ordinal: true, tag: 'Audio 2', requiresCapability: 'multiRefMedia' },
+            { key: 'inputAudio3', mediaType: 'audio',           title: 'Input_Audio_3', required: false, ordinal: true, tag: 'Audio 3', requiresCapability: 'multiRefMedia' },
+            // LTX only: optional start-frame picture (Input_Start_Frame). The clip opens on
+            // this exact picture. Not a reference — it is not described and goes straight to
+            // the graph without entering the composer sheet. Gated on referenceSheet so H3
+            // never sees it; the slot carries no tag because the prompt does not address it.
+            { key: 'inputStartFrame', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Start_Frame', required: false, requiresCapability: 'referenceSheet' },
         ],
         promptRequired: true,
-        // No motionIntensity (no Input_Motion_Intensity node) and no audioMode/useAudio:
-        // this graph takes audio IN as a reference, it does not offer the LTX-style audio
-        // conditioning switch. refImageSize ("Reference detail") was dropped in MPI-687 —
-        // the two-pass shape bakes 'match' on stage 1 and 'max' on the refine encoder, so
-        // the choice it offered no longer has two good answers. See PromptBoxControls.js.
-        // h3Turbo: each DiT now has its OWN 8-step distill, but the toggle is still shared.
-        components: ['qualityTier', 'duration', 'ratio', 'h3Turbo', 'previewStage'],
+        // No motionIntensity (no Input_Motion_Intensity node on either graph).
+        // audioMode/useAudio mount only on capabilities.audioRouting (LTX): H3 takes audio
+        // IN as a reference chip and has no LTX-style audio switch (PromptBoxControls).
+        // refImageSize dropped in MPI-687. h3Turbo: each DiT has its own 8-step distill,
+        // the toggle is still shared (capability-gated, so LTX never mounts it).
+        components: ['audioMode', 'useAudio', 'qualityTier', 'duration', 'ratio', 'h3Turbo', 'previewStage'],
         isMultiStage: true,
         // Finish-only, same call as the fl2va half: stage 2 resumes from the stage-1
         // latent, so a re-prompted branch could not honour the new prompt anyway.

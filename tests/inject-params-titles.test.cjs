@@ -80,6 +80,11 @@ function mediaInputsByOp(src) {
             mediaType: /mediaType:\s*'audio'/.test(entry) ? 'audio'
                 : /MEDIA_TYPE\.VIDEO/.test(entry) ? 'video' : 'image',
             requiresCapability: (entry.match(/requiresCapability:\s*'([^']+)'/) || [])[1] || null,
+            // MPI-1060: slots consumed by the reference sheet composer before workflow injection.
+            // On a model with capabilities.referenceSheet these never inject into the workflow
+            // directly (they collapse into Input_Image by _composeReferenceSheet), so the
+            // workflow-title check must skip them for those models.
+            compositorInput: (entry.match(/compositorInput:\s*'([^']+)'/) || [])[1] || null,
         })).filter(s => s.title);
         if (slots.length) out.set(starts[i].id, slots);
     }
@@ -951,6 +956,11 @@ test('every media slot a model can actually see exists in that model\'s workflow
             for (const slot of declared.get(op) || []) {
                 if (slot.mediaType === 'audio' && model.capabilities.audio !== true) continue;
                 if (slot.requiresCapability && model.capabilities[slot.requiresCapability] !== true) continue;
+                // A compositorInput slot is consumed by the sheet composer before injection
+                // (MPI-1060): the capability names the composer that handles it. Skip the
+                // workflow-title check for models that run the composer — the slot never
+                // injects into the graph directly on those models.
+                if (slot.compositorInput && model.capabilities[slot.compositorInput] === true) continue;
                 let have;
                 try { have = titlesOf(file); } catch { problems.push(`${model.id}: cannot read ${file}`); continue; }
                 checked++;

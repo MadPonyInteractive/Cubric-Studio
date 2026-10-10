@@ -40,3 +40,12 @@
   That is the graph whose no-sheet t2v/i2v ran byte-identical on the bench, so no re-run was spent.
 - `validate-injection-rules` OK; `verify-workflow.mjs` both LTX files validate on 48188 (weights merely not installed);
   `tests/inject-params-titles`, `workflow-media-slots`, `optional-media-placeholder` 32/32.
+
+## Parallel Batch (2026-10-10, session "LTX 2.3 Reference 4")
+
+- `node --test "tests/**/*.test.cjs"`: 3041 tests, 3039 pass, 0 fail, 2 skipped. Includes new tests: H3 ref2v_ms
+  slot list unchanged, LTX gets pictures + one audio + start frame and no video, REF2V ranking, ROLE_USE text,
+  `ltx-2.3:r2v` in the agent corpus, recipe validates.
+- `npm run release:check`: fails only on "Engine pin moved 0.34.0 -> 0.39.0 ... smoke-evidence.json is STALE"
+  (MPI-623, not this card).
+- Not yet seen in a running app: Phase 5.

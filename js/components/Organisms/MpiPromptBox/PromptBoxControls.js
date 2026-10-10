@@ -2032,9 +2032,10 @@ export function visibleControlIds(model, operation, ctx = {}) {
         // (WAN + LTX) show it. A model with multiStage:false hides it.
         if (id === 'previewStage' && model?.capabilities?.multiStage !== true) return false;
 
-        // audioMode radio + useAudio toggle are capability-gated: only
-        // models with audio (LTX) show them. WAN never mounts them.
-        if ((id === 'audioMode' || id === 'useAudio') && model?.capabilities?.audio !== true) return false;
+        // audioMode radio + useAudio toggle drive LTX's audio gates, so they need
+        // capabilities.audioRouting, not capabilities.audio: H3 also takes audio in,
+        // as a reference, and shares ref2v_ms with LTX (MPI-1060). WAN mounts neither.
+        if ((id === 'audioMode' || id === 'useAudio') && model?.capabilities?.audioRouting !== true) return false;
 
         // Motion intensity is capability-gated: only models whose workflow
         // has an Input_Motion_Intensity node (WAN) show it. LTX has no such

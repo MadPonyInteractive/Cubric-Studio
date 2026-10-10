@@ -77,9 +77,18 @@ workflow), ready for LTX 2.5 by re-pointing loaders. Handoffs between sessions u
   uncommitted `resize.json`/`resize_video.json` deletions, MPI-1069), so the one template was synced by hand: convert on
   48188 -> upload slots emptied -> `validate-injection-rules` -> `generate_ltx.build` only. The raw file is NOT
   committed yet (the sync would have); commit it with the generated pair at handoff/close.
-- **Next: Parallel Batch** (app wiring: `capabilities.referenceSheet` + `ref2v_ms` in LTX `supportedOps`/`workflows`,
-  slot narrowing; agent knowledge + recipe). `commandRegistry.js` is held by MPI-1069 (live). Unchecked: whether the
-  enhancer backends can SEE images (needed only for filling undescribed lines).
+- Parallel Batch DONE (session "LTX 2.3 Reference 4", two workers + integration): both LTX cards declare
+  `referenceSheet` + `audioRouting` and offer `ref2v_ms` (same graph files). ref2v_ms slots: Video 1-3 + Audio 2-3
+  gated on `multiRefMedia` (H3 only, H3 surface unchanged, tested); new `inputStartFrame` (Input_Start_Frame, no tag,
+  gated on `referenceSheet`); Picture 2-9 carry `compositorInput: 'referenceSheet'` (read by inject-params-titles).
+  audioMode/useAudio now gate on `capabilities.audioRouting` (PromptBoxControls) so H3 never mounts them.
+  `help.byModel.ltx` teaches D5; REF2V ranks H3, ltx-23-balanced, ltx-23; ROLE_USE.inputStartFrame. Recipe `r2v`
+  mode (draft, NO sweep run yet) + guide section in `docs/agent/models/ltx-2.3.md` (132 lines). Enhancer is
+  text-only (no image input: llmService.js runServerBackend posts no image), so it fills a missing description
+  only from the user's words. Full unit suite 3039/0; release:check red ONLY on the MPI-623 engine pin.
+- **Next: Phase 5 live verify.** Open question for it: how a user puts a chip in the start-frame slot from the
+  prompt box (an untagged non-ordinal slot after 15 tagged ones; agents use role `inputStartFrame`). Recipe Stage 1
+  sweep still owed (`npm run recipe:test -- ltx-2.3 ...`), ask Fabio first.
 - Phase 3 R2 upload DONE 2026-10-10: `vision/models/loras/ltx-2.3/ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors`,
   HTTP 200, content-length 1308778338 (rclone lsl agrees). Upstream sha256 PROVEN equal to our copy
   (`515e4e139001ac6282357a5b35372e42e98b3affd5fcc886a52242abeed19559`, HF lfs). HF re-host + `loraDeps.js` entry + model deps NOT done (land the deps WITH the graph,
@@ -164,12 +173,12 @@ workflow), ready for LTX 2.5 by re-pointing loaders. Handoffs between sessions u
 
 ## Parallel Batch: App wiring + agent knowledge (after Phase 4)
 
-- [ ] App wiring. Ownership: `js/data/modelConstants/models.js`, `js/data/commandRegistry.js`,
+- [x] (2026-10-10, Reference 4) App wiring. Ownership: `js/data/modelConstants/models.js`, `js/data/commandRegistry.js`,
   `js/data/modelConstants/modelPriority.js`, `routes/connector.js` (ROLE_USE only), `js/data/progressStages.js`,
   tests `ref-tag-picker`, `connector-agent-tools`, `model-priority`, `engine-input-cap`, `inject-params-titles`.
   Briefings: `comfy_injection`, `components`, Critical Rules Snapshot. **Verify:** `node --test` on those tests +
   `npm run release:check` green.
-- [ ] Agent knowledge + enhancer. Ownership: `js/data/recipes/ltx-2.3.recipe.js` (new `r2v` mode, two-part
+- [x] (2026-10-10, Reference 4; sweep NOT run) Agent knowledge + enhancer. Ownership: `js/data/recipes/ltx-2.3.recipe.js` (new `r2v` mode, two-part
   "Reference sheet / Generated video" prompt), `docs/agent/models/ltx-2.3.md` (+ optional
   `docs/agent/models/ltx-2.3/reference-sheet.md`). Briefings: `engine-recipes`. **Verify:** `node --test
   tests/agent-corpus.test.cjs tests/model-priority.test.cjs tests/agent-prompt-budget.test.cjs`; recipe sweep

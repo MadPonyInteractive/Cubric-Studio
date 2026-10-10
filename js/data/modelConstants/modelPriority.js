@@ -79,8 +79,13 @@ const I2V = [
     ['ltx-23', 'i2v_ms'],
 ];
 
+// MPI-1060: LTX 2.3 added as ref2v_ms via the Ingredients IC-LoRA sheet approach.
+// H3 stays rank 1 (dedicated reference model, 9-picture + video + multi-audio surface);
+// LTX-balanced at rank 2 (faster, sheet-based, good consistency); LTX-high at rank 3.
 const REF2V = [
     ['minimax-h3-ref2va', 'ref2v_ms'],
+    ['ltx-23-balanced', 'ref2v_ms'],
+    ['ltx-23', 'ref2v_ms'],
 ];
 
 /**
@@ -116,6 +121,11 @@ const NOTES = {
     // free model that animates this picture was missing, and offered installs and paid clips.
     // The clip edit is measured (MPI-1033 bench): soundtrack back at 0.96, speech and hoofbeats.
     'minimax-h3-ref2va:ref2v_ms': 'free and local: with no i2v op installed, or when the user names it, it is the route for "animate this picture", not an install. It also edits a clip: given it as <Video 1> and asked for the same motion and sound with one change, the clip comes back changed with its own soundtrack, speech included. Keeping the picture and changing the sound is not this op: that is the Add Foley Flow, sound effects only',
+    // MPI-1060: LTX uses the Ingredients IC-LoRA sheet approach. One line per picture in
+    // the prompt (Picture n + a description), then the scene; the app composes the sheet.
+    // No video references, one optional audio clip. Start frame optional.
+    'ltx-23-balanced:ref2v_ms': 'sheet-based approach (Ingredients IC-LoRA): several reference pictures composed into one sheet, one description line per picture in the prompt. No video references; one audio clip optional for lip-sync or voice clone. Faster tier',
+    'ltx-23:ref2v_ms': 'the high-quality tier of the sheet-based reference op above, same rules, higher detail and more VRAM',
     // MPI-941 Phase 9 (Fabio, corrected after a live Krea test): rank is untouched either way.
     'krea2:detail': KREA2_SKIN,
     'krea2:upscale': KREA2_SKIN,

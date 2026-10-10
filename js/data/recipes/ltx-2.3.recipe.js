@@ -620,6 +620,7 @@ export const ltx23 = {
         'Fog rolls over pine trees surrounding a mountain cabin at dawn. A slow rising camera move reveals the full treeline. Cool blue light filters through the branches and a quiet ambient wind drifts across the clearing. Contemplative cinematic tone.',
         'A luxury skincare bottle rests on a wet stone surface. A gentle push-in camera closes on the label as soft morning light catches the water droplets. Subtle background water movement. Premium beauty commercial mood, clean minimal background, no distracting elements.',
       ],
+
       // Two fixes from sweep A (MPI-25, 2026-08-05), both of which PASSED the
       // harness and the judge — they were found by reading the outputs.
       //
@@ -669,5 +670,122 @@ Closing detail — this is the content of your seventh and final sentence, writt
 
 Output: your reply is ONE paragraph of plain prose. It starts on the action or a visual detail — never "The scene opens", "We see" or "There is" — and ends with the final full stop of that paragraph. One block of running text: no heading, no bullet points, no labels such as "Audio:" or "Visual:", nothing before it and nothing after it.`,
     },
+    // Reference to Video (MPI-1060): Lightricks Ingredients IC-LoRA on LTX 2.3.
+    // The user writes one <Picture n> line per reference picture, then the scene.
+    // The app composes the pictures into one sheet and rewrites the <Picture n> lines
+    // into the Ingredients two-section format (### Reference Sheet Description /
+    // ### Target Description); the enhancer's job is upstream of that rewrite.
+    //
+    // The bench (research/results.md Phase 2b) proved two failure modes this mode avoids:
+    //   - a bare <Picture n> tag with no real description -> the model draws a web-page
+    //     collage of labelled cards. Each picture line needs a real description.
+    //   - two-word labels ("the backpack") -> the prop is lost. Full descriptions land.
+    // A picture whose description the user did not supply: the enhancer infers only from
+    // what the user's text says about it; it never invents appearance.
+    //
+    // The enhancer sees @image1, @image2 ... in the user message (withReferences), but
+    // those are text tags, not actual image data: the backends pass no vision content on
+    // an enhance call. See the image-vision answer in the session report.
+    r2v: {
+      outputFormat: 'structured-tags',
+      // The <Picture n> lines add 15-50 words each; the scene is the same seven-sentence
+      // unit as t2v. Three pictures + scene = roughly 280-370 words.
+      // Gemma 3 12B encodes at 1024 tokens (~750 words) so there is no encoder wall;
+      // 400 is a runaway guard, not a target, as on the t2v mode.
+      lengthNorm: 'one line per reference picture (15-50 words), then the scene as seven substantial LTX sentences (~200-275 words). Total 250-400 words depending on picture count.',
+      wordBudget: { min: 80, max: 400 },
+      structureOrder: [
+        'Picture lines: one <Picture n> [role:] description line per reference, in order',
+        'Scene paragraph: seven sentences in LTX prose (shot, setting, action, character, camera, audio, closing detail)',
+      ],
+      dos: [
+        'Write one <Picture n> line per reference picture, in numeric order, at the very start of the output.',
+        'Every <Picture n> line must carry a real visible description -- never a bare tag or a two-word label.',
+        'Fill each description only from what the user told you, or from what is clearly implied by the scene. Never invent appearance you were not given.',
+        'Keep the role word if the user supplied one (setting:, prop:, character:); with no role word anywhere, Picture 1 is the character.',
+        'Leave a blank line between the last picture line and the scene paragraph.',
+        'Write the scene as a single flowing prose paragraph: seven sentences, same structure as the LTX t2v mode (shot establishment, scene setting, action, character, camera, audio, closing detail).',
+        'The scene describes what HAPPENS; the reference pictures handle what things look like -- do not re-describe the pictures in the scene.',
+        'Name the camera sentence: required and static by default. Translate a user-described move into the optical term; if the user described no camera behaviour, write that the camera remains static.',
+        'Keep colour and light plainly worded throughout -- a shade name (slate grey, mustard yellow) not an intensity word (vibrant, richly saturated).',
+        'Include the full soundscape in the audio sentence: environmental sound, foley, music, and any dialogue quoted exactly.',
+        'Close the seventh sentence on two concrete secondary details of something already named -- never a new prop and never praise for the shot.',
+      ],
+      donts: [
+        'No bare <Picture n> tag with nothing after it -- each tag must carry a real description on the same line.',
+        'No ### Reference Sheet Description or ### Target Description headings -- the app writes those, not the enhancer.',
+        'No <Picture n> tags inside the scene paragraph -- they belong in the picture lines above.',
+        'No invented hair colour, clothing, face features or other appearance details not given by the user.',
+        'No scene-opening throat-clearing ("The scene opens", "We see", "There is").',
+        'No keyword lists, bullet points or section headers in the scene paragraph.',
+        'No abstract emotional labels (happy, sad, confused) in the scene -- emotion as physical acting beats only.',
+        'No invented camera movement -- if the user described none, the camera is static.',
+        'No intensified colour or lighting language (vibrant, richly saturated, blinding) -- the register is plain.',
+        'No <Picture n> references in the scene; they are handled by the sheet above.',
+      ],
+      forbiddenPatterns: [
+        {
+          pattern: '^\\s*#{1,3}\\s*(Reference Sheet Description|Target Description)',
+          why: 'the two-section headings are written by the app, not by the enhancer; emitting them bypasses the cell-name rewrite',
+        },
+        {
+          pattern: '<Picture \\d+>\\s*$',
+          why: 'a bare <Picture n> tag with no description produces a web-page collage (bench, results.md Phase 2b)',
+        },
+        {
+          pattern: '^\\s*[""\']?(the (scene|video|shot) (opens|begins)|we see|there is|there are)\\b',
+          why: 'scene-opening throat-clearing, same ban as the t2v mode',
+        },
+        {
+          pattern: '\\b(richly saturated|film-?grade|vibrant|blinding)\\b',
+          why: 'intensified colour/light language the vendor rewriter names as off-register',
+        },
+      ],
+      vocabulary: {},
+      negativeHandling: 'inline-positive',
+      acceptsMedia: ['image', 'audio'],
+      multiScene: false,
+      examplePrompts: [
+        // Single character picture + scene (simplest valid case)
+        '<Picture 1> Maya, a woman in her early 30s with dark curly hair and faint freckles, wearing a mustard-yellow sweater and a dark wool jacket, hiking boots laced to the ankle\n\nA wide shot from behind frames Maya climbing the last steep stretch of a rocky mountain trail at dusk. The narrow path is packed dirt between root-split stones, warm orange light angling low through a row of pines on the left. Maya lifts each foot deliberately, her left hand steadying briefly on a root before releasing as she tops the rise. Her dark curly hair catches the amber light at the edge, her jacket collar turned up against the cooling air. The camera remains static, set back far enough to hold her against the full width of the trail ahead. Dry pine needles crunch under each footstep and a low wind carries the sound of a distant creek; no music. The worn leather lace-hook on her left boot, a small brass fitting, catches the last low sunlight with each step she takes.',
+        // Three pictures: character + setting + prop (the bench layout case)
+        '<Picture 1> Maya, a woman in her early 30s with dark curly hair and faint freckles, wearing a mustard-yellow sweater and a dark wool jacket\n<Picture 2> setting: a narrow mountain hiking path at dusk, soft golden light through pine trees, loose stones on a dirt trail\n<Picture 3> prop: a blue-framed canvas backpack with a brown leather patch stitched on the main pocket, metal side buckles\n\nA wide shot from behind frames Maya on the mountain trail as she adjusts the shoulder straps of her blue-framed backpack and keeps climbing. The narrow path cuts through golden-lit pine forest, soft amber light landing flat across the dirt and stones. She steps deliberately over a gnarled surface root, the backpack shifting with the movement, the brown leather patch catching the low sun at the edge. Her dark curly hair falls forward as she leans into the slope, the jacket collar folded up against the cooling evening air. The camera remains static, wide enough to hold the full sweep of the trail and the treeline above. Dry pine needles and loose gravel crunch steadily under her boots; a light wind moves the highest branches overhead; no music. The stitching on the leather patch, four lines of pale thread at its corners, rocks gently with each step she takes up the trail.',
+      ],
+      systemPrompt: `You are an expert prompt engineer for LTX 2.3 in Reference to Video mode. The user is supplying several reference pictures -- described with <Picture n> lines -- and a scene they want generated. The app will compose those pictures into one sheet that guides the Ingredients IC-LoRA; your job is to prepare the prompt it reads.
+
+Your output has exactly two parts in this order:
+
+PART 1 -- PICTURE LINES
+One <Picture n> line per reference picture, in numeric order, no gaps.
+- Copy the tag exactly (<Picture 1>, <Picture 2>, ...). The app reads them by number; changing the syntax breaks the sheet rewrite.
+- Follow the tag with a complete visible description on the same line. Never leave a bare tag with nothing after it -- a tag without a description produces a web-page collage rather than a video.
+- If the user gave a role word (setting:, prop:, character:), keep it. If no role word appears anywhere, Picture 1 is the character.
+- Fill descriptions from what the user told you -- the text they wrote, the objects they named, the clothes and colours they stated. Never invent physical details (hair colour, clothing, face features, textures) that the user did not provide. A missing description is a missing description; do not guess at appearance.
+- One line per picture, nothing else in this block.
+
+PART 2 -- THE SCENE
+Leave a blank line after the last picture line, then write the scene as a single flowing prose paragraph. This is LTX 2.3 caption prose -- the same style as the t2v mode. All the rules below apply to the scene.
+
+The scene describes what HAPPENS. The reference pictures handle what things look like. Do not re-describe the character's hair, the location's ground texture or the prop's colour in the scene -- the sheet already shows those. Say what moves, what the camera does, what the soundscape carries.
+
+SCENE RULES (same as the LTX t2v mode):
+RESTRAINED LANGUAGE throughout: plain colour words ("mustard yellow", "slate grey"), shade names when more specific is needed, never intensity words ("vibrant", "richly saturated"). Name light by what it physically is ("low sun through pines", "overcast midday").
+
+Write SEVEN sentences, one for each of the following elements:
+1. Shot Establishment: name the shot type (wide, medium, close-up, etc.) and camera viewpoint (from behind, side view, low angle, etc.) while opening on the action.
+2. Scene Setting: one coherent light source and one or two high-fidelity textures (packed dirt, rough stone, worn wool). Do not name the textures the reference sheet already shows.
+3. Action Progression: what physically happens, chronological, present tense, concrete verbs.
+4. Character Definition: who is in frame and what they do -- build, visible clothing, physical acting beats (jaw clenches, hand tightens). Never abstract emotion labels. The appearance is on the sheet; describe the motion.
+5. Camera Movement: always write this sentence. Translate any camera motion the user described into the optical term (fast zoom onto the face -> crash zoom; rises over the trees -> crane lift; follows alongside -> side tracking shot). If the user described no camera behaviour, write "the camera remains static" -- that is the complete and correct sentence.
+6. Audio Integration: full soundscape -- environmental sound, foley, background music (or "no music"), and any dialogue quoted exactly with its delivery.
+7. Closing detail: two concrete secondary details about something already named -- its material or texture, and a small continuing movement or its exact position in the frame. Never introduce a new object and never praise the shot.
+
+All seven sentences, whatever the length of the input. An eighth sentence means you kept too much. Every sentence names at least two concrete observable specifics.
+
+DO NOT emit ### Reference Sheet Description or ### Target Description headings -- the app writes those. Do not put <Picture n> tags inside the scene paragraph.
+
+Output: the picture lines, a blank line, then the scene paragraph. Nothing before the first picture line and nothing after the last sentence.`,
+    },
+
   },
 };

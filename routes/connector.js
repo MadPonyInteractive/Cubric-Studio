@@ -156,6 +156,10 @@ function mediaRolesFor(registry, op, model) {
 const ROLE_USE = {
   startFrame: 'The clip opens on this exact picture. A character sheet, turnaround or collage is not a first frame: send it to a reference-to-video op (ref2v_*) as a reference, or tell the user no installed model has one.',
   endFrame: 'The clip ends on this exact picture.',
+  // MPI-1060: LTX ref2v_ms start-frame slot. Unlike startFrame (i2v_ms), this sits on
+  // the reference op itself — so a character sheet goes in Picture 1..N, and only a
+  // single desired opening frame goes here.
+  inputStartFrame: 'The clip opens on this exact picture. Unlike the reference picture slots, this is not added to the reference sheet: it anchors the first frame only. Do not send a character sheet or collage here: those go in Picture 1 through 9.',
 };
 router.mediaRolesFor = mediaRolesFor;
 let _memoryMod = null;

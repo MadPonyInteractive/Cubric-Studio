@@ -255,6 +255,26 @@ test('a start frame says the clip opens on it, so a character sheet goes to a re
         'a reference slot carries no first-frame warning');
 });
 
+// MPI-1060: LTX ref2v_ms slot narrowing and inputStartFrame ROLE_USE.
+test('LTX ref2v_ms: no video slots, one audio slot, and a start-frame slot with a use description', async () => {
+    const { mediaRolesFor } = require('../routes/connector');
+    const registry = await esm('js/data/commandRegistry.js');
+    const { findModelDef } = require('../js/data/generationControls.js');
+    const ltxSlots = mediaRolesFor(registry, 'ref2v_ms', findModelDef('ltx-23-balanced'));
+    assert.ok(ltxSlots.every((r) => r.type !== 'video'), 'LTX ref2v_ms carries no video slots');
+    assert.equal(ltxSlots.filter((r) => r.type === 'audio').length, 1, 'exactly one audio slot');
+    assert.equal(ltxSlots.filter((r) => r.type === 'audio')[0].tag, 'Audio 1');
+    const sf = ltxSlots.find((r) => r.role === 'inputStartFrame');
+    assert.ok(sf, 'start-frame slot present for LTX ref2v_ms');
+    assert.match(sf.use, /opens on this exact picture/);
+    assert.match(sf.use, /Picture 1 through 9/);
+    // H3 ref2v_ms still gets its full surface (9 pictures, 3 videos, 3 audio)
+    const h3Slots = mediaRolesFor(registry, 'ref2v_ms', findModelDef('minimax-h3-ref2va'));
+    assert.equal(h3Slots.filter((r) => r.type === 'video').length, 3, 'H3 keeps 3 video slots');
+    assert.equal(h3Slots.filter((r) => r.type === 'audio').length, 3, 'H3 keeps 3 audio slots');
+    assert.ok(!h3Slots.some((r) => r.role === 'inputStartFrame'), 'H3 does not see start-frame slot');
+});
+
 // ── 4. create-project never mints a case-variant twin (Phase 7) ───────────────
 
 // Live (Fabio, 2026-09-19 10:09Z): "You can place it in the Fanvue project" logged
