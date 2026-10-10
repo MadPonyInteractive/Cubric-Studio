@@ -42,7 +42,7 @@
  */
 
 import { enqueueGeneration, findMissingMediaSlot, cancelPendingCueJob, cancelRunningCueJob } from '../services/generationService.js';
-import { submitFlowGeneration, cloudEditQuote } from '../services/flowService.js';
+import { submitFlowGeneration, cloudEditQuote, flowRunRefusal } from '../services/flowService.js';
 import { openProject, renameGroup, markGroup, serializeGroup, addGroup } from '../services/projectService.js';
 import { createItemGroup } from '../data/projectModel.js';
 import { STACK_TYPE, resultStackFields } from '../data/stackModel.js';
@@ -56,7 +56,9 @@ import { MODELS, getModelById, isOperationInstalled, getModelDepStatus } from '.
 import { DEPS } from '../data/modelConstants/dependencies.js';
 import { resolveFullUniverse } from '../data/modelConstants/resolveModelDeps.js';
 import { sizeToGb } from '../data/modelConstants/footprint.js';
-import { getFlowById, listFlows, flowAvailability } from '../data/flowsRegistry.js';
+import {
+    getFlowById, listFlows, flowAvailability, flowRunAvailability, flowRunLegs, flowModelSlots, flowModelIds,
+} from '../data/flowsRegistry.js';
 import { retiredFlowMessage } from '../data/retiredFlows.js';
 import { resolveFlowFieldValues, agentFieldSpecs } from '../utils/declaredFields.js';
 import { enhanceFlowRun } from '../services/flowEnhance.js';
@@ -1314,6 +1316,23 @@ export async function buildFlow(input, project) {
             `${flow.title} declares no field ${unknown.map(k => `"${k}"`).join(', ')}. Fields: ${known || 'none'}.`);
     }
 
+    // What THIS run takes, now the fields are resolved (MPI-1041): the op a routed Flow's field
+    // picks and every leg its rules want. An OPTIONAL model blocks only the ops it serves, so it
+    // is asked here and not above, where only the Flow's required models are.
+    const run = { ...inputs, injectionParams: fieldInjection };
+    if (!flowRunLegs(flow, run).length) {
+        return _refuse('NOTHING_TO_DO', `${flow.title} has nothing to do with those fields. Change one of them.`);
+    }
+    // A built-prompt Flow's own refusal (no words for the picked change), by its message.
+    const refusal = flowRunRefusal(flow, run);
+    if (refusal) return _refuse('BAD_REQUEST', `${flow.title}: ${refusal}`);
+    const runAvailability = flowRunAvailability(flow, run);
+    if (!runAvailability.available) {
+        const absent = [...runAvailability.missing, ...(runAvailability.missingDeps || [])];
+        return _refuse('OP_UNAVAILABLE',
+            `${flow.title} cannot do that until ${absent.join(', ') || 'required files'} ${absent.length === 1 ? 'is' : 'are'} installed.`);
+    }
+
     // The Flow's own enhance pass (MPI-1002), on the enhancer picked in Remote, exactly as a
     // hand run's Generate does it — the agent and routines reach a Flow only through here.
     // It writes only blank targets, and a failed enhancer submits nothing.
@@ -1749,6 +1768,11 @@ async function _listModels(jobId) {
         const voices = slotVoices(flow, voiceLib);
         // MPI-918: its edit slot resolved to a cloud model, so every run bills the user.
         const cloud = cloudEditQuote(flow);
+        // MPI-1041: the models only SOME of its changes need. `installed` above is true without
+        // them, so this is what says a change that needs one will be refused until it is.
+        const resolved = flowModelIds(flow);
+        const optional = flowModelSlots(flow).flatMap((slot, i) => slot.optional
+            ? [{ label: slot.label, model: resolved[i], installed: (state.s_installedModelIds || []).includes(resolved[i]) }] : []);
         return {
             id: flow.id,
             title: flow.title,
@@ -1783,6 +1807,7 @@ async function _listModels(jobId) {
             ...(flow.agentOpens ? { opens: flow.agentOpens } : {}),
             // MPI-1005: the app asks before running this one, showing this field.
             ...(flow.agentReview ? { review: flow.agentReview } : {}),
+            ...(optional.length ? { optional } : {}),
             // MPI-1004: role -> the library voices that slot takes; the route folds each list
             // into its slot's `media` row.
             ...(voices ? { voices } : {}),

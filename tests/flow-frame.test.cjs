@@ -185,7 +185,7 @@ test('positionPopup cannot deref a popup that closed before its frame ran', () =
 test('the frame refuses a run whose op declares promptRequired with no prompt', () => {
     const src = frame();
 
-    assert.match(src, /if \(getCommand\(flow\.operation\)\?\.promptRequired && !hasPrompt\) \{[\s\S]*?Events\.emit\('ui:warning'[\s\S]*?return;/,
+    assert.match(src, /if \(runOperation && getCommand\(runOperation\)\?\.promptRequired && !hasPrompt\) \{[\s\S]*?Events\.emit\('ui:warning'[\s\S]*?return;/,
         'declared on fifteen-odd ops and read by nothing until this');
     // The pre-existing empty-run guard is a different, weaker test and must stay.
     assert.match(src, /if \(_mediaGroups\.length > 0 && mediaItems\.length === 0 && !hasPrompt\)/,

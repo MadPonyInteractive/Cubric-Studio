@@ -1573,6 +1573,39 @@ export const commands = {
         universal: true,
     },
 
+    // MPI-1041. Character Sheet Editor: ONE change on a finished three-panel sheet, all three
+    // panels kept the same character. Klein 9B, exact size; `Input_Lock` (0 free | 1 head, hair
+    // and face on every panel | 2 face on front + portrait) picks an in-graph SAM3 lock. The
+    // prompt is built in JS (flowPrompts/characterSheetEditor.js), never by the user, so the
+    // op takes no prompt of its own and the enhancer stays out.
+    flowCharacterSheetEdit: {
+        label: 'Flow: Character Sheet Editor',
+        // Initials, as `flowCSFI`: the key would be cut to 24 characters on disk.
+        filePrefix: 'flowCSE',
+        progressLabel: 'Editing the sheet',
+        mediaType: MEDIA_TYPE.IMAGE,        // OUTPUT type
+        requiresImages: 0,
+        mediaInputs: [
+            { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
+        ],
+        promptRequired: false,
+        universal: true,
+    },
+    // MPI-1041. The same edit on Qwen-Image 2.1 (Body shape), which reshapes a body where
+    // Klein keeps the figure. Its pictures are non-commercial (the model's licence).
+    flowCharacterSheetEditQwen: {
+        label: 'Flow: Character Sheet Editor',
+        filePrefix: 'flowCSE',
+        progressLabel: 'Editing the sheet',
+        mediaType: MEDIA_TYPE.IMAGE,
+        requiresImages: 0,
+        mediaInputs: [
+            { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
+        ],
+        promptRequired: false,
+        universal: true,
+    },
+
     // MPI-504. The text-only prompt enhancer, `qwen3vl_4b_prompt_enhancer.json` — text
     // in, a rewritten phrase out via the Output_prompt contract, so `outputKind: 'text'`
     // exactly like `imageDescribe`. It saves no file and takes no media.
@@ -1645,6 +1678,8 @@ export const ENHANCE_EXEMPT_OPS = Object.freeze(new Set([
     'flowVideoEdit',
     // MPI-1042: the words adjust the pictures' character (a haircut, a build) inside baked prompts.
     'flowCharacterSheetImages',
+    // MPI-1041: the prompt is built from bench-proven templates; a rewrite would break them.
+    'flowCharacterSheetEdit', 'flowCharacterSheetEditQwen',
 ]));
 
 /** True when this op is one the enhancer must stay out of. */

@@ -176,6 +176,14 @@ export const UNIVERSAL_WORKFLOWS = {
     flowCharacterSheetHeadless: {
         workflow: 'flow_character_sheet_headless.json',
     },
+    // MPI-1041 — Character Sheet Editor: one change on a finished sheet. Klein 9B with an
+    // in-graph SAM3 lock, and the Qwen-Image 2.1 twin for Body shape.
+    flowCharacterSheetEdit: {
+        workflow: 'flow_character_sheet_edit.json',
+    },
+    flowCharacterSheetEditQwen: {
+        workflow: 'flow_character_sheet_edit_qwen.json',
+    },
     // MPI-504 — text-only, like imageDescribe. Its encoder weight is
     // `qwen3vl-abliterated-clip`, an engineAsset (MPI-1045), so this op adds no
     // download of its own.

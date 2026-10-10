@@ -237,6 +237,16 @@
     "appVersionIntroduced": "2.0.1",
     "universal": true
   },
+  "flowCharacterSheetEdit": {
+    "latestVersion": "1.0",
+    "appVersionIntroduced": "2.0.1",
+    "universal": true
+  },
+  "flowCharacterSheetEditQwen": {
+    "latestVersion": "1.0",
+    "appVersionIntroduced": "2.0.1",
+    "universal": true
+  },
   "flowTextToMusic": {
     "latestVersion": "1.0",
     "appVersionIntroduced": "2.0.0",

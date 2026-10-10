@@ -36,9 +36,11 @@ const ABS_PATH_RE = /^(?:[A-Za-z]:[\\/]|\\\\|\/(?:home|Users|mnt|root|workspace|
 // The keys built-in Flows use. The app sets `id`, `operation` and `workflow` itself.
 const FLOW_KEYS = new Set(['title', 'preview', 'video', 'description', 'requiredModels',
     'requiredDeps', 'requiredPlugins', 'modelParams', 'mediaType', 'type', 'inputSchema',
-    'result', 'steps', 'fields', 'derived', 'enhance', 'chain', 'agentOpens', 'agentReview',
+    'result', 'steps', 'fields', 'derived', 'enhance', 'chain', 'operationBy', 'agentOpens', 'agentReview',
     // MPI-918: three node ids of the package's own graph; a wrong one refuses at run time.
     'cloudEdit',
+    // MPI-1041: an app prompt builder by name (flowService PROMPT_BUILDERS); an unknown name builds nothing.
+    'promptBuilder',
     // MPI-1036: the picture put into words before the run (flowEnhance.js § describe).
     'describe']);
 // The two big-photo flags a Flow graph can earn (MPI-971; commandRegistry.js says what each
@@ -65,7 +67,9 @@ function loadKnown() {
     const { PLUGINS } = _require('../js/data/pluginsRegistry.js');
     const { INJECTORS } = _require('../js/services/workflowInjectors/index.js');
     const { APP_VERSION } = _require('../js/core/appVersion.js');
+    const { flowControlFieldIds } = _require('../js/data/flowsRegistry.js');
     return {
+        flowControlFieldIds,
         models: new Set(MODELS.map(m => m.id)),
         deps: new Set(Object.keys(DEPS)),
         plugins: new Set(PLUGINS.map(p => p.id)),
@@ -215,8 +219,10 @@ function validatePackage(manifest, graph, files, known = loadKnown()) {
         needTitle(slot.title, `op.mediaInputs "${slot.key}"`);
     }
     const fields = [...(flow.fields || []), ...(flow.steps || []).flatMap(s => s?.fields || [])];
-    // A chain's `when` field decides whether leg 2 runs (flowService, MPI-997); no graph reads it.
-    for (const f of fields) if (/^Input_/i.test(f?.id || '') && f.id !== flow.chain?.when) needTitle(f.id, `field "${f.id}"`);
+    // A field the ENGINE reads (the one `operationBy` routes on, a leg's `when`) decides which ops
+    // run (flowService, MPI-997, MPI-1041); no graph reads it.
+    const control = known.flowControlFieldIds(flow);
+    for (const f of fields) if (/^Input_/i.test(f?.id || '') && !control.has(f.id)) needTitle(f.id, `field "${f.id}"`);
     for (const params of Object.values(flow.modelParams || {})) {
         for (const key of Object.keys(params || {})) if (/^Input_/i.test(key)) needTitle(key, `modelParams "${key}"`);
     }

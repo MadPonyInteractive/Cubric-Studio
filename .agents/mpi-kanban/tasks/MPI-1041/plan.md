@@ -6,6 +6,12 @@
 NEXT: `mpi-continue` -> Parallel Batch A** (route it to `mpi-execute-parallel`). Project mode: scalable-foundation.
 Research behind every line below, with file:line: `research/flow-plan-research.md`.
 
+**2026-10-10 (session 08593195) - Batch A + Phase B DONE (`npm test` 2961/2963, 0 fail). NEXT: Phase C** (UNBLOCKED: MPI-1056 committed `bddf6391c` and released its claim). Phase B notes are under its `[x]` line. Was: Phase B (sequential: FLOWS list + the 4 op registries + `js/data/flowPrompts/characterSheetEditor.js`; templates = `research/templates.md` + the bench scripts; graph contracts = `research/graph-klein.md` / `graph-qwen.md`). Batch A ran as 4 Sonnet workers. Claim
+`state/files/08593195-mpi1041-batchA.json` + `files.json` hold every owned path (A1 also owns `js/data/routineModel.js`,
+A3 `bench-tools/build_edit_graph_qwen.py`). Briefings: `scratchpad/brief_{A1,graph,A4}.md`. Workers convert with
+`workflow-to-api.mjs` single-file mode (never `sync-raw-workflows.mjs` - it commits). A1 must not touch
+`flowEnhance.js` (MPI-1056): describe `when` keeps its own check until Phase C, `ruleHolds` exported for it.
+
 **Fabio's answers at the go (2026-10-10):** one change per run - YES; Qwen-Image 2.1 optional - YES; cloud arm -
 LATER, once the local Flow is locked in; **Age = a SLIDER, not a number box:** 0 = Off (the prompt does not touch
 the age), then 1 = a baby, 2, 3 ... 100 = target years (his dictation said "moves to 0 which would be a baby" -
@@ -21,8 +27,8 @@ all panels consistent, result as a NEW card ("John - beaten up"); the input shee
 
 | change | editor | how | evidence |
 |---|---|---|---|
-| Clothes | Klein 9B edit, exact size | L1 wording + per-panel SAM3 "head, hair" lock | b3-b4, 6 of 6 |
-| Accessories | Klein 9B edit | as Clothes, "Give the character ..." wording | b4 (wording to pin, A4) |
+| Clothes | Klein 9B edit, exact size | L1 wording + `Input_Lock` 1 = SAM3 "head, hair, face" on all three panels | b3-b4, 6 of 6; A2 3 of 3 |
+| Accessories | Klein 9B edit, FREE (`Input_Lock` 0) | "Give the character <words>." + L1; a head lock blocks glasses / hats | A4, 2 of 2 (`research/templates.md`) |
 | Hairstyle | Klein 9B edit | SAM3 "face" lock on FRONT + PORTRAIT only | b8 |
 | Condition | Klein 9B edit, free | `Make the character look <words>.` + L1 | b5, 6 of 6 |
 | Age 13+ | Klein 9B edit, free | b15 neutral exact-age template + L1 | b11-b15, 3 of 3 |
@@ -67,7 +73,7 @@ Disjoint files; A2-A4 share the GPU through `gpu_lease` (they queue, they never 
 GPU worker the LITERAL wrapped command: `python <mpi-lib>/scripts/gpu_lease.py run --timeout 10800 --poll 2 --
 "C:/Program Files/Git/bin/bash.exe" <runner.sh>` (memory: a worker told "run under the lease" once never leased).
 
-- [ ] A1 Engine: multi-leg, routed, optional-model Flows. In `flowsRegistry.js` (helpers only, no FlowDef): FlowDef
+- [x] A1 Engine (DONE 2026-10-10, npm test 2938/2940 + 2 stale source pins updated in routine-runner / flow-frame tests): multi-leg, routed, optional-model Flows. In `flowsRegistry.js` (helpers only, no FlowDef): FlowDef
   `operationBy: { field, map }` + `flowOperation(flow, run)` / `flowOperations(flow)`; `chain` accepts an ARRAY of
   legs run in order, each `{ operation, when, input, box, params }` (old single object still works), each leg fed
   the previous leg's picture, a skipped leg passes it through; slots accept `{ ..., optional: true, for: [ops] }`;
@@ -90,7 +96,7 @@ GPU worker the LITERAL wrapped command: `python <mpi-lib>/scripts/gpu_lease.py r
   select value; a 3-leg chain with a numeric `atMost` rule runs legs 1+3 and skips 2; leg 2 of a two-slot Flow gets
   the Qwen graph; a missing optional model blocks only the ops it serves; every shipped Flow still resolves the same
   op / graph / availability as before (snapshot of all FLOWS ids).
-- [ ] A2 Klein edit graph `flow_character_sheet_edit` (Klein 9B, no NSFW LoRA): pruned from the `klein_9b_t2i`
+- [x] A2 (DONE 2026-10-10, `research/graph-klein.md`: 60-node API graph; lazy proof - SAM3 runs only at lock 1 (3 panels) / lock 2 (front + portrait); 16 bench cases PASS by eye at 1792x1120; lock 1 vocabulary is now "head, hair, face" (photo portrait face 5% -> 100% locked, clothes re-run face diff 0.0); `MpiClearVram` is an OUTPUT node and forced the lazy branch - removed) Klein edit graph `flow_character_sheet_edit` (Klein 9B, no NSFW LoRA): pruned from the `klein_9b_t2i`
   edit path, exact size (`MpiMath "a*b/1048576"` into the scale, loader w/h into the crop target), an in-graph
   SAM3 lock chosen by `Input_Lock` (0 off | 1 "head, hair" on all three panels | 2 "face" on front + portrait),
   panels from `MpiMath` on the width as `flow_character_sheet_headless.json` does, lazy so SAM3 runs only when
@@ -102,13 +108,13 @@ GPU worker the LITERAL wrapped command: `python <mpi-lib>/scripts/gpu_lease.py r
   (`docs/workflow-authoring/README.md`) + the Snapshot. **Verify:** through `run_api.py` under the lease, on the photo
   + fisher sheets at seed 42: clothes lock (b4 outfit), hair lock (b8 bob), condition free (b5 beaten), age 10 + 30
   (b15 v3) - each matches its batch verdict by eye, `layout.py` heads within 16 px, output = the input size.
-- [ ] A3 Qwen edit graph `flow_character_sheet_edit_qwen` (Qwen-Image 2.1): pruned from `qwen_image_2_1.json`'s
+- [x] A3 (DONE 2026-10-10, `research/graph-qwen.md`: 14-node API graph, b9 heavyset / muscular / skinny PASS, mean pixel diff to b9 0.46-0.75 of 255, ~108 s an edit, output = input size via a trailing `ImageScale` - an odd 1770x1100 input returns 1770x1100; `Input_Image` has `block_if_empty` ON; output RGB) Qwen edit graph `flow_character_sheet_edit_qwen` (Qwen-Image 2.1): pruned from `qwen_image_2_1.json`'s
   edit path, node 30 `resolution` 0 baked (exact size), W/H to /32. Titles: `Input_Image`, `Input_Positive`,
   `Input_Seed`, `Output_Image`. Ownership: `comfy_workflows/raw/flow_character_sheet_edit_qwen.json`,
   `comfy_workflows/flow_character_sheet_edit_qwen.json`, `research/bench-tools/run_graph_qwen.sh`,
   `research/graph-qwen.md`. Briefings: as A2. **Verify:** b9's three body cases (heavyset photo; muscular + skinny on
   the nude sheet, outputs to `mpi1041_qba/` only) pass on all three panels, `width.py` sign right, exact size.
-- [ ] A4 Pin the untested templates on the bench graph (`klein9b_edit_api.json`), clothed sheets only, ~5-edit runs:
+- [x] A4 (DONE 2026-10-10, strings in `research/templates.md`: teen15b + older70 + free-edit Accessories pinned 2 of 2; the age ask reads old faces HIGH - direction only, never trust a read of 70+; DRESSED ask 24/24; the `Wearing ...` caption is clean; the gate takes `{ modelId, nsfw }`, no `source`) Pin the untested templates on the bench graph (`klein9b_edit_api.json`), clothed sheets only, ~5-edit runs:
   a teen (15) clause, the OLDER neutral template (70 on the photo), Accessories wording ("Give the character a red
   scarf and round glasses" + clothes lock), and the describer asks on the app's default describer
   (`qwen3vl_4b_abliterated` via ComfyUI): apparent age within +/-8 years on the 5 sheets, DRESSED / NOT DRESSED right
@@ -117,9 +123,22 @@ GPU worker the LITERAL wrapped command: `python <mpi-lib>/scripts/gpu_lease.py r
   Briefings: the Snapshot + `docs/child-safety.md`. **Verify:** each template / ask passes on 2 sheets or is written
   up as failed with the next wording; results table in `research/templates.md`.
 
+**A1 hand-on (2026-10-10):** API = `ruleHolds`, `flowControlFieldIds`, `flowLegs`, `flowToggleLeg`, `flowOperation`,
+`flowOperations`, `flowRunLegs`, `flowModelIds/flowModelParams(flow, { op })`, `flowRunAvailability` in `flowsRegistry.js`
+(re-exported by `declaredFields.js`); `legInjection` / `submitChainLeg(..., index)` in `flowService.js`. Skip leg 1 =
+a `null` map entry; a slot with no `for` serves every op no other slot's `for` claims; no wanted leg = hand warn /
+agent `NOTHING_TO_DO`. Folded into B/C/D: every op in `flowOperations` must declare `flow.operation`'s media slots
+(agentDispatch / routineDispatch / routineModel / MpiBaseFlow read media from `flow.operation` alone - add a test);
+`smoke-workflows.mjs resolveFlowSmokeSet` + the inject-params-titles sweep cover only `flow.operation` - add routed /
+leg ops; `services/agentLoop.mjs:570-576` (MPI-1053's) drops the catalog's `optional` key; Phase C adopts `ruleHolds`
+in `flowEnhance.js _describeRuleHolds` (keep its `{ media }` branch); Phase D: `MpiFlowLibrary` `_fitsMyGpu` (323)
+counts the optional slot, "Required models" (793) lists it, `_installProgress`/`_cancelInstall` iterate
+`flowInstallKeys` incl. it (bar never reaches 100%), `_installMissing` cannot install it; docs
+`01-descriptor-and-ops.md` ~361 (single-object chain) + `any-of-models.md` (`optional`/`for`).
+
 ## Phase B: the Flow itself (after A; touches the FLOWS list and the four op registries)
 
-- [ ] Ops `flowCharacterSheetEdit` (Klein) and `flowCharacterSheetEditQwen` in the 4 files (`commandRegistry.js` with
+- [x] (DONE 2026-10-10: FlowDef `character-sheet-editor`; ops in the 4 files + `ENHANCE_EXEMPT_OPS`; builder `js/data/flowPrompts/characterSheetEditor.js` behind `flowService` `PROMPT_BUILDERS` (built in `start()`, after describe, before enqueue) + `flowRunRefusal` (hand toast / agent `BAD_REQUEST`); legs tag their part with `prompt: 'age' | 'rebuild'`; describe answers land in NON-graph keys `sheetAge` / `sheetClothes`; every leg carries `runPrompt` = the whole run's prompts so the per-job gate refuses "Clothes: a bikini + Age 10" on LEG 1; `promptBuilder` added to `FLOW_KEYS`; interim tile `display/flow-character-sheet-editor.webp` = A4's accF close-up (Phase D replaces it); tests `character-sheet-editor.test.cjs` 12/12 + inject-params-titles + agent-flow-handover `runs`. Describe `when` is `Input_Age isNot 0` until Phase C adopts `ruleHolds`) Ops `flowCharacterSheetEdit` (Klein) and `flowCharacterSheetEditQwen` in the 4 files (`commandRegistry.js` with
   `ENHANCE_EXEMPT_OPS`, `universal_workflows.js`, `operationRegistry.js`, `operation_registry.json`); prompt builder
   `js/data/flowPrompts/characterSheetEditor.js` (pure ESM: `buildEditPrompt({ change, words, age, apparentAge })`,
   `buildRebuildPrompt({ age, caption })`, templates from Current State + A4) behind a named-builder registry so the
@@ -139,7 +158,7 @@ GPU worker the LITERAL wrapped command: `python <mpi-lib>/scripts/gpu_lease.py r
   16-17 swimwear asserts the gate rule IN FORCE at build time (MPI-1056 changed it 2026-10-10: an ordinary bikini fine, revealing swimwear never - read `docs/child-safety.md` then); the builder's output key survives `configTexts`. Also an inject-params-titles
   case for both graphs, an `agent-flow-handover` `runs` entry, the smoke-flows set.
 
-## Phase C: refusals + card name (BLOCKED on MPI-1056 committing and releasing its claim)
+## Phase C: refusals + card name (unblocked 2026-10-10: MPI-1056 committed and closed)
 
 - [ ] Describe refusal entries in `flowEnhance.js` (`{ ask, when, refuseUnless, code, message }`, keyed apart from
   `to`) + `flowService` reporting `d.code`: under 18 and not DRESSED -> "Dress the sheet first: pick Clothes"; Clothes
@@ -168,6 +187,8 @@ GPU worker the LITERAL wrapped command: `python <mpi-lib>/scripts/gpu_lease.py r
 
 ## Plan Drift
 
+- 2026-10-10 (session 08593195, A2/A3): Klein lock 1 vocabulary "head, hair" -> "head, hair, face" (the photo portrait face was 5% locked). The Qwen graph returns the INPUT size (a trailing `ImageScale`), not the nearest /32. A3 once ran one bench edit outside the lease (a hand-run runner slice); runners now take a slice argument so slices go through the wrapper.
+- 2026-10-10 (session 08593195, A4): Accessories moved to the FREE edit (the head/hair lock blocks glasses; SAM3 "head, hair" on the photo portrait marks the hair only, so a Clothes lock leaves that face unlocked - A2 to confirm in-graph). The gate has no `source` context, so Phase B's "with source `character-sheet-editor`" is moot: test by model id only. The age ask stays only for younger / older direction (+12 on the fisher; the 70 edits read 80-85).
 - 2026-10-10 (session 16d04a9a): the bench plan was replaced by this Flow plan. Klein rebuild (b18) and Fabio's
   stepwise portrait-then-bodies shape (b19) were benched before it: heavyset + a stylised child pass on Klein, but
   the portrait edit is unstable for muscular / skinny and a photoreal child reads ~13, so Qwen stays for Body shape

@@ -46,6 +46,14 @@ import { MpiDropdown } from '../components/Primitives/MpiDropdown/MpiDropdown.js
 import { renderIcon } from './icons.js';
 import { attachMentionPicker } from './mentionPicker.js';
 import { clientLogger } from '../services/clientLogger.js';
+import { ruleHolds } from '../data/flowsRegistry.js';
+
+// The rule evaluator is defined beside the leg engine in flowsRegistry.js (a server-required
+// module, which must not import this UI file) and re-exported here, where field rules live:
+// `hiddenWhen`, `disabledWhen`, a describe entry's `when` and a leg's `when` all go through it
+// (MPI-1041). `flowControlFieldIds` is the same split: the fields the engine reads, which name
+// no graph node.
+export { ruleHolds, flowControlFieldIds } from '../data/flowsRegistry.js';
 
 /**
  * Types whose control already shows the label on its own face, so the wrapper must
@@ -280,7 +288,8 @@ export function formatDeclaredValue(f, v) {
  *                                             fewer than N members are on.
  *   `{ disabledWhen: { field: 'Input_Instrumental', is: true } }`
  *                                           — MPI-664. Plain field dependency, the same
- *                                             `is` / `isNot` shape `hiddenWhen` takes.
+ *                                             rule `hiddenWhen` takes (`ruleHolds`: `is`, `isNot`,
+ *                                             `in`, `atMost`, `below`, `atLeast`, or a list = all).
  *
  * A disabled field keeps its VALUE — greying a control is not the same as deciding for
  * the user, and the value comes back the moment the constraint clears. Anything acting on
@@ -318,10 +327,7 @@ export function disabledFieldIds(fields = [], values = {}) {
         // keeps the roster on screen so turning Instrumental back off is visibly
         // reversible rather than a control reappearing from nowhere.
         const off = f.disabledWhen;
-        if (off?.field) {
-            if ('isNot' in off) { if (values[off.field] !== off.isNot) out.add(f.id); }
-            else if (values[off.field] === off.is) out.add(f.id);
-        }
+        if ((off?.field || Array.isArray(off)) && ruleHolds(off, values)) out.add(f.id);
     });
     return out;
 }
@@ -344,6 +350,10 @@ export function disabledFieldIds(fields = [], values = {}) {
  *   `{ hiddenWhen: { field: 'Input_Style', isNot: 'Custom' } }`
  *   `{ hiddenWhen: { model: 'minimax-h3-ref2va' } }`
  *   `{ hiddenWhen: { modelNot: 'minimax-h3-ref2va' } }`
+ *
+ * A FIELD clause is whatever `ruleHolds` takes (MPI-1041): `is`, `isNot`, `in` (a list),
+ * the numeric `atMost` / `below` / `atLeast`, several in one object, or a list of clauses
+ * that must all hold. The model clauses stay here: they read the resolved slots, not a value.
  *
  * `isNot` is the field twin of `modelNot`, and it exists for the REVEAL case: a
  * dropdown option that opens a box the other options have no use for. Music Maker's
@@ -387,11 +397,11 @@ export function hiddenFieldIds(fields = [], values = {}, modelIds = []) {
         if (f.hidden) { out.add(f.id); return; }
         const rule = f?.hiddenWhen;
         if (!rule) return;
-        if (rule.field) {
-            // `'isNot' in rule` rather than a truthiness test: `isNot: ''` is a legal
-            // clause (reveal unless the source is blank) and `isNot: 0` more so.
-            if ('isNot' in rule) { if (values[rule.field] !== rule.isNot) out.add(f.id); }
-            else if (values[rule.field] === rule.is) out.add(f.id);
+        // A field rule, or a list of them (all must hold): `ruleHolds` decides. Its `isNot`
+        // is a key test, not a truthiness one, so `isNot: ''` (reveal unless the source is
+        // blank) and `isNot: 0` stay legal clauses.
+        if (rule.field || Array.isArray(rule)) {
+            if (ruleHolds(rule, values)) out.add(f.id);
             return;
         }
         if (rule.model) { if (picked.includes(rule.model)) out.add(f.id); return; }

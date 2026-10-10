@@ -65,3 +65,7 @@ No earlier card covered an editor. Near: **MPI-1042** (sheet from images, the si
   `select` by POSITION among the connected inputs, not by input name: a graph that leaves `any_1`
   unwired makes `select 2` miss -> ExecutionBlocker -> `success` with no output (batch 9c). Shipped
   graphs wire their arms contiguously today; one with a gap would route the wrong arm silently.
+- `MpiClearVram` is `OUTPUT_NODE = True`, so it forces any LAZY branch it sits on to run (A2, 2026-10-10: it ran SAM3 at
+  `Input_Lock` 0 until removed). MPI-1042's `flow_character_sheet_from_images*` graphs carry a `vram` splice after the SAM3
+  body fill, so that "never runs" branch likely runs on a 1x1 blank - wasted time, not breakage; worth a line in
+  `docs/workflow-authoring/`. Also: `layout.py`'s head measure follows the hair outline (a hair edit reads as a shift).

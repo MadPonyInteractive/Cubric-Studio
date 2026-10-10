@@ -30,7 +30,7 @@
  *                                       `video`, this never turns the tile into a video tile: the
  *                                       tile stays the 4/5 still. Omit and the hero shows `preview`.
  * @property {string}   description    - Slide-over copy
- * @property {Array<string|{label: string, models: string[]}>} requiredModels - MODEL ids (NOT dep
+ * @property {Array<string|{label: string, models: string[], optional?: boolean, for?: string[]}>} requiredModels - MODEL ids (NOT dep
  *                                       ids); drives the availability badge. Each entry is a SLOT
  *                                       — one ROLE the graph plays a model in. The object form
  *                                       makes that role choosable: `models` are interchangeable
@@ -45,6 +45,15 @@
  *                                       edit model for its blend phase, independently.
  *                                       Resolve the list through `flowModelIds()` — never read the
  *                                       raw array, or a slot reaches a consumer as an object.
+ *                                       A slot may be `optional: true` (MPI-1041): the Flow is
+ *                                       available without it (`flowAvailability` ignores it) and only
+ *                                       the ops it serves are blocked by its absence
+ *                                       (`flowRunAvailability`). `for: [ops]` names the ops a slot
+ *                                       serves; every other op gets that slot null-filled in
+ *                                       `flowModelIds(flow, { op })`, which is what stops a second
+ *                                       slot's id picking the first model's `byModel` graph for a
+ *                                       leg that model does not run. A slot with no `for` serves every
+ *                                       op that no OTHER slot's `for` claims.
  * @property {Object<string, Object>} [modelParams] - Per-MODEL injection params, merged into the
  *                                       run's `injectionParams` for whichever candidate of each
  *                                       slot is running (MPI-590). This is what makes the picker
@@ -144,12 +153,43 @@
  *                                       first raises a card in the chat showing that field's
  *                                       text, with Review (opens the flow, as `agentOpens`) and
  *                                       Just do it (runs it). The click acts; no agent turn.
- * @property {{operation: string, when?: string, input?: string}} [chain] - A SECOND job run on
- *                                       leg 1's completion (flowService.js § TWO-LEG FLOWS):
- *                                       `operation` picks leg 2's graph. `when` names a declared
- *                                       field; off, the run is leg 1 alone (MPI-997). `input` is
- *                                       the media role leg 2 receives leg 1's picture on, and it
- *                                       makes leg 2 land as the next version of leg 1's card.
+ * @property {FlowLeg|FlowLeg[]} [chain] - The jobs run AFTER leg 1 (the Flow's own op), each on the
+ *                                       previous leg's completion (flowService.js § LEGS). One object
+ *                                       is one extra leg (MPI-623, MPI-997); an ARRAY is several, run in
+ *                                       order (MPI-1041), each fed the picture the leg before it made and
+ *                                       a skipped leg passing that picture straight through. Read the
+ *                                       list through `flowLegs()`, never `flow.chain` directly.
+ * @property {{field: string, map: Object<string, ?string>}} [operationBy] - ROUTES leg 1's op by a
+ *                                       declared field's value (MPI-1041): `map[value]` is the op that
+ *                                       runs, `operation` stays the default for a value the map does not
+ *                                       name, and a `null` entry SKIPS leg 1 (the first wanted leg then
+ *                                       runs on the user's own picture). Read it through
+ *                                       `flowOperation(flow, run)`; `flowOperations(flow)` lists them
+ *                                       all. Every op it names must take the SAME media slots as
+ *                                       `operation`: the frame, the agent and routines read the media
+ *                                       vocabulary off `operation` alone.
+ * @property {string} [promptBuilder] - The prompt is BUILT in code, by this name (flowService.js
+ *                                       `PROMPT_BUILDERS`, MPI-1041): each leg's `positive` and lock come
+ *                                       from it after the describe answers are in, so the user's words
+ *                                       fill one slot of a bench-proven template. Built-in Flows only.
+ *
+ * @typedef {Object} FlowLeg
+ * @property {string}  operation - The leg's op; it picks the graph (universal_workflows.js).
+ * @property {string|Object|Object[]} [when] - Whether the leg runs. A string names a declared TOGGLE
+ *                                       (on = `true`, falling back to its default: MPI-997). A rule
+ *                                       `{ field, is | isNot | in | atMost | below | atLeast }`, or an
+ *                                       array of them (ALL must hold), reads the run's field values
+ *                                       through `ruleHolds()`. Omit and the leg always runs.
+ * @property {string}  [input] - The media role the leg receives the previous picture on. It also makes the
+ *                                       leg land as the next VERSION of that picture's card. Omit and the
+ *                                       leg takes no media (MPI-623: it reads the file by name).
+ * @property {{x: number, y: number, width: number, height: number}} [box] - A region of the picture the leg
+ *                                       is fed, as FRACTIONS (0-1) of that picture's size; it reaches the
+ *                                       graph as the head-swap injector's `box1` in pixels. Omit for the
+ *                                       whole picture: a sent zero box would become 1x1.
+ * @property {Object<string, *>} [params] - Injection params this leg alone sends, over the run's own.
+ * @property {string}  [prompt] - The part of a `promptBuilder` Flow's prompt this leg runs (MPI-1041);
+ *                                       leg 1 is `'change'`.
  *
  * @typedef {Object} FlowStep
  * @property {string}  kind    - STEP_KINDS registry key (MpiBaseFlow/stepKinds.js), e.g. 'box'.
@@ -1589,6 +1629,97 @@ export const FLOWS = [
         ],
     },
 
+    // MPI-1041 — Character Sheet Editor. ONE change to a finished three-panel sheet (front | back |
+    // close-up) by words, every panel kept the same character, landing as a NEW card. Bench record:
+    // tasks/MPI-1041/validation.md batches 1-19 and research/ (one editor per change, by verdict).
+    //
+    // The prompt is BUILT, never typed (`promptBuilder`, flowPrompts/characterSheetEditor.js): each
+    // change has a template that passed on the bench and the user's words fill one slot. The age is
+    // written into the prompt as words, so the child-safety gate reads it.
+    //
+    // LEGS. Leg 1 is the picked change (`operationBy`: Klein, or Qwen-Image 2.1 for Body shape,
+    // skipped for "Nothing else"). Then, when Age is set, a Klein age edit; for 12 and under the
+    // bodies are REDRAWN from the edited close-up by Character Sheet from Images on Qwen (an edit
+    // keeps the adult's size, batch 17); then the head removal Character Sheet has.
+    //
+    // Qwen-Image 2.1 is OPTIONAL (Fabio, 2026-10-10): without it the Klein changes run, and Body
+    // shape or an age of 12 and under asks for it. Its pictures are not for commercial use.
+    {
+        id: 'character-sheet-editor',
+        title: 'Character Sheet Editor',
+        preview: 'flow-character-sheet-editor.webp',
+        description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words; the result is a new card and the sheet you started from stays as it is. Body shape, and ages of 12 and under, run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
+        requiredModels: [
+            'klein-9b',
+            { label: 'Body shape and child ages', models: ['qwen-image-2-1'], optional: true,
+              for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] },
+        ],
+        operation: 'flowCharacterSheetEdit',
+        operationBy: {
+            field: 'change',
+            map: {
+                clothes: 'flowCharacterSheetEdit', accessories: 'flowCharacterSheetEdit',
+                hair: 'flowCharacterSheetEdit', condition: 'flowCharacterSheetEdit',
+                body: 'flowCharacterSheetEditQwen', none: null,
+            },
+        },
+        workflow: 'flow_character_sheet_edit.json',
+        promptBuilder: 'characterSheetEditor',
+        chain: [
+            { operation: 'flowCharacterSheetEdit', prompt: 'age', input: 'image1',
+              when: { field: 'Input_Age', atLeast: 1 } },
+            // The right half of an 8:5 sheet is exactly the 4:5 close-up the from-images graph boxes.
+            { operation: 'flowCharacterSheetImages', prompt: 'rebuild', input: 'image1',
+              when: [{ field: 'Input_Age', atLeast: 1 }, { field: 'Input_Age', atMost: 12 }],
+              box: { x: 0.5, y: 0, width: 0.5, height: 1 }, params: { Input_Face_Pose: 'TURNED' } },
+            { operation: 'flowCharacterSheetHeadless', when: 'Input_Remove_Head', input: 'image1' },
+        ],
+        mediaType: 'image',
+        type: 'edit',
+        inputSchema: {
+            media: [
+                { type: 'image', mode: 'upto', max: 1, roles: ['image1'], labels: ['Character sheet'] },
+            ],
+        },
+        result: { compare: 'image1' },
+        fields: [
+            {
+                id: 'change', type: 'select', label: 'What to change', default: 'clothes',
+                options: [
+                    { v: 'clothes', label: 'Clothes', info: 'New clothes on every panel; the head and hair stay exactly as they are.' },
+                    { v: 'accessories', label: 'Accessories', info: 'Glasses, a scarf, a hat, jewellery - added to every panel.' },
+                    { v: 'hair', label: 'Hairstyle', info: 'A new haircut or colour; the face stays as it is.' },
+                    { v: 'condition', label: 'Condition', info: 'Beaten up, muddy, soaked, sunburnt - the state the character is in.' },
+                    { v: 'body', label: 'Body shape', info: 'Heavier, slimmer or more muscular. Runs on Qwen-Image 2.1: not for commercial use.' },
+                    { v: 'none', label: 'Nothing else', info: 'Only the age below changes.' },
+                ],
+            },
+            {
+                id: 'words', type: 'text', rows: 2, label: 'The change', default: '',
+                placeholder: 'e.g. a red leather jacket, black jeans and boots',
+                hiddenWhen: { field: 'change', is: 'none' },
+            },
+            {
+                // 0 = Off: the age is left alone. 1-100 = the age in years (Fabio, 2026-10-10). Read by
+                // the legs' rules and written into the prompt as words, never sent as a number.
+                id: 'Input_Age', type: 'slider', label: 'Age (0 = keep)', min: 0, max: 100, step: 1, default: 0,
+            },
+            {
+                id: 'Input_Remove_Head', type: 'toggle', label: 'Headless front body',
+                icon: 'eraser', default: true,
+                // As on Character Sheet: read by the last leg's `when`, not by any graph (MPI-997).
+            },
+        ],
+        // Asked only when an age is set (the answers write the age leg's younger / older word and
+        // the rebuild's clothes). Not graph titles: the prompt builder reads them.
+        describe: [
+            { to: 'sheetAge', media: 'image1', when: { field: 'Input_Age', isNot: 0 },
+                ask: 'How old does the person in this picture look? Answer with one whole number of years and nothing else.' },
+            { to: 'sheetClothes', media: 'image1', when: { field: 'Input_Age', isNot: 0 },
+                ask: 'Describe only the clothes the person wears: each garment, pair of shoes and hat that is present, with its color and material. Answer with one sentence that starts with the word Wearing.' },
+        ],
+    },
+
     // MPI-594 — OUTPAINT. One image in, the same picture back inside a bigger frame.
     //
     // The graph is a FLUX.2 Klein 9B EDIT that fills the black, and it never learns a
@@ -2654,8 +2785,31 @@ export function flowModelSlots(flow) {
             // no rack, so filling every slot that HAS the nodes would silently start
             // injecting the user's LTX LoRAs into two shipped flows.
             loras: entry.loras === true,
+            // Present only when declared (MPI-1041), so a slot that says neither stays
+            // exactly the object it was.
+            ...(entry.optional === true ? { optional: true } : {}),
+            ...(Array.isArray(entry.for) ? { for: entry.for } : {}),
         };
     });
+}
+
+/**
+ * Whether a slot serves an op (MPI-1041). A slot naming ops in `for` serves exactly those. A
+ * slot naming none serves every op that no OTHER slot claims, so a Flow with no `for` anywhere
+ * (every shipped Flow) has every slot serving every op, as it always did.
+ *
+ * "Claims" is what fixes the leg-2 wrong-graph trap: with `[klein-9b, qwen-image-2-1 (for
+ * flowCharacterSheetImages)]`, the Qwen slot claims that op, so Klein is null-filled for it and
+ * `getUniversalWorkflow` cannot match Klein's `byModel` arm.
+ *
+ * @param {{for?: string[]}[]} slots - `flowModelSlots(flow)`
+ * @param {{for?: string[]}} slot
+ * @param {string} op
+ * @returns {boolean}
+ */
+function slotServes(slots, slot, op) {
+    if (slot.for) return slot.for.includes(op);
+    return !slots.some(other => other !== slot && other.for?.includes(op));
 }
 
 /**
@@ -2673,23 +2827,33 @@ export function flowModelSlots(flow) {
  * unavailable until it downloads — correct (they asked for it), session-only, and one
  * click back.
  *
+ * `op` (MPI-1041) resolves the ids FOR ONE OP: a slot that does not serve it is `null` (the
+ * array stays indexed by slot, so everything that reads `ids[slotIndex]` keeps working). This
+ * is what a leg's run sends, so the model of a slot the leg does not use can never be the one
+ * `getUniversalWorkflow` matches a `byModel` graph on. Without `op`, every slot resolves.
+ *
  * @param {FlowDef|string} flowOrId
- * @returns {string[]}
+ * @param {{op?: string}} [opts]
+ * @returns {(string|null)[]}
  */
-export function flowModelIds(flowOrId) {
+export function flowModelIds(flowOrId, { op } = {}) {
     const flow = typeof flowOrId === 'string' ? getFlowById(flowOrId) : flowOrId;
     if (!flow) return [];
     const installed = state.s_installedModelIds || [];
     const picks = _modelChoice.get(flow.id) || [];
+    const slots = flowModelSlots(flow);
     // A cloud candidate (MPI-918) bills the user, so an installed LOCAL one always wins, and
     // a cloud one runs unpicked only when nothing local is installed (Fabio, 2026-10-01). The
     // agent's spend card and the slot's price label say so before anything is sent.
-    return flowModelSlots(flow).map(({ models }) =>
-        models.find(id => picks.includes(id))
-        || models.find(id => installed.includes(id) && !isCloudCandidate(id))
-        || models.find(id => installed.includes(id))
-        || models.find(id => !isCloudCandidate(id))
-        || models[0]);
+    return slots.map((slot) => {
+        if (op && !slotServes(slots, slot, op)) return null;
+        const { models } = slot;
+        return models.find(id => picks.includes(id))
+            || models.find(id => installed.includes(id) && !isCloudCandidate(id))
+            || models.find(id => installed.includes(id))
+            || models.find(id => !isCloudCandidate(id))
+            || models[0];
+    });
 }
 
 /**
@@ -2780,18 +2944,21 @@ export function setFlowModel(flowId, modelId) {
 /**
  * The injection params the RESOLVED models contribute — what makes a pick reach the
  * graph instead of only the badge (MPI-590). Empty for every flow that declares no
- * `modelParams`, which is every flow but Character Sheet.
+ * `modelParams`, which is every flow but Character Sheet. `op` limits it to the slots that
+ * serve that op (MPI-1041): a leg never injects the params of a model it does not run.
  * @param {FlowDef|string} flowOrId
+ * @param {{op?: string}} [opts]
  * @returns {Object}
  */
-export function flowModelParams(flowOrId) {
+export function flowModelParams(flowOrId, opts) {
     const flow = typeof flowOrId === 'string' ? getFlowById(flowOrId) : flowOrId;
     if (!flow?.modelParams) return {};
-    return Object.assign({}, ...flowModelIds(flow).map(id => flow.modelParams[id] || {}));
+    return Object.assign({}, ...flowModelIds(flow, opts).map(id => flow.modelParams[id] || {}));
 }
 
 /**
- * Availability = every requiredModel SLOT satisfied AND every requiredDep present.
+ * Availability = every requiredModel SLOT satisfied AND every requiredDep present. An OPTIONAL
+ * slot (MPI-1041) is not required: `flowRunAvailability` asks about it for the ops that use it.
  *
  * requiredModels are MODEL ids; s_installedModelIds is already partial-aware
  * (populated via isModelUsable, modelRegistry.js) so ≥1-op-installed models count.
@@ -2816,8 +2983,208 @@ export function flowAvailability(flowOrId) {
     // MPI-532 — a Flow package that failed validation: nothing to install, only a reason.
     if (flow.disabledReason) return { available: false, missing: [], missingDeps: [], reason: flow.disabledReason };
     const installed = state.s_installedModelIds || [];
-    const missing = flowModelIds(flow).filter(id => !installed.includes(id));
+    // An OPTIONAL slot (MPI-1041) never gates the Flow: it is the Flow's to run without, and
+    // `flowRunAvailability` blocks only the ops that slot serves.
+    const slots = flowModelSlots(flow);
+    const missing = flowModelIds(flow).filter((id, i) => !slots[i].optional && !installed.includes(id));
     const depStatus = _flowDepStatusCache.get(flow.id);
     const missingDeps = flowDepIds(flow).filter(id => depStatus?.get(id) !== true);
     return { available: missing.length === 0 && missingDeps.length === 0, missing, missingDeps };
+}
+
+// ── Legs, routing and rules (MPI-1041) ────────────────────────────────────────────────────
+//
+// A run is LEG 1 (the Flow's own op, routed by `operationBy` when it has one) followed by the
+// wanted legs of `chain`. Everything that has to know which ops a run takes (the run path, the
+// agent and routine gates, the result pane) asks these, so none of them reads `flow.operation`
+// or `flow.chain` raw and disagrees with the others.
+//
+// `ruleHolds` lives HERE and not in utils/declaredFields.js (which re-exports it) because the
+// leg rules are evaluated by `flowRunLegs`, and this module is `require`d by the server
+// (routes/downloadManager.js) and must not import the UI primitives declaredFields.js mounts.
+
+/** The comparisons a rule may carry, each against the field's value. */
+const RULE_TESTS = {
+    is: (v, want) => v === want,
+    isNot: (v, want) => v !== want,
+    in: (v, want) => Array.isArray(want) && want.includes(v),
+    atMost: (v, want) => _num(v) <= want,
+    below: (v, want) => _num(v) < want,
+    atLeast: (v, want) => _num(v) >= want,
+};
+
+/** A value as a number for the numeric tests: null, '' and anything unparseable are NaN, so every test on them fails. */
+function _num(v) {
+    return v === null || v === undefined || v === '' ? NaN : Number(v);
+}
+
+/**
+ * Whether a field rule holds against the run's values. ONE evaluator for `hiddenWhen`,
+ * `disabledWhen`, a describe entry's `when` and a leg's `when`, so a flow author who has met one
+ * has met all four.
+ *
+ * A rule is `{ field, is | isNot | in | atMost | below | atLeast }`:
+ *   `is` / `isNot`  strict equality with a value (`isNot: ''` and `isNot: 0` are legal);
+ *   `in`            the value is one of a list;
+ *   `atMost` (<=), `below` (<), `atLeast` (>=)  numeric. A missing or non-numeric value
+ *                   fails them all, so a rule on a slider never fires on a blank.
+ * Several tests in one rule must ALL hold (`{ field, atLeast: 1, atMost: 12 }`), and an ARRAY of
+ * rules holds when every rule does. A rule with no test at all is `is: undefined`, which is what
+ * `hiddenWhen` has always made of it.
+ *
+ * It evaluates FIELD rules only. `{ model }`, `{ modelNot }` (hiddenWhen) and `{ media }`
+ * (describe) read things this does not have, and stay with their callers.
+ *
+ * @param {Object|Object[]|null|undefined} rule
+ * @param {Object} [values] - the run's values keyed by field id
+ * @returns {boolean}
+ */
+export function ruleHolds(rule, values = {}) {
+    if (Array.isArray(rule)) return rule.every(r => ruleHolds(r, values));
+    if (!rule) return true;
+    const value = values?.[rule.field];
+    const tests = Object.keys(RULE_TESTS).filter(key => key in rule);
+    if (!tests.length) return value === rule.is;
+    return tests.every(key => RULE_TESTS[key](value, rule[key]));
+}
+
+/** The declared fields a FlowDef carries, flow-level and step-level together. */
+function _declaredFields(flow) {
+    return [...(flow?.fields || []), ...(flow?.steps || []).flatMap(s => s?.fields || [])].filter(f => f?.id);
+}
+
+/**
+ * A run's field values, keyed by declared id: each declared default, then what the run carries.
+ * A declared `Input_*` id lives in `run.injectionParams` and anything else at the run's root
+ * (declaredFields.js § isInjectionParam), so both are read; null and undefined are omissions
+ * and leave the default.
+ * @param {FlowDef} flow
+ * @param {Object} [run] - a run's inputs, as `submitFlowGeneration` takes them
+ * @returns {Object}
+ */
+export function flowRunValues(flow, run = {}) {
+    const values = {};
+    for (const f of _declaredFields(flow)) if (f.default !== undefined) values[f.id] = f.default;
+    for (const [key, value] of Object.entries(run || {})) if (key !== 'injectionParams' && value != null) values[key] = value;
+    for (const [key, value] of Object.entries(run?.injectionParams || {})) if (value != null) values[key] = value;
+    return values;
+}
+
+/**
+ * The legs after leg 1, as an array: `chain` as one object (MPI-623, MPI-997) or as a list.
+ * @param {FlowDef} flow
+ * @returns {FlowLeg[]}
+ */
+export function flowLegs(flow) {
+    return [].concat(flow?.chain || []).filter(leg => leg?.operation);
+}
+
+/**
+ * The place in `flowLegs` of the leg the result pane's toggle drives (MPI-997, Character Sheet's
+ * "Headless front body"): the first one that names a declared toggle in `when` and takes the
+ * picture on an `input` role. A rule-form `when` is the run's own business and gets no toggle.
+ * @param {FlowDef} flow
+ * @returns {number} -1 when there is none
+ */
+export function flowToggleLeg(flow) {
+    return flowLegs(flow).findIndex(leg => leg.input && typeof leg.when === 'string');
+}
+
+/**
+ * Whether a leg runs on this run. No `when`: always. A string names a toggle and wants `true`
+ * (its declared default when the run carries none: MPI-997); a rule or a list of rules is
+ * `ruleHolds` against the run's values.
+ * @param {FlowDef} flow
+ * @param {FlowLeg} leg
+ * @param {Object} run
+ * @returns {boolean}
+ */
+function legWanted(flow, leg, run) {
+    if (!leg.when) return true;
+    const values = flowRunValues(flow, run);
+    return typeof leg.when === 'string' ? values[leg.when] === true : ruleHolds(leg.when, values);
+}
+
+/**
+ * The op leg 1 takes on this run: `operationBy.map[value]` for the declared field's value, else
+ * `operation`. `null` means leg 1 is SKIPPED (a map entry of `null`). A Flow with no
+ * `operationBy` is always `operation`.
+ * @param {FlowDef} flow
+ * @param {Object} [run]
+ * @returns {?string}
+ */
+export function flowOperation(flow, run = {}) {
+    const by = flow?.operationBy;
+    if (!by?.field) return flow?.operation;
+    const value = flowRunValues(flow, run)[by.field];
+    return value !== undefined && Object.hasOwn(by.map || {}, value) ? by.map[value] : flow.operation;
+}
+
+/**
+ * Every op the Flow can dispatch: its own, every one `operationBy` routes to, and every leg's.
+ * @param {FlowDef} flow
+ * @returns {string[]}
+ */
+export function flowOperations(flow) {
+    const ops = [flow?.operation, ...Object.values(flow?.operationBy?.map || {}), ...flowLegs(flow).map(leg => leg.operation)];
+    return [...new Set(ops.filter(Boolean))];
+}
+
+/**
+ * The jobs THIS run dispatches, in order: leg 1 (`index` -1, unless `operationBy` skips it) and
+ * each wanted leg of `chain` (`index` = its place in `flowLegs`).
+ * @param {FlowDef} flow
+ * @param {Object} [run]
+ * @returns {{index: number, operation: string, leg: ?FlowLeg}[]}
+ */
+export function flowRunLegs(flow, run = {}) {
+    const first = flowOperation(flow, run);
+    return [
+        ...(first ? [{ index: -1, operation: first, leg: null }] : []),
+        ...flowLegs(flow)
+            .map((leg, index) => ({ index, operation: leg.operation, leg }))
+            .filter(({ leg }) => legWanted(flow, leg, run)),
+    ];
+}
+
+/**
+ * What THIS run needs installed: `flowAvailability` (every required model and dep), plus every
+ * OPTIONAL slot that an op the run takes serves. So a Flow whose Body shape change needs a model
+ * the others do not is "available", and a run that picks Body shape is not until it is installed.
+ * `missing` then names that optional model too, one id per unsatisfied slot as before.
+ * @param {FlowDef|string} flowOrId
+ * @param {Object} [run] - the run's inputs; none runs leg 1 on its default op alone
+ * @returns {{available: boolean, missing: string[], missingDeps: string[], reason?: string}}
+ */
+export function flowRunAvailability(flowOrId, run = {}) {
+    const flow = typeof flowOrId === 'string' ? getFlowById(flowOrId) : flowOrId;
+    const base = flowAvailability(flow);
+    if (!flow || flow.disabledReason) return base;
+    const installed = state.s_installedModelIds || [];
+    const slots = flowModelSlots(flow);
+    const missing = [...base.missing];
+    for (const { operation } of flowRunLegs(flow, run)) {
+        flowModelIds(flow, { op: operation }).forEach((id, i) => {
+            if (id && slots[i].optional && !installed.includes(id) && !missing.includes(id)) missing.push(id);
+        });
+    }
+    return { ...base, available: missing.length === 0 && base.missingDeps.length === 0, missing };
+}
+
+/**
+ * The declared fields the ENGINE reads to decide what runs, which therefore name no node in any
+ * graph: the field `operationBy` routes on and every field a leg's `when` reads. The anchoring
+ * checks (inject-params-titles, the Flow package validator) skip these, where each used to
+ * carry its own `f.id !== flow.chain?.when`.
+ * @param {FlowDef} flow
+ * @returns {Set<string>}
+ */
+export function flowControlFieldIds(flow) {
+    const ids = new Set();
+    if (flow?.operationBy?.field) ids.add(flow.operationBy.field);
+    for (const { when } of flowLegs(flow)) {
+        if (typeof when === 'string') ids.add(when);
+        else for (const rule of [].concat(when || [])) if (rule?.field) ids.add(rule.field);
+    }
+    return ids;
 }

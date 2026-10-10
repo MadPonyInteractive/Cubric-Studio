@@ -7,7 +7,7 @@
  *
  * The one thing the universal path does NOT do on its own is a MODEL guard — universal
  * ops resolve their weights at dispatch and would fail deep in the engine if a required
- * model isn't installed. So submitFlowGeneration pre-flights flowAvailability and aborts
+ * model isn't installed. So submitFlowGeneration pre-flights flowRunAvailability and aborts
  * with a toast BEFORE anything enters the queue.
  */
 
@@ -17,12 +17,36 @@ import { enqueueGeneration } from './generationService.js';
 import { runCommand } from './commandExecutor.js';
 import { cloudRunFields, estimateRunCost, cloudErrorMessage } from './cloudExecutor.js';
 import { CLOUD_TAPS } from '../utils/cloudEditGraph.js';
-import { getFlowById, flowAvailability, flowModelParams, flowLoraPhases, flowModelIds } from '../data/flowsRegistry.js';
+import {
+    getFlowById, flowAvailability, flowRunAvailability, flowModelParams, flowLoraPhases, flowModelIds,
+    flowOperation, flowLegs, flowRunLegs, flowToggleLeg, flowRunValues,
+} from '../data/flowsRegistry.js';
 import { getModelById } from '../data/modelRegistry.js';
 import { state } from '../state.js';
 import { Events } from '../events.js';
 import { clientLogger } from './clientLogger.js';
 import { describeAsks, describeFlowRun } from './flowEnhance.js';
+import { characterSheetEditor, characterSheetEditorRefusal } from '../data/flowPrompts/characterSheetEditor.js';
+
+/**
+ * Flows whose prompt is BUILT in code (FlowDef `promptBuilder`, MPI-1041), by name so the FlowDef
+ * stays data. `build(part, values)` gives one leg's `{ positive, injectionParams }`; `refuse(values)`
+ * says why a run cannot start.
+ */
+const PROMPT_BUILDERS = {
+    characterSheetEditor: { build: characterSheetEditor, refuse: characterSheetEditorRefusal },
+};
+
+/**
+ * Why this run of a built-prompt Flow cannot start, or null. The agent asks it before
+ * dispatching (the submit only toasts and returns null, which an agent cannot read).
+ * @param {import('../data/flowsRegistry.js').FlowDef} flow
+ * @param {Object} run - the run's inputs
+ * @returns {?string}
+ */
+export function flowRunRefusal(flow, run) {
+    return PROMPT_BUILDERS[flow?.promptBuilder]?.refuse(flowRunValues(flow, run)) || null;
+}
 
 /**
  * Queue a generation for a Flow.
@@ -31,8 +55,11 @@ import { describeAsks, describeFlowRun } from './flowEnhance.js';
  * @param {Object} inputs - Collected by MpiBaseFlow from the FlowDef. Media are passed by
  *                          reference (content-addressed store paths), never base64.
  * @param {Object} [callbacks] - onComplete/onError/onCancel, forwarded to enqueueGeneration.
- * @param {{operation?: string, tempId?: string}} [_leg] - INTERNAL, set only by the chain
- *        below when this call IS the second leg. Never passed by a caller.
+ * @param {{index?: number, tempId?: string, item?: Object, described?: Object, alone?: boolean}} [_leg] -
+ *        INTERNAL, set only by the leg driver below when this call IS a later leg: its place in
+ *        `flowLegs`, the run's tempId, the previous leg's result item (a `box` is fractions of
+ *        its size), the describe answers leg 1 got, and `alone` for a single leg run by the
+ *        result pane. Never passed by a caller.
  * @returns {{queueJobId: string}|null} enqueue result, or null if the guard aborted.
  */
 /**
@@ -48,11 +75,17 @@ function _missingLabel({ missing, missingDeps }) {
 }
 
 /**
- * TWO-LEG FLOWS (MPI-623). A flow declaring `chain: { operation }` runs as TWO ordinary
- * jobs: leg 1, then leg 2 dispatched from leg 1's completion. The queue runs jobs in
- * order and each leg is one prompt, so both honour the lane-settle invariants MPI-463/461
- * protect — this is deliberately NOT a two-prompt job inside commandExecutor's lane
- * machinery, which is the expensive version of the same thing.
+ * LEGS (MPI-623, MPI-997, generalised in MPI-1041). A flow declaring `chain: { operation }` runs
+ * as TWO ordinary jobs: leg 1, then leg 2 dispatched from leg 1's completion. The queue runs
+ * jobs in order and each leg is one prompt, so both honour the lane-settle invariants
+ * MPI-463/461 protect — this is deliberately NOT a two-prompt job inside commandExecutor's
+ * lane machinery, which is the expensive version of the same thing.
+ *
+ * `chain` may be a LIST of legs, run in order (`flowRunLegs` decides which a run takes), and
+ * leg 1's op may be routed by a field (`operationBy`, `flowOperation`). Each leg is fed the
+ * picture the leg before it made, on its own `input` role; a leg that does not run passes the
+ * picture straight on. Each leg resolves its model ids for ITS op (`flowModelIds(flow, { op })`),
+ * so a slot the leg does not use cannot pick the graph.
  *
  * WHY two prompts rather than one graph: ComfyUI never evicts what the CURRENT prompt
  * produced (`comfy_execution/caching.py`, and no caller passes `free_active=True`). The
@@ -61,61 +94,78 @@ function _missingLabel({ missing, missingDeps }) {
  * first stage. Nothing flows between the legs at runtime: leg 2 addresses leg 1's output
  * by name, which is known before either starts.
  *
- * The CALLER sees ONE completion, on leg 2 — the flow is not done until the second half
- * is. Leg 1's own card still lands when leg 1 finishes; the run path commits it, not this
- * callback. If leg 2 cannot enqueue (its model guard aborts), leg 1's completion is
- * forwarded instead, so the pane reports done rather than hanging on a job that never ran.
+ * The CALLER sees ONE completion, on the LAST leg — the flow is not done until the final half
+ * is. Each leg's own card still lands when that leg finishes; the run path commits it, not
+ * this callback. If the next leg cannot enqueue (its model guard aborts), the completion of
+ * the leg before it is forwarded instead, so the pane reports done rather than hanging on a
+ * job that never ran.
  *
- * `submitLeg2` is passed in rather than closed over so this branch is reachable from a
+ * `submitLeg` is passed in rather than closed over so this branch is reachable from a
  * test — importing flowService is cheap, but reaching `enqueueGeneration` is not.
  *
- * A chain may be OPTIONAL (MPI-997, Character Sheet's head removal): `when` names a
- * declared field, and with that field off the run is leg 1 alone.
+ * A leg may be OPTIONAL (MPI-997, Character Sheet's head removal; MPI-1041 widened it to a
+ * rule on any field): `when` decides, and a leg that does not run passes the picture on.
  *
  * @param {import('../data/flowsRegistry.js').FlowDef} flow
  * @param {Object} callbacks - the CALLER's callbacks.
- * @param {function(Object):(Object|null)} submitLeg2 - dispatches the second leg, handed leg 1's result.
- * @param {Object} [run] - the inputs this run carries, read for `chain.when`.
- * @returns {Object} callbacks to hand enqueueGeneration for leg 1.
+ * @param {function(Object, {index: number, operation: string, leg: Object}):(Object|null)} submitLeg -
+ *        dispatches the next leg, handed the completion and that leg (`flowRunLegs`' entry).
+ * @param {Object} [run] - the inputs this run carries, read for the legs' `when`.
+ * @param {number} [after] - the place in `flowLegs` of the leg these callbacks are for; -1 is leg 1.
+ * @returns {Object} callbacks to hand enqueueGeneration for that leg.
  */
-export function chainCallbacks(flow, callbacks, submitLeg2, run = {}) {
-    if (!flow.chain?.operation || !chainWanted(flow, run)) return callbacks;
+export function chainCallbacks(flow, callbacks, submitLeg, run = {}, after = -1) {
+    const next = flowRunLegs(flow, run).find(leg => leg.index > after);
+    if (!next) return callbacks;
     return {
         ...callbacks,
         onComplete: (result) => {
-            if (!submitLeg2(result)) callbacks.onComplete?.(result);
+            if (!submitLeg(result, next)) callbacks.onComplete?.(result);
         },
     };
 }
 
 /**
- * Whether this run takes its second leg. No `when`: always. Otherwise the named field's
- * value, read where declared fields file it (an `Input_*` id in `injectionParams`, any
- * other at the root), falling back to the field's own default when the run carries none.
- * @param {import('../data/flowsRegistry.js').FlowDef} flow
- * @param {Object} run
- * @returns {boolean}
+ * A leg's own injection params: its `params` as declared, and its `box` — fractions of the
+ * picture it is fed — as the head-swap injector's integer `box1` (`box2` for an `image2`
+ * input) in that picture's pixels. A leg with no `box` sends none: the whole picture, since a
+ * sent zero box would become 1x1.
+ * @param {import('../data/flowsRegistry.js').FlowLeg} leg
+ * @param {?{w?: number, h?: number}} size - the picture's pixels (`pixelDimensions`)
+ * @returns {?Object} null when the leg wants a box and the picture's size is unknown, because
+ *          running it on the whole picture instead would be a different edit
  */
-function chainWanted(flow, run) {
-    const { when } = flow.chain;
-    if (!when) return true;
-    const value = /^input_/i.test(when) ? run.injectionParams?.[when] : run[when];
-    return (value ?? flow.fields?.find(f => f.id === when)?.default) === true;
+export function legInjection(leg, size) {
+    const { box } = leg;
+    if (!box) return { ...leg.params };
+    if (!(size?.w > 0 && size?.h > 0)) return null;
+    const n = /(\d+)$/.exec(leg.input || '')?.[1] || 1;
+    // Edges are rounded, not sizes, so a box ending at 1 ends on the picture's last pixel.
+    const [x, y] = [Math.round(box.x * size.w), Math.round(box.y * size.h)];
+    return {
+        ...leg.params,
+        [`box${n}`]: {
+            x, y,
+            width: Math.round((box.x + box.width) * size.w) - x,
+            height: Math.round((box.y + box.height) * size.h) - y,
+        },
+    };
 }
 
 /**
- * Leg 2's inputs. MPI-623's shape reads leg 1's output off disk by name, so it gets the
- * inputs unchanged. A chain with an `input` role (MPI-997) instead EDITS leg 1's picture:
- * that picture goes in as the role's media, and leg 2 lands as the NEXT VERSION of leg 1's
- * card, through the same `runLanding` door a routine's later step uses (MPI-970). So the
+ * A leg's inputs. MPI-623's shape reads the previous leg's output off disk by name, so it gets
+ * the inputs unchanged. A leg with an `input` role (MPI-997) instead EDITS the previous
+ * picture: that picture goes in as the role's media, and the leg lands as the NEXT VERSION of
+ * its card, through the same `runLanding` door a routine's later step uses (MPI-970). So the
  * card shows the edit and keeps the original one step back in its history.
  * @param {import('../data/flowsRegistry.js').FlowDef} flow
- * @param {Object} inputs - leg 1's inputs
- * @param {{item?: Object, group?: Object}} result - leg 1's completion
+ * @param {Object} inputs - the run's first inputs
+ * @param {{item?: Object, group?: Object}} result - the previous leg's completion
+ * @param {import('../data/flowsRegistry.js').FlowLeg} [leg] - the leg being fed; the first by default
  * @returns {Object}
  */
-export function chainLegInputs(flow, inputs, result) {
-    if (!flow.chain?.input) return inputs;
+export function chainLegInputs(flow, inputs, result, leg = flowLegs(flow)[0]) {
+    if (!leg?.input) return inputs;
     const item = result?.item;
     const group = result?.group;
     // A project the app does NOT have open is versioned off the frozen copy the run was
@@ -127,7 +177,7 @@ export function chainLegInputs(flow, inputs, result) {
     return {
         ...inputs,
         runMediaItems: item?.filePath
-            ? [{ role: flow.chain.input, mediaType: flow.mediaType || 'image', url: item.filePath, filePath: item.filePath }]
+            ? [{ role: leg.input, mediaType: flow.mediaType || 'image', url: item.filePath, filePath: item.filePath }]
             : [],
         ...(group ? { runLanding: { ...(inputs.runLanding || {}), existingGroup: group } } : {}),
         ...(group && origin ? {
@@ -137,18 +187,20 @@ export function chainLegInputs(flow, inputs, result) {
 }
 
 /**
- * Leg 2 ALONE, on a leg-1 result the user already has (MPI-997: the result pane's chain
- * toggle, "remove the head from this sheet"). The same leg and landing a chained run
- * takes, so it too becomes the card's next version.
+ * One leg ALONE, on a result the user already has (MPI-997: the result pane's chain toggle,
+ * "remove the head from this sheet"). The same leg and landing a chained run takes, so it too
+ * becomes the card's next version.
  * @param {import('../data/flowsRegistry.js').FlowDef} flow
- * @param {Object} inputs - the inputs leg 1 ran with (its item's `flowInputs`)
- * @param {{item: Object, group: Object}} result - the leg-1 card version to edit
+ * @param {Object} inputs - the inputs the card ran with (its item's `flowInputs`)
+ * @param {{item: Object, group: Object}} result - the card version to edit
  * @param {Object} [callbacks]
+ * @param {number} [index] - the leg to run, by its place in `flowLegs`; the toggle leg by default
  * @returns {?{queueJobId: string, tempId: string}}
  */
-export function submitChainLeg(flow, inputs, result, callbacks = {}) {
-    if (!flow?.chain?.input) return null;
-    return submitFlowGeneration(flow, chainLegInputs(flow, inputs, result), callbacks, { operation: flow.chain.operation });
+export function submitChainLeg(flow, inputs, result, callbacks = {}, index = flowToggleLeg(flow)) {
+    const leg = flowLegs(flow)[index];
+    if (!leg?.input) return null;
+    return submitFlowGeneration(flow, chainLegInputs(flow, inputs, result, leg), callbacks, { index, item: result?.item, alone: true });
 }
 
 /**
@@ -190,22 +242,6 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
         return null;
     }
 
-    // Pre-flight MODEL + DEP guard — universal ops have none of their own. MPI-304:
-    // a flow can also require deps no model owns (a baked LoRA, a node pack); those
-    // block exactly like a missing model, so name whichever is actually absent rather
-    // than always saying "models" (with models present and only a dep missing, the old
-    // copy read "needs models installed" while the library showed every model Ready).
-    const availability = flowAvailability(flow);
-    if (!availability.available) {
-        Events.emit('ui:warning', {
-            // A broken Flow package has nothing to install, only a reason (MPI-532).
-            message: availability.reason
-                ? `${flow.title} can't run: ${availability.reason}`
-                : `${flow.title} needs ${_missingLabel(availability)} installed first — open it in Flows to install.`,
-        });
-        return null;
-    }
-
     // Build config from the descriptor + inputs. Positive/negative stay empty unless
     // the flow declares them.
     //
@@ -242,17 +278,76 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // reason. It rides every leg and every pass, so each part is one more History version.
     const { runMediaItems, runInputs, runNextPass, runOriginProject, runLanding, ...snapshot } = inputs;
     const run = runInputs || snapshot;
-    // ponytail: the chained leg takes NO media. Its graph reads what leg 1 wrote to
-    // disk, addressed by name (`Input_Name`), so re-sending the source image would only
-    // stage a file nothing loads. The one exception is a chain with an `input` role
-    // (MPI-997), whose leg 2 is handed leg 1's picture by `chainLegInputs`.
-    const mediaItems = _leg.operation && !flow.chain?.input ? []
+
+    // WHICH LEG THIS CALL DISPATCHES (MPI-1041). `index` is its place in `flowLegs`; -1 is leg 1,
+    // the Flow's own op, which `operationBy` may route by a field and may SKIP (`null`): the first
+    // wanted leg then runs first, on the user's own picture. `later` is a leg the driver below
+    // dispatched on the one before it, which is what decides its media and its describe.
+    const later = _leg.index !== undefined;
+    let index = _leg.index ?? -1;
+    if (!later && flowOperation(flow, run) === null) {
+        const first = flowRunLegs(flow, run)[0];
+        if (!first) {
+            Events.emit('ui:warning', { message: `${flow.title} has nothing to do with those settings.` });
+            return null;
+        }
+        index = first.index;
+    }
+    const leg = index >= 0 ? flowLegs(flow)[index] : null;
+    const operation = leg ? leg.operation : flowOperation(flow, run);
+
+    // A built prompt's own refusal (no words for the change), before anything is checked or queued.
+    const builder = PROMPT_BUILDERS[flow.promptBuilder];
+    const refusal = !later && flowRunRefusal(flow, run);
+    if (refusal) {
+        Events.emit('ui:warning', { message: refusal });
+        return null;
+    }
+
+    // Pre-flight MODEL + DEP guard — universal ops have none of their own. MPI-304:
+    // a flow can also require deps no model owns (a baked LoRA, a node pack); those
+    // block exactly like a missing model, so name whichever is actually absent rather
+    // than always saying "models" (with models present and only a dep missing, the old
+    // copy read "needs models installed" while the library showed every model Ready).
+    // MPI-1041: it asks about THIS run, so an optional model blocks only the ops it serves.
+    const availability = flowRunAvailability(flow, run);
+    if (!availability.available) {
+        Events.emit('ui:warning', {
+            // A broken Flow package has nothing to install, only a reason (MPI-532).
+            message: availability.reason
+                ? `${flow.title} can't run: ${availability.reason}`
+                : `${flow.title} needs ${_missingLabel(availability)} installed first — open it in Flows to install.`,
+        });
+        return null;
+    }
+
+    // ponytail: a later leg takes NO media unless it names an `input` role. Its graph reads
+    // what the leg before wrote to disk, addressed by name (`Input_Name`), so re-sending the
+    // source image would only stage a file nothing loads. The exception is a leg with an
+    // `input` role (MPI-997), which is handed the previous picture by `chainLegInputs`.
+    const mediaItems = later && !leg?.input ? []
         : Array.isArray(runMediaItems) ? runMediaItems
         : Array.isArray(snapshot.mediaItems) ? snapshot.mediaItems : [];
+
+    // A leg's own params, and its `box` resolved against the picture it is fed: the previous
+    // leg's result, or (a leg that starts the run) the user's own picture on its input role.
+    // A box that cannot be sized stops the leg rather than running it on the whole picture.
+    const described = { ..._leg.described };
+    const modelIds = flowModelIds(flow, { op: operation });
+    let legParams = {};
+    if (leg) {
+        const picture = later ? _leg.item : mediaItems.find(m => m?.role === leg.input);
+        legParams = legInjection(leg, picture?.pixelDimensions);
+        if (!legParams) {
+            clientLogger.error('flowService', `${flow.id}: leg ${leg.operation} has a box but its picture's size is unknown`);
+            Events.emit('ui:warning', { message: `${flow.title} could not read the size of its picture for the next step.` });
+            return null;
+        }
+    }
     const config = {
-        // The op picks the GRAPH (universal_workflows.js). A two-leg flow declares one
+        // The op picks the GRAPH (universal_workflows.js). A multi-leg flow declares one
         // op per leg, which is why the chain needs no second `workflow` field on FlowDef.
-        operation: _leg.operation || flow.operation,
+        operation,
         model: { id: null, mediaType: flow.mediaType || 'image' },
         positive: run.positive || '',
         negative: run.negative || '',
@@ -262,7 +357,9 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
         // flow that declares no `modelParams`. This is the hop that makes the picker real
         // — the same hop `loraModelId` was missing in MPI-504, where the panel saved real
         // slots and the image came back identical.
-        injectionParams: { ...flowModelParams(flow), ...(run.injectionParams || {}) },
+        // MPI-1041: the params of the models THIS op runs (`op`), then what leg 1's describe
+        // answered for a later leg, then the leg's own `params` and `box`, which are fixed.
+        injectionParams: { ...flowModelParams(flow, { op: operation }), ...(run.injectionParams || {}), ...described, ...legParams },
         // Which model's LoRA rack fills which PHASE of this flow's graph — one
         // `{ phase, modelId }` per `requiredModels` slot that declared `loras: true`, and
         // `[]` for every flow that declared none. NOT a model selection: it never reaches
@@ -272,7 +369,8 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
         //
         // Was a single `loraModelId` string (MPI-504). One string named one rack, so a flow
         // picking a model PER PHASE could fill neither correctly (MPI-608).
-        loraPhases: flowLoraPhases(flow),
+        // MPI-1041: only the phases whose slot THIS op runs (`modelIds`), as for the params.
+        loraPhases: flowLoraPhases(flow).filter(({ phase }) => modelIds[phase - 1]),
         // Additive, threaded to the sidecar save path (Phase 2 item 4) so Reuse can
         // reopen this Flow with its inputs restored.
         flowId: flow.id,
@@ -285,7 +383,10 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
         // Rides in `generationSettings` (generationService), not as a new item field: that
         // blob is already the sidecar's free-form run snapshot, so this needs no route,
         // projectModel or migration change.
-        flowModelIds: flowModelIds(flow),
+        // Resolved FOR THIS OP (MPI-1041): a slot the leg does not use is `null`. Every slot's
+        // id used to go out, and `getUniversalWorkflow` takes the FIRST id with a `byModel` arm,
+        // so a second slot's leg ran the first slot's graph.
+        flowModelIds: modelIds,
         // Absent, `enqueueGeneration` freezes the project open at enqueue, as it always has.
         ...(runOriginProject ? { _originProject: runOriginProject } : {}),
     };
@@ -346,12 +447,15 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
             ? { ...runLanding, scope: 'groupHistory', groupId: runLanding.existingGroup.id, forceLocal: opts.forceLocal, tempId }
             : { ...opts, ...runLanding };
 
-    // Leg 2 never chains again — one chain, two legs.
-    const legCallbacks = _leg.operation ? callbacks : chainCallbacks(flow, callbacks,
-        (result) => submitFlowGeneration(flow, chainLegInputs(flow, inputs, result), callbacks, { operation: flow.chain.operation, tempId }),
-        run);
+    // Each leg hands the run on to the next wanted one, so the caller hears the LAST. A leg the
+    // result pane runs `alone` ends there. Every leg gets the first call's `inputs` plus the leg
+    // before it, and the describe answers collected so far (run-only: `_leg`, never `inputs`).
+    const legCallbacks = _leg.alone ? callbacks : chainCallbacks(flow, callbacks,
+        (result, next) => submitFlowGeneration(flow, chainLegInputs(flow, inputs, result, next.leg), callbacks,
+            { index: next.index, tempId, item: result?.item, described }),
+        run, index);
     // Every pass but the last carries `runNextPass` on; the last gets none, so it ends
-    // there. Each keeps the tempId for the same reason leg 2 does.
+    // there. Each keeps the tempId for the same reason a later leg does.
     const runCallbacks = runNextPass
         ? nextPassCallbacks(runNextPass, callbacks,
             (media, last) => submitFlowGeneration(flow,
@@ -361,8 +465,15 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // A cloud model in the edit slot (MPI-918): pass 1 and the cloud call run first, and
     // pass 2 enters the queue when the picture is back. So there is no queue id yet.
     // ponytail: an agent's cancel before pass 2 enqueues answers NOT_IN_FLIGHT, like leg 2 of a chain.
-    const cloudModel = _leg.operation ? null : cloudEditModel(flow);
+    const cloudModel = leg ? null : cloudEditModel(flow);
     const start = () => {
+        // The leg's BUILT prompt (MPI-1041), here because the describe answers are in by now and
+        // the child-safety gate reads `positive` when the job is queued.
+        if (builder) {
+            const built = builder.build(leg?.prompt || 'change', { ...flowRunValues(flow, run), ...described });
+            config.positive = built.positive;
+            Object.assign(config.injectionParams, built.injectionParams);
+        }
         if (cloudModel) {
             runCloudEdit(flow, cloudModel, config, runCallbacks, { enqueue: (cfg) => enqueueGeneration(cfg, runCallbacks, landing) });
             return { queueJobId: null, tempId };
@@ -373,8 +484,8 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // The picture put into words first (MPI-1036, flowEnhance.js § describe), on the describer
     // picked in Remote: every caller reaches the graph through here, so hand, agent and routine
     // runs are described alike. Like the cloud edit there is no queue id until it is done.
-    // ponytail: first call only. No describing Flow chains or passes; one that does needs the
-    // text carried into `runInputs` so leg 2 and each pass get it too.
+    // First call only. The answers go on to each later leg through `described` (MPI-1041); a
+    // multi-pass Flow that describes would need them carried into `runInputs` for each pass.
     if (!_leg.tempId && describeAsks(flow, config.injectionParams, mediaItems).length) {
         describeFlowRun(flow, config, runOriginProject || state.currentProject).then((d) => {
             if (!d.ok) {
@@ -383,6 +494,7 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
                 return runCallbacks.onError?.(Object.assign(new Error(d.message), { code: 'DESCRIBE_FAILED', userMessage: d.message }));
             }
             Object.assign(config.injectionParams, d.injectionParams);
+            Object.assign(described, d.injectionParams);
             if (!start()) runCallbacks.onError?.(new Error('The job was rejected before it entered the queue.'));
         });
         return { queueJobId: null, tempId };

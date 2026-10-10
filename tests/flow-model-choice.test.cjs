@@ -630,8 +630,18 @@ test('flowService carries the resolved model into the run', () => {
     const src = read('js/services/flowService.js');
     assert.match(
         src,
-        /injectionParams:\s*\{ \.\.\.flowModelParams\(flow\), \.\.\.\(run\.injectionParams \|\| \{\}\) \}/,
+        /injectionParams:\s*\{ \.\.\.flowModelParams\(flow, \{ op: operation \}\), \.\.\.\(run\.injectionParams \|\| \{\}\)/,
         'without this merge the pick never leaves the registry and the graph keeps its baked loader',
+    );
+    assert.match(
+        src,
+        /flowModelIds: modelIds,/,
+        'the run must carry the ids resolved FOR ITS OP, or a second slot picks the first slot\'s graph (MPI-1041)',
+    );
+    assert.match(
+        src,
+        /const modelIds = flowModelIds\(flow, \{ op: operation \}\);/,
+        'ids are resolved per op: every slot\'s id used to go out with every leg',
     );
     assert.match(
         src,
@@ -650,6 +660,7 @@ test('the Extend Video pick selects the GRAPH, not just params (MPI-591)', async
     const { registry } = await load();
     const { getUniversalWorkflow, getModelDependencies } = await import('../js/data/modelRegistry.js');
     const { UNIVERSAL_WORKFLOWS } = await import('../js/data/modelConstants/universal_workflows.js');
+    const { flowControlFieldIds } = await import('../js/utils/declaredFields.js');
 
     const flow = registry.getFlowById('ltx-extend');
     assert.deepEqual(
@@ -694,8 +705,9 @@ test('the Extend Video pick selects the GRAPH, not just params (MPI-591)', async
             // directly) must exist in EVERY arm, not just the default one.
             for (const f of [...(owner.fields || []),
                              ...(owner.steps || []).flatMap(s => s.fields || [])]) {
-                // A `chain.when` toggle is read by flowService, never by a graph (MPI-997).
-                if (!/^Input_/.test(f.id) || f.id === owner.chain?.when) continue;
+                // A field the engine reads (a leg's `when`, the `operationBy` field) is never a
+                // graph node (MPI-997, MPI-1041).
+                if (!/^Input_/.test(f.id) || flowControlFieldIds(owner).has(f.id)) continue;
                 assert.ok(titles.has(f.id),
                     `${owner.id}: field "${f.id}" names no node in the ${modelId} arm (${file}) — ` +
                     'injection matches titles and skips a miss in SILENCE');

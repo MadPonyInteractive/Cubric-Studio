@@ -30,7 +30,8 @@ import { createItemGroup } from '../data/projectModel.js';
 import { STACK_TYPE, resultStackFields, expandStacks } from '../data/stackModel.js';
 import { formatPrice } from '../data/modelConstants/deepinfraPricing.js';
 import { MODELS, getModelById, isOperationInstalled } from '../data/modelRegistry.js';
-import { FLOWS, getFlowById, flowAvailability } from '../data/flowsRegistry.js';
+import { FLOWS, getFlowById, flowRunAvailability } from '../data/flowsRegistry.js';
+import { resolveFlowFieldValues } from '../utils/declaredFields.js';
 import { getCommandMediaInputs, filterMediaInputsForModel } from '../data/commandRegistry.js';
 import { resolveNamedParams, resolveAgentMedia } from '../data/generationControls.js';
 import { truncateCardName } from '../utils/displayHelpers.js';
@@ -58,6 +59,16 @@ function _landingOpts(landing, type, width, height) {
     return { ...landing, scope: 'gallery', tempId: placeholderGroup.id, placeholderGroup };
 }
 
+/**
+ * A Flow step's fields as the run they make: the values that decide which ops it takes (a
+ * routed leg 1, the legs its rules want), so an optional model blocks only the steps that
+ * need it (MPI-1041).
+ */
+function _flowStepRun(flow, step) {
+    const { inputs, injectionParams } = resolveFlowFieldValues(flow, step.fields ?? {});
+    return { ...inputs, injectionParams };
+}
+
 /** @type {import('../services/routineRunner.js').RoutineDeps} */
 export const routineDeps = {
     lookups: { models: MODELS, flows: FLOWS },
@@ -65,7 +76,7 @@ export const routineDeps = {
     check(step) {
         if (step.flowId) {
             const flow = getFlowById(step.flowId);
-            return flow && flowAvailability(flow).available ? null : (flow?.title || step.flowId);
+            return flow && flowRunAvailability(flow, _flowStepRun(flow, step)).available ? null : (flow?.title || step.flowId);
         }
         if (step.modelId) {
             const model = getModelById(step.modelId);

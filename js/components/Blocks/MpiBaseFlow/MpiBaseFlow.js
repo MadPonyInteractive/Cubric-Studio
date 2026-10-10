@@ -34,7 +34,7 @@ import {
     flowEnhanceDecls, enhanceTargets, enhanceSources, enhanceSourceText, enhancedWrites,
     runEnhanceDecl, adoptHiddenTargets,
 } from '../../../services/flowEnhance.js';
-import { flowModelSlots, flowModelIds, setFlowModel, isCloudCandidate } from '../../../data/flowsRegistry.js';
+import { flowModelSlots, flowModelIds, setFlowModel, isCloudCandidate, flowOperation, flowOperations, flowLegs, flowToggleLeg } from '../../../data/flowsRegistry.js';
 import { disambiguatedName } from '../../../data/modelRegistry.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { buildField, mapDeclaredValue, isInjectionParam, disabledFieldIds, hiddenFieldIds, withEnhanceFallback, enhanceEchoTargets } from '../../../utils/declaredFields.js';
@@ -3074,19 +3074,23 @@ export const MpiBaseFlow = ComponentFactory.create({
         }
 
         /**
-         * The chain toggle (MPI-997, Character Sheet's Headless front body): on a flow whose
-         * `chain` edits leg 1's picture behind a `when` toggle, the result carries that
-         * toggle. Pressed = the leg-2 version is showing. Pressing it on a leg-1 result with
-         * no leg-2 version runs leg 2 alone on it (the card's next version); otherwise it
-         * swaps to the partner version, and the CARD swaps with it (`selectedIndex`), so what
-         * the pane shows is what the gallery, a video model and the agent get from the card.
-         * The partner is the NEIGHBOURING version: leg 2 always lands right after leg 1.
+         * The chain toggle (MPI-997, Character Sheet's Headless front body): on a flow with a
+         * leg that edits the previous picture behind a `when` TOGGLE (a string naming a
+         * declared field; a rule-form `when` is the run's own business and gets none), the
+         * result carries that toggle. Pressed = the toggle leg's version is showing. Pressing
+         * it on a result without that version runs the leg alone on it (the card's next
+         * version); otherwise it swaps to the partner version, and the CARD swaps with it
+         * (`selectedIndex`), so what the pane shows is what the gallery, a video model and the
+         * agent get from the card. The partner is the NEIGHBOURING version: the leg always
+         * lands right after the picture it edited.
          * @param {Object} it the result item
          */
         function _mountChainToggle(it) {
-            const chain = flow.chain;
-            if (!_resultFrameEl || !chain?.input || !chain.when || !it?.id) return;
-            if (it.operation !== flow.operation && it.operation !== chain.operation) return;
+            const legIndex = flowToggleLeg(flow);
+            const chain = flowLegs(flow)[legIndex];
+            if (!_resultFrameEl || !chain || !it?.id) return;
+            const ops = flowOperations(flow);
+            if (!ops.includes(it.operation)) return;
             const isLeg2 = it.operation === chain.operation;
             // Resolved on mount AND on click: the project's mutation queue can replace the
             // group object between the two (projectService § updateGroup).
@@ -3094,7 +3098,9 @@ export const MpiBaseFlow = ComponentFactory.create({
                 const group = (state.currentProject?.itemGroups || []).find(g => g.history?.some(h => h.id === it.id));
                 if (!group) return null;
                 const at = group.history.findIndex(h => h.id === it.id) + (isLeg2 ? -1 : 1);
-                const partner = group.history[at]?.operation === (isLeg2 ? flow.operation : chain.operation) ? at : -1;
+                // The version before the leg's is whatever it edited: any op of the flow but its own.
+                const op = group.history[at]?.operation;
+                const partner = (isLeg2 ? op !== chain.operation && ops.includes(op) : op === chain.operation) ? at : -1;
                 return { group, partner };
             };
             if (!locate()) return;
@@ -3124,7 +3130,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 const done = (fn) => (...args) => { _chainBusy = false; fn?.(...args); };
                 _track(run, submitChainLeg(flow, it.flowInputs || _collectInputs(), { item: it, group }, {
                     onComplete: done(callbacks.onComplete), onError: done(callbacks.onError), onCancel: done(callbacks.onCancel),
-                }));
+                }, legIndex));
                 if (!run.tempId) _chainBusy = false;
             });
         }
@@ -3543,7 +3549,11 @@ export const MpiBaseFlow = ComponentFactory.create({
             // that ship today, which is a behaviour change on surfaces nobody
             // reported and no test covers. The flag therefore stays inert on the
             // eleven non-flow ops that declare it; that residual is on the card.
-            if (getCommand(flow.operation)?.promptRequired && !hasPrompt) {
+            //
+            // The op THIS run takes (MPI-1041): a Flow that routes leg 1 by a field asks the
+            // routed op, and a run that skips leg 1 asks none.
+            const runOperation = flowOperation(flow, inputs);
+            if (runOperation && getCommand(runOperation)?.promptRequired && !hasPrompt) {
                 Events.emit('ui:warning', {
                     message: `${flow.title} needs a prompt before it can run.`,
                 });

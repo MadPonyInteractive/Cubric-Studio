@@ -72,20 +72,20 @@ test('the non-onComplete callbacks pass straight through', async () => {
     assert.doesNotThrow(() => wrapped.onComplete({}));
 });
 
-test('leg 2 runs the CHAINED op, and no second `workflow` field was invented', () => {
+test('a leg runs ITS op, and no second `workflow` field was invented', () => {
     const src = read();
-    assert.match(src, /operation: _leg\.operation \|\| flow\.operation/,
+    assert.match(src, /const operation = leg \? leg\.operation : flowOperation\(flow, run\);/,
         'the op is what picks the graph — one op per leg is how the second workflow is named');
     assert.ok(!/chain\.workflow/.test(src),
         'a second workflow name on FlowDef would bypass universal_workflows.js');
 });
 
-test('leg 2 carries no media unless the chain names an input role, and never chains a third leg', () => {
+test('a later leg carries no media unless it names an input role, and a leg run alone ends there', () => {
     const src = read();
-    assert.match(src, /const mediaItems = _leg\.operation && !flow\.chain\?\.input \? \[\]/,
-        'the chained leg reads leg 1 output off disk by name; re-sending media stages a dead file');
-    assert.match(src, /_leg\.operation \? callbacks : chainCallbacks\(/,
-        'leg 2 must not wrap its own callbacks — one chain, two legs');
+    assert.match(src, /const mediaItems = later && !leg\?\.input \? \[\]/,
+        'the chained leg reads the previous output off disk by name; re-sending media stages a dead file');
+    assert.match(src, /_leg\.alone \? callbacks : chainCallbacks\(/,
+        'the result pane\'s single-leg run must not carry on into the legs after it');
 });
 
 // MPI-997 — Character Sheet's head removal: an OPTIONAL leg that EDITS leg 1's picture.
@@ -152,6 +152,6 @@ test('into a CLOSED project, leg 2 versions the card leg 1 just registered', asy
 test('leg 2 reuses leg 1 tempId so Cancel and live previews keep working', () => {
     const src = read();
     assert.match(src, /const tempId = _leg\.tempId \|\| crypto\.randomUUID\(\)/);
-    assert.match(src, /\{ operation: flow\.chain\.operation, tempId \}/,
-        'MpiBaseFlow holds ONE _myTempId per run — a fresh id on leg 2 orphans the pane');
+    assert.match(src, /\{ index: next\.index, tempId, item: result\?\.item, described \}/,
+        'MpiBaseFlow holds ONE _myTempId per run — a fresh id on a later leg orphans the pane');
 });

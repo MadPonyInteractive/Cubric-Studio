@@ -258,6 +258,22 @@ test('Character Sheet from Images carries every title its op, box and describer 
     }
 });
 
+test('Character Sheet Editor: both edit graphs carry what the prompt builder writes (MPI-1041)', () => {
+    // The builder writes the WHOLE prompt into Input_Positive and the Klein lock into Input_Lock;
+    // the age and the change are the legs' business, so no graph may carry Input_Age. Neither has a
+    // negative: _buildParams would wipe a baked one.
+    for (const [file, extra] of [['flow_character_sheet_edit.json', ['input_lock']], ['flow_character_sheet_edit_qwen.json', []]]) {
+        const have = titlesOf(file);
+        for (const title of ['input_image', 'input_positive', 'input_seed', ...extra]) {
+            assert.ok(have.has(title), `${file} must carry a node titled "${title}"`);
+        }
+        assert.ok(have.has('output_image'), `${file} must carry a capture node titled "output_image"`);
+        for (const absent of ['input_negative', 'input_age', 'input_remove_head']) {
+            assert.ok(!have.has(absent), `${file} must NOT carry "${absent}"`);
+        }
+    }
+});
+
 test('the LTX foley Flow carries its I/O titles (MPI-536)', () => {
     // flowLtxFoley declares NO injection-param field — its two prompt fields are the
     // top-level positive/negative that submitFlowGeneration writes — so the pinned set
@@ -1020,6 +1036,7 @@ test('every FlowDef field and enhance recipe addresses a real node (MPI-664)', a
     // existing here rather than by remembering to add a case.
     const esmImport = p => import('file://' + path.join(ROOT, p).replace(/\\/g, '/'));
     const { FLOWS } = await esmImport('js/data/flowsRegistry.js');
+    const { flowControlFieldIds } = await esmImport('js/utils/declaredFields.js');
     const { UNIVERSAL_WORKFLOWS } = await esmImport('js/data/modelConstants/universal_workflows.js');
     assert.ok(FLOWS.length >= 10, 'the flow registry came back nearly empty — the import has drifted');
 
@@ -1075,10 +1092,10 @@ test('every FlowDef field and enhance recipe addresses a real node (MPI-664)', a
             // be DOTTED itself (`Input_Language.language`), addressing one widget on a
             // node that carries several, exactly like an injectionParams key.
             const [fieldTitle, fieldWidget] = String(d.id).split('.');
-            // A chain's `when` field is read by flowService to decide whether leg 2 runs
-            // (MPI-997), never by a graph — so no node carries it.
+            // A field the ENGINE reads — the one `operationBy` routes on, a leg's `when` — decides
+            // which ops run (flowService, MPI-997, MPI-1041), never a graph: no node carries it.
             if (/^input_/i.test(fieldTitle) && !INJECTOR_DERIVED.has(`${flow.id}:${d.id}`)
-                && d.id !== flow.chain?.when) {
+                && !flowControlFieldIds(flow).has(d.id)) {
                 const node = findNode(fieldTitle);
                 if (!node) {
                     problems.push(`${flow.id}: field "${d.id}" names no node in `

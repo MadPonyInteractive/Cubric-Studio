@@ -95,6 +95,9 @@ export const OPERATION_REGISTRY = {
     flowVideoEdit: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
     // MPI-1042 — Character Sheet from Images.
     flowCharacterSheetImages: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
+    // MPI-1041 — the Character Sheet Editor flow, Klein and its Qwen-Image 2.1 twin.
+    flowCharacterSheetEdit: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
+    flowCharacterSheetEditQwen: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
     // MPI-607 — the Voice Changer flow, the first op that OUTPUTS audio.
     flowVoiceChanger: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
     // MPI-607 — the two TTS flows that join Voice Changer.

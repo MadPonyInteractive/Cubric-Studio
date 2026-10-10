@@ -14,4 +14,10 @@
 - [x] Child-sized body (batches 16-17): edit wording fails; edit + from-images REBUILD passes on both sheets
 - [x] Bench the rebuild on the Klein arm (batch 18): FAIL 3 wordings - Klein's portrait pass draws a full figure; rebuild stays Qwen
 - [x] Bench Fabio's stepwise shape, portrait first then bodies by reference (batch 19): heavyset + stylised child PASS on Klein; muscular / skinny portrait edits unstable; photoreal child reads teen
-- [ ] Flow plan from the verdicts (/mpi-create-large-plan)
+- [x] Flow plan from the verdicts (/mpi-create-large-plan), Fabio's go 2026-10-10
+- [x] A1 engine: multi-leg chains, operationBy, ruleHolds, optional slots, per-op model ids - npm test 2938/2940 pass, 0 fail (2 skipped); flow-legs 16/16
+- [x] A2 Klein edit graph flow_character_sheet_edit with in-graph SAM3 locks - 16 cases PASS, lazy lock proven, lock 1 = "head, hair, face" (research/graph-klein.md)
+- [x] A3 Qwen-Image 2.1 edit graph flow_character_sheet_edit_qwen - b9 body cases 3 of 3, exact size (research/graph-qwen.md)
+- [x] A4 template + describer pins - teen15b, older70, Accessories (free edit) pinned 2 of 2; dressed ask 24/24; clothes caption clean; age ask direction-only (research/templates.md)
+- [x] Phase B: the Flow (ops in 4 registries, prompt builder, FlowDef, safety test) - npm test 2961/2963, character-sheet-editor.test.cjs 12/12
+- [ ] Phase C: describe refusals (dressed / swimwear on a minor-looking sheet) + card name
