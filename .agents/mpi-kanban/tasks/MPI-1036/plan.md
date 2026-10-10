@@ -629,6 +629,13 @@ Fabio: MPI-549 predates the H3 MODEL graphs' tiled stage 2 (MpiWindowedSampler i
 is SINGLE pass (SamplerCustomAdvanced only), so its 2K/4K still sample the whole canvas + the reference clip at once:
 the warning stays. Candidate (pending Fabio's yes): a Video Edit stage 2 - edit at 768p/1080p, then the H3 latent
 upscaler + MpiWindowedSampler to 2K/4K, as the model graphs do. Bench after the room fix.
+Fabio's LAST report (Change the outfit, 768p, input flowVideoEdit_010 576x1024 -> output _015 768x1344, his Project
+'MPI-1036 Video Edit in-app'): "I don't think the stretch problem has been fixed yet" - in the COMPARE VIEW the right
+side reads bigger (face, arms). FIRST THING next session, before touching the graph: (a) is it the compare view?
+_015 is 768x1344 and _010 576x1024 - check how MpiCompareView scales a pair of DIFFERENT sizes (natural px vs fit);
+(b) measure real proportions on extracted frames (same frame index, body height / shoulder width, both scaled to one
+height) - the render shape 768x1344 is 1.6% wider than 9:16, so a cover crop alone zooms ~1.6% but cannot stretch;
+(c) only if the frames themselves stretch, re-check nodes 40-44 on the Pod's actual prompt (/queue or /history).
 
 **NEXT (after Video edit 14), in order:**
 1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.
