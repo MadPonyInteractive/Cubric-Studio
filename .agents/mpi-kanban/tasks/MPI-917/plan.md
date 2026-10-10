@@ -46,7 +46,10 @@
 
 ## Completed
 
-- [ ] Nothing yet.
+- [x] **Phase 1 (2026-10-10, board batch):** `mixRecipe.js` + `mixMath.js` + their tests, 58/58
+      (validation.md § Phase 1). `panGains` returns a 2x2 matrix `{ ll, lr, rl, rr }` (the W3C
+      stereo law cross-feeds); a silent pan row is `0*c0` (ffmpeg refuses `c1=0`); mute wins over
+      solo. **Next:** the Parallel Batch "Render, primitives, preview engine" (uncommitted so far).
 
 ## Remaining Work
 
@@ -54,7 +57,7 @@
 
 Everything else reads these two modules, so they land first and alone.
 
-- [ ] **`js/data/mixRecipe.js`**: a DOM-free ES module.
+- [x] **`js/data/mixRecipe.js`**: a DOM-free ES module.
   - **Recipe schema `mix.v = 1`:**
     - `videoLane: [{ itemId, in, out, join: 'cut' | {crossfade: sec}, linkedAudioClipId }]`
     - `tracks: [{ id, name, kind: 'audio' | 'videoAudio', volumeDb, pan, mute, solo, clips: [...] }]`
@@ -68,7 +71,7 @@ Everything else reads these two modules, so they land first and alone.
   - **Verify:** `node --test "tests/mix-recipe.test.cjs"` passes. It checks a valid
     recipe, each invalid shape rejected with a named error, duration with crossfades, and
     solo resolution.
-- [ ] **`js/data/mixMath.js`**: the ONE definition shared by preview and render.
+- [x] **`js/data/mixMath.js`**: the ONE definition shared by preview and render.
   - `dbToGain`
   - `panGains(p, channels)`: the W3C `StereoPannerNode` law, mono and stereo
   - `fadeGainAt(t, clip)`: linear, the same as ffmpeg `afade curve=tri`
