@@ -561,3 +561,44 @@ export function resolve(model, selectedOps = null, engine = null, opts = {}) {
     const nodeIds = isNode ? depIds.filter(isNode) : null;
     return { depIds, workflowFile, nodeIds };
 }
+
+/** A dep `size` string ("1.22GB", "512MB") in bytes, binary units as the dep files write them. */
+export function depSizeBytes(sizeStr) {
+    const match = (sizeStr || '').match(/^([\d.]+)\s*(GB|MB|KB|B)$/i);
+    if (!match) return 0;
+    return parseFloat(match[1]) * { GB: 1024 ** 3, MB: 1024 ** 2, KB: 1024, B: 1 }[match[2].toUpperCase()] || 0;
+}
+
+/**
+ * How much of a model's OWN weights are on disk when not all of them are: the Models
+ * library's partial bar (MPI-122, MPI-258) and the missing-files toast (MPI-1065) read
+ * this one answer. `deps` = DEPS entries of the model's universe, minus any dep another
+ * installed model owns (that file is on disk regardless of this model). Custom nodes are
+ * work, not bytes, so they never count (MPI-231). Nothing reads partial below 1 GB of the
+ * model's own deps on disk: a few shared support files must not draw a phantom 1-3% bar on
+ * a pack the user never touched (MPI-258 Bug C).
+ * @param {object[]} deps
+ * @param {Map<string, boolean|{installed?: boolean, partialBytes?: number}>} depStatus
+ * @returns {{hasPartialProgress: boolean, progress?: number, downloadedBytes?: number, totalBytes?: number}}
+ */
+export function partialInstall(deps, depStatus) {
+    const own = deps.filter(dep => dep && dep.type !== 'custom_nodes');
+    if (!depStatus || own.length === 0) return { hasPartialProgress: false };
+    let installedDeps = 0, downloaded = 0, total = 0;
+    for (const dep of own) {
+        const st = depStatus.get(dep.id);
+        if (st === true || st?.installed === true) { downloaded += depSizeBytes(dep.size); installedDeps += 1; }
+        else if (st?.partialBytes) downloaded += st.partialBytes;
+        total += depSizeBytes(dep.size);
+    }
+    const PARTIAL_FLOOR_BYTES = 1024 ** 3;
+    if (total > 0 && downloaded >= PARTIAL_FLOOR_BYTES && installedDeps < own.length) {
+        return {
+            hasPartialProgress: true,
+            progress: Math.min(downloaded / total, 0.99),
+            downloadedBytes: downloaded,
+            totalBytes: total,
+        };
+    }
+    return { hasPartialProgress: false };
+}

@@ -15,6 +15,7 @@ import { FLOWS, flowDepKey } from '../../../data/flowsRegistry.js';
 import {
     resolveFullUniverse, deriveInstalledOps,
     archVariantOptions, variantDepsOf, dedupeStable,
+    depSizeBytes, partialInstall,
 } from '../../../data/modelConstants/resolveModelDeps.js';
 import { downloadService } from '../../../services/downloadService.js';
 import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
@@ -272,12 +273,7 @@ export const MpiModelManager = ComponentFactory.create({
         const _depIsInstalled = depState =>
             depState === true || depState?.installed === true;
 
-        function _parseSizeToBytes(sizeStr) {
-            if (!sizeStr) return 0;
-            const match = sizeStr.match(/^([\d\.]+)\s*(GB|MB|KB|B)$/i);
-            if (!match) return 0;
-            return parseFloat(match[1]) * { GB: 1024 ** 3, MB: 1024 ** 2, KB: 1024, B: 1 }[match[2].toUpperCase()] || 0;
-        }
+        const _parseSizeToBytes = depSizeBytes;
 
         function _sizeOf(depIds) {
             let total = 0;
@@ -567,35 +563,10 @@ export const MpiModelManager = ComponentFactory.create({
             // they are work-not-bytes (a 70MB shared node like ComfyUI-LTXVideo stays
             // on disk after uninstall and would otherwise read as a phantom partial),
             // the same rule the active-download bar already applies (_byteRatioExcludingNodes, MPI-231).
-            const deps = _draftDepIds(model)
-                .filter(id => !owned.has(id))
-                .map(id => DEPS[id]).filter(Boolean)
-                .filter(dep => dep.type !== 'custom_nodes');
-            if (deps.length === 0) return { hasPartialProgress: false };
-            let installedDeps = 0, downloaded = 0, total = 0;
-            for (const dep of deps) {
-                const st = depStatus.get(dep.id);
-                if (_depIsInstalled(st)) { downloaded += _parseSizeToBytes(dep.size); installedDeps += 1; }
-                else if (st?.partialBytes) { downloaded += st.partialBytes; }
-                total += _parseSizeToBytes(dep.size);
-            }
-            const allInstalled = installedDeps === deps.length;
-            // MPI-258 Bug C — a byte FLOOR before a bar draws. A model that only has a
-            // shared library asset on disk (Wan 5B borrows Wan 2.2's ~500MB CLIP/VAE;
-            // the anime packs share a 65MB upscaler owned by no installed model) read a
-            // phantom 1-3% partial on a pack the user never touched. Requiring ≥1GB of
-            // this model's OWN deps on disk means only a real, started download of its
-            // unique weight shows a bar — a handful of shared support files never does.
-            const PARTIAL_FLOOR_BYTES = 1024 ** 3; // 1 GB
-            if (total > 0 && downloaded >= PARTIAL_FLOOR_BYTES && !allInstalled) {
-                return {
-                    hasPartialProgress: true,
-                    progress: Math.min(downloaded / total, 0.99),
-                    downloadedBytes: downloaded,
-                    totalBytes: total,
-                };
-            }
-            return { hasPartialProgress: false };
+            // partialInstall drops the nodes and applies the 1 GB floor (MPI-258 Bug C); the
+            // missing-files toast reads the same answer (MPI-1065).
+            const deps = _draftDepIds(model).filter(id => !owned.has(id)).map(id => DEPS[id]);
+            return partialInstall(deps, depStatus);
         }
 
         // ── Derived install/download state for a model (tile + detail share it) ──

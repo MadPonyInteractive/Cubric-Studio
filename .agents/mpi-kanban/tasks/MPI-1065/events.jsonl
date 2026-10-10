@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1065", "at": "2026-10-10T15:55:40+01:00", "actor": "38894ae1-3f99-45bf-b3f0-7a32f6383027", "column": "todo", "title": "Adding a dep to an installed model silently un-installs it (no message, gone from every picker)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1065", "at": "2026-10-10T23:52:08+01:00", "actor": "9bbf1e2f-623c-4515-aa74-10bde72ead2f", "from": "todo", "to": "doing", "reason": "Fabio: address it in the umbrella; option A (tell, never auto-download)"}

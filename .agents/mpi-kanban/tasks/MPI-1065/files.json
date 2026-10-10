@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1065/",
+    "js/data/modelRegistry.js",
+    "js/components/Organisms/MpiModelManager/MpiModelManager.js",
+    "js/shell/modelUpdateCheck.js",
+    "js/shell.js",
+    "tests/model-update-check.test.cjs",
+    "js/data/modelConstants/resolveModelDeps.js"
+  ]
+}

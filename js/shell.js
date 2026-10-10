@@ -49,6 +49,7 @@ import { initScreenClearService } from './shell/screenClearService.js';
 import { start as startProjectStats } from './services/projectStatsService.js';
 import { start as startMediaImport } from './services/mediaImportService.js';
 import { start as startLlmPickCheck } from './shell/llmPickCheck.js';
+import { start as startModelUpdateCheck } from './shell/modelUpdateCheck.js';
 import { triggerMemoryRelease, bindMemoryHotkeys } from './shell/memoryOps.js';
 import { StatusBar } from './shell/statusBar.js';
 import { initNavigation, handleNavigation, updateTitlebarProject } from './shell/navigation.js';
@@ -209,6 +210,7 @@ export async function initShell() {
   startProjectStats();
   startMediaImport();  // MPI-723 - the media:imported -> ItemGroup build, app-lifetime
   startLlmPickCheck();  // MPI-993 - project open: warn once about an Ollama pick not downloaded
+  startModelUpdateCheck();  // MPI-1065 - an installed model an update left missing files: say so once
   StatusBar.init();
   StatusBar.listen();
   bindWindowControls();
