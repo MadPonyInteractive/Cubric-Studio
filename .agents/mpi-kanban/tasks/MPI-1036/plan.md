@@ -590,8 +590,8 @@ own wording, e.g. a supplied torso image).
 services/agentBench.mjs uncommitted). In-app run #1 died on APP_UNAVAILABLE (submitted before the window subscribed);
 overnight_inapp.py now waits on /connector/capabilities, re-queued 00:52; ran 01:26-01:40: E1/E2 ok, no Faceswap
 download, E2 in sync (lag 0.12 = D4), side-by-side sent (logs/mpi1036/VE15_inapp_head_swap_sbs.webm). E1 whole carries
-the picture's halter neckline onto the dress; E2 masked does not. NEXT: Fabio's verdict on the side-by-side, then the
-MpiNodes pin via MPI-623, UNRELEASED.md roster + entry, Phase 4 graphics.
+the picture's halter neckline onto the dress; E2 masked does not. Fabio: "Looks good"; 4 Cosmo routing cases 12/12 (c2b58901e); UNRELEASED.md entry done. NEXT: Fabio's own UX try (he
+reports back), MpiNodes pin via MPI-623, Phase 4 graphics.
 
 **NEXT (after Video edit 14), in order:**
 1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.
