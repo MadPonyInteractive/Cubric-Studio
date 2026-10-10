@@ -120,8 +120,11 @@ Build "Upload models" (phases U1-U4 below). Big uploads happen on the CPU Pod; t
 generate-time auto-upload refuses > 1 GB with a toast that opens the uploader.
 
 Handoff (session 01fc9cdf): the sliced-upload fix is COMMITTED (Vision + mpi-ci). Fabio wants
-the next session named for the uploader. Connect-feedback loose ends still open: his Cancel look
-(+ the wrong `connect ended` label), the 13 GB volume diff, the release note. A RELEASE before
+the next session named for the uploader. Fabio's Cancel look is DONE (RunPod deleted in <1 s,
+so "cancelling…" never showed: the expected fast path). Still open: the wrong phase-log label
+(`connect ended without a connection` instead of `Cancel`, from `_connectEngine`'s finally),
+the 13 GB volume diff (OFFLINE against the saved research/pod-ls-2026-10-10-5090.json, no Pod;
+strays get deleted later with the uploader's Delete), the release note. A RELEASE before
 `promote` would break uploads for released users (stable runtime 0.2.45 has no
 /wrapper/upload/chunk); `mpi-release` flags the dev/stable drift.
 
