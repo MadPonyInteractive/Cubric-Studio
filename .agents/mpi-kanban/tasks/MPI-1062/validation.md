@@ -38,3 +38,18 @@ clip of a clothed child (`imported_002.mp4`, 2160x3840, 59.9 fps):
 - Found by the test (Fabio): a non-Latin prompt with innocent words on a picture or clip of a
   CHILD is refused, because the look asks only "could anyone be under 18", not what the words ask.
   An English speaker's same edit is never looked at. Pre-existing since MPI-1056, images too.
+
+## Phase 2 (session 78b8d248, 2026-10-10)
+
+- Code `ac6433522` (childSafety lists + `lookWanted` + `NUDITY_SYSTEM`, `judgeChildSafety` system param,
+  `_judgeThenQueue` asks before the look). Committed through a private index; generationService.js
+  carries ONLY this hunk (MPI-1069's uncommitted lane edits stay in the working tree, Fabio approved).
+- `tests/child-safety.test.cjs` + `tests/child-safety-gate.test.cjs`: 38/38. The reproducing test
+  (innocent Japanese edit on a CHILD picture and clip queued, one nudity question, no look, minors
+  judge still asked) FAILED before the generationService hunk and passes after (HEAD+patch scratch copy).
+- Full `node --test "tests/**/*.test.cjs"`: 3049 tests, 3047 pass, 0 fail. eslint clean on the 3 files.
+- Live (Fabio, project "CP Tests", Video Edit on the CHILD clip `imported_002.mp4`, MiniMax H3, words
+  `背景を夜の街にする`): QUEUED. `app.log`: `[childSafety] judge on endpoint (google/gemma-3-12b-it)
+  answered NO` 21:02:42.909Z (the nudity question), `... answered ALLOW` 21:02:43.219Z (the minors
+  judge), ComfyUI `got prompt` 21:02:43.266Z, no describe call; Fabio stopped it 21:02:47.809Z.
+  Before Phase 2 the same run was refused `(picture)`.

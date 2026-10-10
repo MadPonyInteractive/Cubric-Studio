@@ -75,9 +75,16 @@ and only a list or a language model can. Two layers, so the obvious attempts sta
 Phase 2 decided above, nothing built. Fabio wants it built in a NEW session (handoff written).
 Next: Phase 2 step 1. The judge on Fabio's app today is DeepInfra `google/gemma-3-12b-it` (log).
 
+2026-10-10 (session 78b8d248 "CP Gate 3"): Phase 2 steps 1-5 committed in `ac6433522` (Fabio approved
+applying the generationService hunk beside MPI-1069's uncommitted edits; only my hunk is committed).
+Tests 38/38, full suite 0 fail. Next: tests.yml green on ac6433522, then Fabio's live check (step 6),
+then a SEPARATE close commit.
+
 ## Remaining Work
 
-- [ ] Phase 2 steps 1-6
+- [x] CI green on `ac6433522` (run 38085217411)
+- [x] Step 6: Fabio's live check (innocent Japanese on the CHILD clip queues; list word on the ADULT clip)
+- [x] Close commit (card done, claim released)
 
 ## Completed
 
@@ -94,3 +101,7 @@ closed `450878ae4`, live evidence `cc841f96a` + `fa8aa8e04`):
   `generationService._clipStill`, not an import (`flowEnhance.js` was claimed by MPI-1041, the
   function is not exported). The ponytail comment names the upgrade (one shared helper).
 - 2026-10-10: reopened for Phase 2 after Fabio's live test showed the non-Latin false refusal.
+- 2026-10-10: list hits do NOT feed checkChildSafety's SEXUAL/UNCLOTHED tiers: a non-Latin prompt is
+  already judge('language'), so the minors judge reads it; the list only forces the look. Guarded
+  look-alikes: ヌードル, 裸足/裸眼/裸色/裸妆/裸電球, ヒエログリフ, エッチング, раздел, гол/голова;
+  dropped 야한 (inside 해야한다 "must do") and трусы (also "cowards").

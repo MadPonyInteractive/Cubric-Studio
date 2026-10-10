@@ -9,9 +9,9 @@
 
 ## Phase 2 (reopened 2026-10-10)
 
-- [ ] layer 1: non-Latin nudity/undress word list (CJK regex without boundaries)
-- [ ] layer 2: NUDITY_SYSTEM question on the judge backend, fail closed
-- [ ] `_judgeThenQueue`: look only on a list hit or a non-NO answer
-- [ ] tests: CJK + Russian hits, innocent Japanese edit on a child queued, injection still looked at
-- [ ] docs/child-safety.md: the two layers + known gaps
-- [ ] live check (safe triggers only), CI green, card closed
+- [x] layer 1: non-Latin nudity/undress word list (CJK regex without boundaries)
+- [x] layer 2: NUDITY_SYSTEM question on the judge backend, fail closed
+- [x] `_judgeThenQueue`: look only on a list hit or a non-NO answer
+- [x] tests: CJK + Russian hits, innocent Japanese edit on a child queued, injection still looked at
+- [x] docs/child-safety.md: the two layers + known gaps
+- [x] live check (safe triggers only), CI green (run 38085217411), card closed

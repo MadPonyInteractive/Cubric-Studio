@@ -5863,3 +5863,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1047", "at": "2026-10-10T21:13:44+01:00", "actor": "3c24ca48-130b-450c-bbb8-1a0d9f12ac34", "from": "doing", "to": "done", "reason": "Raw-workflow sync fix shipped in f403d0c3e (tests.yml 38075360174 green); 12 new tests pass."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1068", "at": "2026-10-10T21:13:45+01:00", "actor": "3c24ca48-130b-450c-bbb8-1a0d9f12ac34", "from": "doing", "to": "done", "reason": "Smoke scope fix shipped in f403d0c3e (tests.yml 38075360174 green); 7 new tests pass; corrected scope shows from the next smoke run."}
 
+
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1062", "at": "2026-10-10T22:08:39+01:00", "actor": "78b8d248-7474-4117-b46e-5e7b5d553fd8", "from": "doing", "to": "done", "reason": "Phase 2 shipped: ac6433522, tests.yml 38085217411 green, Fabio's live check queued the child clip (validation.md)"}
