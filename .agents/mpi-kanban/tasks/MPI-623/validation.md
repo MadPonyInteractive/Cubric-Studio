@@ -1350,3 +1350,35 @@ much kung fu"); he picked the path route (plan § Plan Drift 2026-10-09). His re
   were the only bypass. Test "a path ball sits where the camera stood" (3 points incl. 2.1 up, a
   pitched + yawed camera); mutant (raw spot) killed. `node --test` scene-viewer + scene-path +
   scene-path-video 26/26, eslint clean.
+
+## Render path on RunPod: readiness (2026-10-10, session 43 "3D Scene 33", no GPU job)
+
+- **The handoff's build logs were stale:** `mpi-ci/cubric-vision-pod/build-cu128-v040.log` + `push-` are
+  from June (v0.4.0). MPI-1043 had built `v0.25.0-dev` (ComfyUI v0.39.0) on 2026-10-08; its session was
+  closed and nothing was claimed, so no live message was needed (a state message was left for it).
+- **What needed the image:** only ComfyUI-GGUF (`installRequirements: true` = baked) and pip `gguf`. The
+  wrapper runs no pip (MPI-413), so `gguf` cannot arrive at connect. MpiNodes is code-only and installs
+  at connect at the APP's pin (MPI-1043's smoke ran it at 3ec03efb while the Pod lock said 6bf5659).
+- **Image:** mpi-ci `c9ca454` = Vision's `dev_configs/node_lock.json` + `python_deps.txt` copied (diff
+  15+/1-: GGUF 6ea2651, `gguf==0.19.0`, MpiNodes d721182). CI run `38017503044`: both legs success;
+  cu130 log: `Cloning into .../ComfyUI-GGUF`, `Collecting gguf==0.19.0`, post-node torch `2.12.0+cu130`,
+  `node-import smoke test OK`. `docker manifest inspect` OK for `docker.io/...:v0.26.0-dev-cu130` and
+  `ghcr.io/...:v0.26.0-dev-cpu`. Cost: 0 billed CI minutes (the last Pod build billed 0 too).
+  `POD_IMAGE_VERSION_DEV` / `_CPU_DEV` -> `v0.26.0-dev` (Vision `545b1ac0f`); stable pair untouched.
+  The cpu boot smoke (build-pod-image 5b) was not run: the dev runtime channel serves the same wrapper
+  0.2.45 as stable (sha checked), and Fabio's Pod create boots it anyway.
+- **R2 was missing ALL FOUR Render path weights, not just the LoRA** (`rclone lsl` with a live control,
+  `vae/flux2-vae.safetensors`). The three with an HF `mirrorUrl` would NOT have saved a Pod: the app
+  fails over only on TRANSPORT errors (a 404 fails the same everywhere, `routes/downloadManager.js`
+  ~905), and the Pod wrapper has no mirror at all. umt5 + wan_2.1_vae were already there.
+  `r2_upload.py` (session 43 scratchpad): staged in `C:/AI/_stage/mpi623-vision-models/` (never the
+  models root), sha256 of all four = their dep entries, then one rclone each at 3 MB/s (~3.0 MiB/s,
+  every exit 0, no ERROR in the log). `rclone lsl` after: 306809616 / 630697104 / 1264219396 /
+  11341184384 bytes = the dep entries' `bytes`. Staging copy deleted. Vision CI `Tests` green on 545b1ac0f.
+- **ETA:** `pathEtaMin(gpu)` = 1810 s x `GPU_GEN_SECS[gpu]` / 9.42 (the 4060 Ti borrows the RTX A4000's
+  row: RunPod does not rent it, and only int8 Klein is on G:, so it cannot be measured their way). The
+  block asks `remoteEngineClient.effectiveEngine()`: remote = `podGpuType()`, local = `/system/gpu-info`
+  `gpu.name` (raw nvidia-smi, app.log: `NVIDIA GeForce RTX 4060 Ti`). PRO 6000 -> 5 min, 2000 Ada -> 42,
+  an unmeasured card -> no minutes. Test `pathEtaMin` + inverted-ratio mutant killed; scene + gpu-picker
+  78/78; full `node --test tests/*.cjs` 2920 pass / 0 fail; eslint clean. Not run live: the line shows
+  only once Wan starts, and an isolated app's boot gate touches the shared :48188 while peers bench.

@@ -8,7 +8,19 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 42 (2026-10-10, "3D Scene 32"):
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 43 (2026-10-10, "3D Scene 33", no
+GPU job): Render path is READY for RunPod** (validation.md § Render path on RunPod: readiness). Dev Pods
+boot `v0.26.0-dev` (mpi-ci `c9ca454`: ComfyUI-GGUF + pip gguf baked, MpiNodes d721182; CI 38017503044
+green, both tags pull-verified; Vision `545b1ac0f` moved only the DEV consts). R2 lacked ALL FOUR Render
+path weights (a 404 never fails over to the HF mirror, the Pod has none): uploaded with Fabio's yes
+(given for the LoRA; the other three are the same job, permissive licences, ~$0.19/mo). The status line
+now says "about N minutes on this GPU": `pathEtaMin` scales the 1810 s 4060 Ti run by `GPU_GEN_SECS`
+(4060 Ti anchored on the A4000's 9.42 s - an estimate). **Next (Fabio, 2026-10-11):** restart his app
+(routes/ bake the dev tag), connect an RTX PRO 6000 Pod, install `scene-path` (~20 GB from R2), lay
+points, Render path. Then re-anchor `PATH_RUN` on the Pod's measured seconds (a table card) and say
+the price of anything beyond his own test first. Still open: his eye on the path-ball fix; P3.
+MPI-1043 told by state message (its MpiNodes-sync item is done; its scoped smoke + release rebuild must
+use/bake GGUF). **Session 42 (2026-10-10, "3D Scene 32"):
 P2 RAN LIVE through the app** (validation.md § Paths P2 LIVE): Fabio restarted, the engine has GGUF +
 `MpiWanMaskedVideo`; the real Render path button landed `cameraPathVideo_001` in 1810 s, known corr
 median +0.975 (bench +0.972), a warm room with a fireplace behind the window. Copied into
@@ -684,6 +696,10 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
 - **2026-10-08 - a `.meta` json is not always a sidecar (session 35).** The scene manifest
   `<id>.scene.json` was deleted by save-generation's orphan GC; every sidecar scan in
   `routes/projects.js` now goes through `isSidecarFile`.
+- **2026-10-10 - a dep with a `mirrorUrl` still needs its R2 object (session 43).** Session 41 wired
+  three Wan weights with HF mirrors and assumed only the mirror-less LoRA needed an upload. A 404 is
+  not a transport error, so the app never fails over on it, and the Pod wrapper has no mirror path:
+  every new dep's R2 object is required, checked with `rclone lsl` + a live control.
 
 ## Verification
 

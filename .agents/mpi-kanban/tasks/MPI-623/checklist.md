@@ -65,4 +65,17 @@ ticks (Phase 0/0b/1, all complete) moved verbatim to
 - [x] History -> gallery: several entries -> one stack of plain cards (2026-10-08, validation.md
       § Phase 3 GPU-free)
 - [x] Wan bake: disabled coming-soon tool (2026-10-08, same section)
+
+## Paths (the 2026-10-09 pivot)
+
+- [x] P1 path editor: P / Add point, balls + tubes, `cameraPaths` on the sidecar (Fabio "1")
+- [x] P2 Render path LIVE through the app, 1810 s on the 4060 Ti, passed by Fabio's eye (2026-10-10)
+- [x] Path balls drawn where the camera stood (`poseToWorld`, test + mutant; 2026-10-10)
+- [x] Render path status line: minutes per GPU from `GPU_GEN_SECS` (`pathEtaMin`, Vision 545b1ac0f)
+- [x] Pod: dev image v0.26.0-dev bakes ComfyUI-GGUF + pip gguf (mpi-ci c9ca454, CI 38017503044)
+- [x] R2: the four Render path weights (360 LoRA, lightx2v, clip_vision_h, Wan Q4 GGUF) uploaded + lsl-verified
+- [ ] Fabio's RunPod test: points + Render path on an RTX PRO 6000 (restart his app first: routes/ bake the dev tag);
+      then re-anchor `PATH_RUN` in `scenePathVideo.js` on the Pod's measured seconds (a `GPU_GEN_SECS` card)
+- [ ] Fabio's eye on the path-ball fix (fly high, press P, the ball stays put)
+- [ ] P3: a playable 360 video card, its last frame a new pano spot (Fabio's call)
 - [ ] End check (user-ux, Fabio)
