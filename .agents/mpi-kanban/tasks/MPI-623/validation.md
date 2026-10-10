@@ -1382,3 +1382,26 @@ much kung fu"); he picked the path route (plan § Plan Drift 2026-10-09). His re
   an unmeasured card -> no minutes. Test `pathEtaMin` + inverted-ratio mutant killed; scene + gpu-picker
   78/78; full `node --test tests/*.cjs` 2920 pass / 0 fail; eslint clean. Not run live: the line shows
   only once Wan starts, and an isolated app's boot gate touches the shared :48188 while peers bench.
+
+## Render path on RunPod: LIVE on a 5090 (2026-10-10, session 44 "3D Scene 34")
+
+- **Two RTX PRO 6000 Pods stalled (RunPod's hosts, not ours).** EU-RO-1, `v0.26.0-dev-cu130`, 105 GB
+  disk: `bswhp64gs1z4v1` (08:33Z, 8 min) and `fx1mghpdhuzmdz` (08:58Z, 4 min) both sat with an EMPTY
+  System log. A PRO 4500 (`9gzipehh0f3a2w`, 09:11Z) and a 5090 (`c0oots9f1snozr`, 09:19Z) with the SAME
+  image and disk logged the pull within seconds and came ready in 3m47s and 1m16s. The connect bugs
+  this surfaced went to MPI-1057 (its own session; every further Pod issue goes there).
+- **Render path ran on the 5090** (project `Projects/MPI-623`, 6-point path round the well, plugin
+  `scene-path` on volume `lpja78wof3`). Disk clock (local = UTC+1): path saved 10:22:01, guide video
+  in the store 10:23:25 (81 frames on Fabio's 4060 Ti), `cameraPathVideo_002.mp4` (5.8 MB, 5.06 s)
+  landed 10:30:25 = **420 s guide to card** (upload + cold Wan load + sampling + download). The status
+  line said "about 7 minutes on this GPU": right. **Fabio: "the video looks good."**
+- **Re-anchored** `pathEtaMin` on the 5090's 420 s (`PATH_RUNS` Map; the 4060 Ti keeps its measured
+  1810 s). Cross-check: 420 s scaled to the A4000 row (the 4060 Ti's stand-in) = 1735 s vs 1810 s
+  measured, 4% off. ETAs: 5090 7, PRO 6000 5, PRO 4500 10, RTX 2000 Ada 40, 4060 Ti 30 min.
+- **Same-path guard (Fabio's idea).** Render path frees its button once Wan has the guide (by design: a
+  different path queues behind). The SAME path again (scene, points, fill line) now gets an info toast
+  "This path is already rendering..." and runs nothing (`renderPath` keeps the in-flight keys; code
+  `rendering`). Unit test + 3 mutants (no guard, no release, measured runs ignored): each fails the
+  test, none hangs. `node --test tests/scene-path-video.test.cjs` 5/5, eslint clean. The toast itself
+  is not yet seen live (needs his restart).
+- Pods spent today: PRO 6000 x2 ~14 min ($2.49/hr), PRO 4500 ~4.5 min ($0.72/hr), 5090 ~16 min.

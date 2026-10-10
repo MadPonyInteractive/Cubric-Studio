@@ -361,6 +361,11 @@ export const MpiSceneBlock = ComponentFactory.create({
                 if (!destroyed) pathStatus.textContent = 'The path video is in the gallery.';
                 Events.emit('ui:success', { message: 'Path video ready: it is in the gallery.' });
             } catch (err) {
+                // The same path pressed again while its video renders: the status line is still that run's.
+                if (err?.code === 'rendering') {
+                    Events.emit('ui:info', { message: 'This path is already rendering. It lands in the gallery when it is done.' });
+                    return;
+                }
                 if (!destroyed) pathStatus.textContent = '';
                 if (err?.message !== 'cancelled') {
                     clientLogger.warn('scene', `render path failed: ${err?.message || err}`);

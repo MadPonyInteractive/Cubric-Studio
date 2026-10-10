@@ -11,19 +11,17 @@ import { pathFrames } from './scenePath.js';
 import { sceneStyle, placeAsset } from './scenePicture.js';
 import { gpuGenSecs } from '../../data/runpodGpuSpecs.js';
 
-// Render path's one measured run: 1810 s on an RTX 4060 Ti 16 GB (validation.md § Paths P2
-// LIVE). Every path is 81 frames, so a card's time is this scaled by the GPU picker's measured
-// seconds per image (GPU_GEN_SECS).
-const PATH_RUN = { gpu: 'NVIDIA GeForce RTX 4060 Ti', secs: 1810 };
-// ponytail: RunPod does not rent the 4060 Ti, so it has no GPU_GEN_SECS row; this borrows the
-// RTX A4000's (also 16 GB, also spills Klein's weights). Re-anchor PATH_RUN on a table card
-// once a Pod run is measured.
-const PATH_RUN_GEN_SECS = 9.42;
+// Render path's measured runs, in seconds: an RTX 5090 Pod 420 s from the guide reaching the engine to
+// the card (validation.md § Render path on RunPod), an RTX 4060 Ti 1810 s click to card (§ Paths P2
+// LIVE). Every path is 81 frames, so any other card scales the 5090 run by the GPU picker's measured
+// seconds per image (GPU_GEN_SECS). That scale put the 4060 Ti (on the A4000's row) at 1735 s: 4% off.
+const PATH_RUNS = new Map([['NVIDIA GeForce RTX 5090', 420], ['NVIDIA GeForce RTX 4060 Ti', 1810]]);
+const PATH_ANCHOR = 'NVIDIA GeForce RTX 5090';
 
 /** Minutes Render path takes on `gpu` (a RunPod GPU id or a local nvidia-smi name), or null when nobody measured that card. */
 export function pathEtaMin(gpu) {
-    const secs = gpu === PATH_RUN.gpu ? PATH_RUN_GEN_SECS : gpuGenSecs(gpu);
-    return secs ? Math.max(1, Math.round((PATH_RUN.secs * secs) / PATH_RUN_GEN_SECS / 60)) : null;
+    const secs = PATH_RUNS.get(gpu) ?? (gpuGenSecs(gpu) && (PATH_RUNS.get(PATH_ANCHOR) * gpuGenSecs(gpu)) / gpuGenSecs(PATH_ANCHOR));
+    return secs ? Math.max(1, Math.round(secs / 60)) : null;
 }
 
 /** Matrix-3D's own prompt opening; the scene's style and the user's line follow. */
@@ -43,35 +41,46 @@ export function stackFrame({ w, h, rgba, mask }) {
  * `onStep(step, at)`: 'style', 'guide' ({ frame, of }), 'upload', 'wan' (the engine has it).
  * @returns {Promise<Object>} the landed video item
  */
+// The paths whose video is still on its way. The scene frees its button once Wan has the guide, so
+// a different path can queue behind this one; the SAME path again is refused (code 'rendering').
+const rendering = new Set();
+
 export async function renderPath({ project, sceneItem, view, renderer, points, fillLine = '', signal, onStep = () => {} }, io) {
+    const key = JSON.stringify([sceneItem?.scenePath, points, fillLine.trim()]);
+    if (rendering.has(key)) throw Object.assign(new Error('this path is already rendering'), { code: 'rendering' });
     const frames = pathFrames(points);
     if (!frames.length) throw new Error('the path needs a second point');
-    const style = await sceneStyle(io, sceneItem, onStep);
-    const shas = [];
-    for (let i = 0; i < frames.length; i++) {
-        if (signal?.aborted) throw new Error('cancelled');
-        onStep('guide', { frame: i + 1, of: frames.length });
-        const f = stackFrame(io.renderPano(view, renderer, frames[i]));
-        const png = await io.encodePng(f.rgba, f.w, f.h);
-        shas.push((await placeAsset(io, project, await io.blobToDataUrl(png), '.png')).sha256);
+    rendering.add(key);
+    try {
+        const style = await sceneStyle(io, sceneItem, onStep);
+        const shas = [];
+        for (let i = 0; i < frames.length; i++) {
+            if (signal?.aborted) throw new Error('cancelled');
+            onStep('guide', { frame: i + 1, of: frames.length });
+            const f = stackFrame(io.renderPano(view, renderer, frames[i]));
+            const png = await io.encodePng(f.rgba, f.w, f.h);
+            shas.push((await placeAsset(io, project, await io.blobToDataUrl(png), '.png')).sha256);
+        }
+        onStep('upload');
+        const guide = await io.post(`/project-media/${project.id}/frames-to-video?folderPath=${encodeURIComponent(project.folderPath)}`,
+            { frames: shas, fps: 16 });
+        onStep('wan');
+        return await new Promise((resolve, reject) => {
+            const started = io.enqueue(
+                {
+                    operation: 'scenePathVideo', model: { id: null, mediaType: 'video' },
+                    positive: pathPrompt(style, fillLine.trim()), negative: '',
+                    mediaItems: [{ url: guide.filePath, mediaType: 'video', role: 'video1' }],
+                },
+                {
+                    onComplete: ({ item } = {}) => (item?.filePath ? resolve(item) : reject(new Error('the path video came back empty'))),
+                    onError: (err) => reject(err instanceof Error ? err : new Error(String(err?.message || err))),
+                    onCancel: () => reject(new Error('cancelled')),
+                },
+            );
+            if (!started) reject(new Error('the path video did not start'));
+        });
+    } finally {
+        rendering.delete(key);
     }
-    onStep('upload');
-    const guide = await io.post(`/project-media/${project.id}/frames-to-video?folderPath=${encodeURIComponent(project.folderPath)}`,
-        { frames: shas, fps: 16 });
-    onStep('wan');
-    return new Promise((resolve, reject) => {
-        const started = io.enqueue(
-            {
-                operation: 'scenePathVideo', model: { id: null, mediaType: 'video' },
-                positive: pathPrompt(style, fillLine.trim()), negative: '',
-                mediaItems: [{ url: guide.filePath, mediaType: 'video', role: 'video1' }],
-            },
-            {
-                onComplete: ({ item } = {}) => (item?.filePath ? resolve(item) : reject(new Error('the path video came back empty'))),
-                onError: (err) => reject(err instanceof Error ? err : new Error(String(err?.message || err))),
-                onCancel: () => reject(new Error('cancelled')),
-            },
-        );
-        if (!started) reject(new Error('the path video did not start'));
-    });
 }

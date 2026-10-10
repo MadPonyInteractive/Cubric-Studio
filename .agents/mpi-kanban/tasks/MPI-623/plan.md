@@ -8,7 +8,27 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 43 (2026-10-10, "3D Scene 33", no
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 44 (2026-10-10, "3D Scene 34"):
+the PRO 6000 STALLED AGAIN** - Pod `fx1mghpdhuzmdz` (EU-RO-1, `v0.26.0-dev-cu130`, 105 GB container
+disk) sat 4 min with an EMPTY System log, and RunPod's own DELETE (the app's Cancel) hung until Fabio
+pressed Stop in the console (deleted 09:04:02Z, ~$0.25). Two of two PRO 6000 Pods in EU-RO-1 today;
+the image is fine (Docker Hub tag active, 9.7 GB like v0.25). vs the last good boot (2026-10-09, PRO
+4500, `v0.25.0-dev-cu130`, 100 GB disk) three things differ: card, image, disk (105 = the volume's new
+100 GB + 5 headroom). A PRO 4500 and a 5090 with the SAME image + disk pulled at once: the stall is
+RunPod's PRO 6000 hosts. **Render path RAN ON THE 5090: 420 s guide to card, "about 7 minutes" was
+right, Fabio: "the video looks good"** (validation.md § Render path on RunPod: LIVE). `pathEtaMin`
+re-anchored on it (`PATH_RUNS`: 5090 420 s, 4060 Ti 1810 s kept). Fabio's idea built: the same path
+pressed again while it renders gets a toast, a different one queues (`renderPath` in-flight keys).
+Tests 5/5 + 3 mutants, eslint clean, NOT committed, toast not seen live (his next restart). The
+connect bugs (LOCAL · OFFLINE while connecting, 0 / 24, silent Cancel, an 8-min stall cap Fabio
+picked) are MPI-1057's, worked in its OWN session; every further Pod issue goes there ("3 / 24" on the
+5090 is RIGHT: Fabio has 3 models installed, a plugin is not a model - corrected to 1057 by message).
+The slow return to the home page (mascots, then the project list) is MPI-1058 (own card, not 3D's:
+lead = HTTP/1.1's 6 connections minus 4 EventSource streams, landing videos preload=auto). **Next:
+Fabio asked "I've made a video - what's next?"** = P3, what the video becomes (§ Plan Drift
+2026-10-0x P3 note; my pick: a playable 360 video card you can look around in, its last frame a new
+pano spot so the next path starts where this one ended). Brief him with 2-3 options, then build. Path balls sat on the cobbles in his screenshots (the
+y-flip fix holds; he has not said so in words). **Session 43 (2026-10-10, "3D Scene 33", no
 GPU job): Render path is READY for RunPod** (validation.md § Render path on RunPod: readiness). Dev Pods
 boot `v0.26.0-dev` (mpi-ci `c9ca454`: ComfyUI-GGUF + pip gguf baked, MpiNodes d721182; CI 38017503044
 green, both tags pull-verified; Vision `545b1ac0f` moved only the DEV consts). R2 lacked ALL FOUR Render

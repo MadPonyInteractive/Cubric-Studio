@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1058",
+  "title": "Returning to the home page is slow: the mascots, then the project list, wait behind something holding the server's connections",
+  "description": "Fabio, 2026-10-10 (noticed since the 3D work began): back on the landing, the page is empty, the crew mascots take a while to appear and the Recent list spins well after that (69 projects; every project.json is small, the largest 107 KB). The spinner is the listProjects() request itself waiting (the 'Recent - 69' count is left over from the last visit). Lead, NOT proven: the app server is HTTP/1.1 on one host, Chromium allows 6 connections, and the renderer keeps 4 permanent EventSource streams (/comfy/events/stream, /concat/events/stream, /comfy/downloads/stream, /connector/jobs/stream), leaving ~2 for everything else. The landing itself now carries ~7 preload=auto mascot videos (MpiAgentChat, MPI-774) plus the crew; a 3D project's gallery holds path-video cards that may keep loading after it is left. MPI-786 fixed the OPPOSITE direction (landing -> project, releaseProjectGrid). First step (free): in an isolated app (npm run app:isolated, never :3000) open a project with video cards, go home, read each request's queue time (docs/testing-desktop-specs.md: a save that takes SECONDS is a queued request) to name what holds the connections. Likely fixes to weigh then: one multiplexed event stream instead of four, and no preload=auto on the landing videos.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-10T10:49:23+01:00",
+  "updated_at": "2026-10-10T10:49:23+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

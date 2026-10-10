@@ -85,13 +85,32 @@ test('renderPath: no second point, a stop, a refused start', async () => {
     await assert.rejects(renderPath({ ...args, sceneItem: { ...SCENE, scenePath: 'third' } }, fakeIo({ start: false }).io), /did not start/);
 });
 
-test('pathEtaMin: the measured 4060 Ti run, scaled by the Gen speed table; an unmeasured card has none', async () => {
+test('renderPath: the same path again while it renders is refused, another path queues, a landed one renders again', async () => {
+    const { renderPath } = await esm('js/services/scene/scenePathVideo.js');
+    const { io } = fakeIo();
+    const held = [];
+    io.enqueue = (config, cb) => { held.push(cb); return true; };
+    const args = { project: PROJECT, sceneItem: { ...SCENE, scenePath: 'held' }, view: {}, renderer: {}, points: [[0, 0, 0], [1, 0, 0]] };
+    const first = renderPath(args, io);
+    const dup = renderPath({ ...args, fillLine: ' ' }, io).then(() => 'ran', (e) => e.code);
+    assert.equal(await Promise.race([dup, new Promise((r) => setImmediate(() => r('still running')))]), 'rendering',
+        'same scene, points and fill line: refused at once');
+    const other = renderPath({ ...args, points: [[0, 0, 0], [0, 0, -1]] }, io);
+    while (held.length < 2) await new Promise((r) => setImmediate(r));
+    held.forEach((cb) => cb.onComplete({ item: { id: 'v', filePath: 'v.mp4' } }));
+    await Promise.all([first, other]);
+    assert.equal((await renderPath(args, fakeIo().io)).id, 'v1', 'landed: the same path may render again');
+});
+
+test('pathEtaMin: the measured runs; other cards scale the 5090 Pod run by the Gen speed table; an unmeasured card has none', async () => {
     const { pathEtaMin } = await esm('js/services/scene/scenePathVideo.js');
-    assert.equal(pathEtaMin('NVIDIA GeForce RTX 4060 Ti'), 30, 'the card it was measured on: 1810 s');
-    assert.equal(pathEtaMin('NVIDIA RTX PRO 6000 Blackwell Server Edition'), 5, 'a faster card is quicker (1.51 s vs 9.42 s an image)');
-    assert.equal(pathEtaMin('NVIDIA RTX 2000 Ada Generation'), 42, 'a slower card takes longer');
+    assert.equal(pathEtaMin('NVIDIA GeForce RTX 5090'), 7, 'measured on a Pod: 420 s');
+    assert.equal(pathEtaMin('NVIDIA GeForce RTX 4060 Ti'), 30, 'measured locally: 1810 s');
+    assert.equal(pathEtaMin('NVIDIA RTX PRO 6000 Blackwell Server Edition'), 5, 'a faster card is quicker (1.51 s vs 2.28 s an image)');
+    assert.equal(pathEtaMin('NVIDIA RTX 2000 Ada Generation'), 40, 'a slower card takes longer');
     assert.equal(pathEtaMin('NVIDIA GeForce RTX 3060'), null, 'nobody measured it');
     assert.equal(pathEtaMin(null), null);
+    assert.equal(pathEtaMin('constructor'), null, 'a name is looked up, never a property');
 });
 
 test('frames-to-video: placed frames -> one 4:4:4 video in the store, the frames removed', async (t) => {
