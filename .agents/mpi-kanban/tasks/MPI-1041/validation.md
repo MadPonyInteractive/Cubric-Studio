@@ -481,4 +481,7 @@ portrait swapped for the given one (node 77 -> a LoadImage), so only the body pa
   install-key assert fails on the old `flowInstallKeys`), flow-field-constraints, flow-legs, flow-model-choice,
   inject-params-titles: 125/125 together. agent-corpus / prompt-budget / recipe-registry green after the agent paragraph.
 - `npm test` 2983/2985 pass, 0 fail (2 skipped). `npm run lint` + `lint:components` clean.
-- NOT seen in the app yet: the run slide's Install row and the Library's Optional models list (Phase E).
+- Desktop spec tests/desktop/flow-optional-model-row.spec.js PASS (Klein installed: two labelled slots, Qwen row = name +
+  enabled Install, one cogwheel; download:started -> Installing, disabled; installed -> no Install row, two cogwheels,
+  the second "LoRAs for Qwen-Image 2.1"). flow-lora-button, flow-chain-toggle, flow-clear-slot-advances: 5 passed.
+- NOT seen by eye yet: the Library's Optional models list (Phase E).
