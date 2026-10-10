@@ -56,6 +56,15 @@
   scene" read narrowly), ALLOW for a 17-year-old in a bikini on a character sheet.
 - 5962 tokens, **spent $0.000431**; both DeepInfra runs together $0.000816.
 
+## 2026-10-10 - closed
+
+- Cosmo's Content rule applied here (MPI-1053 closed without the message): "Never a minor" became
+  the under-18 line; `tests/agent-prompt-budget.test.cjs` budget 10,808 -> 10,984 with its reason.
+- Code commit `bddf6391c` (22 files, private-index commit in the shared tree), pushed; CI
+  `tests.yml` run 38043314106 **success**.
+- Claim auditor: 0 FALSE, 34 PROVEN; bench numbers UNVERIFIABLE (live runs), two intermediate
+  suite counts UNPROVEN (superseded by the final 2921-pass run).
+
 ## 2026-10-10 - rule corrected by Fabio: 16-17 in an ordinary bikini is fine anywhere
 
 - Fabio: "A 17-year-old in a bikini is fine. We talked about this. It just can't be suggestive,
