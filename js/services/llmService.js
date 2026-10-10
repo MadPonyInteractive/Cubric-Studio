@@ -744,7 +744,7 @@ export async function judgeChildSafety(text, backend, system = JUDGE_SYSTEM) {
 
 /** The two-tier gate with the judge on `backend`. Never rejects. */
 export const childSafetyCheck = (text, ctx, backend) =>
-    childSafetyGate(text, ctx, (t) => judgeChildSafety(t, backend));
+    childSafetyGate(text, ctx, (t, system) => judgeChildSafety(t, backend, system));
 
 /** An enhance result for a refused request or reply: the reason is the error every caller shows. */
 const _childSafetyRefusal = (r) => ({ ok: false, error: r.message, errorCode: r.code, code: r.code });

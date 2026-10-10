@@ -29,6 +29,8 @@ const describeBodies = [];
 // The nudity question for words the lists cannot read (MPI-1062).
 let nudityAnswer = 'NO';
 let nudityCalls = 0;
+let factAnswer = 'NO';
+let factCalls = 0;
 globalThis.fetch = (url, init) => {
     if (url === '/llm/describe') {
         describeBodies.push(JSON.parse(init.body));
@@ -36,9 +38,15 @@ globalThis.fetch = (url, init) => {
     }
     if (url !== '/llm/enhance') return new Promise(() => {});
     // MPI-1062: the nudity question rides the same POST under its own fixed system prompt.
-    if (/undressed or stripped/.test(JSON.parse(init.body).system || '')) {
+    const system = JSON.parse(init.body).system || '';
+    if (/undressed or stripped/.test(system)) {
         nudityCalls += 1;
         return Promise.resolve({ json: async () => ({ ok: true, text: nudityAnswer, backend: 'ollama', model: 'stub' }) });
+    }
+    // The questions of fact for unreadable words (`MINOR_SYSTEM` and the two after it).
+    if (/question of fact/.test(system)) {
+        factCalls += 1;
+        return Promise.resolve({ json: async () => ({ ok: true, text: factAnswer, backend: 'ollama', model: 'stub' }) });
     }
     judgeCalls += 1;
     return Promise.resolve({ json: async () => ({ ok: true, text: judgeAnswer, backend: 'ollama', model: 'stub' }) });
@@ -234,13 +242,13 @@ test('an innocent Japanese edit of a child\'s picture or clip is queued: the nud
     nudityAnswer = 'NO';
     judgeAnswer = 'ALLOW';
     for (const run of [edit('背景を夜の街にする'), clipEdit('背景を夜の街にする')]) {
-        const looks = describeBodies.length, asked = nudityCalls, judged = judgeCalls;
+        const looks = describeBodies.length, asked = nudityCalls, judged = factCalls;
         const r = enqueueGeneration(run, {});
         await until(() => queued(r.queueJobId));
         assert.strictEqual(queued(r.queueJobId), true, run.operation);
         assert.strictEqual(nudityCalls, asked + 1, 'one nudity question');
         assert.strictEqual(describeBodies.length, looks, 'no look');
-        assert.strictEqual(judgeCalls, judged + 1, 'the minors judge still reads the words');
+        assert.strictEqual(factCalls, judged + 1, 'the minors judge still reads the words: "anyone under 18?"');
     }
 });
 
@@ -272,4 +280,16 @@ test('a non-Latin undress word on the list is looked at without asking anyone', 
     assert.strictEqual(queued(r.queueJobId), false);
     assert.match(seen.warnings[0], /picture or clip that may show someone under 18/);
     assert.strictEqual(nudityCalls, asked, 'a list hit is never put to the model');
+});
+
+test('"make her naked" in Japanese on an ADULT clip queues: looked at (NO), then "under 18?" says NO', async () => {
+    describeAnswer = { ok: true, text: 'NO' };
+    factAnswer = 'NO';
+    const looks = describeBodies.length, facts = factCalls, verdicts = judgeCalls;
+    const r = enqueueGeneration(clipEdit('彼女を裸にして'), {});
+    await until(() => queued(r.queueJobId));
+    assert.strictEqual(queued(r.queueJobId), true);
+    assert.strictEqual(describeBodies.length, looks + 1, 'a list word: looked at');
+    assert.strictEqual(factCalls, facts + 1, 'one question of fact');
+    assert.strictEqual(judgeCalls, verdicts, 'no ALLOW/REFUSE verdict asked');
 });
