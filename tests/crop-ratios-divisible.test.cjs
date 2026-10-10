@@ -3,8 +3,9 @@
 //      portrait ratios <=1, landscape >=1, 1:1 featured first, every icon key
 //      resolves in ICONS (a missing key silently falls back to the 'info' icon).
 //   2. The Resize "Divisible by" default is 16 in BOTH the tool component AND the
-//      injector — the injector has its OWN DEFAULTS and falls back to it when the
-//      param is absent, so a mismatch silently resizes to a multiple of 1.
+//      server renderer (services/resizeOps.js, MPI-1069) — the server has its OWN
+//      DEFAULTS and falls back to it when the param is absent, so a mismatch silently
+//      resizes to a multiple of 1.
 
 const assert = require('node:assert');
 const fs = require('node:fs');
@@ -38,7 +39,7 @@ test('CROP_RATIOS is a valid pure-aspect index-mirror table', async () => {
     assert.ok(Object.isFrozen(CROP_RATIOS), 'CROP_RATIOS must be frozen');
 });
 
-test('Resize divisible_by default is 16 in both the component and the injector', () => {
+test('Resize divisible_by default is 16 in both the component and the server renderer', () => {
     const grabDefault = (rel) => {
         const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
         const m = src.match(/divisible_by:\s*(\d+)/);
@@ -46,10 +47,10 @@ test('Resize divisible_by default is 16 in both the component and the injector',
         return Number(m[1]);
     };
     const component = grabDefault('js/components/Organisms/MpiToolOptionsResize/MpiToolOptionsResize.js');
-    const injector = grabDefault('js/services/workflowInjectors/resizeInjector.js');
+    const server = grabDefault('services/resizeOps.js');
     assert.strictEqual(component, 16, 'component DEFAULTS.divisible_by must be 16');
-    assert.strictEqual(injector, 16, 'injector DEFAULTS.divisible_by must be 16');
-    assert.strictEqual(component, injector, 'both defaults must agree');
+    assert.strictEqual(server, 16, 'resizeOps DEFAULTS.divisible_by must be 16');
+    assert.strictEqual(component, server, 'both defaults must agree');
 });
 
 test('roundToDivisible rounds up, floors on overflow, respects bounds', async () => {

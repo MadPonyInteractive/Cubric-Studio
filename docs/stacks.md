@@ -143,8 +143,8 @@ Opening a stack = `navigate(PAGE_GROUP_HISTORY, { groupId: stackId })`. It is a 
   a paid tag quote ×n.
 - **Header** stats: `navigation.js` filters stats to the ROUTE's id, so the Block emits
   `stackStatsGroup` (every member version under the stack id) whenever the file set changes.
-- `_syncQueueBlockedTools` does nothing in stack mode: its lock exists for the single-card Resize
-  PREVIEW job (MPI-253), and stack Resize has no preview.
+- Resize is never locked while Cue is busy (MPI-1069): it runs on sharp / ffmpeg on its own `tool`
+  lane ([resize.md](resize.md)), so the old MPI-253 preview lock is gone.
 - Setup order trap: the stack init (`_paintStrip`, listeners) runs AFTER `_mountPromptBoxIfNeeded`;
   `_paintStrip` → `_syncRunCount` reads `_pb`, whose `let` sits later in setup (a TDZ killed the mount).
 

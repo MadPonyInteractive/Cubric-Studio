@@ -88,6 +88,7 @@ NOT mechanically split these):
 | **Composite** (the two hole-cutting front ends, the scratch cut, the inverted brush, cover-fit on BOTH ends, pasted slots) | [composite.md](composite.md) |
 | **Place** (the third front end — inverted stack, the gizmo's third destination, three slot origins, Remove Background on `deferCommit`) | [composite-place.md](composite-place.md) |
 | **Crop** (ratio/free/exact-resolution, cropping PAST the image edge + fill colour, edge snapping, pad-then-extract) | [crop.md](crop.md) |
+| **Resize** (image + video, NO engine: sharp / ffmpeg in our server, the KJ-node maths as one planner, the `tool` head + fourth lane, the live preview route, why the graphs went) | [resize.md](resize.md) |
 | **Model Library UI** (usable-vs-installed, featured, install-button gates, tile patching) | [model-library.md](model-library.md) |
 | **Per-component behavioral contracts** (PromptBox, MpiToast, MpiPopup, MpiInput, …) | [component-contracts.md](component-contracts.md) |
 | **Video player** (frame-accurate hybrid: `<video>` plays / mediabunny canvas owns paused-step; color matrix rule; frame-index coordinate law; sub-range loop) | [video-player.md](video-player.md) |

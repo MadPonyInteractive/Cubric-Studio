@@ -1,8 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
+const { execFileSync } = require('child_process');
 const { test, expect } = require('@playwright/test');
 const { launchApp, closeApp } = require('./launch');
+const { ffmpegPath } = require('../../services/ffmpegBinary');
+const { probeVideo } = require('../../services/ffprobeVideo');
 
 /**
  * MPI-795 / MPI-796 — the size a crop or a resize actually produces.
@@ -14,7 +17,8 @@ const { launchApp, closeApp } = require('./launch');
  * here against a real file on disk, and the written file is measured.
  *
  * MPI-796: Resize's MP and SCALE types derive width/height from the source.
- * Applying needs the engine, so this reads the params Apply would send.
+ * MPI-1069: Resize needs no engine any more (sharp / ffmpeg in the app's server),
+ * so it is APPLIED here, on a still and on a clip, and the written files measured.
  */
 test.setTimeout(90000);
 
@@ -93,16 +97,6 @@ async function provokeRunner(window) {
   });
 }
 
-// The runner has no engine, and Resize's live preview would try to start one: the failed
-// start leaves its overlay over the panel (CI run 36848159783). These specs read params,
-// not the preview, so the engine here never answers and every preview just waits.
-async function idleEngine(window) {
-  await window.evaluate(async () => {
-    const { remoteEngine, localEngine } = await import('/js/services/comfyController.js');
-    remoteEngine.ensureServerRunning = localEngine.ensureServerRunning = () => new Promise(() => {});
-  });
-}
-
 /** Wait for the next file (PNG unless `ext`) the app writes into Media/ and return its size. */
 async function nextOutputSize(media, seen, ext = '.png') {
   let file = null;
@@ -164,7 +158,6 @@ test('Resize MP and SCALE derive the size from the source and keep its proportio
   const { app, window } = await launchApp(testInfo);
   try {
     await provokeRunner(window);
-    await idleEngine(window);
     await openGroup(window, project);
     const panel = await setTool(window, 'resize', '.mpi-tool-options-resize');
     const family = (label) => panel.locator('#resize-family-slot').getByText(label, { exact: true }).click();
@@ -205,6 +198,107 @@ test('Resize MP and SCALE derive the size from the source and keep its proportio
   }
 });
 
+// MPI-1069: Resize runs on sharp / ffmpeg in the app's own server, so it applies with no
+// engine at all (this runner has none) and is never queued behind a generation.
+function historyLength(window) {
+  return window.evaluate(async () => {
+    const { state } = await import('/js/state.js');
+    return state.currentProject.itemGroups[0].history.length;
+  });
+}
+
+test('Resize applies a still with no engine, and draws its live preview', async ({}, testInfo) => {
+  const { media, project } = await makeProject(testInfo);
+  const seen = new Set(['src.png']);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await provokeRunner(window);
+    await openGroup(window, project);
+    const panel = await setTool(window, 'resize', '.mpi-tool-options-resize');
+    // The thumbnail shows first as a data: URL; the server's resized copy replaces it.
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelector('.mpi-tool-options-resize__preview-img')?.src || '')).toMatch(/^blob:/);
+
+    const width = panel.locator('#resize-width-slot input');
+    await width.fill('200');
+    await width.press('Enter');
+    const height = panel.locator('#resize-height-slot input');
+    await height.fill('100');
+    await height.press('Enter');
+    await window.waitForTimeout(1000);
+    await panel.getByRole('button', { name: 'Apply' }).click();
+    // Crop to 2:1, then Divisible by 16 floors 200x100 to 192x96.
+    expect(await nextOutputSize(media, seen)).toMatchObject({ width: 192, height: 96 });
+    await expect.poll(() => historyLength(window)).toBe(2);
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('Resize applies a clip with no engine: its size, its trim and its sound', async ({}, testInfo) => {
+  const folder = testInfo.outputPath('project');
+  const media = path.join(folder, 'Media');
+  fs.mkdirSync(path.join(media, '.meta'), { recursive: true });
+  const src = path.join(media, 'clip.mp4');
+  execFileSync(ffmpegPath, ['-y', '-loglevel', 'error',
+    '-f', 'lavfi', '-i', 'testsrc2=s=320x240:r=24:d=2', '-f', 'lavfi', '-i', 'sine=d=2',
+    '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', src], { windowsHide: true });
+
+  const now = new Date().toISOString();
+  const group = { id: 'gClip', type: 'video', selectedIndex: 0, fps: 24, duration: 2 };
+  const item = {
+    id: 'iClip', type: 'video', displayName: 'clip',
+    filePath: `/project-file?path=${encodeURIComponent(src)}`,
+    pixelDimensions: { w: 320, h: 240 }, fps: 24, duration: 2, frameCount: 48, hasAudio: true,
+    trim: { in: 0.5, out: 1.5 },
+  };
+  const project = {
+    id: 'pClip', name: 'Clip', folderPath: folder, createdAt: now, updatedAt: now, toolSettings: {},
+    itemGroups: [{ ...group, history: [item] }],
+  };
+  fs.writeFileSync(path.join(folder, 'project.json'),
+    JSON.stringify({ ...project, itemGroups: [{ ...group, history: ['iClip'] }] }, null, 2));
+
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await provokeRunner(window);
+    await openGroup(window, project);
+    await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-video-viewer')?.getRange?.()), { timeout: 20000 })
+      .toMatchObject({ in: 0.5, out: 1.5 });
+    await window.evaluate(() => document.querySelector('.mpi-history-tools').setMode('resizeVideo'));
+    const panel = window.locator('.mpi-tool-options-resize');
+    await expect(panel).toBeVisible();
+
+    const width = panel.locator('#resize-width-slot input');
+    await width.fill('160');
+    await width.press('Enter');
+    const height = panel.locator('#resize-height-slot input');
+    await height.fill('120');
+    await height.press('Enter');
+    await window.waitForTimeout(1000);
+    await panel.getByRole('button', { name: 'Apply' }).click();
+
+    let out = null;
+    await expect.poll(() => {
+      out = fs.readdirSync(media).find(f => f.endsWith('.mp4') && f !== 'clip.mp4') ?? null;
+      return out;
+    }, { timeout: 60000 }).not.toBeNull();
+    let meta = null;
+    await expect.poll(async () => {
+      meta = await probeVideo(path.join(media, out)).catch(() => null);
+      return meta?.width ?? 0;
+    }, { timeout: 20000 }).toBeGreaterThan(0);
+    // 160x120 is 4:3 like the source; Divisible by 16 floors 120 to 112.
+    expect([meta.width, meta.height, meta.hasAudio]).toEqual([160, 112, true]);
+    expect(Math.abs(meta.duration - 1), `the 0.5-1.5 s trim, got ${meta.duration}`).toBeLessThan(0.15);
+    await expect.poll(() => historyLength(window)).toBe(2);
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 // MPI-961: past the display cap the canvas draws a smaller copy. Resize sizes the ORIGINAL,
 // so SCALE ÷2 of a 400x300 is 200x150 even while a 256px copy is on screen (it was 128x96).
 test('Resize SCALE sizes the original, not the display copy a big still is drawn from', async ({}, testInfo) => {
@@ -220,7 +314,6 @@ test('Resize SCALE sizes the original, not the display copy a big still is drawn
       const { setDisplayMaxEdge } = await import('/js/utils/displayImage.js');
       setDisplayMaxEdge(256);
     });
-    await idleEngine(window);
     await openGroup(window, project);
     const panel = await setTool(window, 'resize', '.mpi-tool-options-resize', 256);
     await panel.locator('#resize-family-slot').getByText('SCALE', { exact: true }).click();

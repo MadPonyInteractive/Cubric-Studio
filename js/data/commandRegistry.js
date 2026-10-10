@@ -189,6 +189,9 @@ const I2V_HELP = {
  *                                              this op is running (e.g. 'Upscaling', 'Detailing').
  *                                              Defaults to 'Generating' when omitted. NEW OPS should
  *                                              set this if the default verb doesn't fit.
+ * @property {'tool'}          [executor]     - Runs on the app's own server instead of the engine
+ *                                              (`js/services/toolExecutor.js`, MPI-1069): no workflow,
+ *                                              no injector, its own Cue lane. Resize is the one today.
  */
 
 /**
@@ -1218,7 +1221,8 @@ export const commands = {
         ],
         promptRequired: false,
         universal: true,
-        injector: 'resize',
+        // MPI-1069: sharp in our own server, not a ComfyUI graph (routes/toolResize.js).
+        executor: 'tool',
     },
     resizeVideo: {
         label: 'Resize Video',
@@ -1230,7 +1234,9 @@ export const commands = {
         ],
         promptRequired: false,
         universal: true,
-        injector: 'resize',
+        // MPI-1069: streaming ffmpeg in our own server. The graph decoded the whole clip
+        // as float32 first (~82 GB for a 14 s 4K phone clip).
+        executor: 'tool',
     },
     // MPI-520. Bench-proven single-stage LTX 2.3 v2v extend: a source clip in, the
     // same clip PLUS newly generated seconds out (video + audio together — LTX 2.3

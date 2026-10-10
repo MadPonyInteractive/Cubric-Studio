@@ -659,7 +659,9 @@ test('generationService branches on provider BEFORE runCommand, not inside it', 
     // `comfyController.runWorkflow`, which calls `ensureServerRunning`, so a cloud
     // dispatch would cold-start a local ComfyUI on a machine that may have no GPU.
     const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'services', 'generationService.js'), 'utf8');
-    assert.match(src, /const exec = \(model\.provider \? runCloudCommand : runCommand\)\(\{/,
+    // MPI-1069 put the tool head (Resize on sharp/ffmpeg) in front of it; the cloud branch
+    // must still come before runCommand.
+    assert.match(src, /const exec = \(isToolOp\(operation\) \? runToolCommand : model\.provider \? runCloudCommand : runCommand\)\(\{/,
         'the cloud seam is gone from generationService — a cloud model would dispatch to ComfyUI');
     assert.match(src, /import \{ runCloudCommand \}/, 'the cloud head is not imported');
 

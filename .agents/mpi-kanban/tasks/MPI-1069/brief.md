@@ -44,3 +44,5 @@ graphs pull in without reading `docs/playbooks/add-model/README.md` § "Removing
 Fabio wants a FRESH session for this card (not the MPI-1062 one).
 
 ## Noticed
+
+- Four routes each carry their own `_resolveInput` (/project-file?path= -> disk path): videoCrop, videoGif, videoReverse, videoTrimInput. One shared helper would do; the tool head avoided a fifth by decoding client-side (`extractAbsPath`).

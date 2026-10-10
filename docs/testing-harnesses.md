@@ -276,7 +276,7 @@ in [testing.md](testing.md) § The desktop suite and [DEVELOPMENT.md](DEVELOPMEN
 ## 5. A shipped graph the connector CANNOT dispatch — stage, then POST it to the engine
 
 `POST /connector/generate` takes `modelId` + `operation`, or `flowId`. **A universal op has
-neither** — `resize`, `resizeVideo`, `crop` and `imageUpscale` are tool-panel ops with no
+neither** — `imageUpscale` and the other rail ops are tool-panel ops with no
 `ModelDef` (`js/data/modelConstants/universal_workflows.js`), and several shipped graphs
 (`remove_background.json`, `gif_cutout_*.json`, `video_interpolate.json`) are reached from no op
 at all. So there is no agent path to a gallery card for any of them, and "just dispatch it" is a

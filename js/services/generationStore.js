@@ -11,7 +11,7 @@
  *                                                                                 → error
  *   'cancelling' is an overlay boolean (not a phase) — interrupt is advisory.
  *
- * Lane accounting: 'local', 'remote' and 'cloud', MAX 1 active each. FIFO pending queue.
+ * Lane accounting: 'local', 'remote', 'cloud' and 'tool', MAX 1 active each. FIFO pending queue.
  * Loop re-fire: a once-per-lane-drain callback slot (fires exactly once per
  * completion, never in the dispatch pass — INV-5).
  *
@@ -74,7 +74,9 @@ const LEGAL_TRANSITIONS = new Map([
 // POD in this app, so a cloud job parked there would hold the Pod's single slot
 // (blocking a real Pod generation) and wear a badge that says the wrong thing. A
 // DeepInfra call shares nothing with either engine: no VRAM, no queue, no boot.
-const LANES = ['local', 'remote', 'cloud'];
+// MPI-1069 — the fourth, 'tool', for the same reason: a sharp/ffmpeg op (Resize) runs
+// in the app's own server, and queued behind a generation it was locked for minutes.
+const LANES = ['local', 'remote', 'cloud', 'tool'];
 const MAX_ACTIVE_PER_LANE = 1;
 
 // ── Factory ───────────────────────────────────────────────────────────────────
@@ -99,11 +101,7 @@ export function createGenerationStore({ emit, logger } = {}) {
      * Pending queue is a single FIFO array shared across lanes;
      * each job carries its lane assignment.
      */
-    const _laneState = {
-        local:  { activeJobId: null },
-        remote: { activeJobId: null },
-        cloud:  { activeJobId: null },
-    };
+    const _laneState = Object.fromEntries(LANES.map(lane => [lane, { activeJobId: null }]));
 
     /** FIFO pending queue (jobs not yet assigned to an active lane slot). */
     const _pending = [];
@@ -111,16 +109,16 @@ export function createGenerationStore({ emit, logger } = {}) {
     /**
      * Loop re-fire callbacks — one slot per lane.
      * Invoked exactly once when the lane drains (active job reaches terminal).
-     * @type {{ local: function|null, remote: function|null, cloud: function|null }}
+     * @type {Record<string, function|null>}
      */
-    const _loopCallbacks = { local: null, remote: null, cloud: null };
+    const _loopCallbacks = Object.fromEntries(LANES.map(lane => [lane, null]));
 
     // ── Private helpers ────────────────────────────────────────────────────────
 
     function _laneOf(job) {
-        // MPI-851: 'cloud' is its own lane — see the LANES note. Anything else still
+        // MPI-851 / MPI-1069: 'cloud' and 'tool' are their own lanes — see the LANES note. Anything else still
         // falls back to 'remote', which is what keeps an unknown engine off 'local'.
-        if (job.engine === 'cloud') return 'cloud';
+        if (job.engine === 'cloud' || job.engine === 'tool') return job.engine;
         return job.engine === 'local' ? 'local' : 'remote';
     }
 
@@ -270,7 +268,7 @@ export function createGenerationStore({ emit, logger } = {}) {
      * @param {object} opts
      * @param {string}   opts.jobId       - Stable UUID for this job (caller-generated).
      * @param {string}  [opts.genId]      - generationService _regId, so the derived status bar can correlate this job to its id-tagged tool:* events (MPI-208 Phase 4).
-     * @param {'local'|'remote'|'cloud'} opts.engine
+     * @param {'local'|'remote'|'cloud'|'tool'} opts.engine
      * @param {string}  [opts.scope]      - 'gallery' | 'groupHistory' | etc.
      * @param {object}  [opts.display]    - Frozen display snapshot (queue panel use).
      * @param {*}       [opts.loopSeed]   - Opaque loop seed (for loop re-fire).
@@ -464,7 +462,7 @@ export function createGenerationStore({ emit, logger } = {}) {
      * The callback is invoked exactly once per lane drain (INV-5).
      * Pass null to clear.
      *
-     * @param {'local'|'remote'|'cloud'} lane
+     * @param {'local'|'remote'|'cloud'|'tool'} lane
      * @param {function|null} cb
      */
     function setLoopCallback(lane, cb) {

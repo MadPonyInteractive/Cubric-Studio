@@ -10,6 +10,8 @@ import { runCommand } from './commandExecutor.js';
 // MPI-851 — the same handle, the same four callbacks, no ComfyUI. Chosen at the
 // dispatch below by `model.provider` alone.
 import { runCloudCommand } from './cloudExecutor.js';
+// MPI-1069 — the third head: Resize on the app's own server (sharp / ffmpeg), no engine.
+import { runToolCommand, isToolOp } from './toolExecutor.js';
 import { saveGeneration, addGroup, updateGroup, serializeGroup, addGroupsToStack, settleResultStack } from './projectService.js';
 import { isStack } from '../data/stackModel.js';
 import { StatusBar } from '../shell/statusBar.js';
@@ -37,7 +39,8 @@ import { checkChildSafety, childSafetyGate, configTexts, configContext, CHILD_SA
 // ── Cue queue (in-app, THREE-LANE dispatch) ─────────────────────────────────
 // We own the pending array. MPI-74 P6 split dispatch into a 'remote' lane (cloud
 // Pod) and a 'local' lane (local ComfyUI, the per-gen "Run locally" toggle);
-// MPI-851 added a third, 'cloud' (DeepInfra, no ComfyUI — see _lanes). Each
+// MPI-851 added a third, 'cloud' (DeepInfra, no ComfyUI — see _lanes), and MPI-1069 a
+// fourth, 'tool' (Resize on sharp/ffmpeg in the app's own server). Each
 // lane runs AT MOST one prompt at a time (so neither engine's Comfy queue grows
 // past 1, preserving the static-filename + asset-upload race protection per
 // engine), but the lanes run CONCURRENTLY: a local gen never waits behind a
@@ -73,7 +76,19 @@ const _lanes = {
     // MPI-851 — a cloud job shares nothing with either engine, so it must not hold
     // either engine's slot. `remote` is the user's POD here, not "somewhere else".
     cloud:  { active: null, lastJobForLoop: null },
+    // MPI-1069 — a Resize must not wait behind a ten-minute generation, which is why the
+    // rail used to lock it while Cue had any job.
+    tool:   { active: null, lastJobForLoop: null },
 };
+
+/** Every lane, in dispatch order. Walk THIS, never a hand-written list: each lane added
+ *  before it had to be patched into four such lists one bug at a time (MPI-851). */
+const LANE_ORDER = Object.freeze(['tool', 'cloud', 'remote', 'local']);
+
+/** @returns {string|null} the lane whose dispatched intent is this Cue job. */
+function _laneHolding(queueJobId) {
+    return LANE_ORDER.find(lane => _lanes[lane].active?.queueJobId === queueJobId) || null;
+}
 
 /**
  * The lane a job (or its opts) dispatches on. MUST mirror the store's engine→lane
@@ -98,6 +113,8 @@ function _laneOf(jobOrOpts) {
     // Run-locally toggle cannot apply to it (there is nothing local to run). Read the
     // MODEL, before the toggle: a cue job carries its config, which carries the model.
     if (jobOrOpts?.config?.model?.provider || jobOrOpts?.model?.provider) return 'cloud';
+    // MPI-1069 — a tool op runs on no engine at all, so neither flag applies either.
+    if (isToolOp(jobOrOpts?.config?.operation)) return 'tool';
     if (opts.forceLocal === true) return 'local';
     return remoteEngineClient.isRemote() ? 'remote' : 'local';
 }
@@ -251,7 +268,7 @@ function _buildQueueDisplay(config = {}, opts = {}, source = 'manual', isLoop = 
         // until MPI-82's spine reads opts.forceLocal — inert on routing for now.
         // MPI-851: 'cloud' is a third value here for the same reason it is a third
         // lane — a DeepInfra job badged 'remote' claims the user's Pod is running it.
-        engine: model.provider ? 'cloud' : (opts.forceLocal ? 'local' : 'remote'),
+        engine: isToolOp(config.operation) ? 'tool' : model.provider ? 'cloud' : (opts.forceLocal ? 'local' : 'remote'),
         // MPI-949: batch membership fields for grouped queue rows.
         batchId:    opts.batchId    ?? null,
         batchLabel: opts.batchLabel ?? null,
@@ -398,7 +415,7 @@ function _onLaneDrain(lane, { skipNext = false } = {}) {
  * pass never enqueues, it never recurses: at most one intent per lane per call.
  */
 function _dispatchNextCue() {
-    for (const lane of ['cloud', 'remote', 'local']) {
+    for (const lane of LANE_ORDER) {
         if (_lanes[lane].active || _laneBusy(lane)) continue;
 
         const idx = _cueQueue.findIndex(job => _laneOf(job) === lane);
@@ -737,11 +754,7 @@ export function cancelRunningCueJob(queueJobId) {
         // user sees a live STOP whose registry lookup finds nothing and no-ops.
         // Nothing is left to interrupt — drain the orphaned lane so the card clears
         // and the next pending job can promote.
-        // MPI-851 fix: was [remote, local] — cloud lane was missing.
-        const orphanLane = _lanes.cloud.active?.queueJobId === queueJobId ? 'cloud'
-            : _lanes.remote.active?.queueJobId === queueJobId ? 'remote'
-            : _lanes.local.active?.queueJobId === queueJobId ? 'local'
-            : null;
+        const orphanLane = _laneHolding(queueJobId);
         if (!orphanLane) return false;
         _onLaneDrain(orphanLane);
         return true;
@@ -749,11 +762,7 @@ export function cancelRunningCueJob(queueJobId) {
 
     // Which lane holds this intent? Resolved from the dispatched intent, not the
     // registry (the intent carries the lane; MPI-74 P6 keeps the OTHER lane clear).
-    // MPI-851 fix: was [remote, local] — cloud lane was missing.
-    const lane = _lanes.cloud.active?.queueJobId === queueJobId ? 'cloud'
-        : _lanes.remote.active?.queueJobId === queueJobId ? 'remote'
-        : _lanes.local.active?.queueJobId === queueJobId ? 'local'
-        : null;
+    const lane = _laneHolding(queueJobId);
     // Capture the EXACT intent object we are about to cancel. `activeGenerations.
     // cancel()` below runs the store cancel SYNCHRONOUSLY, which — when the store
     // drains the lane — fires this lane's loop callback → `_onLaneDrain` → a loop
@@ -811,8 +820,8 @@ export function cancelBatch(batchId) {
     if (!batchId) return;
     // Step 1: drain the pending side first — the drain cannot promote a removed job.
     removeCueJob(j => j.opts.batchId === batchId);
-    // Step 2: stop any running job in this batch across ALL three lanes.
-    for (const lane of ['cloud', 'remote', 'local']) {
+    // Step 2: stop any running job in this batch across ALL lanes.
+    for (const lane of LANE_ORDER) {
         const active = _lanes[lane].active;
         if (active?.opts?.batchId === batchId) {
             cancelRunningCueJob(active.queueJobId);
@@ -832,7 +841,7 @@ const _resultStackOfJob = new Map(); // queueJobId → result stackId
 function _liveResultStackIds() {
     const live = new Set([
         ..._cueQueue.map(job => job.queueJobId),
-        _lanes.cloud.active?.queueJobId, _lanes.remote.active?.queueJobId, _lanes.local.active?.queueJobId,
+        ...LANE_ORDER.map(lane => _lanes[lane].active?.queueJobId),
         ...activeGenerations.list().map(entry => entry.queueJobId),
     ].filter(Boolean));
     const stacks = new Set();
@@ -895,8 +904,7 @@ export function getGenerationQueueSnapshot() {
     // The raw `running`/`pending`/`depth`/`runningCount`/`pendingCount` fields
     // remain as raw counts so callers outside the panel (queue depth, Clear button
     // enabled state) see the true number of jobs in flight.
-    // MPI-851 fix: was [remote, local] — cloud lane was invisible to the snapshot.
-    const runningJobs = [_lanes.cloud.active, _lanes.remote.active, _lanes.local.active].filter(Boolean);
+    const runningJobs = LANE_ORDER.map(lane => _lanes[lane].active).filter(Boolean);
     const running = runningJobs.map(job => _queueSnapshotItem(job, 'running'));
     const pending = _cueQueue.map(job => _queueSnapshotItem(job, 'pending'));
     return {
@@ -921,7 +929,7 @@ function _emitPromptBoxGenerationEndIfIdle() {
     // MPI-851 fix: was [remote, local] — a running cloud job kept the prompt bar
     // locked in "Generating…" with the Stop button live, but a cloud lane stop
     // did not re-check this condition and the bar stranded.
-    if (_lanes.cloud.active || _lanes.remote.active || _lanes.local.active) return;
+    if (LANE_ORDER.some(lane => _lanes[lane].active)) return;
     if (_runningCount() > 0 || _cueQueue.length > 0) return;
     if (state.loopArmed) return;
     Events.emit('promptbox:generation-end');
@@ -1115,7 +1123,8 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
     // `runCommand`: it reaches `comfyController.runWorkflow`, which calls
     // `ensureServerRunning`, so a cloud dispatch through it would cold-start a local
     // ComfyUI on a machine that may have no GPU at all.
-    const exec = (model.provider ? runCloudCommand : runCommand)({
+    // MPI-1069 — and a tool op (Resize) runs on neither: sharp/ffmpeg in our own server.
+    const exec = (isToolOp(operation) ? runToolCommand : model.provider ? runCloudCommand : runCommand)({
         genId: _regId,
         operation,
         modelId: model.id,

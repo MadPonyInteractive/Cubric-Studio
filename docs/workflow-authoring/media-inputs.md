@@ -31,8 +31,6 @@
   graph's `Input_Start_Frame`) costs nothing.
 - **No `MpiString`, no `MpiAnyChecker` in a slot.** `has_value` only says a string was
   typed; since containment a string can be non-empty while nothing loads.
-- **One exception:** `resize_video.json`'s `Input_Video` is an `MpiString` that feeds
-  both `VHS_LoadVideoPath` and `MpiHasAudio`. The app stages its value the same way.
 
 Pinned by `tests/workflow-media-slots.test.cjs` (every shipped graph).
 

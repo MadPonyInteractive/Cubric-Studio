@@ -9,21 +9,22 @@
  *     megapixel target, or the source divided by 1.5 / 2 / 3 / 4. The result
  *     shows in a read-only Width/Height pair and is recomputed per item.
  *
- * Live preview runs the image resize workflow on a small thumbnail of the
- * source (image first frame for video) with proportionally-scaled width and
- * height. Result paints into the inline preview slot, NOT into the viewer
- * canvas — source view stays untouched and interactive.
+ * Live preview runs the server's resize (`POST /tool/resize-preview`, sharp) on a
+ * small thumbnail of the source (image first frame for video) with
+ * proportionally-scaled width and height. Result paints into the inline preview
+ * slot, NOT into the viewer canvas — source view stays untouched and interactive.
  *
- * Apply emits the full-resolution params; the parent block runs the full
- * workflow via generationService and appends the result as a new history
- * entry. Apply never overwrites the source.
+ * Apply emits the full-resolution params; the parent block runs the `resize` /
+ * `resizeVideo` op via generationService — sharp / ffmpeg on the app's own server,
+ * no engine (MPI-1069) — and appends the result as a new history entry. Apply
+ * never overwrites the source.
  *
  * Stack mode (stackMode: true) — MPI-949:
  *   Offers only two families — LONG EDGE (resize so the longest side equals a
  *   pixel length; default 1024) and % (scale by a percentage; default 50).
  *   Live preview is suppressed; Apply emits:
  *     { params: { rule: { kind: 'longEdge'|'percent', value: number },
- *                 upscale_method, keep_proportion, pad_color, crop_position,
+ *                 keep_proportion, pad_color, crop_position,
  *                 divisible_by, flip, rotation } }
  *   The block (Phase 4) calls deriveResizeDims(rule.kind, memberW, memberH,
  *   { [rule.kind]: rule.value }) per stack member to get absolute dims.
@@ -40,16 +41,14 @@ import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.j
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
 import { getToolSettings } from '../../../data/projectModel.js';
-import { runCommand } from '../../../services/commandExecutor.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { qs } from '../../../utils/dom.js';
 import { extractThumbnail, waitForVideoFrame } from '../../../utils/thumbnail.js';
 import { getModelRatios, deriveResizeDims } from '../../../utils/ratios.js';
 
-const UPSCALE_METHODS = ['nearest', 'exact', 'bilinear', 'area', 'bicubic', 'lanczos', 'nvidia_rtx_vsr'];
 const KEEP_PROPORTIONS = ['stretch', 'resize', 'pad', 'pad_edge', 'pad_edge_pixel', 'crop', 'pillarbox_blur', 'total_pixels'];
 const CROP_POSITIONS = ['center', 'top', 'bottom', 'left', 'right'];
-// ImageResizeKJv2 only PAINTS pad_color for the solid 'pad' mode. The edge
+// Only the solid 'pad' mode PAINTS pad_color. The edge
 // modes (pad_edge, pad_edge_pixel, pillarbox_blur) replicate/blur edge pixels
 // and ignore pad_color, so the picker must not show for them.
 const PAD_COLOR_MODES = new Set(['pad']);
@@ -71,7 +70,6 @@ const DEFAULTS = Object.freeze({
     height: 1024,
     megapixels: 1,
     scale: '2',
-    upscale_method: 'lanczos',
     keep_proportion: 'crop',
     pad_color: { r: 0, g: 0, b: 0 },
     crop_position: 'center',
@@ -160,7 +158,6 @@ function coerceSettings(settings) {
         width, height,
         megapixels: megapixels > 0 ? megapixels : DEFAULTS.megapixels,
         scale: SCALE_VALUES.has(String(settings.scale)) ? String(settings.scale) : DEFAULTS.scale,
-        upscale_method: UPSCALE_METHODS.includes(settings.upscale_method) ? settings.upscale_method : DEFAULTS.upscale_method,
         keep_proportion: KEEP_PROPORTIONS.includes(settings.keep_proportion) ? settings.keep_proportion : DEFAULTS.keep_proportion,
         pad_color: normalizeColor(settings.pad_color || DEFAULTS.pad_color),
         crop_position: CROP_POSITIONS.includes(settings.crop_position) ? settings.crop_position : DEFAULTS.crop_position,
@@ -215,10 +212,7 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             </div>
             <div class="mpi-tool-options-resize__section">
                 <div class="mpi-tool-options-resize__section-label">Method</div>
-                <div class="mpi-tool-options-resize__pair">
-                    <div id="resize-method-slot"></div>
-                    <div id="resize-proportion-slot"></div>
-                </div>
+                <div class="mpi-tool-options-resize__row" id="resize-proportion-slot"></div>
                 <div class="mpi-tool-options-resize__row" id="resize-crop-slot"></div>
                 <div class="mpi-tool-options-resize__pair" id="resize-color-divisible-pair">
                     <div id="resize-color-slot"></div>
@@ -253,7 +247,6 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         const _unsubs = [];
         const _persistTimers = new Map();
         let _previewTimer = null;
-        let _previewExec = null;
         let _previewAbort = null;
         let _previewSerial = 0;
         let _destroyed = false;
@@ -542,13 +535,7 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         });
 
         // ── Method controls ──────────────────────────────────────────────────
-        const methodDd = mount('#resize-method-slot', MpiDropdown, {
-            options: UPSCALE_METHODS.map(value => ({ value, label: labelize(value) })),
-            value: settings.upscale_method, direction: 'up',
-            info: 'Resize method', wrapLabels: true,
-        });
-        _unsubs.push(methodDd.on('change', ({ value }) => setValue('upscale_method', value)));
-
+        // MPI-1069: no resampling choice. Lanczos always (Fabio, 2026-10-10).
         const proportionDd = mount('#resize-proportion-slot', MpiDropdown, {
             options: KEEP_PROPORTIONS.map(value => ({ value, label: labelize(value) })),
             value: settings.keep_proportion, direction: 'up',
@@ -613,7 +600,6 @@ export const MpiToolOptionsResize = ComponentFactory.create({
                 emit('apply', {
                     params: {
                         rule: { kind: _stackFamily, value: _stackValue },
-                        upscale_method: settings.upscale_method,
                         keep_proportion: settings.keep_proportion,
                         pad_color: { ...settings.pad_color },
                         crop_position: settings.crop_position,
@@ -643,8 +629,6 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             _previewTimer = null;
             _previewAbort?.abort();
             _previewAbort = null;
-            _previewExec?.cancel?.();
-            _previewExec = null;
             setPreviewBusy(false);
         }
 
@@ -699,7 +683,6 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             if (_destroyed || !_thumbDataUrl) return;
 
             _previewAbort?.abort();
-            _previewExec?.cancel?.();
             const abort = new AbortController();
             const serial = ++_previewSerial;
             _previewAbort = abort;
@@ -710,63 +693,39 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             const thumbLongest  = Math.max(_thumbW, _thumbH);
             const previewParams = scaleParamsForThumb(fullParams, sourceLongest, thumbLongest);
 
-            const exec = runCommand({
-                operation: 'resize',
-                modelId: null,
-                positive: '',
-                negative: '',
-                mediaItems: [{ url: _thumbDataUrl, mediaType: 'image', source: 'thumbnail' }],
-                injectionParams: previewParams,
-                previewOnly: true,
-                suppressLifecycleEvents: true,
-                // MPI-548: the only dispatch that calls runCommand directly, so it misses
-                // the override generationService now resolves for every queued path. Read
-                // the same source of truth — a thumbnail preview must not go to the Pod
-                // while the user has pinned the local engine.
-                forceLocal: state.engineOverride === 'local',
-            });
-            _previewExec = exec;
-
-            exec.onComplete = async (urls = []) => {
-                if (_destroyed || abort.signal.aborted || serial !== _previewSerial) return;
-                try {
-                    const first = urls[0];
-                    if (!first) throw new Error('Resize preview returned no output');
-                    const res = await fetch(first, { signal: abort.signal });
-                    if (!res.ok) throw new Error(`Preview fetch failed (${res.status})`);
-                    const blobUrl = URL.createObjectURL(await res.blob());
-                    if (_destroyed || abort.signal.aborted || serial !== _previewSerial) {
-                        URL.revokeObjectURL(blobUrl);
-                        return;
-                    }
-                    if (_previewImg) {
-                        const prev = _previewImg.src;
-                        _previewImg.src = blobUrl;
-                        if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
-                    }
-                } catch (err) {
-                    if (!abort.signal.aborted) {
-                        clientLogger.warn('MpiToolOptionsResize', 'Resize preview failed', err);
-                    }
-                } finally {
-                    if (serial === _previewSerial) {
-                        _previewExec = null;
-                        _previewAbort = null;
-                        setPreviewBusy(false);
-                    }
+            // MPI-1069: the renderer Apply uses (sharp, in the app's own server), on the
+            // thumbnail. No queue job, so the preview never waits behind a generation.
+            try {
+                const res = await fetch('/tool/resize-preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: abort.signal,
+                    body: JSON.stringify({ dataUrl: _thumbDataUrl, params: previewParams }),
+                });
+                if (!res.headers.get('content-type')?.startsWith('image/')) {
+                    const body = await res.json().catch(() => null);
+                    throw new Error(body?.error?.message || `Preview failed (${res.status})`);
                 }
-            };
-
-            exec.onError = (err) => {
+                const blobUrl = URL.createObjectURL(await res.blob());
+                if (_destroyed || abort.signal.aborted || serial !== _previewSerial) {
+                    URL.revokeObjectURL(blobUrl);
+                    return;
+                }
+                if (_previewImg) {
+                    const prev = _previewImg.src;
+                    _previewImg.src = blobUrl;
+                    if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+                }
+            } catch (err) {
                 if (!abort.signal.aborted) {
                     clientLogger.warn('MpiToolOptionsResize', 'Resize preview failed', err);
                 }
+            } finally {
                 if (serial === _previewSerial) {
-                    _previewExec = null;
                     _previewAbort = null;
                     setPreviewBusy(false);
                 }
-            };
+            }
         }
 
         el.getParams = params;

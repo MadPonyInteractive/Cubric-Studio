@@ -196,8 +196,8 @@ function _reconcileFromStore(snapshot) {
     // 4-stage upscale suffix must not survive onto a 2-stage successor). The tool:*
     // events from the survivor's own gen will repaint label/%/stage.
     //
-    // The `job.genId !== null` guard is LOAD-BEARING, do not drop it: tool-panel
-    // previews (MpiToolOptionsResize) call runCommand directly with
+    // The `job.genId !== null` guard is LOAD-BEARING, do not drop it: direct
+    // runCommand calls (flowService's cloud-edit pass 1) run with
     // suppressLifecycleEvents and NO genId, so their store jobs carry genId:null and
     // emit no tool:* events. Excluding null-genId jobs keeps a silent preview from
     // flashing "Starting" in the bar — only real generationService gens (which carry

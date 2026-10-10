@@ -7,32 +7,48 @@
 const assert = require('assert');
 
 // generationService._laneOf (the intent lane)
-function laneOf(forceLocal, isRemote, isCloud = false) {
+function laneOf(forceLocal, isRemote, isCloud = false, isTool = false) {
     if (isCloud) return 'cloud';
+    if (isTool) return 'tool';
     if (forceLocal === true) return 'local';
     return isRemote ? 'remote' : 'local';
 }
 
 // The executor's engine resolution → generationStore lane. MPI-851 added a third
 // engine: cloudExecutor registers engine 'cloud', and the store's _laneOf maps it to
-// its own lane. commandExecutor still resolves only local/remote.
-function storeLane(forceLocal, isRemote, isCloud = false) {
-    const engine = isCloud ? 'cloud' : (forceLocal === true ? 'local' : (isRemote ? 'remote' : 'local'));
-    if (engine === 'cloud') return 'cloud';
+// its own lane. MPI-1069 a fourth: toolExecutor registers 'tool' (Resize, no engine).
+// commandExecutor still resolves only local/remote.
+function storeLane(forceLocal, isRemote, isCloud = false, isTool = false) {
+    const engine = isCloud ? 'cloud' : isTool ? 'tool' : (forceLocal === true ? 'local' : (isRemote ? 'remote' : 'local'));
+    if (engine === 'cloud' || engine === 'tool') return engine;
     return engine === 'local' ? 'local' : 'remote';
 }
 
-for (const isCloud of [true, false]) {
-    for (const forceLocal of [true, false]) {
-        for (const isRemote of [true, false]) {
-            assert.strictEqual(
-                laneOf(forceLocal, isRemote, isCloud),
-                storeLane(forceLocal, isRemote, isCloud),
-                `lane mismatch at forceLocal=${forceLocal} isRemote=${isRemote} isCloud=${isCloud}`
-            );
+for (const isTool of [true, false]) {
+    for (const isCloud of [true, false]) {
+        if (isTool && isCloud) continue;   // a tool op has no model, so no provider
+        for (const forceLocal of [true, false]) {
+            for (const isRemote of [true, false]) {
+                assert.strictEqual(
+                    laneOf(forceLocal, isRemote, isCloud, isTool),
+                    storeLane(forceLocal, isRemote, isCloud, isTool),
+                    `lane mismatch at forceLocal=${forceLocal} isRemote=${isRemote} isCloud=${isCloud} isTool=${isTool}`
+                );
+            }
         }
     }
 }
+
+// MPI-1069: on the REAL store a tool job runs beside a busy local job instead of queueing
+// behind it, which is the whole reason Resize used to be locked during a generation.
+const { createGenerationStore } = require('../js/services/generationStore.js');
+const store = createGenerationStore({ emit: () => {}, logger: { warn() {}, error() {} } });
+store.register({ jobId: 'gen', engine: 'local' });
+store.register({ jobId: 'resize', engine: 'tool' });
+const running = store.getSnapshot().running;
+assert.deepStrictEqual(running.map(j => [j.jobId, j.lane]).sort(), [['gen', 'local'], ['resize', 'tool']],
+    'a tool job must take its own lane, not wait behind the engine');
+assert.strictEqual(laneOf(true, true, false, true), 'tool', 'Run-locally and a Pod do not move a tool job');
 
 // MPI-851: a cloud model wins over BOTH engine flags. `remote` means the user's Pod in
 // this app, so a cloud job landing there holds the Pod's single slot and badges itself

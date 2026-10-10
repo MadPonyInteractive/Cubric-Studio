@@ -8,6 +8,8 @@
 // SAFETY: an isolated app shares Fabio's ComfyUI. Before any job can dispatch, every fetch but
 // the connector's own is made to hang, so the first job blocks the lane on its first engine
 // call and never reaches the engine; the jobs behind it stay PENDING, where their config reads.
+// The crop is the exception (MPI-1069): Resize runs in the app's own server on its own lane,
+// so it does NOT wait behind the upscale - its `/tool/resize` call is recorded, and hangs too.
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
@@ -70,7 +72,12 @@ test('a tool call with no modelId queues the rail\'s universal op on the source 
     // From here nothing but the connector gets an answer, so nothing reaches the engine.
     await window.evaluate(() => {
       const orig = window.fetch.bind(window);
-      window.fetch = (...args) => (String(args[0] || '').startsWith('/connector/') ? orig(...args) : new Promise(() => {}));
+      window.__toolCalls = [];
+      window.fetch = (...args) => {
+        const u = String(args[0] || '');
+        if (u === '/tool/resize') window.__toolCalls.push(JSON.parse(args[1].body));
+        return u.startsWith('/connector/') ? orig(...args) : new Promise(() => {});
+      };
     });
     // Not awaited: the route holds its reply until the job ends, and these never end.
     for (const body of [
@@ -83,7 +90,7 @@ test('a tool call with no modelId queues the rail\'s universal op on the source 
     }
     const pending = await window.evaluate(async () => {
       const { peekCueQueue } = await import('/js/services/generationService.js');
-      for (let i = 0; i < 50 && peekCueQueue().length < 2; i += 1) await new Promise(r => setTimeout(r, 100));
+      for (let i = 0; i < 50 && (peekCueQueue().length < 1 || !window.__toolCalls.length); i += 1) await new Promise(r => setTimeout(r, 100));
       return peekCueQueue().map(j => ({
         operation: j.config.operation, modelId: j.config.model?.id ?? null, byAgent: j.config.byAgent,
         injectionParams: j.config.injectionParams, role: j.config.mediaItems?.[0]?.role,
@@ -91,16 +98,19 @@ test('a tool call with no modelId queues the rail\'s universal op on the source 
       }));
     });
 
-    expect(pending).toHaveLength(2);
-    const [upscale, crop] = pending;
+    // Only the second upscale waits: the crop went to the tool lane, not behind the first.
+    expect(pending).toHaveLength(1);
+    const [upscale] = pending;
     expect(upscale).toEqual({
       operation: 'imageUpscale', modelId: null, byAgent: true, role: 'inputImage',
       injectionParams: { Upscale_Factor: 3, Upscale_Using_Model: true, Upscale_Model: '4x-AnimeSharp.pth' },
       scope: 'groupHistory', groupId: 'card-1',
     });
     const side = Math.floor(Math.min(natural.w, natural.h) / 2) * 2;
-    expect(crop).toMatchObject({ operation: 'resize', modelId: null, scope: 'groupHistory', groupId: 'card-1' });
-    expect(crop.injectionParams).toMatchObject({ width: side, height: side, keep_proportion: 'crop', crop_position: 'top' });
+    const calls = await window.evaluate(() => window.__toolCalls);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ operation: 'resize', sourcePath: src });
+    expect(calls[0].params).toMatchObject({ width: side, height: side, keep_proportion: 'crop', crop_position: 'top' });
     expect(pageErrors).toEqual([]);
   } finally {
     await closeApp(app);

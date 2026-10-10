@@ -72,9 +72,9 @@ more specific mutation than `_buildParams()` provides. Those operations declare
 an injector in `commandRegistry.js`:
 
 ```javascript
-resize: {
+headSwap: {
     universal: true,
-    injector: 'resize',
+    injector: 'headSwap',
 }
 ```
 
@@ -84,37 +84,19 @@ JSON plus `payload.injectionParams`. The injector mutates the workflow object in
 place and must target nodes by `_meta.title`, not numeric node IDs. After the
 injector runs, those consumed operation-specific params are removed from the
 generic title-keyed params map so names like `flip` cannot collide with a
-workflow node titled `Flip`.
+workflow node titled `Flip` (the old Resize injector's lesson).
 
-Current injector:
-- `resize` (`js/services/workflowInjectors/resizeInjector.js`) shared by
-  `resize` and `resizeVideo`. It writes Resize Image v2, ImageFlip, Image Rotate,
-  and the Boolean node titled Flip. Media inputs (`Input_Image`, `Input_Video`) and
-  Output capture remain handled by the standard command executor/controller path.
+Current injectors: `headSwap` and `ltxSigmas` (`js/services/workflowInjectors/index.js`).
+Resize had one until MPI-1069; it no longer runs on the engine at all — [resize.md](resize.md).
 
-Resize live preview (image AND video workspaces) calls `runCommand` directly with
-`previewOnly: true` AND `suppressLifecycleEvents: true`. The compound extracts a
-512px-longest-edge thumbnail from the source via `viewer.el.getSourceElement()`
-(HTMLImageElement on the canvas viewer, HTMLVideoElement first frame on the
-video viewer) and submits it through the **image** `resize` workflow with
-`width`/`height`/`divisible_by` proportionally scaled to thumbnail space. On the canvas
-viewer it first awaits `whenSourceLoaded()` (the panel can open mid-load: no models means
-the rail opens on Crop, with no canvas swap to wait on) and takes the size MP / SCALE / FREE
-derive from `getSourceSize()`, the ORIGINAL's, since past the display cap the element is a
-smaller copy (MPI-961). Spec: `tests/desktop/crop-resize-output.spec.js`. The
-result paints into an inline `<img>` slot inside the resize tool panel — viewer
-canvas / video stays untouched. `previewOnly` is the existing client-side
-"do not save" hint; `suppressLifecycleEvents: true` suppresses
-`tool:sampling-start` / `tool:loading-model` emits because tool-panel previews
-bypass `generationService` and have no `tool:running`/`tool:idle` pair to
-bracket them — without suppression, StatusBar would be left in active state with
-its elapsed timer running. Multi-stage `_ms` previews go through
-`generationService` and DO want lifecycle events; the suppression is gated on
-the explicit flag, NOT on `previewOnly`. The executor still captures the
-workflow `Output` node for resize; only `_ms` video preview workflows switch
-capture to `Preview`. Apply (image or video) always re-runs the workflow at
-full resolution via `startGeneration`; there is no fast-path / preview-URL
-reuse.
+`suppressLifecycleEvents: true` on a direct `runCommand` call (flowService's cloud-edit
+pass 1) suppresses `tool:sampling-start` / `tool:loading-model`: a direct call bypasses
+`generationService` and has no `tool:running`/`tool:idle` pair to bracket them, so
+StatusBar would be left active with its elapsed timer running. Multi-stage `_ms`
+previews go through `generationService` and DO want lifecycle events; the suppression is
+gated on the explicit flag, NOT on `previewOnly`. Only `_ms` video preview workflows
+switch capture to `Preview`. (The Resize panel's preview ran this way until MPI-1069; it
+is now a sharp route with no engine, [resize.md](resize.md).)
 
 ### Multi-stage workflows
 

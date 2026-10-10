@@ -39,15 +39,6 @@ test('Input_Tier survives the headSwap injector cleanup', async () => {
     assert.ok(!('box1' in params) && !('box2' in params), 'boxes must be consumed');
 });
 
-test('resize still consumes flip (its Input_flip alias must not survive)', async () => {
-    const { RESIZE_CONSUMES } = await import('../js/services/workflowInjectors/resizeInjector.js');
-    const params = { flip: 'x', Input_flip: 'x', width: 512, unrelated: 7 };
-    applyCleanup(params, RESIZE_CONSUMES);
-    assert.ok(!('flip' in params) && !('Input_flip' in params), 'flip alias would no-op the flip node');
-    assert.ok(!('width' in params));
-    assert.strictEqual(params.unrelated, 7, 'undeclared params must survive');
-});
-
 test('every registered injector declares consumes', async () => {
     const { INJECTORS } = await import('../js/services/workflowInjectors/index.js');
     for (const [name, entry] of Object.entries(INJECTORS)) {
