@@ -537,46 +537,23 @@ async function remoteUninstallDep(dep) {
   return json || { status: 'deleted', id: dep.id };
 }
 
-/**
- * Upload a LOCAL file to the wrapper as an input asset (video/audio or .latent),
- * landing it in the Pod volume input dir under a bare basename. Mirrors the
- * wrapper's multipart contract: field `file` (the blob), Form `filename` (bare
- * basename), Form `overwrite`. `endpoint` is '/wrapper/upload/media' or
- * '/wrapper/upload/latent'. Reads the file server-side (the renderer's resolved
- * path is meaningless on the Pod) and streams it through the RunPod proxy with
- * auth + browser UA + the post-restart proxy-404 retry. Returns the wrapper
- * JSON ({ name, type:'input', path? }).
- */
-async function remoteUploadInput(localPath, filename, endpoint) {
-  const fs = require('fs-extra');
-  const path = require('path');
-  if (!localPath || typeof localPath !== 'string') throw new Error('localPath required');
-  if (!(await fs.pathExists(localPath))) throw new Error(`input asset missing: ${localPath}`);
+// MPI-1057: a local file goes up in slices. Reading it whole capped uploads at
+// 2 GiB (Node's Buffer limit: a 10 GB LoRA failed) and one multi-GB request
+// risks RunPod's ~100 s proxy cut. 32 MiB is ~27 s on a 10 Mbit/s uplink.
+const UPLOAD_SLICE_BYTES = 32 * 1024 * 1024;
 
-  const base = path.basename(String(filename || localPath));
-  if (!base || base === '.' || base === '..' || base.includes('/') || base.includes('\\')) {
-    throw new Error('filename must resolve to a bare basename');
-  }
-
-  const podId = _podId();
-  if (!podId) throw new Error('remote_inactive');
-  const headers = await _authHeaders();
-  if (!headers) throw new Error('wrapper_token_missing');
-
-  const buf = await fs.readFile(localPath);
-  const url = `${proxyUrl(podId)}${endpoint}`;
-
-  // Multipart is rebuilt per attempt (FormData/Blob are single-use streams).
+/** POST one slice, with the post-restart proxy-404 retry. Returns the wrapper JSON. */
+async function _postSlice(url, headers, body) {
   const retries = 4;
   const retryDelayMs = 2000;
   let lastErr = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const form = new FormData();
-      form.append('file', new Blob([buf]), base);
-      form.append('filename', base);
-      form.append('overwrite', 'true');
-      const res = await fetch(url, { method: 'POST', headers: { ...headers }, body: form });
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/octet-stream' },
+        body,
+      });
       if (res.status === 404 && attempt < retries) {
         await new Promise((r) => setTimeout(r, retryDelayMs));
         continue;
@@ -595,6 +572,67 @@ async function remoteUploadInput(localPath, filename, endpoint) {
     }
   }
   throw lastErr || new Error('wrapper_upload_failed');
+}
+
+/**
+ * Upload a LOCAL file to the wrapper's `/wrapper/upload/chunk` one slice at a
+ * time (only one slice is ever in memory), through the RunPod proxy with auth +
+ * browser UA. `params` names the destination: `kind` ('model' | 'input'),
+ * `filename`, and the model bucket `type`. A failed slice is retried on its own;
+ * the wrapper renames `<dest>.part` to `<dest>` when the last slice lands.
+ * Returns the last slice's wrapper JSON ({ name, type, path, bytes, done }).
+ */
+async function _uploadInSlices(localPath, params, sliceBytes = UPLOAD_SLICE_BYTES) {
+  const fs = require('fs');
+  const podId = _podId();
+  if (!podId) throw new Error('remote_inactive');
+  const headers = await _authHeaders();
+  if (!headers) throw new Error('wrapper_token_missing');
+
+  const total = (await fs.promises.stat(localPath)).size;
+  const buf = Buffer.allocUnsafe(Math.min(sliceBytes, total));
+  const fh = await fs.promises.open(localPath, 'r');
+  try {
+    let offset = 0;
+    let json = null;
+    let loggedPct = 0;
+    do {
+      const len = Math.min(sliceBytes, total - offset);
+      const { bytesRead } = await fh.read(buf, 0, len, offset);
+      if (bytesRead !== len) throw new Error(`${params.filename} changed on disk during upload`);
+      const qs = new URLSearchParams({ ...params, offset: String(offset), total: String(total) });
+      json = await _postSlice(`${proxyUrl(podId)}/wrapper/upload/chunk?${qs}`, headers, buf.subarray(0, len));
+      offset += len;
+      const pct = Math.floor((offset / total) * 100);
+      if (total > sliceBytes && pct >= loggedPct + 10) {
+        loggedPct = pct - (pct % 10);
+        logger.info('runpod', `upload ${params.filename}: ${loggedPct}% of ${(total / 1e9).toFixed(2)} GB`);
+      }
+    } while (offset < total);
+    return json;
+  } finally {
+    await fh.close();
+  }
+}
+
+/**
+ * Upload a LOCAL file to the wrapper as an input asset (video/audio or .latent),
+ * landing it in the Pod volume input dir under a bare basename. Reads the file
+ * server-side (the renderer's resolved path is meaningless on the Pod) and sends
+ * it in slices (`_uploadInSlices`). Returns the wrapper JSON
+ * ({ name, type:'input', path }).
+ */
+async function remoteUploadInput(localPath, filename) {
+  const fs = require('fs-extra');
+  const path = require('path');
+  if (!localPath || typeof localPath !== 'string') throw new Error('localPath required');
+  if (!(await fs.pathExists(localPath))) throw new Error(`input asset missing: ${localPath}`);
+
+  const base = path.basename(String(filename || localPath));
+  if (!base || base === '.' || base === '..' || base.includes('/') || base.includes('\\')) {
+    throw new Error('filename must resolve to a bare basename');
+  }
+  return _uploadInSlices(localPath, { kind: 'input', filename: base });
 }
 
 /**
@@ -653,17 +691,14 @@ async function remoteModelPresent(type, filename) {
 /**
  * Upload a LOCAL LoRA/upscale model file to the Pod volume's models dir so a
  * remote generation can resolve it by basename. Mirrors `remoteUploadInput`
- * (read file server-side, multipart through the RunPod proxy with auth + browser
- * UA + post-restart 404 retry) but targets the NEW wrapper endpoint
- * `/wrapper/models/upload`, which lands the file in `MODELS_DIR/<type>/<basename>`
- * (via the wrapper's `_model_dest`) instead of the input dir. Adds a `type` form
- * field (the wrapper bucket: 'loras' | 'upscale_models').
+ * (sliced, `_uploadInSlices`) but lands the file in `MODELS_DIR/<type>/<basename>`
+ * (via the wrapper's `_model_dest`) instead of the input dir. `type` is the
+ * wrapper bucket ('loras' | 'upscale_models').
  *
- * GATING: `/wrapper/models/upload` ships in a Pod-image rebuild (MPI-81). Against
- * an older image the endpoint 404s; `remoteUploadInput`'s shared retry treats a
- * 404 as transient warm-up and exhausts its budget, then throws — so the CALLER
- * must guard this behind a rebuilt-image check (or accept a clean failure toast)
- * until the endpoint exists. Returns the wrapper JSON ({ name, type, path }).
+ * GATING: `/wrapper/upload/chunk` ships in the Pod runtime (MPI-1057), not the
+ * image. A runtime without it 404s; the slice retry treats a 404 as proxy
+ * warm-up, exhausts its budget and throws, which the caller shows as a failure
+ * toast. Returns the wrapper JSON ({ name, type, path }).
  * @param {string} localPath  absolute local model path
  * @param {string} type       wrapper bucket ('loras' | 'upscale_models')
  * @param {string} filename   destination basename (subfolder prefix tolerated)
@@ -680,44 +715,7 @@ async function remoteUploadModel(localPath, type, filename) {
   if (!base || base === '.' || base === '..') {
     throw new Error('filename must resolve to a bare basename');
   }
-
-  const podId = _podId();
-  if (!podId) throw new Error('remote_inactive');
-  const headers = await _authHeaders();
-  if (!headers) throw new Error('wrapper_token_missing');
-
-  const buf = await fs.readFile(localPath);
-  const url = `${proxyUrl(podId)}/wrapper/models/upload`;
-
-  const retries = 4;
-  const retryDelayMs = 2000;
-  let lastErr = null;
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const form = new FormData();
-      form.append('file', new Blob([buf]), base);
-      form.append('filename', base);
-      form.append('type', type);
-      form.append('overwrite', 'true');
-      const res = await fetch(url, { method: 'POST', headers: { ...headers }, body: form });
-      if (res.status === 404 && attempt < retries) {
-        await new Promise((r) => setTimeout(r, retryDelayMs));
-        continue;
-      }
-      const json = await res.json().catch(() => null);
-      if (!res.ok || !json) {
-        throw new Error((json && (json.message || json.error)) || `wrapper model upload ${res.status}`);
-      }
-      return json;
-    } catch (err) {
-      lastErr = err;
-      if (attempt < retries) {
-        await new Promise((r) => setTimeout(r, retryDelayMs));
-        continue;
-      }
-    }
-  }
-  throw lastErr || new Error('wrapper_model_upload_failed');
+  return _uploadInSlices(localPath, { kind: 'model', type, filename: base });
 }
 
 /**

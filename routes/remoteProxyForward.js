@@ -218,7 +218,7 @@ router.post('/remote/upload/media', async (req, res) => {
     }
     // Lazy require — remoteModels requires remotePodState (circular at load time).
     const remoteModels = require('./remoteModels');
-    const out = await remoteModels.remoteUploadInput(localPath, filename || localPath, '/wrapper/upload/media');
+    const out = await remoteModels.remoteUploadInput(localPath, filename || localPath);
     // `path` is the absolute Pod path (e.g. /workspace/comfyui/input/<name>).
     // VHS_LoadVideoPath resolves a literal path, NOT a bare basename against
     // --input-directory, so the renderer must inject the full path (not name).

@@ -8,6 +8,8 @@
 - [x] Tests + docs/runpod-remote-engine.md
 - [x] No toast between Connect and its outcome (Fabio)
 - [x] A Flow run stages its models on the Pod disk (was: none)
+- [x] User LoRA/input > 2 GiB uploads to a Pod: 32 MiB slices, runtime 0.2.46 on dev
+- [ ] Fabio proves the 10.27 GB LoRA on a dev Pod, then publish-runtime promote
 - [ ] Volume listing on the next connect (13 GB unexplained)
 - [ ] Fabio's look on his next connect (user-ux)
 - [ ] Release note in docs/releases/UNRELEASED.md (claimed by MPI-1036's session at close-out time? check)

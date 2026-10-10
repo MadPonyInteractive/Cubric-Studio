@@ -479,7 +479,7 @@ router.post('/comfy/stage-preview-latent', async (req, res) => {
         // dir via the wrapper instead of copying into the local ComfyUI input.
         // MPI-74: a force-local run skips the upload and copies into local input below.
         if (remoteModels.isRemoteActive() && forceLocal !== true) {
-            await remoteModels.remoteUploadInput(resolvedSource, engineInputName, '/wrapper/upload/latent');
+            await remoteModels.remoteUploadInput(resolvedSource, engineInputName);
             return res.json({ success: true, copied: engineInputName });
         }
 

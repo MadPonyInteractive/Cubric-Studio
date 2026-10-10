@@ -54,6 +54,39 @@ names whoever changes the connecting phase.
 6. Tests + docs: stall cap and getPod timeout against the real route module; the pending sync;
    `docs/runpod-remote-engine.md` gets the 8-min cap.
 
+## Upload models (Fabio, 2026-10-10)
+
+His UX: connected to any Pod (CPU or GPU) -> "Upload models" button -> overlay: LEFT = local
+tree, RIGHT = remote tree, Upload button between, Delete under the right box (deletes from the
+volume, or cancels that file's upload if still going). LoRAs AND upscale models (the two user
+buckets the upload path already takes). Uploaded files appear on the right at once; progress
+shows in a new TRANSFERS section at the bottom of the Cue panel (key `q`), downloads AND
+uploads, one bar each, gone when nothing transfers. Rows can carry a button.
+
+- **U1 backend** (owner: main session). `routes/remoteUploads.js` (new): one sequential upload
+  queue, jobs `{id, type, filename, totalBytes, sentBytes, status queued|uploading|complete|
+  failed|cancelled, error}`; `_uploadInSlices` takes `onProgress` + `signal`; events
+  `upload:snapshot` / `upload:progress` on the existing downloads SSE stream
+  (`broadcastEngineEvent`). Routes: `GET /remote/user-models?type=` -> `{local:[{rel,
+  sizeBytes}], remote:[{rel, sizeBytes, partial}]}`; `POST /remote/uploads {type, files}`
+  (free-space gate via `remoteVolumeFreeBytes`, 1.05x); `POST /remote/uploads/:id/cancel`;
+  `POST /remote/user-models/delete {type, filename}` (cancels a live upload of it first, then
+  wrapper `/wrapper/models/delete`). Wrapper 0.2.47: `GET /wrapper/models/list?type=` (files +
+  sizes + `.part` as partial; `/wrapper/ls` runs `du` and is slow). 1 GB guard in
+  `/remote/upload/model` when `!noGpu` -> 409 `too_big_for_gpu`. Tests: node + python.
+- **U2 Cue transfers** (frontend). `MpiTransferList` (new Compound) mounted as a 4th grid row in
+  `MpiQueuePanel`; rows from `state.downloadJobs` (active) + `download:progress`, and uploads
+  from `state.uploadJobs` (fed by `downloadService`, which owns the EventSource) +
+  `upload:progress`; `MpiProgressBar` per row; row `action {text,onClick}`.
+- **U3 Uploader overlay** (frontend). `MpiFileTree` (new Primitive: inline, multi-select,
+  reuses `MpiTreePicker`'s `buildTree`); `MpiModelUploader` (new Compound on `MpiOverlay`,
+  tabs LoRAs / Upscale models). Button in `MpiRunpodSettings` Storage subgroup when ready;
+  the 1 GB toast's action opens it (`StatusBar.notify` action, `docs/toasts.md`).
+- **U4 proof**: publish dev 0.2.47; Fabio, CPU Pod, his 10.27 GB LoRA via the overlay.
+
+Kept as today: uploads land by BASENAME (`remoteUploadModel`), matching the generate-time
+presence check. Noticed: a subfolder LoRA (`sub/x`) then sits at `loras/x` on the Pod.
+
 ## Verification
 
 **Verify mode:** user-ux
@@ -67,20 +100,34 @@ names whoever changes the connecting phase.
 
 ## Current State
 
-2026-10-10, session 8f2f562a (handoff): steps 1-6 + the no-toast-mid-connect rule + the Flow
-hot-store fix are implemented, tests green (validation.md). NOT committed. Fabio restarted and
-connected (RTX 5090), and the hot-store reading checks out for him.
+2026-10-10, session 01fc9cdf: steps 1-6, the no-toast rule and the Flow hot-store fix are
+committed (cebcf95f8). The > 2 GiB upload fix is implemented and tested, NOT committed
+(Vision: routes/remoteModels.js, comfy.js, remoteProxyForward.js, remotePodLifecycle.js comment,
+docs line, tests/remote-upload-chunked.test.cjs; mpi-ci: wrapper.py 0.2.46 + test_upload_chunk.py).
+Runtime 0.2.46 is LIVE ON DEV (not stable). MPI-1044 messaged: its promote now carries this.
+
+2026-10-10 18:32Z: Fabio cancelled the proof connect (5090 Pod x9wjfnumfbnb91, deleted 204):
+a 10-40 min home upload billed at GPU rate is not acceptable to him. OPEN DIRECTION, asked:
+(A) the Pod pulls the LoRA from its public link at datacenter speed (wrapper
+`/wrapper/models/install` already takes any http(s) url + sha; app needs the url: CivitAI
+by-hash lookup, or the user pastes it once); (B) a private LoRA uploads on the cheap
+"No GPU - download only" CPU Pod (same wrapper, sliced endpoint works ComfyUI-less), once,
+since the volume keeps it. Sliced upload stays as B's transport. Noticed: his Cancel logged
+`by settings: connect ended without a connection`, not `by settings: Cancel` (17:41 did).
+
+2026-10-10 later: Fabio DECIDED the shape (A is out: CivitAI needs a key + VPN in the UK).
+Build "Upload models" (phases U1-U4 below). Big uploads happen on the CPU Pod; the GPU
+generate-time auto-upload refuses > 1 GB with a toast that opens the uploader.
+
+Handoff (session 01fc9cdf): the sliced-upload fix is COMMITTED (Vision + mpi-ci). Fabio wants
+the next session named for the uploader. Connect-feedback loose ends still open: his Cancel look
+(+ the wrong `connect ended` label), the 13 GB volume diff, the release note. A RELEASE before
+`promote` would break uploads for released users (stable runtime 0.2.45 has no
+/wrapper/upload/chunk); `mpi-release` flags the dev/stable drift.
 
 Next, in order:
-1. **NEW BUG - user LoRA > 2 GiB cannot upload to a Pod.** Fabio, Upscale Video Flow (LTX 2.3)
-   with `sulphur_lora_rank_768.safetensors` (10,268,001,040 bytes): "Could not upload … (File
-   size (10268001040) is greater than 2 GiB)". That is Node's `fs.readFile` 2 GiB buffer cap:
-   the upload reads the whole file into memory. Server side: `routes/remoteProxyForward.js`
-   ~line 255-275 (`remote model upload failed`); client: `js/services/comfyController.js:2227-2239`.
-   Fix = stream the file to the wrapper (no whole-file buffer); check the wrapper's receive side
-   (`mpi-ci/cubric-vision-pod/wrapper/wrapper.py`) accepts a streamed body that size, and that
-   RunPod's proxy ~100 s cut (HTTP 524) does not kill a 10 GB upload (may need chunks/resume).
-   Claim `routes/remoteProxyForward.js` first.
+1. **Phases U1-U4** (below), then Fabio's 10.27 GB LoRA through the uploader on a CPU Pod.
+   Proven -> `./publish-runtime.sh promote`, commit mpi-ci. Watch for a 413/524 on a slice.
 2. **Volume 13 GB question.** Listing taken on the 5090 Pod:
    `research/pod-ls-2026-10-10-5090.json`. Top level: mpi_models 130.99 GB, comfyui 0.46 GB,
    cubric ~0. Note 131 GB of models now (volume was 100 GB at 10:12Z: grown, or more installed
@@ -94,6 +141,14 @@ Next, in order:
 - Steps 1-6 (see checklist.md), all on 2026-10-10.
 
 ## Plan Drift
+
+- 2026-10-10: the > 2 GiB cap was not in the route the handoff named but in
+  `routes/remoteModels.js` (`remoteUploadModel` AND its twin `remoteUploadInput`, both
+  `fs.readFile`), and the wrapper also read the whole body (`await file.read()`). Fixed as one
+  sliced path for both (32 MiB raw slices to a new runtime endpoint), not a streamed single
+  request: RunPod's proxy runs through Cloudflare (100 s, a likely per-request body cap).
+  The dev publish also shipped MPI-936's `model_patches` start.sh line (c57f7dd), which
+  MPI-1044 was waiting on.
 
 - 2026-10-10: the Pod-field log uses the v2 Pod shape (`status`, `startedAt`, `cudaVersion`,
   `ssh.proxy`), not the brief's v1 names (`desiredStatus`, `lastStartedAt`, `machine`): the
