@@ -48,13 +48,21 @@ workflow), ready for LTX 2.5 by re-pointing loaders. Handoffs between sessions u
 - Claims: MPI-1056 holds `docs/releases/UNRELEASED.md`, `js/services/llmService.js` (not needed if the op key
   starts `ref2v`). Nothing else this plan touches is live-claimed.
 
-**Where it stands (handoff 2026-10-10, session "LTX 2.3 reference 1"):**
-- Phase 1 single-stage combos DONE (results.md). Phase 1 two-stage proof BUILT, NOT RUN:
-  `research/bench-tools/two_stage_run.py` (7 cases, `--check` builds all offline). Run it under the lease once
-  `C:/AI/loras/ltx-2.3/LTX23_softenhance_abliterated_detailer_merged.safetensors` (3,869,749,848 B, sha 3c5f9a7f...)
-  is fully present; the shipped graph validates against every other file already (transition LoRA + x2 upscaler +
-  taeltx2_3 hash-checked; Ingredients + talkvid LoRAs must ALSO sit under `C:/AI/loras/ltx-2.3/` with the shipped
-  `ltx-2.3\...` names - copy them from `C:/AI/loras/LTX2.3/` first).
+**Where it stands (session "LTX 2.3 Reference 2", 2026-10-10):**
+- Phase 1 DONE. Two-stage proof ran on the shipped int8 graph (results.md § Two-stage proof): **variant A wins**
+  (stage-2 guide re-added on the upsampled latent + `LTXVCropGuides` before decode; B loses the sheet's freckles).
+  No-sheet t2v and i2v runs are **byte-identical** to the shipped graph, so the fill-driven branch is a true no-op.
+  `two_stage_run.py insert(g, 'A')` is now the exact design Phase 4 copies into the raw template.
+- All shipped LTX weights sit under `C:/AI/loras/ltx-2.3/` with shipped names (Ingredients + talkvid copied in).
+- Phase 2b layout bench DONE (results.md § Phase 2b, 15 clips). The composer is `layout_run.py compose_pack()`:
+  slicing-tree search over WHOLE pictures, stretched to the canvas, grey cards + 12 px black gutters, a setting may be
+  centre-cropped (>= 60% kept), characters/props never; score = coverage x fairness x character floor (>= 45%).
+  Fabio eye-tested the clips: "look good". Prompt shape decided (D5).
+  Pictures fill 76-79% (the first "fill" layout: 58%). Rules it encodes, each from a failed clip: big black areas ->
+  the clip COPIES the sheet layout; a character's views split into cells -> a second person; a preamble without
+  descriptions -> a web-page collage; two-word labels -> the prop is lost.
+- **Next: the composer module** (sharp port of `compose_pack` + `where()`, `/engine-sheet`, hook below) + the D5
+  tag-line rewrite. Unchecked: whether the enhancer backends can SEE images (needed only for filling undescribed lines).
 - Phase 3 R2 upload DONE 2026-10-10: `vision/models/loras/ltx-2.3/ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors`,
   HTTP 200, content-length 1308778338 (rclone lsl agrees). Upstream sha256 PROVEN equal to our copy
   (`515e4e139001ac6282357a5b35372e42e98b3affd5fcc886a52242abeed19559`, HF lfs). HF re-host + `loraDeps.js` entry + model deps NOT done (land the deps WITH the graph,
@@ -79,6 +87,12 @@ workflow), ready for LTX 2.5 by re-pointing loaders. Handoffs between sessions u
   the one-picture case. Bench evidence: a back-view panel leaked as a 2nd figure (own_fisher), so layout rules
   get a bench pass before they ship.
 - **D4: yes** to R2 upload + HF re-host of the LoRA (outward-facing; R2 storage ~1.3 GB, about $0.02/month).
+- **D5 prompt shape (2026-10-10, Fabio's suggestion: teach it in the prompt box's ? help):** the user (or Cosmo)
+  writes one line per reference, `<Picture n> <what it is>`, then the scene in plain words with NO tags. The app
+  rewrites the tagged lines into the Ingredients "### Reference Sheet Description" with the composer's cell names
+  (`**Left Panel (Character):** ...`) and sends the rest as "### Target Description". Never emit a bare
+  "Picture n" into the sheet description (bench: a web-page collage). Lines left undescribed: the enhancer fills them.
+  Help example = the woman / mountain path / backpack prompt (results.md § Phase 2b).
 
 ## Completed
 
@@ -89,11 +103,11 @@ workflow), ready for LTX 2.5 by re-pointing loaders. Handoffs between sessions u
 
 ## Phase 1: Bench answers (investigation, no repo code)
 
-- [ ] Own sheets + combos via `research/bench-tools/ingredients_run.py`: `own_woman`, `own_fisher`,
+- [x] Own sheets + combos via `research/bench-tools/ingredients_run.py`: `own_woman`, `own_fisher`,
   `combo_start` (sheet + start frame), `combo_audio` (sheet + supplied audio), `combo_idlora` (sheet + voice
   clone), `ref_video` (a clip as the guide). **Verify:** each clip saved in `C:\AI\MPI-1060-out\`, inspected
   frame-by-frame by the agent, results table in `research/results.md`, sent to Fabio as VP9 WebM.
-- [ ] Two-stage proof: a bench copy of the shipped `ltx_i2v_t2v_int8.json` with the Phase-4 insertion applied
+- [x] Two-stage proof (2026-10-10: A wins, no-sheet runs byte-identical): a bench copy of the shipped `ltx_i2v_t2v_int8.json` with the Phase-4 insertion applied
   (API-level, scripted), A/B stage-2 guide vs no stage-2 guide, plus t2v/i2v with no sheet. **Verify:** ref
   clip holds the sheet; no-sheet runs reproduce the shipped graph's output for the same seed (frame hash).
 
@@ -103,11 +117,19 @@ workflow), ready for LTX 2.5 by re-pointing loaders. Handoffs between sessions u
 
 ## Phase 2b: Sheet composer (D3)
 
-- [ ] Layout bench first: 2-4 of our pictures (character front + close-up, a location, a prop) composed on black,
+- [x] (2026-10-10: compose_pack on whole pictures; results.md § Phase 2b) Layout bench first: 2-4 of our pictures (character front + close-up, a location, a prop) composed on black,
   contained, character cells biggest; compare against the leak case (back view in). **Verify:** clips inspected;
   chosen layout written into `research/results.md`.
 - [ ] Composer module next to `routes/deepinfraCollage.js` (shared sharp helpers, Ingredients rules, preamble
   naming each cell), wired where local-engine media is staged so the graph receives ONE `Input_Image` file.
+  **Hook (mapped 2026-10-10):** the two engines share NO server route; the one shared point is the renderer
+  `commandExecutor.js runCommand`. Add `_composeReferenceSheet(params, op, modelDef)` right after `_buildParams`
+  (:1934), beside `_fitBoxedInputs`/`_fitMaskedInputs` (:1952), before `_loadRefusal` (:1962); gate on a model
+  capability (e.g. `referenceSheet`) + 2+ `Input_Image*` params. It POSTs the paths to a new `/engine-sheet` route
+  (`routes/projects.js`, writes into `ENGINE_SCRATCH` :2204, swept already), sets `params.Input_Image`, deletes
+  `_2`..`_9`, prepends the preamble to `params.Input_Positive` (precedent `withTransparentPrompt` :900: the run
+  gets the extra words, the card keeps the user's). `runWorkflow` then stages locally or uploads to the Pod unchanged.
+  Layout = `research/bench-tools/layout_run.py compose()` (justified rows, characters top, black, contained).
   **Verify:** unit test on cell geometry + preamble (`node --test`), one-picture case passes the file through.
 
 ## Phase 3: Weight delivery (after D1/D4)
@@ -154,6 +176,9 @@ Run with `mpi-execute-parallel` only if both are ready at once; otherwise sequen
 ## Plan Drift
 
 - 2026-10-10: card scope grew from "bench-test" to "ship as an op" on Fabio's go; plan written then.
+- 2026-10-10: D3's agent pick "black background, each picture contained" was WRONG on the bench: big black areas
+  make the clip copy the sheet layout. Replaced by the packed, canvas-tiling layout (grey cards, thin black gutters)
+  after Fabio flagged the wasted space. Prop sheets: three views (Fabio). Descriptions per picture are mandatory.
 - 2026-10-10: Phase 1 combos done (results.md): start frame, supplied audio, voice clone all compose; a VIDEO as
   the guide is copied, not referenced (so Ingredients cannot edit an existing video). D3 decided: app composes the
   sheet from several pictures. Needs a composer task (server, sharp) + a layout bench pass before Phase 4.
