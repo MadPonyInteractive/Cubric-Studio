@@ -82,9 +82,11 @@ then a SEPARATE close commit.
 
 ## Remaining Work
 
-- [x] CI green on `ac6433522` (run 38085217411)
-- [x] Step 6: Fabio's live check (innocent Japanese on the CHILD clip queues; list word on the ADULT clip)
-- [x] Close commit (card done, claim released)
+Reopened 2026-10-10 (Fabio): adult non-Latin nudity refused by the verdict judge. Fixed in `70df4d389`
+(questions of fact + a non-Latin minor list; see validation.md).
+- [x] CI green on `70df4d389` (run 38088051005)
+- [x] Fabio's live check: `彼女を裸にして` on the ADULT clip queues (21:36:32Z)
+- [x] Close commit
 
 ## Completed
 
