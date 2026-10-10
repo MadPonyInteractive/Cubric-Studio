@@ -61,16 +61,18 @@ Verify: user-ux, Fabio's eye on t2i + edit, alpha measured on the saved card.
 
 Every member is done or explicitly parked by Fabio.
 
-## Current State (2026-10-10, session 38894ae1, handoff f02b4755)
+## Current State (2026-10-10, session 3c24ca48, handoff below)
 
-- Phase 1 DONE in code, verified: MPI-1049 No Background (Fabio's eye-test passed on t2i, edit,
-  Cosmo both routes, Enhance warning; numbers in its validation.md), MPI-1047, MPI-1068, MPI-1067.
-  Vision side committed in the handoff commit; npm test 3022/0 before it.
-- MPI-1067 is committed LOCALLY in ComfyUi-MpiNodes only: still to push and pin
-  (`dev_configs/node_lock.json`, /mpi-nodes-sync). MPI-623 also moves that pin: check its claim.
-- Cards stay in doing (1049/1047/1068/1067 validating): close each once CI is green on the commit.
-- Phase 2 not started: MPI-1066 (crosshatch side-by-side, GPU lease, Fabio's eye), MPI-1065
-  (routes/remoteModels.js was claimed by live MPI-1057).
+- Phase 1 CLOSED: MPI-1043/1049/1047/1068 (d4680fcd8), MPI-1067 pinned 147249427 + closed (fa5af3ee3).
+- MPI-1066 in doing. Cause found: the STOCK Qwen 2.1 VAE decoder stamps a 2-px checker on every
+  2.1 output; Siax amplifies it. Fix = madebyollin Texture-Fix VAE (Fabio eye-tested: works).
+  Committed: raw graphs (6700de2d0, pushed), assetDeps 'vae-qwen-image-21-texturefix'.
+  UNCOMMITTED on purpose (land together): runtime comfy_workflows/qwen_image_2_1.json +
+  flow_character_sheet_edit_qwen.json + flow_character_sheet_from_images.json, docs/models/
+  qwen-image-2/README.md, docs/releases/UNRELEASED.md. Blocker: ONE line in models.js
+  (qwen-image-2-1 dependencies: vae-qwen-image-21 -> vae-qwen-image-21-texturefix); peer
+  MPI-1060 holds the claim and is mid-edit there; message 3c24ca48-mpi1066-to-mpi1060 open.
+- Then: npm test, commit the lot, push, CI, close MPI-1066. Then MPI-1065.
 
 ## Plan Drift
 

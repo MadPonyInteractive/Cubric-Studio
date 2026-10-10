@@ -102,6 +102,9 @@ export const assetDeps = {
         bytes: 253806246,
         sha256: 'a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f'
     },
+    // ── DEPRECATED (MPI-1066): replaced by 'vae-qwen-image-21-texturefix' below. Its decoder
+    // stamps a 2-px checker on every 2.1 output, which a texture-keeping upscaler (Siax) turns
+    // into a crosshatch. Kept so the orphan sweep can reclaim it from disks that have it.
     // Qwen-Image 2.1's VAE (MPI-936) — a DIFFERENT weight from `vae-qwen-image` above: the
     // 2.1 VAE carries the alpha channel the model's transparent output comes through.
     // Research-licensed like the transformer, so HF-primary and never on R2 (see
@@ -120,6 +123,25 @@ export const assetDeps = {
         size: '644.22MB',
         bytes: 675509688,
         sha256: 'bb21f7473051e1ac368515dd3f2e15cd44d7a11748ee8823e1ddca3e4876b7c9',
+        noMirror: true,
+    },
+    // Qwen-Image 2.1's VAE with a retrained decoder (MPI-1066): same encoder and latents, no
+    // 2-px checker (measured 28-38 -> 1.4-3.1 on Fabio's cards), alpha output unchanged.
+    // Unofficial finetune under the same Qwen research licence, so HF-primary like the stock one.
+    'vae-qwen-image-21-texturefix': {
+        id: 'vae-qwen-image-21-texturefix',
+        name: 'Qwen-Image 2.1 VAE (Texture-Fix decoder)',
+        origin: 'madebyollin/texture-fix-vae-for-qwen-image-2.1 (texture_fix_vae_for_qwen_image_2.1_bf16.safetensors)',
+        filename: 'vae/texture_fix_vae_for_qwen_image_2.1_bf16.safetensors',
+        url: 'https://huggingface.co/madebyollin/texture-fix-vae-for-qwen-image-2.1/resolve/main/texture_fix_vae_for_qwen_image_2.1_bf16.safetensors',
+        credit: {
+            author: 'madebyollin (decoder finetune of Qwen\'s Qwen-Image 2.1 VAE)',
+            work: 'Texture-Fix VAE for Qwen-Image 2.1 (Qwen RESEARCH License Agreement)',
+            url: 'https://huggingface.co/madebyollin/texture-fix-vae-for-qwen-image-2.1',
+        },
+        size: '644.22MB',
+        bytes: 675509688,
+        sha256: '36f56608b02077a50a08ea3dbcdb88351298ceba49948f41f9f87186378e6908',
         noMirror: true,
     },
     'ltx23-video-vae': {
