@@ -108,3 +108,8 @@ per-turn context only - not the system prompt budget).
 - Fabio confirmed the decision table for a bare "add detail" as spot on (named thing -> mask; ~1 MP ->
   [Image to image | Tiled detail]; 2K+ -> tiled detail, no question) and declined adding a Mask button.
   This is his "1" for Phase 3.
+
+## Close (2026-10-10)
+
+- Code commit `6db436009`; CI run 38016414486 green (unit + desktop 1-4).
+- Claim audit: 0 FALSE, 12 proven, 6 unverifiable (app.log lines and suite totals, outside the repo).
