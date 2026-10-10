@@ -11,9 +11,8 @@
  *     sourceHeight,   // original natural height (px)
  *   }
  *
- * For video: caller is responsible for ensuring the video has a paint-ready
- * first frame (loadeddata + currentTime=0 nudge) before calling. See memory
- * `feedback_video_first_frame_paint`.
+ * For video: the frame must have been SHOWN, or drawImage reads blank. Await the
+ * viewer's whenSourceLoaded() (MpiVideoViewer) first.
  */
 
 const DEFAULT_MAX_EDGE = 512;
@@ -29,50 +28,6 @@ function _intrinsicDims(source) {
         return { w: source.width, h: source.height };
     }
     return { w: 0, h: 0 };
-}
-
-/**
- * Wait until a video element has rendered its first frame so drawImage()
- * produces non-transparent pixels.
- *
- * Pass `{ awaitNextLoad: true }` when the caller has just triggered a src
- * change and the video may still report readyState>=2 from the previous
- * source. The returned promise then waits for the next `loadeddata` event
- * regardless of current state, then nudges currentTime to force a paint
- * flush in Chromium.
- */
-export function waitForVideoFrame(video, opts = {}) {
-    const { timeoutMs = 4000, awaitNextLoad = false } = opts;
-    return new Promise((resolve) => {
-        if (!(video instanceof HTMLVideoElement)) { resolve(false); return; }
-
-        const finishReady = () => {
-            try { video.currentTime = video.currentTime || 0; } catch (_) {}
-            // RAF nudge — drawImage(video) is transparent until the browser
-            // paints the new frame after currentTime change.
-            requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)));
-        };
-
-        if (!awaitNextLoad && video.readyState >= 2 && video.videoWidth > 0) {
-            finishReady();
-            return;
-        }
-
-        let done = false;
-        const finish = (ok) => {
-            if (done) return;
-            done = true;
-            video.removeEventListener('loadeddata', onLoaded);
-            if (ok) finishReady();
-            else resolve(false);
-        };
-        const onLoaded = () => {
-            try { video.currentTime = 0; } catch (_) {}
-            finish(true);
-        };
-        video.addEventListener('loadeddata', onLoaded);
-        setTimeout(() => finish(false), timeoutMs);
-    });
 }
 
 /**

@@ -172,7 +172,7 @@ Pan/zoom transform targets the actual `.mpi-video-surface__video` element, not `
 - `MpiVideoSurface`     props: `{ fps }`   slot: `[data-mount="surface"]` inside viewer stage
 - `MpiViewerCorners`    no props          slot: `#corners-mount` inside viewer stage
 
-**Instance API (on `el`):** `attachControlBar(instance)` / `detachControlBar()`, `getSurfaceInstance()`, `loadVideo(url, meta)` — `meta.fps`/`meta.frameCount`/`meta.trim` proxied to the attached control bar; `meta.trim = { in, out }` propagates as `setPendingTrim` (one-shot, applied on next `loadedmetadata`). Plus `enterCropMode(rect)`, `exitCropMode()`, `getCropRect()`, `setCropRatio(ratio)`, `captureSnapshot({ time })`, `getSourceElement()`, `resetView()`, `setRangeQuiet(in, out)`, `getRange()`, `setTopRight(items)`, `enterUpscaleMode()`, `exitUpscaleMode()`, `enterInterpolateMode()`, `exitInterpolateMode()`, `destroy()`.
+**Instance API (on `el`):** `attachControlBar(instance)` / `detachControlBar()`, `getSurfaceInstance()`, `loadVideo(url, meta)` — `meta.fps`/`meta.frameCount`/`meta.trim` proxied to the attached control bar; `meta.trim = { in, out }` propagates as `setPendingTrim` (one-shot, applied on next `loadedmetadata`). Plus `enterCropMode(rect)`, `exitCropMode()`, `getCropRect()`, `setCropRatio(ratio)`, `captureSnapshot({ time })`, `getSourceElement()`, `whenSourceLoaded()` (first frame SHOWN — await before `drawImage`), `resetView()`, `setRangeQuiet(in, out)`, `getRange()`, `setTopRight(items)`, `enterUpscaleMode()`, `exitUpscaleMode()`, `enterInterpolateMode()`, `exitInterpolateMode()`, `destroy()`.
 
 > Control bar lifetime is owned externally — `viewer.destroy()` only `detachSurface()` on the attached bar; it does NOT destroy it.
 

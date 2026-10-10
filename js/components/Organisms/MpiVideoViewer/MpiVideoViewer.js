@@ -48,6 +48,9 @@
  *   getSurfaceInstance()                    — MpiVideoSurface instance (for
  *                                             external attach via factories)
  *   getSourceElement()                      — raw <video> element
+ *   whenSourceLoaded()                      — resolves once the loaded clip has SHOWN a
+ *                                             frame (drawImage reads blank before), or
+ *                                             failed to load
  *   destroy()
  *
  * Emits:
@@ -135,6 +138,22 @@ export const MpiVideoViewer = ComponentFactory.create({
 
         _unsubs.push(on(_videoElement, 'loadeddata', () => _setLoadingSpinner(false)));
         _unsubs.push(on(_videoElement, 'error',      () => _setLoadingSpinner(false)));
+
+        // ── First frame shown ────────────────────────────────────────────
+        // Chromium's drawImage(video) is transparent until a frame has been PRESENTED,
+        // which comes a few ms after readyState reads HAVE_ENOUGH_DATA and is visible to
+        // nothing later: a paused clip never presents again. So it is observed from the
+        // src change on, here, and a reader of the frame (the Resize thumbnail) awaits it
+        // like MpiCanvasViewer.whenSourceLoaded. A blank preview after a clip Apply was
+        // this race (MPI-1069). An error settles it too: there is no frame to wait for.
+        let _frameShown = Promise.resolve();
+        let _resolveFrameShown = null;
+        const _settleFrameShown = () => { _resolveFrameShown?.(); _resolveFrameShown = null; };
+        const _armFrameShown = () => {
+            if (!_resolveFrameShown) _frameShown = new Promise(r => { _resolveFrameShown = r; });
+            _videoElement.requestVideoFrameCallback(_settleFrameShown);
+        };
+        _unsubs.push(on(_videoElement, 'error', _settleFrameShown));
 
         // ── Top-right chip strip ─────────────────────────────────────────
         _cornersInstance = MpiViewerCorners.mount(qs('#corners-mount', el));
@@ -329,6 +348,7 @@ export const MpiVideoViewer = ComponentFactory.create({
             }
             _setLoadingSpinner(true);
             _surfaceInstance.el._setSrc(url);
+            _armFrameShown();
             _resetView();
         };
 
@@ -415,6 +435,7 @@ export const MpiVideoViewer = ComponentFactory.create({
         };
 
         el.getSourceElement = () => _videoElement;
+        el.whenSourceLoaded = () => _frameShown;
 
         el.enterUpscaleMode    = () => el.setAttribute('data-mode', 'upscale');
         el.exitUpscaleMode     = () => el.setAttribute('data-mode', 'idle');

@@ -43,7 +43,7 @@ import { Events } from '../../../events.js';
 import { getToolSettings } from '../../../data/projectModel.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { qs } from '../../../utils/dom.js';
-import { extractThumbnail, waitForVideoFrame } from '../../../utils/thumbnail.js';
+import { extractThumbnail } from '../../../utils/thumbnail.js';
 import { getModelRatios, deriveResizeDims } from '../../../utils/ratios.js';
 
 const KEEP_PROPORTIONS = ['stretch', 'resize', 'pad', 'pad_edge', 'pad_edge_pixel', 'crop', 'pillarbox_blur', 'total_pixels'];
@@ -638,16 +638,14 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             _previewTimer = setTimeout(runPreview, 250);
         }
 
-        async function _refreshThumbnail({ awaitNextLoad = false, syncDims = false } = {}) {
+        async function _refreshThumbnail({ syncDims = false } = {}) {
             // The panel can open while the viewer is still loading the entry (the rail
-            // opens on Crop, with no canvas swap to wait on): read the image once it is drawn.
+            // opens on Crop, with no canvas swap to wait on), and Apply reloads it under the
+            // panel: read the image once it is drawn, the clip once a frame is shown.
             await viewer?.el?.whenSourceLoaded?.();
             if (_destroyed) return;
             const sourceEl = viewer?.el?.getSourceElement?.();
             if (!sourceEl) { _thumbDataUrl = null; return; }
-            if (sourceEl instanceof HTMLVideoElement) {
-                await waitForVideoFrame(sourceEl, { awaitNextLoad });
-            }
             const thumb = extractThumbnail(sourceEl, THUMB_MAX_EDGE);
             if (!thumb) { _thumbDataUrl = null; return; }
             _thumbDataUrl = thumb.dataUrl;
@@ -734,7 +732,7 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             if (!item || item.id === currentItem?.id) return;
             currentItem = item;
             cancelPreview();
-            await _refreshThumbnail({ awaitNextLoad: kind === 'video', syncDims: true });
+            await _refreshThumbnail({ syncDims: true });
             schedulePreview();
         };
 

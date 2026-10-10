@@ -46,3 +46,4 @@ Fabio wants a FRESH session for this card (not the MPI-1062 one).
 ## Noticed
 
 - Four routes each carry their own `_resolveInput` (/project-file?path= -> disk path): videoCrop, videoGif, videoReverse, videoTrimInput. One shared helper would do; the tool head avoided a fifth by decoding client-side (`extractAbsPath`).
+- MpiVideoViewer.captureSnapshot draws right after `seeked`; the same unpresented-frame gap could blank a snapshot (Take picture). Not seen, not checked.

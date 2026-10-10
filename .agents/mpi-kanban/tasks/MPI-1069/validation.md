@@ -41,3 +41,8 @@ Run 2026-10-10, session d44c0c41. All passed.
 ## After Fabio's Lanczos call (same day)
 - Method dropdown removed, server always Lanczos. Re-run: resize-ops + crop-ratios-divisible 13/13, desktop crop-resize-output + agent-tool-ops 7/7, eslint clean.
 - Claim auditor: 28 proven, 0 false (one stale wording here, fixed).
+
+## Reopen: blank preview after a clip Apply (2026-10-10 night)
+- Reproduced in `crop-resize-output.spec.js` (new assertion: preview is a NEW blob with an opaque centre pixel): clip test red 2 of 5, then 2-3 of 8 at panel open once the post-Apply seek race was gone.
+- Instrumented: failing thumbnails had readyState 4, not seeking, currentTime 0, `drawImage` alpha 0; rVFC fired 18-31 ms later with alpha 255.
+- Fix (MpiVideoViewer.whenSourceLoaded via rVFC; waitForVideoFrame deleted): clip test 8/8, whole spec file x3 below; eslint clean.

@@ -22,6 +22,8 @@ so it times out (4 s) and the thumbnail is drawn from an unpainted video = trans
 its order differs. Not engine-related: the preview is `/tool/resize-preview` now. Fix at the race, both images and
 video; add a desktop-spec assertion (crop-resize-output.spec.js clip test: preview is a blob after Apply).
 
+**2026-10-10 night: preview bug FIXED, uncommitted.** Root cause was NOT the missed-`loadeddata` lead: Chromium's `drawImage(video)` is transparent until a frame is PRESENTED to the compositor, and readyState 4 / not seeking does not say so (measured: settled, `drawImage` alpha 0, then `requestVideoFrameCallback` fires ~20-30 ms later and alpha is 255; a paused clip never presents again, so nothing can tell afterwards). `waitForVideoFrame`'s own `currentTime` nudge added a seek on top. Fix: `MpiVideoViewer.whenSourceLoaded()` (rVFC armed in `loadVideo`, settles on error), the twin of the canvas viewer's; the panel awaits it for both; `waitForVideoFrame` deleted (no other caller). Spec asserts an opaque, NEW preview after Apply on a still and a clip (was 2-3 of 8 red, now 8/8). Next: commit with the card in doing, CI green, close.
+
 Pre-build facts (kept for the record):
 
 - Resize is two ComfyUI graphs (`comfy_workflows/resize.json`, `resize_video.json`) driven by
@@ -88,9 +90,11 @@ Pre-build facts (kept for the record):
   Deleted: `comfy_workflows/resize.json`, `resize_video.json`, `workflowInjectors/resizeInjector.js`
   (unstaged deletions - `git rm` staged them in the SHARED index, reset back).
 
+- [x] 2026-10-10: blank Resize preview after a clip Apply fixed at the viewer (frame-presented wait).
+
 ## Remaining Work
 
-- Fix: Resize panel preview blank on the new entry after a video Apply (see Current State lead). Then CI green, close.
+- Commit the preview fix, CI green, close.
 
 ## Plan Drift
 

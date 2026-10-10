@@ -71,9 +71,13 @@ card's `upscale_method` is ignored. (`exact` and `nvidia_rtx_vsr` never ran on t
    A Stop aborts the request and the route kills its ffmpeg.
 5. **Live preview** (single card only): `POST /tool/resize-preview` with the panel's 512 px
    thumbnail and thumbnail-scaled params, PNG back. No queue job, so nothing to lock. The
-   thumbnail is `viewer.el.getSourceElement()` (the image, or a video's first frame); the
-   canvas viewer is awaited with `whenSourceLoaded()` (the panel can open mid-load), and
-   MP / SCALE / FREE size from `getSourceSize()`, the ORIGINAL, since past the display cap the
+   thumbnail is `viewer.el.getSourceElement()` (the image, or a video's first frame), read
+   after the viewer's `whenSourceLoaded()` (the panel can open mid-load, and Apply reloads the
+   viewer under it). On the video viewer that waits for a frame to be PRESENTED
+   (`requestVideoFrameCallback`, armed in `loadVideo`): Chromium's `drawImage` of a clip is
+   transparent until then even at `readyState` 4, and a paused clip never presents again, so
+   nothing can tell afterwards. A thumbnail drawn in that gap was the blank preview after a clip
+   Apply. MP / SCALE / FREE size from `getSourceSize()`, the ORIGINAL, since past the display cap the
    element is a smaller copy (MPI-961).
 
 The rail no longer dims or locks Resize: `_syncQueueBlockedTools` is gone, and Resize is out of

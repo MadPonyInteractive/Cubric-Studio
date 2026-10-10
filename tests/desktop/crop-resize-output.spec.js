@@ -97,6 +97,27 @@ async function provokeRunner(window) {
   });
 }
 
+const previewSrc = (window) => window.evaluate(() =>
+  document.querySelector('.mpi-tool-options-resize__preview-img')?.src || '');
+
+/**
+ * True once the Resize preview is a server render (blob:) other than `notSrc` whose centre
+ * pixel is opaque. A thumbnail drawn from an unpainted <video> is transparent, and the
+ * server still renders it, so blob: alone proves nothing.
+ */
+const previewOpaque = (window, notSrc) => window.evaluate(async (notSrc) => {
+  const img = document.querySelector('.mpi-tool-options-resize__preview-img');
+  if (!img?.src.startsWith('blob:') || img.src === notSrc) return false;
+  await img.decode().catch(() => {});
+  if (!img.naturalWidth) return false;
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth;
+  c.height = img.naturalHeight;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  return ctx.getImageData(c.width >> 1, c.height >> 1, 1, 1).data[3] === 255;
+}, notSrc);
+
 /** Wait for the next file (PNG unless `ext`) the app writes into Media/ and return its size. */
 async function nextOutputSize(media, seen, ext = '.png') {
   let file = null;
@@ -226,10 +247,14 @@ test('Resize applies a still with no engine, and draws its live preview', async 
     await height.fill('100');
     await height.press('Enter');
     await window.waitForTimeout(1000);
+    await expect.poll(() => previewOpaque(window, ''), { timeout: 15000 }).toBe(true);
+    const before = await previewSrc(window);
     await panel.getByRole('button', { name: 'Apply' }).click();
     // Crop to 2:1, then Divisible by 16 floors 200x100 to 192x96.
     expect(await nextOutputSize(media, seen)).toMatchObject({ width: 192, height: 96 });
     await expect.poll(() => historyLength(window)).toBe(2);
+    // The panel re-reads the new entry, as on a clip.
+    await expect.poll(() => previewOpaque(window, before), { timeout: 15000 }).toBe(true);
     expect(pageErrors).toEqual([]);
   } finally {
     await closeApp(app);
@@ -277,6 +302,8 @@ test('Resize applies a clip with no engine: its size, its trim and its sound', a
     await height.fill('120');
     await height.press('Enter');
     await window.waitForTimeout(1000);
+    await expect.poll(() => previewOpaque(window, ''), { timeout: 15000 }).toBe(true);
+    const before = await previewSrc(window);
     await panel.getByRole('button', { name: 'Apply' }).click();
 
     let out = null;
@@ -293,6 +320,9 @@ test('Resize applies a clip with no engine: its size, its trim and its sound', a
     expect([meta.width, meta.height, meta.hasAudio]).toEqual([160, 112, true]);
     expect(Math.abs(meta.duration - 1), `the 0.5-1.5 s trim, got ${meta.duration}`).toBeLessThan(0.15);
     await expect.poll(() => historyLength(window)).toBe(2);
+    // The panel stays up across Apply and re-reads the NEW entry: its preview is a fresh
+    // render of a painted frame, not one drawn from the reloading <video> (blank, checkerboard).
+    await expect.poll(() => previewOpaque(window, before), { timeout: 15000 }).toBe(true);
     expect(pageErrors).toEqual([]);
   } finally {
     await closeApp(app);
