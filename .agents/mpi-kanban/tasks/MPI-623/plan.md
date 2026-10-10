@@ -20,7 +20,18 @@ now says "about N minutes on this GPU": `pathEtaMin` scales the 1810 s 4060 Ti r
 points, Render path. Then re-anchor `PATH_RUN` on the Pod's measured seconds (a table card) and say
 the price of anything beyond his own test first. Still open: his eye on the path-ball fix; P3.
 MPI-1043 told by state message (its MpiNodes-sync item is done; its scoped smoke + release rebuild must
-use/bake GGUF). **Session 42 (2026-10-10, "3D Scene 32"):
+use/bake GGUF). **Morning of 2026-10-10 (same session):** Fabio restarted; his first PRO 6000 Pod
+(`bswhp64gs1z4v1`, EU-RO-1, image `v0.26.0-dev-cu130` per app.log + console) sat 8 min in
+"Initializing" with EMPTY System logs (the pull never started: a host stall, not the image; he deleted
+it). A CPU Pod on the same volume `lpja78wof3` came up fine; he installed the `scene-path` plugin (20 GB,
+from R2, all four weights fetched) + Qwen 2.1's new style LoRAs (volume 59.3 -> 80.5 GB). **Mystery
+(not root-caused):** on the CPU Pod every model read NOT installed (0/24) though the weights were on the
+volume; the Qwen install re-fetched 4 volume node packs (MpiNodes, UltimateSDUpscale,
+inpaint-cropandstitch, LanPaint) and Klein 9B + SDXL Realistic flipped to installed. Something drops
+code-only node packs from the volume between Pods (10-09's installs re-fetched the same 4); not start.sh's
+dedupe (baked twins only), no rmtree at boot. Fabio's call pending: a research card for it. **Next:**
+Fabio connects the PRO 6000 again, then Render path (give him the steps). Note `lpja78wof3` was made
+2026-10-09 09:09; the old 360 GB smoke volume `0gzc4yk344` is gone. **Session 42 (2026-10-10, "3D Scene 32"):
 P2 RAN LIVE through the app** (validation.md § Paths P2 LIVE): Fabio restarted, the engine has GGUF +
 `MpiWanMaskedVideo`; the real Render path button landed `cameraPathVideo_001` in 1810 s, known corr
 median +0.975 (bench +0.972), a warm room with a fireplace behind the window. Copied into
