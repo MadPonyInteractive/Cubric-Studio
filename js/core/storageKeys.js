@@ -13,6 +13,8 @@ export const STORAGE_KEYS = {
   AUTO_START_COMFY:    'mpi_auto_start_comfy',
   GALLERY_VOLUME:      'mpi_gallery_volume',
   TOAST_SOUND:         'mpi_toast_sound',
+  // MPI-623: the Scene panel's and the 360 player's last Frame aspect + Lens, shared.
+  SCENE_SHOT:          'mpi_scene_shot',
 
   // MPI-573: microphone capture. Device is a deviceId from enumerateDevices (empty
   // = system default); gain is a linear multiplier applied to the recorded signal,

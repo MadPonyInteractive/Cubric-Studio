@@ -8,22 +8,11 @@
     background: var(--surface-1);
 }
 
-/* The viewer, letterboxed to the picture's aspect (`--frame-ar`, set by the Block): the
-   frame shows exactly what Take picture holds. MpiGifViewer's contain-in-a-size-container. */
+/* The viewer fills the stage: the path renders whole 360 frames, so there is no shot to frame. */
 .mpi-scene-block__stage {
     position: relative;
     flex: 1;
     min-width: 0;
-    container-type: size;
-}
-
-.mpi-scene-block__frame {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: min(100cqw, 100cqh * var(--frame-ar, 1.7778));
-    height: min(100cqh, 100cqw / var(--frame-ar, 1.7778));
-    transform: translate(-50%, -50%);
 }
 
 .mpi-scene-block__viewport {
@@ -31,31 +20,57 @@
     inset: 0;
 }
 
-.mpi-scene-block__tools {
-    position: absolute;
-    top: var(--s-3);
-    left: var(--s-3);
-    display: flex;
-    gap: var(--s-2);
-}
-
-/* The picture panel. */
+/* The path tool: the path, then the view. */
 .mpi-scene-block__panel {
     display: flex;
     flex-direction: column;
-    gap: var(--s-2);
     width: 300px;
-    padding: var(--s-3);
+    padding: 0 var(--s-3);
     overflow-y: auto;
     border-left: 1px solid var(--line);
     background: var(--surface-0);
 }
 
+.mpi-scene-block__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    padding: var(--s-3) 0 var(--s-4);
+}
+
+.mpi-scene-block__section + .mpi-scene-block__section {
+    border-top: 1px solid var(--line);
+}
+
 .mpi-scene-block__label {
-    margin-top: var(--s-2);
-    color: var(--ink-3);
+    color: var(--ink-2);
     font-size: var(--t-xs);
     text-transform: uppercase;
+}
+
+.mpi-scene-block__label:not(:first-child) {
+    margin-top: var(--s-2);
+}
+
+/* Add point takes the row; remove-last and clear sit after it as icon buttons. */
+.mpi-scene-block__path {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+}
+
+.mpi-scene-block__path-add {
+    flex: 1;
+    min-width: 0;
+}
+
+.mpi-scene-block__path-add > .mpi-btn,
+.mpi-scene-block__render > .mpi-btn {
+    width: 100%;
+}
+
+.mpi-scene-block__render {
+    margin-top: var(--s-1);
 }
 
 /* The lens: a stepped slider and the length it stops on. */
@@ -78,24 +93,13 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* The camera path's buttons, one row. */
-.mpi-scene-block__path {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s-2);
-}
-
 .mpi-scene-block__readout,
 .mpi-scene-block__status {
-    color: var(--ink-2);
+    color: var(--ink-1);
     font-size: var(--t-sm);
+    text-wrap: pretty;
 }
 
 .mpi-scene-block__status:empty {
     display: none;
-}
-
-.mpi-scene-block__history {
-    flex: 1;
-    min-height: 120px;
 }

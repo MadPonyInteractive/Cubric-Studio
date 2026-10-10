@@ -157,3 +157,4 @@ workflow JSON, not the source.**
 - 2026-10-06: Fabio's "super upscaler" workflow (irregular masks, detailed area by area) could
   become its own Flow for stills, including the ones captured from a 3D scene. Separate from
   this card; he has the workflow.
+- 2026-10-10 (session 47): in Fabio's Scene screenshot the path tube and the balls just past `BALL_HIDE` fill the screen edges near the camera (huge pink blobs). Thinner/fading near the camera if it bothers him.

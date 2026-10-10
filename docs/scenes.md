@@ -59,46 +59,28 @@
 - Fly: `scene.fly.*`, a DOWN + UP entry per key (W/S/A/D, Q/E down/up, Z/C roll), Scene page only
   (`agentMode.toggle` is gated OFF it). Shift = `FLY_BOOST` x4; a letter under Shift arrives as
   `shift+w`, so each has a `.shift` twin or never releases. Drag looks. Drawn on demand.
-- The picture panel (`MpiSceneBlock`): the canvas letterboxed to the aspect (`--frame-ar` +
-  container units; 16:9 / 9:16 / 1:1 / 2.39:1), a stepped lens slider (`MpiProgressBar` over
-  `LENSES`, 12-85 mm), a readout (height m = `EYE_HEIGHT_M` 1.6 x (1 + y / `groundBelow`, the median
-  drop below the pano camera); mm; roll), the fill line, Take picture, and the card's
-  `MpiHistoryList`: an entry's `scenePose` flies camera, frame, lens back. Not yet: DoF, golden PNG.
-  **The card stays on its pano** (the gallery shows it): no pick writes `selectedIndex`; open resets one.
+- The panel (`MpiSceneBlock`) is a PATH TOOL since P3 (2026-10-10): pictures come from the path
+  video's 360 player, so the view fills the stage (no aspect) and the panel holds Path (count, Add
+  point / remove last / clear, the line that steers Wan, Render path) and Lens (`LENSES` 12-85 mm
+  slider, Up / Down = `scene.lens.*`; a readout of height m = `EYE_HEIGHT_M` 1.6 x (1 + y /
+  `groundBelow`) and roll). The lens sticks (`Storage.getSceneShot`, shared with the player, which
+  also keeps the aspect there). Pictures: § the 360 player below. **The card stays on its pano**.
 
-## Take picture
+## Pictures: the path video's 360 player (P3)
 
-`js/services/scene/scenePicture.js` `takePicture(ctx, appIo())`, one press (plan A5):
-1. `renderPicture` at `pictureSize(aspect)` (~1 MP, sides x16: 16:9 = 1360x768): the frame, the
-   hole mask (white = fill), the camera z of every known pixel (0 = hole, MINUS the pano's z on a
-   hole that is a real surface seen from behind), the pano's share seen from behind / from the
-   front, the camera as a pinhole record (`layerCamera`: OpenCV w2c = diag(1,-1,-1) x the GL view);
-   the frame goes to disk via `place-preview-asset` (no card).
-2. Holes -> Klein `inpaint`: `GENERIC`, or inside (`insideAt` the SPOT: six 48 px views see more pano
-   from behind than front) `INTERIOR`, `ROOM` when the frame sees no outside, + `STYLE_ASK` put once a
-   scene to `describeImage` (Remote's pick; a failure stops the fill); looking down past 60 deg `DOWN` / `FLOOR`. Then `In the large empty areas: <line>.` A fill that leaves over `LEAK` (0.5% of the frame) black in its holes runs once more (new seed).
-3. `sceneLift` on the fill with the known z (`place-preview-asset` `.f32` -> `absPath`) and the lens
-   as `fovX` (NO known z: stops before Klein). `MpiLiftDepth` fits on |z| (scale only at one depth, slope <= 0, or shift < 0 with no back faces) and keeps 0 and negative pixels;
-   the minus signs ride only on an INTERIOR shot (`knownDepth`), since outside a back face is an
-   object's far side and the fill paints what lies beyond it; `POST /project-media/:id/scene-layer` copies the fill and downloads the depth as
-   `layer<n>.png` / `layer<n>_depth.f32`, appends the record (manifest LAST); `view.addLayer` meshes
-   it live (`loadLayer`).
-4. Clean-up B, always: Klein `kleinEdit` + `POLISH` on the filled frame, then `colorLock` (Reinhard, CIELAB) to the pre-clean frame.
-5. `uploadMediaFile` -> `createImageItem({ scenePose })` -> `appendToHistory` -> `updateGroup`, and
-   `scenePose` on the sidecar (`update-meta`): `{ pos, yaw, pitch, roll, mm, aspect, fillLine }`.
-Every Klein job runs `deferCommit` without `existingGroup` (the only branch that honours it), so no
-job lands a card; their `inpaint_NNN` / `edit_NNN` PNGs stay in `Media/` for Cleanup. The viewer
-drops its float targets once the render is read (Klein's VRAM).
-- 4060 Ti: 60-77 s a picture (fill 33-51 s, lift 2-2.5 s, clean-up 23-26 s). Limit: inside, the room's depth is a compromise (fit error up to 73%); back faces never hide a fill. § Interior lift.
-
-## Build here
-
-`buildHere(ctx, appIo())` (the tools strip's **Build here**; a second press stops after the running
-view): Take picture's fill steps (1-3 above, `fillLayer`) over `buildPoses` - six 1024x1024 views
-at `BUILD_MM` 16 (~97 deg, so they overlap) from the camera's spot, facing first, then right,
-behind, left, up, down; up/down at pitch +-`PITCH_MAX` (`applyPose` has no right vector straight
-up). One `insideAt` answer for all six; each renders with the layers before it, one with no holes
-is skipped, one that sees nothing known yet (inside: the view behind) waits for the rest, then is skipped if still blind. No clean-up, no entry: the layers are the result. 4060 Ti: ~200-265 s; the lift gets the ground plane (`Input_Ground`, below). Limit: it only ADDS layers - side-stepping tears them, a second press never clears a stray piece.
+A path-video card (`getPathVideoItem`) opens on PAGE_SCENE in `MpiPanoVideoBlock` (navigation picks
+the Block by card): `panoVideo.js` wraps the video round the camera (a BackSide sphere, the
+`<video>` as a `VideoTexture`, `stitchPano` run backwards in a shader); the look is RELATIVE to the
+path's heading (the video item has no points). Drag looks while it plays; Space plays, Left / Right
+step a frame (`video.*` ids), Up / Down the lens; aspect + lens stick (`Storage.getSceneShot`).
+**Take picture** (`takeVideoPicture`): the view rendered at `pictureSize(aspect)` through the same
+shader -> Klein `kleinEdit` + `POLISH` (`kleinJob`, `deferCommit`: no card of its own) -> `colorLock`
+(Reinhard, CIELAB) -> `savePictureCard`: a NEW image card, `scenePose` + frame + video id on its
+sidecar. No upscaler: Klein alone is sharp on a 24 mm cut (validation.md, MPI-623).
+The scene's own Take picture / Build here (Klein fills lifted into the scene as layers) were removed
+with P3 (2026-10-10; the fills read as seams). Old scenes' layers still load (`loadScene` reads
+`manifest.layers`); the `sceneLift` op + `POST /project-media/:id/scene-layer` now have no caller and
+wait on a deprecation (`docs/playbooks/add-model/README.md` § Removing; MPI-623 plan).
 
 ## Camera path and its 360 video (P1 + P2, plan § Plan Drift 2026-10-09)
 

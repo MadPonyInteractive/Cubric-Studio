@@ -1,10 +1,14 @@
-# MPI-1044 - Release 2.0.2 readiness (umbrella)
+# MPI-1044 - Release 2.1 readiness (umbrella)
 
-Fabio, 2026-10-08: the next release is **2.0.2** (app is on 2.0.1). It ships the engine bump to
+**2026-10-10, Fabio: the release is 2.1, not 2.0.2** ("considering we have so much stuff that is coming out, we
+might as well call it 2.1, so there's no problem in having the dev gate removed"). About eight agents were
+working toward it. MPI-623's 3D Scene + 360 Pano Flow ship UNGATED in it (blocker below).
+
+Fabio, 2026-10-08: the next release was **2.0.2** (app is on 2.0.1) - now 2.1, above. It ships the engine bump to
 ComfyUI 0.39.0 from MPI-1043 (local half and Pod smoke done: 39 pass, 3 skip, 0 fail on the
 v0.25.0-dev image, `dev_configs/smoke-evidence.json`, commit d27b5d8ba).
 
-Release flow: `/mpi-version-bump` (stamp 2.0.2), then `/mpi-release`. One release per change,
+Release flow: `/mpi-version-bump` (stamp 2.1), then `/mpi-release`. One release per change,
 from master.
 
 ## Blockers - every one closes before the cut
@@ -28,7 +32,7 @@ from master.
 - [ ] **Clean RELEASE Pod image rebuild** at v0.25.0 (`/build-pod-image`), pull-verify both
       tags, then move the STABLE `POD_IMAGE_VERSION` / `POD_IMAGE_VERSION_CPU` pair in
       `routes/remotePodLifecycle.js` (still v0.24.0 = ComfyUI 0.34.0). Mandatory after an
-      engine bump: without it a 2.0.2 user runs 0.39.0 locally against a 0.34.0 Pod.
+      engine bump: without it a 2.1 user runs 0.39.0 locally against a 0.34.0 Pod.
 - [ ] **The ComfyUI describe encoder reaches both engines (MPI-1045).** `qwen3vl-abliterated-clip`
       (4.88 GB) became an `engineAsset` and the Image Describer plugin is gone; proven by unit
       tests only. Ride blocker 1's Pod session, no extra rent: after connect the volume holds
@@ -39,11 +43,16 @@ from master.
       takes "about a minute, with no full re-download", but a user without Krea 2 also downloads
       the 4.88 GB describe encoder on that launch (the MPI-1045 Fixes line). Reword one so they
       agree, at the `/mpi-release` copy review.
-- [ ] **Stamp 2.0.2** (`/mpi-version-bump`) and `npm run release:check` green, then
+- [ ] **The 3D Scene ships ungated (MPI-623).** Its plan § Paths P3 + Phase 4: the 360 Pano Flow built and
+      smoked, MoGe HF re-host + `noMirror` dropped, `promote` after a Pod proves `start.sh`'s `moge` line,
+      the `scene-convert` / `scene-path` plugins lose `devOnly`, every `APP_CONFIG.dev_mode` Scene gate off,
+      `sceneLift` deprecated, Fabio's end-to-end eye check.
+- [ ] **Stamp 2.1** (`/mpi-version-bump`) and `npm run release:check` green, then
       `/mpi-release`.
 
 ## Related, not owned here
 
 - MPI-1043 (engine bump) closes with blockers 2-3 done.
 - MPI-936 (Qwen 2.1), MPI-623 (3D scene), MPI-1036 (Video Edit Flow), MPI-1042 (character
-  sheets) were unblocked by the engine bump; whether each ships in 2.0.2 is Fabio's call.
+  sheets) were unblocked by the engine bump; whether each ships in 2.1 is Fabio's call (MPI-623: yes,
+  ungated, 2026-10-10).

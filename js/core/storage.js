@@ -265,6 +265,10 @@ export const Storage = {
   getGalleryVolume:    () => Math.min(1, Math.max(0, Number(get(STORAGE_KEYS.GALLERY_VOLUME, 0.8)) || 0)),
   setGalleryVolume:    (v) => set(STORAGE_KEYS.GALLERY_VOLUME, Math.min(1, Math.max(0, Number(v) || 0))),
 
+  // `{ aspect, mm }` - the caller checks each against its own lists (a stale value falls back).
+  getSceneShot:        () => get(STORAGE_KEYS.SCENE_SHOT, null) || {},
+  setSceneShot:        (v) => set(STORAGE_KEYS.SCENE_SHOT, v),
+
   getToastSound:       () => get(STORAGE_KEYS.TOAST_SOUND, true),
   setToastSound:       (v) => set(STORAGE_KEYS.TOAST_SOUND, v),
 

@@ -1478,3 +1478,20 @@ of the Convert test card + his 5090 well video card `cameraPathVideo_002`, proje
   count reaching `pathFrames`, the ball flag. Scene tests 85/85 + 1, eslint clean. Full `npm test` 3044
   pass / 2 fail = `child-safety-gate` (two cases), from MPI-1062's uncommitted `js/data/childSafety.js`
   + its test, not this card.
+
+
+## P3 player asks: arrow keys + sticky aspect/lens (2026-10-10, session 47 "3D Scene 37", no engine)
+
+- Keys reuse the Video Player's ids (`video.frame.back` / `.forward` / `video.playPause`) via `Hotkeys.bind`,
+  unbound in destroy (the GIF control bar's precedent); no registry change. Aspect + lens: `Storage`
+  `SCENE_SHOT` (`mpi_scene_shot`), read on mount, written only on the user's own change, in BOTH
+  `MpiPanoVideoBlock` and `MpiSceneBlock` (`js/state.js` is held by MPI-1057; MpiMediaPicker reads Storage direct).
+- Live, isolated app (scratchpad `q.cjs`, fresh profile, the well video): 10/10 PASS - defaults 16:9 / 24 mm;
+  Right 10->11, Left x2 ->9, Left at 0 stays 0; Space plays (frame 24); Right while playing pauses one
+  frame on (24->25, icon back to play, frame still); 2.39:1 + 35 mm set in the player -> the Scene panel
+  opens with 2.39:1 / 35 mm; Scene lens 28 mm -> the player reopens 2.39:1 / 28 mm; Right after clicking
+  the aspect radio steps the frame and leaves the aspect alone. No page errors.
+- eslint clean on the 4 files; `pano-video` + `scene-viewer` 19/19; full `npm test` 3047 pass / 0 fail.
+- Fabio passed the asks live ("Everything worked"). Then asked: Up / Down step the lens. Built as `scene.lens.up/down` (registry, Scene page only) bound in BOTH Blocks, one LENSES stop, saved like the slider. Rig 15/15: player 35->50->28, floor 12, 12+5 Ups = 28, Scene panel 28->35, shared value reaches the reopened player. eslint clean, hotkey-gating 4/4.
+- Scene panel = path tool (Fabio: "path tool only"). Live rig (r.cjs, his Convert test copy): buttons = Add point, remove last, clear, Render path; no picture tools; canvas = stage (1478x989). Desktop `scene-viewer` + `scene-workspace` specs rewritten for it: 2/2 pass. eslint clean.
+- Fabio passed the path-tool panel ("Looks good", his app). Then swept the client code it orphaned: scenePicture.js 420 -> 182, scene-picture tests 18 -> 4 (+3 mutants killed), scene-viewer spec loses insideAt; npm test 3035/0, scene-viewer + scene-workspace 2/2, live player rig all player checks pass, no page errors.

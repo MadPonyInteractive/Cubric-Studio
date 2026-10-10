@@ -26,6 +26,8 @@ import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
 import { getPathVideoItem } from '../../../utils/assetKinds.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { Hotkeys } from '../../../managers/hotkeyManager.js';
+import { Storage } from '../../../core/storage.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { START_POSE, applyPose, flyLook } from '../../../services/scene/sceneViewer.js';
 import { appIo } from '../../../services/scene/scenePicture.js';
@@ -79,8 +81,10 @@ export const MpiPanoVideoBlock = ComponentFactory.create({
         const fps = Number(videoItem?.fps) || 16;
         const frames = Number(videoItem?.frameCount) || 81;
 
-        let pose = { ...START_POSE };
-        let aspect = ASPECTS[0];
+        // The last Frame aspect + Lens stick, shared with the Scene panel.
+        const shot = Storage.getSceneShot();
+        let pose = { ...START_POSE, mm: LENSES.includes(shot.mm) ? shot.mm : START_POSE.mm };
+        let aspect = ASPECTS.includes(shot.aspect) ? shot.aspect : ASPECTS[0];
         let view = null;
         let busy = false;
         let drag = null;
@@ -188,11 +192,34 @@ export const MpiPanoVideoBlock = ComponentFactory.create({
             on(video, 'pause', () => setPlaying(false)),
             on(video, 'error', () => { if (!destroyed) clientLogger.warn('scene', `path video failed to load: ${video.error?.message || video.error?.code}`); }),
         ];
+        const togglePlay = () => {
+            if (!view) return;
+            if (video.paused) video.play().catch(() => {});
+            else video.pause();
+        };
+        // The Video Player's keys: Space plays, Left / Right step a frame (pausing, like the scrubber).
+        const unbinds = [
+            Hotkeys.bind('video.playPause', togglePlay),
+            Hotkeys.bind('video.frame.back', () => { if (view) seekFrame(frame - 1); }),
+            Hotkeys.bind('video.frame.forward', () => { if (view) seekFrame(frame + 1); }),
+            Hotkeys.bind('scene.lens.up', () => stepLens(1)),
+            Hotkeys.bind('scene.lens.down', () => stepLens(-1)),
+        ];
+        const keepShot = () => Storage.setSceneShot({ aspect, mm: pose.mm });
+        // Up / Down: one lens stop longer / wider, like the slider.
+        const stepLens = (d) => {
+            const i = Math.max(0, Math.min(LENSES.length - 1, lensStop(pose.mm) + d));
+            if (LENSES[i] === pose.mm) return;
+            pose = { ...pose, mm: LENSES[i] };
+            lensPick.el.setValueQuiet(i);
+            show();
+            keepShot();
+        };
         viewport.on('resize', show);
-        playBtn.on('click', () => (video.paused ? video.play().catch(() => {}) : video.pause()));
+        playBtn.on('click', togglePlay);
         scrub.on('input', ({ value }) => { seekFrame(value); });
-        aspectPick.on('select', ({ value }) => setAspect(value));
-        lensPick.on('input', ({ value }) => { pose = { ...pose, mm: LENSES[value] }; show(); });
+        aspectPick.on('select', ({ value }) => { setAspect(value); keepShot(); });
+        lensPick.on('input', ({ value }) => { pose = { ...pose, mm: LENSES[value] }; show(); keepShot(); });
         takeBtn.on('click', take);
 
         if (videoItem?.filePath && canvasEl.isSupported()) {
@@ -218,6 +245,7 @@ export const MpiPanoVideoBlock = ComponentFactory.create({
             destroyed = true;
             if (frameCb) video.cancelVideoFrameCallback(frameCb);
             offs.forEach(off => off());
+            unbinds.forEach(off => off());
             video.pause();
             if (view) {
                 canvasEl.setDraw(null);

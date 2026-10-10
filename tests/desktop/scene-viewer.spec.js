@@ -208,29 +208,19 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
         expect(boosted.moved, `Shift+W covers far more than W's ${afterW.pos[2]} in the same 400 ms`).toBeGreaterThan(afterW.pos[2] * 2.5);
         expect(boosted.after, 'released under Shift, W stopped').toBe(0);
 
-        // ── The picture panel ─────────────────────────────────────────────────────
+        // ── The panel: a path tool (P3) ───────────────────────────────────────────
         const panel = window.locator('.mpi-scene-block__panel');
-        const frameRatio = () => window.evaluate(() => {
-            const r = document.querySelector('.mpi-scene-block__frame').getBoundingClientRect();
-            return Math.round(r.width / r.height * 100) / 100;
-        });
-        // #readout, not the class: MPI-623 added #path-readout with the same class.
-        await expect(panel.locator('#readout')).toContainText('Height 1.60 m · 24 mm · roll 0°');
-        await expect(panel.locator('button:has-text("Take picture")')).toBeEnabled();
-        expect(await frameRatio(), 'the frame starts 16:9').toBe(1.78);
-        await panel.locator('button:has-text("1:1")').click();
-        await expect.poll(frameRatio, { message: '1:1 letterboxes the frame square' }).toBe(1);
+        // #readout, not the class: #path-readout shares it.
+        await expect(panel.locator('#readout')).toHaveText('Height 1.60 m · roll 0°');
+        await expect(panel.locator('.mpi-scene-block__lens-value')).toHaveText('24 mm');
+        await expect(panel.locator('button:has-text("Take picture")')).toHaveCount(0);
+        await expect(panel.locator('.mpi-history-list__card')).toHaveCount(0);
+        await expect(panel.locator('button:has-text("Add point")')).toBeEnabled();
         await holdKey(window, 'c', 300);
         expect((await getPose(window)).roll, 'C rolls the camera right').toBeGreaterThan(0.05);
         await expect(panel.locator('#readout')).not.toContainText('roll 0°');
-        // A picture's entry flies the camera back to where it was taken, frame and lens too.
-        await panel.locator('.mpi-history-list__card').nth(1).click();
-        const { aspect: _a, fillLine: _f, ...shotPose } = SHOT;
-        await expect.poll(() => getPose(window)).toEqual(shotPose);
-        await expect.poll(frameRatio, { message: 'the entry\'s 9:16 frame' }).toBe(0.56);
-        await expect(panel.locator('.mpi-scene-block__lens-value')).toHaveText('35 mm');
-        expect(await cardIndex(), 'picking a picture leaves the card on its pano').toBe(0);
-        // The lens slider steps through the stops and says the one it is on.
+        expect(await cardIndex(), 'the card stays on its pano').toBe(0);
+        // The lens slider steps through the stops and says the one it is on; Up / Down step it too.
         await window.evaluate(() => {
             const input = document.querySelector('.mpi-scene-block__lens-slider input');
             input.value = 0;
@@ -238,12 +228,16 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
         });
         await expect(panel.locator('.mpi-scene-block__lens-value')).toHaveText('12 mm');
         expect((await getPose(window)).mm).toBe(12);
+        await window.keyboard.press('ArrowUp');
+        await expect(panel.locator('.mpi-scene-block__lens-value')).toHaveText('14 mm');
+        await window.keyboard.press('ArrowDown');
+        await window.keyboard.press('ArrowDown');
+        await expect(panel.locator('.mpi-scene-block__lens-value'), 'Down stops at the widest').toHaveText('12 mm');
 
-        // ── Take picture's readout: z is the camera depth sceneLift fits against ──
+        // ── The render's readout: z is the camera depth, back faces negative ──
         // (the self-check view used to swallow it: z all 0, so the first live lift failed)
         const shot = await window.evaluate(async (manifestUrl) => {
             const V = await import('/js/services/scene/sceneViewer.js');
-            const { insideAt } = await import('/js/services/scene/scenePicture.js');
             const view = V.createSceneView(await V.loadScene(manifestUrl));
             const renderer = document.querySelector('.mpi-scene-canvas').getRenderer();
             const at = (yaw, pos = [0, 0, 0], mm = 24) => {
@@ -251,15 +245,13 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
                 const k = 18 * 64 + 32;
                 return { z: s.z[k], back: s.backFrac, front: s.frontFrac, rgb: [...s.rgba.slice(k * 4, k * 4 + 3)] };
             };
-            // The pano camera stands in the open; 6 out it stands behind the sphere's walls.
-            const inside = { centre: insideAt(view, renderer, [0, 0, 0]), beyond: insideAt(view, renderer, [0, 0, 6]) };
             // Outside the sphere, 1 past the blue band, looking back at it: all of it from behind.
             // Then 6 out on the layers' ray, looking back through the sphere at 300 mm: the white
             // fill (seen from its front, 5.5 away) is behind a back face (1 away), and a back face
             // never hides a fill; the purple one (5 away) is seen from behind and discarded.
             const s45 = Math.SQRT1_2 * 6;
             const r = { ahead: at(0), layer: at(Math.PI / 4), outside: at(Math.PI, [0, 0, 6]),
-                through: at(5 * Math.PI / 4, [s45, 0, s45], 300), inside };
+                through: at(5 * Math.PI / 4, [s45, 0, s45], 300) };
             view.dispose();
             return r;
         }, scenePath);
@@ -268,7 +260,6 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
         expect(shot.ahead.back, 'nothing ahead is seen from behind').toBe(0);
         expect(shot.ahead.front, `the band ahead is a real surface seen from the front, got ${shot.ahead.front}`).toBeGreaterThan(0.9);
         expect(shot.outside.front, 'from outside, no pano surface faces the camera').toBeLessThan(0.05);
-        expect(shot.inside, 'the pano camera is in the open; behind the sphere\'s wall is inside').toEqual({ centre: false, beyond: true });
         expect(Math.abs(shot.layer.z - 1), `the layer at depth 1 wins, got ${shot.layer.z}`).toBeLessThan(0.1);
         // A hole that is a real surface seen from behind carries MINUS its z: sceneLift fits an
         // interior's fill to those walls and still replaces them (the window picture's 64% holes).

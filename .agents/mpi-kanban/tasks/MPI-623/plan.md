@@ -8,7 +8,11 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 46 (2026-10-10, "3D Scene 36"): P3's
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 47 (2026-10-10, "3D Scene 37"):
+Fabio's player asks passed; Up/Down lens; the Scene panel restructured to a PATH TOOL (his call, passed); the scene Take picture / Build here code swept (client); `sceneLift` deprecation is the open follow-up** **Fabio, end of session 47: this ships UNGATED in 2.1** (§ Plan Drift 2026-10-10 "2.1": the ship list). **Next: the 360 Pano Flow via `/mpi-add-flow`.** (validation.md § P3 player asks): Left/Right
+step a frame, Space plays; aspect + lens stick and are SHARED with the Scene panel (`Storage` `SCENE_SHOT`,
+not `state.js` - MPI-1057 holds it). UNCOMMITTED. **Next:** Fabio's eye in his app; then frame 0's black
+outlines (§ Paths P3). **Session 46 (2026-10-10, "3D Scene 36"): P3's
 360 PLAYER BUILT + LIVE** (validation.md § P3 player; § Remaining Work > Paths P3). Quality first: Klein
 POLISH alone sharpens a 24 mm cut of the 1440 frame (295 px) to a clean 1360x768 - no upscaler. Then
 `MpiPanoVideoBlock` + `panoVideo.js`: a path-video card (`getPathVideoItem`) opens on PAGE_SCENE in the
@@ -502,9 +506,26 @@ panel), Take picture. No walkable world (the lift into the scene was built, run 
       they are thick. Candidate: the real pano as frame 0's guide picture.
 - [x] Fabio's eye on the player + a picture (session 46, his app, well video frame 59, 12 mm 2.39:1 ->
       `scene_001` 1584x656): "It works nicely."
-- [ ] Fabio's asks (session 46): Left / Right arrows step one frame back / forward (via `Hotkeys.bind` +
-      `hotkeyRegistry.js`, never a raw keydown; pauses like the scrubber); the Frame aspect and Lens keep
-      their values once changed (across player opens - and the Scene panel's too? ask, or match both).
+- [x] Fabio's asks (session 47): Left / Right step a frame (pausing), Space plays - the Video Player's own
+      `video.frame.*` / `video.playPause` ids, no registry change. Aspect + lens stick across opens AND
+      are shared with the Scene panel (`Storage.getSceneShot`; my pick: one camera, one setting). Live rig
+      10/10 (validation.md § P3 player asks). Fabio passed it ("Everything worked").
+- [x] Up / Down step the lens, both views (`scene.lens.up/down`, session 47; rig 15/15).
+- [x] The Scene panel is a PATH TOOL (Fabio, session 47: "path tool only"): Path (count, Add point +
+      icon remove-last / clear, Steer the video line, Render path primary) then Lens; the view fills
+      the stage. Gone from the UI: Frame aspect, Take picture, Pictures, Build here, Bake 3D. Desktop
+      specs updated (scene-viewer, scene-workspace 2/2). Fabio passed it ("Looks good").
+- [x] (client half, session 47) Sweep what that left unused: `scenePicture.js` `takePicture` / `buildHere` + helpers (insideAt,
+      fillPrompt, fillLayer, the prompts...) + their tests + docs/scenes.md § Take picture / § Build here;
+      then the server chain only they fed (`sceneLift` op, `/scene-layer`, `view.addLayer`) - check
+      every caller first (Convert uses `sceneConvert`, not `sceneLift`?).
+      DONE client side: scenePicture.js 420 -> 182 lines (kept sceneStyle, kleinJob, colorLock, placeAsset,
+      appIo); scene-picture.test.cjs = 4 tests (style once + failure, kleinJob no card, colour lock), 3
+      mutants killed; docs/scenes.md § Take picture + § Build here -> § the 360 player. npm test 3035/0.
+- [ ] Deprecate `sceneLift` (op registry 2.0.1, commandRegistry, universal_workflows, commandExecutor
+      branch, scene_lift.json, MpiLiftDepth node) + `POST /scene-layer` (routes/projects.js, peer-held
+      today) via docs/playbooks/add-model/README.md § Removing. No caller left; old scenes' layers
+      still LOAD (loadScene), so keep the viewer side.
 
 ### Phase 0: Single-shot spikes (bench + a scratch HTML page, NO product code)
 
@@ -693,6 +714,13 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       **Verify:** `release:check` green with those three done.
 
 ## Plan Drift
+
+- **2026-10-10 - SHIPS UNGATED IN 2.1 (Fabio, session 47).** The release once called 2.0.2 is now 2.1 ("we might as well
+  call it 2.1, so there's no problem in having the dev gate removed"; "New release 2.1 brings you Qwen image 2.1 and ...").
+  Ship list (also MPI-1044's blocker): the 360 Pano Flow (§ Parallel Batch, NOT started) built + smoked; frame 0's black
+  outlines (§ Paths P3); `sceneLift` + `/scene-layer` deprecated (§ Paths P3); Phase 4 (MoGe HF re-host + `noMirror` off,
+  Pod proves `start.sh` moge then `promote` - Fabio's yes at that time, `scene-convert` / `scene-path` lose `devOnly`, every
+  `APP_CONFIG.dev_mode` Scene gate off, docs/rules, privacy + licence notices); Fabio's end-to-end eye check.
 
 - **2026-10-10 - P3 REVERSED to option 1: a 360 video player (Fabio, session 45).** The lift below was
   built, run live and passed every mechanical check, but by eye it was seams, floaters and soft patches

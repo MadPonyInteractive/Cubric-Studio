@@ -82,5 +82,8 @@ ticks (Phase 0/0b/1, all complete) moved verbatim to
 - [x] P3 player built: `MpiPanoVideoBlock` + `panoVideo.js`, routed by card, Take picture -> a new card (session 46)
 - [x] `frameCount` wired into Render path + its minutes; path balls near the camera hidden (session 46)
 - [ ] Frame 0's thin black outlines in a path video (plan § Paths P3)
-- [ ] Fabio's eye on the 360 player + its pictures
+- [x] Fabio's eye on the 360 player + its pictures (session 46: "It works nicely")
+- [x] Player asks: Left/Right step a frame, Space plays; aspect + lens stick, shared with the Scene panel (session 47, live rig 10/10)
+- [x] Up/Down lens; Scene panel = path tool (Fabio passed); scene Take picture / Build here code swept (session 47)
+- [ ] Deprecate the `sceneLift` op + `/scene-layer` route (no caller left; plan § Paths P3)
 - [ ] End check (user-ux, Fabio)

@@ -829,6 +829,17 @@ export const HOTKEY_REGISTRY = [
         when:             ({ state }) => state.currentPage === 'scene',
         allowWhileTyping: false,
     },
+    // The Scene panel and the 360 player share the lens (both on the Scene page).
+    ...[['arrowup', 'up', 'Longer lens (zoom in)'], ['arrowdown', 'down', 'Wider lens (zoom out)']].map(([key, dir, description]) => ({
+        id:               `scene.lens.${dir}`,
+        key,
+        type:             KEY_TYPE.DOWN,
+        category:         'scene',
+        scopeLabel:       'Scene',
+        description,
+        when:             ({ state }) => state.currentPage === 'scene',
+        allowWhileTyping: false,
+    })),
 ];
 
 /**
