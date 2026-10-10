@@ -9,22 +9,33 @@
 | | |
 |---|---|
 | id / title | `video-edit` / **Video Edit** |
-| requiredModels | `['minimax-h3-ref2va']` — the graph loads the ref2va transformer, its 8-step turbo LoRA, `taeh3` |
+| requiredModels | `[{ label: 'Model', models: ['minimax-h3-ref2va'], loras: true }]` (the user's LoRA rack) — the graph loads the ref2va transformer, its 8-step turbo LoRA, `taeh3` |
 | requiredDeps | `['minimax-h3-character-swap-lora', 'minimax-h3-faceswap-lora']` (akatz-ai, UntMods; `loraDeps.js`). `flow:video-edit` is gated by `MINIMAX_H3` in `licences.js`, so an H3 receipt covers both |
 | operation | `flowVideoEdit` (new, `appVersionIntroduced` 2.0.1) |
 | workflow | `flow_video_edit.json`, one single-pass H3 r2v turbo graph for both routes. Authoring: `tasks/MPI-1036/research/bench/flow_graph.py` (inputs, templates, routes), exported by `export_raw.py`; `flow_graph_ours.py` is the two-stage attempt, research only |
 | describe | `Input_Look` / `Input_Kept`, filled by the app before the run (below) |
-| inputs | `video1` (Input_Video), `image1` (Input_Image, optional); 5 run-slide fields |
+| inputs | `video1` (Input_Video), `image1` (Input_Image, optional); 6 run-slide fields (the 6th: Resolution, `Input_Quality`) |
 | output | `video`, source soundtrack muxed back (the edit is pixels only); `result.compare: 'video1'` |
 
 ## Two routes, one graph
 
 `Input_Target` typed (and the op is not Change the background) = **masked**: SAM3 finds the things in
 every frame (a comma list is one search per item, masks unioned: comfy `sam3_clip.py`) -> `MpiMaskSquareBbox` pad 64 (ONE still square, the union of every frame) ->
-`InpaintCropImproved` 512 -> H3 single pass + swap LoRA -> `MpiGradeMatch` band 48 ->
-`InpaintStitchImproved`; the crop goes into H3 1:1. Empty = **whole frame**: rendered at ~0.59 MP
-(aspect kept, /32), with the clip handed to H3 as `<Video 1>` at **0.75 of that size**. Both trim the
-clip to H3's 17k+5 frame grid.
+`InpaintCropImproved` (512 at 576p, else the Resolution's short edge) -> H3 single pass + swap LoRA ->
+`MpiGradeMatch` band 48 -> `InpaintStitchImproved`; the crop goes into H3 1:1. Empty = **whole frame**:
+rendered at the **Resolution** field's area (`Input_Quality`, node 26: 576p 0.59 MP default, 768p,
+960p, 1080p, 2K, 4K = ratios.js's H3 medium / high / very_high / 2k / 4k areas; aspect kept, /32;
+2K/4K warned, not capped: MPI-549 saw H3 with references run out of memory at both on a 32 GB 5090), with the clip handed to H3
+as `<Video 1>` at **~0.75 of that size**. Both trim the clip to H3's 17k+5 frame grid.
+
+- **The clip must have the render's SHAPE.** Core H3 stretches a reference video onto its own /32
+  canvas (`nodes_minimax_h3.py`, crop "disabled") and the result follows it, so 0.75 rounded per axis
+  (448x768 for 576x1024, ~4% off) grew the subject taller on every whole-frame pass, and again when a
+  result was fed back in (Fabio 2026-10-10); a masked edit is stitched back at source size, so it
+  never showed. Node 44 picks the first of three /32 heights from 0.75 whose width (node 43) keeps the
+  shape within 1% (576x1024 -> 448x800, 0.4%), else the full size.
+- **The user's LoRA rack** (`Input_Lora_Phase1_1..6`, nodes 180-185, the slot's `loras: true`) sits
+  between the loader and the Flow's own swap / Faceswap / turbo LoRAs; H3's encoder reads its CLIP.
 
 - **The render stays full size; only the clip shrinks.** H3 loses the clip's moves when it RENDERS
   below ~full size: 288x512 and 448x768 jump back to the opening pose ~1 s in (even the frame-0

@@ -598,6 +598,20 @@ H3 quality problem, not the Flow. He will research NEW H3 upscale methods (users
 Flow JSONs may change later for them. Meanwhile he tests an LTX upscale on the result and the other operations on an
 RTX 5090 Pod. Wait for his findings; do not start upscale research unasked.
 
+**Video edit 16 (2026-10-10):** Fabio's findings + asks, all built (commits e5415ea3c, b1bbd21f3, 8df236b61, then
+MpiBaseFlow/registry/docs): (1) WHOLE-FRAME STRETCH - core H3 stretches the reference video onto its own /32 canvas
+(crop disabled) and the output follows it; 0.75 per axis (448x768 for 576x1024) was ~4% wide, so each whole-frame pass
+grew the subject taller ("10 ft. tall soon"); masked was fine (stitched at source size). Node 44 picks the first of 3
+/32 heights from 0.75 within 1% of the render's shape (448x800), else full size; scratchpad check over 12 sources x 6
+tiers. (2) RESOLUTION field Input_Quality (render AREA: 576p default, 768p, 960p, 1080p, 2K, 4K; masked crop = 512 at
+576p else the tier's short edge, node 63). 2K/4K warned (MPI-549 OOM on a 32 GB 5090 with refs). (3) LoRA COGWHEEL
+("all flows ... just most things"): Upscale Video, Video Edit, Extend Video (LTX retitled, H3 980-985), Character Sheet
+from Images (Qwen + Klein); NOT Foley, NOT Outpaint (Fabio). Raw racks inserted in place (LiteGraph JSON: copy the
+MpiLoraModel(Clip) node, rewire, bump last ids), then sync. Message 2ea083d1-mpi1036-to-mpi1041 asks MPI-1041 to rack
+the Character Sheet Editor. (4) Flow input slot = 512 thumbnail (resolveDisplayImage(url, 512), Map per Flow).
+NEXT: Fabio's eye on (1)-(4) (his 1080p Pod run is the first stretch-fix run); then Phase 4 graphics. Video slots still
+load the whole clip (a picked gallery item's proxyPath is dropped at MpiBaseFlow onPick) - not done, his call.
+
 **NEXT (after Video edit 14), in order:**
 1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.
 2. In-app test of the shipped graph - Fabio could not (agents hold the GPU for hours), so it runs UNATTENDED: queued
@@ -692,6 +706,9 @@ Run `/mpi-flow-graphics`.
 ## Completed
 
 ## Plan Drift
+
+- 2026-10-10 (Video edit 16): scope grew on Fabio's asks - the user LoRA cogwheel on four more Flows, a Resolution
+  field, Flow input thumbnails - and a real bug (the whole-frame stretch from the 0.75 reference clip) was fixed.
 
 - 2026-10-08: the talking/acting-clip test through mode F is DROPPED - Fabio: the Phase 1 dance
   runs already carried the face, expressions, mouthing the song in sync and the right audio, at

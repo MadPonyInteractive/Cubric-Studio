@@ -25,6 +25,7 @@
 | Render + payload | **VERIFIED** 2026-08-14 | Live in an isolated app: controls render, values reach the payload, reopen restores them (§ Verification) |
 | Real generation | **NOT RUN by the agent** | The playbook's live-run gate is the user's. Nothing about the graph changed, but the app-side dispatch has never produced a clip |
 | H3 arm (MPI-591) | **VERIFIED** 2026-09-27 | `flow_h3_extend.json`, 54 API nodes. Fabio ran it end to end twice; second run: "the join is clean now" |
+| User LoRA rack (MPI-1036) | **DONE** 2026-10-10 | Slot `loras: true`; LTX's flat `Input_Lora_N` retitled `Input_Lora_Phase1_N`, the H3 graph gained nodes 980-985 (loader 392 -> 497, CLIP 390 -> 970) |
 | Resolution control | **DEFERRED** | See § The width/height decision |
 
 ## Shape

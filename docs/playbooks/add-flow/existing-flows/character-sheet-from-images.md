@@ -9,7 +9,7 @@
 | | |
 |---|---|
 | id / title | `character-sheet-from-images` / **Character Sheet from Images** |
-| requiredModels | `[{ label: 'Model', models: ['qwen-image-2-1', 'klein-9b'] }]` — the user picks; Qwen is `models[0]`, the recommended arm |
+| requiredModels | `[{ label: 'Model', models: ['qwen-image-2-1', 'klein-9b'], loras: true }]` (the user's LoRA rack, `Input_Lora_Phase1_1..6` in both graphs, MPI-1036) — the user picks; Qwen is `models[0]`, the recommended arm |
 | operation | `flowCharacterSheetImages` (new, `appVersionIntroduced` 2.0.1), `injector: 'headSwap'` for the box |
 | workflow | `flow_character_sheet_from_images.json` (Qwen, 60 nodes) + `byModel['klein-9b']` = `flow_character_sheet_from_images_klein.json` (93) |
 | authoring source | `tasks/MPI-1042/research/bench-tools/build_bench_v2.py <dir> --flow` writes both raw graphs; without `--flow`, Fabio's two bench graphs |

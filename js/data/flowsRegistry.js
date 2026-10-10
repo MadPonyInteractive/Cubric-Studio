@@ -895,7 +895,12 @@ export const FLOWS = [
                     { v: 589824, label: '576p', info: 'Fastest.' },
                     { v: 1032192, label: '768p', info: 'H3\'s own size. Sharper, and slower.' },
                     { v: 1597440, label: '960p', info: 'Past the size H3 was trained on: sharper still, much slower, may show artefacts.' },
-                    { v: 2088960, label: '1080p', info: 'Past the size H3 was trained on: the slowest, and needs the most graphics memory.' },
+                    { v: 2088960, label: '1080p', info: 'Past the size H3 was trained on: slower still, and needs a lot of graphics memory.' },
+                    // ratios.js's H3 2k / 4k areas (Fabio: "sometimes it's needed"). MPI-549: H3 with
+                    // references ran out of memory at both on a 32 GB RTX 5090, restarting the Pod,
+                    // and this Flow always sends a reference clip. Offered, warned, not capped.
+                    { v: 3768320, label: '2K', info: 'Needs a very large GPU: H3 with a reference clip has run out of memory at 2K on a 32 GB card. Very slow.' },
+                    { v: 8355840, label: '4K', info: 'Needs a very large GPU: H3 with a reference clip has run out of memory at 4K on a 32 GB card. Untested on H3, and the slowest by far.' },
                 ],
                 note: 'Higher is sharper and much slower: twice the pixels takes about three times as long. A masked edit gets sharper too.',
             },

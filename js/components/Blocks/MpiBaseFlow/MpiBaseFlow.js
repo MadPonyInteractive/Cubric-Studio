@@ -22,7 +22,7 @@ import { activeGenerations } from '../../../services/activeGenerations.js';
 import { createPreviewClipPlayer } from '../../../services/previewClipPlayer.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
-import { setDisplaySrc } from '../../../utils/displayImage.js';
+import { setDisplaySrc, resolveDisplayImage } from '../../../utils/displayImage.js';
 import { isVideoFile } from '../../../utils/file.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
@@ -744,6 +744,9 @@ export const MpiBaseFlow = ComponentFactory.create({
         }
 
         // ── Slot rendering ──────────────────────────────────────────────────────
+        /** An image slot's media URL -> its 512 thumbnail's src, for this Flow's life. */
+        const _slotThumbs = new Map();
+
         /**
          * Render one media slot. THE SLOT IS A PLACEHOLDER, NOT A CONTAINER:
          * empty = bordered box + icon; FILLED = the image IS the box (width/height
@@ -773,10 +776,15 @@ export const MpiBaseFlow = ComponentFactory.create({
 
             if (item) {
                 if (group.type === 'image') {
-                    // A big still shows the server's display copy (MPI-1014): a 32K
-                    // original never decodes, and a 16K painted in strip by strip.
+                    // A THUMBNAIL, never the original (Fabio, MPI-1036): the slot shows at
+                    // most ~208px, and the screen-sized display copy (MPI-1014) made a 2K
+                    // still decode whole and visibly load on every return here, because
+                    // the slide is rebuilt each time. The server's cached 512 copy instead
+                    // (16K-safe), its URL remembered so a rebuilt slot paints at once.
                     const still = ce('img', { alt: _slotLabel(group, idx) });
-                    setDisplaySrc(still, resolveMediaUrl(item.url));
+                    const url = resolveMediaUrl(item.url);
+                    if (_slotThumbs.has(url)) still.src = _slotThumbs.get(url);
+                    else resolveDisplayImage(url, 512).then(({ src }) => { _slotThumbs.set(url, src); still.src = src; });
                     slot.appendChild(still);
                 } else if (group.type === 'video') {
                     // A filled video slot used to be a FILENAME, so the user could not

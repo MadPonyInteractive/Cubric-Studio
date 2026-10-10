@@ -47,8 +47,10 @@ so the local engine and the Pod get the same treatment. The pixel work is server
 The Flow screens follow the History canvas's MPI-961 rule: past `displayMaxEdge()` they draw the
 server's **display copy** (`GET /display-image`), while every box / crop / paint coordinate stays
 in the ORIGINAL's px. `setDisplaySrc(img, url)` + `originalSize(img)` (`js/utils/displayImage.js`)
-are the pair every screen uses: the Inputs slot chip and result pane (`MpiBaseFlow`) and the
-Paint, Box, Crop, Preview, Cutout and Place steps. A file no sidecar owns (an uploaded Flow input
+are the pair every screen uses: the result pane (`MpiBaseFlow`) and the Paint, Box, Crop, Preview,
+Cutout and Place steps. The Inputs slot chip is a **512 thumbnail** instead (`resolveDisplayImage(url,
+512)`, its src kept per Flow), because the Inputs slide is rebuilt on every visit and a screen-sized
+copy re-decoded each time (Fabio, MPI-1036). A file no sidecar owns (an uploaded Flow input
 in `.preview-assets`) gets its copy in the temp cache, as the engine copy does.
 
 **No Run-time export builds a canvas past ENGINE_MAX_EDGE** (a 16K canvas is ~1 GB, a 32K cannot

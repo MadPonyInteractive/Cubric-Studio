@@ -9,7 +9,7 @@
 | | |
 |---|---|
 | id / title | `ltx-upscale` / **Upscale Video** |
-| requiredModels | `['ltx-23-balanced']` — the graph bakes the **int8** transformer, so the High tier's bf16 weight cannot run it |
+| requiredModels | `[{ label: 'Model', models: ['ltx-23-balanced'], loras: true }]` (the user's LoRA rack, `Input_Lora_Phase1_1..6` loader -> guider, MPI-1036: an NSFW upscale needs its LoRA) — the graph bakes the **int8** transformer, so the High tier's bf16 weight cannot run it |
 | requiredDeps | **absent.** It owns no weight: `ltx23-spatial-upscaler` is already in both LTX tiers' `dependencies` |
 | operation | `ltxVideoUpscale` — **reused**, not new. Universal, `injector: 'ltxSigmas'` |
 | workflow | `ltx_video_upscale.json` (29 nodes) — **reused** |

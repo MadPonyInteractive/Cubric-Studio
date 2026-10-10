@@ -113,9 +113,13 @@ assertion to `tests/flow-lora-rack.test.cjs` with it.
   — those stay driven by `operation`. It answers one question: whose rack fills this phase's
   LoRA nodes. And it follows the RESOLVED member of an any-of slot, so the NSFW arm opens the
   NSFW card's rack (MPI-590).
-- **OPT-IN, and it must stay that way.** `flow_ltx_extend` and `flow_ltx_foley` both carry
-  `Input_Lora_1..6` nodes while deliberately declaring no rack. Filling every slot whose graph
-  HAS the nodes would silently start injecting the user's LTX LoRAs into two shipped flows.
+- **OPT-IN, and it must stay that way.** `flow_ltx_foley` carries `Input_Lora_1..6` nodes while
+  deliberately declaring no rack. Filling every slot whose graph HAS the nodes would silently start
+  injecting the user's LTX LoRAs into it.
+- **Most Flows take one** (Fabio, MPI-1036): Character Sheet, Scribble, Draw It In, Object Stamp,
+  Upscale Video, Video Edit, Extend Video (both graphs), Character Sheet from Images (both graphs).
+  Foley and Outpaint do not, by his call. `tests/flow-lora-rack.test.cjs` `RACKS` walks each graph's
+  chain loader -> consumer; add a row with every new rack.
 - **Retitle, never add.** `commandExecutor` still emits the flat `Lora_N` beside
   `Lora_Phase1_N` for graphs that predate the phase titles. Injection skips a title with no
   node, so a graph on one form takes only that one — but a graph carrying BOTH takes the
