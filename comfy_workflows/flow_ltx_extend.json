@@ -76,7 +76,7 @@
     },
     "class_type": "MpiLoraModelClip",
     "_meta": {
-      "title": "Input_Lora_1"
+      "title": "Input_Lora_Phase1_1"
     }
   },
   "7": {
@@ -95,7 +95,7 @@
     },
     "class_type": "MpiLoraModelClip",
     "_meta": {
-      "title": "Input_Lora_2"
+      "title": "Input_Lora_Phase1_2"
     }
   },
   "8": {
@@ -114,7 +114,7 @@
     },
     "class_type": "MpiLoraModelClip",
     "_meta": {
-      "title": "Input_Lora_3"
+      "title": "Input_Lora_Phase1_3"
     }
   },
   "9": {
@@ -133,7 +133,7 @@
     },
     "class_type": "MpiLoraModelClip",
     "_meta": {
-      "title": "Input_Lora_4"
+      "title": "Input_Lora_Phase1_4"
     }
   },
   "10": {
@@ -152,7 +152,7 @@
     },
     "class_type": "MpiLoraModelClip",
     "_meta": {
-      "title": "Input_Lora_5"
+      "title": "Input_Lora_Phase1_5"
     }
   },
   "11": {
@@ -171,7 +171,7 @@
     },
     "class_type": "MpiLoraModelClip",
     "_meta": {
-      "title": "Input_Lora_6"
+      "title": "Input_Lora_Phase1_6"
     }
   },
   "12": {
@@ -795,7 +795,7 @@
     },
     "class_type": "LTXVEmptyLatentAudio",
     "_meta": {
-      "title": "LTXV Empty Latent Audio"
+      "title": "Empty LTXV Latent Audio"
     }
   },
   "54": {

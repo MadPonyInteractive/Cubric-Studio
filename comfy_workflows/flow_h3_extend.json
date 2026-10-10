@@ -290,13 +290,13 @@
     "inputs": {
       "attention": "comfy kitchen attention",
       "model": [
-        "392",
+        "985",
         0
       ]
     },
     "class_type": "ModelAttentionBackend",
     "_meta": {
-      "title": "ModelAttentionBackend"
+      "title": "Model Attention Backend"
     }
   },
   "905": {
@@ -662,8 +662,8 @@
   "970": {
     "inputs": {
       "clip": [
-        "390",
-        0
+        "985",
+        1
       ],
       "vae": [
         "388",
@@ -836,6 +836,120 @@
     "class_type": "ImageBatchMulti",
     "_meta": {
       "title": "Stitch (hard join)"
+    }
+  },
+  "980": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "392",
+        0
+      ],
+      "clip": [
+        "390",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_1"
+    }
+  },
+  "981": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "980",
+        0
+      ],
+      "clip": [
+        "980",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_2"
+    }
+  },
+  "982": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "981",
+        0
+      ],
+      "clip": [
+        "981",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_3"
+    }
+  },
+  "983": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "982",
+        0
+      ],
+      "clip": [
+        "982",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_4"
+    }
+  },
+  "984": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "983",
+        0
+      ],
+      "clip": [
+        "983",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_5"
+    }
+  },
+  "985": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "984",
+        0
+      ],
+      "clip": [
+        "984",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_6"
     }
   }
 }

@@ -650,7 +650,7 @@
     "inputs": {
       "lora_name": "flux2-klein\\NSFW_party_time_v2.0_klein9b.safetensors",
       "model": [
-        "38",
+        "99",
         0
       ],
       "strength_model": [
@@ -1365,6 +1365,90 @@
     "class_type": "PreviewImage",
     "_meta": {
       "title": "Output_Image"
+    }
+  },
+  "94": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "38",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase1_1"
+    }
+  },
+  "95": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "94",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase1_2"
+    }
+  },
+  "96": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "95",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase1_3"
+    }
+  },
+  "97": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "96",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase1_4"
+    }
+  },
+  "98": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "97",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase1_5"
+    }
+  },
+  "99": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "model": [
+        "98",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModel",
+    "_meta": {
+      "title": "Input_Lora_Phase1_6"
     }
   }
 }

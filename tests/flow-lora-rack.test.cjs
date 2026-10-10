@@ -131,16 +131,17 @@ test('settingsModel is retired everywhere, not just at its declaration', () => {
 });
 
 test('the opt-in survives: a slot without `loras` contributes no rack', () => {
-    // flow_ltx_extend and flow_ltx_foley both carry Input_Lora_1..6 nodes and declare NO
-    // rack. If the gate ever became "does the graph have the nodes", both would start
-    // injecting the user's LTX LoRAs with nothing on screen to say so.
+    // flow_ltx_foley carries Input_Lora_1..6 nodes and declares NO rack (Fabio, MPI-1036:
+    // foley needs none). If the gate ever became "does the graph have the nodes", it would
+    // start injecting the user's LTX LoRAs with nothing on screen to say so.
     const src = read('js/data/flowsRegistry.js');
     assert.match(src, /loras: entry\.loras === true/,
         'a slot opts IN explicitly; anything else must resolve to false');
-    for (const fid of ['ltx-extend', 'ltx-foley']) {
+    for (const fid of ['ltx-foley']) {
         const i = src.indexOf(`id: '${fid}'`);
         if (i === -1) continue;
-        assert.doesNotMatch(src.slice(i, i + 9000), /loras: true/,
+        const next = src.indexOf("\n        id: '", i + 1);
+        assert.doesNotMatch(src.slice(i, next === -1 ? undefined : next), /loras: true/,
             `${fid} carries Input_Lora nodes it deliberately does not fill`);
     }
 });
@@ -327,3 +328,49 @@ test('each phase rack is CHAINED into its own model path, loader through to samp
 // longer exists — Draw It In is one Klein pass with no rack — and the flow that
 // inherited the pin runs Krea 2 off a `UNETLoader`, which carries no CLIP through the
 // rack at all. Restore it the day a flow puts a CLIP-carrying rack back on a phase.
+
+// MPI-1036 (Fabio: "all flows should have the option to add LoRAs ... just most things"):
+// every Flow that opted in after the character sheet. `consumer.input` is what reads the
+// END of the rack; the walk back along `model` must pass all six and land on the loader.
+// `clipTo` lists the encoders that must read the rack's CLIP, so a CLIP LoRA is not
+// patched onto an encoder nobody uses.
+const RACKS = [
+    { file: 'ltx_video_upscale.json', loader: '4', consumer: '33', input: 'model', clipTo: ['30', '31'] },
+    // The rack sits under the Flow's own swap / Faceswap / turbo LoRAs; 105 is the other arm.
+    { file: 'flow_video_edit.json', loader: '100', consumer: '104', input: 'model', clipTo: ['110'] },
+    // Extend's two members. LTX's rack was there all along as flat Input_Lora_N (retitled).
+    { file: 'flow_ltx_extend.json', loader: '1', consumer: '38', input: 'model', clipTo: ['14', '15'] },
+    { file: 'flow_h3_extend.json', loader: '392', consumer: '497', input: 'model', clipTo: ['970'] },
+    // Character Sheet from Images: Qwen-Image 2.1 and Klein 9B, both model-only racks.
+    { file: 'flow_character_sheet_from_images.json', loader: '38', consumer: '39', input: 'model' },
+    { file: 'flow_character_sheet_from_images_klein.json', loader: '38', consumer: '47', input: 'model' },
+];
+
+for (const r of RACKS) {
+    test(`${r.file}: six "None" slots in ONE chain from the loader to node ${r.consumer}`, () => {
+        const g = JSON.parse(read(`comfy_workflows/${r.file}`));
+        const want = new Set();
+        for (let i = 1; i <= 6; i++) {
+            const title = `Input_Lora_Phase1_${i}`;
+            const ids = idByTitle(g, title);
+            assert.equal(ids.length, 1, `${r.file} must carry exactly one "${title}"`);
+            assert.equal(g[ids[0]].inputs.lora_name, 'None', `${title} must bake "None"`);
+            want.add(ids[0]);
+        }
+        assert.equal(idByTitle(g, 'Input_Lora_1').length, 0,
+            'a flat Input_Lora_N beside the phase titles takes the rack twice over');
+        let cur = g[r.consumer].inputs[r.input][0];
+        let end = null;
+        for (let hop = 0; hop < 20 && cur !== r.loader; hop++) {
+            if (want.delete(cur) && end === null) end = cur;
+            const up = g[cur].inputs.model;
+            assert.ok(Array.isArray(up), `the model path breaks at node ${cur}`);
+            cur = up[0];
+        }
+        assert.equal(cur, r.loader, `the model path must run back to loader ${r.loader}`);
+        assert.equal(want.size, 0, `slots off the model path do nothing: ${[...want].join(', ')}`);
+        for (const enc of r.clipTo || []) {
+            assert.deepEqual(g[enc].inputs.clip, [end, 1], `encoder ${enc} must read the rack's CLIP`);
+        }
+    });
+}

@@ -104,10 +104,9 @@
  * a flow still dispatches as an operation with `model.id: null`, and this never reaches
  * model resolution or workflow lookup.
  *
- * OPT-IN, and it must stay that way: `flow_ltx_extend` and `flow_ltx_foley` both carry
- * `Input_Lora_1..6` nodes while deliberately declaring no rack, so filling every slot whose
- * graph HAS the nodes would silently start injecting the user's LTX LoRAs into two shipped
- * flows. The rack is the model's OWN settings, shared with its ordinary generations — the
+ * OPT-IN, and it must stay that way: `flow_ltx_foley` carries `Input_Lora_1..6` nodes while
+ * deliberately declaring no rack (Fabio, MPI-1036: foley needs none), so filling every slot
+ * whose graph HAS the nodes would silently start injecting the user's LTX LoRAs into it. The rack is the model's OWN settings, shared with its ordinary generations — the
  * same LoRA is the same LoRA whether the flow or the prompt box runs it. Flat-slot models
  * only; a `loraStages` model warns and is skipped rather than injected in the wrong shape.
  *
@@ -538,7 +537,8 @@ export const FLOWS = [
         // already has base H3 gains this flow with no download; a ref2va-only user gets a
         // 19.53GB one. Both H3 ModelDefs share the same licence descriptor, so the consent
         // gate does not re-fire either way.
-        requiredModels: [{ label: 'Model', models: ['ltx-23-balanced', 'minimax-h3'] }],
+        // The slot takes the user's LoRA rack (MPI-1036): Input_Lora_Phase1_1..6 in BOTH graphs.
+        requiredModels: [{ label: 'Model', models: ['ltx-23-balanced', 'minimax-h3'], loras: true }],
         operation: 'flowLtxExtend',
         // The LTX graph. The H3 arm's file is NOT named here — `byModel` owns that, and this
         // field is read only by the tests that check declared fields against node titles.
@@ -726,10 +726,11 @@ export const FLOWS = [
     // the plugin's `upscale.fields` VERBATIM, which is what keeps the two surfaces from
     // drifting apart: change one, change the other.
     //
-    // Same line as ltx-foley / ltx-extend: `requiredModels: ['ltx-23-balanced']` and NO
+    // Same line as ltx-foley / ltx-extend: the `ltx-23-balanced` model and NO
     // requiredDeps. It owns no weight — every one the graph loads is that tier's, and the
     // spatial upscaler is already in both LTX tiers' `dependencies`. Balanced specifically
-    // because the graph bakes the int8 transformer.
+    // because the graph bakes the int8 transformer. The slot takes the user's LoRA rack
+    // (MPI-1036, Fabio): an NSFW clip needs its LoRA to keep its detail through the upscale.
     //
     // NO frame or resolution cap, and that is a decision rather than an oversight: the
     // graph has no knob to cap (its only Input_* nodes are the ones below), so a cap means
@@ -743,7 +744,7 @@ export const FLOWS = [
         preview: 'flow-ltx-upscale.webp',
         video: 'flow-ltx-upscale.mp4',
         description: 'Double a video’s resolution and rebuild its detail. Drop a clip and LTX 2.3 re-renders it at 2x — the audio comes through untouched. Short clips first: cost grows with length, and a long one can exhaust the GPU.',
-        requiredModels: ['ltx-23-balanced'],
+        requiredModels: [{ label: 'Model', models: ['ltx-23-balanced'], loras: true }],
         operation: 'ltxVideoUpscale',
         workflow: 'ltx_video_upscale.json',
         mediaType: 'video',
@@ -821,7 +822,8 @@ export const FLOWS = [
         title: 'Video Edit',
         preview: 'flow-video-edit.webp',
         description: 'Swap the person, head or outfit in a video, change its background, or make any edit you describe. Add a picture of the new character, outfit or place, or describe it in words. List what to change under “Only change” and just that part is masked and re-rendered, faster, with the rest kept exactly as filmed. The soundtrack comes through untouched. Short clips first: a 5-second clip can take 20 minutes, and longer ones drift.',
-        requiredModels: ['minimax-h3-ref2va'],
+        // The slot takes the user's own H3 LoRAs (Input_Lora_Phase1_1..6, loader -> the Flow's own LoRAs).
+        requiredModels: [{ label: 'Model', models: ['minimax-h3-ref2va'], loras: true }],
         // The swap and Faceswap LoRAs belong to this Flow, not to the model (01-descriptor-and-ops.md
         // § requiredDeps). SAM3 is an engineAsset, so it is not listed.
         requiredDeps: ['minimax-h3-character-swap-lora', 'minimax-h3-faceswap-lora'],
@@ -882,6 +884,20 @@ export const FLOWS = [
                 id: 'positive', type: 'text', rows: 3, label: 'Describe the new look', default: '',
                 placeholder: 'e.g. short pink curls that end at the jaw',
                 info: 'Optional with a picture: your words add to it or correct it, like how long the hair is. Without a picture, describe the whole new look.',
+            },
+            {
+                // The whole-frame render AREA in pixels (aspect kept); a masked edit's crop follows
+                // it (576p keeps the benched 512, else the tier's short edge). Fabio 2026-10-10: low
+                // resolution, not the edit, was what made results poor, and an LTX upscale after
+                // could make it worse. Sizes are ratios.js's H3 ladder (medium / high / very_high).
+                id: 'Input_Quality', type: 'select', label: 'Resolution', default: 589824,
+                options: [
+                    { v: 589824, label: '576p', info: 'Fastest.' },
+                    { v: 1032192, label: '768p', info: 'H3\'s own size. Sharper, and slower.' },
+                    { v: 1597440, label: '960p', info: 'Past the size H3 was trained on: sharper still, much slower, may show artefacts.' },
+                    { v: 2088960, label: '1080p', info: 'Past the size H3 was trained on: the slowest, and needs the most graphics memory.' },
+                ],
+                note: 'Higher is sharper and much slower: twice the pixels takes about three times as long. A masked edit gets sharper too.',
             },
         ],
         // The picture put into words before the run (flowEnhance.js § describe): H3 mostly
@@ -1571,7 +1587,8 @@ export const FLOWS = [
         preview: 'flow-character-sheet-from-images.webp',
         video: 'flow-character-sheet-from-images.mp4',
         description: 'Turn pictures of a character you already have into a character sheet: a large three-quarter portrait, plus full-body front and back views, on a plain grey studio backdrop. Box the face in the first picture; add a full-body picture and the sheet takes its build and clothes. Qwen-Image 2.1 follows a body picture best, but its pictures are not for commercial use; FLUX.2 Klein 9B\'s are. If the sheet does not look like your character, run it again.',
-        requiredModels: [{ label: 'Model', models: ['qwen-image-2-1', 'klein-9b'] }],
+        // The slot takes the user's LoRA rack (MPI-1036): Input_Lora_Phase1_1..6 in BOTH graphs.
+        requiredModels: [{ label: 'Model', models: ['qwen-image-2-1', 'klein-9b'], loras: true }],
         operation: 'flowCharacterSheetImages',
         // The Qwen graph. Klein's file is `byModel`'s (universal_workflows.js); this field is
         // read only by the tests that check declared fields against node titles.
@@ -2780,10 +2797,9 @@ export function flowModelSlots(flow) {
         return {
             label: entry.label || 'Model',
             models: entry.models || [],
-            // OPT-IN, and it must stay opt-in (MPI-608). `flow_ltx_extend` and
-            // `flow_ltx_foley` both carry `Input_Lora_1..6` nodes and deliberately declare
-            // no rack, so filling every slot that HAS the nodes would silently start
-            // injecting the user's LTX LoRAs into two shipped flows.
+            // OPT-IN, and it must stay opt-in (MPI-608). `flow_ltx_foley` carries
+            // `Input_Lora_1..6` nodes and deliberately declares no rack, so filling every
+            // slot that HAS the nodes would silently start injecting the user's LTX LoRAs.
             loras: entry.loras === true,
             // Present only when declared (MPI-1041), so a slot that says neither stays
             // exactly the object it was.
