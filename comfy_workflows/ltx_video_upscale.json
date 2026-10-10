@@ -215,8 +215,8 @@
   "30": {
     "inputs": {
       "clip": [
-        "5",
-        0
+        "145",
+        1
       ],
       "text": [
         "9",
@@ -231,8 +231,8 @@
   "31": {
     "inputs": {
       "clip": [
-        "5",
-        0
+        "145",
+        1
       ],
       "text": "letterbox, black bars, cinematic bars, pillarbox, border, vignette, blurry, low quality, still frame, watermark, overlay, titles"
     },
@@ -273,7 +273,7 @@
   "33": {
     "inputs": {
       "model": [
-        "4",
+        "145",
         0
       ],
       "positive": [
@@ -424,6 +424,120 @@
     "class_type": "MpiSaveVideo",
     "_meta": {
       "title": "Output_Video"
+    }
+  },
+  "140": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "clip": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_1"
+    }
+  },
+  "141": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "140",
+        0
+      ],
+      "clip": [
+        "140",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_2"
+    }
+  },
+  "142": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "141",
+        0
+      ],
+      "clip": [
+        "141",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_3"
+    }
+  },
+  "143": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "142",
+        0
+      ],
+      "clip": [
+        "142",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_4"
+    }
+  },
+  "144": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "143",
+        0
+      ],
+      "clip": [
+        "143",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_5"
+    }
+  },
+  "145": {
+    "inputs": {
+      "lora_name": "None",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "144",
+        0
+      ],
+      "clip": [
+        "144",
+        1
+      ]
+    },
+    "class_type": "MpiLoraModelClip",
+    "_meta": {
+      "title": "Input_Lora_Phase1_6"
     }
   }
 }
