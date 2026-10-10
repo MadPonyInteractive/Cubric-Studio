@@ -61,8 +61,25 @@ workflow), ready for LTX 2.5 by re-pointing loaders. Handoffs between sessions u
   Pictures fill 76-79% (the first "fill" layout: 58%). Rules it encodes, each from a failed clip: big black areas ->
   the clip COPIES the sheet layout; a character's views split into cells -> a second person; a preamble without
   descriptions -> a web-page collage; two-word labels -> the prop is lost.
-- **Next: the composer module** (sharp port of `compose_pack` + `where()`, `/engine-sheet`, hook below) + the D5
-  tag-line rewrite. Unchecked: whether the enhancer backends can SEE images (needed only for filling undescribed lines).
+- Composer DONE (session "LTX 2.3 Reference 3"): `routes/ingredientsSheet.js` (sharp port, identical boxes to the
+  bench), `POST /engine-sheet` (`routes/projects.js`, `<uuid>.sheet.png` in ENGINE_SCRATCH, 24 h sweep),
+  `_composeReferenceSheet(params, modelDef)` in `commandExecutor.js` first in the fits `try`; gate
+  `capabilities.referenceSheet` + `Input_Image`. Inert until the model declares it. Choices: optional role word per line
+  (`<Picture 2> setting: ...`; none anywhere -> Picture 1 = Character); sheet = the clip's shape, long edge 1920
+  (`Input_Width/Height`); one picture passes through; a prompt already holding `### Reference Sheet Description` or no
+  described line goes as written; an undescribed picture stays on the sheet with NO line; `<Picture n>` tags inside
+  the scene are left as typed. Gotcha: the 45% character floor is a soft score term, so a PORTRAIT sheet can give a
+  prop a bigger cell than the character (seen on the real woman sheet at 544x960) - Phase 5 must look at a portrait run.
+- Phase 3 + 4 DONE (Reference 3): HF re-host verified (`vision/models/loras/ltx-2.3/...`, size + lfs.sha256 match);
+  `loraDeps.js` `ltx23-lora-ingredients`, on BOTH LTX cards' `dependencies` (the graph names it on every run). Raw
+  template spliced by `research/bench-tools/raw_insert.py` (ids 900-915, a new group under the graph, no surviving node
+  moved); converted graph == `two_stage_run.insert(shipped, 'A')`, 0 input diffs. The full sync REFUSED (a peer's
+  uncommitted `resize.json`/`resize_video.json` deletions, MPI-1069), so the one template was synced by hand: convert on
+  48188 -> upload slots emptied -> `validate-injection-rules` -> `generate_ltx.build` only. The raw file is NOT
+  committed yet (the sync would have); commit it with the generated pair at handoff/close.
+- **Next: Parallel Batch** (app wiring: `capabilities.referenceSheet` + `ref2v_ms` in LTX `supportedOps`/`workflows`,
+  slot narrowing; agent knowledge + recipe). `commandRegistry.js` is held by MPI-1069 (live). Unchecked: whether the
+  enhancer backends can SEE images (needed only for filling undescribed lines).
 - Phase 3 R2 upload DONE 2026-10-10: `vision/models/loras/ltx-2.3/ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors`,
   HTTP 200, content-length 1308778338 (rclone lsl agrees). Upstream sha256 PROVEN equal to our copy
   (`515e4e139001ac6282357a5b35372e42e98b3affd5fcc886a52242abeed19559`, HF lfs). HF re-host + `loraDeps.js` entry + model deps NOT done (land the deps WITH the graph,
@@ -120,7 +137,7 @@ workflow), ready for LTX 2.5 by re-pointing loaders. Handoffs between sessions u
 - [x] (2026-10-10: compose_pack on whole pictures; results.md § Phase 2b) Layout bench first: 2-4 of our pictures (character front + close-up, a location, a prop) composed on black,
   contained, character cells biggest; compare against the leak case (back view in). **Verify:** clips inspected;
   chosen layout written into `research/results.md`.
-- [ ] Composer module next to `routes/deepinfraCollage.js` (shared sharp helpers, Ingredients rules, preamble
+- [x] (2026-10-10: `routes/ingredientsSheet.js`, `tests/ingredients-sheet.test.cjs` 9/9) Composer module next to `routes/deepinfraCollage.js` (shared sharp helpers, Ingredients rules, preamble
   naming each cell), wired where local-engine media is staged so the graph receives ONE `Input_Image` file.
   **Hook (mapped 2026-10-10):** the two engines share NO server route; the one shared point is the renderer
   `commandExecutor.js runCommand`. Add `_composeReferenceSheet(params, op, modelDef)` right after `_buildParams`
@@ -134,13 +151,13 @@ workflow), ready for LTX 2.5 by re-pointing loaders. Handoffs between sessions u
 
 ## Phase 3: Weight delivery (after D1/D4)
 
-- [ ] R2 upload to `vision/models/loras/ltx-2.3/`, HF re-host, `loraDeps.js` entry (sizes/sha via the scripts),
+- [x] (2026-10-10) R2 upload to `vision/models/loras/ltx-2.3/`, HF re-host, `loraDeps.js` entry (sizes/sha via the scripts),
   model `dependencies` per D1. **Verify:** `curl -sIL` content-length == 1308778338, sha256 matches,
   `npm run release:deps`.
 
 ## Phase 4: Graph (raw template -> both variants)
 
-- [ ] Edit `comfy_workflows/raw/ltx_i2v_t2v_template.json` per the insertion design + the Phase-1 A/B winner;
+- [x] (2026-10-10, `raw_insert.py`; equivalence to the bench graph replaces the re-run) Edit `comfy_workflows/raw/ltx_i2v_t2v_template.json` per the insertion design + the Phase-1 A/B winner;
   sync through an isolated app engine. **Verify:** `tests/inject-params-titles.test.cjs`,
   `tests/workflow-media-slots.test.cjs`, `tests/optional-media-placeholder.test.cjs` green; bench run of the
   generated int8 file: t2v/i2v unchanged (frame hash vs pre-change), ref branch works.
@@ -174,6 +191,10 @@ Run with `mpi-execute-parallel` only if both are ready at once; otherwise sequen
   `docs/README.md`; no doc over 200 lines.
 
 ## Plan Drift
+
+- 2026-10-10 (Reference 3): the composer ships `compose_pack` (not the Phase-2b paragraph's `compose()` justified
+  rows), REWRITES the prompt into the Ingredients two-section shape (not a prepended preamble), and runs for ONE
+  picture too (prompt rewrite, file passed through). Its canvas follows the clip's shape, not the bench's 1920x1024.
 
 - 2026-10-10: card scope grew from "bench-test" to "ship as an op" on Fabio's go; plan written then.
 - 2026-10-10: D3's agent pick "black background, each picture contained" was WRONG on the bench: big black areas

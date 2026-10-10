@@ -320,6 +320,34 @@ async function _fitBoxedInputs(params, operation, injectionParams) {
     return { stitch: out.stitch, box1: out.box };
 }
 
+// MPI-1060: a `referenceSheet` model (LTX's Reference to Video, Lightricks' Ingredients
+// IC-LoRA) reads ONE picture, so the strip's pictures are packed into one sheet and the
+// prompt's `<Picture n> what it is` lines become the sheet description naming each cell
+// (routes/ingredientsSheet.js). Runs on the built params, as the fits do, so the card keeps
+// the user's prompt and pictures while the run gets the sheet. Fails CLOSED: the graph has
+// one picture slot, so a picture left out would vanish without a word.
+async function _composeReferenceSheet(params, modelDef) {
+    if (!modelDef?.capabilities?.referenceSheet || !params.Input_Image) return;
+    const pictures = [];
+    for (let n = 1; n <= 9; n++) {
+        const title = n === 1 ? 'Input_Image' : `Input_Image_${n}`;
+        const file = _decodeProjectFileUrl(params[title]);
+        if (!file) continue;
+        if (/^(data|blob|http)/.test(file)) throw new Error(`Picture ${n} is not a file on this computer`);
+        pictures.push({ tag: n, path: file });
+        if (n > 1) delete params[title];
+    }
+    const res = await fetch('/engine-sheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pictures, prompt: params.Input_Positive, width: params.Input_Width, height: params.Input_Height }),
+    });
+    const out = await res.json().catch(() => null);
+    if (!res.ok || !out) throw new Error(out?.error || `engine-sheet returned ${res.status}`);
+    if (out.image) params.Input_Image = out.image;
+    params.Input_Positive = out.prompt;
+}
+
 // MPI-971 Phase 4, the backstop: after every fit above, an image the engine still cannot open
 // is refused with its size, for every op and producer — a package Flow included, which cannot
 // opt into the fits — instead of dying in MpiLoadImage. Fails open on an unreadable size.
@@ -1949,6 +1977,7 @@ export function runCommand(payload) {
         let maskStitch = null;
         let boxFit = null;
         try {
+            await _composeReferenceSheet(params, getModelById(workingPayload.modelId));
             boxFit = await _fitBoxedInputs(params, workingPayload.operation, workingPayload.injectionParams);
             maskStitch = boxFit?.stitch
                 || await _fitMaskedInputs(params, workingPayload.operation)

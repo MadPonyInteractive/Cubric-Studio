@@ -593,6 +593,22 @@ export const loraDeps = {
         bytes: 226709270,
         sha256: '1bc16020f3937f1dc4957b24c713bc04ec550d6502db8c3e1dd822c412e1fb85',
     },
+    // Ingredients IC-LoRA (MPI-1060) — Reference to Video on both LTX cards: one
+    // reference sheet repeated over the clip as an IC guide. Baked into the shared
+    // t2v/i2v graph behind the sheet's `loaded` switch, so it sits on both tiers.
+    // Upstream (Lightricks/LTX-2.3-22b-IC-LoRA-Ingredients) is GATED, so no
+    // mirrorUrl: the HF failover is our own re-host at the same path, sha256
+    // proven equal to the upstream lfs.sha256 (2026-10-10).
+    'ltx23-lora-ingredients': {
+        id: 'ltx23-lora-ingredients',
+        name: 'LTX-2.3 Ingredients IC-LoRA (baked — reference to video)',
+        origin: 'Mad-Pony-Interactive/cubric-studio',
+        filename: 'loras/ltx-2.3/ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors',
+        url: 'https://models.cubric.studio/vision/models/loras/ltx-2.3/ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors',
+        size: '1.22GB',
+        bytes: 1308778338,
+        sha256: '515e4e139001ac6282357a5b35372e42e98b3affd5fcc886a52242abeed19559',
+    },
     // Klein turbo/accelerator LoRA — DROPPED 2026-07-27, deliberately not a dep.
     // klein-4b-transformer ships the DISTILLED checkpoint (see modelDeps.js), which is
     // already a cfg 1.0 / 4-step weight, so the base+turbo two-tier pair this entry

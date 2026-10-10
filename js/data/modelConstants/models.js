@@ -1433,6 +1433,9 @@ const ALL_MODELS = [
             'ltx23-lora-merged',
             'ltx23-lora-transition',
             'ltx23-lora-talkvid',
+            // Ingredients IC-LoRA (MPI-1060): Reference to Video. The shared graph names it
+            // on every run (ComfyUI validates the lazy branch too), so it is on both tiers.
+            'ltx23-lora-ingredients',
             'ComfyUI-LTXVideo',
             'ComfyUI-MpiNodes',
             'comfyui-kjnodes',
@@ -1486,6 +1489,9 @@ const ALL_MODELS = [
             'ltx23-lora-merged',
             'ltx23-lora-transition',
             'ltx23-lora-talkvid',
+            // Ingredients IC-LoRA (MPI-1060): Reference to Video. The shared graph names it
+            // on every run (ComfyUI validates the lazy branch too), so it is on both tiers.
+            'ltx23-lora-ingredients',
             // Foley V2A (MPI-536) — the ltx-foley FLOW's LoRA, on THIS tier only.
             // Its graph bakes the int8 transformer, so the High card cannot run the
             // Flow; listing it there too would cost those users 216MB for nothing.

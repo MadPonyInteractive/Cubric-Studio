@@ -49,6 +49,7 @@ const { extractFramesFromGif, copyGifFrames, holdFrames, sweepGifFrames } = requ
 const { SCHEMA_VERSION } = require('../js/migrations/projectMigrations');
 const { bakeOrientation } = require('./imageImport');
 const { prepareMaskedInput, prepareBoxedInput, stitchMaskCrop, applyMatte, uprightSize } = require('../services/engineMask');
+const { buildReferenceSheet } = require('./ingredientsSheet');
 
 const projectJsonQueues = new Map();
 const itemMetaQueues = new Map();
@@ -2259,6 +2260,35 @@ router.post('/engine-box', async (req, res) => {
         res.json({ image: url(out.image), paint: url(out.paint), box: out.box, stitch: { ...out.stitch, source: image } });
     } catch (err) {
         logger.error('project', `engine-box failed for ${path.basename(image)}`, err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// LTX Reference to Video (MPI-1060, routes/ingredientsSheet.js): the prompt box's pictures
+// packed into ONE reference sheet, and the prompt rewritten to name each cell. `image` is
+// null for one picture, which goes as it is. The sheet waits out the engine like a cut does.
+router.post('/engine-sheet', async (req, res) => {
+    const { pictures, prompt = '', width, height } = req.body || {};
+    if (!Array.isArray(pictures) || !pictures.length || pictures.some(p => !p?.path || !Number(p.tag))) {
+        return res.status(400).json({ error: 'pictures [{ tag, path }] required' });
+    }
+    for (const p of pictures) {
+        if (!(await fs.pathExists(p.path))) return res.status(404).json({ error: `Not found: ${path.basename(p.path)}` });
+    }
+    try {
+        const out = await buildReferenceSheet(pictures, prompt, { width, height });
+        let image = null;
+        if (out.png) {
+            await fs.ensureDir(ENGINE_SCRATCH);
+            _sweepEngineScratch().catch(() => {});
+            const file = path.join(ENGINE_SCRATCH, `${crypto.randomUUID()}.sheet.png`);
+            await fs.writeFile(file, out.png);
+            image = `/project-file?path=${encodeURIComponent(file)}`;
+            logger.info('project', `engine-sheet: ${pictures.length} pictures, ${Math.round(out.coverage * 100)}% covered`);
+        }
+        res.json({ image, prompt: out.prompt });
+    } catch (err) {
+        logger.error('project', `engine-sheet failed for ${pictures.length} pictures`, err);
         res.status(500).json({ error: err.message });
     }
 });
