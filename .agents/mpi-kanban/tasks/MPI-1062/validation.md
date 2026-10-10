@@ -16,4 +16,6 @@
 Code committed `7ecd4e05d`, pushed; tests.yml run 38076045694.
 Docs (`docs/child-safety.md` § Where it runs + § Known gaps) committed separately.
 
-Still to close: release-note wording (step 6, MPI-1064 holds the file), CI green on `7ecd4e05d`.
+Release note: the MPI-1056 bullet now reads "in a picture or clip" (Fabio's yes, 2026-10-10).
+
+Still to close: CI green on `7ecd4e05d`.

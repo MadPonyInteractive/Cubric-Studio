@@ -4,5 +4,5 @@
 - [x] clip stills joined to the picture check in `_judgeThenQueue` (thumb, else first frame, else refused)
 - [x] tests: pure listing + live module (wait, refuse on YES / no still, innocent clip untouched)
 - [x] docs/child-safety.md updated, clip gap replaced by the frame-0 gap
-- [ ] release-notes wording: Fabio said yes to "a picture or clip" (2026-10-10); MPI-1064 holds the file, asked to apply it
+- [x] release-notes wording: Fabio said yes to "a picture or clip" (2026-10-10); applied
 - [ ] CI green, card closed
