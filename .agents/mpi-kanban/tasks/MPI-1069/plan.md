@@ -12,6 +12,16 @@ rail lock and the no-engine dimming are gone for Resize; the graphs and injector
 0) - pad modes run in `gbrp`; testsrc2's bars meet at x=160, so a single-pixel parity check there
 lies (chroma interpolation differs per conversion path) - compare row means.
 
+**2026-10-10 later: SHIPPED** (`235a2a660`, CI green, closed `9c5abf807`) **then REOPENED** for one bug Fabio hit in the
+real app: after a Resize Apply on a video (1 MP of the 4K clip), the panel PREVIEW stays blank (checkerboard) on the
+new entry; selecting another history entry and back fixes it. Lead, unproven: `generation:complete` calls
+`_reloadViewerWithEntry(item)` then `_options.el.setCurrentItem(item)` (`MpiGroupHistoryBlock.js` ~1567-1572);
+`setCurrentItem` -> `_refreshThumbnail({ awaitNextLoad: kind === 'video' })` -> `waitForVideoFrame`
+(`js/utils/thumbnail.js` ~44) waits for the NEXT `loadeddata`, which may have fired already (or never, same src),
+so it times out (4 s) and the thumbnail is drawn from an unpainted video = transparent. Entry-select works because
+its order differs. Not engine-related: the preview is `/tool/resize-preview` now. Fix at the race, both images and
+video; add a desktop-spec assertion (crop-resize-output.spec.js clip test: preview is a blob after Apply).
+
 Pre-build facts (kept for the record):
 
 - Resize is two ComfyUI graphs (`comfy_workflows/resize.json`, `resize_video.json`) driven by
@@ -80,8 +90,7 @@ Pre-build facts (kept for the record):
 
 ## Remaining Work
 
-- Close-out (`mpi-end-session`): commit by explicit pathspec (`files.json` + the three deletions), push,
-  release the claim. Ask Fabio about `.claude/rules/` first (Preservation Notes).
+- Fix: Resize panel preview blank on the new entry after a video Apply (see Current State lead). Then CI green, close.
 
 ## Plan Drift
 
