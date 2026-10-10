@@ -61,18 +61,14 @@ Verify: user-ux, Fabio's eye on t2i + edit, alpha measured on the saved card.
 
 Every member is done or explicitly parked by Fabio.
 
-## Current State (2026-10-10, session 3c24ca48, handoff below)
+## Current State (2026-10-10, session 9bbf1e2f)
 
 - Phase 1 CLOSED: MPI-1043/1049/1047/1068 (d4680fcd8), MPI-1067 pinned 147249427 + closed (fa5af3ee3).
-- MPI-1066 in doing. Cause found: the STOCK Qwen 2.1 VAE decoder stamps a 2-px checker on every
-  2.1 output; Siax amplifies it. Fix = madebyollin Texture-Fix VAE (Fabio eye-tested: works).
-  Committed: raw graphs (6700de2d0, pushed), assetDeps 'vae-qwen-image-21-texturefix'.
-  UNCOMMITTED on purpose (land together): runtime comfy_workflows/qwen_image_2_1.json +
-  flow_character_sheet_edit_qwen.json + flow_character_sheet_from_images.json, docs/models/
-  qwen-image-2/README.md, docs/releases/UNRELEASED.md. Blocker: ONE line in models.js
-  (qwen-image-2-1 dependencies: vae-qwen-image-21 -> vae-qwen-image-21-texturefix); peer
-  MPI-1060 holds the claim and is mid-edit there; message 3c24ca48-mpi1066-to-mpi1060 open.
-- Then: npm test, commit the lot, push, CI, close MPI-1066. Then MPI-1065.
+- MPI-1066 CLOSED: Qwen 2.1 decodes with the Texture-Fix VAE (stock decoder stamped a 2-px checker
+  Siax turned into crosshatch). Shipped a6d69fc80 (models.js dep line + 3 runtime graphs + README +
+  UNRELEASED), CI green. Stock dep vae-qwen-image-21 kept, deprecated, for the orphan sweep.
+- Next: MPI-1065 (adding a dep to an installed model un-installs it). routes/remoteModels.js was
+  claimed by MPI-1057: check state/index.json active_file_claims before touching it.
 
 ## Plan Drift
 

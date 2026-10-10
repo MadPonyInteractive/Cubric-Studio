@@ -37,3 +37,8 @@
   stock VAE), now in `G:/ComfyUi/ComfyUI/models/vae/` (bench only). Licence qwen-research.
 
 Tools: scratchpad vaeab.py / vaeab_report.py, sheet.py / upcmp.py / checker.py / pick.py / qcmp.py (session 3c24ca48).
+
+## Shipped (2026-10-10)
+
+- `a6d69fc80` fix(MPI-1066): models.js qwen-image-2-1 depends on `vae-qwen-image-21-texturefix`, plus the 3 runtime graphs, qwen-image-2 README and UNRELEASED.md. Built from HEAD through a private index; MPI-1060's uncommitted models.js hunks left in the tree untouched.
+- `npm test`: 3039 pass, 0 fail, 2 skipped. CI run 38090774918 on a6d69fc80: success.
