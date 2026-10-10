@@ -55,10 +55,9 @@ workflow), ready for LTX 2.5 by re-pointing loaders. Handoffs between sessions u
   is fully present; the shipped graph validates against every other file already (transition LoRA + x2 upscaler +
   taeltx2_3 hash-checked; Ingredients + talkvid LoRAs must ALSO sit under `C:/AI/loras/ltx-2.3/` with the shipped
   `ltx-2.3\...` names - copy them from `C:/AI/loras/LTX2.3/` first).
-- Phase 3 R2 upload of the Ingredients LoRA started 15:26 (rclone, 3 MB/s). Upstream sha256 PROVEN equal to our copy
-  (`515e4e139001ac6282357a5b35372e42e98b3affd5fcc886a52242abeed19559`, HF lfs). Verify landed with
-  `curl -sIL https://models.cubric.studio/vision/models/loras/ltx-2.3/ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors`
-  (content-length 1308778338). HF re-host + `loraDeps.js` entry + model deps NOT done (land the deps WITH the graph,
+- Phase 3 R2 upload DONE 2026-10-10: `vision/models/loras/ltx-2.3/ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors`,
+  HTTP 200, content-length 1308778338 (rclone lsl agrees). Upstream sha256 PROVEN equal to our copy
+  (`515e4e139001ac6282357a5b35372e42e98b3affd5fcc886a52242abeed19559`, HF lfs). HF re-host + `loraDeps.js` entry + model deps NOT done (land the deps WITH the graph,
   Phase 4, so Fabio's live app never shows LTX "not installed" for a dep no graph uses yet).
 - Scope: ONLY Reference to Video on the LTX 2.3 model. Video Edit + LTX (card MPI-1061) is owned by session
   "Video edit 17" under its Video Edit umbrella - do not touch it.
