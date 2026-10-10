@@ -85,6 +85,15 @@ test('renderPath: no second point, a stop, a refused start', async () => {
     await assert.rejects(renderPath({ ...args, sceneItem: { ...SCENE, scenePath: 'third' } }, fakeIo({ start: false }).io), /did not start/);
 });
 
+test('pathEtaMin: the measured 4060 Ti run, scaled by the Gen speed table; an unmeasured card has none', async () => {
+    const { pathEtaMin } = await esm('js/services/scene/scenePathVideo.js');
+    assert.equal(pathEtaMin('NVIDIA GeForce RTX 4060 Ti'), 30, 'the card it was measured on: 1810 s');
+    assert.equal(pathEtaMin('NVIDIA RTX PRO 6000 Blackwell Server Edition'), 5, 'a faster card is quicker (1.51 s vs 9.42 s an image)');
+    assert.equal(pathEtaMin('NVIDIA RTX 2000 Ada Generation'), 42, 'a slower card takes longer');
+    assert.equal(pathEtaMin('NVIDIA GeForce RTX 3060'), null, 'nobody measured it');
+    assert.equal(pathEtaMin(null), null);
+});
+
 test('frames-to-video: placed frames -> one 4:4:4 video in the store, the frames removed', async (t) => {
     const project = fs.mkdtempSync(path.join(os.tmpdir(), 'p2-guide-'));
     const store = path.join(project, 'Media', '.preview-assets');

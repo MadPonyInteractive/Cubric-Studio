@@ -52,7 +52,8 @@ import {
 } from '../../../services/scene/sceneViewer.js';
 import { takePicture, buildHere, appIo } from '../../../services/scene/scenePicture.js';
 import { addPoint, removeLast } from '../../../services/scene/scenePath.js';
-import { renderPath } from '../../../services/scene/scenePathVideo.js';
+import { renderPath, pathEtaMin } from '../../../services/scene/scenePathVideo.js';
+import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { pluginAvailability, getPlugin } from '../../../data/pluginsRegistry.js';
 
 const FLY_DIRS = ['forward', 'back', 'left', 'right', 'up', 'down', 'rollLeft', 'rollRight'];
@@ -67,8 +68,12 @@ const STEPS = {
 };
 const PATH_STEPS = {
     style: 'Reading the scene\'s style...', upload: 'Sending the guide to the engine...',
-    wan: 'Wan is rendering the path: about 30 minutes on a 16 GB card. It lands as a new card in the gallery.',
 };
+const wanStep = (min) => `Wan is rendering the path${min ? `: about ${min} minute${min === 1 ? '' : 's'} on this GPU` : ''}. It lands as a new card in the gallery.`;
+/** The card the Wan run lands on: the Pod's, or this machine's by its nvidia-smi name. */
+const wanGpu = async () => (remoteEngineClient.effectiveEngine() === 'remote'
+    ? remoteEngineClient.podGpuType()
+    : (await fetch('/system/gpu-info').then(r => r.json()).catch(() => null))?.gpu?.name);
 
 const ratioOf = (aspect) => { const [a, b] = aspect.split(':').map(Number); return a / b; };
 /** A colour token as sRGB bytes: three cannot read oklch, a 2D canvas can. */
@@ -324,7 +329,7 @@ export const MpiSceneBlock = ComponentFactory.create({
         };
 
         // P2: the path as a 360 video. Busy only until the engine has the guide: the Wan run
-        // (~30 min) goes through the generation queue and lands as a card by itself.
+        // (30 min on a 4060 Ti) goes through the generation queue and lands as a card by itself.
         const renderVideo = async () => {
             const project = state.currentProject;
             if (busy || !view || !project || pathPoints.length < 2) return;
@@ -343,11 +348,13 @@ export const MpiSceneBlock = ComponentFactory.create({
                 if (!destroyed) { [takeBtn, buildBtn].forEach(b => b.el.setDisabled(!view)); showPath(); show(); }
             };
             try {
+                const eta = pathEtaMin(await wanGpu());
                 await renderPath({
                     project, sceneItem, view, renderer: canvasEl.getRenderer(), points: pathPoints, fillLine,
                     onStep: (step, at) => {
                         if (destroyed) return;
-                        pathStatus.textContent = step === 'guide' ? `Rendering the guide: frame ${at.frame} of ${at.of}...` : PATH_STEPS[step] || '';
+                        pathStatus.textContent = step === 'guide' ? `Rendering the guide: frame ${at.frame} of ${at.of}...`
+                            : step === 'wan' ? wanStep(eta) : PATH_STEPS[step] || '';
                         if (step === 'wan') { view?.dropTargets(); free(); } // Wan needs the VRAM the float targets hold
                     },
                 }, await appIo());

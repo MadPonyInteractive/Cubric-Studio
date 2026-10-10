@@ -9,6 +9,22 @@
 
 import { pathFrames } from './scenePath.js';
 import { sceneStyle, placeAsset } from './scenePicture.js';
+import { gpuGenSecs } from '../../data/runpodGpuSpecs.js';
+
+// Render path's one measured run: 1810 s on an RTX 4060 Ti 16 GB (validation.md § Paths P2
+// LIVE). Every path is 81 frames, so a card's time is this scaled by the GPU picker's measured
+// seconds per image (GPU_GEN_SECS).
+const PATH_RUN = { gpu: 'NVIDIA GeForce RTX 4060 Ti', secs: 1810 };
+// ponytail: RunPod does not rent the 4060 Ti, so it has no GPU_GEN_SECS row; this borrows the
+// RTX A4000's (also 16 GB, also spills Klein's weights). Re-anchor PATH_RUN on a table card
+// once a Pod run is measured.
+const PATH_RUN_GEN_SECS = 9.42;
+
+/** Minutes Render path takes on `gpu` (a RunPod GPU id or a local nvidia-smi name), or null when nobody measured that card. */
+export function pathEtaMin(gpu) {
+    const secs = gpu === PATH_RUN.gpu ? PATH_RUN_GEN_SECS : gpuGenSecs(gpu);
+    return secs ? Math.max(1, Math.round((PATH_RUN.secs * secs) / PATH_RUN_GEN_SECS / 60)) : null;
+}
 
 /** Matrix-3D's own prompt opening; the scene's style and the user's line follow. */
 export const PATH_LINE = 'A high quality panoramic video. The camera moves forward through the scene.';

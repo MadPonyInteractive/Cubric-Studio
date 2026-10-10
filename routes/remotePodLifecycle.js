@@ -320,8 +320,13 @@ const POD_IMAGE_VERSION_CPU = 'v0.24.0';
 // cu130 printed `node-import smoke test OK` with post-node torch 2.12.0+cu130. The stable pair
 // stays on v0.24.0 (ComfyUI 0.34.0) — a clean release-version rebuild at ship is MANDATORY, or a
 // released user gets a 0.39.0 local engine against a 0.34.0 remote Pod, silently.
-const POD_IMAGE_VERSION_DEV = 'v0.25.0-dev';
-const POD_IMAGE_VERSION_CPU_DEV = 'v0.25.0-dev';
+// v0.26.0-dev (MPI-623, Render path on a Pod): SAME engine, v0.39.0. mpi-ci c9ca454 synced
+// node_lock.json + python_deps.txt: ComfyUI-GGUF 6ea2651 joins the bake (Wan 2.1 I2V loads as a
+// Q4 GGUF) with pip gguf==0.19.0, and MpiNodes 6bf5659 -> d721182 (code-only, MpiWanMaskedVideo).
+// CI run 38017503044, both legs pushed and pull-verified; cu130 printed `node-import smoke test OK`
+// with post-node torch 2.12.0+cu130. Stable pair untouched, as above.
+const POD_IMAGE_VERSION_DEV = 'v0.26.0-dev';
+const POD_IMAGE_VERSION_CPU_DEV = 'v0.26.0-dev';
 // 0.2.23 (MPI-169): add GET /wrapper/disk (du -sb of the mounted volume) so the
 // Settings volume bar can show truthful USED bytes — RunPod's API has no used-bytes.
 // R2-publish-only (publish-runtime.sh, no image rebuild). Degrades gracefully: an
