@@ -542,10 +542,45 @@ let _starting = false;
 // /remote/comfy/status. Null when not booting. All `_starting` writes go through
 // `_setStarting` so the stamp can never drift from the flag.
 let _connectStartMs = null;
+
+// MPI-1057: a Pod still not ready this long after its create/resume is deleted. Fabio's
+// call (2026-10-10): RunPod's PRO 6000 hosts sat 4-8 min with an EMPTY system log (the
+// container never started) and billed the whole time; the 5-min watchdog only hinted.
+// Healthy boots that day took 1m16s-3m47s. Armed and cleared by `_setStarting`, so every
+// path that ends a boot (ready, Cancel, delete, self-heal) disarms it.
+const STALL_CAP_MS = 8 * 60 * 1000;
+let _stallTimer = null;
+// { podId, gpuTypeId } of the Pod the cap deleted. /remote/comfy/status reports it until
+// the next boot starts, so the renderer can say why the connect ended.
+let _stalled = null;
+
 function _setStarting(v) {
-  if (v && !_starting) _connectStartMs = Date.now();
-  else if (!v) _connectStartMs = null;
+  if (v && !_starting) {
+    _connectStartMs = Date.now();
+    _stalled = null;
+    _stallTimer = setTimeout(_onStallCap, STALL_CAP_MS);
+    _stallTimer.unref?.();
+  } else if (!v) {
+    _connectStartMs = null;
+    clearTimeout(_stallTimer);
+    _stallTimer = null;
+  }
   _starting = v;
+}
+
+async function _onStallCap() {
+  _stallTimer = null;
+  const podId = _mode.podId;
+  _stalled = { podId, gpuTypeId: _mode.gpuTypeId || null };
+  logger.warn('runpod', `Pod ${podId} not ready ${STALL_CAP_MS / 60000} min after its start: RunPod's host never started it, deleting it`);
+  _setStarting(false);
+  setRemoteMode({ active: false, noGpu: false, gpuTypeId: null });
+  try {
+    const key = await getRunPodApiKey();
+    if (key) await _deleteTrackedPod(key);
+  } catch (err) {
+    logger.error('runpod', 'stall-cap delete failed', err);
+  }
 }
 
 // --- mode routes ----------------------------------------------------------------
@@ -588,6 +623,32 @@ let _lastPodMaintenance = null; // { note, start, end } | null
 // MPI-239: true when the last getPod returned HTTP 404 (Pod deleted/reaped host-side),
 // distinct from a network throw (unknown). Drives the /remote/comfy/status self-heal.
 let _lastPodAbsent = false;
+// MPI-1057: a polled route must stay fast, and RunPod's API can hang on a Pod its host
+// never started. Past this the last known status stands and the next poll asks again.
+const POD_STATUS_TIMEOUT_MS = 3000;
+let _podStatusSilentId = null;
+// MPI-1057: RunPod exposes no Pod log, so the boot-time fields are the only early sign of
+// a host that never starts the container. Logged once per change, to compare a stall with
+// a healthy boot. v2 shape (api.runpod.io/v2/openapi.json, read 2026-10-10): `cudaVersion`
+// stays null until the host reports one and `ssh.proxy` until the Pod has a machine, so
+// both can tell a host that never picked the Pod up. Never `env`: it holds the API key.
+let _lastPodFields = null;
+function _logPodFields(podId, p) {
+  const ssh = p.ssh || {};
+  const fields = [
+    `status=${_podStatusOf(p) || '-'}`,
+    `startedAt=${p.startedAt || '-'}`,
+    `cudaVersion=${p.cudaVersion || '-'}`,
+    `dc=${p.dataCenterId || '-'}`,
+    `machineAssigned=${!!ssh.proxy}`,
+    `directSsh=${!!ssh.direct}`,
+    `runtime=${p.runtime ? 'yes' : 'no'}`,
+    `actions=${(p.actions || []).join('|') || '-'}`,
+  ].join(' ');
+  if (fields === _lastPodFields) return;
+  _lastPodFields = fields;
+  logger.info('runpod', `Pod ${podId} ${fields}`);
+}
 
 function _readPath(obj, path) {
   if (!obj || !path) return undefined;
@@ -645,8 +706,9 @@ async function _podRuntimeStatus(podId) {
   try {
     const key = await getRunPodApiKey();
     if (!key) return _lastPodStatus;
-    const r = await client.getPod(key, podId);
+    const r = await client.getPod(key, podId, { timeoutMs: POD_STATUS_TIMEOUT_MS });
     const p = (r && r.json) || {};
+    if (r && r.ok) _logPodFields(podId, p);
     // MPI-239: a 404 means the Pod no longer exists (deleted/reaped host-side) —
     // record it distinctly from "reachable but no status string" so the status
     // route can self-heal _mode.active. A network throw (caught below) is NOT
@@ -662,7 +724,14 @@ async function _podRuntimeStatus(podId) {
       : null;
     _lastPodStatusId = podId;
     _lastPodStatusAt = Date.now();
-  } catch (_) { /* best-effort — leave podStatus null, no regression */ }
+  } catch (err) {
+    // Best-effort — the last known status stands. Logged once per Pod: a RunPod API that
+    // stops answering is itself a sign of a stuck host (MPI-1057).
+    if (_podStatusSilentId !== podId) {
+      _podStatusSilentId = podId;
+      logger.warn('runpod', `getPod ${podId} gave no answer (${err.message}) — keeping the last known status`);
+    }
+  }
   return _lastPodStatus;
 }
 
@@ -744,7 +813,8 @@ router.get('/remote/comfy/status', async (req, res) => {
   // shell feed tick can own the live connect % (survives blur / component unmount).
   // Null when not booting; old wrappers omit it and the feed degrades gracefully.
   const connectElapsedMs = () => (_connectStartMs ? Date.now() - _connectStartMs : null);
-  if (!_mode.active || !_mode.podId) return res.json({ running: false, ready: false, connecting: inFlight(), connectElapsedMs: connectElapsedMs() });
+  // `stalled` (MPI-1057): the last boot hit the stall cap and its Pod was deleted.
+  if (!_mode.active || !_mode.podId) return res.json({ running: false, ready: false, connecting: inFlight(), connectElapsedMs: connectElapsedMs(), stalled: _stalled });
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 5000);
@@ -1836,4 +1906,4 @@ router.post('/remote/pod/cleanup-orphans', async (req, res) => {
   }
 });
 
-module.exports = { router, remoteVolumeFreeBytes, resolveDiskTotalBytes, _isPodDead, _isPodImageStale, _podStatusOf, _clampVolumeDisk, compareVolumeAccounting, _createPodInternal, CPU_FLAVORS };
+module.exports = { router, remoteVolumeFreeBytes, resolveDiskTotalBytes, _isPodDead, _isPodImageStale, _podStatusOf, _clampVolumeDisk, compareVolumeAccounting, _createPodInternal, CPU_FLAVORS, STALL_CAP_MS };

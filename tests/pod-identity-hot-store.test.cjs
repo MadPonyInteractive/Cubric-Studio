@@ -220,6 +220,32 @@ test('a gen queues its files with priority and polls until they land', async () 
     remoteEngineClient._gpuType = null;
 });
 
+// MPI-1057 — a Flow run carries `modelId: null` and names its models in `flowModelIds`.
+// It staged nothing and loaded H3 (~44 GB) off the network volume while the connect
+// prefetch copied the same files (Video Edit, 2026-10-10). A Flow stages its models' sets.
+test('a Flow run stages the models it names, and skips the slots its leg does not run', async () => {
+    const { remoteEngineClient, _ensureRemoteHotStore } = await load();
+    const posts = stubFetch({}, (b) => (b.dryRun ? { async: true, pending: 0 } : { async: true }));
+    remoteEngineClient._active = true;
+    remoteEngineClient._noGpu = false;
+    remoteEngineClient._gpuType = RENTED;
+
+    await _ensureRemoteHotStore(null, 'flow_op', undefined, ['klein-4b', null]);
+    assert.ok(posts.length > 0, 'REGRESSION: a Flow run staged nothing (modelId is null on every Flow)');
+    const flowFiles = posts[0].files.map(f => `${f.type}/${f.filename}`).sort();
+
+    const single = stubFetch({}, (b) => (b.dryRun ? { async: true, pending: 0 } : { async: true }));
+    await _ensureRemoteHotStore('klein-4b', null);
+    assert.deepEqual(flowFiles, single[0].files.map(f => `${f.type}/${f.filename}`).sort(),
+        'a Flow stages the same set the model would');
+
+    const none = stubFetch({}, () => ({ async: true, pending: 1 }));
+    await _ensureRemoteHotStore(null, 'flow_op', undefined, [null]);
+    assert.equal(none.length, 0, 'a leg that runs no model stages nothing');
+    remoteEngineClient._active = false;
+    remoteEngineClient._gpuType = null;
+});
+
 // MPI-1051 — with "Stage all models on connect" on, a model installed mid-session is
 // staged when its install finishes, not at the next connect.
 test('an install complete stages just that model, and only with the toggle on', async () => {

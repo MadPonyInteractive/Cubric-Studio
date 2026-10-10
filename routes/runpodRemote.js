@@ -44,7 +44,7 @@ const { UA } = require('./remoteHeaders');
 
 // --- low-level client (key passed in, never stored/logged) ------------------
 
-async function _rest(apiKey, method, path, body) {
+async function _rest(apiKey, method, path, body, signal) {
   const res = await _safeFetch(`${REST}${path}`, {
     method,
     headers: {
@@ -53,6 +53,7 @@ async function _rest(apiKey, method, path, body) {
       'User-Agent': UA,
     },
     body: body ? JSON.stringify(body) : undefined,
+    signal,
   });
   const text = await res.text();
   let json;
@@ -250,8 +251,10 @@ const client = {
   async deletePod(apiKey, id) {
     return _rest(apiKey, 'DELETE', `/pods/${id}`);
   },
-  async getPod(apiKey, id) {
-    return _rest(apiKey, 'GET', `/pods/${id}`);
+  // MPI-1057: `timeoutMs` bounds the call. RunPod's API can hang on a Pod its host never
+  // started (a DELETE took ~2 min on 2026-10-10), and a caller on a polled route must not.
+  async getPod(apiKey, id, { timeoutMs } = {}) {
+    return _rest(apiKey, 'GET', `/pods/${id}`, undefined, timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined);
   },
   // List the account's Pods. v2 GET /v2/pods wraps as {"pods":[...]} (v1 was bare array).
   // Callers unwrap via Array.isArray(r.json) || r.json.pods — both shapes handled.

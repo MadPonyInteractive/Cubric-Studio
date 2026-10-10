@@ -151,6 +151,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
         let _podDiskBar = null;         // MPI-237: shared Pod disk-usage bar (volume OR ephemeral)
         let _engineBusy = false;        // true while a start/stop is in flight
         let _connectAbort = false;      // MPI-86: set by Cancel to break the in-flight connect poll
+        let _cancelling = false;        // MPI-1057: Cancel's delete is still waiting on RunPod
         let _destroyAborted = false;    // MPI-278: set by destroy() (panel close) — the connect is
                                         // NOT cancelled (Pod left booting, shell feed owns it), so the
                                         // finally must NOT emit local · offline and strand the connect.
@@ -294,7 +295,10 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 _engineBtnDisabled(true);
                 return;
             }
-            if (_engineBusy) return; // a create/delete is mid-flight in THIS panel; leave the label alone
+            // A create/delete is mid-flight in THIS panel; leave the label alone. A Cancel too:
+            // the backend reads "stopped" the moment it is asked to delete, long before RunPod
+            // answers, and painting Connect then hid the wait (MPI-1057).
+            if (_engineBusy || _cancelling) return;
             // MPI-110: a shell-owned auto-retry wait is live (possibly started before
             // this panel mounted, or while it was closed) — surface waiting…/Cancel so
             // the panel reflects reality. No Pod exists yet; the create begins when the
@@ -391,7 +395,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
         // L3), so it only prompts "taking too long, Cancel and try another GPU"; it
         // never auto-cancels (a healthy slow boot must complete). The loop also
         // checks `_connectAbort` each tick so the Cancel button can break it.
-        async function _pollEngineReady(onSlow, onWatchdog, onNotRunning, onMaintenance, { timeoutMs = 1200000, intervalMs = 4000, slowAfterMs = 150000, watchdogAfterMs = 300000, notRunningGraceMs = 30000 } = {}) {
+        async function _pollEngineReady(onSlow, onWatchdog, onNotRunning, onMaintenance, onStalled, { timeoutMs = 1200000, intervalMs = 4000, slowAfterMs = 150000, watchdogAfterMs = 300000, notRunningGraceMs = 30000 } = {}) {
             const start = Date.now();
             let slowFired = false;
             let watchdogFired = false;
@@ -435,6 +439,11 @@ export const MpiRunpodSettings = ComponentFactory.create({
                     // the 5-min watchdog on a doomed host.
                     if (s && s.maintenance && Date.now() - start >= notRunningGraceMs) {
                         try { onMaintenance && onMaintenance(s.maintenance); } catch (_) { /* best-effort */ }
+                        return false;
+                    }
+                    // MPI-1057: the backend's 8-min stall cap deleted the Pod.
+                    if (s && s.stalled) {
+                        try { onStalled && onStalled(); } catch (_) { /* best-effort */ }
                         return false;
                     }
                 } catch (_) { /* transient during cold pull / proxy 404 window */ }
@@ -489,7 +498,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
             // MPI-73: surface the transition app-wide (hero card → "connecting ·
             // offline" with no card; status bar → "IDLE · Connecting"). Resolved by
             // the connected:true emit on success or connected:false on failure.
-            Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: 'connecting' });
+            Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: 'connecting', by: 'settings: Connect pressed' });
             // A saved podId → warm-resume (reconnect) the stopped Pod; otherwise
             // create fresh. Reconnect self-heals to delete+create if the host is
             // full or the GPU is gone (Step 4.3).
@@ -499,8 +508,9 @@ export const MpiRunpodSettings = ComponentFactory.create({
             _setEngineHint(root, warm
                 ? 'Resuming your Pod — a warm resume is fast; if its host is full it recreates fresh.'
                 : 'Creating a fresh Pod on the selected GPU — first boot can take 90–120s.');
-            // sound:false — immediate feedback of pressing Connect; a click must not ring.
-            Events.emit('ui:info', { message: warm ? 'Connecting to your Pod…' : 'Creating a Pod…', sound: false });
+            // MPI-1057 (Fabio): NO toast between Connect and its outcome. Any toast mid-connect
+            // read as "connected", so users started generating. Progress lives in this panel
+            // and the home strip; the next toast is ready, failed or cancelled.
             let _connectSucceeded = false; // MPI-73: resolves the 'connecting' phase
             let _handoffToWait = false;    // MPI-110: sniped mid-create → re-enter wait loop in finally
             try {
@@ -629,17 +639,18 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 let _slowShown = false;
                 let _notRunning = false; // MPI-96: RunPod host failed to start the Pod
                 let _maintenance = false; // MPI-135 (C): host under maintenance (draining)
+                let _stalled = false; // MPI-1057: the backend's 8-min stall cap deleted it
                 const ready = await _pollEngineReady(() => {
                     if (_slowShown) return;
                     _slowShown = true;
+                    // Panel hint only. A toast here read as "connected" to Fabio and to users
+                    // (MPI-1057), and the hero already shows the connect %.
                     _setEngineHint(root, 'First-time setup: downloading the engine and optimising it for your GPU (one time, a few minutes — much faster next time). Hang tight…');
-                    Events.emit('ui:info', { message: 'Setting up the engine for your GPU (one time)…' });
                 }, () => {
                     // MPI-86 boot watchdog: past ~5 min the Pod may be stuck on a bad
                     // RunPod host/volume. Prompt the user to bail — the Cancel button
                     // is already live, so this only nudges; it never auto-cancels.
-                    _setEngineHint(root, 'This is taking longer than usual — the Pod may be stuck on a bad host. Press Cancel to stop and try another GPU.', true);
-                    Events.emit('ui:warning', { message: 'Pod taking too long — you can Cancel and try another GPU.' });
+                    _setEngineHint(root, 'This is taking longer than usual: the Pod may be stuck on a bad host. Press Cancel to stop and try another GPU, or the app stops it at 8 minutes.', true);
                 }, (podStatus) => {
                     // MPI-96: RunPod reported the Pod EXITED/TERMINATED — created but
                     // never started on the host. _pollEngineReady has already stopped;
@@ -650,7 +661,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                     // MPI-135 (C): RunPod placed the Pod on a host under maintenance.
                     _maintenance = true;
                     clientLogger.warn('settings', `[RunPod] host under maintenance — aborting connect (${(maint && maint.note) || 'no note'})`);
-                });
+                }, () => { _stalled = true; });
                 // MPI-86: user pressed Cancel mid-poll — _cancelConnect already tore
                 // down the Pod + reset the UI; bail without the "still preparing" path.
                 if (_connectAbort) return;
@@ -684,6 +695,16 @@ export const MpiRunpodSettings = ComponentFactory.create({
                     _setEngineStatusText(root, 'stopped');
                     _engineBtnLabelSet('Connect');
                     Events.emit('ui:warning', { message: 'Host under maintenance — Connect again for a fresh one.' });
+                    return;
+                }
+                // MPI-1057: the backend already deleted the Pod; the shell's connection
+                // feed shows the dialog, so the panel only repaints.
+                if (_stalled) {
+                    Events.emit('remote:connect-progress', { pct: 0 });
+                    state.runpodConfig = { ..._runpodCfg(), podId: null, wasConnected: false };
+                    _setEngineHint(root, "RunPod's host never started the Pod, so it was deleted after 8 minutes. Nothing is wrong on your side: pick another GPU and Connect.", true);
+                    _setEngineStatusText(root, 'stopped');
+                    _engineBtnLabelSet('Connect');
                     return;
                 }
                 if (!ready) {
@@ -722,7 +743,6 @@ export const MpiRunpodSettings = ComponentFactory.create({
                     _setEngineStatusText(root, 'connecting…');
                     _engineBtnLabelSet('Disconnect');
                     state.runpodConfig = { ..._runpodCfg(), wasConnected: true };
-                    Events.emit('ui:info', { message: 'Almost ready — finishing the connection.' });
                     fetch('/remote/pod/cleanup-orphans', { method: 'POST' }).catch(() => {});
                     return;
                 }
@@ -750,7 +770,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                     const _sr = await fetch(`/remote/pod/specs${_qp}`);
                     if (_sr.ok) _specs = await _sr.json();
                 } catch (_) { /* keep the fallback */ }
-                Events.emit('remote:connection', { connected: true, ..._specs, phase: null });
+                Events.emit('remote:connection', { connected: true, ..._specs, phase: null, by: 'settings: Pod ready' });
                 Events.emit('ui:success', { message: 'Remote engine ready' });
                 // Reap any stranded EXITED Pods from a prior session (Step 4.3.3).
                 // A create already swept server-side; a warm resume did not, so
@@ -781,7 +801,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 // next 5s feed tick. A real Cancel (_cancelConnect) deletes the Pod and
                 // emits local itself, so it is unaffected by this guard.
                 if (!_connectSucceeded && !_destroyAborted) {
-                    Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
+                    Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'settings: connect ended without a connection' });
                 }
                 // MPI-110: sniped mid-create with auto-retry on → re-enter the
                 // background wait (shell-owned) now that this attempt's state is torn
@@ -793,7 +813,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                     // it on a picked GPU + volume like the other reset branches — don't
                     // blanket-enable, or Cancel leaves an enabled Connect with no GPU.
                     _engineBtnDisabled(!_runpodCfg().gpuType || !_runpodCfg().volumeId);
-                } else {
+                } else if (!_cancelling) { // MPI-1057: Cancel's wait owns the button
                     _engineBtnDisabled(false);
                 }
             }
@@ -817,25 +837,48 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 _setEngineHint(root, 'Stopped waiting. Pick a GPU and Connect again, or try another card.');
                 _engineBtnLabelSet('Connect');
                 _engineBtnDisabled(!_runpodCfg().gpuType || !_runpodCfg().volumeId);
-                Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
+                Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'settings: stopped waiting for the GPU' });
                 Events.emit('ui:info', { message: 'Stopped waiting for the GPU.' });
                 return;
             }
+            // MPI-1057: RunPod's DELETE can hang on a Pod its host never started (~2 min on
+            // 2026-10-10). Hold "cancelling…" with a live count and a dead button until it
+            // answers; _applyEngineStatus and _connectEngine's finally leave it alone.
+            _cancelling = true;
+            _engineBtnDisabled(true);
             _setEngineStatusText(root, 'cancelling…');
-            _setEngineHint(root, 'Cancelling — deleting the half-started Pod so it stops billing…');
+            const t0 = Date.now();
+            const showWait = () => _setEngineHint(root, `Cancelling: waiting for RunPod to delete the Pod (${Math.round((Date.now() - t0) / 1000)}s). It bills until RunPod confirms.`);
+            showWait();
+            const waitTimer = setInterval(showWait, 1000);
+            let out = null;
             try {
-                await fetch('/remote/pod/delete-active', { method: 'POST' });
+                const res = await fetch('/remote/pod/delete-active', { method: 'POST' });
+                out = res.ok ? await res.json() : null;
             } catch (_) { /* best-effort — the backend idle watchdog is the backstop */ }
+            finally {
+                clearInterval(waitTimer);
+                _cancelling = false;
+            }
             // Forget any tracked podId so the next Connect creates fresh, and clear
             // the auto-reconnect intent (a cancelled attempt is not a connection).
             state.runpodConfig = { ..._runpodCfg(), podId: null, wasConnected: false };
             _setEngineStatusText(root, 'stopped');
-            _setEngineHint(root, 'Connection cancelled. Pick a GPU and Connect again, or try another card.');
+            // `inactive` = there was no Pod to delete. Anything else short of deleted:true
+            // means RunPod never confirmed, and the Pod may still bill.
+            const confirmed = !!out && (out.deleted === true || out.reason === 'inactive');
+            if (confirmed) {
+                _setEngineHint(root, 'Connection cancelled. Pick a GPU and Connect again, or try another card.');
+            } else {
+                clientLogger.warn('settings', `[RunPod] Cancel: delete not confirmed (${out ? out.reason || 'deleted:false' : 'no answer'})`);
+                _setEngineHint(root, 'RunPod did not confirm the delete. Check the RunPod console that the Pod is gone, or it keeps billing.', true);
+            }
             _engineBtnLabelSet('Connect');
             _engineBtnDisabled(!_runpodCfg().gpuType || !_runpodCfg().volumeId);
             // Resolve the transient 'connecting' phase → local · offline.
-            Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
-            Events.emit('ui:info', { message: 'Connection cancelled.' });
+            Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'settings: Cancel' });
+            if (confirmed) Events.emit('ui:info', { message: 'Connection cancelled.' });
+            else Events.emit('ui:warning', { message: 'RunPod did not confirm the delete: check the RunPod console.' });
         }
 
         // ── Auto-retry wait loop (MPI-110) ───────────────────────────────────
@@ -889,7 +932,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
             // MPI-73: hero card → "disconnecting · online" (no card); status bar →
             // "IDLE · Disconnecting". connected:true keeps the label base "online"
             // mid-teardown. Resolved to local · offline in finally.
-            Events.emit('remote:connection', { connected: true, gpuName: null, vramGb: null, ramGb: null, phase: 'disconnecting' });
+            Events.emit('remote:connection', { connected: true, gpuName: null, vramGb: null, ramGb: null, phase: 'disconnecting', by: 'settings: Stop pressed' });
             try {
                 // Step 4.3: STOP, not delete — keeps the Pod warm-resumable. Clear
                 // wasConnected so boot does NOT auto-reconnect after an explicit
@@ -912,7 +955,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 _engineBtnLabelSet('Connect');
                 _engineBtnDisabled(!_runpodCfg().gpuType || !_runpodCfg().volumeId);
                 // MPI-73: resolve the 'disconnecting' phase → local · offline.
-                Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
+                Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'settings: Pod stopped' });
             }
         }
 
@@ -927,7 +970,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
             _setEngineHint(root, 'Deleting the Pod (GPU + container-disk billing ends; the next Connect creates a fresh Pod). Your volume and models persist.');
             // MPI-73: hero → "disconnecting · online" (no card); status bar →
             // "IDLE · Disconnecting". Resolved to local · offline in finally.
-            Events.emit('remote:connection', { connected: true, gpuName: null, vramGb: null, ramGb: null, phase: 'disconnecting' });
+            Events.emit('remote:connection', { connected: true, gpuName: null, vramGb: null, ramGb: null, phase: 'disconnecting', by: 'settings: Delete pressed' });
             try {
                 const res = await fetch('/remote/pod/delete-active', { method: 'POST' });
                 const data = await res.json().catch(() => ({}));
@@ -949,7 +992,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 _engineBtnLabelSet('Connect');
                 _engineBtnDisabled(!_runpodCfg().gpuType || !_runpodCfg().volumeId);
                 // MPI-73: resolve the 'disconnecting' phase → local · offline.
-                Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
+                Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'settings: Pod deleted' });
             }
         }
 

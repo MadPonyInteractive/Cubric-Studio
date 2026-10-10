@@ -150,6 +150,16 @@ component kept its old name, so "Settings" in a file name or an older card means
   or 404-absent Pod (and NOT while a connect is in flight) → flips `_mode.active=false`
   + returns `dead:true`. This ends the `ws-token` 503 spam and lets the hero feed
   repaint local. Never fires on a network blip (throw).
+- **Stall cap, 8 min (MPI-1057):** `_setStarting(true)` arms a timer; a boot still not
+  wrapper-ready at `STALL_CAP_MS` is deleted and `/remote/comfy/status` reports
+  `stalled:{podId}` until the next boot. The shell feed shows the "Pod never started"
+  dialog once per Pod. Cause: RunPod hosts that never start the container (empty system
+  log). `getPod` on the status route is bounded at 3 s, because RunPod's API hangs on such a Pod.
+  Each change in the Pod's v2 fields (`status`, `cudaVersion`, `ssh.proxy`, …) is
+  logged once, to find an earlier signal.
+- **Connect phase log (MPI-1057):** every `connecting`/`disconnecting` change is logged as
+  `[remote] phase A -> B (by …)`. The feed keeps `connecting` when the status request
+  gets NO answer; only a real `connecting:false` ends it.
 - **Disconnect hero race (MPI-240):** the app-wide connection feed (`js/shell.js`)
   awaits `/remote/pod/specs` before emitting the Pod card; a Disconnect landing during
   that await used to be clobbered by the stale connected emit. The feed now drops the
@@ -371,6 +381,10 @@ difference between hunting for a 96 GB instance and taking whatever is in stock.
   volume; a Stop ends the wait). A gen sends `priority: true` to jump a prefetch. A file the
   worker cannot stage drops out of `pending` (`failed`), so a poll can never wait forever.
   The blocking form stays for older apps; `dryRun`'s `async` flag is the capability probe.
+  **A Flow run stages too (MPI-1057).** It carries `modelId: null`, so until 2026-10-10 the
+  preflight found no files and every Flow loaded its models off the volume, racing the
+  prefetch for the same files. It now stages each model in the run's `flowModelIds` (every
+  op's set, as the prefetch does); a `null` slot (a leg that does not run it) stages nothing.
   **Two regimes (MPI-329).** A model that FITS VRAM (Krea2 13.5 / Qwen 20.5 on a 24 GB card) is
   volume-read-bound → staging = ~10× win. A single file LARGER than VRAM (LTX 42 GB bf16 on a
   24 GB card) can't stay resident → aimdo streams it per-stage regardless of source → staging

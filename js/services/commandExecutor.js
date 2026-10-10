@@ -677,6 +677,21 @@ async function _hotStoreFiles(modelId, operation) {
         .filter(Boolean);
 }
 
+// Every op's weights for each model, deduped across models (a shared encoder stages once).
+// MPI-1052: `models` counts only models with weights to stage. A cloud model sits in the
+// installed set with no files, and the toast said "18 models" for 3 on the volume.
+async function _hotStoreFilesForModels(ids) {
+    const byKey = new Map();
+    let models = 0;
+    for (const id of ids) {
+        if (!id) continue; // a Flow slot this leg does not run
+        const own = await _hotStoreFiles(id, null);
+        if (own.length) models += 1;
+        for (const f of own) byKey.set(`${f.type}/${f.filename}`, f);
+    }
+    return { files: [...byKey.values()], models };
+}
+
 function _postHotStore(body) {
     return fetch('/remote/hot-store/ensure', {
         method: 'POST',
@@ -712,7 +727,7 @@ const HOT_STORE_WAIT_MS = 180000;
  * @param {AbortSignal} [signal]  the job's cancel signal — a Stop ends the wait.
  * Exported for tests/pod-identity-hot-store.test.cjs only.
  */
-export async function _ensureRemoteHotStore(modelId, operation, signal) {
+export async function _ensureRemoteHotStore(modelId, operation, signal, flowModelIds = null) {
     // MPI-539: NEVER stage onto a download-mode Pod. Its container has ~3.7 GiB of RAM
     // and no GPU — the user is installing weights there, not generating. Staging one
     // 469MB LoRA OOM-killed the wrapper live on 2026-08-11 (exit 137), which dropped the
@@ -720,7 +735,13 @@ export async function _ensureRemoteHotStore(modelId, operation, signal) {
     // the mirror), never the saved picker: a Pod made over HTTP leaves the picker on a
     // GPU, and that read staged onto a CPU Pod on 2026-09-28.
     if (remoteEngineClient.isDownloadOnly()) return;
-    const files = await _hotStoreFiles(modelId, operation);
+    // MPI-1057: a Flow run carries `modelId: null` and names its models in `flowModelIds`,
+    // so it staged nothing and loaded them off the slow volume while the connect prefetch
+    // was copying the same files (Video Edit on H3, 2026-10-10: ~2 min "Loading model").
+    // Stage each named model's set, the one the prefetch queues for it.
+    const files = modelId
+        ? await _hotStoreFiles(modelId, operation)
+        : (await _hotStoreFilesForModels(flowModelIds || [])).files;
     if (!files.length) return;
 
     try {
@@ -786,16 +807,7 @@ export async function prefetchInstalledModels(ids = state.s_installedModelIds ||
     await remoteEngineClient.refresh();
     // A CPU download-mode Pod has no ComfyUI to warm (MPI-539) — server truth, as above.
     if (!remoteEngineClient.isRemote() || remoteEngineClient.isDownloadOnly()) return;
-    const byKey = new Map();
-    // MPI-1052: count only models with weights to stage. A cloud model sits in the
-    // installed set with no files, and the toast said "18 models" for 3 on the volume.
-    let models = 0;
-    for (const id of ids) {
-        const own = await _hotStoreFiles(id, null);
-        if (own.length) models += 1;
-        for (const f of own) byKey.set(`${f.type}/${f.filename}`, f);
-    }
-    const files = [...byKey.values()];
+    const { files, models } = await _hotStoreFilesForModels(ids);
     if (!files.length) return;
     try {
         // The dryRun doubles as the capability probe: a pre-async wrapper would hold
@@ -2011,7 +2023,7 @@ export function runCommand(payload) {
         // best-effort). Not for a force-local run (no Pod). Awaited so the one-time
         // ~55s first-stage shows a progress toast rather than a silent stall.
         if (engine === 'remote' && workingPayload.forceLocal !== true) {
-            await _ensureRemoteHotStore(workingPayload.modelId, workingPayload.operation, generationStore.getSignal(jobId));
+            await _ensureRemoteHotStore(workingPayload.modelId, workingPayload.operation, generationStore.getSignal(jobId), workingPayload.flowModelIds);
         }
         if (await _abortedBail(tempTrimInputPaths)) return;
 

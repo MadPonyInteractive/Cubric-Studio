@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/remotePodLifecycle.js",
+    "routes/runpodRemote.js",
+    "js/shell.js",
+    "js/components/Organisms/MpiRunpodSettings/MpiRunpodSettings.js",
+    "js/data/modelRegistry.js",
+    "js/services/comfyController.js",
+    "tests/pod-stall-cap.test.cjs",
+    "tests/models-check-pending.test.cjs",
+    "docs/runpod-remote-engine.md",
+    "docs/toasts.md",
+    "js/services/commandExecutor.js",
+    "tests/pod-identity-hot-store.test.cjs"
+  ]
+}

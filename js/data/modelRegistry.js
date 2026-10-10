@@ -252,7 +252,11 @@ export async function syncModelInstalled() {
         });
 
         if (!res.ok) return false;
-        const { results, bakedDrift } = await res.json();
+        const { results, bakedDrift, pending } = await res.json();
+        // MPI-1057: `pending` = the Pod's wrapper is still booting (MPI-211), so the server
+        // knows nothing yet. Its empty `results` is not "nothing installed": publishing it
+        // read 0 / 24 on the home strip for a whole connect. Keep the last real answer.
+        if (pending) return false;
 
         // MPI-222: a baked Pod-image node at the wrong commit can't be volume-healed
         // — the image needs a rebuild. Warn once per node per session (toast, not the

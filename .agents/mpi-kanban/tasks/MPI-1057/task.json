@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1057",
+  "title": "RunPod connect feedback lies: home strip reads LOCAL - OFFLINE and 0 / 24 while connecting, Cancel shows nothing while RunPod's delete hangs",
+  "description": "Seen live 2026-10-10 (MPI-623 session 44, PRO 6000 Pod fx1mghpdhuzmdz stalled by RunPod with an empty System log): (1) the home strip (heroStats) read LOCAL - OFFLINE + the local GPU while Settings said 'Remote engine: connecting...' - heroStats HAS a 'connecting - offline' + % state (MPI-73/87/274), so some remote:connection emit with phase:null cleared it; no [settings] warning fired, cause unproven. (2) MODELS read 0 / 24 during the connect (local disk is full of weights). (3) Cancel sent /remote/pod/delete-active, but RunPod's DELETE hung on the stuck Pod until Fabio pressed Stop in the console (~2 min); the panel gave no sign it was still waiting. Fabio: fix right away.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-10T10:11:22+01:00",
+  "updated_at": "2026-10-10T11:00:54+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

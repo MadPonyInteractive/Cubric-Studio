@@ -782,7 +782,7 @@ function createEngine({ engine, alwaysLocal }) {
         await remoteEngineClient.refresh();
         // Resolve the engine feed to LOCAL (hero/status bar) and trigger the
         // disconnect-edge model re-check so the picker drops to local-only models.
-        Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
+        Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'comfyController: fell back to local' });
         // MPI-856: with no local engine there is nothing to run locally on — the local
         // branch below refuses with its own warning, so this notice would be false.
         if (!_localFallbackNoticeShown && !(await hasNoEngine())) {

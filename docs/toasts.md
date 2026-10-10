@@ -233,7 +233,6 @@ rather than trusting them.
 
 | File:line | Trigger | Message | Variant | Sound |
 |---|---|---|---|---|
-| `shell.js:757` | Auto-connect-on-start announce | Reconnecting to your Pod… / Creating a Pod… | info | **silent** |
 | `shell/navigation.js:287` | Nav to gallery on a download-only Pod | This is a download-only Pod (no GPU)… | warning | eligible |
 | `shell/projectUI.js:56` | Same download-only guard (projectUI copy) | This is a download-only Pod (no GPU)… | warning | eligible |
 | `shell/projectUI.js:297` | Clean up cached assets — success | Removed ${n} cached asset(s). | success | eligible |
@@ -247,24 +246,22 @@ rather than trusting them.
 
 ## RunPod connect/disconnect (`MpiRunpodSettings.js`)
 
-All fire from the Connect/Cancel/Disconnect flow. Row 1 is `sound:false` (click feedback); the rest
-are eligible.
+All fire from the Connect/Cancel/Disconnect flow and all are eligible. **No toast fires between
+Connect and its outcome** (MPI-1057, Fabio 2026-10-10): any toast mid-connect read as "connected"
+and users started generating. Progress lives in the panel and the home strip; the next toast is
+ready, failed or cancelled. The boot auto-connect (`shell.js`) follows the same rule.
 
 | Line | Trigger | Message | Variant | Sound |
 |---|---|---|---|---|
-| 469 | Connect clicked (feedback) | Connecting to your Pod… / Creating a Pod… | info | **silent** |
 | 509 | GPU unavailable in DC | Selected GPU unavailable — pick another. | warning | eligible |
 | 518 | Offline pre-flight | You're offline — check your internet connection. | warning | eligible |
 | 539 | RAM floor missed, auto-retry on | Waiting for a host with ≥${n} GB RAM… | info | eligible |
 | 545 | RAM floor missed, auto-retry off | No ≥${n} GB host available… | warning | eligible |
 | 555 | GPU not in RunPod create enum | This GPU can't be deployed — pick another card. | warning | eligible |
 | 572 | Generic connect failure | Could not connect to a Pod. | warning | eligible |
-| 594 | First-time engine setup (slow-show) | Setting up the engine for your GPU (one time)… | info | eligible |
-| 600 | Boot watchdog timeout | Pod taking too long — you can Cancel… | warning | eligible |
 | 630 | Pod exited/terminated before ready | Pod failed to start on host… | warning | eligible |
 | 644 | Host entered maintenance drain | Host under maintenance — Connect again… | warning | eligible |
 | 651 | Pod ready poll timed out | Pod still preparing — try Connect again shortly. | warning | eligible |
-| 683 | WS handshake incomplete | Almost ready — finishing the connection. | info | eligible |
 | 712 | Fully ready | Remote engine ready | success | eligible |
 | 729 | Connect endpoint threw | Could not reach the Pod connect endpoint. | warning | eligible |
 | 779 | Cancel during auto-retry wait | Stopped waiting for the GPU. | info | eligible |

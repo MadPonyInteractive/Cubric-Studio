@@ -69,8 +69,13 @@ let _remotePhase = null; // 'connecting' | 'disconnecting' | null
 // Mirror the transition phase into global `state` so consumers can read it at
 // mount (race-free) — not only via the live event. Top-level assign fires
 // state:changed; skip a no-op write so we don't churn the bus.
-function _setRemotePhase(phase) {
-  _remotePhase = phase || null;
+// MPI-1057: every change is logged with its cause (`by`), so a hero that drops to
+// local · offline mid-connect names who did it in app.log. An emit from another module
+// carries `by` in its payload.
+function _setRemotePhase(phase, by = 'unnamed emitter') {
+  const next = phase || null;
+  if (next !== _remotePhase) clientLogger.info('remote', `phase ${_remotePhase || 'none'} -> ${next || 'none'} (by ${by})`);
+  _remotePhase = next;
   if (state.remoteEnginePhase !== _remotePhase) state.remoteEnginePhase = _remotePhase;
 }
 
@@ -84,7 +89,7 @@ function _setRemotePhase(phase) {
 function _emitRemoteConnection(payload = {}) {
   const hasExplicitPhase = Object.prototype.hasOwnProperty.call(payload, 'phase');
   if (hasExplicitPhase) {
-    _setRemotePhase(payload.phase || null);
+    _setRemotePhase(payload.phase || null, payload.by);
     Events.emit('remote:connection', payload);
     return;
   }
@@ -92,7 +97,7 @@ function _emitRemoteConnection(payload = {}) {
   // active phase; otherwise FOLD the current phase into the emit so a feed tick
   // never strips "connecting"/"disconnecting" — and so a late subscriber (e.g. a
   // PromptBox mounted mid-connect) receives the phase on the next tick.
-  if (payload.connected === true) _setRemotePhase(null);
+  if (payload.connected === true) _setRemotePhase(null, payload.by);
   Events.emit('remote:connection', { ...payload, phase: _remotePhase });
 }
 
@@ -637,9 +642,8 @@ async function _bootApp() {
 /**
  * Poll /remote/comfy/status until the wrapper reports ready, or until timeout.
  * Replaces the backend's old inline long-poll (which 504'd on a long first-image
- * pull). Fires `onSlow` once when the wait crosses `slowAfterMs` — the signal of
- * a fresh-image cold pull (~3 GB) vs a normal ~90-120s cold create. Readiness is
- * gated on ComfyUI being up only; the first boot on a fresh volume/GPU arch also
+ * pull). No slow-wait notice: a toast mid-connect read as "connected" (MPI-1057).
+ * Readiness is gated on ComfyUI being up only; the first boot on a fresh volume/GPU arch also
  * pays a one-time sageattention compile (~5-15 min) that does NOT block readiness
  * (SDPA fallback) but does extend the wait — hence the 20-min timeout.
  * @returns {Promise<boolean>} true once ready, false on timeout.
@@ -660,9 +664,8 @@ function _connectPct(elapsedMs) {
 // host, not a slow boot, so bail. Returns true (ready), false (timeout), or the
 // string 'not-running' (host failed to start the Pod). Mirrors the Settings path.
 const _BOOT_NOT_RUNNING = new Set(['EXITED', 'TERMINATED', 'DEAD', 'ERROR']); // ERROR: RunPod v2 (MPI-806)
-async function _pollRemoteReady({ timeoutMs = 1200000, intervalMs = 4000, slowAfterMs = 150000, notRunningGraceMs = 30000, onSlow } = {}) {
+async function _pollRemoteReady({ timeoutMs = 1200000, intervalMs = 4000, notRunningGraceMs = 30000 } = {}) {
   const start = Date.now();
-  let slowFired = false;
   while (Date.now() - start < timeoutMs) {
     // MPI-87: surface an elapsed-based connect % (RunPod's API exposes no real
     // image-pull progress — see docs/runpod-remote-engine.md). An estimate, not a
@@ -697,22 +700,17 @@ async function _pollRemoteReady({ timeoutMs = 1200000, intervalMs = 4000, slowAf
       // quietly so the boot loop doesn't zombie to the 20-min timeout and then throw
       // a false "Could not create a Pod". Past the same grace window to skip the
       // brief startup gap before _connecting flips on.
+      // MPI-1057: the same shape with `stalled` is the backend's 8-min cap deleting it.
+      if (s && s.stalled) {
+        Events.emit('remote:connect-progress', { pct: 0 });
+        return 'stalled';
+      }
       if (s && !s.running && !s.ready && !s.connecting && !s.podStatus
           && Date.now() - start >= notRunningGraceMs) {
         Events.emit('remote:connect-progress', { pct: 0 });
         return 'aborted';
       }
     } catch (_) { /* transient during cold pull / proxy 404 window */ }
-    // MPI-110: fire the slow-wait notice on elapsed time, but ONLY while the connect
-    // is genuinely still in flight. A Settings Cancel flips backend mode off; without
-    // this gate the elapsed timer could fire "Setting up the engine…" a minute after
-    // the user cancelled (the abort shape is only confirmed past notRunningGraceMs).
-    // `s == null` is a transient fetch miss mid-pull — don't suppress on that.
-    const stillConnecting = !s || s.connecting || s.running || !!s.podStatus;
-    if (!slowFired && onSlow && stillConnecting && Date.now() - start >= slowAfterMs) {
-      slowFired = true;
-      try { onSlow(); } catch (_) { /* notify best-effort */ }
-    }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
   return false;
@@ -962,9 +960,9 @@ async function _runRemoteBoot(runpod) {
     _announced = true;
     // The Pod is real now → leave the wait state and surface the connecting phase.
     if (state.remoteWaitGpu !== null) state.remoteWaitGpu = null;
-    // sound:false — immediate feedback of pressing Connect; a click must not ring.
-    StatusBar.notify(warm ? 'Reconnecting to your Pod…' : 'Creating a Pod…', 'info', 6000, { sound: false });
-    _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: 'connecting' });
+    // MPI-1057 (Fabio): no toast mid-connect; it read as "connected". The home strip shows
+    // the connect; the next toast is the outcome.
+    _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: 'connecting', by: 'boot connect: Pod requested' });
   };
   if (warm) _announceConnecting();
   let _bootConnected = false; // MPI-73: resolves the 'connecting' phase
@@ -1061,7 +1059,7 @@ async function _runRemoteBoot(runpod) {
     // Stay local, tell the user once via the status bar (no modal on startup).
     if (data.offline) {
       clientLogger.info('shell', '[RunPod] auto-connect-on-start: offline — staying local');
-      _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
+      _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'boot connect: offline' });
       StatusBar.notify("You're offline — staying local. Reconnect to your Pod from Settings when back online.", 'warning', 6000);
       return;
     }
@@ -1075,18 +1073,8 @@ async function _runRemoteBoot(runpod) {
     // The backend now returns `starting` immediately (no 504 on a long first-image
     // pull); poll /remote/comfy/status until ready. A fresh image tag can take a
     // few minutes the first time it is pulled onto a host.
-    // MPI-94 L3 — the slow-wait copy must match what's actually happening: a fresh
-    // CREATE pays the one-time image pull + sage compile ("First-time setup…"); a
-    // warm RECONNECT just wakes an already-provisioned Pod (engine on its volume,
-    // no download), so the create copy was misleading there. Mirrors the manual
-    // Connect path's resume-vs-create copy (MpiSettings).
-    const ready = await _pollRemoteReady({
-      onSlow: () => StatusBar.notify(
-        warm
-          ? 'Resuming your Pod — waking it up, this is usually quick…'
-          : 'First-time setup: downloading the engine and optimising it for your GPU (one time, a few minutes — much faster next time)…',
-        'info', 8000),
-    });
+    // MPI-1057 (Fabio): no slow-wait toast; any toast mid-connect read as "connected".
+    const ready = await _pollRemoteReady();
     // MPI-96: RunPod accepted the Pod but its host never started it (EXITED). Delete
     // the dead Pod (an EXITED Pod still bills container disk), clear the saved podId
     // so the next boot creates fresh, and tell the user it's a bad host — not a
@@ -1133,6 +1121,8 @@ async function _runRemoteBoot(runpod) {
       clientLogger.info('shell', '[RunPod] auto-connect: cancelled by user mid-boot — stopping the boot poll');
       return;
     }
+    // MPI-1057: the backend's stall cap deleted the Pod; the connection feed says so.
+    if (ready === 'stalled') return;
     if (ready) {
       // MPI-88: a no-GPU "download mode" Pod has no ComfyUI / no preview WS — skip
       // the WS gate (wrapper-ready IS connected). Otherwise the boot auto-reconnect
@@ -1158,7 +1148,7 @@ async function _runRemoteBoot(runpod) {
           const sr = await fetch(`/remote/pod/specs${qp}`);
           if (sr.ok) specs = await sr.json();
         } catch (_) { /* keep the fallback */ }
-        _emitRemoteConnection({ connected: true, ...specs, phase: null });
+        _emitRemoteConnection({ connected: true, ...specs, phase: null, by: 'boot connect: ready' });
         _bootConnected = true;
         // Remember the connection so the NEXT boot warm-resumes this Pod instead of
         // creating another (mirrors manual Connect). A create yields a new podId,
@@ -1168,9 +1158,8 @@ async function _runRemoteBoot(runpod) {
           Storage.setRunpodConfig({ ...cfg, wasConnected: true });
         }
         StatusBar.notify('Remote engine ready', 'success', 6000);
-      } else {
-        StatusBar.notify('Almost ready — finishing the connection. Try generating in a moment.', 'info', 8000);
       }
+      // else: WS not handshaken yet. No toast (MPI-1057): "Almost ready" read as connected.
     } else {
       throw new Error('the Pod did not reach ready in time — open Settings → RunPod to retry');
     }
@@ -1188,7 +1177,7 @@ async function _runRemoteBoot(runpod) {
     // fully connect (unavailable GPU, timeout, WS never handshook, threw) so the
     // hero/status bar fall back to local · offline instead of staying stuck.
     if (!_bootConnected) {
-      _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
+      _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'boot connect: ended without a connection' });
       // Billing guardrail (mirrors the manual Connect path): a boot create that
       // didn't finish may have left a STRAY Pod. Reap non-keeper 'cubric-vision'
       // Pods now; the still-preparing tracked Pod is spared server-side.
@@ -1214,6 +1203,21 @@ async function _runRemoteBoot(runpod) {
  */
 function _initRemoteConnectionFeed() {
   let _last = null; // last broadcast connected bool (null = nothing sent yet)
+  let _stallShownFor = null; // podId whose stall-cap delete was already announced (MPI-1057)
+
+  // The backend deleted the Pod already; forget it so the next Connect creates fresh and
+  // boot does not try to resume it, then say why (mirrors the boot not-running dialog).
+  const _announceStall = () => {
+    clientLogger.warn('shell', '[RunPod] Pod hit the 8-min stall cap; the backend deleted it');
+    state.runpodConfig = { ...state.runpodConfig, podId: null, wasConnected: false };
+    const dlg = MpiOkCancel.mount(document.createElement('div'), {
+      title: 'Pod never started',
+      text: "RunPod's host never started your Pod, so we deleted it after 8 minutes to stop the bill. Nothing is wrong on your side. Open Settings, RunPod, pick another GPU and Connect.",
+      okLabel: 'Got it',
+      showCancel: false,
+    });
+    dlg.el.show();
+  };
 
   // Track the transition phase from ANY `remote:connection` emit carrying an
   // explicit phase — including Settings Connect/Disconnect (a different module) —
@@ -1222,7 +1226,7 @@ function _initRemoteConnectionFeed() {
   // sync for boot + feed; this covers the Settings-initiated case.
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
   Events.on('remote:connection', (p) => {
-    if (p && Object.prototype.hasOwnProperty.call(p, 'phase')) _setRemotePhase(p.phase || null);
+    if (p && Object.prototype.hasOwnProperty.call(p, 'phase')) _setRemotePhase(p.phase || null, p.by);
   });
 
   const HEALTHY_MS = 5000;
@@ -1274,10 +1278,10 @@ function _initRemoteConnectionFeed() {
     let connected = false;
     let connecting = false; // MPI-110: backend reports a create/resume in flight
     let dead = false;       // MPI-239: backend self-healed a died-while-connected Pod
+    let s = null;           // the status answer; null = no answer this tick
     try {
       const ac = new AbortController();
       const to = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS);
-      let s = null;
       try {
         const res = await fetch('/remote/comfy/status', { signal: ac.signal });
         s = res.ok ? await res.json() : null;
@@ -1329,6 +1333,13 @@ function _initRemoteConnectionFeed() {
     } catch (_) {
       connected = false;
     }
+    // MPI-1057: the backend hit the 8-min stall cap and deleted a Pod RunPod never
+    // started. Said once per Pod, here because this feed is the one connect watcher that
+    // outlives a closed Settings panel; the not-connecting branch below ends the phase.
+    if (s && s.stalled && s.stalled.podId !== _stallShownFor) {
+      _stallShownFor = s.stalled.podId;
+      _announceStall();
+    }
     // MPI-239: the backend just self-healed a Pod that DIED while connected
     // (ephemeral reaped / warm evicted, no user Disconnect). Force local · offline
     // NOW, bypassing both the miss-debounce and the `connected !== _last` guard —
@@ -1340,12 +1351,18 @@ function _initRemoteConnectionFeed() {
       _misses = 0;
       _delay = HEALTHY_MS;
       _last = false;
-      _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
+      _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'feed: Pod died while connected' });
       return;
     }
     // Healthy → poll at the base cadence; down/unreachable → back off so slow
     // requests against a dead proxy can't pile up.
     _delay = connected ? HEALTHY_MS : Math.min(_delay * 2, MAX_BACKOFF_MS);
+
+    // MPI-1057: NO answer is not "the connect ended". The status route can outlast the
+    // 4 s abort (its /health probe waits 5 s, and RunPod's API can hang on a stuck Pod),
+    // and reading that as connecting:false dropped the hero to local · offline for a whole
+    // stalled connect while Settings still said "connecting…". Only a real answer ends it.
+    if (!s && _remotePhase === 'connecting') return;
 
     // MPI-94 L5 — debounce the offline flip. Count consecutive misses; suppress
     // the flip while a download is active (keep-alive) or until MISS_THRESHOLD
@@ -1370,7 +1387,7 @@ function _initRemoteConnectionFeed() {
         // stale 'connecting' the fold-in held). Only emit on a real change to avoid spam.
         if (_remotePhase === 'connecting' || _last !== false) {
           _last = false;
-          _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
+          _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'feed: GPU wait, no Pod yet' });
         }
         return;
       }
@@ -1385,7 +1402,7 @@ function _initRemoteConnectionFeed() {
       // the state/_remotePhase are already correct for any late-mounted subscriber.
       if (connecting) {
         if (_remotePhase !== 'connecting') {
-          _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: 'connecting' });
+          _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: 'connecting', by: 'feed: backend reports a connect in flight' });
         }
         _last = false;
         return;
@@ -1393,7 +1410,7 @@ function _initRemoteConnectionFeed() {
       // MPI-110: connect ended without connecting (aborted/failed) — clear a stale
       // 'connecting' phase so the fold-in below doesn't leave the hero stuck on it.
       if (_remotePhase === 'connecting') {
-        _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
+        _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'feed: backend reports no connect in flight' });
         _last = false;
         return;
       }
@@ -1402,7 +1419,7 @@ function _initRemoteConnectionFeed() {
       // clean local · offline so a lost/raced finally emit can't leave the hero stuck
       // on "disconnecting · online" (mirrors the stale-'connecting' recovery above).
       if (_remotePhase === 'disconnecting') {
-        _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null });
+        _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'feed: disconnect finished' });
         _last = false;
         return;
       }
@@ -1431,7 +1448,7 @@ function _initRemoteConnectionFeed() {
     // eventually recovered (~15-70s). Re-read the shared phase AFTER the await: a
     // 'disconnecting' phase means the teardown is authoritative — drop this emit.
     if (_remotePhase === 'disconnecting') return;
-    _emitRemoteConnection({ connected: true, ...specs });
+    _emitRemoteConnection({ connected: true, ...specs, by: 'feed: Pod ready' });
   };
 
   // Self-scheduling loop (not setInterval): each run waits for the previous to
@@ -1482,7 +1499,7 @@ function _initEngineDropRecovery() {
     // Sticky disconnected state + immediate repaint (don't wait for the next 5s
     // feed tick). The explicit phase sets `_remotePhase` so later phase-less feed
     // ticks fold it in instead of painting plain local.
-    _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: 'disconnected' });
+    _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: 'disconnected', by: 'engine drop' });
     Events.emit('ui:warning', {
       message: 'Remote engine disconnected — the Pod may have run out of memory and restarted. '
         + 'Reconnect from Settings → RunPod to continue.',
