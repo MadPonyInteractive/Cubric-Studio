@@ -43,6 +43,7 @@ import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
 import { hasNoEngine } from './engineGate.js';
+import { childSafetyGate, JUDGE_SYSTEM, judgePrompt } from '../data/childSafety.js';
 
 /** The mode every image recipe declares, and the base mode of the video ones. */
 const DEFAULT_MODE = 't2v';
@@ -700,6 +701,54 @@ export async function runComfyEnhance({ prompt, system, injectionParams, modelId
 }
 
 /**
+ * THE CHILD-SAFETY JUDGE (MPI-1056): one short completion on `backend`, asked only when the
+ * script (`js/data/childSafety.js`) flags a prompt it cannot settle by words: who wears the
+ * swimwear, or a script its lists cannot read. Its system prompt is the gate's own fixed
+ * recipe, never a target model's. Resolves the raw answer, or null when nothing answered:
+ * `childSafetyGate` reads both as a refusal unless the answer is a bare ALLOW.
+ *
+ * `backend` is the one the caller already runs on. Inside a running job (`settleInGraphEnhance`)
+ * that is a server backend, so this never queues a ComfyUI job behind the job waiting for it.
+ *
+ * @param {string} text
+ * @param {'comfy'|'endpoint'|'ollama'} backend
+ * @returns {Promise<string|null>}
+ */
+export async function judgeChildSafety(text, backend) {
+    const prompt = judgePrompt(text);
+    let result;
+    if (backend === 'comfy') {
+        result = await runComfyEnhance({
+            prompt,
+            injectionParams: { ...buildComfyInjectionParams(JUDGE_SYSTEM), 'Input_Text_Gen.max_length': 16 },
+        });
+    } else {
+        const { profileId } = Storage.getLlmConnection();
+        result = await runServerBackend({
+            prompt,
+            system: JUDGE_SYSTEM,
+            backend,
+            modelId: backend === 'endpoint' ? await _endpointEnhanceModel(profileId) : enhancerModelPreference(),
+            maxTokens: 16,
+            ...(backend === 'endpoint' ? { profileId } : {}),
+        });
+    }
+    if (!result?.ok) {
+        clientLogger.warn('prompt', `[childSafety] the judge did not answer on ${backend}: ${result?.error}`);
+        return null;
+    }
+    clientLogger.info('prompt', `[childSafety] judge on ${backend} (${result.model || 'default model'}) answered ${String(result.text).slice(0, 20)}`);
+    return result.text;
+}
+
+/** The two-tier gate with the judge on `backend`. Never rejects. */
+export const childSafetyCheck = (text, ctx, backend) =>
+    childSafetyGate(text, ctx, (t) => judgeChildSafety(t, backend));
+
+/** An enhance result for a refused request or reply: the reason is the error every caller shows. */
+const _childSafetyRefusal = (r) => ({ ok: false, error: r.message, errorCode: r.code, code: r.code });
+
+/**
  * A FLOW's enhance, on the backend the user picked in Language Models (MPI-677, 2026-09-13).
  *
  * Until this, every flow Enhance ran the ComfyUI graph whatever the user chose, because the
@@ -726,6 +775,17 @@ export async function runComfyEnhance({ prompt, system, injectionParams, modelId
  */
 export async function enhanceFlow({ prompt, injectionParams, modelId = null } = {}) {
     const backend = await runnableBackend(backendPreference());
+    // MPI-1056: the request and the result both pass the child-safety gate.
+    const asked = await childSafetyCheck(prompt, {}, backend);
+    if (!asked.ok) return _childSafetyRefusal(asked);
+    const result = await _enhanceFlowOn(backend, { prompt, injectionParams, modelId });
+    if (!result.ok) return result;
+    const wrote = await childSafetyCheck(result.text, {}, backend);
+    return wrote.ok ? result : _childSafetyRefusal(wrote);
+}
+
+/** `enhanceFlow`'s run on one backend, unchecked. */
+async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
     if (backend === 'comfy') return runComfyEnhance({ prompt, injectionParams, modelId });
 
     let params;
@@ -786,6 +846,10 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
 
     const chosen = chooseBackend({ override: backend ?? await runnableBackend(backendPreference()) });
 
+    // MPI-1056: a request the child-safety gate refuses is never sent to the enhancer.
+    const asked = await childSafetyCheck(idea, { modelId: model?.id }, chosen);
+    if (!asked.ok) return _childSafetyRefusal(asked);
+
     const { profileId } = Storage.getLlmConnection();
     const resolvedModelId = chosen === 'endpoint' ? await _endpointEnhanceModel(profileId) : enhancerModelPreference();
 
@@ -812,6 +876,10 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
     const split = modeRecipe.negativeHandling === 'separate-field'
         ? splitLabelledPrompt(result.text)
         : null;
+    // ...and what it wrote back is checked too: the recipes stay untouched, so this is what
+    // stops an enhancer adding a bikini to a child. The negative half is never checked.
+    const wrote = await childSafetyCheck(split ? split.positive : result.text, { modelId: model?.id }, chosen);
+    if (!wrote.ok) return _childSafetyRefusal(wrote);
 
     return {
         ...result,

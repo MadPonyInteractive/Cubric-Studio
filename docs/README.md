@@ -113,6 +113,7 @@ NOT mechanically split these):
 | Models-path / YAML / extra-folders | [models-path.md](models-path.md) |
 | Download manager (resumable, NDH) | [download-manager.md](download-manager.md) |
 | Language models (prompt enhance, image descriptions: ComfyUI / Remote / Ollama) | [llm.md](llm.md) |
+| **Child-safety gate** (MPI-1056: the word-and-age script on every generation and every enhance, the language-model judge that may only clear a flag, what an 18+ app must still let through) | [child-safety.md](child-safety.md) |
 | **Bumping the engine users run** (the two engines off one pin, the Pod-version assert, the executing smoke gate) — NOT `/mpi-bump-local-comfy`, which is bench-only | [playbooks/bump-engine/README.md](playbooks/bump-engine/README.md) |
 
 ### RunPod remote engine

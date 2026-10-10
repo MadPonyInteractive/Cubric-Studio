@@ -292,8 +292,10 @@ export async function runEnhanceDecl(d, source, { flowId } = {}) {
 }
 
 /** An agent-facing refusal: what the enhancer said, plus where the user fixes it. */
-function _enhanceFailure(flow, error) {
+function _enhanceFailure(flow, error, code) {
     const why = String(error || 'It gave no answer.').trim();
+    // A child-safety refusal (MPI-1056) is not a broken enhancer: its reason stands alone.
+    if (code === 'CHILD_SAFETY') return { ok: false, code, message: why };
     const hint = /Remote > Language Models/.test(why) ? '' : ' Check Remote > Language Models.';
     return {
         ok: false,
@@ -352,7 +354,7 @@ export async function enhanceFlowRun(flow, resolved, deps = { enhance: runEnhanc
             };
         }
         if (!result?.ok || !String(result.text || '').trim()) {
-            return _enhanceFailure(flow, result?.ok ? 'The enhancer returned nothing.' : result?.error);
+            return _enhanceFailure(flow, result?.ok ? 'The enhancer returned nothing.' : result?.error, result?.errorCode);
         }
 
         enhancedWrites(d, String(result.text), id => _isBlank(values[id])).forEach(([id, v]) => {

@@ -197,3 +197,4 @@ as bound to DeepInfra), never the `runpodApiKey` one. No IPC channel names DeepI
   and never send a Remote id to Ollama.
 - **`Input_Seed` is always randomised, never a user field, never persisted.**
 - **One describe switch.** A new describe caller goes through `describeImage`, never its own enqueue.
+- **`enhance()` and `enhanceFlow()` check the request AND the reply** ([child-safety.md](child-safety.md), MPI-1056); a new enhance path calls `childSafetyCheck`, never a rule in a recipe.

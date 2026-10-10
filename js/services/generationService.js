@@ -32,6 +32,7 @@ import { labelFromComfyOutputUrl } from '../utils/comfyOutputUrls.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { ce } from '../utils/dom.js';
 import { collapseQueueBatches } from './generationBatch.js';
+import { checkChildSafety, childSafetyGate, configTexts, configContext, CHILD_SAFETY_CODE } from '../data/childSafety.js';
 
 // ── Cue queue (in-app, THREE-LANE dispatch) ─────────────────────────────────
 // We own the pending array. MPI-74 P6 split dispatch into a 'remote' lane (cloud
@@ -566,6 +567,55 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
     // freezes to the project open at re-fire. Carry it from `loopSeed` if that bites.
     config._originProject ??= state.currentProject;
 
+    // MPI-1056: the child-safety gate, on every generation: the prompt box, Flows, routines,
+    // the in-app agent and MCP all reach the queue here. A word-and-age script, no tokens;
+    // a borderline flag waits for the language-model judge, which may only clear it. A text
+    // op (the enhancer, the describer) is exempt: the enhancer checks itself, and the judge
+    // IS a promptEnhance job, so gating it would wait on itself.
+    if (getCommand(config.operation)?.outputKind !== 'text') {
+        const safety = checkChildSafety(configTexts(config), configContext(config));
+        if (safety.verdict === 'refuse') return _refuseChildSafety(safety, config, callbacks);
+        if (safety.verdict === 'judge') {
+            const queueJobId = opts.queueJobId || crypto.randomUUID();
+            _judgeThenQueue(config, callbacks, { ...opts, queueJobId });
+            return { queueJobId };
+        }
+    }
+    return _pushCue(config, callbacks, opts);
+}
+
+/**
+ * A flagged run waits for the judge (`llmService.judgeChildSafety`, on the user's enhance
+ * pick) and queues only on its ALLOW. Imported on demand: llmService imports this module.
+ * ponytail: the run sits in no queue while the judge answers, so Stop cannot reach it in that
+ * window (seconds on Remote, behind a running job on ComfyUI). Hold a placeholder if that bites.
+ */
+async function _judgeThenQueue(config, callbacks, opts) {
+    let judge = null;
+    try {
+        const { judgeChildSafety, runnableBackend, backendPreference } = await import('./llmService.js');
+        const backend = await runnableBackend(backendPreference());
+        judge = (text) => judgeChildSafety(text, backend);
+    } catch (err) {
+        clientLogger.warn('generationService', `[childSafety] no judge to ask: ${err?.message || err}`);
+    }
+    // No judge = the flag stands (`childSafetyGate` refuses without one).
+    const r = await childSafetyGate(configTexts(config), configContext(config), judge);
+    if (r.ok) _pushCue(config, callbacks, opts);
+    else _refuseChildSafety(r, config, callbacks);
+}
+
+/** Nothing queued: the user gets a toast, the caller (an agent's report, a Flow pane) the reason. */
+function _refuseChildSafety(r, config, callbacks) {
+    clientLogger.warn('generationService', `[childSafety] refused a ${config.byAgent ? 'agent' : 'user'} run of ${config.operation} (${r.reason})`);
+    if (!config.byAgent) Events.emit('ui:warning', { message: r.message, sound: false });
+    try { callbacks.onError?.(Object.assign(new Error(r.message), { code: CHILD_SAFETY_CODE, userMessage: r.message })); } catch {}
+    _emitPromptBoxGenerationEndIfIdle();
+    return null;
+}
+
+/** The queue push itself: every run that passed `enqueueGeneration`'s guards. */
+function _pushCue(config, callbacks, opts) {
     const queueJobId = opts.queueJobId || crypto.randomUUID();
     const source = opts.source || (state.loopArmed ? 'loop' : 'manual');
     const isLoop = opts.isLoop === true || source === 'loop';

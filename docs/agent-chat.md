@@ -435,7 +435,10 @@ i2i is not a re-run on a named model, i2v is not the home of a character sheet.
 
 **Adult content (MPI-916, Fabio's call).** The system prompt's Content rule says the user is an
 adult on their own machine, nudity and adult themes are allowed and written as asked, never a
-minor or a real, named person. Without it the recommended model declined a plain nude request
+real, named person. Someone under 18 is never nude, in underwear, sexual or suggestive, and under
+16 wears no swimwear (MPI-1056: a dressed child character is fine; the gate in
+[child-safety.md](child-safety.md) enforces the rule on every generation, and its CHILD_SAFETY
+refusal is final, never reworded). Without it the recommended model declined a plain nude request
 with no tool call: the stance came from each model's training. The `-nsfw` variants stay unranked
 (never `best`) but carry a note that an explicit adult request takes one when installed. Harness
 case `adult-request`.

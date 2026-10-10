@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/data/childSafety.js",
+    "tests/child-safety.test.cjs",
+    "tests/child-safety-gate.test.cjs",
+    "services/agentLoop.mjs",
+    "tests/agent-prompt-budget.test.cjs",
+    "docs/agent-chat.md",
+    "js/services/generationService.js",
+    "js/services/llmService.js",
+    "js/services/flowEnhance.js",
+    "docs/child-safety.md",
+    "docs/README.md",
+    "docs/llm.md"
+  ]
+}
