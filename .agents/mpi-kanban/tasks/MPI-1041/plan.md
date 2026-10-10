@@ -2,9 +2,17 @@
 
 ## Current State
 
+**2026-10-10 (session fe4cb412, later) - SAFETY FIX landed (3da8e88af): Phase E's bench found the dressed checks cleared
+swimwear, lingerie and a nude sheet. Now four per-view, per-half checks (`SHEET_CLOTHES_CHECKS`, describe `region`), all must
+answer CLOTHES at 1-17; 9 of 10 bench sheets right (validation.md bench 3). Fabio: no release until this landed - say it
+did once its CI is green. NEXT: the in-app Phase E cases (ask Fabio when: his app is on :3000, 48188 is shared), then his
+eye test. Open for Fabio: LoRA racks on under-18 runs (the gate never sees a rack's LoRAs), age 1 = baby, preview art.**
+
 **2026-10-10 (session fe4cb412) - Phase D DONE except the preview art (`npm test` 2983/2985, 0 fail; lint +
-lint:components clean). NEXT: Phase E** - bench the two dressed checks on the default describer under
-`gpu_lease` (MPI-1060 shares the G: bench on :8188), then `npm run app:isolated`. The LoRA racks went into the
+lint:components clean). NEXT: Phase E** - the check bench `research/bench-tools/run_qchecks.sh` (6 sheets x 2 checks,
+results `G:/ComfyUi/ComfyUI/output/mpi1041_age/checks/checks_results.json`) was QUEUED under `gpu_lease` at 13:10Z;
+read its result, then the in-app cases (ask Fabio first: his app is on :3000 and an isolated run shares 48188).
+Desktop spec `flow-optional-model-row.spec.js` covers the Install row (b6ee74149). The LoRA racks went into the
 raws with `research/bench-tools/insert_rack.py` (raw in place, converted single-file against :8188's
 `/object_info`, diff = the rack only). Release-note bullet sent to MPI-1056 (it holds `UNRELEASED.md`):
 message `fe4cb412-mpi1041-to-mpi1056`; add it at close-out if they released instead. Claim
