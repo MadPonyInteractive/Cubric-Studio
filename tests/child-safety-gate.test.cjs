@@ -173,3 +173,47 @@ test('an innocent edit of a picture is never looked at', () => {
     assert.ok(queued(r.queueJobId), 'queued at once');
     assert.strictEqual(describeBodies.length, before, 'no describe call');
 });
+
+// ── A clip: looked at through its first frame (MPI-1062) ─────────────────────────────────
+
+const CLIP = '/project-file?path=C%3A%2Fproj%2FMedia%2Fimported.mp4';
+const POSTER = 'C:\\proj\\Media\\.meta\\v1.thumb.1280.webp';
+const clipEdit = (positive, card = { filePath: CLIP, thumbPath: 'C:\\proj\\Media\\.meta\\v1.thumb.webp', thumbPathLg: POSTER }) => config(positive, {
+    operation: 'flowVideoEdit', model: { id: null, mediaType: 'video' },
+    mediaItems: [{ url: CLIP, mediaType: 'video', role: 'video1' }],
+    _originProject: { id: 'p1', folderPath: 'C:\\proj', itemGroups: [{ id: 'g1', history: card ? [card] : [] }] },
+});
+
+test('"remove her clothes" on a clip: the describer looks at its card\'s first-frame poster, queued on NO', async () => {
+    describeAnswer = { ok: true, text: 'NO' };
+    const before = describeBodies.length;
+    const r = enqueueGeneration(clipEdit('remove her clothes'), {});
+    assert.strictEqual(queued(r.queueJobId), false, 'not queued before the describer answers');
+    await until(() => queued(r.queueJobId));
+    assert.strictEqual(queued(r.queueJobId), true);
+    assert.strictEqual(describeBodies.length, before + 1, 'one look at the one clip');
+    assert.strictEqual(describeBodies.at(-1).imagePath, POSTER, 'the 1280 poster');
+});
+
+test('a clip that may show a minor is refused, and so is a clip no still can be made of', async () => {
+    describeAnswer = { ok: true, text: 'YES' };
+    for (const [card, rx] of [[undefined, /picture or clip that may show someone under 18/], [null, /could not run/]]) {
+        // null: no card, so the first frame is grabbed in the renderer; Node has no <video>.
+        const before = describeBodies.length;
+        const { seen, off, callbacks } = capture();
+        const r = enqueueGeneration(clipEdit('make her naked', card), callbacks);
+        await until(() => seen.errors.length > 0);
+        off();
+        assert.strictEqual(queued(r.queueJobId), false, String(card));
+        assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY', String(card));
+        assert.match(seen.warnings[0], rx, String(card));
+        assert.strictEqual(describeBodies.length, before + (card === null ? 0 : 1), 'no still, no look');
+    }
+});
+
+test('an innocent edit of a clip is never looked at', () => {
+    const before = describeBodies.length;
+    const r = enqueueGeneration(clipEdit('make it night, add rain'), {});
+    assert.ok(queued(r.queueJobId), 'queued at once');
+    assert.strictEqual(describeBodies.length, before, 'no describe call');
+});

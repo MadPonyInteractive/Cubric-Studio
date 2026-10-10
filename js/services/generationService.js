@@ -21,7 +21,7 @@ import { state } from '../state.js';
 import { clientLogger } from './clientLogger.js';
 import { truncateCardName } from '../utils/displayHelpers.js';
 import { activeGenerations } from './activeGenerations.js';
-import { extractFilenameFromPath } from '../utils/mediaActions.js';
+import { extractFilenameFromPath, extractAbsPath, resolveMediaUrl } from '../utils/mediaActions.js';
 import { getCommand, getCommandMediaInputs, getFilePrefix } from '../data/commandRegistry.js';
 import { getFlowById } from '../data/flowsRegistry.js';
 import { pluginForOperation } from '../data/pluginsRegistry.js';
@@ -572,16 +572,18 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
     // a borderline flag waits for the language-model judge, which may only clear it. A text
     // op (the enhancer, the describer) is exempt: the enhancer checks itself, and the judge
     // IS a promptEnhance job, so gating it would wait on itself.
-    // A picture sent with words asking for nudity, underwear or sex ("remove her clothes") is
-    // looked at first: words cannot know the age of someone in a photo from the internet.
+    // A picture or clip sent with words asking for nudity, underwear or sex ("remove her clothes")
+    // is looked at first: words cannot know the age of someone in a photo from the internet.
     if (getCommand(config.operation)?.outputKind !== 'text') {
         const texts = configTexts(config);
         const safety = checkChildSafety(texts, configContext(config));
         if (safety.verdict === 'refuse') return _refuseChildSafety(safety, config, callbacks);
-        const pictures = needsPictureCheck(texts) ? picturesOf(config) : [];
-        if (safety.verdict === 'judge' || pictures.length) {
+        const look = needsPictureCheck(texts);
+        const pictures = look ? picturesOf(config) : [];
+        const clips = look ? picturesOf(config, 'video') : [];
+        if (safety.verdict === 'judge' || pictures.length || clips.length) {
             const queueJobId = opts.queueJobId || crypto.randomUUID();
-            _judgeThenQueue(config, callbacks, { ...opts, queueJobId }, pictures);
+            _judgeThenQueue(config, callbacks, { ...opts, queueJobId }, pictures, clips);
             return { queueJobId };
         }
     }
@@ -595,15 +597,17 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
  * ponytail: the run sits in no queue while they answer, so Stop cannot reach it in that window
  * (seconds on Remote, behind a running job on ComfyUI). Hold a placeholder if that bites.
  */
-async function _judgeThenQueue(config, callbacks, opts, pictures = []) {
+async function _judgeThenQueue(config, callbacks, opts, pictures = [], clips = []) {
     let llm = null;
     try {
         llm = await import('./llmService.js');
     } catch (err) {
         clientLogger.warn('generationService', `[childSafety] no language models to ask: ${err?.message || err}`);
     }
+    // A clip is looked at through its first frame (MPI-1062); one with no still is refused.
+    const stills = await Promise.all(clips.map((url) => _clipStill(url, config._originProject)));
     // No describer = refused (`pictureCheck` refuses without one).
-    const seen = await pictureCheck(pictures, llm && ((url) => llm.describeImage({ imagePath: url, question: AGE_QUESTION })));
+    const seen = await pictureCheck([...pictures, ...stills], llm && ((url) => llm.describeImage({ imagePath: url, question: AGE_QUESTION })));
     if (!seen.ok) return _refuseChildSafety(seen, config, callbacks);
 
     let judge = null;
@@ -617,6 +621,34 @@ async function _judgeThenQueue(config, callbacks, opts, pictures = []) {
     const r = await childSafetyGate(configTexts(config), configContext(config), judge);
     if (r.ok) _pushCue(config, callbacks, opts);
     else _refuseChildSafety(r, config, callbacks);
+}
+
+/**
+ * A clip's first frame for the picture check: its card's poster (1280, else 512), else the
+ * frame grabbed here and kept in the project's preview store (no gallery card), as a clip
+ * dropped into a Flow or handed over by an agent has no card. Null = no still: refused.
+ * ponytail: frame 0 only, so a child who appears later in the clip is not seen. The grab is
+ * `flowEnhance.stageFirstFrame`'s; one shared helper if a third copy appears.
+ */
+async function _clipStill(url, project) {
+    const abs = (p) => String(extractAbsPath(p) || p || '').replace(/\\/g, '/').toLowerCase();
+    const card = (project?.itemGroups || []).flatMap((g) => g.history || [])
+        .find((it) => it?.filePath && abs(it.filePath) === abs(url));
+    if (card?.thumbPathLg || card?.thumbPath) return card.thumbPathLg || card.thumbPath;
+    if (!project?.folderPath) return null;
+    try {
+        const { firstFrameDataUrl } = await import('../utils/video.js');
+        const dataUrl = await firstFrameDataUrl(resolveMediaUrl(url));
+        const res = await fetch(
+            `/project-media/${project.id || 'agent'}/place-preview-asset?folderPath=${encodeURIComponent(project.folderPath)}`,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataUrl, ext: '.png' }) },
+        );
+        const data = res.ok ? await res.json() : null;
+        return (data?.success && data.filePath) || null;
+    } catch (err) {
+        clientLogger.warn('generationService', `[childSafety] no still of a clip: ${err?.message || err}`);
+        return null;
+    }
 }
 
 /** Nothing queued: the user gets a toast, the caller (an agent's report, a Flow pane) the reason. */

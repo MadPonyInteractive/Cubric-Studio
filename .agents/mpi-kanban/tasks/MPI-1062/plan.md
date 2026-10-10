@@ -31,13 +31,43 @@ picture check an image gets: the describer looks at the clip's first frame first
 
 ## Current State
 
-2026-10-10: card created by the MPI-1056 session (e74cfbb0) at Fabio's ask; nothing built. Next:
-step 1.
+2026-10-10 (session 8ef88b5e "CP Gate 2"): steps 1-4 built and verified, NOT committed. Steps 5-6
+wait on two peers' claims (messages sent, both in `state/messages/8ef88b5e-mpi1062-to-*.json`):
+- `docs/child-safety.md` is held by MPI-1041 (fe4cb412, no uncommitted edits there). Once released,
+  apply the text below.
+- `docs/releases/UNRELEASED.md` is held by MPI-1064 (38894ae1, HAS uncommitted edits there). Asked
+  it to make Fabio's approved change ("in a picture" -> "in a picture or clip" in the child-safety
+  bullet); check it landed before close.
+
+Drafted doc change for `docs/child-safety.md`:
+- § Where it runs, picture-check bullet: after "(`picturesOf`: every image mediaItem, imported or
+  made here)" add: "or clips (`picturesOf(config, 'video')`), each looked at through its first
+  frame (MPI-1062): its card's 1280 poster, else the 512, else the frame grabbed in the renderer
+  and kept in the project's preview store (`generationService._clipStill`); no still = refused".
+- § Known gaps: replace the clip line with "A clip is looked at through its first frame only:
+  someone who appears later in it is not seen. A clip with no card (a Flow drop, an agent's file)
+  in a codec Chromium cannot decode is refused."
 
 ## Remaining Work
 
-- [ ] steps 1-6
+- [ ] step 5 docs (blocked on MPI-1041's claim)
+- [ ] step 6 release note (asked MPI-1064)
+- [ ] commit, CI green, close
 
 ## Completed
 
+- Step 1: a clip's card holds `thumbPathLg` / `thumbPath` IN MEMORY on
+  `project.itemGroups[].history[]` (same as `flowService.sourceCardName`'s lookup); match by the
+  decoded absolute path. A Flow drop (content store) or an agent's file has no card.
+- Steps 2-3: `picturesOf(config, 'video')`; `pictureCheck` refuses a null url
+  (`pictureUnchecked`) without asking; `_judgeThenQueue` joins `_clipStill` stills to the images.
+  Refusal messages now say "a picture or clip".
+- Step 4: tests extended; both files 33/33, full suite 3022 pass / 0 fail, eslint clean.
+
 ## Plan Drift
+
+- 2026-10-10: the first-frame fallback is a COPY of `flowEnhance.stageFirstFrame` inside
+  `generationService._clipStill`, not an import: `flowEnhance.js` is claimed by MPI-1041 and the
+  function is not exported. The ponytail comment names the upgrade (one shared helper).
+- The fallback grab (renderer `<video>` + `place-preview-asset`) does not run under Node: the
+  tests prove only that a failed grab refuses. It mirrors code Video Edit's describe step runs.

@@ -26,8 +26,8 @@
  * the internet. So a run that sends a picture AND asks for nudity, underwear or sexual content
  * ("remove her clothes") first asks the image describer whether anyone in each picture could be
  * under 18 (`pictureCheck`); only a bare NO passes. Perception, not age: a young-looking adult is
- * refused too, by decision. Not looked at: a clip's frames, and a picture edited with innocent
- * words ("put her in a bikini").
+ * refused too, by decision. A clip is looked at through its first frame (MPI-1062). Not looked at:
+ * a clip's later frames, and a picture edited with innocent words ("put her in a bikini").
  *
  * Callers: `generationService.enqueueGeneration` (every generation: prompt box, Flows, routines,
  * the in-app agent, MCP) and `llmService.enhance` / `enhanceFlow` (the request and the result).
@@ -235,8 +235,8 @@ const MESSAGES = {
     nsfwModel: 'Refused: a person under 18 cannot be made with an NSFW model. Pick another model, or make every character an adult.',
     swimwear: `Refused: this puts a child under 16 in swimwear. ${RULE}`,
     language: `Refused: the safety check could not clear this prompt. ${RULE}`,
-    picture: 'Refused: this asks for nudity, underwear or sexual content on a picture that may show someone under 18. Cubric Studio never does that, whatever the picture is or wherever it came from.',
-    pictureUnchecked: 'Refused: this asks for nudity, underwear or sexual content on a picture, and the check that no one in it is under 18 could not run. Check the image describer in Remote > Language Models.',
+    picture: 'Refused: this asks for nudity, underwear or sexual content on a picture or clip that may show someone under 18. Cubric Studio never does that, whatever the picture is or wherever it came from.',
+    pictureUnchecked: 'Refused: this asks for nudity, underwear or sexual content on a picture or clip, and the check that no one in it is under 18 could not run. Check the image describer in Remote > Language Models.',
 };
 
 const _refuse = (reason) => ({ verdict: 'refuse', reason, message: MESSAGES[reason] });
@@ -367,10 +367,13 @@ export function needsPictureCheck(texts) {
     return SEXUAL.test(plain) || UNCLOTHED.test(plain) || UNDRESS.test(plain) || _foreign(text);
 }
 
-/** Every picture a generation config sends (an edit's source, an i2v start, a reference). */
-export function picturesOf(config) {
+/**
+ * Every picture a generation config sends (an edit's source, an i2v start, a reference), or with
+ * `'video'` every clip (a v2v source, Video Edit's input), which the caller turns into a still.
+ */
+export function picturesOf(config, mediaType = 'image') {
     const urls = (config?.mediaItems || [])
-        .filter((m) => m && m.mediaType === 'image' && typeof m.url === 'string' && m.url)
+        .filter((m) => m && m.mediaType === mediaType && typeof m.url === 'string' && m.url)
         .map((m) => m.url);
     return [...new Set(urls)];
 }
@@ -386,7 +389,7 @@ export function parseAgeAnswer(answer) {
 /**
  * Ask the describer about each picture; refused unless every answer is a bare NO. Never rejects.
  *
- * @param {string[]} urls
+ * @param {Array<string|null>} urls  null = a clip no still could be made of: refused
  * @param {(url: string) => Promise<{ok: boolean, text?: string, error?: string}>} [describe]
  *        `llmService.describeImage` with `AGE_QUESTION`; absent or failing = refused
  * @returns {Promise<{ ok: true } | { ok: false, code: 'CHILD_SAFETY', reason: string, message: string }>}
@@ -395,7 +398,7 @@ export async function pictureCheck(urls, describe = null) {
     const refused = (reason) => ({ ok: false, code: CHILD_SAFETY_CODE, reason, message: MESSAGES[reason] });
     for (const url of urls) {
         let r = null;
-        try { r = typeof describe === 'function' ? await describe(url) : null; } catch { r = null; }
+        try { r = url && typeof describe === 'function' ? await describe(url) : null; } catch { r = null; }
         if (!r?.ok) return refused('pictureUnchecked');
         if (!parseAgeAnswer(r.text)) return refused('picture');
     }

@@ -259,15 +259,19 @@ test('needsPictureCheck: words asking for nudity, underwear or sex, or an unread
     ]) assert.strictEqual(needsPictureCheck(text), false, text);
 });
 
-test('picturesOf: every image a run sends, once; never a clip', async () => {
+test('picturesOf: every image a run sends, once; with "video", every clip', async () => {
     const { picturesOf } = await load();
-    assert.deepStrictEqual(picturesOf({ mediaItems: [
+    const run = { mediaItems: [
         { url: '/project-file?path=a.png', mediaType: 'image' },
         { url: '/project-file?path=a.png', mediaType: 'image', role: 'reference' },
         { url: 'C:/x/b.jpg', mediaType: 'image' },
         { url: 'C:/x/c.mp4', mediaType: 'video' },
+        { url: 'C:/x/c.mp4', mediaType: 'video', role: 'video1' },
+        { url: 'C:/x/d.wav', mediaType: 'audio' },
         { mediaType: 'image' },
-    ] }), ['/project-file?path=a.png', 'C:/x/b.jpg']);
+    ] };
+    assert.deepStrictEqual(picturesOf(run), ['/project-file?path=a.png', 'C:/x/b.jpg']);
+    assert.deepStrictEqual(picturesOf(run, 'video'), ['C:/x/c.mp4']);
     assert.deepStrictEqual(picturesOf({}), []);
 });
 
@@ -280,6 +284,10 @@ test('pictureCheck: only a bare NO for every picture passes; no describer refuse
     assert.strictEqual((await pictureCheck(['a'], async () => ({ ok: false, error: 'down' }))).reason, 'pictureUnchecked');
     assert.strictEqual((await pictureCheck(['a'], async () => { throw new Error('x'); })).reason, 'pictureUnchecked');
     assert.strictEqual((await pictureCheck(['a'], null)).reason, 'pictureUnchecked');
+    let asked = 0;
+    const r = await pictureCheck(['a', null], async () => { asked += 1; return { ok: true, text: 'NO' }; });
+    assert.strictEqual(r.reason, 'pictureUnchecked', 'a clip with no still is refused');
+    assert.strictEqual(asked, 1, 'the describer is never asked about nothing');
     assert.deepStrictEqual(await pictureCheck([], null), { ok: true }, 'no picture, nothing to look at');
     assert.strictEqual(parseAgeAnswer('<think>hm</think> NO'), true);
     assert.match(AGE_QUESTION, /under 18\? Answer with exactly one word: YES or NO\.$/);
