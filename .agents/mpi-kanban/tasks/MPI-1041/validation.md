@@ -485,3 +485,39 @@ portrait swapped for the given one (node 77 -> a LoadImage), so only the body pa
   enabled Install, one cogwheel; download:started -> Installing, disabled; installed -> no Install row, two cogwheels,
   the second "LoRAs for Qwen-Image 2.1"). flow-lora-button, flow-chain-toggle, flow-clear-slot-advances: 5 passed.
 - NOT seen by eye yet: the Library's Optional models list (Phase E).
+
+## 2026-10-10 - Phase E bench 1: the shipped picture checks FAIL 6 of 12 (session fe4cb412)
+
+- `research/bench-tools/run_qchecks.sh` under gpu_lease, default describer (`image_descriptor.json`, qwen3vl 4B) on :8188, asks
+  VERBATIM from the FlowDef, answers normalised as `_answerWords`. Three ADULT test sheets made with the shipped Klein graph
+  (Clothes, lock 1, photo sheet, seed 42): red bikini, navy one-piece, black lace lingerie - each shows exactly that, by eye.
+- 1-15 DRESSED check: photo / fisher DRESSED (clear, right), nude NOT DRESSED (refuse, right); bikini, one-piece AND
+  lingerie answered DRESSED -> CLEARED. Wrong: swimwear and underwear pass.
+- 16-17 check: photo / fisher / one-piece NO (clear, right); bikini YES (refused: wrong but safe); NUDE sheet NO and
+  lingerie NO -> CLEARED. Wrong: even full nudity passes.
+- **BREAKS the next release** (the Flow is on master, not dev-gated): an adult lingerie sheet + Hairstyle + age 10 clears
+  the check, and the words gate has nothing to refuse. Fix in progress: round 2 (`qchecks2.py`) tries a 4-way
+  classification and one-concept yes/no asks, on the whole sheet and on the front body panel alone.
+
+## 2026-10-10 - Phase E bench 2: wordings on ten sheets, whole sheet and front view (session fe4cb412)
+
+- `qchecks2.py`: four more ADULT test sheets from the shipped graph. By eye: summer (shorts + tank top) right; trunks right
+  (shirtless, blue trunks); "micro bikini" came out MIXED (front: jacket, shirt, trousers; back: a bikini); "boxers" came out
+  MIXED (a jacket over white boxer shorts, no trousers). Both kept as the hard cases.
+- One-word classification (CLOTHES / SWIMWEAR / UNDERWEAR / NOTHING): right on all 8 single-outfit sheets, whole sheet and
+  front view alike; CLOTHES on both mixed sheets (unsafe). "everyday clothes?" YES/NO: same two wrong. "nude, topless or
+  underwear?": lingerie NO, boxers NO (unsafe). "swimsuit or bikini?": trunks NO.
+- Reading: the model judges the picture as a whole and the dominant outfit wins. Fix: ask per VIEW (front, back) and per
+  HALF (upper, lower), every answer must be CLOTHES (`SHEET_CLOTHES_CHECKS`, `region` crops); swimwear refused at 16-17
+  too (the picture cannot tell revealing from ordinary; Clothes + "a bikini" goes through the words gate). Round 3 benches
+  the shipped checks verbatim.
+
+## 2026-10-10 - Phase E bench 3: the SHIPPED checks, 9 of 10 right, every unsafe case refused (session fe4cb412)
+
+- `run_qchecks3.sh` under gpu_lease: `SHEET_CLOTHES_CHECKS` read from the FlowDef (ask + region verbatim), four asks per
+  sheet (upper / lower body of the front and back view), cleared only when all four answer CLOTHES.
+- Cleared, right: photo, fisher, summer (shorts + tank top). Refused, right: one-piece, bikini, lingerie, nude, trunks
+  (upper NOTHING), the jacket-front / bikini-back sheet (back views SWIMWEAR).
+- WRONG (cleared): the fisherman in a jacket over white boxer shorts, no trousers - all four CLOTHES. By eye the boxers
+  read as plain white shorts. Accepted and written into docs/child-safety.md § Known gaps.
+- Before: round 1's 1-15 check refused only the nude sheet of four unsafe ones. Now: 6 of the 7 unsafe sheets refused. `node --test` editor + describe 30/30; `npm test` 3019/3021, 0 fail; lint clean.

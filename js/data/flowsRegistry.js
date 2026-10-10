@@ -495,6 +495,22 @@ const VIDEO_EDIT_PLACE = 'the place: the kind of room or location, its main furn
 const videoEditAsk = what => `This picture is a reference for a video edit. ${what} Reply with one or two plain sentences of concrete visual facts, starting at the subject: no preamble, no opinions, and only what is there.`;
 
 /** @type {FlowDef[]} */
+// MPI-1041 - the Character Sheet Editor's clothing checks: four questions, the upper and the lower
+// body of the front and the back view (a sheet is front | back | close-up, so each body view is a
+// quarter of the width). Every answer must be CLOTHES. Asked of the whole sheet at once, the default
+// describer cleared a bikini, lingerie and a nude sheet; per view and per half it read 9 of 10 test
+// sheets right, missing only white boxer shorts under a jacket, which look like white shorts (Phase E
+// rounds 1-3, tasks/MPI-1041/validation.md).
+const _SHEET_PART_ASK = part => `What covers the person's ${part}? Answer with exactly one word: CLOTHES for ordinary clothes such as a shirt, a top, a jacket, a dress, trousers, shorts or a skirt; SWIMWEAR for a swimsuit, a bikini or swim trunks; UNDERWEAR for underwear, boxer shorts or lingerie; NOTHING if it is bare.`;
+const SHEET_CLOTHES_CHECKS = ['upper body, the chest and belly', 'lower body, the hips and thighs'].flatMap(part => [
+    { x: 0, y: 0, width: 0.25, height: 1 },
+    { x: 0.25, y: 0, width: 0.25, height: 1 },
+].map(region => ({
+    media: 'image1', region, ask: _SHEET_PART_ASK(part), refuseUnless: 'CLOTHES', code: 'CHILD_SAFETY',
+    when: [{ field: 'Input_Age', atLeast: 1, atMost: 17 }, { field: 'change', isNot: 'clothes' }],
+    message: 'Dress the sheet first: pick Clothes and say what the character wears. Under 18 a character must wear ordinary clothes on the sheet before its age changes, and this sheet does not show them. At 16 or 17 swimwear is fine when you ask for it under Clothes. The age can stay set: the clothes go on first.',
+})));
+
 export const FLOWS = [
     // head-swap and drama-box LEFT THE APP (MPI-781, umbrella MPI-780 phase 2). They are
     // sold as Flow packages, authored in their own repo under their own licence — never in
@@ -1740,20 +1756,16 @@ export const FLOWS = [
         // builder reads them.
         //
         // The CHECKS (no `to`) refuse on what only the picture can say, since the child-safety gate
-        // reads words; they apply its rule (docs/child-safety.md § The rule) to the sheet an age
-        // makes a minor: under 16 fully dressed, no swimwear; 16-17 ordinary swimwear, never nude,
-        // underwear or revealing swimwear. Skipped when Clothes is the change: that leg dresses the
-        // sheet first. How OLD a sheet looks is never guessed here: no picture's age is judged
-        // anywhere (Fabio, 2026-10-10).
+        // reads words: a sheet an age makes a minor must show ORDINARY CLOTHES on the upper and the
+        // lower body of the front and the back view, or the run is refused. Swimwear included at
+        // 16-17: the picture cannot tell an ordinary bikini from a revealing one, and Clothes with
+        // "a bikini" puts one on through the words gate, which can (docs/child-safety.md § The rule).
+        // Asked per view and per half: one question about the whole sheet cleared a bikini,
+        // lingerie and a nude sheet (MPI-1041 Phase E, validation.md). Skipped when Clothes is the
+        // change: that leg dresses the sheet first. How OLD a sheet looks is never guessed here: no
+        // picture's age is judged anywhere (Fabio, 2026-10-10).
         describe: [
-            { media: 'image1', when: [{ field: 'Input_Age', atLeast: 1, atMost: 15 }, { field: 'change', isNot: 'clothes' }],
-                ask: 'Is the person in this picture fully dressed, with clothes covering the body? Swimwear or underwear is NOT DRESSED. Answer DRESSED or NOT DRESSED and nothing else.',
-                refuseUnless: 'DRESSED', code: 'CHILD_SAFETY',
-                message: 'Dress the sheet first: pick Clothes and say what the character wears. Under 16 a character is always fully dressed, and this sheet does not look it. The age can stay set: the clothes go on first.' },
-            { media: 'image1', when: [{ field: 'Input_Age', atLeast: 16, atMost: 17 }, { field: 'change', isNot: 'clothes' }],
-                ask: 'Is the person in this picture nude or topless, in underwear or lingerie, or in revealing swimwear (a monokini, a micro or thong bikini)? Answer YES or NO and nothing else.',
-                refuseUnless: 'NO', code: 'CHILD_SAFETY',
-                message: 'Dress the sheet first: pick Clothes and say what the character wears. At 16 or 17 a character may wear ordinary swimwear, but never nude, in underwear or in revealing swimwear, and this sheet looks it. The age can stay set: the clothes go on first.' },
+            ...SHEET_CLOTHES_CHECKS,
             { to: 'sheetAge', media: 'image1', when: { field: 'Input_Age', atLeast: 1 },
                 ask: 'How old does the person in this picture look? Answer with one whole number of years and nothing else.' },
             { to: 'sheetClothes', media: 'image1', when: [{ field: 'Input_Age', atLeast: 1, atMost: 12 }, { field: 'change', isNot: 'clothes' }],

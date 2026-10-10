@@ -372,6 +372,7 @@ applied when the two were the same string; they are not any more, and the old lo
   Remote (`llmService.describeImage`) and writes the answer into the hidden `MpiText` input `to`,
   run-only. First entry per target whose `media` slot holds something and whose `when` rules hold
   (`ruleHolds`, or `{ media }` = that slot holds something) wins; `frame: 'first'`
-  describes a clip's first frame. A failed describe generates nothing. An entry with NO `to` is a
-  CHECK that refuses the run unless the whole answer equals `refuseUnless` (MPI-1041). Worked example:
+  describes a clip's first frame; `region: { x, y, width, height }` (fractions) describes a fixed
+  part of the picture. A failed describe generates nothing. An entry with NO `to` is a CHECK that
+  refuses the run unless the whole answer equals `refuseUnless` (MPI-1041). Worked example:
   [existing-flows/video-edit.md](existing-flows/video-edit.md).

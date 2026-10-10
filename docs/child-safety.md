@@ -88,12 +88,14 @@ through. `childSafetyGate(texts, ctx, judge)` runs both tiers and never rejects.
   (`settleInGraphEnhance`) that is a server backend, so it never queues a ComfyUI job behind
   the job waiting for it.
 - **The Character Sheet Editor's dressed checks** (MPI-1041): its age slider can make an
-  undressed adult sheet a minor, so two describe CHECKS in its FlowDef (`flowEnhance.js` §
-  describe) apply the rule above to the sheet, on the Remote describer, never when Clothes is the
-  change (that leg dresses it first). Age 1-15: refused unless the whole answer is DRESSED
-  (swimwear or underwear is not). Age 16-17: asked "nude or topless, in underwear or lingerie, or
-  in revealing swimwear?", refused unless the whole answer is NO, so an ordinary bikini passes.
-  Both refuse "Dress the sheet first: pick Clothes" with `CHILD_SAFETY`. Neither guesses how old
+  undressed adult sheet a minor, so at ages 1-17 four describe CHECKS in its FlowDef
+  (`SHEET_CLOTHES_CHECKS`, `flowEnhance.js` § describe) ask the Remote describer what covers the
+  upper and the lower body of the front and the back view (each a `region` crop), never when
+  Clothes is the change (that leg dresses it first). Any answer but CLOTHES refuses "Dress the
+  sheet first: pick Clothes" with `CHILD_SAFETY` - swimwear too, at 16-17 as well: the picture
+  cannot tell an ordinary bikini from a revealing one, and Clothes with "a bikini" puts one on
+  through the words, which can. One question about the whole sheet cleared a bikini, lingerie and
+  a NUDE sheet on the default describer (MPI-1041 `validation.md`, Phase E). None guesses how old
   a sheet LOOKS; the picture check above does, when the leg's words ask for nudity or underwear.
   The leg prompts still meet the gate (`runPrompt`).
 
@@ -132,7 +134,11 @@ young-looking 25-year-old edit and an anime adult. ~2.5 s a picture.
 - The Character Sheet Editor dresses an undressed sheet in the Clothes leg and does not look
   again: words that leave a child half-dressed without naming it ("just jeans") pass. A sheet
   that already shows a child, edited with "a bikini" and no age, passes like any photo above;
-  edited with "nude" or "underwear", the picture check refuses it.
+  edited with "nude" or "underwear", the picture check refuses it. Its dressed checks are a 4B
+  describer's reading, benched on ten sheets (photo and 3D, women and men, ordinary clothes,
+  one-piece, bikini, trunks, lingerie, nude, a jacket-front / bikini-back sheet): 9 right. It
+  cleared white boxer shorts under a jacket, which by eye look like white shorts. Not proven on
+  every style; a user's own Remote describer is not benched at all.
 
 ## Changing it
 

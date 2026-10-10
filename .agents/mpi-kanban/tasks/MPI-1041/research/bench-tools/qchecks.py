@@ -42,8 +42,8 @@ console.log(JSON.stringify({ checks, prompts }));
 """
 
 
-def shipped():
-    r = subprocess.run(['node', '--input-type=module', '-e', NODE, REPO, json.dumps(EDITS)],
+def shipped(edits=EDITS):
+    r = subprocess.run(['node', '--input-type=module', '-e', NODE, REPO, json.dumps(edits)],
                        capture_output=True, text=True, encoding='utf-8')
     if r.returncode:
         raise SystemExit('node failed: ' + r.stderr[-1500:])

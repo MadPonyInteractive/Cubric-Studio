@@ -386,6 +386,8 @@ export async function enhanceFlowRun(flow, resolved, deps = { enhance: runEnhanc
 // `frame: 'first'` describes a clip's first frame instead of the file; `crop: '<box param>'` only
 // the part of the picture that box holds, when the run carries one (a face's turn read off a whole
 // torso shot came back FRONT for a turned head, off the boxed face TURNED: MPI-1042 batch 14a).
+// `region: { x, y, width, height }` is a FIXED part, in fractions of the picture (a sheet's front body
+// view): a 4B describer judging a whole three-view sheet missed what one view showed (MPI-1041).
 // Targets are graph inputs nobody types into, so the text is run-only: it never enters the
 // snapshot, and Reuse describes the picture again.
 //
@@ -446,7 +448,8 @@ async function stageFirstFrame(url, project) {
  * picture is kept; a box that misses it describes the whole picture.
  *
  * @param {string} url  the picture
- * @param {{x: number, y: number, width: number, height: number}} box
+ * @param {{x: number, y: number, width: number, height: number, fractions?: boolean}} box  in
+ *        fractions of the picture with `fractions` (a describe `region`)
  * @param {{id?: string, folderPath: string}} project
  * @returns {Promise<string>}  the crop's path, or `url` when the box holds nothing
  */
@@ -458,6 +461,10 @@ async function stageBoxCrop(url, box, project) {
         img.onerror = () => reject(new Error('The picture could not be read.'));
         img.src = resolveMediaUrl(url);
     });
+    if (box.fractions) {
+        const W = img.naturalWidth, H = img.naturalHeight;
+        box = { x: Math.round(box.x * W), y: Math.round(box.y * H), width: Math.round(box.width * W), height: Math.round(box.height * H) };
+    }
     const x0 = Math.max(0, box.x), y0 = Math.max(0, box.y);
     const w = Math.min(img.naturalWidth, box.x + box.width) - x0;
     const h = Math.min(img.naturalHeight, box.y + box.height) - y0;
@@ -518,7 +525,7 @@ export async function describeFlowRun(flow, config, project, deps = {}) {
     for (const d of describeAsks(flow, config?.injectionParams, media)) {
         const started = Date.now();
         const url = media.find(m => m?.role === d.media)?.url;
-        const box = d.crop ? config?.injectionParams?.[d.crop] : null;
+        const box = d.region ? { ...d.region, fractions: true } : d.crop ? config?.injectionParams?.[d.crop] : null;
         const key = JSON.stringify([url, box, d.frame || '', d.ask, describeBackendPreference(), describeModelPreference() || '']);
         const what = d.to || `check ${d.refuseUnless}`;
         // A check that does not get its one passing answer refuses the run, on every path alike.

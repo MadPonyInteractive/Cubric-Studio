@@ -249,13 +249,14 @@ const asked = async (change, words, age) => (await esm('js/services/flowEnhance.
 const CODE = 'CHILD_SAFETY';
 const DRESS_FIRST = /^Dress the sheet first: pick Clothes/;
 
+const C4 = ['CLOTHES', 'CLOTHES', 'CLOTHES', 'CLOTHES'];
+
 test('the picture checks run only when they can matter, and before any other question', async () => {
-    // The gate's rule on the sheet: under 16 fully dressed; 16-17 nothing nude, underwear or
-    // revealing (an ordinary bikini passes). Never when the change itself dresses it.
-    assert.deepStrictEqual(await asked('condition', 'muddy', 10), ['DRESSED', 'sheetAge', 'sheetClothes']);
-    assert.deepStrictEqual(await asked('hair', 'a bob', 15), ['DRESSED', 'sheetAge']);
-    assert.deepStrictEqual(await asked('hair', 'a bob', 16), ['NO', 'sheetAge']);
-    assert.deepStrictEqual(await asked('none', '', 17), ['NO', 'sheetAge']);
+    // Under 18 the sheet must show ordinary clothes; never when the change itself dresses it.
+    assert.deepStrictEqual(await asked('condition', 'muddy', 10), [...C4, 'sheetAge', 'sheetClothes']);
+    assert.deepStrictEqual(await asked('hair', 'a bob', 15), [...C4, 'sheetAge']);
+    assert.deepStrictEqual(await asked('hair', 'a bob', 16), [...C4, 'sheetAge']);
+    assert.deepStrictEqual(await asked('none', '', 17), [...C4, 'sheetAge']);
     assert.deepStrictEqual(await asked('clothes', 'a navy coat', 10), ['sheetAge'], 'Clothes dresses it; its words are the caption');
     assert.deepStrictEqual(await asked('hair', 'a bob', 18), ['sheetAge']);
     assert.deepStrictEqual(await asked('clothes', 'a red jacket', 0), [], 'an ordinary change asks nothing');
@@ -263,44 +264,50 @@ test('the picture checks run only when they can matter, and before any other que
     assert.deepStrictEqual(await asked('clothes', 'a red bikini', 0), []);
 });
 
-test('describeFlowRun: an undressed sheet made a minor refuses before anything else is asked', async () => {
+test('the checks ask the upper and lower body of the front and the back view, never the whole sheet', async () => {
+    // Asked of the whole sheet, the default describer cleared a bikini, lingerie and a nude sheet
+    // (Phase E round 1); per view and per half it read 9 of 10 test sheets (round 3).
+    const checks = (await editor()).describe.filter(d => !d.to);
+    assert.deepStrictEqual(checks.map(d => [d.region.x, d.region.width, /upper/.test(d.ask) ? 'upper' : 'lower']), [
+        [0, 0.25, 'upper'], [0.25, 0.25, 'upper'], [0, 0.25, 'lower'], [0.25, 0.25, 'lower'],
+    ]);
+    for (const d of checks) assert.ok(d.region.y === 0 && d.region.height === 1 && d.code === CODE && d.refuseUnless === 'CLOTHES');
+});
+
+test('describeFlowRun: any view or half not in ordinary clothes refuses before anything else is asked', async () => {
     const fe = await esm('js/services/flowEnhance.js');
     const flow = await editor();
     const realWarn = console.warn;
     console.warn = () => {};
     try {
-        const go = async (dressed) => {
-            const questions = [];
-            const describe = async ({ question }) => {
-                questions.push(question);
-                return { ok: true, via: 'endpoint', text: /DRESSED/.test(question) ? dressed : /How old/.test(question) ? '40' : 'Wearing a coat.' };
+        // `bad` = the one check (by index) that sees something other than clothes, answering `answer`.
+        const go = async (age, bad, answer) => {
+            const asked = [];
+            const boxCrop = async (url, box) => `${url}#${box.x}`;
+            const describe = async ({ question, imagePath }) => {
+                const i = asked.length;
+                asked.push([imagePath, question]);
+                if (/What covers/.test(question)) return { ok: true, via: 'endpoint', text: i === bad ? answer : 'CLOTHES' };
+                return { ok: true, via: 'endpoint', text: /How old/.test(question) ? '40' : 'Wearing a coat.' };
             };
-            const res = await fe.describeFlowRun(flow, { injectionParams: await values('condition', 'muddy', 10), mediaItems: [SHEET] }, null, { describe });
-            return { res, questions };
+            const res = await fe.describeFlowRun(flow, { injectionParams: await values('condition', 'muddy', age), mediaItems: [SHEET] },
+                { folderPath: 'C:/p' }, { describe, boxCrop });
+            return { res, asked };
         };
-        const no = await go('NOT DRESSED');
-        assert.strictEqual(no.res.ok, false);
-        assert.strictEqual(no.res.code, CODE);
-        assert.match(no.res.message, DRESS_FIRST);
-        assert.strictEqual(no.questions.length, 1, 'the age and the clothes are never asked');
-        assert.strictEqual((await go('I cannot tell.')).res.code, CODE, 'only the passing answer passes');
-        const yes = await go('Dressed.');
-        assert.deepStrictEqual(yes.res, { ok: true, injectionParams: { sheetAge: '40', sheetClothes: 'Wearing a coat.' } });
+        for (const [age, bad, answer] of [[10, 0, 'SWIMWEAR'], [10, 3, 'UNDERWEAR'], [12, 1, 'NOTHING'], [17, 2, 'SWIMWEAR'],
+            [16, 3, 'I cannot tell.'], [15, 0, 'Clothes and a bikini']]) {
+            const { res, asked } = await go(age, bad, answer);
+            assert.deepStrictEqual([res.ok, res.code], [false, CODE], `${age} ${bad} ${answer}`);
+            assert.match(res.message, DRESS_FIRST);
+            assert.strictEqual(asked.length, bad + 1, 'nothing else is asked once a check refuses');
+        }
+        const ok = await go(10, -1, '');
+        assert.deepStrictEqual(ok.res, { ok: true, injectionParams: { sheetAge: '40', sheetClothes: 'Wearing a coat.' } });
+        // Each check reads its own view, a crop of the sheet, never the sheet itself.
+        assert.deepStrictEqual(ok.asked.slice(0, 4).map(([path]) => path.split('#')[1]), ['0', '0.25', '0', '0.25']);
+        assert.ok(ok.asked.slice(4).every(([path]) => path === SHEET.url), 'the age and the caption read the whole sheet');
     } finally {
         console.warn = realWarn;
-    }
-});
-
-test('describeFlowRun: at 16-17 an ordinary bikini passes, a revealing or bare sheet does not', async () => {
-    const fe = await esm('js/services/flowEnhance.js');
-    const flow = await editor();
-    const run = async (answer) => fe.describeFlowRun(flow, { injectionParams: await values('hair', 'a bob', 17), mediaItems: [SHEET] }, null,
-        { describe: async ({ question }) => ({ ok: true, via: 'endpoint', text: /revealing/.test(question) ? answer : '25' }) });
-    assert.deepStrictEqual(await run('No.'), { ok: true, injectionParams: { sheetAge: '25' } });
-    for (const answer of ['YES', 'Yes, a micro bikini.', 'Not sure.']) {
-        const res = await run(answer);
-        assert.deepStrictEqual([res.ok, res.code], [false, CODE], answer);
-        assert.match(res.message, /^Dress the sheet first: pick Clothes.*At 16 or 17/);
     }
 });
 
@@ -320,13 +327,19 @@ test('the hand, agent and routine runs refuse with the same code and message', a
     global.fetch = async (url, init) => {
         const body = init?.body ? JSON.parse(init.body) : {};
         if (url === '/llm/describe') {
-            return { ok: true, json: async () => ({ ok: true, model: 'vl', text: /DRESSED/.test(body.question) ? 'NOT DRESSED' : '40' }) };
+            return { ok: true, json: async () => ({ ok: true, model: 'vl', text: /What covers/.test(body.question) ? 'UNDERWEAR' : '40' }) };
         }
+        if (/place-preview-asset/.test(url)) return { ok: true, json: async () => ({ success: true, filePath: 'C:/p/view.png' }) };
         const job = /^\/connector\/jobs\/([^/]+)\/result$/.exec(url);
         if (job) reports.get(job[1])?.(body);
         return { ok: true, json: async () => ({ ok: true }) };
     };
     svc.setDescribeBackendPreference('endpoint');
+    // The checks crop each view in the renderer (flowEnhance stageBoxCrop): a picture and a canvas.
+    global.Image = class { set src(_) { this.naturalWidth = 1792; this.naturalHeight = 1120; setTimeout(() => this.onload()); } };
+    const drawn = [];
+    global.document = { addEventListener() {}, removeEventListener() {},
+        createElement: () => ({ getContext: () => ({ drawImage: (img, ...box) => drawn.push(box.slice(0, 4)) }), toDataURL: () => 'data:image/png;base64,AA' }) };
     console.warn = () => {};
     const warnings = [];
     const off = Events.on('ui:warning', ({ message }) => warnings.push(message));
@@ -341,6 +354,7 @@ test('the hand, agent and routine runs refuse with the same code and message', a
         assert.strictEqual(hand.code, CODE);
         assert.match(hand.message, DRESS_FIRST);
         assert.deepStrictEqual(warnings, [hand.message], 'the hand run is told on a toast');
+        assert.deepStrictEqual(drawn[0], [0, 0, 448, 1120], 'the first check reads the front view, a quarter of the sheet');
 
         // Routine: a Flow step on a card.
         const { routineDeps } = await esm('js/shell/routineDispatch.js');

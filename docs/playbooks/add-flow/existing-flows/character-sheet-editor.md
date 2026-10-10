@@ -76,12 +76,17 @@ Two answers feed the prompt builder through NON-graph keys: `sheetAge` (how old 
 for the younger / older word only; it reads old faces 10-15 years high) and `sheetClothes` (a
 `Wearing ...` caption the child rebuild dresses the bodies in, 1-12, unless Clothes is the change).
 
-Two entries have NO `to`: they are CHECKS (`{ media, when, ask, refuseUnless, code, message }`),
-asked before every answer and refusing unless the whole answer equals `refuseUnless`. Age 1-15 must
-read DRESSED (swimwear or underwear is NOT DRESSED); 16-17 must not be nude, in underwear or in
-revealing swimwear. Both are skipped when Clothes is the change: that leg dresses the sheet first.
-No check judges how OLD a picture looks: Fabio's call, 2026-10-10. Code `CHILD_SAFETY` on hand,
-agent and routine runs alike. The rule and its known gap: `docs/child-safety.md`.
+Four entries have NO `to`: they are CHECKS (`SHEET_CLOTHES_CHECKS`, `{ media, region, when, ask,
+refuseUnless, code, message }`), asked before every answer and refusing unless the whole answer
+equals `refuseUnless`. At ages 1-17 the upper and the lower body of the front and the back view
+(`region` = that quarter of the sheet) must each read CLOTHES, swimwear included at 16-17 (Clothes
+puts a bikini on through the words gate). Skipped when Clothes is the change: that leg dresses the
+sheet first. **Never ask about the whole sheet:** "is the person fully dressed?" cleared a bikini,
+lingerie and a nude sheet on the default describer, and a one-word classification of the whole
+sheet cleared a jacket-front / bikini-back sheet (Phase E rounds 1-3, `validation.md`; benches
+`research/bench-tools/qchecks*.py`). No check judges how OLD a picture looks: Fabio's call,
+2026-10-10. Code `CHILD_SAFETY` on hand, agent and routine runs alike. The rule and its known
+gaps: `docs/child-safety.md`.
 
 ## Tests
 
