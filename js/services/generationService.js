@@ -32,7 +32,7 @@ import { labelFromComfyOutputUrl } from '../utils/comfyOutputUrls.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { ce } from '../utils/dom.js';
 import { collapseQueueBatches } from './generationBatch.js';
-import { checkChildSafety, childSafetyGate, configTexts, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, pictureCheck, AGE_QUESTION } from '../data/childSafety.js';
+import { checkChildSafety, childSafetyGate, configTexts, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, pictureCheck, AGE_QUESTION, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
 
 // ── Cue queue (in-app, THREE-LANE dispatch) ─────────────────────────────────
 // We own the pending array. MPI-74 P6 split dispatch into a 'remote' lane (cloud
@@ -593,7 +593,9 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
 /**
  * A flagged run waits for the picture check (`llmService.describeImage`, the user's describe
  * pick) and the text judge (`llmService.judgeChildSafety`, the enhance pick), and queues only
- * when both pass. Imported on demand: llmService imports this module.
+ * when both pass. Words the lists cannot read put the nudity question to the judge's backend
+ * first, and only its bare NO skips the look (`lookWanted`, MPI-1062): an innocent Japanese edit
+ * of a child's photo queues. Imported on demand: llmService imports this module.
  * ponytail: the run sits in no queue while they answer, so Stop cannot reach it in that window
  * (seconds on Remote, behind a running job on ComfyUI). Hold a placeholder if that bites.
  */
@@ -604,18 +606,20 @@ async function _judgeThenQueue(config, callbacks, opts, pictures = [], clips = [
     } catch (err) {
         clientLogger.warn('generationService', `[childSafety] no language models to ask: ${err?.message || err}`);
     }
-    // A clip is looked at through its first frame (MPI-1062); one with no still is refused.
-    const stills = await Promise.all(clips.map((url) => _clipStill(url, config._originProject)));
-    // No describer = refused (`pictureCheck` refuses without one).
-    const seen = await pictureCheck([...pictures, ...stills], llm && ((url) => llm.describeImage({ imagePath: url, question: AGE_QUESTION })));
-    if (!seen.ok) return _refuseChildSafety(seen, config, callbacks);
-
     let judge = null;
     try {
         const backend = await llm.runnableBackend(llm.backendPreference());
-        judge = (text) => llm.judgeChildSafety(text, backend);
+        judge = (text, system) => llm.judgeChildSafety(text, backend, system);
     } catch (err) {
         clientLogger.warn('generationService', `[childSafety] no judge to ask: ${err?.message || err}`);
+    }
+    // No judge = looked at (`lookWanted` looks unless the nudity question answers a bare NO).
+    if ((pictures.length || clips.length) && await lookWanted(configTexts(config), judge && ((text) => judge(text, NUDITY_SYSTEM)))) {
+        // A clip is looked at through its first frame (MPI-1062); one with no still is refused.
+        const stills = await Promise.all(clips.map((url) => _clipStill(url, config._originProject)));
+        // No describer = refused (`pictureCheck` refuses without one).
+        const seen = await pictureCheck([...pictures, ...stills], llm && ((url) => llm.describeImage({ imagePath: url, question: AGE_QUESTION })));
+        if (!seen.ok) return _refuseChildSafety(seen, config, callbacks);
     }
     // No judge = the flag stands (`childSafetyGate` refuses without one).
     const r = await childSafetyGate(configTexts(config), configContext(config), judge);

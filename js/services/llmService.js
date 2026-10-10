@@ -712,21 +712,22 @@ export async function runComfyEnhance({ prompt, system, injectionParams, modelId
  *
  * @param {string} text
  * @param {'comfy'|'endpoint'|'ollama'} backend
+ * @param {string} [system]  another fixed question on the same plumbing: `NUDITY_SYSTEM` (MPI-1062)
  * @returns {Promise<string|null>}
  */
-export async function judgeChildSafety(text, backend) {
+export async function judgeChildSafety(text, backend, system = JUDGE_SYSTEM) {
     const prompt = judgePrompt(text);
     let result;
     if (backend === 'comfy') {
         result = await runComfyEnhance({
             prompt,
-            injectionParams: { ...buildComfyInjectionParams(JUDGE_SYSTEM), 'Input_Text_Gen.max_length': 16 },
+            injectionParams: { ...buildComfyInjectionParams(system), 'Input_Text_Gen.max_length': 16 },
         });
     } else {
         const { profileId } = Storage.getLlmConnection();
         result = await runServerBackend({
             prompt,
-            system: JUDGE_SYSTEM,
+            system,
             backend,
             modelId: backend === 'endpoint' ? await _endpointEnhanceModel(profileId) : enhancerModelPreference(),
             maxTokens: 16,

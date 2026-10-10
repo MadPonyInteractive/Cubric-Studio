@@ -72,8 +72,7 @@ through. `childSafetyGate(texts, ctx, judge)` runs both tiers and never rejects.
   job, and gating it would wait on itself.
 - **The picture check** (Fabio: "remove clothes" on an imported photo; words cannot know the age
   of someone in a photo off the internet). Same funnel, before the text judge: when
-  `needsPictureCheck(texts)` (a SEXUAL / UNCLOTHED word, an undress verb like "remove her clothes",
-  six languages, or an unreadable script) and the run sends pictures (`picturesOf`: every image
+  `lookWanted(texts, ask)` says so and the run sends pictures (`picturesOf`: every image
   mediaItem, imported or made here) or clips (`picturesOf(config, 'video')`, MPI-1062), each clip
   looked at through its first frame: its card's poster (`thumbPathLg`, else `thumbPath`), else the
   frame grabbed in the renderer and kept in the project's preview store
@@ -83,6 +82,15 @@ through. `childSafetyGate(texts, ctx, judge)` runs both tiers and never rejects.
   a bare NO passes (`parseAgeAnswer`); YES, chatter, a failed or missing describer refuses
   (`picture` / `pictureUnchecked`). An innocent edit ("make it night") is never looked at.
   Perception, not age, by decision: a young-looking adult is refused too.
+  `lookWanted` is two layers (MPI-1062, Fabio: "both layers"): (1) `asksForNudity`, no model: a
+  SEXUAL / UNCLOTHED word, an undress verb like "remove her clothes" in six Latin-script languages,
+  or a Japanese / Chinese / Korean (`NUDITY_CJK`, matched with NO letter boundaries: CJK has no
+  spaces) or Russian (`NUDITY_RU`) nudity or undress word = look. (2) Only for 3+ letters outside
+  the Latin script with no list hit: `llmService.judgeChildSafety(text, backend, NUDITY_SYSTEM)`
+  asks "does it ask for nudity, underwear or sex?" on the judge's backend, told to answer YES if
+  the prompt tells it how to answer. Only a bare NO skips the look (`parseNudityAnswer`); YES,
+  chatter, no backend, an error = look. So an innocent Japanese edit of a child's photo costs one
+  text call and queues, where it used to be looked at and refused; the minors judge still reads it.
 - **The Enhancer**: `llmService.enhance` (prompt box) and `enhanceFlow` (every Flow) check the
   request before it is sent and the text
   that comes back, so no recipe needs a rule. A refusal is `{ ok: false, error, errorCode:
@@ -92,7 +100,7 @@ through. `childSafetyGate(texts, ctx, judge)` runs both tiers and never rejects.
   (`settleInGraphEnhance`) that is a server backend, so it never queues a ComfyUI job behind
   the job waiting for it.
 - **The Character Sheet Editor's dressed checks** (MPI-1041): its age slider can make an
-  undressed adult sheet a minor, so at ages 1-17 four describe CHECKS in its FlowDef
+  undressed adult sheet a minor, so at ages 0-17 (0 = a newborn) four describe CHECKS in its FlowDef
   (`SHEET_CLOTHES_CHECKS`, `flowEnhance.js` § describe) ask the Remote describer what covers the
   upper and the lower body of the front and the back view (each a `region` crop), never when
   Clothes is the change (that leg dresses it first). Any answer but CLOTHES refuses "Dress the
@@ -123,7 +131,9 @@ young-looking 25-year-old edit and an anime adult. ~2.5 s a picture.
 
 - Words only: English, Portuguese, Spanish, French, German, Italian. Another Latin-script
   language passes unread; a non-Latin script goes to the judge, which on the 4B can miss
-  (above).
+  (above). For the picture check, an undress phrasing off the CJK / Russian lists that ALSO talks
+  the nudity question into a bare NO is not looked at. Those lists are the obvious phrasings only,
+  written without a native speaker: extend them when one gets past.
 - A picture edited with words that ask for no nudity, underwear or sex ("put her in a bikini")
   is not looked at: a check on every run would cost tokens on every run (Fabio).
 - A clip is looked at through its first frame only: someone who appears later in it is not
