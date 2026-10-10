@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-10-10 (session fe4cb412) - FABIO'S ANSWERS, act on these next:**
+1. LoRA racks stay on under-18 runs: a rack can be a cartoon STYLE LoRA, and an NSFW LoRA needs trigger words, which the
+   words gate reads. Do not gate racks.
+2. `npm run app:isolated` any time; GPU work under `gpu_lease`. -> run the in-app Phase E cases.
+3. **The age slider changes** (his dictation: "H" = "age"): **-1 = keep the age (Off)**, **0 = a very small baby you only
+   carry**, **1 = taking first steps**, then years up to 100. So: slider min -1, default -1; every age rule that reads
+   `Input_Age atLeast 1` (legs, the four clothes checks, the describe answers) becomes `atLeast 0`; the builder needs a
+   newborn (0) and a toddler (1) wording - BENCH both first (can a 3-view sheet even hold a carried baby? the rebuild leg
+   draws standing bodies); the child-safety gate must read the new age words; card name "age 0"? Update tests + docs.
+4. Preview art: two or three of OUR bench results - an age change, a weight (Body shape) change and bruises (Condition)
+   -> `/mpi-flow-graphics` (tile 4/5 still + hero clip).
+
 **2026-10-10 (session fe4cb412, later) - SAFETY FIX landed (3da8e88af): Phase E's bench found the dressed checks cleared
 swimwear, lingerie and a nude sheet. Now four per-view, per-half checks (`SHEET_CLOTHES_CHECKS`, describe `region`), all must
 answer CLOTHES at 1-17; 9 of 10 bench sheets right (validation.md bench 3). Fabio: no release until this landed - say it
