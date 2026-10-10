@@ -185,3 +185,84 @@ HF = masked path with batch 4's per-panel mask, vocabulary "face" (66 s). Head c
 - **Verdict Hairstyle: PASS, with the face lock and NO face vocabulary on the back panel** (a back
   view has no face by construction; run it on the front + portrait crops only). The free edit is
   the fallback at 5 of 6 and drifts the face slightly.
+
+## 2026-10-09 - batch 9, Body shape + Age on other editors, 5 edits each (agent-run under gpu_lease)
+
+`qba.py <model>` -> `run_qba.sh <model>`: Fabio's 5 cases, seed 42, batch 5's L1 wording
+(`<change>. Make the same change in the close-up portrait on the right. Keep everything else exactly
+as it is.`), the app's own graph per model as it injects the edit op. Out
+`G:/ComfyUi/ComfyUI/output/mpi1041_qba/` (`pairs_<model>_<sheet>.jpg` = original above each edit).
+New gate `width.py`: mean foreground width of the front / back torso + thighs and the portrait's
+neck + shoulders, % vs the original (Klein's batch 5-6 numbers for comparison: skinny -2 to -7% front,
+~0 back and portrait; heavyset +25-31% front, back 2-37%, portrait 0-6%).
+
+- **9a Qwen-Image 2.1 edit** (`qwen_image_2_1.json`, wf_type 4, node 30 `resolution` 0 = the exact
+  1792x1120, canvas follows reference 1; ~105 s an edit). **4 of 5.**
+  - muscular (nude): PASS - abs, arms, shoulders, calves defined front AND back, no clothes invented,
+    face kept; portrait shoulders barely change (widths -2 / +4 / 0%: muscle, not width).
+  - heavyset (photo): PASS on all three - bodies fuller (+10 / +9%), the portrait's face and chin
+    fuller; same clothes refitted.
+  - skinny (nude): PASS on all three - front -22.5%, back -14.2%, portrait shoulders -13.4%; ribs show.
+  - older (photo): PASS - forehead / eye lines on the front face AND the portrait; hair stays red
+    everywhere, so the back agrees (not asked to grey).
+  - younger (fisher): FAIL - no visible change (white beard, wrinkles kept) and the portrait
+    re-framed (layout: portrait +49 px, hat smaller). Layout held on the other 4 (heads within 11 px,
+    the photo portrait's +9 / +11 is the wider face / hair).
+- **Krea 2 at the exact size (node 573 = 1.914 MP): 1 edit, then stopped.** The 16 GB card offloads
+  (12.9 GB staged, 35 s a step): 992 s for ONE edit, ~80 min for five - unshippable in a Flow, so
+  Krea 2 reruns at the app's 1 MP. That one edit (muscular, nude, `krea2x_muscular_nude.png`):
+  FAIL - no muscle definition on either body, widths +11 / -4 / +3% (a re-render, not a change);
+  layout held.
+- **9b Boogu Edit balanced** (`boogu_edit_balanced.json` as shipped, 1 MP -> 1296x816; 30-48 s an
+  edit). Layout held 5 of 5 (within 1 px). **1 of 5 clean** - it changes ONE panel, not three:
+  - muscular (nude): FAIL - strong abs / arms on the FRONT only; the back is untouched.
+  - heavyset (photo): FAIL - only the PORTRAIT fattens (fuller face, double chin); bodies 0%.
+  - skinny (nude): PARTIAL - bodies -11 / -12%, portrait 0%.
+  - older (photo): PASS - the strongest ageing seen yet on the portrait (lines, sagging neck), and
+    the front face ages with it; hair stays red, back agrees.
+  - younger (fisher): WEAK - brows darken from white to grey, fewer wrinkles on the front and the
+    portrait, but the beard stays white: still reads as an old man. Better than Qwen 2.1's nothing.
+- **Qwen Image Edit on Quality (tier 1, the app's default: raw 20 steps, cfg 2.5): 2 edits, then
+  switched** - 17.8 s a step, ~6 min an edit (Fabio: too painful without a speed-up; rerun on
+  Turbo). Kept as `qweneditQ_*`: muscular = a bodybuilder on ALL three panels (widths +5 / +13 /
+  +21%) but overdone, skin tanned, underwear invented on the front, portrait re-framed +20 px;
+  heavyset = FAIL - bodies +1 / +4%, the portrait zoomed OUT (+99 px) with a fuller face.
+- **9c Qwen Image Edit on Turbo** (`qwen_edit.json`, tier 2 = 8-step Lightning, cfg 1, 1 MP; ~95 s
+  an edit). **0 of 5** - it edits ONE panel and breaks it:
+  - muscular: a glossy, plastic bodybuilder on the back + portrait (male chest on the portrait),
+    front untouched. skinny: no thinning (widths +1 / -1 / -1%), a wet plastic sheen on the back
+    and the neck. heavyset: bodies unchanged, the portrait zoomed OUT (+50 px) with a fuller face.
+    older: heavy wrinkles on the portrait only. younger: the portrait becomes a DIFFERENT young man
+    (no hat, no beard, new jacket), the bodies stay old.
+  - Bench trap: `MpiAnySwitch` indexes the CONNECTED inputs by position, so a bench copy that
+    deletes `any_1` makes `select 2` miss and returns an ExecutionBlocker - ComfyUI reports
+    `success` in 3 s with no image. Rewire unused arms instead of deleting them.
+- **9d Krea 2 edit at the app's 1 MP** (`krea2_t2i_sfw.json` as shipped, Raw 25 steps cfg 2):
+  **0 of 5, and ~6.5 min an edit even at 1 MP** (388-425 s). muscular / skinny: bodies unchanged
+  (widths within 2%) and the PORTRAIT re-framed - zoomed in, layout portrait -109 / back +134 px on
+  both nude edits; heavyset: +3 / +7%, no visible fattening; older: no visible ageing; younger: no
+  change (front re-rendered +17 px). Krea 2 is out for body / age.
+- **Verdict batch 9 (per field, Fabio's multi-model rule):**
+
+  | editor | muscular | heavyset | skinny | older | younger | s / edit |
+  |---|---|---|---|---|---|---|
+  | Qwen-Image 2.1 (exact size) | PASS | PASS (3 panels) | PASS (3 panels) | PASS | FAIL | ~105 |
+  | Boogu balanced (1 MP) | front only | portrait only | bodies only | **PASS, strongest** | weak | ~33 |
+  | Qwen Image Edit Turbo (1 MP) | broken | portrait only | FAIL | portrait only | wrong person | ~95 |
+  | Krea 2 (1 MP) | FAIL | FAIL | FAIL | FAIL | FAIL | ~390 |
+  | Klein 9B (batches 5-6) | FAIL | 1 of 2 | FAIL | partial | FAIL | ~33 |
+
+  **Body shape -> Qwen-Image 2.1 (the only editor that passes it; Flow gated non-commercial).
+  Older -> Qwen-Image 2.1 or Boogu (Boogu ages harder and is 3x faster). Younger -> nobody** (one
+  case, a stylised old man with a white beard - the hardest one).
+- **Age-slider LoRA search (2026-10-10, Fabio asked):** NONE for Qwen-Image 2.1 or Boogu - HF
+  `base_model:adapter:` lists (Qwen 2.1: 106 adapters / 60 finetunes; Boogu Edit: 1 adapter) have
+  no age LoRA; web + CivArchive find none (CivitAI's API answers 451 from the UK). Near misses:
+  "Healthiness Slider" (CivitAI 2006663, "Qwen" base - pre-2.1 by its id, so probably Qwen-Image
+  1.0; health + ageing, male-biased, untested on 2.1); **"THE age slider" by Loraholic** (CivitAI
+  2533032, **Krea-2** version, rank 1, 6.87 MB, -3..8, "100% free"); **"Age Slider -
+  Flux.2.klein.9B"** (tensor.art, trained on Klein 9B BASE, "early experiment"). Sliders only push a
+  direction the base already knows.
+- Download note: the first `qwen_image_edit_2511_int8_convrot` pull failed its sha256 - the stream
+  dropped (no timeout, no resume). A resumable re-pull matched size AND sha, and HF's `lfs.oid`
+  equals the dep's sha256: the R2 object is fine, nothing breaks for users.

@@ -58,3 +58,10 @@ No earlier card covered an editor. Near: **MPI-1042** (sheet from images, the si
   blend slot from MPI-610). Recipe: `docs/playbooks/add-flow/existing-flows/character-sheet.md`.
 - Klein edit timings: 1 ref 20 s, 2 / 3 refs 30 / 44 s (`docs/models/klein/README.md`). 9B needs
   ~15 GB VRAM at peak; `klein-9b-cloud` covers smaller cards.
+
+## Noticed
+
+- `MpiSwitch` (`ComfyUi-MpiNodes/switches.py`, base of `MpiAnySwitch`/`MpiAnySwitch10`) picks
+  `select` by POSITION among the connected inputs, not by input name: a graph that leaves `any_1`
+  unwired makes `select 2` miss -> ExecutionBlocker -> `success` with no output (batch 9c). Shipped
+  graphs wire their arms contiguously today; one with a gap would route the wrong arm silently.

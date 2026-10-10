@@ -5,6 +5,27 @@ Bench-phase plan. Direction and the five bench questions are in `brief.md`; the 
 
 ## Current State
 
+**2026-10-10 (session adf9de68) - batch 9 DONE: body / age on four other editors, 5 edits each.**
+Table in `validation.md` batch 9. **Body shape -> Qwen-Image 2.1** (only editor that passes: 3 of
+3 on all three panels, exact size via node 30 `resolution` 0, ~105 s; non-commercial gate - Fabio
+OK). **Older -> Boogu balanced** (Apache-2.0, ages hardest, ~33 s, 1 MP) or Qwen 2.1. **Younger ->
+nobody** (one hard case: stylised old man, white beard; Boogu weak, Qwen 2.1 nothing). Qwen Image
+Edit (Turbo) and Krea 2 are out. Fabio's rule: the Flow routes each field to its editor (memory
+`project_flows_chain_best_model_per_job`). **Age sliders (Fabio 2026-10-10): no age LoRA exists for
+Qwen 2.1 or Boogu. NEXT: test Loraholic's "THE age slider" on Krea 2 edit** (CivitAI 2533032,
+version 3067659, `age_krea2_loraholic.safetensors`, 6.87 MB, rank 1, sha256
+`43fb1a7dc734f99df01add68c15a1bddb9bfdbca0a8773afa9b4968c03f60a9c`, -3 younger .. +8 older, no
+trigger, "100% free"; HF mirror e.g. `huggingface.co/Kutches/Kr3a/resolve/main/age_krea2_loraholic.safetensors`
+- check the sha). Idea: a slider is GLOBAL, so it may age every face on the sheet alike where words
+fail. Try older (photo) + younger (fisher, and the photo woman), neutral "keep everything" prompt
+(a commenter: age words weaken it), Krea 2 Turbo (`Input_is_Turbo` true - Raw was ~6.5 min an edit)
+via a free `Input_Lora_N` slot. Fallback if it fails: the "Healthiness Slider" (CivitAI 2006663,
+`sHealthy_-2to2.safetensors`, 70 MB, likely Qwen-Image 1.0). Fabio ruled out the tensor.art Klein
+"Age Slider" (el_chupanibre): not a real age slider by its images, and no commercial use.
+Then Fabio's field call and `/mpi-create-plan`.** Tools: `qba.py` / `run_qba.sh <model>`,
+gates `layout.py` + `width.py`, `pairs.py` for original-vs-edit sheets. Out
+`G:/ComfyUi/ComfyUI/output/mpi1041_qba/` (nude - never the repo).
+
 **2026-10-09 late (session 308d9f00) - BENCH DONE (validation batches 1-8). Waiting on Fabio's
 field call, then `/mpi-create-plan`.** Verdicts:
 - Clothes / Accessories (Q1, Q4): PASS - L1 wording, whole sheet, ONE Klein edit at the exact size
@@ -75,7 +96,14 @@ InpaintCrop + LanPaint path.
 
 ## Plan Drift
 
+- 2026-10-09 (session adf9de68): Fabio - **the Flow may use 2-3 editors**, each field routed to the
+  model that passes it (e.g. Klein for clothes / hair / condition, another editor for body / age).
+  So batch 9 is a per-field model pick, not a hunt for one editor that does everything. Each step
+  runs its own model's graph (not one giant graph). If Qwen-Image 2.1 is the only editor that passes
+  body / age, the Flow ships gated non-commercial - Fabio: better than no Flow.
+
 - 2026-10-09: the brief's "Fabio authors, no worker sub-agent" predates Fabio handing the bench
   to the agent (MPI-1042 handoff): the agent runs every batch under `gpu_lease`.
 - 2026-10-09: Fabio - **Klein only**, no Qwen 2.1 edit arm (Qwen follows clothes better per MPI-1042,
-  but non-commercial). Do not re-raise.
+  but non-commercial). Do not re-raise. **Superseded later the same day:** Fabio asked for the
+  body / age bench on Qwen 2.1 + three other editors, and for per-field model routing (above).
