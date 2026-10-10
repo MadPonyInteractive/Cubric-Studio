@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1069",
+  "title": "Resize off the engine: a 4K phone clip runs out of RAM, and Resize is locked during every generation",
+  "description": "Resize (image and video) runs a ComfyUI graph for its preview and its save. resize_video.json loads the WHOLE clip as float32 frames before resizing: Fabio's 14 s 4K 60 fps phone clip (822 frames, 2160x3840) needs ~82 GB, MemoryError on a 64 GB box (2026-10-10). Being an engine job, Resize is also disabled while Cue has any job and with no engine (MPI-253, MPI-856), so the user is pushed to Crop. Resize, flip, rotate and pad are plain pixel ops: sharp for images, streaming ffmpeg for video, as Crop already is. Brief in brief.md.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-10T20:17:47+01:00",
+  "updated_at": "2026-10-10T20:17:47+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
