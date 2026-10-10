@@ -73,6 +73,9 @@
   "age 10" pictures that passed are Boogu's fisher edits, which MPI-1041 validation.md batch 12-13
   records as broken (young faces under a WHITE BEARD, adult body), so not children. Adults 9/11
   passed; refused: Klein's age-25 photo edit and the anime adult (perception, as decided).
+- Commit `35505c692`, pushed; CI `tests.yml` run 38055186783 **success**. Card closed again.
+- Open for Fabio (public copy, not code): a privacy sentence for the picture check (a remote
+  describer receives the picture) and a release-notes clause for it.
 
 ## 2026-10-10 - closed
 
