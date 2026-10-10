@@ -19,9 +19,15 @@
  *
  * Words: English plus Portuguese, Spanish, French, German and Italian (text encoders like Klein's
  * and Krea 2's read them). A non-Latin script goes to the judge.
- * ponytail: word lists, so a Latin-script language outside those five passes unread, and so does
- * a photo of a real child edited with innocent words ("put her in a bikini"). No picture check by
- * decision; extend the lists when a real prompt gets past them.
+ * ponytail: word lists, so a Latin-script language outside those five passes unread; extend the
+ * lists when a real prompt gets past them.
+ *
+ * The PICTURE check (Fabio, 2026-10-10): words cannot know the age of someone in a photo pulled off
+ * the internet. So a run that sends a picture AND asks for nudity, underwear or sexual content
+ * ("remove her clothes") first asks the image describer whether anyone in each picture could be
+ * under 18 (`pictureCheck`); only a bare NO passes. Perception, not age: a young-looking adult is
+ * refused too, by decision. Not looked at: a clip's frames, and a picture edited with innocent
+ * words ("put her in a bikini").
  *
  * Callers: `generationService.enqueueGeneration` (every generation: prompt box, Flows, routines,
  * the in-app agent, MCP) and `llmService.enhance` / `enhanceFlow` (the request and the result).
@@ -229,6 +235,8 @@ const MESSAGES = {
     nsfwModel: 'Refused: a person under 18 cannot be made with an NSFW model. Pick another model, or make every character an adult.',
     swimwear: `Refused: this puts a child under 16 in swimwear. ${RULE}`,
     language: `Refused: the safety check could not clear this prompt. ${RULE}`,
+    picture: 'Refused: this asks for nudity, underwear or sexual content on a picture that may show someone under 18. Cubric Studio never does that, whatever the picture is or wherever it came from.',
+    pictureUnchecked: 'Refused: this asks for nudity, underwear or sexual content on a picture, and the check that no one in it is under 18 could not run. Check the image describer in Remote > Language Models.',
 };
 
 const _refuse = (reason) => ({ verdict: 'refuse', reason, message: MESSAGES[reason] });
@@ -336,4 +344,60 @@ export function configContext(config) {
         modelId: config?.model?.id || '',
         nsfw: Object.entries(ip).some(([k, v]) => /model|ckpt|unet|lora/i.test(k) && /nsfw/i.test(String(v))),
     };
+}
+
+// ── The picture check ────────────────────────────────────────────────────────────────────
+
+/** Asking for a person to lose clothes, beyond the nudity words themselves. */
+const UNDRESS = _rx([
+    '(?:remove|removes|removing|take off|takes off|taking off|took off|pull off) (?:all )?(?:of )?(?:her |his |their |the )?(?:clothes|clothing|outfit|dress|shirt|top|bra|pants|trousers|skirt|underwear)',
+    '(?:clothes|clothing|outfit|dress|shirt|top|bra|pants|skirt) off', 'undress(?:es|ed|ing)?', 'disrob(?:e|es|ing)',
+    'strip(?:s|ped|ping)? (?:her|him|them|down|naked|nude|off)',
+    'tira(?:r)? a roupa', 'despi(?:r|da|do)', 'quitar(?:le)? la ropa', 'desnudar(?:la|lo)?', 'desvestir(?:la|lo)?',
+    'déshabiller', 'enlever (?:ses|les) vêtements', 'ausziehen', 'entkleiden', 'spogliar(?:e|la|lo)', 'togliere i vestiti',
+]);
+
+/**
+ * Do these words ask for nudity, underwear or sexual content, or are they in a script the lists
+ * cannot read? Then every picture the run sends gets the picture check.
+ */
+export function needsPictureCheck(texts) {
+    const text = (Array.isArray(texts) ? texts : [texts]).filter((t) => typeof t === 'string').join('\n');
+    const plain = text.replace(NEGATED, ' ');
+    return SEXUAL.test(plain) || UNCLOTHED.test(plain) || UNDRESS.test(plain) || _foreign(text);
+}
+
+/** Every picture a generation config sends (an edit's source, an i2v start, a reference). */
+export function picturesOf(config) {
+    const urls = (config?.mediaItems || [])
+        .filter((m) => m && m.mediaType === 'image' && typeof m.url === 'string' && m.url)
+        .map((m) => m.url);
+    return [...new Set(urls)];
+}
+
+/** What the image describer is asked about each picture. */
+export const AGE_QUESTION = 'Does this picture show anyone who is, or could be, under 18? Answer with exactly one word: YES or NO.';
+
+/** Only a bare NO passes; anything else, including silence, refuses. */
+export function parseAgeAnswer(answer) {
+    return String(answer || '').replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/[^A-Za-z]+/g, ' ').trim().toUpperCase() === 'NO';
+}
+
+/**
+ * Ask the describer about each picture; refused unless every answer is a bare NO. Never rejects.
+ *
+ * @param {string[]} urls
+ * @param {(url: string) => Promise<{ok: boolean, text?: string, error?: string}>} [describe]
+ *        `llmService.describeImage` with `AGE_QUESTION`; absent or failing = refused
+ * @returns {Promise<{ ok: true } | { ok: false, code: 'CHILD_SAFETY', reason: string, message: string }>}
+ */
+export async function pictureCheck(urls, describe = null) {
+    const refused = (reason) => ({ ok: false, code: CHILD_SAFETY_CODE, reason, message: MESSAGES[reason] });
+    for (const url of urls) {
+        let r = null;
+        try { r = typeof describe === 'function' ? await describe(url) : null; } catch { r = null; }
+        if (!r?.ok) return refused('pictureUnchecked');
+        if (!parseAgeAnswer(r.text)) return refused('picture');
+    }
+    return { ok: true };
 }

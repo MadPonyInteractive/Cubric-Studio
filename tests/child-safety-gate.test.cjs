@@ -23,13 +23,20 @@ const mod = (...p) => pathToFileURL(path.join(__dirname, '..', ...p)).href;
 
 let judgeAnswer = 'ALLOW';
 let judgeCalls = 0;
-globalThis.fetch = (url) => {
+// The picture check: `describeImage` on the Remote describer is one `/llm/describe` POST.
+let describeAnswer = { ok: true, text: 'NO' };
+const describeBodies = [];
+globalThis.fetch = (url, init) => {
+    if (url === '/llm/describe') {
+        describeBodies.push(JSON.parse(init.body));
+        return Promise.resolve({ json: async () => describeAnswer });
+    }
     if (url !== '/llm/enhance') return new Promise(() => {});
     judgeCalls += 1;
     return Promise.resolve({ json: async () => ({ ok: true, text: judgeAnswer, backend: 'ollama', model: 'stub' }) });
 };
 globalThis.localStorage = {
-    getItem: (k) => (k === 'cubric.llm.backend' ? 'ollama' : null),
+    getItem: (k) => ({ 'cubric.llm.backend': 'ollama', 'cubric.llm.describeBackend': 'endpoint' })[k] ?? null,
     setItem() {}, removeItem() {},
 };
 
@@ -127,4 +134,42 @@ test('a borderline flag the judge does not clear is refused', async () => {
         assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY', answer);
         assert.match(seen.warnings[0], /under 16 in swimwear/, answer);
     }
+});
+
+// ── The picture check: "remove clothes" on an imported photo (Fabio, 2026-10-10) ─────────
+
+const PHOTO = '/project-file?path=C%3A%2Fproj%2FMedia%2Fimported.png';
+const edit = (positive) => config(positive, { operation: 'kleinEdit', mediaItems: [{ url: PHOTO, mediaType: 'image', role: 'inputImage' }] });
+
+test('"remove her clothes" on a picture waits for the describer: queued on NO', async () => {
+    describeAnswer = { ok: true, text: 'NO' };
+    const before = describeBodies.length;
+    const r = enqueueGeneration(edit('remove her clothes'), {});
+    assert.ok(r?.queueJobId);
+    assert.strictEqual(queued(r.queueJobId), false, 'not queued before the describer answers');
+    await until(() => queued(r.queueJobId));
+    assert.strictEqual(queued(r.queueJobId), true);
+    assert.strictEqual(describeBodies.length, before + 1, 'one look at the one picture');
+    assert.strictEqual(describeBodies.at(-1).imagePath, PHOTO);
+    assert.match(describeBodies.at(-1).question, /could be, under 18\?/);
+});
+
+test('"remove her clothes" on a picture that may show a minor is refused, and so is an unanswered look', async () => {
+    for (const answer of [{ ok: true, text: 'YES' }, { ok: true, text: 'Probably not' }, { ok: false, error: { code: 'NOT_VISION', message: 'no' } }]) {
+        describeAnswer = answer;
+        const { seen, off, callbacks } = capture();
+        const r = enqueueGeneration(edit('make her naked'), callbacks);
+        await until(() => seen.errors.length > 0);
+        off();
+        assert.strictEqual(queued(r.queueJobId), false, JSON.stringify(answer));
+        assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY', JSON.stringify(answer));
+        assert.match(seen.warnings[0], answer.ok ? /may show someone under 18/ : /could not run/, JSON.stringify(answer));
+    }
+});
+
+test('an innocent edit of a picture is never looked at', () => {
+    const before = describeBodies.length;
+    const r = enqueueGeneration(edit('make it night, add rain'), {});
+    assert.ok(queued(r.queueJobId), 'queued at once');
+    assert.strictEqual(describeBodies.length, before, 'no describe call');
 });

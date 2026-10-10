@@ -67,6 +67,24 @@ The judge answers exactly ALLOW or REFUSE; anything else, an error or no backend
   queues nothing.
 - Judge quality on real models: needs the GPU lease or a few cents of DeepInfra; ask first.
 
+## Phase 2 - the picture check (Fabio 2026-10-10, card reopened)
+
+Fabio: "remove clothes" on an imported photo needs a visual check first; the words cannot know
+the age of someone in a picture from the internet.
+
+- Trigger: the run sends a picture (any image mediaItem: edit, i2i, inpaint, i2v start, reference)
+  AND its words ask for nudity, underwear or sexual content (SEXUAL / UNCLOTHED lists + undress
+  verbs, six languages), or the words are in a script the lists cannot read.
+- Every picture, imported or made in the app (a dressed child made for a film is one too).
+- `llmService.describeImage` (the ONE describe switch, the user's describe pick) asks
+  "Does this picture show anyone who is, or could be, under 18? YES or NO"; refused unless every
+  answer is a bare NO; no describer = refused. Perception, not age: a young-looking adult is
+  refused too (accepted by Fabio for this case).
+- Where: `enqueueGeneration`, before the text judge; pure helpers in `childSafety.js`.
+- Not in v1: a clip's frames (video inputs). Recorded gap.
+- Verify: unit + live-module tests (stubbed describer); describer bench on clothed adult vs child
+  sheets on the ComfyUI describer under the GPU lease.
+
 ## Current State
 
 2026-10-10: the gate is in and verified (validation.md): script + judge, every generation via

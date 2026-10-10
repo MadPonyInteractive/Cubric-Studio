@@ -32,7 +32,7 @@ import { labelFromComfyOutputUrl } from '../utils/comfyOutputUrls.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { ce } from '../utils/dom.js';
 import { collapseQueueBatches } from './generationBatch.js';
-import { checkChildSafety, childSafetyGate, configTexts, configContext, CHILD_SAFETY_CODE } from '../data/childSafety.js';
+import { checkChildSafety, childSafetyGate, configTexts, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, pictureCheck, AGE_QUESTION } from '../data/childSafety.js';
 
 // ── Cue queue (in-app, THREE-LANE dispatch) ─────────────────────────────────
 // We own the pending array. MPI-74 P6 split dispatch into a 'remote' lane (cloud
@@ -572,12 +572,16 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
     // a borderline flag waits for the language-model judge, which may only clear it. A text
     // op (the enhancer, the describer) is exempt: the enhancer checks itself, and the judge
     // IS a promptEnhance job, so gating it would wait on itself.
+    // A picture sent with words asking for nudity, underwear or sex ("remove her clothes") is
+    // looked at first: words cannot know the age of someone in a photo from the internet.
     if (getCommand(config.operation)?.outputKind !== 'text') {
-        const safety = checkChildSafety(configTexts(config), configContext(config));
+        const texts = configTexts(config);
+        const safety = checkChildSafety(texts, configContext(config));
         if (safety.verdict === 'refuse') return _refuseChildSafety(safety, config, callbacks);
-        if (safety.verdict === 'judge') {
+        const pictures = needsPictureCheck(texts) ? picturesOf(config) : [];
+        if (safety.verdict === 'judge' || pictures.length) {
             const queueJobId = opts.queueJobId || crypto.randomUUID();
-            _judgeThenQueue(config, callbacks, { ...opts, queueJobId });
+            _judgeThenQueue(config, callbacks, { ...opts, queueJobId }, pictures);
             return { queueJobId };
         }
     }
@@ -585,17 +589,27 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
 }
 
 /**
- * A flagged run waits for the judge (`llmService.judgeChildSafety`, on the user's enhance
- * pick) and queues only on its ALLOW. Imported on demand: llmService imports this module.
- * ponytail: the run sits in no queue while the judge answers, so Stop cannot reach it in that
- * window (seconds on Remote, behind a running job on ComfyUI). Hold a placeholder if that bites.
+ * A flagged run waits for the picture check (`llmService.describeImage`, the user's describe
+ * pick) and the text judge (`llmService.judgeChildSafety`, the enhance pick), and queues only
+ * when both pass. Imported on demand: llmService imports this module.
+ * ponytail: the run sits in no queue while they answer, so Stop cannot reach it in that window
+ * (seconds on Remote, behind a running job on ComfyUI). Hold a placeholder if that bites.
  */
-async function _judgeThenQueue(config, callbacks, opts) {
+async function _judgeThenQueue(config, callbacks, opts, pictures = []) {
+    let llm = null;
+    try {
+        llm = await import('./llmService.js');
+    } catch (err) {
+        clientLogger.warn('generationService', `[childSafety] no language models to ask: ${err?.message || err}`);
+    }
+    // No describer = refused (`pictureCheck` refuses without one).
+    const seen = await pictureCheck(pictures, llm && ((url) => llm.describeImage({ imagePath: url, question: AGE_QUESTION })));
+    if (!seen.ok) return _refuseChildSafety(seen, config, callbacks);
+
     let judge = null;
     try {
-        const { judgeChildSafety, runnableBackend, backendPreference } = await import('./llmService.js');
-        const backend = await runnableBackend(backendPreference());
-        judge = (text) => judgeChildSafety(text, backend);
+        const backend = await llm.runnableBackend(llm.backendPreference());
+        judge = (text) => llm.judgeChildSafety(text, backend);
     } catch (err) {
         clientLogger.warn('generationService', `[childSafety] no judge to ask: ${err?.message || err}`);
     }

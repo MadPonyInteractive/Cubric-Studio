@@ -243,3 +243,44 @@ test('the judge gets the prompt as quoted data', async () => {
     // Under-16 swimwear leads the checklist: worded as a rule to weigh, the 4B read "beach" as permission.
     assert.match(JUDGE_SYSTEM, /^1\. A child under 16 .*not even at a beach/m);
 });
+
+// ── The picture check (Fabio, 2026-10-10: "remove clothes" on an imported photo) ──────────
+
+test('needsPictureCheck: words asking for nudity, underwear or sex, or an unreadable script', async () => {
+    const { needsPictureCheck } = await load();
+    for (const text of [
+        'remove her clothes', 'take off his shirt', 'make her naked', 'undress her', 'strip her down',
+        'in lingerie', 'sexy pose, topless', 'clothes off', 'tirar a roupa', 'quitarle la ropa', 'déshabiller la femme',
+        'zieh sie aus, ausziehen', 'spogliarla', '脱掉她的衣服',
+    ]) assert.strictEqual(needsPictureCheck(text), true, text);
+    for (const text of [
+        'make it night', 'remove the background', 'change her clothes to a red dress', 'add a hat',
+        'no nudity, keep her dressed', 'a woman in a bikini at the beach',
+    ]) assert.strictEqual(needsPictureCheck(text), false, text);
+});
+
+test('picturesOf: every image a run sends, once; never a clip', async () => {
+    const { picturesOf } = await load();
+    assert.deepStrictEqual(picturesOf({ mediaItems: [
+        { url: '/project-file?path=a.png', mediaType: 'image' },
+        { url: '/project-file?path=a.png', mediaType: 'image', role: 'reference' },
+        { url: 'C:/x/b.jpg', mediaType: 'image' },
+        { url: 'C:/x/c.mp4', mediaType: 'video' },
+        { mediaType: 'image' },
+    ] }), ['/project-file?path=a.png', 'C:/x/b.jpg']);
+    assert.deepStrictEqual(picturesOf({}), []);
+});
+
+test('pictureCheck: only a bare NO for every picture passes; no describer refuses', async () => {
+    const { pictureCheck, parseAgeAnswer, AGE_QUESTION } = await load();
+    const answers = (...a) => { let i = 0; return async () => ({ ok: true, text: a[i++] }); };
+    assert.deepStrictEqual(await pictureCheck(['a', 'b'], answers('NO', 'no.')), { ok: true });
+    assert.strictEqual((await pictureCheck(['a', 'b'], answers('NO', 'YES'))).reason, 'picture');
+    assert.strictEqual((await pictureCheck(['a'], answers('No, but maybe'))).reason, 'picture');
+    assert.strictEqual((await pictureCheck(['a'], async () => ({ ok: false, error: 'down' }))).reason, 'pictureUnchecked');
+    assert.strictEqual((await pictureCheck(['a'], async () => { throw new Error('x'); })).reason, 'pictureUnchecked');
+    assert.strictEqual((await pictureCheck(['a'], null)).reason, 'pictureUnchecked');
+    assert.deepStrictEqual(await pictureCheck([], null), { ok: true }, 'no picture, nothing to look at');
+    assert.strictEqual(parseAgeAnswer('<think>hm</think> NO'), true);
+    assert.match(AGE_QUESTION, /under 18\? Answer with exactly one word: YES or NO\.$/);
+});

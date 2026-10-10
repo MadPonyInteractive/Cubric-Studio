@@ -2,9 +2,10 @@
 
 Cubric Studio is an 18+ app: adult nudity and adult sexual content are allowed and never
 checked. The gate refuses only a prompt that puts a person UNDER 18 in a sexual, suggestive or
-unclothed picture. No recipe carries a rule, and no picture is looked at but the Character Sheet
-Editor's dressed checks (below): a word-and-age script reads the TEXT, at no token cost (Fabio,
-2026-10-10).
+unclothed picture. No recipe carries a rule: a word-and-age script reads the TEXT, at no token
+cost (Fabio, 2026-10-10). A picture is looked at only when a run sends one AND its words ask for
+nudity, underwear or sex (the picture check, below), and in the Character Sheet Editor's dressed
+checks.
 
 ## The rule
 
@@ -69,6 +70,15 @@ through. `childSafetyGate(texts, ctx, judge)` runs both tiers and never rejects.
   returns its queueJobId at once and enters the queue only on the judge's ALLOW. Text ops
   (`outputKind: 'text'`: the enhancer, the describer) are exempt: the judge IS a promptEnhance
   job, and gating it would wait on itself.
+- **The picture check** (Fabio: "remove clothes" on an imported photo; words cannot know the age
+  of someone in a photo off the internet). Same funnel, before the text judge: when
+  `needsPictureCheck(texts)` (a SEXUAL / UNCLOTHED word, an undress verb like "remove her clothes",
+  six languages, or an unreadable script) and the run sends pictures (`picturesOf`: every image
+  mediaItem, imported or made here), `pictureCheck` asks `llmService.describeImage` (the user's
+  describe pick) `AGE_QUESTION` for each: "anyone who is, or could be, under 18? YES or NO". Only
+  a bare NO passes (`parseAgeAnswer`); YES, chatter, a failed or missing describer refuses
+  (`picture` / `pictureUnchecked`). An innocent edit ("make it night") is never looked at.
+  Perception, not age, by decision: a young-looking adult is refused too.
 - **The Enhancer**: `llmService.enhance` (prompt box) and `enhanceFlow` (every Flow) check the
   request before it is sent and the text
   that comes back, so no recipe needs a rule. A refusal is `{ ok: false, error, errorCode:
@@ -84,8 +94,8 @@ through. `childSafetyGate(texts, ctx, judge)` runs both tiers and never rejects.
   (swimwear or underwear is not). Age 16-17: asked "nude or topless, in underwear or lingerie, or
   in revealing swimwear?", refused unless the whole answer is NO, so an ordinary bikini passes.
   Both refuse "Dress the sheet first: pick Clothes" with `CHILD_SAFETY`. Neither guesses how old
-  a sheet LOOKS: no picture's age is judged anywhere (Fabio, 2026-10-10). The leg prompts still
-  meet the gate (`runPrompt`).
+  a sheet LOOKS; the picture check above does, when the leg's words ask for nudity or underwear.
+  The leg prompts still meet the gate (`runPrompt`).
 
 ## The judge, measured (20 borderline prompts, `.agents/mpi-kanban/tasks/MPI-1056/research/judge-bench.mjs`)
 
@@ -99,13 +109,20 @@ in a non-Latin script. The 4B leans ALLOW on swimwear: its one gate miss is "マ
 少女" (a 17-year-old in a micro bikini, Japanese), and it would also clear an adult's swimwear
 beside a child whose clothes the prompt never states ("a mother in a bikini and her daughter").
 
+The picture check, measured (`research/age-bench.mjs`, the ComfyUI describer, clothed pictures
+only): every real 10-year-old edit refused (8/8); adults 9/11 passed, the two refused being a
+young-looking 25-year-old edit and an anime adult. ~2.5 s a picture.
+
 ## Known gaps (by decision)
 
 - Words only: English, Portuguese, Spanish, French, German, Italian. Another Latin-script
   language passes unread; a non-Latin script goes to the judge, which on the 4B can miss
   (above).
-- A photo of a real child edited with innocent words ("put her in a bikini") passes: no picture
-  check (Fabio: it would cost tokens on every run).
+- A picture edited with words that ask for no nudity, underwear or sex ("put her in a bikini")
+  is not looked at: a check on every run would cost tokens on every run (Fabio).
+- A clip's frames are never looked at (`picturesOf` takes images only): "remove her clothes" on an
+  imported VIDEO passes the picture check. An image-to-video start picture is checked.
+- A describer that will not answer about an explicit picture refuses the run, adult or not.
 - A sexual word anywhere beside a minor refuses, even when it is the adult's ("a sexy woman with
   her kids"): by design.
 - A flagged run sits in no queue while the judge answers, so Stop cannot reach it in that window.
@@ -114,7 +131,8 @@ beside a child whose clothes the prompt never states ("a mother in a bikini and 
 - An Australian "thongs" (sandals) beside a child is read as underwear.
 - The Character Sheet Editor dresses an undressed sheet in the Clothes leg and does not look
   again: words that leave a child half-dressed without naming it ("just jeans") pass. A sheet
-  that already shows a child, edited with "a bikini" and no age, passes like any photo above.
+  that already shows a child, edited with "a bikini" and no age, passes like any photo above;
+  edited with "nude" or "underwear", the picture check refuses it.
 
 ## Changing it
 
