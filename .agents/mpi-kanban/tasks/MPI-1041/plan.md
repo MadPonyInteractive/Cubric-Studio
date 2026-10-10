@@ -2,9 +2,17 @@
 
 ## Current State
 
-**2026-10-10 (session 16d04a9a) - bench DONE (validation.md batches 1-19), Flow plan written. NEXT: Fabio's go,
-then `mpi-continue` -> Parallel Batch A.** Project mode: scalable-foundation. Research behind every line below, with
-file:line: `research/flow-plan-research.md`.
+**2026-10-10 (session 16d04a9a) - bench DONE (validation.md batches 1-19), Flow plan written, Fabio's go given.
+NEXT: `mpi-continue` -> Parallel Batch A** (route it to `mpi-execute-parallel`). Project mode: scalable-foundation.
+Research behind every line below, with file:line: `research/flow-plan-research.md`.
+
+**Fabio's answers at the go (2026-10-10):** one change per run - YES; Qwen-Image 2.1 optional - YES; cloud arm -
+LATER, once the local Flow is locked in; **Age = a SLIDER, not a number box:** 0 = Off (the prompt does not touch
+the age), then 1 = a baby, 2, 3 ... 100 = target years (his dictation said "moves to 0 which would be a baby" -
+read as 1; confirm in passing). Open, agent pick: the slider sits on EVERY run (default 0), so "a new outfit AND
+age 30" runs the age as its own leg after the picked change (the leg array supports it) and the picker gets a
+"Nothing else" choice for an age-only run. If Fabio meant the slider only under an "Age" pick, drop the extra leg.
+Picks (4) and (5) below stand (not contested).
 
 **What it is:** a Flow that changes ONE thing on a finished 3-panel sheet (front | back | 3/4 portrait) by words,
 all panels consistent, result as a NEW card ("John - beaten up"); the input sheet stays a live asset.
@@ -25,13 +33,13 @@ Templates come VERBATIM from the bench scripts that passed (`research/bench-tool
 `qhair.py`, `qage.py` SET v3, `qba.py`, `qrebuild.py`). After every leg, the existing `flowCharacterSheetHeadless` leg
 runs when "Headless front body" is on (Fabio: the front face is usually removed; a free edit regrows a head, b7).
 
-**Decisions (Fabio 2026-10-10):** all six changes in v1; Age = a number box (1-100); 12 and under rebuild, 13+ edit
+**Decisions (Fabio 2026-10-10):** all six changes in v1; Age = a slider (0 Off, 1-100 years; see above); 12 and under rebuild, 13+ edit
 alone; child ages always DRESSED - under 18 the sheet must read dressed (describer) or the run refuses "Dress the
 sheet first: pick Clothes"; Body shape and the child rebuild make NON-COMMERCIAL pictures (Qwen 2.1) - said in the
 description, as Character Sheet from Images does; "we will do what's needed" on engine work.
 
 **Assumed (agent picks, Fabio can overturn at the go):** (1) ONE change per run - a "What to change" select + one
-words box (or the age number); more changes = run again on the result. (2) Qwen-Image 2.1 is an OPTIONAL model:
+words box, plus the age slider; more changes = run again on the result. (2) Qwen-Image 2.1 is an OPTIONAL model:
 without it the Klein changes run, Body shape / age 12 and under show "needs Qwen-Image 2.1 - Install". (3) v1 is
 local Klein 9B only, no cloud arm. (4) Age direction (younger / older) comes from a describer "how old does the
 person look?" answer. (5) The swimwear-on-a-child-sheet gap (the gate cannot see the picture) closes with a
@@ -117,11 +125,13 @@ GPU worker the LITERAL wrapped command: `python <mpi-lib>/scripts/gpu_lease.py r
   `buildRebuildPrompt({ age, caption })`, templates from Current State + A4) behind a named-builder registry so the
   FlowDef stays data (`promptBuilder: 'characterSheetEditor'`, called in `submitFlowGeneration` after describe;
   writes `positive`, so the gate reads the age in words); the FlowDef: `type: 'edit'`, verb-first description with
-  the non-commercial sentence, sheet image required, fields `change` (select), `words` (text, hidden for Age),
-  `Input_Age` (number 1-100, shown for Age), `Input_Remove_Head` (toggle, default on), `operationBy` on `change`,
-  `requiredModels: ['klein-9b', { label, models: ['qwen-image-2-1'], optional: true, for: [Qwen op,
-  'flowCharacterSheetImages'] }]`, legs [routed edit] -> [`flowCharacterSheetImages` when `Input_Age atMost 12`,
-  `box` right half, `params { Input_Face_Pose: 'TURNED' }`] -> [`flowCharacterSheetHeadless` when
+  the non-commercial sentence, sheet image required, fields `change` (select incl. "Nothing else"), `words` (text,
+  hidden for "Nothing else"), `Input_Age` (slider 0-100, 0 = Off, on every run - Fabio 2026-10-10; the age reaches
+  the gate as WORDS in `positive`, never as the number), `Input_Remove_Head` (toggle, default on), `operationBy` on
+  `change`, `requiredModels: ['klein-9b', { label, models: ['qwen-image-2-1'], optional: true, for: [Qwen op,
+  'flowCharacterSheetImages'] }]`, legs [routed edit, skipped for "Nothing else"] -> [Klein age edit when `Input_Age
+  atLeast 1`] -> [`flowCharacterSheetImages` when `Input_Age` in 1-12, `box` right half, `params { Input_Face_Pose:
+  'TURNED' }`] -> [`flowCharacterSheetHeadless` when
   `Input_Remove_Head`], describe asks (apparent age, clothes caption). **Verify:** `npm test` green, plus new
   `tests/character-sheet-editor.test.cjs`: every change kind builds the bench template; child (2-12), teen (13-17)
   and adult (18-90) prompts are `ok` under `checkChildSafety` for both model ids with source
