@@ -82,15 +82,31 @@ test('the route, the routine steps, the MCP tool and the in-app agent all carry 
     }
 });
 
-test('Cosmo is told to pick tiles at 1x for "add detail", where it picks the op, and not to edit', async () => {
+// MPI-1053: the detail routes live ONCE, in app:upscaling, read behind a gate (agent-loop.test.cjs).
+// Not an op note (it repeats on every model in list_models), and not the plain tool's note: there
+// they lost to its best: true, and 'bigger AND more detail' ran the plain upscale (Fabio, 2026-10-09).
+test('the detail and upscale routes live once, in app:upscaling, and every pointer names it', async () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const doc = fs.readFileSync(path.join(__dirname, '..', 'docs', 'agent', 'upscaling.md'), 'utf8');
+    assert.match(doc, /ask them to paint a mask over it, then run the detail op/, 'one thing: the mask');
+    assert.match(doc, /about 1 MP [^]*?\[options: Image to image \| Tiled detail\]/, 'a small picture: two buttons');
+    assert.match(doc, /2K or more on the long side: tiled detail, no question/);
+    assert.match(doc, /\*\*Bigger AND more detail\*\*[^]*?tiled upscale at their factor[^]*?No question/);
+    assert.match(doc, /offer `\[options: Plain upscale \| Tiled upscale\]`/);
+    assert.match(doc, /came back wrong[^]*?the next try is tiled/);
+    assert.match(doc, /\| Edit \|.*never/, 'an edit never adds detail');
+    const { AGENT_TOOL_OPS } = await import('../js/shell/agentToolOps.js');
+    const note = AGENT_TOOL_OPS.find((t) => t.op === 'imageUpscale').note;
+    assert.match(note, /adds NO detail/);
+    assert.match(note, /app:upscaling/);
     const { opPriority } = await import('../js/data/modelConstants/modelPriority.js');
-    for (const id of ['krea2', 'klein-9b', 'qwen-image-2-1']) {
-        assert.match(opPriority(id, 'upscale').note, /tiles: true and upscaleFactor 1/, id);
+    for (const [id, op] of [['krea2', 'upscale'], ['klein-9b', 'upscale'], ['krea2', 'detail']]) {
+        assert.doesNotMatch(opPriority(id, op)?.note || '', /tiles: true|upscaleFactor 1|tiles at 1x/, `${id}:${op} repeats no route`);
     }
-    assert.match(opPriority('krea2', 'detail').note, /upscale op with tiles at 1x/);
-    assert.doesNotMatch(opPriority('', 'imageUpscale')?.note || '', /tiles/, 'the plain tool has no tiles');
-    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    assert.match(loop, /More detail or sharpness on the whole picture is the upscale task, never an edit\./);
+    assert.match(opPriority('krea2', 'upscale').note, /app:upscaling/);
+    const loop = fs.readFileSync(path.join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    assert.match(loop, /Detail or size is never an edit: app:upscaling\. A head/);
 });
 
 test('through the settings gate: an agent asks for tiles; an open panel runs ITS tiles', () => {

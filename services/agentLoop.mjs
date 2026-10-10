@@ -117,8 +117,8 @@ export const TOOL_DEFS = [
                     category: { type: 'string', description: 'One of the op\'s params.categories.' },
                     language: { type: 'string', description: 'The line\'s language, one of the op\'s params.languages.' },
                     denoise: { type: 'number', description: 'Only on an op whose params list it (i2i, upscale, detail): 0 to 1. The higher it is, the more the image changes: low keeps the picture and its pose, high repaints it. Unset = params.denoise.default.' },
-                    tiles: { type: 'boolean', description: 'Upscale, where params.tiles: redraw in 1024 px tiles. For a huge picture, or upscaleFactor 1 to add detail only. Each tile gets the WHOLE prompt: describe the look or send none, never the scene.' },
-                    upscaleFactor: { type: 'number', description: 'One of params.upscaleFactors. 1 needs tiles.' },
+                    tiles: { type: 'boolean', description: 'Upscale, where params.tiles: redraw in 1024 px tiles. Each tile gets the WHOLE prompt: describe the look or send none, never the scene.' },
+                    upscaleFactor: { type: 'number', description: 'One of params.upscaleFactors; 1 keeps the size and needs tiles.' },
                     styleSelect: { type: 'string' },
                     stylization: { type: 'number' },
                     seed: { type: 'integer' },
@@ -489,6 +489,8 @@ const EARLY_REFUSAL_MS = 1000;
 const BATCH_STARTED = 'The chat shows one progress line, and one note comes when the last has finished. Do not look at them: the user judges them in the gallery.';
 
 // Ops that run on a painted mask; with one painted, generate wants app:masking read first.
+// The plain tool and every model's upscale op: app:upscaling picks between them (MPI-1053).
+const UPSCALE_OPS = new Set(['upscale', 'imageUpscale']);
 const MASKED_OPS = new Set(['edit', 'kleinEdit', 'krea2Edit', 'qwenEdit', 'inpaint', 'detail', 'i2i']);
 
 // The project note that holds what was asked for and never landed (`_trackUnfinished`).
@@ -997,8 +999,10 @@ export class AgentLoop {
      * The line that opens every user turn: where a generation lands, and the only image
      * refs `look`/`generate` resolve (the `_images` allowlist, so the two cannot differ).
      * ponytail: the latest 8 refs; a longer session lists what it most likely means.
+     * `size`: the open entry's `WxH` (MPI-1053: "add detail" routes by the picture's size,
+     * and "this image" had none, unlike an attachment or a list_cards row).
      */
-    _appStateLine(project, workspace = null) {
+    _appStateLine(project, workspace = null, size = '') {
         const where = project
             ? `project "${project.name}" is open. Generations land there.`
             : 'no project is open. A generation needs one: ask the user to open or create a project.';
@@ -1019,13 +1023,14 @@ export class AgentLoop {
         // entry and there is no drag surface in that view, so "this image" means that entry
         // and nothing else — it is registered above, so the ref named here resolves.
         const stack = workspace?.card?.stack;
+        const entry = `${workspace?.activeEntry?.filePath}${size ? `, ${size}` : ''}`;
         const standing = workspace?.activeEntry?.filePath
             // MPI-950: an open stack shows one member at a time, and has no Mask tool.
             ? (stack
-                ? ` The user has the stack "${stack.name}" (${stack.count} cards) open, and "all of them" means its cards: list_cards with groupId ${stack.groupId} gives the ref to pass as cards. The card on screen is "${workspace.card.name || 'untitled'}", and the entry open in front of them is ${workspace.activeEntry.filePath}. "This image", "it" and "this one" mean that entry.`
+                ? ` The user has the stack "${stack.name}" (${stack.count} cards) open, and "all of them" means its cards: list_cards with groupId ${stack.groupId} gives the ref to pass as cards. The card on screen is "${workspace.card.name || 'untitled'}", and the entry open in front of them is ${entry}. "This image", "it" and "this one" mean that entry.`
             // MPI-991: the Masking rule's "skip the first half" lost live ("click the card in the
             // gallery to open it (you're already looking at it)"), so the line carries the words.
-                : ` The user is looking at the card "${workspace.card?.name || 'untitled'}", and the entry open in front of them is ${workspace.activeEntry.filePath}. "This image", "it" and "this one" mean that entry. To paint a mask they only pick the Mask tool from the toolbar down the left: they are on the card, so never send them to the gallery.`)
+                : ` The user is looking at the card "${workspace.card?.name || 'untitled'}", and the entry open in front of them is ${entry}. "This image", "it" and "this one" mean that entry. To paint a mask they only pick the Mask tool from the toolbar down the left: they are on the card, so never send them to the gallery.`)
                 // MPI-891 live read 2: the mask reached the dispatch, never the prompt writer.
                 // MPI-987: dictation wrote "mask" as "mosque"; the agent read a building to add
                 // and sent the user to repaint on another card instead of running on the mask.
@@ -1991,7 +1996,7 @@ Declining rule: when you cannot or will not do what was asked, start that reply 
 
 Options rule: a reply that offers choices (models, ideas, routes, yes or no) ends with [options: A | B], at most three, recommended first; the app shows buttons.
 
-Model rule: first the TASK, then the model. A change to what is IN an existing picture, local or across the frame (remove, add or replace a thing, the background, light, time of day: "make it night"), is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the named model's i2i ranks first; a restyle the user asks for ("make this anime") is i2i; a miss goes to the edit task, not another denoise. More detail or sharpness on the whole picture is the upscale task, never an edit. A head from one picture onto another is the Head Swap Flow, never a mask.The same picture on ANOTHER model ("this image but with <model>") is a RE-RUN: that model's text-to-image op with NO media, from the source's prompt (list_cards for a card; otherwise look at the picture, write it from what is there and say so in one line) rewritten to that model's guide. A model's name is never a style instruction; only an ask to change how THIS picture looks sends the picture. Ranks compare ops only within one task, and best: true marks the op to take: the lowest rank you can run here. No rank means unranked, not bad. Take another only when the user names a model or the op's note matches the ask, and then say which model and why in one line. Nothing installed fits: say so and offer install_model.
+Model rule: first the TASK, then the model. A change to what is IN an existing picture, local or across the frame (remove, add or replace a thing, the background, light, time of day: "make it night"), is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the named model's i2i ranks first; a restyle the user asks for ("make this anime") is i2i; a miss goes to the edit task, not another denoise. Detail or size is never an edit: app:upscaling. A head from one picture onto another is the Head Swap Flow, never a mask. The same picture on ANOTHER model ("this image but with <model>") is a RE-RUN: that model's text-to-image op with NO media, from the source's prompt (list_cards for a card; otherwise look at the picture, write it from what is there and say so in one line) rewritten to that model's guide. A model's name is never a style instruction; only an ask to change how THIS picture looks sends the picture. Ranks compare ops only within one task, and best: true marks the op to take: the lowest rank you can run here. No rank means unranked, not bad. Take another only when the user names a model or the op's note matches the ask, and then say which model and why in one line. Nothing installed fits: say so and offer install_model.
 
 Route rule: before an edit of an existing picture, answer this yourself: does the change stay inside ONE area? Light, sky, time of day, weather, season and style fall on the whole frame, and several asks in one message are ONE edit, never split. Not one area: run ONE whole-picture edit, ask nothing. One area with words that protect the rest ("only this", "without changing anything else"): ask for the mask, offer nothing else. One area with no such words: in ONE line give both routes (a mask is tighter; a whole-picture edit needs no painting and often lands), recommend one, end on [options: Mask | Whole-picture edit] and wait; how to paint comes only after they pick Mask. A mask also keeps the source's size and every pixel outside it, so offer one for a big photo or when an edit lost quality. When a result comes back wrong, change the op, the mask or the prompt, never add adjectives; details in app:masking.
 
@@ -2122,6 +2127,13 @@ ${knowledgeIndex}`.trim();
                     // says creating one is the agent's job. A concrete tool result beats a prompt
                     // rule every time, so the result now names the call that fixes it.
                     return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'Nothing was generated: no project is open. Call create_project now, named after what you are making — it opens what it makes — then send this same generate again. Do not ask the user to open or create one; that is your job.' } });
+                }
+                // MPI-1053: the plain imageUpscale is best: true for the upscale task, and live it
+                // ran for "bigger AND more detail" with every route written in its own note. The
+                // read beats the flag: once per conversation, before a batch is offered.
+                if (!args.flowId && UPSCALE_OPS.has(args.operation) && !this._readIds.has('app:upscaling')) {
+                    this._gateWaiting = 'app:upscaling';
+                    return JSON.stringify({ ok: false, error: { code: 'KNOWLEDGE_NOT_READ', message: 'Nothing was generated: read read_knowledge "app:upscaling" first, then send the route it gives for what the user asked.' } });
                 }
                 const fanned = Array.isArray(args.cards) && args.cards.length;
                 if (!args.flowId && args.modelId) {
@@ -2860,7 +2872,8 @@ ${knowledgeIndex}`.trim();
             // built, so the line lists it among the refs it is the allowlist for.
             this._registerWorkspaceEntry(workspace);
             this._masked = !!(workspace?.activeEntry?.filePath && workspace.masked);
-            const opening = [this._appStateLine(project, workspace), this._pinnedSettingsLine(pinned), handover, woke, heldLine, running, await this._globalNotesLine(), await this._projectNotesLine(project), ...this._notes.splice(0)];
+            const entrySize = workspace?.activeEntry?.filePath ? await _imageSize(workspace.activeEntry.filePath) : '';
+            const opening = [this._appStateLine(project, workspace, entrySize), this._pinnedSettingsLine(pinned), handover, woke, heldLine, running, await this._globalNotesLine(), await this._projectNotesLine(project), ...this._notes.splice(0)];
             contentParts.unshift(...opening.filter(Boolean).map((t) => ({ type: 'text', text: t })));
 
             // Add user message to LLM context (plain text for OpenAI compat)

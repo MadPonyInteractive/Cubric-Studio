@@ -154,20 +154,15 @@ const I2V_NOTE = 'animates THIS picture: it becomes the first frame exactly as i
 const REF_NOTE = 'a reference op: the pictures (and clips and sounds) steer who and what appears, the route for a character sheet, a turnaround or several views of one subject. A picture cited as the opening frame (or another as the closing one) also gives a first or last frame: close, not exact, since the angle or framing can drift';
 const OP_NOTES = {
     // MPI-904: a model upscale is a diffusion pass, and the plain tool ranks above it.
-    upscale: 're-renders the picture at the new size to add or change detail, from a prompt written per picture; only when the user asks for more or new detail. A plain enlargement is the imageUpscale tool, with no model',
-    detail: 'only the area the user masked. More detail across the whole picture is the upscale op with tiles at 1x',
+    // MPI-1053: which detail route fits the ask is said ONCE, in app:upscaling (read behind a
+    // gate in agentLoop.mjs): a note here repeats on every model in list_models.
+    upscale: 'redraws the picture to add detail, from a prompt written per picture; the plain imageUpscale adds none. Which route: app:upscaling',
     i2i:'the restyle route, only when the user asks to change how THIS picture looks; "this picture, but with <model>" is a re-run: that model\'s t2i, with no media. It repaints the whole picture from the WORDS, so prompt it with the description of THIS image and then the style you want, never a better scene. denoise decides how much moves — keep it low to hold the pose and composition. If the result comes back wrong (the look did not take, or it strays from the original), the next try is an edit op, never this op at another denoise',
     i2v_ms: I2V_NOTE,
     i2v: I2V_NOTE,
     ref2v_ms: REF_NOTE,
     ref2v: REF_NOTE,
 };
-
-/**
- * MPI-1038 (Fabio, 2026-10-09): "add detail" to a big photo is Use Tiles at 1x, and the agent
- * is the one who should know that, not the user. Only on a model whose upscale has the tiles.
- */
-const TILES_NOTE = 'asked for more detail or sharpness on the WHOLE picture, at any size and above all a big photo: tiles: true and upscaleFactor 1, the same size with every 1024 px tile redrawn. Bigger and more detailed: tiles with a factor. Tell the user in one line that it redraws the picture tile by tile, so a big one takes a while. Each tile gets the whole prompt: describe the look (sharp photo, film grain) or send none, never the scene';
 
 const _ranked = new Map();
 
@@ -180,8 +175,7 @@ const _localCount = new Map();
 // only the task says that kleinEdit and krea2Edit compete.
 function _rank(pairs, task) {
     pairs.forEach(([modelId, op], i) => {
-        const tiles = op === 'upscale' && MODELS.find(m => m.id === modelId)?.capabilities?.tileUpscale === true;
-        const note = [NOTES[`${modelId}:${op}`] || NOTES[modelId], OP_NOTES[op], tiles && TILES_NOTE].filter(Boolean).join('; ');
+        const note = [NOTES[`${modelId}:${op}`] || NOTES[modelId], OP_NOTES[op]].filter(Boolean).join('; ');
         _ranked.set(`${modelId}:${op}`, { rank: i + 1, task, ...(note ? { note } : {}) });
     });
     _localCount.set(task, pairs.length);

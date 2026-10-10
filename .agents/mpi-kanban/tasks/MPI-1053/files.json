@@ -1,0 +1,19 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "services/agentLoop.mjs",
+    "js/data/modelConstants/modelPriority.js",
+    "routes/mcp.js",
+    "services/agentCorpus.mjs",
+    "docs/agent/masking.md",
+    "docs/agent/prompt-enhancement.md",
+    "docs/agent/models/",
+    "tests/agent-prompt-budget.test.cjs",
+    "tests/agent-tiles.test.cjs",
+    "js/shell/agentToolOps.js",
+    "tests/model-priority.test.cjs",
+    "tests/agent-loop.test.cjs",
+    "docs/agent-chat.md",
+    "docs/agent/upscaling.md"
+  ]
+}

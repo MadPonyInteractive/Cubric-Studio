@@ -147,6 +147,8 @@ async function makeLoop({ engineResponses = [], toolOpts = {}, resolveEndpointOv
         resolveEndpoint: resolveEndpointOverride || (async () => ({ profile: endpointProfile, key: 'fake-key' })),
         lookupContextWindow: async () => contextWindow,
     });
+    // MPI-1053: upscale is the batch tests' sample op; the app:upscaling gate has its own test.
+    loop._readIds.add('app:upscaling');
 
     // Patch: inject fake engine so the loop uses it instead of DeepInfraEngine
     loop._fakeEngine = engine;
@@ -1730,6 +1732,15 @@ describe('(h) notes, results, names, guides', () => {
         assert.match(loop._messages[0].content, /the picture's own shape is used/);
     });
 
+    // MPI-1053: "add detail to this" routes by the picture's size, and the open card had none.
+    test('the card the user has open carries its size on the App state line', async () => {
+        const { loop } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        const real = require('node:path').join(__dirname, '..', 'assets', 'mascot', 'studio', 'logo.webp');
+        const workspace = { page: 'group-history', groupId: 'g1', card: { name: 'logo', type: 'image' }, activeEntry: { itemId: 'i1', filePath: real } };
+        await loop.runTurn('add some detail to this', [], project, 'auto', 'deepinfra', 't-size', { workspace });
+        assert.ok(userMessages(loop).at(-1).includes('logo.webp, 128x86.'));
+    });
+
     // MPI-774 Phase 4: live, the model guessed Head Swap boxes at {0,0,512,512} and the swap came
     // out half done, with the box tool right there.
     test('a Flow box waits until look measured the image of its role, then runs', async () => {
@@ -1799,6 +1810,27 @@ describe('(h) notes, results, names, guides', () => {
         assert.equal(gen.error.code, 'BOX_TOO_BIG');
         assert.match(look2.hint, /Stop measuring/);
         assert.equal(tools.calls.generate.length, 0);
+    });
+
+    // MPI-1053: live, "bigger AND more detail" ran the plain imageUpscale, best: true for the
+    // task, with every route written in that tool's own note. The plain tool and a model's
+    // upscale both wait for app:upscaling; i2i does not.
+    test('an upscale, plain or model, waits until app:upscaling is read', async () => {
+        const plain = (id) => call(id, 'generate', { operation: 'imageUpscale', media: [{ role: 'inputImage', image: 'att_1' }] });
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            plain('g1'),
+            call('k1', 'read_knowledge', { id: 'app:upscaling' }),
+            call('g2', 'generate', { modelId: 'test-model', operation: 'upscale', tiles: true, upscaleFactor: 2 }),
+            { text: 'Started.' },
+        ] });
+        loop._readIds.delete('app:upscaling');
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', guides: [] }], flows: [] });
+        await loop.runTurn('upscale it, full of detail', [], project, 'auto', 'deepinfra', 't-up');
+        const [first] = toolResults(loop);
+        assert.equal(first.error.code, 'KNOWLEDGE_NOT_READ');
+        assert.match(first.error.message, /app:upscaling/);
+        assert.equal(tools.calls.generate.length, 1, 'only the call after the read reached the app');
+        assert.equal(tools.calls.generate[0].operation, 'upscale');
     });
 
     test('with a mask painted, a masked op waits until app:masking is read', async () => {
@@ -3248,6 +3280,9 @@ describe('(e) the open workspace reaches the agent', () => {
         // MPI-991: on the card, the way to a mask is the Mask tool alone, never the gallery.
         assert.match(line, /only pick the Mask tool from the toolbar down the left: they are on the card, so never send them to the gallery/);
         assert.doesNotMatch(loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, null), /Mask tool/);
+        // MPI-1053: "add detail" routes by size, so "this image" carries its pixels.
+        assert.ok(loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, ws, '4096x2730').includes(`${ENTRY}, 4096x2730.`));
+        assert.ok(line.includes(`${ENTRY}.`), 'no size read: the path alone, no dangling comma');
     });
 
     // MPI-950: a stack owns no media, so the line names the stack AND the member on screen.

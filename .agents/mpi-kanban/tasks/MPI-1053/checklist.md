@@ -1,5 +1,5 @@
 # MPI-1053 checklist
 
-- [ ] Inventory + size signal
-- [ ] Rewrite, not append (budget same or lower)
-- [ ] Live check with Fabio
+- [x] Inventory + size signal
+- [x] Rewrite, not append (budget same or lower)
+- [x] Live check with Fabio

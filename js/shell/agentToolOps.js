@@ -39,7 +39,9 @@ const MEDIA = [{ role: 'inputImage', type: 'image', required: true }];
 export const AGENT_TOOL_OPS = [
     {
         op: 'imageUpscale',
-        note: 'Plain upscale x1.5 to x4 with no model and no prompt: the same picture, only bigger and sharper. Use it for any upscale unless the user wants detail added or changed. fields: upscaler "4x-NMKD-Siax" (default) for photos and realistic renders, "4x-AnimeSharp" for anime, cartoons and flat art; factor 1.5, 2 (default), 3 or 4.',
+        // MPI-1053: the routes live in app:upscaling, read behind a gate (agentLoop.mjs). Written
+        // here they lost to this tool's best: true: "bigger and more detail" still ran it.
+        note: 'Plain upscale x1.5 to x4 with an upscale model and no prompt: the same picture, bigger and sharper, nothing redrawn. It adds NO detail. fields: upscaler "4x-NMKD-Siax" (default) for photos and realistic renders, "4x-AnimeSharp" for anime, cartoons and flat art; factor 1.5, 2 (default), 3 or 4. Which upscale or detail route fits the ask: app:upscaling.',
         fields: {
             upscaler: { values: UPSCALERS, default: UPSCALERS[0] },
             factor: { values: FACTORS, default: 2 },

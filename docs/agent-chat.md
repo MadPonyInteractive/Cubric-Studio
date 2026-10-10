@@ -291,7 +291,9 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   That last one is a gate and not the app's own check because `generate` is fired and not awaited: the renderer's identical refusal
   arrives AFTER `{started: true}`, which is the only thing the model tells the user about — live, it reported a video as started
   from a picture it never sent (Fabio, 2026-09-19). MPI-903 added three more: with a mask painted on the open card
-  (`workspace.masked`) a masked op answers `KNOWLEDGE_NOT_READ` until `app:masking` was read; a `look` box whose
+  (`workspace.masked`) a masked op answers `KNOWLEDGE_NOT_READ` until `app:masking` was read (MPI-1053 added the
+  same for `upscale` and the plain `imageUpscale`, until `app:upscaling`: the routes written in that tool's own
+  note lost to its `best: true`, and "bigger and more detail" ran it); a `look` box whose
   `squareShare` passes 0.6 is not a measure (the result carries a `hint`, the second one says stop) and the Flow
   answers `BOX_TOO_BIG`; and dispatch refuses `MASK_SEVERAL_AREAS` when edit, kleinEdit, krea2Edit, qwenEdit or
   inpaint get a mask of 2+ separate areas (`countMaskAreas`, `js/shell/agentDispatch.js`: they crop ONE box around
@@ -566,7 +568,9 @@ attachment.
   this.
 - **Registered before the App state line is built.** `_registerWorkspaceEntry` puts the entry in
   `_images`, so the ref the line names is one `look` and `generate` can actually resolve — the
-  invariant that line documents about itself.
+  invariant that line documents about itself. The line also gives the entry's `WxH` (MPI-1053),
+  read in the loop with `_imageSize` like an attachment's, never sent by the renderer: the detail
+  routes in `app:upscaling` pick by size.
 - **No workspace on a CARRY.** The carried half of a request runs in a different project; the view
   belongs to the one the user left.
 
