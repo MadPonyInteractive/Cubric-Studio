@@ -232,11 +232,14 @@ test('Character Sheet from Images: the turn is asked on the BOXED face, the clot
 test('submitFlowGeneration describes before the graph is queued, on the first call only', () => {
     const src = fs.readFileSync(repo('js/services/flowService.js'), 'utf8');
     const body = src.slice(src.indexOf('export function submitFlowGeneration('), src.indexOf('// ── Cloud edit stage'));
-    assert.match(body, /if \(!_leg\.tempId && describeAsks\(flow, config\.injectionParams, mediaItems\)\.length\) \{/);
-    const describe = body.indexOf('describeFlowRun(flow, config, runOriginProject || state.currentProject)');
+    // The rules read every field the run has (MPI-1041: `change`, `words` are not graph params).
+    assert.match(body, /const describeRun = \{ mediaItems, injectionParams: \{ \.\.\.flowRunValues\(flow, run\), \.\.\.config\.injectionParams \} \};/);
+    assert.match(body, /if \(!_leg\.tempId && describeAsks\(flow, describeRun\.injectionParams, mediaItems\)\.length\) \{/);
+    const describe = body.indexOf('describeFlowRun(flow, describeRun, runOriginProject || state.currentProject)');
     const merge = body.indexOf('Object.assign(config.injectionParams, d.injectionParams);');
     const startAfter = body.indexOf('if (!start())', merge);
     assert.ok(describe > -1 && merge > describe && startAfter > merge, 'describe -> merge -> queue');
     assert.match(body, /if \(d\.cancelled\) return runCallbacks\.onCancel\?\.\(\);/);
-    assert.match(body, /code: 'DESCRIBE_FAILED'/);
+    // A check's refusal keeps its own code (MPI-1041: CHILD_SAFETY); a describer failure has none.
+    assert.match(body, /code: d\.code \|\| 'DESCRIBE_FAILED'/);
 });

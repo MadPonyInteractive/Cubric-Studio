@@ -25,7 +25,7 @@ import { enhanceFlow, backendPreference, describeImage, describeBackendPreferenc
 import { clientLogger } from './clientLogger.js';
 import { firstFrameDataUrl } from '../utils/video.js';
 import { resolveMediaUrl } from '../utils/mediaActions.js';
-import { getFlowById, flowModelIds } from '../data/flowsRegistry.js';
+import { getFlowById, flowModelIds, ruleHolds } from '../data/flowsRegistry.js';
 import { mapDeclaredValue, hiddenFieldIds, isInjectionParam } from '../utils/declaredFields.js';
 
 /**
@@ -381,38 +381,49 @@ export async function enhanceFlowRun(flow, resolved, deps = { enhance: runEnhanc
 // describer wired into the graph (Fabio, 2026-10-08).
 //
 // Entries are `{ to, media, ask, when?, frame? }`. Per target, the FIRST entry whose media slot
-// holds something and whose `when` rules all hold is the one asked; `when` takes `hiddenWhen`'s
-// `{ field, is | isNot }` and `{ media }` (that slot holds something). `frame: 'first'` describes
-// a clip's first frame instead of the file; `crop: '<box param>'` only the part of the picture
-// that box holds, when the run carries one (a face's turn read off a whole torso shot came back
-// FRONT for a turned head, off the boxed face TURNED: MPI-1042 batch 14a). Targets are graph
-// inputs nobody types into, so the text is run-only: it never enters the snapshot, and Reuse
-// describes the picture again.
+// holds something and whose `when` rules all hold is the one asked; `when` takes the field rules
+// every Flow rule takes (`flowsRegistry.ruleHolds`) and `{ media }` (that slot holds something).
+// `frame: 'first'` describes a clip's first frame instead of the file; `crop: '<box param>'` only
+// the part of the picture that box holds, when the run carries one (a face's turn read off a whole
+// torso shot came back FRONT for a turned head, off the boxed face TURNED: MPI-1042 batch 14a).
+// Targets are graph inputs nobody types into, so the text is run-only: it never enters the
+// snapshot, and Reuse describes the picture again.
+//
+// An entry with NO `to` is a CHECK (MPI-1041): `{ media, ask, when?, refuseUnless, code, message }`.
+// Every check that holds is asked, before any target, and the run is refused with its `code` and
+// `message` unless the whole answer is `refuseUnless` (as the child-safety judge's bare ALLOW: any
+// other answer refuses). It is how a Flow refuses on what only the picture can say, such as an
+// undressed sheet about to be made a child.
 
-/** One `when` rule against the run's graph values and the media slots that hold something. */
+/** One `when` rule against the run's values and the media slots that hold something. */
 function _describeRuleHolds(rule, values, roles) {
     if (rule?.media) return roles.has(rule.media);
-    return 'isNot' in rule ? values[rule.field] !== rule.isNot : values[rule.field] === rule.is;
+    return ruleHolds(rule, values);
 }
 
+/** A check's answer as bare upper-case words, so "Dressed." passes `DRESSED` and "NOT DRESSED" does not. */
+const _answerWords = text => String(text).replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/[^A-Za-z]+/g, ' ').trim().toUpperCase();
+
 /**
- * The describe entries a run asks: one per target, the first that holds, and only for a target
- * that is still blank (a caller that wrote one keeps it).
+ * The describe entries a run asks: every check that holds, then one per target, the first that
+ * holds, and only for a target that is still blank (a caller that wrote one keeps it).
  *
  * @param {Object} flow  a FlowDef
- * @param {Object} [values]  the run's graph values (`injectionParams`)
+ * @param {Object} [values]  the run's values (`flowRunValues` and its `injectionParams`)
  * @param {Object[]} [mediaItems]  the run's media, each with its slot `role`
  * @returns {Object[]}
  */
 export function describeAsks(flow, values = {}, mediaItems = []) {
     const roles = new Set(mediaItems.filter(m => m?.url).map(m => m.role));
+    const checks = [];
     const picked = new Map();
     for (const d of flow?.describe || []) {
-        if (picked.has(d.to) || !roles.has(d.media)) continue;
-        const rules = Array.isArray(d.when) ? d.when : d.when ? [d.when] : [];
-        if (rules.every(r => _describeRuleHolds(r, values, roles))) picked.set(d.to, d);
+        if ((d.to && picked.has(d.to)) || !roles.has(d.media)) continue;
+        if (![].concat(d.when || []).every(r => _describeRuleHolds(r, values, roles))) continue;
+        if (d.to) picked.set(d.to, d);
+        else checks.push(d);
     }
-    return [...picked.values()].filter(d => _isBlank(values[d.to]));
+    return [...checks, ...[...picked.values()].filter(d => _isBlank(values[d.to]))];
 }
 
 /**
@@ -489,8 +500,11 @@ const DESCRIBED = new Map();
  * "ridiculous", and its wording drifts between runs, so two runs of one setup get different prompts):
  * same picture, crop, frame, question and describer = the cached text.
  *
+ * A CHECK that does not pass refuses with its own `code` and `message` (the caller reports both);
+ * a describer failure has no code.
+ *
  * @param {{describe?: Function, firstFrame?: Function, boxCrop?: Function, cache?: Map}} [deps]  a test stubs them
- * @returns {Promise<{ok: true, injectionParams: Object}|{ok: false, cancelled?: boolean, message: string}>}
+ * @returns {Promise<{ok: true, injectionParams: Object}|{ok: false, cancelled?: boolean, code?: string, message: string}>}
  */
 export async function describeFlowRun(flow, config, project, deps = {}) {
     const describe = deps.describe || describeImage;
@@ -506,9 +520,20 @@ export async function describeFlowRun(flow, config, project, deps = {}) {
         const url = media.find(m => m?.role === d.media)?.url;
         const box = d.crop ? config?.injectionParams?.[d.crop] : null;
         const key = JSON.stringify([url, box, d.frame || '', d.ask, describeBackendPreference(), describeModelPreference() || '']);
+        const what = d.to || `check ${d.refuseUnless}`;
+        // A check that does not get its one passing answer refuses the run, on every path alike.
+        const settle = (text) => {
+            if (!d.to && _answerWords(text) !== d.refuseUnless) {
+                clientLogger.info('flow-describe', `${name} refused by ${what}: the describer answered "${text.slice(0, 60)}"`);
+                return { ok: false, code: d.code, message: d.message };
+            }
+            if (d.to) out[d.to] = text;
+            return null;
+        };
         if (cache?.has(key)) {
-            clientLogger.info('flow-describe', `${name} ${d.to} reused (same picture and question as an earlier run)`);
-            out[d.to] = cache.get(key);
+            clientLogger.info('flow-describe', `${name} ${what} reused (same picture and question as an earlier run)`);
+            const refused = settle(cache.get(key));
+            if (refused) return refused;
             continue;
         }
         let result;
@@ -526,13 +551,14 @@ export async function describeFlowRun(flow, config, project, deps = {}) {
         const text = String(result?.text || '').replace(/^[^\p{L}\p{N}]+/u, '').trim();
         if (!result?.ok || !text) {
             const why = String(result?.error || 'It gave no answer.').trim();
-            clientLogger.warn('flow-describe', `${name} ${d.to} describe failed via ${result?.via || '?'}: ${why}`);
+            clientLogger.warn('flow-describe', `${name} ${what} describe failed via ${result?.via || '?'}: ${why}`);
             const hint = /Remote > Language Models|Model Library/.test(why) ? '' : ' Check Remote > Language Models.';
             return { ok: false, message: `Nothing was generated: the picture could not be described for ${name}. ${why}${/[.!?]$/.test(why) ? '' : '.'}${hint}` };
         }
-        clientLogger.info('flow-describe', `${name} ${d.to} described via ${result.via} (${result.model || 'default model'}), ${Date.now() - started} ms`);
+        clientLogger.info('flow-describe', `${name} ${what} described via ${result.via} (${result.model || 'default model'}), ${Date.now() - started} ms`);
         cache?.set(key, text);
-        out[d.to] = text;
+        const refused = settle(text);
+        if (refused) return refused;
     }
     return { ok: true, injectionParams: out };
 }

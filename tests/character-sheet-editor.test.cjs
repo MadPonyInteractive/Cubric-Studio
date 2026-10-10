@@ -7,10 +7,21 @@
  *      child-safety gate on both models, while a child age with unclothed or swimwear words is
  *      refused - on LEG 1 already, through `runPrompt` (the gate checks one job at a time);
  *   3. the FlowDef routes each change to its editor, runs the right legs, resolves each leg's
- *      model for its op, and asks for Qwen-Image 2.1 only when the run needs it.
+ *      model for its op, and asks for Qwen-Image 2.1 only when the run needs it;
+ *   4. (Phase C) the picture check the gate cannot make - an undressed sheet made a minor -
+ *      refuses with ONE code and message on the hand, agent and routine paths; the result card
+ *      is named after the input.
  */
 
 'use strict';
+
+// Must exist BEFORE llmService loads (section 4 reaches the describer): its preferences read it.
+const _ls = {};
+global.localStorage = {
+    getItem: k => (Object.prototype.hasOwnProperty.call(_ls, k) ? _ls[k] : null),
+    setItem: (k, v) => { _ls[k] = String(v); },
+    removeItem: (k) => { delete _ls[k]; },
+};
 
 const test = require('node:test');
 const assert = require('node:assert');
@@ -207,4 +218,164 @@ test('every op the Flow dispatches takes the sheet on image1', async () => {
         const keys = (getCommand(op)?.mediaInputs || []).map(m => m.key);
         assert.ok(keys.includes('image1'), `${op} takes image1`);
     }
+});
+
+// ── 4. The picture checks and the card name (Phase C) ──────────────────────────
+
+const SHEET = { role: 'image1', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fsheet.png' };
+const editor = async () => (await registry()).getFlowById('character-sheet-editor');
+const values = async (change, words, age) => (await registry()).flowRunValues(await editor(),
+    { change, words, injectionParams: { Input_Age: age } });
+/** What a run asks, in order: a check by its passing answer, a target by its id. */
+const asked = async (change, words, age) => (await esm('js/services/flowEnhance.js'))
+    .describeAsks(await editor(), await values(change, words, age), [SHEET]).map(d => d.to || d.refuseUnless);
+const CODE = 'CHILD_SAFETY';
+const DRESS_FIRST = /^Dress the sheet first: pick Clothes/;
+
+test('the picture checks run only when they can matter, and before any other question', async () => {
+    // The gate's rule on the sheet: under 16 fully dressed; 16-17 nothing nude, underwear or
+    // revealing (an ordinary bikini passes). Never when the change itself dresses it.
+    assert.deepStrictEqual(await asked('condition', 'muddy', 10), ['DRESSED', 'sheetAge', 'sheetClothes']);
+    assert.deepStrictEqual(await asked('hair', 'a bob', 15), ['DRESSED', 'sheetAge']);
+    assert.deepStrictEqual(await asked('hair', 'a bob', 16), ['NO', 'sheetAge']);
+    assert.deepStrictEqual(await asked('none', '', 17), ['NO', 'sheetAge']);
+    assert.deepStrictEqual(await asked('clothes', 'a navy coat', 10), ['sheetAge'], 'Clothes dresses it; its words are the caption');
+    assert.deepStrictEqual(await asked('hair', 'a bob', 18), ['sheetAge']);
+    assert.deepStrictEqual(await asked('clothes', 'a red jacket', 0), [], 'an ordinary change asks nothing');
+    // How old the sheet LOOKS is the child-safety gate's call, never this Flow's (Fabio, 2026-10-10).
+    assert.deepStrictEqual(await asked('clothes', 'a red bikini', 0), []);
+});
+
+test('describeFlowRun: an undressed sheet made a minor refuses before anything else is asked', async () => {
+    const fe = await esm('js/services/flowEnhance.js');
+    const flow = await editor();
+    const realWarn = console.warn;
+    console.warn = () => {};
+    try {
+        const go = async (dressed) => {
+            const questions = [];
+            const describe = async ({ question }) => {
+                questions.push(question);
+                return { ok: true, via: 'endpoint', text: /DRESSED/.test(question) ? dressed : /How old/.test(question) ? '40' : 'Wearing a coat.' };
+            };
+            const res = await fe.describeFlowRun(flow, { injectionParams: await values('condition', 'muddy', 10), mediaItems: [SHEET] }, null, { describe });
+            return { res, questions };
+        };
+        const no = await go('NOT DRESSED');
+        assert.strictEqual(no.res.ok, false);
+        assert.strictEqual(no.res.code, CODE);
+        assert.match(no.res.message, DRESS_FIRST);
+        assert.strictEqual(no.questions.length, 1, 'the age and the clothes are never asked');
+        assert.strictEqual((await go('I cannot tell.')).res.code, CODE, 'only the passing answer passes');
+        const yes = await go('Dressed.');
+        assert.deepStrictEqual(yes.res, { ok: true, injectionParams: { sheetAge: '40', sheetClothes: 'Wearing a coat.' } });
+    } finally {
+        console.warn = realWarn;
+    }
+});
+
+test('describeFlowRun: at 16-17 an ordinary bikini passes, a revealing or bare sheet does not', async () => {
+    const fe = await esm('js/services/flowEnhance.js');
+    const flow = await editor();
+    const run = async (answer) => fe.describeFlowRun(flow, { injectionParams: await values('hair', 'a bob', 17), mediaItems: [SHEET] }, null,
+        { describe: async ({ question }) => ({ ok: true, via: 'endpoint', text: /revealing/.test(question) ? answer : '25' }) });
+    assert.deepStrictEqual(await run('No.'), { ok: true, injectionParams: { sheetAge: '25' } });
+    for (const answer of ['YES', 'Yes, a micro bikini.', 'Not sure.']) {
+        const res = await run(answer);
+        assert.deepStrictEqual([res.ok, res.code], [false, CODE], answer);
+        assert.match(res.message, /^Dress the sheet first: pick Clothes.*At 16 or 17/);
+    }
+});
+
+test('the hand, agent and routine runs refuse with the same code and message', async () => {
+    const flow = await editor();
+    const { state } = await esm('js/state.js');
+    const { Events } = await esm('js/events.js');
+    const svc = await esm('js/services/llmService.js');
+    const { submitFlowGeneration } = await esm('js/services/flowService.js');
+    const project = { id: 'p1', name: 'P', folderPath: 'C:/p', itemGroups: [] };
+    state.s_installedModelIds = ['klein-9b', 'qwen-image-2-1'];
+    state.currentProject = project;
+
+    const realFetch = global.fetch;
+    const realWarn = console.warn;
+    const reports = new Map();
+    global.fetch = async (url, init) => {
+        const body = init?.body ? JSON.parse(init.body) : {};
+        if (url === '/llm/describe') {
+            return { ok: true, json: async () => ({ ok: true, model: 'vl', text: /DRESSED/.test(body.question) ? 'NOT DRESSED' : '40' }) };
+        }
+        const job = /^\/connector\/jobs\/([^/]+)\/result$/.exec(url);
+        if (job) reports.get(job[1])?.(body);
+        return { ok: true, json: async () => ({ ok: true }) };
+    };
+    svc.setDescribeBackendPreference('endpoint');
+    console.warn = () => {};
+    const warnings = [];
+    const off = Events.on('ui:warning', ({ message }) => warnings.push(message));
+    try {
+        // Hand: the Flow pane submits the run itself.
+        const hand = await new Promise((resolve) => {
+            submitFlowGeneration(flow, {
+                change: 'condition', words: 'muddy', mediaItems: [SHEET],
+                injectionParams: { Input_Age: 10, Input_Remove_Head: true },
+            }, { onError: err => resolve({ code: err.code, message: err.userMessage }), onComplete: () => resolve('ran') });
+        });
+        assert.strictEqual(hand.code, CODE);
+        assert.match(hand.message, DRESS_FIRST);
+        assert.deepStrictEqual(warnings, [hand.message], 'the hand run is told on a toast');
+
+        // Routine: a Flow step on a card.
+        const { routineDeps } = await esm('js/shell/routineDispatch.js');
+        const step = { flowId: flow.id, fields: { change: 'condition', words: 'muddy', Input_Age: 10 } };
+        const queued = await routineDeps.submit(step, { url: SHEET.url }, {}, project);
+        assert.strictEqual(queued.ok, true, queued.message);
+        const routine = await queued.done;
+        assert.deepStrictEqual({ code: routine.code, message: routine.message }, hand);
+
+        // Agent: a generation.submit job off the connector stream.
+        let stream = null;
+        global.EventSource = class { constructor() { stream = this; } addEventListener(t, fn) { this[t] = fn; } };
+        global.document = global.document || { addEventListener() {}, removeEventListener() {} };
+        global.window = global.window || { addEventListener() {}, removeEventListener() {} };
+        const { initAgentDispatch } = await esm('js/shell/agentDispatch.js');
+        initAgentDispatch();
+        const agent = await new Promise((resolve) => {
+            reports.set('j1', resolve);
+            stream.job({ data: JSON.stringify({ jobId: 'j1', capability: 'generation.submit',
+                input: { flowId: flow.id, fields: step.fields, media: [{ role: 'image1', url: SHEET.url }] } }) });
+        });
+        assert.strictEqual(agent.ok, false);
+        assert.deepStrictEqual(agent.error, hand);
+    } finally {
+        off();
+        svc.setDescribeBackendPreference(null);
+        global.fetch = realFetch;
+        console.warn = realWarn;
+    }
+});
+
+test('the result card is named after the card it edits and the change', async () => {
+    const { characterSheetEditorCardName: name } = await builder();
+    assert.strictEqual(name({ change: 'condition', words: ' beaten up. ', Input_Age: 0 }, 'John'), 'John - beaten up');
+    assert.strictEqual(name({ change: 'none', words: 'ignored', Input_Age: 30 }, 'John'), 'John - age 30');
+    assert.strictEqual(name({ change: 'clothes', words: 'a red coat', Input_Age: 10 }, 'John'), 'John - a red coat, age 10');
+    assert.strictEqual(name({ change: 'hair', words: 'a bob', Input_Age: 0 }, null), 'Character sheet - a bob', 'a file from outside the project');
+
+    const { sourceCardName } = await esm('js/services/flowService.js');
+    const project = { itemGroups: [
+        { name: 'i2i_004', customName: null, history: [{ filePath: 'C:\\p\\Media\\other.png' }] },
+        { name: 'flow_002', customName: 'John', history: [{ filePath: 'C:\\p\\Media\\old.png' }, { filePath: 'C:\\p\\Media\\sheet.png' }] },
+    ] };
+    assert.strictEqual(sourceCardName(SHEET, project), 'John', 'any version of the card, by its file');
+    assert.strictEqual(sourceCardName({ url: 'C:/p/Media/other.png' }, project), 'i2i_004', 'no custom name: the derived one');
+    assert.strictEqual(sourceCardName({ url: 'D:/elsewhere/x.png' }, project), null);
+    assert.strictEqual(sourceCardName({ url: 'D:/elsewhere/x.png', name: 'Picked' }, project), 'Picked');
+
+    // Wired through: the first leg's queue opts carry it, and the gallery card takes it as its customName.
+    const fs = require('node:fs');
+    const flowSrc = fs.readFileSync(path.join(ROOT, 'js/services/flowService.js'), 'utf8');
+    assert.match(flowSrc, /if \(builder\?\.cardName && !later\) \{\s*opts\.cardName = builder\.cardName\(/);
+    const genSrc = fs.readFileSync(path.join(ROOT, 'js/services/generationService.js'), 'utf8');
+    assert.match(genSrc, /\.\.\.\(opts\.cardName \? \{ customName: opts\.cardName \} : \{\}\)/);
 });

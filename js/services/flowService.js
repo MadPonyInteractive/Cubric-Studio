@@ -26,16 +26,31 @@ import { state } from '../state.js';
 import { Events } from '../events.js';
 import { clientLogger } from './clientLogger.js';
 import { describeAsks, describeFlowRun } from './flowEnhance.js';
-import { characterSheetEditor, characterSheetEditorRefusal } from '../data/flowPrompts/characterSheetEditor.js';
+import { extractAbsPath } from '../utils/mediaActions.js';
+import { characterSheetEditor, characterSheetEditorRefusal, characterSheetEditorCardName } from '../data/flowPrompts/characterSheetEditor.js';
 
 /**
  * Flows whose prompt is BUILT in code (FlowDef `promptBuilder`, MPI-1041), by name so the FlowDef
  * stays data. `build(part, values)` gives one leg's `{ positive, injectionParams }`; `refuse(values)`
- * says why a run cannot start.
+ * says why a run cannot start; `cardName(values, sourceName)` names the card the run lands.
  */
 const PROMPT_BUILDERS = {
-    characterSheetEditor: { build: characterSheetEditor, refuse: characterSheetEditorRefusal },
+    characterSheetEditor: { build: characterSheetEditor, refuse: characterSheetEditorRefusal, cardName: characterSheetEditorCardName },
 };
+
+/**
+ * The name of the card a run's picture came from: the card in the project holding that file, or
+ * the name the picker gave it. Null for a file from outside the project (an agent's path).
+ * @param {?Object} media - the run's first media item
+ * @param {?Object} project
+ * @returns {?string}
+ */
+export function sourceCardName(media, project) {
+    const base = p => String(extractAbsPath(p) || p || '').split(/[\\/]/).pop();
+    const file = base(media?.filePath || media?.url);
+    const group = file && (project?.itemGroups || []).find(g => (g.history || []).some(it => base(it?.filePath) === file));
+    return group ? (group.customName || group.name || null) : (media?.name || null);
+}
 
 /**
  * Why this run of a built-prompt Flow cannot start, or null. The agent asks it before
@@ -437,6 +452,13 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
         placeholderGroup,
     };
     if (state.engineOverride === 'local') opts.forceLocal = true;
+    // A built-prompt Flow names the card it lands after the card it edits and the change ("John -
+    // beaten up", MPI-1041), so the result and the sheet it came from read apart. The run's first
+    // call only: each later leg is that card's next version. An agent's own `cardName` renames it after.
+    if (builder?.cardName && !later) {
+        opts.cardName = builder.cardName(flowRunValues(flow, run),
+            sourceCardName(snapshot.mediaItems?.[0], runOriginProject || state.currentProject));
+    }
     // A routine step (MPI-970) lands where the routine says: a later step is the next
     // version of its result card (no gallery card at all), step 1 a gallery card that also
     // joins the run's result stack.
@@ -486,12 +508,16 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // runs are described alike. Like the cloud edit there is no queue id until it is done.
     // First call only. The answers go on to each later leg through `described` (MPI-1041); a
     // multi-pass Flow that describes would need them carried into `runInputs` for each pass.
-    if (!_leg.tempId && describeAsks(flow, config.injectionParams, mediaItems).length) {
-        describeFlowRun(flow, config, runOriginProject || state.currentProject).then((d) => {
+    // The rules read every field the run has (`change`, `words` are not graph params), and a
+    // CHECK's refusal carries its own code (a child-safety one: CHILD_SAFETY), so the hand, agent
+    // and routine runs report the same code and words.
+    const describeRun = { mediaItems, injectionParams: { ...flowRunValues(flow, run), ...config.injectionParams } };
+    if (!_leg.tempId && describeAsks(flow, describeRun.injectionParams, mediaItems).length) {
+        describeFlowRun(flow, describeRun, runOriginProject || state.currentProject).then((d) => {
             if (!d.ok) {
                 if (d.cancelled) return runCallbacks.onCancel?.();
                 Events.emit('ui:warning', { message: d.message });
-                return runCallbacks.onError?.(Object.assign(new Error(d.message), { code: 'DESCRIBE_FAILED', userMessage: d.message }));
+                return runCallbacks.onError?.(Object.assign(new Error(d.message), { code: d.code || 'DESCRIBE_FAILED', userMessage: d.message }));
             }
             Object.assign(config.injectionParams, d.injectionParams);
             Object.assign(described, d.injectionParams);

@@ -2,8 +2,9 @@
 
 Cubric Studio is an 18+ app: adult nudity and adult sexual content are allowed and never
 checked. The gate refuses only a prompt that puts a person UNDER 18 in a sexual, suggestive or
-unclothed picture. No picture is ever looked at and no recipe carries a rule: a word-and-age
-script reads the TEXT, at no token cost (Fabio, 2026-10-10).
+unclothed picture. No recipe carries a rule, and no picture is looked at but the Character Sheet
+Editor's dressed checks (below): a word-and-age script reads the TEXT, at no token cost (Fabio,
+2026-10-10).
 
 ## The rule
 
@@ -76,6 +77,15 @@ through. `childSafetyGate(texts, ctx, judge)` runs both tiers and never rejects.
 - The judge runs on the backend the enhance already runs on. Inside a running job
   (`settleInGraphEnhance`) that is a server backend, so it never queues a ComfyUI job behind
   the job waiting for it.
+- **The Character Sheet Editor's dressed checks** (MPI-1041): its age slider can make an
+  undressed adult sheet a minor, so two describe CHECKS in its FlowDef (`flowEnhance.js` §
+  describe) apply the rule above to the sheet, on the Remote describer, never when Clothes is the
+  change (that leg dresses it first). Age 1-15: refused unless the whole answer is DRESSED
+  (swimwear or underwear is not). Age 16-17: asked "nude or topless, in underwear or lingerie, or
+  in revealing swimwear?", refused unless the whole answer is NO, so an ordinary bikini passes.
+  Both refuse "Dress the sheet first: pick Clothes" with `CHILD_SAFETY`. Neither guesses how old
+  a sheet LOOKS: no picture's age is judged anywhere (Fabio, 2026-10-10). The leg prompts still
+  meet the gate (`runPrompt`).
 
 ## The judge, measured (20 borderline prompts, `.agents/mpi-kanban/tasks/MPI-1056/research/judge-bench.mjs`)
 
@@ -102,6 +112,9 @@ beside a child whose clothes the prompt never states ("a mother in a bikini and 
 - A Flow's cloud edit leg (`runCloudEdit`) sends pass 1 to the provider before the gate sees
   pass 2's enqueue; the provider's own moderation is all that stands there.
 - An Australian "thongs" (sandals) beside a child is read as underwear.
+- The Character Sheet Editor dresses an undressed sheet in the Clothes leg and does not look
+  again: words that leave a child half-dressed without naming it ("just jeans") pass. A sheet
+  that already shows a child, edited with "a bikini" and no age, passes like any photo above.
 
 ## Changing it
 

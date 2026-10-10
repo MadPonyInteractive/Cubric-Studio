@@ -20,4 +20,4 @@
 - [x] A3 Qwen-Image 2.1 edit graph flow_character_sheet_edit_qwen - b9 body cases 3 of 3, exact size (research/graph-qwen.md)
 - [x] A4 template + describer pins - teen15b, older70, Accessories (free edit) pinned 2 of 2; dressed ask 24/24; clothes caption clean; age ask direction-only (research/templates.md)
 - [x] Phase B: the Flow (ops in 4 registries, prompt builder, FlowDef, safety test) - npm test 2961/2963, character-sheet-editor.test.cjs 12/12
-- [ ] Phase C: describe refusals (dressed / swimwear on a minor-looking sheet) + card name
+- [x] Phase C: dressed checks (1-15 dressed, 16-17 nothing revealing) + card name; perceived-age check removed (CP Gate 1) - npm test 2973/2975, 0 fail; character-sheet-editor.test.cjs 17/17 (hand, agent, routine paths one code + message)

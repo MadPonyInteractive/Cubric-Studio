@@ -6,6 +6,10 @@
 NEXT: `mpi-continue` -> Parallel Batch A** (route it to `mpi-execute-parallel`). Project mode: scalable-foundation.
 Research behind every line below, with file:line: `research/flow-plan-research.md`.
 
+**2026-10-10 (session 89967af0) - Phase C DONE (`npm test` 2973/2975, 0 fail). NEXT: Phase D** (UI + docs + the
+LoRA cogwheel Fabio asked for via MPI-1036's message, see Phase D). Phase C notes are under its `[x]` line. Phase E
+must bench the two dressed checks (validation.md Phase C entry). Perceived age: none, by decision (CP Gate 1). Claim `state/files/89967af0-mpi1041-phaseC.json`.
+
 **2026-10-10 (session 08593195) - Batch A + Phase B DONE (`npm test` 2961/2963, 0 fail). NEXT: Phase C** (UNBLOCKED: MPI-1056 committed `bddf6391c` and released its claim). Phase B notes are under its `[x]` line. Was: Phase B (sequential: FLOWS list + the 4 op registries + `js/data/flowPrompts/characterSheetEditor.js`; templates = `research/templates.md` + the bench scripts; graph contracts = `research/graph-klein.md` / `graph-qwen.md`). Batch A ran as 4 Sonnet workers. Claim
 `state/files/08593195-mpi1041-batchA.json` + `files.json` hold every owned path (A1 also owns `js/data/routineModel.js`,
 A3 `bench-tools/build_edit_graph_qwen.py`). Briefings: `scratchpad/brief_{A1,graph,A4}.md`. Workers convert with
@@ -160,7 +164,16 @@ counts the optional slot, "Required models" (793) lists it, `_installProgress`/`
 
 ## Phase C: refusals + card name (unblocked 2026-10-10: MPI-1056 committed and closed)
 
-- [ ] Describe refusal entries in `flowEnhance.js` (`{ ask, when, refuseUnless, code, message }`, keyed apart from
+- [x] (DONE 2026-10-10, session 89967af0: a describe entry with NO `to` is a CHECK `{ media, when, ask, refuseUnless, code,
+  message }`, asked before every target, refusing unless the WHOLE answer (letters only, `<think>` stripped) equals
+  `refuseUnless`; `_describeRuleHolds` = `{ media }` + `ruleHolds`; flowService feeds describe `flowRunValues(flow, run)` + injectionParams (rules read `change` / `words`, which
+  are not graph params) and reports `d.code || 'DESCRIBE_FAILED'`. FlowDef: two checks, both skipped when Clothes is the change, code
+  `CHILD_SAFETY`: `Input_Age` 1-15 DRESSED (A4 wording + "Swimwear or underwear is NOT DRESSED."); 16-17 "nude or
+  topless, in underwear or lingerie, or in revealing swimwear?" refuse unless NO (the gate's 16-17 rule, CP Gate 1); `sheetAge` atLeast 1;
+  `sheetClothes` 1-12 and not Clothes. NO perceived-age check: see Plan Drift (Fabio: CP Gate 1's job). Card name: builder `cardName(values, sourceName)` -> `opts.cardName` (first call only) -> gallery card
+  `customName`; `flowService.sourceCardName` finds the card by its file's basename in any history version. Docs:
+  `docs/child-safety.md` § Where it runs + one known gap. Tests: `character-sheet-editor.test.cjs` 17/17 incl. a real
+  hand / routine / agent run each) Describe refusal entries in `flowEnhance.js` (`{ ask, when, refuseUnless, code, message }`, keyed apart from
   `to`) + `flowService` reporting `d.code`: under 18 and not DRESSED -> "Dress the sheet first: pick Clothes"; Clothes
   / Accessories words with a swimwear / underwear / nude term (a predicate EXPORTED from `childSafety.js`, never a
   copied list) + "looks under 18" -> refuse. `generationService.js`: `opts.cardName` -> `customName`, the Flow names
@@ -174,18 +187,35 @@ counts the optional slot, "Required models" (793) lists it, `_installProgress`/`
   shows the optional Qwen licence. Recipe `docs/playbooks/add-flow/existing-flows/character-sheet-editor.md`;
   `docs/flows.md` / add-flow playbook lines for legs, `operationBy`, optional slots; MPI-1036's `docs/agent/flows.md`
   paragraph (which sheet Flow to use) + `UNRELEASED.md` entry by `mpi-message` or after its release; preview art via
-  `/mpi-flow-graphics` (Fabio picks). **Verify:** `npm run lint` + `lint:components` clean, `flow-licence-surface` +
-  `flow-field-constraints` green, docs under 200 lines.
+  `/mpi-flow-graphics` (Fabio picks). **LoRA cogwheel** (Fabio via MPI-1036's message `2ea083d1-mpi1036-to-mpi1041`,
+  2026-10-10: "most Flows" get the user LoRA rack): `loras: true` on both `requiredModels` slots; an
+  `Input_Lora_Phase1_1..6` `MpiLoraModel` chain between the UNETLoader and its first model consumer in
+  `raw/flow_character_sheet_edit.json` and Phase2 in `raw/flow_character_sheet_edit_qwen.json` (a two-slot Flow takes
+  Phase2 for its second slot, `docs/playbooks/add-flow/ui/lora-rack.md`); convert single-file (never
+  `sync-raw-workflows.mjs` - it commits); a `RACKS` row per graph in `tests/flow-lora-rack.test.cjs`. Then resolve the
+  message. **Verify:** `npm run lint` + `lint:components` clean, `flow-licence-surface` +
+  `flow-field-constraints` + `flow-lora-rack` green, docs under 200 lines.
 
 ## Phase E: end to end (user-ux)
 
 - [ ] In `npm run app:isolated` (never :3000): every change kind on the photo + fisher sheets; age 10 / 15 / 30 / 70;
   Body shape heavyset; without Qwen installed (Klein changes run, the two Qwen paths show Install); the nude sheet +
-  age 10 refuses; Clothes "a swimsuit" on the age-10 result refuses; an agent run and an MCP run of one change. Then
+  age 10 refuses; Clothes "a swimsuit" on the age-10 result refuses; an agent run and an MCP run of one change; the
+  result card reads "<input card> - <change>". Bench the two Phase C checks on the default describer first (DRESSED
+  with its swimwear/underwear line: clothed sheets DRESSED, nude + a swimsuit sheet NOT DRESSED; the 16-17 ask: clothed
+  and ordinary-bikini sheets NO, nude / lingerie sheets YES). Then
   Fabio's eye test on his own sheets. **Verify:** each case's card checked by eye and logged in `validation.md`;
   Fabio's "1".
 
 ## Plan Drift
+
+- 2026-10-10 (session 89967af0, Phase C): the planned "looks under 18" describer check was built, then REMOVED on
+  Fabio's word: perception, not age, is the issue (a 24-year-old who looks 16 would be blocked; nobody can tell 15 from
+  17). CP Gate 1 (2026-10-10): no picture's age is judged anywhere, by Fabio's call - leave it (it put a scorer to Fabio
+  as his product call). It also split the DRESSED check to the gate's current rule: 1-15 DRESSED, 16-17 nothing nude,
+  underwear or revealing (an ordinary bikini passes). The DRESSED check is skipped when Clothes is the change (the clothes leg dresses the sheet before the age leg);
+  the half-dressed-in-innocent-words hole that leaves is a documented gap in `docs/child-safety.md`. The DRESSED ask
+  gained one sentence (swimwear / underwear = NOT DRESSED): A4 never tried those sheets.
 
 - 2026-10-10 (session 08593195, A2/A3): Klein lock 1 vocabulary "head, hair" -> "head, hair, face" (the photo portrait face was 5% locked). The Qwen graph returns the INPUT size (a trailing `ImageScale`), not the nearest /32. A3 once ran one bench edit outside the lease (a hand-run runner slice); runners now take a slice argument so slices go through the wrapper.
 - 2026-10-10 (session 08593195, A4): Accessories moved to the FREE edit (the head/hair lock blocks glasses; SAM3 "head, hair" on the photo portrait marks the hair only, so a Clothes lock leaves that face unlocked - A2 to confirm in-graph). The gate has no `source` context, so Phase B's "with source `character-sheet-editor`" is moot: test by model id only. The age ask stays only for younger / older direction (+12 on the fisher; the 70 edits read 80-85).

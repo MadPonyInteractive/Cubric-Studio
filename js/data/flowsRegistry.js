@@ -1732,12 +1732,28 @@ export const FLOWS = [
                 // As on Character Sheet: read by the last leg's `when`, not by any graph (MPI-997).
             },
         ],
-        // Asked only when an age is set (the answers write the age leg's younger / older word and
-        // the rebuild's clothes). Not graph titles: the prompt builder reads them.
+        // The answers write the age leg's younger / older word (any age) and the clothes a child's
+        // rebuilt bodies wear (1-12, unless Clothes is the change). Not graph titles: the prompt
+        // builder reads them.
+        //
+        // The CHECKS (no `to`) refuse on what only the picture can say, since the child-safety gate
+        // reads words; they apply its rule (docs/child-safety.md § The rule) to the sheet an age
+        // makes a minor: under 16 fully dressed, no swimwear; 16-17 ordinary swimwear, never nude,
+        // underwear or revealing swimwear. Skipped when Clothes is the change: that leg dresses the
+        // sheet first. How OLD a sheet looks is never guessed here: no picture's age is judged
+        // anywhere (Fabio, 2026-10-10).
         describe: [
-            { to: 'sheetAge', media: 'image1', when: { field: 'Input_Age', isNot: 0 },
+            { media: 'image1', when: [{ field: 'Input_Age', atLeast: 1, atMost: 15 }, { field: 'change', isNot: 'clothes' }],
+                ask: 'Is the person in this picture fully dressed, with clothes covering the body? Swimwear or underwear is NOT DRESSED. Answer DRESSED or NOT DRESSED and nothing else.',
+                refuseUnless: 'DRESSED', code: 'CHILD_SAFETY',
+                message: 'Dress the sheet first: pick Clothes and say what the character wears. Under 16 a character is always fully dressed, and this sheet does not look it. The age can stay set: the clothes go on first.' },
+            { media: 'image1', when: [{ field: 'Input_Age', atLeast: 16, atMost: 17 }, { field: 'change', isNot: 'clothes' }],
+                ask: 'Is the person in this picture nude or topless, in underwear or lingerie, or in revealing swimwear (a monokini, a micro or thong bikini)? Answer YES or NO and nothing else.',
+                refuseUnless: 'NO', code: 'CHILD_SAFETY',
+                message: 'Dress the sheet first: pick Clothes and say what the character wears. At 16 or 17 a character may wear ordinary swimwear, but never nude, in underwear or in revealing swimwear, and this sheet looks it. The age can stay set: the clothes go on first.' },
+            { to: 'sheetAge', media: 'image1', when: { field: 'Input_Age', atLeast: 1 },
                 ask: 'How old does the person in this picture look? Answer with one whole number of years and nothing else.' },
-            { to: 'sheetClothes', media: 'image1', when: { field: 'Input_Age', isNot: 0 },
+            { to: 'sheetClothes', media: 'image1', when: [{ field: 'Input_Age', atLeast: 1, atMost: 12 }, { field: 'change', isNot: 'clothes' }],
                 ask: 'Describe only the clothes the person wears: each garment, pair of shoes and hat that is present, with its color and material. Answer with one sentence that starts with the word Wearing.' },
         ],
     },

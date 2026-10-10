@@ -979,7 +979,8 @@ async function _deleteSavedItems(items) {
  *
  * @param {GenerationConfig} config
  * @param {GenerationCallbacks} callbacks
- * @param {{ existingGroup?: Object, scope?: string, groupId?: string, tempId?: string, placeholderGroup?: Object, deferCommit?: boolean }} [opts]
+ * @param {{ existingGroup?: Object, scope?: string, groupId?: string, tempId?: string, placeholderGroup?: Object, deferCommit?: boolean, cardName?: string }} [opts]
+ *        `cardName`: the gallery card's `customName` (a Flow naming its result, MPI-1041)
  * @returns {{ cancel: function }}
  */
 export function startGeneration(config, callbacks = {}, opts = {}) {
@@ -1650,6 +1651,8 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                     width:  dims?.w || width,
                     height: dims?.h || height,
                     favourite: _placeholders[i]?.favourite || false,
+                    // A Flow that names its result (flowService, MPI-1041) names it as a user would.
+                    ...(opts.cardName ? { customName: opts.cardName } : {}),
                 });
                 return appendToHistory(g, it);
             });

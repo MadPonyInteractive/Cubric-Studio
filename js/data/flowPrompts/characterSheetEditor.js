@@ -112,6 +112,20 @@ export function characterSheetEditorRefusal(values = {}) {
     return null;
 }
 
+/**
+ * The result card's name: the card it edits, then the change in the user's own words and the age
+ * ("John - beaten up", "John - age 30"), so the result and the sheet it came from read apart.
+ * @param {Object} values - the run's field values
+ * @param {?string} sourceName - the edited card's name; null for a file from outside the project
+ * @returns {string}
+ */
+export function characterSheetEditorCardName(values = {}, sourceName = null) {
+    const age = _age(values.Input_Age);
+    const change = [(values.change || 'none') !== 'none' ? _words(values.words) : '', age > 0 ? `age ${age}` : '']
+        .filter(Boolean).join(', ');
+    return `${String(sourceName || '').trim() || 'Character sheet'} - ${change}`;
+}
+
 /** One part's prompt, or '' when the run does not take it. */
 function _part(part, values) {
     const age = _age(values.Input_Age);

@@ -455,3 +455,18 @@ portrait swapped for the given one (node 77 -> a LoadImage), so only the body pa
 - **Verdict:** Body shape stays on Qwen-Image 2.1 for v1 (3 of 3, batch 9) and a photoreal child's body on the Qwen
   rebuild (batch 17). Klein stepwise is the commercial-safe road for both later: heavyset and a stylised child pass
   now; muscular / skinny need portrait wording that names only what the close-up shows (open).
+
+## 2026-10-10 - Phase C: picture checks + card name (session 89967af0)
+
+- `node --test tests/character-sheet-editor.test.cjs` 17/17: which checks each run asks (checks first; Clothes skips the DRESSED
+  check; hidden words ask nothing), NOT DRESSED / "I cannot tell" / YES refuse with `CHILD_SAFETY` before any other
+  question, "Dressed." / "No." pass; a REAL `submitFlowGeneration` (hand), `routineDeps.submit` (routine) and a
+  `generation.submit` job off a fake connector stream (agent) refuse with the same code + message (mutation check:
+  dropping `d.code` in flowService fails it); card name + `sourceCardName`.
+- `tests/flow-describe.test.cjs` source pin updated. The "could be under 18" check (and its `exposingWords` helper) was
+  then REMOVED on Fabio's word (CP Gate 1's job); suites re-run 61/61.
+- `npm test` 2973/2975 pass, 0 fail (2 skipped); eslint clean on the six source files.
+- Split on CP Gate 1's word to the gate's current rule: 1-15 DRESSED, 16-17 "nude or topless, in underwear or lingerie,
+  or in revealing swimwear?" refuse unless NO. Suites 87/87.
+- NOT benched yet (Phase E): the DRESSED ask gained "Swimwear or underwear is NOT DRESSED." (A4 pinned it without);
+  the 16-17 ask is new.
