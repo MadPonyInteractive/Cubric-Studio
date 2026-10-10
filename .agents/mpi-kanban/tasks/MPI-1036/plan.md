@@ -593,6 +593,10 @@ download, E2 in sync (lag 0.12 = D4), side-by-side sent (logs/mpi1036/VE15_inapp
 the picture's halter neckline onto the dress; E2 masked does not. Fabio: "Looks good"; 4 Cosmo routing cases 12/12 (c2b58901e); UNRELEASED.md entry done. NEXT: Fabio's own UX try (he
 reports back; he is trying a RunPod Pod too - first Video Edit run on a Pod, dev image v0.26.0-dev), Phase 4 graphics.
 MpiNodes pin DONE: node_lock d721182 (MPI-623) descends from 88816c8.
+Fabio 2026-10-10 after the Pod runs (PRO 6000: run 1 4 min, run 2 2 min): output "looks like crap once I zoom in" - an
+H3 quality problem, not the Flow. He will research NEW H3 upscale methods (users get better results than ours); the
+Flow JSONs may change later for them. Meanwhile he tests an LTX upscale on the result and the other operations on an
+RTX 5090 Pod. Wait for his findings; do not start upscale research unasked.
 
 **NEXT (after Video edit 14), in order:**
 1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.
