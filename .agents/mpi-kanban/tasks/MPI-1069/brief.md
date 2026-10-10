@@ -34,7 +34,13 @@ vflip/transpose filters, constant memory, audio copied). Then the engine lock an
 dimming can drop for Resize. Keep: the live preview the tool runs on mount, the history entry
 shape, stack mode, the pad colour, `divisible_by`.
 
-Not decided: whether `ImageResizeKJv2`'s lanczos / keep_proportion modes need exact parity, and
-whether the ComfyUI path stays for anything.
+**Decided (Fabio, 2026-10-10): no ComfyUI path at all.** "We can do everything this stupid resize
+does with sharp, with our NPM packages. If we do that, we no longer have a tool that is blocked on
+generations." So: sharp for images, the shipped `ffmpeg-static` for video, the engine lock and the
+no-engine dimming removed for Resize, and the `resize` / `resizeVideo` graphs retired (check every
+caller first: stacks, agents, routines, MCP, the operation registry). Do NOT delete a dep entry the
+graphs pull in without reading `docs/playbooks/add-model/README.md` § "Removing or re-tiering".
+
+Fabio wants a FRESH session for this card (not the MPI-1062 one).
 
 ## Noticed
