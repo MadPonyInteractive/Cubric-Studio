@@ -23,3 +23,5 @@
 - [x] Phase C: dressed checks (1-15 dressed, 16-17 nothing revealing) + card name; perceived-age check removed (CP Gate 1) - npm test 2973/2975, 0 fail; character-sheet-editor.test.cjs 17/17 (hand, agent, routine paths one code + message)
 - [x] Phase D: LoRA cogwheel (both slots, both graphs, RACKS), optional-model Install row + Library fixes, licences, docs - npm test 2983/2985, 0 fail; lint + lint:components clean; preview art left for Fabio's pick
 - [x] Phase E bench: dressed checks failed 6 of 12 on the whole sheet; fixed to per-view, per-half checks, 9 of 10 right, every swimwear / lingerie / nude sheet refused (3da8e88af)
+- [x] Phase E in-app cases: 25 cases on my own isolated instance incl. refusals, MCP, Cosmo, card names (validation.md); fix: younger-adult age wording kept grey hair off only under 40 - npm test 3040/3042, 0 fail
+- [ ] Fabio's eye test in the app (incl. the slider readout Keep / Newborn)

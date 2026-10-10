@@ -2,6 +2,17 @@
 
 ## Current State
 
+**2026-10-10 (session a415c2d7) - PHASE E IN-APP CASES DONE (validation.md § Phase E in-app cases), uncommitted.** All 25
+cases run on my own isolated instance: refusals right (nude + age 10 twice, swimsuit + age 10), MCP + Cosmo PASS, card
+names right, every change kind + ages 70/30/15/10/1/0 checked by eye. FIX landed: `buildAgePrompt` gave every younger
+adult target "smooth skin and no grey hair" (benched at 30 only), so the ~80-reading fisher at 70 came back ~35 and
+beardless; now that clause is below `YOUNG_ADULT_MAX` 40, else "with a younger face" (test added; `npm test` 3040/3042,
+0 fail). OPEN for Fabio (eye test + Your call): an age NEAR the sheet's own overshoots both ways (Ava 50 -> ~70, white
+hair; fisher 70 front shaved); Accessories missed one panel on both sheets; fisher hair front kept the beanie; photo
+heavyset back weak. Three instance deaths were MPI-1057 peers killing every `launch-instance` (message sent).
+FABIO'S EYE TEST: his red keyhole dress FAILED (front short sleeves, close-up halter) -> **NEXT: Phase F** (below):
+F1 fix the failures, then F2 an optional Reference picture. Close-out only after F + his "1".
+
 **2026-10-10 (session 2e68e381) - AGE SLIDER -1/0/1 DONE (uncommitted; `npm test` 3047/3049, 0 fail).** Slider min/default -1
 with `valueLabels` (`declaredFields.js`: readout "Keep" / "Newborn", also in `agentFieldSpecs`); `Input_Age atLeast 1` ->
 `atLeast 0` (legs, four checks, `sheetAge`; `sheetClothes` stays 1-12: a newborn takes no caption); builder `_age` reads
@@ -255,6 +266,22 @@ counts the optional slot, "Required models" (793) lists it, `_installProgress`/`
   and ordinary-bikini sheets NO, nude / lingerie sheets YES). Then
   Fabio's eye test on his own sheets. **Verify:** each case's card checked by eye and logged in `validation.md`;
   Fabio's "1".
+
+## Phase F: fix the Phase E failures, then an optional reference picture (Fabio, 2026-10-10)
+
+Fabio's eye test on his own sheet: Clothes "Beautiful red dress with a keyhole and long skirt" -> front short sleeves +
+V keyhole, close-up a HALTER with bare shoulders: the panels disagree (FAIL). His call: "fix what we just saw that
+failed first", then "set the reference image input as optional".
+
+- [ ] F1 Fix the failures, each benched under the lease before wiring (validation.md § Phase E in-app cases):
+  panel disagreement on Clothes (his keyhole dress) and Accessories (scarf missing on one panel, both sheets);
+  fisher Hairstyle front kept the beanie; an age NEAR the sheet's own overshoots both ways (Ava 50 -> ~70; fisher 70
+  front shaved) - try dropping "older / younger" near the read; photo heavyset back weak (Qwen, lowest priority).
+- [ ] F2 Optional **Reference** picture for Clothes / Accessories / Hairstyle: a second `inputSchema` media slot
+  (optional), `Input_Image_2` in `raw/flow_character_sheet_edit.json` (the app's `klein_9b_t2i.json` already has
+  `Input_Image_2/3` - copy its wiring), the builder words "from the reference picture" when one is given; words alone
+  keep working. BENCH FIRST (~8 edits, photo + fisher): does a front-only outfit photo land on all three panels, back
+  view included? Then wire + tests + the agent/MCP field docs.
 
 ## Plan Drift
 

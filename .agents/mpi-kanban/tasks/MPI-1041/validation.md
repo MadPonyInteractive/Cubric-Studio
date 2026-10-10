@@ -541,3 +541,52 @@ edit's right half, TURNED), photo + fisher sheets, seed 42. Out `G:/ComfyUi/Comf
   toddler body words. Photo kept wavy hair (lighter than the original), fisher a clear 1-year-old.
 - Wired: `buildAgePrompt` / `buildRebuildPrompt` 0 and 1 verbatim; the head-removal leg `unless` age 0; slider
   `valueLabels` Keep / Newborn. `npm test` 3047/3049, 0 fail; eslint clean on the changed files.
+
+## 2026-10-10 - Phase E in-app cases (session a415c2d7)
+
+My own `npm run app:isolated` (own `CUBRIC_AGENT_PROFILE` + `APP_DOCUMENTS` in the session scratchpad, never :3000),
+project "MPI-1041 Phase E" with three named cards (Ava = photo sheet, Fisher = fisher sheet, Nude = FK2_klein_PN_s42).
+Every case = `POST /connector/generate` `flowId: character-sheet-editor` with `folderPath`, every batch under
+`gpu_lease.py run`. Runner `scratchpad/cases.py`, contact sheets `scratchpad/pairs/<case>.jpg` (input over every version
+of the result card), checked by eye. Headless front body on (the default) unless said.
+
+| case | card (customName) | versions | verdict |
+|---|---|---|---|
+| Nude + Hairstyle + age 10 | - | - | **REFUSED right**, CHILD_SAFETY "Dress the sheet first: pick Clothes..." (check CLOTHES answered NOTHING) |
+| Nude + Nothing else + age 10 | - | - | **REFUSED right**, same message (describe answer reused) |
+| Clothes "a red leather jacket, black jeans and boots", photo | Ava - a red leather jacket, black jeans and boots | edit, headless | **PASS**: outfit on all three, head + hair untouched |
+| same, fisher | Fisher - a red leather jacket, ... | edit, headless | **PASS**; the headless leg leaves beard bits under the removed head |
+| Accessories "a red scarf and round glasses", photo | Ava - a red scarf and round glasses | edit, headless | **PARTIAL**: glasses right; scarf front + close-up, NOT on the back view |
+| same, fisher | Fisher - a red scarf and round glasses | edit, headless | **PARTIAL**: scarf front + back, NOT in the close-up (glasses there) |
+| Hairstyle "a short black bob", photo | Ava - a short black bob | edit, headless | **PASS**: black bob on all three, face kept |
+| same, fisher | Fisher - a short black bob | edit, headless | **PARTIAL**: back + close-up a mop-top, the FRONT kept the beanie (hidden by the headless leg) |
+| Condition "beaten up, with bruises and a split lip", photo | Ava - beaten up, ... | edit, headless | **PASS**: face front + close-up |
+| same, fisher | Fisher - beaten up, ... | edit, headless | **PASS** on the face; some "bruises" landed as red stains on the suit front |
+| Body shape "heavyset", photo (Qwen) | Ava - heavyset | edit, headless | **MOSTLY**: front + face clearly heavier, back only slightly |
+| same, fisher (Qwen) | Fisher - heavyset | edit, headless | **PASS**: front, back, close-up all heavier |
+| Age 70, photo | Ava - age 70 | edit, headless | **PASS**: white hair + aged face on all three |
+| Age 30, photo | Ava - age 30 | edit, headless | **PASS** |
+| Age 15, photo | Ava - age 15 | edit, headless | **PASS** (reads late teens, adult body: 13+ is edit-only by design) |
+| Age 10, photo | Ava - age 10 | edit, rebuild, headless | **PASS**: child bodies, same outfit + curls, reads ~11 |
+| Age 1, photo | Ava - age 1 | edit, rebuild, headless | **PASS**: toddler on all three, curls + outfit kept |
+| Age 0, photo | Ava - newborn | edit, rebuild (no headless) | **PASS**: swaddled in cream knit on all three, head kept |
+| Age 10, fisher | Fisher - age 10 | edit, rebuild, headless | **PASS**: a boy in the same beanie + suit; headless leaves fragments |
+| Age 70, fisher | Fisher - age 70 | edit, headless | **FAIL -> FIXED**: came back ~35, beardless (see below) |
+| Clothes "a swimsuit" + age 10 on the age-10 result | - | - | **REFUSED right** by the words gate: "this puts a child under 16 in swimwear" |
+| MCP `generate` (`/mcp` initialize + tools/call), fisher, Accessories "a wide-brimmed straw hat" | Fisher - a wide-brimmed straw hat | edit, headless | **PASS**: `running` + jobId, then `wait_generation` -> ok with the file path; card named |
+| Cosmo (`/agent/message`, local Ollama `ornith:9b`, $0): "Run the Character Sheet Editor flow on the card named Fisher ... change = condition, words = soaked to the skin and covered in mud" | Fisher - soaked to the skin and covered in mud | edit, headless | **PASS**: the Condition template verbatim, mud on all three panels, ~100 s |
+
+**Age 70 fix.** The fisher reads ~80, so the builder took the younger branch, whose clause "with a younger face, smooth
+skin and no grey hair" was benched only at 30. Now that clause is for targets under 40 (`YOUNG_ADULT_MAX`); from 40 up
+the younger branch says only "with a younger face". Test `buildAgePrompt(70, 82)`; `node --test` editor 18/18, eslint
+clean. Re-bench: Fisher 70 v2 = close-up keeps the white beard (right, he is ~70), but the FRONT body came back
+clean-shaven (**PARTIAL**); Fisher 45 = **PASS** (younger, beard gone, front and close-up agree).
+**Open: an age near the sheet's own overshoots both ways.** Ava 50 (she looks ~45, older branch, unchanged wording)
+came back ~70 with white hair. Klein follows "older / younger version" harder than the number.
+
+**Three instance deaths that were not the Flow** (exit 127, clean log, the caller seeing a connection reset): each was
+an MPI-1057 session ("Upload models 1" 21:44:12Z, "Upload models 2" 22:16:26Z and 22:24:57Z) stopping its isolated
+instance by killing EVERY `launch-instance` process and its children (their transcripts). Message
+`a415c2d7-mpi1041-to-mpi1057` left. Cases re-run on my own `CUBRIC_AGENT_PROFILE`; Claude Code also crashed once.
+
+Not run in-app: "without Qwen installed" - covered by `tests/desktop/flow-optional-model-row.spec.js` (Phase D).

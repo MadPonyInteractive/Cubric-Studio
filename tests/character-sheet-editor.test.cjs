@@ -62,6 +62,8 @@ test('the age template: child, teen, younger and older adult, by the describer\'
         C + "15-year-old, with a teenager's smooth face, no beard and no wrinkles, the same hairstyle and hair color, "
         + 'wearing the same clothes.' + L1);
     assert.strictEqual(buildAgePrompt(30, 68), C + '30-year-old, with a younger face, smooth skin and no grey hair.' + L1);
+    // Phase E: an old sheet read older than an old target keeps its grey hair and beard.
+    assert.strictEqual(buildAgePrompt(70, 82), C + '70-year-old, with a younger face.' + L1);
     assert.strictEqual(buildAgePrompt(70, 42),
         'Change the character in this character sheet to be an older version of themselves as a 70-year-old.' + L1);
     // No read: a typical adult (35), so 60 is older and 25 younger.

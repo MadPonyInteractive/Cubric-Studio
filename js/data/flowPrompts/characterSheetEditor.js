@@ -24,6 +24,9 @@ const LOCK = { clothes: 1, hair: 2 };
 /** The describer's age read when it gave none: a typical adult sheet. */
 const ADULT = 35;
 
+/** Below this target a younger adult gets smooth skin and no grey hair; from it, only a younger face. */
+const YOUNG_ADULT_MAX = 40;
+
 function _words(text) {
     return String(text ?? '').trim().replace(/[\s.]+$/, '');
 }
@@ -97,7 +100,11 @@ export function buildAgePrompt(age, apparent) {
         return head + ", with a teenager's smooth face, no beard and no wrinkles, the same hairstyle and hair color, "
             + 'wearing the same clothes.' + L1;
     }
-    return older ? head + '.' + L1 : head + ', with a younger face, smooth skin and no grey hair.' + L1;
+    if (older) return head + '.' + L1;
+    // Smooth skin and no grey hair hold for a young adult only (benched at 30): told the same at
+    // 70, the fisher, read ~80, lost his white beard and came back ~35 (MPI-1041 Phase E).
+    return age < YOUNG_ADULT_MAX ? head + ', with a younger face, smooth skin and no grey hair.' + L1
+        : head + ', with a younger face.' + L1;
 }
 
 /**
