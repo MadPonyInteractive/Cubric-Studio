@@ -623,6 +623,8 @@ his local bench, under the GPU lease): improve the room path - prompt revision a
 dancer cut out (BiRefNet, an engineAsset) for Change the background + template 6 only; A/B on his shower picture
 (template 6) and bedroom picture (op 4) at 576p. He is also judging the 1080p result's quality and doing one more
 stretch run (compare height to flowVideoEdit_002, itself made BEFORE the fix).
+Fabio, after the 1080p result: "resolution did help"; he expects 2K/4K to give really good results (try them on a
+big-VRAM Pod - MPI-549 OOMed H3+refs at both on a 32 GB 5090).
 
 **NEXT (after Video edit 14), in order:**
 1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.
