@@ -18,4 +18,4 @@ Docs (`docs/child-safety.md` § Where it runs + § Known gaps) committed separat
 
 Release note: the MPI-1056 bullet now reads "in a picture or clip" (Fabio's yes, 2026-10-10).
 
-Still to close: CI green on `7ecd4e05d`.
+CI: tests.yml run 38076045694 on `7ecd4e05d` completed success. Card closed on that evidence.

@@ -5,4 +5,4 @@
 - [x] tests: pure listing + live module (wait, refuse on YES / no still, innocent clip untouched)
 - [x] docs/child-safety.md updated, clip gap replaced by the frame-0 gap
 - [x] release-notes wording: Fabio said yes to "a picture or clip" (2026-10-10); applied
-- [ ] CI green, card closed
+- [x] CI green (run 38076045694), card closed

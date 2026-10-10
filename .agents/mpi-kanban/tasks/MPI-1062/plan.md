@@ -34,8 +34,8 @@ picture check an image gets: the describer looks at the clip's first frame first
 2026-10-10 (session 8ef88b5e "CP Gate 2"): steps 1-4 built, verified, committed and pushed as
 `7ecd4e05d` (tests.yml run 38076045694; the card closes only on its green). Step 5 done (the text
 below, applied once MPI-1041 released its claim at 18:30Z) and step 6 done (the release note
-says "a picture or clip", Fabio's yes, applied after MPI-1064's claim went complete). Left: CI
-green on `7ecd4e05d`, then the close commit.
+says "a picture or clip", Fabio's yes, applied after MPI-1064's claim went complete). CI green on
+`7ecd4e05d` (run 38076045694); card closed. Nothing left.
 
 Drafted doc change for `docs/child-safety.md`:
 - § Where it runs, picture-check bullet: after "(`picturesOf`: every image mediaItem, imported or
@@ -48,7 +48,7 @@ Drafted doc change for `docs/child-safety.md`:
 
 ## Remaining Work
 
-- [ ] CI green on `7ecd4e05d`, close
+(none)
 
 ## Completed
 
