@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1070/",
+    "js/shell/projectUI.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "tests/desktop/no-gpu-pod-project.spec.js",
+    "docs/runpod-troubleshooting.md"
+  ]
+}

@@ -28,6 +28,7 @@ import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDialog.js';
 import { attachDictation } from '../../../services/dictation.js';
 import { thumbSrc } from '../../../utils/displayImage.js';
+import { PAGE_LANDING } from '../../../router.js';
 
 /**
  * MpiPromptBox — Prompt input Block with self-composing operation slots.
@@ -100,6 +101,20 @@ import { thumbSrc } from '../../../utils/displayImage.js';
 // readable before the click, not discovered after it (Fabio, 2026-09-19).
 const COG_INFO = 'Generation parameters';
 const COG_INFO_AGENT = 'In agent mode, when you open this panel, you control the settings and the model, not the agent.';
+
+// MPI-1070: a No GPU Pod cannot generate, so the engine toggle locks "Run locally" ON
+// while one is connected (see `_showEngineToggle`). The override is app-wide and the
+// Model Manager reads the same install cache, so the lock is lifted when the user goes
+// back home: the Model Manager there shows the Pod's installs again. Lifted on the
+// PAGE, not on prompt-box destroy: gallery <-> history remount the box, and a flip each
+// time would race two install re-syncs.
+let _noGpuLock = false;
+Events.onState('currentPage', (page) => {
+    if (page !== PAGE_LANDING || !_noGpuLock) return;
+    _noGpuLock = false;
+    state.engineOverride = null;
+});
+
 export const MpiPromptBox = ComponentFactory.create({
     name: 'MpiPromptBox',
     css: ['js/components/Organisms/MpiPromptBox/MpiPromptBox.css'],
@@ -2843,13 +2858,14 @@ export const MpiPromptBox = ComponentFactory.create({
         // live show/hide follows the `remote:connection` event (same source the
         // landing/status bar already use).
         const engineToggleSlot = qs('#engine-toggle-slot', el);
+        const _toggleInfo = 'Run this generation on your local engine instead of the cloud Pod.';
         const engineToggleBtn = MpiButton.mount(engineToggleSlot, {
             icon: 'cloud',
             iconActive: 'laptop',
             toggleable: true,
             active: state.engineOverride === 'local',
             size: 'sm',
-            info: 'Run this generation on your local engine instead of the cloud Pod.',
+            info: _toggleInfo,
             extraClasses: 'mpi-prompt-box__engine-toggle',
         });
         engineToggleBtn.on('toggle', ({ active }) => {
@@ -2858,15 +2874,38 @@ export const MpiPromptBox = ComponentFactory.create({
             // (via effectiveEngine()) — no component-private mirror.
             state.engineOverride = active ? 'local' : null;
         });
+        // MPI-1070: a No GPU Pod cannot generate — every run already goes local
+        // (getEngine, MPI-539) — so "Run locally" is locked ON while one is connected.
+        // The override then points the pickers, the presence check and the lane at the
+        // engine that actually runs. Lifted on the way home (`_noGpuLock`, module top).
+        let _alive = true;
         const _showEngineToggle = (connected) => {
             engineToggleSlot?.classList.toggle('hide', !connected);
-            if (!connected) {
+            const noGpu = connected && remoteEngineClient.isDownloadOnly();
+            // Write only on a change: every write fires an install re-sync (shell.js).
+            if (noGpu && state.engineOverride !== 'local') state.engineOverride = 'local';
+            else if (!noGpu && _noGpuLock) state.engineOverride = null;
+            if (noGpu || _noGpuLock) engineToggleBtn.el.setActive(noGpu);
+            _noGpuLock = noGpu;
+            engineToggleBtn.el.setDisabled(noGpu);
+            engineToggleBtn.el.setAttribute('data-info', noGpu
+                ? 'This Pod has no GPU, so every generation runs on your local engine.'
+                : _toggleInfo);
+            if (!connected && state.engineOverride !== null) {
                 state.engineOverride = null; // R31: clear override on disconnect
                 engineToggleBtn.el.setActive(false);
             }
         };
+        // isDownloadOnly() reads the last refresh(); a project opened or a Pod
+        // connected since then must not mount against a stale mirror.
+        const _syncEngineToggle = async (connected) => {
+            try { await remoteEngineClient.refresh(); } catch (_) { /* last state stands */ }
+            if (_alive) _showEngineToggle(connected ?? remoteEngineClient.isRemote());
+        };
         _showEngineToggle(remoteEngineClient.isRemote());
-        _unsubs.push(Events.on('remote:connection', ({ connected }) => _showEngineToggle(!!connected)));
+        _syncEngineToggle();
+        _unsubs.push(Events.on('remote:connection', ({ connected }) => _syncEngineToggle(!!connected)));
+        _unsubs.push(() => { _alive = false; });
 
         // ── Initialise ─────────────────────────────────────────────────────────
         _refreshOpStrip();

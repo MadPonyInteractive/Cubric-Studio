@@ -162,9 +162,12 @@ end-to-end 2026-06-15 (CPU Pod → download → switch to RTX 2000 Ada, models p
   the hero connection feed ORs `noGpu` into its `comfy_ready` gate (`js/shell.js`); both connect
   paths (Remote panel + boot reconnect) skip the WS handshake. Without these the hero painted
   `LOCAL · OFFLINE` and Connect hung at "Almost ready" even though the volume was live.
-- **Generation blocked:** `_ensureRemoteReady` throws `code:'pod_no_gpu'` + a `ui:info` toast; and
-  `js/shell/projectUI.js` blocks entering the gallery (project open) in download mode via
-  `isDownloadOnly()` → toast, no navigation.
+- **Generation runs LOCAL, never on the Pod:** `getEngine()` hands back the local engine while
+  `isDownloadOnly()` (MPI-539), so `_ensureRemoteReady`'s `pod_no_gpu` throw is a backstop.
+  Projects open normally (the MPI-88 navigation gate was removed, MPI-1070); the prompt box
+  locks "Run locally" ON while a No GPU Pod is connected, so pickers, the install check and
+  the lane read the local engine. The lock lifts on the way back to the landing page, where
+  the Model Manager reads the Pod's installs again.
 - **Watchdog** unchanged (the CPU Pod inherits the `RUNPOD_API_KEY` env self-stop backstop).
 
 ## Verification snapshot (historical — MPI-64 close, 2026-06-15)
