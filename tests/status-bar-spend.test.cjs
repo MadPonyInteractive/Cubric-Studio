@@ -54,3 +54,20 @@ test('the remote:connection listener feeds the idle label its spend', () => {
     assert.ok(/Remote · \$\$\{_podCost\.toFixed\(2\)\}/.test(label), 'idle label no longer shows the spend');
     assert.ok(/_podCost === null \? 'Remote'/.test(label), 'no cost data must still read plain Remote');
 });
+
+test('a running job carries the spend next to its timer', () => {
+    // Fabio, 2026-10-10: a 29-minute render on a Pod is exactly when the spend matters,
+    // and a running job owns the label, so the spend rides in the time slot.
+    const at = statusBar.indexOf('function _renderTime(');
+    assert.ok(at > 0, '_renderTime() is gone');
+    const render = statusBar.slice(at, statusBar.indexOf('\n}\n', at));
+    assert.ok(/_state === 'active' && _podCost !== null/.test(render), 'the time slot no longer shows the spend');
+
+    // One writer: any other write to the slot would wipe the spend until the next tick.
+    const writes = statusBar.match(/_jobTime\.textContent\s*=/g) || [];
+    assert.strictEqual(writes.length, 1, 'something writes the time slot outside _renderTime()');
+
+    const listener = statusBar.slice(statusBar.indexOf("Events.on('remote:connection'"));
+    assert.ok(/else _renderTime\(\)/.test(listener.slice(0, listener.indexOf('}));'))),
+        'a feed tick during a job no longer repaints the spend');
+});

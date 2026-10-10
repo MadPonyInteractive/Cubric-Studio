@@ -51,6 +51,7 @@ let _activeStartedAt = null;
 let _remoteConnected = false; // MPI-64 4.4: drives the IDLE · Local/Remote scope
 let _remotePhase = null;      // MPI-73: 'connecting' | 'disconnecting' | null — transient connect feedback
 let _podCost = null;          // MPI-1059: Pod spend so far ($), null when the feed carries no cost data
+let _timeSec = null;          // MPI-1059: seconds the time slot shows, null before the clock starts
 let _timerInterval = null;
 let _completionToken = 0;
 // Id of the gen the bar is currently tracking. A terminal (cancelled/idle)
@@ -65,6 +66,17 @@ function _fmtTime(sec) {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return m > 0 ? `${m}:${String(s).padStart(2, '0')}` : `0:${String(s).padStart(2, '0')}`;
+}
+
+// MPI-1059: while a job runs the time slot also carries the live Pod spend
+// (`2:10 · $0.61`), so a long render on a Pod shows what it costs next to how long
+// it has taken. Before the clock starts (queue, a cold model load) it is the spend alone.
+function _renderTime() {
+    if (!_jobTime) return;
+    const parts = [];
+    if (_timeSec !== null) parts.push(_fmtTime(_timeSec));
+    if (_state === 'active' && _podCost !== null) parts.push(`$${_podCost.toFixed(2)}`);
+    _jobTime.textContent = parts.join(' · ');
 }
 
 function _setFill(pct) {
@@ -94,7 +106,8 @@ function _startTimer() {
     _elapsedSec = 0;
     _timerInterval = setInterval(() => {
         _elapsedSec++;
-        if (_jobTime) _jobTime.textContent = _fmtTime(_elapsedSec);
+        _timeSec = _elapsedSec;
+        _renderTime();
     }, 1000);
 }
 
@@ -234,7 +247,8 @@ function _setIdle() {
     _activeStartedAt = null;
 
     _jobPct.textContent  = '';
-    _jobTime.textContent = '';
+    _timeSec = null;
+    _renderTime();  // idle → empty; the spend moves back into the idle label
 }
 
 function _setActive(label) {
@@ -243,7 +257,8 @@ function _setActive(label) {
     _currentLabel = label;
     _renderJobLabel();
     _jobPct.textContent   = '';
-    _jobTime.textContent  = '';  // blank until timer actually starts
+    _timeSec = null;  // no time until the timer actually starts — the spend alone, if any
+    _renderTime();
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -334,7 +349,8 @@ export const StatusBar = {
             _activeStartedAt = Date.now();
             _setFill(0);
             if (_jobPct) _jobPct.textContent = '';
-            if (_jobTime) _jobTime.textContent = '';
+            _timeSec = null;
+            _renderTime();
             if (_state === 'active') {
                 // Already active — just update label
                 _currentLabel = label.toUpperCase();
@@ -451,7 +467,8 @@ export const StatusBar = {
             _fill.classList.remove('shell-info__fill--indeterminate');  // exit pulse before the 100% flash (MPI-147)
             _setFill(100);
             if (_jobPct)  _jobPct.textContent  = '100%';  // keep pct text in sync with the 100% fill (MPI-147)
-            if (_jobTime) _jobTime.textContent = _fmtTime(totalElapsed);
+            _timeSec = totalElapsed;
+            _renderTime();
             _fill.classList.add('shell-info__fill--flash');
 
             // No per-gen toast here. Completion feedback is COALESCED by
@@ -611,6 +628,7 @@ export const StatusBar = {
             _remotePhase = phase || null;
             _podCost = podSessionCost({ uptimeSeconds, pricePerHr });
             if (_state === 'idle') _setIdle();
+            else _renderTime();  // a running job's slot climbs on the same tick
         }));
         // MPI-208 Phase 4: the store is the authority for bar ownership + idleness.
         // Survivor re-latch (a live lane re-occupies a freed bar) + self-heal (no live

@@ -93,7 +93,7 @@ Bottom status bar. Shows ComfyUI engine status, active model, generation progres
 - On `tool:idle`: completes progress bar, fires success toast with "Generation finished"
 - On `state.generationQueueCount`: appends pending Cue depth to the active label, e.g. `GENERATING (2 queued)`. The progress bar remains per active job; it does not aggregate across the full queue.
 - On `ui:success` / `ui:warning` / `ui:info`: fires a standalone toast via `StatusBar.notify(message, variant)` — **this is the correct way to show toasts from anywhere in the app**
-- On `remote:connection`: the idle label's scope — `IDLE · LOCAL`, `IDLE · REMOTE · $0.59` (live Pod spend, MPI-1059, from `podSessionCost` in `js/utils/podCost.js`, the same gate as the hero strip; plain `REMOTE` until the feed tick carries uptime + $/hr), or the transient `CONNECTING` / `DISCONNECTING` / `DISCONNECTED`. Idle only: a running job owns the label.
+- On `remote:connection`: the idle label's scope — `IDLE · LOCAL`, `IDLE · REMOTE · $0.59` (live Pod spend, MPI-1059, from `podSessionCost` in `js/utils/podCost.js`, the same gate as the hero strip; plain `REMOTE` until the feed tick carries uptime + $/hr), or the transient `CONNECTING` / `DISCONNECTING` / `DISCONNECTED`. A running job owns the label, so there the spend rides in the time slot (`2:10 · $0.61`, the spend alone before the clock starts); `_renderTime()` is that slot's only writer.
 - `progress.update(value)`: driven by KSampler step progress (called directly from blocks, not via events)
 - New active runs invalidate pending completion animation from the previous run, so a queued item cannot have its progress bar cleared by the prior item's delayed `complete()` timers.
 
