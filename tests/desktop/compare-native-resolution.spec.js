@@ -71,9 +71,9 @@ test('Compare: the higher-res side keeps its native pixels in either order', asy
         }, { name: `mpi956-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`, folderPath: testInfo.outputPath('projects') });
         projectFolderPath = project.folderPath;
 
-        async function importStill(buf, size, prefix) {
+        async function importStill(buf, size, prefix, height = size) {
             const itemId = crypto.randomUUID();
-            return window.evaluate(async ({ project, itemId, base64, size, prefix }) => {
+            return window.evaluate(async ({ project, itemId, base64, size, height, prefix }) => {
                 const { Events } = await import('/js/events.js');
                 const res = await fetch(
                     `/project-media/${project.id}/upload?folderPath=${encodeURIComponent(project.folderPath)}`,
@@ -82,7 +82,7 @@ test('Compare: the higher-res side keeps its native pixels in either order', asy
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             filename: `${prefix}_001.png`, base64Data: base64, autoSequence: true,
-                            itemId, mediaType: 'image', width: size, height: size,
+                            itemId, mediaType: 'image', width: size, height,
                         }),
                     });
                 const data = await res.json();
@@ -99,10 +99,10 @@ test('Compare: the higher-res side keeps its native pixels in either order', asy
                         url: `/project-file?path=${encodeURIComponent(data.filePath)}`,
                         filename: data.filename, itemId,
                         thumbPath: data.thumbPath || null, thumbPathLg: data.thumbPathLg || null, proxyPath: null,
-                        pixelDimensions: { w: size, h: size }, mediaType: 'image',
+                        pixelDimensions: { w: size, h: height }, mediaType: 'image',
                     });
                 });
-            }, { project, itemId, base64: buf.toString('base64'), size, prefix });
+            }, { project, itemId, base64: buf.toString('base64'), size, height, prefix });
         }
 
         const small = await importStill(await smallPng(), SMALL, 'e2e-small');
@@ -142,6 +142,7 @@ test('Compare: the higher-res side keeps its native pixels in either order', asy
                 return {
                     base: { w: base.width, h: base.height, row: row(base) },
                     cmp: { w: cmp.width, h: cmp.height, row: row(cmp) },
+                    css: { w: parseFloat(cmp.style.width), h: parseFloat(cmp.style.height) },
                 };
             }, { tile: TILE });
             await window.keyboard.press('Escape');
@@ -161,6 +162,17 @@ test('Compare: the higher-res side keeps its native pixels in either order', asy
         expect(b.base.w).toBe(LARGE);
         expect(b.base.row).toEqual([0, 255]);
         expect(b.cmp.w).toBe(SMALL);
+
+        // MPI-1036: a result of a different SHAPE is a cover crop of its source, so it is
+        // CONTAIN-fitted back over it. Cover drew this Video Edit pair 1.6% too big.
+        const solid = (w, h) => sharp({ create: { width: w, height: h, channels: 3, background: { r: 60, g: 160, b: 90 } } }).png().toBuffer();
+        const src = await importStill(await solid(576, 1024), 576, 'e2e-src', 1024);
+        const res = await importStill(await solid(768, 1344), 768, 'e2e-res', 1344);
+        await window.waitForSelector(cardSel(src), { timeout: 15000 });
+        await window.waitForSelector(cardSel(res), { timeout: 15000 });
+        const c = await compare(src, res);
+        expect(c.css.w, 'width lines up with the source').toBeCloseTo(576, 1);
+        expect(c.css.h, '1344 * 0.75, not the zoomed 1024').toBeCloseTo(1008, 1);
     } finally {
         if (app) await closeApp(app);
         if (projectFolderPath) await fs.remove(projectFolderPath).catch(() => {});

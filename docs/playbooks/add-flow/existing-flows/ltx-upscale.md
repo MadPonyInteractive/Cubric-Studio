@@ -54,7 +54,7 @@ the "before" — one line, no flow code, and the same surface the History worksp
 selected entries. Contract: [ui/result-pane.md](../ui/result-pane.md).
 
 The 2x output and its 1x source are **different resolutions on purpose**, and that is handled:
-`MpiCanvas._drawComparisonLayer` cover-fits the after into the before's frame, so the reveal bar
+`MpiCanvas._drawComparisonLayer` contain-fits the after into the before's frame, so the reveal bar
 crosses one picture rather than two mismatched ones.
 
 ## No middle step, unlike extend and foley

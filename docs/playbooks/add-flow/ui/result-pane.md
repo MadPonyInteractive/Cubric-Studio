@@ -55,8 +55,10 @@ one of the two consumers** — that is the whole reason it was lifted out.
 
 **Each side keeps its OWN pixels, whichever order they were picked in (MPI-956).** The before
 side is MpiCanvas's base canvas; the after side is its own `canvas[data-role="compare"]` at the
-after media's native size, cover-fitted over the base by CSS and clipped at the bar with
-`clip-path`. It used to be drawn into the overlay, which is sized to the BEFORE image, so a 1K
+after media's native size, contain-fitted over the base by CSS and clipped at the bar with
+`clip-path`. Contain, not cover: a result of a different shape is a cover crop of its source
+(every resize crops centre), so contain lines the two up, while cover zoomed the result (a
+768x1344 Video Edit over its 576x1024 source read 1.6% bigger, MPI-1036). It used to be drawn into the overlay, which is sized to the BEFORE image, so a 1K
 picked first turned an 8K second into a pixelated 1K. Never draw one side into the other's
 pixel grid. Auto pixel mode is set per canvas for the same reason: the two sides are magnified
 by different amounts. Pinned by `tests/desktop/compare-native-resolution.spec.js`.

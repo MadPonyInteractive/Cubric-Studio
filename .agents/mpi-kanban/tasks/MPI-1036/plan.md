@@ -637,6 +637,73 @@ _015 is 768x1344 and _010 576x1024 - check how MpiCompareView scales a pair of D
 height) - the render shape 768x1344 is 1.6% wider than 9:16, so a cover crop alone zooms ~1.6% but cannot stretch;
 (c) only if the frames themselves stretch, re-check nodes 40-44 on the Pod's actual prompt (/queue or /history).
 
+**Video edit 17 (2026-10-10):** (a)+(b) DONE. Frames of _010 -> _015 fitted with free x/y scale + offset (scratchpad
+`stretch_measure.py`, gradient correlation): y/x 0.993-1.000 = the 768p tier's designed 0.76% (clip 608x1056 vs
+768x1344), the 4% stretch is gone. What Fabio saw = the COMPARE VIEW: `_drawComparisonLayer` cover-fitted a
+different-shaped after (Math.max) = a uniform 1.6% zoom. FIXED (Fabio's go): contain fit (Math.min), docs result-pane.md
++ ltx-upscale.md, `tests/desktop/compare-native-resolution.spec.js` pins 576x1024 vs 768x1344 (passes; fails 585.1 vs
+576 on the old fit). Left as is (Fabio): <=0.8%/pass drift at 768p. **BLOCKING (Fabio): LTX 2.3 references (MPI-1060)
+may do the same edits -> check before close (checklist + Remaining Work).**
+Room bench (G:, lease, `run_flow.py` V*, inputs copied to G: input as `mpi1036_room_*`): **V4a (today's graph, his
+bedroom picture + videoCrop_002 + his words/seed, bench Qwen describer) CHANGED THE ROOM** (180 s) - the bench does NOT
+reproduce his Pod failure. Bench {kept} named the person only. Suspect: the app's Gemma answer to "Describe only the
+main person" on the clip's first frame also names the clip's room -> "stays exactly as filmed: ... in a living room".
+V4c tests that (V4a's look + a kept naming the living room). Fabio on V4a: Liora (his character) stands INSIDE the
+bed - the picture's floor-up camera brings its foreground duvet over her shins; judge V4b/V4c for that too.
+**V4b (cut-out, 190 s), V6a (450 s), V6b (cut-out, 481 s): ALL take the picture's room** at 576p; the cut-out changes
+nothing visible (V4b keeps the foreground bed too). V6's bench look named the PERSON only, no place, and the shower
+still came: the describer is not template 6's failure. Side-by-sides sent (logs/mpi1036/VE17_bedroom_*.webm,
+VE17_shower576_*.webm). Queued: V4c (kept names the clip's room), V6c/V6d (1080p, 39 frames, today / cut-out) - the
+size his _014 failed at.
+**V4c (kept NAMES the living room): bedroom anyway** -> the {kept} theory is dead. **CORRECTION: Fabio's own outputs
+looked at - _008 and _009 (his words name the bedroom) DID change the room; only _007 (no words, seed 3185382522)
+kept the clip's room.** The "failed 3x" note above (Video edit 16) was wrong. _014 (template 6, 1080p): frame 0 = the
+picture itself, then the clip's living room, and she turns her back at the end. Queued V4d/V4e = _007 exactly (no
+words), today / cut-out.
+**V6c / V6d (template 6, 1080p, 39 frames, 841 s each): the shower stays, but the PERFORMANCE IS LOST** - both follow
+the picture's own floor-up framing, not the dance, and turn their back at the end (= _014's back turn). The cut-out
+changes nothing. So at 1080p template 6 drops the clip's moves (bench and Pod agree); the room that came back on the
+Pod is the same breakdown seen differently. 576p (V6a) followed. Lead: H3 follows the clip only up to some size (turbo
+LoRA trained 768p) -> find the limit (768p/960p), then the noted candidate: edit at a size that follows, upscale
+after (latent upscaler + MpiWindowedSampler, like the H3 model graphs) - needs Fabio's yes.
+Side-by-side: logs/mpi1036/VE17_shower1080_src_pic_today_cutout.webm.
+Fabio: "I don't think this is a resolution problem"; ONE 768p run only (V6e, queued), no 960p, AVOID EXTRA RENDERS.
+V4e (cut-out twin of V4d) and V6f (960p) dropped from the queue - run a cut-out twin only if V4d fails.
+**V4d (_007 exactly: no words, its seed, 181 s): BEDROOM** (no foreground bed this time). His _007 is NOT reproducible on
+today's graph locally; left differences = Gemma's look (unknown text), the pre-b1bbd21f3 clip (448x768), the Pod GPU.
+So on today's graph at 576p every room case passes (V4a-d, V6a-b); the one reproducible failure is template 6 at
+1080p (dance lost). Template 6's prompt is muddled (its {look} = person + place lands on the LOCATION line; the person
+line has none) - Fabio: "the model is confused with what the prompt says".
+**H3 Fun ControlNet (lead, Fabio's idea: give it control, Canny for the mouth):** core ComfyUI 0.39
+`MiniMaxH3FunControlNetApply` (model patch on the ref2va dit; control_video, optional mask + source_video = inpaint).
+Weights: Comfy-Org/MiniMax-H3 `model_patches/minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors`
+2,296,635,360 B (v1: canny/depth/HED/MLSD/pose; 2.0 int8 = 4,531,220,608 B, 10 blocks), MiniMax H3 Community License
+(alibaba-pai derivative, territorial) -> the MINIMAX_H3 gate covers it. ASKED Fabio to download + one Canny render
+(dancer-only edges via the BiRefNet mask) on the 1080p shower case. Canny carries the clip's outline (hair, dress) ->
+fine for background, may fight a swap; Pose next if so.
+Fabio (yes to the download): FIRST the clip converted to Canny (AIO) as <Video 1>, no ControlNet; THEN the same + Fun
+ControlNet - a with/without pair. "The shower case is harder: a different angle and proximity to the character."
+DOWNLOADED to the BENCH folder `G:/ComfyUi/ComfyUI/models/model_patches/` (the bench reads patches there, not from
+G:/CubricModels; extra_model_paths.yaml is MPI-1060's), sha256 9c645c0a...91fed0c = HF lfs. Queued V6g (Canny ref) +
+V6h (Canny ref + Fun ControlNet strength 1, between turbo 106 and preview 108), 1080p 39 frames, behind V6e (768p).
+Whole-frame Canny carries the living room's edges too - if the room leaks, mask it to the dancer (BiRefNet, one node). His template-6 shower run (_014) failed at 1080p with no
+**V6e (768p, 39 frames, 341 s): THE CLIP'S LIVING ROOM + arms up and a back turn after mid-clip = his _014 exactly.**
+So it is NOT monotonic in size (576p shower + follows; 768p clip room + drifts; 1080p shower but picture framing +
+back turn): template 6 is UNSTABLE, H3 flips between two rooms / two framings -> Fabio's "the model is confused by
+the prompt". Every failure ends on a back turn the clip never does in those frames: suspect template 6's "the back of
+the head and outfit showing whenever they turn away" primes it. Side-by-side logs/mpi1036/VE17_shower_576_768_1080.webm.
+Fabio at handoff: KEEP both member cards; close MPI-1061 LATER (not now).
+**NEXT (Video edit 18):** judge V6g (Canny ref) / V6h (Canny ref + Fun ControlNet) vs V6c (1080p baseline) - queued
+under the lease from Video edit 17's session (`run_flow.py V6g_shower_1080p_canny_ref V6h_shower_1080p_canny_ref_fun`);
+outputs D:/WORK/Images/Outputs/mpi1036/V6g_*/V6h_* (compare to the TRIMMED source: first 39 frames). If missing, that
+session closed before the lease came round: re-queue the same command (gpu_lease.py run --timeout 43200 --poll 2 --
+G:/ComfyUi/python_embeded/python.exe <abs path>/run_flow.py V6g... V6h...). Send one side-by-side (source39 | picture |
+V6c | V6g | V6h). Then Fabio picks: control (Canny/Fun) vs the template-6 prompt fix (split look/kept, back-turn line).
+AVOID EXTRA RENDERS (Fabio). Compare-view fix: Fabio's eye still pending (open any different-shaped pair in Compare).
+**UMBRELLA MPI-1063 (Video Edit Flow) created** (Fabio): members MPI-1036 + MPI-1061 (LTX 2.3 second model, taken from
+MPI-1060's session); MPI-897 now lists MPI-1063 instead of MPI-1036. Phases + bench ownership: tasks/MPI-1063/plan.md.
+{kept} at all, so that one is something else (V6a = 576p).
+
 **NEXT (after Video edit 14), in order:**
 1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.
 2. In-app test of the shipped graph - Fabio could not (agents hold the GPU for hours), so it runs UNATTENDED: queued
@@ -726,6 +793,9 @@ Run `/mpi-flow-graphics`.
 - [x] Phase 1 - hidden instructions benched (Fabio approved 2026-10-08)
 - [x] Phase 2 - mask path benched and timed (square box + swap LoRA, Fabio passed 2026-10-08)
 - [ ] Phase 3 - Flow wired
+- [ ] **BLOCKS CLOSE (Fabio 2026-10-10):** LTX 2.3 as a SECOND model option next to H3 (H3 stays). Bench research =
+  card MPI-1061 (MPI-1060's session filed it; Ingredients alone COPIES a guide clip, so it benches LTX's editing
+  IC-LoRAs). Pointers sent to that session 2026-10-10. Close only after MPI-1061's verdict + Fabio's decision.
 - [ ] Phase 4 - graphics
 
 ## Completed

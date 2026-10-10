@@ -149,6 +149,45 @@ PRESETS['D3_dancer_head_masked'] = dict(PRESETS['D1_dancer_head_whole'], target=
 PRESETS['S5pq_stage1_turbo_075'] = dict(PRESETS['S5pr_stage1_ref_video_at_stage1_size'], patch={
     '620': {'math_expression': 'floor(a * 0.75 / 32 + 0.5) * 32'},
     '621': {'math_expression': 'floor(a * 0.75 / 32 + 0.5) * 32'}})
+# Video edit 17: on Fabio's footage the ROOM options fell back to the clip's room (Change the background 3x on his
+# bedroom picture, sidecars 11:14-11:18; Swap the person into the picture's room on his shower picture, _014). V*a = his
+# runs on today's graph at 576p (his seed and words; the in-graph describer stands in for the app's Gemma); V*b = the
+# same with <Video 1> = the dancer cut out by BiRefNet onto flat grey (`cutout`), so the clip carries no room to keep.
+PRESETS['V4a_bedroom_bg'] = dict(video='mpi1036_room_crop002.mp4', image='mpi1036_room_bedroom.png', operation=4,
+                                 who='the person', seed=3074610470, caption=True, positive=(
+                                     'The background has paintings on the wall, a bed behind the woman, and a door on '
+                                     'the right. '))
+PRESETS['V4b_bedroom_bg_cutout'] = dict(PRESETS['V4a_bedroom_bg'], cutout=True)
+PRESETS['V6a_shower_room'] = dict(video='mpi1036_room_dancer_e2.mp4', image='mpi1036_room_shower.png', operation=1,
+                                  keep_background=False, who='the person', seed=3622567193, caption=True,
+                                  positive='A naked woman dancing in a bathroom ')
+PRESETS['V6b_shower_room_cutout'] = dict(PRESETS['V6a_shower_room'], cutout=True)
+# V4a (bench describer) DID change the room: its {kept} named only the person. Fabio's app asks Gemma the same
+# "Describe only the main person" of the clip's first frame; if that answer also names the clip's room, the prompt says
+# the person "stays exactly as filmed: ... in a living room" and the room is kept. V4c = V4a's own look + such a kept.
+# Fabio's own op-4 outputs, looked at: _008 and _009 (his words naming the bedroom) DID change the room; only _007 kept
+# the clip's room - no words, seed 3185382522. V4d = _007 exactly on today's graph (the cut-out twin only if it fails).
+PRESETS['V4d_bedroom_bg_no_words'] = dict(PRESETS['V4a_bedroom_bg'], seed=3185382522, positive='')
+# V6a/V6b (576p) BOTH took the shower, with a look naming no place at all: the describer is not template 6's failure.
+# Left vs his _014: 1080p (Input_Quality 2088960 -> clip ~816x1440, the clip's room in far more detail). 39 frames
+# (MpiMath has no min()) to bound a 16 GB card; V6d = the cut-out at the size that failed.
+PRESETS['V6c_shower_room_1080p'] = dict(PRESETS['V6a_shower_room'], quality=2088960,
+                                        patch={'30': {'math_expression': 'a * 0 + 39'}})
+PRESETS['V6d_shower_room_1080p_cutout'] = dict(PRESETS['V6c_shower_room_1080p'], cutout=True)
+# V6c/V6d kept the shower but LOST THE DANCE (picture framing, back turn = _014). Where does it stop following?
+# (Fabio: no 960p - "if 768 works, you already have your answer"; avoid extra renders. V6f and V4e dropped.)
+PRESETS['V6e_shower_room_768p'] = dict(PRESETS['V6c_shower_room_1080p'], quality=1032192)
+# Fabio: give it control. First <Video 1> = the clip as Canny (the AIO converter, whole frame), no ControlNet (V6g);
+# then the same + the H3 Fun ControlNet Union fed that Canny (V6h) - the with/without pair, on V6c's failing case.
+PRESETS['V6g_shower_1080p_canny_ref'] = dict(PRESETS['V6c_shower_room_1080p'], cannyref=True)
+PRESETS['V6h_shower_1080p_canny_ref_fun'] = dict(PRESETS['V6g_shower_1080p_canny_ref'], funcontrol=True)
+PRESETS['V4c_bedroom_bg_kept_names_room'] =dict(PRESETS['V4a_bedroom_bg'], caption=False, look=(
+    'The room is a bedroom with light-colored walls and a textured ceiling. A bed with a patterned duvet is partially '
+    'visible on the left. A framed picture hangs on the wall to the right, and a dark wooden piece of furniture, possibly '
+    'a nightstand or dresser, is in the background. The lighting is soft and even, suggesting indoor ambient light.'),
+    kept=('A young woman, nude, with fair skin and a smiling expression, has long, straight red hair falling over her '
+          'shoulders and wears a silver cross necklace. She stands in a bright living room with white walls, a '
+          'wall-mounted black TV on a white sideboard, a grey sofa on the right and a white door behind her.'))
 
 
 def call(path, body=None):
@@ -167,7 +206,9 @@ def composed(p):
     return text.replace('{who}', p.get('who', 'the person')).replace('{target}', p.get('target', '')).replace('{words}', p.get('positive', ''))
 
 
-BENCH_KEYS = ('ours', 'instr', 'lora', 'preview', 'sigmas2', 'patch', 'ref1_small', 'ref_half', 'ref_frac')
+BENCH_KEYS = ('ours', 'instr', 'lora', 'preview', 'sigmas2', 'patch', 'ref1_small', 'ref_half', 'ref_frac', 'cutout',
+              'cannyref', 'funcontrol')
+FUN = 'minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors'  # Comfy-Org/MiniMax-H3 model_patches/, v1
 
 
 def build(name):
@@ -196,10 +237,35 @@ def build(name):
         g['906'] = fg.node('ImageScale', 'Clip at half size', image=['60', 0], upscale_method='lanczos',
                            width=['907', 0], height=['908', 0], crop='disabled')
         g['110']['inputs']['ref_video_1'] = ['906', 0]
+    if p.get('cutout'):  # whole frame: <Video 1> = the person cut out by BiRefNet onto flat grey (no room to keep)
+        g['190'] = fg.node('LoadBackgroundRemovalModel', 'BiRefNet', bg_removal_name='birefnet.safetensors')
+        g['191'] = fg.node('RemoveBackground', 'The person in every frame', bg_removal_model=['190', 0], image=['42', 0])
+        g['192'] = fg.node('EmptyImage', 'Flat grey', width=['43', 0], height=['44', 0], batch_size=['30', 0],
+                           color=0x808080)
+        g['193'] = fg.node('ImageCompositeMasked', 'The person on grey', destination=['192', 0], source=['42', 0],
+                           x=0, y=0, resize_source=False, mask=['191', 0])
+        g['110']['inputs']['ref_video_1'] = ['193', 0]
+    if p.get('cannyref') or p.get('funcontrol'):  # the whole-frame clip (node 42) as Canny, back at the clip's size
+        g['195'] = fg.node('AIO_Preprocessor', 'Canny (AIO)', image=['42', 0], preprocessor='CannyEdgePreprocessor',
+                           resolution=1024)
+        g['196'] = fg.node('ImageResizeKJv2', 'Canny at the clip size', image=['195', 0], width=['43', 0],
+                           height=['44', 0], upscale_method='lanczos', keep_proportion='crop', pad_color='0, 0, 0',
+                           crop_position='center', divisible_by=32, device='cpu')
+    if p.get('cannyref'):
+        g['110']['inputs']['ref_video_1'] = ['196', 0]
+    if p.get('funcontrol'):  # H3 Fun ControlNet as a model patch between the turbo LoRA and the sampler
+        g['197'] = fg.node('ModelPatchLoader', 'H3 Fun ControlNet Union', name=FUN)
+        g['198'] = fg.node('MiniMaxH3FunControlNetApply', 'Apply H3 Fun ControlNet (Canny)', model=['106', 0],
+                           model_patch=['197', 0], vae=['102', 0], strength=1.0, start_percent=0.0, end_percent=1.0,
+                           control_video=['196', 0])
+        g['108']['inputs']['model'] = ['198', 0]
     return g
 
 
 for name in sys.argv[1:]:
+    if name not in PRESETS:  # a queued run dropped from PRESETS while it waited for the lease
+        print(f'--- {name}: dropped, skipped', flush=True)
+        continue
     p = PRESETS[name]
     print(f'--- {name}\n{composed(p)}\n---', flush=True)
     t0 = time.time()

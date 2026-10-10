@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1063",
+  "title": "Video Edit Flow (umbrella): H3 path, LTX 2.3 as a second model, and every Video Edit follow-up",
+  "description": "UMBRELLA (Fabio 2026-10-10: one umbrella for the Video Edit Flow so no card gets lost). Members: MPI-1036 (Video Edit on MiniMax H3 Reference, doing) and MPI-1061 (LTX 2.3 as a second model option, todo/research). Related, NOT a member: MPI-745 (LTX 2.3 BFS head swap, solo by Fabio 2026-09-14). Sits under MPI-897 (Localised editing). New Video Edit work goes in this plan or under it, never as a loose card.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-10T15:39:58+01:00",
+  "updated_at": "2026-10-10T15:39:58+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

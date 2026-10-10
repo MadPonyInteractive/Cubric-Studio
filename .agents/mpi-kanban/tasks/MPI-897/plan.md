@@ -13,7 +13,7 @@
 | MPI-355 | 4K/8K localized-edit Flow - mask a small region of a huge scene (crop-stitch wiring already shipped) | `todo` / `planned` |
 | MPI-557 | Video face detailer | `todo` / `planned` |
 | MPI-715 | Video masking needs an adjust step - a reusable mask gizmo over the clip, and the mask-clip transport | `todo` / `planned` (added 2026-09-29, umbrella sweep, Fabio's yes) |
-| MPI-1036 | Video Edit Flow on MiniMax H3 Reference - swap a person, head or outfit, or any edit, with an optional mask step | `todo` / `planned` (added 2026-10-06, Fabio's yes; needs MPI-715's mask clip transport) |
+| MPI-1063 | Video Edit Flow (umbrella): MPI-1036 (the H3 path, `doing`) + MPI-1061 (LTX 2.3 as a second model, `todo`) | `todo` / `planned` (2026-10-10, Fabio: one umbrella for the Video Edit Flow; replaces the MPI-1036 row, added 2026-10-06; MPI-1036 still needs MPI-715's mask clip transport) |
 
 ## Why these belong together
 

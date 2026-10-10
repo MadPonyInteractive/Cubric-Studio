@@ -1242,11 +1242,14 @@ class _CanvasCore {
             this._compareDrawn = imgAfter;
         }
 
-        // Cover-fit into the base frame, in stack px (= the image's natural px; the base
-        // backing may be smaller — MPI-961).
+        // Contain-fit into the base frame, in stack px (= the image's natural px; the base
+        // backing may be smaller — MPI-961). A result of a different shape is a COVER crop of
+        // its source (every resize here crops centre), so contain is the inverse that lines the
+        // two pictures up; cover zoomed it instead (MPI-1036: a 768x1344 result over its
+        // 576x1024 source read 1.6% bigger, which looked like a stretch).
         const baseW = this._displayImage().width;
         const baseH = this._displayImage().height;
-        const relScale = Math.max(baseW / afterW, baseH / afterH);
+        const relScale = Math.min(baseW / afterW, baseH / afterH);
         const compW = afterW * relScale;
         const compH = afterH * relScale;
         const compX = (baseW - compW) / 2;
@@ -1258,7 +1261,7 @@ class _CanvasCore {
 
         // sliderPos is a fraction of the CONTAINER (screen space) so the split bar
         // stays fixed while the image pans/zooms under it: screen bar x → stack px via
-        // the inverse view transform. The clip also trims the cover overflow to the frame.
+        // the inverse view transform. The clip also trims any overflow to the frame.
         const rect = this.container.getBoundingClientRect();
         const clipX = (this.comparison.sliderPos * rect.width - this.view.offsetX) / (this.view.scale || 1);
         const left = Math.max(clipX, 0) - compX;

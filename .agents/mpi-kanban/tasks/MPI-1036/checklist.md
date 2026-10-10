@@ -16,4 +16,7 @@
   - [x] Video edit 16: Resolution field Input_Quality (576p default .. 4K; masked crop follows) + the user LoRA cogwheel on Video Edit, Upscale Video, Extend Video (both graphs), Character Sheet from Images (both graphs); Foley/Outpaint none (Fabio). flow-lora-rack RACKS test; full suite 2967/0
   - [x] Video edit 16: Flow input slots show a 512 thumbnail, cached per Flow (Fabio: a 2K still reloaded on every visit)
   - [ ] Fabio's eye: a whole-frame run no longer stretches (1080p run on the Pod in flight), a LoRA via the Upscale Video cogwheel changes the result, stage 1 thumbnail no longer reloads
+  - [ ] Video edit 17: room path A/B on the G: bench (V4a/V4b bedroom, V6a/V6b shower; b = clip with the dancer cut out by BiRefNet)
+  - [ ] Video edit 17: compare view fits a different-shaped pair by contain, not cover (the 768p result read 1.6% bigger)
+- [ ] BLOCKS CLOSE (Fabio 2026-10-10): LTX 2.3 as a SECOND model option next to H3 (Fabio, via MPI-1060): bench research is card MPI-1061 (LTX editing IC-LoRAs: In-Outpainting + SAM3 mask, Union Control pose/depth, Union + Ingredients sheet for a swap; Ingredients alone COPIES a guide clip). Do NOT close MPI-1036 before this is checked and Fabio has decided
 - [ ] Flow graphics

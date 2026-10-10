@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1061", "at": "2026-10-10T15:27:44+01:00", "actor": "abed6c3c-8f6a-4170-bf0d-d9ea2ef5c0d8", "column": "todo", "title": "Video Edit on LTX 2.3: bench LTX IC-LoRAs for clothes / character swaps (H3 quality too low)"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1061", "type": "task.updated", "at": "2026-10-10T15:41:05+01:00", "actor": "claude:d4a1c8a1", "summary": "Description: back-pointer to umbrella MPI-1063 (Video Edit Flow)."}

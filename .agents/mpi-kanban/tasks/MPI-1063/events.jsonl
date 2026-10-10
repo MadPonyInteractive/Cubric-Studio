@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1063", "at": "2026-10-10T15:39:58+01:00", "actor": "claude:d4a1c8a1", "column": "todo", "title": "Video Edit Flow (umbrella): H3 path, LTX 2.3 as a second model, and every Video Edit follow-up"}
