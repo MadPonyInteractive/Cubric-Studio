@@ -88,3 +88,12 @@ Side-by-sides sent to Fabio: `box_horns_side_by_side.webm`, `box_remove_side_by_
   minimax-h3-ref2va ref2v_ms. Spent $0.0243. tests/agent-bench.test.cjs 14/14.
 - Video edit 15, in-app run #1 (00:47) never generated: APP_UNAVAILABLE 2 s after server READY, no window subscribed
   yet. overnight_inapp.py now waits for /connector/capabilities generationSubmit; re-queued 00:52.
+- Video edit 15, in-app run #2 (lease 01:26-01:40, own app:isolated): E1 whole 472 s (576x1024), E2 "Head" masked 377 s
+  (1088x1920 stitched), Project "MPI-1036 Video Edit in-app" flowVideoEdit_001/002. No download line in the isolated
+  profile's app.log, models root free space unchanged (9.4 GB): the Faceswap dep resolved from G:. Describe reused on E2.
+  lag_full.py vs source: E2 mean |lag| 0.12, fast 5-34 0.00 (D4 0.11 / 0.00). Side-by-side sent to Fabio:
+  logs/mpi1036/VE15_inapp_head_swap_sbs.webm (picture | source | E1 | D2 | E2 | D4). My read: faces match D2/D4;
+  E1 carries the picture's blue halter neckline onto the dress (D2 shows faint straps too), E2 masked keeps the dress.
+- Fabio 2026-10-10 on the side-by-side: "Looks good". Halter leak on whole frame = known limit; Cosmo's guide
+  (docs/agent/flows.md) now types "head" when the picture's clothes differ, video-edit.md records it. Agent-doc tests
+  (corpus, prompt budget, connector tools, field constraints, recipe registry) 47/47.

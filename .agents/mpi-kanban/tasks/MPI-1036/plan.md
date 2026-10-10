@@ -588,8 +588,10 @@ own wording, e.g. a supplied torso image).
 
 **Video edit 15 (2026-10-10):** Cosmo routing DONE (agentBench case `video-hair-to-video-edit`, 3/3 + bite, $0.0243;
 services/agentBench.mjs uncommitted). In-app run #1 died on APP_UNAVAILABLE (submitted before the window subscribed);
-overnight_inapp.py now waits on /connector/capabilities, re-queued 00:52 behind MPI-623 + MPI-1041 leases. Step 2
-below still stands; then step 3 minus the Cosmo check.
+overnight_inapp.py now waits on /connector/capabilities, re-queued 00:52; ran 01:26-01:40: E1/E2 ok, no Faceswap
+download, E2 in sync (lag 0.12 = D4), side-by-side sent (logs/mpi1036/VE15_inapp_head_swap_sbs.webm). E1 whole carries
+the picture's halter neckline onto the dress; E2 masked does not. NEXT: Fabio's verdict on the side-by-side, then the
+MpiNodes pin via MPI-623, UNRELEASED.md roster + entry, Phase 4 graphics.
 
 **NEXT (after Video edit 14), in order:**
 1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.

@@ -50,6 +50,10 @@ clip to H3's 17k+5 frame grid.
   `optional_context_mask`, and the painted mask is never cut.
 - **A mask pays only on a small part that stays put** (ears, a hat on a talking head). A part that
   travels makes the union box big, and a big box edge crosses moving body.
+- **Swap the head on the whole frame can carry the picture's clothes.** In-app E1 (Video edit 15,
+  test dancer + a halter-top portrait) put the halter neckline on the dress; masked E2 ("Head", the
+  square held, 377 s vs 472 s) kept the dress. Cosmo types "head" when the picture's clothes differ
+  (`docs/agent/flows.md`); Fabio, 2026-10-10: a known limit, not a fix.
 - **The swap LoRA is not swap-only.** It was trained to keep the source's position, pose and timing,
   and that holds for any masked edit (lag 2.27 -> 0.00). It is on when masked, and for Swap the
   person keeping the video's room.

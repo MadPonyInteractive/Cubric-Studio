@@ -98,10 +98,13 @@ place (`image1`, optional) or from words. `Input_Operation` picks the change.
 - `Input_Target`: the small things to change, comma-separated, as they appear in the clip
   ("her hat", "cat ears", "head, hair"). Typed, a mask box round them is re-rendered, faster,
   and the rest stays exactly as filmed. Leave it empty for a whole person or the background.
-  Type it only for a small part that stays roughly in place: one that travels round the frame (a
-  dancing person's head) gets the whole frame anyway, so it is only slower.
+  Type it only for a small part that stays roughly in place: one that travels across the whole
+  frame gets the whole frame anyway, so it is only slower.
 - Swap the head keeps the clip's hair length unless the picture shows where the hair ends (a
   bun, a head-and-shoulders shot). Tell the user before the run when the lengths differ.
+- Swap the head with a picture whose clothes differ from the clip's: type `Input_Target: "head"`.
+  On the whole frame the picture's neckline or top can come through onto the clip's clothes; the
+  mask keeps them as filmed.
 - `Input_Keep_Background: false` puts the picture's character in the picture's place, moving as
   the clip's person does. Only for Swap the person with a picture.
 - The app describes the picture in words itself before the run, on the user's Remote image
