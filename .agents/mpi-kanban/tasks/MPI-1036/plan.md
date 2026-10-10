@@ -611,6 +611,18 @@ MpiLoraModel(Clip) node, rewire, bump last ids), then sync. Message 2ea083d1-mpi
 the Character Sheet Editor. (4) Flow input slot = 512 thumbnail (resolveDisplayImage(url, 512), Map per Flow).
 NEXT: Fabio's eye on (1)-(4) (his 1080p Pod run is the first stretch-fix run); then Phase 4 graphics. Video slots still
 load the whole clip (a picked gallery item's proxyPath is dropped at MpiBaseFlow onPick) - not done, his call.
+Later the same day, Fabio's 1080p Pod runs (5090, ~60 s a step, 8 steps; the status bar sat at STARTING 0% through
+step 1 - status-bar progress, MPI-1057/1059's files, not ours): "Swap the person" + "The picture's room" swapped the
+PERSON right (the picture's woman) but the ROOM went back to the clip's living room (the step previews start on the
+picture's shower, then settle on the clip's room), and she turned her back at the end, which the clip never does.
+Change the background ALSO failed 3x earlier that day on his bedroom picture (sidecars 11:14-11:18: room unchanged).
+The picture: a low, floor-up camera with enough background (Fabio); a top-down view worked in an earlier test. The
+description named the room fine ("stands in a tiled shower ... wall tiles, metallic showerhead"), so not the describer.
+Suspect: whole-frame <Video 1> carries the clip's room in every frame and wins. NEXT (Fabio APPROVED bench runs on
+his local bench, under the GPU lease): improve the room path - prompt revision and/or hand H3 the clip with the
+dancer cut out (BiRefNet, an engineAsset) for Change the background + template 6 only; A/B on his shower picture
+(template 6) and bedroom picture (op 4) at 576p. He is also judging the 1080p result's quality and doing one more
+stretch run (compare height to flowVideoEdit_002, itself made BEFORE the fix).
 
 **NEXT (after Video edit 14), in order:**
 1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.
