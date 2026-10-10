@@ -19,3 +19,16 @@ Docs (`docs/child-safety.md` § Where it runs + § Known gaps) committed separat
 Release note: the MPI-1056 bullet now reads "in a picture or clip" (Fabio's yes, 2026-10-10).
 
 CI: tests.yml run 38076045694 on `7ecd4e05d` completed success. Card closed on that evidence.
+
+## 2026-10-10, Fabio's live check (dev app, project "CP Tests")
+
+Video Edit, "Change the background", prompt `背景を夜の街にする` (innocent words in a script the lists
+cannot read, so the picture check runs and a failed gate would only make a night city), a stock
+clip of a clothed child (`imported_002.mp4`, 2160x3840, 59.9 fps):
+- Card path: two runs on gallery cards (`videoCrop_001` / `videoCrop_002`) refused, `app.log`
+  19:55:31Z and 19:56:04Z `[childSafety] refused a user run of flowVideoEdit (picture)`.
+- No-card path (the one Node cannot run): the clip dropped from Explorer landed in the content
+  store (`Media/.preview-assets/9049559a...mp4`, sha256 = `imported_002.mp4`), the renderer grabbed
+  frame 0 (`.preview-assets/615ae891...png`, 11 MB, written 19:57:52Z) and the run was refused at
+  19:57:53Z `(picture)`. Toast: "Refused: ... on a picture or clip that may show someone under 18".
+- Not run: an adult clip (the NO -> queued path is covered by `tests/child-safety-gate.test.cjs`).
