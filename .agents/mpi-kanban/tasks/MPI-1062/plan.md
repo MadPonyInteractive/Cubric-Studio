@@ -31,10 +31,9 @@ picture check an image gets: the describer looks at the clip's first frame first
 
 ## Current State
 
-2026-10-10 (session 8ef88b5e "CP Gate 2"): steps 1-4 built and verified, NOT committed. Steps 5-6
-wait on two peers' claims (messages sent, both in `state/messages/8ef88b5e-mpi1062-to-*.json`):
-- `docs/child-safety.md` is held by MPI-1041 (fe4cb412, no uncommitted edits there). Once released,
-  apply the text below.
+2026-10-10 (session 8ef88b5e "CP Gate 2"): steps 1-4 built, verified, committed and pushed as
+`7ecd4e05d` (tests.yml run 38076045694; the card closes only on its green). Step 5 done (the text
+below, applied once MPI-1041 released its claim at 18:30Z). Step 6 waits on a peer:
 - `docs/releases/UNRELEASED.md` is held by MPI-1064 (38894ae1, HAS uncommitted edits there). Asked
   it to make Fabio's approved change ("in a picture" -> "in a picture or clip" in the child-safety
   bullet); check it landed before close.
@@ -50,7 +49,6 @@ Drafted doc change for `docs/child-safety.md`:
 
 ## Remaining Work
 
-- [ ] step 5 docs (blocked on MPI-1041's claim)
 - [ ] step 6 release note (asked MPI-1064)
 - [ ] commit, CI green, close
 

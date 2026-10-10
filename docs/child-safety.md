@@ -74,7 +74,11 @@ through. `childSafetyGate(texts, ctx, judge)` runs both tiers and never rejects.
   of someone in a photo off the internet). Same funnel, before the text judge: when
   `needsPictureCheck(texts)` (a SEXUAL / UNCLOTHED word, an undress verb like "remove her clothes",
   six languages, or an unreadable script) and the run sends pictures (`picturesOf`: every image
-  mediaItem, imported or made here), `pictureCheck` asks `llmService.describeImage` (the user's
+  mediaItem, imported or made here) or clips (`picturesOf(config, 'video')`, MPI-1062), each clip
+  looked at through its first frame: its card's poster (`thumbPathLg`, else `thumbPath`), else the
+  frame grabbed in the renderer and kept in the project's preview store
+  (`generationService._clipStill`; a Flow drop or an agent's file has no card), and no still is
+  refused. `pictureCheck` asks `llmService.describeImage` (the user's
   describe pick) `AGE_QUESTION` for each: "anyone who is, or could be, under 18? YES or NO". Only
   a bare NO passes (`parseAgeAnswer`); YES, chatter, a failed or missing describer refuses
   (`picture` / `pictureUnchecked`). An innocent edit ("make it night") is never looked at.
@@ -122,8 +126,9 @@ young-looking 25-year-old edit and an anime adult. ~2.5 s a picture.
   (above).
 - A picture edited with words that ask for no nudity, underwear or sex ("put her in a bikini")
   is not looked at: a check on every run would cost tokens on every run (Fabio).
-- A clip's frames are never looked at (`picturesOf` takes images only): "remove her clothes" on an
-  imported VIDEO passes the picture check. An image-to-video start picture is checked.
+- A clip is looked at through its first frame only: someone who appears later in it is not
+  seen. A clip with no card (a Flow drop, an agent's file) in a codec Chromium cannot decode is
+  refused.
 - A describer that will not answer about an explicit picture refuses the run, adult or not.
 - A sexual word anywhere beside a minor refuses, even when it is the adult's ("a sexy woman with
   her kids"): by design.

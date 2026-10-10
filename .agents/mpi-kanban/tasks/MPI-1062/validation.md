@@ -13,4 +13,7 @@
 - Not run live: the renderer first-frame grab for a clip with no card (copy of
   `flowEnhance.stageFirstFrame`, which Video Edit's describe step already runs).
 
-Still to close: docs (step 5), release-note wording (step 6), CI green on the code commit.
+Code committed `7ecd4e05d`, pushed; tests.yml run 38076045694.
+Docs (`docs/child-safety.md` § Where it runs + § Known gaps) committed separately.
+
+Still to close: release-note wording (step 6, MPI-1064 holds the file), CI green on `7ecd4e05d`.
