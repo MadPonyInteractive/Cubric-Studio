@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1060", "at": "2026-10-10T13:00:02+01:00", "actor": "abed6c3c-8f6a-4170-bf0d-d9ea2ef5c0d8", "column": "doing", "title": "LTX 2.3 reference-to-video: bench-test the Ingredients IC-LoRA"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1060", "at": "2026-10-10T14:06:13+01:00", "actor": "abed6c3c-8f6a-4170-bf0d-d9ea2ef5c0d8", "summary": "Scope grew to shipping Reference to Video on the LTX 2.3 model; large plan written (plan.md), bench combos queued."}

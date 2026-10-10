@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1060",
+  "title": "LTX 2.3 Reference to Video: Ingredients IC-LoRA as an op on the LTX 2.3 model",
+  "description": "Lightricks' Ingredients IC-LoRA (LTX-2.3, also on 2.5): one composite reference sheet (character face + turnaround, props, location) keeps those elements consistent in the clip. Bench-proven on our shipped int8 stack 2026-10-10 (research/results.md). Ship it as the ref2v_ms op on both LTX 2.3 cards, as a second path in the EXISTING raw/ltx_i2v_t2v_template.json (never a new model workflow), built so LTX 2.5 is a loader re-point. Plan: plan.md (phases, decisions D1-D4).",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-10T13:00:02+01:00",
+  "updated_at": "2026-10-10T14:06:13+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1061",
+  "title": "Video Edit: add LTX 2.3 as a second model option (bench LTX IC-LoRAs for clothes / character swaps)",
+  "description": "Fabio 2026-10-10: ADD LTX 2.3 to the Video Edit Flow as a separate option next to H3 (H3 stays; LTX's quality is higher). Peer session for what Video Edit already does: 'video edit 17' (MPI-1036). Ingredients alone cannot edit a video (MPI-1060: a video fed as its guide is COPIED). Bench the LTX 2.3 editing IC-LoRAs on G:\\ComfyUi with our int8 stack (weights in C:\\AI): (1) In-Outpainting IC-LoRA - SAM3 mask of the clothes / person per frame, regenerate the masked region from the prompt (official LTX-2.3_ICLoRA_Inpaint_Two_Stage_Distilled.json); (2) Union Control (pose/depth/canny from the source video, file already at C:\\AI\\loras\\LTX2.3\\ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors) re-rendering the shot with a new look; (3) Union Control + Ingredients sheet stacked (motion from the video, identity from the sheet) = character swap. Compare against the H3 Video Edit outputs on the same clips; if LTX wins, it ships as a model choice inside the existing Video Edit Flow (same Flow, H3 kept). Coordinate with MPI-1036 (owns the Video Edit Flow). GPU work under gpu_lease.py.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-10T15:27:44+01:00",
+  "updated_at": "2026-10-10T15:27:44+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
