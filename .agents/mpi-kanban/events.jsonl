@@ -5865,3 +5865,8 @@
 
 
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1062", "at": "2026-10-10T22:08:39+01:00", "actor": "78b8d248-7474-4117-b46e-5e7b5d553fd8", "from": "doing", "to": "done", "reason": "Phase 2 shipped: ac6433522, tests.yml 38085217411 green, Fabio's live check queued the child clip (validation.md)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1069", "at": "2026-10-10T21:01:33+01:00", "actor": "d44c0c41-2386-4f76-ba3e-a52ae64873e4", "from": "todo", "to": "doing", "reason": "Plan attached (plan.md); implementation started: Resize moves to sharp + ffmpeg on a tool head."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1069", "at": "2026-10-10T21:26:51+01:00", "actor": "d44c0c41-2386-4f76-ba3e-a52ae64873e4", "from": "doing", "to": "doing", "reason": "Built and verified (validation.md); awaiting close-out commit."}
+{"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-1069", "at": "2026-10-10T21:27:12+01:00", "actor": "d44c0c41-2386-4f76-ba3e-a52ae64873e4", "summary": "Implementation checked."}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1069", "at": "2026-10-10T21:27:12+01:00", "actor": "d44c0c41-2386-4f76-ba3e-a52ae64873e4", "summary": "Resize on sharp/ffmpeg verified: resize-ops 10/10, desktop crop-resize-output 6/6 + agent-tool-ops + no-engine-user, Fabio 4K clip 10 s / ffmpeg 1.5 GB peak (was ~82 GB)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1069", "at": "2026-10-10T22:09:25+01:00", "actor": "d44c0c41-2386-4f76-ba3e-a52ae64873e4", "from": "doing", "to": "done", "reason": "Shipped 235a2a660; CI run 38085715604 green (unit + desktop 1-4); validation.md."}
