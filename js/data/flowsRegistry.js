@@ -179,6 +179,9 @@
  *                                       `{ field, is | isNot | in | atMost | below | atLeast }`, or an
  *                                       array of them (ALL must hold), reads the run's field values
  *                                       through `ruleHolds()`. Omit and the leg always runs.
+ * @property {Object|Object[]} [unless] - A rule (or rules, ALL holding) that SKIPS the leg whatever `when`
+ *                                       says, so a toggle leg keeps its result-pane toggle: Character
+ *                                       Sheet Editor never removes a newborn's head (MPI-1041).
  * @property {string}  [input] - The media role the leg receives the previous picture on. It also makes the
  *                                       leg land as the next VERSION of that picture's card. Omit and the
  *                                       leg takes no media (MPI-623: it reads the file by name).
@@ -507,7 +510,7 @@ const SHEET_CLOTHES_CHECKS = ['upper body, the chest and belly', 'lower body, th
     { x: 0.25, y: 0, width: 0.25, height: 1 },
 ].map(region => ({
     media: 'image1', region, ask: _SHEET_PART_ASK(part), refuseUnless: 'CLOTHES', code: 'CHILD_SAFETY',
-    when: [{ field: 'Input_Age', atLeast: 1, atMost: 17 }, { field: 'change', isNot: 'clothes' }],
+    when: [{ field: 'Input_Age', atLeast: 0, atMost: 17 }, { field: 'change', isNot: 'clothes' }],
     message: 'Dress the sheet first: pick Clothes and say what the character wears. Under 18 a character must wear ordinary clothes on the sheet before its age changes, and this sheet does not show them. At 16 or 17 swimwear is fine when you ask for it under Clothes. The age can stay set: the clothes go on first.',
 })));
 
@@ -1685,7 +1688,11 @@ export const FLOWS = [
     {
         id: 'character-sheet-editor',
         title: 'Character Sheet Editor',
+        // Both from the bench runs on one sheet (MPI-1041 validation.md): the tile is its close-up in
+        // four states (as it was, 70, heavyset, beaten up); the hero wipes the whole sheet through them,
+        // registered, so the layout holds and only the change moves.
         preview: 'flow-character-sheet-editor.webp',
+        video: 'flow-character-sheet-editor.mp4',
         description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words; the result is a new card and the sheet you started from stays as it is. Body shape, and ages of 12 and under, run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
         // Each slot's rack fills its phase's nodes: Klein's Input_Lora_Phase1_* (the edit and age
         // legs), Qwen's Input_Lora_Phase2_* (Body shape). The child rebuild leg runs the
@@ -1708,12 +1715,14 @@ export const FLOWS = [
         promptBuilder: 'characterSheetEditor',
         chain: [
             { operation: 'flowCharacterSheetEdit', prompt: 'age', input: 'image1',
-              when: { field: 'Input_Age', atLeast: 1 } },
+              when: { field: 'Input_Age', atLeast: 0 } },
             // The right half of an 8:5 sheet is exactly the 4:5 close-up the from-images graph boxes.
             { operation: 'flowCharacterSheetImages', prompt: 'rebuild', input: 'image1',
-              when: [{ field: 'Input_Age', atLeast: 1 }, { field: 'Input_Age', atMost: 12 }],
+              when: [{ field: 'Input_Age', atLeast: 0 }, { field: 'Input_Age', atMost: 12 }],
               box: { x: 0.5, y: 0, width: 0.5, height: 1 }, params: { Input_Face_Pose: 'TURNED' } },
-            { operation: 'flowCharacterSheetHeadless', when: 'Input_Remove_Head', input: 'image1' },
+            // A newborn is a swaddled baby lying down (Fabio, 2026-10-10): its head always stays.
+            { operation: 'flowCharacterSheetHeadless', when: 'Input_Remove_Head', unless: { field: 'Input_Age', is: 0 },
+              input: 'image1' },
         ],
         mediaType: 'image',
         type: 'edit',
@@ -1741,9 +1750,11 @@ export const FLOWS = [
                 hiddenWhen: { field: 'change', is: 'none' },
             },
             {
-                // 0 = Off: the age is left alone. 1-100 = the age in years (Fabio, 2026-10-10). Read by
-                // the legs' rules and written into the prompt as words, never sent as a number.
-                id: 'Input_Age', type: 'slider', label: 'Age (0 = keep)', min: 0, max: 100, step: 1, default: 0,
+                // -1 = Off: the age is left alone. 0 = a newborn you only carry, 1 = taking first steps,
+                // then the age in years (Fabio, 2026-10-10). Read by the legs' rules and written into the
+                // prompt as words, never sent as a number.
+                id: 'Input_Age', type: 'slider', label: 'Age', min: -1, max: 100, step: 1, default: -1,
+                valueLabels: { '-1': 'Keep', 0: 'Newborn' },
             },
             {
                 id: 'Input_Remove_Head', type: 'toggle', label: 'Headless front body',
@@ -1766,7 +1777,7 @@ export const FLOWS = [
         // picture's age is judged anywhere (Fabio, 2026-10-10).
         describe: [
             ...SHEET_CLOTHES_CHECKS,
-            { to: 'sheetAge', media: 'image1', when: { field: 'Input_Age', atLeast: 1 },
+            { to: 'sheetAge', media: 'image1', when: { field: 'Input_Age', atLeast: 0 },
                 ask: 'How old does the person in this picture look? Answer with one whole number of years and nothing else.' },
             { to: 'sheetClothes', media: 'image1', when: [{ field: 'Input_Age', atLeast: 1, atMost: 12 }, { field: 'change', isNot: 'clothes' }],
                 ask: 'Describe only the clothes the person wears: each garment, pair of shoes and hat that is present, with its color and material. Answer with one sentence that starts with the word Wearing.' },
@@ -3152,8 +3163,10 @@ export function flowToggleLeg(flow) {
  * @returns {boolean}
  */
 function legWanted(flow, leg, run) {
-    if (!leg.when) return true;
+    if (!leg.when && !leg.unless) return true;
     const values = flowRunValues(flow, run);
+    if (leg.unless && ruleHolds(leg.unless, values)) return false;
+    if (!leg.when) return true;
     return typeof leg.when === 'string' ? values[leg.when] === true : ruleHolds(leg.when, values);
 }
 

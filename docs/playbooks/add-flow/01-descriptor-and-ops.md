@@ -364,7 +364,7 @@ applied when the two were the same string; they are not any more, and the old lo
   `input` = the role leg 2 gets leg 1's picture on, and leg 2 then lands as the card's next
   VERSION. Worked example: [existing-flows/character-sheet.md](existing-flows/character-sheet.md).
   **`chain` may be an ARRAY of legs** (MPI-1041), each `{ operation, when, input, box?, params? }`
-  with `when` a `ruleHolds` rule (`is | isNot | in | atMost | below | atLeast`, an array = all);
+  with `when` a `ruleHolds` rule (`is | isNot | in | atMost | below | atLeast`, an array = all), and `unless` a rule that skips the leg whatever `when` says (a toggle leg keeps its result-pane toggle);
   **`operationBy: { field, map }`** routes leg 1's op by a select (`null` skips it), and a slot may
   be **`optional: true, for: [ops]`**. All three, worked: [existing-flows/character-sheet-editor.md](existing-flows/character-sheet-editor.md).
 - **A picture the graph needs IN WORDS is `describe: [{ to, media, ask, when?, frame? }]`**

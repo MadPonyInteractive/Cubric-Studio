@@ -521,3 +521,23 @@ portrait swapped for the given one (node 77 -> a LoadImage), so only the body pa
 - WRONG (cleared): the fisherman in a jacket over white boxer shorts, no trousers - all four CLOTHES. By eye the boxers
   read as plain white shorts. Accepted and written into docs/child-safety.md § Known gaps.
 - Before: round 1's 1-15 check refused only the nude sheet of four unsafe ones. Now: 6 of the 7 unsafe sheets refused. `node --test` editor + describe 30/30; `npm test` 3019/3021, 0 fail; lint clean.
+
+## 2026-10-10 - batches 20-21: the new slider's youngest ages, 0 = a newborn, 1 = first steps (session 2e68e381)
+
+Fabio's slider: -1 = keep (Off, the default), 0 = a newborn you only carry, 1 = taking first steps, then years.
+`qyoung.py` / `run_qyoung.sh` (batch 20) and `run_qyoung2.sh` (batch 21) under gpu_lease, the Flow's own legs: the Klein
+age edit (`flow_character_sheet_edit.json`, lock 0) then the Qwen rebuild (`flow_character_sheet_from_images.json`, the
+edit's right half, TURNED), photo + fisher sheets, seed 42. Out `G:/ComfyUi/ComfyUI/output/mpi1041_age/young/` (`pairs_*`).
+
+- Batch 20, 0a / 0b (newborn, plain / "too small to stand ... lying on its back" + a romper): the rebuild draws a STANDING
+  baby in the sheet's suit and boots on both sheets; lying is ignored. Fabio: a newborn is swaddled, keep the 3 panels.
+- Batch 20, 1a (the shipped child wording at 1): toddler on both, the photo lost her red curls. 1b ("toddler taking its
+  first steps" + chubby legs): photo kept the curls, fisher FAILED (Klein kept the old bearded face; the rebuild copied it).
+- Batch 21, **0s PASS 2 of 2**: swaddled in a cream knit blanket, no clothes caption - the same baby on all three panels.
+  It stands upright with bare feet showing (the graph draws a standing figure). **Fabio: fine, wire it in.**
+- Batch 21, 0u (a blanket in the clothes' colours + the caption): FAIL - the bodies come back in the clothes, the close-up
+  swaddled. So a newborn takes no caption, and the describer skips `sheetClothes` at 0.
+- Batch 21, **1c PASS 2 of 2**: 1a + the teen template's "the same hairstyle and hair color"; the rebuild takes 1b's
+  toddler body words. Photo kept wavy hair (lighter than the original), fisher a clear 1-year-old.
+- Wired: `buildAgePrompt` / `buildRebuildPrompt` 0 and 1 verbatim; the head-removal leg `unless` age 0; slider
+  `valueLabels` Keep / Newborn. `npm test` 3047/3049, 0 fail; eslint clean on the changed files.

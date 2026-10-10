@@ -81,7 +81,7 @@ haircut, a build), never a description of the character. It opens at the face bo
 A change to a sheet the user already HAS (new clothes, glasses, a haircut, beaten up, heavier, an
 age) is Character Sheet Editor: the sheet card as `image1`, `change` one of clothes, accessories,
 hair, condition, body or none, `words` only the new thing ("a red leather jacket"), `Input_Age`
-the age in years or 0 to keep it. One change per run: for a second, run it again on the result.
+-1 to keep the age (the default), 0 a newborn, 1 a toddler, then years. One change per run: for a second, run it again on the result.
 Under 16 a sheet must be fully dressed; a `CHILD_SAFETY` refusal means run Clothes first. Body
 and ages 12 and under need Qwen-Image 2.1: when it is missing, say so, and the Flow offers it.
 

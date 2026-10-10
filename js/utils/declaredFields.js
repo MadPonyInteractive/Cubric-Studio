@@ -252,11 +252,15 @@ export const isInjectionParam = (id) => /^input_/i.test(String(id));
  * Minutes and seconds only: this renders a media length, and the app caps nothing
  * near an hour. A longer one would read "125 minutes" rather than lie.
  *
+ * `valueLabels` names single values a bare number cannot say: the Character Sheet
+ * Editor's age reads "Keep" at -1 and "Newborn" at 0 (MPI-1041).
+ *
  * @param {Object} f  the field declaration
  * @param {*} v       the current value
  * @returns {string}  display text
  */
 export function formatDeclaredValue(f, v) {
+    if (f?.valueLabels?.[v] != null) return f.valueLabels[v];
     if (f?.format !== 'duration') return String(v);
     const total = Math.max(0, Math.round(Number(v) || 0));
     // `m:ss`, not "2 minutes 30 seconds" (Fabio, 2026-09-02). The long form was three
@@ -542,6 +546,7 @@ export function agentFieldSpecs(flow) {
         ...(Array.isArray(f.options) ? { options: f.options.map(o => ({ v: o.v, label: o.label })) } : {}),
         ...(Number.isFinite(f.min) ? { min: f.min } : {}),
         ...(Number.isFinite(f.max) ? { max: f.max } : {}),
+        ...(f.valueLabels ? { valueLabels: f.valueLabels } : {}),
     }));
 }
 
@@ -842,7 +847,7 @@ export function buildField(f, cur, onChange, unsubs, opts = {}) {
             // over a readout already saying "1 minute 30 seconds" — one control
             // contradicting itself. The readout below carries the formatted value and
             // is always visible, so nothing is lost (MPI-664).
-            info: f.format ? '' : `${f.label || f.id}: {value}`,
+            info: f.format || f.valueLabels ? '' : `${f.label || f.id}: {value}`,
         });
         // A slider with no readout is a guess. The number IS the control. It shows
         // the DECLARED value, never the mapped one — `mapTo` is hidden by design.

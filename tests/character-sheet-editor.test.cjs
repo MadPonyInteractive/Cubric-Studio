@@ -67,6 +67,11 @@ test('the age template: child, teen, younger and older adult, by the describer\'
     // No read: a typical adult (35), so 60 is older and 25 younger.
     assert.match(buildAgePrompt(60, NaN), /an older version of themselves as a 60-year-old\./);
     assert.match(buildAgePrompt(25, NaN), /a younger version of themselves as a 25-year-old,/);
+    // Batch 21: a newborn is swaddled; a 1-year-old keeps the hair.
+    assert.strictEqual(buildAgePrompt(0, 40), C.slice(0, -2) + "a newborn baby a few weeks old, with a baby's round face, "
+        + 'smooth skin and very little hair, swaddled in a soft cream knit blanket so only the face shows.' + L1);
+    assert.strictEqual(buildAgePrompt(1, 40), C + "1-year-old child, with a child's smooth face, no beard and no wrinkles, "
+        + 'the same hairstyle and hair color, wearing the same clothes.' + L1);
     assert.strictEqual(parseApparentAge('About 40.'), 40);
     assert.ok(Number.isNaN(parseApparentAge('')));
 });
@@ -80,14 +85,22 @@ test('a child\'s bodies are rebuilt with batch 17\'s words and the sheet\'s clot
     // A Clothes change replaces the described clothes with the user's words.
     const built = characterSheetEditor('rebuild', { change: 'clothes', words: 'a navy wool coat', Input_Age: 8, sheetClothes: caption });
     assert.match(built.positive, /^A 8-year-old child .* Wearing a navy wool coat\.$/);
+    // A newborn is swaddled: no caption, or the bodies come back dressed (batch 21).
+    assert.strictEqual(buildRebuildPrompt(0, caption), 'A newborn baby a few weeks old, swaddled snugly in a soft cream '
+        + 'knit blanket so only its face shows, lying on its back. It is too small to stand.');
+    assert.strictEqual(buildRebuildPrompt(1, caption), "A 1-year-old toddler taking its first steps, with a toddler's body "
+        + 'proportions: a short, chubby body with short chubby arms and legs and a large head for the body. ' + caption);
 });
 
 test('a run with no words for its change, or nothing to change, is refused', async () => {
     const { characterSheetEditorRefusal: refuse } = await builder();
     assert.ok(refuse({ change: 'clothes', words: '' }));
-    assert.ok(refuse({ change: 'none', Input_Age: 0 }));
+    assert.ok(refuse({ change: 'none', Input_Age: -1 }));
+    assert.ok(refuse({ change: 'none' }), 'no age at all is keep, never a newborn');
+    assert.ok(refuse({ change: 'none', Input_Age: null }));
+    assert.strictEqual(refuse({ change: 'none', Input_Age: 0 }), null, '0 is a newborn: a change');
     assert.strictEqual(refuse({ change: 'none', Input_Age: 30 }), null);
-    assert.strictEqual(refuse({ change: 'hair', words: 'a bob', Input_Age: 0 }), null);
+    assert.strictEqual(refuse({ change: 'hair', words: 'a bob', Input_Age: -1 }), null);
 });
 
 test('each leg carries its lock and the whole run in runPrompt', async () => {
@@ -109,8 +122,8 @@ test('each leg carries its lock and the whole run in runPrompt', async () => {
 /** The configs a whole run would queue: one per leg, as flowService builds them. */
 async function runConfigs(values) {
     const { characterSheetEditor } = await builder();
-    const age = values.Input_Age || 0;
-    const parts = [values.change !== 'none' && 'change', age > 0 && 'age', age > 0 && age <= 12 && 'rebuild'].filter(Boolean);
+    const age = values.Input_Age ?? -1;
+    const parts = [values.change !== 'none' && 'change', age >= 0 && 'age', age >= 0 && age <= 12 && 'rebuild'].filter(Boolean);
     return parts.map((part) => {
         const built = characterSheetEditor(part, values);
         return { positive: built.positive, injectionParams: { ...values, ...built.injectionParams } };
@@ -126,7 +139,7 @@ const CAPTION = 'Wearing a mustard-yellow double-breasted suit with matching tro
 
 test('child, teen and adult runs of every change clear the gate on both models', async () => {
     for (const modelId of ['klein-9b', 'qwen-image-2-1']) {
-        for (const age of [1, 2, 5, 10, 12, 13, 15, 17, 18, 30, 60, 90]) {
+        for (const age of [0, 1, 2, 5, 10, 12, 13, 15, 17, 18, 30, 60, 90]) {
             for (const [change, words] of [['clothes', 'a navy wool coat, jeans and boots'], ['accessories', 'round glasses'],
                 ['hair', 'a short bob'], ['condition', 'muddy and soaked'], ['body', 'heavyset'], ['none', '']]) {
                 const v = await verdicts({ change, words, Input_Age: age, sheetAge: '40', sheetClothes: CAPTION }, modelId);
@@ -177,17 +190,22 @@ const stage = async (installed) => {
 const run = (change, age, headless = true) => ({ change, words: 'x', injectionParams: { Input_Age: age, Input_Remove_Head: headless } });
 
 test('each change routes to its editor and the age picks the legs', async () => {
-    const { getFlowById, flowOperation, flowRunLegs } = await registry();
+    const { getFlowById, flowOperation, flowRunLegs, flowToggleLeg } = await registry();
     const flow = getFlowById('character-sheet-editor');
     assert.ok(flow, 'the Flow is registered');
-    for (const c of ['clothes', 'accessories', 'hair', 'condition']) assert.strictEqual(flowOperation(flow, run(c, 0)), 'flowCharacterSheetEdit');
-    assert.strictEqual(flowOperation(flow, run('body', 0)), 'flowCharacterSheetEditQwen');
+    for (const c of ['clothes', 'accessories', 'hair', 'condition']) assert.strictEqual(flowOperation(flow, run(c, -1)), 'flowCharacterSheetEdit');
+    assert.strictEqual(flowOperation(flow, run('body', -1)), 'flowCharacterSheetEditQwen');
     assert.strictEqual(flowOperation(flow, run('none', 30)), null);
     const ops = r => flowRunLegs(flow, r).map(l => l.operation);
-    assert.deepStrictEqual(ops(run('clothes', 0)), ['flowCharacterSheetEdit', 'flowCharacterSheetHeadless']);
-    assert.deepStrictEqual(ops(run('clothes', 0, false)), ['flowCharacterSheetEdit']);
+    assert.deepStrictEqual(ops(run('clothes', -1)), ['flowCharacterSheetEdit', 'flowCharacterSheetHeadless']);
+    assert.deepStrictEqual(ops(run('clothes', -1, false)), ['flowCharacterSheetEdit']);
     assert.deepStrictEqual(ops(run('body', 30)), ['flowCharacterSheetEditQwen', 'flowCharacterSheetEdit', 'flowCharacterSheetHeadless']);
     assert.deepStrictEqual(ops(run('none', 10)), ['flowCharacterSheetEdit', 'flowCharacterSheetImages', 'flowCharacterSheetHeadless']);
+    assert.deepStrictEqual(ops(run('none', 1)), ['flowCharacterSheetEdit', 'flowCharacterSheetImages', 'flowCharacterSheetHeadless']);
+    // A newborn is swaddled and lying down: its head stays, whatever the toggle says.
+    assert.deepStrictEqual(ops(run('none', 0)), ['flowCharacterSheetEdit', 'flowCharacterSheetImages']);
+    assert.strictEqual(flowToggleLeg(flow), 2, 'the head leg keeps its result-pane toggle');
+    assert.deepStrictEqual(ops(run('clothes', undefined)), ['flowCharacterSheetEdit', 'flowCharacterSheetHeadless'], 'no age = keep');
     assert.deepStrictEqual(ops(run('none', 13)), ['flowCharacterSheetEdit', 'flowCharacterSheetHeadless']);
     // Leg 1 (the change) defaults to Clothes when the run names none.
     assert.strictEqual(flowOperation(flow, { injectionParams: {} }), 'flowCharacterSheetEdit');
@@ -202,7 +220,7 @@ test('each leg runs its own model, and Qwen-Image 2.1 is asked for only when the
     assert.deepStrictEqual(flowModelIds(flow, { op: 'flowCharacterSheetEditQwen' }), [null, 'qwen-image-2-1']);
     assert.strictEqual(flowAvailability(flow).available, true, 'Klein alone makes the Flow available');
     assert.strictEqual(flowRunAvailability(flow, run('clothes', 30)).available, true);
-    assert.deepStrictEqual(flowRunAvailability(flow, run('body', 0)).missing, ['qwen-image-2-1']);
+    assert.deepStrictEqual(flowRunAvailability(flow, run('body', -1)).missing, ['qwen-image-2-1']);
     assert.deepStrictEqual(flowRunAvailability(flow, run('none', 10)).missing, ['qwen-image-2-1']);
     await stage(['klein-9b', 'qwen-image-2-1']);
     assert.strictEqual(flowRunAvailability(flow, run('body', 10)).available, true);
@@ -254,14 +272,15 @@ const C4 = ['CLOTHES', 'CLOTHES', 'CLOTHES', 'CLOTHES'];
 test('the picture checks run only when they can matter, and before any other question', async () => {
     // Under 18 the sheet must show ordinary clothes; never when the change itself dresses it.
     assert.deepStrictEqual(await asked('condition', 'muddy', 10), [...C4, 'sheetAge', 'sheetClothes']);
+    assert.deepStrictEqual(await asked('none', '', 0), [...C4, 'sheetAge'], 'a newborn is a child age; swaddled, it needs no caption');
     assert.deepStrictEqual(await asked('hair', 'a bob', 15), [...C4, 'sheetAge']);
     assert.deepStrictEqual(await asked('hair', 'a bob', 16), [...C4, 'sheetAge']);
     assert.deepStrictEqual(await asked('none', '', 17), [...C4, 'sheetAge']);
     assert.deepStrictEqual(await asked('clothes', 'a navy coat', 10), ['sheetAge'], 'Clothes dresses it; its words are the caption');
     assert.deepStrictEqual(await asked('hair', 'a bob', 18), ['sheetAge']);
-    assert.deepStrictEqual(await asked('clothes', 'a red jacket', 0), [], 'an ordinary change asks nothing');
+    assert.deepStrictEqual(await asked('clothes', 'a red jacket', -1), [], 'an ordinary change asks nothing');
     // How old the sheet LOOKS is the child-safety gate's call, never this Flow's (Fabio, 2026-10-10).
-    assert.deepStrictEqual(await asked('clothes', 'a red bikini', 0), []);
+    assert.deepStrictEqual(await asked('clothes', 'a red bikini', -1), []);
 });
 
 test('the checks ask the upper and lower body of the front and the back view, never the whole sheet', async () => {
@@ -388,10 +407,12 @@ test('the hand, agent and routine runs refuse with the same code and message', a
 
 test('the result card is named after the card it edits and the change', async () => {
     const { characterSheetEditorCardName: name } = await builder();
-    assert.strictEqual(name({ change: 'condition', words: ' beaten up. ', Input_Age: 0 }, 'John'), 'John - beaten up');
+    assert.strictEqual(name({ change: 'condition', words: ' beaten up. ', Input_Age: -1 }, 'John'), 'John - beaten up');
     assert.strictEqual(name({ change: 'none', words: 'ignored', Input_Age: 30 }, 'John'), 'John - age 30');
     assert.strictEqual(name({ change: 'clothes', words: 'a red coat', Input_Age: 10 }, 'John'), 'John - a red coat, age 10');
-    assert.strictEqual(name({ change: 'hair', words: 'a bob', Input_Age: 0 }, null), 'Character sheet - a bob', 'a file from outside the project');
+    assert.strictEqual(name({ change: 'none', Input_Age: 0 }, 'John'), 'John - newborn');
+    assert.strictEqual(name({ change: 'none', Input_Age: 1 }, 'John'), 'John - age 1');
+    assert.strictEqual(name({ change: 'hair', words: 'a bob', Input_Age: -1 }, null), 'Character sheet - a bob', 'a file from outside the project');
 
     const { sourceCardName } = await esm('js/services/flowService.js');
     const project = { itemGroups: [

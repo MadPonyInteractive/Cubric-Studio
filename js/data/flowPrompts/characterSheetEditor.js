@@ -28,9 +28,10 @@ function _words(text) {
     return String(text ?? '').trim().replace(/[\s.]+$/, '');
 }
 
+/** The slider's age: -1 = keep (Off), 0 = a newborn, 1-100 = years. No value at all is keep, never a newborn. */
 function _age(value) {
-    const n = Number(value);
-    return Number.isFinite(n) ? Math.round(n) : 0;
+    const n = value === null || value === '' ? NaN : Number(value);
+    return Number.isFinite(n) ? Math.max(-1, Math.round(n)) : -1;
 }
 
 /**
@@ -70,13 +71,25 @@ export function buildChangePrompt(change, words) {
 }
 
 /**
- * The exact-age edit (batch 15's neutral template, A4's teen and older wordings).
- * @param {number} age      - the target, 1-100
+ * The exact-age edit (batch 15's neutral template, A4's teen and older wordings; batch 21's
+ * swaddled newborn and toddler).
+ * @param {number} age      - the target, 0 (a newborn) to 100
  * @param {number} apparent - the describer's read of the sheet, NaN when unknown
  * @returns {string}
  */
 export function buildAgePrompt(age, apparent) {
     const older = age > (Number.isFinite(apparent) ? apparent : ADULT);
+    const younger = 'Change the character in this character sheet to be a younger version of themselves as ';
+    // A newborn is swaddled, never dressed: a baby in the sheet's suit and boots reads wrong (Fabio, 2026-10-10).
+    if (age === 0) {
+        return younger + "a newborn baby a few weeks old, with a baby's round face, smooth skin and very little hair, "
+            + 'swaddled in a soft cream knit blanket so only the face shows.' + L1;
+    }
+    // At 1 the plain child wording lost the hair, and a "toddler" wording kept the fisher's beard (batch 20).
+    if (age === 1) {
+        return younger + "a 1-year-old child, with a child's smooth face, no beard and no wrinkles, the same hairstyle "
+            + 'and hair color, wearing the same clothes.' + L1;
+    }
     const head = `Change the character in this character sheet to be ${older ? 'an older' : 'a younger'} `
         + `version of themselves as a ${age}-year-old`;
     if (age <= 12) return head + " child, with a child's smooth face, no beard and no wrinkles, wearing the same clothes." + L1;
@@ -90,14 +103,24 @@ export function buildAgePrompt(age, apparent) {
 /**
  * A child's body, redrawn from the edited portrait by Character Sheet from Images (batch 17):
  * an edit keeps the adult's size, a rebuild draws a child's.
+ * A newborn takes no caption: with one, the bodies came back in the clothes while the close-up
+ * stayed swaddled (batch 21). The graph still draws it standing; Fabio took that (2026-10-10).
  * @param {number} age
  * @param {string} caption - the clothes, one sentence starting "Wearing"
  * @returns {string}
  */
 export function buildRebuildPrompt(age, caption) {
+    if (age === 0) {
+        return 'A newborn baby a few weeks old, swaddled snugly in a soft cream knit blanket so only its face shows, '
+            + 'lying on its back. It is too small to stand.';
+    }
     const clothes = _words(caption);
-    return `A ${age}-year-old child with a child's height and body proportions: a short, small body with shorter arms `
-        + 'and legs, a shorter torso and a larger head for the body.' + (clothes ? ` ${clothes}.` : '');
+    const body = age === 1
+        ? "A 1-year-old toddler taking its first steps, with a toddler's body proportions: a short, chubby body with "
+            + 'short chubby arms and legs and a large head for the body.'
+        : `A ${age}-year-old child with a child's height and body proportions: a short, small body with shorter arms `
+            + 'and legs, a shorter torso and a larger head for the body.';
+    return body + (clothes ? ` ${clothes}.` : '');
 }
 
 /**
@@ -108,7 +131,7 @@ export function buildRebuildPrompt(age, caption) {
 export function characterSheetEditorRefusal(values = {}) {
     const change = values.change || 'none';
     if (change !== 'none' && !_words(values.words)) return 'Say what to change first.';
-    if (change === 'none' && !(_age(values.Input_Age) > 0)) return 'Pick something to change, or an age.';
+    if (change === 'none' && _age(values.Input_Age) < 0) return 'Pick something to change, or an age.';
     return null;
 }
 
@@ -121,7 +144,7 @@ export function characterSheetEditorRefusal(values = {}) {
  */
 export function characterSheetEditorCardName(values = {}, sourceName = null) {
     const age = _age(values.Input_Age);
-    const change = [(values.change || 'none') !== 'none' ? _words(values.words) : '', age > 0 ? `age ${age}` : '']
+    const change = [(values.change || 'none') !== 'none' ? _words(values.words) : '', age === 0 ? 'newborn' : age > 0 ? `age ${age}` : '']
         .filter(Boolean).join(', ');
     return `${String(sourceName || '').trim() || 'Character sheet'} - ${change}`;
 }
@@ -129,9 +152,9 @@ export function characterSheetEditorCardName(values = {}, sourceName = null) {
 /** One part's prompt, or '' when the run does not take it. */
 function _part(part, values) {
     const age = _age(values.Input_Age);
-    if (part === 'age') return age > 0 ? buildAgePrompt(age, parseApparentAge(values.sheetAge)) : '';
+    if (part === 'age') return age >= 0 ? buildAgePrompt(age, parseApparentAge(values.sheetAge)) : '';
     if (part === 'rebuild') {
-        if (!(age > 0 && age <= 12)) return '';
+        if (!(age >= 0 && age <= 12)) return '';
         // A Clothes change replaced what the describer saw on the original sheet.
         const caption = values.change === 'clothes' ? `Wearing ${_words(values.words)}` : values.sheetClothes;
         return buildRebuildPrompt(age, caption);

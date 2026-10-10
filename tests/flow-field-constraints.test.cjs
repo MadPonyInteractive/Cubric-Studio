@@ -290,6 +290,14 @@ test('format: duration reads as m:ss, short enough to sit beside its slider', as
     assert.equal(formatDeclaredValue({}, 90), '90');
 });
 
+test('valueLabels names the values a bare number cannot say, and only those', async () => {
+    const { formatDeclaredValue } = await esm('js/utils/declaredFields.js');
+    const f = { valueLabels: { '-1': 'Keep', 0: 'Newborn' } };
+    assert.equal(formatDeclaredValue(f, -1), 'Keep');
+    assert.equal(formatDeclaredValue(f, 0), 'Newborn');
+    assert.equal(formatDeclaredValue(f, 30), '30');
+});
+
 test('a voice roster serialises to the caption lines the graph reads', async () => {
     const { serialiseVoices, mapDeclaredValue } = await esm('js/utils/declaredFields.js');
 

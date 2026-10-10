@@ -2,6 +2,19 @@
 
 ## Current State
 
+**2026-10-10 (session 2e68e381) - AGE SLIDER -1/0/1 DONE (uncommitted; `npm test` 3047/3049, 0 fail).** Slider min/default -1
+with `valueLabels` (`declaredFields.js`: readout "Keep" / "Newborn", also in `agentFieldSpecs`); `Input_Age atLeast 1` ->
+`atLeast 0` (legs, four checks, `sheetAge`; `sheetClothes` stays 1-12: a newborn takes no caption); builder `_age` reads
+null / '' / missing as -1; age 0 = SWADDLED newborn (Fabio's call, upright pose accepted), 1 = toddler keeping the hair
+(validation.md batches 20-21); new leg key `unless` - the head-removal leg never runs at 0 (toggle kept); card
+"John - newborn". Docs: recipe, `01-descriptor-and-ops.md` (`unless`), agent flows, child-safety (0-17).
+PREVIEW ART DONE (awaiting Fabio's look): tile = the photo sheet's close-up 2x2 (as it was / `templates/older70_photo` /
+`graph_qwen/graphqwen_heavy_photo` / `graph_klein/cond_beaten_photo`, 196 KB); hero = the whole sheet, registered seam
+wipe through the same four, 1280x800 7.2 s 0.77 MB, loop seam 0 px (builders `scratchpad/tile.mjs`, `hero.py`, PIL
+frames + video-tool ffmpeg). Proven on my isolated instance: both 200 at exact bytes, hero paused:false / muted / loop /
+time advancing / 443 px wide. NEXT: the in-app Phase E cases in `npm run app:isolated`, then Fabio's eye test (incl.
+the slider readout "Keep" / "Newborn"). Claim `state/files/2e68e381-mpi1041-age.json`.
+
 **2026-10-10 (session fe4cb412) - FABIO'S ANSWERS, act on these next:**
 1. LoRA racks stay on under-18 runs: a rack can be a cartoon STYLE LoRA, and an NSFW LoRA needs trigger words, which the
    words gate reads. Do not gate racks.

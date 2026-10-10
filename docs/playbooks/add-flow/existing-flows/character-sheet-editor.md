@@ -16,7 +16,7 @@ building a Flow that needs more than one graph or more than one model.
 | operation / `operationBy` | `flowCharacterSheetEdit` (Klein), routed by the `change` select: `body` -> `flowCharacterSheetEditQwen`, `none` -> no leg 1 |
 | graphs | `flow_character_sheet_edit.json` (Klein 9B, 66 nodes, in-graph SAM3 lock) and `flow_character_sheet_edit_qwen.json` (Qwen-Image 2.1, 20). Both output the INPUT size |
 | authoring source | `raw/` is the source now. `research/bench-tools/build_edit_graph*.py` wrote the first raws; the LoRA racks went in after with `research/bench-tools/insert_rack.py` (raw in place, then `workflow-to-api.mjs` single-file) |
-| fields | `change` (select), `words` (hidden for "Nothing else"), `Input_Age` (slider 0-100, 0 = keep), `Input_Remove_Head` |
+| fields | `change` (select), `words` (hidden for "Nothing else"), `Input_Age` (slider -1-100: -1 = keep, the default; 0 = a newborn; 1 = a toddler; `valueLabels` reads Keep / Newborn), `Input_Remove_Head` |
 | prompt | `promptBuilder: 'characterSheetEditor'` -> `js/data/flowPrompts/characterSheetEditor.js`, called in `flowService` after describe. The user never types a prompt |
 
 ## Legs (`chain` as an ARRAY)
@@ -24,9 +24,9 @@ building a Flow that needs more than one graph or more than one model.
 | # | op | when | what |
 |---|---|---|---|
 | 1 | routed (`operationBy`) | `change` is not `none` | the picked change, Klein or Qwen |
-| 2 | `flowCharacterSheetEdit` | `Input_Age` atLeast 1 | Klein's exact-age edit, `prompt: 'age'` |
-| 3 | `flowCharacterSheetImages` | `Input_Age` 1-12 | the from-images graph rebuilds a child's bodies from the right half (`box` in fractions), `params: { Input_Face_Pose: 'TURNED' }`, `prompt: 'rebuild'` |
-| 4 | `flowCharacterSheetHeadless` | `Input_Remove_Head` | the same head removal Character Sheet runs |
+| 2 | `flowCharacterSheetEdit` | `Input_Age` atLeast 0 | Klein's exact-age edit, `prompt: 'age'` |
+| 3 | `flowCharacterSheetImages` | `Input_Age` 0-12 | the from-images graph rebuilds a child's bodies from the right half (`box` in fractions), `params: { Input_Face_Pose: 'TURNED' }`, `prompt: 'rebuild'` |
+| 4 | `flowCharacterSheetHeadless` | `Input_Remove_Head`, `unless` age 0 | the same head removal Character Sheet runs; never on a newborn (swaddled, lying down) |
 
 Each leg gets the previous leg's picture on `input`; a skipped leg passes it through. Every leg
 carries `runPrompt` (the WHOLE run's words), so the child-safety gate refuses "Clothes: a bikini +
@@ -42,6 +42,8 @@ Age 10" on leg 1, not after it. Engine contract: `flowsRegistry.js` § Legs, rou
 | Condition | Klein | 0 | b5, 6 of 6 |
 | Age 13+ | Klein | 0, exact-age wording | b11-b15 |
 | Age 12 and under | Klein age edit, then the Qwen rebuild | - | b17; Klein-only rebuild failed (b18, b19) |
+| Age 1 | as 12 and under, plus "the same hairstyle and hair color"; toddler body words | - | b20-21, 2 of 2 |
+| Age 0 (newborn) | as 12 and under: SWADDLED in a cream blanket, no clothes caption, no head removal; the graph draws it standing | - | b21, 2 of 2 (Fabio took the upright pose) |
 | Body shape | Qwen-Image 2.1 | none in that graph | b9, 3 of 3 |
 
 An edit keeps the figure's SIZE: a child's or a heavier body needs the bodies redrawn, which is why
@@ -78,7 +80,7 @@ for the younger / older word only; it reads old faces 10-15 years high) and `she
 
 Four entries have NO `to`: they are CHECKS (`SHEET_CLOTHES_CHECKS`, `{ media, region, when, ask,
 refuseUnless, code, message }`), asked before every answer and refusing unless the whole answer
-equals `refuseUnless`. At ages 1-17 the upper and the lower body of the front and the back view
+equals `refuseUnless`. At ages 0-17 the upper and the lower body of the front and the back view
 (`region` = that quarter of the sheet) must each read CLOTHES, swimwear included at 16-17 (Clothes
 puts a bikini on through the words gate). Skipped when Clothes is the change: that leg dresses the
 sheet first. **Never ask about the whole sheet:** "is the person fully dressed?" cleared a bikini,
