@@ -9,5 +9,8 @@
   changelog.md V1.2.18 entry.
 - `G:/ComfyUi/python_embeded/python.exe C:/AI/Mpi/ComfyUi-MpiNodes/test_switches.py`:
   16 passed (rerun by orchestrator), gapped and ungapped for all three classes.
-- Open: commit + push in ComfyUi-MpiNodes, then pin in `dev_configs/node_lock.json`
-  (`/mpi-nodes-sync`), at close-out.
+- 2026-10-10 (session 3c24ca48): 16ea887 pushed to ComfyUi-MpiNodes `main`; test_switches.py
+  16 passed again; pin in `dev_configs/node_lock.json` moved d721182 -> 16ea8876bc84...; the
+  GitHub archive zip for the pin answers 200; `tests/engine-drift.test.cjs` 6 pass. README row
+  unchanged (it already said "by selection index"; the fix makes the node match it). No
+  removed or renamed class. The app engine reinstalls the node at the new pin on its next boot.
