@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1059",
+  "title": "Status bar shows live RunPod spend next to REMOTE",
+  "description": "Idle label reads IDLE - REMOTE - $0.59 while a Pod is connected, so spend is visible outside the home page.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-10T11:27:37+01:00",
+  "updated_at": "2026-10-10T11:34:05+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

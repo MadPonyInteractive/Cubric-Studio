@@ -12,6 +12,7 @@ import { Events } from '../events.js';
 import { MODELS } from '../data/modelRegistry.js';
 import { hasNoEngine } from '../services/engineGate.js';
 import { clientLogger } from '../services/clientLogger.js';
+import { podSessionCost } from '../utils/podCost.js';
 
 const GB = 1024 ** 3;
 
@@ -125,9 +126,8 @@ function _formatDuration(secs) {
 // have billing-true uptime. Cost = uptimeHours × securePrice. Requires BOTH a
 // finite uptime and a known $/hr; otherwise the slot falls back to "last session".
 function _renderRemoteSession({ uptimeSeconds, pricePerHr }) {
-    const hasUptime = Number.isFinite(uptimeSeconds) && uptimeSeconds > 0;
-    const hasPrice = Number.isFinite(pricePerHr) && pricePerHr > 0;
-    if (!hasUptime || !hasPrice) {
+    const cost = podSessionCost({ uptimeSeconds, pricePerHr });
+    if (cost === null) {
         // No usable cost data — let the project "last session" line stand.
         _remoteSessionActive = false;
         _renderSession(undefined);
@@ -137,7 +137,6 @@ function _renderRemoteSession({ uptimeSeconds, pricePerHr }) {
     _setSessionLabel('current session');
     const el = gid('heroStatSession');
     if (!el) return;
-    const cost = (uptimeSeconds / 3600) * pricePerHr;
     el.innerHTML = '';
     el.appendChild(document.createTextNode(`${_formatDuration(uptimeSeconds)}/`));
     const accent = document.createElement('span');

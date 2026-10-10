@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/shell/statusBar.js",
+    "js/shell/heroStats.js",
+    "tests/status-bar-spend.test.cjs",
+    "docs/shell.md",
+    "js/utils/podCost.js"
+  ]
+}

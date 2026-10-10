@@ -28,6 +28,7 @@ import { gid, qs } from '../utils/dom.js';
 import { state } from '../state.js';
 import { getCommandProgressLabel, getCommandAccent } from '../data/commandRegistry.js';
 import { generationStore } from '../services/generationStore.js';
+import { podSessionCost } from '../utils/podCost.js';
 
 // ── DOM refs ───────────────────────────────────────────────────────────────────
 let _job       = null;  // #shell-info-job
@@ -49,6 +50,7 @@ let _elapsedSec   = 0;
 let _activeStartedAt = null;
 let _remoteConnected = false; // MPI-64 4.4: drives the IDLE · Local/Remote scope
 let _remotePhase = null;      // MPI-73: 'connecting' | 'disconnecting' | null — transient connect feedback
+let _podCost = null;          // MPI-1059: Pod spend so far ($), null when the feed carries no cost data
 let _timerInterval = null;
 let _completionToken = 0;
 // Id of the gen the bar is currently tracking. A terminal (cancelled/idle)
@@ -111,7 +113,10 @@ function _idleScopeLabel() {
     // MPI-64 A1: a sticky 'disconnected' phase = involuntary engine drop (OOM/WS
     // death); show it distinctly from a user Disconnect (plain 'Local').
     if (_remotePhase === 'disconnected') return 'Disconnected';
-    return _remoteConnected ? 'Remote' : 'Local';
+    if (!_remoteConnected) return 'Local';
+    // MPI-1059: the spend rides next to Remote, so the user never has to go back to
+    // the home page to see what the Pod has cost. Same number as the hero strip.
+    return _podCost === null ? 'Remote' : `Remote · $${_podCost.toFixed(2)}`;
 }
 
 // Last-active gen wins the single status bar. Any DRIVING event (running,
@@ -599,9 +604,12 @@ export const StatusBar = {
         // MPI-64 4.4: idle label scope tracks the remote engine connection.
         // MPI-73: `phase` ('connecting'|'disconnecting') overrides the steady
         // Local/Remote scope while a transition is in progress.
-        _listenUnsubs.push(Events.on('remote:connection', ({ connected, phase = null }) => {
+        // MPI-1059: the connected feed re-emits every ~5s with uptime + $/hr, so the
+        // idle label's spend climbs on the same tick as the hero strip's.
+        _listenUnsubs.push(Events.on('remote:connection', ({ connected, phase = null, uptimeSeconds, pricePerHr }) => {
             _remoteConnected = !!connected;
             _remotePhase = phase || null;
+            _podCost = podSessionCost({ uptimeSeconds, pricePerHr });
             if (_state === 'idle') _setIdle();
         }));
         // MPI-208 Phase 4: the store is the authority for bar ownership + idleness.
