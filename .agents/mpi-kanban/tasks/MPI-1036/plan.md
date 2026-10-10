@@ -625,6 +625,10 @@ dancer cut out (BiRefNet, an engineAsset) for Change the background + template 6
 stretch run (compare height to flowVideoEdit_002, itself made BEFORE the fix).
 Fabio, after the 1080p result: "resolution did help"; he expects 2K/4K to give really good results (try them on a
 big-VRAM Pod - MPI-549 OOMed H3+refs at both on a 32 GB 5090).
+Fabio: MPI-549 predates the H3 MODEL graphs' tiled stage 2 (MpiWindowedSampler in minimax_h3_r2va/fl2va). Video Edit's graph
+is SINGLE pass (SamplerCustomAdvanced only), so its 2K/4K still sample the whole canvas + the reference clip at once:
+the warning stays. Candidate (pending Fabio's yes): a Video Edit stage 2 - edit at 768p/1080p, then the H3 latent
+upscaler + MpiWindowedSampler to 2K/4K, as the model graphs do. Bench after the room fix.
 
 **NEXT (after Video edit 14), in order:**
 1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.
