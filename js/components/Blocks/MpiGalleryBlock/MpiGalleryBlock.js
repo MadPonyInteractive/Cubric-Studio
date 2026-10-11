@@ -24,6 +24,8 @@ import { MpiQueuePanel } from '../../Compounds/MpiQueuePanel/MpiQueuePanel.js';
 import { MpiReusePromptDialog } from '../../Compounds/MpiReusePromptDialog/MpiReusePromptDialog.js';
 import { MpiNotesEditor } from '../../Compounds/MpiNotesEditor/MpiNotesEditor.js';
 import { MpiAddToProject } from '../../Compounds/MpiAddToProject/MpiAddToProject.js';
+import { MpiImageSheet } from '../../Compounds/MpiImageSheet/MpiImageSheet.js';
+import { pickImageRendition } from '../../../utils/galleryRenditions.js';
 import { MpiPromptBox } from '../../Organisms/MpiPromptBox/MpiPromptBox.js';
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
@@ -380,7 +382,9 @@ export const MpiGalleryBlock = ComponentFactory.create({
             const project = state.currentProject;
             if (!project?.folderPath) return;
             if (!Array.isArray(g) || g.length < 2) return;
-            if (!g.every(grp => grp?.type === 'video')) return;
+            // MPI-1094: stills open the sheet dialog. The grid enables Combine only for
+            // all-video or all-still selections, and the route re-checks every item.
+            if (!g.every(grp => grp?.type === 'video')) { _openImageSheet(g); return; }
             const itemIds = g
                 .map(grp => getSelectedItem(grp)?.id)
                 .filter(Boolean);
@@ -435,6 +439,49 @@ export const MpiGalleryBlock = ComponentFactory.create({
                 Events.emit('ui:error', { title: 'Combine failed', message: _short });
             }
         });
+
+        // ── Combine stills into a sheet (MPI-1094) ──────────────────────────────
+        // The dialog previews and frames; /combine-images renders its tree at full size.
+        // Picture order is click order, as for every selection action.
+        function _openImageSheet(g) {
+            const project = state.currentProject;
+            const picked = g.map(grp => getSelectedItem(grp)).filter(Boolean);
+            if (!project?.folderPath || picked.length < 2) return;
+            const sheet = MpiImageSheet.mount(document.createElement('div'), {
+                items: picked.map(it => ({
+                    src: resolveMediaUrl(pickImageRendition(it, Infinity)),
+                    aspect: it.pixelDimensions?.w / it.pixelDimensions?.h,
+                })),
+                onCombine: async (request) => {
+                    const resp = await fetch('/combine-images', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ folderPath: project.folderPath, itemIds: picked.map(it => it.id), ...request }),
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok || !data?.success || !data?.item) {
+                        clientLogger.error('MpiGalleryBlock', 'combine-images failed', data?.error);
+                        throw new Error(data?.error || 'combine-images failed');
+                    }
+                    const ext = data.item;
+                    const newItem = createImageItem({
+                        id:              ext.id,
+                        filePath:        ext.filePath,
+                        thumbPath:       ext.thumbPath ?? null,
+                        thumbPathLg:     ext.thumbPathLg ?? null,
+                        operation:       ext.operation || 'combine-images',
+                        displayName:     truncateCardName(ext.displayName || 'sheet'),
+                        pixelDimensions: ext.pixelDimensions || { w: 0, h: 0 },
+                    });
+                    const newGroup = createItemGroup('image', { name: newItem.displayName });
+                    const populated = appendToHistory(newGroup, newItem);
+                    const currentGroups = state.currentProject?.itemGroups || [];
+                    await addGroup(populated);
+                    grid.el.setGroups([..._leadingGroups(), populated, ...currentGroups]);
+                },
+            });
+            sheet.el.show();
+        }
 
         // ── Make GIF (MPI-770) ────────────────────────────────────────────────────
         // Gallery context-menu Make GIF on 2+ selected still-image cards. groups[]

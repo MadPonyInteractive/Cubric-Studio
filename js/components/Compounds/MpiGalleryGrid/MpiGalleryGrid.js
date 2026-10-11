@@ -375,9 +375,12 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     compare: n === 2 && !hasStack
                         ? { info: 'Open the two cards side by side' }
                         : { disabled: true, info: hasStack ? 'Compare opens two cards, not a stack' : 'Select exactly 2 cards to compare' },
+                    // MPI-1094: stills pack into one sheet image; clips still join end to end.
                     combine: n >= 2 && allVideo
                         ? { info: 'Join the selected clips into one video, in click order' }
-                        : { disabled: true, info: 'Select 2 or more video cards to combine' },
+                        : n >= 2 && allStills
+                            ? { info: 'Pack the selected pictures into one sheet image' }
+                            : { disabled: true, info: 'Select 2 or more video cards, or 2 or more still images, to combine' },
                     'make-gif': n < 2
                         ? { disabled: true, info: 'Select 2 or more cards to make a GIF' }
                         : allStills

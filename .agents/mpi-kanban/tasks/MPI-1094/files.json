@@ -1,0 +1,17 @@
+{
+ "schema": "mpi-kanban/task-files/v1",
+ "files": [
+  "js/utils/sheetLayout.js",
+  "routes/imageSheet.js",
+  "server.js",
+  "js/components/Compounds/MpiImageSheet/",
+  "js/shell/preloadStyles.js",
+  "js/components/types.js",
+  "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
+  "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+  "tests/image-sheet.test.cjs",
+  "docs/gallery-selection.md",
+  "routes/projects.js",
+  "routes/gifMake.js"
+ ]
+}

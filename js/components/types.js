@@ -1623,6 +1623,29 @@
  */
 
 /**
+ * @typedef {Object} MpiImageSheetProps (Compound — js/components/Compounds/MpiImageSheet, MPI-1094)
+ * @property {Array<{src:string, aspect?:number}>} items - Pictures in click order: a preview url
+ *                                             and the upright width / height (measured off the
+ *                                             loaded preview when missing).
+ * @property {Function} [onCombine]          - async ({ tree, shape, longEdge, frames }) => void.
+ *                                             The previewed `js/utils/sheetLayout.js` tree, the
+ *                                             SHEET_SHAPES value, the long edge and each picture's
+ *                                             { zoom, cx, cy }. On rejection the modal stays open.
+ *
+ * Gallery Combine on 2+ stills. A live preview packed by `sheetLayout.packSheet`; Shape and
+ * Size dropdowns; a Bigger toggle per cell (weight 2); drag a cell to frame its picture,
+ * wheel to zoom (1x-8x).
+ *
+ * Instance methods (on instance.el):
+ *   show() — Self-portals via MpiModal.
+ *   hide() — Closes and destroys.
+ *   destroy() — Releases the cell listeners and the stage ResizeObserver.
+ *
+ * Emits:
+ * 'combine' {} — onCombine resolved; the modal closes.
+ */
+
+/**
  * @typedef {Object} MpiAddToProjectProps (Compound — js/components/Compounds/MpiAddToProject)
  * @property {Array<{id:string,name:string}>} [projects=[]] - Selectable target projects for the dropdown.
  * @property {Function} [onConfirm] - async (projectId: string) => void. Copies the selected cards.

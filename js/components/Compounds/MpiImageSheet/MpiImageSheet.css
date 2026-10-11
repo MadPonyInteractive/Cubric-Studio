@@ -1,0 +1,97 @@
+/* ── MpiImageSheet (MPI-1094) ─────────────────────────────────────────────── */
+
+.mpi-image-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-4);
+    padding: var(--s-4);
+    background: var(--surface-1);
+    border-radius: var(--r-1);
+}
+
+.mpi-image-sheet__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-3);
+}
+
+.mpi-image-sheet__title {
+    font-size: var(--t-lg);
+    font-weight: 700;
+    color: var(--ink-1);
+    line-height: 1.2;
+}
+
+.mpi-image-sheet__size {
+    font-size: var(--t-sm);
+    color: var(--ink-3);
+}
+
+/* The preview box is sized in JS to the sheet's shape inside this area. */
+.mpi-image-sheet__stage {
+    height: min(62vh, 640px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-0);
+}
+
+/* Black between the cells, as the saved sheet has. */
+.mpi-image-sheet__preview {
+    position: relative;
+    background: var(--surface-canvas);
+}
+
+.mpi-image-sheet__cell {
+    position: absolute;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+}
+
+.mpi-image-sheet__cell--dragging {
+    cursor: grabbing;
+}
+
+.mpi-image-sheet__img {
+    position: absolute;
+    max-width: none;
+    user-select: none;
+    pointer-events: none;
+}
+
+.mpi-image-sheet__bigger {
+    position: absolute;
+    top: var(--s-2);
+    right: var(--s-2);
+    opacity: 0;
+    transition: opacity var(--t-fast);
+}
+
+.mpi-image-sheet__cell:hover .mpi-image-sheet__bigger,
+.mpi-image-sheet__bigger.is-active {
+    opacity: 1;
+}
+
+.mpi-image-sheet__controls {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+}
+
+.mpi-image-sheet__controls > .mpi-dropdown {
+    width: 8rem;
+}
+
+.mpi-image-sheet__hint {
+    margin-left: auto;
+    font-size: var(--t-sm);
+    color: var(--ink-3);
+}
+
+.mpi-image-sheet__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--s-3);
+}

@@ -182,3 +182,6 @@ router.post('/gif/make', async (req, res) => {
 });
 
 module.exports = router;
+// Shared with routes/imageSheet.js (MPI-1094): the same stills, resolved the same way.
+module.exports.resolveAbsPath = _resolveAbsPath;
+module.exports.isEligibleStillImage = _isEligibleStillImage;

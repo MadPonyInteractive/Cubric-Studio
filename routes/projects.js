@@ -3966,3 +3966,4 @@ module.exports.itemsInFlight = itemsInFlight;
 module.exports.resolveDisplayImage = resolveDisplayImage;
 module.exports.projectThumbFor = projectThumbFor;
 module.exports.cleanupRebuildableAssets = cleanupRebuildableAssets;
+module.exports.writeImageRenditions = writeImageRenditions;

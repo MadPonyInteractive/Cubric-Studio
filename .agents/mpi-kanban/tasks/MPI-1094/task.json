@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1094",
+  "title": "Gallery Combine for images: pack 2+ pictures into one sheet (character / clothes sheet, mood board)",
+  "description": "Combine on image cards opens a sheet dialog: packed layout from the LTX sheet packer, shape + size options, per-picture framing; saves one image card.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-11T19:30:46+01:00",
+  "updated_at": "2026-10-11T19:47:48+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
