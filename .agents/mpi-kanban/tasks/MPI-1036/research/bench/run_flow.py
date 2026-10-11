@@ -181,6 +181,38 @@ PRESETS['V6e_shower_room_768p'] = dict(PRESETS['V6c_shower_room_1080p'], quality
 # then the same + the H3 Fun ControlNet Union fed that Canny (V6h) - the with/without pair, on V6c's failing case.
 PRESETS['V6g_shower_1080p_canny_ref'] = dict(PRESETS['V6c_shower_room_1080p'], cannyref=True)
 PRESETS['V6h_shower_1080p_canny_ref_fun'] = dict(PRESETS['V6g_shower_1080p_canny_ref'], funcontrol=True)
+# V6h locked the moves but copied the Canny's line-art look and room. V6i: <Video 1> stays V6c's clip; the Fun
+# ControlNet alone gets a Canny of the dancer only (BiRefNet cut-out on grey -> Canny, no room edges).
+PRESETS['V6i_shower_1080p_fun_dancer_canny'] = dict(PRESETS['V6c_shower_room_1080p'], funcontrol=True, cannymask=True)
+# V6i re-rendered the clip: strength 1 over all 8 steps forced its edges through the identity steps too (Fabio: a failed
+# test, too strong). V6k: control the early (layout/motion) steps only.
+PRESETS['V6k_shower_1080p_fun_dancer_canny_soft'] = dict(PRESETS['V6i_shower_1080p_fun_dancer_canny'],
+                                                         fun_strength=0.6, fun_end=0.4)
+# Fabio: pose is out (no expressions; V6m started from the picture's framing, then zoomed out). Only V6a passed. V6o = V6a
+# at 768p, FULL length - V6e (768p) failed but was cut to 39 frames, like every failing run above 576p.
+PRESETS['V6o_shower_768p_full'] = dict(PRESETS['V6a_shower_room'], quality=1032192)
+# V6o kept the room but ended on a back turn the clip never does (the 4th). V6p = V6o minus template 6's clause ", the
+# back of the head and outfit showing whenever they turn away" - it passed, so flow_graph.py dropped it (Fabio
+# 2026-10-11); V6o rebuilt today no longer carries it either.
+PRESETS['V6p_shower_768p_full_no_backturn'] = dict(PRESETS['V6o_shower_768p_full'])
+# Fabio: template 6 fixed; "run a couple of tests on template 1" - it carries the same-shaped clause ("...whenever
+# <Subject 2> turns away"). Template 1 = swap the person, KEEP the clip's room: V6o's inputs, keep_background=True, no
+# words (V6's "in a bathroom" would fight the kept room), two seeds. Watch for a back turn the clip never does.
+PRESETS['V7a_t1_keep_768p_full'] = dict(PRESETS['V6o_shower_768p_full'], keep_background=True, positive='')
+PRESETS['V7b_t1_keep_768p_full_seed2'] = dict(PRESETS['V7a_t1_keep_768p_full'], seed=1185402913)
+# V6k copied the clip too. The official template (video_minimax_h3_fun_controlnet_union) = a POSE skeleton, no reference
+# video, strength 1 / 0 / 1. V6m = that shape + our picture as the only reference (who + where), Fun v2, 576p: the
+# prompt names no <Video 1> (there is none); the moves come from the skeleton alone.
+PRESETS['V6m_shower_576p_pose_v2_noref'] = dict(PRESETS['V6a_shower_room'], funcontrol=True, pose=True, noref=True,
+                                                prompt=(
+    '<Subject 1> is the woman in <Picture 1>: her face, skin, long red hair and silver cross necklace.\n'
+    '<Subject 2> is the location of <Picture 1>, the shower, with its light.\n\n'
+    'summary:\n[reference generation] <Subject 1> dances in <Subject 2>, full body in frame, facing the camera.\n\n'
+    'detailed_description:\nThe target video has the picture quality, light and colour of <Picture 1>.\n'
+    '[Shot 1] In <Subject 2>, <Subject 1> dances on the spot, facing the camera, with the face, hair and body of '
+    '<Picture 1>. A naked woman dancing in a bathroom.\nThe camera is static at chest height.\n\n'
+    'No text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no warped '
+    'anatomy, no flicker.'))
 PRESETS['V4c_bedroom_bg_kept_names_room'] =dict(PRESETS['V4a_bedroom_bg'], caption=False, look=(
     'The room is a bedroom with light-colored walls and a textured ceiling. A bed with a patterned duvet is partially '
     'visible on the left. A framed picture hangs on the wall to the right, and a dark wooden piece of furniture, possibly '
@@ -207,8 +239,9 @@ def composed(p):
 
 
 BENCH_KEYS = ('ours', 'instr', 'lora', 'preview', 'sigmas2', 'patch', 'ref1_small', 'ref_half', 'ref_frac', 'cutout',
-              'cannyref', 'funcontrol')
-FUN = 'minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors'  # Comfy-Org/MiniMax-H3 model_patches/, v1
+              'cannyref', 'funcontrol', 'cannymask', 'fun_strength', 'fun_end', 'pose', 'noref', 'prompt')
+# Comfy-Org/MiniMax-H3 model_patches/, v2.0 (sha256 890af58b...612). v1 deleted (Fabio); V6h-V6k ran on v1.
+FUN = 'minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors'
 
 
 def build(name):
@@ -237,17 +270,25 @@ def build(name):
         g['906'] = fg.node('ImageScale', 'Clip at half size', image=['60', 0], upscale_method='lanczos',
                            width=['907', 0], height=['908', 0], crop='disabled')
         g['110']['inputs']['ref_video_1'] = ['906', 0]
-    if p.get('cutout'):  # whole frame: <Video 1> = the person cut out by BiRefNet onto flat grey (no room to keep)
+    if p.get('cutout') or p.get('cannymask'):  # the person cut out by BiRefNet onto flat grey (no room to keep)
         g['190'] = fg.node('LoadBackgroundRemovalModel', 'BiRefNet', bg_removal_name='birefnet.safetensors')
         g['191'] = fg.node('RemoveBackground', 'The person in every frame', bg_removal_model=['190', 0], image=['42', 0])
         g['192'] = fg.node('EmptyImage', 'Flat grey', width=['43', 0], height=['44', 0], batch_size=['30', 0],
                            color=0x808080)
         g['193'] = fg.node('ImageCompositeMasked', 'The person on grey', destination=['192', 0], source=['42', 0],
                            x=0, y=0, resize_source=False, mask=['191', 0])
-        g['110']['inputs']['ref_video_1'] = ['193', 0]
-    if p.get('cannyref') or p.get('funcontrol'):  # the whole-frame clip (node 42) as Canny, back at the clip's size
-        g['195'] = fg.node('AIO_Preprocessor', 'Canny (AIO)', image=['42', 0], preprocessor='CannyEdgePreprocessor',
+        if p.get('cutout'):  # whole frame: <Video 1> = the cut-out
+            g['110']['inputs']['ref_video_1'] = ['193', 0]
+    if p.get('pose'):  # the clip as a DWPose skeleton (body, hands, face) - no identity edges
+        g['195'] = fg.node('DWPreprocessor', 'Pose (DWPose)', image=['42', 0], detect_hand='enable',
+                           detect_body='enable', detect_face='enable', resolution=1024,
+                           bbox_detector='yolox_l.torchscript.pt', pose_estimator='dw-ll_ucoco_384_bs5.torchscript.pt',
+                           scale_stick_for_xinsr_cn='disable')
+    elif p.get('cannyref') or p.get('funcontrol'):  # the clip (node 42, or the cut-out) as Canny, at the clip's size
+        g['195'] = fg.node('AIO_Preprocessor', 'Canny (AIO)', image=['193' if p.get('cannymask') else '42', 0],
+                           preprocessor='CannyEdgePreprocessor',
                            resolution=1024)
+    if p.get('cannyref') or p.get('funcontrol'):
         g['196'] = fg.node('ImageResizeKJv2', 'Canny at the clip size', image=['195', 0], width=['43', 0],
                            height=['44', 0], upscale_method='lanczos', keep_proportion='crop', pad_color='0, 0, 0',
                            crop_position='center', divisible_by=32, device='cpu')
@@ -256,9 +297,14 @@ def build(name):
     if p.get('funcontrol'):  # H3 Fun ControlNet as a model patch between the turbo LoRA and the sampler
         g['197'] = fg.node('ModelPatchLoader', 'H3 Fun ControlNet Union', name=FUN)
         g['198'] = fg.node('MiniMaxH3FunControlNetApply', 'Apply H3 Fun ControlNet (Canny)', model=['106', 0],
-                           model_patch=['197', 0], vae=['102', 0], strength=1.0, start_percent=0.0, end_percent=1.0,
+                           model_patch=['197', 0], vae=['102', 0], strength=p.get('fun_strength', 1.0),
+                           start_percent=0.0, end_percent=p.get('fun_end', 1.0),
                            control_video=['196', 0])
         g['108']['inputs']['model'] = ['198', 0]
+    if p.get('noref'):  # the official template's shape: no reference video, the control alone carries the moves
+        del g['110']['inputs']['ref_video_1']
+    if p.get('prompt'):
+        g['110']['inputs']['prompt'] = p['prompt']  # the whole prompt, verbatim (the template banks name <Video 1>)
     return g
 
 

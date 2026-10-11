@@ -106,3 +106,11 @@ Side-by-sides sent to Fabio: `box_horns_side_by_side.webm`, `box_remove_side_by_
   EU-RO-1, 100 GB volume): Flow deps + H3 installed on the volume in ~2 min; run 1 (Swap the person) 4 min incl. loading
   H3 while stage-on-connect copied it to fast disk; run 2 (new description, encoder re-ran) 2 min. Describe on his
   Remote endpoint (gemma-4-26B-A4B-it, 1.4 s), reused on repeats.
+- 2026-10-11 (Video edit 18): template 6 (swap into the picture's room) back-turn fix. V6o (768p full) kept the room
+  but ended on a back turn; V6p = V6o minus the clause "the back of the head and outfit showing whenever they turn
+  away" = faces the camera like the source (logs/mpi1036/VE18_shower768_V6o_vs_V6p_no_backturn.webm). Fabio: fix
+  template 6. Shipped: raw 36fa2b916 + staged API (1 line), builder == API 96/96 nodes, workflow tests 45/45.
+  Template 1 check V7a/V7b (keep room, 768p, 2 seeds): no back turn in either; Fabio: V7b best, V7a's ~1 s lag =
+  a bad seed ("some seeds are crap"), accepted.
+- 2026-10-11 Fabio's eye on the compare-view contain fit (Video edit 17 fix): flowVideoEdit_005 vs videoCrop_003,
+  different shapes, "looks okay" - PASSED.

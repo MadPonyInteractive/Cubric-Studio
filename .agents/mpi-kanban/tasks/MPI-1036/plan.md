@@ -687,6 +687,7 @@ DOWNLOADED to the BENCH folder `G:/ComfyUi/ComfyUI/models/model_patches/` (the b
 G:/CubricModels; extra_model_paths.yaml is MPI-1060's), sha256 9c645c0a...91fed0c = HF lfs. Queued V6g (Canny ref) +
 V6h (Canny ref + Fun ControlNet strength 1, between turbo 106 and preview 108), 1080p 39 frames, behind V6e (768p).
 Whole-frame Canny carries the living room's edges too - if the room leaks, mask it to the dancer (BiRefNet, one node). His template-6 shower run (_014) failed at 1080p with no
+{kept} at all, so that one is something else (V6a = 576p).
 **V6e (768p, 39 frames, 341 s): THE CLIP'S LIVING ROOM + arms up and a back turn after mid-clip = his _014 exactly.**
 So it is NOT monotonic in size (576p shower + follows; 768p clip room + drifts; 1080p shower but picture framing +
 back turn): template 6 is UNSTABLE, H3 flips between two rooms / two framings -> Fabio's "the model is confused by
@@ -702,7 +703,114 @@ V6c | V6g | V6h). Then Fabio picks: control (Canny/Fun) vs the template-6 prompt
 AVOID EXTRA RENDERS (Fabio). Compare-view fix: Fabio's eye still pending (open any different-shaped pair in Compare).
 **UMBRELLA MPI-1063 (Video Edit Flow) created** (Fabio): members MPI-1036 + MPI-1061 (LTX 2.3 second model, taken from
 MPI-1060's session); MPI-897 now lists MPI-1063 instead of MPI-1036. Phases + bench ownership: tasks/MPI-1063/plan.md.
-{kept} at all, so that one is something else (V6a = 576p).
+
+**Video edit 18 (2026-10-10):** V6g (831 s) + V6h (881 s) landed; side-by-side `logs/mpi1036/VE17_shower1080_canny_fun.webm`
+(source39 | picture | V6c | V6g | V6h), sent to Fabio. **V6g (Canny as <Video 1>, no ControlNet) = WORSE than V6c:** the
+clip's living room comes back, a black dress from the clip's dress outline, the back turn. **V6h (Canny as <Video 1> +
+Fun ControlNet strength 1) = EVERY MOVE LOCKED to the source** (hands-under-chin at 1.4 s matches), **but H3 copies the
+reference's LOOK:** white edge lines over her and her face, a sheer outline of the clip's dress, a dark edge-drawn
+living room. Verdict: the Fun ControlNet fixes the performance; the Canny must NOT be the reference video, and the
+whole-frame Canny carries the room. Proposed next (ONE render, Fabio's yes first): V6i = V6c + Fun ControlNet fed a
+Canny of the dancer only (BiRefNet cut-out on flat grey -> Canny, so no room edges), <Video 1> stays V6c's clip. Risk:
+the clip's dress outline is still in the Canny (V6h's sheer dress) -> then Pose (Union v1 has it; controlnet_aux
+ships in node_lock, but no dep carries the DWPose weights - it would download them on first use) or a lower strength.
+Fabio: YES, clip as reference. `run_flow.py` key `cannymask` + preset `V6i_shower_1080p_fun_dancer_canny` (graph = V6c +
+nodes 190-198, checked offline); queued under the lease (2nd in queue behind MPI-1041's run + a peer) from this session's
+background. Output D:/WORK/Images/Outputs/mpi1036/V6i_*. Judge vs V6c/V6h on the first 39 source frames.
+**V6i (~17 min, survived a Claude Code crash: the lease child is detached) = A RE-RENDER OF THE SOURCE CLIP:** her
+face, pink curls, the cream dress, the living room - <Picture 1> ignored entirely. PSNR Y vs source 27.95 dB (vs V6c
+13.9). The dancer Canny carries her face, hair and dress edges, and the clip pixels as <Video 1> match it exactly, so H3
+rebuilds the clip. Canny = identity control, wrong for a swap. Side-by-side `logs/mpi1036/VE18_shower1080_fun_dancer_
+canny.webm` (source39 | picture | V6c | V6h | V6i). Proposed (Fabio's yes first): V6j = V6i with POSE instead of Canny
+(DWPose, no identity edges; weights already on the bench in controlnet_aux ckpts/hr16).
+Fabio: V6h/V6i = A FAILED TEST - strength 1.0, start 0.0, end 1.0 (my untuned pick) is far too strong, it brings the
+lines in. Reduce and retry: V6k = V6i at strength 0.6, end 0.4 (keys `fun_strength` / `fun_end`), running under the
+lease. Pose (V6j) only if V6k still leaks the clip's look.
+**V6k (1011 s) = STILL A RE-RENDER OF THE CLIP** (same face, curls, dress, living room) - controlling only the first ~3
+of 8 steps at 0.6 is enough: on the 8-step turbo the early steps decide person + room, not just the layout. Side-by-side
+`logs/mpi1036/VE18_shower1080_fun_soft.webm` (source39 | picture | V6c | V6i | V6k). Fabio: sweeps at LOW resolution
+(1080p = all night); 576p does not lose the dance, so it tests only "does the control leak the clip's look".
+Fabio's theory - `ref_image_size` 'match' vs 'max' on node 110: core `nodes_minimax_h3.py` - it sizes the REFERENCE
+IMAGES only (the picture), never the ref video. 'match' = scaled down to the generation's pixel area (so the picture's
+tokens GROW with render size); 'max' = 2048 px short edge, never upscaled. The shower picture is 1096x1920 (2.1 MP):
+'match' shrinks it to ~0.6 MP at 576p but keeps it whole at 1080p, and 'max' keeps it whole always - so AT 1080p MATCH
+AND MAX ARE IDENTICAL for this picture (switching cannot fix 1080p). The reverse is testable: 'max' at 576p = the 1080p
+picture size at 576p cost -> if it loses the dance / takes the picture's framing, picture-token weight is the cause.
+**How others wire it (Fabio: "look at other workflows"):** the official ComfyUI template
+`video_minimax_h3_fun_controlnet_union` (templates_json 0.1.102 on the bench) = POSE only (core SDPose extractor ->
+skeleton video, weights `sdpose_wholebody_fp16` + `rt_detr_v4-x-hgnet_fp16` from Comfy-Org/SDPose, NOT on the bench),
+**NO reference video and NO reference image** - plain text-to-video + control, strength 1.0 / 0 / 1, 20 steps (4-step
+Lightning optional), "raise strength above 1 only if the control drifts". alibaba-pai model card: v1 is LEGACY (use
+2.0), control_context_scale 1.0 for all results, guidance 1.0, 40 steps, says nothing on reference images. So our runs
+broke its shape three ways: Canny (carries identity) not pose, the SAME clip also fed as <Video 1>, 8 turbo steps. The
+ControlNet worked in every run (moves locked in V6h/V6i/V6k) - it locked the clip's identity too.
+Fabio: v2 first, and REMOVE v1. Done: `minimax_h3_fun_controlnet_union_2.0_pruned_int8_convrot.safetensors` 4,531,220,608
+B, sha256 890af58b...612 = HF lfs, in G:/ComfyUi/ComfyUI/models/model_patches/; v1 DELETED (the only copy on the box).
+V6h-V6k ran on v1. Queued V6m (576p, lease): DWPose skeleton -> Fun v2 at 1.0 / 0 / 1, <Picture 1> the ONLY reference
+(no ref video), a hand prompt naming no <Video 1> (preset keys `pose`, `noref`, `prompt`). Judge: woman + shower from
+the picture, moves from the clip, no lines/clip look.
+V6m try 1 FAILED in the sampler (214 s): `HostBuffer.read_file_slice failed` (comfy_aimdo) - the bench streams weights
+from disk. **My first diagnosis (v1 deleted under a live ComfyUI) was WRONG:** the re-run after POST /free failed the
+same way at 23:16 (211 s), and the log names the cause - aimdo `xfer_file_read_at: GetOverlappedResult failed
+error=1450` (Windows ERROR_NO_SYSTEM_RESOURCES) reading the v2 file at offset ~2.76 GB, inside the control step, with H3
+(19,995 MB) + Fun v2 (4,304 MB) both staged for dynamic VRAM loading. v1 (2.3 GB) ran four times without this. Right
+after, the bench ComfyUI vanished (no log line) and Claude Code crashed for the second time tonight. RAM afterwards: 44
+of 64 GB free. NOT re-run - asked Fabio first (it may be what takes his sessions down).
+Found: Ollama `ornith:9b` (7.4 GB, 64k ctx) loaded on the card OUTSIDE the lease (session "New character sheets 16"'s
+agent test; Ollama's 5-min keep-alive outlives any lease). Fabio: "Ollama uses the GPU, so it needs a GPU lease - it
+can't happen again." Messaged that session (wrap Ollama runs in the lease, end with `ollama stop`); card **Mpi-Kanban
+MPI-41** (lease counts a loaded Ollama model as busy, unloads on release, guard-gpu blocks unleased Ollama calls).
+V6m waits: next = card clear (`ollama ps` empty, nvidia-smi low) -> restart the bench with `--disable-fast-disk` -> V6m.
+Fabio yes. Bench restarted 23:40 DETACHED via WMI (Win32_Process Create; survives a Claude crash), run_nvidia_gpu.bat args
++ `--disable-fast-disk`. GOTCHA: `gpu_lease.py run -- bash -c ...` launched WSL's bash (no distro) -> "execvpe(/bin/bash)
+failed", exit 0, nothing ran - use "C:/Program Files/Git/bin/bash.exe". **V6m (576p, 381 s, no error 1450) = THE
+OFFICIAL SHAPE WORKS:** the picture's woman (red hair, cross necklace) in the picture's shower, every move from the
+skeleton (hands-under-chin at 1.5 s matches the source), no lines, no clip look. Framing a little closer/lower than the
+source (knees down cut, a tub edge in front). Side-by-side `logs/mpi1036/VE18_shower576_pose_v2.webm` (source39 |
+picture | V6a | V6i | V6m). 576p never lost the dance (V6a followed too), so the proof that pose control FIXES the
+failure is 768p (V6e lost it there): proposed V6n = V6m at 768p, ~6 min.
+**Fabio: V6m FAILED - pose carries no expressions, and it started from the picture's framing then zoomed out to the
+clip's. POSE IS OUT. Only V6a passed.** Asked: V6a at 768p. V6e WAS that, but cut to 39 frames - and every failure above
+576p (V6c/V6d/V6e) was a 39-frame run, while V6a ran the full 90. Running V6o = V6a at 768p FULL length (only node 26
+quality differs) to split size from length.
+Fabio on pose: great for fight scenes / acrobatics, wrong for dance - "30% of a good dance is expressions; no
+expressions = a robot". Pose control stays a candidate for action-type edits only (V6m proves the wiring: DWPose ->
+Fun v2, picture-only ref, 576p in 381 s). DWPose ran with detect_face on (~70 face points), but a full-body dancer's
+face is ~40 px at 576p, so the points blur together - Fabio agrees low resolution likely could not carry expressions.
+If pose comes back for dance: check the skeleton video's face at the render size first (not saved for V6m).
+Fabio: the skeleton path would need a HIGHER MINIMUM RESOLUTION. Order: judge V6o; if it fails -> ControlNet again at
+768p (V6m's pose shape at 768p, face points bigger).
+**V6o (768p, full 90 frames, 1061 s): MOSTLY PASSES, FAILS AT THE END.** The shower and the picture's woman hold the
+whole clip (V6e at 39 frames brought the living room back), the moves follow to ~2.5 s (source half-turns sideways,
+V6o turns further), and at ~3.5 s she has her BACK to the camera with hands on hips while the source faces the camera.
+So length fixed the room; the over-rotation into a back turn remains - the 4th back turn, and template 6 says "the back
+of the head and outfit showing whenever they turn away". Side-by-side `logs/mpi1036/VE18_shower_V6a_576_vs_V6o_768_
+full.webm` (source | picture | V6a | V6o, full length).
+Fabio: remove the back-turn line, run at 768p. V6p = V6o with node 76 (template 6) minus ", the back of the head and
+outfit showing whenever they turn away" (diff checked: that clause only). Running under the lease.
+**V6p (1081 s) = PASSES on my eye:** the shower + the picture's woman the whole clip, the expressions, the half-turn at
+2.5 s matches the source, and at 3.5 s she FACES the camera, hands on hips (= source; V6o had her back here). The clause
+primed the back turn. Side-by-side `logs/mpi1036/VE18_shower768_V6o_vs_V6p_no_backturn.webm` (source | picture | V6o |
+V6p). One seed. To ship (Fabio's call): drop the clause from template 6 in `flow_graph.py` (line ~147; check the
+sibling at ~167 too) -> re-export raw via the bench frontend + `sync-raw-workflows.mjs` -> diff 0 vs the builder.
+**SHIPPED to the graph (Fabio yes, template 6 only):** clause dropped in `flow_graph.py` PHOTO[6]; raw node 76 edited
+in place (both copies of the string are in node 76; text-level replace, 2-line diff), `sync-raw-workflows.mjs` committed
+raw `36fa2b916` and left the API STAGED (1 line). Builder == API: 96/96 nodes, 0 widget diffs, node 76 equal.
+inject-params-titles + workflow-media-slots + user-flows: 45/45 pass. run_flow V6p = V6o now (builder carries the fix).
+Template 1 check (Fabio: "a couple of tests"): V7a / V7b = dancer clip + shower woman, KEEP the clip's room, no words,
+768p full, seeds 3622567193 / 1185402913 - queued under one lease. Template 1 still has its own clause ("...whenever
+<Subject 2> turns away"); drop it only if V7a/V7b back-turn.
+**V7a (1135 s) / V7b (987 s): NO BACK TURN in either** - template 1's clause left as is. Both keep the living room and
+swap in the shower woman (face, hair, necklace), both end facing the camera hands on hips (= source). V7b is IN SYNC
+(half-turn at 2.5 s matches). **V7a LAGS ~1 s:** at 1.5 s her hands are still rising (source: under the chin), she
+does the chin pose at 2.5 s and skips the half-turn - a seed-level timing drift, not the back-turn fault. Side-by-side
+`logs/mpi1036/VE18_template1_keep_768_V7a_V7b.webm` (source | picture | V7a | V7b).
+Fabio: V7b best; V7a's lag = "some seeds are crap", ACCEPTED, no chase. Compare-view fix PASSED his eye (validation.md).
+Ollama lease = Mpi-Kanban rework (MPI-41), not this card. Graphics (Phase 4): his timing, not necessarily next.
+Fabio: LTX split off for another time (MPI-1061 / umbrella MPI-1063); MPI-1036 does NOT wait for it.
+**NEXT (Video edit 19, fresh session): Phase 4 - Flow graphics via `/mpi-flow-graphics`** (tile 4/5 still + wide hero
+clip; replaces the provisional tile `comfy_workflows/display/flow-video-edit.webp`). Owned footage only - the dance /
+horns clips are a real creator's with her @handle, never ship them. Then close MPI-1036.
 
 **NEXT (after Video edit 14), in order:**
 1. DONE: pushed 1973b7c60..070279498 after MPI-623's fix went green.
@@ -793,9 +901,8 @@ Run `/mpi-flow-graphics`.
 - [x] Phase 1 - hidden instructions benched (Fabio approved 2026-10-08)
 - [x] Phase 2 - mask path benched and timed (square box + swap LoRA, Fabio passed 2026-10-08)
 - [ ] Phase 3 - Flow wired
-- [ ] **BLOCKS CLOSE (Fabio 2026-10-10):** LTX 2.3 as a SECOND model option next to H3 (H3 stays). Bench research =
-  card MPI-1061 (MPI-1060's session filed it; Ingredients alone COPIES a guide clip, so it benches LTX's editing
-  IC-LoRAs). Pointers sent to that session 2026-10-10. Close only after MPI-1061's verdict + Fabio's decision.
+- [x] ~~BLOCKS CLOSE: LTX 2.3 as a second model~~ - **SPLIT OFF (Fabio 2026-10-11):** LTX 2.3 in Video Edit is
+  "another time" - card MPI-1061 under umbrella MPI-1063 (Phases 2-3). MPI-1036 no longer waits for it.
 - [ ] Phase 4 - graphics
 
 ## Completed

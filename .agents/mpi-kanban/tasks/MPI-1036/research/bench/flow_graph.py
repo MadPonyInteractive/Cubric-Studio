@@ -144,7 +144,7 @@ retention_analysis:
 
 detailed_description:
 The target video has the picture quality, light and colour of <Picture 1>.
-[Shot 1] In <Subject 2>, <Subject 1> performs exactly what {{who}} does in <Video 1>, {MOVES}, with the face, hair, outfit and accessories of <Picture 1> from every angle, the back of the head and outfit showing whenever they turn away. {{words}}
+[Shot 1] In <Subject 2>, <Subject 1> performs exactly what {{who}} does in <Video 1>, {MOVES}, with the face, hair, outfit and accessories of <Picture 1> from every angle. {{words}}
 {CAMERA}{SOUND}""",
 }
 
