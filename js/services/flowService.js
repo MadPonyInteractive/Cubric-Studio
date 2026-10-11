@@ -13,7 +13,7 @@
 
 'use strict';
 
-import { enqueueGeneration } from './generationService.js';
+import { enqueueGeneration, cancelPendingCueJob, cancelRunningCueJob } from './generationService.js';
 import { runCommand } from './commandExecutor.js';
 import { cloudRunFields, estimateRunCost, cloudErrorMessage } from './cloudExecutor.js';
 import { CLOUD_TAPS } from '../utils/cloudEditGraph.js';
@@ -76,7 +76,8 @@ export function flowRunRefusal(flow, run) {
  *        `flowLegs`, the run's tempId, the previous leg's result item (a `box` is fractions of
  *        its size), the describe answers leg 1 got, and `alone` for a single leg run by the
  *        result pane. Never passed by a caller.
- * @returns {{queueJobId: string}|null} enqueue result, or null if the guard aborted.
+ * @param {{enqueue?: Function, describe?: Function}} [io] - the queue and the describe step; a test stubs them
+ * @returns {?FlowRun} the run's live handle (`flowRunHandle`), or null if the guard aborted.
  */
 /**
  * What is actually absent, for a toast that names it. MPI-304: a flow can require deps
@@ -288,7 +289,49 @@ export function wrapsScene(flow, _leg = {}) {
     return !!flow?.landsAsScene && _leg.index === undefined && _leg.tempId === undefined;
 }
 
-export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg = {}) {
+/**
+ * @typedef {{tempId: string, queueJobId: ?string, cancelled: boolean, cancel: function(): string}} FlowRun
+ */
+
+/**
+ * A Flow run's LIVE handle (MPI-1083), what `submitFlowGeneration` returns. A run can enter the
+ * Cue queue long after the call: after its describe step, after a cloud edit's pass 1 and cloud
+ * call, and once per later leg or pass, each under a NEW queue id. A caller that kept the id the
+ * call returned held `null` or a finished leg's, so an agent's cancel answered NOT_IN_FLIGHT and
+ * a Video Edit went on billing a Pod (found live 2026-10-11). So the caller keeps THIS object:
+ * `queueJobId` is always the job in the queue now, and `cancel()` stops the run wherever it is.
+ * A run that is not in the queue at that moment (describing, in the cloud, between legs) stops
+ * at its next enqueue, which reports `onCancel` and queues nothing.
+ * @param {string} tempId
+ * @param {function(?string): ?string} [cancelQueued] - stops a queued job; a test stubs it
+ * @returns {FlowRun}
+ */
+export function flowRunHandle(tempId, cancelQueued = cancelQueuedJob) {
+    return {
+        tempId,
+        queueJobId: null,
+        cancelled: false,
+        cancel() {
+            this.cancelled = true;
+            return cancelQueued(this.queueJobId) || 'running';
+        },
+    };
+}
+
+/**
+ * Stop a queued job through the Cue queue's OWN cancel functions, the ones its panel calls, so
+ * the lane drains and the next job promotes as for a user's Stop.
+ * @param {?string} queueJobId
+ * @returns {?('pending'|'running')} where it was stopped, or null when nothing was
+ */
+export function cancelQueuedJob(queueJobId) {
+    return !queueJobId ? null
+        : cancelPendingCueJob(queueJobId).length ? 'pending'
+        : cancelRunningCueJob(queueJobId) ? 'running'
+        : null;
+}
+
+export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg = {}, io = {}) {
     const flow = typeof flowOrId === 'string' ? getFlowById(flowOrId) : flowOrId;
     if (!flow) {
         Events.emit('ui:warning', { message: 'That flow could not be found.' });
@@ -459,6 +502,8 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // own placeholder below cannot collide with leg 1's landed card (a committed card
     // takes a real group id from the media commit, never the tempId).
     const tempId = _leg.tempId || crypto.randomUUID();
+    // Every leg and pass of the run shares ONE handle, so the caller's copy follows them all.
+    const handle = _leg.run || flowRunHandle(tempId);
 
     // NO getNextGeneration — arming the loop would re-fire flow gens. forceLocal only
     // when the user has explicitly pinned the local engine (mirrors state.engineOverride).
@@ -520,21 +565,32 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // before it, and the describe answers collected so far (run-only: `_leg`, never `inputs`).
     const legCallbacks = _leg.alone ? callbacks : chainCallbacks(flow, callbacks,
         (result, next) => submitFlowGeneration(flow, chainLegInputs(flow, inputs, result, next.leg), callbacks,
-            { index: next.index, tempId, item: result?.item, described }),
+            { index: next.index, tempId, run: handle, item: result?.item, described }, io),
         run, index);
     // Every pass but the last carries `runNextPass` on; the last gets none, so it ends
     // there. Each keeps the tempId for the same reason a later leg does.
     const runCallbacks = runNextPass
         ? nextPassCallbacks(runNextPass, callbacks,
             (media, last) => submitFlowGeneration(flow,
-                { ...snapshot, runInputs, runMediaItems: media, runOriginProject, runLanding, ...(last ? {} : { runNextPass }) }, callbacks, { tempId }))
+                { ...snapshot, runInputs, runMediaItems: media, runOriginProject, runLanding, ...(last ? {} : { runNextPass }) }, callbacks, { tempId, run: handle }, io))
         : legCallbacks;
 
+    // EVERY enqueue of the run, whenever it happens, records its queue id on the handle.
+    const enqueue = (cfg) => {
+        const res = (io.enqueue || enqueueGeneration)(cfg, runCallbacks, landing);
+        if (res) handle.queueJobId = res.queueJobId;
+        return res && handle;
+    };
     // A cloud model in the edit slot (MPI-918): pass 1 and the cloud call run first, and
-    // pass 2 enters the queue when the picture is back. So there is no queue id yet.
-    // ponytail: an agent's cancel before pass 2 enqueues answers NOT_IN_FLIGHT, like leg 2 of a chain.
+    // pass 2 enters the queue when the picture is back, through the same `enqueue`.
     const cloudModel = leg ? null : cloudEditModel(flow);
     const start = () => {
+        // Cancelled while it was not in the queue (describing, between legs or passes): it ends
+        // here, as cancelled, and queues nothing.
+        if (handle.cancelled) {
+            runCallbacks.onCancel?.();
+            return handle;
+        }
         // The leg's BUILT prompt (MPI-1041), here because the describe answers are in by now and
         // the child-safety gate reads `positive` when the job is queued.
         if (builder) {
@@ -543,15 +599,15 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
             Object.assign(config.injectionParams, built.injectionParams);
         }
         if (cloudModel) {
-            runCloudEdit(flow, cloudModel, config, runCallbacks, { enqueue: (cfg) => enqueueGeneration(cfg, runCallbacks, landing) });
-            return { queueJobId: null, tempId };
+            runCloudEdit(flow, cloudModel, config, runCallbacks, { enqueue, run: handle });
+            return handle;
         }
-        return enqueueGeneration(config, runCallbacks, landing);
+        return enqueue(config);
     };
 
     // The picture put into words first (MPI-1036, flowEnhance.js § describe), on the describer
     // picked in Remote: every caller reaches the graph through here, so hand, agent and routine
-    // runs are described alike. Like the cloud edit there is no queue id until it is done.
+    // runs are described alike. Like the cloud edit it enters the queue only when this is done.
     // First call only. The answers go on to each later leg through `described` (MPI-1041); a
     // multi-pass Flow that describes would need them carried into `runInputs` for each pass.
     // The rules read every field the run has (`change`, `words` are not graph params), and a
@@ -559,9 +615,10 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // and routine runs report the same code and words.
     const describeRun = { mediaItems, injectionParams: { ...flowRunValues(flow, run), ...config.injectionParams } };
     if (!_leg.tempId && describeAsks(flow, describeRun.injectionParams, mediaItems).length) {
-        describeFlowRun(flow, describeRun, runOriginProject || state.currentProject).then((d) => {
+        (io.describe || describeFlowRun)(flow, describeRun, runOriginProject || state.currentProject).then((d) => {
+            // Cancelled while it described (MPI-1083): whatever the describer said, nothing is queued.
+            if (handle.cancelled || d.cancelled) return runCallbacks.onCancel?.();
             if (!d.ok) {
-                if (d.cancelled) return runCallbacks.onCancel?.();
                 Events.emit('ui:warning', { message: d.message });
                 return runCallbacks.onError?.(Object.assign(new Error(d.message), { code: d.code || 'DESCRIBE_FAILED', userMessage: d.message }));
             }
@@ -569,13 +626,12 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
             Object.assign(described, d.injectionParams);
             if (!start()) runCallbacks.onError?.(new Error('The job was rejected before it entered the queue.'));
         });
-        return { queueJobId: null, tempId };
+        return handle;
     }
 
-    const res = start();
-    // Return the tempId so the caller (MpiBaseFlow) can match this job's live latent
+    // The handle carries the tempId so the caller (MpiBaseFlow) can match this job's live latent
     // previews (preview:frame → activeGenerations.byPromptId → entry.tempId; MPI-271).
-    return res ? { ...res, tempId } : null;
+    return start();
 }
 
 // ── Cloud edit stage (MPI-918) ───────────────────────────────────────────────────────────
@@ -680,11 +736,12 @@ export function pass1Shown(spec, { displayUrlsByNode = {}, promptText = null } =
  * @param {Object} model - the cloud ModelDef in the edit slot
  * @param {Object} config - the run's config, as a local run would enqueue it
  * @param {Object} callbacks
- * @param {{enqueue: function(Object):(Object|null), pass1?: function}} io - pass 2's enqueue, and pass 1;
- *        both passed in so a test can run this without the queue or the engine
+ * @param {{enqueue: function(Object):(Object|null), pass1?: function, run?: ?FlowRun}} io - pass 2's enqueue,
+ *        and pass 1, both passed in so a test can run this without the queue or the engine; and the
+ *        run's handle, so a cancel during pass 1 stops it before the cloud call is paid for
  * @returns {Promise<void>}
  */
-export async function runCloudEdit(flow, model, config, callbacks, { enqueue, pass1 = _runPass1 }) {
+export async function runCloudEdit(flow, model, config, callbacks, { enqueue, pass1 = _runPass1, run = null }) {
     const fail = (code, message) => {
         const userMessage = cloudErrorMessage(code, message);
         Events.emit('ui:warning', { message: `${flow.title}: ${userMessage}` });
@@ -699,6 +756,11 @@ export async function runCloudEdit(flow, model, config, callbacks, { enqueue, pa
         // already said why (a Pod still connecting, a workflow error), as for any Flow.
         clientLogger.warn('flowService', `${flow.id} edit stage (pass 1) failed: ${err?.message || err}`);
         callbacks.onError?.(err);
+        return;
+    }
+    // Cancelled during pass 1 (MPI-1083): stop before the provider bills anything.
+    if (run?.cancelled) {
+        callbacks.onCancel?.();
         return;
     }
     if (!shown) {
@@ -746,6 +808,11 @@ export async function runCloudEdit(flow, model, config, callbacks, { enqueue, pa
             return;
         }
         const image = await _dataUrlOf(await _blobOf(body.viewUrls[0]));
+        // Cancelled during the cloud call: the edit is paid for, but the run was told to stop.
+        if (run?.cancelled) {
+            callbacks.onCancel?.();
+            return;
+        }
         const queued = enqueue({
             ...config,
             cloudEdit: { pass: 2, spec: flow.cloudEdit, image, ...size, cost: body.cost },

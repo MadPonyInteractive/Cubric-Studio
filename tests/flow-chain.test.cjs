@@ -152,6 +152,6 @@ test('into a CLOSED project, leg 2 versions the card leg 1 just registered', asy
 test('leg 2 reuses leg 1 tempId so Cancel and live previews keep working', () => {
     const src = read();
     assert.match(src, /const tempId = _leg\.tempId \|\| crypto\.randomUUID\(\)/);
-    assert.match(src, /\{ index: next\.index, tempId, item: result\?\.item, described \}/,
+    assert.match(src, /\{ index: next\.index, tempId, run: handle, item: result\?\.item, described \}/,
         'MpiBaseFlow holds ONE _myTempId per run — a fresh id on a later leg orphans the pane');
 });

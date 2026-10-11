@@ -1,0 +1,14 @@
+{
+ "schema": "mpi-kanban/task-files/v1",
+ "files": [
+  "js/services/flowService.js",
+  "js/shell/agentDispatch.js",
+  "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+  "tests/agent-generation-relay.test.cjs",
+  "docs/agent-chat.md",
+  ".agents/mpi-kanban/tasks/MPI-1083/",
+  "tests/flow-chain.test.cjs",
+  "tests/flow-describe.test.cjs",
+  "tests/routine-runner.test.cjs"
+ ]
+}

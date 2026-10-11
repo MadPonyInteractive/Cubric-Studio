@@ -41,8 +41,8 @@
  * availability) and the existing download / enqueue paths, so they live here.
  */
 
-import { enqueueGeneration, findMissingMediaSlot, cancelPendingCueJob, cancelRunningCueJob } from '../services/generationService.js';
-import { submitFlowGeneration, cloudEditQuote, flowRunRefusal } from '../services/flowService.js';
+import { enqueueGeneration, findMissingMediaSlot } from '../services/generationService.js';
+import { submitFlowGeneration, cloudEditQuote, flowRunRefusal, cancelQueuedJob } from '../services/flowService.js';
 import { openProject, renameGroup, markGroup, serializeGroup, addGroup } from '../services/projectService.js';
 import { createItemGroup } from '../data/projectModel.js';
 import { reconcileAndHydrate } from '../managers/projectReconciler.js';
@@ -89,17 +89,19 @@ let _source = null;
 /** Job ids already reported — the "one result out" half of the contract. */
 const _settled = new Set();
 /**
- * Submit job id -> its Cue queue id, while it is in flight. The one thing `generation.cancel`
- * needs: the queue's own cancel functions take a queueJobId, and only this file knows which
- * one a relayed job became. Dropped the moment the job reports.
+ * Submit job id -> what stops it, while it is in flight: `{ cancel() }` answering where it was
+ * stopped. The one thing `generation.cancel` needs, and only this file knows what a relayed job
+ * became. A model op is one Cue job; a Flow is its live run handle (`flowRunHandle`, MPI-1083),
+ * because a Flow can enter the queue after the submit returns (describe, cloud edit) and again
+ * under a new id per leg or pass. Dropped the moment the job reports.
  */
-const _queueJobs = new Map();
+const _inFlight = new Map();
 
 /** POST a job's outcome back. Late/duplicate reports are dropped here and no-op'd server-side. */
 async function _report(jobId, payload) {
     if (_settled.has(jobId)) return;
     _settled.add(jobId);
-    _queueJobs.delete(jobId);
+    _inFlight.delete(jobId);
     try {
         await fetch(`/connector/jobs/${jobId}/result`, {
             method: 'POST',
@@ -877,7 +879,7 @@ function _enqueueAgentRun(jobId, input, config, target, historyOpts, { width = 0
         _agentStacks.add(stack.id);
         addGroup({ ...createItemGroup(STACK_TYPE, resultStackFields({ kind: stack.kind, name: truncateCardName(getCommand(config.operation)?.label || config.operation), expected: stack.total })), id: stack.id });
     }
-    if (!_settled.has(jobId)) _queueJobs.set(jobId, queued.queueJobId);
+    if (!_settled.has(jobId)) _inFlight.set(jobId, { cancel: () => cancelQueuedJob(queued.queueJobId) });
     return null;
 }
 
@@ -1107,9 +1109,9 @@ async function _submitFlow(jobId, input = {}) {
     if (!queued) {
         return _fail(jobId, 'REJECTED', 'Vision rejected the job before it entered the queue.');
     }
-    // ponytail: a two-leg flow's second leg enqueues under a NEW queue id, so a cancel that
-    // arrives during leg 2 answers NOT_IN_FLIGHT. Thread the leg's id back if that bites.
-    if (!_settled.has(jobId)) _queueJobs.set(jobId, queued.queueJobId);
+    // The HANDLE, never its id of the moment: it follows the run into the queue after a
+    // describe or a cloud edit, and through each later leg and pass (MPI-1083).
+    if (!_settled.has(jobId)) _inFlight.set(jobId, queued);
     return null;
 }
 
@@ -1904,11 +1906,7 @@ async function _describeImage(jobId, input = {}) {
  * the agent had no way to — so it read "leave it" as "leave it running" and said so.
  */
 function _cancelGeneration(jobId, input) {
-    const queueJobId = _queueJobs.get(input?.jobId);
-    const was = !queueJobId ? null
-        : cancelPendingCueJob(queueJobId).length ? 'pending'
-        : cancelRunningCueJob(queueJobId) ? 'running'
-        : null;
+    const was = _inFlight.get(input?.jobId)?.cancel() || null;
     if (!was) {
         return _fail(jobId, 'NOT_IN_FLIGHT',
             'Nothing in flight by that requestId: it already finished or was already cancelled.');

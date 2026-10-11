@@ -489,7 +489,7 @@ export const MpiBaseFlow = ComponentFactory.create({
          * `submitFlowGeneration` returns one. Membership is therefore by object
          * identity, never by id: an unstamped token is a real run that has not been
          * dispatched yet.
-         * @type {Set<{tempId: ?string}>}
+         * @type {Set<{tempId: ?string, handle?: import('../../../services/flowService.js').FlowRun}>}
          */
         const _runs = new Set();
         /** Is ANY run in flight. Derived from `_runs`; written only by `_syncRunning`. */
@@ -3732,7 +3732,7 @@ export const MpiBaseFlow = ComponentFactory.create({
          * Bind a submitted run to its queue job, or drop its token when the submit's guard
          * aborted before enqueue (missing model / no media).
          * @param {{tempId: ?string}} run
-         * @param {?{tempId?: string}} res - what the submit returned
+         * @param {?import('../../../services/flowService.js').FlowRun} res - the run's live handle
          */
         function _track(run, res) {
             if (!res) {
@@ -3742,6 +3742,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 return;
             }
             run.tempId = res.tempId || null;
+            run.handle = res;
             // MPI-271: seed from the last-held latent so a pane opened mid-gen (or
             // during a frame gap) shows the current latent immediately, not blank.
             if (run.tempId) {
@@ -3803,6 +3804,9 @@ export const MpiBaseFlow = ComponentFactory.create({
             const ours = activeGenerations.list().filter(e => mine.includes(e.tempId));
             const entry = ours.find(e => e.status === 'running') || ours[0];
             if (entry) activeGenerations.cancel(entry.id);
+            // A run still describing, in a cloud edit, or between its legs or passes has no
+            // queue entry to stop (MPI-1083): its handle ends it at its next enqueue.
+            else [..._runs].find(r => r.handle)?.handle.cancel();
         }
 
         // Ctrl+Enter runs the OPEN flow, not the PromptBox behind it — bound per

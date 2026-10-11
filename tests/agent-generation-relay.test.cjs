@@ -624,16 +624,129 @@ test('a submit sent with a requestId can be cancelled by it, and only while it i
 });
 
 // The renderer half cannot run here (it enqueues into the real generation queue), so its
-// wiring is pinned on the source: both enqueue sites remember the queue id, the handler is
+// wiring is pinned on the source: both enqueue sites remember what stops them, the handler is
 // registered, and it goes through the queue's OWN cancel functions — the ones the Cue panel
 // calls — never around them, or the lane would not drain and the next job never promote.
 test('the renderer cancels a relayed job through the Cue queue\'s own cancel functions', () => {
-  const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'shell', 'agentDispatch.js'), 'utf8');
+  const read = (...p) => fs.readFileSync(path.join(__dirname, '..', 'js', ...p), 'utf8');
+  const src = read('shell', 'agentDispatch.js');
   assert.match(src, /'generation\.cancel': _cancelGeneration,/);
-  assert.equal(src.match(/if \(!_settled\.has\(jobId\)\) _queueJobs\.set\(jobId, queued\.queueJobId\);/g)?.length, 2,
-    'a model op AND a Flow both record their queue id');
-  assert.match(src, /cancelPendingCueJob\(queueJobId\)\.length \? 'pending'\s+: cancelRunningCueJob\(queueJobId\) \? 'running'/);
-  assert.match(src, /_settled\.add\(jobId\);\s+_queueJobs\.delete\(jobId\);/, 'dropped the moment the job reports');
+  assert.match(src, /if \(!_settled\.has\(jobId\)\) _inFlight\.set\(jobId, \{ cancel: \(\) => cancelQueuedJob\(queued\.queueJobId\) \}\);/,
+    'a model op records its one queue job');
+  assert.match(src, /if \(!_settled\.has\(jobId\)\) _inFlight\.set\(jobId, queued\);/,
+    'a Flow records its live HANDLE, never the queue id of the moment (MPI-1083)');
+  assert.match(read('services', 'flowService.js'),
+    /cancelPendingCueJob\(queueJobId\)\.length \? 'pending'\s+: cancelRunningCueJob\(queueJobId\) \? 'running'/);
+  assert.match(src, /_settled\.add\(jobId\);\s+_inFlight\.delete\(jobId\);/, 'dropped the moment the job reports');
+});
+
+// MPI-1083, found live 2026-10-11: cancel_generation on a running Video Edit answered
+// NOT_IN_FLIGHT and the run went on billing a Pod. A Flow enters the queue AFTER its submit
+// returns (describe step, cloud edit) and again under a new id per leg or pass, and the relay
+// kept the id of the moment: null. These drive the real `submitFlowGeneration` with the queue
+// and the describer stubbed, which is exactly the seam the bug lived in.
+const loadFlowService = () => import('file://' + path.join(__dirname, '..', 'js', 'services', 'flowService.js').replace(/\\/g, '/'));
+
+/** Callbacks that count what the run reported, and a queue that records what entered it. */
+function flowRunWorld() {
+  const reported = { complete: 0, error: 0, cancel: 0 };
+  const queued = [];
+  return {
+    reported,
+    queued,
+    callbacks: {
+      onComplete: () => { reported.complete++; },
+      onError: () => { reported.error++; },
+      onCancel: () => { reported.cancel++; },
+    },
+    enqueue: (config, callbacks) => {
+      queued.push({ config, callbacks });
+      return { queueJobId: `q${queued.length}` };
+    },
+  };
+}
+
+const DESCRIBES = {
+  id: 'describes', title: 'Describes', operation: 'opDescribe', mediaType: 'video',
+  describe: [{ media: 'inputVideo', to: 'Prompt', ask: 'What happens?' }],
+};
+const CHAINED = { id: 'chained', title: 'Chained', operation: 'legOne', chain: { operation: 'legTwo' } };
+const MEDIA = { mediaItems: [{ role: 'inputVideo', url: 'clip.mp4' }] };
+
+test('a Flow cancelled while it describes reports CANCELLED and never enters the queue', async () => {
+  const { submitFlowGeneration } = await loadFlowService();
+  const world = flowRunWorld();
+  let answer;
+  const handle = submitFlowGeneration(DESCRIBES, MEDIA, world.callbacks, {}, {
+    describe: () => new Promise((resolve) => { answer = resolve; }),
+    enqueue: world.enqueue,
+  });
+  assert.ok(handle, 'a describing run is in flight, so the relay must get something it can cancel');
+  assert.equal(handle.queueJobId, null, 'nothing is queued while it describes');
+
+  assert.equal(handle.cancel(), 'running', 'the cancel lands, so the relay answers cancelled, not NOT_IN_FLIGHT');
+  answer({ ok: true, injectionParams: { Prompt: 'a man walks' } });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(world.queued.length, 0, 'the describe finishing after the cancel must queue NOTHING');
+  assert.deepEqual(world.reported, { complete: 0, error: 0, cancel: 1 }, 'the caller hears CANCELLED, once');
+});
+
+test('a described Flow enters the queue under the SAME handle the submit returned', async () => {
+  const { submitFlowGeneration } = await loadFlowService();
+  const world = flowRunWorld();
+  const handle = submitFlowGeneration(DESCRIBES, MEDIA, world.callbacks, {}, {
+    describe: async () => ({ ok: true, injectionParams: { Prompt: 'a man walks' } }),
+    enqueue: world.enqueue,
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(world.queued.length, 1);
+  assert.equal(world.queued[0].config.injectionParams.Prompt, 'a man walks');
+  assert.equal(handle.queueJobId, 'q1', 'the handle the relay kept now names the queued job');
+});
+
+test('a chained Flow\'s handle follows leg 2, and a cancel between the legs stops leg 2', async () => {
+  const { submitFlowGeneration } = await loadFlowService();
+
+  // Leg 2 enqueues under its own id, and the handle the relay holds follows it there.
+  let world = flowRunWorld();
+  let handle = submitFlowGeneration(CHAINED, {}, world.callbacks, {}, { enqueue: world.enqueue });
+  assert.equal(handle.queueJobId, 'q1');
+  world.queued[0].callbacks.onComplete({ item: {} });
+  assert.equal(world.queued.length, 2, 'leg 1 completing dispatches leg 2');
+  assert.equal(world.queued[1].config.operation, 'legTwo');
+  assert.equal(handle.queueJobId, 'q2', 'a cancel during leg 2 targets leg 2, not the finished leg 1');
+  world.queued[1].callbacks.onComplete({ item: {} });
+  assert.deepEqual(world.reported, { complete: 1, error: 0, cancel: 0 });
+
+  // Cancelled after leg 1 was queued, and leg 1 completes anyway (the race): leg 2 never queues.
+  world = flowRunWorld();
+  handle = submitFlowGeneration(CHAINED, {}, world.callbacks, {}, { enqueue: world.enqueue });
+  handle.cancel();
+  world.queued[0].callbacks.onComplete({ item: {} });
+  assert.equal(world.queued.length, 1, 'leg 2 must not enter the queue after a cancel');
+  assert.deepEqual(world.reported, { complete: 0, error: 0, cancel: 1 },
+    'the caller hears CANCELLED, not a done for a run that was told to stop');
+});
+
+test('a cloud edit cancelled during pass 1 stops before the provider is paid', async () => {
+  const { runCloudEdit, flowRunHandle } = await loadFlowService();
+  const world = flowRunWorld();
+  const run = flowRunHandle('t1', () => null);
+  const realFetch = globalThis.fetch;
+  let fetched = 0;
+  globalThis.fetch = async () => { fetched++; throw new Error('no network in this test'); };
+  try {
+    await runCloudEdit({ id: 'cloudy', title: 'Cloudy', cloudEdit: {} }, { id: 'm' }, {}, world.callbacks, {
+      enqueue: world.enqueue,
+      run,
+      pass1: async () => { run.cancel(); return { url: 'a.png', url2: null, prompt: 'p' }; },
+    });
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  assert.equal(fetched, 0, 'no picture read, staged or sent to the paid cloud model');
+  assert.equal(world.queued.length, 0);
+  assert.deepEqual(world.reported, { complete: 0, error: 0, cancel: 1 });
 });
 
 // MPI-876 — POST /connector/quote, the read the agent's spend gate takes before it fires.

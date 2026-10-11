@@ -235,11 +235,12 @@ test('submitFlowGeneration describes before the graph is queued, on the first ca
     // The rules read every field the run has (MPI-1041: `change`, `words` are not graph params).
     assert.match(body, /const describeRun = \{ mediaItems, injectionParams: \{ \.\.\.flowRunValues\(flow, run\), \.\.\.config\.injectionParams \} \};/);
     assert.match(body, /if \(!_leg\.tempId && describeAsks\(flow, describeRun\.injectionParams, mediaItems\)\.length\) \{/);
-    const describe = body.indexOf('describeFlowRun(flow, describeRun, runOriginProject || state.currentProject)');
+    const describe = body.indexOf('(io.describe || describeFlowRun)(flow, describeRun, runOriginProject || state.currentProject)');
     const merge = body.indexOf('Object.assign(config.injectionParams, d.injectionParams);');
     const startAfter = body.indexOf('if (!start())', merge);
     assert.ok(describe > -1 && merge > describe && startAfter > merge, 'describe -> merge -> queue');
-    assert.match(body, /if \(d\.cancelled\) return runCallbacks\.onCancel\?\.\(\);/);
+    // Cancelled by the describer OR by the run's handle while it described (MPI-1083).
+    assert.match(body, /if \(handle\.cancelled \|\| d\.cancelled\) return runCallbacks\.onCancel\?\.\(\);/);
     // A check's refusal keeps its own code (MPI-1041: CHILD_SAFETY); a describer failure has none.
     assert.match(body, /code: d\.code \|\| 'DESCRIBE_FAILED'/);
 });
