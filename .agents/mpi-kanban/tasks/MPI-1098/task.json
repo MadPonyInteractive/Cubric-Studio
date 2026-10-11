@@ -3,14 +3,15 @@
   "id": "MPI-1098",
   "title": "Flow Library Install: a plugin-only Flow (Transcribe) shows no progress, and a Flow whose model is already downloading cannot queue the rest",
   "description": "Fabio 2026-10-11: Transcribe Install pressed twice, nothing visible. flowInstallKeys counts the flow:<id> key only for requiredDeps, but _installMissing starts it for requiredPlugins deps too, so the drawer never sees the job. 360 Pano: Krea2 already downloading turns the footer into bar+Cancel with no Install for the remaining deps.",
-  "column": "doing",
-  "maturity": "validating",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "completed",
   "created_at": "2026-10-11T19:51:53Z",
-  "updated_at": "2026-10-11T19:54:08Z",
+  "updated_at": "2026-10-11T20:13:24Z",
   "links": {
     "checklist": "checklist.md",
     "files": "files.json",
-    "events": "events.jsonl"
+    "events": "events.jsonl",
+    "validation": "validation.md"
   }
 }

@@ -5,4 +5,4 @@
 - [x] _installMissing skips keys with a live job
 - [x] test
 
-- [ ] Fabio eye-test: Transcribe Install shows a bar; 360 Pano offers Install while Krea2 downloads
+- [x] Fabio eye-test: Transcribe Install shows a bar; 360 Pano offers Install while Krea2 downloads
