@@ -44,8 +44,10 @@ import Primitives only.
   waits behind a running generation, like the ComfyUI describer, and the queue owns the status bar.
   ~6 s the first take (model load), then the model sits in RAM. The mic stays greyed until the
   `speech-to-text` plugin (1.6 GB) is installed; Settings offers the install. Qwen3-ASR cannot
-  translate, so "Dictate in English" does nothing here. `Input_Context` (the node's `context`) is
-  the dictionary hook: empty today, it spelled "Cubric Studio" right when filled.
+  translate, so "Dictate in English" does nothing here.
+- **"Words to expect"** (Remote panel, under Speech to text; `Storage.getDictationWords()`, 500 chars)
+  is the dictionary: `&words=` on Ollama, `Input_Context.value` (the node's `context`) on ComfyUI.
+  "Cubric Studio" in it fixed that misspelling on both. Hidden on Remote, which takes no hint.
 - **A renderer probe of this path needs an Electron window**: a playwright-cli page gets CORS 403s
   from the engine. Playwright `_electron` with `CUBRIC_BACKGROUND=1` + own `CUBRIC_PORT` /
   `CUBRIC_USER_DATA_ROOT` attaches to the running engine and runs `transcribeComfy` for real.

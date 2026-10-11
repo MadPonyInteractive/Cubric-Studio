@@ -112,7 +112,7 @@ const _connectionError = (res, code, message, status) =>
     res.json({ ok: false, error: { code, message, ...(status && { status }) } });
 
 /** The connection's models, or a sent error envelope (returns undefined). */
-async function _connectionModels(res, profileId) {
+async function _connectionModels(res, profileId, { probe = false } = {}) {
     if (!profileId || typeof profileId !== 'string') {
         res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'profileId is required.' } });
         return undefined;
@@ -122,11 +122,19 @@ async function _connectionModels(res, profileId) {
     if (!profile || !profile.baseURL) return void _connectionError(res, 'NO_PROFILE', 'Connection not found, or it has no base URL.');
     // Ollama's /v1 answers without a key; every hosted preset needs one.
     if (!key && profileId !== 'ollama') return void _connectionError(res, 'NO_KEY', 'No API key saved for this connection.');
+    // Only Ollama runs on this card, so only its recommendations depend on it (`minVramGb`, MPI-993).
+    const vramGb = profileId === 'ollama' ? Math.round((await getVramStats()).total / 1024) : null;
     try {
-        // Only Ollama runs on this card, so only its recommendations depend on it (`minVramGb`, MPI-993).
-        const vramGb = profileId === 'ollama' ? Math.round((await getVramStats()).total / 1024) : null;
         return await listRemoteModels({ presetId: profileId, baseURL: profile.baseURL, key, vramGb });
     } catch (err) {
+        // MPI-1071: an Ollama that is not running, or not installed, answers nothing. Its rows still
+        // list the recommended models, not downloaded, so each offers the row that starts or installs
+        // Ollama and downloads one (Fabio: "the user using Ollama never knows what he should install").
+        // An HTTP refusal is a real answer; the probe reports reachability, so it never falls back.
+        if (profileId === 'ollama' && !probe && !err.status) {
+            logger.info('system', `llm connection models: Ollama unreachable, recommended rows only (${err && err.message})`);
+            return await listRemoteModels({ presetId: profileId, baseURL: profile.baseURL, key, vramGb, offline: true });
+        }
         logger.warn('system', `llm connection models failed (${profileId}): ${err && err.message}`);
         return void _connectionError(res, 'ENDPOINT_ERROR', err.message, err.status);
     }
@@ -138,7 +146,7 @@ async function _connectionModels(res, profileId) {
  */
 router.post('/llm/connection/probe', async (req, res) => {
     const start = Date.now();
-    const models = await _connectionModels(res, req.body?.profileId);
+    const models = await _connectionModels(res, req.body?.profileId, { probe: true });
     if (!models) return;
     res.json({ ok: true, latencyMs: Date.now() - start, modelCount: models.length });
 });
@@ -188,6 +196,8 @@ function _pullable({ MODEL_REGISTRY, RECOMMENDED_REMOTE_MODELS, modelName }) {
     return [
         ...MODEL_REGISTRY.filter((m) => m.ollamaName).map((m) => ({ key: m.id, ollamaName: m.ollamaName, name: modelName(m, 'ollama') })),
         ...RECOMMENDED_REMOTE_MODELS.ollama.map((r) => ({ key: r.id, ollamaName: r.id, name: r.id })),
+        // The Speech model row's default (MPI-1071), whether or not the agent table lists it too.
+        ...(RECOMMENDED_REMOTE_MODELS.ollama.some((r) => r.id === STT_OLLAMA_MODEL) ? [] : [{ key: STT_OLLAMA_MODEL, ollamaName: STT_OLLAMA_MODEL, name: STT_OLLAMA_MODEL }]),
     ];
 }
 
@@ -667,11 +677,12 @@ async function _hearingModels() {
     const r = await fetch(`${new OllamaEngine().baseUrl}/api/tags`, { signal: AbortSignal.timeout(5000) });
     const json = await r.json();
     return (json.models || []).filter(m => (m.capabilities || []).includes('audio'))
-        .map(m => ({ name: m.name, size: m.details?.parameter_size || '' }));
+        .map(m => ({ name: m.name, params: m.details?.parameter_size || '', bytes: m.size || 0 }));
 }
 
 /**
- * GET /llm/transcribe/models -> { ok:true, models:[{ name, size }], defaultModel } | { ok:false, error }
+ * GET /llm/transcribe/models -> { ok:true, models:[{ name, params, bytes }], defaultModel } | { ok:false, error }
+ * `params` is Ollama's parameter count ("11.9B"), `bytes` the download on disk.
  * The Remote panel's Ollama "Speech model" list. Does not start Ollama.
  */
 router.get('/llm/transcribe/models', async (_req, res) => {

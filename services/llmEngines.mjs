@@ -593,17 +593,22 @@ export const FALLBACK_CONTEXT_WINDOW = 32_768;
  * `contextWindow` is `metadata.context_length` (DeepInfra) or `context_length`
  * (OpenRouter), else our table, else null. Throws `ENDPOINT_ERROR` with `status`.
  * `vramGb` is this PC's card: a `minVramGb` entry above it is not recommended (MPI-993).
+ * `offline` (MPI-1071): skip the endpoint, so only the absent recommended rows come back. For an
+ * Ollama that is not running or not installed, whose rows still offer the download.
  */
-export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_000, vramGb = null }) {
-    const res = await fetch(`${baseURL.replace(/\/+$/, '')}/models`, {
-        headers: key ? { Authorization: `Bearer ${key}` } : {},
-        signal: AbortSignal.timeout(timeoutMs),
-    });
-    if (!res.ok) {
-        throw Object.assign(new Error(`GET /models failed: ${res.status} ${res.statusText}`), { status: res.status });
+export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_000, vramGb = null, offline = false }) {
+    let body = null;
+    if (!offline) {
+        const res = await fetch(`${baseURL.replace(/\/+$/, '')}/models`, {
+            headers: key ? { Authorization: `Bearer ${key}` } : {},
+            signal: AbortSignal.timeout(timeoutMs),
+        });
+        if (!res.ok) {
+            throw Object.assign(new Error(`GET /models failed: ${res.status} ${res.statusText}`), { status: res.status });
+        }
+        body = await res.json();
     }
-    const body = await res.json();
-    const caps = presetId === 'ollama' ? await _ollamaCapabilities(baseURL) : null;
+    const caps = presetId === 'ollama' && !offline ? await _ollamaCapabilities(baseURL) : null;
     const recommended = (RECOMMENDED_REMOTE_MODELS[presetId] || []).filter((r) => !r.minVramGb || (vramGb || 0) >= r.minVramGb);
     const listed = (Array.isArray(body?.data) ? body.data : []).filter((m) => typeof m?.id === 'string');
     // Ollama is the one preset the user installs into (MPI-993): a recommended model it

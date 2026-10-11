@@ -208,6 +208,11 @@ export const MpiLlmSettings = ComponentFactory.create({
                             <span class="mpi-settings__hint">The Ollama models you have that can hear. The recommended model is the one we test dictation on. Gemma 4 26B and 31B cannot hear, so they are not listed.</span>
                         </div>
                         <div id="mpiSettingsSpeechInstallSlot"></div>
+                        <div class="mpi-settings__form-group" id="mpiSettingsSpeechWordsGroup" hidden>
+                            <label class="mpi-settings__field-label">Words to expect</label>
+                            <div id="mpiSettingsSpeechWordsSlot"></div>
+                            <span class="mpi-settings__hint">Names and terms you say that it spells wrong, separated by commas. It spells them your way.</span>
+                        </div>
                         <div class="mpi-settings__form-group" id="mpiSettingsSpeechModelGroup">
                             <label class="mpi-settings__field-label">Speech model</label>
                             <div id="mpiSettingsSpeechModelSlot"></div>
@@ -630,12 +635,17 @@ export const MpiLlmSettings = ComponentFactory.create({
             const m = id && _remote?.ok ? _remote.models.find(x => x.id === id) : null;
             if (!slot || m?.installed !== false) return;
             const inst = MpiOllamaSetup.mount(slot, { modelId: id });
-            // Only a download SEEN finishing refreshes: a list and an Ollama that disagree
-            // about the same model would otherwise re-read the list forever.
+            // Only a download SEEN finishing, or Ollama SEEN starting, refreshes: a list and an
+            // Ollama that disagree about the same model would otherwise re-read the list forever.
+            // MPI-1071: while Ollama is down the list is the recommended rows alone (`/llm/connection/
+            // models`), so once this row starts it the list is re-read for what the user already has.
             let missing = false;
+            let down = false;
             inst.on('state', (state) => {
                 const downloaded = state.models?.[id]?.downloaded;
-                if (downloaded === false) missing = true;
+                if (!state.running) down = true;
+                else if (down) _refreshModels(el, Storage.getLlmConnection().profileId);
+                else if (downloaded === false) missing = true;
                 else if (downloaded && missing) _refreshModels(el, Storage.getLlmConnection().profileId);
             });
             _installInsts[job] = inst;
@@ -975,6 +985,15 @@ export const MpiLlmSettings = ComponentFactory.create({
                 }));
                 model.on('change', ({ value }) => Storage.setDictationModel(value));
             }
+            const wordsSlot = qs('#mpiSettingsSpeechWordsSlot', root);
+            if (wordsSlot) {
+                const words = _conn(MpiInput.mount(wordsSlot, {
+                    type: 'text',
+                    placeholder: 'Cubric Studio',
+                    value: Storage.getDictationWords(),
+                }));
+                words.on('change', ({ value }) => Storage.setDictationWords(value));
+            }
             _paintSpeech(root, Storage.getDictationBackend());
         }
 
@@ -993,6 +1012,9 @@ export const MpiLlmSettings = ComponentFactory.create({
             if (group) group.hidden = backend !== 'endpoint';
             const ollamaGroup = qs('#mpiSettingsSpeechOllamaGroup', root);
             if (ollamaGroup) ollamaGroup.hidden = backend !== 'ollama';
+            // Remote takes no word list: the hint did nothing for Qwen and made Turbo drop words.
+            const wordsGroup = qs('#mpiSettingsSpeechWordsGroup', root);
+            if (wordsGroup) wordsGroup.hidden = backend === 'endpoint';
             _speechInstall = _dropSpeech(_speechInstall);
             _speechOllama = _dropSpeech(_speechOllama);
             const paint = ++_speechPaint;
@@ -1022,13 +1044,25 @@ export const MpiLlmSettings = ComponentFactory.create({
             if (value !== stored) Storage.setDictationOllamaModel(value);
             // The default is the one we test on, marked like every other row (`_remoteModelOptions`), and listed first.
             const label = (name) => `${name === fallback ? '(recommended) ' : ''}${name}`;
-            const options = hearing.map(m => ({ value: m.name, label: label(m.name), meta: m.size }))
+            // "12B parameters, 7.6 GB": Ollama's "11.9B" alone read as a size (Fabio, 2026-10-11).
+            const meta = (m) => [parseFloat(m.params) && `${Math.round(parseFloat(m.params))}B parameters`, m.bytes && formatBytes(m.bytes)].filter(Boolean).join(', ');
+            const options = hearing.map(m => ({ value: m.name, label: label(m.name), meta: meta(m) }))
                 .sort((a, b) => (b.value === fallback) - (a.value === fallback));
             if (!names.includes(fallback)) options.unshift({ value: fallback, label: label(fallback), meta: 'Not downloaded' });
             _speechOllama = _conn(MpiDropdown.mount(listSlot, { options, value, extraClasses: STACKED }));
             const setup = (modelId) => {
                 _speechInstall = _dropSpeech(_speechInstall);
                 _speechInstall = _conn(MpiOllamaSetup.mount(installSlot, { modelId }));
+                // Re-read the list once Ollama is seen starting or the download seen landing (`_renderInstall`'s rule).
+                let missing = false;
+                let down = false;
+                _speechInstall.on('state', (state) => {
+                    const downloaded = state.models?.[modelId]?.downloaded;
+                    if (!state.running) down = true;
+                    else if (down) _paintSpeech(root, 'ollama');
+                    else if (downloaded === false) missing = true;
+                    else if (downloaded && missing) _paintSpeech(root, 'ollama');
+                });
             };
             _speechOllama.on('change', ({ value: picked }) => { Storage.setDictationOllamaModel(picked); setup(picked); });
             setup(value);

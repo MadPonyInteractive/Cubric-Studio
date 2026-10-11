@@ -186,6 +186,7 @@ async function _finish(take) {
         const model = local ? Storage.getDictationOllamaModel() : Storage.getDictationModel();
         const q = new URLSearchParams(model ? { model } : {});
         if (Storage.getDictationTranslate()) q.set('translate', '1');
+        if (local && Storage.getDictationWords()) q.set('words', Storage.getDictationWords());
         const res = await fetch(`${local ? '/llm/transcribe' : '/deepinfra/transcribe'}?${q}`, {
             method: 'POST',
             headers: { 'Content-Type': blob.type },
@@ -231,7 +232,8 @@ export async function transcribeComfy(blob) {
                 positive: '',
                 negative: '',
                 mediaItems: [{ url: dataUrl, mediaType: 'audio', source: 'dictation' }],
-                injectionParams: {},
+                // The node's `context`: "Cubric Studio" here spelled it right where it misheard.
+                injectionParams: { 'Input_Context.value': Storage.getDictationWords() },
             },
             {
                 onText: (text) => resolve({ ok: true, text: String(text || '').trim() }),

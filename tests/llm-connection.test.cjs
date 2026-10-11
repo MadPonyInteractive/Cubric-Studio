@@ -361,6 +361,44 @@ test('no profileId is a 400; an unknown connection is NO_PROFILE; a keyless host
     } finally { restore(); }
 });
 
+test('MPI-1071: an Ollama that is not running still lists its recommended models, not downloaded; the probe still fails', async () => {
+    const { RECOMMENDED_REMOTE_MODELS } = await import('../services/llmEngines.mjs');
+    const restore = stubUpstream(async () => { throw new TypeError('fetch failed'); });
+    try {
+        await withServer(async (base) => {
+            await withBridge({ profile: { id: 'ollama', name: 'Ollama', baseURL: 'http://localhost:11434/v1' }, key: null }, async () => {
+                const body = await (await fetch(`${base}/llm/connection/models?profileId=ollama`)).json();
+                assert.equal(body.ok, true);
+                assert.ok(body.models.length > 0);
+                assert.ok(body.models.every((m) => m.installed === false));
+                const ids = body.models.map((m) => m.id);
+                for (const job of ['enhance', 'describe']) {
+                    const first = RECOMMENDED_REMOTE_MODELS.ollama.find((r) => r.jobs.includes(job) && !r.minVramGb).id;
+                    assert.ok(ids.includes(first), `${job}'s recommended model is offered`);
+                }
+                const probe = await (await fetch(`${base}/llm/connection/probe`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profileId: 'ollama' }),
+                })).json();
+                assert.equal(probe.ok, false);
+                assert.equal(probe.error.code, 'ENDPOINT_ERROR');
+            });
+        });
+    } finally { restore(); }
+});
+
+test('MPI-1071: an Ollama that answers with an HTTP error is an error, not the recommended rows', async () => {
+    const restore = stubUpstream(async () => ({ ok: false, status: 500, statusText: 'Server Error', json: async () => ({}) }));
+    try {
+        await withServer(async (base) => {
+            await withBridge({ profile: { id: 'ollama', name: 'Ollama', baseURL: 'http://localhost:11434/v1' }, key: null }, async () => {
+                const body = await (await fetch(`${base}/llm/connection/models?profileId=ollama`)).json();
+                assert.equal(body.ok, false);
+                assert.equal(body.error.status, 500);
+            });
+        });
+    } finally { restore(); }
+});
+
 test('POST /llm/ollama/unload frees every loaded model, and never errors', async () => {
     // The card holds TWO runtimes. Ollama keeps a model resident for five minutes after
     // the last request and a 12B agent model is ~8GB of 16 — so Release VRAM, which only

@@ -298,6 +298,10 @@ export const Storage = {
   // MPI-1071: the Ollama model that hears; '' = the route's default (gemma4:12b).
   getDictationOllamaModel: () => String(get(STORAGE_KEYS.DICTATION_OLLAMA_MODEL, '') || ''),
   setDictationOllamaModel: (v) => set(STORAGE_KEYS.DICTATION_OLLAMA_MODEL, String(v || '')),
+  // MPI-1071: names and terms the user says, so the LOCAL backends spell them right (Ollama's
+  // `words`, ComfyUI's `Input_Context`). Remote takes none: the hint made Turbo drop words.
+  getDictationWords: () => String(get(STORAGE_KEYS.DICTATION_WORDS, '') || ''),
+  setDictationWords: (v) => set(STORAGE_KEYS.DICTATION_WORDS, String(v || '').trim().slice(0, 500)),
 
   // MPI-803 — playback output. An empty `deviceId` means the OS default endpoint, which
   // is what the app did unconditionally before this existed. A stored id is machine-local,

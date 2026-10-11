@@ -44,7 +44,51 @@
 - Dictation on `comfy`: the recording reaches the graph as a file (route TBD: how an audio
   media item gets to ComfyUI's input), `onText` resolves the insert.
 
-### Phase 4 - Transcribe Flow (separate plan when Phase 3 is green)
+### Phase 4 - Transcribe Flow (planned 2026-10-11, Fabio's shape)
+
+**Shape (Fabio):** drop an audio OR video card; the Flow shows the transcript in a text box with a
+Copy button and a "Download .srt" button. NO gallery card. MCP agents get the text AND the .srt.
+Same "Words to expect" box as dictation. ComfyUI only (Qwen3-ASR 0.6B, the `speech-to-text` plugin).
+
+**Facts found (research 2026-10-11):** `MpiSpeechToText` returns one STRING, no timestamps, one
+`generate(max_new_tokens=1024)` over the whole clip, so a long file is TRUNCATED. The engine's
+transformers has `qwen3_asr` but NO forced aligner; nothing in either repo writes SRT. The only aligner
+node found (1038lab) is GPL-3.0: not used. `MpiLoadAudioUpload` already decodes a VIDEO's audio track.
+A Flow submit from an agent already reports `output: { text }` (`js/shell/agentDispatch.js:1100`).
+
+**4a. MpiNodes: timestamps by silence, in our own node (sibling repo, release procedure).**
+`MpiSpeechToText` gains a second output `srt`. Split the waveform at silences (energy, >= 300 ms),
+merge into segments of at most ~8 s, hard-cut only past ~15 s with no pause, transcribe each segment
+with the same `context`; `text` = the segments joined. That also lifts the 1024-token ceiling for long
+files. A long subtitle line splits in two, time shared by characters. ponytail: silence split, no word
+alignment; add an aligner only if Fabio's subtitles drift. Check with `check_speech.py` on his clips
++ a 5-minute file. Output 0 unchanged, so dictation's graph is untouched. Release, then pin (ask Fabio
+before the push: it is public).
+
+**4b. Op + graph.** `flowTranscribe` in the 4 op files, `outputKind: 'text'`, `requiredDeps` = the
+7 `qwen3-asr-06b-*` ids. `raw/flow_transcribe.json`: `Input_Audio` and `Input_Video` (BOTH
+`MpiLoadAudioUpload`, the injector routes by node class), picked lazily on `loaded` (MpiIfElse, the
+DramaBox pattern), `Input_Context` -> `MpiSpeechToText` -> `srt` -> `Output_prompt`. Two optional
+slots, so an app-side "drop an audio or a video" refusal (mind `tests/flow-required-media.test.cjs`).
+Convert + validate ONE raw file (workflow-to-api.mjs + validate-injection-rules.mjs), never
+sync-raw-workflows.mjs. Descriptor in the Flow registry, `mediaType: 'audio'`.
+
+**4c. Flow UI.** `MpiBaseFlow._runCallbacks` gets an `onText` branch (today a text op never settles
+there). A result field type: a new Primitive (read-only `MpiInput` textarea + Copy + "Download .srt"),
+shown in place of the media frame and the "Saved to your gallery" note. The text = the SRT with indices
+and times stripped (parsed in the renderer; the graph sends only SRT). MpiBaseFlow is shared: check
+peer claims before the first edit.
+
+**4d. The .srt file + MCP.** A server route writes `<project>/Transcripts/<source>.srt` (no card, no
+project.json write) and returns the path. The Download button opens a Save As window (Fabio 2026-10-11); agents get the project copy; `_submitFlow`'s `onText` reports
+`output: { text, srtPath }` for this Flow. Update the MCP instructions + `generate` description and the
+in-app chat tile for a text result (add-flow 07 § "A new media KIND").
+
+**4e. Close-out.** Tile + hero (`/mpi-flow-graphics`), `docs/agent/flows.md`, `UNRELEASED.md`, tests:
+an SRT parse/strip unit test, the route, `inject-params-titles`, the required-media refusal.
+
+**Verify:** a real run on Fabio's clips and one video card in an isolated app under the GPU lease;
+an agent run through MCP returns text + a readable .srt; Fabio's eye-test of the result box.
 
 ## Verification
 
@@ -144,6 +188,34 @@ Fabio said yes to the R2 upload and to releasing MpiNodes "with the release meth
   (MPI-993 `_renderInstall`) and say plainly which do and which do not.
 - (old) Next: Fabio tests ComfyUI in Settings + a mic take (restart the app: server routes changed last
   session), then commit (handoff/end-session), then item 5 (dictionary).
+
+2026-10-11 (session 9d0faf14): **Fabio's open question ANSWERED + fixed (uncommitted).**
+- Speech > Ollama and Enhancement > "Ollama (local)": already offered the recommended model to
+  install with nothing installed, Ollama running or not (MpiOllamaSetup starts/installs it).
+- Enhancement / Description / Agent on the **Ollama connection**: did NOT. Ollama down or not
+  installed = `/models` fetch fails, dropdown greyed "Connect first", `ENDPOINT_ERROR: fetch failed`,
+  no install. FIX: `_connectionModels` falls back to `listRemoteModels({ offline: true })` = the
+  recommended rows only, `installed: false`, on a NETWORK failure (HTTP error + probe stay errors);
+  `_renderInstall` re-reads the list once Ollama is seen starting. 2 tests in llm-connection (green).
+  Speech row re-paints the same way; `_pullable` now carries gemma4:12b on its own (it was pullable
+  only because the agent table scores it). Down path NOT seen live: Ollama's URL is hard-coded and
+  Fabio's Ollama is running; his eye-test (quit Ollama from the tray, open Remote).
+- **Item 5 BUILT:** "Words to expect" box (`Storage.get/setDictationWords`, hidden on Remote) ->
+  `&words=` on Ollama, `Input_Context.value` on ComfyUI. Seen in an Electron window: shows on Ollama,
+  saves. Real ComfyUI take of clip1 under the lease: no words "Cubic Studio", with words "Cubric Studio".
+- Next: Fabio's eye-test (Ollama quit, Remote panel; Words box).
+- **Transcribe Flow shape (Fabio 2026-10-11):** NO text card. The Flow shows a text field with the
+  result + a Copy button, and a Download button for the .srt. MCP agents must get BOTH the text and
+  the SRT (plan: text in the result, the .srt written to a file whose path the result returns).
+- Speech model meta now "12B parameters, 7.6GB" (his yes). Phase 4 plan WRITTEN (above).
+- **4a BUILT (uncommitted in ComfyUi-MpiNodes: speech.py, check_speech.py, README, changelog V1.2.19).**
+  DRIFT from the plan: 8 s pieces cut at every pause BROKE sentences on Fabio's clips ("audio, and.
+  Images.", "remembers you. Give us" for "remembers to give us"). Now: <= 20 s = ONE pass (as before);
+  longer = cut at the LONGEST pause per 20 s window (hard cut at 20 s only with no pause by 30 s); cues
+  split at 84 chars with time shared over the TALK spans (pauses skipped). `check_speech.py --selftest`
+  (no model) green; the 5 clips read like the one-pass text again. Engine copy of MpiNodes is a real
+  folder, so nothing is live until release + pin. 4-min file: whole, 36 cues, starts within 0.03 s (click fix: BLIP_S). **RELEASED 1.2.19** by the release procedure (Fabio's yes): MpiNodes 945484f pushed, publish workflow green, changelog PUT 200, registry Pending. PINNED in dev_configs/node_lock.json (node_lock tests 35/35). Fabio's own engine still runs 665aed3 until his engine re-syncs the pin. Next: 4b (op + graph `raw/flow_transcribe.json`, wire the `srt` output to `Output_prompt`).
+- Fabio's Ollama store is `H:/OllamaModels` (H: 4.7 GB free of 118 GB), not ~/.ollama.
 
 Next, in order:
 1. ~~Register the node~~ DONE (above).
