@@ -926,10 +926,11 @@ Run `/mpi-flow-graphics`.
 
 - [x] Phase 1 - hidden instructions benched (Fabio approved 2026-10-08)
 - [x] Phase 2 - mask path benched and timed (square box + swap LoRA, Fabio passed 2026-10-08)
-- [ ] Phase 3 - Flow wired
+- [x] Phase 3 - Flow wired (shipped behind the H3 gate)
 - [x] ~~BLOCKS CLOSE: LTX 2.3 as a second model~~ - **SPLIT OFF (Fabio 2026-10-11):** LTX 2.3 in Video Edit is
   "another time" - card MPI-1061 under umbrella MPI-1063 (Phases 2-3). MPI-1036 no longer waits for it.
-- [ ] Phase 4 - graphics
+- [x] Phase 4 - graphics (Fabio "1"; 6720b7446 + f196da565; isolated-app load check Video edit 20). CARD CLOSED
+  2026-10-11 - evidence in validation.md.
 
 ## Completed
 

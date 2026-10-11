@@ -121,3 +121,9 @@ Side-by-sides sent to Fabio: `box_horns_side_by_side.webm`, `box_remove_side_by_
   Still to do: registry `video` field (flowsRegistry.js held by MPI-1041, message sent), 200 + bytes check, npm test.
 - 2026-10-11 Found live: agent cancel cannot stop a described Video Edit run (NOT_IN_FLIGHT, queueJobId null until
   the describe step finishes) -> card MPI-1083.
+- 2026-10-11 (Video edit 20) Phase 4 load check on own app:isolated (port 54866, scratchpad project; :3000 untouched):
+  GET /comfy_workflows/display/flow-video-edit.mp4 200 1,458,513 B video/mp4; flow-video-edit.webp 200 103,186 B
+  image/webp (both = the committed bytes). Flow Library -> Video Edit: hero <video> selected by src, paused false,
+  muted, loop, readyState 4, currentTime 5.94 -> 7.44 over 1.5 s, 444x277 px on screen, 1280x800 decoded, 7.92 s,
+  poster flow-video-edit.webp, visible. npm test: 3125 pass, 0 fail, 2 skipped. CI green on 6720b7446 + f196da565.
+  LTX 2.3 option split off to MPI-1061 (Fabio 2026-10-11). CLOSED.

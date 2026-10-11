@@ -2,12 +2,12 @@
 
 - [x] The hidden instructions, on the bench (+ Character Swap LoRA A/B) - Fabio approved 2026-10-08
 - [x] The mask path, on the bench - square box + swap LoRA, Fabio passed it 2026-10-08
-- [ ] Wire the Flow
+- [x] Wire the Flow (shipped behind the H3 gate; CI green on 6720b7446 + f196da565)
   - [x] MpiGradeMatch node, swap LoRA dep, licence key, op in 4 registries (Video edit 7)
   - [x] FlowDef video-edit, raw/ export + sync (API = builder, 0 diffs), inject + handover tests, agent docs, playbook doc (Video edit 8)
   - [x] R2-R5 whole-frame bench runs judged (Video edit 9-10: R2d, R3f, R4e, R6d pass)
   - [x] Prompts in the vendor video-editing format; one single-pass graph, whole-frame clip at 0.75 (Video edit 12-13: S1x/S3x/S4x/S6x pass, suite green)
-  - [ ] provisional or final preview tile (user-flows.test.cjs needs one before any push)
+  - [x] provisional or final preview tile (final tile shipped 6720b7446)
   - [x] UNRELEASED.md entry (Video edit 15; no Flows roster bullet exists in UNRELEASED - 2.0 roster is in the shipped notes)
   - [x] in-app runs on app:isolated (A3 pass; A2 cut short by an app restart), then Fabio's eye test (Video edit 15: E1/E2 head swap, "Looks good")
   - [x] Square that cannot hold the mask -> whole frame (Video edit 14: crown + hip seam, nodes 55/24); limits written into video-edit.md + docs/agent/flows.md
@@ -15,8 +15,8 @@
   - [x] Video edit 16 (Fabio 2026-10-10): whole-frame STRETCH fixed (the reference clip keeps the render's shape, nodes 43/44; check_shapes over 12 sources x 6 tiers, all within 1%)
   - [x] Video edit 16: Resolution field Input_Quality (576p default .. 4K; masked crop follows) + the user LoRA cogwheel on Video Edit, Upscale Video, Extend Video (both graphs), Character Sheet from Images (both graphs); Foley/Outpaint none (Fabio). flow-lora-rack RACKS test; full suite 2967/0
   - [x] Video edit 16: Flow input slots show a 512 thumbnail, cached per Flow (Fabio: a 2K still reloaded on every visit)
-  - [ ] Fabio's eye: a whole-frame run no longer stretches (1080p run on the Pod in flight), a LoRA via the Upscale Video cogwheel changes the result, stage 1 thumbnail no longer reloads
-  - [ ] Video edit 17: room path A/B on the G: bench (V4a/V4b bedroom, V6a/V6b shower; b = clip with the dancer cut out by BiRefNet)
-  - [ ] Video edit 17: compare view fits a different-shaped pair by contain, not cover (the 768p result read 1.6% bigger)
-- [ ] BLOCKS CLOSE (Fabio 2026-10-10): LTX 2.3 as a SECOND model option next to H3 (Fabio, via MPI-1060): bench research is card MPI-1061 (LTX editing IC-LoRAs: In-Outpainting + SAM3 mask, Union Control pose/depth, Union + Ingredients sheet for a swap; Ingredients alone COPIES a guide clip). Do NOT close MPI-1036 before this is checked and Fabio has decided
-- [ ] Flow graphics (art approved + committed 6720b7446; registry `video` + load check pending)
+  - [x] Fabio's eye: whole-frame stretch - his 1080p Pod runs since the fix raised no stretch ("resolution did help"); cogwheel + thumbnail have no separate eye record (flow-lora-rack + suite green) - see the close-out's "Your call"
+  - [x] Video edit 17: room path A/B on the G: bench (V4a-d, V6a-b all pass at 576p; template 6 fixed in Video edit 18, 36fa2b916)
+  - [x] Video edit 17: compare view fits a different-shaped pair by contain, not cover (Fabio "looks okay" 2026-10-11)
+- [x] ~~BLOCKS CLOSE: LTX 2.3 as a SECOND model option~~ - SPLIT OFF (Fabio 2026-10-11, plan.md Remaining Work): MPI-1061 under umbrella MPI-1063; MPI-1036 does not wait for it
+- [x] Flow graphics (art 6720b7446, registry `video` f196da565; isolated-app load check passed Video edit 20)
