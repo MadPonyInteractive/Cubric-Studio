@@ -24,4 +24,6 @@
 - [x] Phase D: LoRA cogwheel (both slots, both graphs, RACKS), optional-model Install row + Library fixes, licences, docs - npm test 2983/2985, 0 fail; lint + lint:components clean; preview art left for Fabio's pick
 - [x] Phase E bench: dressed checks failed 6 of 12 on the whole sheet; fixed to per-view, per-half checks, 9 of 10 right, every swimwear / lingerie / nude sheet refused (3da8e88af)
 - [x] Phase E in-app cases: 25 cases on my own isolated instance incl. refusals, MCP, Cosmo, card names (validation.md); fix: younger-adult age wording kept grey hair off only under 40 - npm test 3040/3042, 0 fail
-- [ ] Fabio's eye test in the app (incl. the slider readout Keep / Newborn)
+- [x] Fabio's eye test in the app (incl. the slider readout Keep / Newborn) - Phase E's failures became Phase F; slider reads Keep in his 2026-10-11 screenshots
+- [x] Phase F1: the Phase E failures fixed on the bench (clothes c1, accessories a4, hairstyle h1, age wording) - validation.md § Phase F1
+- [x] Phase F2: optional Reference picture, Clothes only; takes the old clothes off (D no words / W with words), close-up names neckline + straps - rounds 1-8, Fabio's eye test PASSED 2026-10-11 (b8a7d1032)

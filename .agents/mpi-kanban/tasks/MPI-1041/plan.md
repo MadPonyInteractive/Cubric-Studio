@@ -10,8 +10,9 @@ RESTART (his app ran old code once), "1" -> mpi-end-session.**
 mpi-end-session.** Clothes + reference: no words -> D (take off everything else); words -> W (", replacing all of the
 clothes the character wears now, top and bottom"). The round-3 string with words kept the jeans on s7, so it is gone.
 Limit: partial words can bring the picture's other garments (validation.md § Round 7). Tests 33/33, eslint clean,
-playbook updated. Also committed (local, NOT pushed - master CI red on `llm-settings-remote.spec.js`, run 38126870189,
-MPI-1071's area): peers' flowsRegistry video-edit hero + two UNRELEASED.md lines (MPI-1060, MPI-1075), commit f196da565.
+playbook updated. Also committed and pushed (held until master's red on `llm-settings-remote.spec.js`, run 38126870189,
+cleared on the next run): peers' flowsRegistry video-edit hero + two UNRELEASED.md lines (MPI-1060, MPI-1075),
+commit f196da565; MPI-1080's UNRELEASED.md line in fa132e6e6.
 Claim `state/files/91594267-mpi1041-phaseF2b.json`.
 
 **2026-10-11 (session 86c11386, last) - FABIO'S EYE TEST FAILED (a bikini kept the jeans); rounds 4-6 found the wording

@@ -809,3 +809,6 @@ Tests 33/33, eslint clean.
 **Fabio's eye test PASSED** (2026-10-11, his app after a restart, no words, his sheet + bikini cut-out): bikini on all three
 panels, close-up included, no jeans ("Fabulastic"). Sidecar `flowCharacterSheet_008` (seed 1783011381) confirms the DN
 string ran - a 4th seed on top of round 8's three.
+
+**CI:** b8a7d1032 got no run of its own (the queue skipped it); run 38130233149 on df631df91, its first descendant, is
+green on all five jobs (unit + desktop 1-4).
