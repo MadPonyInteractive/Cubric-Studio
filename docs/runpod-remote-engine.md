@@ -195,7 +195,8 @@ component kept its old name, so "Settings" in a file name or an older card means
   refuses on `check.connecting` before the local-fallback teardown (275). (3)
   `MpiRunpodSettings.destroy()` (panel close) breaks its poll → `_connectEngine`'s `finally`
   emitted `phase:null` = local·offline flash even though the Pod was left booting; a
-  `_destroyAborted` flag now skips that reset (panel-close ≠ Cancel/failure) (278). **Rule:
+  `_connectAbort` check now skips that reset (278; Cancel sets it too and emits its own
+  `settings: Cancel`, MPI-1057). **Rule:
   panel-close/nav/blur ≠ connect-failed — only a real Cancel (deletes the Pod) or a
   persistent `connecting:false` not-ready may resolve the phase to local.**
 
@@ -694,6 +695,8 @@ is committed).
 **Wrapper fetch 502 retry** — `wrapperFetch` retries transient 404/502/503/504 (Pod warming); original 8s budget caused failures on mid-resume; raised to ~30s (`retries=15, retryDelayMs=2000`). Genuine 4xx/501 (bad body, missing endpoint) not in the retry set. Remote-uninstall safe-abort surfaces as `ui:warning`, NEVER `ui:error` (which shows the GitHub-report dialog).
 
 **On-demand model auto-upload (MPI-82)** — live-verified 2026-06-17 (L4). A LoRA/upscale present locally but absent on the Pod is auto-uploaded at generate-time (`comfyController._uploadRemoteModels`) before `/prompt`. It goes up in 32 MiB slices (`_uploadInSlices` → runtime `POST /wrapper/upload/chunk`, MPI-1057), as do video/audio/latent inputs: one whole-file read capped uploads at 2 GiB (a 10 GB LoRA failed) and a single multi-GB request would outlive the proxy's ~100 s cut. `/wrapper/models/upload` + `/wrapper/upload/media|latent` stay for released apps only. `forceLocal:true` skips upload. Presence check is a live `os.path.exists` on the volume every gen (no app cache). That check cannot see the IMAGE, so `remoteModelPresent` answers true for a `bakedOnPod` weight before asking (MPI-791) — the two baked upscalers read absent, and a user with no local copy got "Could not upload" instead of a generation. `/comfy/list-files` lists those weights while a Pod is connected, so a remote-only user sees them in the Upscale dropdown.
+
+**Upload models (MPI-1057)** — `routes/remoteUploads.js`: `GET /remote/user-models?type=` (local vs Pod lists; runtime `GET /wrapper/models/list`, older runtime → `runtime_too_old`), `GET|POST /remote/uploads` (one queue, SSE `upload:snapshot` / `upload:progress`, rows in Transfers), `POST /remote/uploads/:id/cancel`, `POST /remote/user-models/delete` (409 `managed_by_app` for a DEPS weight). Files land FLAT on the volume by basename. Generate-time auto-uploads go through the same queue (`uploadAndWait`), so they show in Transfers with Cancel (→ 409 `upload_cancelled`, an info toast). On a GPU Pod a file > 1 GB is refused (`too_big_for_gpu`, `GPU_UPLOAD_MAX_BYTES` in `remoteProxyForward.js`) with a toast that opens the uploader: big files go up once on the cheap "No GPU — download only" Pod. Needs runtime ≥ 0.2.47.
 
 **Manifest compat gate (MPI-90 / MPI-222)** — wrapper writes `/workspace/cubric/manifest.json` at first boot; app reads it in `_evaluatePodHealth()` before first remote gen. Blocks (409) only when `manifest_schema_version > MANIFEST_SCHEMA_MAX` (now **=2**, `remotePodState.js`); 404 = fresh volume = OK. **Schema 2** (wrapper ≥0.2.33) adds an optional `nodes[]` `[{filename, commit}]` for node commit-drift detection — additive, so a v1 Pod (no `nodes[]`) reads as no-drift and a v2 app accepts it. Tests: `tests/runpod-remote-hardening.test.cjs` + `wrapper/test_manifest_stamp.py`.
 

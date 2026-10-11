@@ -15,4 +15,6 @@
 - [x] Fabio proves the 10.27 GB LoRA on a dev Pod, then publish-runtime promote
 - [x] Volume listing on the next connect (13 GB unexplained): all known deps, Model Library loop -> MPI-1078
 - [x] Fabio's look on his next connect (user-ux): Cancel instant (RunPod 204 <1 s)
-- [ ] Release note in docs/releases/UNRELEASED.md (claimed by MPI-1036's session at close-out time? check)
+- [x] Phase-log label names the real cause (Cancel no longer logged twice)
+- [x] docs/runpod-remote-engine.md upload-routes paragraph
+- [x] Release note wording approved by Fabio 2026-10-11; handed to MPI-623 (holds UNRELEASED.md) by message a8e5cb16-mpi1057-to-mpi623-unreleased

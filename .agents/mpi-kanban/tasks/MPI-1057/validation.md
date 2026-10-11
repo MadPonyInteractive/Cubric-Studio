@@ -106,3 +106,8 @@ Verify mode: user-ux (plan.md). Automated evidence below; Fabio's look on his ne
 - `publish-runtime.sh promote`: stable manifest now wrapper 0.2.47; public stable wrapper.py sha 3dc462d7... and start.sh sha 3b4c4e29... == dev. start.sh diff vs old stable: only the `moge` + `model_patches` extra_model_paths lines (MPI-1044), harmless on the v0.24.0 image.
 - Stale restart toast (Fabio, 07:38Z): universal-node install broadcast `comfy:needs-restart`, the backend restarted ComfyUI itself, nothing cleared the renderer flag, first Cue restarted again. Fix: `comfy:restarted {remote:true}` after a successful restart, downloadService clears the flag. tests/remote-restart-clears-flag.test.cjs 2/2 + 20 neighbours green, eslint clean.
 - Missing-files toast shortened (Fabio: too long to read): model-update-check 10/10.
+
+## Phase-log label + upload doc (2026-10-11, session a8e5cb16)
+
+- `_connectEngine` finally no longer emits on a Cancel (Cancel sets `_connectAbort` and emits its own `settings: Cancel`; destroy() sets the same flag, so `_destroyAborted` folded into it). Other endings name their cause via `_endedBy`: Pod failed to start on its host / host under maintenance / RunPod never started the Pod (stall cap) / Pod still preparing / could not reach the Pod connect endpoint. eslint clean; remote-uploads 7/7 + toast-truth, runpod-skip-local-engine, eslint-tier-rule 26/26.
+- docs/runpod-remote-engine.md: Upload models paragraph (routes, queue, flat basenames, 1 GB GPU refusal, runtime >= 0.2.47) + the MPI-278 line now names `_connectAbort`.

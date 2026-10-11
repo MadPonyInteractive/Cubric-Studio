@@ -159,9 +159,6 @@ export const MpiRunpodSettings = ComponentFactory.create({
         let _engineBusy = false;        // true while a start/stop is in flight
         let _connectAbort = false;      // MPI-86: set by Cancel to break the in-flight connect poll
         let _cancelling = false;        // MPI-1057: Cancel's delete is still waiting on RunPod
-        let _destroyAborted = false;    // MPI-278: set by destroy() (panel close) — the connect is
-                                        // NOT cancelled (Pod left booting, shell feed owns it), so the
-                                        // finally must NOT emit local · offline and strand the connect.
         // MPI-110: the auto-retry wait LOOP lives in the shell (survives navigating
         // away from Settings); the panel reads `state.remoteWaitGpu` to know if one
         // is active. `_isWaiting()` is the single source of truth here.
@@ -520,6 +517,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
             // read as "connected", so users started generating. Progress lives in this panel
             // and the home strip; the next toast is ready, failed or cancelled.
             let _connectSucceeded = false; // MPI-73: resolves the 'connecting' phase
+            let _endedBy = 'connect ended without a connection'; // MPI-1057: the phase log names the real cause
             let _handoffToWait = false;    // MPI-110: sniped mid-create → re-enter wait loop in finally
             try {
                 const endpoint = warm ? '/remote/pod/reconnect' : '/remote/pod/create';
@@ -677,6 +675,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 // the user it's a bad host and reap the dead Pod so it stops billing
                 // container disk; leave Connect live to retry on another GPU.
                 if (_notRunning) {
+                    _endedBy = 'Pod failed to start on its host';
                     Events.emit('remote:connect-progress', { pct: 0 });
                     // Delete the dead Pod — an EXITED Pod still bills container disk,
                     // and it's the tracked Pod (delete-active targets it, unlike the
@@ -696,6 +695,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 // stuck Pod still bills container disk) and clear the saved ids so the
                 // next Connect creates fresh on another host.
                 if (_maintenance) {
+                    _endedBy = 'host under maintenance';
                     Events.emit('remote:connect-progress', { pct: 0 });
                     fetch('/remote/pod/delete-active', { method: 'POST' }).catch(() => {});
                     state.runpodConfig = { ..._runpodCfg(), podId: null, wasConnected: false };
@@ -708,6 +708,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 // MPI-1057: the backend already deleted the Pod; the shell's connection
                 // feed shows the dialog, so the panel only repaints.
                 if (_stalled) {
+                    _endedBy = 'RunPod never started the Pod (stall cap)';
                     Events.emit('remote:connect-progress', { pct: 0 });
                     state.runpodConfig = { ..._runpodCfg(), podId: null, wasConnected: false };
                     _setEngineHint(root, "RunPod never started the Pod, so it was deleted to stop the bill. This data center looks like it is having problems, and there is no telling how long they will last. Pick another data center, or Any region (no volume), and Connect: models then download for the session instead of loading from your volume.", true);
@@ -716,6 +717,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                     return;
                 }
                 if (!ready) {
+                    _endedBy = 'Pod still preparing';
                     _setEngineHint(root, 'The Pod is taking longer than expected. It may still be preparing — press Connect again in a minute to resume it.', true);
                     _setEngineStatusText(root, 'creating…');
                     _engineBtnLabelSet('Connect');
@@ -793,6 +795,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 // already running; the user opted into concurrency. (Local still
                 // lazy-starts on demand if it was not running.)
             } catch (err) {
+                _endedBy = 'could not reach the Pod connect endpoint';
                 _setEngineHint(root, 'Could not reach the Pod connect endpoint.', true);
                 _setEngineStatusText(root, 'stopped');
                 _engineBtnLabelSet('Connect');
@@ -806,10 +809,10 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 // sets _connectAbort to stop this poll while deliberately LEAVING the Pod
                 // booting (shell feed owns the live connect). Emitting local here strands
                 // that connect — the hero flashed 'local · offline' then recovered on the
-                // next 5s feed tick. A real Cancel (_cancelConnect) deletes the Pod and
-                // emits local itself, so it is unaffected by this guard.
-                if (!_connectSucceeded && !_destroyAborted) {
-                    Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: 'settings: connect ended without a connection' });
+                // next 5s feed tick. MPI-1057: nor on a Cancel, which sets the same flag and
+                // emits its own `settings: Cancel` once RunPod answers the delete.
+                if (!_connectSucceeded && !_connectAbort) {
+                    Events.emit('remote:connection', { connected: false, gpuName: null, vramGb: null, ramGb: null, phase: null, by: `settings: ${_endedBy}` });
                 }
                 // MPI-110: sniped mid-create with auto-retry on → re-enter the
                 // background wait (shell-owned) now that this attempt's state is torn
@@ -1906,9 +1909,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
             // fetching after the panel unmounts. The Pod is left booting on purpose
             // (backend _starting tracks it; the idle watchdog backstops) — destroy is
             // not a Cancel, so it must not delete a Pod the user may still want.
-            _connectAbort = true;
-            _destroyAborted = true; // MPI-278: panel close ≠ connect failure — don't let the
-                                    // _connectEngine finally emit local · offline (shell owns the connect).
+            _connectAbort = true; // MPI-278: also keeps _connectEngine's finally from emitting local · offline
             _engineConnectInst?.destroy?.();
             _engineConnectInst = null;
             _uploadInst?.destroy?.();
