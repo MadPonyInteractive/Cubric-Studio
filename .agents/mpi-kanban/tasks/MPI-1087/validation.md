@@ -21,3 +21,13 @@
 - **A Flow that compares the result with your picture can show the result on its own.** The Character Sheet Editor, Scribble Object and Object Stamp opened only in compare, with no way out but dragging the bar. A Compare / Result button now switches.
 
 ## Left: Fabio's eye test (all three Character Sheet Flows)
+
+## Fabio passed (2026-10-11)
+
+"It works nicely." Character Sheet (Qwen-Image 2.1, headless front, one button) and the Editor (Clothes, age 10).
+Bonus: the child gate held - Nothing else + age 10 on a swimwear sheet refused ("Dress the sheet first"), and
+Clothes "Cardigan and jeans with boots" + age 10 ran clean.
+
+## CI
+
+Tests green on 341665198 (2026-10-11). UNRELEASED.md lines above still pending (peer-held file).

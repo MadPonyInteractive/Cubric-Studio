@@ -2,7 +2,12 @@
 
 ## Current State
 
-Created 2026-10-11. Nothing started. GPU held by Fabio's own tests: no bench until he says.
+2026-10-11 (session "New character sheets 20"): MPI-1089 DONE (head-removed pick -> with-head version, 406dbec1e).
+MPI-1087 DONE (head removal always runs as a `toggle` leg, left field is the one switch, result button gone,
+Compare <-> Result on compare-only Flows; 341665198). Fabio passed both, plus a child-gate bonus check.
+Still owed from MPI-1087: two UNRELEASED.md lines, text in `tasks/MPI-1087/validation.md` § Pending - the file was
+claimed by peer e6751fca (MPI-1073); add them when it frees up.
+NEXT: MPI-1090 (clothes round 2) - bench needs the GPU: ask Fabio first. Then MPI-1086.
 
 ## Phase 1 - Clothes (Fabio: first)
 
