@@ -16,3 +16,7 @@ any change. Expect: version 1 has a head (the edit matched a real face), version
 ## Fabio passed (2026-10-11)
 
 Accessories run (wizard staff) on a head-removed pick: version 1 with head (flowCSE_013), version 2 head removed once (flowCharacterSheet_015), hair intact. "Yeah, that worked nicely."
+
+## CI
+
+Tests green on 406dbec1e (2026-10-11).
