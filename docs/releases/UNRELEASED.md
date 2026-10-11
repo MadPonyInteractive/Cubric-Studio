@@ -60,7 +60,8 @@
 ## Fixes
 
 - **A download-only Pod no longer locks you out of your projects.** Connecting the No GPU Pod to install models used to block every project. Projects now open, and generations run on DeepInfra or your own GPU while the Pod installs.
-- **Resize works on long 4K clips, and while something is generating.** It ran on ComfyUI and loaded the whole clip into memory first, so a 14-second 4K phone clip ran out of memory, and the tool was greyed out while any generation ran or with no engine installed. It now runs without the engine, beside your generations, and always resizes with Lanczos, so the Method setting is gone.
+- **Resize is a lot faster and no longer needs ComfyUI.** It runs inside the app now, so it works with no engine installed and beside your generations instead of waiting behind them, and a long 4K clip no longer runs out of memory (a 14-second 4K phone clip used to). It always resizes with Lanczos, so the Method setting is gone.
+- **The Resize preview no longer goes blank after you resize a clip.** It showed an empty checkerboard until you picked another History entry and came back.
 - **A picture in a Flow's inputs shows as a thumbnail.** It loaded at full size, again every time you went back to that step, so a big photo visibly loaded each time.
 - **Character Sheet's headless front body no longer cuts bits of clothing away.** It searched the whole body for the head and its hat, so a bow or a strap could vanish with the head. It now searches only round the face.
 - **RunPod stages a model as soon as it installs.** With "Stage all models on connect" on, a model you installed while connected waited for the next connect, so its first generation was slow.
