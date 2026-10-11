@@ -590,3 +590,115 @@ instance by killing EVERY `launch-instance` process and its children (their tran
 `a415c2d7-mpi1041-to-mpi1057` left. Cases re-run on my own `CUBRIC_AGENT_PROFILE`; Claude Code also crashed once.
 
 Not run in-app: "without Qwen installed" - covered by `tests/desktop/flow-optional-model-row.spec.js` (Phase D).
+
+## 2026-10-11 - Phase F1 bench: the Phase E failures (session a7b3935e)
+
+The APP graph (`comfy_workflows/flow_character_sheet_edit.json`) on the bench :8188, every batch under `gpu_lease.py run`,
+the builder's own lock per change. Runners `scratchpad/qf1*.py` (copied to `research/bench-tools/` at close-out), outputs
+`G:/ComfyUi/ComfyUI/output/mpi1041_f1/<tag>.png`, checked by eye on `pairs.py` sheets. "fabio" = his headless bikini sheet
+(`Qwen 2.1/Media/detail_002.png`, copied read-only to `input/mpi1041f1_fabio_sheet.png`); seed 1497140120 = his failed run.
+A pass = the panels AGREE (same garment / item / hair on front, back and close-up) with the layout and the head kept.
+
+**Clothes** - his "Beautiful red dress with a keyhole and long skirt", lock 1:
+
+| wording | s42 | s7 | s1497140120 (his) | s3 | s11 | total |
+|---|---|---|---|---|---|---|
+| c0 shipped ("Dress the character in X. Dress the character the same way in the close-up...") | pass | pass | **FAIL** = his result reproduced (front short sleeves, close-up halter + bare shoulders) | pass | pass | 4/5 |
+| **c1** "Dress the character in X. The front view, the back view and the close-up portrait on the right all show the same outfit, with the same neckline, sleeves and straps." + KEEP | pass | pass (lace yoke on front AND close-up) | **pass** (sleeves in the close-up) | pass | pass | **5/5** |
+| c2 "Replace all of the character's clothes with X, in the front view, the back view and the close-up ..." | pass | FAIL (back short sleeves fading into skin) | pass | - | - | 2/3 |
+
+c1 regression, "a red leather jacket, black jeans and boots", photo + fisher x s42/s7: **4/4 pass** (heads untouched, layout kept).
+c1 names "the back view" and still keeps the layout: lock 1 freezes every head, so the figures cannot move.
+
+**Hairstyle** - "a short black bob", lock 2: h0 shipped ("Give the character X." + L1) fisher s42 pass, **s7 FAIL = Phase E
+reproduced** (front kept the beanie). **h1** "Give the character X, with the head uncovered and no hat, so the new hair shows." +
+L1: fisher s42 + s7 **pass**, photo s42 pass (face kept). 3/3.
+
+**Accessories** - "a red scarf and round glasses", lock 0 (free):
+
+| wording | photo s42 | photo s7 | fisher s42 | fisher s7 |
+|---|---|---|---|---|
+| a0 shipped | FAIL (no scarf on the back = Phase E) | pass | FAIL (no scarf in the close-up = Phase E) | partial (close-up scarf a sliver) |
+| a1 "... all show X wherever they would be seen" | **layout broken** (an extra back figure) | - | **layout broken**, beard lost | - |
+| a2 "Give the character X in the front view, in the back view and in the close-up ..." | FAIL (back) | partial | **layout broken** | beard lost to a moustache |
+| a3 "... worn the same way on all three figures in this character sheet" | **layout broken** | pass | FAIL (back headless, no close-up scarf) | FAIL (close-up) |
+| **a4** "Give the character X. Make the same change on the character seen from behind and in the close-up portrait on the right." + KEEP | **pass** | **pass** | FAIL (close-up: the long beard covers the neck) | **pass** |
+
+A free edit has no head lock, so naming "the back view" / "three figures" lets Klein redraw the layout; "the character seen
+from behind" did not (0/4 broken). A MATCH pass (a second edit on a failed result: "Make the close-up portrait match the
+full-body views..." / "...the same clothes and accessories in every view, copied from the front view") changed NOTHING on
+the photo back, the fisher close-up or his dress (m1/m2, 6 runs): Klein treats "make the views agree" as no change. Dead end.
+
+**Age near the sheet's own** (lock 0): photo reads ~40-45, fisher reads 80 (really ~70: the describer reads white-haired faces +10-15).
+
+| wording | Ava 50 (older) | fisher 70 (younger by the read) |
+|---|---|---|
+| n0 shipped (older: "an older version ... as a 50-year-old"; younger: "...with a younger face") | FAIL x2: white hair, ~70 | FAIL x2: beard stripped (front, or all three) |
+| **n1** "Change the character in this character sheet to be a 70-year-old." + L1 (no direction word) | FAIL x2: grey hair, ~70 | **pass x2**: beard kept, panels agree |
+| n3 "Make the character ... look N years old, changing only the signs of age..." | FAIL x2: red hair kept, front ~50, close-up ~70 | FAIL: older, wrong way |
+| r1 "Make the character ... N years older, with the same hairstyle and hair color." (50: N=10; 60: N=20) | barely moved x2 | - |
+| r2 "...to look N years old, only a little older / younger than now, with the same hairstyle and hair color." | close-up ~58, front unmoved x2 | (35, younger: pass x2) |
+
+"The same hairstyle and hair color" stops the white hair; no number wording yet gives ~50 on all three panels.
+Round 3, Ava 50, s42 + s7: s50 "look 50 years old: a few fine lines around the eyes and mouth, otherwise the same face,
+hairstyle and hair color" and n1h "be a 50-year-old, with the same hairstyle and hair color" -> close-up ~60-70, bodies
+UNCHANGED (panels disagree) x4; s60 ("...some grey in the hair") -> close-up grey, bodies red x2. **A small older step is a
+Klein limit**: it either ages every panel past the target or only the close-up. Shipped n0 kept (panels agree).
+
+**Accessories round 3** (s3, s11, photo + fisher): a0 2/4 (photo s11 back lost the scarf again), **a4 4/4**; a4 + "a black
+wide-brimmed hat", s42: photo + fisher pass (the fedora replaced the beanie on all three), layout kept. Totals: a0 4/8,
+**a4 7/8, layout kept 10/10**.
+
+**Wired** (`js/data/flowPrompts/characterSheetEditor.js`, tests updated, `node --test tests/character-sheet-editor.test.cjs`
+18/18, eslint clean): Clothes = c1; Accessories = a4; Hairstyle = h1; Age = n1 (no direction word) for a YOUNGER target
+>= 40 within 15 years of the describer's read (fisher 70 / read 80); older targets and far younger ones unchanged.
+**Not fixed:** Ava 50 overshoot (Klein limit above); the photo heavyset back (Qwen, lowest priority, not benched).
+
+## 2026-10-11 - Phase F2 bench: the optional Reference picture (session a7b3935e)
+
+Reference pictures made with Klein t2i on the bench (`G:/ComfyUi/ComfyUI/input/mpi1041f2_ref_{dress,jacket,hat,pixie}.png`:
+a red long-sleeved keyhole dress on a dress form; a man in a green quilted jacket, yellow / navy striped scarf, brown
+corduroys; a black fedora; a platinum pixie cut). Bench graph = the app graph + a second ReferenceLatent (`qf2.py`), outputs
+`G:/ComfyUi/ComfyUI/output/mpi1041_f2/`. Round 1 = the PRE-F1 wording shapes ("...from the reference picture. Dress the
+character the same way in the close-up..." / L1):
+
+| case | verdict |
+|---|---|
+| dress -> fabio s42, s7 | **pass** x2: the reference dress (long sleeves, keyhole) on all three |
+| dress -> photo s42, s7 | FAIL x2: her jacket survives in places (s42 close-up a red jacket; s7 front tan jacket over the dress, back a red suit) |
+| jacket outfit -> photo s42, s7 | **pass** x2 (jacket, scarf, corduroys on all three) |
+| jacket outfit -> fisher s42, s7 | pass (s7 close-up scarf hidden by the beard) |
+| hat -> photo s42 | FAIL: front only, none on the back |
+| hat -> fisher s42 | **pass** (fedora replaced the beanie on all three) |
+| pixie -> photo s42 / fisher s42 | FAIL: the close-up kept its hair / a beanie band |
+
+Round 2 = the SHIPPED strings (F1 shapes + the reference, `w2_*`, `qf2b.py`) - **WORSE than round 1**:
+
+| case | verdict |
+|---|---|
+| dress -> photo s42 | **LAYOUT BROKEN**: an extra back figure |
+| dress -> photo s7 | FAIL: front/back a collared dress, close-up a shirt collar over a sweater |
+| dress -> fabio s7 | pass |
+| jacket outfit -> photo s42 | **LAYOUT BROKEN**: the reference MAN drawn as an extra figure; back kept the old outfit |
+| jacket outfit + words "the green quilted jacket and the striped scarf" -> photo s7 | pass |
+| hat -> photo s42 | FAIL: front + back, none in the close-up |
+| hat -> fisher s42 | FAIL: back a fedora, front the beanie, close-up a mix |
+| pixie -> photo s42 | FAIL: back only |
+| pixie -> fisher s42 | partial: swept white hair on all three, not a pixie |
+
+**Why:** with a reference the picture supplies a second FIGURE, and naming "the back view" (c1) or "the character seen
+from behind" (a4) lets Klein place it - the free-edit layout trap, now under lock 1 too. Round 1's shapes (only the
+close-up named) kept every layout and passed outfits 6/8 (dress on Ava the miss). **Verdict so far:** the reference
+works for whole OUTFITS with the round-1 Clothes shape; accessories and hairstyles from a picture are unreliable (hat
+1/4, pixie 0/4 across both rounds). NOT yet changed in the builder (it ships the round-2 strings): next session.
+
+**The shipped graph's switch** (`insert_ref2.py` -> raw -> `workflow-to-api.mjs`; 7 nodes added, FluxGuidance 47 and
+CFGGuider 50 now read the switch; diff vs the old API graph = exactly those): the c1 jacket prompt, photo, s42, lock 1:
+Input_Image_2 = the jacket picture + `Input_Reference` false -> **max abs pixel diff 0** vs F1's `c1_jacket_photo_s42` (the
+pre-F2 graph); no picture + `Input_Reference` true -> **0**; picture + true -> 239 (the reference used). So a run without a
+reference, or a leg that does not want it, renders exactly as before F2.
+
+Wired: `image2` slot (FlowDef `inputSchema`, `flowCharacterSheetEdit.mediaInputs` -> `Input_Image_2`, optional), builder
+`Input_Reference` (change leg of Clothes / Accessories / Hairstyle only), words optional with a reference, refused with any
+age 0-17, card "<sheet> - outfit from a reference". `npm test` 3052/3054 (0 fail), eslint clean. Docs: playbook
+`existing-flows/character-sheet-editor.md`, `docs/child-safety.md`, `docs/agent/flows.md`.

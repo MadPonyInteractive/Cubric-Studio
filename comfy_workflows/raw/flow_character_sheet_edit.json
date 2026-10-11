@@ -1,8 +1,8 @@
 {
   "id": "d1af3d9f-9958-50c8-b62b-c6e575398148",
   "revision": 0,
-  "last_node_id": 67,
-  "last_link_id": 114,
+  "last_node_id": 74,
+  "last_link_id": 124,
   "nodes": [
     {
       "id": 1,
@@ -1825,7 +1825,8 @@
           "type": "VAE",
           "links": [
             67,
-            98
+            98,
+            119
           ],
           "slot_index": 0
         }
@@ -2337,8 +2338,8 @@
           "name": "CONDITIONING",
           "type": "CONDITIONING",
           "links": [
-            71,
-            74
+            120,
+            123
           ],
           "slot_index": 0
         }
@@ -3618,6 +3619,360 @@
       ],
       "color": "#432",
       "bgcolor": "#653"
+    },
+    {
+      "id": 68,
+      "type": "MpiLoadImage",
+      "pos": [
+        0,
+        1080
+      ],
+      "size": [
+        300,
+        450
+      ],
+      "flags": {},
+      "order": 67,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "COMBO",
+          "link": null
+        },
+        {
+          "name": "channel",
+          "type": "COMBO",
+          "link": null
+        },
+        {
+          "name": "block_if_empty",
+          "type": "BOOLEAN",
+          "link": null
+        },
+        {
+          "name": "string",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            117
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [],
+          "slot_index": 2
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [],
+          "slot_index": 3
+        },
+        {
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": [
+            115
+          ],
+          "slot_index": 4
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiLoadImage"
+      },
+      "widgets_values": [
+        "None",
+        "alpha",
+        false,
+        "",
+        "image"
+      ],
+      "title": "Input_Image_2"
+    },
+    {
+      "id": 69,
+      "type": "MpiSimpleBoolean",
+      "pos": [
+        0,
+        1570
+      ],
+      "size": [
+        300,
+        60
+      ],
+      "flags": {},
+      "order": 68,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "links": [
+            116
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiSimpleBoolean"
+      },
+      "widgets_values": [
+        false
+      ],
+      "title": "Input_Reference"
+    },
+    {
+      "id": 70,
+      "type": "MpiBooleanCompare",
+      "pos": [
+        0,
+        1670
+      ],
+      "size": [
+        300,
+        80
+      ],
+      "flags": {},
+      "order": 69,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "a",
+          "type": "BOOLEAN",
+          "link": 115
+        },
+        {
+          "name": "b",
+          "type": "BOOLEAN",
+          "link": 116
+        }
+      ],
+      "outputs": [
+        {
+          "name": "BOOLEAN",
+          "type": "BOOLEAN",
+          "links": [
+            124
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiBooleanCompare"
+      },
+      "widgets_values": [
+        "both_true"
+      ],
+      "title": "reference picture given AND wanted"
+    },
+    {
+      "id": 71,
+      "type": "ImageScaleToTotalPixels",
+      "pos": [
+        380,
+        1080
+      ],
+      "size": [
+        300,
+        106
+      ],
+      "flags": {},
+      "order": 70,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 117
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            118
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ImageScaleToTotalPixels"
+      },
+      "widgets_values": [
+        "nearest-exact",
+        1,
+        16
+      ],
+      "title": "Reference picture to 1 MP"
+    },
+    {
+      "id": 72,
+      "type": "VAEEncode",
+      "pos": [
+        380,
+        1220
+      ],
+      "size": [
+        200,
+        50
+      ],
+      "flags": {},
+      "order": 71,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pixels",
+          "type": "IMAGE",
+          "link": 118
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 119
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            121
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "VAEEncode"
+      },
+      "widgets_values": null,
+      "title": "Encode ref 2"
+    },
+    {
+      "id": 73,
+      "type": "ReferenceLatent",
+      "pos": [
+        380,
+        1310
+      ],
+      "size": [
+        240,
+        50
+      ],
+      "flags": {},
+      "order": 72,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 120
+        },
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "link": 121
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            122
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ReferenceLatent"
+      },
+      "widgets_values": null,
+      "title": "Set Reference Latent 2"
+    },
+    {
+      "id": 74,
+      "type": "MpiIfElse",
+      "pos": [
+        380,
+        1400
+      ],
+      "size": [
+        240,
+        80
+      ],
+      "flags": {},
+      "order": 73,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 122
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 123
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 124,
+          "widget": {
+            "name": "boolean"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            71,
+            74
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "title": "conditioning: + the reference picture when given"
     }
   ],
   "links": [
@@ -4183,7 +4538,7 @@
     ],
     [
       71,
-      46,
+      74,
       0,
       47,
       0,
@@ -4207,7 +4562,7 @@
     ],
     [
       74,
-      46,
+      74,
       0,
       50,
       1,
@@ -4532,6 +4887,86 @@
       67,
       0,
       "MODEL"
+    ],
+    [
+      115,
+      68,
+      4,
+      70,
+      0,
+      "BOOLEAN"
+    ],
+    [
+      116,
+      69,
+      0,
+      70,
+      1,
+      "BOOLEAN"
+    ],
+    [
+      117,
+      68,
+      0,
+      71,
+      0,
+      "IMAGE"
+    ],
+    [
+      118,
+      71,
+      0,
+      72,
+      0,
+      "IMAGE"
+    ],
+    [
+      119,
+      36,
+      0,
+      72,
+      1,
+      "VAE"
+    ],
+    [
+      120,
+      46,
+      0,
+      73,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      121,
+      72,
+      0,
+      73,
+      1,
+      "LATENT"
+    ],
+    [
+      122,
+      73,
+      0,
+      74,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      123,
+      46,
+      0,
+      74,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      124,
+      70,
+      0,
+      74,
+      2,
+      "BOOLEAN"
     ]
   ],
   "groups": [
@@ -4584,6 +5019,19 @@
         800
       ],
       "color": "#b58b2a",
+      "font_size": 24,
+      "flags": {}
+    },
+    {
+      "id": 5,
+      "title": "Reference picture (optional, MPI-1041 F2)",
+      "bounding": [
+        -20,
+        1020,
+        720,
+        760
+      ],
+      "color": "#3f789e",
       "font_size": 24,
       "flags": {}
     }

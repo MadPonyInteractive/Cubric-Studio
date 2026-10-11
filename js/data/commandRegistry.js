@@ -1642,6 +1642,8 @@ export const commands = {
         requiresImages: 0,
         mediaInputs: [
             { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
+            // The optional Reference picture (F2): read only when `Input_Reference` says the leg wants it.
+            { key: 'image2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false },
         ],
         promptRequired: false,
         universal: true,

@@ -720,7 +720,7 @@
     "inputs": {
       "guidance": 4,
       "conditioning": [
-        "46",
+        "74",
         0
       ]
     },
@@ -757,7 +757,7 @@
         0
       ],
       "positive": [
-        "46",
+        "74",
         0
       ],
       "negative": [
@@ -1081,6 +1081,111 @@
     "class_type": "MpiLoraModel",
     "_meta": {
       "title": "Input_Lora_Phase1_6"
+    }
+  },
+  "68": {
+    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": false,
+      "string": ""
+    },
+    "class_type": "MpiLoadImage",
+    "_meta": {
+      "title": "Input_Image_2"
+    }
+  },
+  "69": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Reference"
+    }
+  },
+  "70": {
+    "inputs": {
+      "mode": "both_true",
+      "a": [
+        "68",
+        4
+      ],
+      "b": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "MpiBooleanCompare",
+    "_meta": {
+      "title": "reference picture given AND wanted"
+    }
+  },
+  "71": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "megapixels": 1,
+      "resolution_steps": 16,
+      "image": [
+        "68",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "Reference picture to 1 MP"
+    }
+  },
+  "72": {
+    "inputs": {
+      "pixels": [
+        "71",
+        0
+      ],
+      "vae": [
+        "36",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "Encode ref 2"
+    }
+  },
+  "73": {
+    "inputs": {
+      "conditioning": [
+        "46",
+        0
+      ],
+      "latent": [
+        "72",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "Set Reference Latent 2"
+    }
+  },
+  "74": {
+    "inputs": {
+      "true": [
+        "73",
+        0
+      ],
+      "false": [
+        "46",
+        0
+      ],
+      "boolean": [
+        "70",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "conditioning: + the reference picture when given"
     }
   }
 }

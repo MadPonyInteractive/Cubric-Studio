@@ -27,6 +27,9 @@ const ADULT = 35;
 /** Below this target a younger adult gets smooth skin and no grey hair; from it, only a younger face. */
 const YOUNG_ADULT_MAX = 40;
 
+/** A younger target this close to the describer's read takes no direction word (it reads old faces 10-15 high). */
+const NEAR = 15;
+
 function _words(text) {
     return String(text ?? '').trim().replace(/[\s.]+$/, '');
 }
@@ -49,21 +52,49 @@ export function parseApparentAge(answer) {
 }
 
 /**
- * The edit for one picked change, or null when there are no words.
+ * What an optional Reference picture (`image2`, the graph's `Input_Image_2`) stands for, per change
+ * that takes one (Fabio, 2026-10-10: optional, words alone keep working). Any other change ignores it.
+ */
+const REF_THING = { clothes: 'the outfit', accessories: 'the accessory', hair: 'the hairstyle and hair color' };
+
+/** Whether the run carries a Reference picture (the second media slot). */
+function _hasRef(values) {
+    return (values.mediaItems || []).some(m => m?.role === 'image2' && (m.url || m.filePath));
+}
+
+/** Whether this run's change takes its Reference picture. */
+function _usesRef(values) {
+    return Object.hasOwn(REF_THING, values.change) && _hasRef(values);
+}
+
+/**
+ * The edit for one picked change, or null when there is nothing to change by.
  * @param {string} change - clothes | accessories | hair | condition | body
- * @param {string} words  - what the user wrote
+ * @param {string} words  - what the user wrote; optional with a reference
+ * @param {boolean} [ref] - a Reference picture is given (used by Clothes, Accessories and Hairstyle only)
  * @returns {?string}
  */
-export function buildChangePrompt(change, words) {
-    const w = _words(words);
+export function buildChangePrompt(change, words, ref = false) {
+    let w = _words(words);
+    if (ref && Object.hasOwn(REF_THING, change)) w = `${REF_THING[change]} from the reference picture${w ? `: ${w}` : ''}`;
     if (!w) return null;
     switch (change) {
+        // The views, and the parts that disagreed, are named: "Dress the character the same way in the close-up"
+        // left the sleeves to each panel, and Fabio's keyhole dress came back short-sleeved on the front and a
+        // halter in the close-up (MPI-1041 F1: 4/5 seeds -> 5/5). Lock 1 freezes every head, so naming the back
+        // view cannot redraw the layout here.
         case 'clothes':
-            return `Dress the character in ${w}. Dress the character the same way in the close-up portrait on the right. `
-                + 'Keep everything else exactly as it is.';
+            return `Dress the character in ${w}. The front view, the back view and the close-up portrait on the right `
+                + 'all show the same outfit, with the same neckline, sleeves and straps. Keep everything else exactly as it is.';
+        // L1 named only the close-up, so the back view lost the scarf (or the close-up did): 4/8 -> 7/8 (F1).
+        // A free edit has no head lock: "the back view" or "all three figures" made Klein redraw the layout
+        // (an extra back figure); "the character seen from behind" never did (0 of 10).
         case 'accessories':
+            return `Give the character ${w}. Make the same change on the character seen from behind and in the close-up `
+                + 'portrait on the right. Keep everything else exactly as it is.';
+        // A hat hides the hair it is meant to change: the fisher's beanie stayed on the front view (F1).
         case 'hair':
-            return `Give the character ${w}.` + L1;
+            return `Give the character ${w}, with the head uncovered and no hat, so the new hair shows.` + L1;
         case 'condition':
             return `Make the character look ${w}.` + L1;
         case 'body':
@@ -100,7 +131,14 @@ export function buildAgePrompt(age, apparent) {
         return head + ", with a teenager's smooth face, no beard and no wrinkles, the same hairstyle and hair color, "
             + 'wearing the same clothes.' + L1;
     }
+    // An older target near the read overshoots (Ava, ~42, at 50 came back ~70), but every other wording F1 tried
+    // aged only the close-up, so this one stays: the panels agree.
     if (older) return head + '.' + L1;
+    // The fisher reads 80 and is ~70: "a younger version ... with a younger face" at 70 shaved his beard on the
+    // front or on all three; with no direction word he kept it, panels agreeing (F1, 2 of 2).
+    if (age >= YOUNG_ADULT_MAX && apparent - age <= NEAR) {
+        return `Change the character in this character sheet to be a ${age}-year-old.` + L1;
+    }
     // Smooth skin and no grey hair hold for a young adult only (benched at 30): told the same at
     // 70, the fisher, read ~80, lost his white beard and came back ~35 (MPI-1041 Phase E).
     return age < YOUNG_ADULT_MAX ? head + ', with a younger face, smooth skin and no grey hair.' + L1
@@ -137,8 +175,16 @@ export function buildRebuildPrompt(age, caption) {
  */
 export function characterSheetEditorRefusal(values = {}) {
     const change = values.change || 'none';
-    if (change !== 'none' && !_words(values.words)) return 'Say what to change first.';
-    if (change === 'none' && _age(values.Input_Age) < 0) return 'Pick something to change, or an age.';
+    const age = _age(values.Input_Age);
+    if (change !== 'none' && !_words(values.words) && !_usesRef(values)) {
+        return Object.hasOwn(REF_THING, change) ? 'Say what to change, or add a Reference picture.' : 'Say what to change first.';
+    }
+    if (change === 'none' && age < 0) return 'Pick something to change, or an age.';
+    // The child-safety gate reads words only: a reference picture could put swimwear or underwear on a
+    // child's sheet with no word for it to read (docs/child-safety.md).
+    if (_usesRef(values) && age >= 0 && age <= 17) {
+        return 'A Reference picture cannot be used with an age under 18. Describe the change in words instead.';
+    }
     return null;
 }
 
@@ -151,8 +197,10 @@ export function characterSheetEditorRefusal(values = {}) {
  */
 export function characterSheetEditorCardName(values = {}, sourceName = null) {
     const age = _age(values.Input_Age);
-    const change = [(values.change || 'none') !== 'none' ? _words(values.words) : '', age === 0 ? 'newborn' : age > 0 ? `age ${age}` : '']
-        .filter(Boolean).join(', ');
+    const words = (values.change || 'none') !== 'none'
+        ? _words(values.words) || (_usesRef(values) ? `${REF_THING[values.change].replace(/^the /, '')} from a reference` : '')
+        : '';
+    const change = [words, age === 0 ? 'newborn' : age > 0 ? `age ${age}` : ''].filter(Boolean).join(', ');
     return `${String(sourceName || '').trim() || 'Character sheet'} - ${change}`;
 }
 
@@ -166,7 +214,7 @@ function _part(part, values) {
         const caption = values.change === 'clothes' ? `Wearing ${_words(values.words)}` : values.sheetClothes;
         return buildRebuildPrompt(age, caption);
     }
-    return buildChangePrompt(values.change, values.words) || '';
+    return buildChangePrompt(values.change, values.words, _usesRef(values)) || '';
 }
 
 /**
@@ -186,5 +234,8 @@ export function characterSheetEditor(part, values = {}) {
     const injectionParams = { runPrompt };
     // The Klein graph's lock; the Qwen and from-images graphs have no `Input_Lock` and skip it.
     if (part !== 'rebuild') injectionParams.Input_Lock = part === 'age' ? 0 : (LOCK[values.change] ?? 0);
+    // Only the change leg reads the Reference picture: an age leg that starts the run is handed the
+    // user's media too, and would otherwise dress the sheet from it.
+    if (part !== 'rebuild') injectionParams.Input_Reference = part === 'change' && _usesRef(values);
     return { positive: _part(part, values), injectionParams };
 }

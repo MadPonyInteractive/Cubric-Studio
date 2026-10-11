@@ -1693,7 +1693,7 @@ export const FLOWS = [
         // registered, so the layout holds and only the change moves.
         preview: 'flow-character-sheet-editor.webp',
         video: 'flow-character-sheet-editor.mp4',
-        description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words; the result is a new card and the sheet you started from stays as it is. Body shape, and ages of 12 and under, run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
+        description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words; for clothes, accessories or a hairstyle you can add a reference picture to copy instead. The result is a new card and the sheet you started from stays as it is. Body shape, and ages of 12 and under, run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
         // Each slot's rack fills its phase's nodes: Klein's Input_Lora_Phase1_* (the edit and age
         // legs), Qwen's Input_Lora_Phase2_* (Body shape). The child rebuild leg runs the
         // from-images graph, titled Phase1, so it takes no rack here.
@@ -1729,6 +1729,9 @@ export const FLOWS = [
         inputSchema: {
             media: [
                 { type: 'image', mode: 'upto', max: 1, roles: ['image1'], labels: ['Character sheet'] },
+                // Optional (Fabio, 2026-10-10): an outfit, accessory or hairstyle to copy, for Clothes,
+                // Accessories and Hairstyle; any other change ignores it. Not with an age under 18.
+                { type: 'image', mode: 'upto', max: 1, roles: ['image2'], labels: ['Reference picture (optional)'] },
             ],
         },
         result: { compare: 'image1' },

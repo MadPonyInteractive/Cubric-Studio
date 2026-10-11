@@ -2,6 +2,31 @@
 
 ## Current State
 
+**2026-10-11 (session a7b3935e) - F1 WIRED, F2 WIRED, both uncommitted; NEXT = F2 round-2 verdict, then in-app.**
+F1 (validation.md § Phase F1, ~80 bench runs on the app graph): Clothes = c1 (names all three views + neckline/sleeves/
+straps; Fabio's keyhole dress fixed, 9/9), Accessories = a4 ("the character seen from behind and ... the close-up", 7/8,
+layout kept 10/10), Hairstyle = h1 ("with the head uncovered and no hat", 3/3), Age = no direction word for a YOUNGER
+target >= 40 within 15 of the read (fisher beard kept). NOT fixed, Klein limits: a small OLDER step (Ava 50 -> ~70 or
+close-up only; 22 runs, 6 wordings), and "make the views match" passes do nothing. Heavyset back (Qwen) not benched.
+F2 (validation.md § Phase F2): `image2` optional slot -> `Input_Image_2`, switched in-graph by loaded AND
+`Input_Reference` (`insert_ref2.py`, raw in place + converted); switch PROVEN pixel-identical when off (diff 0). Builder:
+words optional with a reference, refused at ages 0-17, card "<sheet> - outfit from a reference". `npm test` 3052 pass,
+eslint clean. Round 1 (old wordings) mixed: dress/jacket pass on 3 of 4 combos, hat on photo and pixie FAIL.
+**Next:** round 2 is IN (validation.md § Phase F2): the SHIPPED reference strings break the layout (the reference
+person drawn as an extra figure) - naming the back view with a reference is the free-edit trap. FIX FIRST: builder
+reference strings back to the ROUND-1 shapes (Clothes: "Dress the character in the outfit from the reference picture[: w].
+Dress the character the same way in the close-up portrait on the right. Keep everything else exactly as it is." -
+outfits 6/8, layout kept), and my pick: offer the reference for CLOTHES only (hat 1/4, pixie 0/4) - REF_THING keeps one
+key, tests + FlowDef label/description + docs follow; bench the new string 4-6 runs (photo+fabio, s42/s7/s3) under the
+lease with `research/bench-tools/phaseF/qf2b.py` (edit its cases; tags must not differ from old ones only by CASE -
+Windows matched R_ to r_ and skipped 8 runs). Tell Fabio the limit plainly. Then the in-app cases on MY isolated instance:
+`research/bench-tools/phaseF/f2app.py` (f1_dress_photo, f2_dress_photo, f2_hat_fisher, f2_refuse_age10, f2_none_age60; it reuses session
+a415c2d7's `docs/` project + `profile/`), launch `CUBRIC_AGENT_PROFILE=<a415 scratchpad>/profile APP_DOCUMENTS=<a415
+scratchpad>/docs npm run app:isolated`, check the sidecars carry `Input_Reference`, and look at the Reference slot in the
+Flow panel. Then Fabio's eye test + "1", then mpi-end-session (UNRELEASED.md: add a Reference-picture sentence to the
+Character Sheet Editor bullet; commandRegistry.js has MPI-1060's uncommitted hunks too - stage MY hunk only).
+Claim `state/files/a7b3935e-mpi1041-phaseF.json`.
+
 **2026-10-10 (session a415c2d7) - PHASE E IN-APP CASES DONE (validation.md § Phase E in-app cases), uncommitted.** All 25
 cases run on my own isolated instance: refusals right (nude + age 10 twice, swimsuit + age 10), MCP + Cosmo PASS, card
 names right, every change kind + ages 70/30/15/10/1/0 checked by eye. FIX landed: `buildAgePrompt` gave every younger
@@ -273,11 +298,11 @@ Fabio's eye test on his own sheet: Clothes "Beautiful red dress with a keyhole a
 V keyhole, close-up a HALTER with bare shoulders: the panels disagree (FAIL). His call: "fix what we just saw that
 failed first", then "set the reference image input as optional".
 
-- [ ] F1 Fix the failures, each benched under the lease before wiring (validation.md § Phase E in-app cases):
+- [x] F1 Fix the failures (2026-10-11, a7b3935e: Clothes/Accessories/Hairstyle/younger-near-age wired; older-near + heavyset back left, Klein limit / lowest priority), each benched under the lease before wiring (validation.md § Phase E in-app cases):
   panel disagreement on Clothes (his keyhole dress) and Accessories (scarf missing on one panel, both sheets);
   fisher Hairstyle front kept the beanie; an age NEAR the sheet's own overshoots both ways (Ava 50 -> ~70; fisher 70
   front shaved) - try dropping "older / younger" near the read; photo heavyset back weak (Qwen, lowest priority).
-- [ ] F2 Optional **Reference** picture for Clothes / Accessories / Hairstyle: a second `inputSchema` media slot
+- [~] F2 Optional **Reference** picture (2026-10-11 a7b3935e: wired + switch proven; round-2 verdict and in-app cases pending) for Clothes / Accessories / Hairstyle: a second `inputSchema` media slot
   (optional), `Input_Image_2` in `raw/flow_character_sheet_edit.json` (the app's `klein_9b_t2i.json` already has
   `Input_Image_2/3` - copy its wiring), the builder words "from the reference picture" when one is given; words alone
   keep working. BENCH FIRST (~8 edits, photo + fisher): does a front-only outfit photo land on all three panels, back

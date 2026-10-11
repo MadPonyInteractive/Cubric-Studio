@@ -14,8 +14,9 @@ building a Flow that needs more than one graph or more than one model.
 |---|---|
 | requiredModels | `[{ label: 'Model', models: ['klein-9b'], loras: true }, { label: 'Body shape and child ages', models: ['qwen-image-2-1'], optional: true, loras: true, for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] }]` |
 | operation / `operationBy` | `flowCharacterSheetEdit` (Klein), routed by the `change` select: `body` -> `flowCharacterSheetEditQwen`, `none` -> no leg 1 |
-| graphs | `flow_character_sheet_edit.json` (Klein 9B, 66 nodes, in-graph SAM3 lock) and `flow_character_sheet_edit_qwen.json` (Qwen-Image 2.1, 20). Both output the INPUT size |
-| authoring source | `raw/` is the source now. `research/bench-tools/build_edit_graph*.py` wrote the first raws; the LoRA racks went in after with `research/bench-tools/insert_rack.py` (raw in place, then `workflow-to-api.mjs` single-file) |
+| graphs | `flow_character_sheet_edit.json` (Klein 9B, 73 nodes, in-graph SAM3 lock, optional reference) and `flow_character_sheet_edit_qwen.json` (Qwen-Image 2.1, 20). Both output the INPUT size |
+| authoring source | `raw/` is the source now. `research/bench-tools/build_edit_graph*.py` wrote the first raws; the LoRA racks went in after with `research/bench-tools/insert_rack.py`, the reference with `insert_ref2.py` (raw in place, then `workflow-to-api.mjs` single-file) |
+| media | `image1` the sheet; `image2` an OPTIONAL Reference picture (Klein op only) |
 | fields | `change` (select), `words` (hidden for "Nothing else"), `Input_Age` (slider -1-100: -1 = keep, the default; 0 = a newborn; 1 = a toddler; `valueLabels` reads Keep / Newborn), `Input_Remove_Head` |
 | prompt | `promptBuilder: 'characterSheetEditor'` -> `js/data/flowPrompts/characterSheetEditor.js`, called in `flowService` after describe. The user never types a prompt |
 
@@ -36,15 +37,30 @@ Age 10" on leg 1, not after it. Engine contract: `flowsRegistry.js` § Legs, rou
 
 | change | editor | lock (`Input_Lock`) | evidence |
 |---|---|---|---|
-| Clothes | Klein | 1 = SAM3 "head, hair, face" on all three panels | b3-b4, 6 of 6 |
-| Accessories | Klein | 0 (free): a head lock blocks glasses and hats | A4, 2 of 2 |
-| Hairstyle | Klein | 2 = "face" on the front and the close-up | b8 |
+| Clothes | Klein | 1 = SAM3 "head, hair, face" on all three panels | b3-b4, 6 of 6; F1 wording 9 of 9 |
+| Accessories | Klein | 0 (free): a head lock blocks glasses and hats | A4, 2 of 2; F1 wording 7 of 8 |
+| Hairstyle | Klein | 2 = "face" on the front and the close-up | b8; F1 wording 3 of 3 |
 | Condition | Klein | 0 | b5, 6 of 6 |
 | Age 13+ | Klein | 0, exact-age wording | b11-b15 |
 | Age 12 and under | Klein age edit, then the Qwen rebuild | - | b17; Klein-only rebuild failed (b18, b19) |
 | Age 1 | as 12 and under, plus "the same hairstyle and hair color"; toddler body words | - | b20-21, 2 of 2 |
 | Age 0 (newborn) | as 12 and under: SWADDLED in a cream blanket, no clothes caption, no head removal; the graph draws it standing | - | b21, 2 of 2 (Fabio took the upright pose) |
 | Body shape | Qwen-Image 2.1 | none in that graph | b9, 3 of 3 |
+
+**Panel agreement is the WORDING's job (F1, `validation.md` § Phase F1).** Naming only the close-up
+left each panel to pick its own sleeves or drop the scarf; Clothes now names all three views and the
+parts that disagreed, Accessories names "the character seen from behind" and the close-up, Hairstyle
+adds "with the head uncovered and no hat". On a FREE edit (no head lock) "the back view" or "all three
+figures" makes Klein redraw the layout with an extra figure. A second "make the views match" pass
+changes nothing. A younger age within 15 years of the describer's read takes no direction word (it
+stripped the fisher's beard); a small OLDER step either overshoots on every panel or ages only the
+close-up - a Klein limit, the overshooting wording is kept because its panels agree.
+
+**The Reference picture (F2).** `image2` -> `Input_Image_2` -> a second `ReferenceLatent` on top of
+reference 1, switched by `loaded` AND `Input_Reference` (`MpiBooleanCompare` both_true -> `MpiIfElse`,
+lazy). The builder sets `Input_Reference` only on the change leg of Clothes / Accessories / Hairstyle:
+an age leg that starts the run is handed the user's media too. Words become optional with a reference;
+any age 0-17 refuses it (`docs/child-safety.md`).
 
 An edit keeps the figure's SIZE: a child's or a heavier body needs the bodies redrawn, which is why
 age 12 and under and Body shape leave Klein. Klein's lock is LAZY (SAM3 runs only at lock 1 or 2);

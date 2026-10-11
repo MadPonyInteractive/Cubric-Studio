@@ -39,16 +39,19 @@ const L1 = ' Make the same change in the close-up portrait on the right. Keep ev
 test('every change builds its bench template verbatim', async () => {
     const { buildChangePrompt } = await builder();
     assert.strictEqual(buildChangePrompt('clothes', 'a red leather jacket, black jeans and boots'),
-        'Dress the character in a red leather jacket, black jeans and boots. Dress the character the same way in the '
-        + 'close-up portrait on the right. Keep everything else exactly as it is.');
+        'Dress the character in a red leather jacket, black jeans and boots. The front view, the back view and the '
+        + 'close-up portrait on the right all show the same outfit, with the same neckline, sleeves and straps. '
+        + 'Keep everything else exactly as it is.');
     assert.strictEqual(buildChangePrompt('accessories', 'a red scarf and round glasses'),
-        'Give the character a red scarf and round glasses.' + L1);
-    assert.strictEqual(buildChangePrompt('hair', 'a short blonde bob haircut'), 'Give the character a short blonde bob haircut.' + L1);
+        'Give the character a red scarf and round glasses. Make the same change on the character seen from behind and in '
+        + 'the close-up portrait on the right. Keep everything else exactly as it is.');
+    const HAT = ', with the head uncovered and no hat, so the new hair shows.';
+    assert.strictEqual(buildChangePrompt('hair', 'a short blonde bob haircut'), 'Give the character a short blonde bob haircut' + HAT + L1);
     assert.strictEqual(buildChangePrompt('condition', 'beaten up after a fight: a bruised, cut face and torn, dirty clothes'),
         'Make the character look beaten up after a fight: a bruised, cut face and torn, dirty clothes.' + L1);
     assert.strictEqual(buildChangePrompt('body', 'heavyset and overweight'), "Make the character's body heavyset and overweight." + L1);
     // The user's own full stop is not doubled; no words, no prompt.
-    assert.strictEqual(buildChangePrompt('hair', '  a buzz cut. '), 'Give the character a buzz cut.' + L1);
+    assert.strictEqual(buildChangePrompt('hair', '  a buzz cut. '), 'Give the character a buzz cut' + HAT + L1);
     assert.strictEqual(buildChangePrompt('clothes', '   '), null);
     assert.strictEqual(buildChangePrompt('none', 'anything'), null);
 });
@@ -62,8 +65,11 @@ test('the age template: child, teen, younger and older adult, by the describer\'
         C + "15-year-old, with a teenager's smooth face, no beard and no wrinkles, the same hairstyle and hair color, "
         + 'wearing the same clothes.' + L1);
     assert.strictEqual(buildAgePrompt(30, 68), C + '30-year-old, with a younger face, smooth skin and no grey hair.' + L1);
-    // Phase E: an old sheet read older than an old target keeps its grey hair and beard.
-    assert.strictEqual(buildAgePrompt(70, 82), C + '70-year-old, with a younger face.' + L1);
+    // Phase E: an old sheet read older than an old target keeps its grey hair and beard; F1: near the read
+    // (within 15) no direction word, or the beard goes. Further off, the younger wording stays.
+    assert.strictEqual(buildAgePrompt(70, 82), 'Change the character in this character sheet to be a 70-year-old.' + L1);
+    assert.strictEqual(buildAgePrompt(45, 82), C + '45-year-old, with a younger face.' + L1);
+    assert.strictEqual(buildAgePrompt(35, 45), C + '35-year-old, with a younger face, smooth skin and no grey hair.' + L1);
     assert.strictEqual(buildAgePrompt(70, 42),
         'Change the character in this character sheet to be an older version of themselves as a 70-year-old.' + L1);
     // No read: a typical adult (35), so 60 is older and 25 younger.
@@ -117,6 +123,34 @@ test('each leg carries its lock and the whole run in runPrompt', async () => {
     const lines = change.injectionParams.runPrompt.split('\n');
     assert.deepStrictEqual(lines.map(l => l.slice(0, 12)), ['Dress the ch', 'Change the c', 'A 10-year-ol']);
     assert.strictEqual(characterSheetEditor('change', { ...values, Input_Age: 30 }).injectionParams.runPrompt.split('\n').length, 2);
+});
+
+test('F2: an optional Reference picture replaces or joins the words, on the change leg only', async () => {
+    const { characterSheetEditor, characterSheetEditorRefusal: refuse, characterSheetEditorCardName: name, buildChangePrompt } = await builder();
+    const REF = { role: 'image2', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fdress.png' };
+    const run = (change, words, age = -1) => ({ change, words, Input_Age: age, mediaItems: [{ role: 'image1', url: 'x' }, REF] });
+    // The F2 bench strings (validation.md): the F1 wordings with the reference as what to change by.
+    assert.strictEqual(buildChangePrompt('clothes', '', true), 'Dress the character in the outfit from the reference picture. '
+        + 'The front view, the back view and the close-up portrait on the right all show the same outfit, with the same '
+        + 'neckline, sleeves and straps. Keep everything else exactly as it is.');
+    assert.match(buildChangePrompt('accessories', 'the hat', true), /^Give the character the accessory from the reference picture: the hat\. Make the same change on the character seen from behind/);
+    assert.match(buildChangePrompt('hair', '', true), /^Give the character the hairstyle and hair color from the reference picture, with the head uncovered/);
+    assert.strictEqual(buildChangePrompt('condition', '', true), null, 'Condition never takes a reference');
+    // Wanted only by the change leg of a change that takes one: an age leg that starts the run is handed it too.
+    assert.strictEqual(characterSheetEditor('change', run('clothes', '')).injectionParams.Input_Reference, true);
+    assert.strictEqual(characterSheetEditor('change', run('condition', 'muddy')).injectionParams.Input_Reference, false);
+    assert.strictEqual(characterSheetEditor('age', run('none', '', 60)).injectionParams.Input_Reference, false);
+    assert.strictEqual(characterSheetEditor('change', { change: 'clothes', words: 'a suit' }).injectionParams.Input_Reference, false);
+    // Words OR a reference; never a reference under 18 (the gate reads words only).
+    assert.strictEqual(refuse(run('clothes', '')), null);
+    assert.strictEqual(refuse({ change: 'clothes', words: '' }), 'Say what to change, or add a Reference picture.');
+    assert.strictEqual(refuse({ change: 'condition', words: '', mediaItems: [REF] }), 'Say what to change first.');
+    assert.match(refuse(run('clothes', '', 10)), /cannot be used with an age under 18/);
+    assert.match(refuse(run('hair', 'a bob', 17)), /under 18/);
+    assert.strictEqual(refuse(run('clothes', '', 18)), null);
+    assert.strictEqual(refuse(run('condition', 'muddy', 10)), null, 'a change that ignores the reference is not refused for it');
+    assert.strictEqual(name(run('clothes', ''), 'Ava'), 'Ava - outfit from a reference');
+    assert.strictEqual(name(run('hair', 'a pixie cut', 30), 'Ava'), 'Ava - a pixie cut, age 30');
 });
 
 // ── 2. The child-safety gate ─────────────────────────────────────────────────
