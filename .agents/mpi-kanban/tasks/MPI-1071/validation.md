@@ -55,3 +55,5 @@
   never left the page) -> POST order `/llm/ollama/unload`, `/prompt`. Fake mic (oscillator) + a 3 s
   stubbed `/llm/transcribe` -> bar "TRANSCRIBING" + pulse, mic `busy`; after -> "IDLE · Local", text
   inserted. `node --test` comfyController suites 328/328, llm-transcribe 5/5; eslint clean.
+- Fabio's mic test 2 (Remote, Qwen default): "pretty good". "Cubric Studio" -> "Kubrick Studio"
+  (expected: Remote takes no word list). Turbo not tested yet.
