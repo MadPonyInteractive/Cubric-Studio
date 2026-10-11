@@ -233,6 +233,12 @@ test('Scene viewer: the card\'s scene is drawn by direction with rule C holes an
         await window.keyboard.press('ArrowDown');
         await window.keyboard.press('ArrowDown');
         await expect(panel.locator('.mpi-scene-block__lens-value'), 'Down stops at the widest').toHaveText('12 mm');
+        // Reset view: back to where the pano was taken, looking ahead; the lens stays (it sticks).
+        await window.evaluate((p) => document.querySelector('.mpi-scene-block').setPose(p),
+            { pos: [0.4, -0.2, 1.1], yaw: 1.2, pitch: -0.3, roll: 0.2, mm: 12 });
+        await panel.locator('button:has-text("Reset view")').click();
+        expect(await getPose(window)).toEqual({ pos: [0, 0, 0], yaw: 0, pitch: 0, roll: 0, mm: 12 });
+        await expect(panel.locator('#readout')).toHaveText('Height 1.60 m · roll 0°');
 
         // ── The render's readout: z is the camera depth, back faces negative ──
         // (the self-check view used to swallow it: z all 0, so the first live lift failed)

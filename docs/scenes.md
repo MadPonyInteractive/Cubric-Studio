@@ -63,8 +63,9 @@
   video's 360 player, so the view fills the stage (no aspect) and the panel holds Path (count, Add
   point / remove last / clear, the line that steers Wan, Render path) and Lens (`LENSES` 12-85 mm
   slider, Up / Down = `scene.lens.*`; a readout of height m = `EYE_HEIGHT_M` 1.6 x (1 + y /
-  `groundBelow`) and roll). The lens sticks (`Storage.getSceneShot`, shared with the player, which
-  also keeps the aspect there). Pictures: § the 360 player below. **The card stays on its pano**.
+  `groundBelow`) and roll, then Reset view: back to `START_POSE`, the lens kept). The lens sticks
+  (`Storage.getSceneShot`, shared with the player, which also keeps the aspect there). Pictures: §
+  the 360 player below. **The card stays on its pano**.
 
 ## Pictures: the path video's 360 player (P3)
 

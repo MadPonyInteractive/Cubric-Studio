@@ -91,7 +91,11 @@ ticks (Phase 0/0b/1, all complete) moved verbatim to
 - [x] `pano-360` FlowDef (source runs only until Phase 4), `landsAsScene` package key, agent doc + handover test; placeholder tile (session 49)
 - [x] Pano Flow end to end, agent path, isolated app: text card 125 s + Convert 80 s (8192x4096 + depth, `scenePath`) (session 49)
 - [x] Library-path Convert bug (`!runMediaItems` guard) fixed: `wrapsScene`, behaviour-tested (session 49)
-- [ ] Pano Flow from the Flow Library's Cue, picture branch, in Fabio's app: card opens in Scene (Electron only; a browser page cannot reach 48188)
+- [x] Pano Flow from the Flow Library's Cue, picture branch, on RunPod: Convert ran, card opened in Scene (Fabio, session 49)
+- [x] Fabio: the Flow lands ONLY the image; Convert is the user's right-click (FlowDef, description, agent doc) (session 49)
+- [ ] Delete the dead `sceneCallbacks` / `wrapsScene` in flowService.js + their tests (waits on MPI-1092's claim)
+- [ ] Scene Reset view button: Fabio's eye (built + spec, session 49)
+- [ ] Status bar shows a running Convert (reads IDLE today: `runSceneOp` bypasses the queue)
 - [ ] Phase 4: drop `devOnly` on `scene-convert` + Scene workspace + the `pano-360` gate; UNRELEASED.md roster + entry
 - [ ] `/mpi-flow-graphics` tile + hero for `pano-360` (replaces the placeholder tile)
 - [ ] End check (user-ux, Fabio)

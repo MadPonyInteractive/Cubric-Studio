@@ -98,6 +98,7 @@ export const MpiSceneBlock = ComponentFactory.create({
                         <span class="mpi-scene-block__lens-value" id="lens-value"></span>
                     </div>
                     <div class="mpi-scene-block__readout" id="readout"></div>
+                    <div class="mpi-scene-block__reset" id="view-reset"></div>
                 </section>
             </div>
         </div>
@@ -151,6 +152,9 @@ export const MpiSceneBlock = ComponentFactory.create({
         const renderBtn = MpiButton.mount(qs('#path-render', el), {
             text: 'Render path', variant: 'primary', size: 'md', disabled: true,
             info: 'Wan renders a 360 video along the path and invents what it walks into. It lands as a new card',
+        });
+        const resetBtn = MpiButton.mount(qs('#view-reset', el), {
+            icon: 'refresh', label: 'Reset view', size: 'sm', info: 'Back to where the pano was taken, looking ahead',
         });
         const pathStatus = qs('#path-status', el);
         // The camera path (plan P1), on the pano item: one path for now, `cameraPaths` leaves room for more.
@@ -297,6 +301,8 @@ export const MpiSceneBlock = ComponentFactory.create({
         undoBtn.on('click', () => savePath(removeLast(pathPoints)));
         clearBtn.on('click', () => savePath([]));
         renderBtn.on('click', renderVideo);
+        // The start pose again; the lens is a setting that sticks, so it stays.
+        resetBtn.on('click', () => { pose = { ...START_POSE, pos: [...START_POSE.pos], mm: pose.mm }; show(); });
 
         if (sceneItem?.scenePath && canvasEl.isSupported()) {
             loadScene(sceneItem.scenePath, { signal: loading.signal })
@@ -336,7 +342,7 @@ export const MpiSceneBlock = ComponentFactory.create({
                 view.dispose();
                 view = null;
             }
-            [lensPick, fillInput, addBtn, undoBtn, clearBtn, renderBtn].forEach(c => c.destroy());
+            [lensPick, fillInput, addBtn, undoBtn, clearBtn, renderBtn, resetBtn].forEach(c => c.destroy());
             viewport.destroy();
         };
     },

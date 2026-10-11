@@ -65,7 +65,8 @@
 }
 
 .mpi-scene-block__path-add > .mpi-btn,
-.mpi-scene-block__render > .mpi-btn {
+.mpi-scene-block__render > .mpi-btn,
+.mpi-scene-block__reset > .mpi-btn {
     width: 100%;
 }
 

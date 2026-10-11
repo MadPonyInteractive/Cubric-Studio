@@ -42,9 +42,7 @@ const FLOW_KEYS = new Set(['title', 'preview', 'video', 'description', 'required
     // MPI-1041: an app prompt builder by name (flowService PROMPT_BUILDERS); an unknown name builds nothing.
     'promptBuilder',
     // MPI-1036: the picture put into words before the run (flowEnhance.js § describe).
-    'describe',
-    // MPI-623: the landed card is Converted to a 360 scene (flowService `sceneCallbacks`).
-    'landsAsScene']);
+    'describe']);
 // The two big-photo flags a Flow graph can earn (MPI-971; commandRegistry.js says what each
 // promises about the graph): a package opts in the same way a built-in Flow does.
 const OP_KEYS = new Set(['label', 'progressLabel', 'mediaType', 'requiresImages',

@@ -43,10 +43,17 @@ sidecar). **BUG found + fixed:** the wrap guard was `!runMediaItems`, but the Fl
 sends `runMediaItems` - every Library run would land unconverted. Now `wrapsScene(flow, _leg)` (first call =
 no `_leg.index`, no `_leg.tempId`), behaviour-tested. Library-path LIVE check NOT done: a playwright page
 on the isolated port cannot reach ComfyUI 48188 (origin refused: ws 403 + CORS on /prompt), and the isolated
-Electron window has no CDP. All of it COMMITTED + pushed in `5a7cfb7cd`. **Next:** Fabio presses Cue on the
-picture branch in his app (his app already reloaded on it), card must open in Scene - ON A FREE GPU: his first
-try crawled (30% at 15 min) beside a peer's Ollama recipe test (~10 GB VRAM; the pano peaks 15.6 GB alone),
-he stopped it; app runs take no GPU lease. **Fabio asked: 10 steps vs 8?** Never tested: all four samplers'
+Electron window has no CDP. All of it COMMITTED + pushed in `5a7cfb7cd`. **Fabio ran it on RunPod (picture
+branch, Library Cue): Convert worked, the card opened in the Scene.** Then **REVERSED (Fabio, 2026-10-11): the
+Flow LANDS ONLY THE IMAGE** - the user may edit / upscale it, then chooses the right-click Convert. Done: FlowDef
+drops `landsAsScene` + `requiredPlugins: ['scene-convert']`, description + `docs/agent/flows.md` say "right-click
+-> Convert", FLOW_KEYS drops it. LEFT: `flowService.js` `sceneCallbacks` / `wrapsScene` / its call +
+`convertToPano` import are now DEAD - delete them + their 3 tests in `tests/flow-pano360.test.cjs` once MPI-1092
+(session 82476838, live) releases flowService.js (message `b5c9d0c1-mpi623-to-mpi1092`). Also his asks: Scene
+**Reset view** button BUILT (`START_POSE`, lens kept; scene-viewer spec asserts it, 2/2 green) - his eye; Take
+picture is gone from the Scene by HIS session-47 call (path tool only; pictures via the 360 player) - told him.
+Noticed: the status bar reads IDLE during a Convert (`runSceneOp` bypasses the queue) - polish item.
+**Fabio asked: 10 steps vs 8?** Never tested: all four samplers'
 10 came verbatim from Mickmumpitz's `research/pano.json`; the app's Krea 2 fast tier runs 8. Bench A/B both
 branches 8 vs 10, same seed (4 runs, ~8 min, lease), seam + sheets to Fabio; the two seam passes (0.55 / 0.45
 denoise) are the risk. Then Phase 4 ungate; graphics. `commandRegistry.js` flowPano360 + inject test case IN (MPI-1060
