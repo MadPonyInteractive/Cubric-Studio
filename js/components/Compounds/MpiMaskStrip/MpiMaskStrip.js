@@ -53,7 +53,7 @@ import { getPendingToolSettings } from '../../../services/projectService.js';
 const DEFAULTS = {
     opacity: 0.7, inverted: false, bwView: false, brushPreset: DEFAULT_BRUSH_PRESET,
     // MPI-1072: what Extract leaves outside the mask.
-    extractBg: 'transparent',
+    extractBg: 'none',
     // eslint-disable-next-line mpi/no-hardcoded-hex-color -- default Extract background, user-picked after
     extractColour: '#ffffff',
 };
@@ -282,16 +282,39 @@ export const MpiMaskStrip = ComponentFactory.create({
         // REMOVED when absent, never `[hidden]` (the MPI-382 lesson above).
 
         if (dest === DESTINATIONS.mask && typeof viewer.el.extractMask === 'function') {
-            const extractRow = qs('#extract-row', el);
-            let bg = settings.extractBg === 'colour' ? 'colour' : 'transparent';
+            // Values are `none` / `solid`, not `colour`: a tool panel above this strip
+            // (the GIF cut-out's By colour, the Colour mask) already owns a radio value
+            // `colour`, and two in one panel read as one control.
+            let bg = settings.extractBg === 'solid' ? 'solid' : 'none';
             let colour = settings.extractColour || DEFAULTS.extractColour;
-            const _applyBg = () => extractRow.classList.toggle('mpi-mask-strip__extract--transparent', bg !== 'colour');
-            _applyBg();
+
+            // The swatch EXISTS only while Solid is chosen — a hidden one would still be
+            // a second colour control in the tool panel above (MPI-964 counts them).
+            // ponytail: plain MpiColorPicker, no Pick — MpiColorField is a Compound and
+            // a Compound may not import one. Lift Extract into the panels to get Pick.
+            let colourField = null;
+            const _syncColourField = () => {
+                if (bg === 'solid' && !colourField) {
+                    colourField = MpiColorPicker.mount(qs('#extract-colour-slot', el), {
+                        value: colour,
+                        info: 'Fills everything outside the mask',
+                    });
+                    colourField.on('change', ({ hex }) => {
+                        colour = hex;
+                        Events.emit('settings:tool:update', { toolKey: dest.settingsKey, key: 'extractColour', value: hex });
+                    });
+                } else if (bg !== 'solid' && colourField) {
+                    colourField.destroy?.();
+                    colourField = null;
+                    colourField.el.remove();
+                }
+            };
+            _syncColourField();
 
             const bgRadio = MpiRadioGroup.mount(qs('#extract-bg-slot', el), {
                 options: [
-                    { label: 'Transparent', value: 'transparent', info: 'Extract onto transparency' },
-                    { label: 'Colour',      value: 'colour',      info: 'Extract onto a solid colour' },
+                    { label: 'Transparent', value: 'none',  info: 'Extract onto transparency' },
+                    { label: 'Colour',      value: 'solid', info: 'Extract onto a solid colour' },
                 ],
                 value: bg,
                 name: 'mask-extract-bg',
@@ -299,25 +322,16 @@ export const MpiMaskStrip = ComponentFactory.create({
             });
             bgRadio.on('select', ({ value }) => {
                 bg = value;
-                _applyBg();
+                _syncColourField();
                 Events.emit('settings:tool:update', { toolKey: dest.settingsKey, key: 'extractBg', value });
-            });
-
-            const colourPicker = MpiColorPicker.mount(qs('#extract-colour-slot', el), {
-                value: colour,
-                info: 'Fills everything outside the mask',
-            });
-            colourPicker.on('change', ({ hex }) => {
-                colour = hex;
-                Events.emit('settings:tool:update', { toolKey: dest.settingsKey, key: 'extractColour', value: hex });
             });
 
             const extractBtn = MpiButton.mount(qs('#extract-btn-slot', el), {
                 text: 'Extract', size: 'sm', variant: 'secondary',
                 info: 'Keep only the masked area as a new entry — everything else is removed',
             });
-            extractBtn.on('click', () => viewer.el.extractMask({ background: bg === 'colour' ? colour : null }));
-            _children.push(bgRadio, colourPicker, extractBtn);
+            extractBtn.on('click', () => viewer.el.extractMask({ background: bg === 'solid' ? colour : null }));
+            _children.push(bgRadio, extractBtn, { destroy: () => colourField?.destroy?.() });
         } else {
             qs('#extract-row', el)?.remove();
         }

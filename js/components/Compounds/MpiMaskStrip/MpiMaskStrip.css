@@ -103,10 +103,6 @@
     gap: var(--s-2);
 }
 
-.mpi-mask-strip__extract--transparent .mpi-mask-strip__extract-colour {
-    display: none;
-}
-
 .mpi-mask-strip__extract .mpi-btn {
     width: 100%;
 }
