@@ -23,9 +23,14 @@ back, layout 3/3, close-up 0/3; LC (no words) close-up 3/3. LANDED UNCOMMITTED: 
 `comfy_workflows/raw/flow_character_sheet_edit.json` by `research/bench/patch_raw.py`, converted + injection-gated for
 this ONE file by the scratchpad `sync_one.mjs` (the full `sync-raw-workflows.mjs` would also convert AND COMMIT peer
 MPI-1071's untracked `raw/flow_transcribe.json`); generated API proven node-for-node equal to qg4's benched graph.
-Commit both with `--only` (raw + generated). NEXT: round 3 (`qg5.py`, queued behind peer MPI-1084's LTX lease) picks
-the close-up wording with words, then the builder strings (LC for no words, the round-3 winner for words) + tests +
-playbook. Fabio is building an image combine so a user can give a front+back reference: bench a two-view reference then.
+SHIPPED f3ec8cb40 (pushed): shoulder lock graph + builder (LC no words, X3 with words, `_unview`) + tests + playbook.
+Card validating. NEXT: Fabio's eye test (reload the app; Clothes + his dress reference on a with-head sheet, no words
+and "G string on the back view"). Fabio is building an image combine so a user can give a front+back reference:
+bench a two-view reference then (risk: a second figure in the reference drew an extra figure, MPI-1041 F2 round 2).
+2026-10-11 evening: Fabio made it - `Qwen 2.1/Media/sheet_001.png` (1536x2048, Combine Images: the dress front +
+a full-length side/back photo; the dress is long at the back, NOT a bodysuit). GPU is free for agents. Round 5 =
+shipped strings (LC no words, X3 with words) with sheet_001 as the reference on the with-head sheet, 3 seeds each;
+watch for an extra figure. Results go in validation.md; then Fabio's eye test.
 
 ## Plan
 

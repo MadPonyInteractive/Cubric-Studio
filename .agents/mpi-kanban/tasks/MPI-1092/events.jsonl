@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1092", "at": "2026-10-11T17:43:28+01:00", "actor": "82476838-8c00-4ebb-8408-fde39eef109b", "column": "todo", "title": "Chained Flow runs show their step in the status bar (1/3, 2/3, 3/3)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1092", "at": "2026-10-11T17:44:10+01:00", "actor": "82476838-8c00-4ebb-8408-fde39eef109b", "from": "todo", "to": "doing", "reason": "Fabio asked: step counter on chained Flow runs"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1092", "at": "2026-10-11T20:36:53+01:00", "actor": "82476838-8c00-4ebb-8408-fde39eef109b", "from": "doing", "to": "doing", "reason": "Shipped in f3ec8cb40; waiting on Fabio's eye test"}

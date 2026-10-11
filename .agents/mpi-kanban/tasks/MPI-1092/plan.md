@@ -6,6 +6,8 @@
 on every leg. The "· 1" is the graph's own sampler stage with no total; nothing says which leg of the run is running,
 and the early legs show half-made sheets, so a user may stop a run that is going fine. Every chained Flow shares the
 path (`flowService.submitFlowGeneration`).
+SHIPPED f3ec8cb40 (pushed). Card validating: Fabio's eye test (reload, run a chained Character Sheet edit). Note the
+head removal is always the last step (MPI-1087), so Clothes + age reads 1/4..4/4, not 3.
 
 ## Plan
 
