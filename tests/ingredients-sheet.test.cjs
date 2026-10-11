@@ -129,16 +129,24 @@ test('the sheet: each picture in the cell its tag names, prompt names each descr
         const c = out.cells[i];
         assert.deepEqual(at(c.x + (c.w >> 1), c.y + (c.h >> 1)), colour, `picture ${i + 1} in its cell`);
     }
-    // A role word given: only that role is labelled, Picture 1 gets none; Picture 2 has no
-    // line and gets NO line, never a bare "Picture 2".
+    // No line names a character, so the unlabelled Picture 1 is the character (the help's
+    // own example shape, caught live in MPI-1060 Phase 5); Picture 2 has no line and gets
+    // NO line, never a bare "Picture 2".
     assert.equal(out.prompt, [
         '### Reference Sheet Description',
-        `**${cellName(out.cells[0], 1920, 1024)}:** a woman with copper-red hair`,
+        `**${cellName(out.cells[0], 1920, 1024)} (Character):** a woman with copper-red hair`,
         `**${cellName(out.cells[2], 1920, 1024)} (Prop):** a blue backpack`,
         '### Target Description',
         'she walks up the path.',
     ].join('\n'));
     assert.doesNotMatch(out.prompt, /Picture \d/);
+});
+
+test('a line that names the character keeps the default off Picture 1', async () => {
+    const pics = await pictures([[1200, 600, BLUE], [600, 1200, RED]]);
+    const out = await buildReferenceSheet(pics, '<Picture 1> setting: a harbour\n<Picture 2> character: a man\nhe waves.', {});
+    assert.match(out.prompt, /Panel \(Setting\):\*\* a harbour\n\*\*[\w ]+Panel \(Character\):\*\* a man\n/);
+    assert.equal((out.prompt.match(/\(Character\)/g) || []).length, 1);
 });
 
 test('no role word anywhere: Picture 1 is the character', async () => {

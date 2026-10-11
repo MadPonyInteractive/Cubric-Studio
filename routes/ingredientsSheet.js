@@ -190,12 +190,13 @@ function parseSheetPrompt(prompt) {
 }
 
 /**
- * Roles per picture (index into `tags`): the role words where given; with none anywhere,
- * Picture 1 is the character (the strip's first chip, as in every help example).
+ * Roles per picture (index into `tags`): the role words where given; when no line names a
+ * character, an unlabelled Picture 1 is the character (the strip's first chip, as the help
+ * says and its example writes: `<Picture 1>` bare, `setting:`/`prop:` on the others).
  */
 function sheetRoles(tags, lines) {
     const roles = tags.map(n => lines.get(n)?.role || null);
-    if (roles.every(r => !r)) roles[0] = 'Character';
+    if (!roles.includes('Character') && !roles[0]) roles[0] = 'Character';
     return roles;
 }
 

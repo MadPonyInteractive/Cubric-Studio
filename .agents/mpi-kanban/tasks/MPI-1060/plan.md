@@ -86,7 +86,40 @@ workflow), ready for LTX 2.5 by re-pointing loaders. Handoffs between sessions u
   mode (draft, NO sweep run yet) + guide section in `docs/agent/models/ltx-2.3.md` (132 lines). Enhancer is
   text-only (no image input: llmService.js runServerBackend posts no image), so it fills a missing description
   only from the user's words. Full unit suite 3039/0; release:check red ONLY on the MPI-623 engine pin.
-- **Next: Phase 5 live verify.** Open question for it: how a user puts a chip in the start-frame slot from the
+- **Phase 5 blocker found (session "LTX 2.3 Reference 5", 2026-10-11):** every app instance (isolated
+  too) uses ONE engine on 48188 (`routes/shared.js` hardcodes it) = Fabio's, whose models root is
+  `G:/CubricModels` (`model_roots.json` beats `CUBRIC_MODELS_ROOT`; one root only, `routes/modelRoots.js`).
+  LTX was never installed there; the LTX weights live in `C:/AI` (bench), minus the spatial upscaler and
+  foley LoRA. G: has ~30 GB free, LTX Balanced needs ~40 GB. No file symlinks without admin. So an in-app
+  run needs Fabio: close his app + temporary root swap, free G: space, or a paid Pod.
+  Start-frame answer: the prompt box reaches `inputStartFrame` ONLY as a 10th picture (positional fill after
+  Picture 1-9); no toggle exists. Pick: a chip toggle like the i2v End-frame pill (look-and-feel = Fabio).
+- **Blocker cleared 2026-10-11:** Fabio freed G:; the 12 LTX Balanced deps were staged into `G:/CubricModels`
+  (10 copied from `C:/AI`, upscaler + foley curl'd from R2 and sha256-checked; Python urllib gets a 403 from
+  R2, curl with a UA does not). All 12 sizes == dep `bytes`. LTX Balanced now reads installed in Fabio's app.
+- **Phase 5 harness** (scratchpad `harness.cjs`, kept in validation.md): Playwright-launched REAL Electron (own
+  profile/docs/port 54731, attaches to 48188) under `gpu_lease.py`. Traps: a fresh profile shows the 18+ gate then
+  What's New (click Done); `pb.setModel` alone does NOT move the gallery's model: write
+  `setSelectedModelId('video', id)` and re-open the project so the gallery remounts on it.
+- **Prompt-box run PASSED (2026-10-11):** 3 chips -> Picture 1-3 on ref2v_ms, sheet 1920x1920 (character top,
+  setting + prop below), prompt rewritten to the two-section shape, card `ref2v_001` with sidecar, 512x512 3 s with
+  audio, 169 s. Clip: identity, outfit, framed blue backpack, path + peaks all hold; no collage.
+- **Fixed in Phase 5:** the help example (`<Picture 1>` bare, `setting:`/`prop:` on the others) left Picture 1
+  unlabelled AND outside the character set (no bigger cell, no 45% floor), contradicting the help text.
+  `sheetRoles`: an unlabelled Picture 1 is the character unless another line says `character:`. Test + guide +
+  recipe wording updated; `ingredients-sheet` 10/10.
+- **Phase 5 automated runs ALL PASS (2026-10-11, validation.md):** prompt box 1:1, connector 16:9, portrait 9:16,
+  the last two after the role fix (both had copied the sheet layout before it). Previews in
+  `C:/AI/MPI-1060-out/phase5/`. Uncommitted: `routes/ingredientsSheet.js`, its test, guide, recipe.
+- **Start-frame toggle (Fabio's spec, 2026-10-11):** on an op with an `inputStartFrame` slot, each picture's
+  tag is a toggle button (the MPI-1015 swap-tag style): click = that picture becomes `Start frame` (role
+  `inputStartFrame`, sticky because non-ordinal), click again = back to Picture n; one at most. H3 unchanged.
+  `MpiPromptBox.js` + `tests/desktop/prompt-box-start-frame-toggle.spec.js` (pass); strip-related desktop specs
+  52/52. NOT ingredients: keyframe interpolation (land on several pictures) is a different technique, noted.
+- Start-frame toggle live run PASSED (validation.md). Uncommitted: `routes/ingredientsSheet.js`, its test, guide,
+  recipe, `MpiPromptBox.js`, the new desktop spec, card files.
+- **Next:** Fabio's eye-test in his own app (restart it: the composer fix is server-side); then the recipe Stage 1
+  sweep (his pick: right after Phase 5; local, under the GPU lease), then Phase 6 docs + UNRELEASED (2.1). Open question for it: how a user puts a chip in the start-frame slot from the
   prompt box (an untagged non-ordinal slot after 15 tagged ones; agents use role `inputStartFrame`). Recipe Stage 1
   sweep still owed (`npm run recipe:test -- ltx-2.3 ...`), ask Fabio first.
 - Phase 3 R2 upload DONE 2026-10-10: `vision/models/loras/ltx-2.3/ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors`,

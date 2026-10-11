@@ -1118,17 +1118,23 @@ export const MpiPromptBox = ComponentFactory.create({
             // image, then a video, is "Picture 1" and "Video 1", never 1 and 2.
             const _tagBySlot = new Map(
                 _mediaSlotsForOperation().filter(s => s.tag).map(s => [s.key, s.tag]));
+            // MPI-1060: an op with an untagged start-frame slot (LTX ref2v_ms) makes each
+            // picture's tag a toggle: click it and that picture opens the clip instead of
+            // joining the reference sheet; click again and it is a Picture n once more.
+            const _hasStartSlot = _mediaSlotsForOperation().some(s => s.key === 'inputStartFrame');
+            const _isStart = (item) => item.role === 'inputStartFrame';
             // Roles are the ASSIGNED ones (_withAssignedRoles ran before this), so the
             // badge reports where the asset really goes, not a stale tag.
-            const _badgeFor = (item, idx) =>
-                _tagBySlot.get(item.role) ?? (items.length > 1 ? String(idx + 1) : '');
+            const _badgeFor = (item, idx) => (_isStart(item) ? 'Start frame' : null)
+                ?? _tagBySlot.get(item.role) ?? (items.length > 1 ? String(idx + 1) : '');
 
             // What the fast path below may NOT change: the role pill, and whether a
             // badge element exists at all. Its TEXT is fine to re-stamp in place (that
             // is what reorder needs), but a chip that had no badge has no element to
             // stamp — so a switch from an untagged op to a tagged one (Wan 5B i2v →
             // H3 ref2v_ms, both roleKey-less) would silently paint no tag.
-            const _chipKey = (item, idx) => `${_roleKey(item)}|${_badgeFor(item, idx) ? 1 : 0}|${item.stackId ? `stack:${item.count}` : ''}`;
+            const _startKey = (item) => (_hasStartSlot && item.mediaType === 'image' ? (_isStart(item) ? 'sf1' : 'sf0') : '');
+            const _chipKey = (item, idx) => `${_roleKey(item)}|${_badgeFor(item, idx) ? 1 : 0}|${item.stackId ? `stack:${item.count}` : ''}|${_startKey(item)}`;
 
             // Reorder fast path: same chips, new order. Rebuilding the DOM here
             // would reload every <img src> mid-drag (flicker) and drop the
@@ -1173,7 +1179,8 @@ export const MpiPromptBox = ComponentFactory.create({
                 const _badge = _badgeFor(item, idx);
                 // MPI-1015: a swappable pinned chip's tag is a button (appended below).
                 const _swapTag = !!(_badge && item.pinned && item.swappable);
-                const indexHtml = (_badge && !_swapTag)
+                const _startTag = !!(_badge && !_swapTag && _hasStartSlot && item.mediaType === 'image' && !item.pinned);
+                const indexHtml = (_badge && !_swapTag && !_startTag)
                     ? `<span class="mpi-prompt-box-media-strip__index">${_badge}</span>`
                     : '';
                 // One image => the role is a CHOICE, so the pill is a button. Two images
@@ -1228,6 +1235,28 @@ export const MpiPromptBox = ComponentFactory.create({
                     on(swapTag, 'click', (e) => { e.stopPropagation(); emit('pinned-swap', { mediaType: item.mediaType }); });
                     on(swapTag, 'pointerdown', (e) => e.stopPropagation());
                     chip.appendChild(swapTag);
+                }
+                if (_startTag) {
+                    const startTag = mountButton({
+                        variant: 'ghost',
+                        size: 'sm',
+                        extraClasses: 'mpi-prompt-box-media-strip__index mpi-prompt-box-media-strip__index--toggle',
+                    }, `${renderIcon('swap', 'xs')}<span class="mpi-prompt-box-media-strip__index-label">${_badge}</span>`);
+                    startTag.setAttribute('aria-pressed', String(_isStart(item)));
+                    startTag.setAttribute('aria-label', _isStart(item) ? 'Use as a reference picture' : 'Use as the start frame');
+                    // Mutate the LIVE items (`items` are role-assigned copies). One start
+                    // frame at most: taking it clears it from any other chip.
+                    on(startTag, 'click', (e) => {
+                        e.stopPropagation();
+                        const live = _mediaItems.find(m => m.id === item.id);
+                        if (!live) return;
+                        const wasStart = live.role === 'inputStartFrame';
+                        _mediaItems.forEach(m => { if (m.role === 'inputStartFrame') m.role = undefined; });
+                        if (!wasStart) live.role = 'inputStartFrame';
+                        _emitMediaChange();
+                    });
+                    on(startTag, 'pointerdown', (e) => e.stopPropagation());
+                    chip.appendChild(startTag);
                 }
                 // MPI-721: a pinned chip is the WORKSPACE'S OWN image — the thing the
                 // box generates from — so there is no remove pill. It stays reorderable,

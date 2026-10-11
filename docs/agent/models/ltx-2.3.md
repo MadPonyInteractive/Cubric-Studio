@@ -38,7 +38,7 @@ Maya adjusts her backpack straps and continues climbing the mountain trail.
 
 Rules:
 - Every `<Picture n>` line must carry a real description -- never a bare tag with nothing after it (produces a web-page collage instead of a video, confirmed on bench).
-- Role word (`setting:`, `prop:`, `character:`) is optional. With no role word anywhere, Picture 1 is the character.
+- Role word (`setting:`, `prop:`, `character:`) is optional. Unless another line says `character:`, a Picture 1 with no role word is the character.
 - Two-word labels ("the backpack") lose the prop. Full descriptions hold. Describe what you can see or what the user told you; never invent appearance not mentioned.
 - The scene paragraph follows standard LTX seven-sentence prose (same structure as `t2v_ms`): shot establishment, scene setting, action, character, camera, audio, closing detail. The scene describes what happens; the sheet handles what things look like.
 - No `<Picture n>` tags in the scene paragraph and no `### Reference Sheet Description` heading -- the app writes those.

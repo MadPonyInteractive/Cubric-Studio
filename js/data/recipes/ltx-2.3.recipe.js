@@ -702,7 +702,7 @@ Output: your reply is ONE paragraph of plain prose. It starts on the action or a
         'Write one <Picture n> line per reference picture, in numeric order, at the very start of the output.',
         'Every <Picture n> line must carry a real visible description -- never a bare tag or a two-word label.',
         'Fill each description only from what the user told you, or from what is clearly implied by the scene. Never invent appearance you were not given.',
-        'Keep the role word if the user supplied one (setting:, prop:, character:); with no role word anywhere, Picture 1 is the character.',
+        'Keep the role word if the user supplied one (setting:, prop:, character:); unless another line says character:, a Picture 1 with no role word is the character.',
         'Leave a blank line between the last picture line and the scene paragraph.',
         'Write the scene as a single flowing prose paragraph: seven sentences, same structure as the LTX t2v mode (shot establishment, scene setting, action, character, camera, audio, closing detail).',
         'The scene describes what HAPPENS; the reference pictures handle what things look like -- do not re-describe the pictures in the scene.',
@@ -759,7 +759,7 @@ PART 1 -- PICTURE LINES
 One <Picture n> line per reference picture, in numeric order, no gaps.
 - Copy the tag exactly (<Picture 1>, <Picture 2>, ...). The app reads them by number; changing the syntax breaks the sheet rewrite.
 - Follow the tag with a complete visible description on the same line. Never leave a bare tag with nothing after it -- a tag without a description produces a web-page collage rather than a video.
-- If the user gave a role word (setting:, prop:, character:), keep it. If no role word appears anywhere, Picture 1 is the character.
+- If the user gave a role word (setting:, prop:, character:), keep it. Unless another line says character:, a Picture 1 with no role word is the character.
 - Fill descriptions from what the user told you -- the text they wrote, the objects they named, the clothes and colours they stated. Never invent physical details (hair colour, clothing, face features, textures) that the user did not provide. A missing description is a missing description; do not guess at appearance.
 - One line per picture, nothing else in this block.
 

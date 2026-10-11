@@ -10,3 +10,13 @@
 - [x] audioMode/useAudio gate moved to `capabilities.audioRouting` (PromptBoxControls)
 - [x] Recipe `r2v` mode (draft) + agent guide section
 - [ ] Recipe Stage 1 sweep (ask Fabio first)
+
+## Phase 5 - live verify (2026-10-11, session "LTX 2.3 Reference 5")
+
+- [x] LTX Balanced staged into `G:/CubricModels` (12 deps, sizes == dep bytes)
+- [x] Prompt-box run in own Electron instance: card + sidecar, clip holds the sheet
+- [x] `/connector/generate` run 16:9: card + sidecar (failed before the role fix, passes after)
+- [x] Portrait 9:16 run (failed before the role fix, passes after)
+- [x] Fix: unlabelled Picture 1 = character unless another line says `character:` (composer, test, guide, recipe)
+- [ ] Fabio's eye-test of the Phase 5 clips
+- [x] Start-frame toggle on the picture tag (Fabio's spec): desktop spec + live run pass
