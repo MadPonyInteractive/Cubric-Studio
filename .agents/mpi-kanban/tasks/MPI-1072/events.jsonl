@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1072", "at": "2026-10-11T07:37:38+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1072", "at": "2026-10-11T07:48:11+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Image Extract shipped and verified live; video half is MPI-1073"}
 {"schema": "mpi-kanban/event/v1", "id": "33138a87-d258-4f63-b802-8247b134d82e", "type": "task.moved", "at": "2026-10-11T07:07:03Z", "task_id": "MPI-1072", "from": "done", "to": "doing", "summary": "CI red: colour-pick-eyedropper spec - the Extract radio value collided with a panel radio"}
+{"schema": "mpi-kanban/event/v1", "id": "6d24f8e5-7421-4a6b-a6f8-8b4ab1e2260d", "type": "task.moved", "at": "2026-10-11T07:25:23Z", "task_id": "MPI-1072", "from": "doing", "to": "done", "summary": "CI green on the fix; Extract shipped"}
