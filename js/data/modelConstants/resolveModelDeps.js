@@ -577,17 +577,23 @@ export function depSizeBytes(sizeStr) {
  * work, not bytes, so they never count (MPI-231). Nothing reads partial below 1 GB of the
  * model's own deps on disk: a few shared support files must not draw a phantom 1-3% bar on
  * a pack the user never touched (MPI-258 Bug C).
+ * `heldElsewhere` (from `depsHeldOutsideModels`) drops a dep only while it is ON DISK: there
+ * it is for its plugin, Flow or the engine, not this model's progress, and the uninstall keeps
+ * it, so counting it read "% on disk" forever (MPI-1078). Missing, it is still this model's work.
  * @param {object[]} deps
  * @param {Map<string, boolean|{installed?: boolean, partialBytes?: number}>} depStatus
+ * @param {Set<string>} [heldElsewhere]
  * @returns {{hasPartialProgress: boolean, progress?: number, downloadedBytes?: number, totalBytes?: number}}
  */
-export function partialInstall(deps, depStatus) {
-    const own = deps.filter(dep => dep && dep.type !== 'custom_nodes');
+export function partialInstall(deps, depStatus, heldElsewhere = null) {
+    const onDisk = st => st === true || st?.installed === true;
+    const own = deps.filter(dep => dep && dep.type !== 'custom_nodes'
+        && !(heldElsewhere?.has(dep.id) && onDisk(depStatus?.get(dep.id))));
     if (!depStatus || own.length === 0) return { hasPartialProgress: false };
     let installedDeps = 0, downloaded = 0, total = 0;
     for (const dep of own) {
         const st = depStatus.get(dep.id);
-        if (st === true || st?.installed === true) { downloaded += depSizeBytes(dep.size); installedDeps += 1; }
+        if (onDisk(st)) { downloaded += depSizeBytes(dep.size); installedDeps += 1; }
         else if (st?.partialBytes) downloaded += st.partialBytes;
         total += depSizeBytes(dep.size);
     }
@@ -601,4 +607,19 @@ export function partialInstall(deps, depStatus) {
         };
     }
     return { hasPartialProgress: false };
+}
+
+/**
+ * Dep ids something other than a model needs: every plugin's and Flow's `requiredDeps`, and
+ * the engine's universal set (custom nodes + `engineAsset` weights). The same set the backend
+ * uninstall keeps (routes/downloadManager.js `_remoteSharedDepIds`: universal +
+ * `_flowRequiredDepIds` + `_pluginRequiredDepIds`), for `partialInstall`'s `heldElsewhere`.
+ * @param {Object<string, object>} deps - DEPS
+ * @param {{requiredDeps?: string[]}[]} holders - PLUGINS and FLOWS
+ * @returns {Set<string>}
+ */
+export function depsHeldOutsideModels(deps, holders) {
+    const held = new Set(Object.keys(deps).filter(id => deps[id].type === 'custom_nodes' || deps[id].engineAsset === true));
+    for (const h of holders) for (const id of (h.requiredDeps || [])) held.add(id);
+    return held;
 }

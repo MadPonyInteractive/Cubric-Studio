@@ -15,7 +15,7 @@ import { FLOWS, flowDepKey } from '../../../data/flowsRegistry.js';
 import {
     resolveFullUniverse, deriveInstalledOps,
     archVariantOptions, variantDepsOf, dedupeStable,
-    depSizeBytes, partialInstall,
+    depSizeBytes, partialInstall, depsHeldOutsideModels,
 } from '../../../data/modelConstants/resolveModelDeps.js';
 import { downloadService } from '../../../services/downloadService.js';
 import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
@@ -564,9 +564,10 @@ export const MpiModelManager = ComponentFactory.create({
             // on disk after uninstall and would otherwise read as a phantom partial),
             // the same rule the active-download bar already applies (_byteRatioExcludingNodes, MPI-231).
             // partialInstall drops the nodes and applies the 1 GB floor (MPI-258 Bug C); the
-            // missing-files toast reads the same answer (MPI-1065).
+            // missing-files toast reads the same answer (MPI-1065). A plugin's, Flow's or the
+            // engine's file on disk is not this model's progress either (MPI-1078).
             const deps = _draftDepIds(model).filter(id => !owned.has(id)).map(id => DEPS[id]);
-            return partialInstall(deps, depStatus);
+            return partialInstall(deps, depStatus, depsHeldOutsideModels(DEPS, [...PLUGINS, ...FLOWS]));
         }
 
         // ── Derived install/download state for a model (tile + detail share it) ──

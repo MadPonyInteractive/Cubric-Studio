@@ -39,12 +39,13 @@ export function missingFilesMessage(models) {
  * Shared deps cannot say a model was installed either: once a sibling stops being usable too
  * (one dep added to both LTX tiers), the Gemma CLIP and VAEs the user got for one tier sit
  * unowned on disk, and the other tier read "missing files" without ever being installed.
- * Only weights NO other model uses (its transformer) prove the install.
+ * Only weights NO other model uses (its transformer) prove the install. A file a plugin, a Flow
+ * or the engine needs (`held`, `depsHeldOutsideModels`) is neither proof nor progress (MPI-1078).
  * @param {object[]} models - local ModelDefs (no cloud models)
- * @param {{universe: Function, statusOf: Function, isUsable: Function, deps: object}} ctx
+ * @param {{universe: Function, statusOf: Function, isUsable: Function, deps: object, held?: Set<string>}} ctx
  * @returns {{id: string, name: string, missingBytes: number}[]}
  */
-export function modelsMissingFiles(models, { universe, statusOf, isUsable, deps }) {
+export function modelsMissingFiles(models, { universe, statusOf, isUsable, deps, held = new Set() }) {
     const onDisk = st => st === true || st?.installed === true;
     const owned = new Set();
     const users = new Map();
@@ -59,10 +60,10 @@ export function modelsMissingFiles(models, { universe, statusOf, isUsable, deps 
     for (const m of models) {
         if (isUsable(m)) continue;
         const status = statusOf(m.id);
-        const ownOnDisk = universe(m).filter(id => users.get(id) === 1 && onDisk(status?.get(id)))
+        const ownOnDisk = universe(m).filter(id => users.get(id) === 1 && !held.has(id) && onDisk(status?.get(id)))
             .reduce((n, id) => n + depSizeBytes(deps[id]?.size), 0);
         if (ownOnDisk < 1024 ** 3) continue;
-        const p = partialInstall(universe(m).filter(id => !owned.has(id)).map(id => deps[id]), status);
+        const p = partialInstall(universe(m).filter(id => !owned.has(id)).map(id => deps[id]), status, held);
         if (!p.hasPartialProgress) continue;
         // The tier only where two cards share a name (LTX 2.3 High / Balanced).
         const twin = m.sizeTier && models.some(o => o !== m && o.name === m.name);
@@ -74,13 +75,15 @@ export function modelsMissingFiles(models, { universe, statusOf, isUsable, deps 
 
 async function _check() {
     // Loaded here, not at the top: the pure helpers above stay importable under node.
-    const [{ MODELS, isModelUsable, getModelDepStatus }, { DEPS }, { resolveFullUniverse },
-        { remoteEngineClient }, { state }] = await Promise.all([
+    const [{ MODELS, isModelUsable, getModelDepStatus }, { DEPS }, { resolveFullUniverse, depsHeldOutsideModels },
+        { remoteEngineClient }, { state }, { PLUGINS }, { FLOWS }] = await Promise.all([
         import('../data/modelRegistry.js'),
         import('../data/modelConstants/dependencies.js'),
         import('../data/modelConstants/resolveModelDeps.js'),
         import('../services/remoteEngineClient.js'),
         import('../state.js'),
+        import('../data/pluginsRegistry.js'),
+        import('../data/flowsRegistry.js'),
     ]);
     const engine = remoteEngineClient.effectiveEngine();
     const busy = new Set((state.downloadJobs || []).map(j => j.modelId));
@@ -89,6 +92,7 @@ async function _check() {
         statusOf: getModelDepStatus,
         isUsable: isModelUsable,
         deps: DEPS,
+        held: depsHeldOutsideModels(DEPS, [...PLUGINS, ...FLOWS]),
     }).filter(m => !_shown.has(m.id) && !busy.has(m.id));
     if (!missing.length) return;
     for (const m of missing) _shown.add(m.id);
