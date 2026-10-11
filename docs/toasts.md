@@ -123,6 +123,17 @@ These are the ones that also have an OS-notification path + a preference toggle.
 | `download:complete` (real modelId/plugin, **and `data.silent !== true`**) | `${modelName} installed.` | success | eligible | `notify-download-complete` if unfocused + `notificationPrefs.downloads !== false` |
 | `remote:stalled` (8-min stall cap deleted the Pod, MPI-1057; emitted by `shell.js` `_announceStall`) | none: the shell's "Pod never started" dialog shows either way | n/a | n/a | `notify-connection-complete` "Pod never started" if unfocused + `notificationPrefs.connection !== false` |
 
+**A batch is drained when the count is 0 AND no run is still saving (MPI-1076).** The store
+frees the last item's lane when ComfyUI returns; generationService then saves it to the
+project and only after that calls `activeGenerations.end()` and emits `generation:complete`.
+Gating on `generationQueueCount` alone let a save longer than the 150 ms defer flush the
+earlier items, then the last item flushed again: a queue of two said "Generation finished."
+twice (Fabio, 2026-10-11). `_drained()` also needs `activeGenerations.list()` empty, and
+`generation:error` / `generation:cancelled` re-arm the flush so a batch whose last item
+fails still reports its siblings. That makes a leaked run mute this toast, so
+generationService ends the run when `onComplete` throws. Test:
+`tests/notification-batch-saving.test.cjs`.
+
 **`data.silent` is the internal-heal gate (MPI-576), and it replaced an id allowlist.**
 A job started with `downloadService.start(id, deps, { silent: true })` — the first-connect
 node-drift re-clone and the engine-asset install — announces nothing here or in the cascade
@@ -324,10 +335,5 @@ reuse: model not installed · `1208` some input media missing.
 
 ## Known problems (as of this audit)
 
-- **Coalescer double-fires across non-concurrent batches.** `notificationService` counts every
-  `generation:complete` in `_doneCount` and flushes on `generationQueueCount → 0`. If two gens run
-  back-to-back but the count dips to 0 and back up between them, the flush timer + refill logic can
-  emit "1 finished" then "1 finished" instead of one summary — the user reported two completion
-  toasts for gens that were never queued together.
 - **"Creating a Pod…" appears from two sites** (`shell.js:757` auto-connect, `MpiRunpodSettings.js:469`
   manual Connect) — different flows, not a true double, but worth knowing when debugging duplicates.

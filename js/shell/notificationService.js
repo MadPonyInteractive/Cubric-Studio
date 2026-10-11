@@ -20,6 +20,7 @@ import { PLUGINS, pluginDepKey } from '../data/pluginsRegistry.js';
 import { FLOWS, flowDepKey } from '../data/flowsRegistry.js';
 import { StatusBar } from './statusBar.js';
 import { getCommandAccent } from '../data/commandRegistry.js';
+import { activeGenerations } from '../services/activeGenerations.js';
 
 let ipcRenderer = null;
 try {
@@ -133,9 +134,19 @@ function _fireCompletionNotification() {
 // instant and the notification was silently dropped (the "no toast on a single gen"
 // bug). Whichever edge lands last with count==0 && _doneCount>0 arms the timer; the
 // timer re-checks both at fire time so a refill in the ~frame gap still cancels it.
+//
+// MPI-1076: count 0 is not "drained" on its own. The store frees the last item's lane
+// when ComfyUI returns, and that item then saves to the project before it ends its
+// activeGenerations run and emits. A save longer than the defer flushed the earlier
+// items alone, and the last item's own completion flushed a second toast: a queue of
+// two said "Generation finished." twice. Drained = count 0 AND no run still saving.
+function _drained() {
+    return (Number(state.generationQueueCount) || 0) === 0 && activeGenerations.list().length === 0;
+}
+
 function _maybeArmFlush() {
     _dropStaleCount();                                           // MPI-540 — never speak for a dead batch
-    if ((Number(state.generationQueueCount) || 0) !== 0) return; // batch not drained
+    if (!_drained()) return;                                     // batch not drained
     if (_doneCount <= 0) return;                                 // nothing to report
     if (_flushTimer) return;                                     // already scheduled
     // Defer ~a frame: the last item's `generation:complete` and the count reaching 0
@@ -143,7 +154,7 @@ function _maybeArmFlush() {
     // re-derives the count; wait so it settles, then re-check before firing.
     _flushTimer = setTimeout(() => {
         _flushTimer = null;
-        if ((Number(state.generationQueueCount) || 0) !== 0) return;
+        if (!_drained()) return;
         if (_doneCount <= 0) return;
         _fireCompletionNotification();
     }, 150);
@@ -201,6 +212,10 @@ export function initNotificationService() {
         if (depth !== 0) { if (_flushTimer) { clearTimeout(_flushTimer); _flushTimer = null; } return; }
         _maybeArmFlush();
     }));
+    // A last item that fails or is Stopped ends its run without a completion; that end
+    // is the drain edge for the siblings that did finish (MPI-1076).
+    _unsubs.push(Events.on('generation:error', () => _maybeArmFlush()));
+    _unsubs.push(Events.on('generation:cancelled', () => _maybeArmFlush()));
 
     // MPI-1076: only a connect that just finished announces, and it says so with
     // `announce: true` (Settings Connect, the boot reconnect). This used to latch on the

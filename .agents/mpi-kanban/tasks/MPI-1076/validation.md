@@ -34,6 +34,16 @@ MPI-542 (e5e221411) changed MpiToast's default but never touched StatusBar.notif
 (`duration = 6000`) or the four ui:* relays (passed 6000), so the rule reached almost no toast.
 Both now pass undefined. tests/toast-reading-time.test.cjs guards it.
 
+## (7) a queue of two said "Generation finished." twice (Fabio, 2026-10-11)
+
+The coalescer flushed on generationQueueCount 0, but the store frees the last item lane when
+ComfyUI returns and the item then saves before activeGenerations.end() + generation:complete.
+A save over the 150 ms defer flushed item 1 alone; item 2 flushed again. Reproduced first:
+tests/notification-batch-saving.test.cjs failed on the old code (fired ["Generation finished."]
+while item 2 was still saving). Fix: drained = count 0 AND no run registered; error/cancelled
+re-arm the flush. generationService now ends a run whose onComplete throws (it leaked before, and
+would now mute the toast). npm test 3097 pass, 0 fail.
+
 ## Tests
 
 `npm test`: 3095 pass, 0 fail (before the two new files were counted in that run's

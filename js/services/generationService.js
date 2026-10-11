@@ -1769,6 +1769,16 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         _emitPromptBoxGenerationEndIfIdle();
     };
 
+    // MPI-1076: both executors call onComplete without awaiting it, so a throw while
+    // saving left this run registered forever. notificationService waits for every run
+    // to end before it says "finished", so one failed save would mute that toast for
+    // the rest of the session. End the run and log; no new user-facing signal.
+    const _onComplete = exec.onComplete;
+    exec.onComplete = (...args) => Promise.resolve(_onComplete(...args)).catch((err) => {
+        clientLogger.error('generation', `saving the result of ${_regId} failed:`, err);
+        activeGenerations.end(_regId, { revokePreview: true });
+    });
+
     exec.onError = (err) => {
         Events.emit('tool:cancelled', { tool: 'groupHistory', id: _regId });
         activeGenerations.end(_regId, { revokePreview: true });

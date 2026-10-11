@@ -6,6 +6,7 @@
 - [x] (4) Uninstall says "uninstalled" only when something went (the Library half is MPI-1078)
 - [x] (5) Generate-time upload: no start toast, no "is on the Pod" toast (Transfers + the generation say it)
 - [x] (6) StatusBar.notify / ui:* relays use the MPI-542 reading time, not a flat 6 s
+- [x] (7) Queue-finished toast fires once per drained queue, after the last item has saved
 - [x] docs/toasts.md updated
 - [x] tests pass (3095/3095 + 5 new checks)
 - [ ] Walk the remaining ~230 toast sites one by one (true / on time / not said elsewhere): only if Fabio wants it beyond the five he saw
