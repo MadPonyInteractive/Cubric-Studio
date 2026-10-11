@@ -156,7 +156,14 @@ component kept its old name, so "Settings" in a file name or an older card means
   dialog once per Pod. Cause: RunPod hosts that never start the container (empty system
   log). `getPod` on the status route is bounded at 3 s, because RunPod's API hangs on such a Pod.
   Each change in the Pod's v2 fields (`status`, `cudaVersion`, `ssh.proxy`, …) is
-  logged once, to find an earlier signal.
+  logged once; they read the same on a dead and a healthy boot.
+- **Pull check, 60 s (MPI-1075):** the same `_setStarting(true)` arms `PULL_CHECK_MS`. It
+  reads the Pod's SYSTEM log (`GET /v2/pods/{id}/logs?source=system&tail=100`, an SSE
+  stream cut after 5 s, `client.podSystemLogs`) and deletes the Pod the stall-cap way
+  if no line is newer than its `startedAt`. A host that will start it logs `create
+  container` ~1 s in, then the pull (`Already exists` / `Image is up to date` on a cached
+  image); a dead host logs nothing. Fails open: any unknown leaves the Pod to the 8-min
+  cap. Never pass `since`: RunPod then drops every system line (measured 2026-10-11).
 - **Connect phase log (MPI-1057):** every `connecting`/`disconnecting` change is logged as
   `[remote] phase A -> B (by …)`. The feed keeps `connecting` when the status request
   gets NO answer; only a real `connecting:false` ends it.
@@ -672,13 +679,13 @@ is committed).
 
 **Auto-retry GPU wait** (`js/shell.js` `_startGpuWait`/`_stopGpuWait`): opt-in "Auto-retry" picks an out-of-stock GPU and polls availability (15s) entirely in the shell — survives navigation. `state.remoteWaitGpu` (transient) mirrors the GPU being waited on. During wait: `phase:null`, `active:false`, NO Pod created. `autoRetry` must be in `normalizeRunpodConfig` whitelist or it strips on persist.
 
-**DC-steer + bad-host maintenance detect (MPI-135)** — logic-verified, NOT live-verified (needs scarce card + maintenance host). Any-region ephemeral retries now call `_bestStockDcForGpu` (ranks `dataCenters[].gpuAvailability`) and pin `body.datacenter` to the best-stock DC instead of re-sending `dc=null`. Maintenance hosts: `getPod` machine object carries `maintenanceStart`/`maintenanceEnd`/`maintenanceNote`; both readiness polls early-return `'maintenance'` past the 30s grace → delete doomed Pod + dialog "Connect again for a fresh host". NO signal for stuck-pull-at-0 (no REST pull-progress field).
+**DC-steer + bad-host maintenance detect (MPI-135)** — logic-verified, NOT live-verified (needs scarce card + maintenance host). Any-region ephemeral retries now call `_bestStockDcForGpu` (ranks `dataCenters[].gpuAvailability`) and pin `body.datacenter` to the best-stock DC instead of re-sending `dc=null`. Maintenance hosts: `getPod` machine object carries `maintenanceStart`/`maintenanceEnd`/`maintenanceNote`; both readiness polls early-return `'maintenance'` past the 30s grace → delete doomed Pod + dialog "Connect again for a fresh host". Stuck-pull-at-0 has no Pod-shape field, but the system log shows it (pull check, MPI-1075).
 
 **GPU-id enum reject (MPI-135/159)** — v1 REST `POST /pods` had a separate enum from the catalogue; newer cards (RTX PRO 4500/4000 Blackwell) 400'd `gpuTypeIds/items/enum`. MPI-159's GraphQL create fallback was DELETED in MPI-894: v2's `gpu.id` is a free string, so the enum lag cannot happen. `_createRejectReason` still unwraps a top-level array body, and the `gpuUnsupported:true` classification stays dormant for the same v1 wording.
 
 **Volume persists through Reset** — RunPod console "Reset" wipes container/ephemeral disk only; Uptime keeps climbing, volume usage stays full, models survive. Confirmed 2026-06-17. Clear volume via manual `rm` (wrapper/SSH) or destroy the network volume itself.
 
-**REST Pod shape on v2 (MPI-806, read off `api.runpod.io/v2/openapi.json` 2026-09-27)** — `status` replaces `desiredStatus`, enum PROVISIONING/STARTING/RUNNING/EXITED/ERROR/TERMINATED (ERROR counts as not-running beside EXITED/TERMINATED); `startedAt` replaces `lastStartedAt`; `cost` replaces `costPerHr`; `disk` replaces `containerDiskInGb`; `mounts.network[0].volumeId` replaces `networkVolumeId`; `gpu.memory` is total SYSTEM RAM, not VRAM; `runtime` is `{uptime, gpus[{util, memoryUtil}], cpu{util}, memory{util}}` and null unless RUNNING. **There is NO `machine` object on v2**, so the MPI-135 maintenance-host detect below reads nothing and never fires (degrades to the normal readiness watchdog). `gpu.id` on create is a free string, so the MPI-159 enum-lag 400 cannot happen on v2 (its GraphQL fallback is deleted, MPI-894). NO image-pull progress field exists anywhere.
+**REST Pod shape on v2 (MPI-806, read off `api.runpod.io/v2/openapi.json` 2026-09-27)** — `status` replaces `desiredStatus`, enum PROVISIONING/STARTING/RUNNING/EXITED/ERROR/TERMINATED (ERROR counts as not-running beside EXITED/TERMINATED); `startedAt` replaces `lastStartedAt`; `cost` replaces `costPerHr`; `disk` replaces `containerDiskInGb`; `mounts.network[0].volumeId` replaces `networkVolumeId`; `gpu.memory` is total SYSTEM RAM, not VRAM; `runtime` is `{uptime, gpus[{util, memoryUtil}], cpu{util}, memory{util}}` and null unless RUNNING. **There is NO `machine` object on v2**, so the MPI-135 maintenance-host detect below reads nothing and never fires (degrades to the normal readiness watchdog). `gpu.id` on create is a free string, so the MPI-159 enum-lag 400 cannot happen on v2 (its GraphQL fallback is deleted, MPI-894). NO image-pull progress field on the Pod shape; the pull is in the system log (`/v2/pods/{id}/logs`, MPI-1075).
 
 **Watchdog is a crash backstop, NOT an idle timer** — the Pod-side watchdog (`wrapper.py Watchdog`) resets on ANY authenticated traffic; `MpiMemoryMonitor` polls `/wrapper/stats` every 2s so the deadline never expires while the app is alive. It fires only when the app dies. Never add "stop Pod after N min idle while connected" — architecturally impossible without stopping the stats poll. Fixed 10-min backstop (`CUBRIC_IDLE_TIMEOUT_S=600`, not user-configurable). MPI-103 live-verified: Pod stayed up 57 min idle-with-app.
 

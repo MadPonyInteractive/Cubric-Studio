@@ -1210,12 +1210,12 @@ function _initRemoteConnectionFeed() {
   // The backend deleted the Pod already; forget it so the next Connect creates fresh and
   // boot does not try to resume it, then say why (mirrors the boot not-running dialog).
   const _announceStall = () => {
-    clientLogger.warn('shell', '[RunPod] Pod hit the 8-min stall cap; the backend deleted it');
+    clientLogger.warn('shell', '[RunPod] Pod never started (pull check or 8-min stall cap); the backend deleted it');
     Events.emit('remote:stalled');
     state.runpodConfig = { ...state.runpodConfig, podId: null, wasConnected: false };
     const dlg = MpiOkCancel.mount(document.createElement('div'), {
       title: 'Pod never started',
-      text: "RunPod never started your Pod, so we deleted it after 8 minutes to stop the bill. This data center looks like it is having problems, and there is no telling how long they will last. Open Remote, pick another data center or Any region (no volume), and Connect: models then download for the session instead of loading from your volume.",
+      text: "RunPod never started your Pod, so we deleted it to stop the bill. This data center looks like it is having problems, and there is no telling how long they will last. Open Remote, pick another data center or Any region (no volume), and Connect: models then download for the session instead of loading from your volume.",
       okLabel: 'Got it',
       showCancel: false,
     });

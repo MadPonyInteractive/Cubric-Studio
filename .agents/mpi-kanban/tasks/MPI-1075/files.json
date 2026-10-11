@@ -1,0 +1,13 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1075/",
+    "routes/remotePodLifecycle.js",
+    "routes/runpodRemote.js",
+    "docs/runpod-troubleshooting.md",
+    "docs/runpod-remote-engine.md",
+    "js/shell.js",
+    "js/components/Organisms/MpiRunpodSettings/MpiRunpodSettings.js",
+    "tests/pod-stall-cap.test.cjs"
+  ]
+}

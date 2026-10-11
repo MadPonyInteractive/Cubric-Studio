@@ -256,6 +256,40 @@ const client = {
   async getPod(apiKey, id, { timeoutMs } = {}) {
     return _rest(apiKey, 'GET', `/pods/${id}`, undefined, timeoutMs ? AbortSignal.timeout(timeoutMs) : undefined);
   },
+  // MPI-1075: the Pod's last `tail` SYSTEM log lines (host lifecycle: "create container",
+  // the image pull, "start container"), the same feed as the console's System Logs. The
+  // route is an endless SSE stream: the backfill arrives with the headers (~0.6 s,
+  // measured 2026-10-11), so it is read for `readMs` then cut. Never pass `since`: RunPod
+  // drops every system line when it is set (measured 2026-10-11). Throws on no answer.
+  async podSystemLogs(apiKey, id, { tail = 100, readMs = 5000 } = {}) {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), readMs);
+    let text = '';
+    let status = 0;
+    try {
+      const res = await _safeFetch(`${REST}/pods/${id}/logs?source=system&tail=${tail}`, {
+        headers: { Authorization: `Bearer ${apiKey}`, Accept: 'text/event-stream', 'User-Agent': UA },
+        signal: ac.signal,
+      });
+      status = res.status;
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        text += dec.decode(value, { stream: true });
+      }
+    } catch (err) {
+      if (!status) throw err; // no answer at all: unknown, never "no lines"
+    } finally {
+      clearTimeout(timer);
+    }
+    const lines = [];
+    for (const m of text.matchAll(/^data: (.+)$/gm)) {
+      try { lines.push(JSON.parse(m[1])); } catch { /* a cut-off last event */ }
+    }
+    return { status, ok: status === 200, lines };
+  },
   // List the account's Pods. v2 GET /v2/pods wraps as {"pods":[...]} (v1 was bare array).
   // Callers unwrap via Array.isArray(r.json) || r.json.pods — both shapes handled.
   async listPods(apiKey) {

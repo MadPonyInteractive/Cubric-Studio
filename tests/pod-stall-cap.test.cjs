@@ -27,7 +27,8 @@ require('../routes/netCheck').checkOnline = async () => true;
 
 const { client } = require('../routes/runpodRemote');
 const realGetPod = client.getPod;
-const { router, STALL_CAP_MS } = require('../routes/remotePodLifecycle');
+const realPodSystemLogs = client.podSystemLogs;
+const { router, STALL_CAP_MS, PULL_CHECK_MS } = require('../routes/remotePodLifecycle');
 
 let nextPodId = 0;
 const deleted = [];
@@ -103,6 +104,105 @@ test('getPod with a timeout aborts a request RunPod never answers', async () => 
     const t0 = Date.now();
     await assert.rejects(realGetPod.call(client, 'key', 'pod', { timeoutMs: 50 }));
     assert.ok(Date.now() - t0 < 2000, 'the timeout did not bound the call');
+  } finally {
+    globalThis.fetch = saved;
+  }
+});
+
+// MPI-1075 — at 60 s a Pod whose host wrote no system log line since its startedAt is
+// deleted. Live 2026-10-11: a healthy host logs "create container" ~1 s after the start;
+// the ~9 EU-RO-1 Pods that never started logged nothing.
+
+const STARTED = '2026-10-11T07:31:47.946Z';
+function pullCase(t, logs) {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  deleted.length = 0;
+  t.after(() => {
+    client.getPod = async () => ({ ok: true, status: 200, json: { desiredStatus: 'RUNNING' } });
+    delete client.podSystemLogs;
+    client.podSystemLogs = realPodSystemLogs;
+  });
+  client.getPod = async () => ({ ok: true, status: 200, json: { desiredStatus: 'RUNNING', startedAt: STARTED } });
+  client.podSystemLogs = logs;
+}
+const settleAll = async () => { for (let i = 0; i < 10; i++) await settle(); };
+const line = (ts, text) => ({ source: 'system', line: text, ts });
+
+test('a Pod with no system log line at 60 s is deleted then, not at 8 min', async (t) => {
+  pullCase(t, async () => ({ ok: true, status: 200, lines: [] }));
+  const { body } = await call('/remote/pod/create', 'post', CREATE);
+  t.mock.timers.tick(PULL_CHECK_MS - 1);
+  await settleAll();
+  assert.deepEqual(deleted, [], 'deleted before the pull check');
+  t.mock.timers.tick(1);
+  await settleAll();
+  assert.deepEqual(deleted, [body.podId], 'REGRESSION: a Pod RunPod never started billed past 60 s');
+  const status = (await call('/remote/comfy/status', 'get')).body;
+  assert.equal(status.connecting, false);
+  assert.equal(status.stalled && status.stalled.podId, body.podId, 'the renderer must be told why the connect ended');
+});
+
+test('a Pod whose host is pulling the image is left to boot', async (t) => {
+  pullCase(t, async () => ({ ok: true, status: 200, lines: [
+    line('2026-10-11T07:31:49Z', 'create container docker.io/x/pod:v1'),
+    line('2026-10-11T07:31:51Z', 'v1 Pulling from x/pod'),
+  ] }));
+  const { body } = await call('/remote/pod/create', 'post', CREATE);
+  t.mock.timers.tick(PULL_CHECK_MS);
+  await settleAll();
+  assert.deepEqual(deleted, [], 'a healthy boot was deleted');
+  assert.equal((await call('/remote/comfy/status', 'get')).body.connecting, true);
+  await call('/remote/pod/delete-active', 'post');
+  assert.deepEqual(deleted, [body.podId]);
+});
+
+test('a resumed Pod whose only lines are from its last run is deleted', async (t) => {
+  pullCase(t, async () => ({ ok: true, status: 200, lines: [
+    line('2026-10-11T06:10:00Z', 'start container for docker.io/x/pod:v1: begin'),
+  ] }));
+  const { body } = await call('/remote/pod/create', 'post', CREATE);
+  t.mock.timers.tick(PULL_CHECK_MS);
+  await settleAll();
+  assert.deepEqual(deleted, [body.podId], 'an old run\'s log lines read as a live host');
+});
+
+test('no answer or a non-200 from the logs route leaves the Pod to the stall cap', async (t) => {
+  for (const logs of [
+    async () => { throw new Error('fetch failed'); },
+    async () => ({ ok: false, status: 500, lines: [] }),
+  ]) {
+    pullCase(t, logs);
+    const { body } = await call('/remote/pod/create', 'post', CREATE);
+    t.mock.timers.tick(PULL_CHECK_MS);
+    await settleAll();
+    assert.deepEqual(deleted, [], 'an unknown answer deleted a Pod');
+    await call('/remote/pod/delete-active', 'post');
+    assert.deepEqual(deleted, [body.podId]);
+    t.mock.timers.reset();
+  }
+});
+
+test('podSystemLogs reads the SSE backfill, cuts the endless stream, and never sends `since`', async () => {
+  const saved = globalThis.fetch;
+  let url = '';
+  globalThis.fetch = async (u, opts) => {
+    url = u;
+    const enc = new TextEncoder();
+    const body = new ReadableStream({
+      start(ctrl) {
+        ctrl.enqueue(enc.encode('id: a\ndata: {"source":"system","line":"create container x","ts":"2026-10-11T07:31:49Z"}\n\n'));
+        ctrl.enqueue(enc.encode('id: b\ndata: {"source":"system","line":"v1 Pulling from x","ts":"2026-10-11T07:31:51Z"}\n\nid: c\ndata: {"sour'));
+        opts.signal.addEventListener('abort', () => ctrl.error(opts.signal.reason));
+      },
+    });
+    return { status: 200, body };
+  };
+  try {
+    const r = await realPodSystemLogs.call(client, 'key', 'pod1', { readMs: 50 });
+    assert.equal(r.ok, true);
+    assert.deepEqual(r.lines.map((l) => l.line), ['create container x', 'v1 Pulling from x']);
+    assert.match(url, /\/pods\/pod1\/logs\?source=system&tail=100$/);
+    assert.doesNotMatch(url, /since=/, 'RunPod drops every system line when `since` is set');
   } finally {
     globalThis.fetch = saved;
   }

@@ -560,25 +560,72 @@ let _stallTimer = null;
 // the next boot starts, so the renderer can say why the connect ended.
 let _stalled = null;
 
+// MPI-1075: a host that will start the Pod writes its first system log line ("create
+// container", then the image pull, cached or not) ~1-3 s after the start; one that never
+// starts it writes none (EU-RO-1, ~9 Pods on 2026-10-10/11). So at this mark a Pod with no
+// system line since its startedAt is deleted like the stall cap does, 7 min sooner.
+const PULL_CHECK_MS = 60 * 1000;
+let _pullTimer = null;
+
 function _setStarting(v) {
   if (v && !_starting) {
     _connectStartMs = Date.now();
     _stalled = null;
     _stallTimer = setTimeout(_onStallCap, STALL_CAP_MS);
     _stallTimer.unref?.();
+    _pullTimer = setTimeout(_onPullCheck, PULL_CHECK_MS);
+    _pullTimer.unref?.();
   } else if (!v) {
     _connectStartMs = null;
     clearTimeout(_stallTimer);
     _stallTimer = null;
+    clearTimeout(_pullTimer);
+    _pullTimer = null;
   }
   _starting = v;
 }
 
 async function _onStallCap() {
   _stallTimer = null;
+  await _deleteStalledPod(`not ready ${STALL_CAP_MS / 60000} min after its start: RunPod's host never started it`);
+}
+
+// Fails open: any unknown (no key, no startedAt, logs route not 200, no answer) leaves the
+// Pod to the stall cap. Only a real empty answer deletes it.
+async function _onPullCheck() {
+  _pullTimer = null;
+  const podId = _mode.podId;
+  const boot = _connectStartMs;
+  if (!podId) return;
+  try {
+    const key = await getRunPodApiKey();
+    if (!key) return;
+    const pod = await client.getPod(key, podId, { timeoutMs: POD_STATUS_TIMEOUT_MS });
+    const startedMs = Date.parse(pod.json && pod.json.startedAt);
+    if (!pod.ok || !Number.isFinite(startedMs)) return;
+    const logs = await client.podSystemLogs(key, podId);
+    if (!logs.ok) {
+      logger.warn('runpod', `Pod ${podId} system log -> http ${logs.status}; leaving it to the stall cap`);
+      return;
+    }
+    // Both clocks are RunPod's. `ts` is whole seconds; a resumed Pod's log still holds its
+    // last run, which the startedAt filter drops.
+    const fresh = logs.lines.filter((l) => Date.parse(l.ts) >= startedMs - 5000);
+    if (fresh.length) {
+      logger.info('runpod', `Pod ${podId} host is starting it (${fresh.length} system log line(s), last: ${String(fresh[fresh.length - 1].line).slice(0, 120)})`);
+      return;
+    }
+    if (_connectStartMs !== boot || _mode.podId !== podId) return; // the boot ended while we asked
+    await _deleteStalledPod(`has no RunPod system log ${PULL_CHECK_MS / 1000} s after its start: the host never began starting it`);
+  } catch (err) {
+    logger.warn('runpod', `Pod ${podId} pull check gave no answer (${err.message}); leaving it to the stall cap`);
+  }
+}
+
+async function _deleteStalledPod(why) {
   const podId = _mode.podId;
   _stalled = { podId, gpuTypeId: _mode.gpuTypeId || null };
-  logger.warn('runpod', `Pod ${podId} not ready ${STALL_CAP_MS / 60000} min after its start: RunPod's host never started it, deleting it`);
+  logger.warn('runpod', `Pod ${podId} ${why}, deleting it`);
   _setStarting(false);
   setRemoteMode({ active: false, noGpu: false, gpuTypeId: null });
   try {
@@ -623,8 +670,8 @@ const POD_STATUS_TTL_MS = 12000;
 // desiredStatus and threw the rest of p away, so a host placed on a draining machine
 // looked like a slow boot and the user waited the full 5-min watchdog. Captured from
 // the SAME getPod call (no extra request) and surfaced on /remote/comfy/status so the
-// renderer can offer "host looks bad — Cancel & retry" early. Stuck-PULL hosts (the
-// other bad-host case) are NOT detectable: the REST API exposes no image-pull progress.
+// renderer can offer "host looks bad — Cancel & retry" early. Hosts that never start the
+// pull (the other bad-host case) are caught by the pull check (MPI-1075).
 let _lastPodMaintenance = null; // { note, start, end } | null
 // MPI-239: true when the last getPod returned HTTP 404 (Pod deleted/reaped host-side),
 // distinct from a network throw (unknown). Drives the /remote/comfy/status self-heal.
@@ -633,9 +680,9 @@ let _lastPodAbsent = false;
 // never started. Past this the last known status stands and the next poll asks again.
 const POD_STATUS_TIMEOUT_MS = 3000;
 let _podStatusSilentId = null;
-// MPI-1057: RunPod exposes no Pod log, so the boot-time fields are the only early sign of
-// a host that never starts the container. Logged once per change, to compare a stall with
-// a healthy boot. v2 shape (api.runpod.io/v2/openapi.json, read 2026-10-10): `cudaVersion`
+// MPI-1057: the boot-time fields, logged once per change to compare a stall with a healthy
+// boot. They read the same on both (2026-10-10/11 logs); the early sign turned out to be the
+// Pod's system log, read by the pull check (MPI-1075). v2 shape (api.runpod.io/v2/openapi.json, read 2026-10-10): `cudaVersion`
 // stays null until the host reports one and `ssh.proxy` until the Pod has a machine, so
 // both can tell a host that never picked the Pod up. Never `env`: it holds the API key.
 let _lastPodFields = null;
@@ -1912,4 +1959,4 @@ router.post('/remote/pod/cleanup-orphans', async (req, res) => {
   }
 });
 
-module.exports = { router, remoteVolumeFreeBytes, resolveDiskTotalBytes, _isPodDead, _isPodImageStale, _podStatusOf, _clampVolumeDisk, compareVolumeAccounting, _createPodInternal, CPU_FLAVORS, STALL_CAP_MS };
+module.exports = { router, remoteVolumeFreeBytes, resolveDiskTotalBytes, _isPodDead, _isPodImageStale, _podStatusOf, _clampVolumeDisk, compareVolumeAccounting, _createPodInternal, CPU_FLAVORS, STALL_CAP_MS, PULL_CHECK_MS };

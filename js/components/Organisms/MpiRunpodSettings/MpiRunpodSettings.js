@@ -710,7 +710,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 if (_stalled) {
                     Events.emit('remote:connect-progress', { pct: 0 });
                     state.runpodConfig = { ..._runpodCfg(), podId: null, wasConnected: false };
-                    _setEngineHint(root, "RunPod never started the Pod, so it was deleted after 8 minutes. This data center looks like it is having problems, and there is no telling how long they will last. Pick another data center, or Any region (no volume), and Connect: models then download for the session instead of loading from your volume.", true);
+                    _setEngineHint(root, "RunPod never started the Pod, so it was deleted to stop the bill. This data center looks like it is having problems, and there is no telling how long they will last. Pick another data center, or Any region (no volume), and Connect: models then download for the session instead of loading from your volume.", true);
                     _setEngineStatusText(root, 'stopped');
                     _engineBtnLabelSet('Connect');
                     return;
