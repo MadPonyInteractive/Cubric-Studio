@@ -10,10 +10,14 @@ progress lives in [shell.md](shell.md).
 
 Three entry paths, one renderer (`MpiToast` in a shared `.mpi-toast-stack`, cap 2 visible):
 
-1. **`StatusBar.notify(message, variant, duration=6000, opts)`** — direct in-app toast. Callers
+1. **`StatusBar.notify(message, variant, duration, opts)`** — direct in-app toast. Callers
    in components/services use this or the `ui:*` events below.
 2. **`Events.emit('ui:success'|'ui:warning'|'ui:info', { message, sound })`** — bus events;
-   `statusBar.js listen()` relays each to `StatusBar.notify(message, variant, 6000, { sound })`.
+   `statusBar.js listen()` relays each to `StatusBar.notify(message, variant, undefined, { sound })`.
+   **No duration = the time the message takes to read** (MpiToast `readingTimeMs`, 3-12 s,
+   MPI-542). Until MPI-1076 `notify` defaulted to 6000 and the relays passed 6000, so that
+   rule reached almost no toast: a 160-character warning got the same 6 s as "Pod deleted".
+   Pass a duration only for a reason the message length cannot carry.
    There is also a **`ui:error`** channel — it has NO handler in `statusBar.js`, so it renders a
    **dialog, not a toast** (routed elsewhere). Not counted below.
    **An action button (MPI-993):** `opts.action` / the event's `action`, `{ text, onClick }`, adds ONE
@@ -115,7 +119,7 @@ These are the ones that also have an OS-notification path + a preference toggle.
 | Event | In-app message | Variant | Sound | OS-notif path |
 |---|---|---|---|---|
 | `generation:complete` (coalesced; fires when `generationQueueCount → 0`; **skips `cancelled:true`**) | `Generation finished.` / `${n} generations finished.` | success | eligible (one chime per batch) | `notify-generation-complete` if unfocused + `notificationPrefs.generation !== false` |
-| `remote:connection` rising edge (`connected:true`, no phase) | `${gpuName} connected.` / `Remote engine connected.` | success | eligible | `notify-connection-complete` if unfocused + `notificationPrefs.connection !== false` |
+| `remote:connection` with `announce: true` (only Settings Connect and the boot reconnect, on ready) | `${gpuName} ready.` / `Remote engine ready.` | success | eligible | `notify-connection-complete` if unfocused + `notificationPrefs.connection !== false` |
 | `download:complete` (real modelId/plugin, **and `data.silent !== true`**) | `${modelName} installed.` | success | eligible | `notify-download-complete` if unfocused + `notificationPrefs.downloads !== false` |
 | `remote:stalled` (8-min stall cap deleted the Pod, MPI-1057; emitted by `shell.js` `_announceStall`) | none: the shell's "Pod never started" dialog shows either way | n/a | n/a | `notify-connection-complete` "Pod never started" if unfocused + `notificationPrefs.connection !== false` |
 
@@ -206,7 +210,6 @@ signals* are suppressed. Rule + rationale: memory `feedback_no_toast_user_stop`.
 | `comfyController.js:544` | Pod still booting on all status retries | Still connecting to the remote engine… | info | eligible |
 | `comfyController.js:569` | No Pod connected → local fallback (once/session) | No Pod connected — running locally… | info | eligible |
 | `comfyController.js:974` | Gen recovered from /history after WS blip | Generation recovered — the result was retrieved… | info | eligible |
-| `comfyController.js:1654` | Uploading a LoRA/node file to the Pod (once/file) | Uploading "…" to the cloud… | info | eligible |
 | `projectService.js:519` | All 4 project.json save retries failed | Could not save the project to disk… | warning | eligible |
 
 ## Download / install toasts (`services/downloadService.js`)
@@ -223,7 +226,7 @@ signals* are suppressed. Rule + rationale: memory `feedback_no_toast_user_stop`.
 | `downloadService.js:634` | `download:failed` SSE, out-of-space, no job match | Not enough disk space to install this model… | warning | eligible |
 | `downloadService.js` cascade (in the `download:complete` re-sync `.then`) | A model became installed as a SIDE-EFFECT of another install (shared deps) | `${model.name} installed.` | success | eligible |
 | `downloadService.js:638` | `download:failed` SSE, `networkBlocked`, no job match | (server's own text, verbatim — MPI-427) | warning | eligible |
-| `notificationService.js` `upload:finished` | An upload job finished: from Upload models, or a generate-time LoRA/upscaler upload (both run in the same queue and show in Transfers, MPI-1057). Unfocused window: OS notification instead, like a download | ${filename} is on the Pod. | success | eligible |
+| `notificationService.js` `upload:finished` | An Upload models job finished. A generate-time LoRA/upscaler upload runs in the same queue and shows in Transfers (MPI-1057) but is NOT announced (`atGenerate`, MPI-1076): the generation starting, or its error toast, says how it went. Unfocused window: OS notification instead, like a download | ${filename} is on the Pod. | success | eligible |
 | `commandExecutor.js` `upload_cancelled` | The user pressed Cancel on a generate-time upload's Transfers row (MPI-1057) | Upload of "${base}" cancelled, so the generation did not start. | info | eligible |
 | `notificationService.js` `upload:finished` | An Upload models job failed (same focus split) | ${filename} did not upload (${error}). Try it again from Upload models. | warning | eligible |
 | `downloadService.js:640` | `download:failed` SSE, `transient`, no job match | The remote engine isn't ready yet — try the install again in a moment. | warning | eligible |
@@ -247,6 +250,16 @@ rather than trusting them.
 | `utils/describeAction.js:59` | Describe on Remote failed (no key/connection, non-vision model, endpoint error; MPI-737 D1, never the error modal) | ${error} Check Remote > Language Models. (`withRemoteSettingsHint`) | warning | eligible |
 | `data/modelRegistry.js:173` | Models-check reports bakedDrift (once/file/session) | Pod image is stale — rebuild needed (${key}) | warning | eligible |
 
+**Connect is announced by the connect, never inferred from the feed (MPI-1076).** The
+connection feed emits `connected:true` every tick and drops to `connected:false` after three
+missed ticks, so its rising edge also fires when a connected Pod stops answering and comes
+back. A 0.46 GB LoRA uploaded at Cue starved `/health` for 100 s (2026-10-11): the hero
+dropped to local, the recovery re-ran the connect edge (heals again, `engine:assets` in
+app.log), and "<GPU> connected." landed as the generation started, with no connect at all.
+The feed now holds a connected Pod through an upload as it does through a download, logs
+`feed: Pod stopped answering` when it does drop one, and only an emit with `announce: true`
+toasts.
+
 ## RunPod connect/disconnect (`MpiRunpodSettings.js`)
 
 All fire from the Connect/Cancel/Disconnect flow and all are eligible. **No toast fires between
@@ -265,7 +278,7 @@ ready, failed or cancelled. The boot auto-connect (`shell.js`) follows the same 
 | 630 | Pod exited/terminated before ready | Pod failed to start on host… | warning | eligible |
 | 644 | Host entered maintenance drain | Host under maintenance — Connect again… | warning | eligible |
 | 651 | Pod ready poll timed out | Pod still preparing — try Connect again shortly. | warning | eligible |
-| 712 | Fully ready | Remote engine ready | success | eligible |
+| ~781 | Fully ready | none here: the `remote:connection` emit carries `announce: true` and `notificationService` says it (lifecycle table) | n/a | n/a |
 | 729 | Connect endpoint threw | Could not reach the Pod connect endpoint. | warning | eligible |
 | 779 | Cancel during auto-retry wait | Stopped waiting for the GPU. | info | eligible |
 | 796 | Cancel mid-create (Pod deleted) | Connection cancelled. | info | eligible |
@@ -291,7 +304,7 @@ ready, failed or cancelled. The boot auto-connect (`shell.js`) follows the same 
 | `MpiBaseFlow.js:2635` | Flow Run with no inputs and blank prompt | ${title} needs at least one input… | warning | eligible |
 | `MpiModelSettings.js:312` | LoRA/upscale drop-import success | Imported ${filename}. | success | **silent** |
 | `MpiSettings.js:536` | Settings folder drop-import success | Imported ${filename}. | success | **silent** |
-| `MpiModelManager.js:1467-1498` | `download:uninstalled` (5 branches) | ${model} updated. / files kept variants | success/info | **silent** |
+| `MpiModelManager.js:1467-1498` | `download:uninstalled` (5 branches) | ${model} uninstalled/updated. / files kept variants. Removed 0 with files kept is never "uninstalled" (MPI-1076): it names the holders, or says nothing was removed | success/info | **silent** |
 | `MpiFlowLibrary.js:821` | Open Flow card with no project open (Landing; Gallery and History both open it, MPI-992) | Open flows from the Gallery, inside a project. | info | **silent** |
 | `MpiFolderDrop.js:85` | Import POST not ok | Import failed: ${reason} | warning | eligible |
 | `MpiFolderDrop.js:118` | Dropped a non-model extension | "…" is not a model file (.safetensors/.ckpt/…) | warning | eligible |

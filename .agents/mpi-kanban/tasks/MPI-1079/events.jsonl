@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1079", "at": "2026-10-11T09:14:42+01:00", "actor": "5f490a37-3bd6-4ddc-975a-1d353a2ce856", "column": "todo", "title": "Model Library: a model reads partial forever when its leftover files belong to a plugin, a Flow or the engine"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1079", "at": "2026-10-11T09:15:24+01:00", "actor": "5f490a37-3bd6-4ddc-975a-1d353a2ce856", "from": "todo", "to": "done", "reason": "duplicate of MPI-1078"}

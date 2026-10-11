@@ -202,27 +202,21 @@ export function initNotificationService() {
         _maybeArmFlush();
     }));
 
-    // `remote:connection` fires on every feed tick while connected — latch on the
-    // rising edge (disconnected → connected, phase cleared) so we notify once.
-    let _wasRemoteConnected = false;
-    _unsubs.push(Events.on('remote:connection', ({ connected = false, phase = null, gpuName = null } = {}) => {
+    // MPI-1076: only a connect that just finished announces, and it says so with
+    // `announce: true` (Settings Connect, the boot reconnect). This used to latch on the
+    // feed's rising edge instead, which the feed also produces when a connected Pod
+    // stops answering for three ticks and then answers again: "<GPU> connected." landed
+    // mid-session with no connect at all, and on every real connect it doubled the
+    // flow's own "Remote engine ready".
+    _unsubs.push(Events.on('remote:connection', ({ connected = false, announce = false, gpuName = null } = {}) => {
         try {
-            const nowConnected = connected === true && !phase;
-            if (nowConnected && !_wasRemoteConnected) {
-                _wasRemoteConnected = true;
-                const osEligible = state.notificationPrefs?.connection !== false;
-                if (osEligible && ipcRenderer && !document.hasFocus()) {
-                    ipcRenderer.send('notify-connection-complete', {
-                        title: 'Pod connected',
-                        subtitle: 'Cubric Studio',
-                        body: gpuName ? `${gpuName} ready.` : 'Remote engine ready.',
-                    });
-                    return;
-                }
-                StatusBar.notify(gpuName ? `${gpuName} connected.` : 'Remote engine connected.', 'success');
-            } else if (!connected) {
-                _wasRemoteConnected = false;
+            if (connected !== true || !announce) return;
+            const body = gpuName ? `${gpuName} ready.` : 'Remote engine ready.';
+            if (state.notificationPrefs?.connection !== false && ipcRenderer && !document.hasFocus()) {
+                ipcRenderer.send('notify-connection-complete', { title: 'Pod connected', subtitle: 'Cubric Studio', body });
+                return;
             }
+            StatusBar.notify(body, 'success');
         } catch (err) {
             clientLogger.error('notificationService', 'failed to notify:', err);
         }
@@ -260,7 +254,11 @@ export function initNotificationService() {
 
     // MPI-1057 — an Upload models job finished. Same split as a download: a 10 GB
     // upload runs ~40 min, long after the user looked away from a 6 s toast.
-    _unsubs.push(Events.on('upload:finished', ({ filename, ok, error } = {}) => {
+    // MPI-1076: a generate-time upload is not announced. The generation running (or its
+    // own error toast) already says how it went, and "Try it again from Upload models"
+    // is the wrong advice for a file the user never sent from there.
+    _unsubs.push(Events.on('upload:finished', ({ filename, ok, error, atGenerate = false } = {}) => {
+        if (atGenerate) return;
         const message = ok
             ? `${filename} is on the Pod.`
             : `${filename} did not upload (${error}). Try it again from Upload models.`;

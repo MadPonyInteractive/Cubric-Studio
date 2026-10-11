@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1078",
+  "title": "Model Library: a file a plugin, Flow or the app needs makes a model read \"% on disk\" forever, and Uninstall loops",
+  "description": "Fabio, 2026-10-11, live on the Pod volume: Wan 2.2 Smooth 20%, Wan 2.2 5B 36%, Krea 2 and Krea 2 NSFW 20% \"on disk\" though he never installed them. Uninstall says \"uninstalled\" and removes 0 (log: \"remote uninstall wan-22: removed 0, kept 4 universal, 2 shared\"; krea2-nsfw \"kept 12 universal\"), so the card stays partial and he loops. Cause: the files are umt5_xxl_fp8_e4m3fn_scaled + wan_2.1_vae (requiredDeps of the scene-path PLUGIN, MPI-623, which is how they reached the volume) and qwen3vl-abliterated-clip (a UNIVERSAL dep, also the minimax-music Flow). The uninstall is RIGHT to keep them (routes/downloadManager.js _remoteSharedDepIds: universal + _flowRequiredDepIds + _pluginRequiredDepIds). The display is wrong: MpiModelManager.js _computePartial excludes deps owned by an INSTALLED model (_sharedOwnedDepIds) and custom_nodes, but not plugin / Flow / universal deps, so those bytes count as this model partial progress. Fix both engines alike: exclude deps a plugin, Flow or the universal set needs from the partial measure (same answer must feed the MPI-1065 missing-files toast, modelUpdateCheck.js, which reads the same partialInstall). Also: the uninstall toast must not say \"uninstalled\" when removed is 0 and the model was never installed. Test: a model whose only on-disk deps are plugin/universal deps reads not-partial; uninstall removed 0 says so.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-11T09:07:18+01:00",
+  "updated_at": "2026-10-11T09:07:18+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

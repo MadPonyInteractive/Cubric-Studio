@@ -778,8 +778,8 @@ export const MpiRunpodSettings = ComponentFactory.create({
                     const _sr = await fetch(`/remote/pod/specs${_qp}`);
                     if (_sr.ok) _specs = await _sr.json();
                 } catch (_) { /* keep the fallback */ }
-                Events.emit('remote:connection', { connected: true, ..._specs, phase: null, by: 'settings: Pod ready' });
-                Events.emit('ui:success', { message: 'Remote engine ready' });
+                // announce: notificationService says "<GPU> ready." once (MPI-1076).
+                Events.emit('remote:connection', { connected: true, ..._specs, phase: null, announce: true, by: 'settings: Pod ready' });
                 // Reap any stranded EXITED Pods from a prior session (Step 4.3.3).
                 // A create already swept server-side; a warm resume did not, so
                 // do it here — fire-and-forget, the live Pod is kept server-side.

@@ -1651,8 +1651,12 @@ export const MpiModelManager = ComponentFactory.create({
             // line covers both.
             const absent = keptModelFiles.filter(k => k.reason === 'already-absent').length;
             const keptFiles = keptModelFiles.length - absent;
-            const gone = removed.length + absent;
             const keptTotal = keptUniversal.length + keptShared.length + keptFiles + keptPipInstalls.length;
+            // MPI-1076 — but an absent file proves the uninstall complete only when nothing
+            // was kept. Removed 0 with files kept means the click changed nothing on disk:
+            // Wan 2.2 on a Pod volume (its files all held by a plugin and the engine) said
+            // "uninstalled" on every click while the card kept showing them (2026-10-11).
+            const gone = removed.length > 0 || keptTotal === 0 ? removed.length + absent : 0;
             // "shared" wording is only honest when ANOTHER MODEL still needs a dep
             // (keptShared carries sharedWith). keptUniversal/keptPipInstalls are
             // engine-owned files (VAE, custom nodes, pip env) shared with no model —
@@ -1694,7 +1698,7 @@ export const MpiModelManager = ComponentFactory.create({
                     title: 'Files kept',
                     message: holders.length
                         ? `${modelName} — files kept, ${who} ${holders.length > 1 ? 'also use' : 'also uses'} them.`
-                        : `${modelName} — files kept; they are shared with other models or required by the engine.`,
+                        : `${modelName}: nothing removed. Its files are still needed by another model, a Flow, a plugin or the engine.`,
                     sound: false,
                 });
             }

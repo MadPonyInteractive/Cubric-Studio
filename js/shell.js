@@ -1150,7 +1150,8 @@ async function _runRemoteBoot(runpod) {
           const sr = await fetch(`/remote/pod/specs${qp}`);
           if (sr.ok) specs = await sr.json();
         } catch (_) { /* keep the fallback */ }
-        _emitRemoteConnection({ connected: true, ...specs, phase: null, by: 'boot connect: ready' });
+        // announce: notificationService says "<GPU> ready." once (MPI-1076).
+        _emitRemoteConnection({ connected: true, ...specs, phase: null, announce: true, by: 'boot connect: ready' });
         _bootConnected = true;
         // Remember the connection so the NEXT boot warm-resumes this Pod instead of
         // creating another (mirrors manual Connect). A create yields a new podId,
@@ -1159,7 +1160,6 @@ async function _runRemoteBoot(runpod) {
           const cfg = Storage.getRunpodConfig();
           Storage.setRunpodConfig({ ...cfg, wasConnected: true });
         }
-        StatusBar.notify('Remote engine ready', 'success', 6000);
       }
       // else: WS not handshaken yet. No toast (MPI-1057): "Almost ready" read as connected.
     } else {
@@ -1374,7 +1374,11 @@ function _initRemoteConnectionFeed() {
       _misses = 0;
     } else {
       _misses += 1;
-      const suppress = _activeDownloads.size > 0 || _misses < MISS_THRESHOLD;
+      // MPI-1076: an upload holds the Pod busy the same way. A 0.46 GB LoRA sent at Cue
+      // starved /health for 100 s, the hero dropped to local, and the recovery re-ran
+      // the connect edge: heals again, and "<GPU> connected." with no connect pressed.
+      const uploading = (state.uploadJobs || []).some(j => j.status === 'queued' || j.status === 'uploading');
+      const suppress = _activeDownloads.size > 0 || uploading || _misses < MISS_THRESHOLD;
       if (suppress && _last) return; // stay shown-connected; keep backing off
     }
     if (!connected) {
@@ -1427,6 +1431,9 @@ function _initRemoteConnectionFeed() {
         return;
       }
       if (connected !== _last) {
+        // MPI-1076: this flip changes no phase, so nothing else logs it. Name it, or a
+        // hero that drops to local mid-session leaves no trace in app.log.
+        if (_last === true) clientLogger.info('remote', `feed: Pod stopped answering (${_misses} misses), shown as local`);
         _last = connected;
         _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null });
       }

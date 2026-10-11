@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1079",
+  "title": "Model Library: a model reads partial forever when its leftover files belong to a plugin, a Flow or the engine",
+  "description": "Found on MPI-1057, split out of MPI-1076 (2026-10-11, Fabio live on a Pod volume): Wan 2.2 Smooth 20%, Wan 2.2 5B 36%, Krea 2 (+NSFW) 20% show as partly downloaded, and Uninstall removes nothing on every click. The files are umt5_xxl + wan_2.1_vae (required by the scene-path plugin, MPI-623) and qwen3vl-abliterated-clip (universal; minimax-music Flow). Uninstall rightly keeps them. Root: _computePartial (MpiModelManager.js) excludes only deps held by an INSTALLED other model (_sharedOwnedDepIds), not deps held by an installed plugin, Flow or the engine, so those files count as this model's own progress. The backend already knows the holders (_localSharedDepsMap adds (plugin)/(flow) in routes/downloadManager.js); the Library's partial test needs the same set. MPI-1076 already stopped the uninstall toast saying uninstalled on removed 0.",
+  "column": "done",
+  "maturity": "rejected",
+  "status": "done",
+  "created_at": "2026-10-11T09:14:42+01:00",
+  "updated_at": "2026-10-11T09:15:24+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

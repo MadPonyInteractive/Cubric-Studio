@@ -55,3 +55,15 @@ test('MpiToast defaults to reading time, and an explicit duration still wins', (
         + '(duration:0 must still mean persistent)',
     );
 });
+
+test('StatusBar.notify and the ui:* relays leave the duration to MpiToast (MPI-1076)', () => {
+    // MPI-542 changed MpiToast's default but StatusBar.notify kept `duration = 6000` and
+    // the four relays passed 6000, so almost every toast in the app stayed a flat 6 s.
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js/shell/statusBar.js'), 'utf8');
+    assert.match(src, /notify\(message, variant = 'info', duration, opts = \{\}\)/,
+        'REGRESSION: StatusBar.notify has a default duration again - it overrides the reading time');
+    for (const ev of ['success', 'warning', 'info', 'danger']) {
+        assert.match(src, new RegExp(`'ui:${ev}',[^\\n]*StatusBar\\.notify\\(message, '${ev}', undefined,`),
+            `REGRESSION: the ui:${ev} relay pins a duration - its toasts lose the reading time`);
+    }
+});

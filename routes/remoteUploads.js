@@ -68,7 +68,9 @@ function _set(job, patch) {
 function uploadAndWait(type, localPath, filename, size) {
   let job = [..._jobs.values()].find((j) => j.type === type && j.filename === filename && LIVE.has(j.status));
   if (!job) {
-    job = { id: crypto.randomUUID(), type, filename, totalBytes: size, sentBytes: 0, status: 'queued', error: null };
+    // atGenerate (MPI-1076): the generation reports this upload's outcome, so the
+    // renderer does not announce it a second time.
+    job = { id: crypto.randomUUID(), type, filename, totalBytes: size, sentBytes: 0, status: 'queued', error: null, atGenerate: true };
     _jobs.set(job.id, job);
     _localPaths.set(job.id, localPath);
     broadcastSnapshot();

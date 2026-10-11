@@ -594,7 +594,7 @@ const downloadService = {
                 const was = prev.get(j.id);
                 if (!was || was === j.status) continue;
                 if (j.status === 'complete' || j.status === 'failed') {
-                    Events.emit('upload:finished', { filename: j.filename, ok: j.status === 'complete', error: j.error });
+                    Events.emit('upload:finished', { filename: j.filename, ok: j.status === 'complete', error: j.error, atGenerate: j.atGenerate === true });
                 }
             }
             state.uploadJobs = jobs;

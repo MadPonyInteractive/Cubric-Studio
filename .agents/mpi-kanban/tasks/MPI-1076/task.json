@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1076",
+  "title": "Toasts tell the truth at the right moment: audit every toast for timing, accuracy and length",
+  "description": "Fabio, 2026-10-11, live on a RunPod session: toasts are \"all over the place\". Seen in one morning: (1) \"<GPU> connected.\" appeared when a generation FINISHED; the only connect was the automatic reconnect after an app restart (07:59:30Z, notificationService remote:connection rising edge), so it read as nonsense; work out why it surfaced late and whether a silent boot reconnect should announce at all. (2) \"Loading new nodes - restarting the remote engine\" on Cue after the backend had already restarted (fixed in MPI-1057: comfy:restarted). (3) MPI-1065 missing-files toast too long to read in 15 s (shortened in MPI-1057). (4) Model Library \"X uninstalled\" when 0 files were removed (Wan 2.2 / Krea 2 partials held by the scene-path plugin and a universal dep; see MPI-1057 brief Noticed). (5) generate-time \"Uploading ... to the cloud\" toast now duplicates the Transfers row. Method: walk docs/toasts.md (the full map) against the code, and for each toast ask: is it true when it fires, does it fire at the moment the thing happens, can it be read in its duration, does another surface (Transfers, panel hint, dialog) already say it. Fabio rule already in docs/toasts.md: no toast between Connect and its outcome.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-11T09:04:00+01:00",
+  "updated_at": "2026-10-11T09:11:25+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

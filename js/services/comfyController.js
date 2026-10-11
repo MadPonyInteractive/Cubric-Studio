@@ -2223,8 +2223,8 @@ function createEngine({ engine, alwaysLocal }) {
 
             // 2. Upload the local file to the Pod volume. The renderer only has the
             // filename; the server resolves the absolute local path from the model
-            // folders and streams it to the wrapper.
-            Events.emit('ui:info', { message: `Uploading "${base}" to the cloud — generation will start once it's ready…` });
+            // folders and streams it to the wrapper. No toast (MPI-1076): its Transfers
+            // row shows the bar and Cancel, and the generation starting says it landed.
             const res = await fetch('/remote/upload/model', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
