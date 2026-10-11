@@ -114,3 +114,10 @@ Side-by-sides sent to Fabio: `box_horns_side_by_side.webm`, `box_remove_side_by_
   a bad seed ("some seeds are crap"), accepted.
 - 2026-10-11 Fabio's eye on the compare-view contain fit (Video edit 17 fix): flowVideoEdit_005 vs videoCrop_003,
   different shapes, "looks okay" - PASSED.
+- 2026-10-11 Phase 4 graphics PASSED Fabio's eye ("1"): tile + hero from OWNED runs on his Pod (8 runs, ~$0.72):
+  Klein 9B pictures t2i_003/t2i_005/t2i_004, H3 source ref2v_001, Flow results flowVideoEdit_018 (man swap) +
+  flowVideoEdit_017 (background; its sky swirls kept, Fabio's pick B after a v2 seed drifted back to the cafe).
+  flow-video-edit.webp 896x1120 103,186 B; flow-video-edit.mp4 1280x800 7.9 s 1,458,513 B. Committed 6720b7446.
+  Still to do: registry `video` field (flowsRegistry.js held by MPI-1041, message sent), 200 + bytes check, npm test.
+- 2026-10-11 Found live: agent cancel cannot stop a described Video Edit run (NOT_IN_FLIGHT, queueJobId null until
+  the describe step finishes) -> card MPI-1083.

@@ -808,6 +808,32 @@ does the chin pose at 2.5 s and skips the half-turn - a seed-level timing drift,
 Fabio: V7b best; V7a's lag = "some seeds are crap", ACCEPTED, no chase. Compare-view fix PASSED his eye (validation.md).
 Ollama lease = Mpi-Kanban rework (MPI-41), not this card. Graphics (Phase 4): his timing, not necessarily next.
 Fabio: LTX split off for another time (MPI-1061 / umbrella MPI-1063); MPI-1036 does NOT wait for it.
+**Video edit 19 (2026-10-11): Phase 4 plates, all OWNED (Fabio picked "generate everything").** Run on Fabio's
+RunPod Pod (RTX PRO 4500, $0.72/h, his yes for 5 runs) through his app's MCP, into project folder
+`C:/Users/Fabio/Documents/Cubric Studio/Projects/MPI-1036 Video Edit in-app` (folderPath, his view not moved). Krea2 is
+not on the Pod -> Klein 9B: `t2i_003.png` (copper-curls woman, mustard sweater, 896x1088, seed 20261011),
+`t2i_004.png` (snowy ridge, 1344x768, seed 20261012). Source `ref2v_001.mp4` (H3 ref2va no refs = t2v, 16:9 medium
+turbo, 5.17 s, 1344x768, seed 20261013: black-haired woman in denim, brick cafe, turns/smiles/tucks hair/waves).
+Flow runs at 768p: "VE gfx beat1 swap" (op 1 keep room, picture t2i_003) + "VE gfx beat2 background" (op 4, t2i_004).
+Hero device: seam wipe on MOVING clips (geq alpha + alphamerge, both on one t), two beats. Tile: inputs top strip
+(source frame | picture), result below, hairline rules (Object Stamp / Character Sheet language). Watch: the copper
+woman echoes the Character Sheet from Images tile's character - check the two side by side in the 220 px grid
+(`scratchpad/grid.mjs`). Claim: state/files/fa98e65d-mpi1036.json. flowsRegistry.js is held by MPI-623 (b5c9d0c1):
+message them before wiring `video`.
+**Update (same session): art APPROVED by Fabio and pushed (6720b7446).** The copper woman WAS a clash, so beat 1 is a
+bald man in a red rain jacket (t2i_005 -> flowVideoEdit_018); beat 2 keeps flowVideoEdit_017 with its sky swirls (a
+v2 seed drifted back to the cafe and was cancelled). Builders: session scratchpad `tile.mjs` (CX=0.5, frames at 2.9 s),
+`hero.py`. flowsRegistry.js moved from MPI-623 to MPI-1041 (claim 91594267): message
+`fa98e65d-mpi1036-to-mpi1041-video-edit-hero` asks them to add `video: 'flow-video-edit.mp4'` + drop the PROVISIONAL
+comment. NEXT: that edit lands -> isolated-app check (hero playing, both assets 200 + bytes) -> npm test -> close.
+Cancel bug found live -> MPI-1083.
+**Handoff (Video edit 19 -> 20):** the registry edit LANDED - MPI-1041 committed it in f196da565 (`video:
+'flow-video-edit.mp4'` at flowsRegistry.js:847; check the PROVISIONAL comment is gone). Left: isolated-app check
+(`npm run app:isolated`, its own port, never :3000; open a project on the Gallery page, open Video Edit from the Flow
+Library: hero `paused:false`, `muted`, `loop`, `currentTime` advancing, `getBoundingClientRect().width` ~446 - select the
+video by src, not `querySelector('video')`; both `/comfy_workflows/display/flow-video-edit.{webp,mp4}` 200 with 103,186 /
+1,458,513 B), `npm test`, then mpi-end-session (UNRELEASED.md roster + entry - check first).
+
 **NEXT (Video edit 19, fresh session): Phase 4 - Flow graphics via `/mpi-flow-graphics`** (tile 4/5 still + wide hero
 clip; replaces the provisional tile `comfy_workflows/display/flow-video-edit.webp`). Owned footage only - the dance /
 horns clips are a real creator's with her @handle, never ship them. Then close MPI-1036.

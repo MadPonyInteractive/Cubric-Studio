@@ -19,4 +19,4 @@
   - [ ] Video edit 17: room path A/B on the G: bench (V4a/V4b bedroom, V6a/V6b shower; b = clip with the dancer cut out by BiRefNet)
   - [ ] Video edit 17: compare view fits a different-shaped pair by contain, not cover (the 768p result read 1.6% bigger)
 - [ ] BLOCKS CLOSE (Fabio 2026-10-10): LTX 2.3 as a SECOND model option next to H3 (Fabio, via MPI-1060): bench research is card MPI-1061 (LTX editing IC-LoRAs: In-Outpainting + SAM3 mask, Union Control pose/depth, Union + Ingredients sheet for a swap; Ingredients alone COPIES a guide clip). Do NOT close MPI-1036 before this is checked and Fabio has decided
-- [ ] Flow graphics
+- [ ] Flow graphics (art approved + committed 6720b7446; registry `video` + load check pending)
