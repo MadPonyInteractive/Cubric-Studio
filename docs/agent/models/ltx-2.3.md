@@ -5,7 +5,7 @@ LTX 2.3 is Lightricks' native joint audio-video model: one pass generates pictur
 - `ltx-23`: the high, quality-ceiling tier (full bf16 transformer).
 - `ltx-23-balanced`: the fast tier (int8 transformer; everything else is shared).
 
-Both offer `t2v_ms` (text to video), `i2v_ms` (image to video) and `ref2v_ms` (Reference to Video, below), and all resolve to the same `ltx-2.3` enhancer recipe: `ref2v_ms` gets its own `r2v` mode, an i2v request gets the `t2v` instruction. In practice, real production work reaches for this model image-to-video almost exclusively. A plate is mandatory overhead on every shot, but it also fixes the framing for you, so lean on it instead of re-describing what the picture already shows.
+Both offer `t2v_ms` (text to video), `i2v_ms` (image to video) and `ref2v_ms` (Reference to Video, below), and all resolve to the same `ltx-2.3` enhancer recipe: `ref2v_ms` gets its own `r2v` mode (the `t2v` one while no picture is staged), an i2v request gets the `t2v` instruction. In practice, real production work reaches for this model image-to-video almost exclusively. A plate is mandatory overhead on every shot, but it also fixes the framing for you, so lean on it instead of re-describing what the picture already shows.
 
 ## Pick it when
 

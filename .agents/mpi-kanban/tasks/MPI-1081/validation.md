@@ -28,3 +28,7 @@ already). Flows run `enhanceFlow`, not `enhance`. The agent and MCP have no enha
   longer a case the app sends.
 - Seedance no-ref now runs its `t2v` mode, its default and Stage-1-proven mode; no sweep re-run
   (it would only re-test t2v).
+
+## Close
+
+CI green on `6706eed74` (run 38130076454). Claim auditor: 14 of 14 proven. Agent guide `docs/agent/models/ltx-2.3.md` line 8 now says ref2v runs t2v while no picture is staged.

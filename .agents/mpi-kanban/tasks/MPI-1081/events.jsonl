@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1081", "at": "2026-10-11T10:04:27+01:00", "actor": "b5b40c00", "column": "todo", "title": "Enhance on a reference-to-video op with nothing attached uses the text-to-video rules"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1081", "at": "2026-10-11T10:32:28+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "plan written; implementing r2v-no-ref -> t2v fix"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1081", "at": "2026-10-11T10:34:15+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "auto verify passed: llm-service 31/31, mutation-checked; awaiting close-out commit"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1081", "at": "2026-10-11T11:08:45+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 6706eed74; llm-service 31/31, mutation-checked; auditor 14/14"}
