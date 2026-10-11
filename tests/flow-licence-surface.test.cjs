@@ -224,3 +224,16 @@ test('an optional model is listed for its licence and left out of the install', 
     assert.match(lib, /filter\(s => !s\.optional\)\.every/, 'Fits my GPU counts the optional slot again');
     assert.match(lib, /keys\.includes\(key\) && \(licence\.verify/, 'an optional model\'s licence errand relabels Install');
 });
+
+// MPI-1098. Install starts `flow:<id>` for a `requiredPlugins` plugin's deps too, so the key
+// list the drawer counts must hold it, or a plugin-only Flow (Transcribe) installs invisibly.
+test('a plugin-only flow counts its flow key, the one Install starts', async () => {
+    const { registry } = await load();
+    const { flowInstallKeys } = await import('../js/utils/flowLicences.js');
+    const flow = { id: 'plugin-only', requiredModels: [], requiredPlugins: ['speech-to-text'] };
+    assert.ok(registry.getFlowDependencies(flow).length, 'speech-to-text lost its deps; pick another plugin');
+    assert.deepStrictEqual(flowInstallKeys(flow), ['flow:plugin-only']);
+    const lib = src();
+    assert.match(lib, /!prog\.installing \|\| prog\.waiting/, 'Install hides again while one model downloads');
+    assert.match(lib, /if \(_hasLiveJob\(modelId\)\) continue/, 'Install restarts a model already downloading');
+});

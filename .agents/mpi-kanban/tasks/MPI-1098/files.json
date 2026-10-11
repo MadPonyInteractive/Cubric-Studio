@@ -1,0 +1,7 @@
+{
+  "files": [
+    "js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js",
+    "js/utils/flowLicences.js",
+    "tests/flow-licence-surface.test.cjs"
+  ]
+}

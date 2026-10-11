@@ -542,15 +542,18 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // open with its error, and a failed download reaches the user via `download:failed`.
         // So `start()` still resolves `undefined` for refusal and success alike — do not add
         // a distinguishable value unless something here needs to act on it.
+        // A key already queued or downloading (from here or the Model Library) is skipped:
+        // `start()` would replace its job and POST it again (MPI-1098).
         function _installMissing(flow, missing) {
             for (const modelId of missing) {
+                if (_hasLiveJob(modelId)) continue;
                 const deps = getModelDependencies(modelId);
                 if (deps.length) downloadService.start(modelId, deps);
             }
             // Flow-only deps: started under the flow key so the shared install/reconcile
             // machinery treats them as one unit and the guards can attribute them.
             const { missingDeps } = flowAvailability(flow);
-            if (missingDeps.length) {
+            if (missingDeps.length && !_hasLiveJob(flowDepKey(flow.id))) {
                 const deps = getFlowDependencies(flow);
                 if (deps.length) downloadService.start(flowDepKey(flow.id), deps);
             }
@@ -569,26 +572,36 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // (downloadService serializes the queue), so N models each own 1/N of the bar:
         // installed → 1, the live download → job.progress, queued/not-started → 0.
         // `installing` = at least one model has a live download job. Returns overall 0–1.
-        //   { installing, progress }
+        // `waiting` = keys neither on disk nor queued: one model downloading (Krea2 started
+        // from the Model Library) must not hide Install for the rest (MPI-1098).
+        //   { installing, progress, waiting }
         function _installProgress(flow) {
             const ids = flowInstallKeys(flow);
-            if (!ids.length) return { installing: false, progress: 0 };
+            if (!ids.length) return { installing: false, progress: 0, waiting: 0 };
             const installed = state.s_installedModelIds || [];
             const jobs = state.downloadJobs || [];
             // The flow-deps key is "installed" when no dep is missing — it is not a model,
             // so it never appears in s_installedModelIds (MPI-304).
             const depsKey = flowDepKey(flow.id);
             const depsDone = !flowAvailability(flow).missingDeps.length;
-            let sum = 0, installing = false;
+            let sum = 0, installing = false, waiting = 0;
             for (const id of ids) {
                 if (id === depsKey ? depsDone : installed.includes(id)) { sum += 1; continue; }
+                if (!_hasLiveJob(id)) waiting += 1;
                 const job = jobs.find(j => j.modelId === id);
                 if (job) {
                     installing = true;
                     sum += Math.min(Math.max(job.progress || 0, 0), 1);
                 }
             }
-            return { installing, progress: sum / ids.length };
+            return { installing, progress: sum / ids.length, waiting };
+        }
+
+        // A queued or running job, the Model Library's `isActiveDownload` set. A finished or
+        // failed job can linger in `downloadJobs` and must not block a retry.
+        function _hasLiveJob(key) {
+            return (state.downloadJobs || []).some(j => j.modelId === key
+                && ['pending', 'downloading', 'paused', 'installing', 'queued'].includes(j.status));
         }
 
         function _rowHtml(name, installed, missingLabel = 'Install') {
@@ -820,7 +833,8 @@ export const MpiFlowLibrary = ComponentFactory.create({
             _mountThumb(flow.preview);
 
             // Footer: installing → aggregated bar + Cancel-all; else all-installed →
-            // Open (Gallery-only); else → Install.
+            // Open (Gallery-only). Install whenever something is neither on disk nor
+            // queued, beside the bar too (MPI-1098).
             detailActions.innerHTML = '';
             const prog = _installProgress(flow);
             if (prog.installing) {
@@ -857,7 +871,8 @@ export const MpiFlowLibrary = ComponentFactory.create({
                     uninstall.on('click', () => { _uninstallFlow(flow); });
                     detailActions.appendChild(uninstall.el); _detailBtns.push(uninstall);
                 }
-            } else if (!reason) {
+            }
+            if (!available && !reason && (!prog.installing || prog.waiting)) {
                 // Same button, same path — the gate fires inside `downloadService.start()`
                 // whatever this says. Only the PROMISE changes, and it has to match what the
                 // click actually delivers (MPI-666):

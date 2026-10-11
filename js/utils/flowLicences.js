@@ -22,7 +22,7 @@
  * A consumer supplies its own wrapper class for spacing (see MpiBaseFlow's
  * `mpi-base-flow__licence`); nothing here writes a margin.
  */
-import { flowModelIds, flowModelSlots, flowDepKey } from '../data/flowsRegistry.js';
+import { flowModelIds, flowModelSlots, flowDepKey, getFlowDependencies } from '../data/flowsRegistry.js';
 import { getModelLicence } from '../data/modelConstants/licences.js';
 import { ce, on } from './dom.js';
 import { mountButton } from '../components/Primitives/MpiButton/MpiButton.js';
@@ -50,7 +50,10 @@ export function flowInstallKeys(flow) {
     // run slide installs it on its own (MpiBaseFlow). Counted here, it held the Library's bar
     // short of 100% and Cancel aimed at a download Install never started.
     const keys = flowOptionalModelIds(flow, false);
-    if ((flow.requiredDeps || []).length) keys.push(flowDepKey(flow.id));
+    // The same dep set Install starts under this key, a `requiredPlugins` plugin's deps included
+    // (MPI-1098). Gated on `requiredDeps` alone, a plugin-only Flow (Transcribe) started a job
+    // the drawer never counted, so Install did nothing visible.
+    if (getFlowDependencies(flow).length) keys.push(flowDepKey(flow.id));
     return keys;
 }
 
