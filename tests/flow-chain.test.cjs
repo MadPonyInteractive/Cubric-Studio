@@ -198,3 +198,17 @@ test('a with-head picture, an unknown file or a head-removed one with nothing be
 test('only the user\'s own picture is swapped, never a later leg\'s', () => {
     assert.match(read(), /const mediaItems = later \? given : unchainedSource\(flow, given, /);
 });
+
+// MPI-1092: each leg tells the status bar its place in the run, counted over the legs THIS run takes.
+test('a chained leg knows its step in the run; a run of one job has none', async () => {
+    const { flowStep } = await load();
+    const AGED = { id: 'aged', title: 'Aged', operation: 'a', fields: [{ id: 'Input_Age', default: -1 }],
+        chain: [{ operation: 'b', when: { field: 'Input_Age', atLeast: 1 } }, { operation: 'c' }] };
+    const old = { injectionParams: { Input_Age: 30 } };
+    assert.deepStrictEqual([-1, 0, 1].map(i => flowStep(AGED, old, i)), ['1/3', '2/3', '3/3']);
+    // No age: leg b is skipped, so c is the second of two, not the third of three.
+    assert.deepStrictEqual([-1, 1].map(i => flowStep(AGED, {}, i)), ['1/2', '2/2']);
+    assert.strictEqual(flowStep(PLAIN, {}, -1), null, 'one job, no counter');
+    assert.match(read(), /if \(!_leg\.alone\) config\.flowStep = flowStep\(flow, run, index\);/,
+        'a leg run alone from the result pane is a run of one');
+});

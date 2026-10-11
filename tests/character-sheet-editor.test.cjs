@@ -129,19 +129,31 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes onl
     const { characterSheetEditor, characterSheetEditorRefusal: refuse, characterSheetEditorCardName: name, buildChangePrompt } = await builder();
     const REF = { role: 'image2', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fdress.png' };
     const run = (change, words, age = -1) => ({ change, words, Input_Age: age, mediaItems: [{ role: 'image1', url: 'x' }, REF] });
-    // The F2 bench strings (validation.md): round 1's shape, only the close-up named - naming the back view
-    // with a reference drew the reference person as an extra figure (round 2). The old clothes are taken off
-    // in words (rounds 4-7: a bikini kept the jeans); "everything else" only with no words, since with words
-    // it stripped what they left out (a jacket + scarf cut the trousers to shorts).
-    const TAIL = ' Dress the character the same way in the close-up portrait on the right, with the same neckline and '
-        + 'straps. Keep everything else exactly as it is.';
+    // The MPI-1090 bench strings (tasks/MPI-1090/validation.md, rounds 2-4, on the graph's shoulder lock): every
+    // figure named, the back one only as "seen from behind" (naming "the back view" with a reference drew an
+    // extra figure, MPI-1041 F2 round 2). The old clothes are taken off in words (F2 rounds 4-7: a bikini kept
+    // the jeans); "everything else" only with no words, since with words it stripped what they left out.
+    const ALL = ' The front view, the character seen from behind and the close-up portrait on the right all show the '
+        + 'same outfit, with the same neckline, sleeves and straps.';
+    const KEEP = ' Keep everything else exactly as it is.';
     assert.strictEqual(buildChangePrompt('clothes', '', true), 'Dress the character in only the outfit from the reference '
-        + 'picture. Take off everything else the character wears now, trousers, skirt and top included.' + TAIL);
+        + 'picture. Take off everything else the character wears now, trousers, skirt and top included.' + ALL + KEEP);
+    // The words get their OWN sentence: spliced into the reference clause, "G string on the back view" became
+    // the whole outfit and redrew the front figure as a second back view (Fabio, flowCSE_012).
     assert.strictEqual(buildChangePrompt('clothes', 'the green jacket.', true),
-        'Dress the character in the outfit from the reference picture: the green jacket, replacing all of the clothes '
-        + 'the character wears now, top and bottom.' + TAIL);
+        'Dress the character in the outfit from the reference picture, replacing all of the clothes the character '
+        + 'wears now, top and bottom.' + ALL + ' Change only this about the outfit: the green jacket. The close-up '
+        + 'portrait on the right shows the top of the outfit from the reference picture, with its neckline.' + KEEP);
+    assert.match(buildChangePrompt('clothes', 'G string on the back view', true),
+        /outfit: G string seen from behind\. /, 'a view the words name is said the safe way');
+    assert.match(buildChangePrompt('clothes', 'a bow at The Back View, lace in the back view', true),
+        /outfit: a bow seen from behind, lace seen from behind\. /);
+    assert.match(buildChangePrompt('clothes', 'a bow on the back of the dress', true), /a bow on the back of the dress\./,
+        'only "the back view" is a view; "the back of" is the garment');
     assert.doesNotMatch(buildChangePrompt('clothes', 'the green jacket', true), /everything else the character/);
-    assert.doesNotMatch(buildChangePrompt('clothes', '', true), /back view|behind/);
+    for (const w of ['', 'G string on the back view']) {
+        assert.doesNotMatch(buildChangePrompt('clothes', w, true), /back view/);
+    }
     // Accessories and Hairstyle ignore the picture: from one, a hat or a hairstyle reached every panel 1 time in 8.
     assert.strictEqual(buildChangePrompt('accessories', '', true), null);
     assert.strictEqual(buildChangePrompt('accessories', 'a red scarf', true), buildChangePrompt('accessories', 'a red scarf'));

@@ -58,6 +58,23 @@ export function parseApparentAge(answer) {
  */
 const REF_THING = { clothes: 'the outfit' };
 
+/** With a reference, every figure is named and the back one only as "seen from behind" (MPI-1090 rounds 2-3). */
+const REF_ALL = 'The front view, the character seen from behind and the close-up portrait on the right all show the same '
+    + 'outfit, with the same neckline, sleeves and straps.';
+
+/** The close-up lost the neckline whenever the user's words were in the prompt (0/6) until it was named (5/5). */
+const REF_NECK = 'The close-up portrait on the right shows the top of the outfit from the reference picture, with its neckline.';
+
+/**
+ * The user's words with "the back view" said the safe way. Fabio's "G string on the back view" redrew the front
+ * figure as a second back view; "seen from behind" never redrew the layout (MPI-1041 F1 0/10, MPI-1090 5/5).
+ * @param {string} w
+ * @returns {string}
+ */
+function _unview(w) {
+    return w.replace(/(?:\b(?:on|in|at|for)\s+)?\bthe\s+back\s+view\b/gi, 'seen from behind');
+}
+
 /** Whether the run carries a Reference picture (the second media slot). */
 function _hasRef(values) {
     return (values.mediaItems || []).some(m => m?.role === 'image2' && (m.url || m.filePath));
@@ -77,22 +94,22 @@ function _usesRef(values) {
  */
 export function buildChangePrompt(change, words, ref = false) {
     const w = _words(words);
-    // With a reference only the close-up is named: the picture brings a second figure, and naming the back
-    // view let Klein draw it as an extra one (F2 round 2: 2 of 5 layouts broken; round 1's shape kept 8 of 8).
     // The old clothes must be taken off in words, or Klein keeps what the picture does not cover (Fabio's
-    // bikini kept the jeans, F2 rounds 4-7). With no words the picture IS the outfit, so everything else
-    // goes; with words that would strip what they leave out (a jacket and scarf cut the trousers to shorts),
-    // so they get the softer "replacing" clause (bikini 2/2, jacket kept full-length trousers 2/2). The
-    // close-up drifted back to the old top in the late steps on Fabio's seed until its neckline and straps
-    // were named (round 8: 3/3).
+    // bikini kept the jeans, MPI-1041 F2 rounds 4-7). With no words the picture IS the outfit, so everything
+    // else goes; with words that would strip what they leave out (a jacket and scarf cut the trousers to
+    // shorts), so they get the softer "replacing" clause. MPI-1090 (tasks/MPI-1090/validation.md, on the graph's
+    // shoulder lock): every figure is named, the back one as "seen from behind" (naming "the back view" with a
+    // reference drew an extra figure, F2 round 2); the user's words get their OWN sentence after that line, not
+    // spliced into the reference clause, where "G string on the back view" became the whole outfit and the
+    // front a second back view. Words: front, layout and close-up 5/5, back 4/5; picking "the green jacket"
+    // off a full outfit kept her own trousers 3/3 (the splice took the corduroys 2/2). No words: close-up 3/3.
     if (ref && change === 'clothes') {
-        const tail = 'Dress the character the same way in the close-up portrait on the right, with the same neckline and '
-            + 'straps. Keep everything else exactly as it is.';
         return w
-            ? `Dress the character in the outfit from the reference picture: ${w}, replacing all of the clothes the `
-                + `character wears now, top and bottom. ${tail}`
+            ? 'Dress the character in the outfit from the reference picture, replacing all of the clothes the character '
+                + `wears now, top and bottom. ${REF_ALL} Change only this about the outfit: ${_unview(w)}. ${REF_NECK} `
+                + 'Keep everything else exactly as it is.'
             : 'Dress the character in only the outfit from the reference picture. Take off everything else the character '
-                + `wears now, trousers, skirt and top included. ${tail}`;
+                + `wears now, trousers, skirt and top included. ${REF_ALL} Keep everything else exactly as it is.`;
     }
     if (!w) return null;
     switch (change) {

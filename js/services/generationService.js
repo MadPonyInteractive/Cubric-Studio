@@ -1201,7 +1201,8 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
     // late settle can no longer reset the bar out from under a promoted
     // successor (MPI-203 status-bar stomp).
     exec.genId = _regId;
-    Events.emit('tool:running', { tool: 'groupHistory', id: _regId, type: operation });
+    // `step`: a chained Flow leg's place in its run ("2/3", MPI-1092), null otherwise.
+    Events.emit('tool:running', { tool: 'groupHistory', id: _regId, type: operation, step: config.flowStep ?? null });
 
     // Stable tempId snapshot. The empty-output / cacheHit branches below emit a
     // late `generation:cancelled` AFTER the registry entry may already be gone

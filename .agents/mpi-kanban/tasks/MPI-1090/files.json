@@ -1,0 +1,11 @@
+{
+ "schema": "mpi-kanban/task-files/v1",
+ "files": [
+  "js/data/flowPrompts/characterSheetEditor.js",
+  "tests/character-sheet-editor.test.cjs",
+  "docs/playbooks/add-flow/existing-flows/character-sheet-editor.md",
+  ".agents/mpi-kanban/tasks/MPI-1090/",
+  "comfy_workflows/raw/flow_character_sheet_edit.json",
+  "comfy_workflows/flow_character_sheet_edit.json"
+ ]
+}

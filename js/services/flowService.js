@@ -177,6 +177,20 @@ export function chainCallbacks(flow, callbacks, submitLeg, run = {}, after = -1)
 }
 
 /**
+ * Which job of the run this leg is, as "2/3", for the status bar (MPI-1092): the early legs show
+ * half-made pictures, and without it a run that is going fine reads as one going wrong.
+ * @param {import('../data/flowsRegistry.js').FlowDef} flow
+ * @param {Object} run - the run's inputs, read for the legs' `when`
+ * @param {number} index - the leg's place in `flowLegs`; -1 is leg 1
+ * @returns {?string} null for a run of one job
+ */
+export function flowStep(flow, run, index) {
+    const legs = flowRunLegs(flow, run);
+    const at = legs.findIndex(leg => leg.index === index);
+    return legs.length > 1 && at >= 0 ? `${at + 1}/${legs.length}` : null;
+}
+
+/**
  * A leg's own injection params: its `params` as declared, and its `box` — fractions of the
  * picture it is fed — as the head-swap injector's integer `box1` (`box2` for an `image2`
  * input) in that picture's pixels. A leg with no `box` sends none: the whole picture, since a
@@ -639,6 +653,8 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
             runCallbacks.onCancel?.();
             return handle;
         }
+        // A leg the result pane runs `alone` is a run of one.
+        if (!_leg.alone) config.flowStep = flowStep(flow, run, index);
         // The leg's BUILT prompt (MPI-1041), here because the describe answers are in by now and
         // the child-safety gate reads `positive` when the job is queued.
         if (builder) {

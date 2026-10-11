@@ -45,6 +45,7 @@ let _hoverTarget  = null;
 let _hoverObs     = null;
 let _currentLabel = '';
 let _stageText  = '';   // " · 2/3" stage suffix (MPI-147), '' when no multi-stage
+let _stepText   = '';   // " 2/3" a chained Flow leg's place in its run (MPI-1092), '' otherwise
 let _queueDepth = 0;
 let _elapsedSec   = 0;
 let _activeStartedAt = null;
@@ -85,7 +86,9 @@ function _setFill(pct) {
 }
 
 function _getDisplayLabel(label = _currentLabel) {
-    const base = `${label}${_stageText}`;
+    // Next to a step, a graph stage with no total ("· 1") reads as a second, wrong count.
+    const stage = _stepText && !_stageText.includes('/') ? '' : _stageText;
+    const base = `${label}${_stepText}${stage}`;
     const pending = Math.max(0, _queueDepth - 1);
     if (_state !== 'active' || pending === 0) return base;
     return `${base} (${pending} queued)`;
@@ -244,6 +247,7 @@ function _setIdle() {
     _jobLabel.textContent = `IDLE · ${_idleScopeLabel()}`;
     _currentLabel = '';
     _stageText = '';
+    _stepText = '';
     _activeStartedAt = null;
 
     _jobPct.textContent  = '';
@@ -542,7 +546,7 @@ export const StatusBar = {
         if (_listenUnsubs.length > 0) return;
         // tool:running — job dispatched. Spinner + label only; NO timer yet (ComfyUI
         // may still be booting — MPI-147: don't count cold-start in the clock).
-        _listenUnsubs.push(Events.on('tool:running', ({ tool, id = null, type = null }) => {
+        _listenUnsubs.push(Events.on('tool:running', ({ tool, id = null, type = null, step = null }) => {
             if (tool !== 'groupHistory') return;
             _latch(id);
             // The bar wears the accent of the task AHEAD (MPI-736). `type` is the op key
@@ -550,6 +554,7 @@ export const StatusBar = {
             // its label — so nothing upstream had to change. The fill is the only element
             // here that draws --accent-heat, so it is the one that declares.
             if (_fill) _fill.dataset.accent = getCommandAccent(type);
+            _stepText = step ? ` ${step}` : '';
             StatusBar.progress.prepare('Starting');
         }));
         // tool:accepted — ComfyUI accepted the prompt (prompt_ack). NOW start the

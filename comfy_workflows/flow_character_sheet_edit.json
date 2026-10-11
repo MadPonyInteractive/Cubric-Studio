@@ -359,7 +359,7 @@
   "25": {
     "inputs": {
       "true": [
-        "21",
+        "82",
         0
       ],
       "false": [
@@ -1186,6 +1186,141 @@
     "class_type": "MpiIfElse",
     "_meta": {
       "title": "conditioning: + the reference picture when given"
+    }
+  },
+  "75": {
+    "inputs": {
+      "clip": [
+        "13",
+        1
+      ],
+      "text": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "SAM3 \"face\" (the chin line)"
+    }
+  },
+  "76": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "13",
+        0
+      ],
+      "image": [
+        "18",
+        0
+      ],
+      "conditioning": [
+        "75",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "SAM3 face, front body"
+    }
+  },
+  "77": {
+    "inputs": {
+      "padding": 0,
+      "divisible_by": 1,
+      "mask": [
+        "76",
+        0
+      ]
+    },
+    "class_type": "MpiMaskBbox",
+    "_meta": {
+      "title": "front face box"
+    }
+  },
+  "78": {
+    "inputs": {
+      "mpi_box": [
+        "77",
+        1
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "face box numbers"
+    }
+  },
+  "79": {
+    "inputs": {
+      "math_expression": "a + b + b // 2",
+      "a": [
+        "78",
+        3
+      ],
+      "b": [
+        "78",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "shoulder line = chin + half a face"
+    }
+  },
+  "80": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "width": [
+        "9",
+        0
+      ],
+      "height": [
+        "79",
+        0
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "back body above the shoulders"
+    }
+  },
+  "81": {
+    "inputs": {
+      "image": [
+        "20",
+        0
+      ],
+      "mpi_box": [
+        "80",
+        0
+      ]
+    },
+    "class_type": "MpiBoxMask",
+    "_meta": {
+      "title": "back body: above-the-shoulders mask"
+    }
+  },
+  "82": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "operation": "multiply",
+      "destination": [
+        "21",
+        0
+      ],
+      "source": [
+        "81",
+        0
+      ]
+    },
+    "class_type": "MaskComposite",
+    "_meta": {
+      "title": "back lock cut at the shoulders"
     }
   }
 }

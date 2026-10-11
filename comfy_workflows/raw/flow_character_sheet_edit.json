@@ -1,8 +1,8 @@
 {
   "id": "d1af3d9f-9958-50c8-b62b-c6e575398148",
   "revision": 0,
-  "last_node_id": 74,
-  "last_link_id": 124,
+  "last_node_id": 82,
+  "last_link_id": 139,
   "nodes": [
     {
       "id": 1,
@@ -431,7 +431,8 @@
           "type": "*",
           "links": [
             30,
-            34
+            34,
+            134
           ],
           "slot_index": 0
         }
@@ -612,7 +613,8 @@
           "links": [
             17,
             22,
-            27
+            27,
+            127
           ],
           "slot_index": 0
         },
@@ -620,7 +622,8 @@
           "name": "CLIP",
           "type": "CLIP",
           "links": [
-            12
+            12,
+            125
           ],
           "slot_index": 1
         },
@@ -696,7 +699,8 @@
           "name": "STRING",
           "type": "STRING",
           "links": [
-            10
+            10,
+            126
           ],
           "slot_index": 0
         }
@@ -857,7 +861,8 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            16
+            16,
+            128
           ],
           "slot_index": 0
         }
@@ -999,7 +1004,8 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            21
+            21,
+            136
           ],
           "slot_index": 0
         }
@@ -1305,7 +1311,7 @@
         {
           "name": "true",
           "type": "*",
-          "link": 36
+          "link": 139
         },
         {
           "name": "false",
@@ -3973,6 +3979,441 @@
         true
       ],
       "title": "conditioning: + the reference picture when given"
+    },
+    {
+      "id": 75,
+      "type": "CLIPTextEncode",
+      "pos": [
+        760,
+        1120
+      ],
+      "size": [
+        340,
+        100
+      ],
+      "flags": {},
+      "order": 175,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 125
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 126,
+          "widget": {
+            "name": "text"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            129
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "title": "SAM3 \"face\" (the chin line)"
+    },
+    {
+      "id": 76,
+      "type": "SAM3_Detect",
+      "pos": [
+        1160,
+        1120
+      ],
+      "size": [
+        330,
+        210
+      ],
+      "flags": {},
+      "order": 176,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 127
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 128
+        },
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 129
+        },
+        {
+          "name": "bboxes",
+          "type": "BOUNDING_BOX",
+          "link": null
+        },
+        {
+          "name": "positive_coords",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "negative_coords",
+          "type": "STRING",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "masks",
+          "type": "MASK",
+          "links": [
+            130
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "bboxes",
+          "type": "BOUNDING_BOX",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "SAM3_Detect"
+      },
+      "widgets_values": [
+        0.5,
+        2,
+        false
+      ],
+      "title": "SAM3 face, front body"
+    },
+    {
+      "id": 77,
+      "type": "MpiMaskBbox",
+      "pos": [
+        1520,
+        1120
+      ],
+      "size": [
+        300,
+        120
+      ],
+      "flags": {},
+      "order": 177,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 130
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": []
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": [
+            131
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiMaskBbox"
+      },
+      "widgets_values": [
+        0,
+        1
+      ],
+      "title": "front face box"
+    },
+    {
+      "id": 78,
+      "type": "MpiFromBox",
+      "pos": [
+        1900,
+        1120
+      ],
+      "size": [
+        260,
+        120
+      ],
+      "flags": {},
+      "order": 178,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "link": 131
+        }
+      ],
+      "outputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [
+            133
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "x",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "y",
+          "type": "INT",
+          "links": [
+            132
+          ],
+          "slot_index": 3
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiFromBox"
+      },
+      "widgets_values": [],
+      "title": "face box numbers"
+    },
+    {
+      "id": 79,
+      "type": "MpiMath",
+      "pos": [
+        2260,
+        1120
+      ],
+      "size": [
+        300,
+        110
+      ],
+      "flags": {},
+      "order": 179,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 132
+        },
+        {
+          "name": "b",
+          "type": "*",
+          "link": 133
+        },
+        {
+          "name": "c",
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            135
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "a + b + b // 2"
+      ],
+      "title": "shoulder line = chin + half a face"
+    },
+    {
+      "id": 80,
+      "type": "MpiBox",
+      "pos": [
+        1160,
+        1340
+      ],
+      "size": [
+        300,
+        150
+      ],
+      "flags": {},
+      "order": 180,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "link": 134,
+          "widget": {
+            "name": "width"
+          }
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "link": 135,
+          "widget": {
+            "name": "height"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": [
+            137
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiBox"
+      },
+      "widgets_values": [
+        512,
+        512,
+        0,
+        0
+      ],
+      "title": "back body above the shoulders"
+    },
+    {
+      "id": 81,
+      "type": "MpiBoxMask",
+      "pos": [
+        1520,
+        1340
+      ],
+      "size": [
+        300,
+        80
+      ],
+      "flags": {},
+      "order": 181,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 136
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "link": 137
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": [
+            138
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiBoxMask"
+      },
+      "widgets_values": [],
+      "title": "back body: above-the-shoulders mask"
+    },
+    {
+      "id": 82,
+      "type": "MaskComposite",
+      "pos": [
+        1900,
+        1340
+      ],
+      "size": [
+        300,
+        150
+      ],
+      "flags": {},
+      "order": 182,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "destination",
+          "type": "MASK",
+          "link": 36
+        },
+        {
+          "name": "source",
+          "type": "MASK",
+          "link": 138
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            139
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "MaskComposite"
+      },
+      "widgets_values": [
+        0,
+        0,
+        "multiply"
+      ],
+      "title": "back lock cut at the shoulders"
     }
   ],
   "links": [
@@ -4260,7 +4701,7 @@
       36,
       21,
       0,
-      25,
+      82,
       0,
       "MASK"
     ],
@@ -4967,6 +5408,126 @@
       74,
       2,
       "BOOLEAN"
+    ],
+    [
+      125,
+      13,
+      1,
+      75,
+      0,
+      "CLIP"
+    ],
+    [
+      126,
+      15,
+      0,
+      75,
+      1,
+      "STRING"
+    ],
+    [
+      127,
+      13,
+      0,
+      76,
+      0,
+      "MODEL"
+    ],
+    [
+      128,
+      18,
+      0,
+      76,
+      1,
+      "IMAGE"
+    ],
+    [
+      129,
+      75,
+      0,
+      76,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      130,
+      76,
+      0,
+      77,
+      0,
+      "MASK"
+    ],
+    [
+      131,
+      77,
+      1,
+      78,
+      0,
+      "MPI_BOX"
+    ],
+    [
+      132,
+      78,
+      3,
+      79,
+      0,
+      "INT"
+    ],
+    [
+      133,
+      78,
+      1,
+      79,
+      1,
+      "INT"
+    ],
+    [
+      134,
+      9,
+      0,
+      80,
+      0,
+      "INT"
+    ],
+    [
+      135,
+      79,
+      0,
+      80,
+      1,
+      "INT"
+    ],
+    [
+      136,
+      20,
+      0,
+      81,
+      0,
+      "IMAGE"
+    ],
+    [
+      137,
+      80,
+      0,
+      81,
+      1,
+      "MPI_BOX"
+    ],
+    [
+      138,
+      81,
+      0,
+      82,
+      1,
+      "MASK"
+    ],
+    [
+      139,
+      82,
+      0,
+      25,
+      0,
+      "MASK"
     ]
   ],
   "groups": [
@@ -5003,7 +5564,7 @@
         740,
         -60,
         2200,
-        1140
+        1600
       ],
       "color": "#a1309b",
       "font_size": 24,

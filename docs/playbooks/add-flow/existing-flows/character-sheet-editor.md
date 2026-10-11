@@ -14,7 +14,7 @@ building a Flow that needs more than one graph or more than one model.
 |---|---|
 | requiredModels | `[{ label: 'Model', models: ['klein-9b'], loras: true }, { label: 'Body shape and child ages', models: ['qwen-image-2-1'], optional: true, loras: true, for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] }]` |
 | operation / `operationBy` | `flowCharacterSheetEdit` (Klein), routed by the `change` select: `body` -> `flowCharacterSheetEditQwen`, `none` -> no leg 1 |
-| graphs | `flow_character_sheet_edit.json` (Klein 9B, 73 nodes, in-graph SAM3 lock, optional reference) and `flow_character_sheet_edit_qwen.json` (Qwen-Image 2.1, 20). Both output the INPUT size |
+| graphs | `flow_character_sheet_edit.json` (Klein 9B, 81 nodes, in-graph SAM3 lock cut at the shoulders on the back body, optional reference) and `flow_character_sheet_edit_qwen.json` (Qwen-Image 2.1, 20). Both output the INPUT size |
 | authoring source | `raw/` is the source now. `research/bench-tools/build_edit_graph*.py` wrote the first raws; the LoRA racks went in after with `research/bench-tools/insert_rack.py`, the reference with `insert_ref2.py` (raw in place, then `workflow-to-api.mjs` single-file) |
 | media | `image1` the sheet; `image2` an OPTIONAL Reference picture (Klein op only) |
 | fields | `change` (select), `words` (hidden for "Nothing else"), `Input_Age` (slider -1-100: -1 = keep, the default; 0 = a newborn; 1 = a toddler; `valueLabels` reads Keep / Newborn), `Input_Remove_Head` |
@@ -41,7 +41,7 @@ sheet with no head and took the hair.
 
 | change | editor | lock (`Input_Lock`) | evidence |
 |---|---|---|---|
-| Clothes | Klein | 1 = SAM3 "head, hair, face" on all three panels | b3-b4, 6 of 6; F1 wording 9 of 9 |
+| Clothes | Klein | 1 = SAM3 "head, hair, face" on all three panels; the BACK body's cut at the shoulders (MPI-1090) | b3-b4, 6 of 6; F1 wording 9 of 9 |
 | Accessories | Klein | 0 (free): a head lock blocks glasses and hats | A4, 2 of 2; F1 wording 7 of 8 |
 | Hairstyle | Klein | 2 = "face" on the front and the close-up | b8; F1 wording 3 of 3 |
 | Condition | Klein | 0 | b5, 6 of 6 |
@@ -64,15 +64,26 @@ close-up - a Klein limit, the overshooting wording is kept because its panels ag
 reference 1, switched by `loaded` AND `Input_Reference` (`MpiBooleanCompare` both_true -> `MpiIfElse`,
 lazy). The builder sets `Input_Reference` only on the change leg of Clothes: an age leg that starts
 the run is handed the user's media too. Words become optional with a reference; any age 0-17 refuses
-it (`docs/child-safety.md`). With a reference the wording names only the close-up: naming the back
-view let Klein draw the reference person as an extra figure, even under lock 1 (validation.md § F2).
-It must also take the OLD clothes off in words, or Klein keeps what the picture does not cover (a
-bikini kept the jeans): no words -> "only the outfit ... take off everything else"; with words ->
-"...: <words>, replacing all of the clothes ... top and bottom". Never the take-off clause with
-words: it strips what the words leave out (jacket + scarf -> trousers cut to shorts). Known limit:
-with partial words the picture's other garments can still come along (its trousers replaced hers).
-The close-up line names "the same neckline and straps": without it the close-up drifted back to the
-old top in the late steps on some seeds (round 8).
+it (`docs/child-safety.md`). With a reference every figure is named, the back one ONLY as "the
+character seen from behind": "the back view" let Klein draw the reference person as an extra figure,
+even under lock 1 (MPI-1041 validation.md § F2). It must also take the OLD clothes off in words, or
+Klein keeps what the picture does not cover (a bikini kept the jeans): no words -> "only the outfit
+... take off everything else"; with words -> "..., replacing all of the clothes ... top and bottom".
+Never the take-off clause with words: it strips what the words leave out (jacket + scarf -> trousers
+cut to shorts). The user's words get their OWN sentence ("Change only this about the outfit: ..."),
+never spliced into the reference clause: spliced, "G string on the back view" became the whole outfit
+and redrew the front figure as a back view. `_unview` rewrites "the back view" in the words to "seen
+from behind". With words the close-up lost the neckline 6 times in 6 until a sentence named the
+reference's neckline (MPI-1090 validation.md rounds 2-4: front, layout, close-up 5/5, back 4/5;
+picking "the green jacket" off a full outfit keeps her own trousers 3/3, the scarf still comes 2/3).
+**The back lock stops at the shoulders (MPI-1090).** SAM3 takes long hair as one solid block, gaps
+included, so on the back body lock 1 froze the old top between the braids (12 of 12) and Klein then
+continued it below them. SAM3 "face" on the front body gives the chin (`MpiMaskBbox` -> `MpiFromBox`);
+the back's SAM3 mask is multiplied by a box from the top of the panel to chin + half a face height
+(`MpiBox` -> `MpiBoxMask`), so hair below the shoulders is redrawn with the outfit. No face found =
+an empty box = no lock on the back, never an error. Word lists on the back SAM3 ("head", "head, neck")
+still took every braid. With no words and a front-only reference the back stays a guess (shorts,
+skirt or bodysuit by seed); a front-and-back reference is the fix.
 Accessories and Hairstyle ignore the picture: a hat or a haircut from one reached all three panels
 1 time in 8.
 
