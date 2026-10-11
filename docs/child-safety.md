@@ -126,7 +126,7 @@ through. `childSafetyGate(texts, ctx, judge)` runs both tiers and never rejects.
 |---|---|---|
 | ComfyUI `qwen3vl_4b_abliterated` (the default), on the bench under the GPU lease, ~2.5 s a call | 18/20 | 19/20 |
 | DeepInfra `google/gemma-4-26B-A4B-it` (the set and wording before the 16-17 correction) | 17/20 | 20/20 |
-| DeepInfra `google/gemma-3-12b-it` (Fabio's app), 33 prompts incl. 12 non-Latin nudity + 1 injection, verdict only (`MPI-1062/research/judge-bench-facts.mjs`) | 22/33 | - |
+| DeepInfra `google/gemma-3-12b-it` (Fabio's app), 33 prompts: MPI-1056's 20 + 12 non-Latin nudity (7 adult, 5 child) + 1 injection, 20 of them non-Latin; verdict only (`MPI-1062/research/judge-bench-facts.mjs`) | 22/33 | - |
 | the same, the shipped gate with questions of fact (`MPI-1062/research/judge-bench-gate.mjs`) | - | 30/33 |
 
 What the judge alone decides in the app is an adult's swimwear beside a child, and every prompt
