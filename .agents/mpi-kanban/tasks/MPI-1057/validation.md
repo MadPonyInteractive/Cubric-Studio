@@ -111,3 +111,8 @@ Verify mode: user-ux (plan.md). Automated evidence below; Fabio's look on his ne
 
 - `_connectEngine` finally no longer emits on a Cancel (Cancel sets `_connectAbort` and emits its own `settings: Cancel`; destroy() sets the same flag, so `_destroyAborted` folded into it). Other endings name their cause via `_endedBy`: Pod failed to start on its host / host under maintenance / RunPod never started the Pod (stall cap) / Pod still preparing / could not reach the Pod connect endpoint. eslint clean; remote-uploads 7/7 + toast-truth, runpod-skip-local-engine, eslint-tier-rule 26/26.
 - docs/runpod-remote-engine.md: Upload models paragraph (routes, queue, flat basenames, 1 GB GPU refusal, runtime >= 0.2.47) + the MPI-278 line now names `_connectAbort`.
+
+## Close (2026-10-11, session a8e5cb16)
+
+- CI tests.yml run 38125102447 on aeae99032: success. Claim auditor: 26 proven, 1 false positive (doc quotes the picker label, which does use an em dash).
+- Release bullets approved by Fabio, handed to MPI-623 (holds docs/releases/UNRELEASED.md): message a8e5cb16-mpi1057-to-mpi623-unreleased.
