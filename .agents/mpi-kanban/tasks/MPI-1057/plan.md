@@ -176,6 +176,22 @@ in MPI-728) fixed in comfyController / engineGate / MpiLlmSettings; **7 strings 
 `js/shell.js`** (lines ~812, 1052, 1091, 1110, 1166, 1172, 1217 "Open Settings, RunPod", 1507):
 the file was claimed by MPI-1065 (9bbf1e2f) at the time. Say "Remote", same as the others.
 
+2026-10-11 ~00:15Z, session 7ea70332 ("Upload models 3"): GPU proof BLOCKED on RunPod, not us.
+Tonight's GPU Pods in EU-RO-1 (maduch90z92qjf, xbiazswls7f5x7, ~5 more by Fabio) never started:
+System logs empty, and Docker Hub's `tag_last_pulled` for v0.26.0-dev-cu130 stayed at 18:31:17Z
+(the cancelled 5090), so no host even pulled. Same tag booted ready in 1-3 min at 10:04/10:09/10:57;
+morning 08:33-09:34 had 4 stalls in a row too. Retry tomorrow. Messaged MPI-1065
+(`7ea70332-mpi1057-to-mpi1065-shelljs`) to release js/shell.js.
+Stall copy (Fabio, 2026-10-11): say the DATA CENTER looks troubled, suggest another data center or
+"Any region (no volume)" (the ephemeral option's label). DONE in the panel hint
+(MpiRunpodSettings.js `_stalled` branch). MPI-1065 released js/shell.js (owner session was
+"No background. Qwen 2.1 / 3", not "GPU Pod blocks project opening"). shell.js pass DONE,
+uncommitted: every "Settings → RunPod" now "Remote"; both never-started dialogs carry the
+data-center text; `_announceStall` emits `remote:stalled` -> notificationService OS
+notification when unfocused (tests/remote-stalled-notify.test.cjs, docs/toasts.md row). Also
+dropped two stale docs/toasts.md rows for the download-only warning MPI-1070 deleted.
+Left: GPU-Pod LoRA generation -> promote, phase-log label, 13 GB diff, release note.
+
 Next, in order:
 1. **U4 last step**: a GPU-Pod generation with `sulphur_lora_rank_768` (no "Uploading…" toast =
    the flat Pod copy was found). Proven -> `./publish-runtime.sh promote` (0.2.47 to stable).

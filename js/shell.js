@@ -809,7 +809,7 @@ function _stopGpuWait() {
 function _enterWaitState(gpuType) {
   if (state.remoteWaitGpu !== gpuType) {
     state.remoteWaitGpu = gpuType;
-    StatusBar.notify(`Waiting for ${gpuType} — we'll connect the moment it frees. Keep generating locally; cancel in Settings → RunPod.`, 'info', 8000);
+    StatusBar.notify(`Waiting for ${gpuType} — we'll connect the moment it frees. Keep generating locally; cancel in Remote.`, 'info', 8000);
   }
 }
 
@@ -1049,7 +1049,7 @@ async function _runRemoteBoot(runpod) {
       Storage.setRunpodConfig({ ...cfg, podId: null, wasConnected: false });
       const dlg = MpiOkCancel.mount(document.createElement('div'), {
         title: 'Selected GPU unavailable',
-        text: 'The GPU your Pod was using is unavailable right now. Open Settings → RunPod and pick a different GPU to connect.',
+        text: 'The GPU your Pod was using is unavailable right now. Open Remote and pick a different GPU to connect.',
         okLabel: 'Got it',
         showCancel: false,
       });
@@ -1088,7 +1088,7 @@ async function _runRemoteBoot(runpod) {
       Storage.setRunpodConfig({ ...cfg, podId: null, wasConnected: false });
       const dlg = MpiOkCancel.mount(document.createElement('div'), {
         title: 'Pod failed to start on host',
-        text: 'The Pod was created but its RunPod host never started it (a bad or busy host — not a problem with your setup). Open Settings → RunPod, pick another GPU, and Connect.',
+        text: 'The Pod was created but RunPod never started it. This data center looks like it is having problems, and there is no telling how long they will last. Open Remote, pick another data center or Any region (no volume), and Connect: models then download for the session instead of loading from your volume.',
         okLabel: 'Got it',
         showCancel: false,
       });
@@ -1107,7 +1107,7 @@ async function _runRemoteBoot(runpod) {
       Storage.setRunpodConfig({ ...cfg, podId: null, wasConnected: false });
       const dlg = MpiOkCancel.mount(document.createElement('div'), {
         title: 'Host going down for maintenance',
-        text: 'RunPod placed your Pod on a host that is being taken down for maintenance, so it will not come ready. We deleted it — open Settings → RunPod and Connect again to land on a fresh host.',
+        text: 'RunPod placed your Pod on a host that is being taken down for maintenance, so it will not come ready. We deleted it — open Remote and Connect again to land on a fresh host.',
         okLabel: 'Got it',
         showCancel: false,
       });
@@ -1163,13 +1163,13 @@ async function _runRemoteBoot(runpod) {
       }
       // else: WS not handshaken yet. No toast (MPI-1057): "Almost ready" read as connected.
     } else {
-      throw new Error('the Pod did not reach ready in time — open Settings → RunPod to retry');
+      throw new Error('the Pod did not reach ready in time — open Remote to retry');
     }
   } catch (err) {
     clientLogger.error('shell', `remote auto-${warm ? 'reconnect' : 'create'} failed:`, err);
     const retry = MpiOkCancel.mount(document.createElement('div'), {
       title: warm ? 'Could not reconnect to your Pod' : 'Could not create a Pod',
-      text: (err && err.message) || 'The remote engine could not be reached. Open Settings → RunPod to connect manually.',
+      text: (err && err.message) || 'The remote engine could not be reached. Open Remote to connect manually.',
       okLabel: 'Open later',
       showCancel: false,
     });
@@ -1211,10 +1211,11 @@ function _initRemoteConnectionFeed() {
   // boot does not try to resume it, then say why (mirrors the boot not-running dialog).
   const _announceStall = () => {
     clientLogger.warn('shell', '[RunPod] Pod hit the 8-min stall cap; the backend deleted it');
+    Events.emit('remote:stalled');
     state.runpodConfig = { ...state.runpodConfig, podId: null, wasConnected: false };
     const dlg = MpiOkCancel.mount(document.createElement('div'), {
       title: 'Pod never started',
-      text: "RunPod's host never started your Pod, so we deleted it after 8 minutes to stop the bill. Nothing is wrong on your side. Open Settings, RunPod, pick another GPU and Connect.",
+      text: "RunPod never started your Pod, so we deleted it after 8 minutes to stop the bill. This data center looks like it is having problems, and there is no telling how long they will last. Open Remote, pick another data center or Any region (no volume), and Connect: models then download for the session instead of loading from your volume.",
       okLabel: 'Got it',
       showCancel: false,
     });
@@ -1482,7 +1483,7 @@ function _initRemoteConnectionFeed() {
  *    `_emitRemoteConnection`) so the hero shows `remote · disconnected` and the
  *    status bar `IDLE · Disconnected`, NOT plain local;
  *  - an actionable info toast (NOT the bug-reporter modal) telling the user to
- *    reconnect — reconnection is MANUAL (Settings → RunPod → Connect) by design,
+ *    reconnect — reconnection is MANUAL (Remote → Connect) by design,
  *    so we never surprise-rebill a Pod the user may have wanted stopped;
  *  - automatic recovery on the connected edge: `_emitRemoteConnection` clears the
  *    phase on `connected:true`, and the existing connect-edge `syncModelInstalled`
@@ -1504,7 +1505,7 @@ function _initEngineDropRecovery() {
     _emitRemoteConnection({ connected: false, gpuName: null, vramGb: null, ramGb: null, phase: 'disconnected', by: 'engine drop' });
     Events.emit('ui:warning', {
       message: 'Remote engine disconnected — the Pod may have run out of memory and restarted. '
-        + 'Reconnect from Settings → RunPod to continue.',
+        + 'Reconnect from Remote to continue.',
     });
   });
 }

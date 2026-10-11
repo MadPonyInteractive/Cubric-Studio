@@ -94,3 +94,8 @@ Verify mode: user-ux (plan.md). Automated evidence below; Fabio's look on his ne
   00:02:14Z, phase -> none 00:02:16Z. Phase label still reads "connect ended without a
   connection" (the known label item).
 - Still open: a GPU-Pod generation with the uploaded LoRA (no re-upload), then promote.
+
+## Stall copy (2026-10-11, session 7ea70332)
+
+- Panel hint now names the data center + Any region (no volume). eslint clean. Fabio accepted the wording ("fine until we implement global volumes"). js/shell.js twins (~1091, ~1217) still owed.
+- js/shell.js pass: "Settings -> RunPod" copy now "Remote" (none left: grep), never-started dialogs carry the data-center text, `remote:stalled` OS notification when unfocused. node --test remote-stalled-notify + upload-finished-notify + notification-stale-count + pod-stall-cap: 10/10. eslint clean.

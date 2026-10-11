@@ -274,6 +274,19 @@ export function initNotificationService() {
         }
         StatusBar.notify(message, ok ? 'success' : 'warning');
     }));
+
+    // MPI-1057 — the 8-min stall cap deleted a Pod RunPod never started. The shell
+    // shows a dialog; an unfocused window also gets an OS notification so the user
+    // is not left waiting on a Pod that is gone.
+    _unsubs.push(Events.on('remote:stalled', () => {
+        if (state.notificationPrefs?.connection !== false && ipcRenderer && !document.hasFocus()) {
+            ipcRenderer.send('notify-connection-complete', {
+                title: 'Pod never started',
+                subtitle: 'Cubric Studio',
+                body: 'RunPod never started your Pod, so it was deleted. Open Cubric Studio to pick another data center.',
+            });
+        }
+    }));
 }
 
 /**

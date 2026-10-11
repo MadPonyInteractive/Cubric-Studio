@@ -117,6 +117,7 @@ These are the ones that also have an OS-notification path + a preference toggle.
 | `generation:complete` (coalesced; fires when `generationQueueCount → 0`; **skips `cancelled:true`**) | `Generation finished.` / `${n} generations finished.` | success | eligible (one chime per batch) | `notify-generation-complete` if unfocused + `notificationPrefs.generation !== false` |
 | `remote:connection` rising edge (`connected:true`, no phase) | `${gpuName} connected.` / `Remote engine connected.` | success | eligible | `notify-connection-complete` if unfocused + `notificationPrefs.connection !== false` |
 | `download:complete` (real modelId/plugin, **and `data.silent !== true`**) | `${modelName} installed.` | success | eligible | `notify-download-complete` if unfocused + `notificationPrefs.downloads !== false` |
+| `remote:stalled` (8-min stall cap deleted the Pod, MPI-1057; emitted by `shell.js` `_announceStall`) | none: the shell's "Pod never started" dialog shows either way | n/a | n/a | `notify-connection-complete` "Pod never started" if unfocused + `notificationPrefs.connection !== false` |
 
 **`data.silent` is the internal-heal gate (MPI-576), and it replaced an id allowlist.**
 A job started with `downloadService.start(id, deps, { silent: true })` — the first-connect
@@ -236,8 +237,6 @@ rather than trusting them.
 
 | File:line | Trigger | Message | Variant | Sound |
 |---|---|---|---|---|
-| `shell/navigation.js:287` | Nav to gallery on a download-only Pod | This is a download-only Pod (no GPU)… | warning | eligible |
-| `shell/projectUI.js:56` | Same download-only guard (projectUI copy) | This is a download-only Pod (no GPU)… | warning | eligible |
 | `shell/projectUI.js:297` | Clean up cached assets — success | Removed ${n} cached asset(s). | success | eligible |
 | `shell/projectUI.js:300` | Clean up cached assets — failed | ${err.message} | warning | eligible |
 | `shell/llmPickCheck.js` | Project open, once per session: a pick on the Ollama connection is not downloaded (MPI-993) | Your ${job} model, ${model}, is not downloaded in Ollama yet. Download it from the Remote tab… + **Open Remote** button | warning | eligible |
