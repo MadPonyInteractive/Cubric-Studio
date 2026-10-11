@@ -97,13 +97,22 @@ export const MpiStartingComfy = ComponentFactory.create({
                 quietEl.textContent = hint || '';
             }, { hints: QUIET_HINTS });
 
+            // Same floor as MpiModal: an open Flow / app is a main-area MpiOverlay at the
+            // Overlays-queue z (>= 10010), above the CSS fallback 10009, so without this
+            // the backdrop dimmed the gallery but sat UNDER the Flow (MPI-1085).
+            const appZ = parseInt(getComputedStyle(document.documentElement)
+                .getPropertyValue('--main-overlay-z'), 10);
+            const z = Number.isFinite(appZ) ? appZ + 20 : null;
+
             _backdrop = document.createElement('div');
             _backdrop.className = 'mpi-modal-backdrop';
+            if (z !== null) _backdrop.style.zIndex = z - 1;
             document.body.appendChild(_backdrop);
 
             _wrapper = document.createElement('div');
             _wrapper.className = 'mpi-modal-wrapper';
             _wrapper.style.width = 'min(440px, 90vw)';
+            if (z !== null) _wrapper.style.zIndex = z;
             _wrapper.appendChild(el);
             document.body.appendChild(_wrapper);
         };

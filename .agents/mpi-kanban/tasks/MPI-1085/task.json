@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1085",
+  "title": "Engine-starting overlay renders its backdrop UNDER an open Flow",
+  "description": "MpiStartingComfy portals its backdrop+wrapper to body with the CSS fallback z (10009/10010), but an open Flow is a main-area MpiOverlay at the Overlays queue z (>=10010), so the Flow paints over the dark backdrop while the gallery behind is dimmed. Fix: same --main-overlay-z floor MpiModal uses.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-11T10:56:35+01:00",
+  "updated_at": "2026-10-11T10:56:35+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
