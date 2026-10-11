@@ -285,6 +285,10 @@ export const Storage = {
 
   getDictationTranslate: () => get(STORAGE_KEYS.DICTATION_TRANSLATE, false) === true,
   setDictationTranslate: (v) => set(STORAGE_KEYS.DICTATION_TRANSLATE, v === true),
+  // MPI-1071 — the Remote transcribe model, a key the server maps to an endpoint
+  // (`STT_MODELS`, routes/deepinfra.js). '' = the server's default.
+  getDictationModel: () => String(get(STORAGE_KEYS.DICTATION_MODEL, '') || ''),
+  setDictationModel: (v) => set(STORAGE_KEYS.DICTATION_MODEL, String(v || '')),
 
   // MPI-803 — playback output. An empty `deviceId` means the OS default endpoint, which
   // is what the app did unconditionally before this existed. A stored id is machine-local,

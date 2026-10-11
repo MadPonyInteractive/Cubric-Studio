@@ -690,8 +690,22 @@ router.post('/deepinfra/generate', async (req, res) => {
  * TWO MODELS, because turbo was never trained to translate. It accepts `task: translate` and
  * answers a transcript in the language spoken: measured 2026-09-27, Portuguese in, the same
  * Portuguese out, while large-v3 answered English for the same clip. Fabio hit it first.
+ *
+ * MPI-1071: the user picks the transcribe model by KEY from this allowlist. Benched 2026-10-11
+ * on 5 of Fabio's clips (card MPI-1071 plan.md): Qwen3-ASR-1.7B was the cleanest and fastest
+ * (punctuated, 0.5-2 s), so it is the default. Whisper invents words ("Thank you.", "Yeah.")
+ * and large-v3 took 8-24 s; turbo stays for the ~70 languages Qwen lacks. Voxtral Small was
+ * dropped: no better than Qwen at 6.7x the price, and it 500s on WebM. The translate toggle still
+ * forces large-v3, the only one that translates. Per audio minute: qwen $0.00045, turbo $0.0002.
+ * An unknown key falls back to the default. Keys mirror `DICTATION_MODELS` in js/services/dictation.js.
+ * No `initial_prompt` vocabulary hint: on the same clips "Cubric Studio" left Qwen's "Kubrick"
+ * unchanged and made turbo DROP half a sentence.
  */
-const STT_ENDPOINT = 'openai/whisper-large-v3-turbo';
+const STT_MODELS = Object.freeze({
+    qwen: 'Qwen/Qwen3-ASR-1.7B',
+    turbo: 'openai/whisper-large-v3-turbo',
+});
+const STT_DEFAULT_MODEL = 'qwen';
 const STT_TRANSLATE_ENDPOINT = 'openai/whisper-large-v3';
 const STT_TIMEOUT_MS = 60000;
 // A minute of MediaRecorder's WebM/Opus is ~0.4 MB. This only stops an accidental hour.
@@ -705,12 +719,15 @@ const STT_MAX_BYTES = 25 * 1024 * 1024;
  * @param {Buffer} audio
  * @param {string} mime       the recording's type, parameters stripped
  * @param {boolean} translate true = any language in, English out
+ * @param {string} [modelKey] a `STT_MODELS` key; ignored when translating
  * @returns {Promise<{text:string}|{code:string, message:string}>}
  */
-async function _transcribe(key, audio, mime, translate) {
+async function _transcribe(key, audio, mime, translate, modelKey) {
+    const endpoint = translate ? STT_TRANSLATE_ENDPOINT
+        : (Object.hasOwn(STT_MODELS, modelKey) ? STT_MODELS[modelKey] : STT_MODELS[STT_DEFAULT_MODEL]);
     let upstream;
     try {
-        upstream = await fetch(`${INFERENCE_BASE}/${translate ? STT_TRANSLATE_ENDPOINT : STT_ENDPOINT}`, {
+        upstream = await fetch(`${INFERENCE_BASE}/${endpoint}`, {
             method: 'POST',
             headers: { Authorization: `bearer ${key}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -733,7 +750,7 @@ async function _transcribe(key, audio, mime, translate) {
 }
 
 /**
- * POST /deepinfra/transcribe[?translate=1]   body: the recording's bytes, Content-Type its type
+ * POST /deepinfra/transcribe[?translate=1][&model=<STT_MODELS key>]   body: the recording's bytes, Content-Type its type
  *   -> { ok:true, text }
  *   -> { ok:false, error:{ code, message } }   NO_PROFILE | NO_KEY | NO_CREDIT | PROVIDER_ERROR
  */
@@ -747,7 +764,7 @@ router.post('/deepinfra/transcribe', express.raw({ type: () => true, limit: STT_
     if (!key) return _fail(res, 'NO_KEY', 'No DeepInfra key is saved.');
 
     const mime = String(req.headers['content-type'] || 'audio/webm').split(';')[0].trim();
-    const out = await _transcribe(key, audio, mime, req.query.translate === '1');
+    const out = await _transcribe(key, audio, mime, req.query.translate === '1', String(req.query.model || ''));
     if (out.code) return _fail(res, out.code, out.message);
     res.json({ ok: true, text: out.text });
 });
@@ -786,6 +803,7 @@ router.get('/deepinfra/output/:name', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.STT_MODELS = STT_MODELS;
 module.exports._accountRoom = _accountRoom;
 module.exports._creditRefusal = _creditRefusal;
 module.exports._accountSummary = _accountSummary;

@@ -26,7 +26,17 @@ import { clientLogger } from './clientLogger.js';
 import { on } from '../utils/dom.js';
 import { openMic } from '../utils/audioInput.js';
 
-const INFO_READY = 'Dictate: click, speak, click again. Or hold Ctrl+Space while you speak. Your voice is sent to DeepInfra to be written out';
+/**
+ * The Remote transcribe models (MPI-1071), picked in Settings > Where each job runs. `value` is
+ * the KEY the server maps to an endpoint (`STT_MODELS`, routes/deepinfra.js); the renderer
+ * never names an endpoint. Prices are DeepInfra's per audio minute.
+ */
+export const DICTATION_MODELS = Object.freeze([
+    { value: 'qwen', label: 'Qwen3-ASR 1.7B', meta: '$0.00045 a minute · 30 languages · most accurate' },
+    { value: 'turbo', label: 'Whisper Large v3 Turbo', meta: '$0.0002 a minute · 99 languages' },
+]);
+
+const INFO_READY ='Dictate: click, speak, click again. Or hold Ctrl+Space while you speak. Your voice is sent to DeepInfra to be written out';
 const INFO_NO_KEY = 'Dictate: needs a DeepInfra key. Add one in Settings';
 // A tap shorter than this is a slip, not speech, and is not worth a paid call.
 const MIN_MS = 300;
@@ -131,7 +141,9 @@ async function _finish(take) {
     _mark(host, 'busy');
     const blob = new Blob(take.chunks, { type: take.recorder.mimeType || 'audio/webm' });
     try {
-        const res = await fetch(`/deepinfra/transcribe${Storage.getDictationTranslate() ? '?translate=1' : ''}`, {
+        const q = new URLSearchParams({ model: Storage.getDictationModel() });
+        if (Storage.getDictationTranslate()) q.set('translate', '1');
+        const res = await fetch(`/deepinfra/transcribe?${q}`, {
             method: 'POST',
             headers: { 'Content-Type': blob.type },
             body: blob,

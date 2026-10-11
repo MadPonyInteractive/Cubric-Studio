@@ -9,6 +9,7 @@ import { MpiOllamaSetup } from '../../Compounds/LandingPages/MpiOllamaSetup/MpiO
 import { secretsClient } from '../../../core/secretsClient.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { hasNoEngine } from '../../../services/engineGate.js';
+import { DICTATION_MODELS } from '../../../services/dictation.js';
 import {
     backendPreference,
     setBackendPreference,
@@ -191,6 +192,16 @@ export const MpiLlmSettings = ComponentFactory.create({
                         </div>
                         <span class="mpi-settings__hint" id="mpiSettingsLlmDescribeModelNote"></span>
                         <div id="mpiSettingsLlmDescribeInstallSlot"></div>
+
+                        <div class="mpi-settings__form-group">
+                            <label class="mpi-settings__field-label">Speech to text</label>
+                            <div class="mpi-settings__fixed-value">Remote · DeepInfra</div>
+                        </div>
+                        <div class="mpi-settings__form-group">
+                            <label class="mpi-settings__field-label">Speech model</label>
+                            <div id="mpiSettingsSpeechModelSlot"></div>
+                            <span class="mpi-settings__hint">What the mic on the prompt box and the Agent panel uses. Whisper covers more languages; Qwen hears more accurately. "Dictate in English" always uses Whisper Large v3.</span>
+                        </div>
 
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Agent</label>
@@ -708,6 +719,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             if (seq !== _detailsSeq) return;
             _renderConnProbe(root, profileId);
             _renderConnSpend(root, profileId);
+            _renderSpeechModel(root);
             _renderAgentBackend(root);
             _renderAgentMode(root);
             _renderAgentProbe(root, profileId);
@@ -911,6 +923,19 @@ export const MpiLlmSettings = ComponentFactory.create({
             _setText(root, '#mpiSettingsAgentModelNote', _remote?.ok
                 ? (recommended ? 'The models on top ran the agent tests, ours or your own benchmark: each shows its score and cost.' :'We have not tested the agent on this provider. Pick a model that can call tools, then use Test tool use and Benchmark this model.')
                 : _errorText(_remote));
+        }
+
+        // MPI-1071: dictation always runs on the DeepInfra key (`/deepinfra/transcribe`),
+        // whichever connection is picked above; this row only chooses its model.
+        function _renderSpeechModel(root) {
+            const slot = qs('#mpiSettingsSpeechModelSlot', root);
+            if (!slot) return;
+            const inst = _conn(MpiDropdown.mount(slot, {
+                options: DICTATION_MODELS,
+                value: Storage.getDictationModel() || DICTATION_MODELS[0].value,
+                extraClasses: STACKED,
+            }));
+            inst.on('change', ({ value }) => Storage.setDictationModel(value));
         }
 
         function _renderAgentMode(root) {
