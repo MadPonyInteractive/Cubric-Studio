@@ -65,8 +65,12 @@ export const loraDeps = {
         // time. Apache-2.0 upstream, so no licences.js record.
         origin: 'lightx2v/Minimax-h3-Turbo (Apache-2.0), ComfyUI conversion by Kijai/MiniMax-H3_comfy',
         filename: 'loras/minimax-h3/minimax_h3_fl2v_lightx2v_turbo_4step_v1.0_768p_resized_avg_rank_31_bf16.safetensors',
-        url: 'https://models.cubric.studio/vision/models/loras/minimax-h3/minimax_h3_fl2v_lightx2v_turbo_4step_v1.0_768p_resized_avg_rank_31_bf16.safetensors',
-        mirrorUrl: 'https://huggingface.co/Kijai/MiniMax-H3_comfy/resolve/main/loras/minimax_h3_fl2v_lightx2v_turbo_4step_v1.0_768p_resized_avg_rank_31_bf16.safetensors',
+        // NO `url`/`mirrorUrl` (MPI-1093): the R2 object was deleted 2026-10-11 — no build
+        // from the 1.5.0 support floor on installs it (the 8-step pair replaced it, MPI-687).
+        // The entry stays for the orphan sweep, which keys off `filename`; check-dep-urls.mjs
+        // skips a dep with no `url`. Same shape as MPI-698. They were:
+        //   url:       https://models.cubric.studio/vision/models/loras/minimax-h3/minimax_h3_fl2v_lightx2v_turbo_4step_v1.0_768p_resized_avg_rank_31_bf16.safetensors
+        //   mirrorUrl: https://huggingface.co/Kijai/MiniMax-H3_comfy/resolve/main/loras/minimax_h3_fl2v_lightx2v_turbo_4step_v1.0_768p_resized_avg_rank_31_bf16.safetensors
         size: '420.45MB',
         bytes: 440873704,
         sha256: '9515eee9f642aa0e7fcc401f56d408ef2d6388f81881fe50bddded8220870a4d',
@@ -102,8 +106,10 @@ export const loraDeps = {
         name: 'MiniMax H3 Reference Turbo LoRA (6-step distill)',
         origin: 'lightx2v/Minimax-h3-Turbo (Apache-2.0), ComfyUI conversion by Kijai/MiniMax-H3_comfy',
         filename: 'loras/minimax-h3/minimax_h3_ref2v_lightx2v_turbo_4step_v0.1_resized_avg_rank_20_bf16.safetensors',
-        url: 'https://models.cubric.studio/vision/models/loras/minimax-h3/minimax_h3_ref2v_lightx2v_turbo_4step_v0.1_resized_avg_rank_20_bf16.safetensors',
-        mirrorUrl: 'https://huggingface.co/Kijai/MiniMax-H3_comfy/resolve/main/loras/minimax_h3_ref2v_lightx2v_turbo_4step_v0.1_resized_avg_rank_20_bf16.safetensors',
+        // NO `url`/`mirrorUrl` (MPI-1093): R2 object deleted 2026-10-11, no build from the
+        // 1.5.0 floor on installs it. Kept for the orphan sweep, as above. They were:
+        //   url:       https://models.cubric.studio/vision/models/loras/minimax-h3/minimax_h3_ref2v_lightx2v_turbo_4step_v0.1_resized_avg_rank_20_bf16.safetensors
+        //   mirrorUrl: https://huggingface.co/Kijai/MiniMax-H3_comfy/resolve/main/loras/minimax_h3_ref2v_lightx2v_turbo_4step_v0.1_resized_avg_rank_20_bf16.safetensors
         size: '292.52MB',
         bytes: 306731560,
         sha256: '9ea3bd3a6aac22994153e294cf1ecab0a8766fc0f8d056ace645a01d1a6a4daf',

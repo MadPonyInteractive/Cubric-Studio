@@ -21,7 +21,7 @@ CODE = ['js', 'routes', 'services', 'main', 'main.js', 'server.js', 'engine', 'c
         'dev_configs', 'operation_registry.json']
 URL = re.compile(r'models[.]cubric[.]studio/([^\s\'"`)]+)')
 ENTRY = re.compile(r"^\s{4}'([\w.-]+)':\s*\{(.*?)^\s{4}\}", re.M | re.S)
-DEPFILE = re.compile(r'(Deps|dependencies)\.js$')
+DEPFILE = re.compile(r'/(model|lora|asset|nodes)Deps\.js$|/dependencies\.js$')  # not resolveModelDeps.js
 
 
 def git(*a):

@@ -92,8 +92,10 @@ export const modelDeps = {
     // trashes what no model protects, so keeping them is exactly what lets the
     // uninstall sweep reclaim the 27.1GB already sitting on existing users' disks.
     // Delete these entries and the sweep goes blind — the two files strand forever,
-    // untracked, with nothing in the app able to remove them. The R2 + HF copies stay
-    // up so released builds that still list the dep install rather than 404.
+    // untracked, with nothing in the app able to remove them.
+    // NO `url`/`mirrorUrl` since MPI-1093: the R2 objects were deleted 2026-10-11 (v1.3.1
+    // was the last build to install them; the support floor is 1.5.0), and
+    // check-dep-urls.mjs skips a dep with no `url`. The sweep keys off `filename`.
     'wan-22-t2v-high': {
         id: 'wan-22-t2v-high',
         name: 'Wan 2.2 t2v',
@@ -101,8 +103,8 @@ export const modelDeps = {
         origin: 'DigitalPastel/Smooth Mix Wan 2.2 14B (CivitAI 1995784)',
         credit: { author: 'DigitalPastel', work: 'Smooth Mix Wan 2.2 14B', url: 'https://civitai.com/models/1995784' },
         filename: 'diffusion_models/Wan_22_t2v_High.safetensors',
-        url: 'https://models.cubric.studio/vision/models/diffusion_models/Wan_22_t2v_High.safetensors',
-        mirrorUrl: 'https://huggingface.co/Mad-Pony-Interactive/cubric-studio/resolve/main/Wan_22_t2v_High.safetensors',
+        // was url: https://models.cubric.studio/vision/models/diffusion_models/Wan_22_t2v_High.safetensors
+        // mirrorUrl: https://huggingface.co/Mad-Pony-Interactive/cubric-studio/resolve/main/Wan_22_t2v_High.safetensors
         size: '13.55GB',
         bytes: 14548461368,
         sha256: '8032b4906fb1b4dffa407d5a5f5d663b9e0c403caed5bd3a02705b7577f2c870'
@@ -114,8 +116,8 @@ export const modelDeps = {
         origin: 'DigitalPastel/Smooth Mix Wan 2.2 14B (CivitAI 1995784)',
         credit: { author: 'DigitalPastel', work: 'Smooth Mix Wan 2.2 14B', url: 'https://civitai.com/models/1995784' },
         filename: 'diffusion_models/Wan_22_t2v_Low.safetensors',
-        url: 'https://models.cubric.studio/vision/models/diffusion_models/Wan_22_t2v_Low.safetensors',
-        mirrorUrl: 'https://huggingface.co/Mad-Pony-Interactive/cubric-studio/resolve/main/Wan_22_t2v_Low.safetensors',
+        // was url: https://models.cubric.studio/vision/models/diffusion_models/Wan_22_t2v_Low.safetensors
+        // mirrorUrl: https://huggingface.co/Mad-Pony-Interactive/cubric-studio/resolve/main/Wan_22_t2v_Low.safetensors
         size: '13.55GB',
         bytes: 14548461376,
         sha256: 'e7bd6fc48159f57476d7a9d98f6fada2fd52c7070f4ba496c10610f5e399e38f'
@@ -473,15 +475,17 @@ export const modelDeps = {
     // iterates THIS map and trashes what no model protects, so these entries are what
     // let the sweep reclaim the 24-25GB already sitting on an existing balanced-tier
     // user's disk. Delete them and that weight strands forever, untracked, with nothing
-    // in the app able to remove it. R2 + HF copies stay up so a released build that
-    // still lists the dep installs rather than 404s.
+    // in the app able to remove it.
+    // NO `url`/`mirrorUrl` since MPI-1093: the R2 objects were deleted 2026-10-11 (v1.3.1
+    // was the last build to install them; the support floor is 1.5.0), and
+    // check-dep-urls.mjs skips a dep with no `url`. The sweep keys off `filename`.
     'ltx23-transformer-fp8': {
         id: 'ltx23-transformer-fp8',
         name: 'LTX-2.3 22B Distilled Transformer (fp8_scaled)',
         origin: 'Kijai/LTX2.3_comfy',
         filename: 'diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_fp8_scaled.safetensors',
-        url: 'https://models.cubric.studio/vision/models/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_fp8_scaled.safetensors',
-        mirrorUrl: 'https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_fp8_scaled.safetensors',
+        // was url: https://models.cubric.studio/vision/models/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_fp8_scaled.safetensors
+        // mirrorUrl: https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_fp8_scaled.safetensors
         size: '23.49GB',
         bytes: 25226571988,
         sha256: '0a1d7aac2b338e8ec7e832149f1dcf11c9323272482b1cca0673d229702370f0',
@@ -491,8 +495,8 @@ export const modelDeps = {
         name: 'LTX-2.3 22B Distilled Transformer (mxfp8_block32)',
         origin: 'Kijai/LTX2.3_comfy',
         filename: 'diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_mxfp8_block32.safetensors',
-        url: 'https://models.cubric.studio/vision/models/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_mxfp8_block32.safetensors',
-        mirrorUrl: 'https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_mxfp8_block32.safetensors',
+        // was url: https://models.cubric.studio/vision/models/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_mxfp8_block32.safetensors
+        // mirrorUrl: https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_mxfp8_block32.safetensors
         size: '22.4GB',
         bytes: 24052755552,
         sha256: 'b7a945ff24d65ad22c6977787c2e594e74df226e35f1f9dedb64be8fdbd6ffd8',
