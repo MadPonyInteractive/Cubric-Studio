@@ -7,8 +7,8 @@ this plan or under it, never as a loose card. Sits under MPI-897 (Localised edit
 
 | Card | Title | State |
 |---|---|---|
-| MPI-1036 | Video Edit Flow on MiniMax H3 Reference - swap a person, head or outfit, or any edit, with an optional mask step | `doing` / `in-progress` |
-| MPI-1061 | Video Edit: add LTX 2.3 as a second model option (bench LTX IC-LoRAs for clothes / character swaps) | `todo` / `research` |
+| MPI-1036 | Video Edit Flow on MiniMax H3 Reference - swap a person, head or outfit, or any edit, with an optional mask step | `done` / `complete` |
+| MPI-1061 | Video Edit: add LTX 2.3 as a second model option (bench LTX IC-LoRAs for clothes / character swaps) | `todo` / `deferred` |
 
 Related, NOT members: MPI-745 (LTX 2.3 BFS head swap IC-LoRA - solo by Fabio 2026-09-14; its LoRA may become the
 LTX route for Swap the head), MPI-477 (H3 pixel-space refiner - the 2K/4K stage-2 question), MPI-557 (video
@@ -16,9 +16,10 @@ detailer, its own Flow).
 
 ## Current State
 
-- MPI-1036: H3 Flow wired and shipped behind the H3 gate; open = the room / 1080p bench (Canny reference and the
-  H3 Fun ControlNet Union A/B), Fabio's eye on the compare-view fix, Phase 4 graphics. Its plan.md Current State
-  is the running log.
+- **DEFERRED (Fabio 2026-10-11): the LTX option waits for a future version.** Land LTX 2.5 in the app first; this
+  option may then be built on 2.5 instead of 2.3, so re-read Phases 2-3 against 2.5 before starting. No card for
+  "land LTX 2.5" existed at deferral (MPI-578 is only its upscaler).
+- MPI-1036: CLOSED 2026-10-11 (b48aa90b5) - H3 Flow, graphics, load check; evidence in its validation.md.
 - MPI-1061: unstarted. Handed to MPI-1036's session by MPI-1060's (2026-10-10). Fabio: H3 STAYS, LTX 2.3 is ADDED
   as a separate model option in the same Flow because LTX's quality is higher.
 
@@ -57,7 +58,7 @@ Touches MPI-1036's files, so it runs after Phase 1 or in the same session. LTX w
 
 ## Remaining Work
 
-- [ ] Phase 1 - MPI-1036 closes
+- [x] Phase 1 - MPI-1036 closes (2026-10-11, b48aa90b5)
 - [ ] Phase 2 - MPI-1061 bench + Fabio's verdict
 - [ ] Phase 3 - LTX option wired (if Phase 2 wins)
 - [ ] Fabio decides whether the member cards close into this umbrella
