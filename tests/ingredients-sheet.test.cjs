@@ -104,6 +104,18 @@ test('the prompt\'s <Picture n> lines parse, the role word optional', () => {
     assert.equal(scene, 'she walks up the path.\nhandheld camera.');
 });
 
+test('an <Audio n> line among the picture lines is dropped, not sent as scene text (MPI-1084)', () => {
+    const { lines, scene } = parseSheetPrompt([
+        '<Picture 1> the samurai warrior',
+        '<Picture 2> setting: the cliff edge',
+        '<Audio 1> the voice of the samurai',
+        '',
+        'He speaks in the voice of <Audio 1>.',
+    ].join('\n'));
+    assert.equal(lines.size, 2);
+    assert.equal(scene, 'He speaks in the voice of <Audio 1>.');
+});
+
 async function pictures(specs) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mpi1060-'));
     return Promise.all(specs.map(async ([width, height, [r, g, b]], i) => {

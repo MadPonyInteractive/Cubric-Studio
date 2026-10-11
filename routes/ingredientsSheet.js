@@ -160,6 +160,10 @@ function cellName({ x, y, w, h }, width, height) {
 }
 
 const TAG_LINE = /^\s*<Picture (\d+)>\s*[:\-–—]?\s*(.*)$/;
+// An enhancer copying the Attached references list gives the voice a "picture" line too
+// (MPI-1084: 10 of 12 runs on one 12B model, whatever the wording). The audio reaches LTX by
+// its own slot and the scene names the tag, so the line is dropped rather than sent as scene.
+const AUDIO_LINE = /^\s*<Audio \d+>/;
 const ROLE_WORD = /^(character|person|setting|location|place|background|prop|object)\s*[:\-–—,]\s*/i;
 const ROLES = {
     character: 'Character', person: 'Character',
@@ -170,13 +174,15 @@ const SHEET_HEADING = '### Reference Sheet Description';
 
 /**
  * The prompt's `<Picture n> what it is` lines (D5), the role word optional
- * (`<Picture 2> setting: a mountain path`), and the scene: every other line.
+ * (`<Picture 2> setting: a mountain path`), and the scene: every other line but an
+ * `<Audio n>` one.
  * @returns {{lines:Map<number,{role:string|null,text:string}>, scene:string}}
  */
 function parseSheetPrompt(prompt) {
     const lines = new Map();
     const scene = [];
     for (const line of String(prompt || '').split(/\r?\n/)) {
+        if (AUDIO_LINE.test(line)) continue;
         const m = TAG_LINE.exec(line);
         if (!m) {
             scene.push(line);

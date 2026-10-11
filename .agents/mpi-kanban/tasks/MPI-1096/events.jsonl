@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1096", "at": "2026-10-11T19:53:28+01:00", "actor": "5cddf24b", "column": "todo", "title": "LTX 2.3 face identity: find identity LoRAs (or another route) so Reference to Video AND Image to Video keep the same face"}

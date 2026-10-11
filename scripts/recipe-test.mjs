@@ -264,6 +264,31 @@ export function runChecks(tier, input, out, mode, style, isRegisterTier) {
         });
     }
 
+    // MPI-1084: a picture line's role word becomes the sheet cell's role, and the judge
+    // passed a wrong one ("sitting ... in <Picture 2>" written as "<Picture 2> a rocking
+    // chair"). The role is read off the input's own wording; silent when no output line
+    // starts with the tag, so a model that writes no picture lines never sees it.
+    // An audio tag must reach the scene: the sheet builder drops a line that STARTS with one
+    // (routes/ingredientsSheet.js, MPI-1084), so a tag only there is a tag lost.
+    for (const tag of new Set(input.match(REF_TAG) ?? [])) {
+        if (!/audio/i.test(tag)) continue;
+        const kept = out.split('\n').some((l) => !l.trim().startsWith(tag) && l.includes(tag));
+        checks.push({ name: `${tag} in the scene`, ok: kept, detail: kept ? 'present' : 'only on its own line, or missing' });
+    }
+
+    for (const m of input.matchAll(REF_TAG)) {
+        const before = input.slice(0, m.index);
+        const role = /\b(in|at|inside)\s+$/i.test(before) ? 'setting'
+            : /\b(wearing|holding|carrying)\s+$/i.test(before) ? 'prop' : null;
+        const line = role && out.split('\n').map((l) => l.trim()).find((l) => l.startsWith(m[0]));
+        if (!line) continue;
+        checks.push({
+            name: `picture role: ${m[0]} is a ${role}`,
+            ok: line.slice(m[0].length).trim().toLowerCase().startsWith(`${role}:`),
+            detail: line.slice(0, 60),
+        });
+    }
+
     // The condense job is the one length rule a budget alone can't prove.
     if (tier === 'overlong') {
         checks.push({

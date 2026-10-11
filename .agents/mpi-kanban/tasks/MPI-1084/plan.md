@@ -32,6 +32,45 @@ output to a file, never through `tee`. ~5 min a sweep once leased; the queue is 
 directed = cowboy + Picture 1; overlong = samurai + Picture 1, 2 + Audio 1. Shared with Wan/Seedance: a tier
 change there moves their baselines too.
 
+**STATE AT HANDOFF (2026-10-11 ~20:30, session 5cddf24b) - read this first:**
+- Done and verified: harness `picture role` + `<Audio n> in the scene` checks (`scripts/recipe-test.mjs`); recipe
+  thin-line floor; `routes/ingredientsSheet.js` drops `<Audio n>` lines (Fabio's yes, test in
+  `tests/ingredients-sheet.test.cjs`, 13/13 with recipe-registry + agent-corpus). Ref2v runs on a RunPod Pod (dev).
+- Wording: sweep G 10/12 (all picture lines right; directed invented `<Audio 1>` 2/3 because of a sentence-6 audio
+  clause, now REMOVED; "write none" reworded). Sweeps I and J on that text were running at handoff, output in
+  `C:/Users/Fabio/AppData/Local/Temp/claude/C--AI-Mpi-Cubric-Vision/5cddf24b-0b82-4a49-bb98-94d71375f00a/scratchpad/step3-full-{i,j}.txt`
+  (read with `grep -n -E "^--- |^<(Picture|Audio) [0-9]>|\[XX\]|ALL PASS|FAILURES"`). Both ALL PASS = Step 3 green.
+  The sweep script is `sweep.sh` in that same folder (gpu_lease --poll 2, node direct); copy it to the new scratchpad.
+- **NEXT (Fabio approved 2026-10-11): the DESCRIBE STEP.** Root cause of "Enhance fails 90%, the sheet shows in the
+  clip": the enhancer is text-only, the user does not tag pictures, so it guesses by order (live `ref2v_004` in project
+  "X2.3 references": guinea pig labelled "setting: forest clearing", valley labelled "prop: the orange"); the sheet's
+  descriptions then mismatch the cells and LTX pastes the sheet. Cosmo, who looks at the pictures, "nailed it".
+  Design: in `js/services/llmService.js` `enhance()`, r2v mode only, before the LLM call, describe each staged picture
+  and append "what each picture shows" to the user text after the Attached line; recipe r2v tells the model to take
+  roles and descriptions from those captions (place = setting:, object = prop:, person/creature = character).
+  Reuse, never re-describe: the description lives in the card sidecar `Media/.meta/<itemId>.json` field `look`
+  `{ text, describer, at }`, the same field Cosmo's `look` reads/writes (`services/agentTools.mjs` `storedLook`/
+  `storeLook`, MPI-870). Verified: imported cards HAVE sidecars and Cosmo's looks are saved there. Read via
+  `POST /load-meta-batch {folderPath, ids}` (routes/projects.js:3650), describe via `describeImage({imagePath})`
+  (llmService.js:1069), write via `POST /project-media/:id/update-meta?folderPath=` `{itemId, updates:{look}}` (never
+  create a sidecar). The prompt box passes `references` as tag strings only (`MpiPromptBox.js:2464`
+  `_stagedRefTags()` -> `{tag, item}`); also pass each picture's path + itemId. Fabio: Enhance cost = one describe per
+  NEW picture; DeepInfra describes are paid. Then a harness tier with captions, sweep, Fabio's eye test.
+- Identity (separate card MPI-1096, in todo): a character sheet ALONE keeps the face; sheet + forest loses it (A/B
+  `ref2v_005` vs `ref2v_002`, same seed, Fabio: "that looks more like the same guy"). Face-size rule DROPPED (face only
+  -15% on the sheet). Fabio OK'd testing Best-Face-ID on `G:\ComfyUi` (BFS Nodes from GitHub + CharacterSheet LoRA
+  ~1 GB from HF; back up the bench's pip list first, insightface install). Licence: none stated = cannot ship;
+  emailing the author is Fabio's. Notes: `.agents/mpi-kanban/tasks/MPI-1096/research/shortlist.md`.
+- Your call still open for Fabio: keep a setting picture OFF the sheet when a character is on it (text only), or as a
+  small cell? Needs a Pod A/B first.
+
+**Progress (2026-10-11, session 5cddf24b):** Step 1 DONE (harness `picture role` check + recipe thin-line floor,
+0/3 on the old text). Step 2: roles and descriptions fixed (bare/medium/directed 9/9 in full sweep B). Only failure
+left: overlong writes an `<Audio 1>` line in the picture block, 9/9 across three wordings, 1/3 on the fourth (literal
+Attached-line example). Waiting on Fabio: make `routes/ingredientsSheet.js` `parseSheetPrompt` skip an `<Audio n>`
+line (shipped MPI-1060 file, outside this card's files) vs keep pushing wording. Evidence table: validation.md.
+Sweep script: scratchpad `sweep.sh <out> [--tier T]` (gpu_lease, --poll 2, node direct).
+
 ## Plan
 
 ### Step 1: Make the failures visible to the sweep

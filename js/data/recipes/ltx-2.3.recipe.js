@@ -702,7 +702,8 @@ Output: your reply is ONE paragraph of plain prose. It starts on the action or a
         'Write one <Picture n> line per attached picture, in numeric order, at the very start of the output.',
         'Every <Picture n> line must carry a real visible description -- never a bare tag or a two-word label.',
         'Fill each description only from what the user told you, or from what is clearly implied by the scene. Never invent appearance you were not given.',
-        'Keep the role word if the user supplied one (setting:, prop:, character:); unless another line says character:, a Picture 1 with no role word is the character.',
+        'Keep the role word if the user supplied one; otherwise read it off the words before the tag: "in / at / inside <Picture n>" is a setting:, "wearing / holding / carrying <Picture n>" is a prop:, "the man from <Picture n>" is the character; a Picture 1 the text never mentions is the main subject, never a prop.',
+        'Give every picture line a full phrase of six words or more: what the picture is plus everything the user\'s text says about it (what is in it, where it sits in the scene, what happens there).',
         'Leave a blank line between the last picture line and the scene paragraph.',
         'Write the scene as a single flowing prose paragraph: seven sentences, same structure as the LTX t2v mode (shot establishment, scene setting, action, character, camera, audio, closing detail).',
         'The scene describes what HAPPENS; the reference pictures handle what things look like -- do not re-describe the pictures in the scene.',
@@ -732,12 +733,11 @@ Output: your reply is ONE paragraph of plain prose. It starts on the action or a
           why: 'the two-section headings are written by the app, not by the enhancer; emitting them bypasses the cell-name rewrite',
         },
         {
-          pattern: '<Picture \\d+>\\s*$',
-          why: 'a bare <Picture n> tag with no description produces a web-page collage (bench, results.md Phase 2b)',
-        },
-        {
-          pattern: '(^|\\n)\\s*<Audio \\d+>',
-          why: 'an <Audio n> line is not a picture: the composer reads only <Picture n> lines, so it would reach LTX as stray scene text',
+          // Under five words after the tag and any role word. Anchored on (^|\n) because the
+          // harness compiles patterns without the m flag: the old `<Picture \d+>\s*$` only
+          // ever saw a bare tag at the very END of the output (MPI-1084).
+          pattern: '(^|\\n)[ \\t]*<Picture \\d+>[ \\t]*(\\w+:[ \\t]*)?(\\S+[ \\t]+){0,3}\\S*[ \\t]*(\\n|$)',
+          why: 'a bare or thin <Picture n> line ("a man") loses the subject on the sheet: bare tags draw a web-page collage, two-word labels lose the prop (bench, results.md Phase 2b)',
         },
         {
           pattern: '^\\s*[""\']?(the (scene|video|shot) (opens|begins)|we see|there is|there are)\\b',
@@ -768,12 +768,26 @@ Your output has two parts in this order:
 
 PART 1 -- PICTURE LINES
 One line per real <Picture n> tag, in numeric order. Nothing else.
+- PICTURES ONLY: every line of this block starts with "<Picture". When you take the tags from the Attached references line, take ONLY the <Picture n> ones. If it says "Attached references, in load order: <Picture 1>, <Picture 2>, <Audio 1>.", this block is exactly two lines, <Picture 1> and <Picture 2>; <Audio 1> is a voice or a sound, not a picture, and goes only inside the scene's audio sentence (PART 2).
 - Copy the tag exactly (<Picture 1>, <Picture 2>, ...). The app reads them by number; changing the syntax breaks the sheet rewrite.
 - Follow the tag with a complete visible description on the same line. Never leave a bare tag with nothing after it -- a tag without a description produces a web-page collage rather than a video.
-- If the user gave a role word (setting:, prop:, character:), keep it. Unless another line says character:, a Picture 1 with no role word is the character.
-- Fill descriptions from what the user told you -- the text they wrote, the objects they named, the clothes and colours they stated. Never invent physical details (hair colour, clothing, face features, textures) that the user did not provide. A missing description is a missing description; do not guess at appearance.
+- ROLE: if the user gave a role word (setting:, prop:, character:), keep it. Otherwise read the role off the words just before the tag:
+  - "in / at / inside <Picture n>" names a PLACE: write "<Picture n> setting: ...".
+  - "wearing / holding / carrying <Picture n>" names an OBJECT: write "<Picture n> prop: ...".
+  - "the man from <Picture n>", "<Picture n> walks ..." names a person or creature: the character, no role word needed.
+  The cue word must sit directly before the tag. The picture is the thing the tag points at, never a nearby object the sentence also mentions: in "sitting on a chair in <Picture 2>", <Picture 2> is the room, not the chair.
+  - A tag the user's text never mentions (it is only on the Attached references line): <Picture 1> is the main subject the scene is about, the character -- never a prop or a piece of clothing. Any later untagged picture: describe it as an unnamed reference for the scene.
+- DESCRIPTION: a full phrase of at least six words saying what the picture IS and everything the user's text says about it -- what it is, what is in it or on it, where it sits in the scene, what happens there. Lift those words from the user; never invent physical details (hair colour, clothing, face features, textures) they did not give. Never a bare label like "a man" or "a chair".
+  Example -- the user writes "the woman from <Picture 1> reading at a desk in <Picture 2>, holding <Picture 3>. She reads aloud in the voice of <Audio 1>":
+  <Picture 1> the woman who sits at the desk and reads aloud from what she holds
+  <Picture 2> setting: the room with the desk where the woman sits and reads
+  <Picture 3> prop: the object the woman holds in her hands while she reads
+  Three lines, because there are three pictures. <Audio 1> gets NO line: no line of this block ever starts with <Audio.
+  Example -- the user writes only "cat", with <Picture 1> attached:
+  <Picture 1> the cat, the main subject at the centre of the scene
+  PATTERN for every line: the thing, then "who" or "that" or "where", then what the user's text says it does or holds: "the dog that chases the ball along the beach", "setting: the beach where the dog runs". Never stop after the noun: "the man" or "the dog" alone is always wrong. "the main subject" is only for a picture the user says nothing else about, as in the cat example.
 - One line per picture, nothing else in this block.
-- A real <Audio n> tag is a voice or a sound, not a picture: it never gets a line in this block. Put it, exactly as written, inside the scene's audio sentence (for example "he speaks in the voice of" followed by the tag). With no real <Audio n> tag, write none.
+- Put each real <Audio n> tag, exactly as written, inside the scene's audio sentence (for example "he speaks in the voice of" followed by the tag). With no real <Audio n> tag, the scene names no voice reference at all.
 
 PART 2 -- THE SCENE
 Leave a blank line after the last picture line, then write the scene as a single flowing prose paragraph. This is LTX 2.3 caption prose -- the same style as the t2v mode. All the rules below apply to the scene.
@@ -789,14 +803,13 @@ Write SEVEN sentences, one for each of the following elements:
 3. Action Progression: what physically happens, chronological, present tense, concrete verbs.
 4. Character Definition: who is in frame and what they do -- build, visible clothing, physical acting beats (jaw clenches, hand tightens). Never abstract emotion labels. The appearance is on the sheet; describe the motion.
 5. Camera Movement: always write this sentence. Translate any camera motion the user described into the optical term (fast zoom onto the face -> crash zoom; rises over the trees -> crane lift; follows alongside -> side tracking shot). If the user described no camera behaviour, write "the camera remains static" -- that is the complete and correct sentence.
-6. Audio Integration: full soundscape -- environmental sound, foley, background music (or "no music"), and any dialogue quoted exactly with its delivery.
-7. Closing detail: two concrete secondary details about something already named -- its material or texture, and a small continuing movement or its exact position in the frame. Never introduce a new object and never praise the shot.
+6. Audio Integration: full soundscape -- environmental sound, foley, background music (or "no music"), and any dialogue quoted exactly with its delivery.7. Closing detail: two concrete secondary details about something already named -- its material or texture, and a small continuing movement or its exact position in the frame. Never introduce a new object and never praise the shot.
 
 All seven sentences, whatever the length of the input. An eighth sentence means you kept too much. Every sentence names at least two concrete observable specifics.
 
 DO NOT emit ### Reference Sheet Description or ### Target Description headings -- the app writes those. Do not put <Picture n> tags inside the scene paragraph.
 
-Output: the picture lines, a blank line, then the scene paragraph (only the scene paragraph when nothing is attached). Nothing before it and nothing after the last sentence.`,
+Output: the <Picture n> lines (never an <Audio n> line), a blank line, then the scene paragraph (only the scene paragraph when nothing is attached). Nothing before it and nothing after the last sentence.`,
     },
 
   },
