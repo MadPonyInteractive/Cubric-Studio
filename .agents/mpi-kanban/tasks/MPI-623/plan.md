@@ -43,9 +43,13 @@ sidecar). **BUG found + fixed:** the wrap guard was `!runMediaItems`, but the Fl
 sends `runMediaItems` - every Library run would land unconverted. Now `wrapsScene(flow, _leg)` (first call =
 no `_leg.index`, no `_leg.tempId`), behaviour-tested. Library-path LIVE check NOT done: a playwright page
 on the isolated port cannot reach ComfyUI 48188 (origin refused: ws 403 + CORS on /prompt), and the isolated
-Electron window has no CDP. **Next:** Fabio presses Cue on the picture branch in his app (Ctrl+R picks up the
-working tree), card must open in Scene; then commit (FlowDef, userFlows, flowService `wrapsScene`, test,
-flows.md, handover test, placeholder tile); Phase 4 ungate; graphics. `commandRegistry.js` flowPano360 + inject test case IN (MPI-1060
+Electron window has no CDP. All of it COMMITTED + pushed in `5a7cfb7cd`. **Next:** Fabio presses Cue on the
+picture branch in his app (his app already reloaded on it), card must open in Scene - ON A FREE GPU: his first
+try crawled (30% at 15 min) beside a peer's Ollama recipe test (~10 GB VRAM; the pano peaks 15.6 GB alone),
+he stopped it; app runs take no GPU lease. **Fabio asked: 10 steps vs 8?** Never tested: all four samplers'
+10 came verbatim from Mickmumpitz's `research/pano.json`; the app's Krea 2 fast tier runs 8. Bench A/B both
+branches 8 vs 10, same seed (4 runs, ~8 min, lease), seam + sheets to Fabio; the two seam passes (0.55 / 0.45
+denoise) are the risk. Then Phase 4 ungate; graphics. `commandRegistry.js` flowPano360 + inject test case IN (MPI-1060
 released; 30/30). Still waiting: `flowsRegistry.js` (MPI-1041 phaseF2). **Session 47 (2026-10-10, "3D Scene 37"):
 Fabio's player asks passed; Up/Down lens; the Scene panel restructured to a PATH TOOL (his call, passed); the scene Take picture / Build here code swept (client); `sceneLift` deprecation is the open follow-up** **Fabio, end of session 47: this ships UNGATED in 2.1** (§ Plan Drift 2026-10-10 "2.1": the ship list). **Next: the 360 Pano Flow via `/mpi-add-flow`.** (validation.md § P3 player asks): Left/Right
 step a frame, Space plays; aspect + lens stick and are SHARED with the Scene panel (`Storage` `SCENE_SHOT`,
