@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1087", "at": "2026-10-11T16:06:51+01:00", "actor": "claude", "column": "todo", "title": "Headless Front Body: one toggle on the result, on all three Character Sheet Flows"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1087", "at": "2026-10-11T16:39:14+01:00", "actor": "c6245873-da01-469b-b560-ed11870ac4c6", "from": "todo", "to": "doing", "reason": "Fabio 2026-10-11: compare toggle + one Headless control on all three sheets"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1087", "at": "2026-10-11T17:09:40+01:00", "actor": "c6245873-da01-469b-b560-ed11870ac4c6", "from": "doing", "to": "doing", "reason": "automated checks passed; Fabio's eye test left"}

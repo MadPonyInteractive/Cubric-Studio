@@ -340,7 +340,7 @@ test('the Character Sheet Flow carries its I/O and declared control titles (MPI-
     // descriptor no longer declares, and injection skips a miss in silence either way.
     //
     // `input_remove_head` is pinned ABSENT since MPI-997: the head removal is its own graph
-    // (below), run as the flow's chained leg 2, and the toggle is read by `chain.when`.
+    // (below), run as the flow's chained leg 2, and the toggle is read by `chain.toggle`.
     const file = 'flow_character_sheet.json';
     const have = titlesOf(file);
     for (const title of [

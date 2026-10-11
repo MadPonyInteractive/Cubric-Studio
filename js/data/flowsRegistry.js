@@ -181,9 +181,14 @@
  *                                       `{ field, is | isNot | in | atMost | below | atLeast }`, or an
  *                                       array of them (ALL must hold), reads the run's field values
  *                                       through `ruleHolds()`. Omit and the leg always runs.
+ * @property {string}  [toggle] - A declared TOGGLE field that picks which VERSION the card shows, not
+ *                                       whether the leg runs (MPI-1087): the leg always runs and lands as
+ *                                       the next version; off, the card keeps showing the version before
+ *                                       it. The same field switches between the two on a finished result.
+ *                                       Needs `input`. At most one per Flow (`flowToggleLeg`).
  * @property {Object|Object[]} [unless] - A rule (or rules, ALL holding) that SKIPS the leg whatever `when`
- *                                       says, so a toggle leg keeps its result-pane toggle: Character
- *                                       Sheet Editor never removes a newborn's head (MPI-1041).
+ *                                       or `toggle` says: Character Sheet Editor never removes a newborn's
+ *                                       head (MPI-1041).
  * @property {string}  [input] - The media role the leg receives the previous picture on. It also makes the
  *                                       leg land as the next VERSION of that picture's card. Omit and the
  *                                       leg takes no media (MPI-623: it reads the file by name).
@@ -1457,7 +1462,7 @@ export const FLOWS = [
         // removal runs on the finished sheet and lands as the card's NEXT VERSION, so the
         // untouched sheet stays one step back in its history. One run still, for the user
         // and for the in-app agent's single `generate` call.
-        chain: { operation: 'flowCharacterSheetHeadless', when: 'Input_Remove_Head', input: 'image1' },
+        chain: { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', input: 'image1' },
         mediaType: 'image',
         type: 'create',
         // No `inputSchema` at all: this flow collects no media, so step 0 renders its
@@ -1577,7 +1582,7 @@ export const FLOWS = [
                 icon: 'eraser', default: true,
                 // ON by default — it is the whole reason this layout works as a video
                 // reference. Off is for inspecting the sheet the model actually drew.
-                // Read by `chain.when` (flowService), not by either graph (MPI-997).
+                // Read by `chain.toggle` (flowService), not by either graph (MPI-997, MPI-1087).
             },
             // The `loras` action button that used to sit here is GONE (MPI-608). It opened
             // the rack for the flow's one `settingsModel`, which cannot express a flow with
@@ -1617,7 +1622,7 @@ export const FLOWS = [
         // The Qwen graph. Klein's file is `byModel`'s (universal_workflows.js); this field is
         // read only by the tests that check declared fields against node titles.
         workflow: 'flow_character_sheet_from_images.json',
-        chain: { operation: 'flowCharacterSheetHeadless', when: 'Input_Remove_Head', input: 'image1' },
+        chain: { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', input: 'image1' },
         // The agent fills the pictures and words and opens the box for the user (MPI-892). It
         // cannot run it: its `look` box gate refuses any box over 0.6 of the picture as "the
         // whole person" (Head Swap's head-only bound, agentLoop.mjs), and a head-and-shoulders
@@ -1655,7 +1660,7 @@ export const FLOWS = [
             {
                 id: 'Input_Remove_Head', type: 'toggle', label: 'Headless front body',
                 icon: 'eraser', default: true,
-                // As on Character Sheet: read by `chain.when`, not by either graph (MPI-997).
+                // As on Character Sheet: read by `chain.toggle`, not by either graph (MPI-997).
             },
         ],
         // Both answers are graph TEXT: `Input_Face_Pose` holding "turned" keeps the picture's
@@ -1721,7 +1726,7 @@ export const FLOWS = [
               when: [{ field: 'Input_Age', atLeast: 0 }, { field: 'Input_Age', atMost: 12 }],
               box: { x: 0.5, y: 0, width: 0.5, height: 1 }, params: { Input_Face_Pose: 'TURNED' } },
             // A newborn is a swaddled baby lying down (Fabio, 2026-10-10): its head always stays.
-            { operation: 'flowCharacterSheetHeadless', when: 'Input_Remove_Head', unless: { field: 'Input_Age', is: 0 },
+            { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', unless: { field: 'Input_Age', is: 0 },
               input: 'image1' },
         ],
         mediaType: 'image',
@@ -1762,7 +1767,7 @@ export const FLOWS = [
             {
                 id: 'Input_Remove_Head', type: 'toggle', label: 'Headless front body',
                 icon: 'eraser', default: true,
-                // As on Character Sheet: read by the last leg's `when`, not by any graph (MPI-997).
+                // As on Character Sheet: read by the last leg's `toggle`, not by any graph (MPI-997).
             },
         ],
         // The answers write the age leg's younger / older word (any age) and the clothes a child's
@@ -3181,14 +3186,13 @@ export function flowLegs(flow) {
 }
 
 /**
- * The place in `flowLegs` of the leg the result pane's toggle drives (MPI-997, Character Sheet's
- * "Headless front body"): the first one that names a declared toggle in `when` and takes the
- * picture on an `input` role. A rule-form `when` is the run's own business and gets no toggle.
+ * The place in `flowLegs` of the leg a `toggle` field drives (MPI-997, MPI-1087, Character Sheet's
+ * "Headless front body"): the first one that names a `toggle` and takes the picture on an `input` role.
  * @param {FlowDef} flow
  * @returns {number} -1 when there is none
  */
 export function flowToggleLeg(flow) {
-    return flowLegs(flow).findIndex(leg => leg.input && typeof leg.when === 'string');
+    return flowLegs(flow).findIndex(leg => leg.input && typeof leg.toggle === 'string');
 }
 
 /**
@@ -3242,12 +3246,16 @@ export function flowOperations(flow) {
  */
 export function flowRunLegs(flow, run = {}) {
     const first = flowOperation(flow, run);
-    return [
+    const legs = [
         ...(first ? [{ index: -1, operation: first, leg: null }] : []),
         ...flowLegs(flow)
             .map((leg, index) => ({ index, operation: leg.operation, leg }))
             .filter(({ leg }) => legWanted(flow, leg, run)),
     ];
+    // A `toggle` leg always runs (MPI-1087), but with its toggle off it only lands a version the
+    // card does not show, so with nothing run before it there is nothing to keep showing.
+    const toggled = legs[0]?.leg?.toggle;
+    return toggled && flowRunValues(flow, run)[toggled] !== true ? legs.slice(1) : legs;
 }
 
 /**
@@ -3276,7 +3284,7 @@ export function flowRunAvailability(flowOrId, run = {}) {
 
 /**
  * The declared fields the ENGINE reads to decide what runs, which therefore name no node in any
- * graph: the field `operationBy` routes on and every field a leg's `when` reads. The anchoring
+ * graph: the field `operationBy` routes on and every field a leg's `when` or `toggle` reads. The anchoring
  * checks (inject-params-titles, the Flow package validator) skip these, where each used to
  * carry its own `f.id !== flow.chain?.when`.
  * @param {FlowDef} flow
@@ -3285,7 +3293,8 @@ export function flowRunAvailability(flowOrId, run = {}) {
 export function flowControlFieldIds(flow) {
     const ids = new Set();
     if (flow?.operationBy?.field) ids.add(flow.operationBy.field);
-    for (const { when } of flowLegs(flow)) {
+    for (const { when, toggle } of flowLegs(flow)) {
+        if (toggle) ids.add(toggle);
         if (typeof when === 'string') ids.add(when);
         else for (const rule of [].concat(when || [])) if (rule?.field) ids.add(rule.field);
     }

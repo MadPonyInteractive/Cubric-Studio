@@ -88,21 +88,19 @@ test('a later leg carries no media unless it names an input role, and a leg run 
         'the result pane\'s single-leg run must not carry on into the legs after it');
 });
 
-// MPI-997 — Character Sheet's head removal: an OPTIONAL leg that EDITS leg 1's picture.
+// MPI-997 — Character Sheet's head removal: a leg that EDITS leg 1's picture. Since MPI-1087 it
+// ALWAYS runs; its `toggle` only picks which of the two versions the card shows.
 const HEADLESS = {
     id: 'character-sheet', title: 'Character Sheet', operation: 'a', mediaType: 'image',
-    chain: { operation: 'b', when: 'Input_Remove_Head', input: 'image1' },
+    chain: { operation: 'b', toggle: 'Input_Remove_Head', input: 'image1' },
     fields: [{ id: 'Input_Remove_Head', type: 'toggle', default: true }],
 };
 
-test('`when` gates leg 2 on the field, falling back to its default', async () => {
+test('a `toggle` leg runs whatever the toggle says', async () => {
     const { chainCallbacks } = await load();
     const callbacks = { onComplete() {} };
-    const never = () => { throw new Error('the toggle is off — leg 2 must not run'); };
-    assert.strictEqual(chainCallbacks(HEADLESS, callbacks, never, { injectionParams: { Input_Remove_Head: false } }), callbacks,
-        'off: the run is leg 1 alone, callbacks untouched');
 
-    for (const run of [{ injectionParams: { Input_Remove_Head: true } }, {}, { injectionParams: {} }]) {
+    for (const run of [{ injectionParams: { Input_Remove_Head: false } }, { injectionParams: { Input_Remove_Head: true } }, {}, { injectionParams: {} }]) {
         let got = null;
         const wrapped = chainCallbacks(HEADLESS, callbacks, (r) => { got = r; return { queueJobId: 'x' }; }, run);
         const result = { item: { filePath: '/p/sheet.png' }, group: { id: 'g1' } };
@@ -110,10 +108,21 @@ test('`when` gates leg 2 on the field, falling back to its default', async () =>
         assert.strictEqual(got, result, `on (${JSON.stringify(run)}): leg 2 must be handed leg 1's result`);
     }
 
-    // A field at the root, not an `Input_*` one, is read at the root.
-    const ROOT = { ...HEADLESS, chain: { ...HEADLESS.chain, when: 'headless' }, fields: [{ id: 'headless', default: false }] };
+    // A string `when` still GATES, and a field at the root, not an `Input_*` one, is read at the root.
+    const never = () => { throw new Error('the gate is off — leg 2 must not run'); };
+    const ROOT = { ...HEADLESS, chain: { operation: 'b', when: 'headless', input: 'image1' }, fields: [{ id: 'headless', default: false }] };
     assert.strictEqual(chainCallbacks(ROOT, callbacks, never, {}), callbacks, 'the default decides when the run says nothing');
     assert.notStrictEqual(chainCallbacks(ROOT, callbacks, never, { headless: true }), callbacks);
+});
+
+test('with its toggle off, a `toggle` leg lands without taking the card, and reports what the card shows', () => {
+    const src = read();
+    assert.match(src, /const keepShown = later && !_leg\.alone && !!leg\?\.toggle && flowRunValues\(flow, run\)\[leg\.toggle\] !== true;/,
+        'only a chained run with the toggle off; the field running the leg alone on a result shows it');
+    assert.match(src, /\.\.\.\(keepShown \? \{ keepSelected: true \} : \{\}\)/);
+    assert.match(src, /item: result\.group\.history\[result\.group\.selectedIndex\] \?\? result\.item/);
+    const gen = fs.readFileSync(path.join(__dirname, '..', 'js/services/generationService.js'), 'utf8');
+    assert.match(gen, /\.\.\.\(opts\.keepSelected \? \{ selectedIndex: latestGroup\.selectedIndex \} : \{\}\)/);
 });
 
 test('an `input` chain hands leg 1\'s picture to leg 2 and lands it on leg 1\'s card', async () => {
@@ -160,7 +169,7 @@ test('leg 2 reuses leg 1 tempId so Cancel and live previews keep working', () =>
 // oval and the chained Headless leg ran SAM3 on a sheet with no head, which took the braids.
 const SHEET = { id: 'sheet', title: 'Sheet', operation: 'edit',
     chain: [{ operation: 'age', input: 'image1', when: { field: 'Input_Age', atLeast: 0 } },
-        { operation: 'headless', when: 'Input_Remove_Head', input: 'image1' }] };
+        { operation: 'headless', toggle: 'Input_Remove_Head', input: 'image1' }] };
 const file = name => `/project-file?path=C%3A%5CP%5CMedia%5C${name}.png`;
 const PROJECT = { itemGroups: [{ id: 'g', history: [
     { operation: 'edit', filePath: file('flowCSE_010') },

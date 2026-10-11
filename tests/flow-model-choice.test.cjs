@@ -472,11 +472,11 @@ test('the Character Sheet fills its ONE LoRA rack, and no flat or phase-2 rack s
     assert.equal(headless[composite[1].inputs?.destination?.[0]]?._meta?.title, 'Input_Image',
         'the head hole is filled on the sheet the leg loaded');
 
-    // 3. Remove Head OFF must return the sheet UNTOUCHED. Since MPI-997 the gate is the
-    //    flow's CHAIN, not a switch in the graph: off, leg 2 never runs, and the sheet graph
-    //    emits exactly what it sampled.
-    assert.deepEqual(flow.chain, { operation: 'flowCharacterSheetHeadless', when: 'Input_Remove_Head', input: 'image1' },
-        'the head removal must run as the chained leg, gated on Input_Remove_Head, on leg 1\'s picture');
+    // 3. Remove Head OFF must SHOW the sheet UNTOUCHED. Since MPI-997 the head removal is the
+    //    flow's CHAIN, not a switch in the graph, and since MPI-1087 it always runs: off, the
+    //    card keeps showing the sheet graph's own output, exactly what it sampled.
+    assert.deepEqual(flow.chain, { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', input: 'image1' },
+        'the head removal must run as the chained leg, switched by Input_Remove_Head, on leg 1\'s picture');
     const out = Object.values(sheet).find(n => n._meta?.title === 'Output_Image');
     assert.equal(sheet[out.inputs?.images?.[0]]?._meta?.title, 'Character Sheet Generation Image Output',
         'the sheet graph must emit the untouched sheet');

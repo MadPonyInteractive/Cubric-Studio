@@ -11,8 +11,9 @@ or runs `LanPaint_KSampler`, that doc is out of date; see § History below befor
 **Two graphs since MPI-997.** `flow_character_sheet.json` draws the sheet only;
 `flow_character_sheet_headless.json` (op `flowCharacterSheetHeadless`, no model, no FlowDef) is
 the head branch below, loading the finished sheet on `Input_Image`. The FlowDef's `chain`
-(`when: 'Input_Remove_Head'`, `input: 'image1'`) runs it as leg 2, landing as the sheet card's
-NEXT VERSION, the untouched sheet one step back in its history. Bench: 6 s with a cold SAM3.
+(`toggle: 'Input_Remove_Head'`, `input: 'image1'`) runs it as leg 2 on EVERY run (MPI-1087), landing
+as the sheet card's NEXT VERSION, the untouched sheet one step back in its history; the toggle
+only picks which of the two the card shows. Bench: 6 s with a cold SAM3.
 
 ---
 

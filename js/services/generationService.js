@@ -1037,8 +1037,9 @@ async function _deleteSavedItems(items) {
  *
  * @param {GenerationConfig} config
  * @param {GenerationCallbacks} callbacks
- * @param {{ existingGroup?: Object, scope?: string, groupId?: string, tempId?: string, placeholderGroup?: Object, deferCommit?: boolean, cardName?: string }} [opts]
+ * @param {{ existingGroup?: Object, scope?: string, groupId?: string, tempId?: string, placeholderGroup?: Object, deferCommit?: boolean, cardName?: string, keepSelected?: boolean }} [opts]
  *        `cardName`: the gallery card's `customName` (a Flow naming its result, MPI-1041)
+ *        `keepSelected`: with `existingGroup`, the card keeps showing the version it showed (MPI-1087)
  * @returns {{ cancel: function }}
  */
 export function startGeneration(config, callbacks = {}, opts = {}) {
@@ -1668,6 +1669,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                 ...working,
                 width:  latestGroup.width  || width,
                 height: latestGroup.height || height,
+                // A version landed for the asking, not for showing (MPI-1087: a sheet's head
+                // removal with Headless front body off): the card keeps the version it shows.
+                ...(opts.keepSelected ? { selectedIndex: latestGroup.selectedIndex } : {}),
             };
             // MPI-839: `updateGroup` writes the OPEN project; server-side when it moved on.
             if (_originIsOpen()) await updateGroup(updatedGroup);

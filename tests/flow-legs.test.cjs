@@ -68,7 +68,7 @@ const EDITOR = {
             box: { x: 0.5, y: 0, width: 0.5, height: 1 },
             params: { Input_Face_Pose: 'TURNED' },
         },
-        { operation: 'flowCharacterSheetHeadless', when: 'Input_Remove_Head', input: 'image1' },
+        { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', input: 'image1' },
     ],
 };
 const run = (change, age, extra = {}) => ({ change, injectionParams: { Input_Age: age, ...extra } });
@@ -206,8 +206,9 @@ test('the leg driver dispatches the wanted legs in order and the caller hears ON
     // Age 8: all four.
     assert.deepStrictEqual(drive(EDITOR, run('clothes', 8)),
         { order: ['flowOutpaint', 'flowCharacterSheetImages', 'flowCharacterSheetHeadless'], heard: 1 });
-    // No age, head kept: leg 1 alone, and the caller still hears it once.
-    assert.deepStrictEqual(drive(EDITOR, run('clothes', 0, { Input_Remove_Head: false })), { order: [], heard: 1 });
+    // No age, head kept: the head removal STILL runs (MPI-1087: the toggle picks the version the
+    // card shows, not whether the leg runs), and the caller still hears it once.
+    assert.deepStrictEqual(drive(EDITOR, run('clothes', 0, { Input_Remove_Head: false })), { order: ['flowCharacterSheetHeadless'], heard: 1 });
     // A leg that cannot enqueue forwards the completion before it rather than hanging the pane.
     let got = null;
     const wrapped = chainCallbacks(EDITOR, { onComplete: (r) => { got = r; } }, () => null, run('clothes', 30));
@@ -221,7 +222,10 @@ test('a skipped leg 1 starts the run on the first wanted leg, and nothing wanted
     // "Nothing else" + age 30: leg 1 is skipped, the age edit runs FIRST (index 0, not -1).
     const legs = flowRunLegs(EDITOR, run('none', 30));
     assert.deepStrictEqual(legs.map(l => [l.index, l.operation]), [[0, 'flowOutpaint'], [2, 'flowCharacterSheetHeadless']]);
+    // Head kept and nothing else to do: the head removal would be the FIRST leg, landing a version
+    // nobody shows, so nothing runs (MPI-1087). On, it runs alone on the user's sheet.
     assert.deepStrictEqual(flowRunLegs(EDITOR, run('none', 0, { Input_Remove_Head: false })), []);
+    assert.deepStrictEqual(opsOf(flowRunLegs(EDITOR, run('none', 0))), ['flowCharacterSheetHeadless']);
 
     // The real run path stops before anything is queued, and says so.
     const { Events } = await esm('js/events.js');
@@ -427,7 +431,7 @@ test('a Flow package may route and chain, and its control fields name no graph n
     assert.ok(read('services/userFlows.js').includes("'operationBy'"), 'FLOW_KEYS carries it');
 });
 
-test('the frame asks the routed op for promptRequired, and offers the toggle for a string `when` only', async () => {
+test('the frame asks the routed op for promptRequired, and offers the toggle for a `toggle` leg only', async () => {
     const src = read('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
     assert.match(src, /const runOperation = flowOperation\(flow, inputs\);\s*if \(runOperation && getCommand\(runOperation\)\?\.promptRequired && !hasPrompt\) \{/,
         'a skipped leg 1 asks for no prompt');
@@ -435,11 +439,13 @@ test('the frame asks the routed op for promptRequired, and offers the toggle for
     assert.match(src, /\}, legIndex\)\);/, 'the toggle runs the leg it mounted for');
 
     const { flowToggleLeg } = await registry();
-    assert.strictEqual(flowToggleLeg(EDITOR), 2, 'the head-removal leg: a string `when` and an input role');
+    assert.strictEqual(flowToggleLeg(EDITOR), 2, 'the head-removal leg: a `toggle` and an input role');
     assert.strictEqual(flowToggleLeg({ operation: 'a', chain: [{ operation: 'b', when: { field: 'x', is: 1 }, input: 'image1' }] }), -1,
         'a rule is the run\'s own business and gets no toggle');
-    assert.strictEqual(flowToggleLeg({ operation: 'a', chain: { operation: 'b', when: 'Input_Remove_Head', input: 'image1' } }), 0);
-    assert.strictEqual(flowToggleLeg({ operation: 'a', chain: { operation: 'b', when: 'Input_Remove_Head' } }), -1);
+    assert.strictEqual(flowToggleLeg({ operation: 'a', chain: { operation: 'b', toggle: 'Input_Remove_Head', input: 'image1' } }), 0);
+    assert.strictEqual(flowToggleLeg({ operation: 'a', chain: { operation: 'b', toggle: 'Input_Remove_Head' } }), -1);
+    assert.strictEqual(flowToggleLeg({ operation: 'a', chain: { operation: 'b', when: 'Input_Remove_Head', input: 'image1' } }), -1,
+        'a string `when` GATES the leg; only a `toggle` switches versions (MPI-1087)');
 });
 
 // ── 7. every shipped Flow resolves what it did before ────────────────────────────────────
@@ -575,14 +581,14 @@ test('every shipped Flow resolves the op, graph and availability it did before t
     }
 });
 
-test('a shipped chain still runs leg 2 only while its toggle is on, defaulting to the declared value', async () => {
+test('a shipped chain always runs its head removal; the toggle only picks the version shown (MPI-1087)', async () => {
     const reg = await registry();
     for (const id of ['character-sheet', 'character-sheet-from-images']) {
         const flow = reg.getFlowById(id);
         const head = (r) => opsOf(reg.flowRunLegs(flow, r));
         assert.deepStrictEqual(head({}), [flow.operation, 'flowCharacterSheetHeadless'], `${id}: default on`);
         assert.deepStrictEqual(head({ injectionParams: { Input_Remove_Head: true } }), [flow.operation, 'flowCharacterSheetHeadless']);
-        assert.deepStrictEqual(head({ injectionParams: { Input_Remove_Head: false } }), [flow.operation], `${id}: off`);
+        assert.deepStrictEqual(head({ injectionParams: { Input_Remove_Head: false } }), [flow.operation, 'flowCharacterSheetHeadless'], `${id}: off`);
         assert.strictEqual(reg.flowToggleLeg(flow), 0, `${id}: the result pane still offers the toggle`);
     }
 });

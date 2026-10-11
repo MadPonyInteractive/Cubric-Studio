@@ -119,20 +119,27 @@ every `output_image_*` is its own gallery card. A MODEL generator (`generate_*.p
 must add it there or lose it silently; Flow raw graphs convert through `workflow-to-api.mjs`,
 which keeps it. Pinned by `tests/flow-output-display.test.cjs`.
 
-## The result pane: the chain toggle (MPI-997)
+## The result pane: the `toggle` leg (MPI-997, MPI-1087)
 
-A Flow whose `chain` has both `when` and `input` (Character Sheet's Headless front body) gets
-its `when` toggle ON THE RESULT too, bottom-left (`_mountChainToggle`). Nothing to declare: the
-chain is the declaration, and the button is that field's own icon + label.
+A Flow whose `chain` leg has both `toggle` and `input` (Character Sheet's Headless front body,
+all three Character Sheet Flows) runs that leg on EVERY run, so a result always has both
+versions. The left-panel `toggle` field IS the result's switch (`_applyChainField`); there is
+no second button on the result (Fabio, 2026-10-11: two controls for one thing confused).
 
-- **Pressed = the leg-2 version is showing.** Leg 2 always lands as the version right AFTER
-  leg 1 on the same card, so the partner is the neighbouring history entry, matched by op.
-- **Press with a partner:** swap to it in the pane AND on the card (`promoteHistoryEntry` +
+- **On = the leg's version is showing.** The leg always lands as the version right AFTER the
+  one it edited, on the same card, so the partner is the neighbouring history entry, matched
+  by op. Showing a result paints the field to match (`_syncChainField`).
+- **Off at run time:** the leg still lands, with `keepSelected` (generationService), so the card
+  keeps showing the version before it and the run reports that one (flowService `keepShown`).
+- **Flip with a partner:** swap to it in the pane AND on the card (`promoteHistoryEntry` +
   `updateGroup`), so the gallery, a video model and the agent read what the pane shows.
-- **Press on a leg-1 result with no partner:** runs leg 2 alone on it (`submitChainLeg`),
-  through the same run token, status and callbacks as Generate (`_runCallbacks`/`_track`).
+- **Flip on with no partner** (a result from before MPI-1087): runs the leg alone on it
+  (`submitChainLeg`), through the same run token, status and callbacks as Generate. Not on a
+  run the leg never takes (a newborn keeps its head): the field springs back.
 - The group is re-found at click time: the project's mutation queue replaces group objects.
   Pinned by `tests/desktop/flow-chain-toggle.spec.js` (mutation-checked on the card swap).
+- **Compare alone gets a way out (MPI-1087):** a result whose only surface is compare also
+  offers Result (`_resultModes`), so the switch above is not watched through a compare bar.
 
 ## The result pane survives close→reopen (MPI-587)
 

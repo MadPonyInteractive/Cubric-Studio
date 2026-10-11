@@ -591,18 +591,30 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // joins the run's result stack.
     // `tempId` rides a version landing too: a chained leg 2 lands on leg 1's card, and the
     // flow pane finds that leg's live latents and Stop by it.
+    // A `toggle` leg ALWAYS runs (MPI-1087): with its toggle off it still lands its version, but
+    // the card keeps showing the one before it, and that is the version the run reports. The leg
+    // the toggle runs `alone` on a finished result is the user asking to see it, so it shows.
+    const keepShown = later && !_leg.alone && !!leg?.toggle && flowRunValues(flow, run)[leg.toggle] !== true;
     const landing = !runLanding ? opts
         : runLanding.existingGroup
-            ? { ...runLanding, scope: 'groupHistory', groupId: runLanding.existingGroup.id, forceLocal: opts.forceLocal, tempId }
+            ? { ...runLanding, scope: 'groupHistory', groupId: runLanding.existingGroup.id, forceLocal: opts.forceLocal, tempId,
+                ...(keepShown ? { keepSelected: true } : {}) }
             : { ...opts, ...runLanding };
 
     // Each leg hands the run on to the next wanted one, so the caller hears the LAST. A leg the
     // result pane runs `alone` ends there. Every leg gets the first call's `inputs` plus the leg
     // before it, and the describe answers collected so far (run-only: `_leg`, never `inputs`).
-    const legCallbacks = _leg.alone ? callbacks : chainCallbacks(flow, callbacks,
+    const chained = _leg.alone ? callbacks : chainCallbacks(flow, callbacks,
         (result, next) => submitFlowGeneration(flow, chainLegInputs(flow, inputs, result, next.leg), callbacks,
             { index: next.index, tempId, run: handle, item: result?.item, described }, io),
         run, index);
+    // ponytail: correct while the toggle leg is the LAST leg (all three Character Sheet Flows); a
+    // leg after it would be fed the shown version, not the one this leg made.
+    const legCallbacks = !keepShown ? chained : {
+        ...chained,
+        onComplete: (result) => chained.onComplete?.(result?.group
+            ? { ...result, item: result.group.history[result.group.selectedIndex] ?? result.item } : result),
+    };
     // Every pass but the last carries `runNextPass` on; the last gets none, so it ends
     // there. Each keeps the tempId for the same reason a later leg does.
     const runCallbacks = runNextPass

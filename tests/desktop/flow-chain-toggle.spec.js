@@ -2,12 +2,14 @@ const { test, expect } = require('@playwright/test');
 const { launchApp, closeApp } = require('./launch');
 
 /**
- * MPI-997 — the chain toggle on a Flow's result (Character Sheet's Headless front body).
+ * MPI-997, MPI-1087 — the `toggle` leg's field switches a Flow's result (Character Sheet's
+ * Headless front body).
  *
- * A flow whose `chain` edits leg 1's picture behind a `when` toggle lands leg 2 as the
- * card's NEXT VERSION. The result pane then carries that toggle: pressed = the leg-2 version
- * is showing, and pressing it swaps to the partner version — in the pane AND on the card
- * (`selectedIndex`), because the card is what the gallery, a video model and the agent read.
+ * A flow whose `chain` leg names a `toggle` always lands that leg as the card's NEXT VERSION.
+ * The left-panel field is the result's switch: pressed = the leg-2 version is showing, and
+ * pressing it swaps to the partner version — in the pane AND on the card (`selectedIndex`),
+ * because the card is what the gallery, a video model and the agent read. MPI-1087 removed
+ * the second button that used to sit ON the result.
  *
  * Driven off a fixture flow with a seeded two-version card, so no model runs. The one path
  * it does not reach is "no leg-2 version yet → run leg 2", which needs a real engine: that
@@ -53,7 +55,7 @@ test('the chain toggle swaps a card between leg 1 and leg 2 versions', async ({}
       const flow = {
         id: 'mpi997-chain-fixture', title: 'Chain fixture', description: 'Frame contract fixture.',
         operation: 'mpi997A', mediaType: 'image', requiredModels: [],
-        chain: { operation: 'mpi997B', when: 'Input_Remove_Head', input: 'image1' },
+        chain: { operation: 'mpi997B', toggle: 'Input_Remove_Head', input: 'image1' },
         fields: [{ id: 'Input_Remove_Head', type: 'toggle', label: 'Headless front body', icon: 'eraser', default: true }],
       };
       const prevProject = state.currentProject;
@@ -75,9 +77,10 @@ test('the chain toggle swaps a card between leg 1 and leg 2 versions', async ({}
       await new Promise(r => setTimeout(r, 500));
 
       const read = () => {
-        const btn = inst.el.querySelector('.mpi-base-flow__result-chain button');
+        const btn = inst.el.querySelector('.mpi-base-flow__field-toggle-btn');
         return {
-          buttons: inst.el.querySelectorAll('.mpi-base-flow__result-chain').length,
+          buttons: inst.el.querySelectorAll('.mpi-base-flow__field-toggle-btn').length,
+          onResult: inst.el.querySelectorAll('.mpi-base-flow__result-frame .is-toggleable, .mpi-base-flow__result-chain').length,
           label: btn?.querySelector('.mpi-ibtn__label')?.textContent ?? null,
           active: !!btn?.classList.contains('is-active'),
           shows: inst.el.querySelector('.mpi-base-flow__result-media img')?.getAttribute('src') ?? null,
@@ -85,7 +88,7 @@ test('the chain toggle swaps a card between leg 1 and leg 2 versions', async ({}
         };
       };
       const press = async () => {
-        inst.el.querySelector('.mpi-base-flow__result-chain button')?.click();
+        inst.el.querySelector('.mpi-base-flow__field-toggle-btn')?.click();
         await new Promise(r => setTimeout(r, 500));
       };
 
@@ -104,7 +107,8 @@ test('the chain toggle swaps a card between leg 1 and leg 2 versions', async ({}
       return { onOpen, afterFirst, afterSecond, persisted, sheet: sheet.url, headless: headless.url };
     });
 
-    expect(result.onOpen.buttons, 'one chain toggle on the result').toBe(1);
+    expect(result.onOpen.buttons, 'one Headless control, the left-panel field').toBe(1);
+    expect(result.onOpen.onResult, 'no second toggle drawn on the result').toBe(0);
     expect(result.onOpen.label, 'it is the flow\'s own toggle').toBe('Headless front body');
     expect(result.onOpen.active, 'pressed while the leg-2 version shows').toBe(true);
     expect(result.onOpen.shows).toBe(result.headless);

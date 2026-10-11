@@ -248,7 +248,8 @@ test('each change routes to its editor and the age picks the legs', async () => 
     assert.strictEqual(flowOperation(flow, run('none', 30)), null);
     const ops = r => flowRunLegs(flow, r).map(l => l.operation);
     assert.deepStrictEqual(ops(run('clothes', -1)), ['flowCharacterSheetEdit', 'flowCharacterSheetHeadless']);
-    assert.deepStrictEqual(ops(run('clothes', -1, false)), ['flowCharacterSheetEdit']);
+    // Head kept: the removal still runs, landing a version the card does not show (MPI-1087).
+    assert.deepStrictEqual(ops(run('clothes', -1, false)), ['flowCharacterSheetEdit', 'flowCharacterSheetHeadless']);
     assert.deepStrictEqual(ops(run('body', 30)), ['flowCharacterSheetEditQwen', 'flowCharacterSheetEdit', 'flowCharacterSheetHeadless']);
     assert.deepStrictEqual(ops(run('none', 10)), ['flowCharacterSheetEdit', 'flowCharacterSheetImages', 'flowCharacterSheetHeadless']);
     assert.deepStrictEqual(ops(run('none', 1)), ['flowCharacterSheetEdit', 'flowCharacterSheetImages', 'flowCharacterSheetHeadless']);
