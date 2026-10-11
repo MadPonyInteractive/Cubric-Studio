@@ -67,8 +67,8 @@ Every member is done or explicitly parked by Fabio.
 - MPI-1066 CLOSED: Qwen 2.1 decodes with the Texture-Fix VAE (stock decoder stamped a 2-px checker
   Siax turned into crosshatch). Shipped a6d69fc80 (models.js dep line + 3 runtime graphs + README +
   UNRELEASED), CI green. Stock dep vae-qwen-image-21 kept, deprecated, for the orphan sweep.
-- Next: MPI-1065 (adding a dep to an installed model un-installs it). routes/remoteModels.js was
-  claimed by MPI-1057: check state/index.json active_file_claims before touching it.
+- MPI-1065 CLOSED 2026-10-11: once-per-session toast names a model an update left missing files
+  and opens Models (246106ac2). No server change was needed. Umbrella complete.
 
 ## Plan Drift
 

@@ -17,4 +17,4 @@
   installed here: once Qwen read unusable, nothing owned the shared encoder. Now only weights no
   other model uses prove an install. Also the tier now shows only when two cards share a name
   (it read "Qwen-Image 2.1 Balanced").
-- Left: Fabio's eye on the copy (user-ux).
+- Fabio 2026-10-11: "The wording is fine". CI run 38093896385 on 246106ac2: success.
