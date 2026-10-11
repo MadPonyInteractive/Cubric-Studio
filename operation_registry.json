@@ -212,6 +212,11 @@
     "appVersionIntroduced": "2.0.0",
     "universal": true
   },
+  "flowTranscribe": {
+    "latestVersion": "1.0",
+    "appVersionIntroduced": "2.0.1",
+    "universal": true
+  },
   "flowDramaBox": {
     "latestVersion": "1.0",
     "appVersionIntroduced": "2.0.0",

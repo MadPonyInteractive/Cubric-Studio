@@ -2047,6 +2047,42 @@ export const FLOWS = [
         // No `result.compare` — the shared surface is a reveal bar over two images, and
         // the output is new files, not a changed version of the input.
     },
+    // MPI-1071 — "Transcribe". An audio or a video in, the words out as text and subtitles.
+    // Qwen3-ASR 0.6B on ComfyUI through the `speech-to-text` plugin (dictation's weights), so
+    // no model. The graph sends only SRT (Output_prompt); the plain text is that SRT with the
+    // numbers and times taken off. NO gallery card (Fabio, 2026-10-11).
+    //
+    // Two slots, one used: both are MpiLoadAudioUpload in the graph (it reads a video's audio
+    // track) and MpiIfElse takes the audio if it loaded, else the video. Both opt out of the
+    // missing-media guard (`required: false`) and neither blocks when empty, so an empty run
+    // returns empty text instead of vanishing; the frame's empty-run guard refuses it first.
+    // ponytail: dev builds only until MPI-1071 4c gives a text result somewhere to land.
+    ...(APP_CONFIG.dev_mode ? [{
+        id: 'transcribe',
+        title: 'Transcribe',
+        description: 'Turn speech into text. Drop in a recording or a video and get back everything '
+            + 'said, as text to copy and as an .srt subtitle file.',
+        requiredModels: [],
+        requiredPlugins: ['speech-to-text'],
+        operation: 'flowTranscribe',
+        workflow: 'flow_transcribe.json',
+        mediaType: 'audio',
+        type: 'create',
+        inputSchema: {
+            media: [
+                { type: 'audio', mode: 'upto', max: 1, roles: ['audio1'], labels: ['Recording'] },
+                { type: 'video', mode: 'upto', max: 1, roles: ['video1'], labels: ['Or a video'] },
+            ],
+        },
+        fields: [
+            {
+                // The model's context text: names and words it would otherwise mishear
+                // ("Cubric", not "Cubic"). The same box as dictation's Words to expect.
+                id: 'Input_Context', type: 'text', rows: 2, label: 'Words to expect',
+                default: '', placeholder: 'Names or unusual words, e.g. Cubric Studio',
+            },
+        ],
+    }] : []),
     // MPI-596 — "Object Stamp". Take an object out of one photo and put it into
     // another. Draw It In's architecture with the scribble swapped for a real object:
     // the object is composited onto the user's scene, a crop is taken around it, Klein

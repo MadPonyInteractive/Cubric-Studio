@@ -155,6 +155,9 @@ test('every shipped Flow, expressed as a package, validates', () => {
         if (uw.byModel) continue;
         const { universal, ...op } = COMMANDS[operation];
         const g = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'comfy_workflows', uw.workflow), 'utf8'));
+        // A built-in Flow with no art yet is a supported state (flow-field-constraints);
+        // a package must ship one, so stand a name in for it.
+        flow.preview ??= 'preview.webp';
         const m = { schema: uf.SCHEMA, id, version: '1.0.0', flow, op };
         const errors = uf.validatePackage(m, g, new Set([flow.preview, flow.video]), known)
             .filter(e => !e.includes('absolute path'));

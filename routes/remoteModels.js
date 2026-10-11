@@ -924,9 +924,14 @@ async function ensureUniversalNodesOnVolume() {
     if (!wanted.length) return out;
 
     const askDeps = wanted.map((d) => ({ id: d.id, type: 'custom_nodes', filename: d.filename }));
+    // A pack whose folder is on the volume at the WRONG commit comes back installed:false +
+    // drifted:true. Its reinstall must send force, or the wrapper answers `already_installed`
+    // on folder-exists and a bumped pin never reaches the Pod (MPI-1071).
+    const drifted = new Set();
     const presentIds = async () => {
       const res = await remoteModelsCheck([{ id: '_universal', deps: askDeps }]);
       const list = (res && res.results && res.results._universal && res.results._universal.deps) || [];
+      for (const d of list) if (d && d.drifted) drifted.add(d.id);
       return new Set(list.filter((d) => d && d.installed).map((d) => d.id));
     };
 
@@ -951,7 +956,7 @@ async function ensureUniversalNodesOnVolume() {
       try {
         // Same call a model install makes — the wrapper stamps `.mpi_node_commit` from
         // `getPinnedNodeCommit`, so these land at the node_lock commit like any other.
-        await remoteInstallDep(dep);
+        await remoteInstallDep(dep, { force: drifted.has(dep.id) });
       } catch (err) {
         logger.warn('runpod', `universal node install failed for ${dep.id}: ${err.message}`);
         out.failed.push(dep.id);

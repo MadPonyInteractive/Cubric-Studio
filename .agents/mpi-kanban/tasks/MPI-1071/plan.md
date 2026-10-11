@@ -217,6 +217,14 @@ Fabio said yes to the R2 upload and to releasing MpiNodes "with the release meth
   folder, so nothing is live until release + pin. 4-min file: whole, 36 cues, starts within 0.03 s (click fix: BLIP_S). **RELEASED 1.2.19** by the release procedure (Fabio's yes): MpiNodes 945484f pushed, publish workflow green, changelog PUT 200, registry Pending. PINNED in dev_configs/node_lock.json (node_lock tests 35/35). Fabio's own engine still runs 665aed3 until his engine re-syncs the pin. Next: 4b (op + graph `raw/flow_transcribe.json`, wire the `srt` output to `Output_prompt`).
 - Fabio's Ollama store is `H:/OllamaModels` (H: 4.7 GB free of 118 GB), not ~/.ollama.
 
+2026-10-11 (session 30a76dd9): **4b BUILT (uncommitted), graph proven on a private CPU ComfyUI.**
+- Op `flowTranscribe` in the 4 op files (`outputKind: 'text'`, slots `audio1` Input_Audio AUDIO + `video1` Input_Video VIDEO, both `required: false`). FlowDef `transcribe` in flowsRegistry.js after Stems: `requiredModels: []`, `requiredPlugins: ['speech-to-text']`, `mediaType: 'audio'`, field `Input_Context` "Words to expect". **Gated `APP_CONFIG.dev_mode`** (the Library has no dev gate any more, and a run has nowhere to land until 4c): lift it in 4e.
+- Graph: two MpiLoadAudioUpload (both `block_if_empty: false`), MpiIfElse on Input_Audio `loaded`, MpiSpeechToText `srt` (slot 1) -> PreviewAny Output_prompt. DRIFT: the plan said video blocks; it does not, so an empty agent run returns "" instead of vanishing (flow-required-media law), and the frame's existing empty-run guard ("needs at least one input") is the UI refusal: no new code for it.
+- Also: `services/userFlows.js` OP_KEYS allows `outputKind` (value "text" only), because `tests/user-flows.test.cjs` validates every built-in as a package; that test now stands a preview name in for a Flow with no art yet. Agent test pins `transcribe` as a RUN Flow. text-op-completion lists 4 text ops.
+- Results: validation.md. Next: 4c (MpiBaseFlow onText + result Primitive). `flowService.js` / `generationService.js` are claimed by a peer (MPI-1092, 82476838): check before touching them.
+- **Pod fix (same session):** a bumped MpiNodes never reached Fabio's Pod: the connect ensure installed a DRIFTED pack without force, the wrapper said already_installed. `routes/remoteModels.js` now forces drifted packs; `tests/universal-nodes-drift.test.cjs`. SEEN LIVE 19:44 (installed + ComfyUI restart 200). Noticed: the renderer drift heal re-clones again 2 s later (brief.md).
+- Fabio tested ComfyUI dictation on a Pod already. Next: 4c.
+
 Next, in order:
 1. ~~Register the node~~ DONE (above).
 2. **Ollama as a third Speech to text backend: RESEARCHED 2026-10-11, Fabio said yes (opt-in).** Bench on his 5 clips, Ollama 0.35.1, output in

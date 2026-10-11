@@ -1550,6 +1550,23 @@ export const commands = {
         universal: true,
     },
 
+    // MPI-1071 — Transcribe. An audio OR a video in, the words out as SRT via
+    // Output_prompt (no gallery card). Both slots are MpiLoadAudioUpload in the graph,
+    // which reads a video's audio track; it takes the one that loaded.
+    flowTranscribe: {
+        label: 'Flow: Transcribe',
+        progressLabel: 'Transcribing',
+        mediaType: MEDIA_TYPE.AUDIO,
+        requiresImages: 0,
+        mediaInputs: [
+            { key: 'audio1', mediaType: MEDIA_TYPE.AUDIO, title: 'Input_Audio', required: false },
+            { key: 'video1', mediaType: MEDIA_TYPE.VIDEO, title: 'Input_Video', required: false },
+        ],
+        promptRequired: false,
+        outputKind: 'text',
+        universal: true,
+    },
+
     // `flowChatterBox` (Text to Speech) lived here until MPI-1012 made it the `tts` op
     // on the Chatterbox model; its key is a tombstone in operationRegistry.js.
 

@@ -1,0 +1,82 @@
+{
+  "1": {
+    "inputs": {
+      "audio": "None",
+      "block_if_empty": false,
+      "string": ""
+    },
+    "class_type": "MpiLoadAudioUpload",
+    "_meta": {
+      "title": "Input_Audio"
+    }
+  },
+  "2": {
+    "inputs": {
+      "value": ""
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Input_Context"
+    }
+  },
+  "3": {
+    "inputs": {
+      "model": "qwen3-asr-0.6b",
+      "audio": [
+        "6",
+        0
+      ],
+      "context": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "MpiSpeechToText",
+    "_meta": {
+      "title": "Mpi Speech To Text"
+    }
+  },
+  "4": {
+    "inputs": {
+      "source": [
+        "3",
+        1
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Output_prompt"
+    }
+  },
+  "5": {
+    "inputs": {
+      "audio": "None",
+      "block_if_empty": false,
+      "string": ""
+    },
+    "class_type": "MpiLoadAudioUpload",
+    "_meta": {
+      "title": "Input_Video"
+    }
+  },
+  "6": {
+    "inputs": {
+      "true": [
+        "1",
+        0
+      ],
+      "false": [
+        "5",
+        0
+      ],
+      "boolean": [
+        "1",
+        1
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "Audio or video"
+    }
+  }
+}

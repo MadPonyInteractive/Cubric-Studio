@@ -43,3 +43,7 @@ European languages and has no ComfyUI node found.
 - Does the "Dictate in English" translate toggle have a local equivalent? Qwen3-ASR is
   recognition only; translate may stay Remote-only.
 - Weights go through the normal dep path (`/mpi-add-model` playbook: R2 upload, deps entry).
+
+## Noticed
+
+- 2026-10-11: after the server ensure re-cloned MpiNodes and restarted ComfyUI (19:44:12), the RENDERER drift heal (js/shell.js getDriftedNodeDeps, a pre-install check) re-cloned it AGAIN 2 s later: a wasted clone and likely a second ComfyUI restart on the first generation. Two heal paths for one job; with force in the server ensure the renderer one may be redundant.

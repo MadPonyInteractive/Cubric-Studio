@@ -101,6 +101,8 @@ export const OPERATION_REGISTRY = {
     flowCharacterSheetEditQwen: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
     // MPI-607 — the Voice Changer flow, the first op that OUTPUTS audio.
     flowVoiceChanger: { latestVersion: '1.0', appVersionIntroduced: '2.0.0' },
+    // MPI-1071 — the Transcribe flow: audio or video in, text + SRT out.
+    flowTranscribe: { latestVersion: '1.0', appVersionIntroduced: '2.0.1' },
     // MPI-607 — the two TTS flows that join Voice Changer.
     // DEPRECATED (MPI-781): DramaBox left the app and is sold as a Flow package, which
     // registers under its own `user:drama-box` key. Same reason as `flowHeadSwap` above.

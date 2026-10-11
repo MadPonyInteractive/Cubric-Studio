@@ -148,6 +148,11 @@ export const UNIVERSAL_WORKFLOWS = {
     flowVoiceChanger: {
         workflow: 'flow_voice_changer.json',
     },
+    // MPI-1071 — Transcribe. Two MpiLoadAudioUpload paths (audio, video) picked by
+    // MpiIfElse into MpiSpeechToText, its `srt` out through PreviewAny Output_prompt.
+    flowTranscribe: {
+        workflow: 'flow_transcribe.json',
+    },
     // MPI-663 — Stems. Seven nodes, no model loader: an MpiLoadAudio path into
     // AudioSeparation (Hybrid Demucs v3), out through four SaveAudioAdvanced saves.
     flowStems: {

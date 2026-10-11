@@ -49,7 +49,7 @@ const FLOW_KEYS = new Set(['title', 'preview', 'video', 'description', 'required
 // promises about the graph): a package opts in the same way a built-in Flow does.
 const OP_KEYS = new Set(['label', 'progressLabel', 'mediaType', 'requiresImages',
     'requiresVideo', 'mediaInputs', 'promptRequired', 'injector', 'filePrefix',
-    'modelSizedInputs', 'cropsToBox']);
+    'modelSizedInputs', 'cropsToBox', 'outputKind']);
 const MEDIA_TYPES = ['image', 'video', 'audio'];
 const FLOW_TYPES = ['create', 'edit', 'enhance'];
 
@@ -181,6 +181,8 @@ function validatePackage(manifest, graph, files, known = loadKnown()) {
     for (const k of ['modelSizedInputs', 'cropsToBox']) {
         if (op[k] !== undefined && typeof op[k] !== 'boolean') errors.push(`op.${k} must be true or false.`);
     }
+    // MPI-1071: a Flow whose result is words (Transcribe), not a file.
+    if (op.outputKind !== undefined && op.outputKind !== 'text') errors.push('op.outputKind must be "text".');
     for (const k of ['title', 'description']) {
         if (typeof flow[k] !== 'string' || !flow[k].trim()) errors.push(`flow.${k} is required.`);
     }

@@ -636,6 +636,32 @@ test('the Voice Changer Flow carries its two audio inputs and the audio capture 
         `${file} takes no prompt — a node titled Input_Positive would be written with ''`);
 });
 
+test('the Transcribe Flow takes an audio or a video and captures the SRT (MPI-1071)', () => {
+    const file = 'flow_transcribe.json';
+    const have = titlesOf(file);
+    for (const title of ['input_audio', 'input_video', 'input_context', 'output_prompt']) {
+        assert.ok(have.has(title), `${file} must carry a node titled "${title}"`);
+    }
+    assert.ok(!have.has('input_positive'),
+        `${file} takes no prompt — a node titled Input_Positive would be written with ''`);
+
+    const graph = JSON.parse(fs.readFileSync(path.join(WORKFLOWS, file), 'utf8'));
+    const idOf = t => Object.keys(graph).find(k => graph[k]._meta?.title?.toLowerCase() === t);
+    // Output_prompt reads MpiSpeechToText's SECOND output, `srt`: the renderer derives the
+    // plain text from it. Slot 0 (`text`) here would leave the .srt with nothing to write.
+    const out = graph[idOf('output_prompt')].inputs.source;
+    assert.strictEqual(graph[out[0]].class_type, 'MpiSpeechToText');
+    assert.strictEqual(out[1], 1, `${file}: Output_prompt must read the srt output (slot 1)`);
+    // The audio wins when it loaded, else the video: an MpiIfElse forked on Input_Audio's
+    // `loaded`. Neither loader blocks, so an empty run returns '' instead of vanishing.
+    const pick = Object.values(graph).find(n => n.class_type === 'MpiIfElse');
+    assert.deepStrictEqual(pick.inputs.boolean, [idOf('input_audio'), 1]);
+    assert.deepStrictEqual([pick.inputs.true[0], pick.inputs.false[0]], [idOf('input_audio'), idOf('input_video')]);
+    for (const t of ['input_audio', 'input_video']) {
+        assert.strictEqual(graph[idOf(t)].inputs.block_if_empty, false, `${file}: ${t} must not block`);
+    }
+});
+
 // DramaBox was the opposite half of Voice Changer here — a graph that DOES read a prompt,
 // so `input_positive` had to be PRESENT where the flow above requires its absence, with
 // its negative baked on DramaBoxTextEncode rather than titled. It left the app as a Flow

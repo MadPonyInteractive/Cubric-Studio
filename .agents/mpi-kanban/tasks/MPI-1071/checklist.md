@@ -11,5 +11,10 @@
 - [x] Ollama backend: research + Fabio's yes, `/llm/transcribe` (Gemma 4 12B), Settings row, mic gate, tests
 - [ ] Ollama backend: Fabio's mic test in the app
 - [ ] ComfyUI backend: Fabio's mic test in the app
-- [ ] Phase 4: Transcribe Flow planned
+- [x] Phase 4: Transcribe Flow planned
+- [x] 4a: MpiSpeechToText srt output + long audio, MpiNodes 1.2.19 released + pinned
+- [x] 4b: flowTranscribe op (4 files) + flow_transcribe.json + FlowDef (dev builds only until 4c)
+- [ ] 4c: MpiBaseFlow onText + result Primitive (text box, Copy, Download .srt)
+- [ ] 4d: .srt route + agentDispatch output {text, srtPath} + MCP/chat tile
+- [ ] 4e: tile + hero, docs/agent/flows.md, docs/flow-packages.md (op.outputKind), UNRELEASED.md, tests, privacy check; lift the dev_mode gate
 - [x] Docs: `docs/dictation.md`, `docs/llm.md` (Remote + Ollama; ComfyUI lines when it lands)
