@@ -130,11 +130,17 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes onl
     const REF = { role: 'image2', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fdress.png' };
     const run = (change, words, age = -1) => ({ change, words, Input_Age: age, mediaItems: [{ role: 'image1', url: 'x' }, REF] });
     // The F2 bench strings (validation.md): round 1's shape, only the close-up named - naming the back view
-    // with a reference drew the reference person as an extra figure (round 2).
-    const TAIL = ' Dress the character the same way in the close-up portrait on the right. Keep everything else exactly as it is.';
-    assert.strictEqual(buildChangePrompt('clothes', '', true), 'Dress the character in the outfit from the reference picture.' + TAIL);
+    // with a reference drew the reference person as an extra figure (round 2). The old clothes are taken off
+    // in words (rounds 4-7: a bikini kept the jeans); "everything else" only with no words, since with words
+    // it stripped what they left out (a jacket + scarf cut the trousers to shorts).
+    const TAIL = ' Dress the character the same way in the close-up portrait on the right, with the same neckline and '
+        + 'straps. Keep everything else exactly as it is.';
+    assert.strictEqual(buildChangePrompt('clothes', '', true), 'Dress the character in only the outfit from the reference '
+        + 'picture. Take off everything else the character wears now, trousers, skirt and top included.' + TAIL);
     assert.strictEqual(buildChangePrompt('clothes', 'the green jacket.', true),
-        'Dress the character in the outfit from the reference picture: the green jacket.' + TAIL);
+        'Dress the character in the outfit from the reference picture: the green jacket, replacing all of the clothes '
+        + 'the character wears now, top and bottom.' + TAIL);
+    assert.doesNotMatch(buildChangePrompt('clothes', 'the green jacket', true), /everything else the character/);
     assert.doesNotMatch(buildChangePrompt('clothes', '', true), /back view|behind/);
     // Accessories and Hairstyle ignore the picture: from one, a hat or a hairstyle reached every panel 1 time in 8.
     assert.strictEqual(buildChangePrompt('accessories', '', true), null);

@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-10-11 (session 91594267, later) - FABIO'S RE-TEST: bodies pass, close-up drifted back; ROUND 8 fixed it (close-up
+line + "with the same neckline and straps", 3/3 incl. his seed), wired, uncommitted. NEXT = Fabio's re-test after a
+RESTART (his app ran old code once), "1" -> mpi-end-session.**
+
+**2026-10-11 (session 91594267) - ROUND 7 DONE, BUILDER WIRED (uncommitted); NEXT = Fabio's re-test in his app, "1" ->
+mpi-end-session.** Clothes + reference: no words -> D (take off everything else); words -> W (", replacing all of the
+clothes the character wears now, top and bottom"). The round-3 string with words kept the jeans on s7, so it is gone.
+Limit: partial words can bring the picture's other garments (validation.md § Round 7). Tests 33/33, eslint clean,
+playbook updated. Also committed (local, NOT pushed - master CI red on `llm-settings-remote.spec.js`, run 38126870189,
+MPI-1071's area): peers' flowsRegistry video-edit hero + two UNRELEASED.md lines (MPI-1060, MPI-1075), commit f196da565.
+Claim `state/files/91594267-mpi1041-phaseF2b.json`.
+
 **2026-10-11 (session 86c11386, last) - FABIO'S EYE TEST FAILED (a bikini kept the jeans); rounds 4-6 found the wording
 (validation.md § F2 rounds 4-5 + Round 6). COMMITTED, builder NOT yet changed. NEXT:** (1) bench 2 runs: Fabio's
 cut-out bikini (`G:/ComfyUi/ComfyUI/input/mpi1041f2_ref_bikinicut.png` on `mpi1041f2_fabio2_sheet.png`, s42 + s7) with

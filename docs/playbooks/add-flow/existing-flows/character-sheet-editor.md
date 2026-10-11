@@ -62,6 +62,13 @@ lazy). The builder sets `Input_Reference` only on the change leg of Clothes: an 
 the run is handed the user's media too. Words become optional with a reference; any age 0-17 refuses
 it (`docs/child-safety.md`). With a reference the wording names only the close-up: naming the back
 view let Klein draw the reference person as an extra figure, even under lock 1 (validation.md § F2).
+It must also take the OLD clothes off in words, or Klein keeps what the picture does not cover (a
+bikini kept the jeans): no words -> "only the outfit ... take off everything else"; with words ->
+"...: <words>, replacing all of the clothes ... top and bottom". Never the take-off clause with
+words: it strips what the words leave out (jacket + scarf -> trousers cut to shorts). Known limit:
+with partial words the picture's other garments can still come along (its trousers replaced hers).
+The close-up line names "the same neckline and straps": without it the close-up drifted back to the
+old top in the late steps on some seeds (round 8).
 Accessories and Hairstyle ignore the picture: a hat or a haircut from one reached all three panels
 1 time in 8.
 

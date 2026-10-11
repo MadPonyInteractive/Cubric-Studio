@@ -79,9 +79,20 @@ export function buildChangePrompt(change, words, ref = false) {
     const w = _words(words);
     // With a reference only the close-up is named: the picture brings a second figure, and naming the back
     // view let Klein draw it as an extra one (F2 round 2: 2 of 5 layouts broken; round 1's shape kept 8 of 8).
+    // The old clothes must be taken off in words, or Klein keeps what the picture does not cover (Fabio's
+    // bikini kept the jeans, F2 rounds 4-7). With no words the picture IS the outfit, so everything else
+    // goes; with words that would strip what they leave out (a jacket and scarf cut the trousers to shorts),
+    // so they get the softer "replacing" clause (bikini 2/2, jacket kept full-length trousers 2/2). The
+    // close-up drifted back to the old top in the late steps on Fabio's seed until its neckline and straps
+    // were named (round 8: 3/3).
     if (ref && change === 'clothes') {
-        return `Dress the character in the outfit from the reference picture${w ? `: ${w}` : ''}. `
-            + 'Dress the character the same way in the close-up portrait on the right. Keep everything else exactly as it is.';
+        const tail = 'Dress the character the same way in the close-up portrait on the right, with the same neckline and '
+            + 'straps. Keep everything else exactly as it is.';
+        return w
+            ? `Dress the character in the outfit from the reference picture: ${w}, replacing all of the clothes the `
+                + `character wears now, top and bottom. ${tail}`
+            : 'Dress the character in only the outfit from the reference picture. Take off everything else the character '
+                + `wears now, trousers, skirt and top included. ${tail}`;
     }
     if (!w) return null;
     switch (change) {

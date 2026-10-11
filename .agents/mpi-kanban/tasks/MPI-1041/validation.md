@@ -781,3 +781,31 @@ fisher s3, dress + words -> photo s42 all **pass**. **jacket + words "the green 
 **Verdict:** D when the words are EMPTY (the picture is the outfit); with words, the round-3 string (words name what
 changes, the rest is kept - round 3 jacketw kept the trousers). NOT benched: the bikini cut-out WITH words on the
 round-3 string (W passed with the replace clause; untested without it) - 2 runs before shipping.
+
+**Round 7** (session 91594267; `qf2h.py` + `qf2i.py`, outputs `w7_*`, contact sheets in that session's scratchpad):
+(a) the round-3 string WITH words "the floral bikini" on Fabio's cut-out (no replace clause): s42 **pass**, s7 FAIL
+(bikini top, JEANS kept on the front, jean-coloured shins on the back) - so words alone do not take the old clothes
+off. (b) W (the replace clause + words) on round 6's partial case (jacket picture, words "the green quilted jacket
+and the striped scarf", photo sheet): s42 + s7 layout kept, jacket + scarf on all three panels, trousers stay
+full-length - but they become the PICTURE's brown corduroys (the replace clause takes the picture's whole outfit).
+**Shipped:** no words -> D; words -> W. Never D with words (shorts). Limit, told to Fabio: with words naming part of
+an outfit, the picture's other garments can still come along. Builder + test + playbook § Reference picture updated;
+`node --test tests/character-sheet-editor.test.cjs tests/agent-flow-handover.test.cjs` 33/33, eslint clean.
+
+**Fabio's in-app re-test** (after a restart; sidecars `flowCSE_005` + `flowCharacterSheet_007` confirm D ran): bodies
+pass (bikini, no jeans; back keeps the black shoes - the take-off list names no shoes, by choice: a dress cut-out
+with no shoes would leave her barefoot; "barefoot" in the words covers it). Close-up FAIL: the old black halter.
+His preview showed the bikini at 25% and lost it by 50% - Klein drifts back in the late steps. The Headless leg is
+NOT the cause: `flowCSE_005` -> `flowCharacterSheet_007` changes 0 px on the back and close-up, only the front head.
+Before the restart his words run ("She's barefoot and only wearing the bikini.") ran the OLD string: bodies pass, the
+close-up kept the halter too.
+
+**Round 8** (`qf2j.py`, `w8_*`, contact sheet in session 91594267's scratchpad `w8_contact.png`): his seed 1237334346
+reproduces the miss with D. **DN** = D with the close-up line "...in the close-up portrait on the right, with the same
+neckline and straps." (F1's keyhole fix): close-up floral bikini on his seed, s42 and s7 - **3/3**, bodies pass all
+three. Shipped on both reference strings (D and W share the close-up line); W + that line not benched on its own.
+Tests 33/33, eslint clean.
+
+**Fabio's eye test PASSED** (2026-10-11, his app after a restart, no words, his sheet + bikini cut-out): bikini on all three
+panels, close-up included, no jeans ("Fabulastic"). Sidecar `flowCharacterSheet_008` (seed 1783011381) confirms the DN
+string ran - a 4th seed on top of round 8's three.
