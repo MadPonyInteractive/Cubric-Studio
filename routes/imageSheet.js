@@ -33,7 +33,7 @@ const logger = require('./logger');
 const { nextSequence, writeImageRenditions } = require('./projects');
 const { resolveAbsPath, isEligibleStillImage } = require('./gifMake');
 const {
-    SHEET_SHAPES, SHEET_SIZES, isValidTree, sheetPixelSize, sheetGutter, placeSheet, frameRect,
+    SHEET_SHAPES, SHEET_SIZES, isValidTree, sheetPixelSize, sheetGutter, placeSheet, frameRect, autoRatio,
 } = require('../js/utils/sheetLayout.js');
 
 const GREY = { r: 128, g: 128, b: 128 };   // under a transparent picture's see-through parts
@@ -61,7 +61,7 @@ async function renderSheet(sources, { tree, shape, longEdge, frames = [] }) {
     }
     const aspects = dims.map(d => d.width / d.height);
     const fixed = SHEET_SHAPES.find(s => s.value === shape)?.r;
-    const r = fixed || Math.min(16 / 9, Math.max(9 / 16, _treeRatio(tree, aspects)));
+    const r = fixed || autoRatio(_treeRatio(tree, aspects));
     const { width, height } = sheetPixelSize(r, longEdge);
     const cells = placeSheet(tree, aspects, width, height, sheetGutter(width, height));
 

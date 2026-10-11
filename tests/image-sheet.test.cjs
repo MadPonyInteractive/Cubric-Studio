@@ -30,6 +30,7 @@ test('Auto picks a shape the pictures fill: nothing padded, nothing cropped', ()
     for (const aspects of [[0.75, 0.75], [0.75, 0.55, 1.5], [1.33, 0.7, 1, 1.78, 0.6]]) {
         const { tree, r } = packSheet(aspects);
         assert.ok(isValidTree(tree, aspects.length));
+        assert.ok(r >= 1, `Auto went portrait: ${r}`);   // wide or square only (Fabio, 2026-10-11)
         assert.ok(coverage(tree, aspects, r) > 0.97, `${aspects}: ${coverage(tree, aspects, r)}`);
     }
 });
@@ -59,7 +60,7 @@ test('A 30-picture mood board packs fast and keeps every picture', () => {
 
 test('Cells never overlap and stay inside the sheet', () => {
     const aspects = [0.75, 0.55, 1.5, 0.8, 1.33, 0.7];
-    for (const shape of [null, 1, 16 / 9, 9 / 16]) {
+    for (const shape of [null, 1, 8 / 5, 16 / 9]) {
         const { tree, r } = packSheet(aspects, { shape });
         const { width, height } = sheetPixelSize(r, 4096);
         const gut = sheetGutter(width, height);

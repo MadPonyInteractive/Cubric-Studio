@@ -22,17 +22,16 @@ export const SHEET_SHAPES = [
     { value: 'auto', label: 'Auto', r: null },
     { value: '1:1', label: '1:1', r: 1 },
     { value: '4:3', label: '4:3', r: 4 / 3 },
-    { value: '3:4', label: '3:4', r: 3 / 4 },
     { value: '3:2', label: '3:2', r: 3 / 2 },
-    { value: '2:3', label: '2:3', r: 2 / 3 },
+    { value: '8:5', label: '8:5', r: 8 / 5 },
     { value: '16:9', label: '16:9', r: 16 / 9 },
-    { value: '9:16', label: '9:16', r: 9 / 16 },
 ];
+// Wide or square only (Fabio, 2026-10-11: a wide sheet works better; 8:5 is his most used).
 
 /** Long edge, px. 16384 is past sharp's default pixel limit: every reader passes `limitInputPixels: false`. */
 export const SHEET_SIZES = [2048, 4096, 8192, 16384];
 
-const AUTO_MIN = 9 / 16;   // Auto never picks a shape thinner than 9:16 or wider than 16:9
+const AUTO_MIN = 1;        // Auto never picks a portrait sheet, nor one wider than 16:9
 const AUTO_MAX = 16 / 9;
 const TREE_MAX = 8;        // exhaustive trees: ~50 ms at 8 pictures, ~350 ms at 9
 const FAIR = 0.6;          // no picture under 60% of its fair share (Bigger counts double)
@@ -146,8 +145,12 @@ export function packSheet(aspects, { weights = [], shape = null } = {}) {
         const s = _shapeFit(t.r, shape) * Math.min(1, t.worst / FAIR) + 0.01 * Math.min(1, t.worst);
         if (s > bestScore) { best = t; bestScore = s; }
     }
-    const r = shape || Math.min(AUTO_MAX, Math.max(AUTO_MIN, best.r));
-    return { tree: _strip(best), r };
+    return { tree: _strip(best), r: shape || autoRatio(best.r) };
+}
+
+/** Auto's sheet shape for a tree of shape `treeR`: its own, kept inside the Auto range. */
+export function autoRatio(treeR) {
+    return Math.min(AUTO_MAX, Math.max(AUTO_MIN, treeR));
 }
 
 /** True when `tree` names every picture 0..count-1 exactly once (the server's trust check). */
