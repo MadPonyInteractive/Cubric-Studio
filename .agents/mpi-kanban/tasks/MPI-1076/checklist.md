@@ -8,5 +8,5 @@
 - [x] (6) StatusBar.notify / ui:* relays use the MPI-542 reading time, not a flat 6 s
 - [x] (7) Queue-finished toast fires once per drained queue, after the last item has saved
 - [x] docs/toasts.md updated
-- [x] tests pass (3095/3095 + 5 new checks)
-- [ ] Walk the remaining ~230 toast sites one by one (true / on time / not said elsewhere): only if Fabio wants it beyond the five he saw
+- [x] tests pass (3097/3097); CI green on 592c61562 and 7c4690aff
+- [x] Full walk of the remaining ~230 toast sites: skipped, Fabio 2026-10-11 (fix them as he spots them)
