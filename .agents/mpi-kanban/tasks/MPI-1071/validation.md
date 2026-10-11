@@ -27,3 +27,31 @@
   clip 4 "detention clips".
 - Same with `--context "Cubric Studio"` on clips 1 + 5 -> both "Cubric Studio". Context biasing works
   locally.
+- Registered in MpiNodes (`df6d3d3`, local only). GPU run with `--context "Cubric Studio"`: CUDA,
+  shared with a peer's Gemma 12B run, 3-5 s a clip warm, 13 s the first; clips 1 + 5 "Cubric Studio".
+
+## Ollama backend (2026-10-11, Fabio's yes)
+
+- Research bench (`bench3-ollama/`, private): gemma4:12b both routes OK ~2 s, 8.5 GB loaded; e4b
+  8/10 HTTP 500 + 2/10 5-min hangs. With "Words the speaker may use: Cubric Studio." 12b got
+  clips 1, 3, 5 right.
+- `node --test tests/llm-transcribe.test.cjs` -> 5 pass (request body, words, translate, real
+  ffmpeg WebM -> 16 kHz mono WAV, unreadable bytes reject). With `deepinfra-transcribe` + storage
+  + windows-hide suites: 66 pass, 0 fail. `npx eslint` on the 4 changed JS files -> clean.
+- `routes/llm.js` mounted alone in express, real WebM clip 5 -> `{ok:true, text:"...Cubric Studio...",
+  backend:"ollama", model:"gemma4:12b"}`; empty body and garbage bytes -> clean `ok:false`.
+  Ollama answers 404 for a model it lacks (checked) -> `NO_MODEL`.
+- Own `app:isolated` (port 58942, own profile, no DeepInfra key), `MpiLlmSettings` mounted in the
+  page: Remote default (note + Speech model row shown); pick Ollama -> model row hidden, Download
+  row "Ollama is running, and gemma4:12b is downloaded and ready.", `mpi_dictation_backend`
+  stored; Remote/Ollama toggled 3x -> one Download row, none on Remote. Mic via
+  `attachDictation`: Remote with no key -> disabled + "needs a DeepInfra key"; Ollama -> enabled.
+  `POST :58942/llm/transcribe?words=Cubric%20Studio` with clip 1 -> correct text, "Cubric Studio".
+- NOT checked by me: speaking into a real mic in the app (needs Fabio: `user-ux`).
+- Fabio's mic test 1 (2026-10-11, Ollama): "pretty decent", fast. Asked for (a) a status bar
+  wait bar, (b) Ollama NOT to reload per take but to clear when a generation starts, (c) a ComfyUI
+  option (= Phase 3). Names misheard without a word list ("Fabian Gordon-Calves", "Cuberix").
+- (a)+(b) built. Own `app:isolated` (port 50067): `runWorkflow` with fetch stubbed (the `/prompt`
+  never left the page) -> POST order `/llm/ollama/unload`, `/prompt`. Fake mic (oscillator) + a 3 s
+  stubbed `/llm/transcribe` -> bar "TRANSCRIBING" + pulse, mic `busy`; after -> "IDLE · Local", text
+  inserted. `node --test` comfyController suites 328/328, llm-transcribe 5/5; eslint clean.

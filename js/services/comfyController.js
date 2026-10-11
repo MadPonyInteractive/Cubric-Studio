@@ -1916,6 +1916,10 @@ function createEngine({ engine, alwaysLocal }) {
                 if (typeof opts.beforePromptSubmit === 'function') {
                     await opts.beforePromptSubmit({ serverReady, workflow, params });
                 }
+                // MPI-1071 (Fabio): Ollama keeps a model warm between dictation takes, so it is
+                // cleared HERE, as a local job starts, not after every take. An idle LLM beside a
+                // generation pushes it over PCIe (MPI-14: sub-10 s render -> 3 min). A Pod has its own GPU.
+                if (isLocalRun) await fetch('/llm/ollama/unload', { method: 'POST' }).catch(() => null);
                 const req = await fetch(`${this.httpBase()}/prompt`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

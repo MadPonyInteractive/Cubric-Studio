@@ -24,6 +24,7 @@ export const STORAGE_KEYS = {
   // MPI-946: dictation writes English whatever language is spoken (Whisper's `translate`).
   DICTATION_TRANSLATE: 'mpi_dictation_translate',
   DICTATION_MODEL: 'mpi_dictation_model',
+  DICTATION_BACKEND: 'mpi_dictation_backend',
 
   // MPI-803: playback OUTPUT device. Applied to every media element by
   // js/utils/audioOutput.js, not by the playback sites.

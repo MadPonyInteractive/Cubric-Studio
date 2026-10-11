@@ -9,7 +9,7 @@ import { MpiOllamaSetup } from '../../Compounds/LandingPages/MpiOllamaSetup/MpiO
 import { secretsClient } from '../../../core/secretsClient.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { hasNoEngine } from '../../../services/engineGate.js';
-import { DICTATION_MODELS } from '../../../services/dictation.js';
+import { DICTATION_MODELS, setDictationBackend } from '../../../services/dictation.js';
 import {
     backendPreference,
     setBackendPreference,
@@ -195,9 +195,11 @@ export const MpiLlmSettings = ComponentFactory.create({
 
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Speech to text</label>
-                            <div class="mpi-settings__fixed-value">Remote · DeepInfra</div>
+                            <div id="mpiSettingsSpeechBackendSlot"></div>
+                            <span class="mpi-settings__hint" id="mpiSettingsSpeechBackendNote"></span>
                         </div>
-                        <div class="mpi-settings__form-group">
+                        <div id="mpiSettingsSpeechInstallSlot"></div>
+                        <div class="mpi-settings__form-group" id="mpiSettingsSpeechModelGroup">
                             <label class="mpi-settings__field-label">Speech model</label>
                             <div id="mpiSettingsSpeechModelSlot"></div>
                             <span class="mpi-settings__hint">What the mic on the prompt box and the Agent panel uses. Whisper covers more languages; Qwen hears more accurately. "Dictate in English" always uses Whisper Large v3.</span>
@@ -925,17 +927,51 @@ export const MpiLlmSettings = ComponentFactory.create({
                 : _errorText(_remote));
         }
 
-        // MPI-1071: dictation always runs on the DeepInfra key (`/deepinfra/transcribe`),
-        // whichever connection is picked above; this row only chooses its model.
+        // MPI-1071: dictation runs on Remote = the DeepInfra key (`/deepinfra/transcribe`) whichever
+        // connection is picked above, with a model pick; or on Ollama = Gemma 4 12B
+        // (`/llm/transcribe`), the only Ollama model that hears, so no pick, only its Download row.
+        const SPEECH_BACKENDS = [
+            { value: 'endpoint', label: 'Remote', meta: 'DeepInfra, a fraction of a cent a minute' },
+            { value: 'ollama', label: 'Ollama (local)', meta: 'Gemma 4 12B, about 8.5 GB of VRAM' },
+        ];
+        const SPEECH_OLLAMA_MODEL = 'gemma4:12b';
+        const SPEECH_NOTES = {
+            endpoint: 'Your voice goes to DeepInfra on your own key.',
+            ollama: 'Your voice stays on this computer. Gemma 4 12B loads beside any running generation, so it needs room in VRAM.',
+        };
         function _renderSpeechModel(root) {
-            const slot = qs('#mpiSettingsSpeechModelSlot', root);
+            const slot = qs('#mpiSettingsSpeechBackendSlot', root);
             if (!slot) return;
-            const inst = _conn(MpiDropdown.mount(slot, {
-                options: DICTATION_MODELS,
-                value: Storage.getDictationModel() || DICTATION_MODELS[0].value,
+            const backend = _conn(MpiDropdown.mount(slot, {
+                options: SPEECH_BACKENDS,
+                value: Storage.getDictationBackend(),
                 extraClasses: STACKED,
             }));
-            inst.on('change', ({ value }) => Storage.setDictationModel(value));
+            backend.on('change', ({ value }) => { setDictationBackend(value); _paintSpeech(root, value); });
+
+            const modelSlot = qs('#mpiSettingsSpeechModelSlot', root);
+            if (modelSlot) {
+                const model = _conn(MpiDropdown.mount(modelSlot, {
+                    options: DICTATION_MODELS,
+                    value: Storage.getDictationModel() || DICTATION_MODELS[0].value,
+                    extraClasses: STACKED,
+                }));
+                model.on('change', ({ value }) => Storage.setDictationModel(value));
+            }
+            _paintSpeech(root, Storage.getDictationBackend());
+        }
+
+        let _speechInstall = null;
+        function _paintSpeech(root, backend) {
+            _setText(root, '#mpiSettingsSpeechBackendNote', SPEECH_NOTES[backend]);
+            const group = qs('#mpiSettingsSpeechModelGroup', root);
+            if (group) group.hidden = backend === 'ollama';
+            // Still tracked = still mounted; a provider re-pick already destroyed an untracked one.
+            const tracked = _connInsts.indexOf(_speechInstall);
+            if (tracked >= 0) { _speechInstall.destroy(); _connInsts.splice(tracked, 1); }
+            _speechInstall = null;
+            const slot = qs('#mpiSettingsSpeechInstallSlot', root);
+            if (slot && backend === 'ollama') _speechInstall = _conn(MpiOllamaSetup.mount(slot, { modelId: SPEECH_OLLAMA_MODEL }));
         }
 
         function _renderAgentMode(root) {

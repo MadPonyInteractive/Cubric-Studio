@@ -1,8 +1,11 @@
 { "schema": "mpi-kanban/task-files/v1", "files": [
   "routes/deepinfra.js",
+  "routes/llm.js",
+  "tests/llm-transcribe.test.cjs",
   "js/core/storage.js",
   "js/core/storageKeys.js",
   "js/services/dictation.js",
+  "js/services/comfyController.js",
   "js/components/Organisms/MpiLlmSettings/MpiLlmSettings.js",
   "js/components/Organisms/MpiLlmSettings/MpiLlmSettings.css",
   "js/components/Compounds/LandingPages/MpiSettings/MpiSettings.js",
@@ -17,6 +20,9 @@
   "dev_configs/node_lock.json",
   "docs/dictation.md",
   "docs/llm.md",
-  "C:/AI/Mpi/ComfyUi-MpiNodes/speech_to_text.py",
+  "C:/AI/Mpi/ComfyUi-MpiNodes/speech.py",
+  "C:/AI/Mpi/ComfyUi-MpiNodes/check_speech.py",
+  "C:/AI/Mpi/ComfyUi-MpiNodes/README.md",
+  "C:/AI/Mpi/ComfyUi-MpiNodes/changelog.md",
   "C:/AI/Mpi/ComfyUi-MpiNodes/__init__.py"
 ] }

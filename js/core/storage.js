@@ -289,6 +289,9 @@ export const Storage = {
   // (`STT_MODELS`, routes/deepinfra.js). '' = the server's default.
   getDictationModel: () => String(get(STORAGE_KEYS.DICTATION_MODEL, '') || ''),
   setDictationModel: (v) => set(STORAGE_KEYS.DICTATION_MODEL, String(v || '')),
+  // MPI-1071 — where dictation runs: 'endpoint' (DeepInfra) or 'ollama' (Gemma 4 12B, local).
+  getDictationBackend: () => (get(STORAGE_KEYS.DICTATION_BACKEND, 'endpoint') === 'ollama' ? 'ollama' : 'endpoint'),
+  setDictationBackend: (v) => set(STORAGE_KEYS.DICTATION_BACKEND, v === 'ollama' ? 'ollama' : 'endpoint'),
 
   // MPI-803 — playback output. An empty `deviceId` means the OS default endpoint, which
   // is what the app did unconditionally before this existed. A stored id is machine-local,

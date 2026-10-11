@@ -8,5 +8,7 @@
 - [ ] Phase 3: MpiNodes `MpiSpeechToText` node, tested on the clips, pinned
 - [ ] Phase 3: Qwen3-ASR-0.6B deps on R2 + plugin owner
 - [ ] Phase 3: `speechTranscribe` op + workflow, dictation runs on ComfyUI
+- [x] Ollama backend: research + Fabio's yes, `/llm/transcribe` (Gemma 4 12B), Settings row, mic gate, tests
+- [ ] Ollama backend: Fabio's mic test in the app
 - [ ] Phase 4: Transcribe Flow planned
-- [ ] Docs: `docs/dictation.md`, `docs/llm.md`
+- [x] Docs: `docs/dictation.md`, `docs/llm.md` (Remote + Ollama; ComfyUI lines when it lands)

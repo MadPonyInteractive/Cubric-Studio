@@ -22,6 +22,8 @@
  *   POST /llm/ollama/start    -> { status: 'running'|'started'|'missing'|'failed' }
  *   POST /llm/ollama/install  -> { ok }   ok:false = no silent install here, open the download page
  *   POST /llm/ollama/pull     -> { ok } | { ok:false, error }   body { modelId }
+ *   POST /llm/transcribe      -> { ok, text, backend, model } | { ok:false, error:{ code, message } }
+ *                                body: a recording; speech to text on Ollama's Gemma 4 12B (MPI-1071)
  *   POST /llm/connection/probe  -> { ok, latencyMs, modelCount }      body { profileId }
  *   GET  /llm/connection/models -> { ok, profileId, models }          ?profileId=
  *
@@ -613,4 +615,92 @@ router.post('/llm/describe', async (req, res) => {
     }
 });
 
+// ── Speech to text on Ollama (MPI-1071) ─────────────────────────────────────
+//
+// Gemma 4 is the only Ollama family that hears (`audio` in `/api/tags` capabilities). Benched
+// 2026-10-11 on Fabio's 5 clips, Ollama 0.35.1: gemma4:12b ~2 s a clip, 8.5 GB loaded; e4b
+// answered 500 on 8 of 10 and hung on 2 (ollama#15333), so 12b is the one. Ollama documents no
+// audio field: a 16 kHz mono WAV, bare base64 in `images`, is what works, with `think: false`
+// (a thinking reply comes back empty). The `/v1` `input_audio` route also works but drops
+// capitals and punctuation. A "Words the speaker may use" line fixed every misspelled name.
+const STT_OLLAMA_MODEL = 'gemma4:12b';
+const STT_OLLAMA_TIMEOUT_MS = 120_000; // a cold 8 GB load plus a minute of speech; under fetch's 300 s
+const STT_OLLAMA_MAX_BYTES = 25 * 1024 * 1024;
+
+/** The `/api/chat` body for one recording. `words`: names and terms to spell the user's way. */
+function transcribeChat(wavBase64, { translate = false, words = '' } = {}) {
+    const ask = translate
+        ? 'Translate the speech in this audio into English. Output only the English text, nothing else.'
+        : 'Transcribe this audio verbatim. Output only the transcript, nothing else.';
+    const hint = String(words || '').trim();
+    return {
+        model: STT_OLLAMA_MODEL,
+        stream: false,
+        think: false,
+        options: { temperature: 0 },
+        messages: [{ role: 'user', content: hint ? `${ask} Words the speaker may use: ${hint}.` : ask, images: [wavBase64] }],
+    };
+}
+
+/** Any recording ffmpeg reads -> 16 kHz mono WAV bytes, through pipes (nothing written to disk). */
+function _toWav(audio) {
+    const { spawn } = require('child_process');
+    const { ffmpegPath } = require('../services/ffmpegBinary');
+    return new Promise((resolve, reject) => {
+        const ff = spawn(ffmpegPath, ['-v', 'error', '-i', 'pipe:0', '-ac', '1', '-ar', '16000', '-f', 'wav', 'pipe:1'], { windowsHide: true });
+        const out = [];
+        let err = '';
+        ff.stdout.on('data', (c) => out.push(c));
+        ff.stderr.on('data', (c) => { err += c; });
+        ff.on('error', reject);
+        ff.on('close', (code) => (code === 0 ? resolve(Buffer.concat(out)) : reject(new Error(`ffmpeg ${code}: ${err.trim().slice(0, 200)}`))));
+        ff.stdin.on('error', () => { /* ffmpeg quit early; `close` reports it */ });
+        ff.stdin.end(audio);
+    });
+}
+
+/**
+ * POST /llm/transcribe[?translate=1][&words=<names, terms>]   body: the recording's bytes
+ *   -> { ok:true, text, backend:'ollama', model }
+ *   -> { ok:false, error:{ code, message } }   NO_OLLAMA | NO_MODEL | OLLAMA_ERROR
+ * Starts Ollama when it is installed and stopped, the same as Enhance on Ollama.
+ */
+router.post('/llm/transcribe', express.raw({ type: () => true, limit: STT_OLLAMA_MAX_BYTES }), async (req, res) => {
+    const fail = (code, message) => res.json({ ok: false, error: { code, message } });
+    const audio = Buffer.isBuffer(req.body) ? req.body : null;
+    if (!audio?.length) return fail('OLLAMA_ERROR', 'No recording arrived.');
+
+    const status = await ollamaLifecycle.ensureOllama().catch(() => 'failed');
+    if (status === 'missing' || status === 'failed') {
+        return fail('NO_OLLAMA', 'Ollama is not running. Start it in Settings > Where each job runs, or pick Remote for speech to text.');
+    }
+    try {
+        const wav = await _toWav(audio);
+        const { OllamaEngine } = await engines();
+        const upstream = await fetch(`${new OllamaEngine().baseUrl}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(transcribeChat(wav.toString('base64'), {
+                translate: req.query.translate === '1',
+                words: req.query.words,
+            })),
+            signal: AbortSignal.timeout(STT_OLLAMA_TIMEOUT_MS),
+        });
+        const json = await upstream.json().catch(() => null);
+        if (upstream.status === 404) {
+            return fail('NO_MODEL', `Gemma 4 12B is not downloaded in Ollama. Download it in Settings > Where each job runs.`);
+        }
+        if (!upstream.ok || typeof json?.message?.content !== 'string') {
+            logger.warn('system', `ollama transcribe: HTTP ${upstream.status} ${String(json?.error || '').slice(0, 200)}`);
+            return fail('OLLAMA_ERROR', 'Ollama could not transcribe that recording.');
+        }
+        res.json({ ok: true, text: json.message.content.trim(), backend: 'ollama', model: STT_OLLAMA_MODEL });
+    } catch (err) {
+        logger.warn('system', `ollama transcribe failed: ${err && err.message}`);
+        fail('OLLAMA_ERROR', 'Ollama could not transcribe that recording.');
+    }
+});
+
 module.exports = router;
+module.exports.transcribeChat = transcribeChat;
+module.exports._toWav = _toWav;

@@ -4,7 +4,8 @@
  * A host mounts an MpiButton with the `mic` icon beside its textarea and hands both to
  * `attachDictation`. Click the mic, speak, click again; or hold Ctrl+Space, speak, release.
  * The recording goes to `POST /deepinfra/transcribe` (Whisper on the user's own DeepInfra
- * key) and the words land at the caret. Nothing is ever sent on the user's behalf: they read
+ * key), or to `POST /llm/transcribe` (Gemma 4 12B in the user's Ollama, MPI-1071) when Settings
+ * picks Ollama, and the words land at the caret. Nothing is ever sent on the user's behalf: they read
  * it, then press Enter.
  *
  * WEBM AS RECORDED. MediaRecorder's WebM/Opus goes up untouched: Whisper decodes it, and it is
@@ -25,6 +26,8 @@ import { hasCloudKey } from '../data/modelRegistry.js';
 import { clientLogger } from './clientLogger.js';
 import { on } from '../utils/dom.js';
 import { openMic } from '../utils/audioInput.js';
+import { StatusBar } from '../shell/statusBar.js';
+import { generationStore } from './generationStore.js';
 
 /**
  * The Remote transcribe models (MPI-1071), picked in Settings > Where each job runs. `value` is
@@ -37,7 +40,17 @@ export const DICTATION_MODELS = Object.freeze([
 ]);
 
 const INFO_READY ='Dictate: click, speak, click again. Or hold Ctrl+Space while you speak. Your voice is sent to DeepInfra to be written out';
+const INFO_LOCAL = 'Dictate: click, speak, click again. Or hold Ctrl+Space while you speak. Ollama writes it out on this computer';
 const INFO_NO_KEY = 'Dictate: needs a DeepInfra key. Add one in Settings';
+
+/**
+ * MPI-1071: where dictation runs, 'endpoint' (DeepInfra) or 'ollama' (`POST /llm/transcribe`,
+ * Gemma 4 12B on this computer, no key). Settings calls this so every mic re-reads its gate.
+ */
+export function setDictationBackend(value) {
+    Storage.setDictationBackend(value);
+    _hosts.forEach(h => { if (h.btn.dataset.dictate === 'idle') _mark(h, 'idle'); });
+}
 // A tap shorter than this is a slip, not speech, and is not worth a paid call.
 const MIN_MS = 300;
 
@@ -97,9 +110,10 @@ function _mark(host, stateName) {
     const { btn } = host;
     btn.dataset.dictate = stateName;
     btn.setActive?.(stateName === 'recording' || stateName === 'held');
-    const hasKey = hasCloudKey();
-    btn.setDisabled?.(stateName === 'busy' || !hasKey);
-    btn.dataset.info = hasKey ? INFO_READY : INFO_NO_KEY;
+    const local = Storage.getDictationBackend() === 'ollama';
+    const ready = local || hasCloudKey();
+    btn.setDisabled?.(stateName === 'busy' || !ready);
+    btn.dataset.info = local ? INFO_LOCAL : ready ? INFO_READY : INFO_NO_KEY;
 }
 
 async function _start(host, held) {
@@ -140,10 +154,20 @@ async function _finish(take) {
     }
     _mark(host, 'busy');
     const blob = new Blob(take.chunks, { type: take.recorder.mimeType || 'audio/webm' });
+    // The status bar shows the wait (Fabio, MPI-1071), like the GIF cutout: pulse + clock. It is the
+    // generations' bar, so only an idle one is borrowed, and it is handed back with the silent
+    // cancel() (complete() would book the take as a generation) unless a generation took it meanwhile.
+    const bar = !generationStore.getSnapshot().running.length;
+    if (bar) {
+        StatusBar.progress.prepare('Transcribing');
+        StatusBar.progress.setIndeterminate(true);
+        StatusBar.progress.startClock();
+    }
     try {
-        const q = new URLSearchParams({ model: Storage.getDictationModel() });
+        const local = Storage.getDictationBackend() === 'ollama';
+        const q = new URLSearchParams(local ? {} : { model: Storage.getDictationModel() });
         if (Storage.getDictationTranslate()) q.set('translate', '1');
-        const res = await fetch(`/deepinfra/transcribe?${q}`, {
+        const res = await fetch(`${local ? '/llm/transcribe' : '/deepinfra/transcribe'}?${q}`, {
             method: 'POST',
             headers: { 'Content-Type': blob.type },
             body: blob,
@@ -158,6 +182,7 @@ async function _finish(take) {
         clientLogger.warn('dictation', `transcribe failed: ${err?.message || err}`);
         Events.emit('ui:warning', { message: 'Dictation failed: the app could not reach its own server.' });
     } finally {
+        if (bar && !generationStore.getSnapshot().running.length) StatusBar.progress.cancel();
         _mark(host, 'idle');
     }
 }

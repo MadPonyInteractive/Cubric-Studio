@@ -88,11 +88,43 @@ Weights downloaded with Fabio's yes: `G:/CubricModels/speech_to_text/qwen3-asr-0
   local backend: the context box is the Wispr-style dictionary Fabio asked about.
 - GPU speed not measured yet (lease busy).
 
+2026-10-11 (session 8bb8a4b6): node REGISTERED in MpiNodes (`__init__.py`, README Video table,
+changelog under V1.2.18), local commit `df6d3d3` on top of `fe1fb6d`, both UNPUSHED (main ahead 2).
+GPU run: CUDA, sharing the card with a peer's Gemma 12B recipe test: 3-5 s a clip warm, 13 s the
+first (load + warm-up); context "Cubric Studio" spelled right in clips 1 and 5. A clean-GPU timing
+is still unmeasured, not a blocker.
+**Fabio said yes (2026-10-11) to Ollama as an opt-in THIRD backend** (gemma4:12b), ComfyUI stays
+the lighter default.
+
+**Ollama backend BUILT 2026-10-11 (uncommitted):** `POST /llm/transcribe` in `routes/llm.js`
+(`transcribeChat` + `_toWav`, ffmpeg pipes), `Storage.get/setDictationBackend`, `setDictationBackend`
+in `dictation.js` (re-marks mics; Ollama needs no key), Settings "Speech to text" = dropdown
+Remote | Ollama, Ollama hides the model row and mounts `MpiOllamaSetup` for `gemma4:12b`. Tests
+`tests/llm-transcribe.test.cjs`; docs `dictation.md` + `llm.md`. Verified end to end in an isolated
+app (validation.md). Fabio's mic test 1 on Ollama: "pretty decent". His follow-ups, BUILT + checked
+in an isolated app: status bar "Transcribing" (dictation.js, both backends); Gemma stays WARM
+between takes and `comfyController.runWorkflow` POSTs `/llm/ollama/unload` before a LOCAL `/prompt`
+(his call: no reload per take). Still to do: his re-test of those two (app RESTART: server route
+changed), his test of Remote Qwen + Turbo, and the **ComfyUI option in the Speech to text dropdown,
+which he asked for** (= item 3; blocked on his yes to push MpiNodes + upload weights to R2).
+The `words` query is wired server-side but nothing sends it yet: that is item 5's dictionary box
+(his test misheard "Fabio Goncalves" and "Cubric").
+
 Next, in order:
-1. Register the node in `__init__.py`, README, changelog (sibling procedure); GPU timing run.
-2. **Ollama as a third Speech to text backend (Fabio, 2026-10-11): research first** -
-   which Ollama models take audio input and transcribe (if any), how `/api/chat` or
-   `/api/generate` carries audio, VRAM, and whether it fits `services/ollamaLifecycle.js`.
+1. ~~Register the node~~ DONE (above).
+2. **Ollama as a third Speech to text backend: RESEARCHED 2026-10-11, Fabio said yes (opt-in).** Bench on his 5 clips, Ollama 0.35.1, output in
+   `.agents/mpi-kanban/private/MPI-1071/bench3-ollama/` (gitignored):
+   - Only **Gemma 4** carries Ollama's `audio` capability (`/api/tags` `capabilities`); the docs
+     never mention it. Shape that works: 16 kHz mono WAV, base64, in the message's **`images`**
+     on `/api/chat`, `think: false`, temperature 0. `/v1/chat/completions` `input_audio` also
+     works but drops capitals/punctuation on some clips. WebM must be converted first (server has
+     `services/ffmpegBinary`). Fits `OllamaEngine.chat` in `services/llmEngines.mjs` as-is.
+   - **gemma4:12b**: 1.6-2.3 s per clip warm, 8.5 GB VRAM loaded. Plain prompt: "Qubic"/"Q-Ring"
+     for Cubric, one garbled phrase. **With "Words the speaker may use: Cubric Studio." in the
+     prompt, all three bad clips came out right** - beat Remote Qwen 1.7B on clip 5. The dictionary
+     works here too.
+   - **gemma4:e4b: broken** on this box: 8/10 HTTP 500 after the audio decodes, 2/10 hung 5 min
+     (matches ollama#15333). Not shippable as a default.
 3. Engine side: `speech_to_text` folder type in the app's model-path config (the node adds it to
    `folder_paths` from `models_dir`, but the app's models root is `G:/CubricModels` via
    extra_model_paths: check `docs/models-path.md`), deps per file mirrored to R2 (ask Fabio:

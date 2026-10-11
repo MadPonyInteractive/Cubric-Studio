@@ -9,7 +9,9 @@ the user's behalf.
 | Piece | Where |
 |---|---|
 | Record, send, insert, greyed state | `js/services/dictation.js` — `attachDictation(btn, textarea)` returns the detach fn |
-| Route | `POST /deepinfra/transcribe[?translate=1]` in `routes/deepinfra.js`, body = the recording's bytes |
+| Route, Remote | `POST /deepinfra/transcribe[?translate=1][&model=qwen\|turbo]` in `routes/deepinfra.js`, body = the recording's bytes |
+| Route, Ollama | `POST /llm/transcribe[?translate=1][&words=…]` in `routes/llm.js` (MPI-1071), same body |
+| Where it runs | Settings > Where each job runs > "Speech to text" → `Storage.getDictationBackend()` (`endpoint` \| `ollama`); set through `setDictationBackend()` in `dictation.js` so the mics re-mark |
 | Hotkeys | `dictation.hold` / `dictation.release` / `dictation.release.space` in `hotkeyRegistry.js` |
 | English toggle | Settings, Audio, "Dictate in English" → `Storage.getDictationTranslate()` |
 | Mounts | `MpiPromptBox` (`#dictate-slot`, after Enhance) and `MpiAgentChat` (`#ac-dictate-slot`, before Send) |
@@ -20,8 +22,21 @@ import Primitives only.
 
 ## Facts that are not obvious
 
-- **The model is fixed server-side:** `openai/whisper-large-v3-turbo`, the same rule as
-  `/deepinfra/generate` taking a model id: the renderer never names what the key is spent at.
+- **Remote models are a server allowlist** (`STT_MODELS`, MPI-1071): the renderer sends a KEY,
+  never an endpoint. Qwen3-ASR 1.7B is the default (benched cleanest on Fabio's clips), Whisper
+  Turbo covers the ~70 languages Qwen lacks. A vocabulary hint (`initial_prompt`) does nothing
+  for Qwen and makes Turbo drop words, so Remote takes no word list.
+- **Ollama = Gemma 4 12B, fixed** (`STT_OLLAMA_MODEL`). Gemma 4 is the only Ollama family with
+  the `audio` capability, and Ollama documents no audio field: a 16 kHz mono WAV as bare base64
+  in the message's `images`, `think: false`. The route converts the WebM through the bundled
+  ffmpeg over pipes. e4b crashed on 8 of 10 clips (Ollama 0.35.1, ollama#15333): not an option.
+  `words` IS honoured here: "Words the speaker may use: Cubric Studio." fixed every misspelling.
+  ~2 s a clip warm, 8.5 GB of VRAM loaded. Missing model = Ollama's 404 → `NO_MODEL`.
+- **Gemma stays WARM between takes; a LOCAL generation clears it** (Fabio, 2026-10-11: a reload
+  per take is ~8 s). `comfyController.runWorkflow` POSTs `/llm/ollama/unload` right before a local
+  `/prompt` (never for a Pod), so no Ollama model sits beside a generation (MPI-14's reason).
+- **The status bar shows "Transcribing"** (pulse + clock) on both backends, borrowed only when no
+  generation runs and handed back with the silent `cancel()`: `complete()` would book it as one.
 - **"Dictate in English" goes to `openai/whisper-large-v3` instead** (~$0.00045/min). Turbo was
   never trained to translate: it accepts `task: translate` and answers in the language spoken.
   Measured 2026-09-27 on a Portuguese clip: turbo translate = the Portuguese transcript, large-v3
@@ -30,11 +45,10 @@ import Primitives only.
 - **The recording goes up as MediaRecorder made it (WebM/Opus).** Whisper decodes it; measured
   2026-09-26, same text as the WAV at a fifth of the bytes. Nothing is saved, so the
   `.webm`-is-video trap that makes `MpiAudioRecorder` re-mux to WAV does not apply.
-- **`inference_status.cost` is WRONG for Whisper.** It answered $0.0027 for an 11 s clip while
-  the month's usage (`/payment/usage`) booked the same calls at the catalogue 0.000333 cents a
-  second, ~70x less. The real price is ~$0.0002 per audio minute. Never surface that field
-  for this model.
-- **No key = greyed, not hidden** (Fabio). `hasCloudKey()` mirrors the main process; the mics
+- **`inference_status.cost` is in CENTS, not dollars.** Voxtral read 0.05475 for 10.95 s, which
+  is its catalogue rate in cents (MPI-1071); the "~70x too high" Whisper reading (0.0027 for 11 s)
+  was very likely the same misreading (0.0027 cents is in Turbo's range). Never surface it as dollars.
+- **No key = greyed, not hidden** (Fabio), on Remote only: Ollama needs no key. `hasCloudKey()` mirrors the main process; the mics
   re-mark on `models:checked`, so saving a key enables them without a reopen.
 - **Which box a held Ctrl+Space fills:** the focused one; else the last one focused; else any
   on screen. A zero-width host (the closed Agent panel) is skipped.
@@ -46,3 +60,4 @@ import Primitives only.
 - A take under 300 ms is dropped unsent.
 - Privacy: the voice recording going to DeepInfra must stay named on https://cubric.studio/privacy/
   (§ Dictation, Website repo `privacy/index.html`). A change to where it goes makes that page false.
+  The Ollama backend sends nothing off the machine, so it leaves that page true.
