@@ -34,6 +34,9 @@ startedAt) leaves it to the 8-min cap. Dialog + Settings copy no longer say "aft
 - Live, shipped `client.podSystemLogs` on xi6ehngx6nge03: http 200, 100 lines, 100 newer
   than startedAt, 0 when filtered as a just-started Pod.
 
+- CI on 3421921ca (run 38122461080): attempt 1 red on `flow-slide-scroll-reaches-top.spec.js`
+  only (`noSlide`, a Flow-step spec this commit cannot reach); attempt 2 green.
+
 ## Not verified live
 
 A real dead Pod hitting the 60 s delete: one can only be met by chance in a troubled DC.
