@@ -70,11 +70,14 @@ EMITS:   `play`, `pause`, `ended`, `timeupdate` — forwarded from MpiVideoSurfa
          `change`        `{ volume, muted }` — forwarded from surface `volumechange`
          `loadedmetadata` `{ duration }` — forwarded from surface
          `crop-change`   `{ rect: { x, y, w, h } }` — crop rect updated (normalized 0–1)
+         `mask-change`   `{ hasMask }` — a track set, cleared, or swapped in by `loadVideo` (MPI-1073)
+         `mask-extract`  `{ background, masks, trimIn, trimOut }` — Extract pressed; the Block's `_handleVideoExtract` posts `/video-extract/apply` (MPI-1073)
 GLOBAL EMITS (via Events.emit):
          `video-viewer:context-menu` `{ x, y }` — right-click on viewer (native menu suppressed). Consumed by MpiGroupHistoryBlock for "Set as start/end frame" context menu.
 LISTENS: (none — tool bars are owned by MpiGroupHistoryBlock, not viewer)
 API:     `attachControlBar(instance)` / `detachControlBar()` — wire an external MpiVideoControlBar; viewer internally calls `instance.el.attachSurface(viewerSurfaceInstance)`. Control bar lifetime is owned externally; `viewer.destroy()` only `detachSurface()` on the bar.
          `getSurfaceInstance()` — returns MpiVideoSurface instance.
+         Mask surface (MPI-1073, `docs/masking-video.md`): `enterMaskMode()`/`exitMaskMode()`, `setVideoMasks({ urls, trimIn, trimOut, fps })`, `hasVideoMasks()`, `carryMasksTo(url, { fps })`, `extractMask({ background })` + the `MpiMaskStrip` surface. Tracks live in a MODULE-level stash keyed by clip URL for the session: `loadVideo` swaps in the new clip's own track, `clearMask` forgets the current one.
          `loadVideo(url, meta)` — `meta.fps`/`meta.frameCount`/`meta.trim` proxied to the attached control bar; `meta.trim = { in, out }` propagates as `setPendingTrim` (one-shot, applied on next `loadedmetadata`).
          `getSourceElement()` — underlying `HTMLVideoElement` for external tools (resize/snapshot).
          `whenSourceLoaded()` — resolves once the clip from the latest `loadVideo()` has been SHOWN (`requestVideoFrameCallback`, armed at the src change; an `error` settles it too). Chromium's `drawImage(video)` is transparent until then even at `readyState` 4, and a paused clip never presents again, so a reader of the frame MUST await this, never poll readyState or nudge `currentTime` (MPI-1069: blank Resize preview after a clip Apply). Twin of MpiCanvasViewer's.
