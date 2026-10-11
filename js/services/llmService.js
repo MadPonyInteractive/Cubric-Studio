@@ -816,7 +816,7 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
  * @param {string} [a.recipeKey]    defaults to `model.enhanceRecipe ?? model.type`
  * @param {string} [a.mode]         recipe mode; defaults to the op's (`recipeModeForOp`)
  * @param {string} [a.operation]    the op being generated, which picks the mode
- * @param {string[]} [a.references] staged reference tags (`@image1`), sent on an r2v run only
+ * @param {string[]} [a.references] staged reference tags (`@image1`), sent on an r2v run only; none staged runs t2v
  * @param {string} [a.backend]      explicit override; defaults to the preference, then ComfyUI
  * @param {boolean} [a.transparent] No Background is on (MPI-1049): the brief says so
  * @returns {Promise<{ok:boolean, text?:string, negativeText?:string, backend?:string,
@@ -832,7 +832,10 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
 
     const { recipeId, fellBack } = resolveRecipeId(recipeKey ?? model?.enhanceRecipe ?? model?.type);
     const recipe = getRecipe(recipeId);
-    const resolvedMode = resolveMode(recipeId, mode ?? recipeModeForOp(operation));
+    const askedMode = resolveMode(recipeId, mode ?? recipeModeForOp(operation));
+    // MPI-1081: nothing staged = nothing to reference = text to video. Told "none", the r2v
+    // modes still invented a `<Picture 1>` / `<Image 1>` tag, and no wording stopped it.
+    const resolvedMode = askedMode === 'r2v' && !references?.length && recipe?.modes?.t2v ? 't2v' : askedMode;
     const modeRecipe = recipe?.modes?.[resolvedMode];
     if (!modeRecipe) {
         return { ok: false, error: `No enhancer recipe for "${recipeId}" (mode "${resolvedMode}").` };

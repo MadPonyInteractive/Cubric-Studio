@@ -302,7 +302,7 @@ async function testEnhanceRunsTheOpsMode() {
     ];
     try {
         for (const [model, operation, recipeId, mode] of cases) {
-            const res = await enhance({ prompt: 'a cat', model, operation });
+            const res = await enhance({ prompt: 'a cat', model, operation, references: ['@image1'] });
             assert.strictEqual(res.ok, true, JSON.stringify(res));
             assert.strictEqual(systems.at(-1), selectSystemPrompt(recipeId, mode), `${recipeId} on ${operation} must run ${mode}`);
         }
@@ -312,8 +312,20 @@ async function testEnhanceRunsTheOpsMode() {
         assert.strictEqual(prompts.at(-1), 'a cat\n\nAttached references, in load order: @image1, @audio1.');
         await enhance({ prompt: 'a cat', model: seedance, operation: 'i2v', references: ['@image1'] });
         assert.strictEqual(prompts.at(-1), 'a cat', 'an i2v run sends the idea alone');
-        await enhance({ prompt: 'a cat', model: seedance, operation: 'ref2v', references: [] });
-        assert.strictEqual(prompts.at(-1), 'a cat\n\nAttached references, in load order: none.', 'nothing staged is said out loud');
+        // MPI-1081: nothing staged runs t2v on the plain idea. Told "none", the r2v modes still
+        // invented a reference tag (LTX 2.3 11 of 15, Wan 3.0 directed).
+        for (const [model, recipeId, references] of [
+            [seedance, 'seedance-2.0', []],
+            [{ enhanceRecipe: 'ltx-2.3' }, 'ltx-2.3', []],
+            [{ enhanceRecipe: 'wan-3.0' }, 'wan-3.0', undefined],
+        ]) {
+            await enhance({ prompt: 'a cat', model, operation: 'ref2v', references });
+            assert.strictEqual(systems.at(-1), selectSystemPrompt(recipeId, 't2v'), `${recipeId} r2v with nothing staged runs t2v`);
+            assert.strictEqual(prompts.at(-1), 'a cat', `${recipeId}: no "Attached references" line`);
+        }
+        await enhance({ prompt: 'a cat', model: { enhanceRecipe: 'ltx-2.3' }, operation: 'ref2v', references: ['@image1'] });
+        assert.strictEqual(systems.at(-1), selectSystemPrompt('ltx-2.3', 'r2v'), 'one reference keeps r2v');
+        assert.strictEqual(prompts.at(-1), 'a cat\n\nAttached references, in load order: @image1.');
     } finally {
         delete _ls['cubric.llm.backend'];
         global.fetch = realFetch;

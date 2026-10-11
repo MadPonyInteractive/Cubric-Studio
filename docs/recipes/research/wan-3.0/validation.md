@@ -32,6 +32,11 @@ Every other no-reference tier writes plain prose with no tag. In the app this is
 Seedance's recipe passes the same tier; what differs is still unknown. Three rewordings did not
 move it (rounds 4-6 below).
 
+**Closed in the app, not in the recipe (MPI-1081, 2026-10-11).** Enhance on `ref2v` with nothing
+staged now runs the `t2v` mode on the plain idea (`enhance()`, `js/services/llmService.js`), so the
+app never sends this case. `scripts/recipe-test.mjs --mode r2v` calls the mode directly and keeps
+failing this tier by design: do not chase it.
+
 ### Word counts on the final text
 
 | Mode | bare | medium | directed | overlong | general |
