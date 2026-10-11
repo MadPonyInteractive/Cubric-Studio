@@ -11,6 +11,7 @@ const { cleanEngineScratch } = require('./routes/engineScratch');
 const secretsStore = require('./main/secretsStore');
 const floatLatent = require('./main/floatLatentWindow.cjs');
 const { quitWarning } = require('./main/quitWarning.cjs');
+const maskTempPrune = require('./main/maskTempPrune.cjs');
 
 // The Express fork's port. 3000 unless CUBRIC_PORT says otherwise, which only the
 // desktop E2E suite does — it hands each run a free port so a spec cannot attach to
@@ -77,7 +78,7 @@ process.on('unhandledRejection', (err) => reportFatal('unhandledRejection', err)
 
 const APP_CONFIG = loadAppConfig();
 
-// Mask layer TEMP store — session-scoped, cleared on quit, stale dirs pruned at boot.
+// Mask layer TEMP store — session-scoped, cleared on quit, dead instances' dirs pruned at boot.
 const SESSION_ID = randomUUID();
 const MASK_TEMP_ROOT = path.join(app.getPath('temp'), 'cubric-' + SESSION_ID);
 
@@ -95,30 +96,6 @@ function loadAppConfig() {
   } catch (err) {
     logger.warn('main', `Failed to read buildInfo.js; dev_mode=false (${err.message})`);
     return fallback;
-  }
-}
-
-function pruneStaleMaskTemp() {
-  try {
-    const tmpRoot = app.getPath('temp');
-    const entries = fs.readdirSync(tmpRoot, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      // Only a mask session's own `cubric-<uuid>`: temp also holds cubric-deepinfra (paid
-      // cloud outputs), cubric-agent, cubric-gif, cubric-tests and cubric-agent-profile,
-      // and a bare `cubric-` prefix wiped them all at every launch (MPI-919).
-      if (!/^cubric-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(entry.name)) continue;
-      if (entry.name === 'cubric-' + SESSION_ID) continue;
-      const stalePath = path.join(tmpRoot, entry.name);
-      try {
-        fs.rmSync(stalePath, { recursive: true, force: true });
-        logger.info('mask-temp', `Pruned stale session dir: ${stalePath}`);
-      } catch (err) {
-        logger.warn('mask-temp', `Failed to prune ${stalePath}: ${err.message}`);
-      }
-    }
-  } catch (err) {
-    logger.warn('mask-temp', `pruneStaleMaskTemp failed: ${err.message}`);
   }
 }
 
@@ -932,7 +909,12 @@ app.on('child-process-gone', (_event, details) => {
 });
 
 app.on('ready', () => {
-  pruneStaleMaskTemp();
+  try {
+    maskTempPrune.writeOwnerMarker(MASK_TEMP_ROOT);
+  } catch (err) {
+    logger.warn('mask-temp', `Failed to write owner marker: ${err.message}`);
+  }
+  maskTempPrune.pruneStaleMaskTemp(app.getPath('temp'), 'cubric-' + SESSION_ID, logger);
   logger.info('mask-temp', `session=${SESSION_ID} tempDir=${MASK_TEMP_ROOT}`);
 
   // macOS dock icon for the unpackaged portable: the bundled Electron.app ships

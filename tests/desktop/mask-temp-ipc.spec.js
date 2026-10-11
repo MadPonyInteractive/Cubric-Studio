@@ -145,10 +145,13 @@ test('mask-temp IPC: write/read/delete + session lifecycle', async ({}, testInfo
 });
 
 test('mask-temp: stale cubric-<uuid> dirs pruned at boot, siblings kept', async ({}, testInfo) => {
-  // Plant a stale session dir (the shape mask-temp mints) before launch.
+  // Plant a stale session dir (the shape mask-temp mints) before launch, owned by a
+  // PID that has exited: a live owner's dir is kept (MPI-1074).
   const stalePath = path.join(os.tmpdir(), 'cubric-' + require('crypto').randomUUID());
   fs.mkdirSync(stalePath, { recursive: true });
   fs.writeFileSync(path.join(stalePath, 'leftover.txt'), 'old');
+  const deadPid = Number(require('child_process').spawnSync(process.execPath, ['-e', 'process.stdout.write(String(process.pid))']).stdout.toString());
+  fs.writeFileSync(path.join(stalePath, 'owner.json'), JSON.stringify({ pid: deadPid }));
   expect(fs.existsSync(stalePath)).toBe(true);
   // A sibling that is NOT a session dir: paid cloud outputs live here (MPI-919).
   const keptPath = path.join(os.tmpdir(), 'cubric-deepinfra');

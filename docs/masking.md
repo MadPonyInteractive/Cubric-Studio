@@ -86,11 +86,12 @@ eraser in and the mask can never be erased further). Only `autoPickMasks` is RAM
 
 **Lifetime: survives a renderer reload, dies on app restart.** Ctrl+R keeps the main process, so
 `sessionId` and the TEMP dir persist; a restart mints a fresh UUID (`main.js`), cleans the old dir
-on quit, and prunes stale `cubric-<uuid>` session dirs at boot — ONLY that shape: temp also
-holds `cubric-deepinfra` (paid cloud outputs), `cubric-agent`, `cubric-gif`, and a bare
-`cubric-` prefix wiped them all (MPI-919). Masks are session-scoped by decision
-(`docs/archive/mpi-kanban/plans/2026-04-29-layered-mask-persistence.md`) — outliving a restart
-means moving the layers to `.meta/`, real work rather than a config flip.
+on quit, and prunes at boot (`main/maskTempPrune.cjs`) ONLY `cubric-<uuid>` dirs — temp also holds
+`cubric-deepinfra` (paid outputs), `cubric-agent`, `cubric-gif`; a bare prefix wiped them (MPI-919)
+— and ONLY a dead instance's: each stamps its PID in `owner.json`, so an `app:isolated` boot no
+longer wipes the live app's masks (MPI-1074); an unmarked dir (older build) goes after 7 days.
+Masks are session-scoped by decision (`docs/archive/mpi-kanban/plans/2026-04-29-layered-mask-persistence.md`)
+— outliving a restart means moving the layers to `.meta/`, real work rather than a config flip.
 
 **The display surface is not always the canvas.** In `_currentMode === 'none'` the viewer shows
 `MpiMaskedImagePreview` and the live canvas is TORN DOWN, so writing layers into `_cv.el` repaints

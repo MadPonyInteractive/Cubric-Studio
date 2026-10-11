@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "main.js",
+    "main/maskTempPrune.cjs",
+    "tests/mask-temp-prune.test.cjs",
+    "docs/masking.md",
+    "tests/desktop/mask-temp-ipc.spec.js"
+  ]
+}
