@@ -82,6 +82,8 @@
 - **Whole-model uninstall** + **install-status checks** (`/comfy/models/check`) → `resolveFullUniverse(model)` so no op payload is orphaned and partial state is computed against the complete universe.
 - **Backend shared-dep protection** (`_localSharedDepsMap`, `_remoteSharedDepIds` in `routes/downloadManager.js`) MUST resolve every OTHER model's full universe — never read a `.dependencies` field, which no longer exists on op-keyed models. Otherwise a shared/op-specific dep another installed model needs gets deleted (e.g. uninstalling Wan I2V trashing the VAE/text-encoder T2V also uses).
 
+**Adding a dep to a shipped model un-installs it for every user until they press Install** ("installed" = every dep on disk, no receipt). `js/shell/modelUpdateCheck.js` listens to `models:checked` and toasts once per session with an Open Models button (MPI-1065); never auto-download to hide it. Details: `docs/model-library.md` § partial-install chip.
+
 **Never read `model.dependencies` directly.** Use the resolver. A flat model is treated as `commonDeps = dependencies` with no operations, so one code path covers both shapes.
 
 **There is no per-operation install or uninstall.** The Model Library's Operations toggle row, the `s_modelOpDraftByModel` draft and the per-op uninstall subtraction were all removed with the shape. The remaining draft axis is GPU-arch (MPI-209): the button reads Install (0 installed) / Update (arch draft ≠ arch on disk) / Uninstall.

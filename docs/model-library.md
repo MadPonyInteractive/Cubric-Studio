@@ -238,6 +238,11 @@ Three exclusions shape "its own":
 - **A 1 GB floor** (MPI-258 Bug C) — below it, nothing. Sized to stop a handful of small
   support files showing 1-3% on a pack the user never touched.
 
+The floor and the node exclusion live in `partialInstall()` (`resolveModelDeps.js`), shared
+with `js/shell/modelUpdateCheck.js` (MPI-1065): on `models:checked` it toasts once per session,
+"Open Models" (`models:open`), for a model an update left missing a dep. It also requires 1 GB of
+deps NO other model uses on disk, or a sibling sharing a big encoder reads as installed.
+
 **"Installed" in that first exclusion means ≥1 op on disk (MPI-462, shipped).** It
 originally gated on the raw `m.installed` flag, which (`modelRegistry.js:189`) means the
 WHOLE universe is present, every dep of every op. Nothing else in the app uses that
