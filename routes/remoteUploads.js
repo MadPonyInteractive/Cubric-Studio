@@ -45,9 +45,38 @@ function broadcastSnapshot() {
   _broadcast('upload:snapshot', { jobs: [..._jobs.values()] });
 }
 
+/** @type {Map<string, Function[]>} job id -> resolvers waiting for it to settle (uploadAndWait) */
+const _waiters = new Map();
+
 function _set(job, patch) {
   Object.assign(job, patch);
   broadcastSnapshot();
+  if (!LIVE.has(job.status)) {
+    for (const done of _waiters.get(job.id) || []) done(job);
+    _waiters.delete(job.id);
+  }
+}
+
+/**
+ * MPI-1057: a generate-time upload (a LoRA under the GPU 1 GB limit) goes through this
+ * same queue, so it shows in the Cue panel's Transfers with a bar and Cancel like an
+ * overlay upload. Resolves with the settled job; a live job for the same file (the
+ * overlay already sending it) is awaited instead of a second copy.
+ * ponytail: one sequential queue, so a generation waits behind an overlay upload of
+ * another file; a priority lane if that ever bites.
+ */
+function uploadAndWait(type, localPath, filename, size) {
+  let job = [..._jobs.values()].find((j) => j.type === type && j.filename === filename && LIVE.has(j.status));
+  if (!job) {
+    job = { id: crypto.randomUUID(), type, filename, totalBytes: size, sentBytes: 0, status: 'queued', error: null };
+    _jobs.set(job.id, job);
+    _localPaths.set(job.id, localPath);
+    broadcastSnapshot();
+    _drain();
+  }
+  return new Promise((resolve) => {
+    _waiters.set(job.id, [...(_waiters.get(job.id) || []), resolve]);
+  });
 }
 
 function _expire(job) {
@@ -268,3 +297,4 @@ router.post('/remote/user-models/delete', async (req, res) => {
 module.exports = router;
 module.exports.broadcastSnapshot = broadcastSnapshot;
 module.exports.listLocalModels = listLocalModels;  // exported for tests
+module.exports.uploadAndWait = uploadAndWait;

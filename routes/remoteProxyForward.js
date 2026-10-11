@@ -278,9 +278,14 @@ router.post('/remote/upload/model', async (req, res) => {
         message: `"${base}" is ${(size / 1e9).toFixed(1)} GB, too big to upload while a GPU Pod bills. Connect the "No GPU - download only" Pod and upload it once with Upload models; the volume keeps it.`,
       });
     }
-    const remoteModels = require('./remoteModels');
-    const out = await remoteModels.remoteUploadModel(localPath, type, filename);
-    res.json({ success: true, name: out.name, type: out.type || type, path: out.path });
+    // Through the Upload models queue, so it shows in Transfers with a bar and Cancel.
+    const base = String(filename).split(/[\\/]/).pop();
+    const job = await require('./remoteUploads').uploadAndWait(type, localPath, base, size);
+    if (job.status === 'cancelled') {
+      return res.status(409).json({ error: 'upload_cancelled', message: `Upload of "${base}" cancelled, so the generation did not start.` });
+    }
+    if (job.status !== 'complete') throw new Error(job.error || job.status);
+    res.json({ success: true, name: base, type });
   } catch (err) {
     logger.error('runpod', `remote model upload failed: ${err.message}`);
     res.status(502).json({ error: 'upload_failed', message: err.message });

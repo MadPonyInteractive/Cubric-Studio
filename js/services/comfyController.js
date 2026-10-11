@@ -2238,6 +2238,8 @@ function createEngine({ engine, alwaysLocal }) {
                 // MPI-1057: > 1 GB on a GPU Pod is refused on purpose; the server's text says what to do.
                 // Coded so commandExecutor shows it as a toast that opens Upload models.
                 if (data?.error === 'too_big_for_gpu') throw Object.assign(new Error(msg), { code: 'too_big_for_gpu', modelType: type });
+                // The user pressed Cancel on its Transfers row: not a failure.
+                if (data?.error === 'upload_cancelled') throw Object.assign(new Error(msg), { code: 'upload_cancelled' });
                 clientLogger.error('comfy', `Remote model upload failed for ${base}: ${msg}`);
                 throw new Error(`Could not upload "${base}" to the cloud engine (${msg}). It may not be available on this Pod image yet.`);
             }

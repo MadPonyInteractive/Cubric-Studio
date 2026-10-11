@@ -216,3 +216,32 @@ test('a generate-time upload over 1 GB is refused on a GPU Pod, not on the CPU P
         setRemoteMode({ active: true, noGpu: true });
     }
 });
+
+test('a generate-time upload is a Transfers job, and its Cancel stops the generation quietly', async () => {
+    put('sub/gen.safetensors', SLICE + 10);
+    wrapper.posts.length = 0;
+    events.length = 0;
+    setRemoteMode({ active: true, noGpu: false });
+    try {
+        const ok = await call('POST', '/remote/upload/model', { type: 'loras', filename: 'sub/gen.safetensors' });
+        assert.equal(ok.status, 200);
+        const seen = events.filter((e) => e.event === 'upload:snapshot').flatMap((e) => e.data.jobs).filter((j) => j.filename === 'gen.safetensors');
+        assert.deepEqual([...new Set(seen.map((j) => j.status))], ['queued', 'uploading', 'complete'], 'shown in Transfers like an overlay upload');
+
+        put('gen2.safetensors', SLICE + 10);
+        let release;
+        wrapper.hold = { filename: 'gen2.safetensors', until: new Promise((r) => { release = r; }) };
+        const pending = call('POST', '/remote/upload/model', { type: 'loras', filename: 'gen2.safetensors' });
+        while (!wrapper.posts.some((p) => p.filename === 'gen2.safetensors' && p.offset > 0)) await new Promise((r) => setTimeout(r, 10));
+        const { json } = await call('GET', '/remote/uploads');
+        const row = json.jobs.find((j) => j.filename === 'gen2.safetensors' && j.status === 'uploading');
+        await call('POST', `/remote/uploads/${row.id}/cancel`);
+        release();
+        const res = await pending;
+        assert.equal(res.status, 409);
+        assert.equal(res.json.error, 'upload_cancelled');
+    } finally {
+        wrapper.hold = null;
+        setRemoteMode({ active: true, noGpu: true });
+    }
+});

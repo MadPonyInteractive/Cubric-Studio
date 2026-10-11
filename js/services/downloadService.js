@@ -437,6 +437,11 @@ const downloadService = {
         if (!state.downloadJobs.length) state.downloadQueueActive = false;
     },
 
+    /** MPI-1057: an internal heal started with { silent: true }; the Cue panel's Transfers skips it too. */
+    isSilentJob(modelId) {
+        return _silentJobs.has(modelId);
+    },
+
     _ensureSSE() {
         if (this._eventSource) return;
         this._connectSSE();
@@ -890,6 +895,13 @@ const downloadService = {
             if (data?.remote === true) state.remoteComfyNeedsRestart = true;
             else state.comfyNeedsRestart = true;
             Events.emit('comfy:needs-restart', data);
+        });
+
+        // MPI-1057: the backend restarted the Pod's ComfyUI itself (universal nodes on
+        // connect), so the nodes that asked for a restart are already loaded.
+        this._eventSource.addEventListener('comfy:restarted', (e) => {
+            const data = JSON.parse(e.data);
+            if (data?.remote === true) state.remoteComfyNeedsRestart = false;
         });
 
         // Engine install/upgrade events — bridge from SSE to Events bus

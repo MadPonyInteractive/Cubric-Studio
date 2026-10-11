@@ -50,3 +50,5 @@ over without touching code. Fabio: fix right away; every further Pod issue goes 
 - A Pod costs money: state the price before creating one.
 
 ## Noticed
+
+- 2026-10-11 (Fabio, live): Model Library shows Wan 2.2 Smooth 20% / Wan 2.2 5B 36% / Krea 2 (+NSFW) 20% "on disk" on the Pod volume, and Uninstall loops ("uninstalled", removed 0). The files are umt5_xxl + wan_2.1_vae (required by the `scene-path` plugin, MPI-623) and qwen3vl-abliterated-clip (universal; minimax-music Flow). Uninstall rightly keeps them; `_computePartial` (MpiModelManager.js) excludes deps owned by INSTALLED models but not plugin / Flow / universal deps, so the card reads partial forever. Uninstall toast also says "uninstalled" on removed 0. Fabio not yet asked for a card.

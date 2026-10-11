@@ -24,10 +24,12 @@ const _shown = new Set();
  * @returns {string}
  */
 export function missingFilesMessage(models) {
-    const list = models.map(m => `${m.name} (${formatBytes(m.missingBytes)})`);
+    // Fabio, 2026-10-11: the long version could not be read before the toast went.
+    const list = models.map(m => m.name);
     const names = list.length > 1 ? `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}` : list[0];
     const one = models.length === 1;
-    return `${names} ${one ? 'is' : 'are'} missing files from an update, so ${one ? 'it is' : 'they are'} hidden from the model pickers. Open Models and press Install to get ${one ? 'it' : 'them'} back.`;
+    const bytes = models.reduce((sum, m) => sum + (m.missingBytes || 0), 0);
+    return `${names} ${one ? 'needs' : 'need'} ${formatBytes(bytes)} from an update. Install ${one ? 'it' : 'them'} in Models.`;
 }
 
 /**

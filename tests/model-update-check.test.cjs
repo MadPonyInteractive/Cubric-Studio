@@ -47,13 +47,11 @@ test('custom nodes never count as the model\'s files', () => {
     assert.strictEqual(partialInstall([node, weight], new Map([['n', true], ['w', false]])).hasPartialProgress, false);
 });
 
-test('the message names each model and its size, singular and plural', () => {
+test('the message names each model and the total size, singular and plural', () => {
     const one = missingFilesMessage([{ name: 'LTX 2.3', missingBytes: 1.31e9 }]);
-    assert.match(one, /^LTX 2\.3 \(1\.3GB\) is missing files/);
-    assert.match(one, /it is hidden from the model pickers/);
+    assert.strictEqual(one, 'LTX 2.3 needs 1.3GB from an update. Install it in Models.');
     const two = missingFilesMessage([{ name: 'LTX 2.3', missingBytes: 1.31e9 }, { name: 'LTX 2.3 Balanced', missingBytes: 1.31e9 }]);
-    assert.match(two, /^LTX 2\.3 \(1\.3GB\) and LTX 2\.3 Balanced \(1\.3GB\) are missing files/);
-    assert.match(two, /they are hidden/);
+    assert.match(two, /^LTX 2\.3 and LTX 2\.3 Balanced need 2\.6GB from an update\. Install them in Models\.$/);
     assert.doesNotMatch(one + two, /—/, 'no em dashes in user copy');
 });
 

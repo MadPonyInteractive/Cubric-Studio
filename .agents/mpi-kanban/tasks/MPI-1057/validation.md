@@ -99,3 +99,10 @@ Verify mode: user-ux (plan.md). Automated evidence below; Fabio's look on his ne
 
 - Panel hint now names the data center + Any region (no volume). eslint clean. Fabio accepted the wording ("fine until we implement global volumes"). js/shell.js twins (~1091, ~1217) still owed.
 - js/shell.js pass: "Settings -> RunPod" copy now "Remote" (none left: grep), never-started dialogs carry the data-center text, `remote:stalled` OS notification when unfocused. node --test remote-stalled-notify + upload-finished-notify + notification-stale-count + pod-stall-cap: 10/10. eslint clean.
+
+## GPU proof + promote (2026-10-11, session 7ea70332)
+
+- Fabio, RTX PRO 4500 Pod xi6ehngx6nge03 (EU-RO-1, ready in 2 min): Upscale Video with sulphur_lora_rank_768 in LoRA slot 1 (local copy in a subfolder). No upload line in the log, no 'Uploading' toast; his result differs from the no-LoRA run, so the LoRA applied. Flat Pod copy found.
+- `publish-runtime.sh promote`: stable manifest now wrapper 0.2.47; public stable wrapper.py sha 3dc462d7... and start.sh sha 3b4c4e29... == dev. start.sh diff vs old stable: only the `moge` + `model_patches` extra_model_paths lines (MPI-1044), harmless on the v0.24.0 image.
+- Stale restart toast (Fabio, 07:38Z): universal-node install broadcast `comfy:needs-restart`, the backend restarted ComfyUI itself, nothing cleared the renderer flag, first Cue restarted again. Fix: `comfy:restarted {remote:true}` after a successful restart, downloadService clears the flag. tests/remote-restart-clears-flag.test.cjs 2/2 + 20 neighbours green, eslint clean.
+- Missing-files toast shortened (Fabio: too long to read): model-update-check 10/10.

@@ -2842,6 +2842,13 @@ export function runCommand(payload) {
                 exec.onError?.(err);
                 return;
             }
+            // MPI-1057: the user cancelled the generate-time upload from Transfers.
+            if (err?.code === 'upload_cancelled') {
+                clientLogger.info('comfy', err.message);
+                Events.emit('ui:info', { message: err.message });
+                exec.onError?.(err);
+                return;
+            }
             // MPI-1057: a LoRA/upscaler over 1 GB is not uploaded while a GPU Pod bills.
             // User-actionable: the toast's button opens Upload models on that tab.
             if (err?.code === 'too_big_for_gpu') {

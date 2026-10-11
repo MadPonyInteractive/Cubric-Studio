@@ -996,6 +996,12 @@ async function ensureUniversalNodesOnVolume() {
         const res = await wrapperFetch('/wrapper/restart-comfy', { method: 'POST', retries: 1 });
         // 409 = a download-mode Pod with no ComfyUI to restart; not an error here.
         logger.info('runpod', `universal nodes: installed ${out.installed.join(', ')}; ComfyUI restart -> ${res.status}`);
+        // MPI-1057: the node installs above each broadcast `comfy:needs-restart`, which
+        // the renderer holds until the next generation. This restart already loaded
+        // them, so say so, or the first Cue restarts ComfyUI a second time for nothing.
+        // ponytail: a pack whose install-complete arrives AFTER this restart re-sets the
+        // flag and costs one spare restart; per-dep landing times would close that.
+        if (res.ok) require('./downloadManager').broadcastEngineEvent('comfy:restarted', { remote: true });
       } catch (err) {
         logger.warn('runpod', `universal nodes installed but ComfyUI restart failed: ${err.message}`);
       }

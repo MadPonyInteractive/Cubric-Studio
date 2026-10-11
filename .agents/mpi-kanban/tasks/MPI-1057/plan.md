@@ -192,6 +192,22 @@ notification when unfocused (tests/remote-stalled-notify.test.cjs, docs/toasts.m
 dropped two stale docs/toasts.md rows for the download-only warning MPI-1070 deleted.
 Left: GPU-Pod LoRA generation -> promote, phase-log label, 13 GB diff, release note.
 
+2026-10-11 ~07:55Z: LoRA PROVEN on a GPU Pod (no re-upload, LoRA applied) and runtime
+PROMOTED (stable = 0.2.47). Same session, uncommitted, all tested: (a) stale remote-restart
+toast fixed (`comfy:restarted` after the connect-time node restart clears the renderer flag);
+(b) MPI-1065's missing-files toast shortened (Fabio); (c) generate-time uploads now run
+through the Upload models queue (`uploadAndWait` in remoteUploads.js), so they show in
+Transfers with a bar + Cancel; Cancel -> 409 `upload_cancelled` -> info toast, no bug dialog.
+Fabio SAW (c) live (456 MB row with MB + Cancel; log "upload loras/...: complete"). (d) Transfers
+now hides silent internal jobs (`downloadService.isSilentJob`, MPI-576) and labels Flow/plugin
+downloads via `jobDisplayName`: Fabio saw a raw `engine:assets` row; fixed, lint + tests only.
+13 GB question ANSWERED: every volume file is a known dep; the extra is the scene-path plugin's
+Wan encoder/VAE + a universal Krea2 encoder -> Model Library loop, card MPI-1078. Toast audit
+card MPI-1076; dead-Pod-in-seconds card MPI-1075 (Fabio started it in another session).
+Left (all small, then CLOSE the card via mpi-end-session): phase-log label (`_connectEngine`
+finally logs "connect ended without a connection" for a stall/cancel, MpiRunpodSettings.js),
+release note in docs/releases/UNRELEASED.md, docs/runpod-remote-engine.md upload-routes line.
+
 Next, in order:
 1. **U4 last step**: a GPU-Pod generation with `sulphur_lora_rank_768` (no "Uploading…" toast =
    the flat Pod copy was found). Proven -> `./publish-runtime.sh promote` (0.2.47 to stable).

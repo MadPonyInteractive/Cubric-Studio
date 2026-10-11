@@ -6,7 +6,7 @@ import { mountButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { state } from '../../../state.js';
 import { downloadService } from '../../../services/downloadService.js';
-import { getModelById } from '../../../data/modelRegistry.js';
+import { jobDisplayName } from '../../../shell/notificationService.js';
 import {
     cancelBatch,
     cancelPendingCueJob,
@@ -457,8 +457,9 @@ export const MpiQueuePanel = ComponentFactory.create({
 
         const _transfers = () => [
             ...state.downloadJobs
-                .filter(j => LIVE_DOWNLOAD.has(j.status) && j.modelId !== '__universal_workflow__')
-                .map(j => ({ kind: 'download', id: j.modelId, status: j.status, label: getModelById(j.modelId)?.name || j.modelId, job: j })),
+                // Internal heals (engine:assets, engine:node-drift) are silent by design (MPI-576).
+                .filter(j => LIVE_DOWNLOAD.has(j.status) && j.modelId !== '__universal_workflow__' && !downloadService.isSilentJob(j.modelId))
+                .map(j => ({ kind: 'download', id: j.modelId, status: j.status, label: jobDisplayName(j.modelId), job: j })),
             ...state.uploadJobs
                 .filter(j => j.status === 'queued' || j.status === 'uploading')
                 .map(j => ({ kind: 'upload', id: j.id, status: j.status, label: j.filename, job: j })),
