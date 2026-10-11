@@ -21,7 +21,8 @@
 ## The fix
 
 At 60 s into any boot (`PULL_CHECK_MS`, armed by `_setStarting` beside the 8-min cap), a
-200 answer with no system line newer than the Pod's `startedAt` deletes it the stall-cap
+200 answer with no system line newer than the Pod's `startedAt` less 5 s (`ts` is whole
+seconds) deletes it the stall-cap
 way (`stalled` on /remote/comfy/status, same dialog). Any unknown (no answer, non-200, no
 startedAt) leaves it to the 8-min cap. Dialog + Settings copy no longer say "after 8 minutes".
 

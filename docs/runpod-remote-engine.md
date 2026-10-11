@@ -160,7 +160,7 @@ component kept its old name, so "Settings" in a file name or an older card means
 - **Pull check, 60 s (MPI-1075):** the same `_setStarting(true)` arms `PULL_CHECK_MS`. It
   reads the Pod's SYSTEM log (`GET /v2/pods/{id}/logs?source=system&tail=100`, an SSE
   stream cut after 5 s, `client.podSystemLogs`) and deletes the Pod the stall-cap way
-  if no line is newer than its `startedAt`. A host that will start it logs `create
+  if no line is newer than its `startedAt` (less 5 s: `ts` is whole seconds). A host that will start it logs `create
   container` ~1 s in, then the pull (`Already exists` / `Image is up to date` on a cached
   image); a dead host logs nothing. Fails open: any unknown leaves the Pod to the 8-min
   cap. Never pass `since`: RunPod then drops every system line (measured 2026-10-11).
