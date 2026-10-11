@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1083", "at": "2026-10-11T10:10:06+01:00", "actor": "claude", "column": "todo", "title": "Agent cancel cannot stop a Flow that enqueues late (Video Edit describe, cloud edit, later legs/passes)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1083", "at": "2026-10-11T10:15:47+01:00", "actor": "91b9269d", "from": "todo", "to": "doing", "reason": "MPI-1083 started: live run handle for Flow cancel"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1083", "at": "2026-10-11T10:22:57+01:00", "actor": "91b9269d", "from": "doing", "to": "doing", "reason": "Fix landed, npm test green; awaiting close-out commit + CI"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1083", "at": "2026-10-11T10:47:42+01:00", "actor": "91b9269d", "from": "doing", "to": "done", "reason": "CI green on 24cab67af (run 38128863864)"}

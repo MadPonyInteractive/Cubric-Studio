@@ -13,3 +13,7 @@
 Not run: a live isolated-app run of a cancelled Video Edit (would need a describer and a Pod; the unit tests drive the exact function the bug lived in).
 
 Known ceiling: a cloud edit's pass 1 is a direct run outside the queue, so a cancel during it waits for pass 1 to end, then stops before the paid call.
+
+## 2026-10-11 - CI
+
+- CI run 38128863864 on 24cab67af: success. Claim audit: "no cloud call paid" overstated for a cancel DURING the cloud call (already billed); docs/agent-chat.md reworded in the close commit.
