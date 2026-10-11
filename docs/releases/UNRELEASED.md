@@ -74,3 +74,4 @@
 - **A RunPod Pod that never starts stops billing within a minute.** When a data center never starts your Pod, the app now notices within a minute, deletes it and tells you the data center looks troubled. A Pod that starts but then hangs is deleted at 8 minutes.
 - **LoRAs over 2 GB upload to a Pod.** Uploads now show under Transfers, with Cancel.
 - **The pictures above the prompt box show whole, and move smoothly.** Each keeps its own shape instead of a square crop, its tag (Picture 1, Start frame) sits above it instead of covering it, the X appears when you hover, and dragging one to a new place no longer makes the row jump about.
+- **Enhance on a reference-to-video model with nothing attached no longer invents a reference.** With no picture staged, Wan 3.0 could write an `<Image 1>` into the prompt; Enhance now writes a plain text-to-video prompt until a reference is added.
