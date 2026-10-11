@@ -5,7 +5,8 @@
  * `attachDictation`. Click the mic, speak, click again; or hold Ctrl+Space, speak, release.
  * The recording goes to `POST /deepinfra/transcribe` (Whisper on the user's own DeepInfra
  * key), or to `POST /llm/transcribe` (Gemma 4 12B in the user's Ollama, MPI-1071) when Settings
- * picks Ollama, and the words land at the caret. Nothing is ever sent on the user's behalf: they read
+ * picks Ollama, or through the `speechTranscribe` op (Qwen3-ASR 0.6B on ComfyUI) when it picks
+ * ComfyUI, and the words land at the caret. Nothing is ever sent on the user's behalf: they read
  * it, then press Enter.
  *
  * WEBM AS RECORDED. MediaRecorder's WebM/Opus goes up untouched: Whisper decodes it, and it is
@@ -28,9 +29,10 @@ import { on } from '../utils/dom.js';
 import { openMic } from '../utils/audioInput.js';
 import { StatusBar } from '../shell/statusBar.js';
 import { generationStore } from './generationStore.js';
+import { pluginAvailability } from '../data/pluginsRegistry.js';
 
 /**
- * The Remote transcribe models (MPI-1071), picked in Settings > Where each job runs. `value` is
+ * The Remote transcribe models (MPI-1071), picked in the Remote panel > Where each job runs. `value` is
  * the KEY the server maps to an endpoint (`STT_MODELS`, routes/deepinfra.js); the renderer
  * never names an endpoint. Prices are DeepInfra's per audio minute.
  */
@@ -41,11 +43,17 @@ export const DICTATION_MODELS = Object.freeze([
 
 const INFO_READY ='Dictate: click, speak, click again. Or hold Ctrl+Space while you speak. Your voice is sent to DeepInfra to be written out';
 const INFO_LOCAL = 'Dictate: click, speak, click again. Or hold Ctrl+Space while you speak. Ollama writes it out on this computer';
-const INFO_NO_KEY = 'Dictate: needs a DeepInfra key. Add one in Settings';
+const INFO_NO_KEY = 'Dictate: needs a DeepInfra key. Add one in the Remote panel';
+const INFO_COMFY = 'Dictate: click, speak, click again. Or hold Ctrl+Space while you speak. ComfyUI writes it out on this computer';
+const INFO_NO_PLUGIN = 'Dictate: Speech to text is not installed. Install it in the Remote panel, Where each job runs';
+
+/** The plugin that owns the ComfyUI backend's weights (pluginsRegistry.js). */
+export const DICTATION_PLUGIN = 'speech-to-text';
 
 /**
- * MPI-1071: where dictation runs, 'endpoint' (DeepInfra) or 'ollama' (`POST /llm/transcribe`,
- * Gemma 4 12B on this computer, no key). Settings calls this so every mic re-reads its gate.
+ * MPI-1071: where dictation runs, 'endpoint' (DeepInfra), 'ollama' (`POST /llm/transcribe`,
+ * Gemma 4 12B on this computer, no key) or 'comfy' (the `speechTranscribe` op, Qwen3-ASR 0.6B
+ * through the generation queue). Settings calls this so every mic re-reads its gate.
  */
 export function setDictationBackend(value) {
     Storage.setDictationBackend(value);
@@ -110,10 +118,12 @@ function _mark(host, stateName) {
     const { btn } = host;
     btn.dataset.dictate = stateName;
     btn.setActive?.(stateName === 'recording' || stateName === 'held');
-    const local = Storage.getDictationBackend() === 'ollama';
-    const ready = local || hasCloudKey();
+    const backend = Storage.getDictationBackend();
+    const ready = backend === 'ollama' || (backend === 'comfy' ? pluginAvailability(DICTATION_PLUGIN).installed : hasCloudKey());
     btn.setDisabled?.(stateName === 'busy' || !ready);
-    btn.dataset.info = local ? INFO_LOCAL : ready ? INFO_READY : INFO_NO_KEY;
+    btn.dataset.info = backend === 'ollama' ? INFO_LOCAL
+        : backend === 'comfy' ? (ready ? INFO_COMFY : INFO_NO_PLUGIN)
+        : ready ? INFO_READY : INFO_NO_KEY;
 }
 
 async function _start(host, held) {
@@ -154,6 +164,14 @@ async function _finish(take) {
     }
     _mark(host, 'busy');
     const blob = new Blob(take.chunks, { type: take.recorder.mimeType || 'audio/webm' });
+    if (Storage.getDictationBackend() === 'comfy') {
+        // A queued generation: the queue owns the status bar, so none is borrowed here.
+        const res = await transcribeComfy(blob);
+        if (res.ok) _insert(host.textarea, res.text);
+        else if (!res.cancelled) Events.emit('ui:warning', { message: `Dictation failed: ${res.error}` });
+        _mark(host, 'idle');
+        return;
+    }
     // The status bar shows the wait (Fabio, MPI-1071), like the GIF cutout: pulse + clock. It is the
     // generations' bar, so only an idle one is borrowed, and it is handed back with the silent
     // cancel() (complete() would book the take as a generation) unless a generation took it meanwhile.
@@ -165,7 +183,8 @@ async function _finish(take) {
     }
     try {
         const local = Storage.getDictationBackend() === 'ollama';
-        const q = new URLSearchParams(local ? {} : { model: Storage.getDictationModel() });
+        const model = local ? Storage.getDictationOllamaModel() : Storage.getDictationModel();
+        const q = new URLSearchParams(model ? { model } : {});
         if (Storage.getDictationTranslate()) q.set('translate', '1');
         const res = await fetch(`${local ? '/llm/transcribe' : '/deepinfra/transcribe'}?${q}`, {
             method: 'POST',
@@ -185,6 +204,44 @@ async function _finish(take) {
         if (bar && !generationStore.getSnapshot().running.length) StatusBar.progress.cancel();
         _mark(host, 'idle');
     }
+}
+
+/**
+ * MPI-1071: the take through the `speechTranscribe` op on ComfyUI (Qwen3-ASR 0.6B). It goes in as a
+ * `data:` URL, which comfyController stages into the engine's input/ like a painted mask; the type
+ * loses its `;codecs=` part because the staging route reads `data:<mime>;base64,`. It waits in the
+ * queue behind a running generation, like the ComfyUI describer. Never rejects.
+ * @param {Blob} blob
+ * @returns {Promise<{ok:boolean, text?:string, error?:string, cancelled?:boolean}>}
+ */
+export async function transcribeComfy(blob) {
+    const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(new Blob([blob], { type: blob.type.split(';')[0] || 'audio/webm' }));
+    }).catch(() => null);
+    if (!dataUrl) return { ok: false, error: 'the recording could not be read.' };
+    const { enqueueGeneration } = await import('./generationService.js');
+    return new Promise((resolve) => {
+        const queued = enqueueGeneration(
+            {
+                operation: 'speechTranscribe',
+                model: { id: null, mediaType: 'audio' },
+                positive: '',
+                negative: '',
+                mediaItems: [{ url: dataUrl, mediaType: 'audio', source: 'dictation' }],
+                injectionParams: {},
+            },
+            {
+                onText: (text) => resolve({ ok: true, text: String(text || '').trim() }),
+                onError: (err) => resolve({ ok: false, error: err?.message || 'ComfyUI did not answer.' }),
+                onCancel: () => resolve({ ok: false, cancelled: true }),
+            },
+            { scope: 'gallery' },
+        );
+        if (!queued) resolve({ ok: false, error: 'the job did not enter the queue.' });
+    });
 }
 
 /**

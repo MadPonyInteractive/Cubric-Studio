@@ -74,6 +74,11 @@ export const UNIVERSAL_WORKFLOWS = {
     imageDescribe: {
         workflow: 'image_descriptor.json',
     },
+    // MPI-1071 — dictation on ComfyUI. Text-only like imageDescribe; its weights belong to
+    // the `speech-to-text` plugin.
+    speechTranscribe: {
+        workflow: 'speech_to_text.json',
+    },
     // MPI-591 — the first op whose graph is chosen by the model. Extending a clip on
     // LTX 2.3 and on MiniMax H3 are different node sets end to end (LTXVAudioVideoMask +
     // LTXVConcatAVLatent + LTXVSeparateAVLatent against an H3 nested AV latent +

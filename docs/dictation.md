@@ -11,7 +11,8 @@ the user's behalf.
 | Record, send, insert, greyed state | `js/services/dictation.js` — `attachDictation(btn, textarea)` returns the detach fn |
 | Route, Remote | `POST /deepinfra/transcribe[?translate=1][&model=qwen\|turbo]` in `routes/deepinfra.js`, body = the recording's bytes |
 | Route, Ollama | `POST /llm/transcribe[?translate=1][&words=…]` in `routes/llm.js` (MPI-1071), same body |
-| Where it runs | Settings > Where each job runs > "Speech to text" → `Storage.getDictationBackend()` (`endpoint` \| `ollama`); set through `setDictationBackend()` in `dictation.js` so the mics re-mark |
+| Route, ComfyUI | the `speechTranscribe` op (`comfy_workflows/speech_to_text.json`, MpiSpeechToText + Qwen3-ASR 0.6B), queued by `transcribeComfy()` in `dictation.js`; weights = the `speech-to-text` plugin |
+| Where it runs | **Remote panel** (NOT Settings) > Where each job runs > "Speech to text" → `Storage.getDictationBackend()` (`endpoint` \| `ollama` \| `comfy`); set through `setDictationBackend()` in `dictation.js` so the mics re-mark |
 | Hotkeys | `dictation.hold` / `dictation.release` / `dictation.release.space` in `hotkeyRegistry.js` |
 | English toggle | Settings, Audio, "Dictate in English" → `Storage.getDictationTranslate()` |
 | Mounts | `MpiPromptBox` (`#dictate-slot`, after Enhance) and `MpiAgentChat` (`#ac-dictate-slot`, before Send) |
@@ -26,7 +27,9 @@ import Primitives only.
   never an endpoint. Qwen3-ASR 1.7B is the default (benched cleanest on Fabio's clips), Whisper
   Turbo covers the ~70 languages Qwen lacks. A vocabulary hint (`initial_prompt`) does nothing
   for Qwen and makes Turbo drop words, so Remote takes no word list.
-- **Ollama = Gemma 4 12B, fixed** (`STT_OLLAMA_MODEL`). Gemma 4 is the only Ollama family with
+- **Ollama = any installed model that hears, Gemma 4 12B the default** (`STT_OLLAMA_MODEL`; pick via
+  `GET /llm/transcribe/models` = `audio` in `/api/tags` capabilities, sent as `&model=`, checked by the route).
+  Gemma 4 26B and 31B do NOT hear ("Text, Image" on ollama.com/library/gemma4); E2B, E4B, 12B do. Gemma 4 is the only Ollama family with
   the `audio` capability, and Ollama documents no audio field: a 16 kHz mono WAV as bare base64
   in the message's `images`, `think: false`. The route converts the WebM through the bundled
   ffmpeg over pipes. e4b crashed on 8 of 10 clips (Ollama 0.35.1, ollama#15333): not an option.
@@ -35,6 +38,17 @@ import Primitives only.
 - **Gemma stays WARM between takes; a LOCAL generation clears it** (Fabio, 2026-10-11: a reload
   per take is ~8 s). `comfyController.runWorkflow` POSTs `/llm/ollama/unload` right before a local
   `/prompt` (never for a Pod), so no Ollama model sits beside a generation (MPI-14's reason).
+- **ComfyUI = Qwen3-ASR 0.6B through the generation queue** (MPI-1071). The take goes in as a
+  `data:` URL that comfyController stages into the engine's input/ (Pod too); its type must lose
+  `;codecs=opus` first, because `/comfy/stage-media-data-url` matches `data:<mime>;base64,`. It
+  waits behind a running generation, like the ComfyUI describer, and the queue owns the status bar.
+  ~6 s the first take (model load), then the model sits in RAM. The mic stays greyed until the
+  `speech-to-text` plugin (1.6 GB) is installed; Settings offers the install. Qwen3-ASR cannot
+  translate, so "Dictate in English" does nothing here. `Input_Context` (the node's `context`) is
+  the dictionary hook: empty today, it spelled "Cubric Studio" right when filled.
+- **A renderer probe of this path needs an Electron window**: a playwright-cli page gets CORS 403s
+  from the engine. Playwright `_electron` with `CUBRIC_BACKGROUND=1` + own `CUBRIC_PORT` /
+  `CUBRIC_USER_DATA_ROOT` attaches to the running engine and runs `transcribeComfy` for real.
 - **The status bar shows "Transcribing"** (pulse + clock) on both backends, borrowed only when no
   generation runs and handed back with the silent `cancel()`: `complete()` would book it as one.
 - **"Dictate in English" goes to `openai/whisper-large-v3` instead** (~$0.00045/min). Turbo was

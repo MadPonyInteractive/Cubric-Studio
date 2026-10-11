@@ -24,5 +24,16 @@
   "C:/AI/Mpi/ComfyUi-MpiNodes/check_speech.py",
   "C:/AI/Mpi/ComfyUi-MpiNodes/README.md",
   "C:/AI/Mpi/ComfyUi-MpiNodes/changelog.md",
-  "C:/AI/Mpi/ComfyUi-MpiNodes/__init__.py"
+  "C:/AI/Mpi/ComfyUi-MpiNodes/__init__.py",
+  "C:/AI/Mpi/ComfyUi-MpiNodes/pyproject.toml",
+  "tests/speech-transcribe.test.cjs",
+  "js/data/modelConstants/dependencies.js",
+  "comfy_workflows/raw/speech_to_text.json",
+  "C:/AI/Mpi/ComfyUi-MpiNodes/.comfyignore",
+  "js/data/progressStages.js",
+  "tests/text-op-completion.test.cjs",
+  "C:/AI/Mpi/ComfyUi-MpiNodes/.claude/rules/publishing.md",
+  "C:/AI/Mpi/ComfyUi-MpiNodes/.claude/rules/registry-safety.md",
+  "C:/AI/Mpi/ComfyUi-MpiNodes/.claude/commands/release.md",
+  "C:/AI/Mpi/ComfyUi-MpiNodes/CLAUDE.md"
 ] }

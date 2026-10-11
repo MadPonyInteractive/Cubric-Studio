@@ -135,6 +135,20 @@ const ALL_PLUGINS = [
             ],
         },
     },
+    // MPI-1071 - dictation on ComfyUI. A plugin, not an engineAsset: 1.46GB lands only on an
+    // engine whose user picked ComfyUI for Speech to text (Settings offers the install).
+    {
+        id: 'speech-to-text',
+        title: 'Speech to text',
+        description: 'Dictation on ComfyUI: Qwen3-ASR 0.6B writes out what you say, on this computer.',
+        requiredDeps: [
+            'qwen3-asr-06b-chat-template-jinja', 'qwen3-asr-06b-config-json',
+            'qwen3-asr-06b-generation-config-json', 'qwen3-asr-06b-model',
+            'qwen3-asr-06b-processor-config-json', 'qwen3-asr-06b-tokenizer-json',
+            'qwen3-asr-06b-tokenizer-config-json',
+        ],
+        operation: 'speechTranscribe',
+    },
     // MPI-623 - the 3D scene. Owns MoGe (1.17GB): the plugin, not an engineAsset, so the
     // weight lands only on an engine whose user asked for it. AnimeSharp, its other weight,
     // is an engineAsset already. devOnly while the Scene workspace is.

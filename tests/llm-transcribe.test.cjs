@@ -28,6 +28,10 @@ test('transcribe asks gemma4:12b with the audio in images, thinking off', () => 
     assert.doesNotMatch(body.messages[0].content, /Words the speaker/);
 });
 
+test('a picked model that hears replaces the 12b default', () => {
+    assert.equal(transcribeChat('x', { model: 'gemma4:e2b' }).model, 'gemma4:e2b');
+});
+
 test('words to expect are appended; blank words add nothing', () => {
     assert.match(transcribeChat('x', { words: ' Cubric Studio ' }).messages[0].content, /Words the speaker may use: Cubric Studio\.$/);
     assert.doesNotMatch(transcribeChat('x', { words: '   ' }).messages[0].content, /Words/);

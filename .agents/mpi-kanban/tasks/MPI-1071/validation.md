@@ -57,3 +57,22 @@
   inserted. `node --test` comfyController suites 328/328, llm-transcribe 5/5; eslint clean.
 - Fabio's mic test 2 (Remote, Qwen default): "pretty good". "Cubric Studio" -> "Kubrick Studio"
   (expected: Remote takes no word list). Turbo not tested yet.
+- ComfyUI backend (2026-10-11, session a9ace7ca): MpiNodes released as 1.2.18 by the release
+  procedure (commit 665aed3, Actions publish green, changelog PUT HTTP 200, registry Pending) and
+  pinned in node_lock.json. R2: 7 files, Content-Length byte-exact. Workflow converted + validated
+  against a private CPU ComfyUI; ran there on clip1.webm -> right text, 6.6 s. LIVE in a real
+  Electron window (Playwright _electron, own port/profile, attached to the 48188 engine on 665aed3,
+  under the GPU lease): dictation.transcribeComfy(clip1 as audio/webm;codecs=opus) -> ok, correct
+  sentence, 6.4 s first take, 0.3 s repeat (ComfyUI cache). "Cubic Studio" with the context empty.
+  Full unit suite 3117 pass after updating text-op-completion's guard; eslint clean.
+- NOT checked by me: the Settings ComfyUI row + Install button, and a real mic take (user-ux).
+- Fabio's ComfyUI mic test (2026-10-11): works, "really impressive", barely moves the GPU.
+- His corrections, done: (1) the row is in the REMOTE panel, not Settings: docs/llm.md heading +
+  warning, docs/dictation.md, three user-facing strings (dictation.js x2, routes/llm.js). (2) Ollama
+  model pick: GET /llm/transcribe/models (audio capability) + &model= checked by the route. Own
+  app:isolated (57971): list = gemma4:12b, the abliterated 12b, e4b, gemma4-e4b-128k; model=gemma4:26b
+  -> NO_MODEL "cannot hear"; the abliterated 12b under the lease -> right text, "Cubric Studio".
+  Remote panel in a page: Ollama row shows, Remote model row hidden, MpiOllamaSetup ready line.
+  llm-transcribe 6/6. Full suite 3116/3122: 4 Flow tests red on PEER-dirty files (flowService.js,
+  MpiBaseFlow.js = MPI-1083; flowsRegistry.js = MPI-1041), green an hour earlier, none mine.
+- Fabio picked gemma4:e4b: HTTP 500 "token repeat limit reached" (the bench's e4b failure again). Added: "(recommended)" on gemma4:12b, listed first (Description row style); a non-default model's failure now says to try the recommended one. Label/sort checked in node; eslint clean; llm-transcribe 6/6.

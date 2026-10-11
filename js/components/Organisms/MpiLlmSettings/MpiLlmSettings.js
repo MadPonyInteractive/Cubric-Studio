@@ -9,7 +9,11 @@ import { MpiOllamaSetup } from '../../Compounds/LandingPages/MpiOllamaSetup/MpiO
 import { secretsClient } from '../../../core/secretsClient.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { hasNoEngine } from '../../../services/engineGate.js';
-import { DICTATION_MODELS, setDictationBackend } from '../../../services/dictation.js';
+import { DICTATION_MODELS, DICTATION_PLUGIN, setDictationBackend } from '../../../services/dictation.js';
+import { pluginAvailability, getPlugin, pluginDepKey } from '../../../data/pluginsRegistry.js';
+import { DEPS } from '../../../data/modelConstants/dependencies.js';
+import { downloadService } from '../../../services/downloadService.js';
+import { formatBytes } from '../../../utils/formatBytes.js';
 import {
     backendPreference,
     setBackendPreference,
@@ -198,6 +202,11 @@ export const MpiLlmSettings = ComponentFactory.create({
                             <div id="mpiSettingsSpeechBackendSlot"></div>
                             <span class="mpi-settings__hint" id="mpiSettingsSpeechBackendNote"></span>
                         </div>
+                        <div class="mpi-settings__form-group" id="mpiSettingsSpeechOllamaGroup" hidden>
+                            <label class="mpi-settings__field-label">Speech model</label>
+                            <div id="mpiSettingsSpeechOllamaSlot"></div>
+                            <span class="mpi-settings__hint">The Ollama models you have that can hear. The recommended model is the one we test dictation on. Gemma 4 26B and 31B cannot hear, so they are not listed.</span>
+                        </div>
                         <div id="mpiSettingsSpeechInstallSlot"></div>
                         <div class="mpi-settings__form-group" id="mpiSettingsSpeechModelGroup">
                             <label class="mpi-settings__field-label">Speech model</label>
@@ -298,6 +307,10 @@ export const MpiLlmSettings = ComponentFactory.create({
                     : `${d.passed}/${d.cases} passed${d.costUsd ? ` · $${d.costUsd.toFixed(2)}` : ''} · now shown in the agent list${shared}`);
             }),
             Events.on('bench:error', (d) => _benchEnd(`The benchmark could not start: ${d.message}`, true)),
+            // MPI-1071: the Speech to text install finished (or was removed): swap the button.
+            Events.on('models:checked', () => {
+                if (qs('#mpiSettingsSpeechInstallSlot', el) && Storage.getDictationBackend() === 'comfy') _paintSpeech(el, 'comfy');
+            }),
         ];
 
         // The ONE init: MpiSlideOver calls onOpen right after mount (via MpiRemote). Also
@@ -928,22 +941,26 @@ export const MpiLlmSettings = ComponentFactory.create({
         }
 
         // MPI-1071: dictation runs on Remote = the DeepInfra key (`/deepinfra/transcribe`) whichever
-        // connection is picked above, with a model pick; or on Ollama = Gemma 4 12B
-        // (`/llm/transcribe`), the only Ollama model that hears, so no pick, only its Download row.
+        // connection is picked above, with a model pick; or on Ollama (`/llm/transcribe`) with a pick
+        // of the INSTALLED models that hear (`GET /llm/transcribe/models`), Gemma 4 12B the default
+        // and offered for download when missing.
+        // ComfyUI = the `speechTranscribe` op (Qwen3-ASR 0.6B), whose weights the `speech-to-text`
+        // plugin owns, so this row offers its install.
+        const SPEECH_COMFY = { value: 'comfy', label: 'ComfyUI (local)', meta: 'Qwen3-ASR 0.6B, a 1.6 GB download' };
         const SPEECH_BACKENDS = [
             { value: 'endpoint', label: 'Remote', meta: 'DeepInfra, a fraction of a cent a minute' },
-            { value: 'ollama', label: 'Ollama (local)', meta: 'Gemma 4 12B, about 8.5 GB of VRAM' },
+            { value: 'ollama', label: 'Ollama (local)', meta: 'Gemma 4, about 8.5 GB of VRAM for 12B' },
         ];
-        const SPEECH_OLLAMA_MODEL = 'gemma4:12b';
         const SPEECH_NOTES = {
             endpoint: 'Your voice goes to DeepInfra on your own key.',
-            ollama: 'Your voice stays on this computer. Gemma 4 12B loads beside any running generation, so it needs room in VRAM.',
+            ollama: 'Your voice stays on this computer. Gemma 4 loads beside any running generation, so it needs room in VRAM.',
+            comfy: 'Your voice stays on this computer. It waits in the queue behind a running generation. "Dictate in English" does not apply: it writes what is spoken.',
         };
         function _renderSpeechModel(root) {
             const slot = qs('#mpiSettingsSpeechBackendSlot', root);
             if (!slot) return;
             const backend = _conn(MpiDropdown.mount(slot, {
-                options: SPEECH_BACKENDS,
+                options: [...SPEECH_BACKENDS, _noEngine ? { ...SPEECH_COMFY, disabled: true, meta: 'Needs the ComfyUI engine' } : SPEECH_COMFY],
                 value: Storage.getDictationBackend(),
                 extraClasses: STACKED,
             }));
@@ -962,16 +979,59 @@ export const MpiLlmSettings = ComponentFactory.create({
         }
 
         let _speechInstall = null;
+        let _speechOllama = null;
+        let _speechPaint = 0;
+        /** Destroy a control this block mounted. Still tracked = still mounted; a provider re-pick already destroyed an untracked one. */
+        function _dropSpeech(inst) {
+            const tracked = _connInsts.indexOf(inst);
+            if (tracked >= 0) { inst.destroy(); _connInsts.splice(tracked, 1); }
+            return null;
+        }
         function _paintSpeech(root, backend) {
             _setText(root, '#mpiSettingsSpeechBackendNote', SPEECH_NOTES[backend]);
             const group = qs('#mpiSettingsSpeechModelGroup', root);
-            if (group) group.hidden = backend === 'ollama';
-            // Still tracked = still mounted; a provider re-pick already destroyed an untracked one.
-            const tracked = _connInsts.indexOf(_speechInstall);
-            if (tracked >= 0) { _speechInstall.destroy(); _connInsts.splice(tracked, 1); }
-            _speechInstall = null;
+            if (group) group.hidden = backend !== 'endpoint';
+            const ollamaGroup = qs('#mpiSettingsSpeechOllamaGroup', root);
+            if (ollamaGroup) ollamaGroup.hidden = backend !== 'ollama';
+            _speechInstall = _dropSpeech(_speechInstall);
+            _speechOllama = _dropSpeech(_speechOllama);
+            const paint = ++_speechPaint;
             const slot = qs('#mpiSettingsSpeechInstallSlot', root);
-            if (slot && backend === 'ollama') _speechInstall = _conn(MpiOllamaSetup.mount(slot, { modelId: SPEECH_OLLAMA_MODEL }));
+            if (slot && backend === 'ollama') _paintSpeechOllama(root, slot, paint);
+            if (slot && backend === 'comfy' && !pluginAvailability(DICTATION_PLUGIN).installed) {
+                const deps = (getPlugin(DICTATION_PLUGIN)?.requiredDeps || []).map(id => DEPS[id]).filter(Boolean);
+                const size = formatBytes(deps.reduce((n, d) => n + (d.bytes || 0), 0));
+                _speechInstall = _conn(MpiButton.mount(slot, { text: `Install Speech to text (${size})`, variant: 'primary', size: 'sm' }));
+                _speechInstall.on('click', async () => {
+                    _speechInstall.setDisabled?.(true);
+                    await downloadService.start(pluginDepKey(DICTATION_PLUGIN), deps);
+                });
+            }
+        }
+
+        /** The Ollama Speech model row: installed models that hear, plus the 12B default to download. */
+        async function _paintSpeechOllama(root, installSlot, paint) {
+            const json = await _getJson('/llm/transcribe/models');
+            const listSlot = qs('#mpiSettingsSpeechOllamaSlot', root);
+            if (paint !== _speechPaint || !listSlot) return;   // re-painted, or closed, meanwhile
+            const fallback = json?.defaultModel || 'gemma4:12b';
+            const hearing = json?.models || [];
+            const names = hearing.map(m => m.name);
+            const stored = Storage.getDictationOllamaModel();
+            const value = names.includes(stored) ? stored : names.includes(fallback) ? fallback : names[0] || fallback;
+            if (value !== stored) Storage.setDictationOllamaModel(value);
+            // The default is the one we test on, marked like every other row (`_remoteModelOptions`), and listed first.
+            const label = (name) => `${name === fallback ? '(recommended) ' : ''}${name}`;
+            const options = hearing.map(m => ({ value: m.name, label: label(m.name), meta: m.size }))
+                .sort((a, b) => (b.value === fallback) - (a.value === fallback));
+            if (!names.includes(fallback)) options.unshift({ value: fallback, label: label(fallback), meta: 'Not downloaded' });
+            _speechOllama = _conn(MpiDropdown.mount(listSlot, { options, value, extraClasses: STACKED }));
+            const setup = (modelId) => {
+                _speechInstall = _dropSpeech(_speechInstall);
+                _speechInstall = _conn(MpiOllamaSetup.mount(installSlot, { modelId }));
+            };
+            _speechOllama.on('change', ({ value: picked }) => { Storage.setDictationOllamaModel(picked); setup(picked); });
+            setup(value);
         }
 
         function _renderAgentMode(root) {

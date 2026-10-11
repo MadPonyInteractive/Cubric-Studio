@@ -1166,6 +1166,20 @@ export const commands = {
         outputKind: 'text',
         universal: true,
     },
+    // MPI-1071 — dictation on ComfyUI: the recording in, the words out via Output_prompt.
+    // Never in the op strip (no `short`); dictation.js enqueues it.
+    speechTranscribe: {
+        label: 'Speech to text',
+        progressLabel: 'Transcribing',
+        mediaType: MEDIA_TYPE.AUDIO,
+        requiresImages: 0,
+        mediaInputs: [
+            { key: 'audio1', mediaType: MEDIA_TYPE.AUDIO, title: 'Input_Audio', required: true },
+        ],
+        promptRequired: false,
+        outputKind: 'text',
+        universal: true,
+    },
     removeBackground: {
         label: 'Remove Background',
         progressLabel: 'Removing background',

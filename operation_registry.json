@@ -117,6 +117,11 @@
     "appVersionIntroduced": "1.1.0",
     "universal": true
   },
+  "speechTranscribe": {
+    "latestVersion": "1.0",
+    "appVersionIntroduced": "2.0.1",
+    "universal": true
+  },
   "autoMaskImg": {
     "latestVersion": "1.0",
     "appVersionIntroduced": "0.0.1",

@@ -38,6 +38,9 @@ function normalizePromptReuseOptions(value = {}) {
 // picks again. `label` is the device's `enumerateDevices` label, matched verbatim.
 export const DEFAULT_AUDIO_OUTPUT = Object.freeze({ deviceId: '', label: '' });
 
+/** MPI-1071: where dictation runs. Anything unknown is Remote. */
+const _dictationBackend = (v) => (v === 'ollama' || v === 'comfy' ? v : 'endpoint');
+
 function normalizeAudioOutput(value) {
   if (typeof value === 'string') return { deviceId: value, label: '' };
   return {
@@ -290,8 +293,11 @@ export const Storage = {
   getDictationModel: () => String(get(STORAGE_KEYS.DICTATION_MODEL, '') || ''),
   setDictationModel: (v) => set(STORAGE_KEYS.DICTATION_MODEL, String(v || '')),
   // MPI-1071 — where dictation runs: 'endpoint' (DeepInfra) or 'ollama' (Gemma 4 12B, local).
-  getDictationBackend: () => (get(STORAGE_KEYS.DICTATION_BACKEND, 'endpoint') === 'ollama' ? 'ollama' : 'endpoint'),
-  setDictationBackend: (v) => set(STORAGE_KEYS.DICTATION_BACKEND, v === 'ollama' ? 'ollama' : 'endpoint'),
+  getDictationBackend: () => _dictationBackend(get(STORAGE_KEYS.DICTATION_BACKEND, 'endpoint')),
+  setDictationBackend: (v) => set(STORAGE_KEYS.DICTATION_BACKEND, _dictationBackend(v)),
+  // MPI-1071: the Ollama model that hears; '' = the route's default (gemma4:12b).
+  getDictationOllamaModel: () => String(get(STORAGE_KEYS.DICTATION_OLLAMA_MODEL, '') || ''),
+  setDictationOllamaModel: (v) => set(STORAGE_KEYS.DICTATION_OLLAMA_MODEL, String(v || '')),
 
   // MPI-803 — playback output. An empty `deviceId` means the OS default endpoint, which
   // is what the app did unconditionally before this existed. A stored id is machine-local,

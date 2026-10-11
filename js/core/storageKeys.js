@@ -25,6 +25,7 @@ export const STORAGE_KEYS = {
   DICTATION_TRANSLATE: 'mpi_dictation_translate',
   DICTATION_MODEL: 'mpi_dictation_model',
   DICTATION_BACKEND: 'mpi_dictation_backend',
+  DICTATION_OLLAMA_MODEL: 'mpi_dictation_ollama_model',
 
   // MPI-803: playback OUTPUT device. Applied to every media element by
   // js/utils/audioOutput.js, not by the playback sites.

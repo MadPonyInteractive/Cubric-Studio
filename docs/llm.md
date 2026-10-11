@@ -15,7 +15,7 @@ text jobs off the card.
 | Prompt enhancement | yes (default) | yes, needs the connection | yes, needs the model downloaded |
 | Image descriptions | yes (default) | yes, needs a vision model | no |
 | Agent | no | yes, the only option (a fixed label) | no |
-| Speech to text (dictation) | not yet (MPI-1071) | yes, always the DeepInfra key, model picked | yes, Gemma 4 12B only ([dictation.md](dictation.md)) |
+| Speech to text (dictation) | yes, Qwen3-ASR 0.6B (the `speech-to-text` plugin) | yes, always the DeepInfra key, model picked | yes, an installed model that hears, Gemma 4 12B default ([dictation.md](dictation.md)) |
 
 - **Remote** (code value `'endpoint'`, UI label "Remote", MPI-737 D2) is the ONE user-connected
   OpenAI-compatible connection (MPI-774): presets DeepInfra, OpenRouter, OpenAI, Ollama `/v1`,
@@ -68,7 +68,7 @@ nothing elsewhere), else nothing. The connection itself is `Storage.getLlmConnec
 | `POST /llm/connection/probe`, `GET /llm/connection/models` | The shared connection (MPI-774; [agent-chat.md](agent-chat.md)). |
 | `POST /llm/enhance` | One completion. Body `{ prompt, system?, backend, modelId?, maxTokens?, profileId? }`, `backend` **required**, `endpoint` or `ollama`: there is no server-side default. Replies `{ ok, text, backend, model }`, naming what actually answered. |
 | `POST /llm/describe` | One image description on the connection. Below. |
-| `POST /llm/transcribe` | Dictation on Ollama's Gemma 4 12B (MPI-1071); body = the recording. [dictation.md](dictation.md). |
+| `POST /llm/transcribe` | Dictation on Ollama (MPI-1071), `&model=` an installed model that hears, Gemma 4 12B default; body = the recording. `GET /llm/transcribe/models` lists them. [dictation.md](dictation.md). |
 
 - **`/llm/enhance` `endpoint`:** `resolveConnection(profileId, ask)`; a raw `modelId`, no registry
   lookup; none -> `recommendedModel(profileId, 'enhance')`. Errors `{ code, message }`
@@ -156,7 +156,12 @@ errorCode?, error?, cancelled? }`, never rejects. Both callers use it: the right
   too, so the Enhance dialog names the same place), and stays silent for a ComfyUI run
   failure (the generation pipeline reports it). The agent gets the code and message back.
 
-## Settings (`MpiLlmSettings`)
+## Remote panel, Language Models (`MpiLlmSettings`)
+
+**This is the REMOTE panel, not Settings.** `MpiRemote` mounts it (`slide-over:open` title "Remote"); the class
+names say `mpi-settings__` and the folder says Settings, and that has sent agents (and a user-facing
+string) to "Settings > Where each job runs", which does not exist. Settings (`MpiSettings`) holds only
+the Audio toggles such as "Dictate in English". Name the Remote panel in docs, strings and release notes.
 
 **One init per open: `el.onOpen` only.** `MpiSlideOver` calls it right after mount; an extra `_init` in `setup` (removed, MPI-789)
 ran two passes per open, and when their `/llm/models` replies crossed, the late pass rebuilt every row under an open dropdown (CI-only red).

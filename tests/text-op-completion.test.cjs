@@ -29,10 +29,11 @@ const imp = (p) => import(pathToFileURL(path.resolve(p)).href);
     // Default must stay 'media': every pre-existing op relies on the absent field
     // meaning "produces files". If this flipped, real generations would take the
     // text branch and never write a gallery card.
-    const TEXT_OPS = ['imageDescribe', 'promptEnhance'];
+    // MPI-1071 added speechTranscribe: dictation on ComfyUI, the recording in, the words out.
+    const TEXT_OPS = ['imageDescribe', 'speechTranscribe', 'promptEnhance'];
     const textOps = Object.entries(commands).filter(([, c]) => c.outputKind === 'text');
     assert.deepStrictEqual(textOps.map(([k]) => k), TEXT_OPS,
-        'two text ops today — a new one must be added here deliberately');
+        'three text ops today — a new one must be added here deliberately');
     for (const [key, cmd] of Object.entries(commands)) {
         if (TEXT_OPS.includes(key)) continue;
         assert.notStrictEqual(cmd.outputKind, 'text', `${key} must not be text`);

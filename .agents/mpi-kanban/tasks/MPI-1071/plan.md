@@ -110,6 +110,41 @@ which he asked for** (= item 3; blocked on his yes to push MpiNodes + upload wei
 The `words` query is wired server-side but nothing sends it yet: that is item 5's dictionary box
 (his test misheard "Fabio Goncalves" and "Cubric").
 
+2026-10-11 (session a9ace7ca): **ComfyUI option BUILT (uncommitted), not yet seen in a running app.**
+Fabio said yes to the R2 upload and to releasing MpiNodes "with the release method, not just a push".
+- R2: 7 files at `vision/models/speech_to_text/qwen3-asr-0.6b/`, Content-Length byte-exact on all.
+- Deps `qwen3-asr-06b-*` (assetDeps.js, HF `mirrorUrl` each, lfs sha256 matched), plugin
+  `speech-to-text` (pluginsRegistry.js), op `speechTranscribe` in the 4 op files (`appVersionIntroduced
+  2.0.1` like every unreleased op), workflow `raw/speech_to_text.json` -> `speech_to_text.json`
+  (MpiLoadAudioUpload `Input_Audio` -> MpiSpeechToText <- `Input_Context` -> PreviewAny `Output_prompt`).
+  Converted + validated against a PRIVATE CPU ComfyUI on :8199 (G:/ComfyUi install, scratch dirs,
+  `--extra-model-paths-config` for speech_to_text); NOT via sync-raw-workflows.mjs, which commits
+  every git-changed raw file (peers' too). Ran it there on clip1.webm: right text, 6.6 s CPU.
+- dictation.js: comfy branch enqueues `speechTranscribe` with the take as a `data:` URL (codecs
+  stripped: the staging route's regex wants `data:<mime>;base64,`); greyed until the plugin is
+  installed. Settings: third option "ComfyUI (local)", disabled with no engine, Install button for the
+  plugin, model row hidden. "Dictate in English" does not apply on ComfyUI (note says so).
+- Tests: full suite 3117, 1 failure = text-op-completion's deliberate guard, updated to 3 text ops.
+- **MpiNodes 1.2.18 RELEASED** by the release procedure (665aed3, carries the never-released 1.2.17
+  notes too; `.comfyignore` + check_speech/check_audio_range/test_switches). Registry 1.2.14-1.2.16
+  are flagged `policy-v0.5: arbitrary-file-launch`, latest_version stuck on 1.2.6. **Fabio's call
+  (2026-10-11): a flag never holds a release, no more issues/manual-review requests, MpiNodes is for
+  Cubric Studio, stays on the registry only for his released workflows.** Saved in MpiNodes
+  `.claude/rules/publishing.md` § Policy, `commands/release.md` step 0, `CLAUDE.md` (all gitignored there).
+- Pinned `dev_configs/node_lock.json` -> 665aed3 (uncommitted). LIVE-verified `transcribeComfy` in an
+  Electron window (validation.md). Fabio's own engine (pid under his :3000 app) already runs 665aed3.
+- Fabio tested ComfyUI: works, barely touches the GPU. Then (his asks, done): the speech row is in
+  the REMOTE panel (docs + strings said Settings: docs/llm.md now warns), and the Ollama backend takes
+  any installed model that hears (Gemma 4 26B/31B cannot: "Text, Image" on Ollama's page).
+- Fabio OK'd the Ollama Speech model list (2026-10-11): "(recommended) gemma4:12b" first, keep e4b and
+  the rest listed. **His OPEN QUESTION for the next session (answer first):** when an Ollama user has
+  NOTHING installed, can he pick a recommended model to install, like the other rows? "The user using
+  Ollama never knows what he should install." Today the speech list adds gemma4:12b as "Not downloaded"
+  and MpiOllamaSetup offers its download; check the Enhancement / Description Ollama rows do the same
+  (MPI-993 `_renderInstall`) and say plainly which do and which do not.
+- (old) Next: Fabio tests ComfyUI in Settings + a mic take (restart the app: server routes changed last
+  session), then commit (handoff/end-session), then item 5 (dictionary).
+
 Next, in order:
 1. ~~Register the node~~ DONE (above).
 2. **Ollama as a third Speech to text backend: RESEARCHED 2026-10-11, Fabio said yes (opt-in).** Bench on his 5 clips, Ollama 0.35.1, output in
