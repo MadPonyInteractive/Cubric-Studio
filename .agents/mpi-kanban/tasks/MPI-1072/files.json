@@ -9,6 +9,8 @@
     "js/components/Compounds/MpiMaskStrip/MpiMaskStrip.css",
     "tests/image-extract.test.cjs",
     "docs/masking-tools.md",
-    "docs/masking.md"
+    "docs/masking.md",
+    ".agents/mpi-kanban/tasks/MPI-1073/",
+    "js/data/commandRegistry.js"
   ]
 }
