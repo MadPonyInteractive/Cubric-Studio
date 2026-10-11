@@ -85,3 +85,15 @@ X3 picks better than the string it replaces. Pass.
 
 X3 wins. "in red" no longer breaks the layout (round 1: front redrawn as a back view on Fabio's seed).
 Close-ups with words name lace / choker detail on s7 / fab that the reference lacks; neckline height is right.
+
+## Bench round 5 (`qg7.py`, `g7_*`): Fabio's front+back reference (`Qwen 2.1/Media/sheet_001.png`, Combine Images)
+
+Shipped strings, shoulder-lock graph, with-head sheet. The reference holds TWO figures (front + side/back photo).
+
+| case | layout / extra figure | F | B | C neckline |
+|---|---|---|---|---|
+| no words (LC) fab / s42 / s7 | held 3/3, none | long dress + side lacing 3/3 (boots from the reference) | LONG dress back 3/3 (was shorts / skirt / bodysuit by seed with the front-only reference); upper back reads as a separate top band on fab, s42 | 2/3 (s42 bare) |
+| "G string on the back view" (X3) | held 3/3, none | long dress 3/3 | G-string 3/3 (fab, s42 with the dress's back panels at the sides) | 3/3 |
+
+A two-view reference is safe on this graph (MPI-1041 F2 round 2's extra figure did not happen) and fixes the
+guessed back. Pending: Fabio's eye test.
