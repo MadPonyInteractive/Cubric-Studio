@@ -178,6 +178,15 @@ const VIDEO_TOOLS = [
         ],
     },
     {
+        // MPI-1073: the image Mask group's Text tool, on a clip. One tool for now —
+        // SAM3's video tracker by name; Extract is its mask strip's last row.
+        mode: 'mask',
+        label: 'Mask',
+        group: [
+            { mode: 'videoMaskText', icon: 'text', info: 'Text' },
+        ],
+    },
+    {
         mode: 'export',
         label: 'Export',
         group: [

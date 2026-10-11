@@ -63,6 +63,7 @@ const videoTrimInputRoutes = require('./routes/videoTrimInput');
 const gifRoutes = require('./routes/gif');  // MPI-768
 const gifMakeRoutes = require('./routes/gifMake');  // MPI-770
 const gifCutoutRoutes = require('./routes/gifCutout');  // MPI-771
+const videoExtractRoutes = require('./routes/videoExtract');  // MPI-1073
 const gifTransformRoutes = require('./routes/gifTransform');  // MPI-773
 const gifToVideoRoutes = require('./routes/gifToVideo');  // MPI-773
 const gifMakerRoutes = require('./routes/gifMaker');  // MPI-760
@@ -100,6 +101,7 @@ app.use(remoteEngineRoutes);
 app.use(gifRoutes);  // MPI-768
 app.use(gifMakeRoutes);  // MPI-770
 app.use(gifCutoutRoutes);  // MPI-771
+app.use(videoExtractRoutes);  // MPI-1073
 app.use(gifTransformRoutes);  // MPI-773
 app.use(gifToVideoRoutes);  // MPI-773
 app.use(gifMakerRoutes);  // MPI-760

@@ -198,6 +198,19 @@
  */
 
 /**
+ * @typedef {Object} MpiToolOptionsVideoMaskProps (Organism — js/components/Organisms/MpiToolOptionsVideoMask)
+ * @property {Object} viewer      - MpiVideoViewer instance
+ * @property {Object} currentItem - the video history entry on screen (kept current via el.setCurrentItem)
+ *
+ * The video Mask group's Text tool (MPI-1073): name + count (1-4), Detect / Stop runs
+ * SAM3's video tracker (runGifCutoutTrack) over the trim range, and the masks land on
+ * the viewer (setVideoMasks), which tints every frame. Mounts MpiMaskStrip WITHOUT the
+ * brush pair; its Extract emits the viewer's 'mask-extract', which the Block cuts.
+ * Requires viewer.el: enterMaskMode(), exitMaskMode(), setVideoMasks(), getRange(),
+ *   setGenerating(), plus the MpiMaskStrip mask surface.
+ */
+
+/**
  * @typedef {Object} MpiToolOptionsUpscaleProps (Organism — js/components/Organisms/MpiToolOptionsUpscale)
  * @property {Object} viewer - MpiVideoViewer instance
  * @property {'image'|'video'} [kind='video'] - Persistence key + which plugin entries list

@@ -177,7 +177,7 @@ transparent, or flattened onto a picked colour (`toolSettings.mask.extractBg` /
 `extractThroughMask()` (`services/imageComposite.js`), always PNG. The mask travels as COVERAGE
 (`getMaskDataURL(…, true)`), so a soft edge stays soft; the image's own alpha is the ceiling
 (`min`), as in the GIF cut-out. The row is gated on the viewer having `extractMask`, so the
-GIF viewer's strip never shows it — Cut out is its extract. Spec: `tests/image-extract.test.cjs`.
+GIF viewer's strip never shows it — Cut out is its extract. Spec: `tests/image-extract.test.cjs`. Video twin: [masking-video.md](masking-video.md).
 
 ## The SAM3 tools — points and text
 

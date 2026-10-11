@@ -67,3 +67,7 @@ row, `POST /project/extract-media`, `docs/masking.md` § Extract). This card is 
 - `app:isolated` with a peer's uncommitted `dev_configs/node_lock.json` repairs the REAL
   engine: launch with scratch `CUBRIC_ENGINE_ROOT` / `CUBRIC_MODELS_ROOT` (no engine = no
   SAM3 though; a real track needs the user's engine or a seeded sandbox).
+
+## Noticed
+
+- Other video ops (upscale, interpolate, GIF Maker) read a transparent WebM with ffmpeg's native vp9 decoder, so the cut area arrives black there (docs/masking-video.md).

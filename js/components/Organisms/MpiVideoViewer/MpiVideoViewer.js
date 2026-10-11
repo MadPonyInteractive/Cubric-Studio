@@ -48,6 +48,11 @@
  *   getSurfaceInstance()                    — MpiVideoSurface instance (for
  *                                             external attach via factories)
  *   getSourceElement()                      — raw <video> element
+ *   enterMaskMode() / exitMaskMode()        — show / hide the per-frame mask tint (MPI-1073)
+ *   setVideoMasks({ urls, trimIn, trimOut, fps }) — one mask URL per frame of the range
+ *   hasVideoMasks(), clearMask(), setMaskOpacity(v), setMaskInverted(v), isMaskInverted(),
+ *   setMaskBwView(v), isMaskBwView(), setMaskPaintEnabled() (no-op), extractMask({ background })
+ *                                           — the MpiMaskStrip surface (brush: false)
  *   whenSourceLoaded()                      — resolves once the loaded clip has SHOWN a
  *                                             frame (drawImage reads blank before), or
  *                                             failed to load
@@ -58,6 +63,8 @@
  *   'change'   { volume, muted }            — forwarded from surface volumechange
  *   'loadedmetadata' { duration }           — forwarded from surface
  *   'crop-change' { rect }
+ *   'mask-change' { hasMask }                — a track landed or the mask was cleared
+ *   'mask-extract' { background, masks, trimIn, trimOut } — Extract pressed; the Block cuts
  */
 
 import { ComponentFactory } from '../../factory.js';
@@ -69,6 +76,7 @@ import { SOCIAL_RATIOS } from '../../../utils/ratios.js';
 import { captureFrameBlob } from '../../../utils/video.js';
 import { qs, on } from '../../../utils/dom.js';
 import { Events } from '../../../events.js';
+import { StatusBar } from '../../../shell/statusBar.js';
 
 export const MpiVideoViewer = ComponentFactory.create({
     name: 'MpiVideoViewer',
@@ -79,6 +87,7 @@ export const MpiVideoViewer = ComponentFactory.create({
             <div class="mpi-video-viewer__stage">
                 <div data-mount="surface" class="mpi-video-viewer__player"></div>
                 <img class="mpi-video-viewer__latent" alt="" hidden>
+                <div class="mpi-video-viewer__mask" hidden><div class="mpi-video-viewer__mask-tint"></div></div>
                 <canvas class="mpi-video-viewer__overlay"></canvas>
                 <div class="mpi-video-viewer__spinner" id="spinner-wrap"></div>
                 <div class="mpi-video-viewer__corners" id="corners-mount"></div>
@@ -183,7 +192,75 @@ export const MpiVideoViewer = ComponentFactory.create({
                 `translate(${_view.tx}px, ${_view.ty}px) scale(${_view.scale})`;
             stageEl.dataset.zoomed = _view.scale > 1.0001 ? 'true' : 'false';
             if (_cropTool && _isInCropMode) _syncOverlayToVideo();
+            if (_maskOn) _placeMask();
         };
+
+        // ── Video mask (MPI-1073) ────────────────────────────────────────
+        // One mask PNG per frame of the range it was tracked over, drawn as a tint
+        // clipped by CSS `mask-image` (luminance) — the GIF viewer's playback tint,
+        // so no per-pixel JS runs while the clip plays. Display mirrors MpiCanvas:
+        // white tint at the strip's opacity; invert draws it black; B/W puts it
+        // opaque on a black (inverted: white) backdrop.
+        const maskEl  = qs('.mpi-video-viewer__mask', el);
+        const maskTint = qs('.mpi-video-viewer__mask-tint', el);
+        /** @type {{ src: string, urls: string[], trimIn: number, trimOut: number, fps: number, first: number, preload: HTMLImageElement[] }|null} */
+        let _masks = null;
+        let _maskOn = false;
+        let _maskOpacity = 0.7;
+        let _maskInverted = false;
+        let _maskBw = false;
+        let _maskShown = -1;
+        let _videoSrc = '';
+        let _rvfcArmed = false;
+
+        /** Fit the layer to the video's letterboxed content box (zoom/pan included). */
+        const _placeMask = () => {
+            const vr = _videoElement.getBoundingClientRect();
+            const sr = stageEl.getBoundingClientRect();
+            const vw = _videoElement.videoWidth || 1;
+            const vh = _videoElement.videoHeight || 1;
+            const s = Math.min(vr.width / vw, vr.height / vh);
+            const x = vr.left - sr.left + (vr.width - vw * s) / 2;
+            const y = vr.top - sr.top + (vr.height - vh * s) / 2;
+            // Whole pixels, outward: a fractional edge let the frame show through as a
+            // 1 px line under the B/W backdrop.
+            const l = Math.floor(x), t = Math.floor(y);
+            maskEl.style.left   = `${l}px`;
+            maskEl.style.top    = `${t}px`;
+            maskEl.style.width  = `${Math.ceil(x + vw * s) - l}px`;
+            maskEl.style.height = `${Math.ceil(y + vh * s) - t}px`;
+        };
+
+        const _drawMask = (t = _videoElement?.currentTime ?? 0) => {
+            if (!_maskOn || !_masks) { maskEl.hidden = true; _maskShown = -1; return; }
+            const i = Math.round(t * _masks.fps) - _masks.first;
+            const inRange = i >= 0 && i < _masks.urls.length;
+            maskEl.hidden = !inRange;
+            if (!inRange || i === _maskShown) return;
+            _maskShown = i;
+            maskTint.style.maskImage = `url("${_masks.urls[i]}")`;
+        };
+
+        const _syncMaskLook = () => {
+            maskEl.classList.toggle('mpi-video-viewer__mask--bw', _maskBw);
+            maskEl.classList.toggle('mpi-video-viewer__mask--inverted', _maskInverted);
+            maskTint.style.opacity = _maskBw ? '1' : String(_maskOpacity);
+        };
+
+        // Playback: one draw per PRESENTED frame, at that frame's own media time.
+        const _armFrameLoop = () => {
+            if (_rvfcArmed || !_videoElement) return;
+            _rvfcArmed = true;
+            _videoElement.requestVideoFrameCallback(_onFrame);
+        };
+        const _onFrame = (_now, meta) => {
+            _rvfcArmed = false;
+            if (!_maskOn) return;
+            _drawMask(meta?.mediaTime);
+            _armFrameLoop();
+        };
+        // Paused step / scrub: MpiVideoSurface sets currentTime after painting the exact frame.
+        _unsubs.push(on(_videoElement, 'seeked', () => _drawMask()));
 
         const _resetView = () => {
             _view.scale = 1;
@@ -217,6 +294,7 @@ export const MpiVideoViewer = ComponentFactory.create({
 
         _resizeObserver = new ResizeObserver(() => {
             if (_cropTool && _isInCropMode) _syncOverlayToVideo();
+            if (_maskOn) _placeMask();
         });
         _resizeObserver.observe(stageEl);
         _resizeObserver.observe(_videoElement);
@@ -302,6 +380,7 @@ export const MpiVideoViewer = ComponentFactory.create({
         }));
 
         _unsubs.push(on(_videoElement, 'loadedmetadata', () => {
+            if (_maskOn) _placeMask();
             if (_cropTool && _isInCropMode) {
                 _syncOverlayToVideo();
                 _cropTool.setRatio(_cropRatio);
@@ -346,6 +425,9 @@ export const MpiVideoViewer = ComponentFactory.create({
             } else {
                 _controlBarInstance?.el.setPendingTrim?.(null);
             }
+            // A mask belongs to the clip it was tracked on (MPI-1073).
+            if (url !== _videoSrc && _masks) { _masks = null; _drawMask(); emit('mask-change', { hasMask: false }); }
+            _videoSrc = url;
             _setLoadingSpinner(true);
             _surfaceInstance.el._setSrc(url);
             _armFrameShown();
@@ -441,6 +523,59 @@ export const MpiVideoViewer = ComponentFactory.create({
         el.exitUpscaleMode     = () => el.setAttribute('data-mode', 'idle');
         el.enterInterpolateMode = () => el.setAttribute('data-mode', 'interpolate');
         el.exitInterpolateMode  = () => el.setAttribute('data-mode', 'idle');
+
+        // ── Video mask API (MPI-1073) — the MpiMaskStrip surface, brush: false ──
+        el.enterMaskMode = () => {
+            if (_maskOn) return;
+            _maskOn = true;
+            _placeMask();
+            _syncMaskLook();
+            _drawMask();
+            _armFrameLoop();
+        };
+        el.exitMaskMode = () => {
+            _maskOn = false;
+            _drawMask();
+        };
+        /**
+         * Hand the viewer a track: one mask URL per frame of [trimIn, trimOut].
+         * @param {{ urls: string[], trimIn: number, trimOut: number, fps: number }} m
+         */
+        el.setVideoMasks = ({ urls, trimIn = 0, trimOut = 0, fps }) => {
+            const f = Number(fps) || 24;
+            _masks = {
+                src: _videoSrc, urls, trimIn, trimOut, fps: f,
+                first: Math.ceil(trimIn * f - 1e-6),
+                // Warm the cache in the mode CSS `mask-image` fetches in (CORS),
+                // so playback does not wait on each frame's first request.
+                preload: urls.map(u => { const i = new Image(); i.crossOrigin = 'anonymous'; i.src = u; return i; }),
+            };
+            _maskShown = -1;
+            _drawMask();
+            emit('mask-change', { hasMask: true });
+        };
+        el.hasVideoMasks = () => !!_masks;
+        el.clearMask = () => {
+            _masks = null;
+            _drawMask();
+            emit('mask-change', { hasMask: false });
+        };
+        el.setMaskPaintEnabled = () => {}; // ponytail: no video brush yet; the strip asks anyway
+        el.setMaskOpacity = (v) => { _maskOpacity = v; _syncMaskLook(); };
+        el.setMaskInverted = (v) => { _maskInverted = !!v; _syncMaskLook(); };
+        el.isMaskInverted = () => _maskInverted;
+        el.setMaskBwView = (v) => { _maskBw = !!v; _syncMaskLook(); };
+        el.isMaskBwView = () => _maskBw;
+        /** Keep only the masked area (MPI-1072's Extract, for video). The Block runs it. */
+        el.extractMask = ({ background = null } = {}) => {
+            if (!_masks) {
+                StatusBar.notify('Nothing masked yet — name something and Detect', 'warning');
+                return;
+            }
+            emit('mask-extract', {
+                background, masks: _masks.urls, trimIn: _masks.trimIn, trimOut: _masks.trimOut,
+            });
+        };
 
         let _destroyed = false;
         el.destroy = () => {

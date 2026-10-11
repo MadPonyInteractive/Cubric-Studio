@@ -1,0 +1,20 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/videoExtract.js",
+    "server.js",
+    "tests/video-extract.test.cjs",
+    "js/components/Organisms/MpiVideoViewer/MpiVideoViewer.js",
+    "js/components/Organisms/MpiVideoViewer/MpiVideoViewer.css",
+    "js/components/Organisms/MpiToolOptionsVideoMask/",
+    "js/components/Compounds/MpiHistoryTools/MpiHistoryTools.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/Compounds/MpiMaskStrip/MpiMaskStrip.js",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js",
+    "docs/masking-video.md",
+    "docs/masking.md",
+    "docs/README.md",
+    ".agents/mpi-kanban/tasks/MPI-1073/"
+  ]
+}

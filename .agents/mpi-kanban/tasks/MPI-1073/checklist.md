@@ -1,0 +1,7 @@
+- [x] Server route /video-extract/source + /apply, registered, tested
+- [x] MpiVideoViewer mask tint + strip surface
+- [x] MpiToolOptionsVideoMask panel
+- [x] Rail Mask group + Block wiring
+- [x] MpiMaskStrip Colour->Transparent crash fixed
+- [x] Docs
+- [ ] Fabio eye-test

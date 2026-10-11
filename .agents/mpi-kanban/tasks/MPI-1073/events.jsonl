@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1073", "at": "2026-10-11T07:47:55+01:00", "actor": "claude", "column": "todo", "title": "Video workspace: mask + Extract (SAM3 by name, transparent or colour background)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1073", "at": "2026-10-11T09:53:47+01:00", "actor": "claude", "from": "todo", "to": "doing"}

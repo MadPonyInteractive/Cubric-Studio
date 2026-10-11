@@ -305,8 +305,8 @@ export const MpiMaskStrip = ComponentFactory.create({
                     });
                 } else if (bg !== 'solid' && colourField) {
                     colourField.destroy?.();
-                    colourField = null;
                     colourField.el.remove();
+                    colourField = null;
                 }
             };
             _syncColourField();

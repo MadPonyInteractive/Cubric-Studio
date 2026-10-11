@@ -32,6 +32,7 @@ import { MpiToolOptionsPlace } from '../../Organisms/MpiToolOptionsPlace/MpiTool
 import { MpiToolOptionsUpscale } from '../../Organisms/MpiToolOptionsUpscale/MpiToolOptionsUpscale.js';
 import { MpiToolOptionsRemoveBg } from '../../Organisms/MpiToolOptionsRemoveBg/MpiToolOptionsRemoveBg.js';
 import { MpiToolOptionsInterpolate } from '../../Organisms/MpiToolOptionsInterpolate/MpiToolOptionsInterpolate.js';
+import { MpiToolOptionsVideoMask } from '../../Organisms/MpiToolOptionsVideoMask/MpiToolOptionsVideoMask.js';
 import { MpiToolOptionsResize } from '../../Organisms/MpiToolOptionsResize/MpiToolOptionsResize.js';
 import { MpiToolOptionsGif } from '../../Organisms/MpiToolOptionsGif/MpiToolOptionsGif.js';
 import { MpiToolOptionsGifCutout } from '../../Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.js';
@@ -129,6 +130,9 @@ const TOOL_OPTIONS_REGISTRY = {
     imageUpscale: MpiToolOptionsUpscale,
     removeBackground: MpiToolOptionsRemoveBg,
     interpolate:  MpiToolOptionsInterpolate,
+    // MPI-1073: the video Mask group. NOT in `_MASK_TOOLS` — those drive the image
+    // canvas bridges; this panel drives MpiVideoViewer's own mask surface.
+    videoMaskText: MpiToolOptionsVideoMask,
     resize:       MpiToolOptionsResize,
     resizeVideo:  MpiToolOptionsResize,
     exportGif:    MpiToolOptionsGif,
@@ -1281,6 +1285,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             videoUpscale: 'Upscale', imageUpscale: 'Upscale',
             removeBackground: 'Remove Background',
             interpolate: 'Interpolate',
+            videoMaskText: 'Mask Text',
             resize: 'Resize', resizeVideo: 'Resize',
             exportGif: 'GIF Maker',
             gifCutout: 'Cut-out',
@@ -2959,6 +2964,53 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }
         }
 
+        /**
+         * Keep only the masked area of the clip as a new entry (MPI-1073) — the video
+         * twin of the image Extract. The masks cover the range they were TRACKED over,
+         * which the viewer hands back, not whatever the trim bar says now.
+         */
+        async function _handleVideoExtract({ background = null, masks, trimIn, trimOut }) {
+            const project = state.currentProject;
+            const currentItem = _group.history[_currentIdx];
+            if (!project?.folderPath || !currentItem?.filePath || !masks?.length) return;
+
+            _showToast('Extracting…', 'info');
+            viewer.el.setGenerating?.(true);
+            try {
+                const res = await fetch('/video-extract/apply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        folderPath: project.folderPath,
+                        sourcePath: currentItem.filePath,
+                        trimIn, trimOut, masks, background,
+                        groupId: _group.id,
+                        itemId:  currentItem.id,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+
+                _group = appendToHistory(_group, data.item);
+                _setCurrentIdx(_group.selectedIndex);
+                _persistGroup();
+                historyList.el.appendEntry(data.item);
+                viewer.el.loadVideo(resolveMediaUrl(data.item.filePath), {
+                    fps:        data.item.fps || _group.fps || 24,
+                    duration:   data.item.duration,
+                    frameCount: data.item.frameCount,
+                    hasAudio:   data.item.hasAudio,
+                    wavePath:   data.item.wavePath,
+                });
+                _showToast('Extracted', 'success');
+            } catch (err) {
+                clientLogger.warn('MpiGroupHistoryBlock', 'video extract failed', err);
+                _showToast('Extract failed: ' + err.message, 'error');
+            } finally {
+                viewer.el.setGenerating?.(false);
+            }
+        }
+
         // ── GIF Maker (video only, mode `exportGif`) ─────────────────────────
         // Preview encoder injected into MpiToolOptionsGif. Resolves the current
         // source + active trim, POSTs /api/video/gif, returns the temp GIF
@@ -3702,6 +3754,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 _trimTimer = setTimeout(() => { _trimTimer = null; _flushTrim(i, o); }, 250);
             });
             viewer.on('loadedmetadata', () => _renderVideoChips());
+            // MPI-1073: the video mask strip's Extract.
+            viewer.on('mask-extract', (payload) => _handleVideoExtract(payload));
 
             _unsubs.push(() => { if (_trimTimer) { clearTimeout(_trimTimer); _trimTimer = null; } });
         }

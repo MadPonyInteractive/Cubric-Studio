@@ -112,6 +112,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Organisms/MpiToolOptionsMaskDetect/MpiToolOptionsMaskDetect.css',
   'js/components/Organisms/MpiToolOptionsMaskPoints/MpiToolOptionsMaskPoints.css',
   'js/components/Organisms/MpiToolOptionsMaskText/MpiToolOptionsMaskText.css',
+  'js/components/Organisms/MpiToolOptionsVideoMask/MpiToolOptionsVideoMask.css',
   'js/components/Organisms/MpiToolOptionsMaskBrush/MpiToolOptionsMaskBrush.css',
   'js/components/Organisms/MpiToolOptionsMaskColour/MpiToolOptionsMaskColour.css',
   'js/components/Organisms/MpiToolOptionsPaint/MpiToolOptionsPaint.css',

@@ -57,6 +57,37 @@
     z-index: 2;
 }
 
+/* The video mask (MPI-1073): placed on the video's letterboxed content box by JS,
+   the tint clipped by the current frame's mask PNG. Colours mirror MpiCanvas's
+   MASK_* constants: white committed mask, black when the display is inverted, and
+   the B/W view's black (inverted: white) backdrop. */
+.mpi-video-viewer__mask {
+    position: absolute;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.mpi-video-viewer__mask--bw {
+    background: oklch(0 0 0);
+}
+
+.mpi-video-viewer__mask--bw.mpi-video-viewer__mask--inverted {
+    background: var(--mask-fill);
+}
+
+.mpi-video-viewer__mask-tint {
+    position: absolute;
+    inset: 0;
+    background: var(--mask-fill);
+    mask-mode: luminance;
+    mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+}
+
+.mpi-video-viewer__mask--inverted .mpi-video-viewer__mask-tint {
+    background: oklch(0 0 0);
+}
+
 .mpi-video-viewer__overlay {
     position: absolute;
     pointer-events: none;
