@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1084", "at": "2026-10-11T10:51:57+01:00", "actor": "b5b40c00", "column": "todo", "title": "LTX 2.3 Reference to Video enhancer (recipe r2v): right picture roles, real descriptions, green Stage 1"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1084", "at": "2026-10-11T10:52:35+01:00", "actor": "b5b40c00", "from": "todo", "to": "doing", "reason": "Plan written; work continues in the next session (Fabio)"}
