@@ -423,6 +423,16 @@ test('the Outpaint Flow carries its I/O and declared control titles (MPI-594)', 
     }
 });
 
+test('the 360 Panorama Flow carries its I/O titles (MPI-623)', () => {
+    // flowPano360's ONE optional media slot `image1` -> `input_image`; the prompt is joined
+    // after a baked trigger/instruction in each branch, so `Input_Positive` stays its own node.
+    const file = 'flow_pano360.json';
+    const have = titlesOf(file);
+    for (const title of ['input_image', 'input_positive', 'input_seed', 'output_image']) {
+        assert.ok(have.has(title), `${file} must carry a node titled "${title}"`);
+    }
+});
+
 test('the Draw It In Flow carries its I/O, its model arm and its box (MPI-567)', () => {
     // flowScribObj runs flow_draw_it_in.json on model:{id:null}. Every injection point
     // here fails SILENTLY: the injector skips a title with no node, so a typo is a

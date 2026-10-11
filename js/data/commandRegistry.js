@@ -1363,6 +1363,22 @@ export const commands = {
         universal: true,
     },
 
+    // MPI-623. The 360 Panorama Flow: a prompt, or a picture plus an optional prompt, in; a
+    // seam-clean 2K equirect out, which flowService then Converts (8K + depth) so the card
+    // lands as a scene. ONE graph: a lazy switch on the picture loader's `loaded` picks the
+    // text or the outpaint branch, so the picture is optional in the graph too.
+    flowPano360: {
+        label: 'Flow: 360 Panorama',
+        progressLabel: 'Making the panorama',
+        mediaType: MEDIA_TYPE.IMAGE,        // OUTPUT type
+        requiresImages: 0,
+        mediaInputs: [
+            { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: false },
+        ],
+        promptRequired: false,
+        universal: true,
+    },
+
     // MPI-567, rebuilt Klein-only in MPI-621. The user draws on their own photo; the
     // drawing is composited onto it, a crop sized from the drawing is taken around it,
     // Klein 9B edits that crop, and the BOX the user places is stitched back.

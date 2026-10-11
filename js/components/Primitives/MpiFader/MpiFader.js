@@ -16,10 +16,10 @@ import { qs, on } from '../../../utils/dom.js';
  * minimum would make a fader sitting at unity look 83% "full", which means
  * nothing.
  *
- * The detent SNAPS to unity within `snap` dB — but only for pointer drags. A
- * keyboard step is an exact request for a value, so `keydown` turns the detent
- * off: with a 0.1 dB step inside a 1 dB tolerance, a snapping keyboard could
- * never leave unity at all.
+ * The detent SNAPS to unity within `snap` dB — but only for pointer drags.
+ * Discrete value requests (keyboard, wheel) turn the detent off before reading:
+ * with a 0.1 dB step inside a 1 dB tolerance, a snapping keyboard or wheel
+ * could never leave unity at all.
  *
  * At the bottom of the scale the fader is OFF: `getGain()` returns exactly 0
  * and the readout shows `-∞ dB`. Without that there is no fader position that
@@ -32,7 +32,9 @@ import { qs, on } from '../../../utils/dom.js';
  * @param {number} [step=0.1]  - Fader resolution in dB
  * @param {number} [value=0]   - Initial dB
  * @param {number} [unity=0]   - dB the detent snaps to, and the fill's anchor
- * @param {number} [snap=1]    - Snap tolerance in dB either side of unity; 0 disables
+ * @param {number} [snap=1]       - Snap tolerance in dB either side of unity; 0 disables
+ * @param {boolean} [wheel=true]  - Enable mouse wheel to adjust value
+ * @param {number} [wheelStep=1]  - dB per wheel tick (independent of drag `step`)
  * @param {boolean} [showValue=true] - Show the numeric dB readout
  *
  * Emits `input` (live, while dragging) and `change` (on release), both with
@@ -54,6 +56,8 @@ const resolve = (props) => ({
     value: props.value !== undefined ? props.value : 0,
     unity: props.unity !== undefined ? props.unity : 0,
     snap: props.snap !== undefined ? props.snap : 1,
+    wheel: props.wheel !== false,
+    wheelStep: props.wheelStep !== undefined ? props.wheelStep : 1,
 });
 
 const format = (db, min) => (db <= min ? '-∞ dB' : `${db > 0 ? '+' : ''}${db.toFixed(1)} dB`);
@@ -94,15 +98,16 @@ export const MpiFader = ComponentFactory.create({
     },
 
     setup: (el, props, emit) => {
-        const { min, max, unity, snap } = resolve(props);
+        const { min, max, unity, snap, wheel, wheelStep } = resolve(props);
         const input = qs('.mpi-fader__input', el);
         const valueEl = qs('.mpi-fader__value', el);
 
         const pct = (db) => ((db - min) / (max - min)) * 100;
         const gainOf = (db) => (db <= min ? 0 : Math.pow(10, db / 20));
 
-        // Pointer drags feel the detent; a keyboard step does not. See the note
-        // in the component doc — a snapping keyboard cannot leave unity.
+        // Pointer drags feel the detent; discrete value requests (keyboard,
+        // wheel) do not. See the component doc — a snapping keyboard or wheel
+        // cannot leave unity at all without this flag.
         let detent = true;
 
         const paint = (db) => {
@@ -124,19 +129,42 @@ export const MpiFader = ComponentFactory.create({
 
         paint(resolve(props).value);
 
-        on(input, 'pointerdown', () => { detent = true; });
-        on(input, 'keydown', () => { detent = false; });
+        const _offs = [];
 
-        on(input, 'input', () => {
+        _offs.push(on(input, 'pointerdown', () => { detent = true; }));
+        _offs.push(on(input, 'keydown',     () => { detent = false; }));
+
+        _offs.push(on(input, 'input', () => {
             const db = read();
             paint(db);
             emit('input', { db, gain: gainOf(db) });
-        });
+        }));
 
-        on(input, 'change', () => {
+        _offs.push(on(input, 'change', () => {
             const db = read();
             emit('change', { db, gain: gainOf(db) });
-        });
+        }));
+
+        // Explicit wheel policy — the browser's default steps by `step` (0.1 dB),
+        // making the wheel crawl and the detent impossible to leave. We always
+        // preventDefault (so the page never scrolls); if wheel is enabled we also
+        // move the value by `wheelStep` and bypass the detent, same as keydown.
+        const handleWheel = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!wheel) return;
+            detent = false;
+            const raw = parseFloat(input.value);
+            const next = Math.max(min, Math.min(max, raw + (e.deltaY < 0 ? wheelStep : -wheelStep)));
+            input.value = next;
+            paint(next);
+            const gain = gainOf(next);
+            emit('input',  { db: next, gain });
+            emit('change', { db: next, gain });
+            detent = true; // restore for any subsequent pointer drag
+        };
+        _offs.push(on(input, 'wheel', handleWheel, { passive: false }));
+        _offs.push(on(el,    'wheel', handleWheel, { passive: false }));
 
         el.setDb = (db) => {
             const clamped = Math.max(min, Math.min(max, db));
@@ -146,5 +174,7 @@ export const MpiFader = ComponentFactory.create({
 
         el.getDb = () => parseFloat(input.value);
         el.getGain = () => gainOf(parseFloat(input.value));
+
+        el.destroy = () => { _offs.forEach(off => off()); };
     },
 });

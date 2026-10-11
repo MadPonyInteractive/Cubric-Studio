@@ -1157,6 +1157,8 @@ geometry - the source's own shimmer is visible there before any model touches it
 ### Bench facts corrected
 
 - Bench core is **0.31.0**, not the 0.30.2 recorded at plan time.
+  **FURTHER UPDATE Session 5, 2026-10-11:** bench is now **0.39.0** (auto-updated
+  by ComfyUI standalone, detected via /system_stats). Custom nodes unchanged.
 - Bench path is `G:\ComfyUi\ComfyUI\` (nested) - `G:\ComfyUi\custom_nodes\` does
   not exist.
 - `custom_nodes` confirmed present: `ComfyUI-LTXVideo`, `comfyui-impact-pack`,
@@ -1165,6 +1167,81 @@ geometry - the source's own shimmer is visible there before any model touches it
 
 ---
 
+## Session 5 - 2026-10-11: B3/B5/B8 + B6 bench runs
+
+### Schema gate (Session 5) - PASSED
+
+Bench up at 8188 (core **0.39.0**, updated from 0.31.0).
+All 10 required nodes present:
+`SeedVR2Preprocess`, `SeedVR2Conditioning`, `SeedVR2TemporalChunk`,
+`SeedVR2TemporalMerge`, `SeedVR2PostProcessing`, `MpiBox`, `MpiBoxCrop`,
+`ImageResizeKJv2`, `ImageBatchExtendWithOverlap`, `ImageBlur`.
+
+**GPU state at session start:** 15,463 MiB / 100% utilization. MPI-1036 bench run
+in progress (the holder); 3 further sessions queued (MPI-1041 phaseF ×2, MPI-623
+pano_flow). B3/B5/B8 and B6 queued as position 5 under the GPU lease system.
+
+**Source clip:** `v1.1 LTX Examples/Media/t2v_ms_001.mp4`, 2560x1408, 73 frames
+@ 24fps. Copied to `G:\ComfyUi\ComfyUI\input\MPI557_b1_source.mp4` for bench access.
+
+**B8 clip:** Anime Kids `t2v_001.mp4`, 1344x768, **141 frames** @ 24fps = 5.9s
+(exceeds 5s/120-frame target; more stringent). Copied to
+`G:\ComfyUi\ComfyUI\input\MPI557_b8_source.mp4`.
+
+**Scripts written to `D:\WORK\MPI-557-phase0\`:**
+- `run_b3_b5.py` — B3 (176@640+lab) + B5 (manual chunk, frames_per_chunk=21, overlap=2)
+- `run_b8.py` — B8 (141 frames, auto chunk, 512 sample res)
+- `run_all_gpu.py` — lease wrapper running B3/B5 then B8 in one lease acquisition
+- `analyze_b6.py` — offline frequency separation (runs after B3/B5 outputs arrive)
+- `make_b3_b5_sheets.py` — side-by-side sheets + seam detection
+
+### B3/B5/B8 — BLOCKED (Session 5, 2026-10-11)
+
+**Root cause: SeedVR2 model weights have been deleted from `G:\CubricModels`.**
+
+GPU lease acquired (queue position 5 → leased after MPI-1036 finished). Both
+runs (`run_b3_b5.py` and `run_b8.py`) failed immediately with HTTP 400 at
+`/prompt`. The error body:
+
+```
+UNETLoader node 6: "seedvr2_3b_int8_convrot.safetensors" not in list
+Available: Wan2_2, flux-2-klein-9b, ltx-2.3-22b, minimax_h3, qwen_image_2.1,
+           wan2.2_bernini_r_high/low_noise
+```
+
+`G:\CubricModels\diffusion_models\` no longer contains SeedVR2 3B/7B/7B-sharp.
+`G:\CubricModels\vae\` has no `seedvr2_ema_vae_fp16`. Full disk search found
+zero `.safetensors` files matching `seedvr2*` anywhere on the machine.
+
+Session 4 output PNGs (`D:\WORK\Images\Outputs\MPI557_B3B5_*`) also gone —
+those were from the session scratchpad which does not persist.
+
+**B3/B5/B8/B6 are ALL blocked until weights are restored.**
+
+Two secondary API fixes applied to the scripts (will be needed when weights
+return):
+- `run_b3_b5.py`: `SeedVR2TemporalChunk` sub-input renamed to
+  `"chunking_mode.frames_per_chunk"` (COMFY_DYNAMICCOMBO_V3 dotted notation).
+- Both scripts: `ImageResizeKJv2` was missing required input `"divisible_by": 2`.
+
+**To unblock: re-download to `G:\CubricModels`:**
+- `diffusion_models/seedvr2_3b_int8_convrot.safetensors`
+- `vae/seedvr2_ema_vae_fp16.safetensors`
+
+Model page: https://huggingface.co/kijai/SeedVR2_comfyui
+Scripts are in `D:\WORK\MPI-557-phase0\` and will work as-is once weights land.
+
+### B6 paste-back - BLOCKED (weights missing, no source/restored PNGs)
+
+Frequency separation: `out = source_crop + (restored - blur(restored, r))`.
+B6 must answer: what blur radius, does it ghost.
+Colour-match nodes BANNED. Per brief's root-cause: finest-band shimmer is 1.58x
+amplified, so the radius controls how much shimmer is grafted.
+Radii to test offline: r=3 (fine detail), r=7 (mid-detail), r=15 (coarser).
+Offline analysis script: `D:\WORK\MPI-557-phase0\analyze_b6.py`
+(requires `MPI557_B3B5_source_*.png` and `MPI557_B3B5_restored_*.png` in
+`D:\WORK\Images\Outputs\` — produced by `run_b3_b5.py`).
+
 ## Open questions
 
 - Multiple faces in one shot: v1 does the largest only. One run per tracked face
@@ -1172,3 +1249,10 @@ geometry - the source's own shimmer is visible there before any model touches it
 - Subject crossing frame: union window degrades to useless. Smoothed window is
   the fix, deferred until a real clip breaks it.
 - Frame budget: 5s @ 24fps = 120 frames. Chunk size vs VRAM unmeasured.
+
+## SeedVR2 DROPPED (Fabio, 2026-10-11)
+
+Fabio: "Seed VR2: we dropped that. We decided not to use it." B2 named SeedVR2 the winning sampler, so the
+B3/B5/B8/B6 sweeps (scripts ready in D:/WORK/MPI-557-phase0/, never run: the weights were already deleted from
+G:/CubricModels) have no model to run on. The card goes back to todo / needs-decision: re-scope on another restore
+model (LTX v2v lost B2) or close as rejected. Fabio's call.

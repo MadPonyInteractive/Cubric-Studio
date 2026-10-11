@@ -8,7 +8,33 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 47 (2026-10-10, "3D Scene 37"):
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 48 (2026-10-11, "3D Scene 38"): the
+360 PANO FLOW is being wired** (Fabio "go"; R2 yes). ON DISK, uncommitted: `comfy_workflows/raw/flow_pano360.json`
+(committed by the sync, `c6a8773cb`; generator = session scratchpad `make_pano_raw.py`) -> `flow_pano360.json`
+(staged): ONE graph, a lazy `MpiIfElse` on `MpiLoadImage.loaded` (block_if_empty OFF) picks text -> 360 (bench
+`t2i_fast` verbatim) or picture -> 360 (bench `ostris_fast` + `MpiWrapSoften` 12/48/6 before the 0.45 seam
+pass); stops at the seam-clean 2K, then flowService's new `sceneCallbacks` (FlowDef flag `landsAsScene`)
+runs `convertToPano` on the landed card before the run reports done. Deps: Mickmumpitz `4d5ff7c` + Ostris
+`7756566` in node_lock + nodesDeps as CODE-ONLY (`installRequirements: false`: curated python_deps covers
+them; no Pod image rebuild, mpi-ci untouched); `krea2-360-t2i-lora` / `krea2-360-outpaint-lora` in loraDeps,
+UPLOADED to R2 (public 200, sizes match) + HF mirror sha-identical. Op `flowPano360` in universal_workflows,
+operationRegistry, operation_registry.json. `tests/flow-pano360.test.cjs` 4/4. **BLOCKED on peers:**
+`commandRegistry.js` + inject test (MPI-1060) and `flowsRegistry.js` / flows.md / UNRELEASED.md / handover
+test (MPI-1041 phaseF2) - messages `19154841-mpi623-to-mpi1060` / `-to-mpi1041`. **Bench run queued**
+(both branches, `D:/WORK/MPI-623-spike/pano_flow/run_both.py`, under the lease) - compare the picture
+branch to `ostris_fast_seam045w96_flat12t6_00001_.png` (same seed: should be ~identical). Then the
+isolated-app run (needs the FlowDef), graphics, `scene-convert` loses `devOnly` (Phase 4). **First bench run
+was VOID:** Krea 2 had been UNINSTALLED from G:/CubricModels at 01:19Z (app.log "uninstall krea2: removed 15";
+the Raw UNET and loras/krea-2/extra gone), so Output_Image failed validation and ComfyUI still queued the
+prompt for the OTHER output node (MpiLoadImage is OUTPUT_NODE) - a 3 s "success" with no file. Runner now
+exits on `node_errors`. Fabio reinstalled Krea 2. **Picture branch PASSED on the bench** (259 s, seam
+1.37 whole / 0.99 sky, by eye clean; not pixel-identical to the 10-06 reference, mean diff 20.7 - newer bench
+ComfyUI, same graph/prompt/seed; it no longer repeats the village behind the camera): `D:/WORK/Images/Outputs/
+mpi623_flow/img_00001_.png`, sheet `D:/WORK/MPI-623-spike/pano_flow/sheet_img.jpg`; Fabio: "Looking good". Text
+branch NOT yet run (first try read the UNET mid-download; the re-queue was stopped for the handoff): rerun
+`gpu_lease.py run --timeout 14400 --poll 2 -- "C:/Program Files/Python314/python.exe" D:/WORK/MPI-623-spike/pano_flow/run_t2i.py`,
+then `compare.py <out> - <sheet>`. `commandRegistry.js` flowPano360 + inject test case IN (MPI-1060
+released; 30/30). Still waiting: `flowsRegistry.js` (MPI-1041 phaseF2). **Session 47 (2026-10-10, "3D Scene 37"):
 Fabio's player asks passed; Up/Down lens; the Scene panel restructured to a PATH TOOL (his call, passed); the scene Take picture / Build here code swept (client); `sceneLift` deprecation is the open follow-up** **Fabio, end of session 47: this ships UNGATED in 2.1** (§ Plan Drift 2026-10-10 "2.1": the ship list). **Next: the 360 Pano Flow via `/mpi-add-flow`.** (validation.md § P3 player asks): Left/Right
 step a frame, Space plays; aspect + lens stick and are SHARED with the Scene panel (`Storage` `SCENE_SHOT`,
 not `state.js` - MPI-1057 holds it). UNCOMMITTED. **Next:** Fabio's eye in his app; then frame 0's black

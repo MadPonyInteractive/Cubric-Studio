@@ -371,12 +371,40 @@ export const nodesDeps = {
         size: '0.3MB',
     },
 
-    // ComfyUI-Mickmumpitz-Nodes and ComfyUI-SplatKit are NOT here: a custom node is
-    // universal, so each would install on every user's engine with no shipped graph using
-    // it. SplatKit left with 3D scene (MPI-952); Mickmumpitz left at the 2.0 cut (MPI-595)
-    // once MPI-1011's Outpaint stopped loading HarmonizeBoundary + ComposeColorMatch. MPI-623
-    // (equirect + 3D scene) restores both entries and their node_lock.json pins by reverting
-    // those commits; SplatKit's also brings `click` back to python_deps.in.
+    // MIT, pinned by git commit. BACK for the 360 Panorama Flow (MPI-623, 2.1): its
+    // MickmumpitzPano* nodes place a picture on the sphere, roll the wrap seam to the centre,
+    // mask it and harmonise the outpaint boundary (flow_pano360.json). It left at the 2.0 cut
+    // (MPI-595) when no shipped graph loaded it; re-added BY HAND, not by reverting edff37f2a.
+    // CODE-ONLY now (`installRequirements: false`, was true): its requirements.txt (numpy,
+    // Pillow, opencv-python, ultralytics) is covered by the curated dev_configs/python_deps.in
+    // set both engines install, and installing that file would add a SECOND cv2 next to the
+    // curated opencv-contrib-python-headless. Code-only also means a Pod installs it onto the
+    // volume at connect - no image rebuild. ComfyUI-SplatKit stays out: the scene runs on
+    // MpiNodes' vendored MoGe (MPI-623 A4).
+    'ComfyUI-Mickmumpitz-Nodes': {
+        id: 'ComfyUI-Mickmumpitz-Nodes',
+        name: 'ComfyUI Mickmumpitz Nodes',
+        type: 'custom_nodes',
+        filename: 'ComfyUI-Mickmumpitz-Nodes',
+        url: lockUrl('ComfyUI-Mickmumpitz-Nodes'),
+        installRequirements: false,
+        size: '0.18MB',
+    },
+
+    // MIT (Ostris, LLC), pinned by git commit, one nodes.py, no requirements. Runs the 360
+    // outpaint LoRA, an ai-toolkit "Ostris edit" LoRA: lbouaraba's Krea2EditModelPatch
+    // (comfyui-krea2edit) fills NOTHING with it (bench `lb_fast`, MPI-623 validation.md
+    // § Phase 4 bench test), so the Panorama Flow's picture branch needs this pack.
+    'ComfyUI-Krea2-Ostris-Edit': {
+        id: 'ComfyUI-Krea2-Ostris-Edit',
+        name: 'Krea 2 Ostris Edit',
+        type: 'custom_nodes',
+        filename: 'ComfyUI-Krea2-Ostris-Edit',
+        url: lockUrl('ComfyUI-Krea2-Ostris-Edit'),
+        installRequirements: false,
+        size: '0.06MB',
+    },
+
     // Supplies `MinimaxH3LatentUpscaler3D`, the node the H3 two-pass shape is built on:
     // stage 1 samples at half-res, this upscales the VIDEO half of the latent, and a
     // 3-step refine rebuilds detail at full res. Both H3 models route through it, so it

@@ -145,6 +145,20 @@
       "filename": "ComfyUI-MelodramaBox",
       "installRequirements": true
     },
+    "ComfyUI-Mickmumpitz-Nodes": {
+      "source": "git-commit",
+      "repo": "mickmumpitz/ComfyUI-Mickmumpitz-Nodes",
+      "commit": "4d5ff7c433884631599c3b2d82011a2cbbeea37e",
+      "filename": "ComfyUI-Mickmumpitz-Nodes",
+      "installRequirements": false
+    },
+    "ComfyUI-Krea2-Ostris-Edit": {
+      "source": "git-commit",
+      "repo": "ostris/ComfyUI-Krea2-Ostris-Edit",
+      "commit": "7756566160c4a1b24bb1bd9f0ff3ced1a83d7547",
+      "filename": "ComfyUI-Krea2-Ostris-Edit",
+      "installRequirements": false
+    },
     "Comfyui_Minimax_h3_latent_Upscaler": {
       "source": "git-commit",
       "repo": "LBH-123-AI/Comfyui_Minimax_h3_latent_Upscaler",

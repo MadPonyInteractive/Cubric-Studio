@@ -1194,6 +1194,43 @@ export const loraDeps = {
             url: 'https://huggingface.co/Skywork/Matrix-3D',
         },
     },
+    // MPI-623 (360 Panorama Flow, 2.1): Mickmumpitz's two Krea 2 equirect LoRAs (MIT, ai-toolkit),
+    // run on Krea 2 Raw + the accelerator (the fast tier: the bench's quality tier was WORSE).
+    // HF copies byte-identical (sha checked 2026-10-11). Text one: trigger `img-txt-2-360`.
+    'krea2-360-t2i-lora': {
+        id: 'krea2-360-t2i-lora',
+        name: 'Krea 2 360 panorama (text)',
+        origin: 'mickmumpitz/Krea2-360-ERP-LoRAs (MIT)',
+        filename: 'loras/krea-2/360/krea2_t2i_360_erp_lora_v1.safetensors',
+        url: 'https://models.cubric.studio/vision/models/loras/krea-2/360/krea2_t2i_360_erp_lora_v1.safetensors',
+        mirrorUrl: 'https://huggingface.co/mickmumpitz/Krea2-360-ERP-LoRAs/resolve/main/krea2_t2i_360_erp_lora_v1.safetensors',
+        size: '218.00MB',
+        bytes: 228587744,
+        sha256: '46587da116a8cdd9ab8fa8850b06effd49970929d071294018d33cdfaa2a6bda',
+        credit: {
+            author: 'Mickmumpitz',
+            work: 'Krea2 360 ERP LoRAs',
+            url: 'https://huggingface.co/mickmumpitz/Krea2-360-ERP-LoRAs',
+        },
+    },
+    // The picture -> 360 half: an Ostris-edit outpaint LoRA, so it runs on the
+    // ComfyUI-Krea2-Ostris-Edit pack (nodesDeps.js), not on comfyui-krea2edit.
+    'krea2-360-outpaint-lora': {
+        id: 'krea2-360-outpaint-lora',
+        name: 'Krea 2 360 panorama (outpaint a picture)',
+        origin: 'mickmumpitz/Krea2-360-ERP-LoRAs (MIT)',
+        filename: 'loras/krea-2/360/krea2_oedit_360_erp_outpaint_lora_v1.safetensors',
+        url: 'https://models.cubric.studio/vision/models/loras/krea-2/360/krea2_oedit_360_erp_outpaint_lora_v1.safetensors',
+        mirrorUrl: 'https://huggingface.co/mickmumpitz/Krea2-360-ERP-LoRAs/resolve/main/krea2_oedit_360_erp_outpaint_lora_v1.safetensors',
+        size: '218.00MB',
+        bytes: 228587600,
+        sha256: '8e0cb98ffbfb8c363050ad0216a951009e8df07fb651e2a8932e24974ddc98e7',
+        credit: {
+            author: 'Mickmumpitz',
+            work: 'Krea2 360 ERP LoRAs',
+            url: 'https://huggingface.co/mickmumpitz/Krea2-360-ERP-LoRAs',
+        },
+    },
     // The 8-step, cfg 1 distill the path video samples with (8 steps instead of ~30). HF copy
     // byte-identical (checked 2026-10-10).
     'wan21-lightx2v-distill': {

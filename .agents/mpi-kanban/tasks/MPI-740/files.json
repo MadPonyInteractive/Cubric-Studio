@@ -1,0 +1,7 @@
+{
+  "schema": "mpi-kanban/files/v1",
+  "files": [
+    "js/components/Primitives/MpiFader/MpiFader.js",
+    "js/components/Primitives/MpiFader/MpiFader.css"
+  ]
+}

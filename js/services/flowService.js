@@ -27,6 +27,7 @@ import { Events } from '../events.js';
 import { clientLogger } from './clientLogger.js';
 import { describeAsks, describeFlowRun } from './flowEnhance.js';
 import { extractAbsPath } from '../utils/mediaActions.js';
+import { convertToPano } from './scene/sceneConvert.js';
 import { characterSheetEditor, characterSheetEditorRefusal, characterSheetEditorCardName } from '../data/flowPrompts/characterSheetEditor.js';
 
 /**
@@ -250,6 +251,30 @@ export function nextPassCallbacks(next, callbacks, submitNext) {
     };
 }
 
+/**
+ * A scene Flow's completion (MPI-623): Convert the landed card, THEN tell the caller. A failed
+ * Convert still reports the run done (the pano card is real and can be converted by hand from
+ * the right-click menu), with a warning that says so.
+ * @param {Object} callbacks - the CALLER's callbacks
+ * @param {{ id: string, folderPath: string }} project - where the card lands
+ * @param {function} [convert] - injected by tests; `convertToPano` otherwise
+ * @returns {Object} callbacks to run the Flow with
+ */
+export function sceneCallbacks(callbacks, project, convert = convertToPano) {
+    return {
+        ...callbacks,
+        onComplete: async (result) => {
+            try {
+                await convert(project, result.group, result.item);
+            } catch (err) {
+                clientLogger.error('flowService', `scene convert failed: ${err?.message || err}`);
+                Events.emit('ui:warning', { message: 'The panorama is in the gallery, but its 3D scene could not be built. Right-click it and choose Convert to 360 pano to try again.' });
+            }
+            callbacks.onComplete?.(result);
+        },
+    };
+}
+
 export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg = {}) {
     const flow = typeof flowOrId === 'string' ? getFlowById(flowOrId) : flowOrId;
     if (!flow) {
@@ -293,6 +318,14 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // reason. It rides every leg and every pass, so each part is one more History version.
     const { runMediaItems, runInputs, runNextPass, runOriginProject, runLanding, ...snapshot } = inputs;
     const run = runInputs || snapshot;
+
+    // A scene Flow (MPI-623, the 360 Panorama) ENDS WITH CONVERT: the card it lands goes through
+    // the same `convertToPano` as the gallery's right-click, so it opens in the Scene workspace
+    // like any converted card (one opening rule, plan A9). Wrapped once, on the first call; every
+    // later leg or pass is handed these callbacks, so the run reports done when the scene is in.
+    if (flow.landsAsScene && _leg.index === undefined && !runMediaItems) {
+        callbacks = sceneCallbacks(callbacks, runOriginProject || state.currentProject);
+    }
 
     // WHICH LEG THIS CALL DISPATCHES (MPI-1041). `index` is its place in `flowLegs`; -1 is leg 1,
     // the Flow's own op, which `operationBy` may route by a field and may SKIP (`null`): the first
