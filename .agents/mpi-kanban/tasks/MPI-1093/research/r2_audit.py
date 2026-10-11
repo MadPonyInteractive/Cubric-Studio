@@ -11,7 +11,8 @@ Two lists, checked against master and the newest release tags:
      repo (klein-9b-lora-headswap), so READ the entry's comment before calling it dead.
      Deleting a B object also needs its url/mirrorUrl dropped from the entry (MPI-698 shape),
      or check-dep-urls.mjs turns release:check red.
-Either way, wait until no release still in users' hands installs it ("newest build" column).
+Either way, delete only when the "newest build" column is OLDER than the support floor:
+v1.5.0 (Fabio 2026-10-11) - anything only a pre-1.5.0 build installs may go.
 """
 import re, subprocess, sys
 
