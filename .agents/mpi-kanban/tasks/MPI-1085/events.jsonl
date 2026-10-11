@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1085", "at": "2026-10-11T10:56:35+01:00", "actor": "claude", "column": "doing", "title": "Engine-starting overlay renders its backdrop UNDER an open Flow"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1085", "at": "2026-10-11T17:38:08+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio eye-tested: overlay covers the Flow. CI green on 456a4664b"}
