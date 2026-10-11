@@ -25,6 +25,7 @@
  *   el.bakeAutoPicks('manual'|'subtract') — Add / Subtract the detected mask
  *   el.applyPaint()                   — flatten the paint layer into a new entry
  *   el.applyPlace()                   — flatten the PLACED image into a new entry (MPI-454)
+ *   el.extractMask({ background })    — keep only the masked area as a new entry (MPI-1072)
  *   el.getCropRect() / el.setCropRect({x,y,w,h}) — the crop box in image px (a stack's per-member box)
  *   el.cropItem(item, rect, {fill, outW, outH}) — crop ANY item to a new version file; resolves the item
  *
@@ -33,6 +34,7 @@
  *   'crop-applied'    { item }        — crop completed; item is the new HistoryItem
  *   'paint-applied'   { item }        — paint flattened; item is the new HistoryItem
  *   'place-applied'   { item }        — a placement flattened; item is the new HistoryItem
+ *   'mask-extracted'  { item }        — the masked area kept as a new HistoryItem (MPI-1072)
  *   'mask-ready'      { hasMask }     — mask painted or cleared
  *   'entry-loaded'    { idx, hasMask } — image loaded for index
  *   'compare-clicked'               — user clicked the Compare overlay button
@@ -1547,6 +1549,58 @@ export const MpiCanvasViewer = ComponentFactory.create({
             done:      'Paint applied!',
             event:     'paint-applied',
         });
+
+        /**
+         * Keep ONLY the masked area of the current entry as ONE new history entry
+         * (MPI-1072); the rest goes transparent, or `background` (`#rrggbb`).
+         *
+         * Reads the COMMITTED mask (`maskCanvas`), never a detection still waiting on
+         * Add — the MPI-426 rule every other mask consumer follows. Exported as
+         * COVERAGE (`soft`), so a SAM3 or soft-brush edge stays soft instead of
+         * growing to the binary inpaint cut. The source never round-trips as base64.
+         *
+         * @param {{ background?: string|null }} [o]
+         */
+        el.extractMask = async ({ background = null } = {}) => {
+            if (!canvas.maskCanvas || !hasMaskContent(canvas.maskCanvas)) {
+                StatusBar.notify('Nothing masked yet — paint a mask, or Add a detection', 'warning');
+                return;
+            }
+            if (!_currentItem?.filePath || !state.currentProject?.folderPath) return;
+
+            StatusBar.progress.start('Extracting...');
+            try {
+                const res = await fetch('/project/extract-media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        folderPath:     state.currentProject.folderPath,
+                        itemId:         crypto.randomUUID(),
+                        sourceFilePath: _resolveUrl(_currentItem.filePath),
+                        maskDataUrl:    canvas.getMaskDataURL?.('black', 'white', true),
+                        background,
+                    }),
+                });
+                const data = await res.json().catch(() => null);
+                if (!res.ok || !data?.success) throw new Error(data?.error || `extract-media ${res.status}`);
+
+                const newItem = createImageItem({
+                    id:              data.itemId,
+                    filePath:        `/project-file?path=${encodeURIComponent(data.filePath)}`,
+                    operation:       'extract',
+                    displayName:     data.displayName || data.filename.replace(/\.[^.]+$/, ''),
+                    pixelDimensions: data.pixelDimensions || { w: 0, h: 0 },
+                    ...(data.thumbPath ? { thumbPath: data.thumbPath } : {}),
+                    ...(data.thumbPathLg ? { thumbPathLg: data.thumbPathLg } : {}),
+                });
+
+                emit('mask-extracted', { item: newItem });
+                StatusBar.progress.complete('Extracted!');
+            } catch (err) {
+                clientLogger.warn('MpiCanvasViewer', `extract failed: ${err?.message || err}`);
+                StatusBar.progress.cancel();
+            }
+        };
 
         /**
          * Flatten an RGBA overlay onto the current entry as ONE new history entry.

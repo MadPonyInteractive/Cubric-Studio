@@ -3645,6 +3645,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // event rather than reusing 'paint-applied' — the payload is identical but the
             // name would be a lie, and this file already routes three of these.
             viewer.on('place-applied', ({ item }) => _appendViewerEntry(item));
+            // MPI-1072: the mask strip's Extract — the masked area kept as a new entry.
+            viewer.on('mask-extracted', ({ item }) => _appendViewerEntry(item));
 
             viewer.on('entry-loaded', ({ idx, hasMask }) => {
                 _setCurrentIdx(idx);

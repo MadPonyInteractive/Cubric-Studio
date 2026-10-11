@@ -167,6 +167,17 @@ Mode reads off the accent alone: `BRUSH_CURSOR` heat = paint, `BRUSH_ERASER` fro
 `MpiCanvasViewer.css`'s `.mask-shape*` rules are the dead pre-canvas cursor — they duplicate
 these colours and are not the source of truth.
 
+## Extract — the mask as a cut-out (MPI-1072)
+
+Every image mask tool's strip ends in **Extract**: the COMMITTED mask (an un-Added detection is
+not content, MPI-426) becomes the alpha of a NEW history entry, everything outside it removed —
+transparent, or flattened onto a picked colour (`toolSettings.mask.extractBg` /
+`extractColour`). `viewer.el.extractMask()` → `POST /project/extract-media` →
+`extractThroughMask()` (`services/imageComposite.js`), always PNG. The mask travels as COVERAGE
+(`getMaskDataURL(…, true)`), so a soft edge stays soft; the image's own alpha is the ceiling
+(`min`), as in the GIF cut-out. The row is gated on the viewer having `extractMask`, so the
+GIF viewer's strip never shows it — Cut out is its extract. Spec: `tests/image-extract.test.cjs`.
+
 ## The SAM3 tools — points and text
 
 Both live in **[masking-sam3.md](masking-sam3.md)**: the click-point branch (MPI-361/380), the

@@ -123,7 +123,7 @@ compounds:
 | `MpiToolOptionsMaskColour` | key colour picker (seeded corner pixel) · EyeDropper · tolerance slider · edgesOnly switch · **MPI-771** |
 | `MpiMaskDetectRow` | thumbs · Detect · Add / Subtract, blocked as a unit while Cue is busy |
 | `MpiToolOptionsShapes` | kind radio + the commit pair — ONE component under BOTH shape modes |
-| `MpiMaskStrip` | paint / erase (**optional**) · invert · B/W view · clear · opacity |
+| `MpiMaskStrip` | paint / erase (**optional**) · invert · B/W view · clear · opacity · **Extract** (image viewer only, [masking.md](masking.md)) |
 
 **One job each.** Only the Brush tool paints. `brush: false` is not cosmetic — the strip forwards
 it to `setMaskPaintEnabled()`, so a brushless tool pans on drag, zooms on wheel and keeps its

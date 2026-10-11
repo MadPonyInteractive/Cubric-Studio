@@ -86,3 +86,27 @@
     min-width: 0;
     height: 20px;
 }
+
+/* MPI-1072 — Extract: background choice + colour, then the button full width. */
+.mpi-mask-strip__extract {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    padding-top: var(--s-2);
+    border-top: 1px solid var(--line);
+}
+
+.mpi-mask-strip__extract-bg {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+}
+
+.mpi-mask-strip__extract--transparent .mpi-mask-strip__extract-colour {
+    display: none;
+}
+
+.mpi-mask-strip__extract .mpi-btn {
+    width: 100%;
+}

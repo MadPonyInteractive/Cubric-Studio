@@ -41,6 +41,7 @@ import { MpiButton }       from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiDropdown }     from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiRadioGroup }   from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { MpiProgressBar }  from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
+import { MpiColorPicker }  from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
 import { BRUSH_PRESETS, DEFAULT_BRUSH_PRESET } from '../../Primitives/MpiCanvas/managers/brushDab.js';
 import { qs }              from '../../../utils/dom.js';
 import { Hotkeys }         from '../../../managers/hotkeyManager.js';
@@ -49,7 +50,13 @@ import { state }           from '../../../state.js';
 import { getToolSettings } from '../../../data/projectModel.js';
 import { getPendingToolSettings } from '../../../services/projectService.js';
 
-const DEFAULTS = { opacity: 0.7, inverted: false, bwView: false, brushPreset: DEFAULT_BRUSH_PRESET };
+const DEFAULTS = {
+    opacity: 0.7, inverted: false, bwView: false, brushPreset: DEFAULT_BRUSH_PRESET,
+    // MPI-1072: what Extract leaves outside the mask.
+    extractBg: 'transparent',
+    // eslint-disable-next-line mpi/no-hardcoded-hex-color -- default Extract background, user-picked after
+    extractColour: '#ffffff',
+};
 
 /**
  * The strip drives one DESTINATION (MPI-375). Mask and paint share the brush pair,
@@ -146,6 +153,13 @@ export const MpiMaskStrip = ComponentFactory.create({
                     <span id="opacity-val"></span>
                 </div>
                 <div class="mpi-mask-strip__slider" id="opacity-slot"></div>
+            </div>
+            <div class="mpi-mask-strip__extract" id="extract-row">
+                <div class="mpi-mask-strip__extract-bg">
+                    <div id="extract-bg-slot"></div>
+                    <div class="mpi-mask-strip__extract-colour" id="extract-colour-slot"></div>
+                </div>
+                <div id="extract-btn-slot"></div>
             </div>
         </div>
     `,
@@ -261,6 +275,52 @@ export const MpiMaskStrip = ComponentFactory.create({
         });
         clearBtn.on('click', () => viewer.el[dest.clear]?.());
         _children.push(invertBtn, bwBtn, clearBtn);
+
+        // ── Extract (MPI-1072) — keep only the masked area, as a new entry ────
+        // Gated on the VIEWER, not the destination: the GIF viewer mounts this strip
+        // with `dest: 'mask'` too, and its Cut out already is the extract there.
+        // REMOVED when absent, never `[hidden]` (the MPI-382 lesson above).
+
+        if (dest === DESTINATIONS.mask && typeof viewer.el.extractMask === 'function') {
+            const extractRow = qs('#extract-row', el);
+            let bg = settings.extractBg === 'colour' ? 'colour' : 'transparent';
+            let colour = settings.extractColour || DEFAULTS.extractColour;
+            const _applyBg = () => extractRow.classList.toggle('mpi-mask-strip__extract--transparent', bg !== 'colour');
+            _applyBg();
+
+            const bgRadio = MpiRadioGroup.mount(qs('#extract-bg-slot', el), {
+                options: [
+                    { label: 'Transparent', value: 'transparent', info: 'Extract onto transparency' },
+                    { label: 'Colour',      value: 'colour',      info: 'Extract onto a solid colour' },
+                ],
+                value: bg,
+                name: 'mask-extract-bg',
+                size: 'sm',
+            });
+            bgRadio.on('select', ({ value }) => {
+                bg = value;
+                _applyBg();
+                Events.emit('settings:tool:update', { toolKey: dest.settingsKey, key: 'extractBg', value });
+            });
+
+            const colourPicker = MpiColorPicker.mount(qs('#extract-colour-slot', el), {
+                value: colour,
+                info: 'Fills everything outside the mask',
+            });
+            colourPicker.on('change', ({ hex }) => {
+                colour = hex;
+                Events.emit('settings:tool:update', { toolKey: dest.settingsKey, key: 'extractColour', value: hex });
+            });
+
+            const extractBtn = MpiButton.mount(qs('#extract-btn-slot', el), {
+                text: 'Extract', size: 'sm', variant: 'secondary',
+                info: 'Keep only the masked area as a new entry — everything else is removed',
+            });
+            extractBtn.on('click', () => viewer.el.extractMask({ background: bg === 'colour' ? colour : null }));
+            _children.push(bgRadio, colourPicker, extractBtn);
+        } else {
+            qs('#extract-row', el)?.remove();
+        }
 
         // ── Opacity ──────────────────────────────────────────────────────────
         // A destination may declare it has no display alpha (composite, MPI-373).

@@ -1,0 +1,14 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "services/imageComposite.js",
+    "routes/projects.js",
+    "js/components/Organisms/MpiCanvasViewer/MpiCanvasViewer.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/Compounds/MpiMaskStrip/MpiMaskStrip.js",
+    "js/components/Compounds/MpiMaskStrip/MpiMaskStrip.css",
+    "tests/image-extract.test.cjs",
+    "docs/masking-tools.md",
+    "docs/masking.md"
+  ]
+}

@@ -204,4 +204,58 @@ async function compositeOverlay({ basePath, overlayBuffer, outPath, opacity = 1 
     return { width, height };
 }
 
-module.exports = { compositeThroughMask, compositeOverlay, defaultFeather, fillMaskHoles };
+/**
+ * Keep ONLY the masked area of an image (MPI-1072): the mask becomes the alpha, so
+ * everything outside it is removed — left transparent, or flattened onto `background`.
+ *
+ * A third sibling, not a flag on the two above: there is no second image and no
+ * overlay layer, just one file and the mask that says what survives. The mask is
+ * read as COVERAGE (luma), so a soft SAM3 / brush edge stays soft.
+ *
+ * The image's own alpha is the CEILING (`min`), the GIF cut-out's MPI-858 rule:
+ * extracting from an already-cut PNG must not turn its transparent pixels opaque.
+ * A fully removed pixel also gets its RGB zeroed, so dropping the alpha later
+ * cannot hand back the picture the extract removed.
+ *
+ * ponytail: one RGBA buffer the size of the image in JS (~1 GB at 16K). Fine for the
+ * photos we see; stream it in strips if a 32K extract ever runs out of memory.
+ *
+ * @param {Object}  o
+ * @param {string}  o.basePath   — image to extract from
+ * @param {Buffer}  o.maskBuffer — mask image (white = keep, black = remove)
+ * @param {string}  o.outPath    — file to write; PNG unless `background` is set
+ * @param {string|null} [o.background] — `#rrggbb` to flatten onto, null = transparent
+ * @returns {Promise<{width: number, height: number}>} the written image's dimensions
+ */
+async function extractThroughMask({ basePath, maskBuffer, outPath, background = null }) {
+    // toColourspace('srgb') first: a greyscale or 16-bit source would otherwise come
+    // back as 2 channels or as 16-bit samples, and the loop below reads 8-bit RGBA.
+    const { data, info } = await sharp(basePath, FILE_INPUT)
+        .toColourspace('srgb')
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+    const { width, height, channels } = info;
+    if (channels !== 4) throw new Error(`extract expected RGBA, got ${channels} channels`);
+
+    const mask = await sharp(maskBuffer, { limitInputPixels: false })
+        .resize(width, height, { fit: 'fill' })
+        .flatten({ background: '#000000' })
+        .greyscale()
+        .toColourspace('b-w')
+        .raw()
+        .toBuffer();
+
+    for (let i = 0, p = 0; i < mask.length; i++, p += 4) {
+        const a = Math.min(data[p + 3], mask[i]);
+        data[p + 3] = a;
+        if (a === 0) { data[p] = 0; data[p + 1] = 0; data[p + 2] = 0; }
+    }
+
+    let out = sharp(data, { raw: { width, height, channels: 4 }, limitInputPixels: false });
+    if (background) out = out.flatten({ background });
+    await out.png().toFile(outPath);
+    return { width, height };
+}
+
+module.exports = { compositeThroughMask, compositeOverlay, extractThroughMask, defaultFeather, fillMaskHoles };
