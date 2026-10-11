@@ -86,4 +86,12 @@ ticks (Phase 0/0b/1, all complete) moved verbatim to
 - [x] Player asks: Left/Right step a frame, Space plays; aspect + lens stick, shared with the Scene panel (session 47, live rig 10/10)
 - [x] Up/Down lens; Scene panel = path tool (Fabio passed); scene Take picture / Build here code swept (session 47)
 - [ ] Deprecate the `sceneLift` op + `/scene-layer` route (no caller left; plan § Paths P3)
+- [x] 360 Pano Flow: graph, deps, op x4, `sceneCallbacks`, tests (session 48, `3d87cc890`, pushed)
+- [x] Pano Flow bench: picture 259 s seam 1.37/0.99; text 124 s seam 0.62/1.64 (sessions 48-49)
+- [x] `pano-360` FlowDef (source runs only until Phase 4), `landsAsScene` package key, agent doc + handover test; placeholder tile (session 49)
+- [x] Pano Flow end to end, agent path, isolated app: text card 125 s + Convert 80 s (8192x4096 + depth, `scenePath`) (session 49)
+- [x] Library-path Convert bug (`!runMediaItems` guard) fixed: `wrapsScene`, behaviour-tested (session 49)
+- [ ] Pano Flow from the Flow Library's Cue, picture branch, in Fabio's app: card opens in Scene (Electron only; a browser page cannot reach 48188)
+- [ ] Phase 4: drop `devOnly` on `scene-convert` + Scene workspace + the `pano-360` gate; UNRELEASED.md roster + entry
+- [ ] `/mpi-flow-graphics` tile + hero for `pano-360` (replaces the placeholder tile)
 - [ ] End check (user-ux, Fabio)

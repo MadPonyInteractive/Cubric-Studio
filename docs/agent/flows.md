@@ -121,6 +121,17 @@ place (`image1`, optional) or from words. `Input_Operation` picks the change.
   describer; do not describe it in `positive`. If that describer fails, nothing is generated and
   the error says why: pass it on.
 
+## 360 Panorama
+
+Makes a whole 360 world from words, or from a picture (`image1`, optional) with the rest of the
+world painted in around it. The card lands already in 3D: the user opens it in the Scene and
+looks around or walks through it. A run takes a few minutes.
+
+- `positive`: the place, as if standing in it ("a tiny cartoon village in a forest clearing,
+  warm afternoon light"). Never camera words ("360", "panorama", "wide shot"): the Flow adds
+  them. With a picture it can stay empty, or say what lies beyond the picture's edges.
+- For one picture of a place the user already has, pass it as `image1`; do not describe it.
+
 ## Spoken lines
 
 Two things speak a line, and they are not the same:

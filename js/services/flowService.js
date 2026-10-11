@@ -275,6 +275,19 @@ export function sceneCallbacks(callbacks, project, convert = convertToPano) {
     };
 }
 
+/**
+ * Whether THIS call wraps the callbacks in `sceneCallbacks`: a `landsAsScene` Flow's FIRST call
+ * only. A later leg carries `_leg.index`, a later pass `_leg.tempId`, and both are handed the
+ * already-wrapped callbacks. Never keyed on `runMediaItems`: the Flow Library sends it on its
+ * first call too (the derived step media), which once left every Library run unconverted.
+ * @param {FlowDef} flow
+ * @param {{index?: number, tempId?: string}} [_leg]
+ * @returns {boolean}
+ */
+export function wrapsScene(flow, _leg = {}) {
+    return !!flow?.landsAsScene && _leg.index === undefined && _leg.tempId === undefined;
+}
+
 export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg = {}) {
     const flow = typeof flowOrId === 'string' ? getFlowById(flowOrId) : flowOrId;
     if (!flow) {
@@ -323,7 +336,7 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // the same `convertToPano` as the gallery's right-click, so it opens in the Scene workspace
     // like any converted card (one opening rule, plan A9). Wrapped once, on the first call; every
     // later leg or pass is handed these callbacks, so the run reports done when the scene is in.
-    if (flow.landsAsScene && _leg.index === undefined && !runMediaItems) {
+    if (wrapsScene(flow, _leg)) {
         callbacks = sceneCallbacks(callbacks, runOriginProject || state.currentProject);
     }
 

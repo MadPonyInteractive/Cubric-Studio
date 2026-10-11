@@ -37,9 +37,15 @@ test('a failed convert still reports done (the pano card is real), never throws'
     assert.strictEqual(done, RESULT);
 });
 
-test('only a landsAsScene flow is wrapped, on its first call only', () => {
+test('only a landsAsScene flow is wrapped, on its first call only', async () => {
+    const { wrapsScene } = await load();
+    const pano = { landsAsScene: true };
+    assert.strictEqual(wrapsScene(pano, {}), true, 'first call, agent or Flow Library alike');
+    assert.strictEqual(wrapsScene(pano, { index: 0, item: {} }), false, 'a later leg');
+    assert.strictEqual(wrapsScene(pano, { tempId: 't1' }), false, 'a later pass');
+    assert.strictEqual(wrapsScene({ id: 'outpaint' }, {}), false, 'not a scene Flow');
     const src = fs.readFileSync(path.join(root, 'js/services/flowService.js'), 'utf8');
-    assert.match(src, /if \(flow\.landsAsScene && _leg\.index === undefined && !runMediaItems\) \{\s*callbacks = sceneCallbacks\(/);
+    assert.match(src, /if \(wrapsScene\(flow, _leg\)\) \{\s*callbacks = sceneCallbacks\(/);
 });
 
 test('graph: one lazy switch on the loader picks text or picture', () => {

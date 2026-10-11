@@ -30,10 +30,22 @@ prompt for the OTHER output node (MpiLoadImage is OUTPUT_NODE) - a 3 s "success"
 exits on `node_errors`. Fabio reinstalled Krea 2. **Picture branch PASSED on the bench** (259 s, seam
 1.37 whole / 0.99 sky, by eye clean; not pixel-identical to the 10-06 reference, mean diff 20.7 - newer bench
 ComfyUI, same graph/prompt/seed; it no longer repeats the village behind the camera): `D:/WORK/Images/Outputs/
-mpi623_flow/img_00001_.png`, sheet `D:/WORK/MPI-623-spike/pano_flow/sheet_img.jpg`; Fabio: "Looking good". Text
-branch NOT yet run (first try read the UNET mid-download; the re-queue was stopped for the handoff): rerun
-`gpu_lease.py run --timeout 14400 --poll 2 -- "C:/Program Files/Python314/python.exe" D:/WORK/MPI-623-spike/pano_flow/run_t2i.py`,
-then `compare.py <out> - <sheet>`. `commandRegistry.js` flowPano360 + inject test case IN (MPI-1060
+mpi623_flow/img_00001_.png`, sheet `D:/WORK/MPI-623-spike/pano_flow/sheet_img.jpg`; Fabio: "Looking good". **Text
+branch PASSED on the bench (session 49):** 124 s, 2048x1024, seam 0.62 whole / 1.64 sky, wrap clean by eye:
+`D:/WORK/Images/Outputs/mpi623_flow/t2i_00001_.png`, sheet `D:/WORK/MPI-623-spike/pano_flow/sheet_t2i.jpg`.
+`3d87cc890` PUSHED by a peer (with `5fd98e6ba`: op `filePrefix: flow360Panorama`, a unit red mine caused); CI green.
+**Session 49: `pano-360` FlowDef IN** (source runs only: `...(APP_CONFIG.dev_mode ? [...] : [])`, because a release
+build drops the devOnly `scene-convert` plugin so MoGe would never be asked for; Phase 4 removes the gate),
+`landsAsScene` in `services/userFlows.js` FLOW_KEYS, `docs/agent/flows.md` § 360 Panorama, handover test,
+PLACEHOLDER tile `flow-pano-360.webp` (crop of the bench t2i; `/mpi-flow-graphics` replaces it). **Isolated-app
+text run (agent path) PASSED:** card in 125 s, Convert 80 s later (8192x4096 + depth, `scenePath` on the
+sidecar). **BUG found + fixed:** the wrap guard was `!runMediaItems`, but the Flow Library's Generate ALWAYS
+sends `runMediaItems` - every Library run would land unconverted. Now `wrapsScene(flow, _leg)` (first call =
+no `_leg.index`, no `_leg.tempId`), behaviour-tested. Library-path LIVE check NOT done: a playwright page
+on the isolated port cannot reach ComfyUI 48188 (origin refused: ws 403 + CORS on /prompt), and the isolated
+Electron window has no CDP. **Next:** Fabio presses Cue on the picture branch in his app (Ctrl+R picks up the
+working tree), card must open in Scene; then commit (FlowDef, userFlows, flowService `wrapsScene`, test,
+flows.md, handover test, placeholder tile); Phase 4 ungate; graphics. `commandRegistry.js` flowPano360 + inject test case IN (MPI-1060
 released; 30/30). Still waiting: `flowsRegistry.js` (MPI-1041 phaseF2). **Session 47 (2026-10-10, "3D Scene 37"):
 Fabio's player asks passed; Up/Down lens; the Scene panel restructured to a PATH TOOL (his call, passed); the scene Take picture / Build here code swept (client); `sceneLift` deprecation is the open follow-up** **Fabio, end of session 47: this ships UNGATED in 2.1** (§ Plan Drift 2026-10-10 "2.1": the ship list). **Next: the 360 Pano Flow via `/mpi-add-flow`.** (validation.md § P3 player asks): Left/Right
 step a frame, Space plays; aspect + lens stick and are SHARED with the Scene panel (`Storage` `SCENE_SHOT`,
