@@ -122,6 +122,12 @@ workflow), ready for LTX 2.5 by re-pointing loaders. Handoffs between sessions u
   sweep (his pick: right after Phase 5; local, under the GPU lease), then Phase 6 docs + UNRELEASED (2.1). Open question for it: how a user puts a chip in the start-frame slot from the
   prompt box (an untagged non-ordinal slot after 15 tagged ones; agents use role `inputStartFrame`). Recipe Stage 1
   sweep still owed (`npm run recipe:test -- ltx-2.3 ...`), ask Fabio first.
+- **Session "LTX 2.3 Reference 6" (2026-10-11):** Phase 6 docs written: `docs/models/ltx/reference-ingredients.md`
+  (128 lines, routed in `docs/models/README.md`), rows in `model-set.md` + `tested-loras-versions.md`. UNRELEASED.md
+  is claimed by MPI-1041 (86c11386): the 2.1 line went to it as message `b5b40c00-mpi1060-to-mpi1041-unreleased`,
+  wording pending Fabio's yes. `scripts/recipe-test.mjs` taught LTX (`<Picture n>` tags, op `ref2v_ms`, resolve
+  via `type`, no video in `directed`). Recipe Stage 1 NOT green (validation.md); Fabio closed the card anyway.
+  Follow-ups: MPI-1080 (prompt box chips, live session), MPI-1081 (no-reference enhance uses t2v).
 - Phase 3 R2 upload DONE 2026-10-10: `vision/models/loras/ltx-2.3/ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors`,
   HTTP 200, content-length 1308778338 (rclone lsl agrees). Upstream sha256 PROVEN equal to our copy
   (`515e4e139001ac6282357a5b35372e42e98b3affd5fcc886a52242abeed19559`, HF lfs). HF re-host + `loraDeps.js` entry + model deps NOT done (land the deps WITH the graph,
@@ -222,13 +228,13 @@ Run with `mpi-execute-parallel` only if both are ready at once; otherwise sequen
 
 ## Phase 5: Live verification (user-ux)
 
-- [ ] Own `npm run app:isolated` (own profile + port, `CUBRIC_MODELS_ROOT` pointing at the weights), run Reference
+- [x] (2026-10-11, validation.md: 4 live runs + Fabio UI test) Own `npm run app:isolated` (own profile + port, `CUBRIC_MODELS_ROOT` pointing at the weights), run Reference
   to Video from the prompt box and over `/connector/generate`; `node scripts/smoke-workflows.mjs --models
   ltx-23-balanced` (plan first). **Verify:** a card lands with history + sidecar; Fabio's eye-test in the app.
 
 ## Phase 6: Docs + release notes
 
-- [ ] `docs/models/ltx/reference-ingredients.md` (new, <=200 lines), `model-set.md` + `tested-loras-versions.md`
+- [x] (2026-10-11; UNRELEASED line handed to MPI-1041, which holds the file) `docs/models/ltx/reference-ingredients.md` (new, <=200 lines), `model-set.md` + `tested-loras-versions.md`
   entries, `docs/releases/UNRELEASED.md` line (coordinate with MPI-1056's claim). **Verify:** docs routed from
   `docs/README.md`; no doc over 200 lines.
 

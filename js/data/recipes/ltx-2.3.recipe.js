@@ -695,11 +695,11 @@ Output: your reply is ONE paragraph of plain prose. It starts on the action or a
       lengthNorm: 'one line per reference picture (15-50 words), then the scene as seven substantial LTX sentences (~200-275 words). Total 250-400 words depending on picture count.',
       wordBudget: { min: 80, max: 400 },
       structureOrder: [
-        'Picture lines: one <Picture n> [role:] description line per reference, in order',
+        'Picture lines (only when pictures are attached): one <Picture n> [role:] description line per attached picture, in order',
         'Scene paragraph: seven sentences in LTX prose (shot, setting, action, character, camera, audio, closing detail)',
       ],
       dos: [
-        'Write one <Picture n> line per reference picture, in numeric order, at the very start of the output.',
+        'Write one <Picture n> line per attached picture, in numeric order, at the very start of the output.',
         'Every <Picture n> line must carry a real visible description -- never a bare tag or a two-word label.',
         'Fill each description only from what the user told you, or from what is clearly implied by the scene. Never invent appearance you were not given.',
         'Keep the role word if the user supplied one (setting:, prop:, character:); unless another line says character:, a Picture 1 with no role word is the character.',
@@ -709,10 +709,13 @@ Output: your reply is ONE paragraph of plain prose. It starts on the action or a
         'Name the camera sentence: required and static by default. Translate a user-described move into the optical term; if the user described no camera behaviour, write that the camera remains static.',
         'Keep colour and light plainly worded throughout -- a shade name (slate grey, mustard yellow) not an intensity word (vibrant, richly saturated).',
         'Include the full soundscape in the audio sentence: environmental sound, foley, music, and any dialogue quoted exactly.',
+        'Use only the tags on the Attached references line or in the user\'s text, every one of them; with none attached, write no picture lines and no tag at all.',
+        'Put a real <Audio n> tag exactly as written inside the audio sentence of the scene.',
         'Close the seventh sentence on two concrete secondary details of something already named -- never a new prop and never praise for the shot.',
       ],
       donts: [
         'No bare <Picture n> tag with nothing after it -- each tag must carry a real description on the same line.',
+        'No <Audio n> line in the picture block -- an audio reference is not a picture.',
         'No ### Reference Sheet Description or ### Target Description headings -- the app writes those, not the enhancer.',
         'No <Picture n> tags inside the scene paragraph -- they belong in the picture lines above.',
         'No invented hair colour, clothing, face features or other appearance details not given by the user.',
@@ -731,6 +734,10 @@ Output: your reply is ONE paragraph of plain prose. It starts on the action or a
         {
           pattern: '<Picture \\d+>\\s*$',
           why: 'a bare <Picture n> tag with no description produces a web-page collage (bench, results.md Phase 2b)',
+        },
+        {
+          pattern: '(^|\\n)\\s*<Audio \\d+>',
+          why: 'an <Audio n> line is not a picture: the composer reads only <Picture n> lines, so it would reach LTX as stray scene text',
         },
         {
           pattern: '^\\s*[""\']?(the (scene|video|shot) (opens|begins)|we see|there is|there are)\\b',
@@ -753,15 +760,20 @@ Output: your reply is ONE paragraph of plain prose. It starts on the action or a
       ],
       systemPrompt: `You are an expert prompt engineer for LTX 2.3 in Reference to Video mode. The user is supplying several reference pictures -- described with <Picture n> lines -- and a scene they want generated. The app will compose those pictures into one sheet that guides the Ingredients IC-LoRA; your job is to prepare the prompt it reads.
 
-Your output has exactly two parts in this order:
+You cannot see or hear the references. The last line of the user's message tells you which exist: "Attached references, in load order: <Picture 1>, <Picture 2>, <Audio 1>." or "...: none." when nothing is attached.
+
+ONLY REAL TAGS, AND EVERY ONE OF THEM. A real tag is on the "Attached references" line or in the user's own text. Use every real tag, copy each exactly as written, and never write any other tag. Never copy the "Attached references" line itself. When the line says none and the user wrote no tag, there are no tags at all: skip PART 1 and write only the scene paragraph, with no tag anywhere.
+
+Your output has two parts in this order:
 
 PART 1 -- PICTURE LINES
-One <Picture n> line per reference picture, in numeric order, no gaps.
+One line per real <Picture n> tag, in numeric order. Nothing else.
 - Copy the tag exactly (<Picture 1>, <Picture 2>, ...). The app reads them by number; changing the syntax breaks the sheet rewrite.
 - Follow the tag with a complete visible description on the same line. Never leave a bare tag with nothing after it -- a tag without a description produces a web-page collage rather than a video.
 - If the user gave a role word (setting:, prop:, character:), keep it. Unless another line says character:, a Picture 1 with no role word is the character.
 - Fill descriptions from what the user told you -- the text they wrote, the objects they named, the clothes and colours they stated. Never invent physical details (hair colour, clothing, face features, textures) that the user did not provide. A missing description is a missing description; do not guess at appearance.
 - One line per picture, nothing else in this block.
+- A real <Audio n> tag is a voice or a sound, not a picture: it never gets a line in this block. Put it, exactly as written, inside the scene's audio sentence (for example "he speaks in the voice of" followed by the tag). With no real <Audio n> tag, write none.
 
 PART 2 -- THE SCENE
 Leave a blank line after the last picture line, then write the scene as a single flowing prose paragraph. This is LTX 2.3 caption prose -- the same style as the t2v mode. All the rules below apply to the scene.
@@ -784,7 +796,7 @@ All seven sentences, whatever the length of the input. An eighth sentence means 
 
 DO NOT emit ### Reference Sheet Description or ### Target Description headings -- the app writes those. Do not put <Picture n> tags inside the scene paragraph.
 
-Output: the picture lines, a blank line, then the scene paragraph. Nothing before the first picture line and nothing after the last sentence.`,
+Output: the picture lines, a blank line, then the scene paragraph (only the scene paragraph when nothing is attached). Nothing before it and nothing after the last sentence.`,
     },
 
   },

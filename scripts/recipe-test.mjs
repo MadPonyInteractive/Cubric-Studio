@@ -39,9 +39,9 @@
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getRecipe, withReferences } from '../js/data/recipes/registry.js';
+import { getRecipe, resolveRecipe, withReferences } from '../js/data/recipes/registry.js';
 import { MODELS } from '../js/data/modelConstants/models.js';
-import { refTagHandle } from '../js/data/commandRegistry.js';
+import { commands, filterMediaInputsForModel, refTagHandle } from '../js/data/commandRegistry.js';
 import {
     avoidedTerms,
     composeSystemPrompt,
@@ -131,21 +131,26 @@ const TIERS = [
  *  (the mode must cite what is attached), two tag it (kept verbatim). The deterministic tag
  *  check reads the whole input, so it demands every attached tag and forbids any other.
  *  `tag` writes each one as the app's `@` picker does for the recipe's own model
- *  (`refTagHandle`): `@image1` on Seedance, `<Image 1>` on Wan 3.0 (MPI-1018). */
-function refInputs(tag) {
-    const [i1, i2, v1, a1] = ['Image 1', 'Image 2', 'Video 1', 'Audio 1'].map(tag);
+ *  (`refTagHandle`): `@image1` on Seedance, `<Image 1>` on Wan 3.0 (MPI-1018).
+ *  `slotTags` are the model's own slot tags: LTX writes `<Picture 1>` and takes no video
+ *  (MPI-1060), so `directed` attaches the picture alone there. */
+function refInputs(tag, slotTags = []) {
+    const image = slotTags.includes('Picture 1') ? 'Picture' : 'Image';
+    const hasVideo = !slotTags.length || slotTags.includes('Video 1');
+    const [i1, i2, v1, a1] = [`${image} 1`, `${image} 2`, 'Video 1', 'Audio 1'].map(tag);
     return {
         bare: withReferences('cat', [i1]),
         medium: withReferences(`The man from ${i1} sitting on a rocking chair in ${i2} with two cats at his feet by the fireplace, cosy warm atmosphere`, [i1, i2]),
-        directed: withReferences(TIERS.find((t) => t.name === 'directed').input, [i1, v1]),
+        directed: withReferences(TIERS.find((t) => t.name === 'directed').input, hasVideo ? [i1, v1] : [i1]),
         overlong: withReferences(`${TIERS.find((t) => t.name === 'overlong').input
             .replace('a lone samurai warrior', `the samurai warrior from ${i1}`)
             .replace('the edge of a cliff', `the edge of the cliff in ${i2}`)} He speaks in the voice of ${a1}.`, [i1, i2, a1]),
     };
 }
 
-/** A reference tag in either form the app writes: `@image1` (Seedance) or `<Image 1>` (Wan 3.0). */
-const REF_TAG = /@(image|video|audio)\s?\d+|<(image|video|audio)\s?\d+>/gi;
+/** A reference tag in either form the app writes: `@image1` (Seedance), `<Image 1>` (Wan 3.0)
+ *  or `<Picture 1>` (LTX). */
+const REF_TAG = /@(image|video|audio|picture)\s?\d+|<(image|video|audio|picture)\s?\d+>/gi;
 
 const FILLER =
     /^\s*(here('s| is| are)|sure|certainly|okay|of course|absolutely|i've|i have|below is|this is|prompt:|enhanced prompt:|optimized prompt:)/i;
@@ -443,8 +448,13 @@ async function main() {
     const only = arg('--tier');
     // A recipe without `styleVocabulary` has no register to test — running the
     // register tiers on it would fail four tiers for not having opted in yet.
-    const refModel = MODELS.find((m) => m.enhanceRecipe === recipeId && m.supportedOps?.includes('ref2v'));
-    const REF_INPUTS = refInputs((name) => refTagHandle(name, refModel));
+    // LTX names no enhanceRecipe (it resolves through `type`) and its op is `ref2v_ms` (MPI-1060).
+    const refOp = (m) => m.supportedOps?.find((op) => op.startsWith('ref2v'));
+    const refModel = MODELS.find((m) => resolveRecipe(m.enhanceRecipe ?? m.type)?.modelId === recipeId && refOp(m));
+    const refTags = refModel
+        ? filterMediaInputsForModel(commands[refOp(refModel)].mediaInputs, refModel).map((s) => s.tag).filter(Boolean)
+        : [];
+    const REF_INPUTS = refInputs((name) => refTagHandle(name, refModel), refTags);
     const eligible = process.argv.includes('--ref-tiers')
         ? TIERS.filter((t) => REF_INPUTS[t.name]).map((t) => ({ ...t, input: REF_INPUTS[t.name] }))
         : mode.styleVocabulary

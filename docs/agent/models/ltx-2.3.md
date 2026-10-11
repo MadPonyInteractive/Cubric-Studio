@@ -5,7 +5,7 @@ LTX 2.3 is Lightricks' native joint audio-video model: one pass generates pictur
 - `ltx-23`: the high, quality-ceiling tier (full bf16 transformer).
 - `ltx-23-balanced`: the fast tier (int8 transformer; everything else is shared).
 
-Both offer `t2v_ms` (text to video) and `i2v_ms` (image to video), and both resolve to the same `ltx-2.3` enhancer recipe, which only defines a `t2v` mode: an i2v request gets the same six-part instruction. In practice, real production work reaches for this model image-to-video almost exclusively. A plate is mandatory overhead on every shot, but it also fixes the framing for you, so lean on it instead of re-describing what the picture already shows.
+Both offer `t2v_ms` (text to video), `i2v_ms` (image to video) and `ref2v_ms` (Reference to Video, below), and all resolve to the same `ltx-2.3` enhancer recipe: `ref2v_ms` gets its own `r2v` mode, an i2v request gets the `t2v` instruction. In practice, real production work reaches for this model image-to-video almost exclusively. A plate is mandatory overhead on every shot, but it also fixes the framing for you, so lean on it instead of re-describing what the picture already shows.
 
 ## Pick it when
 
@@ -54,8 +54,8 @@ The app follows rules from a layout bench (MPI-1060 `research/results.md`):
 
 ### Optional extra inputs
 
-- **Start frame** (role `inputStartFrame`): adds a start-frame image before the IC guide. The clip opens on the photo and the identity carries through.
-- **Audio** (`inputAudio`): one audio clip. The model can lip-sync to it or carry its voice identity across, depending on the audioMode the user set.
+- **Start frame** (role `inputStartFrame`): the clip opens on this photo and the identity carries through. It is NOT on the sheet and gets no `<Picture n>` line. In the prompt box the user makes one by clicking a picture's tag.
+- **Audio** (`inputAudio`): one audio clip. The model can lip-sync to it or carry its voice identity across, depending on the audioMode the user set. It is not a picture: no line in the picture block; if the prompt names it, keep `<Audio 1>` once, in the scene's sound sentence.
 - No video references. A clip used as the guide is copied frame-for-frame, not referenced (confirmed on bench).
 
 ### Worked examples for ref2v_ms
@@ -81,7 +81,7 @@ A wide shot from behind frames Maya on the mountain trail as she adjusts the sho
 - Ratios (per op, from `connector-models.json`): identical across `t2v_ms` and `i2v_ms` on both `ltx-23` and `ltx-23-balanced`: `1:1`, `9:16`, `16:9`, `21:9`.
 - Quality tiers (same source): identical across both ops on both cards: `very_low, low, medium, high, very_high, 2k, 4k`. Auto opens on `medium`.
 - Turbo is `false` on every op of both cards, and neither offers a style picker. The shipped workflow is already an 8-step, CFG-1 distilled build on both tiers, so there is nothing to toggle.
-- Media roles. `t2v_ms`: `inputAudio` (optional). `i2v_ms`: `startFrame` (required), `endFrame` (optional), `inputAudio` (optional).
+- Media roles. `t2v_ms`: `inputAudio` (optional). `i2v_ms`: `startFrame` (required), `endFrame` (optional), `inputAudio` (optional). `ref2v_ms`: `inputImage` .. `inputImage9` (= Picture 1-9; with none it is plain text to video, so send at least one), `inputStartFrame` (optional), `inputAudio` (optional).
 - `inputAudio` is more than a reference track: staging it can drive lip-sync or a transferred voice identity, chosen elsewhere in the UI, not by you. Either way, expect the supplied clip's real content to often come through rather than exactly what you wrote; word the Audio Integration sentence to match what's actually in the file when you know it.
 - There is no working negative box on this distilled build. The recipe already treats every constraint as inline, positive prose: say what you don't want as a positive statement in the paragraph.
 

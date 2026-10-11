@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1081", "at": "2026-10-11T10:04:27+01:00", "actor": "b5b40c00", "column": "todo", "title": "Enhance on a reference-to-video op with nothing attached uses the text-to-video rules"}

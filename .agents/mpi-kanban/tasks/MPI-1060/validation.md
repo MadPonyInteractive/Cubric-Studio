@@ -73,3 +73,38 @@
   Clip opens on that frame, she turns and walks off; the reference backpack (leather patch) appears from behind.
   PASS. The card itself did not save (I closed the app at Fabio's GPU stop); clip taken from the engine output.
 - Open: Fabio's eye-test.
+
+## Recipe r2v Stage 1 + agent knowledge (2026-10-11, session "LTX 2.3 Reference 6")
+
+- Harness: `scripts/recipe-test.mjs` could not sweep LTX (tags `<Image n>` only, refModel found by
+  `enhanceRecipe` + op `ref2v`). Now: `<Picture n>` in REF_TAG, model resolved via `resolveRecipe(enhanceRecipe ?? type)`,
+  op `ref2v*`, image tag + video slot read from the model's own slots (LTX `directed` attaches the picture only).
+  Wan/Seedance inputs unchanged.
+- Sweep 1 `r2v --ref-tiers` (gemma-4-abliterated-12b / judge gemma3:12b, x3): bare, medium, directed 3/3; overlong 2/3.
+  Cause: the recipe was silent on `<Audio n>`: run 1 dropped the tag, runs 2-3 gave it a picture-block line (would
+  reach LTX as stray scene text, since the composer reads only `<Picture n>` lines). Fix: rule in systemPrompt + dos/
+  donts + forbiddenPattern `(^|\n)\s*<Audio \d+>`. Overlong re-run 3/3, tag kept in the sound sentence.
+- `tests/recipe-*`/`enhance*` 150/0; agent-corpus + prompt-budget + connector-agent-tools 33/0.
+- Agent guide `docs/agent/models/ltx-2.3.md` (what Cosmo and MCP `read_knowledge` serve): stale "recipe only defines t2v"
+  fixed, `ref2v_ms` media roles listed (`inputImage`..`inputImage9`, `inputStartFrame`, `inputAudio`), start frame is not
+  on the sheet, audio is not a picture line. `describe_model` role text already came from ROLE_USE (Parallel Batch).
+- First "final" sweeps NOT green: ref 3/3,3/3,2/3,2/3 and 3/3,3/3,3/3,2/3; plain (no refs) 0/15. Cause: the recipe
+  ignored the app's "Attached references:" line: it wrote `<Picture n>` lines with nothing attached, and the audio
+  example seeded an invented `<Audio 1>`. Fix: Wan 3.0's proven "ONLY REAL TAGS, AND EVERY ONE OF THEM" rule, adapted
+  (none attached -> scene paragraph only); structureOrder + output line conditional.
+- Re-sweep on that text, NOT green: `--ref-tiers` bare 2/3, medium 3/3, directed 3/3, overlong 1/3 (an `<Audio 1>`
+  line in the picture block twice, one 78-word output under the 80 floor); plain (nothing attached) bare 0/3,
+  medium 0/3, directed 0/3, overlong 3/3, general 1/3 (still writes a `<Picture 1>` line). The 12B enhancer
+  does not hold "nothing attached -> no tag" in r2v mode: the same open case Wan 3.0's r2v shipped with
+  (`docs/recipes/research/wan-3.0/validation.md`, `directed` with no references).
+  Recipe stays `draft` (only Fabio flips it). Stage 1 is NOT green.
+- Fabio's UI eye-test (2026-10-11, his app): toggle works (tag -> Start frame -> back). Asked: the remove X covered
+  the tag's number on every model's strip. Fix `MpiPromptBox.css`: X `top` -6px -> -12px, strip top padding + row gap
+  0.75rem so the scroll box does not clip it. Desktop spec asserts the X ends above the tag text and is not
+  clipped; 6 strip-related specs 50/50 (before the spec's new check), the start-frame spec passes with it.
+- Start frame not in the `@` picker: by design (not on the sheet; a tag for it would be stray text to LTX).
+- Fabio: dragging the start-frame chip turned it back into a picture. Cause: `_moveMediaItem` deleted EVERY role so
+  positions re-derive; the start frame is not positional. Fix: keep `inputStartFrame`. Spec step added (synthetic
+  pointer drag): FAILS with the old line, passes with the fix.
+- Fabio accepted the UI ("that works"); the chip redesign he asked for next (tags above the chips, no swap icon,
+  reorder flicker) is card MPI-1080 with a brief, not this card.

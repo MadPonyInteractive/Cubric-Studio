@@ -38,6 +38,7 @@ and why Alibaba's 4-step accelerator does not run on core ComfyUI.
 | [model-set.md](ltx/model-set.md) | The base weights + LoRAs (roles, sizes, status), merge-vs-switch delivery. |
 | [lora-strength-law.md](ltx/lora-strength-law.md) | Distilled-LoRA strength law (0.3–0.7, sweet spot 0.5); capability-LoRA verdicts. |
 | [tested-loras-versions.md](ltx/tested-loras-versions.md) | Exact LoRA versions + base tested → re-test baseline when a NEW version appears. |
+| [reference-ingredients.md](ltx/reference-ingredients.md) | **Reference to Video (`ref2v_ms`, MPI-1060):** the Ingredients IC-LoRA branch (nodes 900-915), the sheet composer's layout rules, the `<Picture n>` prompt shape, the start-frame toggle, LTX 2.5 re-point. |
 | [prompt-contract.md](ltx/prompt-contract.md) | The LTX prompt SHAPE (front-loaded anchor + ordered steps) + audio rule → Cubric-Prompt recipe. |
 | [audio-input.md](ltx/audio-input.md) | Input-audio gate + influence wiring; verdict = binary gate at fixed 1.0. |
 | [black-bars-and-nag.md](ltx/black-bars-and-nag.md) | t2v black-bar compositional artifact + NAG findings. |

@@ -22,6 +22,8 @@
 | Soft Enhance | **V1** (Soft only, not Crisp) | `LTX2.3_Soft_Enhance` | standard | 0/0.5/0.7, i2v + t2v, stage-1 + both | **✅ KEEP** — softer/more realistic face+skin+lighting; merge-able (344MB, always-on, no prompt change). Ship 0.5-0.7; visible only on CLOSE shots | new version (try Crisp variant?) |
 | Transition | **valiantcat v1.0** | `ltx2.3-transition` | standard | stage-1 ONLY @ on/off switch; FL start+end (2026-06-24) | **WORKS on FL — DEFER on delivery.** With two DIFFERENT-content FL frames, BASE snaps start→end in the first ms; Transition morphs SMOOTHLY across the clip (clothes + mask). It ALWAYS spans the whole clip = a short A→B morph primitive, not a scene generator (transform-then-act = short transition + separate extension). **Place STAGE-1 ONLY** — stage-2 copy = zero difference (latent carries it). No audio conflict (perfect @ influence 1.0). ~+17% time (FL 36s → 42s, 2s clip). Stays a TOGGLE, FL-only, never merged; delivery needs an effect-system decision. | effect-system brainstorm |
 
+| Ingredients IC | **0.9** (2026-10-10, MPI-1060) | `ltx-2.3-22b-ic-lora-ingredients-0.9` | LTX-2.3 22B (example graph uses the dev checkpoint + distilled LoRA) | 1.0, two-stage, our **int8 distilled** base, no distilled LoRA | **✅ SHIP** as Reference to Video — works on our base as-is; stage-2 guide re-added (variant A) or fine detail fades. Video as the guide = a copy, not a reference | a 1.0 release; LTX 2.5's IC-LoRA set |
+
 ## Untested variants worth a future look
 - **VBVR v3 (i2v)** — "Attention-only layers, feedforward stripped. Better motion, smaller file."
   Different axis (MOTION) from v4 (prompt-following). Made for a more standard base than v4's Sulphur-2.

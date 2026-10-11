@@ -103,6 +103,7 @@ Default 0.5, sweep 0.3–0.7.
 | Singularity OmniCine V1 | anatomy + fast-motion + lip-sync, kills subtitles | civitai `3001143` | 2.5GB | ❌ **DROPPED** — degrades audio (no doc fix), ethnicity bias, +size/time |
 | Enhancers **Soft** | autofocus/DoF + desaturated polish (Soft only, skip Crisp) | civitai `2849706` | 344MB | ✅ **KEEP — stage-1 LoRA loader, NO merge** @0.5-0.7 (1.0 hallucinates). Ships in a generic `Input_Lora_N` slot. |
 | Transition | i2v↔i2v / FL transition, on/off toggle | valiantcat HF | — | ✅ **WORKS on FL** (smooth A→B morph); STAGE-1 only; toggle; short atomic morph primitive; delivery deferred to effect-system. **TWO roles:** (1) short A→B morph primitive — always spans the whole clip; (2) **I2V lipsync/motion ENABLER** — with it OFF, i2v audio gens FREEZE (no mouth motion regardless of audio influence). Baked ON for all audio ops (mandatory dep, re-hosted to HF `re-host/loras/ltx2.3-transition.safetensors`). Do NOT bake OFF for audio i2v. |
+| Ingredients IC-LoRA 0.9 (Lightricks) | reference sheet -> look-alike clip (op `ref2v_ms`) | `ltx-2.3-22b-ic-lora-ingredients-0.9` | 1.31GB | ✅ **SHIPPED 2.1 (MPI-1060)** — flat dep `ltx23-lora-ingredients` on both cards, R2 + HF re-host (upstream gated); loaded only when a sheet is filled. See [reference-ingredients.md](reference-ingredients.md). |
 
 - **VBVR is MODE-DEPENDENT** (not a version A/B): dev ships I2V=V4, T2V=V1. Load
   the one matching the op. Dev: VBVR is NOT a motion LoRA — "stacks with motion
