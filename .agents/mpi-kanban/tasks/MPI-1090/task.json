@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1090",
+  "title": "Character Sheet Editor Clothes reference, round 2: colour drifts grey, the back view is invented, words naming a view redraw the layout",
+  "description": "Fabio 2026-10-11 test (flowCSE_011, flowCSE_012): black dress came out grey on the front; reference shows the front only, so the back became shorts; 'G string on the back view' turned the front figure into a second back view and the dress into a bikini.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-11T16:20:02+01:00",
+  "updated_at": "2026-10-11T16:20:02+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

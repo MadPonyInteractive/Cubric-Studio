@@ -33,6 +33,10 @@ Each leg gets the previous leg's picture on `input`; a skipped leg passes it thr
 carries `runPrompt` (the WHOLE run's words), so the child-safety gate refuses "Clothes: a bikini +
 Age 10" on leg 1, not after it. Engine contract: `flowsRegistry.js` § Legs, routing and rules.
 
+A sheet picked while its card shows the head-removed version goes in as the version before it, WITH
+its head (`flowService.js` `unchainedSource`, MPI-1089): fed the grey oval, leg 4 ran SAM3 on a
+sheet with no head and took the hair.
+
 ## Which change runs where, and why (bench verdicts)
 
 | change | editor | lock (`Input_Lock`) | evidence |

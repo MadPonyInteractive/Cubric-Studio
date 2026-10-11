@@ -47,10 +47,44 @@ const PROMPT_BUILDERS = {
  * @returns {?string}
  */
 export function sourceCardName(media, project) {
-    const base = p => String(extractAbsPath(p) || p || '').split(/[\\/]/).pop();
     const file = base(media?.filePath || media?.url);
     const group = file && (project?.itemGroups || []).find(g => (g.history || []).some(it => base(it?.filePath) === file));
     return group ? (group.customName || group.name || null) : (media?.name || null);
+}
+
+/** A file's name, from a `/project-file?path=` URL or a plain path. */
+function base(p) {
+    return String(extractAbsPath(p) || p || '').split(/[\\/]/).pop();
+}
+
+/**
+ * The run's pictures with any one the flow's TOGGLE leg made swapped for the version it was made
+ * from (MPI-1089). A card showing its head-removed version hands that version to the next run; the
+ * edit then works on a grey oval and the leg removes a head that is not there, so SAM3 takes hair.
+ * The edit runs on the sheet WITH its head and the leg lands its own version after it, as on any
+ * run. The made-from version is the one right before it: the leg always lands right after the
+ * picture it edited (MpiBaseFlow § the chain toggle).
+ * @param {import('../data/flowsRegistry.js').FlowDef} flow
+ * @param {Array<Object>} mediaItems - the run's media, as the user gave it
+ * @param {?Object} project
+ * @returns {Array<Object>}
+ */
+export function unchainedSource(flow, mediaItems, project) {
+    const leg = flowLegs(flow)[flowToggleLeg(flow)];
+    if (!leg) return mediaItems;
+    return mediaItems.map(media => {
+        const file = media?.role === leg.input && base(media.filePath || media.url);
+        if (!file) return media;
+        for (const group of project?.itemGroups || []) {
+            const history = group.history || [];
+            const at = history.findIndex(h => base(h?.filePath) === file);
+            if (at < 0) continue;
+            const from = history[at - 1];
+            if (history[at].operation !== leg.operation || !from?.filePath || from.operation === leg.operation) return media;
+            return { ...media, url: from.filePath, filePath: from.filePath };
+        }
+        return media;
+    });
 }
 
 /**
@@ -429,9 +463,11 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // what the leg before wrote to disk, addressed by name (`Input_Name`), so re-sending the
     // source image would only stage a file nothing loads. The exception is a leg with an
     // `input` role (MPI-997), which is handed the previous picture by `chainLegInputs`.
-    const mediaItems = later && !leg?.input ? []
+    const given = later && !leg?.input ? []
         : Array.isArray(runMediaItems) ? runMediaItems
         : Array.isArray(snapshot.mediaItems) ? snapshot.mediaItems : [];
+    // The user's own picture (not a later leg's) never goes in head-removed (MPI-1089).
+    const mediaItems = later ? given : unchainedSource(flow, given, runOriginProject || state.currentProject);
 
     // A leg's own params, and its `box` resolved against the picture it is fed: the previous
     // leg's result, or (a leg that starts the run) the user's own picture on its input role.

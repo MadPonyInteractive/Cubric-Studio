@@ -82,7 +82,7 @@ test('a leg runs ITS op, and no second `workflow` field was invented', () => {
 
 test('a later leg carries no media unless it names an input role, and a leg run alone ends there', () => {
     const src = read();
-    assert.match(src, /const mediaItems = later && !leg\?\.input \? \[\]/,
+    assert.match(src, /const given = later && !leg\?\.input \? \[\]/,
         'the chained leg reads the previous output off disk by name; re-sending media stages a dead file');
     assert.match(src, /_leg\.alone \? callbacks : chainCallbacks\(/,
         'the result pane\'s single-leg run must not carry on into the legs after it');
@@ -154,4 +154,38 @@ test('leg 2 reuses leg 1 tempId so Cancel and live previews keep working', () =>
     assert.match(src, /const tempId = _leg\.tempId \|\| crypto\.randomUUID\(\)/);
     assert.match(src, /\{ index: next\.index, tempId, run: handle, item: result\?\.item, described \}/,
         'MpiBaseFlow holds ONE _myTempId per run — a fresh id on a later leg orphans the pane');
+});
+
+// MPI-1089: Fabio fed the Editor a card showing its head-removed version; the edit kept the grey
+// oval and the chained Headless leg ran SAM3 on a sheet with no head, which took the braids.
+const SHEET = { id: 'sheet', title: 'Sheet', operation: 'edit',
+    chain: [{ operation: 'age', input: 'image1', when: { field: 'Input_Age', atLeast: 0 } },
+        { operation: 'headless', when: 'Input_Remove_Head', input: 'image1' }] };
+const file = name => `/project-file?path=C%3A%5CP%5CMedia%5C${name}.png`;
+const PROJECT = { itemGroups: [{ id: 'g', history: [
+    { operation: 'edit', filePath: file('flowCSE_010') },
+    { operation: 'headless', filePath: file('flowCharacterSheet_012') },
+] }] };
+
+test('a head-removed picture goes in as the version it was made from', async () => {
+    const { unchainedSource } = await load();
+    const ref = { role: 'image2', url: file('flowCharacterSheet_012') };
+    const [sheet, kept] = unchainedSource(SHEET, [{ role: 'image1', url: file('flowCharacterSheet_012') }, ref], PROJECT);
+    assert.strictEqual(sheet.url, file('flowCSE_010'));
+    assert.strictEqual(sheet.filePath, file('flowCSE_010'));
+    assert.strictEqual(kept, ref, 'only the toggle leg\'s input role is swapped');
+});
+
+test('a with-head picture, an unknown file or a head-removed one with nothing before it go in as given', async () => {
+    const { unchainedSource } = await load();
+    const media = [{ role: 'image1', url: file('flowCSE_010') }, { role: 'image1', url: file('outside') }];
+    assert.deepStrictEqual(unchainedSource(SHEET, media, PROJECT), media);
+    const alone = { itemGroups: [{ id: 'g', history: [{ operation: 'headless', filePath: file('x') }] }] };
+    const picked = [{ role: 'image1', url: file('x') }];
+    assert.deepStrictEqual(unchainedSource(SHEET, picked, alone), picked);
+    assert.strictEqual(unchainedSource(PLAIN, picked, alone), picked, 'a flow with no toggle leg is untouched');
+});
+
+test('only the user\'s own picture is swapped, never a later leg\'s', () => {
+    assert.match(read(), /const mediaItems = later \? given : unchainedSource\(flow, given, /);
 });

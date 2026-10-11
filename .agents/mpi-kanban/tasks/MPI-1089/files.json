@@ -1,0 +1,7 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": [
+  "js/services/flowService.js",
+  "tests/flow-chain.test.cjs",
+  "docs/playbooks/add-flow/existing-flows/character-sheet-editor.md",
+  ".agents/mpi-kanban/tasks/MPI-1089/",
+  ".agents/mpi-kanban/tasks/MPI-1091/"
+] }
