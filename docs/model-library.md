@@ -228,17 +228,21 @@ the MPI-467 smoke fill: four filled bars, ONE job on the server). `_tileState` n
 the Model Library now means "downloading now" and nothing else — keep it that way.** Both
 numbers stayed; only the static one stopped borrowing the moving one's costume.
 
-Three exclusions shape "its own":
+Four exclusions shape "its own":
 
 - **Deps owned by another installed model** (`_sharedOwnedDepIds`) — a shared VAE or
   upscaler on disk for someone else must not read as progress here (MPI-258 Bug A).
+- **Deps a plugin, a Flow or the engine needs, while on disk** (`depsHeldOutsideModels`) —
+  the uninstall keeps them, so counting them read "% on disk" forever and Uninstall looped
+  (MPI-1078: scene-path's umt5 + Wan VAE, the engine's Qwen3-VL encoder). Missing, they stay
+  this model's work.
 - **`custom_nodes`** — work-not-bytes; a shared node folder survives uninstall and would
   read as a phantom partial. Same rule the live download bar applies
   (`_byteRatioExcludingNodes`, MPI-231).
 - **A 1 GB floor** (MPI-258 Bug C) — below it, nothing. Sized to stop a handful of small
   support files showing 1-3% on a pack the user never touched.
 
-The floor and the node exclusion live in `partialInstall()` (`resolveModelDeps.js`), shared
+The floor, the node exclusion and the held-dep drop live in `partialInstall()` (`resolveModelDeps.js`), shared
 with `js/shell/modelUpdateCheck.js` (MPI-1065): on `models:checked` it toasts once per session,
 "Open Models" (`models:open`), for a model an update left missing a dep. It also requires 1 GB of
 deps NO other model uses on disk, or a sibling sharing a big encoder reads as installed.
