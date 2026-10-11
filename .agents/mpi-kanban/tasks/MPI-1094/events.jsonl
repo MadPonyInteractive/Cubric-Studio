@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1094", "at": "2026-10-11T19:30:46+01:00", "actor": "claude", "column": "todo", "title": "Gallery Combine for images: pack 2+ pictures into one sheet (character / clothes sheet, mood board)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1094", "at": "2026-10-11T19:34:42+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "building image Combine"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1094", "at": "2026-10-11T19:47:48+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "built and checked live; waiting on Fabio's eye-test"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1094", "at": "2026-10-11T20:26:45+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio eye-test passed; wide shapes + 8:5 added"}

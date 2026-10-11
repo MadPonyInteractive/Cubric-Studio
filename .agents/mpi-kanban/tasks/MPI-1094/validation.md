@@ -19,8 +19,9 @@
   (9 pictures 67 s) and fixed to one canvas; same idea rewritten small in
   `js/utils/sheetLayout.js`. The LTX file (a peer's claim) is untouched.
 
-## Remaining
+## Fabio eye-test (2026-10-11)
 
-- Fabio eye-test in the app: does framing feel right, is Bigger enough, are the shapes and
-  sizes the right list.
-- After that: one line in `docs/releases/UNRELEASED.md`.
+Tried it on his two dress photos at 4:3: "working nicely". One change asked for: wide shapes
+only, with 8:5 (his most used). Shapes are now Auto, 1:1, 4:3, 3:2, 8:5, 16:9; Auto no longer
+picks a portrait sheet (`autoRatio`, shared by the dialog and the route; tests 8/8 with a
+no-portrait assert). Release line added to `docs/releases/UNRELEASED.md`.

@@ -14,4 +14,4 @@ shots of one dress, the wider one cropped, ending on a 1:1 sheet.
 - [x] Selection bar Combine enabled for 2+ stills; videos keep the old concat.
 - [x] `MpiImageSheet` dialog (Compound): preview, Shape, Size, Cancel / Combine.
 - [x] Tests: packer coverage + order, route renders a real-pixel sheet with the crop.
-- [ ] Fabio eye-test in the app.
+- [x] Fabio eye-test in the app.
