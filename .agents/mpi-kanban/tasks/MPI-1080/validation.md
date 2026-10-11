@@ -10,3 +10,4 @@ Verify mode: user-ux (Fabio's eye-test closes it).
   gallery-stack-run, prompt-box-voice, agent-chat 49/49. ESLint clean on the JS and specs.
 - Visual self-check screenshots (LTX in video orange, Wan i2v one picture, hover X): OK.
 - 2026-10-11: Fabio eye-test PASSED in his app ("Looking fabulastic"): LTX ref2v 9 pictures + start frame, Wan i2v two frames, history video screen one picture as Last frame.
+- 2026-10-11: CI tests.yml SUCCESS on 672ad4be6 (contains 218ee5cc4, the MPI-1080 code). UNRELEASED Fixes line landed in fa132e6e6.

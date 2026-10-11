@@ -15,7 +15,8 @@ The trap this fixes: the op was NEVER persisted, so every block remount (Gallery
 
 ## PromptBox — the frame-role pill reports the ASSIGNED role (MPI-466)
 
-Image chips carry a role pill along the bottom, but only when the active op declares
+Image chips carry a Start frame / Last frame tag above the picture (MPI-1080; it was a
+pill along the bottom, on the picture), but only when the active op declares
 an `endFrame` slot the model can actually serve. That gate is the slot list, not a
 model list: `i2v_ms` (LTX, Wan 2.2, MiniMax H3) declares one; single-stage `i2v` no
 longer does, because its only consumer — Wan 2.2 5B — has no `Input_End_Frame` node
