@@ -10,7 +10,7 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 **Project mode:** `scalable-foundation`. Card in `doing`. **Session 48 (2026-10-11, "3D Scene 38"): the
 360 PANO FLOW is being wired** (Fabio "go"; R2 yes). ON DISK, uncommitted: `comfy_workflows/raw/flow_pano360.json`
-(committed by the sync, `c6a8773cb`; generator = session scratchpad `make_pano_raw.py`) -> `flow_pano360.json`
+(committed by the sync, `c6a8773cb`; generator = `research/make_pano_raw.py`; FlowDef draft `research/pano-flow-entries.js`) -> `flow_pano360.json`
 (staged): ONE graph, a lazy `MpiIfElse` on `MpiLoadImage.loaded` (block_if_empty OFF) picks text -> 360 (bench
 `t2i_fast` verbatim) or picture -> 360 (bench `ostris_fast` + `MpiWrapSoften` 12/48/6 before the 0.45 seam
 pass); stops at the seam-clean 2K, then flowService's new `sceneCallbacks` (FlowDef flag `landsAsScene`)
