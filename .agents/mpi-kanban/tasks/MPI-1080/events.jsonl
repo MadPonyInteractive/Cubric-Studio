@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1080", "at": "2026-10-11T09:36:09+01:00", "actor": "b5b40c00", "column": "todo", "title": "Prompt box reference chips: tags above the picture, no swap icon, no flicker on reorder"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1080", "at": "2026-10-11T09:55:58+01:00", "actor": "119fad61-7731-4327-af16-fde4b831d803", "from": "todo", "to": "doing", "reason": "Fabio approved design A; MPI-1060 released the prompt-box files"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1080", "at": "2026-10-11T10:09:25+01:00", "actor": "119fad61-7731-4327-af16-fde4b831d803", "from": "doing", "to": "doing", "reason": "Phases 1-3 green; waiting on Fabio's eye-test"}

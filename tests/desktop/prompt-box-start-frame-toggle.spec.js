@@ -46,18 +46,30 @@ test('a picture tag on LTX ref2v toggles that picture to the start frame and bac
 
     expect(await tags()).toEqual(['Picture 1', 'Picture 2', 'Picture 3']);
 
-    // Fabio: the remove X covered the tag's number. It now sits above the tag's text, and
-    // the strip's scroll box does not clip it.
+    // MPI-1080 (Fabio): the tag sits ABOVE the picture, never on it, and fits its chip; the
+    // remove X lives inside the picture's corner, off the tag, and the strip's scroll box
+    // clips neither. The tag is an outlined button, with no swap icon in it.
     const geo = await ltx.locator('.mpi-prompt-box-media-strip__chip').first().evaluate(chip => {
-      const x = chip.querySelector('.mpi-prompt-box-media-strip__remove').getBoundingClientRect();
+      const r = (sel) => chip.querySelector(sel).getBoundingClientRect();
+      const tag = r('.mpi-prompt-box-media-strip__tag');
+      const frame = r('.mpi-prompt-box-media-strip__frame');
+      const x = r('.mpi-prompt-box-media-strip__remove');
       const strip = chip.closest('.mpi-prompt-box-media-strip').getBoundingClientRect();
-      const range = document.createRange();
-      range.selectNodeContents(chip.querySelector('.mpi-prompt-box-media-strip__index'));
-      const text = range.getBoundingClientRect();
-      return { overlap: x.bottom - text.top, xTop: x.top - strip.top, xBottom: x.bottom, textTop: text.top };
+      return {
+        tagOverPicture: tag.bottom - frame.top,
+        tagOverflow: tag.right - chip.getBoundingClientRect().right,
+        xInFrame: x.top >= frame.top && x.right <= frame.right && x.left >= frame.left,
+        xOverTag: x.top < tag.bottom && x.left < tag.right,
+        tagTop: tag.top - strip.top,
+        icons: chip.querySelectorAll('.mpi-prompt-box-media-strip__tag svg').length,
+      };
     });
-    expect(geo.overlap, JSON.stringify(geo)).toBeLessThanOrEqual(0);
-    expect(geo.xTop).toBeGreaterThanOrEqual(0);
+    expect(geo.tagOverPicture, JSON.stringify(geo)).toBeLessThanOrEqual(0);
+    expect(geo.tagOverflow, JSON.stringify(geo)).toBeLessThanOrEqual(0);
+    expect(geo.xInFrame, JSON.stringify(geo)).toBe(true);
+    expect(geo.xOverTag, JSON.stringify(geo)).toBe(false);
+    expect(geo.tagTop).toBeGreaterThanOrEqual(0);
+    expect(geo.icons).toBe(0);
 
     await toggle(1);
     expect(await tags()).toEqual(['Picture 1', 'Start frame', 'Picture 2']);

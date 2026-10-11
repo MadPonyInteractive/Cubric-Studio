@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1080",
+  "title": "Prompt box reference chips: tags above the picture, no swap icon, no flicker on reorder",
+  "description": "Fabio, 2026-10-11, eye-testing LTX Reference to Video: the chip tags (Picture 1, Start frame, Video 1...) cover a lot of the picture, some run out of their chip, and the swap icon in the tag adds clutter. Dragging chips to reorder makes them flicker all over the place. Wanted: tags move ABOVE the chips (not over the picture), the swap icon goes (the tag stays clickable where it toggles: Start frame on LTX, frame swap on a video chip), and reorder moves smoothly. Every model's strip, not just LTX. See brief.md.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-11T09:36:09+01:00",
+  "updated_at": "2026-10-11T10:09:25+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

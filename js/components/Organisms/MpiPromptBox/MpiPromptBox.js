@@ -1103,14 +1103,11 @@ export const MpiPromptBox = ComponentFactory.create({
             // the pill reports where the asset is really going, not a stale tag.
             const _hasEndSlot = _mediaSlotsForOperation().some(s => s.key === 'endFrame');
             const _imageCount = items.filter(m => m.mediaType === 'image').length;
-            // Everything the pill renders from, as one string. The reorder fast path
-            // below keys on the item SET, and that invariant ("same set => same chip
-            // content") stopped being true the moment a chip started rendering a role:
-            // toggling start<->end changes no id, so the fast path skipped the repaint
-            // and the pill never moved. Stamped on the chip and compared on the way in.
-            const _roleKey = (item) => (_hasEndSlot && item.mediaType === 'image' && _imageCount <= 2)
-                ? `${item.role === 'endFrame' ? 'end' : 'start'}:${_imageCount}`
-                : '';
+            // One image => the role is a CHOICE, so the pill is a button. Two images
+            // => start/end are already both taken and order decides, so it is a
+            // read-only label; flipping them is what chip reorder is for.
+            const _rolePill = (item) => _hasEndSlot && item.mediaType === 'image' && _imageCount <= 2;
+            const _isEnd = (item) => item.role === 'endFrame';
 
             // MPI-475: an op whose slots carry a `tag` (ref2v_ms) badges each chip with the
             // handle the prompt uses instead of its position in the strip. The two differ
@@ -1128,18 +1125,45 @@ export const MpiPromptBox = ComponentFactory.create({
             const _badgeFor = (item, idx) => (_isStart(item) ? 'Start frame' : null)
                 ?? _tagBySlot.get(item.role) ?? (items.length > 1 ? String(idx + 1) : '');
 
-            // What the fast path below may NOT change: the role pill, and whether a
-            // badge element exists at all. Its TEXT is fine to re-stamp in place (that
-            // is what reorder needs), but a chip that had no badge has no element to
-            // stamp — so a switch from an untagged op to a tagged one (Wan 5B i2v →
-            // H3 ref2v_ms, both roleKey-less) would silently paint no tag.
-            const _startKey = (item) => (_hasStartSlot && item.mediaType === 'image' ? (_isStart(item) ? 'sf1' : 'sf0') : '');
-            const _chipKey = (item, idx) => `${_roleKey(item)}|${_badgeFor(item, idx) ? 1 : 0}|${item.stackId ? `stack:${item.count}` : ''}|${_startKey(item)}`;
+            // Each chip wears at most ONE tag, above its picture (MPI-1080: tags on the
+            // picture hid it). Which KIND of tag is structure — it decides the element and
+            // its click handler. What the tag SAYS is content, stamped by _stampTag.
+            //   role / role-btn  i2v's Start frame / Last frame (button when it is a choice)
+            //   swap             MPI-1015: the open clip's tag swaps it for a frame, and back
+            //   start            MPI-1060: an LTX ref2v picture's tag toggles the start frame
+            //   index            a plain name: "Picture 2", "Video 1", or a strip position
+            const _tagKind = (item, idx) => {
+                if (_rolePill(item)) return _imageCount === 1 ? 'role-btn' : 'role';
+                if (!_badgeFor(item, idx)) return '';
+                if (item.pinned && item.swappable) return 'swap';
+                if (_hasStartSlot && item.mediaType === 'image' && !item.pinned) return 'start';
+                return 'index';
+            };
+            const _stampTag = (tag, kind, item, idx) => {
+                if (kind === 'role' || kind === 'role-btn') {
+                    tag.textContent = _isEnd(item) ? 'Last frame' : 'Start frame';
+                    if (kind === 'role-btn') {
+                        tag.setAttribute('aria-pressed', String(_isEnd(item)));
+                        tag.setAttribute('aria-label', _isEnd(item) ? 'Use as start frame' : 'Use as last frame');
+                    }
+                    return;
+                }
+                tag.textContent = _badgeFor(item, idx);
+                if (kind === 'start') {
+                    tag.setAttribute('aria-pressed', String(_isStart(item)));
+                    tag.setAttribute('aria-label', _isStart(item) ? 'Use as a reference picture' : 'Use as the start frame');
+                }
+            };
+            // What the fast path below may NOT change: the tag's kind (a chip with no tag
+            // has no element to stamp) and the stack badge. A start<->end flip, a toggled
+            // start frame and a renumbered Picture n are all re-stamps — so a reorder on
+            // Wan's two-frame strip no longer rebuilds every chip (MPI-1080).
+            const _chipKey = (item, idx) => `${_tagKind(item, idx)}|${item.stackId ? `stack:${item.count}` : ''}`;
 
             // Reorder fast path: same chips, new order. Rebuilding the DOM here
             // would reload every <img src> mid-drag (flicker) and drop the
             // dragged node out from under its own pointer handlers — so move the
-            // existing nodes instead and only re-stamp the index badges.
+            // existing nodes instead and only re-stamp the tags.
             const sameSet = existing.length === items.length
                 && items.every(it => _prevRects.has(it.id))
                 && items.every((it, i) => existing.find(c => c.dataset.id === it.id)?.dataset.roleKey === _chipKey(it, i));
@@ -1147,10 +1171,8 @@ export const MpiPromptBox = ComponentFactory.create({
                 items.forEach((item, idx) => {
                     const chip = existing.find(c => c.dataset.id === item.id);
                     _stripEl.appendChild(chip); // appendChild moves, not clones
-                    // A swap tag keeps its icon: only its label span is re-stamped.
-                    const badge = qs('.mpi-prompt-box-media-strip__index-label', chip)
-                        || qs('.mpi-prompt-box-media-strip__index', chip);
-                    if (badge) badge.textContent = _badgeFor(item, idx);
+                    const tag = qs('.mpi-prompt-box-media-strip__tag', chip);
+                    if (tag) _stampTag(tag, _tagKind(item, idx), item, idx);
                 });
                 _playFlip(_prevRects);
                 return;
@@ -1173,80 +1195,71 @@ export const MpiPromptBox = ComponentFactory.create({
                                ${renderIcon('audio', 'sm')}
                                <span class="mpi-prompt-box-media-strip__audio-name" title="${_audioName(item)}">${_audioName(item)}</span>
                            </div>`;
-                // Index badge mirrors the "image N" numbering models like
-                // qwenEdit use in prompts. A lone chip needs no number — but a lone
-                // TAGGED chip still needs its tag, which is the whole point of it.
-                const _badge = _badgeFor(item, idx);
-                // MPI-1015: a swappable pinned chip's tag is a button (appended below).
-                const _swapTag = !!(_badge && item.pinned && item.swappable);
-                const _startTag = !!(_badge && !_swapTag && _hasStartSlot && item.mediaType === 'image' && !item.pinned);
-                const indexHtml = (_badge && !_swapTag && !_startTag)
-                    ? `<span class="mpi-prompt-box-media-strip__index">${_badge}</span>`
-                    : '';
-                // One image => the role is a CHOICE, so the pill is a button. Two images
-                // => start/end are already both taken and order decides, so it is a
-                // read-only label; flipping them is what chip reorder is for.
-                const _isEnd = item.role === 'endFrame';
-                // The swap icon is what says "clickable" — there is no tooltip. Nothing
-                // else in the app floats one, and a hover hint in the status bar would
-                // fire the notify channel on a mouse move. aria-label is for the screen
-                // reader only and paints nothing.
-                const _rolePill = _hasEndSlot && item.mediaType === 'image' && _imageCount <= 2;
-                const _roleToggle = _rolePill && _imageCount === 1;
-                const roleHtml = (_rolePill && !_roleToggle)
-                    ? `<span class="mpi-prompt-box-media-strip__role${_isEnd ? ' mpi-prompt-box-media-strip__role--end' : ''}"
-                       >${_isEnd ? 'Last frame' : 'Start frame'}</span>`
-                    : '';
                 // MPI-949: a stack chip is its face member plus the Gallery's layers badge,
                 // so it reads as N cards, not one.
                 const stackHtml = item.stackId
                     ? `<span class="mpi-prompt-box-media-strip__stack" data-info="Stack of ${item.count}: one run per ${item.mediaType}">${renderIcon('layers', 'xs')}<span>${item.count}</span></span>`
                     : '';
-                chip.innerHTML = `
-                    ${indexHtml}
-                    ${mediaHtml}
-                    ${roleHtml}
-                    ${stackHtml}
-                `;
-                // The two buttons are appended, not written into the innerHTML above:
-                // both are mounted MpiButtons now, and both are absolutely positioned,
-                // so DOM order among the chip's children does not move them (MPI-588).
-                if (_roleToggle) {
-                    const rolePill = mountButton({
-                        variant: 'ghost',
-                        size: 'sm',
-                        extraClasses: `mpi-prompt-box-media-strip__role mpi-prompt-box-media-strip__role--toggle${_isEnd ? ' mpi-prompt-box-media-strip__role--end' : ''}`,
-                    }, `${renderIcon('swap', 'xs')}<span>${_isEnd ? 'Last frame' : 'Start frame'}</span>`);
-                    rolePill.setAttribute('aria-pressed', String(_isEnd));
-                    rolePill.setAttribute('aria-label', _isEnd ? 'Use as start frame' : 'Use as last frame');
-                    chip.appendChild(rolePill);
+                // MPI-1080: the frame holds the picture WHOLE, at its own shape, and the
+                // tag sits above it; the frame is the only thing the picture shares.
+                const frame = document.createElement('div');
+                frame.className = 'mpi-prompt-box-media-strip__frame';
+                frame.innerHTML = `${mediaHtml}${stackHtml}`;
+                chip.appendChild(frame);
+                // The frame's width follows the picture (or clip): --ar is its aspect.
+                // Audio has none and stays square.
+                const thumb = qs('.mpi-prompt-box-media-strip__thumb', frame);
+                const setAspect = (w, h) => { if (w && h) frame.style.setProperty('--ar', String(w / h)); };
+                if (thumb?.tagName === 'IMG') {
+                    if (thumb.complete) setAspect(thumb.naturalWidth, thumb.naturalHeight);
+                    on(thumb, 'load', () => setAspect(thumb.naturalWidth, thumb.naturalHeight));
+                } else if (thumb) {
+                    on(thumb, 'loadedmetadata', () => setAspect(thumb.videoWidth, thumb.videoHeight));
                 }
-                // MPI-1015: the open clip's tag swaps it for a frame of it, and back.
-                // Same shape as the role pill: the swap icon is what says "clickable".
-                if (_swapTag) {
-                    const swapTag = mountButton({
+
+                // The tag. A read-only one is text; a clickable one is a mounted MpiButton
+                // whose outline says "clickable" (no swap icon, no tooltip: MPI-1080).
+                // aria-label is for the screen reader only and paints nothing.
+                const kind = _tagKind(item, idx);
+                const roleTag = kind === 'role' || kind === 'role-btn';
+                const tagClass = `mpi-prompt-box-media-strip__tag ${roleTag ? 'mpi-prompt-box-media-strip__role' : 'mpi-prompt-box-media-strip__index'}`;
+                let tag = null;
+                if (kind === 'role' || kind === 'index') {
+                    tag = document.createElement('span');
+                    tag.className = tagClass;
+                } else if (kind) {
+                    tag = mountButton({
                         variant: 'ghost',
                         size: 'sm',
-                        extraClasses: 'mpi-prompt-box-media-strip__index mpi-prompt-box-media-strip__index--toggle',
-                    }, `${renderIcon('swap', 'xs')}<span class="mpi-prompt-box-media-strip__index-label">${_badge}</span>`);
-                    swapTag.setAttribute('aria-label', item.mediaType === 'video'
+                        extraClasses: `${tagClass} ${roleTag ? 'mpi-prompt-box-media-strip__role--toggle' : 'mpi-prompt-box-media-strip__index--toggle'}`,
+                    });
+                    // The chip is pointer-draggable for reorder; the tag must not start one.
+                    on(tag, 'pointerdown', (e) => e.stopPropagation());
+                }
+                if (tag) {
+                    _stampTag(tag, kind, item, idx);
+                    chip.insertBefore(tag, frame);
+                }
+                // Each handler mutates the LIVE items (`items` are role-assigned copies),
+                // so a re-stamped tag needs no new handler.
+                if (kind === 'role-btn') {
+                    // Clearing the tag (rather than setting 'startFrame') lets the positional
+                    // fill own the default, which keeps a lone untagged image on startFrame.
+                    on(tag, 'click', (e) => {
+                        e.stopPropagation();
+                        const live = _mediaItems.find(m => m.id === item.id);
+                        if (!live) return;
+                        live.role = live.role === 'endFrame' ? undefined : 'endFrame';
+                        _emitMediaChange();
+                    });
+                } else if (kind === 'swap') {
+                    tag.setAttribute('aria-label', item.mediaType === 'video'
                         ? 'Use the frame under the playhead instead of the clip'
                         : 'Use the clip instead of this frame');
-                    on(swapTag, 'click', (e) => { e.stopPropagation(); emit('pinned-swap', { mediaType: item.mediaType }); });
-                    on(swapTag, 'pointerdown', (e) => e.stopPropagation());
-                    chip.appendChild(swapTag);
-                }
-                if (_startTag) {
-                    const startTag = mountButton({
-                        variant: 'ghost',
-                        size: 'sm',
-                        extraClasses: 'mpi-prompt-box-media-strip__index mpi-prompt-box-media-strip__index--toggle',
-                    }, `${renderIcon('swap', 'xs')}<span class="mpi-prompt-box-media-strip__index-label">${_badge}</span>`);
-                    startTag.setAttribute('aria-pressed', String(_isStart(item)));
-                    startTag.setAttribute('aria-label', _isStart(item) ? 'Use as a reference picture' : 'Use as the start frame');
-                    // Mutate the LIVE items (`items` are role-assigned copies). One start
-                    // frame at most: taking it clears it from any other chip.
-                    on(startTag, 'click', (e) => {
+                    on(tag, 'click', (e) => { e.stopPropagation(); emit('pinned-swap', { mediaType: item.mediaType }); });
+                } else if (kind === 'start') {
+                    // One start frame at most: taking it clears it from any other chip.
+                    on(tag, 'click', (e) => {
                         e.stopPropagation();
                         const live = _mediaItems.find(m => m.id === item.id);
                         if (!live) return;
@@ -1255,9 +1268,8 @@ export const MpiPromptBox = ComponentFactory.create({
                         if (!wasStart) live.role = 'inputStartFrame';
                         _emitMediaChange();
                     });
-                    on(startTag, 'pointerdown', (e) => e.stopPropagation());
-                    chip.appendChild(startTag);
                 }
+
                 // MPI-721: a pinned chip is the WORKSPACE'S OWN image — the thing the
                 // box generates from — so there is no remove pill. It stays reorderable,
                 // because slot 1 is not always the base: on `control`, slot 1 is the
@@ -1270,7 +1282,11 @@ export const MpiPromptBox = ComponentFactory.create({
                         extraClasses: 'mpi-prompt-box-media-strip__remove',
                     });
                     removePill.title = 'Remove';
-                    chip.appendChild(removePill);
+                    on(removePill, 'click', (e) => {
+                        e.stopPropagation();
+                        el.removeMedia?.(item.id);
+                    });
+                    frame.appendChild(removePill);
                 }
                 if (items.length > 1) _makeChipReorderable(chip, item.id);
                 // Belt + suspenders: kill any drag that escapes draggable=false
@@ -1278,28 +1294,6 @@ export const MpiPromptBox = ComponentFactory.create({
                 // gesture sequences). Prevents the strip from acting as a source
                 // for OS-style file drags that would re-import on the gallery.
                 chip.addEventListener('dragstart', (e) => e.preventDefault());
-                const removeBtn = qs('.mpi-prompt-box-media-strip__remove', chip);
-                if (removeBtn) {
-                    on(removeBtn, 'click', (e) => {
-                        e.stopPropagation();
-                        el.removeMedia?.(item.id);
-                    });
-                }
-                // Mutate the LIVE item — `items` are role-assigned copies. Clearing the
-                // tag (rather than setting 'startFrame') lets the positional fill own the
-                // default, which is what keeps a lone untagged image on startFrame.
-                const roleBtn = qs('.mpi-prompt-box-media-strip__role--toggle', chip);
-                if (roleBtn) {
-                    on(roleBtn, 'click', (e) => {
-                        e.stopPropagation();
-                        const live = _mediaItems.find(m => m.id === item.id);
-                        if (!live) return;
-                        live.role = live.role === 'endFrame' ? undefined : 'endFrame';
-                        _emitMediaChange();
-                    });
-                    // The chip is pointer-draggable for reorder; the pill must not start one.
-                    on(roleBtn, 'pointerdown', (e) => e.stopPropagation());
-                }
                 _stripEl.appendChild(chip);
             });
 
@@ -1332,6 +1326,16 @@ export const MpiPromptBox = ComponentFactory.create({
         // Id of the chip currently under the cursor, or null. Read by the FLIP
         // pass so it doesn't clobber the drag ghost's transform.
         let _draggingId = null;
+        // Where a chip SITS, not where it is drawn: getBoundingClientRect() reports the
+        // transformed box, and a chip is translated while it is the drag ghost or a FLIP
+        // slide is carrying it to its new slot. Both are pure translations.
+        function _slotRect(node) {
+            const r = node.getBoundingClientRect();
+            const t = getComputedStyle(node).transform;
+            if (t === 'none') return r;
+            const m = new DOMMatrixReadOnly(t);
+            return new DOMRect(r.left - m.m41, r.top - m.m42, r.width, r.height);
+        }
         // Pointer events, not HTML5 drag: the root el intercepts every drag*
         // event for file drops, so a native drag here would raise the drop
         // overlay and re-import the chip as a new item.
@@ -1360,11 +1364,7 @@ export const MpiPromptBox = ComponentFactory.create({
                         _draggingId = id;
                     }
                     cur.classList.add('mpi-prompt-box-media-strip__chip--dragging');
-                    // Measure the chip's slot with the ghost offset cleared —
-                    // getBoundingClientRect() reports the TRANSFORMED box, so
-                    // measuring while offset would compound every move.
-                    cur.style.transform = '';
-                    const r = cur.getBoundingClientRect();
+                    const r = _slotRect(cur);
                     cur.style.transform =
                         `translate(${ev.clientX - (r.left + r.width / 2)}px, ${ev.clientY - (r.top + r.height / 2)}px)`;
 
@@ -1372,10 +1372,13 @@ export const MpiPromptBox = ComponentFactory.create({
                     // not on mere overlap: overlap holds true across many moves, so
                     // firing on it re-rendered the strip every pointermove (flicker).
                     // Crossing the midpoint fires once per actual position change.
+                    // The midpoint of its SLOT: a neighbour that just moved is still
+                    // sliding there, and its drawn box sat right under the pointer, so a
+                    // 1px slip back swapped it straight back (MPI-1080).
                     const over = qsa('.mpi-prompt-box-media-strip__chip', _stripEl)
                         .find(n => {
                             if (n.dataset.id === id) return false;
-                            const b = n.getBoundingClientRect();
+                            const b = _slotRect(n);
                             if (ev.clientY < b.top || ev.clientY > b.bottom) return false;
                             const mid = b.left + b.width / 2;
                             // Neighbour to our right: swap once the pointer is past

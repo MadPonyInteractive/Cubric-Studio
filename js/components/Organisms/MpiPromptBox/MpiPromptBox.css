@@ -582,10 +582,11 @@
     right: 0;
     display: flex;
     flex-wrap: wrap;
-    /* 0.75rem row gap and top padding: the remove X sits 12px above its chip. */
-    gap: 0.75rem 0.5rem;
-    padding: 0.75rem var(--s-6) 0.5rem;
+    gap: 0.5rem;
+    padding: 0.5rem var(--s-6);
     justify-content: flex-start;
+    /* Chips are as wide as their picture, and some have no tag: line the PICTURES up. */
+    align-items: flex-end;
     /* MPI-721: the strip is a full-width band anchored at `bottom: 100%` of a
        SHELL-level #prompt-box-mount, so its empty right/left run sits directly over
        the history workspace's tool rail. While history hid the strip that cost
@@ -604,9 +605,9 @@
     /* MPI-475: ref2v_ms stages up to 15 chips — three wrapped rows that, anchored at
        bottom:100%, would climb the viewport and swallow the gallery. Cap at two rows
        and scroll the rest. Wrap, FLIP and pointer reorder are untouched; only the
-       overflow changes. The top padding is what keeps the chips' remove X (-12px) and
-       index badges from being clipped by the new scroll box. */
-    max-height: 13rem;
+       overflow changes. Two rows of tag + 5rem frame, the gap and the padding:
+       2 x 6.375rem + 0.5rem + 1rem (MPI-1080 moved the tags above the frames). */
+    max-height: 14.25rem;
     overflow-y: auto;
     /* Sits above siblings within #prompt-box-mount stacking context.
      * Mount-level z-index (workspace.css) keeps it above gallery cards
@@ -633,20 +634,31 @@
     padding-left: calc(var(--history-rail-w) + var(--s-3));
 }
 
+/* MPI-1080: a chip is its tag row above its frame. The tag is absolutely placed in the
+   chip's top padding, so it never widens the chip: the PICTURE sets the width, and the
+   row is reserved even on an untagged chip so every frame lines up. */
 .mpi-prompt-box-media-strip__chip {
     position: relative;
     /* Re-enabled against the strip's `pointer-events: none` band — see there. */
     pointer-events: auto;
-    width: 5rem;
-    height: 5rem;
-    border-radius: 0;
-    overflow: visible;
-    border: 3px solid var(--accent-heat);
+    padding-top: calc(1.125rem + var(--s-1));
     flex-shrink: 0;
-    background: var(--surface-2);
     /* Reorder is pointer-driven; suppress the browser's own drag/scroll gesture. */
     touch-action: none;
     user-select: none;
+}
+
+/* The picture, WHOLE: 5rem tall, as wide as its shape (--ar, set from the loaded image
+   or clip) between 5rem and 9rem. A tall portrait letterboxes inside 5rem; a 16:9 clip
+   shows edge to edge. Audio has no --ar and stays square. */
+.mpi-prompt-box-media-strip__frame {
+    position: relative;
+    height: 5rem;
+    aspect-ratio: var(--ar, 1);
+    min-width: 5rem;
+    max-width: 9rem;
+    border: 3px solid var(--accent-heat);
+    background: var(--surface-viewer);
 }
 
 /* MPI-721: the `+` card — a chip-shaped slot at the head of the strip that opens
@@ -677,51 +689,72 @@
     cursor: grabbing;
     z-index: 10;
     opacity: 0.9;
-    box-shadow: 0 0.5rem 1rem color-mix(in oklch, var(--surface-0) 60%, transparent);
     /* Ghost follows the pointer directly — no transition, or it lags. */
     transition: none;
 }
 
-/* Index badge — mirrors the "image N" numbering used in prompts. */
-.mpi-prompt-box-media-strip__index {
-    position: absolute;
-    top: -6px;
-    left: -6px;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 var(--s-1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--accent-heat);
-    color: var(--surface-0);
-    border: 1px solid var(--accent-heat);
-    font-size: var(--t-2xs);
-    font-weight: 600;
-    line-height: 1;
-    pointer-events: none;
-    z-index: 5;
+.mpi-prompt-box-media-strip__chip--dragging .mpi-prompt-box-media-strip__frame {
+    box-shadow: 0 0.5rem 1rem color-mix(in oklch, var(--surface-0) 60%, transparent);
 }
 
-/* MPI-1015: a video card's clip chip — its tag swaps the clip for a frame and back.
- * Same badge, made a mounted MpiButton; the `.mpi-btn` prefix outranks the Primitive. */
-.mpi-btn.mpi-prompt-box-media-strip__index--toggle {
-    gap: var(--s-1);
-    border-radius: 0;
-    background: var(--accent-heat);
-    color: var(--surface-0);
+/* MPI-1080: the chip's ONE tag, above its frame — never on the picture. "Picture 2",
+   "Video 1", "Start frame", "Last frame". One line, cut with an ellipsis at the chip's
+   width. Three looks, all off the workspace's one action colour:
+     plain text           a name (`__index`, `__role` spans)
+     outlined             clickable: the LTX start-frame toggle, i2v's Start/Last frame
+                          choice, the open clip's frame swap (mounted MpiButtons)
+     filled               clickable AND on: the picture chosen as the start frame
+   The outline replaced the swap icon as the "clickable" cue (Fabio, 2026-10-11). */
+.mpi-prompt-box-media-strip__tag {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-width: 100%;
+    height: 1.125rem;
+    display: block;
+    padding: 0;
+    border: 1px solid transparent;
+    color: var(--ink-2);
     font-size: var(--t-2xs);
     font-weight: 600;
+    line-height: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
+/* The `.mpi-btn` prefix outranks the Primitive (MPI-588). */
+.mpi-btn.mpi-prompt-box-media-strip__tag {
+    height: 1.125rem;
+    /* MPI-845: a size floor CLAMPS the used height after the cascade — opt out. */
+    min-height: 0;
+    display: block;
+    padding: 0 var(--s-1);
+    border: 1px solid var(--accent-heat);
+    border-radius: 0;
+    background: transparent;
+    color: var(--accent-heat);
+    font-size: var(--t-2xs);
+    font-weight: 600;
+    line-height: 1rem;
     text-transform: none;
     letter-spacing: normal;
     pointer-events: auto;
     cursor: pointer;
 }
 
-.mpi-btn.mpi-btn--ghost.mpi-prompt-box-media-strip__index--toggle:hover:not(:disabled) {
-    background: color-mix(in oklch, var(--accent-heat) 80%, transparent);
+.mpi-btn.mpi-btn--ghost.mpi-prompt-box-media-strip__tag:hover:not(:disabled) {
+    background: color-mix(in oklch, var(--accent-heat) 18%, transparent);
+    color: var(--accent-heat);
+}
+
+.mpi-btn.mpi-prompt-box-media-strip__index--toggle[aria-pressed="true"],
+.mpi-btn.mpi-btn--ghost.mpi-prompt-box-media-strip__index--toggle[aria-pressed="true"]:hover:not(:disabled) {
+    background: var(--accent-heat);
     color: var(--surface-0);
 }
+
 
 /* MPI-949: a staged Gallery stack — the layers icon and its member count, the same
    badge the stack card wears in the Gallery. Bottom-right: a video chip's type icon
@@ -744,69 +777,11 @@
     z-index: 5;
 }
 
-/* Frame-role pill (MPI-466) — which frame this image becomes. A button when the
-   role is a choice (one image), a plain label when order already decides (two). */
-.mpi-prompt-box-media-strip__role {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: var(--s-1) 0;
-    display: block;
-    border: 0;
-    background: color-mix(in oklch, var(--surface-0) 72%, transparent);
-    color: var(--ink-1);
-    font-size: var(--t-2xs);
-    font-weight: 600;
-    line-height: 1;
-    text-align: center;
-    z-index: 5;
-}
-
-.mpi-prompt-box-media-strip__role--end {
-    background: color-mix(in oklch, var(--accent-heat) 82%, transparent);
-    color: var(--surface-0);
-}
-
-/* The toggle variant is a mounted MpiButton; the read-only variant is still a span,
-   so the shared `__role` rule above stays at one class and both keep the same pill.
-   These two carry the `.mpi-btn` prefix only where they must outrank the Primitive
-   (MPI-588). */
-.mpi-btn.mpi-prompt-box-media-strip__role {
-    padding: var(--s-1) 0;
-    border: 0;
-    border-radius: 0;
-    background: color-mix(in oklch, var(--surface-0) 72%, transparent);
-    color: var(--ink-1);
-    font-size: var(--t-2xs);
-    font-weight: 600;
-    text-transform: none;
-    letter-spacing: normal;
-    line-height: 1;
-}
-
-.mpi-btn.mpi-prompt-box-media-strip__role--end {
-    background: color-mix(in oklch, var(--accent-heat) 82%, transparent);
-    color: var(--surface-0);
-}
-
-.mpi-prompt-box-media-strip__role--toggle {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--s-1);
-}
-
-.mpi-btn.mpi-btn--ghost.mpi-prompt-box-media-strip__role--toggle:hover:not(:disabled) {
-    background: color-mix(in oklch, var(--accent-heat) 92%, transparent);
-    color: var(--surface-0);
-}
-
 .mpi-prompt-box-media-strip__thumb {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    /* The whole picture, never a crop (MPI-1080). */
+    object-fit: contain;
     border-radius: 0;
     display: block;
 }
@@ -863,14 +838,15 @@
     color: var(--ink-1);
 }
 
-/* A 16px chip on the chip's corner — the ghost icon button paints no background at
-   all, hovered or not, so both states are pinned here (MPI-588). */
+/* A 16px X inside the frame's top-right corner, shown while the chip is hovered or holds
+   focus: off the tag, and off the picture the rest of the time (MPI-1080, Fabio). The
+   ghost icon button paints no background at all, hovered or not, so both states are
+   pinned here (MPI-588). */
 .mpi-btn.mpi-ibtn.mpi-prompt-box-media-strip__remove {
     position: absolute;
-    /* -12px, not -6px: the X sits above the tag text so it no longer covers the tag's
-       number ("Picture 2"), on every model's strip (MPI-1060, Fabio). */
-    top: -12px;
-    right: -6px;
+    top: 2px;
+    right: 2px;
+    opacity: 0;
     width: 16px;
     height: 16px;
     /* MPI-845: opts out of MPI-822's `min-height: var(--control-h-sm)` (34px). A size
@@ -881,9 +857,14 @@
     background: var(--surface-1);
     border: 1px solid var(--line-soft);
     color: var(--ink-1);
-    transition: background var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+    transition: opacity var(--t-base) var(--ease), background var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
     padding: 0;
     z-index: 5;
+}
+
+.mpi-prompt-box-media-strip__chip:hover .mpi-prompt-box-media-strip__remove,
+.mpi-prompt-box-media-strip__chip:focus-within .mpi-prompt-box-media-strip__remove {
+    opacity: 1;
 }
 
 .mpi-btn.mpi-ibtn.mpi-btn--ghost.mpi-prompt-box-media-strip__remove:hover:not(:disabled) {
