@@ -118,6 +118,7 @@ async function _landNewCard(raw, { factory = createImageItem, type = 'image' } =
         id: raw.id,
         filePath: raw.filePath,
         thumbPath: raw.thumbPath ?? null,
+        thumbPathLg: raw.thumbPathLg ?? null,   // a sheet can be 16K: never mount the source
         operation: raw.operation || null,
         displayName: truncateCardName(raw.displayName || ''),
         pixelDimensions: raw.pixelDimensions || { w: 0, h: 0 },
@@ -331,12 +332,31 @@ async function gifToVideo(input) {
     return _done(await _landNewCard(data.item, { factory: createVideoItem, type: 'video' }));
 }
 
+/**
+ * `sheet.make` (MPI-1099) — the gallery's image Combine for an agent: two or more still
+ * cards packed into ONE new image card. No layout is sent, so `/combine-images` packs it
+ * with the dialog's own packer and frames every picture on its centre. Not a GIF verb, but
+ * the same one-job-one-card shape, so it rides this table rather than a second module.
+ */
+async function makeSheet(input) {
+    const project = _project();
+    for (const id of input.itemIds) _findItem(id);
+    const data = await _post('/combine-images', {
+        folderPath: project.folderPath,
+        itemIds: input.itemIds,
+        ...(input.shape !== undefined ? { shape: input.shape } : {}),
+        ...(input.longEdge !== undefined ? { longEdge: input.longEdge } : {}),
+    });
+    return _done(await _landNewCard(data.item));
+}
+
 /** Capability -> handler. `agentDispatch.js` adapts these onto the job relay. */
 export const GIF_HANDLERS = {
     'gif.make': makeGif,
     'gif.edit': editGif,
     'gif.cutout': cutoutGif,
     'gif.to-video': gifToVideo,
+    'sheet.make': makeSheet,
 };
 
 /**

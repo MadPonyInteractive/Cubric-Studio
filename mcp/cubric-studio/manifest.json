@@ -50,6 +50,7 @@
     { "name": "edit_gif", "description": "Trim, retime, crop or resize a GIF." },
     { "name": "cutout_gif", "description": "Cut the subject out of every GIF frame." },
     { "name": "gif_to_video", "description": "Turn a GIF into a video." },
+    { "name": "make_sheet", "description": "Pack several pictures into one sheet." },
     { "name": "list_routines", "description": "Your saved routines." },
     { "name": "save_routine", "description": "Save a chain of steps as a routine." },
     { "name": "rename_routine", "description": "Rename a routine." },

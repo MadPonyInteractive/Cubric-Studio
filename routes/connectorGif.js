@@ -29,6 +29,8 @@
  *                                    resize, crop
  *   POST /connector/gif/cutout    -> a new transparent entry with the subject cut out
  *   POST /connector/gif/to-video  -> a new VIDEO card beside the GIF
+ *   POST /connector/sheet/make    -> a new IMAGE card: still cards packed into one sheet
+ *                                    (MPI-1099; not a GIF verb, same one-job-one-card road)
  *
  * Envelope is the connector's, not the `/gif/*` routes': `{ ok: true, ... }` or
  * `{ ok: false, error: { code, message } }`. HTTP 400 for a malformed body, 200
@@ -103,6 +105,23 @@ router.post('/connector/gif/make', async (req, res) => {
     return _bad(res, 'body.trimIn and body.trimOut come as a pair, in clip-seconds.');
   }
   return _run(res, 'gif.make', { videoItemId, fps, sizePreset, loop, trimIn, trimOut });
+});
+
+/**
+ * POST /connector/sheet/make — MPI-1099: two or more still cards packed into ONE new image
+ * card, the gallery's image Combine (MPI-1094) without its dialog: the app packs the
+ * layout and frames each picture on its centre.
+ *
+ *   `{ itemIds: [>= 2], shape?, longEdge? }` — `shape` a SHEET_SHAPES value (default
+ *   'auto'), `longEdge` one of SHEET_SIZES (default 2048). Both are checked by
+ *   `/combine-images`, the one owner of those lists.
+ */
+router.post('/connector/sheet/make', async (req, res) => {
+  const { itemIds, shape, longEdge } = req.body || {};
+  if (!Array.isArray(itemIds) || itemIds.length < 2 || !itemIds.every(_isId)) {
+    return _bad(res, 'body.itemIds must be an array of two or more item ids.');
+  }
+  return _run(res, 'sheet.make', { itemIds, shape, longEdge });
 });
 
 /**

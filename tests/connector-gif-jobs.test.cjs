@@ -387,9 +387,9 @@ test('a .gif whose frames cannot be extracted says so, and lands nothing', async
 
 // ── the capability map ──────────────────────────────────────────────────────
 
-test('GIF_HANDLERS names exactly the four capabilities the routes dispatch', () => {
+test('GIF_HANDLERS names exactly the capabilities the routes dispatch', () => {
     assert.deepEqual(
         Object.keys(gifJobs.GIF_HANDLERS).sort(),
-        ['gif.cutout', 'gif.edit', 'gif.make', 'gif.to-video'],
+        ['gif.cutout', 'gif.edit', 'gif.make', 'gif.to-video', 'sheet.make'],   // sheet.make: MPI-1099
     );
 });

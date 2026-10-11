@@ -54,7 +54,7 @@
 - **A child-safety check on every prompt.** Cubric Studio is for adults, and adult content is untouched. A prompt that puts someone under 18 in a nude, sexual or suggestive picture, or a child under 16 in swimwear, is refused before it runs, whether you typed it, the Enhancer wrote it, or Cosmo or another AI app sent it. Asking to undress someone in a picture or clip first checks that no one in it could be under 18.
 - **What your Pod is costing, in the status bar.** While RunPod is connected, the bar at the bottom shows the spend so far next to REMOTE, and next to the timer while a job runs, so you can see it without going back to the home page.
 - **Upload models to your RunPod volume.** Upload models, in the Remote panel, shows your LoRAs and upscale models on your computer and on the Pod. Upload or delete any of them, at any size. Use the cheap No GPU Pod for big files: your volume keeps them.
-- **Combine works on pictures too.** Select two or more in the gallery and Combine packs them into one sheet, with a choice of shape and size.
+- **Combine works on pictures too.** Select two or more in the gallery and Combine packs them into one sheet, with a choice of shape and size. Cosmo can make one too.
 
 ## ComfyUI Engine
 

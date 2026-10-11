@@ -21,7 +21,7 @@ different thing: [agent-chat.md](agent-chat.md). Both call the same `/connector/
 
 `status`, `list_models`, `describe_model`, `list_projects`, `create_project`, `open_project`,
 `list_cards`, `view_card`, `rename_card`, `generate`, `wait_generation`, `cancel_generation`,
-`read_knowledge`, `make_gif`, `edit_gif`, `cutout_gif`, `gif_to_video`, `list_routines`,
+`read_knowledge`, `make_gif`, `edit_gif`, `cutout_gif`, `gif_to_video`, `make_sheet`, `list_routines`,
 `save_routine`, `rename_routine`, `delete_routine`, `run_routine`. Every one has a `title` and
 annotations (the Claude Desktop directory requires them). **None installs, and none deletes a
 card, media, note or project**: every request goes through `agentTools.mjs`, whose route

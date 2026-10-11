@@ -261,6 +261,11 @@ export async function gifToVideo(body) {
     return _post('/connector/gif/to-video', body);
 }
 
+/** POST /connector/sheet/make — MPI-1099: still cards packed into one new image card. */
+export async function makeSheet(body) {
+    return _post('/connector/sheet/make', body);
+}
+
 /**
  * GET /connector/memory[/:file]?folderPath= — the project's agent notes: the index
  * `{ ok, notes }`, or one note `{ ok, file, text }`.

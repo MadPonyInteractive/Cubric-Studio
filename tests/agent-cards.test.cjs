@@ -294,6 +294,29 @@ test('the GIF tools turn a ref into the item id the card is SHOWING, and a chain
     assert.ok(!loop._groups.has('g-user'), 'an edit of the user`s card does not make it the agent`s to rename');
 });
 
+// MPI-1099: the gallery's image Combine for Cosmo, on the same ref-to-item-id road.
+test('make_sheet sends the item ids of the cards on show, and the sheet is a card the agent made', async (t) => {
+    const { AgentLoop } = await esm('services/agentLoop.mjs');
+    const cards = await esm('services/agentCards.mjs');
+    const { root, file } = makeProject(t);
+    const sent = [];
+    const sheetUrl = url(file('sheet_001.png'));
+    const loop = new AgentLoop({ tools: {
+        listCards: async (folderPath, groupId, limit) => ({ ok: true, ...(groupId ? await cards.readCard(folderPath, groupId) : await cards.listCards(folderPath, { limit })) }),
+        makeSheet: async (body) => { sent.push(body); return { ok: true, output: { itemId: 'item-sheet', groupId: 'g-sheet', type: 'image', filePath: sheetUrl } }; },
+    } });
+    const project = { folderPath: root, name: 'Cowgirl on a Bull' };
+    const run = async (tool, args) => JSON.parse(await loop._executeTool(tool, args, 't1', project));
+
+    assert.equal((await run('make_sheet', { images: ['i2i_001.png'] })).error.code, 'BAD_REQUEST');
+    assert.equal((await run('make_sheet', { images: ['i2i_001.png', 'flowOutpaint_002.png'] })).error.code, 'NOT_A_CARD');
+    await run('list_cards', {});
+    const made = await run('make_sheet', { images: ['i2i_001.png', 'flowOutpaint_002.png'], shape: '8:5', longEdge: 4096 });
+    assert.deepEqual(sent, [{ itemIds: ['item-still', 'item-out'], shape: '8:5', longEdge: 4096 }]);
+    assert.equal(made.output.filePath, sheetUrl);
+    assert.ok(loop._groups.has('g-sheet'), 'the agent may rename the sheet it made');
+});
+
 test('a clip`s sidecar gives its length and its start frame; a file with no sidecar gives neither (MPI-1017)', async (t) => {
     const { file } = makeProject(t);
     const cards = await esm('services/agentCards.mjs');

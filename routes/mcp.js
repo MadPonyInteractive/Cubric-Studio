@@ -31,6 +31,7 @@ const logger = require('./logger');
 const { extractImageThumb, extractVideoThumb } = require('../services/ffmpegThumb');
 const { viewFile, isViewable } = require('../services/cardView');
 const { version } = require('../package.json');
+const { SHEET_SHAPES, SHEET_SIZES } = require('../js/utils/sheetLayout.js');
 
 const router = express.Router();
 
@@ -525,6 +526,18 @@ const TOOLS = {
         inputSchema: obj({ itemId: { type: 'string' }, background: { type: 'string' } }, ['itemId']),
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
         run: gifJob('gifToVideo'),
+    },
+    // MPI-1099: the gallery's image Combine (MPI-1094), without its framing dialog.
+    make_sheet: {
+        title: 'Make a sheet',
+        description: 'A new image card in the open project: two or more still cards (itemIds, in order) packed into ONE picture, such as a character or outfit sheet or a mood board. shape "auto" (default) keeps every picture whole; a fixed shape crops each around its centre. Item ids come from list_cards.',
+        inputSchema: obj({
+            itemIds: { type: 'array', items: { type: 'string' }, description: 'Still cards, in order.' },
+            shape: { type: 'string', enum: SHEET_SHAPES.map(s => s.value) },
+            longEdge: { type: 'integer', enum: SHEET_SIZES, description: 'Pixels on the long edge. Default 2048.' },
+        }, ['itemIds']),
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        run: gifJob('makeSheet'),
     },
     // MPI-1009: the in-app agent's routines (MPI-970, `docs/agent/routines.md`), one verb a
     // tool so only the delete is marked destructive.

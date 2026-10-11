@@ -52,6 +52,7 @@ const ALLOWED_REQUESTS = new Set([
     'POST /connector/gif/edit',
     'POST /connector/gif/cutout',
     'POST /connector/gif/to-video',
+    'POST /connector/sheet/make',   // MPI-1099: a new image card, never a delete
     // MPI-817 Phase F. visible-cards is a read. card-mark sets a card's dot | square | triangle;
     // clearing one is `mark: false`, a field going back to empty - no card, file or entry goes.
     'GET /connector/visible-cards',

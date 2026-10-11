@@ -7,12 +7,14 @@
  * The arrangement is the dialog's (`MpiImageSheet`): it packs with `js/utils/sheetLayout.js`
  * and sends the tree it previewed, so the sheet is the one the user framed. This route only
  * re-measures each picture (upright, `autoOrient`) and renders that tree at the chosen size.
+ * With NO tree (Cosmo and MCP `make_sheet`, MPI-1099, over the `sheet.make` job) it packs
+ * here with the same `packSheet`, every picture framed on its centre.
  *
  * Body: {
  *   folderPath, itemIds[],          // itemIds in the dialog's order: tree ids index into it
- *   tree,                           // sheetLayout `{id}` / `{kind,a,b}`, every index once
- *   shape,                          // a SHEET_SHAPES value ('auto' = the tree's own shape)
- *   longEdge,                       // one of SHEET_SIZES
+ *   tree?,                          // sheetLayout `{id}` / `{kind,a,b}`, every index once
+ *   shape?,                         // a SHEET_SHAPES value ('auto', the default = the tree's own shape)
+ *   longEdge?,                      // one of SHEET_SIZES, default the smallest
  *   frames[]                        // per picture { zoom, cx, cy } (sheetLayout.frameRect)
  * }
  * Response: { success, item } — the raw-descriptor shape `/gif/make` and `/combine-videos`
@@ -33,7 +35,7 @@ const logger = require('./logger');
 const { nextSequence, writeImageRenditions } = require('./projects');
 const { resolveAbsPath, isEligibleStillImage } = require('./gifMake');
 const {
-    SHEET_SHAPES, SHEET_SIZES, isValidTree, sheetPixelSize, sheetGutter, placeSheet, frameRect, autoRatio,
+    SHEET_SHAPES, SHEET_SIZES, isValidTree, packSheet, sheetPixelSize, sheetGutter, placeSheet, frameRect, autoRatio,
 } = require('../js/utils/sheetLayout.js');
 
 const GREY = { r: 128, g: 128, b: 128 };   // under a transparent picture's see-through parts
@@ -51,9 +53,10 @@ function _treeRatio(t, aspects) {
  * Render the sheet. Pictures are decoded one at a time: nine 16K photos at once would not
  * fit a 16 GB machine (the same rule as routes/ingredientsSheet.js).
  * @param {string[]} sources - absolute paths, in tree-id order
+ * @param {{tree?: object, shape: string, longEdge: number, frames?: object[]}} opts - no tree = pack here
  * @returns {Promise<{sharp: object, width: number, height: number}>}
  */
-async function renderSheet(sources, { tree, shape, longEdge, frames = [] }) {
+async function renderSheet(sources, { tree: given, shape, longEdge, frames = [] }) {
     const dims = [];
     for (const abs of sources) {
         const { width, height } = (await sharp(abs, { limitInputPixels: false, autoOrient: true }).metadata()).autoOrient;
@@ -61,7 +64,8 @@ async function renderSheet(sources, { tree, shape, longEdge, frames = [] }) {
     }
     const aspects = dims.map(d => d.width / d.height);
     const fixed = SHEET_SHAPES.find(s => s.value === shape)?.r;
-    const r = fixed || autoRatio(_treeRatio(tree, aspects));
+    const tree = given || packSheet(aspects, { shape: fixed || null }).tree;
+    const r =fixed || autoRatio(_treeRatio(tree, aspects));
     const { width, height } = sheetPixelSize(r, longEdge);
     const cells = placeSheet(tree, aspects, width, height, sheetGutter(width, height));
 
@@ -99,12 +103,12 @@ async function renderSheet(sources, { tree, shape, longEdge, frames = [] }) {
 router.post('/combine-images', async (req, res) => {
     let outputPath = '';
     try {
-        const { folderPath, itemIds, tree, shape = 'auto', longEdge, frames } = req.body || {};
+        const { folderPath, itemIds, tree, shape = 'auto', longEdge = SHEET_SIZES[0], frames } = req.body || {};
         if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
         if (!Array.isArray(itemIds) || itemIds.length < 2) {
             return res.status(400).json({ success: false, error: 'itemIds[] with >=2 entries required' });
         }
-        if (!isValidTree(tree, itemIds.length)) {
+        if (tree !== undefined && !isValidTree(tree, itemIds.length)) {
             return res.status(400).json({ success: false, error: 'tree must place every picture exactly once' });
         }
         if (!SHEET_SIZES.includes(longEdge)) {

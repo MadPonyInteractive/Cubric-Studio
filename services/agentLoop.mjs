@@ -35,6 +35,7 @@ import * as realTools from './agentTools.mjs';
 import { MAX_NOTES } from './agentMemory.mjs';
 import { agentToolOp } from '../js/shell/agentToolOps.js';
 import { viewFile as _viewClipFile } from './cardView.js';
+import { SHEET_SHAPES, SHEET_SIZES } from '../js/utils/sheetLayout.js';
 
 // A video or GIF ref (MPI-941 Phase 4): `look` samples it into ONE contact sheet instead of
 // sending it to the describer whole. Mirrors cardView.js's own MOVING set (not exported).
@@ -389,6 +390,24 @@ export const TOOL_DEFS = [
                     background: { type: 'string', description: '"#rrggbb" behind whatever a transparent GIF leaves clear.' },
                 },
                 required: ['gif'],
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'make_sheet',
+            // MPI-1099: the gallery's image Combine (MPI-1094), without its framing dialog.
+            description: 'Pack 2+ still image cards, in order, into one new picture card (character sheet, mood board). "auto" crops nothing. Hand framing: the gallery\'s Combine.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    images: { type: 'array', items: { type: 'string' }, description: 'Card refs.' },
+                    shape: { type: 'string', enum: SHEET_SHAPES.map(s => s.value) },
+                    longEdge: { type: 'integer', enum: SHEET_SIZES, description: 'Default 2048.' },
+                },
+                required: ['images'],
                 additionalProperties: false,
             },
         },
@@ -2565,6 +2584,13 @@ ${knowledgeIndex}`.trim();
                 const { gif, ...rest } = args;
                 return this._gif(this._tools.gifToVideo, { itemId: gif }, rest, true);
             }
+            case 'make_sheet': {
+                const { images, ...rest } = args;
+                if (!Array.isArray(images) || images.length < 2) {
+                    return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: 'images needs two or more still image cards.' } });
+                }
+                return this._gif(this._tools.makeSheet, { itemIds: images }, rest, true);
+            }
             case 'cancel_generation': {
                 // Only what THIS conversation started and has not settled. The id is never
                 // trusted further than that map: a made-up one reaches nothing.
@@ -3448,6 +3474,7 @@ function _toolLabel(toolName, args) {
         case 'edit_gif':       return 'Editing a GIF';
         case 'cutout_gif':     return 'Cutting out the subject';
         case 'gif_to_video':   return 'Turning a GIF into a video';
+        case 'make_sheet':     return 'Making a sheet';
         case 'read_memory': {
             const kind = args.scope === 'global' ? 'global' : 'project';
             return args.file ? `Reading a ${kind} note` : `Reading ${kind} notes`;

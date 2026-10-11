@@ -113,6 +113,12 @@ test('renderSheet: the framed part of each picture lands in its cell', async () 
         const c1 = cells[1];
         assert.deepStrictEqual(px(c1.x + c1.w / 2 | 0, c1.y + c1.h / 2 | 0), [0, 255, 0]);
         assert.deepStrictEqual(px(1, 1), [0, 0, 0]);   // gutter
+
+        // MPI-1099: no tree (Cosmo's make_sheet) = packed here, every picture centred.
+        const auto = await renderSheet([a, b], { shape: 'auto', longEdge: 2048 });
+        assert.ok(auto.width === 2048 && auto.height <= 2048, `never portrait: ${auto.width}x${auto.height}`);
+        const { data: ad, info: ai } = await auto.sharp.raw().toBuffer({ resolveWithObject: true });
+        assert.ok(ad.length === ai.width * ai.height * ai.channels);
     } finally {
         await fs.remove(dir);
     }

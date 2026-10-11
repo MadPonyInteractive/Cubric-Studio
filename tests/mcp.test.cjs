@@ -149,7 +149,7 @@ test('a notification is answered 202 with no body', async () => {
 test('tools/list names every tool, each with a title, annotations and an object schema', async () => {
     const { result } = await (await rpc('tools/list')).json();
     const names = result.tools.map((t) => t.name);
-    assert.deepEqual(names, ['status', 'list_models', 'describe_model', 'list_projects', 'create_project', 'open_project', 'list_cards', 'view_card', 'rename_card', 'generate', 'wait_generation', 'cancel_generation', 'read_knowledge', 'make_gif', 'edit_gif', 'cutout_gif', 'gif_to_video',
+    assert.deepEqual(names, ['status', 'list_models', 'describe_model', 'list_projects', 'create_project', 'open_project', 'list_cards', 'view_card', 'rename_card', 'generate', 'wait_generation', 'cancel_generation', 'read_knowledge', 'make_gif', 'edit_gif', 'cutout_gif', 'gif_to_video', 'make_sheet',
         'list_routines', 'save_routine', 'rename_routine', 'delete_routine', 'run_routine']);
     for (const t of result.tools) {
         assert.equal(t.inputSchema.type, 'object');
