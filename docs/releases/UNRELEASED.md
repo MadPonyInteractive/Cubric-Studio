@@ -51,6 +51,7 @@
 - **Use Tiles, beside Use Grid in every model's Upscale.** It redraws the picture in 1024 px tiles, so very large pictures work, and at 1x it adds detail without enlarging. Cosmo and the MCP tools can use it too.
 - **A child-safety check on every prompt.** Cubric Studio is for adults, and adult content is untouched. A prompt that puts someone under 18 in a nude, sexual or suggestive picture, or a child under 16 in swimwear, is refused before it runs, whether you typed it, the Enhancer wrote it, or Cosmo or another AI app sent it. Asking to undress someone in a picture or clip first checks that no one in it could be under 18.
 - **What your Pod is costing, in the status bar.** While RunPod is connected, the bar at the bottom shows the spend so far next to REMOTE, and next to the timer while a job runs, so you can see it without going back to the home page.
+- **Upload models to your RunPod volume.** Upload models, in the Remote panel, shows your LoRAs and upscale models on your computer and on the Pod. Upload or delete any of them, at any size. Use the cheap No GPU Pod for big files: your volume keeps them.
 
 ## ComfyUI Engine
 
@@ -67,3 +68,5 @@
 - **Compare labels each side with its History name.** An imported image showed its full file path instead.
 - **Focus mode (F) shows your image again.** On an image it turned the whole screen black, with Compare on too.
 - **Enhance and Describe work on ComfyUI without installing anything first.** Without the Image Describer plugin or a Krea 2 model, Enhance failed with an error and Describe asked for the plugin. Their 4.88 GB text encoder now installs with the engine, and the plugin is gone.
+- **RunPod connect tells the truth.** No more "Local, offline" or 0 models while a Pod boots. Cancel shows it's still waiting on RunPod.
+- **LoRAs over 2 GB upload to a Pod.** Uploads now show under Transfers, with Cancel.
