@@ -89,7 +89,7 @@ EMITS:   `input`            `{ positive: string, negative: string, activeMode: '
          `queue-clear`      `{}`
          `model-change`     `{ model: ModelDef }`
          `operation-change` `{ operation: string }`
-         `settings`         `{ model: ModelDef }`
+         `settings`         `{ model: ModelDef }` — MPI-1077: the settings popup's MpiLoraRack head button (`LoRA & Upscale`) was clicked. Re-emitted for the Block, which owns the overlay: MpiGalleryBlock (`_wirePromptBox`) and MpiGroupHistoryBlock each open their OWN `MpiModelSettings({ modelId: model.id })` — the same split as the model picker's `settings`
 GLOBAL EMITS (via Events.emit, consumed by projectService):
          `settings:model:select` `{ modelId }` — on model dropdown change (ensures modelSettings key exists)
          `settings:model:update` `{ modelId, opName, key, value }` — from PromptBoxControls. `opName` resolved from each control's `scope`: `'shared'` (ratio/orientation/quality, batch, previewStage, duration, motionIntensity) or the active op key (denoise, useGrid, upscaleFactor). Never includes generation mode.

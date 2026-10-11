@@ -9,6 +9,9 @@
   "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
   "js/components/types.js",
   "js/events.js",
-  "tests/desktop/lora-rack-settings-button.spec.js"
+  "tests/desktop/lora-rack-settings-button.spec.js",
+  ".claude/rules/component-mounts.md",
+  ".claude/rules/component-events-primitives.md",
+  ".claude/rules/component-events-blocks.md"
  ]
 }
