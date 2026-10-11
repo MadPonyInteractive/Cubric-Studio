@@ -2450,13 +2450,14 @@
  *
  * The LoRAs the current model is running, at the top of the PromptBox settings
  * popup (MPI-724). One row per FILLED slot — name label, strength input per knob
- * the model declares (`loraStrengths`), bypass button. Nothing filled → renders
- * nothing at all (`hidden`, zero height), not a placeholder.
+ * the model declares (`loraStrengths`), bypass button. Headed by a `LoRA & Upscale`
+ * button (MPI-1077) for every local model with `showSettings !== false`, LoRAs set
+ * or not. No button and nothing filled → renders nothing at all (`hidden`, zero height).
  *
  * READ-ONLY over the SET: it can never add, remove or re-point a LoRA. That stays
- * in MpiModelSettings — MPI-356 settled that anything picking a FILE belongs on
- * the model card. A staged model (Wan) groups rows per `loraStages` entry, in the
- * model's declared order, under `<stage label> LORAS`.
+ * in MpiModelSettings — MPI-356 settled that anything picking a FILE belongs there;
+ * the head button asks the host to open it. A staged model (Wan) groups rows per
+ * `loraStages` entry, in the model's declared order, under `<stage label> LORAS`.
  *
  * Writes `modelSettings[modelId].loras` in the exact shape MpiModelSettings
  * writes it, and the two live-sync each other over `settings:model:update` —
@@ -2468,7 +2469,8 @@
  *   refresh()              — re-read and re-render for the current model
  *
  * Emits:
- *   'resized' {} — rendered row count changed; the host should re-measure/anchor
+ *   'resized'  {} — rendered height changed; the host should re-measure/anchor
+ *   'settings' { modelId } — head button clicked; the host opens MpiModelSettings
  */
 
 /**

@@ -14,7 +14,12 @@
     display: none;
 }
 
-/* `LORAS`, or the stage's own name for a staged model (HIGH NOISE LORAS). */
+/* The head: opens LoRA & Upscale (MPI-1077). Its own width, not the column's. */
+.mpi-btn.mpi-lora-rack__open {
+    align-self: flex-start;
+}
+
+/* A staged model's stage name (HIGH NOISE LORAS); a flat model has the head only. */
 .mpi-lora-rack__label {
     margin: 0;
     color: var(--ink-3);

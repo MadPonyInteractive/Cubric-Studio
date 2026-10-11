@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1077", "at": "2026-10-11T09:06:10+01:00", "actor": "f54f3e88-0e30-4731-8f21-466c9f54913f", "column": "doing", "title": "Settings popup: the LoRAs label opens LoRA & Upscale"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1077", "at": "2026-10-11T09:10:17+01:00", "actor": "f54f3e88-0e30-4731-8f21-466c9f54913f", "from": "doing", "to": "doing", "reason": "shipped; Fabio eye test pending"}

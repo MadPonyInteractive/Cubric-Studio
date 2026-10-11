@@ -1,0 +1,14 @@
+{
+ "schema": "mpi-kanban/task-files/v1",
+ "files": [
+  ".agents/mpi-kanban/tasks/MPI-1077/",
+  "js/components/Compounds/MpiLoraRack/MpiLoraRack.js",
+  "js/components/Compounds/MpiLoraRack/MpiLoraRack.css",
+  "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+  "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
+  "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+  "js/components/types.js",
+  "js/events.js",
+  "tests/desktop/lora-rack-settings-button.spec.js"
+ ]
+}

@@ -1540,6 +1540,9 @@ export const MpiGalleryBlock = ComponentFactory.create({
         function _wirePromptBox(pb) {
             if (!pb) return;
 
+            // The settings popup's LoRA & Upscale button (MPI-1077) opens our overlay.
+            pb.on('settings', ({ model }) => _settingsOverlay.el.open({ modelId: model.id }));
+
             pb.on('model-change', ({ model }) => {
                 setSelectedModelId(model.mediaType, model.id);
                 activeModelId   = model.id;

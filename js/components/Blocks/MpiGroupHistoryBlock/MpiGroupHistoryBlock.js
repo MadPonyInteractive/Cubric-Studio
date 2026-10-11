@@ -2309,6 +2309,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             _syncRunCount();
 
             _unsubs.push(_pb.on('model-change', ({ model }) => _adoptModel(model)));
+            // The settings popup's LoRA & Upscale button (MPI-1077) opens our overlay.
+            _unsubs.push(_pb.on('settings', ({ model }) => _settingsOverlay.el.open({ modelId: model.id })));
             _unsubs.push(_pb.on('pinned-swap', () => { _swapClipChip(); }));
             _unsubs.push(_pb.on('operation-change', ({ operation, programmatic }) => {
                 activeOperation = operation;

@@ -1792,8 +1792,8 @@ export const MpiPromptBox = ComponentFactory.create({
                      below: it only changes when the MODEL changes, which the op strip
                      at the bottom cannot cause, and _refreshLoraRack re-anchors the
                      popup afterwards. Read-out plus two knobs — picking a LoRA file
-                     stays on the model card (MPI-356). Renders nothing when the model
-                     has none. -->
+                     stays in LoRA & Upscale (MPI-356), which its head button opens
+                     (MPI-1077). Renders nothing for a model with no such settings. -->
                 <div id="settings-lora-slot"></div>
                 <div class="mpi-prompt-box__settings-grid">
                     <!-- "?" for the ACTIVE op (MPI-360). LAST item of the control
@@ -1983,6 +1983,9 @@ export const MpiPromptBox = ComponentFactory.create({
             modelId: model?.id ?? null,
         });
         _loraRack.on('resized', () => { if (popupActive) positionPopup(); });
+        // The rack's head button (MPI-1077). The overlay belongs to the Block, the same
+        // split as the model picker's own LoRA & Upscale control.
+        _loraRack.on('settings', () => { if (model) emit('settings', { model }); });
 
         // The panel is anchored to the cog in VIEWPORT coordinates, so a window resize
         // leaves an open one stranded — measured at 120px off the right edge after a

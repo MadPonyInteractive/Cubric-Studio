@@ -4,10 +4,12 @@
  *
  * READ-ONLY over the SET, live over the VALUES. It shows one row per FILLED LoRA
  * slot — name, strength(s), bypass — and can never add, remove or re-point a
- * LoRA. That stays in MpiModelSettings, reached from the model card, because
- * MPI-356 settled that anything picking a FILE belongs there and only knobs
- * belong in this popup. Nothing filled → the rack renders nothing at all: no
- * label, no placeholder, zero height.
+ * LoRA. That stays in MpiModelSettings, because MPI-356 settled that anything
+ * picking a FILE belongs there and only knobs belong in this popup — but the
+ * rack's head is a `LoRA & Upscale` button that asks the host to open it
+ * (MPI-1077), so it is no longer reachable only from the model card. The button
+ * shows for every model the picker shows that control for, LoRAs set or not; a
+ * model with neither → the rack renders nothing at all, zero height.
  *
  * It writes `project.modelSettings[modelId].loras` in exactly the shape
  * MpiModelSettings._autoSave() writes, and the two live-sync each other through
@@ -27,11 +29,13 @@
  *   refresh()              — re-read and re-render for the current model
  *
  * Emits:
- *   'resized' {} — the rendered row count changed, so the host should re-measure
+ *   'resized'  {} — the rendered height changed, so the host should re-measure
+ *   'settings' { modelId } — the head button was clicked; the host opens MpiModelSettings
  */
 
 import { ComponentFactory } from '../../factory.js';
 import { MpiBadge } from '../../Primitives/MpiBadge/MpiBadge.js';
+import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { Events } from '../../../events.js';
 import { state } from '../../../state.js';
 import { getModelSettings } from '../../../data/projectModel.js';
@@ -49,7 +53,7 @@ const BYPASSED_CLASS = `${BEM}__row--bypassed`;
 
 /**
  * The groups to render, as `[stageKey, label, slots]`. A flat model yields one
- * group under the plain `LORAS` label; a staged model (Wan) yields one per stage
+ * unlabelled group under the head button; a staged model (Wan) yields one per stage
  * IN THE MODEL'S DECLARED ORDER — HIGH NOISE then LOW NOISE — so the rack and the
  * overlay read top-to-bottom the same way.
  *
@@ -59,7 +63,7 @@ const BYPASSED_CLASS = `${BEM}__row--bypassed`;
  */
 function _groupsOf(model, loras) {
     if (!loras) return [];
-    if (Array.isArray(loras)) return [['', 'LORAS', loras]];
+    if (Array.isArray(loras)) return [['', '', loras]];   // the head button is its label
     return (model?.loraStages ?? [])
         .filter(stage => Array.isArray(loras[stage.key]))
         .map(stage => [stage.key, `${stage.label} LORAS`, loras[stage.key]]);
@@ -85,7 +89,7 @@ export const MpiLoraRack = ComponentFactory.create({
         let _loras = null;
         /** Filled-slot signature of what is currently rendered. */
         let _signature = '';
-        /** Rendered row count, so 'resized' only fires when the host must re-measure. */
+        /** Rendered rows (head button included), so 'resized' only fires when the host must re-measure. */
         let _rowCount = 0;
         /** Live control handles, keyed `${stageKey}:${index}` — see _applyIncoming. */
         const _handles = new Map();
@@ -214,6 +218,20 @@ export const MpiLoraRack = ComponentFactory.create({
             const groups = _groupsOf(model, _loras);
             let rows = 0;
 
+            // The same gate as the model picker's `LoRA & Upscale` control: a cloud
+            // model has no local LoRA or upscaler folder, and `showSettings: false`
+            // marks a model whose overlay would be empty.
+            const hasSettings = Boolean(model && !model.provider && model.showSettings !== false);
+            if (hasSettings) {
+                const head = MpiButton.mount(document.createElement('div'), {
+                    icon: 'settings', label: 'LoRA & Upscale', variant: 'ghost', size: 'sm',
+                    info: 'Pick LoRAs and the upscale model for this model',
+                    extraClasses: `${BEM}__open`,
+                });
+                head.on('click', () => emit('settings', { modelId: _modelId }));
+                el.appendChild(head.el);
+            }
+
             for (const [stageKey, label, slots] of groups) {
                 const filled = slots
                     .map((slot, index) => ({ slot, index }))
@@ -222,10 +240,12 @@ export const MpiLoraRack = ComponentFactory.create({
                     .filter(({ slot }) => Boolean(slot?.name));
                 if (!filled.length) continue;   // a stage with nothing in it gets no header
 
-                const header = document.createElement('p');
-                header.className = `${BEM}__label`;
-                header.textContent = label;
-                el.appendChild(header);
+                if (label) {
+                    const header = document.createElement('p');
+                    header.className = `${BEM}__label`;
+                    header.textContent = label;
+                    el.appendChild(header);
+                }
 
                 for (const { slot, index } of filled) {
                     el.appendChild(_buildRow(slot, stageKey, index, kinds, available));
@@ -233,13 +253,15 @@ export const MpiLoraRack = ComponentFactory.create({
                 }
             }
 
-            // Nothing filled → nothing at all. `hidden` rather than an empty div so
+            // Nothing to show → nothing at all. `hidden` rather than an empty div so
             // the popup's own flex gap does not leave a band where the rack isn't.
-            el.hidden = rows === 0;
+            el.hidden = rows === 0 && !hasSettings;
 
             _signature = _signatureOf(model, _loras);
-            if (rows !== _rowCount) {
-                _rowCount = rows;
+            // The head button changes the height too, so it is part of the count.
+            const height = rows + (hasSettings ? 1 : 0);
+            if (height !== _rowCount) {
+                _rowCount = height;
                 emit('resized', {});
             }
         }
