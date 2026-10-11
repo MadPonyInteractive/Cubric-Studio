@@ -1369,6 +1369,7 @@ export const commands = {
     // text or the outpaint branch, so the picture is optional in the graph too.
     flowPano360: {
         label: 'Flow: 360 Panorama',
+        filePrefix: 'flow360Panorama',      // the key says Pano360; the Library says "360 Panorama"
         progressLabel: 'Making the panorama',
         mediaType: MEDIA_TYPE.IMAGE,        // OUTPUT type
         requiresImages: 0,
