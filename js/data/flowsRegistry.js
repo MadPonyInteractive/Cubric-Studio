@@ -835,14 +835,11 @@ export const FLOWS = [
     // background does not mask (MpiMath `a * (b != 4)`), and the picture's room is taken only
     // when op 1 AND a picture AND Keep_Background false. Change a clause here, change the
     // graph's twin.
-    //
-    // PROVISIONAL `preview` (Fabio, 2026-10-08): a frame of bench run F, the picture's
-    // character dancing in the picture's room, so CI's package check passes before Phase 4.
-    // Phase 4 (/mpi-flow-graphics) replaces it and adds the `video` hero.
     {
         id: 'video-edit',
         title: 'Video Edit',
         preview: 'flow-video-edit.webp',
+        video: 'flow-video-edit.mp4',
         description: 'Swap the person, head or outfit in a video, change its background, or make any edit you describe. Add a picture of the new character, outfit or place, or describe it in words. List what to change under “Only change” and just that part is masked and re-rendered, faster, with the rest kept exactly as filmed. The soundtrack comes through untouched. Short clips first: a 5-second clip can take 20 minutes, and longer ones drift.',
         // The slot takes the user's own H3 LoRAs (Input_Lora_Phase1_1..6, loader -> the Flow's own LoRAs).
         requiredModels: [{ label: 'Model', models: ['minimax-h3-ref2va'], loras: true }],
