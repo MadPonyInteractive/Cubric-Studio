@@ -125,6 +125,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Organisms/MpiToolOptionsInterpolate/MpiToolOptionsInterpolate.css',
   'js/components/Organisms/MpiToolOptionsResize/MpiToolOptionsResize.css',
   'js/components/Organisms/MpiToolOptionsGif/MpiToolOptionsGif.css',
+  'js/components/Organisms/MpiToolOptionsVideoExport/MpiToolOptionsVideoExport.css',
   'js/components/Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.css',
   'js/components/Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.css',
   'js/components/Organisms/MpiToolOptionsGifTransform/MpiToolOptionsGifTransform.css',

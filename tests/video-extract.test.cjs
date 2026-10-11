@@ -167,3 +167,22 @@ test('POST /video-extract/apply lands a webm entry with a sidecar', async () => 
         server.close();
     }
 });
+
+test('ProRes 4444 for an editor keeps a transparent source cut, and its audio', async () => {
+    const dir = await scratchDir('video-extract-prores-');
+    const src = await makeClip(dir);
+    const maskDir = path.join(dir, 'masks');
+    await writeMasks(maskDir, Array(10).fill('left'));
+    const cut = path.join(dir, 'cut.webm');
+    await videoExtract.extractThroughMaskSequence({
+        inputPath: src, maskDir, width: W, height: H, fps: '10/1', hasAudio: true, background: null, outPath: cut,
+    });
+    const outPath = path.join(dir, 'out.mov');
+    await videoExtract.encodeProres({ inputPath: cut, codec: 'vp9', hasAudio: true, outPath });
+    const meta = await probeVideo(outPath);
+    assert.equal(meta.codecName, 'prores');
+    assert.ok(meta.hasAudio, 'audio kept');
+    const px = await frameRgba(outPath, 4, false);
+    assert.ok(px(8, 24)[3] > 240, 'kept side opaque');
+    assert.ok(px(56, 24)[3] < 15, 'cut side transparent');
+});

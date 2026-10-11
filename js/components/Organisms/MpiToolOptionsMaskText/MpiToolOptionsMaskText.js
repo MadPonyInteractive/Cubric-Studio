@@ -27,6 +27,7 @@
 import { ComponentFactory }  from '../../factory.js';
 import { MpiInput }          from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiMaskDetectRow }  from '../../Compounds/MpiMaskDetectRow/MpiMaskDetectRow.js';
+import { MpiColorField }     from '../../Compounds/MpiColorField/MpiColorField.js';
 import { MpiMaskStrip }      from '../../Compounds/MpiMaskStrip/MpiMaskStrip.js';
 import { qs }                from '../../../utils/dom.js';
 import { Events }            from '../../../events.js';
@@ -96,7 +97,7 @@ export const MpiToolOptionsMaskText = ComponentFactory.create({
 
         _children.push(MpiMaskDetectRow.mount(qs('#detect-row-slot', el), { viewer }));
         // No brush pair (MPI-381): painting belongs to the Brush tool.
-        _children.push(MpiMaskStrip.mount(qs('#strip-slot', el), { viewer, brush: false }));
+        _children.push(MpiMaskStrip.mount(qs('#strip-slot', el), { viewer, brush: false, colourField: MpiColorField }));
 
         el.destroy = () => {
             viewer.el.setMaskTextMode?.(false);

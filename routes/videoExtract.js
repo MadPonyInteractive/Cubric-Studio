@@ -277,6 +277,47 @@ router.post('/video-extract/apply', async (req, res) => {
     }
 });
 
+/**
+ * ProRes 4444 with alpha, for an editor (DaVinci reads it; VP9 alpha it may not).
+ * Never a card: it lands in the temp dir and the renderer saves it out.
+ */
+async function encodeProres({ inputPath, trimIn, trimOut, codec, hasAudio, outPath }) {
+    const decoder = codec === 'vp9' ? ['-c:v', 'libvpx-vp9'] : [];
+    const args = ['-y', ..._trimArgs(trimIn, trimOut), ...decoder, '-i', inputPath,
+        '-map', '0:v:0', '-c:v', 'prores_ks', '-profile:v', '4444', '-pix_fmt', 'yuva444p10le',
+        '-vendor', 'apl0'];
+    if (hasAudio) args.push('-map', '0:a:0?', '-c:a', 'pcm_s16le');
+    args.push(outPath);
+    await execFileP(ffmpegPath, args, { maxBuffer: 8 * 1024 * 1024, windowsHide: true });
+}
+
+router.post('/video-extract/prores', async (req, res) => {
+    try {
+        const { folderPath, sourcePath, trimIn, trimOut } = req.body || {};
+        if (!folderPath || !sourcePath) {
+            return res.status(400).json({ success: false, error: 'folderPath, sourcePath required' });
+        }
+        const inputPath = _resolveInput(sourcePath);
+        if (!(await fs.pathExists(inputPath))) {
+            return res.status(404).json({ success: false, error: 'source file not found: ' + inputPath });
+        }
+        const srcMeta = await probeVideo(inputPath) || {};
+        const outDir = path.join(folderPath, 'Media', TEMP_DIRNAME);
+        await fs.ensureDir(outDir);
+        await _sweep(outDir);
+        const fileName = `${path.parse(inputPath).name}_prores4444.mov`;
+        const outPath = path.join(outDir, `${uuidv4()}_${fileName}`);
+        await encodeProres({
+            inputPath, trimIn, trimOut, codec: srcMeta.codecName, hasAudio: !!srcMeta.hasAudio, outPath,
+        });
+        res.json({ success: true, path: outPath, fileName });
+    } catch (err) {
+        logger.error('project', 'video-extract prores failed', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 module.exports = router;
+module.exports.encodeProres = encodeProres;
 module.exports.encodeTrackSource = encodeTrackSource;
 module.exports.extractThroughMaskSequence = extractThroughMaskSequence;

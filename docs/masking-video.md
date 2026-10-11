@@ -38,6 +38,16 @@ exact frame. Outside the tracked range the layer hides.
 The viewer implements the `MpiMaskStrip` surface (`brush: false`: opacity, invert, B/W,
 clear, `extractMask`). `setMaskPaintEnabled` is a no-op — there is no video brush.
 
+**A track outlives its entry, for the session.** A module-level stash keyed by clip URL:
+`loadVideo` swaps in the new clip's own track (or none), so leaving a clip and coming back
+costs no Detect. Extract calls `carryMasksTo(newUrl)` before loading the result — the cut
+clip IS the tracked range, so the same URLs from `trimIn: 0` (Colour after Transparent, no
+re-Detect). Clear forgets that clip's track. Spec: `tests/desktop/video-mask-stash.spec.js`.
+
+**The Extract swatch has Pick.** `MpiMaskStrip` is a Compound and may not import
+`MpiColorField`, so each mask panel hands it in as the `colourField` prop; without one the
+strip falls back to the bare picker.
+
 ## Extract — `POST /video-extract/apply`
 
 The viewer emits `mask-extract { background, masks, trimIn, trimOut }` and the Block's
@@ -60,3 +70,11 @@ cut-out, so a second Extract of a transparent WebM keeps the first cut. That nee
 `libvpx-vp9` DECODER on a vp9 source: ffmpeg's native one drops alpha, and the cut area
 came back black. Other ops reading a transparent WebM (upscale, interpolate, GIF Maker) still
 use the native decoder and see the zeroed RGB — black — where it was cut.
+
+## Export for editing — `POST /video-extract/prores`
+
+The video Export group's second tool (`exportEdit`, `MpiToolOptionsVideoExport`): the clip
+(its trim, if set) as ProRes 4444 `.mov`, `yuva444p10le`, PCM audio — DaVinci is not known
+to read VP9 alpha. Encoded into `Media/.video-extract-tmp/` (swept after an hour) and saved
+out through an `<a download>`, which Electron turns into the Save dialog. Never a card.
+Same `libvpx-vp9` decoder rule as above.

@@ -15,6 +15,14 @@
     "docs/masking-video.md",
     "docs/masking.md",
     "docs/README.md",
-    ".agents/mpi-kanban/tasks/MPI-1073/"
+    ".agents/mpi-kanban/tasks/MPI-1073/",
+    "js/components/Organisms/MpiToolOptionsVideoExport/",
+    "js/components/Organisms/MpiToolOptionsMaskBrush/MpiToolOptionsMaskBrush.js",
+    "js/components/Organisms/MpiToolOptionsMaskColour/MpiToolOptionsMaskColour.js",
+    "js/components/Organisms/MpiToolOptionsMaskDetect/MpiToolOptionsMaskDetect.js",
+    "js/components/Organisms/MpiToolOptionsMaskPoints/MpiToolOptionsMaskPoints.js",
+    "js/components/Organisms/MpiToolOptionsMaskText/MpiToolOptionsMaskText.js",
+    "js/components/Organisms/MpiToolOptionsMaskAdjust/MpiToolOptionsMaskAdjust.js",
+    "tests/desktop/colour-pick-eyedropper.spec.js"
   ]
 }

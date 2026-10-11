@@ -25,6 +25,7 @@
 import { ComponentFactory }  from '../../factory.js';
 import { MpiButton }         from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiMaskDetectRow }  from '../../Compounds/MpiMaskDetectRow/MpiMaskDetectRow.js';
+import { MpiColorField }     from '../../Compounds/MpiColorField/MpiColorField.js';
 import { MpiMaskStrip }      from '../../Compounds/MpiMaskStrip/MpiMaskStrip.js';
 import { qs }                from '../../../utils/dom.js';
 
@@ -59,7 +60,7 @@ export const MpiToolOptionsMaskPoints = ComponentFactory.create({
         _children.push(clearPointsBtn);
 
         _children.push(MpiMaskDetectRow.mount(qs('#detect-row-slot', el), { viewer }));
-        _children.push(MpiMaskStrip.mount(qs('#strip-slot', el), { viewer, brush: false }));
+        _children.push(MpiMaskStrip.mount(qs('#strip-slot', el), { viewer, brush: false, colourField: MpiColorField }));
 
         el.destroy = () => {
             // Leave the canvas in plain mask mode: points mode owns the right

@@ -250,6 +250,13 @@
  */
 
 /**
+ * @typedef {Object} MpiToolOptionsVideoExportProps (Organism — js/components/Organisms/MpiToolOptionsVideoExport)
+ * "Export for editing" (MPI-1073): ProRes 4444 .mov with alpha, saved out, never a card.
+ * Emits 'apply' {}; the Block encodes via POST /video-extract/prores.
+ * @property {Object} viewer - MpiVideoViewer instance
+ */
+
+/**
  * @typedef {Object} MpiToolOptionsGifProps (Organism — js/components/Organisms/MpiToolOptionsGif)
  * @property {Object} viewer - MpiVideoViewer instance (registry-uniform signature; unused directly)
  *

@@ -30,21 +30,21 @@ re-track replaces it).
 - Eye-test in the app by Fabio: Text track on a clip, tint follows on play/scrub, Extract both ways.
 
 ## Current State
-Built, committed, eye-tested by Fabio 2026-10-11 on a REAL SAM3 track ("Woman"): Transparent and
-Colour Extract both land correct entries. Two follow-ups he asked for (do these next):
-1. **The mask must survive.** After Extract the Block loads the new entry; `MpiVideoViewer.loadVideo`
-   drops `_masks` on a src change, so going back to the source (or extracting again, e.g. Colour
-   after Transparent) forces a fresh Detect. Stash masks per clip src (session, like the GIF
-   viewer's signature stash) and restore on return; consider carrying them onto the extracted
-   entry too (its frame 0 = the mask range's trimIn, so `trimIn: 0`, same urls).
-2. **Eyedropper (Pick) on the Extract colour swatch**, image AND video. `MpiMaskStrip` is a Compound
-   and cannot import `MpiColorField` (a Compound) - lint fails. Lift the Extract row out (or give
-   the strip Pick another way); see the `ponytail:` note in MpiMaskStrip.js and
-   `tests/desktop/colour-pick-eyedropper.spec.js` (counts colour controls per panel).
-Then: CI green on the code commit, close as its own commit.
+Base built in 7ab93436d, eye-tested by Fabio 2026-10-11 on a real SAM3 track. His three follow-ups
+are built (session "Mask extraction 3", uncommitted), automated checks green, waiting on his eye-test:
+1. **Mask survives** - module-level stash by clip URL in MpiVideoViewer; Extract calls
+   `carryMasksTo(newUrl)` (same urls, `trimIn: 0`). Spec `tests/desktop/video-mask-stash.spec.js`.
+2. **Pick on the Extract swatch** - each mask panel passes `colourField: MpiColorField` to the strip
+   (a Compound may not import it). Eyedropper spec gained a `maskextract` case.
+3. **Export for editing** (Fabio's ProRes call) - Export group tool `exportEdit` ->
+   `MpiToolOptionsVideoExport` -> `POST /video-extract/prores` (prores_ks 4444, yuva444p10le, PCM)
+   -> `<a download>` Save dialog, never a card. Unit test in `tests/video-extract.test.cjs`.
+Needs Fabio's app RESTARTED (new server route). Then: release-note line in UNRELEASED.md, commit,
+CI green on the code commit, close as its own commit.
 
 ## Completed
 
 ## Plan Drift
+- 2026-10-11: Fabio added a ProRes 4444 export for DaVinci (step 3 above) to this card.
 - 2026-10-11: added the source-alpha ceiling (libvpx decoder on a vp9 source) - a second Extract of a
   transparent WebM came back black where the first cut was. Same route, one test.

@@ -22,6 +22,8 @@
  * @param {object}  viewer            - MpiCanvasViewer instance
  * @param {boolean} [brush=true]      - show the paint / erase pair, bind B / E, arm painting
  * @param {'mask'|'paint'|'composite'} [dest='mask'] - which layer the controls drive
+ * @param {object}  [colourField]     - the Extract swatch component: panels pass MpiColorField
+ *                                      for Pick (a Compound may not import it); else MpiColorPicker
  *
  * MPI-435: it also carries the brush PRESET picker — ten procedural dabs off the one
  * shared `brushDab.js`, which is why it lives here and not in each tool panel.
@@ -290,12 +292,13 @@ export const MpiMaskStrip = ComponentFactory.create({
 
             // The swatch EXISTS only while Solid is chosen — a hidden one would still be
             // a second colour control in the tool panel above (MPI-964 counts them).
-            // ponytail: plain MpiColorPicker, no Pick — MpiColorField is a Compound and
-            // a Compound may not import one. Lift Extract into the panels to get Pick.
+            // The panel hands in MpiColorField (swatch + Pick): a Compound may not import
+            // another, so the strip itself only falls back to the bare picker.
+            const ColourField = props.colourField || MpiColorPicker;
             let colourField = null;
             const _syncColourField = () => {
                 if (bg === 'solid' && !colourField) {
-                    colourField = MpiColorPicker.mount(qs('#extract-colour-slot', el), {
+                    colourField = ColourField.mount(qs('#extract-colour-slot', el), {
                         value: colour,
                         info: 'Fills everything outside the mask',
                     });

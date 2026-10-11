@@ -18,3 +18,10 @@ Synthetic per-frame masks injected through `setVideoMasks` (no engine run):
 
 ## Not yet seen
 - A REAL SAM3 track on a real clip (needs the engine) - Fabio's eye-test.
+
+## Follow-ups (2026-10-11, session "Mask extraction 3")
+- `node --test tests/video-extract.test.cjs` 6/6 (new: ProRes keeps alpha + audio).
+- `npm test` 3119 pass / 0 fail.
+- Desktop: `video-mask-stash.spec.js` 1/1, `colour-pick-eyedropper.spec.js` 1/1 (with the Extract
+  swatch), `gif-maker.spec.js` 1/1. eslint --max-warnings=0 clean on every touched file.
+- Fabio eye-test 2026-10-11: mask carried across Extracts on a real track, Pick shown, videoExtract_004_prores4444.mov composited with alpha in DaVinci Resolve 20.

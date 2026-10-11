@@ -78,6 +78,12 @@ import { qs, on } from '../../../utils/dom.js';
 import { Events } from '../../../events.js';
 import { StatusBar } from '../../../shell/statusBar.js';
 
+// A track outlives the entry it was made on, for the session (MPI-1073): leaving a clip
+// and coming back, or Extracting it, must not cost a fresh Detect. Keyed by clip URL;
+// module scope so a remounted viewer still finds it.
+// ponytail: unbounded, URL lists only (the frames live on disk); cap it if sessions grow huge.
+const _maskStash = new Map();
+
 export const MpiVideoViewer = ComponentFactory.create({
     name: 'MpiVideoViewer',
     css: ['js/components/Organisms/MpiVideoViewer/MpiVideoViewer.css'],
@@ -425,8 +431,13 @@ export const MpiVideoViewer = ComponentFactory.create({
             } else {
                 _controlBarInstance?.el.setPendingTrim?.(null);
             }
-            // A mask belongs to the clip it was tracked on (MPI-1073).
-            if (url !== _videoSrc && _masks) { _masks = null; _drawMask(); emit('mask-change', { hasMask: false }); }
+            // A mask belongs to the clip it was tracked on (MPI-1073): swap to this clip's own.
+            if (url !== _videoSrc) {
+                const had = !!_masks;
+                _masks = _maskStash.get(url) || null;
+                _maskShown = -1;
+                if (had || _masks) { _drawMask(); emit('mask-change', { hasMask: !!_masks }); }
+            }
             _videoSrc = url;
             _setLoadingSpinner(true);
             _surfaceInstance.el._setSrc(url);
@@ -541,21 +552,36 @@ export const MpiVideoViewer = ComponentFactory.create({
          * Hand the viewer a track: one mask URL per frame of [trimIn, trimOut].
          * @param {{ urls: string[], trimIn: number, trimOut: number, fps: number }} m
          */
-        el.setVideoMasks = ({ urls, trimIn = 0, trimOut = 0, fps }) => {
+        const _buildMasks = (src, { urls, trimIn = 0, trimOut = 0, fps }) => {
             const f = Number(fps) || 24;
-            _masks = {
-                src: _videoSrc, urls, trimIn, trimOut, fps: f,
+            return {
+                src, urls, trimIn, trimOut, fps: f,
                 first: Math.ceil(trimIn * f - 1e-6),
                 // Warm the cache in the mode CSS `mask-image` fetches in (CORS),
                 // so playback does not wait on each frame's first request.
                 preload: urls.map(u => { const i = new Image(); i.crossOrigin = 'anonymous'; i.src = u; return i; }),
             };
+        };
+        el.setVideoMasks = (m) => {
+            _masks = _buildMasks(_videoSrc, m);
+            _maskStash.set(_videoSrc, _masks);
             _maskShown = -1;
             _drawMask();
             emit('mask-change', { hasMask: true });
         };
         el.hasVideoMasks = () => !!_masks;
+        /**
+         * Hand the current track to a clip cut from it (Extract): its frame 0 is the
+         * track's first frame, so the same URLs from `trimIn: 0`. Applied when it loads.
+         */
+        el.carryMasksTo = (url, { fps } = {}) => {
+            if (!_masks || !url) return;
+            _maskStash.set(url, _buildMasks(url, {
+                urls: _masks.urls, trimIn: 0, trimOut: Math.max(0, _masks.trimOut - _masks.trimIn), fps: fps || _masks.fps,
+            }));
+        };
         el.clearMask = () => {
+            _maskStash.delete(_videoSrc);
             _masks = null;
             _drawMask();
             emit('mask-change', { hasMask: false });

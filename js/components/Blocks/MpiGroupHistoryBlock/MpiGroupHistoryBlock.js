@@ -35,6 +35,7 @@ import { MpiToolOptionsInterpolate } from '../../Organisms/MpiToolOptionsInterpo
 import { MpiToolOptionsVideoMask } from '../../Organisms/MpiToolOptionsVideoMask/MpiToolOptionsVideoMask.js';
 import { MpiToolOptionsResize } from '../../Organisms/MpiToolOptionsResize/MpiToolOptionsResize.js';
 import { MpiToolOptionsGif } from '../../Organisms/MpiToolOptionsGif/MpiToolOptionsGif.js';
+import { MpiToolOptionsVideoExport } from '../../Organisms/MpiToolOptionsVideoExport/MpiToolOptionsVideoExport.js';
 import { MpiToolOptionsGifCutout } from '../../Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.js';
 import { MpiToolOptionsGifTiming } from '../../Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.js';
 import { timingEdit, rangeBounds } from '../../../utils/gifTiming.js';
@@ -136,6 +137,7 @@ const TOOL_OPTIONS_REGISTRY = {
     resize:       MpiToolOptionsResize,
     resizeVideo:  MpiToolOptionsResize,
     exportGif:    MpiToolOptionsGif,
+    exportEdit:   MpiToolOptionsVideoExport,
     gifCutout:    MpiToolOptionsGifCutout,
     // MPI-771: the image Brush panel as-is — MpiGifViewer implements the same
     // enterMode/exitMode + MpiMaskStrip surface over one frame at a time.
@@ -1265,6 +1267,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             if (mode === 'exportGif') {
                 return _handleGifMaker(payload || {});
             }
+            if (mode === 'exportEdit') {
+                return _handleExportProres();
+            }
             if (mode === 'gifCutout') {
                 return _handleGifCutoutApply(payload || {});
             }
@@ -1288,6 +1293,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             videoMaskText: 'Mask Text',
             resize: 'Resize', resizeVideo: 'Resize',
             exportGif: 'GIF Maker',
+            exportEdit: 'Export for editing',
             gifCutout: 'Cut-out',
             gifMaskBrush: 'Mask Brush',
             gifOutput: 'GIF output',
@@ -2995,7 +3001,11 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 _setCurrentIdx(_group.selectedIndex);
                 _persistGroup();
                 historyList.el.appendEntry(data.item);
-                viewer.el.loadVideo(resolveMediaUrl(data.item.filePath), {
+                const outUrl = resolveMediaUrl(data.item.filePath);
+                // The new clip is the tracked range, so the same masks fit it: Colour
+                // after Transparent needs no second Detect.
+                viewer.el.carryMasksTo?.(outUrl, { fps: data.item.fps });
+                viewer.el.loadVideo(outUrl, {
                     fps:        data.item.fps || _group.fps || 24,
                     duration:   data.item.duration,
                     frameCount: data.item.frameCount,
@@ -3006,6 +3016,44 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             } catch (err) {
                 clientLogger.warn('MpiGroupHistoryBlock', 'video extract failed', err);
                 _showToast('Extract failed: ' + err.message, 'error');
+            } finally {
+                viewer.el.setGenerating?.(false);
+            }
+        }
+
+        /**
+         * Export for editing (MPI-1073): the clip (its trim, if set) as ProRes 4444 with
+         * alpha, encoded into the project's temp dir and handed to the Save dialog
+         * (an `<a download>` — Electron asks where). Never a card.
+         */
+        async function _handleExportProres() {
+            const project = state.currentProject;
+            const currentItem = _group.history[_currentIdx];
+            if (!project?.folderPath || !currentItem?.filePath) return;
+            const trim = _activeVideoTrim(currentItem);
+            _showToast('Encoding ProRes…', 'info');
+            viewer.el.setGenerating?.(true);
+            try {
+                const res = await fetch('/video-extract/prores', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        folderPath: project.folderPath,
+                        sourcePath: currentItem.filePath,
+                        ...(trim && { trimIn: trim.in, trimOut: trim.out }),
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+                const a = document.createElement('a');
+                a.href = `/project-file?path=${encodeURIComponent(data.path)}`;
+                a.download = data.fileName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } catch (err) {
+                clientLogger.warn('MpiGroupHistoryBlock', 'ProRes export failed', err);
+                _showToast('Export failed: ' + err.message, 'error');
             } finally {
                 viewer.el.setGenerating?.(false);
             }

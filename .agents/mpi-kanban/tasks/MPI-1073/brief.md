@@ -71,3 +71,4 @@ row, `POST /project/extract-media`, `docs/masking.md` § Extract). This card is 
 ## Noticed
 
 - Other video ops (upscale, interpolate, GIF Maker) read a transparent WebM with ffmpeg's native vp9 decoder, so the cut area arrives black there (docs/masking-video.md).
+- Fabio 2026-10-11: a video track now follows every clip cut from it, but an image mask stays on its own entry (Extract does not carry it). He'd like the image workspace to match some day; not asked for now.

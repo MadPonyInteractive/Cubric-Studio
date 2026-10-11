@@ -21,6 +21,7 @@
  */
 
 import { ComponentFactory } from '../../factory.js';
+import { MpiColorField }    from '../../Compounds/MpiColorField/MpiColorField.js';
 import { MpiMaskStrip }     from '../../Compounds/MpiMaskStrip/MpiMaskStrip.js';
 import { qs }               from '../../../utils/dom.js';
 
@@ -46,7 +47,7 @@ export const MpiToolOptionsMaskBrush = ComponentFactory.create({
         // Entering Brush from Points must give the right mouse button back.
         viewer.el.setMaskPointsMode?.(false);
 
-        _children.push(MpiMaskStrip.mount(qs('#strip-slot', el), { viewer, brush: true }));
+        _children.push(MpiMaskStrip.mount(qs('#strip-slot', el), { viewer, brush: true, colourField: MpiColorField }));
 
         el.destroy = () => {
             viewer.el.evaluateMask?.();

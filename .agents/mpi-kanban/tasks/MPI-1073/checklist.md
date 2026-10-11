@@ -4,4 +4,8 @@
 - [x] Rail Mask group + Block wiring
 - [x] MpiMaskStrip Colour->Transparent crash fixed
 - [x] Docs
-- [ ] Fabio eye-test
+- [x] Fabio eye-test (base)
+- [x] Mask survives Extract / return to the source
+- [x] Pick on the Extract swatch (image + video)
+- [x] Export for editing (ProRes 4444)
+- [x] Fabio eye-test of the three follow-ups (2026-10-11: carry-over, Pick, ProRes into DaVinci with alpha)

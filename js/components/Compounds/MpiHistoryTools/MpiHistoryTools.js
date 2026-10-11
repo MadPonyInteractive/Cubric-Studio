@@ -193,6 +193,8 @@ const VIDEO_TOOLS = [
             // MPI-760: labelled GIF Maker (it makes a new GIF card); the mode and
             // its toolSettings key stay `exportGif` so saved settings still load.
             { mode: 'exportGif', icon: 'to_gif_stroke', info: 'GIF Maker' },
+            // MPI-1073: ProRes 4444 with alpha for an editor — saved out, never a card.
+            { mode: 'exportEdit', icon: 'download', info: 'Export for editing' },
         ],
     },
 ];

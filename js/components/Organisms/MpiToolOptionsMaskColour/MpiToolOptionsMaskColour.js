@@ -183,7 +183,7 @@ export const MpiToolOptionsMaskColour = ComponentFactory.create({
         // The row's Detect button calls viewer.el.runAutoMaskDetect(), which routes
         // to the colour-key workflow when _colourMode is true. No brush pair (MPI-381).
         _children.push(MpiMaskDetectRow.mount(qs('#detect-row-slot', el), { viewer }));
-        _children.push(MpiMaskStrip.mount(qs('#strip-slot', el), { viewer, brush: false }));
+        _children.push(MpiMaskStrip.mount(qs('#strip-slot', el), { viewer, brush: false, colourField: MpiColorField }));
 
         // Push initial params then seed corner colour asynchronously.
         _pushParams();

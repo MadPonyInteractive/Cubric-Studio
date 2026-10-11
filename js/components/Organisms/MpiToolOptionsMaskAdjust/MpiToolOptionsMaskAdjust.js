@@ -312,7 +312,7 @@ export const MpiToolOptionsMaskAdjust = ComponentFactory.create({
         // the canvas pans instead of painting. The strip still points at THIS layer,
         // so its opacity slider and Clear drive the one the tool is adjusting.
         _children.push(MpiMaskStrip.mount(qs('#strip-slot', el), {
-            viewer, brush: false, dest: dest.stripDest,
+            viewer, brush: false, dest: dest.stripDest, colourField: MpiColorField,
         }));
 
         el.destroy = () => {

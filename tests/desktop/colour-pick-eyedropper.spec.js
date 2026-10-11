@@ -4,7 +4,8 @@ const { launchApp, closeApp } = require('./launch');
 /**
  * MPI-960 / MPI-964 — every tool panel's colour control is MpiColorField: a swatch
  * with the eyedropper Pick beside it. Remove Background (Color mode), Paint, Paint
- * Adjust, the GIF cut-out's By colour and the image Colour mask.
+ * Adjust, the GIF cut-out's By colour, the image Colour mask and the mask strip's Extract
+ * swatch (MPI-1073).
  *
  * Each panel is mounted on its own against a stub viewer, and `window.EyeDropper` is
  * replaced so the pick resolves without a human click on the screen. What is proven:
@@ -15,7 +16,7 @@ const { launchApp, closeApp } = require('./launch');
 test.setTimeout(120000);
 
 const PICKED = '#123456';
-const PANELS = ['removebg', 'paint', 'adjust', 'gifcutout', 'maskcolour'];
+const PANELS = ['removebg', 'paint', 'adjust', 'gifcutout', 'maskcolour', 'maskextract'];
 
 async function clearBootModals(window) {
     const backdrops = () => window.evaluate(
@@ -62,6 +63,8 @@ test('Pick sits beside every tool colour picker and lands the picked colour', as
                 ['adjust', `${O}/MpiToolOptionsMaskAdjust/MpiToolOptionsMaskAdjust.js`, 'MpiToolOptionsMaskAdjust', { mode: 'paintAdjust' }],
                 ['gifcutout', `${O}/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.js`, 'MpiToolOptionsGifCutout', {}],
                 ['maskcolour', `${O}/MpiToolOptionsMaskColour/MpiToolOptionsMaskColour.js`, 'MpiToolOptionsMaskColour', {}],
+                // MPI-1073: the mask strip's Extract swatch, handed MpiColorField by the panel.
+                ['maskextract', `${O}/MpiToolOptionsMaskBrush/MpiToolOptionsMaskBrush.js`, 'MpiToolOptionsMaskBrush', {}],
             ];
             for (const [id, path, name, extra] of panels) {
                 const slot = document.createElement('div');
@@ -76,6 +79,8 @@ test('Pick sits beside every tool colour picker and lands the picked colour', as
         // Remove Background shows its picker only in Color mode, the cut-out only By colour.
         await window.locator('[data-panel="removebg"] .mpi-radio-group__btn[data-value="color"]').click();
         await window.locator('[data-panel="gifcutout"] .mpi-radio-group__btn[data-value="colour"]').click();
+        // The Extract swatch exists only while its background is Colour.
+        await window.locator('[data-panel="maskextract"] .mpi-radio-group__btn[data-value="solid"]').click();
         await window.locator('#mpi964-host').screenshot({ path: testInfo.outputPath('before-pick.png') });
 
         for (const id of PANELS) {

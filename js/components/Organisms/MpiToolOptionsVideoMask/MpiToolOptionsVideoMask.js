@@ -24,6 +24,7 @@
 import { ComponentFactory }  from '../../factory.js';
 import { MpiInput }          from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiButton }         from '../../Primitives/MpiButton/MpiButton.js';
+import { MpiColorField }     from '../../Compounds/MpiColorField/MpiColorField.js';
 import { MpiMaskStrip }      from '../../Compounds/MpiMaskStrip/MpiMaskStrip.js';
 import { qs }                from '../../../utils/dom.js';
 import { Events }            from '../../../events.js';
@@ -183,7 +184,7 @@ export const MpiToolOptionsVideoMask = ComponentFactory.create({
         }
 
         // No brush pair: painting a clip frame by frame is a separate tool.
-        _children.push(MpiMaskStrip.mount(qs('#strip-slot', el), { viewer, brush: false }));
+        _children.push(MpiMaskStrip.mount(qs('#strip-slot', el), { viewer, brush: false, colourField: MpiColorField }));
 
         el.setCurrentItem = (next) => { currentItem = next ?? null; };
 
