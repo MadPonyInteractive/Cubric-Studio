@@ -1,0 +1,7 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "tests/desktop/flow-slide-scroll-reaches-top.spec.js",
+    ".agents/mpi-kanban/tasks/MPI-1082/"
+  ]
+}

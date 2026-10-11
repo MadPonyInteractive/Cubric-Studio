@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1082", "at": "2026-10-11T10:07:45+01:00", "actor": "claude", "column": "todo", "title": "Flaky flow-slide-scroll-reaches-top spec: fixed sleeps race the hidden window's rAF"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1082", "at": "2026-10-11T10:08:31+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Diagnosing and fixing the flaky spec"}

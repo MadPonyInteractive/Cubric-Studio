@@ -19,6 +19,15 @@ const { shellWindow, SHELL_URL_RE } = require('./shellWindow');
 // This drives the real renderer at a viewport deliberately too short for the slide, and
 // asserts the first child's top edge is reachable. Without the fix `topAtScrollZero` is
 // NEGATIVE — the content begins above the scroll container and cannot be brought down.
+//
+// NO FIXED SLEEPS (MPI-1082). Next navigates synchronously, but the new slide only gets
+// `data-active="true"` on the NEXT animation frame (`_renderSlide`). And `shellWindow`
+// returns before main.js has revealed the window — the reveal waits on the landing's
+// mascot clips — so no frame runs until then: measured locally, the first rAF landed
+// 730ms after `shellWindow` and the next one ~1s later. The old 300/400ms sleeps raced
+// that and lost on a slow runner (CI 38122461080, 3/3 retries). So the clicks are
+// checked for what they do at once (the ticker moved), and the frame-bound state is
+// waited for as a condition.
 test('an overflowing step slide can still be scrolled to its top', async ({}, testInfo) => {
   const userDataDir = testInfo.outputPath('user-data');
   fs.mkdirSync(userDataDir, { recursive: true });
@@ -34,7 +43,7 @@ test('an overflowing step slide can still be scrolled to its top', async ({}, te
     const window = await shellWindow(app);
     await expect(window).toHaveURL(SHELL_URL_RE);
 
-    const result = await window.evaluate(async () => {
+    const walked = await window.evaluate(async () => {
       const { MpiBaseFlow } = await import('/js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
       const { getFlowById } = await import('/js/data/flowsRegistry.js');
       const flow = getFlowById('object-stamp');
@@ -60,23 +69,39 @@ test('an overflowing step slide can still be scrolled to its top', async ({}, te
       });
       host.appendChild(inst.el);
       inst.el.open?.();
-      await new Promise(r => setTimeout(r, 400));
+      window.__flowSlideSpec = { inst, host };
 
       // Walk to the last middle step (`place`), the tallest one — canvas + mode row +
-      // prompt + hint.
-      const next = () => [...inst.el.querySelectorAll('button')]
-        .find(b => /next/i.test(b.className) || /next/i.test(b.getAttribute('aria-label') || ''));
-      next()?.click();
-      await new Promise(r => setTimeout(r, 300));
-      next()?.click();
-      await new Promise(r => setTimeout(r, 400));
+      // prompt + hint. `_goTo` is synchronous, so the ticker reports each step at once;
+      // a refused advance (missing inputs) shows up here as a step that did not move.
+      const step = () => [...inst.el.querySelectorAll('.mpi-base-flow__tick')]
+        .findIndex(t => t.getAttribute('aria-current') === 'step');
+      const next = inst.el.querySelector('#flow-next');
+      const steps = [step()];
+      next.click();
+      steps.push(step());
+      next.click();
+      steps.push(step());
+      return { steps };
+    });
 
+    expect(walked.missingFlow).toBeUndefined();
+    expect(walked.steps).toEqual([0, 1, 2]);
+
+    // The frame-bound half: the live slide is marked active once a frame has run.
+    await window.waitForFunction(() => {
+      const { inst } = window.__flowSlideSpec;
+      return !!inst.el.querySelector('.mpi-base-flow__slide[data-active="true"] .mpi-base-flow__work');
+    }, null, { polling: 50 });
+
+    const result = await window.evaluate(() => {
+      const { inst, host } = window.__flowSlideSpec;
+      delete window.__flowSlideSpec;
       const slide = inst.el.querySelector('.mpi-base-flow__slide[data-active="true"]');
-      const work = slide?.querySelector('.mpi-base-flow__work');
-      if (!slide || !work) { host.remove(); return { noSlide: true }; }
+      const work = slide.querySelector('.mpi-base-flow__work');
 
+      // Layout is synchronous: the rects below already reflect this scroll.
       slide.scrollTop = 0;
-      await new Promise(r => setTimeout(r, 60));
 
       const out = {
         overflowing: slide.scrollHeight > slide.clientHeight + 1,
@@ -90,9 +115,6 @@ test('an overflowing step slide can still be scrolled to its top', async ({}, te
       host.remove();
       return out;
     });
-
-    expect(result.missingFlow).toBeUndefined();
-    expect(result.noSlide).toBeUndefined();
 
     // The point of the fixture: if this is false the test proves nothing, so fail loudly
     // rather than passing on a slide that happened to fit.
