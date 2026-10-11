@@ -17,8 +17,8 @@ detailer, its own Flow).
 ## Current State
 
 - **DEFERRED (Fabio 2026-10-11): the LTX option waits for a future version.** Land LTX 2.5 in the app first; this
-  option may then be built on 2.5 instead of 2.3, so re-read Phases 2-3 against 2.5 before starting. No card for
-  "land LTX 2.5" existed at deferral (MPI-578 is only its upscaler).
+  option may then be built on 2.5 instead of 2.3, so re-read Phases 2-3 against 2.5 before starting. Landing 2.5
+  is card MPI-1095 (MPI-578 is only its upscaler).
 - MPI-1036: CLOSED 2026-10-11 (b48aa90b5) - H3 Flow, graphics, load check; evidence in its validation.md.
 - MPI-1061: unstarted. Handed to MPI-1036's session by MPI-1060's (2026-10-10). Fabio: H3 STAYS, LTX 2.3 is ADDED
   as a separate model option in the same Flow because LTX's quality is higher.
