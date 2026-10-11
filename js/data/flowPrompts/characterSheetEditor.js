@@ -54,8 +54,9 @@ export function parseApparentAge(answer) {
 /**
  * What an optional Reference picture (`image2`, the graph's `Input_Image_2`) stands for, per change
  * that takes one (Fabio, 2026-10-10: optional, words alone keep working). Any other change ignores it.
+ * Clothes only: a hat or a hairstyle from a picture landed on every panel 1 time in 8 (F2 rounds 1-2).
  */
-const REF_THING = { clothes: 'the outfit', accessories: 'the accessory', hair: 'the hairstyle and hair color' };
+const REF_THING = { clothes: 'the outfit' };
 
 /** Whether the run carries a Reference picture (the second media slot). */
 function _hasRef(values) {
@@ -71,12 +72,17 @@ function _usesRef(values) {
  * The edit for one picked change, or null when there is nothing to change by.
  * @param {string} change - clothes | accessories | hair | condition | body
  * @param {string} words  - what the user wrote; optional with a reference
- * @param {boolean} [ref] - a Reference picture is given (used by Clothes, Accessories and Hairstyle only)
+ * @param {boolean} [ref] - a Reference picture is given (used by Clothes only)
  * @returns {?string}
  */
 export function buildChangePrompt(change, words, ref = false) {
-    let w = _words(words);
-    if (ref && Object.hasOwn(REF_THING, change)) w = `${REF_THING[change]} from the reference picture${w ? `: ${w}` : ''}`;
+    const w = _words(words);
+    // With a reference only the close-up is named: the picture brings a second figure, and naming the back
+    // view let Klein draw it as an extra one (F2 round 2: 2 of 5 layouts broken; round 1's shape kept 8 of 8).
+    if (ref && change === 'clothes') {
+        return `Dress the character in the outfit from the reference picture${w ? `: ${w}` : ''}. `
+            + 'Dress the character the same way in the close-up portrait on the right. Keep everything else exactly as it is.';
+    }
     if (!w) return null;
     switch (change) {
         // The views, and the parts that disagreed, are named: "Dress the character the same way in the close-up"

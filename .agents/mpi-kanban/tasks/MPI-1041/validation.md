@@ -702,3 +702,82 @@ Wired: `image2` slot (FlowDef `inputSchema`, `flowCharacterSheetEdit.mediaInputs
 `Input_Reference` (change leg of Clothes / Accessories / Hairstyle only), words optional with a reference, refused with any
 age 0-17, card "<sheet> - outfit from a reference". `npm test` 3052/3054 (0 fail), eslint clean. Docs: playbook
 `existing-flows/character-sheet-editor.md`, `docs/child-safety.md`, `docs/agent/flows.md`.
+
+## 2026-10-11 - Phase F2 round 3: the reference for CLOTHES only, round 1's shape (session 86c11386)
+
+Builder now: `REF_THING` = clothes only; with a reference, "Dress the character in the outfit from the reference
+picture[: w]. Dress the character the same way in the close-up portrait on the right. Keep everything else exactly as
+it is." (no back view named); Accessories / Hairstyle ignore the picture. Bench = the SHIPPED graph
+(`comfy_workflows/flow_character_sheet_edit.json`, its own `Input_Image_2` + `Input_Reference` true), lock 1,
+`research/bench-tools/phaseF/qf2d.py` under the lease, outputs `G:/ComfyUi/ComfyUI/output/mpi1041_f2/w3_*`:
+
+| case | verdict |
+|---|---|
+| dress -> photo s3 | FAIL: front the dress; back a red jumpsuit; close-up kept her red jacket + mustard sweater (Ava's miss again) |
+| dress -> fabio s3 | **pass**: long-sleeved keyhole dress on all three |
+| jacket outfit -> photo s3 | **pass** (back trousers olive, not the brown corduroys) |
+| jacket outfit -> fisher s3 | **pass** top (jacket + scarf all three); back trousers yellow |
+| dress + words "the red long-sleeved dress" -> photo s42 | **pass**: all three, keyhole in the close-up |
+| jacket + words "the green quilted jacket and the striped scarf" -> photo s42 | **pass** top; trousers olive on both bodies (not named) |
+
+**Layout kept 6/6** (round 2's extra figure gone). Outfit 5/6; across rounds 1 + 3 with this shape: 11/14. The miss
+is always Ava's DRESS with no words, and a few words fix it. Trousers from a picture drift in colour (3 of 4 jacket
+runs) - name them in the words if they matter.
+
+**Agent path bug found + fixed:** in-app, `f2_refuse_age10` (clothes, no words, age 10, a reference) came back "Say
+what to change, or add a Reference picture." - `agentDispatch.buildFlow` asked `flowRunRefusal` with no `mediaItems`,
+so over MCP / Cosmo / routines the reference was invisible (a words-free Clothes run with a reference always refused).
+`run` now carries `mediaItems`; the three-path refusal test adds the agent case (FAILS with the line reverted, passes
+with it). After an app restart: `f2_refuse_age10` -> "A Reference picture cannot be used with an age under 18...",
+`f2_hat_refused` (Accessories, no words, a hat picture) -> "Say what to change first." `npm test` 3053/3055, 0 fail.
+
+**In-app GPU cases** (my instance, the Phase E project CLOSED in it, `/connector/generate` with `folderPath`, under the lease):
+
+| case | verdict |
+|---|---|
+| f2_dress_photo (Clothes, no words, dress picture) | sidecar `Input_Reference true`, lock 1, the shipped string; front + back the dress, close-up a red jacket over a keyhole neckline (Ava's weak case) |
+| f1_dress_photo (Clothes, words, no picture) | sidecar `Input_Reference false`, the F1 Clothes string |
+| f2_none_age60 (age only, a dress picture attached) | `Input_Reference false`, lock 0; the outfit untouched - the picture is ignored, as it must be. Ages to ~75 (the known older-near overshoot) |
+
+**Second bug found + fixed: every card in a CLOSED project was named "Character sheet - ..."** (the three above).
+`targetProject` returned `/get-project` raw - history = item ids - and `sourceCardName` matches items by `filePath`;
+every other caller (`_clipStill`, the replace / groupHistory finds) reads items too. Phase E never saw it: the project
+was open there. Fix: `targetProject` hydrates a closed project with `reconcileAndHydrate` (as routines already did,
+`routineDispatch.readProject` now takes it as is - hydrating twice would drop every card). Test in
+`agent-target-project.test.cjs` (fails without, passes with). Live, after a restart: f1_dress_photo again ->
+card **"Ava - a red dress with a keyhole and a long skirt"**. `npm test` 3069/3071, 0 fail; eslint clean. Docs:
+`docs/mcp-server.md`, `docs/routines.md`. NOT checked by me: the Reference slot in the Flow panel by eye (a browser
+tab on my instance is not the Electron renderer) - Fabio's eye test covers it.
+
+## 2026-10-11 - Phase F2 rounds 4-5: Fabio's eye test - a bikini kept the JEANS (session 86c11386)
+
+Fabio, his own app, his sheet (`Qwen 2.1/Media/flowCSFI_002.png`, black halter + jeans; its close-up already disagreed
+with the bodies) + a bikini reference: (1) a beach photo of a woman -> front only; (2) his CUT-OUT of the bikini alone
+(`composite_003.png`, no person, no background) -> top on the front and back, jeans kept, close-up partial. Both ran
+the shipped string (no words). Why: "Keep everything else exactly as it is" + nothing that removes the old clothes ->
+Klein keeps what the picture does not cover. Bench on his two files, shipped graph, lock 1
+(`phaseF/qf2e.py`, `qf2f.py`, outputs `w4_*`, `w5_*`):
+
+| wording | s42 | s7 |
+|---|---|---|
+| B: all three views named + "replacing all of the clothes the character wears now, top and bottom" | top all three; floral SKIRT front, jeans back | top all three; jeans |
+| C: close-up named + the same replace clause | **pass** | top; jeans |
+| Bc: B + the cut-out cropped tight | **pass** (close-up a wide halter) | front pass; back jeans |
+| **D**: "Dress the character in only the outfit from the reference picture: take off everything else the character wears now, trousers, skirt and top included." + close-up named | **pass** | **pass** (back shoes became mules) |
+| E: D + all three views named | skin-coloured skirt invented | bodies pass; close-up plain strings |
+| **W**: C + words "the floral bikini" | **pass** | **pass** |
+
+Findings: naming every view (B, E) makes Klein ADD a garment; a cut-out has no second figure, so it no longer breaks
+the layout either way. D is the only no-words wording that took the jeans off on both seeds. Risk to check: "take off
+everything else" on a PARTIAL reference (a jacket picture, words naming only the jacket) - round 6.
+
+**Round 6** (`qf2g.py`, `w6_*`, contact sheet in session 86c11386's scratchpad `w6_contact.png`): D, as the builder
+would build it ("...reference picture[: w]. Take off everything else the character wears now, trousers, skirt and top
+included. Dress the character the same way in the close-up portrait on the right. Keep everything else exactly as it
+is."), on round 3's six cases. Layout 6/6; outfit 5/6 = round 3 (no regression): dress -> photo s3 bodies pass,
+close-up kept her red jacket + mustard sweater (Ava's miss again); dress -> fabio s3, jacket -> photo s3, jacket ->
+fisher s3, dress + words -> photo s42 all **pass**. **jacket + words "the green quilted jacket and the striped scarf"
+-> photo s42: trousers cut to SHORTS on both bodies** - "take off everything else" strips what the words leave out.
+**Verdict:** D when the words are EMPTY (the picture is the outfit); with words, the round-3 string (words name what
+changes, the rest is kept - round 3 jacketw kept the trousers). NOT benched: the bikini cut-out WITH words on the
+round-3 string (W passed with the replace clause; untested without it) - 2 runs before shipping.

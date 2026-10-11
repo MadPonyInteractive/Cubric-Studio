@@ -58,9 +58,12 @@ close-up - a Klein limit, the overshooting wording is kept because its panels ag
 
 **The Reference picture (F2).** `image2` -> `Input_Image_2` -> a second `ReferenceLatent` on top of
 reference 1, switched by `loaded` AND `Input_Reference` (`MpiBooleanCompare` both_true -> `MpiIfElse`,
-lazy). The builder sets `Input_Reference` only on the change leg of Clothes / Accessories / Hairstyle:
-an age leg that starts the run is handed the user's media too. Words become optional with a reference;
-any age 0-17 refuses it (`docs/child-safety.md`).
+lazy). The builder sets `Input_Reference` only on the change leg of Clothes: an age leg that starts
+the run is handed the user's media too. Words become optional with a reference; any age 0-17 refuses
+it (`docs/child-safety.md`). With a reference the wording names only the close-up: naming the back
+view let Klein draw the reference person as an extra figure, even under lock 1 (validation.md § F2).
+Accessories and Hairstyle ignore the picture: a hat or a haircut from one reached all three panels
+1 time in 8.
 
 An edit keeps the figure's SIZE: a child's or a heavier body needs the bodies redrawn, which is why
 age 12 and under and Body shape leave Klein. Klein's lock is LAZY (SAM3 runs only at lock 1 or 2);

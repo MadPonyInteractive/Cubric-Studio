@@ -2,6 +2,39 @@
 
 ## Current State
 
+**2026-10-11 (session 86c11386, last) - FABIO'S EYE TEST FAILED (a bikini kept the jeans); rounds 4-6 found the wording
+(validation.md § F2 rounds 4-5 + Round 6). COMMITTED, builder NOT yet changed. NEXT:** (1) bench 2 runs: Fabio's
+cut-out bikini (`G:/ComfyUi/ComfyUI/input/mpi1041f2_ref_bikinicut.png` on `mpi1041f2_fabio2_sheet.png`, s42 + s7) with
+words "the floral bikini" on the CURRENT shipped string (round 3 shape, no take-off clause) - copy `phaseF/qf2g.py`;
+(2) builder `buildChangePrompt('clothes', w, true)`: EMPTY words -> D ("Dress the character in only the outfit from the
+reference picture. Take off everything else the character wears now, trousers, skirt and top included. Dress the
+character the same way in the close-up portrait on the right. Keep everything else exactly as it is."); WITH words ->
+the current string if (1) passes, else W (validation.md) - never D with words (it cut partial-outfit trousers to
+shorts); tests + playbook § Reference picture; (3) Fabio re-tests on his app with his cut-out; "1" -> mpi-end-session.
+Product idea for Fabio (not built): the Flow could cut the outfit out of a photo itself (SAM3 "clothes" / BiRefNet)
+before the edit - a cut-out has no second figure, so the back view can be named safely.
+
+**2026-10-11 (session 86c11386, later) - ROUND 3 + IN-APP DONE (validation.md § F2 round 3), uncommitted. NEXT = Fabio's
+eye test + "1", then mpi-end-session** (UNRELEASED.md: a Reference-picture sentence on the Character Sheet Editor
+bullet - clothes only; and the closed-project card-name fix is part of the same unreleased Flow, no line of its own).
+Round 3: layout 6/6, outfit 5/6 (Ava's dress with no words the miss; words fix it). Second fix: `targetProject` now
+hydrates a CLOSED project (cards there were all "Character sheet - ..."); routines' own hydrate removed. Also restored
+`docs/child-safety.md`, emptied to 0 bytes by session 78b8d248 at 01:42Z (HEAD text + my one line).
+My isolated instance runs on :50269 (stop it by the listener's parent's parent `launch-instance.mjs`).
+
+**2026-10-11 (session 86c11386) - F2 REFERENCE = CLOTHES ONLY, uncommitted; NEXT = read the round-3 bench + in-app GPU
+results, look at the Reference slot, then Fabio's eye test.** Builder: `REF_THING` = clothes only; with a reference the
+Clothes string is round 1's shape ("...outfit from the reference picture[: w]. Dress the character the same way in the
+close-up portrait on the right. Keep everything else exactly as it is." - no back view named); Accessories / Hairstyle
+ignore the picture (no words = "Say what to change first."). FlowDef description + slot comment, playbook, child-safety,
+agent flows.md updated. FOUND + FIXED: `agentDispatch.buildFlow` asked the refusal WITHOUT `mediaItems`, so over MCP /
+agent / routine a reference was invisible (a words-free Clothes run with a reference always refused, age 10 got the
+wrong message) - `run` now carries `mediaItems`; regression check in the three-path refusal test (fails without the fix).
+In-app on my instance (:55400, a415's profile + docs): f2_hat_refused + f2_refuse_age10 right after the fix. Running:
+`phaseF/run_qf2d.sh` (6 runs, the SHIPPED graph with `Input_Reference` true, tags `w3_*`, log in MY scratchpad
+`qf2d.log`) then `phaseF/run_f2app.sh 55400` (f2_dress_photo, f1_dress_photo, f2_none_age60; `f2app.log`). `npm test`
+3053/3055 0 fail, eslint clean. Claim `state/files/86c11386-mpi1041-phaseF2.json` (adds `js/shell/agentDispatch.js`).
+
 **2026-10-11 (session a7b3935e) - F1 WIRED, F2 WIRED, both uncommitted; NEXT = F2 round-2 verdict, then in-app.**
 F1 (validation.md § Phase F1, ~80 bench runs on the app graph): Clothes = c1 (names all three views + neckline/sleeves/
 straps; Fabio's keyhole dress fixed, 9/9), Accessories = a4 ("the character seen from behind and ... the close-up", 7/8,
@@ -302,7 +335,8 @@ failed first", then "set the reference image input as optional".
   panel disagreement on Clothes (his keyhole dress) and Accessories (scarf missing on one panel, both sheets);
   fisher Hairstyle front kept the beanie; an age NEAR the sheet's own overshoots both ways (Ava 50 -> ~70; fisher 70
   front shaved) - try dropping "older / younger" near the read; photo heavyset back weak (Qwen, lowest priority).
-- [~] F2 Optional **Reference** picture (2026-10-11 a7b3935e: wired + switch proven; round-2 verdict and in-app cases pending) for Clothes / Accessories / Hairstyle: a second `inputSchema` media slot
+- [~] F2 Optional **Reference** picture (2026-10-11 a7b3935e: wired + switch proven; 86c11386: CLOTHES ONLY now, round-1 string
+  shape, agent-path refusal fix; round-3 bench + in-app GPU cases + Fabio's eye test pending) for Clothes / Accessories / Hairstyle: a second `inputSchema` media slot
   (optional), `Input_Image_2` in `raw/flow_character_sheet_edit.json` (the app's `klein_9b_t2i.json` already has
   `Input_Image_2/3` - copy its wiring), the builder words "from the reference picture" when one is given; words alone
   keep working. BENCH FIRST (~8 edits, photo + fisher): does a front-only outfit photo land on all three panels, back

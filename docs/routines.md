@@ -85,8 +85,8 @@ Each step builds through the SAME halves the agent's submit uses (`buildGenerati
 `buildFlow`, `agentDispatch.js`), then enqueues with explicit opts: step 1 `scope: 'gallery'` with a
 placeholder, later steps `scope: 'groupHistory'` on the result card; a Flow gets the same through
 `submitFlowGeneration`'s run-only `runLanding`. A routine drops the settings pin, the painted mask
-and follow-the-view on purpose. `readProject` hydrates a CLOSED project (`reconcileAndHydrate`: raw
-`/get-project` history is item ids). `addStack` uses `addGroup` when open, `/project-groups` when
+and follow-the-view on purpose. A CLOSED project arrives hydrated from `agentDispatch.targetProject`
+(`reconcileAndHydrate`: raw `/get-project` history is item ids); never hydrate it twice. `addStack` uses `addGroup` when open, `/project-groups` when
 closed. A tool step has no up-front install check (a missing weight fails that card's step).
 
 ## Relay and routes

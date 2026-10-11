@@ -125,28 +125,36 @@ test('each leg carries its lock and the whole run in runPrompt', async () => {
     assert.strictEqual(characterSheetEditor('change', { ...values, Input_Age: 30 }).injectionParams.runPrompt.split('\n').length, 2);
 });
 
-test('F2: an optional Reference picture replaces or joins the words, on the change leg only', async () => {
+test('F2: an optional Reference picture replaces or joins the words, Clothes only, on the change leg only', async () => {
     const { characterSheetEditor, characterSheetEditorRefusal: refuse, characterSheetEditorCardName: name, buildChangePrompt } = await builder();
     const REF = { role: 'image2', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fdress.png' };
     const run = (change, words, age = -1) => ({ change, words, Input_Age: age, mediaItems: [{ role: 'image1', url: 'x' }, REF] });
-    // The F2 bench strings (validation.md): the F1 wordings with the reference as what to change by.
-    assert.strictEqual(buildChangePrompt('clothes', '', true), 'Dress the character in the outfit from the reference picture. '
-        + 'The front view, the back view and the close-up portrait on the right all show the same outfit, with the same '
-        + 'neckline, sleeves and straps. Keep everything else exactly as it is.');
-    assert.match(buildChangePrompt('accessories', 'the hat', true), /^Give the character the accessory from the reference picture: the hat\. Make the same change on the character seen from behind/);
-    assert.match(buildChangePrompt('hair', '', true), /^Give the character the hairstyle and hair color from the reference picture, with the head uncovered/);
+    // The F2 bench strings (validation.md): round 1's shape, only the close-up named - naming the back view
+    // with a reference drew the reference person as an extra figure (round 2).
+    const TAIL = ' Dress the character the same way in the close-up portrait on the right. Keep everything else exactly as it is.';
+    assert.strictEqual(buildChangePrompt('clothes', '', true), 'Dress the character in the outfit from the reference picture.' + TAIL);
+    assert.strictEqual(buildChangePrompt('clothes', 'the green jacket.', true),
+        'Dress the character in the outfit from the reference picture: the green jacket.' + TAIL);
+    assert.doesNotMatch(buildChangePrompt('clothes', '', true), /back view|behind/);
+    // Accessories and Hairstyle ignore the picture: from one, a hat or a hairstyle reached every panel 1 time in 8.
+    assert.strictEqual(buildChangePrompt('accessories', '', true), null);
+    assert.strictEqual(buildChangePrompt('accessories', 'a red scarf', true), buildChangePrompt('accessories', 'a red scarf'));
+    assert.strictEqual(buildChangePrompt('hair', '', true), null);
     assert.strictEqual(buildChangePrompt('condition', '', true), null, 'Condition never takes a reference');
     // Wanted only by the change leg of a change that takes one: an age leg that starts the run is handed it too.
     assert.strictEqual(characterSheetEditor('change', run('clothes', '')).injectionParams.Input_Reference, true);
     assert.strictEqual(characterSheetEditor('change', run('condition', 'muddy')).injectionParams.Input_Reference, false);
+    assert.strictEqual(characterSheetEditor('change', run('hair', 'a bob')).injectionParams.Input_Reference, false);
     assert.strictEqual(characterSheetEditor('age', run('none', '', 60)).injectionParams.Input_Reference, false);
     assert.strictEqual(characterSheetEditor('change', { change: 'clothes', words: 'a suit' }).injectionParams.Input_Reference, false);
     // Words OR a reference; never a reference under 18 (the gate reads words only).
     assert.strictEqual(refuse(run('clothes', '')), null);
     assert.strictEqual(refuse({ change: 'clothes', words: '' }), 'Say what to change, or add a Reference picture.');
     assert.strictEqual(refuse({ change: 'condition', words: '', mediaItems: [REF] }), 'Say what to change first.');
+    assert.strictEqual(refuse({ change: 'hair', words: '', mediaItems: [REF] }), 'Say what to change first.');
     assert.match(refuse(run('clothes', '', 10)), /cannot be used with an age under 18/);
-    assert.match(refuse(run('hair', 'a bob', 17)), /under 18/);
+    assert.match(refuse(run('clothes', 'a suit', 17)), /under 18/);
+    assert.strictEqual(refuse(run('hair', 'a bob', 17)), null, 'Hairstyle ignores the reference, so it is not refused for it');
     assert.strictEqual(refuse(run('clothes', '', 18)), null);
     assert.strictEqual(refuse(run('condition', 'muddy', 10)), null, 'a change that ignores the reference is not refused for it');
     assert.strictEqual(name(run('clothes', ''), 'Ava'), 'Ava - outfit from a reference');
@@ -433,6 +441,16 @@ test('the hand, agent and routine runs refuse with the same code and message', a
         });
         assert.strictEqual(agent.ok, false);
         assert.deepStrictEqual(agent.error, hand);
+
+        // The agent's own refusal sees its Reference picture (it was asked without the media once).
+        const ref = await new Promise((resolve) => {
+            reports.set('j2', resolve);
+            stream.job({ data: JSON.stringify({ jobId: 'j2', capability: 'generation.submit',
+                input: { flowId: flow.id, fields: { change: 'clothes', words: '', Input_Age: 10 },
+                    media: [{ role: 'image1', url: SHEET.url }, { role: 'image2', url: SHEET.url.replace('sheet', 'dress') }] } }) });
+        });
+        assert.strictEqual(ref.ok, false);
+        assert.match(ref.error.message, /A Reference picture cannot be used with an age under 18/);
     } finally {
         off();
         svc.setDescribeBackendPreference(null);

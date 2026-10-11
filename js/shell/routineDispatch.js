@@ -22,7 +22,6 @@ import { normalizeRoutine, validateRoutine, routineSummary } from '../data/routi
 import { enqueueGeneration } from '../services/generationService.js';
 import { submitFlowGeneration } from '../services/flowService.js';
 import { addGroup, serializeGroup } from '../services/projectService.js';
-import { reconcileAndHydrate } from '../managers/projectReconciler.js';
 import { estimateRunCost } from '../services/cloudExecutor.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { StatusBar } from './statusBar.js';
@@ -107,11 +106,8 @@ export const routineDeps = {
 
     async readProject(folderPath) {
         const target = await targetProject({ folderPath });
-        if (target.error || !target.project) return null;
-        // A closed project comes off disk with each history as item ids, and the runner
-        // reads files: hydrate it as opening does (an imported card has no sidecar, and
-        // only the reconciler rebuilds it). Its orphan-sidecar cleanup is the same an open does.
-        return target.open ? target.project : (await reconcileAndHydrate(target.project)).project;
+        // A closed project arrives hydrated, as opening does it (`targetProject`).
+        return target.error ? null : target.project;
     },
 
     async submit(step, input, landing, project) {

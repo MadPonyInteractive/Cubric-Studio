@@ -67,6 +67,27 @@ test('a closed project is read, not opened', async () => {
     } finally { f.restore(); state.currentProject = null; }
 });
 
+test('a closed project comes back hydrated, as opening it would (MPI-1041)', async () => {
+    // On disk a history is item ids; every caller reads items (`it.filePath`). Unhydrated, a
+    // Character Sheet Editor run there could not find its card and was named "Character sheet - ...".
+    const { targetProject } = await esm('js/shell/agentDispatch.js');
+    const { sourceCardName } = await esm('js/services/flowService.js');
+    const { state } = await esm('js/state.js');
+    state.currentProject = OPEN;
+    const closed = { id: 'p-b', folderPath: 'C:/Projects/Boats',
+        itemGroups: [{ id: 'g1', type: 'image', customName: 'Ava', history: ['it1'], selectedIndex: 0 }] };
+    const sheet = '/project-file?path=C%3A%5CProjects%5CBoats%5CMedia%5Cava_sheet.png';
+    const f = stubFetch((url) => (url === '/get-project'
+        ? reply(200, { success: true, project: closed })
+        : reply(200, { items: { it1: { exists: true, meta: { id: 'it1', type: 'image', filePath: sheet } } } })));
+    try {
+        const t = await targetProject({ folderPath: 'C:/Projects/Boats' });
+        assert.deepEqual(t.project.itemGroups[0].history, [{ id: 'it1', type: 'image', filePath: sheet }]);
+        assert.deepEqual(f.calls.map((c) => c.url), ['/get-project', '/load-meta-batch']);
+        assert.equal(sourceCardName({ role: 'image1', url: sheet }, t.project), 'Ava');
+    } finally { f.restore(); state.currentProject = null; }
+});
+
 test('a project that cannot be read is PROJECT_NOT_FOUND, never the open one', async () => {
     const { targetProject } = await esm('js/shell/agentDispatch.js');
     const { state } = await esm('js/state.js');

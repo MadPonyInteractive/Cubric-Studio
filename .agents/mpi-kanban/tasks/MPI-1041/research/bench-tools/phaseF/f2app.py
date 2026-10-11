@@ -28,7 +28,7 @@ def ref_url(name):
 CASES = {   # id: (sheet, change, words, age, ref)
     'f1_dress_photo': ('ava_sheet.png', 'clothes', 'a red dress with a keyhole and a long skirt', -1, None),
     'f2_dress_photo': ('ava_sheet.png', 'clothes', '', -1, 'dress'),
-    'f2_hat_fisher': ('fisher_sheet.png', 'accessories', '', -1, 'hat'),
+    'f2_hat_refused': ('fisher_sheet.png', 'accessories', '', -1, 'hat'),   # Clothes-only: no words = "Say what to change first."
     'f2_refuse_age10': ('ava_sheet.png', 'clothes', '', 10, 'dress'),
     'f2_none_age60': ('ava_sheet.png', 'none', '', 60, 'dress'),
 }

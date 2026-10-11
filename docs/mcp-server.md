@@ -42,7 +42,8 @@ only tool with `destructiveHint: true`.
   `folderPath`; `openFolder` checks it holds a `project.json` (else `PROJECT_NOT_FOUND`), and
   `/connector/generate` swaps it for the project list's spelling, because the renderer decides
   "open or closed?" by exact string. A closed project is fine: `agentDispatch.targetProject`
-  reads it over `/get-project` and `generationService` registers the card through
+  reads it over `/get-project`, hydrated as opening does (`reconcileAndHydrate`: on disk a history
+  is item ids, and every caller reads items), and `generationService` registers the card through
   `/project-groups`. Without `folderPath` a run lands in whatever is open when it runs. The GIF
   tools still work on the open project only.
 - **Stacks** (MPI-950). `list_cards` shows a stack as ONE row with `stack: N` and no path; its

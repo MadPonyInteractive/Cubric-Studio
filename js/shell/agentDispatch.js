@@ -45,6 +45,7 @@ import { enqueueGeneration, findMissingMediaSlot, cancelPendingCueJob, cancelRun
 import { submitFlowGeneration, cloudEditQuote, flowRunRefusal } from '../services/flowService.js';
 import { openProject, renameGroup, markGroup, serializeGroup, addGroup } from '../services/projectService.js';
 import { createItemGroup } from '../data/projectModel.js';
+import { reconcileAndHydrate } from '../managers/projectReconciler.js';
 import { STACK_TYPE, resultStackFields } from '../data/stackModel.js';
 import { truncateCardName } from '../utils/displayHelpers.js';
 import { CARD_MARKS, markOf, matchesGallerySort, byGalleryOrder, describeGalleryFilter, isGalleryFiltered } from '../utils/galleryFilter.js';
@@ -204,7 +205,10 @@ export async function nameCard(group, cardName, closedProject) {
  * The open project comes back as the LIVE `state.currentProject`, never a copy:
  * generationService decides where a card goes by comparing folderPaths, and a copy that read
  * as closed would have its card written server-side and then overwritten by the open
- * project's next save. A closed project is READ, not opened, so the user's view stays put.
+ * project's next save. A closed project is READ, not opened, so the user's view stays put -
+ * and hydrated as opening does: on disk each history is item ids, and every caller reads the
+ * items (`it.filePath`, `h.id`) as it does the open project's. Unhydrated, a Character Sheet
+ * Editor run there was named "Character sheet - ..." instead of after its card (MPI-1041).
  *
  * @returns {Promise<{project: object|null, open: boolean}|{error: {code: string, message: string}}>}
  */
@@ -219,7 +223,7 @@ export async function targetProject(input) {
             body: JSON.stringify({ folderPath: input.folderPath }),
         });
         const data = await res.json();
-        if (data?.success && data.project?.id) return { project: data.project, open: false };
+        if (data?.success && data.project?.id) return { project: (await reconcileAndHydrate(data.project)).project, open: false };
         return { error: { code: 'PROJECT_NOT_FOUND', message: `Could not read the project at "${input.folderPath}": ${data?.error || 'no project there'}.` } };
     } catch (err) {
         return { error: { code: 'PROJECT_NOT_FOUND', message: `Could not read the project at "${input.folderPath}": ${err.message}.` } };
@@ -1319,7 +1323,9 @@ export async function buildFlow(input, project) {
     // What THIS run takes, now the fields are resolved (MPI-1041): the op a routed Flow's field
     // picks and every leg its rules want. An OPTIONAL model blocks only the ops it serves, so it
     // is asked here and not above, where only the Flow's required models are.
-    const run = { ...inputs, injectionParams: fieldInjection };
+    // With its media, as a hand run has it: the Character Sheet Editor's refusal reads its optional
+    // Reference picture, and without the media an agent's reference was never seen (MPI-1041 F2).
+    const run = { ...inputs, mediaItems, injectionParams: fieldInjection };
     if (!flowRunLegs(flow, run).length) {
         return _refuse('NOTHING_TO_DO', `${flow.title} has nothing to do with those fields. Change one of them.`);
     }
