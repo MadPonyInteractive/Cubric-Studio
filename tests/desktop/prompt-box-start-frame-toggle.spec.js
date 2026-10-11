@@ -46,6 +46,19 @@ test('a picture tag on LTX ref2v toggles that picture to the start frame and bac
 
     expect(await tags()).toEqual(['Picture 1', 'Picture 2', 'Picture 3']);
 
+    // Fabio: the remove X covered the tag's number. It now sits above the tag's text, and
+    // the strip's scroll box does not clip it.
+    const geo = await ltx.locator('.mpi-prompt-box-media-strip__chip').first().evaluate(chip => {
+      const x = chip.querySelector('.mpi-prompt-box-media-strip__remove').getBoundingClientRect();
+      const strip = chip.closest('.mpi-prompt-box-media-strip').getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(chip.querySelector('.mpi-prompt-box-media-strip__index'));
+      const text = range.getBoundingClientRect();
+      return { overlap: x.bottom - text.top, xTop: x.top - strip.top, xBottom: x.bottom, textTop: text.top };
+    });
+    expect(geo.overlap, JSON.stringify(geo)).toBeLessThanOrEqual(0);
+    expect(geo.xTop).toBeGreaterThanOrEqual(0);
+
     await toggle(1);
     expect(await tags()).toEqual(['Picture 1', 'Start frame', 'Picture 2']);
     expect(await startRoles()).toEqual([false, true, false]);
@@ -59,6 +72,22 @@ test('a picture tag on LTX ref2v toggles that picture to the start frame and bac
     await toggle(2);
     expect(await tags()).toEqual(['Picture 1', 'Picture 2', 'Picture 3']);
     expect(await startRoles()).toEqual([false, false, false]);
+
+    // Fabio: dragging the start-frame chip to a new place turned it back into a picture.
+    // The start frame is the picture he clicked, wherever it moves.
+    await toggle(0);
+    expect(await tags()).toEqual(['Start frame', 'Picture 1', 'Picture 2']);
+    await window.evaluate(() => {
+      const chips = [...document.querySelectorAll('#pb-ltx .mpi-prompt-box-media-strip__chip')];
+      const a = chips[0].getBoundingClientRect();
+      const b = chips[1].getBoundingClientRect();
+      const y = a.top + a.height / 2;
+      chips[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: a.left + a.width / 2, clientY: y }));
+      document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: b.left + b.width * 0.75, clientY: y }));
+      document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    });
+    expect(await tags()).toEqual(['Picture 1', 'Start frame', 'Picture 2']);
+    expect(await startRoles()).toEqual([false, true, false]);
 
     // H3 has no start-frame slot: its tags stay plain labels.
     const h3 = window.locator('#pb-h3');

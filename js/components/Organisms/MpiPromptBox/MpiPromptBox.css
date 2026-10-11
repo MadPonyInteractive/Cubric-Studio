@@ -582,8 +582,9 @@
     right: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 0.5rem var(--s-6);
+    /* 0.75rem row gap and top padding: the remove X sits 12px above its chip. */
+    gap: 0.75rem 0.5rem;
+    padding: 0.75rem var(--s-6) 0.5rem;
     justify-content: flex-start;
     /* MPI-721: the strip is a full-width band anchored at `bottom: 100%` of a
        SHELL-level #prompt-box-mount, so its empty right/left run sits directly over
@@ -603,8 +604,8 @@
     /* MPI-475: ref2v_ms stages up to 15 chips — three wrapped rows that, anchored at
        bottom:100%, would climb the viewport and swallow the gallery. Cap at two rows
        and scroll the rest. Wrap, FLIP and pointer reorder are untouched; only the
-       overflow changes. The 0.5rem top padding is what keeps the chips' -6px index
-       badges from being clipped by the new scroll box. */
+       overflow changes. The top padding is what keeps the chips' remove X (-12px) and
+       index badges from being clipped by the new scroll box. */
     max-height: 13rem;
     overflow-y: auto;
     /* Sits above siblings within #prompt-box-mount stacking context.
@@ -866,7 +867,9 @@
    all, hovered or not, so both states are pinned here (MPI-588). */
 .mpi-btn.mpi-ibtn.mpi-prompt-box-media-strip__remove {
     position: absolute;
-    top: -6px;
+    /* -12px, not -6px: the X sits above the tag text so it no longer covers the tag's
+       number ("Picture 2"), on every model's strip (MPI-1060, Fabio). */
+    top: -12px;
     right: -6px;
     width: 16px;
     height: 16px;

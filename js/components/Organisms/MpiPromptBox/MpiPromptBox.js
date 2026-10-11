@@ -1410,7 +1410,9 @@ export const MpiPromptBox = ComponentFactory.create({
             if (from === -1 || to === -1 || from === to) return;
             // Roles follow strip position, so drop the explicit tags the drag
             // invalidated and let _withAssignedRoles re-derive them by order.
-            _mediaItems.forEach(m => { delete m.role; });
+            // The LTX start frame is not positional: it is the picture the user
+            // clicked, wherever it moves (MPI-1060).
+            _mediaItems.forEach(m => { if (m.role !== 'inputStartFrame') delete m.role; });
             _mediaItems.splice(to, 0, _mediaItems.splice(from, 1)[0]);
             _emitMediaChange();
         }
