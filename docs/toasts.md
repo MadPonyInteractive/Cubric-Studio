@@ -190,6 +190,7 @@ signals* are suppressed. Rule + rationale: memory `feedback_no_toast_user_stop`.
 | `commandExecutor.js:1466` | "Run locally" on, model not installed locally | "…" is not installed on your local engine… | warning | eligible |
 | `commandExecutor.js:2091` | `engine_restarting` (remote OOM self-restart) | Remote engine is restarting after a memory spike… | warning | eligible |
 | `commandExecutor.js:2102` | 409 `pod_incompatible` | (backend message) | warning | eligible |
+| `commandExecutor.js` `too_big_for_gpu` | A LoRA/upscaler over 1 GB, generate on a GPU Pod (MPI-1057) | (server message) + button **Upload models** (opens the overlay on that tab) | warning | eligible |
 | `commandExecutor.js:2112` | `lora_missing_remote` | "…" isn't installed on the remote Pod… | warning | eligible |
 | `commandExecutor.js:2128` | `lora_missing_local` | "…" was not found in your LoRA/upscale folders… | warning | eligible |
 | `commandExecutor.js:2145` | `weights_missing_local` / `weights_missing_remote` (MPI-453) | Model weights not installed / "…" isn't installed… | warning | eligible |
@@ -221,8 +222,8 @@ signals* are suppressed. Rule + rationale: memory `feedback_no_toast_user_stop`.
 | `downloadService.js:634` | `download:failed` SSE, out-of-space, no job match | Not enough disk space to install this model… | warning | eligible |
 | `downloadService.js` cascade (in the `download:complete` re-sync `.then`) | A model became installed as a SIDE-EFFECT of another install (shared deps) | `${model.name} installed.` | success | eligible |
 | `downloadService.js:638` | `download:failed` SSE, `networkBlocked`, no job match | (server's own text, verbatim — MPI-427) | warning | eligible |
-| `downloadService.js` `upload:snapshot` | An Upload models job finished (MPI-1057; it outlasts the overlay) | ${filename} is on the Pod. | success | eligible |
-| `downloadService.js` `upload:snapshot` | An Upload models job failed | ${filename} did not upload (${error}). Try it again from Upload models. | warning | eligible |
+| `notificationService.js` `upload:finished` | An Upload models job finished (MPI-1057; it outlasts the overlay). Unfocused window: OS notification instead, like a download | ${filename} is on the Pod. | success | eligible |
+| `notificationService.js` `upload:finished` | An Upload models job failed (same focus split) | ${filename} did not upload (${error}). Try it again from Upload models. | warning | eligible |
 | `downloadService.js:640` | `download:failed` SSE, `transient`, no job match | The remote engine isn't ready yet — try the install again in a moment. | warning | eligible |
 
 The three branches above are checked IN ORDER and fall through to `ui:error` **Download

@@ -2842,6 +2842,22 @@ export function runCommand(payload) {
                 exec.onError?.(err);
                 return;
             }
+            // MPI-1057: a LoRA/upscaler over 1 GB is not uploaded while a GPU Pod bills.
+            // User-actionable: the toast's button opens Upload models on that tab.
+            if (err?.code === 'too_big_for_gpu') {
+                clientLogger.warn('comfy', `Model too big to upload on a GPU Pod: ${err.message}`);
+                Events.emit('ui:warning', {
+                    title: 'Upload this model first',
+                    message: err.message,
+                    action: {
+                        text: 'Upload models',
+                        onClick: () => import('../components/Compounds/MpiModelUploader/MpiModelUploader.js')
+                            .then(m => m.openModelUploader({ type: err.modelType })),
+                    },
+                });
+                exec.onError?.(err);
+                return;
+            }
             // MPI-229: a LoRA selected for a remote gen isn't on the Pod →
             // ComfyUI value_not_in_list. User-actionable (install it or switch to
             // the local engine), so a warning toast, not the bug-reporter dialog.

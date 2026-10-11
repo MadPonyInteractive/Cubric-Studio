@@ -1,7 +1,7 @@
 /**
  * notificationService.js — Bridges generation/download lifecycle events to notifications.
  *
- * Listens for `generation:complete` and `download:complete`. The `notificationPrefs`
+ * Listens for `generation:complete`, `download:complete` and `upload:finished`. The `notificationPrefs`
  * checkbox toggles OS notifications only — completion feedback always surfaces. When the
  * pref is ON and the window is unfocused, an OS notification fires (main also gates on
  * isFocused()). In every other case (pref OFF, or window focused) an in-app StatusBar
@@ -256,6 +256,23 @@ export function initNotificationService() {
         } catch (err) {
             clientLogger.error('notificationService', 'failed to notify:', err);
         }
+    }));
+
+    // MPI-1057 — an Upload models job finished. Same split as a download: a 10 GB
+    // upload runs ~40 min, long after the user looked away from a 6 s toast.
+    _unsubs.push(Events.on('upload:finished', ({ filename, ok, error } = {}) => {
+        const message = ok
+            ? `${filename} is on the Pod.`
+            : `${filename} did not upload (${error}). Try it again from Upload models.`;
+        if (state.notificationPrefs?.downloads !== false && ipcRenderer && !document.hasFocus()) {
+            ipcRenderer.send('notify-download-complete', {
+                title: ok ? 'Upload complete' : 'Upload failed',
+                subtitle: 'Cubric Studio',
+                body: message,
+            });
+            return;
+        }
+        StatusBar.notify(message, ok ? 'success' : 'warning');
     }));
 }
 

@@ -4,6 +4,7 @@ import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiGpuPicker } from '../../Compounds/MpiGpuPicker/MpiGpuPicker.js';
+import { openModelUploader } from '../../Compounds/MpiModelUploader/MpiModelUploader.js';
 import { catalogueCards } from '../../../data/runpodGpuSpecs.js';
 import { mountPodDiskBar } from '../../../services/podDiskBar.js';
 import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
@@ -99,6 +100,11 @@ export const MpiRunpodSettings = ComponentFactory.create({
                                 <div id="mpiSettingsRunpodVolumeSlot"></div>
                                 <span class="mpi-settings__hint">Stores your models so they survive between Pods — one volume per data center. Stopped Pods keep billing volume storage until you delete it.</span>
                             </div>
+                            <div class="mpi-settings__form-group">
+                                <label class="mpi-settings__field-label">Your models</label>
+                                <div id="mpiSettingsRunpodUploadSlot"></div>
+                                <span class="mpi-settings__hint">Send your own LoRAs and upscalers to the volume once, and every Pod after has them. Needs a connected Pod. For big files, connect the No GPU Pod: it bills far less while they go up.</span>
+                            </div>
                         </div>
 
                         <div class="mpi-settings__subgroup">
@@ -147,6 +153,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
         let _runpodVolumes = null;      // network volumes from the user's account, or null
         let _gpuPicker = null;          // MPI-894 1c: MpiGpuPicker overlay, mounted on first open
         let _engineConnectInst = null;  // Connect/Disconnect MpiButton instance
+        let _uploadInst = null;         // MPI-1057 "Upload models" MpiButton instance
         let _engineStatusTimer = null;  // setInterval id for the status poll
         let _podDiskBar = null;         // MPI-237: shared Pod disk-usage bar (volume OR ephemeral)
         let _engineBusy = false;        // true while a start/stop is in flight
@@ -289,6 +296,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
             const cfg = _runpodCfg();
             _setConsoleLinkHref(root);
             _setComfyLink(root, !!(status && status.ready)); // MPI-203 dev-only door
+            if (status) _uploadInst?.el.setDisabled(!(cfg.enabled && status.ready));
             if (!cfg.enabled) {
                 _setEngineStatusText(root, 'disabled');
                 _engineBtnLabelSet('Connect');
@@ -1055,6 +1063,12 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 else if (_engineBtnLabel === 'Disconnect') _openDisconnectChoice(root);
                 else _connectEngine(root);
             });
+            // MPI-1057: Upload models, enabled while a Pod (GPU or No GPU) is ready.
+            const uploadSlot = qs('#mpiSettingsRunpodUploadSlot', root);
+            if (uploadSlot) {
+                _uploadInst = MpiButton.mount(uploadSlot, { text: 'Upload models', variant: 'secondary', size: 'sm', disabled: true });
+                _uploadInst.on('click', () => openModelUploader());
+            }
             _refreshEngineConnect(root);
             // Poll status while the panel is open so the label tracks reality
             // (e.g. background boot finishing, or a quit-stop elsewhere).
@@ -1897,6 +1911,8 @@ export const MpiRunpodSettings = ComponentFactory.create({
                                     // _connectEngine finally emit local · offline (shell owns the connect).
             _engineConnectInst?.destroy?.();
             _engineConnectInst = null;
+            _uploadInst?.destroy?.();
+            _uploadInst = null;
             _gpuPicker?.el.destroy?.();
             _gpuPicker = null;
         };

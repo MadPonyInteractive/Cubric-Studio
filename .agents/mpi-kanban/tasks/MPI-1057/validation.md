@@ -63,3 +63,34 @@ Verify mode: user-ux (plan.md). Automated evidence below; Fabio's look on his ne
 - Isolated app: rows render, progress patches, hides when empty; stream sends upload:snapshot on connect. 68 related tests green.
 - Fabio, live app: SDXL Realistic download row, % + speed climbing, under a running job and above the foot. Layout: "It is fine." Cancel check pending.
 - Fabio, live: download finished and left Transfers; Cancel on a second install removed the row at once. U2 accepted. (He saw no installed toast: notificationService sends an OS notification instead when the window is unfocused; not this change.)
+
+## U3 Upload models overlay (2026-10-10, session 6d3f1208)
+
+- eslint clean on every touched file; `node --test tests/path-tree.test.cjs tests/remote-uploads.test.cjs` 7/7.
+- Isolated app (headless playwright-cli, stubbed Pod list): queue -> row on the Pod side at once,
+  `upload:progress` -> %, job complete -> list re-read; Delete cancels a live upload
+  (`/remote/uploads/:id/cancel`) and deletes a stray `.part`; app-installed row unselectable;
+  tab switch; real route with no Pod -> "Connect a Pod first..." (list, Upload, Delete); a
+  `ui:warning` with the Upload models action opens the overlay on the Upscale tab; the button
+  sits in Remote > Storage, disabled with no Pod.
+- Not proven: a real Pod (0.2.47 unpublished, U4), and the `too_big_for_gpu` branch through a
+  real generation (lint only; its toast + button were driven directly).
+- Fabio's look (screenshots): "everything else is fine"; the middle Upload button moved under
+  the local box like Delete, disabled until a selection (headless check: disabled -> enabled on
+  select). Lint clean.
+- Runtime 0.2.47 published to dev (Fabio's OK), from mpi-ci HEAD 80a02c4, clean tree: live
+  manifest `wrapper_version 0.2.47`, wrapper sha 3dc462d7... == the committed file; start.sh /
+  start-cpu.sh shas unchanged from 0.2.46. MPI-1044 messaged (promote now carries 0.2.47).
+
+## U4 + live proofs (2026-10-10/11, Fabio's app, log watched read-only)
+
+- Upload models, CPU Pod, runtime 0.2.47 dev: sulphur_lora_rank_768.safetensors 10.27 GB,
+  22:52:26Z -> 23:30:00Z (37.5 min, ~4.6 MB/s, even 10% steps), no failed slice; overlay shows
+  it on the Pod at 10.36 GB. Fabio missed the 6 s completion toast (window unfocused): fixed,
+  `upload:finished` now goes through notificationService (OS notification when unfocused);
+  tests/upload-finished-notify.test.cjs + notification-stale-count 5/5.
+- **8-min stall cap PROVEN LIVE**: RTX PRO 4500 Pod maduch90z92qjf created 23:54:13Z, RunPod
+  never started it (console: no logs). Cap fired 00:02:13.431Z (8 min 0 s), delete -> 204 at
+  00:02:14Z, phase -> none 00:02:16Z. Phase label still reads "connect ended without a
+  connection" (the known label item).
+- Still open: a GPU-Pod generation with the uploaded LoRA (no re-upload), then promote.

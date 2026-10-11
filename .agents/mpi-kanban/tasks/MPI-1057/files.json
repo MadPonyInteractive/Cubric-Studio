@@ -12,6 +12,18 @@
     "docs/runpod-remote-engine.md",
     "docs/toasts.md",
     "js/services/commandExecutor.js",
-    "tests/pod-identity-hot-store.test.cjs"
+    "tests/pod-identity-hot-store.test.cjs",
+    "js/utils/pathTree.js",
+    "js/components/Primitives/MpiFileTree/MpiFileTree.js",
+    "js/components/Primitives/MpiFileTree/MpiFileTree.css",
+    "js/components/Compounds/MpiModelUploader/MpiModelUploader.js",
+    "js/components/Compounds/MpiModelUploader/MpiModelUploader.css",
+    "js/components/Primitives/MpiTreePicker/MpiTreePicker.js",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js",
+    "tests/path-tree.test.cjs",
+    "js/shell/notificationService.js",
+    "js/services/downloadService.js",
+    "tests/upload-finished-notify.test.cjs"
   ]
 }

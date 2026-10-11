@@ -155,10 +155,36 @@ panel calls `_ensureSSE()` on mount so a reload mid-upload restores rows. Proven
 app:isolated instance with injected jobs (render, progress patch, hide when empty, download row)
 and `curl` of the stream (connect sends `upload:snapshot`).
 
+2026-10-10 ~22:25Z, session 6d3f1208 ("Upload models 2"): **U3 BUILT, uncommitted, Fabio's
+look pending.** `js/utils/pathTree.js` (tree builder, now shared by MpiTreePicker + the new
+`MpiFileTree` Primitive: inline multi-select, per-row note). `MpiModelUploader` Compound +
+`openModelUploader({type})` singleton (same module): tabs LoRAs / Upscale models, left local,
+right Pod list + live jobs (queued / %), Upload under the left, Delete under the right (cancels a
+live upload, else `/remote/user-models/delete`), managed rows disabled, coded refusals in plain
+words (`REFUSALS`). Button "Upload models" in MpiRunpodSettings Storage, enabled on
+`status.ready`. `too_big_for_gpu` is now a coded error (comfyController) with its own
+commandExecutor branch: warning toast + action button that opens the overlay on that tab
+(before, it fell through to the bug-report dialog). Proven on an isolated instance with
+headless `playwright-cli` (validation.md). **Do not drive the Claude browser pane against the
+full app: twice this session Claude Code crashed while doing it; playwright-cli headless from
+Bash is safe.**
+
+2026-10-11 ~00:05Z: upload PROVEN (10.27 GB, 37.5 min, CPU Pod); 8-min stall cap PROVEN LIVE
+(fired at 8:00, delete 204); upload completion now goes through notificationService (OS
+notification when unfocused). Stale "Settings → RunPod" copy (RunPod moved to the Remote panel
+in MPI-728) fixed in comfyController / engineGate / MpiLlmSettings; **7 strings left in
+`js/shell.js`** (lines ~812, 1052, 1091, 1110, 1166, 1172, 1217 "Open Settings, RunPod", 1507):
+the file was claimed by MPI-1065 (9bbf1e2f) at the time. Say "Remote", same as the others.
+
 Next, in order:
-1. **Phases U3-U4** (below), then Fabio's 10.27 GB LoRA through the uploader on a CPU Pod.
-   U4 needs `./publish-runtime.sh dev` for 0.2.47 first.
-   Proven -> `./publish-runtime.sh promote`, commit mpi-ci. Watch for a 413/524 on a slice.
+1. **U4 last step**: a GPU-Pod generation with `sulphur_lora_rank_768` (no "Uploading…" toast =
+   the flat Pod copy was found). Proven -> `./publish-runtime.sh promote` (0.2.47 to stable).
+   Then the shell.js copy above once MPI-1065 releases it.
+2. **Stall cap: OS notification when unfocused** (Fabio, 2026-10-11): `_announceStall` in
+   `js/shell.js` (~1211) shows only the in-app "Pod never started" dialog. Emit an event there
+   and let `js/shell/notificationService.js` send `notify-connection-complete`-style OS
+   notification when `!document.hasFocus()` (same split as `Pod connected` at ~208 and the new
+   `upload:finished`); keep the dialog for when he returns. Same shell.js claim wait.
 2. **Volume 13 GB question.** Listing taken on the 5090 Pod:
    `research/pod-ls-2026-10-10-5090.json`. Top level: mpi_models 130.99 GB, comfyui 0.46 GB,
    cubric ~0. Note 131 GB of models now (volume was 100 GB at 10:12Z: grown, or more installed
@@ -171,8 +197,18 @@ Next, in order:
 
 - Steps 1-6 (see checklist.md), all on 2026-10-10.
 - U1 backend, 2026-10-10 (uncommitted; see Current State).
+- U2 Transfers (accepted), U3 overlay (built, look pending), 2026-10-10.
 
 ## Plan Drift
+
+- 2026-10-10 (Fabio, decided): uploads stay FLAT on the Pod (basename, no folders, no move).
+  App-installed weights live in folders, so a loose file in the LoRA picker reads as "yours";
+  users will not upload hundreds. Do not re-raise folder support.
+
+- 2026-10-10 (U3): `buildTree` moved to `js/utils/pathTree.js` (two Primitives may not import
+  each other). The 1 GB toast needed a coded error + a commandExecutor branch, not just an
+  action: the uncoded error reached the bug-report dialog. Overlay opens through a module
+  singleton, so the toast (a service) reaches it by dynamic import with no Settings mounted.
 
 - 2026-10-10 (U2): no `MpiTransferList` Compound. A Compound may import Primitives only, so
   it could not mount inside the `MpiQueuePanel` Compound; and `preloadStyles.js` + `types.js`

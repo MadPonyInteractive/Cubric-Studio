@@ -654,7 +654,7 @@ function createEngine({ engine, alwaysLocal }) {
             // GPU picker to a real card and Connect. Soft block (ui:info), not the
             // bug-reporter, and thrown before the restart/WS gates below.
             if (check.noGpu) {
-                const gpuMsg = 'This Pod has no GPU — it is for downloading models only. To generate, open Settings → RunPod, pick a GPU, then Connect.';
+                const gpuMsg = 'This Pod has no GPU — it is for downloading models only. To generate, open Remote, pick a GPU, then Connect.';
                 if (!background) this._emitLifecycle('comfy:error', { message: gpuMsg });
                 else Events.emit('ui:info', { message: gpuMsg });
                 throw Object.assign(new Error(gpuMsg), { code: 'pod_no_gpu' });
@@ -722,7 +722,7 @@ function createEngine({ engine, alwaysLocal }) {
                     }
                 } else {
                     // Old image without /wrapper/restart-comfy — keep the manual path.
-                    const msg = 'New custom nodes were installed for this model. Reconnect the remote engine to load them: open Settings → RunPod, press Disconnect, then Connect, and try again.';
+                    const msg = 'New custom nodes were installed for this model. Reconnect the remote engine to load them: open Remote, press Disconnect, then Connect, and try again.';
                     if (!background) this._emitLifecycle('comfy:error', { message: msg });
                     else Events.emit('ui:error', { title: 'Reconnect required', message: msg });
                     throw new Error(msg);
@@ -735,7 +735,7 @@ function createEngine({ engine, alwaysLocal }) {
             // proceeding; open it on demand and wait briefly for the handshake.
             const wsOk = this.isWsReady() || await this.ensureWsConnected({ timeoutMs: 15000 });
             if (!wsOk) {
-                const wsMsg = 'Still connecting to the remote engine — give it a moment, then try again. (Settings → RunPod shows the connection status.)';
+                const wsMsg = 'Still connecting to the remote engine — give it a moment, then try again. (Remote shows the connection status.)';
                 if (!background) this._emitLifecycle('comfy:error', { message: wsMsg });
                 else Events.emit('ui:info', { message: wsMsg });
                 throw new Error(wsMsg);
@@ -758,7 +758,7 @@ function createEngine({ engine, alwaysLocal }) {
         // (connecting:false — real OOM/disconnect/delete) falls to local below,
         // preserving MPI-85/MPI-107.
         if (check.connecting) {
-            const connMsg = 'Still connecting to the remote engine — give it a moment, then try again. (Settings → RunPod shows the connection status.)';
+            const connMsg = 'Still connecting to the remote engine — give it a moment, then try again. (Remote shows the connection status.)';
             if (!background) this._emitLifecycle('comfy:error', { message: connMsg });
             else Events.emit('ui:info', { message: connMsg });
             throw new Error(connMsg);
@@ -788,7 +788,7 @@ function createEngine({ engine, alwaysLocal }) {
         if (!_localFallbackNoticeShown && !(await hasNoEngine())) {
             _localFallbackNoticeShown = true;
             Events.emit('ui:info', {
-                message: 'No Pod connected — running locally. Connect in Settings → RunPod for cloud generation.',
+                message: 'No Pod connected — running locally. Connect in Remote for cloud generation.',
             });
         }
         clientLogger.info('comfy', 'Remote engine not connected — falling back to the local engine.');
@@ -1226,7 +1226,7 @@ function createEngine({ engine, alwaysLocal }) {
         const err = new Error(
             'The remote engine disconnected mid-generation — the Pod may have run '
             + 'out of memory and restarted. Try a shorter or smaller generation, or '
-            + 'reconnect from Settings → RunPod.'
+            + 'reconnect from Remote.'
         );
         err.code = 'engine_dropped';
         clientLogger.warn('comfy', 'Remote WS dropped mid-generation — ending pending generations');
@@ -2236,7 +2236,8 @@ function createEngine({ engine, alwaysLocal }) {
                 // un-rebuilt Pod the upload endpoint 404s → surfaces here.
                 const msg = data?.message || `HTTP ${res.status}`;
                 // MPI-1057: > 1 GB on a GPU Pod is refused on purpose; the server's text says what to do.
-                if (data?.error === 'too_big_for_gpu') throw new Error(msg);
+                // Coded so commandExecutor shows it as a toast that opens Upload models.
+                if (data?.error === 'too_big_for_gpu') throw Object.assign(new Error(msg), { code: 'too_big_for_gpu', modelType: type });
                 clientLogger.error('comfy', `Remote model upload failed for ${base}: ${msg}`);
                 throw new Error(`Could not upload "${base}" to the cloud engine (${msg}). It may not be available on this Pod image yet.`);
             }

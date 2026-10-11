@@ -25,7 +25,7 @@ import { clientLogger } from './clientLogger.js';
 
 const NO_ENGINE_MESSAGE =
     'This needs the ComfyUI engine, which is not installed. Cloud models still work. '
-    + 'To use it, connect a Pod in Settings → RunPod, or turn off '
+    + 'To use it, connect a Pod in Remote, or turn off '
     + '"Skip the local engine install" there to install ComfyUI locally.';
 
 /** `err.code` of the refusal `ensureServerRunning` throws; callers settle quietly on it. */

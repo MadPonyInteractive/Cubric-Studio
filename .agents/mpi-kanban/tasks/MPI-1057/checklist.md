@@ -11,7 +11,7 @@
 - [x] User LoRA/input > 2 GiB uploads to a Pod: 32 MiB slices, runtime 0.2.46 on dev
 - [x] U1 backend: upload queue (progress, cancel), user-models list/delete, free-space gate, 1 GB GPU guard, wrapper 0.2.47 list (not published)
 - [x] U2 Cue transfers section (downloads + uploads) - built; Fabio's look pending
-- [ ] U3 Upload models overlay + the 1 GB toast's action
+- [x] U3 Upload models overlay + the 1 GB toast's action (built; Fabio's look pending)
 - [ ] Fabio proves the 10.27 GB LoRA on a dev Pod, then publish-runtime promote
 - [ ] Volume listing on the next connect (13 GB unexplained)
 - [x] Fabio's look on his next connect (user-ux): Cancel instant (RunPod 204 <1 s)

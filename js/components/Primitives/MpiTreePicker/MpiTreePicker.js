@@ -2,6 +2,7 @@ import { ComponentFactory } from '../../factory.js';
 import { qs, on, inheritAccent } from '../../../utils/dom.js';
 import { Events } from '../../../events.js';
 import { renderIcon } from '../../../utils/icons.js';
+import { buildTree as buildPathTree, sortedFolderNames, sortedFiles } from '../../../utils/pathTree.js';
 
 const escapeHtml = (value) => String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -20,33 +21,13 @@ const baseName = (v) => String(v || '').split(/[\\/]/).pop();
 const stripExt = (name) => String(name || '').replace(/\.[^.\\/]+$/, '');
 
 /**
- * Build a folder tree from the option list. Root-level items (value with no
- * separator) live at the top level. Returns { folders: Map<name, node>, files }
- * where node is the same shape recursively.
- *
- * The synthetic clear entry (value '') and any disabled entry are pulled OUT of
- * the tree — they render as pinned rows above it.
+ * The folder tree of the option list (`utils/pathTree.js`). The synthetic clear
+ * entry (value '') and any disabled entry are pulled OUT of the tree — they render
+ * as pinned rows above it.
  */
-const buildTree = (options) => {
-    const root = { folders: new Map(), files: [] };
-    for (const opt of options) {
-        const val = optionValue(opt);
-        if (val === '') continue;              // clear row handled separately
-        if (opt.disabled) continue;            // disabled entry handled separately
-        const parts = String(val).split(/[\\/]/);
-        const file = parts.pop();
-        let node = root;
-        for (const seg of parts) {
-            if (!node.folders.has(seg)) node.folders.set(seg, { folders: new Map(), files: [] });
-            node = node.folders.get(seg);
-        }
-        node.files.push({ label: file, value: val });
-    }
-    return root;
-};
-
-const sortedFolderNames = (node) => [...node.folders.keys()].sort((a, b) => a.localeCompare(b));
-const sortedFiles = (node) => [...node.files].sort((a, b) => a.label.localeCompare(b.label));
+const buildTree = (options) => buildPathTree(
+    options.filter(opt => optionValue(opt) !== '' && !opt.disabled).map(optionValue)
+);
 
 /**
  * MpiTreePicker — Searchable folder-tree picker primitive (MPI-233)

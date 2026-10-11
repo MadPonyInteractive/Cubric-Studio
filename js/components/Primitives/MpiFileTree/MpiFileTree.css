@@ -1,0 +1,88 @@
+/* MpiFileTree — inline multi-select folder tree (MPI-1057). Row look follows MpiTreePicker. */
+
+.mpi-file-tree {
+    overflow: auto;
+    padding: 4px 0;
+    background: var(--surface-1);
+    border: 1px solid var(--ink-3);
+    border-radius: var(--r-1);
+}
+
+.mpi-file-tree__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 6px calc(14px + var(--depth, 0) * 16px);
+    font-size: var(--t-sm);
+    color: var(--ink-2);
+    cursor: pointer;
+    user-select: none;
+    border-left: 2px solid transparent;
+    transition: background var(--t-base) var(--ease), color var(--t-base) var(--ease);
+    width: max-content;
+    min-width: 100%;
+}
+
+.mpi-file-tree__row:hover {
+    background: var(--surface-2);
+    color: var(--ink-1);
+}
+
+.mpi-file-tree__chevron,
+.mpi-file-tree__icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    color: var(--ink-3);
+}
+
+.mpi-file-tree__label {
+    white-space: nowrap;
+}
+
+.mpi-file-tree__note {
+    margin-left: auto;
+    padding-left: 16px;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.mpi-file-tree__row--folder {
+    color: var(--ink-1);
+    font-weight: 500;
+}
+
+.mpi-file-tree__row--folder .mpi-file-tree__icon {
+    color: var(--accent-heat);
+}
+
+/* File rows sit one indent past their folder (no chevron slot to fill). */
+.mpi-file-tree__row--file {
+    padding-left: calc(14px + var(--depth, 0) * 16px + 18px);
+}
+
+.mpi-file-tree__row.is-selected {
+    color: var(--accent-heat);
+    border-left-color: var(--accent-heat);
+    background: color-mix(in oklch, var(--accent-heat) 18%, var(--surface-2));
+}
+
+.mpi-file-tree__row--dim,
+.mpi-file-tree__row.is-disabled {
+    color: var(--ink-3);
+}
+
+.mpi-file-tree__row.is-disabled {
+    cursor: not-allowed;
+}
+
+.mpi-file-tree__row.is-disabled:hover {
+    background: none;
+}
+
+.mpi-file-tree__empty {
+    padding: 16px 14px;
+    text-align: center;
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+}

@@ -2523,6 +2523,38 @@
  *   'select' { id } — tile clicked
  */
 
+/**
+ * @typedef {Object} MpiModelUploaderProps (Compound — js/components/Compounds/MpiModelUploader)
+ * No props at mount time. One instance for the app: open it with
+ * `openModelUploader({ type })` from the same module (MPI-1057 U3).
+ *
+ * The "Upload models" overlay: tabs LoRAs / Upscale models; left the local model
+ * folders, right the Pod volume plus every live upload; Upload under the left, Delete under
+ * the right (deletes from the volume, or cancels a running upload). App-installed weights
+ * show disabled. Server: routes/remoteUploads.js; progress bars: MpiQueuePanel Transfers.
+ *
+ * Instance methods (on instance.el):
+ *   open({ type? }) — 'loras' (default) | 'upscale_models'
+ */
+
+/**
+ * @typedef {Object} MpiFileTreeProps (Primitive — js/components/Primitives/MpiFileTree)
+ * Inline multi-select folder tree (MPI-1057), state-dumb; rows arrive through setItems().
+ * The tree comes from js/utils/pathTree.js, shared with MpiTreePicker.
+ * @property {string} [fileIcon='image'] - icons.js key for file rows
+ * @property {string} [emptyText='Nothing here.'] - shown when there are no rows
+ *
+ * Instance methods (on instance.el):
+ *   setItems([{ value, note?, disabled?, dim?, title? }]) — full rebuild; keeps the selected rows that survive
+ *   setNote(value, text) — patch one row's right-hand note
+ *   setMessage(text)     — a line of text in place of the tree ('' restores it)
+ *   getSelected() -> string[]
+ *   clearSelection()
+ *
+ * Emits:
+ *   'select' { values: string[] } — the selection changed
+ */
+
 
 
 /**

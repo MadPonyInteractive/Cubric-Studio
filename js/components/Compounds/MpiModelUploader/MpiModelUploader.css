@@ -1,0 +1,98 @@
+/* ══════════════════════════════════════════════════════════════
+   MpiModelUploader — the "Upload models" overlay (MPI-1057 U3)
+
+   Same full-bleed shell as MpiGpuPicker: local tree | Upload | Pod tree.
+════════════════════════════════════════════════════════════════ */
+
+.mpi-overlay--body:has(.mpi-model-uploader) {
+    padding: 0;
+    align-items: stretch;
+}
+.mpi-overlay--body:has(.mpi-model-uploader) .mpi-overlay__container {
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    gap: 0;
+}
+.mpi-overlay--body:has(.mpi-model-uploader) .mpi-overlay__close {
+    z-index: 35;
+}
+
+.mpi-model-uploader {
+    position: relative;
+    height: 100%;
+    background: var(--surface-canvas);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+    color: var(--ink-1);
+}
+
+.mpi-model-uploader__head {
+    padding: var(--s-5) var(--s-6) var(--s-4);
+    border-bottom: 1px solid var(--line);
+    flex: none;
+}
+
+.mpi-model-uploader__title {
+    font-size: var(--t-xl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    margin: 0 0 var(--s-2);
+}
+
+.mpi-model-uploader__sub {
+    font-size: var(--t-sm);
+    color: var(--ink-3);
+    margin: 0 0 var(--s-4);
+    max-width: 90ch;
+}
+
+.mpi-model-uploader__body {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s-4);
+    padding: var(--s-5) var(--s-6) var(--s-3);
+}
+
+.mpi-model-uploader__side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    min-height: 0;
+}
+
+.mpi-model-uploader__side-title {
+    font-size: var(--t-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-3);
+}
+
+.mpi-model-uploader__tree {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+
+.mpi-model-uploader__tree > .mpi-file-tree {
+    flex: 1;
+}
+
+.mpi-model-uploader__actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.mpi-model-uploader__status {
+    flex: none;
+    min-height: 1.5em;
+    margin: 0;
+    padding: 0 var(--s-6) var(--s-4);
+    font-size: var(--t-sm);
+    color: var(--ink-2);
+}

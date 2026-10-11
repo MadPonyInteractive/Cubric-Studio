@@ -579,15 +579,18 @@ const downloadService = {
 
         // MPI-1057 — Upload models jobs share this stream. The snapshot is the whole list
         // (on every status change and on connect); a job leaving the live set is
-        // announced here, since an upload outlasts the overlay that started it.
+        // announced here, since an upload outlasts the overlay that started it. A big one
+        // runs for half an hour, so notificationService delivers it (OS notification
+        // when the window is unfocused, like a model download).
         this._eventSource.addEventListener('upload:snapshot', (e) => {
             const jobs = JSON.parse(e.data).jobs || [];
             const prev = new Map(state.uploadJobs.map(j => [j.id, j.status]));
             for (const j of jobs) {
                 const was = prev.get(j.id);
                 if (!was || was === j.status) continue;
-                if (j.status === 'complete') Events.emit('ui:success', { message: `${j.filename} is on the Pod.` });
-                if (j.status === 'failed') Events.emit('ui:warning', { message: `${j.filename} did not upload (${j.error}). Try it again from Upload models.` });
+                if (j.status === 'complete' || j.status === 'failed') {
+                    Events.emit('upload:finished', { filename: j.filename, ok: j.status === 'complete', error: j.error });
+                }
             }
             state.uploadJobs = jobs;
         });

@@ -396,7 +396,7 @@ export const MpiLlmSettings = ComponentFactory.create({
         function _missing(backend) {
             if (backend === 'endpoint' && _remoteBlocked()) return 'Remote is not set up: the connection above needs a provider and an API key. Finish it, or pick another backend.';
             // runnableBackend (llmService) already sends the job to Remote; say so rather than show ComfyUI.
-            if (backend === 'comfy' && _noEngine) return 'There is no ComfyUI engine, so this runs on Remote. To use ComfyUI, connect a Pod in Settings → RunPod or install the engine.';
+            if (backend === 'comfy' && _noEngine) return 'There is no ComfyUI engine, so this runs on Remote. To use ComfyUI, connect a Pod in Remote or install the engine.';
             return '';
         }
 
