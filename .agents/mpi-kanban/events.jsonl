@@ -5905,3 +5905,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1072", "at": "2026-10-11T07:36:41+01:00", "actor": "claude", "column": "todo", "title": "Mask Extract: keep only the masked area, on transparent or a colour"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1072", "at": "2026-10-11T07:37:38+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1073", "at": "2026-10-11T07:47:55+01:00", "actor": "claude", "column": "todo", "title": "Video workspace: mask + Extract (SAM3 by name, transparent or colour background)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1072", "at": "2026-10-11T07:48:11+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Image Extract shipped and verified live; video half is MPI-1073"}
