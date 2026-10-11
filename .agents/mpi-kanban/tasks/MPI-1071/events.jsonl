@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1071", "at": "2026-10-11T07:20:56+01:00", "actor": "e09f0181-d808-4d90-8b08-2d6622c63850", "column": "todo", "title": "Speech to text on ComfyUI (local): a row in Where each job runs, then a Transcribe Flow"}
