@@ -17,7 +17,7 @@ per-entry loop, and the registry held %TEMP% itself as a projects parent (35,022
 - [x] Tests: tests/list-projects-cache.test.cjs, tests/project-paths-registry.test.cjs (temp root);
       full suite 3267 pass, 0 fail
 - [x] Re-measured on an isolated instance (see validation.md)
-- [ ] Fabio re-records a reload HAR on his machine, after a FULL app restart (server code changed)
+- [x] Fabio's after-HAR (Landing2, restarted app): /list-projects wait 26 ms (was 865), ends 1.05 s (was 2.8 s), 0 /project-stats calls, whole landing 2.18 s (was 3.8 s)
 - [x] Docs: mascot-placement.md
-- [ ] Docs: project-integrity.md list-projects note (file held by MPI-1118; text in validation.md)
+- [x] Docs: project-integrity.md list-projects note (pasted by MPI-1118, cd6577547)
 - Not in scope: merging the 4 EventSources into one (separate card, touches every live feed)
