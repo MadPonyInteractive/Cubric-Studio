@@ -529,7 +529,7 @@ In `js/state.js`:
 | --- | --- | --- |
 | `download:started` | Backend→SSE→Frontend | Model job enqueued and downloading begins |
 | `download:progress` | Backend→SSE→Frontend | Per-dep bytes/speed updated, throttled 1/sec on backend |
-| `download:complete` | Backend→SSE→Frontend | Fires PER-DEP with `{depId, modelId:null}` as each file lands, then ONCE model-level with a real `modelId` when the whole dep set is done (`_checkModelJobsComplete`). Frontend consumers doing expensive work (registry re-sync, grid rebuild) MUST gate on `data.modelId` — running per-dep re-synced the registry N× and flashed the Model Library grid (see [model-library.md](model-library.md) § Library flash on install). The frontend stamps **`silent: true`** on the model-level event when the job was started with `{ silent: true }` — see § Internal heal jobs are silent by construction. |
+| `download:complete` | Backend→SSE→Frontend | Fires PER-DEP with `{depId, modelId:null}` as each file lands, then ONCE model-level with a real `modelId` when the whole dep set is done (`_checkModelJobsComplete`). Frontend consumers doing expensive work (registry re-sync, grid rebuild) MUST gate on `data.modelId` — running per-dep re-synced the registry N× and flashed the Model Library grid (see [model-library.md](model-library.md) § Library flash on install). The backend stamps **`silent: true`** on the model-level event when the job was registered silent (MPI-1113) — see § Internal heal jobs are silent by construction. |
 | `download:failed` | Backend→SSE→Frontend | SHA256 mismatch or network error. Fires per-dep (`{depId}`, **silent client-side** — MPI-97) and model-level (`{modelId}`) from `_checkModelJobsComplete`; only the model-level one surfaces. Its payload FLAGS pick the surface — see § Failed is not one thing |
 | `download:cancelled` | Backend→SSE→Frontend | User cancelled or shutdown |
 | `download:uninstalled` | Backend→SSE→Frontend | Model uninstalled |
@@ -542,16 +542,24 @@ Two jobs run on every remote connect edge (MPI-1050) with no user behind them �
 re-clone (`engine:node-drift`, `shell.js _healRemoteNodeDrift`) and the engine-asset
 install (`engine:assets`, `_installRemoteEngineAssets`). Neither may be announced.
 
-The caller declares it: `downloadService.start(id, deps, { silent: true })`. The id goes
-into the module-level `_silentJobs` set — **not** onto the job object, because the
-`download:jobs` snapshot handler replaces `state.downloadJobs` wholesale with
-SERVER-built jobs and would strip a client-side field. The model-level
-`download:complete` handler resolves and clears the mark, stamps `data.silent` onto the
-event, and both announcement sites read it:
+The caller declares it: `downloadService.start(id, deps, { silent: true })`. The flag
+rides the POST and the **server keeps it on the model job** (`registerModelJob({ silent })`),
+so `_serializeModelJob`, the store `snapshot()` and the model-level `download:complete`
+(`_broadcastModelComplete`) all carry it. It used to live in a renderer-memory set, which a
+reload mid-heal emptied while the job lived on in the server snapshot (MPI-1113). A live
+job re-registered without the flag is announced. `isSilentJob` (Cue > Transfers) reads
+`job.silent`, and both announcement sites read `data.silent`:
 
 - `notificationService.js` returns early → no toast, no OS notification.
 - The **cascade toast** in `downloadService.js` returns early → the registry re-sync
   still runs, only the announcement is suppressed.
+
+**A no-op install can finish before its POST answers (MPI-1113).** With every dep on disk
+the handler settles the job right after `res.json`, and that `download:complete` can reach
+the renderer first (MPI-395). `_firePost` adopts the POST body only while the client job
+is still `downloading`; adopting unconditionally revived the finished job as a permanent
+"Download 100%" row — the stuck `engine:assets` after a Pod connect. Pinned by
+`tests/download-silent-job.test.cjs`.
 
 **The backend's own silence: `alreadyInstalled` (MPI-497).** A job whose every dep was on
 disk when it registered installs nothing, so the store marks it `alreadyInstalled` and the

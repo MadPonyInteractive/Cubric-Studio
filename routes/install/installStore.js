@@ -177,9 +177,10 @@ function createInstallStore({ broadcast, logger, now } = {}) {
      * @param {string} spec.engine    - 'local' | 'remote'
      * @param {Array}  spec.deps      - [{ depId, type, size, seedBytes?, totalBytes?,
      *                                      downloadedBytes?, alreadyInstalled?, transport? }]
+     * @param {boolean} [spec.silent] - internal heal: never announced, never in Transfers (MPI-1113)
      * @returns {object} the live ModelJob (also mirrored into _depJobs)
      */
-    function registerModelJob({ modelId, engine, deps = [] }) {
+    function registerModelJob({ modelId, engine, deps = [], silent = false }) {
         const depJobs = deps.map(d => {
             const live = _depJobs.get(d.depId);
             if (live && !DEP_TERMINAL.has(live.status)) return live;
@@ -216,6 +217,8 @@ function createInstallStore({ broadcast, logger, now } = {}) {
             }
             existing.installCustomNodes = existing.deps.some(d => d.type === 'custom_nodes');
             existing.alreadyInstalled = existing.alreadyInstalled && deps.every(d => d.alreadyInstalled);
+            // Announced if ANY registration wanted it announced, like alreadyInstalled.
+            existing.silent = existing.silent === true && silent === true;
             _bump();
             return existing;
         }
@@ -234,6 +237,7 @@ function createInstallStore({ broadcast, logger, now } = {}) {
             // Every dep was on disk when the job registered: finishing it installs
             // nothing, so its completion must not be announced as "installed" (MPI-497).
             alreadyInstalled: deps.length > 0 && deps.every(d => d.alreadyInstalled),
+            silent: silent === true,
             terminalAt: null,
         };
         _modelJobs.set(modelId, job);
@@ -282,6 +286,7 @@ function createInstallStore({ broadcast, logger, now } = {}) {
                 progress: j.progress,
                 speed: j.speed,
                 installCustomNodes: j.installCustomNodes,
+                silent: j.silent === true,
                 deps: j.deps.map(d => ({
                     id: d.id,
                     type: d.type,

@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/services/downloadService.js", "routes/downloadManager.js", "routes/install/installStore.js", "tests/install-queue-wedge.test.cjs", "tests/download-silent-job.test.cjs", "docs/download-manager.md", ".agents/mpi-kanban/tasks/MPI-1113/"] }

@@ -144,10 +144,12 @@ test('internal heal jobs are started silent, and both toast sites honour it', as
             + 'that announces itself is MPI-395 and MPI-576 all over again');
     }
 
-    // 2. downloadService marks the job and stamps the flag onto the completion event.
-    assert.match(dl, /_silentJobs\.add\(modelId\)/, 'start() must record a silent job');
-    assert.match(dl, /const silent = _silentJobs\.delete\(data\.modelId\)/,
-        'the complete handler must resolve (and clear) the silent mark');
+    // 2. downloadService marks the JOB, sends the flag with the POST (the server keeps
+    //    it, MPI-1113), and reads the server-stamped flag off the completion event.
+    assert.match(dl, /if \(opts\.silent === true\) job\.silent = true;/, 'start() must mark a silent job');
+    assert.match(dl, /silent: job\.silent === true \}\)/, 'the POST must carry the flag to the server');
+    assert.match(dl, /const silent = data\.silent === true/,
+        'the complete handler must read the server-stamped silent flag');
     assert.match(dl, /data\.silent = silent;/,
         'the flag must be stamped onto download:complete — notificationService reads it there');
 

@@ -1579,10 +1579,11 @@ function _depTransport(dep, localPath) {
 // MPI-95 — seedBytes is the registry-size floor for the aggregate denominator: the
 // real total arrives with the first byte tick, and summing only arrived totals let
 // the bar reach 100% while other deps were still pending.
-function _registerJob(modelId, engine, entries) {
+function _registerJob(modelId, engine, entries, silent = false) {
     const job = store.registerModelJob({
         modelId,
         engine,
+        silent,
         deps: entries.map(({ dep, localPath, installed, downloadedBytes, totalBytes }) => ({
             depId: dep.id,
             type: dep.type,
@@ -1704,6 +1705,7 @@ function _serializeModelJob(job) {
         downloadedBytes: job.downloadedBytes,
         speed: job.speed,
         progress: job.progress,
+        silent: job.silent === true,
         deps: job.deps.map(d => ({
             id: d.id,
             status: d.status,
@@ -1748,7 +1750,10 @@ router.get('/comfy/downloads/active', (req, res) => {
 // ── Start Endpoint ────────────────────────────────────────────────────────────
 
 router.post('/comfy/models/download/start', async (req, res) => {
-    const { modelId, dependencies } = req.body;
+    // MPI-1113 — `silent`: an internal heal (engine:assets, engine:node-drift). Kept ON
+    // THE JOB so snapshots carry it across a renderer reload and the completion event
+    // is stamped from it; a renderer-memory mark died with the page.
+    const { modelId, dependencies, silent = false } = req.body;
     if (!modelId || !Array.isArray(dependencies)) {
         return res.status(400).json({ error: 'modelId + dependencies required' });
     }
@@ -1766,7 +1771,7 @@ router.post('/comfy/models/download/start', async (req, res) => {
     // downloading to the local filesystem. Same modelJob/SSE shape, so the
     // renderer download UI is unchanged.
     if (remoteModels.isRemoteActive()) {
-        return _startRemoteDownload(modelId, dependencies, res);
+        return _startRemoteDownload(modelId, dependencies, res, silent === true);
     }
 
     // LOCAL path: keep only deps the LOCAL engine installs (drop the Pod-only GGUF
@@ -1861,7 +1866,7 @@ router.post('/comfy/models/download/start', async (req, res) => {
     }
 
     // Register now that the gate has passed: the store job IS the job from here on.
-    const modelJob = _registerJob(modelId, 'local', entries);
+    const modelJob = _registerJob(modelId, 'local', entries, silent === true);
 
     // Recalculate progress from completed deps before broadcasting.
     //
@@ -2633,7 +2638,7 @@ function _onRemoteInstallEvent(evt) {
     }
 }
 
-async function _startRemoteDownload(modelId, dependencies, res) {
+async function _startRemoteDownload(modelId, dependencies, res, silent = false) {
     // REMOTE path: keep only deps the POD engine installs (drop the 41GB bf16
     // transformer the local engine uses). Renderer already resolves per-engine;
     // defend server-side by intersecting against the model's remote universe.
@@ -2857,7 +2862,7 @@ async function _startRemoteDownload(modelId, dependencies, res) {
     // install logged nothing at all, so a heal that never ran and one that found the
     // volume complete read the same in app.log.
     logger.info('download', `remote install ${modelId}: fetching ${toInstall.length ? toInstall.map(d => d.id).join(', ') : 'nothing'}; ${dependencies.length - toInstall.length} on the volume or in flight`);
-    const modelJob = _registerJob(modelId, 'remote', entries);
+    const modelJob = _registerJob(modelId, 'remote', entries, silent);
     // Remote installs never run local custom-node extraction — custom_nodes are
     // image-resident on the Pod, so completion must not route through
     // _runCustomNodeInstall (which extracts a local zip that does not exist).
@@ -2926,10 +2931,12 @@ function _downloadJobEventPayload(modelJob) {
 // job registered) tells the client nothing was installed now, so it re-syncs without
 // an "installed" toast — a re-verify of a full Pod volume used to announce every
 // model on it (MPI-497).
+// `silent` (MPI-1113) is the internal-heal flag the job was registered with.
 function _broadcastModelComplete(modelJob) {
-    _broadcast('download:complete', modelJob.alreadyInstalled
-        ? { modelId: modelJob.modelId, alreadyInstalled: true }
-        : { modelId: modelJob.modelId });
+    const data = { modelId: modelJob.modelId };
+    if (modelJob.alreadyInstalled) data.alreadyInstalled = true;
+    if (modelJob.silent === true) data.silent = true;
+    _broadcast('download:complete', data);
 }
 
 function _checkModelJobsComplete() {
