@@ -1,0 +1,7 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/services/comfyController.js",
+    "tests/comfy-ws-drop-local.test.cjs"
+  ]
+}

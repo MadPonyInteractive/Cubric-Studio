@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1112", "at": "2026-10-12T09:00:59+01:00", "actor": "claude:0d53775f", "column": "doing", "title": "A LOCAL engine crash shows as a remote Pod drop: 'Pod may have run out of memory' toast + remote flips to disconnected"}

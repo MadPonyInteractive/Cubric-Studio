@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1112",
+  "title": "A LOCAL engine crash shows as a remote Pod drop: 'Pod may have run out of memory' toast + remote flips to disconnected",
+  "description": "comfyController._onWsDropped (MPI-563/B4, written for Pod OOM) fires for the local-pinned engine too: Fabio's local Transcribe crashed ComfyUI (Qwen3-ASR access violation, 2026-10-12) and got two 'Remote engine disconnected / Pod' toasts and remote phase none->disconnected. Fix: local engine gets its own message and never emits remote:engine-dropped.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-12T09:00:59+01:00",
+  "updated_at": "2026-10-12T09:00:59+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -1187,6 +1187,9 @@ function createEngine({ engine, alwaysLocal }) {
                 // would hang forever on a dead socket (B4). Cap the retries: after
                 // _WS_MAX_RECONNECTS failed opens, treat the engine as gone, settle
                 // every pending generation, and stop looping.
+                // MPI-1112: remember which engine the dying socket served — a retry
+                // may rebind `_engine` before the drop is declared.
+                if (this._wsReconnectAttempts === 0) this._droppedEngine = this._engine;
                 this._wsReconnectAttempts += 1;
                 if (this._wsReconnectAttempts > this._WS_MAX_RECONNECTS) {
                     this._onWsDropped();
@@ -1223,14 +1226,20 @@ function createEngine({ engine, alwaysLocal }) {
         this._isRunning = false;
         this._wsReconnectAttempts = 0;
         this._wsReady = false;
-        const err = new Error(
-            'The remote engine disconnected mid-generation — the Pod may have run '
-            + 'out of memory and restarted. Try a shorter or smaller generation, or '
-            + 'reconnect from Remote.'
+        // MPI-1112: the same drop happens when LOCAL ComfyUI crashes (a native
+        // access violation exits the process with no execution_error). That is
+        // not a Pod: no Pod wording, and the remote connection is left alone.
+        const remote = this._droppedEngine === 'remote';
+        const err = new Error(remote
+            ? 'The remote engine disconnected mid-generation — the Pod may have run '
+                + 'out of memory and restarted. Try a shorter or smaller generation, or '
+                + 'reconnect from Remote.'
+            : 'The local engine stopped mid-generation — ComfyUI crashed. It starts '
+                + 'again on your next generation.'
         );
         err.code = 'engine_dropped';
-        clientLogger.warn('comfy', 'Remote WS dropped mid-generation — ending pending generations');
-        Events.emit('remote:engine-dropped');
+        clientLogger.warn('comfy', `${remote ? 'Remote' : 'Local'} WS dropped mid-generation — ending pending generations`);
+        if (remote) Events.emit('remote:engine-dropped');
         for (const reject of rejectors) {
             try { reject(err); } catch (_) { /* best-effort */ }
         }
