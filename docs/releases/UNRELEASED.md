@@ -62,6 +62,7 @@
 - **Look around any 360 video and take pictures of it.** A rendered path opens in the 360 player, and so does your own 360 video: right-click it and choose Convert to 360 video. Drag to look, pick a frame and Take picture: that exact view is cleaned up and lands as a new picture. It needs FLUX.2 Klein 9B installed.
 - **LoRA & Upscale from the cog wheel.** The settings popup by the prompt now has a LoRA & Upscale button, so you no longer go through the model picker to add or change a LoRA.
 - **Auto-start ComfyUI on the engine popup.** The "Starting ComfyUI Engine" popup has the same switch as Settings, so you can turn auto-start on or off right there.
+- **Dev updates on the home screen.** The bell beside About shows the latest posts from the Cubric Studio Discord, pictures included: flick through them, click one to see it big, and press X when you have read it. Join the Discord is one click away.
 
 ## ComfyUI Engine
 
