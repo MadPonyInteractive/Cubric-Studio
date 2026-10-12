@@ -2853,6 +2853,7 @@ export const FLOWS = [
         id: 'pano-360',
         title: '360 Panorama',
         preview: 'flow-pano-360.webp',
+        video: 'flow-pano-360.mp4',
         description: 'Make a 360 panorama from a description or from a picture. With a picture, the rest '
             + 'of the world around it is painted in. To look around it in 3D, right-click the result and '
             + 'choose Convert to 360 pano.',
