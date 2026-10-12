@@ -27,6 +27,7 @@
 }
 
 .mpi-dev-updates__card {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: var(--s-2);
@@ -34,12 +35,13 @@
     background: var(--surface-2);
     border: 1px solid var(--line);
     border-radius: var(--r-2);
-    cursor: pointer;
-    transition: border-color var(--t-fast) var(--ease);
 }
 
-.mpi-dev-updates__card:hover {
-    border-color: var(--accent-heat);
+/* The card X: marks the post read. Top-right, so the carousel stays clickable. */
+.mpi-dev-updates__read {
+    position: absolute;
+    top: var(--s-1);
+    right: var(--s-1);
 }
 
 .mpi-dev-updates__date {
@@ -53,20 +55,6 @@
     font-size: var(--t-sm);
     color: var(--ink-1);
     overflow-wrap: anywhere;
-}
-
-.mpi-dev-updates__images {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: var(--s-2);
-}
-
-.mpi-dev-updates__image {
-    width: 100%;
-    max-height: 360px;
-    object-fit: contain;
-    border-radius: var(--r-2);
-    display: block;
 }
 
 .mpi-dev-updates__open {

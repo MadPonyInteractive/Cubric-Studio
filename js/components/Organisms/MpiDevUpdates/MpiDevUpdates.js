@@ -1,23 +1,24 @@
-import { ComponentFactory } from '../../../factory.js';
-import { Events } from '../../../../events.js';
-import { state } from '../../../../state.js';
-import { ce, on, qs } from '../../../../utils/dom.js';
-import { renderMarkdownInto } from '../../../../utils/markdown.js';
-import { openExternal } from '../../../../utils/openExternal.js';
-import { mountButton } from '../../../Primitives/MpiButton/MpiButton.js';
+import { ComponentFactory } from '../../factory.js';
+import { Events } from '../../../events.js';
+import { state } from '../../../state.js';
+import { ce, on, qs } from '../../../utils/dom.js';
+import { renderMarkdownInto } from '../../../utils/markdown.js';
+import { openExternal } from '../../../utils/openExternal.js';
+import { mountButton } from '../../Primitives/MpiButton/MpiButton.js';
+import { MpiImageCarousel } from '../../Compounds/MpiImageCarousel/MpiImageCarousel.js';
 import {
     DISCORD_INVITE_URL,
     acknowledgeAllDevUpdates,
     acknowledgeDevUpdate,
-} from '../../../../services/devUpdatesService.js';
+} from '../../../services/devUpdatesService.js';
 
 /**
  * MpiDevUpdates — the dev-updates list for the MpiSlideOver panel (MPI-1115).
  *
  * Renders `state.devUpdates` (the posts the user has not acknowledged, newest
- * first) as cards: date, text, images. Clicking a card acknowledges it and it
- * leaves the list; "Open in Discord" and links inside the text open the browser
- * instead. Empty = "All caught up". "Join the Discord" is always there: getting
+ * first) as cards: date, text, an image carousel (click an image to see it big).
+ * The card's X acknowledges it and it leaves the list; "Open in Discord" and links
+ * inside the text open the browser. Empty = "All caught up". "Join the Discord" is always there: getting
  * people into the Discord is what the bell is for.
  *
  * Usage (via slide-over event, from the landing bell in js/shell/projectUI.js):
@@ -25,7 +26,7 @@ import {
  */
 export const MpiDevUpdates = ComponentFactory.create({
     name: 'MpiDevUpdates',
-    css: ['js/components/Compounds/LandingPages/MpiDevUpdates/MpiDevUpdates.css'],
+    css: ['js/components/Organisms/MpiDevUpdates/MpiDevUpdates.css'],
 
     template: () => `
         <div class="mpi-dev-updates">
@@ -50,18 +51,21 @@ export const MpiDevUpdates = ComponentFactory.create({
 
         const _date = (iso) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 
+        let _carousels = [];
+
         const _card = (post) => {
-            const card = ce('article', { className: 'mpi-dev-updates__card', title: 'Click to mark as read' });
+            const card = ce('article', { className: 'mpi-dev-updates__card' });
             card.dataset.id = post.id;
-            card.append(ce('span', { className: 'mpi-dev-updates__date' }, _date(post.at)));
+            const read = mountButton({ icon: 'close', size: 'sm', variant: 'ghost', info: 'Mark as read', extraClasses: 'mpi-dev-updates__read' });
+            card.append(ce('span', { className: 'mpi-dev-updates__date' }, _date(post.at)), read);
             if (post.text) {
                 const text = ce('div', { className: 'mpi-dev-updates__text' });
                 renderMarkdownInto(text, post.text);
                 card.append(text);
             }
             if (post.images?.length) {
-                card.append(ce('div', { className: 'mpi-dev-updates__images' },
-                    post.images.map((img) => ce('img', { className: 'mpi-dev-updates__image', src: img.url, loading: 'lazy', alt: '' }))));
+                const host = card.appendChild(ce('div'));
+                _carousels.push(MpiImageCarousel.mount(host, { images: post.images.map((i) => i.url), expandable: true }));
             }
             if (post.link) {
                 const open = mountButton({ text: 'Open in Discord', variant: 'ghost', size: 'sm', extraClasses: 'mpi-dev-updates__open' });
@@ -72,6 +76,8 @@ export const MpiDevUpdates = ComponentFactory.create({
         };
 
         const _render = (posts) => {
+            _carousels.forEach((c) => c.destroy());
+            _carousels = [];
             listEl.replaceChildren(...posts.map(_card));
             emptyEl.hidden = posts.length > 0;
             barEl.hidden = posts.length === 0;
@@ -89,13 +95,17 @@ export const MpiDevUpdates = ComponentFactory.create({
                     e.preventDefault();
                     return openExternal(link.getAttribute('href'));
                 }
-                const card = e.target.closest('.mpi-dev-updates__card');
-                if (card) acknowledgeDevUpdate(card.dataset.id);
+                if (e.target.closest('.mpi-dev-updates__read')) {
+                    acknowledgeDevUpdate(e.target.closest('.mpi-dev-updates__card').dataset.id);
+                }
             }),
         ];
 
         _render(state.devUpdates);
 
-        el.destroy = () => _unsubs.forEach((fn) => fn());
+        el.destroy = () => {
+            _unsubs.forEach((fn) => fn());
+            _carousels.forEach((c) => c.destroy());
+        };
     },
 });

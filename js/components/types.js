@@ -1150,11 +1150,21 @@
  */
 
 /**
- * @typedef {Object} MpiDevUpdatesProps (Compound — js/components/Compounds/LandingPages/MpiDevUpdates)
- * No props required. Renders `state.devUpdates` (MPI-1115); a card click acknowledges
+ * @typedef {Object} MpiDevUpdatesProps (Organism — js/components/Organisms/MpiDevUpdates)
+ * No props required. Renders `state.devUpdates` (MPI-1115); a card's X acknowledges
  * the post through devUpdatesService.
  *
  * Emits: (none — content only, chrome owned by MpiSlideOver)
+ */
+
+/**
+ * @typedef {Object} MpiImageCarouselProps (Compound — js/components/Compounds/MpiImageCarousel)
+ * @property {string[]} images       - Image URLs, one shown at a time with arrows + "2 / 5".
+ * @property {number}   [index=0]    - Starting image.
+ * @property {boolean}  [expandable] - Click the image to open it big in a modal (arrows + close X).
+ * @property {boolean}  [large]      - The big variant the modal uses.
+ *
+ * Emits: (none)
  */
 
 /**

@@ -26,7 +26,7 @@ import { MpiSettings } from '../components/Compounds/LandingPages/MpiSettings/Mp
 import { MpiRemote } from '../components/Blocks/MpiRemote/MpiRemote.js';
 import { MpiHotkeys } from '../components/Compounds/LandingPages/mpi-hotkeys/mpi-hotkeys.js';
 import { MpiAbout }      from '../components/Compounds/LandingPages/MpiAbout/MpiAbout.js';
-import { MpiDevUpdates } from '../components/Compounds/LandingPages/MpiDevUpdates/MpiDevUpdates.js';
+import { MpiDevUpdates } from '../components/Organisms/MpiDevUpdates/MpiDevUpdates.js';
 import { startDevUpdates } from '../services/devUpdatesService.js';
 import { renderIcon } from '../utils/icons.js';
 import { MpiAgentChat } from '../components/Compounds/MpiAgentChat/MpiAgentChat.js';

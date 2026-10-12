@@ -13,6 +13,11 @@
     "js/state.js",
     "js/shell/preloadStyles.js",
     "js/components/types.js",
-    "docs/shell.md"
+    "docs/shell.md",
+    "js/components/Compounds/MpiImageCarousel/MpiImageCarousel.js",
+    "js/components/Compounds/MpiImageCarousel/MpiImageCarousel.css",
+    "js/utils/icons.js",
+    "js/components/Organisms/MpiDevUpdates/",
+    "js/shell/projectUI.js"
   ]
 }
