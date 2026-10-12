@@ -1,8 +1,8 @@
 {
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-1104",
-  "title": "Queue panel: a generic row for non-GPU jobs (CPU, ffmpeg, file copy) with a progress bar",
-  "description": "UMBRELLA: MPI-1102 - No silent work: every job shows in the queue (umbrella) (consolidation sweep 2026-10-12). Members and phase order: tasks/MPI-1102/plan.md. Transfers in MpiQueuePanel (MPI-1057) shows only state.downloadJobs / state.uploadJobs. There is no row for a CPU job (ffmpeg, sharp, a file copy, a cleanup). Build one shared path: a job registers, gets a row with an MpiProgressBar (real % when known, the mpi-progress--loading sweep when not), shows done / failed / cancelled, and leaves. Every other member that moves a non-GPU action into the queue depends on this. Never the status bar: that is GPU only.",
+  "title": "Transfers rows take CPU jobs too (ffmpeg, file copy, cleanup), with the moving sweep when there is no %",
+  "description": "UMBRELLA: MPI-1102 - No silent work: every job shows in the queue (umbrella) (consolidation sweep 2026-10-12). Members and phase order: tasks/MPI-1102/plan.md. Fabio 2026-10-12: nothing new - reuse what exists. Transfers in MpiQueuePanel (MPI-1057, _transfers / _renderTransfers) lists state.downloadJobs / state.uploadJobs, each row already an MpiProgressBar. Add one more row kind for a CPU job (ffmpeg, sharp, a file copy, a cleanup) to that same list. No real % = toggle the existing mpi-progress--loading class on that bar (the same moving sweep MpiInstalledDisplay uses, MPI-95, and the status bar's sb-indeterminate, MPI-147). No new component, no new animation. Row leaves on done / failed / cancelled like a download. Every other member that moves a non-GPU action into the queue depends on this. Never the status bar: that is GPU only.",
   "column": "todo",
   "maturity": "planned",
   "status": "active",

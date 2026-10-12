@@ -2,7 +2,7 @@
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-1102",
   "title": "No silent work: every job shows in the queue (umbrella)",
-  "description": "Fabio 2026-10-12: every job the user (or Cosmo / an outside agent) starts must show itself. GPU work goes in the generation queue + status bar; non-GPU work (downloads, uploads, CPU / ffmpeg / file copies) goes in the queue panel with a progress bar; a job with no real progress number shows the moving left-to-right sweep, never nothing; a new job entering the queue flashes a gradient on the right edge of the UI. Rule: .claude/rules/dos_and_donts.md section 'Every action shows itself' (MPI-1100). Members and phase order: this card's plan.md.",
+  "description": "Fabio 2026-10-12: every job the user (or Cosmo / an outside agent) starts must show itself. GPU work goes in the generation queue + status bar; non-GPU work (downloads, uploads, CPU / ffmpeg / file copies) goes in the queue panel's existing Transfers rows with a progress bar; a job with no real progress number shows the existing moving left-to-right sweep, never nothing. Nothing new gets built: reuse the Transfers row, MpiProgressBar and its sweep. Rule: .claude/rules/dos_and_donts.md section 'Every action shows itself' (MPI-1100). Members and phase order: this card's plan.md.",
   "column": "todo",
   "maturity": "planned",
   "status": "active",

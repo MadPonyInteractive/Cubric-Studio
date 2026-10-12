@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1105", "at": "2026-10-12T08:01:59+01:00", "actor": "claude", "column": "todo", "title": "Flash a gradient on the right edge of the UI when a new job enters the queue"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1105", "at": "2026-10-12T08:15:11+01:00", "actor": "claude", "from": "todo", "to": "done", "reason": "dropped by Fabio: the existing sweep is the signal, no new flash"}

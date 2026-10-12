@@ -6010,3 +6010,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1110", "at": "2026-10-12T08:02:08+01:00", "actor": "claude", "column": "todo", "title": "Project Cleanup assets shows it is working"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1103", "at": "2026-10-12T08:02:28+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "amending the feedback rule"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1103", "at": "2026-10-12T08:03:29+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "rule amended; docs only"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1103", "at": "2026-10-12T08:14:24+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Fabio: CPU jobs reuse the Transfers row, no new row or flash"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1105", "at": "2026-10-12T08:15:11+01:00", "actor": "claude", "from": "todo", "to": "done", "reason": "dropped by Fabio: the existing sweep is the signal, no new flash"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1103", "at": "2026-10-12T08:15:13+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "rule: CPU jobs reuse the Transfers row"}

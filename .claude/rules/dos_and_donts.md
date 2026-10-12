@@ -154,8 +154,8 @@ Then it shipped with NO progress at all, and Fabio had to ask for the sweep in a
    - **Non-GPU work → a row in the queue panel with a progress bar, never the status bar.**
      A byte transfer (model download / upload) uses Transfers — `state.downloadJobs` /
      `state.uploadJobs`, the Transfers section of `MpiQueuePanel` (MPI-1057). A CPU job
-     (ffmpeg, sharp, a file copy, a cleanup) gets the generic queue-panel row — building it is
-     MPI-1104 (umbrella MPI-1102); until it lands, say so on your card rather than ship silent.
+     (ffmpeg, sharp, a file copy, a cleanup) is one more row kind in that SAME Transfers list,
+     same `MpiProgressBar` — never a new row component (MPI-1104, umbrella MPI-1102, opens it).
 2. **No real progress number → the moving sweep, never a still or empty bar.** Status bar:
    emit `tool:indeterminate` (`StatusBar.progress.setIndeterminate`, MPI-147) — what ESRGAN
    and the cloud ops already do. An `MpiProgressBar`: the `mpi-progress--loading` class
