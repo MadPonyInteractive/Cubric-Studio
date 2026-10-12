@@ -387,11 +387,13 @@ function createWindow() {
   // refused, which is why they are named here rather than discovered later —
   //   fullscreen  → the video control bar's fullscreen button + focus mode,
   //   pointerLock → MpiRadialMenu, i.e. the primary operation picker.
+  //   clipboard-sanitized-write → `navigator.clipboard.writeText`: every Copy button
+  //     (Settings' MCP link, the Transcribe result). Missed here from 2.0.0 to MPI-1071.
   // Desktop notifications are NOT in this list and must not be: they are raised by
   // the main process (`new Notification` below), which never asks the renderer's
   // session. Anything else is denied and logged — a future miss surfaces as a log
   // line instead of a feature that quietly stops working.
-  const ALLOWED_PERMISSIONS = new Set(['media', 'fullscreen', 'pointerLock']);
+  const ALLOWED_PERMISSIONS = new Set(['media', 'fullscreen', 'pointerLock', 'clipboard-sanitized-write']);
   session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
     const allowed = ALLOWED_PERMISSIONS.has(permission);
     if (!allowed) logger.warn('main', `permission denied to renderer: ${permission}`);

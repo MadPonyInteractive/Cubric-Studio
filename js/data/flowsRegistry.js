@@ -343,7 +343,6 @@
 import { state } from '../state.js';
 import { DEPS } from './modelConstants/dependencies.js';
 import { getPlugin } from './pluginsRegistry.js';
-import { APP_CONFIG } from '../../dev_configs/app_config.js';
 import { MODELS } from './modelConstants/models.js';
 import { OUTPAINT_MAX_GROW } from '../utils/outpaintPasses.js';
 
@@ -2054,12 +2053,17 @@ export const FLOWS = [
     // track) and MpiIfElse takes the audio if it loaded, else the video. Both opt out of the
     // missing-media guard (`required: false`) and neither blocks when empty, so an empty run
     // returns empty text instead of vanishing; the frame's empty-run guard refuses it first.
-    // ponytail: dev builds only until MPI-1071 4c gives a text result somewhere to land.
-    ...(APP_CONFIG.dev_mode ? [{
+    {
         id: 'transcribe',
         title: 'Transcribe',
         description: 'Turn speech into text. Drop in a recording or a video and get back everything '
             + 'said, as text to copy and as an .srt subtitle file.',
+        // Art off a real run of MpiSpeechToText on a spoken "Welcome to Cubric Studio."
+        // (Words to expect = Cubric Studio; without it the node wrote "Kubrick"). The
+        // waveform above, the SRT cue below; the hero reveals both under a heat playhead,
+        // holds, and fades back to the bare page (loop seam 0/255).
+        preview: 'flow-transcribe.webp',
+        video: 'flow-transcribe.mp4',
         requiredModels: [],
         requiredPlugins: ['speech-to-text'],
         operation: 'flowTranscribe',
@@ -2080,7 +2084,7 @@ export const FLOWS = [
                 default: '', placeholder: 'Names or unusual words, e.g. Cubric Studio',
             },
         ],
-    }] : []),
+    },
     // MPI-596 — "Object Stamp". Take an object out of one photo and put it into
     // another. Draw It In's architecture with the scribble swapped for a real object:
     // the object is composited onto the user's scene, a crop is taken around it, Klein
@@ -2764,8 +2768,7 @@ export const FLOWS = [
     // the rest of the sphere is outpainted round it (Ostris edit pack). Both end in a wrap-seam
     // pass at 2K, and the Flow ENDS there: the card is a plain picture (Fabio, 2026-10-11: the user
     // may edit or upscale it first, then chooses the right-click Convert to 360 pano).
-    // ponytail: source runs only while Convert and the Scene workspace are; MPI-623 Phase 4 lifts it.
-    ...(APP_CONFIG.dev_mode ? [{
+    {
         id: 'pano-360',
         title: '360 Panorama',
         preview: 'flow-pano-360.webp',
@@ -2789,7 +2792,7 @@ export const FLOWS = [
                 placeholder: 'A cosy cartoon village in a forest clearing, warm afternoon light',
             },
         ],
-    }] : []),
+    },
 ];
 
 /** @returns {FlowDef[]} All flow descriptors. */

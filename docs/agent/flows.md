@@ -164,6 +164,16 @@ A user who asks for a voice from the library gets one on either, the same way: D
 Music with no singing, sound effects and one-shot hits are a model too, not a Flow: Stable
 Audio 3 (`modelId: "stable-audio-3"`, `operation: "t2a"`). Its guide says how to prompt it.
 
+## Transcribe
+
+Transcribe turns speech into text: a recording in `audio1`, or a video in `video1` (a `.webm`
+recording goes in `video1`, `audio1` refuses it). It makes no gallery card. `generate` returns
+`output.text`, the words said, and `output.srtPath`, an `.srt` subtitle file it saved in the
+project's `Transcripts` folder. Hand the user the text, or the path when they want subtitles.
+
+- `Input_Context`: names and unusual words it would otherwise mishear ("Cubric Studio").
+  Leave it empty when there are none.
+
 ## Song
 
 Write the song straight into `generate`'s fields and send it. The app shows the user the lyrics

@@ -17,5 +17,6 @@
 - [x] 4c: MpiBaseFlow onText + MpiTextResult Compound (text box, Copy, Download .srt) - code + live render check
 - [x] 4c: Fabio eye-test of the result box + a real Transcribe run + the Save As window
 - [x] 4d: .srt route + agentDispatch output {text, srtPath} + MCP/chat tile + Cosmo note (live MCP run green)
-- [ ] 4e: tile + hero, docs/agent/flows.md, docs/flow-packages.md (op.outputKind), UNRELEASED.md, tests, privacy check; lift the dev_mode gate
+- [x] 4e: docs/agent/flows.md, docs/flow-packages.md (op.outputKind), UNRELEASED.md, tests, privacy check; lift the dev_mode gate
+- [x] 4e: tile + hero (/mpi-flow-graphics) - built; Fabio eye-test pending
 - [x] Docs: `docs/dictation.md`, `docs/llm.md` (Remote + Ollama; ComfyUI lines when it lands)

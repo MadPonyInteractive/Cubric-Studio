@@ -54,6 +54,8 @@
 - **A child-safety check on every prompt.** Cubric Studio is for adults, and adult content is untouched. A prompt that puts someone under 18 in a nude, sexual or suggestive picture, or a child under 16 in swimwear, is refused before it runs, whether you typed it, the Enhancer wrote it, or Cosmo or another AI app sent it. Asking to undress someone in a picture or clip first checks that no one in it could be under 18.
 - **What your Pod is costing, in the status bar.** While RunPod is connected, the bar at the bottom shows the spend so far next to REMOTE, and next to the timer while a job runs, so you can see it without going back to the home page.
 - **Upload models to your RunPod volume.** Upload models, in the Remote panel, shows your LoRAs and upscale models on your computer and on the Pod. Upload or delete any of them, at any size. Use the cheap No GPU Pod for big files: your volume keeps them.
+- **Speech to text runs where you choose.** The microphone types through DeepInfra (now Qwen3-ASR, more accurate than Whisper), on your own GPU through ComfyUI, or through Ollama. Pick it under Speech to text in the Remote panel. On ComfyUI or Ollama, add Words to expect so names come out spelled right.
+- **Transcribe, a new Flow.** Drop in a recording or a video and get back everything said, as text to copy and as an .srt subtitle file. Runs on your own GPU, and Cosmo can run it too.
 - **Combine works on pictures too.** Select two or more in the gallery and Combine packs them into one sheet, with a choice of shape and size. Cosmo can make one too.
 
 ## ComfyUI Engine
@@ -62,6 +64,7 @@
 
 ## Fixes
 
+- **Copy address in Settings copies again.** The button for the MCP server address did nothing, so you had to type the address into your agent by hand.
 - **A download-only Pod no longer locks you out of your projects.** Connecting the No GPU Pod to install models used to block every project. Projects now open, and generations run on DeepInfra or your own GPU while the Pod installs.
 - **Resize is a lot faster and no longer needs ComfyUI.** It runs inside the app now, so it works with no engine installed and beside your generations instead of waiting behind them, and a long 4K clip no longer runs out of memory (a 14-second 4K phone clip used to). It always resizes with Lanczos, so the Method setting is gone.
 - **The Resize preview no longer goes blank after you resize a clip.** It showed an empty checkerboard until you picked another History entry and came back.

@@ -167,10 +167,9 @@ test('Flow Library filters, search and count compose, persist, and tear down', a
     // an advert that ignored the filters would sit in a grid it does not belong to.
     // MPI-1012: Text to Speech and Sound & Music left for the prompt box as models, so the
     // creators are Song, Stems and the advert.
-    // MPI-1071: Transcribe is an audio creator in dev builds only (APP_CONFIG.dev_mode), and
-    // this suite runs source, so it is left out of the count rather than pinned either way.
-    expect(r.audioCreate.filter(t => !t.includes('Transcribe')), 'Media=Audio + Type=Create').toHaveLength(3);
-    for (const title of ['Song', 'Stems']) {
+    // MPI-1071: Transcribe joined them, in every build.
+    expect(r.audioCreate, 'Media=Audio + Type=Create').toHaveLength(4);
+    for (const title of ['Song', 'Stems', 'Transcribe']) {
       expect(r.audioCreate.some(t => t.includes(title)), title).toBe(true);
     }
     expect(r.audioCreate.some(t => t.includes('DramaBox') && t.includes('Get it')),

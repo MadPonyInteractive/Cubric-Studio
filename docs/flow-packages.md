@@ -56,7 +56,9 @@ in `js/data/flowsRegistry.js`, and [playbooks/add-flow/01-descriptor-and-ops.md]
 **`op` fields** (anything else is an error): `label` and `mediaType` (required),
 `progressLabel`, `requiresImages`, `requiresVideo`, `mediaInputs` (each
 `{ key, mediaType, title: "Input_…", required }`), `promptRequired`, `injector`,
-`filePrefix`.
+`filePrefix`, `outputKind` (only `"text"`: the graph's `Output_prompt` returns text, not a
+file, so the run makes no gallery card and the Flow pane shows the text in a box with Copy and
+Download .srt; an agent gets `output.text`, plus `srtPath` when the text is SRT, MPI-1071).
 
 **The app fills in:** `flow.id` = `flow.operation` = `user:<id>`; the graph path
 `user-flows/<id>/workflow.json`; `op.universal = true`; `op.filePrefix`, when omitted, as
