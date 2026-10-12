@@ -219,7 +219,9 @@ async function stageMedia(t, media, folderPath) {
         }
         const placed = await t.placeAsset(open.folder, file);
         if (!placed?.success || !placed.filePath) return fail('RUNTIME_ERROR', `could not copy "${m.path}" into the project: ${placed?.error || 'unknown error'}.`);
-        out.push({ role: m.role, url: placed.filePath });
+        // `name` keeps the user's filename past the content-addressed copy: a transcript is saved
+        // under it (MPI-1071), never under a hash.
+        out.push({ role: m.role, url: placed.filePath, name: path.basename(file) });
     }
     return { media: out };
 }
@@ -395,7 +397,7 @@ const TOOLS = {
     },
     generate: {
         title: 'Generate',
-        description: 'Generate an image, video or audio with a model op, or run a Flow, in the project folderPath names (open or not), else in the project the app has open. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the file path on disk plus a picture of the result. A video, a sound or a Flow, or an image slower than 45 s, returns { running: true, jobId } instead: tell the user and end your turn, then call wait_generation when asked, never generate again. A paid model first answers CONFIRM_COST with its price and generates nothing.',
+        description: 'Generate an image, video or audio with a model op, or run a Flow, in the project folderPath names (open or not), else in the project the app has open. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the file path on disk plus a picture of the result. A video, a sound or a Flow, or an image slower than 45 s, returns { running: true, jobId } instead: tell the user and end your turn, then call wait_generation when asked, never generate again. A Flow that returns text (Transcribe) makes no card: its result is output.text, plus output.srtPath, the subtitles file it saved in the project. A paid model first answers CONFIRM_COST with its price and generates nothing.',
         inputSchema: {
             type: 'object',
             properties: {

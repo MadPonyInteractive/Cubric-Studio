@@ -2407,7 +2407,12 @@ ${knowledgeIndex}`.trim();
                     // A refused setting is the one failure the short catalogue can cause, so the
                     // note says where the accepted values are rather than leaving a second guess.
                     const paramMiss = /^(INVALID_|UNKNOWN_PARAM|MEDIA_REQUIRED)/.test(r?.error?.code || '');
-                    this._notes.push(ok
+                    // A TEXT result (the Transcribe Flow, MPI-1071) makes no card: the note carries
+                    // the words themselves, and the subtitles file when there is one.
+                    const textOnly = ok && typeof r.output?.text === 'string' && !r.output?.filePath;
+                    this._notes.push(textOnly
+                        ? `[Finished, no card. The text: ${r.output.text}${r.output.srtPath ? ` Subtitles file: ${r.output.srtPath}` : ''}]`
+                        : ok
                         ? `[Generation finished: card ${r.output?.groupId}, ${r.output?.type} ${r.output?.filePath}${r.output?.pixelDimensions ? `, ${r.output.pixelDimensions.w}x${r.output.pixelDimensions.h}` : ''}]`
                         : `[Generation failed: ${r?.error?.code || 'ERROR'}: ${r?.error?.message || 'no reason given'}${paramMiss ? ` Call describe_model with "${args.flowId || args.modelId}" for the values it accepts.` : ''}]`);
 

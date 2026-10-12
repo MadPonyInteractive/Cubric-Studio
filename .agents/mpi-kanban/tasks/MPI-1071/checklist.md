@@ -14,7 +14,8 @@
 - [x] Phase 4: Transcribe Flow planned
 - [x] 4a: MpiSpeechToText srt output + long audio, MpiNodes 1.2.19 released + pinned
 - [x] 4b: flowTranscribe op (4 files) + flow_transcribe.json + FlowDef (dev builds only until 4c)
-- [ ] 4c: MpiBaseFlow onText + result Primitive (text box, Copy, Download .srt)
-- [ ] 4d: .srt route + agentDispatch output {text, srtPath} + MCP/chat tile
+- [x] 4c: MpiBaseFlow onText + MpiTextResult Compound (text box, Copy, Download .srt) - code + live render check
+- [x] 4c: Fabio eye-test of the result box + a real Transcribe run + the Save As window
+- [x] 4d: .srt route + agentDispatch output {text, srtPath} + MCP/chat tile + Cosmo note (live MCP run green)
 - [ ] 4e: tile + hero, docs/agent/flows.md, docs/flow-packages.md (op.outputKind), UNRELEASED.md, tests, privacy check; lift the dev_mode gate
 - [x] Docs: `docs/dictation.md`, `docs/llm.md` (Remote + Ollama; ComfyUI lines when it lands)

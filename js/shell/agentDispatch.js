@@ -67,7 +67,8 @@ import { getCommand, getCommandMediaInputs, TTS_LANGUAGES, ttsLanguageValue } fr
 import { resolveNamedParams, isValidSeed, resolveAgentMedia, namedParamsFor } from '../data/generationControls.js';
 import { resolveActiveModel, getLastSelectedMediaType } from '../utils/modelHelpers.js';
 import { CROP_RATIOS } from '../utils/ratios.js';
-import { resolveMediaUrl, extractAbsPath } from '../utils/mediaActions.js';
+import { resolveMediaUrl, extractAbsPath, extractFilenameFromPath } from '../utils/mediaActions.js';
+import { isSrt, srtToText } from '../utils/srt.js';
 import { stepValueToMedia } from '../components/Blocks/MpiBaseFlow/stepKinds.js';
 import { composeNextPass } from '../components/Organisms/MpiStepCrop/MpiStepCrop.js';
 import { planOutpaintPasses } from '../utils/outpaintPasses.js';
@@ -1083,6 +1084,33 @@ function _nextPassFor(plan, mediaItems, source, project) {
     };
 }
 
+/**
+ * A Flow's text result as an agent gets it (MPI-1071). A transcript arrives as SRT: the agent
+ * reads the plain text, and the subtitles land as `<project>/Transcripts/<source>.srt`, whose
+ * disk path rides along as `srtPath`. Any other text passes through as it came.
+ * @param {string} raw
+ * @param {Object} project - the project the run landed in, open or not (MPI-873)
+ * @param {Array<{name?: string, url?: string, path?: string}>} [media] - the agent's media; the first names the file
+ * @returns {Promise<{text: string, srtPath?: string}>}
+ */
+export async function flowTextOutput(raw, project, media) {
+    if (!isSrt(raw)) return { text: raw };
+    const first = media?.[0] || {};
+    const name = first.name || extractFilenameFromPath(first.url || first.path || '') || '';
+    let srtPath = null;
+    try {
+        const res = await fetch(`/project-media/${project.id}/transcript?folderPath=${encodeURIComponent(project.folderPath)}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, srt: raw }),
+        });
+        const data = await res.json();
+        srtPath = data?.success ? data.filePath : null;
+    } catch (err) {
+        clientLogger.warn('connector', `transcript .srt not written: ${err?.message || err}`);
+    }
+    // The text is the result; a file that would not write still leaves the agent its words.
+    return { text: srtToText(raw), ...(srtPath ? { srtPath } : {}) };
+}
+
 async function _submitFlow(jobId, input = {}) {
     const target = await targetProject(input);
     if (target.error) return _fail(jobId, target.error.code, target.error.message);
@@ -1097,7 +1125,7 @@ async function _submitFlow(jobId, input = {}) {
     if (target.open) _followWork(input, null);
     const queued = submitFlowGeneration(built.flow, built.inputs, {
         onComplete: (done) => _reportDone(jobId, done, input.cardName, null, null, target.open ? null : target.project),
-        onText: (text) => _report(jobId, { ok: true, output: { text } }),
+        onText: async (text) => _report(jobId, { ok: true, output: await flowTextOutput(text, target.project, input.media) }),
         // A cloud failure names itself (MPI-869: e.g. LOW_BALANCE with the cost and what
         // is left), so the agent can tell the user why; anything else stays generic.
         onError: (err) => _fail(jobId, err?.code || 'RUNTIME_ERROR',

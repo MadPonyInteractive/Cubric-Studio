@@ -1554,6 +1554,15 @@
  */
 
 /**
+ * @typedef {Object} MpiTextResultProps (Compound — js/components/Compounds/MpiTextResult)
+ * A Flow's TEXT result (MPI-1071, Transcribe): the transcript in a read-only MpiInput
+ * textarea, with Copy and "Download .srt" (Electron's Save As window).
+ * @property {string} srt                         - The SRT the graph returned; the box shows it
+ *                                                  with cue numbers and times taken out.
+ * @property {string} [fileName='transcript.srt'] - Suggested name in the Save As window.
+ */
+
+/**
  * @typedef {Object} MpiOkCancelProps (Compound — js/components/Compounds/MpiOkCancel)
  * @property {string}  [title='']             - Large title text at the top of the dialog.
  * @property {string}  [text='']              - Descriptive body text shown below the title.

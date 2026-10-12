@@ -225,6 +225,16 @@ Fabio said yes to the R2 upload and to releasing MpiNodes "with the release meth
 - **Pod fix (same session):** a bumped MpiNodes never reached Fabio's Pod: the connect ensure installed a DRIFTED pack without force, the wrapper said already_installed. `routes/remoteModels.js` now forces drifted packs; `tests/universal-nodes-drift.test.cjs`. SEEN LIVE 19:44 (installed + ComfyUI restart 200). Noticed: the renderer drift heal re-clones again 2 s later (brief.md).
 - Fabio tested ComfyUI dictation on a Pod already. Next: 4c.
 
+2026-10-12 (session 5d694360): **4c BUILT (uncommitted), live render checked; waiting on Fabio's eye-test.**
+- `MpiBaseFlow._runCallbacks.onText` -> `_showResults({ type: 'text', text: <SRT>, fileName: '<source>.srt' })`; `_showResults` branches on `_isTextResult` BEFORE the withPath filter and mounts `_mountText` on the FRAME (like compare/player; media layer stays empty so pan/zoom stay inert). Teardown in `_teardownResultSurfaces`; `_syncResultEmpty` counts it; the mount probe skips a text snapshot (nothing on disk). `s_flowResults` carries it as-is, so close/reopen keeps it. The floating window shows nothing for a text result (no path): Fabio's call, keep it that way.
+- DRIFT: the result box is a **Compound** `js/components/Compounds/MpiTextResult/` (composes MpiInput + MpiButton; a Primitive imports nothing). Registered in preloadStyles + types.js; not added to the component gallery.
+- DRIFT: "Download .srt" needs NO route: a Blob + `<a download>`; the app has no `will-download` handler, so Electron opens Save As. 4d's route is for AGENTS only (the project copy + `srtPath`).
+- `js/utils/srt.js` `srtToText` (cue numbers + times out, cues joined) + `tests/srt.test.cjs` (the 4e parse test, done early).
+- flowService needed no edit: its leg/pass wrappers spread the caller's callbacks, so `onText` reaches enqueueGeneration untouched.
+- **VERIFIED by Fabio 2026-10-12.** No floating window for a text result, by his call (unreadable at that size). Next: 4d.
+
+2026-10-12 (session 5d694360): **4d BUILT + live-verified through MCP (uncommitted).** Route `POST /project-media/:projectId/transcript` (routes/projects.js); `flowTextOutput` exported from agentDispatch (isSrt -> write the .srt, return {text, srtPath}); MCP `stageMedia` adds `name` on a STAGED copy only (own-folder cards already read right); agentLoop text-result note; MpiAgentChat skips the tile. flowService untouched. Next: 4e (tile + hero, docs, UNRELEASED, lift the dev_mode gate).
+
 Next, in order:
 1. ~~Register the node~~ DONE (above).
 2. **Ollama as a third Speech to text backend: RESEARCHED 2026-10-11, Fabio said yes (opt-in).** Bench on his 5 clips, Ollama 0.35.1, output in

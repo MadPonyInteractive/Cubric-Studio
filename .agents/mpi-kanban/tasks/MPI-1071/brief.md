@@ -47,3 +47,4 @@ European languages and has no ComfyUI node found.
 ## Noticed
 
 - 2026-10-11: after the server ensure re-cloned MpiNodes and restarted ComfyUI (19:44:12), the RENDERER drift heal (js/shell.js getDriftedNodeDeps, a pre-install check) re-cloned it AGAIN 2 s later: a wasted clone and likely a second ComfyUI restart on the first generation. Two heal paths for one job; with force in the server ensure the renderer one may be redundant.
+- 2026-10-12: an agent sending a .webm voice recording to a Flow's audio role is refused ("that is video", by extension); it works as video1. Transcribe takes both, so not blocking.

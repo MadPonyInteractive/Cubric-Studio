@@ -42,6 +42,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Compounds/MpiContextMenu/MpiContextMenu.css',
   'js/components/Compounds/MpiOptionSelector/MpiOptionSelector.css',
   'js/components/Compounds/MpiOkCancel/MpiOkCancel.css',
+  'js/components/Compounds/MpiTextResult/MpiTextResult.css',
   'js/components/Compounds/MpiNotesEditor/MpiNotesEditor.css',
   'js/components/Compounds/MpiImageSheet/MpiImageSheet.css',
   'js/components/Compounds/MpiAddToProject/MpiAddToProject.css',

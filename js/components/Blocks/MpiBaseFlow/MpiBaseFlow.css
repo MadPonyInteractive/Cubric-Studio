@@ -1026,11 +1026,14 @@
 .mpi-base-flow__result-frame--compare,
 .mpi-base-flow__result-frame--compare:active,
 .mpi-base-flow__result-frame--player,
-.mpi-base-flow__result-frame--player:active { cursor: default; }
+.mpi-base-flow__result-frame--player:active,
+.mpi-base-flow__result-frame--text,
+.mpi-base-flow__result-frame--text:active { cursor: default; }
 /* Hosts for the shared compare surface and the video viewer — they state no size
    of their own, so the frame's box is the box they fill. */
 .mpi-base-flow__result-compare,
-.mpi-base-flow__result-player {
+.mpi-base-flow__result-player,
+.mpi-base-flow__result-text {
     position: absolute;
     inset: 0;
 }

@@ -1,0 +1,32 @@
+/* ── MpiTextResult (MPI-1071) ───────────────────────────────────────────────── */
+
+.mpi-text-result {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    width: 100%;
+    height: 100%;
+    padding: var(--s-3);
+    box-sizing: border-box;
+}
+
+/* The transcript fills the box; the actions sit under it. Sizing only — the field's
+   own look is MpiInput's. */
+.mpi-text-result__text {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+.mpi-text-result__text .mpi-input,
+.mpi-text-result__text .mpi-input__wrapper { flex: 1; min-height: 0; }
+.mpi-text-result__text .mpi-input__field--textarea {
+    flex: 1;
+    height: 100%;
+    resize: none;
+}
+
+.mpi-text-result__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--s-2);
+}

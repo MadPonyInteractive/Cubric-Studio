@@ -1586,6 +1586,25 @@ describe('(h) notes, results, names, guides', () => {
         assert.match(last, /How did it go\?$/);
     });
 
+    // MPI-1071: the Transcribe Flow makes no card. Its note carries the words and the subtitles
+    // file; the card note would have read "card undefined, undefined undefined".
+    test('a TRANSCRIPT result reaches the model as its words, with the .srt path', async () => {
+        const { loop, tools } = await makeLoop({
+            engineResponses: [
+                call('g1', 'generate', { flowId: 'transcribe' }),
+                { text: 'Started.' },
+                { text: 'Here is what you said.' },
+            ],
+        });
+        tools.generate = async () => ({ ok: true, output: { text: 'Hello there.', srtPath: '/p/Transcripts/take.srt' } });
+        await loop.runTurn('Transcribe my take', [], project, 'auto', 'deepinfra', 't-tx');
+        await new Promise((r) => setTimeout(r, 60));
+        await loop.runTurn('What did I say?', [], project, 'auto', 'deepinfra', 't-tx2');
+        const last = userMessages(loop).at(-1);
+        assert.match(last, /\[Finished, no card\. The text: Hello there\. Subtitles file: \/p\/Transcripts\/take\.srt\]/);
+        assert.doesNotMatch(last, /card undefined/);
+    });
+
     // A generation that fails once it is RUNNING — the engine dies, ComfyUI refuses the
     // graph — still reports at the start of the next turn, because there is no turn left to
     // report into. A failure that lands before anything is queued is a different animal and

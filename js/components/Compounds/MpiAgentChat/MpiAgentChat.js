@@ -946,6 +946,9 @@ export const MpiAgentChat = ComponentFactory.create({
             if (!output) return;
             if (toolCallId && qs(`[data-result-id="${CSS.escape(toolCallId)}"]`, transcript)) return;
             const { itemId, groupId, type, filePath } = output;
+            // A text result (Transcribe, MPI-1071) has no card and no file to draw: the agent
+            // says the words in its reply. A tile here would only error into "Did not finish".
+            if (!filePath && typeof output.text === 'string') return;
 
             // Find or create a result row for this turn
             let row = qs('.mpi-agent-chat__entry--result:last-child', transcript);

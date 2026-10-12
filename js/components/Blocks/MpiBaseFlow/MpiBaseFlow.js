@@ -7,6 +7,7 @@ import { MpiVoicePicker } from '../../Compounds/MpiVoicePicker/MpiVoicePicker.js
 import { recordAudioIntoProject } from '../MpiAudioRecorder/MpiAudioRecorder.js';
 import { MpiModelSettings } from '../../Compounds/MpiModelSettings/MpiModelSettings.js';
 import { MpiCompareView } from '../../Compounds/MpiCompareView/MpiCompareView.js';
+import { MpiTextResult } from '../../Compounds/MpiTextResult/MpiTextResult.js';
 import { MpiVideoViewer } from '../../Organisms/MpiVideoViewer/MpiVideoViewer.js';
 import { MpiVideoControlBar } from '../../Organisms/MpiVideoControlBar/MpiVideoControlBar.js';
 import { MpiFlowResultDock } from '../../Compounds/MpiFlowResultDock/MpiFlowResultDock.js';
@@ -21,7 +22,7 @@ import { clientLogger } from '../../../services/clientLogger.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
 import { createPreviewClipPlayer } from '../../../services/previewClipPlayer.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
-import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { resolveMediaUrl, extractFilenameFromPath } from '../../../utils/mediaActions.js';
 import { setDisplaySrc, resolveDisplayImage } from '../../../utils/displayImage.js';
 import { isVideoFile } from '../../../utils/file.js';
 import { qs, ce, on } from '../../../utils/dom.js';
@@ -572,6 +573,9 @@ export const MpiBaseFlow = ComponentFactory.create({
         let _videoViewer = null;
         let _videoBar = null;
         let _playerHost = null;
+        /** A TEXT result's box (MPI-1071, Transcribe) — on the frame, like compare and the player. */
+        let _textResult = null;
+        let _textHost = null;
         let _barHost = null;
         /** The pane (frame + bar + note) — the bar mounts here, under the frame. */
         let _resultPaneEl = null;
@@ -608,7 +612,9 @@ export const MpiBaseFlow = ComponentFactory.create({
         // this has resolved long before the run slide replays anything.
         if (_seededResult) {
             const probePath = _lastResults?.[0]?.filePath || _lastResults?.[0]?.url;
-            if (!probePath) _forgetResult();
+            // A text result (MPI-1071) is held whole in the snapshot: no file to probe.
+            if (_isTextResult(_lastResults?.[0])) { /* nothing can be gone */ }
+            else if (!probePath) _forgetResult();
             else {
                 fetch(resolveMediaUrl(probePath), { method: 'HEAD' })
                     .then(res => { if (!res.ok) _forgetResult(); })
@@ -2422,7 +2428,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             // here." on top of the result the user is looking at.
             if (_resultEmptyEl) {
                 _resultEmptyEl.hidden =
-                    !!_resultMediaEl?.firstChild || !!_compareView || !!_videoViewer || _running;
+                    !!_resultMediaEl?.firstChild || !!_compareView || !!_videoViewer || !!_textResult || _running;
             }
         }
 
@@ -2816,6 +2822,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             // disarm a sweep the run still owns (_syncRunning is the only arming
             // authority now).
             if (!_running) _setScanline(false);
+            if (_isTextResult(list[0])) { _mountText(list[0]); _syncResultEmpty(); return; }
             if (!withPath.length) { _syncResultEmpty(); return; }
             // ONE result gets a real surface — a comparison, or the video player.
             // N outputs keep the plain elements: there is no single "after" a reveal
@@ -2865,6 +2872,24 @@ export const MpiBaseFlow = ComponentFactory.create({
          */
         function _isAudioResult(it) {
             return it?.type === 'audio' || it?.mediaType === 'audio';
+        }
+
+        /**
+         * A TEXT result (MPI-1071): an `outputKind: 'text'` op reports through `onText`,
+         * makes no gallery card and has no file, so the item IS the result —
+         * `{ type: 'text', text, fileName }`, `text` being the SRT the graph returned.
+         * @param {Object} it
+         */
+        function _isTextResult(it) {
+            return it?.type === 'text';
+        }
+
+        /** Mount the text box on the frame, the way compare and the player go. */
+        function _mountText(it) {
+            _textHost = ce('div', { className: 'mpi-base-flow__result-text' });
+            _resultFrameEl.appendChild(_textHost);
+            _resultFrameEl.classList.add('mpi-base-flow__result-frame--text');
+            _textResult = MpiTextResult.mount(_textHost, { srt: it.text, fileName: it.fileName });
         }
 
         /**
@@ -3225,6 +3250,11 @@ export const MpiBaseFlow = ComponentFactory.create({
         function _teardownResultSurfaces() {
             _teardownCompare();
             _teardownPlayer();
+            _textResult?.destroy();
+            _textResult = null;
+            _textHost?.remove();
+            _textHost = null;
+            _resultFrameEl?.classList.remove('mpi-base-flow__result-frame--text');
             // The N-output players only. The shared one outlives every repaint.
             _plainAudioPlayers.forEach(p => p.destroy());
             _plainAudioPlayers.length = 0;
@@ -3699,6 +3729,9 @@ export const MpiBaseFlow = ComponentFactory.create({
             // `runInputs` beside `runMediaItems`, and for the same reason: the raw prompt
             // standing in for an unpressed Enhance is what RUNS, never what Reuse restores.
             const runInputs = withEnhanceFallback(_enhanceDecls, inputs);
+            // A text result's Save As name: the source it was made from (MPI-1071).
+            const source = extractFilenameFromPath(mediaItems[0]?.filePath || '') || '';
+            run.textName = `${source.replace(/\.[^.]+$/, '') || 'transcript'}.srt`;
             const res = submitFlowGeneration(flow, {
                 ...inputs, runMediaItems, runInputs,
                 ...(passes ? { runNextPass: passes.next } : {}),
@@ -3724,6 +3757,13 @@ export const MpiBaseFlow = ComponentFactory.create({
                     _hasPending = true;
                     _showResults(items || item, { display: _displayItems(displayUrls) });
                     _paintPending();
+                },
+                // A text op (Transcribe, MPI-1071) ends HERE, never in onComplete: no
+                // card, so `_hasPending` (the "Saved to your gallery" note) is never set.
+                onText: (text) => {
+                    _settle(run, 'Done.');
+                    _setGauge(_runs.size ? 0 : 100);
+                    _showResults({ type: 'text', text, fileName: run.textName });
                 },
                 onError: () => {
                     _settle(run, 'Generation failed.', { failed: true });

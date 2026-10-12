@@ -47,6 +47,21 @@
     "services/userFlows.js",
     "tests/user-flows.test.cjs",
     "routes/remoteModels.js",
-    "tests/universal-nodes-drift.test.cjs"
+    "tests/universal-nodes-drift.test.cjs",
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.css",
+    "js/components/Compounds/MpiTextResult/",
+    "js/utils/srt.js",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js",
+    "tests/srt.test.cjs",
+    "routes/projects.js",
+    "js/shell/agentDispatch.js",
+    "services/agentLoop.mjs",
+    "routes/mcp.js",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+    "tests/transcript-route.test.cjs",
+    "tests/agent-loop.test.cjs",
+    "tests/mcp.test.cjs"
   ]
 }

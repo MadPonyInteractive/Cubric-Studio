@@ -172,7 +172,7 @@ test('reference images: none before a project is open, then a card passes as is 
     assert.equal(r.isError, false);
     assert.deepEqual(seen.at(-1).media, [
         { role: 'inputImage', url: `/project-file?path=${encodeURIComponent(cardFile)}` },
-        { role: 'inputImage2', url: '/project-file?path=PLACED' },
+        { role: 'inputImage2', url: '/project-file?path=PLACED', name: 'photo.jpg' },
     ]);
     assert.deepEqual(placed, [{ folderPath: project, dataUrl: outside, ext: '.jpg' }], 'only the outside file was copied in');
 

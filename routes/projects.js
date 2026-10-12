@@ -2072,6 +2072,28 @@ router.post('/project-media/:projectId/place-preview-asset', async (req, res) =>
     }
 });
 
+// MPI-1071: a Transcribe run's subtitles -> <project>/Transcripts/<name>.srt, for an agent (the
+// Flow frame saves through Save As instead). No card and no project.json write: a transcript is
+// not media. A second run on the same source replaces the file. Returns its disk path.
+router.post('/project-media/:projectId/transcript', async (req, res) => {
+    try {
+        const { folderPath } = req.query;
+        const { name, srt } = req.body;
+        if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
+        if (typeof srt !== 'string' || !srt) return res.status(400).json({ success: false, error: 'srt required' });
+        // basename: a name is never a path, so nothing lands outside Transcripts/.
+        const base = path.basename(String(name || '')).replace(/\.[^.]+$/, '').replace(/[<>:"|?*]/g, '_').trim() || 'transcript';
+        const dir = path.join(folderPath, 'Transcripts');
+        await fs.ensureDir(dir);
+        const filePath = path.join(dir, `${base}.srt`);
+        await fs.writeFile(filePath, srt, 'utf8');
+        res.json({ success: true, filePath });
+    } catch (err) {
+        logger.error('project', 'transcript error', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // MPI-623 P2: a camera path's guide frames (PNGs placed by the route above, each the 360 frame
 // over its hole mask) -> ONE video in the same store, so the engine stages one file (one Pod
 // upload) instead of 81. The frames are this render's own and go once encoded. yuv444p at crf
