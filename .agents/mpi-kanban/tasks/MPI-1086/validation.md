@@ -210,3 +210,7 @@ C1 = the words as typed + the tail; C2 = "Change the character in this character
 
 C2 wins (no broken layout; the redress is arguably part of "a vampire"). Both miss a whole-body change in the close-up
 (robot): the close-up only shows the head and shoulders and keeps a human face - noted for Fabio.
+
+## CI (2026-10-12)
+
+`85f96744a` Tests run 38258557951: success (11m11s). Awaiting Fabio's eye test in the app.
