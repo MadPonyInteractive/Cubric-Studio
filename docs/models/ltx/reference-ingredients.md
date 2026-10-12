@@ -97,7 +97,9 @@ card keeps the user's words; only the run gets the rewrite.
   Picture 1 is the character unless another line says `character:`. Before this rule the help example left
   Picture 1 outside the character set, and the 16:9 and 9:16 runs copied the sheet layout.
 - **Every picture needs a real description.** A bare tag gets drawn as a web-page collage of labelled cards;
-  two-word labels ("the backpack") lose the prop.
+  two-word labels ("the backpack") lose the prop. Described lines make it rare, not impossible: 1 of Fabio's 9
+  live clips (`ref2v_007`, MPI-1084) still opened on ~0.75 s of collage. Not the length: the same pictures at 3 s
+  and 5 s (`ref2v_008`/`009`) opened clean. Seed-bound, like the bench's; a reroll is the user's fix.
 - A prompt that already holds `### Reference Sheet Description`, or has no described line, goes as written.
   An undescribed picture stays on the sheet with no line. `<Picture n>` inside the scene is left as typed.
 - Taught in the prompt box's ? help (`help.byModel.ltx`), the agent guide `docs/agent/models/ltx-2.3.md`, and

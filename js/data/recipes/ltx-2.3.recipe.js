@@ -687,6 +687,8 @@ Output: your reply is ONE paragraph of plain prose. It starts on the action or a
     // those are text tags, not actual image data: the backends pass no vision content on
     // an enhance call. See the image-vision answer in the session report.
     r2v: {
+      // VALIDATED by Fabio 2026-10-13 (MPI-1084): sweep D2 ALL PASS 24/24 on DeepInfra Gemma 4 26B, live
+      // renders ref2v_008/009 right. Only this mode: the recipe-level `status` stays draft for t2v/i2v.
       // MPI-1084: told what each staged picture shows (llmService `pictureCaptions`), since
       // untagged prompts left it guessing roles by load order. Opt-in: a describe per new picture.
       seesPictures: true,
@@ -710,7 +712,7 @@ Output: your reply is ONE paragraph of plain prose. It starts on the action or a
         'Leave a blank line between the last picture line and the scene paragraph.',
         'Write the scene as a single flowing prose paragraph: seven sentences, same structure as the LTX t2v mode (shot establishment, scene setting, action, character, camera, audio, closing detail).',
         'The scene describes what HAPPENS; the reference pictures handle what things look like -- do not re-describe the pictures in the scene.',
-        'Name the camera sentence: required and static by default. Translate a user-described move into the optical term; if the user described no camera behaviour, write that the camera remains static.',
+        'Name the camera sentence: always required. Translate a user-described move into the optical term; if the user described no camera behaviour, choose the move or stillness that serves the action.',
         'Keep colour and light plainly worded throughout -- a shade name (slate grey, mustard yellow) not an intensity word (vibrant, richly saturated).',
         'Include the full soundscape in the audio sentence: environmental sound, foley, music, and any dialogue quoted exactly.',
         'Use only the tags on the Attached references line or in the user\'s text, every one of them; with none attached, write no picture lines and no tag at all.',
@@ -726,7 +728,7 @@ Output: your reply is ONE paragraph of plain prose. It starts on the action or a
         'No scene-opening throat-clearing ("The scene opens", "We see", "There is").',
         'No keyword lists, bullet points or section headers in the scene paragraph.',
         'No abstract emotional labels (happy, sad, confused) in the scene -- emotion as physical acting beats only.',
-        'No invented camera movement -- if the user described none, the camera is static.',
+        'No camera move or viewpoint that contradicts what the user said about the shot.',
         'No intensified colour or lighting language (vibrant, richly saturated, blinding) -- the register is plain.',
         'No <Picture n> references in the scene; they are handled by the sheet above.',
       ],
@@ -809,15 +811,16 @@ Leave a blank line after the last picture line, then write the scene as a single
 The scene describes what HAPPENS. The reference pictures handle what things look like. Do not re-describe the character's hair, the location's ground texture or the prop's colour in the scene -- the sheet already shows those. Say what moves, what the camera does, what the soundscape carries.
 
 SCENE RULES (same as the LTX t2v mode):
-RESTRAINED LANGUAGE throughout: plain colour words ("mustard yellow", "slate grey"), shade names when more specific is needed, never intensity words ("vibrant", "richly saturated"). Name light by what it physically is ("low sun through pines", "overcast midday").
+RESTRAINED LANGUAGE throughout: plain colour words ("mustard yellow", "slate grey"), shade names when more specific is needed, never intensity words ("vibrant", "richly saturated"). Name light by what it physically is, and only light that belongs in this scene's place and time of day.
 
 Write SEVEN sentences, one for each of the following elements:
-1. Shot Establishment: name the shot type (wide, medium, close-up, etc.) and camera viewpoint (from behind, side view, low angle, etc.) while opening on the action.
-2. Scene Setting: one coherent light source and one or two high-fidelity textures (packed dirt, rough stone, worn wool). Do not name the textures the reference sheet already shows.
-3. Action Progression: what physically happens, chronological, present tense, concrete verbs.
-4. Character Definition: who is in frame and what they do -- build, visible clothing, physical acting beats (jaw clenches, hand tightens). Never abstract emotion labels. The appearance is on the sheet; describe the motion.
-5. Camera Movement: always write this sentence. Translate any camera motion the user described into the optical term (fast zoom onto the face -> crash zoom; rises over the trees -> crane lift; follows alongside -> side tracking shot). If the user described no camera behaviour, write "the camera remains static" -- that is the complete and correct sentence.
-6. Audio Integration: full soundscape -- environmental sound, foley, background music (or "no music"), and any dialogue quoted exactly with its delivery.7. Closing detail: two concrete secondary details about something already named -- its material or texture, and a small continuing movement or its exact position in the frame. Never introduce a new object and never praise the shot.
+1. Shot Establishment: name the shot type (wide, medium, close-up, etc.) and camera viewpoint (from behind, side view, low angle, etc.) while opening on the action. When the user says which way someone faces, the viewpoint keeps it: "facing the camera" is from the front, never a side view or from behind.
+2. Scene Setting: one coherent light source and one or two textures of things that are actually in this scene's place. Do not name the textures the reference sheet already shows.
+3. Action Progression: what physically happens, chronological, present tense, concrete verbs. Every event the user's text names happens on screen here, completed, never only approached. Spell the main event as two or three physical beats in order: where the one acting starts, the contact itself (grabs, pulls, pushes), and where it ends up.
+4. Character Definition: who is in frame and what they do -- build, visible clothing, physical acting beats (jaw clenches, hand tightens). Never abstract emotion labels. The appearance is on the sheet; describe the motion. A character the event happens to reacts to it with the body; never give them a calm smile at the camera while it happens.
+5. Camera Movement: always write this sentence. Translate any camera motion the user described into the optical term (fast zoom onto the face -> crash zoom; rises over the trees -> crane lift; follows alongside -> side tracking shot). If the user described no camera behaviour, choose the one move or the stillness that serves the action, and never one that contradicts anything the user said about the shot.
+6. Audio Integration: full soundscape -- environmental sound, foley, background music (or "no music"), and any dialogue quoted exactly with its delivery.
+7. Closing detail: two concrete secondary details about something already named -- its material or texture, and a small continuing movement or its exact position in the frame. Never introduce a new object and never praise the shot.
 
 All seven sentences, whatever the length of the input. An eighth sentence means you kept too much. Every sentence names at least two concrete observable specifics.
 

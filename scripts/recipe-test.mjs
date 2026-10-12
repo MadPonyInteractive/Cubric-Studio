@@ -153,6 +153,7 @@ function refInputs(tag, slotTags = []) {
 const SEEN = {
     valley: 'Landscape view of a wide valley filled with a thick, white layer of low-lying mist and clouds that obscures the valley floor, viewed from a grassy hilltop during a golden hour sunset. In the lower foreground, a single person, appearing to be a young male with short dark hair, stands facing away from the camera toward the valley. He wears a bright red long-sleeved jacket, black trousers, and a black backpack. To his right, a black tripod with a camera mounted on top stands on the green and yellow-tinted grass. The hilltop consists of rolling, uneven terrain covered in short, yellowish-green grass that slopes downward toward the center and right midground. Several scattered, slender pine trees with dark trunks and green needles are distributed across the hillside, with a denser cluster of dark green trees appearing on the left midground, partially shrouded by wisps of fog. In the background, dark, silhouettes of mountain ranges stretch across the horizon under a sky transitioning from a deep orange near the horizon to a pale blue-grey at the top.',
     hamster: 'Small, tan-colored hamster stands upright on its hind legs in the center foreground of a close-up, eye-level shot. The hamster wears a miniature yellow firefighter\'s helmet featuring a red circular emblem with a gold fire axe and ladder design on the front, along with black trim. Resting just below the helmet\'s brim are small, silver-rimmed aviator sunglasses with dark, reflective lenses that partially obscure its eyes. The hamster is dressed in a tiny, detailed firefighter uniform consisting of a bright red jacket with black sleeves and large, reflective yellow and silver vertical stripes on the chest and shoulders, worn over a black shirt that is fastened at the waist with a thin white belt and a silver buckle. The hamster\'s light tan fur is fine and textured, with white patches on its chest and belly, and long, thin white whiskers extending from its snout. The background consists of a textured, light tan, sandy-colored wall in the upper half and a rough, light brown, weathered wooden surface in the lower half where the hamster stands.',
+    beach: 'Tropical turquoise ocean water meets a white sandy shoreline in a vertical, eye-level wide shot under a bright, clear blue sky. In the foreground, clear, translucent teal waves with white foam crests ripple over smooth, light beige sand, creating intricate caustic light patterns on the shallow seabed. The shoreline curves gently from the bottom right toward the midground on the right side. The ocean occupies the left half of the frame, transitioning from a shallow, bright cyan near the shore to a deep cerulean blue at the distant horizon line. The sky is a vibrant azure, featuring a bright, white sun in the upper left corner that radiates a subtle lens flare. Fluffy, bright white cumulus clouds are scattered across the sky, with a larger cluster of textured, billowy clouds positioned in the midground on the right side. The horizon is a straight, sharp line dividing the deep blue sea from the light blue sky. The lighting is bright and direct from above, creating high contrast and sharp reflections on the moving water\'s surface. The photograph has a high-definition, crisp quality with a deep depth of field that maintains clarity from the foamy bubbles in the immediate foreground to the distant horizon.',
     woman: 'Young woman with tan skin sits on the edge of a turquoise swimming pool, her lower legs submerged in the water, facing the camera with a smile that reveals her white teeth. She has long, wavy hair that transitions from dark brown at the roots to a vibrant magenta pink at the ends, cascading over her right shoulder. She wears a fitted, ribbed, teal-colored one-piece swimsuit with thin spaghetti straps and a scooped neckline. Her right hand rests on the dark stone ledge of the pool behind her, while her left hand is raised near her shoulder, fingers slightly curled, with a thin gold ring on her ring finger. She is positioned in the center foreground, framed by lush tropical vegetation. To her left, large green leaves and bright red hibiscus flowers are visible, with one hibiscus blossom prominently displayed near her shoulder. The background is a dense thicket of green tropical foliage and flowers, creating a shallow depth of field that softly blurs the greenery.',
 };
 
@@ -170,9 +171,10 @@ function seenInputs(tag) {
         valley: { kind: 'place', name: 'a wide valley of white mist below a grassy hilltop at golden sunset' },
         hamster: { kind: 'animal', name: 'a tan hamster in a yellow firefighter helmet, aviator sunglasses and red firefighter uniform' },
         woman: { kind: 'person', name: 'a young woman with tan skin, long wavy dark-brown-to-magenta hair and a teal swimsuit' },
+        beach: { kind: 'place', name: 'a tropical turquoise ocean meeting a white sandy shoreline under a clear blue sky' },
     }[look] });
     const picnic = 'The woman is Facing the camera and sitting on a towel, having a picnic in the forest, and the guinea pig Dressed as a fireman is stealing one of her oranges right In front of her, When she notices she becomes surprised.';
-    const tier = (name, roles, idea, captions) => ({ name, job, roles, captions, input: withReferences(idea, captions.map(c => c.tag), captions) });
+    const tier = (name, roles, idea, captions, scene) => ({ name, job, roles, scene, captions, input: withReferences(idea, captions.map(c => c.tag), captions) });
     return [
         tier('seen-picnic', { [p1]: { role: null, look: /pink|magenta|teal|turquoise|swimsuit/i }, [p2]: { role: null, look: /helmet|tan|sunglasses|uniform|hamster/i }, [p3]: { role: 'setting', look: /valley|mist|hill|sunset/i } },
             picnic, [cap(p1, 'woman'), cap(p2, 'hamster'), cap(p3, 'valley')]),
@@ -181,6 +183,20 @@ function seenInputs(tag) {
             picnic, [cap(p1, 'valley'), cap(p2, 'woman'), cap(p3, 'hamster')]),
         tier('seen-swapped', { [p1]: { role: 'setting', look: /valley|mist|hill|sunset/i }, [p2]: { role: null, look: /helmet|tan|sunglasses|uniform|hamster/i } },
             'a guinea pig dressed as a fireman sits on the grass and watches the sunset', [cap(p1, 'valley'), cap(p2, 'hamster')]),
+        // Fabio's eye test 3 (Gemma 4 26B): "from the side" for a woman facing the camera and the
+        // recipe's own "low sun through pines" / "worn wool" on a beach. A camera move the user did
+        // not describe is the enhancer's pick (Fabio 2026-10-12), so it is not checked.
+        tier('seen-beach', { [p1]: { role: null, look: /helmet|tan|sunglasses|uniform|hamster/i }, [p2]: { role: null, look: /pink|magenta|teal|turquoise|swimsuit/i }, [p3]: { role: 'setting', look: /ocean|beach|shore|sand/i } },
+            'The woman is facing the camera and having a picnic at the beach. The hamster shows up and steals one of her oranges.',
+            [cap(p1, 'hamster'), cap(p2, 'woman'), cap(p3, 'beach')],
+            // The shot's viewpoint is the scene's first sentence; "scurries from the side" later is a direction.
+            [{ name: 'facing the camera kept', re: /\n\n[^.]*\b(from the side|side view|from behind|in profile)\b/i, absent: true },
+                { name: 'no light or texture borrowed from the recipe', re: /\b(pines?|wool)\b/i, absent: true },
+                // T5 run 2: "scurries close to her", no theft, and the judge gave it 2/2/2.
+                // The theft, named or played out: Gemma 26B writes "grabs an orange and runs toward the water".
+                { name: 'the theft happens', re: /\b(steal|stole|snatch)\w*|\b(grabs?|pulls?|takes?|seizes?)\b[^.]*\b(runs?|scurries|scampers|darts|dashes|carries|away|off)\b/i },
+                // ref2v_007 (Fabio's render): "She smiles at the camera, her gaze steady" read as her handing it over.
+                { name: 'no calm smile at the camera through the theft', re: /\bsmil\w*\s+(\w+\s+){0,3}(at|to(wards?)?)\s+the camera\b/i, absent: true }]),
     ];
 }
 
@@ -233,7 +249,7 @@ function hasTerm(out, term) {
 
 /** Objective checks — no model opinion involved. Exported for scripts/agent-test.mjs, which
  *  runs the agent's generate prompts through the same bar (MPI-774). */
-export function runChecks(tier, input, out, mode, style, isRegisterTier, roles = null) {
+export function runChecks(tier, input, out, mode, style, isRegisterTier, roles = null, scene = null) {
     const n = words(out);
     const checks = [
         { name: 'non-empty', ok: out.trim().length > 0, detail: `${n} words` },
@@ -336,6 +352,10 @@ export function runChecks(tier, input, out, mode, style, isRegisterTier, roles =
             detail: line ? line.slice(0, 80) : 'no line',
         });
         checks.push({ name: `picture look: ${tag} ${look}`, ok: !!line && look.test(line), detail: line ? 'checked' : 'no line' });
+    }
+    for (const { name, re, absent } of scene ?? []) {
+        const hit = re.exec(out);
+        checks.push({ name: `scene: ${name}`, ok: absent ? !hit : !!hit, detail: hit ? `found: ${hit[0]}` : 'not found' });
     }
 
     // The condense job is the one length rule a budget alone can't prove.
@@ -604,7 +624,7 @@ async function main() {
             });
             // A seen tier's picture lines are the app's (`withPictureLines`), as `enhance()` writes them.
             const out = withPictureLines(text.trim(), tier.captions ?? []);
-            const checks = runChecks(tier.name, tier.input, out, mode, style, isRegisterTier, tier.roles);
+            const checks = runChecks(tier.name, tier.input, out, mode, style, isRegisterTier, tier.roles, tier.scene);
             const checksOk = checks.every((c) => c.ok);
 
             // Never judge an empty output: asked to grade nothing, the judge invents

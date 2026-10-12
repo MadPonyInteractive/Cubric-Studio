@@ -41,6 +41,7 @@ Rules:
 - Role word (`setting:`, `prop:`, `character:`) is optional. Unless another line says `character:`, a Picture 1 with no role word is the character.
 - Two-word labels ("the backpack") lose the prop. Full descriptions hold. Describe what you can see or what the user told you; never invent appearance not mentioned.
 - The scene paragraph follows standard LTX seven-sentence prose (same structure as `t2v_ms`): shot establishment, scene setting, action, character, camera, audio, closing detail. The scene describes what happens; the sheet handles what things look like.
+- Reference to Video differs from text-to-video on the camera: when the user describes no camera behaviour, pick the move or stillness that serves the action (Fabio, 2026-10-12). Keep anything the user did say about the shot: "facing the camera" is a front view, never a side view. Every event the user names happens on screen, finished, played out as two or three physical steps ("scurries in, grabs the orange, runs off toward the water", never just "steals"), and the person it happens to reacts with the body, not a calm smile at the camera (render `ref2v_007`: a one-clause theft plus a smile came out as her handing the orange over).
 - No `<Picture n>` tags in the scene paragraph and no `### Reference Sheet Description` heading -- the app writes those.
 
 ### What makes a good reference sheet

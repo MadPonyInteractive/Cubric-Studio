@@ -32,7 +32,36 @@ output to a file, never through `tee`. ~5 min a sweep once leased; the queue is 
 directed = cowboy + Picture 1; overlong = samurai + Picture 1, 2 + Audio 1. Shared with Wan/Seedance: a tier
 change there moves their baselines too.
 
-**STATE (2026-10-12, session 2b4da86d) - read this first:**
+**STATE (2026-10-12 evening, session 5cb627a7) - read this first:**
+- Fabio ran eye test 3 WITHOUT clearing his sidecars, beach picture in place of the forest, text "The woman is
+  facing the camera and having a picnic at the beach. The hamster shows up and steals one of her oranges." (DeepInfra
+  Gemma 4 26B). Lines right (beach got a fresh name + `setting:`); "rat" = the stale kept name, as predicted. SCENE
+  bugs: "from the side" for a woman facing the camera; "Low sun through pines" + "worn wool" copied verbatim from
+  the r2v SCENE RULES examples (the beach look has a high midday sun, no pines); an invented "slow zoom".
+- FIXED in the r2v prompt: light/texture examples removed ("only light that belongs in this scene's place");
+  sentence 1 keeps a stated facing ("facing the camera" = from the front); sentence 5 bans an undescribed move;
+  sentences 6 and 7 were fused on one line ("delivery.7.") - split. Harness: tier `seen-beach` (his exact text +
+  real beach look) with `scene` checks (no side/behind/profile, "remains static", no pines/wool); `runChecks` takes
+  `scene`. Tests + eslint green. Sweep T4 ALL PASS 24/24 (validation.md); left: "grass"/"dirt" invented on the
+  beach 3 of 6 lines. T4 is the first full green on the CURRENT prompt (T3 ran the old one): Step 3
+  wants one more after Fabio's eye test 3.
+- DECIDED (Fabio 2026-10-12, eye test 3b/3c "no fail"): (1) his sidecars are NOT cleared - "it doesn't matter if
+  the hamster keeps being called a rat"; (2) with no camera behaviour described, the ENHANCER PICKS the move or
+  stillness (r2v sentence 5, dos, donts); only a contradiction of the user's shot words is wrong. The `seen-beach`
+  static check is gone; the DeepInfra 26B sweep is moot. Sweep T5 ALL PASS 24/24, but read by eye beach run 2
+  dropped the theft ("scurries close to her", judge 2/2/2). Added `seen-beach` check "the theft happens" (T4 3/3,
+  T5 2/3 regraded) and r2v sentence 3 "every event the user's text names happens on screen, completed". Sweep T6
+  T6 21/24 (known flakes: uncaptioned medium, overlong `<Audio 1>` drop; T7 overlong 3/3), **T8 ALL PASS 24/24 =
+  STEP 3 DONE** (T4 + T8). Agent guide `docs/agent/models/ltx-2.3.md` r2v Rules synced (camera pick, facing, events).
+- Fabio's render ref2v_007 (T8's 12B beach prompt, 3 s) FAILED: ~0.75 s garbled web-page collage, then she hands
+  the orange over. Collage suspect = 3 s (ref2v_001-006 all 5 s, clean); asked Fabio for a 5 s re-render, same seed.
+  Action fixed: r2v sentence 3 beats, sentence 4 no calm smile; checks recalibrated. Fabio OK'd DeepInfra Gemma 26B
+  sweeps (up to 5, ~8 cents): D2 ALL PASS 24/24 (~3 cents spent). Local 12B still loses the theft (T9/T10): a
+  12B limit, not the recipe; users run 26B (cloud) or E4B (local default, untested on this).
+- Fabio rendered ref2v_008 (5 s) + 009 (3 s) from his 26B Enhance: "it worked", both clean openings. Collage =
+  seed-bound 1 of 9, not length (doc noted). NEXT: commit; Fabio's `draft -> validated` flip; close-out.
+
+**STATE (2026-10-12, session 2b4da86d):**
 - FIXED ROLES BUILT. `pictureCaptions` asks the describer once per picture `KIND_QUESTION` (person/animal/place/
   object), kept as the sidecar's TOP-LEVEL `lookKind` (not `look.kind`: update-meta merges shallowly and Cosmo's
   `storeLook` replaces the whole `look`, so it would wipe it). `registry.withRoles(text, captions)` rewrites each
