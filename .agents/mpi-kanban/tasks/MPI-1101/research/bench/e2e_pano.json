@@ -1,0 +1,9 @@
+{
+ "flowId": "make-seamless",
+ "fields": {
+  "direction": "left-right",
+  "Input_Positive": "A 360 panorama of a lush tropical garden: big shade trees, palms and leafy ground cover either side of a curved stone-paved path, sun through the canopy, blue sky."
+ },
+ "media": [{"role": "image1", "url": "/project-file?path=C%3A%5CUsers%5CFabio%5CAppData%5CLocal%5CTemp%5Cclaude%5CC--AI-Mpi-Cubric-Vision%5C5c333500-c796-40b6-bc0d-825ecef096c4%5Cscratchpad%5Cprojects%5CSeamless%20E2E%5CMedia%5C.preview-assets%5C72fcf62eb98b6452b90701c5adabcf7b044672d561b9a4ac78d7ccbbac3c450c.png"}],
+ "cardName": "seamless pano e2e"
+}

@@ -10,7 +10,7 @@
  *   POST /seamless/prepare  { sourcePath, handles:{left,right,top,bottom}, lightingFlatten? }
  *     → { ok:true, runId, width, height, bandX, bandY, windows }
  *         bandX/bandY: { start:number, end:number } | null
- *         windows: [{ i, rect:{left,top,width,height}, axis:'x'|'y' }, ...]
+ *         windows: [{ i, rect, paint, band, axis:'x'|'y' }, ...]  (rects {left,top,width,height}; planAxis)
  *   POST /seamless/window   { runId, i }
  *     → { ok:true, imagePath, maskPath }
  *   POST /seamless/paste    { runId, i, resultPath }
@@ -22,8 +22,9 @@
  * the x-seam band is [w//2 - right*w, w//2 + left*w) and the y-seam band is
  * [h//2 - bottom*h, h//2 + top*h).  A handle pair at 0 → no band on that axis.
  *
- * For the x-band (vertical stripe, seam runs along y): windows split along y (~1024 target)
- * and along x if band is wider than 4096.  Same pattern transposed for y-band.
+ * For the x-band (vertical stripe, seam runs along y): windows walk down y (~1024 target), each
+ * cut with CONTEXT_PX of picture either side of the band and OVERLAP_PX over the window before
+ * (planAxis).  Same pattern transposed for y-band.
  *
  * sharp traps observed in this file (see ~/.claude/memory/tools/sharp.md):
  *  - limitInputPixels:false on EVERY input descriptor (constructor, raw, composite, joinChannel)
@@ -47,6 +48,9 @@ const SCRATCH_BASE   = path.join(os.tmpdir(), 'cubric-seamless');
 const KEEP_MS        = 24 * 60 * 60 * 1000;   // 24 h, same as cubric-engine-inputs
 const WINDOW_TARGET  = 1024;                   // target px along the seam per window
 const FEATHER_PX     = 32;                     // inward feather at band edges
+const CONTEXT_PX     = 256;                    // least picture each side of the band a cut shows the model
+const OVERLAP_PX     = 256;                    // least seam length a window re-reads from the one before
+const MAX_CUT        = 4096;                   // longest edge of a cut across the band
 const INPUT          = { limitInputPixels: false };
 
 /** runId comes off the wire: only a uuid may name a run dir, never a path that climbs out. */
@@ -218,88 +222,79 @@ async function lightenFlatten(srcPath, amount, outPath) {
 // ── Window plan ───────────────────────────────────────────────────────────────
 
 /**
- * Plan windows for one band axis.
+ * Plan windows for one band axis. Each window has three rects, in rolled-image pixels:
+ *   rect  — the CUT the model sees: the band plus CONTEXT_PX of picture each side of it.
+ *           A cut that was only the band (the first build) left the model no surroundings to
+ *           continue, so every window came back a new picture with hard edges (MPI-1101 Phase 4).
+ *   paint — what the model repaints (its mask): the band, minus the OVERLAP_PX the window
+ *           re-reads from the window before it along the seam, which is context, already painted.
+ *   band  — what is pasted back: the band's part of the cut. Outside the band nothing is pasted.
  *
- * axis 'x' (x-seam, vertical stripe): the band covers [band.start, band.end) in x,
- *   full height h.  Seam runs along y, so windows tile y at ~WINDOW_TARGET px each.
- *   If band width > 4096, also tile x.
+ * axis 'x' (x-seam, vertical stripe [band.start, band.end) in x): windows walk down y,
+ *   WINDOW_TARGET tall. axis 'y': the same, transposed.
  *
- * axis 'y' (y-seam, horizontal stripe): the band covers [band.start, band.end) in y,
- *   full width w.  Seam runs along x, so windows tile x at ~WINDOW_TARGET px each.
- *   If band height > 4096, also tile y.
- *
- * @returns {{ rect:{left,top,width,height}, axis:string }[]}
+ * @returns {{ rect:Object, paint:Object, band:Object, axis:string }[]}
  */
 function planAxis(w, h, band, axis) {
     if (!band) return [];
     const { start, end } = band;
-    const bLen = end - start;   // band thickness (perpendicular to seam)
-    if (bLen <= 0) return [];
+    if (end - start <= 0) return [];
+    const along = axis === 'x' ? h : w;            // the seam's length
+    const across = axis === 'x' ? w : h;
+    // The bench's proportions (MPI-1101 rounds 1-5, Phase 4): the model needs about half the band
+    // again of picture on each side, or the band is most of what it sees and it paints a new
+    // picture there. Square cuts, so a long seam does not get one tall sliver of context.
+    const ctx = Math.max(CONTEXT_PX, Math.min(Math.round((end - start) / 2), Math.floor((MAX_CUT - (end - start)) / 2)));
+    // ponytail: a band wider than MAX_CUT minus its context is split into side-by-side columns,
+    // which meet in a straight line inside the band. Only an 8K+ picture with handles past ~25%
+    // a side gets there; overlap the columns the way the windows overlap if one ever shows.
+    const span = MAX_CUT - 2 * ctx;
+    const nCols = Math.max(1, Math.ceil((end - start) / span));
+    const colW = Math.ceil((end - start) / nCols);
+    const box = (a0, a1, c0, c1) => (axis === 'x'
+        ? { left: c0, top: a0, width: c1 - c0, height: a1 - a0 }
+        : { left: a0, top: c0, width: a1 - a0, height: c1 - c0 });
     const windows = [];
-
-    if (axis === 'x') {
-        // Tile along y (seam direction) at ~WINDOW_TARGET, along x if bLen > 4096.
-        const nSeam  = Math.max(1, Math.ceil(h    / WINDOW_TARGET));
-        const nPerp  = Math.max(1, Math.ceil(bLen / 4096));
-        const yStep  = Math.ceil(h    / nSeam);
-        const xStep  = Math.ceil(bLen / nPerp);
-        for (let kx = 0; kx < nPerp; kx++) {
-            const relL = kx * xStep;
-            const ww   = Math.min(xStep, bLen - relL);
-            if (ww <= 0) continue;
-            for (let ky = 0; ky < nSeam; ky++) {
-                const top  = ky * yStep;
-                const wh   = Math.min(yStep, h - top);
-                if (wh <= 0) continue;
-                windows.push({ rect: { left: start + relL, top, width: ww, height: wh }, axis });
-            }
-        }
-    } else {
-        // Tile along x (seam direction) at ~WINDOW_TARGET, along y if bLen > 4096.
-        const nSeam  = Math.max(1, Math.ceil(w    / WINDOW_TARGET));
-        const nPerp  = Math.max(1, Math.ceil(bLen / 4096));
-        const xStep  = Math.ceil(w    / nSeam);
-        const yStep  = Math.ceil(bLen / nPerp);
-        for (let ky = 0; ky < nPerp; ky++) {
-            const relT = ky * yStep;
-            const wh   = Math.min(yStep, bLen - relT);
-            if (wh <= 0) continue;
-            for (let kx = 0; kx < nSeam; kx++) {
-                const left = kx * xStep;
-                const ww   = Math.min(xStep, w - left);
-                if (ww <= 0) continue;
-                windows.push({ rect: { left, top: start + relT, width: ww, height: wh }, axis });
-            }
+    for (let k = 0; k < nCols; k++) {
+        const b0 = start + k * colW;
+        const b1 = Math.min(end, b0 + colW);
+        if (b1 <= b0) continue;
+        const c0 = Math.max(0, b0 - ctx);
+        const c1 = Math.min(across, b1 + ctx);
+        // A seam up to MAX_CUT long is ONE window, as on the bench: a later window that sees only the
+        // seam's far end (a panorama's floor) paints a picture of its own there.
+        const len = along <= MAX_CUT ? along : Math.max(WINDOW_TARGET, c1 - c0);
+        const overlap = Math.max(OVERLAP_PX, Math.round(len / 4));
+        let painted = 0;
+        while (painted < along) {
+            const a0 = painted === 0 ? 0 : Math.max(0, Math.min(painted - overlap, along - len));
+            const a1 = Math.min(along, a0 + len);
+            windows.push({ rect: box(a0, a1, c0, c1), paint: box(painted, a1, b0, b1), band: box(a0, a1, b0, b1), axis });
+            painted = a1;
         }
     }
     return windows;
 }
 
-// ── Feathered mask ────────────────────────────────────────────────────────────
+// ── Masks ─────────────────────────────────────────────────────────────────────
 
 /**
- * Build a 1-channel (greyscale) mask buffer for paste compositing.
- * Full white (255) in the center; ramps to 0 at the band-perpendicular edges
- * (inward feather only — band-parallel edges that are seam-internal stay white).
- *
- * axis 'x': feather at left and right edges of the window cut (band boundaries).
- * axis 'y': feather at top and bottom edges.
- *
- * The ramp is linear: 0 at the edge pixel, 255 at feather_px inward.
+ * A 1-channel mask the size of `rect`: 255 inside `sub` (in the same image space), 0 outside.
+ * With `featherAxis`, the inside ramps from 0 at `sub`'s edges across that axis (the band's
+ * edges) to 255 FEATHER_PX inward, so a paste fades into the picture beside the band and never
+ * reaches past it. The ramp is linear.
  */
-function makeMaskBuffer(ww, wh, axis) {
-    const buf = Buffer.allocUnsafe(ww * wh);
-    const fp  = Math.max(1, Math.min(FEATHER_PX,
-        axis === 'x' ? Math.floor(ww / 4) : Math.floor(wh / 4)));
-
-    for (let y = 0; y < wh; y++) {
-        for (let x = 0; x < ww; x++) {
-            let alpha;
-            if (axis === 'x') {
-                const d = Math.min(x, ww - 1 - x);
-                alpha = d >= fp ? 255 : Math.round(255 * d / fp);
-            } else {
-                const d = Math.min(y, wh - 1 - y);
+function makeMaskBuffer(rect, sub, featherAxis = null) {
+    const ww = rect.width, wh = rect.height;
+    const buf = Buffer.alloc(ww * wh);
+    const x0 = sub.left - rect.left, y0 = sub.top - rect.top;
+    const sw = sub.width, sh = sub.height;
+    const fp = Math.max(1, Math.min(FEATHER_PX, Math.floor((featherAxis === 'x' ? sw : sh) / 4)));
+    for (let y = Math.max(0, y0); y < Math.min(wh, y0 + sh); y++) {
+        for (let x = Math.max(0, x0); x < Math.min(ww, x0 + sw); x++) {
+            let alpha = 255;
+            if (featherAxis) {
+                const d = featherAxis === 'x' ? Math.min(x - x0, x0 + sw - 1 - x) : Math.min(y - y0, y0 + sh - 1 - y);
                 alpha = d >= fp ? 255 : Math.round(255 * d / fp);
             }
             buf[y * ww + x] = alpha;
@@ -376,7 +371,7 @@ async function windowCut(runId, i) {
     const win     = state.windows[i];
     if (!win) throw new Error(`seamless: no window ${i} in run ${runId}`);
 
-    const { rect, axis } = win;
+    const { rect } = win;
     const workPath = path.join(runDir, 'working.png');
 
     // Cut image (sharp fixed order: extract → materialise → PNG).
@@ -386,8 +381,8 @@ async function windowCut(runId, i) {
         .png()
         .toFile(imgPath);
 
-    // Mask: the full window is within the band, feathered at band-perpendicular edges.
-    const maskBuf  = makeMaskBuffer(rect.width, rect.height, axis);
+    // The model's mask: what is still to paint (the graph does its own edge blend).
+    const maskBuf  = makeMaskBuffer(rect, win.paint);
     const maskPath = path.join(runDir, `win_${i}_mask.png`);
     await sharp(maskBuf, {
         raw: { width: rect.width, height: rect.height, channels: 1 },
@@ -413,8 +408,9 @@ async function paste(runId, i, resultPath) {
     const { rect, axis } = win;
     const workPath = path.join(runDir, 'working.png');
 
-    // Build feathered alpha mask buffer.
-    const maskBuf = makeMaskBuffer(rect.width, rect.height, axis);
+    // Paste only the band's part of the cut, feathered inward at the band's edges: the context
+    // the model saw either side stays the picture's own, byte for byte.
+    const maskBuf = makeMaskBuffer(rect, win.band, axis);
 
     // Materialise result as 3-channel raw at the window's exact size.
     // Trap 1: flatten(), not removeAlpha(), before joinChannel on the next pipeline.

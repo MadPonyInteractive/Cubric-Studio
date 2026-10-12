@@ -1341,3 +1341,28 @@ test('the Object Stamp Flow carries its I/O, its model arm, its box and its mode
             `${file}: crop ${id} must derive mask_expand_pixels from the box size, not hard-code it (law 8)`);
     }
 });
+
+test('the Make seamless Flow carries its window I/O, the joined prompt and NO reference (MPI-1101)', () => {
+    // flowMakeSeamless runs one WINDOW of the rolled picture: `image1` -> Input_Image (the cut)
+    // and `mask` -> Input_Mask (red = the band), both sent by js/utils/flowPasses.js.
+    const file = 'flow_make_seamless.json';
+    const have = titlesOf(file);
+    for (const title of ['input_image', 'input_mask', 'input_positive', 'input_seed', 'output_image']) {
+        assert.ok(have.has(title), `${file} must carry a node titled "${title}"`);
+    }
+    const graph = JSON.parse(fs.readFileSync(path.join(WORKFLOWS, file), 'utf8'));
+    // The instruction is baked in an UNTITLED node and Input_Positive (what the picture shows) is
+    // joined after it: `_buildParams` sends `Input_Positive: ''` on an empty prompt (the Outpaint trap).
+    const user = Object.entries(graph).find(([, n]) => n._meta?.title === 'Input_Positive');
+    const join = Object.values(graph).find(n => n.class_type === 'StringConcatenate'
+        && String(n.inputs?.string_b?.[0]) === user[0]);
+    assert.ok(join, 'Input_Positive must be JOINED after the bake, not replace it');
+    const bake = graph[join.inputs.string_a[0]];
+    assert.equal(bake?.class_type, 'MpiText', 'the join\'s first half must be the baked instruction');
+    assert.ok(!/^input_/i.test(bake._meta?.title || ''), 'the baked instruction must stay untitled');
+    // Bench rounds 1-3 (MPI-1101 validation.md): with a ReferenceLatent Klein copies the band,
+    // seam included. Pinned so a re-export from the Character Sheet branch cannot bring it back.
+    assert.ok(!Object.values(graph).some(n => n.class_type === 'ReferenceLatent'),
+        `${file} must carry no ReferenceLatent`);
+    assert.ok(Object.values(graph).some(n => n.class_type === 'LanPaint_KSampler'), `${file} repaints with LanPaint`);
+});

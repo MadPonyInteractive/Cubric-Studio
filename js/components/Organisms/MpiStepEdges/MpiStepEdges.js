@@ -63,6 +63,22 @@ export function normalizeValue(v) {
 }
 
 /**
+ * The bands a run repaints: ONE answer for the pass planner and the result Tiles view.
+ * The gizmo emits a value only once a handle is dragged, so an untouched step means what
+ * it SHOWS (`defaultValue`); a caller with no gizmo (the agent) names a `direction` field.
+ * @param {Partial<StepEdgesValue>|null|undefined} stepValue - the edges step's stored value
+ * @param {'left-right'|'top-bottom'|'both'|null|undefined} direction
+ * @returns {StepEdgesValue}
+ */
+export function edgesFor(stepValue, direction) {
+    if (['left', 'right', 'top', 'bottom'].some(k => stepValue?.[k] != null)) return normalizeValue(stepValue);
+    const d = defaultValue();
+    if (direction === 'left-right') return { ...d, top: 0, bottom: 0 };
+    if (direction === 'top-bottom') return { ...d, left: 0, right: 0 };
+    return d;
+}
+
+/**
  * Which axes carry a non-zero band — drives which axes the Tiles preview repeats on.
  * @param {StepEdgesValue} v
  * @returns {{x: boolean, y: boolean}}

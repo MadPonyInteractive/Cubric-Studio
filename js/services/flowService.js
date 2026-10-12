@@ -619,7 +619,7 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
                 { ...snapshot, runInputs, runMediaItems: media, runOriginProject, runLanding,
                   ...(nextPass ? { runPass: nextPass } : {}),
                   ...(nextPass?.replaceItemId ? landOnCard(done?.group, runLanding, runOriginProject) : {}),
-                  ...(last ? {} : { runNextPass }) }, callbacks, { tempId, run: handle }, io))
+                  ...(last ? {} : { runNextPass }) }, callbacks, { tempId, run: handle, described }, io))
         : legCallbacks;
 
     // EVERY enqueue of the run, whenever it happens, records its queue id on the handle.
@@ -659,8 +659,8 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
     // The picture put into words first (MPI-1036, flowEnhance.js § describe), on the describer
     // picked in Remote: every caller reaches the graph through here, so hand, agent and routine
     // runs are described alike. Like the cloud edit it enters the queue only when this is done.
-    // First call only. The answers go on to each later leg through `described` (MPI-1041); a
-    // multi-pass Flow that describes would need them carried into `runInputs` for each pass.
+    // First call only. The answers go on to each later leg and each later pass through
+    // `described` (MPI-1041; Make seamless's content line, MPI-1101).
     // The rules read every field the run has (`change`, `words` are not graph params), and a
     // CHECK's refusal carries its own code (a child-safety one: CHILD_SAFETY), so the hand, agent
     // and routine runs report the same code and words.

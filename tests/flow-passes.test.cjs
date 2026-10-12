@@ -91,6 +91,19 @@ test('getPlanner("outpaint") returns a function', async () => {
     assert.equal(typeof getPlanner('outpaint'), 'function');
 });
 
+// The lookup MpiBaseFlow._planPasses and agentDispatch use. A planner registered under a name no
+// FlowDef carries (it was `flowMakeOutpaint`, the op is `flowOutpaint`) silently ran Outpaint's
+// multi-pass frame as ONE pass.
+test('every built-in multi-pass FlowDef resolves its planner', async () => {
+    const { getPlanner } = await esm('js/utils/flowPasses.js');
+    const { FLOWS } = await esm('js/data/flowsRegistry.js');
+    const multi = FLOWS.filter(f => (f.steps || []).some(s => (s.kind === 'crop' && s.maxGrow) || s.kind === 'edges'));
+    assert.ok(multi.some(f => f.id === 'outpaint'), 'Outpaint is in the set');
+    for (const flow of multi) {
+        assert.equal(typeof (getPlanner(flow.passes) || getPlanner(flow.operation)), 'function', flow.id);
+    }
+});
+
 test('getPlanner("seamless") returns a function', async () => {
     const { getPlanner } = await esm('js/utils/flowPasses.js');
     assert.equal(typeof getPlanner('seamless'), 'function');
@@ -125,6 +138,9 @@ test('seamless planner: 1024×1024 left+right 10% → 1 window', async () => {
     assert.ok(img1, 'firstPassMedia has image1 role');
     assert.ok(mask, 'firstPassMedia has mask role');
     assert.equal(img1.filePath, '/project-file?path=win_0_img.png', 'image1 is the cut of window 0');
+    // The describer reads the WHOLE picture for the content line, not a window (mostly seam).
+    const whole = result.firstPassMedia.find(m => m.role === 'source');
+    assert.equal(whole?.filePath, mediaItems[0].filePath, 'pass 1 carries the whole picture on `source`');
     assert.deepEqual(result.runPass, { index: 1, count: 1, seamless: { runId: 'test-run-id', i: 0 } }, 'pass 1 pastes window 0');
 
     // /seamless/prepare was called with the right handles
@@ -175,17 +191,17 @@ test('seamless planner: next() carries runPass i/N, the window and the version t
     assert.equal(await result.next({ item: { id: 'v1' } }), null, 'no pass after the last');
 });
 
-// ── Seamless planner: 8192×4096 left+right 10% → N windows ─────────────────
+// ── Seamless planner: 16384×8192 left+right 10% → N windows ─────────────────
 
-test('seamless planner: 8192×4096 left+right 10% → N windows (planAxis maths)', async () => {
+test('seamless planner: 16384×8192 left+right 10% → N windows (planAxis maths)', async () => {
     const { getPlanner } = await esm('js/utils/flowPasses.js');
     const planner = getPlanner('seamless');
 
     const handles = { left: 10, right: 10, top: 0, bottom: 0 };
-    const expected = expectedWindowCount(8192, 4096, handles);
+    const expected = expectedWindowCount(16384, 8192, handles);
     assert.ok(expected >= 2, `pano has >= 2 windows (got ${expected})`);
 
-    const prepResp = _prepareResponse(8192, 4096, handles, 'pano-run');
+    const prepResp = _prepareResponse(16384, 8192, handles, 'pano-run');
     const { fetch } = _makeFetch(prepResp);
 
     const flow = _makeSeamlessFlow();

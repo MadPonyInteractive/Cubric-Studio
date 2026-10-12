@@ -6,7 +6,7 @@
  * Covers:
  *  - roll then unroll is byte-identical (odd and even sizes)
  *  - band math matches [n//2 - hi*n, n//2 + lo*n) for asymmetric handles and handle = 0
- *  - windows cover the full band, none > 4096, target ~1024 along the seam
+ *  - window paint tiles the band once, each cut carries context and overlap, none > 4096, ~1024 along the seam
  *  - paste changes ZERO pixels outside the band
  *  - a 16384x8192 synthetic completes
  *  - lighting flatten at 0 is a no-op; at >0 reduces a synthetic left-to-right gradient
@@ -109,46 +109,47 @@ test('planAxis: null band returns empty array', () => {
     assert.deepEqual(planAxis(1024, 1024, null, 'y'), []);
 });
 
-test('planAxis x-band: windows cover full band, none > 4096', () => {
-    const w = 4096, h = 8192;
-    const band = { start: 1638, end: 2458 };  // ~20% handles, 820 px wide
-    const wins = planAxis(w, h, band, 'x');
-
+// The contract (MPI-1101 Phase 4): the PAINT rects tile the band exactly once; each CUT shows the
+// model picture either side of the band (a cut that was only the band came back a new picture with
+// hard edges); each window after the first re-reads the one before; nothing is pasted outside the band.
+function checkPlan(w, h, band, axis) {
+    const wins = planAxis(w, h, band, axis);
     assert.ok(wins.length > 0, 'at least one window');
-
-    for (const { rect } of wins) {
-        assert.ok(rect.width  <= 4096, `width ${rect.width} <= 4096`);
-        assert.ok(rect.height <= 4096, `height ${rect.height} <= 4096`);
-        assert.ok(rect.left  >= band.start, 'window left >= band.start');
-        assert.ok(rect.left + rect.width <= band.end, 'window right <= band.end');
-        assert.equal(rect.axis, undefined); // axis is on the outer object
+    const painted = new Uint8Array(w * h);
+    const inBand = (x, y) => { const c = axis === 'x' ? x : y; return c >= band.start && c < band.end; };
+    const inside = (r, s) => s.left >= r.left && s.top >= r.top
+        && s.left + s.width <= r.left + r.width && s.top + s.height <= r.top + r.height;
+    for (const [k, { rect, paint, band: b }] of wins.entries()) {
+        assert.ok(Math.max(rect.width, rect.height) <= 4096, `cut ${rect.width}x${rect.height} <= 4096`);
+        assert.ok(inside(rect, b) && inside(b, paint), 'paint inside band-part inside cut');
+        const ctxLo = axis === 'x' ? b.left - rect.left : b.top - rect.top;
+        const ctxHi = axis === 'x' ? (rect.left + rect.width) - (b.left + b.width) : (rect.top + rect.height) - (b.top + b.height);
+        if (b.left > 0 && axis === 'x') assert.ok(ctxLo > 0, `window ${k} shows the picture before the band`);
+        if (axis === 'x' && b.left + b.width < w) assert.ok(ctxHi > 0, `window ${k} shows the picture after the band`);
+        if (axis === 'y' && b.top > 0) assert.ok(ctxLo > 0, `window ${k} shows the picture above the band`);
+        if (axis === 'y' && b.top + b.height < h) assert.ok(ctxHi > 0, `window ${k} shows the picture below the band`);
+        for (let y = paint.top; y < paint.top + paint.height; y++) {
+            for (let x = paint.left; x < paint.left + paint.width; x++) {
+                assert.ok(inBand(x, y), `painted ${x},${y} outside the band`);
+                assert.equal(painted[y * w + x], 0, `${x},${y} painted twice`);
+                painted[y * w + x] = 1;
+            }
+        }
     }
-
-    // Every y position in [0, h) must be covered by at least one window.
-    const covered = new Uint8Array(h);
-    for (const { rect } of wins) {
-        for (let y = rect.top; y < rect.top + rect.height; y++) covered[y] = 1;
+    for (let y = 0; y < h; y += 7) for (let x = 0; x < w; x += 7) {
+        if (inBand(x, y)) assert.equal(painted[y * w + x], 1, `${x},${y} in the band never painted`);
     }
-    for (let y = 0; y < h; y++) assert.equal(covered[y], 1, `y=${y} not covered`);
+    return wins;
+}
+
+test('planAxis x-band: paint tiles the band once, cuts carry context, none > 4096', () => {
+    const wins = checkPlan(4096, 8192, { start: 1638, end: 2458 }, 'x');
+    // Every window after the first re-reads the end of the one before it.
+    for (let k = 1; k < wins.length; k++) assert.ok(wins[k].rect.top < wins[k].paint.top, `window ${k} overlaps the one before`);
 });
 
-test('planAxis y-band: windows cover full band, none > 4096', () => {
-    const w = 8192, h = 4096;
-    const band = { start: 1434, end: 2662 };  // ~20% handles
-    const wins = planAxis(w, h, band, 'y');
-
-    for (const { rect } of wins) {
-        assert.ok(rect.width  <= 4096, `width ${rect.width} <= 4096`);
-        assert.ok(rect.height <= 4096, `height ${rect.height} <= 4096`);
-        assert.ok(rect.top  >= band.start, 'window top >= band.start');
-        assert.ok(rect.top + rect.height <= band.end, 'window bottom <= band.end');
-    }
-
-    const covered = new Uint8Array(w);
-    for (const { rect } of wins) {
-        for (let x = rect.left; x < rect.left + rect.width; x++) covered[x] = 1;
-    }
-    for (let x = 0; x < w; x++) assert.equal(covered[x], 1, `x=${x} not covered`);
+test('planAxis y-band: paint tiles the band once, cuts carry context, none > 4096', () => {
+    checkPlan(8192, 4096, { start: 1434, end: 2662 }, 'y');
 });
 
 test('planAxis x-band: target ~1024 window height along seam', () => {
@@ -161,21 +162,22 @@ test('planAxis x-band: target ~1024 window height along seam', () => {
     }
 });
 
-test('planAxis: wide x-band (>4096) splits into multiple x-columns', () => {
-    // Band width 6000 should produce 2 x-columns
-    const w = 16384, h = 1024;
-    const band = { start: 5000, end: 11000 };  // 6000 wide
-    const wins = planAxis(w, h, band, 'x');
-
-    // All x positions within band must be covered.
-    const covered = new Uint8Array(w);
-    for (const { rect } of wins) {
-        for (let x = rect.left; x < rect.left + rect.width; x++) covered[x] = 1;
+test('makeMaskBuffer: 0 outside the sub-rect; feathered inward, never past it', () => {
+    const rect = { left: 100, top: 0, width: 20, height: 4 };
+    const sub = { left: 105, top: 0, width: 10, height: 4 };
+    const hard = makeMaskBuffer(rect, sub);
+    const soft = makeMaskBuffer(rect, sub, 'x');
+    for (let x = 0; x < 20; x++) {
+        const insideSub = x >= 5 && x < 15;
+        assert.equal(hard[x], insideSub ? 255 : 0, `hard x=${x}`);
+        if (!insideSub) assert.equal(soft[x], 0, `soft x=${x} past the band`);
     }
-    for (let x = band.start; x < band.end; x++) assert.equal(covered[x], 1, `x=${x} not covered`);
-    // Positions outside band should not be covered.
-    for (let x = 0; x < band.start; x++) assert.equal(covered[x], 0, `x=${x} should not be covered`);
-    for (let x = band.end; x < w; x++)   assert.equal(covered[x], 0, `x=${x} should not be covered`);
+    assert.equal(soft[5], 0, 'the band edge ramps from 0');
+    assert.ok(soft[9] > soft[6], 'and rises inward');
+});
+
+test('planAxis: wide x-band (>4096) splits into columns, still painted once', () => {
+    checkPlan(16384, 1024, { start: 5000, end: 11000 }, 'x');
 });
 
 // ── Roll / unroll ─────────────────────────────────────────────────────────────

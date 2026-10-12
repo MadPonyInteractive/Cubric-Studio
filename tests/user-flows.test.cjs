@@ -142,17 +142,19 @@ test('shape: ids, keys the app owns, required fields, preview files', () => {
 });
 
 // The allowlists and the title law must describe REAL Flows, or the first MPI Flow
-// republished as a package (MPI-781) is rejected by its own app. Two known exceptions:
-// a `byModel` graph switch (a package carries one graph), and absolute paths baked into
+// republished as a package (MPI-781) is rejected by its own app. Three known exceptions:
+// a `byModel` graph switch (a package carries one graph), absolute paths baked into
 // shipped graphs — harmless in the app, where the injector overwrites them, but a
-// package must ship clean, so the rule stays.
+// package must ship clean, so the rule stays — and a Flow run window by window
+// (`pastesToWorkingCopy`, Make seamless): its pass planner is keyed to the BUILT-IN op id
+// (js/utils/flowPasses.js), so as a package it could not plan a single window.
 test('every shipped Flow, expressed as a package, validates', () => {
     const { COMMANDS } = require('../js/data/commandRegistry.js');
     const { UNIVERSAL_WORKFLOWS } = require('../js/data/modelConstants/universal_workflows.js');
     const offenders = [];
     for (const { id, operation, workflow, ...flow } of FLOWS) {
         const uw = UNIVERSAL_WORKFLOWS[operation];
-        if (uw.byModel) continue;
+        if (uw.byModel || COMMANDS[operation].pastesToWorkingCopy) continue;
         const { universal, ...op } = COMMANDS[operation];
         const g = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'comfy_workflows', uw.workflow), 'utf8'));
         // A built-in Flow with no art yet is a supported state (flow-field-constraints);

@@ -2,7 +2,7 @@
 
 ## Current State
 
-**Where it stands (handoff 2026-10-12, session 3feb22c3):** card in `doing`, all below COMMITTED. Done + verified (`npm test` 3234/0): Parallel Batch A1-A3, Phase 3 media ctx, D3 planners (`js/utils/flowPasses.js`), D2 one-card landing RESHAPED (replace-version, `runPass`, see Plan Drift), result Tiles slider. Phase 0 DONE after 5 rounds: the recipe is Klein, NO ReferenceLatent, baked instruction + one content line (Plan Drift + validation.md). Fabio: build FROM-IMAGE first with Klein, skip Krea; from-scratch textures later. NEXT: Phase 2 = `raw/flow_make_seamless.json` WITHOUT ReferenceLatent + the content line (user prompt, else `describe`), run `/mpi-add-flow`; then the Phase 3 FlowDef (image1 required, no Direction/t2i leg, `result: { tiles: true }`, edges step), agent/MCP, Phase 4.
+**Where it stands (2026-10-12, session 5c333500, handoff):** card in `doing`. Phases 0-3 DONE; Phase 4 automated half DONE on the agent path (8K pano: one coherent scene across the join, one card, outside band byte-identical; validation.md). NOT committed this session yet - the handoff commits. FABIO EYE TEST FAILED (band edges show as two vertical lines, validation.md). NEXT: fix the band-edge join, then re-show; was: (1) Fabio's eye test on `research/e2e/pano_join_1to1.jpg` + `pano_tiled_2x.jpg` (is the ~0.3x band too soft at 8K? is the 10% default band right?); (2) the Flow screen in an isolated app: status bar i/N on a 16K picture (multi-window), no second Generating card, Tiles slider, a texture both ways; (3) one run with the box EMPTY (describer path; ask Fabio first if the isolated profile's describer is a paid cloud pick).
 
 **Project mode:** scalable-foundation. **Design approved by Fabio 2026-10-12** - the whole record, with
 every ruling and the prior art, is `research/brainstorm.md`. In one breath: a dev-gated Flow,
@@ -136,7 +136,7 @@ tests, no shared file.
 
 ## Phase 2: Graphs + op registration (after Phase 0 names the model)
 
-- [ ] Build `comfy_workflows/raw/flow_make_seamless.json` (the D-graph above, with the bench's winning
+- [x] Build `comfy_workflows/raw/flow_make_seamless.json` (the D-graph above, with the bench's winning
   denoise; Krea 2 instead if it won - then the Krea pair slot + turbo field per
   `docs/playbooks/add-flow/any-of-models.md`) and `raw/flow_make_seamless_t2i.json`; convert with
   `COMFY_URL=http://127.0.0.1:48188 node scripts/workflow-to-api.mjs` or `sync-raw-workflows.mjs`
@@ -151,7 +151,7 @@ tests, no shared file.
 
 Sequential, not a batch: every task edits `MpiBaseFlow.js` or `flowService.js`.
 
-- [ ] FlowDef in `flowsRegistry.js`, dev-gated (`...(APP_CONFIG.dev_mode ? [...] : [])`): optional
+- [x] FlowDef in `flowsRegistry.js`, dev-gated (`...(APP_CONFIG.dev_mode ? [...] : [])`): optional
   `image1` (`mode:'upto', max:1`, "(optional)"), leg 1 `flowMakeSeamlessT2i` `when` no picture, step
   `kind:'edges'` with fields Tiles + Even out lighting (hidden with no picture), Direction select (shown
   only with no picture), optional `positive`. **Verify:** the Flow appears in the dev Library; its
@@ -168,7 +168,7 @@ Sequential, not a batch: every task edits `MpiBaseFlow.js` or `flowService.js`.
 - [x] Result pane Tiles slider: DONE 2026-10-12. FlowDef opts in with `result: { tiles: true }`; axes from the edges step value, else a `direction` field (`left-right|top-bottom|both`, `resultTileAxes` in MpiStepEdges.js); tiles the DISPLAY copy via `resolveDisplayImage` (orchestrator fix: the worker tiled the full-size original, past Chromium's 16384 texture cap on a 16K pano). Was: (`MpiProgressBar`, `interactive`, 1-4) between frame and
   `_pendingNote`, gated on a FlowDef `result.tiles` key; repeat only on the joined axes. **Verify:**
   unit test on the axes -> repeat mapping; lint clean.
-- [ ] Agent + MCP: `description` first sentence "Make a picture tile seamlessly ...", labelled fields,
+- [x] Agent + MCP: `description` first sentence "Make a picture tile seamlessly ...", labelled fields,
   `tests/agent-flow-handover.test.cjs` pin, a `docs/agent/flows.md` line within its 200-line budget.
   **Verify:** `npm test` green incl. `agent-prompt-budget`.
 
@@ -180,6 +180,10 @@ Sequential, not a batch: every task edits `MpiBaseFlow.js` or `flowService.js`.
   **Verify:** the four checks recorded in `validation.md` with numbers; then Fabio's eye test.
 
 ## Plan Drift
+
+- 2026-10-12 (session 5c333500) Phase 4 REDESIGNED THE WINDOWS (`services/seamlessOps.js` planAxis): A1 cut each window to exactly the band and masked all of it, so Klein had no surroundings and painted a new picture per window. Now each window has `rect` (the cut: band + context of max(256, band/2) px each side, so the model sees ~bench proportions), `paint` (its mask: band minus what an earlier window already painted) and `band` (what is pasted, feathered inward; outside stays byte-identical); a seam up to 4096 long is ONE window (bench-like; a second window seeing only a pano's floor painted its own scene), longer seams walk in square windows overlapping by max(256, len/4). Cost: at 8K the band is repainted at ~0.3x (the bench's scale), so it may read SOFTER than the picture - Fabio's eye decides; a native-res detail pass is the upgrade. Also: mask slot `planned: true` (caller checks skip it, agents never see it, enqueue still requires it); a one-pass plan never chains `runNextPass` (UI + agent). Default 10% handles at 8K = a 1638 px band: worth Fabio's look too.
+
+- 2026-10-12 (session 5c333500) Phases 2+3 DONE. Shape that shipped: op `flowMakeSeamless` (`image1`->Input_Image, `mask`->Input_Mask, `pastesToWorkingCopy`); prompt field id `Input_Positive` (typed words land in injectionParams, so the describer, which skips a filled target, leaves them); `describe: [{ to: 'Input_Positive', media: 'source' }]` where the planner adds the WHOLE picture on role `source` to pass 1 only (a window is mostly seam), answer carried to later passes via `_leg.described`; a `direction` field hidden whenever a picture is given (the agent's way to name the joins; the gizmo value wins via `edgesFor`); step fields `tiles` (preview only) + `lightingFlatten` (0..1). NO `result.compare`: the run's `image1` is a window. Make seamless is excluded from the "every Flow as a package" test: its planner is keyed to the built-in op id.
 
 - 2026-10-12 FABIO (after the round-5 sheets): build it with KLEIN, skip Krea. TWO options, done in order: (1) FROM AN IMAGE - make an existing picture seamless with the round-5 Klein repaint: BUILD THIS FIRST; (2) FROM SCRATCH - textures (gaming textures especially) generated tileable from the start, the prior art he linked (brainstorm.md: spinagon circular-padding works on a CONV model, SDXL, not on Klein/Krea transformers). Option 2 is LATER: the no-picture leg (`flowMakeSeamlessT2i`, Direction field) is out of the first build. The from-image Flow keeps `image1` REQUIRED.
 - 2026-10-12 Phase 0 round 5 = the working recipe, and it CHANGES Phase 2: the graph has NO ReferenceLatent (a reference makes Klein copy the band, seam included), and its prompt is the baked instruction + one line saying what the picture shows. Without that line a reference-free Klein paints unrelated things (round 4). So the Flow needs the content line: the user's prompt, else the app's describer (`describe`, MPI-1036) writes it. Rounds 1-4 in validation.md.

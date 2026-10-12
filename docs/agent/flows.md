@@ -133,6 +133,13 @@ minutes.
   them. With a picture it can stay empty, or say what lies beyond the picture's edges.
 - For one picture of a place the user already has, pass it as `image1`; do not describe it.
 
+## Make seamless
+
+Repaints the edges of a picture the user already has (`image1`, required) so it tiles: a texture,
+or a panorama whose two ends do not meet. It makes nothing new; for a new 360 world use 360
+Panorama. `direction` picks the joins; leave `Input_Positive` empty unless the user said what the
+picture shows, as the app describes it. `tiles` only changes the preview.
+
 ## Spoken lines
 
 Two things speak a line, and they are not the same:

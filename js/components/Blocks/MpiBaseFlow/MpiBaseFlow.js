@@ -40,7 +40,7 @@ import { disambiguatedName, getModelDependencies } from '../../../data/modelRegi
 import { downloadService } from '../../../services/downloadService.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
-import { resultTileAxes, repeatFromTiles } from '../../Organisms/MpiStepEdges/MpiStepEdges.js';
+import { resultTileAxes, repeatFromTiles, edgesFor } from '../../Organisms/MpiStepEdges/MpiStepEdges.js';
 import { buildField, mapDeclaredValue, isInjectionParam, disabledFieldIds, hiddenFieldIds, withEnhanceFallback, enhanceEchoTargets } from '../../../utils/declaredFields.js';
 import { buildLicenceRows } from '../../../utils/flowLicences.js';
 
@@ -2927,7 +2927,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 _setTilesSource(withPath[0].path);
                 const edgesStep = (flow.steps || []).find(s => s?.kind === 'edges');
                 _tilesAxes = resultTileAxes(
-                    edgesStep ? (_stepValues[edgesStep.role] || null) : null,
+                    edgesStep ? edgesFor(_stepValues[edgesStep.role], _fieldValues['direction']) : null,
                     (_fieldValues['direction'] || null),
                 );
                 _tilesN = 1;
@@ -3882,7 +3882,9 @@ export const MpiBaseFlow = ComponentFactory.create({
             run.textName = `${source.replace(/\.[^.]+$/, '') || 'transcript'}.srt`;
             const res = submitFlowGeneration(flow, {
                 ...inputs, runMediaItems, runInputs,
-                ...(passes ? { runNextPass: passes.next } : {}),
+                // Only a plan of 2+ passes chains: a one-pass plan's `next` has nothing to give,
+                // and the chain reads that as "the next pass could not start".
+                ...(passes?.count > 1 ? { runNextPass: passes.next } : {}),
                 ...(passes?.runPass ? { runPass: passes.runPass } : {}),
             }, _runCallbacks(run));
             _track(run, res);

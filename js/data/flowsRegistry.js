@@ -351,6 +351,7 @@ import { DEPS } from './modelConstants/dependencies.js';
 import { getPlugin } from './pluginsRegistry.js';
 import { MODELS } from './modelConstants/models.js';
 import { OUTPAINT_MAX_GROW } from '../utils/outpaintPasses.js';
+import { APP_CONFIG } from '../../dev_configs/app_config.js';
 
 /**
  * The download-queue / dep-status key for a flow's own deps. Namespaced so it can
@@ -1870,6 +1871,72 @@ export const FLOWS = [
             },
         ],
     },
+    // MPI-1101 — MAKE SEAMLESS (dev-gated). The same picture back, the same size, tiling
+    // left-right, top-bottom or both. The app rolls it by half so each seam sits mid-frame,
+    // repaints the band round it one ~1024 window at a time and rolls it back
+    // (services/seamlessOps.js, planned by js/utils/flowPasses.js): outside the bands every
+    // pixel is the source's own, and the run is ONE card healing window by window.
+    //
+    // The repaint is Klein 9B with NO reference (a reference makes Klein copy the band back,
+    // seam included) and a prompt saying what the picture shows (without it Klein paints
+    // unrelated things into the band): bench rounds 1-5, MPI-1101 validation.md. That line is
+    // the user's words when given, else the describer's, asked of the WHOLE picture (`source`,
+    // which the planner adds: a window is mostly seam) once per run.
+    //
+    // `direction` is for callers with no Edges gizmo (the agent): hidden whenever a picture
+    // is given, which on this screen is always; the gizmo's own value wins (`edgesFor`).
+    ...(APP_CONFIG.dev_mode ? [{
+        id: 'make-seamless',
+        title: 'Make seamless',
+        description: 'Make a picture tile seamlessly left-right, top-bottom or both. Drag a handle '
+            + 'in from each edge to choose how much of it is repainted, and preview the picture '
+            + 'tiled before and after. Runs on FLUX.2 Klein 9B.',
+        requiredModels: [{ label: 'Base model', models: ['klein-9b'] }],
+        operation: 'flowMakeSeamless',
+        workflow: 'flow_make_seamless.json',
+        mediaType: 'image',
+        type: 'edit',
+        inputSchema: {
+            media: [
+                { type: 'image', mode: 'upto', max: 1, roles: ['image1'], labels: ['Image'] },
+            ],
+        },
+        result: { tiles: true },
+        steps: [
+            {
+                kind: 'edges', role: 'image1',
+                tickerLabel: 'Edges',
+                title: 'Choose the edges to join',
+                hint: 'Drag a handle in from an edge: the band between the handle and the edge is repainted to meet the opposite side.',
+                fields: [
+                    { id: 'tiles', type: 'slider', label: 'Preview tiles', min: 1, max: 4, step: 1, default: 1 },
+                    { id: 'lightingFlatten', type: 'slider', label: 'Even out lighting', min: 0, max: 1, step: 0.05, default: 0 },
+                ],
+            },
+        ],
+        fields: [
+            {
+                id: 'direction', type: 'select', label: 'Which way it tiles', default: 'both',
+                options: [
+                    { v: 'left-right', label: 'Left-right' },
+                    { v: 'top-bottom', label: 'Top-bottom' },
+                    { v: 'both', label: 'Both ways' },
+                ],
+                hiddenWhen: { media: 'image1' },
+            },
+            {
+                // `Input_*`, so typed words land in injectionParams and the describer, which
+                // skips a target that holds text, leaves them alone.
+                id: 'Input_Positive', type: 'text', rows: 2,
+                label: 'What the picture shows (empty: described for you)',
+                placeholder: 'e.g. a mossy cobblestone street from above',
+            },
+        ],
+        describe: [
+            { to: 'Input_Positive', media: 'source',
+                ask: 'Describe what this picture shows in one sentence: the kind of picture, the main things in it with their materials and colours, and the light. Answer with that sentence and nothing else.' },
+        ],
+    }] : []),
     // MPI-607 — Voice Changer, the FIRST audio-only flow: audio in, audio out, no
     // picture anywhere in the run. `mediaType: 'audio'` is what routes the graph's
     // `Output_Audio` to a real gallery card instead of a video's soundtrack

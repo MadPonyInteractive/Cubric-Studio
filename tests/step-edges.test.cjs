@@ -192,3 +192,23 @@ test('repeatFromTiles: no axes → no-repeat even for n>1', async () => {
     const r = repeatFromTiles(2, { x: false, y: false });
     assert.equal(r.repeat, 'no-repeat');
 });
+
+// The gizmo emits only once dragged: an untouched step must run what it SHOWS.
+test('edgesFor: an untouched step (no sides, only step fields) is the shown default', async () => {
+    const { edgesFor, defaultValue } = await mod();
+    assert.deepEqual(edgesFor(undefined, undefined), defaultValue());
+    assert.deepEqual(edgesFor({ fields: { tiles: 2 } }, undefined), defaultValue());
+});
+
+test('edgesFor: a dragged value wins over direction, clamped', async () => {
+    const { edgesFor } = await mod();
+    assert.deepEqual(edgesFor({ left: 20, right: 0, top: 0, bottom: 70 }, 'left-right'),
+        { left: 20, right: 0, top: 0, bottom: 50 });
+});
+
+test('edgesFor: direction for a caller with no gizmo (the agent)', async () => {
+    const { edgesFor } = await mod();
+    assert.deepEqual(edgesFor(null, 'left-right'), { left: 10, right: 10, top: 0, bottom: 0 });
+    assert.deepEqual(edgesFor(null, 'top-bottom'), { left: 0, right: 0, top: 10, bottom: 10 });
+    assert.deepEqual(edgesFor(null, 'both'), { left: 10, right: 10, top: 10, bottom: 10 });
+});

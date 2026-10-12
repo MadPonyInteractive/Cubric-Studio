@@ -1398,14 +1398,16 @@ export async function buildFlow(input, project) {
     if (!passPlan) {
         const planner = getPlanner(flow.passes) || getPlanner(flow.operation);
         if (planner) {
+            let planError = null;
             try {
                 genericPlan = await planner(flow, inputs, mediaItems, { fetch: globalThis.fetch });
             } catch (err) {
+                planError = err;
                 clientLogger.error('connector', `flow planner failed: ${err?.message || err}`);
             }
             // A Flow that plans its passes cannot run as one pass on the whole picture: that is a
             // different, wrong result, so a plan that did not come back refuses the run.
-            if (!genericPlan) return _refuse('RUNTIME_ERROR', `${flow.title} could not prepare its picture. Nothing was generated.`);
+            if (!genericPlan) return _refuse('RUNTIME_ERROR', planError?.userMessage || `${flow.title} could not prepare its picture. Nothing was generated.`);
         }
     }
 
@@ -1423,7 +1425,8 @@ export async function buildFlow(input, project) {
             // Generic planner (e.g. seamless): firstPassMedia as runMediaItems so the
             // snapshot keeps the original picture, and D2 metadata for commandExecutor.
             ...(genericPlan?.firstPassMedia ? { runMediaItems: genericPlan.firstPassMedia } : {}),
-            ...(genericPlan ? { runNextPass: genericPlan.next } : {}),
+            // A one-pass plan does not chain (MpiBaseFlow does the same).
+            ...(genericPlan?.count > 1 ? { runNextPass: genericPlan.next } : {}),
             ...(genericPlan?.runPass ? { runPass: genericPlan.runPass } : {}),
             runOriginProject: project,
         },

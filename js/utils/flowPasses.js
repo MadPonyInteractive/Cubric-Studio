@@ -49,6 +49,7 @@
  */
 
 import { planCropPasses, composeNextPass } from '../components/Organisms/MpiStepCrop/MpiStepCrop.js';
+import { edgesFor } from '../components/Organisms/MpiStepEdges/MpiStepEdges.js';
 import { extractAbsPath } from './mediaActions.js';
 
 // ── Planner registry ────────────────────────────────────────────────────────
@@ -135,7 +136,7 @@ async function _outpaintPlanner(flow, stepValues, mediaItems, deps) {
 
 registerPlanner('outpaint', _outpaintPlanner);
 // Also register by the built-in operation id so FlowDefs need no `passes` key.
-registerPlanner('flowMakeOutpaint', _outpaintPlanner);
+registerPlanner('flowOutpaint', _outpaintPlanner);
 
 // ── Seamless planner ────────────────────────────────────────────────────────
 //
@@ -160,15 +161,19 @@ async function _seamlessPlanner(flow, stepValues, mediaItems, deps) {
     // The server reads a DISK path; a slot's media is usually a `/project-file?path=` URL.
     const raw = source?.filePath || source?.url;
     const sourcePath = extractAbsPath(raw) || raw;
-    if (!sourcePath) return null;
-
-    const edgesStep = (flow?.steps || []).find(s => s.kind === 'edges');
-    const edgesValue = (edgesStep && stepValues?.[edgesStep.role]) || {};
-    const handles = {
-        left: edgesValue.left ?? 10, right: edgesValue.right ?? 10,
-        top: edgesValue.top ?? 0, bottom: edgesValue.bottom ?? 0,
+    // A planning Flow never falls back to ONE pass on the whole picture (a different, wrong
+    // result): every failure here refuses the run, with words the Flow screen shows.
+    const fail = (why) => {
+        throw Object.assign(new Error(why), { userMessage: `${flow?.title || 'Make seamless'} ${why} Nothing was generated.` });
     };
-    const lightingFlatten = stepValues?.lightingFlatten ?? 0;
+    if (!sourcePath) fail('needs a picture: add one on the first step.');
+
+    // The Flow screen stores the gizmo's value (and its step fields under `.fields`) by role;
+    // the agent passes flat field values, `direction` and `lightingFlatten` among them.
+    const edgesStep = (flow?.steps || []).find(s => s.kind === 'edges');
+    const edgesValue = edgesStep ? stepValues?.[edgesStep.role] : null;
+    const handles = edgesFor(edgesValue, stepValues?.direction);
+    const lightingFlatten = edgesValue?.fields?.lightingFlatten ?? stepValues?.lightingFlatten ?? 0;
 
     const fetchFn = deps?.fetch || globalThis.fetch;
 
@@ -178,23 +183,26 @@ async function _seamlessPlanner(flow, stepValues, mediaItems, deps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sourcePath, handles, lightingFlatten }),
     });
-    if (!prepRes.ok) return null;
-    const prepared = await prepRes.json();
-    if (!prepared.ok || !prepared.windows?.length) return null;
+    const prepared = prepRes.ok ? await prepRes.json() : null;
+    if (!prepared?.ok) fail('could not prepare the picture.');
+    if (!prepared.windows?.length) fail('has no edge to join: drag at least one handle in from an edge.');
 
     const { runId } = prepared;
     const count = prepared.windows.length;
 
     // ── window 0: media for pass 1 ─────────────────────────────────────────
     const win0 = await _seamlessWindowMedia(fetchFn, runId, 0);
-    if (!win0?.ok) return null;
+    if (!win0?.ok) fail('could not cut the first window of the picture.');
 
     const _makeMedia = (win) => [
         ...mediaItems.filter(m => m !== source && m?.role !== 'mask'),
         { ...source, url: win.image, filePath: win.image, role: 'image1' },
         { url: win.mask, filePath: win.mask, mediaType: 'image', role: 'mask' },
     ];
-    const firstPassMedia = _makeMedia(win0);
+    // Pass 1 also carries the WHOLE picture on `source`, which no graph slot takes: the Flow's
+    // `describe` reads it for the content line (a window is mostly the seam), and flowService
+    // hands that answer on to every later pass.
+    const firstPassMedia = [..._makeMedia(win0), { ...source, role: 'source' }];
 
     let served = 0; // index of the last window we have already served
     return {

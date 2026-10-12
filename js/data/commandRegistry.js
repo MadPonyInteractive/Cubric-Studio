@@ -150,8 +150,13 @@ const I2V_HELP = {
  *   ordinal?:boolean,
  *   requiresCapability?:string,
  *   tag?:string,
- *   voiceLibrary?:'character'|'narration'
+ *   voiceLibrary?:'character'|'narration',
+ *   planned?:boolean
  * }>}                         [mediaInputs] - Named media slots injected by Comfy node title.
+ *                                              `planned` (MPI-1101): the app's pass planner fills the slot on
+ *                                              every pass (Make seamless's window mask), so a CALLER never sends
+ *                                              it: caller checks skip it and it is not listed to agents, while the
+ *                                              enqueue guard still requires it.
  *                                              `voiceLibrary` (an audio slot, MPI-1012) offers the
  *                                              shipped voice library on that slot, previewing that
  *                                              route — the model-op twin of a FlowDef media group's
@@ -1370,6 +1375,26 @@ export const commands = {
             { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
         ],
         promptRequired: false,
+        universal: true,
+    },
+
+    // MPI-1101. Make seamless: ONE WINDOW of the rolled picture per run, never the whole picture.
+    // The planner (js/utils/flowPasses.js) cuts each window and its band mask on the server
+    // (`/seamless/window`) and hands them in as `image1` + `mask`; each output is pasted back
+    // into the run's working copy. The repaint instruction is baked; `Input_Positive` carries
+    // the line saying what the picture shows (the user's prompt, else the describer).
+    flowMakeSeamless: {
+        label: 'Flow: Make seamless',
+        progressLabel: 'Making seamless',
+        mediaType: MEDIA_TYPE.IMAGE,        // OUTPUT type
+        requiresImages: 0,                  // media is never a hard requirement at the op layer
+        mediaInputs: [
+            { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
+            // `planned`: the planner adds each window's mask, so no caller sends it.
+            { key: 'mask', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Mask', required: true, planned: true },
+        ],
+        promptRequired: false,
+        pastesToWorkingCopy: true,
         universal: true,
     },
 

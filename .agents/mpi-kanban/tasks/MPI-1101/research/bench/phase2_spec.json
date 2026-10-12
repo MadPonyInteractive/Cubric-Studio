@@ -1,0 +1,7 @@
+[
+ {"tag": "flow_pano_s7", "api": "comfy_workflows/flow_make_seamless.json", "set": {
+  "Input_Image": {"string": "G:/ComfyUi/ComfyUI/input/mpi1101_pano_rolled_none.png"},
+  "Input_Mask": {"string": "G:/ComfyUi/ComfyUI/input/mpi1101_pano_mask.png"},
+  "Input_Positive": {"value": "A 360 panorama of a lush tropical garden: big shade trees, palms and leafy ground cover either side of a curved stone-paved path, sun through the canopy, blue sky."},
+  "Input_Seed": {"int": 7}}}
+]

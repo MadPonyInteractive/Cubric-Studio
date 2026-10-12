@@ -143,7 +143,8 @@ router.commandRegistry = _getCommandRegistry;
  */
 function mediaRolesFor(registry, op, model) {
   const slots = registry?.COMMANDS?.[op]?.mediaInputs || [];
-  return registry.filterMediaInputsForModel(slots, model || null).map((i) => ({
+  // A `planned` slot (MPI-1101) is filled by the app's pass planner: not the caller's to send.
+  return registry.filterMediaInputsForModel(slots, model || null).filter((i) => !i.planned).map((i) => ({
     role: i.key,
     type: i.mediaType,
     required: !!i.required,

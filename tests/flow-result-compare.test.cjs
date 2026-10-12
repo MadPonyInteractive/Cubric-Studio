@@ -45,15 +45,17 @@ test('result.compare is a string when present, and result carries nothing else',
     for (const flow of await flows()) {
         if (!flow.result) continue;
         assert.strictEqual(typeof flow.result, 'object', `flow "${flow.id}": result must be an object`);
-        const keys = Object.keys(flow.result);
-        assert.deepStrictEqual(
-            keys, ['compare'],
-            `flow "${flow.id}": result accepts only \`compare\` today — got [${keys.join(', ')}]`,
-        );
-        assert.strictEqual(
-            typeof flow.result.compare, 'string',
-            `flow "${flow.id}": result.compare must be a media role string`,
-        );
+        // `tiles: true` (MPI-1101): the result pane's Tiles slider, for a Flow whose output tiles.
+        const extra = Object.keys(flow.result).filter(k => !['compare', 'tiles'].includes(k));
+        assert.deepStrictEqual(extra, [],
+            `flow "${flow.id}": result accepts only \`compare\` and \`tiles\` today — got [${extra.join(', ')}]`);
+        if ('compare' in flow.result) {
+            assert.strictEqual(typeof flow.result.compare, 'string',
+                `flow "${flow.id}": result.compare must be a media role string`);
+        }
+        if ('tiles' in flow.result) {
+            assert.strictEqual(flow.result.tiles, true, `flow "${flow.id}": result.tiles is \`true\` or absent`);
+        }
     }
 });
 

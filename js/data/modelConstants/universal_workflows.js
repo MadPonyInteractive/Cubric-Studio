@@ -111,6 +111,11 @@ export const UNIVERSAL_WORKFLOWS = {
     flowOutpaint: {
         workflow: 'flow_outpaint.json',
     },
+    // MPI-1101 — Klein 9B repaints the band in one window of the rolled picture; no
+    // ReferenceLatent (a reference makes Klein copy the seam back).
+    flowMakeSeamless: {
+        workflow: 'flow_make_seamless.json',
+    },
     // MPI-567, rebuilt Klein-only in MPI-621 — the drawing is composited onto the
     // user's photo, a crop sized FROM the drawing is taken around it, Klein 9B edits
     // that crop, and the user's box is stitched back. One model, one pass; the SDXL
