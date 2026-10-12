@@ -1045,8 +1045,12 @@ export class AgentLoop {
         const stack = workspace?.card?.stack;
         const entry = `${workspace?.activeEntry?.filePath}${size ? `, ${size}` : ''}`;
         const standing = workspace?.activeEntry?.filePath
+            // MPI-1119: the Scene page is no picture view: no Mask tool, and "what is this?" is
+            // the question. A pano scene opens the 3D Scene workspace, a 360 video the player.
+            ? (workspace.page === 'scene'
+                ? ` The user is in the ${workspace.card?.type === 'video' ? '360 player, on the video' : '3D Scene workspace, inside the scene'} "${workspace.card?.name || 'untitled'}"; its entry is ${entry}. Before you explain anything about where they are or how it works, read app:3d-scenes.`
             // MPI-950: an open stack shows one member at a time, and has no Mask tool.
-            ? (stack
+            : stack
                 ? ` The user has the stack "${stack.name}" (${stack.count} cards) open, and "all of them" means its cards: list_cards with groupId ${stack.groupId} gives the ref to pass as cards. The card on screen is "${workspace.card.name || 'untitled'}", and the entry open in front of them is ${entry}. "This image", "it" and "this one" mean that entry.`
             // MPI-991: the Masking rule's "skip the first half" lost live ("click the card in the
             // gallery to open it (you're already looking at it)"), so the line carries the words.

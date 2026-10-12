@@ -3319,6 +3319,26 @@ describe('(e) the open workspace reaches the agent', () => {
         assert.doesNotMatch(line, /Mask tool/, 'a stack has no Mask tool');
     });
 
+    // MPI-1119: the Scene page is not the picture view. It has no Mask tool, and the question
+    // the user asks there is "what is this?", which app:3d-scenes answers.
+    test('the Scene page names the workspace and its guide, never the Mask tool', async () => {
+        const AgentLoop = await loadAgentLoop();
+        const loop = new AgentLoop();
+        const project = { name: 'Demons', folderPath: PROJECT };
+
+        const scene = { ...workspace(), page: 'scene', card: { name: 'Village', type: 'image' } };
+        loop._registerWorkspaceEntry(scene);
+        const line = loop._appStateLine(project, scene);
+        assert.match(line, /3D Scene workspace/);
+        assert.match(line, /read app:3d-scenes/);
+        assert.ok(line.includes(ENTRY), 'the entry stays named, so "this" still resolves');
+        assert.doesNotMatch(line, /Mask tool/);
+
+        const player = { ...scene, card: { name: 'Village path', type: 'video' } };
+        assert.match(loop._appStateLine(project, player), /360 player/);
+        assert.doesNotMatch(loop._appStateLine(project, player), /3D Scene workspace|Mask tool/);
+    });
+
     /**
      * The invariant the App state line documents about ITSELF: it is the only set of refs
      * `look` and `generate` resolve, "so the two cannot differ". An entry named in the line

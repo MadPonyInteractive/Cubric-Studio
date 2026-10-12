@@ -126,7 +126,8 @@ place (`image1`, optional) or from words. `Input_Operation` picks the change.
 Makes a whole 360 world from words, or from a picture (`image1`, optional) with the rest of the
 world painted in around it. The card is a flat panorama picture; to look around it in 3D the user
 right-clicks it and chooses Convert to 360 pano, after any edits they want. A run takes a few
-minutes.
+minutes. What comes after Convert (the 3D Scene workspace, camera paths, the 360 player, Take
+picture) is app:3d-scenes.
 
 - `positive`: the place, as if standing in it ("a tiny cartoon village in a forest clearing,
   warm afternoon light"). Never camera words ("360", "panorama", "wide shot"): the Flow adds
