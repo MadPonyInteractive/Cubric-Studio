@@ -87,6 +87,18 @@ test('the result pane is latest-wins — a dispatch no longer wipes it', () => {
         'the old unconditional clear would wipe a sibling run\'s kept result');
 });
 
+test('a run slide rebuilt mid-run re-arms the scanline and the held latent (MPI-1111)', () => {
+    const src = frame();
+
+    // Fabio, 2026-10-12: step back to Inputs mid-run, return to Generate, and the
+    // pane read "Your result appears here." with no sweep until the next sampler
+    // frame. The rebuild is the only path that recreates the frame while running.
+    const build = src.slice(src.indexOf('function _buildRunSlide('),
+        src.indexOf('function _teardownSlide('));
+    assert.match(build,
+        /if \(_running\) \{\s*\n\s*_setScanline\(true\);\s*\n\s*_syncResultEmpty\(\);[\s\S]{0,300}?getLastPreview\(entry\.id\);\s*\n\s*if \(last\?\.url\) _paintResult\(last\.url, \{ blurring: true \}\);/);
+});
+
 test('a failure claims the status line; done and cancelled defer while runs remain', () => {
     const src = frame();
 

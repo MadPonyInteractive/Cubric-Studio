@@ -2264,6 +2264,18 @@ export const MpiBaseFlow = ComponentFactory.create({
             // could no longer see. remember:false so replaying is not itself
             // recorded as a new result.
             if (_lastResults) _showResults(_lastResults, { remember: false });
+            // Mid-run, the rebuilt frame owes the run what _syncRunning armed on the
+            // OLD frame: the sweep, and the newest held latent (MPI-271, as in _track).
+            // Without it, stepping away and back showed an idle "Your result appears
+            // here." until the next sampler frame — minutes on a slow stage — while the
+            // status bar said the job was running (MPI-1111).
+            if (_running) {
+                _setScanline(true);
+                _syncResultEmpty();
+                const entry = activeGenerations.list().find(e => _myTempIds().includes(e.tempId));
+                const last = entry && activeGenerations.getLastPreview(entry.id);
+                if (last?.url) _paintResult(last.url, { blurring: true });
+            }
             // The status line is rebuilt too, so restore its copy from the last
             // known state rather than re-deriving it (which would turn an
             // "Applied…" line back into "Done…" on the next navigation).
