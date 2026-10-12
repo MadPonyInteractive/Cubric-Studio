@@ -160,6 +160,7 @@ export const MpiToolOptionsVideoMask = ComponentFactory.create({
                     textPrompt: stampDetectionCount(raw, _count),
                     objectIndices: '',
                     label: raw,
+                    mediaType: 'video',   // a clip's mask: the video accent, not the GIF's image one
                 }, {
                     onMasks: (urls) => {
                         // A track belongs to the clip it ran on; the user may have moved on.

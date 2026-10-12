@@ -615,15 +615,17 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
  * `callbacks.onMasks(urls)` and no card lands; see `runGifCutoutTrack`.
  *
  * @param {{ operation: 'gifCutoutSam3'|'gifCutoutBirefnet', videoPath: string, textPrompt?: string,
- *   objectIndices?: string, label?: string }} track - `textPrompt` already stamped
- *   (`maskTextPrompt.js`); `label` is the queue row's text (what the user typed).
+ *   objectIndices?: string, label?: string, mediaType?: 'image'|'video' }} track - `textPrompt`
+ *   already stamped (`maskTextPrompt.js`); `label` is the queue row's text (what the user typed);
+ *   `mediaType` is what is being masked, and colours the status bar and the queue flash: a GIF
+ *   is an image (Fabio, 2026-10-12), Video Mask's clip a video.
  * @returns {{ queueJobId: string, cancel: function }|null} null = rejected before it queued
  *   (callbacks told). `cancel` stops it whether it is still pending or already running.
  */
-export function enqueueMaskTrack({ operation, videoPath, textPrompt = '', objectIndices = '', label = '' }, callbacks = {}) {
+export function enqueueMaskTrack({ operation, videoPath, textPrompt = '', objectIndices = '', label = '', mediaType = 'image' }, callbacks = {}) {
     const queued = enqueueGeneration({
         operation,
-        model: { id: null, mediaType: 'image', displayName: getCommand(operation)?.label },
+        model: { id: null, mediaType, displayName: getCommand(operation)?.label },
         positive: label,
         negative: '',
         mediaItems: [{ url: videoPath, mediaType: 'video', role: 'inputVideo' }],
@@ -1241,7 +1243,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
     // successor (MPI-203 status-bar stomp).
     exec.genId = _regId;
     // `step`: a chained Flow leg's place in its run ("2/3", MPI-1092), null otherwise.
-    Events.emit('tool:running', { tool: 'groupHistory', id: _regId, type: operation, step: config.flowStep ?? null });
+    // `mediaType`: a mask track's colour is its caller's subject, not the op's (MPI-1106).
+    Events.emit('tool:running', { tool: 'groupHistory', id: _regId, type: operation, step: config.flowStep ?? null,
+        mediaType: isMaskTrackOp(operation) ? model.mediaType : null });
 
     // Stable tempId snapshot. The empty-output / cacheHit branches below emit a
     // late `generation:cancelled` AFTER the registry entry may already be gone

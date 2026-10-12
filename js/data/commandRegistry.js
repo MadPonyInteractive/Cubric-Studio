@@ -2600,9 +2600,11 @@ export function getCommandProgressLabel(key) {
  * own `mediaType`, so an LTX foley run reads audio and an outpaint reads image.
  *
  * @param {string} key
+ * @param {string} [mediaType] - the run's own subject, when one op serves two (MPI-1106: the
+ *   mask track is a GIF's in the GIF workspace, image, and a clip's in Video Mask, video).
  * @returns {'vision'|'video'|'audio'|'studio'}
  */
-export function getCommandAccent(key) {
-    const t = commands[key]?.mediaType;
+export function getCommandAccent(key, mediaType) {
+    const t = mediaType || commands[key]?.mediaType;
     return t === 'image' ? 'vision' : (t || 'studio');
 }

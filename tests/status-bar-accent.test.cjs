@@ -57,7 +57,8 @@ test('tool:running still carries the op key the bar reads', () => {
 });
 
 test('the status bar sets the accent on the fill, and clears it at idle', () => {
-    assert.match(statusBar, /_fill\.dataset\.accent = getCommandAccent\(type\)/,
+    // `mediaType` (MPI-1106): a mask track's subject, image for a GIF, video for a clip.
+    assert.match(statusBar, /_fill\.dataset\.accent = getCommandAccent\(type, mediaType\)/,
         'the fill is the only element drawing --accent-heat, so it is the one that declares');
     assert.match(statusBar, /delete _fill\.dataset\.accent/,
         'idle is about no media type — a finished job must not leave its colour behind');

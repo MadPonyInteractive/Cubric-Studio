@@ -10,4 +10,6 @@ GPU half (Fabio approved all three callers, 2026-10-12):
 - [x] Agent `gif.cutout` uses it
 - [x] GIF Cut-out panel uses it (encode = Transfers row; By colour keeps its own status bar)
 - [x] Video Mask panel uses it (encode = Transfers row)
-- [ ] Eye test in the app: both panels show a queue row, Stop works, masks land
+- [x] Eye test in the app: both panels show a queue row, Stop works, masks land (Fabio, 2026-10-12)
+- [x] GIF cut-out status bar is pink (image), not orange - fixed after the eye test
+- [ ] Fabio's glance at the pink bar

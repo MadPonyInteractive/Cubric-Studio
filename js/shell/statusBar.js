@@ -546,14 +546,15 @@ export const StatusBar = {
         if (_listenUnsubs.length > 0) return;
         // tool:running — job dispatched. Spinner + label only; NO timer yet (ComfyUI
         // may still be booting — MPI-147: don't count cold-start in the clock).
-        _listenUnsubs.push(Events.on('tool:running', ({ tool, id = null, type = null, step = null }) => {
+        _listenUnsubs.push(Events.on('tool:running', ({ tool, id = null, type = null, step = null, mediaType = null }) => {
             if (tool !== 'groupHistory') return;
             _latch(id);
             // The bar wears the accent of the task AHEAD (MPI-736). `type` is the op key
             // this event has always carried, and the bar already looks the same key up for
             // its label — so nothing upstream had to change. The fill is the only element
             // here that draws --accent-heat, so it is the one that declares.
-            if (_fill) _fill.dataset.accent = getCommandAccent(type);
+            // `mediaType` only when the run's subject differs from the op's (MPI-1106 mask track).
+            if (_fill) _fill.dataset.accent = getCommandAccent(type, mediaType);
             _stepText = step ? ` ${step}` : '';
             StatusBar.progress.prepare('Starting');
         }));

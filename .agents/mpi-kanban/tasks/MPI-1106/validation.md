@@ -39,3 +39,13 @@ Open (resolved below by session 697136f6):
 
 Not yet seen: the two panels in a running app (a real SAM3 / BiRefNet run, the queue row, Stop).
 That needs the engine, so it is Fabio's eye test.
+
+2026-10-12 evening - Fabio's eye test: "Everything else is cool", one fix. A GIF Remove
+background run showed the status bar ORANGE (video) - the op's registry `mediaType` is video
+because its input is a temp clip. A GIF is an image op, so pink. The op also serves Video Mask,
+where orange is right, so the colour follows the caller: `enqueueMaskTrack({ mediaType })`
+(default image, Video Mask passes video) rides `tool:running` into
+`getCommandAccent(type, mediaType)`. New case in `tests/mask-track-queue.test.cjs` (GIF ->
+vision, clip -> video; read ['video','video'] before the fix); `tests/status-bar-accent.test.cjs`
+re-anchored. `npm test`: the only failure was that re-anchored assertion, now green; lint clean.
+Left: Fabio's glance that the GIF bar is pink.

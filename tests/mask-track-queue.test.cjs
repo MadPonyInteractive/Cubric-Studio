@@ -92,6 +92,26 @@ test('a mask track is a queue row, and hands back its masks and the SAM3 preview
     await until(() => !getGenerationQueueSnapshot().items.some(j => j.queueJobId === handle.queueJobId));
 });
 
+test('the status bar wears the subject being masked: a GIF is image (pink), a clip video', async () => {
+    const { Events } = await import(mod('js', 'events.js'));
+    const { getCommandAccent } = await import(mod('js', 'data', 'commandRegistry.js'));
+    const accents = [];
+    const off = Events.on('tool:running', ({ type, mediaType }) => accents.push(getCommandAccent(type, mediaType)));
+    try {
+        for (const mediaType of [undefined, 'video']) {
+            const run = stubRun();
+            let done = false;
+            enqueueMaskTrack({ operation: 'gifCutoutSam3', videoPath: 'C:/p/t.mp4', textPrompt: 'cat', mediaType },
+                { onMasks: () => { done = true; } });
+            await until(() => run.params);
+            run.release(1);
+            await until(() => done);
+        }
+    } finally { off(); }
+    // The op's registry type is video; without the caller's subject a GIF run read orange.
+    assert.deepEqual(accents, ['vision', 'video']);
+});
+
 test('Stop interrupts our prompt and ends as a cancel, not a result', async () => {
     const run = stubRun();
     const got = {};
