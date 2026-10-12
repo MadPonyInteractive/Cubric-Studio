@@ -54,6 +54,11 @@
     justify-content: center;
 }
 
+/* Auto-start switch (MPI-1117) — empty for a Pod boot, so it takes no gap then. */
+.mpi-starting-comfy__auto:empty {
+    display: none;
+}
+
 /* Elapsed clock + quiet hints (MPI-792). Reserves the clock plus two hint lines, so
    the box does not jump each time a hint appears or rotates. */
 .mpi-starting-comfy__pulse {

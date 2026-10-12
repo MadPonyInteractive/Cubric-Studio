@@ -467,10 +467,13 @@ async function _bootApp() {
     // MPI-525: the curated Python set installs at engine START, with the engine
     // down — the only point that survives an upgrade wiping site-packages. So the
     // work stays; the LABEL names it, or minutes of silent pip read as a hang.
-    _startingComfy.el.show(phase === 'python-deps' ? {
-      title: 'Installing Python packages...',
-      text: 'First engine start only — this can take several minutes.',
-    } : null);
+    _startingComfy.el.show({
+      ...(phase === 'python-deps' ? {
+        title: 'Installing Python packages...',
+        text: 'First engine start only — this can take several minutes.',
+      } : {}),
+      autoStart: engine === 'local', // MPI-1117: the Settings switch, local engine only
+    });
   });
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
   Events.on('comfy:ready', ({ engine = 'remote' } = {}) => {

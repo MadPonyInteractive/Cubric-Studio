@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1117",
+  "title": "Engine-starting popup carries the auto-start switch",
+  "description": "The 'Starting ComfyUI Engine' popup shows the same 'Auto-start ComfyUI on launch' switch as Settings, so it can be flipped without a trip to Settings.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-12T20:20:28+01:00",
+  "updated_at": "2026-10-12T20:21:02+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

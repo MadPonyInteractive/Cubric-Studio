@@ -1,5 +1,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
+import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
+import { Storage } from '../../../core/storage.js';
 import { qs } from '../../../utils/dom.js';
 import { startElapsedTicker } from '../../../utils/elapsedTicker.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
@@ -20,7 +22,8 @@ const QUIET_HINTS = [
  * (e.g. the projects page overlay showing at app boot).
  *
  * API:
- *   inst.el.show()           — portals backdrop + wrapper, starts spinner
+ *   inst.el.show(phase)      — portals backdrop + wrapper, starts spinner;
+ *                              phase.autoStart shows the Settings auto-start switch
  *   inst.el.hide()           — removes portal, clears spinner
  *   inst.el.setError(msg)    — switches spinner to error text (stays visible)
  */
@@ -34,6 +37,7 @@ export const MpiStartingComfy = ComponentFactory.create({
                 <h2 class="mpi-starting-comfy__title gradient-text" data-ref="title">${props.title || 'Starting ComfyUI Engine...'}</h2>
                 <p class="mpi-starting-comfy__text text-muted" data-ref="text">${props.text || 'This may take a few moments...'}</p>
                 <div class="mpi-starting-comfy__status" data-ref="status"></div>
+                <div class="mpi-starting-comfy__auto" data-ref="auto"></div>
                 <p class="mpi-starting-comfy__pulse">
                     <span class="mpi-starting-comfy__clock" data-ref="clock"></span>
                     <span class="mpi-starting-comfy__quiet" data-ref="quiet"></span>
@@ -47,6 +51,7 @@ export const MpiStartingComfy = ComponentFactory.create({
         let _wrapper   = null;
         let spinnerInst = null;
         let ticker = null;
+        let autoInst = null;
 
         const statusSlot = qs('[data-ref="status"]', el);
         const titleEl    = qs('[data-ref="title"]', el);
@@ -54,7 +59,11 @@ export const MpiStartingComfy = ComponentFactory.create({
         const clockEl    = qs('[data-ref="clock"]', el);
         const quietEl    = qs('[data-ref="quiet"]', el);
         const mediaEl    = qs('[data-ref="media"]', el);
+        const autoSlot   = qs('[data-ref="auto"]', el);
         const _default   = { title: titleEl.textContent, text: textEl.textContent };
+
+        // replaceChildren too: mount leaves template whitespace that defeats :empty.
+        const clearAuto = () => { autoInst?.destroy(); autoInst = null; autoSlot.replaceChildren(); };
 
         const stopTicker = () => {
             ticker?.stop();
@@ -85,6 +94,19 @@ export const MpiStartingComfy = ComponentFactory.create({
             // still relabel. Always assigned, so a later plain show() cannot inherit it.
             titleEl.textContent = (phase && phase.title) || _default.title;
             textEl.textContent  = (phase && phase.text)  || _default.text;
+            // The Settings "Auto-start ComfyUI on launch" switch, here too so it can be
+            // flipped at the moment the engine starts (MPI-1117). Same Storage key, so
+            // Settings shows the change on its next open. Local engine only: a Pod boot
+            // is governed by the RunPod auto-connect setting, not this one.
+            clearAuto();
+            if (phase && phase.autoStart) {
+                autoInst = MpiCheckbox.mount(autoSlot, {
+                    checked: Storage.getAutoStartComfy(),
+                    variant: 'switch',
+                    label: 'Auto-start ComfyUI on launch',
+                });
+                autoInst.on('change', ({ checked }) => Storage.setAutoStartComfy(checked));
+            }
             if (_backdrop) { ticker?.touch(); return; } // already visible — idempotent
             el.setLoading(true);
             // Studio's engine-starting loop (MPI-906), mounted only while shown: the
@@ -119,6 +141,7 @@ export const MpiStartingComfy = ComponentFactory.create({
 
         el.hide = () => {
             stopTicker();
+            clearAuto();
             // Detaching a video keeps its decoder; only dropping the src frees it.
             const clip = mediaEl.firstElementChild;
             if (clip) { clip.pause(); clip.removeAttribute('src'); clip.load(); clip.remove(); }

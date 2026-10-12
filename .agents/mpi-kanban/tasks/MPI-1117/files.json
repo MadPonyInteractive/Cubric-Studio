@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Compounds/MpiStartingComfy/MpiStartingComfy.js",
+    "js/components/Compounds/MpiStartingComfy/MpiStartingComfy.css",
+    "js/shell.js",
+    "docs/releases/UNRELEASED.md"
+  ]
+}
