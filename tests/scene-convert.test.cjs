@@ -1,8 +1,9 @@
 'use strict';
 /**
  * tests/scene-convert.test.cjs — MPI-623 (A9). `POST /project-media/:id/scene` stores a
- * `sceneConvert` result as the item's scene, in place: both files fetched over /view (a fake
- * engine here), the manifest naming them by suffix, `scenePath` on the sidecar LAST.
+ * `sceneConvert` result as the item's scene: both files fetched over /view (a fake engine
+ * here), the manifest naming them by suffix, `scenePath` on the sidecar LAST. The item is the
+ * NEW card the queued run landed (`convertToPano`), never the source picture.
  *
  * Run: node --test tests/scene-convert.test.cjs
  */
@@ -99,4 +100,63 @@ test('the scene-convert plugin owns moge-vitl, dev-only, and the GC guards see i
     const dm = require('../routes/downloadManager.js');
     assert.ok(dm._pluginRequiredDepIds('krea2').has('moge-vitl'));
     assert.ok(!dm._pluginRequiredDepIds(reg.pluginDepKey('scene-convert')).has('moge-vitl'));
+});
+
+// Fabio 2026-10-12: Convert makes a NEW card (the source stays an editable picture) and runs
+// as a normal queued generation, so it shows in the queue and the status bar.
+test('convertToPano queues sceneConvert and stores the scene on the LANDED card, not the source', async () => {
+    const { pathToFileURL } = require('node:url');
+    const { convertToPano } = await import(pathToFileURL(path.resolve('js/services/scene/sceneConvert.js')).href);
+    const source = { id: 'src1', filePath: '/project-file?path=pano.png' };
+    const landed = { item: { id: 'new1' }, group: { id: 'g-new' } };
+    const posts = [];
+    const realFetch = global.fetch;
+    global.fetch = async (url, init) => { posts.push({ url, body: JSON.parse(init.body) }); return { ok: true, json: async () => ({ success: true, scenePath: 'SP' }) }; };
+    try {
+        let config;
+        const out = await convertToPano({ id: 'p1', folderPath: 'C:/x' }, source, (c, cb) => {
+            config = c;
+            cb.onComplete({ ...landed, outputUrls: ['/view?tex'], depthUrl: '/view?depth' });
+            return true;
+        });
+        assert.equal(config.operation, 'sceneConvert');
+        assert.deepEqual(config.mediaItems.map(m => [m.url, m.role]), [[source.filePath, 'inputImage']]);
+        assert.equal(posts.length, 1);
+        assert.match(posts[0].url, /^\/project-media\/p1\/scene\?/);
+        assert.deepEqual(posts[0].body, { itemId: 'new1', imageUrl: '/view?tex', depthUrl: '/view?depth' });
+        assert.equal(out.item.scenePath, 'SP');
+        assert.equal(source.scenePath, undefined, 'the source card is never touched');
+
+        posts.length = 0;
+        await assert.rejects(convertToPano({ id: 'p1', folderPath: 'C:/x' }, source, (c, cb) => { cb.onCancel(); return true; }),
+            (err) => err.cancelled === true);
+        await assert.rejects(convertToPano({ id: 'p1', folderPath: 'C:/x' }, source, (c, cb) => { cb.onComplete({ ...landed, outputUrls: ['/view?tex'] }); return true; }),
+            /without its picture or depth/);
+        await assert.rejects(convertToPano({ id: 'p1', folderPath: 'C:/x' }, source, () => null), /did not start/);
+        assert.equal(posts.length, 0, 'no scene save after a cancel, a missing depth or a refused enqueue');
+    } finally { global.fetch = realFetch; }
+});
+
+// Fabio 2026-10-12: a 4K pano skips the upscale, so the run is MoGe alone; the bar sat on
+// "Starting 0%" for the whole run. The depth node pulses and switches the bar to the label.
+test('the depth node pulses the status bar under "Converting"', async () => {
+    const { pathToFileURL } = require('node:url');
+    const { buildWeightMap } = await import(pathToFileURL(path.resolve('js/services/progressAggregator.js')).href);
+    const g = JSON.parse(fs.readFileSync(path.resolve('comfy_workflows/scene_convert.json'), 'utf8'));
+    const depthId = Object.keys(g).find(id => g[id].class_type === 'MpiPanoDepth');
+    assert.equal(buildWeightMap(g).nodes[depthId].kind, 'singleShot');
+    const exec = fs.readFileSync(path.resolve('js/services/commandExecutor.js'), 'utf8');
+    assert.match(exec, /PULSE_KINDS = new Set\(\['imageUpscale', 'singleShot'\]\)/);
+    assert.match(exec, /IMMEDIATE_WORK_KINDS = new Set\(\[[^\]]*'singleShot'/);
+    assert.match(exec, /const indeterminate = PULSE_KINDS\.has\(nodeKind\);[\s\S]{0,300}if \(indeterminate\) _beginSampling\(\);/);
+    const { COMMANDS } = await import(pathToFileURL(path.resolve('js/data/commandRegistry.js')).href);
+    assert.equal(COMMANDS.sceneConvert.progressLabel, 'Converting');
+});
+
+test('the queue hands Output_Depth through to the caller', () => {
+    const exec = fs.readFileSync(path.resolve('js/services/commandExecutor.js'), 'utf8');
+    const gen = fs.readFileSync(path.resolve('js/services/generationService.js'), 'utf8');
+    assert.match(exec, /=== 'output_depth'/);
+    assert.match(exec, /depthUrl: depthOutputUrl/);
+    assert.match(gen, /outputUrls: urls, depthUrl: outputInfo\.depthUrl \|\| null/);
 });

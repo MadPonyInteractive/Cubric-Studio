@@ -47,9 +47,13 @@ Electron window has no CDP. All of it COMMITTED + pushed in `5a7cfb7cd`. **Fabio
 branch, Library Cue): Convert worked, the card opened in the Scene.** Then **REVERSED (Fabio, 2026-10-11): the
 Flow LANDS ONLY THE IMAGE** - the user may edit / upscale it, then chooses the right-click Convert. Done: FlowDef
 drops `landsAsScene` + `requiredPlugins: ['scene-convert']`, description + `docs/agent/flows.md` say "right-click
--> Convert", FLOW_KEYS drops it. LEFT: `flowService.js` `sceneCallbacks` / `wrapsScene` / its call +
-`convertToPano` import are now DEAD - delete them + their 3 tests in `tests/flow-pano360.test.cjs` once MPI-1092
-(session 82476838, live) releases flowService.js (message `b5c9d0c1-mpi623-to-mpi1092`). Also his asks: Scene
+-> Convert", FLOW_KEYS drops it. **Session 50 (2026-10-12): the dead `sceneCallbacks` / `wrapsScene` / call /
+`convertToPano` import DELETED from `flowService.js` + their 3 tests (message resolved). WorldPlay2 researched:
+image-to-world on Wan2.2-I2V-A14B, CC-BY-NC-4.0 weights, 4-8 GPU default, no ComfyUI nodes, 6 days old - DROPPED (Fabio).
+Fabio 2026-10-12: Convert to 360 pano now makes a NEW card via `enqueueGeneration` (queue row, status bar, Stop; source
+stays editable): `runCommand` captures `Output_Depth` -> gallery `onComplete` hands `outputUrls` + `depthUrl` ->
+`sceneConvert.js` POSTs the existing /scene route on the LANDED item. `routes/projects.js` untouched (MPI-1071 holds it).
+Built + unit-tested; waits on his eye. Noticed: the new card stores the 8K PNG twice (card file + `.scene.pano.png`).** Also his asks: Scene
 **Reset view** button BUILT (`START_POSE`, lens kept; scene-viewer spec asserts it, 2/2 green) - his eye; Take
 picture is gone from the Scene by HIS session-47 call (path tool only; pictures via the 360 player) - told him.
 Noticed: the status bar reads IDLE during a Convert (`runSceneOp` bypasses the queue) - polish item.

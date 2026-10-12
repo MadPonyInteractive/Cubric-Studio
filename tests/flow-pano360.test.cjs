@@ -1,11 +1,9 @@
 /**
- * flow-pano360.test.cjs — MPI-623. The 360 Panorama Flow ENDS WITH CONVERT.
+ * flow-pano360.test.cjs — MPI-623. The 360 Panorama Flow's graph.
  *
- * The card it lands goes through the same `convertToPano` as the gallery's right-click, so
- * it opens in the Scene workspace like any converted card (plan A9). `sceneCallbacks` takes
- * the convert as an argument so it runs here without an engine. The graph half: both
- * branches hang off ONE lazy MpiIfElse on the picture loader's `loaded`, so a run with no
- * picture never touches the outpaint branch (and the reverse).
+ * The Flow lands ONLY the panorama picture; Convert is the user's right-click (Fabio,
+ * 2026-10-11). Both branches hang off ONE lazy MpiIfElse on the picture loader's `loaded`,
+ * so a run with no picture never touches the outpaint branch (and the reverse).
  */
 
 'use strict';
@@ -16,37 +14,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.join(__dirname, '..');
-const load = () => import('file://' + path.join(root, 'js/services/flowService.js').replace(/\\/g, '/'));
-const PROJECT = { id: 'p1', folderPath: 'C:/x' };
-const RESULT = { item: { id: 'i1' }, group: { id: 'g1' } };
-
-test('the scene is built BEFORE the caller hears the run is done', async () => {
-    const { sceneCallbacks } = await load();
-    const order = [];
-    const cb = sceneCallbacks({ onComplete: (r) => order.push(['done', r]) }, PROJECT,
-        async (project, group, item) => { order.push(['convert', project, group, item]); });
-    await cb.onComplete(RESULT);
-    assert.deepStrictEqual(order, [['convert', PROJECT, RESULT.group, RESULT.item], ['done', RESULT]]);
-});
-
-test('a failed convert still reports done (the pano card is real), never throws', async () => {
-    const { sceneCallbacks } = await load();
-    let done = null;
-    const cb = sceneCallbacks({ onComplete: (r) => { done = r; } }, PROJECT, async () => { throw new Error('no moge'); });
-    await cb.onComplete(RESULT);
-    assert.strictEqual(done, RESULT);
-});
-
-test('only a landsAsScene flow is wrapped, on its first call only', async () => {
-    const { wrapsScene } = await load();
-    const pano = { landsAsScene: true };
-    assert.strictEqual(wrapsScene(pano, {}), true, 'first call, agent or Flow Library alike');
-    assert.strictEqual(wrapsScene(pano, { index: 0, item: {} }), false, 'a later leg');
-    assert.strictEqual(wrapsScene(pano, { tempId: 't1' }), false, 'a later pass');
-    assert.strictEqual(wrapsScene({ id: 'outpaint' }, {}), false, 'not a scene Flow');
-    const src = fs.readFileSync(path.join(root, 'js/services/flowService.js'), 'utf8');
-    assert.match(src, /if \(wrapsScene\(flow, _leg\)\) \{\s*callbacks = sceneCallbacks\(/);
-});
 
 test('graph: one lazy switch on the loader picks text or picture', () => {
     const g = JSON.parse(fs.readFileSync(path.join(root, 'comfy_workflows/flow_pano360.json'), 'utf8'));

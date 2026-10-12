@@ -122,13 +122,17 @@ A scene is a SET of files beside the item's sidecar in `Media/.meta/`:
 
 Gallery right-click, offered when `canConvertToPano(group)`: an image card with no scene whose
 selected entry is a plain still at EXACTLY 2:1 (the app cannot tell a pano from a banner, so it
-offers and the user says which). The flow:
+offers and the user says which). **It makes a NEW card** (Fabio, 2026-10-12): the source stays an
+ordinary picture the user can still edit and convert again. The flow:
 
 1. `MpiGalleryGrid` emits `convert-pano`; `MpiGalleryBlock` runs `convertToPano`
    (`js/services/scene/sceneConvert.js`) with an info toast, and a module-scoped set refuses a
    second Convert of the same card while one runs.
-2. `runSceneOp({ op: 'sceneConvert', imagePath })` -> `{ imageUrl, depthUrl }` (`/view` URLs).
-3. `POST /project-media/:projectId/scene?folderPath=` `{ itemId, imageUrl, depthUrl }` downloads
+2. `enqueueGeneration` op `sceneConvert` (the selected still as `inputImage`): a NORMAL queued run,
+   so it has a queue row, status-bar progress and Stop. `Output_Image` (the 8K texture) lands as the
+   new card (`convertTo360Pano_NNN`); `runCommand` captures `Output_Depth` as `depthUrl`, and the
+   gallery `onComplete` hands `{ item, group, outputUrls, depthUrl }` back.
+3. `POST /project-media/:projectId/scene?folderPath=` `{ itemId: <the new card's item>, imageUrl, depthUrl }` downloads
    both over the /view proxy (so a Pod's output reaches the app), writes the manifest, and writes
    `scenePath` to the sidecar LAST. Any failure removes every `<id>.scene.*` it wrote: the card
    stays a plain image rather than one that opens onto missing files. An unknown id is a 404,
@@ -138,9 +142,10 @@ offers and the user says which). The flow:
 
 ## The engine ops
 
-Both are universal ops (the 4-file registration) run by **`runSceneOp`** (`commandExecutor.js`),
-never `runCommand`: a depth-only run has no image URL and `generationService` treats an empty
-result as a CANCEL, and Convert must not make a card.
+Both are universal ops (the 4-file registration). `sceneLift` runs by **`runSceneOp`**
+(`commandExecutor.js`), never `runCommand`: a depth-only run has no image URL and
+`generationService` treats an empty result as a CANCEL. `sceneConvert` goes through the queue
+(above): its `Output_Image` IS the card.
 
 | op | graph | in | out |
 |---|---|---|---|

@@ -34,6 +34,11 @@ const DEFAULT_NODE_WEIGHT = 0;
 // UltimateSDUpscale: steps × estimated tiles (dims unknown pre-run → fixed 4)
 const ULTIMATE_TILE_ESTIMATE = 4;
 
+// Long single-shot nodes that report NO progress (MPI-623: MoGe depth, ~45 s on a 4060 Ti).
+// Like ESRGAN they get the indeterminate pulse and switch the bar to the op's label; without
+// a kind, a graph made only of them sat on "Starting" at 0% for its whole run.
+const SINGLE_SHOT_CLASSES = new Set(['MpiPanoDepth', 'MpiLiftDepth']);
+
 // ── Weight map builder ────────────────────────────────────────────────────────
 
 /**
@@ -60,6 +65,10 @@ export function buildWeightMap(workflow) {
         } else if (classType === 'ImageUpscaleWithModel') {
             weight = UPSCALE_WITH_MODEL_WEIGHT;
             kind   = 'imageUpscale';
+
+        } else if (SINGLE_SHOT_CLASSES.has(classType)) {
+            weight = UPSCALE_WITH_MODEL_WEIGHT;
+            kind   = 'singleShot';
 
         } else if (classType === 'VHS_LoadVideoPath' || classType === 'VHS_VideoCombine') {
             weight = VHS_NODE_WEIGHT;

@@ -426,7 +426,7 @@ async function _stitchOutputs(urls, stitch) {
  * @typedef {Object} Execution
  * @property {function(string):void}   onPreview  - Called with each latent preview URL
  * @property {function(number):void}   onProgress - Called with 0–1 progress value from ComfyUI
- * @property {function(string[], {latents?: object[], audioUrl?: string|null, promptText?: string|null, splatUrl?: string|null, displayUrls?: string[], displayUrlsByNode?: Object<string, string[]>}):void} onComplete - Called with final output URLs and side outputs on success. `promptText` is the string an `Output_prompt` node encoded (null when the workflow has none). `splatUrl` is the `/view` URL of the `.ply` an `Output_Splat` node reported (MPI-623; null when the workflow has none, and null when its path had no `splats/` segment to build a URL from). `displayUrls` are the `/view` URLs an `Output_Display` node wrote (MPI-747) — what a Flow shows INSTEAD of the output, never saved; empty when the workflow has none. `displayUrlsByNode` holds the same URLs keyed by node id, for a caller with several taps (MPI-918).
+ * @property {function(string[], {latents?: object[], audioUrl?: string|null, promptText?: string|null, splatUrl?: string|null, depthUrl?: string|null, displayUrls?: string[], displayUrlsByNode?: Object<string, string[]>}):void} onComplete - Called with final output URLs and side outputs on success. `promptText` is the string an `Output_prompt` node encoded (null when the workflow has none). `splatUrl` is the `/view` URL of the `.ply` an `Output_Splat` node reported (MPI-623; null when the workflow has none, and null when its path had no `splats/` segment to build a URL from). `depthUrl` is the `/view` URL of the depth file an `Output_Depth` node reported under `scenes/` (MPI-623, Convert to 360 pano). `displayUrls` are the `/view` URLs an `Output_Display` node wrote (MPI-747) — what a Flow shows INSTEAD of the output, never saved; empty when the workflow has none. `displayUrlsByNode` holds the same URLs keyed by node id, for a caller with several taps (MPI-918).
  * @property {function(Error):void}    onError    - Called on failure
  * @property {function():void}         cancel     - Interrupt the running generation
  */
@@ -1473,11 +1473,11 @@ export function runGifCutoutTrack(payload) {
 }
 
 /**
- * MPI-623 — the two 3D Scene ops, dispatched directly like the GIF cut-out above, never
- * through `runCommand`: neither makes a card. `sceneConvert` turns a 2:1 pano into its
- * scene (the 8K texture + equirect depth) for the SAME card's companions; `sceneLift`
- * returns only the depth of a Take-picture fill, and `generationService` reads a run with
- * no image as a cancel.
+ * MPI-623 — a 3D Scene op dispatched directly like the GIF cut-out above, never through
+ * `runCommand`, because it makes no card: `sceneLift` returns only the depth of a
+ * Take-picture fill, and `generationService` reads a run with no image as a cancel.
+ * `sceneConvert` no longer comes here: it lands a NEW card through `enqueueGeneration`
+ * (`sceneConvert.js`, Fabio 2026-10-12), so it queues and shows progress like any run.
  *
  * Two captures: `Output_Image` (sceneConvert's 8K texture) and `Output_Depth`, a
  * `PreviewAny` holding the path of the raw float32 file the scene node wrote under
@@ -1692,7 +1692,9 @@ const LOADER_CLASS_TYPES = new Set([
     'MpiFromCheckpoint',
 ]);
 
-const IMMEDIATE_WORK_KINDS = new Set(['sampler', 'imageUpscale', 'vhs']);
+const IMMEDIATE_WORK_KINDS = new Set(['sampler', 'imageUpscale', 'singleShot', 'vhs']);
+// Work with no progress signal at all: the bar pulses while one runs (MPI-147, MPI-623).
+const PULSE_KINDS = new Set(['imageUpscale', 'singleShot']);
 const DELAYED_WORK_KINDS = new Set(['ultimateSDUpscale']);
 const TERMINAL_PHASE_WORK_KINDS = new Set(['sampler']);
 // Kinds whose nodes emit tqdm step bars on stdout → the stage-progress SSE should
@@ -2276,6 +2278,15 @@ export function runCommand(payload) {
             )
         );
 
+        // `Output_Depth` capture (MPI-623) — Convert to 360 pano's equirect depth, the same
+        // `PreviewAny` path contract under `output/scenes/`. The card lands from `Output_Image`;
+        // the caller stores the pair as the new card's scene.
+        const outputDepthNodeIds = new Set(
+            Object.keys(workflow).filter(id =>
+                workflow[id]._meta?.title?.toLowerCase() === 'output_depth'
+            )
+        );
+
         // `Output_Display` capture (MPI-747) — an image or video assembled INSIDE the
         // graph that a Flow shows on its final stage instead of the output (Head Swap:
         // both inputs beside the result). Never saved: it stays out of `outputNodeIds`,
@@ -2370,6 +2381,7 @@ export function runCommand(payload) {
         // workflow has one. null everywhere else, which is what keeps a 3D Scene card
         // distinguishable from the ordinary image card it otherwise is (MPI-623).
         let splatOutputUrl = null;
+        let depthOutputUrl = null;
         const displayOutputUrls = [];
         // The same URLs keyed by the node that wrote them: `displayOutputUrls` is in the order
         // the nodes EXECUTED, which a graph with two taps cannot rely on (MPI-918, two refs).
@@ -2587,7 +2599,7 @@ export function runCommand(payload) {
             // is belt-and-suspenders for the fill. Only when stdout drove (local).
             if (_stdoutDriving) { stageProgress.finish(); emitProgress(stageProgress.percent()); }
             closeComfyEventSource();
-            exec.onComplete?.(outputUrls, { latents: latentOutputs, audioUrl: audioOutputUrl, promptText: promptTextOutput, splatUrl: splatOutputUrl, displayUrlsByNode, displayUrls: displayOutputUrls });
+            exec.onComplete?.(outputUrls, { latents: latentOutputs, audioUrl: audioOutputUrl, promptText: promptTextOutput, splatUrl: splatOutputUrl, depthUrl: depthOutputUrl, displayUrlsByNode, displayUrls: displayOutputUrls });
         };
 
         const onMessage = (msg) => {
@@ -2703,12 +2715,15 @@ export function runCommand(payload) {
                     } else if (!_isLoading() && !_samplingStartFired && IMMEDIATE_WORK_KINDS.has(nodeKind) && !TERMINAL_PHASE_WORK_KINDS.has(nodeKind)) {
                         emitSamplingStart();
                     }
-                    // imageUpscale (ESRGAN) is a single-shot op with NO progress
-                    // signal — show an indeterminate pulse while it runs, clear it
-                    // when the graph moves to any other node (MPI-147).
+                    // imageUpscale (ESRGAN) and the singleShot nodes (MoGe depth) run
+                    // with NO progress signal — show an indeterminate pulse while one
+                    // runs, clear it when the graph moves to any other node (MPI-147).
                     if (!_suppressLifecycleEvents) {
-                        const indeterminate = nodeKind === 'imageUpscale';
-                        if (indeterminate) emitSamplingStart();
+                        const indeterminate = PULSE_KINDS.has(nodeKind);
+                        // Real work has begun: clear any loading phase (its loader ran
+                        // just before), or the bare emit no-ops and the bar keeps the
+                        // loader's label for the whole node.
+                        if (indeterminate) _beginSampling();
                         Events.emit('tool:indeterminate', { tool: 'groupHistory', id: exec.genId, active: indeterminate });
                     }
                     aggregator.onExecuting(msg);
@@ -2768,6 +2783,10 @@ export function runCommand(payload) {
                     if (_info) {
                         splatOutputUrl = _buildComfyViewUrl(_info, workingPayload.forceLocal === true);
                     }
+                }
+                if (outputDepthNodeIds.has(nodeId)) {
+                    const _info = splatViewFileInfo(readComfyOutputText(nodeOutput), 'scenes');
+                    if (_info) depthOutputUrl = _buildComfyViewUrl(_info, workingPayload.forceLocal === true);
                 }
                 if (outputDisplayNodeIds.has(nodeId)) {
                     _collectComfyOutputUrls(nodeOutput, displayOutputUrls, workingPayload.forceLocal === true);

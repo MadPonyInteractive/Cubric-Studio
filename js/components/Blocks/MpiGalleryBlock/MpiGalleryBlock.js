@@ -311,9 +311,10 @@ export const MpiGalleryBlock = ComponentFactory.create({
             describeItem(getSelectedItem(group), { group, scope: 'gallery' });
         });
 
-        // MPI-623 (A9) — Convert to 360 pano: the card gets its scene in place (~1.5 min on a
-        // 4060 Ti), then a left-click opens it in Scene. Module-scoped so a second click while
-        // one runs does not start a second 8K job.
+        // MPI-623 (A9) — Convert to 360 pano: a queued run (~1.5 min on a 4060 Ti) that lands
+        // a NEW scene card, so this one stays an editable picture; a left-click on the new one
+        // opens it in Scene. Module-scoped so a second click while one runs does not queue a
+        // second 8K job.
         grid.on('convert-pano', ({ group }) => {
             const project = state.currentProject;
             const item = getSelectedItem(group);
@@ -329,10 +330,11 @@ export const MpiGalleryBlock = ComponentFactory.create({
                 return;
             }
             _convertingGroupIds.add(group.id);
-            Events.emit('ui:info', { message: 'Building the 3D scene. This takes a minute or two.', sound: false });
-            convertToPano(project, group, item)
-                .then(() => Events.emit('ui:success', { message: 'Scene ready. Click the card to walk around in it.' }))
+            Events.emit('ui:info', { message: 'Building the 3D scene. It lands as a new card in a minute or two.', sound: false });
+            convertToPano(project, item)
+                .then(() => Events.emit('ui:success', { message: 'Scene ready. Click the new card to walk around in it.' }))
                 .catch((err) => {
+                    if (err?.cancelled) return;
                     clientLogger.error('scene', 'convert to 360 pano failed', err);
                     Events.emit('ui:error', { title: 'Convert failed', message: err.message });
                 })

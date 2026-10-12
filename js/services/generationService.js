@@ -1757,7 +1757,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             // later; committed runs simply ignore it (they are already in the project).
             // `displayUrls` (MPI-747): what an `Output_Display` node wrote — a Flow shows it
             // instead of the output. Never an item, so nothing above saved it.
-            callbacks.onComplete?.({ item: firstItem, group: firstGroup, items: builtItems, groups, displayUrls: outputInfo.displayUrls || [] });
+            // `outputUrls` + `depthUrl` (MPI-623): Convert to 360 pano stores the `/view` pair
+            // as the landed card's scene (`sceneConvert.js`).
+            callbacks.onComplete?.({ item: firstItem, group: firstGroup, items: builtItems, groups, displayUrls: outputInfo.displayUrls || [], outputUrls: urls, depthUrl: outputInfo.depthUrl || null });
         }
 
         // A Stopped run whose output still landed is NOT a completion. ComfyUI's
