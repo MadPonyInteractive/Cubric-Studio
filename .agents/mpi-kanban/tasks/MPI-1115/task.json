@@ -4,10 +4,10 @@
   "title": "Dev updates bell: landing-page notifications fed from the Discord #dev-updates channel",
   "description": "Bell with unread count on the landing nav; overlay of dev-update cards (image + text) read from Discord via a Cloudflare Worker; click to acknowledge; Join Discord button. Brief: brief.md",
   "column": "doing",
-  "maturity": "in-progress",
+  "maturity": "validating",
   "status": "active",
   "created_at": "2026-10-12T16:05:57+01:00",
-  "updated_at": "2026-10-12T16:20:09+01:00",
+  "updated_at": "2026-10-12T16:37:04+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
