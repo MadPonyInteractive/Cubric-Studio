@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1105",
+  "title": "Flash a gradient on the right edge of the UI when a new job enters the queue",
+  "description": "UMBRELLA: MPI-1102 - No silent work: every job shows in the queue (umbrella) (consolidation sweep 2026-10-12). Members and phase order: tasks/MPI-1102/plan.md. Fabio 2026-10-12: every time a new job is queued (GPU generation or non-GPU queue panel job), flash a gradient on the right side of the UI so the user sees the queue just took something. Accent from DESIGN.md tokens, no hex. Look-and-feel: needs Fabio's eye test before done.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-12T08:01:59+01:00",
+  "updated_at": "2026-10-12T08:01:59+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

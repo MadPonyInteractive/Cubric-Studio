@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1108", "at": "2026-10-12T08:02:04+01:00", "actor": "claude", "column": "todo", "title": "Model file drop onto a model folder shows copy progress"}

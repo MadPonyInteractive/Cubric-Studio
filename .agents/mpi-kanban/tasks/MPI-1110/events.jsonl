@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1110", "at": "2026-10-12T08:02:08+01:00", "actor": "claude", "column": "todo", "title": "Project Cleanup assets shows it is working"}

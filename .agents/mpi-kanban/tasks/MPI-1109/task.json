@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1109",
+  "title": "Describe on the online LLM backend shows it is working (gallery + Cosmo)",
+  "description": "UMBRELLA: MPI-1102 - No silent work: every job shows in the queue (umbrella) (consolidation sweep 2026-10-12). Members and phase order: tasks/MPI-1102/plan.md. Partial / silent today: js/utils/describeAction.js -> llmService /llm/describe (2-20 s, not queued by design) shows nothing until the end toast; Cosmo's agent.describe on the same path (js/shell/agentDispatch.js) shows nothing at all. Give it a queue panel row with the sweep (no real %).",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-12T08:02:06+01:00",
+  "updated_at": "2026-10-12T08:02:06+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

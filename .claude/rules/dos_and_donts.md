@@ -16,7 +16,7 @@
 - **For image surfaces: prefer CSS `transform` on a stack element over `ctx.translate/scale`.** CSS transform uses the GPU compositor — no re-rasterize per frame. `ctx` transforms belong only to screen-UI overlays drawn in container px.
 - **Check `js/utils/` before writing any generic logic** — `async.js`, `file.js`, `images.js`, `video.js`, `mediaDimensions.js`, `string.js`, `ratios.js`, `markdown.js` may already do what you need.
 - **Never hand-roll markdown.** `js/utils/markdown.js` is the ONE renderer (`marked` parses, `DOMPurify` sanitizes): `renderMarkdown(src)` for a document, `renderInlineMarkdown(src)` for a single line with no `<p>` wrapper, `renderMarkdownInto(el, src)` + `wireMarkdownLinks(el)` for a live pane. Never `innerHTML` markdown output that did not go through it — notes arrive inside project folders the user may not have written. Style the result with the shared `.mpi-md` block in `styles/markdown.css`; do not restyle headings/tables per component.
-- **Every action shows itself — start, during, end.** Over ~1 s shows progress; GPU/engine work goes through `enqueueGeneration` (never a direct engine call); a download/upload uses Transfers; a failure is a `ui:warning` toast with a plain reason. Before calling it done, name what the user SEES at start, during, end — any "nothing" = not done. Full rule: § "Every action shows itself".
+- **Every action shows itself — start, during, end.** Over ~1 s shows progress; GPU/engine work goes through `enqueueGeneration` (queue + status bar, never a direct engine call); non-GPU work (download, upload, CPU) is a queue-panel row with a progress bar, never the status bar; no real % = the moving sweep (`tool:indeterminate` / `mpi-progress--loading`), never a still bar; a failure is a `ui:warning` toast with a plain reason. Before calling it done, name what the user SEES at start, during, end — any "nothing" = not done. Full rule: § "Every action shows itself".
 - **Frontend logging:** `import { clientLogger } from '../services/clientLogger.js'` — never use bare `console.log/error`.
 - **Backend logging:** `const logger = require('./logger')` from `routes/logger.js`.
 - **🔴 Mutating a mask or paint LAYER? It must be undoable.** `MpiCanvas` owns a shared
@@ -142,20 +142,29 @@ clientLogger.error('comfy', 'Description of error', err);
 right-click "Convert to 360 pano" called `runSceneOp` (`commandExecutor.js`) directly, so
 ~1.5 min of GPU work showed no queue row and the status bar read IDLE. Fixed by routing it
 through `enqueueGeneration` — the queue row, status-bar progress and Stop came for free.
+Then it shipped with NO progress at all, and Fabio had to ask for the sweep in a second step
+(rule 2 below exists for that).
 
-1. **Over ~1 s → visible progress where the user is looking.** Queue row + status bar,
-   a Transfers bar, an `MpiProgressBar`, or the control's own busy state. Never a log line only.
-2. **GPU / engine work goes through the generation queue** — `enqueueGeneration`
-   (`js/services/generationService.js`), tracked by `activeGenerations`, shown in
-   `MpiQueuePanel` and the status bar. Never a direct engine call, unless it is a sub-second
-   helper. This holds for agent / MCP-triggered work too.
-3. **A byte transfer (model download / upload) uses Transfers** — `state.downloadJobs` /
-   `state.uploadJobs`, the Transfers section of `MpiQueuePanel` (MPI-1057).
-4. **Every end state is visible.** Done → the result lands or the status bar completes.
+1. **Over ~1 s → visible progress where the user is looking.** Never a log line only.
+   Where it goes depends on what does the work:
+   - **GPU / engine work → the generation queue + the status bar.** `enqueueGeneration`
+     (`js/services/generationService.js`), tracked by `activeGenerations`, shown in
+     `MpiQueuePanel` and the status bar. Never a direct engine call, unless it is a sub-second
+     helper. This holds for agent / MCP-triggered work too.
+   - **Non-GPU work → a row in the queue panel with a progress bar, never the status bar.**
+     A byte transfer (model download / upload) uses Transfers — `state.downloadJobs` /
+     `state.uploadJobs`, the Transfers section of `MpiQueuePanel` (MPI-1057). A CPU job
+     (ffmpeg, sharp, a file copy, a cleanup) gets the generic queue-panel row — building it is
+     MPI-1104 (umbrella MPI-1102); until it lands, say so on your card rather than ship silent.
+2. **No real progress number → the moving sweep, never a still or empty bar.** Status bar:
+   emit `tool:indeterminate` (`StatusBar.progress.setIndeterminate`, MPI-147) — what ESRGAN
+   and the cloud ops already do. An `MpiProgressBar`: the `mpi-progress--loading` class
+   (MPI-95). Moving a job into the queue is not done until it moves on screen.
+3. **Every end state is visible.** Done → the result lands or the status bar completes.
    Failed → a `ui:warning` toast with a plain reason and what to do (`ui:error` only for a
    reportable bug — the channel table is `docs/toasts.md` § Choosing the channel). Cancelled →
    no toast (rule above), but the row / bar / button visibly leaves its running state.
-5. **Self-check before calling it done:** name what the user SEES at start, during, and end.
+4. **Self-check before calling it done:** name what the user SEES at start, during, and end.
    If any answer is "nothing", it is not done.
 
 ---

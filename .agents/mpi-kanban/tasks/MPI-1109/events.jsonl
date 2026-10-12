@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1109", "at": "2026-10-12T08:02:06+01:00", "actor": "claude", "column": "todo", "title": "Describe on the online LLM backend shows it is working (gallery + Cosmo)"}

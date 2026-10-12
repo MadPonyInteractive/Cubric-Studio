@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1103", "at": "2026-10-12T08:01:56+01:00", "actor": "claude", "column": "todo", "title": "Rule: no-progress jobs show the sweep; GPU in status bar + queue, non-GPU in the queue panel"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1103", "at": "2026-10-12T08:02:28+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "amending the feedback rule"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1103", "at": "2026-10-12T08:03:29+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "rule amended; docs only"}

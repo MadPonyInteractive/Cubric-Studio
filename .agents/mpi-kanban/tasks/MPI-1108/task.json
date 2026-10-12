@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1108",
+  "title": "Model file drop onto a model folder shows copy progress",
+  "description": "UMBRELLA: MPI-1102 - No silent work: every job shows in the queue (umbrella) (consolidation sweep 2026-10-12). Members and phase order: tasks/MPI-1102/plan.md. Partial today: MpiFolderDrop -> POST /comfy/import-model does a multi-GB fs.copy (routes/comfy.js) with nothing on screen until the 'Imported X' toast. Show it in Transfers (or the generic queue row) with bytes copied.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-12T08:02:04+01:00",
+  "updated_at": "2026-10-12T08:02:04+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
