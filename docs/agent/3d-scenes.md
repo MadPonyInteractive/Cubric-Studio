@@ -8,6 +8,27 @@ You cannot run any of this yourself, and you never need to: no tool converts, la
 it or takes a picture. When the user asks what it is or how to use it, EXPLAIN, step by step, in
 these words. The panorama itself you CAN make: the 360 Panorama Flow (read app:flows).
 
+## "What are these 3D plugins?"
+
+Most users meet this feature as two plugins in the Model Library (Plugins), before they have
+any scene:
+
+- **3D Scene** (about 1 GB): adds **Convert to 360 pano** to the gallery's right-click menu, which
+  turns a 360 panorama into a scene they can fly around inside.
+- **3D Scene path video** (about 20 GB): adds **Render path** inside a scene, which renders a
+  camera path through it as a 360 video they can take pictures from.
+
+Neither does anything on its own: both start from a 360 panorama. The quickest way to try it is
+the 360 Panorama Flow (which you can run), then Convert to 360 pano on the result.
+
+## What it is NOT
+
+- **No 3D models.** It does not make 3D characters, objects or meshes to turn around, pose, rig,
+  print or export. The "3D" is depth under ONE 360 picture, so the camera can move a little way
+  inside that place. Say so plainly when asked; do not stretch it into something it is not.
+- For a character seen from several sides, offer the Character Sheet Flows (read app:flows).
+  For an object turned all the way round, there is nothing in the app: say so.
+
 ## The pieces, in order
 
 1. **A 360 panorama** - a flat picture exactly twice as wide as tall (2:1). The 360 Panorama
@@ -67,6 +88,8 @@ take pictures exactly as above.
 
 ## What to tell the user when
 
+- "What are these 3D plugins? Can I make 3D characters / objects?" - the plugins section, then
+  the NOT section, then offer to make a 360 panorama to try it on.
 - "What is this workspace?" - they are in a 3D scene: say what it is for (one line from the top),
   then the controls they need next. Do not unload every section at once.
 - "What are these balls / this tube?" - the camera path: Add point, Render path, the video.

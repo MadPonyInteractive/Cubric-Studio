@@ -30,3 +30,13 @@
 ## Shipped
 
 - 5f4cdbeb0 pushed; CI run 38307863162 success (unit + desktop 1-4).
+
+## Reopened (2026-10-12): the plugins-first question
+
+Fabio: a user has no scene until they make one; the real first question comes from the Model
+Library: "what are these 3D plugins, can I make 3D characters / objects?". The guide now opens
+with the two plugins by their Library titles (3D Scene ~1 GB -> Convert to 360 pano; 3D Scene
+path video ~20 GB -> Render path), says neither works without a 360 panorama, and has a
+"What it is NOT" section (no 3D models/meshes/export; Character Sheet Flows for a character from
+several sides; nothing for an object turned round). Cosmo cannot see plugins otherwise (no plugin
+data reaches the agent). agent-corpus + agent-prompt-budget tests 6/6.
