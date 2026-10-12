@@ -53,7 +53,15 @@ image-to-world on Wan2.2-I2V-A14B, CC-BY-NC-4.0 weights, 4-8 GPU default, no Com
 Fabio 2026-10-12: Convert to 360 pano now makes a NEW card via `enqueueGeneration` (queue row, status bar, Stop; source
 stays editable): `runCommand` captures `Output_Depth` -> gallery `onComplete` hands `outputUrls` + `depthUrl` ->
 `sceneConvert.js` POSTs the existing /scene route on the LANDED item. `routes/projects.js` untouched (MPI-1071 holds it).
-Built + unit-tested; waits on his eye. Noticed: the new card stores the 8K PNG twice (card file + `.scene.pano.png`).** Also his asks: Scene
+Fabio's eye: PASSED (new card `convertTo360Pano_001` opens in Scene, source kept; Reset view OK). The bar sat on
+"Starting 0%" (MoGe-only run): `singleShot` progress kind for MpiPanoDepth/MpiLiftDepth pulses + `_beginSampling`,
+label "Converting" (`60ed07833`, pushed; his live look at the bar comes with his next Convert). Noticed: the new
+card stores the 8K PNG twice (card file + `.scene.pano.png`) - fix once `routes/projects.js` is free.
+**FABIO'S ORDER (session 50, 2026-10-12): (1) leftovers ONLY: frame 0's thin black outlines in a path video, and
+deprecate `sceneLift` + `POST /scene-layer` (playbook add-model § Removing: keep the dep entries); (2) Phase 4
+shipping for 2.1 (ungate scene-convert / Scene / pano-360, MoGe HF re-host, Pod promote, UNRELEASED.md); (3) LATER
+`/mpi-flow-graphics` tile + hero. Decided: KEEP 10 steps (no 8-vs-10 bench); RunPod path test DEFERRED; path-ball
+fix checked by him.** Also his asks: Scene
 **Reset view** button BUILT (`START_POSE`, lens kept; scene-viewer spec asserts it, 2/2 green) - his eye; Take
 picture is gone from the Scene by HIS session-47 call (path tool only; pictures via the 360 player) - told him.
 Noticed: the status bar reads IDLE during a Convert (`runSceneOp` bypasses the queue) - polish item.

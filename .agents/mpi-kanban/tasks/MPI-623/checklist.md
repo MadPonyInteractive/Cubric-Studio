@@ -74,9 +74,9 @@ ticks (Phase 0/0b/1, all complete) moved verbatim to
 - [x] Render path status line: minutes per GPU from `GPU_GEN_SECS` (`pathEtaMin`, Vision 545b1ac0f)
 - [x] Pod: dev image v0.26.0-dev bakes ComfyUI-GGUF + pip gguf (mpi-ci c9ca454, CI 38017503044)
 - [x] R2: the four Render path weights (360 LoRA, lightx2v, clip_vision_h, Wan Q4 GGUF) uploaded + lsl-verified
-- [ ] Fabio's RunPod test: points + Render path on an RTX PRO 6000 (restart his app first: routes/ bake the dev tag);
+- [ ] DEFERRED by Fabio (session 50, not in the next run): Fabio's RunPod test: points + Render path on an RTX PRO 6000 (restart his app first: routes/ bake the dev tag);
       then re-anchor `PATH_RUN` in `scenePathVideo.js` on the Pod's measured seconds (a `GPU_GEN_SECS` card)
-- [ ] Fabio's eye on the path-ball fix (fly high, press P, the ball stays put)
+- [x] Fabio's eye on the path-ball fix (fly high, press P, the ball stays put) - he checked it (session 50)
 - [x] P3 decided: option 1, a 360 video player (Fabio, session 45; the lift into the scene rejected by eye)
 - [x] P3 picture quality on his well video: Klein POLISH alone sharpens a 24 mm cut, no upscaler (session 46)
 - [x] P3 player built: `MpiPanoVideoBlock` + `panoVideo.js`, routed by card, Take picture -> a new card (session 46)
