@@ -4,6 +4,7 @@
     "routes/projects.js",
     "tests/recent-project-thumbnail.test.cjs",
     "docs/project-integrity.md",
-    "docs/releases/UNRELEASED.md"
+    "docs/releases/UNRELEASED.md",
+    "styles/shell/landing.css"
   ]
 }
