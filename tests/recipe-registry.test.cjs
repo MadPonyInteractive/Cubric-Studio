@@ -32,6 +32,7 @@ const {
     listRecipes,
     selectSystemPrompt,
     validateRecipe,
+    withPictureLines,
 } = require('../js/data/recipes/registry.js');
 const { renderRecipeBrief, renderAllBriefs } = require('../js/data/recipes/brief.js');
 const { composeSystemPrompt, DEFAULT_STYLE } = require('../js/data/recipes/styles.js');
@@ -238,7 +239,22 @@ function testBriefRendersFromData() {
     assert.strictEqual(renderRecipeBrief(getRecipe('chroma'), 'r2v'), '', 'undeclared mode');
 }
 
+/** MPI-1084: the app writes each named picture's line; the enhancer keeps the scene. */
+function testAppWritesThePictureLines() {
+    const reply = 'PART 1 -- PICTURE LINES\n<Picture 2> setting: the forest\n<Picture 1>: prop - the helmet\n<Picture 3> a lamp\n<Picture 4> setting: a beach\n\nPART 2 -- THE SCENE\nThe scene.';
+    const out = withPictureLines(reply, [
+        { tag: '<Picture 1>', kind: 'animal', name: 'a tan hamster in a yellow firefighter helmet' },
+        { tag: '<Picture 2>', kind: 'place', name: 'a misty valley at sunset' },
+        { tag: '<Picture 3>', kind: 'object' },          // kind but no name: their words, our role
+        { tag: '<Picture 5>', kind: 'person', name: 'a woman in a teal swimsuit' },   // they wrote no line
+    ]);   // Picture 4 was never described: its line stays as they wrote it
+    assert.strictEqual(out, '<Picture 1> a tan hamster in a yellow firefighter helmet\n<Picture 2> setting: a misty valley at sunset\n'
+        + '<Picture 3> prop: a lamp\n<Picture 4> setting: a beach\n<Picture 5> a woman in a teal swimsuit\n\nThe scene.');
+    assert.strictEqual(withPictureLines(reply, [{ tag: '<Picture 1>', text: 'x' }]), reply, 'nothing known = their reply untouched');
+}
+
 const tests = {
+    testAppWritesThePictureLines,
     testEveryRecipeValidates,
     testValidatorActuallyBites,
     testRegistryIntegrity,

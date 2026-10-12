@@ -32,7 +32,45 @@ output to a file, never through `tee`. ~5 min a sweep once leased; the queue is 
 directed = cowboy + Picture 1; overlong = samurai + Picture 1, 2 + Audio 1. Shared with Wan/Seedance: a tier
 change there moves their baselines too.
 
-**STATE (2026-10-11 ~20:30, session d6d1c356) - read this first, then the older block below:**
+**STATE (2026-10-12, session 2b4da86d) - read this first:**
+- FIXED ROLES BUILT. `pictureCaptions` asks the describer once per picture `KIND_QUESTION` (person/animal/place/
+  object), kept as the sidecar's TOP-LEVEL `lookKind` (not `look.kind`: update-meta merges shallowly and Cosmo's
+  `storeLook` replaces the whole `look`, so it would wipe it). `registry.withRoles(text, captions)` rewrites each
+  `<Picture n>` line's role word after the enhancer replies (place -> `setting:`, object -> `prop:`, person/animal
+  bare); a picture with no kind keeps the enhancer's word. Harness seen tiers carry `kind` and run the same
+  `withRoles`. llm-service 32/32 (test asserts the rewrite + lookKind kept + reuse), recipe-registry, agent-corpus,
+  ingredients-sheet green, eslint clean.
+- In-app rig is now in this session's scratchpad (`drive.sh <port> <out> [order]`, `enhance.js` points describes at
+  the keyless `ollama` profile with `huihui_ai/qwen3-vl-abliterated:4b` = free; docs/profile still in d6d1c356's
+  scratchpad; `kindprobe.mjs <port>` tests kind questions). Instance STOPPED.
+- Results (validation.md § Step 2c): sweep T roles 0/21 wrong. In-app, the first kind question called the valley
+  (small hiker in it) `person` and the app stripped the right `setting:`; question reworded (probe: 14/14 on 7
+  stills), re-run in-app roles 0/18 wrong. LEFT: the enhancer's DESCRIPTIONS still slip (hamster-first order wrote
+  "setting: the forest where the picnic takes place" for the valley 3/3; "a miniature yellow firefighter's helmet"
+  for the hamster 1/9). Fabio's eye test 1: roles right, but the recipe heading "PART 1 -- PICTURE LINES" leaked
+  and the woman's line carried her photo's pool/pose.
+- DECIDED (Fabio 2026-10-12): THE APP WRITES THE WHOLE PICTURE LINE. Built: `registry.withPictureLines` (replaces
+  `withRoles`; drops `PART n` headings; unnamed/undescribed pictures keep the enhancer's line), `pictureCaptions`
+  asks `KIND_QUESTION` (one word) then `NAME_QUESTION(kind)` (<=15 words, looks only), kept as sidecar
+  `lookKind` + `lookName`. One combined "kind: phrase" question broke format on the 4B (probe kind2/kind3); two-step
+  probe kind4: 4B 14/14, gemma4:12b horse sheet = animal -> "riding or holding an animal" tweak, probe kind5.
+  Tests: recipe-registry 11/11 (`testAppWritesThePictureLines`), llm-service 32/32.
+- VERIFIED (agent): probe kind5 4B 14/14; sweep T2 seen tiers 9/9 (medium 2/3 = enhancer's own line on the uncaptioned
+  tier, pre-existing); in-app eye5/eye6 18/18 lines right in both orders incl. Fabio's woman/hamster/forest. Instance
+  STOPPED.
+- Fabio eye test 2 (his app, DeepInfra Gemma 4 26B): lines right but "a light brown RAT" (look says hamster) and the
+  SCENE copied the woman's photo ("sits on the edge of the pool") from the look gist sent as caption. FIXED:
+  `withReferences` captions a named picture by its looks-only `name`, not the look gist; `NAME_QUESTION(kind, look)`
+  quotes the kept look's first sentence ("call the subject what that description calls it"); `tidyName` lower-cases
+  a leading capital. Probe kind6: hamster 4/4 on both local describers, no pose/pool. Sweep T3 ALL PASS 21/21, no
+  "pool". In-app eye7/eye8 18/18, Fabio's squirting-hose text reads "from the front ... faces the camera".
+  Tests: llm-service 32/32, recipe-registry 11/11, eslint clean. Instance STOPPED.
+- GOTCHA for eye test 3: a kept `lookName` is reused, so Fabio's three sidecars in "X2.3 references" still hold the
+  pre-anchor names ("a light brown rat ..."). Asked Fabio to OK clearing `lookKind`/`lookName` from those three
+  sidecars (his project: never without his yes). Then eye test 3 (reload Ctrl+R), then Step 3/4.
+  Known edge: a larger describer names a man-on-horse sheet by the horse.
+
+**STATE (2026-10-11 ~20:30, session d6d1c356):**
 - Sweep I on the tagged tiers: ALL PASS 12/12, every picture line right (validation.md).
 - DESCRIBE STEP BUILT (Step 2b): `llmService.pictureCaptions` + `enhance({pictures})`, opt-in per recipe mode with
   `seesPictures: true` (only LTX r2v; Seedance/Wan r2v unchanged, test asserts it). Card found by matching the staged

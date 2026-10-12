@@ -39,7 +39,7 @@
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getRecipe, resolveRecipe, withReferences } from '../js/data/recipes/registry.js';
+import { getRecipe, resolveRecipe, withReferences, withPictureLines } from '../js/data/recipes/registry.js';
 import { MODELS } from '../js/data/modelConstants/models.js';
 import { commands, filterMediaInputsForModel, refTagHandle } from '../js/data/commandRegistry.js';
 import {
@@ -165,23 +165,22 @@ const SEEN = {
 function seenInputs(tag) {
     const [p1, p2, p3] = ['Picture 1', 'Picture 2', 'Picture 3'].map(tag);
     const job = 'Write one picture line per attached picture, with the role and identifying look its caption shows, then the scene. The user tagged no picture: each one is matched to the user\'s words by what it shows.';
+    // `kind` + `name` are the describer's answer to KIND_QUESTION; the app writes the picture line from them.
+    const cap = (t, look) => ({ tag: t, text: SEEN[look], ...{
+        valley: { kind: 'place', name: 'a wide valley of white mist below a grassy hilltop at golden sunset' },
+        hamster: { kind: 'animal', name: 'a tan hamster in a yellow firefighter helmet, aviator sunglasses and red firefighter uniform' },
+        woman: { kind: 'person', name: 'a young woman with tan skin, long wavy dark-brown-to-magenta hair and a teal swimsuit' },
+    }[look] });
+    const picnic = 'The woman is Facing the camera and sitting on a towel, having a picnic in the forest, and the guinea pig Dressed as a fireman is stealing one of her oranges right In front of her, When she notices she becomes surprised.';
+    const tier = (name, roles, idea, captions) => ({ name, job, roles, captions, input: withReferences(idea, captions.map(c => c.tag), captions) });
     return [
-        {
-            name: 'seen-picnic', job, roles: { [p1]: { role: null, look: /pink|magenta|teal|turquoise|swimsuit/i }, [p2]: { role: null, look: /helmet|tan|sunglasses|uniform|hamster/i }, [p3]: { role: 'setting', look: /valley|mist|hill|sunset/i } },
-            input: withReferences('The woman is Facing the camera and sitting on a towel, having a picnic in the forest, and the guinea pig Dressed as a fireman is stealing one of her oranges right In front of her, When she notices she becomes surprised.',
-                [p1, p2, p3], [{ tag: p1, text: SEEN.woman }, { tag: p2, text: SEEN.hamster }, { tag: p3, text: SEEN.valley }]),
-        },
-        {
-            // The same text with the pictures shuffled: the hamster last read as "prop: the helmet".
-            name: 'seen-shuffled', job, roles: { [p1]: { role: 'setting', look: /valley|mist|hill|sunset/i }, [p2]: { role: null, look: /pink|magenta|teal|turquoise|swimsuit/i }, [p3]: { role: null, look: /helmet|tan|sunglasses|uniform|hamster/i } },
-            input: withReferences('The woman is Facing the camera and sitting on a towel, having a picnic in the forest, and the guinea pig Dressed as a fireman is stealing one of her oranges right In front of her, When she notices she becomes surprised.',
-                [p1, p2, p3], [{ tag: p1, text: SEEN.valley }, { tag: p2, text: SEEN.woman }, { tag: p3, text: SEEN.hamster }]),
-        },
-        {
-            name: 'seen-swapped', job, roles: { [p1]: { role: 'setting', look: /valley|mist|hill|sunset/i }, [p2]: { role: null, look: /helmet|tan|sunglasses|uniform|hamster/i } },
-            input: withReferences('a guinea pig dressed as a fireman sits on the grass and watches the sunset',
-                [p1, p2], [{ tag: p1, text: SEEN.valley }, { tag: p2, text: SEEN.hamster }]),
-        },
+        tier('seen-picnic', { [p1]: { role: null, look: /pink|magenta|teal|turquoise|swimsuit/i }, [p2]: { role: null, look: /helmet|tan|sunglasses|uniform|hamster/i }, [p3]: { role: 'setting', look: /valley|mist|hill|sunset/i } },
+            picnic, [cap(p1, 'woman'), cap(p2, 'hamster'), cap(p3, 'valley')]),
+        // The same text with the pictures shuffled: the hamster last read as "prop: the helmet".
+        tier('seen-shuffled', { [p1]: { role: 'setting', look: /valley|mist|hill|sunset/i }, [p2]: { role: null, look: /pink|magenta|teal|turquoise|swimsuit/i }, [p3]: { role: null, look: /helmet|tan|sunglasses|uniform|hamster/i } },
+            picnic, [cap(p1, 'valley'), cap(p2, 'woman'), cap(p3, 'hamster')]),
+        tier('seen-swapped', { [p1]: { role: 'setting', look: /valley|mist|hill|sunset/i }, [p2]: { role: null, look: /helmet|tan|sunglasses|uniform|hamster/i } },
+            'a guinea pig dressed as a fireman sits on the grass and watches the sunset', [cap(p1, 'valley'), cap(p2, 'hamster')]),
     ];
 }
 
@@ -603,7 +602,8 @@ async function main() {
                 model: engineModel,
                 system: composeSystemPrompt(mode, style),
             });
-            const out = text.trim();
+            // A seen tier's picture lines are the app's (`withPictureLines`), as `enhance()` writes them.
+            const out = withPictureLines(text.trim(), tier.captions ?? []);
             const checks = runChecks(tier.name, tier.input, out, mode, style, isRegisterTier, tier.roles);
             const checksOk = checks.every((c) => c.ok);
 

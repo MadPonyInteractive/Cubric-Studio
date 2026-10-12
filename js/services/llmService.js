@@ -38,7 +38,7 @@
  * Nothing here ever sees it.
  */
 
-import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, TRANSPARENT_BACKGROUND_RULE } from '../data/recipes/registry.js';
+import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe, withReferences, withPictureLines, TRANSPARENT_BACKGROUND_RULE } from '../data/recipes/registry.js';
 import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
@@ -884,6 +884,8 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
         clientLogger.warn('prompt', `[llmService] enhance failed on ${chosen}: ${result.error}`);
         return result;
     }
+    // MPI-1084: the picture lines are the app's, from what the describer saw; the enhancer keeps the scene.
+    if (seen.captions.length) result.text = withPictureLines(result.text, seen.captions);
     // Only a recipe that DECLARES two channels gets its reply split. A prose recipe
     // that happens to write the words "negative prompt" is not offering a second
     // field, and cutting its text there would silently delete half the prompt.
@@ -1137,6 +1139,27 @@ export async function describeImage({ imagePath, question, crop, scope, group } 
     });
 }
 
+// Two questions, not one (MPI-1084 probes, 7 stills x 2 runs on qwen3-vl 4B and gemma4 12B):
+// "kind: phrase" in one answer broke the format on the 4B and called a misty valley with a small
+// hiker in it a person. The kind alone, with "even when small figures appear in it", got every
+// still right; told the kind, the phrase describes the place and not the hiker. The phrase is
+// the picture line: looks only, never the photo's pose or surroundings (a woman's line once said
+// "sits on the turquoise swimming pool" in a forest scene).
+const KIND_QUESTION = 'What is this picture OF? Answer with one word. person: a person is the subject, also when riding or holding an animal. animal: an animal is the subject. place: a landscape, room, street or other location is the subject, even when small figures appear in it. object: a single thing is the subject.';
+const KIND_WORD = /\b(person|animal|place|object)\b/i;
+// Told the kept look's opening, the line calls the subject what the look (and Cosmo) calls it:
+// asked cold, a describer named the hamster the look calls a hamster "a light brown rat".
+const NAME_QUESTION = (kind, look) => {
+    const opening = String(look || '').replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s/)[0];
+    const seen = opening ? ` It was described before as: "${opening}" Call the subject what that description calls it.` : '';
+    return kind === 'place'
+        ? `The subject of this picture is the place itself.${seen} Name it in at most 15 words: what the place is and what is in it. Never what anyone in it is doing. Answer with the phrase only, for example "a narrow cobbled street with red brick houses".`
+        : `The subject of this picture is the ${kind}.${seen} Name it in at most 15 words: what it is and what sets its looks apart (hair, skin, clothing, colours, markings). Never its pose, what it is doing, or what is around it. Answer with the phrase only, for example "a bald man in a grey suit and round glasses".`;
+};
+/** The describer's phrase as a picture line's words: no quotes, no closing full stop, no leading capital. */
+const tidyName = (text) => String(text || '').trim().split('\n')[0].replace(/["*]/g, '').replace(/[.\s]+$/, '')
+    .replace(/^[A-Z](?![A-Z])/, (c) => c.toLowerCase()).split(/\s+/).slice(0, 25).join(' ');
+
 /**
  * What each staged picture shows, for an `r2v` enhance (MPI-1084). The enhancer is text-only:
  * told only "<Picture 1>, <Picture 2>", it guessed roles by load order and the sheet's
@@ -1149,8 +1172,11 @@ export async function describeImage({ imagePath, question, crop, scope, group } 
  * in the open project is described every time and kept nowhere. A failed describe drops that
  * one caption and says so in `missed`; the enhance still runs on the text.
  *
+ * Each picture is also asked ONCE what it is (`KIND_QUESTION`) and then what it looks like (`NAME_QUESTION`),
+ * kept as the sidecar's `lookKind` + `lookName`; the app writes its picture line from them (Fabio 2026-10-12).
+ *
  * @param {Array<{tag:string, url:string}>} pictures  staged images, by the tag the recipe reads
- * @returns {Promise<{captions: Array<{tag:string, text:string}>, missed: string[]}>}
+ * @returns {Promise<{captions: Array<{tag:string, text:string, kind?:string, name?:string}>, missed: string[]}>}
  */
 export async function pictureCaptions(pictures = []) {
     const project = state.currentProject;
@@ -1179,22 +1205,42 @@ export async function pictureCaptions(pictures = []) {
     }
     const missed = [];
     const captions = await Promise.all(staged.map(async (p) => {
-        const text = kept[p.itemId]?.meta?.look?.text;
-        if (text) return { tag: p.tag, text };
-        const r = await describeImage({ imagePath: p.url });
-        if (!r.ok || !r.text) {
-            missed.push(`${p.tag}: ${r.error || 'no description came back'}`);
-            return null;
+        const meta = kept[p.itemId]?.meta;
+        const keep = {};
+        let text = meta?.look?.text;
+        if (!text) {
+            const r = await describeImage({ imagePath: p.url });
+            if (!r.ok || !r.text) {
+                missed.push(`${p.tag}: ${r.error || 'no description came back'}`);
+                return null;
+            }
+            text = r.text;
+            keep.look = { text, ...(r.model && { describer: r.model }), at: new Date().toISOString() };
         }
-        // `meta` null = no sidecar, and update-meta would mint one holding only `look`.
-        if (kept[p.itemId]?.meta) {
+        // What the picture IS and looks like writes its whole picture line (`withPictureLines`).
+        // Kept beside `look`, not in it: Cosmo's `storeLook` replaces the whole `look` and would drop them.
+        let { lookKind: kind, lookName: name } = meta ?? {};
+        if (!kind) {
+            const k = await describeImage({ imagePath: p.url, question: KIND_QUESTION });
+            kind = KIND_WORD.exec(k.ok ? k.text : '')?.[1].toLowerCase();
+            if (kind) keep.lookKind = kind;
+            else clientLogger.warn('prompt', `[llmService] ${p.tag} kind unknown, the enhancer's line stays: ${k.error || k.text}`);
+        }
+        if (kind && !name) {
+            const n = await describeImage({ imagePath: p.url, question: NAME_QUESTION(kind, text) });
+            name = (n.ok && tidyName(n.text)) || undefined;
+            if (name) keep.lookName = name;
+            else clientLogger.warn('prompt', `[llmService] ${p.tag} not named, the enhancer's words stay: ${n.error || n.text}`);
+        }
+        // `meta` null = no sidecar, and update-meta would mint one holding only these.
+        if (meta && Object.keys(keep).length) {
             await fetch(`/project-media/${project.id}/update-meta?folderPath=${encodeURIComponent(project.folderPath)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ itemId: p.itemId, updates: { look: { text: r.text, ...(r.model && { describer: r.model }), at: new Date().toISOString() } } }),
+                body: JSON.stringify({ itemId: p.itemId, updates: keep }),
             }).catch(err => clientLogger.warn('prompt', `[llmService] keeping a look failed: ${err?.message}`));
         }
-        return { tag: p.tag, text: r.text };
+        return { tag: p.tag, text, ...(kind && { kind }), ...(name && { name }) };
     }));
     return { captions: captions.filter(Boolean), missed };
 }

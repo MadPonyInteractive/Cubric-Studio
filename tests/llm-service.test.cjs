@@ -341,7 +341,7 @@ async function testEnhanceSeesThePictures() {
     const realFetch = global.fetch;
     const prevProject = state.currentProject;
     const url = (p, v = '') => `/project-file?path=${encodeURIComponent(p)}${v}`;
-    const calls = { describe: [], keep: [], prompt: null };
+    const calls = { describe: [], kind: [], name: [], nameAsked: [], keep: [], prompt: null };
     state.currentProject = {
         id: 'p1', folderPath: 'C:\\P',
         itemGroups: [
@@ -352,10 +352,19 @@ async function testEnhanceSeesThePictures() {
     global.fetch = (u, init) => {
         const body = init?.body ? JSON.parse(init.body) : null;
         let reply = { ok: true, text: 'x', backend: 'b', model: 'm', models: [] };
-        if (u === '/load-meta-batch') reply = { success: true, items: { valley: { meta: { look: { text: 'a misty valley' } } }, pig: { meta: { id: 'pig' } } } };
+        if (u === '/load-meta-batch') reply = { success: true, items: { valley: { meta: { look: { text: 'a misty valley' }, lookKind: 'place', lookName: 'a misty green valley' } }, pig: { meta: { id: 'pig' } } } };
+        else if (u === '/llm/describe' && body.question?.startsWith('What is this picture OF')) { calls.kind.push(body.imagePath); reply = { ok: true, text: body.imagePath.includes('imported_002') ? 'Animal.' : 'Object.' }; }
+        else if (u === '/llm/describe' && body.question) {
+            calls.name.push(body.question.match(/is the (\w+)/)?.[1]);
+            calls.nameAsked.push(body.question);
+            reply = body.imagePath.includes('imported_002') ? { ok: true, text: '"Tan guinea pig in a red cape."' } : { ok: false, error: 'down' };
+        }
         else if (u === '/llm/describe') { calls.describe.push(body.imagePath); reply = { ok: true, text: `seen ${calls.describe.length}`, model: 'vl' }; }
         else if (u.startsWith('/project-media/p1/update-meta')) calls.keep.push(body);
-        else if (u === '/llm/enhance') calls.prompt = body.prompt;
+        else if (u === '/llm/enhance') {
+            calls.prompt = body.prompt;
+            reply = { ok: true, text: 'PART 1 -- PICTURE LINES\n<Picture 1> the forest\n<Picture 2> setting: a guinea pig\n<Picture 3> setting: a thing\n\nThe scene.' };
+        }
         return Promise.resolve({ ok: true, json: () => Promise.resolve(reply) });
     };
     setBackendPreference('ollama');
@@ -373,7 +382,16 @@ async function testEnhanceSeesThePictures() {
         assert.strictEqual(calls.keep.length, 1, 'only the card with a sidecar keeps its look');
         assert.strictEqual(calls.keep[0].itemId, 'pig');
         assert.strictEqual(calls.keep[0].updates.look.describer, 'vl');
-        assert.ok(calls.prompt.includes('What each attached picture shows:\n<Picture 1>: a misty valley\n<Picture 2>: seen'), calls.prompt);
+        // Each picture is asked once what it is, then (told that) what it looks like, kept beside `look`,
+        // and the app writes its picture line; one left unnamed keeps the enhancer's words under the app's role.
+        assert.deepStrictEqual(calls.kind, [pictures[1].url, pictures[2].url], 'a kept kind + name is reused');
+        assert.deepStrictEqual(calls.name.sort(), ['animal', 'object'], 'the name question is told the kind');
+        assert.strictEqual(calls.keep[0].updates.lookKind, 'animal');
+        assert.strictEqual(calls.keep[0].updates.lookName, 'tan guinea pig in a red cape');
+        assert.strictEqual(res.text, '<Picture 1> setting: a misty green valley\n<Picture 2> tan guinea pig in a red cape\n<Picture 3> prop: a thing\n\nThe scene.');
+        // A named picture is captioned by its looks-only name, never the look's pose and place; an unnamed one by its look.
+        assert.ok(calls.prompt.includes('What each attached picture shows:\n<Picture 1>: a misty green valley\n<Picture 2>: tan guinea pig in a red cape\n<Picture 3>: seen'), calls.prompt);
+        assert.ok(calls.nameAsked.length === 2 && calls.nameAsked.every(q => /It was described before as: "seen \d"/.test(q)), 'the name question quotes the look');
         assert.ok(calls.prompt.endsWith('Attached references, in load order: <Picture 1>, <Picture 2>, <Picture 3>.'), 'the Attached line stays last');
         // Opt-in per recipe mode: a describe costs money, and Seedance's r2v was never swept with captions.
         await enhance({ prompt: 'a cat', model: { enhanceRecipe: 'seedance-2.0' }, operation: 'ref2v',

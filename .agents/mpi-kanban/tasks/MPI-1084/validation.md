@@ -105,3 +105,41 @@ Sweep Q picnic lines (Fabio's live ref2v_004 text): `<Picture 1> the woman with 
 transitions from dark brown to magenta pink` / `<Picture 2> the small, tan-colored hamster in a miniature yellow
 firefighter's helmet` / `<Picture 3> setting: the wide valley filled with thick white mist`. Outputs: session d6d1c356
 scratchpad `{j..q}-*.txt`, probes `probe.mjs`, `probe2.mjs`.
+
+## Step 2c: fixed roles (2026-10-12, session 2b4da86d)
+
+`node tests/llm-service.test.cjs` 32/32: `testEnhanceSeesThePictures` now also proves the kind is asked once per picture
+without a kept `lookKind`, kept beside `look` (top-level `lookKind`), reused when kept, and the reply's role words are
+rewritten (`setting:` dropped off an animal, added to a place). recipe-registry, agent-corpus, ingredients-sheet green; eslint clean.
+
+| Sweep | Wording | Tagged 12 | picnic | shuffled | swapped | Roles wrong | What failed |
+|---|---|---|---|---|---|---|---|
+| T | S + app-written roles (`withRoles`) | 12/12 | 3/3 | 1/3 | 3/3 | 0/21 | shuffled: 3 lines with the user's words, not the look ("the woman who sits on a towel"); one passing run described the hamster as "a miniature yellow firefighter's helmet" (role now right, subject wrong) |
+
+Output: session 2b4da86d scratchpad `t-full.txt`.
+
+| in-app 3/4 (eye1/eye2) | real `enhance()` in my app:isolated (:50687), kinds asked of Ollama `qwen3-vl-abliterated:4b` | - | - | - | - | valley 3/3 WRONG | the first kind question called the valley (a small hiker in it) `person`, so the app STRIPPED the right `setting:`. A wrong kind is worse than none |
+| kind probe | 3 questions x 7 stills x 2 runs, same 4B describer | - | - | - | - | - | q1 (old) valley=person 2/2; q3 ("setting of a scene") horse character sheet=place 2/2; **q2** ("what is this picture OF ... place even when small figures appear in it") **14/14 right** -> shipped. `kindprobe.mjs`, `kind1.txt` |
+| in-app 5/6 (eye3/eye4) | q2 kind question, kinds re-asked (copy cleared) | - | - | - | - | **0/18** | kinds kept right (001 place, 004 person, 003 animal). Descriptions still the enhancer's: order valley/woman/hamster 1/9 lines wrong subject ("a miniature yellow firefighter's helmet" for the hamster); order hamster/woman/valley ignored the captions 3/3 - valley line "setting: the forest where the picnic takes place" (user's words, wrong place), woman thin 2/3 |
+| Fabio eye test 1 (2026-10-12, his app, DeepInfra Gemma 4 26B describer) | woman/hamster/forest, "In the forest the woman ... hamster dressed as a fireman ... squirts her with water" | - | - | - | - | 0/3 | roles right, kinds kept right. NEW: output opened with the recipe heading "PART 1 -- PICTURE LINES" (lands in the scene text). Woman line carries her PICTURE's pose and place ("sits on the turquoise swimming pool, facing the camera and smiling") against a forest scene |
+
+### Step 2d: the app writes the whole picture line (Fabio 2026-10-12: "yes, app writes the whole picture line")
+
+`registry.withPictureLines` replaces `withRoles`: each captioned picture with a kind gets `<Picture n> [setting:|prop:] <lookName>`; one with a kind but no name keeps the enhancer's words under the app's role; an undescribed one keeps the enhancer's line; copied `PART n` headings dropped; the enhancer keeps only the scene. recipe-registry 11/11 (new `testAppWritesThePictureLines`), llm-service 32/32, agent-corpus, ingredients-sheet green, eslint clean.
+
+| Probe | Question | 4B qwen3-vl (14) | gemma4:12b (14) | Notes |
+|---|---|---|---|---|
+| kind2 | "kind: phrase", no example | format broken 4/14 ("kind: phrase phrase: ...", no kind on 3) | 14/14 format, kinds right but horse sheet = animal (same line as person) | phrases good on both; no pose |
+| kind3 | "kind: phrase" + two example answers | format 14/14; valley = "person: a person in a red jacket" 1/2 | format 14/14; horse sheet = animal | combined question loses the kind accuracy |
+| kind4/kind5 | KIND_QUESTION (one word) then NAME_QUESTION(kind) | **14/14** kinds, phrases looks-only | 12/14: man-on-horse sheet = "a dapple-grey horse" 2/2 even with "riding or holding an animal" (no role word either way, the man is lost); hamster once "chinchilla" | shipped. Known edge: a rider + animal picture may be named by the animal on a larger describer |
+
+| Sweep | Wording | bare | medium | directed | overlong | picnic | shuffled | swapped | Notes |
+|---|---|---|---|---|---|---|---|---|---|
+| T2 | app-written picture lines (`withPictureLines`, harness names) | 3/3 | 2/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | medium run 1 "setting: the rocking chair near the fireplace": no captions on that tier, so the enhancer's own line (O had it 2/3). In-app LTX r2v always captions; only a failed describe reaches that path. No `PART` heading in 21 outputs |
+
+| in-app 7/8 (eye5/eye6) | app-written lines, kinds + names asked fresh of Ollama qwen3-vl 4B, Fabio's picnic text | hamster/woman/valley: **9/9 lines right**; woman/hamster/forest (Fabio's eye-test order): **9/9 right**. Looks only (no pose, no pool), identical across runs (asked once, reused), no heading, scene reads clean under them |
+
+| Fabio eye test 2 (his app, DeepInfra Gemma 4 26B describer) | woman/hamster/forest, squirting-hose text | lines: role right x3, looks-only; "a light brown RAT" (look says hamster), woman "green ribbed bodysuit". SCENE: "sits on the edge of the pool" (pool from the look gist sent as caption), "medium shot from behind" against "facing the camera". Fix: send the enhancer the looks-only `name`, not the look gist; anchor NAME_QUESTION on the look's first sentence |
+| kind6 | NAME_QUESTION told the kept look's first sentence ("call the subject what that description calls it") | hamster = hamster 2/2, woman looks-only, no pool | hamster = hamster 2/2 (was guinea pig / chinchilla cold), woman looks-only; horse sheet still "a grey dapple horse" | probe bug: valley got a video card's look (file matched by name inside another sidecar), not the app path |
+| T3 | enhancer captioned by the looks-only `name` (not the look gist) + app-written lines | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | **ALL PASS 21/21**; "pool"/"swimming" in 0 outputs |
+| in-app 9/10 (eye7/eye8) | names as captions + look-anchored NAME_QUESTION, 4B describer, Fabio's squirting-hose text in his order + valley order | **18/18 lines right**, hamster = hamster, no pool anywhere, scene "from the front ... faces the camera". Only nit: "Young woman" capitalised -> `tidyName` now lower-cases any leading capital (test updated) |

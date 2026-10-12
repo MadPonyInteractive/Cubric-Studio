@@ -170,10 +170,46 @@ export function withReferences(idea, references = [], captions = []) {
     // Intensity words go: a look says "vibrant magenta pink", and the picture line copied it (sweep R).
     const gist = (text) => String(text).replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s/).slice(0, 2).join(' ')
         .replace(/\b(vibrant|vivid|richly|brilliant|striking|stunning)\s+/gi, '').split(' ').slice(0, 60).join(' ');
+    // A picture the describer NAMED goes by that looks-only name: the look's opening carries the
+    // photo's pose and place, and the scene copied them ("sits on the edge of the pool" in a forest).
     const seen = captions.length
-        ? `\n\nWhat each attached picture shows:\n${captions.map(c => `${c.tag}: ${gist(c.text)}`).join('\n')}`
+        ? `\n\nWhat each attached picture shows:\n${captions.map(c => `${c.tag}: ${c.name || gist(c.text)}`).join('\n')}`
         : '';
     return `${idea}${seen}\n\nAttached references, in load order: ${references.length ? references.join(', ') : 'none'}.`;
+}
+
+/** What a picture IS -> the role word its `<Picture n>` line opens with (person/animal bare = the character). */
+const ROLE_OF_KIND = { place: 'setting: ', object: 'prop: ', person: '', animal: '' };
+// The tag, then the enhancer's own role word if it wrote one (the words `routes/ingredientsSheet.js` reads).
+const PICTURE_LINE = /^\s*<Picture (\d+)>\s*[:\-–—]?\s*(?:(?:character|person|setting|location|place|background|prop|object)\s*[:\-–—,]\s*)?(.*)$/i;
+// The recipe's own section headings, which an enhancer sometimes copies above its picture lines.
+const RECIPE_HEADING = /^\s*PART\s+\d+\b/i;
+
+/**
+ * THE APP WRITES THE PICTURE LINES (MPI-1084, Fabio 2026-10-12). Given the captions, the enhancer
+ * still put a wrong role on ~1 line in 20, described a hamster as "a helmet", a valley as "the
+ * forest" (the user's word), a woman by her photo's pose and pool - and every line goes straight
+ * onto the sheet the IC-LoRA reads. So each captioned picture's line is written here, from what
+ * the describer said it is (`kind` -> role word) and looks like (`name`), and the enhancer keeps
+ * only the scene. A picture the describer could not name keeps the enhancer's line, its role word
+ * still fixed when the kind is known.
+ */
+export function withPictureLines(text, captions = []) {
+    const known = captions.filter(c => c.kind in ROLE_OF_KIND);
+    if (!known.length) return text;
+    const pictures = new Map();   // `<Picture n>` -> { n, line, words }
+    const scene = [];
+    for (const line of String(text).split(/\r?\n/)) {
+        const m = PICTURE_LINE.exec(line);
+        if (m) pictures.set(`<Picture ${m[1]}>`, { n: Number(m[1]), line: line.trim(), words: m[2].trim() });
+        else if (!RECIPE_HEADING.test(line)) scene.push(line);
+    }
+    for (const c of known) {
+        const words = c.name || pictures.get(c.tag)?.words;
+        if (words) pictures.set(c.tag, { n: Number(c.tag.match(/\d+/)?.[0]), line: `${c.tag} ${ROLE_OF_KIND[c.kind]}${words}` });
+    }
+    const block = [...pictures.values()].sort((a, b) => a.n - b.n).map(p => p.line);
+    return `${block.join('\n')}\n\n${scene.join('\n').trim()}`;
 }
 
 /**
