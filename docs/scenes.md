@@ -80,12 +80,12 @@ shader -> Klein `kleinEdit` + `POLISH` (`kleinJob`, `deferCommit`: no card of it
 sidecar. No upscaler: Klein alone is sharp on a 24 mm cut (validation.md, MPI-623).
 The scene's own Take picture / Build here (Klein fills lifted into the scene as layers) were removed
 with P3 (2026-10-10; the fills read as seams). Old scenes' layers still load (`loadScene` reads
-`manifest.layers`); the `sceneLift` op + `POST /project-media/:id/scene-layer` now have no caller and
-wait on a deprecation (`docs/playbooks/add-model/README.md` § Removing; MPI-623 plan).
+`manifest.layers`); the server chain that wrote them (the `sceneLift` op, `runSceneOp`,
+`POST /project-media/:id/scene-layer`) was removed outright (session 51): it never shipped (not in v2.0.1).
 
 ## Camera path and its 360 video (P1 + P2, plan § Plan Drift 2026-10-09)
 
-**P** / Add point drops a ball where the camera is (`scenePath.js` `addPoint`; an empty path starts at `PATH_START`, the pano's centre, because Wan's video starts from the pano; a double press adds nothing). `view.setPath` draws balls + tubes over the screen frame only, never hidden, never in a picture. Saved on the pano item's sidecar as `cameraPaths: [{ points }]` (`update-meta`, mirrored on the live item). **Render path** (`scenePathVideo.js` `renderPath`): `pathFrames` = 81 frames on a centripetal Catmull-Rom at constant speed, level, facing the way it travels (facing away broke Wan in the bake, amendments 30-32); each frame `renderPano` = six 90-degree `renderPicture`s stitched by `stitchPano` into a 1440x720 360 frame in the pano's own layout (frame 0 IS the pano), stacked over its holes (white), placed as PNGs, joined by `POST /project-media/:id/frames-to-video` into ONE 4:4:4 guide video (one staged file, a Pod upload); then `enqueueGeneration` op `scenePathVideo` (`scene_path_video.json`: crop guide / holes apart -> `MpiWanMaskedVideo`, SplatKit's Matrix-3D masked-video conditioning, on Wan 2.1 I2V 720P Q4 GGUF + the Matrix-3D 360 LoRA 0.98 + lightx2v 8 steps cfg 1) -> a video card. The graph renders as many frames as the guide holds (`GetImageSize` -> `length`); `frameCount` (29 frames a camera height, 4k+1, 33-81) is built for short paths, not yet wired. Lifting a path video back into the scene was tried and dropped (MPI-623 `research/p3-lift-into-scene.md`). Weights: plugin `scene-path` (~20 GB); ComfyUI-GGUF + pip `gguf` install with the engine (BAKED on a Pod: dev image v0.26.0-dev onward). 4060 Ti: guide ~35 s, Wan 1810 s live; the status line's minutes are that run scaled by `GPU_GEN_SECS` for the card it runs on (`pathEtaMin`; a card nobody measured shows none).
+**P** / Add point drops a ball where the camera is (`scenePath.js` `addPoint`; an empty path starts at `PATH_START`, the pano's centre, because Wan's video starts from the pano; a double press adds nothing). `view.setPath` draws balls + tubes over the screen frame only, never hidden, never in a picture. Saved on the pano item's sidecar as `cameraPaths: [{ points }]` (`update-meta`, mirrored on the live item). **Render path** (`scenePathVideo.js` `renderPath`): `pathFrames` = 81 frames on a centripetal Catmull-Rom at constant speed, level, facing the way it travels (facing away broke Wan in the bake, amendments 30-32); each frame `renderPano` = six 90-degree `renderPicture`s stitched by `stitchPano` into a 1440x720 360 frame in the pano's own layout, except frame 0, which stands where the pano was shot and so IS the pano (`turnPano`: `pano.png` turned to the heading, no holes; its render had hole lines a few px wide along the depth cuts, which `MpiWanMaskedVideo`'s 8 px area-pooled mask counts as known, so their black came back as outlines), stacked over its holes (white), placed as PNGs, joined by `POST /project-media/:id/frames-to-video` into ONE 4:4:4 guide video (one staged file, a Pod upload); then `enqueueGeneration` op `scenePathVideo` (`scene_path_video.json`: crop guide / holes apart -> `MpiWanMaskedVideo`, SplatKit's Matrix-3D masked-video conditioning, on Wan 2.1 I2V 720P Q4 GGUF + the Matrix-3D 360 LoRA 0.98 + lightx2v 8 steps cfg 1) -> a video card. The graph renders as many frames as the guide holds (`GetImageSize` -> `length`); `frameCount` (29 frames a camera height, 4k+1, 33-81) gives a short path fewer frames; a path past `TESTED_HEIGHTS` (11 camera heights: the longest path that passed, 10.8, rounded up) still renders at 81, and the panel warns under Render path that it may smear (`pathTooLong`, a warning, never a block). Lifting a path video back into the scene was tried and dropped (MPI-623 `research/p3-lift-into-scene.md`). Weights: plugin `scene-path` (~20 GB); ComfyUI-GGUF + pip `gguf` install with the engine (BAKED on a Pod: dev image v0.26.0-dev onward). 4060 Ti: guide ~35 s, Wan 1810 s live; the status line's minutes are that run scaled by `GPU_GEN_SECS` for the card it runs on (`pathEtaMin`; a card nobody measured shows none).
 
 ## Companions and the manifest
 
@@ -142,15 +142,11 @@ ordinary picture the user can still edit and convert again. The flow:
 
 ## The engine ops
 
-Both are universal ops (the 4-file registration). `sceneLift` runs by **`runSceneOp`**
-(`commandExecutor.js`), never `runCommand`: a depth-only run has no image URL and
-`generationService` treats an empty result as a CANCEL. `sceneConvert` goes through the queue
-(above): its `Output_Image` IS the card.
+A universal op (the 4-file registration) through the queue (above): its `Output_Image` IS the card.
 
 | op | graph | in | out |
 |---|---|---|---|
 | `sceneConvert` | `scene_convert.json` | `Input_Image` | `Output_Image` (8K) + `Output_Depth` |
-| `sceneLift` | `scene_lift.json` | `Input_Image` (a fill), `Input_Known_Depth`, `Input_Fov_X`, `Input_Ground` | `Output_Depth` |
 
 - **`Output_Depth`** is a `PreviewAny` holding the path the node wrote under `output/scenes/`;
   `splatViewFileInfo(path, 'scenes')` turns it into a `/view` file dict (the `Output_Splat`
@@ -159,20 +155,13 @@ Both are universal ops (the 4-file registration). `sceneLift` runs by **`runScen
   `MpiWrapCrop`) only when the input is UNDER 4096 wide, then scales to 8192x4096; wider inputs are
   only resized (a 4x model on a 4K+ pano builds a 16K+ intermediate). The switch is in the graph
   (`MpiCompare` + lazy `MpiIfElse`). Depth: `MpiPanoDepth` at 2048 (12 MoGe views merged).
-- **sceneLift**: `Input_Known_Depth` is a float32 file of the render's camera z (0 = unknown) the
-  size of the fill. Its node is an **`MpiString`**, a `PATH_MEDIA_CLASSES` member, so the engine
-  stages the file into the local `input/` or uploads it to a Pod like any media path; a plain text
-  node would hand a Pod a path on the user's disk. `MpiLiftDepth` fits `z = a * MoGe + b` on the
-  known pixels (eroded 9 px) and keeps the holes grown 5 px, minus depth edges; output 0 = not kept.
-  `Input_Ground` (`PrimitiveString`, not a path): 'nx,ny,nz,d' in the camera frame (`groundPlane` of
-  `view.groundAt`, the ground under the SPOT); what the fit put under it moves onto it (`87d7962`).
-- Measured on a 4060 Ti: pano depth 46 s (2.8 GB VRAM), sceneConvert from a 2K pano 92 s,
-  sceneLift 2-4 s. The nodes reproduce the spike exactly (validation.md, MPI-623).
+- Measured on a 4060 Ti: pano depth 46 s (2.8 GB VRAM), sceneConvert from a 2K pano 92 s.
+  The nodes reproduce the spike exactly (validation.md, MPI-623).
 
 ## Nodes and weights
 
-- `ComfyUi-MpiNodes` `scene.py` (category `MpiNodes/Scene`): `MpiPanoDepth`, `MpiLiftDepth`,
-  `MpiWrapPad`, `MpiWrapCrop`, `MpiWrapSoften`, `MpiWrapCutMerge`; MoGe v1 vendored in `scene3d/moge/`
+- `ComfyUi-MpiNodes` `scene.py` (category `MpiNodes/Scene`): `MpiPanoDepth`, `MpiLiftDepth` (no
+  graph uses it since `sceneLift` went), `MpiWrapPad`, `MpiWrapCrop`, `MpiWrapSoften`, `MpiWrapCutMerge`; MoGe v1 vendored in `scene3d/moge/`
   (MIT; DINOv2 parts Apache-2.0), pure torch, no runtime download. Its `__init__.py` import is
   unguarded: a scene import failure takes every MpiNodes node down, so its deps (`cv2`, `scipy`)
   must stay in `dev_configs/python_deps.in`.

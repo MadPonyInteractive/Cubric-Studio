@@ -37,7 +37,7 @@ const ULTIMATE_TILE_ESTIMATE = 4;
 // Long single-shot nodes that report NO progress (MPI-623: MoGe depth, ~45 s on a 4060 Ti).
 // Like ESRGAN they get the indeterminate pulse and switch the bar to the op's label; without
 // a kind, a graph made only of them sat on "Starting" at 0% for its whole run.
-const SINGLE_SHOT_CLASSES = new Set(['MpiPanoDepth', 'MpiLiftDepth']);
+const SINGLE_SHOT_CLASSES = new Set(['MpiPanoDepth']);
 
 // ── Weight map builder ────────────────────────────────────────────────────────
 

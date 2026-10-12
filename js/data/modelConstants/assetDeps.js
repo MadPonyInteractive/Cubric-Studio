@@ -1504,8 +1504,8 @@ export const assetDeps = {
     },
     // MoGe v1 depth (MPI-623, 3D scene) -------------------------------------
     // Upstream `model.pt` (pickle) re-saved as safetensors, every tensor equal, so the
-    // bytes are OURS: no byte-identical upstream copy exists for a mirrorUrl, and it is
-    // noMirror until it is re-hosted to Mad-Pony-Interactive/cubric-studio. MpiNodes
+    // bytes are OURS: no byte-identical upstream copy exists, so the mirror is our own
+    // Mad-Pony-Interactive/cubric-studio copy (re-hosted 2026-10-12, lfs sha256 equal). MpiNodes
     // scene.py registers models/moge/ and pins the checkpoint's config (MOGE_VITL_CONFIG).
     // NOT engineAsset: the `scene-convert` plugin owns it (pluginsRegistry.js), so it
     // installs from the Library on the engines whose users asked for 3D scenes.
@@ -1518,7 +1518,7 @@ export const assetDeps = {
         size: '1.17GB',
         bytes: 1256740032,
         sha256: 'dbdf89d1f7651b9213a507923b4f100fed87489bb7425fda7f7d430bcb31d8a9',
-        noMirror: true,
+        mirrorUrl: 'https://huggingface.co/Mad-Pony-Interactive/cubric-studio/resolve/main/moge/moge_vitl.safetensors',
         credit: {
             author: 'Microsoft (Ruicheng Wang et al.)',
             work: 'MoGe',

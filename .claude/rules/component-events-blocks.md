@@ -186,9 +186,14 @@ NOTE:    Reads `state.currentProject`; writes `state.currentProject`
          **PromptBox gating:** `_shouldShowPromptBox() = _hasPromptOps() || _videoBoxBeforeMedia()` drives mount + show + tool-button enable. `_hasPromptOps()` returns true iff active model exposes ≥1 enabled op. `_videoBoxBeforeMedia()` returns true on a video card whose model has any op that takes media — keeps PromptBox visible BEFORE chips land so the user can add a start frame (`+`, drop, right-click). Recomputed on `s_selectedModelIdByType` (filtered by `modeKind`), `s_installedModelIds`, `project:changed`.
          **PromptBox model list:** `s_installedModelIds` listener also calls `_pb?.el?.setModelList?(getModelsByType(modeKind).filter(isModelUsable).filter(_promptModelFilter))` — live dropdown refresh on install/uninstall. `_promptModelFilter` = any op not in `isTextOnlyOp`, both kinds (MPI-955 image, MPI-1015 video).
 
-### MpiSceneBlock (Block — js/components/Blocks/MpiSceneBlock/MpiSceneBlock.js, MPI-623, dev_mode)
-EMITS:   (none)
+### MpiSceneBlock (Block — js/components/Blocks/MpiSceneBlock/MpiSceneBlock.js, MPI-623)
+EMITS:   `ui:warning` / `ui:success` / `ui:info` toasts for Render path (plugin missing, landed, already rendering, failed)
 LISTENS: `MpiSceneCanvas` `resize` → re-applies the pose (the mm lens depends on the aspect).
-HOTKEYS: `scene.fly.{forward,back,left,right,up,down}` + `.release` (W/S/A/D/Q/E held; a DOWN and an UP entry each, gated to the Scene page; `agentMode.toggle` is gated OFF it). A rAF loop runs only while a key is held. Drag look via `on()` pointer events.
+HOTKEYS: `scene.fly.{forward,back,left,right,up,down,rollLeft,rollRight}` + `.shift` twins + `.release` (W/S/A/D/Q/E/Z/C held; a DOWN and an UP entry each, gated to the Scene page; `agentMode.toggle` is gated OFF it), `scene.fly.boost` (Shift), `scene.path.add` (P), `scene.lens.up/down`. Q flies down here, so it binds `bindQueueSlideOver({ key: false })`: `generation-queue:open` only. A rAF loop runs only while a key is held. Drag look via `on()` pointer events.
 API:     `el.getPose()` / `el.setPose({ pos, yaw, pitch, mm })` — spot coords, `js/services/scene/sceneViewer.js`
-NOTE:    Loads `getSceneItem(group).scenePath` via `loadScene` → `createPanoMesh` into `getScene()`; destroy aborts the load and disposes the mesh before the canvas. The "Bake 3D" tool is a disabled coming-soon `MpiButton`. `docs/scenes.md` § The viewer.
+NOTE:    Loads `getSceneItem(group).scenePath` via `loadScene` → `createSceneView`; destroy aborts the load and disposes the view before the canvas. The panel is a PATH TOOL (Path: add / remove-last / clear, the fill line, Render path → `renderPath` in `scenePathVideo.js`; then Lens). `docs/scenes.md` § The viewer.
+
+### MpiPanoVideoBlock (Block — js/components/Blocks/MpiPanoVideoBlock/MpiPanoVideoBlock.js, MPI-623 P3)
+EMITS:   `ui:warning` on a failed Take picture
+HOTKEYS: the Video Player's `video.playPause` / `video.frame.back` / `video.frame.forward`, `scene.lens.up/down`, and `queue.toggle` (Q) via `bindQueueSlideOver()`
+NOTE:    Mounted on `PAGE_SCENE` instead of MpiSceneBlock when the card is a path video (`getPathVideoItem`). Plays the video round the camera (`panoVideo.js`): drag to look, scrubber, aspect + lens (shared with the Scene panel via `Storage.getSceneShot`), Take picture → a NEW image card (`takeVideoPicture`).

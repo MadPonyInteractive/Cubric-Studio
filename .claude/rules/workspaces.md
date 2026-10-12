@@ -5,9 +5,9 @@
 ## Sub-Agent Briefing
 > Copy this section verbatim into any sub-agent prompt that involves routing, navigation, or workspace layout.
 
-**Three workspaces:** Landing (project select/create) → Gallery (default project view) → Group History (single card detail). See `docs/workspaces.md` for full layout details.
+**Four workspaces:** Landing (project select/create) → Gallery (default project view) → Group History (single card detail), and Scene (MPI-623: a left-click on a scene card opens `MpiSceneBlock`, on a path video card the 360 player `MpiPanoVideoBlock`; `navigation.js` picks the Block by card). See `docs/workspaces.md` for full layout details.
 
-**Routing:** Use `js/router.js` (`navigate()` / `back()`) — never `window.location`. Pages: `PAGE_LANDING`, `PAGE_GALLERY`, `PAGE_GROUP_HISTORY`. `js/shell/navigation.js` lazy-loads each workspace Block on transition.
+**Routing:** Use `js/router.js` (`navigate()` / `back()`) — never `window.location`. Pages: `PAGE_LANDING`, `PAGE_GALLERY`, `PAGE_GROUP_HISTORY`, `PAGE_SCENE` (`{ groupId }`). `js/shell/navigation.js` lazy-loads each workspace Block on transition.
 
 **PromptBox mount:** Mount `MpiPromptBox` Organism directly into `#prompt-box-mount` (`gid('prompt-box-mount')`). Block keeps the handle in `_pb`; call `_pb?.destroy?.()` before remount AND in Block `el.destroy`. Slot is shell-owned (declared in `index.html`), persists across workspace switches. No `PromptBoxService` — Block mounts direct.
 

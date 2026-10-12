@@ -36,19 +36,16 @@ export const UNIVERSAL_WORKFLOWS = {
     removeBackground: {
         workflow: 'remove_background.json',
     },
-    // MPI-623. Their weight (moge-vitl) belongs to the `scene-convert` plugin, not the engine.
+    // MPI-623. Its weight (moge-vitl) belongs to the `scene-convert` plugin, not the engine.
     sceneConvert: {
         workflow: 'scene_convert.json',
-    },
-    sceneLift: {
-        workflow: 'scene_lift.json',
     },
     // Its weights belong to the `scene-path` plugin; ComfyUI-GGUF installs with the engine.
     scenePathVideo: {
         workflow: 'scene_path_video.json',
     },
     // MPI-623 — the 360 Panorama Flow: a picture (optional) or a prompt -> a seam-clean 2K
-    // equirect; flowService then Converts the card (8K + depth) so it lands as a scene.
+    // equirect, landed as a plain image card (right-click Convert makes it a scene).
     flowPano360: {
         workflow: 'flow_pano360.json',
     },

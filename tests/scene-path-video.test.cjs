@@ -31,14 +31,15 @@ const esm = (p) => import(pathToFileURL(path.join(__dirname, '..', p)).href);
 
 /** An io that records what renderPath asks of the app; `landed` is what the engine hands back. */
 function fakeIo({ landed = { id: 'v1', filePath: '/project-file?path=v.mp4' }, start = true } = {}) {
-    const calls = { renders: [], posts: [], enqueue: [], encode: [] };
+    const calls = { renders: [], posts: [], enqueue: [], encode: [], panos: [] };
     const io = {
         describe: async () => ({ ok: true, text: 'A stylized 3D cartoon render.' }),
         renderPano: (view, renderer, frame) => {
             calls.renders.push(frame);
             return { w: 2, h: 1, rgba: new Uint8ClampedArray([9, 9, 9, 255, 8, 8, 8, 255]), mask: new Uint8ClampedArray([255, 255, 255, 255, 0, 0, 0, 255]) };
         },
-        encodePng: async (rgba, w, h) => { calls.encode.push({ rgba: [...rgba], w, h }); return new Blob(['png']); },
+        pixelsAt: async (url, w, h) => { calls.panos.push({ url, w, h }); return new Uint8ClampedArray(w * h * 4).fill(7); },
+        encodePng: async (rgba, w, h) => { calls.encode.push({ rgba, w, h }); return new Blob(['png']); },
         blobToDataUrl: async () => 'data:image/png;base64,AA==',
         post: async (url, body) => {
             calls.posts.push({ url, body });
@@ -59,9 +60,11 @@ test('renderPath: 81 guide frames over their holes -> one guide video -> the sce
     const item = await renderPath({ project: PROJECT, sceneItem: SCENE, view: {}, renderer: {}, points: [[0, 0, 0], [0, 0, -1]],
         fillLine: ' a cosy room ', onStep: (s) => steps.push(s) }, io);
     assert.equal(item.id, 'v1');
-    assert.equal(calls.renders.length, 81);
-    assert.deepEqual(calls.renders[0].pos, [0, 0, 0], 'frame 0 is the pano');
-    assert.deepEqual(calls.encode[0], { rgba: [9, 9, 9, 255, 8, 8, 8, 255, 255, 255, 255, 255, 0, 0, 0, 255], w: 2, h: 2 }, 'the frame over its holes');
+    assert.equal(calls.renders.length, 80, 'frame 0 is not rendered');
+    assert.deepEqual(calls.panos, [{ url: '/project-file?path=s.scene.pano.png', w: 1440, h: 720 }], 'frame 0 is the pano, at the frame size');
+    const f0 = calls.encode[0].rgba, half = 1440 * 720 * 4;
+    assert.deepEqual([calls.encode[0].w, calls.encode[0].h, f0[0], f0[half - 1], f0[half], f0[half + 3], f0.at(-2)], [1440, 1440, 7, 7, 0, 255, 0], 'the pano over no holes at all');
+    assert.deepEqual({ ...calls.encode[1], rgba: [...calls.encode[1].rgba] }, { rgba: [9, 9, 9, 255, 8, 8, 8, 255, 255, 255, 255, 255, 0, 0, 0, 255], w: 2, h: 2 }, 'a rendered frame over its holes');
     const video = calls.posts.at(-1);
     assert.match(video.url, /^\/project-media\/p\/frames-to-video\?folderPath=C%3A%2FP$/);
     assert.equal(video.body.frames.length, 81);
@@ -80,9 +83,9 @@ test('renderPath: no second point, a stop, a refused start', async () => {
     await assert.rejects(renderPath({ ...args, points: [[0, 0, 0]] }, fakeIo().io), /second point/);
     const stop = new AbortController(); stop.abort();
     const a = fakeIo();
-    await assert.rejects(renderPath({ ...args, sceneItem: { ...SCENE, scenePath: 'other' }, signal: stop.signal }, a.io), /cancelled/);
+    await assert.rejects(renderPath({ ...args, sceneItem: { ...SCENE, scenePath: '/project-file?path=other.scene.json' }, signal: stop.signal }, a.io), /cancelled/);
     assert.equal(a.calls.enqueue.length, 0, 'nothing reaches the engine');
-    await assert.rejects(renderPath({ ...args, sceneItem: { ...SCENE, scenePath: 'third' } }, fakeIo({ start: false }).io), /did not start/);
+    await assert.rejects(renderPath({ ...args, sceneItem: { ...SCENE, scenePath: '/project-file?path=third.scene.json' } }, fakeIo({ start: false }).io), /did not start/);
 });
 
 test('renderPath: the same path again while it renders is refused, another path queues, a landed one renders again', async () => {
@@ -90,7 +93,7 @@ test('renderPath: the same path again while it renders is refused, another path 
     const { io } = fakeIo();
     const held = [];
     io.enqueue = (config, cb) => { held.push(cb); return true; };
-    const args = { project: PROJECT, sceneItem: { ...SCENE, scenePath: 'held' }, view: {}, renderer: {}, points: [[0, 0, 0], [1, 0, 0]] };
+    const args = { project: PROJECT, sceneItem: { ...SCENE, scenePath: '/project-file?path=held.scene.json' }, view: {}, renderer: {}, points: [[0, 0, 0], [1, 0, 0]] };
     const first = renderPath(args, io);
     const dup = renderPath({ ...args, fillLine: ' ' }, io).then(() => 'ran', (e) => e.code);
     assert.equal(await Promise.race([dup, new Promise((r) => setImmediate(() => r('still running')))]), 'rendering',
@@ -100,6 +103,17 @@ test('renderPath: the same path again while it renders is refused, another path 
     held.forEach((cb) => cb.onComplete({ item: { id: 'v', filePath: 'v.mp4' } }));
     await Promise.all([first, other]);
     assert.equal((await renderPath(args, fakeIo().io)).id, 'v1', 'landed: the same path may render again');
+});
+
+test('turnPano: the pano turned to a heading, linear between columns, wrapping at the seam', async () => {
+    const { turnPano } = await esm('js/services/scene/scenePathVideo.js');
+    const row = (...v) => new Uint8ClampedArray(v.flatMap((x) => [x, x, x, 255]));
+    const pano = row(0, 40, 80, 120);
+    assert.deepEqual([...turnPano(pano, 4, 1, 0)], [...pano], 'yaw 0: the pano as it is');
+    assert.deepEqual([...turnPano(pano, 4, 1, Math.PI / 2)], [...row(40, 80, 120, 0)], 'a quarter turn right: the next column centred');
+    assert.deepEqual([...turnPano(pano, 4, 1, -Math.PI / 2)], [...row(120, 0, 40, 80)], 'a quarter turn left');
+    assert.deepEqual([...turnPano(pano, 4, 1, Math.PI / 4)], [...row(20, 60, 100, 60)], 'half a column: the mean of two, across the seam too');
+    assert.deepEqual([...turnPano(new Uint8ClampedArray([...row(0, 40), ...row(200, 240)]), 2, 2, Math.PI)], [...row(40, 0), ...row(240, 200)], 'every row turns');
 });
 
 test('pathEtaMin: the measured runs; other cards scale the 5090 Pod run by the Gen speed table; an unmeasured card has none', async () => {
@@ -118,8 +132,8 @@ test('pathEtaMin: the measured runs; other cards scale the 5090 Pod run by the G
 test('renderPath: a short path renders the frames it is given (frameCount)', async () => {
     const { renderPath } = await esm('js/services/scene/scenePathVideo.js');
     const { io, calls } = fakeIo();
-    await renderPath({ project: PROJECT, sceneItem: { ...SCENE, scenePath: 'short' }, view: {}, renderer: {}, points: [[0, 0, 0], [0, 0, -1]], frames: 33 }, io);
-    assert.equal(calls.renders.length, 33);
+    await renderPath({ project: PROJECT, sceneItem: { ...SCENE, scenePath: '/project-file?path=short.scene.json' }, view: {}, renderer: {}, points: [[0, 0, 0], [0, 0, -1]], frames: 33 }, io);
+    assert.equal(calls.renders.length, 32);
     assert.equal(calls.posts.at(-1).body.frames.length, 33);
     assert.deepEqual(calls.renders.at(-1).pos, [0, 0, -1], 'the last frame is the path\'s end');
 });

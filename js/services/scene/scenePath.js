@@ -65,6 +65,13 @@ export function frameCount(points, ground) {
     return Math.min(FRAMES, Math.max(FRAMES_MIN, 4 * Math.round(want / 4) + 1));
 }
 
+/** The longest path one clip is known to hold, in camera heights: Fabio's 6-point village paths ran 10.05 and
+ *  10.82 heights in 81 frames and both passed by eye (2026-10-12, RunPod). Past it every frame jumps further than
+ *  any tested run, Wan invents most of each frame and the 360 LoRA smears. The panel warns; it never blocks. */
+export const TESTED_HEIGHTS = 11;
+/** True when `points` run longer than one clip is known to hold (`TESTED_HEIGHTS`). */
+export const pathTooLong = (points, ground) => points.length >= 2 && ground > 0 && curveOf(points).len.at(-1) / ground > TESTED_HEIGHTS;
+
 /**
  * The camera of every video frame along a path: a smooth curve through its points, frames evenly
  * spaced along it (constant speed), each camera level and facing where it travels (Wan's 360

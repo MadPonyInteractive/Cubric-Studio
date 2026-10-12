@@ -132,11 +132,6 @@
     "appVersionIntroduced": "2.0.1",
     "universal": true
   },
-  "sceneLift": {
-    "latestVersion": "1.0",
-    "appVersionIntroduced": "2.0.1",
-    "universal": true
-  },
   "scenePathVideo": {
     "latestVersion": "1.0",
     "appVersionIntroduced": "2.0.1",

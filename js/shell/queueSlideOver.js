@@ -1,0 +1,25 @@
+/**
+ * The Cue queue slide-over, one copy for every workspace: Q toggles it, `generation-queue:open`
+ * (the status bar, a dispatch) opens it. Each workspace Block binds it on mount and calls the
+ * returned unsubscribes on destroy, so the panel answers wherever the user is.
+ * The 3D Scene passes `{ key: false }`: there Q flies down (`scene.fly.down`).
+ */
+
+import { Events } from '../events.js';
+import { Hotkeys } from '../managers/hotkeyManager.js';
+import { MpiQueuePanel } from '../components/Compounds/MpiQueuePanel/MpiQueuePanel.js';
+
+/** The panel itself, for a caller that opens it outright (`slide-over:open`). */
+export const QUEUE_PANEL = {
+    title: 'Cue',
+    component: MpiQueuePanel,
+    extraClasses: 'mpi-slide-over--queue',
+    panelId: 'generation-queue',
+};
+
+/** @returns {Function[]} the unsubscribes */
+export function bindQueueSlideOver({ key = true } = {}) {
+    const unsubs = [Events.on('generation-queue:open', () => Events.emit('slide-over:open', QUEUE_PANEL))];
+    if (key) unsubs.push(Hotkeys.bind('queue.toggle', () => Events.emit('slide-over:toggle', QUEUE_PANEL)));
+    return unsubs;
+}

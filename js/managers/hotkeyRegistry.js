@@ -801,7 +801,7 @@ export const HOTKEY_REGISTRY = [
         allowWhileTyping: false,
     },
 
-    // ── Scene fly (MPI-623, dev_mode) ─────────────────────────────────────────
+    // ── Scene fly (MPI-623) ───────────────────────────────────────────────────
     // Held keys: each letter has a DOWN and an UP entry, and MpiSceneBlock flies (Z/C roll)
     // while any is down. Gated to the Scene page, where A is a fly key and not Agent mode.
     // Shift held flies faster: a letter pressed or released under Shift arrives as `shift+w`,

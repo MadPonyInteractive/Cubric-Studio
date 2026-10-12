@@ -1206,8 +1206,6 @@ export const commands = {
     // MPI-623: the 3D Scene ops. sceneConvert: a 2:1 pano -> its 8K texture + MoGe equirect
     // depth, queued through `enqueueGeneration` (`sceneConvert.js`): the texture lands as a
     // NEW card and the depth makes it a scene, so the source picture stays editable.
-    // sceneLift: a Take-picture fill + the render's known z (`Input_Known_Depth`,
-    // `Input_Fov_X`) -> the fill's depth, by `runSceneOp` (no card).
     sceneConvert: {
         label: 'Convert to 360 pano',
         filePrefix: 'convertTo360Pano',
@@ -1220,20 +1218,9 @@ export const commands = {
         promptRequired: false,
         universal: true,
     },
-    sceneLift: {
-        label: 'Lift a fill into the scene',
-        progressLabel: 'Lifting the fill',
-        mediaType: MEDIA_TYPE.IMAGE,
-        requiresImages: 1,
-        mediaInputs: [
-            { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
-        ],
-        promptRequired: false,
-        universal: true,
-    },
     // MPI-623 P2: a camera path through the scene as a 360 video. The app renders the guide
     // (`scenePathVideo.js`: what the scene shows along the path, its holes white below it, one
-    // video) and Wan 2.1 I2V + the Matrix-3D 360 LoRA invent the holes. Unlike the two above it
+    // video) and Wan 2.1 I2V + the Matrix-3D 360 LoRA invent the holes. Like sceneConvert it
     // goes through `enqueueGeneration`, like a Flow: the video lands as a card.
     scenePathVideo: {
         label: 'Camera path video',

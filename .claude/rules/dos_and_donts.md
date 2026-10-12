@@ -139,7 +139,7 @@ clientLogger.error('comfy', 'Description of error', err);
 ## 📡 Every action shows itself — start, during, end (Fabio, 2026-10-12)
 
 **An action that runs with nothing on screen is NOT done.** The failure: MPI-623's gallery
-right-click "Convert to 360 pano" called `runSceneOp` (`commandExecutor.js`) directly, so
+right-click "Convert to 360 pano" called `runSceneOp` (`commandExecutor.js`, since removed) directly, so
 ~1.5 min of GPU work showed no queue row and the status bar read IDLE. Fixed by routing it
 through `enqueueGeneration` — the queue row, status-bar progress and Stop came for free.
 Then it shipped with NO progress at all, and Fabio had to ask for the sweep in a second step

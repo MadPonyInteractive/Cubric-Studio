@@ -11,7 +11,7 @@ import { state } from './state.js';
 export const PAGE_LANDING       = 'landing';
 export const PAGE_GALLERY       = 'gallery';        // Main project gallery (item groups grid)
 export const PAGE_GROUP_HISTORY = 'group-history';  // Single item group history view
-export const PAGE_SCENE         = 'scene';          // A card's 3D scene (MPI-623, dev_mode)
+export const PAGE_SCENE         = 'scene';          // A card's 3D scene (MPI-623)
 
 let _onNavigateCallback = null;
 

@@ -2034,7 +2034,7 @@
 /**
  * @typedef {Object} MpiSceneBlockProps (Block — js/components/Blocks/MpiSceneBlock)
  * @property {string} groupId - ID of the scene card (from router params, PAGE_SCENE).
- *   Opened only for a card with `getSceneItem(group)`, behind APP_CONFIG.dev_mode (MPI-623).
+ *   Opened only for a card with `getSceneItem(group)` (MPI-623).
  *
  * Today the workspace shell: mounts MpiSceneCanvas and destroys it on teardown.
  * Emits: (none)
@@ -2043,7 +2043,7 @@
 /**
  * @typedef {Object} MpiPanoVideoBlockProps (Block — js/components/Blocks/MpiPanoVideoBlock)
  * @property {string} groupId - ID of a path video card (from router params, PAGE_SCENE). Mounted
- *   instead of MpiSceneBlock when the card has `getPathVideoItem(group)`, behind APP_CONFIG.dev_mode
+ *   instead of MpiSceneBlock when the card has `getPathVideoItem(group)`
  *   (MPI-623 P3): a 360 player whose Take picture lands as a new image card.
  * Emits: (none)
  */

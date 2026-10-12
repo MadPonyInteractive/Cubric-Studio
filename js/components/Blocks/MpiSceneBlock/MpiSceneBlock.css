@@ -101,6 +101,10 @@
     text-wrap: pretty;
 }
 
+.mpi-scene-block__status--warn {
+    color: var(--accent-warn);
+}
+
 .mpi-scene-block__status:empty {
     display: none;
 }

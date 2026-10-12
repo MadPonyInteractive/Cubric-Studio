@@ -1,8 +1,7 @@
 /**
  * MpiSceneBlock — the Scene workspace (Block, MPI-623).
  *
- * Opened by a left-click on a card that HAS a scene (`getSceneItem`, plan A9), behind
- * `APP_CONFIG.dev_mode` until the feature ships (A8). Routed as `PAGE_SCENE` with
+ * Opened by a left-click on a card that HAS a scene (`getSceneItem`, plan A9). Routed as `PAGE_SCENE` with
  * `{ groupId }`, exactly like Group History.
  *
  * Loads the card's scene (`js/services/scene/sceneViewer.js`) into the viewport and flies a
@@ -37,6 +36,7 @@ import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
 import { getSceneItem } from '../../../utils/assetKinds.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
+import { bindQueueSlideOver } from '../../../shell/queueSlideOver.js';
 import { Storage } from '../../../core/storage.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { updateGroup } from '../../../services/projectService.js';
@@ -44,7 +44,7 @@ import {
     START_POSE, NEAR, EYE_HEIGHT_M, FLY_BOOST, loadScene, createSceneView, applyPose, flyStep, flyLook,
 } from '../../../services/scene/sceneViewer.js';
 import { appIo } from '../../../services/scene/scenePicture.js';
-import { addPoint, removeLast, frameCount } from '../../../services/scene/scenePath.js';
+import { addPoint, removeLast, frameCount, pathTooLong } from '../../../services/scene/scenePath.js';
 import { renderPath, pathEtaMin } from '../../../services/scene/scenePathVideo.js';
 import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { pluginAvailability, getPlugin } from '../../../data/pluginsRegistry.js';
@@ -54,6 +54,8 @@ const FLY_DIRS = ['forward', 'back', 'left', 'right', 'up', 'down', 'rollLeft', 
 const LENSES = [12, 14, 16, 20, 24, 28, 35, 50, 85];
 /** The stop nearest `mm` (a pose saved off the stops still lands on one). */
 const lensStop = (mm) => LENSES.reduce((best, v, i) => (Math.abs(v - mm) < Math.abs(LENSES[best] - mm) ? i : best), 0);
+// A path past `TESTED_HEIGHTS` still renders: the user is warned, never stopped.
+const LONG_PATH = 'Long path for one 5-second clip: the camera will move fast and the video may smear. A shorter path renders cleaner.';
 const PATH_STEPS = {
     style: 'Reading the scene\'s style...', upload: 'Sending the guide to the engine...',
 };
@@ -88,6 +90,7 @@ export const MpiSceneBlock = ComponentFactory.create({
                     </div>
                     <div class="mpi-scene-block__label">Steer the video</div>
                     <div id="fill"></div>
+                    <div class="mpi-scene-block__status mpi-scene-block__status--warn" id="path-long"></div>
                     <div class="mpi-scene-block__render" id="path-render"></div>
                     <div class="mpi-scene-block__status" id="path-status"></div>
                 </section>
@@ -157,6 +160,7 @@ export const MpiSceneBlock = ComponentFactory.create({
             icon: 'refresh', label: 'Reset view', size: 'sm', info: 'Back to where the pano was taken, looking ahead',
         });
         const pathStatus = qs('#path-status', el);
+        const pathLong = qs('#path-long', el);
         // The camera path (plan P1), on the pano item: one path for now, `cameraPaths` leaves room for more.
         let pathPoints = sceneItem?.cameraPaths?.[0]?.points || [];
         const showPath = () => {
@@ -164,6 +168,7 @@ export const MpiSceneBlock = ComponentFactory.create({
             [undoBtn, clearBtn].forEach(b => b.el.setDisabled(!pathPoints.length));
             renderBtn.el.setDisabled(!view || busy || pathPoints.length < 2);
             if (!view) return;
+            pathLong.textContent = pathTooLong(pathPoints, view.ground) ? LONG_PATH : '';
             view.setPath(pathPoints, { start: tokenRgb(el, '--accent-frost'), point: tokenRgb(el, '--accent-heat') });
             canvasEl.requestRender();
         };
@@ -272,6 +277,7 @@ export const MpiSceneBlock = ComponentFactory.create({
             Hotkeys.bind('scene.path.add', addHere),
             Hotkeys.bind('scene.lens.up', () => stepLens(1)),
             Hotkeys.bind('scene.lens.down', () => stepLens(-1)),
+            ...bindQueueSlideOver({ key: false }), // Q flies down here; the status bar still opens the queue
         ];
         const offs = [
             on(canvasEl, 'pointerdown', (e) => { drag = [e.clientX, e.clientY]; canvasEl.setPointerCapture(e.pointerId); }),

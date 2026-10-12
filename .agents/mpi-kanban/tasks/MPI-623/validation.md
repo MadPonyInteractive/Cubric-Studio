@@ -1495,3 +1495,24 @@ of the Convert test card + his 5090 well video card `cameraPathVideo_002`, proje
 - Fabio passed the asks live ("Everything worked"). Then asked: Up / Down step the lens. Built as `scene.lens.up/down` (registry, Scene page only) bound in BOTH Blocks, one LENSES stop, saved like the slider. Rig 15/15: player 35->50->28, floor 12, 12+5 Ups = 28, Scene panel 28->35, shared value reaches the reopened player. eslint clean, hotkey-gating 4/4.
 - Scene panel = path tool (Fabio: "path tool only"). Live rig (r.cjs, his Convert test copy): buttons = Add point, remove last, clear, Render path; no picture tools; canvas = stage (1478x989). Desktop `scene-viewer` + `scene-workspace` specs rewritten for it: 2/2 pass. eslint clean.
 - Fabio passed the path-tool panel ("Looks good", his app). Then swept the client code it orphaned: scenePicture.js 420 -> 182, scene-picture tests 18 -> 4 (+3 mutants killed), scene-viewer spec loses insideAt; npm test 3035/0, scene-viewer + scene-workspace 2/2, live player rig all player checks pass, no page errors.
+
+## Session 51 (2026-10-12, "3D Scene 41"): frame 0, sceneLift removal, Phase 4 start
+
+- **Frame 0 outlines, cause:** `MpiWanMaskedVideo.latent_mask` area-pools the known mask to 8 px latent cells, threshold 0.5:
+  a cell under half hole counts as KNOWN, so frame 0`s 1-3 px depth-cut hole lines (black in the guide) reached the VAE.
+  **Fix:** frame 0 = `turnPano(pano.png at 1440x720, yaw)`, mask all known. `tests/scene-path-video.test.cjs` 7/7 (turnPano
+  identity / quarter turns / half-column mean across the seam / every row; renderPath renders 80, pixelsAt asked once at
+  1440x720, frame 0 over no holes); sign mutant killed. Turned pano vs the session-41 window guide`s frame 0 (yaw pi):
+  **corr 0.990, mean abs 3.6** on known pixels (the other yaws 0.16-0.24). Fabio`s eye: his next Render path.
+- **sceneLift removed** (absent from the v2.0.1 tag, so removed, not deprecated): `tests/scene-ops.test.cjs` asserts it is
+  in none of the four registries, no graph, no `runSceneOp`, no `/scene-layer`. `npm test` 3144 pass / 0 fail.
+- **Ungated:** `scene-convert` / `scene-path` not devOnly (`tests/scene-convert.test.cjs` 7/7), gallery + Convert menu + hotkey
+  sheet gates removed, orphan `APP_CONFIG` imports dropped, eslint clean.
+- **MoGe on HF:** `Mad-Pony-Interactive/cubric-studio/moge/moge_vitl.safetensors`, lfs sha256 `dbdf89d1...` + 1256740032 bytes =
+  the dep; resolve 302 -> 200, content-length 1256740032. `noMirror` -> `mirrorUrl`.
+- **release:check RED, two causes, neither from these edits:** Pod yaml has no `speech_to_text` (MPI-1071); smoke evidence older
+  than the 10-11 node_lock pins (Mickmumpitz + Ostris + GGUF). Both need a Pod (money): Fabio`s call.
+- **Fabio`s eye, 2026-10-12 (RunPod RTX PRO 4500, scene `flow360Panorama_001`, 6-point path): "Frame 0 looks clean."**
+  The plugin install on that Pod took ~6 min (08:29:35 -> 08:35:22 reseed); its Transfers row froze on "Download 100%" while
+  verifying - MPI-1104 fixed the label (message `cdb2fd5e-mpi623-to-mpi1104`, resolved). Then he asked why a video and not
+  the scene: told him P3 option 1 (session 45, his call; research/p3-lift-into-scene.md).

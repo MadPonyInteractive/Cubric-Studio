@@ -151,14 +151,13 @@ const ALL_PLUGINS = [
     },
     // MPI-623 - the 3D scene. Owns MoGe (1.17GB): the plugin, not an engineAsset, so the
     // weight lands only on an engine whose user asked for it. AnimeSharp, its other weight,
-    // is an engineAsset already. devOnly while the Scene workspace is.
+    // is an engineAsset already. Ships in 2.1 (Fabio, 2026-10-10).
     {
         id: 'scene-convert',
         title: '3D Scene',
         description: 'Unlocks "Convert to 360 pano" on the gallery right-click menu.',
         requiredDeps: ['moge-vitl'],
         operation: 'sceneConvert',
-        devOnly: true,
     },
     // MPI-623 P2 - a camera path rendered as a 360 video: Wan 2.1 I2V 720P (Q4 GGUF) under the
     // Matrix-3D 360 LoRA, ~20 GB. A plugin of its own so Convert alone does not pull it in.
@@ -168,7 +167,6 @@ const ALL_PLUGINS = [
         description: 'Unlocks "Render path" in a 3D scene: a 360 video along the camera path you lay.',
         requiredDeps: ['wan21-i2v-720p-q4', 'wan21-pano360-lora', 'wan21-lightx2v-distill', 'umt5_xxl_fp8_e4m3fn_scaled', 'wan_2.1_vae', 'clip-vision-h'],
         operation: 'scenePathVideo',
-        devOnly: true,
     },
 ];
 

@@ -5,7 +5,7 @@
  *   PAGE_LANDING      → project picker
  *   PAGE_GALLERY      → main gallery (grid of ItemGroups); default on project open
  *   PAGE_GROUP_HISTORY → history view for a single ItemGroup (params: { groupId })
- *   PAGE_SCENE        → a scene card's 3D viewer (params: { groupId }; MPI-623, dev_mode)
+ *   PAGE_SCENE        → a scene card's 3D viewer (params: { groupId }; MPI-623)
  *                       or, for a scene's path video, its 360 player (MpiPanoVideoBlock, P3)
  *
  * Hold Tab for the radial (MPI-811) — four fixed destinations on the diagonals:

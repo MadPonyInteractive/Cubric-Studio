@@ -8,7 +8,26 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 48 (2026-10-11, "3D Scene 38"): the
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 51 (2026-10-12, "3D Scene 41"), committed at handoff 27bb76a7 (left: Fabio's eye on Q in the player + the long-path line, the UNRELEASED.md entry, close-out):**
+(1) frame 0 of a path video is now the pano itself (`turnPano`, § Paths P3: Wan's 8 px mask kept the render's thin
+hole lines as black outlines); (2) `sceneLift` + `runSceneOp` + `POST /scene-layer` + `scene_lift.json` REMOVED outright
+(never shipped: not in v2.0.1; dep entries untouched, MoGe is sceneConvert's); (3) Phase 4 started: `scene-convert` /
+`scene-path` lose `devOnly`, the gallery open-group + Convert menu + hotkey sheet gates gone, MoGe re-hosted to
+`Mad-Pony-Interactive/cubric-studio` (lfs sha256 + size equal, public 200) and `noMirror` -> `mirrorUrl`. npm test green.
+LEFT: the `pano-360` dev_mode gate in `flowsRegistry.js` + the UNRELEASED.md entry (MPI-1071's claim; message
+`cdb2fd5e-mpi623-to-mpi1071`); the MPI-1077 bullet (message `f54f3e88`) goes in with ours. Pod: stable start.sh ALREADY
+carries the `moge` line (dev + stable manifests share sha 3b4c4e29, promoted with MPI-936), proven by Fabio's session-49
+RunPod Convert - no promote left for MPI-623. MPI-1071 owns the `speech_to_text` yaml line (red #1) + its promote. The engine
+smoke (red #2) is release-wide (MPI-1071's MpiNodes 1.2.19 pin too): the 2.1 release run. pano-360 ungated by MPI-1071
+(e3a8f8fcb). `.claude/rules/` updated with Fabio's yes (workspaces: four + PAGE_SCENE; blocks: Scene + 360 player).
+ALSO (Fabio, session 51): a path past `TESTED_HEIGHTS` (11 camera heights; his passed paths measured 10.05 + 10.82) shows a warning under Render path
+(`pathTooLong`, never a block; scene-path test 8/8, npm test 3198/0) - his eye on the line. Q opens the queue in the 360 player (Fabio: "I can't"): ONE `bindQueueSlideOver` (js/shell/queueSlideOver.js)
+replaces Gallery's + History's copies; the Scene binds the event only (Q flies); `tests/desktop/scene-queue-hotkey.spec.js`
+(mutant killed) + flow-queue-hotkey + scene-workspace green. shell.js's queue-flash copy is MPI-1105's (message sent).
+Fabio PASSED the path video by eye on RunPod (session 51). NEXT: Fabio rents a fast Pod (5090) for his eye test: Render path (frame 0 clean) + 360 Panorama text run -> Convert.
+Noticed: `renderPicture`'s z / backFrac and `view.addLayer` fed only sceneLift (viewer side kept by plan).
+
+**Session 48 (2026-10-11, "3D Scene 38"): the
 360 PANO FLOW is being wired** (Fabio "go"; R2 yes). ON DISK, uncommitted: `comfy_workflows/raw/flow_pano360.json`
 (committed by the sync, `c6a8773cb`; generator = `research/make_pano_raw.py`; FlowDef draft `research/pano-flow-entries.js`) -> `flow_pano360.json`
 (staged): ONE graph, a lazy `MpiIfElse` on `MpiLoadImage.loaded` (block_if_empty OFF) picks text -> 360 (bench
@@ -562,9 +581,12 @@ panel), Take picture. No walkable world (the lift into the scene was built, run 
 - [x] Wire `frameCount`: `renderPath({ frames })`, the scene panel passes `frameCount(points, view.ground)`,
       `pathEtaMin(gpu, frames)` scales by `(frames/81)**1.5` (tests + 2 mutants).
 - [x] Path balls within `BALL_HIDE` (3) radii of the camera are hidden (`hideNearBalls`, test + mutant).
-- [ ] Frame 0 of his well video has thin black outlines along the guide's sky-band cuts (the 5% holes of
-      frame 0; later frames are clean; cause NOT traced - Wan's start image vs the mask edge). At 24 mm
-      they are thick. Candidate: the real pano as frame 0's guide picture.
+- [x] Frame 0 of his well video had thin black outlines along the guide's sky-band cuts (session 51): CAUSE -
+      `MpiWanMaskedVideo` area-pools the known mask to 8 px latent cells and keeps a cell under half hole as
+      KNOWN, so frame 0's 1-3 px cut lines (black in the guide) reached the VAE. FIX - frame 0 stands at the pano's
+      centre, so its guide IS the pano: `turnPano(pano.png at 1440x720, yaw)`, mask all known. Unit (+ sign mutant
+      killed); the turned pano vs the session-41 window guide's frame 0: corr 0.990, mean abs 3.6. Later frames
+      can leak the same way where a hole line is thin; read clean by eye, so not touched. Fabio's eye: next Render path.
 - [x] Fabio's eye on the player + a picture (session 46, his app, well video frame 59, 12 mm 2.39:1 ->
       `scene_001` 1584x656): "It works nicely."
 - [x] Fabio's asks (session 47): Left / Right step a frame (pausing), Space plays - the Video Player's own
@@ -583,7 +605,7 @@ panel), Take picture. No walkable world (the lift into the scene was built, run 
       DONE client side: scenePicture.js 420 -> 182 lines (kept sceneStyle, kleinJob, colorLock, placeAsset,
       appIo); scene-picture.test.cjs = 4 tests (style once + failure, kleinJob no card, colour lock), 3
       mutants killed; docs/scenes.md § Take picture + § Build here -> § the 360 player. npm test 3035/0.
-- [ ] Deprecate `sceneLift` (op registry 2.0.1, commandRegistry, universal_workflows, commandExecutor
+- [x] (session 51: REMOVED, it never shipped) Deprecate `sceneLift` (op registry 2.0.1, commandRegistry, universal_workflows, commandExecutor
       branch, scene_lift.json, MpiLiftDepth node) + `POST /scene-layer` (routes/projects.js, peer-held
       today) via docs/playbooks/add-model/README.md § Removing. No caller left; old scenes' layers
       still LOAD (loadScene), so keep the viewer side.
@@ -767,7 +789,7 @@ Runs after Phase 2. Both consume Phase 2's nodes/ops and touch disjoint files. R
       rule C, Take picture, limits.)**
 - [ ] Ask Fabio before touching `.claude/rules/` (workspaces.md says "three"; component maps via
       `mpic-update-component-map`). **Verify:** his yes recorded, or the drift noted.
-- [ ] Privacy check: MoGe weights come from our R2 - no new outbound service. **Verify:** none
+- [x] Privacy check (session 51: every scene / pano-360 weight is R2 + HF, both listed): MoGe weights come from our R2 - no new outbound service. **Verify:** none
       added, or `cubric.studio/privacy/` updated in the same job.
 - [ ] **Before dev_mode comes off** (Fabio 2026-10-08): MoGe re-hosted to the HF mirror and
       `noMirror` dropped; a Pod connect proves `start.sh`'s `moge` line (dev channel, live since

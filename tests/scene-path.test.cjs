@@ -86,3 +86,17 @@ test('P3 frame count: the window path keeps 81, half of it 49, a stub 33, a long
     for (const n of [frameCount(win, g * 2), frameCount([[0, 0, 0], [0, 0, -0.5]], g)]) assert.equal((n - 1) % 4, 0, 'Wan takes 4k + 1');
     assert.equal(frameCount(win, 0), FRAMES, 'no ground measured: the full clip');
 });
+
+test('a path past the tested length warns: the window and well paths do not, ten-plus camera heights do', async () => {
+    const { pathTooLong, TESTED_HEIGHTS } = await esm('js/services/scene/scenePath.js');
+    const g = 0.4546;
+    assert.equal(pathTooLong([[0, 0, 0], [0, -0.1, -0.45], [0, -0.145, -0.79], [0, -0.145, -1.25]], g), false, 'the window path (2.8 heights)');
+    assert.equal(pathTooLong([[0, 0, 0], [0, 0, -(TESTED_HEIGHTS - 0.5) * g]], g), false, 'just under');
+    assert.equal(pathTooLong([[0, 0, 0], [0, 0, -(TESTED_HEIGHTS + 0.5) * g]], g), true, 'just over');
+    assert.equal(pathTooLong([[0, 0, 0], [3 * g, 0, 0], [3 * g, 0, -3 * g], [0, 0, -3 * g], [0, 0, -0.5 * g]], g), true, 'a loop counts its whole length, not start to end');
+    assert.equal(pathTooLong([[0, 0, 0]], g), false, 'no path');
+    // Fabio's two village paths that passed by eye on 2026-10-12 (10.05 and 10.82 heights): never warned.
+    assert.equal(pathTooLong([[0, 0, 0], [-0.0465, 0, -0.5038], [-0.4717, 0, -1.289], [-1.3309, 0, -1.5227], [-1.9809, 0, -1.04], [-1.7804, 0, 0.0798]], 0.3987), false);
+    assert.equal(pathTooLong([[0, 0, 0], [0.4107, -0.0523, 0.3045], [0.8757, -0.0523, 1.2259], [-0.0171, -0.0523, 2.0382], [-0.6349, -0.0523, 1.7314], [-0.8859, -0.0523, 0.7468]], 0.4546), false);
+    assert.equal(pathTooLong([[0, 0, 0], [0, 0, -99]], 0), false, 'no ground measured: no unit, no warning');
+});

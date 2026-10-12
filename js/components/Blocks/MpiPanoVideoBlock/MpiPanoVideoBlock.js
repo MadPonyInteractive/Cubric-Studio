@@ -1,7 +1,7 @@
 /**
  * MpiPanoVideoBlock — the 360 player for a scene's path video (Block, MPI-623 P3).
  *
- * Opened like the Scene workspace (`PAGE_SCENE`, `{ groupId }`, behind `APP_CONFIG.dev_mode`)
+ * Opened like the Scene workspace (`PAGE_SCENE`, `{ groupId }`)
  * when the card is a path video (`getPathVideoItem`): navigation picks this Block by card.
  * Plays the video wrapped round the camera (`panoVideo.js`): drag to look while it plays,
  * stop on a frame with the scrubber, frame a shot with the aspect and lens as the Scene
@@ -27,6 +27,7 @@ import { Events } from '../../../events.js';
 import { getPathVideoItem } from '../../../utils/assetKinds.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
+import { bindQueueSlideOver } from '../../../shell/queueSlideOver.js';
 import { Storage } from '../../../core/storage.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { START_POSE, applyPose, flyLook } from '../../../services/scene/sceneViewer.js';
@@ -204,6 +205,7 @@ export const MpiPanoVideoBlock = ComponentFactory.create({
             Hotkeys.bind('video.frame.forward', () => { if (view) seekFrame(frame + 1); }),
             Hotkeys.bind('scene.lens.up', () => stepLens(1)),
             Hotkeys.bind('scene.lens.down', () => stepLens(-1)),
+            ...bindQueueSlideOver(), // Q: nothing flies here
         ];
         const keepShot = () => Storage.setSceneShot({ aspect, mm: pose.mm });
         // Up / Down: one lens stop longer / wider, like the slider.

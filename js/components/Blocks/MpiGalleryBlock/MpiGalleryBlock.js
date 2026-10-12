@@ -20,7 +20,7 @@ import { recordAudioIntoProject } from '../MpiAudioRecorder/MpiAudioRecorder.js'
 import { hasNoEngine } from '../../../services/engineGate.js';
 import { MpiModelSettings } from '../../Compounds/MpiModelSettings/MpiModelSettings.js';
 import { MpiModelPicker } from '../../Compounds/MpiModelPicker/MpiModelPicker.js';
-import { MpiQueuePanel } from '../../Compounds/MpiQueuePanel/MpiQueuePanel.js';
+import { bindQueueSlideOver } from '../../../shell/queueSlideOver.js';
 import { MpiReusePromptDialog } from '../../Compounds/MpiReusePromptDialog/MpiReusePromptDialog.js';
 import { MpiNotesEditor } from '../../Compounds/MpiNotesEditor/MpiNotesEditor.js';
 import { MpiAddToProject } from '../../Compounds/MpiAddToProject/MpiAddToProject.js';
@@ -33,7 +33,6 @@ import { openFlowFromReuse } from '../../../services/flowService.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { ce, qs, gid } from '../../../utils/dom.js';
 import { navigate, PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../../../router.js';
-import { APP_CONFIG } from '../../../../dev_configs/app_config.js';
 import { extractFilenameFromPath, extractAbsPath, downloadMediaFiles, deleteMediaFiles, resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
 import { resolveActiveModel, setSelectedModelId, getSelectedModelId, getSelectedOp, setSelectedOp, getLastSelectedMediaType, MODEL_MEDIA_TYPES } from '../../../utils/modelHelpers.js';
@@ -115,20 +114,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
 
         let groups = state.currentProject?.itemGroups || [];
 
-        const _queuePanelPayload = {
-            title: 'Cue',
-            component: MpiQueuePanel,
-            extraClasses: 'mpi-slide-over--queue',
-            panelId: 'generation-queue',
-        };
-        const _toggleQueuePanel = () => {
-            Events.emit('slide-over:toggle', _queuePanelPayload);
-        };
-        const _openQueuePanel = () => {
-            Events.emit('slide-over:open', _queuePanelPayload);
-        };
-        _unsubs.push(Hotkeys.bind('queue.toggle', _toggleQueuePanel));
-        _unsubs.push(Events.on('generation-queue:open', _openQueuePanel));
+        _unsubs.push(...bindQueueSlideOver());
 
         // ── Rehydrate any in-flight gallery generations ───────────────────────
         const _myGenIds = new Set();
@@ -289,12 +275,12 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // MPI-623 (A9): a 3D Scene card is an image card carrying a scene, so it reaches
         // here as a normal image group and opens in the Scene workspace instead. Read off
         // the CARD (`getSceneItem`): selecting one of its pictures must not send it to
-        // Group History. Behind dev_mode until it ships (A8); off, it is a plain image.
+        // Group History.
         // A scene's path video (P3) opens there too, in the 360 player.
         grid.on('open-group', ({ group }) => {
             if (group?.type === 'audio') return;
             // MPI-949: a stack opens in the same workspace, in its stack mode.
-            if (APP_CONFIG.dev_mode && !isStack(group) && (getSceneItem(group) || getPathVideoItem(group))) {
+            if (!isStack(group) && (getSceneItem(group) || getPathVideoItem(group))) {
                 navigate(PAGE_SCENE, { groupId: group.id });
                 return;
             }
