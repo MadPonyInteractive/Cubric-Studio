@@ -26,3 +26,7 @@
   line); SYSTEM_BUDGET raised with a ledger note, as the file asks.
 - `npx eslint services/agentLoop.mjs` clean. `npm test`: 3270 tests, 3268 pass, 0 fail, 2 skipped.
 - Not run: a live Cosmo turn (costs a DeepInfra call); the routing is proven at the prompt level.
+
+## Shipped
+
+- 5f4cdbeb0 pushed; CI run 38307863162 success (unit + desktop 1-4).
