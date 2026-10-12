@@ -43,6 +43,8 @@ import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
 import { hasNoEngine } from './engineGate.js';
+import { state } from '../state.js';
+import { extractAbsPath } from '../utils/mediaActions.js';
 import { childSafetyGate, JUDGE_SYSTEM, judgePrompt } from '../data/childSafety.js';
 
 /** The mode every image recipe declares, and the base mode of the video ones. */
@@ -817,6 +819,7 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
  * @param {string} [a.mode]         recipe mode; defaults to the op's (`recipeModeForOp`)
  * @param {string} [a.operation]    the op being generated, which picks the mode
  * @param {string[]} [a.references] staged reference tags (`@image1`), sent on an r2v run only; none staged runs t2v
+ * @param {Array<{tag:string,url:string}>} [a.pictures] the staged IMAGES, described for an r2v run (MPI-1084)
  * @param {string} [a.backend]      explicit override; defaults to the preference, then ComfyUI
  * @param {boolean} [a.transparent] No Background is on (MPI-1049): the brief says so
  * @returns {Promise<{ok:boolean, text?:string, negativeText?:string, backend?:string,
@@ -826,7 +829,7 @@ async function _enhanceFlowOn(backend, { prompt, injectionParams, modelId }) {
  *          parsed. `text` is then the positive half alone — the caller must not
  *          re-split it.
  */
-export async function enhance({ prompt, model, recipeKey, mode, operation, references, backend, transparent } = {}) {
+export async function enhance({ prompt, model, recipeKey, mode, operation, references, pictures, backend, transparent } = {}) {
     const idea = String(prompt || '').trim();
     if (!idea) return { ok: false, error: 'Write a prompt first, then Enhance.' };
 
@@ -850,14 +853,16 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
     const system = transparent
         ? `${composeSystemPrompt(modeRecipe)}\n\n${TRANSPARENT_BACKGROUND_RULE}`
         : composeSystemPrompt(modeRecipe);
-    // MPI-1006: only an r2v mode is told what is staged; it cites those tags and no others.
-    const userText = resolvedMode === 'r2v' ? withReferences(idea, references ?? []) : idea;
-
     const chosen = chooseBackend({ override: backend ?? await runnableBackend(backendPreference()) });
 
     // MPI-1056: a request the child-safety gate refuses is never sent to the enhancer.
     const asked = await childSafetyCheck(idea, { modelId: model?.id }, chosen);
     if (!asked.ok) return _childSafetyRefusal(asked);
+
+    // MPI-1006: only an r2v mode is told what is staged; it cites those tags and no others.
+    // MPI-1084: and what each picture shows, or it guesses the roles by load order.
+    const seen = modeRecipe.seesPictures && pictures?.length ? await pictureCaptions(pictures) : { captions: [], missed: [] };
+    const userText = resolvedMode === 'r2v' ? withReferences(idea, references ?? [], seen.captions) : idea;
 
     const { profileId } = Storage.getLlmConnection();
     const resolvedModelId = chosen === 'endpoint' ? await _endpointEnhanceModel(profileId) : enhancerModelPreference();
@@ -897,9 +902,11 @@ export async function enhance({ prompt, model, recipeKey, mode, operation, refer
         fellBack,
         // Honest signal, surfaced verbatim: the requested target had no recipe
         // and a default ran. Not an error — the user pressed a button that exists.
-        note: fellBack
-            ? `No enhancer recipe for "${recipeKey ?? model?.enhanceRecipe ?? model?.type ?? '(none)'}" — used "${recipeId}".`
-            : undefined,
+        note: [
+            fellBack && `No enhancer recipe for "${recipeKey ?? model?.enhanceRecipe ?? model?.type ?? '(none)'}" — used "${recipeId}".`,
+            // MPI-1084: an unseen picture's role is a guess again; say which one.
+            seen.missed.length && `Could not look at ${seen.missed.join('; ')}.`,
+        ].filter(Boolean).join(' ') || undefined,
     };
 }
 
@@ -1128,4 +1135,66 @@ export async function describeImage({ imagePath, question, crop, scope, group } 
             resolve({ ok: false, via: 'comfy', errorCode: 'REJECTED', error: 'Vision rejected the describe job before it entered the queue.' });
         }
     });
+}
+
+/**
+ * What each staged picture shows, for an `r2v` enhance (MPI-1084). The enhancer is text-only:
+ * told only "<Picture 1>, <Picture 2>", it guessed roles by load order and the sheet's
+ * descriptions stopped matching its cells, so LTX pasted the sheet into the clip.
+ *
+ * Described ONCE per card, kept in the card sidecar's `look` `{ text, describer, at }`: the
+ * field Cosmo's look reads and writes (MPI-870), so a picture either of them looked at is
+ * never described again. Read fresh, never from the hydrated project: Cosmo writes the
+ * sidecar on the server and the renderer's copy does not hear of it. A picture with no card
+ * in the open project is described every time and kept nowhere. A failed describe drops that
+ * one caption and says so in `missed`; the enhance still runs on the text.
+ *
+ * @param {Array<{tag:string, url:string}>} pictures  staged images, by the tag the recipe reads
+ * @returns {Promise<{captions: Array<{tag:string, text:string}>, missed: string[]}>}
+ */
+export async function pictureCaptions(pictures = []) {
+    const project = state.currentProject;
+    const samePath = (p) => String(p || '').replace(/\\/g, '/').toLowerCase();
+    const idByPath = new Map();
+    for (const group of project?.itemGroups ?? []) {
+        for (const item of group.history ?? []) {
+            const abs = extractAbsPath(item?.filePath);
+            if (abs && item.id) idByPath.set(samePath(abs), item.id);
+        }
+    }
+    const staged = pictures.map(p => ({ ...p, itemId: idByPath.get(samePath(extractAbsPath(p.url))) ?? null }));
+    const ids = staged.map(p => p.itemId).filter(Boolean);
+    let kept = {};
+    if (ids.length) {
+        try {
+            const res = await fetch('/load-meta-batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folderPath: project.folderPath, ids }),
+            });
+            kept = (await res.json()).items ?? {};
+        } catch (err) {
+            clientLogger.warn('prompt', `[llmService] reading kept looks failed: ${err?.message}`);
+        }
+    }
+    const missed = [];
+    const captions = await Promise.all(staged.map(async (p) => {
+        const text = kept[p.itemId]?.meta?.look?.text;
+        if (text) return { tag: p.tag, text };
+        const r = await describeImage({ imagePath: p.url });
+        if (!r.ok || !r.text) {
+            missed.push(`${p.tag}: ${r.error || 'no description came back'}`);
+            return null;
+        }
+        // `meta` null = no sidecar, and update-meta would mint one holding only `look`.
+        if (kept[p.itemId]?.meta) {
+            await fetch(`/project-media/${project.id}/update-meta?folderPath=${encodeURIComponent(project.folderPath)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ itemId: p.itemId, updates: { look: { text: r.text, ...(r.model && { describer: r.model }), at: new Date().toISOString() } } }),
+            }).catch(err => clientLogger.warn('prompt', `[llmService] keeping a look failed: ${err?.message}`));
+        }
+        return { tag: p.tag, text: r.text };
+    }));
+    return { captions: captions.filter(Boolean), missed };
 }

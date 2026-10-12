@@ -332,6 +332,62 @@ async function testEnhanceRunsTheOpsMode() {
     }
 }
 
+async function testEnhanceSeesThePictures() {
+    // MPI-1084: told only "<Picture 1>, <Picture 2>", the r2v enhancer guessed roles by load
+    // order (a guinea pig became "setting: forest clearing"). It is now told what each picture
+    // shows: a card's kept `look` is reused, a card without one is described ONCE and kept, a
+    // file with no card is described and kept nowhere.
+    const { state } = require('../js/state.js');
+    const realFetch = global.fetch;
+    const prevProject = state.currentProject;
+    const url = (p, v = '') => `/project-file?path=${encodeURIComponent(p)}${v}`;
+    const calls = { describe: [], keep: [], prompt: null };
+    state.currentProject = {
+        id: 'p1', folderPath: 'C:\\P',
+        itemGroups: [
+            { history: [{ id: 'valley', filePath: url('C:\\P\\Media\\imported_001.jpg') }] },
+            { history: [{ id: 'pig', filePath: url('C:\\P\\Media\\imported_002.png') }] },
+        ],
+    };
+    global.fetch = (u, init) => {
+        const body = init?.body ? JSON.parse(init.body) : null;
+        let reply = { ok: true, text: 'x', backend: 'b', model: 'm', models: [] };
+        if (u === '/load-meta-batch') reply = { success: true, items: { valley: { meta: { look: { text: 'a misty valley' } } }, pig: { meta: { id: 'pig' } } } };
+        else if (u === '/llm/describe') { calls.describe.push(body.imagePath); reply = { ok: true, text: `seen ${calls.describe.length}`, model: 'vl' }; }
+        else if (u.startsWith('/project-media/p1/update-meta')) calls.keep.push(body);
+        else if (u === '/llm/enhance') calls.prompt = body.prompt;
+        return Promise.resolve({ ok: true, json: () => Promise.resolve(reply) });
+    };
+    setBackendPreference('ollama');
+    setDescribeBackendPreference('endpoint');
+    try {
+        const pictures = [
+            { tag: '<Picture 1>', url: url('C:\\P\\Media\\imported_001.jpg', '&v=7') },
+            { tag: '<Picture 2>', url: url('c:/p/media/imported_002.png') },
+            { tag: '<Picture 3>', url: url('C:\\elsewhere\\x.png') },
+        ];
+        const res = await enhance({ prompt: 'a guinea pig in a valley', model: { enhanceRecipe: 'ltx-2.3' }, operation: 'ref2v',
+            references: pictures.map(p => p.tag), pictures });
+        assert.strictEqual(res.ok, true, JSON.stringify(res));
+        assert.deepStrictEqual(calls.describe, [pictures[1].url, pictures[2].url], 'the kept look is reused, the rest are described');
+        assert.strictEqual(calls.keep.length, 1, 'only the card with a sidecar keeps its look');
+        assert.strictEqual(calls.keep[0].itemId, 'pig');
+        assert.strictEqual(calls.keep[0].updates.look.describer, 'vl');
+        assert.ok(calls.prompt.includes('What each attached picture shows:\n<Picture 1>: a misty valley\n<Picture 2>: seen'), calls.prompt);
+        assert.ok(calls.prompt.endsWith('Attached references, in load order: <Picture 1>, <Picture 2>, <Picture 3>.'), 'the Attached line stays last');
+        // Opt-in per recipe mode: a describe costs money, and Seedance's r2v was never swept with captions.
+        await enhance({ prompt: 'a cat', model: { enhanceRecipe: 'seedance-2.0' }, operation: 'ref2v',
+            references: ['@image1'], pictures: [{ tag: '@image1', url: pictures[2].url }] });
+        assert.strictEqual(calls.describe.length, 2, 'a recipe without seesPictures describes nothing');
+        assert.strictEqual(calls.prompt, 'a cat\n\nAttached references, in load order: @image1.');
+    } finally {
+        delete _ls['cubric.llm.backend'];
+        delete _ls['cubric.llm.describeBackend'];
+        state.currentProject = prevProject;
+        global.fetch = realFetch;
+    }
+}
+
 // ── The DeepInfra key never reaches the renderer ─────────────────────────────
 
 function testSecretsStoreDeepInfraSlot() {
@@ -744,6 +800,7 @@ const tests = [
     testRecipeResolutionAndFallback,
     testModeResolution,
     testEnhanceRunsTheOpsMode,
+    testEnhanceSeesThePictures,
     testSecretsStoreDeepInfraSlot,
     testForkBridgeAnswersDeepInfraRequests,
     testModelNamesSayWhichSizeRuns,

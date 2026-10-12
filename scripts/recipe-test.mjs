@@ -148,6 +148,43 @@ function refInputs(tag, slotTags = []) {
     };
 }
 
+/** MPI-1084: real looks (Gemma 4 26B, kept in the cards' sidecars) of Fabio's test pictures in
+ *  project "X2.3 references": imported_001, _003, _004. */
+const SEEN = {
+    valley: 'Landscape view of a wide valley filled with a thick, white layer of low-lying mist and clouds that obscures the valley floor, viewed from a grassy hilltop during a golden hour sunset. In the lower foreground, a single person, appearing to be a young male with short dark hair, stands facing away from the camera toward the valley. He wears a bright red long-sleeved jacket, black trousers, and a black backpack. To his right, a black tripod with a camera mounted on top stands on the green and yellow-tinted grass. The hilltop consists of rolling, uneven terrain covered in short, yellowish-green grass that slopes downward toward the center and right midground. Several scattered, slender pine trees with dark trunks and green needles are distributed across the hillside, with a denser cluster of dark green trees appearing on the left midground, partially shrouded by wisps of fog. In the background, dark, silhouettes of mountain ranges stretch across the horizon under a sky transitioning from a deep orange near the horizon to a pale blue-grey at the top.',
+    hamster: 'Small, tan-colored hamster stands upright on its hind legs in the center foreground of a close-up, eye-level shot. The hamster wears a miniature yellow firefighter\'s helmet featuring a red circular emblem with a gold fire axe and ladder design on the front, along with black trim. Resting just below the helmet\'s brim are small, silver-rimmed aviator sunglasses with dark, reflective lenses that partially obscure its eyes. The hamster is dressed in a tiny, detailed firefighter uniform consisting of a bright red jacket with black sleeves and large, reflective yellow and silver vertical stripes on the chest and shoulders, worn over a black shirt that is fastened at the waist with a thin white belt and a silver buckle. The hamster\'s light tan fur is fine and textured, with white patches on its chest and belly, and long, thin white whiskers extending from its snout. The background consists of a textured, light tan, sandy-colored wall in the upper half and a rough, light brown, weathered wooden surface in the lower half where the hamster stands.',
+    woman: 'Young woman with tan skin sits on the edge of a turquoise swimming pool, her lower legs submerged in the water, facing the camera with a smile that reveals her white teeth. She has long, wavy hair that transitions from dark brown at the roots to a vibrant magenta pink at the ends, cascading over her right shoulder. She wears a fitted, ribbed, teal-colored one-piece swimsuit with thin spaghetti straps and a scooped neckline. Her right hand rests on the dark stone ledge of the pool behind her, while her left hand is raised near her shoulder, fingers slightly curled, with a thin gold ring on her ring finger. She is positioned in the center foreground, framed by lush tropical vegetation. To her left, large green leaves and bright red hibiscus flowers are visible, with one hibiscus blossom prominently displayed near her shoulder. The background is a dense thicket of green tropical foliage and flowers, creating a shallow depth of field that softly blurs the greenery.',
+};
+
+/** `--ref-tiers` on a `seesPictures` mode (MPI-1084): UNTAGGED prompts, as users write them,
+ *  with what each picture shows (`withReferences` captions, as `pictureCaptions` sends them).
+ *  `roles`: the role word each picture line must open with (null = the character, none) and a
+ *  `look` the line must match, words only the caption gives.
+ *  `seen-picnic` is Fabio's live ref2v_004 text, which labelled the hamster a setting;
+ *  `seen-swapped` puts the place first, where guessing by load order makes it the subject. */
+function seenInputs(tag) {
+    const [p1, p2, p3] = ['Picture 1', 'Picture 2', 'Picture 3'].map(tag);
+    const job = 'Write one picture line per attached picture, with the role and identifying look its caption shows, then the scene. The user tagged no picture: each one is matched to the user\'s words by what it shows.';
+    return [
+        {
+            name: 'seen-picnic', job, roles: { [p1]: { role: null, look: /pink|magenta|teal|turquoise|swimsuit/i }, [p2]: { role: null, look: /helmet|tan|sunglasses|uniform|hamster/i }, [p3]: { role: 'setting', look: /valley|mist|hill|sunset/i } },
+            input: withReferences('The woman is Facing the camera and sitting on a towel, having a picnic in the forest, and the guinea pig Dressed as a fireman is stealing one of her oranges right In front of her, When she notices she becomes surprised.',
+                [p1, p2, p3], [{ tag: p1, text: SEEN.woman }, { tag: p2, text: SEEN.hamster }, { tag: p3, text: SEEN.valley }]),
+        },
+        {
+            // The same text with the pictures shuffled: the hamster last read as "prop: the helmet".
+            name: 'seen-shuffled', job, roles: { [p1]: { role: 'setting', look: /valley|mist|hill|sunset/i }, [p2]: { role: null, look: /pink|magenta|teal|turquoise|swimsuit/i }, [p3]: { role: null, look: /helmet|tan|sunglasses|uniform|hamster/i } },
+            input: withReferences('The woman is Facing the camera and sitting on a towel, having a picnic in the forest, and the guinea pig Dressed as a fireman is stealing one of her oranges right In front of her, When she notices she becomes surprised.',
+                [p1, p2, p3], [{ tag: p1, text: SEEN.valley }, { tag: p2, text: SEEN.woman }, { tag: p3, text: SEEN.hamster }]),
+        },
+        {
+            name: 'seen-swapped', job, roles: { [p1]: { role: 'setting', look: /valley|mist|hill|sunset/i }, [p2]: { role: null, look: /helmet|tan|sunglasses|uniform|hamster/i } },
+            input: withReferences('a guinea pig dressed as a fireman sits on the grass and watches the sunset',
+                [p1, p2], [{ tag: p1, text: SEEN.valley }, { tag: p2, text: SEEN.hamster }]),
+        },
+    ];
+}
+
 /** A reference tag in either form the app writes: `@image1` (Seedance), `<Image 1>` (Wan 3.0)
  *  or `<Picture 1>` (LTX). */
 const REF_TAG = /@(image|video|audio|picture)\s?\d+|<(image|video|audio|picture)\s?\d+>/gi;
@@ -197,7 +234,7 @@ function hasTerm(out, term) {
 
 /** Objective checks — no model opinion involved. Exported for scripts/agent-test.mjs, which
  *  runs the agent's generate prompts through the same bar (MPI-774). */
-export function runChecks(tier, input, out, mode, style, isRegisterTier) {
+export function runChecks(tier, input, out, mode, style, isRegisterTier, roles = null) {
     const n = words(out);
     const checks = [
         { name: 'non-empty', ok: out.trim().length > 0, detail: `${n} words` },
@@ -287,6 +324,19 @@ export function runChecks(tier, input, out, mode, style, isRegisterTier) {
             ok: line.slice(m[0].length).trim().toLowerCase().startsWith(`${role}:`),
             detail: line.slice(0, 60),
         });
+    }
+
+    // A seen tier's roles come from the captions, not the wording, and its line must carry what
+    // the picture shows (seenInputs): "the forest" on a valley's cell is the sheet mismatch.
+    for (const [tag, { role, look }] of Object.entries(roles ?? {})) {
+        const line = out.split('\n').map((l) => l.trim()).find((l) => l.startsWith(tag));
+        const said = line?.slice(tag.length).trim().toLowerCase().match(/^(setting|prop):/)?.[1] ?? null;
+        checks.push({
+            name: `picture role: ${tag} is ${role ? `a ${role}` : 'the character'}`,
+            ok: !!line && said === role,
+            detail: line ? line.slice(0, 80) : 'no line',
+        });
+        checks.push({ name: `picture look: ${tag} ${look}`, ok: !!line && look.test(line), detail: line ? 'checked' : 'no line' });
     }
 
     // The condense job is the one length rule a budget alone can't prove.
@@ -481,7 +531,11 @@ async function main() {
         : [];
     const REF_INPUTS = refInputs((name) => refTagHandle(name, refModel), refTags);
     const eligible = process.argv.includes('--ref-tiers')
-        ? TIERS.filter((t) => REF_INPUTS[t.name]).map((t) => ({ ...t, input: REF_INPUTS[t.name] }))
+        ? [...TIERS.filter((t) => REF_INPUTS[t.name]).map((t) => ({ ...t, input: REF_INPUTS[t.name],
+            // "a rocking chair in <Picture 2>": the role word alone passed "setting: the rocking chair".
+            // LTX only: the other r2v modes write no picture lines.
+            ...(t.name === 'medium' && refTags.includes('Picture 2') && { roles: { [refTagHandle('Picture 2', refModel)]: { role: 'setting', look: /^<[^>]+> setting: (?!(the |a )?(rocking )?chair\b)/i } } }) })),
+            ...(mode.seesPictures ? seenInputs((name) => refTagHandle(name, refModel)) : [])]
         : mode.styleVocabulary
             ? TIERS
             : TIERS.filter((t) => styleOf(t) === DEFAULT_STYLE);
@@ -550,7 +604,7 @@ async function main() {
                 system: composeSystemPrompt(mode, style),
             });
             const out = text.trim();
-            const checks = runChecks(tier.name, tier.input, out, mode, style, isRegisterTier);
+            const checks = runChecks(tier.name, tier.input, out, mode, style, isRegisterTier, tier.roles);
             const checksOk = checks.every((c) => c.ok);
 
             // Never judge an empty output: asked to grade nothing, the judge invents

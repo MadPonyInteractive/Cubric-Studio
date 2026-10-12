@@ -67,3 +67,41 @@ is a different person. Fabio: "identity is pretty bad. That's not the same guy."
 Sheet ONLY (`ref2v_003`, desert close-up, high): sheet passes untouched. Fabio, side by side with the sheet: "the same
 guy this time around" (face a bit wider, lens). So the face drifts when it shares the sheet with a setting. Recorded
 on MPI-1096.
+
+## Step 3, tagged tiers: sweep I (2026-10-11, after the sentence-6 audio clause was removed)
+
+ALL PASS 12/12. Every picture line right: bare `the cat, the main subject at the centre of the scene` x3; medium
+Picture 2 `setting: the room ...` x3; directed `the cowboy who wears a hat and shoots` (and variants); overlong
+Picture 2 `setting: the cliff ...` x3. Overlong run 3 still wrote an `<Audio 1>` picture line; harmless now, the sheet
+builder drops it, and the tag is also in the scene. Output: session 5cddf24b scratchpad `step3-full-i.txt`.
+
+## Step 2b: describe step (2026-10-11, session d6d1c356)
+
+`node tests/llm-service.test.cjs` 32/32: `testEnhanceSeesThePictures` proves a kept `look` is reused, a card without
+one is described once and kept (describer recorded), a file with no card is described and kept nowhere, the captions
+sit before the Attached line, and Seedance r2v (no `seesPictures`) describes nothing. recipe-registry, enhance-control,
+enhance-overlay, agent-corpus, ingredients-sheet green; eslint clean on the six files.
+
+Seen tiers (untagged prompts + captions), same engine/judge, 3 runs/tier:
+
+| Sweep | Wording | Tagged 12 | picnic | swapped | What failed |
+|---|---|---|---|---|---|
+| J | SEEN block at the top, whole looks | 11/12 | 0/3 | 3/3 | guinea pig `prop:` 3/3; overlong `<Audio 1>` only on its own line 1/3 |
+| L | + animal = character, look check added | 12/12 | 0/3 | 0/3 | picnic ignores captions ("the forest"); swapped drops the hamster's looks |
+| M/N (picnic) | + captions cut to two sentences; + "dressed as" note | - | 0/3 | - | guinea pig `prop:` 3/3 |
+| probe | 5 input variants, 2 runs | - | - | - | trigger = "Dressed as a fireman": removed -> character 2/2. Order pig-first -> right 2/2 |
+| probe 2 | 4 system patches, 3 runs | - | - | - | removing the "wearing <Picture n>" cue fixes the role; SEEN bullet LAST in PART 1 + a "dog dressed as a pirate" example fixes role 3/3 AND brings the looks |
+| O | that patch | 12/12 | 2/3 | 0/3 | swapped: "prop: the firefighter's helmet" 2/3 (fixated on the outfit) |
+| P (seen only) | + "first WHAT the picture is, never one thing it wears" | - | 3/3 | 2/3 | helmet as prop 1/3 |
+| Q | + medium check: Picture 2 must not be "setting: the rocking chair" (O had it 2/3, passing) | 12/12 | 3/3 | 2/3 | swapped run 1 `the guinea pig dressed as a fireman who watches the sunset`: role right, user's words not the look's |
+
+| R | Q's text | 12/12 | 2/3 | 2/3 | picnic: "vibrant" copied from the look (now stripped in `withReferences`); swapped: user's words |
+| in-app 1 | real `enhance()` in my app:isolated on a COPY of "X2.3 references", Ollama gemma-4-abliterated-12b, kept looks, order woman/hamster/valley | - | 3/3 | - | none: roles and looks right x3 |
+| in-app 2 | same, order valley/woman/hamster | - | - | - | hamster `prop: the firefighter's helmet` 2/3; one run wrote an extra paragraph |
+| probe 3/4 | shuffled orders | - | - | - | NOT position: the hamster reads as "the fireman costume" whenever it is not Picture 1, because "guinea pig" != "hamster". A 3-picture example made it WORSE. The near-name sentence ("guinea pig" for a hamster is the same subject; a costume is never a separate picture): roles 11/12 over four orders |
+| S | + near-name sentence; + `seen-shuffled` tier | 12/12 | 2/3 | 3/3 | shuffled 1/3: helmet-as-prop 1, two lines without the looks; picnic: "the forest" once. Roles wrong: 1 of 21 runs |
+
+Sweep Q picnic lines (Fabio's live ref2v_004 text): `<Picture 1> the woman with tan skin and long, wavy hair that
+transitions from dark brown to magenta pink` / `<Picture 2> the small, tan-colored hamster in a miniature yellow
+firefighter's helmet` / `<Picture 3> setting: the wide valley filled with thick white mist`. Outputs: session d6d1c356
+scratchpad `{j..q}-*.txt`, probes `probe.mjs`, `probe2.mjs`.

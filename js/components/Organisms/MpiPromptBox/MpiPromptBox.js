@@ -2462,6 +2462,9 @@ export const MpiPromptBox = ComponentFactory.create({
                 operation: activeOperation,
                 // MPI-1006: an r2v recipe cannot see the chips, so it is told their tags.
                 references: _stagedRefTags().map(entry => refTagHandle(entry.tag, model)),
+                // MPI-1084: and the pictures themselves, so it is told what each one shows.
+                pictures: _stagedRefTags().filter(entry => entry.item.mediaType === 'image')
+                    .map(entry => ({ tag: refTagHandle(entry.tag, model), url: entry.item.url })),
                 // MPI-1049: No Background on, so the recipe describes no setting.
                 transparent,
                 // Reopening on an existing enhancement, so Cancel is non-destructive and

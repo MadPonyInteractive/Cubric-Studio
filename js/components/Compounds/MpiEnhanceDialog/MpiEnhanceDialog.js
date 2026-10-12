@@ -57,6 +57,7 @@ import { qs } from '../../../utils/dom.js';
  * @param {object}  [model]         the model card — picks the recipe and the backend
  * @param {string}  [operation]     the selected op — picks the recipe's mode (i2v, r2v)
  * @param {string[]} [references]   the staged reference tags (`@image1`), for an r2v mode
+ * @param {Array<{tag:string,url:string}>} [pictures]  the staged images, which an r2v mode is told about (MPI-1084)
  * @param {boolean} [transparent]   No Background is on (MPI-1049): the recipe describes no background
  * @param {{positive?: string, negative?: string, note?: {text: string, kind: string}}} [enhanced]
  *                                  an existing enhancement to reopen on, restored into
@@ -173,7 +174,7 @@ export const MpiEnhanceDialog = ComponentFactory.create({
             runBtn.el.setLabel?.('Enhancing…');
             _note('');
             try {
-                const result = await enhanceLocally({ prompt: shortText, model: props.model, operation: props.operation, references: props.references, transparent: props.transparent === true });
+                const result = await enhanceLocally({ prompt: shortText, model: props.model, operation: props.operation, references: props.references, pictures: props.pictures, transparent: props.transparent === true });
                 if (!result.ok) {
                     _note(result.error || 'Enhance failed.', 'warn');
                     return;

@@ -687,6 +687,9 @@ Output: your reply is ONE paragraph of plain prose. It starts on the action or a
     // those are text tags, not actual image data: the backends pass no vision content on
     // an enhance call. See the image-vision answer in the session report.
     r2v: {
+      // MPI-1084: told what each staged picture shows (llmService `pictureCaptions`), since
+      // untagged prompts left it guessing roles by load order. Opt-in: a describe per new picture.
+      seesPictures: true,
       outputFormat: 'structured-tags',
       // The <Picture n> lines add 15-50 words each; the scene is the same seven-sentence
       // unit as t2v. Three pictures + scene = roughly 280-370 words.
@@ -762,7 +765,9 @@ Output: your reply is ONE paragraph of plain prose. It starts on the action or a
 
 You cannot see or hear the references. The last line of the user's message tells you which exist: "Attached references, in load order: <Picture 1>, <Picture 2>, <Audio 1>." or "...: none." when nothing is attached.
 
-ONLY REAL TAGS, AND EVERY ONE OF THEM. A real tag is on the "Attached references" line or in the user's own text. Use every real tag, copy each exactly as written, and never write any other tag. Never copy the "Attached references" line itself. When the line says none and the user wrote no tag, there are no tags at all: skip PART 1 and write only the scene paragraph, with no tag anywhere.
+The message may also carry a block headed "What each attached picture shows:", written by someone who looked at each picture. PART 1 says how to use it.
+
+ONLY REAL TAGS, AND EVERY ONE OF THEM. A real tag is on the "Attached references" line or in the user's own text. Use every real tag, copy each exactly as written, and never write any other tag. Never copy the "Attached references" line or the "What each attached picture shows" block itself. When the line says none and the user wrote no tag, there are no tags at all: skip PART 1 and write only the scene paragraph, with no tag anywhere.
 
 Your output has two parts in this order:
 
@@ -789,6 +794,15 @@ One line per real <Picture n> tag, in numeric order. Nothing else.
 - One line per picture, nothing else in this block.
 - Put each real <Audio n> tag, exactly as written, inside the scene's audio sentence (for example "he speaks in the voice of" followed by the tag). With no real <Audio n> tag, the scene names no voice reference at all.
 
+- SEEN PICTURES -- when the message has a "What each attached picture shows" block, follow THIS bullet for every line. The ROLE and DESCRIPTION bullets above and their examples are for messages WITHOUT that block; ignore them.
+  The block is the truth about each picture. Match the user's words to the pictures by what each one shows, never by its number or load order. The user often names a subject differently from the block ("guinea pig" for a hamster, "puppy" for a dog, "guy" for a man): it is the same subject, so that picture is the character the user talks about. A costume the user mentions ("dressed as a fireman") is what that character wears in its picture, never a separate picture.
+  Role, from what the picture shows: a place, landscape, room or backdrop is "setting:"; a single lifeless object, garment or tool is "prop:"; a person or an animal is the character, with no role word. An animal is ALWAYS the character, never a prop, whatever it wears, carries or does: "dressed as", "wearing" or "in a costume" describe the character's outfit, they never turn the animal or person into a prop.
+  Line: first WHAT the picture is -- the person, the animal or the place its block line opens with, never one thing it wears or holds -- then the details that identify it copied from the block (colours, clothing, markings, shape), then what the user's text says it does; at most forty words. Name it by what the block shows: when the user calls a place "the park" but the picture shows a sandy beach, the line says the sandy beach. The seen details MUST be on the line: they are what lets the sheet match the picture.
+  Example -- the block says "<Picture 1>: A grey tabby cat with a blue collar lies on a green sofa" and "<Picture 2>: A sunlit kitchen with white tiles", the user writes "the cat jumps down in the kitchen":
+  <Picture 1> the grey tabby cat with a blue collar who jumps down to the floor
+  <Picture 2> setting: the sunlit kitchen with white tiles where the cat lands
+  Example -- the block says "<Picture 2>: A brown dachshund wears a green knitted pirate hat", the user writes "the dog dressed as a pirate digs": <Picture 2> the brown dachshund in a green knitted pirate hat who digs -- the dog is the character, its costume is part of its line, no prop:.
+
 PART 2 -- THE SCENE
 Leave a blank line after the last picture line, then write the scene as a single flowing prose paragraph. This is LTX 2.3 caption prose -- the same style as the t2v mode. All the rules below apply to the scene.
 
@@ -809,7 +823,7 @@ All seven sentences, whatever the length of the input. An eighth sentence means 
 
 DO NOT emit ### Reference Sheet Description or ### Target Description headings -- the app writes those. Do not put <Picture n> tags inside the scene paragraph.
 
-Output: the <Picture n> lines (never an <Audio n> line), a blank line, then the scene paragraph (only the scene paragraph when nothing is attached). Nothing before it and nothing after the last sentence.`,
+Output: the <Picture n> lines (never an <Audio n> line; with a "What each attached picture shows" block, each line names what its picture shows, and a person or an animal never gets "prop:"), a blank line, then the scene paragraph (only the scene paragraph when nothing is attached). Nothing before it and nothing after the last sentence.`,
     },
 
   },

@@ -159,9 +159,21 @@ export function resolveRecipe(key) {
  * line is the only way it knows which tags are real. Shared with `scripts/recipe-test.mjs`, so a
  * sweep tests the exact text the app sends. "none" is said out loud: with no line at all the
  * 12B enhancer invented `@image1` in 15 of 15 runs (MPI-1006 sweep s5).
+ * `captions` (`[{tag, text}]`) is what each picture shows; the Attached line stays LAST.
  */
-export function withReferences(idea, references = []) {
-    return `${idea}\n\nAttached references, in load order: ${references.length ? references.join(', ') : 'none'}.`;
+export function withReferences(idea, references = [], captions = []) {
+    // MPI-1084: what each staged picture shows, from a vision model's look at it. Without it the
+    // enhancer guessed roles by load order and labelled a guinea pig "setting: forest clearing".
+    // The opening two sentences only: a look runs 200+ words and its opening names the subject and
+    // what sets it apart; with three whole looks the 12B wrote its picture lines from the user's
+    // words alone (sweep L).
+    // Intensity words go: a look says "vibrant magenta pink", and the picture line copied it (sweep R).
+    const gist = (text) => String(text).replace(/\s+/g, ' ').trim().split(/(?<=[.!?])\s/).slice(0, 2).join(' ')
+        .replace(/\b(vibrant|vivid|richly|brilliant|striking|stunning)\s+/gi, '').split(' ').slice(0, 60).join(' ');
+    const seen = captions.length
+        ? `\n\nWhat each attached picture shows:\n${captions.map(c => `${c.tag}: ${gist(c.text)}`).join('\n')}`
+        : '';
+    return `${idea}${seen}\n\nAttached references, in load order: ${references.length ? references.join(', ') : 'none'}.`;
 }
 
 /**

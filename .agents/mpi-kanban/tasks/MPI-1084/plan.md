@@ -32,7 +32,36 @@ output to a file, never through `tee`. ~5 min a sweep once leased; the queue is 
 directed = cowboy + Picture 1; overlong = samurai + Picture 1, 2 + Audio 1. Shared with Wan/Seedance: a tier
 change there moves their baselines too.
 
-**STATE AT HANDOFF (2026-10-11 ~20:30, session 5cddf24b) - read this first:**
+**STATE (2026-10-11 ~20:30, session d6d1c356) - read this first, then the older block below:**
+- Sweep I on the tagged tiers: ALL PASS 12/12, every picture line right (validation.md).
+- DESCRIBE STEP BUILT (Step 2b): `llmService.pictureCaptions` + `enhance({pictures})`, opt-in per recipe mode with
+  `seesPictures: true` (only LTX r2v; Seedance/Wan r2v unchanged, test asserts it). Card found by matching the staged
+  url to `state.currentProject` history; `look` read fresh via `/load-meta-batch`, else `describeImage` + stored via
+  update-meta (only when the sidecar exists). Captions go between the idea and the Attached line (still last). Failed
+  describe = that caption dropped + named in the dialog's note. Recipe: SEEN PICTURES block. Harness: `seen-picnic`
+  (Fabio's live ref2v_004 text + real looks) and `seen-swapped` tiers with a per-tier `roles` check.
+  Tests: llm-service 32/32 (new `testEnhanceSeesThePictures`), recipe-registry, enhance-control/overlay, agent-corpus,
+  ingredients-sheet green; eslint clean.
+- Wording for captions iterated (validation.md table J..Q): the SEEN bullet must sit LAST in PART 1 with the
+  "dog dressed as a pirate" example, or "Dressed as a fireman" trips the old "wearing <Picture n> = prop" cue. Captions
+  are cut to two sentences in `withReferences`. Sweep Q 17/18 (all roles right; one line used the user's words).
+- Fabio (dinner, no GPU) asked me to run the eye test myself: done in MY app:isolated (:63658, own profile + docs =
+  scratchpad, copy of "X2.3 references"), real `enhance()` via playwright-cli `drive.sh` + `enhance.js`, under
+  gpu_lease. Standard order 3/3 right; shuffled order exposed "guinea pig" vs "hamster" -> helmet-as-prop; near-name
+  sentence added. Sweep S 18/21, roles wrong 1/21. Table: validation.md.
+- DECIDED (Fabio, 2026-10-12): FIXED ROLES. The 12B slips ~1 in 20 on roles. Build: ask the describer ONE extra
+  question per picture (person / animal / place / object), keep the answer beside `look` in the sidecar (e.g.
+  `look.kind`; Cosmo's `storeLook` ignores it, never strips it - check), and the APP writes the role word
+  (place -> `setting:`, object -> `prop:`, person/animal -> none) instead of the enhancer guessing it. Enhancer
+  only describes. Enhance-button path only: Cosmo and MCP never call `enhance()` (checked: no llmService use in
+  services/ or routes/connector.js). Cost: one small describe per NEW picture (paid on DeepInfra describe).
+  Where the role lands is open: tell the enhancer the role in the caption block, or rewrite the role word on its
+  output lines (deterministic - preferred). Then sweep (seen-picnic/shuffled/swapped) + in-app drive (below).
+- In-app eye test rig (MY instance, never :3000): scratchpad `boot.sh` (own profile + APP_DOCUMENTS copy of
+  "X2.3 references"), `drive.sh <port> <out>` + `enhance.js` (order in its default `'imported_...'` list), run
+  `drive.sh` under gpu_lease with the full Git bash.exe path. Instance is STOPPED; reboot with boot.sh.
+
+**STATE AT HANDOFF (2026-10-11 ~20:30, session 5cddf24b):**
 - Done and verified: harness `picture role` + `<Audio n> in the scene` checks (`scripts/recipe-test.mjs`); recipe
   thin-line floor; `routes/ingredientsSheet.js` drops `<Audio n>` lines (Fabio's yes, test in
   `tests/ingredients-sheet.test.cjs`, 13/13 with recipe-registry + agent-corpus). Ref2v runs on a RunPod Pod (dev).
@@ -89,6 +118,11 @@ Sweep script: scratchpad `sweep.sh <out> [--tier T]` (gpu_lease, --poll 2, node 
   **Verify:** `node --test tests/recipe-registry.test.cjs tests/agent-corpus.test.cjs`; one tier at a time
   (`--tier medium`), then the full `--ref-tiers` sweep.
 
+### Step 2b: Describe step (Fabio approved 2026-10-11)
+- [x] r2v enhance is told what each staged picture shows, from the card sidecar `look` (shared with Cosmo) or a
+  describe that is then kept. Recipe takes roles/descriptions from it. Harness seen tiers.
+  **Verify:** `node tests/llm-service.test.cjs`; sweep with the seen tiers green.
+
 ### Step 3: Green twice, then read the outputs
 - [ ] Full `--ref-tiers` sweep green TWICE on the final text (3 runs each). Then READ every picture line: a green
   count with a wrong role is still a fail (this card exists because of exactly that).
@@ -107,3 +141,6 @@ Sweep script: scratchpad `sweep.sh <out> [--tier T]` (gpu_lease, --poll 2, node 
 
 `js/data/recipes/ltx-2.3.recipe.js`, `docs/recipes/research/ltx-2.3/`, `docs/agent/models/ltx-2.3.md`,
 `scripts/recipe-test.mjs` (only if a check must live there), card folder. Procedure: `/create-enhancer-recipe`.
+Step 2b: `js/services/llmService.js`, `js/data/recipes/registry.js` (`withReferences` captions),
+`js/components/Organisms/MpiPromptBox/MpiPromptBox.js`, `js/components/Compounds/MpiEnhanceDialog/MpiEnhanceDialog.js`,
+`tests/llm-service.test.cjs`.
