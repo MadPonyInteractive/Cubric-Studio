@@ -5995,3 +5995,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1099", "at": "2026-10-11T21:26:27+01:00", "actor": "claude", "column": "todo", "title": "Cosmo and MCP make_sheet: pack 2+ picture cards into one sheet (the gallery's image Combine)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1099", "at": "2026-10-11T21:26:44+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "building make_sheet"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1099", "at": "2026-10-12T03:38:07+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "shipped 86e917c6c; CI green on 8e316a43c (its own run was cancelled by the newer push)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1090", "at": "2026-10-12T07:25:30+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio's eye test passed 2026-10-12 (validation.md); CI green on 8e316a43c"}

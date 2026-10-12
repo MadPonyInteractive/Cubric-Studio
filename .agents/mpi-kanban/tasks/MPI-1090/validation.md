@@ -97,3 +97,12 @@ Shipped strings, shoulder-lock graph, with-head sheet. The reference holds TWO f
 
 A two-view reference is safe on this graph (MPI-1041 F2 round 2's extra figure did not happen) and fixes the
 guessed back. Pending: Fabio's eye test.
+
+## Fabio's eye test (2026-10-12): PASS
+
+In the app, Clothes + his white cowl-neck halter dress reference (front + side/back pair) on a sheet whose card shows
+the head-removed version (fed its with-head version, MPI-1089):
+- no words: front, back and close-up all wear the dress, layout held, colour right (white, no grey drift).
+- "G-string on the back view and high heels": layout held, heels on both bodies; the back drew the dress's open back
+  rather than a visible G-string (the dress covers it). Fabio: "Yeah, it works well."
+Closes on his pass; CI green on 8e316a43c (contains f3ec8cb40).
