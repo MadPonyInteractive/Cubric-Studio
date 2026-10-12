@@ -92,6 +92,10 @@ Today (`js/shell/heroCrew.js`, stills): idle at rest, greet on hover, a random g
 - **Ambient:** the random greet stays, and plays to the end (rule 3).
 - **Click:** a transition, then a happy clip picked at random from the two.
 - The scenario clips (cancelled, heads up, search, peek) belong to their spots and do not play here.
+- **Loading (MPI-1058):** a mount warms only each mascot's idle clips. Greets, happies, transitions and the connecting
+  band warm on `projects:listed` (`_warmLater`). Warming all ~60 at mount queued the project list and the idles behind
+  clips nobody needed yet: the app server is HTTP/1.1 and the renderer's event streams hold most of Chromium's 6
+  connections. Do not move them back into the mount.
 
 ## The prompt box ledge (Fabio, 2026-09-16)
 

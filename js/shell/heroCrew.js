@@ -169,6 +169,21 @@ function _warm(m, id, clip) {
 }
 
 /**
+ * Warm the clips held back at mount (MPI-1058). Warming every clip of every mascot at once
+ * was ~60 requests in the same instant as the project list, and the app server is HTTP/1.1
+ * with most of Chromium's 6 connections held by the renderer's event streams: the list and
+ * the idle clips that put the crew on screen queued behind clips nobody needed yet. Runs on
+ * `projects:listed`. A list that fails never warms them, which costs only this: a greet's
+ * first play loads its clip cold and times against the nominal length once.
+ */
+function _warmLater() {
+    if (!_crew) return;
+    for (const m of [..._crew.members, _crew.band]) {
+        for (const [id, clip] of m.later.splice(0)) _warm(m, id, clip);
+    }
+}
+
+/**
  * Hand a mascot from its live clip to the twin, both classes in one frame. The hidden
  * clip sits at opacity 0.001, not 0, so it is still drawn and shows its frame the moment
  * it goes live (landing.css `.mpi-landing__crew-clip`). At 0 it painted nothing for a
@@ -248,8 +263,13 @@ function _buildQueue(m, states = _statesFor(m.key), paint = id => _paintClip(m, 
         rest,
         paint,
         paintTransition: id => _paintFx(m, id),
-        // `crew` is the band's stand-in for "show the crew", not a file.
-        preload: id => { if (id !== CREW_CLIP) _warm(m, id, byId.get(id)); },
+        // `crew` is the band's stand-in for "show the crew", not a file. Only the rest
+        // clips warm now; the rest wait for the project list (`_warmLater`, MPI-1058).
+        preload: id => {
+            if (id === CREW_CLIP) return;
+            if (states[rest].clips.some(c => c.id === id)) _warm(m, id, byId.get(id));
+            else m.later.push([id, byId.get(id)]);
+        },
         reducedMotion: m.reduced,
     });
 }
@@ -277,7 +297,7 @@ function _buildMember({ key, name, role }) {
     ]);
     // Random float phase, so five 4s cycles never bob in unison.
     el.style.setProperty('--crew-phase', `${-Math.random() * 4}s`);
-    const m = { key, el, a, b, fx, shown: a, seq: 0, warm: [], dead: false, hovered: false, reduced: _reducedMotion(), queue: null };
+    const m = { key, el, a, b, fx, shown: a, seq: 0, warm: [], later: [], dead: false, hovered: false, reduced: _reducedMotion(), queue: null };
     m.queue = _buildQueue(m);
     return m;
 }
@@ -323,7 +343,7 @@ function _buildBand(stage, members) {
         ce('span', { className: 'mpi-landing__crew-body' }, [a, b]),
         ce('span', { className: 'mpi-landing__crew-band-spot' }, fx),
     ]);
-    const band = { key: 'studio', el, a, b, fx, shown: a, seq: 0, warm: [], dead: false, reduced: _reducedMotion(), stage, members, queue: null };
+    const band = { key: 'studio', el, a, b, fx, shown: a, seq: 0, warm: [], later: [], dead: false, reduced: _reducedMotion(), stage, members, queue: null };
     const states = {};
     for (const [name, { clips, nominalMs, ...def }] of Object.entries(BAND_POOLS)) {
         states[name] = { ...def, clips: clips.map(id => ({ id, ms: nominalMs })) };
@@ -409,6 +429,7 @@ function _mount() {
         // connect that just ended succeeded.
         Events.on('remote:connection', ({ connected = false, phase = null } = {}) =>
             _syncConnecting(phase === 'connecting', connected)),
+        Events.on('projects:listed', _warmLater),
     ];
     for (const m of members) {
         cleanups.push(

@@ -545,13 +545,15 @@ function _buildProjectRow(project) {
   row.appendChild(meta);
   row.appendChild(ct);
 
-  // Live stats fetch — independent per row, aborted on grid rebuild.
-  fetchStats({ projectId: project.id, folderPath: project.folderPath, signal })
-    .then(({ count, bytes }) => {
-      if (signal?.aborted) return;
-      n.textContent = String(count);
-      sizeNode.textContent = bytes > 0 ? `assets · ${formatBytes(bytes)}` : 'assets';
-    })
+  // /list-projects carries the stats (MPI-1058): one request per row was 76 of them
+  // queued behind the list on the same few connections.
+  const paintStats = ({ count, bytes }) => {
+    n.textContent = String(count);
+    sizeNode.textContent = bytes > 0 ? `assets · ${formatBytes(bytes)}` : 'assets';
+  };
+  if (project.stats) paintStats(project.stats);
+  else fetchStats({ projectId: project.id, folderPath: project.folderPath, signal })
+    .then(stats => { if (!signal?.aborted) paintStats(stats); })
     .catch(err => {
       if (err?.name !== 'AbortError') clientLogger.warn('projectUI', 'fetchStats failed', err);
     });

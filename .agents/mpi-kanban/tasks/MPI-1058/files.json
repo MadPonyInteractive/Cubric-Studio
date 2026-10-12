@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["routes/projects.js", "routes/projectListCache.js", "js/shell/projectUI.js", "js/shell/heroCrew.js", "tests/list-projects-cache.test.cjs", "docs/mascot-placement.md"] }
