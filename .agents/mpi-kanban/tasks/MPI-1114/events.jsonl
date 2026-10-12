@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1114", "at": "2026-10-12T15:23:56+01:00", "actor": "claude", "column": "todo", "title": "Recorder sounds pumped and phasey: Chromium call processing on the mic"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1114", "at": "2026-10-12T15:25:01+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "fixing now, Fabio asked"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1114", "at": "2026-10-12T15:25:57+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped 6fe830ba7; Fabio's ear test left"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1114", "at": "2026-10-12T15:39:19+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 6fe830ba7; Fabio ear test: no phasing, no ducking"}

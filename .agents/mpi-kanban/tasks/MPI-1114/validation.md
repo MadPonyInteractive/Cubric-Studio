@@ -2,8 +2,9 @@
 
 ## Cause
 
-`openMic()` asked for `audio: true`, so Chromium switched on its video-call processing: auto gain,
-noise suppression, echo cancellation. A take ducked after its first syllables (the AGC) and sounded
+`openMic()` set no processing constraints on either path (the picked device as `exact`, or the
+`audio: true` fallback), so Chromium's video-call defaults stayed on: auto gain, noise suppression,
+echo cancellation. A take ducked after its first syllables (the AGC) and sounded
 phasey (the suppressor).
 
 ## Evidence
