@@ -6,5 +6,5 @@
 - [x] App: MpiDevUpdates slide-over (cards, acknowledge, mark all read, Join the Discord, empty state)
 - [x] Tests green (3243 pass, 0 fail; Worker 7/7); clicks checked in an isolated instance on stub posts
 - [x] Deployed 2026-10-12 at `updates.cubric.studio`; token set by Fabio; live: 18 real posts, images proxied (200 image/png)
-- [ ] Privacy page names the new call (Website repo) - wording drafted in the session, waiting on Fabio's sign-off
+- [x] Privacy page names the new call: Fabio signed off the wording 2026-10-12, Website dfd6754 ("Dev updates" section + the short-version list)
 - [ ] Fabio's eye test on real posts in the real app
