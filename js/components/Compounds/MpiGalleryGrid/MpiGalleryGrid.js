@@ -1311,6 +1311,13 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 if (!_videoThumb) return;
                 if (_videoThumb.classList.contains('mpi-group-card__thumb--hover-video')) {
                     if (typeof _videoThumb.pause === 'function') _videoThumb.pause();
+                    // Detaching keeps the player and its load alive, holding one of
+                    // Chromium's low-priority slots for this host; only dropping the
+                    // src frees them (MPI-786, MPI-1120).
+                    if (_videoThumb instanceof HTMLVideoElement) {
+                        _videoThumb.removeAttribute('src');
+                        _videoThumb.load();
+                    }
                     _videoThumb.remove();
                     _videoThumb = null;
                     _videoPromoted = false;
@@ -2017,6 +2024,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 _generating = false;
                 _previewPlayer.stop();
                 _releaseMascot();
+                _removeHoverVideo();
                 _unwireMark();
             };
 

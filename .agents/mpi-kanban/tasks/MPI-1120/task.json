@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1120",
+  "title": "Landing takes ~30 s after leaving a project: low-priority loads queue in Chromium",
+  "description": "Fabio 2026-10-12: back from MPI-623 the landing covers + crew take ~30 s. HAR Landing23: every image/media request _blocked_queueing ~16.6 s twice, fetch (High) unaffected, sockets free. Reproduced once in 7 isolated Electron runs (32 s). Holder not yet identified. Found on the way: a gallery card's promoted hover <video> is paused + detached but its src is never dropped, so leaving a project leaves the player loading (fixed here). Rest waits on Fabio's landing4 HAR (pending rows).",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-12T22:42:25+01:00",
+  "updated_at": "2026-10-12T22:42:25+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

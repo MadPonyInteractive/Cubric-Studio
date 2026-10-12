@@ -40,6 +40,12 @@ test('the card element exposes destroy(), stopping its preview and releasing its
     const release = SRC.match(/function _releaseMascot\(\) \{([\s\S]*?)\n {12}\}/);
     assert.ok(release, '_releaseMascot is not defined');
     assert.match(release[1], /removeAttribute\('src'\)/, '_releaseMascot keeps the decoder alive');
+    // MPI-1120: the promoted hover video too. Paused and detached it kept loading, one of
+    // Chromium's low-priority slots for the app host held after the user left the project.
+    assert.match(body[1], /_removeHoverVideo\(\)/, 'destroy leaves the hover video loading');
+    const hover = SRC.match(/function _removeHoverVideo\(\) \{([\s\S]*?)\n {12}\}/);
+    assert.ok(hover, '_removeHoverVideo is not defined');
+    assert.match(hover[1], /removeAttribute\('src'\)/, '_removeHoverVideo detaches the video without freeing its load');
 });
 
 // MPI-565 (second half) — revoking a frame whose preload is in flight kills that
