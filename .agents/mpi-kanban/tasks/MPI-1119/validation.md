@@ -48,3 +48,4 @@ data reaches the agent). agent-corpus + agent-prompt-budget tests 6/6.
   The Library row (.mpi-plugin-row__desc) is one line with an ellipsis, so both were cut to the
   existing descriptions' 79-87 chars, purpose first. Not eyeballed in the app: a fresh profile opens
   on the 18+ consent dialog, which an agent does not accept. npm test 3268 pass / 0 fail; eslint clean.
+- f46a52dd0 (guide) CI 38310800774 success; 8b0be7fb9 (plugin copy) CI 38311297705 success.
