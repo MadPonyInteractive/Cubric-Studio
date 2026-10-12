@@ -5,7 +5,7 @@
 ## Sub-Agent Briefing
 > Copy this section verbatim into any sub-agent prompt that involves routing, navigation, or workspace layout.
 
-**Four workspaces:** Landing (project select/create) → Gallery (default project view) → Group History (single card detail), and Scene (MPI-623: a left-click on a scene card opens `MpiSceneBlock`, on a path video card the 360 player `MpiPanoVideoBlock`; `navigation.js` picks the Block by card). See `docs/workspaces.md` for full layout details.
+**Four workspaces:** Landing (project select/create) → Gallery (default project view) → Group History (single card detail), and Scene (MPI-623: a left-click on a scene card opens `MpiSceneBlock`, on a path video card, or a video marked by Convert to 360 video, the 360 player `MpiPanoVideoBlock`; `navigation.js` picks the Block by card). See `docs/workspaces.md` for full layout details.
 
 **Routing:** Use `js/router.js` (`navigate()` / `back()`) — never `window.location`. Pages: `PAGE_LANDING`, `PAGE_GALLERY`, `PAGE_GROUP_HISTORY`, `PAGE_SCENE` (`{ groupId }`). `js/shell/navigation.js` lazy-loads each workspace Block on transition.
 

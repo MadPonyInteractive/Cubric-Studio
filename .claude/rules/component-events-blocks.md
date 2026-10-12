@@ -196,4 +196,4 @@ NOTE:    Loads `getSceneItem(group).scenePath` via `loadScene` → `createSceneV
 ### MpiPanoVideoBlock (Block — js/components/Blocks/MpiPanoVideoBlock/MpiPanoVideoBlock.js, MPI-623 P3)
 EMITS:   `ui:warning` on a failed Take picture
 HOTKEYS: the Video Player's `video.playPause` / `video.frame.back` / `video.frame.forward`, `scene.lens.up/down`, and `queue.toggle` (Q) via `bindQueueSlideOver()`
-NOTE:    Mounted on `PAGE_SCENE` instead of MpiSceneBlock when the card is a path video (`getPathVideoItem`). Plays the video round the camera (`panoVideo.js`): drag to look, scrubber, aspect + lens (shared with the Scene panel via `Storage.getSceneShot`), Take picture → a NEW image card (`takeVideoPicture`).
+NOTE:    Mounted on `PAGE_SCENE` instead of MpiSceneBlock when the card is a path video, or a video marked by Convert to 360 video (`pano360`; both read by `getPathVideoItem`). Plays the video round the camera (`panoVideo.js`): drag to look, scrubber, aspect + lens (shared with the Scene panel via `Storage.getSceneShot`), Take picture → a NEW image card (`takeVideoPicture`).

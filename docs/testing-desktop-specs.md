@@ -135,7 +135,7 @@ notices). Use `--from-file` when the snippet contains backticks or quotes — Gi
 mangles those inline, and this repo's guard hooks block the heredoc workaround.
 `--self-check` proves the harness itself on a temp file.
 
-## Six traps these specs paid for
+## Seven traps these specs paid for
 
 1. **Assert the trigger toggled (`is-open`) BEFORE asserting the popup.** In the real
    bug the trigger toggled — the chevron flipped — while the popup was invisible.
@@ -189,6 +189,9 @@ mangles those inline, and this repo's guard hooks block the heredoc workaround.
 
 6. **PROMPT mode has no canvas.** A preview replaces it, so `getSourceElement()` is `null` until you
    call `setMode('<tool>')` on `.mpi-history-tools`; poll `naturalWidth` after that (MPI-795).
+
+7. **Never click at a fixed screen position.** The CI runner's window is shorter than 800 px, so a click at
+   `y: 790` misses the body and waits out the test; to drop focus, `document.activeElement?.blur?.()` (2026-10-12).
 
 ## A save that takes SECONDS is a queued request, not a slow route (MPI-786)
 
