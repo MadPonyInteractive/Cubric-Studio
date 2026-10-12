@@ -155,7 +155,7 @@ const ALL_PLUGINS = [
     {
         id: 'scene-convert',
         title: '3D Scene',
-        description: 'Unlocks "Convert to 360 pano" on the gallery right-click menu.',
+        description: 'Step inside a 360 panorama and fly around it in 3D. Adds "Convert to 360 pano".',
         requiredDeps: ['moge-vitl'],
         operation: 'sceneConvert',
     },
@@ -164,7 +164,7 @@ const ALL_PLUGINS = [
     {
         id: 'scene-path',
         title: '3D Scene path video',
-        description: 'Unlocks "Render path" in a 3D scene: a 360 video along the camera path you lay.',
+        description: 'Fly a camera through a 3D scene as a 360 video, then take pictures from any angle.',
         requiredDeps: ['wan21-i2v-720p-q4', 'wan21-pano360-lora', 'wan21-lightx2v-distill', 'umt5_xxl_fp8_e4m3fn_scaled', 'wan_2.1_vae', 'clip-vision-h'],
         operation: 'scenePathVideo',
     },

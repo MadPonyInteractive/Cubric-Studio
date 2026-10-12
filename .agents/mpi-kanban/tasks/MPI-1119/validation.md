@@ -40,3 +40,11 @@ path video ~20 GB -> Render path), says neither works without a 360 panorama, an
 "What it is NOT" section (no 3D models/meshes/export; Character Sheet Flows for a character from
 several sides; nothing for an object turned round). Cosmo cannot see plugins otherwise (no plugin
 data reaches the agent). agent-corpus + agent-prompt-budget tests 6/6.
+
+## Plugin descriptions (Fabio's yes, 2026-10-12)
+
+- js/data/pluginsRegistry.js: 3D Scene -> 'Step inside a 360 panorama and fly around it in 3D. Adds "Convert to 360 pano".'
+  (79 chars); 3D Scene path video -> 'Fly a camera through a 3D scene as a 360 video, then take pictures from any angle.' (82).
+  The Library row (.mpi-plugin-row__desc) is one line with an ellipsis, so both were cut to the
+  existing descriptions' 79-87 chars, purpose first. Not eyeballed in the app: a fresh profile opens
+  on the 18+ consent dialog, which an agent does not accept. npm test 3268 pass / 0 fail; eslint clean.
