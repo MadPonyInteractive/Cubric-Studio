@@ -302,7 +302,7 @@ export const MpiAudioRecorder = ComponentFactory.create({
         async function _start() {
             const gain = Storage.getAudioInputGain();
             try {
-                _stream = await openMic();
+                _stream = await openMic({ raw: true });
             } catch (err) {
                 // Two very different failures land here and the user can only fix one
                 // of them from inside the app, so say which it is.

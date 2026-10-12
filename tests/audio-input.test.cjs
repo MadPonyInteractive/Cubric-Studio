@@ -48,6 +48,25 @@ test('a picked mic that is gone falls back to the system default', async () => {
     assert.deepStrictEqual(asks[1], { audio: true });
 });
 
+// MPI-1114. Chromium's call processing (auto gain, noise suppression, echo cancellation)
+// ducked a take after its first syllables and made it phasey; a recording asks raw.
+const RAW = { autoGainControl: false, noiseSuppression: false, echoCancellation: false };
+
+test('a raw ask turns the call processing off on the picked mic', async () => {
+    const { openMic, asks } = await load('focusrite', () => 'stream');
+    await openMic({ raw: true });
+    assert.deepStrictEqual(asks, [{ audio: { deviceId: { exact: 'focusrite' }, ...RAW } }]);
+});
+
+test('a raw ask stays raw on the system-default fallback', async () => {
+    const { openMic, asks } = await load('unplugged', (c) => {
+        if (c.audio.deviceId) throw named('OverconstrainedError');
+        return 'default';
+    });
+    await openMic({ raw: true });
+    assert.deepStrictEqual(asks[1], { audio: RAW });
+});
+
 test('a refused mic is not papered over with the default', async () => {
     const { openMic, asks } = await load('focusrite', () => { throw named('NotAllowedError'); });
     await assert.rejects(openMic(), { name: 'NotAllowedError' });

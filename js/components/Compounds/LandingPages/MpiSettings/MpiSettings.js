@@ -522,7 +522,8 @@ export const MpiSettings = ComponentFactory.create({
                 if (_monitor) { _stopMicTest(); return; }
                 let stream;
                 try {
-                    stream = await openMic();
+                    // Raw, like the recorder: the meter reads what a take will hold.
+                    stream = await openMic({ raw: true });
                 } catch (err) {
                     clientLogger.warn('settings', `[MpiSettings] mic test failed: ${err?.name || err}`);
                     testBtn.el.setActive?.(false);
