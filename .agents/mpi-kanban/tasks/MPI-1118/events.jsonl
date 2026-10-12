@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1118", "at": "2026-10-12T21:13:11+01:00", "actor": "claude", "column": "todo", "title": "Landing: project covers blank when sidecars hold an old folder path"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1118", "at": "2026-10-12T21:13:50+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting the fix"}

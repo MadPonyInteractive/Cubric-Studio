@@ -315,15 +315,30 @@ async function findRecentProjectThumbnail(mediaDir) {
             try {
                 const meta = await fs.readJson(path.join(metaDir, metaFile));
                 if (RECENT_THUMBNAIL_EXCLUDED_OPERATIONS.has(String(meta.operation || ''))) return null;
-                const absPath = pathFromProjectFileUrl(meta.filePath);
-                if (!absPath || !(await fs.pathExists(absPath))) return null;
+                let absPath = pathFromProjectFileUrl(meta.filePath);
+                if (!absPath) return null;
+                let thumb = meta.thumbPath ? pathFromProjectFileUrl(meta.thumbPath) : null;
+                if (!(await fs.pathExists(absPath))) {
+                    // A moved project's sidecars name its OLD folder until it is opened and
+                    // the MPI-898 heal rewrites them. Resolve by the same rule, read-only:
+                    // the landing scan never writes a user's sidecar (MPI-1118).
+                    const rebase = relocationRebase(absPath, path.dirname(mediaDir));
+                    const moved = rebase && rebase(absPath);
+                    if (!moved || !(await fs.pathExists(moved))) return null;
+                    absPath = moved;
+                    thumb = (thumb && rebase(thumb)) || thumb;
+                }
                 const ext = path.extname(absPath).toLowerCase().slice(1);
-                if (!RECENT_THUMBNAIL_EXTENSIONS.has(ext)) return null;
+                // A sound shows its waveform (MPI-730), so an audio-only project has a
+                // cover too; any picture or clip still outranks it, however old.
+                const audio = mediaTypeFromExt(ext) === 'audio';
+                if (audio ? !(thumb && await fs.pathExists(thumb)) : !RECENT_THUMBNAIL_EXTENSIONS.has(ext)) return null;
                 const stats = await fs.stat(absPath);
                 return {
                     path: absPath,
                     ext,
-                    thumb: meta.thumbPath ? pathFromProjectFileUrl(meta.thumbPath) : null,
+                    audio,
+                    thumb,
                     timestamp: Date.parse(meta.createdAt || '') || stats.mtimeMs,
                 };
             } catch (_) { return null; /* skip malformed sidecars */ }
@@ -347,7 +362,7 @@ async function findRecentProjectThumbnail(mediaDir) {
         return { recentThumbnail: null, recentThumbnailType: null };
     }
 
-    candidates.sort((a, b) => b.timestamp - a.timestamp);
+    candidates.sort((a, b) => (!!a.audio - !!b.audio) || (b.timestamp - a.timestamp));
     const top = candidates[0];
     // The card is a few hundred px: show the sidecar thumb, not the original (MPI-963). A
     // 32K import as the newest card left it blank — Chromium cannot decode one — and a 16K
@@ -3566,6 +3581,27 @@ router.get('/load-meta', (req, res) => {
 });
 
 /**
+ * The move rule both readers share: the root `mediaPath` was saved under is the parent
+ * of the `Media` dir it sits in. Returns a function mapping a path under that old root
+ * onto `projectRoot` (null for a path outside it), or null when `mediaPath` is in no
+ * `Media` dir or its root already is `projectRoot`. Pure: nothing is read or written.
+ */
+function relocationRebase(mediaPath, projectRoot) {
+    let mediaDir = path.dirname(mediaPath);
+    while (path.basename(mediaDir).toLowerCase() !== 'media') {
+        const up = path.dirname(mediaDir);
+        if (up === mediaDir) return null;
+        mediaDir = up;
+    }
+    const oldRoot = path.dirname(mediaDir);
+    if (_normAbs(oldRoot) === _normAbs(projectRoot)) return null;
+    const oldPrefix = `${_normAbs(oldRoot)}/`;
+    return (abs) => (_normAbs(abs).startsWith(oldPrefix)
+        ? path.join(projectRoot, path.relative(oldRoot, abs))
+        : null);
+}
+
+/**
  * MPI-898: a sidecar whose media reads missing because its PROJECT FOLDER moved.
  *
  * Every ref in a sidecar is an absolute `/project-file?path=` url, so a renamed or
@@ -3579,23 +3615,15 @@ router.get('/load-meta', (req, res) => {
  * @returns {Promise<object|null>} the healed sidecar, or null when this is not a move
  */
 async function healRelocatedMeta(metaPath, mediaPath, projectRoot) {
-    let mediaDir = path.dirname(mediaPath);
-    while (path.basename(mediaDir).toLowerCase() !== 'media') {
-        const up = path.dirname(mediaDir);
-        if (up === mediaDir) return null;
-        mediaDir = up;
-    }
-    const oldRoot = path.dirname(mediaDir);
-    if (_normAbs(oldRoot) === _normAbs(projectRoot)) return null;
-    const rebase = (abs) => path.join(projectRoot, path.relative(oldRoot, abs));
-    if (!(await fs.pathExists(rebase(mediaPath)))) return null;
+    const rebase = relocationRebase(mediaPath, projectRoot);
+    if (!rebase || !(await fs.pathExists(rebase(mediaPath)))) return null;
 
-    const oldPrefix = `${_normAbs(oldRoot)}/`;
     const walk = (v) => {
         if (typeof v === 'string') {
             const abs = decodeProjectFilePath(v);
-            if (!abs || !_normAbs(abs).startsWith(oldPrefix)) return v;
-            return v.replace(/([?&]path=)[^&]*/, (_, key) => key + encodeURIComponent(rebase(abs)));
+            const moved = abs && rebase(abs);
+            if (!moved) return v;
+            return v.replace(/([?&]path=)[^&]*/, (_, key) => key + encodeURIComponent(moved));
         }
         if (Array.isArray(v)) return v.map(walk);
         if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]));

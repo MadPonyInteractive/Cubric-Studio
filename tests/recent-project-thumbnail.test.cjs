@@ -76,3 +76,42 @@ test('no thumb on disk, or none recorded, falls back to the original', async () 
         });
     } finally { await fs.remove(root); }
 });
+
+// MPI-1118 — 51 of Fabio's 76 projects had no cover: their sidecars still named the
+// pre-2.0 `Cubric Vision` folder. Opening one heals it (MPI-898); the landing scan
+// must resolve it by the same rule WITHOUT rewriting the sidecar.
+test('a moved project resolves its old-folder sidecar paths, read-only', async () => {
+    const { root, metaDir } = await seed([
+        { name: 'a_001.png', createdAt: '2026-09-27T00:00:00Z', thumbOnDisk: true },
+    ]);
+    const moved = `${root}-renamed`;
+    try {
+        const before = await fs.readFile(path.join(metaDir, 'id0.json'), 'utf8');
+        await fs.move(root, moved);
+        const movedMeta = path.join(moved, 'Media', '.meta');
+        assert.deepEqual(await findRecentProjectThumbnail(path.join(moved, 'Media')), {
+            recentThumbnail: url(path.join(movedMeta, 'id0.thumb.webp')),
+            recentThumbnailType: 'image',
+        });
+        assert.equal(await fs.readFile(path.join(movedMeta, 'id0.json'), 'utf8'), before);
+    } finally { await fs.remove(root); await fs.remove(moved); }
+});
+
+test('an audio-only project shows its waveform; any picture outranks a newer sound', async () => {
+    const { root, mediaDir, metaDir } = await seed([
+        { name: 'song_001.mp3', createdAt: '2026-09-28T00:00:00Z', thumbOnDisk: true },
+    ]);
+    try {
+        assert.deepEqual(await findRecentProjectThumbnail(mediaDir), {
+            recentThumbnail: url(path.join(metaDir, 'id0.thumb.webp')),
+            recentThumbnailType: 'image',
+        });
+        const pic = path.join(mediaDir, 'old_001.png');
+        await fs.writeFile(pic, 'master');
+        await fs.writeJson(path.join(metaDir, 'id9.json'), { filePath: url(pic), createdAt: '2026-01-01T00:00:00Z' });
+        assert.deepEqual(await findRecentProjectThumbnail(mediaDir), {
+            recentThumbnail: url(pic),
+            recentThumbnailType: 'image',
+        });
+    } finally { await fs.remove(root); }
+});
