@@ -6052,3 +6052,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1114", "at": "2026-10-12T15:25:01+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "fixing now, Fabio asked"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1114", "at": "2026-10-12T15:25:57+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped 6fe830ba7; Fabio's ear test left"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1114", "at": "2026-10-12T15:39:19+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 6fe830ba7; Fabio ear test: no phasing, no ducking"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1071", "at": "2026-10-12T15:40:35+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Speech to text on 3 backends + Transcribe Flow shipped and verified; CI green on 6d0152496; Pod mapping promoted"}
