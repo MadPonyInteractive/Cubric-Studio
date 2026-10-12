@@ -179,8 +179,10 @@ test('flowService: runLanding is run-only and rides every leg and pass', () => {
     assert.match(src, /runMediaItems: media, runOriginProject, runLanding,/, 'each next pass must land where the routine said');
     assert.match(src, /submitFlowGeneration\(flow, chainLegInputs\(flow, inputs, result, next\.leg\), callbacks,\s*\{ index: next\.index, tempId, run: handle, item: result\?\.item, described \}, io\)/,
         'every later leg must get the same inputs, runLanding included');
-    assert.match(src, /runLanding: \{ \.\.\.\(inputs\.runLanding \|\| \{\}\), existingGroup: group \}/,
+    assert.match(src, /runLanding: \{ \.\.\.\(runLanding \|\| \{\}\), existingGroup: group \}/,
         'a leg that versions leg 1\'s card keeps the routine\'s landing around it');
+    assert.match(src, /\.\.\.landOnCard\(group, inputs\.runLanding, inputs\.runOriginProject\)/,
+        'chainLegInputs lands through that door (MPI-1101 shares it with a Make seamless window)');
     assert.match(src, /\? \{ \.\.\.runLanding, scope: 'groupHistory', groupId: runLanding\.existingGroup\.id,/,
         'a later step lands as the card\'s next version');
     assert.match(src, /\(io\.enqueue \|\| enqueueGeneration\)\(cfg, runCallbacks, landing\)/, 'the routine landing is what gets enqueued');

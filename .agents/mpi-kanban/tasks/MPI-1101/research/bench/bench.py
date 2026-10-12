@@ -14,7 +14,7 @@ usage (repo root):
 Run the GPU halves ONLY under the lease: run_bench.sh does it all in order."""
 import json, os, sys
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 Image.MAX_IMAGE_PIXELS = None
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -39,11 +39,69 @@ MODELS = {
     'krea2': ('comfy_workflows/krea2_t2i_sfw.json', {'Input_is_Turbo': {'boolean': True}}),  # the app's default turbo
 }
 SEEDS = (42, 7)
+# Rounds 1-2 (2026-10-12) repainted nothing: the masked branch is LanPaint at denoise 1.0 already, but it feeds the
+# INPUT itself as the edit reference (ReferenceLatent), seam included, and the model reproduced it. Round 3 blanks
+# the band out of the input first. Each run is (model, seed, fill): 'none' = round 1, 'blur' = the band heavily
+# blurred (colours kept, every edge - the seam's too - gone), 'flat' = the band one mean colour.
+# Round 3 showed the reference still rules: blur came back as mush, flat as unrelated scenery. Round 4 drops the edit
+# reference altogether (ref=False: every ReferenceLatent bypassed), a plain inpaint LanPaint conditions on the
+# unmasked sides alone. Each run is (model, seed, fill, ref).
+# Round 4 showed a reference-free Klein ignores its surroundings (wood and dry grass in a cobblestone band): the
+# baked instruction says nothing about WHAT the picture is. Round 5 adds one line saying so. (model, seed, fill, ref, desc)
+VARIANTS = [('klein9b', 42, 'none', False, True), ('klein9b', 7, 'none', False, True)]
+FILLS = ('none', 'blur', 'flat')
+
+
+def vtag(model, seed, fill, ref=True, desc=False):
+    return f'{model}_{fill}{"" if ref else "_noref"}{"_desc" if desc else ""}_s{seed}'
+
+
+def without_reference(api_path, out):
+    """The API graph with every ReferenceLatent bypassed: each consumer takes the node's own conditioning input."""
+    g = json.load(open(api_path, encoding='utf-8'))
+    refs = {k: n['inputs']['conditioning'] for k, n in g.items() if n['class_type'] == 'ReferenceLatent'}
+    def src(link):
+        while link[0] in refs:
+            link = refs[link[0]]
+        return link
+    for n in g.values():
+        for name, v in n['inputs'].items():
+            if isinstance(v, list) and v[0] in refs:
+                n['inputs'][name] = src(v)
+    for k in refs:
+        del g[k]
+    path = os.path.join(out, os.path.basename(api_path).replace('.json', '_noref.json'))
+    json.dump(g, open(path, 'w', encoding='utf-8'))
+    return path
+
+
+def blank_band(im, m, fill):
+    """The rolled picture with its band (mask m) replaced, so neither the noise nor the reference holds the seam."""
+    if fill == 'none':
+        return im
+    band = m.astype(bool)
+    out = im.copy()
+    if fill == 'flat':
+        out[band] = im[band].mean(axis=0).round().astype(np.uint8)
+    else:
+        r = max(8, round(min(im.shape[:2]) * 0.06))
+        out[band] = np.asarray(Image.fromarray(im).filter(ImageFilter.GaussianBlur(r)))[band]
+    return out
 
 
 # The Flow's baked instruction, alone: the optional field is empty by default (Fabio, B)
-def prompt(name):
-    return 'Continue the picture seamlessly across this area, matching the textures, lines, colours and light on both sides, with no visible join.'
+def prompt(name, desc=False):
+    base = 'Continue the picture seamlessly across this area, matching the textures, lines, colours and light on both sides, with no visible join.'
+    return f'{base} {DESC[name]}' if desc else base
+
+
+# Round 5: what the picture shows, in one line (the app would get it from its describer or the user's prompt).
+DESC = {
+    'pano': 'A 360 panorama of a lush tropical garden: big shade trees, palms and leafy ground cover either side of a curved stone-paved path, sun through the canopy, blue sky.',
+    'photo': 'A hand holding a clear plastic jar of black-eyed beans with a white and orange printed label, against a red background.',
+    'stone': T2I['stone'],
+    'fabric': T2I['fabric'],
+}
 
 
 def band(n, lo, hi):
@@ -76,6 +134,8 @@ def prep(out):
             m[a:b, :] = 255
         Image.open(path).convert('RGB').resize(size, Image.LANCZOS).save(os.path.join(out, f'src_{name}.png'))
         Image.fromarray(im).save(f'{IN}/mpi1101_{name}_rolled.png')
+        for fill in FILLS:
+            Image.fromarray(blank_band(im, m, fill)).save(f'{IN}/mpi1101_{name}_rolled_{fill}.png')
         Image.fromarray(m).save(f'{IN}/mpi1101_{name}_mask.png')
         print(name, w, 'x', h, axes, 'band', int(m.astype(bool).mean() * 100), '% of the frame')
 
@@ -83,14 +143,15 @@ def prep(out):
 def spec(out):
     runs = []
     for name in SOURCES:
-        for model, (api, extra) in MODELS.items():
-            for seed in SEEDS:
-                runs.append({'tag': f'{name}_{model}_s{seed}', 'api': os.path.join(REPO, api), 'set': dict({
-                    'Input_wf_type': {'int': 5},
-                    'Input_Image': {'image': f'mpi1101_{name}_rolled.png'},
-                    'Input_Mask': {'image': f'mpi1101_{name}_mask.png'},
-                    'Input_Positive': {'string': prompt(name)},
-                    'Input_Seed': {'int': seed}}, **extra)})
+        for model, seed, fill, ref, desc in VARIANTS:
+            api, extra = MODELS[model]
+            api = os.path.join(REPO, api) if ref else without_reference(os.path.join(REPO, api), out)
+            runs.append({'tag': f'{name}_{vtag(model, seed, fill, ref, desc)}', 'api': api, 'set': dict({
+                'Input_wf_type': {'int': 5},
+                'Input_Image': {'image': f'mpi1101_{name}_rolled_{fill}.png'},
+                'Input_Mask': {'image': f'mpi1101_{name}_mask.png'},
+                'Input_Positive': {'string': prompt(name, desc)},
+                'Input_Seed': {'int': seed}}, **extra)})
     json.dump(runs, open(os.path.join(out, 'spec.json'), 'w', encoding='utf-8'), indent=1)
     print(len(runs), 'runs')
 
@@ -138,27 +199,26 @@ def post(out):
         Image.fromarray(blend).save(os.path.join(out, f'final_{name}_blend.png'))
         report.append(f'  {name}_blend (no model): wrap ' + ' '.join(f'{ax}={wrap_ratio(blend, ax):.1f}' for ax in axes))
         row.append(('no model (half-shift blend)', blend))
-        for model in MODELS:
-            for seed in SEEDS:
-                tag = f'{name}_{model}_s{seed}'
-                f = os.path.join(out, f'{tag}.png')
-                if not os.path.exists(f):
-                    report.append(f'  {tag}: MISSING')
-                    continue
-                r = np.asarray(Image.open(f).convert('RGB'))
-                if r.shape != rolled.shape:
-                    report.append(f'  {tag}: SIZE {r.shape[1]}x{r.shape[0]} != {w}x{h}')
-                    r = np.asarray(Image.fromarray(r).resize((w, h), Image.LANCZOS))
-                outside = np.abs(r.astype(np.int16) - rolled)[~mask].max()
-                back = r
-                if 'y' in axes:
-                    back = np.roll(back, -(h // 2), axis=0)
-                if 'x' in axes:
-                    back = np.roll(back, -(w // 2), axis=1)
-                Image.fromarray(back).save(os.path.join(out, f'final_{tag}.png'))
-                report.append(f'  {tag}: wrap ' + ' '.join(f'{ax}={wrap_ratio(back, ax):.1f}' for ax in axes)
-                              + f', max change outside band {outside}')
-                row.append((f'{model} s{seed}', back))
+        for model, seed, fill, ref, desc in VARIANTS:
+            tag = f'{name}_{vtag(model, seed, fill, ref, desc)}'
+            f = os.path.join(out, f'{tag}.png')
+            if not os.path.exists(f):
+                report.append(f'  {tag}: MISSING')
+                continue
+            r = np.asarray(Image.open(f).convert('RGB'))
+            if r.shape != rolled.shape:
+                report.append(f'  {tag}: SIZE {r.shape[1]}x{r.shape[0]} != {w}x{h}')
+                r = np.asarray(Image.fromarray(r).resize((w, h), Image.LANCZOS))
+            outside = np.abs(r.astype(np.int16) - rolled)[~mask].max()
+            back = r
+            if 'y' in axes:
+                back = np.roll(back, -(h // 2), axis=0)
+            if 'x' in axes:
+                back = np.roll(back, -(w // 2), axis=1)
+            Image.fromarray(back).save(os.path.join(out, f'final_{tag}.png'))
+            report.append(f'  {tag}: wrap ' + ' '.join(f'{ax}={wrap_ratio(back, ax):.1f}' for ax in axes)
+                          + f', max change outside band {outside}')
+            row.append((vtag(model, seed, fill, ref, desc), back))
         sheet(out, name, axes, row)
     open(os.path.join(out, 'report.txt'), 'w', encoding='utf-8').write('\n'.join(report) + '\n')
     print('\n'.join(report))

@@ -19,7 +19,7 @@ import { cloudRunFields, estimateRunCost, cloudErrorMessage } from './cloudExecu
 import { CLOUD_TAPS } from '../utils/cloudEditGraph.js';
 import {
     getFlowById, flowAvailability, flowRunAvailability, flowModelParams, flowLoraPhases, flowModelIds,
-    flowOperation, flowLegs, flowRunLegs, flowToggleLeg, flowRunValues,
+    flowOperation, flowLegs, flowRunLegs, flowToggleLeg, flowRunValues, flowMediaCtx,
 } from '../data/flowsRegistry.js';
 import { getModelById } from '../data/modelRegistry.js';
 import { state } from '../state.js';
@@ -165,7 +165,8 @@ function _missingLabel({ missing, missingDeps }) {
  * @returns {Object} callbacks to hand enqueueGeneration for that leg.
  */
 export function chainCallbacks(flow, callbacks, submitLeg, run = {}, after = -1) {
-    const next = flowRunLegs(flow, run).find(leg => leg.index > after);
+    const ctx = flowMediaCtx(run?.mediaItems);
+    const next = flowRunLegs(flow, run, ctx).find(leg => leg.index > after);
     if (!next) return callbacks;
     return {
         ...callbacks,
@@ -184,7 +185,8 @@ export function chainCallbacks(flow, callbacks, submitLeg, run = {}, after = -1)
  * @returns {?string} null for a run of one job
  */
 export function flowStep(flow, run, index) {
-    const legs = flowRunLegs(flow, run);
+    const ctx = flowMediaCtx(run?.mediaItems);
+    const legs = flowRunLegs(flow, run, ctx);
     const at = legs.findIndex(leg => leg.index === index);
     return legs.length > 1 && at >= 0 ? `${at + 1}/${legs.length}` : null;
 }
@@ -237,14 +239,29 @@ export function chainLegInputs(flow, inputs, result, leg = flowLegs(flow)[0]) {
     // card, so leg 2 found no card, dropped its output and reported CANCELLED (live, an agent
     // run into a closed project). Leg 2 gets that copy WITH the card leg 1 just registered:
     // the routine runner's re-read before each step, for the one card this leg touches.
-    const origin = inputs.runOriginProject;
     return {
         ...inputs,
         runMediaItems: item?.filePath
             ? [{ role: leg.input, mediaType: flow.mediaType || 'image', url: item.filePath, filePath: item.filePath }]
             : [],
-        ...(group ? { runLanding: { ...(inputs.runLanding || {}), existingGroup: group } } : {}),
-        ...(group && origin ? {
+        ...landOnCard(group, inputs.runLanding, inputs.runOriginProject),
+    };
+}
+
+/**
+ * The run inputs that land a later part of a run as a version of `group`, the card an earlier
+ * part made: a chained leg (above) and a Make seamless window (MPI-1101). The origin copy gets
+ * the card too, or a run into a closed project finds no card to version.
+ * @param {?Object} group
+ * @param {?Object} runLanding
+ * @param {?Object} origin - the run's frozen project copy, when it has one
+ * @returns {Object} `runLanding` (+ `runOriginProject`) to spread into the inputs; {} with no group
+ */
+function landOnCard(group, runLanding, origin) {
+    if (!group) return {};
+    return {
+        runLanding: { ...(runLanding || {}), existingGroup: group },
+        ...(origin ? {
             runOriginProject: { ...origin, itemGroups: [...(origin.itemGroups || []).filter(g => g.id !== group.id), group] },
         } : {}),
     };
@@ -281,7 +298,9 @@ export function submitChainLeg(flow, inputs, result, callbacks = {}, index = flo
  *
  * @param {function(Object): Promise<{media: Array<Object>, last: boolean}|null>} next
  * @param {Object} callbacks - the CALLER's callbacks
- * @param {function(Array<Object>, boolean): (Object|null)} submitNext - dispatches the next pass
+ * @param {function(Array<Object>, boolean, ?Object, Object): (Object|null)} submitNext - dispatches
+ *        the next pass with the payload's `runPass` (`js/utils/flowPasses.js`, MPI-1101) and this
+ *        pass's completion.
  * @returns {Object} callbacks to hand enqueueGeneration for this pass
  */
 export function nextPassCallbacks(next, callbacks, submitNext) {
@@ -294,7 +313,7 @@ export function nextPassCallbacks(next, callbacks, submitNext) {
             } catch (err) {
                 clientLogger.error('flowService', `next pass could not be prepared: ${err?.message || err}`);
             }
-            if (!pass?.media || !submitNext(pass.media, pass.last)) callbacks.onError?.(new Error('The next pass could not start.'));
+            if (!pass?.media || !submitNext(pass.media, pass.last, pass.runPass, result)) callbacks.onError?.(new Error('The next pass could not start.'));
         },
     };
 }
@@ -341,7 +360,7 @@ export function cancelQueuedJob(queueJobId) {
         : null;
 }
 
-export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg = {}, io = {}) {
+export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {}, callbacks = {}, _leg = {}, io = {}) {
     const flow = typeof flowOrId === 'string' ? getFlowById(flowOrId) : flowOrId;
     if (!flow) {
         Events.emit('ui:warning', { message: 'That flow could not be found.' });
@@ -391,8 +410,10 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // dispatched on the one before it, which is what decides its media and its describe.
     const later = _leg.index !== undefined;
     let index = _leg.index ?? -1;
+    // Build media ctx once; used for leg routing and availability.
+    const mediaCtx = flowMediaCtx(Array.isArray(runMediaItems) ? runMediaItems : (run?.mediaItems));
     if (!later && flowOperation(flow, run) === null) {
-        const first = flowRunLegs(flow, run)[0];
+        const first = flowRunLegs(flow, run, mediaCtx)[0];
         if (!first) {
             Events.emit('ui:warning', { message: `${flow.title} has nothing to do with those settings.` });
             return null;
@@ -416,7 +437,7 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // than always saying "models" (with models present and only a dep missing, the old
     // copy read "needs models installed" while the library showed every model Ready).
     // MPI-1041: it asks about THIS run, so an optional model blocks only the ops it serves.
-    const availability = flowRunAvailability(flow, run);
+    const availability = flowRunAvailability(flow, run, mediaCtx);
     if (!availability.available) {
         Events.emit('ui:warning', {
             // A broken Flow package has nothing to install, only a reason (MPI-532).
@@ -497,6 +518,11 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
         flowModelIds: modelIds,
         // Absent, `enqueueGeneration` freezes the project open at enqueue, as it always has.
         ...(runOriginProject ? { _originProject: runOriginProject } : {}),
+        // `runPass` (MPI-1101) is run-only, pulled off in the signature so it never reaches
+        // `snapshot` (the sidecar's `flowInputs`): a Make seamless window's run id and index for
+        // commandExecutor, and the version a later window replaces so the run stays ONE card.
+        ...(runPass?.seamless ? { seamless: runPass.seamless } : {}),
+        ...(runPass?.replaceItemId ? { replaceItemId: runPass.replaceItemId } : {}),
     };
 
     // The chained leg REUSES leg 1's tempId. MpiBaseFlow matches live latents and Stop
@@ -585,10 +611,15 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     };
     // Every pass but the last carries `runNextPass` on; the last gets none, so it ends
     // there. Each keeps the tempId for the same reason a later leg does.
+    // A pass payload's `runPass` (MPI-1101) rides to the next pass: its i/N, and for Make seamless
+    // the window to paste and the version it replaces, landed on the card pass 1 made.
     const runCallbacks = runNextPass
         ? nextPassCallbacks(runNextPass, callbacks,
-            (media, last) => submitFlowGeneration(flow,
-                { ...snapshot, runInputs, runMediaItems: media, runOriginProject, runLanding, ...(last ? {} : { runNextPass }) }, callbacks, { tempId, run: handle }, io))
+            (media, last, nextPass, done) => submitFlowGeneration(flow,
+                { ...snapshot, runInputs, runMediaItems: media, runOriginProject, runLanding,
+                  ...(nextPass ? { runPass: nextPass } : {}),
+                  ...(nextPass?.replaceItemId ? landOnCard(done?.group, runLanding, runOriginProject) : {}),
+                  ...(last ? {} : { runNextPass }) }, callbacks, { tempId, run: handle }, io))
         : legCallbacks;
 
     // EVERY enqueue of the run, whenever it happens, records its queue id on the handle.
@@ -609,6 +640,8 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
         }
         // A leg the result pane runs `alone` is a run of one.
         if (!_leg.alone) config.flowStep = flowStep(flow, run, index);
+        // A multi-pass run counts its passes instead (MPI-1101 D3): Make seamless's windows.
+        if (!_leg.alone && runPass?.count > 1) config.flowStep = `${runPass.index}/${runPass.count}`;
         // The leg's BUILT prompt (MPI-1041), here because the describe answers are in by now and
         // the child-safety gate reads `positive` when the job is queued.
         if (builder) {

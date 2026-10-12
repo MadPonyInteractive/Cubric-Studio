@@ -2,9 +2,7 @@
 
 ## Current State
 
-**Where it stands (handoff 2026-10-12):** planned, card in `todo`, NO code written. Next: move the
-card `todo -> doing` with `files.json`, then the Parallel Batch (or Phase 0 the moment Fabio says the
-GPU is free).
+**Where it stands (handoff 2026-10-12, session 3feb22c3):** card in `doing`, all below COMMITTED. Done + verified (`npm test` 3234/0): Parallel Batch A1-A3, Phase 3 media ctx, D3 planners (`js/utils/flowPasses.js`), D2 one-card landing RESHAPED (replace-version, `runPass`, see Plan Drift), result Tiles slider. Phase 0 DONE after 5 rounds: the recipe is Klein, NO ReferenceLatent, baked instruction + one content line (Plan Drift + validation.md). Fabio: build FROM-IMAGE first with Klein, skip Krea; from-scratch textures later. NEXT: Phase 2 = `raw/flow_make_seamless.json` WITHOUT ReferenceLatent + the content line (user prompt, else `describe`), run `/mpi-add-flow`; then the Phase 3 FlowDef (image1 required, no Direction/t2i leg, `result: { tiles: true }`, edges step), agent/MCP, Phase 4.
 
 **Project mode:** scalable-foundation. **Design approved by Fabio 2026-10-12** - the whole record, with
 every ruling and the prior art, is `research/brainstorm.md`. In one breath: a dev-gated Flow,
@@ -109,7 +107,7 @@ blocks every other agent). CPU halves dry-run clean 2026-10-12. Default if the s
 `mpi-execute-parallel` is appropriate here: three disjoint ownerships, each verified by its own unit
 tests, no shared file.
 
-- [ ] **A1 Seamless pixel service (D1).** Ownership: `services/seamlessOps.js`, `routes/seamless.js`,
+- [x] **A1 Seamless pixel service (D1).** DONE 2026-10-12: 17/17 tests, lint clean; routes POST `/seamless/prepare|window|paste|finish` (contract in the `services/seamlessOps.js` header); `runId` must be a uuid (traversal guard added at integration). Ownership: `services/seamlessOps.js`, `routes/seamless.js`,
   `server.js` (the one mount line), `tests/seamless-ops.test.cjs`. Briefings: the Critical Rules
   Snapshot + `root-cause.md` § Sub-Agent Briefing + `~/.claude/memory/tools/sharp.md` + `docs/resize.md`
   + `docs/big-photos.md`. **Verify:** `node --test tests/seamless-ops.test.cjs` green, covering: roll
@@ -118,7 +116,7 @@ tests, no shared file.
   ~1024 target; paste changes ZERO pixels outside the band; a 16384x8192 synthetic (made in-test with
   sharp, never committed) completes; lighting flatten at 0 is a no-op and at >0 reduces a synthetic
   left-to-right gradient.
-- [ ] **A2 `MpiStepEdges` gizmo + tiles view (D5).** Ownership:
+- [x] **A2 `MpiStepEdges` gizmo + tiles view (D5).** DONE 2026-10-12: 23/23 + step-param-binding 7/7, lint clean; no STEP_PARAMS adapter (edges go to the server service, not injection); `StepEdgesValue` typedef parked atop `MpiStepEdges.js` until `types.js` is free. Ownership:
   `js/components/Organisms/MpiStepEdges/` (.js + .css), `stepKinds.js` (one `STEP_KINDS` line + a
   `STEP_PARAMS` adapter if needed), `js/components/types.js` (typedef), the css registration file the
   component docs name (`.claude/rules/components.md`), `tests/step-edges.test.cjs`. Briefings:
@@ -129,7 +127,7 @@ tests, no shared file.
   ComponentFactory, BEM `mpi-step-edges__*`, CSS vars only, `qs`/`on`/`off`, `el.destroy()`.
   **Verify:** unit test on the value maths + clamping; `npm run lint:components` clean on the new
   folder.
-- [ ] **A3 `{ media }` in `ruleHolds` (D4).** Ownership: `js/data/flowsRegistry.js` (`ruleHolds`,
+- [x] **A3 `{ media }` in `ruleHolds` (D4).** DONE 2026-10-12: rule `{ media: '<role>', present? }` (present defaults true), context `ctx.media` = Set of roles carrying a file, threaded as a NEW optional 3rd/4th arg (`ruleHolds(rule, values, ctx)`, `legWanted(flow, leg, run, ctx)`, `hiddenFieldIds(fields, values, modelIds, ctx)`); 9 new tests, `npm test` 3197/0. `operationBy` stays a field map (not a rule), `disabledWhen` stays field-only: neither is needed here. Ownership: `js/data/flowsRegistry.js` (`ruleHolds`,
   `legWanted`, `flowOperation` only - NOT the FlowDef list), `js/utils/declaredFields.js`
   (`hiddenFieldIds`), `tests/flow-rules-media.test.cjs`. Briefings: Critical Rules Snapshot,
   `flowsRegistry.js` § Legs, routing and rules. One evaluator: `{ media: role, present: bool }` (exact
@@ -158,15 +156,16 @@ Sequential, not a batch: every task edits `MpiBaseFlow.js` or `flowService.js`.
   `kind:'edges'` with fields Tiles + Even out lighting (hidden with no picture), Direction select (shown
   only with no picture), optional `positive`. **Verify:** the Flow appears in the dev Library; its
   fields render; `tests/flow-model-choice.test.cjs` + existing Flow tests green.
-- [ ] D3 planner: move Outpaint's planner behind `passes:` unchanged, add the seamless planner (calls
+- [x] **Pass media ctx at every caller (A3 left these; without them a `present:false` rule HOLDS even when a picture was given):** `flowsRegistry.js` `flowRunLegs` (forward ctx to `legWanted`); `flowService.js` `chainCallbacks` / `flowStep` / `submitFlowGeneration`; `agentDispatch.js` ~1359 (build `ctx.media` from `run.mediaItems`); `MpiBaseFlow.js` `_visibleSteps` / `_hiddenNow` / `_paintFieldConstraints` (4th arg to `hiddenFieldIds`); `flowEnhance.js` ~343/403. One helper that builds the Set from mediaItems, imported by UI and agent. **Verify:** a test per producer.
+- [x] D3 planner: DONE 2026-10-12 (see Plan Drift for the shape that shipped). move Outpaint's planner behind `passes:` unchanged, add the seamless planner (calls
   `/seamless/prepare` once, then per pass `/seamless/window`), stamp pass index/total into `flowStep`.
   Same module in `agentDispatch.js`. **Verify:** Outpaint's existing pass tests
   (`tests/outpaint-next-pass.test.cjs`) still green; a new planner test plans 1 window for a 1024 tile
   and ~4-5 for a 8192x4096 pano left-right.
-- [ ] D2 landing: the op flag + `_finishGeneration` hook pastes each window, lands only the final
+- [x] D2 landing: DONE 2026-10-12, reshaped (see Plan Drift). the op flag + `_finishGeneration` hook pastes each window, lands only the final
   rolled-back picture. **Verify:** test - an N-pass run lands exactly one card version at the source's
   full size.
-- [ ] Result pane Tiles slider (`MpiProgressBar`, `interactive`, 1-4) between frame and
+- [x] Result pane Tiles slider: DONE 2026-10-12. FlowDef opts in with `result: { tiles: true }`; axes from the edges step value, else a `direction` field (`left-right|top-bottom|both`, `resultTileAxes` in MpiStepEdges.js); tiles the DISPLAY copy via `resolveDisplayImage` (orchestrator fix: the worker tiled the full-size original, past Chromium's 16384 texture cap on a 16K pano). Was: (`MpiProgressBar`, `interactive`, 1-4) between frame and
   `_pendingNote`, gated on a FlowDef `result.tiles` key; repeat only on the joined axes. **Verify:**
   unit test on the axes -> repeat mapping; lint clean.
 - [ ] Agent + MCP: `description` first sentence "Make a picture tile seamlessly ...", labelled fields,
@@ -182,7 +181,21 @@ Sequential, not a batch: every task edits `MpiBaseFlow.js` or `flowService.js`.
 
 ## Plan Drift
 
-- None yet.
+- 2026-10-12 FABIO (after the round-5 sheets): build it with KLEIN, skip Krea. TWO options, done in order: (1) FROM AN IMAGE - make an existing picture seamless with the round-5 Klein repaint: BUILD THIS FIRST; (2) FROM SCRATCH - textures (gaming textures especially) generated tileable from the start, the prior art he linked (brainstorm.md: spinagon circular-padding works on a CONV model, SDXL, not on Klein/Krea transformers). Option 2 is LATER: the no-picture leg (`flowMakeSeamlessT2i`, Direction field) is out of the first build. The from-image Flow keeps `image1` REQUIRED.
+- 2026-10-12 Phase 0 round 5 = the working recipe, and it CHANGES Phase 2: the graph has NO ReferenceLatent (a reference makes Klein copy the band, seam included), and its prompt is the baked instruction + one line saying what the picture shows. Without that line a reference-free Klein paints unrelated things (round 4). So the Flow needs the content line: the user's prompt, else the app's describer (`describe`, MPI-1036) writes it. Rounds 1-4 in validation.md.
+- 2026-10-12 Phase 0 rounds 1+2 INCONCLUSIVE: the masked branch is LanPaint at denoise 1.0 already; the seam survives because the edit REFERENCE (`ReferenceLatent`) is the input itself, seam included (validation.md). The Phase 2 graph inherits that wiring from the Character Sheet Editor branch: its reference must not carry the band. Round 3 tests blanking the band first. Sheets go to Fabio only once a run actually repairs a seam.
+- 2026-10-12 D2 SHIPPED RESHAPED (uncommitted). The worker's version failed on every real run, four ways its fetch-stubbed tests hid: `/seamless/finish` sent without the `outPath` the route required (400); `/seamless/paste` handed the engine's VIEW URL where the route wanted a disk path (404); middle windows emptied `outputUrls`, which generationService treats as CANCELLED (run ends, preview revoked); and generationService's executor payload is a WHITELIST, so the window id never reached `_finishGeneration`. What shipped instead: EVERY window pastes (`/seamless/paste {runId,i,viewUrl}`, fetched like `/engine-stitch`) then finishes (`/seamless/finish {runId}` -> absolute `/project-file` URL, new file each time) and that whole picture saves; window 1 lands the card, each later window REPLACES that version (`replaceItemId`) through the chained-leg door (`landOnCard` in flowService, shared with `chainLegInputs`) - one card, one version, healing seam by seam. All per-pass data is ONE run-only key `runPass: { index, count, seamless?: { runId, i }, replaceItemId? }`, pulled off in `submitFlowGeneration`'s signature so it never reaches `snapshot` (= the sidecar's `flowInputs`; the worker had leaked `runPassIndex` + `seamless*` there). `/seamless/window` returns `/project-file` URLs (as `/engine-mask` does); the planner decodes a slot's `/project-file` URL to the disk path `/prepare` needs. The agent path now REFUSES (`RUNTIME_ERROR`) when a planning Flow gets no plan, instead of running one pass on the whole picture. New `tests/seamless-landing.test.cjs` drives the real routes over HTTP. PHASE 4 MUST CHECK: no second "Generating..." card appears during windows 2..N, and the queue row/status bar reads i/N between windows.
+- 2026-10-12 Phase 3a shipped (uncommitted): ONE media mechanism - `flowRunLegs` / `flowRunAvailability` default `ctx = flowMediaCtx(run?.mediaItems)` (UI `runInputs` and the agent `run` both carry `mediaItems`), explicit ctx at `hiddenFieldIds` callers (MpiBaseFlow `_mediaCtx()`, flowEnhance). Planners live in `js/utils/flowPasses.js`, keyed by OPERATION id (`flowMakeOutpaint`, `flowMakeSeamless`), NOT a `passes:` FlowDef key - `services/userFlows.js` FLOW_KEYS rejects unknown keys. Seamless planner: `/seamless/prepare` + per-pass `/seamless/window`, pass 1 via `firstPassMedia`, each payload carries `seamlessRunId` + `windowIndex` for D2. Status bar: `runPassIndex`/`runPassCount` -> `config.flowStep = "i/N"`. 11 new tests; `npm test` 3209/0. UNPROVEN until Phase 4: a picture added/removed re-hides media-ruled fields/steps (slots call `onDirty`, which rebuilds the slide; check it in the isolated app).
+- 2026-10-12: Fabio: "start Phase 3 while the GPU is busy, then lease the GPU, get in line" = the
+  Phase 0 go. Bench queued under `gpu_lease.py run --timeout 21600 --poll 2` (5th in the FIFO line at
+  ~10:10 local); assert on the output files in `G:/ComfyUi/ComfyUI/output/mpi1101`, never on exit 0.
+  Phase 3a (media ctx at callers + D3 planner) dispatched to a worker meanwhile.
+- 2026-10-12: MPI-1071 committed + released `flowsRegistry.js` (e3a8f8fcb) mid-batch, so A3 ran right after A1/A2.
+- 2026-10-12 (session 3feb22c3): card moved `todo -> doing`, `files.json` written. Batch ran A1 + A2
+  only. A3 deferred: `js/data/flowsRegistry.js` is held by MPI-1071's live claim (2458ed19) with
+  uncommitted hunks; message `3feb22c3-mpi1101-to-mpi1071` asks for the release. A2's `types.js`
+  typedef deferred too (MPI-623's claim cdb2fd5e holds it): the typedef sits as JSDoc at the top of
+  `MpiStepEdges.js` until it can move.
 
 ## Verification
 

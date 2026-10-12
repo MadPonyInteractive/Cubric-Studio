@@ -4,6 +4,7 @@ import { MpiStepCrop, composePaddedImage } from '../../Organisms/MpiStepCrop/Mpi
 import { MpiStepPaint, composePaintLayer, composePaintComposite } from '../../Organisms/MpiStepPaint/MpiStepPaint.js';
 import { MpiStepCutout, composeCutObject } from '../../Organisms/MpiStepCutout/MpiStepCutout.js';
 import { MpiStepPlace, composePlacedObject } from '../../Organisms/MpiStepPlace/MpiStepPlace.js';
+import { MpiStepEdges } from '../../Organisms/MpiStepEdges/MpiStepEdges.js';
 
 /**
  * STEP_KINDS — the step-kind registry (MPI-306 Phase 1).
@@ -57,6 +58,11 @@ export const STEP_KINDS = {
     // is cleaned there and placed here. `place` reads what that stage produced
     // through `sourceValue`, which the frame hands it beside `source`.
     place: MpiStepPlace,
+    // `edges` is the band-selection gizmo for Make Seamless (MPI-1101): four
+    // per-side handles that set how far in from each edge the repaint band runs,
+    // in % of that image dimension. `onField('tiles', n)` switches from the
+    // handle view to a CSS-tiled preview of n copies on the joined axes.
+    edges: MpiStepEdges,
     // mask, light, mood… as they are built.
 };
 

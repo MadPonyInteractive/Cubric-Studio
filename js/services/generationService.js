@@ -1157,6 +1157,8 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         previewOnly: config.previewOnly === true,
         // MPI-918: pass 2 of a Flow whose edit stage ran in the cloud (flowService).
         cloudEdit: config.cloudEdit || null,
+        // MPI-1101: the Make seamless window this pass pastes back (`pastesToWorkingCopy`).
+        seamless: config.seamless || null,
         // MPI-869: an agent's run reports a credit refusal in chat, so the executor must
         // not also toast it.
         byAgent: config.byAgent === true,

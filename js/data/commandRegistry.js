@@ -125,6 +125,13 @@ const I2V_HELP = {
  *                                              LAYER, cut round the box, with the box moved into the cut, and pastes
  *                                              the result back (MPI-971, commandExecutor._fitBoxedInputs). VERIFY IN
  *                                              THE GRAPH, and widen engineMask's reach if its window outgrows it.
+ * @property {boolean}         [pastesToWorkingCopy] - Make seamless (MPI-1101 D2): each pass's output is one
+ *                                              WINDOW, pasted into the run's server working copy (`/seamless/paste`);
+ *                                              what saves is the whole picture as it stands (`/seamless/finish`), and
+ *                                              each later window REPLACES that version, so a run is one card. Honoured
+ *                                              in `commandExecutor._finishGeneration` when the job's config carries
+ *                                              `seamless: { runId, i }` (`runPass` in js/utils/flowPasses.js). Never
+ *                                              with `cropsToMask`: the window IS the cut.
  * @property {boolean}         [enlarges]     - The output is `Input_Image` times `Input_Upscale_Factor` (ImageScaleBy,
  *                                              UltimateSDUpscale upscale_by), so one past UPSCALE_MAX_EDGE is
  *                                              refused before dispatch (MPI-971, js/utils/upscaleLimit.js).

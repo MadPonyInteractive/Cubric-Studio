@@ -28,17 +28,19 @@ import { isVideoFile } from '../../../utils/file.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { getStepKind, stepValueToParam, stepValueToMedia, isFrameKind } from './stepKinds.js';
-import { planCropPasses, composeNextPass } from '../../Organisms/MpiStepCrop/MpiStepCrop.js';
 import { enqueueGeneration, findMissingMediaSlot } from '../../../services/generationService.js';
 import { getCommand } from '../../../data/commandRegistry.js';
 import {
     flowEnhanceDecls, enhanceTargets, enhanceSources, enhanceSourceText, enhancedWrites,
     runEnhanceDecl, adoptHiddenTargets,
 } from '../../../services/flowEnhance.js';
-import { flowModelSlots, flowModelIds, setFlowModel, isCloudCandidate, flowOperation, flowOperations, flowLegs, flowRunLegs, flowToggleLeg } from '../../../data/flowsRegistry.js';
+import { flowModelSlots, flowModelIds, setFlowModel, isCloudCandidate, flowOperation, flowOperations, flowLegs, flowRunLegs, flowToggleLeg, flowMediaCtx } from '../../../data/flowsRegistry.js';
+import { getPlanner } from '../../../utils/flowPasses.js';
 import { disambiguatedName, getModelDependencies } from '../../../data/modelRegistry.js';
 import { downloadService } from '../../../services/downloadService.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
+import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
+import { resultTileAxes, repeatFromTiles } from '../../Organisms/MpiStepEdges/MpiStepEdges.js';
 import { buildField, mapDeclaredValue, isInjectionParam, disabledFieldIds, hiddenFieldIds, withEnhanceFallback, enhanceEchoTargets } from '../../../utils/declaredFields.js';
 import { buildLicenceRows } from '../../../utils/flowLicences.js';
 
@@ -601,6 +603,14 @@ export const MpiBaseFlow = ComponentFactory.create({
         let _statusEl = null;
         let _pendingNote = null;
         let _gaugeEl = null;
+        // Result Tiles slider — only when flow.result?.tiles (MPI-1101 Phase 3).
+        let _tilesSliderInst = null;
+        let _tilesContainerEl = null;
+        let _tilesViewEl = null;
+        let _tilesN = 1;
+        let _tilesAxes = { x: false, y: false };
+        let _tilesResultUrl = null;   // the DISPLAY copy's src, as the result <img> shows it
+        let _tilesFor = null;         // the result URL that src was resolved for
 
         // A remembered result names a file that can be GONE by the time the flow is
         // reopened — the item deleted from the gallery, the media cleaned, another
@@ -651,10 +661,16 @@ export const MpiBaseFlow = ComponentFactory.create({
          * A skipped step KEEPS ITS VALUES, exactly as a hidden field does — so the graph
          * re-checks the real condition rather than trusting the step to be gone.
          */
+        /** Current media context for rule evaluation (D4, MPI-1101). */
+        function _mediaCtx() {
+            return flowMediaCtx(_mediaGroups.flatMap(e => e.items.filter(Boolean)));
+        }
+
         function _visibleSteps() {
+            const ctx = _mediaCtx();
             return _allSteps.filter(s => !s.hiddenWhen || !hiddenFieldIds(
                 [{ id: s.tickerLabel || 'step', hiddenWhen: s.hiddenWhen }],
-                _fieldValues, flowModelIds(flow),
+                _fieldValues, flowModelIds(flow), ctx,
             ).size);
         }
 
@@ -1158,7 +1174,7 @@ export const MpiBaseFlow = ComponentFactory.create({
         /** Ids `hiddenWhen` is hiding RIGHT NOW, as a Set. Derived, never cached — the
          *  clauses read `_fieldValues`, so any answer older than the last keystroke is
          *  wrong. `_paintFieldConstraints` computes the same thing for the DOM. */
-        const _hiddenNow = () => new Set(hiddenFieldIds(_allDecls, _fieldValues, flowModelIds(flow)));
+        const _hiddenNow = () => new Set(hiddenFieldIds(_allDecls, _fieldValues, flowModelIds(flow), _mediaCtx()));
 
         /**
          * Field wrappers currently in the DOM, keyed by field id. Cleared on every
@@ -1509,7 +1525,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             // MPI-591: the picked model can hide a field too, so the pick is read on
             // every paint rather than captured once — `setFlowModel` writes to a session
             // Map and the dropdown repaints this after changing it.
-            const hidden = hiddenFieldIds(_allDecls, _fieldValues, flowModelIds(flow));
+            const hidden = hiddenFieldIds(_allDecls, _fieldValues, flowModelIds(flow), _mediaCtx());
             _allDecls.forEach((f) => {
                 const wrap = _liveFields.get(f.id);
                 if (!wrap) return;
@@ -2217,7 +2233,37 @@ export const MpiBaseFlow = ComponentFactory.create({
             // around the \n, or they render as indentation on the second line.
             _resultEmptyEl.textContent = 'Your result appears here.';
             frame.appendChild(_resultEmptyEl);
+            // Tiled-repeat view — CSS background-repeat overlay inside the frame,
+            // shown when the Tiles slider is > 1 (flow.result.tiles opt-in).
+            if (flow.result?.tiles) {
+                _tilesViewEl = ce('div', { className: 'mpi-base-flow__result-tiles-view' });
+                _tilesViewEl.hidden = true;
+                frame.appendChild(_tilesViewEl);
+            }
             pane.appendChild(frame);
+
+            // Tiles slider row (MPI-1101 Phase 3) — only when the FlowDef opts in.
+            // Between the result frame and the pending note, as specified.
+            if (flow.result?.tiles) {
+                _tilesContainerEl = ce('div', { className: 'mpi-base-flow__result-tiles' });
+                _tilesContainerEl.hidden = true;
+                const sliderLabel = ce('span', { className: 'mpi-base-flow__result-tiles__label' });
+                sliderLabel.textContent = 'Tiles';
+                _tilesContainerEl.appendChild(sliderLabel);
+                const sliderHost = ce('div', { className: 'mpi-base-flow__result-tiles__slider' });
+                _tilesContainerEl.appendChild(sliderHost);
+                _tilesSliderInst = MpiProgressBar.mount(sliderHost, {
+                    min: 1, max: 4, step: 1, value: 1,
+                    interactive: true,
+                    handle: true,
+                    info: 'Tiles: {value}',
+                });
+                _tilesSliderInst.on('input', ({ value }) => {
+                    _tilesN = value;
+                    _applyTilesRepeat();
+                });
+                pane.appendChild(_tilesContainerEl);
+            }
 
             // A finished result is ALREADY in the gallery — this reports that, it is
             // not an action. Apply was built (MPI-306 Phase 3) and removed after the
@@ -2307,6 +2353,10 @@ export const MpiBaseFlow = ComponentFactory.create({
             _runBtn = null; _stopBtn = null; _resultMediaEl = null; _statusEl = null;
             _pendingNote = null; _gaugeEl = null;
             _resultFrameEl = null; _resultPaneEl = null;
+            _tilesSliderInst?.el?.destroy?.();
+            _tilesSliderInst = null; _tilesContainerEl = null; _tilesViewEl = null;
+            // _tilesN / _tilesAxes / _tilesResultUrl survive: restored on the next
+            // _showResults(..., { remember: false }) replay after a slide rebuild.
         }
 
         /** Build and show the current step. One slide is live at a time. */
@@ -2800,6 +2850,86 @@ export const MpiBaseFlow = ComponentFactory.create({
             if (_resultMediaEl && _lastResults) _showResults(_lastResults, { remember: false });
         }
 
+        // ── Result Tiles helpers (MPI-1101 Phase 3) ────────────────────────────
+
+        /**
+         * Apply (or clear) the CSS tiled-repeat on `_tilesViewEl`.
+         * Called whenever `_tilesN` or `_tilesAxes` changes.
+         */
+        function _applyTilesRepeat() {
+            if (!_tilesViewEl) return;
+            if (_tilesN <= 1 || !_tilesResultUrl || (!_tilesAxes.x && !_tilesAxes.y)) {
+                _tilesViewEl.hidden = true;
+                return;
+            }
+            const { repeat, size } = repeatFromTiles(_tilesN, _tilesAxes);
+            _tilesViewEl.style.backgroundImage    = `url("${_tilesResultUrl}")`;
+            _tilesViewEl.style.backgroundSize     = size;
+            _tilesViewEl.style.backgroundRepeat   = repeat;
+            _tilesViewEl.style.backgroundPosition = '0 0';
+            _tilesViewEl.hidden = false;
+        }
+
+        /**
+         * Tile the DISPLAY copy the result <img> already shows (`setDisplaySrc`), never the
+         * original: a 16K pano's full decode is past Chromium's texture cap, and the repeat is
+         * drawn at 1/n of the pane anyway. A newer result wins over a slow resolve.
+         * @param {string} path the result item's path
+         */
+        function _setTilesSource(path) {
+            const url = resolveMediaUrl(path);
+            if (_tilesFor === url) return;
+            _tilesFor = url;
+            _tilesResultUrl = null;
+            resolveDisplayImage(url).then(({ src }) => {
+                if (_tilesFor !== url) return;
+                _tilesResultUrl = src;
+                _applyTilesRepeat();
+            });
+        }
+
+        /**
+         * Sync the tiles slider and view after a result change.
+         * On `remember: true` (new run): compute axes from the edges step value /
+         * direction field, store the result URL, reset n to 1.
+         * On `remember: false` (slide rebuild replay): restore previous n and axes.
+         *
+         * @param {Array} list     filtered items array
+         * @param {Array} withPath items that have a path
+         * @param {boolean} remember
+         */
+        function _updateTilesInResult(list, withPath, remember) {
+            if (!_tilesContainerEl) return;
+            const hasItems = withPath.length > 0;
+            if (!hasItems) {
+                _tilesContainerEl.hidden = true;
+                if (_tilesViewEl) _tilesViewEl.hidden = true;
+                if (remember) {
+                    _tilesResultUrl = null;
+                    _tilesAxes = { x: false, y: false };
+                }
+                return;
+            }
+            if (remember) {
+                _setTilesSource(withPath[0].path);
+                const edgesStep = (flow.steps || []).find(s => s?.kind === 'edges');
+                _tilesAxes = resultTileAxes(
+                    edgesStep ? (_stepValues[edgesStep.role] || null) : null,
+                    (_fieldValues['direction'] || null),
+                );
+                _tilesN = 1;
+                if (_tilesSliderInst?.el?.setValueQuiet) _tilesSliderInst.el.setValueQuiet(1);
+                if (_tilesViewEl) _tilesViewEl.hidden = true;
+            } else {
+                // Slide rebuild replay: restore the source (may not be set on first mount) and n.
+                if (withPath[0]?.path) _setTilesSource(withPath[0].path);
+                if (_tilesSliderInst?.el?.setValueQuiet) _tilesSliderInst.el.setValueQuiet(_tilesN);
+                _applyTilesRepeat();
+            }
+            const hasAxes = _tilesAxes.x || _tilesAxes.y;
+            _tilesContainerEl.hidden = !hasAxes;
+        }
+
         /**
          * Paint ALL final results (multi-output flows produce N items — MPI-259).
          *
@@ -2834,6 +2964,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             // disarm a sweep the run still owns (_syncRunning is the only arming
             // authority now).
             if (!_running) _setScanline(false);
+            _updateTilesInResult(list, withPath, remember);
             if (_isTextResult(list[0])) { _mountText(list[0]); _syncResultEmpty(); return; }
             if (!withPath.length) { _syncResultEmpty(); return; }
             // ONE result gets a real surface — a comparison, or the video player.
@@ -3605,25 +3736,11 @@ export const MpiBaseFlow = ComponentFactory.create({
          * @returns {Promise<{values: Object, next: function(Object): Promise<{media: Array<Object>, last: boolean}|null>}|null>}
          */
         async function _planPasses(mediaItems) {
-            const step = (flow.steps || []).find(s => s.kind === 'crop' && s.role && s.maxGrow);
-            const value = step && _stepValues[step.role];
-            const media = step && mediaItems.find(m => m?.role === step.role);
-            const plan = media ? await planCropPasses(media, value?.crop, step.maxGrow) : null;
-            if (!plan) return null;
-            let ran = 0; // index of the pass that just completed
-            return {
-                values: { ..._stepValues, [step.role]: { ...value, crop: plan[0] } },
-                next: async ({ item } = {}) => {
-                    const file = await composeNextPass(item, plan[ran], plan[ran + 1]);
-                    ran += 1;
-                    const project = state.currentProject;
-                    const url = file && project ? await _placePreviewAsset(file, 'image', project) : null;
-                    return url ? {
-                        media: mediaItems.map(m => (m === media ? { ...m, url, source: 'flow-derived' } : m)),
-                        last: ran === plan.length - 1,
-                    } : null;
-                },
-            };
+            const planner = getPlanner(flow.passes) || getPlanner(flow.operation);
+            if (!planner) return null;
+            return planner(flow, _stepValues, mediaItems, {
+                placeAsset: (file) => _placePreviewAsset(file, 'image', state.currentProject),
+            });
         }
 
         const _run = async () => {
@@ -3721,7 +3838,13 @@ export const MpiBaseFlow = ComponentFactory.create({
             let prepError = null;
             try {
                 passes = await _planPasses(mediaItems);
-                runMediaItems = await _deriveRunMedia(mediaItems, passes?.values);
+                // A planner that provides firstPassMedia (e.g. seamless windows) skips
+                // _deriveRunMedia; an outpaint planner returns `values` for it instead.
+                if (passes && Array.isArray(passes.firstPassMedia)) {
+                    runMediaItems = passes.firstPassMedia;
+                } else {
+                    runMediaItems = await _deriveRunMedia(mediaItems, passes?.values);
+                }
             } catch (err) {
                 clientLogger.error('MpiBaseFlow', `step media derivation failed: ${err?.message || err}`);
                 runMediaItems = null;
@@ -3747,6 +3870,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             const res = submitFlowGeneration(flow, {
                 ...inputs, runMediaItems, runInputs,
                 ...(passes ? { runNextPass: passes.next } : {}),
+                ...(passes?.runPass ? { runPass: passes.runPass } : {}),
             }, _runCallbacks(run));
             _track(run, res);
         };

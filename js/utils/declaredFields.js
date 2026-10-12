@@ -349,15 +349,21 @@ export function disabledFieldIds(fields = [], values = {}) {
  * nothing else — a declared `text` box cannot be greyed at all today. Hiding is on
  * the wrapper the painter already holds, so it works for every field type.
  *
- * Four clauses, deliberately narrow:
+ * Five clauses, deliberately narrow:
  *   `{ hiddenWhen: { field: 'Input_Instrumental', is: true } }`
  *   `{ hiddenWhen: { field: 'Input_Style', isNot: 'Custom' } }`
  *   `{ hiddenWhen: { model: 'minimax-h3-ref2va' } }`
  *   `{ hiddenWhen: { modelNot: 'minimax-h3-ref2va' } }`
+ *   `{ hiddenWhen: { media: 'image1', present: false } }`  (D4, MPI-1101)
  *
  * A FIELD clause is whatever `ruleHolds` takes (MPI-1041): `is`, `isNot`, `in` (a list),
  * the numeric `atMost` / `below` / `atLeast`, several in one object, or a list of clauses
  * that must all hold. The model clauses stay here: they read the resolved slots, not a value.
+ *
+ * A MEDIA clause (`{ media: '<role>', present: true|false }`) tests whether a media role
+ * carries a file. It requires `ctx.media` — a `Set<string>` of present roles — to be passed
+ * as the fourth argument; callers that omit it treat every role as absent (safe but
+ * will always take the no-media path).
  *
  * `isNot` is the field twin of `modelNot`, and it exists for the REVEAL case: a
  * dropdown option that opens a box the other options have no use for. Music Maker's
@@ -384,9 +390,11 @@ export function disabledFieldIds(fields = [], values = {}) {
  * @param {Object[]} fields  the declarations
  * @param {Object} values    current values keyed by field id
  * @param {string[]} modelIds  the ids the Model slots are currently resolved to
+ * @param {{ media?: Set<string> }} [ctx]  optional media context; `ctx.media` is the set of
+ *        roles that currently hold a file (D4, MPI-1101)
  * @returns {Set<string>}    ids to render hidden
  */
-export function hiddenFieldIds(fields = [], values = {}, modelIds = []) {
+export function hiddenFieldIds(fields = [], values = {}, modelIds = [], ctx = {}) {
     const picked = modelIds || [];
     const out = new Set();
     (fields || []).forEach((f) => {
@@ -401,11 +409,11 @@ export function hiddenFieldIds(fields = [], values = {}, modelIds = []) {
         if (f.hidden) { out.add(f.id); return; }
         const rule = f?.hiddenWhen;
         if (!rule) return;
-        // A field rule, or a list of them (all must hold): `ruleHolds` decides. Its `isNot`
-        // is a key test, not a truthiness one, so `isNot: ''` (reveal unless the source is
-        // blank) and `isNot: 0` stay legal clauses.
-        if (rule.field || Array.isArray(rule)) {
-            if (ruleHolds(rule, values)) out.add(f.id);
+        // A field/media rule, or a list of them (all must hold): `ruleHolds` decides.
+        // Its `isNot` is a key test, not a truthiness one, so `isNot: ''` (reveal unless
+        // the source is blank) and `isNot: 0` stay legal clauses.
+        if (rule.field || Array.isArray(rule) || rule.media) {
+            if (ruleHolds(rule, values, ctx)) out.add(f.id);
             return;
         }
         if (rule.model) { if (picked.includes(rule.model)) out.add(f.id); return; }

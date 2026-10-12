@@ -25,7 +25,7 @@ import { enhanceFlow, backendPreference, describeImage, describeBackendPreferenc
 import { clientLogger } from './clientLogger.js';
 import { firstFrameDataUrl } from '../utils/video.js';
 import { resolveMediaUrl } from '../utils/mediaActions.js';
-import { getFlowById, flowModelIds, ruleHolds } from '../data/flowsRegistry.js';
+import { getFlowById, flowModelIds, ruleHolds, flowMediaCtx } from '../data/flowsRegistry.js';
 import { mapDeclaredValue, hiddenFieldIds, isInjectionParam } from '../utils/declaredFields.js';
 
 /**
@@ -323,7 +323,8 @@ function _enhanceFailure(flow, error, code) {
  * caption. The message carries the enhancer's own error and a Remote > Language Models hint.
  *
  * @param {Object} flow  a FlowDef
- * @param {{inputs?: Object, injectionParams?: Object}} resolved  `resolveFlowFieldValues` output
+ * @param {{inputs?: Object, injectionParams?: Object, mediaItems?: Object[]}} resolved
+ *        `resolveFlowFieldValues` output; `mediaItems` is optional media context (D4 MPI-1101)
  * @param {{enhance?: Function}} [deps]  the dispatch; a test stubs it
  * @returns {Promise<{ok: true, injectionParams: Object, inputs: Object}
  *                  |{ok: false, code: 'ENHANCE_FAILED'|'CANCELLED', message: string}>}
@@ -337,10 +338,11 @@ export async function enhanceFlowRun(flow, resolved, deps = { enhance: runEnhanc
     const pool = _declaredPool(flow);
     // A working copy: a second declaration reads what the first wrote, as on a hand run.
     const values = { ...(resolved?.inputs || {}), ...(resolved?.injectionParams || {}) };
+    const mediaCtx = flowMediaCtx(resolved?.mediaItems);
     const wrote = new Set();
 
     for (const d of decls) {
-        const hidden = new Set(hiddenFieldIds(pool, values, flowModelIds(flow)));
+        const hidden = new Set(hiddenFieldIds(pool, values, flowModelIds(flow), mediaCtx));
         const source = enhanceSourceText(d, pool, values, hidden, { graphValues: true });
         if (!source) continue;
         if (!enhanceTargets(d).some(id => _isBlank(values[id]))) continue;

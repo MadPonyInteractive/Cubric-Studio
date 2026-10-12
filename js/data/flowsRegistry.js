@@ -178,7 +178,9 @@
  *                                       (on = `true`, falling back to its default: MPI-997). A rule
  *                                       `{ field, is | isNot | in | atMost | below | atLeast }`, or an
  *                                       array of them (ALL must hold), reads the run's field values
- *                                       through `ruleHolds()`. Omit and the leg always runs.
+ *                                       through `ruleHolds()`. A media rule `{ media: '<role>',
+ *                                       present: true|false }` tests whether that media role was given
+ *                                       (`present` omitted = `true`). Omit and the leg always runs.
  * @property {string}  [toggle] - A declared TOGGLE field that picks which VERSION the card shows, not
  *                                       whether the leg runs (MPI-1087): the leg always runs and lands as
  *                                       the next version; off, the card keeps showing the version before
@@ -3166,29 +3168,60 @@ function _num(v) {
 }
 
 /**
- * Whether a field rule holds against the run's values. ONE evaluator for `hiddenWhen`,
- * `disabledWhen`, a describe entry's `when` and a leg's `when`, so a flow author who has met one
- * has met all four.
+ * Whether a rule holds against the run's values and media context. ONE evaluator for
+ * `hiddenWhen`, `disabledWhen`, a describe entry's `when` and a leg's `when`/`unless`, so a
+ * flow author who has met one has met all four.
  *
- * A rule is `{ field, is | isNot | in | atMost | below | atLeast }`:
- *   `is` / `isNot`  strict equality with a value (`isNot: ''` and `isNot: 0` are legal);
- *   `in`            the value is one of a list;
- *   `atMost` (<=), `below` (<), `atLeast` (>=)  numeric. A missing or non-numeric value
- *                   fails them all, so a rule on a slider never fires on a blank.
- * Several tests in one rule must ALL hold (`{ field, atLeast: 1, atMost: 12 }`), and an ARRAY of
- * rules holds when every rule does. A rule with no test at all is `is: undefined`, which is what
- * `hiddenWhen` has always made of it.
+ * Two rule shapes are supported:
  *
- * It evaluates FIELD rules only. `{ model }`, `{ modelNot }` (hiddenWhen) and `{ media }`
- * (describe) read things this does not have, and stay with their callers.
+ *   FIELD: `{ field, is | isNot | in | atMost | below | atLeast }`
+ *     `is` / `isNot`  strict equality with a value (`isNot: ''` and `isNot: 0` are legal);
+ *     `in`            the value is one of a list;
+ *     `atMost` (<=), `below` (<), `atLeast` (>=)  numeric. A missing or non-numeric value
+ *                     fails them all, so a rule on a slider never fires on a blank.
+ *     Several tests in one rule must ALL hold (`{ field, atLeast: 1, atMost: 12 }`).
+ *     A rule with no test at all is `is: undefined`, which is what `hiddenWhen` has always
+ *     made of it.
+ *
+ *   MEDIA: `{ media: '<role>', present: true|false }`
+ *     Tests whether the named media role was given. `present` omitted = `true` (the role IS
+ *     present). Requires `ctx.media` — a `Set<string>` of the roles that carry a file. If
+ *     `ctx` is absent or `ctx.media` is not a Set, the role is treated as absent (all
+ *     `present: true` media rules fail; all `present: false` pass), so callers that do not
+ *     yet pass media context are SAFE but will always take the no-media path.
+ *
+ * An ARRAY of rules holds when every rule does. `{ model }` and `{ modelNot }` (`hiddenWhen`)
+ * read the resolved model slots and stay with their callers; they are never passed here.
  *
  * @param {Object|Object[]|null|undefined} rule
  * @param {Object} [values] - the run's values keyed by field id
+ * @param {{ media?: Set<string> }} [ctx] - optional media context; `ctx.media` is the set of
+ *        roles that currently hold a file
  * @returns {boolean}
  */
-export function ruleHolds(rule, values = {}) {
-    if (Array.isArray(rule)) return rule.every(r => ruleHolds(r, values));
+/**
+ * Build the media context a `ruleHolds` call needs from a `mediaItems` array.
+ * Returns `{ media: Set<role> }` where the set contains every role that carries a file
+ * (has a non-empty `url` or `filePath`).  Safe to call with null/undefined.
+ * @param {Array<Object>|null|undefined} mediaItems
+ * @returns {{ media: Set<string> }}
+ */
+export function flowMediaCtx(mediaItems) {
+    const media = new Set();
+    for (const m of mediaItems || []) {
+        if (m?.role && (m.url || m.filePath)) media.add(m.role);
+    }
+    return { media };
+}
+
+export function ruleHolds(rule, values = {}, ctx = {}) {
+    if (Array.isArray(rule)) return rule.every(r => ruleHolds(r, values, ctx));
     if (!rule) return true;
+    if ('media' in rule) {
+        const mediaRoles = ctx.media instanceof Set ? ctx.media : new Set();
+        const present = rule.present !== false; // omitted means true (role IS present)
+        return present ? mediaRoles.has(rule.media) : !mediaRoles.has(rule.media);
+    }
     const value = values?.[rule.field];
     const tests = Object.keys(RULE_TESTS).filter(key => key in rule);
     if (!tests.length) return value === rule.is;
@@ -3239,18 +3272,26 @@ export function flowToggleLeg(flow) {
 /**
  * Whether a leg runs on this run. No `when`: always. A string names a toggle and wants `true`
  * (its declared default when the run carries none: MPI-997); a rule or a list of rules is
- * `ruleHolds` against the run's values.
+ * `ruleHolds` against the run's values and media context.
+ *
+ * Media rules (`{ media, present }`) require `ctx.media` to be a `Set<string>` of present
+ * roles. Callers that do not yet pass `ctx` are safe: the rule takes the no-media path
+ * (see `ruleHolds` for details). To wire media end-to-end, `flowRunLegs` and its callers
+ * (`flowService.js`, `agentDispatch.js`, `MpiBaseFlow.js`) must each accept and forward a
+ * context argument — see the report at the end of the task for the exact call sites.
+ *
  * @param {FlowDef} flow
  * @param {FlowLeg} leg
  * @param {Object} run
+ * @param {{ media?: Set<string> }} [ctx]
  * @returns {boolean}
  */
-function legWanted(flow, leg, run) {
+function legWanted(flow, leg, run, ctx = {}) {
     if (!leg.when && !leg.unless) return true;
     const values = flowRunValues(flow, run);
-    if (leg.unless && ruleHolds(leg.unless, values)) return false;
+    if (leg.unless && ruleHolds(leg.unless, values, ctx)) return false;
     if (!leg.when) return true;
-    return typeof leg.when === 'string' ? values[leg.when] === true : ruleHolds(leg.when, values);
+    return typeof leg.when === 'string' ? values[leg.when] === true : ruleHolds(leg.when, values, ctx);
 }
 
 /**
@@ -3285,13 +3326,13 @@ export function flowOperations(flow) {
  * @param {Object} [run]
  * @returns {{index: number, operation: string, leg: ?FlowLeg}[]}
  */
-export function flowRunLegs(flow, run = {}) {
+export function flowRunLegs(flow, run = {}, ctx = flowMediaCtx(run?.mediaItems)) {
     const first = flowOperation(flow, run);
     const legs = [
         ...(first ? [{ index: -1, operation: first, leg: null }] : []),
         ...flowLegs(flow)
             .map((leg, index) => ({ index, operation: leg.operation, leg }))
-            .filter(({ leg }) => legWanted(flow, leg, run)),
+            .filter(({ leg }) => legWanted(flow, leg, run, ctx)),
     ];
     // A `toggle` leg always runs (MPI-1087), but with its toggle off it only lands a version the
     // card does not show, so with nothing run before it there is nothing to keep showing.
@@ -3308,14 +3349,14 @@ export function flowRunLegs(flow, run = {}) {
  * @param {Object} [run] - the run's inputs; none runs leg 1 on its default op alone
  * @returns {{available: boolean, missing: string[], missingDeps: string[], reason?: string}}
  */
-export function flowRunAvailability(flowOrId, run = {}) {
+export function flowRunAvailability(flowOrId, run = {}, ctx = flowMediaCtx(run?.mediaItems)) {
     const flow = typeof flowOrId === 'string' ? getFlowById(flowOrId) : flowOrId;
     const base = flowAvailability(flow);
     if (!flow || flow.disabledReason) return base;
     const installed = state.s_installedModelIds || [];
     const slots = flowModelSlots(flow);
     const missing = [...base.missing];
-    for (const { operation } of flowRunLegs(flow, run)) {
+    for (const { operation } of flowRunLegs(flow, run, ctx)) {
         flowModelIds(flow, { op: operation }).forEach((id, i) => {
             if (id && slots[i].optional && !installed.includes(id) && !missing.includes(id)) missing.push(id);
         });

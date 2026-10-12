@@ -1143,6 +1143,39 @@
 }
 .mpi-base-flow__pending[hidden] { display: none; }
 
+/* ── Result Tiles (MPI-1101 Phase 3) ─────────────────────────────────────── */
+
+/* Tiled-repeat overlay — fills the result frame, shown when Tiles > 1. */
+.mpi-base-flow__result-tiles-view {
+    position: absolute;
+    inset: 0;
+    background-position: 0 0;
+    /* background-image / background-repeat / background-size set by JS */
+}
+.mpi-base-flow__result-tiles-view[hidden] { display: none; }
+
+/* Slider row between the result frame and the "Saved to gallery" note. */
+.mpi-base-flow__result-tiles {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-2) 0;
+    min-height: 0;
+}
+.mpi-base-flow__result-tiles[hidden] { display: none; }
+
+.mpi-base-flow__result-tiles__label {
+    font-size: var(--t-sm);
+    color: var(--ink-3);
+    white-space: nowrap;
+    user-select: none;
+}
+
+.mpi-base-flow__result-tiles__slider {
+    flex: 1;
+    min-width: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .mpi-base-flow__slide,
     .mpi-base-flow__result-latent,

@@ -390,6 +390,18 @@ async function _stitchOutputs(urls, stitch) {
     return out;
 }
 
+/** A Make seamless window's output, pasted into its run's working copy: the whole picture's URL (MPI-1101). */
+async function _pasteSeamlessWindow(viewUrl, { runId, i }) {
+    const post = async (route, body) => {
+        const res = await fetch(route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.ok) throw new Error(data?.error?.message || `${route} returned ${res.status}`);
+        return data;
+    };
+    await post('/seamless/paste', { runId, i, viewUrl });
+    return (await post('/seamless/finish', { runId })).url;
+}
+
 /**
  * @typedef {Object} RunPayload
  * @property {string}   operation    - Command key (e.g. 't2i', 'upscale')
@@ -2489,6 +2501,22 @@ export function runCommand(payload) {
                     generationStore.settle(jobId, PHASES.ERROR, { error: err.message });
                     closeComfyEventSource();
                     Events.emit('ui:error', { title: 'The edit could not be put back into the photo', message: err.message });
+                    exec.onError?.(err);
+                    return;
+                }
+            }
+            // MPI-1101 D2: a Make seamless pass's output is one WINDOW of the picture. It is pasted
+            // into the server's working copy and the WHOLE picture, as it stands, is what saves;
+            // every later window replaces that version (`replaceItemId`), so the run is one card
+            // that heals seam by seam. A failed paste fails the run, as a failed stitch does.
+            if (COMMANDS[workingPayload.operation]?.pastesToWorkingCopy && workingPayload.seamless && outputUrls.length) {
+                try {
+                    outputUrls.splice(0, outputUrls.length, await _pasteSeamlessWindow(outputUrls[0], workingPayload.seamless));
+                } catch (err) {
+                    clientLogger.error('commandExecutor', `Could not paste the window back into the picture (${workingPayload.operation})`, err);
+                    generationStore.settle(jobId, PHASES.ERROR, { error: err.message });
+                    closeComfyEventSource();
+                    Events.emit('ui:error', { title: 'The repaired seam could not be put back into the picture', message: err.message });
                     exec.onError?.(err);
                     return;
                 }

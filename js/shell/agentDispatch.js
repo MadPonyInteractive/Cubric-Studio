@@ -60,6 +60,7 @@ import { sizeToGb } from '../data/modelConstants/footprint.js';
 import {
     getFlowById, listFlows, flowAvailability, flowRunAvailability, flowRunLegs, flowModelSlots, flowModelIds,
 } from '../data/flowsRegistry.js';
+import { buildCropPassNext, getPlanner } from '../utils/flowPasses.js';
 import { retiredFlowMessage } from '../data/retiredFlows.js';
 import { resolveFlowFieldValues, agentFieldSpecs } from '../utils/declaredFields.js';
 import { enhanceFlowRun } from '../services/flowEnhance.js';
@@ -70,7 +71,6 @@ import { CROP_RATIOS } from '../utils/ratios.js';
 import { resolveMediaUrl, extractAbsPath, extractFilenameFromPath } from '../utils/mediaActions.js';
 import { isSrt, srtToText } from '../utils/srt.js';
 import { stepValueToMedia } from '../components/Blocks/MpiBaseFlow/stepKinds.js';
-import { composeNextPass } from '../components/Organisms/MpiStepCrop/MpiStepCrop.js';
 import { planOutpaintPasses } from '../utils/outpaintPasses.js';
 import { loadVoiceLibrary } from '../data/voiceLibrary.js';
 import { voiceWavFile } from '../utils/toWavFile.js';
@@ -1062,26 +1062,18 @@ async function _placePreviewAsset(file, project, ext = '.png') {
 }
 
 /**
- * The `runNextPass` hook flowService calls as each pass completes (MPI-900): the previous
- * RESULT padded out to the next frame, swapped into the source's slot. MpiBaseFlow's
- * `_planPasses` is the same hook over the user's frame; this one runs with no frame open.
+ * Build the `runNextPass` hook for an outpaint run (MPI-900).  Delegates to
+ * `buildCropPassNext` from flowPasses.js — the shared planner core that both this
+ * path and MpiBaseFlow use.
  *
  * @param {Array<Object>} plan - every pass's frame in source px (`planOutpaintPasses`)
  * @param {Array<Object>} mediaItems - the run's media, pass 1's padded picture in it
  * @param {Object} source - the item in `mediaItems` each pass replaces
  * @param {Object} project - the project the run lands in, open or not (MPI-873)
+ * @returns {{ count: number, next: Function }}
  */
 function _nextPassFor(plan, mediaItems, source, project) {
-    let ran = 0; // index of the pass that just completed
-    return async ({ item } = {}) => {
-        const file = await composeNextPass(item, plan[ran], plan[ran + 1]);
-        ran += 1;
-        const url = file ? await _placePreviewAsset(file, project) : null;
-        return url ? {
-            media: mediaItems.map(m => (m === source ? { ...m, url, filePath: url } : m)),
-            last: ran === plan.length - 1,
-        } : null;
-    };
+    return buildCropPassNext(plan, mediaItems, source, (file) => _placePreviewAsset(file, project));
 }
 
 /**
@@ -1395,6 +1387,28 @@ export async function buildFlow(input, project) {
 
     const injectionParams = { ...fieldInjection, ...enhanced.injectionParams, ...boxInjection };
 
+    // Build the multi-pass hook (if applicable) and extract the pass count for the status bar.
+    const passNext = passPlan ? _nextPassFor(passPlan, mediaItems, cropSource, project) : null;
+
+    // Generic planner support: when no crop plan is present and the flow registers a planner
+    // (e.g. flowMakeSeamless), call it now so the agent path runs the same multi-pass logic
+    // as MpiBaseFlow._planPasses.  `inputs` stands in for stepValues (the agent's field
+    // values map onto the same keys the planner reads — edges step role, lightingFlatten).
+    let genericPlan = null;
+    if (!passPlan) {
+        const planner = getPlanner(flow.passes) || getPlanner(flow.operation);
+        if (planner) {
+            try {
+                genericPlan = await planner(flow, inputs, mediaItems, { fetch: globalThis.fetch });
+            } catch (err) {
+                clientLogger.error('connector', `flow planner failed: ${err?.message || err}`);
+            }
+            // A Flow that plans its passes cannot run as one pass on the whole picture: that is a
+            // different, wrong result, so a plan that did not come back refuses the run.
+            if (!genericPlan) return _refuse('RUNTIME_ERROR', `${flow.title} could not prepare its picture. Nothing was generated.`);
+        }
+    }
+
     return {
         ok: true,
         flow,
@@ -1403,7 +1417,14 @@ export async function buildFlow(input, project) {
             ...enhanced.inputs,
             mediaItems,
             ...(Object.keys(injectionParams).length ? { injectionParams } : {}),
-            ...(passPlan ? { runNextPass: _nextPassFor(passPlan, mediaItems, cropSource, project) } : {}),
+            // Outpaint (crop) planner — unchanged path.
+            ...(passNext ? { runNextPass: passNext.next } : {}),
+            ...(passNext?.runPass ? { runPass: passNext.runPass } : {}),
+            // Generic planner (e.g. seamless): firstPassMedia as runMediaItems so the
+            // snapshot keeps the original picture, and D2 metadata for commandExecutor.
+            ...(genericPlan?.firstPassMedia ? { runMediaItems: genericPlan.firstPassMedia } : {}),
+            ...(genericPlan ? { runNextPass: genericPlan.next } : {}),
+            ...(genericPlan?.runPass ? { runPass: genericPlan.runPass } : {}),
             runOriginProject: project,
         },
     };
