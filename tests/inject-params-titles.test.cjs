@@ -1364,5 +1364,10 @@ test('the Make seamless Flow carries its window I/O, the joined prompt and NO re
     // seam included. Pinned so a re-export from the Character Sheet branch cannot bring it back.
     assert.ok(!Object.values(graph).some(n => n.class_type === 'ReferenceLatent'),
         `${file} must carry no ReferenceLatent`);
-    assert.ok(Object.values(graph).some(n => n.class_type === 'LanPaint_KSampler'), `${file} repaints with LanPaint`);
+    const lan = Object.values(graph).find(n => n.class_type === 'LanPaint_KSampler');
+    assert.ok(lan, `${file} repaints with LanPaint`);
+    // The window's mask ramps from 0 at the band edges (seamlessOps.windowCut); only DifferentialDiffusion
+    // turns that ramp into per-pixel strength. Without it the band's edges showed as lines (MPI-1101 eye test).
+    assert.equal(graph[lan.inputs.model[0]]?.class_type, 'DifferentialDiffusion',
+        `${file}: LanPaint's model must come through DifferentialDiffusion`);
 });

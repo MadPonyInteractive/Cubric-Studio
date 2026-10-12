@@ -1,8 +1,8 @@
 {
  "id": "6e2b6c0e-1101-4d1a-9a5e-5ea3a1e55101",
  "revision": 0,
- "last_node_id": 24,
- "last_link_id": 28,
+ "last_node_id": 25,
+ "last_link_id": 29,
  "nodes": [
   {
    "id": 1,
@@ -198,7 +198,7 @@
      "name": "int",
      "type": "INT",
      "links": [
-      20
+      21
      ],
      "slot_index": 0
     }
@@ -520,7 +520,7 @@
      "type": "VAE",
      "links": [
       13,
-      24
+      25
      ],
      "slot_index": 0
     }
@@ -553,7 +553,7 @@
      "name": "int",
      "type": "INT",
      "links": [
-      21
+      22
      ],
      "slot_index": 0
     }
@@ -586,7 +586,7 @@
      "name": "float",
      "type": "FLOAT",
      "links": [
-      22
+      23
      ],
      "slot_index": 0
     }
@@ -691,7 +691,7 @@
      "name": "stitcher",
      "type": "STITCHER",
      "links": [
-      25
+      26
      ],
      "slot_index": 0
     },
@@ -861,7 +861,7 @@
      "name": "CONDITIONING",
      "type": "CONDITIONING",
      "links": [
-      18
+      19
      ],
      "slot_index": 0
     }
@@ -898,7 +898,7 @@
      "name": "CONDITIONING",
      "type": "CONDITIONING",
      "links": [
-      17
+      18
      ],
      "slot_index": 0
     }
@@ -943,7 +943,7 @@
      "name": "LATENT",
      "type": "LATENT",
      "links": [
-      19
+      20
      ],
      "slot_index": 0
     }
@@ -973,27 +973,27 @@
     {
      "name": "model",
      "type": "MODEL",
-     "link": 16
+     "link": 17
     },
     {
      "name": "positive",
      "type": "CONDITIONING",
-     "link": 17
+     "link": 18
     },
     {
      "name": "negative",
      "type": "CONDITIONING",
-     "link": 18
+     "link": 19
     },
     {
      "name": "latent_image",
      "type": "LATENT",
-     "link": 19
+     "link": 20
     },
     {
      "name": "seed",
      "type": "INT",
-     "link": 20,
+     "link": 21,
      "widget": {
       "name": "seed"
      }
@@ -1001,7 +1001,7 @@
     {
      "name": "steps",
      "type": "INT",
-     "link": 21,
+     "link": 22,
      "widget": {
       "name": "steps"
      }
@@ -1009,7 +1009,7 @@
     {
      "name": "cfg",
      "type": "FLOAT",
-     "link": 22,
+     "link": 23,
      "widget": {
       "name": "cfg"
      }
@@ -1020,7 +1020,7 @@
      "name": "LATENT",
      "type": "LATENT",
      "links": [
-      23
+      24
      ],
      "slot_index": 0
     }
@@ -1061,12 +1061,12 @@
     {
      "name": "samples",
      "type": "LATENT",
-     "link": 23
+     "link": 24
     },
     {
      "name": "vae",
      "type": "VAE",
-     "link": 24
+     "link": 25
     }
    ],
    "outputs": [
@@ -1074,7 +1074,7 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      26
+      27
      ],
      "slot_index": 0
     }
@@ -1103,12 +1103,12 @@
     {
      "name": "stitcher",
      "type": "STITCHER",
-     "link": 25
+     "link": 26
     },
     {
      "name": "inpainted_image",
      "type": "IMAGE",
-     "link": 26
+     "link": 27
     }
    ],
    "outputs": [
@@ -1116,7 +1116,7 @@
      "name": "image",
      "type": "IMAGE",
      "links": [
-      27
+      28
      ],
      "slot_index": 0
     }
@@ -1145,7 +1145,7 @@
     {
      "name": "passthrough",
      "type": "*",
-     "link": 27
+     "link": 28
     }
    ],
    "outputs": [
@@ -1153,7 +1153,7 @@
      "name": "passthrough",
      "type": "*",
      "links": [
-      28
+      29
      ],
      "slot_index": 0
     }
@@ -1182,7 +1182,7 @@
     {
      "name": "images",
      "type": "IMAGE",
-     "link": 28
+     "link": 29
     }
    ],
    "outputs": [],
@@ -1193,6 +1193,43 @@
    },
    "widgets_values": null,
    "title": "Output_Image"
+  },
+  {
+   "id": 25,
+   "type": "DifferentialDiffusion",
+   "pos": [
+    1840,
+    1440
+   ],
+   "size": [
+    270,
+    60
+   ],
+   "flags": {},
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 16
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      17
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "DifferentialDiffusion"
+   },
+   "widgets_values": [
+    1
+   ]
   }
  ],
  "links": [
@@ -1320,12 +1357,20 @@
    16,
    8,
    0,
-   20,
+   25,
    0,
    "MODEL"
   ],
   [
    17,
+   25,
+   0,
+   20,
+   0,
+   "MODEL"
+  ],
+  [
+   18,
    18,
    0,
    20,
@@ -1333,7 +1378,7 @@
    "CONDITIONING"
   ],
   [
-   18,
+   19,
    17,
    0,
    20,
@@ -1341,7 +1386,7 @@
    "CONDITIONING"
   ],
   [
-   19,
+   20,
    19,
    0,
    20,
@@ -1349,7 +1394,7 @@
    "LATENT"
   ],
   [
-   20,
+   21,
    3,
    0,
    20,
@@ -1357,7 +1402,7 @@
    "INT"
   ],
   [
-   21,
+   22,
    11,
    0,
    20,
@@ -1365,7 +1410,7 @@
    "INT"
   ],
   [
-   22,
+   23,
    12,
    0,
    20,
@@ -1373,7 +1418,7 @@
    "FLOAT"
   ],
   [
-   23,
+   24,
    20,
    0,
    21,
@@ -1381,7 +1426,7 @@
    "LATENT"
   ],
   [
-   24,
+   25,
    10,
    0,
    21,
@@ -1389,7 +1434,7 @@
    "VAE"
   ],
   [
-   25,
+   26,
    14,
    0,
    22,
@@ -1397,7 +1442,7 @@
    "STITCHER"
   ],
   [
-   26,
+   27,
    21,
    0,
    22,
@@ -1405,7 +1450,7 @@
    "IMAGE"
   ],
   [
-   27,
+   28,
    22,
    0,
    23,
@@ -1413,7 +1458,7 @@
    "IMAGE"
   ],
   [
-   28,
+   29,
    23,
    0,
    24,

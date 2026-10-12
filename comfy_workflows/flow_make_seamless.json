@@ -273,7 +273,7 @@
       "LanPaint_Info": "LanPaint KSampler. For more info, visit https://github.com/scraed/LanPaint. If you find it useful, please give a star ⭐️!",
       "Inpainting_mode": "🖼️ Image Inpainting",
       "model": [
-        "8",
+        "25",
         0
       ],
       "positive": [
@@ -360,6 +360,19 @@
     "class_type": "PreviewImage",
     "_meta": {
       "title": "Output_Image"
+    }
+  },
+  "25": {
+    "inputs": {
+      "strength": 1,
+      "model": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "DifferentialDiffusion",
+    "_meta": {
+      "title": "Differential Diffusion"
     }
   }
 }

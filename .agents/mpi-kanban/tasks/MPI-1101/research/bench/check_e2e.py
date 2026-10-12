@@ -22,6 +22,28 @@ def wrap(a):
 
 
 print('wrap ratio source %.2f -> result %.2f' % (wrap(src), wrap(res)))
+
+
+# The band EDGES, not only the wrap: a wrap at 1.2-1.35 still failed Fabio's eye because each band edge showed as a
+# vertical line. Per row, |mean of 16 columns one side - 16 the other|, worst within 96 px of the edge, over the same
+# statistic at 600 ordinary columns; then over the SOURCE's own value there (1.00 = the paste added no line).
+# Calibrated on the run Fabio failed (32 px feather): 1.61 / 1.34.
+def luma(a):
+    return a.astype(np.float32) @ np.array([0.299, 0.587, 0.114], np.float32)
+
+
+def jump(L, x, k=16):
+    return np.abs(L[:, x:x + k].mean(axis=1) - L[:, x - k:x].mean(axis=1)).mean()
+
+
+def edge(L, e, scan=96):
+    xs = np.random.default_rng(0).integers(hi + scan + 16, lo - scan - 16, 600)
+    return max(jump(L, x) for x in range(e - scan, e + scan, 4)) / np.median([jump(L, x) for x in xs])
+
+
+Ls, Lr = luma(src), luma(res)
+for e in (hi, lo):
+    print('band edge x=%d: line %.2f (result %.2f / source %.2f)' % (e, edge(Lr, e) / edge(Ls, e), edge(Lr, e), edge(Ls, e)))
 h = res.shape[0]
 join = np.concatenate([res[:, w - 1024:], res[:, :1024]], axis=1).astype(np.uint8)
 Image.fromarray(join).resize((1024, h * 1024 // 2048)).save(sys.argv[3], quality=90)

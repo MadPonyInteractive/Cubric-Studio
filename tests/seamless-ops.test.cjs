@@ -24,7 +24,7 @@ const sharp = require(path.join(ROOT, 'node_modules', 'sharp'));
 sharp.cache({ files: 0 });
 
 const {
-    bandRange, planAxis, rollImage, lightenFlatten, makeMaskBuffer,
+    bandRange, planAxis, rollImage, lightenFlatten, makeMaskBuffer, rampMaskBuffer,
     prepare, windowCut, paste, finish,
 } = require(path.join(ROOT, 'services', 'seamlessOps'));
 
@@ -174,6 +174,23 @@ test('makeMaskBuffer: 0 outside the sub-rect; feathered inward, never past it', 
     }
     assert.equal(soft[5], 0, 'the band edge ramps from 0');
     assert.ok(soft[9] > soft[6], 'and rises inward');
+});
+
+test('rampMaskBuffer: 0 at the band edges, full strength at the seam, 0 outside paint', () => {
+    // band [100, 200) across x; the model may only touch it from 0 at its edges, rising smoothly
+    const band = { start: 100, end: 200 };
+    const rect = { left: 50, top: 0, width: 200, height: 2 };
+    const m = rampMaskBuffer(rect, { left: 100, top: 0, width: 100, height: 2 }, 'x', band);
+    const at = x => m[x - rect.left];
+    assert.equal(at(99), 0, 'outside the band');
+    assert.equal(at(200), 0, 'outside the band');
+    assert.equal(at(100), 0, 'the band edge is untouched');
+    assert.equal(at(199), 0, 'the band edge is untouched');
+    assert.equal(at(150), 255, 'the seam is repainted at full strength');
+    for (let x = 101; x < 150; x++) assert.ok(at(x) >= at(x - 1), `rises toward the seam at ${x}`);
+    // a band split into columns: the two columns meet at full strength, no ridge between them
+    const left = rampMaskBuffer({ left: 50, top: 0, width: 150, height: 1 }, { left: 100, top: 0, width: 50, height: 1 }, 'x', band);
+    assert.equal(left[149 - 50], 255, 'a column\'s inner side is not ramped');
 });
 
 test('planAxis: wide x-band (>4096) splits into columns, still painted once', () => {

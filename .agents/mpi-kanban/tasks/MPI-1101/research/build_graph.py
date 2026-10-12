@@ -6,9 +6,9 @@ Outpaint's join (raw/flow_outpaint.json 112/666/667/685): a baked instruction + 
 line saying what the picture shows (the user's prompt, else the app's describer). Without that line a
 reference-free Klein paints unrelated things into the band (round 4).
 
-Graph: Input_Image (the window cut) + Input_Mask (red = the band) -> MpiMaskSquareBbox(64) -> InpaintCropImproved
+Graph: Input_Image (the window cut) + Input_Mask (red = the band, ramped) -> MpiMaskSquareBbox(64) -> InpaintCropImproved
 (target 1024, blend 32) -> VAEEncode -> SetLatentNoiseMask -> LanPaint_KSampler (4 steps, cfg 1, denoise 1) on
-FluxGuidance 4 -> VAEDecode -> InpaintStitchImproved -> MpiClearVram -> Output_Image. The app pastes the band back
+FluxGuidance 4, model through DifferentialDiffusion -> VAEDecode -> InpaintStitchImproved -> MpiClearVram -> Output_Image. The app pastes the band back
 itself (services/seamlessOps.js), so the stitch's own bleed never reaches the picture.
 
 usage (repo root): python .agents/mpi-kanban/tasks/MPI-1101/research/build_graph.py"""
@@ -81,6 +81,14 @@ take(cs, 56, 21, pos=[2720, 0])
 take(cs, 57, 22, title='Inpaint Stitch', pos=[3160, 0])
 take(cs, 60, 23, pos=[3600, 0])
 take(cs, 61, 24, pos=[4040, 0])
+# The app's mask RAMPS from 0 at each band edge to full strength near the seam (seamlessOps.windowCut).
+# DifferentialDiffusion makes LanPaint read that ramp as per-pixel denoise strength, so the band's outer part
+# keeps the picture's own content and only the seam is repainted freely. With a hard mask the model redrew the
+# whole band and its edges showed as two lines (Fabio's eye test, 2026-10-12); a ramp without it ghosted.
+nodes[25] = {'id': 25, 'type': 'DifferentialDiffusion', 'pos': [1840, 1440], 'size': [270, 60], 'flags': {}, 'mode': 0,
+             'inputs': [{'name': 'model', 'type': 'MODEL', 'link': None}],
+             'outputs': [{'name': 'MODEL', 'type': 'MODEL', 'links': []}],
+             'properties': {'Node name for S&R': 'DifferentialDiffusion'}, 'widgets_values': [1]}
 
 link(4, 0, 6, 'string_a')
 link(5, 0, 6, 'string_b')
@@ -97,7 +105,8 @@ link(14, 1, 15, 'pixels')
 link(10, 0, 15, 'vae')
 link(15, 0, 19, 'samples')
 link(14, 2, 19, 'mask')
-link(8, 0, 20, 'model')
+link(8, 0, 25, 'model')
+link(25, 0, 20, 'model')
 link(18, 0, 20, 'positive')
 link(17, 0, 20, 'negative')
 link(19, 0, 20, 'latent_image')

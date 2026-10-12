@@ -51,6 +51,7 @@ const FEATHER_PX     = 32;                     // inward feather at band edges
 const CONTEXT_PX     = 256;                    // least picture each side of the band a cut shows the model
 const OVERLAP_PX     = 256;                    // least seam length a window re-reads from the one before
 const MAX_CUT        = 4096;                   // longest edge of a cut across the band
+const RAMP_FRAC      = 0.4;                    // the model's mask reaches full strength this far into the band
 const INPUT          = { limitInputPixels: false };
 
 /** runId comes off the wire: only a uuid may name a run dir, never a path that climbs out. */
@@ -303,6 +304,34 @@ function makeMaskBuffer(rect, sub, featherAxis = null) {
     return buf;
 }
 
+/**
+ * The model's mask for a window: 0 outside `paint`; inside it, a smoothstep from 0 at each edge of the
+ * whole band (`band` = { start, end } across `axis`, rolled pixels) to 255 RAMP_FRAC of the band in.
+ * The graph's DifferentialDiffusion reads it as per-pixel strength: near the band's edges the picture keeps
+ * its own content and only the seam is repainted freely. A hard band mask let the model redraw the band
+ * right up to its edges, which showed as two straight lines (MPI-1101 eye test, 2026-10-12). Measured from
+ * the BAND, not the window's column, so columns of a split band meet at full strength.
+ */
+function rampMaskBuffer(rect, paint, axis, band) {
+    const buf = makeMaskBuffer(rect, paint);
+    const ww = rect.width, wh = rect.height;
+    const ramp = Math.max(1, RAMP_FRAC * (band.end - band.start));
+    const n = axis === 'x' ? ww : wh;
+    const off = axis === 'x' ? rect.left : rect.top;
+    const level = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+        const t = Math.min(1, Math.max(0, Math.min(off + i - band.start, band.end - 1 - (off + i)) / ramp));
+        level[i] = t * t * (3 - 2 * t);
+    }
+    for (let y = 0; y < wh; y++) {
+        for (let x = 0; x < ww; x++) {
+            const p = y * ww + x;
+            if (buf[p]) buf[p] = Math.round(buf[p] * level[axis === 'x' ? x : y]);
+        }
+    }
+    return buf;
+}
+
 // ── Public operations ─────────────────────────────────────────────────────────
 
 /**
@@ -381,8 +410,8 @@ async function windowCut(runId, i) {
         .png()
         .toFile(imgPath);
 
-    // The model's mask: what is still to paint (the graph does its own edge blend).
-    const maskBuf  = makeMaskBuffer(rect, win.paint);
+    // The model's mask: what is still to paint, ramped up from the band's edges.
+    const maskBuf  = rampMaskBuffer(rect, win.paint, win.axis, win.axis === 'x' ? state.bandX : state.bandY);
     const maskPath = path.join(runDir, `win_${i}_mask.png`);
     await sharp(maskBuf, {
         raw: { width: rect.width, height: rect.height, channels: 1 },
@@ -462,5 +491,5 @@ module.exports = {
     // Public API
     prepare, windowCut, paste, finish, sweepScratch, runDirOf,
     // Exported for tests
-    bandRange, planAxis, rollImage, lightenFlatten, makeMaskBuffer,
+    bandRange, planAxis, rollImage, lightenFlatten, makeMaskBuffer, rampMaskBuffer,
 };
