@@ -50,6 +50,7 @@ const { SCHEMA_VERSION } = require('../js/migrations/projectMigrations');
 const { bakeOrientation } = require('./imageImport');
 const { prepareMaskedInput, prepareBoxedInput, stitchMaskCrop, applyMatte, uprightSize } = require('../services/engineMask');
 const { buildReferenceSheet } = require('./ingredientsSheet');
+const { projectSummary, mediaStats } = require('./projectListCache');
 
 const projectJsonQueues = new Map();
 const itemMetaQueues = new Map();
@@ -903,13 +904,10 @@ router.post('/list-projects', async (req, res) => {
                 if (!(await fs.pathExists(jsonPath))) return null;
                 try {
                     const p = await fs.readJson(jsonPath);
-                    let recentThumbnail = null;
-                    let recentThumbnailType = null;
-                    try {
-                        const mediaDir = path.join(root, entry, 'Media');
-                        ({ recentThumbnail, recentThumbnailType } = await findRecentProjectThumbnail(mediaDir));
-                    } catch (e) { /* silent fail for media scan */ }
-                    return { ...p, folderPath: diskFolder, recentThumbnail, recentThumbnailType, isDefaultRoot: isDefault };
+                    // Cover + stats from the folder-mtime cache (MPI-1058): a repeat landing
+                    // visit reads no sidecars, and the rows need no /project-stats call.
+                    const summary = await projectSummary(path.join(root, entry, 'Media'), findRecentProjectThumbnail);
+                    return { ...p, folderPath: diskFolder, ...summary, isDefaultRoot: isDefault };
                 } catch (_) { return null; /* skip corrupt entries */ }
             }));
             for (const s of scanned) if (s) projects.push(s);
@@ -3933,23 +3931,9 @@ router.get('/project-stats/:projectId', async (req, res) => {
             return res.json({ success: true, count, bytes });
         }
 
-        // Project mode: count + sum all media files (skip sidecars).
-        const entries = await fs.readdir(mediaDir);
-        const mediaExts = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'mp4', 'webm', 'mov', 'avi', 'mp3', 'wav', 'ogg', 'flac', 'm4a']);
-        let count = 0;
-        let bytes = 0;
-        for (const name of entries) {
-            if (name === '.meta' || name.endsWith('.json') || name.endsWith('.meta.json')) continue;
-            const ext = path.extname(name).toLowerCase().slice(1);
-            if (!mediaExts.has(ext)) continue;
-            const filePath = path.join(mediaDir, name);
-            try {
-                const stat = await fs.stat(filePath);
-                if (!stat.isFile()) continue;
-                count++;
-                bytes += stat.size;
-            } catch { /* skip */ }
-        }
+        // Project mode: count + sum all media files (skip sidecars). The landing's list
+        // carries the same numbers (projectListCache.js).
+        const { count, bytes } = await mediaStats(mediaDir);
         res.json({ success: true, count, bytes });
     } catch (err) {
         logger.error('project', 'project-stats error', err);

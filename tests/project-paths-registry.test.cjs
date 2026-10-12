@@ -212,3 +212,17 @@ test('a hidden entry is cleared when the path stops being that project', async (
         await stop();
     }
 });
+
+// MPI-1058: a project made directly in %TEMP% registered the temp folder itself, and every
+// landing visit then checked each of its 35,022 entries for a project.json (~1 s).
+test('the OS temp folder itself is never read back as a projects parent; its subfolders are', async () => {
+    const { readProjectPathsRegistry } = require('../routes/shared');
+    const keep = makeParent('Temp-Sibling');
+    const file = getProjectPathsRegistryFile();
+    const before = registryOnDisk();
+    fs.writeFileSync(file, JSON.stringify({ ...before, paths: [...before.paths, os.tmpdir(), `${os.tmpdir()}\\`, keep] }));
+    const paths = await readProjectPathsRegistry();
+    const tmp = os.tmpdir().replace(/\\/g, '/').toLowerCase();
+    assert.equal(paths.some(p => p.replace(/\/+$/, '').toLowerCase() === tmp), false, 'temp root dropped');
+    assert.ok(paths.includes(keep), 'a folder under temp still lists');
+});

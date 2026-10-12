@@ -11,6 +11,7 @@
 
 const fs     = require('fs-extra');
 const path   = require('path');
+const os     = require('os');
 const crypto = require('crypto');
 const { createRequire } = require('module');
 const logger = require('./logger');
@@ -220,6 +221,16 @@ const _norm = (p) => String(p).replace(/\\/g, '/');
 const _dedupe = (list) => [...new Set((Array.isArray(list) ? list : []).map(_norm))];
 
 /**
+ * The OS temp folder ITSELF is never a projects parent (MPI-1058). A project made directly
+ * in %TEMP% (an agent's test run, 2026-10-04) registered it, and from then on every
+ * /list-projects checked each of its entries for a project.json: 35,022 on the dev box,
+ * ~1 s of server time per landing visit, growing with every run. Read-side, so a registry
+ * that already holds it heals with no write. Subfolders (an agent's scratch projects) stay.
+ */
+const _tempRoot = _norm(os.tmpdir()).replace(/\/+$/, '').toLowerCase();
+const _isTempRoot = (p) => p.replace(/\/+$/, '').toLowerCase() === _tempRoot;
+
+/**
  * Read the whole registry document: `{ paths, hidden }`.
  *   - `paths`  — external project PARENT dirs to scan.
  *   - `hidden` — individual PROJECT folders to leave out of the listing even
@@ -232,7 +243,7 @@ async function _readRegistryDoc() {
         const file = getProjectPathsRegistryFile();
         if (!(await fs.pathExists(file))) return { paths: [], hidden: [] };
         const data = await fs.readJson(file);
-        return { paths: _dedupe(data?.paths), hidden: _dedupe(data?.hidden) };
+        return { paths: _dedupe(data?.paths).filter(p => !_isTempRoot(p)), hidden: _dedupe(data?.hidden) };
     } catch (err) {
         logger.warn('project', `project-paths registry read failed: ${err.message}`);
         return { paths: [], hidden: [] };
