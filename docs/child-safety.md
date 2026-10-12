@@ -159,9 +159,10 @@ young-looking 25-year-old edit and an anime adult. ~2.5 s a picture.
 - A Flow's cloud edit leg (`runCloudEdit`) sends pass 1 to the provider before the gate sees
   pass 2's enqueue; the provider's own moderation is all that stands there.
 - An Australian "thongs" (sandals) beside a child is read as underwear.
-- The Character Sheet Editor's optional Reference picture (an outfit to copy, Clothes only) is
-  refused with any age 0-17 (`characterSheetEditorRefusal`): it would dress a child in what
-  the picture shows with no word for the gate to read. With the age kept (-1), a reference is no
+- The Character Sheet Editor's optional Reference picture (an outfit, an accessory or a hairstyle
+  to copy) is refused with any age 0-17 (`characterSheetEditorRefusal`): it would dress a child in
+  what the picture shows with no word for the gate to read. A hairstyle picture reaches the prompt
+  as the describer's words (`refHair`), which the gate reads. With the age kept (-1), a reference is no
   wider than the words: a sheet that already shows a child passes like any photo above.
 - The Character Sheet Editor dresses an undressed sheet in the Clothes leg and does not look
   again: words that leave a child half-dressed without naming it ("just jeans") pass. A sheet

@@ -1695,7 +1695,7 @@ export const FLOWS = [
         // registered, so the layout holds and only the change moves.
         preview: 'flow-character-sheet-editor.webp',
         video: 'flow-character-sheet-editor.mp4',
-        description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words; for clothes you can add a picture of the outfit to copy instead. The result is a new card and the sheet you started from stays as it is. Body shape, and ages of 12 and under, run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
+        description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, and ages of 12 and under, run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
         // Each slot's rack fills its phase's nodes: Klein's Input_Lora_Phase1_* (the edit and age
         // legs), Qwen's Input_Lora_Phase2_* (Body shape). The child rebuild leg runs the
         // from-images graph, titled Phase1, so it takes no rack here.
@@ -1709,7 +1709,7 @@ export const FLOWS = [
             field: 'change',
             map: {
                 clothes: 'flowCharacterSheetEdit', accessories: 'flowCharacterSheetEdit',
-                hair: 'flowCharacterSheetEdit', condition: 'flowCharacterSheetEdit',
+                hair: 'flowCharacterSheetEdit', condition: 'flowCharacterSheetEdit', custom: 'flowCharacterSheetEdit',
                 body: 'flowCharacterSheetEditQwen', none: null,
             },
         },
@@ -1731,9 +1731,10 @@ export const FLOWS = [
         inputSchema: {
             media: [
                 { type: 'image', mode: 'upto', max: 1, roles: ['image1'], labels: ['Character sheet'] },
-                // Optional (Fabio, 2026-10-10): an outfit to copy, for Clothes only - a hat or a hairstyle
-                // from a picture missed panels (MPI-1041 F2); any other change ignores it. Not with an age under 18.
-                { type: 'image', mode: 'upto', max: 1, roles: ['image2'], labels: ['Reference picture (optional)'] },
+                // Optional (Fabio, 2026-10-10): an outfit, an accessory or a hairstyle to copy, for Clothes,
+                // Accessories and Hairstyle (MPI-1086); any other change ignores it. Accessories need words
+                // naming it; a hairstyle is put into words by `refHair` below. Not with an age under 18.
+                { type: 'image', mode: 'upto', max: 1, roles: ['image2'], labels: ['Reference picture (optional): an outfit, accessory or hairstyle'] },
             ],
         },
         result: { compare: 'image1' },
@@ -1746,7 +1747,9 @@ export const FLOWS = [
                     { v: 'hair', label: 'Hairstyle', info: 'A new haircut or colour; the face stays as it is.' },
                     { v: 'condition', label: 'Condition', info: 'Beaten up, muddy, soaked, sunburnt - the state the character is in.' },
                     { v: 'body', label: 'Body shape', info: 'Heavier, slimmer or more muscular. Runs on Qwen-Image 2.1: not for commercial use.' },
-                    { v: 'none', label: 'Nothing else', info: 'Only the age below changes.' },
+                    // MPI-1086 (Fabio, 2026-10-12): "Nothing else" split into a free edit and age-only.
+                    { v: 'custom', label: 'Custom', info: 'Anything else, in your own words - changed on every panel.' },
+                    { v: 'none', label: 'None', info: 'No change - only the age below.' },
                 ],
             },
             {
@@ -1786,6 +1789,10 @@ export const FLOWS = [
                 ask: 'How old does the person in this picture look? Answer with one whole number of years and nothing else.' },
             { to: 'sheetClothes', media: 'image1', when: [{ field: 'Input_Age', atLeast: 1, atMost: 12 }, { field: 'change', isNot: 'clothes' }],
                 ask: 'Describe only the clothes the person wears: each garment, pair of shoes and hat that is present, with its color and material. Answer with one sentence that starts with the word Wearing.' },
+            // MPI-1086: a hairstyle reaches the full bodies only as WORDS (0/21 from the picture alone), so the
+            // Reference picture is described first; qh12 benched this question on Fabio's seven Pinterest pictures.
+            { to: 'refHair', media: 'image2', when: { field: 'change', is: 'hair' },
+                ask: 'Describe only the hairstyle of the person in this picture: its length, its shape, how it is worn (loose, tied up, braided, in buns or bunches), the fringe if there is one, and the hair colour. Answer with one phrase that starts with the hair colour, and nothing else.' },
         ],
     },
 

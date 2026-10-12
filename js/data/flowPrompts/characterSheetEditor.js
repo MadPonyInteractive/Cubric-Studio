@@ -54,9 +54,15 @@ export function parseApparentAge(answer) {
 /**
  * What an optional Reference picture (`image2`, the graph's `Input_Image_2`) stands for, per change
  * that takes one (Fabio, 2026-10-10: optional, words alone keep working). Any other change ignores it.
- * Clothes only: a hat or a hairstyle from a picture landed on every panel 1 time in 8 (F2 rounds 1-2).
+ * Accessories need words with one (`REF_NEEDS_WORDS`): a product shot does not say where a thing is worn.
  */
-const REF_THING = { clothes: 'the outfit' };
+const REF_THING = { clothes: 'the outfit', accessories: 'the accessory', hair: 'the hairstyle' };
+
+/**
+ * Changes whose Reference picture must come with words naming what it shows. With none, gold hoops became a
+ * necklace and bracelets and a rose tattoo went on the face (MPI-1086 qh5, 4 of 4); named, 4 of 4 landed.
+ */
+const REF_NEEDS_WORDS = new Set(['accessories']);
 
 /** With a reference, every figure is named and the back one only as "seen from behind" (MPI-1090 rounds 2-3). */
 const REF_ALL = 'The front view, the character seen from behind and the close-up portrait on the right all show the same '
@@ -87,13 +93,37 @@ function _usesRef(values) {
 
 /**
  * The edit for one picked change, or null when there is nothing to change by.
- * @param {string} change - clothes | accessories | hair | condition | body
+ * @param {string} change - clothes | accessories | hair | condition | body | custom
  * @param {string} words  - what the user wrote; optional with a reference
- * @param {boolean} [ref] - a Reference picture is given (used by Clothes only)
+ * @param {boolean} [ref] - a Reference picture is given (used by the changes in REF_THING)
+ * @param {string} [refHair] - the describer's words for the reference's hairstyle (`describe` → `refHair`)
  * @returns {?string}
  */
-export function buildChangePrompt(change, words, ref = false) {
+export function buildChangePrompt(change, words, ref = false, refHair = '') {
     const w = _words(words);
+    // MPI-1086 (tasks/MPI-1086/validation.md, phase B): the full bodies NEVER took a hairstyle from the picture
+    // (0/21) but always took one from words, so the describer puts the picture into words first; with every figure
+    // named the style reached all three panels 18/18 (Fabio's seven Pinterest pictures and the buns photo). The
+    // graph cuts the picture down to its hair at lock 2 (SAM3 "hair" on grey): a portrait photo otherwise dressed
+    // the close-up in its top and necklaces, which no wording stopped without stripping her own top too.
+    if (ref && change === 'hair') {
+        const d = _words(refHair);
+        // The user's words LEAD (qh15 round 9, W2): "in blue" after the description kept the bodies the picture's pink
+        // (2/2) - the description outvotes them - and spliced into it gave pink and blue mixed; leading, blue on every
+        // panel 2/2. Moving part of a style ("the bun lower") ADDED a bun in every wording: words change colour and
+        // add things, a different shape needs a different picture.
+        if (w) {
+            return `Give the character the hairstyle from the reference picture, changed like this: ${_unview(w)}. `
+                + (d ? `The hairstyle in the reference picture: ${d}. ` : '')
+                + `Make it ${_unview(w)} on every figure, with the head uncovered and no hat. The front view, the character `
+                + 'seen from behind and the close-up portrait on the right all show the same changed hairstyle. '
+                + "Keep the character's own face and clothes. Keep everything else exactly as it is.";
+        }
+        return `Give the character the hairstyle and hair colour from the reference picture${d ? `: ${d}` : ''}, with the `
+            + 'head uncovered and no hat. The front view, the character seen from behind and the close-up portrait on the '
+            + "right all show the same hairstyle and hair colour. Keep the character's own face and clothes. "
+            + 'Keep everything else exactly as it is.';
+    }
     // The old clothes must be taken off in words, or Klein keeps what the picture does not cover (Fabio's
     // bikini kept the jeans, MPI-1041 F2 rounds 4-7). With no words the picture IS the outfit, so everything
     // else goes; with words that would strip what they leave out (a jacket and scarf cut the trousers to
@@ -112,6 +142,15 @@ export function buildChangePrompt(change, words, ref = false) {
                 + `wears now, trousers, skirt and top included. ${REF_ALL} Keep everything else exactly as it is.`;
     }
     if (!w) return null;
+    // MPI-1086 qh7 AW3: the shipped accessories string with the picture named, plus a line keeping her own face, hair
+    // and clothes - from a photo of a man in a bandana the close-up took his face and tee without it (1 of 2), and
+    // naming every figure "worn the same way" made the close-up HIM (2 of 2). AW3: bandana front, back and her own
+    // face 2/2; earrings, a tattoo and a backpack land (a backpack can come out worn on the chest: say "on her back").
+    if (ref && change === 'accessories') {
+        return `Give the character ${_unview(w)} from the reference picture. Make the same change on the character seen `
+            + "from behind and in the close-up portrait on the right. Keep the character's own face, hair and clothes. "
+            + 'Keep everything else exactly as it is.';
+    }
     switch (change) {
         // The views, and the parts that disagreed, are named: "Dress the character the same way in the close-up"
         // left the sleeves to each panel, and Fabio's keyhole dress came back short-sleeved on the front and a
@@ -133,6 +172,13 @@ export function buildChangePrompt(change, words, ref = false) {
             return `Make the character look ${w}.` + L1;
         case 'body':
             return `Make the character's body ${w}.` + L1;
+        // A free edit in the user's own words (MPI-1086, Fabio's "Custom"), lock 0. The words as typed, then the
+        // accessories tail, redrew the front figure as a back view on "holding a sword" (1 of 2); this framing kept
+        // the layout 6 of 6 (vampire, robot, sword). The close-up is a head and shoulders: a whole-body change (a
+        // robot) does not reach its face.
+        case 'custom':
+            return `Change the character in this character sheet: ${_unview(w)}. Make the same change on the character `
+                + 'seen from behind and in the close-up portrait on the right. Keep everything else exactly as it is.';
         default:
             return null;
     }
@@ -210,6 +256,9 @@ export function buildRebuildPrompt(age, caption) {
 export function characterSheetEditorRefusal(values = {}) {
     const change = values.change || 'none';
     const age = _age(values.Input_Age);
+    if (REF_NEEDS_WORDS.has(change) && _usesRef(values) && !_words(values.words)) {
+        return 'Say what the Reference picture shows, for example "the gold hoop earrings".';
+    }
     if (change !== 'none' && !_words(values.words) && !_usesRef(values)) {
         return Object.hasOwn(REF_THING, change) ? 'Say what to change, or add a Reference picture.' : 'Say what to change first.';
     }
@@ -248,7 +297,7 @@ function _part(part, values) {
         const caption = values.change === 'clothes' ? `Wearing ${_words(values.words)}` : values.sheetClothes;
         return buildRebuildPrompt(age, caption);
     }
-    return buildChangePrompt(values.change, values.words, _usesRef(values)) || '';
+    return buildChangePrompt(values.change, values.words, _usesRef(values), values.refHair) || '';
 }
 
 /**

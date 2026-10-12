@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1086", "at": "2026-10-11T16:06:49+01:00", "actor": "claude", "column": "todo", "title": "Character Sheet Editor: a Reference picture for Hairstyle and Accessories, and the fringe fix"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1086", "at": "2026-10-12T08:57:31+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: start MPI-1086 (2026-10-12)"}

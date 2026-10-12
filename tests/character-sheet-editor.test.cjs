@@ -50,6 +50,10 @@ test('every change builds its bench template verbatim', async () => {
     assert.strictEqual(buildChangePrompt('condition', 'beaten up after a fight: a bruised, cut face and torn, dirty clothes'),
         'Make the character look beaten up after a fight: a bruised, cut face and torn, dirty clothes.' + L1);
     assert.strictEqual(buildChangePrompt('body', 'heavyset and overweight'), "Make the character's body heavyset and overweight." + L1);
+    // MPI-1086 qh6 C2, the view words said the safe way.
+    assert.strictEqual(buildChangePrompt('custom', 'holding a sword on the back view.'),
+        'Change the character in this character sheet: holding a sword seen from behind. Make the same change on the '
+        + 'character seen from behind and in the close-up portrait on the right. Keep everything else exactly as it is.');
     // The user's own full stop is not doubled; no words, no prompt.
     assert.strictEqual(buildChangePrompt('hair', '  a buzz cut. '), 'Give the character a buzz cut' + HAT + L1);
     assert.strictEqual(buildChangePrompt('clothes', '   '), null);
@@ -118,6 +122,7 @@ test('each leg carries its lock and the whole run in runPrompt', async () => {
     assert.strictEqual(change.injectionParams.Input_Lock, 1);
     assert.strictEqual(characterSheetEditor('change', { ...values, change: 'hair' }).injectionParams.Input_Lock, 2);
     assert.strictEqual(characterSheetEditor('change', { ...values, change: 'accessories' }).injectionParams.Input_Lock, 0);
+    assert.strictEqual(characterSheetEditor('change', { ...values, change: 'custom' }).injectionParams.Input_Lock, 0);
     assert.strictEqual(characterSheetEditor('age', values).injectionParams.Input_Lock, 0);
     assert.ok(!('Input_Lock' in characterSheetEditor('rebuild', values).injectionParams));
     const lines = change.injectionParams.runPrompt.split('\n');
@@ -125,7 +130,7 @@ test('each leg carries its lock and the whole run in runPrompt', async () => {
     assert.strictEqual(characterSheetEditor('change', { ...values, Input_Age: 30 }).injectionParams.runPrompt.split('\n').length, 2);
 });
 
-test('F2: an optional Reference picture replaces or joins the words, Clothes only, on the change leg only', async () => {
+test('F2: an optional Reference picture replaces or joins the words, Clothes / Accessories / Hairstyle, on the change leg only', async () => {
     const { characterSheetEditor, characterSheetEditorRefusal: refuse, characterSheetEditorCardName: name, buildChangePrompt } = await builder();
     const REF = { role: 'image2', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fdress.png' };
     const run = (change, words, age = -1) => ({ change, words, Input_Age: age, mediaItems: [{ role: 'image1', url: 'x' }, REF] });
@@ -154,28 +159,50 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes onl
     for (const w of ['', 'G string on the back view']) {
         assert.doesNotMatch(buildChangePrompt('clothes', w, true), /back view/);
     }
-    // Accessories and Hairstyle ignore the picture: from one, a hat or a hairstyle reached every panel 1 time in 8.
+    // MPI-1086 qh7 AW3: Accessories takes the picture WITH words naming it, and keeps her own face, hair and clothes.
     assert.strictEqual(buildChangePrompt('accessories', '', true), null);
-    assert.strictEqual(buildChangePrompt('accessories', 'a red scarf', true), buildChangePrompt('accessories', 'a red scarf'));
-    assert.strictEqual(buildChangePrompt('hair', '', true), null);
+    assert.strictEqual(buildChangePrompt('accessories', 'the large gold hoop earrings', true),
+        'Give the character the large gold hoop earrings from the reference picture. Make the same change on the character '
+        + "seen from behind and in the close-up portrait on the right. Keep the character's own face, hair and clothes."
+        + KEEP);
+    assert.strictEqual(characterSheetEditor('change', run('accessories', 'the bandana')).injectionParams.Input_Reference, true);
+    assert.strictEqual(refuse(run('accessories', '')), 'Say what the Reference picture shows, for example "the gold hoop earrings".');
+    assert.strictEqual(refuse(run('accessories', 'the bandana')), null);
+    assert.strictEqual(refuse({ change: 'accessories', words: '' }), 'Say what to change, or add a Reference picture.');
+    // MPI-1086 qh13/qh14: Hairstyle takes the picture as the describer's words (`refHair`), every figure named.
+    const HAIR = ', with the head uncovered and no hat. The front view, the character seen from behind and the close-up '
+        + "portrait on the right all show the same hairstyle and hair colour. Keep the character's own face and clothes." + KEEP;
+    assert.strictEqual(buildChangePrompt('hair', '', true, 'pink hair styled in two high buns with bangs.'),
+        'Give the character the hairstyle and hair colour from the reference picture: pink hair styled in two high buns '
+        + 'with bangs' + HAIR);
+    assert.strictEqual(buildChangePrompt('hair', '', true), 'Give the character the hairstyle and hair colour from the '
+        + 'reference picture' + HAIR, 'no description: the picture alone');
+    assert.match(characterSheetEditor('change', { ...run('hair', ''), refHair: 'black, a high bun' }).positive, /picture: black, a high bun, with/);
+    // qh15 round 9 W2: the user's words LEAD, or the description's colour outvotes them on the bodies.
+    assert.strictEqual(buildChangePrompt('hair', 'in blue', true, 'pink hair styled in two high buns with bangs'),
+        'Give the character the hairstyle from the reference picture, changed like this: in blue. The hairstyle in the '
+        + 'reference picture: pink hair styled in two high buns with bangs. Make it in blue on every figure, with the head '
+        + 'uncovered and no hat. The front view, the character seen from behind and the close-up portrait on the right all '
+        + "show the same changed hairstyle. Keep the character's own face and clothes." + KEEP);
     assert.strictEqual(buildChangePrompt('condition', '', true), null, 'Condition never takes a reference');
     // Wanted only by the change leg of a change that takes one: an age leg that starts the run is handed it too.
     assert.strictEqual(characterSheetEditor('change', run('clothes', '')).injectionParams.Input_Reference, true);
     assert.strictEqual(characterSheetEditor('change', run('condition', 'muddy')).injectionParams.Input_Reference, false);
-    assert.strictEqual(characterSheetEditor('change', run('hair', 'a bob')).injectionParams.Input_Reference, false);
+    assert.strictEqual(characterSheetEditor('change', run('hair', 'a bob')).injectionParams.Input_Reference, true);
     assert.strictEqual(characterSheetEditor('age', run('none', '', 60)).injectionParams.Input_Reference, false);
     assert.strictEqual(characterSheetEditor('change', { change: 'clothes', words: 'a suit' }).injectionParams.Input_Reference, false);
     // Words OR a reference; never a reference under 18 (the gate reads words only).
     assert.strictEqual(refuse(run('clothes', '')), null);
     assert.strictEqual(refuse({ change: 'clothes', words: '' }), 'Say what to change, or add a Reference picture.');
     assert.strictEqual(refuse({ change: 'condition', words: '', mediaItems: [REF] }), 'Say what to change first.');
-    assert.strictEqual(refuse({ change: 'hair', words: '', mediaItems: [REF] }), 'Say what to change first.');
+    assert.strictEqual(refuse({ change: 'hair', words: '', mediaItems: [REF] }), null, 'a hairstyle picture needs no words');
     assert.match(refuse(run('clothes', '', 10)), /cannot be used with an age under 18/);
     assert.match(refuse(run('clothes', 'a suit', 17)), /under 18/);
-    assert.strictEqual(refuse(run('hair', 'a bob', 17)), null, 'Hairstyle ignores the reference, so it is not refused for it');
+    assert.match(refuse(run('hair', 'a bob', 17)), /under 18/);
     assert.strictEqual(refuse(run('clothes', '', 18)), null);
     assert.strictEqual(refuse(run('condition', 'muddy', 10)), null, 'a change that ignores the reference is not refused for it');
     assert.strictEqual(name(run('clothes', ''), 'Ava'), 'Ava - outfit from a reference');
+    assert.strictEqual(name(run('hair', ''), 'Ava'), 'Ava - hairstyle from a reference');
     assert.strictEqual(name(run('hair', 'a pixie cut', 30), 'Ava'), 'Ava - a pixie cut, age 30');
 });
 
@@ -344,6 +371,13 @@ test('the picture checks run only when they can matter, and before any other que
     assert.deepStrictEqual(await asked('clothes', 'a red jacket', -1), [], 'an ordinary change asks nothing');
     // How old the sheet LOOKS is the child-safety gate's call, never this Flow's (Fabio, 2026-10-10).
     assert.deepStrictEqual(await asked('clothes', 'a red bikini', -1), []);
+    // MPI-1086: a Hairstyle picture is put into words; no picture, or another change, asks nothing more.
+    const REF2 = { role: 'image2', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fbuns.png' };
+    const fe = await esm('js/services/flowEnhance.js');
+    const withRef = async (change) => fe.describeAsks(await editor(), await values(change, '', -1), [SHEET, REF2]).map(d => d.to);
+    assert.deepStrictEqual(await withRef('hair'), ['refHair']);
+    assert.deepStrictEqual(await withRef('accessories'), []);
+    assert.deepStrictEqual(await asked('hair', '', -1), []);
 });
 
 test('the checks ask the upper and lower body of the front and the back view, never the whole sheet', async () => {
