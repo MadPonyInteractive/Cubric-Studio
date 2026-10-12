@@ -69,6 +69,7 @@
 
 ## Fixes
 
+- **GIF cut-out shows in the queue, with a Stop.** Remove background and By name now wait their turn behind a generation instead of running beside it, and the queue panel can stop them.
 - **Every project on the home page shows its picture again.** Projects made before 2.0 showed a blank card until you opened them, and when the last thing you made was a sound, the card shows its waveform.
 - **Copy address in Settings copies again.** The button for the MCP server address did nothing, so you had to type the address into your agent by hand.
 - **A download-only Pod no longer locks you out of your projects.** Connecting the No GPU Pod to install models used to block every project. Projects now open, and generations run on DeepInfra or your own GPU while the Pod installs.
