@@ -16,3 +16,5 @@ Not run: the live repro (connect a Pod, reload mid-heal, delete the Pod) - it ne
 Pod. The mechanism is pinned by the test above; Fabio's next Pod session is the field check.
 Suspect 2 (a remote job outliving its Pod) does not apply to this incident: an all-on-volume
 install settles inside the request handler.
+
+CI: run 38267907551 on 62b8c7f87 - success. Claim auditor: 6/6 proven, 0 findings.
