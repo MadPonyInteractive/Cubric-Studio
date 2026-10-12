@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/state.js", "js/services/cpuJobs.js", "js/components/Compounds/MpiQueuePanel/MpiQueuePanel.js", "tests/cpu-jobs.test.cjs", "tests/desktop/cpu-job-row.spec.js", ".agents/mpi-kanban/tasks/MPI-1104/"] }

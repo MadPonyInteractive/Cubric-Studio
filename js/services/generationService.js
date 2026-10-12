@@ -701,6 +701,8 @@ function _pushCue(config, callbacks, opts) {
     if (opts.stackId) _resultStackOfJob.set(queueJobId, opts.stackId);
     _cueQueue.push({ queueJobId, config, callbacks, opts: { ...jobOpts, queueJobId, queueDisplay: display, source, isLoop }, display, source, isLoop });
     _updateQueueDepth();
+    // MPI-1105: the right-edge flash. Not on a loop's re-fire: the user queued that once.
+    if (!isLoop) Events.emit('queue:added', { mediaType: config.model?.mediaType });
     _dispatchNextCue();
     return { queueJobId };
 }

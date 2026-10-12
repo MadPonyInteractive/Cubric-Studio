@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1110", "at": "2026-10-12T08:02:08+01:00", "actor": "claude", "column": "todo", "title": "Project Cleanup assets shows it is working"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1110", "at": "2026-10-12T10:07:10+01:00", "actor": "2001b3f5-cde8-4289-aef3-adec3f64b322", "from": "todo", "to": "doing", "reason": "Phase 2 of MPI-1102: Cleanup assets as a Transfers row"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1110", "at": "2026-10-12T10:08:56+01:00", "actor": "2001b3f5-cde8-4289-aef3-adec3f64b322", "from": "doing", "to": "doing", "reason": "Desktop spec passes through the real right-click path"}

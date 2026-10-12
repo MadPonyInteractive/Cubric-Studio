@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/shell/gifJobs.js", "tests/connector-gif-jobs.test.cjs", ".agents/mpi-kanban/tasks/MPI-1106/"] }

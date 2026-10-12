@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/components/Compounds/MpiQueueFlash/", "js/services/cpuJobs.js", "js/shell/gifJobs.js", "js/services/generationService.js", "js/shell.js", "js/events.js", "tests/desktop/queue-flash.spec.js", "js/shell/preloadStyles.js", "js/components/types.js", ".agents/mpi-kanban/tasks/MPI-1105/"] }

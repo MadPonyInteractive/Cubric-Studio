@@ -177,6 +177,22 @@ test('make from stills posts the ids and lands a NEW card', async () => {
     assert.equal(res.output.frames, 3);
 });
 
+test('MPI-1106: a CPU verb shows a Transfers row while it runs, and only then', async () => {
+    seedProject([stillGroup('s1'), stillGroup('s2')]);
+    let during = null;
+    replies['/gif/make'] = () => { during = state.cpuJobs.map(j => j.label); return landed('made-r'); };
+
+    const res = await gifJobs.runGifJob('gif.make', { itemIds: ['s1', 's2'] });
+
+    assert.equal(res.ok, true);
+    assert.deepEqual(during, ['Making a GIF']);
+    assert.deepEqual(state.cpuJobs, []);
+
+    replies['/gif/make'] = { success: false, error: 'disk full' };
+    assert.equal((await gifJobs.runGifJob('gif.make', { itemIds: ['s1', 's2'] })).ok, false);
+    assert.deepEqual(state.cpuJobs, [], 'a failed verb leaves no row behind');
+});
+
 test('make from stills checks every id BEFORE posting', async () => {
     seedProject([stillGroup('s1')]);
     const res = await gifJobs.runGifJob('gif.make', { itemIds: ['s1', 'ghost'] });

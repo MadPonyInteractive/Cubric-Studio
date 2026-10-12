@@ -1,0 +1,81 @@
+/* MpiQueueFlash — right-edge "the queue took a job" strip (MPI-1105).
+   Same top and bottom as the queue slide-over (.mpi-slide-over--queue), so the strip is
+   where the panel would open. The whole strip is the Open queue button. */
+
+.mpi-queue-flash {
+    --queue-flash-hue: var(--vision-accent);
+    position: fixed;
+    top: var(--titlebar-h, 36px);
+    right: 0;
+    bottom: calc(var(--statusbar-h, 32px) + var(--promptbar-h, 0px));
+    width: 100px;
+    z-index: calc(var(--main-overlay-z, 90) + 9);
+    visibility: hidden;
+}
+
+.mpi-queue-flash[data-subject="video"] { --queue-flash-hue: var(--video-accent); }
+.mpi-queue-flash[data-subject="audio"] { --queue-flash-hue: var(--accent-audio); }
+
+.mpi-queue-flash--on {
+    visibility: visible;
+}
+
+.mpi-queue-flash__strip {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to left,
+        oklch(from var(--queue-flash-hue) l c h / 0.55) 0%,
+        oklch(from var(--queue-flash-hue) l c h / 0) 100%);
+    pointer-events: none;
+}
+
+/* One flash (Fabio, eye test): lights up, then fades out over the 3 s, label with it. */
+.mpi-queue-flash--on {
+    animation: mpi-queue-flash-fade 3s ease-out forwards;
+}
+
+/* Pointing at it holds it lit. */
+.mpi-queue-flash--on:hover {
+    animation: none;
+}
+
+@keyframes mpi-queue-flash-fade {
+    0%   { opacity: 0; }
+    6%   { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Two classes beat MpiButton's own .mpi-btn--ghost / --sm. */
+.mpi-queue-flash .mpi-queue-flash__open {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink-1);
+    font-size: var(--t-2xs);
+}
+
+.mpi-queue-flash .mpi-queue-flash__open:hover:not(:disabled) {
+    background: transparent;
+}
+
+/* Icon + label straight on the strip, no background (Fabio); a soft shadow keeps them
+   legible over whatever page text sits at the edge. */
+.mpi-queue-flash__chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s-1);
+    text-shadow: 0 0 6px oklch(from var(--surface-1) l c h / 0.9);
+    filter: drop-shadow(0 0 4px oklch(from var(--surface-1) l c h / 0.9));
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mpi-queue-flash--on {
+        animation: none;
+    }
+}

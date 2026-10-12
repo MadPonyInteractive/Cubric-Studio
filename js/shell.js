@@ -13,12 +13,14 @@ import { Events } from './events.js';
 import { Storage, Session } from './core/storage.js';
 import { blockedByNoEngine } from './services/engineGate.js';
 import { clientLogger } from './services/clientLogger.js';
-import { qs } from './utils/dom.js';
+import { qs, ce } from './utils/dom.js';
 import { isStockRefusal } from './utils/runpodErrorClassify.js';
 
 // Components
 import { MpiMemoryMonitor } from './components/Compounds/MpiMemoryMonitor/MpiMemoryMonitor.js';
 import { MpiProjectName } from './components/Compounds/MpiProjectName/MpiProjectName.js';
+import { MpiQueueFlash } from './components/Compounds/MpiQueueFlash/MpiQueueFlash.js';
+import { QUEUE_PANEL } from './shell/queueSlideOver.js';
 import { MpiErrorDialog } from './components/Compounds/MpiErrorDialog/MpiErrorDialog.js';
 import { MpiStartingComfy } from './components/Compounds/MpiStartingComfy/MpiStartingComfy.js';
 import { MpiEngineInstall } from './components/Compounds/MpiEngineInstall/MpiEngineInstall.js';
@@ -186,6 +188,15 @@ export async function initShell() {
   });
 
   const memMonitor = MpiMemoryMonitor.mount(monitorMount);
+
+  // MPI-1105: the right-edge "queue took a job" flash. App lifetime, no teardown.
+  // Open queue: the one Cue panel payload, so the SAME panel id opens from any page.
+  MpiQueueFlash.mount(document.body.appendChild(ce('div'))).on('open', () => Events.emit('slide-over:open', QUEUE_PANEL));
+  // Q toggles Cue on the projects page too. The workspace Blocks bind their own Q
+  // (bindQueueSlideOver), so this answers only where no Block is mounted.
+  Hotkeys.bind('queue.toggle', () => {
+    if (state.currentPage === PAGE_LANDING) Events.emit('slide-over:toggle', QUEUE_PANEL);
+  });
 
   // Mirror the (dynamic) prompt-bar height into --promptbar-h so the queue
   // slide-over can dock above it instead of covering its controls.

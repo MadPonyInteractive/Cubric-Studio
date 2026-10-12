@@ -463,20 +463,25 @@ export const MpiQueuePanel = ComponentFactory.create({
             ...state.uploadJobs
                 .filter(j => j.status === 'queued' || j.status === 'uploading')
                 .map(j => ({ kind: 'upload', id: j.id, status: j.status, label: j.filename, job: j })),
+            // MPI-1104 — CPU jobs (services/cpuJobs.js): no cancel, the row leaves when the job ends.
+            ...state.cpuJobs.map(j => ({ kind: 'cpu', id: j.id, status: 'running', label: j.label, job: j })),
         ];
 
-        const _transferPct = (t) => (t.kind === 'upload'
+        const _transferPct = (t) => (t.kind === 'cpu' ? (t.job.progress ?? 0) * 100 : t.kind === 'upload'
             ? (t.job.totalBytes ? (t.job.sentBytes / t.job.totalBytes) * 100 : 0)
             : (Number(t.job.progress) || 0) * 100);
 
         const _transferMeta = (t) => {
             const j = t.job;
+            if (t.kind === 'cpu') return j.progress == null ? 'Working' : `${Math.round(j.progress * 100)}%`;
             if (t.kind === 'upload') {
                 return t.status === 'queued' ? 'Upload · waiting' : `Upload · ${_size(j.sentBytes)} / ${_size(j.totalBytes)}`;
             }
             if (t.status === 'queued' || t.status === 'pending') return 'Download · waiting';
             if (t.status === 'installing') return 'Download · installing';
             if (t.status === 'paused') return 'Download · paused';
+            // MPI-95/140: bytes in, verify (or pre-total prepare) under the sweep, no stale speed.
+            if (j.indeterminate) return j.phase === 'verifying' ? 'Download · verifying' : 'Download · preparing';
             return ['Download', `${Math.round(_transferPct(t))}%`, j.speed].filter(Boolean).join(' · ');
         };
 
@@ -505,6 +510,10 @@ export const MpiQueuePanel = ComponentFactory.create({
                 const barHost = ce('div', { className: 'mpi-queue-panel__transfer-bar' });
                 row.appendChild(barHost);
                 const bar = MpiProgressBar.mount(barHost, { value: _transferPct(t), info: '' }).el;
+                _rowByKey.set(`${t.kind}:${t.id}`, { t, bar, meta });
+                _patchTransfer(`${t.kind}:${t.id}`);
+                transfersList.appendChild(row);
+                if (t.kind === 'cpu') continue;
                 const cancel = mountButton({
                     size: 'sm',
                     variant: 'ghost',
@@ -514,8 +523,6 @@ export const MpiQueuePanel = ComponentFactory.create({
                 cancel.dataset.transferId = t.id;
                 cancel.setAttribute('aria-label', `Cancel ${t.kind} of ${t.label}`);
                 row.appendChild(cancel);
-                transfersList.appendChild(row);
-                _rowByKey.set(`${t.kind}:${t.id}`, { t, bar, meta });
             }
         };
 
@@ -524,6 +531,10 @@ export const MpiQueuePanel = ComponentFactory.create({
             if (!row) return;
             row.bar.setValueQuiet(_transferPct(row.t));
             row.meta.textContent = _transferMeta(row.t);
+            // No real % = the existing moving sweep (MPI-95 / MpiInstalledDisplay).
+            row.bar.classList.toggle('mpi-progress--loading', row.t.kind === 'cpu'
+                ? row.t.job.progress == null
+                : row.t.kind === 'download' && !!row.t.job.indeterminate);
         };
 
         _unsubs.push(on(transfersList, 'click', (event) => {
@@ -534,6 +545,7 @@ export const MpiQueuePanel = ComponentFactory.create({
         }));
         _unsubs.push(Events.onState('uploadJobs', _renderTransfers));
         _unsubs.push(Events.onState('downloadJobs', _renderTransfers));
+        _unsubs.push(Events.onState('cpuJobs', _renderTransfers));
         _unsubs.push(Events.on('download:snapshot', _renderTransfers));
         _unsubs.push(Events.on('upload:progress', (d) => _patchTransfer(`upload:${d.id}`)));
         _unsubs.push(Events.on('download:progress', (d) => _patchTransfer(`download:${d.modelId}`)));

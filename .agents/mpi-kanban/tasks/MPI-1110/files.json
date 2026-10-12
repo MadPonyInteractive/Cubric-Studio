@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/shell/projectUI.js", "tests/desktop/cleanup-assets-row.spec.js", ".agents/mpi-kanban/tasks/MPI-1110/"] }

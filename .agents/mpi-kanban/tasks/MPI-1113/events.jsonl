@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1113", "at": "2026-10-12T10:10:16+01:00", "actor": "2001b3f5-cde8-4289-aef3-adec3f64b322", "column": "todo", "title": "BREAKS 2.1: internal engine:assets heal leaks into Cue Transfers as a stuck 'Download 100%' row after a Pod session"}

@@ -34,6 +34,7 @@ import { stampDetectionCount } from '../utils/maskTextPrompt.js';
 import { runGifCutoutTrack } from '../services/commandExecutor.js';
 import { truncateCardName } from '../utils/displayHelpers.js';
 import { clientLogger } from '../services/clientLogger.js';
+import { runCpuJob } from '../services/cpuJobs.js';
 
 /** `max_objects` in both cut-out graphs, and the count a bare name is stamped with. */
 const OBJECT_SLOTS = 4;
@@ -274,7 +275,7 @@ async function cutoutGif(input) {
     const gif = await _ensureFrames(project.folderPath, input.itemId, item);
     const frames = _frameRefs(gif.frames);
 
-    const source = await _post('/gif-cutout/source', { folderPath: project.folderPath, frames });
+    const source = await runCpuJob('Preparing the GIF cut-out', () => _post('/gif-cutout/source', { folderPath: project.folderPath, frames }));
 
     const op = CUTOUT_OPS[input.method];
     // A bare name finds ONE object (masking-sam3.md's `name:N` trap), and there is
@@ -298,7 +299,7 @@ async function cutoutGif(input) {
         throw new JobError('ENGINE_ERROR', `The engine returned ${masks.length} masks for ${frames.length} frames.`);
     }
 
-    const data = await _post('/gif-cutout/apply', {
+    const data = await runCpuJob('Applying the GIF cut-out', () => _post('/gif-cutout/apply', {
         folderPath: project.folderPath,
         frames,
         masks,
@@ -309,7 +310,7 @@ async function cutoutGif(input) {
         settings: { method: input.method, ...(input.prompt ? { prompt: input.prompt } : {}) },
         sourceItemId: item.id,
         sourceGroupId: group.id,
-    });
+    }));
     return _done(await _landEntry(group, data.item));
 }
 
@@ -350,6 +351,17 @@ async function makeSheet(input) {
     return _done(await _landNewCard(data.item));
 }
 
+/**
+ * MPI-1104: the Transfers row each CPU-only verb shows while it runs. `gif.cutout` is not
+ * here: its masks are GPU work, so only its encode and apply steps get rows, above.
+ */
+const CPU_ROW_LABELS = {
+    'gif.make': 'Making a GIF',
+    'gif.edit': 'Editing a GIF',
+    'gif.to-video': 'GIF to video',
+    'sheet.make': 'Making a sheet',
+};
+
 /** Capability -> handler. `agentDispatch.js` adapts these onto the job relay. */
 export const GIF_HANDLERS = {
     'gif.make': makeGif,
@@ -366,7 +378,10 @@ export const GIF_HANDLERS = {
  */
 export async function runGifJob(capability, input) {
     try {
-        return await GIF_HANDLERS[capability](input || {});
+        const run = () => GIF_HANDLERS[capability](input || {});
+        // MPI-1105: the flash takes the RESULT's colour - a video for to-video, an image otherwise.
+        const mediaType = capability === 'gif.to-video' ? 'video' : 'image';
+        return await (CPU_ROW_LABELS[capability] ? runCpuJob(CPU_ROW_LABELS[capability], run, { mediaType }) : run());
     } catch (err) {
         if (err instanceof JobError) return _fail(err.code, err.message);
         clientLogger.error('connector', `${capability} threw`, err);

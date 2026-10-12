@@ -11,6 +11,7 @@ import { navigate, PAGE_GALLERY } from '../router.js';
 import { Events } from '../events.js';
 import { state } from '../state.js';
 import { clientLogger } from '../services/clientLogger.js';
+import { runCpuJob } from '../services/cpuJobs.js';
 import { formatBytes } from '../utils/formatBytes.js';
 import { gid, on } from '../utils/dom.js';
 import { mascotLoop } from '../utils/mascotLoop.js';
@@ -296,12 +297,15 @@ function _showCleanupConfirm(project) {
   });
   dialog.on('ok', async () => {
     try {
-      const res = await fetch('/project/cleanup-assets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ folderPath: project.folderPath }),
+      // MPI-1110: a Transfers row (no %, so the sweep) while the server deletes.
+      const data = await runCpuJob(`Cleaning up ${project.name || 'project'}`, async () => {
+        const res = await fetch('/project/cleanup-assets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderPath: project.folderPath }),
+        });
+        return res.json().catch(() => ({}));
       });
-      const data = await res.json().catch(() => ({}));
       if (!data.success) throw new Error(data.error || 'Cleanup failed');
       // Staged prompt-box chips point at the now-wiped store — drop the persisted
       // snapshot (prompt box is unmounted here) and any live chips (if mounted).
