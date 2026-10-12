@@ -104,6 +104,10 @@ export const STORAGE_KEYS = {
   // not a last-shown index, so every quote is dealt once before any repeats.
   HERO_QUOTE_DECK: 'mpi_hero_quote_deck',
 
+  // MPI-1115: ids of the dev-update posts this user acknowledged — string[]. Absent
+  // (null) = never fetched yet, which is how the first launch knows to seed it.
+  DEV_UPDATES_ACKED: 'mpi_dev_updates_acked',
+
   // MPI-774: in-app agent — { model, mode }. `model` '' = the connection's recommended
   // agent model. Written by the MpiLlmSettings Agent row, read by agentService.js.
   // (Before the shared connection it also held `profileId`; LLM_CONNECTION reads that.)

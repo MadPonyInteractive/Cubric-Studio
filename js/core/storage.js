@@ -397,6 +397,9 @@ export const Storage = {
   getHeroQuoteDeck: () => get(STORAGE_KEYS.HERO_QUOTE_DECK, null),
   setHeroQuoteDeck: (v) => set(STORAGE_KEYS.HERO_QUOTE_DECK, v),
 
+  getDevUpdatesAcked: () => get(STORAGE_KEYS.DEV_UPDATES_ACKED, null),
+  setDevUpdatesAcked: (v) => set(STORAGE_KEYS.DEV_UPDATES_ACKED, v),
+
   // MPI-774: { model, mode } for the in-app agent. Never a key. `model` is the CURRENT
   // connection's pick; saved as `{ models: { [profileId]: id }, mode }` (MPI-941 Phase 11).
   getAgentPrefs: () => {

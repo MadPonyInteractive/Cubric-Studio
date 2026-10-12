@@ -26,6 +26,9 @@ import { MpiSettings } from '../components/Compounds/LandingPages/MpiSettings/Mp
 import { MpiRemote } from '../components/Blocks/MpiRemote/MpiRemote.js';
 import { MpiHotkeys } from '../components/Compounds/LandingPages/mpi-hotkeys/mpi-hotkeys.js';
 import { MpiAbout }      from '../components/Compounds/LandingPages/MpiAbout/MpiAbout.js';
+import { MpiDevUpdates } from '../components/Compounds/LandingPages/MpiDevUpdates/MpiDevUpdates.js';
+import { startDevUpdates } from '../services/devUpdatesService.js';
+import { renderIcon } from '../utils/icons.js';
 import { MpiAgentChat } from '../components/Compounds/MpiAgentChat/MpiAgentChat.js';
 import '../components/Compounds/MpiSlideOver/MpiSlideOver.js';
 
@@ -81,6 +84,24 @@ export function initProjectUI() {
       a.addEventListener('click', handler);
       navSlot.appendChild(a);
     });
+
+    // MPI-1115 — the dev-updates bell: Fabio's Discord #dev-updates posts, with a badge
+    // counting the ones not yet acknowledged. Lives for the app's lifetime, like the nav.
+    const bell = document.createElement('a');
+    bell.className = 'mpi-landing__hero-nav-item mpi-landing__hero-nav-bell';
+    bell.title = 'Dev updates';
+    bell.setAttribute('aria-label', 'Dev updates');
+    bell.innerHTML = `${renderIcon('bell', 'sm')}<span class="mpi-landing__hero-nav-badge" hidden></span>`;
+    const badge = bell.lastElementChild;
+    const paintBadge = (posts) => {
+      badge.hidden = !posts.length;
+      badge.textContent = posts.length > 9 ? '9+' : String(posts.length);
+    };
+    paintBadge(state.devUpdates);
+    Events.onState('devUpdates', paintBadge);
+    on(bell, 'click', () => Events.emit('slide-over:open', { title: 'Dev updates', component: MpiDevUpdates }));
+    navSlot.appendChild(bell);
+    startDevUpdates();
   }
 
   // ── Picker foot: "+ New project" + "Open folder" (MPI-766 moved both out of the hero) ──

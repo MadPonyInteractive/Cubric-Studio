@@ -1,0 +1,18 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "C:/AI/Mpi/mpi-ci/cubric-updates/",
+    "js/services/devUpdatesService.js",
+    "js/components/Compounds/LandingPages/MpiDevUpdates/MpiDevUpdates.js",
+    "js/components/Compounds/LandingPages/MpiDevUpdates/MpiDevUpdates.css",
+    "js/shell/projectUI.js",
+    "styles/shell/landing.css",
+    "js/core/storage.js",
+    "js/core/storageKeys.js",
+    "tests/dev-updates.test.cjs",
+    "js/state.js",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js",
+    "docs/shell.md"
+  ]
+}

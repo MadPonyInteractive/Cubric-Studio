@@ -1150,6 +1150,14 @@
  */
 
 /**
+ * @typedef {Object} MpiDevUpdatesProps (Compound — js/components/Compounds/LandingPages/MpiDevUpdates)
+ * No props required. Renders `state.devUpdates` (MPI-1115); a card click acknowledges
+ * the post through devUpdatesService.
+ *
+ * Emits: (none — content only, chrome owned by MpiSlideOver)
+ */
+
+/**
  * @typedef {Object} MpiSlideOverProps (Compound — js/components/Compounds/MpiSlideOver)
  * @property {string} title       - UPPERCASE label shown in panel header
  * @property {Object} component   - ComponentFactory blueprint to mount in the body slot

@@ -17,6 +17,11 @@ const _state = {
                                // screen. Owned by js/shell/screenClearService.js: read it at
                                // mount and react via Events.onState('screenClear').
 
+    // ── Dev updates bell (MPI-1115) ───────────────────────────────────────────
+    devUpdates: [],             // The dev-update posts the user has not acknowledged yet, newest
+                               // first ({ id, at, text, images, link }). Owned by
+                               // js/services/devUpdatesService.js; the bell badge is its length.
+
     // ── ComfyUI engine ────────────────────────────────────────────────────────
     comfyRootPath: null,        // Custom path to an external ComfyUI installation
     allComfyWorkflows: [],      // Workflow registry used by comfyController for id→file lookup

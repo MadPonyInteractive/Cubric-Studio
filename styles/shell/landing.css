@@ -460,6 +460,33 @@
   color: var(--ink-1);
 }
 
+/* MPI-1115 — dev-updates bell: an icon in a row of words, badge on its top-right. */
+.mpi-landing__hero-nav-bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mpi-landing__hero-nav-badge {
+  position: absolute;
+  top: calc(var(--s-2) * -1);
+  right: calc(var(--s-2) * -1);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 var(--s-1);
+  border-radius: var(--r-pill);
+  background: var(--accent-heat);
+  color: var(--ink-on-accent);
+  font-size: var(--t-2xs);
+  letter-spacing: 0;
+  line-height: 16px;
+  text-align: center;
+}
+
+.mpi-landing__hero-nav-badge[hidden] {
+  display: none;
+}
+
 /* Headline */
 .mpi-landing__headline {
   display: flex;

@@ -67,6 +67,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Blocks/MpiRemote/MpiRemote.css',
   'js/components/Compounds/LandingPages/mpi-hotkeys/mpi-hotkeys.css',
   'js/components/Compounds/LandingPages/MpiAbout/MpiAbout.css',
+  'js/components/Compounds/LandingPages/MpiDevUpdates/MpiDevUpdates.css',
   'js/components/Organisms/MpiModelManager/MpiModelManager.css',
   'js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.css',
   'js/components/Blocks/MpiBaseFlow/MpiBaseFlow.css',
