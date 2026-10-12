@@ -65,7 +65,9 @@ test('queue:added flashes the right edge, Open queue opens Cue, then it goes', a
 
     // Q toggles Cue on the projects page: once open, once closed (not twice per press).
     const cue = window.locator('.mpi-slide-over--queue[aria-expanded="true"]');
-    await window.locator('body').click({ position: { x: 5, y: 790 } });
+    // Focus off any field so Q reaches the hotkey. Never a click at a fixed y: the CI runner's
+    // window is shorter than 800 px and a click outside the body waits out the test (2026-10-12).
+    await window.evaluate(() => document.activeElement?.blur?.());
     await window.keyboard.press('q');
     await expect(cue).toHaveCount(1);
     await window.keyboard.press('q');
