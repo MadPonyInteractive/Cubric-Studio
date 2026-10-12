@@ -257,8 +257,8 @@ controlId: {
 | `autoMaskImg`     | Auto Masking       | image     | 1              | —             | —            | no             | (none)              | universal   |
 | `resize`          | Resize             | image     | 1              | —             | —            | no             | (none)              | universal   |
 | `resizeVideo`     | Resize Video       | video     | 0              | 1             | —            | no             | (none)              | universal   |
-| `gifCutoutSam3`   | GIF Cut-out        | video     | —              | 1             | —            | no             | (none)              | universal — dispatched by `runGifCutoutTrack()` in commandExecutor, NOT `runCommand()`; registry entry is for dependency/availability tracking only |
-| `gifCutoutBirefnet`| GIF Remove Background | video  | —              | 1             | —            | no             | (none)              | universal — dispatched by `runGifCutoutTrack()` in commandExecutor, NOT `runCommand()`; registry entry is for dependency/availability tracking only |
+| `gifCutoutSam3`   | GIF Cut-out        | video     | —              | 1             | —            | no             | (none)              | universal — queued by `enqueueMaskTrack()` (MPI-1106), run by `runGifCutoutTrack()` (`startGeneration`'s mask executor), NOT `runCommand()`; masks to `onMasks`, no card |
+| `gifCutoutBirefnet`| GIF Remove Background | video  | —              | 1             | —            | no             | (none)              | universal — queued by `enqueueMaskTrack()` (MPI-1106), run by `runGifCutoutTrack()` (`startGeneration`'s mask executor), NOT `runCommand()`; masks to `onMasks`, no card |
 
 > `status: active` — operation has a workflow file and is working.
 > `status: stub` — operation is defined but not yet implemented (`stub: true` in commandRegistry).

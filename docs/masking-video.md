@@ -13,8 +13,9 @@ background", and the user picks what stays.
    capped at 1024 (never up), H.264, `-fps_mode passthrough` — ONE output frame per decoded
    frame, under `Media/.video-extract-tmp/` (swept after an hour). Why capped: the loader holds
    every frame as float32 (1080p x 121 ~ 3 GB, 10 s of 4K ~ 24 GB), and SAM3 works at ~1008 px.
-2. `runGifCutoutTrack({ op: 'gifCutoutSam3' })` — the GIF cut-out's runner and graph,
-   unchanged ([masking-sam3-gif.md](masking-sam3-gif.md)). The name is stamped `name:N` with the
+2. `enqueueMaskTrack({ operation: 'gifCutoutSam3' })` — the GIF cut-out's runner and graph,
+   unchanged ([masking-sam3-gif.md](masking-sam3-gif.md)), as a generation-queue job
+   (MPI-1106; the encode in step 1 is a Transfers row). The name is stamped `name:N` with the
    panel's count, capped at 4 (the graph's fixed `max_objects`).
 3. The masks land on the viewer: `MpiVideoViewer.el.setVideoMasks({ urls, trimIn, trimOut, fps })`.
 

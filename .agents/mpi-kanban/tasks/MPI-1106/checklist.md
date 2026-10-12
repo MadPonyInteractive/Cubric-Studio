@@ -3,7 +3,11 @@
 CPU half (rides MPI-1104's `runCpuJob`):
 - [x] Agent GIF verbs (`gif.make`, `gif.edit`, `gif.to-video`, `sheet.make`) show a Transfers row while they run
 - [x] `gif.cutout`: its encode and apply steps show a Transfers row
-- [ ] Gallery right-click Make GIF shows a Transfers row - blocked: MPI-623 claims `MpiGalleryBlock.js`
+- [x] Gallery right-click Make GIF shows a Transfers row
 
-GPU half (needs Fabio's call, refactor; MPI-623 claims `commandExecutor.js`):
-- [ ] The cut-out mask run (`runGifCutoutTrack`) goes through `enqueueGeneration`
+GPU half (Fabio approved all three callers, 2026-10-12):
+- [x] The cut-out mask run (`runGifCutoutTrack`) goes through `enqueueGeneration` (`enqueueMaskTrack`)
+- [x] Agent `gif.cutout` uses it
+- [x] GIF Cut-out panel uses it (encode = Transfers row; By colour keeps its own status bar)
+- [x] Video Mask panel uses it (encode = Transfers row)
+- [ ] Eye test in the app: both panels show a queue row, Stop works, masks land

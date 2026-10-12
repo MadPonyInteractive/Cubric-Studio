@@ -12,9 +12,9 @@
  * `state`, and the assertions are on the REQUESTS it makes and the project it
  * leaves behind.
  *
- * Not covered here, deliberately: `gif.cutout`'s engine leg. `runGifCutoutTrack`
- * reaches `getEngine()` and a real ComfyUI, so the honest proof is a live run in
- * the app — its guards (unknown item, not a GIF) are tested, the graph is not.
+ * `gif.cutout`'s engine leg runs here against a stubbed `runWorkflow` (MPI-1106):
+ * the queue path and the masks reaching apply are tested; the graph itself is not,
+ * so the honest proof of the masks is still a live run in the app.
  */
 
 const assert = require('node:assert/strict');
@@ -402,6 +402,35 @@ test('a .gif whose frames cannot be extracted says so, and lands nothing', async
 });
 
 // ── the capability map ──────────────────────────────────────────────────────
+
+test('MPI-1106: cutout runs its masks through the generation queue, then applies them as an entry', async () => {
+    const BIREFNET = JSON.parse(require('node:fs').readFileSync(
+        require('node:path').join(__dirname, '..', 'comfy_workflows', 'gif_cutout_birefnet.json'), 'utf8'));
+    const maskNode = Object.keys(BIREFNET).find(id => BIREFNET[id]._meta?.title === 'Output_Mask');
+    replies['/comfy_workflows/gif_cutout_birefnet.json'] = BIREFNET;
+    replies['/gif-cutout/source'] = { success: true, videoPath: 'C:/projects/test/Media/.tmp/track.mp4', frameCount: 3 };
+    replies['/gif-cutout/apply'] = {
+        success: true,
+        item: { id: 'cut-1', filePath: 'C:/projects/test/Media/cut.gif', operation: 'gif-cutout', displayName: 'cut',
+            pixelDimensions: { w: 100, h: 100 }, gif: { frames: [{ hash: 'c1', delay: 10 }], loop: 0 } },
+    };
+    const { getEngine } = await import('../js/services/comfyController.js');
+    const { getGenerationQueueSnapshot } = await import('../js/services/generationService.js');
+    let queuedWhileRunning = false;
+    getEngine(true).runWorkflow = async (workflow, params, onMessage) => {
+        queuedWhileRunning = getGenerationQueueSnapshot().items.some(j => j.operation === 'gifCutoutBirefnet');
+        assert.equal(params.Input_Video, 'C:/projects/test/Media/.tmp/track.mp4');
+        onMessage({ type: 'prompt_ack', prompt_id: 'p-cut' });
+        onMessage({ type: 'executed', data: { node: maskNode, output: { images: [0, 1, 2].map(i => ({ filename: `m_${i}.png`, type: 'temp' })) } } });
+    };
+
+    const res = await gifJobs.runGifJob('gif.cutout', { itemId: 'gif-1', method: 'background' });
+
+    assert.equal(res.ok, true, JSON.stringify(res));
+    assert.ok(queuedWhileRunning, 'the mask run is a row in the generation queue');
+    assert.equal(call('/gif-cutout/apply').body.masks.length, 3, 'one mask per frame reaches apply');
+    assert.equal(state.currentProject.itemGroups.find(g => g.id === 'grp-gif').history.length, 2, 'a new entry on the same card');
+});
 
 test('GIF_HANDLERS names exactly the capabilities the routes dispatch', () => {
     assert.deepEqual(

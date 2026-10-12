@@ -1350,6 +1350,14 @@ export function runAutoMask(payload) {
 }
 
 /**
+ * MPI-1106: the ops `runGifCutoutTrack` runs. Their product is one mask per frame, not a card.
+ * ponytail: a list here because a peer held commandRegistry.js; an `outputKind: 'masks'` on
+ * the two entries is the better home.
+ */
+const MASK_TRACK_OPS = new Set(['gifCutoutSam3', 'gifCutoutBirefnet']);
+export const isMaskTrackOp = (operation) => MASK_TRACK_OPS.has(operation);
+
+/**
  * Executes the GIF cut-out SAM3 video-track workflow (gif_cutout_sam3.json).
  *
  * MPI-771 (engine half): SAM3 tracks the named object across EVERY frame of a
@@ -1375,47 +1383,86 @@ export function runAutoMask(payload) {
  * `Input_Object_Indices` re-executes just the (cheap) mask node, never the
  * tracker — unlike the SEGS picker MPI-421 removed for the opposite reason.
  *
- * @param {{ op?: 'gifCutoutSam3'|'gifCutoutBirefnet', videoPath: string, textPrompt?: string, objectIndices?: string, forceLocal?: boolean }} payload
- *   `op` picks the graph (default SAM3); BiRefNet takes the video only (Decision 15).
- *   `textPrompt` should already be stamped per `js/utils/maskTextPrompt.js`
- *   (bare name = one object, `name:N` for several, never `:1`).
- *   `objectIndices` is the SAM3_TrackToMask `object_indices` string
- *   (comma-separated kept indices; `''` = every tracked object).
- * @returns {{ onMasks: ?Function, onPreview: ?Function, onError: ?Function, onDone: ?Function, cancel: Function }}
+ * MPI-1106: it is `runCommand`'s fourth twin (`runToolCommand` is the template). Every caller
+ * (the GIF Cut-out panel, the Video Mask panel, an agent's `gif.cutout`) reaches it through
+ * `enqueueGeneration`, so a mask run is a queue row with the status bar and Stop, and waits
+ * its turn on the engine instead of running beside a generation. It registers a store job
+ * on the engine's lane and reports through the same `exec` callbacks, so `startGeneration`
+ * needs only its `masks` branch: `onComplete(maskUrls)`, and `onMaskPreview(url)` for the
+ * SAM3 numbered preview. A Stop interrupts OUR prompt and settles with no masks.
+ *
+ * @param {object} payload - reads `genId`, `operation` (`gifCutoutSam3` | `gifCutoutBirefnet`),
+ *   `mediaItems[0]` (the temp track video, a disk path), `injectionParams`
+ *   (`Input_Text_Prompt.text`, `Input_Object_Indices.object_indices` for SAM3; BiRefNet takes
+ *   the video only, Decision 15), `forceLocal`, `scope`, `historyMode`. The text prompt
+ *   should already be stamped per `js/utils/maskTextPrompt.js` (bare name = one object,
+ *   `name:N` for several, never `:1`); `''` indices = every tracked object.
  */
 export function runGifCutoutTrack(payload) {
-    let _settled = false;
-    // Targeted, as runAutoMask (MPI-931).
-    let _promptId = null;
-    let _cancelled = false;
     const exec = {
-        onMasks:   null,
-        onPreview: null,
-        onError:   null,
-        onDone:    null,
+        promptId:        null,
+        seed:            null,
+        cacheHit:        false,
+        genId:           null,
+        jobId:           null,
+        onPreview:       null,
+        onPreviewReset:  null,
+        onProgress:      null,
+        onSamplingStart: null,
+        onPromptAck:     null,
+        onMaskPreview:   null,
+        onComplete:      null,
+        onError:         null,
         cancel() {
-            if (_settled) return;
-            _cancelled = true;
-            if (_promptId) getEngine(payload.forceLocal === true).interrupt(_promptId);
+            exec.cancelRequested = true;
+            if (exec.jobId) generationStore.cancel(exec.jobId);
         },
     };
 
-    let _doneFired = false;
-    const _fireDone = () => {
-        if (_doneFired) return;
-        _doneFired = true;
-        exec.onDone?.();
-    };
-
     (async () => {
+        // Yield before anything can fail: the caller assigns the callbacks AFTER this returns.
+        await Promise.resolve();
+
+        // Same engine pick as runCommand, so the store lane is the engine that runs it.
+        const engine = (payload.forceLocal === true || remoteEngineClient.isDownloadOnly())
+            ? 'local'
+            : (remoteEngineClient.isRemote() ? 'remote' : 'local');
+        const eng = () => getEngine(engine === 'local');
+        const jobId = crypto.randomUUID();
+        generationStore.register({
+            jobId,
+            genId: payload.genId ?? null,
+            engine,
+            scope: payload.scope || (payload.historyMode ? 'groupHistory' : 'gallery'),
+            // Targeted, as runAutoMask (MPI-931): every app instance shares one ComfyUI.
+            interruptCb: () => {
+                if (!exec.promptId) return;
+                try { eng().interrupt(exec.promptId); } catch (_) { /* engine gone */ }
+                try { eng().deleteQueueItem(exec.promptId); } catch (_) { /* already ran */ }
+            },
+        });
+        exec.jobId = jobId;
+        if (exec.cancelRequested) generationStore.cancel(jobId);
+
+        const stopped = () => generationStore.getSignal(jobId)?.aborted === true;
+        const pulse = (active) => Events.emit('tool:indeterminate', { tool: 'groupHistory', id: payload.genId ?? null, active });
+        const fail = (err) => {
+            generationStore.settle(jobId, PHASES.ERROR, { error: err?.message || String(err) });
+            pulse(false);
+            exec.onError?.(err);
+        };
+        // A Stop ends with no masks; startGeneration reads the store's `cancelling` and calls onCancel.
+        const settleCancelled = () => {
+            generationStore.advance(jobId, PHASES.CANCELLED);
+            pulse(false);
+            exec.onComplete?.([], {});
+        };
+        if (stopped()) { settleCancelled(); return; }
+
         // MPI-771: one runner for every GIF mask method (`gifCutoutSam3`, `gifCutoutBirefnet`).
-        const op = payload.op || 'gifCutoutSam3';
+        const op = payload.operation || 'gifCutoutSam3';
         const workflowFile = getUniversalWorkflow(op);
-        if (!workflowFile) {
-            exec.onError?.(new Error(`${op} workflow not registered`));
-            _fireDone();
-            return;
-        }
+        if (!workflowFile) { fail(new Error(`${op} workflow not registered`)); return; }
 
         let workflow;
         try {
@@ -1423,10 +1470,10 @@ export function runGifCutoutTrack(payload) {
             if (!res.ok) throw new Error(`Failed to load workflow: ${workflowFile}`);
             workflow = await res.json();
         } catch (err) {
-            exec.onError?.(err);
-            _fireDone();
+            fail(err);
             return;
         }
+        if (stopped()) { settleCancelled(); return; }
 
         const maskNodeIds = new Set(
             Object.keys(workflow).filter(id =>
@@ -1439,46 +1486,52 @@ export function runGifCutoutTrack(payload) {
             )
         );
 
-        const params = { Input_Video: payload.videoPath };
-        if (op === 'gifCutoutSam3') {
-            params['Input_Text_Prompt.text'] = payload.textPrompt || '';
-            params['Input_Object_Indices.object_indices'] = payload.objectIndices || '';
-        }
+        const item = (payload.mediaItems || [])[0];
+        const params = { ...(payload.injectionParams || {}), Input_Video: item?.url || item?.filePath || item?.path || '' };
 
+        let masks = [];
         const onMessage = (msg) => {
             if (msg.type === 'prompt_ack') {
-                _promptId = msg.prompt_id;
-                if (_cancelled) getEngine(payload.forceLocal === true).interrupt(_promptId);
+                exec.promptId = msg.prompt_id;
+                generationStore.setPromptId(jobId, msg.prompt_id);
+                generationStore.advance(jobId, PHASES.ACCEPTED);
+                exec.onPromptAck?.(msg.prompt_id);
+                // A Stop that landed before the ack had no prompt to interrupt yet.
+                if (stopped()) try { eng().interrupt(msg.prompt_id); } catch (_) { /* engine gone */ }
                 return;
             }
             if (msg.type !== 'executed') return;
             const nodeId     = msg.data?.node;
             const nodeOutput = msg.data?.output;
 
+            // The last Output_Mask batch is the run's answer, one mask per frame in frame order.
             if (maskNodeIds.has(nodeId) && nodeOutput?.images) {
-                const urls = nodeOutput.images.map(img => _buildComfyViewUrl(img, payload.forceLocal === true));
-                exec.onMasks?.(urls);
+                masks = nodeOutput.images.map(img => _buildComfyViewUrl(img, engine === 'local'));
             }
             if (previewNodeIds.has(nodeId) && nodeOutput?.images) {
-                const urls = nodeOutput.images.map(img => _buildComfyViewUrl(img, payload.forceLocal === true));
-                exec.onPreview?.(urls[0]);
+                exec.onMaskPreview?.(_buildComfyViewUrl(nodeOutput.images[0], engine === 'local'));
             }
         };
 
+        generationStore.advance(jobId, PHASES.SUBMITTING);
+        pulse(true);
         try {
-            await getEngine(payload.forceLocal === true).runWorkflow(workflow, params, onMessage);
-            _settled = true;
+            await eng().runWorkflow(workflow, params, onMessage);
         } catch (err) {
+            if (stopped()) { settleCancelled(); return; }
             // MPI-856: a no-engine refusal already warned the user — no bug dialog on top.
             if (err?.code !== NO_ENGINE_CODE) {
                 clientLogger.error('comfy', 'gif cutout track workflow failed', err);
                 Events.emit('ui:error', { title: 'Cut-out failed', message: err.message });
             }
-            exec.onError?.(err);
-        } finally {
-            _settled = true;
-            _fireDone();
+            fail(err);
+            return;
         }
+        if (stopped()) { settleCancelled(); return; }
+        generationStore.advance(jobId, PHASES.FINALIZING);
+        generationStore.settle(jobId, PHASES.DONE);
+        pulse(false);
+        exec.onComplete?.(masks, {});
     })();
 
     return exec;

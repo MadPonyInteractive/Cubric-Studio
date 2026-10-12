@@ -6,7 +6,7 @@
  * and provide UI callbacks for their specific rendering needs.
  */
 
-import { runCommand } from './commandExecutor.js';
+import { runCommand, runGifCutoutTrack, isMaskTrackOp } from './commandExecutor.js';
 // MPI-851 — the same handle, the same four callbacks, no ComfyUI. Chosen at the
 // dispatch below by `model.provider` alone.
 import { runCloudCommand } from './cloudExecutor.js';
@@ -246,7 +246,7 @@ function _buildQueueDisplay(config = {}, opts = {}, source = 'manual', isLoop = 
     const plugin = pluginForOperation(config.operation);
     return {
         promptExcerpt: _promptExcerpt(config.positive) || plugin?.title
-            || (command?.outputKind === 'text' ? command.label : ''),
+            || (command?.outputKind === 'text' || isMaskTrackOp(config.operation) ? command.label : ''),
         negativeExcerpt: _promptExcerpt(config.negative),
         modelId: model.id ?? null,
         modelName: model.displayName || model.name || model.label || model.id || flowTitle || (command?.universal ? 'Universal workflow' : 'Unknown model'),
@@ -591,7 +591,9 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
     // IS a promptEnhance job, so gating it would wait on itself.
     // A picture or clip sent with words asking for nudity, underwear or sex ("remove her clothes")
     // is looked at first: words cannot know the age of someone in a photo from the internet.
-    if (getCommand(config.operation)?.outputKind !== 'text') {
+    // MPI-1106: a mask track is exempt too. It makes no picture, only masks of one the user
+    // already has, and its prompt names what to mask ("clothes"), which the picture check reads.
+    if (getCommand(config.operation)?.outputKind !== 'text' && !isMaskTrackOp(config.operation)) {
         const texts = configTexts(config);
         const safety = checkChildSafety(texts, configContext(config));
         if (safety.verdict === 'refuse') return _refuseChildSafety(safety, config, callbacks);
@@ -605,6 +607,33 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
         }
     }
     return _pushCue(config, callbacks, opts);
+}
+
+/**
+ * MPI-1106: queue a mask track over a temp clip, one video frame per frame to mask (GIF
+ * Cut-out, Video Mask, an agent's `gif.cutout`). The masks come back through
+ * `callbacks.onMasks(urls)` and no card lands; see `runGifCutoutTrack`.
+ *
+ * @param {{ operation: 'gifCutoutSam3'|'gifCutoutBirefnet', videoPath: string, textPrompt?: string,
+ *   objectIndices?: string, label?: string }} track - `textPrompt` already stamped
+ *   (`maskTextPrompt.js`); `label` is the queue row's text (what the user typed).
+ * @returns {{ queueJobId: string, cancel: function }|null} null = rejected before it queued
+ *   (callbacks told). `cancel` stops it whether it is still pending or already running.
+ */
+export function enqueueMaskTrack({ operation, videoPath, textPrompt = '', objectIndices = '', label = '' }, callbacks = {}) {
+    const queued = enqueueGeneration({
+        operation,
+        model: { id: null, mediaType: 'image', displayName: getCommand(operation)?.label },
+        positive: label,
+        negative: '',
+        mediaItems: [{ url: videoPath, mediaType: 'video', role: 'inputVideo' }],
+        injectionParams: operation === 'gifCutoutSam3'
+            ? { 'Input_Text_Prompt.text': textPrompt, 'Input_Object_Indices.object_indices': objectIndices }
+            : {},
+    }, callbacks, { source: 'manual' }); // never a loop re-fire: the panel asked once
+    if (!queued) return null;
+    const { queueJobId } = queued;
+    return { queueJobId, cancel: () => cancelPendingCueJob(queueJobId).length || cancelRunningCueJob(queueJobId) };
 }
 
 /**
@@ -1029,6 +1058,9 @@ async function _deleteSavedItems(items) {
  *                                                         `outputKind: 'text'` op (MPI-310).
  *                                                         Mutually exclusive with onComplete:
  *                                                         a text op produces no item/group.
+ * @property {function(string[]):void}      [onMasks]    — a mask track's masks, one per frame
+ *                                                         (MPI-1106); empty = nothing found.
+ * @property {function(string):void}        [onMaskPreview] — SAM3's numbered preview video.
  */
 
 /**
@@ -1127,7 +1159,10 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
     // `ensureServerRunning`, so a cloud dispatch through it would cold-start a local
     // ComfyUI on a machine that may have no GPU at all.
     // MPI-1069 — and a tool op (Resize) runs on neither: sharp/ffmpeg in our own server.
-    const exec = (isToolOp(operation) ? runToolCommand : model.provider ? runCloudCommand : runCommand)({
+    // MPI-1106 — and a mask track (GIF cut-out, Video Mask) runs its own graph runner.
+    const exec = (isToolOp(operation) ? runToolCommand
+        : isMaskTrackOp(operation) ? runGifCutoutTrack
+            : model.provider ? runCloudCommand : runCommand)({
         genId: _regId,
         operation,
         modelId: model.id,
@@ -1245,6 +1280,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         activeGenerations.resetPreview(_regId, info);
     };
 
+    // MPI-1106: the SAM3 numbered preview of a mask track, for the panel that shows it.
+    exec.onMaskPreview = (url) => callbacks.onMaskPreview?.(url);
+
 
     exec.onComplete = async (urls, outputInfo = {}) => {
         // `Output_prompt` contract (MPI-242): when the workflow carries a node of
@@ -1274,6 +1312,20 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         //
         // The shape mirrors the cache-hit terminal below: end the activity, go idle,
         // no history item. Callers get the caption through onText.
+        // MPI-1106 — a mask track's product is one mask per frame for the panel or job that
+        // asked: no card, no sidecar. Same teardown as the text branch below. A Stop reaches
+        // here with no masks and the store's `cancelling` set: a cancel, not a result.
+        if (isMaskTrackOp(operation)) {
+            activeGenerations.end(_regId, { revokePreview: true });
+            Events.emit('tool:cancelled', { tool: 'groupHistory', id: _regId });
+            Events.emit('generation:cancelled', { id: _regId, tempId: _stableTempId, extraTempIds: _stableExtraTempIds });
+            Events.emit('tool:idle', { tool: 'groupHistory', id: _regId, type: operation });
+            _emitPromptBoxGenerationEndIfIdle();
+            if (_wasCancelled()) callbacks.onCancel?.();
+            else callbacks.onMasks?.(urls);
+            return;
+        }
+
         if (getCommand(operation)?.outputKind === 'text') {
             activeGenerations.end(_regId, { revokePreview: true });
             // Not a cancellation — but the gallery/history placeholder this job created

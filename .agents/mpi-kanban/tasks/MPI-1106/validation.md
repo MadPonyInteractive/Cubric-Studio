@@ -9,9 +9,33 @@
   the row exists during `/gif/make` and is gone after a success AND after a route failure.
 - `npx eslint js/shell/gifJobs.js` - clean.
 
-Open:
-- Gallery right-click Make GIF (`MpiGalleryBlock.js` make-gif handler): NOT done. MPI-623
-  (session cdb2fd5e) holds a live write claim on that file with uncommitted work. The change is
-  one wrap of the `/gif/make` fetch in `runCpuJob('Making a GIF', ...)` once it is released.
-- GPU half: `runGifCutoutTrack` outside the generation queue - waits on Fabio's call (refactor)
-  and on MPI-623's claim on `js/services/commandExecutor.js`.
+Open (resolved below by session 697136f6):
+- ~~Gallery right-click Make GIF~~ - done.
+- ~~GPU half~~ - done, Fabio approved all three callers.
+
+2026-10-12, session 697136f6 - GPU half + gallery Make GIF:
+
+- `runGifCutoutTrack` (commandExecutor.js) is now `runCommand`'s fourth twin: it registers a
+  store job on the engine's lane, acks the prompt, settles DONE / ERROR / CANCELLED, and a Stop
+  interrupts OUR prompt (targeted, plus queue delete). `isMaskTrackOp` names its two ops (a list
+  in the executor, because MPI-1101 held commandRegistry.js; see brief `## Noticed`).
+- `startGeneration` picks it for those ops and ends them in a `masks` branch: no card, masks to
+  `callbacks.onMasks`, SAM3 preview to `callbacks.onMaskPreview`, a Stop to `onCancel`. The
+  child-safety gate skips mask ops like text ops (no picture is made; "clothes" would trip the
+  picture check on a temp clip).
+- `enqueueMaskTrack` (generationService.js) is the one entry for all three callers: agent
+  `gif.cutout` (gifJobs.js), the GIF Cut-out panel, the Video Mask panel. Its handle's `cancel`
+  stops the job pending or running. The panels no longer drive `StatusBar.progress` for an
+  engine run (By colour still does: renderer code, no engine); their source encodes are
+  Transfers rows (`runCpuJob`).
+- Gallery right-click Make GIF: the `/gif/make` fetch runs inside `runCpuJob('Making a GIF')`.
+- Tests: new `tests/mask-track-queue.test.cjs` (2: queue row + params + masks + preview; Stop
+  interrupts our prompt and ends as a cancel), new case in `tests/connector-gif-jobs.test.cjs`
+  (agent `gif.cutout` end to end against a stubbed `runWorkflow`: queued while running, 3 masks
+  reach apply, entry lands on the same card). Two source-shape tests re-anchored for the new
+  executor (`lane-settle-on-bail`, `cloud-executor`).
+- `npm test` (all `tests/**/*.test.cjs`): 3257 tests, 3255 pass, 0 fail.
+- `npx eslint` on the 6 changed JS files: clean.
+
+Not yet seen: the two panels in a running app (a real SAM3 / BiRefNet run, the queue row, Stop).
+That needs the engine, so it is Fabio's eye test.

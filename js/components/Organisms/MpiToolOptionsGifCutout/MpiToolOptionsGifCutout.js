@@ -73,7 +73,8 @@ import { state } from '../../../state.js';
 import { getToolSettings } from '../../../data/projectModel.js';
 import { stampDetectionCount } from '../../../utils/maskTextPrompt.js';
 import { COLOUR_KEY_DEFAULTS, colourKeyMaskUrl, cornerColour, readImagePixels } from '../../../utils/colourKeyMask.js';
-import { runGifCutoutTrack } from '../../../services/commandExecutor.js';
+import { enqueueMaskTrack } from '../../../services/generationService.js';
+import { runCpuJob } from '../../../services/cpuJobs.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { StatusBar } from '../../../shell/statusBar.js';
 import { qs } from '../../../utils/dom.js';
@@ -225,6 +226,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
 
         let _busy = false;
         let _trackExec = null;
+        let _ownsBar = false;
         /** What the chips re-dispatch: 'all', or the frame { idx, hash } last tracked alone. */
         let _lastScope = null;
         /** Temp source videos by frame signature — a chip re-dispatch reuses one. */
@@ -618,33 +620,42 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         async function _sourceVideo(frames) {
             const sig = frameSignature(frames);
             if (_videos.has(sig)) return _videos.get(sig);
-            const res = await fetch('/gif-cutout/source', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    folderPath: state.currentProject.folderPath,
-                    frames: frames.map(f => ({ hash: f.hash, delay: f.delay })),
-                }),
+            // MPI-1106: the encode is CPU work, a Transfers row; the mask run after it is the queue's.
+            return runCpuJob('Preparing the GIF cut-out', async () => {
+                const res = await fetch('/gif-cutout/source', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        folderPath: state.currentProject.folderPath,
+                        frames: frames.map(f => ({ hash: f.hash, delay: f.delay })),
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+                _videos.set(sig, data.videoPath);
+                return data.videoPath;
             });
-            const data = await res.json();
-            if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
-            _videos.set(sig, data.videoPath);
-            return data.videoPath;
         }
 
         /**
-         * A run shows on the viewer (spinner) and on the status bar (indeterminate
-         * clock), driven directly like the image Detect row (docs/masking-tools.md
-         * § Detect is a RUN). `outcome` ends it: 'done' completes the bar, anything
-         * else cancels it.
+         * A run shows on the viewer (spinner). By colour also drives the status bar
+         * (indeterminate clock) itself, like the image Detect row (docs/masking-tools.md
+         * § Detect is a RUN); an engine run is a generation-queue job (MPI-1106), so the
+         * queue owns the bar and `bar: false`. `outcome` ends it: 'done' completes the
+         * bar, anything else cancels it.
          */
-        function _setBusy(on, kind = null, outcome = 'cancel') {
+        function _setBusy(on, kind = null, outcome = 'cancel', { bar = true } = {}) {
             if (on === _busy) return;
             _busy = on;
             if (on) {
-                StatusBar.progress.prepare(METHODS[_method].progress);
-                StatusBar.progress.setIndeterminate(true);
-                StatusBar.progress.startClock();
+                _ownsBar = bar;
+                if (bar) {
+                    StatusBar.progress.prepare(METHODS[_method].progress);
+                    StatusBar.progress.setIndeterminate(true);
+                    StatusBar.progress.startClock();
+                }
+            } else if (!_ownsBar) {
+                // The queue's job: nothing of ours on the bar.
             } else if (outcome === 'done') {
                 StatusBar.progress.complete();
             } else {
@@ -728,7 +739,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             // replace (it was stopped, or it failed), which must not be left on
             // screen looking like its result.
             viewer.el.discardCandidates?.();
-            _setBusy(true, isAll ? 'all' : 'frame');
+            _setBusy(true, isAll ? 'all' : 'frame', 'cancel', { bar: method === 'colour' });
 
             const landMasks = async (urls) => {
                 if (frameSignature(viewer.el.getFrames()) !== listSig) {
@@ -773,48 +784,48 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
 
             try {
                 const videoPath = await _sourceVideo(targets);
-                const exec = runGifCutoutTrack({
-                    op: METHODS[method].op,
+                // MPI-1106: a generation-queue job (row, status bar, Stop), not a side run.
+                let handle = null;
+                const finish = (landed) => {
+                    if (_destroyed) return;
+                    if (_trackExec === handle) _trackExec = null;
+                    _setBusy(false, null, landed ? 'done' : 'cancel');
+                };
+                handle = enqueueMaskTrack({
+                    operation: METHODS[method].op,
                     videoPath,
                     textPrompt: stampDetectionCount(raw, OBJECT_SLOTS),
                     objectIndices: _indicesString(),
+                    label: raw,
+                }, {
+                    onMaskPreview: (url) => {
+                        if (_destroyed || _trackExec !== handle || method !== 'sam3') return;
+                        previewVideo.el._setSrc(url);
+                        previewWrap.hidden = false;
+                    },
+                    onMasks: (urls) => {
+                        if (_destroyed || _trackExec !== handle) return;
+                        if (!urls.length) { finish(false); return; }
+                        if (method === 'sam3' && _method === 'sam3') previewWrap.hidden = false;
+                        // Landing is ASYNC (the Background flip decodes), so the run is not
+                        // over until it is; and CAUGHT, because nothing in the app logs an
+                        // unhandled rejection — a throw in here used to leave a finished
+                        // 80-frame run showing nothing and saying nothing.
+                        landMasks(urls)
+                            .then((ok) => finish(ok))
+                            .catch((err) => {
+                                clientLogger.warn('MpiToolOptionsGifCutout', 'masks came back but could not be landed', err);
+                                StatusBar.notify('The masks came back but could not be shown: ' + (err?.message || err), 'error');
+                                finish(false);
+                            });
+                    },
+                    onError: (err) => {
+                        if (!_destroyed) clientLogger.warn('MpiToolOptionsGifCutout', 'mask run failed', err);
+                        finish(false);
+                    },
+                    onCancel: () => finish(false),
                 });
-                let landed = false;
-                // Landing is ASYNC now (the Background flip decodes), so the run is
-                // not over until it is: `onDone` waits on this, or the panel went idle
-                // with the masks still in flight and reported the run as cancelled.
-                let landing = Promise.resolve();
-                _trackExec = exec;
-                exec.onPreview = (url) => {
-                    if (_destroyed || _trackExec !== exec || method !== 'sam3') return;
-                    previewVideo.el._setSrc(url);
-                    previewWrap.hidden = false;
-                };
-                exec.onMasks = (urls) => {
-                    if (_destroyed || _trackExec !== exec) return;
-                    if (method === 'sam3' && _method === 'sam3') previewWrap.hidden = false;
-                    // Chained, so two batches land in order; and CAUGHT, because nothing
-                    // in the app logs an unhandled rejection — a throw in here used to
-                    // leave a finished 80-frame run showing nothing and saying nothing.
-                    landing = landing
-                        .then(() => landMasks(urls))
-                        .then((ok) => { landed = ok || landed; })
-                        .catch((err) => {
-                            clientLogger.warn('MpiToolOptionsGifCutout', 'masks came back but could not be landed', err);
-                            StatusBar.notify('The masks came back but could not be shown: ' + (err?.message || err), 'error');
-                        });
-                };
-                exec.onError = (err) => {
-                    if (_destroyed) return;
-                    clientLogger.warn('MpiToolOptionsGifCutout', 'mask run failed', err);
-                };
-                exec.onDone = () => {
-                    landing.then(() => {
-                        if (_destroyed) return;
-                        if (_trackExec === exec) _trackExec = null;
-                        _setBusy(false, null, landed ? 'done' : 'cancel');
-                    });
-                };
+                if (handle) _trackExec = handle;
             } catch (err) {
                 _setBusy(false);
                 clientLogger.warn('MpiToolOptionsGifCutout', 'source encode failed', err);
@@ -978,7 +989,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             clearTimeout(_rekeyTimer);
             _trackExec?.cancel?.();
             if (_keyRun) _keyRun.cancelled = true;
-            if (_busy) { StatusBar.progress.cancel(); viewer.el.setGenerating?.(false); }
+            if (_busy) { if (_ownsBar) StatusBar.progress.cancel(); viewer.el.setGenerating?.(false); }
             // The preview contract: an uncommitted proposal must not outlive its
             // tool (docs/masking-tools.md). Add is mandatory here for the same
             // reason it is in the image workspace since MPI-382.

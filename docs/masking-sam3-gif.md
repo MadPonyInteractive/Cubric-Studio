@@ -42,7 +42,9 @@ which tracked index is which object.
   count derived from the run.
 - **Runner:** `runGifCutoutTrack()` beside `runAutoMask` (`js/services/commandExecutor.js`)
   — both engines run the identical graph through `getEngine(forceLocal)`, no
-  local-only shortcut. Live-verified 2026-09-16 on a real 30-frame extract of a real
+  local-only shortcut. Since MPI-1106 it is `startGeneration`'s fourth executor, reached
+  only through `enqueueMaskTrack` (`generationService.js`): a queue row with Stop, on the
+  engine's lane, its masks back through `onMasks` and no card. Live-verified 2026-09-16 on a real 30-frame extract of a real
   mascot clip with the bare text prompt `"robot"`: 30 masks back for 30 frames, each a
   clean silhouette.
 - **`routes/gifCutout.js`** (not `routes/gif.js`'s `POST /gif/entry`) owns everything
@@ -187,11 +189,12 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
    `el.setSelection(viewerIndices)` (the Block forwards the strip's `selection-change`, and
    seeds it at mount) and is aria-disabled while empty. Four buttons collapsed to two so
    Selected could exist without a fifth and sixth (Fabio, 2026-09-18).
-   `runGifCutoutTrack({ op })` is called from the panel; a narrower scope is the same
+   The panel queues the run with `enqueueMaskTrack` (MPI-1106); a narrower scope is the same
    graph on a source video of just those frames, and lands only on those positions, so
-   untouched ones keep the masks they had. A run spins
-   the viewer (`setGenerating`) and drives the status bar directly (indeterminate clock,
-   `complete()` when masks landed, `cancel()` otherwise), the image Detect row's idiom. There is **no count input**: each name is stamped `name:4`, the same 4
+   untouched ones keep the masks they had. A run spins the viewer (`setGenerating`); the
+   source encode is a Transfers row and the track a generation-queue job, which owns the
+   status bar and Stop. Only By colour (renderer code, no engine) drives the status bar
+   directly (indeterminate clock, `complete()` when masks landed, `cancel()` otherwise). There is **no count input**: each name is stamped `name:4`, the same 4
    as the chips (`OBJECT_SLOTS` = `max_objects`), because a bare name finds ONE object
    ([masking-sam3.md](masking-sam3.md) § the `name:N` trap). Source videos are cached per
    frame signature. Results that land after the frame list changed are dropped.

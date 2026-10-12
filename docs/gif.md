@@ -212,8 +212,8 @@ dispatches a `gif.*` job over the connector's renderer channel to
 `js/shell/gifJobs.js`, which resolves `state.currentProject`, posts the routes above
 and lands the card. **That hop is the point**: these routes never write
 `project.json` (the renderer owns `itemGroups`), and the cut-out's masks come from
-`runGifCutoutTrack()` through `getEngine()` — a server-side producer would be a
-second engine-dispatch path. `edit` does the timing math with `timingEdit`, then
+`enqueueMaskTrack()`, a generation-queue job (MPI-1106) — a server-side producer would
+be a second engine-dispatch path. `edit` does the timing math with `timingEdit`, then
 picks ONE route; crop + resize in one call is refused rather than landing an
 intermediate entry nothing references. Not exposed (Fabio, 2026-09-19): By colour,
 SAM3 chips, the Mask Brush, per-frame scope. Contract:

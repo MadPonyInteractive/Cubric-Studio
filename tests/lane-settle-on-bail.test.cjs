@@ -47,7 +47,8 @@ const findLine = (needle, from = 0) => lines.findIndex((l, i) => i >= from && l.
  * must settle the job before returning.
  */
 function preDispatchRegion() {
-    const start = findLine('generationStore.register({');
+    // From runCommand's own register: runGifCutoutTrack (MPI-1106) registers a job too, above it.
+    const start = findLine('generationStore.register({', findLine('export function runCommand('));
     assert.ok(start > 0, 'generationStore.register({ not found — did the dispatch body move?');
     const end = findLine('.runWorkflow(', start);
     assert.ok(end > start, 'runWorkflow( not found after register — did the dispatch boundary move?');

@@ -12,9 +12,9 @@
  *   `persistGroups` writes the whole array back on every save, so the group has
  *   to be created here (`addGroup` / `updateGroup`), exactly as the Gallery and
  *   History blocks do it.
- * - **The engine.** The cut-out's masks come from `runGifCutoutTrack()`, which
- *   dispatches through `getEngine()` — local or remote Pod, the renderer's
- *   choice.
+ * - **The engine.** The cut-out's masks come from `enqueueMaskTrack()`, a job
+ *   in the generation queue (MPI-1106) on the local engine or the Pod, the
+ *   renderer's choice.
  * - **`state.currentProject`.** Every verb runs in whatever project the app has
  *   open, like a submit does.
  *
@@ -31,7 +31,7 @@ import { addGroup, updateGroup } from '../services/projectService.js';
 import { createImageItem, createVideoItem, createItemGroup, appendToHistory } from '../data/projectModel.js';
 import { timingEdit, toEntryOutput } from '../utils/gifTiming.js';
 import { stampDetectionCount } from '../utils/maskTextPrompt.js';
-import { runGifCutoutTrack } from '../services/commandExecutor.js';
+import { enqueueMaskTrack } from '../services/generationService.js';
 import { truncateCardName } from '../utils/displayHelpers.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { runCpuJob } from '../services/cpuJobs.js';
@@ -283,15 +283,15 @@ async function cutoutGif(input) {
     // tracked object is kept.
     const textPrompt = op === 'gifCutoutSam3' ? stampDetectionCount(input.prompt, OBJECT_SLOTS) : undefined;
 
+    // MPI-1106: through the generation queue, so the run is a queue row the user can Stop.
     const masks = await new Promise((resolve, reject) => {
-        const exec = runGifCutoutTrack({ op, videoPath: source.videoPath, textPrompt, objectIndices: '' });
-        let landed = null;
-        exec.onMasks = (urls) => { landed = urls; };
-        exec.onError = (err) => reject(new JobError('ENGINE_ERROR', err?.message || 'The cut-out graph failed.'));
-        exec.onDone = () => {
-            if (landed?.length) return resolve(landed);
-            reject(new JobError('ENGINE_ERROR', 'The cut-out graph returned no masks.'));
-        };
+        const queued = enqueueMaskTrack({ operation: op, videoPath: source.videoPath, textPrompt, objectIndices: '', label: input.prompt || '' }, {
+            onMasks: (urls) => (urls?.length ? resolve(urls)
+                : reject(new JobError('ENGINE_ERROR', 'The cut-out graph returned no masks.'))),
+            onError: (err) => reject(new JobError('ENGINE_ERROR', err?.message || 'The cut-out graph failed.')),
+            onCancel: () => reject(new JobError('CANCELLED', 'The cut-out was stopped in Vision.')),
+        });
+        if (!queued) reject(new JobError('ENGINE_ERROR', 'Vision refused the cut-out before it queued.'));
     });
 
     if (masks.length !== frames.length) {

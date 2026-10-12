@@ -3,8 +3,8 @@
  *
  * The image Text tool's shape (MpiToolOptionsMaskText), on a clip: name the object,
  * Detect, and SAM3's VIDEO tracker follows it through every frame of the trim range.
- * The run is `runGifCutoutTrack` unchanged (the GIF cut-out's By name), fed a
- * downscaled copy of the range from `POST /video-extract/source`. Its masks land on the
+ * The run is the GIF cut-out's By name (`enqueueMaskTrack`, a generation-queue job since
+ * MPI-1106), fed a downscaled copy of the range from `POST /video-extract/source`. Its masks land on the
  * viewer, which tints each frame as the clip plays, and the shared MpiMaskStrip
  * (brush: false) ends in Extract — `routes/videoExtract.js` cuts the full-res clip.
  *
@@ -31,7 +31,8 @@ import { Events }            from '../../../events.js';
 import { state }             from '../../../state.js';
 import { getToolSettings }   from '../../../data/projectModel.js';
 import { stampDetectionCount } from '../../../utils/maskTextPrompt.js';
-import { runGifCutoutTrack } from '../../../services/commandExecutor.js';
+import { enqueueMaskTrack }  from '../../../services/generationService.js';
+import { runCpuJob }         from '../../../services/cpuJobs.js';
 import { StatusBar }         from '../../../shell/statusBar.js';
 import { clientLogger }      from '../../../services/clientLogger.js';
 
@@ -113,18 +114,10 @@ export const MpiToolOptionsVideoMask = ComponentFactory.create({
         _mountDetectBtn();
         const _offQueue = Events.onState('generationQueueCount', () => { if (!_busy) _mountDetectBtn(); });
 
-        function _setBusy(on, outcome = 'cancel') {
+        // The status bar is the queue's (MPI-1106): the encode is a Transfers row, the track a queue job.
+        function _setBusy(on) {
             if (on === _busy) return;
             _busy = on;
-            if (on) {
-                StatusBar.progress.prepare('Tracking');
-                StatusBar.progress.setIndeterminate(true);
-                StatusBar.progress.startClock();
-            } else if (outcome === 'done') {
-                StatusBar.progress.complete();
-            } else {
-                StatusBar.progress.cancel();
-            }
             viewer.el.setGenerating?.(on);
             _mountDetectBtn();
         }
@@ -141,41 +134,50 @@ export const MpiToolOptionsVideoMask = ComponentFactory.create({
 
             _setBusy(true);
             _stopped = false;
-            let landed = false;
             try {
-                const res = await fetch('/video-extract/source', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ folderPath, sourcePath: item.filePath, trimIn, trimOut }),
-                });
-                const src = await res.json().catch(() => null);
-                if (!res.ok || !src?.success) throw new Error(src?.error || `video-extract/source ${res.status}`);
+                const src = await runCpuJob('Preparing the clip to mask', async () => {
+                    const res = await fetch('/video-extract/source', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ folderPath, sourcePath: item.filePath, trimIn, trimOut }),
+                    });
+                    const body = await res.json().catch(() => null);
+                    if (!res.ok || !body?.success) throw new Error(body?.error || `video-extract/source ${res.status}`);
+                    return body;
+                }, { mediaType: 'video' });
                 if (_destroyed) return;
                 if (_stopped) { _setBusy(false); return; }
 
-                const exec = runGifCutoutTrack({
-                    op: 'gifCutoutSam3',
+                // MPI-1106: a generation-queue job (row, status bar, Stop), not a side run.
+                let handle = null;
+                const finish = () => {
+                    if (_exec === handle) _exec = null;
+                    if (!_destroyed) _setBusy(false);
+                };
+                handle = enqueueMaskTrack({
+                    operation: 'gifCutoutSam3',
                     videoPath: src.videoPath,
                     textPrompt: stampDetectionCount(raw, _count),
                     objectIndices: '',
+                    label: raw,
+                }, {
+                    onMasks: (urls) => {
+                        // A track belongs to the clip it ran on; the user may have moved on.
+                        if (!_destroyed && _exec === handle && currentItem === item) {
+                            if (!urls.length) StatusBar.notify(`Nothing found for "${raw}"`, 'warning');
+                            else {
+                                if (src.frameCount && urls.length !== src.frameCount) {
+                                    clientLogger.warn('MpiToolOptionsVideoMask', `${urls.length} masks for ${src.frameCount} frames`);
+                                }
+                                viewer.el.setVideoMasks?.({ urls, trimIn, trimOut, fps: src.fps });
+                            }
+                        }
+                        finish();
+                    },
+                    onError: (err) => { clientLogger.warn('MpiToolOptionsVideoMask', 'track failed', err); finish(); },
+                    onCancel: finish,
                 });
-                _exec = exec;
-                exec.onMasks = (urls) => {
-                    // A track belongs to the clip it ran on; the user may have moved on.
-                    if (_destroyed || _exec !== exec || !urls?.length || currentItem !== item) return;
-                    if (src.frameCount && urls.length !== src.frameCount) {
-                        clientLogger.warn('MpiToolOptionsVideoMask', `${urls.length} masks for ${src.frameCount} frames`);
-                    }
-                    viewer.el.setVideoMasks?.({ urls, trimIn, trimOut, fps: src.fps });
-                    landed = true;
-                };
-                exec.onError = (err) => clientLogger.warn('MpiToolOptionsVideoMask', 'track failed', err);
-                exec.onDone = () => {
-                    if (_exec === exec) _exec = null;
-                    if (_destroyed) return;
-                    if (!landed && !_stopped) StatusBar.notify(`Nothing found for "${raw}"`, 'warning');
-                    _setBusy(false, landed ? 'done' : 'cancel');
-                };
+                if (handle) _exec = handle;
             } catch (err) {
                 clientLogger.warn('MpiToolOptionsVideoMask', 'source encode failed', err);
                 StatusBar.notify('Could not prepare the clip: ' + err.message, 'error');
@@ -192,7 +194,7 @@ export const MpiToolOptionsVideoMask = ComponentFactory.create({
             _destroyed = true;
             _offQueue();
             _exec?.cancel?.();
-            if (_busy) { StatusBar.progress.cancel(); viewer.el.setGenerating?.(false); }
+            if (_busy) viewer.el.setGenerating?.(false);
             viewer.el.exitMaskMode?.();
             detectBtn?.destroy?.();
             _children.forEach(c => c.destroy?.());

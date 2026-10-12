@@ -48,6 +48,7 @@ import { startGeneration, enqueueGeneration, clearPendingQueue, refreshQueueDept
 import { StatusBar } from '../../../shell/statusBar.js';
 import { readSavedRoutines, routineMenu, runSavedRoutine } from '../../../shell/routineDispatch.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
+import { runCpuJob } from '../../../services/cpuJobs.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { uploadMediaFile, prepareImageImport } from '../../../services/mediaUploadService.js';
 import { addGroup, updateGroup, removeGroup, persistGroups, validatePreviewAssets, applyPromptReuseSettings, listProjects, stackGroups, unstackGroup } from '../../../services/projectService.js';
@@ -511,15 +512,19 @@ export const MpiGalleryBlock = ComponentFactory.create({
                 .filter(Boolean);
             if (itemIds.length < 2) return;
             try {
-                const resp = await fetch('/gif/make', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ folderPath: project.folderPath, itemIds }),
-                });
-                const data = await resp.json();
-                if (!resp.ok || !data?.success || !data?.item) {
-                    throw new Error(data?.error || 'gif/make failed');
-                }
+                // MPI-1106: an ffmpeg build, so a Transfers row while it runs (MPI-1104).
+                const data = await runCpuJob('Making a GIF', async () => {
+                    const resp = await fetch('/gif/make', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ folderPath: project.folderPath, itemIds }),
+                    });
+                    const body = await resp.json();
+                    if (!resp.ok || !body?.success || !body?.item) {
+                        throw new Error(body?.error || 'gif/make failed');
+                    }
+                    return body;
+                }, { mediaType: 'image' });
                 const ext = data.item;
                 const newItem = createImageItem({
                     id:              ext.id,
