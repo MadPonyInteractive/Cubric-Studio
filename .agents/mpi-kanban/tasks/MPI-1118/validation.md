@@ -9,9 +9,9 @@
 
 ## Fix
 
-`relocationRebase()` extracted from `healRelocatedMeta()` (the rule, pure); the heal and `findRecentProjectThumbnail()` both use it. The landing scan never writes. Audio counts only with a waveform on disk, and any picture/clip outranks it.
+`relocationRebase()` extracted from `healRelocatedMeta()` (the rule, pure); the heal and `findRecentProjectThumbnail()` both use it. The landing scan never writes. Audio counts only with a waveform on disk. The newest item is the cover, sound included (Fabio, 2026-10-12, after seeing it live: a picture over a newer sound reads as the wrong project).
 
 ## Checks
 
-- `node --test tests/*project*.test.cjs tests/recent-project-thumbnail.test.cjs`: 47/47 pass, incl. 2 new cases (moved folder resolves and the sidecar bytes are unchanged; audio-only shows waveform, older picture outranks newer sound). eslint clean.
+- `node --test tests/*project*.test.cjs tests/recent-project-thumbnail.test.cjs`: 51/51 pass, incl. 2 new cases (moved folder resolves and the sidecar bytes are unchanged; the newest item wins, a sound shown as its waveform). eslint clean.
 - Isolated instance (own profile + port 53761, never :3000), POST /list-projects: 68 of 76 have a cover (was 14-15), 0 covers point at a missing file. The 8 left: 7 empty projects, and The Failed Heist Tutorial (22 sounds, no waveform baked yet; baked on open by `/backfill-media-derivatives`).

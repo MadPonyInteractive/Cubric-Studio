@@ -329,15 +329,14 @@ async function findRecentProjectThumbnail(mediaDir) {
                     thumb = (thumb && rebase(thumb)) || thumb;
                 }
                 const ext = path.extname(absPath).toLowerCase().slice(1);
-                // A sound shows its waveform (MPI-730), so an audio-only project has a
-                // cover too; any picture or clip still outranks it, however old.
+                // A sound shows its waveform (MPI-730). The newest item is the cover even
+                // when it is a sound: the card should look like the last thing you did.
                 const audio = mediaTypeFromExt(ext) === 'audio';
                 if (audio ? !(thumb && await fs.pathExists(thumb)) : !RECENT_THUMBNAIL_EXTENSIONS.has(ext)) return null;
                 const stats = await fs.stat(absPath);
                 return {
                     path: absPath,
                     ext,
-                    audio,
                     thumb,
                     timestamp: Date.parse(meta.createdAt || '') || stats.mtimeMs,
                 };
@@ -362,7 +361,7 @@ async function findRecentProjectThumbnail(mediaDir) {
         return { recentThumbnail: null, recentThumbnailType: null };
     }
 
-    candidates.sort((a, b) => (!!a.audio - !!b.audio) || (b.timestamp - a.timestamp));
+    candidates.sort((a, b) => b.timestamp - a.timestamp);
     const top = candidates[0];
     // The card is a few hundred px: show the sidecar thumb, not the original (MPI-963). A
     // 32K import as the newest card left it blank — Chromium cannot decode one — and a 16K

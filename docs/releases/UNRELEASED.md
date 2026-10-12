@@ -69,7 +69,7 @@
 
 ## Fixes
 
-- **Every project on the home page shows its picture again.** Projects made before 2.0 showed a blank card until you opened them, and a project with only sounds now shows a waveform.
+- **Every project on the home page shows its picture again.** Projects made before 2.0 showed a blank card until you opened them, and when the last thing you made was a sound, the card shows its waveform.
 - **Copy address in Settings copies again.** The button for the MCP server address did nothing, so you had to type the address into your agent by hand.
 - **A download-only Pod no longer locks you out of your projects.** Connecting the No GPU Pod to install models used to block every project. Projects now open, and generations run on DeepInfra or your own GPU while the Pod installs.
 - **Resize is a lot faster and no longer needs ComfyUI.** It runs inside the app now, so it works with no engine installed and beside your generations instead of waiting behind them, and a long 4K clip no longer runs out of memory (a 14-second 4K phone clip used to). It always resizes with Lanczos, so the Method setting is gone.

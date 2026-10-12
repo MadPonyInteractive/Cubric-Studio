@@ -97,7 +97,9 @@ test('a moved project resolves its old-folder sidecar paths, read-only', async (
     } finally { await fs.remove(root); await fs.remove(moved); }
 });
 
-test('an audio-only project shows its waveform; any picture outranks a newer sound', async () => {
+// Fabio, 2026-10-12: the cover is the LAST thing done, sound included. A picture shown
+// over a newer sound reads as "not the project I was just in".
+test('a sound newer than every picture is the cover, as its waveform', async () => {
     const { root, mediaDir, metaDir } = await seed([
         { name: 'song_001.mp3', createdAt: '2026-09-28T00:00:00Z', thumbOnDisk: true },
     ]);
@@ -109,6 +111,11 @@ test('an audio-only project shows its waveform; any picture outranks a newer sou
         const pic = path.join(mediaDir, 'old_001.png');
         await fs.writeFile(pic, 'master');
         await fs.writeJson(path.join(metaDir, 'id9.json'), { filePath: url(pic), createdAt: '2026-01-01T00:00:00Z' });
+        assert.deepEqual(await findRecentProjectThumbnail(mediaDir), {
+            recentThumbnail: url(path.join(metaDir, 'id0.thumb.webp')),
+            recentThumbnailType: 'image',
+        });
+        await fs.writeJson(path.join(metaDir, 'id9.json'), { filePath: url(pic), createdAt: '2026-10-01T00:00:00Z' });
         assert.deepEqual(await findRecentProjectThumbnail(mediaDir), {
             recentThumbnail: url(pic),
             recentThumbnailType: 'image',
