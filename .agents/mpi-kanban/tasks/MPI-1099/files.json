@@ -1,0 +1,18 @@
+{
+ "schema": "mpi-kanban/task-files/v1",
+ "files": [
+  "routes/imageSheet.js",
+  "js/shell/gifJobs.js",
+  "routes/connectorGif.js",
+  "services/agentTools.mjs",
+  "services/agentLoop.mjs",
+  "routes/mcp.js",
+  "mcp/cubric-studio/manifest.json",
+  "tests/image-sheet.test.cjs",
+  "tests/agent-cards.test.cjs",
+  "tests/mcp.test.cjs",
+  "docs/agent-chat.md",
+  "docs/mcp-server.md",
+  "docs/gallery-selection.md"
+ ]
+}

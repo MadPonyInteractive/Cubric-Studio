@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1099",
+  "title": "Cosmo and MCP make_sheet: pack 2+ picture cards into one sheet (the gallery's image Combine)",
+  "description": "Agent tool over the connector job channel; /combine-images auto-packs when no tree is sent.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-11T21:26:27+01:00",
+  "updated_at": "2026-10-12T03:38:07+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
