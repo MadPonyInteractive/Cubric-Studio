@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".claude/rules/dos_and_donts.md",
+    ".claude/rules/README.md",
+    "CLAUDE.md"
+  ]
+}

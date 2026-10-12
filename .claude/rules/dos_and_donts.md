@@ -16,6 +16,7 @@
 - **For image surfaces: prefer CSS `transform` on a stack element over `ctx.translate/scale`.** CSS transform uses the GPU compositor — no re-rasterize per frame. `ctx` transforms belong only to screen-UI overlays drawn in container px.
 - **Check `js/utils/` before writing any generic logic** — `async.js`, `file.js`, `images.js`, `video.js`, `mediaDimensions.js`, `string.js`, `ratios.js`, `markdown.js` may already do what you need.
 - **Never hand-roll markdown.** `js/utils/markdown.js` is the ONE renderer (`marked` parses, `DOMPurify` sanitizes): `renderMarkdown(src)` for a document, `renderInlineMarkdown(src)` for a single line with no `<p>` wrapper, `renderMarkdownInto(el, src)` + `wireMarkdownLinks(el)` for a live pane. Never `innerHTML` markdown output that did not go through it — notes arrive inside project folders the user may not have written. Style the result with the shared `.mpi-md` block in `styles/markdown.css`; do not restyle headings/tables per component.
+- **Every action shows itself — start, during, end.** Over ~1 s shows progress; GPU/engine work goes through `enqueueGeneration` (never a direct engine call); a download/upload uses Transfers; a failure is a `ui:warning` toast with a plain reason. Before calling it done, name what the user SEES at start, during, end — any "nothing" = not done. Full rule: § "Every action shows itself".
 - **Frontend logging:** `import { clientLogger } from '../services/clientLogger.js'` — never use bare `console.log/error`.
 - **Backend logging:** `const logger = require('./logger')` from `routes/logger.js`.
 - **🔴 Mutating a mask or paint LAYER? It must be undoable.** `MpiCanvas` owns a shared
@@ -132,6 +133,30 @@ clientLogger.error('comfy', 'Description of error', err);
 - **`ui:warning` / `ui:info` / `ui:success` → toast.**
 - **A toast that points somewhere carries an `action` button** (`{ text, onClick }`, MPI-993), e.g. "Open Remote". The button navigates; the rest of the toast only dismisses.
 - **No toast on user-initiated actions** (e.g. Stop) — user actions are self-evident; toasts are for NON-user events only.
+
+---
+
+## 📡 Every action shows itself — start, during, end (Fabio, 2026-10-12)
+
+**An action that runs with nothing on screen is NOT done.** The failure: MPI-623's gallery
+right-click "Convert to 360 pano" called `runSceneOp` (`commandExecutor.js`) directly, so
+~1.5 min of GPU work showed no queue row and the status bar read IDLE. Fixed by routing it
+through `enqueueGeneration` — the queue row, status-bar progress and Stop came for free.
+
+1. **Over ~1 s → visible progress where the user is looking.** Queue row + status bar,
+   a Transfers bar, an `MpiProgressBar`, or the control's own busy state. Never a log line only.
+2. **GPU / engine work goes through the generation queue** — `enqueueGeneration`
+   (`js/services/generationService.js`), tracked by `activeGenerations`, shown in
+   `MpiQueuePanel` and the status bar. Never a direct engine call, unless it is a sub-second
+   helper. This holds for agent / MCP-triggered work too.
+3. **A byte transfer (model download / upload) uses Transfers** — `state.downloadJobs` /
+   `state.uploadJobs`, the Transfers section of `MpiQueuePanel` (MPI-1057).
+4. **Every end state is visible.** Done → the result lands or the status bar completes.
+   Failed → a `ui:warning` toast with a plain reason and what to do (`ui:error` only for a
+   reportable bug — the channel table is `docs/toasts.md` § Choosing the channel). Cancelled →
+   no toast (rule above), but the row / bar / button visibly leaves its running state.
+5. **Self-check before calling it done:** name what the user SEES at start, during, and end.
+   If any answer is "nothing", it is not done.
 
 ---
 

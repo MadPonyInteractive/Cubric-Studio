@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1100", "at": "2026-10-12T07:48:05+01:00", "actor": "claude", "column": "todo", "title": "Rule: every app action gives the user feedback (start, during, end)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1100", "at": "2026-10-12T07:48:28+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "writing the feedback rule"}
