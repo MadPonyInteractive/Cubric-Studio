@@ -34,3 +34,8 @@ Shown the hero at 446 px (WebM preview) and the tile in the Flow Library grid at
   Probe project deleted (`/delete-project`, gone from the projects root); instance tree killed via
   the listener's parent; `:3000` still 200.
 - `npm test`: 3260 tests, 3258 pass, 0 fail, 2 skipped.
+
+## Shipped
+
+- 99e027fcb pushed to master; CI run 38295536123 success (unit + desktop 1-4).
+- Playbook 06-preview-image.md: 360-pano device row + encoder-only loop-seam trap.
