@@ -20,3 +20,5 @@
 - [x] 4e: docs/agent/flows.md, docs/flow-packages.md (op.outputKind), UNRELEASED.md, tests, privacy check; lift the dev_mode gate
 - [x] 4e: tile + hero (/mpi-flow-graphics) - built; Fabio eye-test pending
 - [x] Docs: `docs/dictation.md`, `docs/llm.md` (Remote + Ollama; ComfyUI lines when it lands)
+- [ ] Fix the intermittent native crash in MpiSpeechToText (cold engine, conv in the audio encoder): reproduce under the GPU lease, likely load through ComfyUI model management
+- [ ] Pod start.sh: speech_to_text in extra_model_paths.yaml on the dev channel, one Pod test + promote with MPI-623
