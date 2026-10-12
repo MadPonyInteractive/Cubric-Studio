@@ -49,3 +49,5 @@ where orange is right, so the colour follows the caller: `enqueueMaskTrack({ med
 vision, clip -> video; read ['video','video'] before the fix); `tests/status-bar-accent.test.cjs`
 re-anchored. `npm test`: the only failure was that re-anchored assertion, now green; lint clean.
 Left: Fabio's glance that the GIF bar is pink.
+
+Close 2026-10-12: CI tests.yml green on both code commits (a974c2f23, 72bfffa08). Claim audit: 27 PROVEN, 0 FALSE (1 UNPROVEN = the npm test count, a runtime measurement). Closed on evidence.
