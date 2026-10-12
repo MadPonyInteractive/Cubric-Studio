@@ -95,3 +95,7 @@
 - npm test 3170 pass 0 fail; flow-library-filters + clipboard-copy desktop specs pass. Committed e3a8f8fcb, pushed.
 - OPEN: native access violation in MpiSpeechToText on a cold engine (peer message 9f16b75b, 07:57:41Z); the next cold run at 08:10 worked, so intermittent.
 - OPEN: Pod start.sh lacks speech_to_text in extra_model_paths.yaml (release:check red, MPI-623 message).
+- OPEN 2 DONE (2026-10-12, session 1224ed33): speech_to_text line in mpi-ci start.sh, publish-runtime.sh dev, Fabio re-bootstrapped the Pod and a Transcribe on Remote returned text; promoted (stable start_sha256 23fddf62), mpi-ci 82eb9b4 pushed. release:check Pod-yaml guard passes.
+- OPEN 1 repro (2026-10-12, session 1224ed33, GPU leased): private ComfyUI from the shipped engine (:8299, same LOW_VRAM + cudaMallocAsync + aimdo 0.5.5), transcribe as the FIRST job of each cold start: 12 runs quiet GPU, 18 runs with 0-145 MB VRAM free, 16 runs of the Transcribe Flow graph on a 77 s mp4 / wav. 46/46 clean, right text. Crash NOT reproduced; no code change.
+- Transcribe one input at a time (2026-10-12, session 1224ed33, Fabio's ask): `inputSchema.pickOne` (flowsRegistry typedef + transcribe) greys out the other group's empty slot in MpiBaseFlow._buildSlot, hint 'Remove the other one first', no listeners. tests/desktop/flow-pick-one.spec.js passes, FAILS with the flag off (Expected length 1, Received 0); flow-clear-slot-advances still passes; 254/254 tests/flow-*.test.cjs; eslint clean. Awaiting Fabio's look.
+- Fabio checked one-input-at-a-time in the app (2026-10-12): OK.

@@ -122,7 +122,11 @@
  *                                       makes new stuff, `'edit'` changes existing stuff,
  *                                       `'enhance'` improves existing stuff. Exactly one of
  *                                       the three (always required).
- * @property {Object}   inputSchema    - What the flow collects → injected into the workflow
+ * @property {Object}   inputSchema    - What the flow collects → injected into the workflow.
+ *                                       `pickOne: true` makes its media groups ALTERNATIVES: once
+ *                                       any slot is filled, the other groups' empty slots grey out
+ *                                       until it is removed (Transcribe: a recording OR a video,
+ *                                       Fabio 2026-10-12; the graph silently took the audio).
  * @property {{compare?: string}} [result] - How the RESULT is presented. `compare` names the media
  *                                       ROLE holding the BEFORE — the frame then shows the result
  *                                       on the shared before/after surface (MpiCompareView) with a
@@ -2080,6 +2084,7 @@ export const FLOWS = [
         mediaType: 'audio',
         type: 'create',
         inputSchema: {
+            pickOne: true,
             media: [
                 { type: 'audio', mode: 'upto', max: 1, roles: ['audio1'], labels: ['Recording'] },
                 { type: 'video', mode: 'upto', max: 1, roles: ['video1'], labels: ['Or a video'] },

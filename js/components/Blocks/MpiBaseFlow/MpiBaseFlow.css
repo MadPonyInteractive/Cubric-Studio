@@ -308,6 +308,14 @@
     outline: none;
 }
 .mpi-base-flow__slot--dragover { border-color: var(--accent-heat); }
+/* `inputSchema.pickOne`: another input is filled, so this one takes nothing. */
+.mpi-base-flow__slot--disabled,
+.mpi-base-flow__slot--disabled:hover {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-color: var(--line);
+    background: oklch(0.26 0.018 350 / 0.5);
+}
 .mpi-base-flow__slot-icon { color: var(--ink-4); line-height: 0; }
 .mpi-base-flow__slot-icon .mpi-icon { width: 34px; height: 34px; }
 .mpi-base-flow__slot-hint {

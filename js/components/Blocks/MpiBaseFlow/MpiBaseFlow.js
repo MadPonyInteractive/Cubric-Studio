@@ -886,6 +886,19 @@ export const MpiBaseFlow = ComponentFactory.create({
                 slot.appendChild(icon);
                 slot.appendChild(hint);
 
+                // `inputSchema.pickOne`: the groups are alternatives, so another group's
+                // filled slot greys this one out, with no listeners, until it is removed.
+                // Every slot change re-renders the slide, which re-decides this.
+                if (flow.inputSchema?.pickOne
+                    && _mediaGroups.some(e => e !== entry && e.items.some(Boolean))) {
+                    slot.classList.add('mpi-base-flow__slot--disabled');
+                    slot.setAttribute('aria-disabled', 'true');
+                    slot.setAttribute('tabindex', '-1');
+                    hint.textContent = 'Remove the other one first';
+                    unit.appendChild(slot);
+                    return unit;
+                }
+
                 // ONE function: open the library. The slot used to be two targets in
                 // one box — the box itself opened a file dialog, a Browse button
                 // opened the picker — so the same click meant different things by a
