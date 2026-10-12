@@ -1516,3 +1516,16 @@ of the Convert test card + his 5090 well video card `cameraPathVideo_002`, proje
   The plugin install on that Pod took ~6 min (08:29:35 -> 08:35:22 reseed); its Transfers row froze on "Download 100%" while
   verifying - MPI-1104 fixed the label (message `cdb2fd5e-mpi623-to-mpi1104`, resolved). Then he asked why a video and not
   the scene: told him P3 option 1 (session 45, his call; research/p3-lift-into-scene.md).
+
+## Session 52 (2026-10-12, "3D Scene 42")
+
+- **Fabio`s eye, 2026-10-12: long-path warning PASSED** ("as soon as I added another point, the message appeared"), **Q in the
+  360 player PASSED** ("I already did the Q check. It passed.").
+- **Convert to 360 video** (Fabio: make his Discord claim "open 360 videos" true): `canConvertToPanoVideo` (2:1 video only) +
+  gallery menu row + `pano360` written to the SIDECAR then the live item; `getPathVideoItem` reads it. Unit
+  `tests/scene-workspace.test.cjs` 6/6; desktop `tests/desktop/scene-pano-video.spec.js` PASSED (real 640x320 H.264 clip:
+  menu on 2:1 only, player loads it, slider "of 48" off the import, sidecar holds `pano360`, card reopens in the player,
+  menu not offered twice) + `scene-workspace.spec.js` + `scene-queue-hotkey.spec.js` green. `npm test` 3211 pass / 0 fail.
+  Caught before commit by reading persistGroups: project.json keeps ids only, so a live-item-only mark dies on reload; fixed + the spec reads the sidecar.
+- **UNRELEASED.md:** 360 Panorama, 3D Scenes, the 360 video player + Convert to 360 video, and MPI-1077`s bullet verbatim
+  (Fabio approved the wording; the 360 video line was added after his go to implement it).

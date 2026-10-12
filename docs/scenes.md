@@ -1,9 +1,9 @@
-# 3D Scenes (MPI-623) — dev_mode only
+# 3D Scenes (MPI-623)
 
 > A 360 pano becomes a scene the user walks around in to take EXACT-camera stills (behind a house,
-> up a tree, through a shut window). Everything here sits behind `APP_CONFIG.dev_mode` until it
-> ships. This doc holds what is BUILT; the remaining design (depth of field, SAM3 glass windows, the
-> Pano Flow) is the card's plan: `.agents/mpi-kanban/tasks/MPI-623/plan.md` § Design, A1-A9.
+> up a tree, through a shut window). Ships ungated in 2.1 (the `scene-convert` / `scene-path`
+> plugins and the 360 Panorama Flow). This doc holds what is BUILT; the unbuilt design (depth of
+> field, SAM3 glass windows) is the card's plan: `.agents/mpi-kanban/tasks/MPI-623/plan.md` § Design.
 
 ## A scene card is an image card
 
@@ -70,7 +70,12 @@
 ## Pictures: the path video's 360 player (P3)
 
 A path-video card (`getPathVideoItem`) opens on PAGE_SCENE in `MpiPanoVideoBlock` (navigation picks
-the Block by card): `panoVideo.js` wraps the video round the camera (a BackSide sphere, the
+the Block by card). So does a user's own 360 video: the gallery's **Convert to 360 video**
+(`canConvertToPanoVideo`: a video card whose selected entry is exactly 2:1, offered, never guessed)
+writes `pano360: true` on that entry's SIDECAR, then the live item (project.json keeps ids only, so
+the live item alone dies on reload). No job: the player needs only the file, `fps` and `frameCount`,
+which an import carries; a standard equirect's centre = forward, as a path video's. Muted (`<video
+muted>`). `tests/desktop/scene-pano-video.spec.js`. `panoVideo.js` wraps the video round the camera (a BackSide sphere, the
 `<video>` as a `VideoTexture`, `stitchPano` run backwards in a shader); the look is RELATIVE to the
 path's heading (the video item has no points). Drag looks while it plays; Space plays, Left / Right
 step a frame (`video.*` ids), Up / Down the lens; aspect + lens stick (`Storage.getSceneShot`).

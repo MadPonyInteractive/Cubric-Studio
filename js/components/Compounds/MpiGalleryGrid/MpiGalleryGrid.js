@@ -4,7 +4,7 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiWaveform } from '../../Primitives/MpiWaveform/MpiWaveform.js';
 import { ce, qs, qsa, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
-import { kindOfItem, PANEL_KINDS, canConvertToPano } from '../../../utils/assetKinds.js';
+import { kindOfItem, PANEL_KINDS, canConvertToPano, canConvertToPanoVideo } from '../../../utils/assetKinds.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { matchesGallerySort, kindItemOf, isGalleryFiltered, byGalleryOrder, markOf, markIcon, DEFAULT_GALLERY_SORT } from '../../../utils/galleryFilter.js';
 import { wireCardMark, closeCardMarkMenu } from './cardMarkMenu.js';
@@ -1710,6 +1710,10 @@ export const MpiGalleryGrid = ComponentFactory.create({
                             ? [{ key: 'convert-pano', icon: 'cube', label: 'Convert to 360 pano',
                                 info: 'Turn this 2:1 picture into a 3D scene you can walk around in' }]
                             : []),
+                        ...(targetIds.length === 1 && canConvertToPanoVideo(group)
+                            ? [{ key: 'convert-pano-video', icon: 'cube', label: 'Convert to 360 video',
+                                info: 'Open this 2:1 video in the 360 player to look around and take pictures' }]
+                            : []),
 
                         { separator: true },
 
@@ -1748,6 +1752,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         if (key === 'archive')    _archive(selected, !group.archived);
                         if (key === 'describe')   emit('describe', { group: selected[0] });
                         if (key === 'convert-pano') emit('convert-pano', { group: selected[0] });
+                        if (key === 'convert-pano-video') emit('convert-pano-video', { group: selected[0] });
                         if (key === 'download')   emit('download', { groups: selected });
                         if (key === 'delete')     emit('delete',   { groups: selected });
                         if (key === 'unstack')    emit('unstack',  { groups: selected.filter(isStack) });

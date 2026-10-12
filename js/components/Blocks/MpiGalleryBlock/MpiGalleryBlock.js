@@ -327,6 +327,30 @@ export const MpiGalleryBlock = ComponentFactory.create({
                 .finally(() => _convertingGroupIds.delete(group.id));
         });
 
+        // MPI-623 — Convert to 360 video: no job, the 360 player only needs the file, fps and
+        // frame count an import already carries. Marks the selected entry (`pano360`) in place,
+        // so the card opens in the 360 player from now on (`getPathVideoItem`). The sidecar holds
+        // item fields (project.json keeps ids), so the mark goes there first, then the live item.
+        grid.on('convert-pano-video', async ({ group }) => {
+            const project = state.currentProject;
+            const live = project?.itemGroups?.find(g => g.id === group?.id);
+            const item = live && getSelectedItem(live);
+            if (!project?.folderPath || !item) return;
+            const res = await fetch(`/project-media/${project.id}/update-meta?folderPath=${encodeURIComponent(project.folderPath)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ itemId: item.id, updates: { pano360: true } }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) {
+                clientLogger.error('scene', 'convert to 360 video failed', data.error);
+                Events.emit('ui:error', { title: 'Convert failed', message: data.error || 'Could not save the change.' });
+                return;
+            }
+            await updateGroup({ ...live, history: live.history.map(it => (it.id === item.id ? { ...it, pano360: true } : it)) });
+            navigate(PAGE_SCENE, { groupId: group.id });
+        });
+
         grid.on('card-notes', ({ group }) => {
             const project = state.currentProject;
             const item = getSelectedItem(group);

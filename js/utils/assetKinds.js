@@ -103,13 +103,27 @@ export function getSceneItem(group) {
 }
 
 /**
- * MPI-623 P3 — the item that makes a card a path video (a scene's Render path, a 360 video):
- * read off the card like `getSceneItem`, so it opens in the 360 player whichever entry is selected.
+ * MPI-623 P3 — the item that makes a card a 360 video: a scene's Render path, or a video the user
+ * marked with Convert to 360 video (`pano360`). Read off the card like `getSceneItem`, so it opens
+ * in the 360 player whichever entry is selected.
  * @param {Object} group
  * @returns {Object|null}
  */
 export function getPathVideoItem(group) {
-    return group?.history?.find(i => i?.operation === 'scenePathVideo') ?? null;
+    return group?.history?.find(i => i?.operation === 'scenePathVideo' || i?.pano360) ?? null;
+}
+
+/**
+ * MPI-623 — may the gallery offer "Convert to 360 video"? A video card not yet a 360 video whose
+ * selected entry is EXACTLY 2:1 (equirect). Offered, never guessed, like `canConvertToPano`.
+ * @param {Object} group
+ * @returns {boolean}
+ */
+export function canConvertToPanoVideo(group) {
+    if (group?.type !== 'video' || getPathVideoItem(group)) return false;
+    const item = group.history?.[group.selectedIndex ?? 0];
+    const { w, h } = item?.pixelDimensions || {};
+    return kindOfItem(item).kind === 'video' && w > 0 && w === 2 * h;
 }
 
 /**

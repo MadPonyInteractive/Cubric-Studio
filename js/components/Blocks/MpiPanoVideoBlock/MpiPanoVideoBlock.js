@@ -2,7 +2,8 @@
  * MpiPanoVideoBlock — the 360 player for a scene's path video (Block, MPI-623 P3).
  *
  * Opened like the Scene workspace (`PAGE_SCENE`, `{ groupId }`)
- * when the card is a path video (`getPathVideoItem`): navigation picks this Block by card.
+ * when the card is a path video or a video marked by Convert to 360 video (`getPathVideoItem`):
+ * navigation picks this Block by card.
  * Plays the video wrapped round the camera (`panoVideo.js`): drag to look while it plays,
  * stop on a frame with the scrubber, frame a shot with the aspect and lens as the Scene
  * panel does, Take picture: that exact view, cleaned up by Klein, lands as a new image card.

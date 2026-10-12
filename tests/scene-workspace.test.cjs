@@ -44,3 +44,22 @@ test('the SELECTED entry decides the shape', async () => {
     assert.equal(canConvertToPano(card(history, 0)), false);
     assert.equal(canConvertToPano(card(history, 1)), true);
 });
+
+const clip = (w, h, extra = {}) => ({ type: 'video', filePath: '/project-file?path=a.mp4', pixelDimensions: { w, h }, ...extra });
+
+test('Convert to 360 video: offered on a 2:1 video only, never twice', async () => {
+    const { canConvertToPanoVideo } = await esm('js/utils/assetKinds.js');
+    assert.equal(canConvertToPanoVideo(card([clip(3840, 1920)], 0, 'video')), true);
+    assert.equal(canConvertToPanoVideo(card([clip(1920, 1080)], 0, 'video')), false, 'a flat clip');
+    assert.equal(canConvertToPanoVideo(card([clip(0, 0)], 0, 'video')), false, 'no measured size');
+    assert.equal(canConvertToPanoVideo(card([still(4096, 2048)])), false, 'a still is Convert to 360 pano');
+    assert.equal(canConvertToPanoVideo(card([clip(3840, 1920, { pano360: true })], 0, 'video')), false, 'already a 360 video');
+    assert.equal(canConvertToPanoVideo(card([clip(3840, 1920, { operation: 'scenePathVideo' })], 0, 'video')), false, 'a rendered path');
+});
+
+test('a marked video opens in the 360 player whichever entry is selected', async () => {
+    const { getPathVideoItem } = await esm('js/utils/assetKinds.js');
+    const marked = clip(3840, 1920, { id: 'v1', pano360: true });
+    assert.equal(getPathVideoItem(card([marked, clip(1920, 960)], 1, 'video')), marked);
+    assert.equal(getPathVideoItem(card([clip(3840, 1920)], 0, 'video')), null);
+});

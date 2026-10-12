@@ -8,7 +8,11 @@ single-shot finding: [validation.md](validation.md) § Single-shot ... § Extrem
 
 ## Current State
 
-**Project mode:** `scalable-foundation`. Card in `doing`. **Session 51 (2026-10-12, "3D Scene 41"), committed at handoff 27bb76a7 (left: Fabio's eye on Q in the player + the long-path line, the UNRELEASED.md entry, close-out):**
+**Project mode:** `scalable-foundation`. Card in `doing`. **Session 52 (2026-10-12, "3D Scene 42"): Fabio passed the
+long-path warning + Q in the player; Convert to 360 video added (gallery right-click on a 2:1 video, `pano360` on the
+sidecar, opens the 360 player; `tests/desktop/scene-pano-video.spec.js`); UNRELEASED.md entries written (incl. MPI-1077's).
+Close-out: code commit, CI green, then the `done` commit. Later: /mpi-flow-graphics for pano-360.**
+**Session 51 (2026-10-12, "3D Scene 41"), committed at handoff 27bb76a7 (left: Fabio's eye on Q in the player + the long-path line, the UNRELEASED.md entry, close-out):**
 (1) frame 0 of a path video is now the pano itself (`turnPano`, § Paths P3: Wan's 8 px mask kept the render's thin
 hole lines as black outlines); (2) `sceneLift` + `runSceneOp` + `POST /scene-layer` + `scene_lift.json` REMOVED outright
 (never shipped: not in v2.0.1; dep entries untouched, MoGe is sceneConvert's); (3) Phase 4 started: `scene-convert` /
