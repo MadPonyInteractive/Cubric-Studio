@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1114",
+  "title": "Recorder sounds pumped and phasey: Chromium call processing on the mic",
+  "description": "Mic recorder + Settings mic test open the mic with Chromium's default AGC, noise suppression and echo cancellation: voice ducks after the first syllables and phases. Record raw; dictation keeps them.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-12T15:23:56+01:00",
+  "updated_at": "2026-10-12T15:25:57+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
