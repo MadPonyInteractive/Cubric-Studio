@@ -472,7 +472,7 @@ async function _bootApp() {
         title: 'Installing Python packages...',
         text: 'First engine start only — this can take several minutes.',
       } : {}),
-      autoStart: engine === 'local', // MPI-1117: the Settings switch, local engine only
+      autoStart: engine === 'local', // MPI-1117: a Pod boot hides the local auto-start switch
     });
   });
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener

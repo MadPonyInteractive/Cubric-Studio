@@ -23,7 +23,7 @@ const QUIET_HINTS = [
  *
  * API:
  *   inst.el.show(phase)      — portals backdrop + wrapper, starts spinner;
- *                              phase.autoStart shows the Settings auto-start switch
+ *                              the Settings auto-start switch shows unless phase.autoStart === false
  *   inst.el.hide()           — removes portal, clears spinner
  *   inst.el.setError(msg)    — switches spinner to error text (stays visible)
  */
@@ -96,10 +96,10 @@ export const MpiStartingComfy = ComponentFactory.create({
             textEl.textContent  = (phase && phase.text)  || _default.text;
             // The Settings "Auto-start ComfyUI on launch" switch, here too so it can be
             // flipped at the moment the engine starts (MPI-1117). Same Storage key, so
-            // Settings shows the change on its next open. Local engine only: a Pod boot
-            // is governed by the RunPod auto-connect setting, not this one.
+            // Settings shows the change on its next open. Part of the popup by default;
+            // shell.js passes autoStart: false for a Pod boot, which RunPod auto-connect governs.
             clearAuto();
-            if (phase && phase.autoStart) {
+            if (phase?.autoStart !== false) {
                 autoInst = MpiCheckbox.mount(autoSlot, {
                     checked: Storage.getAutoStartComfy(),
                     variant: 'switch',

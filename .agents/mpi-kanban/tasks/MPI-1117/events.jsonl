@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1117", "at": "2026-10-12T20:20:28+01:00", "actor": "claude", "column": "todo", "title": "Engine-starting popup carries the auto-start switch"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1117", "at": "2026-10-12T20:21:02+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1117", "at": "2026-10-12T20:56:19+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Shipped ab93bf226, CI green; verified in isolated app."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1117", "at": "2026-10-12T21:32:50+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Reopened: dev gallery shows no switch; make it the component default."}
