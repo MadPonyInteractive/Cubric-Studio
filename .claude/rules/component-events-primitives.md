@@ -263,6 +263,17 @@ EMITS:   (none)
 LISTENS: (none)
 NOTE:    Trigger via `Events.emit('slide-over:open', { title: 'About', component: MpiAbout })`.
 
+### MpiDevUpdates *(Organism — js/components/Organisms/MpiDevUpdates/; content-only — body of MpiSlideOver; MPI-1115)*
+EMITS:   (none — chrome owned by MpiSlideOver)
+LISTENS: `state.devUpdates` via `Events.onState` — re-renders the cards (destroying each card's carousel first).
+NOTE:    Trigger: the landing-nav bell (`projectUI.js`) emits `slide-over:open` `{ title: 'Dev updates', component: MpiDevUpdates }`. One card per unread post: date, sanitized markdown text, an `MpiImageCarousel` (`expandable`), "Open in Discord". The card's X (`.mpi-dev-updates__read`) calls `acknowledgeDevUpdate(id)`; a click elsewhere on the card does nothing. Mark all read = `acknowledgeAllDevUpdates()`; Join the Discord opens `DISCORD_INVITE_URL`. Links go through `openExternal`, never navigate the app. `el.destroy()` drops the subs and every carousel.
+
+### MpiImageCarousel *(Compound — js/components/Compounds/MpiImageCarousel/; MPI-1115)*
+EMITS:   (none)
+LISTENS: (none)
+API:     props `{ images: string[], index?, expandable?, large? }`; `el.destroy()` removes listeners and closes an open modal.
+NOTE:    One image at a time with secondary-variant arrows + an "n / m" count (both hidden for one image). `expandable`: an image click mounts an `MpiModal` holding a second `large` carousel at the same index plus a close X; Escape/backdrop also close it (MpiModal).
+
 ### MpiInstalledDisplay
 EMITS:   `delete`      `{}`     — Action button clicked (Install when idle)
          `pause`       `{}`     — Pause button clicked (during download)
