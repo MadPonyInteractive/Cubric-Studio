@@ -1888,6 +1888,8 @@ export const FLOWS = [
     ...(APP_CONFIG.dev_mode ? [{
         id: 'make-seamless',
         title: 'Make seamless',
+        preview: 'flow-make-seamless.webp',
+        video: 'flow-make-seamless.mp4',
         description: 'Make a picture tile seamlessly left-right, top-bottom or both. Drag a handle '
             + 'in from each edge to choose how much of it is repainted, and preview the picture '
             + 'tiled before and after. Runs on FLUX.2 Klein 9B.',
