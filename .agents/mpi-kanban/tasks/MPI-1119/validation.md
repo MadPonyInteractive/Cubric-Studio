@@ -69,3 +69,12 @@ app-state line, agent-loop test). Docs rule: 'for a question about the app or so
 read the App knowledge entry that covers it; if none does, say so and link'. New test in
 agent-prompt-budget pins both. SYSTEM_BUDGET 11,046 -> 11,124 (+78, ledger note). npm test 3271 pass /
 0 fail; eslint clean. Systemic budget/pointer discussion spun off as a chip (task_3a911564).
+
+## Live check (Fabio, 2026-10-13)
+
+"Does Cubric Studio support 360 videos? If so how does it work?" -> 'Reading: app:360-and-3d-scenes',
+then a correct answer: 2:1 format, pipeline (360 Panorama -> Convert -> workspace controls -> P / Add
+point + Steer the video -> Render path as a rough pass Wan repaints, ~half an hour, needs the ~20 GB
+add-on -> 360 player, four frame shapes, Take picture as a clean new card), Convert to 360 video, and
+the no-3D-models caveat. No invented point direction, no 'stitching', no 'exact'.
+- c244d2529 CI 38351580166 success; ebdea8738 CI 38352250979 success.
