@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1137", "at": "2026-10-13T16:19:23+01:00", "actor": "claude", "column": "doing", "title": "Log every picture or video that takes over 3 s to load"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1137", "at": "2026-10-13T16:27:28+01:00", "actor": "claude", "from": "doing", "to": "done"}

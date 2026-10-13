@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1138", "at": "2026-10-13T16:24:58+01:00", "actor": "claude", "column": "todo", "title": "GPU picker: video Gen speed bar (LTX-2.3) beside the image bar; Video switch sorts by video"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1138", "at": "2026-10-13T16:25:42+01:00", "actor": "claude", "from": "todo", "to": "doing"}
