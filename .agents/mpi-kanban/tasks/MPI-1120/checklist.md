@@ -13,4 +13,4 @@
       any window (the splash included) opens it; the clearCache call is gone. 23 ms on a 40 MB
       cache. Isolated Electron with Fabio's broken cache planted: folder rebuilt, marker gone,
       landing after MPI-623 in 261 ms. tests/http-cache-reset.test.cjs.
-- [ ] Fabio: restart the app once on the new main.js, confirm Cosmo / landing stay fast.
+- [x] Fabio restarted on the new main.js (2026-10-13): landing, project cards and Cosmo load fast. CI green on 43b46b99e.
