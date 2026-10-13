@@ -23,6 +23,8 @@ import { ce, on } from '../../../utils/dom.js';
  * @property {number}  [bars]      - stock meter 0-3; omit for no meter
  * @property {number}  [speed]     - speed bar fill 0-1; omit for no bar
  * @property {string}  [speedText] - label beside the speed bar
+ * @property {number}  [videoSpeed]     - video speed bar fill 0-1; omit for no bar
+ * @property {string}  [videoSpeedText] - label beside the video speed bar
  * @property {string}  [state]     - bottom line, e.g. "High stock"
  * @property {boolean} [selected]
  * @property {boolean} [available] - in stock: green edge, lifted ground
@@ -64,12 +66,15 @@ export const MpiGpuTileGrid = ComponentFactory.create({
             ]));
             if (item.price) tile.append(ce('span', { className: 'mpi-gpu-tiles__price', textContent: item.price }));
             if (item.specs) tile.append(ce('span', { className: 'mpi-gpu-tiles__specs', textContent: item.specs }));
-            if (Number.isFinite(item.speed)) {
-                const bar = ce('span', { className: 'mpi-gpu-tiles__speed-bar' }, ce('span'));
-                bar.style.setProperty('--fill', String(item.speed));
+            const speedRow = (fill, text, mod) => {
+                if (!Number.isFinite(fill)) return;
+                const bar = ce('span', { className: `mpi-gpu-tiles__speed-bar mpi-gpu-tiles__speed-bar--${mod}` }, ce('span'));
+                bar.style.setProperty('--fill', String(fill));
                 tile.append(ce('span', { className: 'mpi-gpu-tiles__speed' },
-                    [bar, ce('span', { textContent: item.speedText || '' })]));
-            }
+                    [bar, ce('span', { textContent: text || '' })]));
+            };
+            speedRow(item.speed, item.speedText, 'image');
+            speedRow(item.videoSpeed, item.videoSpeedText, 'video');
             if (item.state) tile.append(ce('span', { className: 'mpi-gpu-tiles__state', textContent: item.state }));
             return tile;
         }

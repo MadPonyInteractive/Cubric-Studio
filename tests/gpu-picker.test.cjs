@@ -35,6 +35,24 @@ test('fastest first by measured Gen speed; unbenchmarked cards after, CPU still 
     ]);
 });
 
+test('Video on sorts by measured LTX video speed, not image speed (MPI-1138)', async () => {
+    const { visibleGpuCards } = await import('../js/data/runpodGpuSpecs.js');
+    const cards = [
+        { id: 'NVIDIA H100 80GB HBM3', vramGb: 80, price: 2.69, inStock: true },          // image 1st, video 3rd
+        { id: 'NVIDIA RTX PRO 4000 Blackwell', vramGb: 24.5, price: 0.5, inStock: true },  // no video number
+        { id: 'NVIDIA RTX PRO 6000 Blackwell Server Edition', vramGb: 96, price: 2.09, inStock: true },
+        { id: 'NVIDIA H200', vramGb: 141, price: 3.59, inStock: true },                    // no image number
+    ];
+    assert.deepEqual(visibleGpuCards(cards).map(c => c.id), [
+        'NVIDIA H100 80GB HBM3', 'NVIDIA RTX PRO 6000 Blackwell Server Edition',
+        'NVIDIA RTX PRO 4000 Blackwell', 'NVIDIA H200',
+    ]);
+    assert.deepEqual(visibleGpuCards(cards, { video: true }).map(c => c.id), [
+        'NVIDIA RTX PRO 6000 Blackwell Server Edition', 'NVIDIA H200',
+        'NVIDIA H100 80GB HBM3', 'NVIDIA RTX PRO 4000 Blackwell',
+    ]);
+});
+
 test('auto-retry adds the out-of-stock cards (Connect waits for them)', async () => {
     const { visibleGpuCards } = await import('../js/data/runpodGpuSpecs.js');
     assert.ok(visibleGpuCards(CARDS, { autoRetry: true }).some(c => c.id === 'big-out'));

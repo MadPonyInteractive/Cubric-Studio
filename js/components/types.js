@@ -2587,7 +2587,8 @@
  *
  * The GPU tile grid inside MpiGpuPicker (MPI-894 1c): compact text cards, state-dumb.
  * Item: { id, name, price?, specs?, bars? (0-3 stock meter), speed? (0-1 fill),
- *         speedText?, state?, selected?, available? (green edge), out? (dimmed) }
+ *         speedText?, videoSpeed? (0-1 fill), videoSpeedText?, state?, selected?,
+ *         available? (green edge), out? (dimmed) }
  *
  * Instance methods (on instance.el):
  *   setItems(items) — full rebuild

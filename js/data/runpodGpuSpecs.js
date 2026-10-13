@@ -20,7 +20,7 @@ export const VIDEO_MIN_VRAM_GB = 24;
 // model that, like our fp8 Krea2, fits 24 GB, so it ranks cards the way Krea2 should. Only
 // the RANKING carries over; Krea2 runs more steps, so these are not Krea2's seconds.
 // Spec-sheet TFLOPS was here until MPI-1007 and misranked cards (an H100 SXM at 990 lost
-// SDXL to a 5090 at 419). A video bar waits on RunPod's LTX-2.3 numbers.
+// SDXL to a 5090 at 419). The video bar is GPU_VIDEO_SECS below.
 // Rows marked `ours` are cards RunPod skipped, measured by us (MPI-1054, 2026-10-09) with
 // their setup replicated: same graph, ComfyUI v0.39.0, a new prompt every image. Checked on
 // two cards they did measure: A40 4.6 s vs their 4.80, A5000 6.75 s vs their 6.46.
@@ -56,6 +56,43 @@ export const GPU_GEN_SECS = {
 /** Measured seconds per image for a RunPod GPU id, or null when RunPod did not benchmark it. */
 export function gpuGenSecs(id) {
     return Number.isFinite(GPU_GEN_SECS[id]) ? GPU_GEN_SECS[id] : null;
+}
+
+// Measured seconds per video clip, LTX-2.3 distilled, 768x512, 97 frames at 25 fps (3.88 s),
+// 8 steps, ComfyUI's official LTX template, single user, RunPod Secure Cloud, published Oct
+// 2026: runpod.io/articles/guides/best-gpu-for-ai-video (MPI-1138). RunPod warns short clips
+// swing up to ~2x with the host CPU (their A100 PCIe row is a slow host, not the card), so
+// read this bar as a rough order. The image and video orders mostly agree (rank corr 0.90).
+// ponytail: H100 NVL / H100 PCIe ids guessed from RunPod's naming; a wrong id just shows no bar.
+export const GPU_VIDEO_SECS = {
+    'NVIDIA RTX PRO 6000 Blackwell Server Edition': 7.5,
+    'NVIDIA H200': 8.1,
+    'NVIDIA B300 SXM6 AC': 8.7,
+    'NVIDIA H100 80GB HBM3': 11.3,
+    'NVIDIA RTX PRO 4500 Blackwell': 13.2,
+    'NVIDIA H100 NVL': 15.1,
+    'NVIDIA GeForce RTX 5090': 15.3,
+    'NVIDIA GeForce RTX 4090': 15.8,
+    'NVIDIA A100-SXM4-80GB': 16.1,
+    'NVIDIA L40S': 16.8,
+    'NVIDIA RTX PRO 6000 Blackwell Server Edition MIG 2g.48gb': 17.8,
+    'NVIDIA RTX 6000 Ada Generation': 18.1,
+    'NVIDIA H100 PCIe': 20.1,
+    'NVIDIA RTX A6000': 22.2,
+    'NVIDIA A40': 27.0,
+    'NVIDIA GeForce RTX 3090': 31.7,
+    'NVIDIA L40': 33.0,
+    'NVIDIA RTX A5000': 35.0,
+    'NVIDIA L4': 36.7,
+    'NVIDIA RTX A4000': 41.2,
+    'NVIDIA A100 80GB PCIe': 42.8,
+    'NVIDIA RTX PRO 6000 Blackwell Server Edition MIG 1g.24gb': 44.6,
+    'NVIDIA RTX 2000 Ada Generation': 45.2,
+};
+
+/** Measured seconds per LTX-2.3 clip for a RunPod GPU id, or null when RunPod did not benchmark it. */
+export function gpuVideoSecs(id) {
+    return Number.isFinite(GPU_VIDEO_SECS[id]) ? GPU_VIDEO_SECS[id] : null;
 }
 
 const STOCK_BARS = { High: 3, Medium: 2, Low: 1 };
@@ -114,7 +151,8 @@ export function stockBars(card) {
 export function visibleGpuCards(cards, { autoRetry = false, video = false, selectedId = null } = {}) {
     const keep = (c) => c.cpu || c.id === selectedId
         || ((autoRetry || c.inStock) && (!video || (c.vramGb || 0) > VIDEO_MIN_VRAM_GB));
-    const secs = (c) => gpuGenSecs(c.id) ?? 1e9;   // not benchmarked: after every measured card
+    // Video switch on = rank by video speed (MPI-1138). Not benchmarked: after every measured card.
+    const secs = (c) => (video ? gpuVideoSecs(c.id) : gpuGenSecs(c.id)) ?? 1e9;
     const order = (a, b) => (b.cpu ? 1 : 0) - (a.cpu ? 1 : 0)
         || secs(a) - secs(b)
         || (a.vramGb || 0) - (b.vramGb || 0)

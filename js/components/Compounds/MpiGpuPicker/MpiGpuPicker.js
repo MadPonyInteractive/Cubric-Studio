@@ -6,7 +6,7 @@ import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiGpuTileGrid } from '../../Primitives/MpiGpuTileGrid/MpiGpuTileGrid.js';
 import { qs } from '../../../utils/dom.js';
 import {
-    VIDEO_MIN_VRAM_GB, gpuGenSecs, stockBars, visibleGpuCards,
+    VIDEO_MIN_VRAM_GB, gpuGenSecs, gpuVideoSecs, stockBars, visibleGpuCards,
 } from '../../../data/runpodGpuSpecs.js';
 
 const STOCK_WORD = ['Out of stock', 'Low stock', 'Medium stock', 'High stock'];
@@ -15,10 +15,11 @@ const STOCK_WORD = ['Out of stock', 'Low stock', 'Medium stock', 'High stock'];
  * MpiGpuPicker — the RunPod GPU overlay (MPI-894 1c), after RunPod's own deploy page.
  *
  * One tile per card: name, $/hr, VRAM, max GPUs per Pod, RunPod's three-bar stock
- * meter, and a Gen speed bar from measured image times (RunPod's, plus ours, MPI-1054). RunPod's
+ * meter, a Gen speed bar from measured image times (RunPod's, plus ours, MPI-1054) and one
+ * from RunPod's LTX-2.3 video times (MPI-1138). RunPod's
  * "Available | All" tabs are our Auto-retry switch (on = every card, Connect waits for an
  * out-of-stock one), and a Video switch
- * keeps the cards with more than 24 GB VRAM. The system-RAM floor lives here too: it is
+ * keeps the cards with more than 24 GB VRAM and sorts by the video bar. The system-RAM floor lives here too: it is
  * a Pod requirement, not a tile filter, because RunPod gives no per-card RAM.
  *
  * Owns no RunPod logic. The opener (MpiRunpodSettings) builds the cards from its
@@ -58,7 +59,7 @@ export const MpiGpuPicker = ComponentFactory.create({
                     </div>
                     <div class="mpi-gpu-picker__refresh" id="gpu-refresh"></div>
                 </div>
-                <p class="mpi-gpu-picker__note">Auto-retry: pick an out-of-stock card and Connect waits until it frees. Min RAM: every GPU Pod gets at least this much system RAM (0 = any host). Gen speed: measured seconds per image on each card (FLUX.2 Klein 9B; RunPod's Sept 2026 runs, plus ours on the cards they skipped), lower is faster; no bar = not benchmarked.</p>
+                <p class="mpi-gpu-picker__note">Auto-retry: pick an out-of-stock card and Connect waits until it frees. Min RAM: every GPU Pod gets at least this much system RAM (0 = any host). Gen speed: pink = seconds per image (FLUX.2 Klein 9B; RunPod's Sept 2026 runs, plus ours on the cards they skipped), orange = seconds per short video clip (LTX-2.3 distilled; RunPod's Oct 2026 runs, rough on clips this short). Lower is faster; no bar = not benchmarked. Video on sorts by the orange bar.</p>
             </div>
             <div class="mpi-gpu-picker__body">
                 <div id="gpu-grid"></div>
@@ -126,12 +127,13 @@ export const MpiGpuPicker = ComponentFactory.create({
             emit('select', { id });
         });
 
-        function _item(card, bestSecs) {
+        function _item(card, bestSecs, bestVideoSecs) {
             const selected = card.id === _selectedId;
             if (card.cpu) return { id: card.id, name: card.name, specs: card.note, selected };
             const bars = stockBars(card);
             const out = !card.inStock;
             const secs = gpuGenSecs(card.id);
+            const vSecs = gpuVideoSecs(card.id);
             return {
                 id: card.id,
                 name: card.name || card.id,
@@ -140,6 +142,8 @@ export const MpiGpuPicker = ComponentFactory.create({
                 bars,
                 speed: secs != null ? bestSecs / secs : undefined,   // fastest card = full bar
                 speedText: secs != null ? `${secs.toFixed(1)} s/img` : '',   // a bar alone hid close cards (MPI-1013)
+                videoSpeed: vSecs != null ? bestVideoSecs / vSecs : undefined,
+                videoSpeedText: vSecs != null ? `${vSecs.toFixed(1)} s/clip` : '',
                 state: out ? 'Out of stock · Connect waits' : STOCK_WORD[bars],
                 selected,
                 available: !out,
@@ -151,8 +155,9 @@ export const MpiGpuPicker = ComponentFactory.create({
             // Bars scale against every card passed in, not just the visible ones, so a
             // tile's bar does not grow when a filter hides the faster cards.
             const bestSecs = Math.min(..._cards.map(c => gpuGenSecs(c.id) ?? Infinity));
+            const bestVideoSecs = Math.min(..._cards.map(c => gpuVideoSecs(c.id) ?? Infinity));
             const shown = visibleGpuCards(_cards, { autoRetry: _autoRetry, video: _video, selectedId: _selectedId });
-            grid.el.setItems(shown.map(c => _item(c, bestSecs)));
+            grid.el.setItems(shown.map(c => _item(c, bestSecs, bestVideoSecs)));
             emptyEl.classList.toggle('mpi-gpu-picker__empty--on', !shown.some(c => !c.cpu));
         }
 

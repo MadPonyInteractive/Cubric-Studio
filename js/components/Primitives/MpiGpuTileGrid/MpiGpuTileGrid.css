@@ -91,7 +91,8 @@
 .mpi-gpu-tiles__stock--2 i:nth-child(-n+2) { background: var(--accent-ok); }
 .mpi-gpu-tiles__stock--3 i:nth-child(-n+3) { background: var(--accent-ok); }
 
-/* Speed: a thin bar the consumer scales (0-1) against the fastest card. */
+/* Speed: thin bars the consumer scales (0-1) against the fastest card. Colour states the
+   subject (DESIGN.md "The accent family"): image = Vision rose, video = Video orange. */
 .mpi-gpu-tiles__speed {
     display: flex;
     align-items: center;
@@ -108,5 +109,6 @@
     display: block;
     height: 100%;
     width: calc(var(--fill, 0) * 100%);
-    background: var(--accent-ok);
+    background: var(--vision-accent);
 }
+.mpi-gpu-tiles__speed-bar--video > span { background: var(--video-accent); }
