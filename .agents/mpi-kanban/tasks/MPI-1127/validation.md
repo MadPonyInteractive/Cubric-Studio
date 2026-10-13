@@ -11,3 +11,4 @@
   -> 1 passed: the card reads "Download: 4.2 GB. A licence screen opens first." in a real Electron run.
 - `npx eslint` on the changed JS -> clean.
 - Not run: a live Cosmo turn on DeepInfra (costs money; the tool path is covered above).
+- CI: tests.yml run 38369093872 on 0c158c00a -> success.
