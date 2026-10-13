@@ -137,10 +137,11 @@ picture) is app:360-and-3d-scenes.
 
 ## Make seamless
 
-Repaints the edges of a picture the user already has (`image1`, required) so it tiles: a texture,
-or a panorama whose two ends do not meet. It makes nothing new; for a new 360 world use 360
-Panorama. `direction` picks the joins; leave `Input_Positive` empty unless the user said what the
-picture shows, as the app describes it. `tiles` only changes the preview.
+Repaints the edges of a picture the user already has (`image1`, required) so it tiles: a busy
+texture, or a panorama whose ends do not meet; for a new 360 world use 360 Panorama. Only a band
+by each edge changes, so a big shape crossing an edge (a marble vein) or one-sided light still
+repeats: say so, and never offer it for a game texture. `direction` picks the joins; leave
+`Input_Positive` empty unless the user said what the picture shows. `tiles` is only the preview.
 
 ## Spoken lines
 

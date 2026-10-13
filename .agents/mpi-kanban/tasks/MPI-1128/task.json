@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1128",
+  "title": "Tileable texture: a Flow that generates a texture that repeats by construction (games, 3D materials)",
+  "description": "Split from MPI-1101 (Fabio, 2026-10-13). Make seamless only repaints a band along each edge, so a big shape crossing an edge (marble vein) or uneven light still repeats when tiled. This Flow is the other job: describe a texture (or give a picture as a style reference) and get back a NEW flat, evenly lit texture that tiles everywhere. Research first: does wrap-around sampling (rolling the latent every step, circular VAE) give a true tile on Klein 9B or Krea 2? Circular conv padding works on SD/SDXL UNets only (spinagon/ComfyUI-seamless-tiling, see MPI-1101 research/brainstorm.md). Bench on the local GPU needs Fabio's go. Even out lighting belongs here. Not required to ship with Make seamless: its description now says it does not make game textures.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-13T08:25:43+01:00",
+  "updated_at": "2026-10-13T08:25:43+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

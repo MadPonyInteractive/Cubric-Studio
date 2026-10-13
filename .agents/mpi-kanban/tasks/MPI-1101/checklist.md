@@ -10,4 +10,5 @@
 - [ ] Phase 4b: the Flow screen on an isolated instance (status bar i/N on a 16K multi-window picture, no second Generating card, Tiles slider, a texture both ways)
 - [ ] Phase 4c: one run with the content box EMPTY (describer path; ask Fabio first if the describer is a paid cloud pick)
 - [ ] Phase 4d: one LIVE Cosmo request ("make this picture tile") and one call through the MCP generate tool, on an isolated instance in dev mode (the door is proven by the 8K connector E2E; the model picking the Flow is not)
-- [x] Flow graphics: 4/5 tile still + wide hero clip via /mpi-flow-graphics (built + wired 2026-10-12; awaiting Fabio eye test)
+- [x] Flow graphics: 4/5 tile still + wide hero clip via /mpi-flow-graphics (edge design, autumn leaves; Fabio approved 2026-10-13)
+- [x] Both-ways centre break fixed (per-window frames + corner window, seamlessOps.js; unit + live moss/sand/stone)

@@ -1890,9 +1890,14 @@ export const FLOWS = [
         title: 'Make seamless',
         preview: 'flow-make-seamless.webp',
         video: 'flow-make-seamless.mp4',
-        description: 'Make a picture tile seamlessly left-right, top-bottom or both. Drag a handle '
-            + 'in from each edge to choose how much of it is repainted, and preview the picture '
-            + 'tiled before and after. Runs on FLUX.2 Klein 9B.',
+        // The scope is said out loud (Fabio, 2026-10-13): only a band along each edge is repainted,
+        // so one big shape crossing an edge (a marble vein) or light falling off to one side still
+        // repeats when tiled. A texture made to tile from scratch is a separate Flow (MPI-1128).
+        description: 'Join the edges of a picture you already have so it repeats left-right, '
+            + 'top-bottom or both: a panorama whose ends do not meet, a background, a busy texture. '
+            + 'Only a band along each edge is repainted, so a big shape crossing an edge or light '
+            + 'falling off to one side still shows when tiled; it does not make game textures. '
+            + 'Drag a handle in from each edge to choose how much is repainted. Runs on FLUX.2 Klein 9B.',
         requiredModels: [{ label: 'Base model', models: ['klein-9b'] }],
         operation: 'flowMakeSeamless',
         workflow: 'flow_make_seamless.json',

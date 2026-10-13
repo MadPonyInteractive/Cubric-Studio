@@ -22,6 +22,14 @@
  * the x-seam band is [w//2 - right*w, w//2 + left*w) and the y-seam band is
  * [h//2 - bottom*h, h//2 + top*h).  A handle pair at 0 → no band on that axis.
  *
+ * The working copy stays UNROLLED; each window carries its own roll (its frame fx, fy) and its
+ * rects are in that rolled frame.  x-band windows sit in frame (dx, 0), y-band windows in (0, dy),
+ * and a both-ways run adds one corner window in (dx, dy).  Rolling the whole copy by (dx, dy) once
+ * (the first build) made each band one window whose two free ends were neighbouring rows of the
+ * picture's MIDDLE, painted apart: a hard break at h/2 and w/2 on every both-ways result.  Now an
+ * x window's ends land on the top/bottom edge, which the y band repaints; a y window's ends meet
+ * inside the joined side seam, which the corner window repaints.
+ *
  * For the x-band (vertical stripe, seam runs along y): windows walk down y (~1024 target), each
  * cut with CONTEXT_PX of picture either side of the band and OVERLAP_PX over the window before
  * (planAxis).  Same pattern transposed for y-band.
@@ -277,6 +285,48 @@ function planAxis(w, h, band, axis) {
     return windows;
 }
 
+/**
+ * The corner window of a both-ways run, in frame (dx, dy): the y band cut across a stretch of x
+ * centred on frame x = dx, where the y windows' two ends meet (the picture's left/right edge).
+ * `fade` ramps both its mask and its paste to 0 at the stretch's ends, so it blends into what the
+ * y windows painted instead of leaving two new edges of its own.
+ */
+function planCorner(w, h, bandY, dx) {
+    const ys = planAxis(w, h, bandY, 'y');
+    if (!ys.length) return [];
+    const len = Math.min(w, Math.max(WINDOW_TARGET, ys[0].rect.height));
+    const x0 = Math.max(0, Math.min(w - len, dx - Math.floor(len / 2)));
+    return planAxis(len, h, bandY, 'y').map((win) => {
+        const shift = (r) => ({ ...r, left: r.left + x0 });
+        return { ...win, rect: shift(win.rect), paint: shift(win.paint), band: shift(win.band), fade: true };
+    });
+}
+
+// ── Frames ────────────────────────────────────────────────────────────────────
+
+/** [a, a+len) of a frame rolled by f, as spans of the unrolled axis n: { o: offset in the run, p: position, l: length }. */
+function wrapSpans(a, len, f, n) {
+    const spans = [];
+    let p = ((a - f) % n + n) % n;
+    for (let o = 0; o < len; p = 0) {
+        const l = Math.min(len - o, n - p);
+        spans.push({ o, p, l });
+        o += l;
+    }
+    return spans;
+}
+
+/** A rect in frame (fx, fy) as up to four pieces of the unrolled picture; ox/oy place each piece in the rect. */
+function framePieces(rect, fx, fy, w, h) {
+    const pieces = [];
+    for (const sx of wrapSpans(rect.left, rect.width, fx, w)) {
+        for (const sy of wrapSpans(rect.top, rect.height, fy, h)) {
+            pieces.push({ ox: sx.o, oy: sy.o, left: sx.p, top: sy.p, width: sx.l, height: sy.l });
+        }
+    }
+    return pieces;
+}
+
 // ── Masks ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -332,6 +382,22 @@ function rampMaskBuffer(rect, paint, axis, band) {
     return buf;
 }
 
+/** A corner window's fade: scales `buf` (the rect's mask) by a smoothstep from 0 at both ends of the seam's run to 1 a quarter in. */
+function fadeAlong(buf, rect, axis) {
+    const ww = rect.width, wh = rect.height;
+    const n = axis === 'x' ? wh : ww;               // the seam runs along y for an x band
+    const ramp = Math.max(1, n / 4);
+    for (let y = 0; y < wh; y++) {
+        for (let x = 0; x < ww; x++) {
+            const i = axis === 'x' ? y : x;
+            const t = Math.min(1, Math.min(i, n - 1 - i) / ramp);
+            const p = y * ww + x;
+            buf[p] = Math.round(buf[p] * t * t * (3 - 2 * t));
+        }
+    }
+    return buf;
+}
+
 // ── Public operations ─────────────────────────────────────────────────────────
 
 /**
@@ -368,21 +434,22 @@ async function prepare({ sourcePath, handles, lightingFlatten = 0 }) {
     const flatPath = path.join(runDir, 'flat.png');
     await lightenFlatten(sourcePath, lightingFlatten, flatPath);
 
-    // Roll and store as working copy.
+    // The working copy stays unrolled (flattened to opaque RGB PNG); each window rolls its own cut.
     const workPath = path.join(runDir, 'working.png');
-    await rollImage(flatPath, dx, dy, workPath);
+    await rollImage(flatPath, 0, 0, workPath);
     await fs.remove(flatPath);
 
-    // Band ranges in the rolled image's coordinate space.
+    // Band ranges in each axis's rolled frame.
     // x-band: lo = left handle (leading edge), hi = right handle (trailing edge).
     // y-band: lo = top handle, hi = bottom handle.
     const bandX = hasX ? bandRange(w, hL, hR) : null;
     const bandY = hasY ? bandRange(h, hT, hB) : null;
 
-    // Window plan.
+    // Window plan: x band in frame (dx, 0), y band in (0, dy), then the corner where they meet.
     const wins = [
-        ...planAxis(w, h, bandX, 'x'),
-        ...planAxis(w, h, bandY, 'y'),
+        ...planAxis(w, h, bandX, 'x').map((win) => ({ ...win, fx: dx, fy: 0 })),
+        ...planAxis(w, h, bandY, 'y').map((win) => ({ ...win, fx: 0, fy: dy })),
+        ...(bandX && bandY ? planCorner(w, h, bandY, dx).map((win) => ({ ...win, fx: dx, fy: dy })) : []),
     ].map((win, i) => ({ i, ...win }));
 
     const state = { runId, sourcePath, width: w, height: h, dx, dy, bandX, bandY, windows: wins };
@@ -403,15 +470,20 @@ async function windowCut(runId, i) {
     const { rect } = win;
     const workPath = path.join(runDir, 'working.png');
 
-    // Cut image (sharp fixed order: extract → materialise → PNG).
+    // Cut image in the window's frame: up to four pieces of the unrolled copy, each materialised
+    // (sharp fixed order: extract before composite), laid into a rect-sized canvas.
+    const pieces = framePieces(rect, win.fx, win.fy, state.width, state.height);
+    const parts = await Promise.all(pieces.map(({ left, top, width, height }) => sharp(workPath, INPUT)
+        .extract({ left, top, width, height }).raw().toBuffer({ resolveWithObject: true })));
     const imgPath = path.join(runDir, `win_${i}_img.png`);
-    await sharp(workPath, INPUT)
-        .extract(rect)
+    await sharp({ create: { width: rect.width, height: rect.height, channels: 3, background: { r: 0, g: 0, b: 0 } } })
+        .composite(parts.map((p, k) => ({ input: p.data, raw: p.info, limitInputPixels: false, left: pieces[k].ox, top: pieces[k].oy })))
         .png()
         .toFile(imgPath);
 
     // The model's mask: what is still to paint, ramped up from the band's edges.
     const maskBuf  = rampMaskBuffer(rect, win.paint, win.axis, win.axis === 'x' ? state.bandX : state.bandY);
+    if (win.fade) fadeAlong(maskBuf, rect, win.axis);
     const maskPath = path.join(runDir, `win_${i}_mask.png`);
     await sharp(maskBuf, {
         raw: { width: rect.width, height: rect.height, channels: 1 },
@@ -440,6 +512,7 @@ async function paste(runId, i, resultPath) {
     // Paste only the band's part of the cut, feathered inward at the band's edges: the context
     // the model saw either side stays the picture's own, byte for byte.
     const maskBuf = makeMaskBuffer(rect, win.band, axis);
+    if (win.fade) fadeAlong(maskBuf, rect, axis);
 
     // Materialise result as 3-channel raw at the window's exact size.
     // Trap 1: flatten(), not removeAlpha(), before joinChannel on the next pipeline.
@@ -450,40 +523,33 @@ async function paste(runId, i, resultPath) {
         .toBuffer({ resolveWithObject: true });
 
     // Join the feathered alpha channel.
-    const overlay = await sharp(rgbData, { raw: rgbInfo, limitInputPixels: false })
+    const { data: ovData, info: ovInfo } = await sharp(rgbData, { raw: rgbInfo, limitInputPixels: false })
         .joinChannel(maskBuf, { raw: { width: rect.width, height: rect.height, channels: 1 } })
-        .png()
-        .toBuffer();
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+    // Unroll the overlay: each piece of the frame lands where it sits in the unrolled copy.
+    const pieces = framePieces(rect, win.fx, win.fy, state.width, state.height);
+    const parts = await Promise.all(pieces.map(({ ox, oy, width, height }) => sharp(ovData, { raw: ovInfo, limitInputPixels: false })
+        .extract({ left: ox, top: oy, width, height }).raw().toBuffer({ resolveWithObject: true })));
 
     // Composite onto working copy, write to a temp file then replace.
     const tmpPath = workPath + '.tmp';
     await sharp(workPath, INPUT)
-        .composite([{
-            input: overlay,
-            limitInputPixels: false,
-            left:  rect.left,
-            top:   rect.top,
-            blend: 'over',
-        }])
+        .composite(parts.map((p, k) => ({
+            input: p.data, raw: p.info, limitInputPixels: false,
+            left: pieces[k].left, top: pieces[k].top, blend: 'over',
+        })))
         .png()
         .toFile(tmpPath);
 
     await fs.move(tmpPath, workPath, { overwrite: true });
 }
 
-/**
- * Roll the working copy back to the original orientation and write to outPath.
- * Rolling right by dx then right by (w - dx) = rolling right by w = identity.
- */
+/** Write the working copy (already unrolled: windows roll only their own cuts) to outPath. */
 async function finish(runId, outPath) {
-    const runDir = runDirOf(runId);
-    const state  = await fs.readJson(path.join(runDir, 'state.json'));
-    const { width: w, height: h, dx, dy } = state;
-    const workPath = path.join(runDir, 'working.png');
-
-    const undoDx = dx > 0 ? w - dx : 0;
-    const undoDy = dy > 0 ? h - dy : 0;
-    await rollImage(workPath, undoDx, undoDy, outPath);
+    const workPath = path.join(runDirOf(runId), 'working.png');
+    await fs.copy(workPath, outPath);
     return outPath;
 }
 
@@ -491,5 +557,5 @@ module.exports = {
     // Public API
     prepare, windowCut, paste, finish, sweepScratch, runDirOf,
     // Exported for tests
-    bandRange, planAxis, rollImage, lightenFlatten, makeMaskBuffer, rampMaskBuffer,
+    bandRange, planAxis, planCorner, framePieces, rollImage, lightenFlatten, makeMaskBuffer, rampMaskBuffer,
 };

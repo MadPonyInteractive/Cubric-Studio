@@ -307,7 +307,8 @@ test('paste: ZERO pixels outside the band are modified', async (t) => {
     let outsideChanged = 0;
     for (let y = 0; y < h; y++) {
         for (let x = 0; x < w; x++) {
-            const inBand = (x >= state.bandX.start && x < state.bandX.end);
+            const xr = (x + state.dx) % w;   // the working copy is unrolled; the band is in frame (dx, 0)
+            const inBand = (xr >= state.bandX.start && xr < state.bandX.end);
             if (!inBand) {
                 const idx = (y * w + x) * 3;
                 if (before[idx] !== after[idx] || before[idx + 1] !== after[idx + 1] || before[idx + 2] !== after[idx + 2]) {
@@ -317,6 +318,54 @@ test('paste: ZERO pixels outside the band are modified', async (t) => {
         }
     }
     assert.equal(outsideChanged, 0, `${outsideChanged} pixels outside the band were changed`);
+});
+
+// ── Both ways: no break in the picture's middle ───────────────────────────────
+
+// A "model" that paints each window as a ramp along its seam, so any two windows' (or one window's two)
+// ends that meet show as a jump. The first build rolled the whole copy by (w/2, h/2), so a band's one
+// window had its two ends meeting at h/2 (side band) and w/2 (top/bottom band): a hard break on every
+// both-ways result (MPI-1101, flowMakeSeamless_021/_023).
+test('both ways: no break at h/2 in the side band or w/2 in the top/bottom band, nor where the bands wrap', async (t) => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'seamless-test-'));
+    t.after(() => fs.rm(tmpDir, { recursive: true, force: true }));
+
+    const w = 512, h = 384;
+    const srcPath = await solidPng(tmpDir, 'src.png', w, h, 128, 128, 128);
+    const state = await prepare({ sourcePath: srcPath, handles: { left: 10, right: 10, top: 10, bottom: 10 } });
+    assert.equal(state.windows.filter((win) => win.fade).length, 1, 'one corner window');
+
+    for (const win of state.windows) {
+        const { width: ww, height: wh } = win.rect;
+        const buf = Buffer.alloc(ww * wh * 3);
+        for (let y = 0; y < wh; y++) for (let x = 0; x < ww; x++) {
+            const v = Math.round(255 * (win.axis === 'x' ? y / (wh - 1) : x / (ww - 1)));
+            buf.fill(v, (y * ww + x) * 3, (y * ww + x) * 3 + 3);
+        }
+        const resPath = path.join(tmpDir, `res_${win.i}.png`);
+        await sharp(buf, { raw: { width: ww, height: wh, channels: 3 } }).png().toFile(resPath);
+        await windowCut(state.runId, win.i);
+        await paste(state.runId, win.i, resPath);
+    }
+    const outPath = path.join(tmpDir, 'out.png');
+    await finish(state.runId, outPath);
+    const px = await readPixels(outPath, w, h);
+    const at = (x, y) => px[(y * w + x) * 3];
+
+    // Side band: columns at the picture's left/right edge; its middle row must not jump.
+    const midRow = Math.floor(h / 2);
+    for (const x of [0, 3, w - 4, w - 1]) {
+        assert.ok(Math.abs(at(x, midRow) - at(x, midRow - 1)) <= 4, `side band x=${x}: step ${at(x, midRow - 1)} -> ${at(x, midRow)} at h/2`);
+    }
+    // Top/bottom band: rows at the top/bottom edge; its middle column must not jump.
+    const midCol = Math.floor(w / 2);
+    for (const y of [0, 3, h - 4, h - 1]) {
+        assert.ok(Math.abs(at(midCol, y) - at(midCol - 1, y)) <= 4, `top band y=${y}: step ${at(midCol - 1, y)} -> ${at(midCol, y)} at w/2`);
+    }
+    // Where the y windows' two ends meet (left edge against right edge, in the top/bottom band): the corner joins them.
+    for (const y of [0, 3, h - 4, h - 1]) {
+        assert.ok(Math.abs(at(0, y) - at(w - 1, y)) <= 8, `wrap y=${y}: ${at(w - 1, y)} | ${at(0, y)}`);
+    }
 });
 
 // ── Lighting flatten ──────────────────────────────────────────────────────────
