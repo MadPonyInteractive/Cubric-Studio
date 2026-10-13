@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1132", "at": "2026-10-13T08:21:30Z", "actor": "claude", "column": "todo", "title": "Agent harness: fake every tool the loop can call (list_cards, visible_cards, GIF tools, mark, quote, cancel, global memory)"}

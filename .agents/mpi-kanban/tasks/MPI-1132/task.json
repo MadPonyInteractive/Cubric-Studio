@@ -1,0 +1,14 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1132",
+  "title": "Agent harness: fake every tool the loop can call (list_cards, visible_cards, GIF tools, mark, quote, cancel, global memory)",
+  "description": "Follow-up to MPI-1129. services/agentBench.mjs fakeTools lacks listCards, visibleCards, markCard, makeGif/editGif/cutoutGif/gifToVideo/makeSheet, quoteGeneration, cancelGeneration, readGlobalMemory/writeGlobalMemory, openFlow/openPrompt. A model that reaches one gets TOOL_ERROR 'is not a function' instead of the app's answer (the failing MPI-1129 room run called list_cards and visible_cards before STEP_LIMIT). Add fakes answering the way the connector routes do, plus a test that every unguarded this._tools.X in agentLoop.mjs exists in fakeTools. Low priority.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-13T08:21:30Z",
+  "updated_at": "2026-10-13T08:21:30Z",
+  "links": {
+    "events": "events.jsonl"
+  }
+}

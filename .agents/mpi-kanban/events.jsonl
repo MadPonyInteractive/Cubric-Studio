@@ -6075,3 +6075,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1129", "at": "2026-10-13T07:30:39Z", "actor": "claude", "column": "todo", "title": "Agent harness: look on a result card throws in the bench (no storedLook fake), cases end on STEP_LIMIT"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1129", "at": "2026-10-13T07:30:39Z", "actor": "claude", "from": "todo", "to": "doing", "reason": "root cause found, fixing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1129", "at": "2026-10-13T07:58:00Z", "actor": "claude", "from": "doing", "to": "done", "reason": "both bench causes fixed (59e8bd735, 99dad628e); live 3x3 9/9"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1132", "at": "2026-10-13T08:21:30Z", "actor": "claude", "column": "todo", "title": "Agent harness: fake every tool the loop can call (list_cards, visible_cards, GIF tools, mark, quote, cancel, global memory)"}
