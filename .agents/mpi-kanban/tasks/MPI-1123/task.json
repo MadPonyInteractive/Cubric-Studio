@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1123",
+  "title": "Cosmo checks a picture before posting: how suggestive, how old it looks, where it can go",
+  "description": "Fabio, 2026-10-13: users who post adult work need to know what Instagram allows vs explicit sites, and that nothing reading under 18 goes anywhere. Built as one app guide for Cosmo (docs/agent/posting-check.md, served as app:posting-check through the knowledge index Cosmo already gets): one look with a fixed question set (skin, exposed parts, pose, camera, age), a four-tier verdict (safe / suggestive / explicit / reads under 18), guidance not a ruling, and a failed look reported as not checked. No code.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-13T02:00:47+01:00",
+  "updated_at": "2026-10-13T02:02:55+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
