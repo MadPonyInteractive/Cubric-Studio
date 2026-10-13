@@ -56,6 +56,15 @@ Bing's index), which is an outward action and Fabio's call.
 - 2.1-only claims, besides the under-18 refusal: Qwen-Image 2.1, Character Sheet from Images,
   Character Sheet Editor. Each is labelled "from 2.1" / "New in 2.1" in the copy.
 
+## Third wave (commit `f85de75`, same branch) and the publish date
+
+- New: `/ai-360-panorama-generator/` (360 Panorama Flow, 3D Scenes, 360 video, skybox; says it is
+  NOT an HDRI) and `/ai-change-outfit-hairstyle/` (edit-by-sentence for one photo, Character Sheet
+  Editor and Character Sheet from Images, with the Qwen-Image 2.1 licence notes). 11 guides total,
+  13 pages pass the checks.
+- Fabio, 2026-10-13: publish the whole branch when 2.1 is released. The push is a step on the 2.1
+  umbrella, MPI-1044 § "After the cut". Nothing here goes live before then.
+
 ## Still open for articles
 
 - AI image generator for Mac (only once 2.x is tested on macOS)
