@@ -3320,7 +3320,7 @@ describe('(e) the open workspace reaches the agent', () => {
     });
 
     // MPI-1119: the Scene page is not the picture view. It has no Mask tool, and the question
-    // the user asks there is "what is this?", which app:3d-scenes answers.
+    // the user asks there is "what is this?", which app:360-and-3d-scenes answers.
     test('the Scene page names the workspace and its guide, never the Mask tool', async () => {
         const AgentLoop = await loadAgentLoop();
         const loop = new AgentLoop();
@@ -3330,7 +3330,7 @@ describe('(e) the open workspace reaches the agent', () => {
         loop._registerWorkspaceEntry(scene);
         const line = loop._appStateLine(project, scene);
         assert.match(line, /3D Scene workspace/);
-        assert.match(line, /read app:3d-scenes/);
+        assert.match(line, /read app:360-and-3d-scenes/);
         assert.ok(line.includes(ENTRY), 'the entry stays named, so "this" still resolves');
         assert.doesNotMatch(line, /Mask tool/);
 

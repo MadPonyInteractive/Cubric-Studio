@@ -59,3 +59,13 @@ picture is or how the video is made. Added: '360 picture and 360 video' section;
 the video' (points = positions only, camera level facing travel - scenePath.js:77; rough pass then Wan
 repaints every frame); Take picture 'never call it exact or high resolution'; a cheat-list line for the
 question. agent-corpus + budget tests 6/6. Needs Fabio's re-ask to confirm.
+
+## Routing fix (2026-10-13)
+
+Re-ask "how does a 360 video work?" got a generic web answer: no read_knowledge call (index title
+'3d scenes' never said 360; Docs rule read entries only for questions Cosmo could not answer).
+Guide renamed docs/agent/360-and-3d-scenes.md (id app:360-and-3d-scenes, refs in flows.md, agentLoop
+app-state line, agent-loop test). Docs rule: 'for a question about the app or something it does, first
+read the App knowledge entry that covers it; if none does, say so and link'. New test in
+agent-prompt-budget pins both. SYSTEM_BUDGET 11,046 -> 11,124 (+78, ledger note). npm test 3271 pass /
+0 fail; eslint clean. Systemic budget/pointer discussion spun off as a chip (task_3a911564).

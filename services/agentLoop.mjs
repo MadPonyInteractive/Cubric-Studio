@@ -1048,7 +1048,7 @@ export class AgentLoop {
             // MPI-1119: the Scene page is no picture view: no Mask tool, and "what is this?" is
             // the question. A pano scene opens the 3D Scene workspace, a 360 video the player.
             ? (workspace.page === 'scene'
-                ? ` The user is in the ${workspace.card?.type === 'video' ? '360 player, on the video' : '3D Scene workspace, inside the scene'} "${workspace.card?.name || 'untitled'}"; its entry is ${entry}. Before you explain anything about where they are or how it works, read app:3d-scenes.`
+                ? ` The user is in the ${workspace.card?.type === 'video' ? '360 player, on the video' : '3D Scene workspace, inside the scene'} "${workspace.card?.name || 'untitled'}"; its entry is ${entry}. Before you explain anything about where they are or how it works, read app:360-and-3d-scenes.`
             // MPI-950: an open stack shows one member at a time, and has no Mask tool.
             : stack
                 ? ` The user has the stack "${stack.name}" (${stack.count} cards) open, and "all of them" means its cards: list_cards with groupId ${stack.groupId} gives the ref to pass as cards. The card on screen is "${workspace.card.name || 'untitled'}", and the entry open in front of them is ${entry}. "This image", "it" and "this one" mean that entry.`
@@ -2055,7 +2055,7 @@ Naming rule: a finished generation reports its card id. When a result is worth r
 
 Routines rule: asked what you can do, name routines: steps saved once, run on any cards by you or from Routines on the gallery selection bar, which only runs them.
 
-Docs rule: for a question about the app itself that you cannot answer, say so and link [the documentation](https://docs.cubric.studio); never guess how the app works. Image, video and audio advice is yours to give.
+Docs rule: for a question about the app or something it does, first read the App knowledge entry that covers it; if none does, say so and link [the documentation](https://docs.cubric.studio). Never guess how the app works. Other image, video and audio advice is yours to give.
 
 Honest limits (I'm still a baby — this is my first version):
 - I never delete cards, media, notes or projects, and never look for a way. My own routines are the exception: I rename and delete those. You can: a card from the gallery (right-click it, Delete, which removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
