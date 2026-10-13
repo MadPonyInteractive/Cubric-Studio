@@ -1,4 +1,5 @@
 # 3D Scenes
+Covers: 360 panoramas and 360 video, the 3D Scene workspace, camera paths, stills from inside a scene.
 
 A 360 panorama the user can step INTO: fly around inside it, lay a camera path through it, render
 that path as a 360 video, then stop on any frame and take a clean picture from any angle and lens.

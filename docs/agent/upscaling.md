@@ -1,4 +1,5 @@
 # Detail and upscaling
+Covers: more detail, sharper or bigger: every upscale and detail route, and which to take.
 
 Every way the app adds detail or makes a picture bigger, what each does to the picture, and
 which one to take. Pick by the user's words and the picture's size: the App state line, an

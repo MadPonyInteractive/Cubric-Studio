@@ -1,4 +1,5 @@
 # Localised edits — working on a mask
+Covers: masks and edits to one area: what the user paints, and how to prompt each masked op.
 
 A **mask** is an area the user paints over one picture. Paint one and the operation works on
 that area alone, at the source image's own size. A maskless edit re-renders the whole picture

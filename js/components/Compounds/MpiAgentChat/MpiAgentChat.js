@@ -51,6 +51,7 @@ import {
     agentGetHistory,
     agentPostConfirm,
     agentReset,
+    agentShorten,
 } from '../../../services/agentService.js';
 
 /**
@@ -1004,6 +1005,52 @@ export const MpiAgentChat = ComponentFactory.create({
             }
         }
 
+        /**
+         * MPI-1125 (Fabio): the chat passed half its compaction point. Three buttons that act
+         * at once, no agent turn: Start fresh keeps the important parts as a note and clears
+         * the chat, Compact summarises it now, Keep going just closes the card (it still
+         * compacts on its own later). Live only: a reload does not redraw it.
+         */
+        function _appendLong() {
+            if (qs('.mpi-agent-chat__confirm-card--long', transcript)) return;
+            const div = document.createElement('div');
+            div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--confirm';
+            const card = document.createElement('div');
+            card.className = 'mpi-agent-chat__confirm-card mpi-agent-chat__confirm-card--long';
+            const titleEl = document.createElement('div');
+            titleEl.className = 'mpi-agent-chat__confirm-title';
+            titleEl.textContent = 'This chat is getting long, so replies get slower and cost a little more.';
+            const subEl = document.createElement('div');
+            subEl.className = 'mpi-agent-chat__confirm-size';
+            subEl.textContent = 'Start fresh saves the important parts to my notes first. You can also ask me to note anything worth keeping.';
+            const actionsEl = document.createElement('div');
+            actionsEl.className = 'mpi-agent-chat__confirm-actions';
+            const btns = [['fresh', 'Start fresh', 'primary'], ['compact', 'Compact', 'secondary'], ['keep', 'Keep going', 'secondary']]
+                .map(([choice, text, variant]) => {
+                    const b = MpiButton.mount(document.createElement('div'), { text, variant, size: 'sm' });
+                    b.on('click', () => _pick(choice));
+                    actionsEl.appendChild(b.el);
+                    return b;
+                });
+            _buttons.push(...btns);
+            const _pick = async (choice) => {
+                if (choice === 'keep') { div.remove(); return; }
+                btns.forEach((b) => b.el.setDisabled?.(true));
+                const r = await agentShorten(_projectRef()?.folderPath || null, choice);
+                if (!r?.ok) {
+                    btns.forEach((b) => b.el.setDisabled?.(false));
+                    _appendError(r?.error?.code, r?.error?.message);
+                    return;
+                }
+                if (choice === 'fresh') await _reload();
+                else div.remove();
+            };
+            card.append(titleEl, subEl, actionsEl);
+            div.appendChild(card);
+            transcript.appendChild(div);
+            _scrollBottom();
+        }
+
         /** Error line. */
         function _appendError(code, message) {
             const div = document.createElement('div');
@@ -1045,6 +1092,9 @@ export const MpiAgentChat = ComponentFactory.create({
                 case 'agent:compacting':
                     _appendCompacting(data.on);
                     break;
+                case 'agent:long':
+                    _appendLong();
+                    break;
                 case 'agent:error':
                     _appendError(data.code, data.message);
                     _setWorking(false);
@@ -1067,7 +1117,7 @@ export const MpiAgentChat = ComponentFactory.create({
                 count: att.count,
             }));
         }
-        ['agent:working', 'agent:message', 'agent:tool', 'agent:confirm', 'agent:result', 'agent:compacting', 'agent:error', 'agent:user', 'agent:spend']
+        ['agent:working', 'agent:message', 'agent:tool', 'agent:confirm', 'agent:result', 'agent:compacting', 'agent:error', 'agent:user', 'agent:spend', 'agent:long']
             .forEach((name) => _unsubs.push(Events.on(name, (data) => {
                 if (_loading) _queued.push([name, data]);
                 else _apply(name, data);

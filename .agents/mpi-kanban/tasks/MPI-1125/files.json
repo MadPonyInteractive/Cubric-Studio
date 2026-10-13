@@ -1,0 +1,26 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1125/",
+    "services/agentLoop.mjs",
+    "services/agentCorpus.mjs",
+    "services/agentSessions.mjs",
+    "routes/agent.js",
+    "routes/connector.js",
+    "docs/agent/",
+    "docs/agent-chat.md",
+    "docs/agent-corpus.md",
+    "tests/agent-prompt-budget.test.cjs",
+    "tests/agent-loop.test.cjs",
+    "tests/agent-wake.test.cjs",
+    "tests/agent-cards.test.cjs",
+    "tests/agent-video-attachment.test.cjs",
+    "tests/agent-chat-length.test.cjs",
+    "scripts/agent-test.mjs",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.css",
+    "js/services/agentService.js",
+    "js/events.js",
+    "services/agentGifTools.mjs"
+  ]
+}

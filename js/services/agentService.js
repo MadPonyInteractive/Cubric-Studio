@@ -48,6 +48,7 @@ export const AGENT_EVENT_NAMES = [
     'agent:session',
     'agent:drained',
     'agent:spend',
+    'agent:long',
     // MPI-941 Phase 12: Settings' "Benchmark this model" (no `session`: it belongs to no conversation).
     'bench:case',
     'bench:done',
@@ -319,6 +320,29 @@ export async function agentReset(folderPath) {
     } catch (err) {
         clientLogger.warn('agentService', 'reset failed', err);
         return { ok: false };
+    }
+}
+
+/**
+ * POST /agent/shorten — the long-chat card (MPI-1125). `fresh` saves the chat's handoff as a
+ * note and clears it; `compact` compacts it now.
+ *
+ * @param {string|null} folderPath  the project's conversation, or the landing one when empty
+ * @param {'fresh'|'compact'} choice
+ * @returns {Promise<{ok:boolean, error?:{code:string, message:string}}>}
+ */
+export async function agentShorten(folderPath, choice) {
+    try {
+        const url = folderPath ? `/agent/shorten?project=${encodeURIComponent(folderPath)}` : '/agent/shorten';
+        const res = await window.fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ choice }),
+        });
+        return res.json();
+    } catch (err) {
+        clientLogger.warn('agentService', 'shorten failed', err);
+        return { ok: false, error: { code: 'HTTP_ERROR', message: 'Could not reach the app.' } };
     }
 }
 

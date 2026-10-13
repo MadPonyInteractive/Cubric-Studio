@@ -96,6 +96,9 @@ listCorpus() -> [{ id, kind: 'model' | 'app', title, tags: string[], text() }]
   the file.
 - `text()` is lazy so listing the corpus is cheap and the agent pulls only what
   it selects.
+- `covers()` (MPI-1125) is lazy too: an app doc's `Covers:` line under its H1, one short line
+  in the user's words, which the in-app index shows instead of the title. A rendered entry
+  (`app:operations`, `app:gifs`) carries its own.
 
 The documentation website stays the fallback the agent can point at when no
 entry matches — a link, never a fetch.

@@ -1,4 +1,5 @@
 # Gallery
+Covers: the gallery: finding, opening, selecting and dragging cards, the right-click menu.
 
 Where a project's media lives and what the user can do from there. The page with
 screenshots is https://docs.cubric.studio/#/vision/gallery — link it, never paste it.

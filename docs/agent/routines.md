@@ -1,4 +1,5 @@
 # Routines
+Covers: routines: saving a chain of steps once and running it on many cards.
 
 A routine is a chain of steps saved once under a name. YOU run it, on any cards, in ONE
 `routine` call: each card goes through every step in order, and you are told once, in one

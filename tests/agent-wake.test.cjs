@@ -186,20 +186,31 @@ describe('the wake itself', () => {
         assert.equal(h.wake(A).woke, false);
     });
 
-    test('a wake turn cannot move the user: no open_project, no create_project', async (t) => {
+    // MPI-1125: refused when called, never cut from the list. A different tool list missed the
+    // provider's prompt cache, so every wake paid the whole floor uncached.
+    test('a wake turn cannot move the user, and sends the same tool list as a typed turn', async (t) => {
         const h = await makeSessions();
         t.after(h.restore);
         await dispatchAndLand(h, A);
+        const { DeepInfraEngine } = await load();
+        const opened = [];
+        h.tools.openProject = async (folderPath) => { opened.push(folderPath); return { ok: true }; };
+        DeepInfraEngine.prototype.chat = async (req) => {
+            h.seen.push(req);
+            const last = req.messages.at(-1);
+            if (last.role === 'tool') return { text: 'Your fox landed.' };
+            return toolCall('o1', 'open_project', { folderPath: B.folderPath });
+        };
         h.wake(A);
         await flush();
 
-        const names = (req) => (req.tools || []).map((d) => d.function?.name);
-        const typed = h.seen[0];
-        const woke = h.seen.at(-1);
-        assert.equal(names(typed).includes('open_project'), true, 'a turn the user asked for still has them');
-        assert.equal(names(woke).includes('open_project'), false);
-        assert.equal(names(woke).includes('create_project'), false);
-        assert.equal(names(woke).includes('generate'), true, 'everything else is untouched');
+        const names = (req) => JSON.stringify((req.tools || []).map((d) => d.function?.name));
+        const woke = h.seen.find((req) => req.messages.some((m) => /Nothing was typed/.test(String(m.content))));
+        assert.ok(woke, 'the wake turn ran');
+        assert.equal(names(woke), names(h.seen[0]), 'one tool list for every turn keeps the cache');
+        assert.deepEqual(opened, [], 'a wake never opens a project');
+        const refused = h.seen.at(-1).messages.findLast((m) => m.role === 'tool');
+        assert.match(String(refused?.content), /WAKE_NO_MOVE/);
     });
 
     test('a conversation that never ran, or has nothing pending, does not wake', async (t) => {

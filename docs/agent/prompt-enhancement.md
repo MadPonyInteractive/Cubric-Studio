@@ -1,4 +1,5 @@
 # Prompt enhancement
+Covers: the Enhance button: how a short idea becomes a prompt shaped for each model.
 
 How Cubric Studio turns a short idea into a prompt shaped for the model that will
 run it. This is the `kind: 'app'` half of the agent corpus; the per-model half is

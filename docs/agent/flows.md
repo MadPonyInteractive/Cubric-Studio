@@ -1,4 +1,5 @@
 # Flows
+Covers: every Flow (outpaint, head swap, video edit, make seamless, spoken lines, transcribe, song) and how to run one.
 
 A Flow is a ready-made recipe (Outpaint, Voice Changer, Song, a character sheet), run
 with `generate` and a `flowId`, never a `modelId`. `describe_model` with the Flow's id gives its

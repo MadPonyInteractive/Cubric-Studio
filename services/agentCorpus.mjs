@@ -35,6 +35,7 @@ import { RECIPE_REGISTRY, resolveRecipe } from '../js/data/recipes/registry.js';
 import { renderRecipeBrief } from '../js/data/recipes/brief.js';
 import { COMMANDS } from '../js/data/commandRegistry.js';
 import { MODELS } from '../js/data/modelConstants/models.js';
+import { renderGifGuide, GIF_GUIDE_COVERS } from './agentGifTools.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const AGENT_DOCS_DIR = path.join(ROOT, 'docs', 'agent');
@@ -63,6 +64,15 @@ const SKILL_PREAMBLE = [
 // filename cannot carry.
 const titleFromFilename = (base) =>
     base.replace(/[-_]+/g, ' ').replace(/^./, (c) => c.toUpperCase());
+
+// MPI-1125: what an app doc covers, in the user's words, is the line the in-app index shows:
+// a bare title ("3d scenes") never matched "how does a 360 video work?". Written once, as a
+// `Covers:` line under the doc's H1, so the index cannot drift from the doc. Lazy like `text()`:
+// only the index route calls it, so a listing still reads no file.
+const COVERS = /^Covers: (.+)$/m;
+const coversOf = (file) => {
+    try { return COVERS.exec(fs.readFileSync(file, 'utf8').slice(0, 400))?.[1]; } catch { return undefined; }
+};
 
 function modelEntries() {
     return RECIPE_REGISTRY.flatMap((recipe) =>
@@ -180,6 +190,7 @@ function appEntries() {
                 id: `app:${base}`,
                 kind: 'app',
                 title: titleFromFilename(base),
+                covers: () => coversOf(path.join(AGENT_DOCS_DIR, file)),
                 tags: ['app', ...base.split(/[-_]+/).filter(Boolean)],
                 text: () => fs.readFileSync(path.join(AGENT_DOCS_DIR, file), 'utf8'),
             };
@@ -214,11 +225,22 @@ const OPERATIONS_ENTRY = {
     id: 'app:operations',
     kind: 'app',
     title: 'Operations',
+    covers: () => 'what each operation does (text to image, edit, image to video...) and which models run it.',
     tags: ['app', 'operations'],
     text: renderOperations,
 };
 
+// MPI-1125: what each action of the agent's `gif` tool takes, rendered from its settings.
+const GIFS_ENTRY = {
+    id: 'app:gifs',
+    kind: 'app',
+    title: 'GIFs and sheets',
+    covers: () => GIF_GUIDE_COVERS,
+    tags: ['app', 'gifs', 'sheet'],
+    text: renderGifGuide,
+};
+
 /** Every corpus entry, model briefs first. `text()` is unread until called. */
 export function listCorpus() {
-    return [...modelEntries(), ...guideEntries(), ...skillEntries(), ...appEntries(), OPERATIONS_ENTRY];
+    return [...modelEntries(), ...guideEntries(), ...skillEntries(), ...appEntries(), GIFS_ENTRY, OPERATIONS_ENTRY];
 }

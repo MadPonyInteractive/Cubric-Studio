@@ -1,4 +1,5 @@
 # Posting check
+Covers: is a picture or clip safe to post, where it can go, how suggestive it is.
 
 Read this when the user asks whether a picture or clip is safe to post, where they can post
 it, whether it is "too much for Instagram", or how suggestive it is. You look at it, rate it,

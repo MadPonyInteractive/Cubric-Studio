@@ -1118,7 +1118,7 @@ router.get('/connector/knowledge', async (_req, res) => {
     const entries = await _getCorpusEntries();
     res.json({
       ok: true,
-      entries: entries.map(({ id, kind, title, tags }) => ({ id, kind, title, tags })),
+      entries: entries.map(({ id, kind, title, covers, tags }) => ({ id, kind, title, ...(covers && { covers: covers() }), tags })),
     });
   } catch (err) {
     logger.error('connector', 'knowledge list failed', err);

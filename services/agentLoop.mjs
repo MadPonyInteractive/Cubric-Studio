@@ -35,7 +35,7 @@ import * as realTools from './agentTools.mjs';
 import { MAX_NOTES } from './agentMemory.mjs';
 import { agentToolOp } from '../js/shell/agentToolOps.js';
 import { viewFile as _viewClipFile } from './cardView.js';
-import { SHEET_SHAPES, SHEET_SIZES } from '../js/utils/sheetLayout.js';
+import { GIF_ACTIONS } from './agentGifTools.mjs';
 
 // A video or GIF ref (MPI-941 Phase 4): `look` samples it into ONE contact sheet instead of
 // sending it to the describer whole. Mirrors cardView.js's own MOVING set (not exported).
@@ -299,115 +299,19 @@ export const TOOL_DEFS = [
     {
         type: 'function',
         function: {
-            name: 'make_gif',
-            description: 'Make an animated GIF in the open project, as a NEW gallery card. Either `images` (two or more still cards, played in that order; the first one\'s size wins) or `video` (a clip of one video card, which needs fps). Every ref is a gallery card: one list_cards returned, or one a finished generation or GIF step reported.',
+            name: 'gif',
+            // MPI-1125: four GIF tools and make_sheet in one; each action's settings are app:gifs.
+            description: 'GIFs and picture sheets from gallery cards: make a GIF from stills or a clip, edit one (speed, trim, loop, colours, size, crop), cut its subject out onto transparency, turn one into a video, or pack stills into one sheet (character sheet, mood board). Read app:gifs first.',
             parameters: {
                 type: 'object',
                 properties: {
-                    images: { type: 'array', items: { type: 'string' }, description: 'Refs of two or more still image cards, in play order.' },
-                    video: { type: 'string', description: 'The ref of one video card.' },
-                    fps: { type: 'number', description: 'Frames per second, 1-60. Required with video.' },
-                    sizePreset: { type: 'string', enum: ['original', '480xauto', '320xauto', 'autox480', 'autox320'], description: 'The number is the NAMED axis, not the longest edge. Default original.' },
-                    loop: { type: 'integer', description: 'TOTAL plays: 0 (default) = forever, 1 = once.' },
-                    trimIn: { type: 'number', description: 'Clip start in seconds. Only with video, and only together with trimOut.' },
-                    trimOut: { type: 'number', description: 'Clip end in seconds.' },
+                    action: { type: 'string', enum: Object.keys(GIF_ACTIONS) },
+                    images: { type: 'array', items: { type: 'string' }, description: 'make, sheet: card refs, in order.' },
+                    video: { type: 'string', description: 'make: one video card ref.' },
+                    gif: { type: 'string', description: 'edit, cutout, to_video: a GIF card ref.' },
+                    settings: { type: 'object', description: 'Everything else, as app:gifs names it.' },
                 },
-                additionalProperties: false,
-            },
-        },
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'edit_gif',
-            description: 'Retime, trim, loop, recolour, resize or crop a GIF card. Lands a new ENTRY on the same card; the entry you edited stays on it. Send at least one setting. crop and resize cannot share a call: send the second as its own call, on the ref the first returned.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    gif: { type: 'string', description: 'The ref of a GIF card.' },
-                    fps: { type: 'number', description: '0.1-50. A GIF cannot play faster than 50.' },
-                    loop: { type: 'integer', description: 'TOTAL plays: 0 = forever.' },
-                    trim: {
-                        type: 'object',
-                        description: 'Frame INDICES, inclusive, not seconds.',
-                        properties: { in: { type: 'integer' }, out: { type: 'integer' } },
-                        required: ['in', 'out'],
-                    },
-                    output: {
-                        type: 'object',
-                        description: 'colours 2-256. edgeColour "#rrggbb" builds a TRANSPARENT GIF with soft edges blended toward that colour; "opaque" builds an opaque one. maxEdge caps the longest edge.',
-                        properties: { colours: { type: 'integer' }, edgeColour: { type: 'string' }, maxEdge: { type: 'integer' } },
-                    },
-                    resize: {
-                        type: 'object',
-                        properties: { width: { type: 'integer' }, height: { type: 'integer' } },
-                        required: ['width', 'height'],
-                    },
-                    crop: {
-                        type: 'object',
-                        description: 'A box in source pixels. fill "#rrggbb" covers any area the box takes from outside the frame; outWidth/outHeight set the output resolution.',
-                        properties: { x: { type: 'integer' }, y: { type: 'integer' }, width: { type: 'integer' }, height: { type: 'integer' }, fill: { type: 'string' }, outWidth: { type: 'integer' }, outHeight: { type: 'integer' } },
-                        required: ['x', 'y', 'width', 'height'],
-                    },
-                },
-                required: ['gif'],
-                additionalProperties: false,
-            },
-        },
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'cutout_gif',
-            description: 'Cut the subject out of every frame of a GIF card, onto transparency ("remove the background", "make it a sticker"). Lands a new ENTRY on the same card; the source entry stays. A GPU run: about 16 s for 30 frames, longer by name. method "background" keeps the whole subject and takes no prompt; "name" tracks what prompt names and keeps EVERY object it tracks. A cut-out can be clean on one frame and ragged in motion: never call one good, ask the user to watch it. Came back wrong: change prompt or adjust and run it again on the same ref.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    gif: { type: 'string', description: 'The ref of a GIF card.' },
-                    method: { type: 'string', enum: ['background', 'name'] },
-                    prompt: { type: 'string', description: 'What to track, e.g. "robot". Required for method "name".' },
-                    adjust: {
-                        type: 'object',
-                        description: 'Mask adjust. grow is in output pixels.',
-                        properties: { grow: { type: 'number' }, outward: { type: 'number' }, inward: { type: 'number' }, edge: { type: 'number' }, fillHoles: { type: 'boolean' } },
-                    },
-                    invert: { type: 'boolean', description: 'Swap which side survives.' },
-                },
-                required: ['gif', 'method'],
-                additionalProperties: false,
-            },
-        },
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'gif_to_video',
-            description: 'Turn a GIF card into a video, as a NEW card beside it; the GIF is left alone. Video carries no transparency, so a cut-out plays on black unless you pass background.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    gif: { type: 'string', description: 'The ref of a GIF card.' },
-                    background: { type: 'string', description: '"#rrggbb" behind whatever a transparent GIF leaves clear.' },
-                },
-                required: ['gif'],
-                additionalProperties: false,
-            },
-        },
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'make_sheet',
-            // MPI-1099: the gallery's image Combine (MPI-1094), without its framing dialog.
-            description: 'Pack 2+ still image cards, in order, into one new picture card (character sheet, mood board). "auto" crops nothing. Hand framing: the gallery\'s Combine.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    images: { type: 'array', items: { type: 'string' }, description: 'Card refs.' },
-                    shape: { type: 'string', enum: SHEET_SHAPES.map(s => s.value) },
-                    longEdge: { type: 'integer', enum: SHEET_SIZES, description: 'Default 2048.' },
-                },
-                required: ['images'],
+                required: ['action'],
                 additionalProperties: false,
             },
         },
@@ -473,8 +377,10 @@ export const TOOL_DEFS = [
 
 // MPI-870 — what a WAKE turn may call. A wake was not asked for: the user did not type,
 // and they may be mid-edit in a workspace, so the two tools that move them off what they
-// are looking at are off the table (rule 4 of Fabio's seven).
-const WAKE_TOOL_DEFS = TOOL_DEFS.filter((t) => t.function?.name !== 'open_project' && t.function?.name !== 'create_project');
+// are looking at are off the table (rule 4 of Fabio's seven). MPI-1125: refused when called,
+// not left out of the list: a different tool list misses the provider's prompt cache, and a
+// wake paid the whole floor uncached (measured 0 of 8,117 tokens cached).
+const WAKE_REFUSED = new Set(['open_project', 'create_project']);
 
 // MPI-870 — above how many cards a fan-out asks the user first. Fabio, 2026-09-21: five.
 // Below it the batch IS what they asked for, and a yes/no card is in the way.
@@ -492,6 +398,25 @@ export const MAX_STEPS = 16;
 
 // Sent with the one call made after the last round, and never kept in the conversation.
 const MEMORY_NUDGE = 'Nothing is noted this turn. If the user stated a goal, a character, a look or a decision, save it with write_memory now; nothing to keep, ignore this.';
+// MPI-1125 — rules only one kind of op needs. They were system-prompt rules paid on every
+// request; now they ride on the describe_model (or list_cards) result that precedes the call
+// they govern, once per context. `when` reads one op of the entry describe_model returns.
+export const OP_RULES = [
+    { id: 'tier', when: (o) => Object.keys(o.params?.tierSizes || {}).length > 0,
+        text: 'A tier\'s name is not its size: match a named resolution on params.tierSizes (1K = 1080p = full HD = 1920 on the long side) and say the pixels.' },
+    { id: 'clip', when: (o) => !!o.params?.duration && !o.params?.categories,
+        text: 'Duration: a clip defaults to 2 to 3 seconds: ONE continuous action fits. Only a SEQUENCE of beats, or a spoken line too long for 3 seconds, earns more, and budget less than your first instinct. The user naming a length always wins. Say the durationSeconds the result reports; until then say "I asked for N seconds". When it finishes the app wakes you, and you report it then. Every new clip starts at the defaults, quality at the lowest tier, and a setting rises only when the user\'s words for THAT clip ask for it; only a redo keeps its card\'s settings.' },
+    { id: 'shape', when: (o) => o.params?.ratios?.length > 0 && (o.media || []).some((m) => m.type === 'image'),
+        text: 'Shape: a generation from a picture crops it to the ratio, never letterboxes. Leave ratio out and the picture\'s own shape is used; only when the user asks for a ratio, say in one line before you generate that part of the picture will be cropped.' },
+    { id: 'text', when: (o) => o.params?.ratios?.length > 0 && !o.params?.duration,
+        text: 'Words in a picture: quote them exactly, in double quotes, and say where they go. Never refuse, never send the user to another app, never warn in advance that they may be misspelled; a miss is re-run.' },
+];
+export const REPEAT_RULE = 'To repeat this card: made from text, the same op with its prompt rewritten by the new model\'s guide; made from a picture, that picture (a clip in a picture slot sends its start picture or first frame). Never a finished result as its own reference.';
+
+// MPI-1125 — the most prompt tokens a conversation carries before it compacts, whatever the
+// window. Fabio, 2026-10-13: a fixed size, not a share of a 1M window.
+const COMPACT_CAP = 128_000;
+
 const OUT_OF_ROUNDS = 'You are out of tool calls for this turn. In plain words, tell the user what you did, what is still running, and what is left to do. They can reply to continue.';
 
 // How long a `generate` waits to see whether its dispatch is REFUSED before reporting
@@ -703,6 +628,7 @@ export class AgentLoop {
         this._notesProject = null; // folderPath whose project notes this context already lists
         this._globalListed = false; // the global notes are listed once per context (MPI-774 Phase 6)
         this._readIds = new Set(); // knowledge ids read in this context (the guide gate)
+        this._rulesSent = new Set(); // describe_model / list_cards rules already handed over in this context (MPI-1125)
         this._guides = new Map();  // modelId -> guide ids, from list_models
         this._boxSteps = new Map(); // flowId -> its box steps [{param, role}], from list_models
         this._opens = new Map();    // flowId -> the step it opens at instead of running (MPI-892), or null
@@ -919,6 +845,7 @@ export class AgentLoop {
         this._messages = [];
         this._history = [];
         this._lastUsage = null;
+        this._longOffered = false;
         this._spend = { chatUsd: 0, genUsd: 0 };
         this._emit('agent:spend', this._spend);
         this._images.clear();
@@ -929,6 +856,7 @@ export class AgentLoop {
         this._notesProject = null;
         this._globalListed = false;
         this._readIds.clear();
+        this._rulesSent.clear();
         this._guides.clear();
         this._boxSteps.clear();
         this._boxed.clear();
@@ -1999,7 +1927,7 @@ export class AgentLoop {
             if (kr?.ok && Array.isArray(kr.entries)) {
                 knowledgeIndex =
                     '\nApp knowledge (read_knowledge with an id; describe_model gives a model its guide ids):\n' +
-                    kr.entries.filter((e) => e.id.startsWith('app:')).map((e) => `- ${e.id}: ${e.title}`).join('\n');
+                    kr.entries.filter((e) => e.id.startsWith('app:')).map((e) => `- ${e.id}: ${e.covers || e.title}`).join('\n');
             }
         } catch { /* corpus not reachable — omit */ }
 
@@ -2022,23 +1950,17 @@ Options rule: a reply that offers choices (models, ideas, routes, yes or no) end
 
 Model rule: first the TASK, then the model. A change to what is IN an existing picture, local or across the frame (remove, add or replace a thing, the background, light, time of day: "make it night"), is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the named model's i2i ranks first; a restyle the user asks for ("make this anime") is i2i; a miss goes to the edit task, not another denoise. Detail or size is never an edit: app:upscaling. A head from one picture onto another is the Head Swap Flow, never a mask. The same picture on ANOTHER model ("this image but with <model>") is a RE-RUN: that model's text-to-image op with NO media, from the source's prompt (list_cards for a card; otherwise look at the picture, write it from what is there and say so in one line) rewritten to that model's guide. A model's name is never a style instruction; only an ask to change how THIS picture looks sends the picture. Ranks compare ops only within one task, and best: true marks the op to take: the lowest rank you can run here. No rank means unranked, not bad. Take another only when the user names a model or the op's note matches the ask, and then say which model and why in one line. Nothing installed fits: say so and offer install_model.
 
-Route rule: before an edit of an existing picture, answer this yourself: does the change stay inside ONE area? Light, sky, time of day, weather, season and style fall on the whole frame, and several asks in one message are ONE edit, never split. Not one area: run ONE whole-picture edit, ask nothing. One area with words that protect the rest ("only this", "without changing anything else"): ask for the mask, offer nothing else. One area with no such words: in ONE line give both routes (a mask is tighter; a whole-picture edit needs no painting and often lands), recommend one, end on [options: Mask | Whole-picture edit] and wait; how to paint comes only after they pick Mask. A mask also keeps the source's size and every pixel outside it, so offer one for a big photo or when an edit lost quality. When a result comes back wrong, change the op, the mask or the prompt, never add adjectives; details in app:masking.
+Route rule: words to put on a picture are an ordinary edit: run it, no mask question. Before any other edit of an existing picture, answer this yourself: does the change stay inside ONE area? Light, sky, time of day, weather, season and style fall on the whole frame, and several asks in one message are ONE edit, never split. Not one area: run ONE whole-picture edit, ask nothing. One area with words that protect the rest ("only this", "without changing anything else"): ask for the mask, offer nothing else. One area with no such words: in ONE line give both routes (a mask is tighter; a whole-picture edit needs no painting and often lands), recommend one, end on [options: Mask | Whole-picture edit] and wait; how to paint comes only after they pick Mask. A mask also keeps the source's size and every pixel outside it, so offer one for a big photo or when an edit lost quality. When a result comes back wrong, change the op, the mask or the prompt, never add adjectives; details in app:masking.
 
 Masking rule: the user paints a mask, never you, and you never pick the area. Tell them: click the card in the gallery to open it, then pick the Mask tool from the toolbar down the left; on the card, the App state line gives the words instead. Never say "History". What they paint reaches your generation on its own, on the picture it was painted over. generate refuses a masked op until you have read app:masking, which says how to write the prompt for each op.
 
-Text rule: words in a picture are an ordinary edit: asked to put words on a picture, run it, with no mask question. Quote them exactly, in double quotes, and say where they go. Never refuse, never send the user to another app, never warn in advance that they may be misspelled; a miss is re-run.
-
-Settings rule: list_models carries no settings. Once you have picked a model or Flow, describe_model gives each op's params (the only values it accepts), its media roles, a Flow's fields and boxes, and its guide ids. Never send a value its params do not list. A tier's name is not its size: match a named resolution on params.tierSizes (1K = 1080p = full HD = 1920 on the long side) and say the pixels. Every new clip starts at the defaults, quality at the lowest tier, and a setting rises only when the user's words for THAT clip ask for it; only a redo keeps its card's settings. Infer ratio from words that imply a shape. Platform shapes and when a style is worth it: app:formats.
+Settings rule: list_models carries no settings. Once you have picked a model or Flow, describe_model gives each op's params (the only values it accepts), its media roles, a Flow's fields and boxes, its guide ids, and any rules: follow them. Never send a value its params do not list. Infer ratio from words that imply a shape. Platform shapes and when a style is worth it: app:formats.
 
 Guide rule: adapt what the user asked for to the model's guide (its structure, length and vocabulary) and keep their intent. Never send a guide's example as the prompt.
-
-Duration rule: a clip defaults to 2 to 3 seconds: ONE continuous action fits. Only a SEQUENCE of beats, or a spoken line too long for 3 seconds, earns more, and budget less than your first instinct. The user naming a length always wins. Say the durationSeconds the result reports; until then say "I asked for N seconds". When it finishes the app wakes you, and you report it then.
 
 Numbering rule: "picture 2", "image 2" or "2" in a message means that message's attached image 2, never an image from an earlier turn. Pass that attachment's id.
 
 Looking rule: before you comment on, judge or describe any image, call look on it. look takes only a ref the App state line lists; it cannot open a folder or a path. If the describer refuses, say so and suggest the local ComfyUI describer (Remote > Language Models).
-
-Shape rule: a generation from a picture crops it to the ratio, never letterboxes. Leave ratio out and the picture's own shape is used; only when the user asks for a ratio, say in one line before you generate that part of the picture will be cropped.
 
 Flow rule: before your first Flow run or answer about one, read app:flows.
 
@@ -2048,7 +1970,8 @@ Project rule: a generation lands in the open project. open_project takes only a 
 
 Cards rule: the App state line lists only what this conversation touched; list_cards reads the whole open project. When the App state line says the user is looking at a card, "this image", "it" and "this one" mean that entry: work on it, do not call list_cards to find it, never ask them to attach it. When they point at something with no ref listed ("the duck video", "the last one", a card's name), call list_cards before saying you cannot see it. Read a card in full when its prompt or settings matter. What a card says it ran is the truth about that file. "The last", "the latest" and "the one before" follow the list's order, newest first, over everything in the project; a project note never answers it. If a generation of yours reported a failure, check list_cards before redoing it: the file may have landed.
 
-Repeat rule: to repeat a card on another model, read the card in full first. Made from text: the same op, its prompt rewritten by the new model's guide. Made from a picture: that picture; a clip passed in a picture slot sends its start picture or first frame. Never a finished result as its own reference.
+Repeat rule: to repeat a card, read it in full first (list_cards with its groupId) and follow what it says.
+
 Memory rule: your notes survive a restart, per project and global (all projects, only when asked); the first message lists them, and read_memory reads one before you rely on it. The moment the user states a goal, names or describes a character, settles a look, decides something, or a model or setting works or fails, call write_memory that turn, without asking: a turn ending without the note loses it. Say in one line what you noted. One note per thing: update it, never add a second. Never save keys, passwords or personal data.
 
 Naming rule: a finished generation reports its card id. When a result is worth referring to later, name its card with rename_card, or pass cardName with generate.
@@ -2096,7 +2019,10 @@ ${knowledgeIndex}`.trim();
                 if (!entry) {
                     return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_MODEL', message: `No model or Flow "${args?.id}". Use an id exactly as list_models gives it.` } });
                 }
-                return JSON.stringify({ ok: true, ...entry });
+                const ops = entry.model?.ops || [];
+                const rules = OP_RULES.filter((r) => !this._rulesSent.has(r.id) && ops.some(r.when));
+                rules.forEach((r) => this._rulesSent.add(r.id));
+                return JSON.stringify({ ok: true, ...entry, ...(rules.length && { rules: rules.map((r) => r.text) }) });
             }
             case 'read_knowledge': {
                 const r = await this._tools.readKnowledge(args?.id);
@@ -2566,34 +2492,58 @@ ${knowledgeIndex}`.trim();
                 if (!currentProject?.folderPath) {
                     return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open, so there are no cards to list.' } });
                 }
-                return this._seeCards(await this._tools.listCards(currentProject.folderPath, args.groupId, args.limit, args.mark));
+                const seen = this._seeCards(await this._tools.listCards(currentProject.folderPath, args.groupId, args.limit, args.mark));
+                // MPI-1125: the Repeat rule rides on the first card read in full, not on every request.
+                if (!args.groupId || this._rulesSent.has('repeat')) return seen;
+                const card = JSON.parse(seen);
+                if (!card.ok) return seen;
+                this._rulesSent.add('repeat');
+                return JSON.stringify({ ...card, repeat: REPEAT_RULE });
             }
             case 'visible_cards':
                 return this._seeCards(await this._tools.visibleCards(args.limit));
             case 'mark_card':
                 return JSON.stringify(await this._tools.markCard(args.groupId, args.mark === 'none' ? false : args.mark));
-            case 'make_gif': {
+            case 'gif': {
+                // MPI-1125: one tool, five actions. What each takes is app:gifs, read once.
+                const spec = GIF_ACTIONS[args.action];
+                if (!spec) {
+                    return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: `action is one of: ${Object.keys(GIF_ACTIONS).join(', ')}.` } });
+                }
+                if (!this._readIds.has('app:gifs')) {
+                    this._gateWaiting = 'app:gifs';
+                    return JSON.stringify({ ok: false, error: { code: 'KNOWLEDGE_NOT_READ', message: 'Nothing was made: read read_knowledge "app:gifs" first, then send this again with the settings it gives.' } });
+                }
+                const settings = args.settings && typeof args.settings === 'object' ? args.settings : {};
+                const stray = Object.keys(settings).filter((k) => !(k in spec.settings));
+                if (stray.length) {
+                    return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: `Nothing was made: ${args.action} takes no ${stray.join(', ')}. Its settings: ${Object.keys(spec.settings).join(', ')}.` } });
+                }
+                const refs = Object.fromEntries(Object.keys(spec.refs).filter((k) => args[k] !== undefined).map((k) => [k, args[k]]));
+                return this._executeTool(`gif:${args.action}`, { ...refs, ...settings }, turnId, currentProject, opts);
+            }
+            case 'gif:make': {
                 const { images, video, ...rest } = args;
                 if ((images === undefined) === (video === undefined)) {
                     return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: 'Send either images (two or more still cards) or video (one video card), not both and not neither.' } });
                 }
                 return this._gif(this._tools.makeGif, images !== undefined ? { itemIds: images } : { videoItemId: video }, rest, true);
             }
-            case 'edit_gif': {
+            case 'gif:edit': {
                 const { gif, ...rest } = args;
                 // The route's "opaque" is a null edgeColour, which a tool schema cannot say.
                 if (rest.output?.edgeColour === 'opaque') rest.output = { ...rest.output, edgeColour: null };
                 return this._gif(this._tools.editGif, { itemId: gif }, rest, false);
             }
-            case 'cutout_gif': {
+            case 'gif:cutout': {
                 const { gif, ...rest } = args;
                 return this._gif(this._tools.cutoutGif, { itemId: gif }, rest, false);
             }
-            case 'gif_to_video': {
+            case 'gif:to_video': {
                 const { gif, ...rest } = args;
                 return this._gif(this._tools.gifToVideo, { itemId: gif }, rest, true);
             }
-            case 'make_sheet': {
+            case 'gif:sheet': {
                 const { images, ...rest } = args;
                 if (!Array.isArray(images) || images.length < 2) {
                     return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: 'images needs two or more still image cards.' } });
@@ -2669,9 +2619,13 @@ ${knowledgeIndex}`.trim();
     // Compaction
     // -------------------------------------------------------------------------
 
-    /** The prompt_tokens that trigger a compaction. */
+    /**
+     * The prompt_tokens that trigger a compaction: half the window, never past COMPACT_CAP.
+     * MPI-1125: every request re-sends the whole history, so on a 1M window the old 30%
+     * let each tool round carry ~300k tokens; the cap keeps a long chat's bill flat.
+     */
     _compactAt() {
-        return this._contextWindow * (this._contextWindow >= 1_000_000 ? 0.30 : 0.50);
+        return Math.min(this._contextWindow * 0.50, COMPACT_CAP);
     }
 
     _shouldCompact() {
@@ -2679,26 +2633,29 @@ ${knowledgeIndex}`.trim();
         return (this._lastUsage.prompt_tokens || 0) >= this._compactAt();
     }
 
-    /** @param {{model: string, baseURL: string, key: string, profileId: string}} endpoint */
-    async _compact(turnId, endpoint) {
-        this._emit('agent:compacting', { turnId, on: true });
-        try {
-            // Ask the model to write a handoff
-            const handoffMessages = [
+    /** The model's handoff of this conversation: what a compaction or a fresh start keeps. */
+    async _handoff(endpoint) {
+        const { engine, contextWindow: askFor } = chatEngineFor(endpoint.profileId, endpoint.key, endpoint.baseURL);
+        const handoffRes = await engine.chat({
+            model: endpoint.model,
+            messages: [
                 ...this._messages,
                 {
                     role: 'user',
                     content: 'Write a compact handoff covering: goal, decisions made, outputs generated (model, settings, results), current model and settings, and any open question. This will restart the session context.',
                 },
-            ];
-            const { engine, contextWindow: askFor } = chatEngineFor(endpoint.profileId, endpoint.key, endpoint.baseURL);
-            const handoffRes = await engine.chat({
-                model: endpoint.model,
-                messages: handoffMessages,
-                ...(askFor ? { options: { contextWindow: askFor } } : {}),
-            });
-            this._addSpend('chatUsd', handoffRes.usage?.estimated_cost);
-            const handoffText = handoffRes.text || '';
+            ],
+            ...(askFor ? { options: { contextWindow: askFor } } : {}),
+        });
+        this._addSpend('chatUsd', handoffRes.usage?.estimated_cost);
+        return handoffRes.text || '';
+    }
+
+    /** @param {{model: string, baseURL: string, key: string, profileId: string}} endpoint */
+    async _compact(turnId, endpoint) {
+        this._emit('agent:compacting', { turnId, on: true });
+        try {
+            const handoffText = await this._handoff(endpoint);
 
             // Rebuild messages: system + handoff + the last (up to 4) user turns that fit in half
             // the trigger. Four whole turns could sit above the trigger on their own (live, a
@@ -2720,6 +2677,7 @@ ${knowledgeIndex}`.trim();
             this._notesProject = null;
             this._globalListed = false;
             this._readIds.clear();
+            this._rulesSent.clear();
             this._boxed.clear();
             this._overBoxed.clear();
             this._historyEntry('handoff', { text: handoffText });
@@ -2861,7 +2819,7 @@ ${knowledgeIndex}`.trim();
                     const poster = _posterUrl(att.filePath, att.itemId);
                     if (poster) stagedAttachments.push({ id: att.id, name: att.name, url: poster });
                     const card = att.groupId ? `A gallery card of this project (groupId ${att.groupId}): list_cards with that groupId reads the prompt that made it.` : 'A clip in this project.';
-                    contentParts.push({ type: 'text', text: `[Attached video ${i + 1}: ${att.name} (ref: ${att.id}). ${card} look reads it as sampled frames; pass the ref to generate as media, or to make_gif.${att.itemId ? '' : ' It is not a gallery card yet, so make_gif cannot take it until list_cards returns it.'}]` });
+                    contentParts.push({ type: 'text', text: `[Attached video ${i + 1}: ${att.name} (ref: ${att.id}). ${card} look reads it as sampled frames; pass the ref to generate as media, or to gif.${att.itemId ? '' : ' It is not a gallery card yet, so gif cannot take it until list_cards returns it.'}]` });
                     continue;
                 }
                 if (att.id && att.filePath) {
@@ -2950,7 +2908,7 @@ ${knowledgeIndex}`.trim();
                 const outOfRounds = steps >= MAX_STEPS;
                 const llmRes = await engine.chat(outOfRounds
                     ? { model, messages: [...this._messages, { role: 'system', content: OUT_OF_ROUNDS }], options: chatOptions }
-                    : { model, messages: this._messages, tools: wake ? WAKE_TOOL_DEFS : TOOL_DEFS, options: chatOptions });
+                    : { model, messages: this._messages, tools: TOOL_DEFS, options: chatOptions });
                 this._lastUsage = llmRes.usage;
                 this._llmReleased = false; // answering loaded it again
                 this._addSpend('chatUsd', llmRes.usage?.estimated_cost);
@@ -3014,7 +2972,9 @@ ${knowledgeIndex}`.trim();
                     try {
                         resultText = callKey === lastRefused?.key
                             ? JSON.stringify({ ok: false, error: { code: 'REPEATED_CALL', message: 'Not run: this exact call was just refused. Change the arguments, or stop and tell the user.' }, earlier: lastRefused.result })
-                            : await this._executeTool(toolName, args, turnId, project);
+                            : wake && WAKE_REFUSED.has(toolName)
+                                ? JSON.stringify({ ok: false, error: { code: 'WAKE_NO_MOVE', message: 'Not run: nothing was typed, so you never move the user to another project. Report what landed; offer it if it matters.' } })
+                                : await this._executeTool(toolName, args, turnId, project);
                         // The app now has this project open, so a generate later in the same
                         // turn lands there instead of answering NO_PROJECT. `create_project`
                         // opens what it made, so it arrives here too — including the handover
@@ -3121,11 +3081,53 @@ ${knowledgeIndex}`.trim();
             }
 
             // Compaction check. Not after a yield: compacting is a chat call too.
+            this._lastChat = { profileId, model };
             if (!yielded && this._shouldCompact()) {
                 await this._compact(turnId, { model, baseURL: profile.baseURL, key, profileId });
+            } else if (!this._longOffered && (this._lastUsage?.prompt_tokens || 0) >= this._compactAt() / 2) {
+                // MPI-1125 (Fabio): past half the compaction point the user picks, once per chat:
+                // start fresh, compact now, or keep going. The app's card, never a model turn.
+                this._longOffered = true;
+                this._emit('agent:long', { turnId });
             }
         } catch (err) {
             this._emit('agent:error', { turnId, code: 'ENDPOINT_ERROR', message: err.message });
+        } finally {
+            this._working = false;
+            this._emit('agent:working', { turnId, working: false });
+        }
+    }
+
+    /**
+     * MPI-1125 — the long-chat card's two actions (POST /agent/shorten). `compact` is the
+     * automatic compaction, now. `fresh` keeps the handoff as a note (the project's, or a
+     * global one on the landing chat) and clears the conversation, so nothing important is lost.
+     */
+    async shorten(choice, folderPath) {
+        if (this._working) return { ok: false, error: { code: 'BUSY', message: 'Still working on a turn.' } };
+        if (!this._lastChat || !this._messages.length) return { ok: false, error: { code: 'NO_CHAT', message: 'Nothing to shorten yet.' } };
+        const { profileId, model } = this._lastChat;
+        const { profile, key } = await this._resolveEndpoint(profileId);
+        if (!profile) return { ok: false, error: { code: 'NO_PROFILE', message: 'Connection not found. Pick one in Remote → Language Models.' } };
+        const endpoint = { model, baseURL: profile.baseURL, key, profileId };
+        const turnId = crypto.randomUUID();
+        this._working = true;
+        this._emit('agent:working', { turnId, working: true });
+        try {
+            if (choice === 'compact') {
+                await this._compact(turnId, endpoint);
+                return { ok: true };
+            }
+            this._emit('agent:compacting', { turnId, on: true });
+            const text = await this._handoff(endpoint);
+            const note = { file: 'last-chat.md', title: 'Where the last chat left off', hook: 'Read when the user picks up earlier work.', text };
+            const saved = folderPath ? await this._tools.writeMemory(folderPath, note) : await this._tools.writeGlobalMemory(note);
+            this._emit('agent:compacting', { turnId, on: false });
+            if (!saved?.ok) return { ok: false, error: { code: 'NOT_SAVED', message: 'The notes could not be saved, so the chat was kept.' } };
+            await this.reset();
+            return { ok: true };
+        } catch (err) {
+            return { ok: false, error: { code: 'ENDPOINT_ERROR', message: err.message } };
         } finally {
             this._working = false;
             this._emit('agent:working', { turnId, working: false });
@@ -3479,11 +3481,9 @@ function _toolLabel(toolName, args) {
         case 'list_cards':     return args.groupId ? 'Reading a card' : 'Looking through the project';
         case 'visible_cards':  return 'Looking at what the gallery shows';
         case 'mark_card':      return args.mark === 'none' ? 'Clearing a card mark' : 'Marking a card';
-        case 'make_gif':       return 'Making a GIF';
-        case 'edit_gif':       return 'Editing a GIF';
-        case 'cutout_gif':     return 'Cutting out the subject';
-        case 'gif_to_video':   return 'Turning a GIF into a video';
-        case 'make_sheet':     return 'Making a sheet';
+        case 'gif':
+            return { make: 'Making a GIF', edit: 'Editing a GIF', cutout: 'Cutting out the subject',
+                to_video: 'Turning a GIF into a video', sheet: 'Making a sheet' }[args.action] || 'Working on a GIF';
         case 'read_memory': {
             const kind = args.scope === 'global' ? 'global' : 'project';
             return args.file ? `Reading a ${kind} note` : `Reading ${kind} notes`;

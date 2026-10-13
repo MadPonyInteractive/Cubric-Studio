@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1125",
+  "title": "Cosmo's per-request prompt: always-sent rules vs pointers read on demand",
+  "description": "Discussion first (Fabio 2026-10-13): measure Cosmo's always-sent floor (system rules + tool schemas) and cache share, decide which rules move behind pointers and whether the app:* index carries one-line covers: descriptions. No code until agreed.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-13T06:38:58+01:00",
+  "updated_at": "2026-10-13T07:00:16+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

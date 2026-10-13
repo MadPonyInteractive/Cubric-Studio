@@ -9,7 +9,7 @@
  *
  * Tests:
  *   (a) install never runs without a confirm (gate removed → red; gate restored → green)
- *   (b) compaction fires at 50%, and at 30% for a 1 M window, from usage
+ *   (b) compaction fires at 50% of the window, capped at 128k tokens, from usage
  *   (c) generate returns control before it settles
  *   (d) probe reports a no-tools model without retrying
  *
@@ -334,31 +334,24 @@ describe('(b) compaction trigger', () => {
         assert.equal(loop._shouldCompact(), false, '49% should not trigger');
     });
 
-    test('_shouldCompact: fires at >= 30% for a 1M window', async () => {
+    // MPI-1125: a big window compacts at a fixed 128k, not at a share of the window.
+    test('_shouldCompact: a 1M window compacts at the 128k cap', async () => {
         const AgentLoop = await loadAgentLoop();
         const loop = new AgentLoop();
-        loop._contextWindow = 1_000_000;
-        loop._lastUsage = { prompt_tokens: 300_000 }; // exactly 30%
-        assert.equal(loop._shouldCompact(), true, '30% at 1M window should trigger');
+        loop._contextWindow = 1_048_576;
+        loop._lastUsage = { prompt_tokens: 127_999 };
+        assert.equal(loop._shouldCompact(), false, 'one below the cap should not trigger');
+        loop._lastUsage = { prompt_tokens: 128_000 };
+        assert.equal(loop._shouldCompact(), true, 'the cap should trigger');
     });
 
-    test('_shouldCompact: does NOT fire at 29% for a 1M window', async () => {
+    test('_shouldCompact: a 256k window is already at the cap; a 64k one stays at half', async () => {
         const AgentLoop = await loadAgentLoop();
         const loop = new AgentLoop();
-        loop._contextWindow = 1_000_000;
-        loop._lastUsage = { prompt_tokens: 290_000 }; // 29%
-        assert.equal(loop._shouldCompact(), false, '29% at 1M window should not trigger');
-    });
-
-    test('_shouldCompact: threshold is 30% exactly at 1_000_000 context window boundary', async () => {
-        const AgentLoop = await loadAgentLoop();
-        const loop = new AgentLoop();
-        // Exactly at boundary: contextWindow = 1,000,000 => uses 0.30 threshold
-        loop._contextWindow = 1_000_000;
-        loop._lastUsage = { prompt_tokens: 299_999 };
-        assert.equal(loop._shouldCompact(), false, 'One below 30% should not trigger');
-        loop._lastUsage = { prompt_tokens: 300_000 };
-        assert.equal(loop._shouldCompact(), true, 'Exactly 30% should trigger');
+        loop._contextWindow = 256_000;
+        assert.equal(loop._compactAt(), 128_000);
+        loop._contextWindow = 65_536;
+        assert.equal(loop._compactAt(), 32_768);
     });
 
     test('compaction fires during a real turn when usage hits 50%', async () => {
@@ -543,8 +536,11 @@ test('Cards: recency is the list order, never a note; an open card is "this one"
     assert.match(r, /do not call list_cards to find it, never ask them to attach it/);
 });
 
-test('Duration: 2-3 s default, a sequence earns more, the wake reports it', () => {
-    const r = rule('Duration');
+// MPI-1125: the clip, tier, shape and text rules ride on describe_model, not the system prompt.
+const opRule = async (id) => (await import('../services/agentLoop.mjs')).OP_RULES.find((r) => r.id === id).text;
+
+test('Duration: 2-3 s default, a sequence earns more, the wake reports it', async () => {
+    const r = await opRule('clip');
     assert.match(r, /defaults to 2 to 3 seconds: ONE continuous action fits/);
     assert.match(r, /Only a SEQUENCE/);
     assert.match(r, /The user naming a length always wins/);
@@ -554,12 +550,50 @@ test('Duration: 2-3 s default, a sequence earns more, the wake reports it', () =
     assert.ok(r.length <= 1212, `the Duration rule is ${r.length} chars`);
 });
 
-test('Settings: a named resolution matches tierSizes; one clip\'s settings never carry', () => {
-    const r = rule('Settings');
-    assert.match(r, /params\.tierSizes/);
-    assert.match(r, /1K = 1080p = full HD = 1920 on the long side/);
-    assert.match(r, /quality at the lowest tier/);
-    assert.match(r, /only a redo keeps its card's settings/);
+test('Settings: a named resolution matches tierSizes; one clip\'s settings never carry', async () => {
+    assert.match(rule('Settings'), /describe_model gives .* and any rules: follow them/);
+    const tier = await opRule('tier');
+    assert.match(tier, /params\.tierSizes/);
+    assert.match(tier, /1K = 1080p = full HD = 1920 on the long side/);
+    const clip = await opRule('clip');
+    assert.match(clip, /quality at the lowest tier/);
+    assert.match(clip, /only a redo keeps its card's settings/);
+});
+
+// MPI-1125: a rule rides on the describe_model of an op it governs, once per context.
+test('describe_model hands an op its rules once, and only the ones its ops need', async () => {
+    const op = (o, params, media = []) => ({ op: o, params, media });
+    const list = { ok: true, models: [
+        { id: 'vid', ops: [op('i2v', { ratios: ['16:9'], duration: { min: 1, max: 30 }, tierSizes: { low: { '16:9': '832x480' } } }, [{ role: 'startFrame', type: 'image' }])] },
+        { id: 'img', ops: [op('t2i', { ratios: ['1:1'], tierSizes: {} })] },
+        { id: 'sfx', ops: [op('t2a', { ratios: [], duration: { min: 1, max: 190 }, categories: ['SFX'] })] },
+    ], flows: [] };
+    const { loop } = await makeLoop({ engineResponses: [] });
+    loop._tools.listModels = async () => list;
+    const ids = async (id) => (JSON.parse(await loop._executeTool('describe_model', { id }, 't', null)).rules || []);
+    const sfx = await ids('sfx');
+    assert.deepEqual(sfx, [], 'a sound length is not a clip');
+    const vid = await ids('vid');
+    assert.equal(vid.length, 3, 'a video op from a picture: tier, clip, shape');
+    assert.ok(!vid.some((t) => /Words in a picture/.test(t)), 'a clip gets no text rule');
+    const img = await ids('img');
+    assert.equal(img.length, 1);
+    assert.match(img[0], /Words in a picture/);
+    assert.deepEqual(await ids('vid'), [], 'said once per context');
+    loop._rulesSent.clear();
+    assert.equal((await ids('vid')).length, 3, 'a compaction hands them over again');
+});
+
+test('Repeat: the rule rides on the first card read in full, never on the list', async () => {
+    const { REPEAT_RULE } = await import('../services/agentLoop.mjs');
+    assert.match(rule('Repeat'), /read it in full first \(list_cards with its groupId\)/);
+    assert.match(REPEAT_RULE, /Never a finished result as its own reference/);
+    const { loop } = await makeLoop({ engineResponses: [] });
+    loop._tools.listCards = async (_f, groupId) => ({ ok: true, ...(groupId ? { card: { groupId } } : { cards: [] }) });
+    const run = async (args) => JSON.parse(await loop._executeTool('list_cards', args, 't', { folderPath: '/p', name: 'P' }));
+    assert.equal((await run({})).repeat, undefined);
+    assert.equal((await run({ groupId: 'g1' })).repeat, REPEAT_RULE);
+    assert.equal((await run({ groupId: 'g2' })).repeat, undefined, 'once per context');
 });
 
 // MPI-908: a no in words fails no tool, so the panel's Cosmo cannot see it. The agent marks
@@ -1748,7 +1782,8 @@ describe('(h) notes, results, names, guides', () => {
         assert.match(sent, /\[Attached image 1: man\.png \(id: att_a, 128x86\)\]/);
         assert.match(sent, /\[Attached image 2: woman\.png \(id: att_b\)\]/, 'an unreadable file just has no size');
         assert.match(loop._messages[0].content, /Numbering rule: .*never an image from an earlier turn/);
-        assert.match(loop._messages[0].content, /the picture's own shape is used/);
+        const { OP_RULES } = await import('../services/agentLoop.mjs');
+        assert.match(OP_RULES.find((r) => r.id === 'shape').text, /the picture's own shape is used/);
     });
 
     // MPI-1053: "add detail to this" routes by the picture's size, and the open card had none.

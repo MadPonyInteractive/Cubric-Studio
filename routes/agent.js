@@ -356,6 +356,18 @@ router.post('/agent/reset', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /agent/shorten?project=<folderPath>  { choice: 'fresh' | 'compact' }  (MPI-1125)
+// ---------------------------------------------------------------------------
+
+router.post('/agent/shorten', async (req, res) => {
+    const choice = req.body?.choice;
+    if (choice !== 'fresh' && choice !== 'compact') return _bad(res, 'body.choice must be "fresh" or "compact".');
+    let sessions;
+    try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
+    res.json(await sessions.shorten(typeof req.query.project === 'string' ? req.query.project : '', choice));
+});
+
+// ---------------------------------------------------------------------------
 // POST /agent/probe
 // ---------------------------------------------------------------------------
 

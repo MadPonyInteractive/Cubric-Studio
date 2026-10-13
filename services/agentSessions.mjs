@@ -142,6 +142,14 @@ export class AgentSessions {
         if (loop) await loop.reset();
     }
 
+    /** MPI-1125: the long-chat card's Start fresh / Compact for one conversation. */
+    async shorten(folderPath, choice) {
+        if (this.busy()) return { ok: false, error: { code: 'BUSY', message: 'Cosmo is still working. Try again when it finishes.' } };
+        const loop = this._loops.get(projectKey(folderPath));
+        if (!loop) return { ok: false, error: { code: 'NO_CHAT', message: 'Nothing to shorten yet.' } };
+        return loop.shorten(choice, folderPath || null);
+    }
+
     /** The conversation whose install card this is, or null. */
     byConfirm(confirmId) {
         return [...this._loops.values()].find((l) => l._pendingConfirm?.confirmId === confirmId) || null;

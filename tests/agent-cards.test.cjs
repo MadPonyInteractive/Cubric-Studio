@@ -264,29 +264,35 @@ test('the GIF tools turn a ref into the item id the card is SHOWING, and a chain
     loop._emit = (event, data) => { if (event === 'agent:result') results.push(data); };
     const project = { folderPath: root, name: 'Cowgirl on a Bull' };
     const run = async (tool, args) => JSON.parse(await loop._executeTool(tool, args, 't1', project));
+    // MPI-1125: one `gif` tool; its settings are app:gifs, which it refuses to run without.
+    const gif = (action, refs, settings) => run('gif', { action, ...refs, ...(settings && { settings }) });
 
-    const cold = await run('make_gif', { video: 'i2v_006.mp4', fps: 12 });
+    assert.equal((await gif('make', { video: 'i2v_006.mp4' }, { fps: 12 })).error.code, 'KNOWLEDGE_NOT_READ');
+    loop._readIds.add('app:gifs');
+    assert.match((await gif('edit', { gif: gifUrl }, { colors: 64 })).error.message, /takes no colors/, 'a setting the action does not take is named');
+
+    const cold = await gif('make', { video: 'i2v_006.mp4' }, { fps: 12 });
     assert.equal(cold.error.code, 'NOT_A_CARD', 'a ref nothing listed reaches no route');
     assert.equal(sent.length, 0);
 
     await run('list_cards', {});
-    const made = await run('make_gif', { video: 'i2v_006.mp4', fps: 12, trimIn: 1, trimOut: 3 });
+    const made = await gif('make', { video: 'i2v_006.mp4' }, { fps: 12, trimIn: 1, trimOut: 3 });
     assert.deepEqual(sent[0], ['make', { videoItemId: 'item-clip', fps: 12, trimIn: 1, trimOut: 3 }]);
     assert.equal(made.output.itemId, undefined, 'the model is never handed a second kind of id');
     assert.equal(results[0].output.itemId, 'item-gif', 'the chat`s result card still gets the whole output');
 
     // `selectedIndex: 1` — the version on show, not the first in the history.
-    await run('make_gif', { images: ['i2i_001.png', 'flowOutpaint_002.png'] });
+    await gif('make', { images: ['i2i_001.png', 'flowOutpaint_002.png'] });
     assert.deepEqual(sent[1], ['make', { itemIds: ['item-still', 'item-out'] }]);
 
-    const both = await run('make_gif', { images: ['i2i_001.png', 'flowOutpaint_002.png'], video: 'i2v_006.mp4' });
+    const both = await gif('make', { images: ['i2i_001.png', 'flowOutpaint_002.png'], video: 'i2v_006.mp4' });
     assert.equal(both.error.code, 'BAD_REQUEST');
 
     // The reply's ref is what the next step takes.
-    await run('cutout_gif', { gif: gifUrl, method: 'background' });
+    await gif('cutout', { gif: gifUrl }, { method: 'background' });
     assert.deepEqual(sent[2], ['cutout', { itemId: 'item-gif', method: 'background' }]);
 
-    await run('edit_gif', { gif: cutUrl, output: { colours: 64, edgeColour: 'opaque' } });
+    await gif('edit', { gif: cutUrl }, { output: { colours: 64, edgeColour: 'opaque' } });
     assert.deepEqual(sent[3], ['edit', { itemId: 'item-cut', output: { colours: 64, edgeColour: null } }]);
 
     // rename_card reaches what this conversation MADE. A cut-out lands on a card already there.
@@ -295,7 +301,7 @@ test('the GIF tools turn a ref into the item id the card is SHOWING, and a chain
 });
 
 // MPI-1099: the gallery's image Combine for Cosmo, on the same ref-to-item-id road.
-test('make_sheet sends the item ids of the cards on show, and the sheet is a card the agent made', async (t) => {
+test('the gif tool`s sheet action sends the item ids of the cards on show, and the sheet is a card the agent made', async (t) => {
     const { AgentLoop } = await esm('services/agentLoop.mjs');
     const cards = await esm('services/agentCards.mjs');
     const { root, file } = makeProject(t);
@@ -307,11 +313,13 @@ test('make_sheet sends the item ids of the cards on show, and the sheet is a car
     } });
     const project = { folderPath: root, name: 'Cowgirl on a Bull' };
     const run = async (tool, args) => JSON.parse(await loop._executeTool(tool, args, 't1', project));
+    const sheet = (images, settings) => run('gif', { action: 'sheet', images, ...(settings && { settings }) });
+    loop._readIds.add('app:gifs');
 
-    assert.equal((await run('make_sheet', { images: ['i2i_001.png'] })).error.code, 'BAD_REQUEST');
-    assert.equal((await run('make_sheet', { images: ['i2i_001.png', 'flowOutpaint_002.png'] })).error.code, 'NOT_A_CARD');
+    assert.equal((await sheet(['i2i_001.png'])).error.code, 'BAD_REQUEST');
+    assert.equal((await sheet(['i2i_001.png', 'flowOutpaint_002.png'])).error.code, 'NOT_A_CARD');
     await run('list_cards', {});
-    const made = await run('make_sheet', { images: ['i2i_001.png', 'flowOutpaint_002.png'], shape: '8:5', longEdge: 4096 });
+    const made = await sheet(['i2i_001.png', 'flowOutpaint_002.png'], { shape: '8:5', longEdge: 4096 });
     assert.deepEqual(sent, [{ itemIds: ['item-still', 'item-out'], shape: '8:5', longEdge: 4096 }]);
     assert.equal(made.output.filePath, sheetUrl);
     assert.ok(loop._groups.has('g-sheet'), 'the agent may rename the sheet it made');

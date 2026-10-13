@@ -32,7 +32,7 @@ test('a referenced path is honoured only inside the project`s own Media/', async
     assert.equal(ownedMedia(root, 'blob:http://127.0.0.1:3000/abc'), null, 'a dropped file with no project open is a blob: nothing can read');
 });
 
-test('a referenced video registers like a card: generate takes it by url, make_gif by item id', async () => {
+test('a referenced video registers like a card: generate takes it by url, gif by item id', async () => {
     const { AgentLoop } = await esm('services/agentLoop.mjs');
     const { DeepInfraEngine } = await esm('services/llmEngines.mjs');
     const clip = path.join(os.tmpdir(), 'agent-video-proj', 'Media', 'i2v_006.mp4');
@@ -67,12 +67,13 @@ test('a referenced video registers like a card: generate takes it by url, make_g
     assert.equal(ref.path, clip);
     assert.equal(loop.attachmentPath('i2v_006.mp4'), null, 'and the attachment route never serves a project file');
 
-    await loop._executeTool('make_gif', { video: 'i2v_006.mp4', fps: 12 }, 't1', project);
+    loop._readIds.add('app:gifs');
+    await loop._executeTool('gif', { action: 'make', video: 'i2v_006.mp4', settings: { fps: 12 } }, 't1', project);
     assert.deepEqual(made, [{ videoItemId: 'item-clip', fps: 12 }]);
     assert.equal(placed.length, 0);
 });
 
-test('a clip that is not a card yet is still usable as media, and says why make_gif cannot take it', async () => {
+test('a clip that is not a card yet is still usable as media, and says why gif cannot take it', async () => {
     const { AgentLoop } = await esm('services/agentLoop.mjs');
     const { DeepInfraEngine } = await esm('services/llmEngines.mjs');
     const loop = new AgentLoop({
@@ -89,8 +90,9 @@ test('a clip that is not a card yet is still usable as media, and says why make_
     } finally {
         DeepInfraEngine.prototype.chat = orig;
     }
-    assert.match(heard[0], /not a gallery card yet, so make_gif cannot take it until list_cards returns it/);
-    const out = JSON.parse(await loop._executeTool('make_gif', { video: 'drop.mp4', fps: 12 }, 't1', { folderPath: 'C:/p', name: 'P' }));
+    assert.match(heard[0], /not a gallery card yet, so gif cannot take it until list_cards returns it/);
+    loop._readIds.add('app:gifs');
+    const out = JSON.parse(await loop._executeTool('gif', { action: 'make', video: 'drop.mp4', settings: { fps: 12 } }, 't1', { folderPath: 'C:/p', name: 'P' }));
     assert.equal(out.error.code, 'NOT_A_CARD');
 });
 

@@ -1,4 +1,5 @@
 # Shapes, styles and quality
+Covers: shapes for a platform (Instagram, YouTube, thumbnail), styles and quality asked as an outcome.
 
 What a request implies about the SETTINGS, when the user named an outcome rather than a number.
 Read this when someone asks for a picture "for Instagram", "for a thumbnail", "in anime style",
