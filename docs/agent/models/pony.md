@@ -104,6 +104,32 @@ at night."
 score_9, score_8_up, score_7_up, source_anime, 1girl, solo, knight, silver hair, long hair, blue eyes, ornate armor, cape, standing, holding a sword, determined, ruined castle, night, moonlight, detailed background, full body, dynamic pose, illustration
 ```
 
+## Keeping an adult reading as an adult
+
+In anime the face carries little age: most characters share one big-eyed face, and a body
+drawn at 18 looks the same at 45. Cubric Studio's picture check reads the PICTURE, not the
+age in the prompt, so a sexual, suggestive or unclothed scene must show an adult in every
+cue around the face. Build it in tags:
+
+- Age: `mature female` / `mature male`, right after the count. A number ("45 year old") is
+  weak in a tag line; on the sibling Illustrious model it changed nothing (Fabio,
+  2026-10-13). Never add `young`, `cute` or `small` yourself.
+- Face: a longer face, a sharper jaw and cheekbones, narrower eyes read older; a round, small face
+  with big eyes set low reads younger. Tags: `narrow eyes`, `lipstick`, `eyeshadow`,
+  `mole under eye`.
+- Body: `tall female`, long legs.
+- Clothes: adult wear, such as `pencil skirt`, `blazer`, `office lady`, `business suit`,
+  `high heels`, `evening dress`. School wear decides the age over any number: never
+  `school uniform`, `serafuku`, `pleated skirt`, a sailor collar or a bow tie in a sexual scene.
+- Hair: an updo, a low bun, long wavy hair. Twintails, braids and hair ribbons read young.
+- Setting: an office, an apartment, a bar, a hotel room. Never a classroom, a school or
+  school desks in a sexual scene.
+
+When a sexual request carries school wear or a school setting, say so in one line, offer
+the adult version and write that. When a run comes back `CHILD_SAFETY` refused on a picture,
+explain it the same way: the check looked at the picture, and the uniform, the setting or a
+young face made it read under 18. The fix is the cues above, never a bigger age number.
+
 ## When a result disappoints
 
 - Head count drifts between runs, or extra figures appear: the subject-count tag was missing.

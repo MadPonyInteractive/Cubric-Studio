@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1122",
+  "title": "Cosmo explains how to keep an anime adult reading as an adult",
+  "description": "Fabio, 2026-10-13: the picture check refused an ILL Anime start frame (school uniform + classroom). In anime the face barely carries age, so the user needs to know the cues: face shape (round = young, longer face/sharper jaw = older), clothes (school uniform vs adult wear), setting, hair, and that a numeric age does nothing on Illustrious while mature female works. Add a short section to Cosmo's two anime guides, docs/agent/models/illustrious.md and pony.md, so Cosmo prompts adults that read as adults and can explain a CHILD_SAFETY refusal in those terms.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-13T01:53:08+01:00",
+  "updated_at": "2026-10-13T01:54:37+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
