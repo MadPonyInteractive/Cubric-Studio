@@ -75,7 +75,9 @@ const PROJECT = { folderPath: `${PROJECTS_ROOT}/Fox Shoot`, name: 'Fox Shoot' };
 // What GET /connector/projects lists (Phase 3c), most recent first.
 const PROJECTS = [PROJECT, { name: 'Harbour Nights' }, { name: 'Wedding Stills' }]
     .map((p) => ({ folderPath: `${PROJECTS_ROOT}/${p.name}`, ...p, updatedAt: '2026-09-16T10:00:00Z' }));
-const RESULT_URL = `/project-file?path=${encodeURIComponent(`${PROJECT.folderPath}/Media/t2i_001.png`)}`;
+// Every fake generate lands here; a look at it is keyed by the decoded path.
+const RESULT_PATH = `${PROJECT.folderPath}/Media/t2i_001.png`;
+const RESULT_URL = `/project-file?path=${encodeURIComponent(RESULT_PATH)}`;
 const FOX = { id: 'att_fox', name: 'fox.png', filePath: 'C:/Temp/cubric-agent/attachments/att_fox.png' };
 const FRAME = { id: 'att_frame', name: 'frame-from-my-video.png', filePath: 'C:/Temp/cubric-agent/attachments/att_frame.png' };
 // The filenames agree with what the looks fixture says is in them: the model reads both, and
@@ -132,6 +134,9 @@ const said = (text) => ({ ok: true, output: { text } });
 const ROOM_LOOKS = {
     [ROOM_FULL.filePath]: said('Living room photographed from the doorway, looking toward the window wall. An orange accent wall on the left. A light grey L-shaped sectional sofa sits against the orange wall, chaise end toward the window. A low white oval coffee table in front of it on a cream rug. A potted fiddle-leaf fig in a white pot in the corner by the window. A black TV on a white low cabinet on the right wall. Beige tiled floor, daylight from the window.'),
     [ROOM_EMPTY.filePath]: said('Empty living room photographed from the window corner, looking back toward the doorway. The orange accent wall is now on the right side of the frame. Beige tiled floor, white walls, bare, no furniture at all. Daylight from behind the camera.'),
+    // The edit, done. Without it the result fell back to the FIRST look, the furnished doorway
+    // photo: the model read its edit as an unchanged copy of the source and redid it to STEP_LIMIT.
+    [RESULT_PATH]: said('Living room photographed from the window corner, looking back toward the doorway. The orange accent wall is on the right side of the frame, with a light grey L-shaped sectional sofa against it. A low white oval coffee table on a cream rug, a potted fiddle-leaf fig in a white pot, a black TV on a white low cabinet. Beige tiled floor, daylight from behind the camera.'),
 };
 const DANCER_LOOK = said('A young woman with long straight blonde hair dances alone in a bright white studio, full body, facing the camera. She spins and her hair swings out across the frame. White crop top, light blue jeans, white sneakers.');
 const NEW_PERSON = { id: 'att_person', name: 'new-person.png', filePath: 'C:/Temp/cubric-agent/attachments/att_person.png' };
@@ -140,6 +145,7 @@ const NO_VIDEO_EDIT = { ...MODELS, flows: MODELS.flows.filter((f) => f.id !== 'v
 const PARK_LOOKS = {
     [PARK_FULL.filePath]: said('A woman in a red coat sitting on a wooden bench on the left side of a park path, facing the camera. A lamp post behind her, autumn trees, a pond on the right.'),
     [PARK_EMPTY.filePath]: said('The same park path seen from the pond side, looking back at the wooden bench, which is now centre-right. Lamp post behind the bench. Nobody in the picture.'),
+    [RESULT_PATH]: said('A park path seen from the pond side, looking back at a wooden bench centre-right. A woman in a red coat sits on the bench. Lamp post behind the bench, autumn trees.'),
 };
 
 // ── Fake tools (the agentTools.mjs surface) ───────────────────────────────────

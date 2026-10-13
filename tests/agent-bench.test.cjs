@@ -445,6 +445,9 @@ test('MPI-1129: the ref a waited generate hands back is one a plain look reads, 
         const look = calls.find((x) => x.tool === 'look');
         assert.match(look.args.image, /^\/project-file\?path=/, 'looked by the ref generate named');
         assert.equal(look.result?.ok, true, `look on the result failed: ${JSON.stringify(look.result?.error)}`);
+        // The edit's own description, not the furnished source photo's: that read as a failed
+        // edit and the model redid it to STEP_LIMIT.
+        assert.match(look.result.output.text, /from the window corner.*sofa/, 'the result reads as the edit, done');
     } finally {
         DeepInfraEngine.prototype.chat = realChat;
     }
