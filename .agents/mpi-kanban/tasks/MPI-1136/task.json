@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1136",
+  "title": "Cosmo and MCP can import a card from another project",
+  "description": "The app already imports a project card into a different project; neither the in-app agent nor the MCP server knows how. Needed for series work (one project per episode, cards and Story cards reused across episodes). See docs/story/cosmo-and-flow.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-13T15:52:53+01:00",
+  "updated_at": "2026-10-13T15:52:53+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

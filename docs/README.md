@@ -164,5 +164,10 @@ Read **only** for a new surface with a matching mockup, a follow-up phase (beyon
 Stage audit — routine styling uses `styles/01_base.css` tokens + `.claude/rules/components.md`
 § "Stage design baseline". Routing + read order: [redesign/README.md](redesign/README.md).
 
+### Story and Infinite Video (DESIGN, not built)
+Idea → Elements cast → Story card (scenes, short shots) → draft / upscale / detail → Mix; shots
+chained past a model's length limit. Unbuilt design, umbrella MPI-1134:
+[story/README.md](story/README.md).
+
 ### Historical
 [archive/README.md](archive/README.md) — closed tasks and superseded docs; not current knowledge.

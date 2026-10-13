@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1135", "at": "2026-10-13T15:52:50+01:00", "actor": "claude", "column": "todo", "title": "Singularity H3: base model swap, its upscalers, draft resolution"}

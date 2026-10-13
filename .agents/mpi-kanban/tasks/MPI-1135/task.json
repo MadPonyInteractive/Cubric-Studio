@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1135",
+  "title": "Singularity H3: base model swap, its upscalers, draft resolution",
+  "description": "Research. Fabio 2026-10-13: the Singularity build of MiniMax H3 is what people use now (better fast motion, less tearing, trained for fights). Bench it vs our H3 base, try the upscalers from the video where Fabio found it, and pick the Story draft resolution (1344x768 may be too high). Blocks Story and Infinite Video - see docs/story/roadmap.md.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-13T15:52:50+01:00",
+  "updated_at": "2026-10-13T15:52:50+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
