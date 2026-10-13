@@ -52,3 +52,39 @@ export function installErrorBridge() {
         _send('error', 'unhandledrejection', e.reason?.message || String(e.reason), e.reason);
     });
 }
+
+const SLOW_LOAD_MS = 3000;
+// fetch/XHR/EventSource are left out: a generation call or an open stream is long by design.
+const SLOW_LOAD_TYPES = new Set(['img', 'image', 'video', 'audio', 'css', 'link', 'script']);
+
+/**
+ * One app.log line for a picture, video, sheet or script that took over 3 s, or null.
+ * `queued` (start → request sent) is Chromium waiting for a socket or the disk cache;
+ * `server` (request → first byte) is the app server; `download` is the body (MPI-1137).
+ * @param {PerformanceResourceTiming} e
+ * @returns {string|null}
+ */
+export function describeSlowLoad(e) {
+    if (e.duration < SLOW_LOAD_MS || !SLOW_LOAD_TYPES.has(e.initiatorType)) return null;
+    const ms = (v) => `${Math.round(v)}ms`;
+    let path = e.name;
+    try { const u = new URL(e.name); path = u.pathname + u.search; } catch (_) { /* not a URL */ }
+    const split = e.requestStart > 0
+        ? `queued ${ms(e.requestStart - e.startTime)}, server ${ms(e.responseStart - e.requestStart)}, download ${ms(e.responseEnd - e.responseStart)}`
+        : 'no request sent (cache or failed)';
+    return `${e.initiatorType} ${ms(e.duration)} status=${e.responseStatus ?? '?'}: ${split} | ${decodeURIComponent(path)}`;
+}
+
+/**
+ * Log every slow media load to app.log, always on. Fabio's slow landing after a long idle
+ * never reproduces with DevTools open, so the next one has to explain itself (MPI-1137).
+ */
+export function installSlowLoadLog() {
+    if (typeof PerformanceObserver === 'undefined') return;
+    new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+            const line = describeSlowLoad(entry);
+            if (line) _send('warn', 'slow-load', line);
+        }
+    }).observe({ type: 'resource', buffered: true });
+}
