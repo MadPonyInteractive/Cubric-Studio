@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1130",
+  "title": "Say how safe Cubric Studio is: keys, security policy, checksums",
+  "description": "A browser agent judged cubric.studio and could not find that API keys are encrypted and never shown again (it is one line deep in /privacy/), and it said the code may be used in a commercial app (the FAQ says no). Fix: a Security section in llms.txt, a keys FAQ on the home page, a current SECURITY.md, private vulnerability reporting on, SHA-256 checksums on every release.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-13T08:56:56+01:00",
+  "updated_at": "2026-10-13T08:56:56+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
