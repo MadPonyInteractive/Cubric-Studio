@@ -2875,11 +2875,11 @@ export const MpiBaseFlow = ComponentFactory.create({
                 _tilesViewEl.hidden = true;
                 return;
             }
-            const { repeat, size } = repeatFromTiles(_tilesN, _tilesAxes);
+            const { repeat, size, position } = repeatFromTiles(_tilesN, _tilesAxes);
             _tilesViewEl.style.backgroundImage    = `url("${_tilesResultUrl}")`;
             _tilesViewEl.style.backgroundSize     = size;
             _tilesViewEl.style.backgroundRepeat   = repeat;
-            _tilesViewEl.style.backgroundPosition = '0 0';
+            _tilesViewEl.style.backgroundPosition = position;
             _tilesViewEl.hidden = false;
         }
 

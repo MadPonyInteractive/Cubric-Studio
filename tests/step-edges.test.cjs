@@ -148,14 +148,14 @@ test('repeatFromTiles: n=2, both axes → repeat 50% 50%', async () => {
     const { repeatFromTiles } = await mod();
     const r = repeatFromTiles(2, { x: true, y: true });
     assert.equal(r.repeat, 'repeat');
-    assert.equal(r.size,   '50% 50%');
+    assert.equal(r.size,   '50% auto');
 });
 
 test('repeatFromTiles: n=4, both axes → repeat 25% 25%', async () => {
     const { repeatFromTiles } = await mod();
     const r = repeatFromTiles(4, { x: true, y: true });
     assert.equal(r.repeat, 'repeat');
-    assert.equal(r.size,   '25% 25%');
+    assert.equal(r.size,   '25% auto');
 });
 
 test('repeatFromTiles: n=3, both axes → repeat 33.3333% 33.3333%', async () => {
@@ -163,28 +163,28 @@ test('repeatFromTiles: n=3, both axes → repeat 33.3333% 33.3333%', async () =>
     const r = repeatFromTiles(3, { x: true, y: true });
     assert.equal(r.repeat, 'repeat');
     // 100/3 rounded to 4 dp, trailing zeros stripped: 33.3333
-    assert.equal(r.size, '33.3333% 33.3333%');
+    assert.equal(r.size, '33.3333% auto');
 });
 
 test('repeatFromTiles: n=2, x-axis only (single-axis) → repeat-x 50% 100%', async () => {
     const { repeatFromTiles } = await mod();
     const r = repeatFromTiles(2, { x: true, y: false });
     assert.equal(r.repeat, 'repeat-x');
-    assert.equal(r.size,   '50% 100%');
+    assert.equal(r.size,   '50% auto');
 });
 
 test('repeatFromTiles: n=4, y-axis only (single-axis) → repeat-y 100% 25%', async () => {
     const { repeatFromTiles } = await mod();
     const r = repeatFromTiles(4, { x: false, y: true });
     assert.equal(r.repeat, 'repeat-y');
-    assert.equal(r.size,   '100% 25%');
+    assert.equal(r.size,   'auto 25%');
 });
 
 test('repeatFromTiles: n=3, x-axis only → repeat-x 33.3333% 100%', async () => {
     const { repeatFromTiles } = await mod();
     const r = repeatFromTiles(3, { x: true, y: false });
     assert.equal(r.repeat, 'repeat-x');
-    assert.equal(r.size,   '33.3333% 100%');
+    assert.equal(r.size,   '33.3333% auto');
 });
 
 test('repeatFromTiles: no axes → no-repeat even for n>1', async () => {

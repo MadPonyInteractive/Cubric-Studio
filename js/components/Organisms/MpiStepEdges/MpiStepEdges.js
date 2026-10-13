@@ -94,27 +94,31 @@ export function axesFromValue(v) {
  * CSS background-repeat + background-size for a given tile count and joined axes.
  *
  * n=1 or no joined axes → no-repeat (the single-picture view).
- * x only → repeat-x, tile is (100/n)% wide, full height.
- * y only → repeat-y, full width, (100/n)% tall.
- * both   → repeat,   (100/n)% × (100/n)%.
+ * x only → repeat-x, n tiles across, strip centred top-to-bottom.
+ * y only → repeat-y, n tiles down, strip centred left-to-right.
+ * both   → repeat,   n tiles across, as many rows as the frame holds.
+ *
+ * The other axis is always `auto`, so a tile keeps the PICTURE's shape: the view fills the
+ * result frame, not the picture, and a % on both axes stretched a 2:1 pano to the frame's
+ * near-square box (MPI-1101, 2026-10-13).
  *
  * @param {number} n    - tile count (1–4)
  * @param {{x:boolean, y:boolean}} axes
- * @returns {{repeat: string, size: string}}
+ * @returns {{repeat: string, size: string, position: string}}
  */
 export function repeatFromTiles(n, axes) {
     if (n <= 1 || (!axes.x && !axes.y)) {
-        return { repeat: 'no-repeat', size: '100% 100%' };
+        return { repeat: 'no-repeat', size: '100% 100%', position: '0 0' };
     }
     // Convert to string, stripping trailing zeros after 4 decimal places.
     const pct = `${+(100 / n).toFixed(4)}%`;
     if (axes.x && axes.y) {
-        return { repeat: 'repeat',   size: `${pct} ${pct}` };
+        return { repeat: 'repeat',   size: `${pct} auto`, position: '0 0' };
     }
     if (axes.x) {
-        return { repeat: 'repeat-x', size: `${pct} 100%` };
+        return { repeat: 'repeat-x', size: `${pct} auto`, position: '0 50%' };
     }
-    return { repeat: 'repeat-y', size: `100% ${pct}` };
+    return { repeat: 'repeat-y', size: `auto ${pct}`, position: '50% 0' };
 }
 
 /**

@@ -7,8 +7,10 @@
 - [x] Phase 2: graph flow_make_seamless.json + op registration in the 4 files (the _t2i graph is out: from-scratch textures are later, Fabio 2026-10-12)
 - [x] Phase 3: FlowDef, passes planner (D3), one-card landing (D2), result Tiles slider, agent + MCP
 - [x] Phase 4a: agent-path 8K pano E2E + band-edge fix (ramped mask + DifferentialDiffusion); Fabio's eye test PASS 2026-10-12
-- [ ] Phase 4b: the Flow screen on an isolated instance (status bar i/N on a 16K multi-window picture, no second Generating card, Tiles slider, a texture both ways)
-- [ ] Phase 4c: one run with the content box EMPTY (describer path; ask Fabio first if the describer is a paid cloud pick)
-- [ ] Phase 4d: one LIVE Cosmo request ("make this picture tile") and one call through the MCP generate tool, on an isolated instance in dev mode (the door is proven by the 8K connector E2E; the model picking the Flow is not)
+- [x] Phase 4b: the Flow screen on an isolated instance (status bar i/N on a 16K multi-window picture, no second Generating card, Tiles slider, a texture both ways) - Tiles aspect bug found + fixed
+- [x] Phase 4c: one run with the content box EMPTY (describer path; local describer, no cost)
+- [ ] Phase 4d: one LIVE Cosmo request ("make this picture tile") and one call through the MCP generate tool - MCP PASS; Cosmo FAIL on ornith:9b (picked tiled upscale), production model untried (paid)
+- [ ] Status bar shows IDLE between windows (~15 s per gap at 16K): show the run between passes
+- [ ] 16384-wide left-right joins: Klein sometimes draws a divider / leaves a hard edge (2 of 6 at 4x shrink; 8K + 1024 clean) - Fabio's call on the fix
 - [x] Flow graphics: 4/5 tile still + wide hero clip via /mpi-flow-graphics (edge design, autumn leaves; Fabio approved 2026-10-13)
 - [x] Both-ways centre break fixed (per-window frames + corner window, seamlessOps.js; unit + live moss/sand/stone)

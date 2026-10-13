@@ -89,43 +89,56 @@ test('resultTileAxes: null stepValue and unknown direction → no axes', async (
 
 test('repeatFromTiles: n=1 → no-repeat regardless of axes', async () => {
     const { repeatFromTiles } = await mod();
-    assert.deepEqual(repeatFromTiles(1, { x: true,  y: true  }), { repeat: 'no-repeat', size: '100% 100%' });
-    assert.deepEqual(repeatFromTiles(1, { x: true,  y: false }), { repeat: 'no-repeat', size: '100% 100%' });
-    assert.deepEqual(repeatFromTiles(1, { x: false, y: false }), { repeat: 'no-repeat', size: '100% 100%' });
+    assert.deepEqual(repeatFromTiles(1, { x: true,  y: true  }), { repeat: 'no-repeat', size: '100% 100%', position: '0 0' });
+    assert.deepEqual(repeatFromTiles(1, { x: true,  y: false }), { repeat: 'no-repeat', size: '100% 100%', position: '0 0' });
+    assert.deepEqual(repeatFromTiles(1, { x: false, y: false }), { repeat: 'no-repeat', size: '100% 100%', position: '0 0' });
 });
 
 test('repeatFromTiles: no joined axes → no-repeat for any n', async () => {
     const { repeatFromTiles } = await mod();
-    assert.deepEqual(repeatFromTiles(2, { x: false, y: false }), { repeat: 'no-repeat', size: '100% 100%' });
-    assert.deepEqual(repeatFromTiles(4, { x: false, y: false }), { repeat: 'no-repeat', size: '100% 100%' });
+    assert.deepEqual(repeatFromTiles(2, { x: false, y: false }), { repeat: 'no-repeat', size: '100% 100%', position: '0 0' });
+    assert.deepEqual(repeatFromTiles(4, { x: false, y: false }), { repeat: 'no-repeat', size: '100% 100%', position: '0 0' });
 });
 
-test('repeatFromTiles: n=2 x-only → repeat-x, 50% wide', async () => {
+// The other axis is always `auto`: a % on both axes sizes each tile by the result BOX, so
+// a 2:1 pano in the near-square frame came out squashed to ~0.84:1 (seen live, 2026-10-13).
+test('repeatFromTiles: n=2 x-only → repeat-x, 50% wide, height keeps the aspect, centred', async () => {
     const { repeatFromTiles } = await mod();
     const r = repeatFromTiles(2, { x: true, y: false });
     assert.equal(r.repeat, 'repeat-x');
-    assert.equal(r.size, '50% 100%');
+    assert.equal(r.size, '50% auto');
+    assert.equal(r.position, '0 50%');
 });
 
-test('repeatFromTiles: n=2 y-only → repeat-y, 50% tall', async () => {
+test('repeatFromTiles: n=2 y-only → repeat-y, 50% tall, width keeps the aspect, centred', async () => {
     const { repeatFromTiles } = await mod();
     const r = repeatFromTiles(2, { x: false, y: true });
     assert.equal(r.repeat, 'repeat-y');
-    assert.equal(r.size, '100% 50%');
+    assert.equal(r.size, 'auto 50%');
+    assert.equal(r.position, '50% 0');
 });
 
-test('repeatFromTiles: n=2 both axes → repeat, 50% × 50%', async () => {
+test('repeatFromTiles: n=2 both axes → repeat, 50% wide, height keeps the aspect', async () => {
     const { repeatFromTiles } = await mod();
     const r = repeatFromTiles(2, { x: true, y: true });
     assert.equal(r.repeat, 'repeat');
-    assert.equal(r.size, '50% 50%');
+    assert.equal(r.size, '50% auto');
 });
 
-test('repeatFromTiles: n=4 both axes → repeat, 25% × 25%', async () => {
+test('repeatFromTiles: n=4 both axes → repeat, 25% wide, height keeps the aspect', async () => {
     const { repeatFromTiles } = await mod();
     const r = repeatFromTiles(4, { x: true, y: true });
     assert.equal(r.repeat, 'repeat');
-    assert.equal(r.size, '25% 25%');
+    assert.equal(r.size, '25% auto');
+});
+
+test('repeatFromTiles: no size ever sets BOTH axes in % (that stretches a non-square picture)', async () => {
+    const { repeatFromTiles } = await mod();
+    for (const n of [2, 3, 4]) {
+        for (const axes of [{ x: true, y: false }, { x: false, y: true }, { x: true, y: true }]) {
+            assert.match(repeatFromTiles(n, axes).size, /auto/, `n=${n} ${JSON.stringify(axes)}`);
+        }
+    }
 });
 
 test('repeatFromTiles: n=3 x-only → repeat-x, 33.3333% × 100%', async () => {
