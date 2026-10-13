@@ -417,3 +417,35 @@ test('POST /agent/benchmark refuses a local model while a render holds this PC\'
         if (prev === undefined) delete process.env.CUBRIC_COMFY_URL; else process.env.CUBRIC_COMFY_URL = prev;
     }
 });
+
+test('MPI-1129: the ref a waited generate hands back is one a plain look reads, through the fake tools', async () => {
+    const { CASES, converse } = await import('../services/agentBench.mjs');
+    const { DeepInfraEngine } = await import('../services/llmEngines.mjs');
+    const realChat = DeepInfraEngine.prototype.chat;
+    const call = (name, args) => ({ text: '', toolCalls: [{ id: name, type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
+    // The live failure's sequence: guide, waited edit, then look at the result by the ref it named.
+    DeepInfraEngine.prototype.chat = async (req) => {
+        const tools = req.messages.filter((m) => m.role === 'tool');
+        if (tools.length === 0) return call('read_knowledge', { id: 'guide:flux-2' });
+        if (tools.length === 1) {
+            return call('generate', { modelId: 'qwen-edit', operation: 'qwenEdit', prompt: 'Put the sofa in.', wait: true,
+                media: [{ role: 'inputImage', image: 'att_room_b' }, { role: 'referenceImage', image: 'att_room_a' }] });
+        }
+        if (tools.length === 2) return call('look', { image: /Use "([^"]+)" as the image/.exec(JSON.parse(tools[1].content).message)?.[1] || 'NO REF' });
+        return { text: 'Done.' };
+    };
+    try {
+        const c = CASES.find((x) => x.id === 'second-picture-room-every-editor');
+        const run = await converse(c.setup, {
+            loopOptions: { resolveEndpoint: ENDPOINT, lookupContextWindow: async () => 1_048_576 },
+            profileId: 'deepinfra', model: 'test-model',
+        });
+        const calls = run.turns[0].calls;
+        assert.equal(calls.find((x) => x.tool === 'generate')?.result?.ok, true, JSON.stringify(calls.map((x) => [x.tool, x.result?.error])));
+        const look = calls.find((x) => x.tool === 'look');
+        assert.match(look.args.image, /^\/project-file\?path=/, 'looked by the ref generate named');
+        assert.equal(look.result?.ok, true, `look on the result failed: ${JSON.stringify(look.result?.error)}`);
+    } finally {
+        DeepInfraEngine.prototype.chat = realChat;
+    }
+});

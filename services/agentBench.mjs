@@ -157,6 +157,7 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
         : models;
     const corpus = noGuides ? CORPUS.filter((e) => e.kind !== 'guide') : CORPUS;
     const store = new Map(notes.map((n) => [n.file, n]));
+    const described = new Map();
     const tools = {
         listModels: async () => structuredClone(served),
         readKnowledge: async (id) => {
@@ -224,6 +225,13 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
             const chosen = look?.ok ? look : (look[args.imagePath] || Object.values(look)[0]);
             return structuredClone(chosen);
         },
+        // A card's kept description (agentTools.storedLook / storeLook), in memory. The loop reads
+        // it before every plain look at a card; without it that look threw "storedLook is not a
+        // function", the model took the TOOL_ERROR for a bad ref and guessed others to STEP_LIMIT.
+        // ponytail: keyed by itemId, and every fake generate is item_1, so a redo reads the first
+        // caption back; the fixture describes both the same anyway.
+        storedLook: async (imagePath, itemId) => described.get(itemId) || null,
+        storeLook: async (imagePath, itemId, text) => { described.set(itemId, text); },
         // The project routes the way /connector/projects and /connector/create-project answer.
         listProjects: async () => ({ ok: true, projects: structuredClone(known), total: known.length }),
         createProject: async (name) => {
