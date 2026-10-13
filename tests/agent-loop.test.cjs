@@ -3695,16 +3695,55 @@ describe('MPI-892 — handing a Flow over', () => {
         assert.equal(short.flows[0].does, 'Text to speech you direct in words');
     });
 
-    test('installing a Flow is refused by name, never a card', async () => {
-        const { loop, tools } = await makeLoop({ engineResponses: [
-            call('i1', 'install_model', { modelId: 'chatter-box' }),
-            { text: 'Add it from the Flow Library.' },
-        ] });
+    // MPI-1127 (Fabio, 2026-10-13): Cosmo installs a Flow behind the same Yes card, never the engine.
+    const withFlowInstall = (tools, answer) => {
         const realList = tools.listModels;
-        tools.listModels = async () => ({ ...(await realList()), flows: [{ id: 'chatter-box', title: 'Text to Speech', installed: false }] });
-        await loop.runTurn('Install text to speech', [], project, 'auto', 'deepinfra', 't-flowinstall');
-        assert.equal(toolResults(loop)[0].error.code, 'IS_A_FLOW');
-        assert.match(toolResults(loop)[0].error.message, /Flow Library/);
+        tools.listModels = async () => ({ ...(await realList()), flows: [{ id: 'minimax-music', title: 'Song', installed: false }] });
+        tools.calls.installFlow = [];
+        tools.installFlow = async (flowId, start) => {
+            tools.calls.installFlow.push({ flowId, start });
+            return answer(start);
+        };
+    };
+    const SIZED = (start) => ({ ok: true, flowId: 'minimax-music', title: 'Song', downloadGb: 13.4, licence: 'A licence screen opens in the app first.', started: start });
+
+    test('a Flow id gets the install card with its size and licence line; Yes starts the Flow install', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [call('i1', 'install_model', { modelId: 'minimax-music' }), { text: 'Downloading.' }] });
+        withFlowInstall(tools, SIZED);
+        const turn = loop.runTurn('Install the song flow', [], project, 'auto', 'deepinfra', 't-flowinstall');
+        const card = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.equal(card.data.kind, 'install');
+        assert.equal(card.data.modelName, 'Song');
+        assert.equal(card.data.downloadGb, 13.4);
+        assert.equal(card.data.licence, true);
+        assert.deepEqual(tools.calls.installFlow, [{ flowId: 'minimax-music', start: false }], 'only measured before Yes');
+        assert.equal(loop.getHistory().pendingConfirm.licence, true, 'a reload repaints the licence line');
+        await loop.confirm(card.data.confirmId, true);
+        await turn;
+        assert.deepEqual(tools.calls.installFlow[1], { flowId: 'minimax-music', start: true });
+        assert.equal(tools.calls.installModel.length, 0);
+        assert.match(toolResults(loop)[0].message, /downloading now.*licence screen/);
+    });
+
+    test('No on a Flow card starts nothing', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [call('i1', 'install_model', { modelId: 'minimax-music' }), { text: 'ok' }] });
+        withFlowInstall(tools, SIZED);
+        const turn = loop.runTurn('Install the song flow', [], project, 'auto', 'deepinfra', 't-flowinstall-no');
+        const card = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        await loop.confirm(card.data.confirmId, false);
+        await turn;
+        assert.deepEqual(tools.calls.installFlow.map((c) => c.start), [false]);
+    });
+
+    test('no engine: no card, and Cosmo is never sent to install_engine', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [call('i1', 'install_model', { modelId: 'minimax-music' }), { text: 'ok' }] });
+        withFlowInstall(tools, () => ({ ok: false, error: { code: 'NO_ENGINE', message: 'install_engine installs it (several GB).' } }));
+        await loop.runTurn('Install the song flow', [], project, 'auto', 'deepinfra', 't-flowinstall-noengine');
+        assert.equal(fakeRes.events.filter((e) => e.event === 'agent:confirm').length, 0);
+        const err = toolResults(loop)[0].error;
+        assert.equal(err.code, 'NO_ENGINE');
+        assert.doesNotMatch(err.message, /install_engine/);
+        assert.match(err.message, /Settings > Remote/);
     });
 });
 

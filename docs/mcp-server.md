@@ -46,7 +46,7 @@ only tool with `destructiveHint: true`.
   (`js/services/flowInstall.js`), so a gated model raises the app's licence screen; an unbought
   paid Flow is not listed (UNKNOWN_FLOW); no local engine = NO_ENGINE. `install_engine` is a first
   install only: `engine:install-request { modelsRoot }` makes `MpiEngineInstall` run its Install
-  button's path. Cosmo still has `install_model` only.
+  button's path. Cosmo's `install_model` takes a Flow id too (MPI-1127), never the engine.
 - **The project is named, not inherited** (MPI-873). `generate` and `list_cards` take
   `folderPath`; `openFolder` checks it holds a `project.json` (else `PROJECT_NOT_FOUND`), and
   `/connector/generate` swaps it for the project list's spelling, because the renderer decides

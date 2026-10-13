@@ -83,9 +83,9 @@ A Flow that is run with plain fields the labels explain gets nothing.
 - **Never a new `docs/agent/<flow>.md`** and **never a rule in the system prompt.** Each app doc is an
   index line in the prompt, and prompt + tool schemas have fixed byte budgets in that same test,
   with almost no slack. Raising one is a decision made in the diff that needs it, never a drive-by.
-- The agent cannot install a Flow (`install_model` answers `IS_A_FLOW`): a Flow added as a package
-  (paid, like Head Swap and DramaBox) is named in `flows.md` § Picking one, and one that is not
-  installed is added from the Flow Library.
+- The agent installs a listed Flow with `install_model` (its Flow id, behind the Yes card, MPI-1127).
+  A Flow added as a package (paid, like Head Swap and DramaBox) is named in `flows.md` § Picking
+  one; unbought, it is not listed and the user buys it from the Flow Library.
 - An outside agent (MCP, Claude Desktop) reads `.claude/skills/cubric-vision-flows/SKILL.md` instead,
   which has a recipe per Flow that needs a calling convention (DramaBox). Add one only for that kind
   of Flow. (Text to Speech is a model since MPI-1012; its recipe lives in `cubric-vision-generate`.)

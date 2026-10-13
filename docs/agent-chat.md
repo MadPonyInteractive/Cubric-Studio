@@ -51,7 +51,7 @@ file is the contract; that one is the evidence.
 | 2 | Mascot always in the box | `idle.png` / `waiting.png` in `MpiAgentChat`, flipped by `agent:working` |
 | 3 | Knows models, ops, fit, docs | `list_models` + `describe_model` -> `GET /connector/models`; `read_knowledge` -> `GET /connector/knowledge[/:id]` |
 | 4 | Recommends; VRAM<->RAM trade | `fit` on `GET /connector/models` (`footprint.js` `tradeTable`) |
-| 5 | Installs only after a yes, size shown, verified | `agent:confirm` -> `POST /agent/confirm` -> `POST /connector/install` -> re-read `GET /connector/models` |
+| 5 | Installs only after a yes, size shown, verified | `agent:confirm` -> `POST /agent/confirm` -> `POST /connector/install` -> re-read `GET /connector/models`; a Flow id -> `POST /connector/install-flow` (size first, `start` on Yes), never the engine (MPI-1127) |
 | 6 | Generates model ops + Flows, non-blocking | `generate` -> `POST /connector/generate` (not awaited) -> `agent:result` |
 | 7 | Auto / Ask first | Agent row setting; `mode` on `POST /agent/message`; system prompt rules |
 | 8 | Eyes = describer, question, crop | `look` -> `POST /connector/describe`; graph title `Input_Describe_Prompt` |
@@ -222,7 +222,7 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 | `agent:working` | `{ turnId, working: boolean }` | mascot `waiting.png` + float while true |
 | `agent:message` | `{ turnId, id, text }` | one whole reply per model turn (D3) |
 | `agent:tool` | `{ turnId, id, tool, status, label }`, status `started` / `done` / `failed` | status line; `label` is plain copy, never the prompt |
-| `agent:confirm` | `{ turnId, confirmId, kind: 'install', modelId, modelName, downloadGb }` | Yes / No card |
+| `agent:confirm` | `{ turnId, confirmId, kind: 'install', modelId, modelName, downloadGb, flowId?, licence? }` | Yes / No card; `flowId` = a Flow (MPI-1127), `licence` adds the licence-screen line |
 | `agent:result` | `{ toolCallId, ok, output?: { itemId, groupId, type, filePath }, error? }` | result card, opens the card; `filePath` is the renderer item's, already a `/project-file?path=` url |
 | `agent:compacting` | `{ turnId, on: boolean }` | "compacting" line + mascot |
 | `agent:error` | `{ turnId, code, message }` | error line. Codes: `ENDPOINT_ERROR`, `NO_KEY`, `TOOLS_UNSUPPORTED`, `STEP_LIMIT` |

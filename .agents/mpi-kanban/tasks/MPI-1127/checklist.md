@@ -1,0 +1,5 @@
+- [x] install_model takes a Flow id (size + licence card, Yes starts the Flow install)
+- [x] NO_ENGINE never sends Cosmo to install_engine
+- [x] Card shows the licence-screen line
+- [x] Guide: Song is free; Cosmo can install a Flow
+- [x] Tests pass

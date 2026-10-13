@@ -731,10 +731,10 @@ export const MpiAgentChat = ComponentFactory.create({
          * and the card still has to ask.
          *
          * @param {{confirmId:string, kind?:string, modelName?:string, downloadGb?:number,
-         *          count?:number, what?:string, price?:string|null}} data
+         *          licence?:boolean, count?:number, what?:string, price?:string|null}} data
          */
         function _appendConfirm(data) {
-            const { confirmId, kind, modelName, downloadGb, count, what, price } = data || {};
+            const { confirmId, kind, modelName, downloadGb, licence, count, what, price } = data || {};
             if (CHOICE_CARDS[kind]) return _appendChoice(data, true);
             if (!confirmId || qs(`[data-confirm-id="${CSS.escape(confirmId)}"]`, transcript)) return;
             const isBatch = kind === 'batch';
@@ -777,7 +777,9 @@ export const MpiAgentChat = ComponentFactory.create({
                 ? spendLine
                 : isBatch
                     ? (what ? `${what} — ${count} generations` : `${count} generations`)
-                    : (downloadGb != null ? `Download: ${Number(downloadGb).toFixed(1)} GB` : '');
+                    // A Flow whose model has a licence raises its licence screen before the download (MPI-1127).
+                    : [downloadGb != null ? `Download: ${Number(downloadGb).toFixed(1)} GB` : '',
+                        licence ? 'A licence screen opens first.' : ''].filter(Boolean).join('. ');
             if (subtitle) {
                 const sizeEl = document.createElement('div');
                 sizeEl.className = 'mpi-agent-chat__confirm-size';

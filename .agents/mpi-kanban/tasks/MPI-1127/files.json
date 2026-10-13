@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1127/",
+    "services/agentLoop.mjs",
+    "services/agentSessions.mjs",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+    "docs/agent/flows.md",
+    "docs/agent-chat.md",
+    "docs/mcp-server.md",
+    "docs/playbooks/add-flow/07-agent-knowledge.md",
+    "tests/agent-loop.test.cjs",
+    "docs/releases/UNRELEASED.md",
+    "docs/agent/routines.md",
+    "tests/desktop/agent-chat.spec.js"
+  ]
+}

@@ -87,11 +87,11 @@ export const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'install_model',
-            description: 'Show the user a Yes / No confirmation card to install a model. Installation only runs after Yes is clicked. The card IS the question: call it, never ask in words first, and never install without it, in any mode.',
+            description: 'Show the user a Yes / No card to install a model or Flow. Installation only runs after Yes is clicked. The card IS the question: call it, never ask in words first, and never install without it, in any mode.',
             parameters: {
                 type: 'object',
                 properties: {
-                    modelId: { type: 'string', description: 'The model id to install.' },
+                    modelId: { type: 'string', description: 'A model or Flow id.' },
                 },
                 required: ['modelId'],
                 additionalProperties: false,
@@ -429,6 +429,12 @@ const OUT_OF_ROUNDS = 'You are out of tool calls for this turn. In plain words, 
 // write its closing sentence. That is the price of never narrating a success that did not
 // happen, and this constant is the knob if the trade ever reads wrong.
 const EARLY_REFUSAL_MS = 1000;
+
+// MPI-1127 (Fabio, 2026-10-13): Cosmo never installs the engine. The shared NO_ENGINE text
+// names install_engine, an outside agent's tool, so Cosmo's copy says what the user does.
+const cosmoNoEngine = (r) => (r?.error?.code === 'NO_ENGINE'
+    ? { ok: false, error: { code: 'NO_ENGINE', message: 'Nothing was installed: there is no ComfyUI engine on this computer. You cannot install it. Tell the user: in Settings > Remote, turn off "Skip the local engine install" to install it, or connect a RunPod Pod there. Then ask again.' } }
+    : r);
 
 // What a fan-out's result says about its cards once they are queued (MPI-941).
 const BATCH_STARTED = 'The chat shows one progress line, and one note comes when the last has finished. Do not look at them: the user judges them in the gallery.';
@@ -802,6 +808,7 @@ export class AgentLoop {
                     modelId: this._pendingConfirm.modelId,
                     modelName: this._pendingConfirm.modelName,
                     downloadGb: this._pendingConfirm.downloadGb,
+                    licence: this._pendingConfirm.licence,
                     count: this._pendingConfirm.count,
                     what: this._pendingConfirm.what,
                     price: this._pendingConfirm.price,
@@ -1614,7 +1621,7 @@ export class AgentLoop {
         if (!quote?.ok) return JSON.stringify(quote);
         const { missing = [], billed, count, display } = quote.output || {};
         if (missing.length) {
-            return JSON.stringify({ ok: false, error: { code: 'NOT_INSTALLED', missing, message: `Nothing was run: this routine needs ${missing.join(', ')}, not installed. Tell the user, and offer install_model for a local model.` } });
+            return JSON.stringify({ ok: false, error: { code: 'NOT_INSTALLED', missing, message: `Nothing was run: this routine needs ${missing.join(', ')}, not installed. Tell the user, and offer install_model for a local model or a Flow.` } });
         }
         if (billed && !await this._confirmSpend(turnId, { modelName: `the routine "${args.name}"`, count, price: display || null }, 'routine', args)) {
             return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on the routine "${args.name}". Nothing was run.${_declinedPriceNote(display)} Ask what they would like instead, ending on [options: A | B]; do not run it again unless they say so.` });
@@ -2046,25 +2053,33 @@ ${knowledgeIndex}`.trim();
                 } catch (err) {
                     return JSON.stringify({ ok: false, error: { code: 'RUNTIME_ERROR', message: `Could not read the model list: ${err.message}` } });
                 }
-                // A Flow installs from the Flow Library, never from here (Fabio, 2026-09-30:
-                // Cosmo offered "Install TTS flow" and could not have done it).
+                // MPI-1127 (Fabio, 2026-10-13): a Flow installs here too, behind the same card —
+                // the Flow Library's own Install (MPI-1126). Asked without `start`, it answers the
+                // size and refuses what cannot go (installed, no engine) before any card shows.
                 const flow = !m && list?.flows?.find((f) => f.id === args.modelId);
+                let card;
                 if (flow) {
-                    return JSON.stringify({ ok: false, error: { code: 'IS_A_FLOW', message: `"${flow.title}" is a Flow, and you cannot install a Flow. Tell the user to add it from the Flow Library (its tile says Get models), then ask again.` } });
+                    let q;
+                    try {
+                        q = await this._tools.installFlow(flow.id, false);
+                    } catch (err) {
+                        return JSON.stringify({ ok: false, error: { code: 'RUNTIME_ERROR', message: `Could not read what ${flow.title} needs: ${err.message}` } });
+                    }
+                    if (!q?.ok) return JSON.stringify(cosmoNoEngine(q));
+                    card = { flowId: flow.id, modelName: q.title || flow.title, downloadGb: q.downloadGb ?? null, licence: !!q.licence };
+                } else if (!m) {
+                    return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_MODEL', message: `No model or Flow "${args.modelId}". Use an id exactly as list_models gives it.` } });
+                } else {
+                    card = { modelName: m.name || args.modelId, downloadGb: m.missingDownloadGb ?? null };
                 }
-                if (!m) {
-                    return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_MODEL', message: `No model "${args.modelId}". Use a model id exactly as list_models gives it.` } });
-                }
-                const modelName = m.name || args.modelId;
-                const downloadGb = m.missingDownloadGb ?? null;
 
                 const confirmId = crypto.randomUUID();
-                this._emit('agent:confirm', { turnId, confirmId, kind: 'install', modelId: args.modelId, modelName, downloadGb });
-                this._historyEntry('confirm', { tool: 'install_model', args, confirmId, modelId: args.modelId, modelName, downloadGb });
+                this._emit('agent:confirm', { turnId, confirmId, kind: 'install', modelId: args.modelId, ...card });
+                this._historyEntry('confirm', { tool: 'install_model', args, confirmId, modelId: args.modelId, ...card });
 
                 // Suspend the turn until POST /agent/confirm arrives
                 const answer = await new Promise((resolve) => {
-                    this._pendingConfirm = { confirmId, modelId: args.modelId, modelName, downloadGb, resolve, turnId };
+                    this._pendingConfirm = { confirmId, modelId: args.modelId, ...card, resolve, turnId };
                 });
                 this._pendingConfirm = null;
                 return answer; // 'installed: ...' or 'User declined the installation. ...'
@@ -3174,9 +3189,21 @@ ${knowledgeIndex}`.trim();
 
         // Run the install
         try {
-            const r = await this._tools.installModel(pc.modelId);
+            const r = pc.flowId ? await this._tools.installFlow(pc.flowId, true) : await this._tools.installModel(pc.modelId);
             if (!r?.ok) {
-                pc.resolve(JSON.stringify(r || { ok: false, error: { code: 'INSTALL_FAILED', message: 'Installation failed.' } }));
+                pc.resolve(JSON.stringify(cosmoNoEngine(r || { ok: false, error: { code: 'INSTALL_FAILED', message: 'Installation failed.' } })));
+                return { ok: true };
+            }
+            // A Flow's download runs in the app's downloads, behind any licence screen it raises
+            // (MPI-1127); there is nothing to re-read yet.
+            if (pc.flowId) {
+                pc.resolve(JSON.stringify({
+                    ok: true,
+                    installed: false,
+                    message: `The user pressed Yes. ${pc.modelName} is downloading now (it shows in the app's downloads) and is not installed until that finishes.`
+                        + (pc.licence ? ' A licence screen opens in the app first: the download starts only once they accept it there.' : '')
+                        + ' Tell them so.',
+                }));
                 return { ok: true };
             }
             // Verify with a real re-read. The model is ALWAYS in the list: what counts is its

@@ -123,7 +123,7 @@ steps were skipped or failed on which card.
 ### Answers that stop a run before it starts
 
 - `NOT_INSTALLED`: a model or Flow it needs is missing, named in `missing`. Tell the user and
-  offer install_model for a local model; a cloud model needs its key in Settings.
+  offer install_model for a local model or a Flow; a cloud model needs its key in Settings.
 - `INPUT_MISSING`: the routine needs an input you did not give. Ask the user for it, then run
   again with `values`.
 - `CARD_NOT_FOUND` / `WRONG_MEDIA_TYPE`: a card is not in this project, or is not the kind step 1

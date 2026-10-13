@@ -330,9 +330,13 @@ test('confirm card Yes button calls POST /agent/confirm', async ({}, testInfo) =
         modelId: 'test-model',
         modelName: 'Test Model',
         downloadGb: 4.2,
+        licence: true,
       });
     });
     await window.waitForTimeout(200);
+
+    // MPI-1127: a Flow with a licensed model says the licence screen comes first.
+    await expect(window.locator('#e2e-agent-host .mpi-agent-chat__confirm-size')).toHaveText('Download: 4.2 GB. A licence screen opens first.');
 
     const yesBtn = window.locator('#e2e-agent-host .mpi-agent-chat__confirm-card button, #e2e-agent-host .mpi-agent-chat__confirm-card .mpi-btn').first();
     await expect(yesBtn).toBeVisible();
