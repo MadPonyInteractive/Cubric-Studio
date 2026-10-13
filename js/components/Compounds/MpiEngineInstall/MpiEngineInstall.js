@@ -105,6 +105,11 @@ const _eta = (sec) => {
  *   inst.el.hide()          — closes modal
  *   inst.el.setError(msg)   — show error + retry button
  *
+ * Listens:
+ *   'engine:install-request' { modelsRoot } — an outside agent's install_engine (MPI-1126) runs
+ *   the Install button's own path with that models root. Without `modelsRoot` (the Settings
+ *   toggle) the user picks, as before.
+ *
  * Emits (internal to component):
  *   'engine:ready' — when download/extract/patch complete (actually emitted to Events bus)
  *
@@ -251,6 +256,8 @@ export const MpiEngineInstall = ComponentFactory.create({
         let _installButtonInst = null;
         let _retryButtonInst = null;
         const _unsubs = [];
+        let _shown = false;
+        let _agentRoot = null; // MPI-1126: an agent's install waiting for show('installing')
 
         const progressInfo = qs('[data-ref="progressInfo"]', el);
         const progressTitle = qs('[data-ref="progressTitle"]', el);
@@ -396,10 +403,11 @@ export const MpiEngineInstall = ComponentFactory.create({
             variant: 'primary'
         });
 
-        _installButtonInst.el.addEventListener('click', async () => {
-            // Empty → server resolves to the absolute default models root.
-            const modelPath = (pathInputField.value || '').trim();
+        // Empty → server resolves to the absolute default models root.
+        _installButtonInst.el.addEventListener('click', () => _installLocal((pathInputField.value || '').trim()));
 
+        // The Install button's whole path, also run by an outside agent's install_engine (MPI-1126).
+        async function _installLocal(modelPath) {
             // Save path to localStorage for next session
             Storage.setComfyRootPath(modelPath);
 
@@ -425,6 +433,16 @@ export const MpiEngineInstall = ComponentFactory.create({
             } catch (err) {
                 _setError(`Failed to start installation: ${err.message}`);
             }
+        }
+
+        // MPI-1126: an outside agent's install_engine. It runs the Install path above, so the
+        // user watches the same screen a click shows. Open (the boot gate holds it up on a first
+        // run): it starts now. Closed: the shell's own listener raises it, and show() starts it.
+        const _offAgentInstall = Events.on('engine:install-request', ({ modelsRoot } = {}) => {
+            if (typeof modelsRoot !== 'string') return; // the Settings toggle: the user picks
+            const root = modelsRoot.trim() || (pathInputField.value || '').trim();
+            if (!_shown) _agentRoot = root;
+            else if (_currentPhase !== 'progress') _installLocal(root);
         });
 
         // ── Docs links (open in default browser via Electron shell) ───────────────
@@ -587,6 +605,7 @@ export const MpiEngineInstall = ComponentFactory.create({
                 _modal.el.appendChild(el);
             }
             _modal.el.show();
+            _shown = true;
 
             if (mode === 'upgrading') {
                 _beginProgress('Installing new version...');
@@ -598,10 +617,16 @@ export const MpiEngineInstall = ComponentFactory.create({
                 fetch('/engine/repair-deps', { method: 'POST' }).catch(err => {
                     _setError(`Repair failed: ${err.message}`);
                 });
+            } else if (_agentRoot !== null) {
+                const root = _agentRoot;
+                _agentRoot = null;
+                _installLocal(root);
             }
         };
 
         el.hide = () => {
+            _shown = false;
+            _agentRoot = null;
             _endProgress();
             if (_modal) {
                 _modal.el.hide();
@@ -729,6 +754,7 @@ export const MpiEngineInstall = ComponentFactory.create({
         el.setError = _setError;
 
         el.destroy = () => {
+            _offAgentInstall();
             _endProgress();
             _progressBarInst.destroy();
             _spinnerInst.destroy();

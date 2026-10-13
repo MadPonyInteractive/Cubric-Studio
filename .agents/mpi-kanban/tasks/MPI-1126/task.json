@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1126",
+  "title": "MCP: install the ComfyUI engine, models and Flows from an outside agent",
+  "description": "Outside agents on MCP (routes/mcp.js) have no install tool at all (header: 'none that installs'); Cosmo has install_model only, behind an in-app Yes/No card (agentLoop.mjs install_model), and refuses Flows with IS_A_FLOW. Fabio 2026-10-13: an MCP agent should be able to set a user up end to end.\n\nAdd three MCP tools, each a thin call to an existing route, each answering with size + target folder and doing nothing until resent with a confirm flag (same shape as the CONFIRM_COST spend gate; never confirm for the user):\n- install_engine -> POST /engine/download (routes/engine.js). Needs modelsRoot: ask the user or use the default, never pick silently. It stops the running ComfyUI, so refuse while generations are queued. Progress: engine:* events / engine status.\n- install_model -> POST /connector/install (routes/connector.js), already on the HTTP API.\n- install_flow -> download the Flow's missing models (the Flow Library 'Get models' path, downloadService.start()). 'Licence required' (Hugging Face access grant) and paid 'Get it' Flows cannot be done by an agent: return a code that tells the user the errand.\nEach install shows itself in the app (queue/download row, every end visible). Update the MCP tool list docs, the .mcpb bridge if it lists tools, and the cubric-studio skill. Open question: does Cosmo get install_flow + install_engine too (in-app confirm card)?",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-13T07:35:14+01:00",
+  "updated_at": "2026-10-13T07:49:42+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

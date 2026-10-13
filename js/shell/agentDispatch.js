@@ -79,6 +79,10 @@ import { estimateRunCost } from '../services/cloudExecutor.js';
 import { formatPrice } from '../data/modelConstants/deepinfraPricing.js';
 import { downloadService } from '../services/downloadService.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
+import { hasNoEngine } from '../services/engineGate.js';
+import { installFlow, flowDownloadGb } from '../services/flowInstall.js';
+import { flowInstallKeys } from '../utils/flowLicences.js';
+import { getModelLicence, hasAcceptedLicence } from '../data/modelConstants/licences.js';
 import { state } from '../state.js';
 import { Events } from '../events.js';
 import { runGifJob, GIF_HANDLERS } from './gifJobs.js';
@@ -1880,6 +1884,10 @@ async function _listModels(jobId) {
     return _report(jobId, { ok: true, output: { engine, models, flows, tools: AGENT_TOOL_OPS } });
 }
 
+// A local download with no engine to run it is a dead end (engineGate.js). Cloud models and a
+// connected Pod need no local engine; hasNoEngine() already answers false for a Pod.
+const NO_ENGINE = 'Nothing was installed: there is no ComfyUI engine on this computer to run it. install_engine installs it (several GB), or the user can connect a RunPod Pod in Settings > Remote.';
+
 /**
  * `agent.install-model` — start the download of any missing deps for a model.
  * Called by POST /connector/install; the route has already validated the model id
@@ -1904,6 +1912,7 @@ async function _installModel(jobId, input = {}) {
     if (!missingDeps.length) {
         return _report(jobId, { ok: false, error: { code: 'ALREADY_INSTALLED', message: `${model.name} is already installed.` } });
     }
+    if (await hasNoEngine()) return _fail(jobId, 'NO_ENGINE', NO_ENGINE);
 
     const downloadGb = missingDeps.reduce((sum, dep) => sum + (dep.size ? sizeToGb(dep.size) : 0), 0);
 
@@ -1919,6 +1928,53 @@ async function _installModel(jobId, input = {}) {
     }
 
     return _report(jobId, { ok: true, output: { modelId, downloadGb: Math.round(downloadGb * 10) / 10, started: true } });
+}
+
+/**
+ * `agent.install-flow` — MPI-1126: download what a Flow is missing, the Flow Library's own
+ * Install (js/services/flowInstall.js). `{ flowId, start }`: without `start` it only answers the
+ * size, so an outside agent can ask the user first. A paid Flow the user has not bought is not
+ * in `listFlows()` at all, so it answers UNKNOWN_FLOW with the errand.
+ */
+async function _installFlow(jobId, input = {}) {
+    const flow = getFlowById(input.flowId);
+    if (!flow) {
+        return _fail(jobId, 'UNKNOWN_FLOW', `No Flow "${input.flowId}" in this app. Use a Flow id exactly as list_models gives it. A paid Flow (its Flow Library tile says Get it) is bought and added by the user; tell them so. A model goes to install_model.`);
+    }
+    const avail = flowAvailability(flow);
+    if (avail.reason) return _fail(jobId, 'UNAVAILABLE', `${flow.title} cannot be installed: ${avail.reason}`);
+    if (avail.available) return _fail(jobId, 'ALREADY_INSTALLED', `${flow.title} is already installed.`);
+    if (await hasNoEngine()) return _fail(jobId, 'NO_ENGINE', NO_ENGINE);
+
+    const out = { flowId: flow.id, title: flow.title, downloadGb: Math.round(flowDownloadGb(flow) * 10) / 10 };
+    // `downloadService.start()` raises the licence screen in the app for each of these.
+    const licences = flowInstallKeys(flow).filter(key => getModelLicence(key) && !hasAcceptedLicence(key));
+    if (licences.length) out.licence = 'A licence screen opens in the app first: the download starts only after the user accepts it there.';
+    if (!input.start) return _report(jobId, { ok: true, output: { ...out, started: false } });
+
+    installFlow(flow);
+    return _report(jobId, { ok: true, output: { ...out, started: true } });
+}
+
+/**
+ * `agent.install-engine` — MPI-1126: install the local ComfyUI engine through the engine modal,
+ * so the user watches it as if they had pressed Install (MpiEngineInstall listens for
+ * `engine:install-request` with a `modelsRoot`). Only a FIRST install: an upgrade or a repair
+ * the app runs itself, and /engine/download stops a running engine.
+ */
+async function _installEngine(jobId, input = {}) {
+    let check;
+    try {
+        check = await (await fetch('/engine/version-check')).json();
+    } catch (err) {
+        return _fail(jobId, 'RUNTIME_ERROR', `Could not read the engine state: ${err?.message || err}`);
+    }
+    if (check.needsInstall !== true) {
+        return _fail(jobId, 'ALREADY_INSTALLED', `ComfyUI ${check.installed || ''} is already installed.${check.needsUpgrade ? ' The app updates it itself on its next start.' : ''}`);
+    }
+    const modelsRoot = typeof input.modelsRoot === 'string' ? input.modelsRoot : '';
+    Events.emit('engine:install-request', { modelsRoot });
+    return _report(jobId, { ok: true, output: { started: true, ...(modelsRoot ? { modelsRoot } : {}) } });
 }
 
 /**
@@ -1980,6 +2036,8 @@ const _HANDLERS = {
     'gallery.visible': _visibleCards,
     'agent.list-models': _listModels,
     'agent.install-model': _installModel,
+    'agent.install-flow': _installFlow,
+    'agent.install-engine': _installEngine,
     'agent.describe': _describeImage,
     // MPI-830: the GIF verbs. They live in gifJobs.js — this file's contract is
     // one job in, one result out, and those four run whole pipelines (ffmpeg

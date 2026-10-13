@@ -122,6 +122,28 @@ export async function installModel(modelId) {
 }
 
 /**
+ * POST /connector/install-flow { flowId, start } — MPI-1126, for an outside agent. Without
+ * `start` it only answers the download size; with it, it starts the Flow Library's Install.
+ */
+export async function installFlow(flowId, start = false) {
+    return _post('/connector/install-flow', { flowId, start });
+}
+
+/** GET /engine/version-check + /comfy/get-path — is a local engine installed, and where models would go. */
+export async function engineState() {
+    const [check, root] = await Promise.all([_get('/engine/version-check'), _get('/comfy/get-path')]);
+    if (typeof check?.needsInstall !== 'boolean') {
+        return { ok: false, error: { code: 'RUNTIME_ERROR', message: `Could not read the engine state: ${check?.error?.message || check?.error || 'no answer'}` } };
+    }
+    return { ok: true, installed: check?.needsInstall === false, version: check?.installed || null, modelsRoot: root?.path || null };
+}
+
+/** POST /connector/install-engine { modelsRoot } — MPI-1126: a first local engine install, on the app's own install screen. */
+export async function installEngine(modelsRoot) {
+    return _post('/connector/install-engine', { modelsRoot });
+}
+
+/**
  * POST /connector/generate — resolves when the renderer reports back (up to 30 min).
  * The loop fires this without awaiting; callers attach .then()/.catch().
  */

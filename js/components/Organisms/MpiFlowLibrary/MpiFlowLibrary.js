@@ -11,8 +11,9 @@ import {
 } from '../../../data/flowsRegistry.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
-import { getModelById, getModelDependencies, disambiguatedName, reSyncInstalledModels } from '../../../data/modelRegistry.js';
+import { getModelById, disambiguatedName, reSyncInstalledModels } from '../../../data/modelRegistry.js';
 import { downloadService } from '../../../services/downloadService.js';
+import { installFlow, hasLiveJob } from '../../../services/flowInstall.js';
 import { sizeToGb, fitsHardware } from '../../../data/modelConstants/footprint.js';
 import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
@@ -531,33 +532,13 @@ export const MpiFlowLibrary = ComponentFactory.create({
             );
         }
 
-        // Install every missing required model (each drives its own dep download —
-        // the shared model install flow; exactly the Model Library's _install), plus the
-        // flow's own deps as ONE more job. The Flow Library owns no dep resolution of its
-        // own: getModelDependencies() / getFlowDependencies() resolve, the service starts.
+        // Install every missing download the Flow needs: js/services/flowInstall.js, shared with
+        // an outside agent's install_flow (MPI-1126).
         // A refused licence gate has no outcome here, ON PURPOSE (MPI-743, Fabio 2026-09-30:
         // "no message on a deliberate Cancel; a message only when the install fails"). The
         // tile going back to Install / Licence required IS the answer to a Cancel. Both
         // failures already speak for themselves: a failed `verify` probe keeps MpiLicenceGate
         // open with its error, and a failed download reaches the user via `download:failed`.
-        // So `start()` still resolves `undefined` for refusal and success alike — do not add
-        // a distinguishable value unless something here needs to act on it.
-        // A key already queued or downloading (from here or the Model Library) is skipped:
-        // `start()` would replace its job and POST it again (MPI-1098).
-        function _installMissing(flow, missing) {
-            for (const modelId of missing) {
-                if (_hasLiveJob(modelId)) continue;
-                const deps = getModelDependencies(modelId);
-                if (deps.length) downloadService.start(modelId, deps);
-            }
-            // Flow-only deps: started under the flow key so the shared install/reconcile
-            // machinery treats them as one unit and the guards can attribute them.
-            const { missingDeps } = flowAvailability(flow);
-            if (missingDeps.length && !_hasLiveJob(flowDepKey(flow.id))) {
-                const deps = getFlowDependencies(flow);
-                if (deps.length) downloadService.start(flowDepKey(flow.id), deps);
-            }
-        }
 
         // Cancel EVERY in-flight install for this flow (Cancel-all) — models AND flow deps.
         function _cancelInstall(flow) {
@@ -587,7 +568,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
             let sum = 0, installing = false, waiting = 0;
             for (const id of ids) {
                 if (id === depsKey ? depsDone : installed.includes(id)) { sum += 1; continue; }
-                if (!_hasLiveJob(id)) waiting += 1;
+                if (!hasLiveJob(id)) waiting += 1;
                 const job = jobs.find(j => j.modelId === id);
                 if (job) {
                     installing = true;
@@ -597,12 +578,6 @@ export const MpiFlowLibrary = ComponentFactory.create({
             return { installing, progress: sum / ids.length, waiting };
         }
 
-        // A queued or running job, the Model Library's `isActiveDownload` set. A finished or
-        // failed job can linger in `downloadJobs` and must not block a retry.
-        function _hasLiveJob(key) {
-            return (state.downloadJobs || []).some(j => j.modelId === key
-                && ['pending', 'downloading', 'paused', 'installing', 'queued'].includes(j.status));
-        }
 
         function _rowHtml(name, installed, missingLabel = 'Install') {
             const chip = installed
@@ -893,7 +868,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
                         : outstanding.some(l => l.verify) ? 'Verify licence' : 'Review licence',
                     variant: 'primary', size: 'md',
                 });
-                install.on('click', () => { _installMissing(flow, missing); });
+                install.on('click', () => { installFlow(flow); });
                 detailActions.appendChild(install.el); _detailBtns.push(install);
             }
 

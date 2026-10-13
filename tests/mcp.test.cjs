@@ -38,6 +38,8 @@ const outside = path.join(media, 'photo.jpg');
 fs.writeFileSync(outside, 'photo');
 const placed = [];
 const routineCalls = [];
+const installs = []; // MPI-1126: every install route call, in order
+let engineInstalled = false;
 
 test.before(async () => {
     const app = express();
@@ -49,9 +51,27 @@ test.before(async () => {
         models: [
             { id: 'krea2', name: 'Krea 2', type: 'image', installed: true, guides: ['krea-2'], ops: [{ op: 't2i', task: 't2i', rank: 1, params: { ratio: ['1:1'] } }] },
             { id: 'h3', name: 'H3', type: 'video', installed: true, ops: [{ op: 't2v', task: 't2v', rank: 1 }] },
+            { id: 'wan', name: 'Wan', type: 'video', installed: false, missingDownloadGb: 12.3, ops: [{ op: 'i2v', task: 'i2v' }] },
+            { id: 'veo-cloud', name: 'Veo', type: 'video', installed: false, missingDownloadGb: 0, ops: [{ op: 't2v', task: 't2v' }] },
         ],
-        flows: [],
+        flows: [{ id: 'outpaint', title: 'Outpaint', installed: false }],
     }));
+    // MPI-1126: the install routes. `outpaint` is 4.2 GB behind a licence; `ghost` is unknown.
+    app.post('/connector/install', (q, r) => {
+        installs.push({ route: 'model', ...q.body });
+        r.json({ ok: true, modelId: q.body.modelId, downloadGb: 12.3, started: true });
+    });
+    app.post('/connector/install-flow', (q, r) => {
+        installs.push({ route: 'flow', ...q.body });
+        if (q.body.flowId !== 'outpaint') return r.json({ ok: false, error: { code: 'UNKNOWN_FLOW', message: 'No Flow.' } });
+        r.json({ ok: true, flowId: 'outpaint', title: 'Outpaint', downloadGb: 4.2, licence: 'A licence screen opens in the app first.', started: q.body.start === true });
+    });
+    app.get('/engine/version-check', (_q, r) => r.json({ installed: engineInstalled ? '0.39.0' : null, needsInstall: !engineInstalled, needsUpgrade: false }));
+    app.get('/comfy/get-path', (_q, r) => r.json({ success: true, path: 'C:\\Models', isDefault: true }));
+    app.post('/connector/install-engine', (q, r) => {
+        installs.push({ route: 'engine', ...q.body });
+        r.json({ ok: true, started: true });
+    });
     app.get('/connector/knowledge/:id', (q, r) => r.json({ ok: true, id: q.params.id, title: 'Krea 2', text: 'Write prose.' }));
     app.post('/connector/generate', (q, r) => {
         seen.push(q.body);
@@ -149,7 +169,7 @@ test('a notification is answered 202 with no body', async () => {
 test('tools/list names every tool, each with a title, annotations and an object schema', async () => {
     const { result } = await (await rpc('tools/list')).json();
     const names = result.tools.map((t) => t.name);
-    assert.deepEqual(names, ['status', 'list_models', 'describe_model', 'list_projects', 'create_project', 'open_project', 'list_cards', 'view_card', 'rename_card', 'generate', 'wait_generation', 'cancel_generation', 'read_knowledge', 'make_gif', 'edit_gif', 'cutout_gif', 'gif_to_video', 'make_sheet',
+    assert.deepEqual(names, ['status', 'list_models', 'describe_model', 'list_projects', 'create_project', 'open_project', 'list_cards', 'view_card', 'rename_card', 'generate', 'wait_generation', 'cancel_generation', 'install_model', 'install_flow', 'install_engine', 'read_knowledge', 'make_gif', 'edit_gif', 'cutout_gif', 'gif_to_video', 'make_sheet',
         'list_routines', 'save_routine', 'rename_routine', 'delete_routine', 'run_routine']);
     for (const t of result.tools) {
         assert.equal(t.inputSchema.type, 'object');
@@ -499,4 +519,61 @@ test('an unknown tool and an unknown method are errors, GET is 405', async () =>
     assert.equal((await call('nope')).isError, true);
     assert.equal((await (await rpc('resources/list')).json()).error.code, -32601);
     assert.equal((await fetch(`${base}/mcp`)).status, 405);
+});
+
+// MPI-1126: an install fills the user's disk, so each one asks first, as a paid run does.
+
+test('install_model downloads nothing until the call repeats the quoted size', async () => {
+    const before = installs.length;
+    const refused = await answer('install_model', { modelId: 'wan' });
+    assert.equal(refused.error.code, 'CONFIRM_DOWNLOAD');
+    assert.equal(refused.quoted, '12.3 GB');
+    assert.equal((await answer('install_model', { modelId: 'wan', confirmDownload: '1 GB' })).error.code, 'CONFIRM_DOWNLOAD');
+    assert.equal(installs.length, before, 'nothing reached /connector/install');
+
+    const ran = await answer('install_model', { modelId: 'wan', confirmDownload: '12.3 GB' });
+    assert.equal(ran.started, true);
+    assert.match(ran.message, /END YOUR TURN/);
+    assert.deepEqual(installs.at(-1), { route: 'model', modelId: 'wan' });
+});
+
+test('install_model sends a Flow to install_flow, and refuses what is installed or unknown', async () => {
+    assert.equal((await answer('install_model', { modelId: 'outpaint' })).error.code, 'IS_A_FLOW');
+    assert.equal((await answer('install_model', { modelId: 'krea2' })).error.code, 'ALREADY_INSTALLED');
+    assert.equal((await answer('install_model', { modelId: 'nope' })).error.code, 'UNKNOWN_MODEL');
+    assert.equal((await answer('install_model', { modelId: 'veo-cloud' })).error.code, 'NOTHING_TO_DOWNLOAD', 'a cloud model wants a key, not a download');
+});
+
+test('install_flow quotes without starting, names the licence screen, then starts on the repeated size', async () => {
+    const refused = await answer('install_flow', { flowId: 'outpaint' });
+    assert.equal(refused.error.code, 'CONFIRM_DOWNLOAD');
+    assert.equal(refused.quoted, '4.2 GB');
+    assert.match(refused.error.message, /licence screen/);
+    assert.deepEqual(installs.at(-1), { route: 'flow', flowId: 'outpaint', start: false }, 'the quote starts nothing');
+
+    const ran = await answer('install_flow', { flowId: 'outpaint', confirmDownload: '4.2 GB' });
+    assert.equal(ran.started, true);
+    assert.deepEqual(installs.at(-1), { route: 'flow', flowId: 'outpaint', start: true });
+    assert.equal((await answer('install_flow', { flowId: 'ghost' })).error.code, 'UNKNOWN_FLOW');
+});
+
+test('install_engine asks with the models folder, installs once, then says it is installed', async () => {
+    const refused = await answer('install_engine', {});
+    assert.equal(refused.error.code, 'CONFIRM_DOWNLOAD');
+    assert.equal(refused.quoted, 'C:\\Models');
+
+    const before = installs.length;
+    const other = path.resolve('D:/AI/Models');
+    assert.equal((await answer('install_engine', { modelsRoot: 'D:/AI/Models', confirmDownload: 'C:\\Models' })).error.code, 'CONFIRM_DOWNLOAD', 'a new folder needs its own yes');
+    assert.equal(installs.length, before);
+
+    const ran = await answer('install_engine', { modelsRoot: 'D:/AI/Models', confirmDownload: other });
+    assert.equal(ran.started, true);
+    assert.deepEqual(installs.at(-1), { route: 'engine', modelsRoot: other });
+    assert.equal((await answer('install_engine', { confirmDownload: 'C:\\Models' })).started, true);
+    assert.deepEqual(installs.at(-1), { route: 'engine', modelsRoot: '' }, 'the default folder is the server\'s to resolve');
+
+    engineInstalled = true;
+    assert.equal((await answer('install_engine', {})).error.code, 'ALREADY_INSTALLED');
+    engineInstalled = false;
 });

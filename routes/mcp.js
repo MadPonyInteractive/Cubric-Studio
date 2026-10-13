@@ -13,8 +13,9 @@
  * (`routes/connector.js` header). The catalogue is shrunk by the same `compactCatalogue`
  * the in-app agent reads, because the raw list is ~9.5k tokens.
  *
- * MPI-593 phase 2: twenty-two tools, none that installs, and one that deletes: `delete_routine`
- * (MPI-1009), which moves the agent-made routine to `routines/deleted/`. The in-app agent's gates live in `agentLoop._executeTool`, not
+ * MPI-593 phase 2: twenty-two tools, and one that deletes: `delete_routine` (MPI-1009), which
+ * moves the agent-made routine to `routines/deleted/`. MPI-1126 added three that install (a model,
+ * a Flow, the local engine), each behind `askDownload`. The in-app agent's gates live in `agentLoop._executeTool`, not
  * in the routes, so this file carries its own spend gate (`spendGate`). The guide gate is only
  * an instruction here (read_knowledge); the mask gate does not apply.
  *
@@ -171,6 +172,26 @@ function askPrice(display, confirmCost, what, tool) {
 }
 
 /**
+ * MPI-1126: the download gate, `askPrice`'s twin. An install fills the user's disk with GB they
+ * may not have room for, so nothing starts until the call repeats what was quoted: the size, or
+ * for the engine the folder its models go to. Same ceiling as the spend gate: an agent that
+ * invents the value gets through, and the client's approval prompt shows that argument.
+ */
+function askDownload(quoted, confirmDownload, what, tool) {
+    if (confirmDownload === quoted) return null;
+    return {
+        ok: false,
+        error: {
+            code: 'CONFIRM_DOWNLOAD',
+            message: `${confirmDownload ? 'confirmDownload does not match. ' : ''}Nothing was installed. ${what}. Tell the user and ask. Only if they say yes, send the same ${tool} again with confirmDownload: "${quoted}".`,
+        },
+        quoted,
+    };
+}
+
+const INSTALLING = 'It downloads in the Cubric Studio app, which shows its progress. Tell the user it started and END YOUR TURN; list_models says installed: true once it is done. Never send it again while it downloads.';
+
+/**
  * The project a call works in: the one it names, else the one the app window has open, asked
  * fresh each time (the user can switch it in the app between two calls). A reference image
  * must be staged INTO the project the render lands in (a Reuse of the card resolves it from
@@ -271,6 +292,7 @@ const INSTRUCTIONS = [
     'A video result carries only its first frame. To see a whole clip, a GIF, or any card larger, call view_card with its path.',
     'Paid cloud models cost the user real money. generate answers CONFIRM_COST with the price and makes nothing: tell the user the price and ask. Only if they say yes, resend with confirmCost. Never confirm on their behalf.',
     'When you show the user a prompt, hand it back whole and pasteable, never as fragments.',
+    'Something not installed: install_model for a model, install_flow for a Flow, install_engine when the app has no ComfyUI engine (NO_ENGINE). Each first answers CONFIRM_DOWNLOAD with the size or folder and installs nothing: tell the user and ask. Only if they say yes, resend with confirmDownload. A paid Flow is bought by the user, never installed by you.',
     'Routines are chains of steps saved once in the app and run on any cards in one call: list_routines shows them, run_routine runs one under generate\'s price and running rules, and save_routine saves one when the user asks or agrees. Offer one when the user repeats the same steps on another card.',
 ].join('\n');
 
@@ -471,6 +493,79 @@ const TOOLS = {
         inputSchema: obj({ jobId: { type: 'string' } }, ['jobId']),
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
         run: async ({ jobId }) => stopJob(jobId, 'agent'),
+    },
+    install_model: {
+        title: 'Install a model',
+        description: 'Download a model that list_models shows as not installed. Answers CONFIRM_DOWNLOAD with its size and downloads nothing until the call repeats that size in confirmDownload, after the user said yes. A Flow goes to install_flow.',
+        inputSchema: obj({
+            modelId: { type: 'string', description: 'A model id exactly as list_models gives it.' },
+            confirmDownload: { type: 'string', description: 'Only after the user agreed: the size CONFIRM_DOWNLOAD quoted, exactly.' },
+        }, ['modelId']),
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+        run: async ({ modelId, confirmDownload }) => {
+            const t = await tools();
+            const list = await t.listModels();
+            if (!list?.ok) return list;
+            const m = list.models?.find((x) => x.id === modelId);
+            if (!m) {
+                return list.flows?.some((f) => f.id === modelId)
+                    ? { ok: false, error: { code: 'IS_A_FLOW', message: `"${modelId}" is a Flow: use install_flow.` } }
+                    : { ok: false, error: { code: 'UNKNOWN_MODEL', message: `No model "${modelId}". Use a model id exactly as list_models gives it.` } };
+            }
+            if (!(m.missingDownloadGb > 0)) {
+                // A cloud model has no weights: `installed: false` there means no API key.
+                return m.installed
+                    ? { ok: false, error: { code: 'ALREADY_INSTALLED', message: `${m.name} is already installed.` } }
+                    : { ok: false, error: { code: 'NOTHING_TO_DOWNLOAD', message: `${m.name} is a cloud model: nothing downloads. It runs once the user adds its API key in Settings.` } };
+            }
+            const size = `${m.missingDownloadGb} GB`;
+            const refused = askDownload(size, confirmDownload, `${m.name} downloads ${size}`, 'install_model');
+            if (refused) return refused;
+            const r = await t.installModel(modelId);
+            return r?.ok ? { ...r, message: INSTALLING } : r;
+        },
+    },
+    install_flow: {
+        title: 'Install a Flow',
+        description: 'Download the models a Flow from list_models needs (installed: false). Answers CONFIRM_DOWNLOAD with its size and downloads nothing until the call repeats that size in confirmDownload, after the user said yes. A paid Flow the user has not bought is not in list_models: they buy it from the Flow Library (its tile says Get it).',
+        inputSchema: obj({
+            flowId: { type: 'string', description: 'A Flow id exactly as list_models gives it.' },
+            confirmDownload: { type: 'string', description: 'Only after the user agreed: the size CONFIRM_DOWNLOAD quoted, exactly.' },
+        }, ['flowId']),
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+        run: async ({ flowId, confirmDownload }) => {
+            const t = await tools();
+            const q = await t.installFlow(flowId, false);
+            if (!q?.ok) return q;
+            const size = `${q.downloadGb} GB`;
+            const refused = askDownload(size, confirmDownload, `${q.title} downloads ${size}${q.licence ? `. ${q.licence.replace(/\.$/, '')}` : ''}`, 'install_flow');
+            if (refused) return refused;
+            const r = await t.installFlow(flowId, true);
+            return r?.ok ? { ...r, message: INSTALLING } : r;
+        },
+    },
+    install_engine: {
+        title: 'Install the engine',
+        description: 'Install ComfyUI, the engine local models and Flows run on, when the app has none (an install answered NO_ENGINE). Several GB, plus a models folder that every later model fills. Answers CONFIRM_DOWNLOAD with that folder and installs nothing until the call repeats it in confirmDownload, after the user said yes. A user without a capable GPU can connect a RunPod Pod in Settings > Remote instead.',
+        inputSchema: obj({
+            modelsRoot: { type: 'string', description: 'Only when the user names one: the folder models go to. Omit for the app\'s default.' },
+            confirmDownload: { type: 'string', description: 'Only after the user agreed: the folder CONFIRM_DOWNLOAD quoted, exactly.' },
+        }),
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+        run: async ({ modelsRoot, confirmDownload }) => {
+            const t = await tools();
+            const s = await t.engineState();
+            if (!s?.ok) return s;
+            if (s.installed) return { ok: false, error: { code: 'ALREADY_INSTALLED', message: `ComfyUI ${s.version || ''} is already installed.` } };
+            const folder = modelsRoot ? path.resolve(String(modelsRoot)) : s.modelsRoot;
+            if (!folder) return { ok: false, error: { code: 'RUNTIME_ERROR', message: 'The app gave no default models folder. Ask the user for one and send it as modelsRoot.' } };
+            const refused = askDownload(folder, confirmDownload, `This installs the ComfyUI engine (several GB) and keeps every model in ${folder}. For another folder, send modelsRoot`, 'install_engine');
+            if (refused) return refused;
+            const r = await t.installEngine(modelsRoot ? folder : '');
+            return r?.ok
+                ? { ...r, modelsRoot: folder, message: 'The app shows its install screen with the progress; it takes several minutes and the app is busy until it ends. Tell the user and END YOUR TURN. install_engine answers ALREADY_INSTALLED once it is done.' }
+                : r;
+        },
     },
     read_knowledge: {
         title: 'Read a prompting guide',

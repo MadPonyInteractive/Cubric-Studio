@@ -235,5 +235,8 @@ test('a plugin-only flow counts its flow key, the one Install starts', async () 
     assert.deepStrictEqual(flowInstallKeys(flow), ['flow:plugin-only']);
     const lib = src();
     assert.match(lib, /!prog\.installing \|\| prog\.waiting/, 'Install hides again while one model downloads');
-    assert.match(lib, /if \(_hasLiveJob\(modelId\)\) continue/, 'Install restarts a model already downloading');
+    // MPI-1126: Install is js/services/flowInstall.js now, shared with an agent's install_flow.
+    assert.match(lib, /installFlow\(flow\)/, 'Install no longer runs the shared Flow install');
+    const shared = fs.readFileSync(path.join(__dirname, '..', 'js', 'services', 'flowInstall.js'), 'utf8');
+    assert.match(shared, /if \(hasLiveJob\(modelId\)\) continue/, 'Install restarts a model already downloading');
 });

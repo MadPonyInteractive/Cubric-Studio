@@ -75,6 +75,12 @@ const ALLOWED_REQUESTS = new Set([
     // writes nothing and bills nothing. It is the opposite of a delete: it exists so that
     // something irreversible cannot happen without the user pressing Yes first.
     'POST /connector/quote',
+    // MPI-1126: an outside agent's installs. Each only ADDS files (a Flow's weights, the local
+    // engine on a machine with none); without `start` install-flow is a read of the size.
+    'POST /connector/install-flow',
+    'POST /connector/install-engine',
+    'GET /engine/version-check',
+    'GET /comfy/get-path',
     // MPI-817: a card's description is kept in its sidecar. A MERGE of one field (`look`) into
     // an existing sidecar; `storeLook` refuses to create one. The model has no tool for it.
     'POST /project-media/agent/update-meta',

@@ -17,13 +17,14 @@ different thing: [agent-chat.md](agent-chat.md). Both call the same `/connector/
   no Origin and pass on Host alone. The HTTP API behind it is unauthenticated: a shell-capable
   agent that cannot see the tools will scrape it instead (Codex did, 2026-09-26).
 
-## The 22 tools
+## The 26 tools
 
 `status`, `list_models`, `describe_model`, `list_projects`, `create_project`, `open_project`,
 `list_cards`, `view_card`, `rename_card`, `generate`, `wait_generation`, `cancel_generation`,
+`install_model`, `install_flow`, `install_engine`,
 `read_knowledge`, `make_gif`, `edit_gif`, `cutout_gif`, `gif_to_video`, `make_sheet`, `list_routines`,
 `save_routine`, `rename_routine`, `delete_routine`, `run_routine`. Every one has a `title` and
-annotations (the Claude Desktop directory requires them). **None installs, and none deletes a
+annotations (the Claude Desktop directory requires them). **None deletes a
 card, media, note or project**: every request goes through `agentTools.mjs`, whose route
 allowlist `tests/agent-no-delete.test.cjs` pins. The one delete is `delete_routine` (MPI-1009),
 which moves an agent-made routine to `routines/deleted/`; `tests/mcp.test.cjs` asserts it is the
@@ -38,6 +39,14 @@ only tool with `destructiveHint: true`.
 - **Spend gate** (`spendGate`). Every generate is quoted through `/connector/quote`. A billed run
   answers `CONFIRM_COST` with the price and submits nothing until the call repeats that price in
   `confirmCost`. Local models and Flows never ask.
+- **Installs** (MPI-1126, `routes/connectorInstall.js` beside `/connector/install`). Each answers
+  `CONFIRM_DOWNLOAD` and starts nothing until `confirmDownload` repeats the quote (`askDownload`):
+  GB for a model (`missingDownloadGb`) or a Flow (`install-flow` without `start` only measures),
+  the models FOLDER for the engine. A Flow runs the Library's own Install
+  (`js/services/flowInstall.js`), so a gated model raises the app's licence screen; an unbought
+  paid Flow is not listed (UNKNOWN_FLOW); no local engine = NO_ENGINE. `install_engine` is a first
+  install only: `engine:install-request { modelsRoot }` makes `MpiEngineInstall` run its Install
+  button's path. Cosmo still has `install_model` only.
 - **The project is named, not inherited** (MPI-873). `generate` and `list_cards` take
   `folderPath`; `openFolder` checks it holds a `project.json` (else `PROJECT_NOT_FOUND`), and
   `/connector/generate` swaps it for the project list's spelling, because the renderer decides
