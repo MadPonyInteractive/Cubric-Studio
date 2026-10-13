@@ -108,15 +108,23 @@ Full detail: [playbook 02](../../../docs/recipes/playbook/02-draft.md).
 ## Phase 3 — Stage 1, the autonomous loop
 
 Full detail: [playbook 03](../../../docs/recipes/playbook/03-test-loop.md).
-**Run this yourself, to completion, without asking.**
+**Iterate yourself, to completion, without asking**, on the free local probe:
 
 ```bash
 npm run recipe:test -- <recipe-id> --engine gemma-4-abliterated-12b --judge gemma-3-12b --runs 3
 ```
 
-The engine is the registry's enhancer of record (`services/llmEngines.mjs`), and
-twice-green counts only on it. `dolphin3-abliterated` (8B) is a cheaper wording
-probe before the count, never the count: it cannot hold a word cap (MPI-911).
+**Twice-green counts only on the model users' Enhance runs, DeepInfra Gemma 4 26B**
+(Fabio 2026-10-13), with `DEEPINFRA_API_KEY` in the env:
+
+```bash
+npm run recipe:test -- <recipe-id> --backend deepinfra --engine gemma-4-e4b --judge gemma-3-12b --runs 3
+```
+
+It costs ~1.5 cents a sweep: state the price and the number of sweeps, and get Fabio's yes
+before the first. The 12B and `dolphin3-abliterated` (8B) are wording probes, never the count:
+MPI-1084's 12B lost an action the 26B played out first try, and the 8B cannot hold a word cap
+(MPI-911). Re-check any regex check you wrote against the 26B's wording before trusting a fail.
 
 1. Run all four tiers × 3 runs. The harness applies the deterministic checks and
    an LLM judge, and exits non-zero on any failure.

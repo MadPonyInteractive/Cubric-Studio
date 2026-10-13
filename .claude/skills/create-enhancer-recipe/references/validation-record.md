@@ -7,7 +7,7 @@ it and reports; an agent NEVER sets `validated`.
 ## Stage 1 — autonomous text-only loop (agent)
 
 - **Recipe / mode:** {model-id} / {t2v | i2v}
-- **Enhancer model (ladder rung):** {e.g. gemma-4-abliterated-12b — enhancer of record}
+- **Enhancer model (ladder rung):** {e.g. DeepInfra google/gemma-4-26B-A4B-it — the count; gemma-4-abliterated-12b — local probe}
 - **Judge model:** {e.g. gemma4:e4b}
 - **Runs per tier:** {3}
 - **Date:** {YYYY-MM-DD}

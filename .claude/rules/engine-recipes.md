@@ -162,9 +162,12 @@ reopens.** Reasoning: `docs/recipes/playbook/09-field-evidence.md`; procedure: t
 
 - **Stage 1 is text-only and the agent's, run to completion without asking:**
   `npm run recipe:test -- <id> --engine <model> --judge gemma-3-12b --runs 3`. The judge always
-  runs on Ollama, whatever `--backend` says. **Twice-green counts only on the enhancer of record**
-  (`gemma-4-abliterated-12b`, `services/llmEngines.mjs`); a smaller rung is a wording probe first,
-  never the count. **Green means the full sweep passed TWICE** — a
+  runs on Ollama, whatever `--backend` says. **Twice-green counts only on the model users' Enhance
+  runs: DeepInfra Gemma 4 26B** (`--backend deepinfra --engine gemma-4-e4b`, `DEEPINFRA_API_KEY` in
+  the env; Fabio 2026-10-13). It costs ~1.5 cents a sweep, so state the price and the number of
+  sweeps and get his yes first. The local `gemma-4-abliterated-12b` and smaller rungs are free
+  wording probes, never the count: MPI-1084's 12B lost a theft three rewordings running that the
+  26B played out first try, and checks tuned to the 12B's wording failed the 26B's good text. **Green means the full sweep passed TWICE** — a
   129/129/127 green re-ran as 1/3. A 4B judge fabricates violations. **Never pipe the harness
   through `tee`**: the pipeline reports tee's exit code, so a failing sweep reads as exit 0. A
   local sweep holds the GPU — run it under the lease (`.agents/mpi-kanban/project-knowledge-index.md`
@@ -209,8 +212,9 @@ branch at a call site.
   sets a `wordBudget` whose max comes from the ENCODER, never from demo prompts.
 - **NEVER set `status: 'validated'` and NEVER render.** Both are Fabio's, after a Stage 2 render.
 - **Stage 1 is yours:** `npm run recipe:test -- <id> --engine <model> --judge gemma-3-12b --runs 3`.
-  Green = the full sweep passed TWICE. Never pipe it through `tee`. Local sweeps run under the
-  GPU lease.
+  Green = the full sweep passed TWICE on DeepInfra Gemma 4 26B (`--backend deepinfra --engine
+  gemma-4-e4b`, ~1.5 cents a sweep: ask Fabio first); the local 12B is a free probe, never the
+  count. Never pipe it through `tee`. Every sweep's judge is local, so it runs under the GPU lease.
 - **A constraint that will not hold: reframe the operation, do not strengthen the constraint.**
 - **No concrete example phrases inside a recipe's rules** — the enhancer copies them verbatim
   ("low sun through pines" on a beach). State what the words must match; full examples go in `examples`.
