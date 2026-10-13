@@ -174,6 +174,11 @@ reopens.** Reasoning: `docs/recipes/playbook/09-field-evidence.md`; procedure: t
   a growing ban list (banning `balanced` produced `centered` — give the model the sentence to
   write instead); a prohibition illustrated with the sentence it prohibits (the example seeded the
   failure verbatim). Every judge lens needs its carve-out written in.
+- **No concrete example phrases inside a recipe's RULES.** A larger enhancer lifts them word for
+  word into the output: Gemma 4 26B wrote "low sun through pines" and "worn wool" onto a beach
+  scene, straight from the LTX r2v scene rules' parentheses (MPI-1084, render `ref2v_007`). Say
+  what the phrase must be tied to ("light that belongs in this scene's place") instead; full worked
+  examples live in the mode's `examples`, where they read as a whole output, not as a word list.
 - **An objective breach belongs in `forbiddenPatterns`, not `donts`.** `dos`/`donts` reach only
   the judge: `pony` passed every sweep at judge 2/2/2 while emitting placeholders, a leaked quality
   word and an emoji. `forbiddenPatterns` (`{pattern, why}`) fails the run deterministically, and
@@ -207,6 +212,8 @@ branch at a call site.
   Green = the full sweep passed TWICE. Never pipe it through `tee`. Local sweeps run under the
   GPU lease.
 - **A constraint that will not hold: reframe the operation, do not strengthen the constraint.**
+- **No concrete example phrases inside a recipe's rules** — the enhancer copies them verbatim
+  ("low sun through pines" on a beach). State what the words must match; full examples go in `examples`.
 - **Objective breaches go in `forbiddenPatterns`; `dos`/`donts` reach only the judge** and are the
   grading contract — change them with the notation, in every mode.
 - **Field evidence outranks a green and is scoped to the mode that shot it.** A heal starts from a
