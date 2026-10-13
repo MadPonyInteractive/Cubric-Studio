@@ -24,6 +24,11 @@
 - **Blocked on Singularity H3 research** (MPI-1135) and the video detailer (MPI-557).
 - **Infinite Video Flow: build it**, outputting a Story card. Rejected: graph-only chaining.
 - **Multi-angle locations: covered** by MPI-1039 + the 3D Scene / 360 pano (MPI-623).
+- **Passes as history entries on the same card: Story shots only.** Finish / Continue elsewhere
+  keep landing a new card; app-wide is a later call.
+- **Ships on master behind `dev_mode`, no branch.** Rejected: a long-lived feature branch with
+  cherry-picked fixes (shared checkout, drift on the hottest files, and it would undo the
+  one-release-per-change-from-master rule of 2026-10-05). Standalone pieces release ungated.
 
 ## Prior art — Calliope (github.com/benjiyaya/Calliope, read 2026-10-13)
 

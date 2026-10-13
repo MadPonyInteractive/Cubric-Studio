@@ -3,6 +3,15 @@
 > Part of [README.md](README.md). Umbrella card MPI-1134. Post-2.1. Phase details and parallel
 > batches live in the card's `plan.md`; this file is the order and the card map.
 
+## How it ships — master, behind `dev_mode`, no branch (Fabio, 2026-10-13)
+
+- Every phase merges to **master**; no feature branch. Bug fixes release from master any time.
+- **Standalone pieces ship ungated**, each as its own release: model limits, last-frame grab,
+  land-on-card route, card import for agents (MPI-1136), Elements additions.
+- **Pieces that only work together stay behind `APP_CONFIG.dev_mode`**: Story card, Storyboard,
+  Infinite Video Flow, Cosmo's story tools. Opening the gate is the release that ships it.
+- A project holding a Story card must open cleanly in a build with the gate closed.
+
 ## Phase 0 — blockers (existing cards plus one new)
 
 | Blocker | Card | Why it blocks |

@@ -24,6 +24,20 @@
 | G9 | Nothing tracks "card used by card" (MPI-920 idea only) | 7 |
 | G10 | Routines are the wrong shape for shots (routines.md:157); Flow `passes` planner is the closest fit | 4 |
 
+### How it ships — master, behind `dev_mode`, no branch (Fabio, 2026-10-13)
+
+- Every phase merges to **master**. No feature branch, no worktree: the shared checkout, the hot
+  files (`agentLoop.mjs`, `agentDispatch.js`, `connector.js`, `routes/mcp.js`) and the
+  one-release-per-change-from-master rule all argue against weeks of drift.
+- **Standalone pieces ship UNGATED as ordinary releases:** model limits in the catalogue, last
+  frame, land-on-card route, MPI-1136 card import, Elements additions.
+- **Pieces that only make sense together stay behind `APP_CONFIG.dev_mode`** (the gate the Flow
+  Library used until MPI-589): the Story card kind, the Storyboard page, the Infinite Video Flow,
+  Cosmo's story tools. Bug-fix releases go out from master at any time.
+- **Opening the gate is the release** that ships the umbrella (a 2nd-digit bump).
+- **Gated data must not break an ungated build:** a project holding a Story card opens cleanly
+  with the gate closed (Phase 2 verify).
+
 ### Decisions taken in planning (agent picks — say if wrong)
 
 - **Story recipe = a `story` block on an item sidecar** (the GIF pattern), kind detected via
@@ -79,7 +93,9 @@ Sequential after 1A (it consumes the validator).
 - [ ] Story card: `story` sidecar block, `ASSET_KINDS` entry, `POST /story/entry`-style write
   route, `GET/POST /connector/story/*` read/write, renderer relay in `agentDispatch.js`.
   **Verify:** a route test writes a recipe, reads it back identical, rejects an invalid one with
-  named errors; the card survives project reload.
+  named errors; the card survives project reload; with `dev_mode` off, a project holding a
+  Story card opens, the card shows as an inert card (no crash, no Storyboard entry), and the
+  Story tools are absent from Cosmo and MCP.
 
 ## Phase 3: Shot runner + Continue step — `auto`, one `user-ux` check
 
