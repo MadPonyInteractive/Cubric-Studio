@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1130", "at": "2026-10-13T08:56:56+01:00", "actor": "claude", "column": "doing", "title": "Say how safe Cubric Studio is: keys, security policy, checksums"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1130", "at": "2026-10-13T08:59:50+01:00", "actor": "claude", "from": "doing", "to": "done"}
