@@ -65,6 +65,19 @@ Bing's index), which is an outward action and Fabio's call.
 - Fabio, 2026-10-13: publish the whole branch when 2.1 is released. The push is a step on the 2.1
   umbrella, MPI-1044 § "After the cut". Nothing here goes live before then.
 
+## Fourth wave (commit `3ed419f`): the honest "best alternatives" format
+
+Modelled on layer.ai/alternatives/comfyui-alternatives (title says "Best ComfyUI Alternatives
+(2026)", body is all Layer). Ours keeps the format and is honest: the ComfyUI and A1111 pages
+became "Best ... (2026)" with ComfyUI's strengths, who-should-use-what and an "Other alternatives"
+list (SwarmUI, InvokeAI, Krita AI Diffusion, Forge, Fooocus, Stability Matrix) plus ItemList
+JSON-LD. New vs pages: `/cubric-studio-vs-comfyui/`, `/fooocus-vs-comfyui/`,
+`/automatic1111-vs-comfyui/`. 14 guides, 16 pages pass the checks.
+
+**Competitor facts are DATED 2026-10-13** (licence, last release / last commit, model support, each
+from its own GitHub page). SwarmUI is the closest rival: it supports Krea 2, Wan, LTX-2, MiniMax
+H3 and auto-installs ComfyUI. Re-check the "last release" lines before publishing.
+
 ## Still open for articles
 
 - AI image generator for Mac (only once 2.x is tested on macOS)

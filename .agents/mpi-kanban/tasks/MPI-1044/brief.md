@@ -56,6 +56,7 @@ from master.
       `guides-mpi-1124` into `main` and push (Pages = live). Held for 2.1 by Fabio (2026-10-13): the
       guides describe 2.1-only features (the under-18 refusal, Qwen-Image 2.1, Character Sheet from
       Images / Editor, the 360 Pano Flow). Re-read each "from 2.1" line against what actually shipped,
+      and the competitor "last release" lines (checked 2026-10-13, see the MPI-1124 brief),
       then ask Fabio before the IndexNow / Bing re-crawl ping (MPI-1124 brief, Open item 4).
 
 ## Related, not owned here
