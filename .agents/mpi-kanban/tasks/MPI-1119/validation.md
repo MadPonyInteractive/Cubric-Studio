@@ -49,3 +49,13 @@ data reaches the agent). agent-corpus + agent-prompt-budget tests 6/6.
   existing descriptions' 79-87 chars, purpose first. Not eyeballed in the app: a fresh profile opens
   on the 18+ consent dialog, which an agent does not accept. npm test 3268 pass / 0 fail; eslint clean.
 - f46a52dd0 (guide) CI 38310800774 success; 8b0be7fb9 (plugin copy) CI 38311297705 success.
+
+## Reopened again (2026-10-13): Cosmo's 360-video explanation
+
+Live answer to "explain how a 360 video works" (Fabio): invented 'each point is a position plus the
+direction you're facing', said Render path 'stitches' the points, called Take picture 'exact', dropped
+2.39:1, improvised the 360 format, missed Convert to 360 video. Cause: the guide never said what a 360
+picture is or how the video is made. Added: '360 picture and 360 video' section; 'How Render path makes
+the video' (points = positions only, camera level facing travel - scenePath.js:77; rough pass then Wan
+repaints every frame); Take picture 'never call it exact or high resolution'; a cheat-list line for the
+question. agent-corpus + budget tests 6/6. Needs Fabio's re-ask to confirm.

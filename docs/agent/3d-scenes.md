@@ -44,6 +44,15 @@ the 360 Panorama Flow (which you can run), then Convert to 360 pano on the resul
 The menu item only appears on a still that is exactly 2:1: the app cannot tell a panorama from a
 wide banner, so it offers and the user decides.
 
+## What a 360 picture and a 360 video are
+
+- A **360 panorama** is one flat picture, 2:1, holding everything around ONE spot. Across is all
+  the way round: the left and right edges are the same direction, behind the camera. The top edge
+  is straight up, the bottom edge straight down. Flat, it looks stretched; a 360 viewer wraps it
+  round you so you look around from that spot.
+- A **360 video** is the same thing in every frame: played in the 360 player, the user looks
+  around while it plays. A 360 file has no depth in it; Convert to 360 pano adds the depth.
+
 ## Moving around the scene
 
 - **W / A / S / D** move, **Q / E** go down / up, **Z / C** roll. Hold **Shift** to move faster.
@@ -66,6 +75,15 @@ patches show: the scene only knows what that one spot could see. Rendering a pat
   path gets a warning: the camera moves fast and the video may smear, so a shorter path renders
   cleaner. The warning never blocks it.
 
+How Render path makes the video (say it this way, never as "stitching" the points):
+
+- Points are **positions only**, height included. They hold no direction: the camera stays level
+  and faces the way it travels. Where to LOOK is chosen later, in the 360 player.
+- The app first renders a rough 360 pass along the path through the scene, gaps and all. Then an
+  AI video model (Wan) repaints every frame from it, filling the gaps. That is why it takes about
+  half an hour, why Steer the video exists, and why the result is a new, smooth video rather
+  than an exact render of the scene.
+
 Render path needs the **3D Scene path video** add-on (about 20 GB) and Convert needs **3D
 Scene**; both install from the Model Library, under Plugins. The app says so if one is missing.
 
@@ -77,8 +95,9 @@ Left-click the path video's card: it opens in the 360 player.
 - **Drag** to look anywhere around the camera, even behind it; the view follows the path's turns.
 - **Frame** picks the picture's shape (16:9, 9:16, 1:1, 2.39:1); the frame on screen shows
   exactly what the picture will hold. **Lens** works as in the scene.
-- **Take picture** cleans up that view and saves it as a NEW image card in the gallery. The
-  result is a clean picture of about 1 megapixel; upscale it afterwards for a bigger one.
+- **Take picture** cleans up that view and saves it as a NEW image card in the gallery. An image
+  model does the cleaning, so it is a clean new picture OF that view, about 1 megapixel; never
+  call it exact or high resolution. Upscale it afterwards for a bigger one.
 
 ## A 360 video the user already has
 
@@ -94,4 +113,6 @@ take pictures exactly as above.
   then the controls they need next. Do not unload every section at once.
 - "What are these balls / this tube?" - the camera path: Add point, Render path, the video.
 - "How do I get pictures out?" - render the path, open the video card, Take picture.
+- "How does a 360 video work?" - the 360 section, then how Render path makes one, then the
+  player. Mention that their own 2:1 360 videos open in the player too (Convert to 360 video).
 - A wish to make a new place - offer the 360 Panorama Flow, then Convert to 360 pano.
