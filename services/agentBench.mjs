@@ -27,6 +27,7 @@ import { CROP_RATIOS } from '../js/utils/ratios.js';
 import { FLOWS, getFlowById } from '../js/data/flowsRegistry.js';
 import { agentFieldSpecs } from '../js/utils/declaredFields.js';
 import { normalizeRoutine, validateRoutine, routineSummary } from '../js/data/routineModel.js';
+import { CARD_MARKS, DEFAULT_GALLERY_SORT } from '../js/utils/galleryFilter.js';
 
 const { mediaRolesFor } = createRequire(import.meta.url)('../routes/connector.js');
 
@@ -151,7 +152,7 @@ const PARK_LOOKS = {
 // ── Fake tools (the agentTools.mjs surface) ───────────────────────────────────
 
 function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes = [], projects = PROJECTS, memoryFull = false, routines = [] }) {
-    const record = { installs: [], generates: [], looks: [], opens: [], writes: [], renames: [], creates: [], routines: [] };
+    const record = { installs: [], generates: [], looks: [], opens: [], writes: [], renames: [], creates: [], routines: [], gifs: [] };
     // MPI-970: the saved routines (one set for every project), answered the way /connector/routines does; a save is
     // checked by the app's own validator, so the model gets the refusal it would get there.
     const kept = new Map(routines.map((r) => [r.name, r]));
@@ -163,7 +164,30 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
         : models;
     const corpus = noGuides ? CORPUS.filter((e) => e.kind !== 'guide') : CORPUS;
     const store = new Map(notes.map((n) => [n.file, n]));
+    const globalStore = new Map();
+    const readNotes = (s, file, where) => {
+        if (!file) return { ok: true, notes: [...s.values()].map(({ file: f, title, hook }) => ({ file: f, title, hook: hook || '' })) };
+        const n = s.get(file);
+        return n ? { ok: true, file, text: n.text } : { ok: false, error: { code: 'UNKNOWN_NOTE', message: `No note "${file}" ${where}.` } };
+    };
     const described = new Map();
+    const marks = new Map();
+    let landed = null;   // the card a fake generate made, once one succeeds
+    // GET /connector/cards' shape: one row a card, and `files` mapping each ref to the card behind it.
+    const projectCards = () => {
+        if (!landed) return { cards: [], total: 0, files: {}, sets: {} };
+        const ref = path.basename(RESULT_PATH);
+        const card = { groupId: 'grp_1', name: 't2i_001', kind: landed.type, versions: 1,
+            ...(marks.has('grp_1') ? { mark: marks.get('grp_1') } : {}), ref };
+        return { cards: [card], total: 1, files: { [ref]: { path: RESULT_PATH, modelId: landed.modelId || null, itemId: 'item_1', groupId: 'grp_1' } }, sets: {} };
+    };
+    // gifJobs.js `_done`: edit and cutout land on the card they were given, the rest on a new one.
+    const gifDone = (verb, body, { groupId, type }) => {
+        record.gifs.push({ verb, ...body });
+        const file = `${PROJECT.folderPath}/Media/${verb}_001.${type === 'video' ? 'mp4' : type === 'image' ? 'png' : 'gif'}`;
+        return { ok: true, output: { itemId: `item_${verb}`, groupId, type, filePath: `/project-file?path=${encodeURIComponent(file)}`,
+            pixelDimensions: { w: 1024, h: 1024 }, ...(type === 'gif' ? { frames: 24, loop: 0 } : {}) } };
+    };
     const tools = {
         listModels: async () => structuredClone(served),
         readKnowledge: async (id) => {
@@ -172,11 +196,7 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
             return e ? { ok: true, id, title: e.title, text: e.text() } : { ok: false, error: { code: 'UNKNOWN_ENTRY', message: `No corpus entry "${id}".` } };
         },
         // The project's notes, in memory, answering the way /connector/memory does.
-        readMemory: async (folderPath, file) => {
-            if (!file) return { ok: true, notes: [...store.values()].map(({ file: f, title, hook }) => ({ file: f, title, hook: hook || '' })) };
-            const n = store.get(file);
-            return n ? { ok: true, file, text: n.text } : { ok: false, error: { code: 'UNKNOWN_NOTE', message: `No note "${file}" in this project.` } };
-        },
+        readMemory: async (folderPath, file) => readNotes(store, file, 'in this project'),
         writeMemory: async (folderPath, note) => {
             record.writes.push({ folderPath, ...note });
             if (!/^[a-z0-9][a-z0-9-]{0,60}\.md$/.test(note.file || '')) {
@@ -219,7 +239,8 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
                     return { ok: false, error: { code: 'MODEL_NOT_INSTALLED', message: `${m.name} cannot run ${body.operation}: not installed.` } };
                 }
             }
-            return { ok: true, output: { itemId: 'item_1', groupId: 'grp_1', type: m?.type || 'image', filePath: RESULT_URL } };
+            landed = { type: m?.type || 'image', modelId: body.modelId };
+            return { ok: true, output: { itemId: 'item_1', groupId: 'grp_1', type: landed.type, filePath: RESULT_URL } };
         },
         // One fixture for every image, or a map keyed by the attachment's filePath when a
         // case needs two images to answer differently: two portraits giving the identical
@@ -288,6 +309,73 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
         initAttachmentDir: async () => {},
         attachmentDir: () => 'C:/Temp/cubric-agent/attachments',
         cropDir: () => 'C:/Temp/cubric-agent/crops',
+        discardAttachments: async () => {},
+        // MPI-1132: every other tool the loop calls, answered the way its connector route does.
+        // Without them a model that reached one got TOOL_ERROR "is not a function" (the MPI-1129
+        // room run called list_cards and visible_cards, then guessed to STEP_LIMIT).
+        // ponytail: the project holds only the card a fake generate lands; a `cards` setup when a case needs more.
+        listCards: async (folderPath, groupId, limit, mark) => {
+            if (mark && !CARD_MARKS.some((m) => m.id === mark)) {
+                return { ok: false, error: { code: 'BAD_REQUEST', message: `mark must be one of: ${CARD_MARKS.map((m) => m.id).join(', ')}.` } };
+            }
+            const seen = projectCards();
+            if (!groupId) {
+                const cards = mark ? seen.cards.filter((c) => c.mark === mark) : seen.cards;
+                return { ok: true, ...seen, cards, total: cards.length };
+            }
+            const card = seen.cards.find((c) => c.groupId === groupId);
+            return card ? { ok: true, card, files: seen.files }
+                : { ok: false, error: { code: 'UNKNOWN_CARD', message: `No card "${groupId}" in this project. Use a groupId from list_cards.` } };
+        },
+        visibleCards: async () => ({ ok: true, order: DEFAULT_GALLERY_SORT.order, scope: DEFAULT_GALLERY_SORT.scope, filtered: false, filter: '', ...projectCards() }),
+        markCard: async (groupId, mark) => {
+            if (mark && !CARD_MARKS.some((m) => m.id === mark)) {
+                return { ok: false, error: { code: 'INVALID_MARK', message: `mark must be one of: ${CARD_MARKS.map((m) => m.id).join(', ')}, or false to clear it.` } };
+            }
+            if (!projectCards().cards.some((c) => c.groupId === groupId)) {
+                return { ok: false, error: { code: 'NO_SUCH_CARD', message: `No card "${groupId}" in the open project "${PROJECT.name}". Open the project it belongs to first.` } };
+            }
+            if (mark) marks.set(groupId, mark); else marks.delete(groupId);
+            return { ok: true, output: { groupId, mark: mark || null } };
+        },
+        makeGif: async (body) => gifDone('make', body, { groupId: 'grp_g1', type: 'gif' }),
+        editGif: async (body) => gifDone('edit', body, { groupId: 'grp_1', type: 'gif' }),
+        cutoutGif: async (body) => gifDone('cutout', body, { groupId: 'grp_1', type: 'gif' }),
+        gifToVideo: async (body) => gifDone('to-video', body, { groupId: 'grp_v1', type: 'video' }),
+        makeSheet: async (body) => gifDone('sheet', body, { groupId: 'grp_sh1', type: 'image' }),
+        // Local models, so nothing bills; a paid case swaps this for the price it wants asked about.
+        quoteGeneration: async () => ({ ok: true, output: { billed: false } }),
+        // Every fake generate has settled before the model's next step, so nothing is ever in flight.
+        cancelGeneration: async () => ({ ok: false, error: { code: 'NOT_IN_FLIGHT', message: 'Nothing in flight by that requestId: it already finished, was already cancelled, or was never submitted.' } }),
+        readGlobalMemory: async (file) => readNotes(globalStore, file, 'in your global notes'),
+        writeGlobalMemory: async (note) => {
+            record.writes.push({ scope: 'global', ...note });
+            if (!/^[a-z0-9][a-z0-9-]{0,60}\.md$/.test(note.file || '')) {
+                return { ok: false, error: { code: 'BAD_REQUEST', message: 'file must be a lowercase slug ending in .md, like "main-character.md".' } };
+            }
+            const created = !globalStore.has(note.file);
+            globalStore.set(note.file, note);
+            return { ok: true, file: note.file, created };
+        },
+        openFlow: async (body) => {
+            record.opens.push({ flowId: body.flowId });
+            const flow = getFlowById(body.flowId);
+            return flow ? { ok: true, output: { opened: flow.title } }
+                : { ok: false, error: { code: 'UNKNOWN_FLOW', message: `Unknown flow "${body.flowId}".` } };
+        },
+        openPrompt: async (body) => {
+            record.opens.push({ modelId: body.modelId, operation: body.operation });
+            const m = models.models.find((x) => x.id === body.modelId);
+            return m ? { ok: true, output: { opened: m.name || m.id } }
+                : { ok: false, error: { code: 'UNKNOWN_MODEL', message: `Unknown model "${body.modelId}".` } };
+        },
+        // POST /connector/install-flow, flattened as that route answers.
+        installFlow: async (flowId, start = false) => {
+            if (start) record.installs.push({ flowId, at: Date.now() });
+            const flow = models.flows.find((f) => f.id === flowId);
+            return flow ? { ok: true, flowId, title: flow.title, downloadGb: 0, started: start === true }
+                : { ok: false, error: { code: 'UNKNOWN_FLOW', message: `Unknown flow "${flowId}".` } };
+        },
     };
     return { tools, record };
 }
@@ -1068,4 +1156,4 @@ export function estimateUsd(price, cases = CASES.length) {
     return price ? cases * (55_000 * price.in + 1_500 * price.out) / 1e6 : null;
 }
 
-export { CASES, MODELS, calledAll };
+export { CASES, MODELS, calledAll, fakeTools };

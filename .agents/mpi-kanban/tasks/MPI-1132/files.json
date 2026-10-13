@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1132/",
+    "services/agentBench.mjs",
+    "tests/agent-bench.test.cjs"
+  ]
+}

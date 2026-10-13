@@ -452,3 +452,28 @@ test('MPI-1129: the ref a waited generate hands back is one a plain look reads, 
         DeepInfraEngine.prototype.chat = realChat;
     }
 });
+
+test('MPI-1132: the fake tools answer every tool the loop calls unguarded', async () => {
+    const { fakeTools } = await import('../services/agentBench.mjs');
+    const src = fs.readFileSync(path.join(ROOT, 'services', 'agentLoop.mjs'), 'utf8');
+    // `this._tools.engineIsLocal?.()` is optional on purpose; every other name the loop simply calls.
+    const called = new Set([...src.matchAll(/this\._tools\.(\w+)(?!\w|\?\.)/g)].map((m) => m[1]));
+    assert.ok(called.size > 20, 'the scan found the loop\'s tool calls');
+    const { tools } = fakeTools({});
+    const missing = [...called].filter((name) => typeof tools[name] !== 'function');
+    assert.deepEqual(missing, [], 'a bench model reaching one of these gets TOOL_ERROR "is not a function", not the app\'s answer');
+});
+
+test('MPI-1132: list_cards sees the card a generate landed, and a mark sticks to it', async () => {
+    const { fakeTools } = await import('../services/agentBench.mjs');
+    const { tools } = fakeTools({});
+    assert.deepEqual((await tools.listCards('x')).cards, [], 'an empty project lists nothing');
+    assert.equal((await tools.generate({ modelId: 'sdxl-realistic', operation: 't2i' })).ok, true);
+    const seen = await tools.listCards('x');
+    assert.equal(seen.cards[0].groupId, 'grp_1');
+    assert.equal(seen.files[seen.cards[0].ref].itemId, 'item_1', 'the ref resolves to the generated item');
+    assert.equal((await tools.markCard('grp_1', 'dot')).ok, true);
+    assert.equal((await tools.listCards('x', undefined, undefined, 'dot')).cards.length, 1);
+    assert.equal((await tools.markCard('grp_nope', 'dot')).error.code, 'NO_SUCH_CARD');
+    assert.equal((await tools.visibleCards()).cards[0].mark, 'dot');
+});
