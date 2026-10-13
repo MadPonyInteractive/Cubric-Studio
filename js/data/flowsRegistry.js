@@ -1910,12 +1910,10 @@ export const FLOWS = [
                 tickerLabel: 'Edges',
                 title: 'Choose the edges to join',
                 hint: 'Drag a handle in from an edge: the band between the handle and the edge is repainted to meet the opposite side.',
-                fields: [
-                    { id: 'tiles', type: 'slider', label: 'Preview tiles', min: 1, max: 4, step: 1, default: 1 },
-                    { id: 'lightingFlatten', type: 'slider', label: 'Even out lighting', min: 0, max: 1, step: 0.05, default: 0 },
-                ],
             },
         ],
+        // The result carries the Tiles slider (`result.tiles`): seams can only be judged on what
+        // landed. Lighting shows only in the result too, so it sits with Generate (Fabio, 2026-10-13).
         fields: [
             {
                 id: 'direction', type: 'select', label: 'Which way it tiles', default: 'both',
@@ -1933,6 +1931,7 @@ export const FLOWS = [
                 label: 'What the picture shows (empty: described for you)',
                 placeholder: 'e.g. a mossy cobblestone street from above',
             },
+            { id: 'lightingFlatten', type: 'slider', label: 'Even out lighting', min: 0, max: 1, step: 0.05, default: 0 },
         ],
         describe: [
             { to: 'Input_Positive', media: 'source',

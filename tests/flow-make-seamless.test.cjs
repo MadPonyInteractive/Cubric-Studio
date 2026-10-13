@@ -104,8 +104,20 @@ test('the agent names the joins with `direction`; the Flow screen\'s gizmo value
     assert.deepEqual(sent[0].handles, { left: 10, right: 10, top: 0, bottom: 0 });
     assert.equal(sent[0].lightingFlatten, 0.5);
     sent.length = 0;
-    await getPlanner(flow.operation)(flow, { image1: { left: 0, right: 0, top: 20, bottom: 5, fields: { lightingFlatten: 0.25 } }, direction: 'both' },
+    // The Flow screen's shape: the gizmo by role, its own fields merged in flat (MpiBaseFlow._planPasses).
+    await getPlanner(flow.operation)(flow, { image1: { left: 0, right: 0, top: 20, bottom: 5 }, direction: 'both', lightingFlatten: 0.25 },
         [SOURCE], { fetch });
     assert.deepEqual(sent[0].handles, { left: 0, right: 0, top: 20, bottom: 5 });
     assert.equal(sent[0].lightingFlatten, 0.25);
+});
+
+test('the Edges step only picks the bands: Tiles is on the result, lighting with Generate (Fabio, 2026-10-13)', async () => {
+    const { getFlowById } = await esm('js/data/flowsRegistry.js');
+    const flow = getFlowById('make-seamless');
+    const edges = flow.steps.find(s => s.kind === 'edges');
+    assert.ok(!edges.fields?.length, 'no field on the Edges step: nothing there shows before the result lands');
+    assert.equal(flow.result?.tiles, true, 'the result carries the Tiles slider');
+    assert.ok(flow.fields.some(f => f.id === 'lightingFlatten'), 'Even out lighting is a Generate field');
+    const frame = fs.readFileSync(repo('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js'), 'utf8');
+    assert.match(frame, /planner\(flow, \{ \.\.\._fieldValues, \.\.\._stepValues \}/, 'the Flow screen hands its own fields to the planner');
 });

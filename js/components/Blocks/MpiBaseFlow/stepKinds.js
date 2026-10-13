@@ -60,8 +60,7 @@ export const STEP_KINDS = {
     place: MpiStepPlace,
     // `edges` is the band-selection gizmo for Make Seamless (MPI-1101): four
     // per-side handles that set how far in from each edge the repaint band runs,
-    // in % of that image dimension. `onField('tiles', n)` switches from the
-    // handle view to a CSS-tiled preview of n copies on the joined axes.
+    // in % of that image dimension. Its tiled preview is on the result, not here.
     edges: MpiStepEdges,
     // mask, light, mood… as they are built.
 };

@@ -151,17 +151,12 @@ const HANDLE_HIT_PX = 8;
  * Shows a picture with four draggable band handles — one per side.
  * Each handle is a line at `side%` of the image edge (in original-image
  * space) and controls how wide the repaint band will be on that side.
- *
- * When a `tiles` field is wired (`el.onField('tiles', n)`):
- *   n = 1 → handle view (default).
- *   n > 1 → CSS-tiled view: the display copy is repeated n times on the
- *            joined axes (left/right → x, top/bottom → y) using
- *            `background-repeat`, one GPU decode.
+ * The tiled preview lives on the RESULT (`result.tiles`), not here: seams
+ * can only be judged on what landed (Fabio, 2026-10-13).
  *
  * Contract (every step kind):
  *   props  { media, value, onChange, step, source, sourceValue }
  *   el.getValue() → StepEdgesValue
- *   el.onField(id, val) → called by the frame when a sibling field changes
  *
  * @param {StepEdgesProps} props
  */
@@ -173,7 +168,6 @@ export const MpiStepEdges = ComponentFactory.create({
         <div class="mpi-step-edges">
             <div class="mpi-step-edges__stage" id="step-edges-stage">
                 <canvas class="mpi-step-edges__canvas" id="step-edges-canvas"></canvas>
-                <div class="mpi-step-edges__tiles" id="step-edges-tiles" aria-hidden="true"></div>
             </div>
         </div>`,
 
@@ -181,17 +175,12 @@ export const MpiStepEdges = ComponentFactory.create({
         const _unsubs = [];
         const stageEl  = qs('#step-edges-stage',  el);
         const canvasEl = /** @type {HTMLCanvasElement} */ (qs('#step-edges-canvas', el));
-        const tilesEl  = qs('#step-edges-tiles',  el);
         const ctx = canvasEl.getContext('2d');
 
-        /** Display copy once loaded — used as background-image src for tiles view. */
-        let _displaySrc = '';
         /** Whether the source image has loaded. */
         let _loaded = false;
         /** Original image dimensions (handles are in original-px space). */
         let _natural = { w: 1, h: 1 };
-        /** Current tile count (from onField). 1 = handle view, >1 = tiles view. */
-        let _tiles = 1;
 
         /** Screen-space view transform over original image space. */
         const view = { offsetX: 0, offsetY: 0, scale: 1 };
@@ -245,7 +234,7 @@ export const MpiStepEdges = ComponentFactory.create({
             if (!ctx) return;
             const { width: cw, height: ch } = canvasEl;
             ctx.clearRect(0, 0, cw, ch);
-            if (!_loaded || _tiles > 1) return;
+            if (!_loaded) return;
 
             // Image
             ctx.drawImage(
@@ -374,27 +363,10 @@ export const MpiStepEdges = ComponentFactory.create({
             props.onChange?.({ ..._val });
         }
 
-        // ── Tiles view ────────────────────────────────────────────────────────
-
-        function _updateTilesView() {
-            if (_tiles > 1 && _loaded && _displaySrc) {
-                const axes = axesFromValue(_val);
-                const { repeat, size } = repeatFromTiles(_tiles, axes);
-                tilesEl.style.backgroundImage    = `url("${_displaySrc}")`;
-                tilesEl.style.backgroundSize     = size;
-                tilesEl.style.backgroundRepeat   = repeat;
-                tilesEl.style.backgroundPosition = '0 0';
-                stageEl.classList.add('mpi-step-edges__stage--tiles');
-            } else {
-                stageEl.classList.remove('mpi-step-edges__stage--tiles');
-                _draw();
-            }
-        }
-
         // ── Pointer events ────────────────────────────────────────────────────
 
         _unsubs.push(on(canvasEl, 'mousedown', (ev) => {
-            if (!_loaded || _tiles > 1) return;
+            if (!_loaded) return;
             const p = _toImage(ev);
             const hit = _hitTest(p.x, p.y);
             if (!hit) return;
@@ -403,7 +375,7 @@ export const MpiStepEdges = ComponentFactory.create({
         }));
 
         _unsubs.push(on(window, 'mousemove', (ev) => {
-            if (!_loaded || _tiles > 1) return;
+            if (!_loaded) return;
             const p = _toImage(ev);
             if (!_dragging) {
                 const hit = _hitTest(p.x, p.y);
@@ -451,11 +423,14 @@ export const MpiStepEdges = ComponentFactory.create({
         }
 
         _unsubs.push(on(_imgEl, 'load', () => {
-            _displaySrc = _imgEl.src;
-            _natural    = originalSize(_imgEl);
-            _loaded     = true;
+            _natural = originalSize(_imgEl);
+            _loaded  = true;
             _syncCanvasSize();
-            _updateTilesView();
+            // The ResizeObserver usually sized the canvas BEFORE the load, so the sync above
+            // returns early and never fits: without this the picture drew at scale 1 from its
+            // top-left corner (Fabio, 2026-10-13). MpiStepCrop refits here the same way.
+            _refit();
+            _draw();
         }));
 
         const _ro = new ResizeObserver((entries) => {
@@ -471,13 +446,6 @@ export const MpiStepEdges = ComponentFactory.create({
         if (_url) setDisplaySrc(_imgEl, _url);
 
         // ── Public interface ──────────────────────────────────────────────────
-
-        /** Called by the frame when a sibling field value changes. */
-        el.onField = (id, val) => {
-            if (id !== 'tiles') return;
-            _tiles = Math.max(1, Number(val) || 1);
-            _updateTilesView();
-        };
 
         el.getValue = () => ({ ..._val });
 

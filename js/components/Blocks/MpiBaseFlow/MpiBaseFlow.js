@@ -3751,7 +3751,8 @@ export const MpiBaseFlow = ComponentFactory.create({
         async function _planPasses(mediaItems) {
             const planner = getPlanner(flow.passes) || getPlanner(flow.operation);
             if (!planner) return null;
-            return planner(flow, _stepValues, mediaItems, {
+            // The Flow's own fields flat beside the role-keyed step values: the agent's shape.
+            return planner(flow, { ..._fieldValues, ..._stepValues }, mediaItems, {
                 placeAsset: (file) => _placePreviewAsset(file, 'image', state.currentProject),
             });
         }

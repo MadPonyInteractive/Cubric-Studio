@@ -4,9 +4,7 @@
    A canvas stage where the user drags four handles — one per side —
    to set how wide the repaint band is on each edge (in % of the image).
    Bands are drawn as semi-transparent overlays; handles are dashed lines.
-
-   When tiles > 1 the canvas is hidden and the stage shows the display
-   copy repeated n times on the joined axes via CSS background-repeat.
+   The tiled preview is the result's, not this step's.
 ═══════════════════════════════════════════════════════════════ */
 
 .mpi-step-edges {
@@ -29,31 +27,9 @@
     overflow: hidden;
 }
 
-/* ── Handle view (default) ────────────────────────────────────────────── */
-
 .mpi-step-edges__canvas {
     display: block;
     width: 100%;
     height: 100%;
     cursor: default;
-}
-
-/* ── Tiles view ───────────────────────────────────────────────────────── */
-
-/* Hidden by default; activated via the --tiles modifier on the stage. */
-.mpi-step-edges__tiles {
-    display: none;
-    position: absolute;
-    inset: 0;
-    /* background-image, background-size, background-repeat, background-position
-       set dynamically by the component; layout only here. */
-}
-
-/* When the stage carries --tiles, swap the two children. */
-.mpi-step-edges__stage--tiles .mpi-step-edges__canvas {
-    display: none;
-}
-
-.mpi-step-edges__stage--tiles .mpi-step-edges__tiles {
-    display: block;
 }

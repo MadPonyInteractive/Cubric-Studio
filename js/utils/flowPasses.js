@@ -168,12 +168,12 @@ async function _seamlessPlanner(flow, stepValues, mediaItems, deps) {
     };
     if (!sourcePath) fail('needs a picture: add one on the first step.');
 
-    // The Flow screen stores the gizmo's value (and its step fields under `.fields`) by role;
-    // the agent passes flat field values, `direction` and `lightingFlatten` among them.
+    // The gizmo's value is stored by role; the Flow's own fields (`direction`, `lightingFlatten`)
+    // arrive flat on both paths (the Flow screen merges `_fieldValues` in, the agent sends them flat).
     const edgesStep = (flow?.steps || []).find(s => s.kind === 'edges');
     const edgesValue = edgesStep ? stepValues?.[edgesStep.role] : null;
     const handles = edgesFor(edgesValue, stepValues?.direction);
-    const lightingFlatten = edgesValue?.fields?.lightingFlatten ?? stepValues?.lightingFlatten ?? 0;
+    const lightingFlatten = stepValues?.lightingFlatten ?? 0;
 
     const fetchFn = deps?.fetch || globalThis.fetch;
 
