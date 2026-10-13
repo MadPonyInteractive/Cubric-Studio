@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1125", "at": "2026-10-13T06:38:58+01:00", "actor": "claude", "column": "todo", "title": "Cosmo's per-request prompt: always-sent rules vs pointers read on demand"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1125", "at": "2026-10-13T07:00:16+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio agreed all four options, option 5 and the chat-length card"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1125", "at": "2026-10-13T08:23:49+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Shipped eebda0746 + 223fa996a; CI green; harness 32/38 3/3, rest one-offs"}
