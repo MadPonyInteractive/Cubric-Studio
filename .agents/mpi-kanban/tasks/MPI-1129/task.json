@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1129",
+  "title": "Agent harness: look on a result card throws in the bench (no storedLook fake), cases end on STEP_LIMIT",
+  "description": "second-picture-room-every-editor, second-picture-character and outpaint-grows-one-side end on STEP_LIMIT ~1 in 3-9 runs: a plain look on a generated result throws 'this._tools.storedLook is not a function' (bench fakeTools lacks the per-card description store), the model reads TOOL_ERROR as a bad ref and guesses grp_1 / filename / raw path until the round limit. Fix: give fakeTools the store.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "accepted",
+  "created_at": "2026-10-13T07:30:39Z",
+  "updated_at": "2026-10-13T07:58:00Z",
+  "links": {
+    "checklist": "checklist.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "validation": "validation.md"
+  }
+}
