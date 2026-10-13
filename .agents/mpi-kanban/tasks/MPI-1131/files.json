@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-1131/",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/sampler.py",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/changelog.md",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/tests/test_windowed_progress.py",
+    "dev_configs/node_lock.json",
+    "js/data/progressStages.js",
+    "docs/models/h3/windowing.md"
+  ]
+}

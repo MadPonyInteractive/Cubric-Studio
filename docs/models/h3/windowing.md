@@ -85,6 +85,11 @@ The 56-frame run is worth keeping in mind for a different reason: a dispatch tha
 set `Input_Duration` inherits the runtime's baked value, and fl2va bakes **2**, which is
 below H3's 124-frame trained minimum.
 
+**However many windows run, the refine is ONE progress bar** (steps × windows, MPI-1131),
+so the status bar's stage total never grows mid-run. A bar per window read 2/2 → 3/3 → 4/4,
+each looking like the last step. The count is NOT predicted app-side: the `Window Frames`
+formula gives only the ceiling, and the count needs `plan_windows` — a second copy to drift.
+
 **Because `window_frames` is a link, the app can never write it** and node 712 needs no
 `Input_Window` title. Re-title it only if an app-side override is ever wanted — and note
 that a title matching no node is skipped silently, so a half-done job is invisible

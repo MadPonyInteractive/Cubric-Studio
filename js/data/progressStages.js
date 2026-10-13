@@ -55,6 +55,9 @@ export const PROGRESS_STAGES = Object.freeze({
     // there is no _stage2 twin, because the lazy MpiSaveLatent `enabled` gate genuinely
     // skips the stage-1 sampler on a continue rather than running and discarding it
     // (proved here: the stage2 run emitted NO latent and only the 15-step bar).
+    // A WINDOWED stage 2 (MPI-699) is still ONE bar: MpiWindowedSampler runs a single
+    // steps x windows bar across its windows (MPI-1131). Before that it emitted a bar
+    // per window and the total self-corrected upward mid-run (2/2 -> 3/3 -> 4/4).
     // Beware when re-counting: tqdm prints each finished bar TWICE, so a raw grep of
     // "100%" lines reads 4 for the single run. Count distinct bars, not lines.
     //

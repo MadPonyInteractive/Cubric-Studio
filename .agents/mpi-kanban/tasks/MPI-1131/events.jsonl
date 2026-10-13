@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1131", "at": "2026-10-13T09:00:23+01:00", "actor": "claude", "column": "todo", "title": "H3 windowed refine: status bar climbs 2/2 -> 3/3 -> 4/4"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1131", "at": "2026-10-13T09:01:08+01:00", "actor": "claude", "from": "todo", "to": "doing"}
