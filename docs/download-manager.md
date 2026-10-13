@@ -54,8 +54,13 @@ MODEL (MPI-513 D4):** after a pass that moved a dep it calls the injected
 orphan reaches the user as a real `download:failed` and an `installing` job (nodes
 extracting) is never rolled to done mid-extract (MPI-317 F4's root). A dep the
 transport still holds (`_isDepTransportLive`: an active local downloader, queued for a
-local slot, or on the remote driver) settles only through the transport — a local file
-is byte-complete while its sha256 is still being checked. Runs on SSE connect, a 15s
+local slot, sha256-verifying locally (`_verifyingDeps`), or on the remote driver) settles
+only through the transport — a local file is byte-complete while its sha256 is still
+being checked. The verify set is separate because `_activeDownloaders` is the slot count
+and the stall watchdog's register; before it existed the 'end' handler dropped the dep
+first, the reconciler settled it mid-verify, and the model toasted "installed" while its
+marker made the client's re-sync read NOT installed (MPI-1121,
+`tests/download-verify-holds-transport.test.cjs`). Runs on SSE connect, a 15s
 poll while any job is non-terminal, and after uninstall. Tests:
 `tests/install-reconciler.test.cjs`.
 

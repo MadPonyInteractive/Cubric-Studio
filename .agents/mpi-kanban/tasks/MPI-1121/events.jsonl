@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1121", "at": "2026-10-13T01:11:55+01:00", "actor": "claude", "column": "doing", "title": "A model reads installed early: the toast fires while its weight is still being verified, and the app never re-checks"}

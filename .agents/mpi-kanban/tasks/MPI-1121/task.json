@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1121",
+  "title": "A model reads installed early: the toast fires while its weight is still being verified, and the app never re-checks",
+  "description": "Fabio installed ILL Anime 2026-10-13: the 'installed' toast fired, but the model was missing from the project's picker until he opened the Model Library. Root cause: the local downloader's 'end' handler drops the dep from _activeDownloaders BEFORE the sha256 verify (a resumed download re-reads the whole 6.9 GB, ~34 s). The reconciler skips deps the transport still holds (_isDepTransportLive), so it saw all bytes in, nothing holding it, settled the dep complete, and the model rollup broadcast download:complete at 00:01:42. The renderer re-synced while the .cubricdl marker was still on disk, so ILL Anime read not-installed. The real end at 00:02:03 broadcasts a per-dep complete only (modelId null), which never re-syncs. Fix: the dep stays transport-live through its verify.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-13T01:11:55+01:00",
+  "updated_at": "2026-10-13T01:11:55+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

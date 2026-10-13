@@ -629,6 +629,13 @@ function _uninstallAllowedRoot(dep, { managedModelsRoot, defaultCustomNodesRoot 
 
 // ── Job Storage ────────────────────────────────────────────────────────────────
 const _activeDownloaders = new Map(); // depId → FileDownloader (actively downloading)
+// MPI-1121 — deps whose bytes are all in but whose sha256 verify has not settled yet.
+// Not in _activeDownloaders: that map is the concurrency slot count and the stall
+// watchdog's register, and a verify moves no bytes. The reconciler must still see the
+// dep as held, or it settles it on all-bytes-in and the model announces "installed"
+// while its `.cubricdl` marker is still on disk (ILL Anime, 2026-10-13: 21 s early, a
+// resumed 6.9 GB re-hash), so the client's one re-sync reads it NOT installed.
+const _verifyingDeps = new Set();
 // 3 parallel deps. Was 1 (commit 47e924a) only because parallel HF/Xet streams
 // fought over throttled bandwidth and made each other worse. Now that all MPI
 // weights are on R2 (free egress, no wave-throttle, MPI-129), parallel pulls no
@@ -826,6 +833,7 @@ class FileDownloader {
         // Download finished successfully
         this._downloader.on('end', async () => {
             if (this._downloader !== dh) return; // MPI-718 — a replaced stream's late event
+            _verifyingDeps.add(this.depJob.id); // MPI-1121 — held until the status below settles
             _activeDownloaders.delete(this.depJob.id);
             // MPI-296 — finalize the incrementally-computed digest so _verifySha256
             // can compare in-memory instead of re-reading the whole file from disk.
@@ -880,6 +888,8 @@ class FileDownloader {
                 _broadcast('download:failed', { depId: this.depJob.id, error: err.message });
                 _checkModelJobsComplete();
                 _startPendingDeps();
+            } finally {
+                _verifyingDeps.delete(this.depJob.id);
             }
         });
 
@@ -1609,9 +1619,10 @@ function _registerJob(modelId, engine, entries, silent = false) {
 }
 
 // True while the transport holds the dep: downloading locally, queued for a local
-// slot under a downloading model, or queued/installing on the remote driver.
+// slot under a downloading model, verifying its sha256 locally, or queued/installing
+// on the remote driver.
 function _isDepTransportLive(depId) {
-    if (_activeDownloaders.has(depId) || _remoteDepSpecs.has(depId)) return true;
+    if (_activeDownloaders.has(depId) || _verifyingDeps.has(depId) || _remoteDepSpecs.has(depId)) return true;
     const d = store.depJob(depId);
     return Boolean(d && d.status === 'queued' && _depHasActiveDownloadConsumer(depId));
 }
@@ -3843,6 +3854,7 @@ module.exports = {
     _pumpRemoteInstalls, // MPI-690 — exported for unit test (concurrency cap refill)
     _startPendingDeps, // MPI-513 — exported for unit test (local pump skips Pod records)
     _activeDownloaders, // MPI-513 — exported for unit test only; never mutate outside tests
+    _isDepTransportLive, // MPI-1121 — exported for unit test (held through the verify)
     _onRemoteStreamClosed, // MPI-691 — exported for unit test (restart recovery)
     _recoverOrphanedRemoteInstalls, // MPI-691 — exported for unit test (re-issue bound)
     _failOutstandingRemoteDeps, // MPI-539 — exported for unit test (abandon-loudly path)
