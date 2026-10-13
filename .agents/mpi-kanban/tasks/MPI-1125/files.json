@@ -21,6 +21,7 @@
     "js/components/Compounds/MpiAgentChat/MpiAgentChat.css",
     "js/services/agentService.js",
     "js/events.js",
-    "services/agentGifTools.mjs"
+    "services/agentGifTools.mjs",
+    "docs/releases/UNRELEASED.md"
   ]
 }

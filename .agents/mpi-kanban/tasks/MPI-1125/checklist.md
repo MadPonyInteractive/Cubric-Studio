@@ -13,4 +13,4 @@ Decided by Fabio 2026-10-13 (brief.md). Order = cheapest and safest first.
 - [x] Budgets lowered to measured sizes; docs/agent-chat.md updated
 - [x] Live check of the floor (tokens + cache) after the change
 
-Open: the `docs/releases/UNRELEASED.md` line for the long-chat card (a live peer holds that file).
+- [x] `docs/releases/UNRELEASED.md`: the long-chat card line under What's new.
