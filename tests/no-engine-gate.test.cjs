@@ -74,6 +74,13 @@ test('engine user (skip off): no request at all, not refused', async () => {
     assert.deepEqual(urls.filter(u => u !== '/log'), []);
 });
 
+// MPI-1126: an outside agent reaches the app while the boot gate still holds the install screen
+// up, skip off and no engine. Rule 1 would let its install through to a dead end.
+test('skip off, no engine, asked past the gate (pastGate: false): refused', async () => {
+    const { result } = await withStubs({ skip: false }, () => hasNoEngine({ pastGate: false }));
+    assert.equal(result, true);
+});
+
 test('Enhance / Describe backend: comfy falls to endpoint only with no engine', async () => {
     assert.equal((await withStubs({ skip: true }, () => runnableBackend('comfy'))).result, 'endpoint');
     assert.equal((await withStubs({ skip: false }, () => runnableBackend('comfy'))).result, 'comfy');

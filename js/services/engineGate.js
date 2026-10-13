@@ -44,10 +44,15 @@ export const NO_ENGINE_CODE = 'no_engine';
  * because a health check hiccuped is worse than letting them meet the engine
  * error they would have met anyway.
  *
+ * `pastGate: false` drops rule 1 for a caller that can arrive WHILE the boot gate still holds
+ * the install screen up: an outside agent over the connector (MPI-1126). Everything in the UI
+ * sits behind that gate, so rule 1 holds for it.
+ *
+ * @param {{ pastGate?: boolean }} [opts]
  * @returns {Promise<boolean>}
  */
-export async function hasNoEngine() {
-    if (!(state.runpodConfig || {}).skipLocalEngine) return false;
+export async function hasNoEngine({ pastGate = true } = {}) {
+    if (pastGate && !(state.runpodConfig || {}).skipLocalEngine) return false;
 
     try {
         await remoteEngineClient.refresh();

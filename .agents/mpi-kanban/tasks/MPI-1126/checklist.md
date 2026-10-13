@@ -8,4 +8,4 @@
 - [x] Tests: tests/mcp.test.cjs (+ flow-licence-surface, agent-no-delete); full suite 3286 pass, 0 fail
 - [x] Docs: docs/mcp-server.md, docs/README.md, bridge manifest tool list (0.3.1)
 - [x] Live: install_flow voice-changer through MCP on an isolated instance, quote -> confirm -> downloaded -> installed: true -> ALREADY_INSTALLED
-- [ ] Live: a REAL first engine install through install_engine (needs a machine or engine root with no ComfyUI; several GB)
+- [x] Live: a REAL first engine install through install_engine on an empty engine root (2026-10-13, 9 min)

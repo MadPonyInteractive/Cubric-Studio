@@ -1885,7 +1885,8 @@ async function _listModels(jobId) {
 }
 
 // A local download with no engine to run it is a dead end (engineGate.js). Cloud models and a
-// connected Pod need no local engine; hasNoEngine() already answers false for a Pod.
+// connected Pod need no local engine. `pastGate: false`: an agent can call while the boot gate
+// still holds the install screen up.
 const NO_ENGINE = 'Nothing was installed: there is no ComfyUI engine on this computer to run it. install_engine installs it (several GB), or the user can connect a RunPod Pod in Settings > Remote.';
 
 /**
@@ -1912,7 +1913,7 @@ async function _installModel(jobId, input = {}) {
     if (!missingDeps.length) {
         return _report(jobId, { ok: false, error: { code: 'ALREADY_INSTALLED', message: `${model.name} is already installed.` } });
     }
-    if (await hasNoEngine()) return _fail(jobId, 'NO_ENGINE', NO_ENGINE);
+    if (await hasNoEngine({ pastGate: false })) return _fail(jobId, 'NO_ENGINE', NO_ENGINE);
 
     const downloadGb = missingDeps.reduce((sum, dep) => sum + (dep.size ? sizeToGb(dep.size) : 0), 0);
 
@@ -1944,7 +1945,7 @@ async function _installFlow(jobId, input = {}) {
     const avail = flowAvailability(flow);
     if (avail.reason) return _fail(jobId, 'UNAVAILABLE', `${flow.title} cannot be installed: ${avail.reason}`);
     if (avail.available) return _fail(jobId, 'ALREADY_INSTALLED', `${flow.title} is already installed.`);
-    if (await hasNoEngine()) return _fail(jobId, 'NO_ENGINE', NO_ENGINE);
+    if (await hasNoEngine({ pastGate: false })) return _fail(jobId, 'NO_ENGINE', NO_ENGINE);
 
     const out = { flowId: flow.id, title: flow.title, downloadGb: Math.round(flowDownloadGb(flow) * 10) / 10 };
     // `downloadService.start()` raises the licence screen in the app for each of these.
