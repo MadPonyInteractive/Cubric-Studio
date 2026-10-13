@@ -290,6 +290,16 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
 } else {
+  // MPI-1120: start every run on a NEW HTTP disk cache. A run killed mid-write (a crash,
+  // End Task, Ctrl+C twice) leaves a broken one: images and videos then fail with
+  // ERR_CACHE_READ_FAILURE and queue ~16 s each behind the stuck loads, and
+  // session.clearCache() empties it without repairing it. Only after the lock: a second
+  // launch must not pull the cache out from under the running instance.
+  try {
+    fs.rmSync(path.join(app.getPath('sessionData'), 'Cache'), { recursive: true, force: true });
+  } catch (err) {
+    logger.warn('main', `could not reset the HTTP cache: ${err.message}`);
+  }
   app.on('second-instance', () => {
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
@@ -451,11 +461,9 @@ function createWindow() {
   // Remove the default menu
   Menu.setApplicationMenu(null);
 
-  // Clear cache to ensure local dev static files are updated
-  mainWindow.webContents.session.clearCache().then(() => {
-    // Load the web app served by Express via 127.0.0.1 for host consistency
-    mainWindow.loadURL(SERVER_ORIGIN);
-  });
+  // Load the web app served by Express via 127.0.0.1 for host consistency. The HTTP
+  // cache is already new for this run (deleted after the single-instance lock).
+  mainWindow.loadURL(SERVER_ORIGIN);
 
   // MPI-410: `ready-to-show` is NOT "the app is live" — it fires on Chromium's
   // network error page too, so on a slow start the splash was closed and the error

@@ -1,1 +1,1 @@
-{"schema": "mpi-kanban/task-files/v1", "files": ["js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js", "tests/gallery-card-teardown.test.cjs"]}
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js", "tests/gallery-card-teardown.test.cjs", "main.js", "tests/http-cache-reset.test.cjs", "docs/releases/UNRELEASED.md"]}
