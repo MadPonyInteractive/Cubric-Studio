@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1124", "at": "2026-10-13T06:36:35+01:00", "actor": "claude", "column": "doing", "title": "Website: search articles so AI search agents find Cubric Studio"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1124", "at": "2026-10-13T07:37:28+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Guides drafted and verified on website branch; publish moved to MPI-1044 at the 2.1 cut"}
