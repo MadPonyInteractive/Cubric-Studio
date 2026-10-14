@@ -13,9 +13,14 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
 - [x] UNRELEASED.md: engine line vs 4.88 GB encoder (fa399f34f), background-jobs line, old-exe line.
 - [x] MPI-1104 / MPI-1105 / MPI-1110 closed; MPI-740 fader is dev-only (Components page), not a 2.1 item.
 - [ ] Wait for Character Sheet Editor (MPI-1086) and Make seamless (MPI-1101); if either adds an
-      installRequirements:true node, rebuild the Pod image (v0.26.1).
+      installRequirements:true node, rebuild the Pod image (v0.26.1). 2026-10-14: Make seamless DONE;
+      Character Sheet Editor still in doing. No node_lock change from either so far: no rebuild.
+      Fabio: the Pod session runs only once BOTH are finished (his yes covers ~$2, cap $5).
 - [ ] One Pod session on the v0.26.0 RELEASE image: `--flows all` smoke (360 Panorama, Render path, both
       Character Sheet Flows, Video Edit, Transcribe, Make seamless, Qwen 2.1), describe-encoder check
-      (MPI-1045), MPI-1097 live proof. Price and run count to Fabio first.
+      (MPI-1045), MPI-1097 live proof. Price and run count to Fabio first. 2026-10-14: priced ~$2 on an
+      RTX PRO 4500 (now first in GPU_ORDER), cap $5, Fabio said yes. The plain run is now changed-only
+      (3bb6119e9), but THIS one is still the full set: third-party pins moved since 10-08. Needs Fabio's
+      own app started `npm start nodev` (default profile = RunPod key; nodev = v0.26.0 release image).
 - [ ] Stamp 2.1 (`/mpi-version-bump`), `release:check`, `/mpi-release`.
 - [ ] Same day: Claude Desktop bundle 0.3.2 (public steps need Fabio's yes), website guides (MPI-1124).
