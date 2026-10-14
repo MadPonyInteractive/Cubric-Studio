@@ -12,11 +12,20 @@ const os = require('node:os');
 
 const { projectSummary } = require('../routes/projectListCache.js');
 
+// A folder touched in the last 2 s is never cached (projectListCache RACY_MS), so a project
+// the tests expect a hit on is dated a minute back, as one untouched since its last save.
+async function age(mediaDir) {
+    const then = new Date(Date.now() - 60_000);
+    await fs.utimes(path.join(mediaDir, '.meta'), then, then);
+    await fs.utimes(mediaDir, then, then);
+}
+
 async function project() {
     const mediaDir = path.join(await fs.mkdtemp(path.join(os.tmpdir(), 'mpi1058-')), 'Media');
     await fs.ensureDir(path.join(mediaDir, '.meta'));
     await fs.writeFile(path.join(mediaDir, 't2i_001.png'), Buffer.alloc(10));
     await fs.writeJson(path.join(mediaDir, '.meta', 'a.json'), { filePath: 'x' });
+    await age(mediaDir);
     let scans = 0;
     const findCover = async () => { scans++; return { recentThumbnail: `/cover/${scans}`, recentThumbnailType: 'image' }; };
     return { mediaDir, findCover, scans: () => scans };
@@ -48,6 +57,14 @@ test('a sidecar re-saved through tmp + rename invalidates the cover', async () =
     const meta = path.join(p.mediaDir, '.meta', 'a.json');
     await fs.writeJson(`${meta}.tmp`, { filePath: 'x', thumbPath: 'z' });
     await fs.rename(`${meta}.tmp`, meta);
+    await projectSummary(p.mediaDir, p.findCover);
+    assert.equal(p.scans(), 2);
+});
+
+test('a folder changed this instant is never cached: a re-save in the same tick would keep its mtime', async () => {
+    const p = await project();
+    await fs.writeJson(path.join(p.mediaDir, '.meta', 'b.json'), { filePath: 'y' });
+    await projectSummary(p.mediaDir, p.findCover);
     await projectSummary(p.mediaDir, p.findCover);
     assert.equal(p.scans(), 2);
 });

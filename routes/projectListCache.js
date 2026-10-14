@@ -48,14 +48,22 @@ async function mediaStats(mediaDir) {
 /** mediaDir -> { key, value } */
 const _cache = new Map();
 
+// A folder touched this recently can still change WITHOUT its mtime moving: Windows stamps
+// files from a coarse clock (~16 ms ticks; 2 s on a FAT drive), so a sidecar re-saved in the
+// same tick as the key read keeps the same key and the cache would serve the old cover until
+// the next card lands. Same rule as git's racy index: such a key is never cached. Seen as a
+// red CI run on 2026-10-14 (list-projects-cache: write then rename inside one tick).
+const RACY_MS = 2000;
+
 // project.json rides the key too: a sidecar healed IN PLACE on open (no folder entry moves)
 // still comes with a project save.
 async function _folderKey(mediaDir) {
+    const readAt = Date.now();
     const mtime = p => fs.stat(p).then(s => s.mtimeMs, () => 0);
     const keys = await Promise.all([
         mtime(mediaDir), mtime(path.join(mediaDir, '.meta')), mtime(path.join(mediaDir, '..', 'project.json')),
     ]);
-    return keys.join(':');
+    return { key: keys.join(':'), racy: keys.some(t => t > readAt - RACY_MS) };
 }
 
 /**
@@ -67,7 +75,7 @@ async function _folderKey(mediaDir) {
  * @returns {Promise<{ recentThumbnail: string|null, recentThumbnailType: string|null, stats: { count: number, bytes: number } }>}
  */
 async function projectSummary(mediaDir, findCover) {
-    const key = await _folderKey(mediaDir);
+    const { key, racy } = await _folderKey(mediaDir);
     const hit = _cache.get(mediaDir);
     if (hit && hit.key === key) return hit.value;
     const [cover, stats] = await Promise.all([
@@ -75,7 +83,8 @@ async function projectSummary(mediaDir, findCover) {
         mediaStats(mediaDir),
     ]);
     const value = { recentThumbnail: cover.recentThumbnail, recentThumbnailType: cover.recentThumbnailType, stats };
-    _cache.set(mediaDir, { key, value });
+    if (racy) _cache.delete(mediaDir);
+    else _cache.set(mediaDir, { key, value });
     return value;
 }
 
