@@ -6,7 +6,7 @@
  * Covers:
  *  - roll then unroll is byte-identical (odd and even sizes)
  *  - band math matches [n//2 - hi*n, n//2 + lo*n) for asymmetric handles and handle = 0
- *  - window paint tiles the band once, each cut carries context and overlap, none > 4096, ~1024 along the seam
+ *  - window paint tiles the band once, each cut carries context and overlap, none > MAX_CUT (the most Klein may shrink a cut), ~1024 along the seam
  *  - paste changes ZERO pixels outside the band
  *  - a 16384x8192 synthetic completes
  *  - lighting flatten at 0 is a no-op; at >0 reduces a synthetic left-to-right gradient
@@ -24,7 +24,7 @@ const sharp = require(path.join(ROOT, 'node_modules', 'sharp'));
 sharp.cache({ files: 0 });
 
 const {
-    bandRange, planAxis, rollImage, lightenFlatten, makeMaskBuffer, rampMaskBuffer, windowMaskBuffer, seamScore,
+    bandRange, planAxis, rollImage, lightenFlatten, makeMaskBuffer, rampMaskBuffer, windowMaskBuffer, seamScore, MAX_CUT,
     prepare, windowCut, paste, finish,
 } = require(path.join(ROOT, 'services', 'seamlessOps'));
 
@@ -120,7 +120,7 @@ function checkPlan(w, h, band, axis) {
     const inside = (r, s) => s.left >= r.left && s.top >= r.top
         && s.left + s.width <= r.left + r.width && s.top + s.height <= r.top + r.height;
     for (const [k, { rect, paint, band: b }] of wins.entries()) {
-        assert.ok(Math.max(rect.width, rect.height) <= 4096, `cut ${rect.width}x${rect.height} <= 4096`);
+        assert.ok(Math.max(rect.width, rect.height) <= MAX_CUT, `cut ${rect.width}x${rect.height} <= ${MAX_CUT} (the most Klein may shrink)`);
         assert.ok(inside(rect, b) && inside(b, paint), 'paint inside band-part inside cut');
         const ctxLo = axis === 'x' ? b.left - rect.left : b.top - rect.top;
         const ctxHi = axis === 'x' ? (rect.left + rect.width) - (b.left + b.width) : (rect.top + rect.height) - (b.top + b.height);
@@ -142,13 +142,13 @@ function checkPlan(w, h, band, axis) {
     return wins;
 }
 
-test('planAxis x-band: paint tiles the band once, cuts carry context, none > 4096', () => {
+test('planAxis x-band: paint tiles the band once, cuts carry context, none > MAX_CUT', () => {
     const wins = checkPlan(4096, 8192, { start: 1638, end: 2458 }, 'x');
     // Every window after the first re-reads the end of the one before it.
     for (let k = 1; k < wins.length; k++) assert.ok(wins[k].rect.top < wins[k].paint.top, `window ${k} overlaps the one before`);
 });
 
-test('planAxis y-band: paint tiles the band once, cuts carry context, none > 4096', () => {
+test('planAxis y-band: paint tiles the band once, cuts carry context, none > MAX_CUT', () => {
     checkPlan(8192, 4096, { start: 1434, end: 2662 }, 'y');
 });
 
@@ -194,7 +194,7 @@ test('rampMaskBuffer: 0 at the band edges, full strength at the seam, 0 outside 
 });
 
 test('windowMaskBuffer: a later window ramps up through its overlap, no hard start where windows meet', () => {
-    // A 16K left-right run: three 4096 windows down the seam. Window 1 re-reads 1024 rows of window 0.
+    // A 16K left-right run: windows down the seam, each re-reading a quarter of the one before.
     // Its mask used to switch on at full strength at its paint start, and the model began a new
     // picture there: a line across the seam (16K real photo, row step 2.5x at y=4096).
     const band = { start: 6554, end: 9830 };
@@ -232,8 +232,32 @@ test('seamScore: a kept cut and a drawn divider stand out, a healed seam does no
     assert.equal(seamScore({ ...win, fx: 4096 }, make(wave)), null);
 });
 
-test('planAxis: wide x-band (>4096) splits into columns, still painted once', () => {
+test('planAxis: a band wider than one cut carries splits into columns, still painted once', () => {
     checkPlan(16384, 1024, { start: 5000, end: 11000 }, 'x');
+});
+
+test('planAxis: a band wider than one cut is split with the seam whole in the centre column, outer columns ramp in', () => {
+    // 16K left-right at 25% a side: an 8192 px band, wider than any cut. Columns used to start at the
+    // band's edge, so with two of them the seam fell exactly where they met, painted by neither whole.
+    const w = 16384, h = 4096, seam = w / 2;
+    const band = bandRange(w, 0.25, 0.25);
+    const wins = checkPlan(w, h, band, 'x');
+    assert.ok(new Set(wins.map((x) => x.paint.left)).size > 1, 'precondition: the band is split into columns');
+    // The seam is painted whole, well inside one column's paint, down its full length.
+    const holding = wins.filter((x) => x.paint.left + 256 <= seam && seam + 256 <= x.paint.left + x.paint.width);
+    assert.equal(holding.reduce((t, x) => t + x.paint.height, 0), h, 'the seam lies inside the centre column top to bottom');
+    // An outer column re-reads the centre one: its mask is 0 where its band part starts, rising to the band's own ramp.
+    const outer = wins.find((x) => x.band.left < x.paint.left);
+    assert.ok(outer, 'a column right of the centre re-reads it');
+    const m = windowMaskBuffer(outer, band);
+    const ramp = rampMaskBuffer(outer.rect, outer.band, 'x', band);
+    const row = (outer.paint.top - outer.rect.top) * outer.rect.width;
+    const col = (x) => x - outer.rect.left;
+    assert.equal(m[row + col(outer.band.left)], 0, 'the overlap starts at 0');
+    assert.equal(m[row + col(outer.paint.left)], ramp[row + col(outer.paint.left)], 'its own paint at the band ramp');
+    // The band's own ramp may already be falling here, so the rise is measured against it.
+    const share = (x) => m[row + col(x)] / ramp[row + col(x)];
+    for (let x = outer.band.left + 16; x <= outer.paint.left; x += 16) assert.ok(share(x) >= share(x - 16) - 0.01, `rises through the overlap at ${x}`);
 });
 
 // ── Roll / unroll ─────────────────────────────────────────────────────────────

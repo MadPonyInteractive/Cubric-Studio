@@ -58,7 +58,14 @@ const WINDOW_TARGET  = 1024;                   // target px along the seam per w
 const FEATHER_PX     = 32;                     // inward feather at band edges
 const CONTEXT_PX     = 256;                    // least picture each side of the band a cut shows the model
 const OVERLAP_PX     = 256;                    // least seam length a window re-reads from the one before
-const MAX_CUT        = 4096;                   // longest edge of a cut across the band
+const MODEL_SIDE     = 1024;                   // the graph's InpaintCropImproved target: what Klein samples a cut at
+// Klein shrinks a cut at most this much. At 4x (a 16K band in one 4096 cut) it KEPT the hard cut in 4
+// windows of 5 (MPI-1101 2026-10-13). 2x was tried and is WORSE (greenhouse 16K, 2026-10-14): a 2048 cut
+// of a 16K picture shows only floor or sky, and Klein paints the whole described scene into it (new
+// greenhouses in the floor) and still keeps the cut. Do not lower this without fixing what a small
+// window is told to paint.
+const MAX_SHRINK     = 4;
+const MAX_CUT        = MODEL_SIDE * MAX_SHRINK; // longest edge of a cut across the band
 const RAMP_FRAC      = 0.4;                    // the model's mask reaches full strength this far into the band
 const DIV_K          = 12;                     // px either side of the seam a drawn divider is looked for in (seamScore)
 const INPUT          = { limitInputPixels: false };
@@ -256,20 +263,31 @@ function planAxis(w, h, band, axis) {
     // again of picture on each side, or the band is most of what it sees and it paints a new
     // picture there. Square cuts, so a long seam does not get one tall sliver of context.
     const ctx = Math.max(CONTEXT_PX, Math.min(Math.round((end - start) / 2), Math.floor((MAX_CUT - (end - start)) / 2)));
-    // ponytail: a band wider than MAX_CUT minus its context is split into side-by-side columns,
-    // which meet in a straight line inside the band. Only an 8K+ picture with handles past ~25%
-    // a side gets there; overlap the columns the way the windows overlap if one ever shows.
+    // A band wider than one cut carries (a big picture: 16K at 10% a side) is split into columns:
+    // the first centred on the seam, so the join is painted whole, then outward, each re-reading
+    // OVERLAP_PX of the column nearer the seam the way a window re-reads the one before it
+    // (`windowMaskBuffer` ramps the mask up through it). Columns: [b0, b1) pasted, [p0, p1) new.
     const span = MAX_CUT - 2 * ctx;
-    const nCols = Math.max(1, Math.ceil((end - start) / span));
-    const colW = Math.ceil((end - start) / nCols);
+    const cols = [];
+    if (end - start <= span) cols.push({ b0: start, b1: end, p0: start, p1: end });
+    else {
+        const m0 = Math.max(start, Math.min(Math.floor(across / 2) - (span >> 1), end - span));
+        const m1 = m0 + span;
+        cols.push({ b0: m0, b1: m1, p0: m0, p1: m1 });
+        const step = span - OVERLAP_PX;
+        const nL = Math.ceil((m0 - start) / step), nR = Math.ceil((end - m1) / step);
+        const wL = Math.ceil((m0 - start) / Math.max(1, nL)), wR = Math.ceil((end - m1) / Math.max(1, nR));
+        for (let k = 0; k < Math.max(nL, nR); k++) {
+            if (k < nL) { const p1 = m0 - k * wL, p0 = Math.max(start, p1 - wL); cols.push({ b0: p0, b1: p1 + OVERLAP_PX, p0, p1 }); }
+            if (k < nR) { const p0 = m1 + k * wR, p1 = Math.min(end, p0 + wR); cols.push({ b0: p0 - OVERLAP_PX, b1: p1, p0, p1 }); }
+        }
+    }
     const box = (a0, a1, c0, c1) => (axis === 'x'
         ? { left: c0, top: a0, width: c1 - c0, height: a1 - a0 }
         : { left: a0, top: c0, width: a1 - a0, height: c1 - c0 });
     const windows = [];
-    for (let k = 0; k < nCols; k++) {
-        const b0 = start + k * colW;
-        const b1 = Math.min(end, b0 + colW);
-        if (b1 <= b0) continue;
+    for (const { b0, b1, p0, p1 } of cols) {
+        if (p1 <= p0) continue;
         const c0 = Math.max(0, b0 - ctx);
         const c1 = Math.min(across, b1 + ctx);
         // A seam up to MAX_CUT long is ONE window, as on the bench: a later window that sees only the
@@ -280,7 +298,7 @@ function planAxis(w, h, band, axis) {
         while (painted < along) {
             const a0 = painted === 0 ? 0 : Math.max(0, Math.min(painted - overlap, along - len));
             const a1 = Math.min(along, a0 + len);
-            windows.push({ rect: box(a0, a1, c0, c1), paint: box(painted, a1, b0, b1), band: box(a0, a1, b0, b1), axis });
+            windows.push({ rect: box(a0, a1, c0, c1), paint: box(painted, a1, p0, p1), band: box(a0, a1, b0, b1), axis });
             painted = a1;
         }
     }
@@ -406,6 +424,22 @@ function windowMaskBuffer(win, band) {
                 if (i >= o) continue;
                 const t = Math.max(0, i / o);
                 const p = y * ww + x;
+                buf[p] = Math.round(buf[p] * t * t * (3 - 2 * t));
+            }
+        }
+    }
+    // A split band's outer column re-reads OVERLAP_PX of the column nearer the seam: the same rise, across.
+    const x = axis === 'x';
+    const b0 = x ? win.band.left : win.band.top, b1 = b0 + (x ? win.band.width : win.band.height);
+    const p0 = x ? win.paint.left : win.paint.top, p1 = p0 + (x ? win.paint.width : win.paint.height);
+    if (b0 < p0 || p1 < b1) {
+        const ww = rect.width, wh = rect.height, off = x ? rect.left : rect.top;
+        for (let y = 0; y < wh; y++) {
+            for (let xx = 0; xx < ww; xx++) {
+                const c = (x ? xx : y) + off;
+                const t = Math.max(0, c < p0 ? (c - b0) / (p0 - b0) : c >= p1 ? (b1 - c) / (b1 - p1) : 1);
+                if (t >= 1) continue;
+                const p = y * ww + xx;
                 buf[p] = Math.round(buf[p] * t * t * (3 - 2 * t));
             }
         }
@@ -628,5 +662,5 @@ module.exports = {
     // Public API
     prepare, windowCut, paste, finish, sweepScratch, runDirOf,
     // Exported for tests
-    bandRange, planAxis, planCorner, framePieces, rollImage, lightenFlatten, makeMaskBuffer, rampMaskBuffer, windowMaskBuffer, seamScore,
+    bandRange, planAxis, planCorner, framePieces, rollImage, lightenFlatten, makeMaskBuffer, rampMaskBuffer, windowMaskBuffer, seamScore, MAX_CUT,
 };
