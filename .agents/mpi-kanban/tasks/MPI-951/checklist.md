@@ -10,4 +10,4 @@
 - [x] mpi-ci cubric-vision-portable.yml: old Cubric-Vision slug dropped (mpi-ci 6ab9048, YAML parses); every
       dispatcher sends Cubric-Studio. Artifact name `cubric-vision-*` left as is.
 - [x] 2.1 release note: re-pin CubricStudio.exe (cfba66dc8), for 1.5.x users who never saw the 2.0 note.
-- [ ] CI green on aa76d4b6f. First real proof is the 2.1 portable build + a 2.0 -> 2.1 update.
+- [x] CI green on aa76d4b6f. [ ] First real proof is the 2.1 portable build + a 2.0 -> 2.1 update.

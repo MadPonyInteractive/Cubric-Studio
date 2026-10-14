@@ -6,5 +6,5 @@
       THREE-guide bench, not this path, so the clip-level harm here is inferred, not seen.
 - [x] Fix (38b1d9d9c): one picture goes through the sheet composer (grey card, clip-shaped), both engines
       (the composer runs before upload). `tests/ingredients-sheet.test.cjs` 12/12, new portrait case.
-- [ ] CI green on 38b1d9d9c.
+- [x] CI green on 38b1d9d9c.
 - [ ] Fabio's eye check in his app: LTX Reference to Video, ONE portrait picture, landscape clip.
