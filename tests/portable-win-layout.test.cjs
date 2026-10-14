@@ -209,3 +209,36 @@ test('a dangling symlink anywhere in the staged tree fails the build', async () 
         fs.rmSync(root, { recursive: true, force: true });
     }
 });
+
+// MPI-951: full bundles must carry RETIRED_PATHS in delete[] so CubricVision.exe
+// is removed on every install path — a fresh 2.0 install (file never existed, so
+// force:true rmSync is a no-op) and an upgraded-from-1.x install (file exists,
+// gets evicted or deleted). Without the fix, createUpdateManifest emitted
+// delete:[] for full bundles and only delta bundles cleaned it up.
+test('resolveManifestDeletes: full bundle carries win32 RETIRED_PATHS; non-Windows is empty; delta passes its own list', async () => {
+  const { resolveManifestDeletes, RETIRED_PATHS } = await import(
+    pathToFileURL(path.join(REPO_ROOT, 'scripts', 'build-portable.mjs')).href
+  );
+
+  // Full bundle (no delta): win32 carries all retired paths, including CubricVision.exe
+  const win32Full = resolveManifestDeletes('win32', null);
+  assert.ok(
+    win32Full.includes('CubricVision.exe'),
+    'a full win32 bundle must list CubricVision.exe for deletion (MPI-951)',
+  );
+  assert.deepStrictEqual(win32Full, RETIRED_PATHS.win32,
+    'full win32 delete[] must be exactly RETIRED_PATHS.win32');
+
+  // Full bundle on non-Windows: no retired paths (the retired files are win32-only)
+  assert.deepStrictEqual(resolveManifestDeletes('linux', null), [],
+    'full linux bundle must not carry win32 retirements');
+  assert.deepStrictEqual(resolveManifestDeletes('darwin', null), [],
+    'full darwin bundle must not carry win32 retirements');
+
+  // Delta bundles: applyDelta already injects RETIRED_PATHS into delta.deletes for
+  // files the baseline listed. resolveManifestDeletes must pass that list through
+  // unchanged, never replace it with RETIRED_PATHS again.
+  const deltaMock = { deletes: ['CubricVision.exe', 'resources/app/changed.js'] };
+  assert.deepStrictEqual(resolveManifestDeletes('win32', deltaMock), deltaMock.deletes,
+    'delta path must use delta.deletes, not RETIRED_PATHS');
+});

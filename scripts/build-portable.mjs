@@ -100,6 +100,13 @@ export const RETIRED_PATHS = {
   win32: ['start.vbs', 'start-with-terminal.bat', 'CubricVision.exe'],
 };
 
+// Exported for testing: resolves the delete[] list for a manifest.
+// A delta supplies its own; a full bundle (no baseline) carries the platform's
+// RETIRED_PATHS so the update applier cleans them up on every install path.
+export function resolveManifestDeletes(platform, delta = null) {
+  return delta?.deletes ?? (RETIRED_PATHS[platform] ?? []);
+}
+
 const PRESERVE = [
   'engine/',
   'models/',
@@ -908,7 +915,7 @@ async function createUpdateManifest(stageRoot, opts, config, artifactKind = null
     connectorManifestHash: await sha256(connectorPath),
     files: await buildFileEntries(stageRoot),
     preserve: PRESERVE,
-    delete: delta?.deletes ?? [],
+    delete: resolveManifestDeletes(opts.platform, delta),
     createdAt: new Date().toISOString(),
     artifact: {
       kind: artifactKind || (opts.dryRun ? 'dry-run-stage' : 'portable-stage'),
