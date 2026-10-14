@@ -1694,6 +1694,12 @@ async function _initDataRegistries() {
   let _wasRemoteConnected = false;
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
   Events.on('remote:connection', async ({ connected, phase = null } = {}) => {
+    // MPI-1097: a new connect starting means the next connected:true is a NEW Pod, so it
+    // must be an edge. Live 2026-10-11: the previous Pod was still running at boot, the feed
+    // reported it connected (the edge fired), then the boot create swapped to a fresh Pod
+    // with no disconnect edge between. The latch held, the new Pod's ready fired nothing,
+    // and its drift heal + model re-check never ran: every model read not installed.
+    if (phase === 'connecting') _wasRemoteConnected = false;
     if (phase) return; // mid-transition, not a resolved state
     if (connected && !_wasRemoteConnected) {
       // MPI-200: re-sync on each genuine connect EDGE — a new Pod may have a

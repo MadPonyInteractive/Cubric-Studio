@@ -202,4 +202,20 @@ const volumeEngineAssets = () => Object.values(DEPS)
     }
 }
 
-console.log('remote-engine-assets: 8/8 OK');
+// 9. MPI-1097 — a new 'connecting' phase re-arms the connect edge. Without it, a Pod
+//    swap with no disconnect edge between (boot found the old Pod still up, then created
+//    a fresh one) left the latch set, so the new Pod never got its drift heal or model
+//    re-check. The reset must come BEFORE the phase early-return, or it never runs.
+{
+    const fs = require('fs');
+    const src = fs.readFileSync(require('path').join(__dirname, '../js/shell.js'), 'utf8')
+        .split('\n').map(l => l.replace(/\/\/.*$/, '')).join('\n');
+    const start = src.indexOf("Events.on('remote:connection', async");
+    const reset = src.indexOf("if (phase === 'connecting') _wasRemoteConnected = false;", start);
+    const early = src.indexOf('if (phase) return;', start);
+    assert.ok(start >= 0 && early > start, 'remote:connection connect-edge listener not found in shell.js');
+    assert.ok(reset > start && reset < early,
+        "a 'connecting' phase must reset _wasRemoteConnected before the phase early-return (MPI-1097)");
+}
+
+console.log('remote-engine-assets: 9/9 OK');
