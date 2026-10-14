@@ -731,7 +731,7 @@ export function createCropTool({ overlayCanvas, targetElement, onChange, showGri
             _lockedRatio = (ratio == null) ? null : ratio;
             if (keep) {
                 if (_lockedRatio != null) {
-                    _normRect = reshapeRect(_normRect, _lockedRatio / _contentAspect(), allowOverflow ? null : { w: 1, h: 1 });
+                    _normRect = reshapeRect(_normRect, _lockedRatio / _contentAspect(), { w: 1, h: 1 }, { inside: !allowOverflow });
                 }
                 _applyRatioToRect(_normRect, true);
             } else {

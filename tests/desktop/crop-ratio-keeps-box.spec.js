@@ -73,7 +73,8 @@ test('another ratio keeps the box centre and keeps it on screen', async ({}, tes
         expect(s.rect.y + s.rect.h).toBeLessThanOrEqual(SIZE);   // was inside, stays inside
         expect(onStage(s), JSON.stringify(s)).toBe(true);
 
-        // 2. The screenshot's case: a 2:1 box hanging off the right of the picture.
+        // 2. The screenshot's case: a 2:1 box hanging off the right of the picture, snapped
+        //    to its left, top and bottom. Another ratio keeps all three edges snapped.
         await panel.locator('.mpi-tool-options-crop__ratios [data-value="2:1"]').click();
         await window.evaluate(() => document.querySelector('.mpi-canvas-viewer').setCropRect({ x: 0, y: 0, w: 2048, h: 1024 }));
         await expect.poll(async () => onStage(await snapshot(window))).toBe(true);
@@ -82,12 +83,11 @@ test('another ratio keeps the box centre and keeps it on screen', async ({}, tes
         await window.mouse.move(stage.x + stage.width / 4, stage.y + stage.height / 2);
         for (let i = 0; i < 15; i++) await window.mouse.wheel(0, -200);
         await expect.poll(async () => onStage(await snapshot(window)), 'zoomed in, the box leaves the stage').toBe(false);
-        await panel.locator('.mpi-tool-options-crop__ratios [data-value="16:9"]').click();
+        await panel.locator('.mpi-tool-options-crop__ratios [data-value="21:9"]').click();
         s = await snapshot(window);
         testInfo.attach('outside', { body: JSON.stringify(s, null, 2), contentType: 'application/json' });
-        expect(Math.abs(s.rect.x + s.rect.w / 2 - 1024)).toBeLessThanOrEqual(1);
-        expect(Math.abs(s.rect.y + s.rect.h / 2 - 512)).toBeLessThanOrEqual(1);
-        expect(Math.abs(s.rect.w / s.rect.h - 16 / 9)).toBeLessThan(0.01);
+        expect([s.rect.x, s.rect.y, s.rect.h]).toEqual([0, 0, SIZE]);
+        expect(Math.abs(s.rect.w / s.rect.h - 21 / 9)).toBeLessThan(0.01);
         await expect.poll(async () => onStage(await snapshot(window)), 'the box is on the stage').toBe(true);
 
         // 3. Zoomed off the box again, then a tool round-trip: the box comes back, on screen.

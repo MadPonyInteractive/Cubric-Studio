@@ -53,8 +53,10 @@ Consequences to keep in mind:
   Picking a ratio / size or re-entering Crop turns it back on (`MpiCanvasViewer` and
   `MpiGifViewer` set `isManagedView = true` on the user's pick — never in `MpiCanvas.setCropRatio`,
   which a GIF frame step calls while deliberately keeping the user's zoom). MPI-1141.
-- **A ratio pick keeps the box** (`reshapeRect` in `cropSnap.js`): same centre, same area, new
-  ratio. A box inside the picture stays inside; one already hanging off it stays free. FREE keeps
+- **A ratio pick keeps the box** (`reshapeRect` in `cropSnap.js`): an edge on the image bound
+  stays on it (the user snapped it there); top + bottom held keeps the height, left + right the
+  width, otherwise the area; a free axis keeps its centre. A box inside the picture stays inside;
+  one already hanging off it stays free. FREE keeps
   the box as is. Only `init()` (a new image) seeds the largest centred box. The video twin
   (`cropTool.setRatio(r, { keep: true })`) does the same on a user pick and still starts from the
   maximal box on entering crop or a new clip. MPI-1141.

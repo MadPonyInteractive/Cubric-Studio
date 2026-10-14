@@ -45,30 +45,44 @@ export function largestCentredRect(imgW, imgH, ratio) {
 }
 
 /**
- * `rect` re-shaped to `ratio` around its own centre at the same area (MPI-1141): a ratio
- * change keeps the framing the user built instead of throwing it away for a fresh box.
- * With `bounds` the result is shrunk and shifted to fit inside (0,0)–(bounds.w,bounds.h).
+ * `rect` re-shaped to `ratio` (MPI-1141): a ratio change keeps the framing the user built
+ * instead of throwing it away for a fresh box. An edge sitting on the image bound STAYS
+ * on it — the user snapped it there. Top + bottom held keeps the height, left + right
+ * held keeps the width, otherwise the area is kept; a free axis keeps its centre.
+ * `inside` shrinks and shifts the result to fit the image.
  *
  * @param {{ x: number, y: number, w: number, h: number }} rect
  * @param {number} ratio - width/height float
- * @param {{ w: number, h: number }|null} [bounds]
+ * @param {{ w: number, h: number }} img - image bounds, same units as `rect`
+ * @param {{ inside?: boolean }} [opts]
  * @returns {{ x: number, y: number, w: number, h: number }}
  */
-export function reshapeRect(rect, ratio, bounds = null) {
-    const cx = rect.x + rect.w / 2;
-    const cy = rect.y + rect.h / 2;
-    let w = Math.sqrt(rect.w * rect.h * ratio);
-    let h = w / ratio;
-    if (!bounds) return { x: cx - w / 2, y: cy - h / 2, w, h };
-    const s = Math.min(1, bounds.w / w, bounds.h / h);
-    w *= s;
-    h *= s;
-    return {
-        x: Math.max(0, Math.min(cx - w / 2, bounds.w - w)),
-        y: Math.max(0, Math.min(cy - h / 2, bounds.h - h)),
-        w,
-        h,
-    };
+export function reshapeRect(rect, ratio, img, { inside = false } = {}) {
+    const eps = Math.max(img.w, img.h) * 1e-3;
+    const L = Math.abs(rect.x) < eps;
+    const T = Math.abs(rect.y) < eps;
+    const R = Math.abs(rect.x + rect.w - img.w) < eps;
+    const B = Math.abs(rect.y + rect.h - img.h) < eps;
+    let w;
+    let h;
+    if (T && B)      { h = rect.h; w = h * ratio; }
+    else if (L && R) { w = rect.w; h = w / ratio; }
+    else             { w = Math.sqrt(rect.w * rect.h * ratio); h = w / ratio; }
+    if (inside) {
+        const s = Math.min(1, img.w / w, img.h / h);
+        w *= s;
+        h *= s;
+    }
+    // One edge held: it stays. Both or neither: the axis keeps its centre.
+    const place = (lo, hi, start, size, next) =>
+        lo !== hi ? (lo ? start : start + size - next) : start + (size - next) / 2;
+    let x = place(L, R, rect.x, rect.w, w);
+    let y = place(T, B, rect.y, rect.h, h);
+    if (inside) {
+        x = Math.max(0, Math.min(x, img.w - w));
+        y = Math.max(0, Math.min(y, img.h - h));
+    }
+    return { x, y, w, h };
 }
 
 /** Nearest target within `tol`, else `value` unchanged. */

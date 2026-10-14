@@ -84,10 +84,11 @@ export class CropManager {
     }
 
     /**
-     * Set the locked ratio and re-shape the box the user already has around its own
-     * centre (MPI-1141) — picking another ratio never throws their framing away.
-     * A box inside the picture stays inside; one already hanging off it is an
-     * outpaint frame and stays free. FREE (`null`) keeps the box as it is.
+     * Set the locked ratio and re-shape the box the user already has (MPI-1141) —
+     * picking another ratio never throws their framing away, and an edge they
+     * snapped to the picture stays snapped (`reshapeRect`). A box inside the picture
+     * stays inside; one already hanging off it is an outpaint frame and stays free.
+     * FREE (`null`) keeps the box as it is.
      * @param {number|null} ratio - width / height float, or null for free aspect
      */
     setRatio(ratio) {
@@ -95,8 +96,10 @@ export class CropManager {
         const r = this.cropRect;
         if (!(r.w > 0 && r.h > 0)) { this._applyRatioToRect(); return; }
         if (ratio == null || !this._imgW || !this._imgH) return;
-        const inside = r.x >= 0 && r.y >= 0 && r.x + r.w <= this._imgW && r.y + r.h <= this._imgH;
-        this.cropRect = reshapeRect(r, ratio, inside ? { w: this._imgW, h: this._imgH } : null);
+        // Half a pixel of slack: a float-built edge on the bound must not read as "off it".
+        const e = 0.5;
+        const inside = r.x >= -e && r.y >= -e && r.x + r.w <= this._imgW + e && r.y + r.h <= this._imgH + e;
+        this.cropRect = reshapeRect(r, ratio, { w: this._imgW, h: this._imgH }, { inside });
     }
 
     /**
