@@ -59,6 +59,7 @@
 - **Transcribe, a new Flow.** Drop in a recording or a video and get back everything said, as text to copy and as an .srt subtitle file. Runs on your own GPU, and Cosmo can run it too.
 - **Combine works on pictures too.** Select two or more in the gallery and Combine packs them into one sheet, with a choice of shape and size. Cosmo can make one too.
 - **360 Panorama, a new Flow.** Describe a place, or give it a picture and it paints in the world around it, and get a 360 panorama you can look all the way round.
+- **Make seamless, a new Flow.** Give it a panorama whose ends do not quite meet, a background or a busy texture, and it repaints a band along each edge so the picture repeats left-right, top-bottom or both, up to 16K. Drag a handle in from each edge to choose how much changes. Runs on FLUX.2 Klein 9B, and Cosmo can run it too.
 - **3D Scenes.** Right-click a 360 panorama and choose Convert to 360 pano to fly around inside it. Press P to drop points along a path, then Render path makes a 360 video along it. Both come as plugins in the Model Library.
 - **Look around any 360 video and take pictures of it.** A rendered path opens in the 360 player, and so does your own 360 video: right-click it and choose Convert to 360 video. Drag to look, pick a frame and Take picture: that exact view is cleaned up and lands as a new picture. It needs FLUX.2 Klein 9B installed.
 - **LoRA & Upscale from the cog wheel.** The settings popup by the prompt now has a LoRA & Upscale button, so you no longer go through the model picker to add or change a LoRA.

@@ -351,7 +351,6 @@ import { DEPS } from './modelConstants/dependencies.js';
 import { getPlugin } from './pluginsRegistry.js';
 import { MODELS } from './modelConstants/models.js';
 import { OUTPAINT_MAX_GROW } from '../utils/outpaintPasses.js';
-import { APP_CONFIG } from '../../dev_configs/app_config.js';
 
 /**
  * The download-queue / dep-status key for a flow's own deps. Namespaced so it can
@@ -1892,7 +1891,7 @@ export const FLOWS = [
     //
     // `direction` is for callers with no Edges gizmo (the agent): hidden whenever a picture
     // is given, which on this screen is always; the gizmo's own value wins (`edgesFor`).
-    ...(APP_CONFIG.dev_mode ? [{
+    {
         id: 'make-seamless',
         title: 'Make seamless',
         preview: 'flow-make-seamless.webp',
@@ -1949,7 +1948,7 @@ export const FLOWS = [
             { to: 'Input_Positive', media: 'image1', everyPass: true,
                 ask: 'This is a crop of a larger picture. A straight line may run across it where two edges were joined: ignore that line. In one sentence, say only what this crop shows: the surfaces and things in it with their materials and colours, and the light. Name nothing that is not in this crop. Answer with that sentence and nothing else.' },
         ],
-    }] : []),
+    },
     // MPI-607 — Voice Changer, the FIRST audio-only flow: audio in, audio out, no
     // picture anywhere in the run. `mediaType: 'audio'` is what routes the graph's
     // `Output_Audio` to a real gallery card instead of a video's soundtrack
