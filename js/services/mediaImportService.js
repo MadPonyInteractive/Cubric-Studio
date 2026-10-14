@@ -28,7 +28,7 @@ import {
     appendToHistory,
 } from '../data/projectModel.js';
 
-function _buildGroup({ url, filename, itemId, thumbPath, thumbPathLg, proxyPath, wavePath, mediaType, pixelDimensions, fps, duration, frameCount, hasAudio, gif, groupId }) {
+export function buildImportGroup({ url, filename, itemId, thumbPath, thumbPathLg, proxyPath, wavePath, mediaType, pixelDimensions, fps, duration, frameCount, hasAudio, gif, groupId }) {
     const isVideo = mediaType === 'video';
     const isAudio = mediaType === 'audio';
     const dims = pixelDimensions?.w > 0 && pixelDimensions?.h > 0
@@ -105,7 +105,7 @@ export function start() {
         if (!state.currentProject) return;
         // addGroup persists and emits `project:group-added`, which is what repaints
         // whichever grid is mounted. Nothing here touches the view.
-        addGroup(_buildGroup(payload)).catch((err) => {
+        addGroup(buildImportGroup(payload)).catch((err) => {
             clientLogger.error('mediaImportService', 'failed to add imported group', err);
             Events.emit('ui:error', { title: 'Import failed', message: String(err?.message || err).split('\n')[0].slice(0, 160) });
         });

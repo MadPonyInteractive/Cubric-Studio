@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1140",
+  "title": "MCP: import_media tool - outside agents import a file from disk into the gallery as a card",
+  "description": "New MCP tool import_media: a picture, clip or sound on the user's disk lands as a gallery card through the gallery's own upload path, in the named or open project.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-14T11:15:35+01:00",
+  "updated_at": "2026-10-14T11:16:34+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

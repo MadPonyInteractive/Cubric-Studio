@@ -39,6 +39,7 @@ fs.writeFileSync(outside, 'photo');
 const placed = [];
 const routineCalls = [];
 const installs = []; // MPI-1126: every install route call, in order
+const imports = []; // MPI-1140: every import-media route call
 let engineInstalled = false;
 
 test.before(async () => {
@@ -107,6 +108,7 @@ test.before(async () => {
     app.get('/connector/cards', (q, r) => r.json({ ok: true, total: 1, cards: [{ groupId: 'g1', name: 'Bike', ref: 'card.png' }], files: { 'card.png': { path: cardFile, itemId: 'it9' } }, folder: q.query.folderPath }));
     app.get('/connector/cards/:groupId', (_q, r) => r.json({ ok: true, card: { groupId: 'g1', ref: 'card.png', madeFrom: [{ role: 'inputImage', ref: 'src.png' }] }, files: { 'card.png': { path: cardFile, itemId: 'it9' }, 'src.png': { path: outside } } }));
     app.post('/connector/rename-card', (q, r) => r.json({ ok: true, output: q.body }));
+    app.post('/connector/import-media', (q, r) => { imports.push(q.body); r.json(DONE); });
     app.post('/connector/gif/cutout', (q, r) => setTimeout(() => r.json(DONE), 700));
     // MPI-1009: the routine routes. `paid` bills, `needs-model` lacks a model, `odd` refuses at
     // once; any other run answers after 700 ms, past the 300 ms early-refusal window.
@@ -169,7 +171,7 @@ test('a notification is answered 202 with no body', async () => {
 test('tools/list names every tool, each with a title, annotations and an object schema', async () => {
     const { result } = await (await rpc('tools/list')).json();
     const names = result.tools.map((t) => t.name);
-    assert.deepEqual(names, ['status', 'list_models', 'describe_model', 'list_projects', 'create_project', 'open_project', 'list_cards', 'view_card', 'rename_card', 'generate', 'wait_generation', 'cancel_generation', 'install_model', 'install_flow', 'install_engine', 'read_knowledge', 'make_gif', 'edit_gif', 'cutout_gif', 'gif_to_video', 'make_sheet',
+    assert.deepEqual(names, ['status', 'list_models', 'describe_model', 'list_projects', 'create_project', 'open_project', 'list_cards', 'view_card', 'rename_card', 'import_media', 'generate', 'wait_generation', 'cancel_generation', 'install_model', 'install_flow', 'install_engine', 'read_knowledge', 'make_gif', 'edit_gif', 'cutout_gif', 'gif_to_video', 'make_sheet',
         'list_routines', 'save_routine', 'rename_routine', 'delete_routine', 'run_routine']);
     for (const t of result.tools) {
         assert.equal(t.inputSchema.type, 'object');
@@ -266,6 +268,22 @@ test('view_card hands back the picture itself, and refuses what is not one', asy
 
 test('rename_card reaches its route', async () => {
     assert.deepEqual(JSON.parse((await call('rename_card', { groupId: 'g1', name: 'Red bike' })).content[0].text).output, { groupId: 'g1', name: 'Red bike' });
+});
+
+test('import_media sends the file and the named project, and answers with the card on disk (MPI-1140)', async () => {
+    const named = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-import-'));
+    fs.writeFileSync(path.join(named, 'project.json'), '{}');
+    const r = await call('import_media', { path: outside, folderPath: named, cardName: 'Holiday' });
+    const answer = JSON.parse(r.content[0].text);
+    assert.equal(answer.output.filePath, png, 'the disk path, not the renderer URL');
+    assert.equal(r.content[1].type, 'image', 'with a picture of the card');
+    assert.deepEqual(imports.at(-1), { sourcePath: outside, folderPath: named, cardName: 'Holiday' });
+    const gone = JSON.parse((await call('import_media', { path: path.join(media, 'gone.png'), folderPath: named })).content[0].text);
+    assert.equal(gone.error.code, 'FILE_NOT_FOUND');
+    const noProject = JSON.parse((await call('import_media', { path: outside, folderPath: media })).content[0].text);
+    assert.equal(noProject.error.code, 'PROJECT_NOT_FOUND');
+    assert.equal(imports.length, 1, 'a refused call reaches no route');
+    fs.rmSync(named, { recursive: true, force: true });
 });
 
 test('a slow GIF cut-out answers running, and wait_generation delivers its path', async () => {

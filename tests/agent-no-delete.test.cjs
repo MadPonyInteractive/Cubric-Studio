@@ -28,6 +28,7 @@ const ALLOWED_REQUESTS = new Set([
     'POST /connector/describe',
     'POST /connector/open-project',
     'POST /connector/rename-card',
+    'POST /connector/import-media',
     'GET /connector/memory',
     'GET /connector/memory/:id',
     'POST /connector/memory',

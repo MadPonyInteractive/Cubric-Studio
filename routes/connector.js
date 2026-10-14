@@ -1011,6 +1011,47 @@ router.post('/connector/rename-card', async (req, res) => {
   res.json(result);
 });
 
+// What the gallery takes as a card, by extension: the drop overlay's list.
+const IMPORT_TYPES = {
+  image: ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tif', '.tiff', '.svg', '.avif'],
+  video: ['.mp4', '.webm', '.mov', '.mkv', '.m4v'],
+  audio: ['.wav', '.mp3', '.flac', '.ogg', '.m4a', '.aac'],
+};
+
+/**
+ * POST /connector/import-media (MPI-1140) — a file on the user's disk lands as a gallery card,
+ * the same card a drop onto the gallery makes. `{ sourcePath, folderPath?, cardName? }`: the
+ * project `folderPath` names (open or closed, MPI-873), else the open one. Through the renderer
+ * (`media.import`) for the reason `/connector/rename-card` gives: it owns the open project's
+ * `itemGroups`. Answers `{ ok, output: { groupId, itemId, type, filePath, pixelDimensions } }`.
+ * Errors: BAD_REQUEST, FILE_NOT_FOUND, UNSUPPORTED_FILE, PROJECT_NOT_FOUND, NO_PROJECT,
+ * IMPORT_FAILED.
+ */
+router.post('/connector/import-media', async (req, res) => {
+  const { sourcePath, folderPath, cardName } = req.body || {};
+  const fail = (code, message, status = 200) => res.status(status).json({ ok: false, error: { code, message } });
+  if (typeof sourcePath !== 'string' || !path.isAbsolute(sourcePath)) {
+    return fail('BAD_REQUEST', 'body.sourcePath must be an absolute path to a file on disk.', 400);
+  }
+  const ext = path.extname(sourcePath).toLowerCase();
+  const mediaType = Object.keys(IMPORT_TYPES).find((t) => IMPORT_TYPES[t].includes(ext));
+  if (!mediaType) return fail('UNSUPPORTED_FILE', `"${sourcePath}" is not an image, video or audio file the gallery takes.`);
+  if (!(await fs.pathExists(sourcePath)) || !(await fs.stat(sourcePath)).isFile()) {
+    return fail('FILE_NOT_FOUND', `No file at "${sourcePath}".`);
+  }
+  const input = { sourcePath: path.normalize(sourcePath), mediaType, ...(typeof cardName === 'string' ? { cardName } : {}) };
+  if (folderPath !== undefined) {
+    const listed = await _appPost('/list-projects', {}).catch((err) => ({ error: err.message }));
+    if (!listed?.success) return fail('RUNTIME_ERROR', `Could not list the projects: ${listed?.error || 'unknown error'}`);
+    const match = findProjectByFolder(listed.projects, folderPath);
+    if (!match) return fail('PROJECT_NOT_FOUND', `No Cubric Studio project at "${folderPath}". Use a folderPath from /connector/projects.`);
+    input.folderPath = String(match.folderPath).replace(/\\/g, '/');
+  }
+  const result = await _dispatchToRenderer('media.import', input);
+  if (!result.ok) logger.warn('connector', `import-media failed: ${result.error?.code} ${result.error?.message}`);
+  res.json(result);
+});
+
 /**
  * POST /connector/jobs/:id/result — the renderer reporting a job's outcome.
  * Unknown/late ids are a no-op (the caller already timed out), never an error.

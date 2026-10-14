@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1140", "at": "2026-10-14T11:15:35+01:00", "actor": "claude", "column": "todo", "title": "MCP: import_media tool - outside agents import a file from disk into the gallery as a card"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1140", "at": "2026-10-14T11:16:34+01:00", "actor": "claude", "from": "todo", "to": "doing"}

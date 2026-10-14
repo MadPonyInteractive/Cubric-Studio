@@ -262,6 +262,11 @@ export async function renameCard(groupId, name) {
     return _post('/connector/rename-card', { groupId, name: String(name ?? '') }, 60_000);
 }
 
+/** POST /connector/import-media { sourcePath, folderPath?, cardName? } — MPI-1140: a file on disk as a new card. No clock: a big clip's proxy transcode takes minutes. */
+export async function importMedia(body) {
+    return _post('/connector/import-media', body);
+}
+
 /**
  * POST /connector/gif/{make,edit,cutout,to-video} — MPI-830's routes; bodies and error codes in
  * `.claude/skills/cubric-vision-gif/SKILL.md`. Awaited: the ffmpeg verbs are seconds, a cut-out

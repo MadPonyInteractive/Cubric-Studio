@@ -13,7 +13,7 @@
  * (`routes/connector.js` header). The catalogue is shrunk by the same `compactCatalogue`
  * the in-app agent reads, because the raw list is ~9.5k tokens.
  *
- * MPI-593 phase 2: twenty-two tools, and one that deletes: `delete_routine` (MPI-1009), which
+ * MPI-593 phase 2: twenty-two tools (MPI-1140 adds import_media), and one that deletes: `delete_routine` (MPI-1009), which
  * moves the agent-made routine to `routines/deleted/`. MPI-1126 added three that install (a model,
  * a Flow, the local engine), each behind `askDownload`. The in-app agent's gates live in `agentLoop._executeTool`, not
  * in the routes, so this file carries its own spend gate (`spendGate`). The guide gate is only
@@ -416,6 +416,24 @@ const TOOLS = {
         inputSchema: obj({ groupId: { type: 'string' }, name: { type: 'string' } }, ['groupId', 'name']),
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         run: async ({ groupId, name }) => (await tools()).renameCard(groupId, name),
+    },
+    import_media: {
+        title: 'Import a file',
+        description: 'Add an image, video or audio file from the user\'s disk to a project\'s gallery as a new card, exactly as if the user dropped it there. The file is copied in; the original is not touched. Returns the card\'s path on disk, its groupId and a small picture of it. Only to put a file in the gallery: to edit or reference a file, pass its path to generate as media instead, which needs no import first. A long clip can take a minute and returns { running: true, jobId }: wait_generation finishes it.',
+        inputSchema: obj({
+            path: { type: 'string', description: 'The file on disk: one the user named, or one you made.' },
+            folderPath: { type: 'string', description: 'The project it lands in, from list_projects or create_project. It need not be open. Omit only to use whatever project the app has open.' },
+            cardName: { type: 'string', description: 'A short name for the card. Omit to keep the app\'s own name.' },
+        }, ['path']),
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        run: async ({ path: p, folderPath, cardName }, rpcKey) => {
+            const t = await tools();
+            const open = await openFolder(t, folderPath);
+            if (open.error) return open.error;
+            const sourcePath = typeof p === 'string' ? path.resolve(p) : '';
+            if (!fs.existsSync(sourcePath)) return { ok: false, error: { code: 'FILE_NOT_FOUND', message: `No file at "${p}".` } };
+            return waitForJob(startJob(() => t.importMedia({ sourcePath, folderPath: open.folder, ...(cardName ? { cardName } : {}) })), rpcKey);
+        },
     },
     generate: {
         title: 'Generate',

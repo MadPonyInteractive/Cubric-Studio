@@ -17,10 +17,10 @@ different thing: [agent-chat.md](agent-chat.md). Both call the same `/connector/
   no Origin and pass on Host alone. The HTTP API behind it is unauthenticated: a shell-capable
   agent that cannot see the tools will scrape it instead (Codex did, 2026-09-26).
 
-## The 26 tools
+## The 27 tools
 
 `status`, `list_models`, `describe_model`, `list_projects`, `create_project`, `open_project`,
-`list_cards`, `view_card`, `rename_card`, `generate`, `wait_generation`, `cancel_generation`,
+`list_cards`, `view_card`, `rename_card`, `import_media`, `generate`, `wait_generation`, `cancel_generation`,
 `install_model`, `install_flow`, `install_engine`,
 `read_knowledge`, `make_gif`, `edit_gif`, `cutout_gif`, `gif_to_video`, `make_sheet`, `list_routines`,
 `save_routine`, `rename_routine`, `delete_routine`, `run_routine`. Every one has a `title` and
@@ -62,6 +62,12 @@ only tool with `destructiveHint: true`.
   project `folderPath` names, else the one `GET /connector/current-project` names. An image
   pasted into the user's chat never reaches us as a file, so an input is a card or a disk path.
   A video in a picture role goes as its first frame (`/connector/generate`, MPI-980).
+- **Import** (MPI-1140). `import_media` puts a file from disk in a gallery as its own card:
+  `/connector/import-media` -> renderer job `media.import` (`agentDispatch._importMedia`), which
+  runs a gallery drop's upload route and card builder (`mediaImportService.buildImportGroup`),
+  so it is the same card. Open project: the drop's spinner card + `addGroup`; a closed one:
+  `/project-groups`. No "reduce this huge photo?" dialog, nobody is there to answer it. A
+  reference image never needs it: `generate` stages its `media` itself.
 - **Results** carry the disk path plus the gallery's 512px thumb as MCP `image` content, so a
   vision model sees what it made. `view_card` (`services/cardView.js`) shows a still, or a video
   or GIF as ONE contact sheet (frames picked by index, GIF delays from sharp).

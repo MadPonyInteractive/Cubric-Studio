@@ -1,0 +1,14 @@
+{
+ "schema": "mpi-kanban/task-files/v1",
+ "files": [
+  "routes/mcp.js",
+  "routes/connector.js",
+  "services/agentTools.mjs",
+  "js/shell/agentDispatch.js",
+  "js/services/mediaImportService.js",
+  "mcp/cubric-studio/manifest.json",
+  "docs/mcp-server.md",
+  "tests/mcp.test.cjs",
+  "tests/agent-no-delete.test.cjs"
+ ]
+}
