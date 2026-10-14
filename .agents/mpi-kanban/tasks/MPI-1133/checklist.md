@@ -6,4 +6,4 @@
 - [x] Survey: identity LoRAs / IC-LoRAs / adapters for H3; per-character LoRA training; face-swap post pass; prompt + reference-layout levers
 - [x] Per option: licence (read by hand), 16 GB VRAM, ComfyUI nodes, composes with ref2va multi-reference; UNVERIFIED marked
 - [x] research/shortlist.md: ranked shortlist + bench plan
-- [ ] Report to Fabio (bench needs his go)
+- [x] Report to Fabio: higher resolution fixes it (2026-10-14); RefMod folded into MPI-815

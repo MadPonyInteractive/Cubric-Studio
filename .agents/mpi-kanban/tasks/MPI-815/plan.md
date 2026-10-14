@@ -231,8 +231,7 @@ whoever is second rebases their append. Do not batch these two files.
 
 ### Later — separate cards, not this one
 
-Mods as element files (a `.safetensors` a user adds), and everything they need: reaching the
-engine's RefMod folder locally **and** on a Pod, which nothing does today. Flow slots consuming
+~~Mods as element files~~ — **folded INTO this card 2026-10-14 (Fabio): Phase 4 below.** Flow slots consuming
 elements. Starter elements we ship (Hats, locations). The sheet-builder Flow (character + clothes
 + weapon → a character sheet). A user-selectable library root (the honest precedent is
 `extra_model_folders.json` + `setExtraModelFolders()` with `fs.realpath.native`, **not** the
@@ -240,9 +239,36 @@ primary models root). `prompt_base` as an optional tick in the drop dialog. Tell
 reference is which subject in a multi-subject shot — a prompt-level problem, tags already exist in
 `mediaInputs` (`Picture 1…Audio 3`).
 
+### Phase 4: RefMod per character (folded in 2026-10-14) — `user-ux`
+
+**Why (Fabio, 2026-10-14):** a RefMod takes far less time than training a normal LoRA and still
+leaves a file the character element can carry. One RefMod per character, stored as an item in
+the element. Each step below is a checkbox, so nothing gets built ahead of the bench.
+
+- **What it is:** `Luisacaotica/ComfyUI-MiniMaxH3Mod` (MIT, "under construction", v0.2.6 read
+  2026-10-14): NO training. It compresses reference images/videos (and audio) into small latent
+  `.safetensors` bundles that a loader applies to MiniMax H3. Its own README lists voice transfer
+  as a KNOWN FAILURE: treat it as visual identity only. Node names and inputs may still shift
+  between versions, so pin a commit. A WanGP port and `sdprompts/Minimax-H3-Refmod-Studio` exist.
+  None of this is benched here yet.
+- **Evidence to start from:** MPI-1133 (`tasks/MPI-1133/research/shortlist.md`). On H3 ref2va the
+  face drifts when stage 1 sees it small (a 1792x1120 sheet reaches stage 1 at ~640x416, so the
+  face is ~120-140 px wide). **Fabio, 2026-10-14: higher resolution fixes it.** So the RefMod bar
+  is not "fixes drift". It is "holds the face at the draft canvas MPI-1135 picks, and/or replaces
+  re-sending the whole sheet on every shot".
+- [ ] **Bench first.** Our own ComfyUI from `G:/ComfyUi`, never `:8188` or `:3000`, under
+  `gpu_lease.py run --poll 2`. Build a RefMod from a character sheet and compare against the plain
+  sheet as a reference at the same seed, at the draft canvas and at native. Record time to build,
+  file size, VRAM and the face. Fabio's eye test decides. Installing the node pack into the bench
+  python needs his yes first.
+- [ ] Then the wiring this card used to defer: the node pack in the shipped engine (pinned), the
+  element item type for a mod file, and reaching the engine's RefMod folder **locally and on a
+  Pod** (nothing does that today).
+
 ## Plan Drift
 
-- None yet.
+- 2026-10-14: RefMod (mods as element files) moved from "Later — separate cards" into this card
+  as Phase 4, on Fabio's call. Source research card MPI-1133 closed.
 
 ## Verification
 
