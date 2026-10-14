@@ -24,7 +24,7 @@ const { shellWindow } = require(REPO + '/tests/desktop/shellWindow');
       await new Promise(r => setTimeout(r, 1500));
       const t0 = performance.now();
       const img = new Promise(res => { const i = new Image(); i.onload = () => res('loaded'); i.onerror = () => res('error'); i.src = '/assets/mascot/greet.png?b=' + Math.random(); });
-      setTimeout(() => es.forEach(e => e.close()), 4000);
+      setTimeout(() => es.forEach(e => e.close()), 12000);
       const out = await img;
       return `${out} after ${Math.round(performance.now() - t0)} ms`;
     });
@@ -33,6 +33,6 @@ const { shellWindow } = require(REPO + '/tests/desktop/shellWindow');
   } finally {
     await app.close();
   }
-  const log = fs.readFileSync(path.join(userData, 'logs', 'app.log'), 'utf8').split('\n').filter(l => l.includes('slow-load'));
+  const log = fs.readFileSync(path.join(userData, 'logs', 'app.log'), 'utf8').split('\n').filter(l => l.includes('slow-load') || l.includes('held-load'));
   console.log(log.join('\n') || 'no slow-load line');
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -27,16 +27,17 @@ const MODE = process.argv[4] || 'paused';
     const win = await shellWindow(app, 60000);
     await win.waitForTimeout(6000);
     console.log('idle conns:', established());
-    await win.evaluate(({ src, mode }) => {
-      for (let i = 0; i < 3; i++) {
+    await win.evaluate(({ src, mode, n }) => {
+      for (let i = 0; i < n; i++) {
         const v = document.createElement('video');
         v.muted = true; v.preload = 'auto'; v.loop = mode === 'play';
         v.src = src + '?v=' + i;
-        v.style.cssText = 'position:fixed;width:80px;height:60px;top:0;left:' + i * 90 + 'px;z-index:99999';
+        v.style.cssText = mode === 'hidden' ? 'display:none'
+          : 'position:fixed;width:80px;height:60px;top:0;left:' + i * 90 + 'px;z-index:99999';
         document.body.appendChild(v);
         if (mode === 'play') v.play().catch(() => {});
       }
-    }, { src: VIDEO, mode: MODE });
+    }, { src: VIDEO, mode: MODE, n: Number(process.env.N || 4) });
     const t0 = Date.now();
     while (Date.now() - t0 < 40000) {
       await win.waitForTimeout(2500);

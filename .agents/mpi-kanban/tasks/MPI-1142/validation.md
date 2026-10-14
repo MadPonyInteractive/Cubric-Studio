@@ -27,3 +27,11 @@
 - Shipped: routes/heldRequests.js + server.js middleware + routes/system.js: every [slow-load] line now ends `| held: <url> <n>s [open], ...` = every request the server kept open 3 s+ during that load. Test tests/held-requests.test.cjs; eslint clean.
 - Proof research/heldlog.cjs: picture queued behind 4 extra streams logged `queued 4014ms (before connect 4014ms, ...) | held: /connector/jobs/stream 11s open, /agent/stream 11s open, /connector/jobs/stream?probe=1 6s x4`. A pool wait lands in `before connect`.
 - Needs Fabio's FULL restart (server.js). Next slow moment: the held list names the holders -> fix those sites (likely hidden preload=auto videos) and/or fold the permanent streams into one.
+
+## 2026-10-14 ~23:00 local - NOT sockets: Chromium's low-priority load cap; holder watcher shipped
+- Live held lists (21:39Z and Flows stall ~21:45Z): server saw only 3 open requests (jobs + agent streams, concat stream opened at stall start). So the socket-pool theory does not explain it.
+- Fabio's HAR (~/Downloads/Landing7, 914 :3000 requests; research/harconn.py, harwin.py, hartypes.py): 105/135 media + 32/92 images queued >5 s; 0 of 507 fetch, 160 css, 20 js. Every stalled entry is `_priority: Low` with all its time in `_blocked_queueing`; on-screen images are High and fast. peek.webm waited 15 s on connection 3170 while /system/stats fetches went through 3170 every 2 s. = Chromium's per-host cap on in-flight LOW-priority (delayable) loads, not sockets.
+- Holders are not in the HAR (DevTools leaves still-pending entries out). Fabio's screenshot shows mascot .webm loads "(pending)" on the landing.
+- Isolated app still cannot make a holder: 3-12 hidden or visible, paused or playing mascot webms / 40 MB mp4s all finish in ms.
+- Shipped main.js `[held-load]`: webRequest onSendHeaders/onResponseStarted/onCompleted/onErrorOccurred on http://127.0.0.1/*, media+image only; logs any in flight 10 s+ with `response after` (small = holder). Plumbing proven with a temporary 0 ms threshold (media + image lines appeared), reverted to 10 s; eslint clean.
+- Next: Fabio full restart; at the next stall grep `[held-load]` -> the element/site that leaves its load open -> fix that site (release src when idle/hidden, or preload none).

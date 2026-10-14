@@ -384,6 +384,32 @@ function createWindow() {
     }
   );
 
+  // MPI-1142: Chromium lets only a few low-priority loads (pictures, videos) per host be in
+  // flight; the rest queue. A video player that idles with its load still open holds a slot
+  // until Chromium suspends it ~15 s later, and every picture behind it waits. Name any
+  // picture/video that stayed in flight 10 s+: `response` early = a holder, late = a victim.
+  const heldLoads = new Map();
+  const appUrls = { urls: ['http://127.0.0.1/*'] };
+  const isHeldKind = (d) => d.resourceType === 'media' || d.resourceType === 'image';
+  session.defaultSession.webRequest.onSendHeaders(appUrls, (d) => {
+    if (isHeldKind(d)) heldLoads.set(d.id, { start: Date.now() });
+  });
+  session.defaultSession.webRequest.onResponseStarted(appUrls, (d) => {
+    const rec = heldLoads.get(d.id);
+    if (rec) rec.response = Date.now();
+  });
+  const endHeldLoad = (d) => {
+    const rec = heldLoads.get(d.id);
+    if (!rec) return;
+    heldLoads.delete(d.id);
+    const ms = Date.now() - rec.start;
+    if (ms < 10000) return;
+    const response = rec.response ? `${rec.response - rec.start}ms` : 'never';
+    logger.warn('held-load', `${d.resourceType} in flight ${ms}ms, response after ${response}, ${d.error || d.statusCode} | ${d.url.replace(/^http:\/\/127\.0\.0\.1:\d+/, '')}`);
+  };
+  session.defaultSession.webRequest.onCompleted(appUrls, endHeldLoad);
+  session.defaultSession.webRequest.onErrorOccurred(appUrls, endHeldLoad);
+
   // Renderer permissions (MPI-573). Installing a handler at all is what the mic
   // recorder needs: Electron answers permission requests itself, and a denied
   // getUserMedia({audio}) comes back with no prompt, no dialog and nothing in the
