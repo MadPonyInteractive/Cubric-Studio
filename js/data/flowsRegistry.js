@@ -1880,8 +1880,10 @@ export const FLOWS = [
     // The repaint is Klein 9B with NO reference (a reference makes Klein copy the band back,
     // seam included) and a prompt saying what the picture shows (without it Klein paints
     // unrelated things into the band): bench rounds 1-5, MPI-1101 validation.md. That line is
-    // the user's words when given, else the describer's, asked of the WHOLE picture (`source`,
-    // which the planner adds: a window is mostly seam) once per run.
+    // the user's words when given, else the describer's, asked of EACH WINDOW's own picture
+    // (`everyPass`). One whole-picture line for every window made Klein paint the whole scene
+    // into a window that shows only floor (new greenhouses in a 16K floor, 2026-10-14); a tiled
+    // upscaler prompts each tile for the same reason (Fabio).
     //
     // `direction` is for callers with no Edges gizmo (the agent): hidden whenever a picture
     // is given, which on this screen is always; the gizmo's own value wins (`edgesFor`).
@@ -1939,8 +1941,8 @@ export const FLOWS = [
             { id: 'lightingFlatten', type: 'slider', label: 'Even out lighting', min: 0, max: 1, step: 0.05, default: 0 },
         ],
         describe: [
-            { to: 'Input_Positive', media: 'source',
-                ask: 'Describe what this picture shows in one sentence: the kind of picture, the main things in it with their materials and colours, and the light. Answer with that sentence and nothing else.' },
+            { to: 'Input_Positive', media: 'image1', everyPass: true,
+                ask: 'This is a crop of a larger picture. A straight line may run across it where two edges were joined: ignore that line. In one sentence, say only what this crop shows: the surfaces and things in it with their materials and colours, and the light. Name nothing that is not in this crop. Answer with that sentence and nothing else.' },
         ],
     }] : []),
     // MPI-607 — Voice Changer, the FIRST audio-only flow: audio in, audio out, no

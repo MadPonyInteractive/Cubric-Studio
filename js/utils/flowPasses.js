@@ -199,10 +199,8 @@ async function _seamlessPlanner(flow, stepValues, mediaItems, deps) {
         { ...source, url: win.image, filePath: win.image, role: 'image1' },
         { url: win.mask, filePath: win.mask, mediaType: 'image', role: 'mask' },
     ];
-    // Pass 1 also carries the WHOLE picture on `source`, which no graph slot takes: the Flow's
-    // `describe` reads it for the content line (a window is mostly the seam), and flowService
-    // hands that answer on to every later pass.
-    const firstPassMedia = [..._makeMedia(win0), { ...source, role: 'source' }];
+    // Each pass's content line is described from its own window (`everyPass`, flowService).
+    const firstPassMedia = _makeMedia(win0);
 
     let served = 0; // index of the last window we have already served
     return {

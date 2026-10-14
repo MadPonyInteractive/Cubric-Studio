@@ -229,13 +229,13 @@ test('Character Sheet from Images: the turn is asked on the BOXED face, the clot
     }
 });
 
-test('submitFlowGeneration describes before the graph is queued, on the first call only', () => {
+test('submitFlowGeneration describes before the graph is queued, on the first call only (a later pass: its `everyPass` entries)', () => {
     const src = fs.readFileSync(repo('js/services/flowService.js'), 'utf8');
     const body = src.slice(src.indexOf('export function submitFlowGeneration('), src.indexOf('// ── Cloud edit stage'));
     // The rules read every field the run has (MPI-1041: `change`, `words` are not graph params).
     assert.match(body, /const describeRun = \{ mediaItems, injectionParams: \{ \.\.\.flowRunValues\(flow, run\), \.\.\.config\.injectionParams \} \};/);
-    assert.match(body, /if \(!_leg\.tempId && describeAsks\(flow, describeRun\.injectionParams, mediaItems\)\.length\) \{/);
-    const describe = body.indexOf('(io.describe || describeFlowRun)(flow, describeRun, runOriginProject || state.currentProject)');
+    assert.match(body, /if \(\(!_leg\.tempId \|\| laterPass\) && describeAsks\(describing, describeRun\.injectionParams, mediaItems\)\.length\) \{/);
+    const describe = body.indexOf('(io.describe || describeFlowRun)(describing, describeRun, runOriginProject || state.currentProject)');
     const merge = body.indexOf('Object.assign(config.injectionParams, d.injectionParams);');
     const startAfter = body.indexOf('if (!start())', merge);
     assert.ok(describe > -1 && merge > describe && startAfter > merge, 'describe -> merge -> queue');

@@ -138,9 +138,8 @@ test('seamless planner: 1024×1024 left+right 10% → 1 window', async () => {
     assert.ok(img1, 'firstPassMedia has image1 role');
     assert.ok(mask, 'firstPassMedia has mask role');
     assert.equal(img1.filePath, '/project-file?path=win_0_img.png', 'image1 is the cut of window 0');
-    // The describer reads the WHOLE picture for the content line, not a window (mostly seam).
-    const whole = result.firstPassMedia.find(m => m.role === 'source');
-    assert.equal(whole?.filePath, mediaItems[0].filePath, 'pass 1 carries the whole picture on `source`');
+    // Each window is described from itself (`everyPass`): pass 1 carries no whole picture.
+    assert.ok(!result.firstPassMedia.some(m => m.role === 'source'), 'no whole picture on `source`');
     assert.deepEqual(result.runPass, { index: 1, count: 1, seamless: { runId: 'test-run-id', i: 0 } }, 'pass 1 pastes window 0');
 
     // /seamless/prepare was called with the right handles

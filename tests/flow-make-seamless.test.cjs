@@ -2,7 +2,7 @@
  * flow-make-seamless.test.cjs — the Make seamless Flow's wiring (MPI-1101 Phases 2-3).
  *
  * Pins: the op in all four registries; the content line (the user's words, else the describer
- * asked ONCE of the whole picture and carried to every window); and that the planner refuses
+ * asked of EACH window's own picture); and that the planner refuses
  * rather than letting the Flow screen fall back to one pass on the whole picture.
  *
  * Run: node --test tests/flow-make-seamless.test.cjs
@@ -38,23 +38,51 @@ test('the op is registered in all four places, on the shipped graph', async () =
     assert.equal(JSON.parse(fs.readFileSync(repo('operation_registry.json'), 'utf8')).flowMakeSeamless?.universal, true);
 });
 
-test('the content line: the describer is asked of the WHOLE picture only when the box is empty', async () => {
+test('the content line: each WINDOW is described, only when the box is empty', async () => {
     const { getFlowById } = await esm('js/data/flowsRegistry.js');
     const { describeAsks } = await esm('js/services/flowEnhance.js');
     const flow = getFlowById('make-seamless');
-    const media = [{ ...SOURCE, url: '/project-file?path=win_0.png' }, { role: 'mask', mediaType: 'image', url: 'm.png' },
-        { ...SOURCE, role: 'source' }];
-    assert.deepEqual(describeAsks(flow, {}, media).map(a => [a.to, a.media]), [['Input_Positive', 'source']]);
+    const media = [{ ...SOURCE, url: '/project-file?path=win_0.png' }, { role: 'mask', mediaType: 'image', url: 'm.png' }];
+    assert.deepEqual(describeAsks(flow, {}, media).map(a => [a.to, a.media, a.everyPass]), [['Input_Positive', 'image1', true]]);
     assert.deepEqual(describeAsks(flow, { Input_Positive: 'a cobblestone street' }, media), [], 'typed words win');
-    assert.deepEqual(describeAsks(flow, {}, media.slice(0, 2)), [], 'a later window carries no `source`');
 });
 
-test('every later window gets the answer pass 1 described', () => {
-    const src = fs.readFileSync(repo('js/services/flowService.js'), 'utf8');
-    // The describe runs on the first call only (`!_leg.tempId`); each pass re-submits with the
-    // run's tempId, so `described` must ride along or windows 2..N run with an empty line.
-    assert.match(src, /\.\.\.\(last \? \{\} : \{ runNextPass \}\) \}, callbacks, \{ tempId, run: handle, described \}, io\)\)/);
-    assert.match(src, /injectionParams: \{ \.\.\.flowModelParams\(flow, \{ op: operation \}\), \.\.\.\(run\.injectionParams \|\| \{\}\), \.\.\.described,/);
+// 2026-10-14: one whole-picture line for every window made Klein paint the whole scene into a 16K
+// window that shows only floor. Each pass is asked of its own window; no line rides to the next.
+test('every pass describes its OWN window; a typed line reaches every window undescribed', async () => {
+    const { submitFlowGeneration } = await esm('js/services/flowService.js');
+    const flow = {
+        id: 'seam', title: 'Seam', operation: 'flowSeam', mediaType: 'image',
+        describe: [{ to: 'Input_Positive', media: 'image1', everyPass: true, ask: 'What?' }],
+    };
+    const win = i => [{ role: 'image1', url: `win_${i}.png` }, { role: 'mask', url: `m_${i}.png` }];
+    const run = async (inputs) => {
+        const asked = [], queued = [];
+        const io = {
+            describe: async (_f, cfg) => {
+                const url = cfg.mediaItems.find(m => m.role === 'image1').url;
+                asked.push([url, cfg.injectionParams.Input_Positive]);
+                return { ok: true, injectionParams: { Input_Positive: `line of ${url}` } };
+            },
+            enqueue: (config, callbacks) => { queued.push({ config, callbacks }); return { queueJobId: `q${queued.length}` }; },
+        };
+        const tick = () => new Promise(r => setImmediate(r));
+        submitFlowGeneration(flow, {
+            ...inputs, runMediaItems: win(0), runPass: { index: 1, count: 2 },
+            runNextPass: async () => ({ media: win(1), last: true, runPass: { index: 2, count: 2 } }),
+        }, {}, {}, io);
+        await tick();
+        await queued[0].callbacks.onComplete({ item: {} });
+        await tick();
+        return { asked, lines: queued.map(q => q.config.injectionParams.Input_Positive) };
+    };
+    const blank = await run({});
+    assert.deepEqual(blank.asked, [['win_0.png', undefined], ['win_1.png', undefined]],
+        'window 2 is asked of its own picture, never handed window 1\'s line');
+    assert.deepEqual(blank.lines, ['line of win_0.png', 'line of win_1.png']);
+    const typed = await run({ injectionParams: { Input_Positive: 'a cobblestone street' } });
+    assert.deepEqual(typed.asked, [], 'typed words are never re-described');
+    assert.deepEqual(typed.lines, ['a cobblestone street', 'a cobblestone street']);
 });
 
 // The mask is `planned`: an agent's run with only the picture was refused MEDIA_REQUIRED (Phase 4,

@@ -9,7 +9,7 @@
 - [x] Phase 4a: agent-path 8K pano E2E + band-edge fix (ramped mask + DifferentialDiffusion); Fabio's eye test PASS 2026-10-12
 - [x] Phase 4b: the Flow screen on an isolated instance (status bar i/N on a 16K multi-window picture, no second Generating card, Tiles slider, a texture both ways) - Tiles aspect bug found + fixed
 - [x] Phase 4c: one run with the content box EMPTY (describer path; local describer, no cost)
-- [ ] Phase 4d: one LIVE Cosmo request ("make this picture tile") and one call through the MCP generate tool - MCP PASS; Cosmo FAIL on ornith:9b (picked tiled upscale), production model untried (paid)
+- [x] Phase 4d: one LIVE Cosmo request ("make this picture tile") and one call through the MCP generate tool - MCP PASS; Cosmo FAIL on ornith:9b (picked tiled upscale); Cosmo PASS on the production DeepInfra model 2026-10-14 (picked Make seamless, both ways, `flowMakeSeamless_096`)
 - [x] Status bar shows IDLE between windows (~15 s per gap at 16K): show the run between passes (`tool:hold`; unit + live greenhouse 16K)
 - [ ] 16384-wide joins: at 4x shrink Klein KEEPS THE CUT in most windows (seamScore: 4 of 5 leaves + greenhouse w0; 8K all heal) - fix direction back to Fabio (seed re-run heals ~1 in 5)
 - [x] Line across the seam where two 16K windows meet (row step 2.5x): overlap mask ramp in `windowMaskBuffer` - unit + live (`_074`: 1.30/1.29 vs control 1.39)

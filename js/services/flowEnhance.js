@@ -390,6 +390,8 @@ export async function enhanceFlowRun(flow, resolved, deps = { enhance: runEnhanc
 // torso shot came back FRONT for a turned head, off the boxed face TURNED: MPI-1042 batch 14a).
 // `region: { x, y, width, height }` is a FIXED part, in fractions of the picture (a sheet's front body
 // view): a 4B describer judging a whole three-view sheet missed what one view showed (MPI-1041).
+// `everyPass: true` asks it again on every pass of a multi-pass run, of that pass's own picture
+// (Make seamless's windows, MPI-1101); flowService does not hand that answer on to the next pass.
 // Targets are graph inputs nobody types into, so the text is run-only: it never enters the
 // snapshot, and Reuse describes the picture again.
 //

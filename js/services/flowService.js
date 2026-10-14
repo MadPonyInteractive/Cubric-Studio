@@ -479,7 +479,11 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
     // A leg's own params, and its `box` resolved against the picture it is fed: the previous
     // leg's result, or (a leg that starts the run) the user's own picture on its input role.
     // A box that cannot be sized stops the leg rather than running it on the whole picture.
-    const described = { ..._leg.described };
+    // An `everyPass` target is described again from each pass's own picture (flowEnhance.js), so
+    // the line the pass before was given is not handed on.
+    const everyPass = (flow.describe || []).filter(d => d.everyPass);
+    const described = Object.fromEntries(Object.entries(_leg.described || {})
+        .filter(([to]) => !everyPass.some(d => d.to === to)));
     const modelIds = flowModelIds(flow, { op: operation });
     let legParams = {};
     if (leg) {
@@ -684,13 +688,16 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
     // picked in Remote: every caller reaches the graph through here, so hand, agent and routine
     // runs are described alike. Like the cloud edit it enters the queue only when this is done.
     // First call only. The answers go on to each later leg and each later pass through
-    // `described` (MPI-1041; Make seamless's content line, MPI-1101).
+    // `described` (MPI-1041), all but an `everyPass` one (Make seamless's content line, MPI-1101).
     // The rules read every field the run has (`change`, `words` are not graph params), and a
     // CHECK's refusal carries its own code (a child-safety one: CHILD_SAFETY), so the hand, agent
     // and routine runs report the same code and words.
+    // A later PASS (not a later leg) asks only its `everyPass` entries, of its own picture.
+    const laterPass = !!_leg.tempId && runPass?.index > 1;
+    const describing = laterPass ? { ...flow, describe: everyPass } : flow;
     const describeRun = { mediaItems, injectionParams: { ...flowRunValues(flow, run), ...config.injectionParams } };
-    if (!_leg.tempId && describeAsks(flow, describeRun.injectionParams, mediaItems).length) {
-        (io.describe || describeFlowRun)(flow, describeRun, runOriginProject || state.currentProject).then((d) => {
+    if ((!_leg.tempId || laterPass) && describeAsks(describing, describeRun.injectionParams, mediaItems).length) {
+        (io.describe || describeFlowRun)(describing, describeRun, runOriginProject || state.currentProject).then((d) => {
             // Cancelled while it described (MPI-1083): whatever the describer said, nothing is queued.
             if (handle.cancelled || d.cancelled) return runCallbacks.onCancel?.();
             if (!d.ok) {
