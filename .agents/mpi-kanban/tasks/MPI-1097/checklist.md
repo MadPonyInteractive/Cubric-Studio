@@ -8,7 +8,7 @@
 - [x] Server half already fixed by MPI-1071 (04f1ff901): drifted universal nodes install with force.
 - [x] Fix (35596affc): a new `connecting` phase resets the connect-edge latch (`js/shell.js`).
 - [x] Test: structural check in `tests/remote-engine-assets.test.cjs`, red without the fix (mutant), 9/9 with it.
-- [x] npm test 3310 pass / 0 fail. [ ] CI green on 35596affc.
+- [x] npm test 3310 pass / 0 fail; CI green on 35596affc.
 - [ ] Live proof rides the 2.1 Pod session (boot with remote on + a stray Pod, or a node_lock bump).
 
 ## Scope (corrected 2026-10-14)
