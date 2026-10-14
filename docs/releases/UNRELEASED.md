@@ -69,9 +69,11 @@
 
 ## ComfyUI Engine
 
-- **ComfyUI 0.39.0 (was 0.34.0).** It updates itself on first launch in about a minute, with no full re-download, and custom nodes you added yourself stay.
+- **ComfyUI 0.39.0 (was 0.34.0).** The engine updates itself on first launch in about a minute, with no full re-download, and custom nodes you added yourself stay. Without Krea 2 or the Image Describer plugin, that launch also fetches the 4.88 GB text encoder Enhance and Describe now use (see Fixes).
 
 ## Fixes
+
+- **Every background job shows in the queue.** Making or editing a GIF, GIF to video, Combine, preparing a clip to mask and Project Cleanup now get a row under Transfers, with a moving bar while they work, and a strip flashes on the right edge when a job joins a closed queue. Click it, or press Q on the home page, to open the queue.
 
 - **GIF cut-out shows in the queue, with a Stop.** Remove background and By name now wait their turn behind a generation instead of running beside it, and the queue panel can stop them.
 - **Project cards on the home page show their picture again.** Older projects were blank.
