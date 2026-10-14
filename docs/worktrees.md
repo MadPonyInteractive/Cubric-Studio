@@ -86,7 +86,7 @@ If `.engine-config.json` is created/edited **after** the Node process starts, ch
 
 ### The engine's `input/` and `output/` are shared scratch (MPI-778)
 
-Every instance resolving the same engine root (every worktree, the dev app, each desktop spec, each `app:isolated`) shares one engine and its ComfyUI `input/` and `output/`. On quit, **only the instance whose server fork spawned the running engine empties them** (`routes/engineScratch.js`). The fork reports ownership to `main.js` over IPC (`engine-owner`, sent on spawn and on exit); `routes/shared.js` `cleanComfyUITempFiles` reads the same handle. Before this, every quit emptied them, including E2E runs that never start an engine, so a test run could delete a live app's staged inputs and uncollected outputs. A remote-only instance never owns one either, so what `/comfy/stage-media-data-url` writes locally stays until the next owner quits. Those files are content-hashed and small. Proof: `tests/desktop/engine-scratch-quit.spec.js` (points `CUBRIC_ENGINE_ROOT` at a scratch dir) and `tests/engine-scratch.test.cjs`.
+Every instance resolving the same engine root (every worktree, the dev app, each desktop spec, each `app:isolated`) shares one engine and its ComfyUI `input/` and `output/`. **They are emptied once, right before a server fork spawns the engine** (`/comfy/start` → `routes/engineScratch.js`, MPI-1144): only an instance that found no engine running gets there, and with no engine nothing can be reading an input or waiting on an output. Never on quit: until MPI-778 every quit emptied them (an E2E run could delete a live app's staged inputs), and until MPI-1144 the owner's quit did, while its engine was still alive. On Windows that threw EPERM on a staged file the live engine held open and showed "Cubric Studio failed to start" on quit. An entry that cannot be deleted is warned about and goes at the next start. So the scratch of the last session stays on disk until the next local engine start; what a remote-only instance stages locally (`/comfy/stage-media-data-url`) likewise. Proof: `tests/engine-scratch.test.cjs`, `tests/fork-shutdown.test.cjs`, `tests/desktop/engine-scratch-quit.spec.js` (points `CUBRIC_ENGINE_ROOT` at a scratch dir).
 
 The fork's own SIGINT/SIGTERM (Ctrl+C on `npm run server`, main killing the fork on macOS/Linux; Windows terminates it with no handler) has ONE path: `installShutdown` in `routes/shared.js`, installed by `server.js`. Order: `cancelAllDownloads`, then the owner-gated scratch clean while the handle still proves ownership, then the engine kill, then exit. Nothing else may take those signals: `shared.js` used to, at require time, and its `process.exit()` meant `server.js`'s handlers never ran (MPI-779, `tests/fork-shutdown.test.cjs`).
 
@@ -108,7 +108,7 @@ Since the YAML lives inside shared `enginePath`, all worktrees pointing at the s
 | `routes/comfy.js` | ComfyUI server spawn paths |
 | `routes/downloadManager.js` | model/dep download targets |
 | `main.js` | Electron-side engine path resolution, quit cleanup |
-| `routes/engineScratch.js` | owner-only emptying of engine `input/` / `output/` |
+| `routes/engineScratch.js` | emptying of engine `input/` / `output/`, at engine spawn only |
 | `.git/hooks/post-checkout` | npm ci on worktree create |
 | `.gitignore` | `.engine-config.json`, `engine/`, `llama_engine/`, `llama_models/` |
 

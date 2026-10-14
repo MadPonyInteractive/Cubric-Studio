@@ -3,11 +3,14 @@
  *
  * routes/shared.js used to register its own SIGINT/SIGTERM handlers at require time,
  * and they called process.exit(). server.js requires shared.js before registering its
- * own, so its handlers never ran: cancelAllDownloads() and the engine scratch cleanup
- * were dead on Ctrl+C (`npm run server`) and on SIGTERM (macOS/Linux quit).
+ * own, so its handlers never ran: cancelAllDownloads() was dead on Ctrl+C
+ * (`npm run server`) and on SIGTERM (macOS/Linux quit).
+ *
+ * Shutdown no longer empties the engine's input/output: the engine is still alive when
+ * it runs, so that happens at the next engine spawn instead (MPI-1144).
  *
  * Each case runs in a child process, because the handler exits. The engine root is a
- * scratch dir: the owner branch really empties input/output.
+ * scratch dir with one staged input, which must survive.
  */
 const test = require('node:test');
 const assert = require('node:assert');
@@ -31,7 +34,7 @@ function runChild(body) {
 }
 
 for (const signal of ['SIGTERM', 'SIGINT']) {
-    test(`${signal} stops server work, empties the owned engine's scratch, then kills the engine`, () => {
+    test(`${signal} stops server work, then kills the engine, and leaves its scratch to the next spawn`, () => {
         const r = runChild(`
             const fs = require('fs');
             const shared = require(process.env.SHARED);
@@ -45,7 +48,7 @@ for (const signal of ['SIGTERM', 'SIGINT']) {
         assert.strictEqual(r.status, 0, r.stderr);
         assert.deepStrictEqual(r.lines, [
             '>server work stopped',
-            '>engine killed SIGKILL, staged present: false',
+            '>engine killed SIGKILL, staged present: true',
         ]);
     });
 }

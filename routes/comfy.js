@@ -23,6 +23,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const { exec, spawn } = require('child_process');
 const logger = require('./logger');
+const { cleanEngineScratch } = require('./engineScratch');
 const { isDepInstalledOnDisk, getPartialBytes } = require('./downloadCompletion');
 const {
     COMFYUI_PORT,
@@ -523,13 +524,6 @@ function requestEngineRestart(reason) {
 
 let _restartWatch = null;
 
-// MPI-778: main.js empties the engine's input/output on quit only when this instance
-// owns the engine, and only this fork knows that. Mirror every change of the handle.
-// `process.connected` is undefined when the server runs standalone (no Electron main).
-function _reportEngineOwnership() {
-    if (process.connected) process.send({ type: 'engine-owner', owned: !!processState.activeComfyProcess });
-}
-
 /** Owner-side: watch for another instance's restart request. `spawnedAt` dates OUR process. */
 function _watchForRestartRequests(spawnedAt) {
     clearInterval(_restartWatch);
@@ -749,10 +743,10 @@ router.post('/comfy/start', async (req, res) => {
         processState.comfyImportFailures = [];
         _importScanCarry = '';
 
-        // MPI-800: staged media is only needed by jobs queued on a running engine, and
-        // this one is not running yet. Removing hardlinks never touches the project file.
-        await fs.emptyDir(getComfyPath(ENGINE_ROOT, 'input', STAGED_SUBDIR)).catch((err) =>
-            logger.warn('comfy', `could not clear staged media (${err.message}) — leftovers stay until the next start`));
+        // MPI-800 / MPI-1144: input/ (staged media included) and output/ are only needed
+        // by jobs on a running engine, and this one is not running yet: the one moment
+        // they can be emptied safely. Removing hardlinks never touches the project file.
+        cleanEngineScratch(ENGINE_ROOT, logger);
 
         // windowsHide: the server.js fork owns no console, so without it Windows
         // gives the embedded python its own conhost — a terminal window sitting on
@@ -761,7 +755,6 @@ router.post('/comfy/start', async (req, res) => {
         // We own the engine now, so we are the one that can honour another
         // instance's restart request (MPI-484).
         _watchForRestartRequests(Date.now());
-        _reportEngineOwnership();
         processState.activeComfyProcess.stdout.on('data', (d) => _handleComfyOutput('info', d));
         processState.activeComfyProcess.stderr.on('data', (d) => _handleComfyOutput('warn', d));
         processState.activeComfyProcess.on('exit', (code, signal) => {
@@ -781,7 +774,6 @@ router.post('/comfy/start', async (req, res) => {
             // for one. Whoever spawns next arms their own watcher (MPI-484).
             clearInterval(_restartWatch);
             _restartWatch = null;
-            _reportEngineOwnership();
         });
 
         res.json({ success: true, ...(depsWarning ? { depsWarning } : {}) });

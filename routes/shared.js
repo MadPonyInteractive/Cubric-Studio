@@ -22,7 +22,6 @@ const { pipeline } = require('stream/promises');
 const { exec, spawn } = require('child_process');
 const { COMFY_DIR, getPythonBin, getComfyPath, getEngineRoot } = require('./platformEngine');
 const { buildExtraModelPathsYaml } = require('./yamlHelper');
-const { cleanEngineScratch } = require('./engineScratch');
 const { setRoots, getModelRootsPath } = require('./modelRoots');
 
 const _require = createRequire(__filename);
@@ -382,16 +381,15 @@ process.on('exit', () => {
 /**
  * The server fork's ONE SIGINT/SIGTERM path (MPI-779), installed by server.js. This
  * module used to take both signals at require time and exit, so a handler server.js
- * registered after requiring it never ran. Order: stop the server's own work, empty the
- * engine scratch while the handle still says we own it (cleanComfyUITempFiles reads it),
- * then kill the engine, which nulls the handle.
+ * registered after requiring it never ran. Order: stop the server's own work, then kill
+ * the engine. Its input/output are emptied at the next spawn, never here: the engine is
+ * still alive at this point (MPI-1144, routes/engineScratch.js).
  * @param {Function} stopServerWork - sync; its promise, if any, is not awaited
  */
 function installShutdown(stopServerWork) {
     for (const signal of ['SIGINT', 'SIGTERM']) {
         process.on(signal, () => {
             stopServerWork();
-            cleanComfyUITempFiles();
             stopComfyUI();
             process.exit(0);
         });
@@ -1185,14 +1183,6 @@ async function checkUniversalWorkflowDepsStatus(rootOverride = null) {
     };
 }
 
-/**
- * Empties ComfyUI's input/ and output/ temp folders, only when this fork spawned the
- * engine (MPI-778, routes/engineScratch.js). The server-side twin of main.js's quit cleanup.
- */
-function cleanComfyUITempFiles() {
-    return cleanEngineScratch(ENGINE_ROOT, !!processState.activeComfyProcess, logger);
-}
-
 module.exports = {
     getProjectsRoot,
     getProjectPathsRegistryFile,
@@ -1229,7 +1219,6 @@ module.exports = {
     hasExtraModelFolders,
     writeExtraModelPathsYaml,
     syncExtraModelPathsYaml,
-    cleanComfyUITempFiles,
     getUniversalWorkflowDepIds,
     getUniversalWorkflowDeps,
     checkUniversalWorkflowDepsStatus,
