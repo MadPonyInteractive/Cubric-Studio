@@ -59,6 +59,11 @@ let _completionToken = 0;
 // carrying a DIFFERENT id is a late settle from a Stopped gen and is ignored so
 // it can't reset the bar while a promoted successor is running (MPI-203).
 let _activeGenId = null;
+// MPI-1101: a multi-pass Flow run between two passes (`tool:hold`). No job is in the store,
+// but the run goes on (the result lands, the next window is cut, the next pass waits in the
+// queue), so the bar sweeps under the run's label instead of reading IDLE.
+let _held = false;
+let _heldRun = null;
 const _listenUnsubs = [];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -186,6 +191,7 @@ function _reconcileFromStore(snapshot) {
     // an empty store means the owner's terminal event never arrived (dropped/mismatched
     // WS terminal) → the stuck-bar case the self-heal exists for.
     if (!running.length) {
+        if (_held) return; // between passes: the run is alive with no job in the store
         if (_state === 'active' && _activeGenId !== null) {
             _activeGenId = null;
             StatusBar.progress.cancel(); // silent, no toast — a missed terminal, not a real completion
@@ -216,6 +222,7 @@ function _reconcileFromStore(snapshot) {
     // active-with-nothing-running heals to idle above; idle-with-something-running
     // re-arms here.
     if (job.genId !== null && (job.genId !== _activeGenId || _state !== 'active')) {
+        _held = false;
         _activeGenId = job.genId;
         _stageText = '';
         if (_state !== 'active') StatusBar.progress.prepare('Starting');
@@ -548,6 +555,7 @@ export const StatusBar = {
         // may still be booting — MPI-147: don't count cold-start in the clock).
         _listenUnsubs.push(Events.on('tool:running', ({ tool, id = null, type = null, step = null, mediaType = null }) => {
             if (tool !== 'groupHistory') return;
+            _held = false;
             _latch(id);
             // The bar wears the accent of the task AHEAD (MPI-736). `type` is the op key
             // this event has always carried, and the bar already looks the same key up for
@@ -601,14 +609,38 @@ export const StatusBar = {
             // Stopped predecessor settling after a successor took over). A null id
             // is an untagged explicit cancel (queue-mode block emit) — honor it.
             if (id !== null && _activeGenId !== null && id !== _activeGenId) return;
+            // Held between passes, a tagged terminal is the finished pass settling late.
+            if (id !== null && _held) return;
             _activeGenId = null;
             StatusBar.progress.cancel();
         }));
         _listenUnsubs.push(Events.on('tool:idle', ({ tool, id = null }) => {
             if (tool !== 'groupHistory') return;
             if (id !== null && _activeGenId !== null && id !== _activeGenId) return;
+            if (id !== null && _held) return;
             _activeGenId = null;
             StatusBar.progress.complete('Generation finished');
+        }));
+        // tool:hold (MPI-1101) — a multi-pass Flow run between passes. `active: true` comes when
+        // a pass that is not the last settles (generationService), with the run's op and next
+        // i/N; the next pass's `tool:running` ends the hold, and a next pass that cannot start
+        // or is cancelled sends `active: false` (flowService), which ends the run's bar.
+        // `run` (the Flow run's tempId) keeps one run from letting go of another run's hold.
+        _listenUnsubs.push(Events.on('tool:hold', ({ tool, active, run = null, type = null, step = null }) => {
+            if (tool !== 'groupHistory') return;
+            if (!active) {
+                if (!_held || run !== _heldRun) return;
+                _held = false;
+                StatusBar.progress.cancel();
+                return;
+            }
+            _held = true;
+            _heldRun = run;
+            _activeGenId = null;
+            if (_fill) _fill.dataset.accent = getCommandAccent(type);
+            _stepText = step ? ` ${step}` : '';
+            StatusBar.progress.prepare(getCommandProgressLabel(type));
+            StatusBar.progress.setIndeterminate(true);
         }));
         _listenUnsubs.push(Events.onState('generationQueueCount', (count) => {
             _queueDepth = Math.max(0, Number(count) || 0);

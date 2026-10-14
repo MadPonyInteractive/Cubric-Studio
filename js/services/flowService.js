@@ -319,6 +319,24 @@ export function nextPassCallbacks(next, callbacks, submitNext) {
 }
 
 /**
+ * The caller's callbacks, plus: a cancel or an error ends the run's hold on the status bar
+ * (MPI-1101). A pass that is not the last holds the bar when it lands (generationService), and
+ * the next pass's `tool:running` normally ends it; a run that stops in between must end it too.
+ * Tagged with the run's tempId, so a run never lets go of another run's hold.
+ * @param {Object} callbacks
+ * @param {string} tempId
+ * @returns {Object}
+ */
+export function releaseHoldOnEnd(callbacks, tempId) {
+    const release = () => Events.emit('tool:hold', { tool: 'groupHistory', active: false, run: tempId });
+    return {
+        ...callbacks,
+        onCancel: (...a) => { release(); return callbacks.onCancel?.(...a); },
+        onError: (...a) => { release(); return callbacks.onError?.(...a); },
+    };
+}
+
+/**
  * @typedef {{tempId: string, queueJobId: ?string, cancelled: boolean, cancel: function(): string}} FlowRun
  */
 
@@ -534,6 +552,10 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
     const tempId = _leg.tempId || crypto.randomUUID();
     // Every leg and pass of the run shares ONE handle, so the caller's copy follows them all.
     const handle = _leg.run || flowRunHandle(tempId);
+    // A run that ends in a cancel or an error lets go of the bar it held between passes
+    // (statusBar.js § tool:hold, MPI-1101): a next pass that could not start, was Stopped while
+    // pending, or failed. Every leg and pass hands these callbacks on, so this covers them all.
+    callbacks = releaseHoldOnEnd(callbacks, tempId);
 
     // NO getNextGeneration — arming the loop would re-fire flow gens. forceLocal only
     // when the user has explicitly pinned the local engine (mirrors state.engineOverride).
@@ -642,6 +664,8 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
         if (!_leg.alone) config.flowStep = flowStep(flow, run, index);
         // A multi-pass run counts its passes instead (MPI-1101 D3): Make seamless's windows.
         if (!_leg.alone && runPass?.count > 1) config.flowStep = `${runPass.index}/${runPass.count}`;
+        // Every pass but the last holds the bar on the run when it lands (statusBar.js § tool:hold).
+        if (runNextPass) config.flowContinues = { step: runPass?.count > 1 ? `${runPass.index + 1}/${runPass.count}` : null };
         // The leg's BUILT prompt (MPI-1041), here because the describe answers are in by now and
         // the child-safety gate reads `positive` when the job is queued.
         if (builder) {

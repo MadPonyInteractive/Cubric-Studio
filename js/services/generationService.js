@@ -1406,6 +1406,14 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             return;
         }
 
+        // MPI-1101: a Flow pass that is not the last. Its job has just settled, so the bar would
+        // read IDLE while this result lands and the next pass is prepared and queued; hold it on
+        // the run until the next pass's tool:running (statusBar.js § tool:hold). Here, past the
+        // branches above: each of those ends the run, and a hold there would never be released.
+        if (config.flowContinues && !_wasCancelled()) {
+            Events.emit('tool:hold', { tool: 'groupHistory', active: true, run: _stableTempId, type: operation, step: config.flowContinues.step ?? null });
+        }
+
         const width  = injectionParams.Width  || injectionParams.width  || 0;
         const height = injectionParams.Height || injectionParams.height || 0;
         const elapsedMs = samplingStartTime ? Date.now() - samplingStartTime : null;
@@ -1844,6 +1852,8 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
     exec.onComplete = (...args) => Promise.resolve(_onComplete(...args)).catch((err) => {
         clientLogger.error('generation', `saving the result of ${_regId} failed:`, err);
         activeGenerations.end(_regId, { revokePreview: true });
+        // No next pass follows a pass that could not save: let go of a held bar (MPI-1101).
+        if (config.flowContinues) Events.emit('tool:hold', { tool: 'groupHistory', active: false, run: _stableTempId });
     });
 
     exec.onError = (err) => {

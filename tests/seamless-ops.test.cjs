@@ -24,7 +24,7 @@ const sharp = require(path.join(ROOT, 'node_modules', 'sharp'));
 sharp.cache({ files: 0 });
 
 const {
-    bandRange, planAxis, rollImage, lightenFlatten, makeMaskBuffer, rampMaskBuffer,
+    bandRange, planAxis, rollImage, lightenFlatten, makeMaskBuffer, rampMaskBuffer, windowMaskBuffer, seamScore,
     prepare, windowCut, paste, finish,
 } = require(path.join(ROOT, 'services', 'seamlessOps'));
 
@@ -191,6 +191,45 @@ test('rampMaskBuffer: 0 at the band edges, full strength at the seam, 0 outside 
     // a band split into columns: the two columns meet at full strength, no ridge between them
     const left = rampMaskBuffer({ left: 50, top: 0, width: 150, height: 1 }, { left: 100, top: 0, width: 50, height: 1 }, 'x', band);
     assert.equal(left[149 - 50], 255, 'a column\'s inner side is not ramped');
+});
+
+test('windowMaskBuffer: a later window ramps up through its overlap, no hard start where windows meet', () => {
+    // A 16K left-right run: three 4096 windows down the seam. Window 1 re-reads 1024 rows of window 0.
+    // Its mask used to switch on at full strength at its paint start, and the model began a new
+    // picture there: a line across the seam (16K real photo, row step 2.5x at y=4096).
+    const band = { start: 6554, end: 9830 };
+    const wins = planAxis(16384, 8192, band, 'x');
+    const w1 = wins[1];
+    assert.ok(w1.paint.top > w1.band.top, 'precondition: window 1 overlaps window 0');
+    const m = windowMaskBuffer(w1, band);
+    const sx = 8192 - w1.rect.left;                       // the seam's column in the cut
+    const at = (y) => m[(y - w1.rect.top) * w1.rect.width + sx];
+    assert.equal(at(w1.band.top), 0, 'the overlap starts where window 0 left it');
+    assert.equal(at(w1.paint.top), 255, 'full strength from its own paint on');
+    for (let y = w1.band.top + 1; y <= w1.paint.top; y += 16) assert.ok(at(y) >= at(y - 16 < w1.band.top ? w1.band.top : y - 16), `rises through the overlap at ${y}`);
+    const mid = at(w1.band.top + ((w1.paint.top - w1.band.top) >> 1));
+    assert.ok(mid > 64 && mid < 192, `half way through the overlap is a blend, got ${mid}`);
+    // Window 0 has no overlap: the mask is the band's own ramp, unchanged.
+    const w0 = wins[0];
+    assert.deepEqual(windowMaskBuffer(w0, band), rampMaskBuffer(w0.rect, w0.paint, 'x', band));
+});
+
+test('seamScore: a kept cut and a drawn divider stand out, a healed seam does not', () => {
+    // A cut 512 wide, its seam (frame x = fx) at column 256. Texture: a smooth wave, the same on both
+    // sides when healed; offset by a constant on one side when the model kept the cut; a 20 px white
+    // stripe on the seam when it drew a divider.
+    const W = 512, H = 512, fx = 256;
+    const win = { rect: { left: 0, top: 0, width: W, height: H }, paint: { left: 200, top: 0, width: 112, height: H }, axis: 'x', fx, fy: 0 };
+    const make = (f) => { const d = Buffer.alloc(W * H); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) d[y * W + x] = Math.max(0, Math.min(255, Math.round(f(x, y)))); return { width: W, height: H, data: d }; };
+    const wave = (x, y) => 120 + 20 * Math.sin(x / 9) + 15 * Math.sin(y / 13);
+    const healed = seamScore(win, make(wave));
+    const kept = seamScore(win, make((x, y) => wave(x, y) + (x >= fx ? 40 : 0)));
+    const divider = seamScore(win, make((x, y) => (Math.abs(x - fx) < 10 ? 250 : wave(x, y))));
+    assert.ok(healed.edge < 5 && healed.divider < 40, `healed reads clean: ${JSON.stringify(healed)}`);
+    assert.ok(kept.edge > 15, `a kept cut is an edge: ${kept.edge}`);
+    assert.ok(divider.divider > 100, `a drawn stripe is a divider: ${divider.divider}`);
+    // The seam outside the cut (a y window of a left-right run has none): no score.
+    assert.equal(seamScore({ ...win, fx: 4096 }, make(wave)), null);
 });
 
 test('planAxis: wide x-band (>4096) splits into columns, still painted once', () => {

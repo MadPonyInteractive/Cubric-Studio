@@ -10,7 +10,8 @@
 - [x] Phase 4b: the Flow screen on an isolated instance (status bar i/N on a 16K multi-window picture, no second Generating card, Tiles slider, a texture both ways) - Tiles aspect bug found + fixed
 - [x] Phase 4c: one run with the content box EMPTY (describer path; local describer, no cost)
 - [ ] Phase 4d: one LIVE Cosmo request ("make this picture tile") and one call through the MCP generate tool - MCP PASS; Cosmo FAIL on ornith:9b (picked tiled upscale), production model untried (paid)
-- [ ] Status bar shows IDLE between windows (~15 s per gap at 16K): show the run between passes
-- [ ] 16384-wide left-right joins: Klein sometimes draws a divider / leaves a hard edge (2 of 6 at 4x shrink; 8K + 1024 clean) - Fabio's call on the fix
+- [x] Status bar shows IDLE between windows (~15 s per gap at 16K): show the run between passes (`tool:hold`; unit + live greenhouse 16K)
+- [ ] 16384-wide joins: at 4x shrink Klein KEEPS THE CUT in most windows (seamScore: 4 of 5 leaves + greenhouse w0; 8K all heal) - fix direction back to Fabio (seed re-run heals ~1 in 5)
+- [x] Line across the seam where two 16K windows meet (row step 2.5x): overlap mask ramp in `windowMaskBuffer` - unit + live (`_074`: 1.30/1.29 vs control 1.39)
 - [x] Flow graphics: 4/5 tile still + wide hero clip via /mpi-flow-graphics (edge design, autumn leaves; Fabio approved 2026-10-13)
 - [x] Both-ways centre break fixed (per-window frames + corner window, seamlessOps.js; unit + live moss/sand/stone)

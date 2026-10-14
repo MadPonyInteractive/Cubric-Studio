@@ -125,6 +125,8 @@ export const Events = new EventBus();
  * 'tool:sampling-start' { tool: string, operation?: string } — KSampler about to run (model loaded, sampling begins)
  * 'tool:idle'        { tool: string, type: string }  — tool run finished (success)
  * 'tool:cancelled'   { tool: string }                — tool was cancelled by user or error
+ * 'tool:hold'        { tool, active: boolean, run: tempId, type?, step? } — a multi-pass Flow run
+ *                      between passes keeps the status bar (MPI-1101; statusBar.js)
  * 'project:changed'  { project: Object }             — user switched active project
  * 'state:changed'    { key: string, value: any }     — reactive state mutation
  *

@@ -60,6 +60,7 @@ const CONTEXT_PX     = 256;                    // least picture each side of the
 const OVERLAP_PX     = 256;                    // least seam length a window re-reads from the one before
 const MAX_CUT        = 4096;                   // longest edge of a cut across the band
 const RAMP_FRAC      = 0.4;                    // the model's mask reaches full strength this far into the band
+const DIV_K          = 12;                     // px either side of the seam a drawn divider is looked for in (seamScore)
 const INPUT          = { limitInputPixels: false };
 
 /** runId comes off the wire: only a uuid may name a run dir, never a path that climbs out. */
@@ -235,8 +236,9 @@ async function lightenFlatten(srcPath, amount, outPath) {
  *   rect  — the CUT the model sees: the band plus CONTEXT_PX of picture each side of it.
  *           A cut that was only the band (the first build) left the model no surroundings to
  *           continue, so every window came back a new picture with hard edges (MPI-1101 Phase 4).
- *   paint — what the model repaints (its mask): the band, minus the OVERLAP_PX the window
- *           re-reads from the window before it along the seam, which is context, already painted.
+ *   paint — what the model repaints at full strength: the band, minus the OVERLAP_PX the window
+ *           re-reads from the window before it along the seam, already painted. The mask rises
+ *           through that overlap from 0 (`windowMaskBuffer`), so the two windows meet without a line.
  *   band  — what is pasted back: the band's part of the cut. Outside the band nothing is pasted.
  *
  * axis 'x' (x-seam, vertical stripe [band.start, band.end) in x): windows walk down y,
@@ -382,6 +384,76 @@ function rampMaskBuffer(rect, paint, axis, band) {
     return buf;
 }
 
+/**
+ * The model's whole mask for a window: `rampMaskBuffer` over the band's part of the cut, rising along
+ * the seam through the OVERLAP the window re-reads from the one before it: 0 where the cut starts, full
+ * where its own paint starts. A mask that switched on at full strength right at the paint start let the
+ * model begin a new picture there, a line across the seam where two windows meet (16K real photo,
+ * row step 2.5x at y=4096, MPI-1101 2026-10-13). Ramped, the earlier window's rows are where it starts
+ * from; they are pasted back (the paste covers the band's part of the cut), so the join is continuous.
+ * A corner window's `fade` scales it last.
+ */
+function windowMaskBuffer(win, band) {
+    const { rect, axis } = win;
+    const buf = rampMaskBuffer(rect, win.band, axis, band);
+    const o = axis === 'x' ? win.paint.top - win.band.top : win.paint.left - win.band.left;   // overlap length
+    const o0 = axis === 'x' ? win.band.top - rect.top : win.band.left - rect.left;
+    if (o > 0) {
+        const ww = rect.width, wh = rect.height;
+        for (let y = 0; y < wh; y++) {
+            for (let x = 0; x < ww; x++) {
+                const i = (axis === 'x' ? y : x) - o0;
+                if (i >= o) continue;
+                const t = Math.max(0, i / o);
+                const p = y * ww + x;
+                buf[p] = Math.round(buf[p] * t * t * (3 - 2 * t));
+            }
+        }
+    }
+    if (win.fade) fadeAlong(buf, rect, axis);
+    return buf;
+}
+
+/**
+ * How badly a window's result failed to join, measured where the picture's two edges meet in its cut
+ * (frame x = fx for an x window, frame y = fy for a y window), block by block along the paint:
+ *   edge    — the step across the seam line over the median step of the lines just beside it. A seam the
+ *             model kept (it reproduced the cut it was shown) stands 50-70x above its texture; a healed
+ *             one sits under ~15 (16K real photo, MPI-1101 2026-10-13).
+ *   divider — a line the model DREW on the seam: the lines within DIV_K of it, against the mean of the
+ *             lines DIV_K..3*DIV_K out, in luma levels (a white ~20 px stripe read 30-65; clean 1-10).
+ * @param {Object} win - a planned window
+ * @param {{width:number, height:number, data:Buffer}} luma - the result at the cut's size, 1 channel
+ * @returns {?{edge:number, divider:number}} null when the seam is not inside this cut
+ */
+function seamScore(win, luma) {
+    const { rect, axis } = win;
+    const vertical = axis === 'x';                       // an x seam is a vertical line in the cut
+    const s = vertical ? win.fx - rect.left : win.fy - rect.top;
+    const across = vertical ? luma.width : luma.height;
+    if (s < 3 * DIV_K || s > across - 3 * DIV_K) return null;
+    const p0 = vertical ? win.paint.top - rect.top : win.paint.left - rect.left;
+    const p1 = p0 + (vertical ? win.paint.height : win.paint.width);
+    const at = (c, a) => (vertical ? luma.data[a * luma.width + c] : luma.data[c * luma.width + a]);
+    const step = (c, a0, a1) => { let t = 0; for (let a = a0; a < a1; a++) t += Math.abs(at(c, a) - at(c - 1, a)); return t / (a1 - a0); };
+    const mean = (c, a0, a1) => { let t = 0; for (let a = a0; a < a1; a++) t += at(c, a); return t / (a1 - a0); };
+    const med = (v) => v.sort((x, y) => x - y)[v.length >> 1];
+    const block = Math.max(64, Math.round((p1 - p0) / 16));
+    let edge = 0, divider = 0;
+    for (let a0 = p0; a0 < p1; a0 += block) {
+        const a1 = Math.min(p1, a0 + block);
+        if (a1 - a0 < 16) continue;
+        const beside = [];
+        for (let d = DIV_K; d < 3 * DIV_K; d += 4) beside.push(step(s - d, a0, a1), step(s + d, a0, a1));
+        edge = Math.max(edge, step(s, a0, a1) / Math.max(0.5, med(beside)));
+        let far = 0, n = 0;
+        for (let d = DIV_K; d < 3 * DIV_K; d++) { far += mean(s + d, a0, a1) + mean(s - d - 1, a0, a1); n += 2; }
+        far /= n;
+        for (let d = -DIV_K; d < DIV_K; d++) divider = Math.max(divider, Math.abs(mean(s + d, a0, a1) - far));
+    }
+    return { edge, divider };
+}
+
 /** A corner window's fade: scales `buf` (the rect's mask) by a smoothstep from 0 at both ends of the seam's run to 1 a quarter in. */
 function fadeAlong(buf, rect, axis) {
     const ww = rect.width, wh = rect.height;
@@ -481,9 +553,8 @@ async function windowCut(runId, i) {
         .png()
         .toFile(imgPath);
 
-    // The model's mask: what is still to paint, ramped up from the band's edges.
-    const maskBuf  = rampMaskBuffer(rect, win.paint, win.axis, win.axis === 'x' ? state.bandX : state.bandY);
-    if (win.fade) fadeAlong(maskBuf, rect, win.axis);
+    // The model's mask: ramped up from the band's edges, and along the seam through the overlap.
+    const maskBuf  = windowMaskBuffer(win, win.axis === 'x' ? state.bandX : state.bandY);
     const maskPath = path.join(runDir, `win_${i}_mask.png`);
     await sharp(maskBuf, {
         raw: { width: rect.width, height: rect.height, channels: 1 },
@@ -557,5 +628,5 @@ module.exports = {
     // Public API
     prepare, windowCut, paste, finish, sweepScratch, runDirOf,
     // Exported for tests
-    bandRange, planAxis, planCorner, framePieces, rollImage, lightenFlatten, makeMaskBuffer, rampMaskBuffer,
+    bandRange, planAxis, planCorner, framePieces, rollImage, lightenFlatten, makeMaskBuffer, rampMaskBuffer, windowMaskBuffer, seamScore,
 };
