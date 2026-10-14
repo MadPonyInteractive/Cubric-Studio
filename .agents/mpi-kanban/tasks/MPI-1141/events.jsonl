@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1141", "at": "2026-10-14T13:52:48+01:00", "actor": "claude", "column": "doing", "title": "Crop: changing the ratio keeps the box where it was, and the box never drops out of view"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1141", "at": "2026-10-14T14:03:47+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Shipped 8ef55aa7a; specs green; awaiting Fabio's feel check in his app"}
