@@ -69,8 +69,12 @@ export function describeSlowLoad(e) {
     const ms = (v) => `${Math.round(v)}ms`;
     let path = e.name;
     try { const u = new URL(e.name); path = u.pathname + u.search; } catch (_) { /* not a URL */ }
+    // MPI-1142: queued split three ways. A reused socket reports connectStart = connectEnd
+    // = fetchStart, so its wait lands in `after`; a new socket's wait lands in `before`.
+    const queued = `queued ${ms(e.requestStart - e.startTime)} (before connect ${ms(e.connectStart - e.startTime)}, `
+        + `connect ${ms(e.connectEnd - e.connectStart)}, after ${ms(e.requestStart - e.connectEnd)})`;
     const split = e.requestStart > 0
-        ? `queued ${ms(e.requestStart - e.startTime)}, server ${ms(e.responseStart - e.requestStart)}, download ${ms(e.responseEnd - e.responseStart)}`
+        ? `${queued}, server ${ms(e.responseStart - e.requestStart)}, download ${ms(e.responseEnd - e.responseStart)}`
         : 'no request sent (cache or failed)';
     return `${e.initiatorType} ${ms(e.duration)} status=${e.responseStatus ?? '?'}: ${split} | ${decodeURIComponent(path)}`;
 }
