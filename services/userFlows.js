@@ -47,7 +47,7 @@ const FLOW_KEYS = new Set(['title', 'preview', 'video', 'description', 'required
 // promises about the graph): a package opts in the same way a built-in Flow does.
 const OP_KEYS = new Set(['label', 'progressLabel', 'mediaType', 'requiresImages',
     'requiresVideo', 'mediaInputs', 'promptRequired', 'injector', 'filePrefix',
-    'modelSizedInputs', 'cropsToBox', 'outputKind']);
+    'modelSizedInputs', 'cropsToBox', 'outputKind', 'outputVersions']);
 const MEDIA_TYPES = ['image', 'video', 'audio'];
 const FLOW_TYPES = ['create', 'edit', 'enhance'];
 
@@ -181,6 +181,11 @@ function validatePackage(manifest, graph, files, known = loadKnown()) {
     }
     // MPI-1071: a Flow whose result is words (Transcribe), not a file.
     if (op.outputKind !== undefined && op.outputKind !== 'text') errors.push('op.outputKind must be "text".');
+    // MPI-1086: a graph whose steps land as versions of one card, capture title -> the op each is filed under.
+    if (op.outputVersions !== undefined && (typeof op.outputVersions !== 'object' || op.outputVersions === null
+        || Object.values(op.outputVersions).some(v => typeof v !== 'string'))) {
+        errors.push('op.outputVersions must map capture titles to operation names.');
+    }
     for (const k of ['title', 'description']) {
         if (typeof flow[k] !== 'string' || !flow[k].trim()) errors.push(`flow.${k} is required.`);
     }

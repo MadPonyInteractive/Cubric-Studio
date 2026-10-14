@@ -31,6 +31,7 @@ import { usesOrientation } from '../utils/ratios.js';
 import { resolveControlDefaults, reconcileControlsFromInjection } from '../components/Organisms/MpiPromptBox/PromptBoxControls.js';
 import { ratioSettingsFromParams } from '../utils/promptReuse.js';
 import { labelFromComfyOutputUrl } from '../utils/comfyOutputUrls.js';
+import { orderVersions, shownVersion } from '../utils/outputVersions.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { ce } from '../utils/dom.js';
 import { collapseQueueBatches } from './generationBatch.js';
@@ -1073,9 +1074,10 @@ async function _deleteSavedItems(items) {
  *
  * @param {GenerationConfig} config
  * @param {GenerationCallbacks} callbacks
- * @param {{ existingGroup?: Object, scope?: string, groupId?: string, tempId?: string, placeholderGroup?: Object, deferCommit?: boolean, cardName?: string, keepSelected?: boolean }} [opts]
+ * @param {{ existingGroup?: Object, scope?: string, groupId?: string, tempId?: string, placeholderGroup?: Object, deferCommit?: boolean, cardName?: string, keepSelected?: boolean, hideVersionOps?: string[] }} [opts]
  *        `cardName`: the gallery card's `customName` (a Flow naming its result, MPI-1041)
  *        `keepSelected`: with `existingGroup`, the card keeps showing the version it showed (MPI-1087)
+ *        `hideVersionOps`: an `outputVersions` run's versions filed under these ops land unshown (MPI-1086)
  * @returns {{ cancel: function }}
  */
 export function startGeneration(config, callbacks = {}, opts = {}) {
@@ -1539,6 +1541,14 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             : null;
         if (_mixUrls) urls = [_mixUrls[0]];
 
+        // MPI-1086: an op whose graph makes several pictures on the way to ONE result lands them
+        // as versions of one card, in the graph's order, each filed under its own op.
+        const _versionOps = getCommand(operation)?.outputVersions;
+        const _versions = _versionOps && urls.length > 1
+            ? orderVersions(urls, outputInfo.outputTitles, _versionOps, operation) : null;
+        if (_versions) urls = _versions.map(v => v.url);
+        const _opOf = (i) => _versions?.[i]?.operation || operation;
+
         const _wantsPerOutputLabel = model.mediaType === 'audio' && urls.length > 1;
         const _multiAudioLabel = (url) => (_wantsPerOutputLabel ? labelFromComfyOutputUrl(url) : null);
 
@@ -1561,7 +1571,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                 ? _replaceItemId
                 : (i === 0 ? itemId : crypto.randomUUID());
             let filePath = url;
-            let displayName = operation;
+            let displayName = _opOf(i);
             let resolvedDims = width ? { w: width, h: height } : { w: 0, h: 0 };
             let savedData = null;
 
@@ -1586,11 +1596,11 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                         // item in the loop when it is set.
                         mixViewUrls: _mixUrls,
                         itemId: thisItemId,
-                        operation,
+                        operation: _opOf(i),
                         // Filename only — the card's name, never the op identity below it.
                         // See getFilePrefix: the strip code wins over the internal key
                         // (MPI-660).
-                        filePrefix: _multiAudioLabel(url) || getFilePrefix(operation),
+                        filePrefix: _multiAudioLabel(url) || getFilePrefix(_opOf(i)),
                         meta: { prompt: positive, negativePrompt: negative, negativeAudioPrompt: negativeAudio, sourcePrompt, modelId: model.id, seed: _seedOf(i), generationSettings },
                         generationMs: elapsedMs,
                         pixelDimensions: resolvedDims,
@@ -1623,7 +1633,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             const baseProps = {
                 id: thisItemId,
                 filePath,
-                operation,
+                operation: _opOf(i),
                 displayName,
                 prompt: positive,
                 negativePrompt: negative,
@@ -1734,8 +1744,10 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             for (const it of builtItems) {
                 working = appendToHistory(working, it);
             }
+            const _shownAt = _versions ? shownVersion(builtItems, opts.hideVersionOps) : builtItems.length - 1;
             const updatedGroup = {
                 ...working,
+                selectedIndex: working.history.length - builtItems.length + _shownAt,
                 width:  latestGroup.width  || width,
                 height: latestGroup.height || height,
                 // A version landed for the asking, not for showing (MPI-1087: a sheet's head
@@ -1746,7 +1758,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             if (_originIsOpen()) await updateGroup(updatedGroup);
             else await _addGroupsToClosedProject(_originProject, [updatedGroup]);
             activeGenerations.end(_regId, { revokePreview: false });
-            const lastItem = builtItems[builtItems.length - 1];
+            const lastItem = builtItems[_shownAt];
             Events.emit('generation:complete', { id: _regId, item: lastItem, group: updatedGroup, cancelled: _wasCancelled() });
             callbacks.onComplete?.({ item: lastItem, group: updatedGroup });
         } else {
@@ -1767,7 +1779,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                 _galleryEntry?.placeholderGroup ?? opts.placeholderGroup,
                 ...(_galleryEntry?.extraPlaceholders ?? opts.extraPlaceholders ?? []),
             ];
-            const groups = builtItems.map((it, i) => {
+            const _newGroup = (it, i) => {
                 const name = truncateCardName(it.displayName || it.operation || firstDisplayName);
                 // MPI-354: shape the CARD from the item's ACTUAL pixels, not the
                 // requested Width/Height. Those two diverge whenever the graph sizes
@@ -1786,8 +1798,13 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                     // A Flow that names its result (flowService, MPI-1041) names it as a user would.
                     ...(opts.cardName ? { customName: opts.cardName } : {}),
                 });
-                return appendToHistory(g, it);
-            });
+                return g;
+            };
+            // MPI-1086: versions of ONE card, shaped and named by the version it shows.
+            const _shownAt = _versions ? shownVersion(builtItems, opts.hideVersionOps) : 0;
+            const groups = _versions
+                ? [{ ...builtItems.reduce((g, it) => appendToHistory(g, it), _newGroup(builtItems[_shownAt], 0)), selectedIndex: _shownAt }]
+                : builtItems.map((it, i) => appendToHistory(_newGroup(it, i), it));
             // HOLD-UNTIL-APPLY (MPI-306): with deferCommit the groups are built but
             // NOT persisted — the media + sidecars are already on disk, only the
             // project record is withheld. The caller (MpiBaseFlow) holds them and
@@ -1810,7 +1827,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                 }
             }
             activeGenerations.end(_regId, { revokePreview: false });
-            const firstItem = builtItems[0];
+            const firstItem = builtItems[_shownAt];
+            // The versions of one card are ONE result to whoever reads `items` (a Flow shows each in place).
+            const _resultItems = _versions ? [firstItem] : builtItems;
             const firstGroup = groups[0];
             // Single emit — handler reads state.currentProject.itemGroups (already
             // contains all N groups via addGroup) and rebuilds grid with them.
@@ -1820,14 +1839,14 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             // yet. Current listeners are safe either way (stats refetch reads disk;
             // the float-latent bridge only releases its lane), but a future consumer
             // that writes to the project MUST honour it.
-            Events.emit('generation:complete', { id: _regId, item: firstItem, group: firstGroup, items: builtItems, groups, tempId: _galleryTempId, extraTempIds: _galleryExtraTempIds, scope: 'gallery', deferred: !!opts.deferCommit, cancelled: _wasCancelled() });
+            Events.emit('generation:complete', { id: _regId, item: firstItem, group: firstGroup, items: _resultItems, groups, tempId: _galleryTempId, extraTempIds: _galleryExtraTempIds, scope: 'gallery', deferred: !!opts.deferCommit, cancelled: _wasCancelled() });
             // `groups` reaches the caller so a deferCommit consumer can persist them
             // later; committed runs simply ignore it (they are already in the project).
             // `displayUrls` (MPI-747): what an `Output_Display` node wrote — a Flow shows it
             // instead of the output. Never an item, so nothing above saved it.
             // `outputUrls` + `depthUrl` (MPI-623): Convert to 360 pano stores the `/view` pair
             // as the landed card's scene (`sceneConvert.js`).
-            callbacks.onComplete?.({ item: firstItem, group: firstGroup, items: builtItems, groups, displayUrls: outputInfo.displayUrls || [], outputUrls: urls, depthUrl: outputInfo.depthUrl || null });
+            callbacks.onComplete?.({ item: firstItem, group: firstGroup, items: _resultItems, groups, displayUrls: outputInfo.displayUrls || [], outputUrls: urls, depthUrl: outputInfo.depthUrl || null });
         }
 
         // A Stopped run whose output still landed is NOT a completion. ComfyUI's

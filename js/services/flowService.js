@@ -598,6 +598,10 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
         tempId,
         placeholderGroup,
     };
+    // MPI-1086: a toggle leg's version the GRAPH made in-line (an op's `outputVersions`) lands out
+    // of sight while the toggle is off, as the chained leg's version does (`keepShown` below).
+    const toggleLeg = flowLegs(flow)[flowToggleLeg(flow)];
+    if (toggleLeg && flowRunValues(flow, run)[toggleLeg.toggle] !== true) opts.hideVersionOps = [toggleLeg.operation];
     if (state.engineOverride === 'local') opts.forceLocal = true;
     // A built-prompt Flow names the card it lands after the card it edits and the change ("John -
     // beaten up", MPI-1041), so the result and the sheet it came from read apart. The run's first
@@ -618,7 +622,7 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
     const landing = !runLanding ? opts
         : runLanding.existingGroup
             ? { ...runLanding, scope: 'groupHistory', groupId: runLanding.existingGroup.id, forceLocal: opts.forceLocal, tempId,
-                ...(keepShown ? { keepSelected: true } : {}) }
+                hideVersionOps: opts.hideVersionOps, ...(keepShown ? { keepSelected: true } : {}) }
             : { ...opts, ...runLanding };
 
     // Each leg hands the run on to the next wanted one, so the caller hears the LAST. A leg the

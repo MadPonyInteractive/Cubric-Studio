@@ -2333,6 +2333,7 @@ export function runCommand(payload) {
 
         // Message handler — forwards previews + collects Output-titled results
         const outputUrls = [];
+        const outputTitles = [];
         const latentOutputs = [];
         // Node ids whose `executed` payload was already collected. Guards against
         // double-collection when the history reconcile replays missed events after
@@ -2587,7 +2588,9 @@ export function runCommand(payload) {
             // is belt-and-suspenders for the fill. Only when stdout drove (local).
             if (_stdoutDriving) { stageProgress.finish(); emitProgress(stageProgress.percent()); }
             closeComfyEventSource();
-            exec.onComplete?.(outputUrls, { latents: latentOutputs, audioUrl: audioOutputUrl, promptText: promptTextOutput, splatUrl: splatOutputUrl, depthUrl: depthOutputUrl, displayUrlsByNode, displayUrls: displayOutputUrls });
+            // `outputTitles` is null once a stitch or a paste replaced the outputs: they no longer line up.
+            exec.onComplete?.(outputUrls, { latents: latentOutputs, audioUrl: audioOutputUrl, promptText: promptTextOutput, splatUrl: splatOutputUrl, depthUrl: depthOutputUrl,
+                outputTitles: outputTitles.length === outputUrls.length ? outputTitles : null, displayUrlsByNode, displayUrls: displayOutputUrls });
         };
 
         const onMessage = (msg) => {
@@ -2751,7 +2754,11 @@ export function runCommand(payload) {
                     _collectComfyLatents(nodeOutput, latentOutputs);
                 }
                 if (outputNodeIds.has(nodeId)) {
+                    const _before = outputUrls.length;
                     _collectComfyOutputUrls(nodeOutput, outputUrls, workingPayload.forceLocal === true);
+                    // Which capture each picture came from (MPI-1086): an op whose outputs land as
+                    // versions of one card (`outputVersions`) orders and names them by it.
+                    for (let i = _before; i < outputUrls.length; i++) outputTitles[i] = workflow[nodeId]?._meta?.title || '';
                 }
                 if (outputAudioNodeIds.has(nodeId)) {
                     audioOutputUrl = _collectComfyAudioUrl(nodeOutput, workingPayload.forceLocal === true) || audioOutputUrl;

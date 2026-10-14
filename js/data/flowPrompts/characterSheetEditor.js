@@ -320,5 +320,12 @@ export function characterSheetEditor(part, values = {}) {
     // Only the change leg reads the Reference picture: an age leg that starts the run is handed the
     // user's media too, and would otherwise dress the sheet from it.
     if (part !== 'rebuild') injectionParams.Input_Reference = part === 'change' && _usesRef(values);
+    // MPI-1086: the change leg removes the head IN its graph (the card's Headless version, shown or
+    // not by the toggle) unless an Age leg follows: the head removal is the run's last step, so then
+    // the chained Headless leg does it after the age legs.
+    if (part !== 'rebuild') injectionParams.Input_Headless = part === 'change' && _age(values.Input_Age) < 0;
+    // The Reference picture is a mannequin already (the describer said so): the Qwen graph skips
+    // making one of it. The Klein graph has no such node and ignores it.
+    if (part === 'change') injectionParams.Input_Is_Mannequin = /^\W*yes\b/i.test(values.refIsMannequin || '');
     return { positive: _part(part, values), injectionParams };
 }

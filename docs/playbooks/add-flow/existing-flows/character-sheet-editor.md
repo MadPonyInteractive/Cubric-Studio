@@ -14,7 +14,7 @@ building a Flow that needs more than one graph or more than one model.
 |---|---|
 | requiredModels | `[{ label: 'Model', models: ['klein-9b'], loras: true }, { label: 'Body shape, hair from a picture and child ages', models: ['qwen-image-2-1'], optional: true, loras: true, for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] }]` |
 | operation / `operationBy` | `flowCharacterSheetEdit` (Klein), routed by the `change` select: `body` -> `flowCharacterSheetEditQwen`, `hair` -> Qwen WITH a Reference picture, else Klein (a rule entry, MPI-1086), `none` -> no leg 1 |
-| graphs | `flow_character_sheet_edit.json` (Klein 9B, 102 nodes, in-graph SAM3 lock: cut at the shoulders on the back body, at the brows at lock 2; optional reference, cut out to its hair at lock 2) and `flow_character_sheet_edit_qwen.json` (Qwen-Image 2.1, 45: with a Reference picture a Klein mannequin leg feeds it `images.image_2`, MPI-1086 r23). Both output the INPUT size |
+| graphs | `flow_character_sheet_edit.json` (Klein 9B, 129 nodes, in-graph SAM3 lock: cut at the shoulders on the back body, at the brows at lock 2; optional reference, cut out to its hair at lock 2) and `flow_character_sheet_edit_qwen.json` (Qwen-Image 2.1, 78: with a Reference picture a Klein mannequin leg feeds it `images.image_2`, MPI-1086 r23, skipped when `Input_Is_Mannequin`). Both output the INPUT size, and both END with the head removal (`Input_Headless`, MPI-1086 r26): see Versions below |
 | authoring source | `raw/` is the source now. `research/bench-tools/build_edit_graph*.py` wrote the first raws; the LoRA racks went in after with `research/bench-tools/insert_rack.py`, the reference with `insert_ref2.py`, the brow cut, hair cut-out and the Qwen mannequin leg with MPI-1086's `research/bench/patch_raw*.py` (raw in place, then `workflow-to-api.mjs` single-file) |
 | media | `image1` the sheet; `image2` an OPTIONAL Reference picture (Klein op: Clothes, Accessories; Qwen op: Hairstyle) |
 | fields | `change` (select; "Custom" = a free edit in words, "None" = age only), `words` (hidden for None), `Input_Age` (slider -1-100: -1 = keep, the default; 0 = a newborn; 1 = a toddler; `valueLabels` reads Keep / Newborn), `Input_Remove_Head` |
@@ -27,7 +27,7 @@ building a Flow that needs more than one graph or more than one model.
 | 1 | routed (`operationBy`) | `change` is not `none` | the picked change, Klein or Qwen |
 | 2 | `flowCharacterSheetEdit` | `Input_Age` atLeast 0 | Klein's exact-age edit, `prompt: 'age'` |
 | 3 | `flowCharacterSheetImages` | `Input_Age` 0-12 | the from-images graph rebuilds a child's bodies from the right half (`box` in fractions), `params: { Input_Face_Pose: 'TURNED' }`, `prompt: 'rebuild'` |
-| 4 | `flowCharacterSheetHeadless` | `Input_Remove_Head`, `unless` age 0 | the same head removal Character Sheet runs; never on a newborn (swaddled, lying down) |
+| 4 | `flowCharacterSheetHeadless` | `Input_Age` atLeast 1 | the head removal after the age legs (it must be the run's last step); never on a newborn (swaddled, lying down). With no Age, leg 1's own graph removes the head |
 
 Each leg gets the previous leg's picture on `input`; a skipped leg passes it through. Every leg
 carries `runPrompt` (the WHOLE run's words), so the child-safety gate refuses "Clothes: a bikini +
@@ -36,6 +36,19 @@ Age 10" on leg 1, not after it. Engine contract: `flowsRegistry.js` § Legs, rou
 A sheet picked while its card shows the head-removed version goes in as the version before it, WITH
 its head (`flowService.js` `unchainedSource`, MPI-1089): fed the grey oval, leg 4 ran SAM3 on a
 sheet with no head and took the hair.
+
+## Versions: one card holds every step (MPI-1086, Fabio 2026-10-14)
+
+Both edit ops declare `outputVersions: { Output_Image_3: 'flowCharacterSheetHeadless' }`
+([02-media-io.md](../02-media-io.md) § versions of one card). One run lands, on ONE card:
+`Output_Image` the hair mannequin (Qwen, only when it built one), `Output_Image_2` / Klein's
+`Output_Image` the edit, `Output_Image_3` the head removal (only when the builder set
+`Input_Headless`: the change leg with Age = Keep). Headless front body only picks the version shown
+(`hideVersionOps`); the result-pane toggle finds the partner by op + neighbour, as for the old leg.
+One prompt instead of two also keeps the mannequin in the engine's cache for a words-only re-run.
+The mannequin: the describer's `refIsMannequin` yes/no on the Reference picture sets
+`Input_Is_Mannequin`, whatever its source (gallery, web, a later Element), and the graph's lazy
+`MpiIfElse` never runs Klein. Graph patches: `research/bench/patch_raw_versions.py`, then `patch_raw_one_clear.py`: ONE `MpiClearVram` per graph, the run's last step (Fabio) - it is an OUTPUT_NODE, so ComfyUI runs it whatever it feeds, and mid-graph it dragged the Klein mannequin into every Qwen run (r26).
 
 ## Which change runs where, and why (bench verdicts)
 

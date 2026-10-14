@@ -346,3 +346,42 @@ rules OK) injected as the app does. Buns s42 with the photo + Input_Reference on
 (PIL difference bbox None). Body shape "heavyset" with no picture, Input_Reference off: heavier body on all three, same
 face, hair, dress and layout - the old one-picture edit still works. Tests: character-sheet-editor 21/21, related flow
 suites 118/118, full `npm test` 3313 pass / 0 fail; eslint clean on the three changed js files.
+
+## Eye test 2 (Fabio, in the app, 2026-10-14): hair from a picture on Qwen
+
+Sheet flowCSE_031 + a photo of a girl with two high pigtails, Headless front body ON. Run 1, no words: the describer
+(raw photo) said "two high bunches" - our own ask listed "in buns or bunches" - and Qwen drew BUNS in the close-up,
+half-tails on the full bodies. Run 2, words "Double ponytail": pigtails on all three, own face, own clothes = PASS.
+The blank white front face both runs = the Headless SAM3 pass (toggle on), not the edit; the new pigtails stick out
+past its head cut and float round the empty face (a Headless limit with wide hair, not chased here). Run 2 REBUILT the
+in-graph mannequin although only the words changed: the Headless job ran between the two runs (separate prompt) and the
+engine's default RAM-pressure cache evicts an older prompt's results first; which of the two did it is not proven
+(Fabio re-runs with Headless off). Fix: the ask now lists "in buns, ponytails or pigtails". Fabio OK'd next: save the
+mannequin (second output + Save to gallery) and skip the mannequin step when the reference already is one.
+Run 3 "pink highlights", Headless OFF: pink pigtails on all three, own face = PASS. The SAM3 job STILL ran after it
+(log 19:11:24): the Headless leg ALWAYS runs (MPI-1087, flowService keepShown - lands a hidden version), so every
+Editor run has a second prompt after it and Headless off cannot separate the two causes. A saved mannequin file is the
+cache-independent fix.
+
+## Round 26 (`qh26.py`, `h26_*`): the one-graph-per-route files as shipped (patch_raw_versions.py)
+
+Six runs on :8188 under the lease, every capture saved. STRUCTURE 6/6: q_photo (Qwen, sheet W + pink-buns photo,
+Headless on) -> Output_Image mannequin + _2 edit + _3 headless; q_words (only the words changed, ", dyed blue")
+-> the mannequin sampler + decode SERVED FROM CACHE (154/155 in execution_cached), 175 s vs 347 s; q_mann (a given
+mannequin, Input_Is_Mannequin) -> _2 + _3, no mannequin capture; q_body (no picture) -> _2 + _3; k_words (Klein,
+bob in words, lock 2) -> Output_Image + _3; k_off (Headless off) -> Output_Image only, 0.24 s (edit cached).
+PICTURES: clean white mannequin with the pink buns + dark roots; buns on all three, her own face (photo + given
+mannequin alike); blue partly taken (bangs + streaks, buns stay pink); heavier body; blonde bob on all three; head
+removal works on the front of each. Headless with buns: the buns float round the removed face (the Headless pass's
+limit with wide hair, as in eye test 2 - not this card). FOUND: the engine log shows Klein LOADED AND SAMPLED in
+q_mann and q_body: node 156 MpiClearVram is an OUTPUT_NODE (ComfyUI always runs it) and pulled the whole mannequin
+leg into every Qwen run - since r23, so the committed 0a38cfef4 Body shape also paid ~20 s + a 9 GB Klein load.
+FIX `patch_raw_clearvram.py`: 156 now takes the gate 165's out_b (the mannequin when built, else a blocker).
+Re-check r26b (`qh26.py <out> recheck`, cache flushed first): see below. Grids: session scratchpad h26_{a,b}.jpg.
+r26b (`qh26.py <out> recheck`, cache FLUSHED, after patch_raw_clearvram.py): Body shape 123 s and a given mannequin
+181 s (was 247) load ONLY Qwen + SAM3 - no Flux2 in the engine log; the photo route loads Klein and lands all three.
+Fabio: one MpiClearVram at the very END only -> `patch_raw_one_clear.py` removed Klein 60/120 and Qwen 115/156/184 and
+added one fed by a lazy MpiIfElse on Input_Headless (head removal when on, else the edit), so it runs last.
+r26c (`qh26.py <out> final`): Qwen photo s3 -> 3 outputs; Klein bob s3 -> 2, clean on all three + headless. Qwen s3:
+the FRONT figure kept her old long hair - the same seed failed the same figure in r21 and r23 (the known 17/18),
+not this change. Grid: session scratchpad h26c.jpg.

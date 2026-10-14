@@ -975,22 +975,10 @@
       "title": "result: the stitch when locked"
     }
   },
-  "60": {
-    "inputs": {
-      "passthrough": [
-        "59",
-        0
-      ]
-    },
-    "class_type": "MpiClearVram",
-    "_meta": {
-      "title": "free VRAM after the run"
-    }
-  },
   "61": {
     "inputs": {
       "images": [
-        "60",
+        "59",
         0
       ]
     },
@@ -1682,6 +1670,461 @@
     "class_type": "MpiIfElse",
     "_meta": {
       "title": "reference: cut out to the hair at lock 2"
+    }
+  },
+  "104": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Headless"
+    }
+  },
+  "105": {
+    "inputs": {
+      "input": [
+        "59",
+        0
+      ],
+      "boolean": [
+        "104",
+        0
+      ]
+    },
+    "class_type": "MpiIfElseInverted",
+    "_meta": {
+      "title": "the edit, when Headless front body is on"
+    }
+  },
+  "106": {
+    "inputs": {
+      "image": [
+        "105",
+        1
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "the edit size"
+    }
+  },
+  "107": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "width": [
+        "113",
+        0
+      ],
+      "height": [
+        "106",
+        1
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "the far-left region (front body only)"
+    }
+  },
+  "108": {
+    "inputs": {
+      "text": "face, hat, moustache",
+      "clip": [
+        "13",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "SAM3 vocabulary"
+    }
+  },
+  "109": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "13",
+        0
+      ],
+      "image": [
+        "129",
+        0
+      ],
+      "conditioning": [
+        "108",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "head + hat, on the head crop only"
+    }
+  },
+  "110": {
+    "inputs": {
+      "value": 0,
+      "width": [
+        "106",
+        0
+      ],
+      "height": [
+        "106",
+        1
+      ]
+    },
+    "class_type": "SolidMask",
+    "_meta": {
+      "title": "empty sheet-sized canvas"
+    }
+  },
+  "111": {
+    "inputs": {
+      "operation": "add",
+      "destination": [
+        "110",
+        0
+      ],
+      "source": [
+        "119",
+        0
+      ],
+      "x": [
+        "130",
+        2
+      ],
+      "y": [
+        "130",
+        3
+      ]
+    },
+    "class_type": "MaskComposite",
+    "_meta": {
+      "title": "paste the head mask back at the crop's offset"
+    }
+  },
+  "112": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "105",
+        1
+      ],
+      "mpi_box": [
+        "107",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "crop to the far-left region"
+    }
+  },
+  "113": {
+    "inputs": {
+      "math_expression": "a // 4",
+      "a": [
+        "106",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "left 25% of the sheet width"
+    }
+  },
+  "114": {
+    "inputs": {
+      "expand": 6,
+      "tapered_corners": true,
+      "mask": [
+        "111",
+        0
+      ]
+    },
+    "class_type": "GrowMask",
+    "_meta": {
+      "title": "Grow Mask"
+    }
+  },
+  "115": {
+    "inputs": {
+      "images": [
+        "116",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Output_Image_3"
+    }
+  },
+  "116": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "resize_source": true,
+      "destination": [
+        "105",
+        1
+      ],
+      "source": [
+        "118",
+        0
+      ],
+      "mask": [
+        "114",
+        0
+      ]
+    },
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "Image Composite Masked"
+    }
+  },
+  "117": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "width": 32,
+      "height": 32,
+      "edge": "original",
+      "image": [
+        "105",
+        1
+      ]
+    },
+    "class_type": "Image Crop Location Exact",
+    "_meta": {
+      "title": "Image Crop Location Exact"
+    }
+  },
+  "118": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "crop": "disabled",
+      "image": [
+        "117",
+        0
+      ],
+      "width": [
+        "106",
+        0
+      ],
+      "height": [
+        "106",
+        1
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "Upscale Image"
+    }
+  },
+  "119": {
+    "inputs": {
+      "max_hole_size": 0,
+      "mask": [
+        "109",
+        0
+      ]
+    },
+    "class_type": "MpiMaskFillHoles",
+    "_meta": {
+      "title": "Mpi Mask Fill Holes"
+    }
+  },
+  "121": {
+    "inputs": {
+      "text": "face",
+      "clip": [
+        "13",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "SAM3 'face' only - finds WHERE the head is"
+    }
+  },
+  "122": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "13",
+        0
+      ],
+      "image": [
+        "112",
+        0
+      ],
+      "conditioning": [
+        "121",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "face only"
+    }
+  },
+  "123": {
+    "inputs": {
+      "padding": 0,
+      "divisible_by": 1,
+      "mask": [
+        "122",
+        0
+      ]
+    },
+    "class_type": "MpiMaskBbox",
+    "_meta": {
+      "title": "face box (empty -> 0 box -> whole quarter, as before)"
+    }
+  },
+  "124": {
+    "inputs": {
+      "mpi_box": [
+        "123",
+        1
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "Mpi From Box"
+    }
+  },
+  "125": {
+    "inputs": {
+      "math_expression": "c - a",
+      "a": [
+        "124",
+        0
+      ],
+      "c": [
+        "124",
+        2
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "head x: one face-width left"
+    }
+  },
+  "126": {
+    "inputs": {
+      "math_expression": "a * 3",
+      "a": [
+        "124",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "head width: three face-widths"
+    }
+  },
+  "127": {
+    "inputs": {
+      "math_expression": "b + a + a // 20",
+      "a": [
+        "124",
+        1
+      ],
+      "b": [
+        "124",
+        3
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "head height: quarter top to just under the chin"
+    }
+  },
+  "128": {
+    "inputs": {
+      "y": 0,
+      "width": [
+        "126",
+        0
+      ],
+      "height": [
+        "127",
+        0
+      ],
+      "x": [
+        "125",
+        0
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "head box"
+    }
+  },
+  "129": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "112",
+        0
+      ],
+      "mpi_box": [
+        "128",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "crop to the head - the vocabulary never sees the body"
+    }
+  },
+  "130": {
+    "inputs": {
+      "mpi_box": [
+        "129",
+        1
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "head crop offset"
+    }
+  },
+  "131": {
+    "inputs": {
+      "true": [
+        "116",
+        0
+      ],
+      "false": [
+        "59",
+        0
+      ],
+      "boolean": [
+        "104",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "the run's last picture: the head removal when on, else the edit"
+    }
+  },
+  "132": {
+    "inputs": {
+      "passthrough": [
+        "131",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "free VRAM: the run's last step"
     }
   }
 }

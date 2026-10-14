@@ -125,6 +125,17 @@ test('each leg carries its lock and the whole run in runPrompt', async () => {
     assert.strictEqual(characterSheetEditor('change', { ...values, change: 'custom' }).injectionParams.Input_Lock, 0);
     assert.strictEqual(characterSheetEditor('age', values).injectionParams.Input_Lock, 0);
     assert.ok(!('Input_Lock' in characterSheetEditor('rebuild', values).injectionParams));
+    // MPI-1086: the change leg removes the head in its own graph only when no Age leg follows it.
+    assert.strictEqual(change.injectionParams.Input_Headless, false, 'an age leg follows');
+    assert.strictEqual(characterSheetEditor('change', { ...values, Input_Age: -1 }).injectionParams.Input_Headless, true);
+    assert.strictEqual(characterSheetEditor('age', { ...values, Input_Age: -1 }).injectionParams.Input_Headless, false);
+    assert.ok(!('Input_Headless' in characterSheetEditor('rebuild', values).injectionParams));
+    // The describer's yes/no on the Reference picture: a mannequin is not made into one again.
+    const hair = (refIsMannequin) => characterSheetEditor('change', { ...values, change: 'hair', refIsMannequin }).injectionParams;
+    assert.strictEqual(hair('Yes.').Input_Is_Mannequin, true);
+    assert.strictEqual(hair('yes, a wig head').Input_Is_Mannequin, true);
+    assert.strictEqual(hair('No.').Input_Is_Mannequin, false);
+    assert.strictEqual(hair(undefined).Input_Is_Mannequin, false);
     const lines = change.injectionParams.runPrompt.split('\n');
     assert.deepStrictEqual(lines.map(l => l.slice(0, 12)), ['Dress the ch', 'Change the c', 'A 10-year-ol']);
     assert.strictEqual(characterSheetEditor('change', { ...values, Input_Age: 30 }).injectionParams.runPrompt.split('\n').length, 2);
@@ -289,19 +300,20 @@ test('each change routes to its editor and the age picks the legs', async () => 
     // MPI-1086: a Hairstyle WITH a Reference picture goes to Qwen (the graph makes the mannequin); in words, Klein.
     const withRef = { ...run('hair', -1), mediaItems: [{ role: 'image2', url: 'ref.png' }] };
     assert.strictEqual(flowOperation(flow, withRef), 'flowCharacterSheetEditQwen');
-    assert.deepStrictEqual(flowRunLegs(flow, withRef).map(l => l.operation), ['flowCharacterSheetEditQwen', 'flowCharacterSheetHeadless']);
+    assert.deepStrictEqual(flowRunLegs(flow, withRef).map(l => l.operation), ['flowCharacterSheetEditQwen']);
     assert.strictEqual(flowOperation(flow, { ...run('clothes', -1), mediaItems: withRef.mediaItems }), 'flowCharacterSheetEdit');
     const ops = r => flowRunLegs(flow, r).map(l => l.operation);
-    assert.deepStrictEqual(ops(run('clothes', -1)), ['flowCharacterSheetEdit', 'flowCharacterSheetHeadless']);
-    // Head kept: the removal still runs, landing a version the card does not show (MPI-1087).
-    assert.deepStrictEqual(ops(run('clothes', -1, false)), ['flowCharacterSheetEdit', 'flowCharacterSheetHeadless']);
+    // MPI-1086: with no Age the edit graph removes the head itself (a version, shown or not by the toggle);
+    // the chained head leg runs only after age legs, so it is still the run's last step.
+    assert.deepStrictEqual(ops(run('clothes', -1)), ['flowCharacterSheetEdit']);
+    assert.deepStrictEqual(ops(run('clothes', -1, false)), ['flowCharacterSheetEdit']);
     assert.deepStrictEqual(ops(run('body', 30)), ['flowCharacterSheetEditQwen', 'flowCharacterSheetEdit', 'flowCharacterSheetHeadless']);
     assert.deepStrictEqual(ops(run('none', 10)), ['flowCharacterSheetEdit', 'flowCharacterSheetImages', 'flowCharacterSheetHeadless']);
     assert.deepStrictEqual(ops(run('none', 1)), ['flowCharacterSheetEdit', 'flowCharacterSheetImages', 'flowCharacterSheetHeadless']);
     // A newborn is swaddled and lying down: its head stays, whatever the toggle says.
     assert.deepStrictEqual(ops(run('none', 0)), ['flowCharacterSheetEdit', 'flowCharacterSheetImages']);
     assert.strictEqual(flowToggleLeg(flow), 2, 'the head leg keeps its result-pane toggle');
-    assert.deepStrictEqual(ops(run('clothes', undefined)), ['flowCharacterSheetEdit', 'flowCharacterSheetHeadless'], 'no age = keep');
+    assert.deepStrictEqual(ops(run('clothes', undefined)), ['flowCharacterSheetEdit'], 'no age = keep');
     assert.deepStrictEqual(ops(run('none', 13)), ['flowCharacterSheetEdit', 'flowCharacterSheetHeadless']);
     // Leg 1 (the change) defaults to Clothes when the run names none.
     assert.strictEqual(flowOperation(flow, { injectionParams: {} }), 'flowCharacterSheetEdit');
@@ -401,7 +413,7 @@ test('the picture checks run only when they can matter, and before any other que
     const REF2 = { role: 'image2', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fbuns.png' };
     const fe = await esm('js/services/flowEnhance.js');
     const withRef = async (change) => fe.describeAsks(await editor(), await values(change, '', -1), [SHEET, REF2]).map(d => d.to);
-    assert.deepStrictEqual(await withRef('hair'), ['refHair']);
+    assert.deepStrictEqual(await withRef('hair'), ['refHair', 'refIsMannequin']);
     assert.deepStrictEqual(await withRef('accessories'), []);
     assert.deepStrictEqual(await asked('hair', '', -1), []);
 });

@@ -42,7 +42,9 @@ test('the gallery project writes are guarded by deferCommit', () => {
 test('built groups reach onComplete so a deferred caller can commit them', () => {
     const src = read('js/services/generationService.js');
     // `groups[,\s}]`, not `groups }`: later fields ride on the same object (MPI-747 displayUrls).
-    assert.match(src, /callbacks\.onComplete\?\.\(\{ item: firstItem, group: firstGroup, items: builtItems, groups[,\s}]/);
+    // `_resultItems`: every built item, or the one shown when they landed as versions of one card (MPI-1086).
+    assert.match(src, /callbacks\.onComplete\?\.\(\{ item: firstItem, group: firstGroup, items: _resultItems, groups[,\s}]/);
+    assert.match(src, /const _resultItems = _versions \? \[firstItem\] : builtItems;/);
     assert.match(src, /deferred: !!opts\.deferCommit/, 'the complete event must declare whether it persisted');
 });
 

@@ -102,8 +102,10 @@ test('the prefix survives the trip from the registry to the sequence allocator',
     // run names each card for the stem the graph saved), so the op prefix is no longer
     // the whole expression — but it must stay the fallback, or every non-stems run loses
     // its name again.
-    assert.match(gen, /filePrefix: (?:\w+\(url\) \|\| )?getFilePrefix\(operation\)/,
+    // MPI-1086: `_opOf(i)` is the run's op, or the op a version of one card is filed under.
+    assert.match(gen, /filePrefix: (?:\w+\(url\) \|\| )?getFilePrefix\(_opOf\(i\)\)/,
         'generationService must resolve the prefix for the op it is running');
+    assert.match(gen, /const _opOf = \(i\) => _versions\?\.\[i\]\?\.operation \|\| operation;/);
 
     const svc = read('js/services/projectService.js');
     const call = svc.slice(svc.indexOf('export async function saveGeneration'));

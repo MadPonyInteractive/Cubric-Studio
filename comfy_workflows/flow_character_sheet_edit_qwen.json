@@ -151,13 +151,13 @@
   "35": {
     "inputs": {
       "images": [
-        "115",
+        "128",
         0
       ]
     },
     "class_type": "PreviewImage",
     "_meta": {
-      "title": "Output_Image"
+      "title": "Output_Image_2"
     }
   },
   "46": {
@@ -170,18 +170,6 @@
     "class_type": "SplitImageWithAlpha",
     "_meta": {
       "title": "drop alpha (2.1 VAE decodes RGBA)"
-    }
-  },
-  "115": {
-    "inputs": {
-      "passthrough": [
-        "128",
-        0
-      ]
-    },
-    "class_type": "MpiClearVram",
-    "_meta": {
-      "title": "Mpi Clear Vram"
     }
   },
   "128": {
@@ -566,18 +554,6 @@
       "title": "the mannequin"
     }
   },
-  "156": {
-    "inputs": {
-      "passthrough": [
-        "155",
-        0
-      ]
-    },
-    "class_type": "MpiClearVram",
-    "_meta": {
-      "title": "free Klein before Qwen loads"
-    }
-  },
   "157": {
     "inputs": {
       "negative_prompt": "",
@@ -591,7 +567,7 @@
         0
       ],
       "images.image_2": [
-        "156",
+        "162",
         0
       ],
       "vae": [
@@ -666,6 +642,564 @@
     "class_type": "MpiIfElse",
     "_meta": {
       "title": "latent: the mannequin encode when a picture is given"
+    }
+  },
+  "161": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Is_Mannequin"
+    }
+  },
+  "162": {
+    "inputs": {
+      "true": [
+        "136",
+        0
+      ],
+      "false": [
+        "165",
+        1
+      ],
+      "boolean": [
+        "161",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "picture 2: the reference itself when it is a mannequin"
+    }
+  },
+  "163": {
+    "inputs": {
+      "mode": "a_true_b_false",
+      "a": [
+        "138",
+        0
+      ],
+      "b": [
+        "161",
+        0
+      ]
+    },
+    "class_type": "MpiBooleanCompare",
+    "_meta": {
+      "title": "the mannequin was built"
+    }
+  },
+  "164": {
+    "inputs": {
+      "true": [
+        "155",
+        0
+      ],
+      "false": [
+        "11",
+        0
+      ],
+      "boolean": [
+        "163",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "the mannequin, or a stand-in never shown"
+    }
+  },
+  "165": {
+    "inputs": {
+      "input": [
+        "164",
+        0
+      ],
+      "boolean": [
+        "163",
+        0
+      ]
+    },
+    "class_type": "MpiIfElseInverted",
+    "_meta": {
+      "title": "the mannequin, only when built"
+    }
+  },
+  "166": {
+    "inputs": {
+      "images": [
+        "165",
+        1
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Output_Image"
+    }
+  },
+  "167": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Headless"
+    }
+  },
+  "168": {
+    "inputs": {
+      "input": [
+        "128",
+        0
+      ],
+      "boolean": [
+        "167",
+        0
+      ]
+    },
+    "class_type": "MpiIfElseInverted",
+    "_meta": {
+      "title": "the edit, when Headless front body is on"
+    }
+  },
+  "169": {
+    "inputs": {
+      "image": [
+        "168",
+        1
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "the edit size"
+    }
+  },
+  "170": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "width": [
+        "177",
+        0
+      ],
+      "height": [
+        "169",
+        1
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "the far-left region (front body only)"
+    }
+  },
+  "171": {
+    "inputs": {
+      "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "SAM3 Model"
+    }
+  },
+  "172": {
+    "inputs": {
+      "text": "face, hat, moustache",
+      "clip": [
+        "171",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "SAM3 vocabulary"
+    }
+  },
+  "173": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "171",
+        0
+      ],
+      "image": [
+        "193",
+        0
+      ],
+      "conditioning": [
+        "172",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "head + hat, on the head crop only"
+    }
+  },
+  "174": {
+    "inputs": {
+      "value": 0,
+      "width": [
+        "169",
+        0
+      ],
+      "height": [
+        "169",
+        1
+      ]
+    },
+    "class_type": "SolidMask",
+    "_meta": {
+      "title": "empty sheet-sized canvas"
+    }
+  },
+  "175": {
+    "inputs": {
+      "operation": "add",
+      "destination": [
+        "174",
+        0
+      ],
+      "source": [
+        "183",
+        0
+      ],
+      "x": [
+        "194",
+        2
+      ],
+      "y": [
+        "194",
+        3
+      ]
+    },
+    "class_type": "MaskComposite",
+    "_meta": {
+      "title": "paste the head mask back at the crop's offset"
+    }
+  },
+  "176": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "168",
+        1
+      ],
+      "mpi_box": [
+        "170",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "crop to the far-left region"
+    }
+  },
+  "177": {
+    "inputs": {
+      "math_expression": "a // 4",
+      "a": [
+        "169",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "left 25% of the sheet width"
+    }
+  },
+  "178": {
+    "inputs": {
+      "expand": 6,
+      "tapered_corners": true,
+      "mask": [
+        "175",
+        0
+      ]
+    },
+    "class_type": "GrowMask",
+    "_meta": {
+      "title": "Grow Mask"
+    }
+  },
+  "179": {
+    "inputs": {
+      "images": [
+        "180",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Output_Image_3"
+    }
+  },
+  "180": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "resize_source": true,
+      "destination": [
+        "168",
+        1
+      ],
+      "source": [
+        "182",
+        0
+      ],
+      "mask": [
+        "178",
+        0
+      ]
+    },
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "Image Composite Masked"
+    }
+  },
+  "181": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "width": 32,
+      "height": 32,
+      "edge": "original",
+      "image": [
+        "168",
+        1
+      ]
+    },
+    "class_type": "Image Crop Location Exact",
+    "_meta": {
+      "title": "Image Crop Location Exact"
+    }
+  },
+  "182": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "crop": "disabled",
+      "image": [
+        "181",
+        0
+      ],
+      "width": [
+        "169",
+        0
+      ],
+      "height": [
+        "169",
+        1
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "Upscale Image"
+    }
+  },
+  "183": {
+    "inputs": {
+      "max_hole_size": 0,
+      "mask": [
+        "173",
+        0
+      ]
+    },
+    "class_type": "MpiMaskFillHoles",
+    "_meta": {
+      "title": "Mpi Mask Fill Holes"
+    }
+  },
+  "185": {
+    "inputs": {
+      "text": "face",
+      "clip": [
+        "171",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "SAM3 'face' only - finds WHERE the head is"
+    }
+  },
+  "186": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "171",
+        0
+      ],
+      "image": [
+        "176",
+        0
+      ],
+      "conditioning": [
+        "185",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "face only"
+    }
+  },
+  "187": {
+    "inputs": {
+      "padding": 0,
+      "divisible_by": 1,
+      "mask": [
+        "186",
+        0
+      ]
+    },
+    "class_type": "MpiMaskBbox",
+    "_meta": {
+      "title": "face box (empty -> 0 box -> whole quarter, as before)"
+    }
+  },
+  "188": {
+    "inputs": {
+      "mpi_box": [
+        "187",
+        1
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "Mpi From Box"
+    }
+  },
+  "189": {
+    "inputs": {
+      "math_expression": "c - a",
+      "a": [
+        "188",
+        0
+      ],
+      "c": [
+        "188",
+        2
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "head x: one face-width left"
+    }
+  },
+  "190": {
+    "inputs": {
+      "math_expression": "a * 3",
+      "a": [
+        "188",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "head width: three face-widths"
+    }
+  },
+  "191": {
+    "inputs": {
+      "math_expression": "b + a + a // 20",
+      "a": [
+        "188",
+        1
+      ],
+      "b": [
+        "188",
+        3
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "head height: quarter top to just under the chin"
+    }
+  },
+  "192": {
+    "inputs": {
+      "y": 0,
+      "width": [
+        "190",
+        0
+      ],
+      "height": [
+        "191",
+        0
+      ],
+      "x": [
+        "189",
+        0
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "head box"
+    }
+  },
+  "193": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "176",
+        0
+      ],
+      "mpi_box": [
+        "192",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "crop to the head - the vocabulary never sees the body"
+    }
+  },
+  "194": {
+    "inputs": {
+      "mpi_box": [
+        "193",
+        1
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "head crop offset"
+    }
+  },
+  "195": {
+    "inputs": {
+      "true": [
+        "180",
+        0
+      ],
+      "false": [
+        "128",
+        0
+      ],
+      "boolean": [
+        "167",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "the run's last picture: the head removal when on, else the edit"
+    }
+  },
+  "196": {
+    "inputs": {
+      "passthrough": [
+        "195",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "free VRAM: the run's last step"
     }
   }
 }

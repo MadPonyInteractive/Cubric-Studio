@@ -1715,6 +1715,9 @@ export const commands = {
             { key: 'image2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false },
         ],
         promptRequired: false,
+        // MPI-1086: the head removal runs IN the graph (Output_Image_3) and lands as the card's
+        // Headless version; the Qwen graph's mannequin (Output_Image) lands as the version before the edit.
+        outputVersions: { Output_Image_3: 'flowCharacterSheetHeadless' },
         universal: true,
     },
     // MPI-1041. The same edit on Qwen-Image 2.1 (Body shape), which reshapes a body where
@@ -1732,6 +1735,9 @@ export const commands = {
             { key: 'image2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false },
         ],
         promptRequired: false,
+        // MPI-1086: the head removal runs IN the graph (Output_Image_3) and lands as the card's
+        // Headless version; the Qwen graph's mannequin (Output_Image) lands as the version before the edit.
+        outputVersions: { Output_Image_3: 'flowCharacterSheetHeadless' },
         universal: true,
     },
 

@@ -1732,7 +1732,9 @@ export const FLOWS = [
               when: [{ field: 'Input_Age', atLeast: 0 }, { field: 'Input_Age', atMost: 12 }],
               box: { x: 0.5, y: 0, width: 0.5, height: 1 }, params: { Input_Face_Pose: 'TURNED' } },
             // A newborn is a swaddled baby lying down (Fabio, 2026-10-10): its head always stays.
-            { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', unless: { field: 'Input_Age', is: 0 },
+            // MPI-1086: with no Age, the change leg's own graph removes the head (`Input_Headless`,
+            // landed as a version by `outputVersions`), so this leg runs only after the age legs.
+            { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', when: { field: 'Input_Age', atLeast: 1 },
               input: 'image1' },
         ],
         mediaType: 'image',
@@ -1777,6 +1779,8 @@ export const FLOWS = [
                 id: 'Input_Remove_Head', type: 'toggle', label: 'Headless front body',
                 icon: 'eraser', default: true,
                 // As on Character Sheet: read by the last leg's `toggle`, not by any graph (MPI-997).
+                // With no Age the edit graphs always make the Headless version (MPI-1086); this
+                // only picks which version the card shows.
             },
         ],
         // The answers write the age leg's younger / older word (any age) and the clothes a child's
@@ -1802,8 +1806,13 @@ export const FLOWS = [
             // Reference picture is described first; qh12 benched this question on Fabio's seven Pinterest pictures,
             // qh17 added "each colour and where" (the pink buns' dark roots were lost without it). It reads the RAW
             // picture: the mannequin the Qwen graph makes exists only inside that graph (r22-r24 used this read).
+            // No "bunches" in the list (eye test 2): the describer echoed it for pigtails and Qwen drew buns.
             { to: 'refHair', media: 'image2', when: { field: 'change', is: 'hair' },
-                ask: 'Describe only the hairstyle of the person in this picture: its length, its shape, how it is worn (loose, tied up, braided, in buns or bunches), the fringe if there is one, and the hair colour, naming each colour and where it is when the hair has darker roots or more than one colour. Answer with one phrase that starts with the hair colour, and nothing else.' },
+                ask: 'Describe only the hairstyle of the person in this picture: its length, its shape, how it is worn (loose, tied up, braided, in buns, ponytails or pigtails), the fringe if there is one, and the hair colour, naming each colour and where it is when the hair has darker roots or more than one colour. Answer with one phrase that starts with the hair colour, and nothing else.' },
+            // A mannequin needs no mannequin made of it: a "yes" sets the Qwen graph's Input_Is_Mannequin,
+            // whatever the picture's source (the gallery, the web, a later Element). Accessories may want it too.
+            { to: 'refIsMannequin', media: 'image2', when: { field: 'change', is: 'hair' },
+                ask: 'Is this a picture of a mannequin, a wig head or a bare dummy bust with no real face, rather than a real person? Answer yes or no.' },
         ],
     },
 

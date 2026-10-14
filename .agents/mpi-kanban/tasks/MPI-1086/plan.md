@@ -4,6 +4,35 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-14 night (session "New character sheets 25") - LATEST. Eye test 2 (validation.md): words fix the hair; the
+describer's ask listed "bunches" -> buns (FIXED in flowsRegistry.js, uncommitted). The mannequin rebuilds every run: the
+Headless leg ALWAYS runs as a second prompt (MPI-1087) and the RAM-pressure cache drops the older prompt's results.
+DECIDED by Fabio: (1) ONE graph per route: Qwen (hair from a picture) = mannequin -> edit -> SAM3 headless, outputs
+Output_Image / _2 / _3; Klein (words) = edit -> SAM3 headless. (2) A flow with ONE deliverable lands every output its
+graph makes as VERSIONS of the one card; a flow whose job is several files (Stems) keeps one card per output. Declared
+per flow. (3) "Headless front body" only picks which version shows. (4) A mannequin is detected by a describer yes/no
+question on the reference picture (any source: gallery, web, a later Element) -> `Input_Is_Mannequin` skips the Klein
+step (MpiIfElse is lazy). Keep the mannequin switch generic - Accessories may need it too (Fabio). (5) The separate
+Headless leg stays only after Age legs (headless must be last). GPU bench: ask Fabio first.
+BUILT (uncommitted, claim efbdbf02-mpi1086; npm test 3316/0, eslint clean): `research/bench/patch_raw_versions.py`
+patched both raw graphs + one-file converts (injection rules OK). Klein: Input_Headless -> MpiIfElseInverted gate ->
+the headless nodes (SAM3 loader 13 shared) -> Output_Image_3. Qwen: Input_Is_Mannequin (lazy picture-2 pick skips
+Klein), mannequin -> Output_Image only when built, edit Output_Image -> Output_Image_2, headless Output_Image_3.
+App: commandExecutor passes `outputTitles`; commandRegistry `outputVersions: { Output_Image_3: headless op }` on both
+editor ops; generationService lands those as versions of ONE card (`js/utils/outputVersions.js` orders by capture,
+`hideVersionOps` keeps the head removal unshown when the toggle is off); flowService passes hideVersionOps; builder
+injects Input_Headless (change leg, no Age) + Input_Is_Mannequin (describer `refIsMannequin` yes/no); registry head
+leg `when: Input_Age >= 1`; userFlows OP_KEYS += outputVersions. The result-pane toggle needs NO change: it finds
+the partner by op + neighbour, and the in-graph version is filed as flowCharacterSheetHeadless right after the edit.
+BENCHED r26/r26b/r26c (validation.md): structure 6/6, mannequin cached on a words-only re-run (175 s vs 347), Klein
+never loads for Body shape or a given mannequin (after the MpiClearVram fix: it is an OUTPUT_NODE and had pulled the
+mannequin into EVERY Qwen run since r23), ONE MpiClearVram per graph at the very end (Fabio). npm test 3317/0.
+NEXT: Fabio's eye test in the app (reload): hair from a picture (3 versions on one card: mannequin, edit, headless;
+the Headless toggle swaps versions, no re-run), a words-only re-run (faster), a gallery mannequin card as the
+Reference (no mannequin step; the describer must say "yes"), Body shape, Klein hair in words, Age + hair (head leg
+after age). Open: the describer's yes/no is not benched (it costs a DeepInfra call: ask). Then Accessories
+(mannequin option too, Fabio), Beard entry, close-out.
+
 2026-10-14 close of "New character sheets 24": COMMITTED + pushed. Also landed: the Reference slot label on two lines
 (Fabio asked twice: label "Reference picture (optional)\nan outfit, accessory or hairstyle" + `.mpi-base-flow__slot-label`
 white-space: pre-line). Fabio is running HIS OWN eye test 2 (not the cases I suggested - those were benched) and brings

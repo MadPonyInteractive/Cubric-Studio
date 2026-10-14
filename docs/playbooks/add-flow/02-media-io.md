@@ -177,6 +177,19 @@ A multi-output flow captures every `Output_<Type>*` node's result as its own gal
 The capture filter is **prefix-match**: `Output_Image` / `Output_Image_2` / `Output_video_2` all
 qualify; `output_preview` (multi-stage) and `output_audio` (side-channel) stay EXACT.
 
+### Several outputs, ONE deliverable: versions of one card (MPI-1086)
+
+Fabio's rule (2026-10-14): a flow whose job is several files (Stems) gives one card per output; a
+flow with ONE deliverable lands every picture its graph makes on the way (a mannequin, the edit, the
+head removal) as **versions of that one card**. The op opts in with `outputVersions` on its command:
+a map of capture title → the op that version is filed under (`{ Output_Image_3:
+'flowCharacterSheetHeadless' }`); captures it does not name take the run's op. `commandExecutor`
+reports each url's capture (`outputTitles`), `js/utils/outputVersions.js` orders them by capture
+number (never by finish time), and `generationService` builds one card from them. The card shows
+the last version, skipping ops in `hideVersionOps` (the flow's toggle leg while its toggle is off);
+that shown version is the run's `item`, and `items` is just it. A capture the graph gated off
+(an `MpiIfElseInverted` blocker) simply lands no version.
+
 ### 🔴 Multiple AUDIO outputs number from `_1`, not from the base (MPI-663)
 
 Audio is the one type whose base title is already taken. `Output_Audio` is the **video mux
