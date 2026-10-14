@@ -7,3 +7,9 @@
 - Open theory: Chromium HTTP disk-cache backend (queued includes cache lookup) stalled under engine-boot disk load; every local load already revalidates (304), so the cache saves nothing.
 - 2026-10-14 ~20:00 local, Fabio (screenshots): a Flow finished (Character Sheet editor, Klein 9B + Qwen-Image 2.1) and the result showed the ORIGINAL first, then the result, then the compare view, each step late. Console [slow-load]: flowCSFI_005.png / flowCharacterSheet_034.png / .meta thumbs queued 15.9-16.8 s, mascot vision/getting-ready|working|peek.webm queued 15.0-15.2 s, server 1-10 ms. Mid-session, NOT engine boot (the engine was generating). Same ~15-16 s signature, so the boot-only angle is out; GPU/disk load during a generation is the common factor.
 - Next: (a) test disabling the HTTP disk cache for the app's own origin (Fabio not yet answered; ask), and/or (b) log what is in flight when a load queues >3 s (server-side request ring, or CDP-free main-process webRequest onBeforeRequest/onCompleted bookkeeping) so the holder is named. Isolated harness scripts: scratchpad repro.cjs / holds.cjs / mainblock.cjs (session 0a622328), copy them into the card's research/ if needed.
+
+## 2026-10-14 ~21:20 local - test shipped: HTTP disk cache OFF (Fabio said yes)
+- main.js: `app.commandLine.appendSwitch('disable-http-cache')` before ready; MPI-1120's Cache-folder delete kept to clear what older runs left.
+- Proof (research/nocache.cjs, isolated app, landing + Flows): switch on = 15/15 images loaded, Cache folder 0 files; control without the switch = 15/15, Cache folder 179 files / 24 MB. eslint main.js clean.
+- Takes effect on a full app restart, not a renderer reload.
+- Next: watch [slow-load] in Fabio's app.log across his restarts and generations. Still ~16 s queued = cache ruled out, go to (b) in-flight holder logging. Gone = keep it, close the card.
