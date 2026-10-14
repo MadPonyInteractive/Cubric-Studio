@@ -214,3 +214,90 @@ C2 wins (no broken layout; the redress is arguably part of "a vampire"). Both mi
 ## CI (2026-10-12)
 
 `85f96744a` Tests run 38258557951: success (11m11s). Awaiting Fabio's eye test in the app.
+
+## Fabio eye test 1 (2026-10-12): FAILED - hairstyle from a picture
+
+- Pink space buns (reference has dark roots): style taken, roots lost - colour wrong.
+- Same + "in blue": back figure kept PINK buns; front + close-up blue. Figures disagree.
+- Man + short textured crop with fade, "gradient purple top, black bottom": back of head unlike the reference, no fade.
+- Same + "in purple": back view differs from reference.
+- Same, no words: long wavy hair - nothing like the short crop. Morphing (two ears).
+- Woman + box braids, no words: braids ok, close-up face out of place.
+- Same + "in silver white": FRONT figure kept dark hair; back + close-up silver.
+
+Verdict (Fabio): picture route is less consistent than words alone; hard pictures fail. Accessories parked; nail hairstyle first.
+Fabio testing his own approach (extract the hair, remove the character) - STAND BY for it before any new approach.
+
+Asks: (1) label "Reference picture (optional)" then the rest on a NEW line (flowsRegistry.js:1744, MPI-1101 claim);
+(2) carry the beard - optional switch, or a new "Beard" entry.
+
+## Fabio approach test (2026-10-12)
+
+- Hair cut out on grey (= what our lock-2 graph does today): proportions wrong, colour off.
+- Klein edit "replace the woman with a mannequin, keep the hair" in the image workspace, then that as the reference: proportion + colour closer; close-up face OUT OF PLACE, double ears.
+- Fabio: Beard = a SEPARATE "Beard" entry (not a switch on Hairstyle).
+- Suspect: lock 2 freezes the SAM3 face (brows down) and stitches it back; when the new hair changes the head outline (up-do, ears bared) the frozen face no longer sits on the redrawn head -> shifted face + a second ear. Lock 0 control on words was 3/3 (top of this file).
+
+## Round 16 (`qh16.py`, `h16_*`): Klein mannequin of the photo as the reference, no cut-out, face lock A / B / C
+
+Mannequin ("Replace the person with a mannequin but keep the hairstyle.", s735724985): hair kept 3/3, roots kept;
+pin7 keeps her earrings, necklaces, white blouse and the leafy background; pin6 keeps the 3/4 head turn.
+Describer on the pin5 mannequin: "pink" only (Fabio's edit_004 got "Pink and dark brown") -> roots lost.
+
+| sheet | A lock 2 (shipped) | B lock 0 | C lock 2 "eyes, nose, mouth" |
+|---|---|---|---|
+| W buns | 2/2 hair on all three, face ok | identity lost 2/2 | s42 ghost double face |
+| M man (pin6, 3/4 photo) | s42 face OUT OF PLACE + second jaw/ear; s7 seam at the eyes, a different man | s42 back figure DOUBLED; identity lost 2/2 | s42 mangled face; s7 identity lost |
+| B braids | close-up takes the reference scene, blouse, jewellery 2/2; backpack lost | ref person leaks 2/2; s7 MANNEQUIN face | s42 front redrawn as a back view |
+
+Root cause of Fabio's double ear: Klein copies the REFERENCE'S HEAD POSE / head shape; lock 2 pastes the old face
+(brows down) onto the turned head. B and C dropped. Round 17: the mannequin turned to FACE THE CAMERA, bare (no
+jewellery, no clothes), plain grey; describer asked for roots / two-tone; lock A only.
+
+## Rounds 17-18 (`qh17.py`, `qh18.py`)
+
+r17 mannequin M2 (facing the camera, bare, head and shoulders): roots kept and described ("Pink hair with dark roots",
+ASK2); braids CUT to a crown braid. Man s42 still broke (back figure doubled, head tilted under the kept beard) with the
+picture AND with words only (`h17_N_M_s42`) -> the LOCK, not the reference. Words only on buns: three figures agree,
+but the roots became black streaks and the buns lost their shape -> words alone lose the style. Fabio: do NOT force the
+camera view - a cut reads better at 3/4.
+
+Lock-2 mask on the man (`h17_maskM`): face from the brows down; jaw outline, ears, neck FREE -> Klein swings the head,
+the kept beard patch stays (double jaw / second ear). "face top + a third" lands MID-EYE on his close-up.
+
+r18 L18 lock = "face, neck" + brow line = SAM3 "eyes" top minus the eyes height (`h18_maskM`: jaw + neck held, cut
+just above the brows): man s42 + s7 face in place, identity kept; buns s42 clean on all three. FIXED the double jaw.
+r18 mannequin M3 (3/4, "showing the full length of the hair"): GREW the man's crop into a long mullet, pink strands
+long and straight; braids right. Left: an EXTRA BACK FIGURE (man s42, braids s42; also h16 M_B s42, h17 M s42) - the
+back panel has no lock at lock 2.
+
+r19 (`qh19.py`): mannequin M4 (Fabio's string, 3/4, "keep the hairstyle exactly as it is: the same length, shape and
+colour", bare, grey) = RIGHT 3/3, describer (ASK2) right 3/3 (roots, fade, plaits). L19 = L18 + back-panel background
+held outside the padded SAM3 "person" box: braids s42 no extra figure (but her BACKPACK lost front + back, braids in
+its place); man s42 close-up right but a half figure squeezed between the held strip and his wide box; man s7, buns
+s42 clean on all three. Round 20: hold the back background outside the person SILHOUETTE grown 40 (not a box);
+keep line + "and anything they wear or carry".
+
+r20 (`qh20.py`): L20 = back background held outside the back figure SILHOUETTE grown 40 (SAM3 "person" leaves the
+backpack out, so its middle is held too) + keep line "...and anything they wear or carry". Braids s42: backpack KEPT on
+the back (front straps lost); buns s42, man s7 clean; man s42 STILL two back figures, overlapped inside his outline.
+Man s42 fails under every hold tried (r16-r20) and passed words-only (h17_N) -> the picture + that seed. Next: the
+failure RATE of the r20 setup, 4 fresh seeds x 3 sheets (`qh20.py rate`).
+
+r20 RATE (`qh20.py rate`, s1-s4): man 2/4 (s2 double jaw - a second beard drawn BELOW the kept one; s4 extra back
+figure + double jaw); braids 2/4 (s1 front figure redrawn as a back view; s4 ghost second jaw); buns 3/4 (s4 a small
+extra figure pasted into the close-up). 7/12; with s42/s7 about 11/17. The paste-back lock is the weak point: Klein
+redraws the head bigger or lower and the kept face does not move with it. Mannequin + describer are right 3/3.
+
+## Round 21 (`qh21.py`, `h21_*`): hair from a PICTURE on Qwen-Image 2.1 (Fabio 2026-10-14: Qwen for the picture, Klein for words)
+
+The Editor's Qwen graph (no lock) + the M4 mannequin as images.image_2; string "Give the character in image 1 the
+hairstyle and hair colour from image 2: <describer>, with the head uncovered and no hat." + ALL + OWN + KEEP.
+**6/6 clean** (man, braids, buns x s42/s7): the hairstyle on all three figures, faces kept, no double jaw, no extra
+figure, backpack kept (braids: front + back), the buns' DARK ROOTS kept (first time). 111-145 s an image. Next: rate s1-s4.
+
+r21 RATE (`qh21.py rate`, s1-s4): man 4/4 (crop + fade all three, own face, backpack); braids 4/4 (backpack front +
+back; braids end SHORTER than the picture's cascade); buns 3/4 (s3 front figure kept some of her old long hair down
+beside the buns). **Qwen 17/18 vs Klein ~11/17 (r16-r20).** DECISION (Fabio 2026-10-14): hair FROM A PICTURE ->
+mannequin M4 on Klein -> describer ASK2 -> Qwen edit (image_2 = mannequin, the r21 string); hair in WORDS stays Klein.
+Grids: session scratchpad h21_grid.jpg, h21r_{M,B,W}.jpg (not repo).

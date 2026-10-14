@@ -4,6 +4,18 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-14 (session "New character sheets 23") - LATEST, read this first. Fabio's eye test FAILED the shipped
+picture route (85f96744a). Bench r16-r21 (validation.md): hair FROM A PICTURE now = (1) mannequin pass on Klein edit
+(`qh19.M4`, seed 735724985: "Replace the person with a plain white mannequin seen in a three-quarter view, and keep
+the hairstyle exactly as it is: the same length, shape and colour. No jewellery and no clothes, on a plain grey
+background.") -> (2) describer with `qh17.ASK2` (names roots / two-tone) on the MANNEQUIN -> (3) edit on QWEN-IMAGE 2.1
+(the Editor's Qwen graph + the mannequin as `images.image_2`, string `qh21.q1`) = 17/18 clean. Hair in WORDS stays
+Klein (lock 2). Klein lock rounds r16-r20 (neck lock, eyes brow line, back-background hold) reached ~11/17 - parked,
+NOT shipping. NEXT: build it - Qwen graph gets an Input_Image_2 (raw + one-file convert), a mannequin leg before it
+(Klein edit), the describe entry `refHair` reads the mannequin with ASK2, operationBy hair-with-picture -> Qwen
+(gated non-commercial note, like Body shape). Then: Beard as its own entry (Fabio), slot label on two lines (needs
+flowsRegistry.js - MPI-1101's claim), accessories later.
+
 2026-10-12 (session "New character sheets 22"): card moved to doing. Inputs found:
 - Fringe fail: `Qwen 2.1/Media/flowCSE_008.png`, sheet `flowCSFI_002.png`, "Black and pink Bobcut with Fringe",
   seed 3745015294 (sidecar `.meta/6d720607-...json`). Lock 2 = SAM3 "face" on the front and the close-up.
@@ -83,3 +95,12 @@ contact sheets in the session scratchpad). Bench scripts in `research/bench/`, r
 (none yet)
 
 ## Plan Drift
+
+- 2026-10-12 (session "New character sheets 23"): Fabio eye test 1 FAILED the picture route (validation.md). Accessories
+  parked; hairstyle first. Round 16 (`qh16.py`): Klein mannequin pass on the photo as the reference (Fabio's find),
+  no SAM3 cut-out, x face lock A (shipped lock 2) / B (lock 0) / C (lock 2 on "eyes, nose, mouth"), on the buns
+  woman, the man (pin6) and braids (pin7), s42/s7. Log: session scratchpad qh16a.log. Beard = a separate "Beard"
+  entry (Fabio) - after hairstyle. Slot label on two lines - waits on MPI-1101's flowsRegistry.js claim.
+- 2026-10-14: rounds 17-20 + rate in validation.md. Fabio: Qwen-Image 2.1 for hair FROM A PICTURE, Klein for hair in
+  WORDS. `qh21.py` ready (M4 mannequin as images.image_2 on the Editor's Qwen graph, no lock; 3 sheets x s42/s7,
+  `rate` = s1-s4). NOT RUN: Fabio is on the GPU - wait for his go, then `gpu_lease.py run --poll 2 -- python qh21.py`.
