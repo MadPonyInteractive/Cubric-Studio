@@ -286,6 +286,9 @@
     color: var(--ink-3);
     letter-spacing: 0.04em;
     text-transform: capitalize;
+    /* A declared label may break onto a second line with "\n" (MPI-1086: the slot name, then what it takes). */
+    white-space: pre-line;
+    text-align: center;
 }
 .mpi-base-flow__slot {
     width: 208px;

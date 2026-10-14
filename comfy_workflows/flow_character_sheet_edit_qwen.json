@@ -111,16 +111,16 @@
         0
       ],
       "positive": [
-        "30",
+        "158",
         0
       ],
       "negative": [
-        "30",
-        1
+        "159",
+        0
       ],
       "latent_image": [
-        "30",
-        2
+        "160",
+        0
       ],
       "seed": [
         "8",
@@ -288,6 +288,384 @@
     "class_type": "MpiLoraModel",
     "_meta": {
       "title": "Input_Lora_Phase2_6"
+    }
+  },
+  "136": {
+    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": false,
+      "string": ""
+    },
+    "class_type": "MpiLoadImage",
+    "_meta": {
+      "title": "Input_Image_2"
+    }
+  },
+  "137": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Reference"
+    }
+  },
+  "138": {
+    "inputs": {
+      "mode": "both_true",
+      "a": [
+        "136",
+        4
+      ],
+      "b": [
+        "137",
+        0
+      ]
+    },
+    "class_type": "MpiBooleanCompare",
+    "_meta": {
+      "title": "reference picture given AND wanted"
+    }
+  },
+  "139": {
+    "inputs": {
+      "unet_name": "flux-2-klein-9b-int8-convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Klein 9B (the mannequin)"
+    }
+  },
+  "140": {
+    "inputs": {
+      "clip_name": "qwen_3_8b_int8_convrot.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Klein text encoder"
+    }
+  },
+  "141": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Klein VAE"
+    }
+  },
+  "142": {
+    "inputs": {
+      "int": 4
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "mannequin steps"
+    }
+  },
+  "143": {
+    "inputs": {
+      "float": 1
+    },
+    "class_type": "MpiFloat",
+    "_meta": {
+      "title": "mannequin cfg"
+    }
+  },
+  "144": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "megapixels": 1,
+      "resolution_steps": 16,
+      "image": [
+        "136",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "the photo to 1 MP"
+    }
+  },
+  "145": {
+    "inputs": {
+      "pixels": [
+        "144",
+        0
+      ],
+      "vae": [
+        "141",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "encode the photo"
+    }
+  },
+  "146": {
+    "inputs": {
+      "image": [
+        "144",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "photo size"
+    }
+  },
+  "147": {
+    "inputs": {
+      "text": "Replace the person with a plain white mannequin seen in a three-quarter view, and keep the hairstyle exactly as it is: the same length, shape and colour. No jewellery and no clothes, on a plain grey background.",
+      "clip": [
+        "140",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "mannequin prompt (qh19 M4, MPI-1086 r19)"
+    }
+  },
+  "148": {
+    "inputs": {
+      "conditioning": [
+        "147",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "Conditioning Zero Out"
+    }
+  },
+  "149": {
+    "inputs": {
+      "conditioning": [
+        "147",
+        0
+      ],
+      "latent": [
+        "145",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "the photo as the reference"
+    }
+  },
+  "150": {
+    "inputs": {
+      "noise_seed": 735724985
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "mannequin seed (fixed: one mannequin per photo)"
+    }
+  },
+  "151": {
+    "inputs": {
+      "sampler_name": "lcm"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "152": {
+    "inputs": {
+      "model": [
+        "139",
+        0
+      ],
+      "positive": [
+        "149",
+        0
+      ],
+      "negative": [
+        "148",
+        0
+      ],
+      "cfg": [
+        "143",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFG Guider"
+    }
+  },
+  "153": {
+    "inputs": {
+      "steps": [
+        "142",
+        0
+      ],
+      "width": [
+        "146",
+        0
+      ],
+      "height": [
+        "146",
+        1
+      ]
+    },
+    "class_type": "Flux2Scheduler",
+    "_meta": {
+      "title": "Flux2Scheduler"
+    }
+  },
+  "154": {
+    "inputs": {
+      "noise": [
+        "150",
+        0
+      ],
+      "guider": [
+        "152",
+        0
+      ],
+      "sampler": [
+        "151",
+        0
+      ],
+      "sigmas": [
+        "153",
+        0
+      ],
+      "latent_image": [
+        "145",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "mannequin sampler"
+    }
+  },
+  "155": {
+    "inputs": {
+      "samples": [
+        "154",
+        0
+      ],
+      "vae": [
+        "141",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "the mannequin"
+    }
+  },
+  "156": {
+    "inputs": {
+      "passthrough": [
+        "155",
+        0
+      ]
+    },
+    "class_type": "MpiClearVram",
+    "_meta": {
+      "title": "free Klein before Qwen loads"
+    }
+  },
+  "157": {
+    "inputs": {
+      "negative_prompt": "",
+      "resolution": 0,
+      "clip": [
+        "3",
+        0
+      ],
+      "images.image_1": [
+        "11",
+        0
+      ],
+      "images.image_2": [
+        "156",
+        0
+      ],
+      "vae": [
+        "4",
+        0
+      ],
+      "prompt": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImage21",
+    "_meta": {
+      "title": "Qwen edit: picture 2 = the mannequin (hair from a picture)"
+    }
+  },
+  "158": {
+    "inputs": {
+      "true": [
+        "157",
+        0
+      ],
+      "false": [
+        "30",
+        0
+      ],
+      "boolean": [
+        "138",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "positive: the mannequin encode when a picture is given"
+    }
+  },
+  "159": {
+    "inputs": {
+      "true": [
+        "157",
+        1
+      ],
+      "false": [
+        "30",
+        1
+      ],
+      "boolean": [
+        "138",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "negative: the mannequin encode when a picture is given"
+    }
+  },
+  "160": {
+    "inputs": {
+      "true": [
+        "157",
+        2
+      ],
+      "false": [
+        "30",
+        2
+      ],
+      "boolean": [
+        "138",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "latent: the mannequin encode when a picture is given"
     }
   }
 }

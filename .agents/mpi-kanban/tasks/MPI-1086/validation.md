@@ -301,3 +301,48 @@ back; braids end SHORTER than the picture's cascade); buns 3/4 (s3 front figure 
 beside the buns). **Qwen 17/18 vs Klein ~11/17 (r16-r20).** DECISION (Fabio 2026-10-14): hair FROM A PICTURE ->
 mannequin M4 on Klein -> describer ASK2 -> Qwen edit (image_2 = mannequin, the r21 string); hair in WORDS stays Klein.
 Grids: session scratchpad h21_grid.jpg, h21r_{M,B,W}.jpg (not repo).
+
+## Round 22 (`qh22.py`, `h22_*`): qh21 WITHOUT the mannequin - raw photo as images.image_2, ASK2 on the raw photo
+
+Describer on the raw photos: buns "Pink hair with darker roots, two high buns with loose bangs"; man "Dark brown with
+lighter highlights and a faded root" (the CUT is not named - the mannequin's read was "textured, curly top and a faded
+undercut"); braids "multiple intricate braids that cascade down the shoulders". Qwen took the cut from image 2 anyway.
+**5/6.** Man s42 + s7: crop + fade on all three, own face and beard, backpack, no sweater or street (s7 curlier, closer).
+Braids s42 + s7: braids on all three (looser, closer to the photo than r21), own face, no hoops, necklaces or blouse,
+backpack front + back. Buns s42 clean. **Buns s7 FAIL: the FRONT figure wears the photo's make-up** (dark red lipstick,
+heavy brows and contour); close-up and back her own; r21 (mannequin) s7 clean. The face leak the mannequin exists to stop.
+Grids: session scratchpad h22_{M,B,W}.jpg, h22_Wfaces.jpg, h22_Bfaces.jpg (not repo).
+
+## Round 23 (`qh23.py`, `h23_*`): the mannequin INSIDE the Qwen graph - one graph, the shipping shape
+
+Input_Image_2 (raw photo) -> Klein 9B free edit (M4, seed MSEED, 1 MP, 4 steps lcm cfg 1, no LoRA) -> MpiClearVram ->
+TextEncodeQwenImage21 images.image_2; describer words = r22's (raw photo, ASK2), as the app would give. In-graph
+mannequins: a bare white bust with the hair only (crop + fade, braids, pink buns + dark roots) - cleaner than M4 on the
+generic graph. **6/6 clean**: man crop + fade on all three (s7 curly, close to the photo), own face and beard,
+backpack; braids on all three, own face, backpack front + back; buns + roots on all three, her own face both seeds -
+**the r22 s7 make-up leak is GONE**. Time 111-244 s an image, but M s7 took 2534 s (once; cause not known - check RAM
+with both models in one prompt before shipping). Grids: session scratchpad h23_{M,B,W}.jpg, h23_faces.jpg.
+
+r23 RATE (`qh23.py rate`, s1-s4): man 4/4 (crop + fade all three, own face and beard, backpack); braids 4/4 (braids
+all three, backpack front + back, own face); buns 3/4 - **s3 the FRONT figure kept her old long brown hair, no buns**
+(the same seed failed the same figure in r21: old hair left down beside the buns). **r23 = 17/18, equal to r21**: the
+mannequin inside the graph costs nothing. 108-177 s an image (first of a run ~160-245 s, loading). RAM log (scratchpad
+mem23.log): commit charge 81-83 of 82-84 GB across the whole window with MPI-1101's bench + Fabio's app + ComfyUI
+loaded, at the limit; the one 2534 s image (M s7) ran beside that bench = paging, not the graph. The 16 GB tester:
+Klein + Qwen in one prompt is the same total as the two jobs back to back on a machine that keeps models resident.
+
+## Round 24 (`qh24.py`, `h24_*`): the user's OWN WORDS with a hair picture, r23 graph, the builder's with-words string
+
+Fabio's eye-test words: buns "in blue", man "gradient purple top, black bottom", braids "in silver white"; string =
+the shipped W2 shape with image 1 / image 2 (`buildChangePrompt('hair', words, true, refHair)`). **6/6**: blue buns +
+bangs on all three, her own face (s42, s7); purple top with black faded sides on all three, own face, beard, backpack;
+silver-white braids on all three (eye test 1 left the FRONT figure dark), backpack front + back, own face. The fixes
+for eye test 1's colour disagreements (back kept pink, front kept dark) hold. Grids: session scratchpad h24_{M,B,W}.jpg.
+
+## Round 25 (`qh25.py`): the SHIPPED graph file, both switch sides
+
+`comfy_workflows/flow_character_sheet_edit_qwen.json` (patch_raw_qwen_ref.py + one-file convert, 45 nodes, injection
+rules OK) injected as the app does. Buns s42 with the photo + Input_Reference on = **pixel-identical to h23_W_s42**
+(PIL difference bbox None). Body shape "heavyset" with no picture, Input_Reference off: heavier body on all three, same
+face, hair, dress and layout - the old one-picture edit still works. Tests: character-sheet-editor 21/21, related flow
+suites 118/118, full `npm test` 3313 pass / 0 fail; eslint clean on the three changed js files.

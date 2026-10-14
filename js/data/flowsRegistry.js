@@ -1687,8 +1687,8 @@ export const FLOWS = [
     // change has a template that passed on the bench and the user's words fill one slot. The age is
     // written into the prompt as words, so the child-safety gate reads it.
     //
-    // LEGS. Leg 1 is the picked change (`operationBy`: Klein, or Qwen-Image 2.1 for Body shape,
-    // skipped for "Nothing else"). Then, when Age is set, a Klein age edit; for 12 and under the
+    // LEGS. Leg 1 is the picked change (`operationBy`: Klein, or Qwen-Image 2.1 for Body shape and
+    // a Hairstyle from a picture, skipped for None). Then, when Age is set, a Klein age edit; for 12 and under the
     // bodies are REDRAWN from the edited close-up by Character Sheet from Images on Qwen (an edit
     // keeps the adult's size, batch 17); then the head removal Character Sheet has.
     //
@@ -1702,13 +1702,13 @@ export const FLOWS = [
         // registered, so the layout holds and only the change moves.
         preview: 'flow-character-sheet-editor.webp',
         video: 'flow-character-sheet-editor.mp4',
-        description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, and ages of 12 and under, run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
+        description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, a hairstyle from a picture, and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
         // Each slot's rack fills its phase's nodes: Klein's Input_Lora_Phase1_* (the edit and age
         // legs), Qwen's Input_Lora_Phase2_* (Body shape). The child rebuild leg runs the
         // from-images graph, titled Phase1, so it takes no rack here.
         requiredModels: [
             { label: 'Model', models: ['klein-9b'], loras: true },
-            { label: 'Body shape and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
+            { label: 'Body shape, hair from a picture and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
               for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] },
         ],
         operation: 'flowCharacterSheetEdit',
@@ -1716,7 +1716,10 @@ export const FLOWS = [
             field: 'change',
             map: {
                 clothes: 'flowCharacterSheetEdit', accessories: 'flowCharacterSheetEdit',
-                hair: 'flowCharacterSheetEdit', condition: 'flowCharacterSheetEdit', custom: 'flowCharacterSheetEdit',
+                // MPI-1086: a hairstyle FROM A PICTURE runs on Qwen (its graph makes the picture a mannequin
+                // first; 17/18 vs Klein's ~11/17), a hairstyle in WORDS on Klein (Fabio, 2026-10-14).
+                hair: { when: { media: 'image2' }, then: 'flowCharacterSheetEditQwen', else: 'flowCharacterSheetEdit' },
+                condition: 'flowCharacterSheetEdit', custom: 'flowCharacterSheetEdit',
                 body: 'flowCharacterSheetEditQwen', none: null,
             },
         },
@@ -1741,7 +1744,7 @@ export const FLOWS = [
                 // Optional (Fabio, 2026-10-10): an outfit, an accessory or a hairstyle to copy, for Clothes,
                 // Accessories and Hairstyle (MPI-1086); any other change ignores it. Accessories need words
                 // naming it; a hairstyle is put into words by `refHair` below. Not with an age under 18.
-                { type: 'image', mode: 'upto', max: 1, roles: ['image2'], labels: ['Reference picture (optional): an outfit, accessory or hairstyle'] },
+                { type: 'image', mode: 'upto', max: 1, roles: ['image2'], labels: ['Reference picture (optional)\nan outfit, accessory or hairstyle'] },
             ],
         },
         result: { compare: 'image1' },
@@ -1751,7 +1754,7 @@ export const FLOWS = [
                 options: [
                     { v: 'clothes', label: 'Clothes', info: 'New clothes on every panel; the head and hair stay exactly as they are.' },
                     { v: 'accessories', label: 'Accessories', info: 'Glasses, a scarf, a hat, jewellery - added to every panel.' },
-                    { v: 'hair', label: 'Hairstyle', info: 'A new haircut or colour; the face stays as it is.' },
+                    { v: 'hair', label: 'Hairstyle', info: 'A new haircut or colour; the face stays as it is. With a Reference picture it runs on Qwen-Image 2.1: not for commercial use.' },
                     { v: 'condition', label: 'Condition', info: 'Beaten up, muddy, soaked, sunburnt - the state the character is in.' },
                     { v: 'body', label: 'Body shape', info: 'Heavier, slimmer or more muscular. Runs on Qwen-Image 2.1: not for commercial use.' },
                     // MPI-1086 (Fabio, 2026-10-12): "Nothing else" split into a free edit and age-only.
@@ -1797,9 +1800,11 @@ export const FLOWS = [
             { to: 'sheetClothes', media: 'image1', when: [{ field: 'Input_Age', atLeast: 1, atMost: 12 }, { field: 'change', isNot: 'clothes' }],
                 ask: 'Describe only the clothes the person wears: each garment, pair of shoes and hat that is present, with its color and material. Answer with one sentence that starts with the word Wearing.' },
             // MPI-1086: a hairstyle reaches the full bodies only as WORDS (0/21 from the picture alone), so the
-            // Reference picture is described first; qh12 benched this question on Fabio's seven Pinterest pictures.
+            // Reference picture is described first; qh12 benched this question on Fabio's seven Pinterest pictures,
+            // qh17 added "each colour and where" (the pink buns' dark roots were lost without it). It reads the RAW
+            // picture: the mannequin the Qwen graph makes exists only inside that graph (r22-r24 used this read).
             { to: 'refHair', media: 'image2', when: { field: 'change', is: 'hair' },
-                ask: 'Describe only the hairstyle of the person in this picture: its length, its shape, how it is worn (loose, tied up, braided, in buns or bunches), the fringe if there is one, and the hair colour. Answer with one phrase that starts with the hair colour, and nothing else.' },
+                ask: 'Describe only the hairstyle of the person in this picture: its length, its shape, how it is worn (loose, tied up, braided, in buns or bunches), the fringe if there is one, and the hair colour, naming each colour and where it is when the hair has darker roots or more than one colour. Answer with one phrase that starts with the hair colour, and nothing else.' },
         ],
     },
 
@@ -3377,17 +3382,28 @@ function legWanted(flow, leg, run, ctx = {}) {
 
 /**
  * The op leg 1 takes on this run: `operationBy.map[value]` for the declared field's value, else
- * `operation`. `null` means leg 1 is SKIPPED (a map entry of `null`). A Flow with no
- * `operationBy` is always `operation`.
+ * `operation`. `null` means leg 1 is SKIPPED (a map entry of `null`). An entry may be a rule,
+ * `{ when, then, else }` (MPI-1086: Hairstyle runs on Qwen with a Reference picture, on Klein
+ * without), read through `ruleHolds` like a leg's `when`. A Flow with no `operationBy` is
+ * always `operation`.
  * @param {FlowDef} flow
  * @param {Object} [run]
+ * @param {{ media?: Set<string> }} [ctx] - the media context a `{ media }` rule reads
  * @returns {?string}
  */
-export function flowOperation(flow, run = {}) {
+export function flowOperation(flow, run = {}, ctx = flowMediaCtx(run?.mediaItems)) {
     const by = flow?.operationBy;
     if (!by?.field) return flow?.operation;
-    const value = flowRunValues(flow, run)[by.field];
-    return value !== undefined && Object.hasOwn(by.map || {}, value) ? by.map[value] : flow.operation;
+    const values = flowRunValues(flow, run);
+    const value = values[by.field];
+    if (value === undefined || !Object.hasOwn(by.map || {}, value)) return flow.operation;
+    const entry = by.map[value];
+    return entry && typeof entry === 'object' ? (ruleHolds(entry.when, values, ctx) ? entry.then : entry.else) : entry;
+}
+
+/** The ops one `operationBy.map` entry can route to: a rule entry names two. */
+function _mapOps(entry) {
+    return entry && typeof entry === 'object' ? [entry.then, entry.else] : [entry];
 }
 
 /**
@@ -3396,7 +3412,8 @@ export function flowOperation(flow, run = {}) {
  * @returns {string[]}
  */
 export function flowOperations(flow) {
-    const ops = [flow?.operation, ...Object.values(flow?.operationBy?.map || {}), ...flowLegs(flow).map(leg => leg.operation)];
+    const ops = [flow?.operation, ...Object.values(flow?.operationBy?.map || {}).flatMap(_mapOps),
+        ...flowLegs(flow).map(leg => leg.operation)];
     return [...new Set(ops.filter(Boolean))];
 }
 
@@ -3408,7 +3425,7 @@ export function flowOperations(flow) {
  * @returns {{index: number, operation: string, leg: ?FlowLeg}[]}
  */
 export function flowRunLegs(flow, run = {}, ctx = flowMediaCtx(run?.mediaItems)) {
-    const first = flowOperation(flow, run);
+    const first = flowOperation(flow, run, ctx);
     const legs = [
         ...(first ? [{ index: -1, operation: first, leg: null }] : []),
         ...flowLegs(flow)

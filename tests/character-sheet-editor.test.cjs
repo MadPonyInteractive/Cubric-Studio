@@ -169,19 +169,20 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     assert.strictEqual(refuse(run('accessories', '')), 'Say what the Reference picture shows, for example "the gold hoop earrings".');
     assert.strictEqual(refuse(run('accessories', 'the bandana')), null);
     assert.strictEqual(refuse({ change: 'accessories', words: '' }), 'Say what to change, or add a Reference picture.');
-    // MPI-1086 qh13/qh14: Hairstyle takes the picture as the describer's words (`refHair`), every figure named.
+    // MPI-1086 r21-r23: Hairstyle from a picture runs on Qwen (image 1 = the sheet, image 2 = the mannequin the graph
+    // makes of the picture), with the describer's words (`refHair`) and every figure named.
     const HAIR = ', with the head uncovered and no hat. The front view, the character seen from behind and the close-up '
         + "portrait on the right all show the same hairstyle and hair colour. Keep the character's own face and clothes." + KEEP;
     assert.strictEqual(buildChangePrompt('hair', '', true, 'pink hair styled in two high buns with bangs.'),
-        'Give the character the hairstyle and hair colour from the reference picture: pink hair styled in two high buns '
+        'Give the character in image 1 the hairstyle and hair colour from image 2: pink hair styled in two high buns '
         + 'with bangs' + HAIR);
-    assert.strictEqual(buildChangePrompt('hair', '', true), 'Give the character the hairstyle and hair colour from the '
-        + 'reference picture' + HAIR, 'no description: the picture alone');
-    assert.match(characterSheetEditor('change', { ...run('hair', ''), refHair: 'black, a high bun' }).positive, /picture: black, a high bun, with/);
+    assert.strictEqual(buildChangePrompt('hair', '', true), 'Give the character in image 1 the hairstyle and hair colour '
+        + 'from image 2' + HAIR, 'no description: the picture alone');
+    assert.match(characterSheetEditor('change', { ...run('hair', ''), refHair: 'black, a high bun' }).positive, /image 2: black, a high bun, with/);
     // qh15 round 9 W2: the user's words LEAD, or the description's colour outvotes them on the bodies.
     assert.strictEqual(buildChangePrompt('hair', 'in blue', true, 'pink hair styled in two high buns with bangs'),
-        'Give the character the hairstyle from the reference picture, changed like this: in blue. The hairstyle in the '
-        + 'reference picture: pink hair styled in two high buns with bangs. Make it in blue on every figure, with the head '
+        'Give the character in image 1 the hairstyle from image 2, changed like this: in blue. The hairstyle in '
+        + 'image 2: pink hair styled in two high buns with bangs. Make it in blue on every figure, with the head '
         + 'uncovered and no hat. The front view, the character seen from behind and the close-up portrait on the right all '
         + "show the same changed hairstyle. Keep the character's own face and clothes." + KEEP);
     assert.strictEqual(buildChangePrompt('condition', '', true), null, 'Condition never takes a reference');
@@ -285,6 +286,11 @@ test('each change routes to its editor and the age picks the legs', async () => 
     for (const c of ['clothes', 'accessories', 'hair', 'condition']) assert.strictEqual(flowOperation(flow, run(c, -1)), 'flowCharacterSheetEdit');
     assert.strictEqual(flowOperation(flow, run('body', -1)), 'flowCharacterSheetEditQwen');
     assert.strictEqual(flowOperation(flow, run('none', 30)), null);
+    // MPI-1086: a Hairstyle WITH a Reference picture goes to Qwen (the graph makes the mannequin); in words, Klein.
+    const withRef = { ...run('hair', -1), mediaItems: [{ role: 'image2', url: 'ref.png' }] };
+    assert.strictEqual(flowOperation(flow, withRef), 'flowCharacterSheetEditQwen');
+    assert.deepStrictEqual(flowRunLegs(flow, withRef).map(l => l.operation), ['flowCharacterSheetEditQwen', 'flowCharacterSheetHeadless']);
+    assert.strictEqual(flowOperation(flow, { ...run('clothes', -1), mediaItems: withRef.mediaItems }), 'flowCharacterSheetEdit');
     const ops = r => flowRunLegs(flow, r).map(l => l.operation);
     assert.deepStrictEqual(ops(run('clothes', -1)), ['flowCharacterSheetEdit', 'flowCharacterSheetHeadless']);
     // Head kept: the removal still runs, landing a version the card does not show (MPI-1087).
@@ -333,6 +339,26 @@ test('each leg takes the rack of the model it runs, into nodes its graph carries
     assert.deepStrictEqual(phasesFor('flowCharacterSheetImages'), [{ phase: 2, modelId: 'qwen-image-2-1' }]);
     assert.doesNotMatch(titles('flow_character_sheet_from_images.json'), /Input_Lora_Phase2_/);
     await stage([]);
+});
+
+test('the Qwen graph makes a mannequin of the Reference picture, only when one is given and wanted (MPI-1086 r23)', () => {
+    const g = require(path.join(ROOT, 'comfy_workflows', 'flow_character_sheet_edit_qwen.json'));
+    const by = t => Object.entries(g).find(([, n]) => n._meta?.title === t);
+    const [photo] = by('Input_Image_2');
+    const [want] = by('Input_Reference');
+    assert.strictEqual(g[photo].inputs.block_if_empty, false, 'Body shape runs with no picture');
+    const [, text] = Object.entries(g).find(([, n]) => n.class_type === 'CLIPTextEncode' && /mannequin/.test(n.inputs.text));
+    assert.match(text.inputs.text, /^Replace the person with a plain white mannequin seen in a three-quarter view/);
+    // KSampler's three inputs each come through a switch on "picture given AND Input_Reference".
+    const [, ks] = Object.entries(g).find(([, n]) => n.class_type === 'KSampler');
+    for (const name of ['positive', 'negative', 'latent_image']) {
+        const pick = g[ks.inputs[name][0]];
+        assert.strictEqual(pick.class_type, 'MpiIfElse', `${name} is switched`);
+        const both = g[pick.inputs.boolean[0]];
+        assert.deepStrictEqual([both.inputs.mode, both.inputs.a, both.inputs.b], ['both_true', [photo, 4], [want, 0]]);
+        assert.ok(g[pick.inputs.true[0]].inputs['images.image_2'], `${name}: the true side reads the mannequin`);
+        assert.ok(!g[pick.inputs.false[0]].inputs['images.image_2'], `${name}: the false side is the old one-picture edit`);
+    }
 });
 
 test('every op the Flow dispatches takes the sheet on image1', async () => {

@@ -4,6 +4,29 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-14 close of "New character sheets 24": COMMITTED + pushed. Also landed: the Reference slot label on two lines
+(Fabio asked twice: label "Reference picture (optional)\nan outfit, accessory or hairstyle" + `.mpi-base-flow__slot-label`
+white-space: pre-line). Fabio is running HIS OWN eye test 2 (not the cases I suggested - those were benched) and brings
+the results to the next session: read them, fix what fails, then Accessories.
+2026-10-14 evening (session "New character sheets 24"). ALL BUILT (uncommitted, claim b37ddba9-mpi1086):
+registry routing + text landed after MPI-1101 released flowsRegistry.js; r23 rate 17/18, r24 words 6/6, r25 shipped
+graph = bench pixel-for-pixel + Body shape still fine; npm test 3313/0. NEXT: Fabio's eye test 2 in the app (reload),
+then commit by pathspec and move on to Accessories. Open calls: remove the Klein graph's now-unreachable SAM3 hair
+cut-out (my pick: yes).
+2026-10-14 later (session "New character sheets 24"). r22 (raw photo, no mannequin) 5/6, make-up leak;
+r23 (mannequin INSIDE the Qwen graph, describer on the raw photo) 6/6, Fabio: "best results so far". BUILT
+(uncommitted, claim b37ddba9-mpi1086): Qwen raw patched (`research/bench/patch_raw_qwen_ref.py`) + one-file convert
+(45 nodes, injection rules OK); commandRegistry Qwen op takes image2; builder hair+picture strings name image 1 /
+image 2; tests (19/20 - the routing one waits on the registry); playbook. BLOCKED: js/data/flowsRegistry.js claimed by
+"Make seamless flow 10" (MPI-1101, claim 51251745), message 981f0d45 sent. Registry edits to make: flowOperation +
+flowOperations + flowRunLegs(ctx) accept a map entry `{ when, then, else }` (ruleHolds; flowControlFieldIds unchanged
+- media rules carry no field); map `hair: { when: { media: 'image2' }, then: 'flowCharacterSheetEditQwen', else:
+'flowCharacterSheetEdit' }`; refHair ask -> qh17.ASK2; Qwen slot label + description + hair option info say a picture
+runs on Qwen (non-commercial). QUEUED on the GPU behind MPI-1101's bench: `qh23.py rate` (s1-s4) and `qh24.py` (words +
+picture: "in blue" / "gradient purple top, black bottom" / "in silver white", the builder's with-words string).
+Klein graph's SAM3 hair cut-out (lock 2 + reference) is now UNREACHABLE (hair+picture left Klein) - remove or keep:
+Fabio's call. Next after hair: Accessories (Fabio), then Beard entry, slot label.
+
 2026-10-14 (session "New character sheets 23") - LATEST, read this first. Fabio's eye test FAILED the shipped
 picture route (85f96744a). Bench r16-r21 (validation.md): hair FROM A PICTURE now = (1) mannequin pass on Klein edit
 (`qh19.M4`, seed 735724985: "Replace the person with a plain white mannequin seen in a three-quarter view, and keep
@@ -104,3 +127,9 @@ contact sheets in the session scratchpad). Bench scripts in `research/bench/`, r
 - 2026-10-14: rounds 17-20 + rate in validation.md. Fabio: Qwen-Image 2.1 for hair FROM A PICTURE, Klein for hair in
   WORDS. `qh21.py` ready (M4 mannequin as images.image_2 on the Editor's Qwen graph, no lock; 3 sheets x s42/s7,
   `rate` = s1-s4). NOT RUN: Fabio is on the GPU - wait for his go, then `gpu_lease.py run --poll 2 -- python qh21.py`.
+- 2026-10-14 (session "New character sheets 24"): Fabio - try Qwen WITHOUT the mannequin first (`qh22.py`: raw photo as
+  image_2, ASK2 on the raw photo, qh21 string). Holds ~17/18 -> ship with no mannequin (Qwen graph Input_Image_2,
+  operationBy hair+ref -> Qwen, builder q1). Fails -> mannequin step. The app runs a Flow's legs as separate jobs, each
+  later leg handed ONLY the previous picture, and describes only before leg 1 - so a mannequin pre-pass needs a new
+  flowService step (or lives inside the Qwen graph, but then the describer reads the photo and one prompt loads Klein +
+  Qwen). WAITING for Fabio's GPU go.

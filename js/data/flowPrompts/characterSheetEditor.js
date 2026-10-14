@@ -16,8 +16,8 @@ const L1 = ' Make the same change in the close-up portrait on the right. Keep ev
  * The SAM3 lock each change runs under: `Input_Lock` of flow_character_sheet_edit.json.
  * 1 = head, hair and face on all three panels (Clothes keeps the person); 2 = the face on the
  * front and the portrait (Hairstyle changes the hair around it); 0 = a free edit. Accessories
- * is free: a head lock blocks glasses and hats (A4). Body shape runs on the Qwen graph, which
- * has no lock.
+ * is free: a head lock blocks glasses and hats (A4). Body shape, and a Hairstyle with a Reference
+ * picture (MPI-1086), run on the Qwen graph, which has no lock.
  */
 const LOCK = { clothes: 1, hair: 2 };
 
@@ -101,25 +101,25 @@ function _usesRef(values) {
  */
 export function buildChangePrompt(change, words, ref = false, refHair = '') {
     const w = _words(words);
-    // MPI-1086 (tasks/MPI-1086/validation.md, phase B): the full bodies NEVER took a hairstyle from the picture
-    // (0/21) but always took one from words, so the describer puts the picture into words first; with every figure
-    // named the style reached all three panels 18/18 (Fabio's seven Pinterest pictures and the buns photo). The
-    // graph cuts the picture down to its hair at lock 2 (SAM3 "hair" on grey): a portrait photo otherwise dressed
-    // the close-up in its top and necklaces, which no wording stopped without stripping her own top too.
+    // MPI-1086 (tasks/MPI-1086/validation.md, rounds 16-24): a hairstyle FROM A PICTURE runs on Qwen-Image 2.1 (the
+    // registry routes it), never on Klein: Klein's face lock pasted the old face onto a head it redrew (double jaw,
+    // a second ear, ~11/17). The Qwen graph first turns the picture into a bare mannequin wearing the hair (Klein,
+    // inside the same graph) and hands Qwen that as image 2: 17/18 (r21), 6/6 (r23). The raw photo as image 2 put its
+    // make-up on the front figure (r22). Qwen names its pictures "image 1" (the sheet) and "image 2"; the describer's
+    // words still lead the style, since the full bodies follow words more than a picture.
     if (ref && change === 'hair') {
         const d = _words(refHair);
-        // The user's words LEAD (qh15 round 9, W2): "in blue" after the description kept the bodies the picture's pink
-        // (2/2) - the description outvotes them - and spliced into it gave pink and blue mixed; leading, blue on every
-        // panel 2/2. Moving part of a style ("the bun lower") ADDED a bun in every wording: words change colour and
-        // add things, a different shape needs a different picture.
+        // The user's words LEAD (qh15 round 9, W2 on Klein): "in blue" after the description kept the bodies the
+        // picture's pink - the description outvotes them. Moving part of a style ("the bun lower") ADDED a bun in
+        // every wording: words change colour and add things, a different shape needs a different picture.
         if (w) {
-            return `Give the character the hairstyle from the reference picture, changed like this: ${_unview(w)}. `
-                + (d ? `The hairstyle in the reference picture: ${d}. ` : '')
+            return `Give the character in image 1 the hairstyle from image 2, changed like this: ${_unview(w)}. `
+                + (d ? `The hairstyle in image 2: ${d}. ` : '')
                 + `Make it ${_unview(w)} on every figure, with the head uncovered and no hat. The front view, the character `
                 + 'seen from behind and the close-up portrait on the right all show the same changed hairstyle. '
                 + "Keep the character's own face and clothes. Keep everything else exactly as it is.";
         }
-        return `Give the character the hairstyle and hair colour from the reference picture${d ? `: ${d}` : ''}, with the `
+        return `Give the character in image 1 the hairstyle and hair colour from image 2${d ? `: ${d}` : ''}, with the `
             + 'head uncovered and no hat. The front view, the character seen from behind and the close-up portrait on the '
             + "right all show the same hairstyle and hair colour. Keep the character's own face and clothes. "
             + 'Keep everything else exactly as it is.';

@@ -1,8 +1,8 @@
 {
   "id": "81735925-ecd3-5793-ace0-0b760d62a4dd",
   "revision": 0,
-  "last_node_id": 135,
-  "last_link_id": 24,
+  "last_node_id": 160,
+  "last_link_id": 63,
   "nodes": [
     {
       "id": 1,
@@ -176,7 +176,8 @@
           "name": "CLIP",
           "type": "CLIP",
           "links": [
-            3
+            3,
+            50
           ]
         }
       ],
@@ -228,7 +229,8 @@
           "type": "VAE",
           "links": [
             4,
-            12
+            12,
+            52
           ]
         }
       ],
@@ -275,7 +277,8 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            6
+            6,
+            53
           ]
         }
       ],
@@ -408,7 +411,8 @@
           "name": "image",
           "type": "IMAGE",
           "links": [
-            5
+            5,
+            51
           ]
         },
         {
@@ -648,19 +652,19 @@
           "localized_name": "positive",
           "name": "positive",
           "type": "CONDITIONING",
-          "link": 7
+          "link": 57
         },
         {
           "localized_name": "negative",
           "name": "negative",
           "type": "CONDITIONING",
-          "link": 8
+          "link": 60
         },
         {
           "localized_name": "latent_image",
           "name": "latent_image",
           "type": "LATENT",
-          "link": 9
+          "link": 63
         },
         {
           "localized_name": "seed",
@@ -1507,6 +1511,1289 @@
       ],
       "color": "#432",
       "bgcolor": "#653"
+    },
+    {
+      "id": 136,
+      "type": "MpiLoadImage",
+      "pos": [
+        0,
+        900
+      ],
+      "size": [
+        300,
+        450
+      ],
+      "flags": {},
+      "order": 236,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "COMBO",
+          "link": null
+        },
+        {
+          "name": "channel",
+          "type": "COMBO",
+          "link": null
+        },
+        {
+          "name": "block_if_empty",
+          "type": "BOOLEAN",
+          "link": null
+        },
+        {
+          "name": "string",
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            27
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": [],
+          "slot_index": 1
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [],
+          "slot_index": 2
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [],
+          "slot_index": 3
+        },
+        {
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": [
+            25
+          ],
+          "slot_index": 4
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiLoadImage"
+      },
+      "widgets_values": [
+        "None",
+        "alpha",
+        false,
+        "",
+        "image"
+      ],
+      "title": "Input_Image_2"
+    },
+    {
+      "id": 137,
+      "type": "MpiSimpleBoolean",
+      "pos": [
+        0,
+        1160
+      ],
+      "size": [
+        300,
+        60
+      ],
+      "flags": {},
+      "order": 237,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "links": [
+            26
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiSimpleBoolean"
+      },
+      "widgets_values": [
+        false
+      ],
+      "title": "Input_Reference"
+    },
+    {
+      "id": 138,
+      "type": "MpiBooleanCompare",
+      "pos": [
+        0,
+        1260
+      ],
+      "size": [
+        300,
+        80
+      ],
+      "flags": {},
+      "order": 238,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "a",
+          "type": "BOOLEAN",
+          "link": 25
+        },
+        {
+          "name": "b",
+          "type": "BOOLEAN",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "BOOLEAN",
+          "type": "BOOLEAN",
+          "links": [
+            56,
+            59,
+            62
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiBooleanCompare"
+      },
+      "widgets_values": [
+        "both_true"
+      ],
+      "title": "reference picture given AND wanted"
+    },
+    {
+      "id": 139,
+      "type": "UNETLoader",
+      "pos": [
+        480,
+        900
+      ],
+      "size": [
+        340,
+        90
+      ],
+      "flags": {},
+      "order": 239,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            35
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": [
+        "flux-2-klein-9b-int8-convrot.safetensors",
+        "default"
+      ],
+      "title": "Klein 9B (the mannequin)"
+    },
+    {
+      "id": 140,
+      "type": "CLIPLoader",
+      "pos": [
+        480,
+        1020
+      ],
+      "size": [
+        340,
+        106
+      ],
+      "flags": {},
+      "order": 240,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            31
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "qwen_3_8b_int8_convrot.safetensors",
+        "flux2",
+        "default"
+      ],
+      "title": "Klein text encoder"
+    },
+    {
+      "id": 141,
+      "type": "VAELoader",
+      "pos": [
+        480,
+        1140
+      ],
+      "size": [
+        340,
+        60
+      ],
+      "flags": {},
+      "order": 241,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            29,
+            48
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "flux2-vae.safetensors"
+      ],
+      "title": "Klein VAE"
+    },
+    {
+      "id": 142,
+      "type": "MpiInt",
+      "pos": [
+        480,
+        1240
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {},
+      "order": 242,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "int",
+          "type": "INT",
+          "links": [
+            39
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiInt"
+      },
+      "widgets_values": [
+        4
+      ],
+      "title": "mannequin steps"
+    },
+    {
+      "id": 143,
+      "type": "MpiFloat",
+      "pos": [
+        480,
+        1320
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {},
+      "order": 243,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "float",
+          "type": "FLOAT",
+          "links": [
+            38
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiFloat"
+      },
+      "widgets_values": [
+        1.0
+      ],
+      "title": "mannequin cfg"
+    },
+    {
+      "id": 144,
+      "type": "ImageScaleToTotalPixels",
+      "pos": [
+        800,
+        900
+      ],
+      "size": [
+        300,
+        106
+      ],
+      "flags": {},
+      "order": 244,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 27
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            28,
+            30
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ImageScaleToTotalPixels"
+      },
+      "widgets_values": [
+        "nearest-exact",
+        1,
+        16
+      ],
+      "title": "the photo to 1 MP"
+    },
+    {
+      "id": 145,
+      "type": "VAEEncode",
+      "pos": [
+        800,
+        1020
+      ],
+      "size": [
+        200,
+        50
+      ],
+      "flags": {},
+      "order": 245,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pixels",
+          "type": "IMAGE",
+          "link": 28
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 29
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            34,
+            46
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "VAEEncode"
+      },
+      "widgets_values": null,
+      "title": "encode the photo"
+    },
+    {
+      "id": 146,
+      "type": "GetImageSize",
+      "pos": [
+        800,
+        1120
+      ],
+      "size": [
+        200,
+        60
+      ],
+      "flags": {},
+      "order": 246,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 30
+        }
+      ],
+      "outputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [
+            40
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [
+            41
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "links": [],
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "GetImageSize"
+      },
+      "widgets_values": null,
+      "title": "photo size"
+    },
+    {
+      "id": 147,
+      "type": "CLIPTextEncode",
+      "pos": [
+        800,
+        1240
+      ],
+      "size": [
+        340,
+        100
+      ],
+      "flags": {},
+      "order": 247,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 31
+        },
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": null,
+          "widget": {
+            "name": "text"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            32,
+            33
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "Replace the person with a plain white mannequin seen in a three-quarter view, and keep the hairstyle exactly as it is: the same length, shape and colour. No jewellery and no clothes, on a plain grey background."
+      ],
+      "title": "mannequin prompt (qh19 M4, MPI-1086 r19)"
+    },
+    {
+      "id": 148,
+      "type": "ConditioningZeroOut",
+      "pos": [
+        1120,
+        900
+      ],
+      "size": [
+        220,
+        30
+      ],
+      "flags": {},
+      "order": 248,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 32
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            37
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ConditioningZeroOut"
+      },
+      "widgets_values": null
+    },
+    {
+      "id": 149,
+      "type": "ReferenceLatent",
+      "pos": [
+        1120,
+        1000
+      ],
+      "size": [
+        240,
+        50
+      ],
+      "flags": {},
+      "order": 249,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 33
+        },
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "link": 34
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            36
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ReferenceLatent"
+      },
+      "widgets_values": null,
+      "title": "the photo as the reference"
+    },
+    {
+      "id": 150,
+      "type": "RandomNoise",
+      "pos": [
+        1120,
+        1100
+      ],
+      "size": [
+        300,
+        90
+      ],
+      "flags": {},
+      "order": 250,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "noise_seed",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "noise_seed"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "NOISE",
+          "type": "NOISE",
+          "links": [
+            42
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "RandomNoise"
+      },
+      "widgets_values": [
+        735724985,
+        "fixed"
+      ],
+      "title": "mannequin seed (fixed: one mannequin per photo)"
+    },
+    {
+      "id": 151,
+      "type": "KSamplerSelect",
+      "pos": [
+        1120,
+        1220
+      ],
+      "size": [
+        300,
+        60
+      ],
+      "flags": {},
+      "order": 251,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "links": [
+            44
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": [
+        "lcm"
+      ]
+    },
+    {
+      "id": 152,
+      "type": "CFGGuider",
+      "pos": [
+        1440,
+        900
+      ],
+      "size": [
+        300,
+        100
+      ],
+      "flags": {},
+      "order": 252,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 35
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 36
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 37
+        },
+        {
+          "name": "cfg",
+          "type": "FLOAT",
+          "link": 38,
+          "widget": {
+            "name": "cfg"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GUIDER",
+          "type": "GUIDER",
+          "links": [
+            43
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "CFGGuider"
+      },
+      "widgets_values": [
+        1.0
+      ]
+    },
+    {
+      "id": 153,
+      "type": "Flux2Scheduler",
+      "pos": [
+        1440,
+        1060
+      ],
+      "size": [
+        300,
+        106
+      ],
+      "flags": {},
+      "order": 253,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "steps",
+          "type": "INT",
+          "link": 39,
+          "widget": {
+            "name": "steps"
+          }
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "link": 40,
+          "widget": {
+            "name": "width"
+          }
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "link": 41,
+          "widget": {
+            "name": "height"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "SIGMAS",
+          "type": "SIGMAS",
+          "links": [
+            45
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "Flux2Scheduler"
+      },
+      "widgets_values": [
+        4,
+        1024,
+        1024
+      ]
+    },
+    {
+      "id": 154,
+      "type": "SamplerCustomAdvanced",
+      "pos": [
+        1440,
+        1200
+      ],
+      "size": [
+        260,
+        120
+      ],
+      "flags": {},
+      "order": 254,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "noise",
+          "type": "NOISE",
+          "link": 42
+        },
+        {
+          "name": "guider",
+          "type": "GUIDER",
+          "link": 43
+        },
+        {
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 44
+        },
+        {
+          "name": "sigmas",
+          "type": "SIGMAS",
+          "link": 45
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 46
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "LATENT",
+          "links": [
+            47
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "denoised_output",
+          "type": "LATENT",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "SamplerCustomAdvanced"
+      },
+      "widgets_values": null,
+      "title": "mannequin sampler"
+    },
+    {
+      "id": 155,
+      "type": "VAEDecode",
+      "pos": [
+        1760,
+        900
+      ],
+      "size": [
+        170,
+        50
+      ],
+      "flags": {},
+      "order": 255,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 47
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 48
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            49
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": null,
+      "title": "the mannequin"
+    },
+    {
+      "id": 156,
+      "type": "MpiClearVram",
+      "pos": [
+        1760,
+        1000
+      ],
+      "size": [
+        190,
+        30
+      ],
+      "flags": {},
+      "order": 256,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "passthrough",
+          "type": "*",
+          "link": 49
+        }
+      ],
+      "outputs": [
+        {
+          "name": "passthrough",
+          "type": "*",
+          "links": [
+            54
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiClearVram"
+      },
+      "widgets_values": null,
+      "title": "free Klein before Qwen loads"
+    },
+    {
+      "id": 157,
+      "type": "TextEncodeQwenImage21",
+      "pos": [
+        2080,
+        900
+      ],
+      "size": [
+        400,
+        366
+      ],
+      "flags": {},
+      "order": 257,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 50
+        },
+        {
+          "localized_name": "image_1",
+          "name": "images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 51
+        },
+        {
+          "localized_name": "image_2",
+          "name": "images.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 54
+        },
+        {
+          "localized_name": "image_3",
+          "name": "images.image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_4",
+          "name": "images.image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_5",
+          "name": "images.image_5",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_6",
+          "name": "images.image_6",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_7",
+          "name": "images.image_7",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_8",
+          "name": "images.image_8",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_9",
+          "name": "images.image_9",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 52
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 53
+        },
+        {
+          "localized_name": "negative_prompt",
+          "name": "negative_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "negative_prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "resolution",
+          "name": "resolution",
+          "type": "INT",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            55
+          ]
+        },
+        {
+          "localized_name": "negative",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            58
+          ]
+        },
+        {
+          "localized_name": "latent",
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            61
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "TextEncodeQwenImage21"
+      },
+      "widgets_values": [
+        "",
+        "",
+        0
+      ],
+      "title": "Qwen edit: picture 2 = the mannequin (hair from a picture)"
+    },
+    {
+      "id": 158,
+      "type": "MpiIfElse",
+      "pos": [
+        2400,
+        900
+      ],
+      "size": [
+        240,
+        80
+      ],
+      "flags": {},
+      "order": 258,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 55
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 7
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 56,
+          "widget": {
+            "name": "boolean"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            57
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "title": "positive: the mannequin encode when a picture is given"
+    },
+    {
+      "id": 159,
+      "type": "MpiIfElse",
+      "pos": [
+        2400,
+        1020
+      ],
+      "size": [
+        240,
+        80
+      ],
+      "flags": {},
+      "order": 259,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 58
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 8
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 59,
+          "widget": {
+            "name": "boolean"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            60
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "title": "negative: the mannequin encode when a picture is given"
+    },
+    {
+      "id": 160,
+      "type": "MpiIfElse",
+      "pos": [
+        2400,
+        1140
+      ],
+      "size": [
+        240,
+        80
+      ],
+      "flags": {},
+      "order": 260,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 61
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 9
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 62,
+          "widget": {
+            "name": "boolean"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            63
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "title": "latent: the mannequin encode when a picture is given"
     }
   ],
   "links": [
@@ -1562,7 +2849,7 @@
       7,
       30,
       0,
-      33,
+      158,
       1,
       "CONDITIONING"
     ],
@@ -1570,16 +2857,16 @@
       8,
       30,
       1,
-      33,
-      2,
+      159,
+      1,
       "CONDITIONING"
     ],
     [
       9,
       30,
       2,
-      33,
-      3,
+      160,
+      1,
       "LATENT"
     ],
     [
@@ -1701,6 +2988,318 @@
       135,
       0,
       "MODEL"
+    ],
+    [
+      25,
+      136,
+      4,
+      138,
+      0,
+      "BOOLEAN"
+    ],
+    [
+      26,
+      137,
+      0,
+      138,
+      1,
+      "BOOLEAN"
+    ],
+    [
+      27,
+      136,
+      0,
+      144,
+      0,
+      "IMAGE"
+    ],
+    [
+      28,
+      144,
+      0,
+      145,
+      0,
+      "IMAGE"
+    ],
+    [
+      29,
+      141,
+      0,
+      145,
+      1,
+      "VAE"
+    ],
+    [
+      30,
+      144,
+      0,
+      146,
+      0,
+      "IMAGE"
+    ],
+    [
+      31,
+      140,
+      0,
+      147,
+      0,
+      "CLIP"
+    ],
+    [
+      32,
+      147,
+      0,
+      148,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      33,
+      147,
+      0,
+      149,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      34,
+      145,
+      0,
+      149,
+      1,
+      "LATENT"
+    ],
+    [
+      35,
+      139,
+      0,
+      152,
+      0,
+      "MODEL"
+    ],
+    [
+      36,
+      149,
+      0,
+      152,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      37,
+      148,
+      0,
+      152,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      38,
+      143,
+      0,
+      152,
+      3,
+      "FLOAT"
+    ],
+    [
+      39,
+      142,
+      0,
+      153,
+      0,
+      "INT"
+    ],
+    [
+      40,
+      146,
+      0,
+      153,
+      1,
+      "INT"
+    ],
+    [
+      41,
+      146,
+      1,
+      153,
+      2,
+      "INT"
+    ],
+    [
+      42,
+      150,
+      0,
+      154,
+      0,
+      "NOISE"
+    ],
+    [
+      43,
+      152,
+      0,
+      154,
+      1,
+      "GUIDER"
+    ],
+    [
+      44,
+      151,
+      0,
+      154,
+      2,
+      "SAMPLER"
+    ],
+    [
+      45,
+      153,
+      0,
+      154,
+      3,
+      "SIGMAS"
+    ],
+    [
+      46,
+      145,
+      0,
+      154,
+      4,
+      "LATENT"
+    ],
+    [
+      47,
+      154,
+      0,
+      155,
+      0,
+      "LATENT"
+    ],
+    [
+      48,
+      141,
+      0,
+      155,
+      1,
+      "VAE"
+    ],
+    [
+      49,
+      155,
+      0,
+      156,
+      0,
+      "IMAGE"
+    ],
+    [
+      50,
+      3,
+      0,
+      157,
+      0,
+      "CLIP"
+    ],
+    [
+      51,
+      11,
+      0,
+      157,
+      1,
+      "IMAGE"
+    ],
+    [
+      52,
+      4,
+      0,
+      157,
+      10,
+      "VAE"
+    ],
+    [
+      53,
+      5,
+      0,
+      157,
+      11,
+      "STRING"
+    ],
+    [
+      54,
+      156,
+      0,
+      157,
+      2,
+      "*"
+    ],
+    [
+      55,
+      157,
+      0,
+      158,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      56,
+      138,
+      0,
+      158,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      57,
+      158,
+      0,
+      33,
+      1,
+      "*"
+    ],
+    [
+      58,
+      157,
+      1,
+      159,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      59,
+      138,
+      0,
+      159,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      60,
+      159,
+      0,
+      33,
+      2,
+      "*"
+    ],
+    [
+      61,
+      157,
+      2,
+      160,
+      0,
+      "LATENT"
+    ],
+    [
+      62,
+      138,
+      0,
+      160,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      63,
+      160,
+      0,
+      33,
+      3,
+      "*"
     ]
   ],
   "groups": [],

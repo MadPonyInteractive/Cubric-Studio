@@ -1719,6 +1719,8 @@ export const commands = {
     },
     // MPI-1041. The same edit on Qwen-Image 2.1 (Body shape), which reshapes a body where
     // Klein keeps the figure. Its pictures are non-commercial (the model's licence).
+    // MPI-1086: a Hairstyle with a Reference picture runs here too - the graph turns the picture
+    // into a mannequin on Klein first and hands Qwen that as its second picture.
     flowCharacterSheetEditQwen: {
         label: 'Flow: Character Sheet Editor',
         filePrefix: 'flowCSE',
@@ -1727,6 +1729,7 @@ export const commands = {
         requiresImages: 0,
         mediaInputs: [
             { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
+            { key: 'image2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false },
         ],
         promptRequired: false,
         universal: true,
