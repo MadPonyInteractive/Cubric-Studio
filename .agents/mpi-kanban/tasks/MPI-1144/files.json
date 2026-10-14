@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["routes/engineScratch.js", "routes/comfy.js", "routes/shared.js", "main.js", "tests/engine-scratch.test.cjs", "tests/desktop/engine-scratch-quit.spec.js", "docs/worktrees.md", "tests/fork-shutdown.test.cjs"]}

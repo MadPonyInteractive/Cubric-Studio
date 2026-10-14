@@ -1,0 +1,5 @@
+# MPI-1143 validation
+
+- 2026-10-14: root cause read from code. `open()` awaits `loadImage(urlA)` then dereferences `_canvas.el`; `destroy()` nulls `_canvas` in between (Flow step left, or the History overlay hidden, during a slow load). The TypeError is caught and logged as a load failure. MpiBaseFlow already ignores a stale result by host identity, so the visible blank Compare Fabio saw afterwards was the ~16 s load wait (MPI-1142), not this crash.
+- 2026-10-14: fixed. `_destroyed` flag set by destroy(), checked after each await in open() (and in its catch: a load on the torn-down canvas rejecting is not a failure). open() returns false quietly; both callers already treat false on a stale host as nothing to do.
+- Proof: new tests/desktop/compare-destroy-mid-load.spec.js holds the BEFORE image on a route, destroys mid-load, releases it. On the old code it FAILED with Fabio's exact error ("failed to load the compare pair TypeError: Cannot read properties of null (reading 'el')"); on the fix it passes, together with compare-native-resolution.spec.js (2 passed). eslint clean.
