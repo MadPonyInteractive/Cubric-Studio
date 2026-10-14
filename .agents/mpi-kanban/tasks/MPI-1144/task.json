@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1144",
+  "title": "Quitting shows 'Cubric Studio failed to start': engine input emptied while the engine still holds a staged picture",
+  "description": "",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-10-14T20:29:30+01:00",
+  "updated_at": "2026-10-14T20:29:30+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
