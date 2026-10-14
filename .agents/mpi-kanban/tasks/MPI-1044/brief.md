@@ -77,6 +77,13 @@ from master.
 
 ## After the cut - the same day the 2.1 release is public
 
+- [ ] **Rebuild + release the Claude Desktop bundle at 0.3.2 (MPI-1140, Fabio's request 2026-10-14).**
+      `mcp/cubric-studio/manifest.json` is 0.3.2 with the 27th tool `import_media` (6d06726c1); the released
+      `.mcpb` is behind `routes/mcp.js` TOOLS. Steps in `docs/mcp-server.md` § "The Claude Desktop bundle":
+      `npx -y @anthropic-ai/mcpb@2.1.2 pack`, `gh release create mcpb-v0.3.2 --repo
+      MadPonyInteractive/cubric-studio-agents`, then bump `server.json` version + fileSha256 and
+      `mcp-publisher publish`. The release and the registry publish are PUBLIC: Fabio's go-ahead first.
+
 - [ ] **Publish the website guides (MPI-1124).** In `c:\AI\Mpi\Cubric Studio (Website)`, merge branch
       `guides-mpi-1124` into `main` and push (Pages = live). Held for 2.1 by Fabio (2026-10-13): the
       guides describe 2.1-only features (the under-18 refusal, Qwen-Image 2.1, Character Sheet from
