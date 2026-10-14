@@ -259,7 +259,8 @@ export const MpiStepCrop = ComponentFactory.create({
          */
         function _seedContain(ratio) {
             if (ratio == null) {
-                crop.setRatio(null);   // FREE → the full image rect
+                crop.lockedRatio = null;
+                crop.init(_natural.w, _natural.h);   // FREE → the full image rect
                 return;
             }
             const w = Math.max(_natural.w, _natural.h * ratio);

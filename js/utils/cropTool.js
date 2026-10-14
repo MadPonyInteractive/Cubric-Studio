@@ -37,6 +37,7 @@ const HANDLE_STROKE = 'oklch(0.95 0.005 80)';         /* --ink-1 */
 
 import { Hotkeys } from '../managers/hotkeyManager.js';
 import { accentHeat } from './dom.js';
+import { reshapeRect } from './cropSnap.js';
 
 export function createCropTool({ overlayCanvas, targetElement, onChange, showGrid = true, allowOverflow = false }) {
     let _isEnabled = false;
@@ -722,10 +723,20 @@ export function createCropTool({ overlayCanvas, targetElement, onChange, showGri
 
         /**
          * Set aspect ratio (w/h). Pass null for FREE crop (no aspect lock).
+         * `keep` (a ratio the USER picked, MPI-1141) re-shapes the current box around
+         * its own centre instead of starting over; entering crop mode and a new clip
+         * still start from the maximal box.
          */
-        setRatio(ratio) {
+        setRatio(ratio, { keep = false } = {}) {
             _lockedRatio = (ratio == null) ? null : ratio;
-            _applyRatioToRect();
+            if (keep) {
+                if (_lockedRatio != null) {
+                    _normRect = reshapeRect(_normRect, _lockedRatio / _contentAspect(), allowOverflow ? null : { w: 1, h: 1 });
+                }
+                _applyRatioToRect(_normRect, true);
+            } else {
+                _applyRatioToRect();
+            }
             _redraw();
         },
 

@@ -496,7 +496,7 @@ export const MpiVideoViewer = ComponentFactory.create({
 
         el.setCropRatio = (ratio) => {
             _cropRatio = ratio;
-            if (_cropTool && _isInCropMode) _cropTool.setRatio(ratio);
+            if (_cropTool && _isInCropMode) _cropTool.setRatio(ratio, { keep: true });
         };
 
         el.captureSnapshot = async ({ time } = {}) => {

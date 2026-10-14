@@ -44,6 +44,33 @@ export function largestCentredRect(imgW, imgH, ratio) {
     };
 }
 
+/**
+ * `rect` re-shaped to `ratio` around its own centre at the same area (MPI-1141): a ratio
+ * change keeps the framing the user built instead of throwing it away for a fresh box.
+ * With `bounds` the result is shrunk and shifted to fit inside (0,0)–(bounds.w,bounds.h).
+ *
+ * @param {{ x: number, y: number, w: number, h: number }} rect
+ * @param {number} ratio - width/height float
+ * @param {{ w: number, h: number }|null} [bounds]
+ * @returns {{ x: number, y: number, w: number, h: number }}
+ */
+export function reshapeRect(rect, ratio, bounds = null) {
+    const cx = rect.x + rect.w / 2;
+    const cy = rect.y + rect.h / 2;
+    let w = Math.sqrt(rect.w * rect.h * ratio);
+    let h = w / ratio;
+    if (!bounds) return { x: cx - w / 2, y: cy - h / 2, w, h };
+    const s = Math.min(1, bounds.w / w, bounds.h / h);
+    w *= s;
+    h *= s;
+    return {
+        x: Math.max(0, Math.min(cx - w / 2, bounds.w - w)),
+        y: Math.max(0, Math.min(cy - h / 2, bounds.h - h)),
+        w,
+        h,
+    };
+}
+
 /** Nearest target within `tol`, else `value` unchanged. */
 export function snapValue(value, targets, tol) {
     let best = value;

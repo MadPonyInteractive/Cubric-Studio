@@ -981,6 +981,9 @@ export const MpiCanvasViewer = ComponentFactory.create({
 
             if (mode === 'crop') {
                 canvas.activeMode = 'crop';
+                // Picking Crop or a shape frames picture + box again: a wheel zoom or a pan
+                // drops the managed view for good, and the box could sit off-stage (MPI-1141).
+                canvas.isManagedView = true;
                 if (_activeCropSize) canvas.setCropSize(_activeCropSize.w, _activeCropSize.h);
                 else                 canvas.setCropRatio(_activeCropRatio);
             } else if (CANVAS_MODES.has(mode)) {
@@ -1410,6 +1413,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
         el.setCropRatio = (ratio) => {
             _activeCropRatio = ratio;
             _activeCropSize  = null;   // leaving RESOLUTION drops the exact size
+            canvas.isManagedView = true;   // frame the new box (MPI-1141, see _enterMode)
             canvas.setCropRatio(ratio);
         };
 
@@ -1422,6 +1426,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
             if (!(w > 0) || !(h > 0)) return;
             _activeCropRatio = w / h;
             _activeCropSize  = { w, h };
+            canvas.isManagedView = true;   // frame the new box (MPI-1141, see _enterMode)
             canvas.setCropSize(w, h);
         };
 

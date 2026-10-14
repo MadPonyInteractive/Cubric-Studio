@@ -49,6 +49,15 @@ Consequences to keep in mind:
 - That refit is **suppressed while dragging** (`MpiCanvas._refitForCrop`). Scale is what maps the
   cursor into image space; changing it mid-gesture makes the rect chase the pointer. It settles
   on mouse-up, which is why `InputController`'s mouseup calls `onDraw()`.
+- A wheel zoom or a pan drops the managed view for good, so the box can end up off-stage.
+  Picking a ratio / size or re-entering Crop turns it back on (`MpiCanvasViewer` and
+  `MpiGifViewer` set `isManagedView = true` on the user's pick — never in `MpiCanvas.setCropRatio`,
+  which a GIF frame step calls while deliberately keeping the user's zoom). MPI-1141.
+- **A ratio pick keeps the box** (`reshapeRect` in `cropSnap.js`): same centre, same area, new
+  ratio. A box inside the picture stays inside; one already hanging off it stays free. FREE keeps
+  the box as is. Only `init()` (a new image) seeds the largest centred box. The video twin
+  (`cropTool.setRatio(r, { keep: true })`) does the same on a user pick and still starts from the
+  maximal box on entering crop or a new clip. MPI-1141.
 
 ## Snapping (`js/utils/cropSnap.js`)
 

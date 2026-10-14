@@ -19,7 +19,7 @@
  */
 
 import { Hotkeys } from '../../../../managers/hotkeyManager.js';
-import { snapBodyRect, snapFreeRect, snapRatioWidth, largestCentredRect } from '../../../../utils/cropSnap.js';
+import { snapBodyRect, snapFreeRect, snapRatioWidth, largestCentredRect, reshapeRect } from '../../../../utils/cropSnap.js';
 import { accentHeat } from '../../../../utils/dom.js';
 
 /* Stage canvas color constants — JS canvas draws cannot use CSS vars directly. */
@@ -84,13 +84,19 @@ export class CropManager {
     }
 
     /**
-     * Set the locked ratio and immediately re-fit the crop rect.
-     * Pass `null` for FREE mode (no aspect lock).
+     * Set the locked ratio and re-shape the box the user already has around its own
+     * centre (MPI-1141) — picking another ratio never throws their framing away.
+     * A box inside the picture stays inside; one already hanging off it is an
+     * outpaint frame and stays free. FREE (`null`) keeps the box as it is.
      * @param {number|null} ratio - width / height float, or null for free aspect
      */
     setRatio(ratio) {
         this.lockedRatio = ratio;
-        this._applyRatioToRect();
+        const r = this.cropRect;
+        if (!(r.w > 0 && r.h > 0)) { this._applyRatioToRect(); return; }
+        if (ratio == null || !this._imgW || !this._imgH) return;
+        const inside = r.x >= 0 && r.y >= 0 && r.x + r.w <= this._imgW && r.y + r.h <= this._imgH;
+        this.cropRect = reshapeRect(r, ratio, inside ? { w: this._imgW, h: this._imgH } : null);
     }
 
     /**

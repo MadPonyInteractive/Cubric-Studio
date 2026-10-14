@@ -919,13 +919,17 @@ export const MpiGifViewer = ComponentFactory.create({
         el.setCropRatio = (ratio) => {
             _cropRatio = ratio;
             _cropSize = null;
-            if (_editKind === 'crop') _canvas?.el.setCropRatio(ratio);
+            if (_editKind !== 'crop' || !_canvas) return;
+            _canvas.el.isManagedView = true;   // a picked shape frames picture + box (MPI-1141)
+            _canvas.el.setCropRatio(ratio);
         };
         el.setCropSize = (w, h) => {
             if (!(w > 0) || !(h > 0)) return;
             _cropRatio = w / h;
             _cropSize = { w, h };
-            if (_editKind === 'crop') _canvas?.el.setCropSize(w, h);
+            if (_editKind !== 'crop' || !_canvas) return;
+            _canvas.el.isManagedView = true;
+            _canvas.el.setCropSize(w, h);
         };
         /** Image-space rect (may leave the frame), or null when Crop is not up. */
         el.getCropRect = () => (_editKind === 'crop' && _canvas?.el.img ? _canvas.el.getCropRect() : null);
