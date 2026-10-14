@@ -290,13 +290,11 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
 } else {
-  // MPI-1142: no HTTP disk cache at all. Pictures and videos still queued ~16 s with the
-  // server answering in ms, on a FRESH cache (MPI-1120's delete below did not stop it),
-  // during engine boot and generations. Every load from our own server revalidates (304)
-  // anyway, so the disk cache saved nothing; Blink's in-memory cache still serves repeats.
-  app.commandLine.appendSwitch('disable-http-cache');
-  // MPI-1120: delete the cache folder older runs left behind. Only after the lock: a
-  // second launch must not pull the cache out from under the running instance.
+  // MPI-1120: start every run on a NEW HTTP disk cache. A run killed mid-write (a crash,
+  // End Task, Ctrl+C twice) leaves a broken one: images and videos then fail with
+  // ERR_CACHE_READ_FAILURE and queue ~16 s each behind the stuck loads, and
+  // session.clearCache() empties it without repairing it. Only after the lock: a second
+  // launch must not pull the cache out from under the running instance.
   try {
     fs.rmSync(path.join(app.getPath('sessionData'), 'Cache'), { recursive: true, force: true });
   } catch (err) {

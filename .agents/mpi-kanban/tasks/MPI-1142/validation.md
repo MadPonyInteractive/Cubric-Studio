@@ -13,3 +13,9 @@
 - Proof (research/nocache.cjs, isolated app, landing + Flows): switch on = 15/15 images loaded, Cache folder 0 files; control without the switch = 15/15, Cache folder 179 files / 24 MB. eslint main.js clean.
 - Takes effect on a full app restart, not a renderer reload.
 - Next: watch [slow-load] in Fabio's app.log across his restarts and generations. Still ~16 s queued = cache ruled out, go to (b) in-flight holder logging. Gone = keep it, close the card.
+
+## 2026-10-14 ~20:30 local - RESULT: disk cache ruled out, switch reverted
+- Fabio restarted 19:27:59Z with the switch on (proof: his %APPDATA%/Cubric Studio/Cache folder does not exist at all). At 19:29:08Z 17 .meta thumbs still queued 16.39-16.47 s (server 1-2 ms), flow-character-sheet-editor.mp4 15.05 s, peek.webm 15.03 s. Engine 'Starting server' only at 19:29:16Z.
+- So the HTTP disk cache is NOT the cause. Switch reverted (main.js back to MPI-1120's delete).
+- Videos queue 15.02-15.05 s EVERY time (peek.webm x6 today): a fixed timeout, not disk load. Next: split queued into before-connect / connect / after (clientLogger.js), to tell a socket-pool wait from a slow TCP connect to 127.0.0.1.
+- Quit crash seen on the same restart filed as MPI-1144 (separate root cause).
