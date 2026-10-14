@@ -5,17 +5,29 @@
 > asserted the Pod reports the new engine version.
 
 ```bash
-node scripts/smoke-workflows.mjs --plan     # resolve + print the matrix, spend nothing
-node scripts/smoke-workflows.mjs            # the real run
-node scripts/smoke-workflows.mjs --skip-install --wait --flows all --keep-volume   # volume already filled
+node scripts/smoke-workflows.mjs --plan     # print what needs testing and the set, spend nothing
+node scripts/smoke-workflows.mjs            # the real run: only what changed (ops AND Flows)
+node scripts/smoke-workflows.mjs --all      # every op and every Flow, whatever the evidence says
+node scripts/smoke-workflows.mjs --skip-install --wait --keep-volume   # volume already filled
 ```
+
+## Only what changed - the default run (2026-10-14)
+
+Every evidence row carries `fp`, a hash of the graph it ran and every weight entry it loaded.
+The default run prints **What needs testing** and rents only for those rows: an op or Flow
+with no PASS row (new, or last run not green), an `fp` that moved (edited graph, swapped
+weight), a row from before fingerprints, or a graph loading an MpiNodes class the pin moved
+(`assessPinMove`). Fresh rows merge over the rest. When the evidence cannot be built on (a
+ComfyUI core bump, an unattested third-party pin, an unreadable file) every row runs, which
+is the full matrix. Nothing to test = nothing rented. A change only the app sees (Flow JS,
+prompts, the descriptor) is not in `fp`: the Pod proves the GRAPH runs, nothing else.
 
 **Stock turns over in minutes, so a sold-out EU-RO-1 is the normal case.** `--wait [secs]`
 (default 30) polls `/runpod/gpu-availability` until a `GPU_ORDER` card is in stock and
 creates only then; a refused create goes back to waiting instead of dying. Nothing is rented
 while it waits; Ctrl+C is free. `--skip-install` drops steps 3-4 (the CPU Pod) when the
 volume was already filled and verified, which is otherwise a 1-4 min detour on every attempt.
-`GPU_ORDER` is RTX 5090 → RTX 4090 → A100 PCIe (2026-09-28). The RAM floor is 62 GB, the
+`GPU_ORDER` is RTX PRO 4500 → RTX 5090 → RTX 4090 → A100 PCIe (PRO 4500 first since 2026-10-14: $0.72/hr against the 5090's $1.19, per Fabio's speed runs; its host RAM at the 62 GB floor is not measured yet, and a refusal moves to the next card). The RAM floor is 62 GB, the
 app's own default (2026-09-29): the 2.0 smoke ran every op, H3 included, on a 5090 with a
 55.88 GiB host. Most 4090 hosts are 61 GB and refuse at 62 (`"ramFloorMissed": true`, nothing
 rented), but not all: the 2026-10-08 engine-bump matrix placed a 4090 at 62 and ran every op
@@ -103,7 +115,7 @@ gating.
 | | value | why |
 |---|---|---|
 | Datacenter | `EU-RO-1` | Network volumes are DC-locked: a GPU Pod can only mount a volume in its own DC. Create it elsewhere and the cheap cards are unreachable |
-| GPU order | **RTX 5090 → RTX 4090 → A100 PCIe**, first available (`GPU_ORDER`) | L4 (54 GB host, OOM-killed by H3) and RTX 3090 (30 GB host) were dropped 2026-09-28: neither can place at the RAM floor. B200-class cards stay off on price |
+| GPU order | **RTX PRO 4500 → RTX 5090 → RTX 4090 → A100 PCIe**, first available (`GPU_ORDER`) | L4 (54 GB host, OOM-killed by H3) and RTX 3090 (30 GB host) were dropped 2026-09-28: neither can place at the RAM floor. B200-class cards stay off on price |
 | System RAM | floor **62 GB** (`MIN_RAM_GB`, `--min-ram` to measure lower) | Weights spill to RAM on a 24 GB card (`footprint.js`); H3 stages ~45 GB at once. The floor is a placement filter now, not a guard — see the top of this file |
 | Volume | **separate** from the dev volume | Container disk mirrors volume size ([../../runpod-remote-engine.md:242](../../runpod-remote-engine.md)), so growing the dev volume would make every ordinary dev Pod provision a matching disk |
 

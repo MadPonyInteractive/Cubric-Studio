@@ -9,7 +9,8 @@
  *
  * Usage:
  *   node scripts/smoke-workflows.mjs --plan            # resolve + print, spend nothing
- *   node scripts/smoke-workflows.mjs                   # full run (default: every model)
+ *   node scripts/smoke-workflows.mjs                   # only what changed since the recorded matrix (ops AND Flows)
+ *   node scripts/smoke-workflows.mjs --all             # every op and every Flow, whatever the evidence says
  *   node scripts/smoke-workflows.mjs --models qwen-edit,klein-4b
  *   node scripts/smoke-workflows.mjs --flows all       # also smoke every Flow graph
  *   node scripts/smoke-workflows.mjs --flows ltx-extend,scribble
@@ -35,6 +36,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { createInterface } from 'node:readline/promises';
+import { createHash } from 'node:crypto';
 import { assessPinMove } from './engine-drift.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -49,7 +51,12 @@ const DATACENTER = 'EU-RO-1';          // volumes are DC-locked; the cards live 
 // RTX 5090 placed at 80 (and at 60 on a 55.88 GiB host); RTX 4090 61 GB (needs --min-ram 60); A100 PCIe 92 GB, $1.59/hr.
 // DROPPED that day: L4 (54 GB, the host H3 OOM-killed) and RTX 3090 (30 GB) cannot place
 // at 60 or 80. B200-class cards stay off on price (Fabio).
-const GPU_ORDER = ['RTX 5090', 'RTX 4090', 'A100 PCIe'];
+// RTX PRO 4500 first (Fabio 2026-10-14), per the app's Gen speed bars for EU-RO-1: against the
+// RTX 4090 ($0.89/hr) it is cheaper ($0.72) AND faster on both (3.4 vs 3.8 s/img, 13.2 vs
+// 15.8 s/clip); against the 5090 ($1.19) it is faster on a clip (13.2 vs 15.3 s) and slower on
+// an image (3.4 vs 2.3 s), and at a 1-step budget price decides. Its host RAM against the 62 GB floor
+// is not measured yet; a refusal just moves the run to the next card.
+const GPU_ORDER = ['RTX PRO 4500', 'RTX 5090', 'RTX 4090', 'A100 PCIe'];
 // Weights spill to RAM on a 24GB card (footprint.js). 48 is no longer enough for H3: on
 // 2026-09-05 minimax-h3/t2v_ms OOM-killed a 54 GB L4 — `[cubric] internal ComfyUI exited
 // unexpectedly (code -9)`, the kernel's SIGKILL. It stages MiniMaxH3TEModel_ (25,140 MB) and
@@ -110,6 +117,7 @@ const PLAN_ONLY = flag('plan');
 // --wait [secs]: wait for stock instead of dying on a sold-out data center (default 30s).
 const WAIT_S = Number(opt('wait')) || (flag('wait') ? 30 : 0);
 const RETRY_FAILED = flag('retry-failed');
+const ALL = flag('all');
 const EVIDENCE = path.join(REPO, 'dev_configs/smoke-evidence.json');
 
 // A 15-minute failure on a rented GPU with no record is a failure you diagnose by
@@ -1476,19 +1484,25 @@ function pinnedEngine() {
  * when its version string matches. Same anchor release-health-check.mjs uses for
  * staleness, deliberately: evidence this runner is willing to keep must be evidence that
  * gate is willing to accept.
+ *
+ * `lenient` is the changed-only run: a file it cannot build on means every row runs, not a
+ * refusal, and a pin move narrowed to some graphs hands those graphs back as `staleGraphs`
+ * (graph file -> changed classes) so exactly their rows re-run. Never written: mergeEvidence
+ * reads only `results` and `scope` off the prior.
  * @returns {object|null}
  */
-function loadMergeBase() {
+function loadMergeBase(lenient = false) {
     if (!existsSync(EVIDENCE)) return null;
+    const refuse = (msg) => { if (!lenient) die(msg); log(`\n  ${msg.replace(/ —[^—]*$/, '')} — so every row runs.`); return null; };
     let prior;
     try { prior = JSON.parse(readFileSync(EVIDENCE, 'utf8')); }
-    catch { die('dev_configs/smoke-evidence.json is unreadable — delete it and run the full matrix.'); }
-    if (!Array.isArray(prior?.results)) die('dev_configs/smoke-evidence.json has no results array — delete it and run the full matrix.');
+    catch { return refuse('dev_configs/smoke-evidence.json is unreadable — delete it and run the full matrix.'); }
+    if (!Array.isArray(prior?.results)) return refuse('dev_configs/smoke-evidence.json has no results array — delete it and run the full matrix.');
 
     const want = pinnedEngine();
     const got = String(prior?.engine?.got || '').replace(/^v/, '');
     if (got !== want) {
-        die(`dev_configs/smoke-evidence.json records engine ${got || '(unrecorded)'}, node_lock pins ${want}.`
+        return refuse(`dev_configs/smoke-evidence.json records engine ${got || '(unrecorded)'}, node_lock pins ${want}.`
             + ` A scoped run may not merge into another engine's evidence — run the FULL matrix.`);
     }
     let pinMovedAt = null;
@@ -1507,11 +1521,15 @@ function loadMergeBase() {
         pinMovedAt,
         attestationFile: path.join(REPO, 'dev_configs/engine-attestation.json'),
     });
+    if (drift.stale && lenient && drift.graphs?.size) {
+        prior.staleGraphs = drift.graphs;
+        return prior;
+    }
     if (drift.stale) {
         const detail = drift.graphs?.size
             ? ` ${[...drift.classes].sort().join(', ')} changed and reach ${drift.graphs.size} shipped graph(s).`
             : ` ${drift.reason}.`;
-        die(`dev_configs/smoke-evidence.json is STALE — recorded ${prior.at}, node_lock.json last changed ${pinMovedAt}.`
+        return refuse(`dev_configs/smoke-evidence.json is STALE — recorded ${prior.at}, node_lock.json last changed ${pinMovedAt}.`
             + `${detail} Those rows describe the engine BEFORE the pin moved — run the FULL matrix.`);
     }
     if (drift.changed?.size) {
@@ -1618,15 +1636,78 @@ function mergeEvidence(prior, fresh) {
     };
 }
 
-/** Narrow a resolved set to specific model/op pairs, preserving the run-level props hung off the array. */
-function filterOps(set, keep) {
+/**
+ * Narrow a resolved set to specific model/op pairs, preserving the run-level props hung off the array.
+ * The weights are re-summed for what is LEFT: the full set's `depIds` made flowInstallNeeds skip
+ * a Flow's weights as "already installed by the matrix" when the matrix model was filtered out.
+ */
+function filterOps(reg, set, keep, allowEmpty = false) {
     for (const e of set) e.ops = e.ops.filter(op => keep.has(`${e.model.id}/${op}`));
     const kept = set.filter(e => e.ops.length);
-    if (!kept.length) die(`none of the ops to retry resolve to a workflow: ${[...keep].join(', ')} — run the full matrix.`);
+    if (!kept.length && !allowEmpty) die(`none of the ops to retry resolve to a workflow: ${[...keep].join(', ')} — run the full matrix.`);
+    const union = new Set(kept.flatMap(e => reg.resolveDeps(e.model, null, null, ENGINE, { arch: ARCH })));
     return Object.assign(kept, {
-        totalGb: set.totalGb, depIds: set.depIds, skippedWeights: set.skippedWeights,
+        totalGb: [...union].reduce((g, i) => g + (isWeight(reg.DEPS[i]) ? reg.sizeToGb(reg.DEPS[i].size) : 0), 0),
+        depIds: [...union], skippedWeights: set.skippedWeights,
         scope: { ...set.scope, modelsRun: kept.map(e => e.model.id) },
     });
+}
+
+/**
+ * What a row proved, as a short hash: the graph it ran (parsed, so CRLF/LF is not a change)
+ * and every weight entry it loaded. A row whose hash still matches has nothing new to prove.
+ */
+export function rowFingerprint(files, deps) {
+    const h = createHash('sha256');
+    for (const f of [...files].sort()) {
+        const p = path.join(WF_DIR, f);
+        h.update(`${f}\0${existsSync(p) ? JSON.stringify(JSON.parse(readFileSync(p, 'utf8'))) : 'MISSING'}\0`);
+    }
+    h.update(JSON.stringify(deps.filter(Boolean).map(d => JSON.stringify(d)).sort()));
+    return h.digest('hex').slice(0, 16);
+}
+
+function opFingerprint(reg, model, op) {
+    const file = reg_resolveFile(model, op);
+    const deps = reg.resolveDeps(model, [op], null, ENGINE, { arch: ARCH }).map(id => reg.DEPS[id]);
+    return { files: file ? [file] : [], fp: rowFingerprint(file ? [file] : [], deps) };
+}
+
+function flowFingerprint(reg, entry) {
+    const ids = [...entry.flowDepIds, ...entry.requiredModelIds.flatMap(id => {
+        const m = reg.MODELS.find(x => x.id === id);
+        return m ? reg.resolveDeps(m, null, null, ENGINE, { arch: ARCH }) : [];
+    })];
+    const files = entry.wfFile ? [entry.wfFile] : [];
+    return { files, fp: rowFingerprint(files, [...new Set(ids)].map(id => reg.DEPS[id])) };
+}
+
+/**
+ * The list of what needs a Pod. A row is kept when the recorded matrix holds no PASS for it
+ * under the same fingerprint (a new op or Flow, an edited graph, a changed weight, a last run
+ * that was not green, a row recorded before fingerprints existed), or when a node class it
+ * loads changed under it. Anything this cannot see runs: `prior` null means every row.
+ * @param {object|null} prior evidence file
+ * @param {Array<{key: string, fp: string, files: string[]}>} rows key = `model/op` or `flow/<label>`
+ * @param {Map<string, string[]>|null} staleGraphs graph file -> changed node classes
+ * @returns {Array<{key: string, why: string}>}
+ */
+export function changedRows(prior, rows, staleGraphs = null) {
+    const had = new Map((prior?.results || []).map(r => [`${r.model}/${r.op}`, r]));
+    const out = [];
+    for (const { key, fp, files } of rows) {
+        const r = had.get(key);
+        const hit = staleGraphs && files.find(f => staleGraphs.has(f));
+        const why = !prior ? 'no usable evidence'
+            : !r ? 'new'
+            : r.status !== 'PASS' ? `last run ${r.status}`
+            : !r.fp ? 'recorded before fingerprints'
+            : r.fp !== fp ? 'graph or weights changed'
+            : hit ? `node change: ${staleGraphs.get(hit).join(', ')}`
+            : null;
+        if (why) out.push({ key, why });
+    }
+    return out;
 }
 
 // ── Flow smoke leg ─────────────────────────────────────────────────────────────
@@ -1890,9 +1971,12 @@ async function main() {
     reg_resolveFile = (m, op) => reg.resolveWorkflowFile(m, op, ENGINE, { variantTokens: { arch: ARCH } });
     let only = opt('models')?.split(',').map(s => s.trim()).filter(Boolean);
     const flowsOpt = opt('flows');
-    const flowSet = flowsOpt != null
-        ? resolveFlowSmokeSet(reg, flowsOpt === 'all' ? 'all' : flowsOpt.split(',').map(s => s.trim()).filter(Boolean))
-        : [];
+    // The default run is changed-only (Fabio 2026-10-14): re-proving 48 green ops on every
+    // session was the bill. An explicit --models / --flows / --retry-failed is the caller's call.
+    const CHANGED = !ALL && !RETRY_FAILED && !only?.length && flowsOpt == null;
+    let flowSet = (CHANGED || ALL || flowsOpt === 'all')
+        ? resolveFlowSmokeSet(reg, 'all')
+        : flowsOpt != null ? resolveFlowSmokeSet(reg, flowsOpt.split(',').map(s => s.trim()).filter(Boolean)) : [];
 
     // A scoped run REPLACED the evidence file until MPI-501's session. Resolve the merge
     // base first: every reason to refuse is knowable now, and refusing is only free now.
@@ -1911,7 +1995,21 @@ async function main() {
     }
 
     let set = resolveSmokeSet(reg, only);
-    if (opFilter) set = filterOps(set, opFilter);
+    if (opFilter) set = filterOps(reg, set, opFilter);
+    if (CHANGED) {
+        prior = loadMergeBase(true);
+        const rows = [
+            ...set.flatMap(e => e.ops.map(op => ({ key: `${e.model.id}/${op}`, ...opFingerprint(reg, e.model, op) }))),
+            ...flowSet.map(e => ({ key: `flow/${e.label}`, ...flowFingerprint(reg, e) })),
+        ].filter(r => r.files.length);   // no graph = nothing a Pod can prove (cloud models)
+        const todo = changedRows(prior, rows, prior?.staleGraphs);
+        log(`\n── What needs testing ── ${todo.length} of ${rows.length}, against ${prior ? `the matrix recorded ${prior.at}` : 'no usable evidence'}`);
+        for (const t of todo) log(`  ${t.key.padEnd(48)} ${t.why}`);
+        if (!todo.length) { log('\nNothing changed since the recorded matrix. Nothing to rent.\n'); return; }
+        const keep = new Set(todo.map(t => t.key));
+        set = filterOps(reg, set, keep, true);
+        flowSet = flowSet.filter(e => keep.has(`flow/${e.label}`));
+    }
     // Sized AFTER the matrix set: a Flow model/dep the matrix already installs costs no extra volume.
     const flowNeeds = flowSet.length ? flowInstallNeeds(reg, flowSet, set.depIds) : { models: [], depEntries: [], gbTotal: 0 };
     const opCount = printPlan(reg, set);
@@ -2124,7 +2222,7 @@ async function main() {
         await stageModelOnPod(reg, e.model, vramGb);
         for (const op of e.ops) {
             const r = await runOp(reg, e.model, op, probeFiles).catch(err => ({ op, status: 'FAIL', why: err.message }));
-            results.push({ model: e.model.id, ...r });
+            results.push({ model: e.model.id, ...r, fp: opFingerprint(reg, e.model, op).fp });
             log(`  ${r.status.padEnd(4)} ${e.model.id}/${op}${r.why ? ' — ' + r.why : ` (${r.secs}s, ${r.media} out)`}`);
         }
     }
@@ -2133,7 +2231,7 @@ async function main() {
     if (flowSet.length) log(`\n── Flows ──`);
     for (const e of flowSet) {
         const r = await runFlowOp(reg, e, probeFiles).catch(err => ({ op: e.label, status: 'FAIL', why: err.message }));
-        results.push({ model: 'flow', ...r });
+        results.push({ model: 'flow', ...r, fp: flowFingerprint(reg, e).fp });
         log(`  ${r.status.padEnd(4)} flow/${r.op}${r.why ? ' — ' + r.why : ` (${r.secs}s, ${r.media} out)`}`);
     }
 

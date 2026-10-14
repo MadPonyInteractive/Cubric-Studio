@@ -53,16 +53,18 @@ test('picks the top preferred card when everything is in stock', () => {
         R4090,
         stocked('NVIDIA L4', 'L4'),
         stocked('NVIDIA GeForce RTX 5090', 'RTX 5090'),
+        stocked('NVIDIA RTX PRO 4500 Blackwell Server Edition', 'RTX PRO 4500 SE'),
+        stocked('NVIDIA RTX PRO 4500 Blackwell', 'RTX PRO 4500'),
         A100,
     ]);
-    assert.equal(hit.displayName, 'RTX 5090', 'preference #1 regardless of array order');
+    assert.equal(hit.id, 'NVIDIA RTX PRO 4500 Blackwell', 'preference #1 regardless of array order, never the SE twin');
     assert.equal(rank, 1);
 });
 
 test('falls to the next preference when the top card is not offered at all', () => {
     const { hit, rank } = selectGpu([A100, R4090]);
     assert.equal(hit.displayName, 'RTX 4090');
-    assert.equal(rank, 2, 'rank reports the real position, not 1');
+    assert.equal(rank, 3, 'rank reports the real position, not 1');
 });
 
 // L4 (54 GB hosts) and RTX 3090 (30 GB) left GPU_ORDER on 2026-09-28: neither can meet the
