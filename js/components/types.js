@@ -2979,6 +2979,15 @@
  */
 
 /**
+ * @typedef {Object} MpiQueueFlashProps (Compound — js/components/Compounds/MpiQueueFlash, MPI-1105)
+ * No props required. Mounted once by the shell; a right-edge strip that flashes in the job's
+ * subject colour on `queue:added` { mediaType?: 'image'|'video'|'audio' }, nothing while the
+ * Cue panel is open. The whole strip is the button.
+ *
+ * Emits: 'open' {} — the shell opens the Cue slide-over.
+ */
+
+/**
  * @typedef {Object} MpiThumbStripProps (Compound — js/components/Compounds/MpiThumbStrip)
  *
  * Phase 3b of MPI-949. Generic thumbnail strip with a fixed centre marker,

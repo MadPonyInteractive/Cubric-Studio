@@ -107,6 +107,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Organisms/MpiAudioPlayer/MpiAudioPlayer.css',
   'js/components/Compounds/MpiVoicePicker/MpiVoicePicker.css',
   'js/components/Compounds/MpiFlowResultDock/MpiFlowResultDock.css',
+  'js/components/Compounds/MpiQueueFlash/MpiQueueFlash.css',
 
   // Organisms
   'js/components/Organisms/MpiPromptBox/MpiPromptBox.css',
