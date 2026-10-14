@@ -17,3 +17,6 @@ Shipped in `8ef55aa7a` (master).
 
 ## Round 2 (3fa00508f)
 Fabio: snapped edges came loose on a ratio change (2:1 snapped L/T/B -> 21:9 recentred). reshapeRect now keeps any edge on the image bound. Spec step 2 is that exact case (asserts x=0, y=0, h=1024 at 21:9); 70/70 unit incl. 6 reshapeRect cases; stack-crop green.
+
+## Closed
+Fabio eye-checked in his app 2026-10-14 (2.39:1 snapped left/top/bottom after ratio changes): "Perfect."
