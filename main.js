@@ -74,6 +74,9 @@ swallowDeadPipe(process.stderr);
 process.on('uncaughtException', (err) => reportFatal('uncaughtException', err));
 process.on('unhandledRejection', (err) => reportFatal('unhandledRejection', err));
 
+// `npm start nodev`: a source run seen as users see it. Set in env so the forked
+// server and the window (nodeIntegration) inherit the same answer. Off only, never on.
+if (process.argv.includes('nodev')) process.env.CUBRIC_DEV_MODE = 'off';
 const APP_CONFIG = loadAppConfig();
 
 // Mask layer TEMP store — session-scoped, cleared on quit, dead instances' dirs pruned at boot.
@@ -90,7 +93,7 @@ function loadAppConfig() {
     const source = fs.readFileSync(path.join(__dirname, 'js', 'core', 'buildInfo.js'), 'utf8');
     const hashMatch = source.match(/BUILD_HASH\s*=\s*['"]([^'"]+)['"]/);
     const hash = hashMatch ? hashMatch[1] : 'dev';
-    return { ...fallback, dev_mode: hash === 'dev' };
+    return { ...fallback, dev_mode: hash === 'dev' && process.env.CUBRIC_DEV_MODE !== 'off' };
   } catch (err) {
     logger.warn('main', `Failed to read buildInfo.js; dev_mode=false (${err.message})`);
     return fallback;

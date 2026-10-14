@@ -39,7 +39,7 @@ const _devMode = (() => {
     const src = require('fs').readFileSync(
       require('path').join(__dirname, '..', 'js', 'core', 'buildInfo.js'), 'utf8');
     const m = src.match(/BUILD_HASH\s*=\s*['"]([^'"]+)['"]/);
-    return (m ? m[1] : 'dev') === 'dev';
+    return (m ? m[1] : 'dev') === 'dev' && process.env.CUBRIC_DEV_MODE !== 'off';
   } catch { return false; } // default off — never expose on a build we can't read
 })();
 
