@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1143", "at": "2026-10-14T19:56:26+01:00", "actor": "claude", "column": "todo", "title": "Flow result Compare goes blank after leaving the step while it loads"}
