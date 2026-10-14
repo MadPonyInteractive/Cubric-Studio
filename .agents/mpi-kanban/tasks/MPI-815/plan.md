@@ -256,6 +256,12 @@ the element. Each step below is a checkbox, so nothing gets built ahead of the b
   face is ~120-140 px wide). **Fabio, 2026-10-14: higher resolution fixes it.** So the RefMod bar
   is not "fixes drift". It is "holds the face at the draft canvas MPI-1135 picks, and/or replaces
   re-sending the whole sheet on every shot".
+- **The input set (Fabio, 2026-10-14, from a YouTube walkthrough; UNVERIFIED):** build the mod
+  from **10-15 pictures** of the character, several of them **face close-ups at different
+  angles**. One character sheet carries a single face view (the close-up panel; the front body is
+  headless by default), so the set needs more face angles than a sheet gives. Check whether an
+  existing Flow can make them (the Character Sheet Editor, a turnaround), and bench against the
+  YouTuber's set size.
 - [ ] **Bench first.** Our own ComfyUI from `G:/ComfyUi`, never `:8188` or `:3000`, under
   `gpu_lease.py run --poll 2`. Build a RefMod from a character sheet and compare against the plain
   sheet as a reference at the same seed, at the draft canvas and at native. Record time to build,
