@@ -11,6 +11,31 @@ v0.25.0-dev image, `dev_configs/smoke-evidence.json`, commit d27b5d8ba).
 Release flow: `/mpi-version-bump` (stamp 2.1), then `/mpi-release`. One release per change,
 from master.
 
+## 2026-10-14 status check (read this before the list below)
+
+- DONE: Pod runtime publish + `promote` (dev and stable manifests both wrapper 0.2.47; their
+  start.sh / start-cpu.sh / wrapper.py sha256 equal mpi-ci HEAD, incl. MPI-1071's speech_to_text line).
+- DONE: the 3D Scene ships ungated (MPI-623 closed 2026-10-12, CI green on 09bab5514).
+- MOOT: Pod lock sync. MPI-1131 found mpi-ci's MpiNodes pin unused: the wrapper volume-installs
+  MpiNodes from the APP's pin (mpi-ci Dockerfile:214).
+- CHANGED: the release Pod image is **v0.26.0**, not v0.25.0. v0.26.0-dev bakes ComfyUI-GGUF + gguf
+  for the 3D Scene Render path (mpi-ci c9ca454); a v0.25.0 release image would break Render path on
+  RunPod. STABLE pin in `routes/remotePodLifecycle.js` is still v0.24.0 (GPU and CPU).
+- WIDER: smoke evidence (2026-10-08, v0.25.0-dev) ran NO Flows and skipped Qwen 2.1. The scoped smoke
+  should be `--flows all` on v0.26.0-dev: 360 Panorama, Render path, Character Sheet from Images,
+  Character Sheet Editor, Video Edit, Transcribe, Make seamless are all new in 2.1.
+- STILL OPEN: release Pod image, describe-encoder live check (MPI-1045), the engine-line vs 4.88 GB
+  copy clash (UNRELEASED.md still says "no full re-download"), version stamp.
+- NEW BLOCKER: **MPI-1097.** 2.1 moves the MpiNodes pin (2.0.1 bc92a1b -> ce435f3), so every user whose
+  app boots with remote on hits the boot-connect drift heal firing before the wrapper is up: every
+  model reads not installed. Unfixed (`js/shell.js` `_healRemoteNodeDrift`, no change since 10-11).
+- NEW, planned for 2.1 by its own title: **MPI-951** (delete the old `CubricVision.exe` on update via
+  `RETIRED_PATHS` for full bundles too; drop the old repo slug in mpi-ci). Fabio decision (c), 2026-09-17.
+- CHECK BEFORE CUT: **MPI-1139** (LTX Reference to Video, new in 2.1: one portrait picture on a landscape
+  clip may give a black-padded guide, all-black clip in the bench). Reproduce in the shipped path first.
+- ON MASTER, NOT CLOSED: MPI-1104, MPI-1105, MPI-1110, MPI-740 sit in validating (MPI-1105 and MPI-740
+  wait on Fabio's eye/feel test) and none has an UNRELEASED.md line. They ship in 2.1 either way.
+
 ## Blockers - every one closes before the cut
 
 - [ ] **Scoped smoke: Qwen-Image 2.1 (MPI-936) + 3D scene (MPI-623)**, `--flows all`, on the
