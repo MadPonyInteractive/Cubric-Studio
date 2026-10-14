@@ -19,3 +19,11 @@
 - So the HTTP disk cache is NOT the cause. Switch reverted (main.js back to MPI-1120's delete).
 - Videos queue 15.02-15.05 s EVERY time (peek.webm x6 today): a fixed timeout, not disk load. Next: split queued into before-connect / connect / after (clientLogger.js), to tell a socket-pool wait from a slow TCP connect to 127.0.0.1.
 - Quit crash seen on the same restart filed as MPI-1144 (separate root cause).
+
+## 2026-10-14 ~22:05 local - pool exhaustion proven; holders now named in the log
+- Fabio's app has NOT restarted since 19:27:59Z, so no `before connect` line exists yet. Live netstat (read-only): his renderer holds 4 connections to :3000 at idle.
+- research/pool.cjs (isolated app): idle app holds 3 connections (its permanent streams). +3 more held = still fast; +4 = the picture never loads (waited 8 s, stopped). Chromium's 6-per-host cap is the ceiling.
+- research/vidhold.cjs: 3 VISIBLE 40 MB videos (paused or playing) held nothing. MPI-786 (js/shell/projectUI.js releaseProjectGrid) already found the holder shape: a HIDDEN paused preload=auto video holds its range request until Chromium idle-suspends it ~15 s later. That matches the fixed 15.0 s video queue.
+- Shipped: routes/heldRequests.js + server.js middleware + routes/system.js: every [slow-load] line now ends `| held: <url> <n>s [open], ...` = every request the server kept open 3 s+ during that load. Test tests/held-requests.test.cjs; eslint clean.
+- Proof research/heldlog.cjs: picture queued behind 4 extra streams logged `queued 4014ms (before connect 4014ms, ...) | held: /connector/jobs/stream 11s open, /agent/stream 11s open, /connector/jobs/stream?probe=1 6s x4`. A pool wait lands in `before connect`.
+- Needs Fabio's FULL restart (server.js). Next slow moment: the held list names the holders -> fix those sites (likely hidden preload=auto videos) and/or fold the permanent streams into one.

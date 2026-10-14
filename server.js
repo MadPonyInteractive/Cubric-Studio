@@ -39,6 +39,8 @@ const port = Number(process.env.CUBRIC_PORT) || 3000;
 
 // First, so a refused request is never parsed or served (MPI-921).
 app.use(localOnly(port));
+// Before every route and static file, so a slow-load line can name what held the sockets (MPI-1142).
+app.use(require('./routes/heldRequests').trackHeldRequests);
 app.use(bodyParser.json({ limit: '100mb' }));
 
 // Case-insensitive /comfy_workflows/* resolver — MUST precede express.static so a

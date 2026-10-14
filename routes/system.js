@@ -17,6 +17,7 @@ const path = require('path');
 const { execFile } = require('child_process');
 const logger = require('./logger');
 const { redactSecrets } = require('./secretRedaction');
+const { describeHeld } = require('./heldRequests');
 const { COMFY_DIR, getComfyRepoRel, resolveDownloadConfig } = require('./platformEngine');
 
 // ── VRAM Helper ───────────────────────────────────────────────────────────────
@@ -253,7 +254,8 @@ router.post('/log', (req, res) => {
     const safeLevel = allowed.includes(level) ? level : 'error';
     const safeMessage = redactSecrets(message);
     const safeDetail = redactSecrets(detail);
-    const fullMessage = safeDetail ? `${safeMessage} — ${safeDetail}` : safeMessage;
+    let fullMessage = safeDetail ? `${safeMessage} — ${safeDetail}` : safeMessage;
+    if (category === 'slow-load') fullMessage += describeHeld(safeMessage);
     logger[safeLevel](category, fullMessage);
     res.json({ success: true });
 });

@@ -1,1 +1,1 @@
-{"schema": "mpi-kanban/task-files/v1", "files": ["main.js", "js/services/clientLogger.js", "tests/slow-load-log.test.cjs"]}
+{"schema": "mpi-kanban/task-files/v1", "files": ["main.js", "js/services/clientLogger.js", "tests/slow-load-log.test.cjs", "server.js", "routes/system.js", "routes/heldRequests.js", "tests/held-requests.test.cjs", "docs/DEVELOPMENT.md"]}
