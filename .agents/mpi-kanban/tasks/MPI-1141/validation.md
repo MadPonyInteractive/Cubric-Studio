@@ -14,3 +14,6 @@ Shipped in `8ef55aa7a` (master).
 ## Not verified live
 - Video crop (`cropTool.setRatio(r, { keep: true })`): no spec covers it; same helper, unit-tested maths only.
 - Fabio's own feel check in his app (needs a renderer reload, Ctrl+R).
+
+## Round 2 (3fa00508f)
+Fabio: snapped edges came loose on a ratio change (2:1 snapped L/T/B -> 21:9 recentred). reshapeRect now keeps any edge on the image bound. Spec step 2 is that exact case (asserts x=0, y=0, h=1024 at 21:9); 70/70 unit incl. 6 reshapeRect cases; stack-crop green.
