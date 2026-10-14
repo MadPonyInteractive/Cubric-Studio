@@ -109,6 +109,9 @@ export const MpiCompareView = ComponentFactory.create({
 
     setup: (el) => {
         let _canvas = null;
+        // MPI-1143: open() awaits two loads; a Flow step left or the History overlay
+        // hidden meanwhile destroys the view, and the rest of open() must not run.
+        let _destroyed = false;
         const _hotkeyUnsubs = [];
 
         const canvasWrap  = qs('#canvas-wrap',  el);
@@ -168,11 +171,13 @@ export const MpiCompareView = ComponentFactory.create({
                 } else {
                     await _canvas.el.loadImage(urlA);
                 }
+                if (_destroyed) return false;
                 if (isVideoB) {
                     await _canvas.el.loadComparisonVideo(urlB, { fps: _fpsOf(itemB) });
                 } else {
                     await _canvas.el.loadComparisonImage(urlB);
                 }
+                if (_destroyed) return false;
 
                 if (isVideoA || isVideoB) {
                     _canvas.el.setCompareLoop(true);
@@ -180,12 +185,15 @@ export const MpiCompareView = ComponentFactory.create({
                 }
                 return true;
             } catch (err) {
+                // A load on the canvas destroy() just tore down rejects too: not a failure.
+                if (_destroyed) return false;
                 clientLogger.error('MpiCompareView', 'failed to load the compare pair', err);
                 return false;
             }
         };
 
         el.destroy = () => {
+            _destroyed = true;
             _unbindHotkeys();
             if (_canvas) {
                 _canvas.el.destroy();
