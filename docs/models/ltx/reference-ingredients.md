@@ -75,7 +75,7 @@ Layout = a slicing-tree search over WHOLE pictures, stretched to the canvas. Eac
 The 45% floor is soft: a PORTRAIT sheet can give a prop a slightly bigger cell than the character (37% vs 35%
 on the live 9:16 run). The clip held anyway.
 
-One picture still runs the prompt rewrite; the file passes through untouched.
+One picture is a sheet too (MPI-1139): one cell on the clip-shaped grey card, so #903 never pads it black.
 
 ## The prompt shape (decision D5)
 
@@ -123,7 +123,7 @@ Medium). **Fabio's verdict: the shared sheet as shipped, at High, holds faces we
 - **Best-Face-ID** LoRA (Alissonerdx): no licence terms (cannot ship); alone it gives a different face.
 - Detailer merge #387 off: a little closer, softer look overall. NAG off: no change. Richer face text: marginal.
 - Trap: a guide that is mostly black padding (a portrait picture fitted to a landscape clip by #903) can turn the
-  whole clip black. A single picture reaches #903 unfilled today (MPI-1139).
+  whole clip black. A single picture now goes through the sheet composer too (MPI-1139).
 Evidence: `.agents/mpi-kanban/tasks/MPI-1096/research/shortlist.md`.
 
 ## Measured (RTX 4060 Ti 16 GB, Balanced int8)

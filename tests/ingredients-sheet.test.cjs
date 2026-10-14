@@ -176,10 +176,21 @@ test('the sheet takes the clip\'s shape: a portrait clip gets a portrait sheet',
     assert.deepEqual([meta.width, meta.height], [1088, 1920]);
 });
 
-test('one picture passes through; a hand-written sheet prompt and an undescribed one are left alone', async () => {
+test('one portrait picture on a landscape clip sits on a grey card, never black padding (MPI-1139)', async () => {
+    const [pic] = await pictures([[736, 1308, RED]]);
+    const out = await buildReferenceSheet([pic], '<Picture 1> a fisherman\nhe fishes.', { width: 960, height: 512 });
+    const { data, info } = await sharp(out.png).raw().toBuffer({ resolveWithObject: true });
+    assert.deepEqual([info.width, info.height], [1920, 1024]);
+    const at = (x, y) => [...data.subarray((y * info.width + x) * info.channels, (y * info.width + x) * info.channels + 3)];
+    assert.deepEqual(at(960, 512), RED, 'the picture in the middle');
+    assert.deepEqual(at(200, 512), [128, 128, 128], 'grey beside it, where the graph padded black');
+    assert.ok(out.coverage < 0.4, `a portrait covers a fraction of a landscape sheet (${out.coverage})`);
+});
+
+test('one picture: the prompt names its panel; a hand-written sheet prompt and an undescribed one are left alone', async () => {
     const [pic] = await pictures([[1792, 1120, RED]]);
     const one = await buildReferenceSheet([pic], '<Picture 1> a fisherman\nhe fishes.', {});
-    assert.equal(one.png, null, 'the one picture IS the sheet');
+    assert.ok(one.png, 'one picture is a sheet too');
     assert.equal(one.prompt, '### Reference Sheet Description\n**Panel (Character):** a fisherman\n### Target Description\nhe fishes.');
 
     const written = '### Reference Sheet Description\n**Left Panel (Character - Front View):** a fisherman\n### Target Description\nhe fishes.';

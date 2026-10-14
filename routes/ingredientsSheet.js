@@ -231,18 +231,15 @@ async function _uprightAspect(file) {
  * @param {Array<{tag:number, path:string}>} pictures - in strip order, `tag` = n of <Picture n>
  * @param {string} prompt - the user's prompt
  * @param {{width?:number, height?:number}} size - the clip's output size
- * @returns {Promise<{png:Buffer|null, prompt:string, cells:object[], coverage:number|null}>}
- *   `png` null = one picture: it IS the sheet, sent as it is.
+ * @returns {Promise<{png:Buffer, prompt:string, cells:object[], coverage:number}>}
+ *   One picture is a sheet too (MPI-1139): sent as it was, the graph padded a portrait
+ *   picture on a landscape clip with ~70% BLACK, the first rule above.
  */
 async function buildReferenceSheet(pictures, prompt, { width, height } = {}) {
     const { lines } = parseSheetPrompt(prompt);
     const tags = pictures.map(p => p.tag);
     const roles = sheetRoles(tags, lines);
     const canvas = sheetSize(width, height);
-    if (pictures.length === 1) {
-        const full = { x: 0, y: 0, w: canvas.width, h: canvas.height };
-        return { png: null, prompt: sheetPrompt(prompt, tags, [cellName(full, canvas.width, canvas.height)], roles, lines), cells: [full], coverage: null };
-    }
     const aspects = [];
     for (const p of pictures) aspects.push(await _uprightAspect(p.path));
     const characters = new Set(roles.flatMap((r, i) => (r === 'Character' ? [i] : [])));

@@ -2254,8 +2254,8 @@ router.post('/engine-box', async (req, res) => {
 });
 
 // LTX Reference to Video (MPI-1060, routes/ingredientsSheet.js): the prompt box's pictures
-// packed into ONE reference sheet, and the prompt rewritten to name each cell. `image` is
-// null for one picture, which goes as it is. The sheet waits out the engine like a cut does.
+// packed into ONE reference sheet, and the prompt rewritten to name each cell; one picture
+// gets a sheet too (MPI-1139). The sheet waits out the engine like a cut does.
 router.post('/engine-sheet', async (req, res) => {
     const { pictures, prompt = '', width, height } = req.body || {};
     if (!Array.isArray(pictures) || !pictures.length || pictures.some(p => !p?.path || !Number(p.tag))) {
