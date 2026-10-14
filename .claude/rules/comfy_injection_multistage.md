@@ -109,11 +109,13 @@ T2V previews carry no snapshots, so only latent state gates them.
 dims, the full `injectionParams` map, media items) so the final matches the preview's
 intent — see [docs/project-integrity.md](../../docs/project-integrity.md).
 
-Engine `input/` copies are not cleaned per run. `input/` and `output/` are emptied on exit,
-and only by the instance that spawned the engine (`routes/engineScratch.js`, MPI-778):
-main.js from `before-quit`, and the server fork from `installShutdown` (`routes/shared.js`)
-on SIGTERM/SIGINT, before it kills the engine (MPI-779). Mid-session bloat is bounded by uuid
-uniqueness — one staged latent per preview, overwritten on rerun.
+Engine `input/` copies are not cleaned per run. `input/` and `output/` are emptied once,
+right before a server fork spawns the engine (`/comfy/start` → `routes/engineScratch.js`,
+MPI-1144): only an instance that found no engine running gets there, and nothing can hold
+the files then. Never on quit: the engine is still alive in `before-quit` and in
+`installShutdown`, and on Windows a file it held open threw EPERM out of quit. A file that
+still cannot be deleted is warned about and goes at the next start. Mid-session bloat is
+bounded by uuid uniqueness — one staged latent per preview, overwritten on rerun.
 
 ## Traps
 
