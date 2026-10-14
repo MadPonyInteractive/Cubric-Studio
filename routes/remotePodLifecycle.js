@@ -161,7 +161,13 @@ const POD_IMAGE_BASE = 'docker.io/madponyinteractive/cubric-vision-pod';
 // mpi-ci 89bb08b, CI run 37007901023, wrapper 0.2.45 baked. Both legs anonymously pullable
 // (cu130 sha256:5a42081e, cpu sha256:3125fc65); `node-import smoke test OK`, post-node torch
 // 2.12.0+cu130, one cv2 (5.0.0 ximgproc True). cpu boot smoke NOT run (Docker daemon down).
-const POD_IMAGE_VERSION = 'v0.24.0';
+// v0.26.0 (MPI-1044, the 2.1 cut): ComfyUI 0.39.0 — ComfyUI-GGUF joins the bake for
+// the 3D Scene Render path (Wan 2.1 I2V Q4 GGUF). MpiNodes ce435f3. Clean release
+// build at the lock, NOT v0.26.0-dev renamed (dev was mpi-ci c9ca454; this is 5623d4e).
+// mpi-ci 5623d4e, CI run 38571331600, wrapper 0.2.47 baked. Both legs anonymously pullable
+// (cu130 sha256:787ba578, cpu sha256:aa78511f); `node-import smoke test OK`, post-node torch
+// 2.12.0+cu130, one cv2 (5.0.0 ximgproc True). cpu boot smoke NOT run (Docker daemon down).
+const POD_IMAGE_VERSION = 'v0.26.0';
 // The CPU image stays on GHCR (not moved to Docker Hub — MPI-189 only repointed
 // the GPU image whose cold-start pull is being measured).
 const POD_IMAGE_BASE_CPU = 'ghcr.io/madponyinteractive/cubric-vision-pod';
@@ -196,7 +202,8 @@ const POD_IMAGE_BASE_CPU = 'ghcr.io/madponyinteractive/cubric-vision-pod';
 // pin — a GPU-only bump is the v0.10.3-cpu 404 trap, where CPU download Pods pull a tag
 // that does not exist and the Pod exits at boot while the app blames a bad host.
 // v0.24.0-cpu (MPI-595): same CI dispatch as the GPU pin (37007901023), lockstep.
-const POD_IMAGE_VERSION_CPU = 'v0.24.0';
+// v0.26.0-cpu (MPI-1044): same CI dispatch as the GPU pin (38571331600), lockstep.
+const POD_IMAGE_VERSION_CPU = 'v0.26.0';
 // MPI-340: DEV-ONLY image pins. _devMode (BUILD_HASH === 'dev') is false in every
 // released portable, so a shipped app can NEVER resolve these — the stable pins above
 // stay frozen while Pod-image work iterates. Bump these (not the stable pair) after a
