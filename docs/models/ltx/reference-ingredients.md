@@ -113,6 +113,19 @@ picture becomes **Start frame** (role `inputStartFrame` -> `Input_Start_Frame`),
 Picture n again; one at most. The start frame is NOT on the sheet. Agents pass role `inputStartFrame`.
 Desktop spec: `tests/desktop/prompt-box-start-frame-toggle.spec.js`.
 
+## Face identity (MPI-1096, 2026-10-13)
+
+Clothes and hair carry well; FACES drift when they are small (two characters sharing the sheet, wide framing,
+Medium). **Fabio's verdict: the shared sheet as shipped, at High, holds faces well enough.** Benched and dropped:
+- **One IC guide per picture** (`LTXAddVideoICLoRAGuide` chained): 3 guides collapse (merged figure, empty frame,
+  or a ghosted copy of the references); 2 guides drop a character or swap a face in 3 of 4 clips and ignore the
+  action. The LoRA is a one-sheet tool. Each extra guide ~2x the time at High.
+- **Best-Face-ID** LoRA (Alissonerdx): no licence terms (cannot ship); alone it gives a different face.
+- Detailer merge #387 off: a little closer, softer look overall. NAG off: no change. Richer face text: marginal.
+- Trap: a guide that is mostly black padding (a portrait picture fitted to a landscape clip by #903) can turn the
+  whole clip black. A single picture reaches #903 unfilled today (MPI-1139).
+Evidence: `.agents/mpi-kanban/tasks/MPI-1096/research/shortlist.md`.
+
 ## Measured (RTX 4060 Ti 16 GB, Balanced int8)
 
 | Run | Shape | Time |
