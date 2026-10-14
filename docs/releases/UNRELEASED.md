@@ -73,6 +73,7 @@
 
 ## Fixes
 
+- **The old CubricVision.exe is gone (Windows).** The update removes it. If a shortcut or a taskbar pin still points at it, pin CubricStudio.exe in the same folder instead.
 - **Every background job shows in the queue.** Making or editing a GIF, GIF to video, Combine, preparing a clip to mask and Project Cleanup now get a row under Transfers, with a moving bar while they work, and a strip flashes on the right edge when a job joins a closed queue. Click it, or press Q on the home page, to open the queue.
 
 - **GIF cut-out shows in the queue, with a Stop.** Remove background and By name now wait their turn behind a generation instead of running beside it, and the queue panel can stop them.
