@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-951", "at": "2026-09-27T11:06:23+01:00", "actor": "56a78131", "column": "todo", "title": "2.1: drop the legacy CubricVision-* artifact names and delete the old CubricVision.exe"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-951", "at": "2026-10-14T14:16:14+01:00", "actor": "3d712bc0-a7bf-4dba-bbde-681a0b29e65d", "from": "todo", "to": "doing", "reason": "2.1: retire the old exe (Fabio decision c)"}

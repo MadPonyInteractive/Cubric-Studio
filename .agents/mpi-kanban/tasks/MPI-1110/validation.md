@@ -14,3 +14,7 @@
 - Same run: `queue-flash.spec.js`, `cpu-job-row.spec.js` now also use a scratch `APP_DOCUMENTS`
   (they had listed the user's real projects; read-only, but no reason to) - 3 pass.
 - `npx eslint js/shell/projectUI.js` - clean.
+
+## Closed 2026-10-14 (session 3d712bc0)
+
+Agent-verifiable check only (specs above passed); master Tests green on 8ef55aa7a, which carries this code. Owning session closed; moved to done per kanban.md "validating is not a parking space".

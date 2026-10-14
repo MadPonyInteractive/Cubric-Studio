@@ -48,6 +48,6 @@ his instruction; he restated the flash.
 
 ## Open
 
-- Registration lines: `js/shell/preloadStyles.js` (claimed by MPI-1101) and `js/components/types.js`
-  (claimed by MPI-623). The component loads its own CSS on mount, so it works without them.
-- Fabio's eye test: passed on the look; the single-fade change is his own spec.
+- Closed 2026-10-14 (session 3d712bc0): registration lines added (`preloadStyles.js` CSS entry,
+  `types.js` MpiQueueFlashProps); `node --test` flow-result-dock + mask-tool-registry 50/0, eslint clean.
+- Fabio's eye test: PASSED 2026-10-14 ("The queue flash passes").

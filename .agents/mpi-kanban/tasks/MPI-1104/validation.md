@@ -18,3 +18,7 @@
 
 Nothing new built: same Transfers list, same MpiProgressBar, same `mpi-progress--loading` CSS.
 No cancel for CPU jobs yet; a member that needs one (MPI-1107 bulk Download) adds it.
+
+## Closed 2026-10-14 (session 3d712bc0)
+
+Agent-verifiable check only (specs above passed); master Tests green on 8ef55aa7a, which carries this code. Owning session closed; moved to done per kanban.md "validating is not a parking space".

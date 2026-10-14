@@ -26,9 +26,9 @@ from master.
   Character Sheet Editor, Video Edit, Transcribe, Make seamless are all new in 2.1.
 - STILL OPEN: release Pod image, describe-encoder live check (MPI-1045), the engine-line vs 4.88 GB
   copy clash (UNRELEASED.md still says "no full re-download"), version stamp.
-- NEW BLOCKER: **MPI-1097.** 2.1 moves the MpiNodes pin (2.0.1 bc92a1b -> ce435f3), so every user whose
-  app boots with remote on hits the boot-connect drift heal firing before the wrapper is up: every
-  model reads not installed. Unfixed (`js/shell.js` `_healRemoteNodeDrift`, no change since 10-11).
+- NEW BLOCKER: **MPI-1097.** 2.1 moves the MpiNodes pin (2.0.1 bc92a1b -> ce435f3). Narrower than first
+  written: it hits a boot that finds the previous Pod still running and then creates a fresh one (the
+  connect-edge latch survived the swap). FIXED 35596affc; live proof rides the Pod session.
 - NEW, planned for 2.1 by its own title: **MPI-951** (delete the old `CubricVision.exe` on update via
   `RETIRED_PATHS` for full bundles too; drop the old repo slug in mpi-ci). Fabio decision (c), 2026-09-17.
 - CHECK BEFORE CUT: **MPI-1139** (LTX Reference to Video, new in 2.1: one portrait picture on a landscape

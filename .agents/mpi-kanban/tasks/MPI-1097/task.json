@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1097",
+  "title": "Remote: boot connect fires the node-drift heal before the Pod wrapper is up, so a node_lock bump reads every model as not installed",
+  "description": "Live 2026-10-11 19:20Z (Fabio): app restarted with remote on, boot connect created Pod z43oc27o2ipwsv. MpiNodes pin had moved to 945484f (fd2d1821c, MPI-1071) so the volume copy was drifted. js/shell.js remote:connection handler fired its connected EDGE at 19:20:18, the same instant as 'phase none -> connecting (by boot connect: Pod requested)', 3 min before 'Pod ready' (19:23:22). _healRemoteNodeDrift ran then, its install got wrapper 404 for the whole boot, gave up ('remote install trigger failed for ComfyUI-MpiNodes: wrapper install 404'), and _wasRemoteConnected=true kept it from ever re-firing. Server-side ensureUniversalNodesOnVolume (routes/remoteModels.js) cannot heal it: it sends no drifted/force flag, so the wrapper answers already_installed on folder-exists and the poll logs 'universal nodes still absent after 60s'. Result: every local model installed:false in the Model Library (downloadGb 0 on Klein 9B / LTX balanced / H3 ref2va, files all on the volume per ComfyUI /models). The 'Connect pressed' path at 18:42Z healed fine because the edge came after Pod ready. Root cause to find: why the boot-connect path emits {connected:true} with no phase before the wrapper answers. Releasing a MpiNodes pin bump makes this hit every user whose app boots with remote on. Evidence: %APPDATA%/Cubric Studio/logs/app.log 19:20-19:24Z.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-11T20:35:06+01:00",
+  "updated_at": "2026-10-14T14:15:10+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

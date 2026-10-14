@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["scripts/build-portable.mjs", "tests/", "C:/AI/Mpi/mpi-ci/.github/workflows/cubric-vision-portable.yml", ".agents/mpi-kanban/tasks/MPI-951/"] }
