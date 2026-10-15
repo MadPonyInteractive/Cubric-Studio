@@ -4,6 +4,18 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-15 (session "New character sheets 27") - LATEST. Body shape eye-tested PASS. Eye test 4: Accessories + a
+picture on Klein (AW3) redrew the FRONT figure as a back view 4/4 and leaked the reference person. Klein edit path is
+unchanged since 85f96744a, so not the graph. Bench r29 (validation.md): Qwen-Image 2.1 with the raw reference as
+image 2 (Input_Is_Mannequin true, no mannequin) = layout 4/4, own face + hair 4/4, items placed with no "where" words;
+Klein + a front sentence fixes layout but leaks the person 2/4. NEXT: r30 on Qwen = Makeup + Tattoos (Fabio's pictures)
++ Accessories in words only (Klein vs Qwen); then ship accessories+picture -> Qwen (registry map entry
+`{ when: { media: 'image2' }, then: Qwen, else: Klein }`, builder q_raw string, force Input_Is_Mannequin true) and
+decide the split (Fabio: Accessories / Weapons / Jewellery / Makeup / Tattoos). Bench script qh29.py.
+Fabio (after r29): try Qwen at 25 steps (30 was picked against t2i deformations; an edit may need fewer) - r30
+first arm = steps 25 vs 30 on r29's four cases (find the steps node in flow_character_sheet_edit_qwen.json; the bench
+can override it like any input). My pick for the split: one Accessories option on Qwen, split only if Makeup/Tattoos fail.
+
 2026-10-15 (session "New character sheets 26") - LATEST. Eye test 3 (validation.md): hair from a picture = one card
 with 3 versions PASS; a given mannequin as the Reference skips the mannequin step (describer "Yes", Qwen only, 136 s)
 PASS; a Stopped run keeps its cached mannequin as its own card - Fabio: fine. Hair in WORDS failed on Klein (a

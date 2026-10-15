@@ -428,3 +428,44 @@ Grid: scratchpad h28.jpg.
 Eye test 3, after 05e76d391 (Fabio, app): Hairstyle in words "Bob cut with fringe With black and pink gradient"
 on Qwen -> bob + fringe, black-to-pink gradient on all three figures, the hint shows under the dropdown.
 Fabio: "Very nice." Checks 2 (words re-run to the end), 4 Body shape, 6 Age + hair still not eye-tested.
+
+## Eye test 4 (Fabio, app, 2026-10-15, session "New character sheets 27")
+
+PASS Body shape on Qwen: "Extremely overweight" and "Extremely muscular, bodybuilder", all three figures (Fabio: passed,
+do not ask again).
+
+Accessories + a Reference picture, Klein lock 0, the shipped AW3 string, sheet flowCSE_044 (sidecars flowCSE_047-050):
+
+| words | reference | result |
+|---|---|---|
+| Mask | woman in goggles + gas mask, green hair (imported) | close-up mask PASS but took her GREEN hair; front figure REDRAWN AS A BACK VIEW; no mask on the bodies |
+| Mini gun | product shot of a minigun | front REDRAWN AS A BACK VIEW, gun strapped on its back; close-up none |
+| Earrings and necklaces | a woman's neck in silver chains (imported_014) | close-up PASS; front REDRAWN AS A BACK VIEW |
+| Piercings and Choker | a woman's face, silver bob, choker (imported_015) | close-up BECAME THE REFERENCE WOMAN (face, hair); front REDRAWN AS A BACK VIEW |
+
+- Front figure -> second back view 4/4 (qh7 bench: 0/8 on flowCSFI_002 + Klein-made refs). The headless version then
+  cut the head off that back view.
+- Graph is not the cause: the Klein edit path is unchanged since 85f96744a (586fb133e only added the headless nodes and
+  moved MpiClearVram after them). Differences from qh7: the sheet, real photos as refs (3 of 4 a person), bare words
+  with no article ("Give the character Mask from ...").
+- Fabio: maybe split the option into Accessories, Weapons, Jewellery, Makeup, Tattoos.
+
+## Round 29 (`qh29.py`, `h29_*`): Fabio's four, his seeds, sheet flowCSE_044, app engine :48188
+
+k_ship = AW3 as shipped (repro); k_front = AW3 + "The front view on the left still faces forward, showing the
+character's face."; q_raw = Qwen-Image 2.1, the reference straight in as image 2 (Input_Is_Mannequin true: NO mannequin
+pass), every figure named, "Take only the <thing> from image 2, not the person: keep the character's own face, hair,
+skin and clothes." Klein 48 s, Qwen 117-147 s. Contact sheets: scratchpad r29/c_*.jpg.
+
+| case | k_ship | k_front | q_raw |
+|---|---|---|---|
+| Mask | front -> back, close-up green hair (repro) | front ok, mask front + close-up, hair turned LIME (leak) | **pass**: mask front + close-up, own pink hair |
+| Mini gun | front -> back, gun on its back (repro) | **pass**: front holds it | **pass**: front holds it at her side |
+| Earrings and necklaces | front -> back (repro) | front ok but one small pendant; close-up pass | **pass**: layered chains + earrings, front + close-up |
+| Piercings and Choker | front -> back, close-up = the ref woman (repro) | front ok; close-up = the ref woman (FAIL) | choker front + close-up, own face; piercings faint (brow studs only, no lip ring) |
+
+- Repro 4/4: the AW3 string redraws the front figure on this sheet. k_front fixes the layout 4/4 but the reference
+  person leaks 2/4 (hair, face) - Klein copies the picture's person.
+- **Qwen wins**: layout 4/4, own face + hair 4/4, the thing placed where it belongs with no "where" words (gun in the
+  hand, mask on the face), 3 full pass + piercings partial. No mannequin needed (Fabio's guess).
+- Not benched yet: Makeup, Tattoos (Fabio), Accessories in words only (no picture; same "seen from behind" sentence).
