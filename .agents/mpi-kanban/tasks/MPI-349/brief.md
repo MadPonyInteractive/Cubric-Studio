@@ -172,6 +172,34 @@ keep their model library. Not for everyone - some users would take it.
 - API: `POST /pods` has no global-volume field (only `networkVolumeId`, `volumeInGb`), so
   the app cannot attach one yet.
 
+### Update 2026-10-15 (docs checked, after RunPod's "Global Volumes on Serverless" email)
+
+- **Still beta** on Pods and Serverless; no GA date published.
+- **API field now exists (half the re-open condition):** v2 `POST /v2/pods` takes
+  `mounts.global` (array, `maxItems: 1`, `{volumeId, path}`), "no data center constraint",
+  combinable with `mounts.network`, NOT with `mounts.persistent` (400). Fixed at create;
+  only `path` may change by PATCH. Plus global-volume CRUD under `/v2/global-volumes`
+  (list, create, get, rename, delete). We are on v2 already (MPI-806,
+  `routes/runpodRemote.js`), so no API migration stands in the way.
+- **Community Cloud:** still undocumented. The v2 schema has `cloud: SECURE|COMMUNITY` and
+  does not forbid `global` with COMMUNITY, but nothing says it works. Needs a live test.
+- **Price:** $0.09/GB/mo storage (per MPI-806 notes; overview page omits it) plus requests:
+  Class A (write/create/list) $0.005 per 1k, Class B (read/metadata) $0.0005 per 1k. One
+  file op can be several requests. Cost-check against 30-80 GB of weights read per Pod start.
+- **Pod mount path:** `/workspace` by default; shifts to `/workspace-global` when a network
+  volume is also attached (console behaviour). Via the API `path` is explicit; the app
+  mounts its volume at `/workspace` today (`routes/remotePodLifecycle.js` `volumeMountPath`).
+- **Caveats:** object-backed, not POSIX: no file locking, atomic rename or hard links; last
+  write wins; writes after a Pod starts may not be visible inside it at once. Volume
+  deleted 15 days after the account balance hits $0.
+- **Speed:** no load-time figures published. Still the open question.
+- Serverless half of the email: no relevance (Serverless OUT, MPI-186).
+
+Sources: https://docs.runpod.io/api-reference-v2/pods/create-a-pod ,
+https://docs.runpod.io/storage/globalvolume/overview ,
+https://docs.runpod.io/storage/globalvolume/globalvolume-pods ,
+https://docs.runpod.io/storage/globalvolume/globalvolume-serverless (all 2026-10-15).
+
 ### Re-open condition
 
 GA announced AND a REST or GraphQL field to attach a global volume at Pod create. Then, in
