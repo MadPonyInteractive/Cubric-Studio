@@ -6193,3 +6193,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1149", "at": "2026-10-15T23:13:37+01:00", "actor": "claude", "column": "doing", "title": "Video Edit: a describer's 'wears no clothes' about the kept subject triggers the picture check"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1149", "at": "2026-10-15T23:16:25+01:00", "actor": "claude", "from": "doing", "to": "done"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1150", "at": "2026-10-15T23:43:49+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on c6235b5a (code 4971c9b8)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1151", "at": "2026-10-15T23:45:23+01:00", "actor": "claude", "column": "todo", "title": "Video Edit: Change the background ignores the picture - keeps the clip's place, or invents one from the words"}
