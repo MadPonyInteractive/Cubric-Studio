@@ -104,6 +104,10 @@ const CLIP_PAD_MS = 60;
 const GREET_EVERY_MS = 3200;
 /** No new clip on screen for this long while swaps keep coming = a frozen mascot, logged. */
 const FROZEN_MS = 8000;
+/** A gap this long between page frames = the window is not drawing (hidden, covered). */
+const FRAME_GAP_MS = 1000;
+/** Last page frame, from the crew's heartbeat (`_mount`). */
+let _frameAt = 0;
 const AWAKE = 'mpi-landing__crew-member--awake';
 const HELD = 'mpi-landing__crew--held';
 const LIVE = 'mpi-landing__crew-clip--live';
@@ -244,7 +248,11 @@ function _paintClip(m, id) {
             // A hidden window or an unrendered crew presents no frames: not a freeze.
             // Not tied to this swap's seq: a run of stalled swaps overtakes every one of them.
             // Until he moves, `next` is still the element every newer swap loads into.
-            if (m.dead || m.parked || m.frozenAt || document.hidden || !m.el.getClientRects().length) return;
+            if (m.dead || m.frozenAt) return;
+            // Parked, not laid out, or the page itself not drawing: he shows nothing by
+            // design, so his clock restarts.
+            const drawing = performance.now() - _frameAt < FRAME_GAP_MS;
+            if (m.parked || !drawing || !m.el.getClientRects().length) { m.shownAt = Date.now(); return; }
             if (Date.now() - m.shownAt < FROZEN_MS) return;
             m.frozenAt = m.shownAt;
             const waiting = (next.getAttribute('src') || '-').replace(/^.*\//, '');
@@ -463,6 +471,19 @@ function _mount() {
             _syncConnecting(phase === 'connecting', connected)),
         Events.on('projects:listed', _warmLater),
     ];
+    // Frame heartbeat for the freeze log (_paintClip). A window that is hidden or covered draws
+    // nothing and no clip can show, yet still reads `visible` in Electron: any gap in page
+    // frames restarts every mascot's clock, or the first check back reads the whole absence
+    // as a freeze (12529 s on Fabio's log). One mascot stuck while the page draws still counts.
+    let raf = 0;
+    const beat = (t) => {
+        if (t - _frameAt > FRAME_GAP_MS) for (const m of members) m.shownAt = Date.now();
+        _frameAt = t;
+        raf = requestAnimationFrame(beat);
+    };
+    _frameAt = performance.now();
+    raf = requestAnimationFrame(beat);
+    cleanups.push(() => cancelAnimationFrame(raf));
     for (const m of members) {
         cleanups.push(
             // Both cut the current clip short — neither can wait up to 5s behind an idle —

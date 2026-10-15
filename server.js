@@ -41,6 +41,14 @@ const port = Number(process.env.CUBRIC_PORT) || 3000;
 app.use(localOnly(port));
 // Before every route and static file, so a slow-load line can name what held the sockets (MPI-1142).
 app.use(require('./routes/heldRequests').trackHeldRequests);
+// A video or sound always loads by range request. Chromium's disk cache handles overlapping
+// ranges of one file badly (a mascot clip failed with ERR_CACHE_OPERATION_NOT_SUPPORTED,
+// MPI-1142; MPI-1120's ERR_CACHE_READ_FAILURE before it), and for a file on this machine it
+// saves nothing, so ranged responses never enter it. Pictures keep their memory cache.
+app.use((req, res, next) => {
+    if (req.headers.range) res.setHeader('Cache-Control', 'no-store');
+    next();
+});
 app.use(bodyParser.json({ limit: '100mb' }));
 
 // Case-insensitive /comfy_workflows/* resolver — MUST precede express.static so a
