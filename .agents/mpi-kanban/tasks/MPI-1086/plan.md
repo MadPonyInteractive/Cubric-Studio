@@ -4,6 +4,15 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-15 later (session "New character sheets 28") - LATEST. 25 steps SHIPPED in the editor's Qwen graph (Fabio;
+commit with r31). Master went red on 1126f7dc1 (flow-optional-model-row.spec pinned the old Qwen row label) - fixed
+in e4909f920, CI green. r31 (Fabio's 13 makeup/tattoo pictures, shipped Accessories string): tattoos 4 pass + 2
+partial (back view mirrors a one-limb tattoo); makeup copies 7/7 but the reference FACE leaks 5/7. r32: a makeup-only
+face-keeping string `qh32.mA` keeps her face 7/7 + no piercings 7/7 (spider-web paint lost); words-only also holds;
+the same-limb tattoo sentence made it WORSE (dropped). r33: `qh33.mA2` ("copied exactly") = makeup 7/7 + own face
+7/7 (web paint back; one choker leak); mA on new seeds 7/8 own face. NEXT for Fabio: split call - Makeup needs its OWN string (my pick: a Makeup option = mA with a
+picture, qw2-style words without; Tattoos stay in Accessories), then build + tests.
+
 2026-10-15 (session "New character sheets 28") - LATEST. Bench r30 (validation.md, `qh30.py`): Qwen at 25 steps =
 30 on r29's four (same pictures, ~15% faster). The SHIPPED words-only Accessories (Klein) redraws the front figure as a
 back view 4/4 on sheet flowCSE_044 (not released: the Flow is new in 2.1); the fix is routing Accessories to Qwen.

@@ -525,3 +525,42 @@ r31/c31_*.jpg (reference left of each result).
   face holds. Round 32 tests (a) a face-keeping makeup string with the picture, (b) the picture put into words (as
   Hairstyle does) and run with no picture, (c) a same-limb sentence for tattoos.
 - 25 steps set in the shipped Qwen editor graph (raw + API, the API = a fresh convert of the raw, 78/78 nodes).
+
+## Round 32 (`qh32.py`, `h32_*`): fixes for r31, on the SHIPPED graph at 25 steps
+
+mA = makeup WITH the picture, a face-keeping string (the makeup named part by part, her own face named part by part,
+"Take nothing else from image 2: no piercings, jewellery, moles or hair"); mB = the picture put into words by hand (a
+stand-in for a describer, no paid call) and run with no picture through the shipped words string; tS = r31's one-limb
+tattoos + "Seen from behind, a tattoo is on the same arm or leg as on the front view...". Sheets: scratchpad
+r32/c32_m*.jpg (ref | r31 | mA | mB), c32_t.jpg.
+
+| case | mA (picture, keep-face) | mB (words, no picture) |
+|---|---|---|
+| spider | own face + smile; orange eyes + black lips, the WEB paint lost (partial) | **pass**: web painted on the close-up |
+| liner | **pass**, no nose ring | **pass** |
+| glitter | **pass**, own face | **pass** |
+| glam | **pass**, own face | **pass** |
+| gems | **pass**, no septum or choker | **pass** (looser: fewer rhinestones) |
+| goth | **pass** | **pass** |
+| lashes | **pass**, no nose stud or moles | **pass** (orange eyeshadow stronger than the picture) |
+
+- **Makeup's face leak is the WORDING**: mA keeps her own face and smile 7/7 and takes no piercings 7/7 (r31's string:
+  5/7 faces drifted, 3/7 piercings). mB holds too, but needs a describer call per run and matches the picture less.
+  r30 showed 25 = 30 on the same seed, so the steps change is not what fixed it.
+- mA ignores the user's words (all "Makeup" here) and is makeup-only: the generic Accessories string cannot carry it.
+  So **Makeup needs its own string** - an own option, or the builder spotting makeup words (Fabio's split call).
+- **tS is worse, dropped**: "arm or leg" ADDED sleeve tattoos to both arms on both leg cases, and the words case got
+  both arms inked on the back view. The mirrored back-view tattoo stays a known partial.
+
+## Round 33 (`qh33.py`, `h33_*`): Makeup with a picture, firming up mA (shipped graph, 25 steps)
+
+mA2 = mA + "copied exactly: the same colours, shapes and patterns of ..."; mAs = mA on the four pictures whose face
+leaked worst in r31, two new seeds each (7, 1234567). Sheets: scratchpad r33/c33_a*.jpg (ref | r32 mA | mA2),
+c33_s*.jpg (ref | seed 7 | seed 1234567).
+
+- **mA2: makeup 7/7, own face 7/7**; the spider-web paint mA lost is back (web, orange eyes, black lips). One leak: the
+  gems picture's black choker on the front figure (mA had it too). No piercings 7/7.
+- **mAs: own face 7/8** on new seeds - glitter, glam, gems hold on both; lashes seed 1234567 drifted (the reference's
+  over-lined pout, no smile). With r32: own face 14/15 across mA runs.
+- **Pick for Makeup with a picture: mA2.** It ignores the user's words, so it needs its own option (or makeup words
+  spotted) - Fabio's split call.
