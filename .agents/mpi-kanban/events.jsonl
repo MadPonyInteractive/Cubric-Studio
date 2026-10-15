@@ -6175,3 +6175,9 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1146", "at": "2026-10-15T05:31:24+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio confirmed the drop live"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1147", "at": "2026-10-15T15:10:09+01:00", "actor": "claude", "column": "todo", "title": "Library switcher on landing"}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "type": "task.updated", "at": "2026-10-15T14:11:21Z", "actor": "claude", "summary": "Compact plan attached; maturity planned."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1147", "at": "2026-10-15T15:20:21+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "at": "2026-10-15T14:26:07Z", "actor": "claude", "type": "checklist.item_checked", "summary": "Implementation"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "at": "2026-10-15T14:26:07Z", "actor": "claude", "type": "validation.updated", "summary": "Agent checks passed; awaiting Fabio's look."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "at": "2026-10-15T14:26:07Z", "actor": "claude", "type": "task.updated", "summary": "maturity validating."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "at": "2026-10-15T14:28:29Z", "actor": "claude", "type": "validation.updated", "summary": "Fabio confirmed the switcher in the app."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "at": "2026-10-15T15:11:26Z", "actor": "claude", "type": "validation.updated", "summary": "Correction: Fabio has not seen it in the app yet; look still pending."}

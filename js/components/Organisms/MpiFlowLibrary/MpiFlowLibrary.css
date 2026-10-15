@@ -92,6 +92,13 @@
     line-height: 1;
     margin: 0 0 var(--s-2);
 }
+/* MPI-1147 — Landing's Models | Flows switcher, in the title's place and spacing. */
+.mpi-flow-library__switch {
+    width: fit-content;
+    margin: 0 0 var(--s-2);
+}
+/* The radio group's own display beats the UA [hidden] rule; inside a project it must go. */
+.mpi-flow-library__switch[hidden] { display: none; }
 /* Same spacing as the Model Library's sub-line: the filter row (MpiFilterBar,
    MPI-754) sits under it, so the gap is the one MMc gives its own. */
 .mpi-flow-library__sub {

@@ -5,6 +5,15 @@ hero stats and every model picker. Dep resolution itself lives in [data.md](data
 (§ resolveModelDeps); download/install lifecycle in [download-manager.md](download-manager.md).
 Verify a named file/function/flag still exists before relying on an entry.
 
+## One Library door on Landing (MPI-1147)
+
+Landing has ONE `Library` link (`projectUI.js`), opening the Model Library. On Landing only, both
+libraries' titles become a `Models | Flows` `MpiRadioGroup`, decided per `el.open()` from
+`state.currentPage === PAGE_LANDING` (the singletons outlive the page they first opened on). The
+switch itself lives in `shell.js`: `models:open` closes the Flow Library, `flows:open` closes the
+Model Library only AFTER `blockedByNoEngine()` passes, so a no-engine refusal leaves the user on
+Models. Inside a project both keep their plain title and separate doors.
+
 ## Usable vs installed — display/count/pickers gate on `isModelUsable`, never `model.installed`
 
 `model.installed` is the raw ALL-deps-present flag. It is false for a model whose CURRENT-engine or

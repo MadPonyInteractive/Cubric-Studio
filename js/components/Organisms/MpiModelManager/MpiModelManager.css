@@ -67,6 +67,14 @@
     margin: 0 0 var(--s-2);
 }
 
+/* MPI-1147 — Landing's Models | Flows switcher, in the title's place and spacing. */
+.mpi-model-library__switch {
+    width: fit-content;
+    margin: 0 0 var(--s-2);
+}
+/* The radio group's own display beats the UA [hidden] rule; inside a project it must go. */
+.mpi-model-library__switch[hidden] { display: none; }
+
 .mpi-model-library__sub {
     font-size: var(--t-sm);
     color: var(--ink-3);

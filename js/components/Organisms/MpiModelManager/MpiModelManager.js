@@ -6,8 +6,10 @@ import { MpiFilterBar } from '../../Primitives/MpiFilterBar/MpiFilterBar.js';
 import { MpiTileSheet } from '../../Primitives/MpiTileSheet/MpiTileSheet.js';
 import { MpiPopup } from '../../Primitives/MpiPopup/MpiPopup.js';
 import { MpiBadge } from '../../Primitives/MpiBadge/MpiBadge.js';
+import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { Events } from '../../../events.js';
 import { state } from '../../../state.js';
+import { PAGE_LANDING } from '../../../router.js';
 import { MODELS, reSyncInstalledModels, getModelDepStatus, getModelDependencies } from '../../../data/modelRegistry.js';
 import { DEPS } from '../../../data/modelConstants/dependencies.js';
 import { PLUGINS, pluginDepKey, pluginAvailability } from '../../../data/pluginsRegistry.js';
@@ -115,6 +117,24 @@ export const MpiModelManager = ComponentFactory.create({
         // Overlay X / Escape / ui:close-all-popups → the whole Library goes away.
         // Close the detail drawer too so a reopen starts clean.
         overlay.on('close', () => { _closeDetail(); });
+
+        // ── Models | Flows switcher (MPI-1147) — Landing only ─────────────────
+        // On Landing the two libraries are one place: the header swaps this title for
+        // a switcher, and shell.js closes one library as it opens the other. The value
+        // snaps straight back to 'models' — either this overlay is about to close, or
+        // the engine gate refused Flows and the user is still here. setValue re-emits
+        // `select`, hence the own-value guard.
+        const switcher = MpiRadioGroup.mount(ce('div'), {
+            name: 'Library', size: 'lg', value: 'models',
+            options: [{ label: 'Models', value: 'models' }, { label: 'Flows', value: 'flows' }],
+        });
+        switcher.el.classList.add('mpi-model-library__switch');
+        switcher.on('select', ({ value }) => {
+            if (value === 'models') return;
+            switcher.el.setValue('models');
+            Events.emit('flows:open');
+        });
+        qs('.mpi-model-library__head', el).prepend(switcher.el);
 
         // ── Media filter (Image / Video / Audio) — reads model.mediaType directly ─────
         let _mediaActive = new Set();     // 'image' | 'video' | 'audio'; empty = all
@@ -1730,6 +1750,10 @@ export const MpiModelManager = ComponentFactory.create({
         // Showing the overlay re-syncs installed state + hardware (like the old
         // MpiSlideOver onOpen hook did). el.onOpen kept as an alias for parity.
         el.open = () => {
+            // Per-open, not per-mount: the singleton outlives the page it was first opened on.
+            const onLanding = state.currentPage === PAGE_LANDING;
+            switcher.el.hidden = !onLanding;
+            qs('.mpi-model-library__title', el).hidden = onLanding;
             overlay.el.show();
             awaitReSync();
             _fetchHardwareOnce();
@@ -1748,6 +1772,7 @@ export const MpiModelManager = ComponentFactory.create({
             _destroyAllCards();
             _destroyDetailToggles();
             filterBar?.el?.destroy?.();
+            switcher?.el?.destroy?.();
             _confirmDialog?.el?.destroy?.();
             overlay?.el?.destroy?.();
         };

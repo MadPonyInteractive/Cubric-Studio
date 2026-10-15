@@ -47,15 +47,25 @@ Files: `js/shell/projectUI.js`, `js/shell.js`,
 
 ## Completed
 
-- [ ] Nothing yet.
+- [x] Implementation (2026-10-15): landing `Library` link, shell close-the-other, switcher in both
+  headers, `[hidden]` CSS, JSDoc in `types.js`, `docs/model-library.md` § One Library door.
+  Lint clean, isolated-app walk passed, 10 desktop specs green. Uncommitted.
 
 ## Remaining Work
 
-- Implement the planned change end to end.
+- Close-out only (`mpi-end-session`): commit the 8 files by pathspec, ask about the
+  component-events rule map, move the card to done, release claim `bc640d32-mpi1147`.
+  Fabio's in-app look is STILL PENDING (2026-10-15: his "1" was from screenshots; the app was
+  busy with an agent's queue). Code committed with the card in `doing`; close only after his look
+  AND a green CI run on the code commit.
 
 ## Plan Drift
 
-- None yet.
+- 2026-10-15: gate is `state.currentPage === PAGE_LANDING`, not `state.currentProject === null` —
+  matches the Flow Library's existing per-open page gate.
+- 2026-10-15: `docs/flows.md` is a MOVED stub; the doc line went to `docs/model-library.md` only.
+- 2026-10-15: `MpiRadioGroup`'s own `display` beats the UA `[hidden]` rule, so the switcher showed
+  inside a project; fixed with `.mpi-*-library__switch[hidden] { display: none; }` in both CSS files.
 
 ## Verification
 

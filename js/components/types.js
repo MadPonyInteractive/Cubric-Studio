@@ -1245,6 +1245,8 @@
  * download:* subs.
  *
  * Opened via: Events.emit('models:open') → shell mounts it once and calls el.open().
+ * On Landing only (MPI-1147) the title is a Models | Flows MpiRadioGroup; Flows emits
+ * `flows:open`, and shell.js closes this overlay once the engine gate lets Flows open.
  *
  * Instance methods (on instance.el):
  *   open()    — shows the overlay + re-syncs installed state (alias: onOpen).
@@ -1268,6 +1270,8 @@
  * Head: accented installed count + MpiFilterBar (Media/Type/search, MPI-754).
  *
  * Opened via: Events.emit('flows:open') → shell mounts it once and calls el.open().
+ * On Landing only (MPI-1147) the title is a Models | Flows MpiRadioGroup; Models emits
+ * `models:open`, and shell.js closes this overlay as the Model Library opens.
  * Emits: `flow:open` {flowId} when Open is clicked in the Gallery.
  *
  * Instance methods (on instance.el):

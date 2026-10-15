@@ -3,6 +3,7 @@ import { MpiOverlay } from '../../Primitives/MpiOverlay/MpiOverlay.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiTileSheet } from '../../Primitives/MpiTileSheet/MpiTileSheet.js';
 import { MpiFilterBar } from '../../Primitives/MpiFilterBar/MpiFilterBar.js';
+import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { Events } from '../../../events.js';
 import { state } from '../../../state.js';
 import {
@@ -18,7 +19,7 @@ import { sizeToGb, fitsHardware } from '../../../data/modelConstants/footprint.j
 import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
 import { DEPS } from '../../../data/modelConstants/dependencies.js';
-import { PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../../../router.js';
+import { PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY, PAGE_SCENE } from '../../../router.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { openExternal } from '../../../utils/openExternal.js';
@@ -209,6 +210,22 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // that gallery down and rebuild it for nothing (navigation.js ~110).
         _unsubs.push(on(backBtn.el, 'click', () => el.close()));
         qs('.mpi-flow-library__head', el).prepend(backBtn.el);
+
+        // ── Models | Flows switcher (MPI-1147) — Landing only ─────────────────
+        // The Model Library's twin (MpiModelManager ~120): on Landing the title becomes
+        // this switcher and shell.js closes this overlay as it opens the other. Snaps
+        // back to 'flows' for the next open; setValue re-emits, hence the guard.
+        const switcher = MpiRadioGroup.mount(ce('div'), {
+            name: 'Library', size: 'lg', value: 'flows',
+            options: [{ label: 'Models', value: 'models' }, { label: 'Flows', value: 'flows' }],
+        });
+        switcher.el.classList.add('mpi-flow-library__switch');
+        switcher.on('select', ({ value }) => {
+            if (value === 'flows') return;
+            switcher.el.setValue('flows');
+            Events.emit('models:open');
+        });
+        qs('.mpi-flow-library__title', el).before(switcher.el);
 
         // ── Filters + search (MPI-754) ────────────────────────────────────────
         // The Model Library's header row, from the Primitive both libraries share.
@@ -1214,6 +1231,9 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // project. Same `state.currentPage` gate the detail panel's Open button derives.
         el.open = () => {
             backBtn.el.hidden = state.currentPage !== PAGE_GALLERY;
+            const onLanding = state.currentPage === PAGE_LANDING;   // MPI-1147, same per-open reason
+            switcher.el.hidden = !onLanding;
+            qs('.mpi-flow-library__title', el).hidden = onLanding;
             overlay.el.show();
             renderList();
             _fetchHardwareOnce();
@@ -1229,6 +1249,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
             _destroyDetailBtns();
             closeBtn?.el?.destroy?.();
             backBtn?.el?.destroy?.();
+            switcher?.el?.destroy?.();
             folderBtn?.el?.destroy?.();
             refreshBtn?.el?.destroy?.();
             filterBar?.el?.destroy?.();

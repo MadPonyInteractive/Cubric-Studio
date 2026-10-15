@@ -65,10 +65,9 @@ export function initProjectUI() {
   const navSlot = gid('landingActions');
   if (navSlot) {
     const defs = [
-      { label: 'Models',   handler: () => Events.emit('models:open') },
-      // Flows (Flow Library) — MPI-256 gated this on dev_mode until ≥4 flows existed.
-      // Five now ship with their art, so MPI-589 took the gate off: this is a user route.
-      { label: 'Flows',    handler: () => Events.emit('flows:open') },
+      // MPI-1147: one door for both libraries. It opens on Models; the library header's
+      // Models | Flows switcher (landing-only) swaps between them in place.
+      { label: 'Library',  handler: () => Events.emit('models:open') },
       { label: 'Settings', handler: () => Events.emit('slide-over:open', { title: 'Settings', component: MpiSettings }) },
       // MPI-728 — sits next to Settings because it IS settings, split off by whose
       // machine they describe: the language models and the RunPod engine both run

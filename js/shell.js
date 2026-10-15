@@ -539,6 +539,9 @@ async function _bootApp() {
     // CAN run. Installing a local one is the dead end, so MpiModelManager's install
     // actions carry the engine gate instead (MPI-390 gated this whole door).
     if (!_modelLibrary) _modelLibrary = MpiModelManager.mount(document.createElement('div'));
+    // MPI-1147: the two libraries are one place to the user — opening one shuts the
+    // other, which is all the landing header's Models | Flows switcher needs.
+    _flowLibrary?.el.close();
     _modelLibrary.el.open();
   });
 
@@ -554,6 +557,9 @@ async function _bootApp() {
     // Written while the library was still dev-gated, and load-bearing now that it is not.
     if (await blockedByNoEngine()) return;
     if (!_flowLibrary) _flowLibrary = MpiFlowLibrary.mount(document.createElement('div'));
+    // MPI-1147: closed only past the engine gate, so a refused switch leaves the user
+    // on the Model Library behind the install prompt, not on a blank page.
+    _modelLibrary?.el.close();
     _flowLibrary.el.open();
   });
 
