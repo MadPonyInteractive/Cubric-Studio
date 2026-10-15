@@ -55,8 +55,9 @@ own LoRA folder names and conventions.
 A LoRA dropped in Model Settings lands in the open model's folder under the drop
 zone's `loras/` (`subfolder` on `POST /comfy/import-model`, created if missing).
 The folder name comes from `_LORA_FOLDER_BY_TYPE` in `MpiModelSettings.js` — it
-mirrors the shipped LoRA deps (`krea2` → `krea-2`, `h3` → `minimax-h3`), and a type
-not listed uses `model.type` itself. A new model whose shipped LoRAs sit in a folder
+mirrors the shipped LoRA deps (`krea2` → `krea-2`, `h3` → `minimax-h3`; `wan`
+ships none, so `wan-2.2` only follows the naming), and a type not listed uses
+`model.type` itself. A new model whose shipped LoRAs sit in a folder
 not named after its type needs a row there (MPI-1146).
 
 Upscale model dropdowns still use model-type filtering where appropriate, with

@@ -74,7 +74,8 @@ function _filterByType(files, modelType) {
 /**
  * model.type → the folder under `loras/` its LoRAs live in. Mirrors the folders the
  * shipped LoRA deps already use (loraDeps.js: `loras/krea-2/…`, `loras/minimax-h3/…`),
- * so a dropped LoRA lands beside the model's own. A type not listed uses its own name.
+ * so a dropped LoRA lands beside the model's own. `wan` ships no LoRA, so its
+ * `wan-2.2` only follows that naming. A type not listed uses its own name.
  */
 const _LORA_FOLDER_BY_TYPE = {
     krea2: 'krea-2',
