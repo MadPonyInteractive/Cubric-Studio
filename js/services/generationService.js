@@ -35,7 +35,7 @@ import { orderVersions, shownVersion } from '../utils/outputVersions.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { ce } from '../utils/dom.js';
 import { collapseQueueBatches } from './generationBatch.js';
-import { checkChildSafety, childSafetyGate, configTexts, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, pictureCheck, AGE_QUESTION, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
+import { checkChildSafety, childSafetyGate, configTexts, lookTexts, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, pictureCheck, AGE_QUESTION, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
 
 // ── Cue queue (in-app, THREE-LANE dispatch) ─────────────────────────────────
 // We own the pending array. MPI-74 P6 split dispatch into a 'remote' lane (cloud
@@ -598,7 +598,7 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
         const texts = configTexts(config);
         const safety = checkChildSafety(texts, configContext(config));
         if (safety.verdict === 'refuse') return _refuseChildSafety(safety, config, callbacks);
-        const look = needsPictureCheck(texts);
+        const look = needsPictureCheck(lookTexts(config));
         const pictures = look ? picturesOf(config) : [];
         const clips = look ? picturesOf(config, 'video') : [];
         if (safety.verdict === 'judge' || pictures.length || clips.length) {
@@ -663,7 +663,7 @@ async function _judgeThenQueue(config, callbacks, opts, pictures = [], clips = [
         clientLogger.warn('generationService', `[childSafety] no judge to ask: ${err?.message || err}`);
     }
     // No judge = looked at (`lookWanted` looks unless the nudity question answers a bare NO).
-    if ((pictures.length || clips.length) && await lookWanted(configTexts(config), judge && ((text) => judge(text, NUDITY_SYSTEM)))) {
+    if ((pictures.length || clips.length) && await lookWanted(lookTexts(config), judge && ((text) => judge(text, NUDITY_SYSTEM)))) {
         // A clip is looked at through its first frame (MPI-1062); one with no still is refused.
         const stills = await Promise.all(clips.map((url) => _clipStill(url, config._originProject)));
         // No describer = refused (`pictureCheck` refuses without one).

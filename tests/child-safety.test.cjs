@@ -201,6 +201,13 @@ test('configTexts reads the positive and Flow text params, never a negative or a
     assert.deepStrictEqual(texts, ['a woman at the beach', 'the girl on the left']);
 });
 
+test('lookTexts drops only what the run keeps (MPI-1149); configTexts still reads it', async () => {
+    const { lookTexts, configTexts } = await load();
+    const config = { positive: 'a mountain valley', injectionParams: { Input_Kept: 'a monkey wearing no clothes', Input_Look: 'snowy peaks', Input_Keep_Background: 'yes' } };
+    assert.deepStrictEqual(lookTexts(config), ['a mountain valley', 'snowy peaks', 'yes']);
+    assert.ok(configTexts(config).includes('a monkey wearing no clothes'));
+});
+
 test('configContext flags an NSFW model or LoRA', async () => {
     const { configContext } = await load();
     assert.deepStrictEqual(configContext({ model: { id: 'krea2' }, operation: 'characterSheet', injectionParams: {} }),

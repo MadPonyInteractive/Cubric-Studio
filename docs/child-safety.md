@@ -91,6 +91,10 @@ through. `childSafetyGate(texts, ctx, judge)` runs both tiers and never rejects.
   a bare NO passes (`parseAgeAnswer`); YES, chatter, a failed or missing describer refuses
   (`picture` / `pictureUnchecked`). An innocent edit ("make it night") is never looked at.
   Perception, not age, by decision: a young-looking adult is refused too.
+  The words that trigger the look are `lookTexts(config)`: `configTexts` minus a param keyed
+  `*_Kept` (MPI-1149), the describer's words for what the run keeps as it is (Video Edit's
+  `Input_Kept`). A cartoon monkey that "wears no clothes" there refused a background change;
+  it asks for no change. The text tier still reads it, so "a young boy, naked" there refuses.
   `lookWanted` is two layers (MPI-1062, Fabio: "both layers"): (1) `asksForNudity`, no model: a
   SEXUAL / UNCLOTHED word, an undress verb like "remove her clothes" in six Latin-script languages,
   or a Japanese / Chinese / Korean (`NUDITY_CJK`, matched with NO letter boundaries: CJK has no

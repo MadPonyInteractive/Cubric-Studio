@@ -234,6 +234,44 @@ test('an innocent edit of a clip is never looked at', () => {
     assert.strictEqual(describeBodies.length, before, 'no describe call');
 });
 
+// ── What a run KEEPS never triggers a look (MPI-1149, Fabio's live test 2026-10-15) ─────────
+// Video Edit "Change the background" on a cartoon monkey: the describer's words for the kept
+// subject said it wears no clothes, the look fired, and the age question refused the cartoon.
+
+const kept = (keptText, extra = {}) => {
+    const c = clipEdit('', undefined);
+    c.injectionParams = { 'Input_Operation': 4, Input_Kept: keptText, ...extra };
+    return c;
+};
+
+test('a kept subject the describer calls unclothed is not looked at: queued at once', () => {
+    describeAnswer = { ok: true, text: 'YES' };
+    const before = describeBodies.length;
+    const r = enqueueGeneration(kept('A brown cartoon monkey wearing no clothes, riding a white horse.'), {});
+    assert.ok(queued(r.queueJobId), 'queued at once');
+    assert.strictEqual(describeBodies.length, before, 'no describe call');
+});
+
+test('the kept text still meets the words check: a naked child there is refused', async () => {
+    const { seen, off, callbacks } = capture();
+    const r = enqueueGeneration(kept('A young boy, naked, standing in a kitchen.'), callbacks);
+    off();
+    assert.strictEqual(r, null, 'refused before it queued');
+    assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY');
+});
+
+test('the same words as the NEW look are still looked at, and refused on YES', async () => {
+    describeAnswer = { ok: true, text: 'YES' };
+    const before = describeBodies.length;
+    const { seen, off, callbacks } = capture();
+    const r = enqueueGeneration(kept('A white horse in a field.', { Input_Look: 'A person wearing no clothes.' }), callbacks);
+    await until(() => seen.errors.length > 0);
+    off();
+    assert.strictEqual(queued(r.queueJobId), false);
+    assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY');
+    assert.strictEqual(describeBodies.length, before + 1, 'one look at the clip');
+});
+
 // ── Words the lists cannot read (MPI-1062 Phase 2, Fabio's live test 2026-10-10) ────────────
 // The describer answers YES throughout: every picture and clip below shows a child.
 

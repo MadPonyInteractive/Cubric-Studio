@@ -384,6 +384,19 @@ export function configTexts(config) {
     return out;
 }
 
+/**
+ * A param that describes what the run KEEPS as it is (Video Edit's `Input_Kept`: the describer's
+ * words for the clip's own subject or room). It asks for no change, so it never triggers the
+ * picture check: a cartoon monkey "wears no clothes" refused a background change (MPI-1149).
+ * The text tier still reads it (`configTexts`): "a young boy, naked" there is still refused.
+ */
+const KEPT_KEY = /(?:^|_)kept(?:$|\.)/i;
+
+/** The words that decide whether a run's pictures are looked at: `configTexts` minus what it keeps. */
+export function lookTexts(config) {
+    return configTexts({ ...config, injectionParams: Object.fromEntries(Object.entries(config?.injectionParams || {}).filter(([k]) => !KEPT_KEY.test(k))) });
+}
+
 /** `checkChildSafety`'s ctx for a generation config. */
 export function configContext(config) {
     const ip = config?.injectionParams || {};
