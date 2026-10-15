@@ -1,8 +1,8 @@
 {
   "id": "81735925-ecd3-5793-ace0-0b760d62a4dd",
   "revision": 0,
-  "last_node_id": 196,
-  "last_link_id": 125,
+  "last_node_id": 210,
+  "last_link_id": 156,
   "nodes": [
     {
       "id": 1,
@@ -108,7 +108,8 @@
           "name": "MODEL",
           "type": "MODEL",
           "links": [
-            2
+            2,
+            137
           ]
         }
       ],
@@ -177,7 +178,8 @@
           "type": "CLIP",
           "links": [
             3,
-            50
+            50,
+            133
           ]
         }
       ],
@@ -230,7 +232,9 @@
           "links": [
             4,
             12,
-            52
+            52,
+            134,
+            143
           ]
         }
       ],
@@ -326,7 +330,8 @@
           "name": "int",
           "type": "INT",
           "links": [
-            10
+            10,
+            138
           ]
         }
       ],
@@ -819,7 +824,7 @@
           "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
-          "link": 18
+          "link": 154
         }
       ],
       "outputs": [
@@ -924,9 +929,10 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            18,
-            76,
-            123
+            126,
+            130,
+            148,
+            152
           ],
           "slot_index": 0
         }
@@ -3059,7 +3065,7 @@
           "localized_name": "input",
           "name": "input",
           "type": "*",
-          "link": 76
+          "link": 155
         },
         {
           "localized_name": "boolean",
@@ -4482,7 +4488,7 @@
         {
           "name": "false",
           "type": "*",
-          "link": 123
+          "link": 156
         },
         {
           "name": "boolean",
@@ -4548,6 +4554,877 @@
       },
       "widgets_values": [],
       "title": "free VRAM: the run's last step"
+    },
+    {
+      "id": 197,
+      "type": "MpiSimpleBoolean",
+      "pos": [
+        6000,
+        2600
+      ],
+      "size": [
+        300,
+        60
+      ],
+      "flags": {},
+      "order": 497,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "links": [
+            153
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiSimpleBoolean"
+      },
+      "widgets_values": [
+        false
+      ],
+      "title": "Input_Back_Pass"
+    },
+    {
+      "id": 198,
+      "type": "MpiText",
+      "pos": [
+        6000,
+        2720
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 498,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "Text",
+          "name": "Text",
+          "type": "STRING",
+          "links": [
+            136
+          ]
+        }
+      ],
+      "title": "Input_Positive_2",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiText"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 199,
+      "type": "GetImageSize",
+      "pos": [
+        6320,
+        2600
+      ],
+      "size": [
+        200,
+        60
+      ],
+      "flags": {},
+      "order": 499,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 126
+        }
+      ],
+      "outputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [
+            127
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [
+            129,
+            147
+          ],
+          "slot_index": 1
+        },
+        {
+          "name": "batch_size",
+          "type": "INT",
+          "links": [],
+          "slot_index": 2
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "GetImageSize"
+      },
+      "widgets_values": null,
+      "title": "the edit size (back pass)"
+    },
+    {
+      "id": 200,
+      "type": "MpiMath",
+      "pos": [
+        6640,
+        2600
+      ],
+      "size": [
+        295.386328125,
+        128
+      ],
+      "flags": {},
+      "order": 500,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 127
+        },
+        {
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        },
+        {
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            128,
+            146,
+            150
+          ]
+        }
+      ],
+      "title": "left 25%: the front body, and where the back panel starts",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "a // 4"
+      ]
+    },
+    {
+      "id": 201,
+      "type": "MpiBox",
+      "pos": [
+        6960,
+        2600
+      ],
+      "size": [
+        270.4146484375,
+        130
+      ],
+      "flags": {},
+      "order": 501,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 128
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 129
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": [
+            131
+          ]
+        }
+      ],
+      "title": "the front body box",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiBox"
+      },
+      "widgets_values": [
+        512,
+        512,
+        0,
+        0
+      ]
+    },
+    {
+      "id": 202,
+      "type": "MpiBoxCrop",
+      "pos": [
+        7280,
+        2600
+      ],
+      "size": [
+        250,
+        78
+      ],
+      "flags": {},
+      "order": 502,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 130
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "link": 131
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            132
+          ]
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": []
+        }
+      ],
+      "title": "crop the EDITED front body",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiBoxCrop"
+      },
+      "widgets_values": [
+        false
+      ]
+    },
+    {
+      "id": 203,
+      "type": "ImageScaleToTotalPixels",
+      "pos": [
+        7600,
+        2600
+      ],
+      "size": [
+        300,
+        106
+      ],
+      "flags": {},
+      "order": 503,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 132
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            135
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ImageScaleToTotalPixels"
+      },
+      "widgets_values": [
+        "lanczos",
+        0.9766,
+        16
+      ],
+      "title": "the front body to ~1 MP (448 x 1120 -> 640 x 1600, MPI-1086 r37)"
+    },
+    {
+      "id": 204,
+      "type": "TextEncodeQwenImage21",
+      "pos": [
+        7920,
+        2600
+      ],
+      "size": [
+        400,
+        366
+      ],
+      "flags": {},
+      "order": 504,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 133
+        },
+        {
+          "localized_name": "image_1",
+          "name": "images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 135
+        },
+        {
+          "localized_name": "image_2",
+          "name": "images.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_3",
+          "name": "images.image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_4",
+          "name": "images.image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_5",
+          "name": "images.image_5",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_6",
+          "name": "images.image_6",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_7",
+          "name": "images.image_7",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_8",
+          "name": "images.image_8",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_9",
+          "name": "images.image_9",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 134
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 136
+        },
+        {
+          "localized_name": "negative_prompt",
+          "name": "negative_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "negative_prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "resolution",
+          "name": "resolution",
+          "type": "INT",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            139
+          ]
+        },
+        {
+          "localized_name": "negative",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            140
+          ]
+        },
+        {
+          "localized_name": "latent",
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            141
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "TextEncodeQwenImage21"
+      },
+      "widgets_values": [
+        "",
+        "",
+        0
+      ],
+      "title": "Qwen: picture 1 = the edited front body, own size"
+    },
+    {
+      "id": 205,
+      "type": "KSampler",
+      "pos": [
+        8240,
+        2600
+      ],
+      "size": [
+        270,
+        262
+      ],
+      "flags": {},
+      "order": 505,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "link": 137
+        },
+        {
+          "localized_name": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 139
+        },
+        {
+          "localized_name": "negative",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 140
+        },
+        {
+          "localized_name": "latent_image",
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 141
+        },
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": 138
+        },
+        {
+          "localized_name": "steps",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "sampler_name",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scheduler",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "denoise",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "LATENT",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            142
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        0,
+        "randomize",
+        25,
+        1,
+        "euler",
+        "simple",
+        1
+      ],
+      "title": "KSampler (back pass)"
+    },
+    {
+      "id": 206,
+      "type": "VAEDecode",
+      "pos": [
+        8560,
+        2600
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 506,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "samples",
+          "name": "samples",
+          "type": "LATENT",
+          "link": 142
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 143
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            144
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "VAEDecode"
+      },
+      "title": "VAE Decode (back pass)"
+    },
+    {
+      "id": 207,
+      "type": "SplitImageWithAlpha",
+      "pos": [
+        8880,
+        2600
+      ],
+      "size": [
+        186.7291015625,
+        46
+      ],
+      "flags": {},
+      "order": 507,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 144
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            145
+          ]
+        },
+        {
+          "localized_name": "MASK",
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "SplitImageWithAlpha"
+      },
+      "title": "drop alpha (back pass)"
+    },
+    {
+      "id": 208,
+      "type": "ImageScale",
+      "pos": [
+        9200,
+        2600
+      ],
+      "size": [
+        270,
+        130
+      ],
+      "flags": {},
+      "order": 508,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 145
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "link": 146,
+          "widget": {
+            "name": "width"
+          }
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "link": 147,
+          "widget": {
+            "name": "height"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            149
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ImageScale"
+      },
+      "widgets_values": [
+        "lanczos",
+        512,
+        512,
+        "disabled"
+      ],
+      "title": "the back figure to the back panel size"
+    },
+    {
+      "id": 209,
+      "type": "ImageCompositeMasked",
+      "pos": [
+        9520,
+        2600
+      ],
+      "size": [
+        271.64609375,
+        146
+      ],
+      "flags": {},
+      "order": 509,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "destination",
+          "type": "IMAGE",
+          "link": 148
+        },
+        {
+          "name": "source",
+          "type": "IMAGE",
+          "link": 149
+        },
+        {
+          "name": "x",
+          "type": "INT",
+          "widget": {
+            "name": "x"
+          },
+          "link": 150
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            151
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.31.0",
+        "Node name for S&R": "ImageCompositeMasked"
+      },
+      "widgets_values": [
+        0,
+        0,
+        false
+      ],
+      "title": "paste it over the back panel"
+    },
+    {
+      "id": 210,
+      "type": "MpiIfElse",
+      "pos": [
+        9840,
+        2600
+      ],
+      "size": [
+        240,
+        80
+      ],
+      "flags": {},
+      "order": 510,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 151
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 152
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 153,
+          "widget": {
+            "name": "boolean"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            154,
+            155,
+            156
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "title": "the edit: with the redrawn back figure when Input_Back_Pass"
     }
   ],
   "links": [
@@ -4678,14 +5555,6 @@
       128,
       2,
       "INT"
-    ],
-    [
-      18,
-      128,
-      0,
-      35,
-      0,
-      "IMAGE"
     ],
     [
       19,
@@ -5128,14 +5997,6 @@
       "*"
     ],
     [
-      76,
-      128,
-      0,
-      168,
-      0,
-      "*"
-    ],
-    [
       77,
       167,
       0,
@@ -5496,14 +6357,6 @@
       "IMAGE"
     ],
     [
-      123,
-      128,
-      0,
-      195,
-      1,
-      "IMAGE"
-    ],
-    [
       124,
       167,
       0,
@@ -5517,6 +6370,254 @@
       0,
       196,
       0,
+      "*"
+    ],
+    [
+      126,
+      128,
+      0,
+      199,
+      0,
+      "IMAGE"
+    ],
+    [
+      127,
+      199,
+      0,
+      200,
+      0,
+      "INT"
+    ],
+    [
+      128,
+      200,
+      0,
+      201,
+      0,
+      "*"
+    ],
+    [
+      129,
+      199,
+      1,
+      201,
+      1,
+      "INT"
+    ],
+    [
+      130,
+      128,
+      0,
+      202,
+      0,
+      "IMAGE"
+    ],
+    [
+      131,
+      201,
+      0,
+      202,
+      1,
+      "MPI_BOX"
+    ],
+    [
+      132,
+      202,
+      0,
+      203,
+      0,
+      "IMAGE"
+    ],
+    [
+      133,
+      3,
+      0,
+      204,
+      0,
+      "CLIP"
+    ],
+    [
+      134,
+      4,
+      0,
+      204,
+      10,
+      "VAE"
+    ],
+    [
+      135,
+      203,
+      0,
+      204,
+      1,
+      "IMAGE"
+    ],
+    [
+      136,
+      198,
+      0,
+      204,
+      11,
+      "STRING"
+    ],
+    [
+      137,
+      2,
+      0,
+      205,
+      0,
+      "MODEL"
+    ],
+    [
+      138,
+      8,
+      0,
+      205,
+      4,
+      "INT"
+    ],
+    [
+      139,
+      204,
+      0,
+      205,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      140,
+      204,
+      1,
+      205,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      141,
+      204,
+      2,
+      205,
+      3,
+      "LATENT"
+    ],
+    [
+      142,
+      205,
+      0,
+      206,
+      0,
+      "LATENT"
+    ],
+    [
+      143,
+      4,
+      0,
+      206,
+      1,
+      "VAE"
+    ],
+    [
+      144,
+      206,
+      0,
+      207,
+      0,
+      "IMAGE"
+    ],
+    [
+      145,
+      207,
+      0,
+      208,
+      0,
+      "IMAGE"
+    ],
+    [
+      146,
+      200,
+      0,
+      208,
+      1,
+      "*"
+    ],
+    [
+      147,
+      199,
+      1,
+      208,
+      2,
+      "INT"
+    ],
+    [
+      148,
+      128,
+      0,
+      209,
+      0,
+      "IMAGE"
+    ],
+    [
+      149,
+      208,
+      0,
+      209,
+      1,
+      "IMAGE"
+    ],
+    [
+      150,
+      200,
+      0,
+      209,
+      2,
+      "*"
+    ],
+    [
+      151,
+      209,
+      0,
+      210,
+      0,
+      "IMAGE"
+    ],
+    [
+      152,
+      128,
+      0,
+      210,
+      1,
+      "IMAGE"
+    ],
+    [
+      153,
+      197,
+      0,
+      210,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      154,
+      210,
+      0,
+      35,
+      0,
+      "*"
+    ],
+    [
+      155,
+      210,
+      0,
+      168,
+      0,
+      "*"
+    ],
+    [
+      156,
+      210,
+      0,
+      195,
+      1,
       "*"
     ]
   ],

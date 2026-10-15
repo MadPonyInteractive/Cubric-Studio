@@ -225,6 +225,29 @@ export function buildChangePrompt(change, words, ref = false, refHair = '') {
 }
 
 /**
+ * The Qwen graph's back pass (`Input_Positive_2`): the back figure redrawn from the EDITED front one and pasted over
+ * the back panel, so no single pass sees two views of one side. In one pass a tattoo on her left leg came back on her
+ * right leg from behind; this put it on her left (MPI-1086 r37: t_leg1, the left-arm roses, the right-leg snake).
+ * Tattoos only: it also redraws the back of the outfit from the front (Fabio accepted that, 2026-10-15). With words
+ * only, the words come along (they put the snake right even where pass 1 left the front bare); with a picture, the
+ * picture does not (in pass 2 it invented arm ink 3 of 4).
+ * @param {string} change
+ * @param {string} words
+ * @param {boolean} ref - a Reference picture is given
+ * @returns {string} '' when the change takes no back pass
+ */
+export function buildBackPassPrompt(change, words, ref = false) {
+    if (change !== 'tattoos') return '';
+    const w = _words(words);
+    if (!w) return '';
+    return 'Turn the character in image 1 around so the character is seen from behind: the same person, hair, body, '
+        + 'skin tone, clothes and shoes, standing in the same pose, full body from head to feet, on the same plain grey '
+        + 'background. '
+        + (ref ? '' : `The character has this tattoo: ${_unview(w)}. Show it wherever it can be seen from behind. `)
+        + 'Keep everything else exactly as it is.';
+}
+
+/**
  * The exact-age edit (batch 15's neutral template, A4's teen and older wordings; batch 21's
  * swaddled newborn and toddler).
  * @param {number} age      - the target, 0 (a newborn) to 100
@@ -369,6 +392,12 @@ export function characterSheetEditor(part, values = {}) {
     // never want one: the raw picture goes in as image 2 (MPI-1086 r29, r31-r35).
     if (part === 'change') {
         injectionParams.Input_Is_Mannequin = RAW_REF.has(values.change) || /^\W*yes\b/i.test(values.refIsMannequin || '');
+    }
+    // MPI-1086 r37: Tattoos redraw the back figure from the edited front one, in the same Qwen graph.
+    if (part !== 'rebuild') {
+        const back = part === 'change' ? buildBackPassPrompt(values.change, values.words, _usesRef(values)) : '';
+        injectionParams.Input_Back_Pass = !!back;
+        injectionParams.Input_Positive_2 = back;
     }
     return { positive: _part(part, values), injectionParams };
 }

@@ -637,3 +637,46 @@ Sheets: scratchpad r36/c36_*.jpg. Sides eye-read (front figure: her left = pictu
 - NEXT (Fabio 2026-10-15): two-pass, so no single pass sees two views of a side - edit the front figure + close-up only,
   then hand the EDITED front body to Qwen as "this character seen from behind" and paste the result into the back
   panel. A graph patch (crop front body -> Qwen back pass -> composite), ~+100 s per run.
+
+## Round 37 (`qh37.py`, `h37_*`): Fabio's two-pass for the tattoo side flip (shipped graph, 25 steps)
+
+Pass 1 = the shipped edit (tQ picture / tW words) on the whole sheet (r35/r34 outputs reused: same graph, same seeds;
+w_snake run fresh). Pass 2 = the EDITED front figure alone (left 25% of the 8:5 sheet, upscaled to 640 x 1600) through
+the same Qwen graph, "Turn the character in image 1 around so the character is seen from behind ...", pasted over the
+back panel. B1 = no tattoo words; B2 = + the tattoo picture as image 2 (picture cases) or the tattoo words (words
+cases). Pass 2 = ~40-70 s. Sheets: scratchpad r37/c37_0.jpg, c37_1.jpg (p1 front | p1 back | B1 | B2). Sides: back
+figure faces away, her left = picture left.
+
+| case | pass 1 front | pass 1 back (shipped) | B1 | B2 |
+|---|---|---|---|---|
+| t_leg1 picture | her left leg | her right (mirrored) | **her left: correct** | her left, but an arm sleeve INVENTED |
+| t_leg2 picture | bare (missed) | her right | bare: tattoo lost | arm sleeves INVENTED, leg bare |
+| t_neck picture | neck + chest | none (right) | none (right) | INVENTED upper-back ink |
+| t_back picture | none (right) | back piece | back tattoo LOST (not on the front) | **back piece: pass** |
+| roses, her LEFT arm (words) | her left | her right (mirrored) | **her left: correct** | **her left: correct** |
+| snake, her RIGHT leg (words) | bare (missed) | her right | bare: tattoo lost | **her right: correct** (front still bare) |
+
+- **The two-pass fixes the flip** wherever the front has the tattoo: t_leg1 and roses land on the right side from
+  behind (B1), and words-B2 is right 2/2, even when pass 1 missed the front (snake).
+- **But it costs**: (1) pass 2 REDRAWS THE OUTFIT'S BACK in 12/12 - the sheet's open strappy back became a halter back
+  (the front's halter, turned round); (2) B1 loses anything not visible from the front (t_back, and the snake/t_leg2
+  that pass 1 missed on the front); (3) a tattoo picture in pass 2 (B2) invents ink 3 of 4 again, as r34/r36 did.
+- Best split if it ships: words -> B2 (words in pass 2), picture -> B1 (no picture in pass 2) - sides right on 3 of
+  the 4 flip cases (t_leg2 lost: pass 1 never drew it on the front); picture B1 still drops a back-only tattoo (t_back: ship would need the picture's own
+  "where" words, e.g. "Back tattoos", to pick the one-pass path). Not built: Fabio's call (outfit-back redraw).
+
+## Round 38 (`qh38.py`, `h38_*`): the SHIPPED back pass (Fabio 2026-10-15: "ship the two-pass for Tattoos, words go into pass 2, a picture does not")
+
+BUILT: `research/bench/patch_raw_back_pass.py` patched the Qwen raw graph (14 nodes: `Input_Back_Pass`,
+`Input_Positive_2`, crop the edit's left 25% -> ~1 MP -> Qwen edit, same model + seed -> back to the panel -> pasted at
+x = width // 4 -> a lazy MpiIfElse every reader of the edit now reads) + one-file convert (92 nodes, injection rules OK).
+Builder `buildBackPassPrompt` (Tattoos only; words into the pass, a picture not) -> `Input_Back_Pass` +
+`Input_Positive_2` on the change leg. Sheet: scratchpad r38/c38.jpg.
+
+- **Shipped graph = r37 bench pixel for pixel**, 6/6 cases (front, back and close-up max diff 0: ComfyUI's lanczos IS
+  PIL's). **Off = r35 pixel for pixel** (t_neck): the pass never runs when off.
+- Time: on 123-168 s vs off 108 s (~+35-50 s per tattoo run).
+- Picture cases WITH their where-words in pass 2 (`h38_w_*`, not shipped): t_leg1 same; t_neck INVENTED upper-back
+  ink; t_back and t_leg2 got small made-up tattoos, not the picture's design. So a picture case keeps no words in the
+  pass, as Fabio chose.
+- npm test 3327 / 0 fail; eslint clean; `tests/character-sheet-editor.test.cjs` pins the strings + the graph wiring.

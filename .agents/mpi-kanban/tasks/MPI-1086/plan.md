@@ -4,6 +4,20 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-15 evening (session "New character sheets 30") - LATEST. Fabio: ship the two-pass for Tattoos (words into
+pass 2, a picture not; the outfit's back redrawn accepted). BUILT + committed: the Qwen graph's lazy back pass
+(`patch_raw_back_pass.py`, `Input_Back_Pass` + `Input_Positive_2`), builder `buildBackPassPrompt`, tests, playbook.
+r38: shipped graph = r37 bench pixel for pixel 6/6, off = r35 pixel for pixel, +35-50 s; npm test 3327/0.
+Accessories needs no new bench (r29/r30/r36 passed; Fabio asked). NEXT: Fabio's app eye test (reload): Accessories,
+Makeup, Tattoos (a one-leg tattoo in words and with a picture: same side from behind). Then Beard entry, close-out.
+
+Earlier the same session: bench r37 (validation.md, `qh37.py`) = Fabio's
+two-pass: the flip IS fixed where the front has the tattoo (t_leg1, roses: her left from behind; words in pass 2 also
+put the snake right), 3 of 4 flip cases. Costs: pass 2 redraws the OUTFIT'S BACK 12/12 (strappy open back -> halter),
+loses back-only tattoos without the picture (t_back), and a picture in pass 2 invents arm ink 3/4. Nothing built.
+WAITING on Fabio: ship two-pass for Tattoos (words -> pass 2 with words, picture -> pass 2 without; ~+45 s), or keep
+the one-pass flip as a known partial. Then eye test (Accessories, Makeup, Tattoos), Beard, close-out.
+
 2026-10-15 later (session "New character sheets 29") - LATEST. COMMITTED + pushed 519cd6611: Makeup + Tattoos options
 (see the entry below). Fabio asked for a line fixing the one-sided tattoo that flips sides on the back view (her left
 leg in front, her right from behind; arms too). Bench r36 (validation.md): two no-limb side lines, NEITHER ships (A

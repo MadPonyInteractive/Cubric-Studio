@@ -151,7 +151,7 @@
   "35": {
     "inputs": {
       "images": [
-        "128",
+        "210",
         0
       ]
     },
@@ -750,7 +750,7 @@
   "168": {
     "inputs": {
       "input": [
-        "128",
+        "210",
         0
       ],
       "boolean": [
@@ -1177,7 +1177,7 @@
         0
       ],
       "false": [
-        "128",
+        "210",
         0
       ],
       "boolean": [
@@ -1200,6 +1200,250 @@
     "class_type": "MpiClearVram",
     "_meta": {
       "title": "free VRAM: the run's last step"
+    }
+  },
+  "197": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Back_Pass"
+    }
+  },
+  "198": {
+    "inputs": {
+      "string": ""
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Positive_2"
+    }
+  },
+  "199": {
+    "inputs": {
+      "image": [
+        "128",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "the edit size (back pass)"
+    }
+  },
+  "200": {
+    "inputs": {
+      "math_expression": "a // 4",
+      "a": [
+        "199",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "left 25%: the front body, and where the back panel starts"
+    }
+  },
+  "201": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "width": [
+        "200",
+        0
+      ],
+      "height": [
+        "199",
+        1
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "the front body box"
+    }
+  },
+  "202": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "128",
+        0
+      ],
+      "mpi_box": [
+        "201",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "crop the EDITED front body"
+    }
+  },
+  "203": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "megapixels": 0.9766,
+      "resolution_steps": 16,
+      "image": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "the front body to ~1 MP (448 x 1120 -> 640 x 1600, MPI-1086 r37)"
+    }
+  },
+  "204": {
+    "inputs": {
+      "negative_prompt": "",
+      "resolution": 0,
+      "clip": [
+        "3",
+        0
+      ],
+      "images.image_1": [
+        "203",
+        0
+      ],
+      "vae": [
+        "4",
+        0
+      ],
+      "prompt": [
+        "198",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImage21",
+    "_meta": {
+      "title": "Qwen: picture 1 = the edited front body, own size"
+    }
+  },
+  "205": {
+    "inputs": {
+      "steps": 25,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "2",
+        0
+      ],
+      "positive": [
+        "204",
+        0
+      ],
+      "negative": [
+        "204",
+        1
+      ],
+      "latent_image": [
+        "204",
+        2
+      ],
+      "seed": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler (back pass)"
+    }
+  },
+  "206": {
+    "inputs": {
+      "samples": [
+        "205",
+        0
+      ],
+      "vae": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode (back pass)"
+    }
+  },
+  "207": {
+    "inputs": {
+      "image": [
+        "206",
+        0
+      ]
+    },
+    "class_type": "SplitImageWithAlpha",
+    "_meta": {
+      "title": "drop alpha (back pass)"
+    }
+  },
+  "208": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "crop": "disabled",
+      "image": [
+        "207",
+        0
+      ],
+      "width": [
+        "200",
+        0
+      ],
+      "height": [
+        "199",
+        1
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "the back figure to the back panel size"
+    }
+  },
+  "209": {
+    "inputs": {
+      "y": 0,
+      "resize_source": false,
+      "destination": [
+        "128",
+        0
+      ],
+      "source": [
+        "208",
+        0
+      ],
+      "x": [
+        "200",
+        0
+      ]
+    },
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "paste it over the back panel"
+    }
+  },
+  "210": {
+    "inputs": {
+      "true": [
+        "209",
+        0
+      ],
+      "false": [
+        "128",
+        0
+      ],
+      "boolean": [
+        "197",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "the edit: with the redrawn back figure when Input_Back_Pass"
     }
   }
 }

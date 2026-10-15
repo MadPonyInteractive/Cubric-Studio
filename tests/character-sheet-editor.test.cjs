@@ -222,6 +222,21 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
         + 'face, hair, skin and clothes.' + KEEP);
     assert.strictEqual(characterSheetEditor('change', run('tattoos', 'a back tattoo')).injectionParams.Input_Is_Mannequin, true);
     assert.doesNotMatch(buildChangePrompt('accessories', 'a bandana', true), /tattoos/, 'Accessories keeps its own string');
+    // MPI-1086 r37: Tattoos redraw the back figure from the edited front one; words go into that pass, a picture does not.
+    const TURN = 'Turn the character in image 1 around so the character is seen from behind: the same person, hair, '
+        + 'body, skin tone, clothes and shoes, standing in the same pose, full body from head to feet, on the same plain '
+        + 'grey background.';
+    const pic = characterSheetEditor('change', run('tattoos', 'Leg tattoo')).injectionParams;
+    assert.deepStrictEqual([pic.Input_Back_Pass, pic.Input_Positive_2], [true, TURN + KEEP]);
+    const words = characterSheetEditor('change', { change: 'tattoos', words: 'a black snake tattoo on the right leg',
+        Input_Age: -1, mediaItems: [{ role: 'image1', url: 'x' }] }).injectionParams;
+    assert.deepStrictEqual([words.Input_Back_Pass, words.Input_Positive_2], [true, TURN + ' The character has this '
+        + 'tattoo: a black snake tattoo on the right leg. Show it wherever it can be seen from behind.' + KEEP]);
+    for (const c of ['accessories', 'makeup', 'hair', 'body']) {
+        assert.strictEqual(characterSheetEditor('change', run(c, 'x')).injectionParams.Input_Back_Pass, false, c);
+    }
+    assert.strictEqual(characterSheetEditor('age', run('tattoos', 'Leg tattoo', 30)).injectionParams.Input_Back_Pass, false,
+        'only the change leg takes the back pass');
     // MPI-1086 r21-r23: Hairstyle from a picture runs on Qwen (image 1 = the sheet, image 2 = the mannequin the graph
     // makes of the picture), with the describer's words (`refHair`) and every figure named.
     const HAIR = ', with the head uncovered and no hat. The front view, the character seen from behind and the close-up '
@@ -414,6 +429,19 @@ test('the Qwen graph makes a mannequin of the Reference picture, only when one i
         assert.ok(g[pick.inputs.true[0]].inputs['images.image_2'], `${name}: the true side reads the mannequin`);
         assert.ok(!g[pick.inputs.false[0]].inputs['images.image_2'], `${name}: the false side is the old one-picture edit`);
     }
+});
+
+test('the Qwen graph\'s back pass is lazy and every reader of the edit gets the merged picture (MPI-1086 r37)', () => {
+    const g = require(path.join(ROOT, 'comfy_workflows', 'flow_character_sheet_edit_qwen.json'));
+    const id = t => Object.keys(g).find(k => g[k]._meta?.title === t);
+    const mid = Object.keys(g).find(k => g[k].class_type === 'MpiIfElse' && g[k].inputs.boolean?.[0] === id('Input_Back_Pass'));
+    assert.ok(mid, 'a lazy if/else on Input_Back_Pass picks the picture');
+    const merged = g[mid];
+    assert.strictEqual(g[merged.inputs.true[0]].class_type, 'ImageCompositeMasked', 'on: the redrawn back pasted in');
+    assert.strictEqual(g[merged.inputs.false[0]]._meta.title, "back to the sheet's own size", 'off: the edit as before');
+    assert.strictEqual(g[id('Output_Image_2')].inputs.images[0], mid, 'the edit capture reads the merged picture');
+    const enc = Object.values(g).find(n => n.class_type === 'TextEncodeQwenImage21' && n.inputs.prompt?.[0] === id('Input_Positive_2'));
+    assert.ok(enc && !enc.inputs['images.image_2'], 'the back pass reads the front body only, no picture 2');
 });
 
 test('every op the Flow dispatches takes the sheet on image1', async () => {
