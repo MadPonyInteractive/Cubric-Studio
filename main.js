@@ -414,21 +414,6 @@ function createWindow() {
     }
   }, 2000).unref();
 
-  // MPI-1142: the ~15 s waits sit in Chromium's own queue, before a load reaches the network,
-  // so neither watcher above nor the server sees what holds the slots. A source run records
-  // Chromium's net log for its first 5 minutes (the stall shows right after start), one file,
-  // replaced each launch. Never in a packaged build.
-  if (!app.isPackaged) {
-    const netLogFile = path.join(app.getPath('userData'), 'logs', 'netlog.json');
-    // No maxFileSize: a capped log writes to a side folder and stitches only on a clean stop.
-    session.defaultSession.netLog.startLogging(netLogFile, { captureMode: 'default' })
-      .then(() => {
-        logger.info('netlog', `recording ${netLogFile} for 5 min`);
-        setTimeout(() => session.defaultSession.netLog.stopLogging()
-          .then(() => logger.info('netlog', 'stopped')), 10 * 60 * 1000).unref();
-      }, (e) => logger.warn('netlog', `not started: ${e.message}`));
-  }
-
   // Renderer permissions (MPI-573). Installing a handler at all is what the mic
   // recorder needs: Electron answers permission requests itself, and a denied
   // getUserMedia({audio}) comes back with no prompt, no dialog and nothing in the
@@ -828,6 +813,24 @@ function buildServerEnv(userDataPath, documentsPath) {
   return env;
 }
 
+// MPI-1142: the ~15 s waits sit in Chromium's own queue, before a load reaches the network,
+// so neither [held-load] nor the server sees what holds the slots. The first [slow-load] of
+// a source run starts Chromium's net log for 4 minutes (the waits come in waves, so the next
+// ones land in it), one file, replaced each launch. Never in a packaged build.
+let netLogStarted = false;
+function recordNetLogOnce() {
+  if (netLogStarted || app.isPackaged) return;
+  netLogStarted = true;
+  const netLogFile = path.join(app.getPath('userData'), 'logs', 'netlog.json');
+  // No maxFileSize: a capped log writes to a side folder and stitches only on a clean stop.
+  session.defaultSession.netLog.startLogging(netLogFile, { captureMode: 'default' })
+    .then(() => {
+      logger.info('netlog', `slow load seen, recording ${netLogFile} for 4 min`);
+      setTimeout(() => session.defaultSession.netLog.stopLogging()
+        .then(() => logger.info('netlog', 'stopped')), 4 * 60 * 1000).unref();
+    }, (e) => logger.warn('netlog', `not started: ${e.message}`));
+}
+
 function startServer() {
   const userDataPath = app.getPath('userData');
   // MPI-427: app.getPath('documents') THROWS when the Documents known folder can't be
@@ -1035,6 +1038,10 @@ app.on('ready', () => {
 
   // Wait for the server to signal it's ready
   serverProcess.on('message', async (msg) => {
+    if (msg && typeof msg === 'object' && msg.type === 'slow-load') {
+      recordNetLogOnce();
+      return;
+    }
     if (msg && typeof msg === 'object' && msg.type === 'open-folder') {
       try {
         const folderPath = typeof msg.folderPath === 'string' ? path.resolve(msg.folderPath) : '';

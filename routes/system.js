@@ -255,7 +255,10 @@ router.post('/log', (req, res) => {
     const safeMessage = redactSecrets(message);
     const safeDetail = redactSecrets(detail);
     let fullMessage = safeDetail ? `${safeMessage} — ${safeDetail}` : safeMessage;
-    if (category === 'slow-load') fullMessage += describeHeld(safeMessage);
+    if (category === 'slow-load') {
+        fullMessage += describeHeld(safeMessage);
+        process.send?.({ type: 'slow-load' });   // main starts a net log (MPI-1142)
+    }
     logger[safeLevel](category, fullMessage);
     res.json({ success: true });
 });
