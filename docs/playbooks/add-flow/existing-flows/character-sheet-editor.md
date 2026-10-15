@@ -12,7 +12,7 @@ building a Flow that needs more than one graph or more than one model.
 
 | | |
 |---|---|
-| requiredModels | `[{ label: 'Model', models: ['klein-9b'], loras: true }, { label: 'Body shape, hair from a picture and child ages', models: ['qwen-image-2-1'], optional: true, loras: true, for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] }]` |
+| requiredModels | `[{ label: 'Model', models: ['klein-9b'], loras: true }, { label: 'Body shape, hairstyle and child ages', models: ['qwen-image-2-1'], optional: true, loras: true, for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] }]` |
 | operation / `operationBy` | `flowCharacterSheetEdit` (Klein), routed by the `change` select: `body` -> `flowCharacterSheetEditQwen`, `hair` -> Qwen WITH a Reference picture, else Klein (a rule entry, MPI-1086), `none` -> no leg 1 |
 | graphs | `flow_character_sheet_edit.json` (Klein 9B, 129 nodes, in-graph SAM3 lock: cut at the shoulders on the back body, at the brows at lock 2; optional reference, cut out to its hair at lock 2) and `flow_character_sheet_edit_qwen.json` (Qwen-Image 2.1, 78: with a Reference picture a Klein mannequin leg feeds it `images.image_2`, MPI-1086 r23, skipped when `Input_Is_Mannequin`). Both output the INPUT size, and both END with the head removal (`Input_Headless`, MPI-1086 r26): see Versions below |
 | authoring source | `raw/` is the source now. `research/bench-tools/build_edit_graph*.py` wrote the first raws; the LoRA racks went in after with `research/bench-tools/insert_rack.py`, the reference with `insert_ref2.py`, the brow cut, hair cut-out and the Qwen mannequin leg with MPI-1086's `research/bench/patch_raw*.py` (raw in place, then `workflow-to-api.mjs` single-file) |
@@ -112,7 +112,7 @@ made the close-up HIM (2/2). A backpack can still come out worn on the chest: "o
 **Hairstyle with a picture runs on QWEN (MPI-1086 rounds 16-24).** Fabio's eye test failed the Klein
 route: lock 2 pastes the old face back onto a head Klein redrew from the picture's pose (double jaw,
 a second ear, a face out of place; ~11/17 after every lock fix). `operationBy` routes `hair` by a rule
-entry (`{ when: { media: 'image2' }, then: Qwen, else: Klein }`); hair in WORDS stays on Klein.
+entry until r28; since then `hair` maps straight to Qwen, words too (below).
 The Qwen graph turns the picture into a MANNEQUIN first, in the same prompt: `Input_Image_2` ->
 Klein 9B free edit ("Replace the person with a plain white mannequin seen in a three-quarter view,
 and keep the hairstyle exactly as it is...", fixed seed, 1 MP) -> `MpiClearVram` -> a second
@@ -125,6 +125,12 @@ RAW photo - the app describes before the graph runs - and the builder names imag
 figure. The user's words LEAD ("..., changed like this: <words>. The hairstyle in image 2: ..."):
 after the description the bodies kept the picture's colour. Words recolour and add; MOVING part of a
 style ("the bun lower") added a bun in every wording. It needs Qwen, so it is non-commercial.
+**Hairstyle in WORDS runs on QWEN too (MPI-1086 r27-r28, Fabio 2026-10-15).** Klein cannot take hair
+AWAY: "silver Mohawk" recoloured her braids silver, and even spelled out (shaved sides, a strip on
+top) it kept the long hair on the bodies. Qwen with the old L1 string changed the close-up only; the
+string naming every figure (`buildChangePrompt` `hair`) got all three 4/4, the bare name included.
+The `Hairstyle` option's `note` still says to describe the cut. Boogu was not benched (not installed
+in the app; MPI-1041 had it change one panel of three). Klein's lock 2 is now reached by nothing.
 
 An edit keeps the figure's SIZE: a child's or a heavier body needs the bodies redrawn, which is why
 age 12 and under and Body shape leave Klein. Klein's lock is LAZY (SAM3 runs only at lock 1 or 2);

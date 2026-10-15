@@ -38,7 +38,7 @@ test('an optional model offers Install until it is on disk, then becomes its slo
     const slots = window.locator('.mpi-base-flow__model-slot');
     await expect(slots).toHaveCount(2);
     // Two slots, so each carries its label (the disambiguator).
-    await expect(slots.nth(1).locator('.mpi-base-flow__field-label')).toHaveText('Body shape, hair from a picture and child ages');
+    await expect(slots.nth(1).locator('.mpi-base-flow__field-label')).toHaveText('Body shape, hairstyle and child ages');
     await expect(slots.nth(1).locator('.mpi-base-flow__model-name')).toHaveText('Qwen-Image 2.1');
     const install = slots.nth(1).locator('.mpi-base-flow__model-install button');
     await expect(install).toHaveText(/Install/);

@@ -45,8 +45,11 @@ test('every change builds its bench template verbatim', async () => {
     assert.strictEqual(buildChangePrompt('accessories', 'a red scarf and round glasses'),
         'Give the character a red scarf and round glasses. Make the same change on the character seen from behind and in '
         + 'the close-up portrait on the right. Keep everything else exactly as it is.');
-    const HAT = ', with the head uncovered and no hat, so the new hair shows.';
-    assert.strictEqual(buildChangePrompt('hair', 'a short blonde bob haircut'), 'Give the character a short blonde bob haircut' + HAT + L1);
+    // MPI-1086 r28: on Qwen, every figure named.
+    const HAIR = w => `Give the character this hairstyle: ${w}. The head is uncovered, no hat. The front view, the character `
+        + 'seen from behind and the close-up portrait on the right all show the same new hairstyle. '
+        + "Keep the character's own face and clothes. Keep everything else exactly as it is.";
+    assert.strictEqual(buildChangePrompt('hair', 'a short blonde bob haircut'), HAIR('a short blonde bob haircut'));
     assert.strictEqual(buildChangePrompt('condition', 'beaten up after a fight: a bruised, cut face and torn, dirty clothes'),
         'Make the character look beaten up after a fight: a bruised, cut face and torn, dirty clothes.' + L1);
     assert.strictEqual(buildChangePrompt('body', 'heavyset and overweight'), "Make the character's body heavyset and overweight." + L1);
@@ -55,7 +58,7 @@ test('every change builds its bench template verbatim', async () => {
         'Change the character in this character sheet: holding a sword seen from behind. Make the same change on the '
         + 'character seen from behind and in the close-up portrait on the right. Keep everything else exactly as it is.');
     // The user's own full stop is not doubled; no words, no prompt.
-    assert.strictEqual(buildChangePrompt('hair', '  a buzz cut. '), 'Give the character a buzz cut' + HAT + L1);
+    assert.strictEqual(buildChangePrompt('hair', '  a buzz cut. '), HAIR('a buzz cut'));
     assert.strictEqual(buildChangePrompt('clothes', '   '), null);
     assert.strictEqual(buildChangePrompt('none', 'anything'), null);
 });
@@ -120,7 +123,6 @@ test('each leg carries its lock and the whole run in runPrompt', async () => {
     const values = { change: 'clothes', words: 'a tweed suit', Input_Age: 10, sheetAge: '40', sheetClothes: 'Wearing a coat.' };
     const change = characterSheetEditor('change', values);
     assert.strictEqual(change.injectionParams.Input_Lock, 1);
-    assert.strictEqual(characterSheetEditor('change', { ...values, change: 'hair' }).injectionParams.Input_Lock, 2);
     assert.strictEqual(characterSheetEditor('change', { ...values, change: 'accessories' }).injectionParams.Input_Lock, 0);
     assert.strictEqual(characterSheetEditor('change', { ...values, change: 'custom' }).injectionParams.Input_Lock, 0);
     assert.strictEqual(characterSheetEditor('age', values).injectionParams.Input_Lock, 0);
@@ -294,8 +296,9 @@ test('each change routes to its editor and the age picks the legs', async () => 
     const { getFlowById, flowOperation, flowRunLegs, flowToggleLeg } = await registry();
     const flow = getFlowById('character-sheet-editor');
     assert.ok(flow, 'the Flow is registered');
-    for (const c of ['clothes', 'accessories', 'hair', 'condition']) assert.strictEqual(flowOperation(flow, run(c, -1)), 'flowCharacterSheetEdit');
-    assert.strictEqual(flowOperation(flow, run('body', -1)), 'flowCharacterSheetEditQwen');
+    for (const c of ['clothes', 'accessories', 'condition']) assert.strictEqual(flowOperation(flow, run(c, -1)), 'flowCharacterSheetEdit');
+    // MPI-1086 r28: a Hairstyle runs on Qwen with a picture or without.
+    for (const c of ['body', 'hair']) assert.strictEqual(flowOperation(flow, run(c, -1)), 'flowCharacterSheetEditQwen');
     assert.strictEqual(flowOperation(flow, run('none', 30)), null);
     // MPI-1086: a Hairstyle WITH a Reference picture goes to Qwen (the graph makes the mannequin); in words, Klein.
     const withRef = { ...run('hair', -1), mediaItems: [{ role: 'image2', url: 'ref.png' }] };

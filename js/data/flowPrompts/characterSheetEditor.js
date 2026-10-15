@@ -14,12 +14,11 @@ const L1 = ' Make the same change in the close-up portrait on the right. Keep ev
 
 /**
  * The SAM3 lock each change runs under: `Input_Lock` of flow_character_sheet_edit.json.
- * 1 = head, hair and face on all three panels (Clothes keeps the person); 2 = the face on the
- * front and the portrait (Hairstyle changes the hair around it); 0 = a free edit. Accessories
- * is free: a head lock blocks glasses and hats (A4). Body shape, and a Hairstyle with a Reference
- * picture (MPI-1086), run on the Qwen graph, which has no lock.
+ * 1 = head, hair and face on all three panels (Clothes keeps the person); 0 = a free edit. Accessories
+ * is free: a head lock blocks glasses and hats (A4). Body shape and Hairstyle (MPI-1086) run on the Qwen
+ * graph, which has no lock; the Klein graph's lock 2 (the face only) is now reached by nothing.
  */
-const LOCK = { clothes: 1, hair: 2 };
+const LOCK = { clothes: 1 };
 
 /** The describer's age read when it gave none: a typical adult sheet. */
 const ADULT = 35;
@@ -166,8 +165,12 @@ export function buildChangePrompt(change, words, ref = false, refHair = '') {
             return `Give the character ${w}. Make the same change on the character seen from behind and in the close-up `
                 + 'portrait on the right. Keep everything else exactly as it is.';
         // A hat hides the hair it is meant to change: the fisher's beanie stayed on the front view (F1).
+        // MPI-1086 r28: hair runs on QWEN (Klein turned a mohawk into silver braids). Naming every figure is what
+        // reaches the bodies: with L1 Qwen changed the close-up only; this got all three figures 4/4.
         case 'hair':
-            return `Give the character ${w}, with the head uncovered and no hat, so the new hair shows.` + L1;
+            return `Give the character this hairstyle: ${w}. The head is uncovered, no hat. The front view, the character `
+                + 'seen from behind and the close-up portrait on the right all show the same new hairstyle. '
+                + "Keep the character's own face and clothes. Keep everything else exactly as it is.";
         case 'condition':
             return `Make the character look ${w}.` + L1;
         case 'body':

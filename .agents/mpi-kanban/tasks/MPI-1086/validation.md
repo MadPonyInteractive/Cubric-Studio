@@ -412,3 +412,15 @@ body and neck (an artefact). q_ship (Qwen, shipped string): close-ups perfect, b
 hair on both (the known Qwen front-figure miss; R back too). q_spell (Qwen, spelled out): CLEAN on all 6 figures.
 Finding: a short style NAME is not enough when the cut removes hair; spelled out it works, best on Qwen.
 Fabio (before the bench): do not chase every hairstyle; a picture from online is the user's route for a rare one.
+Eye test 3, Fabio spelled it out on Klein (R sheet): "Strip of hair at the top with stubble on the sides. Black roots
+with pink tips gradient" -> colour right; close-up half-shaved side but the ponytail kept; front + back keep long hair.
+Fabio: "Klein basically sucks at this." Matches r27: Klein cannot take hair away reliably; Qwen spelled out 6/6.
+
+## Round 28 (`qh28.py`, `h28_*`, app engine :48188): hair in words on Qwen, every figure named
+
+q_fig (the string now in buildChangePrompt hair) on R + C, W1 "silver Mohawk" and W2 Fabio's spelled words:
+ALL THREE FIGURES changed 4/4 (r27 q_ship with L1 missed the front on both). R W1 a true mohawk; C W1 shaved
+sides + silver top; R W2 strip + stubble, black roots to pink tips; C W2 shaved sides, the old braids as pink
+cornrows on top. ~105-114 s. Boogu: 8/8 NODE ERRORS, not installed in the app (ae.safetensors missing) - not
+benched; MPI-1041 had it change one panel of three. SHIPPED: hair -> Qwen always (Fabio: "try Qwen").
+Grid: scratchpad h28.jpg.

@@ -1686,13 +1686,13 @@ export const FLOWS = [
     // change has a template that passed on the bench and the user's words fill one slot. The age is
     // written into the prompt as words, so the child-safety gate reads it.
     //
-    // LEGS. Leg 1 is the picked change (`operationBy`: Klein, or Qwen-Image 2.1 for Body shape and
-    // a Hairstyle from a picture, skipped for None). Then, when Age is set, a Klein age edit; for 12 and under the
+    // LEGS. Leg 1 is the picked change (`operationBy`: Klein, or Qwen-Image 2.1 for Body shape and a
+    // Hairstyle, skipped for None). Then, when Age is set, a Klein age edit; for 12 and under the
     // bodies are REDRAWN from the edited close-up by Character Sheet from Images on Qwen (an edit
     // keeps the adult's size, batch 17); then the head removal Character Sheet has.
     //
     // Qwen-Image 2.1 is OPTIONAL (Fabio, 2026-10-10): without it the Klein changes run, and Body
-    // shape or an age of 12 and under asks for it. Its pictures are not for commercial use.
+    // shape, a Hairstyle or an age of 12 and under asks for it. Its pictures are not for commercial use.
     {
         id: 'character-sheet-editor',
         title: 'Character Sheet Editor',
@@ -1701,13 +1701,13 @@ export const FLOWS = [
         // registered, so the layout holds and only the change moves.
         preview: 'flow-character-sheet-editor.webp',
         video: 'flow-character-sheet-editor.mp4',
-        description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, a hairstyle from a picture, and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
+        description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, a hairstyle and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
         // Each slot's rack fills its phase's nodes: Klein's Input_Lora_Phase1_* (the edit and age
         // legs), Qwen's Input_Lora_Phase2_* (Body shape). The child rebuild leg runs the
         // from-images graph, titled Phase1, so it takes no rack here.
         requiredModels: [
             { label: 'Model', models: ['klein-9b'], loras: true },
-            { label: 'Body shape, hair from a picture and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
+            { label: 'Body shape, hairstyle and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
               for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] },
         ],
         operation: 'flowCharacterSheetEdit',
@@ -1715,9 +1715,10 @@ export const FLOWS = [
             field: 'change',
             map: {
                 clothes: 'flowCharacterSheetEdit', accessories: 'flowCharacterSheetEdit',
-                // MPI-1086: a hairstyle FROM A PICTURE runs on Qwen (its graph makes the picture a mannequin
-                // first; 17/18 vs Klein's ~11/17), a hairstyle in WORDS on Klein (Fabio, 2026-10-14).
-                hair: { when: { media: 'image2' }, then: 'flowCharacterSheetEditQwen', else: 'flowCharacterSheetEdit' },
+                // MPI-1086: a hairstyle runs on Qwen. From a picture its graph makes the picture a mannequin
+                // first (17/18 vs Klein's ~11/17); in words Klein cannot take hair AWAY (a mohawk came back
+                // as silver braids), Qwen got every figure 4/4 (r28, Fabio 2026-10-15).
+                hair: 'flowCharacterSheetEditQwen',
                 condition: 'flowCharacterSheetEdit', custom: 'flowCharacterSheetEdit',
                 body: 'flowCharacterSheetEditQwen', none: null,
             },
@@ -1755,7 +1756,7 @@ export const FLOWS = [
                 options: [
                     { v: 'clothes', label: 'Clothes', info: 'New clothes on every panel; the head and hair stay exactly as they are.' },
                     { v: 'accessories', label: 'Accessories', info: 'Glasses, a scarf, a hat, jewellery - added to every panel.' },
-                    { v: 'hair', label: 'Hairstyle', info: 'A new haircut or colour; the face stays as it is. With a Reference picture it runs on Qwen-Image 2.1: not for commercial use.',
+                    { v: 'hair', label: 'Hairstyle', info: 'A new haircut or colour; the face stays as it is. Runs on Qwen-Image 2.1: not for commercial use.',
                       // A bare style name that takes hair AWAY ("Mohawk") fails; spelled out it works (r27).
                       note: 'Describe the cut, not just its name (e.g. shaved sides, a strip on top). A rare style? Add a Reference picture.' },
                     { v: 'condition', label: 'Condition', info: 'Beaten up, muddy, soaked, sunburnt - the state the character is in.' },
@@ -3393,8 +3394,8 @@ function legWanted(flow, leg, run, ctx = {}) {
 /**
  * The op leg 1 takes on this run: `operationBy.map[value]` for the declared field's value, else
  * `operation`. `null` means leg 1 is SKIPPED (a map entry of `null`). An entry may be a rule,
- * `{ when, then, else }` (MPI-1086: Hairstyle runs on Qwen with a Reference picture, on Klein
- * without), read through `ruleHolds` like a leg's `when`. A Flow with no `operationBy` is
+ * `{ when, then, else }` (MPI-1086 built it for Hairstyle, which since r28 always runs on Qwen; kept for
+ * Accessories with a picture), read through `ruleHolds` like a leg's `when`. A Flow with no `operationBy` is
  * always `operation`.
  * @param {FlowDef} flow
  * @param {Object} [run]
