@@ -377,5 +377,21 @@ test('pictureCheck: only a bare NO for every picture passes; no describer refuse
     assert.strictEqual(asked, 1, 'the describer is never asked about nothing');
     assert.deepStrictEqual(await pictureCheck([], null), { ok: true }, 'no picture, nothing to look at');
     assert.strictEqual(parseAgeAnswer('<think>hm</think> NO'), true);
-    assert.match(AGE_QUESTION, /under 18\? Answer with exactly one word: YES or NO\.$/);
+    assert.match(AGE_QUESTION, /could be, under 18\?/);
+    assert.match(AGE_QUESTION, /Answer with exactly one word: YES or NO\.$/);
+    const r2 = await pictureCheck(['a'], answers('No, it shows a monkey'));
+    assert.strictEqual(r2.answer, 'No, it shows a monkey', 'a picture refusal carries the answer for the log');
+    assert.strictEqual((await pictureCheck(['a'], answers('x'.repeat(200)))).answer.length, 80);
+    assert.strictEqual((await pictureCheck(['a'], null)).answer, undefined, 'no answer, none carried');
+});
+
+// MPI-1152: "anyone" counted a cartoon monkey on a horse as "could be under 18". The question
+// names who is a person, both ways: what stays checked, and the one thing that stops counting.
+test('AGE_QUESTION: drawn humans and human-shaped characters are people; an animal-bodied animal is not', async () => {
+    const { AGE_QUESTION } = await load();
+    for (const kept of [/a human, real or drawn/, /a photo/, /a cartoon/, /anime/, /a 3D render/, /a doll/, /an elf/, /a robot/, /\(a furry\)/]) {
+        assert.match(AGE_QUESTION, kept, `still a person: ${kept}`);
+    }
+    assert.match(AGE_QUESTION, /An animal with an animal body is not a person, however young or cute it looks\./);
+    assert.doesNotMatch(AGE_QUESTION, /anyone/, '"anyone" is what counted the monkey');
 });

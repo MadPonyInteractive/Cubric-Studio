@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1152", "at": "2026-10-15T23:47:18+01:00", "actor": "96021ed9-ef8b-4def-8519-fc5e83a39273", "column": "todo", "title": "Picture check: a cartoon animal counts as 'could be under 18'"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1152", "at": "2026-10-15T23:47:46+01:00", "actor": "96021ed9-ef8b-4def-8519-fc5e83a39273", "from": "todo", "to": "doing", "reason": "Fabio approved option B"}

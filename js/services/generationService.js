@@ -706,7 +706,9 @@ async function _clipStill(url, project) {
 
 /** Nothing queued: the user gets a toast, the caller (an agent's report, a Flow pane) the reason. */
 function _refuseChildSafety(r, config, callbacks) {
-    clientLogger.warn('generationService', `[childSafety] refused a ${config.byAgent ? 'agent' : 'user'} run of ${config.operation} (${r.reason})`);
+    // The describer's answer, so a picture refusal needs no paid replay to explain (MPI-1152).
+    const said = r.answer !== undefined ? ` answer=${JSON.stringify(r.answer)}` : '';
+    clientLogger.warn('generationService', `[childSafety] refused a ${config.byAgent ? 'agent' : 'user'} run of ${config.operation} (${r.reason})${said}`);
     if (!config.byAgent) Events.emit('ui:warning', { message: r.message, sound: false });
     try { callbacks.onError?.(Object.assign(new Error(r.message), { code: CHILD_SAFETY_CODE, userMessage: r.message })); } catch {}
     _emitPromptBoxGenerationEndIfIdle();

@@ -24,8 +24,8 @@
  *
  * The PICTURE check (Fabio, 2026-10-10): words cannot know the age of someone in a photo pulled off
  * the internet. So a run that sends a picture AND asks for nudity, underwear or sexual content
- * ("remove her clothes") first asks the image describer whether anyone in each picture could be
- * under 18 (`pictureCheck`); only a bare NO passes. Perception, not age: a young-looking adult is
+ * ("remove her clothes") first asks the image describer whether a person in each picture could be
+ * under 18 (`pictureCheck`, `AGE_QUESTION`: an animal-bodied animal is not a person); only a bare NO passes. Perception, not age: a young-looking adult is
  * refused too, by decision. A clip is looked at through its first frame (MPI-1062). Not looked at:
  * a clip's later frames, and a picture edited with innocent words ("put her in a bikini").
  *
@@ -501,8 +501,13 @@ export function picturesOf(config, mediaType = 'image') {
     return [...new Set(urls)];
 }
 
-/** What the image describer is asked about each picture. */
-export const AGE_QUESTION = 'Does this picture show anyone who is, or could be, under 18? Answer with exactly one word: YES or NO.';
+/**
+ * What the image describer is asked about each picture. "Anyone" counted a cartoon monkey on a
+ * horse as "could be under 18" (a bare YES, 3 of 3, Gemma 4 26B): a person is a human, real or
+ * drawn, or a human-shaped character, a furry included; an animal-bodied animal is not (MPI-1152).
+ * Benched verbatim on 14 pictures: every child still YES, the cartoon animals NO.
+ */
+export const AGE_QUESTION = 'Does this picture show a person who is, or could be, under 18? A person is a human, real or drawn (a photo, a cartoon, anime, a 3D render, a doll), or any character with a human body: an elf, a robot or an animal character that stands and is shaped like a human (a furry). An animal with an animal body is not a person, however young or cute it looks. Answer with exactly one word: YES or NO.';
 
 /** Only a bare NO passes; anything else, including silence, refuses. */
 export function parseAgeAnswer(answer) {
@@ -515,7 +520,8 @@ export function parseAgeAnswer(answer) {
  * @param {Array<string|null>} urls  null = a clip no still could be made of: refused
  * @param {(url: string) => Promise<{ok: boolean, text?: string, error?: string}>} [describe]
  *        `llmService.describeImage` with `AGE_QUESTION`; absent or failing = refused
- * @returns {Promise<{ ok: true } | { ok: false, code: 'CHILD_SAFETY', reason: string, message: string }>}
+ * @returns {Promise<{ ok: true } | { ok: false, code: 'CHILD_SAFETY', reason: string, message: string, answer?: string }>}
+ *          `answer`: the describer's words on a `picture` refusal (first 80 characters), for the log
  */
 export async function pictureCheck(urls, describe = null) {
     const refused = (reason) => ({ ok: false, code: CHILD_SAFETY_CODE, reason, message: MESSAGES[reason] });
@@ -523,7 +529,7 @@ export async function pictureCheck(urls, describe = null) {
         let r = null;
         try { r = url && typeof describe === 'function' ? await describe(url) : null; } catch { r = null; }
         if (!r?.ok) return refused('pictureUnchecked');
-        if (!parseAgeAnswer(r.text)) return refused('picture');
+        if (!parseAgeAnswer(r.text)) return { ...refused('picture'), answer: String(r.text ?? '').slice(0, 80) };
     }
     return { ok: true };
 }

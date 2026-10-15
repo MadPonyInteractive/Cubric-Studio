@@ -31,7 +31,13 @@ let nudityAnswer = 'NO';
 let nudityCalls = 0;
 let factAnswer = 'NO';
 let factCalls = 0;
+// clientLogger's lines (MPI-1152: a picture refusal logs the describer's answer).
+const logLines = [];
 globalThis.fetch = (url, init) => {
+    if (url === '/log') {
+        logLines.push(JSON.parse(init.body).message);
+        return Promise.resolve({});
+    }
     if (url === '/llm/describe') {
         describeBodies.push(JSON.parse(init.body));
         return Promise.resolve({ json: async () => describeAnswer });
@@ -180,6 +186,21 @@ test('"remove her clothes" on a picture that may show a minor is refused, and so
         assert.strictEqual(queued(r.queueJobId), false, JSON.stringify(answer));
         assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY', JSON.stringify(answer));
         assert.match(seen.warnings[0], answer.ok ? /may show someone under 18/ : /could not run/, JSON.stringify(answer));
+    }
+});
+
+test('a picture refusal logs what the describer answered; an unanswered look logs no answer (MPI-1152)', async () => {
+    for (const [answer, rx] of [
+        [{ ok: true, text: 'YES' }, /\(picture\) answer="YES"$/],
+        [{ ok: true, text: 'No, it shows a monkey' }, /\(picture\) answer="No, it shows a monkey"$/],
+        [{ ok: false, error: { code: 'NOT_VISION', message: 'no' } }, /\(pictureUnchecked\)$/],
+    ]) {
+        describeAnswer = answer;
+        const { seen, off, callbacks } = capture();
+        enqueueGeneration(edit('make her naked'), callbacks);
+        await until(() => seen.errors.length > 0);
+        off();
+        assert.match(logLines.filter((l) => /\[childSafety\] refused/.test(l)).at(-1), rx, JSON.stringify(answer));
     }
 });
 

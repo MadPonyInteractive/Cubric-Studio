@@ -87,10 +87,15 @@ through. `childSafetyGate(texts, ctx, judge)` runs both tiers and never rejects.
   frame grabbed in the renderer and kept in the project's preview store
   (`generationService._clipStill`; a Flow drop or an agent's file has no card), and no still is
   refused. `pictureCheck` asks `llmService.describeImage` (the user's
-  describe pick) `AGE_QUESTION` for each: "anyone who is, or could be, under 18? YES or NO". Only
+  describe pick) `AGE_QUESTION` for each: "a person who is, or could be, under 18? YES or NO". Only
   a bare NO passes (`parseAgeAnswer`); YES, chatter, a failed or missing describer refuses
   (`picture` / `pictureUnchecked`). An innocent edit ("make it night") is never looked at.
   Perception, not age, by decision: a young-looking adult is refused too.
+  A person is a human, real or drawn (photo, cartoon, anime, 3D, a doll), or a human-shaped
+  character (an elf, a robot, a furry); an animal with an animal body is not, however young or
+  cute (MPI-1152, Fabio). "Anyone" got a bare YES on a cartoon monkey riding a horse.
+  A `picture` refusal logs the describer's answer (`answer="..."`, 80 characters), so the next
+  one needs no paid replay.
   The words that trigger the look are `lookTexts(config)`: `configTexts` minus a param keyed
   `*_Kept` (MPI-1149), the describer's words for what the run keeps as it is (Video Edit's
   `Input_Kept`). A cartoon monkey that "wears no clothes" there refused a background change;
@@ -144,6 +149,15 @@ The picture check, measured (`research/age-bench.mjs`, the ComfyUI describer, cl
 only): every real 10-year-old edit refused (8/8); adults 9/11 passed, the two refused being a
 young-looking 25-year-old edit and an anime adult. ~2.5 s a picture.
 
+The person wording, measured (MPI-1152 `validation.md`, DeepInfra `google/gemma-4-26B-A4B-it`,
+the app's describe call replayed, 14 pictures x 3 tries, every answer the same 3 of 3): the
+old "anyone" refused 2 of 3 cartoon monkeys; the person wording passed all 3, still refused all 4
+children (three generated 10-year-olds, an anime boy), passed the 3 adults, the mascots, and one
+of two renders of the same fox character (the other it counted as a young person: over-refused,
+the strict side). Not benched on the ComfyUI 4B describer. Rejected (Fabio's idea, benched): a
+"visible genitals / breasts?" question as the trigger. It said NO on every clothed child, so
+"remove her clothes" on a clothed child photo would never be looked at; the harm is the output.
+
 ## Known gaps (by decision)
 
 - Words only: English, Portuguese, Spanish, French, German, Italian. Another Latin-script
@@ -157,6 +171,8 @@ young-looking 25-year-old edit and an anime adult. ~2.5 s a picture.
   seen. A clip with no card (a Flow drop, an agent's file) in a codec Chromium cannot decode is
   refused.
 - A describer that will not answer about an explicit picture refuses the run, adult or not.
+- A furry or other human-shaped animal character that looks young is a person under 18: nudity
+  words on it, or a nude one as Video Edit's reference, are refused (MPI-1152).
 - A sexual word anywhere beside a minor refuses, even when it is the adult's ("a sexy woman with
   her kids"): by design.
 - A flagged run sits in no queue while the judge answers, so Stop cannot reach it in that window.

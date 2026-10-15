@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1152",
+  "title": "Picture check: a cartoon animal counts as 'could be under 18'",
+  "description": "The age question answered a bare YES on a cartoon monkey on a horse (Video Edit, 2026-10-15). Reword AGE_QUESTION: people and human-shaped characters count, animal-bodied animals do not. Log the describer's answer on a picture refusal.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-15T23:47:18+01:00",
+  "updated_at": "2026-10-15T23:47:46+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
