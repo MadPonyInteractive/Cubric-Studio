@@ -341,9 +341,8 @@ const RACKS = [
     // Extend's two members. LTX's rack was there all along as flat Input_Lora_N (retitled).
     { file: 'flow_ltx_extend.json', loader: '1', consumer: '38', input: 'model', clipTo: ['14', '15'] },
     { file: 'flow_h3_extend.json', loader: '392', consumer: '497', input: 'model', clipTo: ['970'] },
-    // Character Sheet from Images: Qwen-Image 2.1 and Klein 9B, both model-only racks.
+    // Character Sheet from Images: Qwen-Image 2.1, a model-only rack.
     { file: 'flow_character_sheet_from_images.json', loader: '38', consumer: '39', input: 'model' },
-    { file: 'flow_character_sheet_from_images_klein.json', loader: '38', consumer: '47', input: 'model' },
     // MPI-1041 Character Sheet Editor: Klein's rack feeds BOTH arms of the lock switch; the Qwen
     // graph is the Flow's SECOND slot, so its rack is phase 2.
     { file: 'flow_character_sheet_edit.json', loader: '34', consumer: '50', input: 'model' },

@@ -46,3 +46,21 @@ nothing injects steps at run time. No change.
 the close-up sentence. The runtime graph equals the tested H node for node. `npm test` 3331 pass, 0 fail.
 
 Open: Fabio's eye on his own pictures in the app (the bench is the G: engine, not his).
+
+## 2026-10-16 - Fabio's eye test: still wrong
+
+Fabio on the bench sheet: the proportions are wrong - the head is too big, the body reads as a child's,
+on most sheets; only the two on the right pass. The portrait fix holds; the body views do not. Klein's
+pass 2 is the next suspect. Models never benched on this Flow (only Klein 9B and Qwen-Image 2.1 were, in
+MPI-1042): Qwen Image Edit 2511, Krea 2, Boogu. What their sheet-EDIT benches showed: MPI-1041 batch 9.
+
+## 2026-10-16 - Klein 9B removed from the Flow (Fabio)
+
+Fabio: Qwen-Image 2.1 is the only model for this Flow; replace it when a model as good arrives under a better
+licence. Removed: the Klein slot (`flowsRegistry.js`), the `byModel['klein-9b']` arm (`universal_workflows.js`),
+both Klein graphs (raw + runtime; the MPI-1148 pass-1 fix lives in git history at 02d62a7fe). Tests that
+listed the Klein graph now list the Qwen one only; flow-legs' wrong-graph trap assertion is gone with the arm
+(the per-op ids that guard it stay asserted). `npm test` 3330 pass, 0 fail.
+
+Not done: `docs/releases/UNRELEASED.md` line 47 still says "Runs on Qwen-Image 2.1 or FLUX.2 Klein 9B" - the
+file is claimed by the MPI-1086 session (8b179bd5).

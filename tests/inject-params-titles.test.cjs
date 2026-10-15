@@ -249,7 +249,7 @@ test('Character Sheet from Images carries every title its op, box and describer 
     // the describer's two answers - a missing Input_Face_Pose silently turns every
     // already-turned face, a missing Input_Body_Clothes dresses the sheet in the face
     // picture's clothes. Neither carries a negative: _buildParams would wipe a baked one.
-    for (const file of ['flow_character_sheet_from_images.json', 'flow_character_sheet_from_images_klein.json']) {
+    for (const file of ['flow_character_sheet_from_images.json']) {
         const have = titlesOf(file);
         for (const title of [
             'input_image', 'input_box', 'input_image_2', 'input_positive', 'input_seed',

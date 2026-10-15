@@ -217,8 +217,8 @@ test('Character Sheet from Images: the turn is asked on the BOXED face, the clot
     await fe.describeFlowRun(flow, { injectionParams: {}, mediaItems: [FACE] }, { id: 'p1', folderPath: 'C:/p' }, deps);
     assert.deepEqual(crops, []);
 
-    // Both arms take both answers as blank MpiText, and read the turn off the word "turned".
-    for (const file of ['flow_character_sheet_from_images.json', 'flow_character_sheet_from_images_klein.json']) {
+    // The graph takes both answers as blank MpiText, and reads the turn off the word "turned".
+    for (const file of ['flow_character_sheet_from_images.json']) {
         const g = JSON.parse(fs.readFileSync(repo(`comfy_workflows/${file}`), 'utf8'));
         const byTitle = new Map(Object.values(g).map(n => [n._meta?.title, n]));
         for (const to of ['Input_Face_Pose', 'Input_Body_Clothes']) {

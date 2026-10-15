@@ -39,8 +39,8 @@ const stage = async (installed) => {
 // ── Fixture ──────────────────────────────────────────────────────────────────
 //
 // The shape Phase B will declare, with stand-in ops that already exist: `flowOutpaint` plays the
-// Klein edit op (a Klein graph), `flowCharacterSheetImages` is the real two-graph op (Qwen by
-// default, Klein through `byModel`), `flowCharacterSheetHeadless` the head-removal leg. The one op
+// Klein edit op (a Klein graph), `flowCharacterSheetImages` is the real Qwen op (it had a Klein
+// `byModel` arm until MPI-1148), `flowCharacterSheetHeadless` the head-removal leg. The one op
 // that does not exist yet is the Qwen edit; availability never resolves a graph, so a string will do.
 const QWEN_EDIT = 'flowCharacterSheetEditQwen';
 const EDITOR = {
@@ -283,10 +283,8 @@ test('leg 2 of a two-slot Flow gets the QWEN graph: ids are resolved per op', as
     await stage(['klein-9b', 'qwen-image-2-1']);
 
     // THE TRAP: every slot's id used to go out with every leg, and the FIRST id with a `byModel`
-    // arm picks the graph. Klein is first, so the child rebuild ran on the Klein graph.
-    assert.strictEqual(getUniversalWorkflow('flowCharacterSheetImages', flowModelIds(EDITOR)),
-        'flow_character_sheet_from_images_klein.json', 'unresolved per op, the trap is still there to fall into');
-
+    // arm picked the graph - Klein, so the child rebuild ran on the Klein graph. That arm is gone
+    // (MPI-1148); the per-op ids below are what keeps a future one from catching a leg again.
     const op = 'flowCharacterSheetImages';
     assert.deepStrictEqual(flowModelIds(EDITOR, { op }), [null, 'qwen-image-2-1'], 'the Qwen slot claims the op; Klein is null-filled');
     assert.strictEqual(getUniversalWorkflow(op, flowModelIds(EDITOR, { op })), 'flow_character_sheet_from_images.json');
@@ -504,7 +502,7 @@ const BEFORE = {
         op: 'flowCharacterSheetImages', chain: ['flowCharacterSheetHeadless'],
         none: { ids: ['qwen-image-2-1'], graph: 'flow_character_sheet_from_images.json', chainGraph: ['flow_character_sheet_headless.json'], available: false, missing: ['qwen-image-2-1'] },
         all: { ids: ['qwen-image-2-1'], graph: 'flow_character_sheet_from_images.json', chainGraph: ['flow_character_sheet_headless.json'], available: true, missing: [] },
-        last: { ids: ['klein-9b'], graph: 'flow_character_sheet_from_images_klein.json', chainGraph: ['flow_character_sheet_headless.json'], available: true, missing: [] },
+        last: { ids: ['qwen-image-2-1'], graph: 'flow_character_sheet_from_images.json', chainGraph: ['flow_character_sheet_headless.json'], available: true, missing: [] },
     },
     'outpaint': {
         op: 'flowOutpaint', chain: [],

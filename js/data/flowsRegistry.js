@@ -1600,30 +1600,29 @@ export const FLOWS = [
     // `character-sheet` — same layout, so the same head-removal leg runs on it. No LoRA, no
     // training: the pictures are references. Bench record: tasks/MPI-1042/validation.md.
     //
-    // TWO ARMS, the user picks (Fabio, 2026-10-08). Qwen-Image 2.1 draws the whole sheet in
-    // one sampling and follows a body picture's build and clothes; Klein 9B needs two
-    // samplings (the portrait alone, or it squeezes and loses the turn) and leans on the face
-    // picture's clothes. Qwen is first, the recommended arm; its licence leaves the IMAGES
-    // non-commercial (the licence gate and badge are the model's, MPI-936), Klein's does not.
+    // QWEN-IMAGE 2.1 ONLY (Fabio, 2026-10-16, MPI-1148). It draws the whole sheet in one
+    // sampling and follows a body picture's build and clothes. The Klein 9B arm is gone: with a
+    // body picture it drew big heads on child-sized bodies, and no pass-1 fix saved it. Its
+    // licence leaves the IMAGES non-commercial (the gate and badge are the model's, MPI-936);
+    // replace it when a model as good arrives under a better licence.
     //
     // The close-up is ALWAYS three-quarter (Fabio: a frontal one leaves the video model to
     // invent the turn). Whether the face picture is already turned decides the wording - keep
     // its turn and expression, or turn it - and the DESCRIBER says which, on the boxed face.
     // A body picture is described too: no wording alone dressed the sheet in the body's
-    // clothes on both models, a caption of them did (batches 21-23). The graph builds the
-    // caption and puts it ahead of the user's words; "nude" there trips Klein's NSFW LoRA,
-    // exactly as in the app's Klein workflow.
+    // clothes, a caption of them did (batches 21-23). The graph builds the caption and puts it
+    // ahead of the user's words.
     {
         id: 'character-sheet-from-images',
         title: 'Character Sheet from Images',
         preview: 'flow-character-sheet-from-images.webp',
         video: 'flow-character-sheet-from-images.mp4',
-        description: 'Turn pictures of a character you already have into a character sheet: a large three-quarter portrait, plus full-body front and back views, on a plain grey studio backdrop. Box the face in the first picture; add a full-body picture and the sheet takes its build and clothes. Qwen-Image 2.1 follows a body picture best, but its pictures are not for commercial use; FLUX.2 Klein 9B\'s are. If the sheet does not look like your character, run it again.',
-        // The slot takes the user's LoRA rack (MPI-1036): Input_Lora_Phase1_1..6 in BOTH graphs.
-        requiredModels: [{ label: 'Model', models: ['qwen-image-2-1', 'klein-9b'], loras: true }],
+        description: 'Turn pictures of a character you already have into a character sheet: a large three-quarter portrait, plus full-body front and back views, on a plain grey studio backdrop. Box the face in the first picture; add a full-body picture and the sheet takes its build and clothes. Runs on Qwen-Image 2.1, whose pictures are not for commercial use. If the sheet does not look like your character, run it again.',
+        // The slot takes the user's LoRA rack (MPI-1036): Input_Lora_Phase1_1..6 in the graph.
+        requiredModels: [{ label: 'Model', models: ['qwen-image-2-1'], loras: true }],
         operation: 'flowCharacterSheetImages',
-        // The Qwen graph. Klein's file is `byModel`'s (universal_workflows.js); this field is
-        // read only by the tests that check declared fields against node titles.
+        // Read only by the tests that check declared fields against node titles; the run takes
+        // the op's graph from universal_workflows.js.
         workflow: 'flow_character_sheet_from_images.json',
         chain: { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', input: 'image1' },
         // The agent fills the pictures and words and opens the box for the user (MPI-892). It
@@ -1642,7 +1641,7 @@ export const FLOWS = [
         },
         steps: [
             {
-                // 4:5 = the portrait panel. Klein COPIES the face picture, so a picture of
+                // 4:5 = the portrait panel. The portrait COPIES the face picture, so a picture of
                 // another shape comes back stretched (bench runs 1-3); the graph widens any box
                 // to 4:5 as well, for an agent's measured one. `overflow` + MpiBoxCrop `pad`:
                 // a head at the edge can still be framed with its hair.
@@ -1651,7 +1650,7 @@ export const FLOWS = [
                 title: 'Box the face',
                 hint: [
                     'Box the head and shoulders, hair and headwear included: the portrait copies what is inside the box.',
-                    'Adding a full-body picture? Qwen-Image 2.1 follows its build and clothes best.',
+                    'Adding a full-body picture? The sheet takes its build and clothes.',
                 ],
             },
         ],
@@ -3054,9 +3053,9 @@ export function flowModelSlots(flow) {
  * slot naming none serves every op that no OTHER slot claims, so a Flow with no `for` anywhere
  * (every shipped Flow) has every slot serving every op, as it always did.
  *
- * "Claims" is what fixes the leg-2 wrong-graph trap: with `[klein-9b, qwen-image-2-1 (for
+ * "Claims" is what fixed the leg-2 wrong-graph trap: with `[klein-9b, qwen-image-2-1 (for
  * flowCharacterSheetImages)]`, the Qwen slot claims that op, so Klein is null-filled for it and
- * `getUniversalWorkflow` cannot match Klein's `byModel` arm.
+ * `getUniversalWorkflow` cannot match a Klein `byModel` arm (that op had one until MPI-1148).
  *
  * @param {{for?: string[]}[]} slots - `flowModelSlots(flow)`
  * @param {{for?: string[]}} slot
