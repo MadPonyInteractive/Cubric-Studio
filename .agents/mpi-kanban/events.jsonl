@@ -6181,3 +6181,4 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "at": "2026-10-15T14:26:07Z", "actor": "claude", "type": "task.updated", "summary": "maturity validating."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "at": "2026-10-15T14:28:29Z", "actor": "claude", "type": "validation.updated", "summary": "Fabio confirmed the switcher in the app."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "at": "2026-10-15T15:11:26Z", "actor": "claude", "type": "validation.updated", "summary": "Correction: Fabio has not seen it in the app yet; look still pending."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "type": "attention.required", "at": "2026-10-15T15:13:56Z", "actor": "claude", "reason": "Fabio's in-app look at the Library switcher (his app was busy 2026-10-15); then a green CI run on 279ff0d94."}

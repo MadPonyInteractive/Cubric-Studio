@@ -7,7 +7,7 @@
   "maturity": "validating",
   "status": "active",
   "created_at": "2026-10-15T15:10:09+01:00",
-  "updated_at": "2026-10-15T14:26:07Z",
+  "updated_at": "2026-10-15T15:13:56Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -17,5 +17,10 @@
     "events": "events.jsonl",
     "handoffs": "handoffs/",
     "research": "research/"
+  },
+  "attention": {
+    "state": "required",
+    "reason": "Fabio's in-app look at the Library switcher (his app was busy 2026-10-15); then a green CI run on 279ff0d94.",
+    "updated_at": "2026-10-15T15:13:56Z"
   }
 }
