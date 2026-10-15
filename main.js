@@ -414,6 +414,21 @@ function createWindow() {
     }
   }, 2000).unref();
 
+  // MPI-1142: the ~15 s waits sit in Chromium's own queue, before a load reaches the network,
+  // so neither watcher above nor the server sees what holds the slots. A source run records
+  // Chromium's net log for its first 5 minutes (the stall shows right after start), one file,
+  // replaced each launch. Never in a packaged build.
+  if (!app.isPackaged) {
+    const netLogFile = path.join(app.getPath('userData'), 'logs', 'netlog.json');
+    // No maxFileSize: a capped log writes to a side folder and stitches only on a clean stop.
+    session.defaultSession.netLog.startLogging(netLogFile, { captureMode: 'default' })
+      .then(() => {
+        logger.info('netlog', `recording ${netLogFile} for 5 min`);
+        setTimeout(() => session.defaultSession.netLog.stopLogging()
+          .then(() => logger.info('netlog', 'stopped')), 10 * 60 * 1000).unref();
+      }, (e) => logger.warn('netlog', `not started: ${e.message}`));
+  }
+
   // Renderer permissions (MPI-573). Installing a handler at all is what the mic
   // recorder needs: Electron answers permission requests itself, and a denied
   // getUserMedia({audio}) comes back with no prompt, no dialog and nothing in the
