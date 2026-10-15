@@ -25,6 +25,7 @@ import { state } from '../state.js';
 import { PAGE_LANDING } from '../router.js';
 import { gid, qs, qsa, ce, on } from '../utils/dom.js';
 import { createMascotClipQueue } from '../utils/mascotClipQueue.js';
+import { clientLogger } from '../services/clientLogger.js';
 
 /**
  * Stage order, left to right. Position, size, accent and paint order live in the CSS.
@@ -101,6 +102,8 @@ export const TRANSITION_MS = 900;
 const CLIP_PAD_MS = 60;
 
 const GREET_EVERY_MS = 3200;
+/** No new clip on screen for this long while swaps keep coming = a frozen mascot, logged. */
+const FROZEN_MS = 8000;
 const AWAKE = 'mpi-landing__crew-member--awake';
 const HELD = 'mpi-landing__crew--held';
 const LIVE = 'mpi-landing__crew-clip--live';
@@ -218,13 +221,42 @@ function _paintClip(m, id) {
         // the overlay's densest moment, so he fades in under cover and is whole again as
         // the smoke clears, rather than popping in after it. A no-op on an ordinary swap.
         m.el.classList.remove(GONE);
+        if (m.frozenAt) clientLogger.info('mascot', `${m.key} moving again after ${Math.round((Date.now() - m.frozenAt) / 1000)} s`);
+        m.shownAt = Date.now();
+        m.frozenAt = 0;
     };
     // Reduced motion: the queue paints once and schedules nothing, so not playing leaves
     // the video holding its first frame — which is the rest frame every clip opens on.
     if (m.reduced) on(next, 'loadeddata', show, { once: true });
     // Flip on the first PRESENTED frame: play() resolves before any frame reaches the screen,
     // and flipping then blanks him for a frame (MpiAgentChat.js `_paintCosmo`, measured).
-    else next.play().then(() => next.requestVideoFrameCallback(show), () => {});
+    // An AbortError is a swap overtaken by a newer one; any other failure is logged. A swap
+    // that never lands leaves him frozen on his last frame, and the next clip overtakes it
+    // within 5 s, so the freeze is judged per mascot: no new clip on screen for 8 s while
+    // swaps keep coming = one line, and one more when he moves again (MPI-1142: Reel froze
+    // on Fabio's landing with nothing in app.log).
+    else {
+        next.play().then(() => next.requestVideoFrameCallback(show), (err) => {
+            if (err.name !== 'AbortError') clientLogger.warn('mascot', `${m.key} ${id} would not play: ${err.name} ${_mediaState(next)}`);
+        });
+        m.shownAt ||= Date.now();
+        setTimeout(() => {
+            // A hidden window or an unrendered crew presents no frames: not a freeze.
+            // Not tied to this swap's seq: a run of stalled swaps overtakes every one of them.
+            // Until he moves, `next` is still the element every newer swap loads into.
+            if (m.dead || m.parked || m.frozenAt || document.hidden || !m.el.getClientRects().length) return;
+            if (Date.now() - m.shownAt < FROZEN_MS) return;
+            m.frozenAt = m.shownAt;
+            const waiting = (next.getAttribute('src') || '-').replace(/^.*\//, '');
+            clientLogger.warn('mascot', `${m.key} frozen ${Math.round((Date.now() - m.shownAt) / 1000)} s, waiting on ${waiting}: ${_mediaState(next)}`);
+        }, FROZEN_MS);
+    }
+}
+
+/** readyState / networkState / error of a clip, for the freeze lines above. */
+function _mediaState(v) {
+    return `readyState=${v.readyState} networkState=${v.networkState} paused=${v.paused} t=${v.currentTime.toFixed(2)}`
+        + `${v.error ? ` error=${v.error.code} ${v.error.message}` : ''} hidden=${document.hidden}`;
 }
 
 /**
