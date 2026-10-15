@@ -437,7 +437,7 @@ Mounted twice — see `shell.js` (panel, `standalone:false`) and `projectUI.js` 
 - `MpiTreePicker` (lora slot ×6)   props: `{ options: loraOptions from state.availableLoras, value, placeholder, searchPlaceholder:'Search LoRAs…', stripExtension:true, extraClasses: missing ? 'mpi-tree-picker--missing' : '' }`   slot: per-slot `dropHost` div; remounted on each `open()` call. Searchable folder tree (MPI-233) — replaced the flat `MpiDropdown` at BOTH flat (`_mountLoraSlots`) and staged (`_mountStagedLoraSlots`) sites. Value stays the full path string (heal/inject untouched).
 - `MpiInput` (model strength ×6)   props: `{ type:'number', size:'sm', value, min:-2, max:2, step:0.05, decimals:2 }`   slot: per-slot `strengthsEl`
 - `MpiInput` (clip strength ×6)   props: same pattern as model strength
-- `MpiFolderDrop` (one per configured folder)   props: `{ folderPath, bucket, primary, onImport }`   slot: `[data-drop="loras"]` / `[data-drop="upscale_models"]`; sourced from `GET /comfy/model-folders`; remounted per `open()` via render-token-guarded async `_renderDropZones` (guard prevents duplicate zones when the live-rerender fires mid-fetch). Also mounted in `MpiSettings` External Connections.
+- `MpiFolderDrop` (one per configured folder)   props: `{ folderPath, bucket, subfolder, primary, onImport }`   slot: `[data-drop="loras"]` / `[data-drop="upscale_models"]`; sourced from `GET /comfy/model-folders`; LoRA zones pass `subfolder` = the open model's LoRA folder (`_LORA_FOLDER_BY_TYPE`, fallback `model.type`; MPI-1146), upscale zones none; remounted per `open()` via render-token-guarded async `_renderDropZones` (guard prevents duplicate zones when the live-rerender fires mid-fetch). Also mounted in `MpiSettings` External Connections.
   - Missing-model UX: a selected LoRA/upscale absent from `state.availableLoras`/`upscaleModels` shows red (LoRA: `mpi-tree-picker--missing`; upscale: `mpi-dropdown--missing`) + a synthetic `(missing)` option. A relocated file self-heals by UNIQUE basename (path updated, persisted); ambiguous same-name across folders stays red. LoRA missing → blocking `ui:warning` at generate; upscale missing → fall back to SIAX + warn. The picker live-rerenders on `state:changed` for those keys while open.
 
 ---
@@ -446,7 +446,8 @@ Mounted twice — see `shell.js` (panel, `standalone:false`) and `projectUI.js` 
 
 Labeled model folder that is also an OS drop target. Resolves the dropped file's
 disk path via Electron `webUtils.getPathForFile` and POSTs `/comfy/import-model`
-to COPY it into that folder (409 → `window.confirm` replace). `onImport(filename)`
+to COPY it into that folder, or `<folder>/<subfolder>/` when the `subfolder` prop is
+set (the label shows that full path; 409 → `window.confirm` replace). `onImport(filename)`
 fires after success (callers call `loadAssets()`). Drop does **preventDefault only,
 NOT stopPropagation** — the gallery's window-level drop cleanup must still fire, or
 its media-drop overlay sticks open. Browser dev mode (no `webUtils`) ignores drops.

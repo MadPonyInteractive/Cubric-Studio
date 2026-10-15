@@ -430,7 +430,7 @@ Backend contract:
 - `POST /comfy/set-path` must always re-merge stored extras when rewriting YAML; clearing the primary path removes YAML only when no extras are configured.
 - `GET /comfy/list-files` unions the primary bucket folder with matching extras and preserves `{ success: true, files: string[] }`. Emits the ENGINE-OS path separator (local Windows `\`, remote `/`) so values match ComfyUI's loader enum; forcing forward slash 400s subfolder models on Windows.
 - `GET /comfy/model-folders?bucket=loras|upscale_models` returns `{ folders: [{ path, primary }] }` (primary bucket folder + extras) — used to render drag-drop zones.
-- `POST /comfy/import-model` `{ sourcePath, targetFolder, bucket, overwrite? }` copies a local model file into a CONFIGURED folder (allow-list = primary + extras); refuses overwrite without `overwrite:true` (409). Used by `MpiFolderDrop`.
+- `POST /comfy/import-model` `{ sourcePath, targetFolder, bucket, subfolder?, overwrite? }` copies a local model file into a CONFIGURED folder (allow-list = primary + extras); refuses overwrite without `overwrite:true` (409). `subfolder` = ONE plain folder name (`[\w.-]+`, not dots-only), created under the target if missing — anything with a separator 400s, so it can never leave the allow-list (MPI-1146). Used by `MpiFolderDrop`.
 - `POST /comfy/models/uninstall` must only trash non-custom-node model files inside the managed primary models root; custom nodes stay guarded by the default custom-nodes root.
 
 **Canonicalisation uses `fs.realpath.native`, and the `.native` is load-bearing (MPI-444).**
