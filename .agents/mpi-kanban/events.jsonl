@@ -6189,3 +6189,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-1086", "at": "2026-10-15T17:08:00+01:00", "actor": "claude", "note": "r38 shipped back pass for Tattoos = r37 bench pixel for pixel; off = r35; npm test 3327/0"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1150", "at": "2026-10-15T23:26:30+01:00", "actor": "claude", "column": "doing", "title": "Video Edit: 'Which person' reads wrong for animals and cartoon characters - say 'Which characters'"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1150", "at": "2026-10-15T23:27:45+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Relabelled; 107 registry tests pass"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1150", "at": "2026-10-15T23:29:07+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Reopened until CI judges 4971c9b8 (pre-push done-gate)"}
