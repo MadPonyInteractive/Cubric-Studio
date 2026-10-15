@@ -740,7 +740,7 @@
       "widgets_values": [
         0,
         "randomize",
-        30,
+        25,
         1,
         "euler",
         "simple",
@@ -749,7 +749,7 @@
       "widgets_values_named": {
         "seed": 0,
         "control_after_generate": "randomize",
-        "steps": 30,
+        "steps": 25,
         "cfg": 1,
         "sampler_name": "euler",
         "scheduler": "simple",

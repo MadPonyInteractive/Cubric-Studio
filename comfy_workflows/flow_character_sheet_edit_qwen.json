@@ -101,7 +101,7 @@
   },
   "33": {
     "inputs": {
-      "steps": 30,
+      "steps": 25,
       "cfg": 1,
       "sampler_name": "euler",
       "scheduler": "simple",

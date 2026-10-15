@@ -494,3 +494,34 @@ lock 0; q_words = Qwen, every figure named, no picture. Contact sheets: scratchp
   the close-up only, none on the front figure (partial: a bare "Mask" is ambiguous); Mini gun = a pistol in the front +
   back hands; Earrings and necklaces **pass**; Piercings and Choker **pass** (choker front + clasp on the back +
   close-up, ear cuff). Contact sheet: scratchpad r30/c_qw2.jpg. 96-112 s.
+
+## Round 31 (`qh31.py`, `h31_*`): Makeup + Tattoos through the shipped Accessories route (Qwen, 30 steps)
+
+Fabio's 13 pictures (imported_020-033), sheet flowCSE_044, r29 q_raw / r30 qw2 strings. Contact sheets: scratchpad
+r31/c31_*.jpg (reference left of each result).
+
+| case | words | result |
+|---|---|---|
+| t_neck (020) | Neck and chest tattoos | **pass**: front + close-up; took her small heart pendant too |
+| t_back (021) | Back tattoos | **pass**: on the back view only, as it should |
+| t_body (022) | Full body tattoos | **pass**: all three figures, own face |
+| t_all (023) | Tattoos | **pass**: all figures + face tattoos on the close-up; front legs bare where the back legs are inked |
+| t_leg1 (030) | Leg tattoo | partial: front on her LEFT leg, back view on her RIGHT (mirrored) |
+| t_leg2 (031) | Leg tattoo | partial: back view only, front leg bare |
+| m_spider (024) | Makeup | makeup **pass** front + close-up; face hidden by paint |
+| m_liner (025) | Makeup | makeup pass; her nose ring leaked; face drifts toward the reference (lips) |
+| m_glitter (026) | Makeup | makeup pass; close-up face = the REFERENCE woman's (lips, nose, no smile) |
+| m_glam (027) | Makeup | makeup pass; close-up face = the reference's (lips, jaw) |
+| m_gems (028) | Makeup | makeup pass; face drifts to the reference; her septum ring + choker leaked |
+| m_goth (032) | Makeup | makeup pass; face drifts; nose ring leaked |
+| m_lashes (033) | Makeup | makeup pass; close-up face = the reference's (lips, moles, nose stud) |
+| w_makeup | dark gothic makeup with smoky eyes and black lipstick (no picture) | **pass**: own face and smile; adds a gothic pendant |
+| w_tattoo | a full sleeve tattoo of black roses on the left arm (no picture) | partial: front on her left arm, back view on her RIGHT (mirrored) |
+
+- **Tattoos work through Accessories**: 4 pass + 2 partial with a picture. The miss is SIDE: the back view mirrors the
+  limb (2 of 3 one-limb cases), or one view is left bare.
+- **Makeup copies 7/7 but the picture's FACE comes with it** (5 of 7 close-ups drift to the reference woman; nose ring /
+  septum / choker leak 3 of 7). "Keep the character's own face" loses against a face-borne thing. In words only the
+  face holds. Round 32 tests (a) a face-keeping makeup string with the picture, (b) the picture put into words (as
+  Hairstyle does) and run with no picture, (c) a same-limb sentence for tattoos.
+- 25 steps set in the shipped Qwen editor graph (raw + API, the API = a fresh convert of the raw, 78/78 nodes).
