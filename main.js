@@ -385,14 +385,15 @@ function createWindow() {
   );
 
   // MPI-1142: Chromium lets only a few low-priority loads (pictures, videos) per host be in
-  // flight; the rest queue. A video player that idles with its load still open holds a slot
-  // until Chromium suspends it ~15 s later, and every picture behind it waits. Name any
-  // picture/video that stayed in flight 10 s+: `response` early = a holder, late = a victim.
+  // flight; the rest queue. A load left open (an idle video player, maybe a stream) holds a
+  // slot, and every picture behind it waits. Name every app-server load the moment it has
+  // been in flight 10 s, and again when it lets go: `response` early = it is holding.
   const heldLoads = new Map();
   const appUrls = { urls: ['http://127.0.0.1/*'] };
-  const isHeldKind = (d) => d.resourceType === 'media' || d.resourceType === 'image';
+  const heldLine = (rec, extra) => `${rec.type} in flight ${Date.now() - rec.start}ms, response after `
+    + `${rec.response ? `${rec.response - rec.start}ms` : 'never'}${extra} | ${rec.url.replace(/^http:\/\/127\.0\.0\.1:\d+/, '')}`;
   session.defaultSession.webRequest.onSendHeaders(appUrls, (d) => {
-    if (isHeldKind(d)) heldLoads.set(d.id, { start: Date.now() });
+    heldLoads.set(d.id, { start: Date.now(), type: d.resourceType, url: d.url });
   });
   session.defaultSession.webRequest.onResponseStarted(appUrls, (d) => {
     const rec = heldLoads.get(d.id);
@@ -400,15 +401,18 @@ function createWindow() {
   });
   const endHeldLoad = (d) => {
     const rec = heldLoads.get(d.id);
-    if (!rec) return;
     heldLoads.delete(d.id);
-    const ms = Date.now() - rec.start;
-    if (ms < 10000) return;
-    const response = rec.response ? `${rec.response - rec.start}ms` : 'never';
-    logger.warn('held-load', `${d.resourceType} in flight ${ms}ms, response after ${response}, ${d.error || d.statusCode} | ${d.url.replace(/^http:\/\/127\.0\.0\.1:\d+/, '')}`);
+    if (rec?.reported) logger.warn('held-load', heldLine(rec, `, released: ${d.error || d.statusCode}`));
   };
   session.defaultSession.webRequest.onCompleted(appUrls, endHeldLoad);
   session.defaultSession.webRequest.onErrorOccurred(appUrls, endHeldLoad);
+  setInterval(() => {
+    for (const rec of heldLoads.values()) {
+      if (rec.reported || Date.now() - rec.start < 10000) continue;
+      rec.reported = true;
+      logger.warn('held-load', heldLine(rec, ', still open'));
+    }
+  }, 2000).unref();
 
   // Renderer permissions (MPI-573). Installing a handler at all is what the mic
   // recorder needs: Electron answers permission requests itself, and a denied

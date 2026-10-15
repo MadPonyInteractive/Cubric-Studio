@@ -35,3 +35,9 @@
 - Isolated app still cannot make a holder: 3-12 hidden or visible, paused or playing mascot webms / 40 MB mp4s all finish in ms.
 - Shipped main.js `[held-load]`: webRequest onSendHeaders/onResponseStarted/onCompleted/onErrorOccurred on http://127.0.0.1/*, media+image only; logs any in flight 10 s+ with `response after` (small = holder). Plumbing proven with a temporary 0 ms threshold (media + image lines appeared), reverted to 10 s; eslint clean.
 - Next: Fabio full restart; at the next stall grep `[held-load]` -> the element/site that leaves its load open -> fix that site (release src when idle/hidden, or preload none).
+
+## 2026-10-15 ~04:25 local - first holder named; watcher now reports while open
+- Restart 22:00:30Z, landing stalls again (mascot clips cancelled unsent for minutes; Fabio's 2nd HAR ~/Downloads/Landing8 again excludes pending). Only ONE [held-load] line ever ended: `media in flight 15122ms, response after 8ms, net::ERR_FAILED | Qwen 2.1/Media/ref2v_003.mp4` (Chromium's ~15 s idle cancel). Console also showed ref2v_002.mp4 `download 17271ms`. The other holders never ended, so a log-on-end watcher misses them.
+- Landing cards are NOT it: findRecentProjectThumbnail returns the sidecar .thumb.webp (MPI-963) when one exists. ref2v_00x comes from the opened project's view (gallery/viewer video left paused with preload=auto behind the landing?).
+- main.js watcher reworked: every app-server load of ANY kind is logged once when it passes 10 s in flight (`still open`) and again on release. Isolated proof: EventSources log as `xhr ... still open`, released lines carry net::ERR_ABORTED/OK. eslint clean.
+- Next: Fabio full restart, next stall -> read every `still open` line: the set of holders at that moment.
