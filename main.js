@@ -239,6 +239,15 @@ if (process.env.CUBRIC_E2E) {
   app.commandLine.appendSwitch('disable-gpu-compositing');
 }
 
+// Every page load goes to our own server on 127.0.0.1, yet Chromium estimates
+// "network quality" from response times, and slow local routes (a thumbnail
+// being built, a long poll) can make it judge the link 3G. On a 3G estimate
+// its scheduler weighs each open EventSource as three requests, so our three
+// streams (agent, connector jobs, concat) leave no room for any low-priority
+// load: every off-screen picture and every video waits for the scheduler's
+// 15 s cutoff (MPI-1142, net log 2026-10-15). Loopback is never a slow network.
+app.commandLine.appendSwitch('force-effective-connection-type', '4G');
+
 // Windows launches straight from CubricStudio.exe now (MPI-387 fix D), so the
 // start script that used to export CUBRIC_USER_DATA_ROOT is gone. Without this
 // fallback a portable Windows install would silently write its user data — and

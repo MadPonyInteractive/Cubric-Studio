@@ -6,7 +6,8 @@
 import json, sys, collections
 
 s = open(sys.argv[1], encoding='utf-8').read().rstrip().rstrip(',')
-d = json.loads(s if s.endswith(']}') else s + ']}')
+try: d = json.loads(s)  # a finished log closes with polledData
+except json.JSONDecodeError: d = json.loads(s + ']}')
 R = {v: k for k, v in d['constants']['logEventTypes'].items()}
 req = collections.defaultdict(dict)
 for e in d['events']:
@@ -31,7 +32,7 @@ t0 = min(r['start'] for r in app.values())
 waited = sorted((r for r in app.values() if r.get('blocked', 0) > 3000), key=lambda r: r['start'])
 print(f"{len(app)} app requests, {len(waited)} blocked 3 s+ ({collections.Counter(r.get('blk_by') for r in waited)})")
 for r in waited[:40]:
-    print(f"  t={(r['start'] - t0) / 1000:7.1f}s blocked {r['blocked']:6d}ms {r['prio']:7} {short(r['url'])}")
+    print(f"  t={(r['start'] - t0) / 1000:7.1f}s blocked {r['blocked']:6d}ms {str(r['prio']):7} {short(r['url'])}")
 seen = set()
 for r in waited:
     k = round(r['start'] / 1000)
@@ -42,5 +43,5 @@ for r in waited:
     print(f"\nat t={(at - t0) / 1000:.1f}s ({short(r['url'])} waits) {len(alive)} alive:")
     for x in sorted(alive, key=lambda x: x['start']):
         resp = f"resp+{x['resp'] - x['start']}ms" if 'resp' in x else 'no resp'
-        print(f"    {x['prio']:7} age {(at - x['start']) / 1000:6.1f}s {resp:14} {short(x['url'])}")
+        print(f"    {str(x['prio']):7} age {(at - x['start']) / 1000:6.1f}s {resp:14} {short(x['url'])}")
     if len(seen) >= 4: break
