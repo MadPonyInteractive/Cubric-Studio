@@ -499,10 +499,12 @@ function _buildProjectRow(project) {
       const video = document.createElement('video');
       video.muted = true;
       video.playsInline = true;
-      // preload 'auto' so loadeddata fires (paints first frame). Static frame,
-      // no hover playback — hover-play previously forced preload of every video
-      // header up-front, defeating the whole point of the queue (MPI-286).
-      video.preload = 'auto';
+      // Static frame, no hover playback — hover-play previously forced preload of every
+      // video header up-front, defeating the whole point of the queue (MPI-286).
+      // 'metadata', not 'auto': loadeddata still fires (first frame painted), and the
+      // load ends there. A paused 'auto' video keeps its load open ~15 s, and Chromium
+      // lets only a few low-priority loads per host run: pictures queue behind it (MPI-1142).
+      video.preload = 'metadata';
       video.addEventListener('loadeddata', () => swapIn(video), { once: true });
       video.addEventListener('error', fail, { once: true });
       // Detaching is not enough: only dropping the src cancels the load and frees its

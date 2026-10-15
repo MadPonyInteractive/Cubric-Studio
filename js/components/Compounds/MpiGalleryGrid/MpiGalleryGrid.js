@@ -229,7 +229,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
         let _overlayOpen = false;
 
         // ── Media suspension (MPI-631) ────────────────────────────────────────
-        // A promoted hover <video> is not free: `preload="auto"` keeps a decoder and
+        // A promoted hover <video> is not free: once loaded it keeps a decoder and
         // its decode surfaces resident, and the grid promotes every video card that
         // scrolls past. Measured on a 161-asset project: 410 MB of dedicated VRAM on
         // landing became 1858 MB and stayed there, byte-identical, for 13 idle
@@ -1276,7 +1276,11 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 v.muted = true;
                 v.loop = true;
                 v.playsInline = true;
-                v.preload = 'auto';
+                // 'metadata', not 'auto' (MPI-1142): the first frame still paints and hover
+                // still plays, but a paused 'auto' card kept its load open ~15 s. Chromium
+                // runs only a few low-priority loads per host, so a project with several
+                // video cards queued every picture and mascot clip behind them.
+                v.preload = 'metadata';
                 v.draggable = false;
                 v.addEventListener('loadeddata', () => {
                     cardEl.classList.remove('mpi-group-card--missing');

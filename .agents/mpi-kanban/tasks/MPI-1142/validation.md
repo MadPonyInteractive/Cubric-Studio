@@ -41,3 +41,11 @@
 - Landing cards are NOT it: findRecentProjectThumbnail returns the sidecar .thumb.webp (MPI-963) when one exists. ref2v_00x comes from the opened project's view (gallery/viewer video left paused with preload=auto behind the landing?).
 - main.js watcher reworked: every app-server load of ANY kind is logged once when it passes 10 s in flight (`still open`) and again on release. Isolated proof: EventSources log as `xhr ... still open`, released lines carry net::ERR_ABORTED/OK. eslint clean.
 - Next: Fabio full restart, next stall -> read every `still open` line: the set of holders at that moment.
+
+## 2026-10-15 - ROOT CAUSE reproduced and fixed (no more rounds with Fabio)
+- research/repro2.cjs (isolated app, copy of Qwen 2.1 in scratch, CDP in-flight tracking): opening the project leaves `Media/Low ref2v_002.mp4` in flight ~16 s with its response in, every run. research/repro3.cjs dumps the element: the gallery card's promoted hover video (MpiGalleryGrid `_promoteVideo`), paused, preload=auto, readyState 4, networkState IDLE - yet Chromium keeps its load open until the ~15 s idle suspend. The other cards play small proxies and finish; ref2v_002 is an original (7.4 MB, 20 s). Fabio's Deepinfra HAR stall at 562 s = 17 promoted card videos at once.
+- A bare paused video (research/preload.cjs, auto or metadata, with or without the currentTime=0 seek) did not hold, so the hold needs the gallery's load conditions; the fix was proven on the real gallery instead.
+- Fix: MpiGalleryGrid promoted hover video and the landing card video fallback (projectUI.js) use preload='metadata'. repro2 x2: 0 holders (was 1 every run). repro3: all 4 cards still get `--hover-video-ready` (readyState 4) and play() advances to 1.44 s in 1.5 s.
+- Checks: npm test 3323 pass / 0 fail; desktop gallery-media-release + gallery-renditions + gallery-gif-hover 11/11; eslint clean.
+- Left as is: MpiCanvas/ComparisonManager (one video the user is about to play), utils/video.js firstFrameDataUrl (drops src in finally), mascot loops (autoplay, small). Diagnostics ([slow-load] split + held list, [held-load]) stay: always-on, cheap, they named this.
+- Live proof needs Fabio's normal use: no more ~15 s picture waits after opening a video-heavy project.
