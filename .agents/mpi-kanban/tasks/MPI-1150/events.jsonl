@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1150", "at": "2026-10-15T23:26:30+01:00", "actor": "claude", "column": "doing", "title": "Video Edit: 'Which person' reads wrong for animals and cartoon characters - say 'Which characters'"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1150", "at": "2026-10-15T23:27:45+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Relabelled; 107 registry tests pass"}

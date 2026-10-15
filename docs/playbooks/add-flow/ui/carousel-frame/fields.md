@@ -66,7 +66,7 @@ never reached the payload, defaults were never seeded, and Reuse read only `step
   itself. Seconds → frames stays the **graph's** job (`MpiMath`), never the app's.
 - `text` takes `placeholder` and `rows`; `rows > 1` renders a `textarea`. That is the prompt case.
   It also takes `info`, a status-bar hover on the box (MPI-1036): a field whose job a two-word
-  label cannot carry ("Which person", "Only change") explains itself there.
+  label cannot carry ("Which characters", "Only change") explains itself there.
   It also takes `tags`, a CLOSED array of `{tag}` that gives the box an `@` picker inserting the
   pick in SQUARE brackets on its own line (MPI-664). Opt-in per FIELD, never on the Primitive: this
   branch builds every text box in every flow, so a picker on `MpiInput` lands on every one of them

@@ -891,9 +891,9 @@ export const FLOWS = [
             },
             {
                 // {who} in the templates. Anything else has no {who}, so it is hidden there.
-                id: 'Input_Who', type: 'text', label: 'Which person', default: 'the person',
+                id: 'Input_Who', type: 'text', label: 'Which characters', default: 'the person',
                 placeholder: 'e.g. the woman in the red dress',
-                info: 'Who in the video gets the change, as the clip shows them, e.g. the woman in the red dress. Only matters when more than one person is in it.',
+                info: 'Who in the video this is about, as the clip shows them: a person, an animal or a cartoon, e.g. the woman in the red dress, or the monkey and the horse. Only matters when more than one is in it.',
                 hiddenWhen: { field: 'Input_Operation', is: 5 },
             },
             {
