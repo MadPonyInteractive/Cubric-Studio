@@ -612,3 +612,28 @@ scratchpad r35/c35_t*.jpg (ref | r31 q_raw | r35 tQ).
   invented). Words required with the picture (`REF_NEEDS_WORDS`). The one-limb side miss is the known partial.
 - Builder strings byte-identical to the bench, 13/13 (mA2, mP x2, mW x2, tW x2, tQ x6): scratchpad `cmp34.py`.
 - npm test 3324 pass / 0 fail; eslint clean; `tests/desktop/flow-optional-model-row.spec.js` passes on the new label.
+
+## Round 36 (`qh36.py`, `h36_*`): a side-keeping line for one-sided tattoos (Fabio: her LEFT leg in front, her RIGHT from behind)
+
+A = "Each tattoo stays on the same side of the character's body in every view: seen from behind, the character's left
+side is on the left of the picture, so a tattoo on the right of the front view is on the left of the character seen
+from behind."; B = "The character seen from behind is not a mirror image of the front view: anything on one side of the
+character's body stays on that side, so seen from behind it is on the other side of the picture." No limb named.
+Sheets: scratchpad r36/c36_*.jpg. Sides eye-read (front figure: her left = picture right; back: her left = picture left).
+
+| case | r35/r34 shipped | A | B |
+|---|---|---|---|
+| t_leg1 picture | mirrored | **back side right**, but an arm sleeve INVENTED (front + back) | front leg bare, back her right (wrong) |
+| t_leg2 picture | back only | front her right, back her left (wrong) + arm sleeve INVENTED | front bare, back only |
+| t_neck picture | pass | pass | pass |
+| t_back picture | pass | arm sleeve INVENTED on the front | pass |
+| roses, her LEFT arm (words) | mirrored | **both views her left arm: correct** | front right; back on BOTH arms |
+| snake, her RIGHT leg (words) | - | front right, back her left (wrong) | front bare, back her left (wrong) |
+| watch, LEFT wrist (Accessories words) | **correct both views** (shipped) | - | correct both views |
+
+- **Neither ships.** A gets the back side right 2 of 4 but invents arm sleeves 3 of 4 tattoo-picture runs (any talk of
+  sides invites ink, as r32's limbs did); B drops the front tattoo 3 times. Builder unchanged (tQ / tW).
+- Accessories does not need it: the shipped string put a left-wrist watch on her left wrist in both views.
+- NEXT (Fabio 2026-10-15): two-pass, so no single pass sees two views of a side - edit the front figure + close-up only,
+  then hand the EDITED front body to Qwen as "this character seen from behind" and paste the result into the back
+  panel. A graph patch (crop front body -> Qwen back pass -> composite), ~+100 s per run.

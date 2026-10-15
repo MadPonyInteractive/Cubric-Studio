@@ -4,6 +4,17 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-15 later (session "New character sheets 29") - LATEST. COMMITTED + pushed 519cd6611: Makeup + Tattoos options
+(see the entry below). Fabio asked for a line fixing the one-sided tattoo that flips sides on the back view (her left
+leg in front, her right from behind; arms too). Bench r36 (validation.md): two no-limb side lines, NEITHER ships (A
+right side 2/4 but invents arm sleeves 3/4 picture runs; B drops the front tattoo 3x). Accessories needs nothing (a
+left-wrist watch already correct both views). NEXT, in order: (1) r37 = Fabio's TWO-PASS idea: edit only the front
+figure + close-up, then crop the EDITED front body, Qwen "this character seen from behind" from it, composite into the
+back panel (bench in a script first, on the r36 mirror cases t_leg1/t_leg2/w_roses/w_snake + controls t_neck/t_back;
+read the Qwen raw graph's panel geometry - sheet flowCSE_044 is 8:5, front | back | close-up; MPI-1090's MpiBox crop
+nodes may help). If it wins: decide with Fabio whether it is tattoos-only or every change (it costs ~+100 s). (2)
+Fabio's app eye test: Accessories, Makeup, Tattoos (he was going to do it after the commit). (3) Beard entry. (4) Close-out.
+
 2026-10-15 session "New character sheets 29" - LATEST. BUILT (uncommitted, claim 94b9f277-mpi1086): options `makeup`
 + `tattoos` -> flowCharacterSheetEditQwen. Benches r34/r35 (validation.md): Makeup words 2/2, picture + words 2/2
 (+ r33 picture 7/7); Tattoos words 1 pass + 1 mirrored, picture ALONE 2/6 (invented sleeves) -> words REQUIRED with a
