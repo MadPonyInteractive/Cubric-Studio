@@ -424,3 +424,7 @@ sides + silver top; R W2 strip + stubble, black roots to pink tips; C W2 shaved 
 cornrows on top. ~105-114 s. Boogu: 8/8 NODE ERRORS, not installed in the app (ae.safetensors missing) - not
 benched; MPI-1041 had it change one panel of three. SHIPPED: hair -> Qwen always (Fabio: "try Qwen").
 Grid: scratchpad h28.jpg.
+
+Eye test 3, after 05e76d391 (Fabio, app): Hairstyle in words "Bob cut with fringe With black and pink gradient"
+on Qwen -> bob + fringe, black-to-pink gradient on all three figures, the hint shows under the dropdown.
+Fabio: "Very nice." Checks 2 (words re-run to the end), 4 Body shape, 6 Age + hair still not eye-tested.

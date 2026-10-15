@@ -4,6 +4,18 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-15 (session "New character sheets 26") - LATEST. Eye test 3 (validation.md): hair from a picture = one card
+with 3 versions PASS; a given mannequin as the Reference skips the mannequin step (describer "Yes", Qwen only, 136 s)
+PASS; a Stopped run keeps its cached mannequin as its own card - Fabio: fine. Hair in WORDS failed on Klein (a
+mohawk came back as silver braids; it cannot take hair away) -> bench r27/r28 -> SHIPPED: `hair` ALWAYS routes to
+Qwen, builder `hair` string names every figure (4/4), Hairstyle option `note` "Describe the cut, not just its name"
+(a select option's `note` now renders under the dropdown, declaredFields.js). Commits ed258233f, 05e76d391, pushed.
+Fabio: "Very nice" on a bob + pink gradient in words. Boogu (Fabio asked) NOT benched: not installed in his app.
+Klein lock 2 + the `{ when, then, else }` map-entry rule are now unused (kept for Accessories with a picture).
+Not eye-tested yet: 2 words-only re-run to the end, 4 Body shape, 6 Age + hair. NEXT: Accessories (Fabio: may want
+the mannequin option too), then Beard as its own entry, close-out. Benches now run on the APP engine :48188
+(qh27.upload stages sheets; the :8188 G: bench was down) - ask Fabio, his app idle.
+
 2026-10-14 night (session "New character sheets 25") - LATEST. Eye test 2 (validation.md): words fix the hair; the
 describer's ask listed "bunches" -> buns (FIXED in flowsRegistry.js, uncommitted). The mannequin rebuilds every run: the
 Headless leg ALWAYS runs as a second prompt (MPI-1087) and the RAM-pressure cache drops the older prompt's results.
