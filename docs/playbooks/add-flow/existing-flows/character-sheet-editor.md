@@ -12,11 +12,11 @@ building a Flow that needs more than one graph or more than one model.
 
 | | |
 |---|---|
-| requiredModels | `[{ label: 'Model', models: ['klein-9b'], loras: true }, { label: 'Body shape, hairstyle, accessories and child ages', models: ['qwen-image-2-1'], optional: true, loras: true, for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] }]` |
-| operation / `operationBy` | `flowCharacterSheetEdit` (Klein), routed by the `change` select: `body`, `hair` and `accessories` -> `flowCharacterSheetEditQwen` with a picture or without (MPI-1086 r28/r30), `none` -> no leg 1 |
+| requiredModels | `[{ label: 'Model', models: ['klein-9b'], loras: true }, { label: 'Body shape, hairstyle, accessories, makeup, tattoos and child ages', models: ['qwen-image-2-1'], optional: true, loras: true, for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] }]` |
+| operation / `operationBy` | `flowCharacterSheetEdit` (Klein), routed by the `change` select: `body`, `hair`, `accessories`, `makeup` and `tattoos` -> `flowCharacterSheetEditQwen` with a picture or without (MPI-1086 r28/r30/r34), `none` -> no leg 1 |
 | graphs | `flow_character_sheet_edit.json` (Klein 9B, 129 nodes, in-graph SAM3 lock: cut at the shoulders on the back body, at the brows at lock 2; optional reference, cut out to its hair at lock 2) and `flow_character_sheet_edit_qwen.json` (Qwen-Image 2.1, 78: with a Reference picture a Klein mannequin leg feeds it `images.image_2`, MPI-1086 r23, skipped when `Input_Is_Mannequin`; its edit KSampler runs **25 steps**, not the model's 30: on an edit 25 = 30, ~15% faster, MPI-1086 r30, Fabio). Both output the INPUT size, and both END with the head removal (`Input_Headless`, MPI-1086 r26): see Versions below |
 | authoring source | `raw/` is the source now. `research/bench-tools/build_edit_graph*.py` wrote the first raws; the LoRA racks went in after with `research/bench-tools/insert_rack.py`, the reference with `insert_ref2.py`, the brow cut, hair cut-out and the Qwen mannequin leg with MPI-1086's `research/bench/patch_raw*.py` (raw in place, then `workflow-to-api.mjs` single-file) |
-| media | `image1` the sheet; `image2` an OPTIONAL Reference picture (Klein op: Clothes; Qwen op: Hairstyle, Accessories) |
+| media | `image1` the sheet; `image2` an OPTIONAL Reference picture (Klein op: Clothes; Qwen op: Hairstyle, Accessories, Makeup, Tattoos) |
 | fields | `change` (select; "Custom" = a free edit in words, "None" = age only), `words` (hidden for None), `Input_Age` (slider -1-100: -1 = keep, the default; 0 = a newborn; 1 = a toddler; `valueLabels` reads Keep / Newborn), `Input_Remove_Head` |
 | prompt | `promptBuilder: 'characterSheetEditor'` -> `js/data/flowPrompts/characterSheetEditor.js`, called in `flowService` after describe. The user never types a prompt |
 
@@ -57,6 +57,8 @@ The mannequin: the describer's `refIsMannequin` yes/no on the Reference picture 
 | Clothes | Klein | 1 = SAM3 "head, hair, face" on all three panels; the BACK body's cut at the shoulders (MPI-1090) | b3-b4, 6 of 6; F1 wording 9 of 9 |
 | Accessories | Qwen-Image 2.1, every figure named, "this accessory to wear or hold" | none in that graph | MPI-1086 r30 3 pass + 1 partial; Klein (A4, F1 7/8) redrew the front as a back view 4/4 on Fabio's sheet |
 | Accessories + picture | Qwen-Image 2.1, the RAW picture as image 2 (`Input_Is_Mannequin` forced: no mannequin) | none in that graph | MPI-1086 r29 3 pass + piercings partial; Klein 0/4 |
+| Makeup (words / + picture) | Qwen-Image 2.1, her OWN face named part by part; with a picture the RAW picture "copied exactly", nothing else taken, words in their own sentence | none in that graph | MPI-1086 r33 picture 7/7 + own face 7/7, r34 words 2/2, picture + words 2/2 |
+| Tattoos (words / + picture) | Qwen-Image 2.1, "Add no other tattoos", no limb named; a picture needs words saying where (the Accessories string) | none in that graph | MPI-1086 r34 words 1 pass + 1 mirrored; picture + words r35 4 pass + 2 partial (one-limb side), nothing invented |
 | Hairstyle | Klein | 2 = "face" on the front and the close-up, from the BROWS down (MPI-1086) | b8; F1 wording 3 of 3; fringe 6 of 6 |
 | Hairstyle + picture | Qwen-Image 2.1; Klein makes the picture a mannequin in the same graph | none in that graph | MPI-1086 r21 17/18, r23 6/6 |
 | Condition | Klein | 0 | b5, 6 of 6 |
@@ -78,7 +80,7 @@ close-up - a Klein limit, the overshooting wording is kept because its panels ag
 
 **The Reference picture (F2).** `image2` -> `Input_Image_2` -> a second `ReferenceLatent` on top of
 reference 1, switched by `loaded` AND `Input_Reference` (`MpiBooleanCompare` both_true -> `MpiIfElse`,
-lazy). The builder sets `Input_Reference` only on the change leg of Clothes, Accessories or Hairstyle: an age leg that starts
+lazy). The builder sets `Input_Reference` only on the change leg of a change that takes one (`REF_THING`): an age leg that starts
 the run is handed the user's media too. Words become optional with a reference; any age 0-17 refuses
 it (`docs/child-safety.md`). With a reference every figure is named, the back one ONLY as "the
 character seen from behind": "the back view" let Klein draw the reference person as an extra figure,
@@ -112,6 +114,13 @@ became a necklace, qh5); Qwen takes only "the <thing> from image 2, not the pers
 no "where" words (the gun in her hand). In words, a bare "Mask" became a matte over the whole sheet
 until the string said "this accessory to wear or hold". A thing can still read two ways ("Mini gun" =
 a pistol, "Mask" = a surgical mask): the words name it, the picture settles it.
+**Makeup and Tattoos are their own options (MPI-1086 r31-r35, Fabio 2026-10-15).** Through the Accessories
+string a makeup picture brought its FACE (5 of 7 close-ups); naming her own face part by part and "Take
+nothing else from image 2" kept it 14/15. A tattoo picture ALONE does not say where on the body it is:
+"copied exactly, in the same place" inked arms and legs it never showed and moved a leg tattoo to the
+arms (4 of 6), so a tattoo picture needs words saying where (`REF_NEEDS_WORDS`). Never name a limb in the
+tattoo string: "the same arm or leg" ADDED sleeves (r32). Known partial: a one-limb tattoo is mirrored on
+the back view (her left arm in front, her right from behind).
 **Hairstyle with a picture runs on QWEN (MPI-1086 rounds 16-24).** Fabio's eye test failed the Klein
 route: lock 2 pastes the old face back onto a head Klein redrew from the picture's pose (double jaw,
 a second ear, a face out of place; ~11/17 after every lock fix). `operationBy` routes `hair` by a rule

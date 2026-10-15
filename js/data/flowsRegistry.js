@@ -1701,13 +1701,13 @@ export const FLOWS = [
         // registered, so the layout holds and only the change moves.
         preview: 'flow-character-sheet-editor.webp',
         video: 'flow-character-sheet-editor.mp4',
-        description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, a hairstyle, accessories and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
+        description: 'Change one thing on a character sheet you already have - the clothes, accessories, makeup, tattoos, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory, makeup, tattoos or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, a hairstyle, accessories, makeup, tattoos and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
         // Each slot's rack fills its phase's nodes: Klein's Input_Lora_Phase1_* (the edit and age
         // legs), Qwen's Input_Lora_Phase2_* (Body shape). The child rebuild leg runs the
         // from-images graph, titled Phase1, so it takes no rack here.
         requiredModels: [
             { label: 'Model', models: ['klein-9b'], loras: true },
-            { label: 'Body shape, hairstyle, accessories and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
+            { label: 'Body shape, hairstyle, accessories, makeup, tattoos and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
               for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] },
         ],
         operation: 'flowCharacterSheetEdit',
@@ -1718,6 +1718,8 @@ export const FLOWS = [
                 // MPI-1086 r29/r30: Klein redrew the front figure as a back view on Fabio's sheet, with a picture or
                 // in words (4/4 each), and took the picture's person; Qwen kept layout, face and hair 4/4 both ways.
                 accessories: 'flowCharacterSheetEditQwen',
+                // MPI-1086 r31-r35 (Fabio, 2026-10-15): split out of Accessories, each with its own prompting, on Qwen.
+                makeup: 'flowCharacterSheetEditQwen', tattoos: 'flowCharacterSheetEditQwen',
                 // MPI-1086: a hairstyle runs on Qwen. From a picture its graph makes the picture a mannequin
                 // first (17/18 vs Klein's ~11/17); in words Klein cannot take hair AWAY (a mohawk came back
                 // as silver braids), Qwen got every figure 4/4 (r28, Fabio 2026-10-15).
@@ -1746,10 +1748,10 @@ export const FLOWS = [
         inputSchema: {
             media: [
                 { type: 'image', mode: 'upto', max: 1, roles: ['image1'], labels: ['Character sheet'] },
-                // Optional (Fabio, 2026-10-10): an outfit, an accessory or a hairstyle to copy, for Clothes,
-                // Accessories and Hairstyle (MPI-1086); any other change ignores it. Accessories need words
+                // Optional (Fabio, 2026-10-10): an outfit, an accessory, makeup, tattoos or a hairstyle to copy,
+                // for those changes (MPI-1086); any other change ignores it. Accessories and Tattoos need words
                 // naming it; a hairstyle is put into words by `refHair` below. Not with an age under 18.
-                { type: 'image', mode: 'upto', max: 1, roles: ['image2'], labels: ['Reference picture (optional)\nan outfit, accessory or hairstyle'] },
+                { type: 'image', mode: 'upto', max: 1, roles: ['image2'], labels: ['Reference picture (optional)\nan outfit, accessory, makeup, tattoo or hairstyle'] },
             ],
         },
         result: { compare: 'image1' },
@@ -1759,6 +1761,10 @@ export const FLOWS = [
                 options: [
                     { v: 'clothes', label: 'Clothes', info: 'New clothes on every panel; the head and hair stay exactly as they are.' },
                     { v: 'accessories', label: 'Accessories', info: 'Glasses, a scarf, a hat, jewellery - added to every panel. Runs on Qwen-Image 2.1: not for commercial use.' },
+                    { v: 'makeup', label: 'Makeup', info: 'Eyeshadow, lipstick, face paint - the face stays the same person. Runs on Qwen-Image 2.1: not for commercial use.' },
+                    { v: 'tattoos', label: 'Tattoos', info: 'Tattoos on every panel where they can be seen. Runs on Qwen-Image 2.1: not for commercial use.',
+                      // A tattoo photo does not say where on the body it is: alone, it inked arms and legs it never showed (r34).
+                      note: 'With a Reference picture, say where they go (e.g. the neck and chest tattoos).' },
                     { v: 'hair', label: 'Hairstyle', info: 'A new haircut or colour; the face stays as it is. Runs on Qwen-Image 2.1: not for commercial use.',
                       // A bare style name that takes hair AWAY ("Mohawk") fails; spelled out it works (r27).
                       note: 'Describe the cut, not just its name (e.g. shaved sides, a strip on top). A rare style? Add a Reference picture.' },

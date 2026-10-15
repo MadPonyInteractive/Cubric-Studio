@@ -55,13 +55,24 @@ export function parseApparentAge(answer) {
  * that takes one (Fabio, 2026-10-10: optional, words alone keep working). Any other change ignores it.
  * Accessories need words with one (`REF_NEEDS_WORDS`): a product shot does not say where a thing is worn.
  */
-const REF_THING = { clothes: 'the outfit', accessories: 'the accessory', hair: 'the hairstyle' };
+const REF_THING = {
+    clothes: 'the outfit', accessories: 'the accessory', hair: 'the hairstyle', makeup: 'the makeup', tattoos: 'the tattoos',
+};
 
 /**
- * Changes whose Reference picture must come with words naming what it shows. With none, gold hoops became a
- * necklace and bracelets and a rose tattoo went on the face (MPI-1086 qh5, 4 of 4); named, 4 of 4 landed.
+ * Changes whose Reference picture must come with words naming what it shows, and the refusal's example. With none,
+ * gold hoops became a necklace and bracelets and a rose tattoo went on the face (MPI-1086 qh5, 4 of 4); named, 4 of 4
+ * landed. A tattoo picture alone inked arms and legs it never showed, and moved a leg tattoo to the arms (r34, 4 of 6):
+ * a cropped photo does not say where on the body it is.
  */
-const REF_NEEDS_WORDS = new Set(['accessories']);
+const REF_NEEDS_WORDS = { accessories: '"the gold hoop earrings"', tattoos: '"the neck and chest tattoos"' };
+
+/** Changes whose Reference picture goes into the Qwen graph raw, never made a mannequin first (`Input_Is_Mannequin`). */
+const RAW_REF = new Set(['accessories', 'makeup', 'tattoos']);
+
+/** Makeup goes on the character's OWN face: without this the picture's face came with it (MPI-1086 r31, 5 of 7). */
+const OWN_FACE = 'Put it on the face of the character in image 1, who stays the same person: the same face shape, eyes, '
+    + 'nose, lips, eyebrows, skin tone and expression.';
 
 /** With a reference, every figure is named and the back one only as "seen from behind" (MPI-1090 rounds 2-3). */
 const REF_ALL = 'The front view, the character seen from behind and the close-up portrait on the right all show the same '
@@ -92,7 +103,7 @@ function _usesRef(values) {
 
 /**
  * The edit for one picked change, or null when there is nothing to change by.
- * @param {string} change - clothes | accessories | hair | condition | body | custom
+ * @param {string} change - clothes | accessories | makeup | tattoos | hair | condition | body | custom
  * @param {string} words  - what the user wrote; optional with a reference
  * @param {boolean} [ref] - a Reference picture is given (used by the changes in REF_THING)
  * @param {string} [refHair] - the describer's words for the reference's hairstyle (`describe` → `refHair`)
@@ -140,17 +151,29 @@ export function buildChangePrompt(change, words, ref = false, refHair = '') {
             : 'Dress the character in only the outfit from the reference picture. Take off everything else the character '
                 + `wears now, trousers, skirt and top included. ${REF_ALL} Keep everything else exactly as it is.`;
     }
+    // MPI-1086 r33/r34, on Qwen with the raw picture: the makeup "copied exactly", her own face named part by part and
+    // nothing else taken (makeup 7/7, own face 7/7; the Accessories string let the picture's face leak 5/7). The user's
+    // words get their own sentence after it ("red lipstick", "blue eyeshadow": 2/2, the rest of the picture kept).
+    if (ref && change === 'makeup') {
+        return 'Give the character in image 1 the makeup from image 2, copied exactly: the same colours, shapes and '
+            + 'patterns of its eyeshadow, eyeliner, lashes, blush, lipstick and any face paint. ' + OWN_FACE
+            + ' Take nothing else from image 2: no piercings, jewellery, moles or hair. The front view and the close-up '
+            + 'portrait on the right both show the makeup. ' + (w ? `Change only this about the makeup: ${w}. ` : '')
+            + 'Keep everything else exactly as it is.';
+    }
     if (!w) return null;
     // MPI-1086 r29: Accessories runs on Qwen-Image 2.1 (the registry routes it), the raw picture straight in as image 2
     // (no mannequin: `Input_Is_Mannequin` is forced). Klein redrew the front figure as a second back view 4/4 and took
     // the picture's person (her face, her green hair); this kept layout, face and hair 4/4 and put the thing where it
-    // belongs (the gun in her hand, the mask on her face) with no "where" words.
-    if (ref && change === 'accessories') {
+    // belongs (the gun in her hand, the mask on her face) with no "where" words. Tattoos take the same string, the
+    // words saying where (r31: 4 pass + 2 partial), plus "Add no other tattoos" (r35).
+    if (ref && (change === 'accessories' || change === 'tattoos')) {
         const t = _unview(w).replace(/^(?:the|a|an)\s+/i, '');
         const thing = t[0].toLowerCase() + t.slice(1);
         return `Give the character in image 1 the ${thing} from image 2. The front view, the character seen from behind `
-            + `and the close-up portrait on the right all show the ${thing} wherever it can be seen. Take only the `
-            + `${thing} from image 2, not the person: keep the character's own face, hair, skin and clothes. `
+            + `and the close-up portrait on the right all show the ${thing} wherever it can be seen. `
+            + (change === 'tattoos' ? 'Add no other tattoos. ' : '')
+            + `Take only the ${thing} from image 2, not the person: keep the character's own face, hair, skin and clothes. `
             + 'Keep everything else exactly as it is.';
     }
     switch (change) {
@@ -167,6 +190,17 @@ export function buildChangePrompt(change, words, ref = false, refHair = '') {
             return `Give the character in image 1 this accessory to wear or hold: ${w}. The front view, the character `
                 + 'seen from behind and the close-up portrait on the right all show it wherever it can be seen. '
                 + "Keep the character's own face, hair, skin and clothes. Keep everything else exactly as it is.";
+        // MPI-1086 r34: her own face named as with a picture; smoky eyes + black lips, pink glitter + white liner 2/2.
+        case 'makeup':
+            return `Give the character in image 1 this makeup: ${w}. ${OWN_FACE} The front view and the close-up `
+                + 'portrait on the right both show the makeup. Keep everything else exactly as it is.';
+        // MPI-1086 r34: a koi on the whole back landed on the back view only; a sleeve on "the left arm" was mirrored
+        // on the back view (as with Accessories, r31) - a known partial. Name no limb here: r32's "arm or leg" sentence
+        // ADDED sleeves to both arms.
+        case 'tattoos':
+            return `Give the character in image 1 this tattoo: ${_unview(w)}. The front view, the character seen from `
+                + 'behind and the close-up portrait on the right all show it wherever it can be seen. Add no other '
+                + "tattoos. Keep the character's own face, hair, skin tone and clothes. Keep everything else exactly as it is.";
         // A hat hides the hair it is meant to change: the fisher's beanie stayed on the front view (F1).
         // MPI-1086 r28: hair runs on QWEN (Klein turned a mohawk into silver braids). Naming every figure is what
         // reaches the bodies: with L1 Qwen changed the close-up only; this got all three figures 4/4.
@@ -262,8 +296,8 @@ export function buildRebuildPrompt(age, caption) {
 export function characterSheetEditorRefusal(values = {}) {
     const change = values.change || 'none';
     const age = _age(values.Input_Age);
-    if (REF_NEEDS_WORDS.has(change) && _usesRef(values) && !_words(values.words)) {
-        return 'Say what the Reference picture shows, for example "the gold hoop earrings".';
+    if (Object.hasOwn(REF_NEEDS_WORDS, change) && _usesRef(values) && !_words(values.words)) {
+        return `Say what the Reference picture shows, for example ${REF_NEEDS_WORDS[change]}.`;
     }
     if (change !== 'none' && !_words(values.words) && !_usesRef(values)) {
         return Object.hasOwn(REF_THING, change) ? 'Say what to change, or add a Reference picture.' : 'Say what to change first.';
@@ -331,10 +365,10 @@ export function characterSheetEditor(part, values = {}) {
     // the chained Headless leg does it after the age legs.
     if (part !== 'rebuild') injectionParams.Input_Headless = part === 'change' && _age(values.Input_Age) < 0;
     // The Reference picture is a mannequin already (the describer said so): the Qwen graph skips
-    // making one of it. The Klein graph has no such node and ignores it. Accessories never wants one:
-    // the raw picture goes in as image 2 (MPI-1086 r29).
+    // making one of it. The Klein graph has no such node and ignores it. Accessories, Makeup and Tattoos
+    // never want one: the raw picture goes in as image 2 (MPI-1086 r29, r31-r35).
     if (part === 'change') {
-        injectionParams.Input_Is_Mannequin = values.change === 'accessories' || /^\W*yes\b/i.test(values.refIsMannequin || '');
+        injectionParams.Input_Is_Mannequin = RAW_REF.has(values.change) || /^\W*yes\b/i.test(values.refIsMannequin || '');
     }
     return { positive: _part(part, values), injectionParams };
 }

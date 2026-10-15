@@ -7,5 +7,9 @@
 - [x] D. Graph patch, one-file convert + injection gate (Klein brow cut + Qwen mannequin leg; uncommitted)
 - [x] D. Tests + playbook
 - [x] D. Routing: operationBy rule entry, hair + picture -> Qwen; Qwen slot label, description, hair info; refHair ASK2
-- [ ] Fabio's eye test 2 (hair from a picture on Qwen)
-- [ ] Then: Accessories (Fabio, next), Beard entry, slot label "Reference picture (optional)" on two lines
+- [x] Fabio's eye test 2 (hair from a picture on Qwen)
+- [x] Accessories on Qwen (words + picture), slot label on two lines
+- [x] Makeup + Tattoos split into their own options on Qwen (r31-r35), builder = bench 13/13, tests
+- [ ] Fabio's eye test: Accessories, Makeup, Tattoos in the app
+- [ ] Beard as its own entry
+- [ ] Close-out

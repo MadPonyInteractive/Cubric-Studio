@@ -564,3 +564,51 @@ c33_s*.jpg (ref | seed 7 | seed 1234567).
   over-lined pout, no smile). With r32: own face 14/15 across mA runs.
 - **Pick for Makeup with a picture: mA2.** It ignores the user's words, so it needs its own option (or makeup words
   spotted) - Fabio's split call.
+
+## Round 34 (`qh34.py`, `h34_*`): Makeup and Tattoos as their own options (shipped graph, 25 steps)
+
+Fabio split both out of Accessories (2026-10-15). tP = tattoos from the picture with NO words, "copied exactly: the same
+designs, colours and size, in the same place on the body" + "Add no tattoos that are not in image 2", no limb named;
+tW = tattoos in words; mW = makeup in words, her own face named part by part; mP = qh33.mA2 + "Change only this about
+the makeup: <words>". r31's pictures and seeds. Sheets: scratchpad r34/c34_*.jpg.
+
+| case | result |
+|---|---|
+| tP t_neck | **fail**: neck + chest copied, but INVENTED sleeves on both arms and both legs (r31 with words: pass) |
+| tP t_back | **fail**: back copied, invented arm sleeves front + back (r31: pass, back only) |
+| tP t_body | pass (= r31) |
+| tP t_all | pass, legs now inked front and back (r31 left the front legs bare) |
+| tP t_leg1 | **fail**: the leg tattoo moved to BOTH ARMS, legs bare |
+| tP t_leg2 | **fail**: arm sleeves added, legs inked on the back view only |
+| tW roses (left arm sleeve) | partial: front on her left arm, back view on her right (mirrored, as r31) |
+| tW koi (whole back) | **pass**: back view only |
+| mW goth (smoky eyes, black lipstick) | **pass**: own face + smile, front + close-up |
+| mW pink (glitter shadow, white liner, pink lips) | **pass** |
+| mP goth + "red lipstick" | **pass**: the picture's smoky eyes, red lips, own face |
+| mP glam + "blue eyeshadow" | **pass**: the picture's liner, contour and lips, blue shadow, own face |
+
+- **Makeup: every route holds** - words 2/2, picture + words 2/2, picture alone 7/7 (r33). Ship mW / mA2 / mP.
+- **Tattoos from a picture ALONE fail (2/6)**: a cropped photo does not say where on the body it is, so the model inks
+  everything; "Add no tattoos that are not in image 2" does not stop it. r31's words ("Neck and chest tattoos") are
+  what placed them. So a tattoo picture needs words saying where, as Accessories does. r35 tests r31's string + "Add
+  no other tattoos." on the same six.
+- tPw (tP + "Change only this about the tattoos: in red ink / in blue ink") ran too, but on the failed tP base: not read.
+
+## Round 35 (`qh35.py`, `h35_*`): Tattoos with a picture AND words saying where (shipped graph, 25 steps)
+
+tQ = r29 q_raw(words) + "Add no other tattoos." after the figures sentence; r31's pictures, words and seeds. Sheets:
+scratchpad r35/c35_t*.jpg (ref | r31 q_raw | r35 tQ).
+
+| case | words | result |
+|---|---|---|
+| t_neck | Neck and chest tattoos | **pass**: front + close-up, no invented ink |
+| t_back | Back tattoos | **pass**: back view only |
+| t_body | Full body tattoos | **pass**, all figures |
+| t_all | Tattoos | **pass**, front legs inked too now (r31 left them bare) |
+| t_leg1 | Leg tattoo | partial: front her left leg, back view her right (mirrored, = r31) |
+| t_leg2 | Leg tattoo | partial: back view only, front leg bare (= r31) |
+
+- **tQ ships for Tattoos with a picture**: 4 pass + 2 partial, no tattoo invented anywhere (r34's picture-only: 4 of 6
+  invented). Words required with the picture (`REF_NEEDS_WORDS`). The one-limb side miss is the known partial.
+- Builder strings byte-identical to the bench, 13/13 (mA2, mP x2, mW x2, tW x2, tQ x6): scratchpad `cmp34.py`.
+- npm test 3324 pass / 0 fail; eslint clean; `tests/desktop/flow-optional-model-row.spec.js` passes on the new label.

@@ -4,6 +4,16 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-15 session "New character sheets 29" - LATEST. BUILT (uncommitted, claim 94b9f277-mpi1086): options `makeup`
++ `tattoos` -> flowCharacterSheetEditQwen. Benches r34/r35 (validation.md): Makeup words 2/2, picture + words 2/2
+(+ r33 picture 7/7); Tattoos words 1 pass + 1 mirrored, picture ALONE 2/6 (invented sleeves) -> words REQUIRED with a
+tattoo picture (`REF_NEEDS_WORDS` now a map with the refusal's example), string tQ = Accessories' + "Add no other
+tattoos." 4 pass + 2 one-limb partial. Builder = bench 13/13; `RAW_REF` forces Input_Is_Mannequin for accessories /
+makeup / tattoos; registry options + note, description, Qwen row label (desktop spec updated, passes), image2 label;
+playbook + UNRELEASED. npm test 3324/0, eslint clean. NEXT: Fabio's eye test in the app (reload): Accessories (words +
+picture), Makeup (words, picture, picture + words), Tattoos (words, picture + where-words; picture alone refuses).
+Then commit by pathspec, Beard as its own entry, close-out.
+
 2026-10-15 end of session "New character sheets 28" - LATEST. DECIDED (Fabio): split BOTH Makeup and Tattoos into
 their own options, on Qwen, each with its own prompting (tattoos "notoriously hard": one-leg tattoos land on the wrong
 leg in a view, full-body tattoos are partly invented). NEXT, in order: (1) bench r34 (qh34.py on qh33.py) - Tattoos
