@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1149",
+  "title": "Video Edit: a describer's 'wears no clothes' about the kept subject triggers the picture check",
+  "description": "Background change on a cartoon monkey refused (picture): Input_Kept prose ('no clothes') made lookWanted look. Kept text stays in the text gate, out of the look trigger.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-15T23:13:37+01:00",
+  "updated_at": "2026-10-15T23:16:25+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

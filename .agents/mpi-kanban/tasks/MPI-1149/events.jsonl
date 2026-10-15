@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1149", "at": "2026-10-15T23:13:37+01:00", "actor": "claude", "column": "doing", "title": "Video Edit: a describer's 'wears no clothes' about the kept subject triggers the picture check"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1149", "at": "2026-10-15T23:16:25+01:00", "actor": "claude", "from": "doing", "to": "done"}
