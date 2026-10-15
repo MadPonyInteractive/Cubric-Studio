@@ -12,7 +12,7 @@
 | requiredModels | `[{ label: 'Model', models: ['qwen-image-2-1', 'klein-9b'], loras: true }]` (the user's LoRA rack, `Input_Lora_Phase1_1..6` in both graphs, MPI-1036) — the user picks; Qwen is `models[0]`, the recommended arm |
 | operation | `flowCharacterSheetImages` (new, `appVersionIntroduced` 2.0.1), `injector: 'headSwap'` for the box |
 | workflow | `flow_character_sheet_from_images.json` (Qwen, 60 nodes) + `byModel['klein-9b']` = `flow_character_sheet_from_images_klein.json` (93) |
-| authoring source | `tasks/MPI-1042/research/bench-tools/build_bench_v2.py <dir> --flow` writes both raw graphs; without `--flow`, Fabio's two bench graphs |
+| authoring source | `tasks/MPI-1042/research/bench-tools/build_bench_v2.py <dir> --flow` wrote both raw graphs; both were edited in place since (the LoRA rack, MPI-1036; Klein pass 1, MPI-1148 `research/apply_fix.py`), so a re-run of it drops them |
 | inputs | `image1` face (required, box step `box1`, ratio 4:5), `image2` body (optional); `positive`, `Input_Remove_Head` |
 | describe | `Input_Face_Pose` (FRONT / TURNED, on the BOXED face), `Input_Body_Clothes` (only with a body) |
 | chain | `flowCharacterSheetHeadless` when `Input_Remove_Head` — the same leg as Character Sheet; the layout matches |
@@ -26,7 +26,12 @@
 - **Klein 9B — two samplings, stitched** (~50-80 s). In one pass Klein squeezed the portrait (sx/sy
   0.92-0.96) and dropped the picture's turn; the portrait sampled alone on 896x1120 fixed both. Pass 2
   draws the body views on their own 896x1120 with the finished portrait as a reference. With a body,
-  pass 1 also sees the body and pass 2 sees ONLY portrait + body (picture 1 there outvoted the body).
+  pass 2 sees ONLY portrait + body (picture 1 there outvoted the body).
+- **Klein pass 1 never sees the body picture** (MPI-1148). As a reference it made the portrait a copy of the
+  body picture's pose and framing, waist-up or full-length, and pulled the face toward that person; pass 2
+  then copied that face. The clothes caption alone still dresses the portrait (tank top 2 of 2, nude 1 of 1).
+  The portrait prompt ENDS on "The picture is a close-up: ... nothing below the chest." - after the user's
+  words, which otherwise drew a full body on "Army boots". Framing first instead: worse. Bench: MPI-1148 validation.md.
 - Klein carries the app's word-triggered NSFW LoRA (`klein-9b-lora-nsfw`, a klein-9b dep) exactly as
   `klein_t2i_template.json` #43 does; the LoRA-off path is pixel-identical to the graph without it.
 - The Qwen arm loads the app's `qwen3vl_8b_int8_convrot` encoder; the bench ran fp8.
@@ -67,4 +72,5 @@ the pictures and words and opens the box step. A per-step bound there is what wo
 One-canvas inpaint orders for Klein (portrait then bodies on one 1792x1120) — the squeeze stayed. Naming
 the turn's side from the picture — a fixed "toward the left side of the image" is reliable, a side-neutral
 wording is not. A gutter or levelling node at the join — the faint step (<= 14/255, 1 in 3) is fine (Fabio).
-Qwen at a 2 MP reference or a 2048 sheet — +40-70% time, no visible detail.
+Qwen at a 2 MP reference or a 2048 sheet — +40-70% time, no visible detail. Klein pass 1 without the user's
+words (caption only): a stray waistband across the portrait 3 of 3, or waist-up (MPI-1148).

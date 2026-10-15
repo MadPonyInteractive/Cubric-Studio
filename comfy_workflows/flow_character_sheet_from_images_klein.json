@@ -704,40 +704,11 @@
   },
   "52": {
     "inputs": {
-      "value": "The character from image 1, in exactly the same visual style and medium as image 1. [CHARACTER PROMPT]"
+      "value": "The character from image 1, in exactly the same visual style and medium as image 1. [CHARACTER PROMPT] The picture is a close-up: only the head, neck and the top of the shoulders are in frame, nothing below the chest."
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
       "title": "Portrait_Prompt_No_Body"
-    }
-  },
-  "53": {
-    "inputs": {
-      "value": "The character from image 1, in exactly the same visual style and medium as image 1. The face, head and hair come only from image 1. Image 2 shows the character's body with its head removed: the portrait wears exactly what image 2 wears below the chin, or bare skin where image 2 shows bare skin; no clothing from image 1 below the chin. [CHARACTER PROMPT]"
-    },
-    "class_type": "PrimitiveStringMultiline",
-    "_meta": {
-      "title": "Portrait_Prompt_With_Body"
-    }
-  },
-  "54": {
-    "inputs": {
-      "true": [
-        "53",
-        0
-      ],
-      "false": [
-        "52",
-        0
-      ],
-      "boolean": [
-        "28",
-        4
-      ]
-    },
-    "class_type": "MpiIfElse",
-    "_meta": {
-      "title": "Portrait_Prompt_Select (has body?)"
     }
   },
   "55": {
@@ -782,7 +753,7 @@
     "inputs": {
       "delimiter": " ",
       "string_a": [
-        "54",
+        "52",
         0
       ],
       "string_b": [
@@ -961,42 +932,6 @@
       "title": "p1 ref 1 = picture 1"
     }
   },
-  "71": {
-    "inputs": {
-      "conditioning": [
-        "70",
-        0
-      ],
-      "latent": [
-        "44",
-        0
-      ]
-    },
-    "class_type": "ReferenceLatent",
-    "_meta": {
-      "title": "p1 ref 2 = body"
-    }
-  },
-  "72": {
-    "inputs": {
-      "true": [
-        "71",
-        0
-      ],
-      "false": [
-        "70",
-        0
-      ],
-      "boolean": [
-        "28",
-        4
-      ]
-    },
-    "class_type": "MpiIfElse",
-    "_meta": {
-      "title": "Pass1_Conditioning (has body?)"
-    }
-  },
   "73": {
     "inputs": {
       "cfg": 1,
@@ -1005,7 +940,7 @@
         0
       ],
       "positive": [
-        "72",
+        "70",
         0
       ],
       "negative": [
