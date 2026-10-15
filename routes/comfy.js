@@ -1100,13 +1100,17 @@ async function _localModelsCheck(models) {
  * extra). Copies (does not move) — the original stays. Refuses to overwrite an
  * existing same-name file unless { overwrite: true }.
  *
- * Body: { sourcePath, targetFolder, bucket: 'loras'|'upscale_models', overwrite? }
+ * `subfolder` (one plain folder name, e.g. `krea-2`) lands the file in
+ * `<targetFolder>/<subfolder>/`, created if missing — the LoRA drop sends the
+ * open model's own folder so a dropped LoRA sits beside that model's others.
+ *
+ * Body: { sourcePath, targetFolder, bucket: 'loras'|'upscale_models', subfolder?, overwrite? }
  * Returns: { success, filename } | 409 { success:false, error:'exists', filename }
  */
 const _MODEL_EXTS = new Set(['.safetensors', '.ckpt', '.pt', '.bin', '.pth']);
 
 router.post('/comfy/import-model', async (req, res) => {
-    const { sourcePath, targetFolder, bucket, overwrite } = req.body || {};
+    const { sourcePath, targetFolder, bucket, subfolder, overwrite } = req.body || {};
     try {
         if (!sourcePath || !targetFolder || !bucket) {
             return res.status(400).json({ success: false, error: 'sourcePath, targetFolder and bucket are required' });
@@ -1134,17 +1138,22 @@ router.post('/comfy/import-model', async (req, res) => {
         if (!allowed.includes(resolvedTarget)) {
             return res.status(400).json({ success: false, error: 'target folder is not a configured model folder' });
         }
+        // One plain segment only — a separator or `..` would walk out of the allow-list.
+        if (subfolder && (typeof subfolder !== 'string' || !/^[\w.-]+$/.test(subfolder) || /^\.+$/.test(subfolder))) {
+            return res.status(400).json({ success: false, error: 'subfolder must be a single folder name' });
+        }
+        const destDir = subfolder ? path.join(resolvedTarget, subfolder) : resolvedTarget;
 
-        await fs.ensureDir(resolvedTarget);
+        await fs.ensureDir(destDir);
         const filename = path.basename(sourcePath);
-        const dest = path.join(resolvedTarget, filename);
+        const dest = path.join(destDir, filename);
 
         if (!overwrite && await fs.pathExists(dest)) {
             return res.status(409).json({ success: false, error: 'exists', filename });
         }
 
         await fs.copy(sourcePath, dest, { overwrite: Boolean(overwrite) });
-        logger.info('comfy', `imported model ${filename} into ${bucket}`);
+        logger.info('comfy', `imported model ${filename} into ${bucket}${subfolder ? `/${subfolder}` : ''}`);
         res.json({ success: true, filename });
     } catch (err) {
         logger.error('comfy', 'import-model failed', err);

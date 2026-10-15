@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1146",
+  "title": "LoRA drop in Model Settings lands in the open model's own LoRA folder",
+  "description": "Dropping a LoRA in the Model Settings drop zone copies it into loras/<model folder>/ (created if missing) instead of the loras root.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-15T05:14:27+01:00",
+  "updated_at": "2026-10-15T05:14:27+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -13,7 +13,8 @@
  * Props:
  *   folderPath: string  — absolute target folder (must be a configured folder)
  *   bucket: 'loras' | 'upscale_models'
- *   label?: string      — display label (defaults to folderPath)
+ *   subfolder?: string  — copy into `<folderPath>/<subfolder>/` (created if missing)
+ *   label?: string      — display label (defaults to folderPath[/subfolder])
  *   primary?: boolean   — mark the primary managed folder
  *   onImport?(filename: string) — called after a successful copy
  *
@@ -42,7 +43,9 @@ export const MpiFolderDrop = ComponentFactory.create({
     css: ['js/components/Primitives/MpiFolderDrop/MpiFolderDrop.css'],
 
     template: (props) => {
-        const label = props.label || props.folderPath || '';
+        const sep = props.folderPath?.includes('\\') ? '\\' : '/';
+        const folder = props.subfolder ? `${props.folderPath}${sep}${props.subfolder}` : props.folderPath;
+        const label = props.label || folder || '';
         const primary = props.primary ? ' mpi-folder-drop--primary' : '';
         return `
             <div class="mpi-folder-drop${primary}" title="${label}">
@@ -69,6 +72,7 @@ export const MpiFolderDrop = ComponentFactory.create({
                     sourcePath,
                     targetFolder: props.folderPath,
                     bucket: props.bucket,
+                    subfolder: props.subfolder || undefined,
                     overwrite: Boolean(overwrite),
                 }),
             });

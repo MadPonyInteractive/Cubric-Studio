@@ -6170,3 +6170,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1145", "at": "2026-10-14T20:57:03+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "npm start nodev ships; desktop spec green (bb2794029)."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1101", "at": "2026-10-14T21:09:30+01:00", "actor": "Make seamless flow 11", "from": "doing", "to": "done", "reason": "Shipped: dev gate removed (138615734, CI green); Fabio passed the 16K village join by eye; evidence in validation.md"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1144", "at": "2026-10-14T21:11:38+01:00", "actor": "claude", "from": "doing", "to": "done"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1146", "at": "2026-10-15T05:14:27+01:00", "actor": "claude", "column": "doing", "title": "LoRA drop in Model Settings lands in the open model's own LoRA folder"}

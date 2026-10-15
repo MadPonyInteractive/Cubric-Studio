@@ -71,6 +71,25 @@ function _filterByType(files, modelType) {
     });
 }
 
+/**
+ * model.type → the folder under `loras/` its LoRAs live in. Mirrors the folders the
+ * shipped LoRA deps already use (loraDeps.js: `loras/krea-2/…`, `loras/minimax-h3/…`),
+ * so a dropped LoRA lands beside the model's own. A type not listed uses its own name.
+ */
+const _LORA_FOLDER_BY_TYPE = {
+    krea2: 'krea-2',
+    klein: 'flux2-klein',
+    h3: 'minimax-h3',
+    ltx: 'ltx-2.3',
+    wan: 'wan-2.2',
+    wan5b: 'wan-2.2-5b',
+    qwen21: 'qwen-image-2.1',
+};
+
+function _loraFolderFor(modelType) {
+    return modelType ? (_LORA_FOLDER_BY_TYPE[modelType] || modelType) : undefined;
+}
+
 function _loraOptions(availableLoras) {
     return [
         { label: '— None —', value: '' },
@@ -215,7 +234,7 @@ export const MpiModelSettings = ComponentFactory.create({
          * the import route's allow-list. On import, refresh asset lists + re-mount
          * the dropdowns so the new file is selectable immediately.
          */
-        async function _renderDropZones(bucket) {
+        async function _renderDropZones(bucket, subfolder) {
             const host = qs(`[data-drop="${bucket}"]`, el);
             if (!host) return;
             const token = _dropRenderToken;
@@ -244,6 +263,7 @@ export const MpiModelSettings = ComponentFactory.create({
                 const inst = MpiFolderDrop.mount(document.createElement('div'), {
                     folderPath,
                     bucket,
+                    subfolder,
                     primary,
                     onImport: async (filename) => {
                         // sound:false — confirmation of a user drop-import; no chime.
@@ -592,7 +612,7 @@ export const MpiModelSettings = ComponentFactory.create({
                 }
                 lorasSection.style.display = '';
                 _clearDropZones();
-                _renderDropZones('loras');
+                _renderDropZones('loras', _loraFolderFor(modelType));
                 _renderDropZones('upscale_models');
             } else {
                 const settings = getToolSettings(state.currentProject, ctx.toolKey);

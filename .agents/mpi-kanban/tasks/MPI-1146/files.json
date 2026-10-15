@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/components/Compounds/MpiModelSettings/MpiModelSettings.js", "js/components/Primitives/MpiFolderDrop/MpiFolderDrop.js", "routes/comfy.js", "docs/models-path.md", "tests/import-model-subfolder.test.cjs", ".agents/mpi-kanban/tasks/MPI-1146/", "docs/releases/UNRELEASED.md"]}
