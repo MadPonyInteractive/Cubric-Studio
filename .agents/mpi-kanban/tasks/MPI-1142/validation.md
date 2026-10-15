@@ -49,3 +49,9 @@
 - Checks: npm test 3323 pass / 0 fail; desktop gallery-media-release + gallery-renditions + gallery-gif-hover 11/11; eslint clean.
 - Left as is: MpiCanvas/ComparisonManager (one video the user is about to play), utils/video.js firstFrameDataUrl (drops src in finally), mascot loops (autoplay, small). Diagnostics ([slow-load] split + held list, [held-load]) stay: always-on, cheap, they named this.
 - Live proof needs Fabio's normal use: no more ~15 s picture waits after opening a video-heavy project.
+
+## 2026-10-15 - hover plays once; a late play no longer starts a clip (Fabio's ask)
+- Fabio: hover videos sometimes keep looping after the pointer left (fast mouse, a popup under the cursor). Asked for play-once on hover.
+- MpiGalleryGrid: both card video sites loop=false + `ended` rewinds to frame 0. The promote-time `loadeddata` play and `_videoHoverPlay` (also called by scroll-settle) re-check `cardEl.matches(':hover')`: before, a play that landed after mouseleave ran with nothing left to stop it, and looped.
+- research/hover.cjs (isolated app, Qwen 2.1 copy): hover plays, no loop; after one pass it is paused on frame 0 while still hovered; exactly one play event; a late `_hoverPlay()` with the pointer off the card stays paused. Negative control: with the hover guard removed the late-play check FAILS (plays to 0.96 s), restored = PASS.
+- Desktop gallery specs 11/11, tests/gallery-*.test.cjs 34/34, eslint clean.

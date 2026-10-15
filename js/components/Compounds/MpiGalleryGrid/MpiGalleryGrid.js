@@ -1194,6 +1194,9 @@ export const MpiGalleryGrid = ComponentFactory.create({
             // swapped it since binding.
             function _videoHoverPlay() {
                 if (!_videoThumb) return;
+                // Never play a card the pointer is not on: a late caller would start a
+                // clip whose mouseleave has already passed (MPI-1142).
+                if (!cardEl.matches(':hover')) return;
                 // A GIF hover overlay is an <img> — mounting it IS the play, there is
                 // no play() to call (MPI-759).
                 if (typeof _videoThumb.play !== 'function') return;
@@ -1207,6 +1210,10 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     _videoThumb.muted = true;
                 }
                 _videoThumb.play().catch(() => {});
+            }
+
+            function _rewind(e) {
+                try { e.target.currentTime = 0; } catch (_) {}
             }
 
             function _onCardLeave() {
@@ -1274,7 +1281,10 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 const v = document.createElement('video');
                 v.className = 'mpi-group-card__thumb mpi-group-card__thumb--video mpi-group-card__thumb--hover-video';
                 v.muted = true;
-                v.loop = true;
+                // A hover plays the clip ONCE, then shows its first frame again (Fabio,
+                // MPI-1142): a play that misses its mouseleave can no longer loop forever.
+                v.loop = false;
+                v.addEventListener('ended', _rewind);
                 v.playsInline = true;
                 // 'metadata', not 'auto' (MPI-1142): the first frame still paints and hover
                 // still plays, but a paused 'auto' card kept its load open ~15 s. Chromium
@@ -1299,8 +1309,12 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // If user is already hovering at the moment of promotion (and not
                 // mid-scroll), start playback as soon as data lands. Scroll-settle
                 // replays via the idle handler, so the scroll gate stays honored.
+                // Re-checked when the data lands: a fast pointer has often left by then,
+                // and its mouseleave already ran, so nothing would stop this play (MPI-1142).
                 if (cardEl.matches(':hover') && !_isScrolling && !_overlayOpen) {
-                    v.addEventListener('loadeddata', () => v.play().catch(() => {}), { once: true });
+                    v.addEventListener('loadeddata', () => {
+                        if (cardEl.matches(':hover') && !_isScrolling && !_overlayOpen) v.play().catch(() => {});
+                    }, { once: true });
                 }
             }
 
@@ -1351,7 +1365,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     const v = document.createElement('video');
                     v.className = 'mpi-group-card__thumb mpi-group-card__thumb--video';
                     v.muted = true;
-                    v.loop = true;
+                    v.loop = false; // hover plays once (MPI-1142)
+                    v.addEventListener('ended', _rewind);
                     v.playsInline = true;
                     v.preload = 'metadata';
                     v.draggable = true;
