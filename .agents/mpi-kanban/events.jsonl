@@ -6172,3 +6172,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1144", "at": "2026-10-14T21:11:38+01:00", "actor": "claude", "from": "doing", "to": "done"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1146", "at": "2026-10-15T05:14:27+01:00", "actor": "claude", "column": "doing", "title": "LoRA drop in Model Settings lands in the open model's own LoRA folder"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1146", "at": "2026-10-15T05:18:12+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Shipped 1db5015cc; Fabio to drop a real LoRA (OS drag-drop cannot be scripted)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1146", "at": "2026-10-15T05:31:24+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio confirmed the drop live"}
