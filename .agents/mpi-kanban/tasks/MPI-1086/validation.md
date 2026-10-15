@@ -385,3 +385,30 @@ added one fed by a lazy MpiIfElse on Input_Headless (head removal when on, else 
 r26c (`qh26.py <out> final`): Qwen photo s3 -> 3 outputs; Klein bob s3 -> 2, clean on all three + headless. Qwen s3:
 the FRONT figure kept her old long hair - the same seed failed the same figure in r21 and r23 (the known 17/18),
 not this change. Grid: session scratchpad h26c.jpg.
+
+## Eye test 3 (Fabio, app, 2026-10-15, project "Qwen 2.1")
+
+PASS 1 hair from a picture: flowCSE_036 = ONE card, 3 versions (mannequin flowCSE_035, edit, headless), 158 s.
+Stopped words re-run ("Pink tips", interrupted 23/30): the cached mannequin landed as its own card flowCSE_037 (the
+executor lands what a Stop already saved, MPI-901). Fabio: fine, keep it.
+PASS 3 given mannequin: flowCSE_037 as the Reference on sheet flowCSE_013 -> describer refIsMannequin "Yes",
+Input_Is_Mannequin true, flowCSE_038 = 2 versions (edit + headless), engine log loads ONLY Qwen (no Flux2), 136 s.
+The staff in that result is the sheet's own accessory ("wizard staff" in its name), not the mannequin stand.
+Not yet seen by Fabio: 2 (words-only re-run run to the end), 4 Body shape, 5 Klein hair in words, 6 Age + hair.
+PASS 5 structure (Klein hair in words): flowCSE_041 = 2 versions (edit + headless), Klein + SAM3 only, 78 s.
+FAIL 5 look: "silver Mohawk" on flowCSE_013 (two Viking braids), seed 2585967065 -> braids recoloured silver and
+loosened, no shaved sides, no strip on top. Words spelled right. Klein lock 2 changes colour/length but keeps the
+old hair's shape when the new style needs hair TAKEN AWAY. Needs a bench (Klein spelled-out vs Qwen words).
+Fabio: the silver hair also reads very 3D/CG. Source flowCSE_013 is itself render-like (smooth plastic skin), and
+Klein matches the picture's look; silver/white hair is also the hardest colour to keep photo-real (specular). Bench
+should add a photo-real sheet to tell the two apart.
+
+## Round 27 (`qh27.py`, `h27_*`, app engine :48188 - the :8188 bench was down): "silver Mohawk", words only
+
+Sheets R (photo-real flowCSFI_006, s42) and C (render-like flowCSE_013, s2585967065); grid: scratchpad h27.jpg.
+k_ship (Klein, shipped string): R half (close-up spiky, long tail; front a ponytail), C FAIL (silver braids) = eye test.
+k_spell (Klein, shaved sides + one strip spelled out): C clean on all three; R mohawk but DRAWN GUIDE LINES on the
+body and neck (an artefact). q_ship (Qwen, shipped string): close-ups perfect, but the FRONT figure keeps the old
+hair on both (the known Qwen front-figure miss; R back too). q_spell (Qwen, spelled out): CLEAN on all 6 figures.
+Finding: a short style NAME is not enough when the cut removes hair; spelled out it works, best on Qwen.
+Fabio (before the bench): do not chase every hairstyle; a picture from online is the user's route for a rare one.

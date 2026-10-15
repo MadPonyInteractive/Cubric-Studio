@@ -1755,7 +1755,9 @@ export const FLOWS = [
                 options: [
                     { v: 'clothes', label: 'Clothes', info: 'New clothes on every panel; the head and hair stay exactly as they are.' },
                     { v: 'accessories', label: 'Accessories', info: 'Glasses, a scarf, a hat, jewellery - added to every panel.' },
-                    { v: 'hair', label: 'Hairstyle', info: 'A new haircut or colour; the face stays as it is. With a Reference picture it runs on Qwen-Image 2.1: not for commercial use.' },
+                    { v: 'hair', label: 'Hairstyle', info: 'A new haircut or colour; the face stays as it is. With a Reference picture it runs on Qwen-Image 2.1: not for commercial use.',
+                      // A bare style name that takes hair AWAY ("Mohawk") fails; spelled out it works (r27).
+                      note: 'Describe the cut, not just its name (e.g. shaved sides, a strip on top). A rare style? Add a Reference picture.' },
                     { v: 'condition', label: 'Condition', info: 'Beaten up, muddy, soaked, sunburnt - the state the character is in.' },
                     { v: 'body', label: 'Body shape', info: 'Heavier, slimmer or more muscular. Runs on Qwen-Image 2.1: not for commercial use.' },
                     // MPI-1086 (Fabio, 2026-10-12): "Nothing else" split into a free edit and age-only.

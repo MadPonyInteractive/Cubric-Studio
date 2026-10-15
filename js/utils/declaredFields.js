@@ -684,9 +684,15 @@ export function buildField(f, cur, onChange, unsubs, opts = {}) {
             value: String(sel ?? ''),
             disabled: !!f.disabled,
         });
+        // An option's `note`, always visible under the dropdown: same law as `radio` below
+        // (MPI-1086: the Hairstyle option's "describe the cut, not just its name").
+        const note = ce('span', { className: cls('field-note') });
+        const paint = (v) => { note.textContent = find(v)?.note || ''; };
+        paint(sel);
         inst.on('change', ({ value }) => {
             const o = find(value);
             if (!o) return;
+            paint(o.v);
             // Emit the option's ORIGINAL `v`, never the DOM string — a graph param like
             // Input_Tier is an int, and "1" reaching MpiAnySwitch as text is a silent
             // wrong-branch. Identical to the `radio` branch, and for the same reason.
@@ -694,6 +700,7 @@ export function buildField(f, cur, onChange, unsubs, opts = {}) {
         });
         unsubs.push(() => inst?.el?.destroy?.());
         wrap.appendChild(host);
+        if (opts_.some(o => o.note)) wrap.appendChild(note);
     } else if (f.type === 'radio') {
         // The only mounted Primitive among the field types, so it is the only one
         // needing a host and a destroy. Worth it: a tier choice read as a <select>
