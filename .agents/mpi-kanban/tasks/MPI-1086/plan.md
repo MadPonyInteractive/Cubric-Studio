@@ -4,6 +4,17 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-15 end of session "New character sheets 28" - LATEST. DECIDED (Fabio): split BOTH Makeup and Tattoos into
+their own options, on Qwen, each with its own prompting (tattoos "notoriously hard": one-leg tattoos land on the wrong
+leg in a view, full-body tattoos are partly invented). NEXT, in order: (1) bench r34 (qh34.py on qh33.py) - Tattoos
+with a picture: "copied exactly: same designs, colours, size, same place on the body" + "Add no tattoos that are not in
+image 2" + no limb sentence (r32's "arm or leg" ADDED arm sleeves), Fabio's 6 tattoo refs (qh31.PIC t_*) + 2 in words;
+Makeup in words (own face named part by part, like mA2) x2; Makeup picture + words = mA2 + "Change only this about the
+makeup: <words>" x2. (2) Build: options `makeup` + `tattoos` -> flowCharacterSheetEditQwen, builder strings (makeup
+picture = qh33.mA2), REF_THING + refusal rules, Input_Is_Mannequin true for both, Accessories info stays items only;
+tests + eslint + the desktop spec flow-optional-model-row if a label changes. Benches need Fabio's app idle (queue empty
+at 48188 = his standing go).
+
 2026-10-15 later (session "New character sheets 28") - LATEST. 25 steps SHIPPED in the editor's Qwen graph (Fabio;
 commit with r31). Master went red on 1126f7dc1 (flow-optional-model-row.spec pinned the old Qwen row label) - fixed
 in e4909f920, CI green. r31 (Fabio's 13 makeup/tattoo pictures, shipped Accessories string): tattoos 4 pass + 2
