@@ -19,3 +19,6 @@ Pending: Fabio's look-and-feel check (verify mode user-ux).
 
 2026-10-15: Fabio said "1" from the screenshots, then clarified he could NOT open the app (an
 agent's queue was running on it). In-app look still PENDING — do not close on that "1".
+
+2026-10-15: Fabio verified it in the app ("Verified. You may close the card.").
+CI: tests.yml run 38758452131 on 279ff0d94 - success.

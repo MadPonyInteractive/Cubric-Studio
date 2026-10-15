@@ -3,11 +3,11 @@
   "id": "MPI-1147",
   "title": "Library switcher on landing",
   "description": "Landing gets one Library link; Model Library and Flow Library headers carry a Models | Flows switcher, shown only when no project is open. Inside a project unchanged; no-engine Flows keeps today's install prompt.",
-  "column": "doing",
-  "maturity": "validating",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
   "created_at": "2026-10-15T15:10:09+01:00",
-  "updated_at": "2026-10-15T15:13:56Z",
+  "updated_at": "2026-10-15T16:28:47+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -17,10 +17,5 @@
     "events": "events.jsonl",
     "handoffs": "handoffs/",
     "research": "research/"
-  },
-  "attention": {
-    "state": "required",
-    "reason": "Fabio's in-app look at the Library switcher (his app was busy 2026-10-15); then a green CI run on 279ff0d94.",
-    "updated_at": "2026-10-15T15:13:56Z"
   }
 }
