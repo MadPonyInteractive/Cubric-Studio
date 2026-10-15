@@ -83,3 +83,10 @@
 - Proof: hide.cjs 30 s hidden -> 0 [mascot] lines; mascotlog.cjs still logs would-not-play, frozen 13 s, moving again 16 s. npm test 3325 pass / 0 fail; hero-connecting + gallery-media-release + gallery-renditions 5/5 (hero-connecting flaky once in the batch, passes alone); eslint clean.
 - Pictures: 0 [slow-load] lines since 14:15Z in Fabio's log.
 - Noticed: Flow face-box drag lags (Character Sheet from Images, Fabio 2026-10-15). Not this card: the step's onChange only arms a 300 ms save; proposed as its own task.
+
+## 2026-10-15 ~23:05 local - HANDOFF state
+- Fabio restarted 21:54Z (no-store + freeze-log fixes live). At boot mascot clips queued ~5 s; [netlog] trigger fired 21:54:32Z (netlog.json = 4 min covering project-open stall: Deepinfra .meta thumbs queued ~15 s again). NOT yet analysed: run research/netlog.py on %APPDATA%/Cubric Studio/logs/netlog.json.
+- Fabio: after restart, opening Deepinfra model tests, videos would not play / some cards blank (Wan 3.0, Seedance 1.5 Pro), then recovered later "after a bunch of terminal logs". SUSPECT #1: server.js Range -> Cache-Control: no-store (live since this restart). Check app.log after 21:55Z for errors, and whether proxies/renditions were regenerating.
+- Drag lag (Flow face box, Cosmo side panel handle) persists with VRAM free and engine idle; app had run 17 h. Not GPU. Shipped-uncommitted->committed: clientLogger.js installHealthLog (init.js) - per-minute [health] warn when main thread blocked >2 s, every 10 min heap/elements/videos/images. Lint clean, NOT run yet.
+- Separate card proposed (session card): Flow face-box drag lag.
+- 23:05 local: Flow Library tiles all blank again (Fabio screenshot) on the same no-store build: picture waits persist; no-store did not cure them.

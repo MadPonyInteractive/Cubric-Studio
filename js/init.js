@@ -6,7 +6,7 @@ import { initPaths } from './data/modelRegistry.js';
 import { checkForUpdate } from './services/updateChecker.js';
 import { restoreUiZoom } from './utils/uiZoom.js';
 import { installAudioOutput } from './utils/audioOutput.js';
-import { installErrorBridge, installSlowLoadLog } from './services/clientLogger.js';
+import { installErrorBridge, installSlowLoadLog, installHealthLog } from './services/clientLogger.js';
 
 // MPI-374: re-apply the stored UI size before anything renders. Deliberately at
 // module top level, not inside init() — an await first would let the page paint
@@ -18,6 +18,8 @@ restoreUiZoom();
 installErrorBridge();
 // MPI-1137: every picture or video over 3 s goes to app.log, DevTools open or not.
 installSlowLoadLog();
+// MPI-1142: a minute of heavy main-thread blocking, and every 10 minutes what has grown.
+installHealthLog();
 
 // MPI-803: one capture-phase `play` listener that points every media element at the
 // chosen output device. Top level, like the zoom above — a listener installed inside

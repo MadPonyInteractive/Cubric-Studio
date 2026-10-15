@@ -92,3 +92,33 @@ export function installSlowLoadLog() {
         }
     }).observe({ type: 'resource', buffered: true });
 }
+
+/** Over this much main-thread blocking in a minute, dragging and typing visibly stutter. */
+const BLOCKED_MS_PER_MIN = 2000;
+
+/**
+ * MPI-1142: dragging lagged after ~17 h of use, engine idle, and a restart wiped the state.
+ * Each minute the main thread was blocked over BLOCKED_MS_PER_MIN is a `[health]` warn;
+ * every 10 minutes an info line records what can grow (heap, elements, videos, images),
+ * so a slow build-up shows as a trend in app.log instead of needing a live look.
+ */
+export function installHealthLog() {
+    let blocked = 0, worst = 0, count = 0, minute = 0;
+    if (PerformanceObserver.supportedEntryTypes?.includes('longtask')) {
+        new PerformanceObserver((list) => {
+            for (const e of list.getEntries()) { blocked += e.duration; worst = Math.max(worst, e.duration); count++; }
+        }).observe({ type: 'longtask' });
+    }
+    setInterval(() => {
+        minute++;
+        const busy = blocked > BLOCKED_MS_PER_MIN;
+        if (busy || minute % 10 === 0) {
+            const heap = performance.memory ? `heap ${Math.round(performance.memory.usedJSHeapSize / 1048576)} MB, ` : '';
+            _send(busy ? 'warn' : 'info', 'health', `${busy ? 'main thread blocked: ' : ''}${count} long tasks, `
+                + `${Math.round(blocked)} ms in 60 s (worst ${Math.round(worst)} ms) | ${heap}`
+                + `${document.getElementsByTagName('*').length} elements, ${document.getElementsByTagName('video').length} videos, `
+                + `${document.images.length} images, up ${minute} min`);
+        }
+        blocked = worst = count = 0;
+    }, 60000);
+}
