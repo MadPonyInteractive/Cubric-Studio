@@ -469,3 +469,28 @@ skin and clothes." Klein 48 s, Qwen 117-147 s. Contact sheets: scratchpad r29/c_
 - **Qwen wins**: layout 4/4, own face + hair 4/4, the thing placed where it belongs with no "where" words (gun in the
   hand, mask on the face), 3 full pass + piercings partial. No mannequin needed (Fabio's guess).
 - Not benched yet: Makeup, Tattoos (Fabio), Accessories in words only (no picture; same "seen from behind" sentence).
+
+## Round 30 (`qh30.py`, `h30_*`): steps, and Accessories in words only. Same sheet, words and seeds as r29
+
+q25 = r29's q_raw at 25 steps (r29 ran 30, same seeds); k_words = the SHIPPED words-only `accessories` string, Klein
+lock 0; q_words = Qwen, every figure named, no picture. Contact sheets: scratchpad r30/c_steps_*.jpg, c_words_*.jpg.
+
+| case | q25 vs q_raw 30 | k_words (shipped) | q_words |
+|---|---|---|---|
+| Mask | same picture, pass | front -> BACK VIEW, no mask anywhere | FAIL: whole sheet a purple matte, figures erased ("mask" read as a matte) |
+| Mini gun | same, pass | front -> BACK VIEW, no gun | a pistol in the front + back hands ("mini gun" read as a small gun) |
+| Earrings and necklaces | same, pass | front -> BACK VIEW, jewellery on the close-up only | **pass**: front + close-up |
+| Piercings and Choker | same, piercings still faint | front -> BACK VIEW, choker on the close-up only | **pass**: choker front + back + close-up, ear piercings |
+
+- **25 steps = 30** for an edit: same composition and items 4/4, 99-126 s vs 117-147 s (~15% faster). Fabio was right.
+- **The shipped words-only Accessories path breaks on this sheet 4/4**: front redrawn as a back view, the item on the
+  close-up only or nowhere. Not released (the Flow landed 2026-10-10, after v2.0.1): it would have shipped in 2.1. MPI-1041 F1 had it 7/8 on another sheet, so it depends on the
+  sheet, but Klein loses the front figure on this one with or without a picture.
+- Qwen words-only keeps layout, face and hair 4/4; one wording failure (a bare "Mask"). Arm qw2 ("this accessory to
+  wear or hold: <words>", 25 steps) tests the fix.
+- **qw2** (Qwen, 25 steps, "Give the character in image 1 this accessory to wear or hold: <words>. The front view, the
+  character seen from behind and the close-up portrait on the right all show it wherever it can be seen. Keep the
+  character's own face, hair, skin and clothes."): layout, face and hair 4/4, no matte. Mask = a white surgical mask on
+  the close-up only, none on the front figure (partial: a bare "Mask" is ambiguous); Mini gun = a pistol in the front +
+  back hands; Earrings and necklaces **pass**; Piercings and Choker **pass** (choker front + clasp on the back +
+  close-up, ear cuff). Contact sheet: scratchpad r30/c_qw2.jpg. 96-112 s.

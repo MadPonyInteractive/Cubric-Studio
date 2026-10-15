@@ -1701,20 +1701,23 @@ export const FLOWS = [
         // registered, so the layout holds and only the change moves.
         preview: 'flow-character-sheet-editor.webp',
         video: 'flow-character-sheet-editor.mp4',
-        description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, a hairstyle and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
+        description: 'Change one thing on a character sheet you already have - the clothes, accessories, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, a hairstyle, accessories and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
         // Each slot's rack fills its phase's nodes: Klein's Input_Lora_Phase1_* (the edit and age
         // legs), Qwen's Input_Lora_Phase2_* (Body shape). The child rebuild leg runs the
         // from-images graph, titled Phase1, so it takes no rack here.
         requiredModels: [
             { label: 'Model', models: ['klein-9b'], loras: true },
-            { label: 'Body shape, hairstyle and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
+            { label: 'Body shape, hairstyle, accessories and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
               for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] },
         ],
         operation: 'flowCharacterSheetEdit',
         operationBy: {
             field: 'change',
             map: {
-                clothes: 'flowCharacterSheetEdit', accessories: 'flowCharacterSheetEdit',
+                clothes: 'flowCharacterSheetEdit',
+                // MPI-1086 r29/r30: Klein redrew the front figure as a back view on Fabio's sheet, with a picture or
+                // in words (4/4 each), and took the picture's person; Qwen kept layout, face and hair 4/4 both ways.
+                accessories: 'flowCharacterSheetEditQwen',
                 // MPI-1086: a hairstyle runs on Qwen. From a picture its graph makes the picture a mannequin
                 // first (17/18 vs Klein's ~11/17); in words Klein cannot take hair AWAY (a mohawk came back
                 // as silver braids), Qwen got every figure 4/4 (r28, Fabio 2026-10-15).
@@ -1755,7 +1758,7 @@ export const FLOWS = [
                 id: 'change', type: 'select', label: 'What to change', default: 'clothes',
                 options: [
                     { v: 'clothes', label: 'Clothes', info: 'New clothes on every panel; the head and hair stay exactly as they are.' },
-                    { v: 'accessories', label: 'Accessories', info: 'Glasses, a scarf, a hat, jewellery - added to every panel.' },
+                    { v: 'accessories', label: 'Accessories', info: 'Glasses, a scarf, a hat, jewellery - added to every panel. Runs on Qwen-Image 2.1: not for commercial use.' },
                     { v: 'hair', label: 'Hairstyle', info: 'A new haircut or colour; the face stays as it is. Runs on Qwen-Image 2.1: not for commercial use.',
                       // A bare style name that takes hair AWAY ("Mohawk") fails; spelled out it works (r27).
                       note: 'Describe the cut, not just its name (e.g. shaved sides, a strip on top). A rare style? Add a Reference picture.' },
@@ -1813,7 +1816,8 @@ export const FLOWS = [
             { to: 'refHair', media: 'image2', when: { field: 'change', is: 'hair' },
                 ask: 'Describe only the hairstyle of the person in this picture: its length, its shape, how it is worn (loose, tied up, braided, in buns, ponytails or pigtails), the fringe if there is one, and the hair colour, naming each colour and where it is when the hair has darker roots or more than one colour. Answer with one phrase that starts with the hair colour, and nothing else.' },
             // A mannequin needs no mannequin made of it: a "yes" sets the Qwen graph's Input_Is_Mannequin,
-            // whatever the picture's source (the gallery, the web, a later Element). Accessories may want it too.
+            // whatever the picture's source (the gallery, the web, a later Element). Accessories never makes one
+            // (the builder sets it: the raw picture is what works, MPI-1086 r29), so it is not asked there.
             { to: 'refIsMannequin', media: 'image2', when: { field: 'change', is: 'hair' },
                 ask: 'Is this a picture of a mannequin, a wig head or a bare dummy bust with no real face, rather than a real person? Answer yes or no.' },
         ],

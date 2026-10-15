@@ -4,6 +4,19 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-15 (session "New character sheets 28") - LATEST. Bench r30 (validation.md, `qh30.py`): Qwen at 25 steps =
+30 on r29's four (same pictures, ~15% faster). The SHIPPED words-only Accessories (Klein) redraws the front figure as a
+back view 4/4 on sheet flowCSE_044 (not released: the Flow is new in 2.1); the fix is routing Accessories to Qwen.
+Qwen words-only: bare "Mask" became a purple matte with `q_words`; `qw2` ("this accessory to wear or hold: <words>")
+fixes it, 3 pass + mask partial (close-up only).
+SHIPPED (Fabio: "move all Accessories to Qwen, non-commercial note included"): registry `accessories` ->
+flowCharacterSheetEditQwen, option info + description + requiredModels label say Qwen / not commercial; builder
+strings = r29 q_raw (picture, leading article dropped) / r30 qw2 (words), byte-identical to the bench on all 8 cases;
+`Input_Is_Mannequin` forced true for accessories; playbook + UNRELEASED.md. npm test 3324/0, eslint clean.
+OPEN for Fabio: (1) 25 steps for the whole Qwen editor graph (hair/body benched at 30: re-bench 2 cases first),
+(2) Makeup + Tattoos pictures, (3) eye test Accessories in the app (reload), (4) the split (my pick: no split unless
+Makeup/Tattoos fail). Then Beard as its own entry, close-out.
+
 2026-10-15 (session "New character sheets 27") - LATEST. Body shape eye-tested PASS. Eye test 4: Accessories + a
 picture on Klein (AW3) redrew the FRONT figure as a back view 4/4 and leaked the reference person. Klein edit path is
 unchanged since 85f96744a, so not the graph. Bench r29 (validation.md): Qwen-Image 2.1 with the raw reference as

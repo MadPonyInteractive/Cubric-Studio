@@ -14,9 +14,9 @@ const L1 = ' Make the same change in the close-up portrait on the right. Keep ev
 
 /**
  * The SAM3 lock each change runs under: `Input_Lock` of flow_character_sheet_edit.json.
- * 1 = head, hair and face on all three panels (Clothes keeps the person); 0 = a free edit. Accessories
- * is free: a head lock blocks glasses and hats (A4). Body shape and Hairstyle (MPI-1086) run on the Qwen
- * graph, which has no lock; the Klein graph's lock 2 (the face only) is now reached by nothing.
+ * 1 = head, hair and face on all three panels (Clothes keeps the person); 0 = a free edit. Body shape,
+ * Hairstyle and Accessories (MPI-1086) run on the Qwen graph, which has no lock; the Klein graph's lock 2
+ * (the face only) is now reached by nothing.
  */
 const LOCK = { clothes: 1 };
 
@@ -141,13 +141,16 @@ export function buildChangePrompt(change, words, ref = false, refHair = '') {
                 + `wears now, trousers, skirt and top included. ${REF_ALL} Keep everything else exactly as it is.`;
     }
     if (!w) return null;
-    // MPI-1086 qh7 AW3: the shipped accessories string with the picture named, plus a line keeping her own face, hair
-    // and clothes - from a photo of a man in a bandana the close-up took his face and tee without it (1 of 2), and
-    // naming every figure "worn the same way" made the close-up HIM (2 of 2). AW3: bandana front, back and her own
-    // face 2/2; earrings, a tattoo and a backpack land (a backpack can come out worn on the chest: say "on her back").
+    // MPI-1086 r29: Accessories runs on Qwen-Image 2.1 (the registry routes it), the raw picture straight in as image 2
+    // (no mannequin: `Input_Is_Mannequin` is forced). Klein redrew the front figure as a second back view 4/4 and took
+    // the picture's person (her face, her green hair); this kept layout, face and hair 4/4 and put the thing where it
+    // belongs (the gun in her hand, the mask on her face) with no "where" words.
     if (ref && change === 'accessories') {
-        return `Give the character ${_unview(w)} from the reference picture. Make the same change on the character seen `
-            + "from behind and in the close-up portrait on the right. Keep the character's own face, hair and clothes. "
+        const t = _unview(w).replace(/^(?:the|a|an)\s+/i, '');
+        const thing = t[0].toLowerCase() + t.slice(1);
+        return `Give the character in image 1 the ${thing} from image 2. The front view, the character seen from behind `
+            + `and the close-up portrait on the right all show the ${thing} wherever it can be seen. Take only the `
+            + `${thing} from image 2, not the person: keep the character's own face, hair, skin and clothes. `
             + 'Keep everything else exactly as it is.';
     }
     switch (change) {
@@ -158,12 +161,12 @@ export function buildChangePrompt(change, words, ref = false, refHair = '') {
         case 'clothes':
             return `Dress the character in ${w}. The front view, the back view and the close-up portrait on the right `
                 + 'all show the same outfit, with the same neckline, sleeves and straps. Keep everything else exactly as it is.';
-        // L1 named only the close-up, so the back view lost the scarf (or the close-up did): 4/8 -> 7/8 (F1).
-        // A free edit has no head lock: "the back view" or "all three figures" made Klein redraw the layout
-        // (an extra back figure); "the character seen from behind" never did (0 of 10).
+        // MPI-1086 r30: on Qwen, every figure named. Klein's string redrew the front figure as a back view 4/4 on
+        // Fabio's sheet. "this accessory to wear or hold": a bare "Mask" otherwise came back as a matte over the sheet.
         case 'accessories':
-            return `Give the character ${w}. Make the same change on the character seen from behind and in the close-up `
-                + 'portrait on the right. Keep everything else exactly as it is.';
+            return `Give the character in image 1 this accessory to wear or hold: ${w}. The front view, the character `
+                + 'seen from behind and the close-up portrait on the right all show it wherever it can be seen. '
+                + "Keep the character's own face, hair, skin and clothes. Keep everything else exactly as it is.";
         // A hat hides the hair it is meant to change: the fisher's beanie stayed on the front view (F1).
         // MPI-1086 r28: hair runs on QWEN (Klein turned a mohawk into silver braids). Naming every figure is what
         // reaches the bodies: with L1 Qwen changed the close-up only; this got all three figures 4/4.
@@ -328,7 +331,10 @@ export function characterSheetEditor(part, values = {}) {
     // the chained Headless leg does it after the age legs.
     if (part !== 'rebuild') injectionParams.Input_Headless = part === 'change' && _age(values.Input_Age) < 0;
     // The Reference picture is a mannequin already (the describer said so): the Qwen graph skips
-    // making one of it. The Klein graph has no such node and ignores it.
-    if (part === 'change') injectionParams.Input_Is_Mannequin = /^\W*yes\b/i.test(values.refIsMannequin || '');
+    // making one of it. The Klein graph has no such node and ignores it. Accessories never wants one:
+    // the raw picture goes in as image 2 (MPI-1086 r29).
+    if (part === 'change') {
+        injectionParams.Input_Is_Mannequin = values.change === 'accessories' || /^\W*yes\b/i.test(values.refIsMannequin || '');
+    }
     return { positive: _part(part, values), injectionParams };
 }

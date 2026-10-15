@@ -12,11 +12,11 @@ building a Flow that needs more than one graph or more than one model.
 
 | | |
 |---|---|
-| requiredModels | `[{ label: 'Model', models: ['klein-9b'], loras: true }, { label: 'Body shape, hairstyle and child ages', models: ['qwen-image-2-1'], optional: true, loras: true, for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] }]` |
-| operation / `operationBy` | `flowCharacterSheetEdit` (Klein), routed by the `change` select: `body` -> `flowCharacterSheetEditQwen`, `hair` -> Qwen WITH a Reference picture, else Klein (a rule entry, MPI-1086), `none` -> no leg 1 |
+| requiredModels | `[{ label: 'Model', models: ['klein-9b'], loras: true }, { label: 'Body shape, hairstyle, accessories and child ages', models: ['qwen-image-2-1'], optional: true, loras: true, for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] }]` |
+| operation / `operationBy` | `flowCharacterSheetEdit` (Klein), routed by the `change` select: `body`, `hair` and `accessories` -> `flowCharacterSheetEditQwen` with a picture or without (MPI-1086 r28/r30), `none` -> no leg 1 |
 | graphs | `flow_character_sheet_edit.json` (Klein 9B, 129 nodes, in-graph SAM3 lock: cut at the shoulders on the back body, at the brows at lock 2; optional reference, cut out to its hair at lock 2) and `flow_character_sheet_edit_qwen.json` (Qwen-Image 2.1, 78: with a Reference picture a Klein mannequin leg feeds it `images.image_2`, MPI-1086 r23, skipped when `Input_Is_Mannequin`). Both output the INPUT size, and both END with the head removal (`Input_Headless`, MPI-1086 r26): see Versions below |
 | authoring source | `raw/` is the source now. `research/bench-tools/build_edit_graph*.py` wrote the first raws; the LoRA racks went in after with `research/bench-tools/insert_rack.py`, the reference with `insert_ref2.py`, the brow cut, hair cut-out and the Qwen mannequin leg with MPI-1086's `research/bench/patch_raw*.py` (raw in place, then `workflow-to-api.mjs` single-file) |
-| media | `image1` the sheet; `image2` an OPTIONAL Reference picture (Klein op: Clothes, Accessories; Qwen op: Hairstyle) |
+| media | `image1` the sheet; `image2` an OPTIONAL Reference picture (Klein op: Clothes; Qwen op: Hairstyle, Accessories) |
 | fields | `change` (select; "Custom" = a free edit in words, "None" = age only), `words` (hidden for None), `Input_Age` (slider -1-100: -1 = keep, the default; 0 = a newborn; 1 = a toddler; `valueLabels` reads Keep / Newborn), `Input_Remove_Head` |
 | prompt | `promptBuilder: 'characterSheetEditor'` -> `js/data/flowPrompts/characterSheetEditor.js`, called in `flowService` after describe. The user never types a prompt |
 
@@ -55,7 +55,8 @@ The mannequin: the describer's `refIsMannequin` yes/no on the Reference picture 
 | change | editor | lock (`Input_Lock`) | evidence |
 |---|---|---|---|
 | Clothes | Klein | 1 = SAM3 "head, hair, face" on all three panels; the BACK body's cut at the shoulders (MPI-1090) | b3-b4, 6 of 6; F1 wording 9 of 9 |
-| Accessories | Klein | 0 (free): a head lock blocks glasses and hats | A4, 2 of 2; F1 wording 7 of 8 |
+| Accessories | Qwen-Image 2.1, every figure named, "this accessory to wear or hold" | none in that graph | MPI-1086 r30 3 pass + 1 partial; Klein (A4, F1 7/8) redrew the front as a back view 4/4 on Fabio's sheet |
+| Accessories + picture | Qwen-Image 2.1, the RAW picture as image 2 (`Input_Is_Mannequin` forced: no mannequin) | none in that graph | MPI-1086 r29 3 pass + piercings partial; Klein 0/4 |
 | Hairstyle | Klein | 2 = "face" on the front and the close-up, from the BROWS down (MPI-1086) | b8; F1 wording 3 of 3; fringe 6 of 6 |
 | Hairstyle + picture | Qwen-Image 2.1; Klein makes the picture a mannequin in the same graph | none in that graph | MPI-1086 r21 17/18, r23 6/6 |
 | Condition | Klein | 0 | b5, 6 of 6 |
@@ -104,11 +105,13 @@ and a fringe never landed (0/3; free, 3/3). Each lock-2 face mask is multiplied 
 top + a third of its height down (`MpiMaskBbox` -> `MpiFromBox` -> `MpiBox` -> `MpiBoxMask`, behind an
 `MpiIfElse` on lock 1, whose masks stay whole - pixel-identical). A quarter left 1 front in 3 without
 a fringe. Trade-off: a bob with no fringe asked can now draw one; "no fringe" in the words is the out.
-**Accessories with a picture (MPI-1086 qh5/qh7)** NEED words naming it: alone, gold hoops became a
-necklace and a rose tattoo went on the face (4/4). The shipped accessories string + "from the
-reference picture" + "Keep the character's own face, hair and clothes." - without that line a photo
-of a man in a bandana put his face and tee in the close-up; naming every figure "worn the same way"
-made the close-up HIM (2/2). A backpack can still come out worn on the chest: "on her back" fixes it.
+**Accessories run on QWEN (MPI-1086 r29/r30, Fabio 2026-10-15).** On Klein (sheet flowCSE_044) the
+front figure came back as a second back view 4/4, in words and with a picture, and a picture's person
+leaked (her face, her green hair). With a picture the words are still required (alone, gold hoops
+became a necklace, qh5); Qwen takes only "the <thing> from image 2, not the person" and places it with
+no "where" words (the gun in her hand). In words, a bare "Mask" became a matte over the whole sheet
+until the string said "this accessory to wear or hold". A thing can still read two ways ("Mini gun" =
+a pistol, "Mask" = a surgical mask): the words name it, the picture settles it.
 **Hairstyle with a picture runs on QWEN (MPI-1086 rounds 16-24).** Fabio's eye test failed the Klein
 route: lock 2 pastes the old face back onto a head Klein redrew from the picture's pose (double jaw,
 a second ear, a face out of place; ~11/17 after every lock fix). `operationBy` routes `hair` by a rule

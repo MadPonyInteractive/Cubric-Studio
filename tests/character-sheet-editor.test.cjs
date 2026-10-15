@@ -42,9 +42,11 @@ test('every change builds its bench template verbatim', async () => {
         'Dress the character in a red leather jacket, black jeans and boots. The front view, the back view and the '
         + 'close-up portrait on the right all show the same outfit, with the same neckline, sleeves and straps. '
         + 'Keep everything else exactly as it is.');
+    // MPI-1086 r30: Accessories runs on Qwen, every figure named, "to wear or hold" (a bare "Mask" became a matte).
     assert.strictEqual(buildChangePrompt('accessories', 'a red scarf and round glasses'),
-        'Give the character a red scarf and round glasses. Make the same change on the character seen from behind and in '
-        + 'the close-up portrait on the right. Keep everything else exactly as it is.');
+        'Give the character in image 1 this accessory to wear or hold: a red scarf and round glasses. The front view, the '
+        + 'character seen from behind and the close-up portrait on the right all show it wherever it can be seen. '
+        + "Keep the character's own face, hair, skin and clothes. Keep everything else exactly as it is.");
     // MPI-1086 r28: on Qwen, every figure named.
     const HAIR = w => `Give the character this hairstyle: ${w}. The head is uncovered, no hat. The front view, the character `
         + 'seen from behind and the close-up portrait on the right all show the same new hairstyle. '
@@ -172,13 +174,18 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     for (const w of ['', 'G string on the back view']) {
         assert.doesNotMatch(buildChangePrompt('clothes', w, true), /back view/);
     }
-    // MPI-1086 qh7 AW3: Accessories takes the picture WITH words naming it, and keeps her own face, hair and clothes.
+    // MPI-1086 r29: Accessories takes the picture WITH words naming it, on Qwen: the raw picture as image 2, only the
+    // thing taken from it. A leading article is dropped ("the the ..."), the first letter lowered as benched.
     assert.strictEqual(buildChangePrompt('accessories', '', true), null);
-    assert.strictEqual(buildChangePrompt('accessories', 'the large gold hoop earrings', true),
-        'Give the character the large gold hoop earrings from the reference picture. Make the same change on the character '
-        + "seen from behind and in the close-up portrait on the right. Keep the character's own face, hair and clothes."
-        + KEEP);
-    assert.strictEqual(characterSheetEditor('change', run('accessories', 'the bandana')).injectionParams.Input_Reference, true);
+    const ACC = t => `Give the character in image 1 the ${t} from image 2. The front view, the character seen from behind `
+        + `and the close-up portrait on the right all show the ${t} wherever it can be seen. Take only the ${t} from `
+        + "image 2, not the person: keep the character's own face, hair, skin and clothes." + KEEP;
+    assert.strictEqual(buildChangePrompt('accessories', 'the large gold hoop earrings', true), ACC('large gold hoop earrings'));
+    assert.strictEqual(buildChangePrompt('accessories', 'Mini gun', true), ACC('mini gun'));
+    assert.strictEqual(buildChangePrompt('accessories', 'A mask', true), ACC('mask'));
+    const acc = characterSheetEditor('change', run('accessories', 'the bandana')).injectionParams;
+    assert.strictEqual(acc.Input_Reference, true);
+    assert.strictEqual(acc.Input_Is_Mannequin, true, 'the raw picture goes in: no mannequin is made of it');
     assert.strictEqual(refuse(run('accessories', '')), 'Say what the Reference picture shows, for example "the gold hoop earrings".');
     assert.strictEqual(refuse(run('accessories', 'the bandana')), null);
     assert.strictEqual(refuse({ change: 'accessories', words: '' }), 'Say what to change, or add a Reference picture.');
@@ -296,9 +303,9 @@ test('each change routes to its editor and the age picks the legs', async () => 
     const { getFlowById, flowOperation, flowRunLegs, flowToggleLeg } = await registry();
     const flow = getFlowById('character-sheet-editor');
     assert.ok(flow, 'the Flow is registered');
-    for (const c of ['clothes', 'accessories', 'condition']) assert.strictEqual(flowOperation(flow, run(c, -1)), 'flowCharacterSheetEdit');
-    // MPI-1086 r28: a Hairstyle runs on Qwen with a picture or without.
-    for (const c of ['body', 'hair']) assert.strictEqual(flowOperation(flow, run(c, -1)), 'flowCharacterSheetEditQwen');
+    for (const c of ['clothes', 'condition']) assert.strictEqual(flowOperation(flow, run(c, -1)), 'flowCharacterSheetEdit');
+    // MPI-1086 r28/r30: a Hairstyle and Accessories run on Qwen with a picture or without.
+    for (const c of ['body', 'hair', 'accessories']) assert.strictEqual(flowOperation(flow, run(c, -1)), 'flowCharacterSheetEditQwen');
     assert.strictEqual(flowOperation(flow, run('none', 30)), null);
     // MPI-1086: a Hairstyle WITH a Reference picture goes to Qwen (the graph makes the mannequin); in words, Klein.
     const withRef = { ...run('hair', -1), mediaItems: [{ role: 'image2', url: 'ref.png' }] };
