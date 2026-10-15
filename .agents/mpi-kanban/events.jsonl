@@ -6173,3 +6173,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1146", "at": "2026-10-15T05:14:27+01:00", "actor": "claude", "column": "doing", "title": "LoRA drop in Model Settings lands in the open model's own LoRA folder"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1146", "at": "2026-10-15T05:18:12+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Shipped 1db5015cc; Fabio to drop a real LoRA (OS drag-drop cannot be scripted)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1146", "at": "2026-10-15T05:31:24+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio confirmed the drop live"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1147", "at": "2026-10-15T15:10:09+01:00", "actor": "claude", "column": "todo", "title": "Library switcher on landing"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1147", "type": "task.updated", "at": "2026-10-15T14:11:21Z", "actor": "claude", "summary": "Compact plan attached; maturity planned."}
