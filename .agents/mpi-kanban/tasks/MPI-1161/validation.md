@@ -14,3 +14,5 @@ Evidence (2026-10-16):
 - `npx playwright test --config=playwright.desktop.config.js` on media-picker-slot-types,
   media-picker-cards, media-picker-to-history, prompt-box-voice — 13/13 pass.
 - eslint clean on the three changed JS files.
+- CI `Tests` on 795446582: success.
+- Fabio tested it in the app (2026-10-16): accepted.
