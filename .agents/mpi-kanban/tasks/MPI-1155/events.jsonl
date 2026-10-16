@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1155", "at": "2026-10-16T07:19:25+01:00", "actor": "claude", "column": "doing", "title": "RunPod: Check spend in the Remote panel, like DeepInfra's"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1155", "at": "2026-10-16T07:25:30+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped; live balance check waits on Fabio's next Pod connect"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1155", "at": "2026-10-16T08:42:16+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio confirmed live on a real Pod"}

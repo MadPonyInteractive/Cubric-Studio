@@ -18,6 +18,6 @@ month's spend", then "always show it, on the home page and the status bar, like
   hero "CURRENT SESSION 14min/$0.58 of $15.37" on one line; status bar
   "IDLE · Remote · $0.58 of $15.37".
 
-## Not verified
-- A live GraphQL answer with a real key (no key in the agent profile). Fabio's next Pod
-  connect, after an app restart, is the check: the "of $X" must match his RunPod balance.
+## Live check
+- Fabio, 2026-10-16: "works fine" on a real Pod with his key. The "of $X" stays fixed
+  for the Pod by design (credit at Pod start); the spend climbs on the 5 s tick, so no re-read.
