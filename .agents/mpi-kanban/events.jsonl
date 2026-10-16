@@ -6209,3 +6209,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1155", "at": "2026-10-16T07:19:25+01:00", "actor": "claude", "column": "doing", "title": "RunPod: Check spend in the Remote panel, like DeepInfra's"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1155", "at": "2026-10-16T07:25:30+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped; live balance check waits on Fabio's next Pod connect"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1155", "at": "2026-10-16T08:42:16+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio confirmed live on a real Pod"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1142", "at": "2026-10-16T09:25:03+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio live-confirmed: no stall while a model installs on a Pod; CI green on 5f140b4f0; evidence in validation.md"}
