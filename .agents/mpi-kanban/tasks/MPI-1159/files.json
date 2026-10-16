@@ -9,6 +9,7 @@
   "js/data/childSafety.js",
   "docs/releases/UNRELEASED.md",
   "js/services/generationService.js",
-  "tests/desktop/video-history-strip.spec.js"
+  "tests/desktop/video-history-strip.spec.js",
+  "tests/desktop/flow-optional-model-row.spec.js"
  ]
 }
