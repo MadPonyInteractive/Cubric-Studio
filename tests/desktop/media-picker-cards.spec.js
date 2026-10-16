@@ -394,3 +394,37 @@ test('the mic and voice cards render only when the slot hands their components i
     await closeApp(app);
   }
 });
+
+// MPI-1160 — a square cell cropped an 8:5 character sheet to one figure. The picker now
+// packs with the Gallery's `buildJustifiedRows`, so each tile's box has its picture's
+// aspect and the picture shows whole.
+test('tiles keep their picture whole, packed in justified rows like the gallery', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+
+  try {
+    await window.waitForTimeout(6000);
+    const group = (id, w, h) => ({
+      id, type: 'image', name: id, customName: id, createdAt: '2026-09-01T10:00:00Z',
+      selectedIndex: 0, archived: false,
+      history: [item(`${id}-0`, 'image', STILL, { pixelDimensions: { w, h } })],
+    });
+    await openPicker(window, [group('sheet', 1600, 1000), group('portrait', 720, 1280)], 'image');
+
+    const boxes = await window.evaluate(() => Object.fromEntries(
+      [...document.querySelectorAll('.mpi-media-picker__tile')].map(t => {
+        const r = t.querySelector('.mpi-media-picker__tile-media').getBoundingClientRect();
+        return [t.querySelector('.mpi-media-picker__name').textContent,
+          { w: r.width, h: r.height, fit: getComputedStyle(t.querySelector('img')).objectFit }];
+      })));
+
+    // Each box has its picture's aspect (borders and rounding allowed).
+    expect(Math.abs(boxes.sheet.w / boxes.sheet.h - 1.6)).toBeLessThan(0.05);
+    expect(Math.abs(boxes.portrait.w / boxes.portrait.h - 0.5625)).toBeLessThan(0.05);
+    // One row, one height — the sheet is the wide one.
+    expect(boxes.sheet.h).toBeCloseTo(boxes.portrait.h, 0);
+    expect(boxes.sheet.w).toBeGreaterThan(boxes.portrait.w * 2);
+    expect(boxes.sheet.fit).toBe('contain');
+  } finally {
+    await closeApp(app);
+  }
+});

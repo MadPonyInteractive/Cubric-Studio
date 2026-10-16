@@ -15,6 +15,7 @@ import {
     byGalleryOrder, markOf, markIcon,
 } from '../../../utils/galleryFilter.js';
 import { mountGalleryFilter } from '../../galleryFilterPanel.js';
+import { buildJustifiedRows } from '../../../utils/justifiedLayout.js';
 
 /**
  * MpiMediaPicker — pick media the project ALREADY holds, or bring one in (Compound)
@@ -558,6 +559,69 @@ export const MpiMediaPicker = ComponentFactory.create({
             }));
         }
 
+        // ── Layout: the Gallery's justified rows (MPI-1160) ──────────────────
+        // A square cell cropped every picture to its middle, so an 8:5 character sheet
+        // read as one figure and two sheets looked the same. The grid now packs each
+        // tile at its own aspect with the packer the Gallery uses, so a sheet, a
+        // portrait and a clip each show whole.
+        //
+        // Every cell the grid packs: the source cards first, then one per card. `box`
+        // takes the row height (a tile's media, so its name still sits under it; a
+        // source card is all box).
+        const ROW_HEIGHT = 168;
+        let _cells = [];
+        let _emptyEl = null;
+        let _layoutFrame = 0;
+
+        function _aspectOf(item, type) {
+            // Audio has no pixels, and here no waveform either — just the note icon, so a
+            // square, not the Gallery's 21:9 waveform card (Fabio, 2026-10-16).
+            if (type === 'audio') return 1;
+            const px = item.pixelDimensions;
+            return px?.w > 0 && px?.h > 0 ? px.w / px.h : 1;
+        }
+
+        function _layout() {
+            const style = getComputedStyle(grid);
+            const width = grid.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0);
+            // Not on screen yet (or the voice library has it hidden): the ResizeObserver
+            // lays it out once it has a width.
+            if (width <= 0) return;
+            const gap = parseFloat(style.rowGap) || 0;
+            const rows = buildJustifiedRows(
+                _cells.map((c, i) => ({ id: i, aspectRatio: c.aspect })), width, ROW_HEIGHT, gap);
+            const frag = document.createDocumentFragment();
+            rows.forEach(({ items }) => {
+                const row = ce('div', { className: 'mpi-media-picker__row' });
+                items.forEach(({ id, width: w, height: h }) => {
+                    const cell = _cells[id];
+                    cell.el.style.width = `${w}px`;
+                    cell.box.style.height = `${h}px`;
+                    row.appendChild(cell.el);
+                });
+                frag.appendChild(row);
+            });
+            if (_emptyEl) frag.appendChild(_emptyEl);
+            grid.replaceChildren(frag);
+        }
+
+        function _scheduleLayout() {
+            cancelAnimationFrame(_layoutFrame);
+            _layoutFrame = requestAnimationFrame(_layout);
+        }
+
+        const _resizeObserver = new ResizeObserver(_scheduleLayout);
+        _resizeObserver.observe(grid);
+
+        /** A tile whose sidecar has no `pixelDimensions` packs square until its media says. */
+        function _learnAspect(cell, mediaEl, event, w, h) {
+            _unsubs.push(on(mediaEl, event, () => {
+                if (!(mediaEl[w] > 0 && mediaEl[h] > 0)) return;
+                cell.aspect = mediaEl[w] / mediaEl[h];
+                _scheduleLayout();
+            }, { once: true }));
+        }
+
         function _buildTile(entry) {
             const { item, type, label: name, mark } = entry;
 
@@ -569,6 +633,8 @@ export const MpiMediaPicker = ComponentFactory.create({
                 extraClasses: 'mpi-media-picker__tile-media',
             });
             media.title = name;
+            const cell = { el: tile, box: media, aspect: _aspectOf(item, type) };
+            const known = type === 'audio' || (item.pixelDimensions?.w > 0 && item.pixelDimensions?.h > 0);
 
             // A project thumb wins for a still frame — cheaper than decoding the clip.
             // Video also gets a real <video>, hidden until hover, so hovering PLAYS it
@@ -586,6 +652,7 @@ export const MpiMediaPicker = ComponentFactory.create({
                     muted: true, loop: true, preload: 'metadata', playsInline: true,
                 });
                 media.appendChild(vid);
+                if (!known) _learnAspect(cell, vid, 'loadedmetadata', 'videoWidth', 'videoHeight');
                 // play/pause on hover, not autoplay-always: a grid of 90 clips all
                 // decoding at once is what makes a picker like this crawl.
                 _unsubs.push(on(media, 'mouseenter', () => { vid.play().catch(() => {}); }));
@@ -596,10 +663,12 @@ export const MpiMediaPicker = ComponentFactory.create({
                 media.appendChild(icon);
                 _wireAudioHover(media, icon, item);
             } else {
-                media.appendChild(ce('img', {
+                const img = ce('img', {
                     src: resolveMediaUrl(item.thumbPath || item.filePath),
                     alt: '', draggable: false,
-                }));
+                });
+                media.appendChild(img);
+                if (!known) _learnAspect(cell, img, 'load', 'naturalWidth', 'naturalHeight');
             }
 
             _unsubs.push(on(media, 'click', () => {
@@ -640,23 +709,25 @@ export const MpiMediaPicker = ComponentFactory.create({
             caption.textContent = name;
             tile.appendChild(caption);
 
-            return tile;
+            return cell;
         }
 
         function _render() {
-            grid.textContent = '';
             const entries = _collect();
+            const source = (cardEl) => ({ el: cardEl, box: cardEl, aspect: 1 });
+            _cells = [];
+            _emptyEl = null;
 
-            if (importInput) grid.appendChild(_buildUploadCard());
+            if (importInput) _cells.push(source(_buildUploadCard()));
             // Gated on the SLOT's type, not the active filter: widening the filter to
             // "All media" is the user looking around, not a change of what the slot
             // takes, and a Record card under an image slot would be a dead end.
-            if (slotType === 'audio' && props.recordAudio) grid.appendChild(_buildMicCard());
+            if (slotType === 'audio' && props.recordAudio) _cells.push(source(_buildMicCard()));
             // Same gating, plus the slot's own opt-in. `onImport` is required because that
             // is the route a picked voice takes — without it the card would open a library
             // whose selection had nowhere to go.
             if (slotType === 'audio' && props.voiceRoute && props.onImport && props.voicePicker) {
-                grid.appendChild(_buildVoiceCard());
+                _cells.push(source(_buildVoiceCard()));
             }
 
             if (!entries.length) {
@@ -668,10 +739,11 @@ export const MpiMediaPicker = ComponentFactory.create({
                     : mascotLoop('studio', 'peek', 'mpi-media-picker__empty-mascot mpi-media-picker__empty-mascot--peek')}<span>${filteredOut
                     ? 'No media matches this filter.'
                     : 'This project has no media yet.'}</span>`;
-                grid.appendChild(empty);
-                return;
+                _emptyEl = empty;
+            } else {
+                entries.forEach(entry => _cells.push(_buildTile(entry)));
             }
-            entries.forEach(entry => grid.appendChild(_buildTile(entry)));
+            _layout();
         }
 
         // ── FILTER — the gallery's own button and panel, on the local sort ──
@@ -703,6 +775,8 @@ export const MpiMediaPicker = ComponentFactory.create({
 
         el.destroy = () => {
             filter.destroy();
+            _resizeObserver.disconnect();
+            cancelAnimationFrame(_layoutFrame);
             _closePreview();
             _closeVoiceLibrary();
             _stopPickerAudio();

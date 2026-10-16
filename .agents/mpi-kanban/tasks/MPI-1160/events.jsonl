@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1160", "at": "2026-10-16T19:44:33+01:00", "actor": "claude", "column": "todo", "title": "Choose media picker shows whole pictures in a gallery-style grid"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1160", "at": "2026-10-16T20:05:01+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "picker justified grid"}
