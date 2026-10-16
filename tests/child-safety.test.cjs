@@ -116,10 +116,38 @@ test('swimwear the words tie to the minor is refused even beside an adult', asyn
     const cases = [
         'a mother and her 13-year-old daughter, both in bikinis, at the beach',
         'a woman on the sand watching her 12-year-old daughter in a bikini',
-        'dad and his kids, all in swimsuits, at the lake',
+        'dad and his kids, all in bikinis, at the lake',
         'uma mãe e a filha de 10 anos, ambas de biquíni, na praia',
     ];
     for (const text of cases) assert.strictEqual((await verdict(text)).verdict, 'refuse', text);
+});
+
+// Fabio 2026-10-16: "a water park with children playing... they wouldn't be playing in the water
+// dressed". Children as a GROUP, at a place to swim, in ORDINARY swimsuits, in a still. Nothing else moves.
+test('under 16: children playing together at a pool, beach or water park in ordinary swimsuits pass, in a still only', async () => {
+    for (const text of [
+        'children playing at a water park in swimsuits',
+        'dad and his kids, all in swimsuits, at the lake',
+        'a family at the beach, the 8-year-old twins in swimming costumes building sandcastles',
+        'kids splashing in a paddling pool in swim shorts and bathing suits',
+        'a swimming lesson, six-year-old children in swimwear at the pool',
+    ]) {
+        assert.strictEqual((await verdict(text)).verdict, 'ok', text);
+        assert.strictEqual((await verdict(text, { video: true })).reason, 'animateMinor', `a clip: ${text}`);
+    }
+    for (const [text, reason] of [
+        ['a toddler in a swimsuit on the beach', 'swimwear'],                         // one child: a portrait of them
+        ['an 8-year-old girl in a swimsuit at the water park', 'swimwear'],
+        ['children in bikinis at a water park', 'swimwear'],                          // a bikini under 16, never
+        ['shirtless kids at the beach', 'swimwear'],
+        ['kids in speedos at the pool', 'swimwear'],
+        ['children in swimsuits posing at the pool', 'swimwear'],                     // the body, not the play
+        ['close-up of kids in swimsuits at the beach', 'swimwear'],
+        ['children in swimsuits in a bedroom', 'swimwear'],                           // no place to swim
+        ['sexy kids in swimsuits at the pool', 'sexual'],
+        ['children in micro bikinis at the beach', 'sexual'],
+    ]) assert.strictEqual((await verdict(text)).reason, reason, text);
+    assert.strictEqual((await verdict('children playing at a water park in swimsuits', { modelId: 'sdxl-nsfw' })).reason, 'nsfwModel');
 });
 
 test('judge tier: an ADULT\'s swimwear beside a minor goes to the judge (are the kids dressed?)', async () => {
@@ -233,16 +261,24 @@ test('an age the app set (the Age slider) is a stated age: Age 10 + "a bikini" i
     assert.strictEqual((await gateOf({ userWords: [''], minorAge: 10, model: { id: 'sdxl-nsfw' } })).reason, 'nsfwModel');
 });
 
-test('a picture that may show a minor reads as age 16: undressing refused, an ordinary bikini allowed', async () => {
+test('a picture that may show a minor: undressing refused, swimwear held to the under-16 rule', async () => {
     const { checkChildSafety } = await load();
     const pic = (text, ctx = {}) => checkChildSafety(text, { pictureMinor: true, ...ctx });
     for (const text of ['remove her clothes', 'make her naked', 'in lingerie', 'a micro bikini', 'sexy pose', '彼女を裸にして', 'раздеть её']) {
         const v = pic(text);
         assert.deepStrictEqual([v.verdict, v.reason], ['refuse', 'picture'], text);
     }
-    for (const text of ['put her in a bikini', 'change the background to a beach', 'give him swim trunks', '']) {
+    for (const text of ['change the background to a beach', 'give her a red raincoat', '']) {
         assert.strictEqual(pic(text).verdict, 'ok', text);
     }
+    // The picture cannot tell 6 from 17 (MPI-1156): a bikini or a lone child in swimwear is refused.
+    for (const text of ['put her in a bikini', 'give him swim trunks']) assert.strictEqual(pic(text).reason, 'pictureSwim', text);
+    assert.strictEqual(pic('the kids playing at the pool in swimsuits').verdict, 'ok', 'the group opening holds');
+    assert.strictEqual(pic('a 17-year-old in a bikini').verdict, 'ok', 'a stated age beats the picture');
+    // On a run that makes a clip, a picture of a minor in swimwear or less never moves.
+    assert.strictEqual(pic('she waves', { pictureExposed: true }).reason, 'animateMinor');
+    assert.strictEqual(pic('make her naked', { pictureExposed: true }).reason, 'picture', 'the nudity reason first');
+    assert.strictEqual(pic('the kids at the pool in swimsuits', { video: true }).reason, 'animateMinor');
     // A minor the words name keeps the words' own reason, at the lower of the two ages.
     assert.strictEqual(pic('a 10-year-old in a bikini').reason, 'swimwear');
     assert.strictEqual(pic('a teen, nude').reason, 'unclothed');
@@ -298,7 +334,8 @@ test('childSafetyGate, unreadable words + a minor the words never name: asks wha
 test('configContext flags an NSFW model or LoRA, and carries the app\'s age', async () => {
     const { configContext } = await load();
     assert.deepStrictEqual(configContext({ model: { id: 'krea2' }, operation: 'characterSheet', injectionParams: {} }),
-        { modelId: 'krea2', nsfw: false, minorAge: null });
+        { modelId: 'krea2', nsfw: false, minorAge: null, video: false });
+    assert.strictEqual(configContext({ model: { id: null, mediaType: 'video' } }).video, true);
     assert.strictEqual(configContext({ minorAge: 10 }).minorAge, 10);
     assert.strictEqual(configContext({ minorAge: -1 }).minorAge, null);
     assert.strictEqual(configContext({ model: { id: null }, injectionParams: { 'Load LoRA.lora_name': 'klein_nsfw.safetensors' } }).nsfw, true);
@@ -394,10 +431,12 @@ test('needsPictureCheck: words asking for nudity, underwear or sex, or an unread
         'remove her clothes', 'take off his shirt', 'make her naked', 'undress her', 'strip her down',
         'in lingerie', 'sexy pose, topless', 'clothes off', 'tirar a roupa', 'quitarle la ropa', 'déshabiller la femme',
         'zieh sie aus, ausziehen', 'spogliarla', '脱掉她的衣服',
+        // MPI-1156: swimwear too, so a picture's minor meets the under-16 swimwear rule.
+        'a woman in a bikini at the beach', 'put her in a swimsuit',
     ]) assert.strictEqual(needsPictureCheck(text), true, text);
     for (const text of [
         'make it night', 'remove the background', 'change her clothes to a red dress', 'add a hat',
-        'no nudity, keep her dressed', 'a woman in a bikini at the beach',
+        'no nudity, keep her dressed', 'no swimwear',
     ]) assert.strictEqual(needsPictureCheck(text), false, text);
 });
 
@@ -451,27 +490,16 @@ test('picturesOf: every image a run sends, once; with "video", every clip', asyn
     assert.deepStrictEqual(picturesOf({}), []);
 });
 
-test('pictureCheck: only a bare NO for every picture passes; no describer refuses', async () => {
-    const { pictureCheck, parseAgeAnswer, AGE_QUESTION } = await load();
-    const answers = (...a) => { let i = 0; return async () => ({ ok: true, text: a[i++] }); };
-    assert.deepStrictEqual(await pictureCheck(['a', 'b'], answers('NO', 'no.')), { ok: true });
-    assert.strictEqual((await pictureCheck(['a', 'b'], answers('NO', 'YES'))).reason, 'picture');
-    assert.strictEqual((await pictureCheck(['a'], answers('No, but maybe'))).reason, 'picture');
-    assert.strictEqual((await pictureCheck(['a'], async () => ({ ok: false, error: 'down' }))).reason, 'pictureUnchecked');
-    assert.strictEqual((await pictureCheck(['a'], async () => { throw new Error('x'); })).reason, 'pictureUnchecked');
-    assert.strictEqual((await pictureCheck(['a'], null)).reason, 'pictureUnchecked');
-    let asked = 0;
-    const r = await pictureCheck(['a', null], async () => { asked += 1; return { ok: true, text: 'NO' }; });
-    assert.strictEqual(r.reason, 'pictureUnchecked', 'a clip with no still is refused');
-    assert.strictEqual(asked, 1, 'the describer is never asked about nothing');
-    assert.deepStrictEqual(await pictureCheck([], null), { ok: true }, 'no picture, nothing to look at');
-    assert.strictEqual(parseAgeAnswer('<think>hm</think> NO'), true);
+test('the picture questions: questions of fact, one word back; only a bare NO is a no', async () => {
+    const { parseAgeAnswer, AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION, refusal } = await load();
+    for (const a of ['NO', 'no.', '<think>hm</think> NO']) assert.strictEqual(parseAgeAnswer(a), true, a);
+    for (const a of ['YES', 'No, but maybe', 'No, it shows a monkey', '', null]) assert.strictEqual(parseAgeAnswer(a), false, String(a));
     assert.match(AGE_QUESTION, /could be, under 18\?/);
-    assert.match(AGE_QUESTION, /Answer with exactly one word: YES or NO\.$/);
-    const r2 = await pictureCheck(['a'], answers('No, it shows a monkey'));
-    assert.strictEqual(r2.answer, 'No, it shows a monkey', 'a picture refusal carries the answer for the log');
-    assert.strictEqual((await pictureCheck(['a'], answers('x'.repeat(200)))).answer.length, 80);
-    assert.strictEqual((await pictureCheck(['a'], null)).answer, undefined, 'no answer, none carried');
+    for (const q of [AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION]) assert.match(q, /Answer with exactly one word: YES or NO\.$/);
+    assert.match(EXPOSED_QUESTION, /swimwear, underwear or lingerie, or shirtless, topless or nude\?/);
+    assert.doesNotMatch(EXPOSED_QUESTION, /suggestive/, 'a fact, never a verdict');
+    assert.match(CLOTHES_QUESTION, /underwear, lingerie or swimwear of any kind/);
+    assert.deepStrictEqual(Object.keys(refusal('pictureUnchecked')), ['ok', 'code', 'reason', 'message']);
 });
 
 // MPI-1152: "anyone" counted a cartoon monkey on a horse as "could be under 18". The question

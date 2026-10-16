@@ -541,7 +541,7 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
         flowModelIds: modelIds,
         // What the child-safety gate reads (MPI-1156): the words the user typed into the run, and an
         // age a field sets. Never the built prompt or a describer answer, which land after this.
-        ...flowGateInputs(flow, run),
+        ...flowGateInputs(flow, run, mediaItems),
         ...(runByAgent ? { byAgent: true } : {}),
         // Absent, `enqueueGeneration` freezes the project open at enqueue, as it always has.
         ...(runOriginProject ? { _originProject: runOriginProject } : {}),

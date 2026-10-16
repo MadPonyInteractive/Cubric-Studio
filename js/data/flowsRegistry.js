@@ -863,6 +863,8 @@ export const FLOWS = [
         workflow: 'flow_video_edit.json',
         mediaType: 'video',
         type: 'edit',
+        // Change the outfit: the picture's clothes go on the person (`flowGateInputs`, MPI-1156).
+        clothesRef: { role: 'image1', when: { field: 'Input_Operation', in: [3, '3'] } },
         inputSchema: {
             media: [
                 { type: 'video', mode: 'upto', max: 1, roles: ['video1'], labels: ['Video to edit'] },
@@ -1751,6 +1753,8 @@ export const FLOWS = [
         ],
         mediaType: 'image',
         type: 'edit',
+        // The child-safety gate asks a Clothes reference what it is (`flowGateInputs`, MPI-1156).
+        clothesRef: { role: 'image2', when: { field: 'change', is: 'clothes' } },
         inputSchema: {
             media: [
                 { type: 'image', mode: 'upto', max: 1, roles: ['image1'], labels: ['Character sheet'] },
@@ -3380,17 +3384,23 @@ export function flowRunValues(flow, run = {}) {
  * TYPED, i.e. its visible text fields plus the run's `positive`, never a negative, a hidden field the
  * Enhancer fills, the built prompt or a describer's answer. Plus an age a `setsAge` field puts on
  * the person, as data (`minorAge`), since the built prompt that carries it as words is not read.
+ * And the picture a FlowDef's `clothesRef: { role, when }` names, when its rule holds: the gate asks
+ * it whether it is underwear or swimwear (`clothesRefs`).
  * @param {FlowDef} flow
  * @param {Object} [run] - a run's inputs, as `submitFlowGeneration` takes them
- * @returns {{ userWords: string[], minorAge?: number }}
+ * @param {Array<{ role?: string, url?: string }>} [mediaItems] - the run's media, by role
+ * @returns {{ userWords: string[], minorAge?: number, clothesRefs?: string[] }}
  */
-export function flowGateInputs(flow, run = {}) {
+export function flowGateInputs(flow, run = {}, mediaItems = []) {
     const values = flowRunValues(flow, run);
     const fields = _declaredFields(flow);
     const typed = fields.filter(f => f.type === 'text' && !f.hidden && !/negative/i.test(f.id)).map(f => values[f.id]);
     const userWords = [...new Set([run?.positive, ...typed])].filter(v => typeof v === 'string' && v.trim());
     const age = fields.filter(f => f.setsAge).map(f => Number(values[f.id])).find(n => Number.isFinite(n) && n >= 0);
-    return { userWords, ...(age !== undefined ? { minorAge: age } : {}) };
+    const ref = flow?.clothesRef;
+    const clothesRefs = ref && ruleHolds(ref.when, values)
+        ? (mediaItems || []).filter(m => m?.role === ref.role && m.url).map(m => m.url) : [];
+    return { userWords, ...(age !== undefined ? { minorAge: age } : {}), ...(clothesRefs.length ? { clothesRefs } : {}) };
 }
 
 /**

@@ -89,28 +89,32 @@ clothes" (passes), a child photo "remove her clothes" (refused), a Video Edit on
 
 ## Current State
 
-2026-10-16 (session "New character sheets 35"): Phases 1-3 DONE. The gate reads `gateWords(config)`: `config.userWords`
-when stamped, else `[config.positive]` (the prompt box: its positive IS the typed box; app tools: fixed text).
-Stamped at: flowService (`flowGateInputs(flow, run)`, flowsRegistry.js: visible `type: 'text'` fields + run.positive,
-never negative/hidden; `setsAge` field -> `minorAge`, only CSE `Input_Age`), agentDispatch.buildGeneration (prompt +
-raw string params, not negatives), buildTool (string fields), agent Flow (`runByAgent` -> `byAgent`, so its refusal
-no longer toasts), scenePathVideo (fill line). Routines reach the gate through those three builders. Old scan
-(`configTexts`/`lookTexts`/SKIP_KEY/KEPT_KEY) and CSE `runPrompt` DELETED. Picture check still refuses a YES directly.
-NEXT: Phase 4, cached verdicts: `meta.ageVerdict = { q: hash(AGE_QUESTION), answer }` in the card sidecar
-(precedent llmService.pictureCaptions 1181-1246), asked on first use as an input; YES -> `config.pictureMinor`
-(generationService `_judgeThenQueue` passes it into `configContext` instead of `pictureCheck` refusing); edits
-inherit YES via `generationSettings.mediaItems[].url`; clips 3 frames (first/middle/last); Clothes reference YES/NO ->
-`revealingRef`. Then Phase 5: docs/child-safety.md still describes configTexts/lookTexts/runPrompt (lines ~75-130).
+2026-10-16 (session "New character sheets 36"): Phases 1-4 DONE, plus Phase 4b Fabio added in-session. Picture answers
+are kept per card in its sidecar by `js/services/mediaVerdicts.js` (`cachedVerdicts`, `meta[key] = { q: hash, answer }`):
+`ageVerdict` (AGE_QUESTION, inherited through `generationSettings.mediaItems` up to 5 edits back), `exposedVerdict`
+(EXPOSED_QUESTION, asked only on a video run once a picture is a minor), `clothesVerdict` (CLOTHES_QUESTION). Wired in
+generationService `_pictureVerdicts` -> ctx `pictureMinor` / `pictureExposed` / `revealingRef` -> `childSafetyGate`;
+`pictureCheck` deleted. A look now fires on nudity OR swimwear words, on every video run that takes a picture or clip,
+and on a Clothes reference (FlowDef `clothesRef: { role, when }`: CSE image2 on Clothes, Video Edit image1 on Change the
+outfit; `flowGateInputs(flow, run, mediaItems)` -> `config.clothesRefs`; userFlows FLOW_KEYS allows it). Clips: poster,
+then `firstFrameDataUrl(url, 0.5 / 1)` (proven in Chromium). Phase 4b rule (Fabio): under 16 may wear ORDINARY swimsuits
+when the words name children as a group at a place to swim, no body/pose words, stills only (`_kidsAtPlay`); a video
+run of it, or of a picture of a minor in swimwear or less, refuses `animateMinor`. A picture minor with no stated age
+meets the under-16 swim rule (`pictureSwim`). NOTHING COMMITTED yet.
+NEXT: Phase 5: docs/child-safety.md rewrite (still describes configTexts/lookTexts/runPrompt/pictureCheck; add the
+opening, the lock, the cache), then Fabio's eye test (list below + a water-park still, the same as a clip, animating a
+child photo in a swimsuit).
 
 ## Completed
 
 - Phase 1: config-source map (2026-10-16).
 - Phase 2: gate core + tests (2026-10-16).
 - Phase 3: userWords at every edge; old scan + runPrompt deleted (2026-10-16).
+- Phase 4: cached verdicts (pictures, clips 3 frames, Clothes reference) + 4b swim opening and animation lock (2026-10-16).
 
 ## Remaining Work
 
-Phases 4-5.
+Phase 5.
 
 ## Plan Drift
 
@@ -125,3 +129,10 @@ Phases 4-5.
   on a clip whose kept subject the describer calls "a young boy, naked" with innocent typed words now queues (the old
   child-safety-gate test for it was removed). The input's age is Phase 4's picture verdict (age 16 => typed undress
   refused); content ALREADY in the input with innocent typed words passes even after Phase 4 - raise at Phase 5.
+- 2026-10-16 Phase 4: Fabio added Phase 4b in-session ("a water park with children playing"): the narrow under-16
+  swimwear opening and the animation lock. Consequences picked by the agent, stricter than the plan: a picture YES
+  meets the UNDER-16 swim rule when no age is stated (the plan said age 16, which let "put her in a bikini" on a
+  6-year-old's photo through); swimwear words now trigger the look; the Clothes question covers any swimwear, not only
+  revealing; every video run that takes a picture or clip is looked at (one describer call per new file, then kept).
+  Non-Latin words keep the strict under-16 swim rule (the opening is English-only, no new judge question). A run
+  with no describer reachable can no longer animate any picture (pictureUnchecked).

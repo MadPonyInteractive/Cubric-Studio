@@ -8,7 +8,8 @@
  *   any age under 18   never nude, in underwear or lingerie, sexual or suggestive (revealing swimwear:
  *                      a monokini, a micro or thong bikini), or on an NSFW model
  *   16 or 17           ordinary swimwear, a bikini included, anywhere (a character sheet too)
- *   under 16           fully dressed
+ *   under 16           fully dressed, except children playing together at a pool, beach or water
+ *                      park in ordinary swimsuits, in a still only (Fabio 2026-10-16, `_kidsAtPlay`)
  *
  * Two tiers. The script refuses the clear cases itself and never asks anyone. A language model
  * (the "judge", run by the caller on the user's enhance pick) is asked only where words cannot
@@ -23,11 +24,13 @@
  * lists when a real prompt gets past them.
  *
  * The PICTURE check (Fabio, 2026-10-10): words cannot know the age of someone in a photo pulled off
- * the internet. So a run that sends a picture AND asks for nudity, underwear or sexual content
- * ("remove her clothes") first asks the image describer whether a person in each picture could be
- * under 18 (`pictureCheck`, `AGE_QUESTION`: an animal-bodied animal is not a person); only a bare NO passes. Perception, not age: a young-looking adult is
- * refused too, by decision. A clip is looked at through its first frame (MPI-1062). Not looked at:
- * a clip's later frames, and a picture edited with innocent words ("put her in a bikini").
+ * the internet. So a run that sends a picture and asks for nudity, underwear, swimwear or sexual
+ * content ("remove her clothes"), or makes a clip of it, or applies a Clothes reference, asks the
+ * image describer whether a person in each picture could be under 18 (`AGE_QUESTION`: an
+ * animal-bodied animal is not a person); only a bare NO is a no, and a YES reads as a minor
+ * (`pictureMinor`). Perception, not age: a young-looking adult counts too, by decision. A clip is
+ * asked at its first, middle and last frame. Each answer is kept per file (`mediaVerdicts.js`,
+ * MPI-1156). Not looked at: a picture edited with innocent words ("change the background").
  *
  * Callers: `generationService.enqueueGeneration` (every generation: prompt box, Flows, routines,
  * the in-app agent, MCP) and `llmService.enhance` / `enhanceFlow` (the request and the result).
@@ -225,7 +228,7 @@ export function minorAge(text) {
 
 export const CHILD_SAFETY_CODE = 'CHILD_SAFETY';
 
-const RULE = 'Under 18 is never nude, in underwear, in revealing swimwear or sexual; 16 and 17 may wear ordinary swimwear; under 16 stays fully dressed.';
+const RULE = 'Under 18 is never nude, in underwear, in revealing swimwear or sexual; 16 and 17 may wear ordinary swimwear; under 16 stays fully dressed, except children playing together at a pool, beach or water park in ordinary swimsuits, in a still picture.';
 const ADULTS = 'If everyone in it is an adult, describe them as adults ("a woman", "a 25-year-old") rather than "teen", "schoolgirl" or "young girl".';
 
 const MESSAGES = {
@@ -236,8 +239,10 @@ const MESSAGES = {
     swimwear: `Refused: this puts a child under 16 in swimwear. ${RULE}`,
     language: `Refused: the safety check could not clear this prompt. ${RULE}`,
     picture: 'Refused: this asks for nudity, underwear or sexual content on a picture or clip that may show someone under 18. Cubric Studio never does that, whatever the picture is or wherever it came from.',
-    revealingRef: `Refused: the clothes reference is underwear, lingerie or revealing swimwear, and the person who would wear it is under 18. ${RULE}`,
-    pictureUnchecked: 'Refused: this asks for nudity, underwear or sexual content on a picture or clip, and the check that no one in it is under 18 could not run. Check the image describer in Remote > Language Models.',
+    pictureSwim: `Refused: this puts swimwear on a picture or clip that may show a child under 16. ${RULE}`,
+    revealingRef: `Refused: the clothes reference is underwear, lingerie or swimwear, and the person who would wear it is under 18. ${RULE}`,
+    animateMinor: `Refused: a person who may be under 18 in swimwear, underwear or less is never animated. ${RULE}`,
+    pictureUnchecked: 'Refused: the check that no one in this picture or clip is under 18 could not run. Check the image describer in Remote > Language Models.',
 };
 
 const _refuse = (reason) => ({ verdict: 'refuse', reason, message: MESSAGES[reason] });
@@ -249,11 +254,13 @@ const OK = Object.freeze({ verdict: 'ok' });
  *
  * @param {string|string[]} texts  the words a person or agent TYPED (`gateWords`): never a negative
  *        prompt (it lists what to AVOID), never the app's own template text or a describer's prose
- * @param {{ modelId?: string, nsfw?: boolean, minorAge?: number|null, pictureMinor?: boolean, revealingRef?: boolean }} [ctx]
+ * @param {{ modelId?: string, nsfw?: boolean, minorAge?: number|null, pictureMinor?: boolean, pictureExposed?: boolean, revealingRef?: boolean, video?: boolean }} [ctx]
  *        `modelId` / `nsfw`: an NSFW target (a model id holding "nsfw", or `nsfw` from a LoRA param).
  *        `minorAge`: an age the APP set (the Character Sheet Editor's Age slider), read as a stated age.
  *        `pictureMinor`: an input picture or clip may show someone under 18: read as a stated age 16.
- *        `revealingRef`: a Clothes reference is underwear, lingerie or revealing swimwear (MPI-1156)
+ *        `revealingRef`: a Clothes reference is underwear, lingerie or swimwear (MPI-1156).
+ *        `pictureExposed`: a video run's input picture or clip may show someone under 18 in swimwear or less.
+ *        `video`: the run makes a clip, so children's swimwear (`_kidsAtPlay`) is refused
  * @returns {{ verdict: 'ok' } | { verdict: 'refuse'|'judge', reason: string, message: string }}
  *          `judge`: refused unless a language model clears it (`childSafetyGate`)
  */
@@ -266,7 +273,6 @@ export function checkChildSafety(texts, ctx = {}) {
     const ages = [textAge, appAge, ctx.pictureMinor ? 16 : null].filter((a) => a !== null);
     const foreign = _foreign(text);
     if (!ages.length) return foreign ? _judge('language') : OK;
-    const age = Math.min(...ages);
     // The minor is only in the picture: say so, the words alone ask for nothing wrong.
     const why = (reason) => (textAge === null && appAge === null ? 'picture' : reason);
 
@@ -275,14 +281,38 @@ export function checkChildSafety(texts, ctx = {}) {
     // Undressing counts as unclothed: "a 12-year-old, remove her clothes" passed the words before (MPI-1156).
     if (UNCLOTHED.test(plain) || UNDRESS.test(plain) || NUDITY_CJK.test(text) || NUDITY_RU.test(text)) return _refuse(why('unclothed'));
     if (ctx.nsfw || /nsfw/i.test(String(ctx.modelId || ''))) return _refuse('nsfwModel');
+    // A picture or clip that may show a minor in swimwear, underwear or less never moves (Fabio 2026-10-16).
+    if (ctx.pictureExposed) return _refuse('animateMinor');
     if (ctx.revealingRef) return _refuse('revealingRef');
     // 16-17 in ordinary swimwear is fine anywhere (Fabio); only revealing swimwear, in SEXUAL, is not.
-    // A minor the WORDS never name (the app's age, a picture) is the one wearing it: no judge, who reads only words.
-    if (age < 16 && SWIMWEAR.test(plain)) {
+    // A stated age (the words, the app's) beats a picture's "could be under 18", which cannot tell 6
+    // from 17: with none, a picture's minor is held to the under-16 rule (MPI-1156).
+    const swimAge = textAge !== null || appAge !== null ? Math.min(textAge ?? 18, appAge ?? 18) : 15;
+    if (swimAge < 16 && SWIMWEAR.test(plain)) {
+        // Children playing together at a pool, beach or water park in ordinary swimsuits: a still only (Fabio 2026-10-16).
+        if (_kidsAtPlay(plain)) return ctx.video ? _refuse('animateMinor') : foreign ? _judge('language') : OK;
+        // A minor the WORDS never name (the app's age, a picture) is the one wearing it: no judge, who reads only words.
+        if (textAge === null && appAge === null) return _refuse('pictureSwim');
         return textAge !== null && _adultNamed(plain) && !_swimwearOnMinor(plain) ? _judge('swimwear') : _refuse('swimwear');
     }
     return foreign ? _judge('language') : OK;
 }
+
+/** Children as a group: one child in swimwear is a portrait of them, never the opening below. */
+const KIDS_GROUP = _rx(['children', 'kids', 'boys', 'girls', 'toddlers', 'siblings', 'brothers', 'sisters', 'cousins', 'friends',
+    'famil(?:y|ies)', 'schoolchildren', 'crowds?', 'everyone']);
+const PLAY_PLACE = _rx(['water ?parks?', '(?:swimming |paddling |wading |splash )?pools?', 'splash pads?', 'beach(?:es)?', 'seaside',
+    'lakes?', 'rivers?', 'sea', 'sprinklers?', 'swim(?:ming)? (?:lessons?|class(?:es)?)', 'water ?slides?', 'sandcastles?']);
+/** The swimwear the opening allows: everything else in SWIMWEAR (a bikini, speedos, shirtless) stays refused. */
+const KIDS_SWIM_G = _g(_rx(['swimwear', 'swim ?suits?', 'bathing suits?', '(?:swimming|bathing) costumes?',
+    '(?:swim|swimming) (?:trunks|shorts)', 'board shorts']));
+/** The child's body as the subject, not the play. */
+const BODY_FOCUS = _rx(['pos(?:e|es|ed|ing)', 'close ?ups?', 'bod(?:y|ies)', 'figures?', 'legs', 'thighs', 'lying', 'laying',
+    'bending(?: over)?', 'from behind', 'photo ?shoots?', 'model(?:s|ing)?', 'portraits?', 'glamou?r', 'curves?']);
+
+/** MPI-1156: kids at play in ordinary swimsuits, English words only; anything else keeps the under-16 rule. */
+const _kidsAtPlay = (plain) => KIDS_GROUP.test(plain) && PLAY_PLACE.test(plain) && !BODY_FOCUS.test(plain)
+    && !SWIMWEAR.test(plain.replace(KIDS_SWIM_G, ' '));
 
 /** The age the app set (`ctx.minorAge`), or null. -1 is the Age slider's "keep", not an age. */
 function _ctxAge(ctx) {
@@ -423,6 +453,7 @@ export function configContext(config) {
         modelId: config?.model?.id || '',
         nsfw: Object.entries(ip).some(([k, v]) => /model|ckpt|unet|lora/i.test(k) && /nsfw/i.test(String(v))),
         minorAge: _ctxAge(config),
+        video: config?.model?.mediaType === 'video',
     };
 }
 
@@ -466,13 +497,16 @@ export function asksForNudity(texts) {
     return SEXUAL.test(plain) || UNCLOTHED.test(plain) || UNDRESS.test(plain) || NUDITY_CJK.test(text) || NUDITY_RU.test(text);
 }
 
+/** Swimwear asked for: a picture's minor is held to the under-16 swimwear rule (MPI-1156). */
+const _asksForSwim = (text) => SWIMWEAR.test(text.replace(NEGATED, ' '));
+
 /**
- * Do these words ask for nudity, underwear or sexual content, or are they in a script the lists
- * cannot read? Then the run goes through `lookWanted`, which decides whether its pictures are looked at.
+ * Do these words ask for nudity, underwear, swimwear or sexual content, or are they in a script the
+ * lists cannot read? Then the run goes through `lookWanted`, which decides whether its pictures are looked at.
  */
 export function needsPictureCheck(texts) {
     const text = (Array.isArray(texts) ? texts : [texts]).filter((t) => typeof t === 'string').join('\n');
-    return asksForNudity(text) || _foreign(text);
+    return asksForNudity(text) || _asksForSwim(text) || _foreign(text);
 }
 
 /**
@@ -500,8 +534,8 @@ export const parseNudityAnswer = (answer) => parseAgeAnswer(answer);
  * @returns {Promise<boolean>}
  */
 export async function lookWanted(texts, ask = null) {
-    if (asksForNudity(texts)) return true;
     const text = (Array.isArray(texts) ? texts : [texts]).filter((t) => typeof t === 'string').join('\n');
+    if (asksForNudity(text) || _asksForSwim(text)) return true;
     if (!_foreign(text)) return false;
     try {
         return typeof ask !== 'function' || !parseNudityAnswer(await ask(text));
@@ -535,21 +569,13 @@ export function parseAgeAnswer(answer) {
 }
 
 /**
- * Ask the describer about each picture; refused unless every answer is a bare NO. Never rejects.
- *
- * @param {Array<string|null>} urls  null = a clip no still could be made of: refused
- * @param {(url: string) => Promise<{ok: boolean, text?: string, error?: string}>} [describe]
- *        `llmService.describeImage` with `AGE_QUESTION`; absent or failing = refused
- * @returns {Promise<{ ok: true } | { ok: false, code: 'CHILD_SAFETY', reason: string, message: string, answer?: string }>}
- *          `answer`: the describer's words on a `picture` refusal (first 80 characters), for the log
+ * Asked of a video run's input picture once it may show a minor (MPI-1156): what they wear, a
+ * question of fact, never "is it suggestive?", which describers answer badly. A YES never moves.
  */
-export async function pictureCheck(urls, describe = null) {
-    const refused = (reason) => ({ ok: false, code: CHILD_SAFETY_CODE, reason, message: MESSAGES[reason] });
-    for (const url of urls) {
-        let r = null;
-        try { r = url && typeof describe === 'function' ? await describe(url) : null; } catch { r = null; }
-        if (!r?.ok) return refused('pictureUnchecked');
-        if (!parseAgeAnswer(r.text)) return { ...refused('picture'), answer: String(r.text ?? '').slice(0, 80) };
-    }
-    return { ok: true };
-}
+export const EXPOSED_QUESTION = 'Is any person in this picture wearing swimwear, underwear or lingerie, or shirtless, topless or nude? A person is a human, real or drawn, or any character with a human body. Answer with exactly one word: YES or NO.';
+
+/** Asked of a Clothes reference (MPI-1156): a YES on a run whose target is under 18 refuses. */
+export const CLOTHES_QUESTION = 'Is the clothing in this picture underwear, lingerie or swimwear of any kind (a swimsuit, a bikini, swim trunks)? Answer with exactly one word: YES or NO.';
+
+/** A refusal with the gate's shape, for the callers that look at pictures (`generationService`). */
+export const refusal = (reason) => ({ ok: false, code: CHILD_SAFETY_CODE, reason, message: MESSAGES[reason] });

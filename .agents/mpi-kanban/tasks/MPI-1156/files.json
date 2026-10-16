@@ -3,7 +3,15 @@
  "files": [
   "js/data/childSafety.js",
   "js/services/generationService.js",
+  "js/services/mediaVerdicts.js",
+  "js/utils/video.js",
+  "js/data/flowsRegistry.js",
+  "js/services/flowService.js",
+  "services/userFlows.js",
   "tests/child-safety.test.cjs",
+  "tests/child-safety-gate.test.cjs",
+  "tests/child-safety-edges.test.cjs",
+  "tests/media-verdicts.test.cjs",
   "docs/child-safety.md",
   ".agents/mpi-kanban/tasks/MPI-1156/"
  ]

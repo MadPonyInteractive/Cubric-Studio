@@ -35,7 +35,8 @@ import { orderVersions, shownVersion } from '../utils/outputVersions.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { ce } from '../utils/dom.js';
 import { collapseQueueBatches } from './generationBatch.js';
-import { checkChildSafety, childSafetyGate, gateWords, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, pictureCheck, AGE_QUESTION, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
+import { checkChildSafety, childSafetyGate, gateWords, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION, parseAgeAnswer, refusal, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
+import { cachedVerdicts } from './mediaVerdicts.js';
 
 // ── Cue queue (in-app, THREE-LANE dispatch) ─────────────────────────────────
 // We own the pending array. MPI-74 P6 split dispatch into a 'remote' lane (cloud
@@ -596,9 +597,11 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
     // already has, and its prompt names what to mask ("clothes"), which the picture check reads.
     if (getCommand(config.operation)?.outputKind !== 'text' && !isMaskTrackOp(config.operation)) {
         const texts = gateWords(config);
-        const safety = checkChildSafety(texts, configContext(config));
+        const ctx = configContext(config);
+        const safety = checkChildSafety(texts, ctx);
         if (safety.verdict === 'refuse') return _refuseChildSafety(safety, config, callbacks);
-        const look = needsPictureCheck(gateWords(config));
+        // MPI-1156: a clip made of a picture, or a Clothes reference, is looked at whatever the words say.
+        const look = needsPictureCheck(texts) || ctx.video || config.clothesRefs?.length > 0;
         const pictures = look ? picturesOf(config) : [];
         const clips = look ? picturesOf(config, 'video') : [];
         if (safety.verdict === 'judge' || pictures.length || clips.length) {
@@ -662,36 +665,85 @@ async function _judgeThenQueue(config, callbacks, opts, pictures = [], clips = [
     } catch (err) {
         clientLogger.warn('generationService', `[childSafety] no judge to ask: ${err?.message || err}`);
     }
-    // No judge = looked at (`lookWanted` looks unless the nudity question answers a bare NO).
-    if ((pictures.length || clips.length) && await lookWanted(gateWords(config), judge && ((text) => judge(text, NUDITY_SYSTEM)))) {
-        // A clip is looked at through its first frame (MPI-1062); one with no still is refused.
-        const stills = await Promise.all(clips.map((url) => _clipStill(url, config._originProject)));
-        // No describer = refused (`pictureCheck` refuses without one).
-        const seen = await pictureCheck([...pictures, ...stills], llm && ((url) => llm.describeImage({ imagePath: url, question: AGE_QUESTION })));
+    const words = gateWords(config);
+    const ctx = configContext(config);
+    const refs = (config.clothesRefs || []).filter((u) => pictures.includes(u));
+    // No judge = looked at (`lookWanted` looks unless the nudity question answers a bare NO). A clip
+    // made of a picture, or a Clothes reference, is looked at whatever the words say (MPI-1156).
+    if ((pictures.length || clips.length)
+        && (ctx.video || refs.length || await lookWanted(words, judge && ((text) => judge(text, NUDITY_SYSTEM))))) {
+        const seen = await _pictureVerdicts(config, llm, pictures.filter((u) => !refs.includes(u)), clips, refs, ctx.video);
         if (!seen.ok) return _refuseChildSafety(seen, config, callbacks);
+        Object.assign(ctx, seen.ctx);
     }
     // No judge = the flag stands (`childSafetyGate` refuses without one).
-    const r = await childSafetyGate(gateWords(config), configContext(config), judge);
+    const r = await childSafetyGate(words, ctx, judge);
     if (r.ok) _pushCue(config, callbacks, opts);
     else _refuseChildSafety(r, config, callbacks);
 }
 
 /**
- * A clip's first frame for the picture check: its card's poster (1280, else 512), else the
- * frame grabbed here and kept in the project's preview store (no gallery card), as a clip
- * dropped into a Flow or handed over by an agent has no card. Null = no still: refused.
- * ponytail: frame 0 only, so a child who appears later in the clip is not seen. The grab is
- * `flowEnhance.stageFirstFrame`'s; one shared helper if a third copy appears.
+ * What the image describer says of a run's pictures and clips, each answer kept per file
+ * (`mediaVerdicts.js`, MPI-1156): could anyone be under 18 (an edit of a YES is YES), and then,
+ * on a run that makes a clip, are they in swimwear or less; a Clothes reference, is it underwear
+ * or swimwear. A clip is asked at its first, middle and last frame, any YES a YES.
+ * No describer, or no answer = refused (`pictureUnchecked`).
+ *
+ * @returns {Promise<{ ok: true, ctx: { pictureMinor: boolean, pictureExposed?: boolean, revealingRef?: boolean } } | object>}
  */
-async function _clipStill(url, project) {
+async function _pictureVerdicts(config, llm, pictures, clips, refs, video) {
+    const project = config._originProject;
+    const describe = async (url, question) => {
+        const r = llm ? await llm.describeImage({ imagePath: url, question }) : null;
+        if (!r?.ok) return null;
+        const yes = !parseAgeAnswer(r.text);
+        // The describer's words, so a refusal needs no paid replay to explain (MPI-1152).
+        if (yes) clientLogger.info('generationService', `[childSafety] YES to "${question.slice(0, 40)}..." answer=${JSON.stringify(String(r.text ?? '').slice(0, 80))}`);
+        return yes;
+    };
+    const atFrames = (question) => async (url) => {
+        for (const at of [0, 0.5, 1]) {
+            const still = await _clipStill(url, project, at);
+            const yes = still ? await describe(still, question) : null;
+            if (yes !== false) return yes;
+        }
+        return false;
+    };
+    const ask = (urls, key, question, inherit = false) => Promise.all([
+        cachedVerdicts(urls.pictures, { key, question, inherit, project, ask: (u) => describe(u, question) }),
+        cachedVerdicts(urls.clips, { key, question, inherit, project, ask: atFrames(question) }),
+    ]);
+
+    const [picAge, clipAge] = await ask({ pictures, clips }, 'ageVerdict', AGE_QUESTION, true);
+    if ([...picAge, ...clipAge].includes(null)) return refusal('pictureUnchecked');
+    const ctx = { pictureMinor: [...picAge, ...clipAge].includes(true) };
+    if (video && ctx.pictureMinor) {
+        const exposed = (await ask({ pictures: pictures.filter((_, i) => picAge[i]), clips: clips.filter((_, i) => clipAge[i]) },
+            'exposedVerdict', EXPOSED_QUESTION)).flat();
+        if (exposed.includes(null)) return refusal('pictureUnchecked');
+        ctx.pictureExposed = exposed.includes(true);
+    }
+    // No answer reads as YES: it refuses only next to a minor.
+    if (refs.length) ctx.revealingRef = (await ask({ pictures: refs, clips: [] }, 'clothesVerdict', CLOTHES_QUESTION)).flat().some((a) => a !== false);
+    return { ok: true, ctx };
+}
+
+/**
+ * A frame of a clip for the picture check, `at` its share of the clip's length: at 0 its card's
+ * poster (1280, else 512), else the frame grabbed here and kept in the project's preview store
+ * (no gallery card), as a clip dropped into a Flow or handed over by an agent has no card.
+ * Null = no still: refused. The grab is `flowEnhance.stageFirstFrame`'s; one shared helper if a
+ * third copy appears.
+ */
+async function _clipStill(url, project, at = 0) {
     const abs = (p) => String(extractAbsPath(p) || p || '').replace(/\\/g, '/').toLowerCase();
     const card = (project?.itemGroups || []).flatMap((g) => g.history || [])
         .find((it) => it?.filePath && abs(it.filePath) === abs(url));
-    if (card?.thumbPathLg || card?.thumbPath) return card.thumbPathLg || card.thumbPath;
+    if (at === 0 && (card?.thumbPathLg || card?.thumbPath)) return card.thumbPathLg || card.thumbPath;
     if (!project?.folderPath) return null;
     try {
         const { firstFrameDataUrl } = await import('../utils/video.js');
-        const dataUrl = await firstFrameDataUrl(resolveMediaUrl(url));
+        const dataUrl = await firstFrameDataUrl(resolveMediaUrl(url), at);
         const res = await fetch(
             `/project-media/${project.id || 'agent'}/place-preview-asset?folderPath=${encodeURIComponent(project.folderPath)}`,
             { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataUrl, ext: '.png' }) },

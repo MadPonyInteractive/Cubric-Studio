@@ -57,6 +57,20 @@ test('every shipped Flow: each visible text field reaches the gate, no negative 
     assert.equal(flowGateInputs(editor, { injectionParams: { Input_Age: 10 } }).minorAge, 10, 'the Age slider sets the age');
 });
 
+test('a Clothes reference reaches the gate only when its clothes are applied (MPI-1156)', async () => {
+    const { FLOWS, flowGateInputs } = await esm('js/data/flowsRegistry.js');
+    const media = [{ role: 'image1', url: 'sheet.png' }, { role: 'image2', url: 'ref.png' }];
+    const editor = FLOWS.find(f => f.id === 'character-sheet-editor');
+    assert.deepEqual(flowGateInputs(editor, { change: 'clothes' }, media).clothesRefs, ['ref.png']);
+    assert.equal(flowGateInputs(editor, { change: 'hair' }, media).clothesRefs, undefined, 'a hairstyle reference is not clothes');
+    assert.equal(flowGateInputs(editor, { change: 'clothes' }, media.slice(0, 1)).clothesRefs, undefined, 'no reference picture');
+    const videoEdit = FLOWS.find(f => f.id === 'video-edit');
+    const pic = [{ role: 'video1', url: 'clip.mp4' }, { role: 'image1', url: 'outfit.png' }];
+    assert.deepEqual(flowGateInputs(videoEdit, { injectionParams: { Input_Operation: 3 } }, pic).clothesRefs, ['outfit.png'], 'Change the outfit');
+    assert.equal(flowGateInputs(videoEdit, { injectionParams: { Input_Operation: 1 } }, pic).clothesRefs, undefined, 'Swap the person');
+    assert.ok(fs.readFileSync(repo('js/services/flowService.js'), 'utf8').includes('flowGateInputs(flow, run, mediaItems)'), 'flowService hands it the run\'s media');
+});
+
 test('submitFlowGeneration stamps the typed words and the age on every pass, never the describer\'s answer', async () => {
     const { submitFlowGeneration } = await esm('js/services/flowService.js');
     const queued = [];

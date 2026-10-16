@@ -25,7 +25,14 @@ let judgeAnswer = 'ALLOW';
 let judgeCalls = 0;
 // The picture check: `describeImage` on the Remote describer is one `/llm/describe` POST.
 let describeAnswer = { ok: true, text: 'NO' };
+// MPI-1156: the other two picture questions, answered apart from the age question.
+let exposedAnswer = 'NO';
+let clothesAnswer = 'NO';
 const describeBodies = [];
+// Card sidecars (`/load-meta-batch`, `/update-meta`): the kept answers. Frames grabbed off a clip
+// land through `place-preview-asset`.
+const sidecars = {};
+let frames = 0;
 // The nudity question for words the lists cannot read (MPI-1062).
 let nudityAnswer = 'NO';
 let nudityCalls = 0;
@@ -39,8 +46,24 @@ globalThis.fetch = (url, init) => {
         return Promise.resolve({});
     }
     if (url === '/llm/describe') {
-        describeBodies.push(JSON.parse(init.body));
+        const body = JSON.parse(init.body);
+        describeBodies.push(body);
+        if (/shirtless, topless or nude/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: exposedAnswer }) });
+        if (/clothing in this picture/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: clothesAnswer }) });
         return Promise.resolve({ json: async () => describeAnswer });
+    }
+    if (url === '/load-meta-batch') {
+        const { ids } = JSON.parse(init.body);
+        return Promise.resolve({ json: async () => ({ items: Object.fromEntries(ids.map((id) => [id, { meta: sidecars[id] ?? null }])) }) });
+    }
+    if (/\/update-meta\?/.test(url)) {
+        const { itemId, updates } = JSON.parse(init.body);
+        sidecars[itemId] = { ...sidecars[itemId], ...updates };
+        return Promise.resolve({});
+    }
+    if (/\/place-preview-asset\?/.test(url)) {
+        frames += 1;
+        return Promise.resolve({ ok: true, json: async () => ({ success: true, filePath: `C:\\proj\\.previews\\frame${frames}.png` }) });
     }
     if (url !== '/llm/enhance') return new Promise(() => {});
     // MPI-1062: the nudity question rides the same POST under its own fixed system prompt.
@@ -62,10 +85,24 @@ globalThis.localStorage = {
     setItem() {}, removeItem() {},
 };
 
+// A clip's middle and last frames are grabbed in the renderer (`firstFrameDataUrl`): a stand-in
+// <video> that loads and seeks at once, or fails to read when `videoBroken`.
+let videoBroken = false;
+const fakeDocument = {
+    createElement: (tag) => (tag === 'canvas'
+        ? { getContext: () => ({ drawImage() {} }), toDataURL: () => 'data:image/png;base64,AA' }
+        : {
+            readyState: 4, videoWidth: 8, videoHeight: 8, duration: 4, removeAttribute() {}, load() {},
+            set src(v) { if (v) setTimeout(() => (videoBroken ? this.onerror?.() : this.onloadeddata?.())); },
+            set currentTime(t) { setTimeout(() => this.onseeked?.()); },
+        }),
+};
+
 let enqueueGeneration, peekCueQueue, Events;
 test.before(async () => {
     ({ enqueueGeneration, peekCueQueue } = await import(mod('js', 'services', 'generationService.js')));
     ({ Events } = await import(mod('js', 'events.js')));
+    globalThis.document = fakeDocument;
 });
 
 const config = (positive, extra = {}) => ({
@@ -193,17 +230,21 @@ test('"remove her clothes" on a picture that may show a minor is refused, and so
 });
 
 test('a picture refusal logs what the describer answered; an unanswered look logs no answer (MPI-1152)', async () => {
-    for (const [answer, rx] of [
-        [{ ok: true, text: 'YES' }, /\(picture\) answer="YES"$/],
-        [{ ok: true, text: 'No, it shows a monkey' }, /\(picture\) answer="No, it shows a monkey"$/],
-        [{ ok: false, error: { code: 'NOT_VISION', message: 'no' } }, /\(pictureUnchecked\)$/],
+    for (const [answer, said] of [
+        [{ ok: true, text: 'YES' }, /\[childSafety\] YES to "Does this picture show a person.* answer="YES"$/],
+        [{ ok: true, text: 'No, it shows a monkey' }, /answer="No, it shows a monkey"$/],
+        [{ ok: false, error: { code: 'NOT_VISION', message: 'no' } }, null],
     ]) {
         describeAnswer = answer;
+        const lines = logLines.length;
         const { seen, off, callbacks } = capture();
         enqueueGeneration(edit('make her naked'), callbacks);
         await until(() => seen.errors.length > 0);
         off();
-        assert.match(logLines.filter((l) => /\[childSafety\] refused/.test(l)).at(-1), rx, JSON.stringify(answer));
+        const mine = logLines.slice(lines);
+        assert.match(mine.filter((l) => /\[childSafety\] refused/.test(l)).at(-1), said ? /\(picture\)$/ : /\(pictureUnchecked\)$/);
+        if (said) assert.match(mine.find((l) => /\[childSafety\] YES to/.test(l)), said, JSON.stringify(answer));
+        else assert.ok(!mine.some((l) => /\[childSafety\] YES to/.test(l)), 'no answer, none logged');
     }
 });
 
@@ -214,31 +255,38 @@ test('an innocent edit of a picture is never looked at', () => {
     assert.strictEqual(describeBodies.length, before, 'no describe call');
 });
 
-// ── A clip: looked at through its first frame (MPI-1062) ─────────────────────────────────
+// ── A clip: its first, middle and last frame (MPI-1062, MPI-1156) ─────────────────────────
+// A run that makes a clip is looked at whatever its words say: a picture that may show a minor
+// in swimwear or less never moves (Fabio 2026-10-16).
 
 const CLIP = '/project-file?path=C%3A%2Fproj%2FMedia%2Fimported.mp4';
 const POSTER = 'C:\\proj\\Media\\.meta\\v1.thumb.1280.webp';
 const clipEdit = (positive, card = { filePath: CLIP, thumbPath: 'C:\\proj\\Media\\.meta\\v1.thumb.webp', thumbPathLg: POSTER }) => config(positive, {
     operation: 'flowVideoEdit', model: { id: null, mediaType: 'video' },
-    mediaItems: [{ url: CLIP, mediaType: 'video', role: 'video1' }],
+    mediaItems: [{ url: card?.filePath || CLIP, mediaType: 'video', role: 'video1' }],
     _originProject: { id: 'p1', folderPath: 'C:\\proj', itemGroups: [{ id: 'g1', history: card ? [card] : [] }] },
 });
+const FRAME = /^C:\\proj\\\.previews\\frame\d+\.png$/;
 
-test('"remove her clothes" on a clip: the describer looks at its card\'s first-frame poster, queued on NO', async () => {
+test('"remove her clothes" on a clip: the poster, then the middle and last frames; queued on three NOs', async () => {
     describeAnswer = { ok: true, text: 'NO' };
     const before = describeBodies.length;
     const r = enqueueGeneration(clipEdit('remove her clothes'), {});
     assert.strictEqual(queued(r.queueJobId), false, 'not queued before the describer answers');
     await until(() => queued(r.queueJobId));
     assert.strictEqual(queued(r.queueJobId), true);
-    assert.strictEqual(describeBodies.length, before + 1, 'one look at the one clip');
-    assert.strictEqual(describeBodies.at(-1).imagePath, POSTER, 'the 1280 poster');
+    const looks = describeBodies.slice(before);
+    assert.strictEqual(looks.length, 3, 'three frames');
+    assert.strictEqual(looks[0].imagePath, POSTER, 'the 1280 poster');
+    assert.match(looks[1].imagePath, FRAME);
+    assert.match(looks[2].imagePath, FRAME);
 });
 
 test('a clip that may show a minor is refused, and so is a clip no still can be made of', async () => {
     describeAnswer = { ok: true, text: 'YES' };
-    for (const [card, rx] of [[undefined, /picture or clip that may show someone under 18/], [null, /could not run/]]) {
-        // null: no card, so the first frame is grabbed in the renderer; Node has no <video>.
+    for (const [card, rx, asked] of [[undefined, /picture or clip that may show someone under 18/, 4], [null, /could not run/, 0]]) {
+        // null: no card, so the first frame is grabbed, and this <video> cannot read the clip.
+        videoBroken = card === null;
         const before = describeBodies.length;
         const { seen, off, callbacks } = capture();
         const r = enqueueGeneration(clipEdit('make her naked', card), callbacks);
@@ -247,20 +295,30 @@ test('a clip that may show a minor is refused, and so is a clip no still can be 
         assert.strictEqual(queued(r.queueJobId), false, String(card));
         assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY', String(card));
         assert.match(seen.warnings[0], rx, String(card));
-        assert.strictEqual(describeBodies.length, before + (card === null ? 0 : 1), 'no still, no look');
+        // A YES on the poster is enough for the age; then "in swimwear or less?" (NO, three frames).
+        assert.strictEqual(describeBodies.length, before + asked, String(card));
     }
+    videoBroken = false;
 });
 
-test('an innocent edit of a clip is never looked at', () => {
-    const before = describeBodies.length;
-    const r = enqueueGeneration(clipEdit('make it night, add rain'), {});
-    assert.ok(queued(r.queueJobId), 'queued at once');
-    assert.strictEqual(describeBodies.length, before, 'no describe call');
+test('an innocent edit of a clip is looked at once, and the answer is kept on its card', async () => {
+    describeAnswer = { ok: true, text: 'NO' };
+    const card = { id: 'v9', filePath: '/project-file?path=C%3A%2Fproj%2FMedia%2Fbeach.mp4', thumbPathLg: 'C:\\proj\\Media\\.meta\\v9.webp' };
+    sidecars.v9 = {};
+    for (const looks of [3, 0]) {
+        const before = describeBodies.length;
+        const r = enqueueGeneration(clipEdit('make it night, add rain', card), {});
+        await until(() => queued(r.queueJobId));
+        assert.ok(queued(r.queueJobId));
+        assert.strictEqual(describeBodies.length, before + looks, looks ? 'asked' : 'kept, not asked again');
+    }
+    assert.strictEqual(sidecars.v9.ageVerdict.answer, 'NO');
 });
 
-// ── What a run KEEPS never triggers a look (MPI-1149, Fabio's live test 2026-10-15) ─────────
+// ── What a run KEEPS never triggers a refusal (MPI-1149, Fabio's live test 2026-10-15) ───────
 // Video Edit "Change the background" on a cartoon monkey: the describer's words for the kept
-// subject said it wears no clothes, the look fired, and the age question refused the cartoon.
+// subject said it wears no clothes, and the age question refused the cartoon. The kept text is
+// never read (MPI-1156); the clip's age question is, and a cartoon animal answers NO (MPI-1152).
 
 const kept = (keptText, extra = {}) => {
     const c = clipEdit('', undefined);
@@ -268,18 +326,18 @@ const kept = (keptText, extra = {}) => {
     return c;
 };
 
-test('a kept subject the describer calls unclothed is not looked at: queued at once', () => {
-    describeAnswer = { ok: true, text: 'YES' };
+test('a kept subject the describer calls unclothed is never read: only the age question, queued on NO', async () => {
+    describeAnswer = { ok: true, text: 'NO' };
     const before = describeBodies.length;
     const r = enqueueGeneration(kept('A brown cartoon monkey wearing no clothes, riding a white horse.'), {});
-    assert.ok(queued(r.queueJobId), 'queued at once');
-    assert.strictEqual(describeBodies.length, before, 'no describe call');
+    await until(() => queued(r.queueJobId));
+    assert.ok(queued(r.queueJobId));
+    const looks = describeBodies.slice(before);
+    assert.strictEqual(looks.length, 3);
+    assert.ok(looks.every((b) => /could be, under 18\?/.test(b.question)), 'the age question only');
 });
 
-// MPI-1156: the kept text is the describer's prose, so the gate never reads it at all (it used to
-// meet the words check). A child in the INPUT is the picture verdict's job (Phase 4).
-
-test('the same words TYPED as the new look are still looked at, and refused on YES', async () => {
+test('the same words TYPED as the new look are refused on a clip that may show a minor', async () => {
     describeAnswer = { ok: true, text: 'YES' };
     const before = describeBodies.length;
     const { seen, off, callbacks } = capture();
@@ -288,25 +346,35 @@ test('the same words TYPED as the new look are still looked at, and refused on Y
     off();
     assert.strictEqual(queued(r.queueJobId), false);
     assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY');
-    assert.strictEqual(describeBodies.length, before + 1, 'one look at the clip');
+    assert.strictEqual(describeBodies.length, before + 4, 'the age (YES on the poster), then what they wear');
 });
 
 // ── Words the lists cannot read (MPI-1062 Phase 2, Fabio's live test 2026-10-10) ────────────
 // The describer answers YES throughout: every picture and clip below shows a child.
 
-test('an innocent Japanese edit of a child\'s picture or clip is queued: the nudity question says NO, no look', async () => {
+test('an innocent Japanese edit of a child\'s picture is queued: the nudity question says NO, no look', async () => {
     describeAnswer = { ok: true, text: 'YES' };
     nudityAnswer = 'NO';
-    judgeAnswer = 'ALLOW';
-    for (const run of [edit('背景を夜の街にする'), clipEdit('背景を夜の街にする')]) {
-        const looks = describeBodies.length, asked = nudityCalls, judged = factCalls;
-        const r = enqueueGeneration(run, {});
-        await until(() => queued(r.queueJobId));
-        assert.strictEqual(queued(r.queueJobId), true, run.operation);
-        assert.strictEqual(nudityCalls, asked + 1, 'one nudity question');
-        assert.strictEqual(describeBodies.length, looks, 'no look');
-        assert.strictEqual(factCalls, judged + 1, 'the minors judge still reads the words: "anyone under 18?"');
-    }
+    factAnswer = 'NO';
+    const looks = describeBodies.length, asked = nudityCalls, judged = factCalls;
+    const r = enqueueGeneration(edit('背景を夜の街にする'), {});
+    await until(() => queued(r.queueJobId));
+    assert.strictEqual(queued(r.queueJobId), true);
+    assert.strictEqual(nudityCalls, asked + 1, 'one nudity question');
+    assert.strictEqual(describeBodies.length, looks, 'no look');
+    assert.strictEqual(factCalls, judged + 1, 'the minors judge still reads the words: "anyone under 18?"');
+});
+
+test('an innocent Japanese edit of a child\'s clip is queued: looked at (a clip), dressed, the words do nothing to anyone', async () => {
+    describeAnswer = { ok: true, text: 'YES' };
+    nudityAnswer = 'NO';
+    const looks = describeBodies.length, asked = nudityCalls, judged = factCalls;
+    const r = enqueueGeneration(clipEdit('背景を夜の街にする'), {});
+    await until(() => queued(r.queueJobId));
+    assert.strictEqual(queued(r.queueJobId), true);
+    assert.strictEqual(describeBodies.length, looks + 4, 'the age, then what they wear');
+    assert.strictEqual(nudityCalls, asked + 1, '"do the words undress anyone?" (a minor is in the clip)');
+    assert.strictEqual(factCalls, judged);
 });
 
 test('unreadable words the model does not clear with a bare NO are looked at: refused on a child', async () => {
@@ -320,8 +388,9 @@ test('unreadable words the model does not clear with a bare NO are looked at: re
         await until(() => seen.errors.length > 0);
         off();
         assert.strictEqual(queued(r.queueJobId), false, answer);
-        assert.match(seen.warnings[0], /may show someone under 18/, answer);
-        assert.strictEqual(nudityCalls, asked + 1, `asked first (${answer})`);
+        assert.match(seen.warnings[0], /could not clear this prompt/, answer);
+        // Asked before the look, then again with the picture's minor in the run.
+        assert.strictEqual(nudityCalls, asked + 2, `asked twice (${answer})`);
         assert.strictEqual(describeBodies.length, looks + 1, `looked at (${answer})`);
     }
 });
@@ -346,7 +415,75 @@ test('"make her naked" in Japanese on an ADULT clip queues: looked at (NO), then
     const r = enqueueGeneration(clipEdit('彼女を裸にして'), {});
     await until(() => queued(r.queueJobId));
     assert.strictEqual(queued(r.queueJobId), true);
-    assert.strictEqual(describeBodies.length, looks + 1, 'a list word: looked at');
+    assert.strictEqual(describeBodies.length, looks + 3, 'three frames, each NO');
     assert.strictEqual(factCalls, facts + 1, 'one question of fact');
     assert.strictEqual(judgeCalls, verdicts, 'no ALLOW/REFUSE verdict asked');
+});
+
+// ── Animating a picture (Fabio 2026-10-16): a minor in swimwear or less never moves ──────────
+
+const animate = (positive, extra = {}) => config(positive, {
+    operation: 'i2v', model: { id: 'ltx-2.3', mediaType: 'video' }, mediaItems: [{ url: PHOTO, mediaType: 'image', role: 'inputImage' }], ...extra,
+});
+
+test('animating a picture that may show a minor in swimwear or less is refused, whatever the words', async () => {
+    describeAnswer = { ok: true, text: 'YES' };
+    exposedAnswer = 'YES';
+    const before = describeBodies.length;
+    const { seen, off, callbacks } = capture();
+    const r = enqueueGeneration(animate('she waves at the camera'), callbacks);
+    await until(() => seen.errors.length > 0);
+    off();
+    assert.strictEqual(queued(r.queueJobId), false);
+    assert.match(seen.warnings[0], /is never animated/);
+    assert.strictEqual(describeBodies.length, before + 2, 'the age, then what they wear');
+    exposedAnswer = 'NO';
+});
+
+test('animating a dressed child, or an adult, queues', async () => {
+    for (const [age, looks] of [['YES', 2], ['NO', 1]]) {
+        describeAnswer = { ok: true, text: age };
+        const before = describeBodies.length;
+        const r = enqueueGeneration(animate('she waves at the camera'), {});
+        await until(() => queued(r.queueJobId));
+        assert.ok(queued(r.queueJobId), age);
+        assert.strictEqual(describeBodies.length, before + looks, age);
+    }
+});
+
+test('children in swimsuits at a water park: a still queues, a clip is refused at once', () => {
+    const words = 'children playing at a water park in swimsuits';
+    assert.ok(queued(enqueueGeneration(config(words), {}).queueJobId));
+    assert.strictEqual(enqueueGeneration(config(words, { model: { id: 'ltx-2.3', mediaType: 'video' } }), {}), null);
+});
+
+// ── A Clothes reference (Character Sheet Editor, Video Edit "Change the outfit") ─────────────
+
+const SHEET = '/project-file?path=C%3A%2Fproj%2FMedia%2Fsheet.png';
+const REF = '/project-file?path=C%3A%2Fproj%2FMedia%2Fswimsuit.png';
+const dress = (extra = {}) => config('', {
+    operation: 'flowCharacterSheetEditor', userWords: [],
+    mediaItems: [{ url: SHEET, mediaType: 'image', role: 'image1' }, { url: REF, mediaType: 'image', role: 'image2' }],
+    clothesRefs: [REF], ...extra,
+});
+
+test('a Clothes reference that is underwear or swimwear is refused on a minor, allowed on an adult', async () => {
+    describeAnswer = { ok: true, text: 'NO' };
+    clothesAnswer = 'YES';
+    const before = describeBodies.length;
+    const { seen, off, callbacks } = capture();
+    const r = enqueueGeneration(dress({ minorAge: 10 }), callbacks);
+    await until(() => seen.errors.length > 0);
+    off();
+    assert.strictEqual(queued(r.queueJobId), false);
+    assert.match(seen.warnings[0], /the clothes reference is underwear, lingerie or swimwear/);
+    const asked = describeBodies.slice(before);
+    assert.deepStrictEqual(asked.map((b) => b.imagePath), [SHEET, REF], 'the sheet\'s age, the reference\'s clothes');
+    const adult = enqueueGeneration(dress(), {});
+    await until(() => queued(adult.queueJobId));
+    assert.ok(queued(adult.queueJobId), 'no minor anywhere');
+    clothesAnswer = 'NO';
+    const dressed = enqueueGeneration(dress({ minorAge: 10 }), {});
+    await until(() => queued(dressed.queueJobId));
+    assert.ok(queued(dressed.queueJobId), 'ordinary clothes on a child');
 });
