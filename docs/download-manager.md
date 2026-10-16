@@ -414,7 +414,7 @@ three restarts, and the reverse would have destroyed it each time.
 - `GET /comfy/downloads/status` — the store's jobs + `version`. A finished job stays listed as `done` until a reconciler pass prunes it (a pass runs every 15s while the store holds any job, on SSE connect and after an uninstall; disk-confirmed `done` prunes at once, else the 120s / 30s TTL belts), and cancel and uninstall drop it at once. So a poller reads "absent after seen" as finished and confirms with check-local.
 - `GET /comfy/downloads/active` — active model downloads plus the engine-JOB flag (`engine`, any install/upgrade/repair/first-start pip pass — MPI-792) for Electron quit warnings
 - `GET /comfy/downloads/stream` — this channel alone (the app reads it on `/events/stream`, `attachEvents`); on connect: reconcile pass → `download:snapshot`.
-- `POST /comfy/models/uninstall` — uninstall a model (engine-filtered, store-guarded — see below).
+- `POST /comfy/models/uninstall` — uninstall a model (engine-filtered, store-guarded — see below). **Answers `202 {started}` at once and finishes in the background (MPI-1157)**: the result is the `download:uninstalled` broadcast, a refusal is `download:uninstall-failed`. Never read a result off the response. `downloadService.uninstall()` shows a Transfers CPU row until one of the two lands, and resolves then.
 
 > The `/download/pause`, `/download/resume`, `/engine/pause`, `/engine/resume` routes and the `_pausedDownloaders` map were DELETED in c7313dff. Do not reintroduce them.
 
@@ -459,7 +459,7 @@ A single-stream `node-downloader-helper` wrapper: start/resume, cancel (stop + r
 
 ### Uninstall pipeline (G13, MPI-276)
 
-One engine-parameterized pipeline in `POST /comfy/models/uninstall`:
+One engine-parameterized pipeline, `_runUninstall()`, which `POST /comfy/models/uninstall` starts in the background (MPI-1157 — a 191 s Krea 2 uninstall on a busy Pod held one of Chromium's six sockets to the server):
 
 1. **Server-side engine filter (MPI-276).** The route re-resolves the model's
    engine-correct universe with `_filterDepsForEngine(modelId, wireDeps, engine)`
@@ -537,7 +537,8 @@ In `js/state.js`:
 | `download:complete` | Backend→SSE→Frontend | Fires PER-DEP with `{depId, modelId:null}` as each file lands, then ONCE model-level with a real `modelId` when the whole dep set is done (`_checkModelJobsComplete`). Frontend consumers doing expensive work (registry re-sync, grid rebuild) MUST gate on `data.modelId` — running per-dep re-synced the registry N× and flashed the Model Library grid (see [model-library.md](model-library.md) § Library flash on install). The backend stamps **`silent: true`** on the model-level event when the job was registered silent (MPI-1113) — see § Internal heal jobs are silent by construction. |
 | `download:failed` | Backend→SSE→Frontend | SHA256 mismatch or network error. Fires per-dep (`{depId}`, **silent client-side** — MPI-97) and model-level (`{modelId}`) from `_checkModelJobsComplete`; only the model-level one surfaces. Its payload FLAGS pick the surface — see § Failed is not one thing |
 | `download:cancelled` | Backend→SSE→Frontend | User cancelled or shutdown |
-| `download:uninstalled` | Backend→SSE→Frontend | Model uninstalled |
+| `download:uninstalled` | Backend→SSE→Frontend | Model uninstalled. The ONLY carrier of the result since MPI-1157; `downloadService` bridges it to the bus |
+| `download:uninstall-failed` | Backend→SSE→Frontend | Nothing uninstalled (Pod warming up, old image, shared-file check failed, crash) — `{modelId, message, remoteUnsupported?, reason?, error?}`; `downloadService` toasts it (`ui:error` only for `error: 'uninstall-crashed'`) |
 | `download:installing` | Backend→SSE→Frontend | Custom-node install phase in progress — since MPI-413 that is the one curated `python_deps.txt` pip pass plus the node extractions, not a per-node `requirements.txt` |
 | `comfy:needs-restart` | Backend→SSE→Frontend | Custom node install done; ComfyUI needs auto-restart |
 

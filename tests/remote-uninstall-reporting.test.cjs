@@ -63,7 +63,8 @@ async function uninstall(baseUrl, depIds) {
             deleteFiles: true,
         }),
     });
-    return res.json();
+    await res.json();
+    return dm._uninstallRuns.get(MODEL.id);   // MPI-1157: the outcome the broadcast carries
 }
 
 test('remote uninstall reports only the deps the wrapper actually deleted', async (t) => {

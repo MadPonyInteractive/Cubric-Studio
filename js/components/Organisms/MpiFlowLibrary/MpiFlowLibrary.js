@@ -532,18 +532,15 @@ export const MpiFlowLibrary = ComponentFactory.create({
                 `Uninstall ${flow.title}? ${gb ? formatBytes(gb * 1024 ** 3) : 'Its files'} will be freed. `
                 + 'Files shared with another installed flow will be kept.',
                 async () => {
+                    // Resolves once the server's broadcast reports the uninstall finished
+                    // (MPI-1157 — the route itself answers before the files are gone).
                     await downloadService.uninstall(flowDepKey(flow.id), deps, true);
-                    // NOT redundant with the SSE — this IS the repaint. `downloadService`
-                    // re-syncs only inside its `download:uninstalled` SSE listener, and
-                    // `_eventSource` is created lazily by the first download: a session
-                    // that has installed nothing has `_eventSource === null`, so that
-                    // listener cannot fire and the dep-status cache stays pre-uninstall
-                    // forever. Measured 2026-09-01 against a live app — the weights were
-                    // gone from disk while the drawer still read Ready / Installed and the
-                    // header still counted the flow. The Model Library's `await
-                    // reSyncInstalledModels()` after every uninstall is load-bearing for
-                    // the same reason. The re-sync ends in `models:checked`, which the
-                    // listener below turns into `_patchAllAffected()`.
+                    // This IS the repaint. Measured 2026-09-01 against a live app: with
+                    // no re-sync here the weights were gone from disk while the drawer
+                    // still read Ready / Installed and the header still counted the flow
+                    // (the stream then opened lazily; since MPI-1142 shell.js opens it at
+                    // boot). The re-sync ends in `models:checked`, which the listener
+                    // below turns into `_patchAllAffected()`.
                     await reSyncInstalledModels();
                 },
             );

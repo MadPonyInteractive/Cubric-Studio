@@ -16,6 +16,8 @@ import { getModelLicence, hasAcceptedLicence, recordLicenceAcceptance } from '..
 import { showLicenceGate } from '../components/Compounds/MpiLicenceGate/MpiLicenceGate.js';
 import { remoteEngineClient } from './remoteEngineClient.js';
 import { onStream, onStreamOpen, ensureStream } from './eventStream.js';
+import { runCpuJob } from './cpuJobs.js';
+import { jobDisplayName } from '../shell/notificationService.js';
 
 // Which engine an install POST would land on right now. Mirrors the server's
 // `remoteModels.isRemoteActive()` branch in routes/downloadManager.js, which is what
@@ -409,40 +411,37 @@ const downloadService = {
     },
 
     async uninstall(modelId, dependencies, deleteFiles = true) {
-        // MPI-500: the Recycle Bin preference is a renderer-side localStorage pref and
-        // downloadManager.js is server-side, so it rides on the request. The server
-        // defaults it OFF when absent — which is also what keeps tests and agent
-        // sandboxes (no renderer at all) out of the developer's Recycle Bin.
-        const res = await fetch('/comfy/models/uninstall', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ modelId, dependencies, deleteFiles, useRecycleBin: Storage.getRecycleBinDelete() }),
+        // MPI-1157: the server answers 202 at once and finishes in the background (Krea 2
+        // took 191 s on a busy Pod), reporting on the shared stream. The Transfers row
+        // stays until that report lands, so a caller's `await` still means "finished".
+        // ponytail: a stream dropped mid-uninstall loses the report and the row stays
+        // until reload; add a status read on reconnect if that is ever seen.
+        let offs = [];
+        const ended = new Promise((resolve) => {
+            const end = (d) => { if (d?.modelId === modelId) resolve(d); };
+            offs = [Events.on('download:uninstalled', end), Events.on('download:uninstall-failed', end)];
         });
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({ error: 'Uninstall failed' }));
-            Events.emit('ui:error', { title: 'Uninstall Failed', message: err.error });
-            return;
-        }
-        const json = await res.json();
-        // Remote mode: backend returns success:false + remoteUnsupported when it
-        // could NOT complete the uninstall (Pod still warming up so the shared-dep
-        // set is unverifiable, or an older image lacks the delete endpoint). The
-        // model is still on the volume — do NOT emit download:uninstalled (it would
-        // falsely flip the UI to uninstalled). Surface it as a TOAST, never an
-        // error+Report-on-GitHub dialog: neither case is a bug the user should
-        // report (a warm-up window is transient + self-heals; a missing endpoint is
-        // an environment state). A scary dialog here produced junk GitHub issues.
-        if (json.success === false && json.remoteUnsupported === 'uninstall') {
-            Events.emit('ui:warning', {
-                message: json.message
-                    || 'Remote uninstall unavailable right now — model files remain on the Pod volume. Try again in a moment.',
+        try {
+            await runCpuJob(`Uninstalling ${jobDisplayName(modelId)}`, async () => {
+                // MPI-500: the Recycle Bin preference is a renderer-side localStorage pref and
+                // downloadManager.js is server-side, so it rides on the request. The server
+                // defaults it OFF when absent — which is also what keeps tests and agent
+                // sandboxes (no renderer at all) out of the developer's Recycle Bin.
+                const res = await fetch('/comfy/models/uninstall', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ modelId, dependencies, deleteFiles, useRecycleBin: Storage.getRecycleBinDelete() }),
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ error: 'Uninstall failed' }));
+                    Events.emit('ui:error', { title: 'Uninstall Failed', message: err.error });
+                    return;
+                }
+                await ended;
             });
-            return;
+        } finally {
+            offs.forEach(off => off());
         }
-        const { removed = [], keptUniversal = [], keptShared = [], keptModelFiles = [], keptPipInstalls = [] } = json;
-        Events.emit('download:uninstalled', { modelId, removed, keptUniversal, keptShared, keptModelFiles, keptPipInstalls });
-        state.downloadJobs = state.downloadJobs.filter(j => j.modelId !== modelId);
-        if (!state.downloadJobs.length) state.downloadQueueActive = false;
     },
 
     /** MPI-1057: an internal heal started with { silent: true }; the Cue panel's Transfers skips it too. */
@@ -866,12 +865,27 @@ const downloadService = {
             Events.emit('download:cancelled', data);
         });
 
+        // MPI-1157: the ONE place an uninstall's result reaches the app bus — the route
+        // answers before the work is done, so the response carries no result any more.
         onStream('download:uninstalled', (e) => {
             const data = JSON.parse(e.data);
             const { modelId } = data;
             state.downloadJobs = state.downloadJobs.filter(j => j.modelId !== modelId);
             if (!state.downloadJobs.length) state.downloadQueueActive = false;
+            Events.emit('download:uninstalled', data);
             reSyncInstalledModels().catch(err => clientLogger.error('downloadService', 're-sync after uninstall failed:', err));
+        });
+
+        // Nothing was uninstalled; the model is still installed. The Pod warming up, an
+        // old image with no delete endpoint, or a shared-file check that could not run
+        // are states, not bugs: a TOAST, never the error+Report-on-GitHub dialog (that
+        // produced junk GitHub issues). Only a crash in the route is a reportable error.
+        onStream('download:uninstall-failed', (e) => {
+            const data = JSON.parse(e.data);
+            const message = data.message || 'Uninstall failed — the model files are still installed. Try again in a moment.';
+            if (data.error === 'uninstall-crashed') Events.emit('ui:error', { title: 'Uninstall Failed', message });
+            else Events.emit('ui:warning', { message });
+            Events.emit('download:uninstall-failed', data);
         });
 
         // download:paused / download:resumed listeners removed (MPI-258 Bug 2) —

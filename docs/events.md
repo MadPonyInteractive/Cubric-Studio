@@ -45,6 +45,7 @@ Defined in `js/events.js` as `MpiEventMap`. Key events:
 | `download:resumed` | Download job was resumed |
 | `download:cancelled` | Download job was cancelled |
 | `download:uninstalled` | Model was uninstalled |
+| `download:uninstall-failed` | An uninstall could not run; nothing was removed (MPI-1157) |
 | `download:installing` | Custom node install phase started |
 | `comfy:needs-restart` | ComfyUI auto-restart needed after custom node install |
 | `media:imported` | A media file finished importing `{ url, filename, itemId, mediaType, thumbPath, thumbPathLg, proxyPath, pixelDimensions, fps, duration, frameCount, hasAudio, gif }` (`gif` = the upload response's frames-store entry for a `.gif`, else null) — `mediaImportService` is the ONE listener that builds the ItemGroup, app-lifetime from `shell.js`. A second listener inside a Block is the MPI-723 bug |

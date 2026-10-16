@@ -3279,7 +3279,17 @@ router.post('/comfy/models/download/cancel', async (req, res) => {
 
 // ── Uninstall ─────────────────────────────────────────────────────────────────
 
-router.post('/comfy/models/uninstall', async (req, res) => {
+// MPI-1157: the route answers at once and the uninstall finishes in the background.
+// One wrapper delete per dep made Krea 2 take 191 s on a busy Pod (2026-10-16), and a
+// request held that long keeps one of Chromium's six sockets to this server — the
+// same starvation MPI-1142 fixed for the event streams. The result rides the
+// broadcasts: `download:uninstalled` on success (as before), `download:uninstall-failed`
+// when nothing could be uninstalled. The renderer shows a Transfers row until one lands.
+// modelId -> the latest run's outcome promise, for tests to await. Never cleared: one
+// settled promise per model id ever uninstalled, overwritten by the next run.
+const _uninstallRuns = new Map();
+
+router.post('/comfy/models/uninstall', (req, res) => {
     // MPI-500: useRecycleBin is the renderer's Settings toggle. Defaulting it FALSE
     // here is what makes a caller with no renderer (a test harness, an agent sandbox)
     // delete permanently instead of filling the developer's Recycle Bin.
@@ -3287,7 +3297,20 @@ router.post('/comfy/models/uninstall', async (req, res) => {
     if (!modelId || !Array.isArray(wireDeps)) {
         return res.status(400).json({ error: 'modelId + dependencies required' });
     }
+    const run = _runUninstall({ modelId, wireDeps, deleteFiles, useRecycleBin })
+        .catch((err) => {
+            logger.error('download', `uninstall ${modelId} crashed: ${err.message}`);
+            return { success: false, error: 'uninstall-crashed', message: `Uninstall failed: ${err.message}` };
+        })
+        .then((out) => {
+            if (out.success === false) _broadcast('download:uninstall-failed', { modelId, ...out });
+            return out;
+        });
+    _uninstallRuns.set(modelId, run);
+    res.status(202).json({ success: true, started: true, modelId });
+});
 
+async function _runUninstall({ modelId, wireDeps, deleteFiles, useRecycleBin }) {
     // MPI-276 G13: uninstall previously trusted the wire dep array verbatim, so a
     // stale client / direct API call could ask to delete the WRONG engine's files
     // (remote-resolved deps against local disk, or vice-versa). Re-resolve the
@@ -3327,12 +3350,12 @@ router.post('/comfy/models/uninstall', async (req, res) => {
             // ready. Surface a 'transient' reason so the renderer shows a TOAST, not
             // an error+Report-on-GitHub dialog (which produced junk issues for a
             // benign warm-up window).
-            return res.json({
+            return {
                 success: false,
                 remoteUnsupported: 'uninstall',
                 reason: 'wrapper-unreachable',
                 message: 'The Pod is still starting up — could not verify shared files yet. Try the uninstall again in a moment.',
-            });
+            };
         }
 
         for (const dep of dependencies) {
@@ -3396,12 +3419,12 @@ router.post('/comfy/models/uninstall', async (req, res) => {
         // record survives instead of the UI claiming an uninstall the Pod never did.
         if (anyUnsupported && removed.length === 0) {
             logger.warn('download', `remote uninstall ${modelId}: wrapper has no delete endpoint (needs engine update)`);
-            return res.json({
+            return {
                 success: false,
                 remoteUnsupported: 'uninstall',
                 message: 'Remote uninstall needs an engine update — model files remain on the Pod volume.',
                 keptUniversal, keptShared,
-            });
+            };
         }
 
         // MPI-464 — remote twin of the local sweep below. This uninstall may have been
@@ -3424,7 +3447,7 @@ router.post('/comfy/models/uninstall', async (req, res) => {
         // re-renders against a job for a model it has just been told is gone.
         if (store.dropModel(modelId)) store.broadcastSnapshot();
         _broadcast('download:uninstalled', { modelId, removed, keptUniversal, keptShared, keptModelFiles, keptPipInstalls: [], sweptOrphans, remote: true });
-        return res.json({ success: true, removed, keptUniversal, keptShared, keptModelFiles, sweptOrphans, remote: true, partialUnsupported: anyUnsupported });
+        return { success: true, removed, keptUniversal, keptShared, keptModelFiles, sweptOrphans, remote: true, partialUnsupported: anyUnsupported };
     }
 
     const customRoot = await getCustomRoot();
@@ -3452,11 +3475,11 @@ router.post('/comfy/models/uninstall', async (req, res) => {
         sharedKeep = await _localSharedDepsMap(modelId);
     } catch (err) {
         logger.error('download', `local shared-dep check failed for ${modelId}: ${err.message}`);
-        return res.status(500).json({
+        return {
             success: false,
             error: 'shared-dep-check-failed',
             message: 'Could not verify which files other models still need — uninstall aborted to avoid deleting shared files. Try again.',
-        });
+        };
     }
 
     for (const dep of dependencies) {
@@ -3571,8 +3594,8 @@ router.post('/comfy/models/uninstall', async (req, res) => {
     // removal touched) and refresh the snapshot. Non-fatal — the uninstall itself
     // already succeeded.
     reconciler.reconcileOnce().catch((err) => logger.warn('download', `post-uninstall reconcile failed: ${err.message}`));
-    res.json({ success: true, removed, keptUniversal, keptShared, keptModelFiles, keptPipInstalls, sweptOrphans });
-});
+    return { success: true, removed, keptUniversal, keptShared, keptModelFiles, keptPipInstalls, sweptOrphans };
+}
 
 // ── Graceful Shutdown ─────────────────────────────────────────────────────────
 
@@ -3840,6 +3863,7 @@ module.exports = {
     _byteRatioExcludingNodes, // MPI-231 — exported for unit test
     _customNodeUninstallPath, // MPI-276 — exported for unit test
     _uninstallAllowedRoot, // MPI-682 — exported for unit test
+    _uninstallRuns, // MPI-1157 — tests await the background run the route started
     _isInsidePath, // MPI-682 — exported for unit test (the rail's other half)
     _filterDepsForEngine, // MPI-276 — exported for unit test
     _describeNodeInstallFailures, // MPI-387 — exported for unit test

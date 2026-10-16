@@ -67,7 +67,8 @@ test('remote uninstall keeps a dep an install started mid-uninstall relies on', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ modelId: MODEL.id, dependencies: DELETABLE.map(id => DEPS[id]), deleteFiles: true }),
     });
-    const data = await res.json();
+    assert.equal(res.status, 202, 'the route answers before the uninstall runs (MPI-1157)');
+    const data = await dm._uninstallRuns.get(MODEL.id);
 
     assert.ok(present.has(LATE), 'the dep the late install counted on must still be on the volume');
     assert.ok(data.keptShared.some(k => k.depId === LATE), 'and reported as kept-shared');

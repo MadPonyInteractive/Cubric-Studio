@@ -175,7 +175,8 @@ export const Events = new EventBus();
  * 'download:complete'     { modelId: string }                      — download succeeded
  * 'download:failed'       { modelId?: string, depId?: string, error: string, networkBlocked?: boolean, transient?: boolean } — download failed. depId-only (no modelId) is a DEP-level failure and is deliberately silent; the flags pick toast vs error dialog (docs/download-manager.md § Failed is not one thing)
  * 'download:cancelled'    { modelId: string }                      — download cancelled by user
- * 'download:uninstalled'  { modelId: string }                      — model files uninstalled
+ * 'download:uninstalled'  { modelId, removed, keptUniversal, keptShared, keptModelFiles, keptPipInstalls, sweptOrphans } — model files uninstalled (from the server broadcast only, MPI-1157)
+ * 'download:uninstall-failed' { modelId, message, remoteUnsupported?, reason?, error? } — nothing uninstalled; downloadService already toasted it (MPI-1157)
  * 'download:installing'   { modelId: string }                      — custom node install in progress
  * 'comfy:needs-restart'   { modelId: string }                      — ComfyUI restart required after custom node install
  * 'engine:restart'        —                                        — restart ComfyUI now, on the user's explicit ask (Settings button, dev radial). navigation.js owns the handler: it refuses on a busy queue rather than destroying an in-flight generation (MPI-805)

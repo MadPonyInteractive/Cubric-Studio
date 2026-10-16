@@ -76,10 +76,17 @@ test('a deps-only flow offers Uninstall, and sends its OWN deps under the flow k
       window.fetch = (url, opts) => {
         urls.push(String(url));
         if (String(url).includes('/comfy/models/uninstall')) {
-          sent.push(JSON.parse(opts.body));
+          const req = JSON.parse(opts.body);
+          sent.push(req);
+          // MPI-1157: the route answers 202 at once; the result arrives later on the
+          // stream, which downloadService bridges to this bus event.
+          setTimeout(() => Events.emit('download:uninstalled', {
+            modelId: req.modelId, removed: ownDeps(DEPS_FLOW).map(id => ({ depId: id })), keptShared: [],
+          }), 50);
           return Promise.resolve({
             ok: true,
-            json: async () => ({ removed: ownDeps(DEPS_FLOW).map(id => ({ id })), keptShared: [] }),
+            status: 202,
+            json: async () => ({ success: true, started: true, modelId: req.modelId }),
           });
         }
         return realFetch(url, opts);
