@@ -138,7 +138,8 @@ one describer call, a video of a picture minor a second, and every later run on 
   anything but CLOTHES refuses "Dress the sheet first: pick Clothes", swimwear included. Never when
   Clothes is the change (that leg dresses it first). Its optional Reference picture is refused with
   any age 0-17 (`characterSheetEditorRefusal`); a Clothes reference with the age kept goes through
-  `CLOTHES_QUESTION` above.
+  `CLOTHES_QUESTION` above. Clothes words that take the clothes OFF route to Qwen (`asksToUndress`,
+  MPI-1159, adults only): those typed words refuse at any Age 0-17 and get the sheet looked at.
 
 ## Measured
 

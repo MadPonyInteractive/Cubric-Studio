@@ -6,8 +6,10 @@
  * The user's own words fill one slot. The age reaches the prompt as WORDS: the child-safety
  * gate reads strings only (docs/child-safety.md), so a number param would slip past it.
  *
- * Pure: no app imports, so the tests import it as it ships.
+ * Pure: no app imports (childSafety.js is pure too), so the tests import it as it ships.
  */
+
+import { asksToUndress } from '../childSafety.js';
 
 /** The trailing pair that keeps the close-up portrait in step with the bodies (batch 5's L1). */
 const L1 = ' Make the same change in the close-up portrait on the right. Keep everything else exactly as it is.';
@@ -200,7 +202,15 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
         // left the sleeves to each panel, and Fabio's keyhole dress came back short-sleeved on the front and a
         // halter in the close-up (MPI-1041 F1: 4/5 seeds -> 5/5). Lock 1 freezes every head, so naming the back
         // view cannot redraw the layout here.
+        // MPI-1159: words that take the clothes OFF run on Qwen (the registry routes them), the words their own
+        // sentence. "Dress the character in Remove all the clothes..." came back dressed on Klein; on Qwen this
+        // undressed every figure, barefoot, own face and hair, 2/2 on Fabio's adult sheet (scratchpad ud1).
         case 'clothes':
+            if (asksToUndress(w)) {
+                return `Change the character's clothes in image 1: ${w}. The front view, the character seen from behind `
+                    + "and the close-up portrait on the right all show the same change. Keep the character's own face "
+                    + 'and hair. Keep everything else exactly as it is.';
+            }
             return `Dress the character in ${w}. The front view, the back view and the close-up portrait on the right `
                 + 'all show the same outfit, with the same neckline, sleeves and straps. Keep everything else exactly as it is.';
         // MPI-1086 r30: on Qwen, every figure named. Klein's string redrew the front figure as a back view 4/4 on

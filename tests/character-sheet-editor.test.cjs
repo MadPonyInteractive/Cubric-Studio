@@ -410,6 +410,33 @@ test('each change routes to its editor and the age picks the legs', async () => 
     assert.strictEqual(flowOperation(flow, { injectionParams: {} }), 'flowCharacterSheetEdit');
 });
 
+test('MPI-1159: Clothes words that take the clothes off run on Qwen, with their own prompt; a child age refuses them', async () => {
+    const { getFlowById, flowOperation } = await registry();
+    const { buildChangePrompt } = await builder();
+    const flow = getFlowById('character-sheet-editor');
+    const FABIO = 'Remove all the clothes, leaving you nude and barefoot. ';
+    const clothes = (words, media) => ({ change: 'clothes', words, injectionParams: { Input_Age: -1 }, ...(media ? { mediaItems: media } : {}) });
+    for (const w of [FABIO, 'naked', 'take off her dress', 'topless, keep the jeans', 'nua e descalça']) {
+        assert.strictEqual(flowOperation(flow, clothes(w)), 'flowCharacterSheetEditQwen', w);
+    }
+    // Dressing stays on Klein (MPI-1041): underwear is clothes ON, a negation is not a request, a picture is Klein's.
+    for (const w of ['red lace lingerie', 'a bikini', 'a blue dress, no nudity']) {
+        assert.strictEqual(flowOperation(flow, clothes(w)), 'flowCharacterSheetEdit', w);
+    }
+    assert.strictEqual(flowOperation(flow, clothes(FABIO, [{ role: 'image2', url: 'ref.png' }])), 'flowCharacterSheetEdit');
+    // The ud1 bench string, verbatim (q_verb: every figure undressed, own face and hair, 2/2).
+    assert.strictEqual(buildChangePrompt('clothes', FABIO),
+        "Change the character's clothes in image 1: Remove all the clothes, leaving you nude and barefoot. The front view, "
+        + 'the character seen from behind and the close-up portrait on the right all show the same change. Keep the '
+        + "character's own face and hair. Keep everything else exactly as it is.");
+    for (const modelId of ['klein-9b', 'qwen-image-2-1']) {
+        for (const age of [0, 10, 16, 17]) {
+            const [first] = await verdicts({ change: 'clothes', words: FABIO, Input_Age: age, sheetAge: '40', sheetClothes: CAPTION }, modelId);
+            assert.strictEqual(first.verdict, 'refuse', `${modelId} undress at ${age}`);
+        }
+    }
+});
+
 test('each leg runs its own model, and Qwen-Image 2.1 is asked for only when the run needs it', async () => {
     const { getFlowById, flowModelIds, flowRunAvailability, flowAvailability } = await registry();
     const flow = getFlowById('character-sheet-editor');

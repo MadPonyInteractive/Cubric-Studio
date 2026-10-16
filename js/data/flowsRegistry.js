@@ -356,6 +356,7 @@ import { DEPS } from './modelConstants/dependencies.js';
 import { getPlugin } from './pluginsRegistry.js';
 import { MODELS } from './modelConstants/models.js';
 import { OUTPAINT_MAX_GROW } from '../utils/outpaintPasses.js';
+import { asksToUndress } from './childSafety.js';
 
 /**
  * The download-queue / dep-status key for a flow's own deps. Namespaced so it can
@@ -1708,20 +1709,24 @@ export const FLOWS = [
         // registered, so the layout holds and only the change moves.
         preview: 'flow-character-sheet-editor.webp',
         video: 'flow-character-sheet-editor.mp4',
-        description: 'Change one thing on a character sheet you already have - the clothes, accessories, makeup, tattoos, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory, makeup, tattoos or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, a hairstyle, accessories, makeup, tattoos and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
+        description: 'Change one thing on a character sheet you already have - the clothes, accessories, makeup, tattoos, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory, makeup, tattoos or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, a hairstyle, accessories, makeup, tattoos, taking the clothes off and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
         // Each slot's rack fills its phase's nodes: Klein's Input_Lora_Phase1_* (the edit and age
         // legs), Qwen's Input_Lora_Phase2_* (Body shape). The child rebuild leg runs the
         // from-images graph, titled Phase1, so it takes no rack here.
         requiredModels: [
             { label: 'Model', models: ['klein-9b'], loras: true },
-            { label: 'Body shape, hairstyle, accessories, makeup, tattoos and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
+            { label: 'Body shape, hairstyle, accessories, makeup, tattoos, undressing and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
               for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] },
         ],
         operation: 'flowCharacterSheetEdit',
         operationBy: {
             field: 'change',
             map: {
-                clothes: 'flowCharacterSheetEdit',
+                // MPI-1159: words that take the clothes OFF ("Remove all the clothes, leaving you nude") go to Qwen,
+                // which undressed every figure 4/4 on an adult sheet; Klein kept the clothes on. Dressing, and any
+                // Reference picture, stays on Klein (MPI-1041). The child-safety gate reads the same typed words.
+                clothes: { when: [{ field: 'words', undress: true }, { media: 'image2', present: false }],
+                    then: 'flowCharacterSheetEditQwen', else: 'flowCharacterSheetEdit' },
                 // MPI-1086 r29/r30: Klein redrew the front figure as a back view on Fabio's sheet, with a picture or
                 // in words (4/4 each), and took the picture's person; Qwen kept layout, face and hair 4/4 both ways.
                 accessories: 'flowCharacterSheetEditQwen',
@@ -1769,7 +1774,7 @@ export const FLOWS = [
             {
                 id: 'change', type: 'select', label: 'What to change', default: 'clothes',
                 options: [
-                    { v: 'clothes', label: 'Clothes', info: 'New clothes on every panel; the head and hair stay exactly as they are.' },
+                    { v: 'clothes', label: 'Clothes', info: 'New clothes on every panel; the head and hair stay exactly as they are. Taking the clothes off (nude) runs on Qwen-Image 2.1: not for commercial use.' },
                     { v: 'accessories', label: 'Accessories', info: 'Glasses, a scarf, a hat, jewellery - added to every panel. Runs on Qwen-Image 2.1: not for commercial use.' },
                     { v: 'makeup', label: 'Makeup', info: 'Eyeshadow, lipstick, face paint - the face stays the same person. Runs on Qwen-Image 2.1: not for commercial use.' },
                     { v: 'tattoos', label: 'Tattoos', info: 'Tattoos on every panel where they can be seen. Runs on Qwen-Image 2.1: not for commercial use.',
@@ -3289,6 +3294,8 @@ const RULE_TESTS = {
     atMost: (v, want) => _num(v) <= want,
     below: (v, want) => _num(v) < want,
     atLeast: (v, want) => _num(v) >= want,
+    // Words that take clothes off (MPI-1159): the Character Sheet Editor sends them to Qwen.
+    undress: (v, want) => asksToUndress(v) === want,
 };
 
 /** A value as a number for the numeric tests: null, '' and anything unparseable are NaN, so every test on them fails. */

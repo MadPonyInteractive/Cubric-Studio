@@ -106,17 +106,24 @@ const SEXUAL = _rx([
     'arsch', 'muschi', 'sensuale', 'sesso', 'sessuale', 'tette', 'capezzoli', 'figa',
 ]);
 
-/** Unclothed: nudity or underwear. Any minor + any of these is refused. */
-const UNCLOTHED = _rx([
+/** Nudity itself, no underwear: also routes the Character Sheet Editor's undressing (`asksToUndress`). */
+const NUDE_TERMS = [
     'nude(?:s)?', 'nudity', 'naked', 'topless', 'bottomless', 'undressed', 'unclothed', 'disrobed', 'in the nude',
     '(?:no|without) (?:clothes|clothing)', 'wearing nothing', 'skinny dipping', 'birthday suit',
+    // Portuguese, Spanish, French, German, Italian.
+    'nu', 'nua', 'nus', 'nuas', 'pelad[ao]s?', 'despid[ao]s?', 'seminu[ao]s?', 'sem roupa', 'desnud[ao]s?', 'sin ropa',
+    'nue', 'nues', 'à poil', 'nackt(?:e|er|en)?', 'oben ohne', 'nud[aeio]',
+];
+const NUDE = _rx(NUDE_TERMS);
+
+/** Unclothed: nudity or underwear. Any minor + any of these is refused. */
+const UNCLOTHED = _rx([...NUDE_TERMS,
     '(?:only|just|wrapped in) a towel', 'underwear', 'lingerie', 'panties', 'panty', 'bras?', 'bralettes?', 'thongs?',
     'g ?strings?', 'knickers', 'undies', 'boxer (?:shorts|briefs)', 'negligees?', 'babydolls?', 'garters?',
     // Portuguese, Spanish, French, German, Italian.
-    'nu', 'nua', 'nus', 'nuas', 'pelad[ao]s?', 'despid[ao]s?', 'seminu[ao]s?', 'sem roupa', 'calcinhas?', 'sutiã', 'cuecas?',
-    'roupa (?:interior|íntima)', 'desnud[ao]s?', 'sin ropa', 'lencería', 'bragas', 'sujetador', 'calzoncillos', 'ropa interior',
-    'nue', 'nues', 'à poil', 'culottes?', 'soutien gorge', 'sous vêtements', 'nackt(?:e|er|en)?', 'oben ohne',
-    'unterwäsche', 'dessous', 'höschen', 'nud[aeio]', 'mutandine', 'reggiseno', 'biancheria intima',
+    'calcinhas?', 'sutiã', 'cuecas?', 'roupa (?:interior|íntima)', 'lencería', 'bragas', 'sujetador', 'calzoncillos',
+    'ropa interior', 'culottes?', 'soutien gorge', 'sous vêtements', 'unterwäsche', 'dessous', 'höschen', 'mutandine',
+    'reggiseno', 'biancheria intima',
 ]);
 
 /** Swimwear, and a bare chest. Fine at 16-17; under 16 refused, or judged when it may be an adult's. */
@@ -495,6 +502,16 @@ export function asksForNudity(texts) {
     const text = (Array.isArray(texts) ? texts : [texts]).filter((t) => typeof t === 'string').join('\n');
     const plain = text.replace(NEGATED, ' ');
     return SEXUAL.test(plain) || UNCLOTHED.test(plain) || UNDRESS.test(plain) || NUDITY_CJK.test(text) || NUDITY_RU.test(text);
+}
+
+/**
+ * Do these words take clothes OFF (nudity or undressing, not underwear)? Routes the Character Sheet
+ * Editor's Clothes change to Qwen, which undresses a sheet where Klein keeps the clothes on (MPI-1159).
+ * Not a gate: `checkChildSafety` reads the same words with the wider lists.
+ */
+export function asksToUndress(text) {
+    const plain = String(text ?? '').replace(NEGATED, ' ');
+    return NUDE.test(plain) || UNDRESS.test(plain);
 }
 
 /** Swimwear asked for: a picture's minor is held to the under-16 swimwear rule (MPI-1156). */
