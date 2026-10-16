@@ -334,6 +334,11 @@
     border: 3px solid color-mix(in oklch, var(--ink-1) 15%, transparent);
     border-top-color: var(--accent-heat);
     border-radius: 50%;
+}
+
+/* MPI-1142: spin only while it can be seen. Every idle card keeps its preview layer at
+ * opacity 0, and an infinite animation under it restyled every card on every frame. */
+.mpi-group-card__preview--visible .mpi-group-card__spinner {
     animation: mpi-card-spin 0.75s linear infinite;
 }
 

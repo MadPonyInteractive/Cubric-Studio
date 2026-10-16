@@ -1591,6 +1591,10 @@ router.get('/remote/pod/specs', async (req, res) => {
 // — it almost always resolves to telemetry_unavailable. If neither source has
 // live usage we return `success:false` so the UI shows an explicit
 // remote-unavailable state ("Pod N/A") rather than silently showing LOCAL usage.
+// MPI-1142: a Pod busy pulling a big install answered its probes after ~75 s; past this
+// a probe gives up and the caller takes its fallback (REST guess, or "unknown").
+const POD_PROBE_MS = 5000;
+
 router.get('/remote/pod/stats', async (req, res) => {
   // MPI-191 A/B probe: CUBRIC_NO_POD_STATS=1 stops the app from ever hitting the
   // wrapper's /wrapper/stats (whose blocking nvidia-smi runs in the wrapper's
@@ -1611,7 +1615,7 @@ router.get('/remote/pod/stats', async (req, res) => {
   try {
     const headers = await _authHeaders();
     if (headers) {
-      const upstream = await fetch(`${proxyUrl(podId)}/wrapper/stats`, { headers });
+      const upstream = await fetch(`${proxyUrl(podId)}/wrapper/stats`, { headers, signal: AbortSignal.timeout(POD_PROBE_MS) });
       if (upstream.ok) {
         const wrapperStats = await upstream.json();
         if (wrapperStats && wrapperStats.success) {
@@ -1771,7 +1775,7 @@ async function _remoteVolumeUsedBytes() {
   try {
     const headers = await _authHeaders();
     if (!headers) return null;
-    const upstream = await fetch(`${proxyUrl(podId)}/wrapper/disk`, { headers });
+    const upstream = await fetch(`${proxyUrl(podId)}/wrapper/disk`, { headers, signal: AbortSignal.timeout(POD_PROBE_MS) });
     if (!upstream.ok) return null; // 404 old wrapper / 503 not mounted
     const wrapperDisk = await upstream.json();
     if (wrapperDisk && wrapperDisk.success && Number.isFinite(wrapperDisk.used)) {

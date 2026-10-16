@@ -67,7 +67,10 @@ export function mountPodDiskBar(hostEl) {
         wrap.style.display = 'none';
     }
 
+    let inFlight = false; // MPI-1142: never stack polls on a slow Pod
     async function poll() {
+        if (inFlight) return;
+        inFlight = true;
         try {
             const res = await fetch('/remote/pod/disk');
             const data = await res.json();
@@ -90,6 +93,8 @@ export function mountPodDiskBar(hostEl) {
             wrap.style.display = '';
         } catch (_) {
             if (!disposed) hide();
+        } finally {
+            inFlight = false;
         }
     }
 

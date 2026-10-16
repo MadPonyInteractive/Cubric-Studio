@@ -2246,14 +2246,21 @@ export const MpiGalleryGrid = ComponentFactory.create({
 
                 const allGroupsMap = new Map(allGroups.map(g => [g.id, g]));
                 const activeIds = new Set(allGroups.map(g => g.id));
-                const fragment = document.createDocumentFragment();
                 const prevScrollTop = grid.scrollTop;
 
-                rows.forEach(({ items: rowItems, rowHeight }) => {
-                    const rowEl = ce('div', { className: 'mpi-gallery-grid__row' });
-                    rowEl.style.height = `${rowHeight}px`;
+                // MPI-1142: reuse the rows and leave every card that is already in its slot
+                // where it is. Rebuilding the rows re-attached every card on every render, and
+                // a re-attached element is restyled from scratch: ~45 ms at 73 cards, ~100 ms
+                // at 140, on EACH step of a panel drag or window resize.
+                const oldRows = [...grid.children].filter(c => c.classList.contains('mpi-gallery-grid__row'));
+                const keep = [];
 
-                    rowItems.forEach(({ id, width, height }) => {
+                rows.forEach(({ items: rowItems, rowHeight }, r) => {
+                    const rowEl = oldRows[r] || ce('div', { className: 'mpi-gallery-grid__row' });
+                    rowEl.style.height = `${rowHeight}px`;
+                    keep.push(rowEl);
+
+                    rowItems.forEach(({ id, width, height }, j) => {
                         const group = allGroupsMap.get(id);
                         const entry = _getCardEntry(group);
                         const { card } = entry;
@@ -2263,7 +2270,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         wrapper.style.height = `${height}px`;
                         wrapper.dataset.groupId = id;
 
-                        rowEl.appendChild(wrapper);
+                        if (rowEl.children[j] !== wrapper) rowEl.insertBefore(wrapper, rowEl.children[j] || null);
 
                         // The card's rendition tier is chosen from the box the packer
                         // just handed it, so this must run on EVERY justified render —
@@ -2286,7 +2293,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
 
                     });
 
-                    fragment.appendChild(rowEl);
+                    // A card left over here belongs to a later row (it moves there below) or is gone.
+                    while (rowEl.children.length > rowItems.length) rowEl.lastElementChild.remove();
                 });
 
                 _cleanupDetachedState(activeIds);
@@ -2305,7 +2313,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         <p class="mpi-gallery-grid__scope-empty-title">Nothing archived${filtered ? ' in this filter' : ''}</p>
                         <p class="mpi-gallery-grid__scope-empty-hint">Right-click a card and choose Archive to put it away. Nothing is deleted — archived cards keep their files and come back whenever you want.</p>
                     `;
-                    fragment.appendChild(emptyEl);
+                    keep.push(emptyEl);
                 } else if (filtered && !allGroups.length) {
                     const emptyEl = ce('div', { className: 'mpi-gallery-grid__scope-empty' });
                     emptyEl.innerHTML = `
@@ -2318,10 +2326,12 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         state.gallerySort = { ...DEFAULT_GALLERY_SORT, order: keepOrder, scope: keepScope };
                     });
                     emptyEl.appendChild(showAll.el);
-                    fragment.appendChild(emptyEl);
+                    keep.push(emptyEl);
                 }
 
-                grid.replaceChildren(fragment);
+                const kept = new Set(keep);
+                for (const c of [...grid.children]) if (!kept.has(c)) c.remove();
+                for (const c of keep) if (c.parentNode !== grid) grid.appendChild(c);
                 if (grid.scrollTop !== prevScrollTop) {
                     const maxScrollTop = Math.max(0, grid.scrollHeight - grid.clientHeight);
                     grid.scrollTop = Math.min(prevScrollTop, maxScrollTop);

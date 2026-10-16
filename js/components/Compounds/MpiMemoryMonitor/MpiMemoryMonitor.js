@@ -234,7 +234,13 @@ export const MpiMemoryMonitor = ComponentFactory.create({
             }
         };
 
+        // MPI-1142: one request at a time. A busy Pod answered stats after ~75 s, and a
+        // 2 s interval stacked ~35 of them, holding the app's connections from every
+        // picture, clip and project load.
+        let _statsInFlight = false;
         const _updateStats = async () => {
+            if (_statsInFlight) return;
+            _statsInFlight = true;
             try {
                 const endpoint = _isRemoteLive() ? '/remote/pod/stats' : '/system/stats';
                 const res  = await fetch(endpoint);
@@ -260,6 +266,8 @@ export const MpiMemoryMonitor = ComponentFactory.create({
                     if (!vramRow.hidden) _setUnavailable(vramValue, vramBar, 'Pod N/A');
                 }
                 // Silently ignore otherwise — network may not be ready on boot
+            } finally {
+                _statsInFlight = false;
             }
         };
 

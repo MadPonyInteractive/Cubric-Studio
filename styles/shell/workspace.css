@@ -62,9 +62,28 @@
 /* ── Agent Panel Mount — left panel for MpiAgentChat in Agent mode ─────────── */
 /* MPI-797: full height, from under the floating topbar (52px) to the top of the status bar
  * (#shell-info-bar, 32px), so the prompt box never covers the chat. `--agent-panel-w` is set
- * by agentPanel.js (dragged, stored); half the work area is the ceiling on a small window. */
+ * by agentPanel.js (dragged, stored); half the work area is the ceiling on a small window.
+ * MPI-1142: both are registered NON-inherited, and only the four boxes that use them inherit
+ * them explicitly. An inherited custom property on .main-area made every pointermove of the
+ * drag restyle the whole page under it (5,203 elements with a video project open, 50-100 ms
+ * frames); now a move restyles these four. */
+@property --agent-panel-w {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 420px;
+}
+
+@property --agent-panel-open-w {
+  syntax: '*';
+  inherits: false;
+}
+
 .main-area {
-  --agent-panel-open-w: min(var(--agent-panel-w, 420px), 50%);
+  --agent-panel-open-w: min(var(--agent-panel-w), 50%);
+}
+
+.main-area > :is(#agent-panel-mount, #workspace-content, #prompt-box-mount, #controls-mount) {
+  --agent-panel-open-w: inherit;
 }
 
 #agent-panel-mount {

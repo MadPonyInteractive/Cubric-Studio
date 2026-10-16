@@ -47,6 +47,8 @@ export const MpiFlowResultDock = ComponentFactory.create({
             // run slide. Both merely detach, but only this one reads that way.
             if (node) mediaEl.replaceChildren(node);
             else mediaEl.replaceChildren();
+            mediaEl.classList.toggle('mpi-flow-result-dock__media--audio',
+                !!node && (node.matches('audio') || !!qs('audio', node)));
         };
 
         // A class, never `hidden` — this component sets its own `display`, and a

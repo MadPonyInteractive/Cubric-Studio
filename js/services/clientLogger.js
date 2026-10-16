@@ -103,22 +103,39 @@ const BLOCKED_MS_PER_MIN = 2000;
  * so a slow build-up shows as a trend in app.log instead of needing a live look.
  */
 export function installHealthLog() {
-    let blocked = 0, worst = 0, count = 0, minute = 0;
+    let blocked = 0, worst = 0, count = 0, minute = 0, restyle = 0;
+    const scripts = new Map(); // "invoker file:function" -> ms, from long animation frames
     if (PerformanceObserver.supportedEntryTypes?.includes('longtask')) {
         new PerformanceObserver((list) => {
             for (const e of list.getEntries()) { blocked += e.duration; worst = Math.max(worst, e.duration); count++; }
         }).observe({ type: 'longtask' });
+    }
+    // A blocked minute names what blocked it: the scripts that ran in the long frames, and the
+    // frames' style + layout time (a page-wide restyle has no script to blame).
+    if (PerformanceObserver.supportedEntryTypes?.includes('long-animation-frame')) {
+        new PerformanceObserver((list) => {
+            for (const f of list.getEntries()) {
+                if (f.styleAndLayoutStart) restyle += f.startTime + f.duration - f.styleAndLayoutStart;
+                for (const s of f.scripts) {
+                    const k = `${s.invoker} ${(s.sourceURL || '').split('/').pop()}:${s.sourceFunctionName || '?'}`;
+                    scripts.set(k, (scripts.get(k) || 0) + s.duration);
+                }
+            }
+        }).observe({ type: 'long-animation-frame' });
     }
     setInterval(() => {
         minute++;
         const busy = blocked > BLOCKED_MS_PER_MIN;
         if (busy || minute % 10 === 0) {
             const heap = performance.memory ? `heap ${Math.round(performance.memory.usedJSHeapSize / 1048576)} MB, ` : '';
+            const top = [...scripts].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, ms]) => `${k} ${Math.round(ms)} ms`);
             _send(busy ? 'warn' : 'info', 'health', `${busy ? 'main thread blocked: ' : ''}${count} long tasks, `
                 + `${Math.round(blocked)} ms in 60 s (worst ${Math.round(worst)} ms) | ${heap}`
                 + `${document.getElementsByTagName('*').length} elements, ${document.getElementsByTagName('video').length} videos, `
-                + `${document.images.length} images, up ${minute} min`);
+                + `${document.images.length} images, up ${minute} min`
+                + (busy ? ` | style+layout ${Math.round(restyle)} ms, scripts: ${top.join(', ') || 'none'}` : ''));
         }
-        blocked = worst = count = 0;
+        blocked = worst = count = restyle = 0;
+        scripts.clear();
     }, 60000);
 }

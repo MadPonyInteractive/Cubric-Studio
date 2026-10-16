@@ -106,3 +106,29 @@
 - [health] in his app.log: while in use, ~50-60 long tasks/min of 50-100 ms each (~3 s of every minute), idle = 0. 01:26Z (generations + opening projects): 157 long tasks, 16860 ms of 60 s blocked, worst 381 ms. Page holds 274-278 <video>, ~9,100 elements, 147 images. Face-box drag and Cosmo panel drag still lag. Not GPU: main thread.
 - Suspects (unproven): something on a ~1 s timer whose cost scales with DOM/video count - comfy/status poll handler, MpiMemoryMonitor/system stats, heroCrew beat/rAF, gallery observers.
 - Next: isolated app with a video-heavy copied project (a few hundred videos), CPU profile 60 s idle + while dragging, name the per-second task, fix, show long-task count drops.
+
+## 2026-10-16 ~03:10 local - UI lag: three page-wide restyle causes found and fixed
+- Fabio's [health] log: the ~1/s long tasks (48-61 per min, 50-100 ms) line up with generations exactly (22:22-26, 22:31-35, 22:39-43Z H3 runs; 0 the minute each ends), not with page size alone.
+- research/dragprof.cjs (isolated app, copy of Deepinfra model tests: 73 cards, 5,229 elements, 167 <video> of which 146 are idle src-less mascot slots), Cosmo panel handle drag 120 moves: BEFORE 26-44 long tasks of 50-68 ms, 88-115 frames >50 ms, worst 120 ms, 178 full-page restyles (5,203 elements) = 7.5 s of 15 s.
+- research/recalc.cjs + invalidation tracking named three causes:
+  1. styles/shell/workspace.css: --agent-panel-w / --agent-panel-open-w on .main-area INHERIT, so every pointermove restyled the whole page. Now @property inherits:false, and only the 4 boxes that use them inherit explicitly. A width write restyles ~74 elements (was 5,203).
+  2. MpiGalleryGrid render rebuilt every row and re-attached every card (14 ms re-attach + 29 ms restyle/layout at 73 cards) on each ResizeObserver step. Now reuses rows and leaves a card in its slot (insertBefore only when the slot differs).
+  3. MpiFlowResultDock.css '.mpi-flow-result-dock__media:has(audio) > *': a :has() on a bare tag made ANY element inserted under .main-area restyle the whole page (StyleInvalidator 'invalidates subtree' on .main-area naming that selector). Now a --audio modifier set in setContent. With it gone: 0 full restyles (max 90 elements).
+  Plus: MpiGalleryGrid.css card spinner animated forever under every idle card's opacity-0 preview layer (6,570 animation restyles in one trace). Now animates only under --visible. Idle restyle 923 -> 80 ms per 20 s.
+- AFTER (dragprof): 0 long tasks, 0 frames >50 ms, worst 40 ms. Negative control genlag.cjs OLDHAS=1 (old :has(audio) rule injected back): placeholder/preview phases 2 and 1 full-page restyles; without it 0.
+- The per-second INSERTER during Fabio's real generations is still unnamed (the fake generation inserts rarely); with cause 3 gone any insert costs a local restyle. installHealthLog now adds long-animation-frame attribution to a blocked minute: research/healthname.cjs -> '[health] main thread blocked: ... | style+layout 7 ms, scripts: TimerHandler:setTimeout :mpi1142Busy 2998 ms, ...'.
+- Dock check research/dockprobe.cjs: audio content -> --audio class, 260px; img -> 200px; null -> class off.
+- Checks: npm test 3332 pass / 0 fail (tests/page-wide-restyle.test.cjs new: no bare-tag :has(), spinner base rule does not animate; regex negative-controlled); desktop gallery-* + delete-offers-archive + agent-drag-set + flow-result-follows-steps 22/22; eslint clean.
+- Not profiled: the Flow face-box drag (Character Sheet from Images). Cause 3 hit any DOM insert, so it likely helped; unverified.
+- Next: Fabio restarts, generates and drags. Expect no ~1/s [health] warns; if any remain, the line now names the script.
+
+## 2026-10-16 ~08:30 local - app stalled on a busy Pod: stacked stats polls
+- Fabio 07:17-07:20Z: Pod connected (L4), remote 'volume full', two remote uninstalls, then a 22 GB Qwen-Image 2.1 install onto the volume. Projects would not open, landing thumbs and mascots spun. Server process 0.6% CPU (not blocked).
+- Live net log (netlog.py on a copy): /remote/pod/stats polled every 2 s, each answered after 70-79 s, ~35 alive at once, plus /remote/pod/disk, /log and /comfy/models/uninstall; /remote/mode (no awaits on the server) waited 16-42 s = pure queueing. 57 low-priority loads (mascots, thumbs, Flow previews) blocked by ResourceScheduler 15-17 s each.
+- Fix: routes/remotePodLifecycle.js /wrapper/stats and /wrapper/disk probes time out after POD_PROBE_MS 5000 (falls to the REST guess / 'unknown', as any failure already did); MpiMemoryMonitor _updateStats and podDiskBar poll skip a tick while the previous request is out.
+- Proof research/pollstack.cjs (isolated app, /system/stats hung 10 s): 1 request in 9 s; guard disabled = 4. npm test 3337 pass / 0 fail; eslint clean.
+- Not tested live against a busy Pod (costs money); the Pod-side slowness (wrapper answering after 75 s mid-install) is not addressed here.
+
+## 2026-10-16 ~08:45 local - Fabio: drag fixed
+- Fabio after restart: Cosmo panel and the Flow face-box drag are 'freaking awesome now'. The UI lag part is confirmed live.
+- Pending: his live test of the busy-Pod stall fix (installing a model on a Pod now).

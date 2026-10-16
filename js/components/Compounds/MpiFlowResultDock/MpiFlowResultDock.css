@@ -41,6 +41,8 @@
 /* An audio result is a control: it fills the box rather than being sized by it, and
    the box drops the picture height it has nothing to apply to. The player has no
    width of its own and its waveform takes what the buttons leave, so the box states
-   one — wider in this mode to give the wave room (MPI-731). */
-.mpi-flow-result-dock__media:has(audio) { width: 260px; }
-.mpi-flow-result-dock__media:has(audio) > * { width: 100%; }
+   one — wider in this mode to give the wave room (MPI-731).
+   A class set by setContent, never `:has(audio)`: a `:has()` keyed on a bare tag made
+   Chromium restyle the whole page on every element inserted anywhere in it (MPI-1142). */
+.mpi-flow-result-dock__media--audio { width: 260px; }
+.mpi-flow-result-dock__media--audio > * { width: 100%; }
