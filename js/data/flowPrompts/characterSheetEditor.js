@@ -366,6 +366,10 @@ export function characterSheetEditorRefusal(values = {}) {
 /**
  * The result card's name: the card it edits, then the change in the user's own words and the age
  * ("John - beaten up", "John - age 30"), so the result and the sheet it came from read apart.
+ * Short on purpose (Fabio, 2026-10-16): an edit of an edit kept every earlier change and every word
+ * ("flowCSFI_003 - high heels - Bob cut with fringe With black and pink gradient - Remove all the
+ * clothes, ..."), so only the name before the first " - " stays, and the words keep their first four.
+ * ponytail: a user's own name holding " - " loses its tail too; a stored base name if that bites.
  * @param {Object} values - the run's field values
  * @param {?string} sourceName - the edited card's name; null for a file from outside the project
  * @returns {string}
@@ -373,10 +377,16 @@ export function characterSheetEditorRefusal(values = {}) {
 export function characterSheetEditorCardName(values = {}, sourceName = null) {
     const age = _age(values.Input_Age);
     const words = (values.change || 'none') !== 'none'
-        ? _words(values.words) || (_usesRef(values) ? `${REF_THING[values.change].replace(/^the /, '')} from a reference` : '')
+        ? _shortWords(_words(values.words)) || (_usesRef(values) ? `${REF_THING[values.change].replace(/^the /, '')} from a reference` : '')
         : '';
     const change = [words, age === 0 ? 'newborn' : age > 0 ? `age ${age}` : ''].filter(Boolean).join(', ');
-    return `${String(sourceName || '').trim() || 'Character sheet'} - ${change}`;
+    return `${String(sourceName || '').split(' - ')[0].trim() || 'Character sheet'} - ${change}`;
+}
+
+/** The first four words, with an ellipsis when there were more. */
+function _shortWords(text) {
+    const w = text.split(/\s+/).filter(Boolean);
+    return w.length > 4 ? `${w.slice(0, 4).join(' ').replace(/[,;:.]+$/, '')}…` : w.join(' ');
 }
 
 /** One part's prompt, or '' when the run does not take it. */

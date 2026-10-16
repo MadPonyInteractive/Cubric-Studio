@@ -729,6 +729,10 @@ test('the result card is named after the card it edits and the change', async ()
     assert.strictEqual(name({ change: 'none', Input_Age: 0 }, 'John'), 'John - newborn');
     assert.strictEqual(name({ change: 'none', Input_Age: 1 }, 'John'), 'John - age 1');
     assert.strictEqual(name({ change: 'hair', words: 'a bob', Input_Age: -1 }, null), 'Character sheet - a bob', 'a file from outside the project');
+    // Fabio 2026-10-16: an edit of an edit does not pile up every change, and long words are cut to four.
+    assert.strictEqual(name({ change: 'clothes', words: 'Remove all the clothes, leaving you nude and barefoot. ', Input_Age: -1 },
+        'flowCSFI_003 - high heels - Bob cut with fringe With black and pink gradient'), 'flowCSFI_003 - Remove all the clothes…');
+    assert.strictEqual(name({ change: 'hair', words: 'Bob cut, with fringe', Input_Age: 30 }, 'John - high heels'), 'John - Bob cut, with fringe, age 30');
 
     const { sourceCardName } = await esm('js/services/flowService.js');
     const project = { itemGroups: [

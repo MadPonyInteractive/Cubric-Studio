@@ -31,6 +31,10 @@ Tests: `tests/character-sheet-editor.test.cjs` 24/24; registry + safety suites 3
   run (correct). Fixture now seeds a kept age NO on both cards; repro without it = the CI error exactly.
 - Both specs green locally (4/4 + Resize); unit suites 520/520.
 
-## Open
+## Eye test (Fabio, app, 2026-10-16): PASS
 
-- Fabio's eye test in the app (restart needed): Clothes, "Remove all the clothes..." on an adult sheet.
+"The removing clothes worked for adults and got refused for children, so it passed."
+
+Same session, his asks: result card names were piling up every earlier change (now the source name before the first
+" - " + the first four words); the Klein model slot read only "Model" (now "Clothes, condition, custom and age").
+The picker crop went to its own card, MPI-1160.

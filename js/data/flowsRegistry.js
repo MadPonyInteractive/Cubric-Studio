@@ -1714,7 +1714,7 @@ export const FLOWS = [
         // legs), Qwen's Input_Lora_Phase2_* (Body shape). The child rebuild leg runs the
         // from-images graph, titled Phase1, so it takes no rack here.
         requiredModels: [
-            { label: 'Model', models: ['klein-9b'], loras: true },
+            { label: 'Clothes, condition, custom and age', models: ['klein-9b'], loras: true },
             { label: 'Body shape, hairstyle, accessories, makeup, tattoos, undressing and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
               for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] },
         ],
