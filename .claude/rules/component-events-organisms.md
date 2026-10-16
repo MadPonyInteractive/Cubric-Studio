@@ -301,5 +301,5 @@ EMITS (Events bus, keyed by `jobId`):
          `concat:progress` `{ jobId: string, ratio: number }` — 0..1 progress from ffmpeg `time=` stderr lines
          `concat:done`     `{ jobId: string, item: HistoryItem }` — concat finished, sidecar written
          `concat:error`    `{ jobId: string, error: string }` — first-line truncated (full stderr stays in logs/app.log)
-LISTENS: own SSE channel `/concat/events/stream` (separate from `/comfy/events/stream`); single EventSource opened eagerly on module import.
+LISTENS: `concat:*` on the app's one shared stream (`onStream`, `js/services/eventStream.js`, MPI-1142), subscribed on the first `trackConcatJob`; `/concat/events/stream` still serves the channel alone.
 API:     `trackConcatJob({ jobId, label })` → Promise. Bridges to `StatusBar.progress.start/update/complete/cancel`; resolves on `concat:done`, rejects on `concat:error`. Multiple in-flight jobs de-multiplexed by `jobId`.

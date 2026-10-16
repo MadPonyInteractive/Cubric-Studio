@@ -13,6 +13,8 @@
 - **Never use raw `document.querySelector`.** Use `js/utils/dom.js` shorthands.
 - **BEM naming is mandatory.** Format: `.mpi-block__element--modifier`.
 - **Never remove an element only on `transitionend`.** It never fires when a class flip starts no transition (e.g. closed before the open transition painted a frame). Wait on `Promise.allSettled(el.getAnimations().filter(a => a instanceof CSSTransition).map(a => a.finished))` instead (MPI-788).
+- **Never open a new `EventSource`, and never poll on a timer without an in-flight guard.** The app has six sockets to its server; join the one shared stream (`js/services/eventStream.js` `onStream`) and skip a poll tick while the last request is out. Full rule: § "Connections to the app server".
+- **Never `:has()` on a bare tag, and never an infinite animation under an `opacity: 0`-only hide.** Both restyle the whole page; use a modifier class. Full rule: § "Two patterns that restyle the whole page".
 - **For image surfaces: prefer CSS `transform` on a stack element over `ctx.translate/scale`.** CSS transform uses the GPU compositor — no re-rasterize per frame. `ctx` transforms belong only to screen-UI overlays drawn in container px.
 - **Check `js/utils/` before writing any generic logic** — `async.js`, `file.js`, `images.js`, `video.js`, `mediaDimensions.js`, `string.js`, `ratios.js`, `markdown.js` may already do what you need.
 - **Never hand-roll markdown.** `js/utils/markdown.js` is the ONE renderer (`marked` parses, `DOMPurify` sanitizes): `renderMarkdown(src)` for a document, `renderInlineMarkdown(src)` for a single line with no `<p>` wrapper, `renderMarkdownInto(el, src)` + `wireMarkdownLinks(el)` for a live pane. Never `innerHTML` markdown output that did not go through it — notes arrive inside project folders the user may not have written. Style the result with the shared `.mpi-md` block in `styles/markdown.css`; do not restyle headings/tables per component.
@@ -100,6 +102,12 @@ A class carrying `display` **outranks** the UA sheet's `[hidden] { display: none
 - No `setTimeout` backstop in new code: it hides the missing transition instead of handling it.
 
 **It bit MPI-784's click-to-dismiss:** a toast clicked while its fade-in was still pending stayed invisible in the stack forever, holding a slot, so every toast queued behind it stayed hidden (MPI-788, `MpiToast.js`). `MpiSlideOver` still uses the older 400 ms timeout backstop.
+
+### 🔴 Two patterns that restyle the whole page (MPI-1142)
+Both look harmless in one component and cost every frame app-wide.
+
+- **Never `:has()` on a bare tag** (`.x:has(audio)`). Chromium re-checks it on every DOM insert ANYWHERE in the page, so each gallery card insert restyled the whole page: ~1 long task a second during generations. Set a modifier class where the content is set instead (`MpiFlowResultDock` `--audio`, toggled in `setContent`).
+- **Never run an infinite `animation` on an element hidden only by `opacity: 0`** (itself or a parent). Invisible is not stopped: every idle gallery card's spinner restyled every frame. Animate only under the visible modifier (`.mpi-group-card__preview--visible .mpi-group-card__spinner`, `MpiGalleryGrid.css`).
 
 ---
 
@@ -256,6 +264,26 @@ to released users — deliberate, warned hotfix only, never the day-to-day verb.
 for images: a dev build bumps `POD_IMAGE_VERSION_DEV`/`_CPU_DEV`, never the stable pins.
 Both are gated on `BUILD_HASH === 'dev'`, so a shipped app cannot resolve either. (MPI-340;
 full flow: `c:\AI\Mpi\mpi-ci\cubric-vision-pod\README.md` § "Runtime externalize".)
+
+## 🌐 Connections to the app server — six sockets, one stream (MPI-1142)
+
+Chromium gives the renderer SIX sockets to the app server. Every request held open is one
+fewer for pictures, clips and fetches: four always-open streams plus slow Pod polls queued
+thumbnails and mascots 3-60 s while a model installed on a Pod (Fabio, 2026-10-16).
+
+- **Never open a new `EventSource`.** Renderer: `onStream(name, fn)` / `onStreamOpen(fn)`
+  from `js/services/eventStream.js` (one connection for the whole app). Server: export
+  `attach(res) -> detach` that adds `res` to your channel's subscriber set, and list it in
+  `routes/eventStream.js`. Write each `event:`/`data:` frame in ONE `res.write`, under an event
+  name no other channel uses. A consumer that needs the server's connect snapshot subscribes
+  in the shell boot tick (`js/shell.js`, beside `downloadService._ensureSSE()`), or the
+  snapshot can arrive before it listens. The one exception is `/comfy/events/stream`: opened
+  per generation, and on a Pod a per-connection relay of the Pod's own stream.
+- **Never poll on a timer without an in-flight guard.** `setInterval` + `fetch` against a
+  slow upstream stacks requests: `/remote/pod/stats` every 2 s, each answered after ~70 s on a
+  busy Pod, left ~35 open at once. Skip the tick while the last request is out
+  (`MpiMemoryMonitor`, `podDiskBar`), and give the server's upstream probe a timeout
+  (`POD_PROBE_MS`, `routes/remotePodLifecycle.js`).
 
 ## 🔌 Consuming a route — call it once, don't infer its shape
 

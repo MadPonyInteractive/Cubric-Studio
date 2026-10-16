@@ -29,10 +29,10 @@
 
 ## Single SSE Connection Architecture
 
-**CRITICAL ARCHITECTURAL PATTERN:** `downloadService.js` is the ONLY component that opens an EventSource connection. All other frontend code subscribes to events via the Events bus.
+**CRITICAL ARCHITECTURAL PATTERN:** the downloads channel rides the app's ONE shared stream (`GET /events/stream`, `js/services/eventStream.js`, MPI-1142). `downloadService.js` is the only download code that subscribes to it; all other frontend code subscribes to events via the Events bus.
 
 **How it works:**
-1. `downloadService._connectSSE()` opens `/comfy/downloads/stream` (one connection, shared)
+1. `downloadService._connectSSE()` subscribes its handlers with `onStream()` (called once, at shell boot via `_ensureSSE()`, so the connect snapshot is never missed); the server's `downloadManager.attachEvents` puts the response on `_sseClients`
 2. SSE events from the backend include: `download:*` (model downloads) and `engine:*` (engine install/upgrade)
 3. `downloadService` bridges ALL SSE events to the `Events` bus via `Events.emit()`
 4. Components subscribe via `Events.on()` — no direct EventSource connections
@@ -46,7 +46,7 @@
 2. **Never Delete \****`.cubricdl`**\*\* Markers Casually:** Model resume and installed-state safety depend on `<file>.cubricdl` sidecars. They are created on download start and removed only after verified completion, explicit cancel, uninstall, or checksum failure cleanup.
 3. **Never Skip \****`comfyNeedsRestart`**\*\*:** After custom node install, ComfyUI must be restarted. `ensureServerRunning()` handles this automatically — do not suppress or bypass it.
 4. **Always Use Events for Download UI:** Components must subscribe to `download:*` events via `Events.on()`, not poll `state.downloadJobs` directly. Store the unsubscribe function and call it on cleanup.
-5. **Never Open a Second EventSource:** Only `downloadService._connectSSE()` opens `/comfy/downloads/stream`. All other code subscribes via `Events.on()` to events already bridged by `downloadService`.
+5. **Never Open an EventSource:** the app has one, `js/services/eventStream.js` (dos_and_donts § "Connections to the app server"). Only `downloadService._connectSSE()` subscribes the download/engine events; all other code subscribes via `Events.on()` to events already bridged by `downloadService`.
 6. **Never wait for a `download:*` event you armed AFTER the POST (MPI-395):** `POST /comfy/models/download/start` calls `_startPendingDeps()` **before** `res.json()` (register-before-respond, G8), and an install whose deps are all already on disk goes **terminal inside the request handler** — 0 queued deps, nothing to download. So `download:complete` can be broadcast before the response even lands. Arm any terminal listener **before** the fetch, and give it an explicit cancel for the case where the POST turns out never to have fired (a cancel-while-queued emits its event before the chain link runs). Getting this wrong wedges the serial install queue for the full 30-minute safety ceiling, and a `queued` job arms **no** revert timer — so it fails silently. The no-op install is the *common* case on a warm remote volume, not an edge case.
 
 ---
