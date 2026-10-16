@@ -7,4 +7,4 @@
 - [x] Tests: flow-legs, flow-model-choice, desktop flow-chain-toggle (chained + inGraph); npm test green
 - [x] Live: both Flows + Editor Age 10 on an isolated app (validation.md)
 - [x] Docs: character-sheet.md, character-sheet-from-images.md, 01/02 playbook, result-pane.md
-- [ ] Commit, push, CI green, close
+- [x] Commit, push (ed8abdb2c), CI green, close
