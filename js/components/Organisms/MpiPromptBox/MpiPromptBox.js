@@ -1010,11 +1010,18 @@ export const MpiPromptBox = ComponentFactory.create({
         // (Sound & Music): a card whose every pick ends in "not supported" is a dead end.
         // Runs from _refreshOpSlot, where model and op both land.
         function _addTakesMedia() {
-            return ['image', 'video', 'audio'].some(_acceptsMediaType);
+            return _addMediaTypes().length > 0;
+        }
+        // MPI-1161: every type the `+` can add — LTX takes audio, MiniMax H3 video and
+        // audio too. A required voice slot narrows it to audio (MPI-1012).
+        function _addMediaTypes() {
+            return _voiceSlot() ? ['audio'] : ['image', 'video', 'audio'].filter(_acceptsMediaType);
         }
         function _refreshAddBtn() {
             if (!_addBtn) return;
-            const label = _voiceSlot() ? 'Add a voice' : 'Add a reference image';
+            const types = _addMediaTypes();
+            const label = _voiceSlot() ? 'Add a voice'
+                : (types.length === 1 && types[0] === 'image') ? 'Add a reference image' : 'Add a reference';
             _addBtn.title = label;
             _addBtn.setAttribute('aria-label', label);
             if (!_addTakesMedia()) _addBtn.remove();
@@ -1031,9 +1038,11 @@ export const MpiPromptBox = ComponentFactory.create({
         function _openMediaPicker({ openVoiceLibrary = false } = {}) {
             _picker?.el?.destroy?.();
             const voice = _voiceSlot();
-            const slotType = voice ? 'audio' : 'image';
+            const slotTypes = _addMediaTypes();
+            const slotType = voice ? 'audio' : (slotTypes.includes('image') ? 'image' : slotTypes[0] ?? 'image');
             _picker = MpiMediaPicker.mount(document.createElement('div'), {
                 mediaType: slotType,
+                mediaTypes: slotTypes,
                 // A voice slot gets the voice library and the mic card. The picker is a
                 // Compound and may import neither: the library is this Organism's import,
                 // the recorder a Block's, handed down as `recordAudio`.
@@ -1056,10 +1065,14 @@ export const MpiPromptBox = ComponentFactory.create({
                     if (toHistory) emit('stage-to-history', { filePath, item, mediaType });
                     else el.injectMedia({ url: filePath, mediaType });
                 },
-                // The upload card's input accepts only the slot's type, and a library
-                // voice arrives here as a decoded WAV.
+                // The upload card's input accepts only the slot's types, and a library
+                // voice arrives here as a decoded WAV. The FILE's type, not the slot's:
+                // the input takes a clip too where the model does (MPI-1161).
                 onImport: (files, { toHistory } = {}) => {
-                    if (files?.[0]) _importMediaFile(files[0], slotType, { toHistory });
+                    const file = files?.[0];
+                    if (!file) return;
+                    const fileType = slotTypes.find(t => file.type?.startsWith(`${t}/`)) ?? slotType;
+                    _importMediaFile(file, fileType, { toHistory });
                 },
             });
             const close = () => { _picker?.el?.destroy?.(); _picker = null; };

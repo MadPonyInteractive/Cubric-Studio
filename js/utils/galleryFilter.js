@@ -121,3 +121,15 @@ export function listedKinds(entries, sort) {
     const present = new Set(entries.filter(e => _inScope(e.group, sort)).map(e => kindOfItem(kindItemOf(e.group, e.item)).kind));
     return PANEL_KINDS.filter(k => present.has(k.kind) || sort.hiddenKinds?.includes(k.kind));
 }
+
+/**
+ * MPI-1161 — the kinds the media picker opens with hidden: every listed kind whose media
+ * type the slot cannot take (`types`, e.g. ['image', 'video', 'audio'] for MiniMax H3), and
+ * 3D Scenes always — a scene is typed `image` but no op or Flow input takes one. The user
+ * can still switch any of them back on.
+ */
+export function pickerHiddenKinds(entries, types) {
+    return listedKinds(entries, DEFAULT_GALLERY_SORT)
+        .filter(k => k.kind === 'scene' || !types.includes(k.type))
+        .map(k => k.kind);
+}

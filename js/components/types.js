@@ -1731,6 +1731,9 @@
  *                                 (the gallery's own panel, js/components/galleryFilterPanel.js,
  *                                 on a local sort — MPI-785) opens with every kind that cannot
  *                                 fill this slot hidden; the user can widen it.
+ * @property {Array<'image'|'video'|'audio'>} [mediaTypes] - Every type the slot takes, when it
+ *                                 takes more than one (MPI-1161): the filter and the upload
+ *                                 card open on all of them. 3D Scenes always open hidden.
  * @property {string} [toHistoryLabel] - Label for a destination toggle in the head (MPI-887),
  *                                 a toggleable MpiButton shaped like the FILTER button it
  *                                 sits beside. Present it and both outcomes carry `toHistory`,

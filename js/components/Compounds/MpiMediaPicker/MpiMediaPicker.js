@@ -11,7 +11,7 @@ import { renderIcon } from '../../../utils/icons.js';
 import { voiceWavFile } from '../../../utils/toWavFile.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import {
-    DEFAULT_GALLERY_SORT, matchesGallerySort, listedKinds, isGalleryFiltered,
+    DEFAULT_GALLERY_SORT, matchesGallerySort, pickerHiddenKinds, isGalleryFiltered,
     byGalleryOrder, markOf, markIcon,
 } from '../../../utils/galleryFilter.js';
 import { mountGalleryFilter } from '../../galleryFilterPanel.js';
@@ -66,6 +66,9 @@ import { buildJustifiedRows } from '../../../utils/justifiedLayout.js';
  *
  * @param {'image'|'video'|'audio'} [mediaType='image'] - The slot's type. The filter
  *        opens with every other kind hidden; the user can still widen it.
+ * @param {Array<'image'|'video'|'audio'>} [mediaTypes] - Every type the slot takes, when it
+ *        takes more than one (MPI-1161); `mediaType` still picks the accent and the voice
+ *        cards. 3D Scenes open hidden whatever the types (`pickerHiddenKinds`).
  * @param {string} [toHistoryLabel] - Label for the destination toggle. Omit it and the
  *        toggle is not rendered and `toHistory` is always false.
  * @param {Function} [onPick] - (item:{filePath:string,mediaType:string,item:object,toHistory:boolean}) => void
@@ -113,6 +116,8 @@ export const MpiMediaPicker = ComponentFactory.create({
     setup: (el, props, emit) => {
         const _unsubs = [];
         const slotType = props.mediaType || 'image';
+        // MPI-1161: every type the slot takes — a model's `+` can take video and audio too.
+        const slotTypes = props.mediaTypes?.length ? props.mediaTypes : [slotType];
         // The picker is about the SLOT's type, not the workspace's: picking a reference
         // image for a video op is an image job. `image` maps to `vision` because the accent
         // is named for the mascot, not the media (styles/01_base.css).
@@ -199,8 +204,7 @@ export const MpiMediaPicker = ComponentFactory.create({
         let _sort = {
             ...DEFAULT_GALLERY_SORT,
             order: state.gallerySort.order,
-            hiddenKinds: listedKinds(_entries(), DEFAULT_GALLERY_SORT)
-                .filter(k => k.type !== slotType).map(k => k.kind),
+            hiddenKinds: pickerHiddenKinds(_entries(), slotTypes),
         };
 
         /** The entries the sort shows, in its order, ready to tile. */
@@ -260,7 +264,7 @@ export const MpiMediaPicker = ComponentFactory.create({
             // eslint-disable-next-line mpi/no-bare-form-control -- hidden OS file-dialog handle, never rendered
             importInput = ce('input', {
                 type: 'file',
-                accept: slotType === 'image' ? 'image/*' : slotType === 'video' ? 'video/*' : 'audio/*',
+                accept: slotTypes.map(t => `${t}/*`).join(','),
                 hidden: true,
                 multiple: true,
             });

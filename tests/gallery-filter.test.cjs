@@ -153,3 +153,15 @@ test('the default sort cannot be mutated through a shared reference', () => {
     assert.ok(Object.isFrozen(F.DEFAULT_GALLERY_SORT.hiddenKinds));
     assert.ok(Object.isFrozen(F.DEFAULT_GALLERY_SORT.marks));
 });
+
+test('MPI-1161: the picker hides what the slot cannot take, and 3D Scenes always', () => {
+    const AUD = { type: 'audio' };
+    const GIF = { type: 'image', gif: true };
+    const entries = [IMG, VID, AUD, GIF, SCENE].map(item => ({ group: {}, item }));
+    const hidden = (types) => F.pickerHiddenKinds(entries, types).sort();
+    assert.deepStrictEqual(hidden(['image']), ['audio', 'scene', 'video']);
+    assert.deepStrictEqual(hidden(['image', 'audio']), ['scene', 'video'], 'LTX takes audio');
+    assert.deepStrictEqual(hidden(['image', 'video', 'audio']), ['scene'], 'MiniMax H3 takes all three');
+    assert.deepStrictEqual(hidden(['audio']), ['gif', 'image', 'scene', 'video']);
+    assert.deepStrictEqual(F.pickerHiddenKinds([{ group: {}, item: IMG }], ['video']), ['image'], 'only kinds the project has');
+});

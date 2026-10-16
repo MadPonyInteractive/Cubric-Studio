@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1161",
+  "title": "Choose media from + offers every type the model takes, never 3D Scenes",
+  "description": "Prompt box + opened the picker as an image slot only: LTX hid audio, MiniMax H3 hid video and audio, and 3D Scenes (typed image) always showed.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-16T20:25:19+01:00",
+  "updated_at": "2026-10-16T20:26:11+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

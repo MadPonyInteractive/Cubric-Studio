@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/components/Organisms/MpiPromptBox/MpiPromptBox.js", "js/utils/galleryFilter.js", "tests/gallery-filter.test.cjs", "js/components/Compounds/MpiMediaPicker/MpiMediaPicker.js", ".agents/mpi-kanban/tasks/MPI-1161/"]}
