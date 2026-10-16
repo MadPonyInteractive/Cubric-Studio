@@ -73,7 +73,7 @@ through. `childSafetyGate(texts, ctx, judge)` runs both tiers and never rejects.
 - **Every generation**: `generationService.enqueueGeneration`, the one funnel for the prompt box,
   Flows, routines, the in-app agent and MCP (`/connector/generate` reaches it through
   `agentDispatch`). Reads `configTexts(config)`: the positive and every text param a Flow fills,
-  never a negative prompt (it lists what to AVOID), a system prompt, a weight or a file. A
+  never a negative (what to AVOID), a system prompt, a weight, a file or our `Input_Mannequin_Prompt` (MPI-1086). A
   refusal queues nothing: a `ui:warning` toast unless `config.byAgent`, and `onError` with
   `{ code: 'CHILD_SAFETY', userMessage }`, so an agent reports the reason. A flagged run
   returns its queueJobId at once and enters the queue only on the judge's ALLOW. Text ops

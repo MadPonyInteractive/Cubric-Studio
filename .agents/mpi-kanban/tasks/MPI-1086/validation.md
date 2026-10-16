@@ -822,3 +822,32 @@ the whole sheet 124 s = **2.3x faster**; Klein crop ~27 s (18 s words) vs whole 
   (no back view involved at all). Face tattoos: words route promising on Qwen, picture route needs a head-crop
   mannequin (crop the reference to its head before the mannequin) - not benched.
 
+## Round 46 (`qh46.py`, `h46_*`, scratchpad r46/ of session 7a96d4b1): the SKIN line, G: bench :8188
+Fabio 2026-10-16: his shipped spider run (flowCSE_055, whole sheet) took the MANNEQUIN's cream skin, full lips and black
+nose tip. B = one sentence after the describer's words: "Image 2 is a mannequin: take only the painted makeup from it,
+not its pale skin, its face or the shape of its lips. Where there is no paint, the skin stays {each face's / the
+character's} own colour." Inputs = HIS mannequin (flowCSE_054) + his describer words, seeds 31024/46001/46002.
+Skin warmth = mean saturation of the unpainted skin inside the SAM3 face masks (before 0.38 front / 0.39 close-up):
+- shipped A whole (055): front **0.27** (the pale mask), close-up 0.33.
+- crop A: front 0.34 / close 0.36-0.38; crop B: the same within 0.01. **The crop cures most of the leak on its own;
+  the line adds nothing measurable.** Eye: crop A and B indistinguishable, his stubble + jaw kept 6/6.
+- whole B: front 0.29-0.32, visibly pale front face 2/3 (s46001, s46002), close-ups fine. The line does not fix
+  the whole-sheet route either.
+- Regression, crop B glam + goth (r42 mannequins): own face, stubble, own skin 2/2.
+- Left in every spider crop: the web's pale FILL on the forehead (the reference's own pale skin inside the web).
+- Verdict: skip the skin line; the fix for the leak is the localised crop route itself.
+
+## Round 47 (`qh47.py` + `qh47_params.mjs`, `h47_*`, scratchpad r47/ of session 7a96d4b1): the SHIPPED face-crop graph, :8188
+BUILT (Fabio 2026-10-16, "no skin line"): `patch_raw_face_crop.py` -> raw + api Qwen graph (153 nodes): `Input_Face_Crop`
+(ships false) -> SAM3 face per panel of the sheet ([0, cut 1), [cut 2, W), Input_Cut rule) -> `MpiMaskSquareBbox`
+(padding = half the longer face side) -> 724 squares stitched = picture 1 of BOTH Qwen encodes -> the edit cut in
+halves, scaled back, pasted onto the untouched sheet through each face mask (grown 29 + ImageBlur 31/10 in the 724
+half). Lazy MpiIfElse both ends; everything that read the sheet-sized edit reads the switch. App: `Input_Face_Crop`
+= change leg + Makeup; both Makeup strings say "Image 1 shows the same person's face twice ... both faces".
+Run as the app injects it (the raw photo + in-graph mannequin, the app's own strings, Headless on):
+- Fabio's spider, 3 seeds: mean pixel diff to r46's Python crop 1.47-1.72 (= the bench); the in-graph mannequin =
+  his flowCSE_054 (diff 1.5). Own tan skin, stubble, jaw 3/3. Seams invisible at full size.
+- + words "red lipstick": red lips 1/1. Words only ("dark gothic ... black lipstick"): 1/1, own face.
+- glam, goth (r42 photos): own face 2/2. Woman's sheet (flowCSE_044) spider: both faces, smile kept, 1/1.
+- Only the faces change: 2.1-3.8% of the sheet's pixels. Times 45-48 s warm (headless included), 81 s with loads.
+- npm test 3340: 3338 pass, 0 fail; eslint clean.

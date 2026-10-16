@@ -82,7 +82,7 @@
         0
       ],
       "images.image_1": [
-        "11",
+        "261",
         0
       ],
       "vae": [
@@ -566,7 +566,7 @@
         0
       ],
       "images.image_1": [
-        "11",
+        "261",
         0
       ],
       "images.image_2": [
@@ -1226,7 +1226,7 @@
   "199": {
     "inputs": {
       "image": [
-        "128",
+        "272",
         0
       ]
     },
@@ -1274,7 +1274,7 @@
     "inputs": {
       "pad": false,
       "image": [
-        "128",
+        "272",
         0
       ],
       "mpi_box": [
@@ -1418,7 +1418,7 @@
         0
       ],
       "false": [
-        "128",
+        "272",
         0
       ],
       "boolean": [
@@ -1517,7 +1517,7 @@
     "inputs": {
       "pad": false,
       "image": [
-        "128",
+        "272",
         0
       ],
       "mpi_box": [
@@ -1568,6 +1568,892 @@
     "class_type": "ImageStitch",
     "_meta": {
       "title": "front | new back | the rest: the stitched sheet"
+    }
+  },
+  "220": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Face_Crop"
+    }
+  },
+  "221": {
+    "inputs": {
+      "math_expression": "a // 4 * (b <= 0) + b * (b > 0)",
+      "a": [
+        "11",
+        2
+      ],
+      "b": [
+        "212",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "face crop: the front panel ends (Input_Cut_1, else 25%)"
+    }
+  },
+  "222": {
+    "inputs": {
+      "math_expression": "a // 2 * (b <= 0) + b * (b > 0)",
+      "a": [
+        "11",
+        2
+      ],
+      "b": [
+        "213",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "face crop: the close-up panel starts (Input_Cut_2, else 50%)"
+    }
+  },
+  "223": {
+    "inputs": {
+      "math_expression": "a - b",
+      "a": [
+        "11",
+        2
+      ],
+      "b": [
+        "222",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "face crop: the close-up panel width"
+    }
+  },
+  "224": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "width": [
+        "221",
+        0
+      ],
+      "height": [
+        "11",
+        3
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "front panel"
+    }
+  },
+  "225": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "11",
+        0
+      ],
+      "mpi_box": [
+        "224",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "front panel crop"
+    }
+  },
+  "226": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "171",
+        0
+      ],
+      "image": [
+        "225",
+        0
+      ],
+      "conditioning": [
+        "185",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "front: SAM3 face"
+    }
+  },
+  "227": {
+    "inputs": {
+      "padding": 0,
+      "divisible_by": 1,
+      "mask": [
+        "226",
+        0
+      ]
+    },
+    "class_type": "MpiMaskBbox",
+    "_meta": {
+      "title": "front: face box"
+    }
+  },
+  "228": {
+    "inputs": {
+      "mpi_box": [
+        "227",
+        1
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "front: face size"
+    }
+  },
+  "229": {
+    "inputs": {
+      "math_expression": "(a if a > b else b) // 2",
+      "a": [
+        "228",
+        0
+      ],
+      "b": [
+        "228",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "front: half the longer face side"
+    }
+  },
+  "230": {
+    "inputs": {
+      "mask": [
+        "226",
+        0
+      ],
+      "padding": [
+        "229",
+        0
+      ]
+    },
+    "class_type": "MpiMaskSquareBbox",
+    "_meta": {
+      "title": "front: the square (face + half a face all round)"
+    }
+  },
+  "231": {
+    "inputs": {
+      "width": [
+        "230",
+        3
+      ],
+      "height": [
+        "230",
+        3
+      ],
+      "x": [
+        "230",
+        1
+      ],
+      "y": [
+        "230",
+        2
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "front: square box"
+    }
+  },
+  "232": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "225",
+        0
+      ],
+      "mpi_box": [
+        "231",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "front: the face square"
+    }
+  },
+  "233": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": 724,
+      "height": 724,
+      "crop": "disabled",
+      "image": [
+        "232",
+        0
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "front: the face to 724"
+    }
+  },
+  "234": {
+    "inputs": {
+      "mask": [
+        "226",
+        0
+      ]
+    },
+    "class_type": "MaskToImage",
+    "_meta": {
+      "title": "front: face mask as a picture"
+    }
+  },
+  "235": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "234",
+        0
+      ],
+      "mpi_box": [
+        "231",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "front: face mask, the square"
+    }
+  },
+  "236": {
+    "inputs": {
+      "upscale_method": "bilinear",
+      "width": 724,
+      "height": 724,
+      "crop": "disabled",
+      "image": [
+        "235",
+        0
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "front: face mask to 724"
+    }
+  },
+  "237": {
+    "inputs": {
+      "channel": "red",
+      "image": [
+        "236",
+        0
+      ]
+    },
+    "class_type": "ImageToMask",
+    "_meta": {
+      "title": "front: back to a mask"
+    }
+  },
+  "238": {
+    "inputs": {
+      "expand": 29,
+      "tapered_corners": true,
+      "mask": [
+        "237",
+        0
+      ]
+    },
+    "class_type": "GrowMask",
+    "_meta": {
+      "title": "front: grow 29"
+    }
+  },
+  "239": {
+    "inputs": {
+      "mask": [
+        "238",
+        0
+      ]
+    },
+    "class_type": "MaskToImage",
+    "_meta": {
+      "title": "front: grown mask as a picture"
+    }
+  },
+  "240": {
+    "inputs": {
+      "blur_radius": 31,
+      "sigma": 10,
+      "image": [
+        "239",
+        0
+      ]
+    },
+    "class_type": "ImageBlur",
+    "_meta": {
+      "title": "front: feather"
+    }
+  },
+  "241": {
+    "inputs": {
+      "channel": "red",
+      "image": [
+        "240",
+        0
+      ]
+    },
+    "class_type": "ImageToMask",
+    "_meta": {
+      "title": "front: the paste mask"
+    }
+  },
+  "242": {
+    "inputs": {
+      "y": 0,
+      "width": [
+        "223",
+        0
+      ],
+      "height": [
+        "11",
+        3
+      ],
+      "x": [
+        "222",
+        0
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "close-up panel"
+    }
+  },
+  "243": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "11",
+        0
+      ],
+      "mpi_box": [
+        "242",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "close-up panel crop"
+    }
+  },
+  "244": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "171",
+        0
+      ],
+      "image": [
+        "243",
+        0
+      ],
+      "conditioning": [
+        "185",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "close-up: SAM3 face"
+    }
+  },
+  "245": {
+    "inputs": {
+      "padding": 0,
+      "divisible_by": 1,
+      "mask": [
+        "244",
+        0
+      ]
+    },
+    "class_type": "MpiMaskBbox",
+    "_meta": {
+      "title": "close-up: face box"
+    }
+  },
+  "246": {
+    "inputs": {
+      "mpi_box": [
+        "245",
+        1
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "close-up: face size"
+    }
+  },
+  "247": {
+    "inputs": {
+      "math_expression": "(a if a > b else b) // 2",
+      "a": [
+        "246",
+        0
+      ],
+      "b": [
+        "246",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "close-up: half the longer face side"
+    }
+  },
+  "248": {
+    "inputs": {
+      "mask": [
+        "244",
+        0
+      ],
+      "padding": [
+        "247",
+        0
+      ]
+    },
+    "class_type": "MpiMaskSquareBbox",
+    "_meta": {
+      "title": "close-up: the square (face + half a face all round)"
+    }
+  },
+  "249": {
+    "inputs": {
+      "width": [
+        "248",
+        3
+      ],
+      "height": [
+        "248",
+        3
+      ],
+      "x": [
+        "248",
+        1
+      ],
+      "y": [
+        "248",
+        2
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "close-up: square box"
+    }
+  },
+  "250": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "243",
+        0
+      ],
+      "mpi_box": [
+        "249",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "close-up: the face square"
+    }
+  },
+  "251": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": 724,
+      "height": 724,
+      "crop": "disabled",
+      "image": [
+        "250",
+        0
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "close-up: the face to 724"
+    }
+  },
+  "252": {
+    "inputs": {
+      "mask": [
+        "244",
+        0
+      ]
+    },
+    "class_type": "MaskToImage",
+    "_meta": {
+      "title": "close-up: face mask as a picture"
+    }
+  },
+  "253": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "252",
+        0
+      ],
+      "mpi_box": [
+        "249",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "close-up: face mask, the square"
+    }
+  },
+  "254": {
+    "inputs": {
+      "upscale_method": "bilinear",
+      "width": 724,
+      "height": 724,
+      "crop": "disabled",
+      "image": [
+        "253",
+        0
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "close-up: face mask to 724"
+    }
+  },
+  "255": {
+    "inputs": {
+      "channel": "red",
+      "image": [
+        "254",
+        0
+      ]
+    },
+    "class_type": "ImageToMask",
+    "_meta": {
+      "title": "close-up: back to a mask"
+    }
+  },
+  "256": {
+    "inputs": {
+      "expand": 29,
+      "tapered_corners": true,
+      "mask": [
+        "255",
+        0
+      ]
+    },
+    "class_type": "GrowMask",
+    "_meta": {
+      "title": "close-up: grow 29"
+    }
+  },
+  "257": {
+    "inputs": {
+      "mask": [
+        "256",
+        0
+      ]
+    },
+    "class_type": "MaskToImage",
+    "_meta": {
+      "title": "close-up: grown mask as a picture"
+    }
+  },
+  "258": {
+    "inputs": {
+      "blur_radius": 31,
+      "sigma": 10,
+      "image": [
+        "257",
+        0
+      ]
+    },
+    "class_type": "ImageBlur",
+    "_meta": {
+      "title": "close-up: feather"
+    }
+  },
+  "259": {
+    "inputs": {
+      "channel": "red",
+      "image": [
+        "258",
+        0
+      ]
+    },
+    "class_type": "ImageToMask",
+    "_meta": {
+      "title": "close-up: the paste mask"
+    }
+  },
+  "260": {
+    "inputs": {
+      "direction": "right",
+      "match_image_size": false,
+      "spacing_width": 0,
+      "spacing_color": "white",
+      "image1": [
+        "233",
+        0
+      ],
+      "image2": [
+        "251",
+        0
+      ]
+    },
+    "class_type": "ImageStitch",
+    "_meta": {
+      "title": "the face canvas: front | close-up"
+    }
+  },
+  "261": {
+    "inputs": {
+      "true": [
+        "260",
+        0
+      ],
+      "false": [
+        "11",
+        0
+      ],
+      "boolean": [
+        "220",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "picture 1: the face canvas when Input_Face_Crop, else the sheet"
+    }
+  },
+  "262": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": 1448,
+      "height": 724,
+      "crop": "disabled",
+      "image": [
+        "46",
+        0
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "the face edit at the canvas size"
+    }
+  },
+  "263": {
+    "inputs": {
+      "width": 724,
+      "height": 724,
+      "x": 0,
+      "y": 0
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "front: its half of the edit"
+    }
+  },
+  "264": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "262",
+        0
+      ],
+      "mpi_box": [
+        "263",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "front: the edited half"
+    }
+  },
+  "265": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "crop": "disabled",
+      "image": [
+        "264",
+        0
+      ],
+      "width": [
+        "230",
+        3
+      ],
+      "height": [
+        "230",
+        3
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "front: back to its square"
+    }
+  },
+  "266": {
+    "inputs": {
+      "resize_source": false,
+      "destination": [
+        "11",
+        0
+      ],
+      "source": [
+        "265",
+        0
+      ],
+      "mask": [
+        "241",
+        0
+      ],
+      "x": [
+        "230",
+        1
+      ],
+      "y": [
+        "230",
+        2
+      ]
+    },
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "front: pasted through its face mask"
+    }
+  },
+  "267": {
+    "inputs": {
+      "width": 724,
+      "height": 724,
+      "x": 724,
+      "y": 0
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "close-up: its half of the edit"
+    }
+  },
+  "268": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "262",
+        0
+      ],
+      "mpi_box": [
+        "267",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "close-up: the edited half"
+    }
+  },
+  "269": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "crop": "disabled",
+      "image": [
+        "268",
+        0
+      ],
+      "width": [
+        "248",
+        3
+      ],
+      "height": [
+        "248",
+        3
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "close-up: back to its square"
+    }
+  },
+  "270": {
+    "inputs": {
+      "resize_source": false,
+      "destination": [
+        "266",
+        0
+      ],
+      "source": [
+        "269",
+        0
+      ],
+      "mask": [
+        "259",
+        0
+      ],
+      "x": [
+        "271",
+        0
+      ],
+      "y": [
+        "248",
+        2
+      ]
+    },
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "close-up: pasted through its face mask"
+    }
+  },
+  "271": {
+    "inputs": {
+      "math_expression": "a + b",
+      "a": [
+        "222",
+        0
+      ],
+      "b": [
+        "248",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "close-up: x on the sheet"
+    }
+  },
+  "272": {
+    "inputs": {
+      "true": [
+        "270",
+        0
+      ],
+      "false": [
+        "128",
+        0
+      ],
+      "boolean": [
+        "220",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "the edit: the faces pasted back when Input_Face_Crop"
     }
   }
 }

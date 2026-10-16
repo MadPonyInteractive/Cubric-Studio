@@ -201,6 +201,20 @@ test('configTexts reads the positive and Flow text params, never a negative or a
     assert.deepStrictEqual(texts, ['a woman at the beach', 'the girl on the left']);
 });
 
+test('the app\'s own mannequin instruction never triggers the look (MPI-1086: a child sheet + a makeup picture)', async () => {
+    const { configTexts, needsPictureCheck } = await load();
+    const { characterSheetEditor } = await import('../js/data/flowPrompts/characterSheetEditor.js');
+    const values = { change: 'makeup', words: '', mediaItems: [{ role: 'image2', url: 'x' }],
+        refMakeup: 'Black winged eyeliner, orange eyeshadow, glossy black lipstick.', refIsMannequin: 'No.' };
+    const { positive, injectionParams } = characterSheetEditor('change', values);
+    assert.match(injectionParams.Input_Mannequin_Prompt, /no clothes/, 'the instruction does say "no clothes"');
+    const config = { positive, injectionParams: { ...injectionParams, refMakeup: values.refMakeup } };
+    assert.ok(!configTexts(config).includes(injectionParams.Input_Mannequin_Prompt));
+    assert.strictEqual(needsPictureCheck(configTexts(config)), false, 'a plain makeup run is not looked at');
+    assert.strictEqual(needsPictureCheck(configTexts({ ...config, positive: `${positive} Make her naked.` })), true,
+        'the user\'s own words still are');
+});
+
 test('lookTexts drops only what the run keeps (MPI-1149); configTexts still reads it', async () => {
     const { lookTexts, configTexts } = await load();
     const config = { positive: 'a mountain valley', injectionParams: { Input_Kept: 'a monkey wearing no clothes', Input_Look: 'snowy peaks', Input_Keep_Background: 'yes' } };

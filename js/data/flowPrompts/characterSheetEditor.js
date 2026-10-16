@@ -80,9 +80,16 @@ const MAKEUP_MANNEQUIN = 'Replace the head of the person with a plain bald manne
     + 'exactly as it is: the same colours, shapes and patterns of the face paint, eyeshadow, eyeliner and lipstick. '
     + 'No hair, no jewellery and no clothes, on a plain grey background.';
 
-/** Makeup goes on the character's OWN face: without this the picture's face came with it (MPI-1086 r31, 5 of 7). */
-const OWN_FACE = 'Put it on the face of the character in image 1, who stays the same person: the same face shape, eyes, '
-    + 'nose, lips, eyebrows, skin tone and expression.';
+/**
+ * Makeup edits the FACES only (`Input_Face_Crop`, MPI-1086 r45-r47): the Qwen graph crops the front figure's face and
+ * the close-up's face, puts them side by side as image 1, and pastes the edit back through the face masks. Same makeup
+ * on both faces, 2.3x faster than the whole sheet, and the mannequin's pale skin no longer leaks onto a darker face
+ * (r46: skin saturation 0.34 vs the whole sheet's 0.27, 0.38 before). Each face stays its own: without this the
+ * picture's face came with it (r31, 5 of 7).
+ */
+const TWO_FACES = "Image 1 shows the same person's face twice.";
+const OWN_FACES = "Keep each face's own shape, eyes, nose, lips, eyebrows, facial hair, skin tone and hair exactly as they "
+    + 'are; only the makeup changes.';
 
 /** With a reference, every figure is named and the back one only as "seen from behind" (MPI-1090 rounds 2-3). */
 const REF_ALL = 'The front view, the character seen from behind and the close-up portrait on the right all show the same '
@@ -168,12 +175,10 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
     // (r42b): "no lashes" and "red lipstick" first landed 4/4; after the description "red lipstick" stayed black.
     if (ref && change === 'makeup') {
         const d = _words(refMakeup);
-        return 'Apply the makeup from image 2 onto the face of the character in image 1'
-            + (w ? `, changed like this: ${w}. ${d ? `The makeup in image 2: ${d}. ` : ''}Make it ${w} on every figure. `
+        return `${TWO_FACES} Apply the makeup from image 2 onto both faces in image 1`
+            + (w ? `, changed like this: ${w}. ${d ? `The makeup in image 2: ${d}. ` : ''}Make it ${w} on both faces. `
                 : `${d ? `: ${d}` : ''}. `)
-            + "Keep the character's own face shape, eyes, nose, lips, eyebrows, facial hair, skin tone and hair exactly as "
-            + 'they are; only the makeup changes. The front view and the close-up portrait on the right both show the '
-            + 'makeup. Keep everything else exactly as it is.';
+            + `${OWN_FACES} Keep everything else exactly as it is.`;
     }
     if (!w) return null;
     // MPI-1086 r29: Accessories runs on Qwen-Image 2.1 (the registry routes it), the raw picture straight in as image 2
@@ -205,9 +210,9 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
                 + 'seen from behind and the close-up portrait on the right all show it wherever it can be seen. '
                 + "Keep the character's own face, hair, skin and clothes. Keep everything else exactly as it is.";
         // MPI-1086 r34: her own face named as with a picture; smoky eyes + black lips, pink glitter + white liner 2/2.
+        // r47: the two faces only, as with a picture (`TWO_FACES`).
         case 'makeup':
-            return `Give the character in image 1 this makeup: ${w}. ${OWN_FACE} The front view and the close-up `
-                + 'portrait on the right both show the makeup. Keep everything else exactly as it is.';
+            return `${TWO_FACES} Give both faces this makeup: ${w}. ${OWN_FACES} Keep everything else exactly as it is.`;
         // MPI-1086 r34: a koi on the whole back landed on the back view only; a sleeve on "the left arm" was mirrored
         // on the back view (as with Accessories, r31) - a known partial. Name no limb here: r32's "arm or leg" sentence
         // ADDED sleeves to both arms.
@@ -409,6 +414,8 @@ export function characterSheetEditor(part, values = {}) {
         injectionParams.Input_Is_Mannequin = RAW_REF.has(values.change) || /^\W*yes\b/i.test(values.refIsMannequin || '');
         if (values.change === 'makeup') injectionParams.Input_Mannequin_Prompt = MAKEUP_MANNEQUIN;
     }
+    // MPI-1086 r47: Makeup edits the two faces only (`TWO_FACES`); an age leg edits the whole sheet.
+    if (part !== 'rebuild') injectionParams.Input_Face_Crop = part === 'change' && values.change === 'makeup';
     // MPI-1086 r37: Tattoos redraw the back figure from the edited front one, in the same Qwen graph.
     // r44: the sheet is stitched back together at the panel cuts the app measured (`sheetCuts`, "x1,x2"
     // in the sheet's pixels); 0 = the graph's own 25% / 50%, for a sheet with no clear gaps.

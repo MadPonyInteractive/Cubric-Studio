@@ -8,6 +8,8 @@
   "comfy_workflows/raw/flow_character_sheet_edit.json",
   "comfy_workflows/flow_character_sheet_edit.json",
   "js/data/flowsRegistry.js",
-  "docs/child-safety.md"
+  "docs/child-safety.md",
+  "comfy_workflows/raw/flow_character_sheet_edit_qwen.json",
+  "comfy_workflows/flow_character_sheet_edit_qwen.json"
  ]
 }

@@ -4,6 +4,20 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-16 (session "New character sheets 33") - LATEST. Fabio saw his spider run take the mannequin's pale skin.
+r46: a "skin line" in the prompt did nothing; the face crop itself fixes it. BUILT, uncommitted: localised Makeup in
+the Qwen graph (`Input_Face_Crop`, `patch_raw_face_crop.py`, raw + api), app strings "both faces" + the flag
+(characterSheetEditor.js), tests, playbook. r47 (validation.md): shipped graph = bench, 8/8 pass, npm test green.
+NEXT: Fabio's eye test in the app (Makeup, picture + words, man + woman), then commit by pathspec. Still open:
+Accessories + Tattoos-stitch eye tests, face tattoos (head-crop mannequin), Beard, close-out.
+BREAKER found in Fabio's eye test (child sheet + makeup picture -> "Refused: nudity..."): the gate read our own
+`Input_Mannequin_Prompt` ("no jewellery and no clothes") as user words, so EVERY Makeup-from-a-picture run was
+looked at (since 1cac8798a) and a child sheet refused. FIXED: childSafety.js SKIP_KEY skips `mannequin_prompt`, test
+in child-safety.test.cjs, docs/child-safety.md. NOT re-tested in the app yet. Open, Fabio's call (he wants Halloween /
+superhero makeup on kids to work): describer words like "nude lipstick" still trip UNCLOTHED ("nude") -> the look ->
+a child refused. Options: exempt "nude" as a makeup colour (nude lips/lipstick/eyeshadow/tone) or reword the
+refMakeup describer ask to name colours without "nude". My pick: the describer ask (no gate loosening).
+
 2026-10-16 (session "New character sheets 32") - LATEST. 1cac8798a + 5a17854c4 on origin, master CI green
 (38849888142). Fabio: Accessories NOT eye-tested yet (only Jewellery). New idea from Fabio: LOCALISED face edit for
 Makeup (SAM3 face -> `MpiMaskSquareBbox` -> crop, edit, stitch back) for speed; hair + beard out (long ones spill).

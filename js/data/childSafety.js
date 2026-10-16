@@ -371,8 +371,13 @@ export async function childSafetyGate(texts, ctx = {}, judge = null) {
 
 // ── What a generation sends ──────────────────────────────────────────────────────────────
 
-/** Param keys that never hold the prompt: negatives (they list what to AVOID), system prompts, weights, files. */
-const SKIP_KEY = /negative|system|seed|clip|lora|model|ckpt|unet|vae|file|path|url|mask|recipe|width|height|ratio/i;
+/**
+ * Param keys that never hold the prompt: negatives (they list what to AVOID), system prompts, weights, files, and
+ * the app's own fixed mannequin instruction (`Input_Mannequin_Prompt`): its "no jewellery and no clothes" read as
+ * the user asking for no clothes, so every Makeup-from-a-picture run was looked at and a child's sheet refused
+ * (MPI-1086, Fabio 2026-10-16). It never carries the user's words.
+ */
+const SKIP_KEY = /negative|system|seed|clip|lora|model|ckpt|unet|vae|file|path|url|mask|recipe|width|height|ratio|mannequin_prompt/i;
 const _isFile = (v) => /^[a-z]:[\\/]|^\/|^https?:|\.[a-z0-9]{2,5}$/i.test(v.trim());
 
 /** The words a generation config carries: its positive and every text param a Flow fills. */

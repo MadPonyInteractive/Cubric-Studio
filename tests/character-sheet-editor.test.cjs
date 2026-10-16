@@ -48,11 +48,11 @@ test('every change builds its bench template verbatim', async () => {
         + 'character seen from behind and the close-up portrait on the right all show it wherever it can be seen. '
         + "Keep the character's own face, hair, skin and clothes. Keep everything else exactly as it is.");
     // MPI-1086 r34: Makeup and Tattoos in words, on Qwen; her own face named, no limb named for tattoos.
+    // r47: Makeup edits the two faces only (the graph's face canvas), each face kept its own.
     assert.strictEqual(buildChangePrompt('makeup', 'dark gothic makeup with smoky eyes and black lipstick'),
-        'Give the character in image 1 this makeup: dark gothic makeup with smoky eyes and black lipstick. Put it on the '
-        + 'face of the character in image 1, who stays the same person: the same face shape, eyes, nose, lips, eyebrows, '
-        + 'skin tone and expression. The front view and the close-up portrait on the right both show the makeup. '
-        + 'Keep everything else exactly as it is.');
+        "Image 1 shows the same person's face twice. Give both faces this makeup: dark gothic makeup with smoky eyes and "
+        + "black lipstick. Keep each face's own shape, eyes, nose, lips, eyebrows, facial hair, skin tone and hair exactly "
+        + 'as they are; only the makeup changes. Keep everything else exactly as it is.');
     assert.strictEqual(buildChangePrompt('tattoos', 'a large blue and orange koi fish tattoo covering the whole back'),
         'Give the character in image 1 this tattoo: a large blue and orange koi fish tattoo covering the whole back. The '
         + 'front view, the character seen from behind and the close-up portrait on the right all show it wherever it can '
@@ -203,22 +203,27 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     // MPI-1086 r41/r42: Makeup with a picture = the graph's MANNEQUIN wearing only the makeup as image 2, the
     // describer's words naming it again, the character's own face named part by part (the raw picture put its
     // person's face on a man's sheet). The user's words LEAD (r42b: after the description "red lipstick" stayed black).
-    const OWN = " Keep the character's own face shape, eyes, nose, lips, eyebrows, facial hair, skin tone and hair "
-        + 'exactly as they are; only the makeup changes. The front view and the close-up portrait on the right both '
-        + 'show the makeup.';
-    const APPLY = 'Apply the makeup from image 2 onto the face of the character in image 1';
+    // r47: on the graph's face canvas, so "both faces".
+    const OWN = " Keep each face's own shape, eyes, nose, lips, eyebrows, facial hair, skin tone and hair exactly as they "
+        + 'are; only the makeup changes.';
+    const APPLY = "Image 1 shows the same person's face twice. Apply the makeup from image 2 onto both faces in image 1";
     const SPIDER = 'Black spiderweb face paint with orange eyeshadow, black eyeliner, false lashes, and black lipstick.';
     const SPIDER_W = 'Black spiderweb face paint with orange eyeshadow, black eyeliner, false lashes, and black lipstick';
     assert.strictEqual(buildChangePrompt('makeup', '', true, '', SPIDER), `${APPLY}: ${SPIDER_W}.${OWN}${KEEP}`);
     assert.strictEqual(buildChangePrompt('makeup', 'red lipstick.', true, '', SPIDER), `${APPLY}, changed like this: red `
-        + `lipstick. The makeup in image 2: ${SPIDER_W}. Make it red lipstick on every figure.${OWN}${KEEP}`);
+        + `lipstick. The makeup in image 2: ${SPIDER_W}. Make it red lipstick on both faces.${OWN}${KEEP}`);
     assert.strictEqual(buildChangePrompt('makeup', '', true), `${APPLY}.${OWN}${KEEP}`, 'no description: the mannequin alone');
     assert.strictEqual(buildChangePrompt('makeup', 'no lashes', true), `${APPLY}, changed like this: no lashes. Make it `
-        + `no lashes on every figure.${OWN}${KEEP}`);
+        + `no lashes on both faces.${OWN}${KEEP}`);
     assert.strictEqual(refuse(run('makeup', '')), null, 'the picture alone is enough');
     const mk = characterSheetEditor('change', { ...run('makeup', ''), refMakeup: SPIDER }).injectionParams;
     assert.strictEqual(mk.Input_Is_Mannequin, false, 'a makeup mannequin is made of the picture');
     assert.match(mk.Input_Mannequin_Prompt, /^Replace the head of the person with a plain bald mannequin head, and keep only the makeup/);
+    assert.strictEqual(mk.Input_Face_Crop, true, 'r47: Makeup edits the two faces only');
+    assert.strictEqual(characterSheetEditor('change', { change: 'makeup', words: 'red lipstick' }).injectionParams.Input_Face_Crop, true);
+    assert.strictEqual(characterSheetEditor('change', run('hair', '')).injectionParams.Input_Face_Crop, false, 'hair: the whole sheet');
+    assert.strictEqual(characterSheetEditor('age', { change: 'makeup', words: 'red lipstick', Input_Age: 30 }).injectionParams.Input_Face_Crop,
+        false, 'an age leg edits the whole sheet');
     assert.match(characterSheetEditor('change', { ...run('makeup', ''), refMakeup: SPIDER }).positive, /: Black spiderweb face paint/);
     assert.strictEqual(characterSheetEditor('change', { ...run('makeup', ''), refIsMannequin: 'Yes.' }).injectionParams.Input_Is_Mannequin, true,
         'a picture that is a mannequin already is not made into one again');
@@ -470,10 +475,35 @@ test('the Qwen graph\'s back pass is lazy and every reader of the edit gets the 
         const math = Object.values(g).find(n => n.class_type === 'MpiMath' && n.inputs.b?.[0] === id(input));
         assert.strictEqual(math.inputs.math_expression, `${half} * (b <= 0) + b * (b > 0)`, `${input}: 0 = the old cut`);
     }
-    assert.strictEqual(g[merged.inputs.false[0]]._meta.title, "back to the sheet's own size", 'off: the edit as before');
+    assert.strictEqual(g[merged.inputs.false[0]]._meta.title, 'the edit: the faces pasted back when Input_Face_Crop',
+        'off: the edit as before (r47: the sheet-sized edit, or the faces pasted back)');
     assert.strictEqual(g[id('Output_Image_2')].inputs.images[0], mid, 'the edit capture reads the merged picture');
     const enc = Object.values(g).find(n => n.class_type === 'TextEncodeQwenImage21' && n.inputs.prompt?.[0] === id('Input_Positive_2'));
     assert.ok(enc && !enc.inputs['images.image_2'], 'the back pass reads the front body only, no picture 2');
+});
+
+test('the Qwen graph edits the two faces only when Input_Face_Crop, lazily (MPI-1086 r47)', () => {
+    const g = require(path.join(ROOT, 'comfy_workflows', 'flow_character_sheet_edit_qwen.json'));
+    const id = t => Object.keys(g).find(k => g[k]._meta?.title === t);
+    const on = id('Input_Face_Crop');
+    assert.strictEqual(g[on].inputs.boolean, false, 'ships off: every other change edits the whole sheet');
+    const pic1 = g[id('picture 1: the face canvas when Input_Face_Crop, else the sheet')];
+    assert.deepStrictEqual([pic1.class_type, pic1.inputs.boolean, pic1.inputs.false], ['MpiIfElse', [on, 0], [id('Input_Image'), 0]]);
+    assert.strictEqual(g[pic1.inputs.true[0]].class_type, 'ImageStitch', 'on: the front face | the close-up face');
+    const encs = Object.values(g).filter(n => n.class_type === 'TextEncodeQwenImage21' && n.inputs.prompt?.[0] === id('Input_Positive'));
+    assert.strictEqual(encs.length, 2, 'the edit, with and without the mannequin');
+    for (const e of encs) assert.deepStrictEqual(e.inputs['images.image_1'], [id(pic1._meta.title), 0], 'both encode picture 1');
+    const edit = g[id('the edit: the faces pasted back when Input_Face_Crop')];
+    assert.deepStrictEqual([edit.class_type, edit.inputs.boolean, g[edit.inputs.false[0]]._meta.title],
+        ['MpiIfElse', [on, 0], "back to the sheet's own size"], 'off: the sheet-sized edit, as before');
+    const close = g[edit.inputs.true[0]];
+    assert.strictEqual(close.class_type, 'ImageCompositeMasked', 'on: the close-up face pasted ...');
+    const front = g[close.inputs.destination[0]];
+    assert.deepStrictEqual([front.class_type, front.inputs.destination], ['ImageCompositeMasked', [id('Input_Image'), 0]],
+        '... over the front face pasted onto the untouched sheet');
+    for (const p of [front, close]) assert.strictEqual(g[p.inputs.mask[0]].class_type, 'ImageToMask', 'through the feathered face mask');
+    const readers = Object.values(g).filter(n => Object.values(n.inputs).some(v => Array.isArray(v) && v[0] === id("back to the sheet's own size")));
+    assert.deepStrictEqual(readers, [edit], 'nothing else reads the sheet-sized edit');
 });
 
 test('every op the Flow dispatches takes the sheet on image1', async () => {
