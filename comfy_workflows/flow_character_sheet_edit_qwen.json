@@ -409,9 +409,12 @@
   },
   "147": {
     "inputs": {
-      "text": "Replace the person with a plain white mannequin seen in a three-quarter view, and keep the hairstyle exactly as it is: the same length, shape and colour. No jewellery and no clothes, on a plain grey background.",
       "clip": [
         "140",
+        0
+      ],
+      "text": [
+        "211",
         0
       ]
     },
@@ -1444,6 +1447,15 @@
     "class_type": "MpiIfElse",
     "_meta": {
       "title": "the edit: with the redrawn back figure when Input_Back_Pass"
+    }
+  },
+  "211": {
+    "inputs": {
+      "string": "Replace the person with a plain white mannequin seen in a three-quarter view, and keep the hairstyle exactly as it is: the same length, shape and colour. No jewellery and no clothes, on a plain grey background."
+    },
+    "class_type": "MpiText",
+    "_meta": {
+      "title": "Input_Mannequin_Prompt"
     }
   }
 }

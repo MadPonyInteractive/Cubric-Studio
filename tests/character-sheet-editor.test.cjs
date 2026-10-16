@@ -200,17 +200,30 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     assert.strictEqual(refuse(run('accessories', '')), 'Say what the Reference picture shows, for example "the gold hoop earrings".');
     assert.strictEqual(refuse(run('accessories', 'the bandana')), null);
     assert.strictEqual(refuse({ change: 'accessories', words: '' }), 'Say what to change, or add a Reference picture.');
-    // MPI-1086 r33/r34: Makeup with a picture = the makeup copied exactly onto her OWN face, named part by part; the
-    // user's words get their own sentence. Words optional, no mannequin.
-    const MAKEUP = 'Give the character in image 1 the makeup from image 2, copied exactly: the same colours, shapes and '
-        + 'patterns of its eyeshadow, eyeliner, lashes, blush, lipstick and any face paint. Put it on the face of the '
-        + 'character in image 1, who stays the same person: the same face shape, eyes, nose, lips, eyebrows, skin tone and '
-        + 'expression. Take nothing else from image 2: no piercings, jewellery, moles or hair. The front view and the '
-        + 'close-up portrait on the right both show the makeup.';
-    assert.strictEqual(buildChangePrompt('makeup', '', true), MAKEUP + KEEP);
-    assert.strictEqual(buildChangePrompt('makeup', 'red lipstick.', true), MAKEUP + ' Change only this about the makeup: red lipstick.' + KEEP);
+    // MPI-1086 r41/r42: Makeup with a picture = the graph's MANNEQUIN wearing only the makeup as image 2, the
+    // describer's words naming it again, the character's own face named part by part (the raw picture put its
+    // person's face on a man's sheet). The user's words LEAD (r42b: after the description "red lipstick" stayed black).
+    const OWN = " Keep the character's own face shape, eyes, nose, lips, eyebrows, facial hair, skin tone and hair "
+        + 'exactly as they are; only the makeup changes. The front view and the close-up portrait on the right both '
+        + 'show the makeup.';
+    const APPLY = 'Apply the makeup from image 2 onto the face of the character in image 1';
+    const SPIDER = 'Black spiderweb face paint with orange eyeshadow, black eyeliner, false lashes, and black lipstick.';
+    const SPIDER_W = 'Black spiderweb face paint with orange eyeshadow, black eyeliner, false lashes, and black lipstick';
+    assert.strictEqual(buildChangePrompt('makeup', '', true, '', SPIDER), `${APPLY}: ${SPIDER_W}.${OWN}${KEEP}`);
+    assert.strictEqual(buildChangePrompt('makeup', 'red lipstick.', true, '', SPIDER), `${APPLY}, changed like this: red `
+        + `lipstick. The makeup in image 2: ${SPIDER_W}. Make it red lipstick on every figure.${OWN}${KEEP}`);
+    assert.strictEqual(buildChangePrompt('makeup', '', true), `${APPLY}.${OWN}${KEEP}`, 'no description: the mannequin alone');
+    assert.strictEqual(buildChangePrompt('makeup', 'no lashes', true), `${APPLY}, changed like this: no lashes. Make it `
+        + `no lashes on every figure.${OWN}${KEEP}`);
     assert.strictEqual(refuse(run('makeup', '')), null, 'the picture alone is enough');
-    assert.strictEqual(characterSheetEditor('change', run('makeup', '')).injectionParams.Input_Is_Mannequin, true);
+    const mk = characterSheetEditor('change', { ...run('makeup', ''), refMakeup: SPIDER }).injectionParams;
+    assert.strictEqual(mk.Input_Is_Mannequin, false, 'a makeup mannequin is made of the picture');
+    assert.match(mk.Input_Mannequin_Prompt, /^Replace the head of the person with a plain bald mannequin head, and keep only the makeup/);
+    assert.match(characterSheetEditor('change', { ...run('makeup', ''), refMakeup: SPIDER }).positive, /: Black spiderweb face paint/);
+    assert.strictEqual(characterSheetEditor('change', { ...run('makeup', ''), refIsMannequin: 'Yes.' }).injectionParams.Input_Is_Mannequin, true,
+        'a picture that is a mannequin already is not made into one again');
+    assert.ok(!('Input_Mannequin_Prompt' in characterSheetEditor('change', run('hair', '')).injectionParams),
+        'hair keeps the graph\'s own (hairstyle) mannequin prompt');
     assert.strictEqual(name(run('makeup', ''), 'Ava'), 'Ava - makeup from a reference');
     // MPI-1086 r34/r35: a tattoo picture ALONE inked limbs it never showed (4 of 6): words saying where are required.
     assert.strictEqual(refuse(run('tattoos', '')), 'Say what the Reference picture shows, for example "the neck and chest tattoos".');
@@ -417,8 +430,11 @@ test('the Qwen graph makes a mannequin of the Reference picture, only when one i
     const [photo] = by('Input_Image_2');
     const [want] = by('Input_Reference');
     assert.strictEqual(g[photo].inputs.block_if_empty, false, 'Body shape runs with no picture');
-    const [, text] = Object.entries(g).find(([, n]) => n.class_type === 'CLIPTextEncode' && /mannequin/.test(n.inputs.text));
-    assert.match(text.inputs.text, /^Replace the person with a plain white mannequin seen in a three-quarter view/);
+    // Its prompt is an input (MPI-1086 r42: Makeup asks for its own mannequin); the default is the hairstyle one.
+    const [mp] = by('Input_Mannequin_Prompt');
+    assert.match(g[mp].inputs.string, /^Replace the person with a plain white mannequin seen in a three-quarter view/);
+    assert.ok(Object.values(g).some(n => n.class_type === 'CLIPTextEncode' && n.inputs.text?.[0] === mp),
+        'the Klein mannequin encodes Input_Mannequin_Prompt');
     // KSampler's three inputs each come through a switch on "picture given AND Input_Reference".
     const [, ks] = Object.entries(g).find(([, n]) => n.class_type === 'KSampler');
     for (const name of ['positive', 'negative', 'latent_image']) {
@@ -485,7 +501,8 @@ test('the picture checks run only when they can matter, and before any other que
     const fe = await esm('js/services/flowEnhance.js');
     const withRef = async (change) => fe.describeAsks(await editor(), await values(change, '', -1), [SHEET, REF2]).map(d => d.to);
     assert.deepStrictEqual(await withRef('hair'), ['refHair', 'refIsMannequin']);
-    for (const c of ['accessories', 'makeup', 'tattoos']) assert.deepStrictEqual(await withRef(c), [], c);
+    assert.deepStrictEqual(await withRef('makeup'), ['refMakeup', 'refIsMannequin'], 'MPI-1086 r42: makeup is put into words too');
+    for (const c of ['accessories', 'tattoos']) assert.deepStrictEqual(await withRef(c), [], c);
     assert.deepStrictEqual(await asked('hair', '', -1), []);
 });
 

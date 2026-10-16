@@ -4,6 +4,24 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-16 later (session "New character sheets 31") - LATEST. BUILT, uncommitted (claim ada2b38e-mpi1086): Makeup
+from a picture goes the Hairstyle way - in-graph Klein MAKEUP mannequin (`Input_Mannequin_Prompt`, new graph input)
++ `refMakeup` describer words + user's words leading (r41-r43 in validation.md: own face 6/6 man + woman, words 4/4,
+shipped graph = bench pixel for pixel). npm test 3332/0, eslint clean, playbook at 200 lines. NEXT: Fabio's eye
+test in the app (reload) on Makeup with a picture, man + woman, with and without words; then commit by pathspec.
+Still open: the back-pass GHOST on "from Images" sheets (Fabio's stitch, cuts in the sheet's own gaps; the
+child-safety checks share the quarter assumption), Tattoos face leak (face tattoos via a mannequin too?), Beard,
+close-out.
+
+2026-10-16 (session "New character sheets 31") - LATEST. Eye test: (1) Tattoos back pass on a "from Images" sheet
+leaves a GHOST arm: the pass assumes 25|25|50 panels, those sheets do not (4 of 5). Agreed fix = Fabio's stitch,
+cuts in the sheet's own gaps measured app-side - NOT built. (2) Makeup AND Tattoos from a picture leak the
+reference's face onto a man (flowCSE_051/053). r39/r39b (validation.md): a firmer prompt does nothing; partial
+denoise from a REAL VAEEncode of the sheet (the graph's latent_image is the text encoder's latent, not the sheet)
+keeps his face - 0.85 = his face, subtle makeup right, bold paint partial; 0.90+ = full paint, face drifts back.
+WAITING on Fabio: which denoise (or a strength choice). Then build: VAEEncode -> KSampler + Input_Denoise, builder
+per change; bench Tattoos at < 1.0; layout stitch; Beard; close-out.
+
 2026-10-16 (session "New character sheets 30") - LATEST. Fabio's eye test 1 (still testing, results come to the next
 session): Makeup FROM A PICTURE on a MALE sheet (card flowCSFI_011 -> result flowCSE_051; reference = a white-haired
 woman with spider-web face paint, orange eyeshadow, black lips) carried the REFERENCE'S TRAITS onto his face (more

@@ -1,8 +1,8 @@
 {
   "id": "81735925-ecd3-5793-ace0-0b760d62a4dd",
   "revision": 0,
-  "last_node_id": 210,
-  "last_link_id": 156,
+  "last_node_id": 211,
+  "last_link_id": 157,
   "nodes": [
     {
       "id": 1,
@@ -1998,7 +1998,7 @@
         {
           "name": "text",
           "type": "STRING",
-          "link": null,
+          "link": 157,
           "widget": {
             "name": "text"
           }
@@ -5425,6 +5425,54 @@
         true
       ],
       "title": "the edit: with the redrawn back figure when Input_Back_Pass"
+    },
+    {
+      "id": 211,
+      "type": "MpiText",
+      "pos": [
+        360,
+        1360
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 511,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "Text",
+          "name": "Text",
+          "type": "STRING",
+          "links": [
+            157
+          ]
+        }
+      ],
+      "title": "Input_Mannequin_Prompt",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "3ec03efb49803b3d5bc556b4f2d0f24fc374bb72",
+        "Node name for S&R": "MpiText"
+      },
+      "widgets_values": [
+        "Replace the person with a plain white mannequin seen in a three-quarter view, and keep the hairstyle exactly as it is: the same length, shape and colour. No jewellery and no clothes, on a plain grey background."
+      ],
+      "widgets_values_named": {
+        "string": "Replace the person with a plain white mannequin seen in a three-quarter view, and keep the hairstyle exactly as it is: the same length, shape and colour. No jewellery and no clothes, on a plain grey background."
+      }
     }
   ],
   "links": [
@@ -6619,6 +6667,14 @@
       195,
       1,
       "*"
+    ],
+    [
+      157,
+      211,
+      0,
+      147,
+      1,
+      "STRING"
     ]
   ],
   "groups": [],

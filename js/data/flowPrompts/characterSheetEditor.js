@@ -68,7 +68,17 @@ const REF_THING = {
 const REF_NEEDS_WORDS = { accessories: '"the gold hoop earrings"', tattoos: '"the neck and chest tattoos"' };
 
 /** Changes whose Reference picture goes into the Qwen graph raw, never made a mannequin first (`Input_Is_Mannequin`). */
-const RAW_REF = new Set(['accessories', 'makeup', 'tattoos']);
+const RAW_REF = new Set(['accessories', 'tattoos']);
+
+/**
+ * The in-graph mannequin for a Makeup picture (`Input_Mannequin_Prompt`; the graph's default is the hairstyle one).
+ * The raw picture put its person's face on a man's sheet (Fabio's eye test, flowCSE_051/053: a firmer own-face line,
+ * naming him "the man" and a partial redraw all failed, MPI-1086 r39/r40); a bald head wearing only the makeup, plus
+ * the makeup in words, kept his face and the exact design 6/6 (r41/r42, Cosmo's own recipe, edit_007).
+ */
+const MAKEUP_MANNEQUIN = 'Replace the head of the person with a plain bald mannequin head, and keep only the makeup, '
+    + 'exactly as it is: the same colours, shapes and patterns of the face paint, eyeshadow, eyeliner and lipstick. '
+    + 'No hair, no jewellery and no clothes, on a plain grey background.';
 
 /** Makeup goes on the character's OWN face: without this the picture's face came with it (MPI-1086 r31, 5 of 7). */
 const OWN_FACE = 'Put it on the face of the character in image 1, who stays the same person: the same face shape, eyes, '
@@ -107,9 +117,10 @@ function _usesRef(values) {
  * @param {string} words  - what the user wrote; optional with a reference
  * @param {boolean} [ref] - a Reference picture is given (used by the changes in REF_THING)
  * @param {string} [refHair] - the describer's words for the reference's hairstyle (`describe` → `refHair`)
+ * @param {string} [refMakeup] - the describer's words for the reference's makeup (`describe` → `refMakeup`)
  * @returns {?string}
  */
-export function buildChangePrompt(change, words, ref = false, refHair = '') {
+export function buildChangePrompt(change, words, ref = false, refHair = '', refMakeup = '') {
     const w = _words(words);
     // MPI-1086 (tasks/MPI-1086/validation.md, rounds 16-24): a hairstyle FROM A PICTURE runs on Qwen-Image 2.1 (the
     // registry routes it), never on Klein: Klein's face lock pasted the old face onto a head it redrew (double jaw,
@@ -151,15 +162,18 @@ export function buildChangePrompt(change, words, ref = false, refHair = '') {
             : 'Dress the character in only the outfit from the reference picture. Take off everything else the character '
                 + `wears now, trousers, skirt and top included. ${REF_ALL} Keep everything else exactly as it is.`;
     }
-    // MPI-1086 r33/r34, on Qwen with the raw picture: the makeup "copied exactly", her own face named part by part and
-    // nothing else taken (makeup 7/7, own face 7/7; the Accessories string let the picture's face leak 5/7). The user's
-    // words get their own sentence after it ("red lipstick", "blue eyeshadow": 2/2, the rest of the picture kept).
+    // MPI-1086 r41/r42, on Qwen: image 2 is the graph's MANNEQUIN wearing only the makeup (`MAKEUP_MANNEQUIN`), and
+    // the describer's words name the makeup again: his own face and the exact design 6/6 on a man's sheet, where the
+    // raw picture (r33's "copied exactly" string) put the picture's face on him. The user's words LEAD, as with hair
+    // (r42b): "no lashes" and "red lipstick" first landed 4/4; after the description "red lipstick" stayed black.
     if (ref && change === 'makeup') {
-        return 'Give the character in image 1 the makeup from image 2, copied exactly: the same colours, shapes and '
-            + 'patterns of its eyeshadow, eyeliner, lashes, blush, lipstick and any face paint. ' + OWN_FACE
-            + ' Take nothing else from image 2: no piercings, jewellery, moles or hair. The front view and the close-up '
-            + 'portrait on the right both show the makeup. ' + (w ? `Change only this about the makeup: ${w}. ` : '')
-            + 'Keep everything else exactly as it is.';
+        const d = _words(refMakeup);
+        return 'Apply the makeup from image 2 onto the face of the character in image 1'
+            + (w ? `, changed like this: ${w}. ${d ? `The makeup in image 2: ${d}. ` : ''}Make it ${w} on every figure. `
+                : `${d ? `: ${d}` : ''}. `)
+            + "Keep the character's own face shape, eyes, nose, lips, eyebrows, facial hair, skin tone and hair exactly as "
+            + 'they are; only the makeup changes. The front view and the close-up portrait on the right both show the '
+            + 'makeup. Keep everything else exactly as it is.';
     }
     if (!w) return null;
     // MPI-1086 r29: Accessories runs on Qwen-Image 2.1 (the registry routes it), the raw picture straight in as image 2
@@ -360,7 +374,7 @@ function _part(part, values) {
         const caption = values.change === 'clothes' ? `Wearing ${_words(values.words)}` : values.sheetClothes;
         return buildRebuildPrompt(age, caption);
     }
-    return buildChangePrompt(values.change, values.words, _usesRef(values), values.refHair) || '';
+    return buildChangePrompt(values.change, values.words, _usesRef(values), values.refHair, values.refMakeup) || '';
 }
 
 /**
@@ -388,10 +402,12 @@ export function characterSheetEditor(part, values = {}) {
     // the chained Headless leg does it after the age legs.
     if (part !== 'rebuild') injectionParams.Input_Headless = part === 'change' && _age(values.Input_Age) < 0;
     // The Reference picture is a mannequin already (the describer said so): the Qwen graph skips
-    // making one of it. The Klein graph has no such node and ignores it. Accessories, Makeup and Tattoos
-    // never want one: the raw picture goes in as image 2 (MPI-1086 r29, r31-r35).
+    // making one of it. The Klein graph has no such node and ignores it. Accessories and Tattoos
+    // never want one: the raw picture goes in as image 2 (MPI-1086 r29, r31-r35). Makeup gets its
+    // own mannequin, the head wearing only the makeup (r41/r42).
     if (part === 'change') {
         injectionParams.Input_Is_Mannequin = RAW_REF.has(values.change) || /^\W*yes\b/i.test(values.refIsMannequin || '');
+        if (values.change === 'makeup') injectionParams.Input_Mannequin_Prompt = MAKEUP_MANNEQUIN;
     }
     // MPI-1086 r37: Tattoos redraw the back figure from the edited front one, in the same Qwen graph.
     if (part !== 'rebuild') {

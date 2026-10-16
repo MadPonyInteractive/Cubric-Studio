@@ -1830,7 +1830,12 @@ export const FLOWS = [
             // A mannequin needs no mannequin made of it: a "yes" sets the Qwen graph's Input_Is_Mannequin,
             // whatever the picture's source (the gallery, the web, a later Element). Accessories never makes one
             // (the builder sets it: the raw picture is what works, MPI-1086 r29), so it is not asked there.
-            { to: 'refIsMannequin', media: 'image2', when: { field: 'change', is: 'hair' },
+            // MPI-1086 r42: a Makeup picture is described too and made a mannequin wearing only the makeup in the
+            // graph: the raw picture put its person's face on a man's sheet; the mannequin + these words kept his
+            // face and the design 6/6 (the describer adds "false lashes" and "no face paint" harmlessly).
+            { to: 'refMakeup', media: 'image2', when: { field: 'change', is: 'makeup' },
+                ask: 'Describe only the makeup on the face in this picture: the eyeshadow, eyeliner, lashes, brows, blush, contour, lipstick and any face paint, naming each colour, shape and pattern and where it is on the face. Answer with one phrase, and nothing else.' },
+            { to: 'refIsMannequin', media: 'image2', when: { field: 'change', in: ['hair', 'makeup'] },
                 ask: 'Is this a picture of a mannequin, a wig head or a bare dummy bust with no real face, rather than a real person? Answer yes or no.' },
         ],
     },

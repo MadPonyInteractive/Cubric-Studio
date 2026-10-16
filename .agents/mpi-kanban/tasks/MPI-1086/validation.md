@@ -686,3 +686,98 @@ Builder `buildBackPassPrompt` (Tattoos only; words into the pass, a picture not)
 - **Makeup from a picture, MALE sheet: FAIL** - flowCSFI_011 -> flowCSE_051, reference a white-haired woman with
   spider-web face paint: the paint, orange eyeshadow and black lips landed, but the face took the reference's traits
   (feminised, lashes). Every makeup bench (r31-r35) used the woman's sheet flowCSE_044: cross-gender never benched.
+- **Tattoos from a picture, MALE sheet: back-pass GHOST** - flowCSFI_011 + a woman's neck/chest tattoo picture ->
+  flowCSE_052: the tattoo landed (front, back of neck, close-up), but a sliver of the ORIGINAL back figure's arm shows
+  between the back panel and the close-up. Cause (measured, column occupancy): the back pass assumes the editor's own
+  25 | 25 | 50 layout (crop the left 25%, paste at x = width // 4, 25% wide); Character Sheet from Images (Qwen 2.1)
+  places figures where it likes - flowCSFI_011 = front 7-24%, back 33-51%, close-up 60%+, so the old back arm past 50%
+  survives the paste. Of CSFI 007-011 the quarter lines cut a figure on 007, 009, 010 (the FRONT arm crosses 25%) and
+  011; the woman's flowCSE_044 fits the quarters, which is why r37/r38 never saw it. Fabio's stitch idea (rebuild
+  front | new back | close-up from pieces) cuts at the same fixed lines, so alone it keeps the sliver: the cuts must
+  land in the sheet's own empty gaps.
+- **Spider-web picture through TATTOOS, MALE sheet: same FAIL** - flowCSFI_011 -> flowCSE_053: paint + orange
+  shadow + black lips landed, face feminised again (lashes, softer jaw, stubble gone). So the leak is the reference
+  FACE, not the Makeup string: both options redraw the face at denoise 1.0. Fabio: makeup reshapes a face by colour,
+  a mannequin will not help. NEXT r39: denoise 0.75 / 0.85 from the sheet's own latent vs a gender-neutral own-face
+  line ("keeps their own face shape, eyes, eyelashes, eyebrows, lips and facial hair; only the paint from image 2").
+
+## Round 39 (`qh39.py`, `h39_*`): face leak on the MALE sheet (flowCSFI_011), app params (Headless on, no back pass)
+
+Refs m_spider (imported_024, flowCSE_051's seed) + m_glam (r31's worst leak). Sheet: scratchpad c39_face.jpg.
+
+- **base (shipped mA2) reproduces the leak 2/2**: spider = slimmer face, stubble mostly gone, black lips; glam = full
+  drag glam: heavy contour, lashes, fuller lips (beard kept).
+- **F (firm own-face line, lashes out of the paint list) = no better 2/2**: same faces as base. Words do not win this.
+- **d85 / d75 / Fd80 = NOISE 6/6** (birds and branches): the KSampler's `latent_image` is TextEncodeQwenImage21's
+  latent output, which is NOT an encoding of the sheet, so a partial denoise starts from garbage. Re-run as r39b with a
+  real VAEEncode of the sheet.
+- **r39b (`qh39b.py`, VAEEncode of the sheet -> main KSampler)**, sheet scratchpad c39b_face.jpg: partial denoise
+  KEEPS HIS FACE 6/6 (jaw, nose, stubble, lip shape) - the leak is gone. Cost: the paint weakens with denoise.
+  e85: glam right (wing liner, contour, nude lip, still him); spider = orange shadow + black lips + only a little web
+  on the forehead/eye. e75: glam faint, spider almost gone. Fe80 ~ between. Next: e90 / e95 for the full spider web.
+- **e90 / e95** (scratchpad c39c_face.jpg, c39c_sheet.jpg): spider web FULL at both (white base, black lips, orange
+  shadow), but the face starts to drift back toward the reference (stubble hidden under the white base, slimmer at
+  0.95); glam at 0.90/0.95 = fuller lips + lashes again, close to base. Layout and the front figure held at every
+  value. **Denoise is a dial between paint strength and his own face; no one value wins both pictures.** Subtle
+  makeup is right at 0.85; a bold full-face paint needs 0.90+. Fabio's call (look and feel): fixed 0.85, fixed 0.90,
+  or a strength choice in the option. Shipping it = a VAEEncode of the sheet into the main KSampler + an
+  `Input_Denoise` the builder sets (1.0 for every other change). Tattoos at < 1.0 not benched yet.
+
+## Round 40 (`qh40.py`, `h40_*`): prompt approaches on the MALE sheet (Fabio: "have you tried different prompts?")
+
+Each at 1.0 and at 0.90 (encoded sheet). Sheet: scratchpad c40_face.jpg.
+
+- **W = words only, NO picture** (qh34.mW + qh32.DESC, the hand-written describer answer): **HIS FACE KEPT 4/4**, even
+  at full redraw - jaw, stubble, brows, lips. Spider = bold full-face web, orange shadow, black lips, but a CLASSIC
+  web, not the reference's dripping-strand design; glam = wing liner, contour, nude lips, still a man. The picture's
+  face is the whole leak: with no face in the input there is none to copy.
+- **M = mA2 naming him "the man"**: leaks 4/4 like base (glam M100 = full drag face). Naming the gender does nothing.
+- So two working routes: (a) picture -> describer -> words, the Hair route (`refHair`): face safe at any strength,
+  design approximated; (b) picture at partial redraw (r39b): exact design, face vs strength trade-off. The real
+  describer's makeup answer not benched yet (DESC was hand-written).
+- **Cosmo's result (Fabio, edit_007): EXACT spider design + HIS face** (stubble, jaw). Chain from the cards + app.log
+  02:38-02:41: Fabio's Qwen 2.1 edit of imported_024 "Replace the head of the woman with a mannequin and Keep only the
+  makeup" -> edit_005 (bald mannequin, makeup kept; edit_006 = "male mannequin" variant); Cosmo described edit_005 and
+  the man's photo imported_009, then Klein 9B Edit (4 steps, 30 s): image 1 = the man, image 2 = the mannequin, prompt =
+  the makeup in detailed words + "Keep his hair, beard, face shape, earring and pose exactly as they are; only the
+  makeup changes." A single portrait, not a sheet. Bench r41 = that recipe on the editor's Qwen graph.
+
+## Round 41 (`qh41.py`, `h41_*`): Cosmo's recipe on the editor's Qwen graph, MALE sheet, denoise 1.0
+
+In-graph Klein mannequin with a MAKEUP prompt (`qh41.MANN`, node 147 overridden; Input_Is_Mannequin false). Sheets:
+scratchpad c41_peek.jpg, c41_face.jpg.
+
+- **The makeup mannequin is faithful 2/2**: bald head, spider web / glam wing + bronze lips copied exactly.
+- **KW = mannequin + makeup in words (`qh41.mK` + DESC): HIS FACE + the design 2/2** (spider: exact dripping-strand
+  web, stubble and jaw kept = Cosmo's edit_007; glam: wing liner, contour, still him). **The winner.**
+- K = mannequin + shipped mA2: glam right and his face; spider design right but the face slims, stubble fades.
+- FQ / FQW = Fabio's Qwen mannequin edit_005 (ready mannequin): FQ slims like K; FQW close to KW.
+- So the mannequin removes most of the leak (glam 2/2), and the words hold the face on bold full-face paint. Fabio
+  2026-10-16: "These work. Same approach as for the haircuts, creating mannequins for the makeups." -> BUILD.
+
+## Round 42 (`qh42.py`, `h42_*`): r41's KW with the REAL describer (image_descriptor, Qwen3-VL 4B, `ASKM` on the raw picture)
+
+Answers (`h42_describe.json`): spider "Black spiderweb face paint with orange eyeshadow, black eyeliner, false lashes,
+and black lipstick"; glam/goth/glitter all name "voluminous false lashes" and add "no face paint" / "no contour".
+Sheet: scratchpad c42_face.jpg.
+
+- **Own face 6/6.** MALE: spider (exact dripping web, stubble), glam (wing + contour), goth (smoky + purple lips),
+  glitter (silver lids + black lips) - all still him. WOMAN (flowCSE_044, regression): glam passes with her smile;
+  spider keeps her face but CLOSES her smile under the black lips (expression changed, partial).
+- Mannequins faithful 6/6 (goth's came out frontal; glitter's lips a dark red where the describer said black, the edit
+  followed the words: black).
+- The describer's "no face paint" / "no contour" did no harm. "False lashes" did not feminise him (light lashes).
+- **r42b (`qh42b.py`): the user's words on top**, man's sheet, spider + glam. Words LEAD ("..., changed like this:
+  <w>. The makeup in image 2: <d>. Make it <w> on every figure."): "red lipstick" red 2/2, "no lashes" lashes gone /
+  fewer 2/2. Words AFTER the description: red 1/2 (spider stayed black), lashes kept. His face 8/8. Ship LEAD (= hair).
+- BUILT: `patch_raw_mannequin_prompt.py` (node 147's text <- MpiText `Input_Mannequin_Prompt`, default = the hair
+  prompt; one-file convert, 93 nodes, only 147 + 211 changed; injection rules OK); builder `MAKEUP_MANNEQUIN`, makeup
+  out of `RAW_REF`, `buildChangePrompt(..., refMakeup)` = qh41.mK / qh42b.lead byte for byte 12/12; registry describe
+  `refMakeup` (ASKM) + `refIsMannequin` for makeup too; tests + playbook. character-sheet-editor tests 21/21, npm test
+  3332 / 0 fail, eslint clean.
+- **r43 (`qh43.py`): the SHIPPED graph** with the builder's injection (Input_Mannequin_Prompt, Input_Is_Mannequin
+  false, the r42 words) = r42's h42_M_m_spider PIXEL FOR PIXEL: mannequin, edit and headless max diff 0.
+- Noticed (same layout assumption as the back-pass ghost): the child-safety CLOTHES checks read the sheet at fixed
+  quarters too (`region.x` 0 / 0.25, width 0.25): on a "from Images" sheet the back figure spans 33-51%.
+- Layout fix agreed in principle (Fabio's stitch): rebuild the sheet from pieces (front | new back | close-up), the
+  pieces cut in the sheet's own gaps, measured app-side before dispatch.
