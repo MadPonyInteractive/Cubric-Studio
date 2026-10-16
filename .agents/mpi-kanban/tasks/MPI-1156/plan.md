@@ -107,7 +107,11 @@ child photo in a swimsuit).
 
 2026-10-16 (session "New character sheets 37"): Fabio's in-browser agent notes assessed (no change: face-age models are
 non-commercial / fail on drawn people, a person detector that SKIPS a look fails open; one real gap logged in the doc:
-outputs are never looked at). docs/child-safety.md rewritten to the shipped design (191 lines). NEXT: Fabio's eye test.
+outputs are never looked at). docs/child-safety.md rewritten to the shipped design (191 lines). Post-run output check
+rejected by Fabio (cost on loops; desktop app) and written into the doc. Live check of the real gate in an engine-less
+isolated instance: 9/9 as expected, kept answers reused (validation.md). Fabio's own app was started BEFORE the gate
+commit, so his eye test needs a restart. NEXT: Fabio's eye test on a restarted app, then close-out. The CSE "undress an
+adult" gap he found is a NEW card (handoff 96097c6f), not this one.
 
 ## Completed
 
