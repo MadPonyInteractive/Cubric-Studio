@@ -25,5 +25,10 @@ export const APP_CONFIG = {
     dev_mode: BUILD_HASH === 'dev' && globalThis.process?.env?.CUBRIC_DEV_MODE !== 'off',
     // Restores the last-visited page on browser refresh (dev convenience).
     // Manual dev toggle — never ships meaningfully (only acts in dev_mode UI).
-    test_styles: false
+    test_styles: false,
+    // Speed / stall diagnostics (MPI-1137, MPI-1142), off by default: the [slow-load],
+    // [held-load] and [health] lines in app.log, the server's held-request list, and the
+    // 4-minute Chromium net log (source runs). Flip to true here, or launch any build with
+    // CUBRIC_SPEED_DIAG=1. main.js reads this literal and passes it on as that env var.
+    speed_diagnostics: false || globalThis.process?.env?.CUBRIC_SPEED_DIAG === '1',
 };

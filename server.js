@@ -40,7 +40,8 @@ const port = Number(process.env.CUBRIC_PORT) || 3000;
 // First, so a refused request is never parsed or served (MPI-921).
 app.use(localOnly(port));
 // Before every route and static file, so a slow-load line can name what held the sockets (MPI-1142).
-app.use(require('./routes/heldRequests').trackHeldRequests);
+// Speed diagnostics only: main.js sets CUBRIC_SPEED_DIAG from dev_configs/app_config.js.
+if (process.env.CUBRIC_SPEED_DIAG === '1') app.use(require('./routes/heldRequests').trackHeldRequests);
 // A video or sound always loads by range request. Chromium's disk cache handles overlapping
 // ranges of one file badly (a mascot clip failed with ERR_CACHE_OPERATION_NOT_SUPPORTED,
 // MPI-1142; MPI-1120's ERR_CACHE_READ_FAILURE before it), and for a file on this machine it

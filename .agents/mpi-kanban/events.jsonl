@@ -6212,3 +6212,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1142", "at": "2026-10-16T09:25:03+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio live-confirmed: no stall while a model installs on a Pod; CI green on 5f140b4f0; evidence in validation.md"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1156", "at": "2026-10-16T09:26:41+01:00", "actor": "New character sheets 34", "column": "todo", "title": "Child-safety gate reads only typed words; picture and clip verdicts cached per file"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1156", "at": "2026-10-16T09:28:23+01:00", "actor": "New character sheets 34", "from": "todo", "to": "doing", "reason": "Fabio: go, Phase 1"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1142", "at": "2026-10-16T09:35:09+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Reopened: put the speed/stall diagnostics behind one flag (Fabio)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1142", "at": "2026-10-16T09:35:25+01:00", "actor": "claude", "fields": {"status": "active"}}

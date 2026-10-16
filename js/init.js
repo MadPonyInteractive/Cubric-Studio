@@ -7,6 +7,7 @@ import { checkForUpdate } from './services/updateChecker.js';
 import { restoreUiZoom } from './utils/uiZoom.js';
 import { installAudioOutput } from './utils/audioOutput.js';
 import { installErrorBridge, installSlowLoadLog, installHealthLog } from './services/clientLogger.js';
+import { APP_CONFIG } from '../dev_configs/app_config.js';
 
 // MPI-374: re-apply the stored UI size before anything renders. Deliberately at
 // module top level, not inside init() — an await first would let the page paint
@@ -16,10 +17,13 @@ restoreUiZoom();
 // MPI-899: top level, like the zoom above, so an uncaught renderer error reaches
 // app.log with its stack instead of DevTools only.
 installErrorBridge();
-// MPI-1137: every picture or video over 3 s goes to app.log, DevTools open or not.
-installSlowLoadLog();
-// MPI-1142: a minute of heavy main-thread blocking, and every 10 minutes what has grown.
-installHealthLog();
+// Speed diagnostics, off unless `speed_diagnostics` (dev_configs/app_config.js) or
+// CUBRIC_SPEED_DIAG=1. MPI-1137: every picture or video over 3 s goes to app.log, DevTools
+// open or not. MPI-1142: a minute of heavy main-thread blocking, and every 10 minutes what has grown.
+if (APP_CONFIG.speed_diagnostics) {
+    installSlowLoadLog();
+    installHealthLog();
+}
 
 // MPI-803: one capture-phase `play` listener that points every media element at the
 // chosen output device. Top level, like the zoom above — a listener installed inside

@@ -77,7 +77,21 @@ process.on('unhandledRejection', (err) => reportFatal('unhandledRejection', err)
 // `npm start nodev`: a source run seen as users see it. Set in env so the forked
 // server and the window (nodeIntegration) inherit the same answer. Off only, never on.
 if (process.argv.includes('nodev')) process.env.CUBRIC_DEV_MODE = 'off';
+// Speed / stall diagnostics (MPI-1142): the `speed_diagnostics` literal in
+// dev_configs/app_config.js, or CUBRIC_SPEED_DIAG=1 at launch. Set in env so the forked
+// server and the window inherit the same answer, like CUBRIC_DEV_MODE above.
+if (readSpeedDiagnosticsFlag()) process.env.CUBRIC_SPEED_DIAG = '1';
+const SPEED_DIAG = process.env.CUBRIC_SPEED_DIAG === '1';
 const APP_CONFIG = loadAppConfig();
+
+function readSpeedDiagnosticsFlag() {
+  try {
+    const source = fs.readFileSync(path.join(__dirname, 'dev_configs', 'app_config.js'), 'utf8');
+    return /^\s*speed_diagnostics:\s*true\b/m.test(source);
+  } catch {
+    return false;
+  }
+}
 
 // Mask layer TEMP store — session-scoped, cleared on quit, dead instances' dirs pruned at boot.
 const SESSION_ID = randomUUID();
@@ -397,31 +411,8 @@ function createWindow() {
   // flight; the rest queue. A load left open (an idle video player, maybe a stream) holds a
   // slot, and every picture behind it waits. Name every app-server load the moment it has
   // been in flight 10 s, and again when it lets go: `response` early = it is holding.
-  const heldLoads = new Map();
-  const appUrls = { urls: ['http://127.0.0.1/*'] };
-  const heldLine = (rec, extra) => `${rec.type} in flight ${Date.now() - rec.start}ms, response after `
-    + `${rec.response ? `${rec.response - rec.start}ms` : 'never'}${extra} | ${rec.url.replace(/^http:\/\/127\.0\.0\.1:\d+/, '')}`;
-  session.defaultSession.webRequest.onSendHeaders(appUrls, (d) => {
-    heldLoads.set(d.id, { start: Date.now(), type: d.resourceType, url: d.url });
-  });
-  session.defaultSession.webRequest.onResponseStarted(appUrls, (d) => {
-    const rec = heldLoads.get(d.id);
-    if (rec) rec.response = Date.now();
-  });
-  const endHeldLoad = (d) => {
-    const rec = heldLoads.get(d.id);
-    heldLoads.delete(d.id);
-    if (rec?.reported) logger.warn('held-load', heldLine(rec, `, released: ${d.error || d.statusCode}`));
-  };
-  session.defaultSession.webRequest.onCompleted(appUrls, endHeldLoad);
-  session.defaultSession.webRequest.onErrorOccurred(appUrls, endHeldLoad);
-  setInterval(() => {
-    for (const rec of heldLoads.values()) {
-      if (rec.reported || Date.now() - rec.start < 10000) continue;
-      rec.reported = true;
-      logger.warn('held-load', heldLine(rec, ', still open'));
-    }
-  }, 2000).unref();
+  // Behind the speed-diagnostics flag (dev_configs/app_config.js).
+  if (SPEED_DIAG) trackHeldLoads();
 
   // Renderer permissions (MPI-573). Installing a handler at all is what the mic
   // recorder needs: Electron answers permission requests itself, and a denied
@@ -822,13 +813,43 @@ function buildServerEnv(userDataPath, documentsPath) {
   return env;
 }
 
+// [held-load] (MPI-1142): see the call site in app 'ready'. Speed diagnostics only.
+function trackHeldLoads() {
+  const heldLoads = new Map();
+  const appUrls = { urls: ['http://127.0.0.1/*'] };
+  const heldLine = (rec, extra) => `${rec.type} in flight ${Date.now() - rec.start}ms, response after `
+    + `${rec.response ? `${rec.response - rec.start}ms` : 'never'}${extra} | ${rec.url.replace(/^http:\/\/127\.0\.0\.1:\d+/, '')}`;
+  session.defaultSession.webRequest.onSendHeaders(appUrls, (d) => {
+    heldLoads.set(d.id, { start: Date.now(), type: d.resourceType, url: d.url });
+  });
+  session.defaultSession.webRequest.onResponseStarted(appUrls, (d) => {
+    const rec = heldLoads.get(d.id);
+    if (rec) rec.response = Date.now();
+  });
+  const endHeldLoad = (d) => {
+    const rec = heldLoads.get(d.id);
+    heldLoads.delete(d.id);
+    if (rec?.reported) logger.warn('held-load', heldLine(rec, `, released: ${d.error || d.statusCode}`));
+  };
+  session.defaultSession.webRequest.onCompleted(appUrls, endHeldLoad);
+  session.defaultSession.webRequest.onErrorOccurred(appUrls, endHeldLoad);
+  setInterval(() => {
+    for (const rec of heldLoads.values()) {
+      if (rec.reported || Date.now() - rec.start < 10000) continue;
+      rec.reported = true;
+      logger.warn('held-load', heldLine(rec, ', still open'));
+    }
+  }, 2000).unref();
+}
+
 // MPI-1142: the ~15 s waits sit in Chromium's own queue, before a load reaches the network,
 // so neither [held-load] nor the server sees what holds the slots. The first [slow-load] of
 // a source run starts Chromium's net log for 4 minutes (the waits come in waves, so the next
-// ones land in it), one file, replaced each launch. Never in a packaged build.
+// ones land in it), one file, replaced each launch. Never in a packaged build, and only
+// with speed diagnostics on.
 let netLogStarted = false;
 function recordNetLogOnce() {
-  if (netLogStarted || app.isPackaged) return;
+  if (netLogStarted || app.isPackaged || !SPEED_DIAG) return;
   netLogStarted = true;
   const netLogFile = path.join(app.getPath('userData'), 'logs', 'netlog.json');
   // No maxFileSize: a capped log writes to a side folder and stitches only on a clean stop.
