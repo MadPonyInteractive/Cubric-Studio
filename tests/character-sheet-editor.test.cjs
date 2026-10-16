@@ -64,6 +64,11 @@ test('every change builds its bench template verbatim', async () => {
         + 'seen from behind and the close-up portrait on the right all show the same new hairstyle. '
         + "Keep the character's own face and clothes. Keep everything else exactly as it is.";
     assert.strictEqual(buildChangePrompt('hair', 'a short blonde bob haircut'), HAIR('a short blonde bob haircut'));
+    // MPI-1086 bd2: the bench's b_each string, byte for byte.
+    assert.strictEqual(buildChangePrompt('beard', 'a short neat grey goatee'),
+        'Give the character this beard: a short neat grey goatee. The full-body front view and the close-up portrait on '
+        + 'the right both show this beard on the face, and the character seen from behind shows it wherever it can be '
+        + 'seen. Keep the character\'s own face, hair and clothes. Keep everything else exactly as it is.');
     assert.strictEqual(buildChangePrompt('condition', 'beaten up after a fight: a bruised, cut face and torn, dirty clothes'),
         'Make the character look beaten up after a fight: a bruised, cut face and torn, dirty clothes.' + L1);
     assert.strictEqual(buildChangePrompt('body', 'heavyset and overweight'), "Make the character's body heavyset and overweight." + L1);

@@ -12,7 +12,7 @@ building a Flow that needs more than one graph or more than one model.
 
 | | |
 |---|---|
-| requiredModels | `[{ label: 'Clothes, condition, custom and age', models: ['klein-9b'], loras: true }, { label: 'Body shape, hairstyle, accessories, makeup, tattoos, undressing and child ages', models: ['qwen-image-2-1'], optional: true, loras: true, for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] }]` |
+| requiredModels | `[{ label: 'Clothes, condition, custom and age', models: ['klein-9b'], loras: true }, { label: 'Body shape, hairstyle, beard, accessories, makeup, tattoos, undressing and child ages', models: ['qwen-image-2-1'], optional: true, loras: true, for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] }]` |
 | operation / `operationBy` | `flowCharacterSheetEdit` (Klein), routed by the `change` select: `body`, `hair`, `accessories`, `makeup` and `tattoos` -> `flowCharacterSheetEditQwen` with a picture or without (MPI-1086 r28/r30/r34); `clothes` by a rule entry: words that take the clothes off (`undress` rule test = `childSafety.asksToUndress`, nudity + undressing, NOT underwear) and no picture -> Qwen (MPI-1159); `none` -> no leg 1 |
 | graphs | `flow_character_sheet_edit.json` (Klein 9B, 129 nodes, in-graph SAM3 lock: cut at the shoulders on the back body, at the brows at lock 2; optional reference, cut out to its hair at lock 2) and `flow_character_sheet_edit_qwen.json` (Qwen-Image 2.1, 153: Makeup edits the two faces only, `Input_Face_Crop`, r47; Tattoos redraw the back figure in a lazy back pass, `Input_Back_Pass`, MPI-1086 r37; with a Reference picture a Klein mannequin leg feeds it `images.image_2`, MPI-1086 r23, skipped when `Input_Is_Mannequin`; its edit KSampler runs **25 steps**, not the model's 30: on an edit 25 = 30, ~15% faster, MPI-1086 r30, Fabio). Both output the INPUT size, and both END with the head removal (`Input_Headless`, MPI-1086 r26): see Versions below |
 | authoring source | `raw/` is the source now. `research/bench-tools/build_edit_graph*.py` wrote the first raws; the LoRA racks went in after with `research/bench-tools/insert_rack.py`, the reference with `insert_ref2.py`, the brow cut, hair cut-out and the Qwen mannequin leg with MPI-1086's `research/bench/patch_raw*.py` (raw in place, then `workflow-to-api.mjs` single-file) |
@@ -61,6 +61,7 @@ The mannequin: the describer's `refIsMannequin` yes/no on the Reference picture 
 | Tattoos (words / + picture) | Qwen-Image 2.1, "Add no other tattoos", no limb named; a picture needs words saying where (the Accessories string) | none in that graph | MPI-1086 r34 words 1 pass + 1 mirrored; picture + words r35 4 pass + 2 partial (one-limb side), nothing invented; the back pass fixes the side, r37 |
 | Hairstyle | Klein | 2 = "face" on the front and the close-up, from the BROWS down (MPI-1086) | b8; F1 wording 3 of 3; fringe 6 of 6 |
 | Hairstyle + picture | Qwen-Image 2.1; Klein makes the picture a mannequin in the same graph | none in that graph | MPI-1086 r21 17/18, r23 6/6 |
+| Beard (words only) | Qwen-Image 2.1, "the full-body front view and the close-up ... on the face" | none in that graph | MPI-1086 bd2 2/2 long beard on the front face (every-figure string 0/3), bd1+bd3 shave, goatee, moustache |
 | Condition | Klein | 0 | b5, 6 of 6 |
 | Custom | Klein | 0: "Change the character in this character sheet: <words>." + the accessories tail | MPI-1086 qh6, 6 of 6 layouts (the words as typed broke 1 of 6) |
 | Age 13+ | Klein | 0, exact-age wording | b11-b15 |
@@ -145,8 +146,7 @@ style ("the bun lower") added a bun in every wording. It needs Qwen, so it is no
 AWAY: "silver Mohawk" recoloured her braids silver, and even spelled out (shaved sides, a strip on
 top) it kept the long hair on the bodies. Qwen with the old L1 string changed the close-up only; the
 string naming every figure (`buildChangePrompt` `hair`) got all three 4/4, the bare name included.
-The `Hairstyle` option's `note` still says to describe the cut. Boogu was not benched (not installed
-in the app; MPI-1041 had it change one panel of three). Klein's lock 2 is now reached by nothing.
+The `Hairstyle` option's `note` says to describe the cut. Boogu not benched (not installed; MPI-1041: one panel of 3).
 
 An edit keeps the figure's SIZE: a child's or a heavier body needs the bodies redrawn, which is why
 age 12 and under and Body shape leave Klein. Klein's lock is LAZY (SAM3 runs only at lock 1 or 2);

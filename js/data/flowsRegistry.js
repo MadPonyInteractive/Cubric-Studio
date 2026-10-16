@@ -1714,13 +1714,13 @@ export const FLOWS = [
         // registered, so the layout holds and only the change moves.
         preview: 'flow-character-sheet-editor.webp',
         video: 'flow-character-sheet-editor.mp4',
-        description: 'Change one thing on a character sheet you already have - the clothes, accessories, makeup, tattoos, hairstyle, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory, makeup, tattoos or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, a hairstyle, accessories, makeup, tattoos, taking the clothes off and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
+        description: 'Change one thing on a character sheet you already have - the clothes, accessories, makeup, tattoos, hairstyle, beard, condition, body shape or age - with the front, back and close-up kept the same character. Pick what to change and say it in a few words, or anything else under Custom; for clothes, an accessory, makeup, tattoos or a hairstyle you can add a picture to copy. The result is a new card and the sheet you started from stays as it is. Body shape, a hairstyle, a beard, accessories, makeup, tattoos, taking the clothes off and ages of 12 and under run on Qwen-Image 2.1, whose pictures are not for commercial use; everything else runs on FLUX.2 Klein 9B.',
         // Each slot's rack fills its phase's nodes: Klein's Input_Lora_Phase1_* (the edit and age
         // legs), Qwen's Input_Lora_Phase2_* (Body shape). The child rebuild leg runs the
         // from-images graph, titled Phase1, so it takes no rack here.
         requiredModels: [
             { label: 'Clothes, condition, custom and age', models: ['klein-9b'], loras: true },
-            { label: 'Body shape, hairstyle, accessories, makeup, tattoos, undressing and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
+            { label: 'Body shape, hairstyle, beard, accessories, makeup, tattoos, undressing and child ages', models: ['qwen-image-2-1'], optional: true, loras: true,
               for: ['flowCharacterSheetEditQwen', 'flowCharacterSheetImages'] },
         ],
         operation: 'flowCharacterSheetEdit',
@@ -1741,6 +1741,8 @@ export const FLOWS = [
                 // first (17/18 vs Klein's ~11/17); in words Klein cannot take hair AWAY (a mohawk came back
                 // as silver braids), Qwen got every figure 4/4 (r28, Fabio 2026-10-15).
                 hair: 'flowCharacterSheetEditQwen',
+                // MPI-1086 bd1-bd3: like hair, Klein cannot take a beard away; Qwen shaved, added and swapped one on every face.
+                beard: 'flowCharacterSheetEditQwen',
                 condition: 'flowCharacterSheetEdit', custom: 'flowCharacterSheetEdit',
                 body: 'flowCharacterSheetEditQwen', none: null,
             },
@@ -1788,6 +1790,8 @@ export const FLOWS = [
                     { v: 'hair', label: 'Hairstyle', info: 'A new haircut or colour; the face stays as it is. Runs on Qwen-Image 2.1: not for commercial use.',
                       // A bare style name that takes hair AWAY ("Mohawk") fails; spelled out it works (r27).
                       note: 'Describe the cut, not just its name (e.g. shaved sides, a strip on top). A rare style? Add a Reference picture.' },
+                    // Fabio: its own entry, not a Hairstyle switch (MPI-1086). Words only: no Reference picture.
+                    { v: 'beard', label: 'Beard', info: 'Grow, trim, recolour or shave a beard or moustache; the face stays the same person. Runs on Qwen-Image 2.1: not for commercial use.' },
                     { v: 'condition', label: 'Condition', info: 'Beaten up, muddy, soaked, sunburnt - the state the character is in.' },
                     { v: 'body', label: 'Body shape', info: 'Heavier, slimmer or more muscular. Runs on Qwen-Image 2.1: not for commercial use.' },
                     // MPI-1086 (Fabio, 2026-10-12): "Nothing else" split into a free edit and age-only.

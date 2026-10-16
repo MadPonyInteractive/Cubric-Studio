@@ -39,7 +39,7 @@ test('an optional model offers Install until it is on disk, then becomes its slo
     await expect(slots).toHaveCount(2);
     // Two slots, so each carries its label (the disambiguator).
     await expect(slots.nth(0).locator('.mpi-base-flow__field-label')).toHaveText('Clothes, condition, custom and age');
-    await expect(slots.nth(1).locator('.mpi-base-flow__field-label')).toHaveText('Body shape, hairstyle, accessories, makeup, tattoos, undressing and child ages');
+    await expect(slots.nth(1).locator('.mpi-base-flow__field-label')).toHaveText('Body shape, hairstyle, beard, accessories, makeup, tattoos, undressing and child ages');
     await expect(slots.nth(1).locator('.mpi-base-flow__model-name')).toHaveText('Qwen-Image 2.1');
     const install = slots.nth(1).locator('.mpi-base-flow__model-install button');
     await expect(install).toHaveText(/Install/);

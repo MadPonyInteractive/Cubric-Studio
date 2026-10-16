@@ -855,3 +855,28 @@ Run as the app injects it (the raw photo + in-graph mannequin, the app's own str
 2026-10-16 (New character sheets 34): Fabio eye test, child sheet + makeup picture, STILL refused (app.log 08:11:11 picture answer=YES). Cause reproduced: fixed text passes, the refMakeup describer word "nude" (lipstick) trips UNCLOTHED -> look -> child refused. Fix (my pick, gate unchanged): buildChangePrompt renames nude/nudes in refMakeup to skin-toned; user words still refused. Test added; character-sheet-editor + child-safety 49/49. Needs Fabio re-test in app.
 Re-test 08:20 still refused: the rename only reached the prompt; flowService stores the RAW describer answer as injectionParams.refMakeup, and configTexts reads every string param. Fix: the builder re-emits refMakeup renamed (built params merge after the describe answers, flowService.js:682 vs 711). Test now mirrors that merge (fails on the old code). 316/316 (sheet + gate + flow suites). Unproven that "nude" is the word: the log does not print the describer answer.
 Both stopgap edits (the "nude" -> "skin-toned" rename in the prompt and in the refMakeup param) REVERTED on Fabio's call, 2026-10-16: no more patching the gate per Flow. Makeup eye tests BLOCKED on the child-safety redesign card (the gate reads only typed words; picture verdicts cached per file).
+
+## Beard bench bd1 (2026-10-16, session "New character sheets 39"): Qwen words, seed 42, G: bench :8188
+
+Fabio: Beard is its own option. `b_fig` = the Hairstyle shape (every figure named); `b_face` = front view + close-up
+only. Scripts + outputs in that session scratchpad (`bd1.py`).
+
+| case | b_fig | b_face |
+|---|---|---|
+| fisher, clean-shaven | PASS all views | FAIL: close-up shaved, front beard kept |
+| fisher, short grey goatee | PASS | FAIL: front full beard kept |
+| man (flowCSFI_011), long red braided beard | close-up PASS, FRONT bare (stubble lost too) | same |
+| man, black handlebar moustache | PASS | PASS |
+
+b_fig wins 3/4; a big beard ADDED misses the small front face. bd2 tries firmer front-view wording.
+
+## Beard bench bd2 + bd3 (same session): firmer front-view wording, seeds 42 + 7
+
+- `b_each` ("The full-body front view and the close-up portrait on the right both show this beard on the face, and the
+  character seen from behind shows it wherever it can be seen."): long red beard on the man FRONT 2/2, grey goatee 2/2,
+  shave the fisher 1/1, handlebar moustache 1/1 = 6/6; layout and back views kept.
+- `b_fig` seed 7: long beard front bare again (0/3 overall). `b_lead` (front + close-up named first): 0/2 man, 1/2 fisher.
+
+SHIPPED (uncommitted at write): option `beard` -> flowCharacterSheetEditQwen, words only; builder = b_each byte for byte
+(test); Qwen row label + description name it; row spec updated and passing; npm test 3375/0. UNRELEASED.md line waits
+for its claim (Cosmo + MCP card-import session). NEXT: Fabio eye test of Beard in the app.

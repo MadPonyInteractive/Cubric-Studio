@@ -122,7 +122,7 @@ function _usesRef(values) {
 
 /**
  * The edit for one picked change, or null when there is nothing to change by.
- * @param {string} change - clothes | accessories | makeup | tattoos | hair | condition | body | custom
+ * @param {string} change - clothes | accessories | makeup | tattoos | hair | beard | condition | body | custom
  * @param {string} words  - what the user wrote; optional with a reference
  * @param {boolean} [ref] - a Reference picture is given (used by the changes in REF_THING)
  * @param {string} [refHair] - the describer's words for the reference's hairstyle (`describe` → `refHair`)
@@ -237,6 +237,13 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
             return `Give the character this hairstyle: ${w}. The head is uncovered, no hat. The front view, the character `
                 + 'seen from behind and the close-up portrait on the right all show the same new hairstyle. '
                 + "Keep the character's own face and clothes. Keep everything else exactly as it is.";
+        // MPI-1086 bd1-bd3 (Fabio: its own entry, not a Hairstyle switch), on Qwen. The Hairstyle shape (every figure
+        // named) left a long beard off the small front face (0/3); naming "the full-body front view" with the close-up,
+        // the beard "on the face", put it there 2/2 and kept shaving and a moustache working.
+        case 'beard':
+            return `Give the character this beard: ${w}. The full-body front view and the close-up portrait on the right `
+                + 'both show this beard on the face, and the character seen from behind shows it wherever it can be seen. '
+                + "Keep the character's own face, hair and clothes. Keep everything else exactly as it is.";
         case 'condition':
             return `Make the character look ${w}.` + L1;
         case 'body':
