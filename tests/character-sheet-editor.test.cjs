@@ -250,6 +250,12 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     }
     assert.strictEqual(characterSheetEditor('age', run('tattoos', 'Leg tattoo', 30)).injectionParams.Input_Back_Pass, false,
         'only the change leg takes the back pass');
+    // MPI-1086 r44: the back pass stitches the sheet at the cuts the app measured; none = the graph's 25% / 50%.
+    const cut = (values) => { const p = characterSheetEditor('change', values).injectionParams; return [p.Input_Cut_1, p.Input_Cut_2]; };
+    assert.deepStrictEqual(cut({ ...run('tattoos', 'Leg tattoo'), sheetCuts: '510,1002' }), [510, 1002]);
+    assert.deepStrictEqual(cut(run('tattoos', 'Leg tattoo')), [0, 0], 'not measured: the default cuts');
+    assert.deepStrictEqual(cut({ ...run('tattoos', 'Leg tattoo'), sheetCuts: '' }), [0, 0], 'no clear gaps');
+    assert.deepStrictEqual(cut({ ...run('makeup', ''), sheetCuts: '510,1002' }), [0, 0], 'no back pass, no cuts');
     // MPI-1086 r21-r23: Hairstyle from a picture runs on Qwen (image 1 = the sheet, image 2 = the mannequin the graph
     // makes of the picture), with the describer's words (`refHair`) and every figure named.
     const HAIR = ', with the head uncovered and no hat. The front view, the character seen from behind and the close-up '
@@ -453,7 +459,17 @@ test('the Qwen graph\'s back pass is lazy and every reader of the edit gets the 
     const mid = Object.keys(g).find(k => g[k].class_type === 'MpiIfElse' && g[k].inputs.boolean?.[0] === id('Input_Back_Pass'));
     assert.ok(mid, 'a lazy if/else on Input_Back_Pass picks the picture');
     const merged = g[mid];
-    assert.strictEqual(g[merged.inputs.true[0]].class_type, 'ImageCompositeMasked', 'on: the redrawn back pasted in');
+    // r44: on = the sheet STITCHED front | new back | the rest, cut at Input_Cut_1 / Input_Cut_2 (0 = 25% / 50%):
+    // a stamp over a fixed 25-50% left the old back figure's arm where the sheet's back panel ran past 50%.
+    const st = g[merged.inputs.true[0]];
+    assert.strictEqual(st.class_type, 'ImageStitch', 'on: the stitched sheet');
+    assert.strictEqual(g[st.inputs.image1[0]].class_type, 'ImageStitch', 'front | new back, then the rest');
+    assert.ok(!Object.values(g).some(n => n.class_type === 'ImageCompositeMasked' && /back panel/.test(n._meta?.title)), 'no stamp');
+    for (const [input, half] of [['Input_Cut_1', 'a // 4'], ['Input_Cut_2', 'a // 2']]) {
+        assert.strictEqual(g[id(input)].inputs.int, 0, `${input} ships 0`);
+        const math = Object.values(g).find(n => n.class_type === 'MpiMath' && n.inputs.b?.[0] === id(input));
+        assert.strictEqual(math.inputs.math_expression, `${half} * (b <= 0) + b * (b > 0)`, `${input}: 0 = the old cut`);
+    }
     assert.strictEqual(g[merged.inputs.false[0]]._meta.title, "back to the sheet's own size", 'off: the edit as before');
     assert.strictEqual(g[id('Output_Image_2')].inputs.images[0], mid, 'the edit capture reads the merged picture');
     const enc = Object.values(g).find(n => n.class_type === 'TextEncodeQwenImage21' && n.inputs.prompt?.[0] === id('Input_Positive_2'));
@@ -502,7 +518,8 @@ test('the picture checks run only when they can matter, and before any other que
     const withRef = async (change) => fe.describeAsks(await editor(), await values(change, '', -1), [SHEET, REF2]).map(d => d.to);
     assert.deepStrictEqual(await withRef('hair'), ['refHair', 'refIsMannequin']);
     assert.deepStrictEqual(await withRef('makeup'), ['refMakeup', 'refIsMannequin'], 'MPI-1086 r42: makeup is put into words too');
-    for (const c of ['accessories', 'tattoos']) assert.deepStrictEqual(await withRef(c), [], c);
+    assert.deepStrictEqual(await withRef('accessories'), []);
+    assert.deepStrictEqual(await withRef('tattoos'), ['sheetCuts'], 'MPI-1086 r44: a MEASURE of the sheet, not a question');
     assert.deepStrictEqual(await asked('hair', '', -1), []);
 });
 

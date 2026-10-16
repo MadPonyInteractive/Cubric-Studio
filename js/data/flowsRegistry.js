@@ -1830,6 +1830,10 @@ export const FLOWS = [
             // A mannequin needs no mannequin made of it: a "yes" sets the Qwen graph's Input_Is_Mannequin,
             // whatever the picture's source (the gallery, the web, a later Element). Accessories never makes one
             // (the builder sets it: the raw picture is what works, MPI-1086 r29), so it is not asked there.
+            // MPI-1086 r44: a MEASURE, not a question (no describer): where the sheet's front and back panels end,
+            // so the Tattoos back pass stitches the sheet at its own gaps. Fixed quarters left the old back
+            // figure's arm on a Character Sheet from Images sheet (front 7-24%, back 33-51%, flowCSE_052).
+            { to: 'sheetCuts', media: 'image1', measure: 'sheetCuts', when: { field: 'change', is: 'tattoos' } },
             // MPI-1086 r42: a Makeup picture is described too and made a mannequin wearing only the makeup in the
             // graph: the raw picture put its person's face on a man's sheet; the mannequin + these words kept his
             // face and the design 6/6 (the describer adds "false lashes" and "no face paint" harmlessly).

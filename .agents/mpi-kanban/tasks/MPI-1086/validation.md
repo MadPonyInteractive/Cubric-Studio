@@ -777,6 +777,26 @@ Sheet: scratchpad c42_face.jpg.
   3332 / 0 fail, eslint clean.
 - **r43 (`qh43.py`): the SHIPPED graph** with the builder's injection (Input_Mannequin_Prompt, Input_Is_Mannequin
   false, the r42 words) = r42's h42_M_m_spider PIXEL FOR PIXEL: mannequin, edit and headless max diff 0.
+
+## Round 44 (`gaps.py`, `qh44.py`, `h44_*`): the back pass STITCHED at the sheet's own gaps (Fabio's stitch)
+
+- **Cut finder** (`gaps.py`, then `flowEnhance.sheetCuts` + `shrinkGray`): a column is empty when it barely changes
+  along it AND stays near one colour (activity alone cut through a plain red dress, CSE_001/011). On Fabio's 121
+  sheets in "Qwen 2.1": every real sheet cut in a gap (contact sheets scratchpad gaps1/gaps3.jpg); 7 give no cuts
+  (CSE_014-017 broken sheets with an extra figure, 035/037/039 mannequin pictures) -> the default cuts. The JS port
+  = Python 121/121 within 2% once the app AVERAGES pixel blocks (`shrinkGray`); a plain resize's aliasing lost
+  flowCSFI_010's narrow front-arm gap.
+- **Graph** (`patch_raw_back_stitch.py`, 100 nodes): `Input_Cut_1/2` (px, 0 = 25% / 50%); front = edit [0, cut1),
+  rest = edit [cut2, W), result = ImageStitch(front | new back | rest); the stamp is gone. Sheets whose back panel
+  is wider or narrower than the front come back a little narrower or wider, never squashed (Fabio's "appropriate
+  dimensions"). App: describe entry `{ to: 'sheetCuts', measure: 'sheetCuts' }` (Tattoos only, no describer) ->
+  builder `Input_Cut_1/2`.
+- **ghost52** = Fabio's flowCSE_052 exactly (cuts 510 / 1002): **the ghost arm is GONE**, neck tattoo kept, 1810 px
+  wide. **w10** (flowCSFI_010, cuts 448 / 1018): the front arm stays whole, no ghost, 1670 wide (the snake went on
+  the arms, not "his right leg": the known words-tattoo placement partial, r34, not the stitch). **def44** (cuts 0)
+  = r38's h38_on_t_neck PIXEL FOR PIXEL. **m44** (measured 448 / 882 on the woman's sheet): same picture, 1806 wide.
+  Seams: the backdrops differ by ~5 grey levels at the close-up edge (as the stamp's did).
+- Scratch convert = shipped; injection rules OK; npm test 3334 / 0 fail; eslint clean.
 - Noticed (same layout assumption as the back-pass ghost): the child-safety CLOTHES checks read the sheet at fixed
   quarters too (`region.x` 0 / 0.25, width 0.25): on a "from Images" sheet the back figure spans 33-51%.
 - Layout fix agreed in principle (Fabio's stitch): rebuild the sheet from pieces (front | new back | close-up), the

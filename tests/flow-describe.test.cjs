@@ -244,3 +244,42 @@ test('submitFlowGeneration describes before the graph is queued, on the first ca
     // A check's refusal keeps its own code (MPI-1041: CHILD_SAFETY); a describer failure has none.
     assert.match(body, /code: d\.code \|\| 'DESCRIBE_FAILED'/);
 });
+
+// MPI-1086 r44: the Character Sheet Editor's Tattoos back pass stitches the sheet at its OWN panel gaps.
+// A synthetic sheet: grey backdrop, three "figures" (one a plain block, as a red dress is), two gaps.
+function sheet(w, h, figures) {
+    const g = new Float32Array(w * h).fill(190);
+    for (const [x0, x1, shade] of figures) {
+        for (let y = 10; y < h - 10; y++) for (let x = x0; x < x1; x++) g[y * w + x] = shade + ((x * 7 + y * 3) % 2 ? 6 : 0);
+    }
+    return g;
+}
+
+test('sheetCuts: the middles of the first two gaps between figures, or null when there are none', async () => {
+    const fe = await esm('js/services/flowEnhance.js');
+    // front 30-100, back 150-230 (a PLAIN block: calm along the column, but not the backdrop), close-up 260-448
+    const c = fe.sheetCuts(sheet(448, 280, [[30, 100, 60], [150, 230, 120], [260, 448, 90]]), 448, 280);
+    assert.ok(c, 'two gaps found');
+    assert.ok(Math.abs(c[0] - 125 / 448) < 0.01 && Math.abs(c[1] - 245 / 448) < 0.01, JSON.stringify(c));
+    assert.equal(fe.sheetCuts(new Float32Array(448 * 280).fill(190), 448, 280), null, 'a blank picture: no cuts');
+    assert.equal(fe.sheetCuts(sheet(448, 280, [[30, 100, 60], [104, 448, 90]]), 448, 280), null, 'one narrow lull is no gap');
+    // a gap in the wrong place (a mannequin close-up, a broken sheet) is not trusted: the graph keeps 25% / 50%
+    assert.equal(fe.sheetCuts(sheet(448, 280, [[10, 20, 60], [30, 40, 60], [60, 448, 90]]), 448, 280), null);
+    // shrinkGray averages blocks: a 2x2 checker of 0 / 200 is 100 everywhere, never 0 or 200
+    const W = 8, H = 4, big = new Float32Array(W * H).map((_, i) => ((i % W) + Math.floor(i / W)) % 2 ? 200 : 0);
+    assert.deepEqual([...fe.shrinkGray(big, W, H, 4, 2)], new Array(8).fill(100));
+});
+
+test('describeFlowRun: a MEASURE entry reads pixels, never the describer, and finding nothing is an answer', async () => {
+    const fe = await esm('js/services/flowEnhance.js');
+    const flow = (await esm('js/data/flowsRegistry.js')).getFlowById('character-sheet-editor');
+    const SHEET = { role: 'image1', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fsheet.png' };
+    const values = { change: 'tattoos', words: 'a rose on the left arm', Input_Age: -1 };
+    assert.deepEqual(fe.describeAsks(flow, values, [SHEET]).map(d => d.to), ['sheetCuts']);
+    assert.deepEqual(fe.describeAsks(flow, { ...values, change: 'makeup' }, [SHEET]).map(d => d.to), [], 'Tattoos only');
+    const deps = (cuts) => ({ measure: async () => cuts, describe: async () => { throw new Error('no describer'); } });
+    for (const cuts of ['510,1002', '']) {
+        const res = await fe.describeFlowRun(flow, { injectionParams: values, mediaItems: [SHEET] }, null, deps(cuts));
+        assert.deepEqual(res, { ok: true, injectionParams: { sheetCuts: cuts } });
+    }
+});

@@ -390,6 +390,8 @@ export async function enhanceFlowRun(flow, resolved, deps = { enhance: runEnhanc
 // torso shot came back FRONT for a turned head, off the boxed face TURNED: MPI-1042 batch 14a).
 // `region: { x, y, width, height }` is a FIXED part, in fractions of the picture (a sheet's front body
 // view): a 4B describer judging a whole three-view sheet missed what one view showed (MPI-1041).
+// `measure: 'sheetCuts'` (no `ask`) reads PIXELS instead (MPI-1086 r44, `sheetCuts`): where a character
+// sheet's first two panels end, "x1,x2", or '' when it shows no clear gaps; no describer is asked.
 // `everyPass: true` asks it again on every pass of a multi-pass run, of that pass's own picture
 // (Make seamless's windows, MPI-1101); flowService does not hand that answer on to the next pass.
 // Targets are graph inputs nobody types into, so the text is run-only: it never enters the
@@ -547,6 +549,19 @@ export async function describeFlowRun(flow, config, project, deps = {}) {
             if (refused) return refused;
             continue;
         }
+        // A MEASURE entry reads pixels, not words: no describer, and finding nothing is an answer ('').
+        if (d.measure === 'sheetCuts') {
+            let cutsText = '';
+            try {
+                cutsText = await (deps.measure || measureSheetCuts)(url);
+            } catch (err) {
+                clientLogger.warn('flow-describe', `${name} ${what} could not be measured: ${err?.message}`);
+            }
+            clientLogger.info('flow-describe', `${name} ${what} measured: ${cutsText || 'no gaps, the default cuts'}`);
+            cache?.set(key, cutsText);
+            out[d.to] = cutsText;
+            continue;
+        }
         let result;
         try {
             const imagePath = d.frame === 'first' ? await firstFrame(url, project)
@@ -572,4 +587,107 @@ export async function describeFlowRun(flow, config, project, deps = {}) {
         if (refused) return refused;
     }
     return { ok: true, injectionParams: out };
+}
+
+/** The width a sheet is measured at: a small copy, as MPI-1086's `research/bench/gaps.py` benched. */
+const CUT_W = 448;
+
+/**
+ * Where a character sheet's first two panels end, from its pixels (MPI-1086 r44): the middles of the first two
+ * runs of EMPTY columns between figures, in fractions of the width, or null. A column is empty when the picture
+ * barely changes along it (low activity) AND stays near one colour top to bottom (a plain red dress is calm but
+ * not the backdrop). Fixed quarters left a ghost arm on Character Sheet from Images sheets (front 7-24%, back
+ * 33-51%); this cut every real sheet of Fabio's 121 in a gap (validation.md r44). Implausible cuts give null.
+ *
+ * @param {ArrayLike<number>} gray  row-major grey levels, `width` x `height`
+ * @param {number} width
+ * @param {number} height
+ * @returns {?number[]}  `[cut1, cut2]`
+ */
+export function sheetCuts(gray, width, height) {
+    // a 5-column box blur, zero past the edges (numpy's 'same' convolution, as benched)
+    const smooth = (arr) => arr.map((_, x) => {
+        let s = 0;
+        for (let k = x - 2; k <= x + 2; k++) if (k >= 0 && k < arr.length) s += arr[k];
+        return s / 5;
+    });
+    const act = new Array(width).fill(0);
+    const mean = new Array(width).fill(0);
+    const sq = new Array(width).fill(0);
+    for (let x = 0; x < width; x++) {
+        // the horizontal step to the next column; the last column repeats the one before it
+        const nx = x < width - 1 ? x + 1 : x, px = x < width - 1 ? x : x - 1;
+        let v = 0, h = 0;
+        for (let y = 0; y < height; y++) {
+            const p = gray[y * width + x];
+            mean[x] += p;
+            sq[x] += p * p;
+            if (y > 0) v += Math.abs(p - gray[(y - 1) * width + x]);
+            h += Math.abs(gray[y * width + nx] - gray[y * width + px]);
+        }
+        act[x] = Math.max(v / (height - 1), h / height);
+    }
+    const spread = mean.map((m, x) => Math.sqrt(Math.max(0, sq[x] / height - (m / height) ** 2)));
+    const a = smooth(act), s = smooth(spread);
+    const p90 = (arr) => { const o = [...arr].sort((u, w) => u - w), i = 0.9 * (o.length - 1), f = Math.floor(i); return o[f] + (o[Math.min(f + 1, o.length - 1)] - o[f]) * (i - f); };
+    const ta = 0.25 * p90(a), ts = 0.4 * p90(s);
+    const runs = [];
+    for (let x = 0; x < width;) {
+        if (a[x] < ta && s[x] < ts) {
+            const start = x;
+            while (x < width && a[x] < ta && s[x] < ts) x++;
+            if (start > 0 && x < width && x - start >= 6) runs.push((start + x) / 2 / width);
+        } else x++;
+    }
+    if (runs.length < 2) return null;
+    const [c1, c2] = runs;
+    return c1 > 0.15 && c1 < 0.4 && c2 > 0.4 && c2 < 0.7 ? [c1, c2] : null;
+}
+
+/**
+ * A grey picture shrunk by AVERAGING each output pixel's block of source pixels. A canvas downscale skips pixels
+ * (aliasing), and that noise hid the narrow gap a front arm leaves (flowCSFI_010: no cuts) where the bench's
+ * antialiased resize found it.
+ * @param {ArrayLike<number>} gray  row-major, `W` x `H`
+ * @returns {Float32Array}  `w` x `h`
+ */
+export function shrinkGray(gray, W, H, w, h) {
+    const out = new Float32Array(w * h);
+    for (let oy = 0; oy < h; oy++) {
+        const y0 = Math.floor(oy * H / h), y1 = Math.max(y0 + 1, Math.floor((oy + 1) * H / h));
+        for (let ox = 0; ox < w; ox++) {
+            const x0 = Math.floor(ox * W / w), x1 = Math.max(x0 + 1, Math.floor((ox + 1) * W / w));
+            let s = 0;
+            for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) s += gray[y * W + x];
+            out[oy * w + ox] = s / ((y1 - y0) * (x1 - x0));
+        }
+    }
+    return out;
+}
+
+/**
+ * A sheet's two panel cuts in its own pixels, "x1,x2", or '' when it shows no clear gaps (the graph then cuts at
+ * 25% / 50%, as before).
+ * @param {string} url
+ * @returns {Promise<string>}
+ */
+async function measureSheetCuts(url) {
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('The picture could not be read.'));
+        img.src = resolveMediaUrl(url);
+    });
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const w = CUT_W, h = Math.round(H * CUT_W / W);
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const rgba = ctx.getImageData(0, 0, W, H).data;
+    const gray = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) gray[i] = (rgba[i * 4] * 299 + rgba[i * 4 + 1] * 587 + rgba[i * 4 + 2] * 114) / 1000;
+    const c = sheetCuts(shrinkGray(gray, W, H, w, h), w, h);
+    return c ? c.map(v => Math.round(v * W)).join(',') : '';
 }

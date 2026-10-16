@@ -4,6 +4,16 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-16 evening (session "New character sheets 31") - LATEST. Makeup mannequin COMMITTED + pushed 1cac8798a
+(Fabio's eye test passed). BUILT, uncommitted: the Tattoos back pass STITCHED at the sheet's measured gaps (r44 in
+validation.md: ghost gone on flowCSE_052, default cuts = old picture pixel for pixel, npm test 3334/0). Files: raw +
+api Qwen graph, flowEnhance.js (sheetCuts, shrinkGray, measure entry), flowsRegistry.js, characterSheetEditor.js,
+two tests, playbook. Fabio looked at the r44 pictures (2026-10-16 night): "R44 ghost is good". The white strip he
+saw right of the w10 sheet was MY contact sheet's padding (w10 is 1670 wide, the canvas 1810): the output's own
+right edge is backdrop grey (148,137,136) - told him. NEXT: his eye test in the app (Tattoos on flowCSFI_011 + the
+neck picture), then commit by pathspec. Still open:
+child-safety checks' fixed quarters, face tattoos through Tattoos, Beard, close-out.
+
 2026-10-16 later (session "New character sheets 31") - LATEST. BUILT, uncommitted (claim ada2b38e-mpi1086): Makeup
 from a picture goes the Hairstyle way - in-graph Klein MAKEUP mannequin (`Input_Mannequin_Prompt`, new graph input)
 + `refMakeup` describer words + user's words leading (r41-r43 in validation.md: own face 6/6 man + woman, words 4/4,

@@ -1,8 +1,8 @@
 {
   "id": "81735925-ecd3-5793-ace0-0b760d62a4dd",
   "revision": 0,
-  "last_node_id": 211,
-  "last_link_id": 157,
+  "last_node_id": 219,
+  "last_link_id": 172,
   "nodes": [
     {
       "id": 1,
@@ -931,8 +931,8 @@
           "links": [
             126,
             130,
-            148,
-            152
+            152,
+            166
           ],
           "slot_index": 0
         }
@@ -4660,7 +4660,9 @@
           "name": "width",
           "type": "INT",
           "links": [
-            127
+            127,
+            159,
+            161
           ],
           "slot_index": 0
         },
@@ -4669,7 +4671,8 @@
           "type": "INT",
           "links": [
             129,
-            147
+            147,
+            164
           ],
           "slot_index": 1
         },
@@ -4712,7 +4715,7 @@
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": null
+          "link": 158
         },
         {
           "name": "c",
@@ -4727,19 +4730,18 @@
           "type": "*",
           "links": [
             128,
-            146,
-            150
+            146
           ]
         }
       ],
-      "title": "left 25%: the front body, and where the back panel starts",
+      "title": "cut 1: the front body ends, the back panel starts (Input_Cut_1, else 25%)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
         "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
-        "a // 4"
+        "a // 4 * (b <= 0) + b * (b > 0)"
       ]
     },
     {
@@ -4827,7 +4829,8 @@
           "name": "image",
           "type": "IMAGE",
           "links": [
-            132
+            132,
+            168
           ]
         },
         {
@@ -5298,7 +5301,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            149
+            169
           ],
           "slot_index": 0
         }
@@ -5315,61 +5318,6 @@
         "disabled"
       ],
       "title": "the back figure to the back panel size"
-    },
-    {
-      "id": 209,
-      "type": "ImageCompositeMasked",
-      "pos": [
-        9520,
-        2600
-      ],
-      "size": [
-        271.64609375,
-        146
-      ],
-      "flags": {},
-      "order": 509,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "destination",
-          "type": "IMAGE",
-          "link": 148
-        },
-        {
-          "name": "source",
-          "type": "IMAGE",
-          "link": 149
-        },
-        {
-          "name": "x",
-          "type": "INT",
-          "widget": {
-            "name": "x"
-          },
-          "link": 150
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            151
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.31.0",
-        "Node name for S&R": "ImageCompositeMasked"
-      },
-      "widgets_values": [
-        0,
-        0,
-        false
-      ],
-      "title": "paste it over the back panel"
     },
     {
       "id": 210,
@@ -5389,7 +5337,7 @@
         {
           "name": "true",
           "type": "*",
-          "link": 151
+          "link": 172
         },
         {
           "name": "false",
@@ -5473,6 +5421,383 @@
       "widgets_values_named": {
         "string": "Replace the person with a plain white mannequin seen in a three-quarter view, and keep the hairstyle exactly as it is: the same length, shape and colour. No jewellery and no clothes, on a plain grey background."
       }
+    },
+    {
+      "id": 212,
+      "type": "MpiInt",
+      "pos": [
+        6000,
+        3000
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {},
+      "order": 512,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "int",
+          "type": "INT",
+          "links": [
+            158
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiInt"
+      },
+      "widgets_values": [
+        0
+      ],
+      "title": "Input_Cut_1"
+    },
+    {
+      "id": 213,
+      "type": "MpiInt",
+      "pos": [
+        6000,
+        3120
+      ],
+      "size": [
+        210,
+        60
+      ],
+      "flags": {},
+      "order": 513,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "int",
+          "type": "INT",
+          "links": [
+            160
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiInt"
+      },
+      "widgets_values": [
+        0
+      ],
+      "title": "Input_Cut_2"
+    },
+    {
+      "id": 214,
+      "type": "MpiMath",
+      "pos": [
+        6320,
+        3120
+      ],
+      "size": [
+        295.386328125,
+        128
+      ],
+      "flags": {},
+      "order": 514,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 159
+        },
+        {
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": 160
+        },
+        {
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            162,
+            165
+          ]
+        }
+      ],
+      "title": "cut 2: the back panel ends (Input_Cut_2, else 50%)",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "a // 2 * (b <= 0) + b * (b > 0)"
+      ]
+    },
+    {
+      "id": 215,
+      "type": "MpiMath",
+      "pos": [
+        6640,
+        3120
+      ],
+      "size": [
+        295.386328125,
+        128
+      ],
+      "flags": {},
+      "order": 515,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 161
+        },
+        {
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": 162
+        },
+        {
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            163
+          ]
+        }
+      ],
+      "title": "the rest: its width",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "a - b"
+      ]
+    },
+    {
+      "id": 216,
+      "type": "MpiBox",
+      "pos": [
+        6960,
+        3120
+      ],
+      "size": [
+        270.4146484375,
+        130
+      ],
+      "flags": {},
+      "order": 516,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 163
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 164
+        },
+        {
+          "name": "x",
+          "type": "INT",
+          "widget": {
+            "name": "x"
+          },
+          "link": 165
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": [
+            167
+          ]
+        }
+      ],
+      "title": "the rest box (cut 2 to the right edge)",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiBox"
+      },
+      "widgets_values": [
+        512,
+        512,
+        0,
+        0
+      ]
+    },
+    {
+      "id": 217,
+      "type": "MpiBoxCrop",
+      "pos": [
+        7280,
+        3120
+      ],
+      "size": [
+        250,
+        78
+      ],
+      "flags": {},
+      "order": 517,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 166
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "link": 167
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            171
+          ]
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": []
+        }
+      ],
+      "title": "crop the rest of the EDIT",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiBoxCrop"
+      },
+      "widgets_values": [
+        false
+      ]
+    },
+    {
+      "id": 218,
+      "type": "ImageStitch",
+      "pos": [
+        7600,
+        3000
+      ],
+      "size": [
+        270,
+        150
+      ],
+      "flags": {},
+      "order": 518,
+      "mode": 0,
+      "title": "front | new back",
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 168
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 169
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            170
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageStitch"
+      },
+      "widgets_values": [
+        "right",
+        false,
+        0,
+        "white"
+      ]
+    },
+    {
+      "id": 219,
+      "type": "ImageStitch",
+      "pos": [
+        7920,
+        3000
+      ],
+      "size": [
+        270,
+        150
+      ],
+      "flags": {},
+      "order": 519,
+      "mode": 0,
+      "title": "front | new back | the rest: the stitched sheet",
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 170
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 171
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            172
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageStitch"
+      },
+      "widgets_values": [
+        "right",
+        false,
+        0,
+        "white"
+      ]
     }
   ],
   "links": [
@@ -6597,38 +6922,6 @@
       "INT"
     ],
     [
-      148,
-      128,
-      0,
-      209,
-      0,
-      "IMAGE"
-    ],
-    [
-      149,
-      208,
-      0,
-      209,
-      1,
-      "IMAGE"
-    ],
-    [
-      150,
-      200,
-      0,
-      209,
-      2,
-      "*"
-    ],
-    [
-      151,
-      209,
-      0,
-      210,
-      0,
-      "IMAGE"
-    ],
-    [
       152,
       128,
       0,
@@ -6675,6 +6968,126 @@
       147,
       1,
       "STRING"
+    ],
+    [
+      158,
+      212,
+      0,
+      200,
+      1,
+      "INT"
+    ],
+    [
+      159,
+      199,
+      0,
+      214,
+      0,
+      "INT"
+    ],
+    [
+      160,
+      213,
+      0,
+      214,
+      1,
+      "INT"
+    ],
+    [
+      161,
+      199,
+      0,
+      215,
+      0,
+      "INT"
+    ],
+    [
+      162,
+      214,
+      0,
+      215,
+      1,
+      "*"
+    ],
+    [
+      163,
+      215,
+      0,
+      216,
+      0,
+      "*"
+    ],
+    [
+      164,
+      199,
+      1,
+      216,
+      1,
+      "INT"
+    ],
+    [
+      165,
+      214,
+      0,
+      216,
+      2,
+      "*"
+    ],
+    [
+      166,
+      128,
+      0,
+      217,
+      0,
+      "IMAGE"
+    ],
+    [
+      167,
+      216,
+      0,
+      217,
+      1,
+      "MPI_BOX"
+    ],
+    [
+      168,
+      202,
+      0,
+      218,
+      0,
+      "IMAGE"
+    ],
+    [
+      169,
+      208,
+      0,
+      218,
+      1,
+      "IMAGE"
+    ],
+    [
+      170,
+      218,
+      0,
+      219,
+      0,
+      "IMAGE"
+    ],
+    [
+      171,
+      217,
+      0,
+      219,
+      1,
+      "IMAGE"
+    ],
+    [
+      172,
+      219,
+      0,
+      210,
+      0,
+      "IMAGE"
     ]
   ],
   "groups": [],

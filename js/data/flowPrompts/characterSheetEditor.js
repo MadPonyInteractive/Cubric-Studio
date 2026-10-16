@@ -410,10 +410,15 @@ export function characterSheetEditor(part, values = {}) {
         if (values.change === 'makeup') injectionParams.Input_Mannequin_Prompt = MAKEUP_MANNEQUIN;
     }
     // MPI-1086 r37: Tattoos redraw the back figure from the edited front one, in the same Qwen graph.
+    // r44: the sheet is stitched back together at the panel cuts the app measured (`sheetCuts`, "x1,x2"
+    // in the sheet's pixels); 0 = the graph's own 25% / 50%, for a sheet with no clear gaps.
     if (part !== 'rebuild') {
         const back = part === 'change' ? buildBackPassPrompt(values.change, values.words, _usesRef(values)) : '';
         injectionParams.Input_Back_Pass = !!back;
         injectionParams.Input_Positive_2 = back;
+        const cuts = back ? String(values.sheetCuts || '').match(/^(\d+),(\d+)$/) : null;
+        injectionParams.Input_Cut_1 = cuts ? Number(cuts[1]) : 0;
+        injectionParams.Input_Cut_2 = cuts ? Number(cuts[2]) : 0;
     }
     return { positive: _part(part, values), injectionParams };
 }

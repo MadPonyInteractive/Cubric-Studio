@@ -1237,15 +1237,19 @@
   },
   "200": {
     "inputs": {
-      "math_expression": "a // 4",
+      "math_expression": "a // 4 * (b <= 0) + b * (b > 0)",
       "a": [
         "199",
+        0
+      ],
+      "b": [
+        "212",
         0
       ]
     },
     "class_type": "MpiMath",
     "_meta": {
-      "title": "left 25%: the front body, and where the back panel starts"
+      "title": "cut 1: the front body ends, the back panel starts (Input_Cut_1, else 25%)"
     }
   },
   "201": {
@@ -1407,32 +1411,10 @@
       "title": "the back figure to the back panel size"
     }
   },
-  "209": {
-    "inputs": {
-      "y": 0,
-      "resize_source": false,
-      "destination": [
-        "128",
-        0
-      ],
-      "source": [
-        "208",
-        0
-      ],
-      "x": [
-        "200",
-        0
-      ]
-    },
-    "class_type": "ImageCompositeMasked",
-    "_meta": {
-      "title": "paste it over the back panel"
-    }
-  },
   "210": {
     "inputs": {
       "true": [
-        "209",
+        "219",
         0
       ],
       "false": [
@@ -1456,6 +1438,136 @@
     "class_type": "MpiText",
     "_meta": {
       "title": "Input_Mannequin_Prompt"
+    }
+  },
+  "212": {
+    "inputs": {
+      "int": 0
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Cut_1"
+    }
+  },
+  "213": {
+    "inputs": {
+      "int": 0
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Cut_2"
+    }
+  },
+  "214": {
+    "inputs": {
+      "math_expression": "a // 2 * (b <= 0) + b * (b > 0)",
+      "a": [
+        "199",
+        0
+      ],
+      "b": [
+        "213",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "cut 2: the back panel ends (Input_Cut_2, else 50%)"
+    }
+  },
+  "215": {
+    "inputs": {
+      "math_expression": "a - b",
+      "a": [
+        "199",
+        0
+      ],
+      "b": [
+        "214",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "the rest: its width"
+    }
+  },
+  "216": {
+    "inputs": {
+      "y": 0,
+      "width": [
+        "215",
+        0
+      ],
+      "height": [
+        "199",
+        1
+      ],
+      "x": [
+        "214",
+        0
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "the rest box (cut 2 to the right edge)"
+    }
+  },
+  "217": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "128",
+        0
+      ],
+      "mpi_box": [
+        "216",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "crop the rest of the EDIT"
+    }
+  },
+  "218": {
+    "inputs": {
+      "direction": "right",
+      "match_image_size": false,
+      "spacing_width": 0,
+      "spacing_color": "white",
+      "image1": [
+        "202",
+        0
+      ],
+      "image2": [
+        "208",
+        0
+      ]
+    },
+    "class_type": "ImageStitch",
+    "_meta": {
+      "title": "front | new back"
+    }
+  },
+  "219": {
+    "inputs": {
+      "direction": "right",
+      "match_image_size": false,
+      "spacing_width": 0,
+      "spacing_color": "white",
+      "image1": [
+        "218",
+        0
+      ],
+      "image2": [
+        "217",
+        0
+      ]
+    },
+    "class_type": "ImageStitch",
+    "_meta": {
+      "title": "front | new back | the rest: the stitched sheet"
     }
   }
 }
