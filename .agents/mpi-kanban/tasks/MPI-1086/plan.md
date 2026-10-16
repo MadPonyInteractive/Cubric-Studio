@@ -4,6 +4,8 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-16 (session "New character sheets 39") - LATEST. BEARD SHIPPED 5e3f51da5: option `beard` -> Qwen, words only, builder = bench b_each (bd1-bd3 in validation.md, 6/6; the Hairstyle every-figure string missed a long beard on the front face). Not eye-tested. The child-safety redesign (MPI-1156) has landed, so the Makeup blocker below should be gone. NEXT, all Fabio when his GPU is free: Beard eye test, then the Makeup re-test (child, man, woman), Accessories + Tattoos-stitch eye tests. Then face tattoos (head-crop mannequin), close-out. Open: add "a beard" to the CSE line in docs/releases/UNRELEASED.md (held by the Cosmo + MCP card-import session at write).
+
 2026-10-16 (session "New character sheets 34") - LATEST. PARKED, BLOCKED on the child-safety redesign card (Fabio 2026-10-16). Fabio's eye test: child sheet + Makeup picture still refused after the mannequin fix (app.log 08:11 and 08:20, picture answer=YES). Cause: the gate reads EVERY string param, including the describer's raw refMakeup answer that flowService stores (flowService.js describe merge), so a describer word like "nude" (lipstick) makes it look at the picture, and a child is refused. Stopgap tried, then REVERTED. Resume here once the new gate lands: re-run the Makeup eye test (child, man, woman; picture +/- words), then Accessories + Tattoos-stitch eye tests, face tattoos (head-crop mannequin), Beard, close-out.
 
 2026-10-16 (session "New character sheets 33") - LATEST. Fabio saw his spider run take the mannequin's pale skin.
