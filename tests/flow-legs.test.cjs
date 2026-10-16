@@ -579,14 +579,37 @@ test('every shipped Flow resolves the op, graph and availability it did before t
     }
 });
 
-test('a shipped chain always runs its head removal; the toggle only picks the version shown (MPI-1087)', async () => {
+test('the two sheet Flows remove the head IN their graph; the toggle only picks the version shown (MPI-1087, MPI-1153)', async () => {
     const reg = await registry();
+    const { COMMANDS } = await esm('js/data/commandRegistry.js');
     for (const id of ['character-sheet', 'character-sheet-from-images']) {
         const flow = reg.getFlowById(id);
         const head = (r) => opsOf(reg.flowRunLegs(flow, r));
-        assert.deepStrictEqual(head({}), [flow.operation, 'flowCharacterSheetHeadless'], `${id}: default on`);
-        assert.deepStrictEqual(head({ injectionParams: { Input_Remove_Head: true } }), [flow.operation, 'flowCharacterSheetHeadless']);
-        assert.deepStrictEqual(head({ injectionParams: { Input_Remove_Head: false } }), [flow.operation, 'flowCharacterSheetHeadless'], `${id}: off`);
+        // ONE job whatever the toggle says: the graph lands both versions (`outputVersions`).
+        for (const r of [{}, { injectionParams: { Input_Remove_Head: true } }, { injectionParams: { Input_Remove_Head: false } }]) {
+            assert.deepStrictEqual(head(r), [flow.operation], `${id}: no chained head removal`);
+        }
+        assert.deepStrictEqual(COMMANDS[flow.operation].outputVersions, { Output_Image_2: 'flowCharacterSheetHeadless' }, id);
+        // The leg stays declared, for the toggle: the result pane, hideVersionOps, unchainedSource.
         assert.strictEqual(reg.flowToggleLeg(flow), 0, `${id}: the result pane still offers the toggle`);
+        assert.strictEqual(reg.flowLegs(flow)[0].inGraph, true, id);
     }
+    // The Sheet Editor's child rebuild runs the from-images graph mid-chain: its own head removal is
+    // off there, or leg 4 is fed the head-removed version and SAM3 takes the hair (MPI-1089).
+    const rebuild = reg.flowLegs(reg.getFlowById('character-sheet-editor')).find(l => l.operation === 'flowCharacterSheetImages');
+    assert.strictEqual(rebuild.params.Input_Headless, false);
+    // ...and that switch is real: the from-images graph's head branch sits behind an
+    // `Input_Headless` gate that defaults ON (the Flow's own runs send none).
+    const g = JSON.parse(fs.readFileSync(path.join(ROOT, 'comfy_workflows/flow_character_sheet_from_images.json'), 'utf8'));
+    const byTitle = t => Object.entries(g).find(([, n]) => n._meta?.title === t);
+    const [flagId, flag] = byTitle('Input_Headless');
+    assert.strictEqual(flag.inputs.boolean, true);
+    const gate = Object.entries(g).find(([, n]) => n.class_type === 'MpiIfElseInverted' && n.inputs.boolean?.[0] === flagId);
+    assert.ok(gate, 'the head branch is gated on Input_Headless');
+    const at = byTitle('Output_Image_2')[1].inputs.images[0];
+    const seen = new Set();
+    const walk = id => { if (seen.has(id) || !g[id]) return; seen.add(id);
+        for (const v of Object.values(g[id].inputs)) if (Array.isArray(v)) walk(v[0]); };
+    walk(at);
+    assert.ok(seen.has(gate[0]), 'Output_Image_2 reads the sheet through the gate');
 });

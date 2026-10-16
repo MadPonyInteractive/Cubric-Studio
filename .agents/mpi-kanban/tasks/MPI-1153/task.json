@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1153",
+  "title": "Character Sheet + from Images: head removal inside the graph, both versions on one card",
+  "description": "Like the Sheet Editor (MPI-1086 outputVersions): each graph emits the sheet and the head-removed sheet as versions of ONE card; Headless front body only picks the version shown. Drops the chained flowCharacterSheetHeadless run from both Flows.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-16T01:01:12+01:00",
+  "updated_at": "2026-10-16T01:01:12+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

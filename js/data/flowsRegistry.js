@@ -190,6 +190,11 @@
  *                                       the next version; off, the card keeps showing the version before
  *                                       it. The same field switches between the two on a finished result.
  *                                       Needs `input`. At most one per Flow (`flowToggleLeg`).
+ * @property {boolean} [inGraph] - Leg 1's GRAPH already makes this leg's version (its op's
+ *                                       `outputVersions`, MPI-1153), so a run never chains it. It stays
+ *                                       declared for its `toggle`: the version shown, the result-pane
+ *                                       switch, `unchainedSource`, and running it alone on a result that
+ *                                       has no such version (one from before the graph made it).
  * @property {Object|Object[]} [unless] - A rule (or rules, ALL holding) that SKIPS the leg whatever `when`
  *                                       or `toggle` says: Character Sheet Editor never removes a newborn's
  *                                       head (MPI-1041).
@@ -965,7 +970,7 @@ export const FLOWS = [
     //
     // The FRONT BODY IS HEADLESS on purpose, and it is a MASK op, not a prompt: SAM3
     // text-selects face+hat in the front-body quarter and the hole is filled from the
-    // sheet's own backdrop, in its own graph since MPI-997 (`chain` below; the full
+    // sheet's own backdrop, inside the sheet graph again since MPI-1153 (`chain` below; the full
     // recipe: docs/playbooks/add-flow/existing-flows/character-sheet.md). On a wide shot the model otherwise sources the face
     // from the tiny blurry full-body figure; remove that head and it has exactly one
     // place to take a face from. Toggleable, on by default.
@@ -1460,12 +1465,12 @@ export const FLOWS = [
         },
         operation: 'flowCharacterSheet',
         workflow: 'flow_character_sheet.json',
-        // THE HEAD REMOVAL IS ITS OWN RUN (MPI-997, Fabio 2026-09-30). The sheet graph draws
-        // the sheet and nothing else; with Headless front body on, the few-second head
-        // removal runs on the finished sheet and lands as the card's NEXT VERSION, so the
-        // untouched sheet stays one step back in its history. One run still, for the user
-        // and for the in-app agent's single `generate` call.
-        chain: { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', input: 'image1' },
+        // THE HEAD REMOVAL IS IN THE GRAPH (MPI-1153, Fabio 2026-10-16, as the Sheet Editor). One
+        // run lands the sheet and the head-removed sheet as two versions of ONE card (the op's
+        // `outputVersions`); Headless front body only picks which one shows. MPI-997 had split it
+        // into a second run so the toggle could make it on demand; since MPI-1087 every run made
+        // it anyway, so the second prompt only cost a queue trip. The leg stays for the toggle.
+        chain: { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', input: 'image1', inGraph: true },
         mediaType: 'image',
         type: 'create',
         // No `inputSchema` at all: this flow collects no media, so step 0 renders its
@@ -1585,7 +1590,7 @@ export const FLOWS = [
                 icon: 'eraser', default: true,
                 // ON by default — it is the whole reason this layout works as a video
                 // reference. Off is for inspecting the sheet the model actually drew.
-                // Read by `chain.toggle` (flowService), not by either graph (MPI-997, MPI-1087).
+                // Read by `chain.toggle` (flowService), not by the graph: it picks the version shown (MPI-1087, MPI-1153).
             },
             // The `loras` action button that used to sit here is GONE (MPI-608). It opened
             // the rack for the flow's one `settingsModel`, which cannot express a flow with
@@ -1597,7 +1602,7 @@ export const FLOWS = [
 
     // MPI-1042 — Character Sheet from Images. The character the user ALREADY has, from a
     // face picture (required, boxed) and a body picture (optional), into the same sheet as
-    // `character-sheet` — same layout, so the same head-removal leg runs on it. No LoRA, no
+    // `character-sheet` — same layout, so the same head removal runs in its graph (MPI-1153). No LoRA, no
     // training: the pictures are references. Bench record: tasks/MPI-1042/validation.md.
     //
     // QWEN-IMAGE 2.1 ONLY (Fabio, 2026-10-16, MPI-1148). It draws the whole sheet in one
@@ -1624,7 +1629,8 @@ export const FLOWS = [
         // Read only by the tests that check declared fields against node titles; the run takes
         // the op's graph from universal_workflows.js.
         workflow: 'flow_character_sheet_from_images.json',
-        chain: { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', input: 'image1' },
+        // In the graph, as on Character Sheet (MPI-1153): `Input_Headless` there defaults on.
+        chain: { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', input: 'image1', inGraph: true },
         // The agent fills the pictures and words and opens the box for the user (MPI-892). It
         // cannot run it: its `look` box gate refuses any box over 0.6 of the picture as "the
         // whole person" (Head Swap's head-only bound, agentLoop.mjs), and a head-and-shoulders
@@ -1662,7 +1668,7 @@ export const FLOWS = [
             {
                 id: 'Input_Remove_Head', type: 'toggle', label: 'Headless front body',
                 icon: 'eraser', default: true,
-                // As on Character Sheet: read by `chain.toggle`, not by either graph (MPI-997).
+                // As on Character Sheet: read by `chain.toggle`, not by the graph (MPI-1153).
             },
         ],
         // Both answers are graph TEXT: `Input_Face_Pose` holding "turned" keeps the picture's
@@ -1735,7 +1741,8 @@ export const FLOWS = [
             // The right half of an 8:5 sheet is exactly the 4:5 close-up the from-images graph boxes.
             { operation: 'flowCharacterSheetImages', prompt: 'rebuild', input: 'image1',
               when: [{ field: 'Input_Age', atLeast: 0 }, { field: 'Input_Age', atMost: 12 }],
-              box: { x: 0.5, y: 0, width: 0.5, height: 1 }, params: { Input_Face_Pose: 'TURNED' } },
+              // `Input_Headless: false`: that graph removes the head itself (MPI-1153); here leg 4 does it, last.
+              box: { x: 0.5, y: 0, width: 0.5, height: 1 }, params: { Input_Face_Pose: 'TURNED', Input_Headless: false } },
             // A newborn is a swaddled baby lying down (Fabio, 2026-10-10): its head always stays.
             // MPI-1086: with no Age, the change leg's own graph removes the head (`Input_Headless`,
             // landed as a version by `outputVersions`), so this leg runs only after the age legs.
@@ -3393,6 +3400,7 @@ export function flowToggleLeg(flow) {
  * @returns {boolean}
  */
 function legWanted(flow, leg, run, ctx = {}) {
+    if (leg.inGraph) return false;
     if (!leg.when && !leg.unless) return true;
     const values = flowRunValues(flow, run);
     if (leg.unless && ruleHolds(leg.unless, values, ctx)) return false;

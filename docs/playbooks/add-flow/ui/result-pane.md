@@ -133,6 +133,8 @@ no second button on the result (Fabio, 2026-10-11: two controls for one thing co
   keeps showing the version before it and the run reports that one (flowService `keepShown`).
 - **Flip with a partner:** swap to it in the pane AND on the card (`promoteHistoryEntry` +
   `updateGroup`), so the gallery, a video model and the agent read what the pane shows.
+- **An `inGraph` leg** (both sheet Flows since MPI-1153): leg 1's graph made the version, so the
+  run chains nothing and the partner is found the same way; the leg itself only ever runs alone.
 - **Flip on with no partner** (a result from before MPI-1087): runs the leg alone on it
   (`submitChainLeg`), through the same run token, status and callbacks as Generate. Not on a
   run the leg never takes (a newborn keeps its head): the field springs back.

@@ -413,9 +413,9 @@ test('the Character Sheet fills its ONE LoRA rack, and no flat or phase-2 rack s
         'the rack chain must originate at the render loader');
 
     // The head removal is a MASK SUBTRACTION now, not a sampler pass. Asserted here
-    // because this is the test that used to prove the opposite. Since MPI-997 it lives in
-    // its OWN graph, run on the finished sheet as the flow's chained leg 2, so both
-    // graphs are held to it.
+    // because this is the test that used to prove the opposite. It runs IN the sheet graph
+    // (MPI-1153, after MPI-997 had split it out) and alone in the headless graph (the Sheet
+    // Editor's last leg, and the result-pane toggle on an old sheet), so both are held to it.
     const headless = readJson('comfy_workflows/flow_character_sheet_headless.json');
     for (const g of [sheet, headless]) {
         assert.ok(!Object.values(g).some(n => n.class_type === 'LanPaint_KSampler'),
@@ -441,45 +441,52 @@ test('the Character Sheet fills its ONE LoRA rack, and no flat or phase-2 rack s
     // missed. Measured, not guessed. The card the model produces is already flat (std 2.8),
     // so the repaint bought nothing and cost the entire artefact class.
     //
-    // The head graph composites ONLY the head hole, and only when Remove Head is on. Three
+    // The head branch composites ONLY the head hole, onto its own version of the sheet. Three
     // things have to hold for that to stay true, and each has a way of silently regressing.
+    // `sheetTitle` is the node the branch reads the sheet from in that graph.
+    for (const [g, sheetTitle, name] of [[sheet, 'Character Sheet Generation Image Output', 'sheet'],
+        [headless, 'Input_Image', 'headless']]) {
+        // 1. The composite is masked by the HEAD mask, not a full-sheet matte. If this ever
+        //    widens back to a sheet-sized mask, the backdrop is being repainted again.
+        const composites = Object.entries(g).filter(([, n]) => n.class_type === 'ImageCompositeMasked');
+        assert.equal(composites.length, 1, `${name}: ONE ImageCompositeMasked, filling the head hole`);
+        const composite = composites[0];
+        const maskSrc = g[composite[1].inputs?.mask?.[0]];
+        assert.equal(maskSrc?.class_type, 'GrowMask',
+            `${name}: the composite must be masked by the grown HEAD mask — a sheet-sized matte means the backdrop is being repainted again`);
 
-    // 1. The composite is masked by the HEAD mask, not a full-sheet matte. If this ever
-    //    widens back to a sheet-sized mask, the backdrop is being repainted again.
-    assert.ok(!Object.values(sheet).some(n => n.class_type === 'ImageCompositeMasked'),
-        'the sheet graph draws the sheet and nothing else since MPI-997 — the head hole is filled in the headless graph');
-    const composite = Object.entries(headless).find(([, n]) => n.class_type === 'ImageCompositeMasked');
-    assert.ok(composite, 'the headless graph needs its ImageCompositeMasked to fill the head hole');
-    const maskSrc = headless[composite[1].inputs?.mask?.[0]];
-    assert.equal(maskSrc?.class_type, 'GrowMask',
-        'the composite must be masked by the grown HEAD mask — a sheet-sized matte means the backdrop is being repainted again');
-
-    // 2. The fill colour is SAMPLED FROM THE SHEET, never a constant. An EmptyImage here is
-    //    the exact bug this replaced: a fixed grey cannot match a backdrop the model picks
-    //    per run, and the head hole reads as a grey blob. Walk the source chain to a crop OF
-    //    THE LOADED SHEET, and the destination to that same loader.
-    assert.ok(!Object.values(headless).some(n => n.class_type === 'EmptyImage'),
-        'the head fill must be sampled from the sheet — an EmptyImage constant is the grey-blob bug');
-    let src = headless[composite[1].inputs?.source?.[0]];
-    let srcHops = 0;
-    while (src && srcHops < 4 && !/Crop/i.test(src.class_type)) {
-        src = headless[src.inputs?.image?.[0]];
-        srcHops += 1;
+        // 2. The fill colour is SAMPLED FROM THE SHEET, never a constant. An EmptyImage here is
+        //    the exact bug this replaced: a fixed grey cannot match a backdrop the model picks
+        //    per run, and the head hole reads as a grey blob. Walk the source chain to a crop OF
+        //    THE SHEET, and the destination to that same sheet.
+        assert.ok(!Object.values(g).some(n => n.class_type === 'EmptyImage'),
+            `${name}: the head fill must be sampled from the sheet — an EmptyImage constant is the grey-blob bug`);
+        let src = g[composite[1].inputs?.source?.[0]];
+        let srcHops = 0;
+        while (src && srcHops < 4 && !/Crop/i.test(src.class_type)) {
+            src = g[src.inputs?.image?.[0]];
+            srcHops += 1;
+        }
+        assert.ok(src && /Crop/i.test(src.class_type),
+            `${name}: the composite source must trace back to a crop of the sheet — that crop IS the colour sample`);
+        assert.equal(g[src.inputs?.image?.[0]]?._meta?.title, sheetTitle, `${name}: the colour sample must be cut from the sheet`);
+        assert.equal(g[composite[1].inputs?.destination?.[0]]?._meta?.title, sheetTitle,
+            `${name}: the head hole is filled on the sheet`);
     }
-    assert.ok(src && /Crop/i.test(src.class_type),
-        'the composite source must trace back to a crop of the sheet — that crop IS the colour sample');
-    assert.equal(headless[src.inputs?.image?.[0]]?._meta?.title, 'Input_Image', 'the colour sample must be cut from the sheet the leg loaded');
-    assert.equal(headless[composite[1].inputs?.destination?.[0]]?._meta?.title, 'Input_Image',
-        'the head hole is filled on the sheet the leg loaded');
 
-    // 3. Remove Head OFF must SHOW the sheet UNTOUCHED. Since MPI-997 the head removal is the
-    //    flow's CHAIN, not a switch in the graph, and since MPI-1087 it always runs: off, the
-    //    card keeps showing the sheet graph's own output, exactly what it sampled.
-    assert.deepEqual(flow.chain, { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', input: 'image1' },
-        'the head removal must run as the chained leg, switched by Input_Remove_Head, on leg 1\'s picture');
+    // 3. Remove Head OFF must SHOW the sheet UNTOUCHED. Since MPI-1153 the graph emits BOTH:
+    //    `Output_Image` the sheet exactly as sampled, `Output_Image_2` the head removal, landed
+    //    as two versions of one card (`outputVersions`); the toggle only picks the one shown.
+    assert.deepEqual(flow.chain, { operation: 'flowCharacterSheetHeadless', toggle: 'Input_Remove_Head', input: 'image1', inGraph: true },
+        'the head removal is the graph\'s, never chained; the leg stays for the toggle');
+    const { COMMANDS } = await import('../js/data/commandRegistry.js');
+    assert.deepEqual(COMMANDS.flowCharacterSheet.outputVersions, { Output_Image_2: 'flowCharacterSheetHeadless' });
     const out = Object.values(sheet).find(n => n._meta?.title === 'Output_Image');
     assert.equal(sheet[out.inputs?.images?.[0]]?._meta?.title, 'Character Sheet Generation Image Output',
         'the sheet graph must emit the untouched sheet');
+    const out2 = Object.values(sheet).find(n => n._meta?.title === 'Output_Image_2');
+    assert.equal(sheet[sheet[out2.inputs?.images?.[0]]?.inputs?.passthrough?.[0]]?.class_type, 'ImageCompositeMasked',
+        'Output_Image_2 is the head removal, after the VRAM clear that frees SAM3');
     assert.ok(!Object.values(sheet).some(n => n._meta?.title === 'Input_Remove_Head'),
         'a switch left in the sheet graph would take the toggle twice');
 });

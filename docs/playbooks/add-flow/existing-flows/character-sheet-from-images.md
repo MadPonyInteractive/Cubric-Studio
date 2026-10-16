@@ -15,7 +15,7 @@
 | authoring source | `tasks/MPI-1042/research/bench-tools/build_bench_v2.py <dir> --flow` wrote the raw graph; it was edited in place since (the LoRA rack, MPI-1036), so a re-run drops that |
 | inputs | `image1` face (required, box step `box1`, ratio 4:5), `image2` body (optional); `positive`, `Input_Remove_Head` |
 | describe | `Input_Face_Pose` (FRONT / TURNED, on the BOXED face), `Input_Body_Clothes` (only with a body) |
-| chain | `flowCharacterSheetHeadless` when `Input_Remove_Head` — the same leg as Character Sheet; the layout matches |
+| head removal | IN the graph since MPI-1153, the same nodes as Character Sheet's (the layout matches): `Output_Image_2`, landed as the card's Headless version by `outputVersions`; `Input_Remove_Head` only picks the version shown. Behind an `Input_Headless` gate (default on) because the Sheet Editor's child rebuild runs this graph mid-chain and sends `false` (its own last leg removes the head). `chain` keeps the leg as `inGraph: true`, for the toggle only. See [character-sheet.md](character-sheet.md) § Two versions, one run |
 | agent | `agentOpens: 'box'` (below) |
 
 ## One model: Qwen-Image 2.1

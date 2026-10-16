@@ -1652,12 +1652,15 @@ export const commands = {
         mediaType: MEDIA_TYPE.IMAGE,        // OUTPUT type
         requiresImages: 0,                  // no media at the op layer, and none in v1
         promptRequired: true,               // the character description IS the input
+        // MPI-1153: the head removal runs IN the graph (Output_Image_2) and lands as the card's
+        // Headless version, the sheet one step before it (as the Sheet Editor, MPI-1086).
+        outputVersions: { Output_Image_2: 'flowCharacterSheetHeadless' },
         universal: true,
     },
 
     // MPI-1042. Character Sheet from Images: a face picture (boxed) and an optional body
-    // picture in, the same three-panel sheet out, on Qwen-Image 2.1 (one sampling) or Klein
-    // 9B (two, stitched) - `byModel` picks the graph. Chains the same head removal.
+    // picture in, the same three-panel sheet out, on Qwen-Image 2.1 (MPI-1148). The head
+    // removal runs in its graph too, unless `Input_Headless` is off (MPI-1153).
     flowCharacterSheetImages: {
         label: 'Flow: Character Sheet from Images',
         // Initials, as `flowTTS`: the title spelled out is 28 characters and filenames are cut
@@ -1673,15 +1676,19 @@ export const commands = {
             { key: 'image2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false },
         ],
         promptRequired: false,              // the pictures are the input; words only adjust
+        // MPI-1153: as flowCharacterSheet. The Sheet Editor's child-rebuild leg turns it off.
+        outputVersions: { Output_Image_2: 'flowCharacterSheetHeadless' },
         universal: true,
         // `box1` (the face box) -> `Input_Box`: an MpiBox's four widgets need the box injector,
         // as on Draw It In. No `cropsToBox`: nothing is stitched back into the face picture.
         injector: 'headSwap',
     },
 
-    // MPI-997. Character Sheet's chained leg 2 (the FlowDef's `chain`): a finished sheet in,
-    // the front body's head removed by SAM3 and filled from the sheet's own backdrop. No
-    // model and no FlowDef of its own; it lands as the sheet card's next version.
+    // MPI-997. The head removal alone: a finished sheet in, the front body's head removed by
+    // SAM3 and filled from the sheet's own backdrop. No model and no FlowDef of its own; it
+    // lands as the sheet card's next version. Run by the Sheet Editor's last leg and by the
+    // result-pane toggle on a sheet without one; the sheet graphs make it in-line (MPI-1153),
+    // filed under this op by their `outputVersions`.
     flowCharacterSheetHeadless: {
         // Filed as the Flow it is a version of: the key would be cut to 24 characters on
         // disk (`flowCharacterSheetHeadle_001.png`, seen live).

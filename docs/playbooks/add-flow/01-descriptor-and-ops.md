@@ -367,6 +367,9 @@ applied when the two were the same string; they are not any more, and the old lo
   with `when` a `ruleHolds` rule (`is | isNot | in | atMost | below | atLeast`, an array = all), and `unless` a rule that skips the leg whatever `when` says (a toggle leg keeps its result-pane toggle);
   **`operationBy: { field, map }`** routes leg 1's op by a select (`null` skips it), and a slot may
   be **`optional: true, for: [ops]`**. All three, worked: [existing-flows/character-sheet-editor.md](existing-flows/character-sheet-editor.md).
+  **A leg whose version leg 1's graph already makes** (its op's `outputVersions`) is
+  `inGraph: true` (MPI-1153): never chained, kept only so its `toggle` picks the version shown and
+  the result pane can run it alone on an older result. Both sheet Flows: [existing-flows/character-sheet.md](existing-flows/character-sheet.md).
 - **A picture the graph needs IN WORDS is `describe: [{ to, media, ask, when?, frame? }]`**
   (MPI-1036): before the job is queued, `flowEnhance.describeFlowRun` asks the describer picked in
   Remote (`llmService.describeImage`) and writes the answer into the hidden `MpiText` input `to`,

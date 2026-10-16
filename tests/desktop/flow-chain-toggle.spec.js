@@ -17,13 +17,15 @@ const { launchApp, closeApp } = require('./launch');
  */
 test.setTimeout(90000);
 
-test('the chain toggle swaps a card between leg 1 and leg 2 versions', async ({}, testInfo) => {
+// Both shipped shapes (MPI-1153): a chained leg (the Sheet Editor's last one) and an `inGraph` leg (both
+// sheet Flows, whose graph makes the version itself). The swap reads neither, so both must pass alike.
+for (const inGraph of [false, true]) test(`the chain toggle swaps a card between leg 1 and leg 2 versions${inGraph ? ' (inGraph leg)' : ''}`, async ({}, testInfo) => {
   const { app, window, pageErrors } = await launchApp(testInfo);
 
   try {
     await window.waitForTimeout(6000);
 
-    const result = await window.evaluate(async () => {
+    const result = await window.evaluate(async (inGraph) => {
       const { MpiBaseFlow } = await import('/js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
       const { state } = await import('/js/state.js');
 
@@ -55,7 +57,7 @@ test('the chain toggle swaps a card between leg 1 and leg 2 versions', async ({}
       const flow = {
         id: 'mpi997-chain-fixture', title: 'Chain fixture', description: 'Frame contract fixture.',
         operation: 'mpi997A', mediaType: 'image', requiredModels: [],
-        chain: { operation: 'mpi997B', toggle: 'Input_Remove_Head', input: 'image1' },
+        chain: { operation: 'mpi997B', toggle: 'Input_Remove_Head', input: 'image1', ...(inGraph ? { inGraph } : {}) },
         fields: [{ id: 'Input_Remove_Head', type: 'toggle', label: 'Headless front body', icon: 'eraser', default: true }],
       };
       const prevProject = state.currentProject;
@@ -105,7 +107,7 @@ test('the chain toggle swaps a card between leg 1 and leg 2 versions', async ({}
       state.currentProject = prevProject;
       delete state.s_flowResults[flow.id];
       return { onOpen, afterFirst, afterSecond, persisted, sheet: sheet.url, headless: headless.url };
-    });
+    }, inGraph);
 
     expect(result.onOpen.buttons, 'one Headless control, the left-panel field').toBe(1);
     expect(result.onOpen.onResult, 'no second toggle drawn on the result').toBe(0);

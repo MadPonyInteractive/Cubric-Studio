@@ -3362,7 +3362,8 @@ export const MpiBaseFlow = ComponentFactory.create({
             // Nothing to go back to (a head-removed version with no source), or a run this leg
             // never takes (a newborn keeps its head): the field goes back to what is on screen.
             const inputs = it.flowInputs || _collectInputs();
-            if (!active || !flowRunLegs(flow, inputs).some(l => l.index === legIndex)) { _syncChainField(); return; }
+            // An `inGraph` leg is never chained but leg 1's graph always made its version (MPI-1153).
+            if (!active || !(chain.inGraph || flowRunLegs(flow, inputs).some(l => l.index === legIndex))) { _syncChainField(); return; }
             const run = { tempId: null };
             _runs.add(run);
             _syncRunning();

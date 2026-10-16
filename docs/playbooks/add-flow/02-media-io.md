@@ -188,7 +188,8 @@ reports each url's capture (`outputTitles`), `js/utils/outputVersions.js` orders
 number (never by finish time), and `generationService` builds one card from them. The card shows
 the last version, skipping ops in `hideVersionOps` (the flow's toggle leg while its toggle is off);
 that shown version is the run's `item`, and `items` is just it. A capture the graph gated off
-(an `MpiIfElseInverted` blocker) simply lands no version.
+(an `MpiIfElseInverted` blocker) simply lands no version. Users: the Sheet Editor's two edit ops
+(`Output_Image_3`) and both sheet Flows (`Output_Image_2`, MPI-1153).
 
 ### 🔴 Multiple AUDIO outputs number from `_1`, not from the base (MPI-663)
 

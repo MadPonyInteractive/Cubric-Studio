@@ -1,0 +1,23 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "comfy_workflows/raw/flow_character_sheet.json",
+    "comfy_workflows/flow_character_sheet.json",
+    "comfy_workflows/raw/flow_character_sheet_from_images.json",
+    "comfy_workflows/flow_character_sheet_from_images.json",
+    "js/data/flowsRegistry.js",
+    "js/data/commandRegistry.js",
+    "js/services/flowService.js",
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+    "tests/flow-legs.test.cjs",
+    "tests/flow-chain.test.cjs",
+    "tests/flow-model-choice.test.cjs",
+    "tests/inject-params-titles.test.cjs",
+    "docs/playbooks/add-flow/existing-flows/character-sheet.md",
+    "docs/playbooks/add-flow/existing-flows/character-sheet-from-images.md",
+    "docs/playbooks/add-flow/ui/result-pane.md",
+    "docs/playbooks/add-flow/02-media-io.md",
+    "docs/playbooks/add-flow/01-descriptor-and-ops.md",
+    "tests/desktop/flow-chain-toggle.spec.js"
+  ]
+}

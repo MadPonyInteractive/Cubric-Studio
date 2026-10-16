@@ -8,12 +8,23 @@
 plate. If you are reading a doc, a card or a comment that says this flow inpaints, samples,
 or runs `LanPaint_KSampler`, that doc is out of date; see § History below before acting on it.
 
-**Two graphs since MPI-997.** `flow_character_sheet.json` draws the sheet only;
-`flow_character_sheet_headless.json` (op `flowCharacterSheetHeadless`, no model, no FlowDef) is
-the head branch below, loading the finished sheet on `Input_Image`. The FlowDef's `chain`
-(`toggle: 'Input_Remove_Head'`, `input: 'image1'`) runs it as leg 2 on EVERY run (MPI-1087), landing
-as the sheet card's NEXT VERSION, the untouched sheet one step back in its history; the toggle
-only picks which of the two the card shows. Bench: 6 s with a cold SAM3.
+**Two versions, one run (MPI-1153, Fabio 2026-10-16, as the Sheet Editor's MPI-1086).**
+`flow_character_sheet.json` draws the sheet (`Output_Image`) and then runs the head branch below
+on it (`Output_Image_2`, after an `MpiClearVram` that frees SAM3). The op's `outputVersions:
+{ Output_Image_2: 'flowCharacterSheetHeadless' }` lands both on ONE card, the untouched sheet one
+step back in its history; Headless front body only picks the version shown (`hideVersionOps`).
+Character Sheet from Images does the same behind an `Input_Headless` gate (default on).
+The `chain` leg stays as `inGraph: true`: never run, it names the toggle for the result pane,
+`hideVersionOps` and `unchainedSource` (MPI-1089), and runs ALONE when the toggle is flipped on a
+sheet that has no head-removed version (one from before MPI-1087).
+`flow_character_sheet_headless.json` (op `flowCharacterSheetHeadless`, no model, no FlowDef) is the
+same branch on its own, loading a sheet on `Input_Image`: the Sheet Editor's last leg and that
+alone run use it. **Both copies are pinned by `tests/flow-model-choice.test.cjs`; change one, change both.**
+Graph patch: `tasks/MPI-1153/research/patch_raw_versions.py`.
+
+**Why it was split, and why that no longer holds.** MPI-997 (2026-09-30) made it a second run so
+the toggle could make it on demand. MPI-1087 then ran that leg on every run anyway, so the split
+only cost a second prompt and queue trip.
 
 ---
 
@@ -121,19 +132,20 @@ strip needs a maths node for `W/4 − 12` and buys 10 levels.
 ### The switch
 
 ```
-the FlowDef's chain, when: Input_Remove_Head
-        on   -> leg 2: #883 ImageCompositeMasked(destination = #900 the sheet, source = the
-                sample, mask = #854 the grown HEAD mask) -> #901 MpiClearVram (frees SAM3,
-                ~1.9 GB, which nothing released before 2026-09-30) -> #882 Output_Image
-        off  -> leg 1 only: the sheet graph's Output_Image is the sheet, UNTOUCHED
+the sheet graph, every run (MPI-1153)
+        Output_Image   -> the sheet, UNTOUCHED
+        Output_Image_2 -> ImageCompositeMasked(destination = the sheet, source = the sample,
+                          mask = the grown HEAD mask) -> MpiClearVram (frees SAM3, ~1.9 GB)
+        Input_Remove_Head -> which of the two versions the card shows (hideVersionOps)
 ```
 
-**The composite runs only when `Input_Remove_Head` is on, and nothing else in the flow modifies
-the sheet.** With the toggle off the generated image is emitted exactly as sampled. This is the
+**The composite only ever makes its OWN version, and nothing else in the flow modifies the
+sheet.** `Output_Image` is the generated image exactly as sampled; with the toggle off it is the
+version the card shows. This is the
 opposite of what this file said before 2026-08-28, when an ungated composite repainted the
 whole backdrop on every run — do not reintroduce that; `tests/flow-model-choice.test.cjs`
-pins all three properties (head-only mask, sampled source, the gate) and is mutation-checked.
-The gate was an `MpiIfElse` in one graph until MPI-997; `tests/flow-chain.test.cjs` pins it now.
+pins all three properties (head-only mask, sampled source, the untouched `Output_Image`) in both
+graphs. The gate was an `MpiIfElse` in one graph until MPI-997, a chained leg until MPI-1153.
 
 ---
 
@@ -203,7 +215,8 @@ muddies output* — in `Cubric-Prompt/dev-docs/recipe-research/krea-2/research.m
 | 2026-08-27 (`19ec571c`) | The sampler pass deleted entirely; replaced by a BiRefNet subject matte + grey plate. **Shipped the dropped-staff defect.** |
 | 2026-08-28 (morning) | BiRefNet replaced by a SAM3 `background:3` matte. One fewer model in the graph — and the dropped-staff defect fixed — but the backdrop was still repainted with the constant plate. |
 | 2026-08-28 | **Whole-sheet matte removed entirely.** The composite is gated on `Input_Remove_Head` and fills only the head hole, with a colour **sampled from the sheet**. Backdrop is never repainted. Anime and Cartoon recipes rewritten (see § THE OTHER LESSON). |
-| **2026-09-30, MPI-997 (current)** | Same nodes, split out: the head branch is its own graph, run as the flow's chained leg 2 and landing as the card's next version. |
+| 2026-09-30, MPI-997 | Same nodes, split out: the head branch is its own graph, run as the flow's chained leg 2 and landing as the card's next version. |
+| **2026-10-16, MPI-1153 (current)** | Same nodes, back in the sheet graph as `Output_Image_2`: one run lands both versions on one card (`outputVersions`); the headless graph stays for the Sheet Editor and the alone run. |
 
 Two rows mislead. **LanPaint** is called current in older card records: it worked, and it is
 gone. **The SAM3 `background:3` matte** was unnecessary: the card is already flat (std 2.8).
