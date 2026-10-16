@@ -19,6 +19,12 @@ hand-convert or hand-edit the API JSON.
   `validate-injection-rules.mjs`** (STOPS + names the node on a title/capture/seed/
   integrity violation — fix in the ComfyUI graph and re-export, never hand-patch the
   API), runs `orchestrate.py`, and leaves the generated output **staged** for `/mpi-end-session`.
+- **Shared tree: it takes EVERY git-changed raw, a peer session's too.** There is no per-file option:
+  step 2 commits all of them, and it converts and stages their API. Check `git status comfy_workflows/raw/`
+  first; if a raw you do not own is modified, convert yours alone instead: `node scripts/workflow-to-api.mjs
+  comfy_workflows/raw/<name>.json` (stdout), reset each `MpiLoadImage` / `MpiLoadVideoUpload` / `MpiLoadAudioUpload` picker to `None` and its `string`
+  to `''` (what the sync's `shipUploadSlots` does), then run `validate-injection-rules.mjs` on the result
+  (MPI-1151, 2026-10-16).
 - **`raw/` is writable by agents** (Fabio, 2026-08-22 — the old user-owned rule is lifted; it is
   committed, so a bad write is recoverable). It holds **LiteGraph, never API JSON**, and the
   converter scripts still refuse to write into it — that guard stops generated output landing in
