@@ -100,3 +100,9 @@
 - eslint main.js clean; held-requests + slow-load-log 3/3. docs/DEVELOPMENT.md slow-load entry corrected (the "holders left in flight" theory was wrong).
 - Next: Fabio restarts: expect no 15 s `[slow-load]` waves; then the Flow Library scroll hang profile.
 - Flow Library scroll, research/flowscroll.cjs (isolated app, 19 tiles, all static webp stills, 40 wheel steps over the tiles, CPU profile): software compositing 358 frames worst 13 ms, 0 long tasks; GPU=1 (hardware compositing, still off-screen + own profile) 364 frames worst 14 ms, 0 long tasks; JS self time ~0. Not reproducible in isolation. His next run carries the [health] per-minute long-task line, so a scroll hang there names itself; the 15 s queue (tiles landing in bursts) may have been part of what he saw.
+
+## 2026-10-16 ~02:30 local - 4G fix holds live; UI lag = ~1 long task per second
+- Fabio's runs since 22:30Z restart (4G switch live): 0 `[slow-load]` lines. He confirms pictures OK after several restarts.
+- [health] in his app.log: while in use, ~50-60 long tasks/min of 50-100 ms each (~3 s of every minute), idle = 0. 01:26Z (generations + opening projects): 157 long tasks, 16860 ms of 60 s blocked, worst 381 ms. Page holds 274-278 <video>, ~9,100 elements, 147 images. Face-box drag and Cosmo panel drag still lag. Not GPU: main thread.
+- Suspects (unproven): something on a ~1 s timer whose cost scales with DOM/video count - comfy/status poll handler, MpiMemoryMonitor/system stats, heroCrew beat/rAF, gallery observers.
+- Next: isolated app with a video-heavy copied project (a few hundred videos), CPU profile 60 s idle + while dragging, name the per-second task, fix, show long-task count drops.
