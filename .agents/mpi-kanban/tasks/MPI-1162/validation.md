@@ -17,3 +17,11 @@
 
 - "Looks good." One change asked: drop resolution (already on the History row / gallery card) and call the operation row "Operation". Done: Size row removed, "Made with" -> "Operation"; `node --test tests/entry-info.test.cjs` 5/5 pass, eslint clean.
 - Second change asked: History only, no gallery flyout. Removed the gallery wiring (MpiGalleryGrid keeps only the shared `flowModelLabel` / `formatGenTime` imports). eslint clean; entry-info + gallery suites 38/38 pass.
+
+## Claim audit (ffb75e25f)
+
+- 23 proven, 1 overstated: the commit says any click/right-click/drag closes the flyout; those are bound to the History list only (MpiEntryInfo.js pointerdown/contextmenu/dragstart on the container). A click elsewhere needs the pointer to leave row+flyout first, which already closes it, so no user-visible gap. Scroll is window-wide.
+
+## CI
+
+- tests.yml run 38964705184 on ffb75e25f: success.

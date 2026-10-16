@@ -4,3 +4,5 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1162", "type": "validation.updated", "at": "2026-10-16T20:07:59Z", "actor": "claude", "summary": "Automated + app:isolated checks recorded."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1162", "type": "checklist.updated", "at": "2026-10-16T20:07:59Z", "actor": "claude", "summary": "Implementation checked."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1162", "type": "task.updated", "at": "2026-10-16T20:07:59Z", "actor": "claude", "summary": "maturity validating; awaiting Fabio eye test."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1162", "type": "attention.cleared", "at": "2026-10-16T21:00:18Z", "actor": "claude", "summary": "Eye test passed, CI green."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1162", "at": "2026-10-16T22:00:18+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio eye-tested (History only, Operation label, no resolution); CI green on ffb75e25f."}
