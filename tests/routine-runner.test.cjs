@@ -174,7 +174,7 @@ test('nothing runs when a model is missing, a card is the wrong kind or unknown,
 // as flow-defer-commit.test.cjs checks this path: reaching enqueueGeneration is not cheap.
 test('flowService: runLanding is run-only and rides every leg and pass', () => {
     const src = require('node:fs').readFileSync(path.join(__dirname, '..', 'js', 'services', 'flowService.js'), 'utf8');
-    assert.match(src, /const \{ runMediaItems, runInputs, runNextPass, runOriginProject, runLanding, \.\.\.snapshot \} = inputs;/,
+    assert.match(src, /const \{ runMediaItems, runInputs, runNextPass, runOriginProject, runLanding, runByAgent, \.\.\.snapshot \} = inputs;/,
         'runLanding must stay out of the flowInputs snapshot');
     assert.match(src, /runMediaItems: media, runOriginProject, runLanding,/, 'each next pass must land where the routine said');
     assert.match(src, /submitFlowGeneration\(flow, chainLegInputs\(flow, inputs, result, next\.leg\), callbacks,\s*\{ index: next\.index, tempId, run: handle, item: result\?\.item, described \}, io\)/,

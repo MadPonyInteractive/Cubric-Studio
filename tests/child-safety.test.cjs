@@ -184,48 +184,123 @@ test('a minor in an ordinary scene is fine (films show characters at many ages)'
     for (const text of cases) assert.strictEqual((await verdict(text)).verdict, 'ok', text);
 });
 
-test('configTexts reads the positive and Flow text params, never a negative or a file', async () => {
-    const { configTexts } = await load();
-    const texts = configTexts({
-        positive: 'a woman at the beach',
-        negative: 'child, kid, nude',
-        injectionParams: {
-            Input_Who: 'the girl on the left',
-            Input_Negative: 'children',
-            Input_System_Prompt: 'You write nude scenes for adults',
-            Input_Image: 'C:/Users/x/Media/kid_photo.png',
-            clip_name: 'qwen.safetensors',
-            Input_Duration: 3,
-        },
-    });
-    assert.deepStrictEqual(texts, ['a woman at the beach', 'the girl on the left']);
+// ── MPI-1156: typed words only, plus the ages the app and a picture supply ───────────────
+
+const gateOf = async (config) => {
+    const { checkChildSafety, gateWords, configContext } = await load();
+    return checkChildSafety(gateWords(config), configContext(config));
+};
+
+test('gateWords reads only what was typed; a config with no userWords (the prompt box) reads its positive', async () => {
+    const { gateWords } = await load();
+    const injectionParams = { Input_Mannequin_Prompt: 'no jewellery and no clothes', Input_Kept: 'a naked monkey' };
+    assert.deepStrictEqual(gateWords({ positive: 'built prompt, nude', userWords: 'a red hat', injectionParams }), ['a red hat']);
+    assert.deepStrictEqual(gateWords({ userWords: ['a hat', null, 'a scarf'], injectionParams }), ['a hat', 'a scarf']);
+    assert.deepStrictEqual(gateWords({ userWords: [], positive: 'nude' }), [], 'typed nothing = reads nothing');
+    // Never a param: a Flow's template text, a describer's prose (MPI-1149's kept monkey) or a negative.
+    assert.deepStrictEqual(gateWords({ positive: 'a woman', negative: 'child', injectionParams }), ['a woman']);
+    assert.deepStrictEqual(gateWords({}), []);
 });
 
-test('the app\'s own mannequin instruction never triggers the look (MPI-1086: a child sheet + a makeup picture)', async () => {
-    const { configTexts, needsPictureCheck } = await load();
+test('MPI-1086: a makeup picture on a child sheet passes; the describer\'s "nude lipstick" is never read', async () => {
+    const { gateWords, needsPictureCheck } = await load();
     const { characterSheetEditor } = await import('../js/data/flowPrompts/characterSheetEditor.js');
     const values = { change: 'makeup', words: '', mediaItems: [{ role: 'image2', url: 'x' }],
-        refMakeup: 'Black winged eyeliner, orange eyeshadow, glossy black lipstick.', refIsMannequin: 'No.' };
+        refMakeup: 'Nude lipstick, black winged eyeliner, bare skin.', refIsMannequin: 'No.', Input_Age: 10 };
     const { positive, injectionParams } = characterSheetEditor('change', values);
-    assert.match(injectionParams.Input_Mannequin_Prompt, /no clothes/, 'the instruction does say "no clothes"');
-    const config = { positive, injectionParams: { ...injectionParams, refMakeup: values.refMakeup } };
-    assert.ok(!configTexts(config).includes(injectionParams.Input_Mannequin_Prompt));
-    assert.strictEqual(needsPictureCheck(configTexts(config)), false, 'a plain makeup run is not looked at');
-    assert.strictEqual(needsPictureCheck(configTexts({ ...config, positive: `${positive} Make her naked.` })), true,
-        'the user\'s own words still are');
+    const config = { positive, injectionParams: { ...injectionParams, refMakeup: values.refMakeup }, userWords: [values.words], minorAge: 10 };
+    assert.strictEqual((await gateOf(config)).verdict, 'ok');
+    assert.strictEqual(needsPictureCheck(gateWords(config)), false, 'not looked at either');
+    // The user's own word is still read, against the slider's age.
+    const typed = await gateOf({ ...config, userWords: ['nude'] });
+    assert.deepStrictEqual([typed.verdict, typed.reason], ['refuse', 'unclothed']);
 });
 
-test('lookTexts drops only what the run keeps (MPI-1149); configTexts still reads it', async () => {
-    const { lookTexts, configTexts } = await load();
-    const config = { positive: 'a mountain valley', injectionParams: { Input_Kept: 'a monkey wearing no clothes', Input_Look: 'snowy peaks', Input_Keep_Background: 'yes' } };
-    assert.deepStrictEqual(lookTexts(config), ['a mountain valley', 'snowy peaks', 'yes']);
-    assert.ok(configTexts(config).includes('a monkey wearing no clothes'));
+test('an age the app set (the Age slider) is a stated age: Age 10 + "a bikini" is refused', async () => {
+    const run = (minorAge, userWords) => gateOf({ positive: 'built', userWords, minorAge });
+    for (const words of ['a bikini', 'a woman in a bikini', 'swim trunks']) {
+        const v = await run(10, [words]);
+        assert.deepStrictEqual([v.verdict, v.reason], ['refuse', 'swimwear'], words);
+    }
+    assert.strictEqual((await run(0, ['lingerie'])).reason, 'unclothed', '0 is a newborn, not "no age"');
+    assert.strictEqual((await run(10, ['sexy pose'])).reason, 'sexual');
+    assert.strictEqual((await run(10, [''])).verdict, 'ok', 'a dressed child sheet');
+    assert.strictEqual((await run(10, ['a yellow raincoat'])).verdict, 'ok');
+    assert.strictEqual((await run(16, ['a bikini'])).verdict, 'ok', '16-17 may wear ordinary swimwear');
+    assert.strictEqual((await run(16, ['a micro bikini'])).reason, 'sexual');
+    // -1 is the slider's "keep the sheet's age" and 18+ is an adult: no age from the app.
+    for (const age of [-1, 18, 30, undefined, '10']) assert.strictEqual((await run(age, ['nude'])).verdict, 'ok', String(age));
+    assert.strictEqual((await gateOf({ userWords: [''], minorAge: 10, model: { id: 'sdxl-nsfw' } })).reason, 'nsfwModel');
 });
 
-test('configContext flags an NSFW model or LoRA', async () => {
+test('a picture that may show a minor reads as age 16: undressing refused, an ordinary bikini allowed', async () => {
+    const { checkChildSafety } = await load();
+    const pic = (text, ctx = {}) => checkChildSafety(text, { pictureMinor: true, ...ctx });
+    for (const text of ['remove her clothes', 'make her naked', 'in lingerie', 'a micro bikini', 'sexy pose', '彼女を裸にして', 'раздеть её']) {
+        const v = pic(text);
+        assert.deepStrictEqual([v.verdict, v.reason], ['refuse', 'picture'], text);
+    }
+    for (const text of ['put her in a bikini', 'change the background to a beach', 'give him swim trunks', '']) {
+        assert.strictEqual(pic(text).verdict, 'ok', text);
+    }
+    // A minor the words name keeps the words' own reason, at the lower of the two ages.
+    assert.strictEqual(pic('a 10-year-old in a bikini').reason, 'swimwear');
+    assert.strictEqual(pic('a teen, nude').reason, 'unclothed');
+    assert.strictEqual(pic('a red hat', { modelId: 'krea2-nsfw' }).reason, 'nsfwModel');
+    // The same words on a picture of an adult (a bare NO) pass.
+    assert.strictEqual(checkChildSafety('remove her clothes', { pictureMinor: false }).verdict, 'ok');
+});
+
+test('undressing a minor the words name is refused with no picture (it passed before MPI-1156)', async () => {
+    for (const text of ['a 12-year-old, remove her clothes', 'a child, undress him', 'a teen, strip her down']) {
+        assert.strictEqual((await verdict(text)).reason, 'unclothed', text);
+    }
+    assert.strictEqual((await verdict('a woman, remove her clothes')).verdict, 'ok');
+});
+
+test('a revealing Clothes reference is refused on a minor, allowed on an adult', async () => {
+    const { checkChildSafety } = await load();
+    assert.strictEqual(checkChildSafety('', { minorAge: 10, revealingRef: true }).reason, 'revealingRef');
+    assert.strictEqual(checkChildSafety('', { minorAge: 16, revealingRef: true }).reason, 'revealingRef');
+    assert.strictEqual(checkChildSafety('dress her in this', { pictureMinor: true, revealingRef: true }).reason, 'revealingRef');
+    assert.strictEqual(checkChildSafety('a teen', { revealingRef: true }).reason, 'revealingRef');
+    assert.strictEqual(checkChildSafety('', { revealingRef: true }).verdict, 'ok', 'no minor anywhere');
+    assert.strictEqual(checkChildSafety('', { minorAge: 10, revealingRef: false }).verdict, 'ok');
+});
+
+test('childSafetyGate, unreadable words + a minor the words never name: asks what they do to ANYONE', async () => {
+    const cs = await load();
+    const facts = (answers) => {
+        const asked = [];
+        return { asked, judge: async (text, system) => {
+            const q = system === cs.NUDITY_SYSTEM ? 'nudity' : system === cs.SWIM_SYSTEM ? 'swim' : 'other';
+            asked.push(q);
+            return answers[q];
+        } };
+    };
+    let f = facts({ nudity: 'NO' });
+    assert.deepStrictEqual(await cs.childSafetyGate('背景を夜の街にする', { pictureMinor: true }, f.judge), { ok: true });
+    assert.deepStrictEqual(f.asked, ['nudity'], 'age 16: swimwear is not asked');
+    f = facts({ nudity: 'YES' });
+    assert.strictEqual((await cs.childSafetyGate('背景を夜の街にする', { pictureMinor: true }, f.judge)).ok, false);
+    f = facts({ nudity: 'NO', swim: 'YES' });
+    assert.strictEqual((await cs.childSafetyGate('水着を着せて', { minorAge: 10 }, f.judge)).ok, false);
+    assert.deepStrictEqual(f.asked, ['nudity', 'swim']);
+    f = facts({ nudity: 'NO', swim: 'NO' });
+    assert.deepStrictEqual(await cs.childSafetyGate('赤いコートを着せて', { minorAge: 10 }, f.judge), { ok: true });
+    // A list hit never reaches the judge.
+    f = facts({ nudity: 'NO' });
+    assert.strictEqual((await cs.childSafetyGate('彼女を裸にして', { pictureMinor: true }, f.judge)).reason, 'picture');
+    assert.deepStrictEqual(f.asked, []);
+    assert.strictEqual((await cs.childSafetyGate('背景を夜の街にする', { pictureMinor: true }, null)).ok, false, 'no judge: refused');
+});
+
+test('configContext flags an NSFW model or LoRA, and carries the app\'s age', async () => {
     const { configContext } = await load();
     assert.deepStrictEqual(configContext({ model: { id: 'krea2' }, operation: 'characterSheet', injectionParams: {} }),
-        { modelId: 'krea2', nsfw: false });
+        { modelId: 'krea2', nsfw: false, minorAge: null });
+    assert.strictEqual(configContext({ minorAge: 10 }).minorAge, 10);
+    assert.strictEqual(configContext({ minorAge: -1 }).minorAge, null);
     assert.strictEqual(configContext({ model: { id: null }, injectionParams: { 'Load LoRA.lora_name': 'klein_nsfw.safetensors' } }).nsfw, true);
 });
 

@@ -109,9 +109,12 @@ test("the user's refused run toasts the same reason", () => {
     assert.strictEqual(seen.errors[0].code, 'CHILD_SAFETY');
 });
 
-test('a Flow text param is read too; an NSFW model refuses a dressed child', () => {
-    const flow = enqueueGeneration(config('', { injectionParams: { Input_Who: 'a 9-year-old boy', Input_Target: 'in his underwear' } }), {});
+test('a Flow\'s typed fields are read (its userWords, MPI-1156); an NSFW model refuses a dressed child', () => {
+    const flow = enqueueGeneration(config('', { userWords: ['a 9-year-old boy', 'in his underwear'] }), {});
     assert.strictEqual(flow, null);
+    // Its template text and describer answers are not: they ride in injectionParams.
+    const app = enqueueGeneration(config('', { userWords: ['make it night'], injectionParams: { Input_Kept: 'a 9-year-old boy in his underwear' } }), {});
+    assert.ok(app?.queueJobId);
     const nsfw = enqueueGeneration(config('a child in a red raincoat', { model: { id: 'sdxl-nsfw', mediaType: 'image' } }), {});
     assert.strictEqual(nsfw, null);
 });
@@ -273,19 +276,14 @@ test('a kept subject the describer calls unclothed is not looked at: queued at o
     assert.strictEqual(describeBodies.length, before, 'no describe call');
 });
 
-test('the kept text still meets the words check: a naked child there is refused', async () => {
-    const { seen, off, callbacks } = capture();
-    const r = enqueueGeneration(kept('A young boy, naked, standing in a kitchen.'), callbacks);
-    off();
-    assert.strictEqual(r, null, 'refused before it queued');
-    assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY');
-});
+// MPI-1156: the kept text is the describer's prose, so the gate never reads it at all (it used to
+// meet the words check). A child in the INPUT is the picture verdict's job (Phase 4).
 
-test('the same words as the NEW look are still looked at, and refused on YES', async () => {
+test('the same words TYPED as the new look are still looked at, and refused on YES', async () => {
     describeAnswer = { ok: true, text: 'YES' };
     const before = describeBodies.length;
     const { seen, off, callbacks } = capture();
-    const r = enqueueGeneration(kept('A white horse in a field.', { Input_Look: 'A person wearing no clothes.' }), callbacks);
+    const r = enqueueGeneration({ ...kept('A white horse in a field.'), userWords: ['A person wearing no clothes.'] }, callbacks);
     await until(() => seen.errors.length > 0);
     off();
     assert.strictEqual(queued(r.queueJobId), false);

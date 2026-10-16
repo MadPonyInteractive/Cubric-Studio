@@ -30,8 +30,8 @@ building a Flow that needs more than one graph or more than one model.
 | 4 | `flowCharacterSheetHeadless` | `Input_Age` atLeast 1 | the head removal after the age legs (it must be the run's last step); never on a newborn (swaddled, lying down). With no Age, leg 1's own graph removes the head |
 
 Each leg gets the previous leg's picture on `input`; a skipped leg passes it through. Every leg
-carries `runPrompt` (the WHOLE run's words), so the child-safety gate refuses "Clothes: a bikini +
-Age 10" on leg 1, not after it. Engine contract: `flowsRegistry.js` § Legs, routing and rules.
+carries the run's typed words and the Age slider as `minorAge` (`flowGateInputs`, MPI-1156; `Input_Age`
+is `setsAge`), so the child-safety gate refuses "Clothes: a bikini + Age 10" on leg 1, not after it. Engine contract: `flowsRegistry.js` § Legs, routing and rules.
 
 A sheet picked while its card shows the head-removed version goes in as the version before it, WITH
 its head (`flowService.js` `unchainedSource`, MPI-1089): fed the grey oval, leg 4 ran SAM3 on a

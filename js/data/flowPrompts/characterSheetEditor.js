@@ -385,18 +385,16 @@ function _part(part, values) {
 /**
  * The prompt and lock for one leg of the run.
  *
- * Each leg also carries `runPrompt`: EVERY part this run takes, joined. No graph has a node of that
- * name, but the child-safety gate reads a job's string params (`configTexts`), and it checks one
- * job at a time - so without it "Clothes: a bikini" then "Age: 10" would pass leg 1 (no age in its
- * words) and leg 2 (no bikini in its words). With it, leg 1 is refused before anything runs.
+ * The child-safety gate never reads these words (MPI-1156): every leg carries the run's TYPED words
+ * and the Age slider as `minorAge` (`flowGateInputs`), so "Clothes: a bikini" + "Age: 10" is refused
+ * on leg 1, before anything runs.
  *
  * @param {'change'|'age'|'rebuild'} part - which leg (FlowDef `chain[].prompt`; leg 1 is `change`)
  * @param {Object} values - the run's field values plus the describe answers (`sheetAge`, `sheetClothes`)
  * @returns {{positive: string, injectionParams: Object}}
  */
 export function characterSheetEditor(part, values = {}) {
-    const runPrompt = ['change', 'age', 'rebuild'].map(p => _part(p, values)).filter(Boolean).join('\n');
-    const injectionParams = { runPrompt };
+    const injectionParams = {};
     // The Klein graph's lock; the Qwen and from-images graphs have no `Input_Lock` and skip it.
     if (part !== 'rebuild') injectionParams.Input_Lock = part === 'age' ? 0 : (LOCK[values.change] ?? 0);
     // Only the change leg reads the Reference picture: an age leg that starts the run is handed the

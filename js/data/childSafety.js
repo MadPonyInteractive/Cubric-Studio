@@ -236,6 +236,7 @@ const MESSAGES = {
     swimwear: `Refused: this puts a child under 16 in swimwear. ${RULE}`,
     language: `Refused: the safety check could not clear this prompt. ${RULE}`,
     picture: 'Refused: this asks for nudity, underwear or sexual content on a picture or clip that may show someone under 18. Cubric Studio never does that, whatever the picture is or wherever it came from.',
+    revealingRef: `Refused: the clothes reference is underwear, lingerie or revealing swimwear, and the person who would wear it is under 18. ${RULE}`,
     pictureUnchecked: 'Refused: this asks for nudity, underwear or sexual content on a picture or clip, and the check that no one in it is under 18 could not run. Check the image describer in Remote > Language Models.',
 };
 
@@ -246,30 +247,47 @@ const OK = Object.freeze({ verdict: 'ok' });
 /**
  * The script's verdict on what a run would send.
  *
- * @param {string|string[]} texts  the prompt(s): never a negative prompt (it lists what to AVOID)
- * @param {{ modelId?: string, nsfw?: boolean }} [ctx]
- *        an NSFW target: a model id holding "nsfw" (SDXL NSFW, Krea 2 NSFW), or `nsfw` from a LoRA param
+ * @param {string|string[]} texts  the words a person or agent TYPED (`gateWords`): never a negative
+ *        prompt (it lists what to AVOID), never the app's own template text or a describer's prose
+ * @param {{ modelId?: string, nsfw?: boolean, minorAge?: number|null, pictureMinor?: boolean, revealingRef?: boolean }} [ctx]
+ *        `modelId` / `nsfw`: an NSFW target (a model id holding "nsfw", or `nsfw` from a LoRA param).
+ *        `minorAge`: an age the APP set (the Character Sheet Editor's Age slider), read as a stated age.
+ *        `pictureMinor`: an input picture or clip may show someone under 18: read as a stated age 16.
+ *        `revealingRef`: a Clothes reference is underwear, lingerie or revealing swimwear (MPI-1156)
  * @returns {{ verdict: 'ok' } | { verdict: 'refuse'|'judge', reason: string, message: string }}
  *          `judge`: refused unless a language model clears it (`childSafetyGate`)
  */
 export function checkChildSafety(texts, ctx = {}) {
     const text = (Array.isArray(texts) ? texts : [texts]).filter((t) => typeof t === 'string').join('\n');
-    if (!text.trim()) return OK;
     if (ABUSE.test(text)) return _refuse('abuse');
 
-    const age = minorAge(text);
+    const textAge = minorAge(text);
+    const appAge = _ctxAge(ctx);
+    const ages = [textAge, appAge, ctx.pictureMinor ? 16 : null].filter((a) => a !== null);
     const foreign = _foreign(text);
-    if (age === null) return foreign ? _judge('language') : OK;
+    if (!ages.length) return foreign ? _judge('language') : OK;
+    const age = Math.min(...ages);
+    // The minor is only in the picture: say so, the words alone ask for nothing wrong.
+    const why = (reason) => (textAge === null && appAge === null ? 'picture' : reason);
 
     const plain = text.replace(NEGATED, ' ');
-    if (SEXUAL.test(plain)) return _refuse('sexual');
-    if (UNCLOTHED.test(plain)) return _refuse('unclothed');
+    if (SEXUAL.test(plain)) return _refuse(why('sexual'));
+    // Undressing counts as unclothed: "a 12-year-old, remove her clothes" passed the words before (MPI-1156).
+    if (UNCLOTHED.test(plain) || UNDRESS.test(plain) || NUDITY_CJK.test(text) || NUDITY_RU.test(text)) return _refuse(why('unclothed'));
     if (ctx.nsfw || /nsfw/i.test(String(ctx.modelId || ''))) return _refuse('nsfwModel');
+    if (ctx.revealingRef) return _refuse('revealingRef');
     // 16-17 in ordinary swimwear is fine anywhere (Fabio); only revealing swimwear, in SEXUAL, is not.
+    // A minor the WORDS never name (the app's age, a picture) is the one wearing it: no judge, who reads only words.
     if (age < 16 && SWIMWEAR.test(plain)) {
-        return _adultNamed(plain) && !_swimwearOnMinor(plain) ? _judge('swimwear') : _refuse('swimwear');
+        return textAge !== null && _adultNamed(plain) && !_swimwearOnMinor(plain) ? _judge('swimwear') : _refuse('swimwear');
     }
     return foreign ? _judge('language') : OK;
+}
+
+/** The age the app set (`ctx.minorAge`), or null. -1 is the Age slider's "keep", not an age. */
+function _ctxAge(ctx) {
+    const n = ctx?.minorAge;
+    return typeof n === 'number' && n >= 0 && n < 18 ? n : null;
 }
 
 // ── The judge ─────────────────────────────────────────────────────────────────────────────
@@ -332,6 +350,11 @@ export const CHILD_SWIM_SYSTEM = [FACT,
     'Question: does anyone under 16 in the prompt wear swimwear, a swimsuit, a bikini or underwear, or appear shirtless or unclothed? Clothes worn only by adults do not count. If a child under 16 is in the scene and the prompt does not make clear who wears the swimwear, answer YES.',
     ONE].join('\n');
 
+/** With a child under 16 the words never name (the app's age): is anyone put in swimwear? A bare NO = cleared. */
+export const SWIM_SYSTEM = [FACT,
+    'Question: does the prompt ask for anyone to wear swimwear, a swimsuit, a bikini or underwear, or to be shirtless or unclothed?',
+    ONE].join('\n');
+
 /** The user turn for the judge: the prompt as quoted data. */
 export const judgePrompt = (text) => `Prompt to check:\n"""\n${String(text).replace(/"""/g, '"')}\n"""`;
 
@@ -360,6 +383,12 @@ export async function childSafetyGate(texts, ctx = {}, judge = null) {
     try {
         if (v.reason !== 'language') return parseJudgeAnswer(await judge(text)) ? { ok: true } : refused;
         // Words the lists cannot read: only a bare NO to each question of fact clears them.
+        // A minor the words never name (the app's age, a picture): ask what the words do to ANYONE.
+        if (_ctxAge(ctx) !== null || ctx.pictureMinor) {
+            const under16 = Math.min(_ctxAge(ctx) ?? 18, minorAge(text) ?? 18) < 16;
+            const answers = await Promise.all([judge(text, NUDITY_SYSTEM), ...(under16 ? [judge(text, SWIM_SYSTEM)] : [])]);
+            return answers.every(parseNudityAnswer) ? { ok: true } : refused;
+        }
         const named = minorAge(text) !== null || MINOR_CJK.test(text) || MINOR_RU.test(text);
         if (!named && parseNudityAnswer(await judge(text, MINOR_SYSTEM))) return { ok: true };
         const answers = await Promise.all([judge(text, MINOR_EXPOSED_SYSTEM), judge(text, CHILD_SWIM_SYSTEM)]);
@@ -372,34 +401,19 @@ export async function childSafetyGate(texts, ctx = {}, judge = null) {
 // ── What a generation sends ──────────────────────────────────────────────────────────────
 
 /**
- * Param keys that never hold the prompt: negatives (they list what to AVOID), system prompts, weights, files, and
- * the app's own fixed mannequin instruction (`Input_Mannequin_Prompt`): its "no jewellery and no clothes" read as
- * the user asking for no clothes, so every Makeup-from-a-picture run was looked at and a child's sheet refused
- * (MPI-1086, Fabio 2026-10-16). It never carries the user's words.
+ * The words the gate reads: what a person or an agent TYPED, `config.userWords` (MPI-1156, Fabio
+ * 2026-10-16). Set where a run is built (a Flow's typed fields, an agent's prompt or tool fields,
+ * a routine step through those, a scene path's line), so the app's own template text and a describer's prose are
+ * never read: they refused innocent runs ("nude lipstick" on a child's makeup, MPI-1086; a monkey
+ * that "wears no clothes" in Video Edit's kept subject, MPI-1149).
+ * A config with no `userWords` is the prompt box's (its `positive` IS what the user typed, an
+ * accepted Enhance included) or an app tool's (its fixed text asks for nothing): `positive` is read.
  */
-const SKIP_KEY = /negative|system|seed|clip|lora|model|ckpt|unet|vae|file|path|url|mask|recipe|width|height|ratio|mannequin_prompt/i;
-const _isFile = (v) => /^[a-z]:[\\/]|^\/|^https?:|\.[a-z0-9]{2,5}$/i.test(v.trim());
-
-/** The words a generation config carries: its positive and every text param a Flow fills. */
-export function configTexts(config) {
-    const out = typeof config?.positive === 'string' ? [config.positive] : [];
-    for (const [k, v] of Object.entries(config?.injectionParams || {})) {
-        if (typeof v === 'string' && v.trim() && !SKIP_KEY.test(k) && !_isFile(v)) out.push(v);
-    }
-    return out;
-}
-
-/**
- * A param that describes what the run KEEPS as it is (Video Edit's `Input_Kept`: the describer's
- * words for the clip's own subject or room). It asks for no change, so it never triggers the
- * picture check: a cartoon monkey "wears no clothes" refused a background change (MPI-1149).
- * The text tier still reads it (`configTexts`): "a young boy, naked" there is still refused.
- */
-const KEPT_KEY = /(?:^|_)kept(?:$|\.)/i;
-
-/** The words that decide whether a run's pictures are looked at: `configTexts` minus what it keeps. */
-export function lookTexts(config) {
-    return configTexts({ ...config, injectionParams: Object.fromEntries(Object.entries(config?.injectionParams || {}).filter(([k]) => !KEPT_KEY.test(k))) });
+export function gateWords(config) {
+    const w = config?.userWords;
+    if (typeof w === 'string') return [w];
+    if (Array.isArray(w)) return w.filter((t) => typeof t === 'string');
+    return typeof config?.positive === 'string' ? [config.positive] : [];
 }
 
 /** `checkChildSafety`'s ctx for a generation config. */
@@ -408,6 +422,7 @@ export function configContext(config) {
     return {
         modelId: config?.model?.id || '',
         nsfw: Object.entries(ip).some(([k, v]) => /model|ckpt|unet|lora/i.test(k) && /nsfw/i.test(String(v))),
+        minorAge: _ctxAge(config),
     };
 }
 

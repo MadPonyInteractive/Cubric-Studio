@@ -5,7 +5,8 @@
  *      (tasks/MPI-1041/validation.md, research/templates.md) - a rewording is a new bench run;
  *   2. the age is written as WORDS, and a child / teen / adult run of every leg clears the
  *      child-safety gate on both models, while a child age with unclothed or swimwear words is
- *      refused - on LEG 1 already, through `runPrompt` (the gate checks one job at a time);
+ *      refused - on LEG 1 already: every leg carries the run's typed words and the Age slider
+ *      (`flowGateInputs`, MPI-1156; the gate checks one job at a time);
  *   3. the FlowDef routes each change to its editor, runs the right legs, resolves each leg's
  *      model for its op, and asks for Qwen-Image 2.1 only when the run needs it;
  *   4. (Phase C) the picture check the gate cannot make - an undressed sheet made a minor -
@@ -131,7 +132,7 @@ test('a run with no words for its change, or nothing to change, is refused', asy
     assert.strictEqual(refuse({ change: 'hair', words: 'a bob', Input_Age: -1 }), null);
 });
 
-test('each leg carries its lock and the whole run in runPrompt', async () => {
+test('each leg carries its lock, its head removal and the mannequin flag', async () => {
     const { characterSheetEditor } = await builder();
     const values = { change: 'clothes', words: 'a tweed suit', Input_Age: 10, sheetAge: '40', sheetClothes: 'Wearing a coat.' };
     const change = characterSheetEditor('change', values);
@@ -151,9 +152,6 @@ test('each leg carries its lock and the whole run in runPrompt', async () => {
     assert.strictEqual(hair('yes, a wig head').Input_Is_Mannequin, true);
     assert.strictEqual(hair('No.').Input_Is_Mannequin, false);
     assert.strictEqual(hair(undefined).Input_Is_Mannequin, false);
-    const lines = change.injectionParams.runPrompt.split('\n');
-    assert.deepStrictEqual(lines.map(l => l.slice(0, 12)), ['Dress the ch', 'Change the c', 'A 10-year-ol']);
-    assert.strictEqual(characterSheetEditor('change', { ...values, Input_Age: 30 }).injectionParams.runPrompt.split('\n').length, 2);
 });
 
 test('F2: an optional Reference picture replaces or joins the words, Clothes / Accessories / Hairstyle, on the change leg only', async () => {
@@ -301,20 +299,22 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
 
 // ── 2. The child-safety gate ─────────────────────────────────────────────────
 
-/** The configs a whole run would queue: one per leg, as flowService builds them. */
+/** The configs a whole run would queue: one per leg, as flowService builds them (MPI-1156: the typed words + the age). */
 async function runConfigs(values) {
     const { characterSheetEditor } = await builder();
+    const { getFlowById, flowGateInputs } = await esm('js/data/flowsRegistry.js');
+    const typed = flowGateInputs(getFlowById('character-sheet-editor'), values);
     const age = values.Input_Age ?? -1;
     const parts = [values.change !== 'none' && 'change', age >= 0 && 'age', age >= 0 && age <= 12 && 'rebuild'].filter(Boolean);
     return parts.map((part) => {
         const built = characterSheetEditor(part, values);
-        return { positive: built.positive, injectionParams: { ...values, ...built.injectionParams } };
+        return { positive: built.positive, injectionParams: { ...values, ...built.injectionParams }, ...typed };
     });
 }
 
 const verdicts = async (values, modelId) => {
-    const { checkChildSafety, configTexts } = await gate();
-    return (await runConfigs(values)).map(c => checkChildSafety(configTexts(c), { modelId }));
+    const { checkChildSafety, gateWords, configContext } = await gate();
+    return (await runConfigs(values)).map(c => checkChildSafety(gateWords(c), { ...configContext(c), modelId }));
 };
 
 const CAPTION = 'Wearing a mustard-yellow double-breasted suit with matching trousers, brown leather shoes, and a red ribbed knit beanie.';
@@ -337,15 +337,22 @@ test('a child age with unclothed or swimwear words is refused on the FIRST leg',
             const [first] = await verdicts({ change: 'clothes', words, Input_Age: 10, sheetAge: '40', sheetClothes: CAPTION }, modelId);
             assert.strictEqual(first.verdict, 'refuse', `${modelId} "${words}" at 10`);
         }
-        // It is runPrompt that refuses leg 1: its own words name no age.
-        const { checkChildSafety, configTexts } = await gate();
+        // It is the slider's age that refuses leg 1: its built words name no age, and are not read.
+        const { checkChildSafety, gateWords } = await gate();
         const [leg1] = await runConfigs({ change: 'clothes', words: 'a bikini', Input_Age: 10, sheetAge: '40' });
-        delete leg1.injectionParams.runPrompt;
-        assert.strictEqual(checkChildSafety(configTexts(leg1), { modelId }).verdict, 'ok');
-        // The describer's caption of the sheet counts too: a child rebuilt from a sheet in swimwear.
-        const v = await verdicts({ change: 'none', Input_Age: 8, sheetAge: '30', sheetClothes: 'Wearing a red swimsuit.' }, modelId);
-        assert.ok(v.every(r => r.verdict === 'refuse'), `${modelId}: swimwear caption at 8`);
+        assert.ok(!/10/.test(leg1.positive), 'leg 1 prompt names no age');
+        assert.strictEqual(checkChildSafety(gateWords(leg1), { modelId }).verdict, 'ok', 'without the age it would pass');
     }
+});
+
+test('the describer\'s words are never read: a sheet\'s caption or a makeup picture\'s "nude" (MPI-1156)', async () => {
+    // A child rebuilt from a sheet in swimwear is the dressed checks' (SHEET_CLOTHES_CHECKS), which
+    // refuse in the describe step, before the gate: the caption is app prose, not the user's words.
+    const v = await verdicts({ change: 'none', Input_Age: 8, sheetAge: '30', sheetClothes: 'Wearing a red swimsuit.' }, 'klein-9b');
+    assert.ok(v.every(r => r.verdict === 'ok'), JSON.stringify(v));
+    const m = await verdicts({ change: 'makeup', words: '', Input_Age: 10, sheetAge: '30', refMakeup: 'Nude lipstick, bare skin.', mediaItems: [{ role: 'image2', url: 'x' }] }, 'klein-9b');
+    assert.ok(m.every(r => r.verdict === 'ok'), JSON.stringify(m));
+    assert.ok((await verdicts({ change: 'makeup', words: 'nude', Input_Age: 10, sheetAge: '30' }, 'klein-9b')).every(r => r.verdict === 'refuse'));
 });
 
 test('16-17: the gate rule in force - ordinary swimwear passes, revealing swimwear does not', async () => {
@@ -356,10 +363,12 @@ test('16-17: the gate rule in force - ordinary swimwear passes, revealing swimwe
     assert.strictEqual(no[0].verdict, 'refuse');
 });
 
-test('runPrompt reaches the gate: configTexts does not skip it', async () => {
-    const { configTexts } = await gate();
-    const [config] = await runConfigs({ change: 'hair', words: 'a bob', Input_Age: 30, sheetAge: '40' });
-    assert.ok(configTexts(config).includes(config.injectionParams.runPrompt));
+test('every leg carries the typed words and the slider age; Keep is no age', async () => {
+    const configs = await runConfigs({ change: 'hair', words: 'a bob', Input_Age: 10, sheetAge: '40' });
+    assert.strictEqual(configs.length, 3);
+    for (const c of configs) assert.deepStrictEqual([c.userWords, c.minorAge], [['a bob'], 10]);
+    const [keep] = await runConfigs({ change: 'hair', words: 'a bob', Input_Age: -1, sheetAge: '40' });
+    assert.ok(!('minorAge' in keep));
 });
 
 // ── 3. The FlowDef ───────────────────────────────────────────────────────────

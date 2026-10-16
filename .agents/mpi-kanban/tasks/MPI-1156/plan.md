@@ -89,15 +89,39 @@ clothes" (passes), a child photo "remove her clothes" (refused), a Video Edit on
 
 ## Current State
 
-2026-10-16 (session "New character sheets 34"): Phase 1 DONE (map above). Unblocks MPI-1086 (Makeup eye tests).
-NEXT: Phase 2, the gate core in childSafety.js + its tests.
+2026-10-16 (session "New character sheets 35"): Phases 1-3 DONE. The gate reads `gateWords(config)`: `config.userWords`
+when stamped, else `[config.positive]` (the prompt box: its positive IS the typed box; app tools: fixed text).
+Stamped at: flowService (`flowGateInputs(flow, run)`, flowsRegistry.js: visible `type: 'text'` fields + run.positive,
+never negative/hidden; `setsAge` field -> `minorAge`, only CSE `Input_Age`), agentDispatch.buildGeneration (prompt +
+raw string params, not negatives), buildTool (string fields), agent Flow (`runByAgent` -> `byAgent`, so its refusal
+no longer toasts), scenePathVideo (fill line). Routines reach the gate through those three builders. Old scan
+(`configTexts`/`lookTexts`/SKIP_KEY/KEPT_KEY) and CSE `runPrompt` DELETED. Picture check still refuses a YES directly.
+NEXT: Phase 4, cached verdicts: `meta.ageVerdict = { q: hash(AGE_QUESTION), answer }` in the card sidecar
+(precedent llmService.pictureCaptions 1181-1246), asked on first use as an input; YES -> `config.pictureMinor`
+(generationService `_judgeThenQueue` passes it into `configContext` instead of `pictureCheck` refusing); edits
+inherit YES via `generationSettings.mediaItems[].url`; clips 3 frames (first/middle/last); Clothes reference YES/NO ->
+`revealingRef`. Then Phase 5: docs/child-safety.md still describes configTexts/lookTexts/runPrompt (lines ~75-130).
 
 ## Completed
 
 - Phase 1: config-source map (2026-10-16).
+- Phase 2: gate core + tests (2026-10-16).
+- Phase 3: userWords at every edge; old scan + runPrompt deleted (2026-10-16).
 
 ## Remaining Work
 
-Phases 2-5.
+Phases 4-5.
 
 ## Plan Drift
+
+- 2026-10-16 Phase 2: `configTexts`/`lookTexts`/SKIP_KEY/KEPT_KEY NOT deleted yet: they are `gateWords`' fallback until
+  Phase 3 sets `userWords` at every edge (deleting them first would open the gate). Text tier now also refuses
+  UNDRESS words and CJK/Russian nudity next to a minor ("a 12-year-old, remove her clothes" passed before). A minor
+  only from ctx + swimwear under 16 is refused, never judged (the judge reads only words). New `SWIM_SYSTEM`
+  question for non-Latin words + a ctx minor.
+- 2026-10-16 Phase 3: the unstamped default is `[positive]`, not empty: the prompt box (Gallery, History, stack, Loop,
+  preview finish) needs no stamp, and an edge someone forgets still reads its positive (no worse than before).
+  Consequence Fabio approved with "typed words only": a describer's caption of the INPUT is never read, so Video Edit
+  on a clip whose kept subject the describer calls "a young boy, naked" with innocent typed words now queues (the old
+  child-safety-gate test for it was removed). The input's age is Phase 4's picture verdict (age 16 => typed undress
+  refused); content ALREADY in the input with innocent typed words passes even after Phase 4 - raise at Phase 5.

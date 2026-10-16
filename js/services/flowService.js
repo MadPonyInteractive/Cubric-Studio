@@ -19,7 +19,7 @@ import { cloudRunFields, estimateRunCost, cloudErrorMessage } from './cloudExecu
 import { CLOUD_TAPS } from '../utils/cloudEditGraph.js';
 import {
     getFlowById, flowAvailability, flowRunAvailability, flowModelParams, flowLoraPhases, flowModelIds,
-    flowOperation, flowLegs, flowRunLegs, flowToggleLeg, flowRunValues, flowMediaCtx,
+    flowOperation, flowLegs, flowRunLegs, flowToggleLeg, flowRunValues, flowMediaCtx, flowGateInputs,
 } from '../data/flowsRegistry.js';
 import { getModelById } from '../data/modelRegistry.js';
 import { state } from '../state.js';
@@ -419,7 +419,8 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
     // project record, so it must never ride into the sidecar's `flowInputs`.
     // `runLanding` is where a routine step lands (MPI-970): queue opts, run-only for the same
     // reason. It rides every leg and every pass, so each part is one more History version.
-    const { runMediaItems, runInputs, runNextPass, runOriginProject, runLanding, ...snapshot } = inputs;
+    // `runByAgent` marks an agent-submitted run (MPI-1156): a refusal goes back to the agent, no toast.
+    const { runMediaItems, runInputs, runNextPass, runOriginProject, runLanding, runByAgent, ...snapshot } = inputs;
     const run = runInputs || snapshot;
 
     // WHICH LEG THIS CALL DISPATCHES (MPI-1041). `index` is its place in `flowLegs`; -1 is leg 1,
@@ -538,6 +539,10 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
         // id used to go out, and `getUniversalWorkflow` takes the FIRST id with a `byModel` arm,
         // so a second slot's leg ran the first slot's graph.
         flowModelIds: modelIds,
+        // What the child-safety gate reads (MPI-1156): the words the user typed into the run, and an
+        // age a field sets. Never the built prompt or a describer answer, which land after this.
+        ...flowGateInputs(flow, run),
+        ...(runByAgent ? { byAgent: true } : {}),
         // Absent, `enqueueGeneration` freezes the project open at enqueue, as it always has.
         ...(runOriginProject ? { _originProject: runOriginProject } : {}),
         // `runPass` (MPI-1101) is run-only, pulled off in the signature so it never reaches
@@ -646,7 +651,7 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
     const runCallbacks = runNextPass
         ? nextPassCallbacks(runNextPass, callbacks,
             (media, last, nextPass, done) => submitFlowGeneration(flow,
-                { ...snapshot, runInputs, runMediaItems: media, runOriginProject, runLanding,
+                { ...snapshot, runInputs, runMediaItems: media, runOriginProject, runLanding, runByAgent,
                   ...(nextPass ? { runPass: nextPass } : {}),
                   ...(nextPass?.replaceItemId ? landOnCard(done?.group, runLanding, runOriginProject) : {}),
                   ...(last ? {} : { runNextPass }) }, callbacks, { tempId, run: handle, described }, io))
@@ -674,8 +679,8 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
         if (!_leg.alone && runPass?.count > 1) config.flowStep = `${runPass.index}/${runPass.count}`;
         // Every pass but the last holds the bar on the run when it lands (statusBar.js § tool:hold).
         if (runNextPass) config.flowContinues = { step: runPass?.count > 1 ? `${runPass.index + 1}/${runPass.count}` : null };
-        // The leg's BUILT prompt (MPI-1041), here because the describe answers are in by now and
-        // the child-safety gate reads `positive` when the job is queued.
+        // The leg's BUILT prompt (MPI-1041), here because the describe answers are in by now. The
+        // child-safety gate never reads it: it reads `userWords`, stamped on the config above.
         if (builder) {
             const built = builder.build(leg?.prompt || 'change', { ...flowRunValues(flow, run), ...described });
             config.positive = built.positive;

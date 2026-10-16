@@ -99,6 +99,8 @@ export async function renderPath({ project, sceneItem, view, renderer, points, f
                 {
                     operation: 'scenePathVideo', model: { id: null, mediaType: 'video' },
                     positive: pathPrompt(style, fillLine.trim()), negative: '',
+                    // The child-safety gate reads only the line the user typed (MPI-1156).
+                    userWords: [fillLine.trim()],
                     mediaItems: [{ url: guide.filePath, mediaType: 'video', role: 'video1' }],
                 },
                 {

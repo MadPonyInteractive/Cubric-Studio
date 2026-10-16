@@ -1792,6 +1792,9 @@ export const FLOWS = [
                 // prompt as words, never sent as a number.
                 id: 'Input_Age', type: 'slider', label: 'Age', min: -1, max: 100, step: 1, default: -1,
                 valueLabels: { '-1': 'Keep', 0: 'Newborn' },
+                // The child-safety gate reads typed words only, so the age it sets reaches the gate as
+                // data (`flowGateInputs`): else Age 10 + "a bikini" would pass (MPI-1156).
+                setsAge: true,
             },
             {
                 id: 'Input_Remove_Head', type: 'toggle', label: 'Headless front body',
@@ -3370,6 +3373,24 @@ export function flowRunValues(flow, run = {}) {
     for (const [key, value] of Object.entries(run || {})) if (key !== 'injectionParams' && value != null) values[key] = value;
     for (const [key, value] of Object.entries(run?.injectionParams || {})) if (value != null) values[key] = value;
     return values;
+}
+
+/**
+ * What the child-safety gate reads of a Flow run (MPI-1156, Fabio 2026-10-16): the words the user
+ * TYPED, i.e. its visible text fields plus the run's `positive`, never a negative, a hidden field the
+ * Enhancer fills, the built prompt or a describer's answer. Plus an age a `setsAge` field puts on
+ * the person, as data (`minorAge`), since the built prompt that carries it as words is not read.
+ * @param {FlowDef} flow
+ * @param {Object} [run] - a run's inputs, as `submitFlowGeneration` takes them
+ * @returns {{ userWords: string[], minorAge?: number }}
+ */
+export function flowGateInputs(flow, run = {}) {
+    const values = flowRunValues(flow, run);
+    const fields = _declaredFields(flow);
+    const typed = fields.filter(f => f.type === 'text' && !f.hidden && !/negative/i.test(f.id)).map(f => values[f.id]);
+    const userWords = [...new Set([run?.positive, ...typed])].filter(v => typeof v === 'string' && v.trim());
+    const age = fields.filter(f => f.setsAge).map(f => Number(values[f.id])).find(n => Number.isFinite(n) && n >= 0);
+    return { userWords, ...(age !== undefined ? { minorAge: age } : {}) };
 }
 
 /**

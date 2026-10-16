@@ -729,6 +729,10 @@ export async function buildGeneration(input, project, { pinned = false, painted 
         // Explicit only — an unset seed must stay random, never pinned to 0.
         ...(seed !== undefined ? { seed } : {}),
         injectionParams: mergedInjection,
+        // What the child-safety gate reads (MPI-1156): what the agent wrote, its prompt and any raw
+        // text param it sent, never a negative.
+        userWords: [positive, ...Object.entries(owner.injectionParams || {})
+            .filter(([k, v]) => typeof v === 'string' && !/negative/i.test(k)).map(([, v]) => v)],
         byAgent: true,
         // MPI-873: where the card lands. The open project is the object enqueue would
         // freeze anyway; a closed one gets its card registered server-side.
@@ -799,6 +803,8 @@ export async function buildTool(input, project) {
             negative: '',
             mediaItems: resolved.mediaItems,
             injectionParams: run.injectionParams,
+            // The child-safety gate reads what the agent wrote into the tool's fields (MPI-1156).
+            userWords: Object.values(fields).filter(v => typeof v === 'string'),
             byAgent: true,
             _originProject: project,
         },
@@ -1121,7 +1127,7 @@ async function _submitFlow(jobId, input = {}) {
     // A Flow always lands in the gallery (Fabio, 2026-09-22), so that is where it is watched,
     // unless it lands in a project the user does not have open.
     if (target.open) _followWork(input, null);
-    const queued = submitFlowGeneration(built.flow, built.inputs, {
+    const queued = submitFlowGeneration(built.flow, { ...built.inputs, runByAgent: true }, {
         onComplete: (done) => _reportDone(jobId, done, input.cardName, null, null, target.open ? null : target.project),
         onText: async (text) => _report(jobId, { ok: true, output: await flowTextOutput(text, target.project, input.media) }),
         // A cloud failure names itself (MPI-869: e.g. LOW_BALANCE with the cost and what

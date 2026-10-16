@@ -74,6 +74,7 @@ test('renderPath: 81 guide frames over their holes -> one guide video -> the sce
     assert.deepEqual(config.model, { id: null, mediaType: 'video' });
     assert.deepEqual(config.mediaItems, [{ url: '/project-file?path=guide.mp4', mediaType: 'video', role: 'video1' }]);
     assert.equal(config.positive, `${PATH_LINE} A stylized 3D cartoon render. a cosy room`);
+    assert.deepEqual(config.userWords, ['a cosy room'], 'the child-safety gate reads only the typed line (MPI-1156)');
     assert.deepEqual([...new Set(steps)], ['style', 'guide', 'upload', 'wan']);
 });
 
