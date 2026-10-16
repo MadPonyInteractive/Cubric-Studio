@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1158", "at": "2026-10-16T10:10:39+01:00", "actor": "claude", "reason": "Fabio approved naming the model in disk-full refusals"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1158", "at": "2026-10-16T10:10:40+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "implementing"}

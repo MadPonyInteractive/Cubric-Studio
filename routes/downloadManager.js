@@ -1868,13 +1868,13 @@ router.post('/comfy/models/download/start', async (req, res) => {
         // "need 29.3 GB free, have 29.4 GB" — a correct decision that looked broken.
         const requiredBytes = neededBytes * 1.05;
         if (freeBytes !== null && freeBytes < requiredBytes) {
-            logger.warn('download', `install blocked — disk full: need ${_fmtGb(requiredBytes)} free, have ${_fmtGb(freeBytes)} at ${targetDir}`);
+            logger.warn('download', `install ${modelId} blocked — disk full: need ${_fmtGb(requiredBytes)} free, have ${_fmtGb(freeBytes)} at ${targetDir}`);
             return res.status(400).json({
                 // toast:true — the client shows this verbatim (MPI-539's cause-agnostic
                 // verdict). This message names the real drive and the real numbers; the
                 // client's generic "free up space" fallback names neither.
                 toast: true,
-                error: `Not enough disk space to install this model — ${_fmtGb(requiredBytes)} needed (5% working margin included), ${_fmtGb(freeBytes)} free at ${targetDir}.`,
+                error: `Not enough disk space to install ${_installName(modelId)} —${_fmtGb(requiredBytes)} needed (5% working margin included), ${_fmtGb(freeBytes)} free at ${targetDir}.`,
             });
         }
     }
@@ -1948,6 +1948,19 @@ async function _freeDiskBytes(dir) {
 function _fmtGb(bytes) {
     // Decimal GB (1e9 bytes), the unit RunPod, Hugging Face and macOS print. (MPI-763)
     return `${(bytes / 1e9).toFixed(1)} GB`;
+}
+
+// What a disk-full refusal names (MPI-1158): the ModelDef name, a Flow's or plugin's title,
+// else the raw job key (engine:assets). "This model" let a true refusal for Krea 2 read as a
+// false one for Krea 2 NSFW, pressed 8 s later.
+function _installName(modelId) {
+    const { MODELS } = _require('../js/data/modelConstants/models.js');
+    const { FLOWS, flowDepKey } = _require('../js/data/flowsRegistry.js');
+    const { PLUGINS, pluginDepKey } = _require('../js/data/pluginsRegistry.js');
+    return MODELS.find(m => m.id === modelId)?.name
+        || FLOWS.find(f => flowDepKey(f.id) === modelId)?.title
+        || PLUGINS.find(p => pluginDepKey(p.id) === modelId)?.title
+        || modelId;
 }
 
 // ── Free-space telemetry (MPI-716) ─────────────────────────────────────────────
@@ -2860,14 +2873,14 @@ async function _startRemoteDownload(modelId, dependencies, res, silent = false) 
       const remoteRequiredBytes = remoteNeededBytes * 1.05;
       if (freeInfo && Number.isFinite(freeInfo.freeBytes)
           && freeInfo.freeBytes < remoteRequiredBytes) {
-        logger.warn('download', `remote install blocked — volume full: need ${_fmtGb(remoteRequiredBytes)}, have ${_fmtGb(freeInfo.freeBytes)} free of ${_fmtGb(freeInfo.totalBytes)}`);
+        logger.warn('download', `remote install ${modelId} blocked — volume full: need ${_fmtGb(remoteRequiredBytes)}, have ${_fmtGb(freeInfo.freeBytes)} free of ${_fmtGb(freeInfo.totalBytes)}`);
         return res.status(400).json({
           // toast:true — shown verbatim. The old text led with `[Errno 28]`, which the
           // client's out-of-space matcher swallowed and replaced with "free up space",
           // pointing the user at the WRONG machine: the full disk is the Pod volume,
           // and no amount of local cleanup helps. (MPI-542)
           toast: true,
-          error: `Not enough disk space on the Pod volume to install this model — ${_fmtGb(remoteRequiredBytes)} needed (5% working margin included), ${_fmtGb(freeInfo.freeBytes)} free of ${_fmtGb(freeInfo.totalBytes)}.`,
+          error: `Not enough disk space on the Pod volume to install ${_installName(modelId)} —${_fmtGb(remoteRequiredBytes)} needed (5% working margin included), ${_fmtGb(freeInfo.freeBytes)} free of ${_fmtGb(freeInfo.totalBytes)}.`,
         });
       }
     }

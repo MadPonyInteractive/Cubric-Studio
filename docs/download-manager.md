@@ -925,7 +925,10 @@ multi-GB download run and die near 100%. Either half unknown (old wrapper, `du`
 fail, volume unresolved) → skip the gate, never false-block. `downloadService.js`'s
 `_firePost` 400-handler shows that `error` verbatim as a warning TOAST, never the
 GitHub-report dialog: its `err.toast` arm runs BEFORE `_isOutOfSpaceError()`, which
-is now only the fallback for a raw errno with no server-written message (MPI-542). **MPI-237:** the same telemetry backs
+is now only the fallback for a raw errno with no server-written message (MPI-542). Both gates
+name what they refused, in the toast (`_installName`: model name, Flow/plugin title, else the
+job key) and in the `install <id> blocked` log line (MPI-1158). Until then they said "this
+model", and a true refusal for Krea 2 was read as a false one for Krea 2 NSFW. **MPI-237:** the same telemetry backs
 the UI disk bar via `GET /remote/pod/disk`, which returns `{used,total,ephemeral}`
 — total resolved by the pure `resolveDiskTotalBytes(pod, volumeList)` (volume
 size, or ephemeral `containerDiskInGb`).
