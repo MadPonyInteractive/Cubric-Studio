@@ -513,6 +513,11 @@ const MINIMAX_MUSIC_ENHANCE_PARAMS = {
 const VIDEO_EDIT_PERSON = 'the main person: apparent age and gender, face and skin, hair colour, length and style, and every garment and accessory with its colour';
 const VIDEO_EDIT_PLACE = 'the place: the kind of room or location, its main furniture and objects, its surfaces and colours, and its light';
 const videoEditAsk = what => `This picture is a reference for a video edit. ${what} Reply with one or two plain sentences of concrete visual facts, starting at the subject: no preamble, no opinions, and only what is there.`;
+// MPI-1154: what a background change keeps is {who} itself, so the ask names them. "The monkey and the horse"
+// asked as "the main person" came back as the monkey alone, and template 4 kept two with one described.
+// Without the place line the horse came back "standing in a grassy field": a kept text that names the clip's
+// place keeps it (MPI-1036 V4c).
+const videoEditKeptWho = values => videoEditAsk(`Describe only ${String(values?.Input_Who || '').trim() || 'the person'}, each of them in turn if that is more than one: what they are, apparent age and gender, face and skin or fur, hair colour, length and style, and every garment and accessory with its colour. Leave out the place around them.`);
 
 /** @type {FlowDef[]} */
 // MPI-1041 - the Character Sheet Editor's clothing checks: four questions, the upper and the lower
@@ -958,7 +963,7 @@ export const FLOWS = [
             { to: 'Input_Look', media: 'image1', when: { field: 'Input_Operation', is: 4 }, ask: videoEditAsk(`Describe only ${VIDEO_EDIT_PLACE}. Leave out any people.`) },
             { to: 'Input_Look', media: 'image1', when: { field: 'Input_Operation', is: 5 }, ask: videoEditAsk('Describe the main subject of the image.') },
             { to: 'Input_Kept', media: 'video1', frame: 'first', when: [{ field: 'Input_Operation', is: 4 }, { media: 'image1' }],
-                ask: videoEditAsk(`Describe only ${VIDEO_EDIT_PERSON}.`) },
+                ask: videoEditKeptWho },
             { to: 'Input_Kept', media: 'video1', frame: 'first',
                 when: [{ field: 'Input_Operation', is: 1 }, { field: 'Input_Keep_Background', is: true }, { media: 'image1' }],
                 ask: videoEditAsk(`Describe only ${VIDEO_EDIT_PLACE}. Leave out any people.`) },

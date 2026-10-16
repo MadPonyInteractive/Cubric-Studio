@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/data/flowsRegistry.js", "js/services/flowEnhance.js", "tests/flow-describe.test.cjs", "docs/playbooks/add-flow/existing-flows/video-edit.md", ".agents/mpi-kanban/tasks/MPI-1154/"]}

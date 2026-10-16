@@ -1,0 +1,18 @@
+{
+ "monkey_horse_before": [
+  "mpi1154_monkey_horse_first.png",
+  "This picture is a reference for a video edit. Describe only the main person: apparent age and gender, face and skin, hair colour, length and style, and every garment and accessory with its colour. Reply with one or two plain sentences of concrete visual facts, starting at the subject: no preamble, no opinions, and only what is there."
+ ],
+ "monkey_horse": [
+  "mpi1154_monkey_horse_first.png",
+  "This picture is a reference for a video edit. Describe only The monkey and the horse, each of them in turn if that is more than one: what they are, apparent age and gender, face and skin or fur, hair colour, length and style, and every garment and accessory with its colour. Leave out the place around them. Reply with one or two plain sentences of concrete visual facts, starting at the subject: no preamble, no opinions, and only what is there."
+ ],
+ "dancer_named": [
+  "mpi1154_dancer_first.png",
+  "This picture is a reference for a video edit. Describe only the blonde woman, each of them in turn if that is more than one: what they are, apparent age and gender, face and skin or fur, hair colour, length and style, and every garment and accessory with its colour. Leave out the place around them. Reply with one or two plain sentences of concrete visual facts, starting at the subject: no preamble, no opinions, and only what is there."
+ ],
+ "dancer_default": [
+  "mpi1154_dancer_first.png",
+  "This picture is a reference for a video edit. Describe only the person, each of them in turn if that is more than one: what they are, apparent age and gender, face and skin or fur, hair colour, length and style, and every garment and accessory with its colour. Leave out the place around them. Reply with one or two plain sentences of concrete visual facts, starting at the subject: no preamble, no opinions, and only what is there."
+ ]
+}

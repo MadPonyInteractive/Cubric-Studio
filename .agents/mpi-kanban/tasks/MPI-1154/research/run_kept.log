@@ -1,0 +1,28 @@
+mpi-kanban: GPU 0 leased
+--- K1_monkey_horse_kept_both
+subject_definitions:
+<Video 1> is the source video for the target video edit.
+<Subject 1> is the place in <Picture 1>. {look}
+<Subject 2> is The monkey and the horse  in <Video 1>, who stays exactly as filmed: {kept}
+<Subject 3> is everything around <Subject 2> in <Video 1>: the ground, the sky and all of the background.
+
+summary:
+[video editing] The target video is an edited version of <Video 1>. <Subject 3> becomes <Subject 1>, laid out as in <Picture 1>: {look} <Subject 2> performs every move of <Video 1> exactly as filmed, with the camera framing and timing of <Video 1>.
+
+retention_analysis:
+<Video 1> (whole video): partially_preserved - the camera framing and movement and the timing of every move are kept; only <Subject 3> changes.
+<Subject 1> (appears in [Shot 1]): attribute_transfer - the place of <Picture 1>, everything in it in the same places as in <Picture 1>, with its colours and light, is transferred onto <Subject 3>.
+<Subject 2> (appears in [Shot 1]): fully_preserved - the face, hair, body, position, scale, pose, every movement and expression stay exactly as in <Video 1>.
+<Subject 3> (appears in [Shot 1]): partially_preserved - only its place in the frame is kept; what it shows is <Subject 1>.
+
+detailed_description:
+The target video has the camera framing of <Video 1> and the light of <Subject 1>.
+[Shot 1] <Subject 2> moves exactly as in <Video 1>, move for move from the first frame, at the same place in the frame and the same size, in front of <Subject 1>: {look} Its light falls on them. 
+The camera frames the shot exactly as <Video 1> does.
+
+overall_soundscape: The sound of <Video 1> continues unchanged.
+non_diegetic_music: N/A
+No text, subtitles, captions, usernames, logos or watermarks, no blur, no compression artefacts, no warped anatomy, no flicker.
+---
+K1_monkey_horse_kept_both: success in 290s -> ['/ComfyUI_temp_kurcu_00001_.png', 'mpi1036/K1_monkey_horse_kept_both_00001.mp4']
+ALL DONE

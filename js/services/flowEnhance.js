@@ -382,7 +382,8 @@ export async function enhanceFlowRun(flow, resolved, deps = { enhance: runEnhanc
 // Language Models (`llmService.describeImage`, the one describe switch point), never from a
 // describer wired into the graph (Fabio, 2026-10-08).
 //
-// Entries are `{ to, media, ask, when?, frame? }`. Per target, the FIRST entry whose media slot
+// Entries are `{ to, media, ask, when?, frame? }`; `ask` may be a function of the run's values, for a
+// question that names what the user typed (Video Edit's kept {who}, MPI-1154). Per target, the FIRST entry whose media slot
 // holds something and whose `when` rules all hold is the one asked; `when` takes the field rules
 // every Flow rule takes (`flowsRegistry.ruleHolds`) and `{ media }` (that slot holds something).
 // `frame: 'first'` describes a clip's first frame instead of the file; `crop: '<box param>'` only
@@ -431,7 +432,8 @@ export function describeAsks(flow, values = {}, mediaItems = []) {
         if (d.to) picked.set(d.to, d);
         else checks.push(d);
     }
-    return [...checks, ...[...picked.values()].filter(d => _isBlank(values[d.to]))];
+    return [...checks, ...[...picked.values()].filter(d => _isBlank(values[d.to]))]
+        .map(d => (typeof d.ask === 'function' ? { ...d, ask: d.ask(values) } : d));
 }
 
 /**

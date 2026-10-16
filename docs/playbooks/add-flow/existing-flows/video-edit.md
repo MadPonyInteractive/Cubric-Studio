@@ -130,6 +130,10 @@ preview-asset store (no card). A failed describe generates nothing and says so.
 - **A question replaces the describer's own instruction on both backends**, so each `ask` carries
   the reply shape too ("one or two plain sentences of concrete visual facts...").
 - **First entry per target wins**: template 6 (op 1 + the picture's room) is declared before op 1.
+- **Change the background's `Input_Kept` asks about Which characters (`Input_Who`) itself**, every one
+  it names, and leaves out the place (MPI-1154): asked for "the main person", "The monkey and the
+  horse" came back as the monkey alone, and a kept text naming the clip's place keeps that place. An
+  `ask` may be a function of the run's values for this.
 - **A head swap keeps the clip's hair LENGTH** unless the picture shows where the hair ends (a bun
   worked); "shoulder-length" in the words did not move it. A model limit (Fabio, 2026-10-09): a
   head-and-shoulders picture or a character sheet is the user's lever.

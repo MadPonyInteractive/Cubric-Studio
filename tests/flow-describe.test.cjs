@@ -72,7 +72,10 @@ test('a background change also describes the clip\'s own person, from its first 
     const kept = fe.describeAsks(flow, run(4), [CLIP, PIC]).find(a => a.to === 'Input_Kept');
     assert.equal(kept.media, 'video1');
     assert.equal(kept.frame, 'first');
-    assert.match(kept.ask, /Describe only the main person/);
+    assert.match(kept.ask, /^This picture is a reference for a video edit\. Describe only the person, each of them/);
+    // MPI-1154: it describes everyone {who} names, not "the main person" (the horse went undescribed).
+    const two = fe.describeAsks(flow, run(4, { Input_Who: 'The monkey and the horse ' }), [CLIP, PIC]).find(a => a.to === 'Input_Kept');
+    assert.match(two.ask, /Describe only The monkey and the horse, each of them in turn if that is more than one:/);
     for (const op of [2, 3, 5]) {
         assert.ok(!fe.describeAsks(flow, run(op), [CLIP, PIC]).some(a => a.to === 'Input_Kept'), `op ${op}`);
     }

@@ -1,0 +1,31 @@
+mpi-kanban: GPU 0 leased
+--- monkey_horse_before: A cartoon monkey with brown fur, large round eyes, and a wide smile rides atop a white horse; the monkey has short, spiky orange hair and wears no clothing or accessories.
+--- monkey_horse: The monkey is a cartoon character with brown fur, large round eyes, and a wide smile, wearing no clothing or accessories. The horse is white with a blonde mane and tail, wearing a brown bridle, standing still in a grassy field.
+--- dancer_named: A blonde woman with long, straight hair, wearing a black short-sleeved top and dark green shorts, stands with her hands clasped over her stomach.
+--- dancer_default: A blonde woman with long straight hair, wearing a black short-sleeved top and dark green shorts, stands with her hands clasped over her stomach.
+{
+ "monkey_horse_before": {
+  "image": "mpi1154_monkey_horse_first.png",
+  "question": "This picture is a reference for a video edit. Describe only the main person: apparent age and gender, face and skin, hair colour, length and style, and every garment and accessory with its colour. Reply with one or two plain sentences of concrete visual facts, starting at the subject: no preamble, no opinions, and only what is there.",
+  "answer": "A cartoon monkey with brown fur, large round eyes, and a wide smile rides atop a white horse; the monkey has short, spiky orange hair and wears no clothing or accessories.",
+  "status": "success"
+ },
+ "monkey_horse": {
+  "image": "mpi1154_monkey_horse_first.png",
+  "question": "This picture is a reference for a video edit. Describe only The monkey and the horse, each of them in turn if that is more than one: what they are, apparent age and gender, face and skin or fur, hair colour, length and style, and every garment and accessory with its colour. Reply with one or two plain sentences of concrete visual facts, starting at the subject: no preamble, no opinions, and only what is there.",
+  "answer": "The monkey is a cartoon character with brown fur, large round eyes, and a wide smile, wearing no clothing or accessories. The horse is white with a blonde mane and tail, wearing a brown bridle, standing still in a grassy field.",
+  "status": "success"
+ },
+ "dancer_named": {
+  "image": "mpi1154_dancer_first.png",
+  "question": "This picture is a reference for a video edit. Describe only the blonde woman, each of them in turn if that is more than one: what they are, apparent age and gender, face and skin or fur, hair colour, length and style, and every garment and accessory with its colour. Reply with one or two plain sentences of concrete visual facts, starting at the subject: no preamble, no opinions, and only what is there.",
+  "answer": "A blonde woman with long, straight hair, wearing a black short-sleeved top and dark green shorts, stands with her hands clasped over her stomach.",
+  "status": "success"
+ },
+ "dancer_default": {
+  "image": "mpi1154_dancer_first.png",
+  "question": "This picture is a reference for a video edit. Describe only the person, each of them in turn if that is more than one: what they are, apparent age and gender, face and skin or fur, hair colour, length and style, and every garment and accessory with its colour. Reply with one or two plain sentences of concrete visual facts, starting at the subject: no preamble, no opinions, and only what is there.",
+  "answer": "A blonde woman with long straight hair, wearing a black short-sleeved top and dark green shorts, stands with her hands clasped over her stomach.",
+  "status": "success"
+ }
+}
