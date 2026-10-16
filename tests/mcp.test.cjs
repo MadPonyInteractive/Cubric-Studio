@@ -40,7 +40,7 @@ const placed = [];
 const routineCalls = [];
 const installs = []; // MPI-1126: every install route call, in order
 const imports = []; // MPI-1140: every import-media route call
-const cardImports = []; // MPI-1136: every import-card route call
+const cardSends = []; // MPI-1136: every send-cards route call
 let engineInstalled = false;
 
 test.before(async () => {
@@ -110,7 +110,7 @@ test.before(async () => {
     app.get('/connector/cards/:groupId', (_q, r) => r.json({ ok: true, card: { groupId: 'g1', ref: 'card.png', madeFrom: [{ role: 'inputImage', ref: 'src.png' }] }, files: { 'card.png': { path: cardFile, itemId: 'it9' }, 'src.png': { path: outside } } }));
     app.post('/connector/rename-card', (q, r) => r.json({ ok: true, output: q.body }));
     app.post('/connector/import-media', (q, r) => { imports.push(q.body); r.json(DONE); });
-    app.post('/connector/import-card', (q, r) => { cardImports.push(q.body); r.json(DONE); });
+    app.post('/connector/send-cards', (q, r) => { cardSends.push(q.body); r.json(DONE); });
     app.post('/connector/gif/cutout', (q, r) => setTimeout(() => r.json(DONE), 700));
     // MPI-1009: the routine routes. `paid` bills, `needs-model` lacks a model, `odd` refuses at
     // once; any other run answers after 700 ms, past the 300 ms early-refusal window.
@@ -173,7 +173,7 @@ test('a notification is answered 202 with no body', async () => {
 test('tools/list names every tool, each with a title, annotations and an object schema', async () => {
     const { result } = await (await rpc('tools/list')).json();
     const names = result.tools.map((t) => t.name);
-    assert.deepEqual(names, ['status', 'list_models', 'describe_model', 'list_projects', 'create_project', 'open_project', 'list_cards', 'view_card', 'rename_card', 'import_media', 'import_card', 'generate', 'wait_generation', 'cancel_generation', 'install_model', 'install_flow', 'install_engine', 'read_knowledge', 'make_gif', 'edit_gif', 'cutout_gif', 'gif_to_video', 'make_sheet',
+    assert.deepEqual(names, ['status', 'list_models', 'describe_model', 'list_projects', 'create_project', 'open_project', 'list_cards', 'view_card', 'rename_card', 'import_media', 'send_cards', 'generate', 'wait_generation', 'cancel_generation', 'install_model', 'install_flow', 'install_engine', 'read_knowledge', 'make_gif', 'edit_gif', 'cutout_gif', 'gif_to_video', 'make_sheet',
         'list_routines', 'save_routine', 'rename_routine', 'delete_routine', 'run_routine']);
     for (const t of result.tools) {
         assert.equal(t.inputSchema.type, 'object');
@@ -288,18 +288,23 @@ test('import_media sends the file and the named project, and answers with the ca
     fs.rmSync(named, { recursive: true, force: true });
 });
 
-test('import_card names both projects and the card, and answers with the copy on disk (MPI-1136)', async () => {
+test('send_cards names the cards or picks them, names the target or a new project, and answers with the copy on disk (MPI-1136)', async () => {
     const from = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-ep1-'));
     const to = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-ep2-'));
     for (const p of [from, to]) fs.writeFileSync(path.join(p, 'project.json'), '{}');
     try {
-        const r = await call('import_card', { sourceFolderPath: from, groupId: 'g7', folderPath: to, cardName: 'Mira' });
+        const r = await call('send_cards', { sourceFolderPath: from, groupIds: ['g7'], folderPath: to, cardName: 'Mira' });
         assert.equal(JSON.parse(r.content[0].text).output.filePath, png, 'the disk path, not the renderer URL');
-        assert.equal(r.content[1].type, 'image', 'with a picture of the card');
-        assert.deepEqual(cardImports.at(-1), { sourceFolderPath: from, groupId: 'g7', folderPath: to, cardName: 'Mira' });
-        const noSource = JSON.parse((await call('import_card', { sourceFolderPath: media, groupId: 'g7', folderPath: to })).content[0].text);
+        assert.equal(r.content[1].type, 'image', 'with a picture of the first copy');
+        assert.deepEqual(cardSends.at(-1), { sourceFolderPath: from, groupIds: ['g7'], folderPath: to, cardName: 'Mira' });
+        await call('send_cards', { sourceFolderPath: from, kind: 'video', mark: 'triangle', newest: 2, newProject: 'Episode 3' });
+        assert.deepEqual(cardSends.at(-1), { sourceFolderPath: from, kind: 'video', mark: 'triangle', newest: 2, newProject: 'Episode 3' }, 'picked by the route, into a new project');
+        const before = cardSends.length;
+        const noSource = JSON.parse((await call('send_cards', { sourceFolderPath: media, groupIds: ['g7'], folderPath: to })).content[0].text);
         assert.equal(noSource.error.code, 'PROJECT_NOT_FOUND');
-        assert.equal(cardImports.length, 1, 'a refused call reaches no route');
+        assert.equal(JSON.parse((await call('send_cards', { sourceFolderPath: from, groupIds: ['g7'] })).content[0].text).error.code, 'BAD_REQUEST', 'no target');
+        assert.equal(JSON.parse((await call('send_cards', { sourceFolderPath: from, folderPath: to })).content[0].text).error.code, 'BAD_REQUEST', 'no cards');
+        assert.equal(cardSends.length, before, 'a refused call reaches no route');
     } finally {
         for (const p of [from, to]) fs.rmSync(p, { recursive: true, force: true });
     }

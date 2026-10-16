@@ -202,6 +202,25 @@ export async function listCards(folderPath, { limit = DEFAULT_LIMIT, mark } = {}
 }
 
 /**
+ * MPI-1136: which cards "send the last two", "all the videos", "every triangle" means. Every
+ * card a listing would count (archived and stacks left out, a stack's members IN: "all the
+ * videos" are the videos wherever they sit), newest first, filtered by kind (the card's
+ * `type`) and mark (`markOf`), then the newest `newest` of what is left.
+ * @returns {Promise<string[]>} group ids, newest first
+ */
+export async function selectCards(folderPath, { kind, mark, newest } = {}) {
+    const project = await _project(folderPath);
+    if (mark && !CARD_MARKS.some((m) => m.id === mark)) {
+        throw new MemoryError('BAD_REQUEST', `mark must be one of: ${CARD_MARKS.map((m) => m.id).join(', ')}.`);
+    }
+    const ids = _groups(project)
+        .filter((g) => !isStack(g) && (!kind || g.type === kind) && (!mark || markOf(g) === mark))
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))
+        .map((g) => g.id);
+    return Number(newest) > 0 ? ids.slice(0, Number(newest)) : ids;
+}
+
+/**
  * Rows for the group ids the RENDERER named, in ITS order: the gallery's visible set
  * (`GET /connector/visible-cards`). Deliberately not `_groups()` — the archived scope shows
  * exactly the cards that filter drops. `total` is how many are showing, before `limit`.

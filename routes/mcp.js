@@ -13,7 +13,7 @@
  * (`routes/connector.js` header). The catalogue is shrunk by the same `compactCatalogue`
  * the in-app agent reads, because the raw list is ~9.5k tokens.
  *
- * MPI-593 phase 2: twenty-eight tools (MPI-1140 adds import_media, MPI-1136 import_card), and one that deletes: `delete_routine` (MPI-1009), which
+ * MPI-593 phase 2: twenty-eight tools (MPI-1140 adds import_media, MPI-1136 send_cards), and one that deletes: `delete_routine` (MPI-1009), which
  * moves the agent-made routine to `routines/deleted/`. MPI-1126 added three that install (a model,
  * a Flow, the local engine), each behind `askDownload`. The in-app agent's gates live in `agentLoop._executeTool`, not
  * in the routes, so this file carries its own spend gate (`spendGate`). The guide gate is only
@@ -92,7 +92,8 @@ async function present(r, job) {
     if (!r?.ok || typeof out?.filePath !== 'string') return r;
     const filePath = diskPath(out.filePath);
     const image = out.type === 'image' || out.type === 'video' ? await thumbnail(filePath, out.itemId, out.type) : null;
-    return { ...r, output: { ...out, filePath }, ...(image ? { _image: image } : {}) };
+    const cards = Array.isArray(out.cards) ? { cards: out.cards.map((c) => ({ ...c, filePath: diskPath(c.filePath) })) } : {};
+    return { ...r, output: { ...out, filePath, ...cards }, ...(image ? { _image: image } : {}) };
 }
 
 function diskPath(p) {
@@ -435,23 +436,34 @@ const TOOLS = {
             return waitForJob(startJob(() => t.importMedia({ sourcePath, folderPath: open.folder, ...(cardName ? { cardName } : {}) })), rpcKey);
         },
     },
-    import_card: {
-        title: 'Import a card from another project',
-        description: 'Copy a card from one project into another, exactly as the user\'s Add to project does: the version it shows, with the prompt and settings that made it and its name. The source card is not touched. For series work: one project per episode, reusing a character or a Story card from an earlier one. Returns the new card\'s path on disk, its groupId and a small picture of it. A 3D Scene card can take a minute and returns { running: true, jobId }: wait_generation finishes it.',
+    send_cards: {
+        title: 'Send cards to another project',
+        description: 'Copy cards to another project, exactly as the user\'s Add to project does: "take these to project X", "send the last two to a new project", "all the videos", "every triangle". Each copy keeps the version the card shows, the prompt and settings that made it, and its name; the cards themselves are not touched. Name the cards with groupIds, or pick them with kind, mark and newest. Name the target with folderPath (the user\'s view does not move), or newProject to create one, which then opens so the work carries on there. Returns how many were copied, each copy\'s path and groupId, and a picture of the first. A 3D Scene card can take a minute and returns { running: true, jobId }: wait_generation finishes it.',
         inputSchema: obj({
-            sourceFolderPath: { type: 'string', description: 'The project the card is in, from list_projects. It need not be open.' },
-            groupId: { type: 'string', description: 'The card, from list_cards with that sourceFolderPath. A stack cannot be imported whole: list its cards and import each.' },
-            folderPath: { type: 'string', description: 'The project it lands in, from list_projects or create_project. It need not be open. Omit only to use whatever project the app has open.' },
-            cardName: { type: 'string', description: 'A short name for the copy. Omit to keep the card\'s own name.' },
-        }, ['sourceFolderPath', 'groupId']),
+            sourceFolderPath: { type: 'string', description: 'The project the cards are in, from list_projects. It need not be open. Omit for the project the app has open.' },
+            groupIds: { type: 'array', items: { type: 'string' }, description: 'The cards, from list_cards with that project. A stack sends all its cards.' },
+            kind: { type: 'string', enum: ['image', 'video', 'audio'], description: 'Without groupIds: only cards of this kind.' },
+            mark: { type: 'string', enum: ['dot', 'square', 'triangle'], description: 'Without groupIds: only cards with this mark.' },
+            newest: { type: 'integer', description: 'Without groupIds: only the newest N ("the last two we made"). Omit for all that match.' },
+            folderPath: { type: 'string', description: 'The project they land in, from list_projects or create_project. It need not be open.' },
+            newProject: { type: 'string', description: 'Instead of folderPath: the name of a project to create for them. It opens once they are in.' },
+            cardName: { type: 'string', description: 'One card only: a short name for the copy. Omit to keep its own name.' },
+        }),
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-        run: async ({ sourceFolderPath, groupId, folderPath, cardName }, rpcKey) => {
+        run: async ({ sourceFolderPath, groupIds, kind, mark, newest, folderPath, newProject, cardName }, rpcKey) => {
             const t = await tools();
-            const open = await openFolder(t, folderPath);
-            if (open.error) return open.error;
             const source = await openFolder(t, sourceFolderPath);
             if (source.error) return source.error;
-            return waitForJob(startJob(() => t.importCard({ sourceFolderPath: source.folder, groupId, folderPath: open.folder, ...(cardName ? { cardName } : {}) })), rpcKey);
+            if (!folderPath && !newProject) return { ok: false, error: { code: 'BAD_REQUEST', message: 'Name where they go: folderPath from list_projects, or newProject to create one.' } };
+            if (!groupIds?.length && !kind && !mark && !newest) return { ok: false, error: { code: 'BAD_REQUEST', message: 'Name the cards with groupIds, or pick them with kind, mark or newest.' } };
+            let target = null;
+            if (!newProject) {
+                const open = await openFolder(t, folderPath);
+                if (open.error) return open.error;
+                target = open.folder;
+            }
+            const body = { sourceFolderPath: source.folder, ...(groupIds?.length ? { groupIds } : { kind, mark, newest }), ...(newProject ? { newProject } : { folderPath: target }), ...(cardName ? { cardName } : {}) };
+            return waitForJob(startJob(() => t.sendCards(body)), rpcKey);
         },
     },
     generate: {

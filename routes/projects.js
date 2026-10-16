@@ -2970,7 +2970,7 @@ function copiedItemResponse(id, meta) {
  *
  * Returns { success, added: number, groups }: `groups` are the new cards HYDRATED (each
  * history entry is its sidecar, as `reconcileAndHydrate` makes it), so a caller whose
- * target is the OPEN project can `addGroup` them (MPI-1136, the agents' `import_card`).
+ * target is the OPEN project can `addGroup` them (MPI-1136, the agents' `send_cards`).
  */
 router.post('/project-media/:projectId/add-from-cards', async (req, res) => {
     try {

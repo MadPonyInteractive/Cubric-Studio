@@ -1735,58 +1735,60 @@ async function _importMedia(jobId, input = {}) {
 }
 
 /**
- * Run one `card.import` job (MPI-1136): a card from one project copied into another, for
- * series work (one project per episode). The gallery's own Add to project route
- * (`add-from-cards`) does the copy, so an agent's import and a user's are the same card:
- * the shown version, its sidecar (prompt, seed, settings) and its name. That route writes
- * `project.json`, which is right for a closed target; while the target is OPEN this renderer
- * owns its `itemGroups`, so the hydrated card it hands back goes through `addGroup` too, or
- * the next save would drop it (the reason `/connector/rename-card` gives).
+ * Run one `card.import` job (MPI-1136): cards from one project copied into another, the way
+ * Fabio works ("send these to project X", "the last two to a new project"). The gallery's own
+ * Add to project route (`add-from-cards`) does the copy, all cards in one call, so an agent's
+ * copy and a user's are the same card: the shown version, its sidecar (prompt, seed, settings)
+ * and its name. That route writes `project.json`, which is right for a closed target; while
+ * the target is OPEN this renderer owns its `itemGroups`, so the hydrated cards it hands back
+ * go through `addGroup` too, or the next save would drop them (the reason
+ * `/connector/rename-card` gives). A stack sends its cards.
  */
 async function _importCard(jobId, input = {}) {
-    const { sourceFolderPath, groupId, cardName } = input;
+    const { sourceFolderPath, groupIds = [], cardName } = input;
     const source = await targetProject({ folderPath: sourceFolderPath });
     if (source.error) return _fail(jobId, source.error.code, source.error.message);
-    const group = source.project?.itemGroups?.find(g => g.id === groupId);
-    if (!group) return _fail(jobId, 'NO_SUCH_CARD', `No card "${groupId}" in the project at "${sourceFolderPath}". Use a groupId list_cards gives for that folderPath.`);
-    if (isStack(group)) return _fail(jobId, 'STACK', 'That is a stack, which holds no picture of its own. list_cards with its groupId lists its cards: import those one at a time.');
-    const item = getSelectedItem(group);
-    if (!item?.filePath) return _fail(jobId, 'NO_SUCH_CARD', `Card "${groupId}" has no media to copy.`);
+    const byId = new Map((source.project?.itemGroups || []).map(g => [g.id, g]));
+    const missing = groupIds.filter(id => !byId.has(id));
+    if (missing.length) return _fail(jobId, 'NO_SUCH_CARD', `No card ${missing.map(id => `"${id}"`).join(', ')} in the project at "${sourceFolderPath}". Use groupIds list_cards gives for that folderPath.`);
+    const groups = [...new Set(groupIds.flatMap(id => (isStack(byId.get(id)) ? byId.get(id).members || [] : [id])))]
+        .map(id => byId.get(id)).filter(g => g && getSelectedItem(g)?.filePath);
+    if (!groups.length) return _fail(jobId, 'NO_CARDS', 'Those cards hold no media to copy.');
 
     const target = await targetProject(input);
     if (target.error) return _fail(jobId, target.error.code, target.error.message);
     const { project, open } = target;
     if (!project) return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Name one with folderPath, or open one, then send this again.');
-    const label = group.customName || group.name || 'card';
-    const tempId = crypto.randomUUID();
-    if (open) Events.emit('media:import-started', { tempId, filename: label, mediaType: group.type });
+    const label = groups.length === 1 ? (groups[0].customName || groups[0].name || 'card') : `${groups.length} cards`;
+    const tempIds = open ? groups.map(g => {
+        const tempId = crypto.randomUUID();
+        Events.emit('media:import-started', { tempId, filename: g.customName || g.name || 'card', mediaType: g.type });
+        return tempId;
+    }) : [];
     try {
         const res = await fetch(`/project-media/${project.id}/add-from-cards`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 folderPath: project.folderPath,
-                cards: [{ type: group.type, name: group.name, customName: cardName?.trim() || group.customName, item }],
+                cards: groups.map(g => ({ type: g.type, name: g.name, customName: (groups.length === 1 && cardName?.trim()) || g.customName, item: getSelectedItem(g) })),
             }),
         });
         const data = await res.json().catch(() => ({}));
-        const copy = data.groups?.[0];
-        if (!res.ok || !data.success || !copy) return _fail(jobId, 'IMPORT_FAILED', `Could not import "${label}": ${data.error || res.status}.`);
-        if (open) await addGroup(copy);
-        const copied = copy.history[0];
-        return _report(jobId, {
-            ok: true,
-            output: {
-                itemId: copied.id, groupId: copy.id, type: copy.type, filePath: copied.filePath,
-                pixelDimensions: copied.pixelDimensions,
-                ...(copy.customName ? { cardName: copy.customName } : {}),
-            },
-        });
+        const copies = data.groups || [];
+        if (!res.ok || !data.success || !copies.length) return _fail(jobId, 'IMPORT_FAILED', `Could not copy ${label}: ${data.error || res.status}.`);
+        if (open) for (const copy of copies) await addGroup(copy);
+        const cards = copies.map(copy => ({
+            itemId: copy.history[0].id, groupId: copy.id, type: copy.type, filePath: copy.history[0].filePath,
+            pixelDimensions: copy.history[0].pixelDimensions,
+            ...(copy.customName ? { cardName: copy.customName } : {}),
+        }));
+        return _report(jobId, { ok: true, output: { ...cards[0], copied: cards.length, cards } });
     } catch (err) {
         clientLogger.warn('connector', 'card.import failed', err);
-        return _fail(jobId, 'IMPORT_FAILED', `Could not import "${label}": ${err.message}.`);
+        return _fail(jobId, 'IMPORT_FAILED', `Could not copy ${label}: ${err.message}.`);
     } finally {
-        if (open) Events.emit('media:import-settled', { tempId });
+        for (const tempId of tempIds) Events.emit('media:import-settled', { tempId });
     }
 }
 

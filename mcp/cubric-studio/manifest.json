@@ -43,7 +43,7 @@
     { "name": "view_card", "description": "Look at an image, or a video or GIF as a sheet of frames." },
     { "name": "rename_card", "description": "Name a gallery card." },
     { "name": "import_media", "description": "Add an image, video or audio file from disk to the gallery as a card." },
-    { "name": "import_card", "description": "Copy a card from another project into this one." },
+    { "name": "send_cards", "description": "Copy cards to another project or a new one." },
     { "name": "generate", "description": "Generate an image or video, or run a Flow, from a prompt and your own pictures." },
     { "name": "wait_generation", "description": "Check on a generation that is still running." },
     { "name": "cancel_generation", "description": "Stop a running generation." },

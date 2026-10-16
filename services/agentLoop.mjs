@@ -258,7 +258,6 @@ export const TOOL_DEFS = [
             parameters: {
                 type: 'object',
                 properties: {
-                    folderPath: { type: 'string', description: 'Another project, from list_projects, to find a card for import_card. Its rows have no ref.' },
                     groupId: { type: 'string', description: 'A groupId from the list, to read that one card in full.' },
                     limit: { type: 'integer', description: 'How many cards to list, newest first. Default 12, at most 30.' },
                     mark: { type: 'string', enum: ['dot', 'square', 'triangle'], description: 'Only the cards the user marked with this shape. "dot" is the one that draws as a circle. A row carries its mark when it has one.' },
@@ -270,16 +269,18 @@ export const TOOL_DEFS = [
     {
         type: 'function',
         function: {
-            name: 'import_card',
-            description: 'Copy a card from another project into the open one, with its prompt and name: a character or Story card from an earlier episode. The copy\'s ref works at once.',
+            name: 'send_cards',
+            description: 'Copy cards from the open project to another one, as Add to project does; each keeps its prompt and name. Pick them by cards, or by kind, mark and newest ("the last two", "all the videos"). folderPath: the user stays here. newProject: it is created, then opened.',
             parameters: {
                 type: 'object',
                 properties: {
-                    sourceFolderPath: { type: 'string', description: 'From list_projects.' },
-                    groupId: { type: 'string', description: 'From list_cards with that folderPath.' },
-                    cardName: { type: 'string', description: 'Omit to keep its name.' },
+                    cards: { type: 'array', items: { type: 'string' }, description: 'Card refs; a set ref sends all its cards.' },
+                    kind: { type: 'string', enum: ['image', 'video', 'audio'] },
+                    mark: { type: 'string', enum: ['dot', 'square', 'triangle'] },
+                    newest: { type: 'integer', description: 'Only the newest N.' },
+                    folderPath: { type: 'string', description: 'From list_projects.' },
+                    newProject: { type: 'string' },
                 },
-                required: ['sourceFolderPath', 'groupId'],
                 additionalProperties: false,
             },
         },
@@ -1073,9 +1074,38 @@ export class AgentLoop {
     }
 
     /** Register a generation's output so a later `look` or reference can name it. */
-    _registerResult(filePath, modelId = null, itemId = null) {
+    _registerResult(filePath, modelId = null, itemId = null, groupId = null) {
         if (!filePath || typeof filePath !== 'string') return;
-        this._images.set(filePath, { path: _decodeProjectFileUrl(filePath), kind: 'result', modelId, itemId });
+        this._images.set(filePath, { path: _decodeProjectFileUrl(filePath), kind: 'result', modelId, itemId, groupId });
+    }
+
+    /**
+     * MPI-1136: cards OUT of the open project, the gallery's Add to project done by the agent
+     * ("send these to project X", "the last two to a new project", "all the videos"). One
+     * `/connector/send-cards` call, the same one MCP makes: by ref, or by kind / mark / newest,
+     * which the route resolves off disk. A plain send leaves the view where it is; a newProject
+     * is opened once the cards are in ("let's continue from there"). A ref with no card behind
+     * it is refused by name.
+     */
+    async _sendCards(args, currentProject) {
+        const fail = (code, message) => ({ ok: false, error: { code, message } });
+        if (!currentProject?.folderPath) return fail('NO_PROJECT', 'No project is open, so there are no cards to send.');
+        const refs = [].concat(args.cards || []).flatMap((c) => (String(c).startsWith('set:') && this._sets.get(String(c).slice(4))) || [String(c)]);
+        const missing = refs.filter((r) => !this._resolveImage(r)?.groupId);
+        if (missing.length) return fail('NOT_A_CARD', `Not a gallery card: ${missing.join(', ')}. Use refs from list_cards or visible_cards, a dragged card, or a finished generation.`);
+        if (!refs.length && !args.kind && !args.mark && !args.newest) return fail('BAD_REQUEST', 'Name the cards, or pick them with kind, mark or newest.');
+        if (!args.newProject && !this._mayOpen(args.folderPath, currentProject)) {
+            return fail('UNKNOWN_PROJECT', 'Name a folderPath from list_projects or one the user typed, or pass newProject.');
+        }
+        const r = await this._tools.sendCards({
+            sourceFolderPath: currentProject.folderPath,
+            ...(refs.length ? { groupIds: [...new Set(refs.map((ref) => this._resolveImage(ref).groupId))] } : { kind: args.kind, mark: args.mark, newest: args.newest }),
+            ...(args.newProject ? { newProject: args.newProject } : { folderPath: args.folderPath }),
+        });
+        if (!r?.ok) return r;
+        if (r.output?.folderPath) this._projects.add(projectKey(r.output.folderPath));
+        const { copied, folderPath, opened, cards = [] } = r.output || {};
+        return { ok: true, copied, folderPath, ...(opened !== undefined ? { opened } : {}), names: cards.map((c) => c.cardName).filter(Boolean) };
     }
 
     /**
@@ -1123,7 +1153,7 @@ export class AgentLoop {
         const r = await run(body);
         if (!r?.ok || !r.output) return JSON.stringify(r);
         const { itemId, ...output } = r.output;
-        this._registerResult(output.filePath, null, itemId);
+        this._registerResult(output.filePath, null, itemId, output.groupId);
         // rename_card reaches only cards this conversation MADE. edit and cutout land on a
         // card that was already there, which may be the user's own.
         if (newCard && output.groupId) this._groups.add(output.groupId);
@@ -2343,7 +2373,7 @@ ${knowledgeIndex}`.trim();
                     this._inflight.delete(toolCallId);
                     this._gpuJobs.delete(toolCallId);
                     const cancelled = this._askedCancel.delete(toolCallId) && !ok;
-                    if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId, r.output.itemId);
+                    if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId, r.output.itemId, r.output.groupId);
                     if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
                     if (ok) this._addSpend('genUsd', r.output?.costUsd);
                     // MPI-941 — a batch item reports to its batch, never to the chat or the notes.
@@ -2522,20 +2552,6 @@ ${knowledgeIndex}`.trim();
             }
             case 'list_cards': {
                 // The project is the one the app has open, never a path the model names.
-                // MPI-1136: ANOTHER project is read for import_card only. Its refs are not
-                // registered: a file there is not this project's, so nothing but import reaches it.
-                if (args.folderPath && projectKey(args.folderPath) !== projectKey(currentProject?.folderPath)) {
-                    if (!this._mayOpen(args.folderPath, currentProject)) {
-                        return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_PROJECT', message: 'Name only a folderPath from list_projects, or one the user typed.' } });
-                    }
-                    const r = await this._tools.listCards(args.folderPath, args.groupId, args.limit, args.mark);
-                    if (!r?.ok) return JSON.stringify(r);
-                    const { files: _f, sets: _s, ...seen } = r;
-                    const bare = ({ ref: _r, ...row }) => row;
-                    if (seen.cards) seen.cards = seen.cards.map(bare);
-                    if (seen.card) seen.card = { ...bare(seen.card), madeFrom: undefined, ...(seen.card.members ? { members: seen.card.members.map(bare) } : {}) };
-                    return JSON.stringify(seen);
-                }
                 if (!currentProject?.folderPath) {
                     return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open, so there are no cards to list.' } });
                 }
@@ -2547,16 +2563,8 @@ ${knowledgeIndex}`.trim();
                 this._rulesSent.add('repeat');
                 return JSON.stringify({ ...card, repeat: REPEAT_RULE });
             }
-            case 'import_card': {
-                if (!currentProject?.folderPath) {
-                    return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open to import into. Open or create one first.' } });
-                }
-                if (!this._mayOpen(args.sourceFolderPath, currentProject)) {
-                    return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_PROJECT', message: 'Name only a folderPath from list_projects, or one the user typed.' } });
-                }
-                const body = { sourceFolderPath: args.sourceFolderPath, groupId: args.groupId, folderPath: currentProject.folderPath, ...(args.cardName ? { cardName: args.cardName } : {}) };
-                return this._gif((b) => this._tools.importCard(b), {}, body, true);
-            }
+            case 'send_cards':
+                return JSON.stringify(await this._sendCards(args, currentProject));
             case 'visible_cards':
                 return this._seeCards(await this._tools.visibleCards(args.limit));
             case 'mark_card':
@@ -3547,8 +3555,8 @@ function _toolLabel(toolName, args) {
         case 'create_project': return `Creating project: ${args.name || ''}`;
         case 'open_project':   return `Opening project`;
         case 'rename_card':    return `Naming a card: ${args.name || ''}`;
-        case 'list_cards':     return args.groupId ? 'Reading a card' : args.folderPath ? 'Looking through another project' : 'Looking through the project';
-        case 'import_card':    return 'Bringing in a card from another project';
+        case 'list_cards':     return args.groupId ? 'Reading a card' : 'Looking through the project';
+        case 'send_cards':     return `Copying ${[].concat(args.cards || []).length === 1 ? 'a card' : 'cards'} to ${args.newProject ? `a new project: ${args.newProject}` : 'another project'}`;
         case 'visible_cards':  return 'Looking at what the gallery shows';
         case 'mark_card':      return args.mark === 'none' ? 'Clearing a card mark' : 'Marking a card';
         case 'gif':

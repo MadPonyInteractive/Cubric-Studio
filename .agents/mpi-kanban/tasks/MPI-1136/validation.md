@@ -1,33 +1,52 @@
 # MPI-1136 validation
 
-## What shipped
+## Round 3 (2026-10-16): how Fabio picks the cards he sends
 
-- One import path: the gallery's own Add to project route (`POST /project-media/:id/add-from-cards`).
-  It now also answers `groups` (the new cards, hydrated), so a caller whose target is the OPEN
-  project can `addGroup` them instead of being overwritten by the renderer's next save.
-- `POST /connector/import-card { sourceFolderPath, groupId, folderPath?, cardName? }` -> renderer
-  job `card.import` (`agentDispatch._importCard`). Open target: the drop's spinner card + `addGroup`.
-- MCP `import_card` (routes/mcp.js, 28 tools; manifest 0.3.2 lists it) and Cosmo `import_card`
-  (agentLoop, always into the open project) both call `agentTools.importCard`.
-- Cosmo's `list_cards` takes `folderPath` for ANOTHER project (only a listed or typed one), rows
-  without refs, nothing registered: a card there is reachable only by importing it.
-- Cosmo tool-schema budget raised 15,333 -> 16,030 (+707) in tests/agent-prompt-budget.test.cjs.
+Fabio: "send these last two cards that we created to a new project, and let's continue from
+there. Or send all the cards that are audio to a new project, or all the cards that are video,
+or all the cards that are marked with a dot, triangle, or whatever." On Cosmo AND MCP.
+
+- ONE tool name and ONE route on both surfaces: `send_cards` -> `POST /connector/send-cards`.
+  Cards by hand (MCP `groupIds`, Cosmo refs; a stack or a dropped selection sends all its cards),
+  or picked with `kind` (image / video / audio), `mark` (dot / square / triangle, via `markOf`, so
+  a legacy heart is a dot) and `newest` (the last N made), newest first. The route picks them off
+  disk (`agentCards.selectCards`: stack members in, archived and stacks out) and copies them all
+  in ONE call to the gallery's Add to project route.
+- Target: `folderPath` (open or closed; the view stays put), or `newProject`, which the route
+  creates and then OPENS once the cards are in ("let's continue from there"). Cosmo's chat then
+  moves to that project's own conversation, as `create_project` does today.
+- `list_cards` (both) already shows kind, mark and createdAt, newest first: unchanged.
+- MCP `import_card` (round 1) is now `send_cards`; Cosmo's pull-in tool stays gone (round 2).
+- Cosmo tool-schema budget: 15,323 -> 16,121 (+798).
+
+## Round 1 (kept): the shared copy
+
+The gallery's `add-from-cards` route also answers the new cards hydrated (`groups`), so a copy into
+the OPEN project goes through `addGroup` and is not lost to the next save.
 
 ## Evidence
 
-- `npm test` green (see commit).
-- New: tests/import-card.test.cjs (Cosmo), tests/mcp.test.cjs `import_card` case.
-- Live, 2026-10-16, own `app:isolated` (scratch profile + APP_DOCUMENTS, port 57973) over MCP:
-  created "MPI-1136 Episode 1" and "Episode 2" (2 open), import_media a picture into 1 as "Mira",
-  import_card 1 -> 2 (OPEN target): copy landed, list_cards and project.json agree; rename_card on
-  the copy then found it in the renderer's state and the save kept it. import_card 2 -> 1 (CLOSED
-  target) with cardName "Mira copy back": landed with the new name. A made-up groupId: NO_SUCH_CARD.
-  Source file untouched.
-- NOT verified live: Cosmo (the scratch profile has no LLM key). Covered by the unit test only.
+- `npm test` green; tests/import-card.test.cjs pins `selectCards` (newest, kind, mark, legacy
+  heart, stacks, archived) and Cosmo's `send_cards` (refs, set refs, a generation's own result,
+  attachment refused, made-up target refused, new project opened); tests/mcp.test.cjs the MCP tool.
+- Live over MCP, 2026-10-16, own `app:isolated` (scratch profile + APP_DOCUMENTS), projects
+  "MPI-1136 Source" (Red, Green, Blue; Green marked triangle) and "MPI-1136 Target":
+  - two cards by hand to the CLOSED Target: copied 2, view stayed on Source;
+  - `mark: triangle` to Target: Green only;
+  - `kind: image, newest: 2, newProject: "MPI-1136 Episode 3"`: Blue + Green copied, Episode 3
+    became the open project;
+  - from the now-closed Source into the OPEN Episode 3, `cardName: "Blue again"`: landed, and a
+    rename through the renderer afterwards kept it on disk;
+  - `kind: audio` -> NO_CARDS; a made-up groupId -> NO_SUCH_CARD. Source untouched throughout.
+- NOT verified live: Cosmo itself (my isolated app has no LLM key; Fabio's app needs a restart to
+  load this commit, since agentLoop and the routes are server code).
 
-## Eye test for Fabio
+## Eye test for Fabio (restart the app on this commit first)
 
-1. Two projects, open the second. Ask Cosmo: "bring Mira in from <first project>". It should list
-   that project's cards, import the right one, and the copy appears in the open gallery with its name.
-2. From Claude Desktop / Claude Code (MCP): `import_card` with `sourceFolderPath`, `groupId` from
-   `list_cards`, and a `folderPath` that is NOT open. The copy appears when that project is opened.
+1. Make two pictures with Cosmo, then: "send the last two cards we made to a new project called
+   Test Ep 3, and let's continue from there". Test Ep 3 opens holding both, names kept.
+2. Mark a card with a triangle, then: "send every triangle to <another project>". You stay put;
+   open the other project: the card is there.
+3. In a project with clips: "send all the videos to <another project>" (and once with audio).
+4. Drag two cards into the chat: "take these to <another project>".
+5. From Claude Desktop / Claude Code: the same asks over MCP (`send_cards`).

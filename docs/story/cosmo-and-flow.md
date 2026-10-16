@@ -27,8 +27,8 @@ recipe, run a shot, run a pass, assemble. An outside agent can direct a Story en
 ## Card import for agents — MPI-1136
 
 Series work (one project per episode) reuses a Story card or takes across episodes. Shipped:
-`import_card` on both surfaces, the gallery's Add to project copy ([../mcp-server.md](../mcp-server.md)
-§ Import a card). Cosmo finds the card with `list_cards` `folderPath` and imports into the open project.
+the gallery's Add to project copy for agents ([../mcp-server.md](../mcp-server.md) § Send cards):
+`send_cards` on both, by hand or as "the last two", "all the videos", "every triangle".
 
 ## Infinite Video Flow
 

@@ -267,9 +267,9 @@ export async function importMedia(body) {
     return _post('/connector/import-media', body);
 }
 
-/** POST /connector/import-card { sourceFolderPath, groupId, folderPath?, cardName? } — MPI-1136: a card from another project. No clock: a 3D Scene card copies hundreds of MB. */
-export async function importCard(body) {
-    return _post('/connector/import-card', body);
+/** POST /connector/send-cards { sourceFolderPath, groupIds? | kind?, mark?, newest?, folderPath? | newProject? } — MPI-1136: cards copied to another project. No clock: a 3D Scene card copies hundreds of MB. */
+export async function sendCards(body) {
+    return _post('/connector/send-cards', body);
 }
 
 /**

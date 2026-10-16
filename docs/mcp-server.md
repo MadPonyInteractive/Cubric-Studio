@@ -20,7 +20,7 @@ different thing: [agent-chat.md](agent-chat.md). Both call the same `/connector/
 ## The 28 tools
 
 `status`, `list_models`, `describe_model`, `list_projects`, `create_project`, `open_project`,
-`list_cards`, `view_card`, `rename_card`, `import_media`, `import_card`, `generate`, `wait_generation`, `cancel_generation`,
+`list_cards`, `view_card`, `rename_card`, `import_media`, `send_cards`, `generate`, `wait_generation`, `cancel_generation`,
 `install_model`, `install_flow`, `install_engine`,
 `read_knowledge`, `make_gif`, `edit_gif`, `cutout_gif`, `gif_to_video`, `make_sheet`, `list_routines`,
 `save_routine`, `rename_routine`, `delete_routine`, `run_routine`. Every one has a `title` and
@@ -68,13 +68,15 @@ only tool with `destructiveHint: true`.
   so it is the same card. Open project: the drop's spinner card + `addGroup`; a closed one:
   `/project-groups`. No "reduce this huge photo?" dialog, nobody is there to answer it. A
   reference image never needs it: `generate` stages its `media` itself.
-- **Import a card** (MPI-1136). `import_card` copies a card from another project (series work:
-  one project per episode): `/connector/import-card` -> renderer job `card.import`
-  (`agentDispatch._importCard`), which calls the gallery's own Add to project route
-  (`add-from-cards`), so the copy keeps the shown version, its sidecar and its name. That route
-  writes `project.json`; an OPEN target also gets the hydrated card it returns through `addGroup`,
-  or the renderer's next save would drop it. Cosmo's `import_card` is the same route, always into
-  the open project ([agent-chat.md](agent-chat.md)).
+- **Send cards** (MPI-1136). `send_cards` copies cards to another project, the way Fabio
+  works: "take these to project X", "the last two to a new project", "all the videos", "every
+  triangle". `/connector/send-cards` picks them (`groupIds`, else `agentCards.selectCards` by
+  kind / `markOf` mark / newest), makes a `newProject` (then opens it) or resolves `folderPath`,
+  and runs renderer job `card.import` (`agentDispatch._importCard`): ONE call to the gallery's
+  Add to project route (`add-from-cards`), so a copy keeps the shown version, its sidecar and its
+  name. That route writes `project.json`; an OPEN target also gets the hydrated cards it returns
+  through `addGroup`, or the renderer's next save would drop them. Cosmo's `send_cards` is the
+  same route, from the open project ([agent-chat.md](agent-chat.md)).
 - **Results** carry the disk path plus the gallery's 512px thumb as MCP `image` content, so a
   vision model sees what it made. `view_card` (`services/cardView.js`) shows a still, or a video
   or GIF as ONE contact sheet (frames picked by index, GIF delays from sharp).

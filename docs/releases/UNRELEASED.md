@@ -67,7 +67,7 @@
 - **Auto-start ComfyUI on the engine popup.** The "Starting ComfyUI Engine" popup has the same switch as Settings, so you can turn auto-start on or off right there.
 - **Cosmo tells you when a chat gets long.** Past a certain length it offers three buttons: Start fresh (it saves the important parts to its notes first), Compact (it sums the chat up and carries on), or Keep going. Each message also costs less now, and a long chat sums itself up sooner, so it never gets expensive.
 - **Cosmo can install a Flow for you.** Ask for one you do not have and Cosmo shows its Yes / No card with the download size, and a note when a licence screen comes first. It installs nothing until you press Yes.
-- **Bring a card in from another project.** Ask Cosmo for a card from an earlier project and it copies it into the one you have open, with its prompt and name, like Add to project does. Handy for a series: one project per episode, the same characters in each. AI apps connected over MCP can do it too.
+- **Cosmo can send cards to another project.** Say "take these to project X", "send the last two to a new project", "all the videos" or "every card with a dot", and Cosmo copies them there with their prompts and names, like Add to project does. Sending to a project you have stays put; a new project opens so you carry on there. AI apps connected over MCP can do it too.
 - **Dev updates on the home screen.** The bell beside About shows the latest posts from the Cubric Studio Discord, pictures included: flick through them, click one to see it big, and press X when you have read it. Join the Discord is one click away.
 
 ## ComfyUI Engine
@@ -76,6 +76,7 @@
 
 ## Fixes
 
+- **Choose media shows each picture whole.** The picker cropped every card to a square, so a character sheet showed as one figure and two sheets looked alike. Pictures now sit in rows like the Gallery, at their own shape, with the name under each.
 - **The old CubricVision.exe is gone (Windows).** The update removes it. If a shortcut or a taskbar pin still points at it, pin CubricStudio.exe in the same folder instead.
 - **Every background job shows in the queue.** Making or editing a GIF, GIF to video, Combine, preparing a clip to mask and Project Cleanup now get a row under Transfers, with a moving bar while they work, and a strip flashes on the right edge when a job joins a closed queue. Click it, or press Q on the home page, to open the queue.
 
