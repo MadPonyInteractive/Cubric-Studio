@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1161", "at": "2026-10-16T20:25:19+01:00", "actor": "claude", "column": "todo", "title": "Choose media from + offers every type the model takes, never 3D Scenes"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1161", "at": "2026-10-16T20:26:11+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting fix"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1161", "at": "2026-10-16T20:30:35+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "pushed 795446582; awaiting CI"}
