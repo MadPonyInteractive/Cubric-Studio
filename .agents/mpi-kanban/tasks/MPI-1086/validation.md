@@ -801,3 +801,24 @@ Sheet: scratchpad c42_face.jpg.
   quarters too (`region.x` 0 / 0.25, width 0.25): on a "from Images" sheet the back figure spans 33-51%.
 - Layout fix agreed in principle (Fabio's stitch): rebuild the sheet from pieces (front | new back | close-up), the
   pieces cut in the sheet's own gaps, measured app-side before dispatch.
+
+## Round 45 (`qh45.py`, `h45_*`, scratchpad r45/): LOCALISED face edits (Fabio 2026-10-16), app engine :48188
+SAM3 "face" PER PANEL (front = left 30%, close-up = right half; on the whole sheet SAM3 returns ONE face only) ->
+square box = face + half a face all round -> both crops side by side on one 1448 x 724 canvas -> one edit -> each half
+pasted back through its own face mask (grown side/25, feathered). Inputs = r42's makeup mannequins + describer words.
+Times (each run reloads models: MpiClearVram ends every graph): Qwen crop ~54 s (words-only 40 s) vs the same edit on
+the whole sheet 124 s = **2.3x faster**; Klein crop ~27 s (18 s words) vs whole sheet 48 s.
+- **Makeup, Qwen 4/4**: spider, glam, goth on the MAN keep his face (stubble, jaw); the same makeup on both faces; the
+  woman's spider KEEPS her smile (r42 whole-sheet closed it). **Klein 1/4**: spider ok, goth partial (lashes), glam
+  FAIL (front face barely made up, close-up feminised, stubble gone), W spider ok but front/close-up differ.
+- **Face tattoos in words** (teardrop under the left eye + tribal on the right temple): Qwen consistent on both faces
+  but small and on the MIRRORED side; Klein bold but inconsistent (two teardrops front, tribal only on the close-up).
+- **Face tattoos from a picture** (imported_023): FAIL both - the Klein tattoo mannequin of a full-body photo keeps the
+  face ink too small to read, the describer said "markings on forehead and cheek", both models invented generic glyphs
+  (Klein also added NECK ink). No face leak on either (the crop + mannequin hold the face).
+- Stitch: seams invisible for makeup; ink outside the face mask (K tp neck) comes through the feather as a GHOST -
+  tattoos would need a wider paste mask (the square, feathered) or SAM3 "face, neck".
+- Verdict: localised Makeup on Qwen = same quality or better, 2.3x faster, nothing outside the faces can change
+  (no back view involved at all). Face tattoos: words route promising on Qwen, picture route needs a head-crop
+  mannequin (crop the reference to its head before the mannequin) - not benched.
+

@@ -4,6 +4,17 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-16 (session "New character sheets 32") - LATEST. 1cac8798a + 5a17854c4 on origin, master CI green
+(38849888142). Fabio: Accessories NOT eye-tested yet (only Jewellery). New idea from Fabio: LOCALISED face edit for
+Makeup (SAM3 face -> `MpiMaskSquareBbox` -> crop, edit, stitch back) for speed; hair + beard out (long ones spill).
+My add: face tattoos fit the same mask (fixes the Tattoos face leak). BENCHED r45 (validation.md, `qh45.py`, crop +
+stitch in Python): Makeup on Qwen 4/4 own face + same makeup both faces, 54 s vs 124 s whole sheet (2.3x); Klein 1/4.
+Face tattoos: words ok-ish on Qwen (mirrored side), picture FAIL (mannequin of a full-body photo too small; needs a
+head crop first). NEXT: Fabio's call - build localised Makeup into the Qwen graph (SAM3 face per panel ->
+MpiMaskSquareBbox/MpiBoxCrop x2 -> ImageStitch canvas -> edit -> paste back through the face mask; keeps the in-graph
+makeup mannequin), and whether face tattoos get it too. Benches from now on: the G: bench :8188 (Fabio, 2026-10-16),
+NOT the app engine. Still pending: Fabio's eye test of Tattoos stitch + ACCESSORIES (only Jewellery tested so far).
+
 2026-10-16 evening (session "New character sheets 31") - LATEST. Makeup mannequin COMMITTED + pushed 1cac8798a
 (Fabio's eye test passed). BUILT, uncommitted: the Tattoos back pass STITCHED at the sheet's measured gaps (r44 in
 validation.md: ghost gone on flowCSE_052, default cuts = old picture pixel for pixel, npm test 3334/0). Files: raw +
