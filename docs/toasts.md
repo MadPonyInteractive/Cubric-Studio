@@ -35,8 +35,8 @@ real: clicked before the open fade has painted a frame, opacity is still 0 and c
 nothing. Waiting on `transitionend` there left the toast invisible in the stack forever, holding
 one of the two slots, so every toast queued behind it stayed hidden.
 
-Backend routes never toast directly — they push SSE events (`/comfy/downloads/stream`,
-`/concat/events/stream`) that the frontend service layer converts into `ui:*` emits.
+Backend routes never toast directly — they push SSE events (downloads and concat channels on the shared
+`/events/stream`) that the frontend service layer converts into `ui:*` emits.
 
 **Placement is settled: TOP-CENTRE, below `--titlebar-h`.** Bottom-right, bottom-left and
 top-right were each tried and each covered real UI. The workspace topbar is

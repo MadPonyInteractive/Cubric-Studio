@@ -4,7 +4,8 @@
  * Routes:
  *   POST /agent/message   { text, attachments, project, mode, model, profileId, pinned, workspace } → { ok, turnId, session }
  *   POST /agent/wake      { project, mode, model, profileId, pinned, workspace } → { ok, woke, session }
- *   GET  /agent/stream    SSE with named events (bridged to the app event bus)
+ *   agent:* / bench:* events on the shared GET /events/stream (services/eventStream.js),
+ *                         bridged to the app event bus
  *   GET  /agent/history?project= → { ok, session, working, pendingConfirm, usage, entries }
  *   POST /agent/confirm   { confirmId, yes }
  *
@@ -12,7 +13,7 @@
  * event carries `session`, the key of the conversation it belongs to, and
  * `agent:session { from, to }` says a conversation moved into a project.
  *
- * SSE: one shared EventSource opened lazily by agentInitStream().
+ * SSE: subscribed once by agentInitStream(), on the app's one shared stream (MPI-1142).
  * Every named SSE event is re-emitted on Events (the app bus) so any subscriber
  * can react without opening a second connection. MpiAgentChat instances and any
  * future mascot service subscribe via Events.on('agent:*', ...).
@@ -24,7 +25,8 @@
 import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
 import { Events } from '../events.js';
-import { on, ce } from '../utils/dom.js';
+import { ce } from '../utils/dom.js';
+import { onStream } from './eventStream.js';
 import { state } from '../state.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { pinnedModel } from '../shell/agentDispatch.js';
@@ -56,12 +58,12 @@ export const AGENT_EVENT_NAMES = [
 ];
 
 // ── Shared SSE singleton ──────────────────────────────────────────────────────
-// One EventSource for the entire renderer lifetime. Opened lazily by
-// agentInitStream() (called at shell init). All named events are re-emitted on
+// Subscribed once, by agentInitStream() (called at shell init), on the app's one
+// shared stream (services/eventStream.js). All named events are re-emitted on
 // the app Events bus so every subscriber — including multiple MpiAgentChat
 // instances and future consumers — gets them without opening a second connection.
 
-let _es = null;
+let _armed = false;
 // The bus subscriptions this module owns, kept beside the EventSource because they share its
 // lifetime exactly: both are opened once at shell init and live until the window does. Nothing
 // calls them today — a teardown for a singleton that is never torn down would be scaffolding.
@@ -72,18 +74,18 @@ const _streamUnsubs = [];
  * Must be called before any MpiAgentChat mounts so history replay gets SSE events.
  */
 export function agentInitStream() {
-    if (_es) return;
-    _es = new window.EventSource('/agent/stream');
+    if (_armed) return;
+    _armed = true;
+    // MPI-1142: the agent channel rides the app's one shared stream.
     AGENT_EVENT_NAMES.forEach(name => {
-        on(_es, name, (e) => {
+        _streamUnsubs.push(onStream(name, (e) => {
             try {
                 Events.emit(name, JSON.parse(e.data));
             } catch (err) {
                 clientLogger.warn('agentService', `bad SSE payload for ${name}`, err);
             }
-        });
+        }));
     });
-    on(_es, 'error', () => clientLogger.warn('agentService', 'SSE connection error'));
 
     // MPI-870 — the wake, owned by the renderer because only the renderer knows which
     // project is OPEN. A finished generation is otherwise silent until the user types.

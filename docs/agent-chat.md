@@ -37,8 +37,8 @@ file is the contract; that one is the evidence.
   below). A chat reloads from
   `/agent/history?project=` on mount, `project:changed` and `agent:session`, and renders only events
   whose `session` is its own. A result card emits `gallery:open-card`; the shell opens that card.
-- **One stream.** `agentService.agentInitStream()` (shell boot) opens the only `/agent/stream` and
-  re-emits every `agent:*` event on `Events`; chats, and the later mascot animations, subscribe there.
+- **One stream.** `agentService.agentInitStream()` (shell boot) subscribes once to the app's one shared
+  stream (`GET /events/stream`, `services/eventStream.js`, MPI-1142) and re-emits every `agent:*` event on `Events`; chats, and the later mascot animations, subscribe there.
 - **Keys** stay in `main/secretsStore.js`, read by the server over the fork bridge (`routes/forkBridge.js`
   `ask`); the renderer sets, tests and clears, never reads. **Envelope:** `{ ok: true, ... }` or
   `{ ok: false, error: { code, message } }`; a malformed body is HTTP 400 `BAD_REQUEST`, all else 200.
@@ -195,7 +195,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 - **`POST /agent/probe { profileId, model? }`** -> `{ ok, tools, model, latencyMs, message, contextWindow }` (the window `_contextWindowFor` compacts against; Settings warns under 64K, MPI-905): one tiny call
   with one tool, **never retried without it**. Errors: `NO_PROFILE`, `NO_KEY`, `NO_MODEL`, `ENDPOINT_ERROR` (+ `status`).
 - **`GET /agent/benchmark?profileId=&model=`** -> `{ ok, cases, suiteHash, local, usd, running, canShare, communityUrl }`; **`POST /agent/benchmark
-  { profileId, model?, share? }`** -> `{ ok, cases }`, then `bench:case` / `bench:done` / `bench:error` on `/agent/stream` (no `session`);
+  { profileId, model?, share? }`** -> `{ ok, cases }`, then `bench:case` / `bench:done` / `bench:error` on the shared `/events/stream` (no `session`);
   **`POST /agent/benchmark/stop`** ends it after the case in flight (MPI-941 Phase 12). `AgentSessions.benchmark` probes first
   (a bad key is `bench:error`, never a 0 score), runs `agentBench.runSuite` on the pretend tools, one at a time (`BUSY`); a local
   model is refused while the engine's `/queue` holds a job (`GPU_BUSY`) and released after. `agentService` keeps a whole run
@@ -213,7 +213,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
   prompt, a reply, a key, a path, a project or the `failures` text (the model chooses it). The Worker hashes the IP with a daily salt for a 10-a-day limit.
   It, and the daily score read, must stay named on https://cubric.studio/privacy/ (Website repo `privacy/index.html`); a change to what is sent makes that page false.
 
-## SSE events (`/agent/stream`)
+## SSE events (on `/events/stream`; `/agent/stream` serves them alone)
 
 Every event but `agent:session` also carries `session`, the key of its conversation.
 

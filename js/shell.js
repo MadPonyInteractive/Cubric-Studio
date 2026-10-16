@@ -41,6 +41,7 @@ import { preloadComponentStyles } from './shell/preloadStyles.js';
 import { bindWindowControls, quitApp } from './shell/windowControls.js';
 import { initFloatLatentBridge } from './shell/floatLatentBridge.js';
 import { initAgentDispatch } from './shell/agentDispatch.js';
+import { downloadService } from './services/downloadService.js';
 import { initAgentPanel } from './shell/agentPanel.js';
 import { initProjectUI, loadProjectGrid, firstGridSettled } from './shell/projectUI.js';
 import { initHeroStats } from './shell/heroStats.js';
@@ -226,6 +227,9 @@ export async function initShell() {
   StatusBar.listen();
   bindWindowControls();
   initFloatLatentBridge();
+  // MPI-1142: all channels share one stream. Downloads subscribe in this same tick so
+  // the server's connect snapshot (live jobs after a reload) cannot arrive unheard.
+  downloadService._ensureSSE();
   initAgentDispatch();
   initAgentPanel();
   bindMemoryHotkeys(memMonitor);
@@ -1605,7 +1609,6 @@ async function _healRemoteNodeDrift() {
   const drifted = getDriftedNodeDeps();
   if (!drifted.length) return;
 
-  const { downloadService } = await import('./services/downloadService.js');
   const { DEPS } = await import('./data/modelConstants/dependencies.js');
   // MPI-393: ONLY the drifted node deps. This used to send the model's full dep
   // universe on the theory that the volume pre-check dedupes the rest — true for a
@@ -1662,7 +1665,6 @@ async function _installRemoteEngineAssets() {
   const deps = Object.values(DEPS).filter(d =>
     d && d.engineAsset === true && !d.bakedOnPod && !d.targetPath);
   if (!deps.length) return;
-  const { downloadService } = await import('./services/downloadService.js');
   // MPI-576: silent BY CONSTRUCTION — replaces the id allowlist entry MPI-395 added in
   // notificationService for this exact job.
   await downloadService.start(ENGINE_ASSETS_JOB_ID, deps, { silent: true });

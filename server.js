@@ -124,6 +124,7 @@ app.use(connectorInstallRoutes);  // MPI-1126
 app.use(licenceRoutes);
 app.use(llmRoutes);
 app.use(agentRoutes);  // MPI-774
+app.use(require('./routes/eventStream'));  // MPI-1142 — one SSE for every renderer channel
 app.use(userFlowRoutes);  // MPI-532
 app.use(deepinfraRoutes);  // MPI-851
 app.use(require('./routes/toolResize'));  // MPI-1069 — Resize on sharp + ffmpeg, no engine

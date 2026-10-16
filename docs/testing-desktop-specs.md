@@ -196,9 +196,8 @@ mangles those inline, and this repo's guard hooks block the heredoc workaround.
 ## A save that takes SECONDS is a queued request, not a slow route (MPI-786)
 
 The app server is HTTP/1.1 on one host, so Chromium gives the renderer **six** connections to
-it, and three are taken for good by EventSource streams (`/concat/events/stream`,
-`/connector/jobs/stream`, `/agent/stream`). Three more long-held requests anywhere and every
-other fetch waits. MPI-785's spec hit exactly that: the landing's preview clips kept loading
+it, and one is taken for good by the shared EventSource (`/events/stream`; until MPI-1142 there
+were four, one per channel). Five more long-held requests anywhere and every other fetch waits. MPI-785's spec hit exactly that: the landing's preview clips kept loading
 behind the gallery, and a mark save needed a 30s poll. The cause was fixed
 ([shell.md](shell.md) § projectUI.js) and the allowance removed. What stays true for any spec:
 

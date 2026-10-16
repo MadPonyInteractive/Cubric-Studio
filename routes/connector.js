@@ -76,6 +76,7 @@ const { execFile } = require('node:child_process');
 const fs = require('fs-extra');
 
 const logger = require('./logger');
+const { serveChannel } = require('./eventStream');
 // DOM-free, require()-able server-side (see its own module comment). The v1
 // named-param resolver both this route and js/shell/agentDispatch.js call — one
 // implementation, not a route-side copy and a renderer-side copy (MPI-547).
@@ -441,25 +442,19 @@ router.get('/connector/capabilities', (_req, res) => {
 });
 
 /**
- * GET /connector/jobs/stream — the renderer's inbound command channel.
- *
- * Same SSE shape as /comfy/events/stream, but always-on: that stream is opened
- * per generation by commandExecutor, so it can never carry inbound commands.
+ * The renderer's inbound command channel. The app receives it on the shared
+ * GET /events/stream (MPI-1142, routes/eventStream.js); GET /connector/jobs/stream
+ * serves it alone. Always-on, unlike /comfy/events/stream, which commandExecutor
+ * opens per generation, so that one can never carry inbound commands.
  */
-router.get('/connector/jobs/stream', (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  if (res.flushHeaders) res.flushHeaders();
-
+function attachJobs(res) {
   _jobSubscribers.add(res);
-  res.write('event: connected\ndata: {}\n\n');
-
-  req.on('close', () => {
+  return () => {
     _jobSubscribers.delete(res);
     _settleWindowJobs(res);
-  });
-});
+  };
+}
+router.get('/connector/jobs/stream', serveChannel(attachJobs));
 
 // v1 named params (MPI-547) — a friendly layer over the PromptBox controls an
 // agent submit can now choose per-generation instead of inheriting the open
@@ -1530,3 +1525,4 @@ module.exports = router;
 // MPI-830: routes/connectorGif.js dispatches over this same renderer channel.
 // Exported rather than re-implemented so there is ONE job channel, not two.
 module.exports.dispatchToRenderer = _dispatchToRenderer;
+module.exports.attachJobs = attachJobs;

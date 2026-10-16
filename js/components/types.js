@@ -958,7 +958,7 @@
  *   Skips phases 0 and 1, goes straight to Phase 2 with "models are safe" messaging
  *
  * SSE integration:
- *   Connects to existing /comfy/downloads/stream and filters for engine:* events
+ *   engine:* events arrive on the shared /events/stream (bridged by downloadService)
  *   Events: engine:downloading, engine:extracting, engine:patching, engine:complete, engine:error, engine:upgrade-status
  *
  * Emits (via Events bus):

@@ -132,7 +132,7 @@ human pressed.
 Dispatch cannot move to the server and that is not laziness: `generationService` imports
 `MpiToast` and `PromptBoxControls.resolveControlDefaults`, `commandExecutor` pulls `state`,
 `Events`, `downloadService` and `progressAggregator`. So `routes/connector.js` relays the job to
-the renderer over an always-on SSE stream (`/connector/jobs/stream`) and the renderer POSTs the
+the renderer over the always-on shared SSE stream (`job` frames on `/events/stream`; `/connector/jobs/stream` serves them alone) and the renderer POSTs the
 outcome back to `/connector/jobs/:id/result`, which settles the caller's held HTTP response.
 
 **The relay carries more than one capability, and that is not a crack in the rule above.** MPI-592 added

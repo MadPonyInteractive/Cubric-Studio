@@ -90,8 +90,9 @@ import { runGifJob, GIF_HANDLERS } from './gifJobs.js';
 import { ROUTINE_HANDLERS } from './routineDispatch.js';
 import { AGENT_TOOL_OPS, TOOLS_NEEDING_SIZE, agentToolOp, toolOperation, toolRun } from './agentToolOps.js';
 import { clientLogger } from '../services/clientLogger.js';
+import { onStream } from '../services/eventStream.js';
 
-let _source = null;
+let _armed = false;
 /** Job ids already reported — the "one result out" half of the contract. */
 const _settled = new Set();
 /**
@@ -2122,13 +2123,13 @@ const _HANDLERS = {
 };
 
 /**
- * Subscribe to the relay. Idempotent, and safe in the browser dev build — a
- * failed EventSource just retries; nothing else in the app depends on it.
+ * Subscribe to the relay (`job` frames on the app's one shared stream, MPI-1142).
+ * Idempotent, and safe in the browser dev build — a dropped stream reconnects in
+ * services/eventStream.js, which logs it.
  */
 export function initAgentDispatch() {
-    if (_source) return;
-
-    _source = new EventSource('/connector/jobs/stream');
+    if (_armed) return;
+    _armed = true;
 
     // MPI-891 — `followBlocker`'s inputs, app-lifetime like the stream (never torn down).
     // Capture phase, so a canvas that stops propagation still counts as a held button.
@@ -2139,7 +2140,7 @@ export function initAgentDispatch() {
     on(window, 'blur', release);
     Overlays.onDepthChange((depth) => { _overlayDepth = depth; });
 
-    _source.addEventListener('job', (evt) => {
+    onStream('job', (evt) => {
         let job;
         try {
             job = JSON.parse(evt.data);
@@ -2165,9 +2166,4 @@ export function initAgentDispatch() {
         });
     });
 
-    // EventSource reconnects on its own; log once so a permanently dead relay is
-    // findable in app.log rather than silently absent.
-    _source.addEventListener('error', () => {
-        clientLogger.info('connector', 'Agent job stream dropped — reconnecting.');
-    });
 }

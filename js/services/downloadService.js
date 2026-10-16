@@ -15,6 +15,7 @@ import { Storage } from '../core/storage.js';
 import { getModelLicence, hasAcceptedLicence, recordLicenceAcceptance } from '../data/modelConstants/licences.js';
 import { showLicenceGate } from '../components/Compounds/MpiLicenceGate/MpiLicenceGate.js';
 import { remoteEngineClient } from './remoteEngineClient.js';
+import { onStream, onStreamOpen, ensureStream } from './eventStream.js';
 
 // Which engine an install POST would land on right now. Mirrors the server's
 // `remoteModels.isRemoteActive()` branch in routes/downloadManager.js, which is what
@@ -46,7 +47,7 @@ function _isOutOfSpaceError(error) {
 }
 
 const downloadService = {
-    _eventSource: null,
+    _streamArmed: false,
 
     // MPI-276 G9 — the snapshot protocol makes correctness ride on a monotonic
     // version, not on SSE-delivery luck. The backend broadcasts download:snapshot
@@ -450,7 +451,8 @@ const downloadService = {
     },
 
     _ensureSSE() {
-        if (this._eventSource) return;
+        if (this._streamArmed) return;
+        this._streamArmed = true;
         this._connectSSE();
     },
 
@@ -496,19 +498,16 @@ const downloadService = {
                 this._livenessTimer = null;
                 return;
             }
-            const es = this._eventSource;
-            if (!es || es.readyState === EventSource.CLOSED) {
+            if (ensureStream()) {
                 clientLogger.warn('downloadService', 'SSE liveness watchdog: stream dead, reconnecting');
-                this._connectSSE();
             }
         }, 5000);
     },
 
+    // MPI-1142: the downloads channel rides the app's one shared stream
+    // (services/eventStream.js), which reconnects a dropped stream itself.
     _connectSSE() {
-        if (this._eventSource) this._eventSource.close();
-        this._eventSource = new EventSource('/comfy/downloads/stream');
-
-        this._eventSource.addEventListener('open', () => {
+        onStreamOpen(() => {
             // MPI-276 G9: the backend broadcasts a download:snapshot on every SSE
             // connect (after a reconcile pass). Reset the version floor so that
             // connect-snapshot — the authoritative post-reconnect truth — is always
@@ -516,12 +515,6 @@ const downloadService = {
             // connection (a server restart resets the counter). No status-fetch, no
             // merge: the snapshot listener replaces state.downloadJobs wholesale.
             this._snapshotVersion = -1;
-        });
-
-        this._eventSource.addEventListener('error', () => {
-            this._eventSource.close();
-            this._eventSource = null;
-            setTimeout(() => this._connectSSE(), 3000);
         });
 
         // MPI-276 G9 — the authoritative state feed. Replaces state.downloadJobs
@@ -532,7 +525,7 @@ const downloadService = {
         // forward from the matching client job so a snapshot doesn't blank a live
         // speed/Preparing… label mid-download. A client-only 'pending' job (G2, added
         // in 4b) the backend hasn't registered yet is preserved.
-        this._eventSource.addEventListener('download:snapshot', (e) => {
+        onStream('download:snapshot', (e) => {
             const data = JSON.parse(e.data);
             if (typeof data.version === 'number' && data.version < this._snapshotVersion) return; // stale
             this._snapshotVersion = typeof data.version === 'number' ? data.version : this._snapshotVersion;
@@ -594,7 +587,7 @@ const downloadService = {
         // announced here, since an upload outlasts the overlay that started it. A big one
         // runs for half an hour, so notificationService delivers it (OS notification
         // when the window is unfocused, like a model download).
-        this._eventSource.addEventListener('upload:snapshot', (e) => {
+        onStream('upload:snapshot', (e) => {
             const jobs = JSON.parse(e.data).jobs || [];
             const prev = new Map(state.uploadJobs.map(j => [j.id, j.status]));
             for (const j of jobs) {
@@ -607,7 +600,7 @@ const downloadService = {
             state.uploadJobs = jobs;
         });
 
-        this._eventSource.addEventListener('upload:progress', (e) => {
+        onStream('upload:progress', (e) => {
             const data = JSON.parse(e.data);
             const job = state.uploadJobs.find(j => j.id === data.id);
             if (job) job.sentBytes = data.sentBytes;  // in place: the bar follows the event, not state:changed
@@ -616,7 +609,7 @@ const downloadService = {
 
         // Backend broadcasts download:started with correct progress from pre-installed deps.
         // Without this listener, the job stays at progress: 0 until download:progress fires.
-        this._eventSource.addEventListener('download:started', (e) => {
+        onStream('download:started', (e) => {
             const data = JSON.parse(e.data);
             _speedSamples.delete(data.modelId);
             const job = state.downloadJobs.find(j => j.modelId === data.modelId);
@@ -635,7 +628,7 @@ const downloadService = {
             if (job) Events.emit('download:started', data);
         });
 
-        this._eventSource.addEventListener('download:progress', (e) => {
+        onStream('download:progress', (e) => {
             const data = JSON.parse(e.data);
             const job = state.downloadJobs.find(j => j.modelId === data.modelId);
             // MPI-94 L4 — remote (wrapper aria2c) progress arrives without a speed
@@ -665,7 +658,7 @@ const downloadService = {
             Events.emit('download:progress', data);
         });
 
-        this._eventSource.addEventListener('download:complete', (e) => {
+        onStream('download:complete', (e) => {
             const data = JSON.parse(e.data);
             _speedSamples.delete(data.modelId); // MPI-94 L4 — drop the speed sample
             const job = state.downloadJobs.find(j => j.modelId === data.modelId);
@@ -748,7 +741,7 @@ const downloadService = {
             }
         });
 
-        this._eventSource.addEventListener('download:failed', (e) => {
+        onStream('download:failed', (e) => {
             const data = JSON.parse(e.data);
             _speedSamples.delete(data.modelId); // MPI-94 L4 — drop the speed sample
             // UW dep failures are surfaced through engine:error / install modal — skip toast here
@@ -852,7 +845,7 @@ const downloadService = {
             Events.emit('download:failed', data);
         });
 
-        this._eventSource.addEventListener('download:cancelled', (e) => {
+        onStream('download:cancelled', (e) => {
             const data = JSON.parse(e.data);
             _speedSamples.delete(data.modelId); // MPI-94 L4 — drop the speed sample
             // {all:true} (server-side cancelAllDownloads, e.g. the disk-full ENOSPC
@@ -873,7 +866,7 @@ const downloadService = {
             Events.emit('download:cancelled', data);
         });
 
-        this._eventSource.addEventListener('download:uninstalled', (e) => {
+        onStream('download:uninstalled', (e) => {
             const data = JSON.parse(e.data);
             const { modelId } = data;
             state.downloadJobs = state.downloadJobs.filter(j => j.modelId !== modelId);
@@ -884,14 +877,14 @@ const downloadService = {
         // download:paused / download:resumed listeners removed (MPI-258 Bug 2) —
         // the backend no longer emits them; downloads are cancel-only.
 
-        this._eventSource.addEventListener('download:installing', (e) => {
+        onStream('download:installing', (e) => {
             const data = JSON.parse(e.data);
             const job = state.downloadJobs.find(j => j.modelId === data.modelId);
             if (job) { job.status = 'installing'; state.downloadJobs = [...state.downloadJobs]; }
             Events.emit('download:installing', data);
         });
 
-        this._eventSource.addEventListener('comfy:needs-restart', (e) => {
+        onStream('comfy:needs-restart', (e) => {
             const data = JSON.parse(e.data);
             // Route by engine: a REMOTE (Pod) install (`remote: true`,
             // downloadManager.js) needs the POD's ComfyUI rescanned, a LOCAL install
@@ -906,7 +899,7 @@ const downloadService = {
 
         // MPI-1057: the backend restarted the Pod's ComfyUI itself (universal nodes on
         // connect), so the nodes that asked for a restart are already loaded.
-        this._eventSource.addEventListener('comfy:restarted', (e) => {
+        onStream('comfy:restarted', (e) => {
             const data = JSON.parse(e.data);
             if (data?.remote === true) state.remoteComfyNeedsRestart = false;
         });
@@ -915,16 +908,13 @@ const downloadService = {
         ['engine:downloading', 'engine:extracting', 'engine:patching',
          'engine:upgrade-status', 'engine:uw-installing', 'engine:complete',
          'engine:error'].forEach(eventName => {
-            this._eventSource.addEventListener(eventName, (e) => {
+            onStream(eventName, (e) => {
                 const data = e.data ? JSON.parse(e.data) : {};
                 Events.emit(eventName, data);
             });
         });
     },
 
-    destroy() {
-        this._eventSource?.close();
-    },
 };
 
 function _createJob(modelId, dependencies) {

@@ -36,6 +36,7 @@ const express = require('express');
 const crypto  = require('crypto');
 const path    = require('path');
 const logger  = require('./logger');
+const { serveChannel } = require('./eventStream');
 const { ask } = require('./forkBridge');
 
 const router = express.Router();
@@ -271,24 +272,24 @@ router.post('/agent/wake', async (req, res) => {
 // GET /agent/stream  — SSE
 // ---------------------------------------------------------------------------
 
-router.get('/agent/stream', async (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    if (res.flushHeaders) res.flushHeaders();
-
-    let sessions;
-    try { sessions = await getSessions(); } catch {
-        res.write('event: agent:error\ndata: {"code":"ENDPOINT_ERROR","message":"Agent unavailable"}\n\n');
-        res.end();
-        return;
-    }
-
-    sessions.addSubscriber(res);
-    res.write('event: connected\ndata: {}\n\n');
-
-    req.on('close', () => sessions.removeSubscriber(res));
-});
+// The app receives this channel on the shared GET /events/stream (MPI-1142); the
+// stream is never ended here, because on /events/stream it carries other channels.
+function attachEvents(res) {
+    let sessions = null;
+    let gone = false;
+    getSessions().then((s) => {
+        if (gone) return;
+        sessions = s;
+        s.addSubscriber(res);
+    }, () => {
+        if (!gone) res.write('event: agent:error\ndata: {"code":"ENDPOINT_ERROR","message":"Agent unavailable"}\n\n');
+    });
+    return () => {
+        gone = true;
+        if (sessions) sessions.removeSubscriber(res);
+    };
+}
+router.get('/agent/stream', serveChannel(attachEvents));
 
 // ---------------------------------------------------------------------------
 // GET /agent/history?project=<folderPath>
@@ -437,3 +438,4 @@ module.exports = router;
 // MPI-890: exported for tests only — the containment check on the workspace entry is the
 // one thing here that is a trust boundary, and a route test cannot reach it otherwise.
 module.exports._sanitiseWorkspace = _sanitiseWorkspace;
+module.exports.attachEvents = attachEvents;

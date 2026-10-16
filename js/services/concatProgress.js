@@ -1,6 +1,6 @@
 /**
- * services/concatProgress.js — bridge server-side `/concat/events/stream`
- * SSE channel onto StatusBar.progress.* and the Events bus.
+ * services/concatProgress.js — bridge the server's concat channel (concat:* on the
+ * shared /events/stream, MPI-1142) onto StatusBar.progress.* and the Events bus.
  *
  * Server emits three event types, all carrying `jobId`:
  *   - `concat:progress` { jobId, ratio }
@@ -19,42 +19,20 @@
 
 import { Events } from '../events.js';
 import { StatusBar } from '../shell/statusBar.js';
-import { clientLogger } from './clientLogger.js';
+import { onStream } from './eventStream.js';
 
-let _es = null;
-let _esOpenAttempted = false;
+let _armed = false;
 
+// MPI-1142: the concat channel rides the app's one shared stream (services/eventStream.js).
 function _ensureStream() {
-    if (_es || _esOpenAttempted) return;
-    _esOpenAttempted = true;
-    try {
-        _es = new EventSource('/concat/events/stream');
-        _es.addEventListener('concat:progress', e => {
+    if (_armed) return;
+    _armed = true;
+    for (const name of ['concat:progress', 'concat:done', 'concat:error']) {
+        onStream(name, e => {
             try {
-                const data = JSON.parse(e.data);
-                Events.emit('concat:progress', data);
+                Events.emit(name, JSON.parse(e.data));
             } catch (_) { /* malformed payload */ }
         });
-        _es.addEventListener('concat:done', e => {
-            try {
-                const data = JSON.parse(e.data);
-                Events.emit('concat:done', data);
-            } catch (_) { /* malformed payload */ }
-        });
-        _es.addEventListener('concat:error', e => {
-            try {
-                const data = JSON.parse(e.data);
-                Events.emit('concat:error', data);
-            } catch (_) { /* malformed payload */ }
-        });
-        _es.onerror = () => {
-            // EventSource auto-reconnects; log once when connection drops
-            clientLogger.warn('concat', 'SSE stream errored (will auto-reconnect)');
-        };
-    } catch (err) {
-        clientLogger.error('concat', 'failed to open concat SSE stream', err);
-        _es = null;
-        _esOpenAttempted = false;
     }
 }
 

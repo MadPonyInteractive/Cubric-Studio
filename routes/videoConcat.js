@@ -25,6 +25,7 @@ const fs      = require('fs-extra');
 const path    = require('path');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
+const { serveChannel } = require('./eventStream');
 const { concatVideos } = require('../services/videoConcat');
 const { probeVideo }   = require('../services/ffprobeVideo');
 const { writeVideoDerivatives } = require('../services/ffmpegThumb');
@@ -40,15 +41,12 @@ function _broadcast(event, data) {
     }
 }
 
-router.get('/concat/events/stream', (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    if (res.flushHeaders) res.flushHeaders();
+// The app receives this channel on the shared GET /events/stream (MPI-1142).
+function attachEvents(res) {
     _clients.add(res);
-    res.write(`event: connected\ndata: {}\n\n`);
-    req.on('close', () => { _clients.delete(res); });
-});
+    return () => { _clients.delete(res); };
+}
+router.get('/concat/events/stream', serveChannel(attachEvents));
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -211,3 +209,4 @@ router.post('/combine-videos', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.attachEvents = attachEvents;

@@ -275,7 +275,7 @@ test('an install complete stages just that model, and only with the toggle on', 
     // must hand its modelId over, after the re-sync and past the silent-job return (a
     // drift/engine-asset heal or an already-installed re-verify installed nothing new).
     const src = require('fs').readFileSync(path.join(__dirname, '..', 'js/services/downloadService.js'), 'utf8');
-    const handler = src.slice(src.indexOf("addEventListener('download:complete'"), src.indexOf("addEventListener('download:failed'"));
+    const handler = src.slice(src.indexOf("onStream('download:complete'"), src.indexOf("onStream('download:failed'"));
     const silentAt = handler.indexOf('if (silent) return;');
     const stageAt = handler.indexOf('prefetchInstalledModels([data.modelId])');
     assert.ok(silentAt > handler.indexOf('reSyncInstalledModels().then('), 'the silent return sits in the re-sync callback');

@@ -68,6 +68,7 @@ const crypto = require('crypto');
 const nodeStream = require('stream'); // MPI-296 — Writable hash-sink for streaming SHA256
 const { createRequire } = require('module');
 const logger = require('./logger');
+const { serveChannel } = require('./eventStream');
 const { checkOnline } = require('./netCheck');
 // runCustomCommand dropped here with the per-node requirements step (MPI-413); it is
 // still exported from shared.js and used by the remote path's Pod wrapper contract.
@@ -336,6 +337,8 @@ async function _sweepOrphanedDeps(managedModelsRoot, defaultModelsRoot, customRo
         }
         if (!_isInsidePath(managedModelsRoot, localPath)) continue;
         if (!(await fs.pathExists(localPath))) continue;
+        // MPI-1142: protectedMap is a snapshot; an install may have started since.
+        if (_inFlightDepIds(null).has(depId)) continue;
         try {
             await _removeManagedFile(localPath, useRecycleBin, 'sweep');
             await cleanEmptyDirs(localPath, managedModelsRoot);
@@ -575,6 +578,8 @@ async function _sweepOrphanedDepsRemote() {
     for (const d of onVolume) {
         const dep = DEPS[d.id];
         if (!dep) continue;
+        // MPI-1142: protectedIds is a snapshot; an install may have started since.
+        if (_inFlightDepIds(null).has(d.id)) continue;
         try {
             const res = await remoteModels.remoteUninstallDep({ id: d.id, type: dep.type, filename: dep.filename });
             // An older Pod image has no delete endpoint. That is a no-op for the whole
@@ -1681,13 +1686,9 @@ const reconciler = createReconciler({
     logger,
 });
 
-router.get('/comfy/downloads/stream', (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
+// The app receives this channel on the shared GET /events/stream (MPI-1142).
+function attachEvents(res) {
     _sseClients.add(res);
-    req.on('close', () => { _sseClients.delete(res); });
     // G11: reconcile against truth, then hand the fresh client the current
     // snapshot so it rebuilds state.downloadJobs wholesale (kills cold-boot
     // phantom cards). With nothing live the pass is the I/O-free TTL prune, so an
@@ -1697,7 +1698,9 @@ router.get('/comfy/downloads/stream', (req, res) => {
         .catch((err) => logger.warn('download', `SSE-connect reconcile failed: ${err.message}`))
         .finally(() => store.broadcastSnapshot());
     require('./remoteUploads').broadcastSnapshot();  // MPI-1057 — uploads share this stream
-});
+    return () => { _sseClients.delete(res); };
+}
+router.get('/comfy/downloads/stream', serveChannel(attachEvents));
 
 // ── Status Endpoint ───────────────────────────────────────────────────────────
 
@@ -3337,7 +3340,11 @@ router.post('/comfy/models/uninstall', async (req, res) => {
                 keptUniversal.push({ depId: dep.id, depName: dep.name || dep.id });
                 continue;
             }
-            if (sharedKeep.has(dep.id)) {
+            // MPI-1142: sharedKeep is a snapshot from before the loop, and each wrapper
+            // delete can take many seconds on a busy Pod (16 deps took 191 s). An install
+            // started meanwhile counts this dep as already on the volume and skips it, so
+            // re-ask the store per dep or the install finishes missing it.
+            if (sharedKeep.has(dep.id) || _inFlightDepIds(modelId).has(dep.id)) {
                 keptShared.push({ depId: dep.id, depName: dep.name || dep.id });
                 continue;
             }
@@ -3475,8 +3482,10 @@ router.post('/comfy/models/uninstall', async (req, res) => {
             continue;
         }
 
-        if (sharedKeep.has(dep.id)) {
-            keptShared.push({ depId: dep.id, depName: dep.name || dep.id, sharedWith: [...sharedKeep.get(dep.id)] });
+        // MPI-1142: per-dep re-ask, same as the remote twin — an install started after
+        // the sharedKeep snapshot may count this file as already on disk.
+        if (sharedKeep.has(dep.id) || _inFlightDepIds(modelId).has(dep.id)) {
+            keptShared.push({ depId: dep.id, depName: dep.name || dep.id, sharedWith: [...(sharedKeep.get(dep.id) || ['(installing)'])] });
             continue;
         }
 
@@ -3819,6 +3828,7 @@ function broadcastEngineEvent(event, data) {
 // cancel-only via the existing cancel path.
 
 module.exports = {
+    attachEvents, // MPI-1142 — joins the shared /events/stream
     router,
     cancelAllDownloads,
     logBootDiskSpace, // MPI-716 — called by server.js at boot

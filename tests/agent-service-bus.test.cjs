@@ -29,6 +29,8 @@ globalThis.window = {
     },
     fetch: async () => ({ ok: true, json: async () => ({}) }),
 };
+// MPI-1142: services/eventStream.js opens the shared stream as a bare `EventSource`.
+globalThis.EventSource = globalThis.window.EventSource;
 
 // Minimal localStorage stub for Storage.getAgentPrefs / getLlmConnection
 globalThis.localStorage = {
