@@ -6,7 +6,7 @@ characters and their motion unchanged.
 ## Bench (G: ComfyUI, 4060 Ti, GPU lease, `MPI-1036/research/bench/run_flow.py` M*), 2026-10-16
 
 Inputs: `logs/mpi1151/mpi1151_monkey_horse.mp4` (512x960, 2 s) + `logs/mpi1151/mpi1151_mountains.png` (1024 square), copied
-to G: input. Every run = his flowVideoEdit_001 (seed 515488481, the app describer's look/kept, no words), 576p.
+to G: input. Every run = his flowVideoEdit_001 (seed 515488481, the app describer's look/kept copied from _001's sidecar `Input_Look`/`Input_Kept`, no words), 576p.
 
 - **M0 baseline (today's template 4): FAIL, reproduces the app.** Meadow and sky kept, 241 s. The bench matches the
   app, so a bench lever is a fair test.
@@ -38,6 +38,7 @@ to G: input. Every run = his flowVideoEdit_001 (seed 515488481, the app describe
   inject-params-titles, workflow-media-slots: 117/117 pass.
 - Not run: the app itself (the shipped JSON is proven equal to the benched graph). Not run on a Pod.
 - **Fabio, 2026-10-16: "M6 passes on both"** (monkey + bedroom side-by-sides).
+- CI `tests.yml` run 38829257946 on `1e8359526`: success.
 
 Side finding: `Input_Kept` describes only the monkey although `Input_Who` is "The monkey and the horse" (the describer
 asks for one person).
