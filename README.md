@@ -202,12 +202,10 @@ The full user guide lives at [docs.cubric.studio](https://docs.cubric.studio):
 
 ## Community and support
 
-- [**Discord**](https://discord.gg/WX7tDFSVmY): questions, feedback and build
-  announcements.
+- [**Discord**](https://discord.gg/WX7tDFSVmY): questions, feedback, feature
+  requests and build announcements.
 - [**GitHub Issues**](https://github.com/MadPonyInteractive/Cubric-Studio/issues):
   bug reports.
-- [**GitHub Discussions**](https://github.com/MadPonyInteractive/Cubric-Studio/discussions):
-  feature requests.
 - [**PayPal**](https://www.paypal.com/donate/?hosted_button_id=LLBTJZRT6465N):
   donate any amount, once or monthly, with PayPal or a card.
 - [**Patreon**](https://www.patreon.com/madponyinteractive): three monthly tiers
