@@ -680,3 +680,9 @@ Builder `buildBackPassPrompt` (Tattoos only; words into the pass, a picture not)
   ink; t_back and t_leg2 got small made-up tattoos, not the picture's design. So a picture case keeps no words in the
   pass, as Fabio chose.
 - npm test 3327 / 0 fail; eslint clean; `tests/character-sheet-editor.test.cjs` pins the strings + the graph wiring.
+
+## Eye test 1 (Fabio, 2026-10-16, in progress)
+
+- **Makeup from a picture, MALE sheet: FAIL** - flowCSFI_011 -> flowCSE_051, reference a white-haired woman with
+  spider-web face paint: the paint, orange eyeshadow and black lips landed, but the face took the reference's traits
+  (feminised, lashes). Every makeup bench (r31-r35) used the woman's sheet flowCSE_044: cross-gender never benched.

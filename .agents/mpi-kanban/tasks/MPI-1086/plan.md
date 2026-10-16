@@ -4,7 +4,15 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
-2026-10-15 evening (session "New character sheets 30") - LATEST. Fabio: ship the two-pass for Tattoos (words into
+2026-10-16 (session "New character sheets 30") - LATEST. Fabio's eye test 1 (still testing, results come to the next
+session): Makeup FROM A PICTURE on a MALE sheet (card flowCSFI_011 -> result flowCSE_051; reference = a white-haired
+woman with spider-web face paint, orange eyeshadow, black lips) carried the REFERENCE'S TRAITS onto his face (more
+feminine face, lashes) - the mA2 string held 14/15 own-face, but every bench sheet was a woman (flowCSE_044), so a
+cross-gender reference was never benched. NEXT: read Fabio's remaining results, then bench makeup-from-picture on a
+male sheet (flowCSFI_011 + that reference, + one more) with a stronger own-face line (e.g. keep his jaw, brows,
+stubble and that he is a man) before touching the builder string.
+
+2026-10-15 evening (session "New character sheets 30"). Fabio: ship the two-pass for Tattoos (words into
 pass 2, a picture not; the outfit's back redrawn accepted). BUILT + committed: the Qwen graph's lazy back pass
 (`patch_raw_back_pass.py`, `Input_Back_Pass` + `Input_Positive_2`), builder `buildBackPassPrompt`, tests, playbook.
 r38: shipped graph = r37 bench pixel for pixel 6/6, off = r35 pixel for pixel, +35-50 s; npm test 3327/0.
