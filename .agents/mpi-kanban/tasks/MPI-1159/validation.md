@@ -50,3 +50,5 @@ only the close-up; the front face kept its smile lines. Root: the string named n
   both seeds. "Same hair color" does not fight "no grey hair".
 
 Shipped `a_hair` verbatim in the young-adult branch (18-39); tests 24/24, eslint clean. Outputs stay in the scratchpad.
+
+CI: Tests run 38949721872 (4fc442c89) and 38951108641 (0a8f600df, last code commit) both green.
