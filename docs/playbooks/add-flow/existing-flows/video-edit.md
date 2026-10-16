@@ -96,6 +96,12 @@ strips a tag naming an empty slot, which is why the no-picture bank exists at al
   picture's room, and the two-stage run took it (R2o); the same run in this format kept the clip's
   room (R2p). A picture-less new look gets no `<Subject N>` (subjects come from reference assets):
   the words land in `[Shot 1]` ("The new character: ...").
+- **Change the background (template 4) makes the place the EDITED subject** (MPI-1151): `<Subject 3>` is
+  everything around the kept subject, and the picture's place is `attribute_transfer` onto it, with `{look}`
+  repeated in the summary and `[Shot 1]`. Marked `fully_preserved` (the old form), a cartoon clip kept its own
+  meadow and sky, `[reference generation]` too. Neutral words ("ground, landscape or room") lost the place on a
+  cartoon clip AND a bedroom; naming mountains grew mountains behind a bedroom picture. So the concrete nouns come
+  from the describer, never the template (bench M4-M6, V4f-h in `tasks/MPI-1151/validation.md`).
 - **The constraint line is last on both routes** (rendering faults only: no text, logos, flicker).
   Masked runs add "Only {target} changes; everything else stays exactly as it is in <Video 1>..." as
   the last line of the description (`{masked}`). The masked route KEEPS "no text" (Fabio): without it

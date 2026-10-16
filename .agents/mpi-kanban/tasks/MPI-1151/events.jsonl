@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1151", "at": "2026-10-15T23:45:23+01:00", "actor": "claude", "column": "todo", "title": "Video Edit: Change the background ignores the picture - keeps the clip's place, or invents one from the words"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1151", "at": "2026-10-16T00:24:41+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Version 2.1 readiness 4: bench the three levers"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1151", "at": "2026-10-16T01:06:17+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "M6 shipped into template 4; awaiting Fabio's eye"}

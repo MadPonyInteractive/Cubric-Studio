@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": [".agents/mpi-kanban/tasks/MPI-1151/", ".agents/mpi-kanban/tasks/MPI-1036/research/bench/flow_graph.py", ".agents/mpi-kanban/tasks/MPI-1036/research/bench/run_flow.py", "comfy_workflows/flow_video_edit.json", "comfy_workflows/raw/flow_video_edit.json", "docs/playbooks/add-flow/existing-flows/video-edit.md"] }

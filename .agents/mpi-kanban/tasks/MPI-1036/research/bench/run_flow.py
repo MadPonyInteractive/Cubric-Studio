@@ -220,6 +220,82 @@ PRESETS['V4c_bedroom_bg_kept_names_room'] =dict(PRESETS['V4a_bedroom_bg'], capti
     kept=('A young woman, nude, with fair skin and a smiling expression, has long, straight red hair falling over her '
           'shoulders and wears a silver cross necklace. She stands in a bright living room with white walls, a '
           'wall-mounted black TV on a white sideboard, a grey sofa on the right and a white door behind her.'))
+# MPI-1151: Change the background on Fabio's cartoon clip (monkey riding a horse in a meadow, 512x960) + a square
+# mountain picture (sun top-left, pines, lake) kept the clip's meadow and sky. M0 = his flowVideoEdit_001 exactly (the
+# app's describer text, his seed, no words). M2 = op 4 as REFERENCE GENERATION like template 6 (the clip gives the
+# characters, their moves and the camera; the picture gives the place). M1 = the picture at ref_image_size 'max'.
+PRESETS['M0_monkey_bg_baseline'] = dict(
+    video='mpi1151_monkey_horse.mp4', image='mpi1151_mountains.png', operation=4, who='The monkey and the horse ',
+    seed=515488481, look=(
+        'A grassy mountain slope overlooks a calm lake, featuring several scattered evergreen trees and distant, rugged '
+        'mountain peaks. The landscape is composed of green vegetation, brown tree trunks, and grey rock, illuminated by '
+        'bright, warm sunlight from a low-hanging sun.'),
+    kept=('The cartoon monkey is a young male character with brown and tan skin, large expressive eyes, and short tufts '
+          'of orange hair. He wears no garments or accessories.'))
+PRESETS['M2_monkey_bg_refgen'] = dict(PRESETS['M0_monkey_bg_baseline'], instr=(
+    "subject_definitions:\n"
+    "<Video 1> is the reference for the characters, their performance, the camera framing and the timing of the target video.\n"
+    "<Subject 1> is {who} in <Video 1>, exactly as filmed: {kept}\n"
+    "<Subject 2> is the place in <Picture 1>, with its light. {look}\n\n"
+    "summary:\n"
+    "[reference generation] <Subject 1> performs every move of <Video 1> in <Subject 2>, with the camera framing and "
+    "timing of <Video 1> and the light of <Picture 1>.\n\n"
+    "retention_analysis:\n"
+    "<Video 1> (characters, performance, camera framing and timing): fully_preserved - the look of {who}, every move, "
+    "expression and its timing, and the camera framing and movement, are kept.\n"
+    "<Subject 1> (appears in [Shot 1]): fully_preserved - the face, hair, body, position, scale, pose, every movement "
+    "and expression stay exactly as in <Video 1>.\n"
+    "<Subject 2> (appears in [Shot 1]): fully_preserved - the place of <Picture 1>, its land, trees, water, mountains, "
+    "sky, sun, colours and light, seen from the camera of <Video 1>.\n\n"
+    "detailed_description:\n"
+    "The target video has the light and colour of <Picture 1>.\n"
+    f"[Shot 1] In <Subject 2>, <Subject 1> moves exactly as in <Video 1>, {fg.MOVES}, and everything around them is "
+    "<Subject 2>, its light falling on them. {words}\n"
+    f"{fg.CAMERA}{fg.SOUND}"))
+PRESETS['M1_monkey_bg_refmax'] = dict(PRESETS['M0_monkey_bg_baseline'], patch={'110': {'ref_image_size': 'max'}})
+PRESETS['M3_monkey_bg_refgen_refmax'] = dict(PRESETS['M2_monkey_bg_refgen'], patch={'110': {'ref_image_size': 'max'}})
+# Fabio: the prompt before the size. M4 = video editing kept, but the place is the EDITED subject: attribute_transfer
+# from <Picture 1> onto the clip's background (the form ops 1-3 pass with), where template 4 marks it fully_preserved.
+PRESETS['M4_monkey_bg_transfer'] = dict(PRESETS['M0_monkey_bg_baseline'], instr=(
+    f"{fg.SRC}<Subject 1> is the place in <Picture 1>. {{look}}\n"
+    "<Subject 2> is {who} in <Video 1>, who stays exactly as filmed: {kept}\n"
+    "<Subject 3> is everything around <Subject 2> in <Video 1>: the ground, the sky and all of the background.\n\n"
+    "summary:\n"
+    f"{fg.EDIT} <Subject 3> becomes <Subject 1>: the land, mountains, trees, water, sky, sun and light of <Picture 1>, "
+    "laid out as in <Picture 1>. <Subject 2> performs every move of <Video 1> exactly as filmed, with the camera "
+    "framing and timing of <Video 1>.\n\n"
+    "retention_analysis:\n"
+    "<Video 1> (whole video): partially_preserved - the camera framing and movement and the timing of every move are "
+    "kept; only <Subject 3> changes.\n"
+    "<Subject 1> (appears in [Shot 1]): attribute_transfer - the land, mountains, trees, water, sky, sun, colours and "
+    "light of <Picture 1>, in the same places as in <Picture 1>, are transferred onto <Subject 3>.\n"
+    "<Subject 2> (appears in [Shot 1]): fully_preserved - the face, hair, body, position, scale, pose, every movement "
+    "and expression stay exactly as in <Video 1>.\n"
+    "<Subject 3> (appears in [Shot 1]): partially_preserved - only its place in the frame is kept; what it shows is "
+    "<Subject 1>.\n\n"
+    "detailed_description:\n"
+    "The target video has the camera framing of <Video 1> and the light of <Subject 1>.\n"
+    f"[Shot 1] <Subject 2> moves exactly as in <Video 1>, {fg.MOVES}, in front of <Subject 1>: the mountains, trees, "
+    "lake, sky and sun of <Picture 1>, its light falling on them. {words}\n"
+    f"{fg.CAMERA}{fg.SOUND}"))
+# M4 passed (Fabio) but named mountains, a lake and the sun, and template 4 serves every picture. flow_graph's template 4
+# is now M4 in picture-neutral words: M5 = the monkey again, V4f = V4d's bedroom (a room must not grow mountains).
+PRESETS['M5_monkey_bg_template4'] = dict(PRESETS['M0_monkey_bg_baseline'])
+PRESETS['V4f_bedroom_bg_template4'] = dict(PRESETS['V4d_bedroom_bg_no_words'])
+# M5 and V4f BOTH kept the clip's place (V4d, the old template, had changed the bedroom): the neutral words lose it.
+# V4g = M4 verbatim on the bedroom. M6/V4h = M4 with its landscape nouns replaced by {look} (the picture's own words).
+PRESETS['V4g_bedroom_bg_m4'] = dict(PRESETS['V4d_bedroom_bg_no_words'], instr=PRESETS['M4_monkey_bg_transfer']['instr'])
+_M6 = (PRESETS['M4_monkey_bg_transfer']['instr']
+       .replace("<Subject 3> becomes <Subject 1>: the land, mountains, trees, water, sky, sun and light of <Picture 1>, "
+                "laid out as in <Picture 1>.", "<Subject 3> becomes <Subject 1>, laid out as in <Picture 1>: {look}")
+       .replace("attribute_transfer - the land, mountains, trees, water, sky, sun, colours and light of <Picture 1>, in "
+                "the same places as in <Picture 1>, are", "attribute_transfer - the place of <Picture 1>, everything in it "
+                "in the same places as in <Picture 1>, with its colours and light, is")
+       .replace("in front of <Subject 1>: the mountains, trees, lake, sky and sun of <Picture 1>, its light falling on "
+                "them.", "in front of <Subject 1>: {look} Its light falls on them."))
+assert _M6.count('{look}') == 3 and 'mountains' not in _M6
+PRESETS['M6_monkey_bg_look_nouns'] = dict(PRESETS['M0_monkey_bg_baseline'], instr=_M6)
+PRESETS['V4h_bedroom_bg_look_nouns'] = dict(PRESETS['V4d_bedroom_bg_no_words'], instr=_M6)
 
 
 def call(path, body=None):

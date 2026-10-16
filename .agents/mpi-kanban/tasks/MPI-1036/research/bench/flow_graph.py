@@ -97,20 +97,26 @@ detailed_description:
 [Shot 1] In <Subject 3>, <Subject 2> performs exactly as in <Video 1>, {MOVES}, wearing <Subject 1>; the clothes move and fold with the body from every angle, the back of the outfit showing whenever <Subject 2> turns away. {{words}}
 {CAMERA}{SOUND}""",
 
-    4: f"""{SRC}<Subject 1> is the location in <Picture 1>. {{look}}
+    # MPI-1151 (bench M6, 2026-10-16): the place is the EDITED subject, attribute_transfer onto everything around the
+    # kept subject (the form ops 1-3 pass with); marked fully_preserved, as before, a cartoon clip kept its own meadow.
+    # {look} says WHAT the place holds three times: neutral words ("ground, landscape or room") lost it on both test
+    # clips (M5/V4f), and naming mountains (M4, Fabio passed it) grew mountains behind a bedroom picture (V4g).
+    4: f"""{SRC}<Subject 1> is the place in <Picture 1>. {{look}}
 <Subject 2> is {{who}} in <Video 1>, who stays exactly as filmed: {{kept}}
+<Subject 3> is everything around <Subject 2> in <Video 1>: the ground, the sky and all of the background.
 
 summary:
-{EDIT} <Subject 2> performs every move of <Video 1> exactly as filmed, now in <Subject 1>, its light falling on them, with the camera framing and timing of <Video 1>.
+{EDIT} <Subject 3> becomes <Subject 1>, laid out as in <Picture 1>: {{look}} <Subject 2> performs every move of <Video 1> exactly as filmed, with the camera framing and timing of <Video 1>.
 
 retention_analysis:
-<Video 1> (whole video): partially_preserved - the camera framing and movement and the timing of every move are kept; only the place around <Subject 2> changes.
-<Subject 1> (appears in [Shot 1]): fully_preserved - the place, its furniture, objects, surfaces, colours and light, seen from the camera of <Video 1>.
-<Subject 2> (appears in [Shot 1]): fully_preserved - the face, hair, body, clothes, position, scale, pose, every movement, expression and mouth movement stay exactly as in <Video 1>.
+<Video 1> (whole video): partially_preserved - the camera framing and movement and the timing of every move are kept; only <Subject 3> changes.
+<Subject 1> (appears in [Shot 1]): attribute_transfer - the place of <Picture 1>, everything in it in the same places as in <Picture 1>, with its colours and light, is transferred onto <Subject 3>.
+<Subject 2> (appears in [Shot 1]): fully_preserved - the face, hair, body, position, scale, pose, every movement and expression stay exactly as in <Video 1>.
+<Subject 3> (appears in [Shot 1]): partially_preserved - only its place in the frame is kept; what it shows is <Subject 1>.
 
 detailed_description:
 The target video has the camera framing of <Video 1> and the light of <Subject 1>.
-[Shot 1] <Subject 2> moves exactly as in <Video 1>, {MOVES}, and the place around them is <Subject 1>, its light falling on them. {{words}}
+[Shot 1] <Subject 2> moves exactly as in <Video 1>, {MOVES}, in front of <Subject 1>: {{look}} Its light falls on them. {{words}}
 {CAMERA}{SOUND}""",
 
     5: f"""{SRC}<Subject 1> is the main subject of <Picture 1>, the reference for this change. {{look}}
