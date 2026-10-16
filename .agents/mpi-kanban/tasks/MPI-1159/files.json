@@ -7,6 +7,8 @@
   "docs/playbooks/add-flow/existing-flows/character-sheet-editor.md",
   "docs/child-safety.md",
   "js/data/childSafety.js",
-  "docs/releases/UNRELEASED.md"
+  "docs/releases/UNRELEASED.md",
+  "js/services/generationService.js",
+  "tests/desktop/video-history-strip.spec.js"
  ]
 }

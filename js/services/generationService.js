@@ -595,7 +595,10 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
     // is looked at first: words cannot know the age of someone in a photo from the internet.
     // MPI-1106: a mask track is exempt too. It makes no picture, only masks of one the user
     // already has, and its prompt names what to mask ("clothes"), which the picture check reads.
-    if (getCommand(config.operation)?.outputKind !== 'text' && !isMaskTrackOp(config.operation)) {
+    // A tool op (Resize, sharp / ffmpeg on our own server) is exempt for the same reason: it draws
+    // nobody, it scales what the user already has. As a "video run" it waited on the describer
+    // and was refused with none reachable (MPI-1156's red: Resize a clip with no engine).
+    if (getCommand(config.operation)?.outputKind !== 'text' && !isMaskTrackOp(config.operation) && !isToolOp(config.operation)) {
         const texts = gateWords(config);
         const ctx = configContext(config);
         const safety = checkChildSafety(texts, ctx);

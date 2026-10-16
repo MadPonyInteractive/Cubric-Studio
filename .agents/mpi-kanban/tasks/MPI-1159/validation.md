@@ -23,6 +23,14 @@ Klein's own runs (k_ship, k_verb) were not looked at: Fabio, "Klein cannot do hu
 
 Tests: `tests/character-sheet-editor.test.cjs` 24/24; registry + safety suites 396/396; eslint clean.
 
+## Red master met at push (MPI-1156 commit ca1042233)
+
+- `crop-resize-output` "Resize applies a clip with no engine": a tool op (`executor: 'tool'`, sharp / ffmpeg) counted as a
+  video run, waited on the describer and was refused with none. Fix: tool ops exempt from the gate, like mask tracks.
+- `video-history-strip` "what the strip holds is what the run is sent": the look queued `imageDescribe` ahead of the
+  run (correct). Fixture now seeds a kept age NO on both cards; repro without it = the CI error exactly.
+- Both specs green locally (4/4 + Resize); unit suites 520/520.
+
 ## Open
 
 - Fabio's eye test in the app (restart needed): Clothes, "Remove all the clothes..." on an adult sheet.

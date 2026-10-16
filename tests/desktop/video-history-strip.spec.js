@@ -46,7 +46,19 @@ async function pinInstalled(window, ids) {
   }, ids);
 }
 
-function seedProject(folderPath) {
+// MPI-1156: a video run of a clip or picture is looked at first ("could this person be under 18?"),
+// and the runner has no describer. Each card carries the kept answer NO, so the run queues at once.
+async function keptNo(window) {
+  return window.evaluate(async () => {
+    const [{ questionHash }, { AGE_QUESTION }] = await Promise.all([
+      import('/js/services/mediaVerdicts.js'),
+      import('/js/data/childSafety.js'),
+    ]);
+    return { ageVerdict: { q: questionHash(AGE_QUESTION), answer: 'NO' } };
+  });
+}
+
+function seedProject(folderPath, verdict = {}) {
   const mediaDir = path.join(folderPath, 'Media');
   const metaDir = path.join(mediaDir, '.meta');
   fs.mkdirSync(metaDir, { recursive: true });
@@ -56,14 +68,14 @@ function seedProject(folderPath) {
   fs.copyFileSync(SRC_CLIP, clipAbs);
   fs.writeFileSync(path.join(metaDir, 'clip-0.json'), JSON.stringify({
     id: 'clip-0', type: 'video', filePath: url(clipAbs), displayName: 'the_clip', prompt: 'a clip',
-    pixelDimensions: { w: 128, h: 128 }, duration: 2,
+    pixelDimensions: { w: 128, h: 128 }, duration: 2, ...verdict,
   }, null, 2));
 
   const stillAbs = path.join(mediaDir, 'a_still.webp');
   fs.copyFileSync(SRC_STILL, stillAbs);
   fs.writeFileSync(path.join(metaDir, 'still-0.json'), JSON.stringify({
     id: 'still-0', type: 'image', filePath: url(stillAbs), displayName: 'a_still', prompt: 'a still',
-    pixelDimensions: { w: 1920, h: 1080 },
+    pixelDimensions: { w: 1920, h: 1080 }, ...verdict,
   }, null, 2));
 
   const project = {
@@ -87,7 +99,7 @@ async function openClipPrompt(window, testInfo, models = ['minimax-h3-ref2va', '
   await pinInstalled(window, models);
   const folderPath = testInfo.outputPath('project');
   fs.mkdirSync(folderPath, { recursive: true });
-  const { project } = seedProject(folderPath);
+  const { project } = seedProject(folderPath, await keptNo(window));
   await window.evaluate(async (p) => {
     const [{ state }, { navigate, PAGE_GROUP_HISTORY }] = await Promise.all([
       import('/js/state.js'),
@@ -230,8 +242,12 @@ test('what the strip holds is what the run is sent: the clip and a + picture', a
       const pb = document.querySelector('#prompt-box-mount .mpi-prompt-box');
       pb.injectPrompts({ positive: 'the girl waves', negative: '' });
       document.querySelector('#prompt-box-mount .mpi-prompt-box__cue-btn').click();
-      await new Promise(r => setTimeout(r, 800));
-      const job = peekCueQueue()[0];
+      // The look reads the kept verdicts before the run queues: wait for the run, not a fixed time.
+      let job = null;
+      for (let i = 0; i < 50 && !job; i++) {
+        await new Promise(r => setTimeout(r, 200));
+        job = peekCueQueue()[0];
+      }
       const media = (job?.config?.mediaItems || []).map(m => ({ mediaType: m.mediaType, role: m.role, url: String(m.url) }));
       clearCueQueue();
       return { op: job?.config?.operation, media };
