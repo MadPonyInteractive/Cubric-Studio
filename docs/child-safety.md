@@ -166,8 +166,9 @@ not benched yet.
 - Content already IN an input passes with innocent typed words: a describer's caption is never
   read, and an innocent still edit is not looked at. The age verdict guards what the words ask for.
 - Outputs are never looked at. A post-run check (a local nudity detector such as NudeNet as the
-  trigger, `AGE_QUESTION` on the output only on a hit) was assessed 2026-10-16 and not built: a
-  refusal would come after the GPU time, and licences are unverified.
+  trigger, `AGE_QUESTION` on the output only on a hit) was rejected 2026-10-16 (Fabio): a loop of
+  thousands of fast images would pay it on every output, a refusal comes after the GPU time, and
+  this is a desktop app, not a hosted site. Do not re-raise.
 - Words: English, Portuguese, Spanish, French, German, Italian. Another Latin-script language passes
   unread; a non-Latin script goes to the judge, which on the 4B can miss. The CJK / Russian lists are
   the obvious phrasings, written without a native speaker: extend them when one gets past.
