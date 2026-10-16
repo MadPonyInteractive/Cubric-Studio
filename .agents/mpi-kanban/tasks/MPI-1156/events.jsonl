@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1156", "at": "2026-10-16T09:26:41+01:00", "actor": "New character sheets 34", "column": "todo", "title": "Child-safety gate reads only typed words; picture and clip verdicts cached per file"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1156", "at": "2026-10-16T09:28:23+01:00", "actor": "New character sheets 34", "from": "todo", "to": "doing", "reason": "Fabio: go, Phase 1"}

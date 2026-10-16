@@ -4,6 +4,8 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-16 (session "New character sheets 34") - LATEST. PARKED, BLOCKED on the child-safety redesign card (Fabio 2026-10-16). Fabio's eye test: child sheet + Makeup picture still refused after the mannequin fix (app.log 08:11 and 08:20, picture answer=YES). Cause: the gate reads EVERY string param, including the describer's raw refMakeup answer that flowService stores (flowService.js describe merge), so a describer word like "nude" (lipstick) makes it look at the picture, and a child is refused. Stopgap tried, then REVERTED. Resume here once the new gate lands: re-run the Makeup eye test (child, man, woman; picture +/- words), then Accessories + Tattoos-stitch eye tests, face tattoos (head-crop mannequin), Beard, close-out.
+
 2026-10-16 (session "New character sheets 33") - LATEST. Fabio saw his spider run take the mannequin's pale skin.
 r46: a "skin line" in the prompt did nothing; the face crop itself fixes it. BUILT, uncommitted: localised Makeup in
 the Qwen graph (`Input_Face_Crop`, `patch_raw_face_crop.py`, raw + api), app strings "both faces" + the flag
