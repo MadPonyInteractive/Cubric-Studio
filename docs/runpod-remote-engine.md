@@ -205,6 +205,11 @@ component kept its old name, so "Settings" in a file name or an older card means
 - **STOPPED (EXITED)** bills only volume + reserved container disk.
 - **DELETED** bills only volume.
 - **Single-Pod invariant** (§4) prevents two RUNNING Pods billing at once.
+- **Credit readout (MPI-1155)** — hero strip + status bar read `$0.58 of $15.37`: session spend
+  of the account credit the Pod started from. `/remote/pod/specs` returns `creditUsd`, from ONE
+  balance read per Pod (`client.balance`, GraphQL `myself.clientBalance` — v2 has no balance
+  route; runpodctl reads the same) plus what the Pod had billed by then. GraphQL retires early
+  2027: when it goes, `creditUsd` is null and both surfaces fall back to `$0.58`.
 
 ### KNOWN BUG — reconnect deletes a recoverable warm Pod on a TRANSIENT stock-out
 

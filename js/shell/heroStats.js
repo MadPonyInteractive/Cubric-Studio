@@ -12,7 +12,7 @@ import { Events } from '../events.js';
 import { MODELS } from '../data/modelRegistry.js';
 import { hasNoEngine } from '../services/engineGate.js';
 import { clientLogger } from '../services/clientLogger.js';
-import { podSessionCost } from '../utils/podCost.js';
+import { podSessionCost, podSpendText } from '../utils/podCost.js';
 
 const GB = 1024 ** 3;
 
@@ -125,7 +125,7 @@ function _formatDuration(secs) {
 // MPI-80: paint "current session" + "10min/$1.51" when remote-connected and we
 // have billing-true uptime. Cost = uptimeHours × securePrice. Requires BOTH a
 // finite uptime and a known $/hr; otherwise the slot falls back to "last session".
-function _renderRemoteSession({ uptimeSeconds, pricePerHr }) {
+function _renderRemoteSession({ uptimeSeconds, pricePerHr, creditUsd }) {
     const cost = podSessionCost({ uptimeSeconds, pricePerHr });
     if (cost === null) {
         // No usable cost data — let the project "last session" line stand.
@@ -141,7 +141,7 @@ function _renderRemoteSession({ uptimeSeconds, pricePerHr }) {
     el.appendChild(document.createTextNode(`${_formatDuration(uptimeSeconds)}/`));
     const accent = document.createElement('span');
     accent.className = 'mpi-landing__stat-accent';
-    accent.textContent = `$${cost.toFixed(2)}`;
+    accent.textContent = podSpendText(cost, creditUsd); // MPI-1155: "$0.50 of $15.00"
     el.appendChild(accent);
 }
 
@@ -216,13 +216,13 @@ async function _renderGpu() {
 // 'local · offline'). It keeps remote context ("remote · disconnected", no GPU
 // card) so the app doesn't masquerade as offline-by-choice, until the user
 // reconnects from Settings → RunPod (which then emits connected:true and repaints).
-function _renderEngine({ connected, gpuName, vramGb, ramGb, uptimeSeconds, pricePerHr, phase = null }) {
+function _renderEngine({ connected, gpuName, vramGb, ramGb, uptimeSeconds, pricePerHr, creditUsd, phase = null }) {
     _remoteConnected = !!connected;
     _remotePhase = phase || null;
     // MPI-80: session slot tracks the engine. Connected with cost data → current
     // remote session; otherwise restore the project "last session" line.
     if (connected && phase === null) {
-        _renderRemoteSession({ uptimeSeconds, pricePerHr });
+        _renderRemoteSession({ uptimeSeconds, pricePerHr, creditUsd });
     } else {
         _remoteSessionActive = false;
         _renderSession(undefined);

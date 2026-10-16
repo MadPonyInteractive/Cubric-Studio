@@ -199,7 +199,28 @@ function _toPickerDcs(dcs, gpus) {
 
 // --- client functions (exported for remoteEngine.js + tests) ----------------
 
+// MPI-1155: the account's credit balance has NO v2 route (checked 2026-10-16: v2 billing
+// is history only). GraphQL `myself` is what RunPod's own runpodctl `user` reads, so it is
+// the one source until RunPod ships a v2 twin before retiring GraphQL (early 2027).
+const GRAPHQL = 'https://api.runpod.io/graphql';
+
 const client = {
+  // Dollars of credit on the account, or null on any failure (the readout just hides).
+  async balance(apiKey) {
+    const res = await _safeFetch(GRAPHQL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'User-Agent': UA },
+      body: JSON.stringify({ query: '{ myself { clientBalance } }' }),
+    });
+    const json = await res.json().catch(() => null);
+    const usd = Number(json?.data?.myself?.clientBalance);
+    if (!res.ok || !Number.isFinite(usd)) {
+      logger.warn('runpod', `balance read failed: http ${res.status}${json?.errors?.[0]?.message ? ` - ${redactSecret(json.errors[0].message)}` : ''}`);
+      return null;
+    }
+    return usd;
+  },
+
   // v2 GET /v2/pods — probes the authenticated key; list wraps as {"pods":[...]}
   async validate(apiKey) {
     const r = await _rest(apiKey, 'GET', '/pods');

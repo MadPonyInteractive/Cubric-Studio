@@ -6206,3 +6206,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1151", "at": "2026-10-16T01:39:00+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "M6 shipped 1e8359526, Fabio passed it on both clips, CI green"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1153", "at": "2026-10-16T01:43:09+01:00", "actor": "claude", "from": "doing", "to": "done"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1154", "at": "2026-10-16T01:45:51+01:00", "actor": "claude", "column": "todo", "title": "Video Edit: Change the background describes only one of two kept characters"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1155", "at": "2026-10-16T07:19:25+01:00", "actor": "claude", "column": "doing", "title": "RunPod: Check spend in the Remote panel, like DeepInfra's"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1155", "at": "2026-10-16T07:25:30+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped; live balance check waits on Fabio's next Pod connect"}

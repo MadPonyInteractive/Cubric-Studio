@@ -1499,6 +1499,22 @@ router.post('/remote/pod/teardown', async (req, res) => {
 // The caller's `?gpuTypeId` (its saved picker) is only a fallback for when no Pod
 // is tracked: a Pod made over HTTP never updates that picker, so trusting it
 // labelled a 5090 or a CPU Pod "RTX 2000 Ada" (2026-09-28).
+// MPI-1155: the account credit this Pod started from, so the hero strip and status bar read
+// "$0.50 of $15.00" (spent this session of what there was). The balance is read ONCE per
+// Pod, not per 5 s tick, and what the Pod had already billed by then is added back, so a
+// warm-resumed Pod's spend is not counted twice.
+// ponytail: one read per Pod; volume storage billing during a session drifts it by cents.
+let _credit = { podId: null, usd: null };
+async function _podCredit(key, podId, uptimeSeconds, pricePerHr) {
+  if (!podId || !uptimeSeconds || !pricePerHr) return null;
+  if (_credit.podId !== podId) {
+    _credit = { podId, usd: null }; // claimed before the await: a concurrent tick waits for the next one
+    const balance = await client.balance(key).catch(() => null);
+    if (balance !== null && _credit.podId === podId) _credit.usd = balance + (uptimeSeconds / 3600) * pricePerHr;
+  }
+  return _credit.usd;
+}
+
 router.get('/remote/pod/specs', async (req, res) => {
   const gpuTypeId = (_mode.active && _mode.gpuTypeId)
     || (req.query.gpuTypeId ? String(req.query.gpuTypeId) : null);
@@ -1555,7 +1571,7 @@ router.get('/remote/pod/specs', async (req, res) => {
       } catch (_) { /* best-effort */ }
     }
 
-    res.json({ gpuName, vramGb, ramGb, uptimeSeconds, pricePerHr });
+    res.json({ gpuName, vramGb, ramGb, uptimeSeconds, pricePerHr, creditUsd: await _podCredit(key, podId, uptimeSeconds, pricePerHr) });
   } catch (err) {
     logger.error('runpod', 'pod specs failed', err);
     res.json({ gpuName: gpuTypeId, vramGb: null, ramGb: null });

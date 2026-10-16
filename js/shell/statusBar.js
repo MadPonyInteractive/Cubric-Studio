@@ -28,7 +28,7 @@ import { gid, qs } from '../utils/dom.js';
 import { state } from '../state.js';
 import { getCommandProgressLabel, getCommandAccent } from '../data/commandRegistry.js';
 import { generationStore } from '../services/generationStore.js';
-import { podSessionCost } from '../utils/podCost.js';
+import { podSessionCost, podSpendText } from '../utils/podCost.js';
 
 // ── DOM refs ───────────────────────────────────────────────────────────────────
 let _job       = null;  // #shell-info-job
@@ -51,7 +51,7 @@ let _elapsedSec   = 0;
 let _activeStartedAt = null;
 let _remoteConnected = false; // MPI-64 4.4: drives the IDLE · Local/Remote scope
 let _remotePhase = null;      // MPI-73: 'connecting' | 'disconnecting' | null — transient connect feedback
-let _podCost = null;          // MPI-1059: Pod spend so far ($), null when the feed carries no cost data
+let _podSpend = null;         // MPI-1059/1155: Pod spend so far ("$0.50 of $15.00"), null when the feed carries no cost data
 let _timeSec = null;          // MPI-1059: seconds the time slot shows, null before the clock starts
 let _timerInterval = null;
 let _completionToken = 0;
@@ -81,7 +81,7 @@ function _renderTime() {
     if (!_jobTime) return;
     const parts = [];
     if (_timeSec !== null) parts.push(_fmtTime(_timeSec));
-    if (_state === 'active' && _podCost !== null) parts.push(`$${_podCost.toFixed(2)}`);
+    if (_state === 'active' && _podSpend !== null) parts.push(_podSpend);
     _jobTime.textContent = parts.join(' · ');
 }
 
@@ -137,7 +137,7 @@ function _idleScopeLabel() {
     if (!_remoteConnected) return 'Local';
     // MPI-1059: the spend rides next to Remote, so the user never has to go back to
     // the home page to see what the Pod has cost. Same number as the hero strip.
-    return _podCost === null ? 'Remote' : `Remote · $${_podCost.toFixed(2)}`;
+    return _podSpend === null ? 'Remote' : `Remote · ${_podSpend}`;
 }
 
 // Last-active gen wins the single status bar. Any DRIVING event (running,
@@ -662,10 +662,11 @@ export const StatusBar = {
         // Local/Remote scope while a transition is in progress.
         // MPI-1059: the connected feed re-emits every ~5s with uptime + $/hr, so the
         // idle label's spend climbs on the same tick as the hero strip's.
-        _listenUnsubs.push(Events.on('remote:connection', ({ connected, phase = null, uptimeSeconds, pricePerHr }) => {
+        _listenUnsubs.push(Events.on('remote:connection', ({ connected, phase = null, uptimeSeconds, pricePerHr, creditUsd }) => {
             _remoteConnected = !!connected;
             _remotePhase = phase || null;
-            _podCost = podSessionCost({ uptimeSeconds, pricePerHr });
+            const cost = podSessionCost({ uptimeSeconds, pricePerHr });
+            _podSpend = cost === null ? null : podSpendText(cost, creditUsd);
             if (_state === 'idle') _setIdle();
             else _renderTime();  // a running job's slot climbs on the same tick
         }));
