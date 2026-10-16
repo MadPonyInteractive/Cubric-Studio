@@ -100,7 +100,8 @@ test('add-from-cards re-points splatPath at the copy, never the source project',
                     cards: [{ type: 'image', name: 'Scene', item: { id: ID, filePath: url(srcStill), splatPath: url(srcPly) } }],
                 }),
             });
-        return res.json();
+        const { success, added } = await res.json();
+        return { success, added };
     };
     // The copy is the sidecar carrying a freshly-minted id, never the source's.
     const copiedMeta = async () => {

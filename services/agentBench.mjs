@@ -208,6 +208,7 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
             return { ok: true, file: note.file, created };
         },
         renameCard: async (groupId, name) => { record.renames.push({ groupId, name }); return { ok: true, output: { groupId, name } }; },
+        importCard: async ({ groupId, cardName }) => ({ ok: true, output: { itemId: `copy-${groupId}`, groupId: `copy-${groupId}`, type: 'image', filePath: '/project-file?path=copy.png', ...(cardName ? { cardName } : {}) } }),
         installModel: async (modelId) => {
             record.installs.push({ modelId, at: Date.now() });
             const m = models.models.find((x) => x.id === modelId);

@@ -44,10 +44,10 @@
 import { enqueueGeneration, findMissingMediaSlot } from '../services/generationService.js';
 import { submitFlowGeneration, cloudEditQuote, flowRunRefusal, cancelQueuedJob } from '../services/flowService.js';
 import { openProject, renameGroup, markGroup, serializeGroup, addGroup } from '../services/projectService.js';
-import { createItemGroup } from '../data/projectModel.js';
+import { createItemGroup, getSelectedItem } from '../data/projectModel.js';
 import { buildImportGroup } from '../services/mediaImportService.js';
 import { reconcileAndHydrate } from '../managers/projectReconciler.js';
-import { STACK_TYPE, resultStackFields } from '../data/stackModel.js';
+import { STACK_TYPE, resultStackFields, isStack } from '../data/stackModel.js';
 import { truncateCardName } from '../utils/displayHelpers.js';
 import { CARD_MARKS, markOf, matchesGallerySort, byGalleryOrder, describeGalleryFilter, isGalleryFiltered } from '../utils/galleryFilter.js';
 import { navigate, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../router.js';
@@ -1735,6 +1735,62 @@ async function _importMedia(jobId, input = {}) {
 }
 
 /**
+ * Run one `card.import` job (MPI-1136): a card from one project copied into another, for
+ * series work (one project per episode). The gallery's own Add to project route
+ * (`add-from-cards`) does the copy, so an agent's import and a user's are the same card:
+ * the shown version, its sidecar (prompt, seed, settings) and its name. That route writes
+ * `project.json`, which is right for a closed target; while the target is OPEN this renderer
+ * owns its `itemGroups`, so the hydrated card it hands back goes through `addGroup` too, or
+ * the next save would drop it (the reason `/connector/rename-card` gives).
+ */
+async function _importCard(jobId, input = {}) {
+    const { sourceFolderPath, groupId, cardName } = input;
+    const source = await targetProject({ folderPath: sourceFolderPath });
+    if (source.error) return _fail(jobId, source.error.code, source.error.message);
+    const group = source.project?.itemGroups?.find(g => g.id === groupId);
+    if (!group) return _fail(jobId, 'NO_SUCH_CARD', `No card "${groupId}" in the project at "${sourceFolderPath}". Use a groupId list_cards gives for that folderPath.`);
+    if (isStack(group)) return _fail(jobId, 'STACK', 'That is a stack, which holds no picture of its own. list_cards with its groupId lists its cards: import those one at a time.');
+    const item = getSelectedItem(group);
+    if (!item?.filePath) return _fail(jobId, 'NO_SUCH_CARD', `Card "${groupId}" has no media to copy.`);
+
+    const target = await targetProject(input);
+    if (target.error) return _fail(jobId, target.error.code, target.error.message);
+    const { project, open } = target;
+    if (!project) return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Name one with folderPath, or open one, then send this again.');
+    const label = group.customName || group.name || 'card';
+    const tempId = crypto.randomUUID();
+    if (open) Events.emit('media:import-started', { tempId, filename: label, mediaType: group.type });
+    try {
+        const res = await fetch(`/project-media/${project.id}/add-from-cards`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                folderPath: project.folderPath,
+                cards: [{ type: group.type, name: group.name, customName: cardName?.trim() || group.customName, item }],
+            }),
+        });
+        const data = await res.json().catch(() => ({}));
+        const copy = data.groups?.[0];
+        if (!res.ok || !data.success || !copy) return _fail(jobId, 'IMPORT_FAILED', `Could not import "${label}": ${data.error || res.status}.`);
+        if (open) await addGroup(copy);
+        const copied = copy.history[0];
+        return _report(jobId, {
+            ok: true,
+            output: {
+                itemId: copied.id, groupId: copy.id, type: copy.type, filePath: copied.filePath,
+                pixelDimensions: copied.pixelDimensions,
+                ...(copy.customName ? { cardName: copy.customName } : {}),
+            },
+        });
+    } catch (err) {
+        clientLogger.warn('connector', 'card.import failed', err);
+        return _fail(jobId, 'IMPORT_FAILED', `Could not import "${label}": ${err.message}.`);
+    } finally {
+        if (open) Events.emit('media:import-settled', { tempId });
+    }
+}
+
+/**
  * Run one `gallery.visible` job (MPI-817 Phase F): the cards the gallery grid is SHOWING,
  * in the grid's order. `state.gallerySort` lives only in this window (`order` is the one
  * key that persists), so nothing reading project.json can answer this.
@@ -2110,6 +2166,7 @@ const _HANDLERS = {
     'card.rename': _renameCard,
     'card.mark': _markCard,
     'media.import': _importMedia,
+    'card.import': _importCard,
     'gallery.visible': _visibleCards,
     'agent.list-models': _listModels,
     'agent.install-model': _installModel,

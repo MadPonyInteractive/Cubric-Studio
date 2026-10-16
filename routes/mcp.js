@@ -13,7 +13,7 @@
  * (`routes/connector.js` header). The catalogue is shrunk by the same `compactCatalogue`
  * the in-app agent reads, because the raw list is ~9.5k tokens.
  *
- * MPI-593 phase 2: twenty-two tools (MPI-1140 adds import_media), and one that deletes: `delete_routine` (MPI-1009), which
+ * MPI-593 phase 2: twenty-eight tools (MPI-1140 adds import_media, MPI-1136 import_card), and one that deletes: `delete_routine` (MPI-1009), which
  * moves the agent-made routine to `routines/deleted/`. MPI-1126 added three that install (a model,
  * a Flow, the local engine), each behind `askDownload`. The in-app agent's gates live in `agentLoop._executeTool`, not
  * in the routes, so this file carries its own spend gate (`spendGate`). The guide gate is only
@@ -433,6 +433,25 @@ const TOOLS = {
             const sourcePath = typeof p === 'string' ? path.resolve(p) : '';
             if (!fs.existsSync(sourcePath)) return { ok: false, error: { code: 'FILE_NOT_FOUND', message: `No file at "${p}".` } };
             return waitForJob(startJob(() => t.importMedia({ sourcePath, folderPath: open.folder, ...(cardName ? { cardName } : {}) })), rpcKey);
+        },
+    },
+    import_card: {
+        title: 'Import a card from another project',
+        description: 'Copy a card from one project into another, exactly as the user\'s Add to project does: the version it shows, with the prompt and settings that made it and its name. The source card is not touched. For series work: one project per episode, reusing a character or a Story card from an earlier one. Returns the new card\'s path on disk, its groupId and a small picture of it. A 3D Scene card can take a minute and returns { running: true, jobId }: wait_generation finishes it.',
+        inputSchema: obj({
+            sourceFolderPath: { type: 'string', description: 'The project the card is in, from list_projects. It need not be open.' },
+            groupId: { type: 'string', description: 'The card, from list_cards with that sourceFolderPath. A stack cannot be imported whole: list its cards and import each.' },
+            folderPath: { type: 'string', description: 'The project it lands in, from list_projects or create_project. It need not be open. Omit only to use whatever project the app has open.' },
+            cardName: { type: 'string', description: 'A short name for the copy. Omit to keep the card\'s own name.' },
+        }, ['sourceFolderPath', 'groupId']),
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        run: async ({ sourceFolderPath, groupId, folderPath, cardName }, rpcKey) => {
+            const t = await tools();
+            const open = await openFolder(t, folderPath);
+            if (open.error) return open.error;
+            const source = await openFolder(t, sourceFolderPath);
+            if (source.error) return source.error;
+            return waitForJob(startJob(() => t.importCard({ sourceFolderPath: source.folder, groupId, folderPath: open.folder, ...(cardName ? { cardName } : {}) })), rpcKey);
         },
     },
     generate: {

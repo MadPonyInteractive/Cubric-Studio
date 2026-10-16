@@ -258,10 +258,28 @@ export const TOOL_DEFS = [
             parameters: {
                 type: 'object',
                 properties: {
+                    folderPath: { type: 'string', description: 'Another project, from list_projects, to find a card for import_card. Its rows have no ref.' },
                     groupId: { type: 'string', description: 'A groupId from the list, to read that one card in full.' },
                     limit: { type: 'integer', description: 'How many cards to list, newest first. Default 12, at most 30.' },
                     mark: { type: 'string', enum: ['dot', 'square', 'triangle'], description: 'Only the cards the user marked with this shape. "dot" is the one that draws as a circle. A row carries its mark when it has one.' },
                 },
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'import_card',
+            description: 'Copy a card from another project into the open one, with its prompt and name: a character or Story card from an earlier episode. The copy\'s ref works at once.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    sourceFolderPath: { type: 'string', description: 'From list_projects.' },
+                    groupId: { type: 'string', description: 'From list_cards with that folderPath.' },
+                    cardName: { type: 'string', description: 'Omit to keep its name.' },
+                },
+                required: ['sourceFolderPath', 'groupId'],
                 additionalProperties: false,
             },
         },
@@ -2504,6 +2522,20 @@ ${knowledgeIndex}`.trim();
             }
             case 'list_cards': {
                 // The project is the one the app has open, never a path the model names.
+                // MPI-1136: ANOTHER project is read for import_card only. Its refs are not
+                // registered: a file there is not this project's, so nothing but import reaches it.
+                if (args.folderPath && projectKey(args.folderPath) !== projectKey(currentProject?.folderPath)) {
+                    if (!this._mayOpen(args.folderPath, currentProject)) {
+                        return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_PROJECT', message: 'Name only a folderPath from list_projects, or one the user typed.' } });
+                    }
+                    const r = await this._tools.listCards(args.folderPath, args.groupId, args.limit, args.mark);
+                    if (!r?.ok) return JSON.stringify(r);
+                    const { files: _f, sets: _s, ...seen } = r;
+                    const bare = ({ ref: _r, ...row }) => row;
+                    if (seen.cards) seen.cards = seen.cards.map(bare);
+                    if (seen.card) seen.card = { ...bare(seen.card), madeFrom: undefined, ...(seen.card.members ? { members: seen.card.members.map(bare) } : {}) };
+                    return JSON.stringify(seen);
+                }
                 if (!currentProject?.folderPath) {
                     return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open, so there are no cards to list.' } });
                 }
@@ -2514,6 +2546,16 @@ ${knowledgeIndex}`.trim();
                 if (!card.ok) return seen;
                 this._rulesSent.add('repeat');
                 return JSON.stringify({ ...card, repeat: REPEAT_RULE });
+            }
+            case 'import_card': {
+                if (!currentProject?.folderPath) {
+                    return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open to import into. Open or create one first.' } });
+                }
+                if (!this._mayOpen(args.sourceFolderPath, currentProject)) {
+                    return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_PROJECT', message: 'Name only a folderPath from list_projects, or one the user typed.' } });
+                }
+                const body = { sourceFolderPath: args.sourceFolderPath, groupId: args.groupId, folderPath: currentProject.folderPath, ...(args.cardName ? { cardName: args.cardName } : {}) };
+                return this._gif((b) => this._tools.importCard(b), {}, body, true);
             }
             case 'visible_cards':
                 return this._seeCards(await this._tools.visibleCards(args.limit));
@@ -3505,7 +3547,8 @@ function _toolLabel(toolName, args) {
         case 'create_project': return `Creating project: ${args.name || ''}`;
         case 'open_project':   return `Opening project`;
         case 'rename_card':    return `Naming a card: ${args.name || ''}`;
-        case 'list_cards':     return args.groupId ? 'Reading a card' : 'Looking through the project';
+        case 'list_cards':     return args.groupId ? 'Reading a card' : args.folderPath ? 'Looking through another project' : 'Looking through the project';
+        case 'import_card':    return 'Bringing in a card from another project';
         case 'visible_cards':  return 'Looking at what the gallery shows';
         case 'mark_card':      return args.mark === 'none' ? 'Clearing a card mark' : 'Marking a card';
         case 'gif':

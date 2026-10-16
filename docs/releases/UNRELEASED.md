@@ -67,6 +67,7 @@
 - **Auto-start ComfyUI on the engine popup.** The "Starting ComfyUI Engine" popup has the same switch as Settings, so you can turn auto-start on or off right there.
 - **Cosmo tells you when a chat gets long.** Past a certain length it offers three buttons: Start fresh (it saves the important parts to its notes first), Compact (it sums the chat up and carries on), or Keep going. Each message also costs less now, and a long chat sums itself up sooner, so it never gets expensive.
 - **Cosmo can install a Flow for you.** Ask for one you do not have and Cosmo shows its Yes / No card with the download size, and a note when a licence screen comes first. It installs nothing until you press Yes.
+- **Bring a card in from another project.** Ask Cosmo for a card from an earlier project and it copies it into the one you have open, with its prompt and name, like Add to project does. Handy for a series: one project per episode, the same characters in each. AI apps connected over MCP can do it too.
 - **Dev updates on the home screen.** The bell beside About shows the latest posts from the Cubric Studio Discord, pictures included: flick through them, click one to see it big, and press X when you have read it. Join the Discord is one click away.
 
 ## ComfyUI Engine

@@ -72,7 +72,7 @@ test('add-from-cards copies the whole scene set under the new id and re-points s
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ folderPath: dstRoot, cards: [{ type: 'image', name: 'Pano',
             item: { id: ID, filePath: url(srcStill), scenePath: url(srcManifest) } }] }),
-    })).json();
+    })).json().then(({ success, added }) => ({ success, added }));
     const copiedMeta = async () => {
         const written = (await fs.readdir(dstMeta)).filter(f => /^[0-9a-f-]+\.json$/.test(f));
         assert.equal(written.length, 1, 'exactly one sidecar per copied card');

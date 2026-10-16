@@ -26,8 +26,9 @@ recipe, run a shot, run a pass, assemble. An outside agent can direct a Story en
 
 ## Card import for agents — MPI-1136
 
-The app already imports a card from another project. Neither Cosmo nor MCP knows how. Series
-work (one project per episode) needs it: reuse a Story card or takes across episodes.
+Series work (one project per episode) reuses a Story card or takes across episodes. Shipped:
+`import_card` on both surfaces, the gallery's Add to project copy ([../mcp-server.md](../mcp-server.md)
+§ Import a card). Cosmo finds the card with `list_cards` `folderPath` and imports into the open project.
 
 ## Infinite Video Flow
 

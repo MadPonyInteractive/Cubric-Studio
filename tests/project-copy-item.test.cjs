@@ -162,7 +162,7 @@ test('add-from-cards still builds a card per copy after the extraction', async (
             });
             const body = await res.json();
             assert.equal(res.status, 200);
-            assert.deepEqual(body, { success: true, added: 1 });
+            assert.deepEqual({ success: body.success, added: body.added }, { success: true, added: 1 });
 
             const project = await fs.readJson(path.join(dest, 'project.json'));
             assert.equal(project.itemGroups.length, 1);

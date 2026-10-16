@@ -2968,7 +2968,9 @@ function copiedItemResponse(id, meta) {
  *   cards       {Array<{ type, name, item }>}  where item is the selected
  *               MediaItem (needs at least filePath; thumbPath optional).
  *
- * Returns { success, added: number }.
+ * Returns { success, added: number, groups }: `groups` are the new cards HYDRATED (each
+ * history entry is its sidecar, as `reconcileAndHydrate` makes it), so a caller whose
+ * target is the OPEN project can `addGroup` them (MPI-1136, the agents' `import_card`).
  */
 router.post('/project-media/:projectId/add-from-cards', async (req, res) => {
     try {
@@ -2983,11 +2985,13 @@ router.post('/project-media/:projectId/add-from-cards', async (req, res) => {
         await fs.ensureDir(metaDir);
 
         const newGroups = [];
+        const metas = [];
         for (const card of cards) {
             const copied = await copyItemIntoProject({
                 item: card?.item, mediaDir, metaDir, type: card?.type, name: card?.name,
             });
             if (!copied) continue;
+            metas.push(copied.meta);
 
             newGroups.push({
                 id:            uuidv4(),
@@ -3015,7 +3019,7 @@ router.post('/project-media/:projectId/add-from-cards', async (req, res) => {
             updatedAt: new Date().toISOString(),
         }));
 
-        res.json({ success: true, added: newGroups.length });
+        res.json({ success: true, added: newGroups.length, groups: newGroups.map((g, i) => ({ ...g, history: [metas[i]] })) });
     } catch (err) {
         logger.error('project', 'add-from-cards error', err);
         res.status(500).json({ success: false, error: err.message });

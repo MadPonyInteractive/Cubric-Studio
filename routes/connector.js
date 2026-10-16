@@ -1048,6 +1048,35 @@ router.post('/connector/import-media', async (req, res) => {
 });
 
 /**
+ * POST /connector/import-card (MPI-1136) — a card from one project copied into another, the
+ * gallery's Add to project done by an agent (series work: one project per episode).
+ * `{ sourceFolderPath, groupId, folderPath?, cardName? }`: the card `groupId` in the project
+ * `sourceFolderPath` names (open or closed), into the project `folderPath` names (open or
+ * closed), else the open one. Through the renderer (`card.import`), which owns an open
+ * target's `itemGroups`. Answers `{ ok, output: { groupId, itemId, type, filePath,
+ * pixelDimensions } }`. Errors: BAD_REQUEST, PROJECT_NOT_FOUND, NO_PROJECT, NO_SUCH_CARD,
+ * STACK, IMPORT_FAILED.
+ */
+router.post('/connector/import-card', async (req, res) => {
+  const { sourceFolderPath, groupId, folderPath, cardName } = req.body || {};
+  const fail = (code, message, status = 200) => res.status(status).json({ ok: false, error: { code, message } });
+  if (typeof sourceFolderPath !== 'string' || !sourceFolderPath.trim()) return fail('BAD_REQUEST', 'body.sourceFolderPath must be a project folder, as /connector/projects lists it.', 400);
+  if (typeof groupId !== 'string' || !groupId) return fail('BAD_REQUEST', 'body.groupId is required.', 400);
+  const listed = await _appPost('/list-projects', {}).catch((err) => ({ error: err.message }));
+  if (!listed?.success) return fail('RUNTIME_ERROR', `Could not list the projects: ${listed?.error || 'unknown error'}`);
+  const resolve = (p) => findProjectByFolder(listed.projects, p)?.folderPath?.replace(/\\/g, '/');
+  const input = { sourceFolderPath: resolve(sourceFolderPath), groupId, ...(typeof cardName === 'string' ? { cardName } : {}) };
+  if (!input.sourceFolderPath) return fail('PROJECT_NOT_FOUND', `No Cubric Studio project at "${sourceFolderPath}". Use a folderPath from /connector/projects.`);
+  if (folderPath !== undefined) {
+    input.folderPath = resolve(folderPath);
+    if (!input.folderPath) return fail('PROJECT_NOT_FOUND', `No Cubric Studio project at "${folderPath}". Use a folderPath from /connector/projects.`);
+  }
+  const result = await _dispatchToRenderer('card.import', input);
+  if (!result.ok) logger.warn('connector', `import-card failed: ${result.error?.code} ${result.error?.message}`);
+  res.json(result);
+});
+
+/**
  * POST /connector/jobs/:id/result — the renderer reporting a job's outcome.
  * Unknown/late ids are a no-op (the caller already timed out), never an error.
  */

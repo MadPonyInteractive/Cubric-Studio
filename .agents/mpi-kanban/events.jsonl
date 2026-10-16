@@ -6224,3 +6224,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1159", "at": "2026-10-16T12:48:38+01:00", "actor": "claude", "column": "doing", "title": "Character Sheet Editor can undress an adult sheet"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1160", "at": "2026-10-16T19:44:33+01:00", "actor": "claude", "column": "todo", "title": "Choose media picker shows whole pictures in a gallery-style grid"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1159", "at": "2026-10-16T20:10:34+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Undress eye-tested PASS; age-18 wording benched; CI green on 0a8f600df"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1136", "at": "2026-10-16T20:09:34+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "MPI-1136 implementation"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1136", "at": "2026-10-16T20:17:45+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Both surfaces import a card; npm test green; live MCP check passed. Eye test: validation.md"}

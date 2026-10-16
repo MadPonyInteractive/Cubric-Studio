@@ -504,7 +504,7 @@ test('add-from-cards copies a GIF item\'s frames into the destination project', 
                 cards: [{ type: 'image', name: 'GIF', item: { id: srcId, filePath: url(srcGifPath) } }],
             }),
         }).then(r => r.json());
-        assert.deepEqual(res, { success: true, added: 1 });
+        assert.deepEqual({ success: res.success, added: res.added }, { success: true, added: 1 });
 
         const destFramePng = gifFrames.frameAbsPath(dstMediaDir, hash);
         assert.equal(await fs.pathExists(destFramePng), true, 'the referenced frame PNG must be copied into the destination store');
