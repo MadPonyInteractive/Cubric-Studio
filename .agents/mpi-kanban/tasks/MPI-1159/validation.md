@@ -38,3 +38,15 @@ Tests: `tests/character-sheet-editor.test.cjs` 24/24; registry + safety suites 3
 Same session, his asks: result card names were piling up every earlier change (now the source name before the first
 " - " + the first four words); the Klein model slot read only "Model" (now "Clothes, condition, custom and age").
 The picker crop went to its own card, MPI-1160.
+
+## Age 18 on an adult sheet (Fabio, eye test): bench ag1 + ag2, Klein, 2 seeds each
+
+Repro (flowCSE_059, pink bob, age 18, describer refused -> read 35): the young-adult string lost the pink bob and aged
+only the close-up; the front face kept its smile lines. Root: the string named no hair at all.
+
+- ag1 `a_hair` (+ ", the same hairstyle and hair color"): bob kept, front AND close-up faces younger, both seeds.
+- ag1 `a_fig` (every figure named instead of L1): same result - not needed, L1 holds.
+- ag2 the fisher (white hair + beard, reads ~68) at 30: `a_hair` = shipped, dark hair and no beard on all panels,
+  both seeds. "Same hair color" does not fight "no grey hair".
+
+Shipped `a_hair` verbatim in the young-adult branch (18-39); tests 24/24, eslint clean. Outputs stay in the scratchpad.

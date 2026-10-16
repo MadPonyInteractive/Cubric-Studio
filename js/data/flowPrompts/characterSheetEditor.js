@@ -312,8 +312,10 @@ export function buildAgePrompt(age, apparent) {
         return `Change the character in this character sheet to be a ${age}-year-old.` + L1;
     }
     // Smooth skin and no grey hair hold for a young adult only (benched at 30): told the same at
-    // 70, the fisher, read ~80, lost his white beard and came back ~35 (MPI-1041 Phase E).
-    return age < YOUNG_ADULT_MAX ? head + ', with a younger face, smooth skin and no grey hair.' + L1
+    // 70, the fisher, read ~80, lost his white beard and came back ~35 (MPI-1041 Phase E). Without "the same
+    // hairstyle and hair color" a pink-bobbed nude sheet at 18 lost the bob and aged only the close-up; with it, all
+    // panels and the bob held, and the fisher at 30 still lost his grey (MPI-1159 ag1/ag2, 2 seeds each).
+    return age < YOUNG_ADULT_MAX ? head + ', with a younger face, smooth skin and no grey hair, the same hairstyle and hair color.' + L1
         : head + ', with a younger face.' + L1;
 }
 
