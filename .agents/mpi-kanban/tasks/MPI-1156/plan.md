@@ -105,6 +105,10 @@ NEXT: Phase 5: docs/child-safety.md rewrite (still describes configTexts/lookTex
 opening, the lock, the cache), then Fabio's eye test (list below + a water-park still, the same as a clip, animating a
 child photo in a swimsuit).
 
+2026-10-16 (session "New character sheets 37"): Fabio's in-browser agent notes assessed (no change: face-age models are
+non-commercial / fail on drawn people, a person detector that SKIPS a look fails open; one real gap logged in the doc:
+outputs are never looked at). docs/child-safety.md rewritten to the shipped design (191 lines). NEXT: Fabio's eye test.
+
 ## Completed
 
 - Phase 1: config-source map (2026-10-16).
