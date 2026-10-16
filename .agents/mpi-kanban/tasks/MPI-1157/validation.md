@@ -25,3 +25,7 @@
 Not live-checked: the renderer's `download:uninstall-failed` toast (no Pod to refuse); covered
 server-side by the test above. A slow (Pod) uninstall was not run live; the held-delete test
 proves the 202-before-work ordering.
+
+## Closed 2026-10-16 (session facd4d99)
+
+CI Tests green on fcd0f6570 (unit + 4 desktop shards), the commit carrying this code.

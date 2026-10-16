@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1157", "at": "2026-10-16T09:57:43+01:00", "actor": "claude", "column": "todo", "title": "Uninstall answers at once and finishes in the background, shown as a Transfers row"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1157", "at": "2026-10-16T09:58:21+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "implementing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1157", "at": "2026-10-16T10:05:53+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped; CI on its commit remains"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1157", "at": "2026-10-16T10:22:03+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on fcd0f6570"}
