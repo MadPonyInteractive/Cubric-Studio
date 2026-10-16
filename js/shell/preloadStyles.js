@@ -23,6 +23,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Primitives/MpiTileSheet/MpiTileSheet.css',
   'js/components/Primitives/MpiColorPicker/MpiColorPicker.css',
   'js/components/Primitives/MpiPopup/MpiPopup.css',
+  'js/components/Primitives/MpiEntryInfo/MpiEntryInfo.css',
   'js/components/Primitives/MpiStylePicker/MpiStylePicker.css',
   'js/components/Primitives/MpiToast/MpiToast.css',
   'js/components/Primitives/MpiOverlay/MpiOverlay.css',

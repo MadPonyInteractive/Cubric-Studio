@@ -1,0 +1,6 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1162", "at": "2026-10-16T20:44:17+01:00", "actor": "claude", "column": "todo", "title": "Card info hover popup"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1162", "type": "task.updated", "at": "2026-10-16T19:45:40Z", "actor": "claude", "summary": "Plan attached; maturity planned."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1162", "at": "2026-10-16T20:53:18+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1162", "type": "validation.updated", "at": "2026-10-16T20:07:59Z", "actor": "claude", "summary": "Automated + app:isolated checks recorded."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1162", "type": "checklist.updated", "at": "2026-10-16T20:07:59Z", "actor": "claude", "summary": "Implementation checked."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1162", "type": "task.updated", "at": "2026-10-16T20:07:59Z", "actor": "claude", "summary": "maturity validating; awaiting Fabio eye test."}

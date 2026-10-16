@@ -32,10 +32,12 @@
  */
 
 import { ComponentFactory } from '../../factory.js';
-import { qs } from '../../../utils/dom.js';
+import { qs, ce } from '../../../utils/dom.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { Events } from '../../../events.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
+import { MpiEntryInfo } from '../../Primitives/MpiEntryInfo/MpiEntryInfo.js';
+import { entryInfo } from '../../../utils/entryInfo.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { buildPromptReusePayload, itemHasReusablePrompt } from '../../../utils/promptReuse.js';
 import { nearestNamedRatio } from '../../../utils/ratios.js';
@@ -455,10 +457,17 @@ export const MpiHistoryList = ComponentFactory.create({
          */
         el.getSelectionOrder = () => [..._selection];
 
+        // Hover a row to see how it was made (MPI-1162). One flyout for the whole list.
+        const _info = MpiEntryInfo.mount(ce('div'));
+        const _unwatchInfo = _info.el.watch(qs('#cards-slot', el), '.mpi-history-list__card',
+            (card) => entryInfo(_history[_historyCards.indexOf(card)]));
+
         el.destroy = () => {
             _delUnsub?.();
             _reuseBtns.forEach((btn) => btn.destroy?.());
             _reuseBtns.length = 0;
+            _unwatchInfo();
+            _info.destroy();
         };
 
         // ── Init ──────────────────────────────────────────────────────────────

@@ -987,6 +987,17 @@
  */
 
 /**
+ * @typedef {Object} MpiEntryInfoProps (Primitive — js/components/Primitives/MpiEntryInfo)
+ * No props. Hover flyout saying how a card was made (MPI-1162); one instance per host.
+ *
+ * Instance methods (on instance.el):
+ *   watch(container, selector, getInfo) — open after 400 ms resting on a `selector` row,
+ *       close 150 ms after the pointer leaves row and flyout. `getInfo(rowEl)` returns an
+ *       `entryInfo()` result (js/utils/entryInfo.js) or null. Returns the unwatch fn.
+ *   hide() — close now.
+ */
+
+/**
  * @typedef {Object} MpiPopupProps (Primitive — js/components/Primitives/MpiPopup)
  * @property {boolean} [active=false] - Whether the popup is visible
  * @property {string} [variant='glass'] - Visual variant

@@ -1,0 +1,26 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1162",
+  "title": "Card info hover popup",
+  "description": "Hover a History row or gallery card ~400 ms -> flyout on its left: model+tier, op/Flow, time taken, size/duration/fps, date, prompt (negative folded), notes. No seed. Closes when pointer leaves row and flyout; pointer can enter it to copy the prompt.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-16T20:44:17+01:00",
+  "updated_at": "2026-10-16T20:07:59Z",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  },
+  "attention": {
+    "state": "required",
+    "reason": "Eye test: hover a History row and a gallery card.",
+    "updated_at": "2026-10-16T20:07:59Z"
+  }
+}

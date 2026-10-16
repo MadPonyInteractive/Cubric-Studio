@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Primitives/MpiEntryInfo/MpiEntryInfo.js",
+    "js/components/Primitives/MpiEntryInfo/MpiEntryInfo.css",
+    "js/components/Primitives/MpiEntryInfo/",
+    "js/utils/entryInfo.js",
+    "tests/entry-info.test.cjs",
+    "js/components/Compounds/MpiHistoryList/MpiHistoryList.js",
+    "js/components/Compounds/MpiHistoryList/MpiHistoryList.css",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js"
+  ]
+}

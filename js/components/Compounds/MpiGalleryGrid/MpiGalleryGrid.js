@@ -14,7 +14,7 @@ import { getModelById, tierLetterFor } from '../../../data/modelRegistry.js';
 import { getCommand, getCommandAccent, commandAllowsBranchingContinue } from '../../../data/commandRegistry.js';
 import { isStack, expandStacks, stackCreateBlockReason, STACK_BLOCK_INFO } from '../../../data/stackModel.js';
 import { handOverClip } from '../../../shell/heroCrew.js';
-import { flowModelChoices } from '../../../data/flowsRegistry.js';
+import { flowModelLabel, formatGenTime } from '../../../utils/entryInfo.js';
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
@@ -25,29 +25,6 @@ import { extractAbsPath, extractFilenameFromPath } from '../../../utils/mediaAct
 import { clientLogger } from '../../../services/clientLogger.js';
 import { buildGalleryPromptReusePayloads, itemHasReusablePrompt, findOriginalReusableItem } from '../../../utils/promptReuse.js';
 import { createPreviewClipPlayer } from '../../../services/previewClipPlayer.js';
-
-// Row 1 of a FLOW card's badge: the model that actually ran (MPI-620). A flow gen has
-// `modelId: null` — it is an operation, not a model — so the tier lives in
-// `generationSettings.flowModelIds`, one id per `requiredModels` slot in declaration order.
-//
-// Shown ONLY when the flow has exactly ONE choosable slot, which is the comparison case
-// the badge exists for (Scribble on 9B vs 4B). A four-stage flow has four models and they
-// do not fit a two-row corner label; a flow with no choosable slot always runs the same
-// models, so naming one says nothing. Both of those read the sidecar, as the prompt already
-// does — a real per-run detail panel is its own job.
-function _flowModelLabel(item) {
-    if (!item?.flowId) return '';
-    const ids = item.generationSettings?.flowModelIds;
-    if (!Array.isArray(ids)) return ''; // pre-MPI-620 card — nothing recorded, so say nothing
-    const choices = flowModelChoices(item.flowId);
-    if (choices.length !== 1) return '';
-    // `choices[0].index` is the slot's position in `requiredModels`, NOT its position among
-    // the choosable ones — filtering loses that, and `flowModelIds` is indexed by the former.
-    const model = getModelById(ids[choices[0].index]);
-    if (!model) return '';
-    const tier = tierLetterFor(model);
-    return `${model.name}${tier ? ` ${tier}` : ''}`;
-}
 
 // How far outside the scroll viewport a video card still counts as "in view" for
 // promotion. Shared by the IntersectionObserver's rootMargin and the manual sweep
@@ -1491,7 +1468,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // take you had just recorded came back labelled IMPORTED (MPI-622).
                 const modelLabel = original?.uploaded
                     ? (original.operation === 'recorded' ? 'RECORDED' : 'IMPORTED')
-                    : (modelName || _flowModelLabel(original));
+                    : (modelName || flowModelLabel(original));
                 const operationLabel = selected?.uploaded
                     ? ''
                     : (command?.label || selected?.operation || '');
@@ -1521,18 +1498,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // Bottom-left sub-line: compact metadata only. Prompt text stays out of gallery cards.
                 const dims = selected?.pixelDimensions;
                 const dimStr = (dims?.w && dims?.h) ? `${dims.w} × ${dims.h}` : '';
-                let timeStr = '';
-                const ms = selected?.generationMs;
-                if (ms && ms > 0) {
-                    const totalSec = Math.max(1, Math.round(ms / 1000));
-                    if (totalSec >= 60) {
-                        const m = Math.floor(totalSec / 60);
-                        const s = totalSec % 60;
-                        timeStr = s ? `${m}m ${s}s` : `${m}m`;
-                    } else {
-                        timeStr = `${totalSec}s`;
-                    }
-                }
+                const timeStr = formatGenTime(selected?.generationMs);
                 // Audio cards show their length here (m:ss). Sidecar duration is
                 // the canonical source; the <audio> loadedmetadata handler refines
                 // it if the sidecar lacks one. This must run inside _render so a
