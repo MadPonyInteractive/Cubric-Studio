@@ -279,7 +279,9 @@ test('describeFlowRun: a MEASURE entry reads pixels, never the describer, and fi
     const SHEET = { role: 'image1', mediaType: 'image', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fsheet.png' };
     const values = { change: 'tattoos', words: 'a rose on the left arm', Input_Age: -1 };
     assert.deepEqual(fe.describeAsks(flow, values, [SHEET]).map(d => d.to), ['sheetCuts']);
-    assert.deepEqual(fe.describeAsks(flow, { ...values, change: 'makeup' }, [SHEET]).map(d => d.to), [], 'Tattoos only');
+    assert.deepEqual(fe.describeAsks(flow, { ...values, change: 'accessories' }, [SHEET]).map(d => d.to), ['sheetCuts'],
+        'Accessories take the back pass too (MPI-1086 ac2)');
+    assert.deepEqual(fe.describeAsks(flow, { ...values, change: 'makeup' }, [SHEET]).map(d => d.to), [], 'back-pass changes only');
     const deps = (cuts) => ({ measure: async () => cuts, describe: async () => { throw new Error('no describer'); } });
     for (const cuts of ['510,1002', '']) {
         const res = await fe.describeFlowRun(flow, { injectionParams: values, mediaItems: [SHEET] }, null, deps(cuts));

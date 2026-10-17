@@ -44,10 +44,12 @@ test('every change builds its bench template verbatim', async () => {
         + 'close-up portrait on the right all show the same outfit, with the same neckline, sleeves and straps. '
         + 'Keep everything else exactly as it is.');
     // MPI-1086 r30: Accessories runs on Qwen, every figure named, "to wear or hold" (a bare "Mask" became a matte).
+    // ac2: "Add nothing else" (a G3 came with a thigh pouch, belt and sling).
     assert.strictEqual(buildChangePrompt('accessories', 'a red scarf and round glasses'),
         'Give the character in image 1 this accessory to wear or hold: a red scarf and round glasses. The front view, the '
         + 'character seen from behind and the close-up portrait on the right all show it wherever it can be seen. '
-        + "Keep the character's own face, hair, skin and clothes. Keep everything else exactly as it is.");
+        + "Add nothing else: no other gear, bags, belts or straps. Keep the character's own face, hair, skin and "
+        + 'clothes. Keep everything else exactly as it is.');
     // MPI-1086 r34: Makeup and Tattoos in words, on Qwen; her own face named, no limb named for tattoos.
     // r47: Makeup edits the two faces only (the graph's face canvas), each face kept its own.
     assert.strictEqual(buildChangePrompt('makeup', 'dark gothic makeup with smoky eyes and black lipstick'),
@@ -269,16 +271,27 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     assert.strictEqual(characterSheetEditor('change', run('tattoos', 'a back tattoo')).injectionParams.Input_Is_Mannequin, true);
     assert.doesNotMatch(buildChangePrompt('accessories', 'a bandana', true), /tattoos/, 'Accessories keeps its own string');
     // MPI-1086 r37: Tattoos redraw the back figure from the edited front one; words go into that pass, a picture does not.
-    const TURN = 'Turn the character in image 1 around so the character is seen from behind: the same person, hair, '
-        + 'body, skin tone, clothes and shoes, standing in the same pose, full body from head to feet, on the same plain '
-        + 'grey background.';
+    // ac2: image 2 = the sheet's original back figure, so the outfit's back stays; the skin and ink come from image 1.
+    const TURN = 'Turn the character in image 1 around so the character is seen from behind, full body from head to '
+        + 'feet, standing in the same pose, on the same plain grey background. Image 2 is this character seen from behind: ';
+    const TAT = TURN + 'keep the hair, clothes and shoes exactly as in image 2, and the skin and its tattoos as in image 1.';
     const pic = characterSheetEditor('change', run('tattoos', 'Leg tattoo')).injectionParams;
-    assert.deepStrictEqual([pic.Input_Back_Pass, pic.Input_Positive_2], [true, TURN + KEEP]);
+    assert.deepStrictEqual([pic.Input_Back_Pass, pic.Input_Positive_2], [true, TAT + KEEP]);
     const words = characterSheetEditor('change', { change: 'tattoos', words: 'a black snake tattoo on the right leg',
         Input_Age: -1, mediaItems: [{ role: 'image1', url: 'x' }] }).injectionParams;
-    assert.deepStrictEqual([words.Input_Back_Pass, words.Input_Positive_2], [true, TURN + ' The character has this '
+    assert.deepStrictEqual([words.Input_Back_Pass, words.Input_Positive_2], [true, TAT + ' The character has this '
         + 'tattoo: a black snake tattoo on the right leg. Show it wherever it can be seen from behind.' + KEEP]);
-    for (const c of ['accessories', 'makeup', 'hair', 'body']) {
+    // ac2: Accessories take the back pass too (a held G3 stuck out at his side from behind), words or picture; only
+    // what can be seen from behind (a necklace's pendant was drawn on her back).
+    const ACC2 = TURN + 'keep the hair, body, skin tone, clothes and shoes exactly as in image 2. The character has this '
+        + 'accessory: a G3 held in both hands, held or worn as in image 1. Show only the parts of it that can really be '
+        + 'seen from behind: anything on the front of the body, such as a pendant, is hidden by the body, and only a '
+        + 'chain or strap shows at the back. Hair hides what is under it.' + KEEP;
+    for (const v of [run('accessories', 'a G3 held in both hands'), { change: 'accessories', words: 'a G3 held in both hands' }]) {
+        const p = characterSheetEditor('change', { Input_Age: -1, ...v }).injectionParams;
+        assert.deepStrictEqual([p.Input_Back_Pass, p.Input_Positive_2], [true, ACC2]);
+    }
+    for (const c of ['makeup', 'hair', 'body']) {
         assert.strictEqual(characterSheetEditor('change', run(c, 'x')).injectionParams.Input_Back_Pass, false, c);
     }
     assert.strictEqual(characterSheetEditor('age', run('tattoos', 'Leg tattoo', 30)).injectionParams.Input_Back_Pass, false,
@@ -545,7 +558,13 @@ test('the Qwen graph\'s back pass is lazy and every reader of the edit gets the 
         'off: the edit as before (r47: the sheet-sized edit, or the faces pasted back)');
     assert.strictEqual(g[id('Output_Image_2')].inputs.images[0], mid, 'the edit capture reads the merged picture');
     const enc = Object.values(g).find(n => n.class_type === 'TextEncodeQwenImage21' && n.inputs.prompt?.[0] === id('Input_Positive_2'));
-    assert.ok(enc && !enc.inputs['images.image_2'], 'the back pass reads the front body only, no picture 2');
+    // ac2: picture 2 = the INPUT sheet's back figure, cropped at the same cuts, so the outfit's back stays.
+    const crop = g[g[enc.inputs['images.image_2'][0]].inputs.image[0]];
+    assert.deepStrictEqual([crop.class_type, crop.inputs.image], ['MpiBoxCrop', [id('Input_Image'), 0]], 'the original sheet');
+    const box = g[crop.inputs.mpi_box[0]];
+    assert.strictEqual(g[box.inputs.x[0]]._meta.title.startsWith('cut 1'), true, 'from cut 1');
+    assert.deepStrictEqual(g[box.inputs.width[0]].inputs.b, [Object.keys(g).find(k => g[k]._meta?.title.startsWith('cut 2')), 0],
+        'to cut 2');
 });
 
 test('the Qwen graph edits the two faces only when Input_Face_Crop, lazily (MPI-1086 r47)', () => {
@@ -615,7 +634,7 @@ test('the picture checks run only when they can matter, and before any other que
     assert.deepStrictEqual(await withRef('hair'), ['refHair', 'refIsMannequin']);
     assert.deepStrictEqual(await withRef('makeup'), ['refMakeup', 'refIsMannequin'], 'MPI-1086 r42: makeup is put into words too');
     assert.deepStrictEqual(await withRef('beard'), ['refBeard', 'refIsMannequin'], 'MPI-1086 bp1: a beard picture too');
-    assert.deepStrictEqual(await withRef('accessories'), []);
+    assert.deepStrictEqual(await withRef('accessories'), ['sheetCuts'], 'ac2: the back pass needs the cuts');
     assert.deepStrictEqual(await withRef('tattoos'), ['sheetCuts'], 'MPI-1086 r44: a MEASURE of the sheet, not a question');
     assert.deepStrictEqual(await asked('hair', '', -1), []);
 });

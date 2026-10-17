@@ -926,3 +926,31 @@ b1 + "in dark brown" = the long beard brown PASS; b2 + "trimmed short and neat" 
 grey streak" = grey mixed through, not a streak (partial). Own face + hair 3/3. Fisher + b3, no words, white
 mannequin = his white beard swapped for the handlebar, cartoon face kept PASS. npm test 3383 / 0 fail, eslint clean.
 NOT eye-tested in the app yet (Fabio).
+
+## Accessories benches ac1 / ac2 (session "New character sheets 41", 2026-10-17): the back pass for Accessories
+
+Fabio's eye test: "Holding a G3 machine gun with both his hands" on flowCSFI_011 (flowCSE_068, seed 4210442743)
+added a thigh pouch + belt + sling on the front, and the back view's gun stuck out at his side. Scripts ac1.py,
+ac2.py, ac3.py, gridac.py in session 06a78559's scratchpad; G: bench :8188.
+
+- ac1 (shipped one-pass string, seeds 42 / 2512058707): no pouch either seed (the pouch is seed-dependent); from
+  behind the gun pokes out both sides / one side. Fabio: a fail; do it the Tattoos way (front first, then turn round).
+- ac2, pass 1 = shipped, Input_Back_Pass on, cuts measured (gaps.py: man 510,1002; woman cs44 448,882):
+
+| case | B1 (pass 2 sees the edited front only) | B2 (+ image 2 = the sheet's ORIGINAL back figure) |
+|---|---|---|
+| g3 Fabio's seed | pouch reproduced (pass 1); back consistent, gun mirrored right | same |
+| g3 seed 42 | pass | pass |
+| jewel (cs44) | back redrawn as a HALTER (straps + ankle straps lost) | straps + heels kept; PENDANT drawn on her back |
+| cap | pass | pass |
+| katana right hand | keyhole back; sword on her right from behind | straps kept; sword right |
+
+- B2NH = B2 + pass 1 "Add nothing else: no other gear, bags, belts or straps." + pass 2 "Show only the parts of it
+  that can really be seen from behind: anything on the front of the body, such as a pendant, is hidden by the body,
+  and only a chain or strap shows at the back. Hair hides what is under it." (Fabio caught the pendant): 5/5 -
+  Fabio's seed = the G3 only, no pouch/belt/sling; jewel = chain at the nape + earrings, no pendant, straps kept;
+  cap, katana, G3 seed 42 pass.
+- BUILT: `patch_raw_back_ref.py` (graph: Input_Image cropped at cut 1..cut 2, ~1 MP -> back pass encoder
+  `images.image_2`; API = the bench graph node for node), `accessories` + "Add nothing else", `buildBackPassPrompt`
+  for accessories + tattoos with image 2 (Tattoos: "the skin and its tattoos as in image 1", unbenched -> ac3),
+  `sheetCuts` measured for accessories too. Tests updated, 38/38 in the two files.

@@ -55,8 +55,8 @@ The mannequin: the describer's `refIsMannequin` yes/no on the Reference picture 
 | change | editor | lock (`Input_Lock`) | evidence |
 |---|---|---|---|
 | Clothes | Klein; words that take the clothes OFF -> Qwen-Image 2.1, the words their own sentence, every figure named | Klein: 1 = SAM3 "head, hair, face" on all three panels; the BACK body's cut at the shoulders (MPI-1090) | b3-b4, 6 of 6; F1 wording 9 of 9. Undress (MPI-1159 ud1, adult sheet flowCSE_044): Qwen 4/4 every figure nude + barefoot, own face and hair; Klein's "Dress the character in Remove all the clothes" came back dressed |
-| Accessories | Qwen-Image 2.1, every figure named, "this accessory to wear or hold" | none in that graph | MPI-1086 r30 3 pass + 1 partial; Klein (A4, F1 7/8) redrew the front as a back view 4/4 on Fabio's sheet |
-| Accessories + picture | Qwen-Image 2.1, the RAW picture as image 2 (`Input_Is_Mannequin` forced: no mannequin) | none in that graph | MPI-1086 r29 3 pass + piercings partial; Klein 0/4 |
+| Accessories | Qwen-Image 2.1, every figure named, "this accessory to wear or hold", "Add nothing else" (a G3 brought a thigh pouch); the BACK PASS (below) | none in that graph | MPI-1086 r30 3 pass + 1 partial; ac2 B2NH 5/5; Klein (A4, F1 7/8) redrew the front as a back view 4/4 on Fabio's sheet |
+| Accessories + picture | Qwen-Image 2.1, the RAW picture as image 2 (`Input_Is_Mannequin` forced: no mannequin); the back pass | none in that graph | MPI-1086 r29 3 pass + piercings partial; ac3 minigun right side; Klein 0/4 |
 | Makeup (words / + picture) | Qwen-Image 2.1 on the two faces only (`Input_Face_Crop`), each face kept its own; with a picture a Klein MAKEUP mannequin (`Input_Mannequin_Prompt`) as image 2 + `refMakeup` words, the user's words leading | none in that graph | MPI-1086 r34 words 2/2; r42 picture man + woman 6/6 own face, r42b words 4/4 |
 | Tattoos (words / + picture) | Qwen-Image 2.1, "Add no other tattoos", no limb named; a picture needs words saying where (the Accessories string) | none in that graph | MPI-1086 r34 words 1 pass + 1 mirrored; picture + words r35 4 pass + 2 partial (one-limb side), nothing invented; the back pass fixes the side, r37 |
 | Hairstyle | Klein | 2 = "face" on the front and the close-up, from the BROWS down (MPI-1086) | b8; F1 wording 3 of 3; fringe 6 of 6 |
@@ -124,8 +124,8 @@ A tattoo picture alone inked limbs it never showed (4/6): it needs where-words (
 A one-limb tattoo came back mirrored on the back view (her left leg in front, her right from behind); no side
 sentence fixed it (r36: any talk of sides invents ink). So Tattoos take a BACK PASS (r37, Fabio): `Input_Back_Pass`
 + `Input_Positive_2` (`buildBackPassPrompt`) turn the EDITED front body round, and the sheet is STITCHED front | new back | rest at the cuts the app MEASURED (`sheetCuts`, a pixel describe entry -> `Input_Cut_1/2`, 0 = 25%/50%; a stamp over fixed 25-50% left a ghost arm on From-Images sheets, r44):
-the side lands right 3 of 4, ~+45 s. Words go into the pass, a picture does not (it invented arm ink 3 of 4). It
-redraws the outfit's back from the front (12/12, accepted) and loses a back-only tattoo from a picture (t_back).
+the side lands right 3 of 4, ~+45 s. Words go into the pass, a picture does not (it invented arm ink 3 of 4). Loses a back-only tattoo from a picture (t_back), and an inside-leg one is just turned round (Fabio: leave it).
+Accessories take it too (ac2: a two-handed G3 stuck out at his side from behind). Pass 2's image 2 = the INPUT sheet's back figure cut at the same cuts (`patch_raw_back_ref.py`): from the front alone it redrew a strappy back as a halter (12/12); with it the straps stay. Accessories: "show only what can be seen from behind" (it drew a pendant on her back).
 **Hairstyle with a picture runs on QWEN (MPI-1086 rounds 16-24).** Fabio's eye test failed the Klein
 route: lock 2 pastes the old face back onto a head Klein redrew from the picture's pose (double jaw,
 a second ear, a face out of place; ~11/17 after every lock fix). `operationBy` routes `hair` by a rule

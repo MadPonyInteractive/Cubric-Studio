@@ -249,10 +249,13 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
                 + 'all show the same outfit, with the same neckline, sleeves and straps. Keep everything else exactly as it is.';
         // MPI-1086 r30: on Qwen, every figure named. Klein's string redrew the front figure as a back view 4/4 on
         // Fabio's sheet. "this accessory to wear or hold": a bare "Mask" otherwise came back as a matte over the sheet.
+        // ac2: "Holding a G3 machine gun" also strapped a thigh pouch, belt and sling on him (Fabio's seed); "Add
+        // nothing else" left the gun alone. The back view is redrawn by the back pass (`buildBackPassPrompt`).
         case 'accessories':
             return `Give the character in image 1 this accessory to wear or hold: ${w}. The front view, the character `
-                + 'seen from behind and the close-up portrait on the right all show it wherever it can be seen. '
-                + "Keep the character's own face, hair, skin and clothes. Keep everything else exactly as it is.";
+                + 'seen from behind and the close-up portrait on the right all show it wherever it can be seen. Add '
+                + "nothing else: no other gear, bags, belts or straps. Keep the character's own face, hair, skin and "
+                + 'clothes. Keep everything else exactly as it is.';
         // MPI-1086 r34: her own face named as with a picture; smoky eyes + black lips, pink glitter + white liner 2/2.
         // r47: the two faces only, as with a picture (`TWO_FACES`).
         case 'makeup':
@@ -295,22 +298,33 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
  * The Qwen graph's back pass (`Input_Positive_2`): the back figure redrawn from the EDITED front one and pasted over
  * the back panel, so no single pass sees two views of one side. In one pass a tattoo on her left leg came back on her
  * right leg from behind; this put it on her left (MPI-1086 r37: t_leg1, the left-arm roses, the right-leg snake).
- * Tattoos only: it also redraws the back of the outfit from the front (Fabio accepted that, 2026-10-15). With words
- * only, the words come along (they put the snake right even where pass 1 left the front bare); with a picture, the
- * picture does not (in pass 2 it invented arm ink 3 of 4).
+ * Accessories too (ac2, Fabio): in one pass "a G3 held with both hands" came back sticking out at his side from
+ * behind; turned round from the front, the gun and a right-hand katana land on the right side.
+ * Image 2 is the sheet's ORIGINAL back figure (the graph crops it at the cuts): from the front alone the pass redrew
+ * a strappy open back as a halter (r38 12/12, ac2 B1); with it the straps stayed. With words only, tattoo words come
+ * along (they put the snake right even where pass 1 left the front bare); with a picture they do not (in pass 2 it
+ * invented arm ink 3 of 4). An accessory always names itself (a picture needs words). "Show it wherever it can be
+ * seen" drew a necklace's pendant on her back: the front of the body hides it.
  * @param {string} change
  * @param {string} words
  * @param {boolean} ref - a Reference picture is given
  * @returns {string} '' when the change takes no back pass
  */
 export function buildBackPassPrompt(change, words, ref = false) {
-    if (change !== 'tattoos') return '';
+    if (change !== 'tattoos' && change !== 'accessories') return '';
     const w = _words(words);
     if (!w) return '';
-    return 'Turn the character in image 1 around so the character is seen from behind: the same person, hair, body, '
-        + 'skin tone, clothes and shoes, standing in the same pose, full body from head to feet, on the same plain grey '
-        + 'background. '
-        + (ref ? '' : `The character has this tattoo: ${_unview(w)}. Show it wherever it can be seen from behind. `)
+    const has = change === 'tattoos'
+        ? (ref ? '' : `The character has this tattoo: ${_unview(w)}. Show it wherever it can be seen from behind. `)
+        : `The character has this accessory: ${_unview(w)}, held or worn as in image 1. Show only the parts of it that `
+            + 'can really be seen from behind: anything on the front of the body, such as a pendant, is hidden by the '
+            + 'body, and only a chain or strap shows at the back. Hair hides what is under it. ';
+    return 'Turn the character in image 1 around so the character is seen from behind, full body from head to feet, '
+        + 'standing in the same pose, on the same plain grey background. Image 2 is this character seen from behind: '
+        + (change === 'tattoos'
+            ? 'keep the hair, clothes and shoes exactly as in image 2, and the skin and its tattoos as in image 1. '
+            : 'keep the hair, body, skin tone, clothes and shoes exactly as in image 2. ')
+        + has
         + 'Keep everything else exactly as it is.';
 }
 

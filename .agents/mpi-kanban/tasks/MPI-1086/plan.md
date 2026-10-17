@@ -4,6 +4,14 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-17 (session "New character sheets 41") - LATEST. ACCESSORIES TAKE THE BACK PASS (Fabio's idea after ac1 failed
+the G3 back view): pass 1 + "Add nothing else" (the thigh pouch), pass 2 turns the edited front round with image 2 =
+the INPUT sheet's back figure (`patch_raw_back_ref.py`, shared with Tattoos: the outfit's back now stays), and "show
+only what can be seen from behind" (Fabio caught a pendant drawn on her back). Benches ac1-ac3 in validation.md; shipped
+path = bench pixel for pixel; Tattoos roses land on the right arm with straps kept. Fabio: minigun one-handed = steer
+with words; inside-leg tattoo turned round = leave it. NEXT: Fabio's eye tests (Accessories words + picture, Tattoos),
+face tattoos, close-out.
+
 2026-10-17 later (session "New character sheets 40") - LATEST. BEARD EYE-TESTED PASS by Fabio (words, empty box,
 picture; e.g. "A blue long Viking beard with braids"). Pushed 7c5158e53. Status bar fix (Fabio: a Flow's bar was
 Studio cream, not pink): after a Stop, the old gen's late terminal idled the bar (clearing the accent) after the next

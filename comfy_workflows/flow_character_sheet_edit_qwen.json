@@ -1314,6 +1314,10 @@
         "203",
         0
       ],
+      "images.image_2": [
+        "276",
+        0
+      ],
       "vae": [
         "4",
         0
@@ -2454,6 +2458,76 @@
     "class_type": "MpiIfElse",
     "_meta": {
       "title": "the edit: the faces pasted back when Input_Face_Crop"
+    }
+  },
+  "273": {
+    "inputs": {
+      "math_expression": "b - a",
+      "a": [
+        "200",
+        0
+      ],
+      "b": [
+        "214",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "back panel width (back pass image 2)"
+    }
+  },
+  "274": {
+    "inputs": {
+      "y": 0,
+      "width": [
+        "273",
+        0
+      ],
+      "height": [
+        "199",
+        1
+      ],
+      "x": [
+        "200",
+        0
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "the back panel box (back pass image 2)"
+    }
+  },
+  "275": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "11",
+        0
+      ],
+      "mpi_box": [
+        "274",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "crop the ORIGINAL back figure (back pass image 2)"
+    }
+  },
+  "276": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "megapixels": 0.9766,
+      "resolution_steps": 16,
+      "image": [
+        "275",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "the original back figure to ~1 MP"
     }
   }
 }
