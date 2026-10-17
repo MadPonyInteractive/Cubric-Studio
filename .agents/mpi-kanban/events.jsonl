@@ -6242,3 +6242,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1163", "at": "2026-10-17T07:01:33+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting work"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1163", "at": "2026-10-17T07:09:40+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped; npm test green; remaining check = CI on master"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1136", "at": "2026-10-17T07:14:22+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Eye test passed, Cosmo and MCP (Fabio 2026-10-17); CI green on 9217894ee"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1154", "at": "2026-10-17T07:15:14+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio passed the eye test 2026-10-17; CI green on cb37d7984"}
