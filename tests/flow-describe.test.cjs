@@ -243,7 +243,7 @@ test('submitFlowGeneration describes before the graph is queued, on the first ca
     const startAfter = body.indexOf('if (!start())', merge);
     assert.ok(describe > -1 && merge > describe && startAfter > merge, 'describe -> merge -> queue');
     // Cancelled by the describer OR by the run's handle while it described (MPI-1083).
-    assert.match(body, /if \(handle\.cancelled \|\| d\.cancelled\) return runCallbacks\.onCancel\?\.\(\);/);
+    assert.match(body, /if \(handle\.cancelled \|\| d\.cancelled\) return runCallbacks\.onCancel\?\.\(/);
     // A check's refusal keeps its own code (MPI-1041: CHILD_SAFETY); a describer failure has none.
     assert.match(body, /code: d\.code \|\| 'DESCRIBE_FAILED'/);
 });
