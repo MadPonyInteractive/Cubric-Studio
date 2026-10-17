@@ -69,6 +69,7 @@
 - **Cosmo can install a Flow for you.** Ask for one you do not have and Cosmo shows its Yes / No card with the download size, and a note when a licence screen comes first. It installs nothing until you press Yes.
 - **Cosmo can send cards to another project.** Say "take these to project X", "send the last two to a new project", "all the videos" or "every card with a dot", and Cosmo copies them there with their prompts and names, like Add to project does. Sending to a project you have stays put; a new project opens so you carry on there. AI apps connected over MCP can do it too.
 - **Dev updates on the home screen.** The bell beside About shows the latest posts from the Cubric Studio Discord, pictures included: flick through them, click one to see it big, and press X when you have read it. Join the Discord is one click away.
+- **See how a History entry was made.** Rest the pointer on a row in History and a panel shows the model, the operation, how long it took, when it was made, the prompt and any notes. Move into the panel to copy the prompt.
 
 ## ComfyUI Engine
 
