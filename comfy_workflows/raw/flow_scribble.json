@@ -1,8 +1,8 @@
 {
   "id": "658f2ce0-19cf-44be-b6c9-bb81eaae6158",
   "revision": 0,
-  "last_node_id": 198,
-  "last_link_id": 53,
+  "last_node_id": 199,
+  "last_link_id": 54,
   "nodes": [
     {
       "id": 1,
@@ -72,7 +72,8 @@
           "name": "image",
           "type": "IMAGE",
           "links": [
-            52
+            52,
+            54
           ]
         },
         {
@@ -1649,6 +1650,54 @@
       ],
       "color": "#432",
       "bgcolor": "#653"
+    },
+    {
+      "id": 199,
+      "type": "SaveImage",
+      "pos": [
+        500,
+        -170
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 299,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 54
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "Output_Image_0",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.31.0"
+      },
+      "widgets_values": [
+        "mpi620_scribble_drawing"
+      ]
     }
   ],
   "links": [
@@ -1923,6 +1972,14 @@
       170,
       0,
       "*"
+    ],
+    [
+      54,
+      1,
+      0,
+      199,
+      0,
+      "IMAGE"
     ]
   ],
   "groups": [],

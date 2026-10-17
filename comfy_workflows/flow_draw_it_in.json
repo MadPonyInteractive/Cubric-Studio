@@ -605,5 +605,18 @@
     "_meta": {
       "title": "Input_Lora_Phase1_6"
     }
+  },
+  "199": {
+    "inputs": {
+      "filename_prefix": "mpi621_drawitin_drawing",
+      "images": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Output_Image_0"
+    }
   }
 }

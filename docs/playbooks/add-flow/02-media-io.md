@@ -189,7 +189,9 @@ number (never by finish time), and `generationService` builds one card from them
 the last version, skipping ops in `hideVersionOps` (the flow's toggle leg while its toggle is off);
 that shown version is the run's `item`, and `items` is just it. A capture the graph gated off
 (an `MpiIfElseInverted` blocker) simply lands no version. Users: the Sheet Editor's two edit ops
-(`Output_Image_3`) and both sheet Flows (`Output_Image_2`, MPI-1153).
+(`Output_Image_3`) and both sheet Flows (`Output_Image_2`, MPI-1153). A capture that must come
+BEFORE `Output_Image` is numbered `_0`: Scribble and Draw It In save the user's drawing as
+`Output_Image_0`, so the card opens on it and shows the result (MPI-1172).
 
 ### 🔴 Multiple AUDIO outputs number from `_1`, not from the base (MPI-663)
 

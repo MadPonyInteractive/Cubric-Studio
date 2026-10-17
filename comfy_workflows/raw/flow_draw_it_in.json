@@ -1,8 +1,8 @@
 {
   "id": "00000000-0000-0000-0000-000000000000",
   "revision": 0,
-  "last_node_id": 198,
-  "last_link_id": 51,
+  "last_node_id": 199,
+  "last_link_id": 52,
   "nodes": [
     {
       "id": 1,
@@ -420,7 +420,8 @@
           "type": "IMAGE",
           "links": [
             6,
-            10
+            10,
+            52
           ],
           "slot_index": 0
         }
@@ -2612,6 +2613,54 @@
       ],
       "color": "#432",
       "bgcolor": "#653"
+    },
+    {
+      "id": 199,
+      "type": "SaveImage",
+      "pos": [
+        1500,
+        78
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 299,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 52
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "title": "Output_Image_0",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.31.0"
+      },
+      "widgets_values": [
+        "mpi621_drawitin_drawing"
+      ]
     }
   ],
   "links": [
@@ -3022,6 +3071,14 @@
       190,
       0,
       "MODEL"
+    ],
+    [
+      52,
+      6,
+      0,
+      199,
+      0,
+      "IMAGE"
     ]
   ],
   "groups": [],

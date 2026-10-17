@@ -30,6 +30,10 @@ photo ──┬─────────────────────�
    InpaintStitchImproved feathered, returns ONLY the box
 ```
 
+The composite (node 6) is also saved as `Output_Image_0`, so the card's History opens on the
+user's drawing and then the result (MPI-1172, `outputVersions`; Scribble does the same off its
+`Input_Image`).
+
 35 nodes. **No mask, no rembg, no silhouette, no `SetLatentNoiseMask`, no ControlNet, no
 second model.** The edit model does not need to be told which pixels to touch.
 

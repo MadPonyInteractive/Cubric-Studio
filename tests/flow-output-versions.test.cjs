@@ -40,3 +40,30 @@ test('the Character Sheet Editor ops land their head removal as the Headless ver
         assert.deepStrictEqual(COMMANDS[op].outputVersions, { Output_Image_3: HEAD }, op);
     }
 });
+
+// MPI-1172: Scribble and Draw It In open their card on the user's drawing, then the result.
+test('Scribble and Draw It In land the drawing as version 1 and the result as version 2', async () => {
+    const { COMMANDS } = await esm('js/data/commandRegistry.js');
+    const { orderVersions, shownVersion } = await esm('js/utils/outputVersions.js');
+    const fs = require('node:fs');
+    // graph -> the node whose picture is "my drawing"
+    for (const [op, file, drawing] of [['flowScribble', 'flow_scribble.json', '1'], ['flowScribObj', 'flow_draw_it_in.json', '6']]) {
+        const map = COMMANDS[op].outputVersions;
+        assert.deepStrictEqual(map, { Output_Image_0: op }, op);
+        for (const dir of ['', 'raw/']) {
+            const g = JSON.parse(fs.readFileSync(path.join(ROOT, 'comfy_workflows', dir + file), 'utf8'));
+            if (dir) {
+                const node = g.nodes.find(n => n.title === 'Output_Image_0');
+                const link = g.links.find(l => l[0] === node?.inputs[0].link);
+                assert.strictEqual(String(link?.[1]), drawing, `raw ${file}`);
+            } else {
+                const save = Object.values(g).find(n => n._meta?.title === 'Output_Image_0');
+                assert.deepStrictEqual(save?.inputs.images, [drawing, 0], file);
+            }
+        }
+        // The drawing saves first in run order or last, it is version 1 and the card shows the result.
+        const v = orderVersions(['result', 'drawing'], ['Output_Image', 'Output_Image_0'], map, op);
+        assert.deepStrictEqual(v.map(x => x.url), ['drawing', 'result'], op);
+        assert.strictEqual(shownVersion(v), 1, op);
+    }
+});

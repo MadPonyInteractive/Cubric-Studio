@@ -409,5 +409,18 @@
     "_meta": {
       "title": "Input_Lora_Phase1_6"
     }
+  },
+  "199": {
+    "inputs": {
+      "filename_prefix": "mpi620_scribble_drawing",
+      "images": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Output_Image_0"
+    }
   }
 }

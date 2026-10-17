@@ -1455,6 +1455,9 @@ export const commands = {
         // The name is historical; the mapping is generic.
         injector: 'headSwap',
         cropsToBox: true,
+        // MPI-1172 (Fabio 2026-10-17): the card opens on the user's drawing (the graph's
+        // `Output_Image_0`, strokes over the photo), then the result.
+        outputVersions: { Output_Image_0: 'flowScribObj' },
     },
     // MPI-620 — "Scribble". The SDXL + ControlNet render half that MPI-621 deleted from
     // Draw It In, rehoused as a flow in its own right: a drawing goes in, an image comes
@@ -1485,6 +1488,9 @@ export const commands = {
         universal: true,
         // Input_Image goes straight into ImageScaleToTotalPixels at 1 MP (MPI-971).
         modelSizedInputs: true,
+        // MPI-1172 (Fabio 2026-10-17): the card opens on the user's drawing (the graph's
+        // `Output_Image_0`), then the result.
+        outputVersions: { Output_Image_0: 'flowScribble' },
     },
 
     // MPI-596 — "Object Stamp". Take an object out of one photo and put it into
