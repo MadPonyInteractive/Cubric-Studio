@@ -38,8 +38,10 @@ the OPEN project goes through `addGroup` and is not lost to the next save.
   - from the now-closed Source into the OPEN Episode 3, `cardName: "Blue again"`: landed, and a
     rename through the renderer afterwards kept it on disk;
   - `kind: audio` -> NO_CARDS; a made-up groupId -> NO_SUCH_CARD. Source untouched throughout.
-- NOT verified live: Cosmo itself (my isolated app has no LLM key; Fabio's app needs a restart to
-  load this commit, since agentLoop and the routes are server code).
+- Cosmo live: PASSED by Fabio in his own app, 2026-10-17 (eye-test steps 1-4): "Cosmo tests
+  tested and passed."
+- MCP from Fabio's chat (step 5): NOT yet tested. His Claude Desktop chat had no Cubric Studio
+  extension connected when he tried. The card stays in validating until it is checked.
 
 ## Eye test for Fabio (restart the app on this commit first)
 
@@ -49,4 +51,5 @@ the OPEN project goes through `addGroup` and is not lost to the next save.
    open the other project: the card is there.
 3. In a project with clips: "send all the videos to <another project>" (and once with audio).
 4. Drag two cards into the chat: "take these to <another project>".
-5. From Claude Desktop / Claude Code: the same asks over MCP (`send_cards`).
+5. From Claude Desktop / Claude Code: the same asks over MCP (`send_cards`). OPEN: needs the
+   Cubric Studio extension connected in that chat first.
