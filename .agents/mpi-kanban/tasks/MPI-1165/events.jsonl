@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1165", "at": "2026-10-17T14:12:37+01:00", "actor": "claude", "column": "doing", "title": "Cosmo treats the user's Stop as a cancel, never a failure to queue again"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1165", "at": "2026-10-17T19:44:48+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Eye-tested and passed by Fabio 2026-10-17; evidence in validation.md"}
