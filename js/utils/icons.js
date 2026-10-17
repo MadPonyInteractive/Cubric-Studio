@@ -23,6 +23,9 @@ export const ICONS = {
     'mark_dot': '<circle cx="12" cy="12" r="10"/>',
     'mark_square': '<rect x="3" y="3" width="18" height="18"/>',
     'mark_triangle': '<path d="M12 2.5l11 19H1z"/>',
+    // Landing project star (MPI-1167): outline = not starred, filled = starred.
+    'star': '<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>',
+    'star_outline': '<path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/>',
     'plus': '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>',
     'minus': '<path d="M19 13H5v-2h14v2z"/>',
     'trash': '<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>',

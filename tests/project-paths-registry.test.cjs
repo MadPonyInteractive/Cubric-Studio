@@ -213,6 +213,37 @@ test('a hidden entry is cleared when the path stops being that project', async (
     }
 });
 
+// MPI-1167: the Landing star. Kept in the registry, so the toggle never writes project.json
+// (that would bump updatedAt and reorder the recent list), and it survives hide edits.
+test('starring a project flags it in the listing without touching its project.json', async () => {
+    const parent = makeParent('star');
+    const demo = makeProject(path.join(parent, 'demo'), 'Star-Demo');
+    makeProject(path.join(parent, 'sibling'), 'Star-Sibling');
+    const before = fs.readFileSync(path.join(demo, 'project.json'), 'utf8');
+    const starred = async () => (await post(base, '/list-projects', {})).projects
+        .filter(p => p.name.startsWith('Star-') && p.favourite).map(p => p.name);
+
+    const { base, stop } = await serve();
+    try {
+        await post(base, '/add-project-path', { parentDir: parent });
+        assert.deepEqual(await starred(), []);
+
+        await post(base, '/favourite-project', { folderPath: demo, favourite: true });
+        assert.deepEqual(await starred(), ['Star-Demo']);
+        assert.equal(fs.readFileSync(path.join(demo, 'project.json'), 'utf8'), before, 'project.json untouched');
+
+        // A hide write passes the favourites through (one shared registry document).
+        await post(base, '/hide-project', { folderPath: demo, hidden: true });
+        await post(base, '/hide-project', { folderPath: demo, hidden: false });
+        assert.deepEqual(await starred(), ['Star-Demo'], 'the star survives another key\'s write');
+
+        await post(base, '/favourite-project', { folderPath: demo, favourite: false });
+        assert.deepEqual(await starred(), []);
+    } finally {
+        await stop();
+    }
+});
+
 // MPI-1058: a project made directly in %TEMP% registered the temp folder itself, and every
 // landing visit then checked each of its 35,022 entries for a project.json (~1 s).
 test('the OS temp folder itself is never read back as a projects parent; its subfolders are', async () => {

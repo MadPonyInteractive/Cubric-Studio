@@ -71,14 +71,15 @@ function _healRegistryFile(registryFile, oldDir, newDir) {
         const raw = JSON.parse(fs.readFileSync(registryFile, 'utf8'));
         const list = Array.isArray(raw?.paths) ? raw.paths : [];
         const hiddenList = Array.isArray(raw?.hidden) ? raw.hidden : [];
+        const favList = Array.isArray(raw?.favourites) ? raw.favourites : [];
         const oldFwd = oldDir.replace(/\\/g, '/');
         const newFwd = newDir.replace(/\\/g, '/');
         const ci = process.platform === 'win32';
         const eq  = (a, b) => ci ? a.toLowerCase() === b.toLowerCase() : a === b;
         const pfx = (s, p) => ci ? s.toLowerCase().startsWith(p.toLowerCase()) : s.startsWith(p);
 
-        // Same rewrite for both keys — a hidden project inside the old folder has
-        // to follow the rename too, or it reappears on Landing after the heal.
+        // Same rewrite for every key — a hidden or starred project inside the old
+        // folder has to follow the rename too, or it reappears (or loses its star).
         const heal = (entries) => [...new Set(entries.map(p => {
             const norm = String(p).replace(/\\/g, '/');
             if (pfx(norm, oldFwd + '/')) return newFwd + norm.slice(oldFwd.length);
@@ -86,7 +87,7 @@ function _healRegistryFile(registryFile, oldDir, newDir) {
             return norm;
         }))];
 
-        const doc = { paths: heal(list), hidden: heal(hiddenList) };
+        const doc = { paths: heal(list), hidden: heal(hiddenList), favourites: heal(favList) };
         const tmp = `${registryFile}.${process.pid}.tmp`;
         fs.writeFileSync(tmp, `${JSON.stringify(doc, null, 2)}\n`, 'utf8');
         fs.renameSync(tmp, registryFile);
@@ -230,22 +231,25 @@ const _tempRoot = _norm(os.tmpdir()).replace(/\/+$/, '').toLowerCase();
 const _isTempRoot = (p) => p.replace(/\/+$/, '').toLowerCase() === _tempRoot;
 
 /**
- * Read the whole registry document: `{ paths, hidden }`.
+ * Read the whole registry document: `{ paths, hidden, favourites }`.
  *   - `paths`  — external project PARENT dirs to scan.
  *   - `hidden` — individual PROJECT folders to leave out of the listing even
  *     though they are on disk under a scanned root. That is what "delete this
  *     project but keep the files" writes, and it has to be per-project: the
  *     parent usually holds siblings the user still wants (MPI-809).
+ *   - `favourites` — PROJECT folders the user starred on Landing; they list first
+ *     (MPI-1167). Here, not in project.json: a project.json write bumps `updatedAt`,
+ *     so starring would also reorder the recent list.
  */
 async function _readRegistryDoc() {
     try {
         const file = getProjectPathsRegistryFile();
-        if (!(await fs.pathExists(file))) return { paths: [], hidden: [] };
+        if (!(await fs.pathExists(file))) return { paths: [], hidden: [], favourites: [] };
         const data = await fs.readJson(file);
-        return { paths: _dedupe(data?.paths).filter(p => !_isTempRoot(p)), hidden: _dedupe(data?.hidden) };
+        return { paths: _dedupe(data?.paths).filter(p => !_isTempRoot(p)), hidden: _dedupe(data?.hidden), favourites: _dedupe(data?.favourites) };
     } catch (err) {
         logger.warn('project', `project-paths registry read failed: ${err.message}`);
-        return { paths: [], hidden: [] };
+        return { paths: [], hidden: [], favourites: [] };
     }
 }
 
@@ -259,13 +263,18 @@ async function readHiddenProjects() {
     return (await _readRegistryDoc()).hidden;
 }
 
+/** Read the starred-project list. De-duped, normalized project folder paths. */
+async function readFavouriteProjects() {
+    return (await _readRegistryDoc()).favourites;
+}
+
 /**
- * Atomically replace the registry contents. Both keys are written every time,
- * so a caller that only touches one must pass the other through — `_mutate`
+ * Atomically replace the registry contents. Every key is written every time,
+ * so a caller that only touches one must pass the others through — `_mutate`
  * below is the only thing that should call this directly.
  */
-async function _writeRegistryDoc({ paths, hidden }) {
-    const doc = { paths: _dedupe(paths), hidden: _dedupe(hidden) };
+async function _writeRegistryDoc({ paths, hidden, favourites }) {
+    const doc = { paths: _dedupe(paths), hidden: _dedupe(hidden), favourites: _dedupe(favourites) };
     const run = _registryQueue.p.catch(() => {}).then(async () => {
         const file = getProjectPathsRegistryFile();
         await fs.ensureDir(path.dirname(file));
@@ -308,6 +317,15 @@ async function setProjectHidden(folderPath, hidden = true) {
     const norm = _norm(folderPath);
     return _mutate('hidden', (cur) => {
         if (hidden) return cur.includes(norm) ? cur : [...cur, norm];
+        return cur.includes(norm) ? cur.filter(p => p !== norm) : cur;
+    });
+}
+
+/** Star or unstar ONE project folder (MPI-1167). Returns the updated favourites list. */
+async function setProjectFavourite(folderPath, favourite = true) {
+    const norm = _norm(folderPath);
+    return _mutate('favourites', (cur) => {
+        if (favourite) return cur.includes(norm) ? cur : [...cur, norm];
         return cur.includes(norm) ? cur.filter(p => p !== norm) : cur;
     });
 }
@@ -1192,6 +1210,8 @@ module.exports = {
     removeProjectPathFromRegistry,
     readHiddenProjects,
     setProjectHidden,
+    readFavouriteProjects,
+    setProjectFavourite,
     SYS_DEPS_PATH,
     COMFYUI_PORT,
     processState,

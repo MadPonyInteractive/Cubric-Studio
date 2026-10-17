@@ -40,6 +40,14 @@ let projectGrid = null;
 // stops the thumbnail queue and releases every preview <video> (see _buildProjectRow).
 let _statsBatchAC = null;
 
+// The rendered rows with their projects, so a star toggle can reorder them in place
+// instead of rebuilding the grid (and reloading every thumbnail).
+let _gridRows = [];
+
+// MPI-1167: starred projects first; each group keeps the server's most-recent-first
+// order (Array#sort is stable).
+const _byFavourite = (a, b) => (b.project.favourite ? 1 : 0) - (a.project.favourite ? 1 : 0);
+
 /** MPI-966: settles once the FIRST list has rendered (rows, empty state or error) — the splash waits on it. */
 let _settleFirstGrid;
 export const firstGridSettled = new Promise((resolve) => { _settleFirstGrid = resolve; });
@@ -226,7 +234,8 @@ export async function loadProjectGrid() {
     // thumbnail; we then drain those loaders newest-first, capped to 3 in flight,
     // so N content-heavy 4K thumbs don't decode at once and stall the panel.
     // Rows stay open-locked until their own thumb resolves (MPI-286).
-    const loaders = projects.map(p => _buildProjectRow(p)).map(({ row, load }) => {
+    _gridRows = projects.map(project => ({ project, ..._buildProjectRow(project) }));
+    const loaders = [..._gridRows].sort(_byFavourite).map(({ row, load }) => {
       projectGrid.appendChild(row);
       return load;
     });
@@ -256,7 +265,40 @@ export async function loadProjectGrid() {
 export function releaseProjectGrid() {
   _statsBatchAC?.abort();
   _statsBatchAC = null;
+  _gridRows = [];
   projectGrid?.replaceChildren();
+}
+
+/**
+ * Star or unstar a project (MPI-1167). The row moves at once; the registry write
+ * follows, and a failed write puts the star and the row back.
+ * @param {Object} project
+ * @param {boolean} favourite
+ * @param {Object} starBtn  the row's MpiButton instance
+ */
+async function _setFavourite(project, favourite, starBtn) {
+  const paint = (on) => {
+    project.favourite = on;
+    starBtn.el.setActive(on);
+    starBtn.el.closest('.mpi-landing__pl-row')?.classList.toggle('mpi-landing__pl-row--starred', on);
+    // Re-appending moves each row; `_gridRows` holds the server order, so unstarring
+    // drops a project back to its last-opened place.
+    for (const { row } of [..._gridRows].sort(_byFavourite)) projectGrid?.appendChild(row);
+  };
+  paint(favourite);
+  try {
+    const res = await fetch('/favourite-project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folderPath: project.folderPath, favourite }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) throw new Error(data.error || 'save failed');
+  } catch (err) {
+    clientLogger.warn('projectUI', 'favourite project failed', err);
+    paint(!favourite);
+    Events.emit('ui:warning', { title: 'Could not star project', message: err.message });
+  }
 }
 
 function _openNewProjectDialog() {
@@ -523,9 +565,23 @@ function _buildProjectRow(project) {
   const meta = document.createElement('div');
   meta.className = 'mpi-landing__pl-meta';
 
+  // Name + star (MPI-1167). The star is hover-revealed until set, then stays.
+  const title = document.createElement('div');
+  title.className = 'mpi-landing__pl-title';
   const h4 = document.createElement('h4');
   h4.textContent = project.name;
-  meta.appendChild(h4);
+  const starSlot = document.createElement('span');
+  starSlot.className = 'mpi-landing__pl-star';
+  title.append(h4, starSlot);
+  meta.appendChild(title);
+  if (project.favourite) row.classList.add('mpi-landing__pl-row--starred');
+  const starBtn = MpiButton.mount(starSlot, {
+    icon: 'star_outline', iconActive: 'star', active: !!project.favourite,
+    size: 'sm', variant: 'ghost', info: 'Star: keep at the top',
+  });
+  // Toggling the star must not open the project (the row's own click).
+  starBtn.on('click', ({ originalEvent }) => originalEvent?.stopPropagation());
+  starBtn.on('toggle', ({ active }) => { _setFavourite(project, active, starBtn); });
 
   const sub = document.createElement('span');
   sub.className = 'mpi-landing__pl-sub';

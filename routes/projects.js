@@ -39,7 +39,7 @@ const sharp = require('sharp');
 const { execFile } = require('child_process');
 const logger = require('./logger');
 const { v4: uuidv4 } = require('uuid');
-const { getProjectsRoot, COMFYUI_PORT, streamDownload, stripImageMetadata, readProjectPathsRegistry, addProjectPathToRegistry, removeProjectPathFromRegistry, readHiddenProjects, setProjectHidden } = require('./shared');
+const { getProjectsRoot, COMFYUI_PORT, streamDownload, stripImageMetadata, readProjectPathsRegistry, addProjectPathToRegistry, removeProjectPathFromRegistry, readHiddenProjects, setProjectHidden, readFavouriteProjects, setProjectFavourite } = require('./shared');
 const { getComfyPath, getEngineRoot } = require('./platformEngine');
 const { probeVideo, probeAudio } = require('../services/ffprobeVideo');
 const { extractImageThumb, extractVideoThumb, extractVideoProxy, extractAudioWaveform, extractVideoWaveform, writeVideoDerivatives, imageThumbPath, videoProxyPath, IMAGE_RENDITION_PX, VIDEO_PROXY_HEIGHT } = require('../services/ffmpegThumb');
@@ -882,6 +882,9 @@ router.post('/list-projects', async (req, res) => {
         // Projects the user removed from Landing but kept on disk. Per-project, not
         // per-parent: unregistering the parent would take its siblings with it.
         const hidden = new Set(await readHiddenProjects());
+        // Starred on Landing (MPI-1167). Only a flag: the Landing list lifts these to the top
+        // itself; this list stays most-recent-first, which /connector/projects and MCP promise.
+        const favourites = new Set(await readFavouriteProjects());
 
         const defaultRootNorm = defaultRoot.replace(/\\/g, '/');
         const roots = [defaultRoot, ...externalRoots.filter(r => r !== defaultRootNorm)];
@@ -907,7 +910,7 @@ router.post('/list-projects', async (req, res) => {
                     // Cover + stats from the folder-mtime cache (MPI-1058): a repeat landing
                     // visit reads no sidecars, and the rows need no /project-stats call.
                     const summary = await projectSummary(path.join(root, entry, 'Media'), findRecentProjectThumbnail);
-                    return { ...p, folderPath: diskFolder, ...summary, isDefaultRoot: isDefault };
+                    return { ...p, folderPath: diskFolder, ...summary, isDefaultRoot: isDefault, favourite: favourites.has(diskFolder) };
                 } catch (_) { return null; /* skip corrupt entries */ }
             }));
             for (const s of scanned) if (s) projects.push(s);
@@ -971,6 +974,21 @@ router.post('/hide-project', async (req, res) => {
         res.json({ success: true, hidden: paths });
     } catch (err) {
         logger.error('project', 'hide-project error', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Star or unstar ONE project on the Landing list (`favourite: false` unstars).
+// The Landing list shows starred projects first (MPI-1167). Kept in the registry, not project.json,
+// so the toggle never touches `updatedAt` and the recent order stays put.
+router.post('/favourite-project', async (req, res) => {
+    try {
+        const { folderPath, favourite = true } = req.body;
+        if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
+        const paths = await setProjectFavourite(folderPath, favourite !== false);
+        res.json({ success: true, favourites: paths });
+    } catch (err) {
+        logger.error('project', 'favourite-project error', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });

@@ -803,6 +803,33 @@
   color: var(--ink-3);
 }
 
+/* Name + star (MPI-1167): the star shows on hover, and stays once set */
+.mpi-landing__pl-title {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.mpi-landing__pl-title h4 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mpi-landing__pl-star {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.mpi-landing__pl-row:hover .mpi-landing__pl-star,
+.mpi-landing__pl-row--starred .mpi-landing__pl-star,
+.mpi-landing__pl-star:focus-within {
+  opacity: 1;
+}
+
 /* Count */
 .mpi-landing__pl-count {
   font-size: var(--t-2xs);
