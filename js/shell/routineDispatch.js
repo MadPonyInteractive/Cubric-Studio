@@ -125,7 +125,9 @@ export const routineDeps = {
             onText: () => settle({ ok: false, code: 'NO_OUTPUT', message: 'This step answered in words, and a routine step must make a picture, video or sound.' }),
             onError: (err) => settle({ ok: false, code: err?.code || 'RUNTIME_ERROR',
                 message: err?.userMessage || 'The generation failed. See the app log for the cause.' }),
-            onCancel: () => settle({ ok: false, code: 'CANCELLED', message: 'The generation was cancelled or produced no output.' }),
+            onCancel: (why) => settle(why?.stopped
+                ? { ok: false, code: 'CANCELLED', message: 'The user pressed Stop.' }
+                : { ok: false, code: 'NO_OUTPUT', message: 'Nothing came back: the run ended with no new output.' }),
         };
         const queued = step.flowId
             ? submitFlowGeneration(built.flow, { ...built.inputs, runLanding: landing }, callbacks)

@@ -86,6 +86,14 @@ const FRAME = { id: 'att_frame', name: 'frame-from-my-video.png', filePath: 'C:/
 const PORTRAIT_A = { id: 'att_portrait_a', name: 'woman-at-bar.png', filePath: 'C:/Temp/cubric-agent/attachments/att_portrait_a.png' };
 const PORTRAIT_B = { id: 'att_portrait_b', name: 'donor-face.png', filePath: 'C:/Temp/cubric-agent/attachments/att_portrait_b.png' };
 const SHEET = { id: 'att_sheet', name: 'ninja-character-sheet.png', filePath: 'C:/Temp/cubric-agent/attachments/att_sheet.png' };
+// MPI-1166: an idea told before any go-ahead, and the check a hold must pass.
+const CONCEPT = 'Here is my idea for a video: an old lighthouse keeper climbs the spiral stairs at night with a lantern, and at the top he finds the lamp already lit by someone else. Slow and eerie, about 8 seconds.';
+const checkInHolds = (run) => {
+    const f = [];
+    if (run.record.generates.length) f.push(`generated ${run.record.generates.length} time(s) before the go-ahead`);
+    if (!run.turns.at(-1).options) f.push('ended with no buttons to proceed or correct');
+    return f;
+};
 const ANGLE = { id: 'att_angle', name: 'IMG_6021.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_angle.jpg' };
 const WAVES = 'Make a 5 second video of waves crashing on rocks at sunset.';
 // MPI-944: one place, two angles. Camera-roll names on purpose: the model has to look to
@@ -152,7 +160,7 @@ const PARK_LOOKS = {
 
 // ── Fake tools (the agentTools.mjs surface) ───────────────────────────────────
 
-function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes = [], projects = PROJECTS, memoryFull = false, routines = [] }) {
+function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes = [], projects = PROJECTS, memoryFull = false, routines = [], stopped = false }) {
     const record = { installs: [], generates: [], looks: [], opens: [], writes: [], renames: [], creates: [], routines: [], gifs: [] };
     // MPI-970: the saved routines (one set for every project), answered the way /connector/routines does; a save is
     // checked by the app's own validator, so the model gets the refusal it would get there.
@@ -241,6 +249,9 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
                     return { ok: false, error: { code: 'MODEL_NOT_INSTALLED', message: `${m.name} cannot run ${body.operation}: not installed.` } };
                 }
             }
+            // MPI-1165: the user pressed Stop on the first run, after the loop's 1 s refusal
+            // window (a mid-render Stop); the dispatch reports it so.
+            if (stopped && record.generates.length === 1) return new Promise((resolve) => { setTimeout(() => resolve({ ok: false, error: { code: 'CANCELLED', message: 'The user pressed Stop.' } }), 1500); });
             landed = { type: m?.type || 'image', modelId: body.modelId };
             return { ok: true, output: { itemId: 'item_1', groupId: 'grp_1', type: landed.type, filePath: RESULT_URL } };
         },
@@ -778,6 +789,48 @@ const CASES = [
         },
     },
     {
+        // MPI-1166: "Did you understand? Don't start anything yet" - it generated at once.
+        // The flip says go, so a generate is right.
+        id: 'check-in-holds',
+        title: 'asked "did you understand? don\'t start yet", it says what it understood and makes nothing',
+        setup: { turns: [`${CONCEPT} Did you understand? Don't start anything yet, just tell me if you understood.`] },
+        flip: { turns: [`${CONCEPT} Go ahead and make it.`] },
+        check: checkInHolds,
+    },
+    {
+        // MPI-1166 (Fabio): not only "don't start" - any are-we-on-the-same-page question holds.
+        id: 'check-in-only',
+        title: 'a bare "make sense?" after an idea makes nothing until the user says go',
+        setup: { turns: [`${CONCEPT} Does that make sense?`] },
+        flip: { turns: [`${CONCEPT} Make it.`] },
+        check: checkInHolds,
+    },
+    {
+        // MPI-1166: the Proceed button after a check-in is the go-ahead, not another check-in.
+        id: 'check-in-proceeds',
+        title: 'Proceed after a check-in generates',
+        setup: { turns: [`${CONCEPT} Does that make sense?`, 'Proceed'] },
+        flip: { turns: [`${CONCEPT} Does that make sense?`, 'Not the same page'] },
+        check: (run) => (run.record.generates.length ? [] : ['Proceed made nothing']),
+    },
+    {
+        // MPI-1165: the user pressed Stop and the agent, woken by the job's end, queued it again.
+        // The flip asks for it again, so a second generate is right.
+        id: 'user-stop-not-requeued',
+        title: 'a generation the user stopped is never queued again unasked',
+        setup: { stopped: true, turns: [WAVES, null] },
+        flip: { turns: [WAVES, 'It stopped. Run it again please.'] },
+        check(run) {
+            const n = run.record.generates.length;
+            if (!n) return ['never generated'];
+            if (n > 1) return [`queued it ${n - 1} more time(s) after the Stop`];
+            // Before the fix the wake said "The clip didn't land ... Want me to fire it off again?"
+            const wake = run.turns[1]?.reply || '';
+            return /didn.?t land|fail|went wrong|came back empty|retry|fire it|run it again|try again/i.test(wake)
+                ? [`read the Stop as a failure: "${wake.slice(0, 120)}"`] : [];
+        },
+    },
+    {
         // MPI-900, live (Fabio, 2026-09-24): "expand this image up" on a 1280x800 picture for
         // an Instagram post. Outpaint went out at 4:5 CENTRED, half the new room below the
         // picture where nobody wanted it. The flip asks for room on both sides, so `grow`
@@ -1102,7 +1155,9 @@ export async function converse(setup, { loopOptions, setupLoop, profileId, model
     const turns = [];
     for (const [i, text] of setup.turns.entries()) {
         const turnId = `turn-${i}`;
-        await loop.runTurn(text, i === 0 ? (setup.attachments || []) : [], project, setup.mode || 'auto', profileId, turnId, { model });
+        // A null turn is the wake turn the app runs when a job ends with the user silent.
+        while (text === null && loop._inflight.size) await settle();
+        await loop.runTurn(text ?? '', i === 0 ? (setup.attachments || []) : [], project, setup.mode || 'auto', profileId, turnId, { model, wake: text === null });
         await settle();
         const mine = events.filter((e) => e.data.turnId === turnId);
         const callIds = new Set(mine.filter((e) => e.event === 'agent:tool').map((e) => e.data.id));

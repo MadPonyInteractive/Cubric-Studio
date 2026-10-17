@@ -376,7 +376,7 @@ test('Stop in the chat (notifications/cancelled) stops the render the blocked ca
 test('a render stopped in the app says so, so the agent does not re-run it', async () => {
     const r = await call('generate', { modelId: 'krea2', operation: 't2i', positive: 'appstop' });
     assert.equal(r.isError, true);
-    assert.match(JSON.parse(r.content[0].text).error.message, /stopped this render in the Cubric Studio app.*Do not run it again/);
+    assert.match(JSON.parse(r.content[0].text).error.message, /pressed Stop on this render in the Cubric Studio app.*Start nothing else/);
 });
 
 test('read_knowledge reaches the guide route, and the instructions say to read it first', async () => {

@@ -805,7 +805,7 @@ export function clearCueQueue() {
     const removed = _cueQueue.splice(0, _cueQueue.length);
     _updateQueueDepth();
     for (const job of removed) {
-        try { job.callbacks?.onCancel?.(); } catch {}
+        try { job.callbacks?.onCancel?.({ stopped: true }); } catch {}
     }
 }
 
@@ -826,7 +826,7 @@ export function removeCueJob(predicate) {
     if (removed.length) {
         _updateQueueDepth();
         for (const job of removed) {
-            try { job.callbacks?.onCancel?.(); } catch {}
+            try { job.callbacks?.onCancel?.({ stopped: true }); } catch {}
         }
     }
     return removed;
@@ -1391,7 +1391,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             Events.emit('generation:cancelled', { id: _regId, tempId: _stableTempId, extraTempIds: _stableExtraTempIds });
             Events.emit('tool:idle', { tool: 'groupHistory', id: _regId, type: operation });
             _emitPromptBoxGenerationEndIfIdle();
-            if (_wasCancelled()) callbacks.onCancel?.();
+            if (_wasCancelled()) callbacks.onCancel?.({ stopped: true });
             else callbacks.onMasks?.(urls);
             return;
         }
@@ -1446,7 +1446,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             activeGenerations.end(_regId, { revokePreview: true });
             Events.emit('generation:cancelled', { id: _regId, tempId: _stableTempId, extraTempIds: _stableExtraTempIds });
             _emitPromptBoxGenerationEndIfIdle();
-            callbacks.onCancel?.();
+            callbacks.onCancel?.({ stopped: _wasCancelling });
             return;
         }
 

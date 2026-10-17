@@ -430,7 +430,9 @@ export const OP_RULES = [
     { id: 'text', when: (o) => o.params?.ratios?.length > 0 && !o.params?.duration,
         text: 'Words in a picture: quote them exactly, in double quotes, and say where they go. Never refuse, never send the user to another app, never warn in advance that they may be misspelled; a miss is re-run.' },
 ];
-export const REPEAT_RULE = 'To repeat this card: made from text, the same op with its prompt rewritten by the new model\'s guide; made from a picture, that picture (a clip in a picture slot sends its start picture or first frame). Never a finished result as its own reference.';
+/** A generation the user Stopped (CANCELLED, not asked for by the agent): what the model is told (MPI-1165). */
+const STOPPED = { code: 'CANCELLED', message: 'The user pressed Stop: they were not happy with it. Not a failure. Start nothing: say in one short line that it is stopped, ask what to change, and wait for their message.' };
+export const REPEAT_RULE ='To repeat this card: made from text, the same op with its prompt rewritten by the new model\'s guide; made from a picture, that picture (a clip in a picture slot sends its start picture or first frame). Never a finished result as its own reference.';
 
 // MPI-1125 — the most prompt tokens a conversation carries before it compacts, whatever the
 // window. Fabio, 2026-10-13: a fixed size, not a share of a 1M window.
@@ -2003,7 +2005,9 @@ Declining rule: when you cannot or will not do what was asked, start that reply 
 
 Options rule: a reply that offers choices (models, ideas, routes, yes or no) ends with [options: A | B], at most three, recommended first; the app shows buttons.
 
-Model rule: first the TASK, then the model. A change to what is IN an existing picture, local or across the frame (remove, add or replace a thing, the background, light, time of day: "make it night"), is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the named model's i2i ranks first; a restyle the user asks for ("make this anime") is i2i; a miss goes to the edit task, not another denoise. Detail or size is never an edit: app:upscaling. A head from one picture onto another is the Head Swap Flow, never a mask. The same picture on ANOTHER model ("this image but with <model>") is a RE-RUN: that model's text-to-image op with NO media, from the source's prompt (list_cards for a card; otherwise look at the picture, write it from what is there and say so in one line) rewritten to that model's guide. A model's name is never a style instruction; only an ask to change how THIS picture looks sends the picture. A picture or clip shown for how to SHOOT a new clip (an angle, a framing, a camera move) is a reference op's media with that one job, never the thing to edit; unsure which: ask, [options: Use it as a reference | Edit this picture]. Ranks compare ops only within one task, and best: true marks the op to take: the lowest rank you can run here. No rank means unranked, not bad. Take another only when the user names a model or the op's note matches the ask, and then say which model and why in one line. Nothing installed fits: say so and offer install_model.
+Check-in rule: when the user asks whether you understood, whether it makes sense or you are on the same page, or says to hold ("don't start yet", "wait", "just tell me"), make nothing that turn: say back in a few short lines what you understood (what happens, the model, each reference's job) and end on [options: Proceed | Not the same page].
+
+Model rule: first the TASK, then the model. A change to what is IN an existing picture, local or across the frame (remove, add or replace a thing, the background, light, time of day: "make it night"), is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the named model's i2i ranks first; a restyle the user asks for ("make this anime") is i2i; a miss goes to the edit task, not another denoise. Detail or size is never an edit: app:upscaling. A head from one picture onto another is the Head Swap Flow, never a mask. The same picture on ANOTHER model ("this image but with <model>") is a RE-RUN: that model's text-to-image op with NO media, from the source's prompt (list_cards for a card; otherwise look at the picture, write it from what is there and say so in one line) rewritten to that model's guide. A model's name is never a style instruction; only an ask to change how THIS picture looks sends the picture. A picture or clip shown for how to SHOOT a new clip (an angle, a framing, a camera move, how someone moves) is a reference op's media with that one job, never the thing to edit; unsure which: ask, [options: Use it as a reference | Edit this picture]. Ranks compare ops only within one task, and best: true marks the op to take: the lowest rank you can run here. No rank means unranked, not bad. Take another only when the user names a model or the op's note matches the ask, and then say which model and why in one line. Nothing installed fits: say so and offer install_model.
 
 Route rule: words to put on a picture are an ordinary edit: run it, no mask question. Before any other edit of an existing picture, answer this yourself: does the change stay inside ONE area? Light, sky, time of day, weather, season and style fall on the whole frame, and several asks in one message are ONE edit, never split. Not one area: run ONE whole-picture edit, ask nothing. One area with words that protect the rest ("only this", "without changing anything else"): ask for the mask, offer nothing else. One area with no such words: in ONE line give both routes (a mask is tighter; a whole-picture edit needs no painting and often lands), recommend one, end on [options: Mask | Whole-picture edit] and wait; how to paint comes only after they pick Mask. A mask also keeps the source's size and every pixel outside it, so offer one for a big photo or when an edit lost quality. When a result comes back wrong, change the op, the mask or the prompt, never add adjectives; details in app:masking.
 
@@ -2334,6 +2338,8 @@ ${knowledgeIndex}`.trim();
                     new Promise((resolve) => { setTimeout(() => resolve(null), EARLY_REFUSAL_MS); }),
                 ]);
                 if (early && !early.ok) {
+                    // Stopped in its first second: the user's Stop, not a call to fix and resend.
+                    if (early.error?.code === 'CANCELLED') return JSON.stringify({ ok: false, error: STOPPED });
                     // Nothing was queued, so there is no result to report and nothing to note:
                     // the model has this in-turn and can fix the call and send it again.
                     const miss = /^(INVALID_|UNKNOWN_PARAM|MEDIA_REQUIRED)/.test(early.error?.code || '');
@@ -2373,12 +2379,23 @@ ${knowledgeIndex}`.trim();
                     this._inflight.delete(toolCallId);
                     this._gpuJobs.delete(toolCallId);
                     const cancelled = this._askedCancel.delete(toolCallId) && !ok;
+                    // CANCELLED you did not ask for: the user pressed Stop (an empty run is NO_OUTPUT).
+                    // Reported as a failure, the agent queued it again (MPI-1165).
+                    const stopped = !ok && !cancelled && r?.error?.code === 'CANCELLED';
                     if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId, r.output.itemId, r.output.groupId);
                     if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
                     if (ok) this._addSpend('genUsd', r.output?.costUsd);
                     // MPI-941 — a batch item reports to its batch, never to the chat or the notes.
                     if (opts.batch) {
-                        opts.batch.settle(opts.label, r, cancelled, opts.batchSize || 1);
+                        opts.batch.settle(opts.label, r, cancelled || stopped, opts.batchSize || 1);
+                        return;
+                    }
+                    if (stopped) {
+                        this._trackUnfinished(askedIn, args, null);
+                        this._emit('agent:result', { toolCallId, ok: false, error: { code: 'CANCELLED', message: 'Stopped.' } });
+                        this._historyEntry('result', { toolCallId, ok: false, error: { code: 'CANCELLED', message: 'Stopped.' } });
+                        this._notes.push(`[${STOPPED.message}]`);
+                        this._maybeDrained();
                         return;
                     }
                     // Taken back by the user: not a failure, and not something to requeue — so
@@ -2470,7 +2487,7 @@ ${knowledgeIndex}`.trim();
                     }
                     await settle(r);
                     if (!r?.ok) {
-                        return JSON.stringify({ ok: false, error: r?.error || { code: 'RUNTIME_ERROR', message: 'The generation produced no output.' } });
+                        return JSON.stringify({ ok: false, error: r?.error?.code === 'CANCELLED' ? STOPPED : r?.error || { code: 'RUNTIME_ERROR', message: 'The generation produced no output.' } });
                     }
                     // The filePath is the ref the next call passes as `media[].image` — it
                     // is already registered by `settle`, so the chain needs nothing else.

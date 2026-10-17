@@ -670,7 +670,7 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
         // Cancelled while it was not in the queue (describing, between legs or passes): it ends
         // here, as cancelled, and queues nothing.
         if (handle.cancelled) {
-            runCallbacks.onCancel?.();
+            runCallbacks.onCancel?.({ stopped: true });
             return handle;
         }
         // A leg the result pane runs `alone` is a run of one.
@@ -851,7 +851,7 @@ export async function runCloudEdit(flow, model, config, callbacks, { enqueue, pa
     }
     // Cancelled during pass 1 (MPI-1083): stop before the provider bills anything.
     if (run?.cancelled) {
-        callbacks.onCancel?.();
+        callbacks.onCancel?.({ stopped: true });
         return;
     }
     if (!shown) {
@@ -901,7 +901,7 @@ export async function runCloudEdit(flow, model, config, callbacks, { enqueue, pa
         const image = await _dataUrlOf(await _blobOf(body.viewUrls[0]));
         // Cancelled during the cloud call: the edit is paid for, but the run was told to stop.
         if (run?.cancelled) {
-            callbacks.onCancel?.();
+            callbacks.onCancel?.({ stopped: true });
             return;
         }
         const queued = enqueue({

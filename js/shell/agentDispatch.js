@@ -877,8 +877,11 @@ function _enqueueAgentRun(jobId, input, config, target, historyOpts, { width = 0
         // is left), so the agent can tell the user why; anything else stays generic.
         onError: (err) => _fail(jobId, err?.code || 'RUNTIME_ERROR',
             err?.userMessage || 'The generation failed. See the app log for the cause.'),
-        onCancel: () => _fail(jobId, 'CANCELLED',
-            'The generation was cancelled or produced no output.'),
+        // MPI-1165: only a Stop (the user's, or cancel_generation) is CANCELLED; an empty
+        // or unchanged run is not, so the agent can tell "they stopped it" from "nothing came back".
+        onCancel: (why) => (why?.stopped
+            ? _fail(jobId, 'CANCELLED', 'The user pressed Stop.')
+            : _fail(jobId, 'NO_OUTPUT', 'Nothing came back: the run ended with no new output.')),
     }, historyOpts || { scope: 'gallery', tempId, placeholderGroup, extraTempIds, extraPlaceholders, ...(stack ? { stackId: stack.id } : {}) });
 
     // A guard inside enqueueGeneration rejects by returning null — it fires
@@ -1134,8 +1137,11 @@ async function _submitFlow(jobId, input = {}) {
         // is left), so the agent can tell the user why; anything else stays generic.
         onError: (err) => _fail(jobId, err?.code || 'RUNTIME_ERROR',
             err?.userMessage || 'The generation failed. See the app log for the cause.'),
-        onCancel: () => _fail(jobId, 'CANCELLED',
-            'The generation was cancelled or produced no output.'),
+        // MPI-1165: only a Stop (the user's, or cancel_generation) is CANCELLED; an empty
+        // or unchanged run is not, so the agent can tell "they stopped it" from "nothing came back".
+        onCancel: (why) => (why?.stopped
+            ? _fail(jobId, 'CANCELLED', 'The user pressed Stop.')
+            : _fail(jobId, 'NO_OUTPUT', 'Nothing came back: the run ended with no new output.')),
     });
 
     if (!queued) {

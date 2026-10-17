@@ -77,7 +77,7 @@ function startJob(send, routine = false) {
 const STOPPED = {
     agent: 'Cancelled by cancel_generation, as asked. Nothing was made.',
     chat: 'Cancelled: the user pressed Stop in the chat, so the render was stopped. Nothing was made.',
-    app: 'The user stopped this render in the Cubric Studio app (or it produced no output). Nothing was made. Do not run it again unless the user asks.',
+    app: 'The user pressed Stop on this render in the Cubric Studio app: they were not happy with it. Nothing was made. Start nothing else; wait for what the user says.',
 };
 
 /**
