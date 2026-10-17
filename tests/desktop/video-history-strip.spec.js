@@ -48,17 +48,21 @@ async function pinInstalled(window, ids) {
 
 // MPI-1156: a video run of a clip or picture is looked at first ("could this person be under 18?"),
 // and the runner has no describer. Each card carries the kept answer NO, so the run queues at once.
+// A picture's answer is kept under the age AND doodle questions (MPI-1173), a clip's under the age one.
 async function keptNo(window) {
   return window.evaluate(async () => {
-    const [{ questionHash }, { AGE_QUESTION }] = await Promise.all([
+    const [{ questionHash }, { AGE_QUESTION, SKETCH_QUESTION }] = await Promise.all([
       import('/js/services/mediaVerdicts.js'),
       import('/js/data/childSafety.js'),
     ]);
-    return { ageVerdict: { q: questionHash(AGE_QUESTION), answer: 'NO' } };
+    return {
+      clip: { ageVerdict: { q: questionHash(AGE_QUESTION), answer: 'NO' } },
+      still: { ageVerdict: { q: questionHash(AGE_QUESTION + SKETCH_QUESTION), answer: 'NO' } },
+    };
   });
 }
 
-function seedProject(folderPath, verdict = {}) {
+function seedProject(folderPath, verdicts = {}) {
   const mediaDir = path.join(folderPath, 'Media');
   const metaDir = path.join(mediaDir, '.meta');
   fs.mkdirSync(metaDir, { recursive: true });
@@ -68,14 +72,14 @@ function seedProject(folderPath, verdict = {}) {
   fs.copyFileSync(SRC_CLIP, clipAbs);
   fs.writeFileSync(path.join(metaDir, 'clip-0.json'), JSON.stringify({
     id: 'clip-0', type: 'video', filePath: url(clipAbs), displayName: 'the_clip', prompt: 'a clip',
-    pixelDimensions: { w: 128, h: 128 }, duration: 2, ...verdict,
+    pixelDimensions: { w: 128, h: 128 }, duration: 2, ...verdicts.clip,
   }, null, 2));
 
   const stillAbs = path.join(mediaDir, 'a_still.webp');
   fs.copyFileSync(SRC_STILL, stillAbs);
   fs.writeFileSync(path.join(metaDir, 'still-0.json'), JSON.stringify({
     id: 'still-0', type: 'image', filePath: url(stillAbs), displayName: 'a_still', prompt: 'a still',
-    pixelDimensions: { w: 1920, h: 1080 }, ...verdict,
+    pixelDimensions: { w: 1920, h: 1080 }, ...verdicts.still,
   }, null, 2));
 
   const project = {
