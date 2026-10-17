@@ -81,7 +81,7 @@ haircut, a build), never a description of the character. It opens at the face bo
 
 A change to a sheet the user already HAS (new clothes, glasses, a haircut, beaten up, heavier, an
 age) is Character Sheet Editor: the sheet card as `image1`, `change` one of clothes, accessories,
-hair, condition, body or none, `words` only the new thing ("a red leather jacket"), `Input_Age`
+makeup, tattoos, hair, beard, condition, body, custom or none, `words` only the new thing ("a red leather jacket"), `Input_Age`
 -1 to keep the age (the default), 0 a newborn, 1 a toddler, then years. One change per run: for a second, run it again on the result.
 For clothes only, a picture of the outfit to copy may go as `image2`; `words` may then be empty or name
 which part of it to take. Accessories and hair ignore it: describe a hat or a haircut in words. Never
