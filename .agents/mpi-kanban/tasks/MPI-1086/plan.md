@@ -7,7 +7,7 @@ Umbrella MPI-1091. Brief: `brief.md`.
 2026-10-17 (session "New character sheets 45") - LATEST. WALKING-STICK SIDE SHIPPED (ff4/ff5 in validation.md): the
 Accessories back pass says left and right swap seen from behind (`ACC_SWAP`, Fabio picked it over pinning a hand):
 stick 4/4 on the right side from behind (was 1/4), ball 4/4, backpack 4/4. Open partial (pre-existing, same seed in
-ff1): ball s3 leaves an arm sliver at the back panel's right edge, drawn by the back pass. NEXT: Fabio's eye tests
+ff1): ball s3 leaves an arm sliver at the back panel's right edge, drawn by the back pass; Fabio: fine at that size, chase it only if his eye tests show it big. NEXT: Fabio's eye tests
 (a)/(b) below + his remaining list, then close-out.
 ("New character sheets 44" entry below is now history.)
 
