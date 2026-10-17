@@ -197,6 +197,9 @@ const I2V_HELP = {
  *                                              ambiguous — a Stopped media job is also empty, and only
  *                                              the op knows which case it is. See generationService's
  *                                              onComplete.
+ * @property {boolean}         [emptyTextOk]  - A 'text' op whose EMPTY answer is a real one, not a failed
+ *                                              run: a transcription of silence or music has no words.
+ *                                              The empty string reaches onText; no warning, no onError.
  * @property {string}          [progressLabel] - Present-participle verb shown in the status bar while
  *                                              this op is running (e.g. 'Upscaling', 'Detailing').
  *                                              Defaults to 'Generating' when omitted. NEW OPS should
@@ -1190,6 +1193,8 @@ export const commands = {
         ],
         promptRequired: false,
         outputKind: 'text',
+        // MPI-1169: silence or music transcribes to nothing, which is the answer, not a failure.
+        emptyTextOk: true,
         universal: true,
     },
     removeBackground: {

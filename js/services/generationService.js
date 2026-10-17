@@ -1405,7 +1405,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             Events.emit('tool:idle', { tool: 'groupHistory', id: _regId, type: operation });
             _emitPromptBoxGenerationEndIfIdle();
             const _text = outputInfo.promptText || null;
-            if (_text) callbacks.onText?.(_text);
+            if (_text || getCommand(operation).emptyTextOk) callbacks.onText?.(_text || '');
             else {
                 // An empty caption is a FAILED run, and it must still end in a callback:
                 // every text-op caller waits on one (a describe, an enhance, an agent `look`,

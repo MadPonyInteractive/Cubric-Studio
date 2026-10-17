@@ -40,6 +40,12 @@ const imp = (p) => import(pathToFileURL(path.resolve(p)).href);
         assert.notStrictEqual(cmd.outputKind, 'text', `${key} must not be text`);
     }
 
+    // MPI-1169 — only a transcription may answer nothing: silence or music has no words, and an
+    // empty result read as a failed run toasted "No description was returned." on a quiet clip.
+    // An empty caption or enhance is still a failure.
+    const emptyOk = TEXT_OPS.filter((k) => commands[k].emptyTextOk);
+    assert.deepStrictEqual(emptyOk, ['speechTranscribe'], 'only speechTranscribe answers an empty text');
+
     // MPI-504 — the enhancer takes NO media at all, which is the shape that separates
     // it from the captioner: it is text in, text out. A `mediaInputs` slot appearing
     // here would mean the empty-run guard starts demanding an image the flow never has.
