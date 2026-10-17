@@ -238,6 +238,26 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     assert.ok(!('Input_Mannequin_Prompt' in characterSheetEditor('change', run('hair', '')).injectionParams),
         'hair keeps the graph\'s own (hairstyle) mannequin prompt');
     assert.strictEqual(name(run('makeup', ''), 'Ava'), 'Ava - makeup from a reference');
+    // MPI-1086 bp1: a Beard picture alone is enough; the bench's b_ref string, byte for byte, and its mannequin.
+    const B_ON = ' The full-body front view and the close-up portrait on the right both show this beard on the face, and '
+        + "the character seen from behind shows it wherever it can be seen. Keep the character's own face, hair and clothes. "
+        + 'Keep everything else exactly as it is.';
+    const GREY = 'Long, full, graying beard and moustache with natural, unkempt trim';
+    assert.strictEqual(buildChangePrompt('beard', '', true, '', '', `${GREY}.`),
+        `Give the character in image 1 the beard and moustache from image 2: ${GREY}.${B_ON}`);
+    assert.strictEqual(buildChangePrompt('beard', '', true), `Give the character in image 1 the beard and moustache from image 2.${B_ON}`,
+        'no description: the mannequin alone, never the empty-box default');
+    assert.strictEqual(buildChangePrompt('beard', 'in red.', true, '', '', GREY), 'Give the character in image 1 the beard and '
+        + `moustache from image 2, changed like this: in red. The beard in image 2: ${GREY}. Make it in red.${B_ON}`);
+    assert.strictEqual(refuse(run('beard', '')), null, 'the picture alone is enough');
+    const bd = characterSheetEditor('change', { ...run('beard', ''), refBeard: GREY });
+    assert.strictEqual(bd.injectionParams.Input_Is_Mannequin, false, 'a beard mannequin is made of the picture');
+    assert.strictEqual(bd.injectionParams.Input_Mannequin_Prompt, 'Replace the head of the person with a plain white mannequin '
+        + 'head, and keep only the beard and moustache, exactly as they are: the same colour, length, shape and style. No '
+        + 'hair on the head, no jewellery and no clothes, on a plain grey background.', 'bp3 W: WHITE, a skin-coloured head took the face');
+    assert.strictEqual(bd.injectionParams.Input_Face_Crop, false, 'a long beard spills past a face crop: the whole sheet');
+    assert.match(bd.positive, /from image 2: Long, full, graying beard/);
+    assert.strictEqual(name(run('beard', ''), 'Ava'), 'Ava - beard from a reference');
     // MPI-1086 r34/r35: a tattoo picture ALONE inked limbs it never showed (4 of 6): words saying where are required.
     assert.strictEqual(refuse(run('tattoos', '')), 'Say what the Reference picture shows, for example "the neck and chest tattoos".');
     assert.strictEqual(refuse(run('tattoos', 'Neck and chest tattoos')), null);
@@ -594,6 +614,7 @@ test('the picture checks run only when they can matter, and before any other que
     const withRef = async (change) => fe.describeAsks(await editor(), await values(change, '', -1), [SHEET, REF2]).map(d => d.to);
     assert.deepStrictEqual(await withRef('hair'), ['refHair', 'refIsMannequin']);
     assert.deepStrictEqual(await withRef('makeup'), ['refMakeup', 'refIsMannequin'], 'MPI-1086 r42: makeup is put into words too');
+    assert.deepStrictEqual(await withRef('beard'), ['refBeard', 'refIsMannequin'], 'MPI-1086 bp1: a beard picture too');
     assert.deepStrictEqual(await withRef('accessories'), []);
     assert.deepStrictEqual(await withRef('tattoos'), ['sheetCuts'], 'MPI-1086 r44: a MEASURE of the sheet, not a question');
     assert.deepStrictEqual(await asked('hair', '', -1), []);

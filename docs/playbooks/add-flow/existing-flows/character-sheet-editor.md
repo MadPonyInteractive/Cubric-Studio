@@ -41,7 +41,7 @@ sheet with no head and took the hair.
 
 Both edit ops declare `outputVersions: { Output_Image_3: 'flowCharacterSheetHeadless' }`
 ([02-media-io.md](../02-media-io.md) § versions of one card). One run lands, on ONE card:
-`Output_Image` the hair or makeup mannequin (Qwen, only when it built one), `Output_Image_2` / Klein's
+`Output_Image` the hair, makeup or beard mannequin (Qwen, only when it built one), `Output_Image_2` / Klein's
 `Output_Image` the edit, `Output_Image_3` the head removal (only when the builder set
 `Input_Headless`: the change leg with Age = Keep). Headless front body only picks the version shown
 (`hideVersionOps`); the result-pane toggle finds the partner by op + neighbour, as for the old leg.
@@ -61,7 +61,7 @@ The mannequin: the describer's `refIsMannequin` yes/no on the Reference picture 
 | Tattoos (words / + picture) | Qwen-Image 2.1, "Add no other tattoos", no limb named; a picture needs words saying where (the Accessories string) | none in that graph | MPI-1086 r34 words 1 pass + 1 mirrored; picture + words r35 4 pass + 2 partial (one-limb side), nothing invented; the back pass fixes the side, r37 |
 | Hairstyle | Klein | 2 = "face" on the front and the close-up, from the BROWS down (MPI-1086) | b8; F1 wording 3 of 3; fringe 6 of 6 |
 | Hairstyle + picture | Qwen-Image 2.1; Klein makes the picture a mannequin in the same graph | none in that graph | MPI-1086 r21 17/18, r23 6/6 |
-| Beard (words only) | Qwen-Image 2.1, "the full-body front view and the close-up ... on the face" | none in that graph | MPI-1086 bd2 2/2 long beard on the front face (every-figure string 0/3), bd1+bd3 shave, goatee, moustache |
+| Beard (words / + picture) | Qwen-Image 2.1, "the full-body front view and the close-up ... on the face"; with a picture a Klein WHITE mannequin wearing only the beard (`BEARD_MANNEQUIN`) + `refBeard` words, the user's words leading | none in that graph | MPI-1086 bd2 2/2 long beard on the front face (every-figure string 0/3), bd1+bd3 shave, goatee, moustache; picture bp1-bp3: the raw picture brought its face, a skin-coloured mannequin put ITS head on the front figure (0/2), white 4/4 + fisher swaps |
 | Condition | Klein | 0 | b5, 6 of 6 |
 | Custom | Klein | 0: "Change the character in this character sheet: <words>." + the accessories tail | MPI-1086 qh6, 6 of 6 layouts (the words as typed broke 1 of 6) |
 | Age 13+ | Klein | 0, exact-age wording | b11-b15 |

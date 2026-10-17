@@ -4,6 +4,14 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-17 (session "New character sheets 40") - LATEST. Fabio: Beard in words is fine; Beard MUST take a picture (his
+imported_034/035/036 in Qwen 2.1); child Makeup re-test DONE. BUILT, uncommitted (claim c98bcfa0-mpi1086): Beard from a
+picture the Makeup way - `beard` in REF_THING, describer `refBeard` + `refIsMannequin`, in-graph WHITE mannequin
+(`BEARD_MANNEQUIN`, bp3 W: a skin-coloured bald head put itself on the small front face, b3 0/2; white 4/4), builder
+`ref && beard` (no words / words leading), slot label + option note, tests 24/24, UNRELEASED line. Bench bp1/bp3 in
+validation.md; bp2 (picture + words, fisher swap on white) running. NEXT: read bp2, playbook row, npm test, commit,
+then Fabio's eye test of Beard (words, empty box, picture, picture + words) + Accessories + Tattoos stitch.
+
 2026-10-17 (session "New character sheets 39") - LATEST. Beard with an EMPTY box = a full trimmed beard in the hair colour (6760add86, bd4 3/3, CI green); the option note says so. Fabio ran Beard WITH A BEARD PICTURE and expected no words to be needed: Beard ignores image2 today (not in `REF_THING`, words only). NEXT build: Beard from a Reference picture - bench first (likely the Hairstyle way: describer words `refBeard` + a Klein mannequin wearing only the beard, or the raw picture like Accessories); then the image2 slot label (add beard). Fabio eye tests still owed (lead the next session with this list): Beard in words + empty box; Makeup re-test after MPI-1156 (child, man, woman); Accessories; Tattoos back-pass stitch. Beard benches bd1-bd4: validation.md; scripts in session 26ec60d2 scratchpad (bd*.py, grid_bd.py, heads_bd.py), run on the G: bench :8188.
 
 2026-10-16 (session "New character sheets 39") - LATEST. BEARD SHIPPED 5e3f51da5: option `beard` -> Qwen, words only, builder = bench b_each (bd1-bd3 in validation.md, 6/6; the Hairstyle every-figure string missed a long beard on the front face). Not eye-tested. The child-safety redesign (MPI-1156) has landed, so the Makeup blocker below should be gone. NEXT, all Fabio when his GPU is free: Beard eye test, then the Makeup re-test (child, man, woman), Accessories + Tattoos-stitch eye tests. Then face tattoos (head-crop mannequin), close-out. Open: add "a beard" to the CSE line in docs/releases/UNRELEASED.md (held by the Cosmo + MCP card-import session at write).

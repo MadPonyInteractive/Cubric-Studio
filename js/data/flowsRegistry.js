@@ -1770,10 +1770,10 @@ export const FLOWS = [
         inputSchema: {
             media: [
                 { type: 'image', mode: 'upto', max: 1, roles: ['image1'], labels: ['Character sheet'] },
-                // Optional (Fabio, 2026-10-10): an outfit, an accessory, makeup, tattoos or a hairstyle to copy,
-                // for those changes (MPI-1086); any other change ignores it. Accessories and Tattoos need words
-                // naming it; a hairstyle is put into words by `refHair` below. Not with an age under 18.
-                { type: 'image', mode: 'upto', max: 1, roles: ['image2'], labels: ['Reference picture (optional)\nan outfit, accessory, makeup, tattoo or hairstyle'] },
+                // Optional (Fabio, 2026-10-10): an outfit, an accessory, makeup, tattoos, a hairstyle or a beard to
+                // copy, for those changes (MPI-1086); any other change ignores it. Accessories and Tattoos need words
+                // naming it; a hairstyle, makeup or beard is put into words below (`refHair` ...). Not with an age under 18.
+                { type: 'image', mode: 'upto', max: 1, roles: ['image2'], labels: ['Reference picture (optional)\nan outfit, accessory, makeup, tattoo, hairstyle or beard'] },
             ],
         },
         result: { compare: 'image1' },
@@ -1790,9 +1790,9 @@ export const FLOWS = [
                     { v: 'hair', label: 'Hairstyle', info: 'A new haircut or colour; the face stays as it is. Runs on Qwen-Image 2.1: not for commercial use.',
                       // A bare style name that takes hair AWAY ("Mohawk") fails; spelled out it works (r27).
                       note: 'Describe the cut, not just its name (e.g. shaved sides, a strip on top). A rare style? Add a Reference picture.' },
-                    // Fabio: its own entry, not a Hairstyle switch (MPI-1086). Words only: no Reference picture.
+                    // Fabio: its own entry, not a Hairstyle switch (MPI-1086); a beard picture alone is enough (bp1).
                     { v: 'beard', label: 'Beard', info: 'Grow, trim, recolour or shave a beard or moustache; the face stays the same person. Runs on Qwen-Image 2.1: not for commercial use.',
-                      note: 'Leave it empty for a full beard, or describe one (e.g. a short grey goatee, a handlebar moustache, clean-shaven).' },
+                      note: 'Leave it empty for a full beard, describe one (e.g. a short grey goatee, a handlebar moustache, clean-shaven), or add a Reference picture.' },
                     { v: 'condition', label: 'Condition', info: 'Beaten up, muddy, soaked, sunburnt - the state the character is in.' },
                     { v: 'body', label: 'Body shape', info: 'Heavier, slimmer or more muscular. Runs on Qwen-Image 2.1: not for commercial use.' },
                     // MPI-1086 (Fabio, 2026-10-12): "Nothing else" split into a free edit and age-only.
@@ -1861,7 +1861,11 @@ export const FLOWS = [
             // face and the design 6/6 (the describer adds "false lashes" and "no face paint" harmlessly).
             { to: 'refMakeup', media: 'image2', when: { field: 'change', is: 'makeup' },
                 ask: 'Describe only the makeup on the face in this picture: the eyeshadow, eyeliner, lashes, brows, blush, contour, lipstick and any face paint, naming each colour, shape and pattern and where it is on the face. Answer with one phrase, and nothing else.' },
-            { to: 'refIsMannequin', media: 'image2', when: { field: 'change', in: ['hair', 'makeup'] },
+            // MPI-1086 bp1: a Beard picture the same way, a mannequin wearing only the beard: the raw picture put its
+            // person's old face on a young man's sheet. The describer named all three of Fabio's beards right.
+            { to: 'refBeard', media: 'image2', when: { field: 'change', is: 'beard' },
+                ask: 'Describe only the beard and moustache in this picture: their colour, length, shape and style, and how they are trimmed. Answer with one phrase, and nothing else.' },
+            { to: 'refIsMannequin', media: 'image2', when: { field: 'change', in: ['hair', 'makeup', 'beard'] },
                 ask: 'Is this a picture of a mannequin, a wig head or a bare dummy bust with no real face, rather than a real person? Answer yes or no.' },
         ],
     },

@@ -34,6 +34,24 @@ const NEAR = 15;
 /** Beard with the box left empty (Fabio: "it's a beard, what do I write?"): a beard, in the hair's colour (MPI-1086 bd4). */
 const BEARD = 'a full, neatly trimmed beard and moustache in the same colour as the hair';
 
+/**
+ * Where a beard goes (MPI-1086 bd2): the Hairstyle shape (every figure named) left a long beard off the small front
+ * face (0/3); naming "the full-body front view" with the close-up, the beard "on the face", put it there 2/2.
+ */
+const BEARD_ON = 'The full-body front view and the close-up portrait on the right both show this beard on the face, and '
+    + "the character seen from behind shows it wherever it can be seen. Keep the character's own face, hair and clothes. "
+    + 'Keep everything else exactly as it is.';
+
+/**
+ * The in-graph mannequin for a Beard picture (`Input_Mannequin_Prompt`), as for Makeup: the raw picture put its
+ * person's old, lined face and grey hair on a young man's sheet (MPI-1086 bp1 b1). A skin-coloured bald head put ITSELF on
+ * the small front figure (bp1/bp3 b3: pale mannequin face, the hair gone, 0/2); a WHITE one, which cannot pass for skin,
+ * kept his face 2/2 (bp3 W), where a "take only the beard, not the head" line did not (P 0/2).
+ */
+const BEARD_MANNEQUIN = 'Replace the head of the person with a plain white mannequin head, and keep only the beard and '
+    + 'moustache, exactly as they are: the same colour, length, shape and style. No hair on the head, no jewellery and '
+    + 'no clothes, on a plain grey background.';
+
 function _words(text) {
     return String(text ?? '').trim().replace(/[\s.]+$/, '');
 }
@@ -62,6 +80,7 @@ export function parseApparentAge(answer) {
  */
 const REF_THING = {
     clothes: 'the outfit', accessories: 'the accessory', hair: 'the hairstyle', makeup: 'the makeup', tattoos: 'the tattoos',
+    beard: 'the beard',
 };
 
 /**
@@ -130,9 +149,10 @@ function _usesRef(values) {
  * @param {boolean} [ref] - a Reference picture is given (used by the changes in REF_THING)
  * @param {string} [refHair] - the describer's words for the reference's hairstyle (`describe` → `refHair`)
  * @param {string} [refMakeup] - the describer's words for the reference's makeup (`describe` → `refMakeup`)
+ * @param {string} [refBeard] - the describer's words for the reference's beard (`describe` → `refBeard`)
  * @returns {?string}
  */
-export function buildChangePrompt(change, words, ref = false, refHair = '', refMakeup = '') {
+export function buildChangePrompt(change, words, ref = false, refHair = '', refMakeup = '', refBeard = '') {
     const w = _words(words) || (change === 'beard' ? BEARD : '');
     // MPI-1086 (tasks/MPI-1086/validation.md, rounds 16-24): a hairstyle FROM A PICTURE runs on Qwen-Image 2.1 (the
     // registry routes it), never on Klein: Klein's face lock pasted the old face onto a head it redrew (double jaw,
@@ -184,6 +204,17 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
             + (w ? `, changed like this: ${w}. ${d ? `The makeup in image 2: ${d}. ` : ''}Make it ${w} on both faces. `
                 : `${d ? `: ${d}` : ''}. `)
             + `${OWN_FACES} Keep everything else exactly as it is.`;
+    }
+    // MPI-1086 bp1, on Qwen: image 2 is the graph's MANNEQUIN wearing only the beard (`BEARD_MANNEQUIN`), and the
+    // describer's words name the beard again (`refBeard`), as for Makeup. A picture alone is enough (Fabio): the
+    // empty-box default (`BEARD`) never applies to a picture.
+    if (ref && change === 'beard') {
+        const d = _words(refBeard);
+        const own = _words(words);
+        return own
+            ? `Give the character in image 1 the beard and moustache from image 2, changed like this: ${own}. `
+                + `${d ? `The beard in image 2: ${d}. ` : ''}Make it ${own}. ${BEARD_ON}`
+            : `Give the character in image 1 the beard and moustache from image 2${d ? `: ${d}` : ''}. ${BEARD_ON}`;
     }
     if (!w) return null;
     // MPI-1086 r29: Accessories runs on Qwen-Image 2.1 (the registry routes it), the raw picture straight in as image 2
@@ -240,13 +271,10 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
             return `Give the character this hairstyle: ${w}. The head is uncovered, no hat. The front view, the character `
                 + 'seen from behind and the close-up portrait on the right all show the same new hairstyle. '
                 + "Keep the character's own face and clothes. Keep everything else exactly as it is.";
-        // MPI-1086 bd1-bd3 (Fabio: its own entry, not a Hairstyle switch), on Qwen. The Hairstyle shape (every figure
-        // named) left a long beard off the small front face (0/3); naming "the full-body front view" with the close-up,
-        // the beard "on the face", put it there 2/2 and kept shaving and a moustache working.
+        // MPI-1086 bd1-bd3 (Fabio: its own entry, not a Hairstyle switch), on Qwen; `BEARD_ON` kept shaving and a
+        // moustache working too.
         case 'beard':
-            return `Give the character this beard: ${w}. The full-body front view and the close-up portrait on the right `
-                + 'both show this beard on the face, and the character seen from behind shows it wherever it can be seen. '
-                + "Keep the character's own face, hair and clothes. Keep everything else exactly as it is.";
+            return `Give the character this beard: ${w}. ${BEARD_ON}`;
         case 'condition':
             return `Make the character look ${w}.` + L1;
         case 'body':
@@ -411,7 +439,7 @@ function _part(part, values) {
         const caption = values.change === 'clothes' ? `Wearing ${_words(values.words)}` : values.sheetClothes;
         return buildRebuildPrompt(age, caption);
     }
-    return buildChangePrompt(values.change, values.words, _usesRef(values), values.refHair, values.refMakeup) || '';
+    return buildChangePrompt(values.change, values.words, _usesRef(values), values.refHair, values.refMakeup, values.refBeard) || '';
 }
 
 /**
@@ -439,10 +467,11 @@ export function characterSheetEditor(part, values = {}) {
     // The Reference picture is a mannequin already (the describer said so): the Qwen graph skips
     // making one of it. The Klein graph has no such node and ignores it. Accessories and Tattoos
     // never want one: the raw picture goes in as image 2 (MPI-1086 r29, r31-r35). Makeup gets its
-    // own mannequin, the head wearing only the makeup (r41/r42).
+    // own mannequin, the head wearing only the makeup (r41/r42), and Beard the head wearing only the beard (bp1).
     if (part === 'change') {
         injectionParams.Input_Is_Mannequin = RAW_REF.has(values.change) || /^\W*yes\b/i.test(values.refIsMannequin || '');
         if (values.change === 'makeup') injectionParams.Input_Mannequin_Prompt = MAKEUP_MANNEQUIN;
+        if (values.change === 'beard') injectionParams.Input_Mannequin_Prompt = BEARD_MANNEQUIN;
     }
     // MPI-1086 r47: Makeup edits the two faces only (`TWO_FACES`); an age leg edits the whole sheet.
     if (part !== 'rebuild') injectionParams.Input_Face_Crop = part === 'change' && values.change === 'makeup';

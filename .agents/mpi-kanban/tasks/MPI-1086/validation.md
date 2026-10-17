@@ -887,3 +887,42 @@ Default words "a full, neatly trimmed beard and moustache in the same colour as 
 the man (flowCSFI_011) seeds 42 + 7 = dark trimmed beard on the front face AND the close-up, 2/2; the photo woman
 (flowCSFI_006) = a brown beard matching her hair, front + close-up, 1/1. SHIPPED: empty box = that default (no refusal),
 Beard option `note` says so with examples; UNRELEASED.md line names the beard.
+
+## Beard from a PICTURE, bench bp1 (2026-10-17, session "New character sheets 40", G: bench :8188)
+
+Fabio: a beard picture alone must be enough (words-only Beard is fine). Pictures = his imported_034 (long grey), 035
+(dark full), 036 (handlebar + trimmed) in Qwen 2.1. Describer (local image_descriptor, free) named all three right.
+Arms, seed 42, no words: A = in-graph beard MANNEQUIN (bald head, only the beard) + describer words; B = RAW picture
+(Is_Mannequin) + words; C = mannequin, no words. Scripts bp1.py / gridbp.py in session c98bcfa0's scratchpad.
+
+| case | A mann+words | B raw+words | C mann |
+|---|---|---|---|
+| man b1 long grey | PASS all views, own face | FAIL front face = the picture's old lined face, grey hair | PASS |
+| man b2 dark full | PASS | PASS | PASS |
+| man b3 handlebar | FAIL front face pale/mannequin-ish, hair thinned | FAIL picture's face | FAIL front head = the bald mannequin |
+| fisher b1/b2/b3 (a swap) | PASS 3/3 close-up, cartoon face kept | b3 PASS | - |
+
+Raw picture is out (face leak, as Makeup r31). Mannequin wins, but the small front face can take the mannequin head
+(b3). bp3: "Take only the beard and moustache from image 2, not the head" (P) vs a WHITE mannequin (W) vs both.
+
+## Beard bench bp3 (same session): the mannequin head on the small front face
+
+Man (flowCSFI_011), no words, describer words in. Front-face crops (bp3.py, heads_bd.py):
+
+| case | A (bald, bp1) | P (take only the beard) | W (WHITE mannequin) | PW |
+|---|---|---|---|---|
+| b3 seed 42 | FAIL | FAIL (same pale face) | PASS own face + hair | PASS |
+| b3 seed 7 | FAIL | borderline (lighter brows) | PASS | PASS |
+| b1 seed 42 | PASS (bp1) | - | PASS | PASS |
+| b2 seed 42 | PASS (bp1) | - | PASS | - |
+
+W 4/4: the mannequin's skin-coloured bald head was what Qwen put on the front figure; a white one cannot pass for
+skin. SHIPPED: `BEARD_MANNEQUIN` = bp3 MANN_W byte for byte (test pins it); the edit string = bp1 arm A.
+
+## Beard bench bp2 (same session): picture + the user's words, WHITE mannequin
+
+Shipped words string (`changed like this: <w>. The beard in image 2: <d>. Make it <w>.` + BEARD_ON), man, seed 42:
+b1 + "in dark brown" = the long beard brown PASS; b2 + "trimmed short and neat" = short neat edges PASS; b3 + "with a
+grey streak" = grey mixed through, not a streak (partial). Own face + hair 3/3. Fisher + b3, no words, white
+mannequin = his white beard swapped for the handlebar, cartoon face kept PASS. npm test 3383 / 0 fail, eslint clean.
+NOT eye-tested in the app yet (Fabio).
