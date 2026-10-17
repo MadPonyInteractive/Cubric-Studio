@@ -12,6 +12,8 @@ import { runCommand, runGifCutoutTrack, isMaskTrackOp } from './commandExecutor.
 import { runCloudCommand } from './cloudExecutor.js';
 // MPI-1069 — the third head: Resize on the app's own server (sharp / ffmpeg), no engine.
 import { runToolCommand, isToolOp } from './toolExecutor.js';
+// MPI-1109 — an online Describe (Language Models connection): no engine, the `cloud` lane.
+import { runDescribeCommand } from './describeExecutor.js';
 import { saveGeneration, addGroup, updateGroup, serializeGroup, addGroupsToStack, settleResultStack } from './projectService.js';
 import { isStack } from '../data/stackModel.js';
 import { StatusBar } from '../shell/statusBar.js';
@@ -115,6 +117,8 @@ function _laneOf(jobOrOpts) {
     // Run-locally toggle cannot apply to it (there is nothing local to run). Read the
     // MODEL, before the toggle: a cue job carries its config, which carries the model.
     if (jobOrOpts?.config?.model?.provider || jobOrOpts?.model?.provider) return 'cloud';
+    // MPI-1109 — an online Describe is a cloud call too: it runs beside the engines.
+    if (jobOrOpts?.config?.describeEndpoint) return 'cloud';
     // MPI-1069 — a tool op runs on no engine at all, so neither flag applies either.
     if (isToolOp(jobOrOpts?.config?.operation)) return 'tool';
     if (opts.forceLocal === true) return 'local';
@@ -270,7 +274,7 @@ function _buildQueueDisplay(config = {}, opts = {}, source = 'manual', isLoop = 
         // until MPI-82's spine reads opts.forceLocal — inert on routing for now.
         // MPI-851: 'cloud' is a third value here for the same reason it is a third
         // lane — a DeepInfra job badged 'remote' claims the user's Pod is running it.
-        engine: isToolOp(config.operation) ? 'tool' : model.provider ? 'cloud' : (opts.forceLocal ? 'local' : 'remote'),
+        engine: isToolOp(config.operation) ? 'tool' : (model.provider || config.describeEndpoint) ? 'cloud' : (opts.forceLocal ? 'local' : 'remote'),
         // MPI-949: batch membership fields for grouped queue rows.
         batchId:    opts.batchId    ?? null,
         batchLabel: opts.batchLabel ?? null,
@@ -1221,11 +1225,14 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
     // ComfyUI on a machine that may have no GPU at all.
     // MPI-1069 — and a tool op (Resize) runs on neither: sharp/ffmpeg in our own server.
     // MPI-1106 — and a mask track (GIF cut-out, Video Mask) runs its own graph runner.
-    const exec = (isToolOp(operation) ? runToolCommand
-        : isMaskTrackOp(operation) ? runGifCutoutTrack
-            : model.provider ? runCloudCommand : runCommand)({
+    // MPI-1109 — and an online Describe posts to the Language Models connection.
+    const exec = (config.describeEndpoint ? runDescribeCommand
+        : isToolOp(operation) ? runToolCommand
+            : isMaskTrackOp(operation) ? runGifCutoutTrack
+                : model.provider ? runCloudCommand : runCommand)({
         genId: _regId,
         operation,
+        describeEndpoint: config.describeEndpoint || null,
         modelId: model.id,
         positive,
         negative,

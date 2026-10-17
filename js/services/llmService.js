@@ -1060,8 +1060,14 @@ export function buildDescribeInjectionParams(question) {
  *     in the prompt box via `workspace:inject-prompts` (the caller emits this on
  *     ok). Waits in the queue behind any running generation.
  *   - endpoint: `POST /llm/describe` with `profileId` from
- *     `Storage.getLlmConnection()` and the describe model pref. NOT queued —
- *     never waits behind a generation.
+ *     `Storage.getLlmConnection()` and the describe model pref. With `queued`
+ *     (MPI-1109: the gallery's Describe, the agent's) it goes through the queue
+ *     on the `cloud` lane, beside the engines, so it shows a row and Stop;
+ *     otherwise a bare fetch.
+ *
+ * ponytail: the internal callers (child-safety picture look, kept-looks captions)
+ * stay unqueued: they are steps inside a job that already shows, and on the cloud
+ * lane a local gen's safety check would wait behind a running DeepInfra video.
  *
  * @param {object}  a
  * @param {string}  a.imagePath   URL or absolute filesystem path of the image.
@@ -1071,16 +1077,42 @@ export function buildDescribeInjectionParams(question) {
  * @param {object} [a.crop]       `{x,y,width,height}` crop hint for the endpoint route
  * @param {string} [a.scope]      generation scope ('gallery' | 'groupHistory')
  * @param {object} [a.group]      owning group, for the ComfyUI queue context
+ * @param {boolean} [a.queued]    endpoint only: run it as a queue job (see above)
  * @returns {Promise<{ok:boolean, via:'comfy'|'endpoint', text?:string, model?:string, errorCode?:string, error?:string, cancelled?:boolean}>}
  *          Never rejects. On failure: `error` is a human-readable message. `via` names the
  *          backend that ran, so a caller can point at the right place to fix it.
  */
-export async function describeImage({ imagePath, question, crop, scope, group } = {}) {
+export async function describeImage({ imagePath, question, crop, scope, group, queued = false } = {}) {
     const backend = await runnableBackend(describeBackendPreference());
 
     if (backend === 'endpoint') {
         const { profileId } = Storage.getLlmConnection();
         const modelId = describeModelPreference();
+        if (queued) {
+            const { enqueueGeneration } = await import('./generationService.js');
+            return new Promise((resolve) => {
+                let answer = {};
+                const queuedJob = enqueueGeneration(
+                    {
+                        operation: 'imageDescribe',
+                        model: { id: null, mediaType: 'image' },
+                        positive: '',
+                        negative: '',
+                        mediaItems: [{ url: imagePath, mediaType: 'image', source: scope || 'gallery' }],
+                        describeEndpoint: { profileId, modelId, question, crop, onAnswer: (body) => { answer = body; } },
+                    },
+                    {
+                        onText: (text) => resolve({ ...answer, ok: true, via: 'endpoint', text }),
+                        onError: (err) => resolve(err?.message === 'cancelled_before_dispatch'
+                            ? { ok: false, via: 'endpoint', cancelled: true, error: 'The description was cancelled.' }
+                            : { ok: false, via: 'endpoint', ...(err?.code ? { errorCode: err.code } : {}), error: err?.message || 'The description failed.' }),
+                        onCancel: () => resolve({ ok: false, via: 'endpoint', cancelled: true, error: 'The description was cancelled.' }),
+                    },
+                    group ? { existingGroup: group, scope: scope || 'groupHistory', groupId: group.id } : { scope: scope || 'gallery' },
+                );
+                if (!queuedJob) resolve({ ok: false, via: 'endpoint', errorCode: 'REJECTED', error: 'Vision rejected the describe job before it entered the queue.' });
+            });
+        }
         try {
             const res = await fetch('/llm/describe', {
                 method: 'POST',

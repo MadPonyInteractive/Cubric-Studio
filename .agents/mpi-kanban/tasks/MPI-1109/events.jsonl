@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1109", "at": "2026-10-12T08:02:06+01:00", "actor": "claude", "column": "todo", "title": "Describe on the online LLM backend shows it is working (gallery + Cosmo)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1109", "at": "2026-10-17T13:39:03+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1109", "at": "2026-10-17T13:47:14+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Implemented + verified (validation.md); awaiting commit + CI."}

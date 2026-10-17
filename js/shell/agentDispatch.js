@@ -2125,7 +2125,7 @@ async function _describeImage(jobId, input = {}) {
     const { imagePath, question } = input;
     if (!imagePath) return _fail(jobId, 'BAD_REQUEST', 'imagePath is required.');
 
-    const result = await describeImage({ imagePath, question, scope: 'gallery' });
+    const result = await describeImage({ imagePath, question, scope: 'gallery', queued: true });   // MPI-1109
     if (result.ok) {
         // `describer`: which vision model wrote this, kept beside the text in the card's
         // sidecar, because a description outlives the describer (Fabio, 2026-09-21).

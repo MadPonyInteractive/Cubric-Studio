@@ -46,6 +46,7 @@ export function describeItem(item, opts = {}) {
         imagePath: resolveMediaUrl(item.filePath),
         scope: opts.scope || 'gallery',
         group: opts.group,
+        queued: true,   // MPI-1109: online too, a queue row while it runs
     }).then((result) => {
         if (result.ok) {
             Events.emit('workspace:inject-prompts', { positive: result.text });

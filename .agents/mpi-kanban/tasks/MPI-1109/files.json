@@ -1,0 +1,13 @@
+{
+ "schema": "mpi-kanban/task-files/v1",
+ "files": [
+  "js/services/describeExecutor.js",
+  "js/services/generationService.js",
+  "js/services/llmService.js",
+  "js/utils/describeAction.js",
+  "js/shell/agentDispatch.js",
+  "tests/desktop/describe-queue-row.spec.js",
+  "tests/cloud-executor.test.cjs",
+  ".agents/mpi-kanban/tasks/MPI-1109/"
+ ]
+}

@@ -660,8 +660,9 @@ test('generationService branches on provider BEFORE runCommand, not inside it', 
     // dispatch would cold-start a local ComfyUI on a machine that may have no GPU.
     const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'services', 'generationService.js'), 'utf8');
     // MPI-1069 put the tool head (Resize on sharp/ffmpeg) in front of it; the cloud branch
-    // must still come before runCommand. MPI-1106 put the mask track (GIF cut-out) beside it.
-    assert.match(src, /const exec = \(isToolOp\(operation\) \? runToolCommand\s*: isMaskTrackOp\(operation\) \? runGifCutoutTrack\s*: model\.provider \? runCloudCommand : runCommand\)\(\{/,
+    // must still come before runCommand. MPI-1106 put the mask track (GIF cut-out) beside it,
+    // MPI-1109 the online Describe in front.
+    assert.match(src, /const exec = \(config\.describeEndpoint \? runDescribeCommand\s*: isToolOp\(operation\) \? runToolCommand\s*: isMaskTrackOp\(operation\) \? runGifCutoutTrack\s*: model\.provider \? runCloudCommand : runCommand\)\(\{/,
         'the cloud seam is gone from generationService — a cloud model would dispatch to ComfyUI');
     assert.match(src, /import \{ runCloudCommand \}/, 'the cloud head is not imported');
 
