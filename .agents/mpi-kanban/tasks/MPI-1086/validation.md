@@ -985,3 +985,45 @@ ac8_desc.py in session a1962251's scratchpad; G: bench :8188.
 - Noticed, not this card's ask: on t_body seed 7 the back pass left the BACK view's legs bare (front legs inked),
   shipped and F4 alike.
 - npm test 3385 tests, 3383 pass / 0 fail; eslint clean.
+
+## Face tattoos fa1-fa3 (session "New character sheets 43", 2026-10-17, G: bench :8188)
+
+Shipped Qwen graph with `Input_Face_Crop` on (the two faces only, as Makeup r47), back pass off. Sheets M = flowCSFI_011,
+W = flowCSE_044. Words TW = r45's (teardrop under the LEFT eye + tribal across the RIGHT temple), TS = "a small black
+star tattoo on the left cheekbone". Scripts fa1.py, fa2.py, fa3.py, gridfa.py in session 3051ae9e's scratchpad.
+The close-up turns to the picture's left on both sheets, so it shows the character's LEFT cheek.
+
+- **Words, fa1/fa2: the side cannot be steered, and a one-sided tattoo lands on BOTH cheeks of the front face.**
+  | arm | star, front face | teardrop + tribal |
+  |---|---|---|
+  | W0 r45 string | two stars 2/2 | everything on one side, mirrored or grouped |
+  | W1 + "Left and right are the character's own: ... on the right of the picture." | two stars 2/2 | all on the close-up's visible side |
+  | W2 left/right swapped in the words | two 1/2, one (wrong side) 1/2 | same as W1 |
+  | W3 + "Each tattoo is drawn once, on that one side of the face only." | two stars 4/4 | same |
+  | W5 W3 + W1's sentence | two stars 4/4 | same |
+  The close-up is right 16/16 (one star, on its visible cheek); the FRONT face copies it onto both cheeks.
+- **Picture, fa1 (imported_023, words "face and head tattoos", seed 45002)**: the picture cropped to its head first
+  (SAM3 face, the face + half a face all round, = `patch_raw_ref_head_crop.py`), then
+  - P1 the head crop RAW: M = the glyphs read, but his temple SHAVED; W = the picture's black eye makeup and white face
+    paint put on her. FAIL (the raw-picture leak, as r22/r31).
+  - **P2 the head crop through the mannequin (r45's TAT_MANN)**: the glyphs and cheek marks readable on both faces, own
+    face, no makeup; r45's full-body mannequin made them unreadable. Left: W front face has them on BOTH cheeks; the
+    picture's NECK ink came along (the mannequin keeps it) as a faint mark at the paste edge.
+- **fa3, words: the side said as the PICTURE's** ("under the left eye" -> "under the eye on the right side of the
+  picture"; a face looking at the viewer shows its left on the picture's right): **W6 one star, on her/his left, on
+  both faces 3/4** (M seed 7 still two). W7 = W6 + fa2's once line: the same 3/4, so no once line. TW (two designs on
+  OPPOSITE sides) stays muddled in every arm: the close-up shows one cheek only, so Qwen puts both designs there.
+- **fa3/fa4, picture**: P2 seed 7 one side 2/2, seed 45002 W both cheeks; **P3 (+ "on the same side of the face as in
+  image 2") one side 2/2; P4 (P3 + "none on the neck") one side 4/4, the neck ink 2/4** (P2/P3 4/4).
+- **SHIPPED** (builder = W6 / P4 byte for byte, tests pin both): Tattoos whose words name the face and no other part
+  (`_faceInk`: face, cheek, forehead, jaw, temple, eye, brow, chin, nose, lip; none of back, arm, leg, neck, chest ...)
+  -> `Input_Face_Crop`, no back pass; with a picture `Input_Ref_Head_Crop` + the head mannequin (`TATTOO_MANNEQUIN` =
+  r45's TAT_MANN), `Input_Is_Mannequin` false. Graph: `patch_raw_ref_head_crop.py` (11 nodes: SAM3 face on
+  Input_Image_2 -> the square -> crop; no face = the whole picture; lazy, its own switch so Makeup's picture is
+  untouched). Words naming the face AND the neck or a limb keep the whole-sheet route.
+- **fa5, the shipped path** (qh47_params.mjs -> the patched shipped graph, the RAW full-body photo in): the graph's head
+  crop = fa1's (its mannequin identical in content); M seed 45002 + W seed 7 = one side, both faces, own face; star =
+  one, on her left, both faces. A picture with NO face (imported_021, a back) runs (whole-picture fallback) but its
+  mannequin invents face designs - garbage in, not a crash.
+- Partial left: the neck mark from a picture whose neck is inked (2/4); two designs on opposite cheeks.
+- npm test 3386, 3384 pass / 0 fail; eslint clean. NOT eye-tested in the app (Fabio).

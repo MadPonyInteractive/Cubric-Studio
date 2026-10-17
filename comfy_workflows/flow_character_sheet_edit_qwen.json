@@ -370,7 +370,7 @@
       "megapixels": 1,
       "resolution_steps": 16,
       "image": [
-        "136",
+        "287",
         0
       ]
     },
@@ -659,7 +659,7 @@
   "162": {
     "inputs": {
       "true": [
-        "136",
+        "287",
         0
       ],
       "false": [
@@ -2528,6 +2528,192 @@
     "class_type": "ImageScaleToTotalPixels",
     "_meta": {
       "title": "the original back figure to ~1 MP"
+    }
+  },
+  "277": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Ref_Head_Crop"
+    }
+  },
+  "278": {
+    "inputs": {
+      "threshold": 0.5,
+      "refine_iterations": 2,
+      "individual_masks": false,
+      "model": [
+        "171",
+        0
+      ],
+      "image": [
+        "136",
+        0
+      ],
+      "conditioning": [
+        "185",
+        0
+      ]
+    },
+    "class_type": "SAM3_Detect",
+    "_meta": {
+      "title": "reference head: SAM3 face"
+    }
+  },
+  "279": {
+    "inputs": {
+      "padding": 0,
+      "divisible_by": 1,
+      "mask": [
+        "278",
+        0
+      ]
+    },
+    "class_type": "MpiMaskBbox",
+    "_meta": {
+      "title": "reference head: face box"
+    }
+  },
+  "280": {
+    "inputs": {
+      "mpi_box": [
+        "279",
+        1
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "reference head: face size"
+    }
+  },
+  "281": {
+    "inputs": {
+      "math_expression": "(a if a > b else b) // 2",
+      "a": [
+        "280",
+        0
+      ],
+      "b": [
+        "280",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "reference head: half the longer face side"
+    }
+  },
+  "282": {
+    "inputs": {
+      "mask": [
+        "278",
+        0
+      ],
+      "padding": [
+        "281",
+        0
+      ]
+    },
+    "class_type": "MpiMaskSquareBbox",
+    "_meta": {
+      "title": "reference head: the square"
+    }
+  },
+  "283": {
+    "inputs": {
+      "math_expression": "a if a > 0 else b",
+      "a": [
+        "282",
+        3
+      ],
+      "b": [
+        "136",
+        2
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "reference head: width (no face = the whole picture)"
+    }
+  },
+  "284": {
+    "inputs": {
+      "math_expression": "a if a > 0 else b",
+      "a": [
+        "282",
+        3
+      ],
+      "b": [
+        "136",
+        3
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "reference head: height (no face = the whole picture)"
+    }
+  },
+  "285": {
+    "inputs": {
+      "width": [
+        "283",
+        0
+      ],
+      "height": [
+        "284",
+        0
+      ],
+      "x": [
+        "282",
+        1
+      ],
+      "y": [
+        "282",
+        2
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "reference head: box"
+    }
+  },
+  "286": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "136",
+        0
+      ],
+      "mpi_box": [
+        "285",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "reference head: the crop"
+    }
+  },
+  "287": {
+    "inputs": {
+      "true": [
+        "286",
+        0
+      ],
+      "false": [
+        "136",
+        0
+      ],
+      "boolean": [
+        "277",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "the reference: its head when Input_Ref_Head_Crop, else the picture"
     }
   }
 }

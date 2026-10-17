@@ -123,6 +123,43 @@ const TWO_FACES = "Image 1 shows the same person's face twice.";
 const OWN_FACES = "Keep each face's own shape, eyes, nose, lips, eyebrows, facial hair, skin tone and hair exactly as they "
     + 'are; only the makeup changes.';
 
+/**
+ * Face tattoos edit the two faces only, as Makeup (`Input_Face_Crop`, MPI-1086 fa1-fa4): tattoo words that name the
+ * face and no other part of the body. `OWN_FACES` with the tattoos, not the makeup, as the one change.
+ */
+const FACE_PART = /\b(?:face|facial|cheeks?|cheekbones?|forehead|jaw|jawline|temples?|eyes?|eyebrows?|brows?|chin|nose|lips?)\b/i;
+const BODY_PART = /\b(?:back|arms?|legs?|thighs?|calf|calves|ankles?|feet|foot|hands?|wrists?|fingers?|chest|neck|shoulders?|stomach|belly|ribs?|sleeves?|full body|whole body|all over)\b/i;
+const OWN_FACES_INK = "Keep each face's own shape, eyes, nose, lips, eyebrows, facial hair, skin tone and hair exactly as "
+    + 'they are; only the tattoos are added.';
+
+/**
+ * The mannequin for a face-tattoo picture, made of the picture's HEAD (`Input_Ref_Head_Crop`): a mannequin of a
+ * full-body photo kept the face ink too small to read (r45); of the head crop, the designs copied 6/6 (fa1/fa3), where
+ * the raw head put the picture's makeup on her and shaved his temple (fa1 P1).
+ */
+const TATTOO_MANNEQUIN = 'Replace the head of the person with a plain bald mannequin head, and keep only the tattoos on the '
+    + 'face and head, exactly as they are: the same designs, colours and places. No hair, no makeup, no jewellery and no '
+    + 'clothes, on a plain grey background.';
+
+/** Whether this run's tattoos go on the face only. */
+function _faceInk(change, words) {
+    const w = _words(words);
+    return change === 'tattoos' && FACE_PART.test(w) && !BODY_PART.test(w);
+}
+
+/**
+ * The character's left and right said as the PICTURE's side (fa3): "under the left eye" put the ink on both cheeks of
+ * the front face or on the other side (fa1/fa2: a side sentence, swapped words and "drawn once" all 0/8 on one star);
+ * "the eye on the right side of the picture" put one star where it belongs 3/4. A face that looks at the viewer shows
+ * its left on the picture's right, front and three-quarter alike.
+ * @param {string} w
+ * @returns {string}
+ */
+function _pictureSides(w) {
+    return w.replace(/\b(?:(?:her|his|their|the)\s+)?(left|right)\s+([a-z]+)/gi,
+        (_m, side, part) => `the ${part} on the ${side.toLowerCase() === 'left' ? 'right' : 'left'} side of the picture`);
+}
+
 /** With a reference, every figure is named and the back one only as "seen from behind" (MPI-1090 rounds 2-3). */
 const REF_ALL = 'The front view, the character seen from behind and the close-up portrait on the right all show the same '
     + 'outfit, with the same neckline, sleeves and straps.';
@@ -225,6 +262,20 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
             : `Give the character in image 1 the beard and moustache from image 2${d ? `: ${d}` : ''}. ${BEARD_ON}`;
     }
     if (!w) return null;
+    // MPI-1086 fa1-fa4: face tattoos edit the two faces only (`_faceInk`). A picture is the graph's mannequin of its
+    // head (`TATTOO_MANNEQUIN`); "on the same side of the face as in image 2" kept the glyphs off the other cheek (fa3
+    // P3 + fa4 6/6, without it 3/4); "none on the neck" cut the picture's neck ink, which the face paste cuts into a
+    // ghost at the chin, from 4/4 to 2/4 (fa4).
+    if (_faceInk(change, w)) {
+        if (ref) {
+            const t = w.replace(/^(?:the|a|an)\s+/i, '');
+            return `${TWO_FACES} Copy the ${t[0].toLowerCase() + t.slice(1)} from image 2 onto both faces in image 1, the `
+                + 'same designs in the same place on the face and head, on the same side of the face as in image 2. Add no '
+                + `other tattoos, none on the neck, and no makeup. ${OWN_FACES_INK} Keep everything else exactly as it is.`;
+        }
+        return `${TWO_FACES} Add these face tattoos to both faces, in the same place on each: ${_pictureSides(w)}. `
+            + `${OWN_FACES_INK} Keep everything else exactly as it is.`;
+    }
     // MPI-1086 r29: Accessories runs on Qwen-Image 2.1 (the registry routes it), the raw picture straight in as image 2
     // (no mannequin: `Input_Is_Mannequin` is forced). Klein redrew the front figure as a second back view 4/4 and took
     // the picture's person (her face, her green hair); this kept layout, face and hair 4/4 and put the thing where it
@@ -330,6 +381,7 @@ export function buildBackPassPrompt(change, words, ref = false) {
     const w = _words(words);
     if (!w) return '';
     if (change === 'tattoos' && BACK_ONLY.test(w) && !FRONT_PART.test(w)) return '';
+    if (_faceInk(change, w)) return '';   // the two faces only: no back figure is touched
     const has = change === 'tattoos'
         ? (ref ? '' : `The character has this tattoo: ${_unview(w)}. Show it wherever it can be seen from behind. `)
         : `The character has this accessory: ${_unview(w)}, held or worn as in image 1. Show only the parts of it that `
@@ -498,13 +550,20 @@ export function characterSheetEditor(part, values = {}) {
     // making one of it. The Klein graph has no such node and ignores it. Accessories and Tattoos
     // never want one: the raw picture goes in as image 2 (MPI-1086 r29, r31-r35). Makeup gets its
     // own mannequin, the head wearing only the makeup (r41/r42), and Beard the head wearing only the beard (bp1).
+    // Face tattoos get a mannequin of the picture's head (fa1 P2: the raw head brought its makeup).
+    const faceInk = _faceInk(values.change, values.words);
     if (part === 'change') {
-        injectionParams.Input_Is_Mannequin = RAW_REF.has(values.change) || /^\W*yes\b/i.test(values.refIsMannequin || '');
+        injectionParams.Input_Is_Mannequin = (RAW_REF.has(values.change) && !faceInk) || /^\W*yes\b/i.test(values.refIsMannequin || '');
         if (values.change === 'makeup') injectionParams.Input_Mannequin_Prompt = MAKEUP_MANNEQUIN;
         if (values.change === 'beard') injectionParams.Input_Mannequin_Prompt = BEARD_MANNEQUIN;
+        if (faceInk) injectionParams.Input_Mannequin_Prompt = TATTOO_MANNEQUIN;
     }
-    // MPI-1086 r47: Makeup edits the two faces only (`TWO_FACES`); an age leg edits the whole sheet.
-    if (part !== 'rebuild') injectionParams.Input_Face_Crop = part === 'change' && values.change === 'makeup';
+    // MPI-1086 r47: Makeup edits the two faces only (`TWO_FACES`), face tattoos too (fa1-fa4); an age leg edits the
+    // whole sheet. A face-tattoo picture is cropped to its head first (`Input_Ref_Head_Crop`).
+    if (part !== 'rebuild') {
+        injectionParams.Input_Face_Crop = part === 'change' && (values.change === 'makeup' || faceInk);
+        injectionParams.Input_Ref_Head_Crop = part === 'change' && faceInk && _usesRef(values);
+    }
     // MPI-1086 r37: Tattoos redraw the back figure from the edited front one, in the same Qwen graph.
     // r44: the sheet is stitched back together at the panel cuts the app measured (`sheetCuts`, "x1,x2"
     // in the sheet's pixels); 0 = the graph's own 25% / 50%, for a sheet with no clear gaps.

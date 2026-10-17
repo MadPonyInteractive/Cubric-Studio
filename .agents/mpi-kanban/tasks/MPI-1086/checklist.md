@@ -10,6 +10,7 @@
 - [x] Fabio's eye test 2 (hair from a picture on Qwen)
 - [x] Accessories on Qwen (words + picture), slot label on two lines
 - [x] Makeup + Tattoos split into their own options on Qwen (r31-r35), builder = bench 13/13, tests
+- [x] Face tattoos: two-faces crop, picture-side words, reference head crop + mannequin (fa1-fa5)
 - [ ] Fabio's eye test: Accessories, Makeup, Tattoos in the app
 - [ ] Beard as its own entry
 - [ ] Close-out

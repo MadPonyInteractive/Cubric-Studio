@@ -273,6 +273,33 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     assert.doesNotMatch(buildChangePrompt('tattoos', 'a koi on the back'), /face stays bare/, 'a picture only');
     assert.strictEqual(characterSheetEditor('change', run('tattoos', 'a back tattoo')).injectionParams.Input_Is_Mannequin, true);
     assert.doesNotMatch(buildChangePrompt('accessories', 'a bandana', true), /tattoos/, 'Accessories keeps its own string');
+    // fa1-fa4: tattoo words naming the face and nothing else edit the two faces only, sides said as the picture's (fa3 W6).
+    const INK_OWN = " Keep each face's own shape, eyes, nose, lips, eyebrows, facial hair, skin tone and hair exactly as they "
+        + 'are; only the tattoos are added.' + KEEP;
+    assert.strictEqual(buildChangePrompt('tattoos', 'a small black star tattoo on the left cheekbone'), "Image 1 shows the "
+        + "same person's face twice. Add these face tattoos to both faces, in the same place on each: a small black star "
+        + 'tattoo on the cheekbone on the right side of the picture.' + INK_OWN, 'fa3_ts_W6');
+    assert.strictEqual(buildChangePrompt('tattoos', 'a small black teardrop tattoo under the left eye, and thin black tribal '
+        + 'lines across the right temple and cheekbone'), "Image 1 shows the same person's face twice. Add these face "
+        + 'tattoos to both faces, in the same place on each: a small black teardrop tattoo under the eye on the right side '
+        + 'of the picture, and thin black tribal lines across the temple on the left side of the picture and cheekbone.'
+        + INK_OWN, 'fa3_tw_W6');
+    assert.strictEqual(buildChangePrompt('tattoos', 'Face and head tattoos', true), "Image 1 shows the same person's face "
+        + 'twice. Copy the face and head tattoos from image 2 onto both faces in image 1, the same designs in the same place '
+        + 'on the face and head, on the same side of the face as in image 2. Add no other tattoos, none on the neck, and no '
+        + 'makeup.' + INK_OWN, 'fa4_tp_P4');
+    const fw = characterSheetEditor('change', { change: 'tattoos', words: 'a star under her left eye', Input_Age: -1 }).injectionParams;
+    assert.deepStrictEqual([fw.Input_Face_Crop, fw.Input_Back_Pass, fw.Input_Ref_Head_Crop], [true, false, false]);
+    const fp = characterSheetEditor('change', run('tattoos', 'Face and head tattoos')).injectionParams;
+    assert.deepStrictEqual([fp.Input_Face_Crop, fp.Input_Back_Pass, fp.Input_Ref_Head_Crop, fp.Input_Is_Mannequin],
+        [true, false, true, false], 'a picture: its head made a mannequin (fa1 P1: the raw head brought its makeup)');
+    assert.match(fp.Input_Mannequin_Prompt, /^Replace the head of the person with a plain bald mannequin head, and keep only the tattoos on the face/);
+    for (const w of ['Face and neck tattoos', 'Neck and chest tattoos', 'a rose on the left arm', 'a koi on the back']) {
+        const p = characterSheetEditor('change', run('tattoos', w)).injectionParams;
+        assert.deepStrictEqual([p.Input_Face_Crop, p.Input_Ref_Head_Crop, p.Input_Is_Mannequin], [false, false, true], w);
+    }
+    assert.strictEqual(characterSheetEditor('age', run('tattoos', 'a star on the cheek', 30)).injectionParams.Input_Face_Crop,
+        false, 'an age leg edits the whole sheet');
     // MPI-1086 r37: Tattoos redraw the back figure from the edited front one; words go into that pass, a picture does not.
     // ac2: image 2 = the sheet's original back figure, so the outfit's back stays; the skin and ink come from image 1.
     const TURN = 'Turn the character in image 1 around so the character is seen from behind, full body from head to '
@@ -599,6 +626,20 @@ test('the Qwen graph edits the two faces only when Input_Face_Crop, lazily (MPI-
     for (const p of [front, close]) assert.strictEqual(g[p.inputs.mask[0]].class_type, 'ImageToMask', 'through the feathered face mask');
     const readers = Object.values(g).filter(n => Object.values(n.inputs).some(v => Array.isArray(v) && v[0] === id("back to the sheet's own size")));
     assert.deepStrictEqual(readers, [edit], 'nothing else reads the sheet-sized edit');
+});
+
+test('the Qwen graph crops the Reference picture to its head when Input_Ref_Head_Crop, lazily (MPI-1086 fa1)', () => {
+    const g = require(path.join(ROOT, 'comfy_workflows', 'flow_character_sheet_edit_qwen.json'));
+    const id = t => Object.keys(g).find(k => g[k]._meta?.title === t);
+    const on = id('Input_Ref_Head_Crop');
+    assert.strictEqual(g[on].inputs.boolean, false, 'ships off: Makeup, Hairstyle and Beard pictures stay whole');
+    const pick = id('the reference: its head when Input_Ref_Head_Crop, else the picture');
+    assert.deepStrictEqual([g[pick].class_type, g[pick].inputs.boolean, g[pick].inputs.false], ['MpiIfElse', [on, 0], [id('Input_Image_2'), 0]]);
+    assert.strictEqual(g[g[pick].inputs.true[0]].class_type, 'MpiBoxCrop', 'on: the head crop');
+    assert.deepStrictEqual(g[id('the photo to 1 MP')].inputs.image, [pick, 0], 'the mannequin is made of the head');
+    assert.deepStrictEqual(g[id('picture 2: the reference itself when it is a mannequin')].inputs.true, [pick, 0]);
+    const w = g[id('reference head: width (no face = the whole picture)')];
+    assert.deepStrictEqual([w.inputs.math_expression, w.inputs.b], ['a if a > 0 else b', [id('Input_Image_2'), 2]], 'no face: the whole picture');
 });
 
 test('every op the Flow dispatches takes the sheet on image1', async () => {

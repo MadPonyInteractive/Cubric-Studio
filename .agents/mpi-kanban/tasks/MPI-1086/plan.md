@@ -4,7 +4,16 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
-2026-10-17 (session "New character sheets 42") - LATEST. TATTOO PICTURES: (1) words naming only the back take NO back
+2026-10-17 (session "New character sheets 43") - LATEST. FACE TATTOOS SHIPPED (fa1-fa5 in validation.md): tattoo
+words naming the face and no other body part edit the two faces only (`Input_Face_Crop`, no back pass), the
+character's left/right rewritten as the picture's side (one star on the right cheek 3/4; every other wording 0/8). A
+picture: the graph crops it to its head (`Input_Ref_Head_Crop`, new, `patch_raw_ref_head_crop.py`), the head made a
+mannequin, "same side as in image 2, none on the neck" (one side 4/4, neck mark 2/4). Shipped path proven on the
+bench (fa5). Partials: neck mark from an inked neck, two designs on opposite cheeks. NEXT: Fabio's eye tests -
+Accessories (words, picture + words), Tattoos (back-only picture imported_021, full-body imported_022 -> bare face,
+face tattoos words + imported_023 picture), then close-out.
+
+2026-10-17 (session "New character sheets 42"). TATTOO PICTURES: (1) words naming only the back take NO back
 pass (ac4: the back piece lands on the back view; the back pass lost it, ac3). (2) a tattoo picture adds "The face
 stays bare: no tattoo on the face." unless the words name the face (ac4-ac8: invented cheek piece -> faint jaw line on
 seed 31022, bare elsewhere; a picture with face ink still passes it on). Bench tables in validation.md. Pushed
