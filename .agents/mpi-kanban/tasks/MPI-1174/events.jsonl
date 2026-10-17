@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1174", "at": "2026-10-17T20:53:14+01:00", "actor": "claude", "column": "doing", "title": "Character Sheet Editor sheetCuts: the margin left of the front figure is not a gap"}

@@ -268,6 +268,12 @@ test('sheetCuts: the middles of the first two gaps between figures, or null when
     assert.equal(fe.sheetCuts(sheet(448, 280, [[30, 100, 60], [104, 448, 90]]), 448, 280), null, 'one narrow lull is no gap');
     // a gap in the wrong place (a mannequin close-up, a broken sheet) is not trusted: the graph keeps 25% / 50%
     assert.equal(fe.sheetCuts(sheet(448, 280, [[10, 20, 60], [30, 40, 60], [60, 448, 90]]), 448, 280), null);
+    // MPI-1174: a backdrop shaded top to bottom near the left edge (calm, but not one colour) splits the margin before
+    // the front figure off the edge; that margin is no gap (flowCharacterSheet_069 measured no cuts: cut 1 at 6%)
+    const shaded = sheet(448, 280, [[50, 100, 60], [150, 230, 120], [260, 448, 90]]);
+    for (let y = 0; y < 280; y++) for (let x = 0; x < 40; x++) shaded[y * 448 + x] += 80 * (1 - x / 40) * (y / 279 - 0.5) * 2;
+    const m = fe.sheetCuts(shaded, 448, 280);
+    assert.ok(m && Math.abs(m[0] - 125 / 448) < 0.01 && Math.abs(m[1] - 245 / 448) < 0.01, JSON.stringify(m));
     // shrinkGray averages blocks: a 2x2 checker of 0 / 200 is 100 everywhere, never 0 or 200
     const W = 8, H = 4, big = new Float32Array(W * H).map((_, i) => ((i % W) + Math.floor(i / W)) % 2 ? 200 : 0);
     assert.deepEqual([...fe.shrinkGray(big, W, H, 4, 2)], new Array(8).fill(100));

@@ -633,13 +633,20 @@ export function sheetCuts(gray, width, height) {
     const a = smooth(act), s = smooth(spread);
     const p90 = (arr) => { const o = [...arr].sort((u, w) => u - w), i = 0.9 * (o.length - 1), f = Math.floor(i); return o[f] + (o[Math.min(f + 1, o.length - 1)] - o[f]) * (i - f); };
     const ta = 0.25 * p90(a), ts = 0.4 * p90(s);
+    // A run counts only once a figure (an ACTIVE column) lies to its left: the margin before the front figure is
+    // no gap, even when a calm-but-shaded backdrop column splits it off the left edge (flowCharacterSheet_069: a
+    // margin run at 6% became cut 1, failed the check below, and the whole sheet measured no cuts).
     const runs = [];
+    let figure = false;
     for (let x = 0; x < width;) {
         if (a[x] < ta && s[x] < ts) {
             const start = x;
             while (x < width && a[x] < ta && s[x] < ts) x++;
-            if (start > 0 && x < width && x - start >= 6) runs.push((start + x) / 2 / width);
-        } else x++;
+            if (figure && x < width && x - start >= 6) runs.push((start + x) / 2 / width);
+        } else {
+            if (a[x] >= ta) figure = true;
+            x++;
+        }
     }
     if (runs.length < 2) return null;
     const [c1, c2] = runs;
