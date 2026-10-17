@@ -59,3 +59,9 @@ in the queued graph carried it (checked in /history). 290 s, 576p.
 ## Eye test (Fabio)
 
 Open `logs/mpi1154/mpi1154_source_before_after.webm`: the right column should still pass as M6 did.
+
+- **Fabio, 2026-10-17: PASS.** Asked (via the Version 2.1 readiness 5 session) whether his pass covered this
+  side-by-side: "Yes, the videos passed as well with Cosmo."
+- Gemma (his describer pick) is still NOT covered: his dev log (`%APPDATA%\Cubric Studio\logs\app.log`) has no
+  Video Edit describe line and no project holds a Video Edit sidecar newer than this bench, so no run of the new
+  question through Gemma exists on this machine. The pass rests on the local-describer bench above.
