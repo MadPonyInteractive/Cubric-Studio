@@ -95,6 +95,29 @@ const checkInHolds = (run) => {
     return f;
 };
 const ANGLE = { id: 'att_angle', name: 'IMG_6021.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_angle.jpg' };
+const GRAINY = { id: 'att_grainy', name: 'IMG_7310.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_grainy.jpg' };
+const GRADED = { id: 'att_graded', name: 'IMG_7311.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_graded.jpg' };
+const LIT = { id: 'att_lit', name: 'IMG_7312.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_lit.jpg' };
+// Known gap (2026-10-17): it also carries qualities nobody asked for (the photo's grain onto a
+// "this light" ask, 6 of 6 on DeepSeek), so "only that quality" is not asserted. The `look`
+// fixture answers with everything whatever was asked, which may overstate it.
+const lookCase = (id, att, turn, seen, wanted) => ({
+    id,
+    title: `a picture given for one quality of its look puts that quality in the prompt (${id})`,
+    setup: { attachments: [att], look: { ok: true, output: { text: seen } }, turns: [turn] },
+    flip: { turns: [turn.replace(/ I want this .*$/, '')] },
+    check(run) {
+        const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
+        if (!ok.length) return ['never generated'];
+        const f = [];
+        for (const c of ok) {
+            const p = c.args.prompt || '';
+            if (!wanted.test(p)) f.push(`the asked-for look is not in the prompt: ${p.slice(0, 160)}`);
+            if ((c.args.media || []).some((m) => m.image === att.id)) f.push(`sent the picture as media (${c.args.operation})`);
+        }
+        return f;
+    },
+});
 const WAVES = 'Make a 5 second video of waves crashing on rocks at sunset.';
 // MPI-944: one place, two angles. Camera-roll names on purpose: the model has to look to
 // tell which picture holds the content and which is empty.
@@ -788,6 +811,18 @@ const CASES = [
             return f;
         },
     },
+    // MPI-1164 (Fabio): a picture given for ONE quality of its look ("this amount of grain",
+    // "this grading", "this light") is read into a NEW job's prompt as words,
+    // and is neither edited nor sent as media. Each flip drops the ask, so the words go missing.
+    lookCase('look-grain-into-prompt', GRAINY, 'Make a picture of a fox in a snowy forest. I want this amount of grain.',
+        'A photo of a street at dusk with very heavy, coarse film grain over everything and a strong magenta colour cast.',
+        /grain/i),
+    lookCase('look-grade-into-prompt', GRADED, 'Video idea: a woman walks slowly through a night market, 5 seconds. I want this grading.',
+        'A still of a parking garage where everything is tinted a sickly green, crushed blacks, soft focus, shot from a high corner.',
+        /green/i),
+    lookCase('look-light-into-prompt', LIT, 'Make a portrait of an old fisherman mending a net. I want this type of light.',
+        'A photo of a bowl of lemons on a table lit by one hard window light from the left, deep shadows on the right, faint film grain.',
+        /window|side ?light|from the left/i),
     {
         // MPI-1166: "Did you understand? Don't start anything yet" - it generated at once.
         // The flip says go, so a generate is right.
