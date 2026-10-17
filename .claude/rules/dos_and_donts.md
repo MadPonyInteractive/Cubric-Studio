@@ -159,6 +159,9 @@ Then it shipped with NO progress at all, and Fabio had to ask for the sweep in a
      (`js/services/generationService.js`), tracked by `activeGenerations`, shown in
      `MpiQueuePanel` and the status bar. Never a direct engine call, unless it is a sub-second
      helper. This holds for agent / MCP-triggered work too.
+   - **An online model call (no engine: DeepInfra, the Language Models connection) → the
+     generation queue's `cloud` lane, never Transfers.** It runs beside local and Pod work, like a
+     DeepInfra generation: a twin `exec` head, e.g. `describeExecutor.js` (MPI-1109).
    - **Non-GPU work → a row in the queue panel with a progress bar, never the status bar.**
      A byte transfer (model download / upload) uses Transfers — `state.downloadJobs` /
      `state.uploadJobs`, the Transfers section of `MpiQueuePanel` (MPI-1057). A CPU job
