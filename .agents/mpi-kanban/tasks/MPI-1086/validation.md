@@ -954,3 +954,34 @@ ac2.py, ac3.py, gridac.py in session 06a78559's scratchpad; G: bench :8188.
   `images.image_2`; API = the bench graph node for node), `accessories` + "Add nothing else", `buildBackPassPrompt`
   for accessories + tattoos with image 2 (Tattoos: "the skin and its tattoos as in image 1", unbenched -> ac3),
   `sheetCuts` measured for accessories too. Tests updated, 38/38 in the two files.
+
+## Tattoo pictures: back-only and the bare face (session "New character sheets 42", 2026-10-17, ac4-ac8)
+
+Sheet flowCSE_044, cuts 448,882, shipped Qwen graph, app strings via qh47_params.mjs. Scripts ac4.py, ac5.py,
+ac8_desc.py in session a1962251's scratchpad; G: bench :8188.
+
+- **Back-only (t_back, 021, "Back tattoos", seed 31021)**: ac3's back pass LOST the back piece (pass 2 turns round a
+  front that cannot show it). One pass (back pass off): the piece on the back view only, straps kept - **pass**.
+  SHIPPED: tattoo words naming the back and no front-view part (`BACK_ONLY` / `FRONT_PART`) take no back pass.
+  Shipped params = bench `ac4_back_1p` exactly.
+- **Bare face, full-body picture with no face (t_body, 022, "Full body tattoos")**:
+
+| line after "Add no other tattoos." | t_body 31022 | t_body 7 | t_all 023 (picture HAS face ink) | t_neck 020 |
+|---|---|---|---|---|
+| none (shipped) | cheek + jaw piece INVENTED | bare | face ink (as the picture) | - |
+| F "No tattoos on the face unless image 2 shows tattoos on a face." | cheek piece | - | face ink | - |
+| F2 "The face stays bare skin, with no tattoo on the cheeks, jaw or forehead, unless image 2 shows a tattooed face." | cheek piece | - | - | - |
+| F3 "Image 2 shows no face, so the face stays bare: no tattoo on the face." | **bare** | - | - | - |
+| **F4 "The face stays bare: no tattoo on the face."** | faint line at the jaw edge | **bare** | face ink kept | - |
+| F5 "The face stays bare skin: no tattoo on the face, cheeks or jaw." | cheek piece (worse) | - | more face ink, legs lost | - |
+| F6 "Image 2 shows no tattoo on the face, so ..." | faint jaw line (= F4) | - | - | **bare** |
+
+- "unless image 2 shows ..." is not evaluated (F, F2); naming the cheeks/jaw primes them (F5). F3 is a claim about
+  the picture; F6 (the same claim, true when a describer says "no face ink") came out = F4, so no describer
+  question (and no `flowsRegistry.js` change). The app's describer graph also returned `{}` on the bench (ac8),
+  not chased.
+- **SHIPPED F4** (`NO_FACE_INK`) in the tattoo-picture string, left out when the words name the face (face, cheek,
+  forehead, jaw). Builder = bench string byte for byte (body_F4, all_F4). Partial on seed 31022 (faint jaw line).
+- Noticed, not this card's ask: on t_body seed 7 the back pass left the BACK view's legs bare (front legs inked),
+  shipped and F4 alike.
+- npm test 3385 tests, 3383 pass / 0 fail; eslint clean.

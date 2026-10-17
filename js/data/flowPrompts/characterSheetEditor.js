@@ -91,6 +91,14 @@ const REF_THING = {
  */
 const REF_NEEDS_WORDS = { accessories: '"the gold hoop earrings"', tattoos: '"the neck and chest tattoos"' };
 
+/**
+ * A tattoo picture with no face in it inked her cheek and jaw anyway (Fabio; MPI-1086 ac4, "Full body tattoos", seed
+ * 31022). This line cut it to a faint line at the jaw, another seed and a neck picture bare; a picture that shows face
+ * ink still passes it on (t_all). "... unless image 2 shows a tattooed face" changed nothing (ac4/ac5), and naming the
+ * cheeks and jaw drew more there (ac7). Left out when the user's words name the face.
+ */
+const NO_FACE_INK = 'The face stays bare: no tattoo on the face. ';
+
 /** Changes whose Reference picture goes into the Qwen graph raw, never made a mannequin first (`Input_Is_Mannequin`). */
 const RAW_REF = new Set(['accessories', 'tattoos']);
 
@@ -228,6 +236,7 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
         return `Give the character in image 1 the ${thing} from image 2. The front view, the character seen from behind `
             + `and the close-up portrait on the right all show the ${thing} wherever it can be seen. `
             + (change === 'tattoos' ? 'Add no other tattoos. ' : '')
+            + (change === 'tattoos' && !/\b(?:face|facial|cheeks?|forehead|jaw)\b/i.test(w) ? NO_FACE_INK : '')
             + `Take only the ${thing} from image 2, not the person: keep the character's own face, hair, skin and clothes. `
             + 'Keep everything else exactly as it is.';
     }
@@ -294,6 +303,10 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
     }
 }
 
+/** Tattoo words that name the back and no part a front view shows (`buildBackPassPrompt`). */
+const BACK_ONLY = /\bback\b/i;
+const FRONT_PART = /\b(?:arms?|legs?|thighs?|calf|calves|ankles?|feet|foot|hands?|wrists?|fingers?|chest|neck|face|stomach|belly|ribs?|sleeves?|full body|whole body|all over)\b/i;
+
 /**
  * The Qwen graph's back pass (`Input_Positive_2`): the back figure redrawn from the EDITED front one and pasted over
  * the back panel, so no single pass sees two views of one side. In one pass a tattoo on her left leg came back on her
@@ -305,6 +318,8 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
  * along (they put the snake right even where pass 1 left the front bare); with a picture they do not (in pass 2 it
  * invented arm ink 3 of 4). An accessory always names itself (a picture needs words). "Show it wherever it can be
  * seen" drew a necklace's pendant on her back: the front of the body hides it.
+ * A tattoo on the back alone takes no back pass: turned round from a front that cannot show it, the back piece was
+ * lost (ac3 t_back); in one pass it lands on the back view only (r35, ac4).
  * @param {string} change
  * @param {string} words
  * @param {boolean} ref - a Reference picture is given
@@ -314,6 +329,7 @@ export function buildBackPassPrompt(change, words, ref = false) {
     if (change !== 'tattoos' && change !== 'accessories') return '';
     const w = _words(words);
     if (!w) return '';
+    if (change === 'tattoos' && BACK_ONLY.test(w) && !FRONT_PART.test(w)) return '';
     const has = change === 'tattoos'
         ? (ref ? '' : `The character has this tattoo: ${_unview(w)}. Show it wherever it can be seen from behind. `)
         : `The character has this accessory: ${_unview(w)}, held or worn as in image 1. Show only the parts of it that `

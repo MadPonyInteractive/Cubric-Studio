@@ -4,6 +4,12 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-17 (session "New character sheets 42") - LATEST. TATTOO PICTURES: (1) words naming only the back take NO back
+pass (ac4: the back piece lands on the back view; the back pass lost it, ac3). (2) a tattoo picture adds "The face
+stays bare: no tattoo on the face." unless the words name the face (ac4-ac8: invented cheek piece -> faint jaw line on
+seed 31022, bare elsewhere; a picture with face ink still passes it on). Bench tables in validation.md. NEXT: Fabio's
+eye tests (Accessories words + picture, Tattoos incl. back-only and full-body pictures), then face tattoos, close-out.
+
 2026-10-17 (session "New character sheets 41") - LATEST. ACCESSORIES TAKE THE BACK PASS (Fabio's idea after ac1 failed
 the G3 back view): pass 1 + "Add nothing else" (the thigh pouch), pass 2 turns the edited front round with image 2 =
 the INPUT sheet's back figure (`patch_raw_back_ref.py`, shared with Tattoos: the outfit's back now stays), and "show

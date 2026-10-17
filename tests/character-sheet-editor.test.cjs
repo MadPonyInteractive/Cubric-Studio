@@ -266,8 +266,11 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     assert.strictEqual(buildChangePrompt('tattoos', 'Neck and chest tattoos', true),
         'Give the character in image 1 the neck and chest tattoos from image 2. The front view, the character seen from '
         + 'behind and the close-up portrait on the right all show the neck and chest tattoos wherever it can be seen. Add '
-        + "no other tattoos. Take only the neck and chest tattoos from image 2, not the person: keep the character's own "
-        + 'face, hair, skin and clothes.' + KEEP);
+        + 'no other tattoos. The face stays bare: no tattoo on the face. Take only the neck and chest tattoos from image 2, '
+        + "not the person: keep the character's own face, hair, skin and clothes." + KEEP);
+    // ac4-ac7: a picture with no face inked the cheek anyway; words naming the face drop the bare-face line.
+    assert.doesNotMatch(buildChangePrompt('tattoos', 'Face and neck tattoos', true), /face stays bare/);
+    assert.doesNotMatch(buildChangePrompt('tattoos', 'a koi on the back'), /face stays bare/, 'a picture only');
     assert.strictEqual(characterSheetEditor('change', run('tattoos', 'a back tattoo')).injectionParams.Input_Is_Mannequin, true);
     assert.doesNotMatch(buildChangePrompt('accessories', 'a bandana', true), /tattoos/, 'Accessories keeps its own string');
     // MPI-1086 r37: Tattoos redraw the back figure from the edited front one; words go into that pass, a picture does not.
@@ -281,6 +284,13 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
         Input_Age: -1, mediaItems: [{ role: 'image1', url: 'x' }] }).injectionParams;
     assert.deepStrictEqual([words.Input_Back_Pass, words.Input_Positive_2], [true, TAT + ' The character has this '
         + 'tattoo: a black snake tattoo on the right leg. Show it wherever it can be seen from behind.' + KEEP]);
+    // ac4: a tattoo on the back alone takes one pass (turned round from the front, the back piece was lost, ac3).
+    for (const w of ['Back tattoos', 'a koi covering the whole back']) {
+        assert.strictEqual(characterSheetEditor('change', run('tattoos', w)).injectionParams.Input_Back_Pass, false, w);
+    }
+    for (const w of ['Back and arm tattoos', 'tattoos on the back of the neck', 'full body tattoos, back included']) {
+        assert.strictEqual(characterSheetEditor('change', run('tattoos', w)).injectionParams.Input_Back_Pass, true, w);
+    }
     // ac2: Accessories take the back pass too (a held G3 stuck out at his side from behind), words or picture; only
     // what can be seen from behind (a necklace's pendant was drawn on her back).
     const ACC2 = TURN + 'keep the hair, body, skin tone, clothes and shoes exactly as in image 2. The character has this '
