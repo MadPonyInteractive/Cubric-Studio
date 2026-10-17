@@ -590,6 +590,20 @@ export function parseAgeAnswer(answer) {
 }
 
 /**
+ * Asked only of a picture the age question said YES to (MPI-1173): a stick figure "could be under
+ * 18", so a doodle given as an input with "a lady in lingerie" was refused, and nobody can draw an
+ * adult stick figure. A bare YES keeps the age verdict NO and the typed words decide. Benched on
+ * the ComfyUI Qwen3-VL 4B describer, 16 pictures x 3: 5 doodles YES every time; children (photo,
+ * painted, a line drawing traced from a photo, a photo with strokes drawn over it) and adults NO.
+ */
+export const SKETCH_QUESTION = 'Is this picture only a rough doodle: thick strokes, blobs or stick figures drawn on a plain background, where no person has a drawn face, hands or body detail? A photograph, a painting, an illustration, anime or a detailed line drawing is not a rough doodle, and neither is a photograph with strokes drawn over it. Answer with exactly one word: YES or NO.';
+
+/** Only a bare YES is a doodle: anything else leaves the picture looked at as it was. */
+export function parseSketchAnswer(answer) {
+    return String(answer || '').replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/[^A-Za-z]+/g, ' ').trim().toUpperCase() === 'YES';
+}
+
+/**
  * Asked of a video run's input picture once it may show a minor (MPI-1156): what they wear, a
  * question of fact, never "is it suggestive?", which describers answer badly. A YES never moves.
  */

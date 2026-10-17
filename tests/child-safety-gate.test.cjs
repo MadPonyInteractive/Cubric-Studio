@@ -28,6 +28,8 @@ let describeAnswer = { ok: true, text: 'NO' };
 // MPI-1156: the other two picture questions, answered apart from the age question.
 let exposedAnswer = 'NO';
 let clothesAnswer = 'NO';
+// MPI-1173: asked after an age YES; a bare YES (a rough doodle) lets the words decide.
+let sketchAnswer = 'NO';
 const describeBodies = [];
 // Card sidecars (`/load-meta-batch`, `/update-meta`): the kept answers. Frames grabbed off a clip
 // land through `place-preview-asset`.
@@ -50,6 +52,7 @@ globalThis.fetch = (url, init) => {
         describeBodies.push(body);
         if (/shirtless, topless or nude/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: exposedAnswer }) });
         if (/clothing in this picture/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: clothesAnswer }) });
+        if (/only a rough doodle/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: sketchAnswer }) });
         return Promise.resolve({ json: async () => describeAnswer });
     }
     if (url === '/load-meta-batch') {
@@ -229,6 +232,32 @@ test('"remove her clothes" on a picture that may show a minor is refused, and so
     }
 });
 
+// MPI-1173: Fabio's doodle given as an input picture, "a lady ... wearing lingerie": refused while a
+// stick figure "could be under 18". A doodle passes on the words; a picture that is not one does not.
+test('a rough doodle the age question says YES to queues when the describer calls it a doodle; nothing else does', async () => {
+    describeAnswer = { ok: true, text: 'YES' };
+    try {
+        for (const [sketch, passes] of [['YES', true], ['NO', false], ['Yes, mostly', false]]) {
+            sketchAnswer = sketch;
+            const before = describeBodies.length;
+            const { seen, off, callbacks } = capture();
+            const r = enqueueGeneration(edit('a beautiful lady lying in bed, wearing lingerie'), callbacks);
+            await until(() => queued(r.queueJobId) || seen.errors.length > 0);
+            off();
+            assert.strictEqual(queued(r.queueJobId), passes, sketch);
+            assert.deepStrictEqual(describeBodies.slice(before).map((b) => /only a rough doodle/.test(b.question)), [false, true], 'age, then doodle');
+        }
+        // A doodle never clears words that name a child.
+        sketchAnswer = 'YES';
+        const { seen, off, callbacks } = capture();
+        assert.strictEqual(enqueueGeneration(edit('a 12 year old girl wearing lingerie'), callbacks), null, 'refused on the words');
+        off();
+        assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY');
+    } finally {
+        sketchAnswer = 'NO';
+    }
+});
+
 test('a picture refusal logs what the describer answered; an unanswered look logs no answer (MPI-1152)', async () => {
     for (const [answer, said] of [
         [{ ok: true, text: 'YES' }, /\[childSafety\] YES to "Does this picture show a person.* answer="YES"$/],
@@ -391,7 +420,7 @@ test('unreadable words the model does not clear with a bare NO are looked at: re
         assert.match(seen.warnings[0], /could not clear this prompt/, answer);
         // Asked before the look, then again with the picture's minor in the run.
         assert.strictEqual(nudityCalls, asked + 2, `asked twice (${answer})`);
-        assert.strictEqual(describeBodies.length, looks + 1, `looked at (${answer})`);
+        assert.strictEqual(describeBodies.length, looks + 2, `looked at, then not a doodle (${answer})`);
     }
 });
 
@@ -436,12 +465,12 @@ test('animating a picture that may show a minor in swimwear or less is refused, 
     off();
     assert.strictEqual(queued(r.queueJobId), false);
     assert.match(seen.warnings[0], /is never animated/);
-    assert.strictEqual(describeBodies.length, before + 2, 'the age, then what they wear');
+    assert.strictEqual(describeBodies.length, before + 3, 'the age, not a doodle, then what they wear');
     exposedAnswer = 'NO';
 });
 
 test('animating a dressed child, or an adult, queues', async () => {
-    for (const [age, looks] of [['YES', 2], ['NO', 1]]) {
+    for (const [age, looks] of [['YES', 3], ['NO', 1]]) {
         describeAnswer = { ok: true, text: age };
         const before = describeBodies.length;
         const r = enqueueGeneration(animate('she waves at the camera'), {});

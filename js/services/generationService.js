@@ -37,7 +37,7 @@ import { orderVersions, shownVersion } from '../utils/outputVersions.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { ce } from '../utils/dom.js';
 import { collapseQueueBatches } from './generationBatch.js';
-import { checkChildSafety, childSafetyGate, gateWords, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION, parseAgeAnswer, refusal, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
+import { checkChildSafety, childSafetyGate, gateWords, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION, SKETCH_QUESTION, parseAgeAnswer, parseSketchAnswer, refusal, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
 import { cachedVerdicts } from './mediaVerdicts.js';
 
 // ── Cue queue (in-app, THREE-LANE dispatch) ─────────────────────────────────
@@ -721,7 +721,21 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video) {
         cachedVerdicts(urls.clips, { key, question, inherit, project, ask: atFrames(question) }),
     ]);
 
-    const [picAge, clipAge] = await ask({ pictures, clips }, 'ageVerdict', AGE_QUESTION, true);
+    // MPI-1173: a picture the age question says YES to is asked whether it is only a rough doodle;
+    // a bare YES keeps it NO (a NO is never inherited, so an edit of the doodle is looked at again).
+    // Both questions key the kept answer, so a YES kept before this wording is asked again.
+    const pictureAge = async (url) => {
+        const minor = await describe(url, AGE_QUESTION);
+        if (minor !== true) return minor;
+        const r = llm ? await llm.describeImage({ imagePath: url, question: SKETCH_QUESTION }) : null;
+        if (!r?.ok || !parseSketchAnswer(r.text)) return true;
+        clientLogger.info('generationService', '[childSafety] a rough doodle: no age in it, the words decide');
+        return false;
+    };
+    const [picAge, clipAge] = await Promise.all([
+        cachedVerdicts(pictures, { key: 'ageVerdict', question: AGE_QUESTION + SKETCH_QUESTION, inherit: true, project, ask: pictureAge }),
+        cachedVerdicts(clips, { key: 'ageVerdict', question: AGE_QUESTION, inherit: true, project, ask: atFrames(AGE_QUESTION) }),
+    ]);
     if ([...picAge, ...clipAge].includes(null)) return refusal('pictureUnchecked');
     const ctx = { pictureMinor: [...picAge, ...clipAge].includes(true) };
     if (video && ctx.pictureMinor) {
