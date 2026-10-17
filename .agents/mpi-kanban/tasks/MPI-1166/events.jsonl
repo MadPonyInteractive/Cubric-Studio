@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1166", "at": "2026-10-17T14:12:39+01:00", "actor": "claude", "column": "doing", "title": "Cosmo answers 'did you understand? don't start yet' without generating"}

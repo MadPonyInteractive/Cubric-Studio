@@ -1,0 +1,15 @@
+{
+ "schema": "mpi-kanban/task-files/v1",
+ "files": [
+  "services/agentLoop.mjs",
+  "js/data/modelConstants/modelPriority.js",
+  "docs/agent/models/minimax-h3.md",
+  "docs/agent/models/seedance-2.0.md",
+  "docs/agent/models/wan-3.0.md",
+  "docs/agent-findings.md",
+  ".agents/mpi-kanban/tasks/MPI-1164/",
+  ".agents/mpi-kanban/tasks/MPI-1164",
+  "tests/agent-prompt-budget.test.cjs",
+  "services/agentBench.mjs"
+ ]
+}

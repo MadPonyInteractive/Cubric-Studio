@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1165", "at": "2026-10-17T14:12:37+01:00", "actor": "claude", "column": "doing", "title": "Cosmo treats the user's Stop as a cancel, never a failure to queue again"}
