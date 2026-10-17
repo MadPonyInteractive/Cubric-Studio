@@ -20,4 +20,6 @@
 - Fabio's eye test, 2026-10-17, his own instance (online describer): Cue shows a running
   "Describe Image" row with Stop ("1 running / 0 queued"), status bar running. "Verified."
 
-Not yet: CI on the commit.
+## Closed 2026-10-17 (session 56079a96)
+
+Master Tests green on fd92f31ca (run 39034448786), the commit carrying this code. Eye-tested by Fabio.

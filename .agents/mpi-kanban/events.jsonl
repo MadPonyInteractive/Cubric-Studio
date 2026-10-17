@@ -6244,3 +6244,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1136", "at": "2026-10-17T07:14:22+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Eye test passed, Cosmo and MCP (Fabio 2026-10-17); CI green on 9217894ee"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1154", "at": "2026-10-17T07:15:14+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio passed the eye test 2026-10-17; CI green on cb37d7984"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1163", "at": "2026-10-17T07:25:17+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 0560b87cf (run 39008914309)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1109", "at": "2026-10-17T13:39:03+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1109", "at": "2026-10-17T13:47:14+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Implemented + verified (validation.md); awaiting commit + CI."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1109", "at": "2026-10-17T14:10:02+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on fd92f31ca; eye-tested by Fabio."}

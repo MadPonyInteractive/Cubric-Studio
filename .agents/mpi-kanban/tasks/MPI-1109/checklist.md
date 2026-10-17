@@ -2,4 +2,4 @@
 
 - [x] Implementation
 - [x] Verification
-- [ ] Commit, push, CI green
+- [x] Commit, push, CI green
