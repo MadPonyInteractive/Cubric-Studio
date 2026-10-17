@@ -89,7 +89,9 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 | `routine` | `{ action: list\|save\|run\|rename\|delete, name?, newName?, summary?, steps?, inputs?, cards?, values? }` | `/connector/routines*` (MPI-970, [routines.md](routines.md)). `save` waits on `app:routines` and maps each step through `_generateFields` (generate's own body mapping); `run` quotes first (`NOT_INSTALLED` by name, no card), asks ONE spend card for every billed step of every card, then is held like a slow generate and reports in one `[Routine finished]` note; `_routineRuns` holds the drain |
 
 - **Never deletes** (Fabio, 2026-09-16): no tool deletes, and `agentTools.mjs` reaches an allowlist of
-  routes (`tests/agent-no-delete.test.cjs` bites on a new tool or route). Outside agents (CLI, the
+  routes (`tests/agent-no-delete.test.cjs` bites on a new tool or route). A new `agentTools` function
+  the loop calls also needs its fake in `agentBench.mjs` `fakeTools` (`tests/agent-bench.test.cjs`
+  bites; MPI-1169 left both out and turned master red). Outside agents (CLI, the
   skills) keep the delete routes: that is their user's call.
 - **The agent receives the CARD, never its pixels** (MPI-867, Fabio 2026-09-26). A drop on the
   panel tells the agent WHICH card is meant, and it looks only if the job needs it; the thumbnail
