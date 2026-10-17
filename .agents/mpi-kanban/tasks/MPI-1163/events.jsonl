@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1163", "at": "2026-10-17T07:00:27+01:00", "actor": "claude", "column": "todo", "title": "Model downloads fail over to the Hugging Face mirror on a stall or timeout, not only on a hard network error"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1163", "at": "2026-10-17T07:01:33+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting work"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1163", "at": "2026-10-17T07:09:40+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped; npm test green; remaining check = CI on master"}

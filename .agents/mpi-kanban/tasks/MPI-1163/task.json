@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1163",
+  "title": "Model downloads fail over to the Hugging Face mirror on a stall or timeout, not only on a hard network error",
+  "description": "A stalled or timed-out stream from models.cubric.studio spends its same-url retries and then tries the mirror before failing, keeping the partial.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-17T07:00:27+01:00",
+  "updated_at": "2026-10-17T07:09:40+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

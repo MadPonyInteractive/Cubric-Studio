@@ -931,22 +931,7 @@ class FileDownloader {
             if (blocked) this._blockedMsg = blocked;
             if (blocked) {
                 logger.warn('download', `${this.depJob.id}: network-blocked — ${this.depJob.url} — raw: ${err.message}`);
-                this._triedUrls = this._triedUrls || new Set([this.depJob.url]);
-                // MPI-429 — ALWAYS derive from the ORIGIN url, never from the mutated
-                // depJob.url. Two bugs otherwise: the origin gate would reject the second
-                // hop (the url is a mirror by then, not an R2 object), and a mirror
-                // pathname already carries the previous base's PREFIX, so the next
-                // rewrite would double it. _triedUrls is what stops the walk repeating.
-                const next = _mirrorUrlsFor(this._originUrl || this.depJob.url, this.depJob)
-                    .find(u => !this._triedUrls.has(u));
-                if (next) {
-                    this._triedUrls.add(next);
-                    logger.info('download', `${this.depJob.id}: failing over to mirror ${new URL(next).host}`);
-                    this.depJob.url = next;
-                    this._rearm();
-                    this.download().catch(() => {});   // errors re-enter this handler
-                    return;
-                }
+                if (this._failOver('network-blocked')) return;
             }
             // MPI-460 — a transient blip is not a verdict. The stall watchdog's own error
             // (MPI-291) matches no transport pattern, so the failover above never fires for
@@ -985,6 +970,15 @@ class FileDownloader {
                 }, delay);
                 return;
             }
+            // MPI-1163 — this route is spent. If the ROUTE is what failed — a stall (the
+            // watchdog; also how an NDH socket timeout surfaces, since NDH emits 'timeout'
+            // and never 'error') or an origin 5xx — try each mirror before the verdict, with
+            // a fresh budget. AFTER the same-url retries, never instead of them: a CDN blip
+            // still resumes from the origin we chose. Not a 4xx (fails the same on every
+            // mirror) and not a local error like ENOSPC (a second origin cannot fix a disk).
+            // A slow-but-alive stream (MPI-716) stays log-only: its floor is per dep, so a
+            // modest line with parallel deps would trip it everywhere.
+            if ((err?.code === STALL_ERROR_CODE || httpStatus >= 500) && this._failOver(err.message)) return;
             _setDepStatus(this.depJob, 'failed', 'downloader error');
             this.depJob.error = blocked || this._blockedMsg || err.message;
             this.depJob.networkBlocked = Boolean(blocked || this._blockedMsg);
@@ -1040,6 +1034,26 @@ class FileDownloader {
         // its own failures, and the progress handler must not wait on a disk write.
         _writeProbe(path.dirname(this.localPath), this.depJob.id)
             .catch(err => logger.warn('download', `write probe crashed: ${err.message}`));
+    }
+
+    // MPI-427/429 — restart on the next untried mirror, keeping the on-disk partial (the
+    // marker carries sha256, so MPI-317 resumes it on the new origin). False when none is
+    // left. ALWAYS derive from the ORIGIN url, never from the mutated depJob.url. Two bugs
+    // otherwise: the origin gate would reject the second hop (the url is a mirror by then,
+    // not an R2 object), and a mirror pathname already carries the previous base's PREFIX,
+    // so the next rewrite would double it. _triedUrls is what stops the walk repeating.
+    _failOver(reason) {
+        this._triedUrls = this._triedUrls || new Set([this.depJob.url]);
+        const next = _mirrorUrlsFor(this._originUrl || this.depJob.url, this.depJob)
+            .find(u => !this._triedUrls.has(u));
+        if (!next) return false;
+        this._triedUrls.add(next);
+        logger.info('download', `${this.depJob.id}: failing over to mirror ${new URL(next).host} (${reason})`);
+        this.depJob.url = next;
+        this._attempts = 0;   // MPI-1163 — a new route gets its own same-url budget
+        this._rearm();
+        this.download().catch(() => {});   // errors re-enter the 'error' handler
+        return true;
     }
 
     _rearm() {
@@ -1189,7 +1203,9 @@ class FileDownloader {
         // always reaches the handler _bindEvents wired.
         if (!this._downloader) return;
         await this._downloader.stop().catch(() => false);
-        this._downloader.emit('error', new Error('Download stalled — no data received.'));
+        // MPI-1163 — tagged, so the 'error' handler can tell a dead ROUTE (mirror-worthy
+        // once the retries are spent) from a local failure.
+        this._downloader.emit('error', Object.assign(new Error('Download stalled — no data received.'), { code: STALL_ERROR_CODE }));
     }
 }
 
@@ -1199,6 +1215,7 @@ class FileDownloader {
 // force-errored into the existing failed/retry path. Window is longer than NDH's
 // timeout:30000 so this is a genuine backstop, not a double-fire.
 const STALL_MS = 60_000;
+const STALL_ERROR_CODE = 'ESTALL';   // MPI-1163 — forceStall()'s error, read by the 'error' handler
 // MPI-460 — same-url retry schedule. Length IS the budget: three restarts, then the
 // failure is real and the user sees it. Spaced so a router reboot or a CDN edge blip
 // has time to clear, and short enough that a genuinely dead route is not a 5-minute wait.

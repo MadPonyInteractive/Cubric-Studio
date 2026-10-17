@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/downloadManager.js",
+    "tests/transport-error-message.test.cjs",
+    "docs/releases/UNRELEASED.md",
+    "docs/download-manager.md"
+  ]
+}

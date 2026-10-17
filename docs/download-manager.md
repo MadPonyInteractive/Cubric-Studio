@@ -1262,6 +1262,18 @@ server requests for two logged retries. One of our attempts is worth up to five 
 and a test that wants to reach our retry path must make the socket go QUIET (the MPI-291
 watchdog's shape) rather than kill it.
 
+**A spent route tries the mirror before the verdict (MPI-1163).** Until 2026-10-17 a stall
+still never reached Hugging Face: three same-url retries, then `failed` (or `failed` at once
+with zero bytes). Now, at the point the dep would go `failed`, a ROUTE failure walks the
+mirrors via `_failOver()` with a fresh budget per mirror, the partial kept. Route failure =
+`forceStall()`'s error (tagged `code: 'ESTALL'`; an NDH socket timeout lands here too, since
+NDH emits `'timeout'`, never `'error'`, and only the watchdog catches it) or an origin 5xx.
+Not a 4xx, not a local error such as `ENOSPC`. After the retries, never instead of them: a
+CDN blip still resumes from the origin. Transport errors keep the immediate failover above.
+A slow-but-alive stream (MPI-716) does NOT fail over: its 1 MB/s floor is per dep, so a
+modest line with parallel deps would trip it on every dep. Guard:
+`tests/transport-error-message.test.cjs` (the stall cases).
+
 **This matters most where there is no second origin**, and the catalogue is NOT uniformly
 "R2 primary, HF fallback" in either direction (counted 2026-08-06):
 

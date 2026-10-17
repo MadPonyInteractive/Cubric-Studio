@@ -272,4 +272,86 @@ test('a mirror that 404s does not COST the blocked user his readable remedy', ()
     delete require.cache[require.resolve('../routes/downloadManager.js')];
 });
 
-console.log(`\ntransport-error-message: ${passed} passed`);
+// MPI-1163 — a STALL (and an NDH socket timeout, which only the stall watchdog catches)
+// matches no transport pattern, so until this card a stalled models.cubric.studio stream
+// spent its same-url retries and went `failed` without ever trying Hugging Face. The
+// mirror is now the last route before the verdict: after the budget, never instead of it.
+(async () => {
+    delete require.cache[require.resolve('../routes/downloadManager.js')];
+    process.env.CUBRIC_MODEL_MIRRORS = 'https://m1.example.net';
+    const fresh = require('../routes/downloadManager.js');
+    const MIRROR_URL = 'https://m1.example.net/vision/models/vae/LTX23_audio_vae_bf16.safetensors';
+    const BUDGET = 3;   // RETRY_BACKOFF_MS.length — its length IS the budget (MPI-460/480)
+
+    let n = 0;
+    const setup = () => {
+        const depJob = storeDep(fresh, { id: `stall-dep-${++n}`, modelId: `stall-model-${n}`, url: R2_URL });
+        const inst = new fresh.FileDownloader(depJob, 'C:/nowhere/LTX23_audio_vae_bf16.safetensors');
+        inst.download = async () => {};
+        const arm = () => {
+            inst._downloader = Object.assign(new EventEmitter(), { stop: async () => true });
+            inst._eventsBound = false;
+            inst._bindEvents();
+        };
+        // The real path: the watchdog's forceStall() stops the stream and emits its error.
+        const stall = async () => { arm(); await inst.forceStall(); };
+        const fail = (err) => { arm(); inst._downloader.emit('error', err); };
+        return { depJob, inst, stall, fail };
+    };
+    const atest = async (name, fn) => { await fn(); passed += 1; console.log(`  ok  ${name}`); };
+
+    await atest('a stall that has spent the same-url budget fails over to the mirror, not to failed', async () => {
+        const { depJob, inst, stall } = setup();
+        depJob.downloadedBytes = 994e6;
+        inst._attempts = BUDGET;
+        await stall();
+        assert.equal(depJob.url, MIRROR_URL, 'the mirror is tried before the verdict');
+        assert.notEqual(depJob.status, 'failed');
+        assert.equal(inst._attempts, 0, 'a new route gets its own retry budget');
+        assert.equal(depJob.downloadedBytes, 994e6, 'the partial is kept for the mirror to resume');
+        inst._attempts = BUDGET;
+        await stall();
+        assert.equal(depJob.status, 'failed', 'mirrors exhausted → the dep fails instead of looping');
+        assert.match(depJob.error, /stalled/, 'the verdict names the stall');
+        assert.equal(depJob.networkBlocked, false, 'a stall is not a block — no VPN remedy');
+    });
+
+    await atest('a stall with budget left retries the SAME url first (a CDN blip resumes from origin)', async () => {
+        const { depJob, inst, stall } = setup();
+        depJob.downloadedBytes = 994e6;
+        await stall();
+        clearTimeout(inst._retryTimer);
+        assert.equal(depJob.url, R2_URL);
+        assert.equal(inst._attempts, 1);
+    });
+
+    await atest('a stall before any byte landed goes straight to the mirror', async () => {
+        const { depJob, stall } = setup();
+        await stall();
+        assert.equal(depJob.url, MIRROR_URL);
+        assert.notEqual(depJob.status, 'failed');
+    });
+
+    await atest('an origin 5xx past the budget fails over; a 4xx or a local disk error does not', async () => {
+        const a = setup();
+        a.fail(Object.assign(new Error('Response status was 503'), { status: 503 }));
+        assert.equal(a.depJob.url, MIRROR_URL, '503 = the origin failed, the object did not');
+        const b = setup();
+        b.fail(Object.assign(new Error('Response status was 404'), { status: 404 }));
+        assert.equal(b.depJob.status, 'failed');
+        assert.equal(b.depJob.url, R2_URL, '404 fails the same on every mirror');
+        const c = setup();
+        c.fail(Object.assign(new Error('ENOSPC: no space left on device, write'), { code: 'ENOSPC' }));
+        assert.equal(c.depJob.status, 'failed');
+        assert.equal(c.depJob.url, R2_URL, 'a full disk is not fixed by a second origin');
+    });
+
+    // The failed-over deps sit on the active register with a stubbed download(), so the
+    // stall watchdog's interval would keep this process alive forever; empty it and the
+    // watchdog idles itself on its next sweep.
+    fresh._activeDownloaders.clear();
+
+    delete process.env.CUBRIC_MODEL_MIRRORS;
+    delete require.cache[require.resolve('../routes/downloadManager.js')];
+    console.log(`\ntransport-error-message: ${passed} passed`);
+})().catch((err) => { console.error(err); process.exit(1); });

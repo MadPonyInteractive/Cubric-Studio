@@ -6238,3 +6238,6 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1162", "type": "task.updated", "at": "2026-10-16T20:07:59Z", "actor": "claude", "summary": "maturity validating; awaiting Fabio eye test."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1162", "type": "attention.cleared", "at": "2026-10-16T21:00:18Z", "actor": "claude", "summary": "Eye test passed, CI green."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1162", "at": "2026-10-16T22:00:18+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio eye-tested (History only, Operation label, no resolution); CI green on ffb75e25f."}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1163", "at": "2026-10-17T07:00:27+01:00", "actor": "claude", "column": "todo", "title": "Model downloads fail over to the Hugging Face mirror on a stall or timeout, not only on a hard network error"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1163", "at": "2026-10-17T07:01:33+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "starting work"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1163", "at": "2026-10-17T07:09:40+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped; npm test green; remaining check = CI on master"}
