@@ -4,8 +4,10 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
-2026-10-17 (session "New character sheets 44") - LATEST. ACCESSORIES FRONT CROP (ff1/ff2 in validation.md), NOT
-COMMITTED: `Input_Front_Crop` in the Qwen graph (`patch_raw_front_crop.py`, applied + converted), the accessories
+2026-10-17 (session "New character sheets 44") - LATEST. SHIPPED 2c353f11e (master green on 23e26c4bd). NEXT: bench
+the walking-stick SIDE (ff3: right side from behind 1/4; name it as the picture's side, as fa3), then Fabio's eye tests
+below + his remaining list (Accessories picture + words, Tattoos back-only / full-body / face pictures), close-out.
+ACCESSORIES FRONT CROP (ff1/ff2/ff3 in validation.md), first written uncommitted: `Input_Front_Crop` in the Qwen graph (`patch_raw_front_crop.py`, applied + converted), the accessories
 strings name only "the full-body figure on the left and the close-up portrait on the right", the back-pass accessory
 line cut to "Show only what can be seen from behind."; tests 26/26. Words path passes (ball, backpack, earrings 4/4).
 OPEN, asked Fabio: (1) the necklace pendant lands on her back 0/4 whatever the back-pass wording (the user's words
