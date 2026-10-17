@@ -1027,3 +1027,34 @@ The close-up turns to the picture's left on both sheets, so it shows the charact
   mannequin invents face designs - garbage in, not a crash.
 - Partial left: the neck mark from a picture whose neck is inked (2/4); two designs on opposite cheeks.
 - npm test 3386, 3384 pass / 0 fail; eslint clean. NOT eye-tested in the app (Fabio).
+
+## Cosmo picks the character Flow (agent bench, 2026-10-17)
+
+Four cases in `services/agentBench.mjs` (`npm run agent:test -- --case <id>`), DeepSeek-V4-Flash-0731 on
+DeepInfra, fake tools, graded on the calls the model made:
+
+| case | ask | asserted | final 3 runs | bite (flip must FAIL) |
+|---|---|---|---|---|
+| `sheet-from-words` | "Make a character sheet of a grizzled old sea captain ..." | `character-sheet`, the character in `positive` | 3/3 (and 3/3 earlier) | fails: "Make an image of ..." ran krea2/t2i |
+| `sheet-from-face-picture` | head-and-shoulders photo + "Make a character sheet from this picture." | `character-sheet-from-images` OPENED, never run; picture as `image1`; opens at "Box the face" | 3/3 (and 3/3 earlier) | fails: words only ran `character-sheet` |
+| `sheet-from-body-picture` | full-body photo, same words | the same | 3/3 (and 3/3 earlier) | fails: the same |
+| `sheet-editor-shirt` | `SHEET` (ninja sheet) + "Change the shirt to blue." | `character-sheet-editor`, `change: clothes`, blue in `words`, sheet as `image1` | **2/3: RED** | fails: a plain photo + "as a whole-picture edit" ran klein-9b/kleinEdit |
+
+**Finding (the editor case, not fixed: needs Fabio).** 3 of 9 runs never generated: Cosmo asked
+"Mask or Whole-picture edit?" (`[options: Mask | Whole-picture edit]`) on the sheet, twice without even
+looking at it, once after a look that said "a character sheet". No run picked Qwen or Klein edit on the
+sheet. The words that send him there are the system prompt's Route rule (`services/agentLoop.mjs`):
+"Before any other edit of an existing picture, answer this yourself: does the change stay inside ONE
+area? ... One area with no such words: in ONE line give both routes ...". A shirt is one area, and the
+rule has no exception for a character sheet, whose change is the Editor's on every panel. Proposed
+(not applied): add to that rule "A character sheet (front, back and close-up of one character) is never
+that question: any change to it is Character Sheet Editor (app:flows)."
+
+**Bench fixes on the way.** The capture's Flow rows had no `media` slots, which GET /connector/models
+folds in (`routes/connector.js` flowList), so one run put the sheet in as `source`; every Flow row now
+gets `mediaRolesFor(registry, op, null)` as the route does. Character Sheet from Images and the Editor
+came after the capture, so they get built rows (`boxParams` and `opens` as `agentDispatch.js` builds
+them), and the fake `openFlow` answers `at` the way the app's `openAt` does.
+
+Spent: $0.1524 of the $0.20 allowed (CLI cost lines: 0.0286 + 0.0279 + 0.0108 + 0.0153 + 0.0062 + 0.0636).
+`node --test` on agent-bench, bench-community, llm-connection: 48/48 pass.

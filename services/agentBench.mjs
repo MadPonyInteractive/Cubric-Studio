@@ -48,15 +48,25 @@ const withFrame = (f) => {
     return crop ? { ...f, fields: agentFieldSpecs(flow), frame: { param: 'frame', role: crop.role, ratios: CROP_LABELS, grow: ['up', 'down', 'left', 'right'] } } : f;
 };
 // MPI-1036: Video Edit came after the capture, so it gets the row `_listModels` builds for it.
-// `does` mirrors agentDispatch.js flowDoes, which cannot be imported here either.
+// `does` mirrors agentDispatch.js flowDoes, which cannot be imported here either. So do
+// `boxParams` and `opens` (MPI-1086: Character Sheet from Images opens at its face box).
 const flowRow = (flow) => ({
     id: flow.id, title: flow.title,
     does: flow.description.split(/(?<=[.!?])\s/)[0].split(/\s[—–]\s|:\s/)[0].replace(/[.!?]$/, '').trim(),
-    operation: flow.operation, installed: true, fields: agentFieldSpecs(flow), boxParams: [],
+    operation: flow.operation, installed: true, fields: agentFieldSpecs(flow),
+    boxParams: (flow.steps || []).filter((s) => s.kind === 'box' && s.param).map((s) => ({
+        param: s.param, role: s.role,
+        ...(Number.isFinite(s.ratio) ? { ratio: s.ratio } : {}),
+        ...(s.overflow === 'allow' ? { overflow: 'allow' } : {}),
+    })),
+    ...(flow.agentOpens ? { opens: flow.agentOpens } : {}),
 });
 const MODELS = {
     ...CAPTURED,
-    flows: [...CAPTURED.flows.map(withFrame), flowRow(getFlowById('video-edit'))],
+    // Each Flow's media slots, as GET /connector/models folds them in (the capture lacks them, so a
+    // Flow's picture went in under a guessed role: Character Sheet Editor's sheet as `source`).
+    flows: [...CAPTURED.flows.map(withFrame), ...['video-edit', 'character-sheet-from-images', 'character-sheet-editor'].map((id) => flowRow(getFlowById(id)))]
+        .map((f) => ({ ...f, media: mediaRolesFor(commandRegistry, f.operation, null) })),
     models: CAPTURED.models.map((m) => ({
         ...m,
         ops: m.ops.map((o) => ({
@@ -175,6 +185,12 @@ const DANCER_LOOK = said('A young woman with long straight blonde hair dances al
 const NEW_PERSON = { id: 'att_person', name: 'new-person.png', filePath: 'C:/Temp/cubric-agent/attachments/att_person.png' };
 const NEW_PERSON_LOOK = said('Full-body photo of a tall woman with short curly red hair and freckles, in a green bomber jacket, black trousers and boots, standing in a park.');
 const NO_VIDEO_EDIT = { ...MODELS, flows: MODELS.flows.filter((f) => f.id !== 'video-edit') };
+// MPI-1086: which of the three character Flows. A face-only picture, and the bench's sheet as the
+// describer reads it (a shirt in it, so "the shirt" names something there).
+const FACE = { id: 'att_face', name: 'IMG_8802.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_face.jpg' };
+const FACE_LOOK = said('Head-and-shoulders photo of a man in his thirties with a shaved head, a short black beard and a small scar over his left eyebrow, in a grey hoodie, against a brick wall.');
+const SHEET_LOOK = said('A character sheet on a plain grey background: the same young woman in a black ninja outfit over a purple shirt, shown three times: front view, back view and a close-up of her masked face.');
+const CAPTAIN = 'a grizzled old sea captain with a white beard, a yellow oilskin coat and a clay pipe';
 const PARK_LOOKS = {
     [PARK_FULL.filePath]: said('A woman in a red coat sitting on a wooden bench on the left side of a park path, facing the camera. A lamp post behind her, autumn trees, a pond on the right.'),
     [PARK_EMPTY.filePath]: said('The same park path seen from the pond side, looking back at the wooden bench, which is now centre-right. Lamp post behind the bench. Nobody in the picture.'),
@@ -399,10 +415,14 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
             return { ok: true, file: note.file, created };
         },
         openFlow: async (body) => {
-            record.opens.push({ flowId: body.flowId });
+            record.opens.push({ flowId: body.flowId, media: body.media });
             const flow = getFlowById(body.flowId);
-            return flow ? { ok: true, output: { opened: flow.title } }
-                : { ok: false, error: { code: 'UNKNOWN_FLOW', message: `Unknown flow "${body.flowId}".` } };
+            if (!flow) return { ok: false, error: { code: 'UNKNOWN_FLOW', message: `Unknown flow "${body.flowId}".` } };
+            // agentDispatch.js `openAt`: the Flow's own step once its picture is in, else Inputs.
+            // ponytail: "its picture" = the role that step works on; the app asks findMissingMediaSlot.
+            const step = (flow.steps || []).find((s) => s.kind === flow.agentOpens);
+            const filled = !step?.role || step.composite || (body.media || []).some((m) => m.role === step.role);
+            return { ok: true, output: { opened: flow.title, at: step && filled ? step.title : 'Inputs' } };
         },
         openPrompt: async (body) => {
             record.opens.push({ modelId: body.modelId, operation: body.operation });
@@ -466,6 +486,18 @@ const gradeSecondPicture = (run, content, target) => {
     if (!slot(content)) f.push(`${modelId}/${operation} never got the picture holding the content: it would be invented from the words`);
     else if (!slots.includes(slot(content))) f.push(`${modelId}/${operation} has no ${slot(content)} slot: the content picture is dropped`);
     if (slot(target) !== 'inputImage') f.push(`the picture being changed went in as ${slot(target) || 'nothing'}, not inputImage`);
+    return f;
+};
+/** What a generate call ran, for a failure line: the Flow, or the model and op. */
+const ranWhat = (args) => args.flowId || `${args.modelId}/${args.operation}`;
+/** MPI-1086: Character Sheet from Images OPENED (never run) at its face box, the picture as image1. */
+const gradeSheetFromPicture = (run, att) => {
+    const f = run.record.generates.map((g) => `ran ${ranWhat(g)} instead of opening Character Sheet from Images`);
+    const open = calledAll(run, 'generate').find((c) => c.args.flowId === 'character-sheet-from-images' && c.result?.ok);
+    if (!open) return [...f, 'never opened Character Sheet from Images'];
+    const role = (open.args.media || []).find((m) => m.image === att.id)?.role;
+    if (role !== 'image1') f.push(`the picture went in as ${role || 'nothing'}, not image1`);
+    if (open.result.at !== 'Box the face') f.push(`opened at "${open.result.at}", not the face box`);
     return f;
 };
 
@@ -972,6 +1004,54 @@ const CASES = [
             const role = media?.find((m) => m.image === NEW_PERSON.id)?.role;
             if (media && role !== 'image1') failures.push(`the picture went in as ${role || 'nothing'}, not image1`);
             return failures;
+        },
+    },
+    // ── MPI-1086: which of the three character Flows ──
+    {
+        id: 'sheet-from-words',
+        title: 'a character sheet of a described character runs Character Sheet',
+        setup: { turns: [`Make a character sheet of ${CAPTAIN}.`] },
+        flip: { turns: [`Make an image of ${CAPTAIN}.`] },
+        check(run) {
+            const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
+            if (!ok.length) return ['never generated'];
+            const { flowId, fields = {} } = ok[0].args;
+            if (flowId !== 'character-sheet') return [`ran ${ranWhat(ok[0].args)}, not Character Sheet`];
+            return /captain|oilskin|pipe/i.test(`${fields.positive || ''} ${fields.Input_Positive || ''}`) ? [] : ['the character is not in positive'];
+        },
+    },
+    {
+        id: 'sheet-from-face-picture',
+        title: 'a character sheet from a face picture opens Character Sheet from Images at its face box',
+        setup: { attachments: [FACE], look: FACE_LOOK, turns: ['Make a character sheet from this picture.'] },
+        flip: { attachments: [], turns: [`Make a character sheet of ${CAPTAIN}.`] },
+        check: (run) => gradeSheetFromPicture(run, FACE),
+    },
+    {
+        id: 'sheet-from-body-picture',
+        title: 'the same from a full-body photo',
+        setup: { attachments: [NEW_PERSON], look: NEW_PERSON_LOOK, turns: ['Make a character sheet from this picture.'] },
+        flip: { attachments: [], turns: [`Make a character sheet of ${CAPTAIN}.`] },
+        check: (run) => gradeSheetFromPicture(run, NEW_PERSON),
+    },
+    {
+        // Known risk: a plain image editor (Qwen / Klein edit) on the sheet, which redraws it as one picture.
+        // The flip is a plain photo, where an image editor is right; "whole-picture edit" skips the mask question.
+        id: 'sheet-editor-shirt',
+        title: 'a new shirt on a character sheet is Character Sheet Editor\'s Clothes, never an image editor',
+        setup: { attachments: [SHEET], look: SHEET_LOOK, turns: ['Change the shirt to blue.'] },
+        flip: { attachments: [NEW_PERSON], look: NEW_PERSON_LOOK, turns: ['Change her jacket to blue, as a whole-picture edit.'] },
+        check(run) {
+            const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
+            if (!ok.length) return ['never generated'];
+            const { flowId, media = [], fields = {} } = ok[0].args;
+            if (flowId !== 'character-sheet-editor') return [`ran ${ranWhat(ok[0].args)}, not Character Sheet Editor`];
+            const f = [];
+            if (fields.change !== 'clothes') f.push(`What to change = ${JSON.stringify(fields.change)}, not clothes`);
+            if (!/blue/i.test(fields.words || '')) f.push(`the change is ${JSON.stringify(fields.words)}, no blue in it`);
+            const role = media.find((m) => m.image === SHEET.id)?.role;
+            if (role !== 'image1') f.push(`the sheet went in as ${role || 'nothing'}, not image1`);
+            return f;
         },
     },
     {
