@@ -40,8 +40,13 @@ the OPEN project goes through `addGroup` and is not lost to the next save.
   - `kind: audio` -> NO_CARDS; a made-up groupId -> NO_SUCH_CARD. Source untouched throughout.
 - Cosmo live: PASSED by Fabio in his own app, 2026-10-17 (eye-test steps 1-4): "Cosmo tests
   tested and passed."
-- MCP from Fabio's chat (step 5): NOT yet tested. His Claude Desktop chat had no Cubric Studio
-  extension connected when he tried. The card stays in validating until it is checked.
+- MCP live: PASSED by Fabio, 2026-10-17 ("All right, cool. Everything passed."). In a fresh
+  Claude Code chat (no repo) over the cubric-studio plugin: a pasted image went in with
+  import_media and landed full size (768x1152) in "3D Cartoon Test" as imported_001.jpg; then
+  "grab the photos from 3D Cartoon Test and create a new project named 3D Characters with it"
+  made 3D Characters holding all three cards (bear, tiger, the imported image).
+- Note, not a blocker: the imported card kept its filename, imported_001.jpg, as its name
+  (import_media behaviour from MPI-1140, not this card).
 
 ## Eye test for Fabio (restart the app on this commit first)
 
@@ -51,5 +56,4 @@ the OPEN project goes through `addGroup` and is not lost to the next save.
    open the other project: the card is there.
 3. In a project with clips: "send all the videos to <another project>" (and once with audio).
 4. Drag two cards into the chat: "take these to <another project>".
-5. From Claude Desktop / Claude Code: the same asks over MCP (`send_cards`). OPEN: needs the
-   Cubric Studio extension connected in that chat first.
+5. From Claude Desktop / Claude Code: the same asks over MCP (`send_cards`). Passed 2026-10-17.
