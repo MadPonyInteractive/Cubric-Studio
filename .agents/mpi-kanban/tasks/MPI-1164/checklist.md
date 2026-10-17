@@ -5,3 +5,4 @@
 - [ ] Bench case for the look clause (needs spend yes)
 - [ ] Fabio eye test in app
 - Bench 2026-10-17 (DeepSeek V4 Flash, $0.068): named look quality in prompt + photo never sent/edited = every run; "only that quality" fails (light 0/6 carries grain, grain 2/3 carries the cast, grade 3/4). Tighter wording tried, no effect, reverted. Flips not run. Bench look fixture ignores the question asked, so may overstate the leak.
+- Look leak follow-up: MPI-1134 Phase 5b "Vision chat model" (asked Video frame limit solutions to add it, 2026-10-17; they hold that plan uncommitted)

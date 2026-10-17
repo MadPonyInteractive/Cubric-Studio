@@ -242,7 +242,7 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   already open for it (else it re-ran "open X"), and an `agent:user` so the bubble shows live. Tests: `tests/agent-sessions.test.cjs`, `agent-chat.spec.js`.
 - **D6:** memory only; the `<project>/Agent/` notes survive a restart. Nothing is evicted. The one
   thing CODE writes there: `unfinished-generations.md` (`AgentLoop._trackUnfinished`) - each `generate`
-  call at submit, removed when it lands, so a cancel or a closed app leaves the exact call to requeue. An
+  call at submit, removed when it lands, so a closed app leaves the exact call to requeue (the user's Stop removes it: MPI-1165). An
   ordinary note (listed by the first message, read by `read_memory`); hidden from the list when empty.
   **Read-only for the MODEL:** `write_memory` on it answers `APP_OWNED_NOTE` - it cleared the ledger live
   while a requeue was still rendering, and an app close in that window loses the clip the note exists for.
@@ -478,6 +478,29 @@ bytes: the "at most three" limit moved in from the Route rule, and a stale resta
 a rank attached to the WORK, and it will cross a task boundary to reach a 1: asked to redo an edit
 with Krea 2 it ran `krea2 i2i` and cited "its best realism op, rank 1" (live, harness
 `ranked-editor`). Ranks compare ops within one task only.
+
+**A picture handed over is not always the thing to change (MPI-1164).** The Model rule's reference
+clause: a picture or clip shown for how to SHOOT a new clip (angle, framing, camera move, how someone
+moves) is a reference op's media with that one job, never an edit; unsure, it asks
+`[options: Use it as a reference | Edit this picture]`. One shown for its LOOK (grain or noise, light,
+a colour cast or grade) on any image or video job travels as WORDS: Cosmo looks and writes the named
+quality into the prompt; the picture is not sent for it (Fabio: camera only as media). Agent-test
+`angle-picture-goes-to-reference`, `look-grain/grade/light-into-prompt`. **Known gap:** it also carries
+qualities nobody asked for (the photo's grain onto a light ask, 6/6 on DeepSeek), because it sees only
+the describer's whole-picture text; tighter wording did nothing. The fix is a model that sees the
+picture: MPI-1134 Phase 5b.
+
+**Check-in rule (MPI-1166).** "Did you understand?", "make sense?", "same page?", "don't start yet",
+"wait", "just tell me": make nothing that turn, play back what happens, the model and each reference's
+job in a few lines, end on `[options: Proceed | Not the same page]`. A rule, not a plan mode. Agent-test
+`check-in-holds`, `check-in-only`, `check-in-proceeds`.
+
+**The user's Stop is not a failure (MPI-1165).** Every Stop site calls `onCancel({ stopped: true })`;
+`agentDispatch`/`routineDispatch` answer `CANCELLED` "The user pressed Stop." only for that, and an
+empty or cache-hit run is `NO_OUTPUT`. The old shared "cancelled or produced no output" is why Cosmo
+read a Stop as a failure and queued it again. On a stop the loop hands the model `STOPPED`
+(`services/agentLoop.mjs`): not happy with it, start nothing, one line, wait; also for a Stop inside
+the 1 s refusal window and on `wait: true`. Agent-test `user-stop-not-requeued`.
 
 **A restyle is i2i first; a miss switches technique (MPI-867, Fabio's call).** The rule does not
 try to predict which looks a model can paint. 2D cartoons came out well on i2i, even at low
