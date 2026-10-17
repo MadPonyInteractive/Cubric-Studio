@@ -4,7 +4,14 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
-2026-10-17 (session "New character sheets 44") - LATEST. SHIPPED 2c353f11e (master green on 23e26c4bd). NEXT: bench
+2026-10-17 (session "New character sheets 45") - LATEST. WALKING-STICK SIDE SHIPPED (ff4/ff5 in validation.md): the
+Accessories back pass says left and right swap seen from behind (`ACC_SWAP`, Fabio picked it over pinning a hand):
+stick 4/4 on the right side from behind (was 1/4), ball 4/4, backpack 4/4. Open partial (pre-existing, same seed in
+ff1): ball s3 leaves an arm sliver at the back panel's right edge, drawn by the back pass. NEXT: Fabio's eye tests
+(a)/(b) below + his remaining list, then close-out.
+("New character sheets 44" entry below is now history.)
+
+2026-10-17 (session "New character sheets 44"). SHIPPED 2c353f11e (master green on 23e26c4bd). NEXT: bench
 the walking-stick SIDE (ff3: right side from behind 1/4; name it as the picture's side, as fa3), then Fabio's eye tests
 below + his remaining list (Accessories picture + words, Tattoos back-only / full-body / face pictures), close-out.
 ACCESSORIES FRONT CROP (ff1/ff2/ff3 in validation.md), first written uncommitted: `Input_Front_Crop` in the Qwen graph (`patch_raw_front_crop.py`, applied + converted), the accessories

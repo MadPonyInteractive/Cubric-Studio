@@ -368,6 +368,14 @@ const BACK_ONLY = /\bback\b/i;
  * what of the thing shows from behind (Fabio's check pass).
  */
 const FRONT_HANGING = /\b(?:necklaces?|pendants?|lockets?|chokers?|brooch(?:es)?|ties?|bow ?ties?|badges?|medals?|medallions?)\b/i;
+/**
+ * The accessory turned round with its sides swapped (ff4). "held or worn as in image 1" put a walking stick in the
+ * hand on the same picture side from behind 3/4 (ff3: mirrored, or one in each hand); this put it on the other side
+ * 4/4, whichever hand pass 1 drew it in. No hand is fixed, so the user's words and pass 1 choose it.
+ */
+const ACC_SWAP = 'held as in image 1. Seen from behind, left and right swap: a thing in the hand on the left side of '
+    + 'image 1 is in the hand on the right side of the picture, and a thing on the right side of image 1 is on the left '
+    + 'side of the picture.';
 const FRONT_PART = /\b(?:arms?|legs?|thighs?|calf|calves|ankles?|feet|foot|hands?|wrists?|fingers?|chest|neck|face|stomach|belly|ribs?|sleeves?|full body|whole body|all over)\b/i;
 
 /**
@@ -397,8 +405,7 @@ export function buildBackPassPrompt(change, words, ref = false) {
     if (_faceInk(change, w)) return '';   // the two faces only: no back figure is touched
     const has = change === 'tattoos'
         ? (ref ? '' : `The character has this tattoo: ${_unview(w)}. Show it wherever it can be seen from behind. `)
-        : `The character has this accessory: ${_unview(w)}, held or worn as in image 1. Show only what can be seen `
-            + 'from behind. ';
+        : `The character has this accessory: ${_unview(w)}, ${ACC_SWAP} Show only what can be seen from behind. `;
     return 'Turn the character in image 1 around so the character is seen from behind, full body from head to feet, '
         + 'standing in the same pose, on the same plain grey background. Image 2 is this character seen from behind: '
         + (change === 'tattoos'

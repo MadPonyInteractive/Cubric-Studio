@@ -321,9 +321,12 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     }
     // ac2: Accessories take the back pass too (a held G3 stuck out at his side from behind), words or picture; only
     // what can be seen from behind (a necklace's pendant was drawn on her back). ff1: no example object named (Fabio:
-    // "only a chain or strap shows at the back" drew a chain on his basketball).
+    // "only a chain or strap shows at the back" drew a chain on his basketball). ff4: the sides swap from behind (a
+    // walking stick on the right side 1/4 -> 4/4).
     const ACC2 = TURN + 'keep the hair, body, skin tone, clothes and shoes exactly as in image 2. The character has this '
-        + 'accessory: a G3 held in both hands, held or worn as in image 1. Show only what can be seen from behind.' + KEEP;
+        + 'accessory: a G3 held in both hands, held as in image 1. Seen from behind, left and right swap: a thing in the '
+        + 'hand on the left side of image 1 is in the hand on the right side of the picture, and a thing on the right '
+        + 'side of image 1 is on the left side of the picture. Show only what can be seen from behind.' + KEEP;
     for (const v of [run('accessories', 'a G3 held in both hands'), { change: 'accessories', words: 'a G3 held in both hands' }]) {
         const p = characterSheetEditor('change', { Input_Age: -1, ...v }).injectionParams;
         assert.deepStrictEqual([p.Input_Back_Pass, p.Input_Positive_2, p.Input_Front_Crop], [true, ACC2, true]);

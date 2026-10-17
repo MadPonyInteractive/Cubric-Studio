@@ -1106,3 +1106,17 @@ ff3 (shipped path, `FRONT_HANGING` words take no back pass, seeds 46001-46004):
   thing like a one-limb tattoo. Next: bench naming the side as the picture's side (fa3 showed Qwen follows that,
   not the character's left/right).
 `node --test` character-sheet-editor, agent-prompt-budget, agent-corpus, agent-bench, flow*: all pass.
+
+ff4 (session "New character sheets 45", walking-stick side, 070, "A wooden walking stick", seeds 46001-46004; ff4.py
+in session 3465d94f's scratchpad). Correct = the front's picture side swapped from behind:
+- A, pass 1 as shipped, the back pass "..., held as in image 1. Seen from behind, left and right swap: a thing in the
+  hand on the left side of image 1 is in the hand on the right side of the picture, and a thing on the right side of
+  image 1 is on the left side of the picture.": **4/4** (front L/R/R/L, back R/L/L/R), one stick each.
+- B, the side pinned as the picture's: pass 1 "... held in the hand on the left side of the picture", the back pass
+  "... held in the hand on the right side of the picture.": **4/4** (front L 4/4, back R 4/4), one stick each.
+Not shipped: wording to Fabio first (my pick A: no hand fixed, follows whatever pass 1 drew).
+Fabio picked A. SHIPPED as `ACC_SWAP` in `buildBackPassPrompt` (every Accessories back pass; the test pins it).
+ff5 (ff5.py, the shipped strings via qh47_params.mjs, 070, ff1's seeds): ball 4/4 on the other side from behind;
+backpack 4/4 (s0 carried in the hand, swapped side; s1-s3 worn). Partial, NOT new: ball s3 leaves a sliver of arm at
+the back panel's right edge, drawn by the back pass (the source sheet is clean there) - ff1 ball_s3 (old wording, same
+seed) has the identical sliver, missed when ff1 was judged 4/4. Fabio's first eye-test fail named the same ghost.
