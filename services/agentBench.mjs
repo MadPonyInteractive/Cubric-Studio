@@ -86,6 +86,7 @@ const FRAME = { id: 'att_frame', name: 'frame-from-my-video.png', filePath: 'C:/
 const PORTRAIT_A = { id: 'att_portrait_a', name: 'woman-at-bar.png', filePath: 'C:/Temp/cubric-agent/attachments/att_portrait_a.png' };
 const PORTRAIT_B = { id: 'att_portrait_b', name: 'donor-face.png', filePath: 'C:/Temp/cubric-agent/attachments/att_portrait_b.png' };
 const SHEET = { id: 'att_sheet', name: 'ninja-character-sheet.png', filePath: 'C:/Temp/cubric-agent/attachments/att_sheet.png' };
+const ANGLE = { id: 'att_angle', name: 'IMG_6021.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_angle.jpg' };
 const WAVES = 'Make a 5 second video of waves crashing on rocks at sunset.';
 // MPI-944: one place, two angles. Camera-roll names on purpose: the model has to look to
 // tell which picture holds the content and which is empty.
@@ -750,6 +751,28 @@ const CASES = [
             for (const c of ok) {
                 if (c.args.operation !== 'ref2v_ms') f.push(`ran ${c.args.operation}, not the reference op ref2v_ms`);
                 if ((c.args.media || []).some((m) => m.role === 'startFrame')) f.push('sent the sheet as a start frame');
+            }
+            return f;
+        },
+    },
+    {
+        // MPI-1164: a photo handed over for the CAMERA ANGLE of a video idea was edited instead.
+        // It is a reference for a new clip. The flip asks to change the photo, so an edit is right.
+        id: 'angle-picture-goes-to-reference',
+        title: 'a picture given for its camera angle feeds a reference op, never an edit',
+        setup: {
+            attachments: [ANGLE],
+            look: { ok: true, output: { text: 'A photo taken from very low on the ground looking up at a man standing in a narrow city street, the buildings leaning in above him, overcast sky.' } },
+            turns: ['Idea for a video: a cowboy walks slowly out of a saloon into a dusty street at noon. This photo is the camera angle I want.'],
+        },
+        flip: { turns: ['Make this photo look like a dusty western street at noon.'] },
+        check(run) {
+            const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
+            if (!ok.length) return ['never generated'];
+            const f = [];
+            for (const c of ok) {
+                if (!/^ref2v/.test(c.args.operation || '')) f.push(`ran ${c.args.operation}, not a reference op`);
+                if (!(c.args.media || []).some((m) => m.image === ANGLE.id)) f.push('left the photo out of the media');
             }
             return f;
         },

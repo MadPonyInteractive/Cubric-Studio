@@ -100,6 +100,16 @@ look." For an end frame: "...and end the shot settled on <Picture 2> as its last
 Any other reference in the same prompt keeps "not its framing": a picture cited without it
 tends to become the opening frame, which is the effect wanted here and nowhere else.
 
+### A camera angle or a camera move from a reference
+
+A picture the user hands over for its camera angle, or a clip for its camera move, is a
+reference with that one job, never the subject: "Shoot it from the camera angle and framing
+of <Picture 2>, taking none of its people, place or look." / "The camera moves as it does in
+<Video 1>, the same path and speed, taking none of its subject or setting." Still name the
+move in the camera line with the vocabulary in item 4, so the words and the reference agree.
+Motion off a reference clip is proven for a body (a dance, ref2va.md); a camera move off one
+is not yet tested (MPI-1164): if it does not carry, the camera line alone has to.
+
 ### Say what is there, never what is not
 
 Every op here, not just `ref2v_ms`, and it bites hardest on the SECOND attempt. There is no

@@ -163,7 +163,7 @@ const I2V_NOTE = 'animates THIS picture: it becomes the first frame exactly as i
  * What a reference op IS, on every one (Fabio 2026-10-04: "any reference operation does
  * that"). Not only the identity route: a picture cited as a frame is followed, loosely.
  */
-const REF_NOTE = 'a reference op: the pictures (and clips and sounds) steer who and what appears, the route for a character sheet, a turnaround or several views of one subject. A picture cited as the opening frame (or another as the closing one) also gives a first or last frame: close, not exact, since the angle or framing can drift';
+const REF_NOTE = 'a reference op: the pictures (and clips and sounds) steer who and what appears and, on every model but LTX (its sheet carries looks only), how it is shot: the camera angle and framing of a picture, the camera move of a clip. The route for a character sheet, a turnaround or several views of one subject. A picture cited as the opening frame (or another as the closing one) also gives a first or last frame: close, not exact, since the angle or framing can drift';
 const OP_NOTES = {
     // MPI-904: a model upscale is a diffusion pass, and the plain tool ranks above it.
     // MPI-1053: which detail route fits the ask is said ONCE, in app:upscaling (read behind a

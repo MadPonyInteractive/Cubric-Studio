@@ -60,6 +60,7 @@ The prompt shape above still holds; the references only replace description. Fro
 - Give every reference a job: "the street in @image2", "the dance moves of @video1", "the voice of @audio1". A reference staged but never named leaves the model guessing.
 - Reuse the same tag on every mention. Tag a reference only in a shot where it appears: a tag in a shot forces its subject into frame.
 - A location reference gives the place, not the camera: still write the shot size, lens and move.
+- A picture given for its camera angle, or a clip for its camera move, gets only that job: "from the camera angle and framing of @image2, none of its subject", "the camera moves as in @video1, the same path and speed, none of its subject or setting". Still write the move in words (MPI-1164).
 - Editing a clip rather than referencing one: call it `@video1` and say it is the master for camera, framing, motion, timing and light, state the one change, and lock everything else to it. Match the clip length to it.
 - Four or five references work best. More than four reference people is unstable. Per character, a headshot plus a full-body photo, never a multi-view sheet.
 

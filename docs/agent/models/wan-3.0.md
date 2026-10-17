@@ -85,6 +85,7 @@ With a last frame too, write how the clip gets from one picture to the other: th
 - Give every reference a job: "the woman in Image 1 walks through the market in Image 2", "the dance moves of Video 1", "speaks in the voice of Audio 1". A reference staged but never cited leaves the model guessing.
 - The picture carries the look. Give a referenced person a short anchor at most, never a full description that can contradict the image.
 - References are not frames: none appears in the output as it is.
+- A picture given for its camera angle, or a clip for its camera move, gets only that job: "from the camera angle and framing of Image 2, none of its subject", "the camera moves as in Video 1, the same path and speed, none of its subject or setting". Still write the move in words. Untested on this model (MPI-1164).
 
 ## Repeating a clip on Wan 3.0
 
