@@ -64,6 +64,12 @@ let _activeGenId = null;
 // queue), so the bar sweeps under the run's label instead of reading IDLE.
 let _held = false;
 let _heldRun = null;
+// MPI-1086 (Fabio's eye test, 2026-10-17): each gen's accent, from its `tool:running`. After a
+// Stop the old gen's terminal can idle the bar (which clears the accent) AFTER the next gen's
+// `tool:running`, and the store re-latch then brought that gen back in Studio cream: a
+// Character Sheet Editor run read "STARTING" with no pink. Store jobs carry no op key.
+// ponytail: never pruned per gen; capped, oldest dropped, since only the latest few can re-latch.
+const _accentByGen = new Map();
 const _listenUnsubs = [];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -225,6 +231,8 @@ function _reconcileFromStore(snapshot) {
         _held = false;
         _activeGenId = job.genId;
         _stageText = '';
+        const accent = _accentByGen.get(job.genId);
+        if (_fill && accent) _fill.dataset.accent = accent;
         if (_state !== 'active') StatusBar.progress.prepare('Starting');
         _renderJobLabel();
     }
@@ -562,7 +570,12 @@ export const StatusBar = {
             // its label — so nothing upstream had to change. The fill is the only element
             // here that draws --accent-heat, so it is the one that declares.
             // `mediaType` only when the run's subject differs from the op's (MPI-1106 mask track).
-            if (_fill) _fill.dataset.accent = getCommandAccent(type, mediaType);
+            const accent = getCommandAccent(type, mediaType);
+            if (_fill) _fill.dataset.accent = accent;
+            if (id !== null) {
+                _accentByGen.set(id, accent);
+                if (_accentByGen.size > 20) _accentByGen.delete(_accentByGen.keys().next().value);
+            }
             _stepText = step ? ` ${step}` : '';
             StatusBar.progress.prepare('Starting');
         }));

@@ -4,6 +4,17 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-17 later (session "New character sheets 40") - LATEST. BEARD EYE-TESTED PASS by Fabio (words, empty box,
+picture; e.g. "A blue long Viking beard with braids"). Pushed 7c5158e53. Status bar fix (Fabio: a Flow's bar was
+Studio cream, not pink): after a Stop, the old gen's late terminal idled the bar (clearing the accent) after the next
+gen's tool:running, and the store re-latch (`_reconcileFromStore`) re-armed it with no accent ("STARTING", no clock).
+statusBar.js now remembers each gen's accent (`_accentByGen`) and the re-latch applies it; behaviour test in
+status-bar-accent.test.cjs (fails without the fix). ACCESSORIES eye test, words only, "Holding a G3 machine gun with
+both his hands" on flowCSFI_011 (flowCSE_068): ALMOST a pass - the front ADDED a pouch/backpack on his thigh, and the
+back view's gun is weird (sticking out at his side). NEXT: bench Accessories words on Qwen for those two (e.g. "Add
+nothing else" like Tattoos' "Add no other tattoos", and how the back view shows a held item), then Tattoos-stitch eye
+test, face tattoos, close-out.
+
 2026-10-17 (session "New character sheets 40") - LATEST. Fabio: Beard in words is fine; Beard MUST take a picture (his
 imported_034/035/036 in Qwen 2.1); child Makeup re-test DONE. BUILT, uncommitted (claim c98bcfa0-mpi1086): Beard from a
 picture the Makeup way - `beard` in REF_THING, describer `refBeard` + `refIsMannequin`, in-graph WHITE mannequin

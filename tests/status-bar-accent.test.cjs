@@ -58,8 +58,35 @@ test('tool:running still carries the op key the bar reads', () => {
 
 test('the status bar sets the accent on the fill, and clears it at idle', () => {
     // `mediaType` (MPI-1106): a mask track's subject, image for a GIF, video for a clip.
-    assert.match(statusBar, /_fill\.dataset\.accent = getCommandAccent\(type, mediaType\)/,
+    assert.match(statusBar, /const accent = getCommandAccent\(type, mediaType\);\s*if \(_fill\) _fill\.dataset\.accent = accent;/,
         'the fill is the only element drawing --accent-heat, so it is the one that declares');
     assert.match(statusBar, /delete _fill\.dataset\.accent/,
         'idle is about no media type — a finished job must not leave its colour behind');
+});
+
+// MPI-1086 (Fabio, 2026-10-17): after a Stop the old gen's terminal idled the bar AFTER the next
+// gen's `tool:running`, and the store re-latch brought that gen back in cream ("STARTING", no pink).
+// A fake DOM, as in status-bar-hold.test.cjs: bare Node has no document.
+test('a gen the store re-latches after an idle keeps its accent', async () => {
+    const el = () => ({ textContent: '', className: '', dataset: {}, style: { setProperty() {} },
+        classList: { add() {}, remove() {}, has: () => false }, appendChild() {}, querySelector: () => el() });
+    const ELS = {};
+    globalThis.document = { getElementById: id => (ELS[id] ||= el()), querySelector: () => el(),
+        addEventListener() {}, createElement: () => el(), body: { appendChild() {} } };
+    globalThis.MutationObserver = class { observe() {} disconnect() {} };
+    globalThis.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
+    globalThis.EventSource ||= class { addEventListener() {} close() {} };
+    const { StatusBar } = await import('../js/shell/statusBar.js');
+    const { Events } = await import('../js/events.js');
+    StatusBar.init();
+    StatusBar.listen();
+    const fill = ELS['shell-info-fill'];
+    const job = { genId: 'gen-2', timestamps: { queued: 1 } };
+
+    Events.emit('tool:running', { tool: 'groupHistory', id: 'gen-2', type: 'flowCharacterSheetEditQwen' });
+    assert.strictEqual(fill.dataset.accent, 'vision');
+    StatusBar.progress.cancel(); // the Stopped gen's late settle idles the bar
+    assert.strictEqual(fill.dataset.accent, undefined, 'precondition: idle clears the accent');
+    Events.emit('generation-store:changed', { running: [job], pending: [] });
+    assert.strictEqual(fill.dataset.accent, 'vision', 'the re-latched image run must be pink again');
 });
