@@ -69,6 +69,9 @@ test('every change builds its bench template verbatim', async () => {
         'Give the character this beard: a short neat grey goatee. The full-body front view and the close-up portrait on '
         + 'the right both show this beard on the face, and the character seen from behind shows it wherever it can be '
         + 'seen. Keep the character\'s own face, hair and clothes. Keep everything else exactly as it is.');
+    // bd4: an empty box asks for a full beard in the hair's colour.
+    assert.strictEqual(buildChangePrompt('beard', ' '), buildChangePrompt('beard',
+        'a full, neatly trimmed beard and moustache in the same colour as the hair'));
     assert.strictEqual(buildChangePrompt('condition', 'beaten up after a fight: a bruised, cut face and torn, dirty clothes'),
         'Make the character look beaten up after a fight: a bruised, cut face and torn, dirty clothes.' + L1);
     assert.strictEqual(buildChangePrompt('body', 'heavyset and overweight'), "Make the character's body heavyset and overweight." + L1);
@@ -135,6 +138,8 @@ test('a run with no words for its change, or nothing to change, is refused', asy
     assert.strictEqual(refuse({ change: 'none', Input_Age: 0 }), null, '0 is a newborn: a change');
     assert.strictEqual(refuse({ change: 'none', Input_Age: 30 }), null);
     assert.strictEqual(refuse({ change: 'hair', words: 'a bob', Input_Age: -1 }), null);
+    // Beard with an empty box is a full beard (Fabio), never a refusal.
+    assert.strictEqual(refuse({ change: 'beard', words: '' }), null);
 });
 
 test('each leg carries its lock, its head removal and the mannequin flag', async () => {

@@ -1791,7 +1791,8 @@ export const FLOWS = [
                       // A bare style name that takes hair AWAY ("Mohawk") fails; spelled out it works (r27).
                       note: 'Describe the cut, not just its name (e.g. shaved sides, a strip on top). A rare style? Add a Reference picture.' },
                     // Fabio: its own entry, not a Hairstyle switch (MPI-1086). Words only: no Reference picture.
-                    { v: 'beard', label: 'Beard', info: 'Grow, trim, recolour or shave a beard or moustache; the face stays the same person. Runs on Qwen-Image 2.1: not for commercial use.' },
+                    { v: 'beard', label: 'Beard', info: 'Grow, trim, recolour or shave a beard or moustache; the face stays the same person. Runs on Qwen-Image 2.1: not for commercial use.',
+                      note: 'Leave it empty for a full beard, or describe one (e.g. a short grey goatee, a handlebar moustache, clean-shaven).' },
                     { v: 'condition', label: 'Condition', info: 'Beaten up, muddy, soaked, sunburnt - the state the character is in.' },
                     { v: 'body', label: 'Body shape', info: 'Heavier, slimmer or more muscular. Runs on Qwen-Image 2.1: not for commercial use.' },
                     // MPI-1086 (Fabio, 2026-10-12): "Nothing else" split into a free edit and age-only.

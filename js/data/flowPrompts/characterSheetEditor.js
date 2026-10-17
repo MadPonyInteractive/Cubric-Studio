@@ -31,6 +31,9 @@ const YOUNG_ADULT_MAX = 40;
 /** A younger target this close to the describer's read takes no direction word (it reads old faces 10-15 high). */
 const NEAR = 15;
 
+/** Beard with the box left empty (Fabio: "it's a beard, what do I write?"): a beard, in the hair's colour (MPI-1086 bd4). */
+const BEARD = 'a full, neatly trimmed beard and moustache in the same colour as the hair';
+
 function _words(text) {
     return String(text ?? '').trim().replace(/[\s.]+$/, '');
 }
@@ -130,7 +133,7 @@ function _usesRef(values) {
  * @returns {?string}
  */
 export function buildChangePrompt(change, words, ref = false, refHair = '', refMakeup = '') {
-    const w = _words(words);
+    const w = _words(words) || (change === 'beard' ? BEARD : '');
     // MPI-1086 (tasks/MPI-1086/validation.md, rounds 16-24): a hairstyle FROM A PICTURE runs on Qwen-Image 2.1 (the
     // registry routes it), never on Klein: Klein's face lock pasted the old face onto a head it redrew (double jaw,
     // a second ear, ~11/17). The Qwen graph first turns the picture into a bare mannequin wearing the hair (Klein,
@@ -360,7 +363,7 @@ export function characterSheetEditorRefusal(values = {}) {
     if (Object.hasOwn(REF_NEEDS_WORDS, change) && _usesRef(values) && !_words(values.words)) {
         return `Say what the Reference picture shows, for example ${REF_NEEDS_WORDS[change]}.`;
     }
-    if (change !== 'none' && !_words(values.words) && !_usesRef(values)) {
+    if (change !== 'none' && change !== 'beard' && !_words(values.words) && !_usesRef(values)) {
         return Object.hasOwn(REF_THING, change) ? 'Say what to change, or add a Reference picture.' : 'Say what to change first.';
     }
     if (change === 'none' && age < 0) return 'Pick something to change, or an age.';

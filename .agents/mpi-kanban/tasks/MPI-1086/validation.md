@@ -880,3 +880,10 @@ b_fig wins 3/4; a big beard ADDED misses the small front face. bd2 tries firmer 
 SHIPPED (uncommitted at write): option `beard` -> flowCharacterSheetEditQwen, words only; builder = b_each byte for byte
 (test); Qwen row label + description name it; row spec updated and passing; npm test 3375/0. UNRELEASED.md line waits
 for its claim (Cosmo + MCP card-import session). NEXT: Fabio eye test of Beard in the app.
+
+## Beard bench bd4 (2026-10-17): Beard with the box EMPTY (Fabio: "it's a beard, what do I write?")
+
+Default words "a full, neatly trimmed beard and moustache in the same colour as the hair" in the shipped b_each string:
+the man (flowCSFI_011) seeds 42 + 7 = dark trimmed beard on the front face AND the close-up, 2/2; the photo woman
+(flowCSFI_006) = a brown beard matching her hair, front + close-up, 1/1. SHIPPED: empty box = that default (no refusal),
+Beard option `note` says so with examples; UNRELEASED.md line names the beard.
