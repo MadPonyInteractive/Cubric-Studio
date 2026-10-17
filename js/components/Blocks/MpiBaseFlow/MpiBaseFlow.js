@@ -3734,6 +3734,10 @@ export const MpiBaseFlow = ComponentFactory.create({
                         mediaType: media?.mediaType || 'image',
                         source: 'flow-derived',
                         role: dest,
+                        // MPI-1171: strokes on a BLANK canvas (Scribble with no upload). Hand
+                        // strokes carry no age, so the child-safety picture look skips it
+                        // (`picturesOf`); the typed words are still checked.
+                        ...(media ? {} : { drawn: true }),
                     }];
             }
             return out;

@@ -567,7 +567,11 @@ export async function lookWanted(texts, ask = null) {
  */
 export function picturesOf(config, mediaType = 'image') {
     const urls = (config?.mediaItems || [])
-        .filter((m) => m && m.mediaType === mediaType && typeof m.url === 'string' && m.url)
+        // MPI-1171: `drawn` = hand strokes on a blank canvas (MpiBaseFlow `_deriveRunMedia`).
+        // A stick figure "could be under 18" to the describer, so a lady in lingerie was
+        // refused; the words carry the subject and are still checked. Set only there: an
+        // upload, a Reuse or an agent's media never carries it.
+        .filter((m) => m && !m.drawn && m.mediaType === mediaType && typeof m.url === 'string' && m.url)
         .map((m) => m.url);
     return [...new Set(urls)];
 }

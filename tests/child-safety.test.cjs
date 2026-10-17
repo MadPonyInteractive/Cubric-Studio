@@ -490,6 +490,19 @@ test('picturesOf: every image a run sends, once; with "video", every clip', asyn
     assert.deepStrictEqual(picturesOf({}), []);
 });
 
+// MPI-1171: Fabio's Scribble run, "a beautiful lady ... wearing lingerie" over a stick figure on
+// the blank canvas, refused because the describer said a doodle "could be under 18".
+test('picturesOf: a doodle drawn on a blank canvas is not looked at; an upload still is; the words still decide', async () => {
+    const { picturesOf, checkChildSafety } = await load();
+    const drawn = { url: '/project-file?path=drawn.png', mediaType: 'image', role: 'image1', source: 'flow-derived', drawn: true };
+    const upload = { url: '/project-file?path=photo.png', mediaType: 'image', role: 'image1', source: 'flow-derived' };
+    assert.deepStrictEqual(picturesOf({ mediaItems: [drawn] }), []);
+    assert.deepStrictEqual(picturesOf({ mediaItems: [upload] }), [upload.url]);
+    const lady = 'A beautiful lady lying in bed, tired, belly up, looking at the ceiling, wearing lingerie';
+    assert.notStrictEqual(checkChildSafety(lady, {}).verdict, 'refuse');
+    assert.strictEqual(checkChildSafety('A girl lying in bed, 12 years old, wearing lingerie', {}).verdict, 'refuse');
+});
+
 test('the picture questions: questions of fact, one word back; only a bare NO is a no', async () => {
     const { parseAgeAnswer, AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION, refusal } = await load();
     for (const a of ['NO', 'no.', '<think>hm</think> NO']) assert.strictEqual(parseAgeAnswer(a), true, a);

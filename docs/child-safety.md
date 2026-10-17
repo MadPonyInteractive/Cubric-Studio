@@ -94,7 +94,10 @@ A run's pictures (`picturesOf`) and clips (`picturesOf(config, 'video')`) are lo
 its words ask for nudity, underwear, undressing, sex or swimwear (`asksForNudity` / swimwear list;
 non-Latin words ask the judge `NUDITY_SYSTEM` first, only a bare NO skips the look); OR it makes a
 clip (every video run with a picture or clip); OR it applies a Clothes reference. An innocent still
-edit ("change the background") is never looked at.
+edit ("change the background") is never looked at. Nor is a doodle drawn on a BLANK canvas
+(Scribble with no upload, `drawn: true` from `_deriveRunMedia`, MPI-1171): a stick figure "could be
+under 18" to the describer, so "a lady in lingerie" was refused; its typed words are still checked.
+An uploaded drawing or photo, a Reuse and every agent's media are still looked at.
 
 `_pictureVerdicts` asks `llmService.describeImage` (the user's describe pick, ComfyUI Qwen3-VL or
 a Remote endpoint) fixed YES/NO questions; only a bare NO is a no (`parseAgeAnswer`):

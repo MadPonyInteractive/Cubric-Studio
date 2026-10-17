@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+    "js/data/childSafety.js",
+    "tests/child-safety.test.cjs",
+    "docs/child-safety.md"
+  ]
+}
