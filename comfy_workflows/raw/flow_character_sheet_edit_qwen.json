@@ -1,8 +1,8 @@
 {
   "id": "81735925-ecd3-5793-ace0-0b760d62a4dd",
   "revision": 0,
-  "last_node_id": 287,
-  "last_link_id": 307,
+  "last_node_id": 302,
+  "last_link_id": 343,
   "nodes": [
     {
       "id": 1,
@@ -421,7 +421,8 @@
             211,
             241,
             251,
-            280
+            280,
+            334
           ]
         },
         {
@@ -448,7 +449,11 @@
           "links": [
             16,
             180,
-            209
+            209,
+            319,
+            321,
+            325,
+            332
           ]
         },
         {
@@ -505,7 +510,7 @@
           "name": "images.image_1",
           "shape": 7,
           "type": "IMAGE",
-          "link": 243
+          "link": 313
         },
         {
           "localized_name": "image_2",
@@ -879,7 +884,8 @@
           "type": "IMAGE",
           "links": [
             14,
-            245
+            245,
+            317
           ]
         },
         {
@@ -938,7 +944,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            269
+            341
           ],
           "slot_index": 0
         }
@@ -2451,7 +2457,7 @@
           "name": "images.image_1",
           "shape": 7,
           "type": "IMAGE",
-          "link": 244
+          "link": 314
         },
         {
           "localized_name": "image_2",
@@ -5895,7 +5901,12 @@
           "name": "result",
           "type": "*",
           "links": [
-            179
+            179,
+            315,
+            320,
+            326,
+            329,
+            333
           ]
         }
       ],
@@ -5949,7 +5960,8 @@
           "links": [
             178,
             210,
-            264
+            264,
+            330
           ]
         }
       ],
@@ -6001,7 +6013,9 @@
           "name": "result",
           "type": "*",
           "links": [
-            208
+            208,
+            316,
+            324
           ]
         }
       ],
@@ -6101,7 +6115,8 @@
           "type": "IMAGE",
           "links": [
             184,
-            196
+            196,
+            308
           ]
         },
         {
@@ -7028,7 +7043,8 @@
           "type": "IMAGE",
           "links": [
             214,
-            226
+            226,
+            309
           ]
         },
         {
@@ -7946,8 +7962,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            243,
-            244
+            311
           ],
           "slot_index": 0
         }
@@ -8547,7 +8562,7 @@
         {
           "name": "false",
           "type": "*",
-          "link": 269
+          "link": 343
         },
         {
           "name": "boolean",
@@ -9420,6 +9435,779 @@
         true
       ],
       "title": "the reference: its head when Input_Ref_Head_Crop, else the picture"
+    },
+    {
+      "id": 288,
+      "type": "MpiSimpleBoolean",
+      "pos": [
+        6000,
+        4200
+      ],
+      "size": [
+        300,
+        60
+      ],
+      "flags": {},
+      "order": 588,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "links": [
+            312,
+            342
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiSimpleBoolean"
+      },
+      "widgets_values": [
+        false
+      ],
+      "title": "Input_Front_Crop"
+    },
+    {
+      "id": 289,
+      "type": "ImageStitch",
+      "pos": [
+        6320,
+        4200
+      ],
+      "size": [
+        270,
+        150
+      ],
+      "flags": {},
+      "order": 589,
+      "mode": 0,
+      "title": "the front canvas: front body | close-up",
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 308
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 309
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            310
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageStitch"
+      },
+      "widgets_values": [
+        "right",
+        false,
+        0,
+        "white"
+      ]
+    },
+    {
+      "id": 290,
+      "type": "MpiIfElse",
+      "pos": [
+        6640,
+        4200
+      ],
+      "size": [
+        240,
+        80
+      ],
+      "flags": {},
+      "order": 590,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 310
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 311
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 312,
+          "widget": {
+            "name": "boolean"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            313,
+            314
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "title": "picture 1: the front canvas when Input_Front_Crop, else as before"
+    },
+    {
+      "id": 291,
+      "type": "MpiMath",
+      "pos": [
+        6000,
+        4400
+      ],
+      "size": [
+        295.386328125,
+        128
+      ],
+      "flags": {},
+      "order": 591,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 315
+        },
+        {
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": 316
+        },
+        {
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            318
+          ]
+        }
+      ],
+      "title": "front canvas width",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "a + b"
+      ]
+    },
+    {
+      "id": 292,
+      "type": "ImageScale",
+      "pos": [
+        6320,
+        4400
+      ],
+      "size": [
+        270,
+        130
+      ],
+      "flags": {},
+      "order": 592,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 317
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "link": 318,
+          "widget": {
+            "name": "width"
+          }
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "link": 319,
+          "widget": {
+            "name": "height"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            322,
+            327
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.39.0",
+        "Node name for S&R": "ImageScale"
+      },
+      "widgets_values": [
+        "bicubic",
+        512,
+        512,
+        "disabled"
+      ],
+      "title": "the front edit at the canvas size"
+    },
+    {
+      "id": 293,
+      "type": "MpiBox",
+      "pos": [
+        6640,
+        4400
+      ],
+      "size": [
+        270.4146484375,
+        130
+      ],
+      "flags": {},
+      "order": 593,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 320
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 321
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": [
+            323
+          ]
+        }
+      ],
+      "title": "front canvas: the body box",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiBox"
+      },
+      "widgets_values": [
+        512,
+        512,
+        0,
+        0
+      ]
+    },
+    {
+      "id": 294,
+      "type": "MpiBoxCrop",
+      "pos": [
+        6960,
+        4400
+      ],
+      "size": [
+        250,
+        78
+      ],
+      "flags": {},
+      "order": 594,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 322
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "link": 323
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            336
+          ]
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": []
+        }
+      ],
+      "title": "front canvas: the edited body",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiBoxCrop"
+      },
+      "widgets_values": [
+        false
+      ]
+    },
+    {
+      "id": 295,
+      "type": "MpiBox",
+      "pos": [
+        6640,
+        4560
+      ],
+      "size": [
+        270.4146484375,
+        130
+      ],
+      "flags": {},
+      "order": 595,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 324
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 325
+        },
+        {
+          "name": "x",
+          "type": "INT",
+          "widget": {
+            "name": "x"
+          },
+          "link": 326
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": [
+            328
+          ]
+        }
+      ],
+      "title": "front canvas: the close-up box",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiBox"
+      },
+      "widgets_values": [
+        512,
+        512,
+        0,
+        0
+      ]
+    },
+    {
+      "id": 296,
+      "type": "MpiBoxCrop",
+      "pos": [
+        6960,
+        4560
+      ],
+      "size": [
+        250,
+        78
+      ],
+      "flags": {},
+      "order": 596,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 327
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "link": 328
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            339
+          ]
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": []
+        }
+      ],
+      "title": "front canvas: the edited close-up",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiBoxCrop"
+      },
+      "widgets_values": [
+        false
+      ]
+    },
+    {
+      "id": 297,
+      "type": "MpiMath",
+      "pos": [
+        6000,
+        4720
+      ],
+      "size": [
+        295.386328125,
+        128
+      ],
+      "flags": {},
+      "order": 597,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "a",
+          "type": "*",
+          "link": 329
+        },
+        {
+          "name": "b",
+          "shape": 7,
+          "type": "*",
+          "link": 330
+        },
+        {
+          "name": "c",
+          "shape": 7,
+          "type": "*",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "type": "*",
+          "links": [
+            331
+          ]
+        }
+      ],
+      "title": "front canvas: the back panel width",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiMath"
+      },
+      "widgets_values": [
+        "b - a"
+      ]
+    },
+    {
+      "id": 298,
+      "type": "MpiBox",
+      "pos": [
+        6640,
+        4720
+      ],
+      "size": [
+        270.4146484375,
+        130
+      ],
+      "flags": {},
+      "order": 598,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 331
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 332
+        },
+        {
+          "name": "x",
+          "type": "INT",
+          "widget": {
+            "name": "x"
+          },
+          "link": 333
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": [
+            335
+          ]
+        }
+      ],
+      "title": "front canvas: the back panel box",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiBox"
+      },
+      "widgets_values": [
+        512,
+        512,
+        0,
+        0
+      ]
+    },
+    {
+      "id": 299,
+      "type": "MpiBoxCrop",
+      "pos": [
+        6960,
+        4720
+      ],
+      "size": [
+        250,
+        78
+      ],
+      "flags": {},
+      "order": 599,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 334
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "link": 335
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            337
+          ]
+        },
+        {
+          "name": "mpi_box",
+          "type": "MPI_BOX",
+          "links": []
+        }
+      ],
+      "title": "front canvas: the ORIGINAL back panel",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec",
+        "Node name for S&R": "MpiBoxCrop"
+      },
+      "widgets_values": [
+        false
+      ]
+    },
+    {
+      "id": 300,
+      "type": "ImageStitch",
+      "pos": [
+        7280,
+        4400
+      ],
+      "size": [
+        270,
+        150
+      ],
+      "flags": {},
+      "order": 600,
+      "mode": 0,
+      "title": "edited front | original back",
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 336
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 337
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            338
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageStitch"
+      },
+      "widgets_values": [
+        "right",
+        false,
+        0,
+        "white"
+      ]
+    },
+    {
+      "id": 301,
+      "type": "ImageStitch",
+      "pos": [
+        7600,
+        4400
+      ],
+      "size": [
+        270,
+        150
+      ],
+      "flags": {},
+      "order": 601,
+      "mode": 0,
+      "title": "edited front | original back | edited close-up: the sheet",
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 338
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 339
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            340
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageStitch"
+      },
+      "widgets_values": [
+        "right",
+        false,
+        0,
+        "white"
+      ]
+    },
+    {
+      "id": 302,
+      "type": "MpiIfElse",
+      "pos": [
+        7920,
+        4400
+      ],
+      "size": [
+        240,
+        80
+      ],
+      "flags": {},
+      "order": 602,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "true",
+          "type": "*",
+          "link": 340
+        },
+        {
+          "name": "false",
+          "type": "*",
+          "link": 341
+        },
+        {
+          "name": "boolean",
+          "type": "BOOLEAN",
+          "link": 342,
+          "widget": {
+            "name": "boolean"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            343
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "Node name for S&R": "MpiIfElse"
+      },
+      "widgets_values": [
+        true
+      ],
+      "title": "the edit: the sheet rebuilt when Input_Front_Crop, else the edit"
     }
   ],
   "links": [
@@ -11208,22 +11996,6 @@
       "BOOLEAN"
     ],
     [
-      243,
-      261,
-      0,
-      30,
-      1,
-      "*"
-    ],
-    [
-      244,
-      261,
-      0,
-      157,
-      1,
-      "*"
-    ],
-    [
       245,
       46,
       0,
@@ -11413,14 +12185,6 @@
       0,
       272,
       0,
-      "IMAGE"
-    ],
-    [
-      269,
-      128,
-      0,
-      272,
-      1,
       "IMAGE"
     ],
     [
@@ -11725,6 +12489,294 @@
       0,
       162,
       0,
+      "*"
+    ],
+    [
+      308,
+      225,
+      0,
+      289,
+      0,
+      "IMAGE"
+    ],
+    [
+      309,
+      243,
+      0,
+      289,
+      1,
+      "IMAGE"
+    ],
+    [
+      310,
+      289,
+      0,
+      290,
+      0,
+      "IMAGE"
+    ],
+    [
+      311,
+      261,
+      0,
+      290,
+      1,
+      "*"
+    ],
+    [
+      312,
+      288,
+      0,
+      290,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      313,
+      290,
+      0,
+      30,
+      1,
+      "*"
+    ],
+    [
+      314,
+      290,
+      0,
+      157,
+      1,
+      "*"
+    ],
+    [
+      315,
+      221,
+      0,
+      291,
+      0,
+      "*"
+    ],
+    [
+      316,
+      223,
+      0,
+      291,
+      1,
+      "*"
+    ],
+    [
+      317,
+      46,
+      0,
+      292,
+      0,
+      "IMAGE"
+    ],
+    [
+      318,
+      291,
+      0,
+      292,
+      1,
+      "*"
+    ],
+    [
+      319,
+      11,
+      3,
+      292,
+      2,
+      "INT"
+    ],
+    [
+      320,
+      221,
+      0,
+      293,
+      0,
+      "*"
+    ],
+    [
+      321,
+      11,
+      3,
+      293,
+      1,
+      "INT"
+    ],
+    [
+      322,
+      292,
+      0,
+      294,
+      0,
+      "IMAGE"
+    ],
+    [
+      323,
+      293,
+      0,
+      294,
+      1,
+      "MPI_BOX"
+    ],
+    [
+      324,
+      223,
+      0,
+      295,
+      0,
+      "*"
+    ],
+    [
+      325,
+      11,
+      3,
+      295,
+      1,
+      "INT"
+    ],
+    [
+      326,
+      221,
+      0,
+      295,
+      2,
+      "*"
+    ],
+    [
+      327,
+      292,
+      0,
+      296,
+      0,
+      "IMAGE"
+    ],
+    [
+      328,
+      295,
+      0,
+      296,
+      1,
+      "MPI_BOX"
+    ],
+    [
+      329,
+      221,
+      0,
+      297,
+      0,
+      "*"
+    ],
+    [
+      330,
+      222,
+      0,
+      297,
+      1,
+      "*"
+    ],
+    [
+      331,
+      297,
+      0,
+      298,
+      0,
+      "*"
+    ],
+    [
+      332,
+      11,
+      3,
+      298,
+      1,
+      "INT"
+    ],
+    [
+      333,
+      221,
+      0,
+      298,
+      2,
+      "*"
+    ],
+    [
+      334,
+      11,
+      0,
+      299,
+      0,
+      "IMAGE"
+    ],
+    [
+      335,
+      298,
+      0,
+      299,
+      1,
+      "MPI_BOX"
+    ],
+    [
+      336,
+      294,
+      0,
+      300,
+      0,
+      "IMAGE"
+    ],
+    [
+      337,
+      299,
+      0,
+      300,
+      1,
+      "IMAGE"
+    ],
+    [
+      338,
+      300,
+      0,
+      301,
+      0,
+      "IMAGE"
+    ],
+    [
+      339,
+      296,
+      0,
+      301,
+      1,
+      "IMAGE"
+    ],
+    [
+      340,
+      301,
+      0,
+      302,
+      0,
+      "IMAGE"
+    ],
+    [
+      341,
+      128,
+      0,
+      302,
+      1,
+      "IMAGE"
+    ],
+    [
+      342,
+      288,
+      0,
+      302,
+      2,
+      "BOOLEAN"
+    ],
+    [
+      343,
+      302,
+      0,
+      272,
+      1,
       "*"
     ]
   ],

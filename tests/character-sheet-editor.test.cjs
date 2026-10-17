@@ -44,10 +44,11 @@ test('every change builds its bench template verbatim', async () => {
         + 'close-up portrait on the right all show the same outfit, with the same neckline, sleeves and straps. '
         + 'Keep everything else exactly as it is.');
     // MPI-1086 r30: Accessories runs on Qwen, every figure named, "to wear or hold" (a bare "Mask" became a matte).
-    // ac2: "Add nothing else" (a G3 came with a thigh pouch, belt and sling).
+    // ac2: "Add nothing else" (a G3 came with a thigh pouch, belt and sling). ff1: pass 1 sees no back figure, so
+    // names none ("a basketball under his arm" landed on the back view only).
     assert.strictEqual(buildChangePrompt('accessories', 'a red scarf and round glasses'),
-        'Give the character in image 1 this accessory to wear or hold: a red scarf and round glasses. The front view, the '
-        + 'character seen from behind and the close-up portrait on the right all show it wherever it can be seen. '
+        'Give the character in image 1 this accessory to wear or hold: a red scarf and round glasses. The full-body '
+        + 'figure on the left and the close-up portrait on the right both show it wherever it can be seen. '
         + "Add nothing else: no other gear, bags, belts or straps. Keep the character's own face, hair, skin and "
         + 'clothes. Keep everything else exactly as it is.');
     // MPI-1086 r34: Makeup and Tattoos in words, on Qwen; her own face named, no limb named for tattoos.
@@ -198,8 +199,8 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     // MPI-1086 r29: Accessories takes the picture WITH words naming it, on Qwen: the raw picture as image 2, only the
     // thing taken from it. A leading article is dropped ("the the ..."), the first letter lowered as benched.
     assert.strictEqual(buildChangePrompt('accessories', '', true), null);
-    const ACC = t => `Give the character in image 1 the ${t} from image 2. The front view, the character seen from behind `
-        + `and the close-up portrait on the right all show the ${t} wherever it can be seen. Take only the ${t} from `
+    const ACC = t => `Give the character in image 1 the ${t} from image 2. The full-body figure on the left and the `
+        + `close-up portrait on the right both show the ${t} wherever it can be seen. Take only the ${t} from `
         + "image 2, not the person: keep the character's own face, hair, skin and clothes." + KEEP;
     assert.strictEqual(buildChangePrompt('accessories', 'the large gold hoop earrings', true), ACC('large gold hoop earrings'));
     assert.strictEqual(buildChangePrompt('accessories', 'Mini gun', true), ACC('mini gun'));
@@ -319,18 +320,33 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
         assert.strictEqual(characterSheetEditor('change', run('tattoos', w)).injectionParams.Input_Back_Pass, true, w);
     }
     // ac2: Accessories take the back pass too (a held G3 stuck out at his side from behind), words or picture; only
-    // what can be seen from behind (a necklace's pendant was drawn on her back).
+    // what can be seen from behind (a necklace's pendant was drawn on her back). ff1: no example object named (Fabio:
+    // "only a chain or strap shows at the back" drew a chain on his basketball).
     const ACC2 = TURN + 'keep the hair, body, skin tone, clothes and shoes exactly as in image 2. The character has this '
-        + 'accessory: a G3 held in both hands, held or worn as in image 1. Show only the parts of it that can really be '
-        + 'seen from behind: anything on the front of the body, such as a pendant, is hidden by the body, and only a '
-        + 'chain or strap shows at the back. Hair hides what is under it.' + KEEP;
+        + 'accessory: a G3 held in both hands, held or worn as in image 1. Show only what can be seen from behind.' + KEEP;
     for (const v of [run('accessories', 'a G3 held in both hands'), { change: 'accessories', words: 'a G3 held in both hands' }]) {
         const p = characterSheetEditor('change', { Input_Age: -1, ...v }).injectionParams;
-        assert.deepStrictEqual([p.Input_Back_Pass, p.Input_Positive_2], [true, ACC2]);
+        assert.deepStrictEqual([p.Input_Back_Pass, p.Input_Positive_2, p.Input_Front_Crop], [true, ACC2, true]);
     }
     for (const c of ['makeup', 'hair', 'body']) {
         assert.strictEqual(characterSheetEditor('change', run(c, 'x')).injectionParams.Input_Back_Pass, false, c);
     }
+    // ff2/ff3: a thing hanging on the front takes no back pass (the heart pendant was drawn on her back 4/4 whatever
+    // the wording); pass 1 still sees the front | close-up only, so the cuts still go in.
+    for (const w of ['A long gold necklace with a heart pendant', 'a silver locket', 'a red bow tie', 'a police badge']) {
+        const p = characterSheetEditor('change', { ...run('accessories', w), sheetCuts: '450,882' }).injectionParams;
+        assert.deepStrictEqual([p.Input_Back_Pass, p.Input_Positive_2, p.Input_Front_Crop, p.Input_Cut_1, p.Input_Cut_2],
+            [false, '', true, 450, 882], w);
+    }
+    for (const w of ['Large gold hoop earrings', 'a wooden walking stick', 'A black hiking backpack', 'tied-up boots']) {
+        assert.strictEqual(characterSheetEditor('change', run('accessories', w)).injectionParams.Input_Back_Pass, true, w);
+    }
+    // ff1: only Accessories edits the front body | close-up alone; Tattoos keep the whole sheet in pass 1.
+    for (const c of ['tattoos', 'makeup', 'hair', 'clothes']) {
+        assert.strictEqual(characterSheetEditor('change', run(c, 'Leg tattoo')).injectionParams.Input_Front_Crop, false, c);
+    }
+    assert.strictEqual(characterSheetEditor('age', run('accessories', 'a hat', 30)).injectionParams.Input_Front_Crop, false,
+        'an age leg edits the whole sheet');
     assert.strictEqual(characterSheetEditor('age', run('tattoos', 'Leg tattoo', 30)).injectionParams.Input_Back_Pass, false,
         'only the change leg takes the back pass');
     // MPI-1086 r44: the back pass stitches the sheet at the cuts the app measured; none = the graph's 25% / 50%.
@@ -614,10 +630,13 @@ test('the Qwen graph edits the two faces only when Input_Face_Crop, lazily (MPI-
     assert.strictEqual(g[pic1.inputs.true[0]].class_type, 'ImageStitch', 'on: the front face | the close-up face');
     const encs = Object.values(g).filter(n => n.class_type === 'TextEncodeQwenImage21' && n.inputs.prompt?.[0] === id('Input_Positive'));
     assert.strictEqual(encs.length, 2, 'the edit, with and without the mannequin');
-    for (const e of encs) assert.deepStrictEqual(e.inputs['images.image_1'], [id(pic1._meta.title), 0], 'both encode picture 1');
+    const front1 = g[encs[0].inputs['images.image_1'][0]];
+    assert.deepStrictEqual(front1.inputs.false, [id(pic1._meta.title), 0], 'with Input_Front_Crop off, picture 1 as before');
+    for (const e of encs) assert.deepStrictEqual(e.inputs['images.image_1'], encs[0].inputs['images.image_1'], 'both encode picture 1');
     const edit = g[id('the edit: the faces pasted back when Input_Face_Crop')];
-    assert.deepStrictEqual([edit.class_type, edit.inputs.boolean, g[edit.inputs.false[0]]._meta.title],
-        ['MpiIfElse', [on, 0], "back to the sheet's own size"], 'off: the sheet-sized edit, as before');
+    const rebuilt = g[edit.inputs.false[0]];
+    assert.deepStrictEqual([edit.class_type, edit.inputs.boolean, g[rebuilt.inputs.false[0]]._meta.title],
+        ['MpiIfElse', [on, 0], "back to the sheet's own size"], 'off (both crops): the sheet-sized edit, as before');
     const close = g[edit.inputs.true[0]];
     assert.strictEqual(close.class_type, 'ImageCompositeMasked', 'on: the close-up face pasted ...');
     const front = g[close.inputs.destination[0]];
@@ -625,7 +644,28 @@ test('the Qwen graph edits the two faces only when Input_Face_Crop, lazily (MPI-
         '... over the front face pasted onto the untouched sheet');
     for (const p of [front, close]) assert.strictEqual(g[p.inputs.mask[0]].class_type, 'ImageToMask', 'through the feathered face mask');
     const readers = Object.values(g).filter(n => Object.values(n.inputs).some(v => Array.isArray(v) && v[0] === id("back to the sheet's own size")));
-    assert.deepStrictEqual(readers, [edit], 'nothing else reads the sheet-sized edit');
+    assert.deepStrictEqual(readers, [rebuilt], 'nothing else reads the sheet-sized edit');
+});
+
+test('the Qwen graph shows Accessories pass 1 the front body | close-up only when Input_Front_Crop (MPI-1086 ff1)', () => {
+    const g = require(path.join(ROOT, 'comfy_workflows', 'flow_character_sheet_edit_qwen.json'));
+    const id = t => Object.keys(g).find(k => g[k]._meta?.title === t);
+    const on = id('Input_Front_Crop');
+    assert.strictEqual(g[on].inputs.boolean, false, 'ships off: every other change edits the whole sheet');
+    const pic = g[id('picture 1: the front canvas when Input_Front_Crop, else as before')];
+    assert.deepStrictEqual([pic.class_type, pic.inputs.boolean], ['MpiIfElse', [on, 0]]);
+    const canvas = g[pic.inputs.true[0]];
+    assert.deepStrictEqual([canvas.class_type, g[canvas.inputs.image1[0]]._meta.title, g[canvas.inputs.image2[0]]._meta.title],
+        ['ImageStitch', 'front panel crop', 'close-up panel crop'], 'no back figure in the picture');
+    const ed = g[id('the edit: the sheet rebuilt when Input_Front_Crop, else the edit')];
+    assert.deepStrictEqual([ed.inputs.boolean, g[ed.inputs.false[0]]._meta.title], [[on, 0], "back to the sheet's own size"]);
+    const sheet = g[ed.inputs.true[0]], left = g[sheet.inputs.image1[0]];
+    assert.deepStrictEqual([left.class_type, g[left.inputs.image1[0]]._meta.title, g[sheet.inputs.image2[0]]._meta.title],
+        ['ImageStitch', 'front canvas: the edited body', 'front canvas: the edited close-up']);
+    const back = g[left.inputs.image2[0]];
+    assert.deepStrictEqual([back._meta.title, back.inputs.image], ['front canvas: the ORIGINAL back panel', [id('Input_Image'), 0]],
+        "pass 1 never draws on the back panel: the sheet's own, for the back pass to replace");
+    assert.deepStrictEqual(g[id('the edit: the faces pasted back when Input_Face_Crop')].inputs.false, [id(ed._meta.title), 0]);
 });
 
 test('the Qwen graph crops the Reference picture to its head when Input_Ref_Head_Crop, lazily (MPI-1086 fa1)', () => {

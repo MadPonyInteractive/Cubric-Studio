@@ -83,9 +83,9 @@ A change to a sheet the user already HAS (new clothes, glasses, a haircut, beate
 age) is Character Sheet Editor: the sheet card as `image1`, `change` one of clothes, accessories,
 makeup, tattoos, hair, beard, condition, body, custom or none, `words` only the new thing ("a red leather jacket"), `Input_Age`
 -1 to keep the age (the default), 0 a newborn, 1 a toddler, then years. One change per run: for a second, run it again on the result.
-For clothes only, a picture of the outfit to copy may go as `image2`; `words` may then be empty or name
-which part of it to take. Accessories and hair ignore it: describe a hat or a haircut in words. Never
-with an age under 18: describe it in words.
+A picture to copy (an outfit, an accessory, makeup, tattoos, a hairstyle or a beard) may go as `image2`; `words` may then be empty or name which part of it to take, except accessories and tattoos, whose `words` must name it. Never with an age under 18: describe it in words.
+Accessories are things worn with the outfit (glasses, a hat, a scarf, jewellery, a bag or backpack, a walking stick or
+staff). A weapon or anything else held in the hands is not: edit the sheet with an image edit model instead.
 Under 16 a sheet must be fully dressed; a `CHILD_SAFETY` refusal means run Clothes first. Body
 and ages 12 and under need Qwen-Image 2.1: when it is missing, say so, and the Flow offers it.
 

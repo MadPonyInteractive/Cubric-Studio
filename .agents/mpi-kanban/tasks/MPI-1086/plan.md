@@ -4,6 +4,23 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-17 (session "New character sheets 44") - LATEST. ACCESSORIES FRONT CROP (ff1/ff2 in validation.md), NOT
+COMMITTED: `Input_Front_Crop` in the Qwen graph (`patch_raw_front_crop.py`, applied + converted), the accessories
+strings name only "the full-body figure on the left and the close-up portrait on the right", the back-pass accessory
+line cut to "Show only what can be seen from behind."; tests 26/26. Words path passes (ball, backpack, earrings 4/4).
+OPEN, asked Fabio: (1) the necklace pendant lands on her back 0/4 whatever the back-pass wording (the user's words
+draw it; no words loses the ball/pack) - proposal: no back pass when the words name only front-hanging things;
+(2) the picture path got worse with the front crop (mini gun 2/6, into the grey Headless face of 070) - proposal:
+picture path back to the whole sheet in pass 1. Panel cuts fixed by MPI-1174 (09fcb3f53); Cosmo picks the right
+character Flow (88494c1b0).
+FABIO DECIDED (later the same session): Accessories = things worn with the outfit + a stick/staff (hint text + Cosmo's
+flows.md say so; weapons/held props go to an image edit model and the post-2.1 weapons sheet); picture runs KEEP the
+front crop (jewellery picture 2/2; the minigun was the only miss, now out of scope); front-hanging words
+(`FRONT_HANGING`) take no back pass (ff3). Master red on 88494c1b0 (system prompt budget) fixed in 23e26c4bd.
+Side sessions archived. EYE TESTS FOR FABIO (folded in from them): (a) any Tattoos or Accessories run: app.log shows
+"sheetCuts measured: <x1>,<x2>", not "no gaps" (MPI-1174); (b) Cosmo + an attached sheet + "change the shirt to blue"
+runs Character Sheet Editor with no Mask question (88494c1b0).
+
 2026-10-17 (session "New character sheets 43") - LATEST. FACE TATTOOS SHIPPED (fa1-fa5 in validation.md): tattoo
 words naming the face and no other body part edit the two faces only (`Input_Face_Crop`, no back pass), the
 character's left/right rewritten as the picture's side (one star on the right cheek 3/4; every other wording 0/8). A

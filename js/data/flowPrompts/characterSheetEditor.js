@@ -284,8 +284,10 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
     if (ref && (change === 'accessories' || change === 'tattoos')) {
         const t = _unview(w).replace(/^(?:the|a|an)\s+/i, '');
         const thing = t[0].toLowerCase() + t.slice(1);
-        return `Give the character in image 1 the ${thing} from image 2. The front view, the character seen from behind `
-            + `and the close-up portrait on the right all show the ${thing} wherever it can be seen. `
+        return `Give the character in image 1 the ${thing} from image 2. `
+            + (change === 'accessories'
+                ? `The full-body figure on the left and the close-up portrait on the right both show the ${thing} wherever it can be seen. `
+                : `The front view, the character seen from behind and the close-up portrait on the right all show the ${thing} wherever it can be seen. `)
             + (change === 'tattoos' ? 'Add no other tattoos. ' : '')
             + (change === 'tattoos' && !/\b(?:face|facial|cheeks?|forehead|jaw)\b/i.test(w) ? NO_FACE_INK : '')
             + `Take only the ${thing} from image 2, not the person: keep the character's own face, hair, skin and clothes. `
@@ -311,9 +313,11 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
         // Fabio's sheet. "this accessory to wear or hold": a bare "Mask" otherwise came back as a matte over the sheet.
         // ac2: "Holding a G3 machine gun" also strapped a thigh pouch, belt and sling on him (Fabio's seed); "Add
         // nothing else" left the gun alone. The back view is redrawn by the back pass (`buildBackPassPrompt`).
+        // ff1 (Fabio, flowCSE_069): with the back figure named, "a basketball under his arm" landed on the back view
+        // only. Pass 1 now sees the front body and the close-up alone (`Input_Front_Crop`), and names only those.
         case 'accessories':
-            return `Give the character in image 1 this accessory to wear or hold: ${w}. The front view, the character `
-                + 'seen from behind and the close-up portrait on the right all show it wherever it can be seen. Add '
+            return `Give the character in image 1 this accessory to wear or hold: ${w}. The full-body figure on the left `
+                + 'and the close-up portrait on the right both show it wherever it can be seen. Add '
                 + "nothing else: no other gear, bags, belts or straps. Keep the character's own face, hair, skin and "
                 + 'clothes. Keep everything else exactly as it is.';
         // MPI-1086 r34: her own face named as with a picture; smoky eyes + black lips, pink glitter + white liner 2/2.
@@ -356,6 +360,14 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
 
 /** Tattoo words that name the back and no part a front view shows (`buildBackPassPrompt`). */
 const BACK_ONLY = /\bback\b/i;
+/**
+ * Accessory words naming a thing that hangs on the front of the body: no back pass. The back pass repeats the user's
+ * words, and "a heart pendant" drew the heart on her back 4/4 whatever the sentence around it (ff1/ff2); without the
+ * words a ball or a backpack is lost from behind. The sheet's own back view stays.
+ * ponytail: a word list; "earrings and a pendant" loses the earrings from behind. Upgrade path: the describer says
+ * what of the thing shows from behind (Fabio's check pass).
+ */
+const FRONT_HANGING = /\b(?:necklaces?|pendants?|lockets?|chokers?|brooch(?:es)?|ties?|bow ?ties?|badges?|medals?|medallions?)\b/i;
 const FRONT_PART = /\b(?:arms?|legs?|thighs?|calf|calves|ankles?|feet|foot|hands?|wrists?|fingers?|chest|neck|face|stomach|belly|ribs?|sleeves?|full body|whole body|all over)\b/i;
 
 /**
@@ -381,12 +393,12 @@ export function buildBackPassPrompt(change, words, ref = false) {
     const w = _words(words);
     if (!w) return '';
     if (change === 'tattoos' && BACK_ONLY.test(w) && !FRONT_PART.test(w)) return '';
+    if (change === 'accessories' && FRONT_HANGING.test(w)) return '';
     if (_faceInk(change, w)) return '';   // the two faces only: no back figure is touched
     const has = change === 'tattoos'
         ? (ref ? '' : `The character has this tattoo: ${_unview(w)}. Show it wherever it can be seen from behind. `)
-        : `The character has this accessory: ${_unview(w)}, held or worn as in image 1. Show only the parts of it that `
-            + 'can really be seen from behind: anything on the front of the body, such as a pendant, is hidden by the '
-            + 'body, and only a chain or strap shows at the back. Hair hides what is under it. ';
+        : `The character has this accessory: ${_unview(w)}, held or worn as in image 1. Show only what can be seen `
+            + 'from behind. ';
     return 'Turn the character in image 1 around so the character is seen from behind, full body from head to feet, '
         + 'standing in the same pose, on the same plain grey background. Image 2 is this character seen from behind: '
         + (change === 'tattoos'
@@ -571,7 +583,11 @@ export function characterSheetEditor(part, values = {}) {
         const back = part === 'change' ? buildBackPassPrompt(values.change, values.words, _usesRef(values)) : '';
         injectionParams.Input_Back_Pass = !!back;
         injectionParams.Input_Positive_2 = back;
-        const cuts = back ? String(values.sheetCuts || '').match(/^(\d+),(\d+)$/) : null;
+        // ff1: Accessories pass 1 sees no back figure (the front body | the close-up); the back pass draws it, or
+        // (a necklace) the sheet's own back view stays.
+        const front = part === 'change' && values.change === 'accessories' && !!_words(values.words);
+        injectionParams.Input_Front_Crop = front;
+        const cuts = back || front ? String(values.sheetCuts || '').match(/^(\d+),(\d+)$/) : null;
         injectionParams.Input_Cut_1 = cuts ? Number(cuts[1]) : 0;
         injectionParams.Input_Cut_2 = cuts ? Number(cuts[2]) : 0;
     }

@@ -1782,7 +1782,7 @@ export const FLOWS = [
                 id: 'change', type: 'select', label: 'What to change', default: 'clothes',
                 options: [
                     { v: 'clothes', label: 'Clothes', info: 'New clothes on every panel; the head and hair stay exactly as they are. Taking the clothes off (nude) runs on Qwen-Image 2.1: not for commercial use.' },
-                    { v: 'accessories', label: 'Accessories', info: 'Glasses, a scarf, a hat, jewellery - added to every panel. Runs on Qwen-Image 2.1: not for commercial use.' },
+                    { v: 'accessories', label: 'Accessories', info: 'Worn with the outfit: glasses, a hat, a scarf, jewellery, a bag or backpack, a walking stick. For weapons and things held in the hands, edit the sheet with an image model. Runs on Qwen-Image 2.1: not for commercial use.' },
                     { v: 'makeup', label: 'Makeup', info: 'Eyeshadow, lipstick, face paint - the face stays the same person. Runs on Qwen-Image 2.1: not for commercial use.' },
                     { v: 'tattoos', label: 'Tattoos', info: 'Tattoos on every panel where they can be seen. Runs on Qwen-Image 2.1: not for commercial use.',
                       // A tattoo photo does not say where on the body it is: alone, it inked arms and legs it never showed (r34).

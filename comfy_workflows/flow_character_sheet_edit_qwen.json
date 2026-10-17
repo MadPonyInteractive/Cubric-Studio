@@ -82,7 +82,7 @@
         0
       ],
       "images.image_1": [
-        "261",
+        "290",
         0
       ],
       "vae": [
@@ -566,7 +566,7 @@
         0
       ],
       "images.image_1": [
-        "261",
+        "290",
         0
       ],
       "images.image_2": [
@@ -2447,7 +2447,7 @@
         0
       ],
       "false": [
-        "128",
+        "302",
         0
       ],
       "boolean": [
@@ -2714,6 +2714,282 @@
     "class_type": "MpiIfElse",
     "_meta": {
       "title": "the reference: its head when Input_Ref_Head_Crop, else the picture"
+    }
+  },
+  "288": {
+    "inputs": {
+      "boolean": false
+    },
+    "class_type": "MpiSimpleBoolean",
+    "_meta": {
+      "title": "Input_Front_Crop"
+    }
+  },
+  "289": {
+    "inputs": {
+      "direction": "right",
+      "match_image_size": false,
+      "spacing_width": 0,
+      "spacing_color": "white",
+      "image1": [
+        "225",
+        0
+      ],
+      "image2": [
+        "243",
+        0
+      ]
+    },
+    "class_type": "ImageStitch",
+    "_meta": {
+      "title": "the front canvas: front body | close-up"
+    }
+  },
+  "290": {
+    "inputs": {
+      "true": [
+        "289",
+        0
+      ],
+      "false": [
+        "261",
+        0
+      ],
+      "boolean": [
+        "288",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "picture 1: the front canvas when Input_Front_Crop, else as before"
+    }
+  },
+  "291": {
+    "inputs": {
+      "math_expression": "a + b",
+      "a": [
+        "221",
+        0
+      ],
+      "b": [
+        "223",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "front canvas width"
+    }
+  },
+  "292": {
+    "inputs": {
+      "upscale_method": "bicubic",
+      "crop": "disabled",
+      "image": [
+        "46",
+        0
+      ],
+      "width": [
+        "291",
+        0
+      ],
+      "height": [
+        "11",
+        3
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "the front edit at the canvas size"
+    }
+  },
+  "293": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "width": [
+        "221",
+        0
+      ],
+      "height": [
+        "11",
+        3
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "front canvas: the body box"
+    }
+  },
+  "294": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "292",
+        0
+      ],
+      "mpi_box": [
+        "293",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "front canvas: the edited body"
+    }
+  },
+  "295": {
+    "inputs": {
+      "y": 0,
+      "width": [
+        "223",
+        0
+      ],
+      "height": [
+        "11",
+        3
+      ],
+      "x": [
+        "221",
+        0
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "front canvas: the close-up box"
+    }
+  },
+  "296": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "292",
+        0
+      ],
+      "mpi_box": [
+        "295",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "front canvas: the edited close-up"
+    }
+  },
+  "297": {
+    "inputs": {
+      "math_expression": "b - a",
+      "a": [
+        "221",
+        0
+      ],
+      "b": [
+        "222",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "front canvas: the back panel width"
+    }
+  },
+  "298": {
+    "inputs": {
+      "y": 0,
+      "width": [
+        "297",
+        0
+      ],
+      "height": [
+        "11",
+        3
+      ],
+      "x": [
+        "221",
+        0
+      ]
+    },
+    "class_type": "MpiBox",
+    "_meta": {
+      "title": "front canvas: the back panel box"
+    }
+  },
+  "299": {
+    "inputs": {
+      "pad": false,
+      "image": [
+        "11",
+        0
+      ],
+      "mpi_box": [
+        "298",
+        0
+      ]
+    },
+    "class_type": "MpiBoxCrop",
+    "_meta": {
+      "title": "front canvas: the ORIGINAL back panel"
+    }
+  },
+  "300": {
+    "inputs": {
+      "direction": "right",
+      "match_image_size": false,
+      "spacing_width": 0,
+      "spacing_color": "white",
+      "image1": [
+        "294",
+        0
+      ],
+      "image2": [
+        "299",
+        0
+      ]
+    },
+    "class_type": "ImageStitch",
+    "_meta": {
+      "title": "edited front | original back"
+    }
+  },
+  "301": {
+    "inputs": {
+      "direction": "right",
+      "match_image_size": false,
+      "spacing_width": 0,
+      "spacing_color": "white",
+      "image1": [
+        "300",
+        0
+      ],
+      "image2": [
+        "296",
+        0
+      ]
+    },
+    "class_type": "ImageStitch",
+    "_meta": {
+      "title": "edited front | original back | edited close-up: the sheet"
+    }
+  },
+  "302": {
+    "inputs": {
+      "true": [
+        "301",
+        0
+      ],
+      "false": [
+        "128",
+        0
+      ],
+      "boolean": [
+        "288",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "the edit: the sheet rebuilt when Input_Front_Crop, else the edit"
     }
   }
 }

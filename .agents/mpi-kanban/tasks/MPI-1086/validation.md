@@ -1038,7 +1038,7 @@ DeepInfra, fake tools, graded on the calls the model made:
 | `sheet-from-words` | "Make a character sheet of a grizzled old sea captain ..." | `character-sheet`, the character in `positive` | 3/3 (and 3/3 earlier) | fails: "Make an image of ..." ran krea2/t2i |
 | `sheet-from-face-picture` | head-and-shoulders photo + "Make a character sheet from this picture." | `character-sheet-from-images` OPENED, never run; picture as `image1`; opens at "Box the face" | 3/3 (and 3/3 earlier) | fails: words only ran `character-sheet` |
 | `sheet-from-body-picture` | full-body photo, same words | the same | 3/3 (and 3/3 earlier) | fails: the same |
-| `sheet-editor-shirt` | `SHEET` (ninja sheet) + "Change the shirt to blue." | `character-sheet-editor`, `change: clothes`, blue in `words`, sheet as `image1` | **2/3: RED** | fails: a plain photo + "as a whole-picture edit" ran klein-9b/kleinEdit |
+| `sheet-editor-shirt` | `SHEET` (ninja sheet) + "Change the shirt to blue." | `character-sheet-editor`, `change: clothes`, blue in `words`, sheet as `image1` | 3/3 after 88494c1b0 (2/3 before) | fails: a plain photo + "as a whole-picture edit" ran klein-9b/kleinEdit |
 
 **Finding (the editor case, not fixed: needs Fabio).** 3 of 9 runs never generated: Cosmo asked
 "Mask or Whole-picture edit?" (`[options: Mask | Whole-picture edit]`) on the sheet, twice without even
@@ -1050,6 +1050,14 @@ rule has no exception for a character sheet, whose change is the Editor's on eve
 (not applied): add to that rule "A character sheet (front, back and close-up of one character) is never
 that question: any change to it is Character Sheet Editor (app:flows)."
 
+**Fixed 2026-10-17 (`88494c1b0`, Fabio approved the wording).** The Route rule in
+`services/agentLoop.mjs` now says, right after the one-area question: "A character sheet (front,
+back and close-up of one character) is never that question: any change to it is Character Sheet
+Editor (app:flows)." `docs/agent/flows.md` also lists the Editor's full `change` values (makeup,
+tattoos, beard and custom were missing). `sheet-editor-shirt` **3/3** (DeepSeek-V4-Flash, $0.0124);
+`--bite` still bites: the plain photo + "as a whole-picture edit" ran klein-9b/kleinEdit ($0.0152).
+`node --test tests/agent-bench.test.cjs` 17/17.
+
 **Bench fixes on the way.** The capture's Flow rows had no `media` slots, which GET /connector/models
 folds in (`routes/connector.js` flowList), so one run put the sheet in as `source`; every Flow row now
 gets `mediaRolesFor(registry, op, null)` as the route does. Character Sheet from Images and the Editor
@@ -1058,3 +1066,43 @@ them), and the fake `openFlow` answers `at` the way the app's `openAt` does.
 
 Spent: $0.1524 of the $0.20 allowed (CLI cost lines: 0.0286 + 0.0279 + 0.0108 + 0.0153 + 0.0062 + 0.0636).
 `node --test` on agent-bench, bench-community, llm-connection: 48/48 pass.
+
+## ff1 / ff2: Accessories pass 1 on the front body | close-up only (session "New character sheets 44", 2026-10-17)
+
+Fabio's eye-test fail flowCSE_069 ("A basketball under his arm", words only, on flowCharacterSheet_070 = the card's
+Headless version, grey face): front without the ball, the ball on the back view only, a chain on it, a sliver of
+pass 1's back-view ball right of cut 2. Fabio: every object a prompt names gets drawn ("chain", "strap", "pendant",
+probably "back" too). Fix benched: `Input_Front_Crop` (`patch_raw_front_crop.py`): pass 1 sees the front panel
+[0, cut1) | the close-up panel [cut2, W) side by side and its words name only those ("The full-body figure on the left
+and the close-up portrait on the right both show it"); the sheet is rebuilt edited front | ORIGINAL back panel |
+edited close-up; the back pass turns the front round as before, its accessory line cut to "Show only what can be
+seen from behind." (no example objects). Script: session 97f07a80 scratchpad `ff1.py` (app strings via
+qh47_params.mjs, cuts as the app measures them), G: bench, seeds 46001-46004.
+
+| case | sheet | front | close-up | back view | verdict |
+|---|---|---|---|---|---|
+| ball "A basketball under his arm" | 070 | 4/4 | - | 4/4, same side as the front, no chain | **pass** (s3: a small brown arc at the close-up's left edge, the ball bled over the canvas seam) |
+| pack "A black hiking backpack" | 070 | 4/4 | - | 4/4 | **pass** (s0 carried in the hand in both views, s1-s3 worn) |
+| ear "Large gold hoop earrings" | 044 | 4/4 (small) | 4/4 | 4/4 hoops below the hair | **pass** |
+| neck "A long gold necklace with a heart pendant" | 044 | 4/4 | 4/4 | **0/4: the heart pendant hangs on her back** | FAIL |
+| pjewel picture imported_014 + "Earrings and necklaces" | 044 | 2/2 | 2/2 | 2/2 (a chain at the nape only) | **pass** |
+| pgun picture imported_016 + "Mini gun" | 070 | **0/2: the gun replaces the head** (the grey face) | ok | no gun | FAIL, control below |
+
+ff2 (`ff2.py`, back pass only changed, pass 1 identical): B2 "Show only what can be seen from behind: whatever is on
+the front of the body is hidden by the body." -> pendant on the back still 4/4. B4 no accessory sentence at all -> the
+pendant gone, but so are the backpack (2/2) and the ball (2/2) from behind. The user's words in the back pass draw
+the pendant; without them the turn-around loses what does show from behind.
+
+Mini gun control (picture imported_016): on flowCharacterSheet_069 (the face version) and on 044, 2/4 (the misses
+float the gun or put it in the close-up). Fabio (2026-10-17): held props like a minigun change the whole pose and are
+not an accessory; Accessories = things worn with the outfit + a walking stick or staff; weapons go to an image edit
+model and the post-2.1 weapons sheet. Hint text + docs/agent/flows.md say so. Picture runs keep the front crop.
+
+ff3 (shipped path, `FRONT_HANGING` words take no back pass, seeds 46001-46004):
+- neck3 "A long gold necklace with a heart pendant" (044): **4/4** pendant on the front and in the close-up, the back
+  view the sheet's own (no back pass, ~60 s instead of ~110 s).
+- stick3 "A wooden walking stick" (070): front 4/4, close-up untouched; back view has a stick 4/4 but on the RIGHT
+  side 1/4 (s1, s2 mirrored; s0 a stick on BOTH sides). Known partial, shipped: the turn-around mirrors a thin held
+  thing like a one-limb tattoo. Next: bench naming the side as the picture's side (fa3 showed Qwen follows that,
+  not the character's left/right).
+`node --test` character-sheet-editor, agent-prompt-budget, agent-corpus, agent-bench, flow*: all pass.
