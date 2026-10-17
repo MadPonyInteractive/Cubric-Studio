@@ -9,8 +9,13 @@ the G3 back view): pass 1 + "Add nothing else" (the thigh pouch), pass 2 turns t
 the INPUT sheet's back figure (`patch_raw_back_ref.py`, shared with Tattoos: the outfit's back now stays), and "show
 only what can be seen from behind" (Fabio caught a pendant drawn on her back). Benches ac1-ac3 in validation.md; shipped
 path = bench pixel for pixel; Tattoos roses land on the right arm with straps kept. Fabio: minigun one-handed = steer
-with words; inside-leg tattoo turned round = leave it. NEXT: Fabio's eye tests (Accessories words + picture, Tattoos),
-face tattoos, close-out.
+with words; inside-leg tattoo turned round = leave it. Pushed 3c6534b87. NEXT (Fabio, end of session 41): (1) a
+BACK-ONLY tattoo picture (t_back, imported_021) must land on the back - the back pass loses it (pass 2 gets no tattoo
+picture, and the edited front shows none); Fabio says back-only once worked in one pass (r34/r35), and the back is
+easier than a leg. Candidate: when the words/picture say back, skip or feed pass 2 differently (e.g. image 2 = the
+pass-1 EDITED back figure, which has the back tattoo). (2) a full-body tattoo picture must NOT ink the FACE (earlier
+runs invented face tattoos on a bare face): bench a "no tattoo on the face unless image 2 shows one" line. Then
+Fabio's eye tests (Accessories words + picture, Tattoos), face tattoos, close-out.
 
 2026-10-17 later (session "New character sheets 40") - LATEST. BEARD EYE-TESTED PASS by Fabio (words, empty box,
 picture; e.g. "A blue long Viking beard with braids"). Pushed 7c5158e53. Status bar fix (Fabio: a Flow's bar was
