@@ -708,7 +708,7 @@ export function submitFlowGeneration(flowOrId, { runPass = null, ...inputs } = {
     if ((!_leg.tempId || laterPass) && describeAsks(describing, describeRun.injectionParams, mediaItems).length) {
         (io.describe || describeFlowRun)(describing, describeRun, runOriginProject || state.currentProject).then((d) => {
             // Cancelled while it described (MPI-1083): whatever the describer said, nothing is queued.
-            if (handle.cancelled || d.cancelled) return runCallbacks.onCancel?.();
+            if (handle.cancelled || d.cancelled) return runCallbacks.onCancel?.({ stopped: true });
             if (!d.ok) {
                 Events.emit('ui:warning', { message: d.message });
                 return runCallbacks.onError?.(Object.assign(new Error(d.message), { code: d.code || 'DESCRIBE_FAILED', userMessage: d.message }));
