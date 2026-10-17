@@ -1,0 +1,4 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1169", "at": "2026-10-17T15:14:24+01:00", "actor": "claude", "column": "todo", "title": "Cosmo hears clip audio"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1169", "type": "task.updated", "at": "2026-10-17T15:27:02+01:00", "actor": "claude", "summary": "Description: transcriber + the point-to-MCP line."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1169", "type": "task.updated", "at": "2026-10-17T17:00:58+01:00", "actor": "claude", "summary": "Plan attached; waits on the agentLoop.mjs claim held by Cosmo ref understanding 2."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1169", "at": "2026-10-17T17:02:09+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started (umbrella MPI-1170 Phase 1B)."}

@@ -237,6 +237,32 @@ export async function storeLook(imagePath, itemId, text, describer) {
         { itemId, updates: { look: { text, ...(describer && { describer }), at: new Date().toISOString() } } }, 10_000);
 }
 
+/**
+ * POST /connector/transcribe { path } — the words spoken in a clip (MPI-1169), through the
+ * transcriber picked for dictation. No client budget, like `look`: a ComfyUI run queues.
+ */
+export async function transcribe(args) {
+    return _post('/connector/transcribe', args);
+}
+
+/** What a card's clip was heard to say, `{ text, audio }`, kept beside its look; or null. */
+export async function storedHeard(clipPath, itemId) {
+    const store = lookStore(clipPath, itemId);
+    if (!store) return null;
+    try {
+        return JSON.parse(await fs.readFile(store.metaPath, 'utf8')).heard || null;
+    } catch { return null; }
+}
+
+/** Keep what a card's clip was heard to say, by the same route and rules as `storeLook`. */
+export async function storeHeard(clipPath, itemId, heard) {
+    const store = lookStore(clipPath, itemId);
+    if (!store) return;
+    try { await fs.access(store.metaPath); } catch { return; }
+    await _post(`/project-media/agent/update-meta?folderPath=${encodeURIComponent(store.folderPath)}`,
+        { itemId, updates: { heard: { ...heard, at: new Date().toISOString() } } }, 10_000);
+}
+
 /** GET /connector/projects — the user's projects, most recent first. */
 export async function listProjects() {
     return _get('/connector/projects', 30_000);

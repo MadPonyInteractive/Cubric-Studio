@@ -119,7 +119,7 @@ function _mark(host, stateName) {
     btn.dataset.dictate = stateName;
     btn.setActive?.(stateName === 'recording' || stateName === 'held');
     const backend = Storage.getDictationBackend();
-    const ready = backend === 'ollama' || (backend === 'comfy' ? pluginAvailability(DICTATION_PLUGIN).installed : hasCloudKey());
+    const ready = !transcriberMissing();
     btn.setDisabled?.(stateName === 'busy' || !ready);
     btn.dataset.info = backend === 'ollama' ? INFO_LOCAL
         : backend === 'comfy' ? (ready ? INFO_COMFY : INFO_NO_PLUGIN)
@@ -163,15 +163,35 @@ async function _finish(take) {
         return;
     }
     _mark(host, 'busy');
-    const blob = new Blob(take.chunks, { type: take.recorder.mimeType || 'audio/webm' });
-    if (Storage.getDictationBackend() === 'comfy') {
-        // A queued generation: the queue owns the status bar, so none is borrowed here.
-        const res = await transcribeComfy(blob);
-        if (res.ok) _insert(host.textarea, res.text);
-        else if (!res.cancelled) Events.emit('ui:warning', { message: `Dictation failed: ${res.error}` });
-        _mark(host, 'idle');
-        return;
-    }
+    const res = await transcribeBlob(new Blob(take.chunks, { type: take.recorder.mimeType || 'audio/webm' }));
+    if (res.ok) _insert(host.textarea, res.text);
+    else if (!res.cancelled) Events.emit('ui:warning', { message: `Dictation failed: ${res.error}` });
+    _mark(host, 'idle');
+}
+
+/**
+ * Why the picked transcriber cannot run now, or null when it can: no DeepInfra key, or the
+ * Speech to text plugin not installed for ComfyUI. Ollama is not checked here; its route says.
+ */
+export function transcriberMissing() {
+    const backend = Storage.getDictationBackend();
+    if (backend === 'ollama') return null;
+    if (backend === 'comfy') return pluginAvailability(DICTATION_PLUGIN).installed ? null : 'Speech to text is not installed: install it in the Remote panel, Where each job runs.';
+    return hasCloudKey() ? null : 'Speech to text needs a DeepInfra key: add one in the Remote panel.';
+}
+
+/**
+ * Words from a recording, through the transcriber the user picked in Settings (MPI-1071):
+ * DeepInfra, Ollama or the ComfyUI queue. Dictation's mic and Cosmo hearing a clip
+ * (MPI-1169, `agent.transcribe`) both come here, so one setting serves both. Never rejects.
+ * @param {Blob} blob
+ * @returns {Promise<{ok:boolean, text?:string, code?:string, error?:string, cancelled?:boolean}>}
+ */
+export async function transcribeBlob(blob) {
+    const missing = transcriberMissing();
+    if (missing) return { ok: false, code: 'NOT_SET_UP', error: missing };
+    // A queued generation: the queue owns the status bar, so none is borrowed here.
+    if (Storage.getDictationBackend() === 'comfy') return transcribeComfy(blob);
     // The status bar shows the wait (Fabio, MPI-1071), like the GIF cutout: pulse + clock. It is the
     // generations' bar, so only an idle one is borrowed, and it is handed back with the silent
     // cancel() (complete() would book the take as a generation) unless a generation took it meanwhile.
@@ -193,17 +213,13 @@ async function _finish(take) {
             body: blob,
         });
         const json = await res.json();
-        if (!json?.ok) {
-            Events.emit('ui:warning', { message: json?.error?.message || 'Dictation failed.' });
-            return;
-        }
-        _insert(host.textarea, json.text);
+        if (!json?.ok) return { ok: false, code: json?.error?.code, error: json?.error?.message || 'the transcriber gave no words.' };
+        return { ok: true, text: json.text };
     } catch (err) {
         clientLogger.warn('dictation', `transcribe failed: ${err?.message || err}`);
-        Events.emit('ui:warning', { message: 'Dictation failed: the app could not reach its own server.' });
+        return { ok: false, error: 'the app could not reach its own server.' };
     } finally {
         if (bar && !generationStore.getSnapshot().running.length) StatusBar.progress.cancel();
-        _mark(host, 'idle');
     }
 }
 

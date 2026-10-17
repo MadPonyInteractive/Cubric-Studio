@@ -1,0 +1,7 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1168", "at": "2026-10-17T15:14:22+01:00", "actor": "claude", "column": "todo", "title": "Smarter clip viewing"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1168", "type": "task.updated", "at": "2026-10-17T15:16:09+01:00", "actor": "claude", "summary": "Compact plan attached (plan.md)."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1168", "type": "task.updated", "at": "2026-10-17T15:27:02+01:00", "actor": "claude", "summary": "Rescoped to MCP only; Cosmo unchanged (Fabio 2026-10-17)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1168", "at": "2026-10-17T16:52:47+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started (umbrella MPI-1170 Phase 1A)."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1168", "type": "checklist.updated", "at": "2026-10-17T17:00:13+01:00", "actor": "claude", "summary": "Implementation checked."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1168", "type": "validation.updated", "at": "2026-10-17T17:00:13+01:00", "actor": "claude", "summary": "Auto verify passed: card-view 7/7, mcp+agent-loop 227 pass; real clips checked."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1168", "type": "task.updated", "at": "2026-10-17T17:00:13+01:00", "actor": "claude", "summary": "maturity validating; commit at close-out."}

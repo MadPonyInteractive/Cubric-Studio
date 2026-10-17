@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "services/cardView.js",
+    "routes/mcp.js",
+    "tests/card-view.test.cjs",
+    "tests/mcp.test.cjs",
+    "docs/mcp-server.md"
+  ]
+}

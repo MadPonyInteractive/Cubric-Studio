@@ -79,7 +79,11 @@ only tool with `destructiveHint: true`.
   same route, from the open project ([agent-chat.md](agent-chat.md)).
 - **Results** carry the disk path plus the gallery's 512px thumb as MCP `image` content, so a
   vision model sees what it made. `view_card` (`services/cardView.js`) shows a still, or a video
-  or GIF as ONE contact sheet (frames picked by index, GIF delays from sharp).
+  or GIF as SEPARATE frames up to 1024px, several MCP `image` parts after the text (MPI-1168,
+  borrowed from the Watch skill). Frames: every shot's middle frame (a cut = a 16x16-grey jump past
+  16 AND 3x the change around it, so a pan is not cut), the rest spread evenly, near-identical ones
+  dropped (a still clip returns one); `from`/`to` narrow the clip, times stay the clip's own.
+  Cosmo's `look` keeps the old ONE 6-frame contact sheet: its describer takes one image, 1 MP.
 - **Routines** (MPI-1009; the feature is [agent/routines.md](agent/routines.md), MPI-970). One
   verb a tool, so only the delete is destructive. `list_routines` with a `name` reads one with
   its steps. `run_routine` resolves the project once and sends that folder to BOTH

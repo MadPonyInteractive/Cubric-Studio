@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "services/agentLoop.mjs",
+    "services/agentTools.mjs",
+    "routes/connector.js",
+    "js/shell/agentDispatch.js",
+    "js/services/dictation.js",
+    "tests/agent-loop.test.cjs",
+    "tests/agent-prompt-budget.test.cjs",
+    "docs/agent-chat.md",
+    "services/clipAudio.js",
+    "tests/clip-audio.test.cjs"
+  ]
+}

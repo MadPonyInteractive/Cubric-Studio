@@ -264,6 +264,18 @@ test('view_card hands back the picture itself, and refuses what is not one', asy
     assert.deepEqual(JSON.parse(r.content[0].text), { ok: true, kind: 'image', width: 2048, height: 1024 });
     const { width } = await require('sharp')(Buffer.from(r.content[1].data, 'base64')).metadata();
     assert.equal(width, 1024, 'a big still is shrunk to the view size');
+    // MPI-1168: a clip comes back as separate pictures, one per shot, after the text.
+    const clip = path.join(media, 'shots.mp4');
+    const colour = (c) => ['-f', 'lavfi', '-i', `color=c=${c}:s=64x48:d=0.5:r=24`];
+    require('child_process').execFileSync(require('../services/ffmpegBinary').ffmpegPath, ['-v', 'error', ...colour('red'), ...colour('blue'),
+        '-filter_complex', '[0][1]concat=n=2:v=1', '-pix_fmt', 'yuv420p', clip], { windowsHide: true });
+    const v = await call('view_card', { path: clip });
+    assert.equal(v.isError, false);
+    const info = JSON.parse(v.content[0].text);
+    assert.equal(info.kind, 'video');
+    assert.match(info.frames, /^2 pictures in clip order, at /);
+    assert.deepEqual(v.content.slice(1).map((c) => c.type), ['image', 'image']);
+    assert.equal(JSON.parse((await call('view_card', { path: clip, from: 0.6, to: 0.2 })).content[0].text).error.code, 'BAD_RANGE');
     assert.equal(JSON.parse((await call('view_card', { path: __filename })).content[0].text).error.code, 'UNSUPPORTED_FILE');
     assert.equal(JSON.parse((await call('view_card', { path: path.join(media, 'gone.png') })).content[0].text).error.code, 'FILE_NOT_FOUND');
 });

@@ -391,24 +391,29 @@ const TOOLS = {
     },
     view_card: {
         title: 'View a card',
-        description: 'Look at an image or video: a still comes back as a picture up to 1024px; a video or GIF as ONE contact sheet of frames spread across the clip, left to right then top to bottom, with each frame\'s time. Use it to judge motion, check a result, or see a card you did not make. Sound is not included.',
+        description: 'Look at an image or video: a still comes back as a picture up to 1024px; a video or GIF as separate frames up to 1024px, one per shot (spread evenly when it is one long take), near-identical frames dropped, in order, with each frame\'s time. Use it to judge motion, check a result, or see a card you did not make. To look closer at part of a clip, call again with from and to. Sound is not included.',
         inputSchema: obj({
             path: { type: 'string', description: 'A file on disk: a card\'s path from list_cards or a generate result, or an image or video the user named.' },
-            frames: { type: 'integer', description: 'Video only: how many frames, 2-12. Default 6.' },
+            frames: { type: 'integer', description: 'Video only: at most how many frames, 2-12. Default 6.' },
+            from: { type: 'number', description: 'Video only: start of the part to look at, in seconds.' },
+            to: { type: 'number', description: 'Video only: end of the part to look at, in seconds.' },
         }, ['path']),
         annotations: READ,
-        run: async ({ path: p, frames }) => {
+        run: async ({ path: p, frames, from, to }) => {
             const file = typeof p === 'string' ? path.resolve(p) : '';
             if (!isViewable(file)) return { ok: false, error: { code: 'UNSUPPORTED_FILE', message: `"${p}" is not an image, video or GIF.` } };
             if (!fs.existsSync(file)) return { ok: false, error: { code: 'FILE_NOT_FOUND', message: `No file at "${p}".` } };
-            const v = await viewFile(file, { frames });
-            const info = v.kind === 'image'
-                ? { ok: true, kind: 'image', width: v.width, height: v.height }
-                : {
-                    ok: true, kind: 'video', width: v.width, height: v.height, durationSeconds: v.duration, hasAudio: v.hasAudio,
-                    sheet: `${v.times.length} frames, ${v.columns} per row, left to right then top to bottom, at ${v.times.map((s) => `${s}s`).join(', ')}.${v.hasAudio ? ' The clip has sound, which you cannot hear here.' : ''}`,
-                };
-            return { ...info, _image: v.data.toString('base64') };
+            const bad = [from, to].some((s) => s !== undefined && !(Number.isFinite(s) && s >= 0));
+            if (bad || (from !== undefined && to !== undefined && to <= from)) {
+                return { ok: false, error: { code: 'BAD_RANGE', message: 'from and to are seconds into the clip, from before to.' } };
+            }
+            const v = await viewFile(file, { frames, from, to, scene: true, separate: true });
+            if (v.kind === 'image') return { ok: true, kind: 'image', width: v.width, height: v.height, _image: v.data.toString('base64') };
+            return {
+                ok: true, kind: 'video', width: v.width, height: v.height, durationSeconds: v.duration, hasAudio: v.hasAudio,
+                frames: `${v.times.length} pictures in clip order, at ${v.times.map((s) => `${s}s`).join(', ')}.${v.hasAudio ? ' The clip has sound, which you cannot hear here.' : ''}`,
+                _images: v.frames.map((f) => f.data.toString('base64')),
+            };
         },
     },
     rename_card: {
@@ -780,12 +785,12 @@ async function callTool(name, args, rpcKey) {
     const tool = TOOLS[name];
     if (!tool) return { isError: true, content: [{ type: 'text', text: `Unknown tool "${name}".` }] };
     try {
-        const { _image, ...r } = (await tool.run(args || {}, rpcKey)) ?? {};
+        const { _image, _images, ...r } = (await tool.run(args || {}, rpcKey)) ?? {};
         return {
             isError: r.ok === false,
             content: [
                 { type: 'text', text: JSON.stringify(r) },
-                ...(_image ? [{ type: 'image', data: _image, mimeType: 'image/webp' }] : []),
+                ...[...(_image ? [_image] : []), ...(_images || [])].map((data) => ({ type: 'image', data, mimeType: 'image/webp' })),
             ],
         };
     } catch (err) {

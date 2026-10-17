@@ -1,0 +1,22 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1169",
+  "title": "Cosmo hears clip audio",
+  "description": "Umbrella MPI-1170: a clip with sound is transcribed through the user's selected transcriber (ComfyUI qwen3-asr is good and light; DeepInfra caps at 60 s/25 MB) and Cosmo reads the words with its 6 frames. Plus one line: Cosmo views only 6 frames to stay cheap and points the user to MCP for more.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-17T15:14:24+01:00",
+  "updated_at": "2026-10-17T17:02:09+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  },
+  "activeSessionTitle": "Video frame limit solutions"
+}

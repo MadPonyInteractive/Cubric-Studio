@@ -76,6 +76,7 @@ import { planOutpaintPasses } from '../utils/outpaintPasses.js';
 import { loadVoiceLibrary } from '../data/voiceLibrary.js';
 import { voiceWavFile } from '../utils/toWavFile.js';
 import { describeImage } from '../services/llmService.js';
+import { transcribeBlob } from '../services/dictation.js';
 import { estimateRunCost } from '../services/cloudExecutor.js';
 import { formatPrice } from '../data/modelConstants/deepinfraPricing.js';
 import { downloadService } from '../services/downloadService.js';
@@ -2144,6 +2145,28 @@ async function _describeImage(jobId, input = {}) {
 }
 
 /**
+ * `agent.transcribe` (MPI-1169) — the words in one piece of a clip's sound, which the server
+ * cut to a WAV (`/connector/transcribe`). Through `dictation.transcribeBlob`, so Cosmo hears
+ * with the transcriber the user picked for dictation. Errors: BAD_REQUEST, NOT_SET_UP,
+ * CANCELLED, RUNTIME_ERROR, or the transcribe route's own code.
+ */
+async function _transcribeAudio(jobId, input = {}) {
+    const { audioPath } = input;
+    if (!audioPath) return _fail(jobId, 'BAD_REQUEST', 'audioPath is required.');
+    let blob;
+    try {
+        const res = await fetch(`/project-file?path=${encodeURIComponent(audioPath)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        blob = new Blob([await res.blob()], { type: 'audio/wav' });
+    } catch (err) {
+        return _fail(jobId, 'RUNTIME_ERROR', `The sound could not be read: ${err.message}`);
+    }
+    const r = await transcribeBlob(blob);
+    if (r.ok) return _report(jobId, { ok: true, output: { text: r.text || '' } });
+    return _fail(jobId, r.code || (r.cancelled ? 'CANCELLED' : 'RUNTIME_ERROR'), r.error || 'The transcription failed.');
+}
+
+/**
  * Run one `generation.cancel` job: stop the submit that went out under `input.jobId`, whether
  * it is still waiting in the Cue queue or already rendering. Through the queue's OWN cancel
  * functions — the same ones the Cue panel's buttons call — so the lane drains, the next job
@@ -2181,6 +2204,7 @@ const _HANDLERS = {
     'agent.install-flow': _installFlow,
     'agent.install-engine': _installEngine,
     'agent.describe': _describeImage,
+    'agent.transcribe': _transcribeAudio,
     // MPI-830: the GIF verbs. They live in gifJobs.js — this file's contract is
     // one job in, one result out, and those four run whole pipelines (ffmpeg
     // routes, the cut-out engine, landing the card). They answer in the

@@ -23,6 +23,9 @@
 | G8 | Card import copies only the selected item and is not agent-reachable; Story refs would dangle | 5 (MPI-1136) |
 | G9 | Nothing tracks "card used by card" (MPI-920 idea only) | 7 |
 | G10 | Routines are the wrong shape for shots (routines.md:157); Flow `passes` planner is the closest fit | 4 |
+| G11 | `list_cards` / `readCard` (`services/agentCards.mjs:106-131`, `:238-268`) never return a card's cached `look` or its notes, though both are on disk; `list_cards` cuts the prompt to 200 chars and caps at 30 rows | 5b |
+| G12 | `POST /combine-videos` (`routes/videoConcat.js:102-121`, `:185-187`) records no source clips or in/out times — which clips went in is lost | 5b |
+| G13 | Cosmo sees a clip as ONE 6-frame sheet through a one-image, 1 MP describer, and its chat model is text-only: imported long footage is effectively unwatchable | 5b |
 
 ### How it ships — master, behind `dev_mode`, no branch (Fabio, 2026-10-13)
 
@@ -125,6 +128,40 @@ Sequential after 1A (it consumes the validator).
 - [ ] MPI-1136 card import for agents, Story cards carry their takes (G8). **Verify:** importing a
   Story card into another project leaves zero dangling refs (validator passes there).
 
+## Phase 5b: Video understanding for long work — `auto`, model tests cost money
+
+Moved here from MPI-1170 "Cosmo understands video" (Fabio, 2026-10-17). Rule: **a generated clip's own
+prompt is read first; watching is for imported footage.** For a Story, the shot prompts are enough for
+Cosmo and MCP to place clips into a sensible scene. MPI-1170 keeps only MCP viewing (MPI-1168) and
+Cosmo listening (MPI-1169); this phase builds on both.
+
+- [ ] **Cosmo reads what is already known (G11).** `readCard` returns `look` and notes; `list_cards`
+  can page past 30 rows and summarise per Story/scene rather than per card.
+  **Verify:** agent-loop test reads a card's look + note; budget test passes.
+- [ ] **Joined videos keep their recipe (G12).** Combine writes its source item ids + in/out
+  (Mix `videoLane` shape, `js/data/mixRecipe.js`) to the output sidecar.
+  **Verify:** route test — a combined clip's sidecar lists its inputs in order.
+- [ ] **Video-input describer (G13).** Test DeepInfra models tagged `input-video` +`tools`
+  (checked 2026-10-17, per 1M tokens in/out): `inclusionAI/Ling-3.0-flash-VL` $0.06/$0.18,
+  `nvidia/NVIDIA-Nemotron-3.5-Super-VL` $0.10/$0.40, `XiaomiMiMo/MiMo-V2.6-Flash` $0.14/$0.28 (also
+  `input-audio`, 1M context). Video format and length limits are UNDOCUMENTED — a real call settles
+  them; ask Fabio before spending. If one works, the Remote describer sends the clip itself; ComfyUI
+  keeps the sheet. **Verify:** bench evidence per model in research/, then one look on a real clip.
+- [ ] **Vision chat model "recommended for video".** A DeepSeek-Flash-class agent model that can SEE
+  images, so Cosmo runs the MPI-1168 MCP process itself (separate frames, scene pick, `from`/`to`)
+  with no describer in between. Needs an agent-bench run per candidate before it is recommended.
+  Also closes the MPI-1164 look leak: given a reference "for this grain / grading / light", Cosmo
+  writes the named quality into the prompt every run, but also copies qualities nobody asked for (the
+  photo's grain onto a light ask, 6/6 on DeepSeek V4 Flash), because it only sees the describer's
+  whole-picture text. A model that sees the picture can take just the named quality. Bench cases
+  look-grain/grade/light-into-prompt in `services/agentBench.mjs`; add the "only that quality"
+  assertion back when re-testing (removed in e5f4f9a00).
+  **Verify:** agent-bench pass + a camera-move clip read correctly.
+- [ ] **Scene index for imported footage.** Split a long import into shots once (the MPI-1168 scene
+  pick), describe each shot once into its sidecar, let Cosmo search the text and zoom with `from`/`to`.
+  After the describer/model choice above. **Verify:** a 10-minute import indexes once; a second
+  question answers from the index with no new vision call.
+
 ## Phase 6: Storyboard workspace — `user-ux`
 
 - [ ] Fully editable page for the Story card (`/impeccable` + components rules). **Verify:**
@@ -138,7 +175,8 @@ Sequential after 1A (it consumes the validator).
 
 ## Plan Drift
 
-- None yet.
+- 2026-10-17: Phase 5b + gaps G11-G13 added from the MPI-1170 brainstorm (video understanding for long
+  work, video-input models, vision chat model, scene index).
 
 ## Verification
 

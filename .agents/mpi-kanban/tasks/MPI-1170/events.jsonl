@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1170", "at": "2026-10-17T15:19:08+01:00", "actor": "claude", "column": "todo", "title": "Cosmo understands video"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1170", "type": "task.updated", "at": "2026-10-17T15:27:02+01:00", "actor": "claude", "summary": "Umbrella plan attached (plan.md); long-video items moved to MPI-1134."}

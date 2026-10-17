@@ -937,7 +937,30 @@ export class AgentLoop {
         await fs.promises.writeFile(sheetPath, sheet.data);
         const prefix = `This is a contact sheet of ${sheet.times.length} frames from a ${sheet.duration}s clip, `
             + `${sheet.columns} per row, left to right then top to bottom, at ${sheet.times.join('s, ')}s.`;
-        return this._look({ imagePath: sheetPath, question: question ? `${prefix} ${question}` : prefix });
+        const r = await this._look({ imagePath: sheetPath, question: question ? `${prefix} ${question}` : prefix });
+        const heard = r?.ok ? await this._hearClip(ref, sheet.hasAudio) : '';
+        // `seen` is the describer's own text: the one `_lookOnce` keeps as the card's look.
+        return heard ? { ...r, output: { ...r.output, seen: r.output.text, text: `${r.output.text || ''}${heard}` } } : r;
+    }
+
+    /**
+     * MPI-1169 — the words spoken in a clip, as a line to add to its look ('' when it has no
+     * sound). Heard through the transcriber the user picked for dictation, ONCE per card (kept in
+     * the sidecar's `heard`, like `look`); an attachment is heard live each time. A transcriber
+     * that is not set up says so in the line and is not kept, so it is tried again once it is.
+     * `hasAudio` undefined (a kept look, no sheet in hand): the route answers NO_AUDIO itself.
+     */
+    async _hearClip(ref, hasAudio) {
+        if (hasAudio === false || !this._tools.transcribe) return '';
+        let heard = ref.itemId ? await this._tools.storedHeard(ref.path, ref.itemId).catch(() => null) : null;
+        if (!heard) {
+            const r = await this._tools.transcribe({ path: ref.path });
+            if (r?.ok) heard = { text: String(r.output?.text || '').trim(), audio: true };
+            else if (r?.error?.code === 'NO_AUDIO') heard = { text: '', audio: false };
+            else return `\nIt has sound I could not hear: ${r?.error?.message || 'the transcription failed.'}`;
+            if (ref.itemId) await this._tools.storeHeard(ref.path, ref.itemId, heard).catch(() => {});
+        }
+        return heard.audio ? `\nHeard:${heard.text ? `\n${heard.text}` : ' no words, only sound.'}` : '';
     }
 
     /**
@@ -956,11 +979,11 @@ export class AgentLoop {
         this._lookWasCached = !!kept;
         if (kept) {
             _logLook(ref, kept, true);
-            return { ok: true, output: { text: kept } };
+            return { ok: true, output: { text: CLIP_EXT.test(ref.path) ? `${kept}${await this._hearClip(ref)}` : kept } };
         }
         const r = CLIP_EXT.test(ref.path) ? await this._describeClip(ref) : await this._look({ imagePath: ref.path });
         // Awaited: the model's own look at a waited still arrives within the same turn.
-        if (r?.ok && r.output?.text && ref.itemId) await this._tools.storeLook(ref.path, ref.itemId, r.output.text, r.output.describer).catch(() => {});
+        if (r?.ok && r.output?.text && ref.itemId) await this._tools.storeLook(ref.path, ref.itemId, r.output.seen ?? r.output.text, r.output.describer).catch(() => {});
         _logLook(ref, r?.ok ? r.output?.text : `FAILED: ${r?.error?.message || 'no reason given'}`, false);
         return r;
     }
@@ -2041,7 +2064,7 @@ Docs rule: for a question about the app or something it does, first read the App
 
 Honest limits (I'm still a baby — this is my first version):
 - I never delete cards, media, notes or projects, and never look for a way. My own routines are the exception: I rename and delete those. You can: a card from the gallery (right-click it, Delete, which removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
-- I hear no audio, and see a clip only as sampled frames, never the motion between them.
+- I see a clip as 6 frames to stay cheap, and hear its speech. MCP view_card shows more.
 - I cannot paint masks, or use the mask, paint, composite and transform tools myself. I can USE a mask you have painted: ask me for a change to one area and I will tell you what to paint.
 - I cannot move your view myself. The app opens where a result renders, unless you are mid-edit with a canvas tool or have a window open; then the result card in this chat takes you there.
 - I cannot control RunPod.

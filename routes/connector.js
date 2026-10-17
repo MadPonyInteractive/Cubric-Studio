@@ -86,6 +86,7 @@ const { isRemoteActive } = require('./remoteModels');
 const { resolveDownloadConfig } = require('./platformEngine');
 const { gpuArch } = require('../js/data/modelConstants/gpuArch.js');
 const { checkOnline } = require('./netCheck');
+const { cutAudio, stamp } = require('../services/clipAudio');
 // sharp is an optional peer during testing — guard against it being absent so
 // unit tests that do not exercise image crop can still import this module.
 let _sharp = null;
@@ -1569,6 +1570,48 @@ router.post('/connector/describe', async (req, res) => {
     logger.warn('connector', `describe: could not read the size of ${imagePath}: ${err.message}`);
   }
   res.json(imageSize ? { ...result, output: { ...result.output, imageSize } } : result);
+});
+
+/**
+ * POST /connector/transcribe { path } — MPI-1169: the words spoken in a clip, for Cosmo's look.
+ *
+ * The sound is cut into pieces of at most 60 s (services/clipAudio.js), and each piece goes to
+ * the renderer's `agent.transcribe`, which runs the transcriber the user picked for dictation:
+ * DeepInfra, Ollama or ComfyUI. Lines come back as `[m:ss] words`, timed by the clip.
+ * `output.text` is '' when the clip has sound but no words.
+ * Errors: BAD_REQUEST, FILE_NOT_FOUND, NO_AUDIO, NOT_SET_UP, APP_UNAVAILABLE, RUNTIME_ERROR, TIMEOUT.
+ */
+router.post('/connector/transcribe', async (req, res) => {
+  const file = req.body?.path;
+  if (!file || typeof file !== 'string') {
+    return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.path is required.' } });
+  }
+  if (!(await fs.pathExists(file))) {
+    return res.json({ ok: false, error: { code: 'FILE_NOT_FOUND', message: `File not found: ${file}` } });
+  }
+  const dir = _agentCropsDir();
+  let pieces = null;
+  try {
+    await fs.ensureDir(dir);
+    pieces = await cutAudio(file, dir);
+    if (!pieces) return res.json({ ok: false, error: { code: 'NO_AUDIO', message: 'The clip has no sound.' } });
+    const lines = [];
+    for (const piece of pieces) {
+      const r = await _dispatchToRenderer('agent.transcribe', { audioPath: piece.path });
+      if (!r.ok) {
+        logger.warn('connector', `transcribe failed: ${r.error?.code}`);
+        return res.json(r);
+      }
+      const words = String(r.output?.text || '').trim();
+      if (words) lines.push(`[${stamp(piece.start)}] ${words}`);
+    }
+    res.json({ ok: true, output: { text: lines.join('\n') } });
+  } catch (err) {
+    logger.error('connector', 'transcribe: cutting the sound failed', err);
+    res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: `The sound could not be read: ${err.message}` } });
+  } finally {
+    for (const piece of pieces || []) await fs.remove(piece.path).catch(() => {});
+  }
 });
 
 module.exports = router;
