@@ -295,6 +295,11 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
         // caption back; the fixture describes both the same anyway.
         storedLook: async (imagePath, itemId) => described.get(itemId) || null,
         storeLook: async (imagePath, itemId, text) => { described.set(itemId, text); },
+        // A clip's words (agentTools.transcribe / storedHeard / storeHeard, MPI-1169). Bench clips
+        // are fixtures with no sound file behind them, so they answer what a silent clip does.
+        transcribe: async () => ({ ok: false, error: { code: 'NO_AUDIO', message: 'This clip has no sound.' } }),
+        storedHeard: async () => null,
+        storeHeard: async () => {},
         // The project routes the way /connector/projects and /connector/create-project answer.
         listProjects: async () => ({ ok: true, projects: structuredClone(known), total: known.length }),
         createProject: async (name) => {

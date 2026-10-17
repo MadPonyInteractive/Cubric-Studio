@@ -26,6 +26,8 @@ const ALLOWED_REQUESTS = new Set([
     'POST /connector/install',
     'POST /connector/generate',
     'POST /connector/describe',
+    // MPI-1169: the words spoken in a clip Cosmo looks at. Reads the clip, writes nothing.
+    'POST /connector/transcribe',
     'POST /connector/open-project',
     'POST /connector/rename-card',
     'POST /connector/import-media',

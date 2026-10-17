@@ -70,13 +70,9 @@ Decisions (agent picks from Fabio's "pick up whatever model is selected", 2026-1
 
 ## Remaining Work
 
-- Tests (step 6): `tests/clip-audio.test.cjs` (new; name changed from connector-transcribe) —
-  130 s clip with `sine` audio -> 3 pieces at 0/60/120, silent clip -> null, `stamp(75)` = "1:15";
-  `tests/agent-loop.test.cjs` — clip with audio -> "Heard:" lines appended, `storeLook` keeps only
-  `seen`; NOT_SET_UP -> "It has sound I could not hear: ..." and nothing kept; NO_AUDIO -> no line,
-  `{audio:false}` kept; cached second look -> no transcribe call. Stub `transcribe`/`storedHeard`/
-  `storeHeard` in the default tools (makeLoop ~:95); `_hearClip` skips when `transcribe` is absent.
-- Then the user-ux check in `npm run app:isolated` (a dialogue clip + a music-only clip) and docs.
+- 2026-10-17 tests DONE (see validation.md): tests/clip-audio.test.cjs + five agent-loop (k) cases, all green.
+- NEXT: the user-ux check in `npm run app:isolated` (a dialogue clip + a music-only clip), then docs
+  (`docs/agent-chat.md` is claimed by the MPI-1164 session; wait or message), then end-session.
 
 ## Plan Drift
 

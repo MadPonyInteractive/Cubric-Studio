@@ -2415,6 +2415,74 @@ describe('(k) a look is made once and kept with the card', () => {
         assert.equal(tools.calls.look[0].question,
             'This is a contact sheet of 4 frames from a 1.5s clip, 2 per row, left to right then top to bottom, at 0.19s, 0.56s, 0.94s, 1.31s. Does the dog jump the fence?');
     });
+
+    // MPI-1169 — a look at a clip with sound also hears it, through the dictation transcriber.
+    // What was heard is kept in the sidecar's `heard`, beside the look, never inside it.
+    /** A CARD clip (it has an itemId, so a sidecar), a sheet with sound, and a heard-store. */
+    async function clipLoop(transcribeResult, { hasAudio = true, heardKept = new Map() } = {}) {
+        const made = await makeLoop({ engineResponses: [call('l1', 'look', { image: 'clip_1' }), { text: 'Done.' }] });
+        const { loop, tools } = made;
+        withStore(tools);
+        loop._images.set('clip_1', { path: '/project/Media/talk.mp4', kind: 'result', modelId: null, itemId: 'item-9', groupId: null });
+        loop._viewFile = async () => ({
+            kind: 'video', data: Buffer.from('fake-sheet-bytes'), mimeType: 'image/webp',
+            width: 640, height: 360, duration: 3.2,
+            times: [0.27, 0.8, 1.33, 1.87, 2.4, 2.93], columns: 3, hasAudio,
+        });
+        tools.calls.transcribe = [];
+        tools.calls.storeHeard = [];
+        tools.transcribe = async (args) => { tools.calls.transcribe.push(args); return transcribeResult; };
+        tools.storedHeard = async (p, itemId) => heardKept.get(itemId) || null;
+        tools.storeHeard = async (p, itemId, heard) => { tools.calls.storeHeard.push({ itemId, heard }); heardKept.set(itemId, heard); };
+        return made;
+    }
+
+    test('a clip with sound: the look carries the frames AND the words, and keeps the two apart', async () => {
+        const { loop, tools } = await clipLoop({ ok: true, output: { text: '[0:00] Hello there.\n[0:02] Who are you?' } });
+        await loop.runTurn('What happens in this clip?', [], project, 'auto', 'deepinfra', 't-hear');
+
+        assert.deepEqual(tools.calls.transcribe, [{ path: '/project/Media/talk.mp4' }]);
+        assert.equal(toolResults(loop).at(-1).output.text,
+            'A generated image showing a fox.\nHeard:\n[0:00] Hello there.\n[0:02] Who are you?');
+        assert.deepEqual(tools.calls.storeLook, [{ itemId: 'item-9', text: 'A generated image showing a fox.' }],
+            'the look keeps only what was SEEN');
+        assert.deepEqual(tools.calls.storeHeard, [{ itemId: 'item-9', heard: { text: '[0:00] Hello there.\n[0:02] Who are you?', audio: true } }]);
+    });
+
+    test('a transcriber not set up: one line saying so, no error, and nothing kept', async () => {
+        const { loop, tools } = await clipLoop({ ok: false, error: { code: 'NOT_SET_UP', message: 'Set up Speech to text in Settings.' } });
+        await loop.runTurn('What happens in this clip?', [], project, 'auto', 'deepinfra', 't-hear-unset');
+
+        const looked = toolResults(loop).at(-1);
+        assert.equal(looked.ok, true, 'the frames still answer');
+        assert.equal(looked.output.text, 'A generated image showing a fox.\nIt has sound I could not hear: Set up Speech to text in Settings.');
+        assert.deepEqual(tools.calls.storeHeard, [], 'kept nothing, so it is heard once the user sets it up');
+    });
+
+    test('a clip the route says has no sound adds no line, and that is kept', async () => {
+        const { loop, tools } = await clipLoop({ ok: false, error: { code: 'NO_AUDIO', message: 'no sound' } });
+        await loop.runTurn('What happens in this clip?', [], project, 'auto', 'deepinfra', 't-hear-none');
+
+        assert.equal(toolResults(loop).at(-1).output.text, 'A generated image showing a fox.');
+        assert.deepEqual(tools.calls.storeHeard, [{ itemId: 'item-9', heard: { text: '', audio: false } }]);
+    });
+
+    test('a clip heard before is read from the sidecar: no transcriber call', async () => {
+        const heardKept = new Map([['item-9', { text: '[0:00] Hello there.', audio: true }]]);
+        const { loop, tools } = await clipLoop({ ok: true, output: { text: 'never asked' } }, { heardKept });
+        await loop.runTurn('What happens in this clip?', [], project, 'auto', 'deepinfra', 't-hear-kept');
+
+        assert.deepEqual(tools.calls.transcribe, []);
+        assert.equal(toolResults(loop).at(-1).output.text, 'A generated image showing a fox.\nHeard:\n[0:00] Hello there.');
+    });
+
+    test('a sheet with no sound never calls the transcriber', async () => {
+        const { loop, tools } = await clipLoop({ ok: true, output: { text: 'never asked' } }, { hasAudio: false });
+        await loop.runTurn('What happens in this clip?', [], project, 'auto', 'deepinfra', 't-hear-mute');
+
+        assert.deepEqual(tools.calls.transcribe, []);
+        assert.equal(toolResults(loop).at(-1).output.text, 'A generated image showing a fox.');
+    });
 });
 
 // ---------------------------------------------------------------------------
