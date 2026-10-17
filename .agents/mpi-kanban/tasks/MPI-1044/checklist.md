@@ -16,9 +16,11 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       installRequirements:true node, rebuild the Pod image (v0.26.1). 2026-10-14: Make seamless DONE;
       Character Sheet Editor still in doing. No node_lock change from either so far: no rebuild.
       Fabio: the Pod session runs only once BOTH are finished (his yes covers ~$2, cap $5).
-- [ ] 2026-10-16 Fabio: MPI-1136 (Cosmo + MCP import a card from another project) and MPI-1154
-      (Video Edit background change describes every kept subject) also block 2.1; both running in
-      their own sessions. MPI-1154 changes Video Edit, so the Pod smoke's Video Edit run covers it.
+- [x] 2026-10-16 Fabio: MPI-1136 (Cosmo + MCP import a card from another project) and MPI-1154
+      (Video Edit background change describes every kept subject) also block 2.1. MPI-1154 changes
+      Video Edit, so the Pod smoke's Video Edit run covers it. 2026-10-17: both DONE, Fabio's eye test
+      passed (MPI-1136 became `send_cards`: cards go OUT of the open project, by hand, kind, mark or
+      newest; closed 878cb6e28. MPI-1154 closed cdd85078f).
 - [ ] One Pod session on the v0.26.0 RELEASE image: `--flows all` smoke (360 Panorama, Render path, both
       Character Sheet Flows, Video Edit, Transcribe, Make seamless, Qwen 2.1), describe-encoder check
       (MPI-1045), MPI-1097 live proof. Price and run count to Fabio first. 2026-10-14: priced ~$2 on an
