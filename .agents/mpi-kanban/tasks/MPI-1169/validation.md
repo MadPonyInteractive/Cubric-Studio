@@ -11,6 +11,16 @@
 - `node --test tests/mcp*.test.cjs tests/card-view.test.cjs tests/deepinfra-transcribe.test.cjs tests/llm-transcribe.test.cjs`
   -> 58 pass, 0 fail.
 
-## Pending
+## 2026-10-17 red master + live bug (session 9d2acce1)
 
-- Fabio's in-app listening check (`npm run app:isolated`): a dialogue clip + a music-only clip.
+- 77149de3e: CI run 39048384115 red on 9359ef377: bench `fakeTools` lacked transcribe/storedHeard/
+  storeHeard, no-delete allowlist lacked `POST /connector/transcribe`. Both added; 227 pass locally.
+- 8b4eeaadd: Fabio's live app toasted "No description was returned." on a clip with music, no speech
+  (ComfyUI transcriber; found by the "Cosmo ref understanding 2" session). The shared text-op branch
+  read an empty transcript as a failed run. `emptyTextOk` on speechTranscribe -> '' reaches onText.
+  `node tests/text-op-completion.test.cjs` ok; in-graph-enhance + output-prompt-capture 77 pass.
+
+## 2026-10-17 user check (Fabio) — PASSED
+
+- Dialogue clip: Cosmo told him what the characters were talking about.
+- Music-only clip: Cosmo described lighting, shot type and camera move; no invented words.

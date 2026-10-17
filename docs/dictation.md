@@ -13,6 +13,7 @@ the user's behalf.
 | Route, Ollama | `POST /llm/transcribe[?translate=1][&words=…]` in `routes/llm.js` (MPI-1071), same body |
 | Route, ComfyUI | the `speechTranscribe` op (`comfy_workflows/speech_to_text.json`, MpiSpeechToText + Qwen3-ASR 0.6B), queued by `transcribeComfy()` in `dictation.js`; weights = the `speech-to-text` plugin |
 | Where it runs | **Remote panel** (NOT Settings) > Where each job runs > "Speech to text" → `Storage.getDictationBackend()` (`endpoint` \| `ollama` \| `comfy`); set through `setDictationBackend()` in `dictation.js` so the mics re-mark |
+| Shared with Cosmo | `transcribeBlob(blob)` in `dictation.js` runs the picked backend on any recording; Cosmo hears clips through it (MPI-1169, [agent-chat.md](agent-chat.md) `look`). An empty ComfyUI answer is no words, not a failure (`emptyTextOk` on the op) |
 | Hotkeys | `dictation.hold` / `dictation.release` / `dictation.release.space` in `hotkeyRegistry.js` |
 | English toggle | Settings, Audio, "Dictate in English" → `Storage.getDictationTranslate()` |
 | Mounts | `MpiPromptBox` (`#dictate-slot`, after Enhance) and `MpiAgentChat` (`#ac-dictate-slot`, before Send) |
