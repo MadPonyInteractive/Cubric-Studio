@@ -41,3 +41,7 @@ No dep needed `noMirror` or a re-host. The repo answered anonymously, so users c
 GitHub issue MadPonyInteractive/Cubric-Studio#8 (froze at 994 MB / 2.9 GB): this gap is a
 plausible contributor, not a proven cause. A FROZEN bar for minutes would also mean the
 watchdog did not fire or the retries were silent; the tester's app.log decides it.
+
+## CI
+
+Tests run on 0560b87cf: success - https://github.com/MadPonyInteractive/Cubric-Studio/actions/runs/39008914309
