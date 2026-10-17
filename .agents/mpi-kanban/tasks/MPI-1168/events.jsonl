@@ -5,3 +5,4 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1168", "type": "checklist.updated", "at": "2026-10-17T17:00:13+01:00", "actor": "claude", "summary": "Implementation checked."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1168", "type": "validation.updated", "at": "2026-10-17T17:00:13+01:00", "actor": "claude", "summary": "Auto verify passed: card-view 7/7, mcp+agent-loop 227 pass; real clips checked."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1168", "type": "task.updated", "at": "2026-10-17T17:00:13+01:00", "actor": "claude", "summary": "maturity validating; commit at close-out."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1168", "at": "2026-10-17T19:55:24+01:00", "actor": "Video frame limit solutions 2", "from": "doing", "to": "done", "reason": "Auto-verified: card-view + mcp suites and real footage; CI green."}

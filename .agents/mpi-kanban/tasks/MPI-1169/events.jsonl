@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1169", "type": "task.updated", "at": "2026-10-17T15:27:02+01:00", "actor": "claude", "summary": "Description: transcriber + the point-to-MCP line."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1169", "type": "task.updated", "at": "2026-10-17T17:00:58+01:00", "actor": "claude", "summary": "Plan attached; waits on the agentLoop.mjs claim held by Cosmo ref understanding 2."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1169", "at": "2026-10-17T17:02:09+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started (umbrella MPI-1170 Phase 1B)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1169", "at": "2026-10-17T19:55:26+01:00", "actor": "Video frame limit solutions 2", "from": "doing", "to": "done", "reason": "Tests + CI green on 8b4eeaadd; Fabio's listening check passed."}
