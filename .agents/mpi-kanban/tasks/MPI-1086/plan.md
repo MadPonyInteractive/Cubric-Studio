@@ -12,6 +12,11 @@ mannequin, "same side as in image 2, none on the neck" (one side 4/4, neck mark 
 bench (fa5). Partials: neck mark from an inked neck, two designs on opposite cheeks. NEXT: Fabio's eye tests -
 Accessories (words, picture + words), Tattoos (back-only picture imported_021, full-body imported_022 -> bare face,
 face tattoos words + imported_023 picture), then close-out.
+EYE TEST FAIL (Fabio, end of session 43): Accessories words only "A basketball under his arm" on flowCharacterSheet_070
+-> flowCSE_069: pass 1's latents had the ball, but the FRONT came back without it (back view only); the back pass then
+turned that ball-less front round -> ghost (part of an arm at the right edge of the back panel), and the ball grew a
+chain/strap (suspect: the back-pass accessory line "only a chain or strap shows at the back"). NEXT: talk approach with
+Fabio BEFORE any bench. Also open: Cosmo's pick between the three character Flows was never benched (sub-session).
 
 2026-10-17 (session "New character sheets 42"). TATTOO PICTURES: (1) words naming only the back take NO back
 pass (ac4: the back piece lands on the back view; the back pass lost it, ac3). (2) a tattoo picture adds "The face
