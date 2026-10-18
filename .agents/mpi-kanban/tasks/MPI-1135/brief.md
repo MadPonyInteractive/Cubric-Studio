@@ -45,10 +45,26 @@ too high). Source / licence still to record here.
 
 ## Clip lengths: 2-5 s, never months of tests (Fabio, 2026-10-18)
 
-- **Every arm runs at 2-5 s.** They run fast and settle most questions; H3 is trained from ~4 s up,
-  but 2-5 s works fine for comparisons. Story and Infinite Video rarely go past that per shot.
+- **The first tests of every arm run at 2-5 s.** They run fast and already show tearing and most
+  defects; H3 is trained from ~4 s up, but 2-5 s works fine for comparisons. Story and Infinite
+  Video rarely go past that per shot.
+- **10 s: a skin pass** on the survivors only, for the late-clip plastic skin / overexposure that
+  2-5 s cannot show.
 - **15 s: ONE run only**, to check that the windowed refine still fits in VRAM. Not a quality arm.
-- Known blind spot, accepted: the late-clip plastic skin seen at 10 s will not show at 2-5 s.
+
+## The test shots: far, medium AND close in one clip (Fabio, 2026-10-18)
+
+Medium and close-up shots alone prove nothing. Each prompt must cross distances, so one clip shows
+small far faces, speed tearing and a close face:
+
+1. **Run at the camera**: a character runs toward the camera from far away until they reach it
+   (tiny far face -> medium -> close-up, fast motion all the way).
+2. **Side tracking run**: a side view, the camera follows the character running and jumping over
+   obstacles; at the end the camera pushes in to the face (tearing on fast motion + the face up close).
+3. A **hands / fine-motion** beat (Veda's weak spot, Benji's coin flip) can ride inside 1 or 2.
+
+Same prompts, seeds and start images for every arm. Check per clip: tearing, small far faces,
+plastic skin up close, motion pacing, audio.
 
 ## Step 0, BEFORE the model bench: three upscale arms (Fabio, 2026-10-18)
 
@@ -103,8 +119,7 @@ it also feeds MPI-688 (Video Upscale: add H3) and the H3 Flows' refine.
   (`docs/models/h3/turbo.md` § "EasyCache is gated OFF turbo"). So on turbo Veda is the only one of
   the two that can help; on the non-turbo quality path both can.
 - **Best speed-up setup**, on the winning upscale, turbo and non-turbo: none / EasyCache / Veda /
-  VSA / Veda + EasyCache (non-turbo only). Measure seconds and fast-motion quality (a hands / action
-  prompt, Benji's weak spot).
+  VSA / Veda + EasyCache (non-turbo only). Measure seconds and quality on the test shots above.
 
 ## The bench (same for both candidates)
 
