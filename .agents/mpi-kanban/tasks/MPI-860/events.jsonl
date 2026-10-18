@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-860", "at": "2026-09-20T20:01:44+01:00", "actor": "claude", "column": "todo", "title": "MiniMax cloud via BYO key - the API-only 2K finisher, and optional full cloud generation"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-860", "at": "2026-10-18T11:51:35+01:00", "actor": "claude", "from": "todo", "to": "done", "reason": "Declined by Fabio 2026-10-18."}

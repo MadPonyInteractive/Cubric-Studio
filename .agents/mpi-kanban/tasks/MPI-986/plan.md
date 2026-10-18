@@ -15,8 +15,8 @@
     in `MpiVolumeControl` as well as the components page.
   - **MPI-920** - The gallery delete dialog warns when a card is used by reference (a Mix, a
     Flow Reuse input, a GIF, an extend source). Global, not Mix-only; deleting stays allowed.
-  - **MPI-775** - YuE2 song model brainstorm (Flow, DAW widgets). Its brief says the audio
-    workspace now exists as MPI-917's design, so its widgets reuse 917's components.
+  - ~~MPI-775~~ - YuE2 song model: MOVED to MPI-1179 (New Models to Test), Fabio 2026-10-18.
+    Its widgets still reuse 917's components.
 
 ## Parallel Batch 1 (disjoint)
 
@@ -26,7 +26,6 @@
   listener.
 - [ ] **MPI-917 Phase 1** (recipe + shared audio maths). Ownership per `tasks/MPI-917/plan.md`
   Phase 1: `js/data/mixRecipe.js`, `js/data/mixMath.js`, their tests.
-- [ ] **MPI-775 brainstorm.** Ownership: `.agents/mpi-kanban/tasks/MPI-775/` only. No code.
 
 ## Phase 2: The rest of Mix, then the delete warning
 
