@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1173", "at": "2026-10-17T20:23:15+01:00", "actor": "ef1ca650-c8ed-46f4-8d7c-fc770b9c3283", "column": "doing", "title": "An uploaded doodle passes the picture age check; the words decide"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1173", "at": "2026-10-17T20:26:53+01:00", "actor": "ef1ca650-c8ed-46f4-8d7c-fc770b9c3283", "from": "doing", "to": "doing", "reason": "pushed 59ca111a0; Fabio to try an uploaded doodle"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1173", "at": "2026-10-18T08:32:59+01:00", "actor": "ef1ca650-c8ed-46f4-8d7c-fc770b9c3283", "from": "doing", "to": "done", "reason": "Fabio's uploaded doodle went through; log shows the doodle path"}
