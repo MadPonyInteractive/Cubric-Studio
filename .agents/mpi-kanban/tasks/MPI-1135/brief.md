@@ -43,6 +43,13 @@ too high). Source / licence still to record here.
   and the repo names a text-to-video template. Whether it serves ref2va (our H3 Reference, Extend,
   Video Edit) or only t2v / i2v / fl2va decides "replace" vs "add".
 
+## Clip lengths: 2-5 s, never months of tests (Fabio, 2026-10-18)
+
+- **Every arm runs at 2-5 s.** They run fast and settle most questions; H3 is trained from ~4 s up,
+  but 2-5 s works fine for comparisons. Story and Infinite Video rarely go past that per shot.
+- **15 s: ONE run only**, to check that the windowed refine still fits in VRAM. Not a quality arm.
+- Known blind spot, accepted: the late-clip plastic skin seen at 10 s will not show at 2-5 s.
+
 ## Step 0, BEFORE the model bench: three upscale arms (Fabio, 2026-10-18)
 
 Fix the upscale first, so the model comparison is not judged through a weak upscale. Same clip,
@@ -71,7 +78,7 @@ seed and prompt on our current H3, three arms:
    - Benji: better than ours-shaped upscales but slower. Measure both.
 
 Measure per arm: sharpness / detail, seams (spatial and temporal), tearing, flicker, audio intact,
-seconds, VRAM peak, at 5 s and 15 s. Winner = the upscale every model arm below uses. If arm 3 wins,
+seconds, VRAM peak, at 2-5 s (plus the one 15 s VRAM check on the winner). Winner = the upscale every model arm below uses. If arm 3 wins,
 it also feeds MPI-688 (Video Upscale: add H3) and the H3 Flows' refine.
 
 ## Speed: Veda sparse attention (test alongside, not a model)
@@ -89,12 +96,20 @@ it also feeds MPI-688 (Video Upscale: add H3) and the H3 Flows' refine.
 - **RTX 30 is unverified by the author**: our photographer tester runs a 3060. Test there too, or
   ship it behind a toggle that defaults off on Ampere.
 - The FastH3 Trim video uses a different sparse mode (VSA, picked on the model loader with Comfy
-  Kitchen attention). Compare: none / Veda / VSA on the winning upscale.
+  Kitchen attention).
+- **Veda vs EasyCache: different skips, so they may stack.** EasyCache skips WHOLE STEPS (reuses
+  the last output when the change is small); Veda skips attention TILES inside every step. Ours:
+  EasyCache is gated OFF on turbo, because at 8 steps it skips 0 and only adds overhead
+  (`docs/models/h3/turbo.md` § "EasyCache is gated OFF turbo"). So on turbo Veda is the only one of
+  the two that can help; on the non-turbo quality path both can.
+- **Best speed-up setup**, on the winning upscale, turbo and non-turbo: none / EasyCache / Veda /
+  VSA / Veda + EasyCache (non-turbo only). Measure seconds and fast-motion quality (a hands / action
+  prompt, Benji's weak spot).
 
 ## The bench (same for both candidates)
 
 Same prompts, seeds, inputs and resolution as our current H3, one row per op the candidate claims:
-quality (motion, tearing, faces / skin over a 10 s clip, audio), seconds per clip on Fabio's GPU,
+quality (motion, tearing, faces / skin, audio; 2-5 s clips), seconds per clip on Fabio's GPU,
 VRAM / RAM peak, file size. Plus: the two-stage latent upscale on each, and the Story draft
 resolution. Bench runs under the GPU lease (`gpu_lease.py run`). Downloads are tens of GB each: say
 the size before pulling.
