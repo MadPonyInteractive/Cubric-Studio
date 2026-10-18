@@ -6252,3 +6252,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1175", "at": "2026-10-18T08:38:27+01:00", "actor": "claude", "column": "todo", "title": "Use Tiles runs show the tile total (Tile x/n)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1175", "at": "2026-10-18T08:39:44+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio asked for the fix"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1175", "at": "2026-10-18T08:42:26+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped; npm test green; Fabio to see x/n on a Use Tiles run"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1175", "at": "2026-10-18T08:57:47+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio eye-tested 1/4 on Use Tiles; CI 39108724118 green on df410bea8"}
