@@ -18,6 +18,15 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       2026-10-18: MPI-1086 DONE (2026-10-18 18:33). `dev_configs/node_lock.json` has no commit since
       2026-10-14: no rebuild, v0.26.0 stands. Latest ComfyUI release is v0.41.0 (< v0.42.0): no engine
       bump, the Pod session runs as written below.
+- [x] 2026-10-18 Fabio overrode the >= v0.42.0 rule: bump to **v0.41.0** now (FLUX.3 Klein floor; MOSS-Image
+      still needs v0.42.0 later). Breaking-surface pass 0.39.0..0.41.0: nothing our workflows or 22 node pins
+      use; H3 "less tearing" NOT found in any commit. Pins f3feef36b (core 98cc0bf8, frontend 1.55.17,
+      templates 0.11.84, system_dependencies 0.41.0, POD_IMAGE_VERSION_DEV/_CPU_DEV v0.27.0-dev);
+      mpi-ci b376b18 synced. Fabio's app upgraded in place to 0.41.0 (~20 s, 0 IMPORT FAILED);
+      `engine-floor-check` 251 class_types, 0 missing. Bench G:\ComfyUi on v0.41.0 (+clip_vision,
+      model_patches, speech_to_text yaml keys; backup .bak-v0390), 0 import failures, left running.
+- [ ] Dev image v0.27.0-dev: CI run 39159379516 (cpu leg green; cu130 was building at handoff). Then
+      pull-verify both tags (`docker manifest inspect`), then the full smoke below.
       Fabio: the Pod session runs only once BOTH are finished (his yes covers ~$2, cap $5).
 - [x] 2026-10-16 Fabio: MPI-1136 (Cosmo + MCP import a card from another project) and MPI-1154
       (Video Edit background change describes every kept subject) also block 2.1. MPI-1154 changes
