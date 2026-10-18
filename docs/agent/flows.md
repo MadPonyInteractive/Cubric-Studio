@@ -87,7 +87,7 @@ A picture to copy (an outfit, an accessory, makeup, tattoos, a hairstyle or a be
 Accessories are things worn with the outfit (glasses, a hat, a scarf, jewellery, a bag or backpack, a walking stick or
 staff). A weapon or anything else held in the hands is not: edit the sheet with an image edit model instead.
 Under 16 a sheet must be fully dressed; a `CHILD_SAFETY` refusal means run Clothes first. Body
-and ages 12 and under need Qwen-Image 2.1: when it is missing, say so, and the Flow offers it.
+and ages 12 and under need Qwen-Image 2.1: when it is missing, say so, and the Flow offers it. A result soft or smudged in ONE area (a tattoo on the back, an accessory) never runs the Flow again: the whole sheet has too few pixels for it. Offer a mask in one line: they paint over just that area on the result card and you redo it there, sharper. Once painted, run Qwen-Image 2.1 `edit` (another edit model when it is not installed) on that card, the picture they copied from, if any, as a second reference, prompted for the masked area only (app:masking). One area per run: an arm on the front and on the close-up is two runs. Qwen-Image 2.1's pictures are not for commercial use.
 
 Any other Flow opens the same way with `open: true`, when the user wants to adjust it themselves
 (a result they did not like) or it needs something only they have, such as their own photo. Offer

@@ -1055,6 +1055,24 @@ const CASES = [
         },
     },
     {
+        // MPI-1190 (Fabio, 2026-10-18): a tattoo on the back came out smudged from the whole-sheet pass;
+        // a mask over the back + a Qwen edit came back far sharper. The flip is a fresh tattoo ask, which runs the Flow.
+        id: 'sheet-soft-area-mask',
+        title: 'one area of a sheet result came back smudged: offer a mask, never run the Flow again',
+        setup: {
+            attachments: [SHEET],
+            look: said('A character sheet on a plain grey background: the same young woman in a black ninja outfit, shown three times: front view, back view and a close-up. The back view shows a dragon tattoo across her bare upper back, blurry and smudged.'),
+            turns: ['The dragon tattoo on her back came out smudged and blurry.'],
+        },
+        flip: { turns: ['Add a dragon tattoo across her upper back.'] },
+        check(run) {
+            const f = [];
+            if (run.record.generates.length) f.push(`generated ${run.record.generates.length} time(s) instead of offering a mask`);
+            if (!/mask/i.test(`${run.lastReply || ''} ${String(run.turns.at(-1).options || '')}`)) f.push('the reply never offers a mask');
+            return f;
+        },
+    },
+    {
         // Phase 5 round 1: live, the note landed only once Fabio added "Don't forget that,
         // okay?". A character stated in passing is exactly what must survive a restart, and
         // the user will not think to ask for it.
