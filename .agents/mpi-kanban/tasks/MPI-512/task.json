@@ -1,13 +1,13 @@
 {
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-512",
-  "title": "Remote install and Pod disk (umbrella): the remote install path, the Pod's disk, the Pod-side smoke twin",
+  "title": "UMBRELLA: Remote install and Pod disk: the remote install path, the Pod's disk, the Pod-side smoke twin",
   "description": "Cluster found by the mpi-end-session consolidation sweep: MPI-510, MPI-509, MPI-496, MPI-489, MPI-485, MPI-403 all touch the remote install path or the Pod's disk. They fail in the same place for the same reason and reading them one at a time hides that. MERGED IN 2026-10-18 (Fabio, board tidy): MPI-894 (Remote GPU estate) and MPI-558 (smoke-gate runner); MPI-502 joined. The one remote-GPU umbrella.",
   "column": "todo",
   "maturity": "planned",
   "status": "active",
   "created_at": "2026-08-10T06:05:00Z",
-  "updated_at": "2026-10-18T15:58:04+01:00",
+  "updated_at": "2026-10-18T16:18:15+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

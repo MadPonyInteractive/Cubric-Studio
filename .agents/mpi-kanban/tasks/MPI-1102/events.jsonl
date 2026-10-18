@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1102", "at": "2026-10-12T08:01:54+01:00", "actor": "claude", "column": "todo", "title": "No silent work: every job shows in the queue (umbrella)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1102", "at": "2026-10-18T15:58:04+01:00", "actor": "claude", "reason": "MPI-896 merged in; MPI-569, MPI-543, MPI-302 joined (Fabio, board tidy 2026-10-18)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1102", "at": "2026-10-18T16:18:15+01:00", "actor": "claude", "reason": "Title starts with UMBRELLA so umbrellas stand out on the board (Fabio 2026-10-18)."}

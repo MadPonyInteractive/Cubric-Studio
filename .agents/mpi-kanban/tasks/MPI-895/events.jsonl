@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-895", "at": "2026-09-29T13:40:06+01:00", "actor": "umbrella-sweep 2a15cea4", "fields": ["plan"], "note": "plan.md: MPI-688 added as the one build member (umbrella sweep, Fabio's yes 2026-09-29)."}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-895", "at": "2026-10-18T11:38:33+01:00", "actor": "claude", "reason": "MPI-578 moved to MPI-1179; MPI-343 merged into MPI-1179 (Fabio 2026-10-18: every new model lives there)."}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-895", "at": "2026-10-18T15:58:04+01:00", "actor": "claude", "reason": "MPI-478 declined by Fabio 2026-10-18."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-895", "at": "2026-10-18T16:18:15+01:00", "actor": "claude", "reason": "Title starts with UMBRELLA so umbrellas stand out on the board (Fabio 2026-10-18)."}

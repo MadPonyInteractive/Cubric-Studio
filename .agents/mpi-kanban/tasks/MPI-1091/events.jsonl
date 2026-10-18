@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1091", "at": "2026-10-11T16:20:18+01:00", "actor": "c6245873-da01-469b-b560-ed11870ac4c6", "column": "todo", "title": "Character Sheet Flows (umbrella): Editor clothes and hair references, the headless leg, the hairstyle picker"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1091", "at": "2026-10-18T16:18:15+01:00", "actor": "claude", "reason": "Title starts with UMBRELLA so umbrellas stand out on the board (Fabio 2026-10-18)."}

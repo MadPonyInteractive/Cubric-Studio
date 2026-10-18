@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1134", "at": "2026-10-13T16:01:05+01:00", "actor": "claude", "from": "doing", "to": "todo", "reason": "Design + plan written; blocked on Phase 0 (MPI-1135 Singularity H3, MPI-815, MPI-917, MPI-557, MPI-688/477). Post-2.1."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-1134", "type": "task.updated", "at": "2026-10-17T15:27:02+01:00", "actor": "claude", "summary": "Phase 5b + gaps G11-G13 added from the MPI-1170 brainstorm (video understanding for long work)."}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1134", "at": "2026-10-18T15:58:04+01:00", "actor": "claude", "reason": "MPI-815 joined (Fabio, board tidy 2026-10-18)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1134", "at": "2026-10-18T16:18:15+01:00", "actor": "claude", "reason": "Title starts with UMBRELLA so umbrellas stand out on the board (Fabio 2026-10-18)."}

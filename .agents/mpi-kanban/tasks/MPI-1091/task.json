@@ -1,13 +1,13 @@
 {
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-1091",
-  "title": "Character Sheet Flows (umbrella): Editor clothes and hair references, the headless leg, the hairstyle picker",
+  "title": "UMBRELLA: Character Sheet Flows: Editor clothes and hair references, the headless leg, the hairstyle picker",
   "description": "Fabio 2026-10-11: one card to focus on. Members MPI-1089, MPI-1090, MPI-1086, MPI-1087, MPI-1088. Clothes first.",
   "column": "todo",
   "maturity": "planned",
   "status": "active",
   "created_at": "2026-10-11T16:20:18+01:00",
-  "updated_at": "2026-10-11T16:20:18+01:00",
+  "updated_at": "2026-10-18T16:18:15+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

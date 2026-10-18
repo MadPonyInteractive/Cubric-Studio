@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1188", "at": "2026-10-18T15:55:51+01:00", "actor": "claude", "column": "todo", "title": "UI polish (umbrella): small UI fixes and finishes"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1188", "at": "2026-10-18T16:18:15+01:00", "actor": "claude", "reason": "Title starts with UMBRELLA so umbrellas stand out on the board (Fabio 2026-10-18)."}
