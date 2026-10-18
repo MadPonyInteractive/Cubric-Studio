@@ -1120,3 +1120,25 @@ ff5 (ff5.py, the shipped strings via qh47_params.mjs, 070, ff1's seeds): ball 4/
 backpack 4/4 (s0 carried in the hand, swapped side; s1-s3 worn). Partial, NOT new: ball s3 leaves a sliver of arm at
 the back panel's right edge, drawn by the back pass (the source sheet is clean there) - ff1 ball_s3 (old wording, same
 seed) has the identical sliver, missed when ff1 was judged 4/4. Fabio's first eye-test fail named the same ghost.
+
+Fabio eye test 2026-10-18 (app, Accessories "Back arched and curved, leaning on a walking stick" + Age 78, Headless):
+Qwen stick -> Klein age -> head removal. **Stick pass**: front on the picture's right, back on the picture's left,
+kept through the age leg. No arched back (a posture is not an Accessory; Fabio: an edit or video model's job). The
+age leg's front face and close-up came back as different men (front bearded); Headless hides the front face (Fabio
+ok). Eye test (a) **pass**: app.log 08:01:58 "sheetCuts measured: 490,908".
+Fabio eye test (b) 2026-10-18 **pass**: Cosmo + the attached sheet + "Change the shirt to a basketball shirt with the
+number on the back" ran Character Sheet Editor (Clothes) at once, no Mask question; jersey on all three views, the 13
+on the back, the cane kept. The shorts changed too ("a basketball shirt" read as the whole kit); Fabio: fine for v1.
+Fabio eye test 2026-10-18 **pass**: Accessories, picture (the jewellery face photo) + "Earrings and choker" on the
+curvy pink-bob sheet: drop earrings + choker on the front and the close-up, her own face and hair, back view clean.
+
+Fabio eye test 2026-10-18 FAIL -> ff6: Accessories words "A small black crossbody sling bag worn on the chest, its strap
+over one shoulder and across the back" on flowCSE_062 (card caacd448): the bag on his chest AND on his back (the back
+pass repeats the words, as the pendant), no strap in the close-up. ff6 (ff6.py, seeds 46001-46004):
+- S, the back pass names only "a thin strap that runs diagonally across the back, from one shoulder down to the other
+  side of the waist" + the side swap, the bag never named: **strap only from behind 4/4, other side 4/4**; close-up 0/4.
+- SC, S + pass 1 "The close-up portrait on the right shows its strap over the shoulder.": back 4/4 as S; **close-up 2/4**.
+SHIPPED SC (shipped strings = the bench byte for byte): `FRONT_WORN` words (worn on the chest/front, chest bag/pouch,
+crossbody, sling bag) + `STRAPPED` (strap, band, crossbody, sling) -> `BACK_STRAP` + `CLOSE_STRAP`; front-worn with no
+strap -> no back pass. Partial: the close-up strap 2/4. Not benched: a front bag from a Reference picture (the back pass
+takes the strap words the same way). Tests 33/33.

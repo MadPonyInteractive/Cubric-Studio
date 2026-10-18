@@ -341,6 +341,19 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
         assert.deepStrictEqual([p.Input_Back_Pass, p.Input_Positive_2, p.Input_Front_Crop, p.Input_Cut_1, p.Input_Cut_2],
             [false, '', true, 450, 882], w);
     }
+    // ff6 (Fabio's double pouch): a bag worn on the front with a strap -> the back pass names only the strap, pass 1
+    // names it in the close-up; with no strap named, no back pass.
+    const POUCH = 'A small black crossbody sling bag worn on the chest, its strap over one shoulder and across the back';
+    const accWords = w => ({ change: 'accessories', words: w, Input_Age: -1 });
+    const pouch = characterSheetEditor('change', accWords(POUCH));
+    assert.ok(pouch.positive.includes('wherever it can be seen. The close-up portrait on the right shows its strap over '
+        + 'the shoulder. Add nothing else'), pouch.positive);
+    assert.strictEqual(pouch.injectionParams.Input_Positive_2, TURN + 'keep the hair, body, skin tone, clothes and shoes '
+        + 'exactly as in image 2. The character wears a thin strap that runs diagonally across the back, from one shoulder '
+        + 'down to the other side of the waist. Seen from behind, left and right swap: the shoulder on the left side of '
+        + 'image 1 is on the right side of the picture.' + KEEP);
+    assert.strictEqual(characterSheetEditor('change', accWords('a leather chest pouch')).injectionParams.Input_Back_Pass, false);
+    assert.ok(!characterSheetEditor('change', accWords('A black hiking backpack')).positive.includes('its strap'));
     for (const w of ['Large gold hoop earrings', 'a wooden walking stick', 'A black hiking backpack', 'tied-up boots']) {
         assert.strictEqual(characterSheetEditor('change', run('accessories', w)).injectionParams.Input_Back_Pass, true, w);
     }

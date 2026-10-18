@@ -317,7 +317,8 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
         // only. Pass 1 now sees the front body and the close-up alone (`Input_Front_Crop`), and names only those.
         case 'accessories':
             return `Give the character in image 1 this accessory to wear or hold: ${w}. The full-body figure on the left `
-                + 'and the close-up portrait on the right both show it wherever it can be seen. Add '
+                + 'and the close-up portrait on the right both show it wherever it can be seen. '
+                + (FRONT_WORN.test(w) && STRAPPED.test(w) ? CLOSE_STRAP : '') + 'Add '
                 + "nothing else: no other gear, bags, belts or straps. Keep the character's own face, hair, skin and "
                 + 'clothes. Keep everything else exactly as it is.';
         // MPI-1086 r34: her own face named as with a picture; smoky eyes + black lips, pink glitter + white liner 2/2.
@@ -376,6 +377,18 @@ const FRONT_HANGING = /\b(?:necklaces?|pendants?|lockets?|chokers?|brooch(?:es)?
 const ACC_SWAP = 'held as in image 1. Seen from behind, left and right swap: a thing in the hand on the left side of '
     + 'image 1 is in the hand on the right side of the picture, and a thing on the right side of image 1 is on the left '
     + 'side of the picture.';
+/**
+ * A bag worn on the front (Fabio's sling bag, flowCSE_062): the back pass repeated the words and drew the bag on his
+ * back too, and the close-up had no strap. With a strap named, the back pass names only the strap (ff6: strap only,
+ * other side, 8/8) and pass 1 names it in the close-up (0/4 -> 2/4); with no strap, no back pass (as FRONT_HANGING).
+ * ponytail: a word list, as FRONT_HANGING.
+ */
+const FRONT_WORN = /\b(?:worn on the (?:chest|front)|on (?:his|her|their|the) (?:chest|front)|across the chest|chest (?:bags?|pouch(?:es)?|rigs?)|cross-?body|sling bags?)\b/i;
+const STRAPPED = /\b(?:straps?|bands?|cross-?body|sling)\b/i;
+const BACK_STRAP = 'The character wears a thin strap that runs diagonally across the back, from one shoulder down to the '
+    + 'other side of the waist. Seen from behind, left and right swap: the shoulder on the left side of image 1 is on '
+    + 'the right side of the picture. ';
+const CLOSE_STRAP = 'The close-up portrait on the right shows its strap over the shoulder. ';
 const FRONT_PART = /\b(?:arms?|legs?|thighs?|calf|calves|ankles?|feet|foot|hands?|wrists?|fingers?|chest|neck|face|stomach|belly|ribs?|sleeves?|full body|whole body|all over)\b/i;
 
 /**
@@ -402,9 +415,12 @@ export function buildBackPassPrompt(change, words, ref = false) {
     if (!w) return '';
     if (change === 'tattoos' && BACK_ONLY.test(w) && !FRONT_PART.test(w)) return '';
     if (change === 'accessories' && FRONT_HANGING.test(w)) return '';
+    const frontStrap = change === 'accessories' && FRONT_WORN.test(w);
+    if (frontStrap && !STRAPPED.test(w)) return '';
     if (_faceInk(change, w)) return '';   // the two faces only: no back figure is touched
     const has = change === 'tattoos'
         ? (ref ? '' : `The character has this tattoo: ${_unview(w)}. Show it wherever it can be seen from behind. `)
+        : frontStrap ? BACK_STRAP
         : `The character has this accessory: ${_unview(w)}, ${ACC_SWAP} Show only what can be seen from behind. `;
     return 'Turn the character in image 1 around so the character is seen from behind, full body from head to feet, '
         + 'standing in the same pose, on the same plain grey background. Image 2 is this character seen from behind: '
