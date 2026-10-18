@@ -61,10 +61,22 @@ small far faces, speed tearing and a close face:
    (tiny far face -> medium -> close-up, fast motion all the way).
 2. **Side tracking run**: a side view, the camera follows the character running and jumping over
    obstacles; at the end the camera pushes in to the face (tearing on fast motion + the face up close).
-3. A **hands / fine-motion** beat (Veda's weak spot, Benji's coin flip) can ride inside 1 or 2.
+3. **Detail: watch the hands first.** A running character gives detail loss away at once: fast
+   pumping hands are the first thing to tear or smear (also Veda's weak spot, Benji's coin flip).
+   No separate hands shot needed; read the hands in 1 and 2 before anything else.
+
+**Sound is half the test** (Fabio, 2026-10-18). Speed-ups and LoRAs have degraded H3 audio fast
+before (e.g. Singularity OmniCine on LTX, `docs/models/ltx/model-set.md`), so every prompt packs it:
+
+- **A rich bed**: a city around the run, cars in the distance, music from somewhere, footsteps, the
+  obstacles' impacts.
+- **Speech all the way through**: the character talks for the whole clip (lines while running,
+  breathless), so lip sync is checked at far, medium and close.
 
 Same prompts, seeds and start images for every arm. Check per clip: tearing, small far faces,
-plastic skin up close, motion pacing, audio.
+plastic skin up close, motion pacing, and the audio: is the bed still layered or smeared / thin /
+metallic, is the voice clean and intelligible, do the lips match. Judge each arm's audio against the
+no-speed-up, no-LoRA baseline of the same prompt and seed.
 
 ## Step 0, BEFORE the model bench: three upscale arms (Fabio, 2026-10-18)
 
