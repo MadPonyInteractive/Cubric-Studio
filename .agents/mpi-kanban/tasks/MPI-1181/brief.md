@@ -33,31 +33,45 @@ Umbrella: MPI-1179 (New Models to Test), phase 2. Researched 2026-10-18 from Fab
 
 The repo also ships 12 official workflows (`flux3_klein{,_base}_{bf16,int8}_{t2i,i2i,mi2i}.json`).
 
-## Shape for Cubric (Fabio: "a Balanced and a High version")
+## Shape for Cubric - ONE card with a Turbo button (Fabio, 2026-10-18)
 
 Every checkpoint ships in all three formats (bf16, int8-convrot, nvfp4), so the format and the
-base/distilled choice are separate axes. **Fabio's split (2026-10-18), both int8-convrot:**
+base/distilled choice are separate axes. Both int8 files are 5.8 GB, so Fabio's call is **one
+model card carrying both, with a Turbo button that picks between them** (it replaces the
+two-card Balanced/High split briefly on this card earlier today):
 
-- **Balanced** = distilled `flux3-image-klein-int8-convrot` (5.8 GB): 16 steps, CFG 1, fast.
-- **High** = base `flux3-image-klein-base-int8-convrot` (5.8 GB): 50 steps, CFG 3.5, best quality.
+- **Turbo ON** = distilled `flux3-image-klein-int8-convrot`: 16 steps, fast.
+- **Turbo OFF** = base `flux3-image-klein-base-int8-convrot`: 50 steps, best quality.
 - No bf16 (11.1 GB, double the download for the same model) and no nvfp4 (pays off on RTX 50xx only).
+
+**The text encoders are the SAME for both** (checked 2026-10-18 in ComfyUI's four official
+templates, `Comfy-Org/workflow_templates` `templates/image_flux3_klein{,_distilled}_{t2i,image_edit}.json`).
+Every one loads `qwen3vl_4b_int8_convrot` (CLIP type `flux3`), the
+`qwen3.5_9b_flux3_prompt_upsampler_w4a8` upsampler into a `Flux3LayoutPrompt` node, and
+`flux2-vae`. **Only the `UNETLoader` file and the KSampler steps differ**, so Turbo is a
+diffusion-model switch inside one graph. Template KSampler values: edit base 50 steps / euler,
+edit distilled 16 / euler, both t2i 15 / er_sde, CFG 1 everywhere. That disagrees with the model
+card's base CFG 3.5: settle it at bench time.
+
+How Turbo is built today: `capabilities.turboToggle` on Krea 2 renders the `krea2Turbo` control,
+which injects `Input_is_Turbo`. The graph reads `Get_turbo` for its own steps/CFG
+(`js/data/modelConstants/models.js`, `js/data/generationControls.js`). Krea 2 swaps an accelerator
+LoRA on one weight. Here the switch picks one of two UNETLoaders, so prove that only the chosen
+weight loads (a lazy switch, e.g. MpiAnySwitch by name). Both weights are required deps:
+**11.6 GB of diffusion weights** plus the shared encoder, against 5.8 GB for one tier.
 
 **Fabio's read of the video: the distilled model is poor for realism next to the base.** Same
 prompt and seed: plastic, oily-looking skin, and the whole picture looks less natural. Base is
-the tier for photoreal work. The distilled model held up on product shots and text (coffee ad,
-perfume bottle). Test that gap on photoreal prompts and say it in the Balanced card's description.
+the mode for photoreal work. The distilled model held up on product shots and text (coffee ad,
+perfume bottle). Test that gap on photoreal prompts and say it on the Turbo control's hint.
+Once, also compare base int8 against base bf16 to confirm int8 keeps base's quality edge.
 
-Both tiers are the same size and VRAM, so they differ in speed and quality, not weight size.
-`sizeTier` is documented as a WEIGHT-size badge (`models.js`). Check at wiring time that the
-Balanced/High badge copy still reads right. The bench should also compare base int8 against
-base bf16 once, to confirm int8 does not cost High its quality edge.
-
-- **Text encoder:** generation needs Qwen3-VL-4B. We already ship `qwen3vl-abliterated-clip`
-  (Qwen3-VL-4B abliterated fp8_scaled) as an engine asset. Test whether FLUX.3 accepts it before
-  adding a new 4.9 GB dep. Krea2 made the same swap.
-- **Prompt upsampler:** BFL say do not run Klein without it. The 6.7-18.8 GB Qwen3.5-9B is a
-  RAM risk for the 16 GB tester. Bench whether our own Enhancer / Cosmo recipe does the same job
-  (BFL publish `system_prompts.json`) before shipping the upsampler weight.
+- **Text encoder reuse:** we already ship `qwen3vl-abliterated-clip` (Qwen3-VL-4B abliterated
+  fp8_scaled) as an engine asset. Test whether FLUX.3 accepts it before adding the 4.9 GB
+  `qwen3vl_4b_int8_convrot` dep. Krea2 made the same swap.
+- **Prompt upsampler:** BFL say do not run Klein without it, and every official template wires it.
+  The 6.7-18.8 GB Qwen3.5-9B is a RAM risk for the 16 GB tester. Bench whether our own Enhancer /
+  Cosmo recipe does the same job (BFL publish `system_prompts.json`) before shipping it.
 - **Graph:** start as a COPY of `comfy_workflows/raw/klein_t2i_template.json` (add-model playbook
   01 §0a), loaders swapped in ComfyUI. The official workflows are reference only.
 
@@ -82,5 +96,5 @@ base bf16 once, to confirm int8 does not cost High its quality edge.
 ## Done when
 
 A verdict in `validation.md`: wire it (open an `/mpi-add-model` card, still `devOnly`) or drop it.
-It needs measured speed, VRAM and RAM per tier, base vs distilled quality, and the TE-reuse and
+It needs measured speed, VRAM and RAM for Turbo on and off, base vs distilled quality, and the TE-reuse and
 upsampler answers.

@@ -10,7 +10,7 @@ Fabio adds more as we investigate. A member that passes the bench becomes its ow
 | Phase | Card | Title |
 |---|---|---|
 | 1 | MPI-1180 | Bench MOSS-Image (5B text-to-image) once ComfyUI v0.42.0 ships |
-| 2 | MPI-1181 | Bench FLUX.3 Klein (Balanced distilled int8 + High base int8, dev-gated) once the engine is on >= v0.41.0 |
+| 2 | MPI-1181 | Bench FLUX.3 Klein (one card, Turbo button: distilled int8 / base int8, dev-gated) once the engine is on >= v0.41.0 |
 
 **Umbrella rule: every new model card is added to this table with a phase, and its
 `description` starts with the `UMBRELLA: MPI-1179 - New Models to Test` prefix.**
