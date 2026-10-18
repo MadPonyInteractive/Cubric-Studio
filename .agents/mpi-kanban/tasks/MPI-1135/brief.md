@@ -43,6 +43,54 @@ too high). Source / licence still to record here.
   and the repo names a text-to-video template. Whether it serves ref2va (our H3 Reference, Extend,
   Video Edit) or only t2v / i2v / fl2va decides "replace" vs "add".
 
+## Step 0, BEFORE the model bench: three upscale arms (Fabio, 2026-10-18)
+
+Fix the upscale first, so the model comparison is not judged through a weak upscale. Same clip,
+seed and prompt on our current H3, three arms:
+
+1. **No upscale**: one stage at the target size.
+2. **Ours today**: stage 1 low-res -> `MinimaxH3LatentUpscaler3D` (LBH-123-AI `3d_conv_v1`, which we
+   ship) -> stage-2 refine sampled in temporal windows (`MpiWindowedSampler`,
+   `docs/models/h3/windowing.md`), turbo on the refine leg.
+3. **Benji's** (AI Future Tech, https://www.youtube.com/watch?v=r39Ej4L2dO4 ~8:26, Fabio's
+   screenshot 2026-10-18; he credits it for his recent no-tearing results, together with Singularity
+   H3):
+   - `MMH3 Ultimate Upscale` from https://github.com/bbaudio-2025/Comfyui-MMH3-UltimateUpscale
+     (MIT). One node: temporal chunks (`chunk_length 85`, `temporal_overlap 17`,
+     `anchor_strength 1.0`), the same LBH 3D latent upscaler, then SPATIAL tiles (128 overlap,
+     32 fade, `min_tile_size 256`, linear blend), only one tile in VRAM at a time; audio carried
+     through unsampled. New since: `MMH3 Tiled Diffusion` (experimental, claims no seams).
+   - **`minimax_h3_lms_v1.0_r64` LoRA at 0.70 on the refine only**: Alissonerdx's sharpness/detail
+     LoRA (https://huggingface.co/Alissonerdx/Minimax-H3-ComfyUI, `docs/lms.md` there; RunningHub
+     re-host `RunningHubAI/rh-minimax-h3-lms-v1.0-r64-lora`, 1.18 GB). **Licence: none stated**:
+     the repo's custom licence covers only Character Swap, the same gap as the Head Swap LoRA in
+     MPI-1133. Ask the author before shipping. The same repo also has an experimental
+     `h3_upscaler_lms_v0.1` latent upscaler (LBH upscaler fine-tuned on the LMS data): add it as a
+     fourth arm if arm 3 wins.
+   - Refine: euler, beta, 2 steps, denoise 0.30, target 2.0 MP (his 15 s test at 1.5 MP gave 1080p).
+   - Benji: better than ours-shaped upscales but slower. Measure both.
+
+Measure per arm: sharpness / detail, seams (spatial and temporal), tearing, flicker, audio intact,
+seconds, VRAM peak, at 5 s and 15 s. Winner = the upscale every model arm below uses. If arm 3 wins,
+it also feeds MPI-688 (Video Upscale: add H3) and the H3 Flows' refine.
+
+## Speed: Veda sparse attention (test alongside, not a model)
+
+- What: learned sparse attention for H3. A small fp8 predictor skips ~70-90% of attention tiles; the
+  backbone is untouched, so it stacks with LoRAs, turbo and Sage / Comfy Kitchen attention. Node
+  `Veda-on-ComfyUI` (https://github.com/veda-sparse/Veda-on-ComfyUI, MIT, in ComfyUI-Manager) goes at
+  the end of the model chain; predictors in `models/veda/`: T2VA/FL2VA
+  `minimax_h3_t2va_veda_8nfe_600step_preview_fp8` and R2VA `minimax_h3_r2va_veda_preview_fp8`
+  (`Veda-Sparse/*` on HF, licence "other": read it). Site: https://veda-sparse.github.io/
+- Claims: 3x end-to-end on long clips (RTX PRO 6000), 1.77-2.82x on a 4090; gains grow with length.
+- Benji's run (5090-class, R2VA, 15 s, 0.7 MP): stage 1 2:51 -> 1:57; 10 s at ~1:17 with 72% of
+  attention skipped. **His verdict: same quality on talking / drama / simple camera moves, worse on
+  fast complex motion** (coin-flip hands morph; "5-6 usable out of 10").
+- **RTX 30 is unverified by the author**: our photographer tester runs a 3060. Test there too, or
+  ship it behind a toggle that defaults off on Ampere.
+- The FastH3 Trim video uses a different sparse mode (VSA, picked on the model loader with Comfy
+  Kitchen attention). Compare: none / Veda / VSA on the winning upscale.
+
 ## The bench (same for both candidates)
 
 Same prompts, seeds, inputs and resolution as our current H3, one row per op the candidate claims:
