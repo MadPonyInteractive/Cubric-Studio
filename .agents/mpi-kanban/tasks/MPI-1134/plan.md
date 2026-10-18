@@ -121,7 +121,8 @@ Sequential after 1A (it consumes the validator).
   shot's beats, a planned end frame at `-1`, a bridge between two takes, a Mix line pinned at its
   time. Mid-shot and multi-anchor runs are UNPROVEN: bench first, per
   `research/h3-addguide-keyframes.md`. **Verify:** the three bench arms there, SSIM per anchor; then
-  a `keyframes` join mode added to `docs/story/continuity.md` only if they pass.
+  a `keyframes` join mode added to `docs/story/continuity.md` only if they pass. A standalone
+  Keyframes to Video Flow (drawings / 3D key poses) is its own idea card, MPI-1191.
 - [ ] `user-ux`: Fabio judges a 3-shot chained scene. **Verify:** his yes in validation.md.
 
 ## Phase 4: Infinite Video Flow — `user-ux`
