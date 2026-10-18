@@ -14,3 +14,5 @@ DeepInfra, fake tools, no GPU). Spent $0.054 total across every run below.
 
 Not covered: the run AFTER the user paints (masked Qwen `edit` + reference on a sheet card) - that path is the
 existing masked-edit route and Fabio's own edit_011 proved it by hand; no bench dispatches a mask.
+
+CI: tests.yml run 39155215477 on f823796d7 - success. Claim audit: 5 proven, 0 false (bench numbers unverifiable from git).
