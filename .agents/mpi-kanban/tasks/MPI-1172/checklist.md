@@ -1,6 +1,6 @@
 # MPI-1172 checklist
 
-- [ ] Both graphs (raw + API) save the drawing as `Output_Image_0`
-- [ ] `outputVersions` on flowScribble + flowScribObj
-- [ ] Test pins it
-- [ ] Docs + UNRELEASED line
+- [x] Both graphs (raw + API) save the drawing as `Output_Image_0`
+- [x] `outputVersions` on flowScribble + flowScribObj
+- [x] Test pins it
+- [x] Docs + UNRELEASED line
