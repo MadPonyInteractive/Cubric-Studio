@@ -35,14 +35,17 @@ The repo also ships 12 official workflows (`flux3_klein{,_base}_{bf16,int8}_{t2i
 
 ## Shape for Cubric (Fabio: "a Balanced and a High version")
 
-Two sibling cards by `sizeTier`, the way Boogu Edit ships:
+Every checkpoint ships in all three formats (bf16, int8-convrot, nvfp4), so the format and the
+base/distilled choice are separate axes. **Fabio's split (2026-10-18), both int8-convrot:**
 
-- **Balanced** = `int8-convrot` (5.8 GB, BFL quote 8 GB VRAM).
-- **High** = `bf16` (11.1 GB).
-- No Low: nvfp4 only pays off on RTX 50xx.
+- **Balanced** = distilled `flux3-image-klein-int8-convrot` (5.8 GB): 16 steps, CFG 1, fast.
+- **High** = base `flux3-image-klein-base-int8-convrot` (5.8 GB): 50 steps, CFG 3.5, best quality.
+- No bf16 (11.1 GB, double the download for the same model) and no nvfp4 (pays off on RTX 50xx only).
 
-**Open, Fabio's call at bench time:** base or distilled per tier. Pick to test first: Balanced =
-distilled int8 (speed), High = base bf16 (quality).
+Both tiers are the same size and VRAM, so they differ in speed and quality, not weight size.
+`sizeTier` is documented as a WEIGHT-size badge (`models.js`). Check at wiring time that the
+Balanced/High badge copy still reads right. The bench should also compare base int8 against
+base bf16 once, to confirm int8 does not cost High its quality edge.
 
 - **Text encoder:** generation needs Qwen3-VL-4B. We already ship `qwen3vl-abliterated-clip`
   (Qwen3-VL-4B abliterated fp8_scaled) as an engine asset. Test whether FLUX.3 accepts it before

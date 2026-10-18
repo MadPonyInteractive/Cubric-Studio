@@ -1,13 +1,13 @@
 {
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-1181",
-  "title": "Bench FLUX.3 Klein (Balanced int8 + High bf16, dev-gated) once the engine is on >= v0.41.0",
+  "title": "Bench FLUX.3 Klein (Balanced distilled int8 + High base int8, dev-gated) once the engine is on >= v0.41.0",
   "description": "UMBRELLA: MPI-1179 - New Models to Test (consolidation sweep 2026-10-18). Members and phase order: tasks/MPI-1179/plan.md. Bench BFL's FLUX.3 Klein (5.6B, t2i + edit + multi-ref) as two devOnly sizeTier cards, not in 2.1. Blocked on the engine bump (v0.41.0 minimum; the v0.42.0 bump for MOSS-Image covers it).",
   "column": "todo",
   "maturity": "blocked",
   "status": "active",
   "created_at": "2026-10-18T10:43:07+01:00",
-  "updated_at": "2026-10-18T10:43:07+01:00",
+  "updated_at": "2026-10-18T10:48:21+01:00",
   "links": {
     "brief": "brief.md",
     "events": "events.jsonl"
