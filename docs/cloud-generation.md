@@ -38,8 +38,9 @@ model is a `ModelDef` in `js/data/modelConstants/models.js` with `provider: 'dee
   centre-cut a 1365x1024 crop back to the original (MPI-918, 2026-10-02). So the route reads
   image 1's upright size and the 'wh' case sends that shape at the endpoint's default area.
   The 'size' case does the same at the default tier's area: Seedream 4 and 4.5 answered a
-  1365x1024 source with a 2048 square (measured 2026-10-02; 5 Pro kept the shape). Only Nano
-  Banana (no ratio = follows the reference) needs nothing.
+  1365x1024 source with a 2048 square (measured 2026-10-02; 5 Pro kept the shape). The
+  'aspect' case (Nano Banana) sends the source's nearest ratio label: with none, Nano Banana 2
+  answered a 1024x1024 drawing with 1408x768 (MPI-1178, 2026-10-18).
 - **Batch:** a native count where the endpoint has one (`batchFieldFor`): N outputs, ONE call,
   ONE bill. Otherwise `calls` requests of one sent together, N bills (MPI-940). One output is kept
   per output asked; extras are dropped (MPI-875).

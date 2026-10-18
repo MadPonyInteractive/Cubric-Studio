@@ -180,6 +180,8 @@ Each bill below is `inference_status.cost` from the API response, and each decom
   route was billed as the 1K bucket. The 2K and 4K prices on the card had no knob we could
   find. A 3 MP source comes back at a third of its pixels.
 - With a reference and no `aspect_ratio`, the output follows the reference's aspect.
+  **Not reliably (MPI-1178, 2026-10-18):** Nano Banana 2 answered a 1024x1024 drawing with
+  1408x768. The app now always sends the source's nearest label.
 - **NB2 is the strict one.** `gemini-3.1-flash-image returned no image data` on a photo both
   its cheaper and its dearer sibling accepted, on both routes. The same character, clothed,
   went through NB2 first try. This is Google's filter, not DeepInfra: the same model failed

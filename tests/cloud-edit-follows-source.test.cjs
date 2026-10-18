@@ -10,8 +10,8 @@
  * as "the first image in the card went to the cloud". Held down here:
  *   - a pixel ('wh') endpoint gets the SOURCE's shape at its own default area;
  *   - an explicit size still wins (the Flow path and the ratio picker);
- *   - Nano Banana ('aspect') sends nothing, as before: with no field it follows the reference
- *     (measured, research 01d section 4);
+ *   - Nano Banana ('aspect') gets the source's nearest ratio label: with no field it does NOT
+ *     reliably follow the reference (MPI-1178: a 1024 square came back 1408x768);
  *   - Seedream ('size') gets the source's shape too: 4 and 4.5 answered a 2048 square
  *     (measured 2026-10-02);
  *   - the real route reads image 1's upright size and sends it.
@@ -58,8 +58,17 @@ test('no source and no size still sends nothing (t2i keeps the provider default)
     assert.deepEqual(buildSizeFields(KLEIN, {}), {});
 });
 
-test('Nano Banana sends no size for a source: it follows it already', () => {
-    assert.deepEqual(buildSizeFields('google/nano-banana-2-lite', { sourceWidth: 1365, sourceHeight: 1024 }), {});
+// MPI-1178: Nano Banana 2 answered a 1024x1024 drawing with 1408x768 when no ratio went out,
+// so the old "it follows the reference" did not hold. The source's nearest label goes out.
+test('Nano Banana with no ratio picked sends the source\'s nearest ratio', () => {
+    for (const id of ['google/nano-banana-2', 'google/nano-banana-2-lite']) {
+        assert.deepEqual(buildSizeFields(id, { sourceWidth: 1024, sourceHeight: 1024 }), { aspect_ratio: '1:1' }, id);
+        assert.deepEqual(buildSizeFields(id, { sourceWidth: 1365, sourceHeight: 1024 }), { aspect_ratio: '4:3' }, id);
+        assert.deepEqual(buildSizeFields(id, { sourceWidth: 1080, sourceHeight: 1920 }), { aspect_ratio: '9:16' }, id);
+    }
+    // A picked ratio still wins over the source, and t2i with nothing sends nothing.
+    assert.deepEqual(buildSizeFields('google/nano-banana-2', { ratioLabel: '16:9', sourceWidth: 1024, sourceHeight: 1024 }), { aspect_ratio: '16:9' });
+    assert.deepEqual(buildSizeFields('google/nano-banana-2', {}), {});
 });
 
 // Measured 2026-10-02 (3 paid edits of the 1365x1024 crop, no size sent): Seedream 4 and 4.5

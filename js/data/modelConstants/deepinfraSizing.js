@@ -127,8 +127,8 @@ export function buildSizeFields(endpointId, want = {}) {
             // An edit that follows its source (`imageSizedOps`) arrives with no pixels. These
             // endpoints do NOT follow the input then: width/height default to a fixed square
             // (1024x1024 on FLUX 2 dev and Klein 9B), which centre-cuts any other shape. So the
-            // source's shape goes out, at the area of the endpoint's own default. 'size' does
-            // the same below; only 'aspect' needs nothing (no ratio follows the reference).
+            // source's shape goes out, at the area of the endpoint's own default. 'size' and
+            // 'aspect' do the same below.
             let [w, h] = [width, height];
             const srcW = Number(want.sourceWidth) || 0;
             const srcH = Number(want.sourceHeight) || 0;
@@ -170,7 +170,11 @@ export function buildSizeFields(endpointId, want = {}) {
             break;
         }
         case 'aspect': {
-            const label = _nearestAllowedRatio(limits.aspect_ratio.allowed, width, height, want.ratioLabel);
+            // No ratio is no promise to follow the reference: Nano Banana 2 answered a
+            // 1024x1024 drawing with 1408x768 (MPI-1178). So an edit with no ratio picked
+            // sends the source's nearest label.
+            const [w, h] = width > 0 && height > 0 ? [width, height] : [Number(want.sourceWidth) || 0, Number(want.sourceHeight) || 0];
+            const label = _nearestAllowedRatio(limits.aspect_ratio.allowed, w, h, want.ratioLabel);
             if (label) out.aspect_ratio = label;
             break;
         }
