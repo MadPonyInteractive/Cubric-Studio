@@ -203,7 +203,7 @@
   },
   "184": {
     "inputs": {
-      "string": "Nothing that was drawn may remain: no line, no outline, no patch of flat colour anywhere in the frame. Read the drawing for layout and colour only — where each thing sits, how big it is, and what it is meant to be — and render every stroke as the real surface it stands for. Fill the whole frame as a finished image"
+      "string": "Nothing that was drawn may remain: no line, no outline, no patch of flat colour anywhere in the frame. Read the drawing for layout and colour only — where each thing sits, how big it is, and what it is meant to be — and render every stroke as the real surface it stands for. Fill the whole frame as a finished image. A person drawn as lines or a stick figure is a real person in exactly that pose: each drawn line is a limb, and the image follows where it goes — a limb drawn over the edge of a bed hangs over that edge, a limb drawn bent is bent. Give every person natural anatomy and proportions: one head, two arms, two legs, each joined to the body where it should be, none extra, none merged"
     },
     "class_type": "MpiText",
     "_meta": {

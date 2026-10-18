@@ -87,6 +87,7 @@
 - **GIF cut-out shows in the queue, with a Stop.** Remove background and By name now wait their turn behind a generation instead of running beside it, and the queue panel can stop them.
 - **Project cards on the home page show their picture again.** Older projects were blank.
 - **Copy address in Settings copies again.** The button for the MCP server address did nothing, so you had to type the address into your agent by hand.
+- **Scribble draws people with the right number of legs.** A stick figure in your drawing could come back with tangled or extra legs. Scribble now reads a stick figure as a real person in that pose, with natural anatomy. For a pose a stick figure cannot show clearly, like a leg hanging off the bed, say it in the prompt too.
 - **A download-only Pod no longer locks you out of your projects.** Connecting the No GPU Pod to install models used to block every project. Projects now open, and generations run on DeepInfra or your own GPU while the Pod installs.
 - **Resize is a lot faster and no longer needs ComfyUI.** It runs inside the app now, so it works with no engine installed and beside your generations instead of waiting behind them, and a long 4K clip no longer runs out of memory (a 14-second 4K phone clip used to). It always resizes with Lanczos, so the Method setting is gone.
 - **The Resize preview no longer goes blank after you resize a clip.** It showed an empty checkerboard until you picked another History entry and came back.
