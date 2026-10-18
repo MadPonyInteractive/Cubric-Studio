@@ -1142,3 +1142,12 @@ SHIPPED SC (shipped strings = the bench byte for byte): `FRONT_WORN` words (worn
 crossbody, sling bag) + `STRAPPED` (strap, band, crossbody, sling) -> `BACK_STRAP` + `CLOSE_STRAP`; front-worn with no
 strap -> no back pass. Partial: the close-up strap 2/4. Not benched: a front bag from a Reference picture (the back pass
 takes the strap words the same way). Tests 33/33.
+Fabio eye test 2026-10-18 **pass** (after Ctrl+Shift+R; flowCSE_075 before it ran the old prompt): the sling bag on
+the blue-beard sheet flowCSE_067 -> flowCSE_076: the bag on the chest, only the strap from behind on the other side,
+the strap in the close-up.
+Fabio eye test 2026-10-18, Cosmo asked his way ("a pouch, one of those pouches, with a strap over the shoulder"):
+routed to Character Sheet Editor / Accessories, words "a small tan leather pouch worn at the hip, on a strap over one
+shoulder across the chest" (flowCSE_077): the hip bag on the front and, rightly, at the hip from behind. But
+"across the chest" had matched `FRONT_WORN`, so the back pass got the strap-only words; Qwen drew the bag from image 1
+anyway (right result, wrong branch). "across the chest" removed (it says where the strap runs); test pins Cosmo's words
+to the normal back pass. Fabio: animating it on a video model to judge.

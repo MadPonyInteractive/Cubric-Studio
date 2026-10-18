@@ -354,6 +354,9 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
         + 'image 1 is on the right side of the picture.' + KEEP);
     assert.strictEqual(characterSheetEditor('change', accWords('a leather chest pouch')).injectionParams.Input_Back_Pass, false);
     assert.ok(!characterSheetEditor('change', accWords('A black hiking backpack')).positive.includes('its strap'));
+    // Cosmo's hip pouch: the strap runs across the chest, the bag hangs at the hip and shows from behind.
+    const hip = characterSheetEditor('change', accWords('a small tan leather pouch worn at the hip, on a strap over one shoulder across the chest'));
+    assert.ok(hip.injectionParams.Input_Positive_2.includes('The character has this accessory: a small tan leather pouch') && !hip.positive.includes('its strap'));
     for (const w of ['Large gold hoop earrings', 'a wooden walking stick', 'A black hiking backpack', 'tied-up boots']) {
         assert.strictEqual(characterSheetEditor('change', run('accessories', w)).injectionParams.Input_Back_Pass, true, w);
     }

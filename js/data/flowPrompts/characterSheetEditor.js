@@ -381,9 +381,11 @@ const ACC_SWAP = 'held as in image 1. Seen from behind, left and right swap: a t
  * A bag worn on the front (Fabio's sling bag, flowCSE_062): the back pass repeated the words and drew the bag on his
  * back too, and the close-up had no strap. With a strap named, the back pass names only the strap (ff6: strap only,
  * other side, 8/8) and pass 1 names it in the close-up (0/4 -> 2/4); with no strap, no back pass (as FRONT_HANGING).
+ * "across the chest" is not on the list: it says where the STRAP runs (Cosmo's "pouch worn at the hip, on a strap
+ * over one shoulder across the chest" is a hip bag, seen from behind too).
  * ponytail: a word list, as FRONT_HANGING.
  */
-const FRONT_WORN = /\b(?:worn on the (?:chest|front)|on (?:his|her|their|the) (?:chest|front)|across the chest|chest (?:bags?|pouch(?:es)?|rigs?)|cross-?body|sling bags?)\b/i;
+const FRONT_WORN = /\b(?:worn on the (?:chest|front)|on (?:his|her|their|the) (?:chest|front)|chest (?:bags?|pouch(?:es)?|rigs?)|cross-?body|sling bags?)\b/i;
 const STRAPPED = /\b(?:straps?|bands?|cross-?body|sling)\b/i;
 const BACK_STRAP = 'The character wears a thin strap that runs diagonally across the back, from one shoulder down to the '
     + 'other side of the waist. Seen from behind, left and right swap: the shoulder on the left side of image 1 is on '
