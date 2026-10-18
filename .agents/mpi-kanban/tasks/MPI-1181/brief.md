@@ -42,6 +42,11 @@ base/distilled choice are separate axes. **Fabio's split (2026-10-18), both int8
 - **High** = base `flux3-image-klein-base-int8-convrot` (5.8 GB): 50 steps, CFG 3.5, best quality.
 - No bf16 (11.1 GB, double the download for the same model) and no nvfp4 (pays off on RTX 50xx only).
 
+**Fabio's read of the video: the distilled model is poor for realism next to the base.** Same
+prompt and seed: plastic, oily-looking skin, and the whole picture looks less natural. Base is
+the tier for photoreal work. The distilled model held up on product shots and text (coffee ad,
+perfume bottle). Test that gap on photoreal prompts and say it in the Balanced card's description.
+
 Both tiers are the same size and VRAM, so they differ in speed and quality, not weight size.
 `sizeTier` is documented as a WEIGHT-size badge (`models.js`). Check at wiring time that the
 Balanced/High badge copy still reads right. The bench should also compare base int8 against
