@@ -1,1 +1,1 @@
-{ "schema": "mpi-kanban/task-files/v1", "files": ["routes/remotePodLifecycle.js", ".agents/mpi-kanban/tasks/MPI-1044/"] }
+{"schema": "mpi-kanban/task-files/v1", "files": ["routes/remotePodLifecycle.js", ".agents/mpi-kanban/tasks/MPI-1044/", "dev_configs/node_lock.json", "dev_configs/system_dependencies.json", "dev_configs/python_deps.txt"]}

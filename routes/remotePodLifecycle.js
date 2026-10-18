@@ -332,8 +332,11 @@ const POD_IMAGE_VERSION_CPU = 'v0.26.0';
 // Q4 GGUF) with pip gguf==0.19.0, and MpiNodes 6bf5659 -> d721182 (code-only, MpiWanMaskedVideo).
 // CI run 38017503044, both legs pushed and pull-verified; cu130 printed `node-import smoke test OK`
 // with post-node torch 2.12.0+cu130. Stable pair untouched, as above.
-const POD_IMAGE_VERSION_DEV = 'v0.26.0-dev';
-const POD_IMAGE_VERSION_CPU_DEV = 'v0.26.0-dev';
+// v0.27.0-dev (MPI-1044, the 2.1 engine bump): ComfyUI v0.39.0 -> v0.41.0 (98cc0bf8), frontend
+// 1.55.17, templates 0.11.84; no node pin moved. Stable v0.26.0 is still 0.39.0: the clean
+// release rebuild at ship is MANDATORY for the same reason as v0.25.0-dev above.
+const POD_IMAGE_VERSION_DEV = 'v0.27.0-dev';
+const POD_IMAGE_VERSION_CPU_DEV = 'v0.27.0-dev';
 // 0.2.23 (MPI-169): add GET /wrapper/disk (du -sb of the mounted volume) so the
 // Settings volume bar can show truthful USED bytes — RunPod's API has no used-bytes.
 // R2-publish-only (publish-runtime.sh, no image rebuild). Degrades gracefully: an
