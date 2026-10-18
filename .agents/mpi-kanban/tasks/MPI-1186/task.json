@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1186",
+  "title": "Bench NSFW LTX 2.3 (CivitAI 10Eros, int8 conv-rot build + DMD workflow): licence first",
+  "description": "UMBRELLA: MPI-1179 - New Models to Test. Menu: tasks/MPI-1179/plan.md. Split out of MPI-343 (merged into MPI-1179, 2026-10-18). CivitAI 10Eros LTX 2.3 plus an int8 conv-rot build and a DMD workflow; a possibly-better 'sulp' variant is also linked. Read the licence flags first: this is the entry most likely to fail on licensing. Details: brief.md.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-18T11:37:21+01:00",
+  "updated_at": "2026-10-18T11:37:21+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

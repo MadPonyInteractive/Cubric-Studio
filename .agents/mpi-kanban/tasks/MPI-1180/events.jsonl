@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1180", "at": "2026-10-18T10:33:22+01:00", "actor": "claude", "column": "todo", "title": "Bench MOSS-Image (5B text-to-image) once ComfyUI v0.42.0 ships"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1180", "at": "2026-10-18T11:38:33+01:00", "actor": "claude", "reason": "MPI-1179 restructured as a menu (no phases, Fabio 2026-10-18): prefix now points at the menu."}

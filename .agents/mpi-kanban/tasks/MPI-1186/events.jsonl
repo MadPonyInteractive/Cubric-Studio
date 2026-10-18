@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1186", "at": "2026-10-18T11:37:21+01:00", "actor": "claude", "column": "todo", "title": "Bench NSFW LTX 2.3 (CivitAI 10Eros, int8 conv-rot build + DMD workflow): licence first"}

@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1185", "at": "2026-10-18T11:37:10+01:00", "actor": "claude", "column": "todo", "title": "Bench PiD 1.5 (newer nvidia-pid upscaler generation): REPLACE, ADD or DROP"}

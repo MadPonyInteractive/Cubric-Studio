@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1183", "at": "2026-10-18T12:00:00+01:00", "actor": "claude", "column": "todo", "title": "Bench InfiniSplat v2 (multi-view feed-forward splat) on a 3D Scene path video, after 2.1"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1183", "at": "2026-10-18T11:38:33+01:00", "actor": "claude", "reason": "MPI-1179 restructured as a menu (no phases, Fabio 2026-10-18): prefix now points at the menu."}

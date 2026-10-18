@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1184", "at": "2026-10-18T11:29:00+01:00", "actor": "claude", "column": "todo", "title": "Scope ATAS world memory on MiniMax-H3 (multi-shot, same place across shots); spike before any adapter"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1184", "at": "2026-10-18T11:38:33+01:00", "actor": "claude", "reason": "MPI-1179 restructured as a menu (no phases, Fabio 2026-10-18): prefix now points at the menu."}

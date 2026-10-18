@@ -10,10 +10,10 @@
 | Card | Title | State |
 |---|---|---|
 | MPI-707 | De-RoPE temporal super-resolution as an optional final pass (H3, later LTX 2.5 / WAN 2.2) | `todo` / `deferred` |
-| MPI-578 | LTX 2.5 upscaler - adopt the new latent upscalers once ComfyUI is bumped | `todo` / `blocked` |
+| ~~MPI-578~~ | LTX 2.5 upscaler - MOVED to MPI-1179 (New Models to Test), 2026-10-18 | - |
 | MPI-477 | H3 refiner: the PIXEL-space route, after latent upscaling was disproven | `todo` / `research` |
 | MPI-478 | The local engine still passes --lowvram; the Pod dropped it on measurement (inert today under aimdo) | `todo` / `research` |
-| MPI-343 | Model upgrade evaluation queue - PiD 1.5 upscaler, NSFW LTX 2.3 | `todo` / `research` |
+| ~~MPI-343~~ | Model upgrade evaluation queue - MERGED into MPI-1179 (New Models to Test), 2026-10-18; PiD 1.5 is MPI-1185 | - |
 | MPI-688 | Video Upscale: add H3 alongside LTX | `todo` / `planned` (added 2026-09-29, umbrella sweep, Fabio's yes) |
 
 ## Why these belong together
@@ -33,8 +33,8 @@ Treat a negative result as the deliverable.
    end-to-end timing method. **Verify:** two runs of the SAME config land within noise -
    until that holds, nothing measured after it means anything.
 2. **Measure the four candidates against it** (the Parallel Batch below).
-3. **MPI-343 consumes the results.** The model-upgrade evaluation queue is the place the
-   verdicts get written down; it is not a separate experiment.
+3. **Write the verdicts down on each member card.** (MPI-343, the old verdict queue, merged
+   into MPI-1179 on 2026-10-18; new-model benches such as PiD 1.5 and LTX 2.5 live there now.)
 
 ## Parallel Batch
 
@@ -42,7 +42,6 @@ After phase 1. Each owns its own evidence file under its card folder; none write
 in this batch.
 
 - **MPI-707** - De-RoPE temporal super-resolution as an optional final pass.
-- **MPI-578** - LTX 2.5 latent upscalers (BLOCKED on the ComfyUI bump; do not unblock it here).
 - **MPI-477** - the H3 PIXEL-space refiner route.
 - **MPI-478** - whether the local engine's `--lowvram` still costs anything (inert today).
 

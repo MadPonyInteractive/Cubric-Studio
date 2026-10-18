@@ -2,12 +2,12 @@
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-1182",
   "title": "Bench Fish Audio Drama 3 (int8 experts in RAM, ComfyUI-Drama3 pack) once the engine is on >= v0.40",
-  "description": "UMBRELLA: MPI-1179 - New Models to Test. Members and phase order: tasks/MPI-1179/plan.md. Bench Fish Audio Drama 3 (35B MoE directed TTS: voice cloning, up to 16 speakers, inline cues) through the community ComfyUI-Drama3 pack, int8 experts in system RAM, on 8-12 GB cards; reuse our Qwen3-ASR 0.6B for the voice transcript. Blocked on the engine bump (v0.40 minimum; the v0.42.0 bump for MOSS-Image covers it). Details: brief.md.",
+  "description": "UMBRELLA: MPI-1179 - New Models to Test. Menu: tasks/MPI-1179/plan.md. Bench Fish Audio Drama 3 (35B MoE directed TTS: voice cloning, up to 16 speakers, inline cues) through the community ComfyUI-Drama3 pack, int8 experts in system RAM, on 8-12 GB cards; reuse our Qwen3-ASR 0.6B for the voice transcript. Blocked on the engine bump (v0.40 minimum; the v0.42.0 bump for MOSS-Image covers it). Details: brief.md.",
   "column": "todo",
   "maturity": "blocked",
   "status": "active",
   "created_at": "2026-10-18T10:55:34+01:00",
-  "updated_at": "2026-10-18T10:55:34+01:00",
+  "updated_at": "2026-10-18T11:38:33+01:00",
   "links": {
     "brief": "brief.md",
     "events": "events.jsonl"

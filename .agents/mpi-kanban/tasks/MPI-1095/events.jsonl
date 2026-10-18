@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1095", "at": "2026-10-11T19:38:16+01:00", "actor": "Video edit 20", "column": "todo", "title": "Land LTX 2.5 in the app - new LTX models (replace or beside 2.3), the Flows that use LTX follow"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1095", "at": "2026-10-18T11:38:33+01:00", "actor": "claude", "reason": "Joined umbrella MPI-1179 (New Models to Test) as the LTX 2.5 row."}

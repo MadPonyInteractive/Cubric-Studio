@@ -1,5 +1,9 @@
 # MPI-343 — Model upgrade evaluation queue
 
+> **MERGED into MPI-1179 (New Models to Test), 2026-10-18, Fabio: every new model lives under that
+> one permanent umbrella.** Entries became member cards there: MPI-518 (H3 w4a8), MPI-1185 (PiD 1.5),
+> MPI-1186 (NSFW LTX 2.3). The method below still applies to all three; read it from here.
+
 Promoted to an umbrella by the consolidation sweep, 2026-08-14. This card was already the
 queue in prose — it absorbed MPI-339 on 2026-08-01 and MPI-518 declared itself a member on
 2026-08-10 — but it carried no plan, so the membership was invisible to the board.

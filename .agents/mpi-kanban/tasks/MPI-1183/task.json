@@ -2,12 +2,12 @@
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-1183",
   "title": "Bench InfiniSplat v2 (multi-view feed-forward splat) on a 3D Scene path video, after 2.1",
-  "description": "UMBRELLA: MPI-1179 - New Models to Test. Members and phase order: tasks/MPI-1179/plan.md. Candidate for the 3D Scene lift-back MPI-623 dropped: InfiniSplat v2 builds ONE Gaussian splat from 2-32 views with known cameras, and Render path already knows every frame's camera. Deferred past 2.1 (Fabio, 2026-10-18): the current 3D Scene works, and a newer model, or ATAS (being scoped on MiniMax-H3), may solve consistency and camera placement better. Weights are non-commercial (DA3-Giant, CC BY-NC 4.0). Details: brief.md.",
+  "description": "UMBRELLA: MPI-1179 - New Models to Test. Menu: tasks/MPI-1179/plan.md. Candidate for the 3D Scene lift-back MPI-623 dropped: InfiniSplat v2 builds ONE Gaussian splat from 2-32 views with known cameras, and Render path already knows every frame's camera. Deferred past 2.1 (Fabio, 2026-10-18): the current 3D Scene works, and a newer model, or ATAS (being scoped on MiniMax-H3), may solve consistency and camera placement better. Weights are non-commercial (DA3-Giant, CC BY-NC 4.0). Details: brief.md.",
   "column": "todo",
   "maturity": "deferred",
   "status": "active",
   "created_at": "2026-10-18T12:00:00+01:00",
-  "updated_at": "2026-10-18T12:00:00+01:00",
+  "updated_at": "2026-10-18T11:38:33+01:00",
   "links": {
     "brief": "brief.md",
     "events": "events.jsonl"
