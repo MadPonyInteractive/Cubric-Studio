@@ -27,5 +27,14 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       RTX PRO 4500 (now first in GPU_ORDER), cap $5, Fabio said yes. The plain run is now changed-only
       (3bb6119e9), but THIS one is still the full set: third-party pins moved since 10-08. Needs Fabio's
       own app started `npm start nodev` (default profile = RunPod key; nodev = v0.26.0 release image).
+      **FIRST, before pricing this session (Fabio, 2026-10-18): check the latest ComfyUI release**
+      (`gh api repos/Comfy-Org/ComfyUI/releases/latest --jq .tag_name`, and confirm it has a
+      `ComfyUI_windows_portable_nvidia.7z` asset). If it is **>= v0.42.0**, suggest to Fabio that
+      we bump the engine first (`/mpi-bump-engine`, pinned at v0.39.0 today), then run this session
+      as the bump's full smoke (`--all` plus every Flow). One bump and one smoke then cover 2.1, and
+      2.2 can bring MOSS-Image (MPI-1180, needs v0.42.0) and FLUX.3 Klein (MPI-1181, needs v0.41.0)
+      without a second bump. The bump means a Pod image rebuild and a new STABLE pin, and every op
+      re-runs, so the ~$2 price no longer holds: re-price with `--plan`. Fabio decides. If v0.42.0
+      is not out, run this session as written above.
 - [ ] Stamp 2.1 (`/mpi-version-bump`), `release:check`, `/mpi-release`.
 - [ ] Same day: Claude Desktop bundle 0.3.2 (public steps need Fabio's yes), website guides (MPI-1124).

@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1179", "at": "2026-10-18T10:33:11+01:00", "actor": "claude", "column": "todo", "title": "New Models to Test"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1179", "at": "2026-10-18T10:46:31+01:00", "actor": "claude", "reason": "Member MPI-1181 (FLUX.3 Klein) added as phase 2; engine bump timing note (bump before 2.1's full Pod smoke if v0.42.0 is out)."}

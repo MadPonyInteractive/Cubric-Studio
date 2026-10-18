@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1181", "at": "2026-10-18T10:43:07+01:00", "actor": "claude", "column": "todo", "title": "Bench FLUX.3 Klein (Balanced int8 + High bf16, dev-gated) once the engine is on >= v0.41.0", "reason": "Fabio 2026-10-18: own card under MPI-1179, dev-gated, not in 2.1."}
