@@ -116,6 +116,12 @@ Sequential after 1A (it consumes the validator).
   **Verify:** unit test on the last-frame helper; a `lastFrame` join starts the next shot from it.
 - [ ] Extend latent path (G3, MPI-591 D4) — only if `extend` joins are needed after Phase 4 use.
   **Verify:** an H3 extend from our own output skips the pixel encode (graph diff + one run).
+- [ ] **Keyframe anchors on H3 (`MiniMaxH3AddGuide`, core, already shipped).** Chain one node per
+  picture/clip/sound pinned at a pixel `frame_idx` (negative = from the end): storyboard frames as a
+  shot's beats, a planned end frame at `-1`, a bridge between two takes, a Mix line pinned at its
+  time. Mid-shot and multi-anchor runs are UNPROVEN: bench first, per
+  `research/h3-addguide-keyframes.md`. **Verify:** the three bench arms there, SSIM per anchor; then
+  a `keyframes` join mode added to `docs/story/continuity.md` only if they pass.
 - [ ] `user-ux`: Fabio judges a 3-shot chained scene. **Verify:** his yes in validation.md.
 
 ## Phase 4: Infinite Video Flow — `user-ux`
@@ -176,8 +182,16 @@ Cosmo listening (MPI-1169); this phase builds on both.
 - [ ] Build a Mix recipe from approved shots (selected item ids), Ambience from location Elements,
   music via Stable Audio 3; reference-aware delete (MPI-920, G9). **Verify:** a Story assembles
   into a Mix card that renders; deleting a take used by a Story warns.
+- [ ] (If the Phase 3 keyframe bench passes) Mix "fill the gap": regenerate the frames between two
+  clips on the video lane with H3, previous clip's tail anchored at 0 and the next clip's head at
+  `-N`; and "make picture to this sound": an audio segment anchored at its frame.
+  **Verify:** one bridged pair renders without a visible jump at either seam; Fabio's yes.
 
 ## Plan Drift
+
+- 2026-10-18: Fabio flagged core `MiniMaxH3AddGuide` (anchors at any frame, chainable) for Infinite
+  Video / Story / Mix. Phase 3 keyframe bench + Phase 7 gap-fill added; notes in
+  `research/h3-addguide-keyframes.md`.
 
 - 2026-10-17: Phase 5b + gaps G11-G13 added from the MPI-1170 brainstorm (video understanding for long
   work, video-input models, vision chat model, scene index).
