@@ -25,9 +25,17 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       mpi-ci b376b18 synced. Fabio's app upgraded in place to 0.41.0 (~20 s, 0 IMPORT FAILED);
       `engine-floor-check` 251 class_types, 0 missing. Bench G:\ComfyUi on v0.41.0 (+clip_vision,
       model_patches, speech_to_text yaml keys; backup .bak-v0390), 0 import failures, left running.
-- [ ] Dev image v0.27.0-dev: CI run 39159379516 (cpu leg green; cu130 was building at handoff). Then
-      pull-verify both tags (`docker manifest inspect`), then the full smoke below.
-      Fabio: the Pod session runs only once BOTH are finished (his yes covers ~$2, cap $5).
+- [x] Dev image v0.27.0-dev: CI run 39159379516 both legs green; `docker manifest inspect` OK on
+      docker.io ...:v0.27.0-dev-cu130 and ghcr.io ...:v0.27.0-dev-cpu.
+- [x] 2026-10-18 full smoke `--all --flows all` on v0.27.0-dev (Fabio's go in session 7's chat):
+      evidence `dev_configs/smoke-evidence.json` 21:34Z = **PASS 65 · SKIP 1 (flux-schnell-cloud, no
+      graph) · FAIL 0**, engine want/got 0.41.0 proven. Run log `dev_configs/smoke-run.txt`. Three runner
+      bugs fixed on the way (tests 75/75): volume sized GiB-as-GB (410 GB vs 420.3 needed, refused before
+      any GPU) + grow an undersized smoke volume in place; Transcribe's text-only output counted as "no
+      media" (now counted on a graph with no media node; empty SRT of the silent probe passes, proven
+      on the 0.41.0 bench first); `--retry-failed` died on `flow` rows. Two Transcribe-only retries
+      (Fabio's yes each). Spend ~$0.90 under the $5 cap. Volume wzeh9dxbru deleted (Fabio); RunPod has no
+      Pods or volumes.
 - [x] 2026-10-16 Fabio: MPI-1136 (Cosmo + MCP import a card from another project) and MPI-1154
       (Video Edit background change describes every kept subject) also block 2.1. MPI-1154 changes
       Video Edit, so the Pod smoke's Video Edit run covers it. 2026-10-17: both DONE, Fabio's eye test
@@ -48,5 +56,7 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       without a second bump. The bump means a Pod image rebuild and a new STABLE pin, and every op
       re-runs, so the ~$2 price no longer holds: re-price with `--plan`. Fabio decides. If v0.42.0
       is not out, run this session as written above.
+      2026-10-18: the `--flows all` half is DONE by the v0.27.0-dev smoke above. Still owed here: the
+      describe-encoder check (MPI-1045) and the MPI-1097 live proof, plus the clean RELEASE image.
 - [ ] Stamp 2.1 (`/mpi-version-bump`), `release:check`, `/mpi-release`.
 - [ ] Same day: Claude Desktop bundle 0.3.2 (public steps need Fabio's yes), website guides (MPI-1124).

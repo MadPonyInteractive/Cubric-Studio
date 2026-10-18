@@ -29,7 +29,19 @@ let volumeFitVerdict;
 test.before(async () => {
     // Importing is safe: the script guards its main() behind INVOKED_DIRECTLY. It used to
     // rent an L4 on import, which is exactly why that guard exists.
-    ({ volumeFitVerdict } = await import(SCRIPT));
+    ({ volumeFitVerdict, volumeSizeGb } = await import(SCRIPT));
+});
+
+let volumeSizeGb;
+
+test('a volume the runner CREATES for a set passes its own fit gate (GiB vs GB)', () => {
+    // 2026-10-18: 368.3 GiB (models + Flows) was sized 410 GB by adding GiB to GB, then
+    // refused at 420.3 GB required. Sized in GB, a fresh volume always takes its own set.
+    for (const gib of [300.5, 368.3]) {
+        const size = volumeSizeGb(gib);
+        const v = volumeFitVerdict({ usedBytes: 0, totalBytes: size * RP_GB, setBytes: gib * GiB, headroomBytes: HEADROOM });
+        assert.equal(v.ok, true, `${gib} GiB on a ${size} GB volume: ${v.line}`);
+    }
 });
 
 test('empty 350 GB volume: the real set fits, so the run proceeds', () => {

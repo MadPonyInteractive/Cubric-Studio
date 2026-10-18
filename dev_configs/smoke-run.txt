@@ -1,70 +1,75 @@
-# 2026-10-08 engine-bump smoke (MPI-1043, ComfyUI v0.34.0 -> v0.39.0): full model-op matrix, no --flows, `--wait`, one invocation, verbatim. Pod image v0.25.0-dev (CI run 37786409120), RTX 4090, EU-RO-1, volume 0gzc4yk344. MpiNodes ran at the app's pin 3ec03efb (MPI-623 bumped it after the mpi-ci sync at 6bf5659; code-only, installs at connect). qwen-image-2-1 appears in modelsRun but both its ops SKIPped (workflow not landed yet), so nothing here proves it. The previous transcript (2026-10-04 audio re-smoke) is at f47bf6164.
-[2026-10-08T15:33:49.158Z]
+[2026-10-18T19:58:49.503Z] 
 ── Smoke set ── EU-RO-1 · arch=modern · engine=remote
-[2026-10-08T15:33:49.159Z]    50.1 GB  minimax-h3             tier=balanced  ops=2
-[2026-10-08T15:33:49.159Z]             t2v_ms             minimax_h3_fl2va.json
-[2026-10-08T15:33:49.159Z]             i2v_ms             minimax_h3_fl2va.json
-[2026-10-08T15:33:49.159Z]    50.1 GB  minimax-h3-ref2va      tier=balanced  ops=1
-[2026-10-08T15:33:49.159Z]             ref2v_ms           minimax_h3_r2va.json
-[2026-10-08T15:33:49.159Z]    38.9 GB  ltx-23-balanced        tier=balanced  ops=2  covers ltx-23
-[2026-10-08T15:33:49.159Z]             t2v_ms             ltx_i2v_t2v_int8.json
-[2026-10-08T15:33:49.159Z]             i2v_ms             ltx_i2v_t2v_int8.json
-[2026-10-08T15:33:49.160Z]    33.1 GB  wan-22                 tier=balanced  ops=1
-[2026-10-08T15:33:49.160Z]             i2v_ms             wan22_i2v.json
-[2026-10-08T15:33:49.160Z]    32.1 GB  qwen-edit              tier=balanced  ops=2
-[2026-10-08T15:33:49.160Z]             qwenEdit           qwen_edit.json
-[2026-10-08T15:33:49.160Z]             control            qwen_edit.json
-[2026-10-08T15:33:49.160Z]    24.1 GB  krea2-nsfw             tier=balanced  ops=7  covers krea2
-[2026-10-08T15:33:49.160Z]             t2i                krea2_t2i_nsfw.json
-[2026-10-08T15:33:49.160Z]             i2i                krea2_t2i_nsfw.json
-[2026-10-08T15:33:49.160Z]             control            krea2_t2i_nsfw.json
-[2026-10-08T15:33:49.160Z]             krea2Edit          krea2_t2i_nsfw.json
-[2026-10-08T15:33:49.160Z]             inpaint            krea2_t2i_nsfw.json
-[2026-10-08T15:33:49.160Z]             upscale            krea2_t2i_nsfw.json
-[2026-10-08T15:33:49.160Z]             detail             krea2_t2i_nsfw.json
-[2026-10-08T15:33:49.160Z]    23.0 GB  chroma-hyper           tier=low       ops=5  covers chroma-flash
-[2026-10-08T15:33:49.160Z]             t2i                chroma_hyper_t2i.json
-[2026-10-08T15:33:49.160Z]             i2i                chroma_hyper_t2i.json
-[2026-10-08T15:33:49.161Z]             control            chroma_hyper_t2i.json
-[2026-10-08T15:33:49.161Z]             upscale            chroma_hyper_t2i.json
-[2026-10-08T15:33:49.161Z]             detail             chroma_hyper_t2i.json
-[2026-10-08T15:33:49.161Z]    20.8 GB  boogu-edit-balanced    tier=balanced  ops=1  covers boogu-edit-high
-[2026-10-08T15:33:49.161Z]             edit               boogu_edit_balanced.json
-[2026-10-08T15:33:49.161Z]    17.2 GB  qwen-image-2-1         tier=balanced  ops=2
-[2026-10-08T15:33:49.161Z]             t2i                qwen_image_2_1.json   ← FILE MISSING
-[2026-10-08T15:33:49.161Z]             edit               qwen_image_2_1.json   ← FILE MISSING
-[2026-10-08T15:33:49.161Z]    17.2 GB  wan22-5b               tier=low       ops=2
-[2026-10-08T15:33:49.161Z]             t2v                wan5b_t2v.json
-[2026-10-08T15:33:49.161Z]             i2v                wan5b_i2v.json
-[2026-10-08T15:33:49.161Z]    16.0 GB  nvidia-pid             tier=low       ops=1
-[2026-10-08T15:33:49.161Z]             pid                nvidia_pid.json
-[2026-10-08T15:33:49.161Z]    12.6 GB  klein-4b               tier=low       ops=7  covers klein-9b
-[2026-10-08T15:33:49.161Z]             t2i                klein_t2i.json
-[2026-10-08T15:33:49.161Z]             i2i                klein_t2i.json
-[2026-10-08T15:33:49.161Z]             control            klein_t2i.json
-[2026-10-08T15:33:49.161Z]             kleinEdit          klein_t2i.json
-[2026-10-08T15:33:49.161Z]             inpaint            klein_t2i.json
-[2026-10-08T15:33:49.161Z]             detail             klein_t2i.json
-[2026-10-08T15:33:49.161Z]             upscale            klein_t2i.json
-[2026-10-08T15:33:49.161Z]    11.8 GB  stable-audio-3         tier=balanced  ops=1
-[2026-10-08T15:33:49.162Z]             t2a                stable_audio_3.json
-[2026-10-08T15:33:49.162Z]     8.9 GB  sdxl-nsfw              tier=low       ops=6  covers sdxl-realistic, ill-anime-beauty, ill-anime, pony-mix
-[2026-10-08T15:33:49.162Z]             t2i                t2i_sdxl_nsfw.json
-[2026-10-08T15:33:49.162Z]             i2i                t2i_sdxl_nsfw.json
-[2026-10-08T15:33:49.162Z]             control            t2i_sdxl_nsfw.json
-[2026-10-08T15:33:49.162Z]             inpaint            t2i_sdxl_nsfw.json
-[2026-10-08T15:33:49.162Z]             upscale            t2i_sdxl_nsfw.json
-[2026-10-08T15:33:49.162Z]             detail             t2i_sdxl_nsfw.json
-[2026-10-08T15:33:49.162Z]     6.0 GB  chatterbox             tier=low       ops=1
-[2026-10-08T15:33:49.162Z]             tts                chatterbox_tts.json
-[2026-10-08T15:33:49.162Z]     0.0 GB  flux-schnell-cloud     tier=-         ops=1  covers seedream-4-cloud, seedream-45-cloud, seedream-5-pro-cloud, flux2-dev-cloud, klein-9b-cloud, flux2-pro-cloud, flux2-max-cloud, nano-banana-2-lite-cloud, nano-banana-2-cloud, nano-banana-pro-cloud, seedance-15-pro-cloud, seedance-2-cloud, wan3-cloud, veo-31-fast-cloud, veo-31-cloud
-[2026-10-08T15:33:49.162Z]             t2i                (no workflow)
-[2026-10-08T15:33:49.162Z] 
-  models 16 · ops 42 · weights 315.7 GB · new volume would be 360 GB
-[2026-10-08T15:33:49.162Z]   budget: 1 step · 128px target · 1 frame(s) · seed 42
-[2026-10-08T15:33:49.162Z] 
+[2026-10-18T19:58:49.504Z]    50.1 GB  minimax-h3             tier=balanced  ops=2
+[2026-10-18T19:58:49.504Z]             t2v_ms             minimax_h3_fl2va.json
+[2026-10-18T19:58:49.504Z]             i2v_ms             minimax_h3_fl2va.json
+[2026-10-18T19:58:49.504Z]    50.1 GB  minimax-h3-ref2va      tier=balanced  ops=1
+[2026-10-18T19:58:49.504Z]             ref2v_ms           minimax_h3_r2va.json
+[2026-10-18T19:58:49.505Z]    40.1 GB  ltx-23-balanced        tier=balanced  ops=3  covers ltx-23
+[2026-10-18T19:58:49.505Z]             t2v_ms             ltx_i2v_t2v_int8.json
+[2026-10-18T19:58:49.505Z]             i2v_ms             ltx_i2v_t2v_int8.json
+[2026-10-18T19:58:49.505Z]             ref2v_ms           ltx_i2v_t2v_int8.json
+[2026-10-18T19:58:49.505Z]    33.1 GB  wan-22                 tier=balanced  ops=1
+[2026-10-18T19:58:49.505Z]             i2v_ms             wan22_i2v.json
+[2026-10-18T19:58:49.505Z]    32.1 GB  qwen-edit              tier=balanced  ops=2
+[2026-10-18T19:58:49.505Z]             qwenEdit           qwen_edit.json
+[2026-10-18T19:58:49.505Z]             control            qwen_edit.json
+[2026-10-18T19:58:49.505Z]    24.1 GB  krea2-nsfw             tier=balanced  ops=7  covers krea2
+[2026-10-18T19:58:49.505Z]             t2i                krea2_t2i_nsfw.json
+[2026-10-18T19:58:49.505Z]             i2i                krea2_t2i_nsfw.json
+[2026-10-18T19:58:49.505Z]             control            krea2_t2i_nsfw.json
+[2026-10-18T19:58:49.505Z]             krea2Edit          krea2_t2i_nsfw.json
+[2026-10-18T19:58:49.505Z]             inpaint            krea2_t2i_nsfw.json
+[2026-10-18T19:58:49.505Z]             upscale            krea2_t2i_nsfw.json
+[2026-10-18T19:58:49.506Z]             detail             krea2_t2i_nsfw.json
+[2026-10-18T19:58:49.506Z]    23.0 GB  chroma-hyper           tier=low       ops=5  covers chroma-flash
+[2026-10-18T19:58:49.506Z]             t2i                chroma_hyper_t2i.json
+[2026-10-18T19:58:49.506Z]             i2i                chroma_hyper_t2i.json
+[2026-10-18T19:58:49.506Z]             control            chroma_hyper_t2i.json
+[2026-10-18T19:58:49.506Z]             upscale            chroma_hyper_t2i.json
+[2026-10-18T19:58:49.506Z]             detail             chroma_hyper_t2i.json
+[2026-10-18T19:58:49.506Z]    20.3 GB  qwen-image-2-1         tier=balanced  ops=7
+[2026-10-18T19:58:49.506Z]             t2i                qwen_image_2_1.json
+[2026-10-18T19:58:49.506Z]             i2i                qwen_image_2_1.json
+[2026-10-18T19:58:49.506Z]             control            qwen_image_2_1.json
+[2026-10-18T19:58:49.506Z]             edit               qwen_image_2_1.json
+[2026-10-18T19:58:49.506Z]             inpaint            qwen_image_2_1.json
+[2026-10-18T19:58:49.506Z]             detail             qwen_image_2_1.json
+[2026-10-18T19:58:49.506Z]             upscale            qwen_image_2_1.json
+[2026-10-18T19:58:49.506Z]    19.6 GB  boogu-edit-balanced    tier=balanced  ops=1  covers boogu-edit-high
+[2026-10-18T19:58:49.507Z]             edit               boogu_edit_balanced.json
+[2026-10-18T19:58:49.507Z]    17.2 GB  wan22-5b               tier=low       ops=2
+[2026-10-18T19:58:49.507Z]             t2v                wan5b_t2v.json
+[2026-10-18T19:58:49.507Z]             i2v                wan5b_i2v.json
+[2026-10-18T19:58:49.507Z]    16.0 GB  nvidia-pid             tier=low       ops=1
+[2026-10-18T19:58:49.507Z]             pid                nvidia_pid.json
+[2026-10-18T19:58:49.507Z]    12.6 GB  klein-4b               tier=low       ops=7  covers klein-9b
+[2026-10-18T19:58:49.507Z]             t2i                klein_t2i.json
+[2026-10-18T19:58:49.507Z]             i2i                klein_t2i.json
+[2026-10-18T19:58:49.507Z]             control            klein_t2i.json
+[2026-10-18T19:58:49.507Z]             kleinEdit          klein_t2i.json
+[2026-10-18T19:58:49.507Z]             inpaint            klein_t2i.json
+[2026-10-18T19:58:49.507Z]             detail             klein_t2i.json
+[2026-10-18T19:58:49.507Z]             upscale            klein_t2i.json
+[2026-10-18T19:58:49.507Z]    11.8 GB  stable-audio-3         tier=balanced  ops=1
+[2026-10-18T19:58:49.507Z]             t2a                stable_audio_3.json
+[2026-10-18T19:58:49.507Z]     8.9 GB  sdxl-nsfw              tier=low       ops=6  covers sdxl-realistic, ill-anime-beauty, ill-anime, pony-mix
+[2026-10-18T19:58:49.507Z]             t2i                t2i_sdxl_nsfw.json
+[2026-10-18T19:58:49.507Z]             i2i                t2i_sdxl_nsfw.json
+[2026-10-18T19:58:49.507Z]             control            t2i_sdxl_nsfw.json
+[2026-10-18T19:58:49.508Z]             inpaint            t2i_sdxl_nsfw.json
+[2026-10-18T19:58:49.508Z]             upscale            t2i_sdxl_nsfw.json
+[2026-10-18T19:58:49.508Z]             detail             t2i_sdxl_nsfw.json
+[2026-10-18T19:58:49.508Z]     6.0 GB  chatterbox             tier=low       ops=1
+[2026-10-18T19:58:49.508Z]             tts                chatterbox_tts.json
+[2026-10-18T19:58:49.508Z]     0.0 GB  flux-schnell-cloud     tier=-         ops=1  covers seedream-4-cloud, seedream-45-cloud, seedream-5-pro-cloud, flux2-dev-cloud, klein-9b-cloud, flux2-pro-cloud, flux2-max-cloud, nano-banana-2-lite-cloud, nano-banana-2-cloud, nano-banana-pro-cloud, seedance-15-pro-cloud, seedance-2-cloud, wan3-cloud, veo-31-fast-cloud, veo-31-cloud
+[2026-10-18T19:58:49.508Z]             t2i                (no workflow)
+[2026-10-18T19:58:49.508Z] 
+  models 16 · ops 48 · weights 319.9 GB · new volume would be 390 GB
+[2026-10-18T19:58:49.508Z]   budget: 1 step · 128px target · 1 frame(s) · seed 42
+[2026-10-18T19:58:49.508Z] 
   NOT loaded by this set (20) — a break tied to the weight FORMAT
-[2026-10-08T15:33:49.162Z]   under the same loader node would be missed:
+[2026-10-18T19:58:49.508Z]   under the same loader node would be missed:
     sdxl-realistic(6.62GB)
     ill-anime(6.46GB)
     ill-anime-beauty(6.46GB)
@@ -85,164 +90,203 @@
     klein-9b-style-doodle(39.53MB)
     klein-9b-style-vintage(667.95MB)
     klein-9b-style-watercolour(260.05MB)
-[2026-10-08T15:33:49.186Z] 
-  preflight (offline, free): 3 op(s) would not execute
-[2026-10-08T15:33:49.186Z]   SKIP qwen-image-2-1/t2i — workflow file missing: qwen_image_2_1.json
-[2026-10-08T15:33:49.186Z]   SKIP qwen-image-2-1/edit — workflow file missing: qwen_image_2_1.json
-[2026-10-08T15:33:49.186Z]   SKIP flux-schnell-cloud/t2i — no workflow mapped
-[2026-10-08T15:33:49.189Z] 
-  ⚠ pod lock is behind on CODE-ONLY nodes — ComfyUI-MpiNodes
-[2026-10-08T15:33:49.189Z]   NOT a blocker and NOT a rebuild: the Dockerfile bakes only installRequirements:true,
-[2026-10-08T15:33:49.189Z]   and the wrapper installs these to the volume at the APP's pin. The image is unaffected.
-[2026-10-08T15:33:49.189Z]   Sync the file so the two locks agree (no /build-pod-image):
-[2026-10-08T15:33:49.189Z]     cp dev_configs/node_lock.json "c:\AI\Mpi\mpi-ci\cubric-vision-pod\node_lock.json"
-[2026-10-08T15:33:49.189Z]     cp dev_configs/python_deps.txt "c:\AI\Mpi\mpi-ci\cubric-vision-pod\python_deps.txt"
-[2026-10-08T15:33:49.189Z]     git -C "c:/AI/Mpi/mpi-ci/cubric-vision-pod" commit --only node_lock.json python_deps.txt -m "chore(pod): sync node_lock to ComfyUI 0.39.0"
-[2026-10-08T15:33:49.189Z]   Baked packs + python_deps are in sync with v0.39.0 ✓
-[2026-10-08T15:33:49.575Z] 
-  first-party nodes: every Mpi* class_type exists at MpiNodes 3ec03efb OK
-[2026-10-08T15:33:50.160Z] 
-  required inputs: 54 shipped graphs sweep clean — every Mpi* node supplies its required inputs ✓ (via http://127.0.0.1:8188, MpiNodes 3ec03efb)
-[2026-10-08T15:33:50.160Z] 
+[2026-10-18T19:58:49.508Z] 
+── Flow set ──
+[2026-10-18T19:58:49.508Z]   ltx-extend                         flow_ltx_extend.json  models=[ltx-23-balanced]
+[2026-10-18T19:58:49.508Z]   ltx-extend/minimax-h3              flow_h3_extend.json  models=[minimax-h3]
+[2026-10-18T19:58:49.508Z]   ltx-foley                          flow_ltx_foley.json  models=[ltx-23-balanced]
+[2026-10-18T19:58:49.508Z]   ltx-upscale                        ltx_video_upscale.json  models=[ltx-23-balanced]
+[2026-10-18T19:58:49.508Z]   video-edit                         flow_video_edit.json  models=[minimax-h3-ref2va]  deps=2
+[2026-10-18T19:58:49.508Z]   scribble-object                    flow_draw_it_in.json  models=[klein-9b]
+[2026-10-18T19:58:49.508Z]   scribble                           flow_scribble.json  models=[klein-9b]
+[2026-10-18T19:58:49.508Z]   character-sheet                    flow_character_sheet.json  models=[krea2]
+[2026-10-18T19:58:49.508Z]   character-sheet-from-images        flow_character_sheet_from_images.json  models=[qwen-image-2-1]
+[2026-10-18T19:58:49.509Z]   character-sheet-editor             flow_character_sheet_edit.json  models=[klein-9b,qwen-image-2-1]
+[2026-10-18T19:58:49.509Z]   outpaint                           flow_outpaint.json  models=[klein-9b]
+[2026-10-18T19:58:49.509Z]   make-seamless                      flow_make_seamless.json  models=[klein-9b]
+[2026-10-18T19:58:49.509Z]   voice-changer                      flow_voice_changer.json  deps=3
+[2026-10-18T19:58:49.509Z]   stems                              flow_stems.json  deps=1
+[2026-10-18T19:58:49.509Z]   transcribe                         flow_transcribe.json  deps=7
+[2026-10-18T19:58:49.509Z]   object-stamp                       flow_object_stamp.json  models=[klein-9b]
+[2026-10-18T19:58:49.509Z]   minimax-music                      flow_minimax_music.json  deps=4
+[2026-10-18T19:58:49.509Z]   pano-360                           flow_pano360.json  models=[krea2]  deps=2
+[2026-10-18T19:58:49.509Z]   flow models to install: ltx-23-balanced, minimax-h3, minimax-h3-ref2va, klein-9b, krea2, qwen-image-2-1
+[2026-10-18T19:58:49.509Z]   flow deps [video-edit]: 2 dep(s)
+[2026-10-18T19:58:49.509Z]   flow deps [voice-changer]: 3 dep(s)
+[2026-10-18T19:58:49.509Z]   flow deps [stems]: 1 dep(s)
+[2026-10-18T19:58:49.509Z]   flow deps [transcribe]: 7 dep(s)
+[2026-10-18T19:58:49.509Z]   flow deps [minimax-music]: 4 dep(s)
+[2026-10-18T19:58:49.509Z]   flow deps [pano-360]: 2 dep(s)
+[2026-10-18T19:58:49.509Z]   flow install adds ~48.4 GB to the volume
+[2026-10-18T19:58:49.525Z] 
+  preflight (offline, free): 1 op(s) would not execute
+[2026-10-18T19:58:49.525Z]   SKIP flux-schnell-cloud/t2i — no workflow mapped
+[2026-10-18T19:58:49.529Z] 
+  flow preflight (offline, free): all 18 flow graph(s) resolve ✓
+[2026-10-18T19:58:49.530Z] 
+  pod lock + python_deps in sync with v0.41.0 ✓
+[2026-10-18T19:58:49.627Z] 
+  first-party nodes: every Mpi* class_type exists at MpiNodes ce435f3e OK
+[2026-10-18T19:58:50.502Z] 
+  required inputs: 60 shipped graphs sweep clean — every Mpi* node supplies its required inputs ✓ (via http://127.0.0.1:8188, MpiNodes ce435f3e)
+[2026-10-18T19:58:50.502Z] 
 ── Live run ──
-[2026-10-08T15:33:50.595Z]   volume: creating cubric-smoke 360 GB in EU-RO-1
-[2026-10-08T15:33:51.329Z] 
+[2026-10-18T19:58:50.785Z]   volume: growing wzeh9dxbru 410 → 440 GB
+[2026-10-18T19:58:51.137Z] 
   CPU download Pod: create (attempt 1/3)…
-[2026-10-08T15:34:36.356Z]  remote mode active on f7y0efmoff5zky
-[2026-10-08T15:34:36.413Z]   volume: free space UNKNOWN (no /wrapper/disk) - fit not checked, the fill may still run out
-[2026-10-08T15:34:36.417Z]   installing 119 deps on a CPU Pod (download mode)…
-[2026-10-08T15:34:36.417Z] 
+[2026-10-18T19:59:16.337Z]  remote mode active on 40gwya84xoq8r2
+[2026-10-18T19:59:17.231Z]   volume: MEASURED used 0.0 GB of 440.0 GB - free 440.0 GB, still needed 395.5 GB (+5% +5.0 GB headroom = 420.3 GB)
+[2026-10-18T19:59:17.234Z]   installing 130 deps on a CPU Pod (download mode)…
+[2026-10-18T19:59:17.234Z] 
   [1/16] sdxl-nsfw
-[2026-10-08T15:35:17.347Z] 
+[2026-10-18T20:00:02.154Z] 
   [2/16] chroma-hyper
-[2026-10-08T15:36:10.484Z] 
+[2026-10-18T20:01:05.813Z] 
   [3/16] krea2-nsfw
-[2026-10-08T15:37:18.887Z] 
+[2026-10-18T20:02:17.618Z] 
   [4/16] nvidia-pid
-[2026-10-08T15:38:16.946Z] 
+[2026-10-18T20:03:24.305Z] 
   [5/16] klein-4b
-[2026-10-08T15:39:10.326Z] 
+[2026-10-18T20:04:41.421Z] 
   [6/16] boogu-edit-balanced
-[2026-10-08T15:39:53.247Z] 
+[2026-10-18T20:05:33.091Z] 
   [7/16] wan-22
-[2026-10-08T15:40:51.090Z] 
+[2026-10-18T20:06:54.926Z] 
   [8/16] ltx-23-balanced
-[2026-10-08T15:42:14.902Z] 
+[2026-10-18T20:08:31.878Z] 
   [9/16] minimax-h3
-[2026-10-08T15:44:38.246Z] 
+[2026-10-18T20:10:33.936Z] 
   [10/16] minimax-h3-ref2va
-[2026-10-08T15:46:16.611Z] 
+[2026-10-18T20:11:30.912Z] 
   [11/16] wan22-5b
-[2026-10-08T15:47:14.994Z] 
+[2026-10-18T20:12:22.443Z] 
   [12/16] qwen-edit
-[2026-10-08T15:49:03.756Z] 
+[2026-10-18T20:14:09.363Z] 
   [13/16] qwen-image-2-1
-[2026-10-08T15:51:22.159Z] 
-  ⚠ [download] remote install silent for 97s with 1 dep(s) outstanding — treating as stalled
-[2026-10-08T15:51:22.159Z] 
-  ⚠ [download] remote install SSE closed (silent-stall); 1 dep(s) outstanding — recovering
-[2026-10-08T15:51:27.177Z] 
+[2026-10-18T20:14:40.717Z] 
   [14/16] stable-audio-3
-[2026-10-08T15:52:20.476Z] 
+[2026-10-18T20:15:27.388Z] 
   [15/16] chatterbox
-[2026-10-08T15:52:43.789Z] 
+[2026-10-18T20:15:44.150Z] 
   [16/16] flux-schnell-cloud
-[2026-10-08T15:52:44.272Z]   installs verified: no failed deps
-[2026-10-08T15:52:44.272Z] 
+[2026-10-18T20:15:44.556Z] 
+  installing 2 flow-required model(s)…
+[2026-10-18T20:15:44.556Z] 
+  [1/2] klein-9b
+[2026-10-18T20:16:51.440Z] 
+  [2/2] krea2
+[2026-10-18T20:17:53.155Z] 
+  installing flow deps [video-edit]…
+[2026-10-18T20:18:00.040Z] 
+  installing flow deps [voice-changer]…
+[2026-10-18T20:18:06.786Z] 
+  installing flow deps [stems]…
+[2026-10-18T20:18:13.185Z] 
+  installing flow deps [transcribe]…
+[2026-10-18T20:18:44.675Z] 
+  installing flow deps [minimax-music]…
+[2026-10-18T20:19:11.441Z] 
+  installing flow deps [pano-360]…
+[2026-10-18T20:19:38.044Z]   installs verified: no failed deps
+[2026-10-18T20:19:38.044Z] 
   deleting the CPU download Pod…
-[2026-10-08T15:52:46.030Z]   waiting for RTX 5090 / RTX 4090 / A100 PCIe in EU-RO-1, checking every 30s — in stock now: B200, L4, RTX PRO 4500, RTX PRO 6000 WK
-[2026-10-08T15:55:20.957Z]   RTX 5090: present but reporting no availability — next choice
-[2026-10-08T15:55:20.957Z]   gpu: RTX 4090 (preferred #2)
-[2026-10-08T15:55:20.957Z]   RAM floor: 62 GB
-[2026-10-08T15:55:20.957Z] 
+[2026-10-18T20:19:39.783Z]   gpu: RTX PRO 4500 (preferred #1)
+[2026-10-18T20:19:39.783Z]   RAM floor: 62 GB
+[2026-10-18T20:19:39.783Z] 
   GPU Pod: create (attempt 1/2)…
-[2026-10-08T15:55:22.904Z]   ⚠ create refused: /remote/pod/create -> 502 {"error":"pod_create_failed","message":"There are no longer any instances available with the requested specifications. Please refresh and try again.","gpuUnsupported":false,"ramFloorMissed":false}
-[2026-10-08T15:55:24.003Z]   waiting for RTX 5090 / RTX 4090 / A100 PCIe in EU-RO-1, checking every 30s — in stock now: nothing
-[2026-10-08T15:59:00.885Z]   RTX 5090: present but reporting no availability — next choice
-[2026-10-08T15:59:00.886Z]   gpu: RTX 4090 (preferred #2)
-[2026-10-08T15:59:00.886Z]   switching to RTX 4090 — nothing was rented, so this does not spend an attempt
-[2026-10-08T15:59:00.886Z] 
-  GPU Pod: create (attempt 1/2)…
-[2026-10-08T15:59:02.869Z]   ⚠ create refused: /remote/pod/create -> 502 {"error":"pod_create_failed","message":"There are no longer any instances available with the requested specifications. Please refresh and try again.","gpuUnsupported":false,"ramFloorMissed":false}
-[2026-10-08T15:59:03.948Z]   waiting for RTX 5090 / RTX 4090 / A100 PCIe in EU-RO-1, checking every 30s — in stock now: nothing
-[2026-10-08T16:03:42.524Z]   RTX 5090: present but reporting no availability — next choice
-[2026-10-08T16:03:42.524Z]   gpu: RTX 4090 (preferred #2)
-[2026-10-08T16:03:42.524Z]   switching to RTX 4090 — nothing was rented, so this does not spend an attempt
-[2026-10-08T16:03:42.525Z] 
-  GPU Pod: create (attempt 1/2)…
-[2026-10-08T16:03:44.495Z]   ⚠ create refused: /remote/pod/create -> 502 {"error":"pod_create_failed","message":"There are no longer any instances available with the requested specifications. Please refresh and try again.","gpuUnsupported":false,"ramFloorMissed":true}
-[2026-10-08T16:03:45.396Z]   waiting for RTX 5090 / RTX 4090 / A100 PCIe in EU-RO-1, checking every 30s — in stock now: RTX A4500, RTX PRO 4000, RTX PRO 4500, RTX PRO 6000, RTX PRO 6000 WK
-[2026-10-08T16:08:55.189Z]   waiting for RTX 5090 / RTX 4090 / A100 PCIe in EU-RO-1, checking every 30s — in stock now: RTX PRO 4500
-[2026-10-08T16:11:30.100Z]   RTX 5090: present but reporting no availability — next choice
-[2026-10-08T16:11:30.100Z]   gpu: RTX 4090 (preferred #2)
-[2026-10-08T16:11:30.100Z]   switching to RTX 4090 — nothing was rented, so this does not spend an attempt
-[2026-10-08T16:11:30.100Z] 
-  GPU Pod: create (attempt 1/2)…
-[2026-10-08T16:15:55.162Z]   engine: Pod image built from 0.39.0, matches node_lock ✓
-[2026-10-08T16:15:55.435Z]   probe image on the Pod: /workspace/comfyui/input/smoke-probe.png
-[2026-10-08T16:15:55.550Z]   probe video on the Pod: /workspace/comfyui/input/smoke-probe.mp4
-[2026-10-08T16:15:55.728Z]   probe audio on the Pod: /workspace/comfyui/input/smoke-probe.wav
-[2026-10-08T16:16:27.120Z]   hot-store: 2/2 file(s) on Pod disk
-[2026-10-08T16:16:40.704Z]   PASS sdxl-nsfw/t2i (13s, 1 out)
-[2026-10-08T16:16:49.624Z]   PASS sdxl-nsfw/i2i (8s, 2 out)
-[2026-10-08T16:17:19.658Z]   PASS sdxl-nsfw/control (30s, 2 out)
-[2026-10-08T16:17:32.780Z]   PASS sdxl-nsfw/inpaint (13s, 2 out)
-[2026-10-08T16:17:45.761Z]   PASS sdxl-nsfw/upscale (13s, 2 out)
-[2026-10-08T16:17:50.449Z]   PASS sdxl-nsfw/detail (4s, 2 out)
-[2026-10-08T16:19:22.553Z]   hot-store: 8/8 file(s) on Pod disk
-[2026-10-08T16:19:40.749Z]   PASS chroma-hyper/t2i (17s, 1 out)
-[2026-10-08T16:19:58.235Z]   PASS chroma-hyper/i2i (17s, 2 out)
-[2026-10-08T16:20:24.070Z]   PASS chroma-hyper/control (25s, 2 out)
-[2026-10-08T16:20:41.507Z]   PASS chroma-hyper/upscale (17s, 2 out)
-[2026-10-08T16:20:50.573Z]   PASS chroma-hyper/detail (9s, 2 out)
-[2026-10-08T16:22:08.407Z]   hot-store: 16/16 file(s) on Pod disk
-[2026-10-08T16:22:35.941Z]   PASS krea2-nsfw/t2i (26s, 1 out)
-[2026-10-08T16:22:57.946Z]   PASS krea2-nsfw/i2i (21s, 2 out)
-[2026-10-08T16:23:32.654Z]   PASS krea2-nsfw/control (34s, 2 out)
-[2026-10-08T16:24:07.107Z]   PASS krea2-nsfw/krea2Edit (34s, 2 out)
-[2026-10-08T16:25:09.039Z]   PASS krea2-nsfw/inpaint (61s, 2 out)
-[2026-10-08T16:25:30.824Z]   PASS krea2-nsfw/upscale (21s, 2 out)
-[2026-10-08T16:25:35.697Z]   PASS krea2-nsfw/detail (4s, 2 out)
-[2026-10-08T16:26:25.846Z]   hot-store: 9/9 file(s) on Pod disk
-[2026-10-08T16:26:47.339Z]   PASS nvidia-pid/pid (21s, 2 out)
-[2026-10-08T16:27:27.368Z]   hot-store: 5/5 file(s) on Pod disk
-[2026-10-08T16:27:41.234Z]   PASS klein-4b/t2i (13s, 1 out)
-[2026-10-08T16:27:54.457Z]   PASS klein-4b/i2i (13s, 2 out)
-[2026-10-08T16:28:11.725Z]   PASS klein-4b/control (17s, 2 out)
-[2026-10-08T16:28:25.117Z]   PASS klein-4b/kleinEdit (13s, 2 out)
-[2026-10-08T16:28:38.329Z]   PASS klein-4b/inpaint (13s, 2 out)
-[2026-10-08T16:28:43.003Z]   PASS klein-4b/detail (4s, 1 out)
-[2026-10-08T16:28:51.952Z]   PASS klein-4b/upscale (8s, 2 out)
-[2026-10-08T16:29:54.456Z]   hot-store: 3/3 file(s) on Pod disk
-[2026-10-08T16:30:20.320Z]   PASS boogu-edit-balanced/edit (25s, 2 out)
-[2026-10-08T16:32:05.546Z]   hot-store: 4/4 file(s) on Pod disk
-[2026-10-08T16:32:43.990Z]   PASS wan-22/i2v_ms (38s, 2 out)
-[2026-10-08T16:34:48.761Z]   hot-store: 10/10 file(s) on Pod disk
-[2026-10-08T16:35:54.545Z]   PASS ltx-23-balanced/t2v_ms (65s, 1 out)
-[2026-10-08T16:36:41.894Z]   PASS ltx-23-balanced/i2v_ms (47s, 2 out)
-[2026-10-08T16:38:06.637Z]   hot-store: 5/5 file(s) on Pod disk
-[2026-10-08T16:42:12.773Z]   PASS minimax-h3/t2v_ms (245s, 1 out)
-[2026-10-08T16:46:44.246Z]   PASS minimax-h3/i2v_ms (271s, 2 out)
-[2026-10-08T16:47:55.507Z]   hot-store: 5/5 file(s) on Pod disk
-[2026-10-08T16:50:28.238Z]   PASS minimax-h3-ref2va/ref2v_ms (152s, 1 out)
-[2026-10-08T16:51:01.165Z]   hot-store: 4/4 file(s) on Pod disk
-[2026-10-08T16:51:27.028Z]   PASS wan22-5b/t2v (25s, 1 out)
-[2026-10-08T16:51:39.945Z]   PASS wan22-5b/i2v (13s, 2 out)
-[2026-10-08T16:53:34.128Z]   hot-store: 12/12 file(s) on Pod disk
-[2026-10-08T16:54:09.383Z]   PASS qwen-edit/qwenEdit (35s, 2 out)
-[2026-10-08T16:54:52.517Z]   PASS qwen-edit/control (43s, 2 out)
-[2026-10-08T16:55:15.763Z]   hot-store: 3/3 file(s) on Pod disk
-[2026-10-08T16:55:15.764Z]   SKIP qwen-image-2-1/t2i — workflow file missing: qwen_image_2_1.json
-[2026-10-08T16:55:15.764Z]   SKIP qwen-image-2-1/edit — workflow file missing: qwen_image_2_1.json
-[2026-10-08T16:55:53.524Z]   hot-store: 3/3 file(s) on Pod disk
-[2026-10-08T16:56:02.505Z]   PASS stable-audio-3/t2a (9s, 1 out)
-[2026-10-08T16:56:36.499Z]   PASS chatterbox/tts (34s, 1 out)
-[2026-10-08T16:56:36.499Z]   SKIP flux-schnell-cloud/t2i — no workflow mapped
-[2026-10-08T16:56:36.499Z] 
-PASS 39 · SKIP 3 (qwen-image-2-1/t2i, qwen-image-2-1/edit, flux-schnell-cloud/t2i) · FAIL 0
-[2026-10-08T16:56:36.499Z] budget applied: 1 step · 128px target · seed 42
-[2026-10-08T16:56:36.499Z] Pod-green is NOT Windows-green — the local portable half is playbook gate 5.
-[2026-10-08T16:56:36.499Z] evidence: dev_configs/smoke-evidence.json
-[2026-10-08T16:56:37.335Z] 
-Volume 0gzc4yk344 (360 GB) kept — no TTY to ask on.
-[2026-10-08T16:56:37.335Z]   Delete it yourself if you want it gone, or re-run with --keep-volume to silence this.
+[2026-10-18T20:23:32.139Z]   engine: Pod image built from 0.41.0, matches node_lock ✓
+[2026-10-18T20:23:32.564Z]   probe image on the Pod: /workspace/comfyui/input/smoke-probe.png
+[2026-10-18T20:23:32.687Z]   probe video on the Pod: /workspace/comfyui/input/smoke-probe.mp4
+[2026-10-18T20:23:32.814Z]   probe audio on the Pod: /workspace/comfyui/input/smoke-probe.wav
+[2026-10-18T20:24:02.459Z]   hot-store: 2/2 file(s) on Pod disk
+[2026-10-18T20:24:15.785Z]   PASS sdxl-nsfw/t2i (13s, 1 out)
+[2026-10-18T20:24:24.398Z]   PASS sdxl-nsfw/i2i (8s, 2 out)
+[2026-10-18T20:24:49.604Z]   PASS sdxl-nsfw/control (25s, 2 out)
+[2026-10-18T20:25:02.380Z]   PASS sdxl-nsfw/inpaint (13s, 2 out)
+[2026-10-18T20:25:15.222Z]   PASS sdxl-nsfw/upscale (13s, 2 out)
+[2026-10-18T20:25:19.765Z]   PASS sdxl-nsfw/detail (4s, 2 out)
+[2026-10-18T20:25:33.230Z]   hot-store: 8/8 file(s) on Pod disk
+[2026-10-18T20:25:54.706Z]   PASS chroma-hyper/t2i (21s, 1 out)
+[2026-10-18T20:26:07.597Z]   PASS chroma-hyper/i2i (13s, 2 out)
+[2026-10-18T20:26:33.397Z]   PASS chroma-hyper/control (25s, 2 out)
+[2026-10-18T20:26:50.528Z]   PASS chroma-hyper/upscale (17s, 2 out)
+[2026-10-18T20:26:59.360Z]   PASS chroma-hyper/detail (8s, 2 out)
+[2026-10-18T20:27:21.191Z]   hot-store: 16/16 file(s) on Pod disk
+[2026-10-18T20:27:42.611Z]   PASS krea2-nsfw/t2i (21s, 1 out)
+[2026-10-18T20:28:03.875Z]   PASS krea2-nsfw/i2i (21s, 2 out)
+[2026-10-18T20:28:37.875Z]   PASS krea2-nsfw/control (34s, 2 out)
+[2026-10-18T20:29:16.065Z]   PASS krea2-nsfw/krea2Edit (38s, 2 out)
+[2026-10-18T20:30:29.473Z]   PASS krea2-nsfw/inpaint (73s, 2 out)
+[2026-10-18T20:30:46.525Z]   PASS krea2-nsfw/upscale (17s, 2 out)
+[2026-10-18T20:30:51.070Z]   PASS krea2-nsfw/detail (4s, 2 out)
+[2026-10-18T20:31:27.440Z]   hot-store: 9/9 file(s) on Pod disk
+[2026-10-18T20:31:52.649Z]   PASS nvidia-pid/pid (25s, 2 out)
+[2026-10-18T20:32:06.202Z]   hot-store: 5/5 file(s) on Pod disk
+[2026-10-18T20:32:19.177Z]   PASS klein-4b/t2i (13s, 1 out)
+[2026-10-18T20:32:32.374Z]   PASS klein-4b/i2i (13s, 2 out)
+[2026-10-18T20:32:49.562Z]   PASS klein-4b/control (17s, 2 out)
+[2026-10-18T20:33:02.502Z]   PASS klein-4b/kleinEdit (13s, 2 out)
+[2026-10-18T20:33:15.922Z]   PASS klein-4b/inpaint (13s, 2 out)
+[2026-10-18T20:33:24.537Z]   PASS klein-4b/detail (8s, 1 out)
+[2026-10-18T20:33:33.457Z]   PASS klein-4b/upscale (9s, 2 out)
+[2026-10-18T20:33:43.115Z]   hot-store: 3/3 file(s) on Pod disk
+[2026-10-18T20:34:08.455Z]   PASS boogu-edit-balanced/edit (25s, 2 out)
+[2026-10-18T20:35:00.878Z]   hot-store: 4/4 file(s) on Pod disk
+[2026-10-18T20:35:36.058Z]   PASS wan-22/i2v_ms (35s, 2 out)
+[2026-10-18T20:36:13.284Z]   hot-store: 11/11 file(s) on Pod disk
+[2026-10-18T20:37:21.700Z]   PASS ltx-23-balanced/t2v_ms (68s, 1 out)
+[2026-10-18T20:38:04.096Z]   PASS ltx-23-balanced/i2v_ms (42s, 2 out)
+[2026-10-18T20:38:50.790Z]   PASS ltx-23-balanced/ref2v_ms (46s, 1 out)
+[2026-10-18T20:39:04.971Z]   hot-store: 6/6 file(s) on Pod disk
+[2026-10-18T20:40:22.661Z]   PASS minimax-h3/t2v_ms (77s, 1 out)
+[2026-10-18T20:41:30.886Z]   PASS minimax-h3/i2v_ms (68s, 2 out)
+[2026-10-18T20:41:31.019Z]   hot-store: 6/6 file(s) on Pod disk
+[2026-10-18T20:42:22.574Z]   PASS minimax-h3-ref2va/ref2v_ms (51s, 1 out)
+[2026-10-18T20:42:22.715Z]   hot-store: 4/4 file(s) on Pod disk
+[2026-10-18T20:42:39.891Z]   PASS wan22-5b/t2v (17s, 1 out)
+[2026-10-18T20:42:52.623Z]   PASS wan22-5b/i2v (13s, 2 out)
+[2026-10-18T20:42:52.751Z]   hot-store: 12/12 file(s) on Pod disk
+[2026-10-18T20:43:26.370Z]   PASS qwen-edit/qwenEdit (33s, 2 out)
+[2026-10-18T20:44:04.780Z]   PASS qwen-edit/control (38s, 2 out)
+[2026-10-18T20:44:04.959Z]   hot-store: 4/4 file(s) on Pod disk
+[2026-10-18T20:44:21.901Z]   PASS qwen-image-2-1/t2i (17s, 1 out)
+[2026-10-18T20:44:35.309Z]   PASS qwen-image-2-1/i2i (13s, 2 out)
+[2026-10-18T20:45:05.090Z]   PASS qwen-image-2-1/control (29s, 2 out)
+[2026-10-18T20:45:30.527Z]   PASS qwen-image-2-1/edit (25s, 2 out)
+[2026-10-18T20:45:35.344Z]   PASS qwen-image-2-1/inpaint (4s, 2 out)
+[2026-10-18T20:45:39.995Z]   PASS qwen-image-2-1/detail (4s, 1 out)
+[2026-10-18T20:45:48.723Z]   PASS qwen-image-2-1/upscale (8s, 2 out)
+[2026-10-18T20:45:48.915Z]   hot-store: 3/3 file(s) on Pod disk
+[2026-10-18T20:45:57.855Z]   PASS stable-audio-3/t2a (8s, 1 out)
+[2026-10-18T20:46:31.420Z]   PASS chatterbox/tts (33s, 1 out)
+[2026-10-18T20:46:31.420Z]   SKIP flux-schnell-cloud/t2i — no workflow mapped
+[2026-10-18T20:46:31.420Z] 
+── Flows ──
+[2026-10-18T20:47:18.339Z]   PASS flow/ltx-extend (47s, 1 out)
+[2026-10-18T20:48:00.918Z]   PASS flow/ltx-extend/minimax-h3 (42s, 1 out)
+[2026-10-18T20:48:47.645Z]   PASS flow/ltx-foley (46s, 1 out)
+[2026-10-18T20:49:04.568Z]   PASS flow/ltx-upscale (17s, 1 out)
+[2026-10-18T20:50:13.681Z]   PASS flow/video-edit (69s, 1 out)
+[2026-10-18T20:50:30.568Z]   PASS flow/scribble-object (17s, 4 out)
+[2026-10-18T20:50:48.058Z]   PASS flow/scribble (17s, 3 out)
+[2026-10-18T20:51:53.301Z]   PASS flow/character-sheet (65s, 2 out)
+[2026-10-18T20:52:49.215Z]   PASS flow/character-sheet-from-images (56s, 3 out)
+[2026-10-18T20:53:02.556Z]   PASS flow/character-sheet-editor (13s, 2 out)
+[2026-10-18T20:53:19.736Z]   PASS flow/outpaint (17s, 2 out)
+[2026-10-18T20:53:36.669Z]   PASS flow/make-seamless (17s, 3 out)
+[2026-10-18T20:53:45.653Z]   PASS flow/voice-changer (9s, 1 out)
+[2026-10-18T20:53:50.055Z]   PASS flow/stems (4s, 4 out)
+[2026-10-18T20:54:02.670Z]   FAIL flow/transcribe — completed but produced no media
+[2026-10-18T20:54:23.739Z]   PASS flow/object-stamp (21s, 3 out)
+[2026-10-18T20:55:14.666Z]   PASS flow/minimax-music (51s, 1 out)
+[2026-10-18T20:55:56.790Z]   PASS flow/pano-360 (42s, 1 out)
+[2026-10-18T20:55:56.791Z] 
+PASS 64 · SKIP 1 (flux-schnell-cloud/t2i) · FAIL 1
+[2026-10-18T20:55:56.791Z] budget applied: 1 step · 128px target · seed 42
+[2026-10-18T20:55:56.791Z] flows smoked: 18 (17 PASS)
+[2026-10-18T20:55:56.791Z] SCOPED — 16 of 40 models UNPROVEN: flux-schnell-cloud, seedream-4-cloud, seedream-45-cloud, seedream-5-pro-cloud, flux2-dev-cloud, klein-9b-cloud, flux2-pro-cloud, flux2-max-cloud, nano-banana-2-lite-cloud, nano-banana-2-cloud, nano-banana-pro-cloud, seedance-15-pro-cloud, seedance-2-cloud, wan3-cloud, veo-31-fast-cloud, veo-31-cloud
+[2026-10-18T20:55:56.791Z] Pod-green is NOT Windows-green — the local portable half is playbook gate 5.
+[2026-10-18T20:55:56.792Z] evidence: dev_configs/smoke-evidence.json
+[2026-10-18T20:55:57.673Z] 
+Volume wzeh9dxbru (440 GB) kept — no TTY to ask on.
+[2026-10-18T20:55:57.673Z]   Delete it yourself if you want it gone, or re-run with --keep-volume to silence this.

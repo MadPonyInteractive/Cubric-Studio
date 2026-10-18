@@ -281,7 +281,7 @@ function printPlan(reg, set) {
     // Free space is unknowable until a Pod mounts the volume; the real gate is
     // volumeFitVerdict, run after the download Pod comes up.
     log(`\n  models ${set.length} · ops ${ops} · weights ${set.totalGb.toFixed(1)} GB` +
-        ` · new volume would be ${Math.ceil((set.totalGb + VOLUME_HEADROOM_GB) / 10) * 10} GB`);
+        ` · new volume would be ${volumeSizeGb(set.totalGb)} GB`);
     log(`  budget: ${BUDGET.steps} step · ${BUDGET.edge}px target · ${BUDGET.frames} frame(s) · seed ${BUDGET.seed}`);
     if (set.scope.unproven.length) {
         log(`\n  SCOPED RUN — ${set.scope.unproven.length} of ${set.scope.modelsInRegistry} models are in no family this`);
@@ -422,6 +422,11 @@ const RP_GB = 1e9;       // RunPod volume sizes are base-10 GB
 // small now that every size is measured (MPI-482), and still fails a nearly-full volume.
 const FIT_MARGIN_GB = 5;
 
+// The size a volume is created (or grown) at for `gib` of weights. Dep sizes are GiB,
+// RunPod sizes are base-10 GB: adding one to the other made 368.3 GiB (= 395.5 GB) a
+// 410 GB volume that the fit gate below then refused (2026-10-18, before any GPU).
+export const volumeSizeGb = (gib) => Math.ceil((gib * GiB / RP_GB + VOLUME_HEADROOM_GB) / 10) * 10;
+
 /**
  * MPI-483 — does the remaining weight set actually FIT on the volume?
  *
@@ -479,7 +484,7 @@ export function volumeFitVerdict({ usedBytes, totalBytes, setBytes, headroomByte
 }
 
 async function ensureVolume(gb) {
-    const want = Math.ceil((gb + VOLUME_HEADROOM_GB) / 10) * 10;
+    const want = volumeSizeGb(gb);
     // GET /runpod/volumes answers a BARE ARRAY. Destructuring `{volumes, networkVolumes}`
     // off it yields two undefineds, so the reuse check saw an empty list and minted a NEW
     // 350 GB volume on every run — three of them before it was caught (2026-08-08), each
@@ -503,6 +508,15 @@ async function ensureVolume(gb) {
     }
     const fits = list.find(v => v.dataCenterId === DATACENTER && Number(v.size) >= want);
     if (fits) { log(`  volume: reusing ${fits.id} (${fits.size} GB, ${fits.name || 'unnamed'})`); return fits; }
+
+    // The smoke volume outgrown by the set: grow it (MPI-762 route) rather than mint a
+    // second one that bills monthly beside it and trips the same-name check next run.
+    if (sameName.length === 1) {
+        const v = sameName[0];
+        log(`  volume: growing ${v.id} ${v.size} → ${want} GB`);
+        const grown = await app(`/runpod/volumes/${v.id}`, { method: 'PATCH', body: JSON.stringify({ size: want }) });
+        return { ...v, ...(grown.volume || grown), size: want };
+    }
 
     const tooSmall = list.filter(v => v.dataCenterId === DATACENTER);
     if (tooSmall.length) {
@@ -1135,6 +1149,18 @@ export function countMedia(outputs) {
     return Object.values(outputs || {}).reduce((n, o) =>
         n + (o.images?.length || 0) + (o.gifs?.length || 0) + (o.videos?.length || 0)
           + (o.audio?.length || 0) + (o.audios?.length || 0), 0);
+}
+
+// A graph whose only output is WORDS (Transcribe's PreviewAny SRT, MPI-1071): no node that
+// saves or previews a picture, clip or sound. Only there does text stand in for media.
+// An EMPTY string counts: the probe wav is silence, so "" is the right transcript, and the
+// node reporting it at all is the proof it ran. Anywhere else a PreviewAny is a side
+// output and must never rescue a graph whose media went missing.
+export function countTextOutput(graph, outputs) {
+    const mediaNode = /Save|Preview(Image|Video|Audio)|VideoCombine/;
+    if (Object.values(graph).some(n => mediaNode.test(n?.class_type || ''))) return 0;
+    return Object.values(outputs || {}).reduce((n, o) =>
+        n + (o.text || []).filter(t => typeof t === 'string').length, 0);
 }
 
 async function runOp(reg, model, op, probes) {
@@ -1955,7 +1981,7 @@ async function runFlowOp(reg, entry, probeFiles) {
             return { op: entry.label, status: 'FAIL', why: `${err?.node_type || '?'}: ${String(err?.exception_message || 'execution_error').slice(0, 180)}`, budget: applied };
         }
         if (st.completed) {
-            const media = countMedia(rec.outputs);
+            const media = countMedia(rec.outputs) || countTextOutput(graph, rec.outputs);
             if (!media) return { op: entry.label, status: 'FAIL', why: 'completed but produced no media', budget: applied };
             return { op: entry.label, status: 'PASS', secs: Math.round((Date.now() - t0) / 1000), media, budget: applied };
         }
@@ -1986,8 +2012,13 @@ async function main() {
         if (!prior) die('--retry-failed reads the failures from dev_configs/smoke-evidence.json, and there is none. Run the full matrix first.');
         const failed = prior.results.filter(r => r.status !== 'PASS');
         if (!failed.length) { log(`\n--retry-failed: all ${prior.results.length} recorded ops already PASS. Nothing to run, nothing to rent.\n`); return; }
-        only = [...new Set(failed.map(r => r.model))];
-        opFilter = new Set(failed.map(r => `${r.model}/${r.op}`));
+        // A Flow row is `{ model: 'flow', op: '<label>' }`: it goes to the Flow set, never
+        // to --models ('flow' is no model id, and the run died on it 2026-10-18).
+        const failedOps = failed.filter(r => r.model !== 'flow');
+        const failedFlows = [...new Set(failed.filter(r => r.model === 'flow').map(r => r.op.split('/')[0]))];
+        only = [...new Set(failedOps.map(r => r.model))];
+        opFilter = new Set(failedOps.map(r => `${r.model}/${r.op}`));
+        if (flowsOpt == null && failedFlows.length) flowSet = resolveFlowSmokeSet(reg, failedFlows);
         log(`\n--retry-failed: ${failed.length} op(s) not PASS in the recorded matrix — ${[...opFilter].join(', ')}`);
         log(`  the other ${prior.results.length - failed.length} row(s) are kept and re-stamped, not re-run.`);
     } else if (only?.length) {
@@ -1995,7 +2026,7 @@ async function main() {
     }
 
     let set = resolveSmokeSet(reg, only);
-    if (opFilter) set = filterOps(reg, set, opFilter);
+    if (opFilter) set = filterOps(reg, set, opFilter, flowSet.length > 0);
     if (CHANGED) {
         prior = loadMergeBase(true);
         const rows = [

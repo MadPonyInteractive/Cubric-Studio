@@ -19,11 +19,11 @@ const assert = require('node:assert/strict');
 const { test, before } = require('node:test');
 
 const REPO = path.resolve(__dirname, '..');
-let prepOp, loadRegistry, countMedia, installProbe, reg;
+let prepOp, loadRegistry, countMedia, countTextOutput, installProbe, reg;
 
 before(async () => {
     const url = `file:///${path.join(REPO, 'scripts', 'smoke-workflows.mjs').replace(/\\/g, '/')}`;
-    ({ prepOp, loadRegistry, countMedia, installProbe } = await import(url));
+    ({ prepOp, loadRegistry, countMedia, countTextOutput, installProbe } = await import(url));
     reg = await loadRegistry();
 });
 
@@ -69,6 +69,15 @@ test('countMedia counts audio outputs, and nothing is nothing', () => {
     assert.equal(countMedia({ 1: { images: [{}, {}] }, 2: { videos: [{}] }, 3: { audios: [{}] } }), 4);
     assert.equal(countMedia({ 5: { text: ['x'] } }), 0, 'a non-media output is not media');
     assert.equal(countMedia(undefined), 0);
+});
+
+test('text stands in for media only on a graph with no media node (Transcribe)', () => {
+    const load = (f) => JSON.parse(require('node:fs').readFileSync(path.join(__dirname, '..', 'comfy_workflows', f), 'utf8'));
+    const words = { 4: { text: ['1\n00:00:00,000 --> 00:00:01,000\nWelcome'] } };
+    assert.equal(countTextOutput(load('flow_transcribe.json'), words), 1, 'the SRT is the output');
+    assert.equal(countTextOutput(load('flow_transcribe.json'), { 4: { text: [''] } }), 1, 'silence (the probe wav) transcribes to nothing, and that is a pass');
+    assert.equal(countTextOutput(load('flow_transcribe.json'), {}), 0, 'no text reported = FAIL');
+    assert.equal(countTextOutput(load('flow_stems.json'), words), 0, 'a media graph is never rescued by text');
 });
 
 // ── 3. install probe vs a pruned job ─────────────────────────────────────────
