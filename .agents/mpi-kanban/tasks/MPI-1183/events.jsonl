@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1183", "at": "2026-10-18T12:00:00+01:00", "actor": "claude", "column": "todo", "title": "Bench InfiniSplat v2 (multi-view feed-forward splat) on a 3D Scene path video, after 2.1"}

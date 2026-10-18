@@ -12,6 +12,7 @@ Fabio adds more as we investigate. A member that passes the bench becomes its ow
 | 1 | MPI-1180 | Bench MOSS-Image (5B text-to-image) once ComfyUI v0.42.0 ships |
 | 2 | MPI-1181 | Bench FLUX.3 Klein (one card, Turbo button: distilled int8 / base int8, dev-gated) once the engine is on >= v0.41.0 |
 | 3 | MPI-1182 | Bench Fish Audio Drama 3 (int8 experts in RAM, ComfyUI-Drama3 pack) once the engine is on >= v0.40 |
+| 4 | MPI-1183 | Bench InfiniSplat v2 (multi-view feed-forward splat) on a 3D Scene path video, after 2.1 |
 
 **Umbrella rule: every new model card is added to this table with a phase, and its
 `description` starts with the `UMBRELLA: MPI-1179 - New Models to Test` prefix.**
@@ -39,3 +40,10 @@ no second bump.
 Blocked on the engine bump. The ComfyUI-Drama3 pack needs v0.40 at minimum (tested on v0.41), so
 the v0.42.0 bump for phase 1 covers it; confirm the pack loads there. int8 file, our own Qwen3-ASR
 0.6B for the transcript. Needs ~48 GB of system RAM. Details on the card's `brief.md`.
+
+### Phase 4 - InfiniSplat v2 (MPI-1183)
+
+Deferred past 2.1 (Fabio, 2026-10-18): the current 3D Scene works, and a newer model may solve
+consistency and camera placement better. Candidate for the 3D Scene lift-back MPI-623 dropped.
+Weigh it against the ATAS scoping write-up (MiniMax-H3) before picking it up. Weights are
+non-commercial (DA3-Giant). Details on the card's `brief.md`.
