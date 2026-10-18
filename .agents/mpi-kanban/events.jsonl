@@ -6262,3 +6262,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1178", "at": "2026-10-18T09:32:29+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio's 1:1 drawing came back 1.85:1 from Nano Banana 2"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1177", "at": "2026-10-18T09:47:23+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio's live test: Cosmo wrote the pose into the prompt on Klein and Nano Banana; CI green"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1178", "at": "2026-10-18T09:47:26+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "1:1 drawing came back 1:1 on Nano Banana 2 in Fabio's test; CI green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1179", "at": "2026-10-18T10:33:11+01:00", "actor": "claude", "column": "todo", "title": "New Models to Test"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1180", "at": "2026-10-18T10:33:22+01:00", "actor": "claude", "column": "todo", "title": "Bench MOSS-Image (5B text-to-image) once ComfyUI v0.42.0 ships"}

@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1180", "at": "2026-10-18T10:33:22+01:00", "actor": "claude", "column": "todo", "title": "Bench MOSS-Image (5B text-to-image) once ComfyUI v0.42.0 ships"}

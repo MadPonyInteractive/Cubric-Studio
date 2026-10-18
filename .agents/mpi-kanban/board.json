@@ -1,8 +1,10 @@
 {
   "schema": "mpi-kanban/board/v1",
-  "next_id": 1179,
+  "next_id": 1181,
   "columns": {
     "todo": [
+      "MPI-1180",
+      "MPI-1179",
       "MPI-1134",
       "MPI-1135",
       "MPI-1128",

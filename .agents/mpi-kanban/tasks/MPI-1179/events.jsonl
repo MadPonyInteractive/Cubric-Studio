@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1179", "at": "2026-10-18T10:33:11+01:00", "actor": "claude", "column": "todo", "title": "New Models to Test"}
