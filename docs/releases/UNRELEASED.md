@@ -73,6 +73,8 @@
 - **See how a History entry was made.** Rest the pointer on a row in History and a panel shows the model, the operation, how long it took, when it was made, the prompt and any notes. Move into the panel to copy the prompt.
 - **Star a project to keep it at the top.** On the home screen, rest the pointer on a project and click the star beside its name. Starred projects sit above the rest; unstar one and it goes back to its usual place by when you last opened it.
 - **Scribble and Draw It In keep your drawing.** The card's History now starts with what you drew, then the result, so you can go back to the sketch any time.
+- **One Headless front body button on Character Sheet.** Every sheet now comes with both versions, with the head and without, and the Headless front body button beside the settings switches between them. The second button drawn on the result is gone.
+- **See a Flow's result on its own.** Draw It In and Object Stamp opened their result only in compare, with no way out but dragging the bar. A Compare / Result button now switches.
 
 ## ComfyUI Engine
 

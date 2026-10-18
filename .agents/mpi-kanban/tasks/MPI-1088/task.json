@@ -1,13 +1,13 @@
 {
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-1088",
-  "title": "Hairstyle picker: pick a style by picture, a colour or two and how they mix (Sheet Editor + Character Sheet)",
-  "description": "A later version, not blocking the release. With no reference picture: a dropdown of hairstyle pictures (hair only, no face or a mannequin), a man/woman filter, a hair colour, an optional second colour, and how the two mix (highlights, gradient...) shown only with a second colour. Hidden when a reference picture is given. Brief: brief.md.",
+  "title": "Hairstyle picker: pick a style from a Hairstyles element (Sheet Editor + Character Sheet)",
+  "description": "Rescoped 2026-10-18 (Fabio): the styles are not a fixed dropdown but a Hairstyles ELEMENT - we ship a starter one (read-only under elements/, editing it forks a copy into the user's library) and users keep adding their own pictures. The bigger goal it belongs to: elements as inputs for Flows and models. The user picks an element (character John) and its active parts (a LoRA of him, his voice, his clothes...) feed whatever input accepts each part; Hats, Pants, Shirts work the same way. Kept from the first design: with no reference picture, a man/woman filter, a hair colour, an optional second colour and how the two mix (highlights, gradient...) shown only with a second colour; hidden when a reference picture is given. BLOCKED on MPI-815 (Elements library) and its 'Flow slots consuming elements' + 'Starter elements we ship' follow-ups. Brief: brief.md.",
   "column": "todo",
-  "maturity": "deferred",
+  "maturity": "blocked",
   "status": "active",
   "created_at": "2026-10-11T16:06:52+01:00",
-  "updated_at": "2026-10-11T16:06:52+01:00",
+  "updated_at": "2026-10-18T20:04:25+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
