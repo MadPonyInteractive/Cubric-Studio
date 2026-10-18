@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1184", "at": "2026-10-18T11:29:00+01:00", "actor": "claude", "column": "todo", "title": "Scope ATAS world memory on MiniMax-H3 (multi-shot, same place across shots); spike before any adapter"}

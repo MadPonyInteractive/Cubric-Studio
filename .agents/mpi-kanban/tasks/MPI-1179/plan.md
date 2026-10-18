@@ -13,6 +13,7 @@ Fabio adds more as we investigate. A member that passes the bench becomes its ow
 | 2 | MPI-1181 | Bench FLUX.3 Klein (one card, Turbo button: distilled int8 / base int8, dev-gated) once the engine is on >= v0.41.0 |
 | 3 | MPI-1182 | Bench Fish Audio Drama 3 (int8 experts in RAM, ComfyUI-Drama3 pack) once the engine is on >= v0.40 |
 | 4 | MPI-1183 | Bench InfiniSplat v2 (multi-view feed-forward splat) on a 3D Scene path video, after 2.1 |
+| 5 | MPI-1184 | Scope ATAS world memory on MiniMax-H3 (multi-shot, same place across shots); spike before any adapter |
 
 **Umbrella rule: every new model card is added to this table with a phase, and its
 `description` starts with the `UMBRELLA: MPI-1179 - New Models to Test` prefix.**
@@ -47,3 +48,11 @@ Deferred past 2.1 (Fabio, 2026-10-18): the current 3D Scene works, and a newer m
 consistency and camera placement better. Candidate for the 3D Scene lift-back MPI-623 dropped.
 Weigh it against the ATAS scoping write-up (MiniMax-H3) before picking it up. Weights are
 non-commercial (DA3-Giant). Details on the card's `brief.md`.
+
+### Phase 5 - ATAS on MiniMax-H3 (MPI-1184)
+
+Parked (Fabio, 2026-10-18): not testing now, maybe never. The scoping write-up is done and lives in
+the card's `research/atas-h3-scope.md`. Verdict: do not build the adapter. The first step, if it is
+picked up, is the one-hour, about $1.50 spike on a 5090 Pod (does H3 reference-to-video follow a
+point-cloud render?), and it needs Fabio's yes on the price. Pi3X weights are non-commercial.
+Weigh it against phase 4. Details on the card's `brief.md`.

@@ -1,0 +1,16 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1184",
+  "title": "Scope ATAS world memory on MiniMax-H3 (multi-shot, same place across shots); spike before any adapter",
+  "description": "UMBRELLA: MPI-1179 - New Models to Test. Members and phase order: tasks/MPI-1179/plan.md. ATAS (github.com/ziplab/ATAS, arXiv 2610.20571) keeps one validated world memory across a multi-shot film and its paper evaluates it on MiniMax-H3, which we run locally. Scoped 2026-10-18, research only: do NOT build the adapter yet. Fabio, 2026-10-18: not testing now, maybe never; parked here with the full write-up. Blockers: nothing published on how H3 was fed, no H3 adapter in the code, Pi3X weights CC BY-NC, geometry service needs ~20 GB VRAM on Linux/CUDA. Full findings: research/atas-h3-scope.md. Details: brief.md.",
+  "column": "todo",
+  "maturity": "deferred",
+  "status": "active",
+  "created_at": "2026-10-18T11:29:00+01:00",
+  "updated_at": "2026-10-18T11:29:00+01:00",
+  "links": {
+    "brief": "brief.md",
+    "events": "events.jsonl",
+    "research": "research/"
+  }
+}
