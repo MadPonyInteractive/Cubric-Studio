@@ -6292,3 +6292,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-775", "at": "2026-10-18T11:52:28+01:00", "actor": "claude", "reason": "Moved from umbrella MPI-986 to MPI-1179 (New Models to Test), Fabio 2026-10-18."}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-986", "at": "2026-10-18T11:52:28+01:00", "actor": "claude", "reason": "MPI-775 (YuE2) moved to MPI-1179 (New Models to Test), Fabio 2026-10-18."}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1179", "at": "2026-10-18T11:52:28+01:00", "actor": "claude", "reason": "Menu: YuE2 (MPI-775) added; MPI-518, MPI-1186, MPI-860 declined by Fabio 2026-10-18."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-578", "at": "2026-10-18T12:04:20+01:00", "actor": "claude", "reason": "Re-scoped by Fabio 2026-10-18: Upscale Video Flow on LTX 2.5, Refine + Restore (replace or add) beside the 2.5 latent upscalers."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1179", "at": "2026-10-18T12:04:20+01:00", "actor": "claude", "reason": "Menu: MPI-578 row re-scoped to the Upscale Video Flow on LTX 2.5 (Refine + Restore)."}
