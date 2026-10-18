@@ -6253,3 +6253,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1175", "at": "2026-10-18T08:39:44+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio asked for the fix"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1175", "at": "2026-10-18T08:42:26+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "shipped; npm test green; Fabio to see x/n on a Use Tiles run"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1175", "at": "2026-10-18T08:57:47+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio eye-tested 1/4 on Use Tiles; CI 39108724118 green on df410bea8"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1176", "at": "2026-10-18T09:01:12+01:00", "actor": "claude", "column": "todo", "title": "Scribble Flow: pose sentence stops broken anatomy on stick-figure drawings"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1176", "at": "2026-10-18T09:01:25+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio approved shipping bench variant B"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1176", "at": "2026-10-18T09:02:49+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Pose sentence shipped in both Scribble graphs; 60/60 tests"}

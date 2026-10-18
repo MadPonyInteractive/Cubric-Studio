@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1176", "at": "2026-10-18T09:01:12+01:00", "actor": "claude", "column": "todo", "title": "Scribble Flow: pose sentence stops broken anatomy on stick-figure drawings"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1176", "at": "2026-10-18T09:01:25+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio approved shipping bench variant B"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1176", "at": "2026-10-18T09:02:49+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Pose sentence shipped in both Scribble graphs; 60/60 tests"}

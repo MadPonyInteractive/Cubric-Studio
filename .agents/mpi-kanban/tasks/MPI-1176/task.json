@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1176",
+  "title": "Scribble Flow: pose sentence stops broken anatomy on stick-figure drawings",
+  "description": "Add one sentence to the Scribble Flow guardrails telling Klein 9B a stick figure is a real person in that pose with natural anatomy; same-seed bench cut the mangled legs.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-18T09:01:12+01:00",
+  "updated_at": "2026-10-18T09:02:49+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
