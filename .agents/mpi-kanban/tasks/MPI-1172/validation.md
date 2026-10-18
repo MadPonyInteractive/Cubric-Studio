@@ -6,4 +6,5 @@
   full `npm test` 3399 pass, 0 fail.
 - Cloud path: `cloudEditPass2` keeps node 199 on both graphs, `cloudEditPass1` drops it (checked by script).
 - Live: Fabio ran Scribble on 2026-10-18 — History shows the drawing first, then the result.
-  Draw It In runs the same mechanism (same op shape, capture off its Paint On Photo composite); not run live.
+- Live: Fabio ran Draw It In on 2026-10-18 — `flowDrawItIn_001` is the photo with his strokes,
+  `flowDrawItIn_002` the result.
