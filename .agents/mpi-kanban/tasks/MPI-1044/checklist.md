@@ -35,7 +35,11 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       media" (now counted on a graph with no media node; empty SRT of the silent probe passes, proven
       on the 0.41.0 bench first); `--retry-failed` died on `flow` rows. Two Transcribe-only retries
       (Fabio's yes each). Spend ~$0.90 under the $5 cap. Volume wzeh9dxbru deleted (Fabio); RunPod has no
-      Pods or volumes.
+      Pods or volumes. Runner fix + evidence 785d54c73, master Tests green (39169667482).
+- [x] 2026-10-18 RELEASE Pod image v0.27.0 (ComfyUI v0.41.0, wrapper 0.2.47; R2 dev = stable = git):
+      mpi-ci b376b18, CI run 39169739755 both legs green, pullable (cu130 sha256:430507a9, cpu
+      sha256:a65eeb34). STABLE POD_IMAGE_VERSION / _CPU = v0.27.0; npm test 3404/0. cpu boot smoke NOT
+      run (Docker daemon down), same as v0.26.0.
 - [x] 2026-10-16 Fabio: MPI-1136 (Cosmo + MCP import a card from another project) and MPI-1154
       (Video Edit background change describes every kept subject) also block 2.1. MPI-1154 changes
       Video Edit, so the Pod smoke's Video Edit run covers it. 2026-10-17: both DONE, Fabio's eye test
