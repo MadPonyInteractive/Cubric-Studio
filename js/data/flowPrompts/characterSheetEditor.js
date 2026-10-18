@@ -128,7 +128,7 @@ const OWN_FACES = "Keep each face's own shape, eyes, nose, lips, eyebrows, facia
  * face and no other part of the body. `OWN_FACES` with the tattoos, not the makeup, as the one change.
  */
 const FACE_PART = /\b(?:face|facial|cheeks?|cheekbones?|forehead|jaw|jawline|temples?|eyes?|eyebrows?|brows?|chin|nose|lips?)\b/i;
-const BODY_PART = /\b(?:back|arms?|legs?|thighs?|calf|calves|ankles?|feet|foot|hands?|wrists?|fingers?|chest|neck|shoulders?|stomach|belly|ribs?|sleeves?|full body|whole body|all over)\b/i;
+const BODY_PART = /\b(?:back|arms?|legs?|thighs?|calf|calves|ankles?|feet|foot|hands?|wrists?|fingers?|chest|neck|shoulders?|stomach|belly|ribs?|sleeves?|full[- ]body|whole[- ]body|all over)\b/i;
 const OWN_FACES_INK = "Keep each face's own shape, eyes, nose, lips, eyebrows, facial hair, skin tone and hair exactly as "
     + 'they are; only the tattoos are added.';
 
@@ -307,8 +307,12 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
                     + "and the close-up portrait on the right all show the same change. Keep the character's own face "
                     + 'and hair. Keep everything else exactly as it is.';
             }
-            return `Dress the character in ${w}. The front view, the back view and the close-up portrait on the right `
-                + 'all show the same outfit, with the same neckline, sleeves and straps. Keep everything else exactly as it is.';
+            // ff7-ff11 (Fabio's shoe edit on his hip-pouch sheet): "Dress the character in" drew a ghost second
+            // head in the back panel 2/5 on the app's own input; this opening 0/5, pouch kept 5/5 both, keyhole
+            // dress 4/5 (was 5/5). Fabio picked it (2026-10-18). Never NAME a kept object: a named thing gets drawn.
+            return `Change the character's clothes in image 1: ${w}. The front view, the character seen from behind `
+                + 'and the close-up portrait on the right all show the same change, with the same neckline, sleeves and '
+                + "straps. Keep the character's own face and hair. Keep everything else exactly as it is.";
         // MPI-1086 r30: on Qwen, every figure named. Klein's string redrew the front figure as a back view 4/4 on
         // Fabio's sheet. "this accessory to wear or hold": a bare "Mask" otherwise came back as a matte over the sheet.
         // ac2: "Holding a G3 machine gun" also strapped a thigh pouch, belt and sling on him (Fabio's seed); "Add
@@ -397,7 +401,7 @@ const BACK_STRAP = 'The character wears a thin strap that runs diagonally across
 const SHOULDER_STRAP = /\b(?:shoulder strap|over (?:one|the|his|her|their|a) shoulder|cross-?body|sling)\b/i;
 const CLOSE_STRAP = 'The close-up portrait on the right shows the strap running over the shoulder and down across the '
     + 'chest. ';
-const FRONT_PART = /\b(?:arms?|legs?|thighs?|calf|calves|ankles?|feet|foot|hands?|wrists?|fingers?|chest|neck|face|stomach|belly|ribs?|sleeves?|full body|whole body|all over)\b/i;
+const FRONT_PART = /\b(?:arms?|legs?|thighs?|calf|calves|ankles?|feet|foot|hands?|wrists?|fingers?|chest|neck|face|stomach|belly|ribs?|sleeves?|full[- ]body|whole[- ]body|all over)\b/i;
 
 /**
  * The Qwen graph's back pass (`Input_Positive_2`): the back figure redrawn from the EDITED front one and pasted over

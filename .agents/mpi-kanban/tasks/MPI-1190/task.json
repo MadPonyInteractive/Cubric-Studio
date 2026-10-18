@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1190",
+  "title": "Character Sheet Editor: Area mode - Detect body parts or items with SAM3, pick them, edit only those areas",
+  "description": "Fabio 2026-10-18 (from MPI-1086): a Prompt/Area switch on the Character Sheet Editor, for any change that targets parts or items (tattoos, a garment, an accessory, makeup, a body part), not tattoos only. Area mode: a comma list of areas ('back, right leg') -> Detect (SAM3, up to 6 per area: 3 figures, a close-up can show 2 arms) -> green masks + chips like the edit workspace's Mask Text panel -> the user keeps the chips they want -> each kept area is cropped, scaled up and edited (Qwen, the Reference picture as image 2), pasted back inside its mask. Why: a whole-sheet tattoo pass has too few pixels (MPI-1086 flowCSE_082); Fabio's SAM3 'back' mask + Qwen edit (edit_011) came back far sharper and faster. Known: SAM3 'right leg' took the character's right on the front figure but the LEFT on the back figure (it reads every figure as facing the camera) - the chip pick lets the user fix it; Cosmo's runs need their own answer (no chips). Still asks for words or a picture saying WHAT goes there. One masked pass per area, so time grows with chips; areas seen in two views (arms) may disagree. Detect is GPU work: a queue row (enqueueGeneration). Reuse the Mask Text Detect UI and the CSE Qwen graph's SAM3/MpiMaskBbox/crop/composite nodes.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-10-18T16:14:32+01:00",
+  "updated_at": "2026-10-18T16:14:32+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

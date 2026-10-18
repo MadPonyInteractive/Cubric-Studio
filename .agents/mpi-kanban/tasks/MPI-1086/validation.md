@@ -1168,6 +1168,58 @@ from the back view (front kept). ff7-ff9 (Klein, lock 1; ff7.py/ff8.py/ff9.py in
   His flowCSE_078 front has a FACE, ours from 078 the grey blob: the app fed some other picture or setting. An earlier
   "reproduced, mean abs diff 2.07" was WRONG (a missing pouch barely moves a whole-sheet mean) - retracted to Fabio.
   NOT shipped: no Clothes wording change until the app's actual input is known.
+- ff11 (session "New character sheets 46", ff11.py in session add4e1e9's scratchpad, G: bench :8188): the app's ACTUAL
+  input, from flowCSE_078's sidecar (Media/.meta/5e783019): Cosmo sent flowCharacterSheet_078, `unchainedSource`
+  (MPI-1089, intended) swapped it for the face version flowCSE_077, `Input_Headless` ON, `Input_Lock` 1, K0 byte for
+  byte. ff8 had run 077 with Headless OFF and ff9 078 with Headless ON, so this combo had never run. Result: pouch KEPT
+  K0 5/5 incl. Fabio's seed (ghost head 2/5: s1, s3), K3 5/5 (ghost 0/5). Bench K0 total now 14/14 pouch kept.
+  The input is NOT the cause: the app engine is torch 2.13 + `--lowvram` + model compiler, the bench torch 2.12, so one
+  seed draws different pixels (front details differ already), and Fabio's image cannot be reproduced on the bench.
+  His loss = one bad draw on his engine (1/1 seen, rate unknown). K0's ghost head on the app's own input (2/5) is
+  the visible, repeatable defect; K3 fixes it.
+  SHIPPED K3 for Clothes words (Fabio 2026-10-18, "Yes, ship K3"): shipped string = ff11 A3 byte for byte (checked
+  against ff11.log). Tests 26/26. Not yet seen in the app: Fabio re-runs a Clothes edit after Ctrl+Shift+R.
+Fabio 2026-10-18 11:43Z: asked Cosmo to "try again" on the pouch-less flowCSE_078. Cosmo did NOT re-run Clothes: it
+ran Accessories (Qwen) on flowCSE_078, "a small rectangular tan leather pouch on a thin brown crossbody shoulder strap,
+clearly visible at the hip in both the front and the back view" -> flowCSE_079: pouch front + back at the hip, and the
+close-up shows the strap over the shoulder (`CLOSE_STRAP`, in the sidecar prompt). Close-up strap **pass** in the
+app. K3 still unseen in the app (that run was Accessories, not Clothes).
+Fabio eye test 2026-10-18 **pass**: K3 in the app, Cosmo "change the colour of his tank top to blue" on the pouch
+sheet -> flowCSE_080 (sidecar prompt = K3, seed 2441035834): blue tank top in all three views, pouch + strap kept
+front and back, no ghost head.
+Fabio eye tests 2026-10-18 (app, Qwen 2.1 project):
+- Bonus, undress ONE garment: Clothes "Remove shirt" -> flowCSE_081 (Qwen, seed 1424552672): shirt off, shorts,
+  pouch and trainers kept. **pass**.
+- Tattoos back-only picture imported_021, words "Back tattoo" -> flowCSE_082 (Qwen, seed 3533160639): tattoo on the
+  back view only, front and face bare, pouch strap kept. Placement **pass**. Quality poor: the back figure is a small
+  part of a 1864x1120 sheet, too few pixels for line work; Fabio trying a masked pass by hand to compare.
+- Fabio's manual masked run (edit_011): flowCSE_081 (bare sheet), SAM3 text mask "back" on the back figure only,
+  Qwen-Image 2.1 `edit` + imported_021 as image 2, "Copy the tattoo from image 2 onto the back of the man from image
+  1." -> far sharper, closer to the picture, and faster (only the masked area renders). Fabio: the edit model sees only
+  the masked area; name more parts (arms ...) and the mask takes them too. Direction for tattoo quality -> MPI-1190.
+- Full-body picture imported_022, words "Full-body Black work tattoo" (Fabio: "Blackwork" over-asks, re-running
+  without it): the picture's tribal design on torso, arms, legs, neck to the jaw, all three views; FACE BARE in front
+  view and close-up (no-face line holds even under "Blackwork"). Watch: the back figure's head looks inked at the
+  back of the scalp (the picture shows no head).
+  Re-run without "Blackwork": face bare again (2/2), coverage still fuller than the picture (Fabio: a small picture of
+  a woman, so the model invents to cover a man's body - "a bit too much"). Next: the same picture on a woman's sheet.
+  Woman's sheet, same picture: face bare (3/3). "Inspired by", not a copy; the close-up's chest ink does not match the
+  front body; the picture's black bikini top came back as ink on her breasts; back figure mostly bare below the
+  shoulders (the picture shows no back). Fabio: masking (MPI-1190) is the hope; last run "body tattoo" only.
+  Found while checking: `BODY_PART`/`FRONT_PART` matched "full body" but not "full-body", so "Full-body tattoos, face
+  included" routed to the FACE-ONLY crop. Fixed (`full[- ]body|whole[- ]body`), test added. Tests 26/26.
+  "body tattoo" only, woman's sheet: much closer to the picture, face bare (4/4), back invented (no back in the
+  picture: fine), shoulders inked (hidden in the picture: fine). Partial: the picture's black BIKINI was put on the
+  nude character. Fabio: **pass** - full-body pictures are the extreme case and need not be exact; users will mostly
+  name areas (right shoulder, top of the right leg) -> MPI-1190.
+- Fabio 2026-10-18 on imported_023: the big glyphs are on her SHAVED scalp side; the face is mostly makeup (white
+  paint, black eyes, black lips), with small, badly drawn marks on the nose, the cheek and over the eye (an AI picture,
+  so expect hallucination). fa1-fa5's "cheek marks" were these; "face and head tattoos" over-asked. Right expectation: head ink shows only where the scalp shows; hair kept.
+  Note: "head" is not in `FACE_PART`, so "head tattoos" alone takes the whole-sheet route, not the face crop.
+- Fabio eye test, words "face and head tattoos" + imported_023 on the pink-bob woman (flowCSE_087/088, face crop +
+  head mannequin, P4 prompt): mannequin accurate (scalp glyphs, eye/cheek marks) but it keeps the NECK design. Result
+  FAIL: the scalp glyphs AND the mannequin's neck design both landed on her CHEEK (her hair covers the scalp, so the
+  model moved them to visible skin; "the same place" and "none on the neck" did not stop it). Hair kept, no makeup.
 ff10 (Qwen, Cosmo's hip-pouch words on flowCharacterSheet_069, cuts 490,908): the close-up strap, C1 "shows its strap
 over the shoulder." 1/4; **C2 "shows the strap running over the shoulder and down across the chest." 4/4**, back
 side 4/4. SHIPPED C2 as `CLOSE_STRAP` for any `SHOULDER_STRAP` words (shoulder strap, over one/the shoulder,

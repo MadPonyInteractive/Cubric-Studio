@@ -40,9 +40,9 @@ const L1 = ' Make the same change in the close-up portrait on the right. Keep ev
 test('every change builds its bench template verbatim', async () => {
     const { buildChangePrompt } = await builder();
     assert.strictEqual(buildChangePrompt('clothes', 'a red leather jacket, black jeans and boots'),
-        'Dress the character in a red leather jacket, black jeans and boots. The front view, the back view and the '
-        + 'close-up portrait on the right all show the same outfit, with the same neckline, sleeves and straps. '
-        + 'Keep everything else exactly as it is.');
+        "Change the character's clothes in image 1: a red leather jacket, black jeans and boots. The front view, the "
+        + 'character seen from behind and the close-up portrait on the right all show the same change, with the same '
+        + "neckline, sleeves and straps. Keep the character's own face and hair. Keep everything else exactly as it is.");
     // MPI-1086 r30: Accessories runs on Qwen, every figure named, "to wear or hold" (a bare "Mask" became a matte).
     // ac2: "Add nothing else" (a G3 came with a thigh pouch, belt and sling). ff1: pass 1 sees no back figure, so
     // names none ("a basketball under his arm" landed on the back view only).
@@ -295,7 +295,8 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     assert.deepStrictEqual([fp.Input_Face_Crop, fp.Input_Back_Pass, fp.Input_Ref_Head_Crop, fp.Input_Is_Mannequin],
         [true, false, true, false], 'a picture: its head made a mannequin (fa1 P1: the raw head brought its makeup)');
     assert.match(fp.Input_Mannequin_Prompt, /^Replace the head of the person with a plain bald mannequin head, and keep only the tattoos on the face/);
-    for (const w of ['Face and neck tattoos', 'Neck and chest tattoos', 'a rose on the left arm', 'a koi on the back']) {
+    for (const w of ['Face and neck tattoos', 'Neck and chest tattoos', 'a rose on the left arm', 'a koi on the back',
+        'Full-body tattoos, face included']) {
         const p = characterSheetEditor('change', run('tattoos', w)).injectionParams;
         assert.deepStrictEqual([p.Input_Face_Crop, p.Input_Ref_Head_Crop, p.Input_Is_Mannequin], [false, false, true], w);
     }

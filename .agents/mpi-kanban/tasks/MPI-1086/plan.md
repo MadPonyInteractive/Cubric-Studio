@@ -4,6 +4,18 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
+2026-10-18 ("New character sheets 46") - LATEST. Pouch loss root cause settled (ff11 in validation.md): the app's
+input was right (face version flowCSE_077 via `unchainedSource`, Headless ON, K0); that exact combo keeps the pouch
+5/5 on the bench. App engine (torch 2.13, --lowvram) draws different pixels from the same seed, so his loss is one bad
+draw, not a bug. K3 SHIPPED for Clothes words (Fabio's pick: ghost head K0 2/5 vs K3 0/5, pouch both 5/5, dress
+K3 4/5 vs 5/5). Fabio PASSED in the app: K3 (blue tank top), close-up strap, undress one garment, back-only tattoo
+placement, full-body tattoo picture (face bare 4/4; full-body = extreme case, need not be exact). Fixed: "full-body"
+(hyphen) now counts as a body part (was routed face-only). Tattoo QUALITY -> masked passes = new card MPI-1190 (Area
+mode), another session. FAIL OPEN: face/head tattoos from imported_023 (flowCSE_087/088): scalp glyphs under her hair
+AND the head mannequin's neck design both moved to her CHEEK. NEXT: bench the fix (a prompt line: a tattoo whose
+place is hidden by hair is left out, never moved elsewhere; the mannequin prompt: nothing below the jaw), 4 seeds per
+wording on imported_023 + the pink-bob woman's sheet, Qwen face-crop path; Fabio picks; then close-out.
+
 2026-10-18 ("New character sheets 45", handoff) - LATEST. SHIPPED today: walking-stick side swap (`ACC_SWAP`), front
 bag strap-only back pass (`BACK_STRAP`), close-up strap line (`CLOSE_STRAP` = ff10 C2, any shoulder-strap bag).
 Fabio PASSED: stick + age 78, sheetCuts log, Cosmo routing, Accessories picture + words, chest sling bag (after
