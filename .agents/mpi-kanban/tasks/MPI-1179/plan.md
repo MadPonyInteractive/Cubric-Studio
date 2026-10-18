@@ -11,6 +11,7 @@ Fabio adds more as we investigate. A member that passes the bench becomes its ow
 |---|---|---|
 | 1 | MPI-1180 | Bench MOSS-Image (5B text-to-image) once ComfyUI v0.42.0 ships |
 | 2 | MPI-1181 | Bench FLUX.3 Klein (one card, Turbo button: distilled int8 / base int8, dev-gated) once the engine is on >= v0.41.0 |
+| 3 | MPI-1182 | Bench Fish Audio Drama 3 (int8 experts in RAM, ComfyUI-Drama3 pack) once the engine is on >= v0.40 |
 
 **Umbrella rule: every new model card is added to this table with a phase, and its
 `description` starts with the `UMBRELLA: MPI-1179 - New Models to Test` prefix.**
@@ -32,3 +33,9 @@ both. Dev-gated, not a 2.1 item (Fabio, 2026-10-18). Details on the card's `brie
 **Engine bump timing (Fabio, 2026-10-18):** do the bump BEFORE 2.1's full Pod smoke (MPI-1044) if
 v0.42.0 is out by then. One bump and one full smoke then cover 2.1, and 2.2 brings both models with
 no second bump.
+
+### Phase 3 - Fish Audio Drama 3 (MPI-1182)
+
+Blocked on the engine bump. The ComfyUI-Drama3 pack needs v0.40 at minimum (tested on v0.41), so
+the v0.42.0 bump for phase 1 covers it; confirm the pack loads there. int8 file, our own Qwen3-ASR
+0.6B for the transcript. Needs ~48 GB of system RAM. Details on the card's `brief.md`.
