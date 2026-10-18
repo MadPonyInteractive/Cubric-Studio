@@ -91,6 +91,16 @@ from master.
       and the competitor "last release" lines (checked 2026-10-13, see the MPI-1124 brief),
       then ask Fabio before the IndexNow / Bing re-crawl ping (MPI-1124 brief, Open item 4).
 
+## Noticed
+
+- 2026-10-18 live session: `/remote/pod/reconnect` runs its GPU availability pre-check AFTER a stale-image
+  verdict on a RUNNING Pod, so the stale Pod's own card reads "out of stock"; it deletes the Pod and answers
+  `unavailable` instead of recreating (`routes/remotePodLifecycle.js` ~1349-1365, `running` is false when
+  `stale`). Auto-retry's create recovered 3 s later; with auto-retry off the user must press Connect again.
+- 2026-10-18 live session: a ComfyUI Describe on the Pod shows its queue row, but the status bar sits on a
+  still "STARTING · 0%" for the whole run. A text op with no step % should show the moving sweep
+  (dos_and_donts § "Every action shows itself").
+
 ## Related, not owned here
 
 - MPI-1043 (engine bump) closes with blockers 2-3 done.

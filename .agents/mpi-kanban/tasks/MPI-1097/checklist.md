@@ -9,7 +9,9 @@
 - [x] Fix (35596affc): a new `connecting` phase resets the connect-edge latch (`js/shell.js`).
 - [x] Test: structural check in `tests/remote-engine-assets.test.cjs`, red without the fix (mutant), 9/9 with it.
 - [x] npm test 3310 pass / 0 fail; CI green on 35596affc.
-- [ ] Live proof rides the 2.1 Pod session (boot with remote on + a stray Pod, or a node_lock bump).
+- [x] Live proof 2026-10-18 in Fabio's app (see validation.md): dev Pod left RUNNING by a Ctrl+C
+      kill, app restarted `npm start nodev`, stale-image recreate swapped to a fresh Pod, connect edge
+      re-synced, SDXL Realistic read installed (1/24) with nothing re-downloaded.
 
 ## Scope (corrected 2026-10-14)
 

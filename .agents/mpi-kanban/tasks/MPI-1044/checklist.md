@@ -44,7 +44,11 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       into an EMPTY scratch models root downloaded it from R2, 5,242,481,504 B, sha256 45fe15d3... = registry,
       216 s (scratch deleted). Remote half partly seen: the 10-18 smoke logged `remote install engine:assets:
       fetching qwen3vl-abliterated-clip` onto the volume. Still owed: Describe on ComfyUI returning text on a Pod.
-- [ ] Live session in Fabio's app (cap $1, his yes given 2026-10-18): MPI-1097 proof + MPI-1045 remote Describe.
+- [x] 2026-10-18 live session in Fabio's app, ~$0.10 of the $1 cap: MPI-1097 PASS (dev Pod left running,
+      `nodev` restart recreated it on v0.27.0, volume re-synced, SDXL Realistic installed, nothing
+      re-downloaded; MPI-1097 validation.md). MPI-1045 remote PASS: the dev Pod auto-installed the
+      Describe encoder onto the empty volume, and on the release Pod "Describe Image / universal
+      workflow imageDescribe" (ComfyUI describer) returned text twice. Pod + volume deleted (Fabio).
 - [x] 2026-10-16 Fabio: MPI-1136 (Cosmo + MCP import a card from another project) and MPI-1154
       (Video Edit background change describes every kept subject) also block 2.1. MPI-1154 changes
       Video Edit, so the Pod smoke's Video Edit run covers it. 2026-10-17: both DONE, Fabio's eye test
