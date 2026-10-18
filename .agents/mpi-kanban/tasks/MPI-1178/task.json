@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1178",
+  "title": "Nano Banana cloud edit keeps the picture's shape",
+  "description": "An edit with no ratio picked sent Nano Banana no aspect_ratio; a 1024 square came back 1408x768. Send the source's nearest allowed ratio, like the wh/size endpoints already do.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-18T09:32:15+01:00",
+  "updated_at": "2026-10-18T09:47:26+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

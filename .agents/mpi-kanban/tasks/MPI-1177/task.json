@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1177",
+  "title": "Cosmo turns a drawing the user already has into a picture on any edit model",
+  "description": "New agent guide app:drawing-to-image carries the Scribble Flow's prompt so Cosmo can run it as a plain edit on the model the user names (e.g. Nano Banana).",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-18T09:28:17+01:00",
+  "updated_at": "2026-10-18T09:47:23+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

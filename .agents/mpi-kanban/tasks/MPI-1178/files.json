@@ -1,0 +1,7 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/data/modelConstants/deepinfraSizing.js",
+    "tests/cloud-edit-follows-source.test.cjs"
+  ]
+}
