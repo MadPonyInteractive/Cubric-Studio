@@ -1,5 +1,7 @@
 # MPI-1135 H3 base candidates: Singularity H3 and FastH3 Trim vs ours
 
+**After the 2.1 release, not before** (Fabio, 2026-10-18): this brief is set-up only.
+
 Fabio, 2026-10-18: test BOTH against what we ship, then decide per candidate: **replace** our H3
 base, **add** it as a separate model, or **drop** it.
 
