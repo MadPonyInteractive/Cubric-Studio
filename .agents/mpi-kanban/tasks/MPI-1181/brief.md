@@ -53,12 +53,15 @@ diffusion-model switch inside one graph. Template KSampler values: edit base 50 
 edit distilled 16 / euler, both t2i 15 / er_sde, CFG 1 everywhere. That disagrees with the model
 card's base CFG 3.5: settle it at bench time.
 
-How Turbo is built today: `capabilities.turboToggle` on Krea 2 renders the `krea2Turbo` control,
-which injects `Input_is_Turbo`. The graph reads `Get_turbo` for its own steps/CFG
-(`js/data/modelConstants/models.js`, `js/data/generationControls.js`). Krea 2 swaps an accelerator
-LoRA on one weight. Here the switch picks one of two UNETLoaders, so prove that only the chosen
-weight loads (a lazy switch, e.g. MpiAnySwitch by name). Both weights are required deps:
-**11.6 GB of diffusion weights** plus the shared encoder, against 5.8 GB for one tier.
+**How this Turbo differs from Krea 2's (Fabio, 2026-10-18):** Krea 2 runs one weight and switches
+an accelerator LoRA on and off (`capabilities.turboToggle`, `krea2Turbo` control, `Input_is_Turbo`,
+the graph reads `Get_turbo` for steps/CFG; see `js/data/modelConstants/models.js`,
+`js/data/generationControls.js`). Here **an `MpiIfElse` node picks between two UNETLoaders**
+(distilled on `true`, base on `false`), driven by the same turbo boolean, and the Turbo branch
+also sets the steps. `MpiIfElse` inputs are `lazy` (`check_lazy_status`, ComfyUi-MpiNodes
+`if_else.py`), so only the chosen loader runs. Check that once in the bench log.
+**Both models are installed at all times:** both weights are required deps of the one card,
+**11.6 GB of diffusion weights** plus the shared encoder, and the button never triggers a download.
 
 **Fabio's read of the video: the distilled model is poor for realism next to the base.** Same
 prompt and seed: plastic, oily-looking skin, and the whole picture looks less natural. Base is
