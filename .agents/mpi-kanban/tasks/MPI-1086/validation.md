@@ -1151,3 +1151,24 @@ shoulder across the chest" (flowCSE_077): the hip bag on the front and, rightly,
 "across the chest" had matched `FRONT_WORN`, so the back pass got the strap-only words; Qwen drew the bag from image 1
 anyway (right result, wrong branch). "across the chest" removed (it says where the strap runs); test pins Cosmo's words
 to the normal back pass. Fabio: animating it on a video model to judge.
+
+Fabio eye test 2026-10-18 FAIL (open): Cosmo asked "make his trainers the same colour" on flowCharacterSheet_078 (the
+hip-pouch sheet) -> Clothes on Klein, words "all-white canvas low-top trainers with white laces in every view, the
+same white trainers as the front view", seed 2329171697 -> flowCSE_078: white trainers both views, but the pouch GONE
+from the back view (front kept). ff7-ff9 (Klein, lock 1; ff7.py/ff8.py/ff9.py in session 3465d94f's scratchpad):
+- K0 shipped / K1 + "Change only what the words describe: everything else the character wears or carries stays
+  exactly as it is." / K2 the undress opening "Change the character's clothes in image 1: <w>. ... the same change." /
+  K3 = K2 + ", with the same neckline, sleeves and straps". Fabio: never NAME an object (bag, jewellery) - it gets drawn.
+- Headless OFF (ff7/ff8): pouch kept K0 4/4, K1 4/4, K2 4/4, K3 4/4; ghost second head in the back panel K0 2/4,
+  K1 2/4 (+ jacket 2/4), K2 0/4 (jacket 1/4), K3 0/4. Keyhole dress (MPI-1041 c1, detail_002, 5 seeds): K2 2/5 FAIL,
+  K3 4/5 (s3 V-neck close-up vs keyhole front).
+- Headless ON as the app runs (ff9): pouch K0 5/5 kept (side right 4/5, ghost head 2/5), K3 5/5 (side 5/5, ghost 0/5);
+  dress K0 5/5, K3 4/5.
+- Fabio's loss NOT reproduced: his seed on 078 / on flowCSE_077 (face version) / Headless on -> pouch kept every time.
+  His flowCSE_078 front has a FACE, ours from 078 the grey blob: the app fed some other picture or setting. An earlier
+  "reproduced, mean abs diff 2.07" was WRONG (a missing pouch barely moves a whole-sheet mean) - retracted to Fabio.
+  NOT shipped: no Clothes wording change until the app's actual input is known.
+ff10 (Qwen, Cosmo's hip-pouch words on flowCharacterSheet_069, cuts 490,908): the close-up strap, C1 "shows its strap
+over the shoulder." 1/4; **C2 "shows the strap running over the shoulder and down across the chest." 4/4**, back
+side 4/4. SHIPPED C2 as `CLOSE_STRAP` for any `SHOULDER_STRAP` words (shoulder strap, over one/the shoulder,
+crossbody, sling) or a strapped front bag; shipped string = the bench byte for byte. Tests 26/26.

@@ -4,7 +4,18 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
-2026-10-18 ("New character sheets 45", cont.) - LATEST. Fabio eye tests: walking stick + Age 78 pass; sheetCuts (a)
+2026-10-18 ("New character sheets 45", handoff) - LATEST. SHIPPED today: walking-stick side swap (`ACC_SWAP`), front
+bag strap-only back pass (`BACK_STRAP`), close-up strap line (`CLOSE_STRAP` = ff10 C2, any shoulder-strap bag).
+Fabio PASSED: stick + age 78, sheetCuts log, Cosmo routing, Accessories picture + words, chest sling bag (after
+Ctrl+Shift+R), Cosmo's hip pouch (he is judging it on a video model). OPEN, NEXT: (1) WHY Fabio's Clothes shoe edit
+lost the pouch from behind - not reproduced on the bench (ff7-ff9 in validation.md); find what picture/settings the app
+fed Klein (his flowCSE_078 front has a FACE; the source card flowCharacterSheet_078 is the grey-face version: read
+flowService's image1 resolution + the version toggle, compare app.log for that run). K3 is the candidate wording
+(pouch 5/5, no ghost heads) but costs one keyhole-dress seed (4/5 vs 5/5) - Fabio's call, with evidence. Ghost second
+head in Klein Clothes back panels (K0 2/5) is pre-existing. (2) Fabio re-runs the close-up strap in the app (reload
+first). (3) Tattoos back-only imported_021, full-body imported_022 -> bare face, face words + imported_023. Close-out.
+
+2026-10-18 ("New character sheets 45", cont.). Fabio eye tests: walking stick + Age 78 pass; sheetCuts (a)
 pass; Cosmo routing (b) pass; Accessories picture + words pass. Sling bag FAILED (bag on the back too) -> ff6 shipped
 (`BACK_STRAP`/`CLOSE_STRAP`, close-up strap 2/4). NEXT: Fabio re-runs the sling bag, then Cosmo asked for the pouch
 his way, then Tattoos back-only imported_021, full-body imported_022 -> bare face, face words + imported_023; close-out.

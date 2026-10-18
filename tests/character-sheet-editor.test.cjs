@@ -346,17 +346,21 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     const POUCH = 'A small black crossbody sling bag worn on the chest, its strap over one shoulder and across the back';
     const accWords = w => ({ change: 'accessories', words: w, Input_Age: -1 });
     const pouch = characterSheetEditor('change', accWords(POUCH));
-    assert.ok(pouch.positive.includes('wherever it can be seen. The close-up portrait on the right shows its strap over '
-        + 'the shoulder. Add nothing else'), pouch.positive);
+    // ff10: the close-up line names where the strap runs (1/4 -> 4/4), for any bag on a shoulder strap.
+    const STRAP_LINE = 'wherever it can be seen. The close-up portrait on the right shows the strap running over the '
+        + 'shoulder and down across the chest. Add nothing else';
+    assert.ok(pouch.positive.includes(STRAP_LINE), pouch.positive);
     assert.strictEqual(pouch.injectionParams.Input_Positive_2, TURN + 'keep the hair, body, skin tone, clothes and shoes '
         + 'exactly as in image 2. The character wears a thin strap that runs diagonally across the back, from one shoulder '
         + 'down to the other side of the waist. Seen from behind, left and right swap: the shoulder on the left side of '
         + 'image 1 is on the right side of the picture.' + KEEP);
     assert.strictEqual(characterSheetEditor('change', accWords('a leather chest pouch')).injectionParams.Input_Back_Pass, false);
-    assert.ok(!characterSheetEditor('change', accWords('A black hiking backpack')).positive.includes('its strap'));
+    assert.ok(!characterSheetEditor('change', accWords('A black hiking backpack')).positive.includes('the strap running'));
+    assert.ok(!characterSheetEditor('change', accWords('a watch with a leather strap')).positive.includes('the strap running'));
     // Cosmo's hip pouch: the strap runs across the chest, the bag hangs at the hip and shows from behind.
     const hip = characterSheetEditor('change', accWords('a small tan leather pouch worn at the hip, on a strap over one shoulder across the chest'));
-    assert.ok(hip.injectionParams.Input_Positive_2.includes('The character has this accessory: a small tan leather pouch') && !hip.positive.includes('its strap'));
+    assert.ok(hip.injectionParams.Input_Positive_2.includes('The character has this accessory: a small tan leather pouch'));
+    assert.ok(hip.positive.includes(STRAP_LINE), hip.positive);
     for (const w of ['Large gold hoop earrings', 'a wooden walking stick', 'A black hiking backpack', 'tied-up boots']) {
         assert.strictEqual(characterSheetEditor('change', run('accessories', w)).injectionParams.Input_Back_Pass, true, w);
     }

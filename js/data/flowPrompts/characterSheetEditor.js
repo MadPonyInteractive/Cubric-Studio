@@ -318,7 +318,7 @@ export function buildChangePrompt(change, words, ref = false, refHair = '', refM
         case 'accessories':
             return `Give the character in image 1 this accessory to wear or hold: ${w}. The full-body figure on the left `
                 + 'and the close-up portrait on the right both show it wherever it can be seen. '
-                + (FRONT_WORN.test(w) && STRAPPED.test(w) ? CLOSE_STRAP : '') + 'Add '
+                + (SHOULDER_STRAP.test(w) || (FRONT_WORN.test(w) && STRAPPED.test(w)) ? CLOSE_STRAP : '') + 'Add '
                 + "nothing else: no other gear, bags, belts or straps. Keep the character's own face, hair, skin and "
                 + 'clothes. Keep everything else exactly as it is.';
         // MPI-1086 r34: her own face named as with a picture; smoky eyes + black lips, pink glitter + white liner 2/2.
@@ -390,7 +390,13 @@ const STRAPPED = /\b(?:straps?|bands?|cross-?body|sling)\b/i;
 const BACK_STRAP = 'The character wears a thin strap that runs diagonally across the back, from one shoulder down to the '
     + 'other side of the waist. Seen from behind, left and right swap: the shoulder on the left side of image 1 is on '
     + 'the right side of the picture. ';
-const CLOSE_STRAP = 'The close-up portrait on the right shows its strap over the shoulder. ';
+/**
+ * ff10: the strap named in the close-up for any bag on a shoulder strap, chest or hip. "shows its strap over the
+ * shoulder" put it there 2/4 (ff6, chest bag) and 1/4 (Cosmo's hip pouch); naming where it runs, 4/4 (hip pouch).
+ */
+const SHOULDER_STRAP = /\b(?:shoulder strap|over (?:one|the|his|her|their|a) shoulder|cross-?body|sling)\b/i;
+const CLOSE_STRAP = 'The close-up portrait on the right shows the strap running over the shoulder and down across the '
+    + 'chest. ';
 const FRONT_PART = /\b(?:arms?|legs?|thighs?|calf|calves|ankles?|feet|foot|hands?|wrists?|fingers?|chest|neck|face|stomach|belly|ribs?|sleeves?|full body|whole body|all over)\b/i;
 
 /**
