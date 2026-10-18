@@ -135,11 +135,13 @@ const OWN_FACES_INK = "Keep each face's own shape, eyes, nose, lips, eyebrows, f
 /**
  * The mannequin for a face-tattoo picture, made of the picture's HEAD (`Input_Ref_Head_Crop`): a mannequin of a
  * full-body photo kept the face ink too small to read (r45); of the head crop, the designs copied 6/6 (fa1/fa3), where
- * the raw head put the picture's makeup on her and shaved his temple (fa1 P1).
+ * the raw head put the picture's makeup on her and shaved his temple (fa1 P1). Face tattoos only, scalp and neck bare
+ * (fh3): a mannequin carrying scalp or neck ink had Qwen paint it on the cheek of a character whose hair covers the
+ * scalp 16/16, whatever the edit words said (fh1/fh2); without it the face takes only the face's own marks 8/8.
  */
 const TATTOO_MANNEQUIN = 'Replace the head of the person with a plain bald mannequin head, and keep only the tattoos on the '
-    + 'face and head, exactly as they are: the same designs, colours and places. No hair, no makeup, no jewellery and no '
-    + 'clothes, on a plain grey background.';
+    + 'face, exactly as they are: the same designs, colours and places. The scalp and the neck are bare, with no tattoo. '
+    + 'No hair, no makeup, no jewellery and no clothes, on a plain grey background.';
 
 /** Whether this run's tattoos go on the face only. */
 function _faceInk(change, words) {

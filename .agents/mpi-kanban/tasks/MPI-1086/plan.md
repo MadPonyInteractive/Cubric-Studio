@@ -4,7 +4,12 @@ Umbrella MPI-1091. Brief: `brief.md`.
 
 ## Current State
 
-2026-10-18 ("New character sheets 46") - LATEST. Pouch loss root cause settled (ff11 in validation.md): the app's
+2026-10-18 ("New character sheets 47") - LATEST. CLOSE-OUT. Face/head tattoos from a picture FIXED: fh1-fh3 (72
+runs, validation.md) showed no edit wording stops scalp/neck ink in the mannequin landing on the cheek; the mannequin
+now keeps face ink only, scalp and neck bare (fh3 F, Fabio's pick over SN, 8/8 on both sheets). Shipped byte for
+byte, test pins it, npm test green. Scalp ink never comes across, even on a shaved head (accepted). Card closes.
+
+2026-10-18 ("New character sheets 46"). Pouch loss root cause settled (ff11 in validation.md): the app's
 input was right (face version flowCSE_077 via `unchainedSource`, Headless ON, K0); that exact combo keeps the pouch
 5/5 on the bench. App engine (torch 2.13, --lowvram) draws different pixels from the same seed, so his loss is one bad
 draw, not a bug. K3 SHIPPED for Clothes words (Fabio's pick: ghost head K0 2/5 vs K3 0/5, pouch both 5/5, dress

@@ -1224,3 +1224,46 @@ ff10 (Qwen, Cosmo's hip-pouch words on flowCharacterSheet_069, cuts 490,908): th
 over the shoulder." 1/4; **C2 "shows the strap running over the shoulder and down across the chest." 4/4**, back
 side 4/4. SHIPPED C2 as `CLOSE_STRAP` for any `SHOULDER_STRAP` words (shoulder strap, over one/the shoulder,
 crossbody, sling) or a strapped front bag; shipped string = the bench byte for byte. Tests 26/26.
+
+## Face/head tattoos from a picture fh1-fh3 (session "New character sheets 47", 2026-10-18, G: bench :8188)
+
+imported_023 + words "face and head tattoos", the shipped Qwen face-crop path (qh47_params.mjs -> shipped graph, raw
+picture in, graph head crop + mannequin), Headless off. Sheets W = flowCSE_059 (Fabio's pink-bob woman, his 087/088),
+M = flowCSFI_011 (short hair, faded sides). Seeds 223541957 (Fabio's), 45002, 7, 31024. Scripts fh1.py/fh2.py/fh3.py,
+gridfh.py in session c586dc79's scratchpad. The mannequin is the SAME picture on every seed (fixed per prompt).
+
+- **fh1** arms: P4 shipped; H = + "A tattoo whose place is hidden by the character's hair is left out; never move a
+  tattoo to another place."; J = mannequin + "Nothing below the jaw."; HJ both.
+  | arm | W scalp glyphs | W neck design | M glyphs | M neck design |
+  |---|---|---|---|---|
+  | P4 | on the cheek 4/4 | bare 4/4 | temple / faded side 4/4 | bare 4/4 |
+  | H | cheek 4/4 | inked 4/4 | same | inked 4/4 |
+  | J | cheek 4/4 | bare 4/4 | same | bare 4/4 |
+  | HJ | cheek 4/4 | inked 3/4 | glyphs higher on the faded side | inked 4/4 |
+  Klein ignored "Nothing below the jaw" (the neck design got BIGGER). "Never move a tattoo" brings the neck design
+  back on. Wording cannot stop the glyphs: image 2 holds them, so Qwen draws them on the visible skin.
+- **fh2** concrete result-words: S = + SCALP after the placement sentence: "Tattoos on the scalp stay on the scalp: where the
+  hair in image 1 covers the scalp, they are hidden under the hair and do not show. The cheeks get only the marks that
+  are on the cheeks in image 2."; N = mannequin + "The neck is bare skin, with no tattoo." (after "...colours and places.");
+  SN both.
+  | arm | W scalp glyphs | W neck design | M glyphs | M neck design |
+  |---|---|---|---|---|
+  | S | OFF the cheek 3/4 (seed 7 on) | inked 3/4 | temple / faded side 4/4 | inked 2/4 |
+  | N | cheek 4/4 | bare 4/4 | same | bare 4/4 |
+  | **SN** | **off the cheek 3/4** (seed 7 on), small cheek mark kept | **bare 4/4** | faded side 4/4 | **bare 4/4** |
+  Klein FOLLOWS "The neck is bare skin" (its mannequin neck is clean) where it ignored "Nothing below the jaw".
+- **fh3** the mannequin itself carries no scalp/neck ink: F = mannequin "Replace the head of the person with a plain bald
+  mannequin head, and keep only the tattoos on the face, exactly as they are: the same designs, colours and places. The
+  scalp and the neck are bare, with no tattoo. No hair, no makeup, no jewellery and no clothes, on a plain grey
+  background." + positive P4 unchanged; FS = F + fh2's SCALP line.
+  | arm | W scalp glyphs | W neck | M scalp glyphs | M neck |
+  |---|---|---|---|---|
+  | **F** | **none 4/4**, only the picture's small cheek/nose marks | **bare 4/4** | none 4/4 (his fade too) | bare 4/4 |
+  | FS | none 4/4 | bare 4/4 | none 4/4 | bare 4/4 |
+  Partial: M seed 45002 repeats the small cheek mark 3x (F and FS). FS = F, so the SCALP line adds nothing there.
+  Trade-off for Fabio: F never brings scalp ink across, even where a fade shows scalp; SN keeps it on the man's fade
+  but fails W seed 7. Grid: pick_all.jpg (P4 / SN / F / FS, both sheets).
+- **SHIPPED F** (Fabio's pick, 2026-10-18): `TATTOO_MANNEQUIN` = fh3 F byte for byte (checked: the builder's mannequin and
+  positive === fh3_strings.json F), edit string P4 unchanged; test pins the mannequin string. Tests 26/26; npm test
+  3404, 3402 pass / 0 fail; eslint clean. Known: scalp ink never comes across, even on a shaved/faded head (Fabio's
+  call over SN). Not yet eye-tested in the app.

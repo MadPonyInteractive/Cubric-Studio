@@ -294,7 +294,10 @@ test('F2: an optional Reference picture replaces or joins the words, Clothes / A
     const fp = characterSheetEditor('change', run('tattoos', 'Face and head tattoos')).injectionParams;
     assert.deepStrictEqual([fp.Input_Face_Crop, fp.Input_Back_Pass, fp.Input_Ref_Head_Crop, fp.Input_Is_Mannequin],
         [true, false, true, false], 'a picture: its head made a mannequin (fa1 P1: the raw head brought its makeup)');
-    assert.match(fp.Input_Mannequin_Prompt, /^Replace the head of the person with a plain bald mannequin head, and keep only the tattoos on the face/);
+    assert.strictEqual(fp.Input_Mannequin_Prompt, 'Replace the head of the person with a plain bald mannequin head, and keep '
+        + 'only the tattoos on the face, exactly as they are: the same designs, colours and places. The scalp and the neck '
+        + 'are bare, with no tattoo. No hair, no makeup, no jewellery and no clothes, on a plain grey background.',
+        'fh3_F: no scalp or neck ink in the mannequin, so none lands on the cheek');
     for (const w of ['Face and neck tattoos', 'Neck and chest tattoos', 'a rose on the left arm', 'a koi on the back',
         'Full-body tattoos, face included']) {
         const p = characterSheetEditor('change', run('tattoos', w)).injectionParams;
