@@ -25,6 +25,8 @@ its `frame_idx` (24 fps pixel frames). Node facts and what is proven:
 
 ## Before building
 
+- Public evidence that it runs: 4 chained anchors in a 10 s H3 clip (MPI-1134 research note).
+
 - The MPI-1134 Phase 3 keyframe bench answers whether mid-shot and many anchors hold at all. Add an
   arm here: ~8 drawn keys in 5 s, line-art in, does H3 keep the drawn style or turn it photoreal.
 - Which H3 weights honour mid anchors (r2va / fl2va / t2va).

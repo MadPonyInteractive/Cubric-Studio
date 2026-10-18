@@ -30,6 +30,10 @@ shot (the node's own description says so). `MiniMaxH3ImageToVideo`'s first/last 
   try (MPI-591 F9, `frame_idx 51`) died on a third-party pack's patch, not on core; it was never
   re-run once the pack was removed. Also unknown: which weights (r2va / fl2va / t2va) honour mid
   anchors, and how hard the model swerves to hit them.
+- PUBLIC EVIDENCE (2026-10-18, not ours): a FastH3 Trim tutorial (https://www.youtube.com/watch?v=jePGw2RtkjQ,
+  see MPI-1135 brief) chains 4 anchors over a 10 s i2v clip at frames 0, 60, 160, 240 on stock core,
+  and uses them to stop late-clip plastic skin / overexposure; with one fewer, the shine creeps back.
+  So mid-shot multi-anchor runs DO run; our bench still owes the per-anchor fidelity numbers.
 - Shot length caps it: trained range ~124-362 frames (5-15 s). "5-10 images, the model lands on
   each" fits ACROSS shots (a few anchors per shot), not 10 in one 5 s shot (one every half second
   is likely over-constrained). The bench decides the safe spacing.

@@ -26,7 +26,7 @@ the same card or a new member card; one that fails closes with its findings.
 |---|---|---|---|
 | LTX 2.5 | MPI-1095 Land LTX 2.5 in the app (models, LoRA parity, the LTX Flows follow) | integrate | Nothing known: confirm 2.5 loads on the shipped engine first |
 | LTX 2.5 Refine + Restore, 2.5 upscalers | MPI-578 Upscale Video Flow on LTX 2.5: Refine + Restore replace or add to today's Flow; 2.5 latent upscalers + DiffVAE | integrate | MPI-1095 |
-| Singularity H3 | MPI-1135 Base model swap, its upscalers, Story draft resolution | test | Nothing. Story (MPI-1134) waits on it |
+| Singularity H3 + FastH3 Trim | MPI-1135 Two H3 base candidates vs ours: replace or add, their upscalers, Story draft resolution | test | Nothing. Story (MPI-1134) waits on it |
 | MOSS-Image | MPI-1180 Bench MOSS-Image (5B text-to-image) | test | ComfyUI v0.42.0 |
 | FLUX.3 Klein | MPI-1181 One card, Turbo button (distilled int8 / base int8), dev-gated | test | Engine on >= v0.41.0 |
 | Fish Audio Drama 3 | MPI-1182 int8 experts in RAM, ComfyUI-Drama3 pack | test | Engine on >= v0.40; ~48 GB system RAM |
