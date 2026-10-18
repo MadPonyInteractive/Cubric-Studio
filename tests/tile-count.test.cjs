@@ -31,3 +31,19 @@ test('a picture with no size has no tiles', async () => {
     assert.equal(tileCount(0, 0, 2), 0);
     assert.equal(tileCount(NaN, 512, 2), 0);
 });
+
+// MPI-1175 — the tile count is also the status bar's stage total on a Use Tiles run.
+// Each tile is one same-length sampler bar (Krea 2: 0/3 .. 3/3, then 0/3 again), so the
+// counter must read 1/N .. N/N and never climb past N.
+test('one sampler bar per tile reads 1/N .. N/N under the tile total', async () => {
+    const { tileCount } = await load('js/utils/tileCount.js');
+    const { createStageProgress } = await load('js/services/phaseProgress.js');
+    const tiles = tileCount(800, 533, 1);
+    const p = createStageProgress({ stages: tiles });
+    const seen = [];
+    for (let t = 0; t < tiles; t++) {
+        for (let v = 0; v <= 3; v++) p.step(v, 3);
+        seen.push(`${p.stage()}/${p.total()}`);
+    }
+    assert.deepEqual(seen, ['1/3', '2/3', '3/3']);
+});

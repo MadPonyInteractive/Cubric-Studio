@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/services/commandExecutor.js",
+    "tests/tile-count.test.cjs",
+    "docs/generation-lifecycle.md"
+  ]
+}

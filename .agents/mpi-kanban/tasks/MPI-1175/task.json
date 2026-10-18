@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1175",
+  "title": "Use Tiles runs show the tile total (Tile x/n)",
+  "description": "Use Tiles upscale showed a bare stage count: Impact's tile node never prints a SEGS total, so the status bar now takes it from tileCount.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-10-18T08:38:27+01:00",
+  "updated_at": "2026-10-18T08:42:26+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
