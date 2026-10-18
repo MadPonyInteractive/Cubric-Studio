@@ -5,4 +5,4 @@ Why: on 2026-10-16 at 08:07:55Z the Pod-volume gate refused an install with "nee
 - [x] Failing test: both gates' toast and log line name the model (`tests/disk-gate-names-model.test.cjs`). 3/3 failed before the fix, 3/3 pass after
 - [x] `routes/downloadManager.js`: `_installName` (model name, Flow/plugin title, else job key) in both gates' toast; `install <id> blocked` in both log lines
 - [x] `npm test` green: 3362 tests, 3360 pass, 0 fail (2026-10-16)
-- [ ] Commit + push, CI green
+- [x] Commit + push, CI green: `0697b91ae` on origin/master; Tests green on descendant `f823796d7` (2026-10-18)

@@ -3,14 +3,15 @@
   "id": "MPI-1158",
   "title": "Disk-full install refusals name the model they refused",
   "description": "Both disk-full gates (local disk and Pod volume) said 'this model' and logged no model id, so a true refusal for Krea 2 read as a false one for Krea 2 NSFW (2026-10-16, proven from netlog body lengths). Toast and log line now name the model, Flow or plugin.",
-  "column": "doing",
-  "maturity": "in-progress",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
   "created_at": "2026-10-16T10:10:39+01:00",
-  "updated_at": "2026-10-16T10:10:39+01:00",
+  "updated_at": "2026-10-18T20:19:17+01:00",
   "links": {
     "checklist": "checklist.md",
     "files": "files.json",
-    "events": "events.jsonl"
+    "events": "events.jsonl",
+    "validation": "validation.md"
   }
 }

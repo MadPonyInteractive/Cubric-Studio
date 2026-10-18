@@ -1,2 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1158", "at": "2026-10-16T10:10:39+01:00", "actor": "claude", "reason": "Fabio approved naming the model in disk-full refusals"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1158", "at": "2026-10-16T10:10:40+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "implementing"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-1158", "type": "validation.updated", "at": "2026-10-18T19:19:16Z", "actor": "claude", "summary": "Fix pushed, CI green on a descendant, focused test 3/3; validation.md written."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-1158", "at": "2026-10-18T20:19:17+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "fix pushed, CI green, validation.md records it"}

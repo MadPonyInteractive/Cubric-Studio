@@ -12,9 +12,12 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
 - [x] MPI-1139 single picture gets the grey-card sheet (38b1d9d9c); Fabio's eye check pending.
 - [x] UNRELEASED.md: engine line vs 4.88 GB encoder (fa399f34f), background-jobs line, old-exe line.
 - [x] MPI-1104 / MPI-1105 / MPI-1110 closed; MPI-740 fader is dev-only (Components page), not a 2.1 item.
-- [ ] Wait for Character Sheet Editor (MPI-1086) and Make seamless (MPI-1101); if either adds an
+- [x] Wait for Character Sheet Editor (MPI-1086) and Make seamless (MPI-1101); if either adds an
       installRequirements:true node, rebuild the Pod image (v0.26.1). 2026-10-14: Make seamless DONE;
       Character Sheet Editor still in doing. No node_lock change from either so far: no rebuild.
+      2026-10-18: MPI-1086 DONE (2026-10-18 18:33). `dev_configs/node_lock.json` has no commit since
+      2026-10-14: no rebuild, v0.26.0 stands. Latest ComfyUI release is v0.41.0 (< v0.42.0): no engine
+      bump, the Pod session runs as written below.
       Fabio: the Pod session runs only once BOTH are finished (his yes covers ~$2, cap $5).
 - [x] 2026-10-16 Fabio: MPI-1136 (Cosmo + MCP import a card from another project) and MPI-1154
       (Video Edit background change describes every kept subject) also block 2.1. MPI-1154 changes

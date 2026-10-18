@@ -7,7 +7,7 @@
   "maturity": "complete",
   "status": "done",
   "created_at": "2026-08-12T17:41:37Z",
-  "updated_at": "2026-09-15T07:37:29+01:00",
+  "updated_at": "2026-10-18T19:18:51Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -18,10 +18,5 @@
     "handoffs": "handoffs/",
     "research": "research/"
   },
-  "activeSessionTitle": "MPI-751 tier fixes + MPI-547 named params",
-  "attention": {
-    "state": "required",
-    "reason": "Phase 5 live smoke: restart the app, then an agent submit with ratio + turbo + seed",
-    "updated_at": "2026-09-14T16:33:42Z"
-  }
+  "activeSessionTitle": "MPI-751 tier fixes + MPI-547 named params"
 }
