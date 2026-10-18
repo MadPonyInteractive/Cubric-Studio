@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-755", "at": "2026-09-14T13:44:22+01:00", "actor": "claude", "column": "todo", "title": "Library headers: disk space used"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-755", "at": "2026-10-18T15:58:04+01:00", "actor": "claude", "reason": "Joined umbrella MPI-1187 (Fabio, board tidy 2026-10-18)."}

@@ -31,3 +31,7 @@ MPI-513 Phase 1 does not touch this path: the residual ~3 s uninstall move is th
 `/comfy/models/check` -> wrapper `models/status` round trip, not the install store. Closing it
 still needs the optimistic flip against the disk-truth invariant. Agent 85's pick, put to Fabio
 2026-10-01 with no objection: after 2.0, the truthful 3 s stands for the release.
+
+## Closed 2026-10-18
+
+**Declined by Fabio, 2026-10-18 (board tidy). Its timings predate the MPI-398 fix; the residual was ~3 s on a Pod uninstall, parked until after 2.0. Re-measure on a new card if it is noticed.**

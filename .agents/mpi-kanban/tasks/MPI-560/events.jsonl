@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-560", "type": "task.updated", "at": "2026-08-16T04:00:00Z", "actor": "claude", "summary": "Absorbed MPI-530: now 9 members across 6 phases. Phase 4 is the Krea2 bench track."}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-560", "at": "2026-09-17T11:53:02Z", "actor": "claude:fe5850ff", "summary": "Phase 7 added: community submissions open at 2.0 release - members MPI-798 (developer kit), MPI-799 (registry)."}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-560", "at": "2026-09-29T13:40:06+01:00", "actor": "umbrella-sweep 2a15cea4", "fields": ["plan"], "note": "plan.md: MPI-742 (phase 8) and MPI-586 (phase 4) added as members (umbrella sweep, Fabio's yes 2026-09-29)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-560", "at": "2026-10-18T15:58:04+01:00", "actor": "claude", "reason": "MPI-1128, MPI-1039, MPI-455 joined (Fabio, board tidy 2026-10-18)."}

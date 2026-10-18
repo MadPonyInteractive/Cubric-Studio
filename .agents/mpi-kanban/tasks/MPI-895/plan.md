@@ -12,7 +12,7 @@
 | MPI-707 | De-RoPE temporal super-resolution as an optional final pass (H3, later LTX 2.5 / WAN 2.2) | `todo` / `deferred` |
 | ~~MPI-578~~ | LTX 2.5 upscaler - MOVED to MPI-1179 (New Models to Test), 2026-10-18 | - |
 | MPI-477 | H3 refiner: the PIXEL-space route, after latent upscaling was disproven | `todo` / `research` |
-| MPI-478 | The local engine still passes --lowvram; the Pod dropped it on measurement (inert today under aimdo) | `todo` / `research` |
+| ~~MPI-478~~ | --lowvram on the local engine - DECLINED by Fabio 2026-10-18 (disproven, inert) | - |
 | ~~MPI-343~~ | Model upgrade evaluation queue - MERGED into MPI-1179 (New Models to Test), 2026-10-18; PiD 1.5 is MPI-1185 | - |
 | MPI-688 | Video Upscale: add H3 alongside LTX | `todo` / `planned` (added 2026-09-29, umbrella sweep, Fabio's yes) |
 

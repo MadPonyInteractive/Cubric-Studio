@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1021", "at": "2026-10-05T01:29:08+01:00", "actor": "claude", "column": "todo", "title": "Mpi-Kanban 1.6.0: every new session starts with a board-problem warning its own start hook caused"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1021", "at": "2026-10-18T15:58:04+01:00", "actor": "claude", "reason": "Joined umbrella MPI-1189 (Fabio, board tidy 2026-10-18)."}

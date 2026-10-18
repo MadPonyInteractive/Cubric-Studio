@@ -14,6 +14,13 @@ members turn out to be the better unit, delete this umbrella instead.
 |---|---|
 | MPI-249 | Verify a portable build on Linux + macOS (LOCAL engine) — deferred, batch across the next few releases |
 | MPI-416 | macOS first run is blocked — missing Xcode Command Line Tools (the dangling-symlink half is already SHIPPED) |
+| MPI-1027 | Update experience: download only the changed files, preview, splash, relaunch (ships with the next Flow release) |
+| MPI-710 | The top-level `update-manifest.json` reads stale on a real install (do it with MPI-1027: same updater) |
+| MPI-616 | Smart App Control can hard-block an unsigned exe (blocked on code signing) |
+
+**Widened 2026-10-18 (Fabio, board tidy):** this is now the one umbrella for how the app
+itself reaches a user's machine: install, first run and updates. MPI-1027, MPI-710 and
+MPI-616 joined; the phases below still cover only MPI-249 and MPI-416.
 
 ## Current State
 

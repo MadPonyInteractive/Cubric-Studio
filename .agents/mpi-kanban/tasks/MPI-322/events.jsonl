@@ -1,2 +1,3 @@
 {"schema":"mpi-kanban/event/v1","id":"MPI-322","type":"task.created","at":"2026-07-21T00:55:00.000Z","note":"Gallery windowing: only render on-screen cards (virtualize) for very large projects"}
 {"schema":"mpi-kanban/event/v1","type":"task.moved","id":"MPI-322","at":"2026-07-21T22:14:34.803Z","actor":"vscode","from":"todo","to":"todo","summary":"Moved MPI-322 from To do to To do."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-322", "at": "2026-10-18T15:58:04+01:00", "actor": "claude", "reason": "Joined umbrella MPI-1188 (Fabio, board tidy 2026-10-18)."}

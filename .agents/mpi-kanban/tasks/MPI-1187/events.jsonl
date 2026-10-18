@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1187", "at": "2026-10-18T15:55:14+01:00", "actor": "claude", "column": "todo", "title": "Model Library housekeeping (umbrella): retire, clean up, credit, and the install state MPI-513 left"}

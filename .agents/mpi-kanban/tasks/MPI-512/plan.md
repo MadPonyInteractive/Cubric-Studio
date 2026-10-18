@@ -19,6 +19,12 @@ which of the two the board keeps.
 | MPI-489 | A renderer that did not start the download never subscribes to the SSE stream |
 | MPI-485 | The orphan Pod sweep reaps by NAME, so a second app instance deletes the first one's live Pod |
 | MPI-403 | `engineAssets` never reach the Pod's fast disk — hot-store staging stops too early |
+| MPI-502 | Gate 9 needs a Pod-side twin: read `/object_info` from the wrapper (from MPI-558; touches `scripts/smoke-workflows.mjs` and the Pod wrapper, disjoint from the install routes) |
+
+**Merged 2026-10-18 (Fabio, board tidy):** MPI-894 (Remote GPU estate) and MPI-558 (smoke-gate
+runner) folded in here, so this is the one remote-GPU umbrella. MPI-894's last members closed
+(MPI-183 and MPI-349 superseded, MPI-541 never recurred); MPI-558's last open member, MPI-502,
+joined above. Their plans stay in `tasks/MPI-894/plan.md` and `tasks/MPI-558/plan.md` as background.
 
 ## Current State
 

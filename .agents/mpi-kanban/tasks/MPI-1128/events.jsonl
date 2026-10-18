@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-1128", "at": "2026-10-13T08:25:43+01:00", "actor": "Make seamless flow 6", "column": "todo", "title": "Tileable texture: a Flow that generates a texture that repeats by construction (games, 3D materials)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-1128", "at": "2026-10-18T15:58:04+01:00", "actor": "claude", "reason": "Joined umbrella MPI-560 (Fabio, board tidy 2026-10-18)."}

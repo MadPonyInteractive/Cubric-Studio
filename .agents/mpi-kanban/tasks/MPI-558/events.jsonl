@@ -1,1 +1,2 @@
 {"schema":"mpi-kanban/event/v1","id":"MPI-558","type":"task.created","at":"2026-08-14T00:20:00Z","actor":"claude","summary":"Umbrella created by the consolidation sweep."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-558", "at": "2026-10-18T15:58:55+01:00", "actor": "claude", "from": "todo", "to": "done", "reason": "Merged into MPI-512 (Remote install and Pod disk), Fabio 2026-10-18 (board tidy)."}

@@ -18,6 +18,14 @@ the Transfers row, `MpiProgressBar` and its `mpi-progress--loading` sweep.
 | MPI-1108 | Model file drop: copy progress in Transfers | 2 |
 | MPI-1109 | Describe on the online LLM backend (gallery + Cosmo): queue row with sweep | 2 |
 | MPI-1110 | Project Cleanup assets: queue row with sweep | 2 |
+| MPI-569 | Enhance on an exempt op with an empty prompt shows the wrong toast (from MPI-896) | any |
+| MPI-543 | Notification history: a button showing the last five toasts (from MPI-896) | any |
+| MPI-302 | Generation ETA in the StatusBar, both engines (from MPI-896) | any |
+
+**Merged 2026-10-18 (Fabio, board tidy):** MPI-896 (Feedback surface) folded in here, same
+subject: what the app says back. Its three open members joined; its plan stays in
+`tasks/MPI-896/plan.md` as their background. They touch different files from phase 2, so any
+of them can run beside it.
 
 ## Phases
 

@@ -44,9 +44,14 @@ member when the phase covering it lands, and say so in its card.
 
 **Adopted 2026-09-21 on Fabio's go** (MPI-595 Gate D asked for exactly this): MPI-780, MPI-743 and MPI-828 were loose Flow cards with no umbrella. 743 and 828 are the two that sit in a PAYING user's path — a silent no-op after a refused licence gate, and a missing attribution row — so they are release-shaped, not polish. Gate D also names **586, 591, 557, 355** as survivors still to adopt or to exempt; they were NOT swept here, because Fabio's go covered the cards in play, not the whole list.
 
-Adjacent, deliberately NOT members: **MPI-455** (end-frame conditioning — op-side wiring on
-the shipped `ltx_i2v.json`, not a Flow) and **MPI-533** (the tombstone ledger phase 5's
-deprecation UX depends on — model-registry infrastructure, not Flow format).
+Adjacent, deliberately NOT members: **MPI-533** (the tombstone ledger phase 5's
+deprecation UX depends on — model-registry infrastructure, not Flow format; now under
+MPI-1187 Model Library housekeeping).
+
+**Added 2026-10-18 (Fabio, board tidy), no phase yet:** MPI-1128 (Tileable texture Flow),
+MPI-1039 (Multi-angle Flow; Story MPI-1134 wants it shipped) and MPI-455 (LTX end-frame
+conditioning, moved in from adjacent; op-side wiring on `ltx_i2v.json`, so check it against
+LTX 2.5, MPI-1095, before building).
 
 ## The one idea holding all of it together
 

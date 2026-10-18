@@ -70,6 +70,10 @@
   or consciously deferred. **Verify:** each card in `done` or its deferral recorded here under
   Plan Drift.
 
+**Member since 2026-10-18 (Fabio, board tidy):** MPI-815 Elements sits under this umbrella
+(its description carries the `UMBRELLA: MPI-1134` line). The other Phase 0 cards keep their
+own umbrellas and are tracked here only.
+
 ## Parallel Batch: Phase 1 — Story foundation (no UI) — `auto`
 
 Run with `mpi-execute-parallel` once Phase 0's MPI-815 is done. Ownership is provisional; the
