@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["routes/engine.js", "tests/engine-in-place-upgrade.test.cjs", "docs/playbooks/bump-engine/02-local-upgrade.md", ".agents/mpi-kanban/tasks/MPI-1194/"] }

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1194",
+  "title": "Windows engine upgrade without git re-downloads the whole portable",
+  "description": "On a Windows PC with no git on PATH, the in-place engine upgrade calls ensureGit (Linux/macOS only), throws, and falls back to the full ~1 GB wipe and re-download. Move it in place with the portable's own pygit2.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-10-19T02:39:20+01:00",
+  "updated_at": "2026-10-19T03:16:10+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

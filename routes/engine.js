@@ -1014,6 +1014,41 @@ function setAsideNodeName(folderName, commit) {
     return `${folderName}.stale-${String(commit).trim().slice(0, 8)}.disabled`;
 }
 
+// The Windows portable bundles pygit2 in its embedded python (Comfy's own update/update.py
+// runs on it), and a Windows PC has no git unless the user installed one — gitProvision.js
+// can only install it on Linux/macOS. So Windows moves the checkout with pygit2, and every
+// git-less Windows engine stopped falling through to the ~1 GB re-download (MPI-1194).
+// Owner validation off: the same opt-out update.py takes. The portable's .git is SHALLOW,
+// so the pinned commit is fetched at depth 1. libgit2 does not expand a short tag name
+// (a bare `v0.34.0` fetches nothing), so a tag is fetched into its own local ref, and
+// the ref is then resolved locally — never through FETCH_HEAD, which is EMPTY when the
+// tag was already there (the portable ships its own release tag).
+const PYGIT2_CHECKOUT = [
+    'import sys, pygit2',
+    'pygit2.option(pygit2.GIT_OPT_SET_OWNER_VALIDATION, 0)',
+    'repo = pygit2.Repository(sys.argv[1])',
+    'ref = sys.argv[2]',
+    "repo.remotes['origin'].fetch([ref if len(ref) == 40 else f'+refs/tags/{ref}:refs/tags/{ref}'], depth=1)",
+    'commit = repo.revparse_single(ref).peel(pygit2.Commit)',
+    'repo.checkout_tree(commit, strategy=pygit2.GIT_CHECKOUT_FORCE)',
+    'repo.set_head(commit.id)',
+].join('; ');
+
+/**
+ * The commands that move the ComfyUI checkout to `ref`. Pure — unit-tested.
+ * Windows: one pygit2 run in the engine's own python, never host git. Elsewhere: git.
+ * @returns {{ stage: string, cmd: string, args: string[] }[]}
+ */
+function comfyCheckoutSteps(platform, { python, git, repo, ref }) {
+    if (platform === 'win32') {
+        return [{ stage: 'pygit2 checkout', cmd: python, args: ['-c', PYGIT2_CHECKOUT, repo, ref] }];
+    }
+    return [
+        { stage: 'git fetch', cmd: git, args: ['fetch', '--tags', 'origin'] },
+        { stage: 'git checkout', cmd: git, args: ['checkout', '--force', ref] },
+    ];
+}
+
 /**
  * Why the full wipe-and-redownload is REQUIRED, or null when the engine can move in
  * place. Every signal here is detected on disk — none is assumed from the version
@@ -1045,17 +1080,20 @@ async function _upgradeEngineInPlace() {
     // python holds open. Stop it before touching either.
     stopComfyUI();
 
-    const gitPath = await ensureGit({
+    const gitPath = process.platform === 'win32' ? null : await ensureGit({
         onStatus: (status) => broadcastEngineEvent('engine:upgrade-status', { status }),
     });
 
     const reqPath = path.join(comfyRepo, 'requirements.txt');
     const requirementsBefore = await fs.readFile(reqPath, 'utf8').catch(() => '');
 
-    broadcastEngineEvent('engine:upgrade-status', { status: 'Fetching ComfyUI updates...' });
-    await _runStreaming(gitPath, ['fetch', '--tags', 'origin'], { cwd: comfyRepo, stage: 'git fetch' });
-    broadcastEngineEvent('engine:upgrade-status', { status: `Switching engine to ${COMFY_VERSION}...` });
-    await _runStreaming(gitPath, ['checkout', '--force', targetRef], { cwd: comfyRepo, stage: 'git checkout' });
+    broadcastEngineEvent('engine:upgrade-status', { status: `Fetching ComfyUI ${COMFY_VERSION}...` });
+    const steps = comfyCheckoutSteps(process.platform, {
+        python: getPythonBin(ENGINE_ROOT), git: gitPath, repo: comfyRepo, ref: targetRef,
+    });
+    for (const { stage, cmd, args } of steps) {
+        await _runStreaming(cmd, args, { cwd: comfyRepo, stage });
+    }
 
     // Believe the checkout only when the TREE agrees. Restamping a version the code
     // did not actually move to is the self-concealing drift of MPI-419 — the stamp
@@ -1190,3 +1228,4 @@ module.exports.changedRequirements = changedRequirements;     // MPI-457 — exp
 module.exports.engineOwnedChange = engineOwnedChange;         // MPI-457 — exported for unit test
 module.exports.comfyLoadsNodeFolder = comfyLoadsNodeFolder;   // MPI-457 — exported for unit test
 module.exports.setAsideNodeName = setAsideNodeName;           // MPI-1043 — exported for unit test
+module.exports.comfyCheckoutSteps = comfyCheckoutSteps;       // MPI-1194 — exported for unit test

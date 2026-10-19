@@ -12,7 +12,7 @@
 //      python is the exact stomp `--no-deps` exists to prevent (shared.js § curated
 //      python deps).
 const assert = require('assert');
-const { changedRequirements, engineOwnedChange, comfyLoadsNodeFolder, setAsideNodeName } = require('../routes/engine');
+const { changedRequirements, engineOwnedChange, comfyLoadsNodeFolder, setAsideNodeName, comfyCheckoutSteps } = require('../routes/engine');
 
 // ── 1. The real bump, verbatim ───────────────────────────────────────────────
 // Trimmed from ComfyUI's own requirements.txt at the two tags. torch is present in
@@ -118,5 +118,25 @@ assert.strictEqual(comfyLoadsNodeFolder('some.disabled.node'), true, 'only the S
 const asideName = setAsideNodeName('ComfyUI-SplatKit', '4d5ff7c433884631599c3b2d82011a2cbbeea37e\n');
 assert.strictEqual(asideName, 'ComfyUI-SplatKit.stale-4d5ff7c4.disabled', 'marker is trimmed, sha shortened');
 assert.strictEqual(comfyLoadsNodeFolder(asideName), false, 'ComfyUI skips the set-aside folder');
+
+// ── 8. Windows moves the checkout with the portable's pygit2, never host git ─
+// MPI-1194: the in-place path called ensureGit() on every platform; it can only install
+// git on Linux/macOS, so a Windows PC without git fell through to the ~1 GB re-download.
+// The Windows steps must not name git at all — a git-less PC has none to run.
+const SHA = '98cc0bf84b7cb1383654c5b402e7612d875d6d22';
+const winSteps = comfyCheckoutSteps('win32', { python: 'E:\\eng\\python.exe', git: null, repo: 'E:\\eng\\ComfyUI', ref: SHA });
+assert.strictEqual(winSteps.length, 1, 'one pygit2 run does fetch + checkout');
+assert.strictEqual(winSteps[0].cmd, 'E:\\eng\\python.exe', 'runs the engine python, not git');
+assert.deepStrictEqual(winSteps[0].args.slice(2), ['E:\\eng\\ComfyUI', SHA], 'repo and pinned ref are passed as argv');
+const script = winSteps[0].args[1];
+assert.ok(/import sys, pygit2/.test(script) && /depth=1/.test(script), 'a shallow pygit2 fetch');
+assert.ok(/checkout_tree\(commit, strategy=pygit2\.GIT_CHECKOUT_FORCE\)/.test(script) && /set_head\(commit\.id\)/.test(script),
+    'force-checks out the PINNED commit (never Comfy\'s master pull) and detaches HEAD on it');
+assert.ok(!JSON.stringify(winSteps).includes('git '), 'no git command on Windows');
+for (const platform of ['linux', 'darwin']) {
+    assert.deepStrictEqual(comfyCheckoutSteps(platform, { python: '/v/python3', git: '/usr/bin/git', repo: '/r', ref: SHA }).map((s) => [s.cmd, ...s.args]),
+        [['/usr/bin/git', 'fetch', '--tags', 'origin'], ['/usr/bin/git', 'checkout', '--force', SHA]],
+        `${platform} keeps the git checkout`);
+}
 
 console.log('engine-in-place-upgrade: OK');
