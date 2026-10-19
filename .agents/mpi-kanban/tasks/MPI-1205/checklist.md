@@ -7,4 +7,4 @@
 - [x] Delete dialog checkbox reads "Also move its files to the Recycle Bin".
 - [x] Tests: `tests/project-delete-trash.test.cjs` (3), `tests/project-paths-registry.test.cjs` stubbed off the real bin; 9/9 pass. Real `trash` of a temp folder on Windows confirmed.
 - [x] Doc: `docs/project-integrity.md`.
-- [ ] CI green on the commit.
+- [x] CI green on the commit: Tests run 39299834217 on 809cce797, all jobs success.
