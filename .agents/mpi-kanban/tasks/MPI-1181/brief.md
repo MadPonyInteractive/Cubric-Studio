@@ -367,6 +367,11 @@ one 4k t2i on the bench decides whether the row ships as-is.
 **4k bench 2026-10-19 (Turbo t2i, 3840x2176, seed 424242, er_sde 16 steps, 130 s wall, no OOM):** coherent at
 8.4 MP - no doubled subjects or tiling, legible "MERCEARIA" sign, clean face/hands at 1:1, real tile/cobble
 texture. Small flaws: one extra copy of the sign further up the street, hair ends slightly painterly.
+**Base, same prompt/seed (50 steps, CFG 3.5, er_sde): 681 s** on Fabio's 4060 Ti, held at ~12 GB dedicated +
+4.4 GB shared (dynamic VRAM spill - the app's engine behaves the same: `--lowvram` is inert under dynamic VRAM,
+`routes/comfy.js` `_cudaModeArgs`). Coherent at 8.4 MP, one sign only, natural skin with pores and no oily
+sheen, more of the prompt's "ordinary specifics" (crate, peel in the gutter, parking sign). 4k = 2k x2 holds
+for both checkpoints; the cost is time (~11 min base on a 16 GB card).
 Pinned: MpiNodes 3d00c16 pushed + pinned (`b6dabd2e1`, 2026-10-19). 2.1.1 already shipped (MPI-1044 closed),
 so FLUX.3 lands in the NEXT release.
 
