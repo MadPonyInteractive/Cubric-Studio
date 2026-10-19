@@ -1906,7 +1906,9 @@ export const FLOWS = [
         title: 'Outpaint',
         preview: 'flow-outpaint.webp',
         video: 'flow-outpaint.mp4',
-        description: 'Extend an image past its edges. Choose the shape you want, drag the frame out '
+        // MPI-1208: the first sentence is the agent's `does` (agentDispatch flowDoes), so it says
+        // what the Flow changes: the shape, with the new area painted from the prompt.
+        description: 'Extend an image past its edges into a new shape, the new area painted from what you describe. Choose the shape you want, drag the frame out '
             + 'over the sides you want filled, and say what should appear there if you like. Runs '
             + 'on FLUX.2 Klein 9B.',
         // The graph bakes 9B's transformer + encoder, so there is nothing to inject. NO cloud

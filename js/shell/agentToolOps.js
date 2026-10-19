@@ -58,7 +58,7 @@ export const AGENT_TOOL_OPS = [
     },
     {
         op: 'crop',
-        note: `Crop to a ratio with no model and no prompt, keeping as much of the picture as fits; nothing is resized. fields: ratio (${[...RATIOS.keys()].join(', ')}); position center (default), top, bottom, left or right.`,
+        note: `Crop to a ratio with no model and no prompt, keeping as much of the picture as fits; nothing is resized. It changes the shape only: what is left is untouched. fields: ratio (${[...RATIOS.keys()].join(', ')}); position center (default), top, bottom, left or right.`,
         fields: {
             ratio: { values: [...RATIOS.keys()], required: true },
             position: { values: POSITIONS, default: 'center' },

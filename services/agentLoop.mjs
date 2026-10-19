@@ -417,6 +417,7 @@ export const MAX_STEPS = 16;
 
 // Sent with the one call made after the last round, and never kept in the conversation.
 const MEMORY_NUDGE = 'Nothing is noted this turn. If the user stated a goal, a character, a look or a decision, save it with write_memory now; nothing to keep, ignore this.';
+const EDIT_OPS = new Set(['edit', 'kleinEdit', 'krea2Edit', 'qwenEdit']);
 // MPI-1125 — rules only one kind of op needs. They were system-prompt rules paid on every
 // request; now they ride on the describe_model (or list_cards) result that precedes the call
 // they govern, once per context. `when` reads one op of the entry describe_model returns.
@@ -425,8 +426,11 @@ export const OP_RULES = [
         text: 'A tier\'s name is not its size: match a named resolution on params.tierSizes (1K = 1080p = full HD = 1920 on the long side) and say the pixels.' },
     { id: 'clip', when: (o) => !!o.params?.duration && !o.params?.categories,
         text: 'Duration: a clip defaults to 2 to 3 seconds: ONE continuous action fits. Only a SEQUENCE of beats, or a spoken line too long for 3 seconds, earns more, and budget less than your first instinct. The user naming a length always wins. Say the durationSeconds the result reports; until then say "I asked for N seconds". When it finishes the app wakes you, and you report it then. Every new clip starts at the defaults, quality at the lowest tier, and a setting rises only when the user\'s words for THAT clip ask for it; only a redo keeps its card\'s settings.' },
-    { id: 'shape', when: (o) => o.params?.ratios?.length > 0 && (o.media || []).some((m) => m.type === 'image'),
-        text: 'Shape: a generation from a picture crops it to the ratio, never letterboxes. Leave ratio out and the picture\'s own shape is used; only when the user asks for a ratio, say in one line before you generate that part of the picture will be cropped.' },
+    // MPI-1208: "a generation from a picture crops it to the ratio" read as "this op changes the
+    // shape", and a pose change went to i2i for its ratio. Edits are out: one listing ratios
+    // re-composes a new frame (FLUX.3 Klein), it does not crop.
+    { id: 'shape', when: (o) => o.params?.ratios?.length > 0 && (o.media || []).some((m) => m.type === 'image') && !EDIT_OPS.has(o.op),
+        text: 'Shape: a ratio here only crops the picture before the run (never letterboxes): it cuts part of the frame away and changes nothing else. Leave ratio out and the picture\'s own shape is used; only when the user asks for a ratio, say in one line before you generate that part of the picture will be cropped.' },
     { id: 'text', when: (o) => o.params?.ratios?.length > 0 && !o.params?.duration,
         text: 'Words in a picture: quote them exactly, in double quotes, and say where they go. Never refuse, never send the user to another app, never warn in advance that they may be misspelled; a miss is re-run.' },
 ];
@@ -2045,6 +2049,8 @@ Numbering rule: "picture 2", "image 2" or "2" in a message means that message's 
 Looking rule: before you comment on, judge or describe any image, call look on it. look takes only a ref the App state line lists; it cannot open a folder or a path. If the describer refuses, say so and suggest the local ComfyUI describer (Remote > Language Models).
 
 Flow rule: before your first Flow run or answer about one, read app:flows.
+
+Plan rule: before the first run of an ask that changes several things (shape, content, pose, who is in it, style), work out what must change and give each to a tool whose note says it changes that, in an order where no step undoes an earlier one.
 
 Chaining rule: when the second half of a request needs the first ("make it 9:16, then animate it"), generate the first with wait: true; its result carries the filePath the next step takes. Do both halves. When the first step's output is something they will judge (a new shape, style or face), look at it and redo it if it came back wrong. Never end a turn with half done without saying which half is missing and why.
 

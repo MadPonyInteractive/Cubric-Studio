@@ -133,6 +133,9 @@ const lookCase = (id, att, turn, seen, wanted) => ({
         return f;
     },
 });
+// MPI-1208: one woman on a square picture, standing, arms down (the 9:16 case).
+const WOMAN = { id: 'att_woman', name: 'IMG_8812.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_woman.jpg' };
+const WOMAN_LOOK = { text: 'A photo of one woman with long purple hair standing in a sunlit studio, framed from the knees up, arms relaxed at her sides, a neutral expression. She wears a black crop top and blue jeans. Plain white wall behind her.' };
 const WAVES = 'Make a 5 second video of waves crashing on rocks at sunset.';
 // MPI-944: one place, two angles. Camera-roll names on purpose: the model has to look to
 // tell which picture holds the content and which is empty.
@@ -1188,6 +1191,35 @@ const CASES = [
         },
         flip: { attachments: [PARK_EMPTY] },
         check: (run) => gradeSecondPicture(run, PARK_FULL, PARK_EMPTY),
+    },
+    {
+        // MPI-1208, live 2026-10-19: a square picture with "9:16, smiling, hands on hips, mini
+        // skirt and fishnets" ran Klein 9B i2i five times, the only op that took the ratio, and
+        // the pose never moved. Fabio's routes: crop to 9:16 or Outpaint to it, THEN one edit
+        // for the pose, expression and clothes. The flip asks for no new shape, so no crop or
+        // Outpaint comes first and the check must fail.
+        id: 'shape-then-edit',
+        title: 'a new shape plus a pose and outfit change: crop or Outpaint first, then an edit, never i2i',
+        setup: {
+            models: KLEIN_AND_KREA,
+            attachments: [WOMAN],
+            look: { ok: true, output: { ...WOMAN_LOOK, imageSize: { w: 1024, h: 1024 } } },
+            turns: ['Make this 9:16. Just her, smiling, hands on her hips, in a mini skirt and fishnets.'],
+        },
+        flip: { turns: ['Just her, smiling, hands on her hips, in a mini skirt and fishnets. Keep the picture square.'] },
+        check(run) {
+            const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
+            if (!ok.length) return ['never generated'];
+            const f = [];
+            const i2i = ok.filter((c) => c.args.operation === 'i2i');
+            if (i2i.length) f.push(`ran i2i ${i2i.length} time(s): it keeps the pose`);
+            const shape = ok.findIndex((c) => c.args.operation === 'crop' || c.args.flowId === 'outpaint');
+            const edit = ok.findIndex((c) => ['edit', 'kleinEdit', 'krea2Edit', 'qwenEdit'].includes(c.args.operation));
+            if (shape < 0) f.push('nothing changed the shape (no crop, no Outpaint)');
+            if (edit < 0) f.push('no edit changed the pose and clothes');
+            if (shape >= 0 && edit >= 0 && edit < shape) f.push('the edit ran before the shape change');
+            return f;
+        },
     },
     {
         // MPI-941 Phase 7, Fabio live 2026-09-28 on DeepSeek: he declined the SDXL install and the

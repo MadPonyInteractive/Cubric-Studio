@@ -104,10 +104,12 @@ const KREA2_SKIN = 'the best skin detail here, but only at its own low default d
 const CHROMA_SKIN = 'denoise changes the character less than krea2\'s does here — pick it when keeping the character matters more than peak skin detail. Ask for detail in the prompt, e.g. "high skin detail, visible pores"';
 
 const NOTES = {
-    'boogu-edit-high:edit': `the strongest editor here, but ${ONE_IMAGE}`,
+    // MPI-1208: "strongest" and "native" outranked rank 1 in the agent's reading (live 2026-10-19,
+    // Qwen-Image 2.1 passed over for "the native editor"). The rank says which is best.
+    'boogu-edit-high:edit': `a strong editor, but ${ONE_IMAGE}`,
     'boogu-edit-balanced:edit': `the same editor on a lighter tier, and ${ONE_IMAGE}`,
-    'klein-9b:kleinEdit': 'the native editor: it follows the instruction and keeps the likeness, but it tends to cover a bare subject unless the instruction says to keep it as it is',
-    'klein-4b:kleinEdit': 'the small native editor — lighter, and weaker on realism',
+    'klein-9b:kleinEdit': 'edits in place: it follows the instruction and keeps the likeness, but it tends to cover a bare subject unless the instruction says to keep it as it is',
+    'klein-4b:kleinEdit': 'the smaller Klein editor — lighter, and weaker on realism',
     'krea2:krea2Edit': 'not a native editor: it re-renders the whole picture rather than editing in place, so the surroundings shift too, but that same re-render holds an anime or stylised look through the edit better than kleinEdit does',
     // "the only one that leaves everything outside the edit area untouched" went (MPI-892,
     // Fabio 2026-09-30): with Head Swap not installed, it read as "only Qwen can move a head",
@@ -115,7 +117,7 @@ const NOTES = {
     'qwen-edit:qwenEdit': 'the slowest of these',
     // MPI-936 ranked it last for its research licence; MPI-1202 (Fabio 2026-10-19) made it
     // rank 1 anyway. The licence line stays so the agent can say it when asked.
-    'qwen-image-2-1:edit': 'takes up to eight images in one edit, more than any editor here, and can return the subject on a transparent background (transparent: true). Research or evaluation use only: the images are not for commercial use',
+    'qwen-image-2-1:edit': 'the best editor here: takes up to eight images in one edit, and can return the subject on a transparent background (transparent: true). Research or evaluation use only: the images are not for commercial use',
     // Alpha survives t2i and edit only: every other op repaints an opaque source and returns RGB.
     // MPI-1049 (Fabio 2026-10-10): a no-background ask that names no model may come here, or be
     // offered as a choice beside another model + removeBackground, the way options usually are.
@@ -168,12 +170,23 @@ const I2V_NOTE = 'animates THIS picture: it becomes the first frame exactly as i
  * that"). Not only the identity route: a picture cited as a frame is followed, loosely.
  */
 const REF_NOTE = 'a reference op: the pictures (and clips and sounds) steer who and what appears and, on every model but LTX (its sheet carries looks only), how it is shot: the camera angle and framing of a picture, the camera move of a clip. The route for a character sheet, a turnaround or several views of one subject. A picture cited as the opening frame (or another as the closing one) also gives a first or last frame: close, not exact, since the angle or framing can drift';
+/**
+ * MPI-1208 (Fabio 2026-10-19: "Cosmo's job is to know what tools he has"): what an edit can
+ * change, as a fact, so a multi-part ask is split by capability rather than a route rule.
+ * Live, "9:16, hands on hips, mini skirt" went to i2i five times because no editor said it
+ * moves a pose and the ratio was only on i2i.
+ */
+const EDIT_NOTE = 'changes what the instruction says (a thing, the clothes, the pose, the expression, who is in it) and keeps the first picture\'s shape unless the op lists ratios; where it takes more pictures, a later one is a source to bring a person or thing from';
 const OP_NOTES = {
+    edit: EDIT_NOTE,
+    kleinEdit: EDIT_NOTE,
+    krea2Edit: EDIT_NOTE,
+    qwenEdit: EDIT_NOTE,
     // MPI-904: a model upscale is a diffusion pass, and the plain tool ranks above it.
     // MPI-1053: which detail route fits the ask is said ONCE, in app:upscaling (read behind a
     // gate in agentLoop.mjs): a note here repeats on every model in list_models.
     upscale: 'redraws the picture to add detail, from a prompt written per picture; the plain imageUpscale adds none. Which route: app:upscaling',
-    i2i:'the restyle route, only when the user asks to change how THIS picture looks; "this picture, but with <model>" is a re-run: that model\'s t2i, with no media. It repaints the whole picture from the WORDS, so prompt it with the description of THIS image and then the style you want, never a better scene. denoise decides how much moves — keep it low to hold the pose and composition. If the result comes back wrong (the look did not take, or it strays from the original), the next try is an edit op, never this op at another denoise',
+    i2i:'the restyle route, only when the user asks to change how THIS picture looks; "this picture, but with <model>" is a re-run: that model\'s t2i, with no media. It repaints the whole picture from the WORDS, so prompt it with the description of THIS image and then the style you want, never a better scene. denoise decides how much moves — keep it low to hold the pose and composition; at a denoise that keeps the person, the pose, the layout and the clothes stay as they are. If the result comes back wrong (the look did not take, or it strays from the original), the next try is an edit op, never this op at another denoise',
     i2v_ms: I2V_NOTE,
     i2v: I2V_NOTE,
     ref2v_ms: REF_NOTE,
