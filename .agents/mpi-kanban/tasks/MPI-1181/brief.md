@@ -156,6 +156,17 @@ our Enhancer, which removes the 16 GB-RAM worry. Bench with and without once.
   the Flux 3 graph unless PUP wins the bench; then it becomes the upsampler's slot. If not, PUP becomes an optional "best quality"
   download, never required (16 GB-RAM tester).
 
+**Output size - 1K / 2K / 3K / 4K (Fabio, 2026-10-19).** FLUX.3 Klein generates up to 4K natively,
+so the card gets four quality tiers, the way Qwen 2.1 / Krea 2 offer two: a new `type: 'flux3'`
+with `qualityTiers: ['1k', '2k', '3k', '4k']` and a `ratios` table per tier
+(`js/data/modelConstants/models.js`; Qwen 2.1's `['1k', '2k']` table is the template, every edge
+/16 at least, /32 like Krea's grid). A new `type` means the type-consumer sweep (add-model playbook).
+**Pin the real pixel ceiling on the bench first:** BFL's numbers seen so far are "2 MP default,
+4 MP for ~2048 px", so "4K" may mean ~4 MP or a 4096 px edge (~16 MP) - measure what the model
+actually holds before writing the 3k/4k rows. Big tiers on a small card get a warning, never a cap
+([[project_the_users_gpu_is_the_limit]]). Edit output follows the reference unless the op is
+taken off `imageSizedOps`, so decide whether the tier applies to edit too.
+
 ### 2. Ten reference images - our own node, the MpiH3References way
 
 Core node: `ReferenceMultiLatent` ("Set Reference Multi Latent", `comfy_extras/nodes_edit_model.py`):
