@@ -360,6 +360,15 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
                    math_expression=f'{CROP} if a == {AREA} else floor(sqrt(a * 9 / 16) / 32 + 0.5) * 32')
     g['61'] = node('MpiIfElse', 'masked ? crop width : render width', boolean=['24', 0], true=['63', 0], false=['40', 0])
     g['62'] = node('MpiIfElse', 'masked ? crop height : render height', boolean=['24', 0], true=['63', 0], false=['41', 0])
+    # Template 6 rebuilds the PICTURE's whole room inside the render's canvas: a picture of another shape came out
+    # squeezed to fit (Fabio 2026-10-19, 1232x2016 into 576x1024, ~8% narrower), so it is cropped to the render's shape
+    # first. Other options take only a look from the picture, which H3 reads aspect-kept, so they get it whole.
+    g['27'] = node('MpiMath', "Picture's room? (template 6)", a=['22', 0], math_expression='a == 6')
+    g['28'] = node('ImageResizeKJv2', "Picture cropped to the render's shape", image=['11', 0], width=['61', 0],
+                   height=['62', 0], upscale_method='lanczos', keep_proportion='crop', pad_color='0, 0, 0',
+                   crop_position='center', divisible_by=32, device='cpu')
+    g['29'] = node('MpiIfElse', "picture's room ? cropped : whole picture", boolean=['27', 0], true=['28', 0],
+                   false=['11', 0])
 
     # ---- the instruction
     for i in range(1, 7):
@@ -448,7 +457,7 @@ def graph(video='None', image='None', positive='', operation=1, keep_background=
     g['108'] = node('MpiVideoSamplingPreview', 'Mpi Video Sampling Preview', model=['106', 0], vae=['107', 0], preview_rate=24)
     g['110'] = node('MpiH3References', 'H3 references (<Video 1> the clip, <Picture 1> the picture)',
                     clip=base[1], vae=['102', 0], audio_vae=['103', 0], prompt=prompt, width=['61', 0],
-                    height=['62', 0], length=['30', 0], ref_image_size='match', ref_image_1=['11', 0],
+                    height=['62', 0], length=['30', 0], ref_image_size='match', ref_image_1=['29', 0],
                     ref_video_1=['60', 0])
     g['111'] = node('RandomNoise', 'RandomNoise', noise_seed=['17', 0])
     g['112'] = node('KSamplerSelect', 'KSamplerSelect', sampler_name='res_multistep')

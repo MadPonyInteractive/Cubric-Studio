@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-1196",
+  "title": "Video Edit: a picture of another shape is squeezed into the clip's frame (into the picture's room)",
+  "description": "Swap the person into the PICTURE's room (template 6) hands H3 the picture aspect-kept, and H3 rebuilds the picture's whole room inside the clip's canvas, squeezing it: imported_006 (1232x2016, 0.611) into a 576x1024 render came out ~8% narrower, measured on frame 0 against the picture scaled to 576x1024. Crop the picture to the render's shape before H3 on that route. Also seen: two runs fed an H3 result as the clip trail the dance by ~0.6 s (motion lag measured), not yet explained.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-10-19T03:24:55+01:00",
+  "updated_at": "2026-10-19T03:24:55+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

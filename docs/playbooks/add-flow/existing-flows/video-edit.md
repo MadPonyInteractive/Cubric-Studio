@@ -34,6 +34,11 @@ as `<Video 1>` at **~0.75 of that size**. Both trim the clip to H3's 17k+5 frame
   result was fed back in (Fabio 2026-10-10); a masked edit is stitched back at source size, so it
   never showed. Node 44 picks the first of three /32 heights from 0.75 whose width (node 43) keeps the
   shape within 1% (576x1024 -> 448x800, 0.4%), else the full size.
+- **So must the picture, when it is the room** (template 6, MPI-1196). H3 rebuilds the picture's whole
+  room inside the render's canvas, so a 1232x2016 picture into a 576x1024 render came out ~8%
+  narrower (frame 0 matched the picture squeezed to 576x1024, not cropped). Nodes 27-29 centre-crop
+  it to the render's shape (nodes 61/62) on that route only; every other option takes only a look
+  from the picture, which `MpiH3References` reads aspect-kept, so it goes in whole.
 - **The user's LoRA rack** (`Input_Lora_Phase1_1..6`, nodes 180-185, the slot's `loras: true`) sits
   between the loader and the Flow's own swap / Faceswap / turbo LoRAs; H3's encoder reads its CLIP.
 

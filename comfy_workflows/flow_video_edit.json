@@ -208,6 +208,65 @@
       "title": "Input_Quality"
     }
   },
+  "27": {
+    "inputs": {
+      "math_expression": "a == 6",
+      "a": [
+        "22",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Picture's room? (template 6)"
+    }
+  },
+  "28": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "keep_proportion": "crop",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 32,
+      "device": "cpu",
+      "image": [
+        "11",
+        0
+      ],
+      "width": [
+        "61",
+        0
+      ],
+      "height": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Picture cropped to the render's shape"
+    }
+  },
+  "29": {
+    "inputs": {
+      "true": [
+        "28",
+        0
+      ],
+      "false": [
+        "11",
+        0
+      ],
+      "boolean": [
+        "27",
+        0
+      ]
+    },
+    "class_type": "MpiIfElse",
+    "_meta": {
+      "title": "picture's room ? cropped : whole picture"
+    }
+  },
   "30": {
     "inputs": {
       "math_expression": "floor((a - 5) / 17) * 17 + 5",
@@ -1074,7 +1133,7 @@
         0
       ],
       "ref_image_1": [
-        "11",
+        "29",
         0
       ],
       "ref_video_1": [
