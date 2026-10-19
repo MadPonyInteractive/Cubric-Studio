@@ -148,7 +148,12 @@ our Enhancer, which removes the 16 GB-RAM worry. Bench with and without once.
   the ComfyUI enhancer is VL, so passing the images may be possible).
 - **Bench (same seed, same short prompts, t2i + edit + one box case):** (1) raw prompt, (2) PUP w4a8
   (6.7 GB), (3) Qwen3-VL-4B abliterated + BFL system prompt, (4) a Remote model + BFL system prompt.
-  If (3) is close to (2), ship the recipe and no PUP. If not, PUP becomes an optional "best quality"
+  If (3) is close to (2), ship the recipe and no PUP. Fabio is downloading the w4a8 upsampler for (2).
+- **The Klein copy's "Prompt Enhancement" group (`TextGenerate` behind `Input_enhance_prompt`) is
+  dead in the app:** baked false, no UI sets it since MPI-677, only a raw `injectionParams` on
+  `/connector/generate` reaches it, and `settleInGraphEnhance` (`js/services/llmService.js`) guards
+  that door. The Enhance button runs its own graph with the model's recipe. Leave the group OUT of
+  the Flux 3 graph unless PUP wins the bench; then it becomes the upsampler's slot. If not, PUP becomes an optional "best quality"
   download, never required (16 GB-RAM tester).
 
 ### 2. Ten reference images - our own node, the MpiH3References way
