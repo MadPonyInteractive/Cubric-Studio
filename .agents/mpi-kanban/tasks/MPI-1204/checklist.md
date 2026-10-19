@@ -4,4 +4,4 @@
 - [x] Unit test: overlapping calls run ONE job; every route goes through the guard
 - [x] `npm test` green
 - [x] Remove the 2.1.2 blocker line from `docs/releases/UNRELEASED.md`, add the fix line
-- [ ] CI green on the code commit
+- [x] CI green on the code commit

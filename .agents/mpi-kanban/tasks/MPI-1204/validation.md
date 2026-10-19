@@ -21,4 +21,4 @@ stays outside the slot.
   a throw; each of the three routes goes through `_oneEngineJob` (source check, same shape as
   MPI-1206's).
 - `npm test`: 3429 tests, 3427 pass, 0 fail, 2 skipped.
-- CI on the code commit: pending.
+- CI: Tests run 39325692120 green on 3fc798583 (the code commit).
