@@ -328,7 +328,27 @@ const client = {
       v2spec.dataCenter = v2spec.dataCenterId;
       delete v2spec.dataCenterId;
     }
-    return _rest(apiKey, 'POST', '/network-volumes', v2spec);
+    // MPI-1199: RunPod can answer the create with a 5xx AFTER committing the volume
+    // (2026-10-19, 500 on EU-RO-1 while the 50 GB volume billed). The POST is not
+    // idempotent, so a 5xx is "unknown", not "refused": snapshot the ids first, and on
+    // a 5xx adopt the volume with this name + DC that was not there before. Without it
+    // the user sees "not created" and a retry bills a second volume.
+    // ponytail: 3 re-lists 2 s apart; enough for the list to catch up with the create.
+    const ids = (r) => (Array.isArray(r?.json) ? r.json : r?.json?.networkVolumes || []);
+    const before = new Set(ids(await _rest(apiKey, 'GET', '/network-volumes')).map((v) => v?.id));
+    const r = await _rest(apiKey, 'POST', '/network-volumes', v2spec);
+    logger.info('runpod', `createVolume REST -> http ${r.status} ok=${r.ok} dc=${v2spec.dataCenter} size=${v2spec.size}${r.ok ? ` id=${r.json?.id}` : ` body=${redactSecret(JSON.stringify(r.json)).slice(0, 300)}`}`);
+    if (r.status < 500) return r;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (attempt) await new Promise((resolve) => setTimeout(resolve, 2000));
+      const made = ids(await _rest(apiKey, 'GET', '/network-volumes')).find((v) =>
+        v && !before.has(v.id) && v.name === v2spec.name && v.dataCenter === v2spec.dataCenter);
+      if (made) {
+        logger.warn('runpod', `createVolume: RunPod answered ${r.status} but volume ${made.id} exists; adopting it`);
+        return { status: 200, ok: true, json: made };
+      }
+    }
+    return r;
   },
   async deleteVolume(apiKey, id) {
     return _rest(apiKey, 'DELETE', `/network-volumes/${id}`);

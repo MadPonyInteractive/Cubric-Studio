@@ -43,3 +43,7 @@
 > or three times inside one unreleased version reads like user-visible history but
 > never shipped, and the entry is then simply false. Full gate:
 > `.claude/skills/mpi-release/references/copy-review.md` § Gate 0.
+
+## Fixes
+
+- **Creating a RunPod network volume no longer reports "Volume not created" when it was made.** RunPod sometimes answers a 500 after creating it; the app now finds and selects that volume, so a retry no longer bills a second one. (MPI-1199)
