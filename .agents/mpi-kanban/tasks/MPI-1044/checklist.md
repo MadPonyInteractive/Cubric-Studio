@@ -54,7 +54,9 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       Video Edit, so the Pod smoke's Video Edit run covers it. 2026-10-17: both DONE, Fabio's eye test
       passed (MPI-1136 became `send_cards`: cards go OUT of the open project, by hand, kind, mark or
       newest; closed 878cb6e28. MPI-1154 closed cdd85078f).
-- [ ] One Pod session on the v0.26.0 RELEASE image: `--flows all` smoke (360 Panorama, Render path, both
+- [x] (Overtaken, closed 2026-10-19: MPI-1097 + MPI-1045 remote PASS in the 2026-10-18 live session above;
+      the full `--all` + 18 Flows smoke ran on the 0.42.1 bump; clean RELEASE image v0.28.0 pinned stable.)
+      One Pod session on the v0.26.0 RELEASE image: `--flows all` smoke (360 Panorama, Render path, both
       Character Sheet Flows, Video Edit, Transcribe, Make seamless, Qwen 2.1), describe-encoder check
       (MPI-1045), MPI-1097 live proof. Price and run count to Fabio first. 2026-10-14: priced ~$2 on an
       RTX PRO 4500 (now first in GPU_ORDER), cap $5, Fabio said yes. The plain run is now changed-only
