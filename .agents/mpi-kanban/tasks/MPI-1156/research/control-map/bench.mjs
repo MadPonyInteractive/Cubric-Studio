@@ -13,8 +13,8 @@ const TYPES = { pose: 'OpenposePreprocessor', depth: 'DepthAnythingV2Preprocesso
 globalThis.localStorage ??= { getItem: () => null, setItem() {}, removeItem() {} };
 const cs = await import(pathToFileURL(`${repo}/js/data/childSafety.js`).href);
 const { buildDescribeInjectionParams } = await import(pathToFileURL(`${repo}/js/services/llmService.js`).href);
-const QUESTIONS = JSON.parse(fs.readFileSync(new URL('./questions.json', import.meta.url), 'utf8'));
-QUESTIONS.AGE ??= cs.AGE_QUESTION;
+const QUESTIONS = JSON.parse(fs.readFileSync(new URL(`./${process.env.Q || 'questions.json'}`, import.meta.url), 'utf8'));
+if (!process.env.NOAGE) QUESTIONS.AGE ??= cs.AGE_QUESTION;
 const no = (a) => cs.parseAgeAnswer(a);
 
 async function run(graph, outNode) {
@@ -31,6 +31,10 @@ async function run(graph, outNode) {
 }
 
 async function makeMap(file, type) {
+    // SAVED=1: ask the maps an earlier run saved, never re-make them.
+    // PHOTO=1: ask the source photo itself (the picture check, not a map).
+    if (process.env.PHOTO) return `${IN}${file}`;
+    if (process.env.SAVED) return `${OUT}mpi_ctl_maps/${file.replace(/\.png$/, '')}_${type}_00001_.png`;
     const name = `mpi_ctl_maps/${file.replace(/\.png$/, '')}_${type}`;
     const out = await run({
         1: { class_type: 'LoadImage', inputs: { image: `mpi_ctl/${file}` } },
@@ -61,7 +65,7 @@ for (const f of fs.readdirSync(IN).filter((n) => n.endsWith('.png') && n.startsW
         const cells = [];
         for (const [qk, q] of Object.entries(QUESTIONS)) {
             const a = [];
-            for (let i = 0; i < REPEATS; i++) a.push(no(await ask(map, q)) ? 'NO' : 'YES');
+            for (let i = 0; i < REPEATS; i++) { const t = await ask(map, q); a.push(qk.startsWith('YEARS') ? t.trim().slice(0, 12) : no(t) ? 'NO' : 'YES'); }
             cells.push(`${qk} ${a.join('/')}`);
         }
         const line = `${f.padEnd(36)} ${type.padEnd(9)} ${cells.join('  ')}`;

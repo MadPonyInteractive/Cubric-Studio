@@ -629,11 +629,30 @@ export function parseAgeAnswer(answer) {
 export const SKETCH_QUESTION = 'Is this picture only a rough doodle: thick strokes, blobs or stick figures drawn on a plain background, where no person has a drawn face, hands or body detail? A photograph, a painting, an illustration, anime or a detailed line drawing is not a rough doodle, and neither is a photograph with strokes drawn over it. Answer with exactly one word: YES or NO.';
 
 /**
- * What a kept age answer is keyed by (`mediaVerdicts.js`): a picture's age + doodle questions, a
- * clip's age question. " (own look)" re-keyed both on 2026-10-19, when an edit stopped taking its
- * source's YES, so a YES once inherited is asked again.
+ * Asked only of a picture the age question said YES to and that is not a doodle (Fabio 2026-10-19:
+ * a plain adult in a halter top was refused animating in Video Edit). "Could be under 18" says YES
+ * to every 25-year-old benched; a number does not. Benched on the ComfyUI Qwen3-VL 4B describer,
+ * the same answer 3 of 3: children 10-12, dressed 15-17s 13-18, Fabio's young-looking adult 18,
+ * his pink-haired adult 20, 25-year-olds 25, a 70-year-old 80.
  */
-export const PICTURE_AGE_KEY = AGE_QUESTION + SKETCH_QUESTION + ' (own look)';
+export const YEARS_QUESTION = 'How old is the youngest person in this picture, in years? A person is a human, real or drawn, or any character with a human body. Give your best guess as one whole number and nothing else. If there is no person, answer 0.';
+
+/** The guess an adult clears at: every benched teen guessed 18 or under (Fabio's pick, 2026-10-19). */
+export const ADULT_YEARS = 20;
+
+/** The guess as whole years; anything but a bare number is null, and the YES stands. */
+export function parseYears(answer) {
+    const text = String(answer || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim().replace(/\.$/, '');
+    return /^\d{1,3}$/.test(text) ? Number(text) : null;
+}
+
+/**
+ * What a kept age answer is keyed by (`mediaVerdicts.js`): a picture's age + doodle + age-guess
+ * questions, a clip's age question. " (own look)" re-keyed both on 2026-10-19, when an edit stopped
+ * taking its source's YES, so a YES once inherited is asked again; the age guess re-keyed pictures
+ * again, so a YES kept before it is asked again.
+ */
+export const PICTURE_AGE_KEY = AGE_QUESTION + SKETCH_QUESTION + YEARS_QUESTION + ` (own look, clears at ${ADULT_YEARS})`;
 export const CLIP_AGE_KEY = AGE_QUESTION + ' (own look)';
 
 /** Only a bare YES is a doodle: anything else leaves the picture looked at as it was. */

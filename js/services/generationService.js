@@ -37,7 +37,7 @@ import { orderVersions, shownVersion } from '../utils/outputVersions.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { ce } from '../utils/dom.js';
 import { collapseQueueBatches } from './generationBatch.js';
-import { checkChildSafety, childSafetyGate, gateWords, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, controlMapOf, AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION, SKETCH_QUESTION, PICTURE_AGE_KEY, CLIP_AGE_KEY, parseAgeAnswer, parseSketchAnswer, refusal, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
+import { checkChildSafety, childSafetyGate, gateWords, configContext, CHILD_SAFETY_CODE, needsPictureCheck, picturesOf, controlMapOf, AGE_QUESTION, EXPOSED_QUESTION, CLOTHES_QUESTION, SKETCH_QUESTION, PICTURE_AGE_KEY, CLIP_AGE_KEY, parseAgeAnswer, parseSketchAnswer, YEARS_QUESTION, ADULT_YEARS, parseYears, refusal, lookWanted, NUDITY_SYSTEM } from '../data/childSafety.js';
 import { cachedVerdicts } from './mediaVerdicts.js';
 
 // ── Cue queue (in-app, THREE-LANE dispatch) ─────────────────────────────────
@@ -726,12 +726,20 @@ async function _pictureVerdicts(config, llm, pictures, clips, refs, video, map =
     // MPI-1173: a picture the age question says YES to is asked whether it is only a rough doodle;
     // a bare YES keeps it NO. Both questions key the kept answer (`PICTURE_AGE_KEY`), so a YES kept
     // before this wording is asked again.
+    // Not a doodle, its age guessed (`YEARS_QUESTION`): ADULT_YEARS or more clears the YES.
     const pictureAge = async (url) => {
         const minor = await describe(url, AGE_QUESTION);
         if (minor !== true) return minor;
-        const r = llm ? await llm.describeImage({ imagePath: url, question: SKETCH_QUESTION }) : null;
-        if (!r?.ok || !parseSketchAnswer(r.text)) return true;
-        clientLogger.info('generationService', '[childSafety] a rough doodle: no age in it, the words decide');
+        const look = (question) => (llm ? llm.describeImage({ imagePath: url, question }) : null);
+        const sketch = await look(SKETCH_QUESTION);
+        if (sketch?.ok && parseSketchAnswer(sketch.text)) {
+            clientLogger.info('generationService', '[childSafety] a rough doodle: no age in it, the words decide');
+            return false;
+        }
+        const years = await look(YEARS_QUESTION);
+        const guess = years?.ok ? parseYears(years.text) : null;
+        if (guess === null || guess < ADULT_YEARS) return true;
+        clientLogger.info('generationService', `[childSafety] guessed ${guess}: an adult, the words decide`);
         return false;
     };
     // A control map, kept per picture and type: the age question asked of what the model gets.

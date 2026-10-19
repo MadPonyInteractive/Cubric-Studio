@@ -30,6 +30,8 @@ let exposedAnswer = 'NO';
 let clothesAnswer = 'NO';
 // MPI-1173: asked after an age YES; a bare YES (a rough doodle) lets the words decide.
 let sketchAnswer = 'NO';
+// Fabio 2026-10-19: the age guess, asked after an age YES that is not a doodle; 20 or more clears it.
+let yearsAnswer = '10';
 const describeBodies = [];
 // Card sidecars (`/load-meta-batch`, `/update-meta`): the kept answers. Frames grabbed off a clip
 // land through `place-preview-asset`.
@@ -53,6 +55,7 @@ globalThis.fetch = (url, init) => {
         if (/shirtless, topless or nude/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: exposedAnswer }) });
         if (/clothing in this picture/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: clothesAnswer }) });
         if (/only a rough doodle/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: sketchAnswer }) });
+        if (/How old is the youngest person/.test(body.question)) return Promise.resolve({ json: async () => ({ ok: true, text: yearsAnswer }) });
         return Promise.resolve({ json: async () => describeAnswer });
     }
     if (url === '/load-meta-batch') {
@@ -245,7 +248,7 @@ test('a rough doodle the age question says YES to queues when the describer call
             await until(() => queued(r.queueJobId) || seen.errors.length > 0);
             off();
             assert.strictEqual(queued(r.queueJobId), passes, sketch);
-            assert.deepStrictEqual(describeBodies.slice(before).map((b) => /only a rough doodle/.test(b.question)), [false, true], 'age, then doodle');
+            assert.deepStrictEqual(describeBodies.slice(before).map((b) => /only a rough doodle/.test(b.question)), sketch === 'YES' ? [false, true] : [false, true, false], 'age, then doodle (then its age guess)');
         }
         // A doodle never clears words that name a child.
         sketchAnswer = 'YES';
@@ -255,6 +258,34 @@ test('a rough doodle the age question says YES to queues when the describer call
         assert.strictEqual(seen.errors[0]?.code, 'CHILD_SAFETY');
     } finally {
         sketchAnswer = 'NO';
+    }
+});
+
+// Fabio 2026-10-19: his pink-haired adult in a halter top, animated in Video Edit, was refused: the
+// age question says YES to 25-year-olds. A guess of 20 or more clears the YES; 18 (his young-looking
+// adult, a 16-year-old's guess) or anything but a bare number does not.
+test('a picture the age question says YES to queues when its age guess is 20 or more; nothing else does', async () => {
+    describeAnswer = { ok: true, text: 'YES' };
+    try {
+        for (const [years, passes] of [['25', true], ['20', true], ['20.', true], ['18', false], ['about 30', false], ['', false]]) {
+            yearsAnswer = years;
+            const { seen, off, callbacks } = capture();
+            const r = enqueueGeneration(edit('a beautiful lady lying in bed, wearing lingerie'), callbacks);
+            await until(() => queued(r.queueJobId) || seen.errors.length > 0);
+            off();
+            assert.strictEqual(queued(r.queueJobId), passes, JSON.stringify(years));
+        }
+        // An adult in a halter top animates: the swimwear question is never asked of a NO.
+        yearsAnswer = '20';
+        exposedAnswer = 'YES';
+        const r = enqueueGeneration(animate('she dances'), {});
+        await until(() => queued(r.queueJobId));
+        assert.ok(queued(r.queueJobId), 'animated');
+        // A guess never clears words that name a child.
+        assert.strictEqual(enqueueGeneration(edit('a 12 year old girl wearing lingerie'), {}), null, 'refused on the words');
+    } finally {
+        yearsAnswer = '10';
+        exposedAnswer = 'NO';
     }
 });
 
@@ -420,7 +451,7 @@ test('unreadable words the model does not clear with a bare NO are looked at: re
         assert.match(seen.warnings[0], /could not clear this prompt/, answer);
         // Asked before the look, then again with the picture's minor in the run.
         assert.strictEqual(nudityCalls, asked + 2, `asked twice (${answer})`);
-        assert.strictEqual(describeBodies.length, looks + 2, `looked at, then not a doodle (${answer})`);
+        assert.strictEqual(describeBodies.length, looks + 3, `looked at, not a doodle, guessed 10 (${answer})`);
     }
 });
 
@@ -465,12 +496,12 @@ test('animating a picture that may show a minor in swimwear or less is refused, 
     off();
     assert.strictEqual(queued(r.queueJobId), false);
     assert.match(seen.warnings[0], /is never animated/);
-    assert.strictEqual(describeBodies.length, before + 3, 'the age, not a doodle, then what they wear');
+    assert.strictEqual(describeBodies.length, before + 4, 'the age, not a doodle, guessed 10, then what they wear');
     exposedAnswer = 'NO';
 });
 
 test('animating a dressed child, or an adult, queues', async () => {
-    for (const [age, looks] of [['YES', 3], ['NO', 1]]) {
+    for (const [age, looks] of [['YES', 4], ['NO', 1]]) {
         describeAnswer = { ok: true, text: age };
         const before = describeBodies.length;
         const r = enqueueGeneration(animate('she waves at the camera'), {});
