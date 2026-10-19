@@ -146,7 +146,13 @@ Steps:
      installation is X, so the Y update was not applied"* — and leaves the folder
      byte-identical. That refusal is the `apply-update.cjs` guard working. It also means
      this release cannot reach that user as a delta: ship a FULL bundle.
-5. Launch, run one image generation end to end, open the PNG.
+5. Launch, run one image generation end to end, open the PNG. **Do it on the FIRST launch after
+   the update, and let the app move its own engine:** never POST `/engine/upgrade` or
+   `/comfy/start` beside the app's own. A second upgrade wipes the engine (MPI-1204); and a
+   first-launch failure is exactly what users hit, while a relaunch heals it and hides it: the
+   2.1.1 re-cut 2 refused its first picture (two engine starts at once, MPI-1206) and generated
+   fine after a restart. Before generating, grep `app*.log` for one `Starting ComfyUI
+   background process...` and no `degraded`.
 6. Confirm `user-data\` (projects, secrets, settings) survived. Necessary, never sufficient.
 
 **Record the outcome in `dev_configs/update-evidence.json`.**

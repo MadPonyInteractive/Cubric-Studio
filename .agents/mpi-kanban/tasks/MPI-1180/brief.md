@@ -12,6 +12,21 @@ Umbrella: MPI-1179 (New Models to Test), phase 1. Researched 2026-10-18.
   with bounding boxes placing text and objects. Strong text rendering, prompts up to 4K tokens.
 - Licence: weights and code Apache-2.0 (HF model card + the ComfyUI PR).
 
+## Unblocked 2026-10-19
+
+- 2.1 shipped engine **v0.42.1** (2.1.0 and 2.1.1 published). Both MOSS PRs are inside it:
+  `compare v0.42.1...<merge sha>` reads `behind` for PR 17095 (e087d8f6) and PR 17099 (a639f187).
+  The bench no longer waits on a bump; the blocker section below is history.
+
+## Bounding boxes: reuse the Flux 3 work (Fabio, 2026-10-19)
+
+- Fabio is integrating FLUX.3 Klein (MPI-1181), which uses bounding boxes for both text-to-image
+  and editing, and that card is building the app's way of drawing and sending those boxes.
+- MOSS-Image takes boxes too (its layout prompt, "What to measure" item 4). Do NOT build a second
+  box UI or prompt path for MOSS: reuse whatever MPI-1181 lands, and read its brief's box section
+  (`t2i_bbox` / `i2i_bbox`, the 0-1000 grid, `CreateBoundingBoxes` -> layout prompt) before
+  wiring MOSS. Check whether MOSS's layout JSON matches Flux 3's row shape or needs a mapping.
+
 ## Blocker - the engine
 
 - Native ComfyUI support: Comfy-Org/ComfyUI PR 17095 (kijai), merged 2026-10-16, plus
