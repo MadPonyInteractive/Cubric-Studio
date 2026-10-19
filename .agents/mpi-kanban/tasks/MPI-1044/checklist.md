@@ -105,7 +105,7 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       Eye test on 0.42.1 PASSED (Fabio, after the cut; should have preceded it): Describe on ComfyUI qwen3vl
       clean (log 12:14), Enhance on ComfyUI "Enhanced by qwen3vl_4b_abliterated" clean. IndexNow ping SENT (Fabio's yes):
       key file 3586aee7….txt at website 33ef8e6, served live; 17 sitemap URLs POSTed to api.indexnow.org, HTTP 202.
-- [ ] 2.1.1 (Fabio via the "Network volume creation error" session, 2026-10-19): one fix, MPI-1199 RunPod
+- [x] 2.1.1 (Fabio via the "Network volume creation error" session, 2026-10-19): one fix, MPI-1199 RunPod
       volume create 5xx (7a7a621f5). Preconditions green (no baselines, engine unchanged, Pod runtime
       dev == stable, mcpb 28 == TOOLS). Stamp 8ec932d31, notes approved by Fabio (.approved-2.1.1.json).
       npm test 3417/0, release:deps 341/341, test:desktop 245/246: model-settings-popup fails 4/5
@@ -127,7 +127,9 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       tag -> b60ed5303, mpi-ci 39313364316, 6 files in Builds/v2.1.1 (BUILD_HASH b60ed53033cc), CI
       artifacts deleted. Update test on FRESH install e: 29/29 identical, one engine upgrade, one start,
       one pip, first-launch SDXL picture rendered and opened; update-evidence.json rewritten,
-      release:check:publish passes. NEXT: Gate 2 (body diff: + MPI-1206 line + intro), then publish.
+      release:check:publish passes. Gate 2: Fabio approved the body. v2.1.1 PUBLISHED --latest on
+      tag b60ed5303; releases/latest = v2.1.1, draft false, prerelease false, 6 assets `uploaded`, each
+      byte size equal to Builds/v2.1.1. Left to Fabio: D:/CVTest b/c/d/e installs + docs-*-test folders.
       OLD NEXT (done): (1) CI green on 809cce797 (run 39299834217) -> close MPI-1205 for the archived peer
       (done + validation.md with run id + tick "CI green" in its checklist). (2) Move the tag:
       `git tag -f -a v2.1.1 -m v2.1.1 <master sha with ea0f11f0c>` + `git push --force origin

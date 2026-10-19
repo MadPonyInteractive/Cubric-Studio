@@ -6,4 +6,4 @@
 - [x] CI green on the commit: Tests run 39306413245 on d20daa9c3 (first attempt red on an unrelated upload-cancel ECONNRESET flake, re-run all green).
 - [x] App-level proof on build b60ed53033cc (install e): engine moved at launch, one start, one pip pass, first picture renders.
 - [x] Ship: Fabio took it into 2.1.1 (re-cut 3), notes line approved (hash acab3e0b, b60ed5303).
-- [ ] 2.1.1 published.
+- [x] 2.1.1 published 2026-10-19 (releases/latest = v2.1.1 at b60ed5303).
