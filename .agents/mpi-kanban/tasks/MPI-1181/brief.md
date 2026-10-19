@@ -120,6 +120,37 @@ templates**, not mandatory: both `image_flux3_klein_t2i` and `_image_edit` route
 `ComfySwitchNode` (default `false` = off). So v1 can ship WITHOUT the 6.7 GB upsampler and lean on
 our Enhancer, which removes the 16 GB-RAM worry. Bench with and without once.
 
+**Upsampler research (2026-10-19, `black-forest-labs/flux-3-image-klein-pup` README, ungated, Apache 2.0):**
+- It is a full fine-tune of Qwen3.5-9B (VL, vision tower frozen): SFT on short->long pairs, then
+  preference tuning on its own prompts RENDERED by Klein at the same seed. That last step is the only
+  thing a generic LLM lacks.
+- **BFL say a substitute is fine:** "Any other LLM can do the job with the system prompts in
+  `system_prompts.json`." Four prompts: `t2i`, `i2i`, `t2i_bbox`, `i2i_bbox` (copy kept in this
+  card's research once benched). What they insist on is SOME upsampler: a short prompt "as typed
+  gives generic output". Captions run 100-350 words (t2i), 50-150 (edit).
+- Decoding: greedy, top_p 0.95, top_k 20, presence penalty 1.5 for t2i, 0 for edits. No thinking.
+  Edit user message: the references first, then "Reference images follow in order (the first image,
+  the second image, ...).\nUser request: ...\nOutput the caption."
+- It does not refuse anything (BFL wrap it with an optional `--safety`). Our child-safety gate runs on
+  the TYPED prompt; an in-graph upsampler writes after the gate. Check `docs/child-safety.md` covers
+  in-graph enhance (`settleInGraphEnhance` exists) before shipping PUP.
+- **Box modes write the box table themselves.** `t2i_bbox` PLANS boxes from a plain request;
+  with user boxes, "the `*_bbox` prompts take the boxes as JSON after the request" and keep them
+  exactly. `i2i_bbox` uses a RICHER row than `Flux3LayoutPrompt` emits: `{id, from, src_bbox, tgt_bbox, desc}`
+  (moves and resizes carry both boxes; ids are class nouns `person_1`, `cup_2`, not `obj_N`). The
+  exact scaffolds are `flux3/pup.py` and `flux3/bbox.py` in github.com/black-forest-labs/flux-3-image-klein:
+  read them before building the Boxes payload.
+- **Our Enhancer is the natural replacement:** its default backend is ComfyUI running
+  `qwen3vl-abliterated-clip` (Qwen3-VL-4B), already installed with the engine (`docs/llm.md`), and it
+  is the SAME weight we hope to reuse as Flux 3's text encoder. A `flux-3.recipe.js` built from BFL's
+  four system prompts (`/create-enhancer-recipe`) costs users no download. Weak spot: our model recipes
+  are text-only, and `i2i` wants to SEE the references (r2v describes staged pictures first, MPI-1084;
+  the ComfyUI enhancer is VL, so passing the images may be possible).
+- **Bench (same seed, same short prompts, t2i + edit + one box case):** (1) raw prompt, (2) PUP w4a8
+  (6.7 GB), (3) Qwen3-VL-4B abliterated + BFL system prompt, (4) a Remote model + BFL system prompt.
+  If (3) is close to (2), ship the recipe and no PUP. If not, PUP becomes an optional "best quality"
+  download, never required (16 GB-RAM tester).
+
 ### 2. Ten reference images - our own node, the MpiH3References way
 
 Core node: `ReferenceMultiLatent` ("Set Reference Multi Latent", `comfy_extras/nodes_edit_model.py`):
