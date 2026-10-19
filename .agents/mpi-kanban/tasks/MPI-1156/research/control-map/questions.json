@@ -1,0 +1,3 @@
+{
+  "MAP": "This picture is a control map an image generator copies the shape of a photo from: a depth map (grey shading), an edge map (thin lines), a rough scribble, or a pose skeleton (coloured sticks and dots). It keeps shapes, not faces or detail. Judge only the shapes: from the body size, build and proportions of any person in it (the head against the body, the length of the limbs), could that person be under 18? A person is a human or any character with a human body. If no person's shape can be made out, answer NO. Answer with exactly one word: YES or NO."
+}
