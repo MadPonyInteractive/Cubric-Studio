@@ -92,14 +92,14 @@ Working list: brief.md § "2026-10-14 status check" and § Blockers.
       2026-10-19 Fabio approved the body (Gate 2); v2.1.0 PUBLISHED --latest at tag 4a52fb289. Verified via
       `releases/latest`: tag v2.1.0, draft false, prerelease false, 6 assets `uploaded`, each byte size equal
       to D:/CubricStudio/Vision/Builds/v2.1.0. Issue #10 (Stop crash) was already closed.
-      Cleanup approved by Fabio (volume cavs1zgt5a, D:/scratch-mpi1194, D:/CVTest/CubricVision-v1.5.0-to-v2.1.0)
+      Cleanup approved by Fabio (volume cavs1zgt5a [Fabio deleted it 2026-10-19], D:/scratch-mpi1194, D:/CVTest/CubricVision-v1.5.0-to-v2.1.0)
       but NOT done by the agent: the key is only reachable through his :3000 app (classifier refused) and the
       rm safety check refused the D:\ top-level folders. Left to Fabio (RunPod console + Explorer).
 - [x] Same day: Claude Desktop bundle 0.3.2 (public steps need Fabio's yes), website guides (MPI-1124).
       2026-10-19 Fabio's yes. Bundle: manifest 28 tools == routes/mcp.js TOOLS (new since 0.3.0: import_media,
       send_cards); packed with mcpb@2.1.2 (3 files), released mcpb-v0.3.2 --latest, both the versioned and
       releases/latest download hash to cff13def…; cubric-studio-agents server.json 0.3.2 at 5230827, `mcp-publisher
-      validate` OK; the registry `publish` is Fabio's one line (device-code login, classifier blocks the agent).
+      validate` OK; Fabio published to the MCP Registry: 0.3.2 active, isLatest (checked /v0/servers).
       Guides: every "2.1" line true against the shipped notes, competitor facts re-checked on GitHub (A1111
       v1.10.1 Feb 2025, Forge last push Jul 2025, Fooocus LTS); merged into website main c5c9704 and pushed.
       Still owed: Enhance + Describe eye test on 0.42.1 (Fabio, should have preceded the cut); IndexNow/Bing
