@@ -54,8 +54,8 @@ const IMAGE_ORDER = [
 
 /**
  * `[modelId, op]`, best first. MPI-1202 (Fabio 2026-10-19): Qwen-Image 2.1, then Klein 9B or
- * 4B, then Krea 2, "the worst for editing" — live, Cosmo was starting edits on it. Boogu
- * (one image only) sits between Klein and Krea 2; Fabio's list did not name it.
+ * 4B, then Boogu (one image only), then Qwen Edit. Krea 2 is LAST: "the worst editor we
+ * have" — live, Cosmo was starting edits on it.
  */
 const EDIT = [
     ['qwen-image-2-1', 'edit'],
@@ -63,8 +63,8 @@ const EDIT = [
     ['klein-4b', 'kleinEdit'],
     ['boogu-edit-high', 'edit'],
     ['boogu-edit-balanced', 'edit'],
-    ['krea2', 'krea2Edit'],
     ['qwen-edit', 'qwenEdit'],
+    ['krea2', 'krea2Edit'],
 ];
 
 const T2V = [
@@ -97,7 +97,7 @@ const REF2V = [
  * angle)" went to Boogu, rank 1, with B alone, and the furniture was invented from the
  * words. "One image" alone did not say what that rules out, so the rank won.
  */
-const ONE_IMAGE = 'it takes exactly one image, so it can never bring in anything from another picture (a person, an object, the furniture of the same room from another angle): that is the Qwen-Image 2.1 edit, else kleinEdit, else krea2Edit, else qwenEdit, with the picture being changed first and the one holding the content second';
+const ONE_IMAGE = 'it takes exactly one image, so it can never bring in anything from another picture (a person, an object, the furniture of the same room from another angle): that is the Qwen-Image 2.1 edit, else kleinEdit, else qwenEdit, else krea2Edit, with the picture being changed first and the one holding the content second';
 
 /** Keyed `modelId:op` where the strength is about that op, else by `modelId`. */// Neither adds skin detail unless the prompt asks for it.
 const KREA2_SKIN = 'the best skin detail here, but only at its own low default denoise — push it higher and the character changes too. Ask for it in the prompt, e.g. "high skin detail, visible pores"';
